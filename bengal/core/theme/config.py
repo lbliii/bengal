@@ -3,6 +3,40 @@ Theme configuration object for Bengal SSG.
 
 Provides theme-related configuration accessible in templates as `site.theme`.
 Includes feature flags system for declarative theme customization.
+
+Public API:
+    Theme: Theme configuration dataclass with feature flags and appearance
+
+Key Concepts:
+    Feature Flags: Declarative toggles for theme behavior. Users enable
+        features via config rather than editing templates:
+
+        [theme]
+        features = ["navigation.toc", "content.code.copy"]
+
+    Appearance Modes: Control default color scheme:
+        - "light": Light mode by default
+        - "dark": Dark mode by default
+        - "system": Follow user's system preference
+
+    Color Palettes: Named color schemes for theming. The default_palette
+        field specifies which palette to use initially.
+
+Usage:
+    # In templates:
+    {% if site.theme.has_feature('navigation.toc') %}
+      {{ render_toc(page) }}
+    {% endif %}
+
+    # Programmatic access:
+    theme = Theme.from_config(site_config, root_path=site.root_path)
+    if theme.has_feature("content.code.copy"):
+        enable_code_copy()
+
+Related Packages:
+    bengal.core.theme.registry: Installed theme discovery via entry points
+    bengal.core.theme.resolution: Theme inheritance chain resolution
+    bengal.themes.config: ThemeConfig for theme.yaml loading
 """
 
 from __future__ import annotations

@@ -1,13 +1,41 @@
 """
-Thread-local parser management for rendering pipeline.
+Thread-local state management for parallel rendering.
 
-Provides thread-safe parser instance caching to avoid expensive re-initialization
-during parallel page rendering.
+This module provides thread-safe caching for expensive resources during
+parallel page rendering, primarily markdown parser instances.
+
+Architecture:
+    Bengal renders pages in parallel using ThreadPoolExecutor. Without caching,
+    each page would create its own parser (~10ms overhead), wasting significant
+    time on repeated initialization.
+
+    This module provides:
+    - **Parser caching**: One parser per worker thread, reused across pages
+    - **Directory tracking**: Thread-safe set of created directories to skip
+      redundant mkdir syscalls
+
+Performance Impact:
+    With max_workers=10 and 200 pages:
+
+    Without caching: 200 × 10ms = 2 seconds of parser initialization
+    With caching: 10 × 10ms = 100ms (10 parsers, one per thread)
+
+    Savings: 1.9 seconds (~95% reduction in parser overhead)
+
+Thread Safety:
+    - Parser cache uses ThreadLocalCache (thread-local storage)
+    - Directory tracking uses ThreadSafeSet (lock-protected)
+    - No shared mutable state between threads
+
+Public API:
+    - get_thread_parser(): Get cached parser for current thread
+    - mark_dir_created(): Track directory as created (returns True if new)
+    - reset_parser_cache(): Clear cache (for testing)
 
 Related Modules:
     - bengal.rendering.parsers: Parser implementations
-    - bengal.rendering.pipeline.core: Uses thread-local parsers
-    - bengal.utils.thread_local: Generic thread-local caching utilities
+    - bengal.rendering.pipeline.core: Main pipeline using these caches
+    - bengal.utils.thread_local: Generic thread-local utilities
 """
 
 from __future__ import annotations

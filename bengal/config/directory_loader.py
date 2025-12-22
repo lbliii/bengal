@@ -1,13 +1,49 @@
 """
 Directory-based configuration loader.
 
-Loads config from directory structure:
-    config/
-    ├── _default/       # Base config
-    ├── environments/   # Environment overrides
-    └── profiles/       # Profile settings
+This module provides a loader for configuration files organized in a directory
+structure, supporting multi-file configurations with environment-specific and
+profile-specific overrides.
 
-Merge order: defaults → environment → profile
+Directory Structure:
+    The expected directory layout is::
+
+        config/
+        ├── _default/           # Base configuration (multiple YAML files)
+        │   ├── site.yaml       # Site metadata
+        │   ├── build.yaml      # Build settings
+        │   └── theme.yaml      # Theme configuration
+        ├── environments/       # Environment-specific overrides
+        │   ├── production.yaml
+        │   ├── preview.yaml
+        │   └── local.yaml
+        └── profiles/           # User-defined profiles
+            ├── writer.yaml
+            └── developer.yaml
+
+Merge Precedence (lowest to highest):
+    1. ``config/_default/*.yaml`` - Base configuration
+    2. ``config/environments/<env>.yaml`` - Environment overrides
+    3. ``config/profiles/<profile>.yaml`` - Profile settings
+
+Features:
+    - Auto-detection of deployment environment (Netlify, Vercel, GitHub Actions)
+    - Feature group expansion (e.g., ``features.rss: true`` → detailed config)
+    - Origin tracking for debugging (``bengal config show --origin``)
+    - Automatic environment variable overrides for baseurl
+
+Classes:
+    ConfigLoadError: Raised when configuration loading fails.
+    ConfigDirectoryLoader: Main loader class for directory-based configuration.
+
+Example:
+    >>> from bengal.config.directory_loader import ConfigDirectoryLoader
+    >>> loader = ConfigDirectoryLoader(track_origins=True)
+    >>> config = loader.load(Path("config"), environment="production")
+
+See Also:
+    - :mod:`bengal.config.loader`: Single-file configuration loader.
+    - :mod:`bengal.config.environment`: Environment detection logic.
 """
 
 from __future__ import annotations
@@ -29,9 +65,20 @@ logger = get_logger(__name__)
 
 class ConfigLoadError(BengalConfigError):
     """
-    Raised when config loading fails.
+    Raised when configuration loading fails.
 
-    Extends BengalConfigError for consistent error handling.
+    This exception is raised for various configuration loading failures
+    including missing directories, invalid YAML syntax, or file permission
+    errors. Extends :class:`~bengal.errors.BengalConfigError` for consistent
+    error handling throughout the configuration system.
+
+    Attributes:
+        Inherited from BengalConfigError:
+            message: Description of the error.
+            file_path: Path to the problematic file or directory.
+            line_number: Line number where the error occurred (if applicable).
+            suggestion: Helpful suggestion for fixing the error.
+            original_error: The underlying exception, if any.
     """
 
     pass
@@ -39,25 +86,57 @@ class ConfigLoadError(BengalConfigError):
 
 class ConfigDirectoryLoader:
     """
-    Load configuration from directory structure.
+    Load configuration from a directory structure with layered overrides.
 
-    Supports:
-    - Multi-file configs in _default/
-    - Environment-specific overrides
-    - Profile-specific settings
-    - Origin tracking for introspection
+    This loader supports multi-file configurations organized in directories,
+    with automatic environment detection and profile-based customization.
+    It provides deterministic merging with clear precedence rules.
 
-    Examples:
-        >>> loader = ConfigDirectoryLoader()
-        >>> config = loader.load(Path("config"), environment="production", profile="dev")
+    Features:
+        - **Multi-file configs**: Split configuration across multiple YAML files
+          in ``_default/`` for better organization.
+        - **Environment overrides**: Automatic detection of deployment environment
+          with corresponding configuration overrides.
+        - **Profile support**: User-defined profiles for different use cases
+          (e.g., ``--profile writer``).
+        - **Origin tracking**: Optional tracking of which file contributed each
+          configuration key (for ``bengal config show --origin``).
+        - **Feature expansion**: Simple feature toggles expanded to detailed config.
+
+    Attributes:
+        track_origins: Whether origin tracking is enabled.
+        origin_tracker: The :class:`ConfigWithOrigin` instance if tracking is enabled.
+
+    Example:
+        Basic usage::
+
+            loader = ConfigDirectoryLoader()
+            config = loader.load(Path("config"))
+
+        With origin tracking::
+
+            loader = ConfigDirectoryLoader(track_origins=True)
+            config = loader.load(Path("config"), environment="production")
+            tracker = loader.get_origin_tracker()
+            print(tracker.show_with_origin())
+
+        With profile::
+
+            config = loader.load(
+                Path("config"),
+                environment="local",
+                profile="developer"
+            )
     """
 
     def __init__(self, track_origins: bool = False) -> None:
         """
-        Initialize loader.
+        Initialize the directory configuration loader.
 
         Args:
-            track_origins: Whether to track config origins for introspection
+            track_origins: If ``True``, track which file contributed each
+                configuration key. Use :meth:`get_origin_tracker` to access
+                the tracking information after loading. Default is ``False``.
         """
         self.track_origins = track_origins
         self.origin_tracker: ConfigWithOrigin | None = None
@@ -165,17 +244,22 @@ class ConfigDirectoryLoader:
 
     def _load_directory(self, directory: Path, _origin_prefix: str = "") -> dict[str, Any]:
         """
-        Load all YAML files in directory and merge.
+        Load and merge all YAML files in a directory.
+
+        Files are loaded in sorted order (alphabetically) for deterministic
+        behavior. Each file's contents are deep-merged with previous files,
+        with later files taking precedence for conflicting keys.
 
         Args:
-            directory: Directory to load from
-            _origin_prefix: Reserved for future origin tracking (currently unused)
+            directory: Directory containing YAML files to load.
+            _origin_prefix: Reserved for future origin tracking (currently unused).
 
         Returns:
-            Merged configuration from all files
+            Merged configuration dictionary from all files in the directory.
 
         Raises:
-            ConfigLoadError: If any YAML file fails to load
+            ConfigLoadError: If any YAML file fails to load or parse.
+                The error includes context about which file failed.
         """
         config: dict[str, Any] = {}
         errors = []
@@ -231,14 +315,19 @@ class ConfigDirectoryLoader:
 
     def _load_environment(self, config_dir: Path, environment: str) -> dict[str, Any] | None:
         """
-        Load environment-specific config.
+        Load environment-specific configuration overrides.
+
+        Searches for environment configuration in ``config_dir/environments/``
+        using multiple filename candidates (e.g., ``production.yaml``,
+        ``prod.yaml``).
 
         Args:
-            config_dir: Root config directory
-            environment: Environment name
+            config_dir: Root configuration directory.
+            environment: Environment name (e.g., ``"production"``, ``"preview"``).
 
         Returns:
-            Environment config, or None if not found
+            Environment configuration dictionary, or ``None`` if no matching
+            file is found.
         """
         env_dir = config_dir / "environments"
         if not env_dir.exists():
@@ -262,14 +351,18 @@ class ConfigDirectoryLoader:
 
     def _load_profile(self, config_dir: Path, profile: str) -> dict[str, Any] | None:
         """
-        Load profile-specific config.
+        Load profile-specific configuration overrides.
+
+        Searches for profile configuration in ``config_dir/profiles/`` with
+        both ``.yaml`` and ``.yml`` extensions.
 
         Args:
-            config_dir: Root config directory
-            profile: Profile name
+            config_dir: Root configuration directory.
+            profile: Profile name (e.g., ``"writer"``, ``"developer"``).
 
         Returns:
-            Profile config, or None if not found
+            Profile configuration dictionary, or ``None`` if no matching
+            file is found.
         """
         profiles_dir = config_dir / "profiles"
         if not profiles_dir.exists():
@@ -287,16 +380,21 @@ class ConfigDirectoryLoader:
 
     def _load_yaml(self, path: Path) -> dict[str, Any]:
         """
-        Load single YAML file with error handling.
+        Load a single YAML file with comprehensive error handling.
+
+        Parses the YAML file and returns its contents as a dictionary.
+        Provides detailed error messages with line numbers for syntax errors.
 
         Args:
-            path: Path to YAML file
+            path: Path to the YAML file.
 
         Returns:
-            Parsed YAML as dict
+            Parsed YAML content as a dictionary. Returns an empty dict
+            if the file is empty or contains only ``null``.
 
         Raises:
-            ConfigLoadError: If YAML parsing fails
+            ConfigLoadError: If YAML parsing fails (with line number if available)
+                or if the file cannot be read (permissions, encoding, etc.).
         """
         try:
             with path.open("r", encoding="utf-8") as f:
@@ -327,26 +425,47 @@ class ConfigDirectoryLoader:
 
     def get_origin_tracker(self) -> ConfigWithOrigin | None:
         """
-        Get origin tracker if tracking is enabled.
+        Get the origin tracker instance.
+
+        Returns the origin tracker if tracking was enabled during initialization
+        and :meth:`load` has been called. The tracker contains information about
+        which configuration file contributed each key.
 
         Returns:
-            Origin tracker, or None if tracking disabled
+            The :class:`ConfigWithOrigin` instance if ``track_origins=True``
+            was passed to the constructor and config has been loaded,
+            otherwise ``None``.
+
+        Example:
+            >>> loader = ConfigDirectoryLoader(track_origins=True)
+            >>> config = loader.load(Path("config"))
+            >>> tracker = loader.get_origin_tracker()
+            >>> tracker.get_origin("site.title")
+            '_default/site.yaml'
         """
         return self.origin_tracker
 
     def _flatten_config(self, config: dict[str, Any]) -> dict[str, Any]:
         """
-        Flatten nested config.
+        Flatten nested configuration for easier access.
 
-        Extracts common sections to top level:
-        - site.title → title
-        - build.parallel → parallel
+        Extracts values from common sections to the top level while preserving
+        the original section structure. This allows both flat access
+        (``config["title"]``) and section access (``config["site"]["title"]``).
+
+        Sections flattened:
+            - ``site.*`` → top level (title, baseurl, etc.)
+            - ``build.*`` → top level (parallel, incremental, etc.)
+            - ``dev.*`` → top level (cache_templates, watch_backend, etc.)
+            - ``features.*`` → top level (rss, sitemap, etc.)
+            - ``assets.*`` → top level with ``_assets`` suffix (minify_assets, etc.)
 
         Args:
-            config: Nested configuration dictionary
+            config: Nested configuration dictionary.
 
         Returns:
-            Flattened configuration (sections preserved, values also at top level)
+            Flattened configuration dictionary. Original sections are preserved
+            and values are also accessible at the top level.
         """
         flat = dict(config)
 

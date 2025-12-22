@@ -1,8 +1,43 @@
 """
 Environment-based configuration overrides.
 
-Provides automatic baseurl detection from deployment platforms
-(Netlify, Vercel, GitHub Actions) for ergonomic deployments.
+This module provides automatic baseurl detection from deployment platforms
+for zero-config deployments. It reads environment variables set by various
+hosting platforms and configures the site's baseurl accordingly.
+
+Supported Platforms:
+    - **BENGAL_BASEURL**: Explicit override (highest priority)
+    - **Netlify**: Reads ``URL`` or ``DEPLOY_PRIME_URL`` when ``NETLIFY=true``
+    - **Vercel**: Reads ``VERCEL_URL`` when ``VERCEL=1`` or ``VERCEL=true``
+    - **GitHub Pages**: Constructs baseurl from ``GITHUB_REPOSITORY`` when
+      ``GITHUB_ACTIONS=true``
+
+Priority Order:
+    1. Explicit non-empty config baseurl (always preserved)
+    2. ``BENGAL_BASEURL`` environment variable
+    3. Platform-specific detection (Netlify → Vercel → GitHub Pages)
+    4. No change (use whatever is in config)
+
+Key Functions:
+    apply_env_overrides: Apply environment-based overrides to configuration.
+
+Example:
+    >>> import os
+    >>> os.environ["NETLIFY"] = "true"
+    >>> os.environ["URL"] = "https://mysite.netlify.app"
+    >>> config = {}
+    >>> result = apply_env_overrides(config)
+    >>> result["baseurl"]
+    'https://mysite.netlify.app'
+
+Note:
+    This function never raises exceptions - deployment should not fail
+    due to environment detection issues. Errors are logged and the
+    original config is returned unchanged.
+
+See Also:
+    - :mod:`bengal.config.environment`: Environment detection (local/preview/production).
+    - :mod:`bengal.config.loader`: Uses env_overrides during config loading.
 """
 
 from __future__ import annotations

@@ -1,8 +1,46 @@
 """
 Knowledge Graph Analysis for Bengal SSG.
 
-Analyzes page connectivity, identifies hubs and leaves, finds orphaned pages,
-and provides insights for optimization and content strategy.
+The knowledge graph is the foundation of Bengal's site analysis capabilities.
+It models the site as a directed graph where pages are nodes and links are edges,
+enabling structural analysis, importance ranking, and navigation optimization.
+
+Data Sources:
+    The graph aggregates connections from multiple sources:
+    - Cross-references: Internal markdown links between pages
+    - Taxonomies: Shared tags and categories
+    - Related posts: Algorithm-computed relationships
+    - Menu items: Navigation structure
+    - Section hierarchy: Parent-child relationships
+
+Key Capabilities:
+    - Hub detection: Find highly-connected important pages
+    - Orphan detection: Identify pages with no incoming links
+    - Connectivity scoring: Weighted semantic link analysis
+    - Layer partitioning: Group pages for streaming builds
+    - Delegated analysis: PageRank, communities, paths, suggestions
+
+Classes:
+    GraphMetrics: Summary statistics about the graph structure
+    PageConnectivity: Connectivity details for a single page
+    KnowledgeGraph: Main graph builder and analysis coordinator
+
+Example:
+    >>> from bengal.analysis import KnowledgeGraph
+    >>> graph = KnowledgeGraph(site, exclude_autodoc=True)
+    >>> graph.build()
+    >>> # Basic analysis
+    >>> print(graph.format_stats())
+    >>> # Advanced analysis
+    >>> pagerank = graph.compute_pagerank()
+    >>> communities = graph.detect_communities()
+    >>> paths = graph.analyze_paths()
+    >>> suggestions = graph.suggest_links()
+
+See Also:
+    - bengal/analysis/graph_analysis.py: GraphAnalyzer implementation
+    - bengal/analysis/graph_reporting.py: GraphReporter implementation
+    - bengal/analysis/link_types.py: Semantic link type definitions
 """
 
 from __future__ import annotations

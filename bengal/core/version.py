@@ -1,63 +1,59 @@
 """
-Version model for versioned documentation support.
+Version models for versioned documentation support.
 
-This module provides the Version dataclass representing a documentation version,
-and VersionConfig for managing multiple versions across the site.
+Provides dataclasses for managing multiple documentation versions, supporting
+both folder-based and Git-based versioning modes.
 
-Key Concepts:
-    - Version: Single documentation version (e.g., v3, v2, v1)
-    - VersionConfig: Site-wide versioning configuration
-    - Aliases: Named references to versions (latest, stable, lts)
-    - Shared content: Content included in all versions (_shared/)
+Public API:
+    Version: Single documentation version (id, label, latest flag, banner)
+    VersionConfig: Site-wide versioning configuration and lookup methods
+    VersionBanner: Banner configuration for older version pages
+    GitVersionConfig: Git-specific versioning configuration
+    GitBranchPattern: Pattern matching for Git branches/tags
 
-Design:
-    Versioning supports two modes:
-    1. Folder mode (default): Versions in _versions/<version>/ folders
-    2. Git mode: Versions from Git branches/tags
-
-    Folder Mode:
-        - Main content (e.g., docs/) is the "latest" version
-        - Older versions live in _versions/<version>/
-        - Shared content in _shared/ is included in all versions
+Versioning Modes:
+    Folder Mode (default):
+        Main content (docs/) is the "latest" version. Older versions live
+        in _versions/<version>/. Shared content in _shared/ is included
+        in all versions.
 
     Git Mode:
-        - Versions discovered from Git branches/tags
-        - Pattern matching (e.g., release/*)
-        - No folder duplication - builds from Git history
-        - Parallel builds for all versions
+        Versions discovered from Git branches/tags via pattern matching.
+        No folder duplication—builds directly from Git history. Supports
+        parallel builds for all versions.
 
 URL Structure:
-    - Latest version: /docs/guide/ (no version prefix)
-    - Older versions: /docs/v2/guide/ (version prefix)
-    - Aliases: /docs/latest/guide/ → redirects to /docs/guide/
-
-Related:
-    - plan/drafted/rfc-versioned-documentation.md: Design rationale
-    - bengal/config/loader.py: Config loading
-    - bengal/discovery/content_discovery.py: Version discovery
-    - bengal/discovery/git_version_adapter.py: Git branch/tag discovery
+    Latest version: /docs/guide/ (no version prefix)
+    Older versions: /docs/v2/guide/ (version prefix after section)
+    Aliases: /docs/latest/guide/ → redirects to /docs/guide/
 
 Example:
-    >>> from bengal.core.version import Version, VersionConfig
-    >>>
-    >>> # Folder mode
-    >>> v3 = Version(id="v3", source="docs", label="3.0", latest=True)
-    >>> v2 = Version(id="v2", source="_versions/v2/docs", label="2.0")
-    >>>
-    >>> config = VersionConfig(
-    ...     enabled=True,
-    ...     versions=[v3, v2],
-    ...     aliases={"latest": "v3", "stable": "v3"},
-    ... )
-    >>>
-    >>> # Git mode
-    >>> config = VersionConfig(
-    ...     enabled=True,
-    ...     mode="git",
-    ...     git_config=GitVersionConfig(
-    ...         branches=[GitBranchPattern(pattern="release/*", version_from="branch")],
-    ...     ),
-    ... )
+    # Folder mode configuration
+    config = VersionConfig(
+        enabled=True,
+        versions=[
+            Version(id="v3", latest=True, label="3.0"),
+            Version(id="v2", label="2.0"),
+        ],
+        aliases={"latest": "v3", "stable": "v3"},
+    )
+
+    # Git mode configuration
+    config = VersionConfig(
+        enabled=True,
+        mode="git",
+        git_config=GitVersionConfig(
+            branches=[
+                GitBranchPattern(name="main", latest=True),
+                GitBranchPattern(pattern="release/*", strip_prefix="release/"),
+            ],
+        ),
+    )
+
+Related Packages:
+    bengal.config.loader: Configuration loading from bengal.toml
+    bengal.discovery.content_discovery: Version discovery during content scan
+    bengal.discovery.git_version_adapter: Git branch/tag discovery
 """
 
 from __future__ import annotations

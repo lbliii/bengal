@@ -2,10 +2,10 @@
 
 [![PyPI version](https://img.shields.io/pypi/v/bengal.svg)](https://pypi.org/project/bengal/)
 [![Build Status](https://github.com/lbliii/bengal/actions/workflows/tests.yml/badge.svg)](https://github.com/lbliii/bengal/actions/workflows/tests.yml)
-[![Python Version](https://img.shields.io/pypi/pyversions/bengal.svg)](https://pypi.org/project/bengal/)
+[![Python 3.14+](https://img.shields.io/badge/python-3.14+-blue.svg)](https://pypi.org/project/bengal/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-**A high-performance static site generator built for Python 3.14+**
+**A high-performance static site generator for Python 3.14+**
 
 ```bash
 pip install bengal
@@ -16,9 +16,9 @@ bengal new site mysite && cd mysite && bengal serve
 
 ## Why Bengal?
 
-- **Fast** — Parallel builds, incremental rebuilds, Zstandard-compressed cache
-- **Modern** — Python 3.14+ with free-threading support, type-safe throughout
-- **Batteries included** — Auto-generated API docs, content validation, knowledge graph analysis
+- **Fast** — Parallel builds, incremental rebuilds, Zstandard-compressed caching
+- **Modern** — Python 3.14+ with free-threading support, fully typed
+- **Batteries included** — Auto-generated API docs, content validation, site analysis
 - **Extensible** — Remote content sources, custom directives, flexible theming
 
 ---
@@ -26,28 +26,46 @@ bengal new site mysite && cd mysite && bengal serve
 ## Quick Start
 
 ```bash
-# Install
 pip install bengal
-
-# Create and run
 bengal new site mysite
 cd mysite
 bengal serve
 ```
 
-Open `localhost:5173`. Edit `content/`, see changes instantly.
+Open `localhost:5173`. Edit files in `content/`, changes appear instantly.
 
-### Common Commands
+**Commands:**
 
-```bash
-bengal build              # Production build
-bengal serve              # Dev server with live reload
-bengal validate           # Health checks
-bengal new page about     # Create page
-bengal graph report       # Site structure analysis
-```
+| Command | Description |
+|---------|-------------|
+| `bengal build` | Production build |
+| `bengal serve` | Dev server with live reload |
+| `bengal validate` | Health checks and validation |
+| `bengal fix` | Auto-fix common issues |
+| `bengal graph report` | Site structure analysis |
 
-Short aliases: `bengal b` (build), `bengal s` (serve), `bengal v` (validate)
+Aliases: `b` (build), `s` (serve), `v` (validate)
+
+---
+
+## What's New in 0.1.5
+
+**Performance:**
+- **NavTree architecture** — Pre-computed navigation with O(1) template access
+- **Zstandard caching** — 12-14x compression, 10x faster cache I/O (PEP 784)
+- **Parallel health checks** — 50-70% faster validation
+
+**Developer Experience:**
+- **Directive system v2** — Named closers, typed options, nesting contracts
+- **Dev server modernization** — Process isolation, Rust-based file watching
+- **Media embed directives** — YouTube, Vimeo, Gist, CodePen, Asciinema
+
+**Robustness:**
+- **Proactive template validation** — Syntax errors caught before build
+- **Autodoc incremental builds** — Only regenerate changed source files
+- **Build-integrated validation** — Tiered health checks during builds
+
+See the [full changelog](changelog.md) for details.
 
 ---
 
@@ -55,11 +73,11 @@ Short aliases: `bengal b` (build), `bengal s` (serve), `bengal v` (validate)
 
 ### Content Authoring
 
-**Markdown with directives** — Tabs, admonitions, dropdowns, code blocks, cards, and more:
+Markdown with directives — tabs, admonitions, code blocks, cards, and more:
 
 ~~~markdown
 :::{note} Pro tip
-You can nest **any markdown** inside directives.
+Nest **any markdown** inside directives.
 :::
 
 :::{tabs}
@@ -74,7 +92,7 @@ console.log("Hello")
 :::
 ~~~
 
-**Frontmatter** for metadata, visibility control, and custom templates:
+Frontmatter for metadata and visibility control:
 
 ```yaml
 ---
@@ -87,7 +105,7 @@ template: custom.html  # Custom template
 
 ### Auto-Generated Documentation
 
-Generate docs from source code—no imports required:
+Generate docs from source code without imports:
 
 ```yaml
 # config/_default/autodoc.yaml
@@ -109,8 +127,8 @@ openapi:
 Pull content from GitHub, Notion, or REST APIs:
 
 ```bash
-pip install bengal[github]     # GitHub source
-pip install bengal[notion]     # Notion source
+pip install bengal[github]      # GitHub source
+pip install bengal[notion]      # Notion source
 pip install bengal[all-sources] # All remote sources
 ```
 
@@ -128,36 +146,28 @@ collections = {
 
 ### Build Performance
 
-| Feature | Description |
-|---------|-------------|
-| **Parallel builds** | Utilizes all CPU cores |
-| **Incremental rebuilds** | Only rebuild changed files |
-| **Zstd cache** | 12-14x compression, 10x faster I/O |
-| **Memory-optimized** | Streaming mode for 5K+ page sites |
+| Feature | Benefit |
+|---------|---------|
+| Parallel builds | Utilizes all CPU cores |
+| Incremental rebuilds | Only rebuild changed files |
+| Zstd cache | 12-14x compression, 10x faster I/O |
+| Memory-optimized | Streaming mode for 5K+ page sites |
 
-### Site Analysis
+### Site Analysis & Validation
 
 ```bash
 bengal graph report    # Full connectivity analysis
 bengal graph orphans   # Find unlinked pages
-bengal graph suggest   # Link recommendations
-bengal analyze         # Unified site analysis
-```
-
-### Health Checks
-
-```bash
-bengal validate                    # Run all checks
-bengal validate --watch            # Continuous validation
-bengal health linkcheck            # Check all links
-bengal fix                         # Auto-fix common issues
+bengal validate        # Run health checks
+bengal validate --watch # Continuous validation
+bengal fix             # Auto-fix common issues
 ```
 
 ---
 
 ## Configuration
 
-Bengal uses a directory-based config system with environment and profile support:
+Directory-based config with environment and profile support:
 
 ```
 mysite/
@@ -173,7 +183,7 @@ mysite/
         └── dev.yaml
 ```
 
-**Minimal `bengal.toml`:**
+**Minimal config:**
 
 ```toml
 [site]
@@ -181,19 +191,12 @@ title = "My Site"
 baseurl = "https://example.com"
 ```
 
-**Environment-aware builds:**
+**Environment and profile builds:**
 
 ```bash
-bengal build -e production    # Uses production config
-bengal serve -e local         # Uses local config (default)
-```
-
-**Build profiles:**
-
-```bash
-bengal build --profile writer     # Fast, clean output
-bengal build --profile theme-dev  # Template debugging
-bengal build --profile dev        # Full observability
+bengal build -e production       # Production environment
+bengal build --profile writer    # Fast, clean output
+bengal build --profile dev       # Full observability
 ```
 
 ---
@@ -203,8 +206,6 @@ bengal build --profile dev        # Full observability
 ```
 mysite/
 ├── content/          # Markdown pages
-│   ├── index.md
-│   └── docs/
 ├── templates/        # Custom Jinja2 templates (optional)
 ├── assets/           # Static files (CSS, JS, images)
 ├── data/             # YAML/JSON data files
@@ -216,14 +217,13 @@ mysite/
 
 ## Theming
 
-Bengal ships with a modern, accessible default theme featuring:
+Bengal ships with a modern, accessible default theme:
 
 - Dark mode with system preference detection
 - Responsive design with mobile navigation
 - Syntax highlighting with copy buttons
 - Table of contents with scroll spy
 - Full-text search (Lunr.js)
-- Semantic design tokens
 
 **Customize templates:**
 
@@ -243,8 +243,8 @@ Bengal ships with a modern, accessible default theme featuring:
 
 ## Requirements
 
-- **Python 3.14+** (takes advantage of free-threading and modern features)
-- Works on Linux, macOS, Windows
+- **Python 3.14+** (uses free-threading and PEP 784 compression)
+- Linux, macOS, Windows
 
 ---
 
@@ -252,21 +252,19 @@ Bengal ships with a modern, accessible default theme featuring:
 
 Bengal prioritizes **correctness and clarity over backwards compatibility**.
 
-Each release represents the best solution we know how to deliver. When existing behavior no longer reflects the best design, it may be changed or removed. Upgrades require reading release notes and making any necessary changes.
+Each release represents the best solution we know how to deliver. When existing behavior no longer reflects the best design, it changes. Upgrades may require reading release notes and making adjustments.
 
-- **Fail loudly** — Breaking changes produce clear errors, not silent degradation
+- **Fail loudly** — Breaking changes produce clear errors
 - **User control** — You choose when to upgrade; we choose what changes
-- **No hidden layers** — No compatibility shims, fallbacks, or deprecated code paths
+- **No hidden layers** — No compatibility shims or deprecated code paths
 
-This approach keeps the codebase healthy and allows rapid evolution. If you need multi-year stability guarantees, pin your version.
-
-See the full [Project Philosophy](https://lbliii.github.io/bengal/docs/about/philosophy/) for details.
+If you need multi-year stability, pin your version.
 
 ---
 
 ## Documentation
 
-📚 Full documentation at **[lbliii.github.io/bengal](https://lbliii.github.io/bengal/)**
+📚 **[lbliii.github.io/bengal](https://lbliii.github.io/bengal/)**
 
 ---
 
@@ -275,8 +273,8 @@ See the full [Project Philosophy](https://lbliii.github.io/bengal/docs/about/phi
 ```bash
 git clone https://github.com/lbliii/bengal.git
 cd bengal
-uv sync --group dev    # Install with dev dependencies
-pytest                 # Run tests
+uv sync --group dev
+pytest
 ```
 
 ---

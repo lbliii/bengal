@@ -1,5 +1,19 @@
 """
 Internal link checker for page-to-page and anchor validation.
+
+Validates internal links by checking if target pages exist in the built
+output directory. Handles relative paths, baseurl stripping, and anchor
+validation.
+
+Features:
+    - Page existence checking via output directory scan
+    - Anchor validation against page headings
+    - Source file reference filtering (autodoc .py links)
+    - Baseurl path stripping for proper resolution
+
+Related:
+    - bengal.health.linkcheck.orchestrator: Coordinates with external checker
+    - bengal.health.linkcheck.models: LinkCheckResult data model
 """
 
 from __future__ import annotations
@@ -20,12 +34,26 @@ logger = get_logger(__name__)
 
 class InternalLinkChecker:
     """
-    Checker for internal links within a site.
+    Validates internal links within a built site.
 
-    Validates:
-    - Page-to-page links (resolved via paths)
-    - Anchor links to headings (#section-id)
-    - Relative links and absolute site links
+    Scans the output directory for HTML files and builds an index of valid
+    URLs. Checks links against this index and validates anchors when present.
+
+    Validation Coverage:
+        - Page-to-page links (absolute site paths)
+        - Anchor links (#section-id)
+        - Handles baseurl stripping
+        - Filters source file references (autodoc)
+
+    Attributes:
+        site: Site instance with output_dir
+        ignore_policy: IgnorePolicy for filtering certain links
+        output_dir: Path to built HTML files
+        baseurl_path: Base URL path to strip from links
+
+    Note:
+        Relative links are currently passed as OK with a metadata note,
+        as full resolution requires tracking the referencing page context.
     """
 
     def __init__(
@@ -36,8 +64,10 @@ class InternalLinkChecker:
         """
         Initialize internal link checker.
 
+        Scans the output directory to build an index of valid URLs.
+
         Args:
-            site: Site instance with pages and xref_index
+            site: Site instance with output_dir and config
             ignore_policy: Policy for ignoring certain links
         """
         self.site = site
@@ -86,13 +116,16 @@ class InternalLinkChecker:
 
     def check_links(self, links: list[tuple[str, str]]) -> dict[str, LinkCheckResult]:
         """
-        Check internal links.
+        Check internal links against the output directory index.
+
+        Deduplicates URLs and checks each against the built site structure.
 
         Args:
-            links: List of (url, first_ref) tuples
+            links: List of (url, first_ref) tuples where first_ref is the
+                page that contains this link.
 
         Returns:
-            Dict mapping URL to LinkCheckResult
+            Dict mapping URL string to LinkCheckResult.
         """
         # Group URLs by destination and count references
         url_refs: dict[str, list[str]] = {}
@@ -112,12 +145,20 @@ class InternalLinkChecker:
         """
         Check a single internal link.
 
+        Resolution steps:
+            1. Apply ignore policy
+            2. Filter source file references (.py files)
+            3. Parse URL to extract path and fragment
+            4. Strip baseurl if present
+            5. Check page existence in output index
+            6. Validate anchor if fragment present
+
         Args:
-            url: Internal URL to check
-            refs: List of pages that reference this URL
+            url: Internal URL to check (may include fragment).
+            refs: List of pages that reference this URL.
 
         Returns:
-            LinkCheckResult
+            LinkCheckResult with OK/BROKEN/IGNORED status.
         """
         # Check ignore policy
         should_ignore, ignore_reason = self.ignore_policy.should_ignore_url(url)

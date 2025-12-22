@@ -1,7 +1,25 @@
 """
 Ignore policy for link checking.
 
-Supports patterns, domains, and status ranges.
+Provides configurable rules for skipping certain URLs or HTTP status codes
+during link checking. Useful for excluding known-broken external links,
+rate-limited domains, or expected error responses.
+
+Configuration Options:
+    patterns: Regex patterns matched against full URL
+    domains: Domain substrings matched against URL
+    status_ranges: HTTP status codes or ranges to ignore
+
+Example config:
+    linkcheck:
+      exclude:
+        - "^https://example\\.com/legacy"
+      exclude_domain:
+        - "localhost"
+        - "127.0.0.1"
+      ignore_status:
+        - "403"
+        - "500-599"
 """
 
 from __future__ import annotations
@@ -12,12 +30,19 @@ from typing import Any
 
 class IgnorePolicy:
     """
-    Policy for ignoring certain links or statuses.
+    Configurable policy for ignoring links and HTTP status codes.
 
-    Supports:
-    - URL patterns (regex)
-    - Domain exclusions
-    - Status code ranges (e.g., "500-599", "403")
+    Supports three types of ignore rules:
+        patterns: Regex patterns matched against full URL string
+        domains: Domain substrings checked via "in" operator
+        status_ranges: HTTP status codes as singles ("403") or ranges ("500-599")
+
+    All rules are applied with OR logic - matching any rule causes ignore.
+
+    Attributes:
+        patterns: List of regex pattern strings
+        domains: List of domain substrings to match
+        status_ranges: List of status code specs
     """
 
     def __init__(
@@ -30,9 +55,9 @@ class IgnorePolicy:
         Initialize ignore policy.
 
         Args:
-            patterns: Regex patterns to match against URLs
-            domains: Domain names to ignore (e.g., "localhost", "example.com")
-            status_ranges: Status code ranges to ignore (e.g., "500-599", "403")
+            patterns: Regex patterns matched against full URL.
+            domains: Domain substrings (e.g., "localhost", "example.com").
+            status_ranges: Status codes/ranges (e.g., "403", "500-599").
         """
         self.patterns = patterns or []
         self.domains = domains or []
@@ -56,13 +81,15 @@ class IgnorePolicy:
 
     def should_ignore_url(self, url: str) -> tuple[bool, str | None]:
         """
-        Check if URL should be ignored.
+        Check if URL should be ignored based on policy.
+
+        Checks domain exclusions first, then pattern matches.
 
         Args:
-            url: URL to check
+            url: Full URL string to check.
 
         Returns:
-            Tuple of (should_ignore, reason)
+            Tuple of (should_ignore, reason) where reason explains the match.
         """
         # Check domain exclusions
         for domain in self.domains:
@@ -78,13 +105,13 @@ class IgnorePolicy:
 
     def should_ignore_status(self, status_code: int) -> tuple[bool, str | None]:
         """
-        Check if status code should be ignored.
+        Check if HTTP status code should be ignored.
 
         Args:
-            status_code: HTTP status code
+            status_code: HTTP status code (e.g., 403, 500).
 
         Returns:
-            Tuple of (should_ignore, reason)
+            Tuple of (should_ignore, reason) where reason explains the match.
         """
         if status_code in self._status_codes:
             return True, f"status {status_code} is in ignore list"
@@ -94,16 +121,24 @@ class IgnorePolicy:
     @classmethod
     def from_config(cls, config: dict[str, Any]) -> IgnorePolicy:
         """
-        Create IgnorePolicy from config dict.
+        Create IgnorePolicy from configuration dict.
 
         Args:
-            config: Configuration dict with optional keys:
-                - exclude: list of URL patterns
-                - exclude_domain: list of domains
-                - ignore_status: list of status ranges
+            config: Dict with optional keys:
+                - exclude: List of regex URL patterns
+                - exclude_domain: List of domain substrings
+                - ignore_status: List of status code specs
 
         Returns:
-            Configured IgnorePolicy instance
+            Configured IgnorePolicy instance.
+
+        Example:
+            >>> config = {
+            ...     "exclude": ["^https://legacy\\."],
+            ...     "exclude_domain": ["localhost"],
+            ...     "ignore_status": ["403", "500-599"],
+            ... }
+            >>> policy = IgnorePolicy.from_config(config)
         """
         return cls(
             patterns=config.get("exclude", []),

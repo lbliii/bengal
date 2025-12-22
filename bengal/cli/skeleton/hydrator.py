@@ -1,12 +1,24 @@
 """
 Skeleton Hydrator.
 
-This module implements the logic to turn a Skeleton schema into actual files on disk.
-It handles:
-1. Traversing the component tree
-2. Merging cascades (parent -> child)
-3. Generating frontmatter (mapping Component Model -> YAML)
-4. Writing files (atomic writes)
+Implements the logic to materialize a Skeleton schema into actual files on disk.
+The hydrator traverses the component tree, applies cascade inheritance, generates
+frontmatter from the Component Model, and writes files atomically.
+
+Process:
+    1. Traverse component tree depth-first
+    2. Merge cascade values (parent -> child inheritance)
+    3. Generate frontmatter from Component (type, variant, props)
+    4. Write markdown files with atomic operations
+
+Classes:
+    Hydrator: Main class for materializing skeletons to disk
+
+Example:
+    skeleton = Skeleton.from_yaml(yaml_content)
+    hydrator = Hydrator(root_path, dry_run=False)
+    hydrator.apply(skeleton)
+    print(f"Created {len(hydrator.created_files)} files")
 """
 
 from __future__ import annotations
@@ -25,10 +37,32 @@ logger = get_logger(__name__)
 
 class Hydrator:
     """
-    Hydrates a Skeleton into a file structure.
+    Materializes a Skeleton definition into actual files on disk.
+
+    The hydrator walks the skeleton's component tree and creates the
+    corresponding directory structure and markdown files. It supports:
+    - Cascade inheritance for type/variant propagation
+    - Frontmatter generation from component properties
+    - Dry-run mode for previewing changes
+    - Force mode to overwrite existing files
+
+    Attributes:
+        root_path: Target directory for file generation
+        dry_run: If True, only log what would be done
+        force: If True, overwrite existing files
+        created_files: List of files created during apply()
+        skipped_files: List of existing files that were skipped
     """
 
     def __init__(self, root_path: Path, dry_run: bool = False, force: bool = False):
+        """
+        Initialize the hydrator.
+
+        Args:
+            root_path: Target directory for file generation
+            dry_run: Preview mode (no actual writes)
+            force: Overwrite existing files
+        """
         self.root_path = root_path
         self.dry_run = dry_run
         self.force = force
@@ -36,7 +70,16 @@ class Hydrator:
         self.skipped_files: list[Path] = []
 
     def apply(self, skeleton: Skeleton) -> None:
-        """Apply the skeleton to the root path."""
+        """
+        Apply the skeleton structure to the root path.
+
+        Processes all components in the skeleton, creating directories
+        and files as specified. Results are tracked in created_files
+        and skipped_files attributes.
+
+        Args:
+            skeleton: The Skeleton definition to materialize
+        """
         # Start with global cascade
         self._process_components(skeleton.structure, self.root_path, skeleton.cascade)
 
@@ -46,7 +89,14 @@ class Hydrator:
         parent_path: Path,
         cascade: dict[str, Any],
     ) -> None:
-        """Process a list of components recursively."""
+        """
+        Process components recursively, creating files for each.
+
+        Args:
+            components: List of components to process
+            parent_path: Parent directory path
+            cascade: Inherited cascade values from parent
+        """
         for comp in components:
             # 1. Merge Cascade
             # Parent cascade + Component fields -> Component effective state
@@ -85,7 +135,17 @@ class Hydrator:
     def _generate_file_content(
         self, comp: Component, effective_type: str | None, effective_variant: str | None
     ) -> str:
-        """Generate the full markdown file content with frontmatter."""
+        """
+        Generate complete markdown file content with YAML frontmatter.
+
+        Args:
+            comp: The component to generate content for
+            effective_type: Resolved type (component or cascade)
+            effective_variant: Resolved variant (component or cascade)
+
+        Returns:
+            Complete markdown file content with frontmatter
+        """
         # 1. Build Frontmatter Dict
         frontmatter: dict[str, Any] = {}
 
@@ -119,7 +179,13 @@ class Hydrator:
         return f"---\n{yaml_str}\n---\n\n{body}\n"
 
     def _write_file(self, path: Path, content: str) -> None:
-        """Write file to disk (handling dry-run and force)."""
+        """
+        Write file to disk with dry-run and force handling.
+
+        Args:
+            path: Target file path
+            content: File content to write
+        """
         if path.exists() and not self.force:
             logger.debug("skipping_existing_file", path=str(path))
             self.skipped_files.append(path)

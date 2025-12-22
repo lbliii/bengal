@@ -1,27 +1,40 @@
-"""
-Factory function for creating documentation directives plugin.
+"""Factory function for creating the documentation directives Mistune plugin.
 
-Provides `create_documentation_directives()` which creates a Mistune plugin
-with all Bengal documentation directives registered.
+This module provides ``create_documentation_directives()``, which assembles
+all Bengal directives into a single Mistune plugin. The plugin uses
+``FencedDirective`` to parse MyST-style ``:::{name}`` directive blocks.
 
-Usage:
-    from bengal.directives import create_documentation_directives
+Available Directive Categories:
+    - **Admonitions**: note, tip, warning, danger, error, info, example, success
+    - **Layout**: tabs, cards, container, steps, dropdown
+    - **Tables**: list-table, data-table
+    - **Code**: code-tabs, literalinclude
+    - **Media**: youtube, vimeo, video, audio, figure, gallery
+    - **Embeds**: gist, codepen, codesandbox, stackblitz, asciinema
+    - **Navigation**: breadcrumbs, siblings, prev-next, related
+    - **Versioning**: since, deprecated, changed
+    - **Utilities**: badge, button, icon, rubric, target, include, glossary
 
-    md = mistune.create_markdown(
-        plugins=[create_documentation_directives()]
-    )
+Example:
+    Create a Mistune markdown instance with directive support::
+
+        import mistune
+        from bengal.directives import create_documentation_directives
+
+        md = mistune.create_markdown(
+            plugins=[create_documentation_directives()]
+        )
+        html = md(":::{note}\\nThis is important.\\n:::")
 
 Architecture:
-    This module imports directive classes from bengal.directives.* and wraps
-    them with FencedDirective (from bengal.directives.fenced)
-    to create a Mistune-compatible plugin.
+    This module imports all directive classes from ``bengal.directives.*``
+    and wraps them with ``FencedDirective`` for Mistune integration. Only
+    colon-fence syntax (``:::``) is enabled to avoid conflicts with code
+    blocks that use backticks.
 
-    The FencedDirective is kept in bengal.rendering because it's Mistune-specific
-    rendering infrastructure, while directive implementations are in bengal.directives.
-
-Related:
-    - bengal/directives/registry.py: Lazy-loading directive registry
-    - bengal/rendering/plugins/directives/fenced.py: Mistune fence parsing
+See Also:
+    - ``bengal.directives.registry``: Lazy-loading registry for individual access.
+    - ``bengal.directives.fenced``: Mistune fence parsing infrastructure.
 """
 
 from __future__ import annotations
@@ -85,38 +98,76 @@ from bengal.utils.logger import get_logger
 
 
 def create_documentation_directives() -> Callable[[Any], None]:
-    """
-    Create documentation directives plugin for Mistune.
+    """Create the documentation directives plugin for Mistune.
 
-    Returns a function that can be passed to mistune.create_markdown(plugins=[...]).
+    Assembles all Bengal directives into a single plugin function that can
+    be passed to ``mistune.create_markdown(plugins=[...])``.
 
-    Provides:
-    - admonitions: note, tip, warning, danger, error, info, example, success
-    - badge: MyST badge directive with custom CSS classes
-    - tabs: Tabbed content with full markdown support
-    - dropdown: Collapsible sections with markdown
-    - code-tabs: Code examples in multiple languages
-    - rubric: Pseudo-headings for API documentation (not in TOC)
-    - list-table: MyST-style tables using nested lists (avoids pipe character issues)
-    - checklist: Styled checklist containers for bullet lists and task lists
-    - container: Generic wrapper div with CSS classes (like Sphinx container)
-    - include: Include markdown files directly in content
-    - literalinclude: Include code files as syntax-highlighted code blocks
-
-    Usage:
-        from bengal.directives import create_documentation_directives
-
-        md = mistune.create_markdown(
-            plugins=[create_documentation_directives()]
-        )
+    Returns:
+        A plugin function that registers all directives with a Mistune instance.
 
     Raises:
-        RuntimeError: If directive registration fails
-        ImportError: If FencedDirective is not available
+        BengalRenderingError: If directive registration fails due to plugin errors.
+
+    Directive Categories:
+        **Content Structure**:
+            - ``admonitions``: note, tip, warning, danger, error, info, example, success
+            - ``dropdown``: Collapsible sections with full markdown support
+            - ``tabs``: Tabbed content containers (tab-set, tab-item)
+            - ``steps``: Visual step-by-step guides
+            - ``cards``: Modern card grid layouts
+            - ``container``: Generic wrapper div with CSS classes
+            - ``checklist``: Styled checklist containers
+
+        **Tables and Data**:
+            - ``list-table``: MyST-style tables using nested lists
+            - ``data-table``: Interactive tables with Tabulator.js
+
+        **Code and Includes**:
+            - ``code-tabs``: Code examples in multiple languages
+            - ``literalinclude``: Include code files with syntax highlighting
+            - ``include``: Include markdown files directly
+
+        **Media Embeds**:
+            - ``youtube``, ``vimeo``, ``video``: Video embeds (privacy-friendly)
+            - ``audio``, ``figure``, ``gallery``: Audio, images, and galleries
+            - ``gist``, ``codepen``, ``codesandbox``, ``stackblitz``: Developer embeds
+            - ``asciinema``: Terminal recording embeds
+
+        **Navigation**:
+            - ``breadcrumbs``, ``siblings``, ``prev-next``, ``related``
+
+        **Versioning**:
+            - ``since``, ``deprecated``, ``changed``
+
+        **Utilities**:
+            - ``badge``, ``button``, ``icon``, ``rubric``, ``target``, ``glossary``
+
+    Example:
+        ::
+
+            import mistune
+            from bengal.directives import create_documentation_directives
+
+            md = mistune.create_markdown(
+                plugins=[create_documentation_directives()]
+            )
+            html = md(":::{note}\\nImportant information.\\n:::")
+
+    Note:
+        The ``marimo`` directive is conditionally enabled only if the
+        ``marimo`` package is installed.
     """
 
     def plugin_documentation_directives(md: Any) -> None:
-        """Register all documentation directives with Mistune."""
+        """Register all documentation directives with a Mistune instance.
+
+        Args:
+            md: Mistune Markdown instance to register directives with.
+
+        Raises:
+            BengalRenderingError: If directive registration fails.
+        """
         logger = get_logger(__name__)
 
         try:

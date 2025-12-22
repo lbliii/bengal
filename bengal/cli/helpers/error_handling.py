@@ -1,4 +1,21 @@
-"""Unified error handling for CLI commands."""
+"""
+Unified error handling for CLI commands.
+
+Provides decorators and context managers for consistent error handling
+across all Bengal CLI commands, including formatted error output,
+traceback display control, and proper Click abort handling.
+
+Functions:
+    handle_cli_errors: Decorator for command-level error handling
+    cli_error_context: Context manager for operation-level error handling
+
+Example:
+    @click.command()
+    @handle_cli_errors(show_art=True)
+    def my_command():
+        with cli_error_context("loading configuration"):
+            config = load_config()
+"""
 
 from __future__ import annotations
 

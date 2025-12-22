@@ -1,15 +1,39 @@
 """
 Asset dataclass for static file representation.
 
-The Asset class represents a static file (image, CSS, JS, font, etc.) and provides
-methods for processing, optimization, fingerprinting, and output writing.
+Provides the Asset class representing a static file (image, CSS, JS, font)
+with methods for processing, optimization, fingerprinting, and output writing.
+
+Public API:
+    Asset: Static file with processing capabilities
 
 Key Methods:
-    - minify(): Minify CSS/JS content
-    - bundle_css(): Resolve @import statements into single file
-    - optimize(): Optimize images
-    - hash(): Generate fingerprint for cache-busting
-    - copy_to_output(): Write processed asset to output directory
+    minify(): Minify CSS/JS content (removes whitespace, comments)
+    bundle_css(): Resolve @import statements into single file
+    optimize(): Optimize images (requires Pillow)
+    hash(): Generate SHA256 fingerprint for cache-busting
+    copy_to_output(): Write processed asset to output directory
+
+Asset Types:
+    css: Stylesheets (supports bundling, minification, nesting transform)
+    javascript: Scripts (supports minification via jsmin)
+    image: Images (supports optimization via Pillow)
+    font: Web fonts (woff, woff2, ttf, eot)
+    video: Video files (mp4, webm)
+    document: Documents (pdf)
+    other: Unknown file types
+
+Processing Pipeline:
+    1. Create Asset(source_path=path)
+    2. For CSS: bundle_css() to resolve @imports
+    3. minify() to reduce size
+    4. hash() to generate fingerprint
+    5. copy_to_output() to write with fingerprinted filename
+
+Related Modules:
+    bengal.core.asset.css_transforms: CSS nesting and minification
+    bengal.orchestration.asset: Asset discovery and build coordination
+    bengal.assets.manifest: Asset manifest for fingerprint tracking
 """
 
 from __future__ import annotations

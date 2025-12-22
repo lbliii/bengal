@@ -1,5 +1,9 @@
 """
-Command-line interface for Bengal SSG.
+Command-line interface for Bengal Static Site Generator.
+
+This module provides the main CLI entry point and command registration
+for the Bengal SSG. It assembles all command groups and registers
+aliases for convenient access.
 
 Alias System:
     Bengal supports intuitive command aliases for faster workflows:
@@ -18,6 +22,34 @@ Alias System:
         bengal v         → bengal validate
 
     All original nested commands still work for discoverability.
+
+Command Groups:
+    - site: Core site operations (build, serve, clean)
+    - config: Configuration management
+    - collections: Content collections
+    - health: Site health checks and diagnostics
+    - debug: Developer debugging tools
+    - engine: Template engine management
+    - new: Project scaffolding
+    - assets: Asset pipeline management
+    - sources: Content source management
+    - graph: Site structure analysis
+    - version: Documentation versioning
+
+Architecture:
+    The CLI uses Click with custom BengalGroup and BengalCommand classes
+    that provide themed help output and fuzzy command matching for typos.
+
+Example:
+    >>> # From command line
+    >>> bengal build
+    >>> bengal serve --port 8080
+    >>> bengal new site my-blog --template blog
+
+Related:
+    - bengal/cli/base.py: Custom Click classes
+    - bengal/cli/commands/: Individual command implementations
+    - bengal/cli/dashboard/: Interactive TUI dashboard
 """
 
 from __future__ import annotations

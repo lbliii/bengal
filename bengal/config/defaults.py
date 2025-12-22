@@ -1,24 +1,48 @@
 """
 Single source of truth for all Bengal configuration defaults.
 
-All config access should use these defaults via get_default() or
-specialized helpers like get_max_workers(). Provides centralized
-default values for all configuration options.
+This module defines centralized default values for all configuration options
+in Bengal. All configuration access should use these defaults via
+:func:`get_default` or specialized helpers like :func:`get_max_workers`.
 
-Key Concepts:
-    - Default values: Centralized default configuration values
-    - Worker configuration: Auto-detection of optimal worker count
-    - Fast imports: Avoids heavy dependencies for fast import time
-    - Specialized helpers: get_max_workers(), etc. for common config access
+The ``DEFAULTS`` dictionary contains default values organized by category:
+    - Site metadata (title, baseurl, description, author, language)
+    - Build settings (output_dir, parallel, incremental, pretty_urls)
+    - Static files configuration
+    - HTML output formatting
+    - Asset processing (minify, optimize, fingerprint)
+    - Theme settings
+    - Content processing options
+    - Search configuration
+    - Pagination settings
+    - Health check validators and thresholds
+    - Feature toggles (RSS, sitemap, search, JSON, llm_txt)
+    - Graph visualization
+    - Internationalization (i18n)
+    - Output format options
+    - Markdown parser configuration
 
-Related Modules:
-    - bengal.config.loader: Configuration loading from files
-    - bengal.config.env_overrides: Environment variable overrides
-    - bengal.orchestration.build: Build orchestration using config
+Key Functions:
+    get_default: Retrieve default value for any config key (supports nested keys).
+    get_max_workers: Resolve worker count with CPU-based auto-detection.
+    get_pagination_per_page: Resolve pagination items per page.
+    normalize_bool_or_dict: Normalize config values that can be bool or dict.
+    is_feature_enabled: Quick check if a feature is enabled.
+    get_feature_config: Get normalized config for bool/dict features.
+
+Example:
+    >>> from bengal.config.defaults import get_default, get_max_workers
+    >>> get_default("content", "excerpt_length")
+    200
+    >>> get_max_workers(None)  # Auto-detect based on CPU cores
+    11
+
+Note:
+    This module avoids heavy dependencies for fast import time during builds.
 
 See Also:
-    - bengal/config/defaults.py:get_default() for default value access
-    - bengal/config/defaults.py:get_max_workers() for worker configuration
+    - :mod:`bengal.config.loader`: Configuration loading from files.
+    - :mod:`bengal.config.env_overrides`: Environment variable overrides.
 """
 
 from __future__ import annotations
@@ -343,10 +367,19 @@ def get_pagination_per_page(config_value: int | None = None) -> int:
     Resolve pagination per_page with default.
 
     Args:
-        config_value: User-configured value
+        config_value: User-configured value from site configuration.
+            If ``None``, returns the default value from ``DEFAULTS``.
 
     Returns:
-        Items per page (default: 10, minimum: 1)
+        Items per page (default: 10, minimum: 1).
+
+    Example:
+        >>> get_pagination_per_page(None)
+        10
+        >>> get_pagination_per_page(25)
+        25
+        >>> get_pagination_per_page(0)  # Clamped to minimum
+        1
     """
     if config_value is None:
         pagination_defaults: dict[str, Any] = DEFAULTS.get("pagination", {})

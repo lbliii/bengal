@@ -1,5 +1,22 @@
 """
 Page Operations Mixin - Operations and transformations on pages.
+
+This mixin provides methods for page rendering, link extraction, and template
+application. It handles the operational aspects of page processing.
+
+Key Methods:
+    - render(): Render page using template engine
+    - validate_links(): Validate all links in the page
+    - extract_links(): Extract all links from page content
+    - apply_template(): Apply a specific template to the page
+
+Related Modules:
+    - bengal.rendering.renderer: Page rendering implementation
+    - bengal.health.validators.links: Link validation logic
+    - bengal.rendering.template_engine: Template application
+
+See Also:
+    - bengal/core/page/__init__.py: Page class that uses this mixin
 """
 
 from __future__ import annotations
@@ -12,11 +29,6 @@ if TYPE_CHECKING:
 
 
 class PageOperationsMixin:
-    # Declare attributes that will be provided by the dataclass this mixin is mixed into
-    content: str
-    rendered_html: str
-    links: list[str]
-    source_path: Path
     """
     Mixin providing operations for pages.
 
@@ -24,7 +36,19 @@ class PageOperationsMixin:
     - Rendering with templates
     - Link validation and extraction
     - Template application
+
+    Attributes:
+        content: Raw page content (markdown)
+        rendered_html: Rendered HTML output
+        links: List of links extracted from the page
+        source_path: Path to the source content file
     """
+
+    # Declare attributes that will be provided by the dataclass this mixin is mixed into
+    content: str
+    rendered_html: str
+    links: list[str]
+    source_path: Path
 
     def render(self, template_engine: Any) -> str:
         """

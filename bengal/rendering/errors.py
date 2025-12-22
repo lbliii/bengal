@@ -1,5 +1,58 @@
 """
-Rich template error objects with line numbers, context, and suggestions.
+Rich template error handling with contextual debugging information.
+
+This module provides structured error objects for template rendering failures,
+enabling clear error messages with source context, suggestions, and IDE-friendly
+formatting.
+
+Key Classes:
+    TemplateRenderError:
+        Rich exception with template context, line numbers, source snippets,
+        and actionable suggestions. Extends BengalRenderingError for
+        consistent error handling across the codebase.
+
+    TemplateErrorContext:
+        Captures error location (file, line, column) and surrounding source
+        code for display.
+
+    InclusionChain:
+        Tracks template include/extend hierarchy to show how the error
+        location was reached.
+
+Error Types:
+    - syntax: Invalid Jinja2 syntax (missing tags, brackets, etc.)
+    - filter: Unknown filter name (e.g., ``| nonexistent``)
+    - undefined: Undefined variable access (e.g., ``{{ missing_var }}``)
+    - runtime: Runtime errors during template execution
+    - other: Unclassified template errors
+
+Display Functions:
+    display_template_error():
+        Renders error to terminal with syntax highlighting (via Rich if
+        available) or plain text fallback. Shows source context, suggestions,
+        and documentation links.
+
+Usage:
+    Typically created automatically by the rendering pipeline:
+
+    >>> try:
+    ...     template.render(context)
+    ... except Exception as e:
+    ...     error = TemplateRenderError.from_jinja2_error(
+    ...         e, template_name, page_source, template_engine
+    ...     )
+    ...     display_template_error(error)
+
+Error Message Enhancement:
+    The module includes smart suggestion generation:
+    - Typo detection for variable/filter names
+    - Safe access patterns for undefined errors
+    - Documentation links for common issues
+
+Related Modules:
+    - bengal.rendering.engines.errors: Low-level engine exceptions
+    - bengal.errors: Base error classes (BengalRenderingError)
+    - bengal.utils.rich_console: Rich terminal output utilities
 """
 
 from __future__ import annotations

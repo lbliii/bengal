@@ -1,25 +1,46 @@
 """
 Asset handling for static files (images, CSS, JS, fonts, etc.).
 
-Provides asset discovery, processing (minification, optimization, bundling),
-fingerprinting for cache-busting, and atomic output writing. Handles CSS
-nesting transformation, CSS bundling via @import resolution, and image
-optimization.
+Provides the Asset dataclass for representing static files with methods
+for processing, optimization, fingerprinting, and output generation.
+
+Public API:
+    Asset: Static file representation with processing capabilities
+
+CSS Utilities (also exported):
+    transform_css_nesting: Transform CSS nesting syntax for browser compatibility
+    remove_duplicate_bare_h1_rules: Remove duplicate h1 rules from CSS
+    lossless_minify_css: Minify CSS without losing functionality
 
 Key Concepts:
-    - Entry points: CSS/JS files that serve as bundle roots (style.css, bundle.js)
-    - Modules: CSS/JS files imported by entry points (bundled, not copied separately)
-    - Fingerprinting: Hash-based cache-busting via filename suffixes
-    - Atomic writes: Crash-safe file writing using temporary files
+    Entry Points: CSS/JS files that serve as bundle roots (style.css, bundle.js).
+        Entry points can @import other CSS files which are inlined during bundling.
 
-Related Modules:
-    - bengal.orchestration.asset: Asset discovery and orchestration
-    - bengal.utils.css_minifier: CSS minification implementation
-    - bengal.utils.atomic_write: Atomic file writing utilities
+    Modules: CSS/JS files imported by entry points. These are bundled into
+        the entry point and not copied separately to output.
+
+    Fingerprinting: SHA256-based cache-busting via filename suffixes
+        (e.g., style.css → style.1a2b3c4d.css). Enables aggressive caching.
+
+    Atomic Writes: Crash-safe file writing using temporary files and rename.
+        Prevents partial writes from corrupting output.
+
+Processing Pipeline:
+    1. Discovery: Find assets in theme and site directories
+    2. Bundling: Resolve @import statements (CSS entry points)
+    3. Transformation: CSS nesting → flat CSS for browser compatibility
+    4. Minification: Remove whitespace/comments (CSS/JS)
+    5. Fingerprinting: Generate content hash for cache-busting
+    6. Output: Atomic write to output directory
+
+Related Packages:
+    bengal.orchestration.asset: Asset discovery and build orchestration
+    bengal.utils.css_minifier: CSS minification implementation
+    bengal.utils.atomic_write: Atomic file writing utilities
 
 Package Structure:
-    - asset_core.py: Asset dataclass and primary methods
-    - css_transforms.py: CSS transformation utilities (nesting, dedup, minify)
+    asset_core.py: Asset dataclass with processing methods
+    css_transforms.py: CSS transformation utilities
 """
 
 from bengal.core.asset.asset_core import Asset

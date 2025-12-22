@@ -1,17 +1,41 @@
 """
-Query Index Registry - Manages all query indexes.
+Query index registry for managing all site query indexes.
 
-Coordinates:
-- Index registration (built-in + custom)
-- Index building (full + incremental)
-- Index persistence
-- Template access
+This module provides QueryIndexRegistry, the central coordinator for all query
+indexes in a Bengal site. It handles index lifecycle including registration,
+building, persistence, and template access.
 
-Architecture:
-- Lazy initialization (only load when needed)
-- Automatic built-in registration
-- Support for custom user indexes
-- Incremental updates with dependency tracking
+Key Features:
+    - Lazy initialization: Indexes loaded only when first accessed
+    - Built-in indexes: section, author, category, date_range auto-registered
+    - Custom indexes: Register custom QueryIndex implementations
+    - Incremental updates: Only update indexes for changed pages
+    - Template access: site.indexes.section.get('blog')
+
+Built-in Indexes:
+    - section: Pages by content directory
+    - author: Pages by author (multi-author support)
+    - category: Pages by category
+    - date_range: Pages by year and year-month
+
+Usage:
+    # Automatic registration via Site
+    site.indexes.section.get('blog')  # O(1) lookup
+
+    # Manual registration of custom index
+    registry = QueryIndexRegistry(site, cache_dir)
+    registry.register('status', StatusIndex(cache_dir / 'status_index.json'))
+    registry.build_all(site.pages, build_cache)
+
+Performance:
+    - Build: O(n) single pass through pages
+    - Lookup: O(1) hash lookup
+    - Incremental: Updates only affected index entries
+
+Related:
+    - bengal.cache.query_index: Base QueryIndex class
+    - bengal.cache.indexes: Built-in index implementations
+    - bengal.core.site: Site.indexes property uses this registry
 """
 
 from __future__ import annotations

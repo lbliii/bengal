@@ -1,11 +1,65 @@
 """
 Centralized configuration for traceback formatting and rendering.
 
-Provides a simple configuration object with a style (full/compact/minimal/off),
-and utilities to install Rich's global exception hook based on the active style.
+This module provides ``TracebackConfig``, a configuration dataclass that
+controls how exceptions are displayed. Configuration is loaded from
+environment variables with sensible defaults.
 
-MVP: Sources configuration from CLI-provided env var (BENGAL_TRACEBACK) → defaults.
-Future: Extend to read from site config and config files.
+Configuration Sources (in priority order)
+=========================================
+
+1. **Environment Variables**: Most flexible, set via CLI or shell
+
+   - ``BENGAL_TRACEBACK``: Style (full/compact/minimal/off)
+   - ``BENGAL_TRACEBACK_SHOW_LOCALS``: Show local variables (1/true/yes)
+   - ``BENGAL_TRACEBACK_MAX_FRAMES``: Maximum frames to display
+   - ``BENGAL_TRACEBACK_SUPPRESS``: Comma-separated modules to suppress
+
+2. **Site Config File**: Via ``apply_file_traceback_to_env()``
+
+   .. code-block:: yaml
+
+       dev:
+         traceback:
+           style: compact
+           show_locals: false
+           max_frames: 10
+           suppress: [click, jinja2]
+
+3. **Defaults**: Compact style with reasonable settings
+
+Helper Functions
+================
+
+**set_effective_style_from_cli(style_value)**
+    Set BENGAL_TRACEBACK env var from CLI flag.
+
+**map_debug_flag_to_traceback(debug, current)**
+    Map --debug flag to traceback=full.
+
+**apply_file_traceback_to_env(site_config)**
+    Apply file-based config to environment (only if not already set).
+
+Usage
+=====
+
+Load config and install handler::
+
+    from bengal.errors.traceback import TracebackConfig
+
+    config = TracebackConfig.from_environment()
+    config.install()  # Install Rich traceback handler
+
+Get a renderer for manual display::
+
+    renderer = config.get_renderer()
+    renderer.display_exception(error)
+
+CLI integration::
+
+    from bengal.errors.traceback import set_effective_style_from_cli
+
+    set_effective_style_from_cli(ctx.params.get("traceback"))
 """
 
 from __future__ import annotations
@@ -37,7 +91,28 @@ if TYPE_CHECKING:
 
 @dataclass
 class TracebackConfig:
-    """Configuration for traceback display and rich install options."""
+    """
+    Configuration for traceback display and Rich installation.
+
+    Controls how exceptions are rendered in Bengal CLI output. Can be
+    loaded from environment variables via ``from_environment()``.
+
+    Attributes:
+        style: Traceback verbosity style (default: COMPACT).
+        show_locals: Whether to show local variables in tracebacks
+            (default: False, True for FULL style).
+        max_frames: Maximum number of stack frames to display
+            (default: 10, 25 for FULL, 5 for MINIMAL).
+        suppress: Module names to suppress from tracebacks
+            (default: click, jinja2).
+
+    Example:
+        >>> config = TracebackConfig.from_environment()
+        >>> config.style
+        <TracebackStyle.COMPACT: 'compact'>
+        >>> config.install()  # Install Rich handler
+        >>> renderer = config.get_renderer()
+    """
 
     style: TracebackStyle = TracebackStyle.COMPACT
     show_locals: bool = False

@@ -1,5 +1,39 @@
 """
 Configuration loader supporting TOML and YAML formats.
+
+This module provides the primary configuration loader for Bengal sites using
+single-file configuration (``bengal.toml`` or ``bengal.yaml``). It handles
+file discovery, format detection, validation, and environment overrides.
+
+For multi-file directory-based configuration, see :mod:`bengal.config.directory_loader`.
+
+Features:
+    - **Auto-discovery**: Automatically finds ``bengal.toml``, ``bengal.yaml``,
+      or ``bengal.yml`` in the site root.
+    - **Format support**: Loads both TOML and YAML configuration files.
+    - **Section normalization**: Accepts common aliases (e.g., ``menus`` → ``menu``).
+    - **Validation**: Type checking, range validation, and dependency checking.
+    - **Flattening**: Nested sections (``site.title``) accessible at top level.
+    - **Environment overrides**: Automatic baseurl detection from platforms.
+
+Classes:
+    ConfigLoader: Main loader class for single-file configuration.
+
+Functions:
+    pretty_print_config: Display configuration with Rich formatting.
+
+Example:
+    >>> from pathlib import Path
+    >>> from bengal.config.loader import ConfigLoader
+    >>> loader = ConfigLoader(Path("my-site"))
+    >>> config = loader.load()
+    >>> config["title"]
+    'My Site'
+
+See Also:
+    - :mod:`bengal.config.directory_loader`: Multi-file directory configuration.
+    - :mod:`bengal.config.defaults`: Default values for all configuration options.
+    - :mod:`bengal.config.validators`: Configuration validation logic.
 """
 
 from __future__ import annotations
@@ -15,11 +49,20 @@ from bengal.utils.logger import get_logger
 
 def pretty_print_config(config: dict[str, Any], title: str = "Configuration") -> None:
     """
-    Pretty print configuration using Rich (if available) or fallback to pprint.
+    Pretty print configuration using Rich formatting.
+
+    Displays the configuration dictionary with syntax highlighting and
+    formatting. Falls back to standard ``pprint`` if Rich is unavailable
+    or disabled.
 
     Args:
-        config: Configuration dictionary to display
-        title: Title for the output
+        config: Configuration dictionary to display.
+        title: Title to display above the configuration output.
+
+    Example:
+        >>> config = {"title": "My Site", "baseurl": "/"}
+        >>> pretty_print_config(config, title="Site Configuration")
+        # Outputs formatted configuration with Rich or pprint
     """
     try:
         from rich.pretty import pprint as rich_pprint
@@ -53,7 +96,27 @@ def pretty_print_config(config: dict[str, Any], title: str = "Configuration") ->
 
 class ConfigLoader:
     """
-    Loads site configuration from bengal.toml or bengal.yaml.
+    Load site configuration from ``bengal.toml`` or ``bengal.yaml``.
+
+    This is the primary configuration loader for single-file Bengal configurations.
+    It auto-discovers configuration files, validates contents, normalizes section
+    names, and applies environment-based overrides.
+
+    Attributes:
+        SECTION_ALIASES: Mapping of accepted section name variations to canonical names.
+        KNOWN_SECTIONS: Set of recognized configuration section names.
+        root_path: Root directory to search for configuration files.
+        warnings: List of configuration warnings accumulated during loading.
+
+    Example:
+        >>> loader = ConfigLoader(Path("my-site"))
+        >>> config = loader.load()
+        >>> config["title"]
+        'My Site'
+
+        >>> # Check for configuration warnings
+        >>> for warning in loader.get_warnings():
+        ...     print(warning)
     """
 
     # Section aliases for ergonomic config (accept common variations)
@@ -97,10 +160,12 @@ class ConfigLoader:
 
     def __init__(self, root_path: Path) -> None:
         """
-        Initialize the config loader.
+        Initialize the configuration loader.
 
         Args:
-            root_path: Root directory to look for config files
+            root_path: Root directory to search for configuration files.
+                The loader will look for ``bengal.toml``, ``bengal.yaml``,
+                or ``bengal.yml`` in this directory.
         """
         self.root_path = root_path
         self.warnings: list[str] = []
@@ -110,11 +175,17 @@ class ConfigLoader:
         """
         Load configuration from file.
 
+        If no explicit path is provided, searches for configuration files
+        in the root directory in order: ``bengal.toml``, ``bengal.yaml``,
+        ``bengal.yml``. If no file is found, returns default configuration.
+
         Args:
-            config_path: Optional explicit path to config file
+            config_path: Optional explicit path to a configuration file.
+                If provided, loads only from this file.
 
         Returns:
-            Configuration dictionary
+            Validated and normalized configuration dictionary with
+            environment overrides applied.
         """
         if config_path:
             return self._apply_env_overrides(self._load_file(config_path))
@@ -140,18 +211,22 @@ class ConfigLoader:
 
     def _load_file(self, config_path: Path) -> dict[str, Any]:
         """
-        Load a specific config file with validation.
+        Load and validate a specific configuration file.
+
+        Detects format from file extension, parses the file, validates
+        the configuration, and applies environment overrides.
 
         Args:
-            config_path: Path to config file
+            config_path: Path to the configuration file.
 
         Returns:
-            Validated configuration dictionary
+            Validated and normalized configuration dictionary.
 
         Raises:
-            ConfigValidationError: If validation fails
-            ValueError: If config format is unsupported
-            FileNotFoundError: If config file doesn't exist
+            ConfigValidationError: If configuration validation fails.
+            BengalConfigError: If the configuration format is unsupported.
+            TomlDecodeError: If TOML syntax is invalid.
+            YAMLError: If YAML syntax is invalid.
         """
         from bengal.config.validators import ConfigValidationError, ConfigValidator
 
@@ -216,19 +291,20 @@ class ConfigLoader:
 
     def _load_toml(self, config_path: Path) -> dict[str, Any]:
         """
-        Load TOML configuration file.
+        Load a TOML configuration file.
 
-        Uses bengal.utils.file_io.load_toml internally for robust loading.
+        Uses :func:`bengal.utils.file_io.load_toml` internally for robust
+        loading with proper error handling.
 
         Args:
-            config_path: Path to TOML file
+            config_path: Path to the TOML file.
 
         Returns:
-            Configuration dictionary
+            Flattened configuration dictionary.
 
         Raises:
-            FileNotFoundError: If config file doesn't exist
-            toml.TomlDecodeError: If TOML syntax is invalid
+            FileNotFoundError: If the configuration file doesn't exist.
+            TomlDecodeError: If TOML syntax is invalid.
         """
         from bengal.utils.file_io import load_toml
 
@@ -240,20 +316,20 @@ class ConfigLoader:
 
     def _load_yaml(self, config_path: Path) -> dict[str, Any]:
         """
-        Load YAML configuration file.
+        Load a YAML configuration file.
 
-        Uses bengal.utils.file_io.load_yaml internally for robust loading.
+        Uses :func:`bengal.utils.file_io.load_yaml` internally for robust
+        loading with proper error handling.
 
         Args:
-            config_path: Path to YAML file
+            config_path: Path to the YAML file.
 
         Returns:
-            Configuration dictionary
+            Flattened configuration dictionary.
 
         Raises:
-            FileNotFoundError: If config file doesn't exist
-            yaml.YAMLError: If YAML syntax is invalid
-            ImportError: If PyYAML is not installed
+            FileNotFoundError: If the configuration file doesn't exist.
+            YAMLError: If YAML syntax is invalid.
         """
         from bengal.utils.file_io import load_yaml
 
@@ -263,13 +339,18 @@ class ConfigLoader:
 
     def _flatten_config(self, config: dict[str, Any]) -> dict[str, Any]:
         """
-        Flatten nested config structure for easier access.
+        Flatten nested configuration for easier access.
+
+        Extracts values from ``site`` and ``build`` sections to the top level
+        while preserving the original section structure. This allows both
+        flat access (``config["title"]``) and section access
+        (``config["site"]["title"]``).
 
         Args:
-            config: Nested configuration dictionary
+            config: Nested configuration dictionary.
 
         Returns:
-            Flattened configuration (sections are preserved but accessible at top level too)
+            Configuration with values accessible at both section and top level.
         """
         # First, normalize section names (accept aliases)
         normalized = self._normalize_sections(config)
@@ -297,16 +378,17 @@ class ConfigLoader:
 
     def _normalize_sections(self, config: dict[str, Any]) -> dict[str, Any]:
         """
-        Normalize config section names using aliases.
+        Normalize configuration section names using canonical aliases.
 
-        Accepts common variations like [menus] → [menu].
-        Warns about unknown sections.
+        Accepts common section name variations (e.g., ``[menus]`` → ``[menu]``)
+        and warns about unknown sections that might be typos.
 
         Args:
-            config: Raw configuration dictionary
+            config: Raw configuration dictionary.
 
         Returns:
-            Normalized configuration with canonical section names
+            Configuration with canonical section names. Unknown sections
+            are preserved but generate warnings if they look like typos.
         """
         normalized: dict[str, Any] = {}
 
@@ -374,11 +456,24 @@ class ConfigLoader:
         return normalized
 
     def get_warnings(self) -> list[str]:
-        """Get configuration warnings (aliases used, unknown sections, etc)."""
+        """
+        Get configuration warnings accumulated during loading.
+
+        Warnings include section alias usage, unknown section names, and
+        duplicate section definitions.
+
+        Returns:
+            List of warning message strings.
+        """
         return self.warnings
 
     def print_warnings(self, verbose: bool = False) -> None:
-        """Print configuration warnings if verbose mode is enabled."""
+        """
+        Print configuration warnings to the console.
+
+        Args:
+            verbose: If ``True``, prints warnings. If ``False``, does nothing.
+        """
         if self.warnings and verbose:
             # Log and print warnings in verbose mode
             for warning in self.warnings:
@@ -387,12 +482,14 @@ class ConfigLoader:
 
     def _default_config(self) -> dict[str, Any]:
         """
-        Get default configuration.
+        Get the default configuration.
 
-        Uses centralized defaults from bengal.config.defaults module.
+        Constructs a configuration dictionary from centralized defaults
+        in :mod:`bengal.config.defaults`. Used when no configuration file
+        is found.
 
         Returns:
-            Default configuration dictionary
+            Default configuration dictionary with all essential settings.
         """
         # Build config from centralized DEFAULTS
         # Note: We flatten some nested defaults
@@ -434,8 +531,14 @@ class ConfigLoader:
         """
         Apply environment-based overrides for deployment platforms.
 
-        Delegates to shared utility function.
-        Kept as method for convenience.
+        Delegates to :func:`bengal.config.env_overrides.apply_env_overrides`
+        for automatic baseurl detection from Netlify, Vercel, GitHub Pages, etc.
+
+        Args:
+            config: Configuration dictionary to enhance.
+
+        Returns:
+            Configuration with environment-based overrides applied.
         """
         from bengal.config.env_overrides import apply_env_overrides
 

@@ -1,15 +1,28 @@
-"""
-Shared utilities for directive implementations.
+"""Shared utilities for directive HTML generation.
 
-Consolidates common helper functions to eliminate duplication across
-directive files.
+This module provides helper functions for common HTML manipulation tasks
+used across directive implementations, eliminating duplication and ensuring
+consistent escaping and attribute formatting.
 
-Architecture:
-    These utilities are used by BengalDirective base class and can be
-    imported directly by directives needing standalone access.
+Functions:
+    - ``escape_html``: Escape HTML special characters for safe attribute use.
+    - ``build_class_string``: Combine multiple CSS classes into a single string.
+    - ``bool_attr``: Generate HTML boolean attributes (e.g., ``open``, ``disabled``).
+    - ``data_attrs``: Generate ``data-*`` attribute strings from keyword arguments.
+    - ``attr_str``: Generate a single HTML attribute string.
+    - ``class_attr``: Generate a ``class="..."`` attribute string.
 
-Related:
-    - bengal/directives/base.py: Uses these utilities
+Example:
+    Building an HTML tag with utilities::
+
+        from bengal.directives.utils import escape_html, class_attr, bool_attr
+
+        title = escape_html(user_input)
+        attrs = class_attr("dropdown", custom_class) + bool_attr("open", is_open)
+        html = f'<details{attrs}><summary>{title}</summary>{content}</details>'
+
+See Also:
+    - ``bengal.directives.base``: ``BengalDirective`` exposes these as static methods.
 """
 
 from __future__ import annotations
@@ -18,20 +31,26 @@ from typing import Any
 
 
 def escape_html(text: str) -> str:
-    """
-    Escape HTML special characters for use in attributes.
+    """Escape HTML special characters for safe use in attributes.
 
-    Escapes: & < > " '
+    Escapes the following characters:
+        - ``&`` → ``&amp;``
+        - ``<`` → ``&lt;``
+        - ``>`` → ``&gt;``
+        - ``"`` → ``&quot;``
+        - ``'`` → ``&#x27;``
 
     Args:
-        text: Raw text to escape
+        text: Raw text to escape.
 
     Returns:
-        HTML-escaped text safe for use in attributes
+        HTML-escaped string safe for use in attribute values.
 
     Example:
         >>> escape_html('Click "here" & win <prizes>')
         'Click &quot;here&quot; &amp; win &lt;prizes&gt;'
+        >>> escape_html("")
+        ''
     """
     if not text:
         return ""
@@ -45,64 +64,71 @@ def escape_html(text: str) -> str:
 
 
 def build_class_string(*classes: str) -> str:
-    """
-    Build CSS class string from multiple class sources.
+    """Build a CSS class string from multiple class sources.
 
-    Filters out empty strings and joins with space.
+    Filters out empty strings, strips whitespace, and joins with spaces.
+    Useful when combining base classes with optional user-provided classes.
 
     Args:
-        *classes: Variable number of class strings (may be empty)
+        *classes: Variable number of class strings (may include empty strings).
 
     Returns:
-        Space-joined class string
+        Space-joined class string, or empty string if no valid classes.
 
     Example:
         >>> build_class_string("dropdown", "", "my-class")
         'dropdown my-class'
         >>> build_class_string("", "")
         ''
+        >>> build_class_string("base", "  extra  ", "")
+        'base extra'
     """
     return " ".join(c.strip() for c in classes if c and c.strip())
 
 
 def bool_attr(name: str, value: bool) -> str:
-    """
-    Return HTML boolean attribute string.
+    """Generate an HTML boolean attribute string.
+
+    Boolean attributes in HTML are present or absent, not ``="true"``/``="false"``.
+    This function returns the attribute with a leading space when true.
 
     Args:
-        name: Attribute name (e.g., "open", "disabled")
-        value: Whether to include the attribute
+        name: Attribute name (e.g., ``"open"``, ``"disabled"``, ``"checked"``).
+        value: Whether to include the attribute.
 
     Returns:
-        " name" if value is True, "" otherwise
+        ``" name"`` (with leading space) if value is ``True``, empty string otherwise.
 
     Example:
         >>> bool_attr("open", True)
         ' open'
         >>> bool_attr("open", False)
         ''
+        >>> f'<details{bool_attr("open", is_open)}>'
+        '<details open>'  # when is_open=True
     """
     return f" {name}" if value else ""
 
 
 def data_attrs(**attrs: Any) -> str:
-    """
-    Build data-* attribute string from keyword arguments.
+    """Build ``data-*`` attribute string from keyword arguments.
 
-    Converts underscore names to hyphenated (data_foo -> data-foo).
-    Skips None and empty string values.
+    Converts underscores in names to hyphens (``columns`` → ``data-columns``).
+    Skips ``None`` and empty string values. Values are HTML-escaped.
 
     Args:
-        **attrs: Attribute name-value pairs
+        **attrs: Attribute name-value pairs. Names are prefixed with ``data-``.
 
     Returns:
-        Space-joined data attribute string
+        Space-joined data attribute string, or empty string if no valid attrs.
 
     Example:
         >>> data_attrs(columns="auto", gap="medium")
         'data-columns="auto" data-gap="medium"'
         >>> data_attrs(count=3, empty="", none_val=None)
         'data-count="3"'
+        >>> data_attrs()
+        ''
     """
     parts = []
     for key, value in attrs.items():
@@ -113,23 +139,25 @@ def data_attrs(**attrs: Any) -> str:
 
 
 def attr_str(name: str, value: str | None) -> str:
-    """
-    Return HTML attribute string if value is truthy.
+    """Generate an HTML attribute string if value is truthy.
+
+    Returns a formatted attribute with leading space when value is non-empty.
+    The value is HTML-escaped for safe inclusion in attributes.
 
     Args:
-        name: Attribute name
-        value: Attribute value (may be None or empty)
+        name: Attribute name (e.g., ``"href"``, ``"src"``, ``"title"``).
+        value: Attribute value (may be ``None`` or empty string).
 
     Returns:
-        ' name="value"' if value is truthy, "" otherwise
+        ``' name="value"'`` (with leading space) if value is truthy, else ``""``.
 
     Example:
         >>> attr_str("href", "https://example.com")
         ' href="https://example.com"'
         >>> attr_str("href", None)
         ''
-        >>> attr_str("href", "")
-        ''
+        >>> attr_str("title", 'Say "Hello"')
+        ' title="Say &quot;Hello&quot;"'
     """
     if value:
         return f' {name}="{escape_html(value)}"'
@@ -137,23 +165,25 @@ def attr_str(name: str, value: str | None) -> str:
 
 
 def class_attr(base_class: str, *extra_classes: str) -> str:
-    """
-    Build class attribute string.
+    """Build a ``class="..."`` attribute string.
 
-    Convenience wrapper combining build_class_string with attribute formatting.
+    Convenience wrapper combining ``build_class_string()`` with attribute
+    formatting. Returns empty string if no classes are provided.
 
     Args:
-        base_class: Primary class (always included if non-empty)
-        *extra_classes: Additional classes to add
+        base_class: Primary CSS class (included if non-empty).
+        *extra_classes: Additional CSS classes to append.
 
     Returns:
-        ' class="..."' string or "" if no classes
+        ``' class="..."'`` (with leading space) if any classes, else ``""``.
 
     Example:
         >>> class_attr("dropdown", "open", "")
         ' class="dropdown open"'
         >>> class_attr("", "")
         ''
+        >>> f'<div{class_attr("card", user_class)}>'
+        '<div class="card custom">'  # when user_class="custom"
     """
     classes = build_class_string(base_class, *extra_classes)
     if classes:

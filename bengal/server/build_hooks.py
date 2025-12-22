@@ -1,18 +1,46 @@
 """
-Pre and post build hook execution.
+Pre and post build hook execution for external tool integration.
 
-Provides the ability to run custom shell commands before and after builds,
-enabling integration with external build tools (e.g., npm, tailwind, etc.).
+Enables running custom shell commands before and after Bengal builds,
+allowing integration with external build tools like npm, Tailwind CSS,
+esbuild, or any custom scripts.
 
 Features:
-    - Sequential execution of hook commands
-    - Configurable timeout per command
-    - stdout/stderr capture for logging
-    - Graceful handling of failures and timeouts
+    - Sequential command execution with output capture
+    - Configurable timeout per command (default: 30s)
+    - stdout/stderr logging for debugging
+    - Graceful failure handling (non-zero exit logged, not fatal)
+    - Cross-platform subprocess execution
+
+Functions:
+    run_hooks: Execute a list of shell commands sequentially
+    run_pre_build_hooks: Convenience wrapper for pre-build hooks
+    run_post_build_hooks: Convenience wrapper for post-build hooks
+
+Configuration (bengal.toml):
+    ```toml
+    [dev_server]
+    pre_build_hooks = [
+        "npm run build:icons",
+        "tailwindcss -i src/input.css -o assets/style.css"
+    ]
+    post_build_hooks = [
+        "echo 'Build complete!'"
+    ]
+    hook_timeout = 60  # seconds per command
+    ```
+
+Use Cases:
+    - CSS preprocessing (Sass, Less, Tailwind)
+    - JavaScript bundling (esbuild, webpack, Vite)
+    - Asset optimization (imagemin, svgo)
+    - Icon generation (svg-sprite, fontello)
+    - Custom validation scripts
 
 Related:
-    - bengal/server/build_trigger.py: Integrates hooks into build cycle
-    - bengal.toml [dev_server] section: Configuration for hooks
+    - bengal/server/build_trigger.py: Calls hooks during build cycle
+    - bengal/server/dev_server.py: Reads hook configuration
+    - bengal.toml [dev_server] section: Hook configuration
 """
 
 from __future__ import annotations

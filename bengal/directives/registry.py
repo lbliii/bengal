@@ -1,23 +1,41 @@
-"""
-Lazy-loading directive registry.
+"""Lazy-loading directive registry for on-demand directive imports.
 
-Provides a registry that loads directive classes on-demand to maintain
-fast import times while supporting the full directive library.
+This module provides a registry that loads directive classes only when
+requested, maintaining fast import times while supporting the full
+directive library. Each directive module is imported on first use,
+reducing cold start time for CLI operations that don't need directives.
 
-Architecture:
-    - _DIRECTIVE_MAP: Maps directive names to module paths
-    - _loaded_directives: Cache of already-loaded directive classes
-    - get_directive(): Lazy-load a directive by name
-    - register_all(): Pre-load all directives
+Public API:
+    - ``get_directive(name)``: Lazy-load a directive class by name.
+    - ``register_all()``: Pre-load all directives (for testing/inspection).
+    - ``get_known_directive_names()``: Get all registered directive names.
+    - ``get_directive_classes()``: Get all unique directive classes.
+    - ``KNOWN_DIRECTIVE_NAMES``: Frozenset of registered directive names.
+    - ``DIRECTIVE_CLASSES``: List of all directive classes (lazy-loaded).
 
-Performance:
-    Lazy loading prevents importing all directive implementations at
-    startup. Each directive module is loaded only when first requested,
-    reducing cold start time for CLI operations that don't use directives.
+Internal Architecture:
+    - ``_DIRECTIVE_MAP``: Maps directive names to module paths.
+    - ``_loaded_directives``: Cache of already-loaded directive classes.
 
-Related:
-    - bengal/directives/base.py: BengalDirective base class
-    - bengal/rendering/plugins/directives/__init__.py: Original location
+Example:
+    Get a specific directive class::
+
+        from bengal.directives.registry import get_directive
+
+        DropdownDirective = get_directive("dropdown")
+        if DropdownDirective:
+            directive = DropdownDirective()
+
+    Pre-load all directives for inspection::
+
+        from bengal.directives.registry import register_all, DIRECTIVE_CLASSES
+
+        register_all()
+        print(f"Loaded {len(DIRECTIVE_CLASSES)} directive classes")
+
+See Also:
+    - ``bengal.directives.base``: ``BengalDirective`` base class.
+    - ``bengal.directives.factory``: Plugin factory using this registry.
 """
 
 from __future__ import annotations
@@ -141,18 +159,21 @@ _loaded_directives: dict[str, type[BengalDirective]] = {}
 
 
 def get_directive(name: str) -> type[BengalDirective] | None:
-    """
-    Get directive class by name, loading lazily.
+    """Get a directive class by name, loading it lazily if needed.
+
+    Looks up the directive in the registry and imports its module on first
+    access. Results are cached for subsequent calls.
 
     Args:
-        name: Directive name (e.g., "dropdown", "tab-set")
+        name: Directive name (e.g., ``"dropdown"``, ``"tab-set"``).
 
     Returns:
-        Directive class if found, None otherwise
+        The directive class if found, ``None`` if not registered or import fails.
 
     Example:
         >>> DropdownDirective = get_directive("dropdown")
-        >>> directive = DropdownDirective()
+        >>> if DropdownDirective:
+        ...     directive = DropdownDirective()
     """
     if name in _loaded_directives:
         return _loaded_directives[name]
@@ -193,19 +214,21 @@ def get_directive(name: str) -> type[BengalDirective] | None:
 
 
 def register_all() -> None:
-    """
-    Pre-load all directives.
+    """Pre-load all registered directives into the cache.
 
+    Imports all directive modules and populates ``_loaded_directives``.
     Useful for testing, inspection, or ensuring all directives are
-    available before processing content.
+    available before processing content in a batch.
     """
     for name in _DIRECTIVE_MAP:
         get_directive(name)
 
 
 def get_known_directive_names() -> frozenset[str]:
-    """
-    Get all registered directive names.
+    """Return all registered directive names as a frozenset.
+
+    This includes all directive names and their aliases (e.g., both
+    ``"dropdown"`` and ``"details"`` for the dropdown directive).
 
     Returns:
         Frozenset of all directive names in the registry.
@@ -218,11 +241,14 @@ KNOWN_DIRECTIVE_NAMES: frozenset[str] = get_known_directive_names()
 
 
 def get_directive_classes() -> list[type]:
-    """
-    Get all unique directive classes.
+    """Return all unique directive classes.
+
+    Triggers ``register_all()`` to ensure all modules are imported, then
+    returns deduplicated directive classes (since multiple names may map
+    to the same class, e.g., ``"dropdown"`` and ``"details"``).
 
     Returns:
-        List of directive class types (deduplicated).
+        List of unique directive class types.
     """
     register_all()
     # Deduplicate - multiple names may map to the same class
@@ -234,7 +260,13 @@ _directive_classes: list[type] | None = None
 
 
 def _get_directive_classes() -> list[type]:
-    """Get directive classes, loading lazily."""
+    """Return directive classes, loading and caching on first access.
+
+    Internal function backing the ``DIRECTIVE_CLASSES`` module attribute.
+
+    Returns:
+        List of all unique directive classes.
+    """
     global _directive_classes
     if _directive_classes is None:
         _directive_classes = get_directive_classes()
@@ -246,7 +278,20 @@ DIRECTIVE_CLASSES: list[type] = []  # Populated on first access via __getattr__
 
 
 def __getattr__(name: str) -> list[type]:
-    """Module-level attribute access for lazy DIRECTIVE_CLASSES."""
+    """Provide lazy access to ``DIRECTIVE_CLASSES`` via PEP 562.
+
+    Implements module-level ``__getattr__`` to defer loading all directive
+    classes until ``DIRECTIVE_CLASSES`` is actually accessed.
+
+    Args:
+        name: The attribute name being accessed.
+
+    Returns:
+        For ``DIRECTIVE_CLASSES``, returns the list of all directive classes.
+
+    Raises:
+        AttributeError: If the requested attribute does not exist.
+    """
     if name == "DIRECTIVE_CLASSES":
         return _get_directive_classes()
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

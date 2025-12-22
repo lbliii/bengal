@@ -1,26 +1,47 @@
 """
 Page representation for content pages in Bengal SSG.
 
-This module provides the main Page class, which combines multiple mixins
-to provide a complete page interface while maintaining separation of concerns.
-Pages represent markdown content files and provide metadata, navigation,
-content processing, and template rendering capabilities.
+Provides the main Page class combining multiple mixins for metadata,
+navigation, content processing, and rendering. Pages represent markdown
+content files and are the primary content unit in Bengal.
+
+Public API:
+    Page: Content page with metadata, content, and rendering capabilities
+    PageProxy: Lazy-loading proxy for incremental builds (wraps PageCore)
+
+Package Structure:
+    page_core.py: PageCore dataclass (cacheable metadata)
+    metadata.py: PageMetadataMixin (frontmatter access)
+    navigation.py: PageNavigationMixin (URL, breadcrumbs)
+    computed.py: PageComputedMixin (derived properties)
+    content.py: PageContentMixin (AST, TOC, excerpts)
+    relationships.py: PageRelationshipsMixin (prev/next, related)
+    operations.py: PageOperationsMixin (read, save)
+    proxy.py: PageProxy for lazy loading
+    utils.py: Field separation utilities
 
 Key Concepts:
-    - Mixin architecture: Separated concerns via mixins (metadata, content, navigation)
-    - Hashability: Pages hashable by source_path for set operations
-    - AST-based content: Content represented as AST for efficient processing
-    - Cacheable metadata: PageCore provides cacheable page metadata
+    Mixin Architecture: Page combines focused mixins for separation of
+        concerns. Each mixin handles a specific aspect (metadata, nav, etc.).
 
-Related Modules:
-    - bengal.core.page.page_core: Cacheable page metadata
-    - bengal.core.page.proxy: Lazy-loaded page placeholder
-    - bengal.rendering.renderer: Page rendering logic
-    - bengal.orchestration.content: Content discovery and page creation
+    Hashability: Pages are hashable by source_path, enabling set operations
+        and use as dict keys. Two pages with same path are equal.
 
-See Also:
-    - bengal/core/page/__init__.py:Page class for page representation
-    - plan/active/rfc-content-ast-architecture.md: AST architecture RFC
+    Virtual Pages: Pages without disk files (e.g., autodoc). Created via
+        Page.create_virtual() for dynamically-generated content.
+
+    PageCore: Cacheable subset of page metadata. Shared between Page,
+        PageProxy, and cache layer. Enables incremental builds.
+
+Build Lifecycle:
+    1. Discovery: source_path, content, metadata available
+    2. Parsing: toc, parsed_ast populated
+    3. Rendering: rendered_html, output_path populated
+
+Related Packages:
+    bengal.core.page.page_core: Cacheable page metadata
+    bengal.rendering.renderer: Page rendering pipeline
+    bengal.orchestration.content: Content discovery and page creation
 """
 
 from __future__ import annotations

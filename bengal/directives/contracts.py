@@ -1,29 +1,42 @@
-"""
-Directive contract system for nesting validation.
+"""Directive contract system for nesting validation.
 
-Provides DirectiveContract to define valid parent-child relationships
-between directives, catching invalid nesting at parse time rather than
-producing silent failures or broken HTML.
+This module provides ``DirectiveContract`` to define valid parent-child
+relationships between directives. Contracts are validated at parse time,
+catching invalid nesting early with helpful warnings rather than producing
+silent failures or broken HTML.
 
-Architecture:
-    Contracts are defined as class-level constants on BengalDirective
-    subclasses. The base class validates contracts automatically during
-    parsing, emitting warnings for violations.
+Key Classes:
+    - ``DirectiveContract``: Define valid nesting relationships.
+    - ``ContractViolation``: Represent a detected validation issue.
+    - ``ContractValidator``: Validate directives against contracts.
 
-Related:
-    - bengal/directives/base.py: BengalDirective validates contracts
+Pre-defined Contracts:
+    - ``STEPS_CONTRACT``, ``STEP_CONTRACT``: Steps container validation.
+    - ``TAB_SET_CONTRACT``, ``TAB_ITEM_CONTRACT``: Tabs validation.
+    - ``CARDS_CONTRACT``, ``CARD_CONTRACT``: Cards container validation.
+    - ``CODE_TABS_CONTRACT``: Code tabs validation.
 
 Example:
+    Define a directive that must be inside a parent::
 
-```python
-class StepDirective(BengalDirective):
-    CONTRACT = DirectiveContract(requires_parent=("steps",))
+        class StepDirective(BengalDirective):
+            CONTRACT = DirectiveContract(requires_parent=("steps",))
 
-# This produces a warning at parse time:
-# :::{step}
-# Orphaned step - not inside :::{steps}
-# :::
-```
+    Invalid usage produces a warning at parse time::
+
+        :::{step}
+        Orphaned step - not inside :::{steps}
+        :::
+        # Warning: step must be inside ['steps'], found: (root)
+
+Architecture:
+    Contracts are defined as ``CONTRACT`` class attributes on
+    ``BengalDirective`` subclasses. The base class validates contracts
+    automatically during ``parse()``, emitting structured warnings
+    via the logger for violations.
+
+See Also:
+    - ``bengal.directives.base``: ``BengalDirective`` validates contracts.
 """
 
 from __future__ import annotations
@@ -36,46 +49,44 @@ from bengal.errors import BengalRenderingError
 
 @dataclass(frozen=True)
 class DirectiveContract:
-    """
-    Defines valid nesting relationships for a directive.
+    """Define valid nesting relationships for a directive.
 
-    This is the KEY FEATURE that solves the nested directive validation problem.
-    Contracts are checked at parse time to catch invalid nesting early.
+    Contracts specify which parent directives are allowed, which children
+    are required, and constraints on child types and counts. Invalid
+    nesting is detected at parse time with helpful warning messages.
 
     Attributes:
-        requires_parent: This directive MUST be inside one of these parent types.
-                        Empty tuple means can appear anywhere (root-level OK).
+        requires_parent: Tuple of allowed parent directive types. The directive
+            must be nested inside one of these. Empty tuple means root-level is OK.
+        requires_children: Tuple of required child directive types. At least one
+            child of these types must be present. Empty tuple means no requirement.
+        min_children: Minimum count of ``requires_children`` types required.
+        max_children: Maximum total children allowed (0 means unlimited).
+        allowed_children: Whitelist of allowed child types. Empty tuple allows any.
+        disallowed_children: Blacklist of forbidden child types. Takes precedence
+            over ``allowed_children``.
 
-        requires_children: This directive MUST contain at least one of these types.
-                          Empty tuple means no required children.
+    Example:
+        Child directive that must be inside a parent::
 
-        allowed_children: Only these child types are allowed (whitelist).
-                         Empty tuple means any children allowed.
+            CONTRACT = DirectiveContract(
+                requires_parent=("steps",),
+            )
 
-        disallowed_children: These child types are NOT allowed (blacklist).
-                            Takes precedence over allowed_children.
+        Parent directive that must contain specific children::
 
-        min_children: Minimum count of required_children types.
+            CONTRACT = DirectiveContract(
+                requires_children=("step",),
+                min_children=1,
+                allowed_children=("step", "blank_line"),
+            )
 
-        max_children: Maximum children (0 = unlimited).
+        Tabs with required items::
 
-    Example - StepDirective (must be inside steps):
-        CONTRACT = DirectiveContract(
-            requires_parent=("steps",),
-        )
-
-    Example - StepsDirective (must contain steps):
-        CONTRACT = DirectiveContract(
-            requires_children=("step",),
-            min_children=1,
-            allowed_children=("step",),
-        )
-
-    Example - TabSetDirective (tabs with items):
-        CONTRACT = DirectiveContract(
-            requires_children=("tab_item",),
-            min_children=1,
-        )
+            CONTRACT = DirectiveContract(
+                requires_children=("tab_item",),
+                min_children=1,
+            )
     """
 
     # Parent requirements
@@ -91,7 +102,11 @@ class DirectiveContract:
     disallowed_children: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
-        """Validate contract configuration."""
+        """Validate contract configuration on initialization.
+
+        Raises:
+            BengalRenderingError: If ``min_children`` or ``max_children`` is negative.
+        """
         if self.min_children < 0:
             raise BengalRenderingError(
                 "min_children must be >= 0",
@@ -105,32 +120,32 @@ class DirectiveContract:
 
     @property
     def has_parent_requirement(self) -> bool:
-        """True if this directive requires a specific parent."""
+        """Return ``True`` if this contract specifies a required parent."""
         return len(self.requires_parent) > 0
 
     @property
     def has_child_requirement(self) -> bool:
-        """True if this directive requires specific children."""
+        """Return ``True`` if this contract specifies child requirements."""
         return len(self.requires_children) > 0 or self.min_children > 0
 
 
 @dataclass
 class ContractViolation:
-    """
-    Represents a contract violation found during parsing.
+    """Represent a contract violation detected during parsing.
 
-    Collected violations can be:
-    - Logged as warnings (default)
-    - Raised as errors (strict mode)
-    - Reported in health checks
+    Violations capture details about invalid nesting for:
+        - Logging as warnings (default behavior)
+        - Raising as errors (strict mode)
+        - Reporting in health checks
 
     Attributes:
-        directive: The directive type that was validated
-        violation_type: Type of violation (for structured logging)
-        message: Human-readable description
-        expected: What was expected (list, int, or description)
-        found: What was actually found
-        location: Source location (e.g., "content/guide.md:45")
+        directive: The directive type that was validated (e.g., ``"step"``).
+        violation_type: Type identifier for structured logging (e.g.,
+            ``"directive_invalid_parent"``).
+        message: Human-readable description of the violation.
+        expected: What was expected (list of types, count, or description).
+        found: What was actually found (type name, list, or count).
+        location: Source file location (e.g., ``"content/guide.md"``).
     """
 
     directive: str
@@ -141,14 +156,15 @@ class ContractViolation:
     location: str | None = None
 
     def to_log_dict(self) -> dict[str, Any]:
-        """
-        Convert to structured log format.
+        """Convert the violation to a structured logging dictionary.
 
-        Note: Uses 'detail' instead of 'message' to avoid conflict
-        with BengalLogger's positional 'message' argument.
+        Creates a dict suitable for passing as kwargs to ``logger.warning()``.
+        Uses ``"detail"`` instead of ``"message"`` to avoid conflict with
+        BengalLogger's positional message argument.
 
         Returns:
-            Dict suitable for structured logging kwargs
+            Dictionary with ``directive``, ``violation``, ``detail``, and
+            optionally ``expected``, ``found``, ``location``.
         """
         result: dict[str, Any] = {
             "directive": self.directive,
@@ -165,36 +181,41 @@ class ContractViolation:
 
 
 class ContractValidator:
-    """
-    Validates directive nesting against contracts.
+    """Validate directive nesting against contracts.
 
-    Used by BengalDirective.parse() to check:
-    1. Parent context is valid (if requires_parent specified)
-    2. Children meet requirements (if requires_children specified)
-    3. Children types are allowed (if allowed_children specified)
+    Provides static methods for validating parent context and child
+    requirements. Used by ``BengalDirective.parse()`` to enforce
+    contracts during markdown parsing.
 
-    Example usage in BengalDirective:
-        def parse(self, block, m, state):
-            # ... parse content ...
+    Validation Checks:
+        1. **Parent validation**: Verify the directive is inside an allowed parent.
+        2. **Required children**: Verify required child types are present.
+        3. **Child count**: Verify ``min_children`` and ``max_children`` constraints.
+        4. **Allowed children**: Verify children are in the whitelist (if specified).
+        5. **Disallowed children**: Verify no blacklisted children are present.
 
-            # Validate parent
-            if self.CONTRACT:
-                parent_type = self._get_parent_type(state)
-                violations = ContractValidator.validate_parent(
-                    self.CONTRACT, self.TOKEN_TYPE, parent_type
-                )
-                for v in violations:
-                    self.logger.warning(v.violation_type, **v.to_log_dict())
+    Example:
+        Using the validator in a directive's parse method::
 
-            # ... parse children ...
+            def parse(self, block, m, state):
+                # Validate parent context
+                if self.CONTRACT and self.CONTRACT.has_parent_requirement:
+                    parent_type = self._get_parent_directive_type(state)
+                    violations = ContractValidator.validate_parent(
+                        self.CONTRACT, self.TOKEN_TYPE, parent_type
+                    )
+                    for v in violations:
+                        self.logger.warning(v.violation_type, **v.to_log_dict())
 
-            # Validate children
-            if self.CONTRACT:
-                violations = ContractValidator.validate_children(
-                    self.CONTRACT, self.TOKEN_TYPE, children
-                )
-                for v in violations:
-                    self.logger.warning(v.violation_type, **v.to_log_dict())
+                # ... parse children ...
+
+                # Validate children
+                if self.CONTRACT and self.CONTRACT.has_child_requirement:
+                    violations = ContractValidator.validate_children(
+                        self.CONTRACT, self.TOKEN_TYPE, children
+                    )
+                    for v in violations:
+                        self.logger.warning(v.violation_type, **v.to_log_dict())
     """
 
     @staticmethod
@@ -204,17 +225,16 @@ class ContractValidator:
         parent_type: str | None,
         location: str | None = None,
     ) -> list[ContractViolation]:
-        """
-        Validate that the directive is inside a valid parent.
+        """Validate that the directive is inside an allowed parent.
 
         Args:
-            contract: The directive's contract
-            directive_type: The directive being validated (e.g., "step")
-            parent_type: The parent directive type (None if at root)
-            location: Source location for error messages
+            contract: The directive's contract specifying ``requires_parent``.
+            directive_type: The directive being validated (e.g., ``"step"``).
+            parent_type: The parent directive type, or ``None`` if at document root.
+            location: Source file path for error messages.
 
         Returns:
-            List of violations (empty if valid)
+            List of ``ContractViolation`` objects (empty if valid).
         """
         violations = []
 
@@ -242,17 +262,18 @@ class ContractValidator:
         children: list[dict[str, Any]],
         location: str | None = None,
     ) -> list[ContractViolation]:
-        """
-        Validate that children meet contract requirements.
+        """Validate that children meet contract requirements.
+
+        Checks required children, child counts, and allowed/disallowed types.
 
         Args:
-            contract: The directive's contract
-            directive_type: The directive being validated (e.g., "steps")
-            children: Parsed child tokens
-            location: Source location for error messages
+            contract: The directive's contract specifying child requirements.
+            directive_type: The directive being validated (e.g., ``"steps"``).
+            children: List of parsed child tokens as dictionaries.
+            location: Source file path for error messages.
 
         Returns:
-            List of violations (empty if valid)
+            List of ``ContractViolation`` objects (empty if all valid).
         """
         violations = []
 

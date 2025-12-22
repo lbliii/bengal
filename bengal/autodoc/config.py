@@ -1,7 +1,38 @@
 """
-Configuration loader for autodoc.
+Configuration loader for the autodoc documentation system.
 
-Loads autodoc settings from config/ directory or bengal.toml.
+This module handles loading and merging autodoc configuration from multiple
+sources with a defined priority order.
+
+Configuration Sources (in priority order):
+    1. Explicit path passed to `load_autodoc_config()`
+    2. Directory-based config: `config/_default/autodoc.yaml` or `site/config/`
+    3. Single-file config: `bengal.toml` (backward compatibility)
+    4. Built-in defaults (all extractors disabled by default)
+
+Extractor Configuration:
+    - python: Python API documentation via AST extraction
+    - openapi: REST API documentation from OpenAPI specs
+    - cli: Command-line interface documentation (Click/Typer/argparse)
+
+Default Behavior:
+    All extractors are disabled by default. Enable them explicitly in config
+    to opt-in to documentation generation for each type.
+
+Example:
+    >>> from bengal.autodoc.config import load_autodoc_config
+    >>> config = load_autodoc_config()
+    >>> config["python"]["enabled"]
+    False
+    >>> # Enable Python autodoc in config/_default/autodoc.yaml:
+    >>> # autodoc:
+    >>> #   python:
+    >>> #     enabled: true
+    >>> #     source_dirs: ["bengal"]
+
+Related:
+    - bengal/config/directory_loader.py: Directory-based config loading
+    - site/config/_default/autodoc.yaml: Example configuration
 """
 
 from __future__ import annotations
@@ -220,17 +251,41 @@ def _merge_autodoc_config(
 
 
 def get_python_config(config: dict[str, Any]) -> dict[str, Any]:
-    """Get Python autodoc configuration."""
+    """
+    Extract Python autodoc configuration from full autodoc config.
+
+    Args:
+        config: Full autodoc configuration dict from `load_autodoc_config()`
+
+    Returns:
+        Python-specific configuration with keys like 'enabled', 'source_dirs', etc.
+    """
     return config.get("python", {})
 
 
 def get_openapi_config(config: dict[str, Any]) -> dict[str, Any]:
-    """Get OpenAPI autodoc configuration."""
+    """
+    Extract OpenAPI autodoc configuration from full autodoc config.
+
+    Args:
+        config: Full autodoc configuration dict from `load_autodoc_config()`
+
+    Returns:
+        OpenAPI-specific configuration with keys like 'enabled', 'spec_file', etc.
+    """
     return config.get("openapi", {})
 
 
 def get_cli_config(config: dict[str, Any]) -> dict[str, Any]:
-    """Get CLI autodoc configuration."""
+    """
+    Extract CLI autodoc configuration from full autodoc config.
+
+    Args:
+        config: Full autodoc configuration dict from `load_autodoc_config()`
+
+    Returns:
+        CLI-specific configuration with keys like 'enabled', 'app_module', etc.
+    """
     return config.get("cli", {})
 
 

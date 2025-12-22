@@ -1,22 +1,49 @@
-"""
-Base class for Bengal directives.
+"""Base class for Bengal directives.
 
-Provides BengalDirective as the foundation for all directive implementations,
-offering automatic registration, typed options, contract validation, and
-encapsulated rendering.
+This module provides ``BengalDirective``, the foundation for all directive
+implementations. It extends Mistune's ``DirectivePlugin`` with automatic
+registration, typed options, and contract-based nesting validation.
 
-Architecture:
-    BengalDirective extends mistune's DirectivePlugin with:
-    - Automatic directive and renderer registration via NAMES/TOKEN_TYPE
-    - Typed option parsing via OPTIONS_CLASS
-    - Nesting validation via CONTRACT
-    - Template method pattern for parse flow
-    - Encapsulated render method
+Features:
+    - **Automatic Registration**: Directives register themselves via ``NAMES``
+      and ``TOKEN_TYPE`` class attributes.
+    - **Typed Options**: Parse directive options into typed dataclasses using
+      ``OPTIONS_CLASS``.
+    - **Contract Validation**: Define valid parent-child relationships via
+      ``CONTRACT`` to catch invalid nesting at parse time.
+    - **Template Method Pattern**: Override ``parse_directive()`` and ``render()``
+      for directive-specific logic.
 
-Related:
-    - bengal/directives/tokens.py: DirectiveToken
-    - bengal/directives/options.py: DirectiveOptions
-    - bengal/directives/contracts.py: DirectiveContract
+Class Attributes:
+    NAMES: List of directive names to register (e.g., ``["dropdown", "details"]``).
+    TOKEN_TYPE: Token type string for the AST (e.g., ``"dropdown"``).
+    OPTIONS_CLASS: Dataclass for typed option parsing (default: ``DirectiveOptions``).
+    CONTRACT: Optional nesting validation contract (default: ``None``).
+
+Example:
+    Create a custom dropdown directive::
+
+        from bengal.directives import BengalDirective, DirectiveToken
+
+        class DropdownDirective(BengalDirective):
+            NAMES = ["dropdown"]
+            TOKEN_TYPE = "dropdown"
+
+            def parse_directive(self, title, options, content, children, state):
+                return DirectiveToken(
+                    type=self.TOKEN_TYPE,
+                    attrs={"title": title or "Details"},
+                    children=children,
+                )
+
+            def render(self, renderer, text, **attrs):
+                title = attrs.get("title", "Details")
+                return f"<details><summary>{title}</summary>{text}</details>"
+
+See Also:
+    - ``bengal.directives.tokens``: ``DirectiveToken`` definition.
+    - ``bengal.directives.options``: ``DirectiveOptions`` base class.
+    - ``bengal.directives.contracts``: ``DirectiveContract`` for nesting rules.
 """
 
 from __future__ import annotations
@@ -56,51 +83,62 @@ from .utils import (  # noqa: F401
 
 
 class BengalDirective(DirectivePlugin):
-    """
-    Base class for Bengal directives with nesting validation.
+    """Base class for Bengal directives with automatic registration and validation.
 
-    Provides:
-    - Automatic directive and renderer registration
-    - Typed option parsing via OPTIONS_CLASS
-    - Contract validation for parent-child relationships
-    - Shared utility methods (escape_html, build_class_string)
-    - Consistent type hints and logging
+    Subclass this to create custom directives. The base class handles directive
+    registration, option parsing, contract validation, and provides shared
+    utilities for HTML generation.
 
     Subclass Requirements:
-        NAMES: List of directive names to register (e.g., ["dropdown", "details"])
-        TOKEN_TYPE: Token type string for AST (e.g., "dropdown")
-        OPTIONS_CLASS: (optional) Typed options dataclass
-        CONTRACT: (optional) Nesting validation contract
-        parse_directive(): Build token from parsed components
-        render(): Render token to HTML
+        Define these class attributes:
+            NAMES: List of directive names (e.g., ``["dropdown", "details"]``).
+            TOKEN_TYPE: Token type for the AST (e.g., ``"dropdown"``).
+
+        Override these methods:
+            parse_directive: Build the token from parsed components.
+            render: Render the token to HTML.
+
+        Optionally define:
+            OPTIONS_CLASS: Typed options dataclass (default: ``DirectiveOptions``).
+            CONTRACT: Nesting validation contract (default: ``None``).
+
+    Attributes:
+        logger: Module logger for warnings and debug output.
 
     Example:
-        class DropdownDirective(BengalDirective):
-            NAMES = ["dropdown", "details"]
-            TOKEN_TYPE = "dropdown"
-            OPTIONS_CLASS = DropdownOptions
+        Basic directive with options::
 
-            def parse_directive(self, title, options, content, children, state):
-                return DirectiveToken(
-                    type=self.TOKEN_TYPE,
-                    attrs={"title": title or "Details", "open": options.open},
-                    children=children,
-                )
+            class DropdownDirective(BengalDirective):
+                NAMES = ["dropdown", "details"]
+                TOKEN_TYPE = "dropdown"
+                OPTIONS_CLASS = DropdownOptions
 
-            def render(self, renderer, text, **attrs):
-                title = attrs.get("title", "Details")
-                is_open = attrs.get("open", False)
-                open_attr = " open" if is_open else ""
-                return f"<details{open_attr}><summary>{title}</summary>{text}</details>"
+                def parse_directive(self, title, options, content, children, state):
+                    return DirectiveToken(
+                        type=self.TOKEN_TYPE,
+                        attrs={"title": title or "Details", "open": options.open},
+                        children=children,
+                    )
 
-    Example with Contract:
-        class StepDirective(BengalDirective):
-            NAMES = ["step"]
-            TOKEN_TYPE = "step"
-            CONTRACT = DirectiveContract(requires_parent=("steps",))
+                def render(self, renderer, text, **attrs):
+                    title = attrs.get("title", "Details")
+                    open_attr = " open" if attrs.get("open") else ""
+                    return f"<details{open_attr}><summary>{title}</summary>{text}</details>"
 
-            def parse_directive(self, ...): ...
-            def render(self, ...): ...
+        Directive with contract validation::
+
+            class StepDirective(BengalDirective):
+                NAMES = ["step"]
+                TOKEN_TYPE = "step"
+                CONTRACT = DirectiveContract(requires_parent=("steps",))
+
+                def parse_directive(self, title, options, content, children, state):
+                    # Implementation here
+                    ...
+
+                def render(self, renderer, text, **attrs):
+                    # Render implementation
+                    ...
     """
 
     # -------------------------------------------------------------------------
@@ -124,7 +162,7 @@ class BengalDirective(DirectivePlugin):
     # -------------------------------------------------------------------------
 
     def __init__(self) -> None:
-        """Initialize directive with logger."""
+        """Initialize the directive with a module-level logger."""
         super().__init__()
         self.logger = get_logger(self.__class__.__module__)
 
@@ -133,24 +171,29 @@ class BengalDirective(DirectivePlugin):
     # -------------------------------------------------------------------------
 
     def parse(self, block: Any, m: Match[str], state: Any) -> dict[str, Any]:
-        """
-        Standard parse flow with contract validation.
+        """Parse directive content with automatic contract validation.
 
-        Validation steps:
-        1. Validate parent context (if CONTRACT.requires_parent)
-        2. Parse content and children
-        3. Validate children (if CONTRACT.requires_children)
+        This method implements the standard parse flow:
+            1. Validate parent context (if ``CONTRACT.requires_parent`` is set).
+            2. Parse title, options, and content from the match.
+            3. Recursively parse nested content into child tokens.
+            4. Validate children (if ``CONTRACT.requires_children`` is set).
+            5. Delegate to ``parse_directive()`` for directive-specific logic.
 
-        Override parse_directive() instead of this method for most cases.
-        Override this method only if you need custom pre/post processing.
+        Override ``parse_directive()`` for most cases. Override this method only
+        if you need custom pre- or post-processing around the standard flow.
 
         Args:
-            block: Mistune block parser instance
-            m: Regex match object from directive pattern
-            state: Parser state
+            block: Mistune block parser instance.
+            m: Regex match object from the directive pattern.
+            state: Parser state containing environment and context.
 
         Returns:
-            Token dict for mistune AST
+            Token dictionary for the Mistune AST.
+
+        Note:
+            Contract violations emit warnings via the logger rather than raising
+            exceptions, allowing graceful degradation of invalid markup.
         """
         # Get source location for error messages
         location = self._get_source_location(state)
@@ -201,17 +244,16 @@ class BengalDirective(DirectivePlugin):
         return token
 
     def _get_parent_directive_type(self, state: Any) -> str | None:
-        """
-        Extract parent directive type from parser state.
+        """Extract the parent directive type from parser state.
 
-        Mistune tracks directive nesting in state. This method extracts
-        the immediate parent directive type for contract validation.
+        Used by contract validation to verify ``requires_parent`` constraints.
+        Checks both Bengal's directive stack and Mistune's state environment.
 
         Args:
-            state: Parser state
+            state: Parser state containing the directive stack.
 
         Returns:
-            Parent directive type (e.g., "steps") or None if at root
+            Parent directive type (e.g., ``"steps"``) or ``None`` if at root level.
         """
         # Check for Bengal's directive stack in state
         directive_stack = getattr(state, "_directive_stack", None)
@@ -228,12 +270,14 @@ class BengalDirective(DirectivePlugin):
         return None
 
     def _push_directive_stack(self, state: Any, directive_type: str) -> None:
-        """
-        Push current directive onto the stack for child validation.
+        """Push the current directive onto the nesting stack.
+
+        Called before parsing nested content so child directives can validate
+        their parent context via ``_get_parent_directive_type()``.
 
         Args:
-            state: Parser state
-            directive_type: Current directive type
+            state: Parser state to modify.
+            directive_type: The directive type to push (e.g., ``"steps"``).
         """
         env = getattr(state, "env", None)
         if env is None:
@@ -250,11 +294,12 @@ class BengalDirective(DirectivePlugin):
             env["directive_stack"].append(directive_type)
 
     def _pop_directive_stack(self, state: Any) -> None:
-        """
-        Pop current directive from the stack.
+        """Pop the current directive from the nesting stack.
+
+        Called after parsing nested content to restore the previous context.
 
         Args:
-            state: Parser state
+            state: Parser state to modify.
         """
         env = getattr(state, "env", {})
         if isinstance(env, dict):
@@ -263,14 +308,15 @@ class BengalDirective(DirectivePlugin):
                 stack.pop()
 
     def _get_source_location(self, state: Any) -> str | None:
-        """
-        Extract source file location from parser state.
+        """Extract the source file path from parser state.
+
+        Used for error messages and logging to help locate issues in content.
 
         Args:
-            state: Parser state
+            state: Parser state containing environment data.
 
         Returns:
-            Location string like "content/guide.md:45" or None
+            Source file path (e.g., ``"content/guide.md"``) or ``None`` if unavailable.
         """
         env = getattr(state, "env", {})
         if isinstance(env, dict):
@@ -293,35 +339,54 @@ class BengalDirective(DirectivePlugin):
         children: list[Any],
         state: Any,
     ) -> DirectiveToken | dict[str, Any]:
-        """
-        Build the token from parsed components.
+        """Build the AST token from parsed components.
 
-        Override this method to implement directive-specific logic.
+        Override this method to implement directive-specific parsing logic.
+        Called by ``parse()`` after options are parsed and children are processed.
 
         Args:
-            title: Directive title (text after directive name)
-            options: Parsed and typed options
-            content: Raw content string (rarely needed, use children)
-            children: Parsed nested content tokens
-            state: Parser state (for accessing heading levels, etc.)
+            title: Directive title (text after the directive name on the opening line).
+            options: Typed options instance parsed from ``:option: value`` lines.
+            content: Raw content string (rarely needed; prefer ``children``).
+            children: Parsed nested content as a list of AST tokens.
+            state: Parser state for accessing context like heading levels.
 
         Returns:
-            DirectiveToken or dict for AST
+            A ``DirectiveToken`` or dict representing the AST node.
+
+        Example:
+            ::
+
+                def parse_directive(self, title, options, content, children, state):
+                    return DirectiveToken(
+                        type=self.TOKEN_TYPE,
+                        attrs={"title": title or "Default Title"},
+                        children=children,
+                    )
         """
         ...
 
     @abstractmethod
     def render(self, renderer: Any, text: str, **attrs: Any) -> str:
-        """
-        Render token to HTML.
+        """Render the directive token to HTML.
+
+        Override this method to produce the final HTML output for the directive.
+        Called by Mistune during the rendering phase.
 
         Args:
-            renderer: Mistune renderer instance
-            text: Pre-rendered children HTML
-            **attrs: Token attributes
+            renderer: Mistune renderer instance (provides access to other renderers).
+            text: Pre-rendered HTML string of nested children.
+            **attrs: Token attributes from ``parse_directive()`` (e.g., title, options).
 
         Returns:
-            HTML string
+            HTML string to insert into the output.
+
+        Example:
+            ::
+
+                def render(self, renderer, text, **attrs):
+                    title = attrs.get("title", "Details")
+                    return f"<details><summary>{title}</summary>{text}</details>"
         """
         ...
 
@@ -330,15 +395,18 @@ class BengalDirective(DirectivePlugin):
     # -------------------------------------------------------------------------
 
     def __call__(self, directive: Any, md: Any) -> None:
-        """
-        Register directive names and renderer.
+        """Register directive names and the renderer with Mistune.
 
-        Override only if you need custom registration logic
-        (e.g., multiple token types like AdmonitionDirective).
+        Called when the directive is added to a Mistune markdown instance.
+        Registers all names in ``NAMES`` and binds the ``render()`` method
+        to the ``TOKEN_TYPE``.
+
+        Override only for custom registration (e.g., directives with multiple
+        token types like ``AdmonitionDirective``).
 
         Args:
-            directive: Mistune directive registry
-            md: Mistune Markdown instance
+            directive: Mistune directive registry to register parse handlers.
+            md: Mistune Markdown instance to register the renderer.
         """
         for name in self.NAMES:
             directive.register(name, self.parse)
@@ -352,53 +420,52 @@ class BengalDirective(DirectivePlugin):
 
     @staticmethod
     def escape_html(text: str) -> str:
-        """
-        Escape HTML special characters for use in attributes.
+        """Escape HTML special characters for safe use in attributes.
 
-        Escapes: & < > " '
+        Escapes: ``&``, ``<``, ``>``, ``"``, ``'``.
 
         Args:
-            text: Raw text to escape
+            text: Raw text to escape.
 
         Returns:
-            HTML-escaped text
+            HTML-escaped string safe for use in attribute values.
         """
         return escape_html(text)
 
     @staticmethod
     def build_class_string(*classes: str) -> str:
-        """
-        Build CSS class string from multiple class sources.
+        """Build a CSS class string from multiple class sources.
 
-        Filters out empty strings and joins with space.
+        Filters out empty strings and joins with spaces.
 
         Args:
-            *classes: Variable number of class strings
+            *classes: Variable number of class strings (may include empty strings).
 
         Returns:
-            Space-joined class string
+            Space-joined class string, or empty string if no classes.
 
         Example:
-            build_class_string("dropdown", "", "my-class")
-            # Returns: "dropdown my-class"
+            >>> BengalDirective.build_class_string("dropdown", "", "my-class")
+            'dropdown my-class'
         """
         return build_class_string(*classes)
 
     @staticmethod
     def bool_attr(name: str, value: bool) -> str:
-        """
-        Return HTML boolean attribute string.
+        """Generate an HTML boolean attribute string.
 
         Args:
-            name: Attribute name (e.g., "open")
-            value: Whether to include the attribute
+            name: Attribute name (e.g., ``"open"``, ``"disabled"``).
+            value: Whether to include the attribute.
 
         Returns:
-            " name" if value is True, "" otherwise
+            ``" name"`` if value is ``True``, empty string otherwise.
 
         Example:
-            bool_attr("open", True)   # Returns: " open"
-            bool_attr("open", False)  # Returns: ""
+            >>> BengalDirective.bool_attr("open", True)
+            ' open'
+            >>> BengalDirective.bool_attr("open", False)
+            ''
         """
         return bool_attr(name, value)
 

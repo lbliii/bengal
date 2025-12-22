@@ -1,14 +1,24 @@
 """
 Result dataclasses for graph analysis operations.
 
-Replaces complex tuple return values with typed dataclasses for better
-type safety, readability, and IDE support.
+Provides typed result containers that replace complex tuple return values
+with named fields for better type safety, readability, and IDE support.
 
 All dataclasses support backward compatibility via __iter__() methods
-for tuple unpacking.
+for tuple unpacking, allowing existing code to continue working.
 
-See Also:
-    - plan/active/rfc-dataclass-improvements.md - Design rationale
+Classes:
+    PageLayers: Partitioned pages by connectivity for streaming builds.
+
+Example:
+    >>> from bengal.analysis import KnowledgeGraph
+    >>> graph = KnowledgeGraph(site)
+    >>> graph.build()
+    >>> layers = graph.get_layers()
+    >>> # Named attribute access (preferred)
+    >>> print(f"Hubs: {len(layers.hubs)}, Leaves: {len(layers.leaves)}")
+    >>> # Tuple unpacking (backward compatible)
+    >>> hubs, mid_tier, leaves = layers
 """
 
 from __future__ import annotations

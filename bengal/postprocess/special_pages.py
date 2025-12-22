@@ -1,10 +1,50 @@
 """
 Special pages generation for Bengal SSG.
 
-Handles generation of special pages that don't come from markdown content:
-- 404 error page
-- search page (future)
-- other static utility pages
+Generates utility pages that don't originate from markdown content but require
+site styling and navigation. These pages are rendered using theme templates
+and integrate with the site's design system.
+
+Special Pages:
+    - 404.html: Custom error page with site styling and navigation
+    - search.html: Client-side search interface with Lunr.js integration
+    - graph.html: Interactive knowledge graph visualization (D3.js)
+
+How It Works:
+    Each special page:
+    1. Checks if the corresponding template exists in the theme
+    2. Creates a synthetic page context with minimal metadata
+    3. Renders the template with full site context (navigation, config)
+    4. Writes to output directory with URL registry conflict detection
+
+    Special pages have priority 10 (utility pages), meaning user-authored
+    content at the same path takes precedence.
+
+Configuration:
+    Special pages are configured in bengal.toml:
+
+    ```toml
+    [search]
+    enabled = true
+    path = "/search/"
+    template = "search.html"
+
+    [graph]
+    enabled = true
+    path = "/graph/"
+    ```
+
+Example:
+    >>> from bengal.postprocess.special_pages import SpecialPagesGenerator
+    >>>
+    >>> generator = SpecialPagesGenerator(site)
+    >>> generator.generate(build_context=context)
+
+Related:
+    - bengal.orchestration.postprocess: Coordinates special page generation
+    - bengal.rendering.engines: Template engine for rendering
+    - bengal.analysis.graph_visualizer: Knowledge graph visualization
+    - bengal.core.page.utils.create_synthetic_page: Synthetic page factory
 """
 
 from __future__ import annotations
@@ -23,19 +63,38 @@ if TYPE_CHECKING:
 
 class SpecialPagesGenerator:
     """
-    Generates special pages like 404, search, etc.
+    Generates special utility pages with site styling.
 
     These pages use templates from the theme but don't have corresponding
-    markdown source files. They need to be rendered during the build process
-    to ensure they have proper styling and navigation.
+    markdown source files. They are rendered during the build process to
+    ensure proper styling, navigation, and integration with site features.
 
-    Currently generates:
-    - 404.html: Custom 404 error page with site styling
-    - search.html: Client-side search page
-    - graph.html: Interactive knowledge graph visualization
+    Creation:
+        Direct instantiation: SpecialPagesGenerator(site)
+            - Created by PostprocessOrchestrator for special page generation
+            - Requires Site instance with template engine
 
-    Future:
-    - sitemap.html: Human-readable sitemap
+    Attributes:
+        site: Site instance with configuration and template engine
+
+    Relationships:
+        - Used by: PostprocessOrchestrator for special page generation
+        - Uses: Site for config, TemplateEngine for rendering
+        - Uses: GraphVisualizer for knowledge graph page
+
+    Currently Generates:
+        - 404.html: Custom error page with site styling and navigation
+        - search.html: Client-side search with Lunr.js integration
+        - graph.html: Interactive D3.js knowledge graph visualization
+
+    Graceful Degradation:
+        - Missing templates are silently skipped (not errors)
+        - User content at same path takes precedence (priority system)
+        - Generation failures are logged but don't stop the build
+
+    Example:
+        >>> generator = SpecialPagesGenerator(site)
+        >>> generator.generate(build_context=context)
     """
 
     def __init__(self, site: Site) -> None:

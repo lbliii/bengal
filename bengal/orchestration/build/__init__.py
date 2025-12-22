@@ -1,13 +1,47 @@
 """
 Build orchestration for Bengal SSG.
 
-Main coordinator that delegates build phases to specialized orchestrators.
+Main coordinator that sequences the entire build pipeline, delegating to
+specialized orchestrators for each phase. This is the primary entry point
+for building a Bengal site.
 
-This module has been modularized into a package structure:
-- initialization.py: Phases 1-5 (fonts, discovery, cache, config, filtering)
-- content.py: Phases 6-11 (sections, taxonomies, menus, indexes)
-- rendering.py: Phases 13-16 (assets, render, update pages, track assets)
-- finalization.py: Phases 17-21 (postprocess, cache save, stats, health, finalize)
+Package Structure:
+    __init__.py (this file)
+        BuildOrchestrator class - main coordinator
+    initialization.py
+        Phases 1-5: fonts, discovery, cache, config, filtering
+    content.py
+        Phases 6-11: sections, taxonomies, menus, related posts, indexes
+    rendering.py
+        Phases 13-16: assets, render, update pages, track dependencies
+    finalization.py
+        Phases 17-21: postprocess, cache save, stats, health, finalize
+    options.py
+        BuildOptions dataclass for build configuration
+    results.py
+        Result types for phase outputs
+
+Build Phases:
+    The build executes 21 phases in sequence. Key phases include:
+    - Phase 2: Content discovery (pages, sections, assets)
+    - Phase 6: Section finalization (ensure indexes exist)
+    - Phase 7: Taxonomy collection and page generation
+    - Phase 9: Menu building
+    - Phase 13: Asset processing
+    - Phase 14: Page rendering (parallel or sequential)
+    - Phase 17: Post-processing (sitemap, RSS, output formats)
+    - Phase 20: Health checks and validation
+
+Usage:
+    from bengal.orchestration.build import BuildOrchestrator, BuildOptions
+
+    orchestrator = BuildOrchestrator(site)
+    stats = orchestrator.build(BuildOptions(parallel=True, incremental=True))
+
+See Also:
+    bengal.orchestration: All specialized orchestrators
+    bengal.core.site: Site data model
+    bengal.cache: Build caching infrastructure
 """
 
 from __future__ import annotations

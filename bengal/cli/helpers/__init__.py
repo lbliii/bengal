@@ -1,4 +1,27 @@
-"""CLI helper functions."""
+"""
+CLI helper functions and utilities.
+
+This package provides common helper functions used throughout the Bengal CLI,
+including site loading, error handling, progress display, and configuration
+validation.
+
+Modules:
+    cli_app_loader: CLI application loading utilities
+    cli_output: CLI output instance management
+    config_validation: Configuration file validation
+    error_handling: CLI error handling decorators
+    metadata: Command metadata and categorization
+    progress: Progress display helpers
+    site_loader: Site loading from CLI context
+    traceback: Traceback configuration
+    validation: Flag and option validation
+
+Example:
+    >>> from bengal.cli.helpers import load_site_from_cli, cli_progress
+    >>> site = load_site_from_cli(ctx)
+    >>> with cli_progress() as progress:
+    ...     progress.add_phase('build', 'Building')
+"""
 
 from bengal.cli.helpers.cli_app_loader import load_cli_app
 from bengal.cli.helpers.cli_output import get_cli_output

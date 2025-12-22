@@ -1,29 +1,49 @@
 """
 Semantic Link Types and Connectivity Scoring for Bengal SSG.
 
-This module defines the semantic relationships between pages and provides
-weighted connectivity scoring to replace binary orphan detection.
+Defines the semantic relationships between pages and provides weighted
+connectivity scoring for nuanced content analysis. This replaces binary
+orphan detection with a spectrum of connectivity levels that reveal
+improvement opportunities.
 
-Link Types:
-    - EXPLICIT: Human-authored markdown links [text](url)
-    - MENU: Navigation menu items (highest editorial intent)
-    - TAXONOMY: Shared tags/categories
-    - RELATED: Algorithm-computed related posts
-    - TOPICAL: Section hierarchy (parent _index.md → children)
-    - SEQUENTIAL: Next/prev navigation within sections
+Link Types (by editorial intent):
+    High Intent (human-authored):
+        - EXPLICIT: Markdown links [text](url) in content
+        - MENU: Navigation menu items
+
+    Medium Intent (algorithmic):
+        - TAXONOMY: Shared tags/categories
+        - RELATED: Computed related posts
+
+    Low Intent (structural):
+        - TOPICAL: Section hierarchy (parent → children)
+        - SEQUENTIAL: Next/prev navigation
+
+Default Weights:
+    MENU: 10.0, EXPLICIT: 1.0, TAXONOMY: 1.0,
+    RELATED: 0.75, TOPICAL: 0.5, SEQUENTIAL: 0.25
 
 Connectivity Levels:
-    - WELL_CONNECTED: Score >= 2.0 (no action needed)
-    - ADEQUATELY_LINKED: Score 1.0-2.0 (could improve)
-    - LIGHTLY_LINKED: Score 0.25-1.0 (should improve)
-    - ISOLATED: Score < 0.25 (needs attention)
+    - WELL_CONNECTED (🟢): Score >= 2.0 - No action needed
+    - ADEQUATELY_LINKED (🟡): Score 1.0-2.0 - Could improve
+    - LIGHTLY_LINKED (🟠): Score 0.25-1.0 - Should improve
+    - ISOLATED (🔴): Score < 0.25 - Needs attention
+
+Classes:
+    LinkType: Enum of semantic link relationships
+    LinkMetrics: Detailed link breakdown for weighted scoring
+    ConnectivityLevel: Classification based on score thresholds
+    ConnectivityReport: Site-wide connectivity analysis
 
 Example:
     >>> metrics = LinkMetrics(explicit=2, taxonomy=1, topical=1)
     >>> score = metrics.connectivity_score()
     >>> level = ConnectivityLevel.from_score(score)
-    >>> print(f"Score: {score}, Level: {level.value}")
-    Score: 3.5, Level: well_connected
+    >>> print(f"Score: {score}, Level: {level.label}")
+    Score: 3.5, Level: Well-Connected
+
+See Also:
+    - bengal/analysis/knowledge_graph.py: Uses link types for graph building
 """
 
 from __future__ import annotations

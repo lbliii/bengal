@@ -1,8 +1,77 @@
 """
 Error recovery utilities for standardized error handling patterns.
 
-Provides utilities for executing operations with error recovery, allowing
-builds to continue when possible while collecting errors for reporting.
+This module provides utilities for executing operations with graceful
+error recovery, allowing builds to continue when possible while collecting
+errors for reporting.
+
+Key Functions
+=============
+
+**with_error_recovery()**
+    Execute an operation with optional recovery callback. In strict mode,
+    re-raises immediately; in production mode, attempts recovery.
+
+**error_recovery_context()**
+    Context manager that suppresses exceptions in production mode.
+    Useful for try/except patterns across multiple operations.
+
+**recover_file_processing()**
+    Specialized recovery for file processing loops. Logs errors,
+    collects them in BuildStats, and continues processing.
+
+Design Philosophy
+=================
+
+Bengal uses two modes for error handling:
+
+- **Strict Mode** (``--strict`` flag): Fail fast on any error.
+  Useful for CI/CD pipelines where errors should halt the build.
+
+- **Production Mode** (default): Recover from errors when possible.
+  Log warnings, skip problematic items, and continue building.
+  Report all errors at the end.
+
+Usage
+=====
+
+Basic error recovery::
+
+    from bengal.errors import with_error_recovery
+
+    result = with_error_recovery(
+        lambda: process_file(path),
+        on_error=lambda e: None,  # Return None on error
+        strict_mode=strict_mode,
+        logger=logger,
+    )
+
+Context manager for multiple operations::
+
+    from bengal.errors import error_recovery_context
+
+    with error_recovery_context("processing files", strict_mode=False, logger=logger):
+        for file in files:
+            process_file(file)  # Errors logged but don't stop loop
+
+File processing with BuildStats::
+
+    from bengal.errors import recover_file_processing
+
+    for file_path in files:
+        result = recover_file_processing(
+            file_path,
+            lambda: process_file(file_path),
+            strict_mode=strict_mode,
+            logger=logger,
+            build_stats=stats,
+        )
+
+See Also
+========
+
+- ``bengal/orchestration/render.py`` - Recovery in page rendering
+- ``bengal/orchestration/asset.py`` - Recovery in asset processing
 """
 
 from __future__ import annotations

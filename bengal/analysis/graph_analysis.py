@@ -1,8 +1,33 @@
 """
 Graph analysis module for Bengal SSG.
 
-Provides structural analysis of knowledge graphs including
-connectivity scoring, hub/leaf detection, and page layering.
+Provides structural analysis of knowledge graphs to understand site architecture
+and optimize build performance. The analyzer identifies important pages (hubs),
+isolated content (leaves/orphans), and partitions pages into layers for
+efficient streaming builds.
+
+Key Concepts:
+    - Connectivity Score: Sum of incoming and outgoing references for a page
+    - Hubs: Pages with many incoming references (index pages, popular articles)
+    - Leaves: Pages with few total connections (blog posts, changelog entries)
+    - Orphans: Pages with zero connections (forgotten or draft content)
+    - Layers: Page partitions for hub-first streaming (hubs → mid-tier → leaves)
+
+Classes:
+    GraphAnalyzer: Main analyzer that delegates from KnowledgeGraph
+
+Example:
+    >>> from bengal.analysis import KnowledgeGraph
+    >>> graph = KnowledgeGraph(site)
+    >>> graph.build()
+    >>> # Analysis is typically accessed via KnowledgeGraph methods
+    >>> hubs = graph.get_hubs(threshold=10)
+    >>> orphans = graph.get_orphans()
+    >>> layers = graph.get_layers()
+
+See Also:
+    - bengal/analysis/knowledge_graph.py: Main graph coordinator
+    - bengal/analysis/results.py: PageLayers result dataclass
 """
 
 from __future__ import annotations

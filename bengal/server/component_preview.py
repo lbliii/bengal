@@ -1,17 +1,50 @@
 """
-Component preview server utilities.
+Component preview server for Bengal theme development.
 
-Discovers component manifests and renders template partials with demo contexts.
+Provides a visual component catalog accessible at /__bengal_components__/
+during development. Discovers YAML manifest files that define UI components
+and renders them with sample data for rapid iteration.
 
-Manifest format (YAML):
+Features:
+    - Automatic component discovery (finds *.component.yaml files)
+    - Multiple variants per component (e.g., default, loading, error states)
+    - Live rendering with Jinja2 templates
+    - JSON/JSX manifest support (YAML is primary)
+    - Beautiful listing page with component navigation
 
-name: "Card"
-template: "partials/card.html"
-variants:
-  - id: "default"
-    name: "Default"
-    context:
-      title: "Hello"
+Manifest Format (YAML):
+    ```yaml
+    name: "Card"
+    template: "partials/card.html"
+    variants:
+      - id: "default"
+        name: "Default Card"
+        context:
+          title: "Hello World"
+          description: "A sample card component"
+      - id: "loading"
+        name: "Loading State"
+        context:
+          title: null
+          loading: true
+    ```
+
+URL Routes:
+    - /__bengal_components__/ → Component listing page
+    - /__bengal_components__/view?c=card&v=default → Render specific variant
+
+Classes:
+    ComponentPreviewServer: Main preview server with discovery and rendering
+
+Architecture:
+    The preview server integrates with the dev server request handler.
+    It uses the Site's template environment for rendering, ensuring
+    components render exactly as they would in production.
+
+Related:
+    - bengal/server/request_handler.py: Routes preview requests here
+    - bengal/rendering/template_engine.py: Jinja2 environment setup
+    - themes/*/components/*.component.yaml: Component manifest files
 """
 
 from __future__ import annotations
@@ -31,10 +64,56 @@ logger = get_logger(__name__)
 
 
 class ComponentPreviewServer:
+    """
+    Component preview server for theme development.
+
+    Discovers UI component manifests from theme directories and renders
+    them with sample context data. Used by BengalRequestHandler to serve
+    the /__bengal_components__/ routes.
+
+    Attributes:
+        site: Site instance providing theme chain and template environment
+
+    Component Discovery:
+        Components are discovered from theme directories in child-first order:
+        1. Site themes: themes/<theme>/dev/components/
+        2. Installed themes: <package>/dev/components/
+        3. Bundled themes: bengal/themes/<theme>/dev/components/
+
+        Child theme components override parent theme components with the same ID.
+
+    Example:
+        >>> from bengal.core.site import Site
+        >>> site = Site.from_config()
+        >>> cps = ComponentPreviewServer(site)
+        >>> components = cps.discover_components()
+        >>> html = cps.view_page("card", "default")
+    """
+
     def __init__(self, site: Site) -> None:
+        """
+        Initialize the component preview server.
+
+        Args:
+            site: Site instance with theme configuration and template environment
+        """
         self.site = site
 
     def discover_components(self) -> list[dict[str, Any]]:
+        """
+        Discover all component manifests from theme directories.
+
+        Searches for *.yaml and *.jsx files in theme dev/components directories.
+        Components from child themes override those from parent themes.
+
+        Returns:
+            List of component manifest dictionaries with keys:
+            - id: Unique component identifier (from filename or manifest)
+            - name: Display name for the component
+            - template: Path to Jinja template (relative to templates/)
+            - variants: List of variant definitions with id, name, context
+            - manifest_path: Absolute path to the manifest file
+        """
         dirs = self._component_manifest_dirs()
         logger.debug(
             "component_discovery_start", manifest_dirs=len(dirs), paths=[str(d) for d in dirs]
@@ -158,6 +237,22 @@ class ComponentPreviewServer:
         return result
 
     def render_component(self, template_rel: str, context: dict[str, Any]) -> str:
+        """
+        Render a component template with the given context.
+
+        Wraps the rendered component in a minimal HTML shell with the site's
+        CSS for proper styling. Includes common context aliases (page → article).
+
+        Args:
+            template_rel: Template path relative to templates/ (e.g., "partials/card.html")
+            context: Context dictionary to pass to the template
+
+        Returns:
+            Complete HTML document with component rendered inside.
+
+        Raises:
+            Exception: If template rendering fails (logged and re-raised)
+        """
         logger.debug(
             "component_render_start",
             template=template_rel,
@@ -203,6 +298,18 @@ class ComponentPreviewServer:
             raise
 
     def list_page(self, base_path: str = "/__bengal_components__/") -> str:
+        """
+        Generate the component listing page HTML.
+
+        Displays all discovered components with links to their preview pages.
+        Shows variant count for each component.
+
+        Args:
+            base_path: URL base path for component links (default: /__bengal_components__/)
+
+        Returns:
+            HTML string for the listing page.
+        """
         comps = self.discover_components()
         items = []
         for c in comps:
@@ -220,6 +327,20 @@ class ComponentPreviewServer:
 </head><body></body></html>"""
 
     def view_page(self, comp_id: str, variant_id: str | None) -> str:
+        """
+        Render a component preview page.
+
+        If variant_id is provided, renders only that variant. Otherwise,
+        renders a gallery page showing all variants of the component.
+
+        Args:
+            comp_id: Component identifier (from manifest or filename)
+            variant_id: Optional specific variant to render (None = show all)
+
+        Returns:
+            HTML string with rendered component(s).
+            Returns error HTML if component or variant not found.
+        """
         logger.debug("component_view_request", component_id=comp_id, variant_id=variant_id)
 
         comps = {c.get("id"): c for c in self.discover_components()}
@@ -265,6 +386,17 @@ class ComponentPreviewServer:
         return "".join(sections)
 
     def _component_manifest_dirs(self) -> list[Path]:
+        """
+        Get ordered list of directories to search for component manifests.
+
+        Returns directories in child-first order for proper override semantics:
+        1. Site theme directories (themes/<theme>/dev/components/)
+        2. Installed theme packages (<package>/dev/components/)
+        3. Bundled themes (bengal/themes/<theme>/dev/components/)
+
+        Returns:
+            List of Path objects for existing component directories.
+        """
         # Child first then parents (reuse template engine ordering by reading theme.toml)
         dirs: list[Path] = []
         try:

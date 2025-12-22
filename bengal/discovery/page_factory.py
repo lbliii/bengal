@@ -1,8 +1,25 @@
 """
-Page Factory - Ensures pages are correctly initialized.
+Page initialization and validation utilities.
 
-Validates that pages have all required references set before use.
-Helps prevent bugs like missing _site references or output_paths.
+This module provides the PageInitializer class that ensures pages are correctly
+set up with all required references before use. It helps prevent common bugs
+like missing `_site` references or unset `output_path` attributes.
+
+Design Principles:
+    - Fail fast: Catch initialization errors early, not during URL generation
+    - Clear errors: Tell developers exactly what's wrong and how to fix it
+    - Single responsibility: Only validates, doesn't create pages
+    - Lightweight: Minimal logic, mostly validation checks
+
+Architecture:
+    PageInitializer is used by orchestrators after creating pages to validate
+    they are ready for use. This separates page creation (discovery) from
+    page validation (orchestration), maintaining Bengal's separation of concerns.
+
+Related:
+    - bengal/core/page/: Page data model
+    - bengal/orchestration/: Orchestrators that use PageInitializer
+    - bengal/discovery/content_discovery.py: Page creation during discovery
 """
 
 from __future__ import annotations
@@ -24,23 +41,31 @@ class PageInitializer:
     Ensures pages are correctly initialized with all required references.
 
     Used by orchestrators after creating pages to validate they're ready for use.
+    This helps catch configuration errors early rather than during URL generation
+    or template rendering.
 
-    Design principles:
-    - Fail fast (errors at initialization, not at URL generation)
-    - Clear error messages (tell developer exactly what's wrong)
-    - Single responsibility (just validation, not creation)
-    - Lightweight (minimal logic, mostly checks)
+    Validation Checks:
+        - Page has `_site` reference set (or sets it automatically)
+        - Page has `output_path` set to an absolute path
+        - Page URL generation works correctly
 
-    Usage:
-        # In an orchestrator
-        def __init__(self, site):
-            self.initializer = PageInitializer(site)
+    Attributes:
+        site: Site object to associate with pages
 
-        def create_my_page(self):
-            page = Page(...)
-            page.output_path = compute_path(...)
-            self.initializer.ensure_initialized(page)  # Validate!
-            return page
+    Example:
+        >>> from bengal.discovery.page_factory import PageInitializer
+        >>>
+        >>> # In an orchestrator
+        >>> class MyOrchestrator:
+        ...     def __init__(self, site):
+        ...         self.site = site
+        ...         self.initializer = PageInitializer(site)
+        ...
+        ...     def create_page(self, source_path: Path) -> Page:
+        ...         page = Page(source_path=source_path, ...)
+        ...         page.output_path = self.site.output_dir / "path" / "index.html"
+        ...         self.initializer.ensure_initialized(page)  # Validate!
+        ...         return page
     """
 
     def __init__(self, site: Site):

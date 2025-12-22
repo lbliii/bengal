@@ -3,26 +3,47 @@ Build orchestration module for Bengal SSG.
 
 This module provides specialized orchestrators that handle different phases
 of the build process. The orchestrator pattern separates build coordination
-from data management, making the Site class simpler and more maintainable.
+from data management, keeping the Site class focused on data representation
+while orchestrators handle operations.
+
+Architecture:
+    Core models in bengal/core/ are passive data structures with no I/O.
+    Orchestrators in this package handle all build operations, logging, and
+    side effects. This separation enables testability and maintainability.
 
 Orchestrators:
-    - BuildOrchestrator: Main build coordinator
-    - ContentOrchestrator: Content/asset discovery and setup
-    - TaxonomyOrchestrator: Taxonomies and dynamic page generation
-    - MenuOrchestrator: Navigation menu building
-    - RenderOrchestrator: Page rendering (sequential and parallel)
-    - AssetOrchestrator: Asset processing (minify, optimize, copy)
-    - PostprocessOrchestrator: Sitemap, RSS, link validation
-    - IncrementalOrchestrator: Incremental build logic
+    BuildOrchestrator
+        Main build coordinator that sequences all phases
+    ContentOrchestrator
+        Content and asset discovery, page/section setup
+    TaxonomyOrchestrator
+        Taxonomy collection (tags, categories) and dynamic page generation
+    MenuOrchestrator
+        Navigation menu building with caching and i18n support
+    RenderOrchestrator
+        Page rendering with parallel and sequential modes
+    AssetOrchestrator
+        Asset processing: copying, minification, optimization, fingerprinting
+    PostprocessOrchestrator
+        Post-build tasks: sitemap, RSS feeds, output formats
+    IncrementalOrchestrator
+        Change detection and caching for incremental builds
 
-Usage:
+Performance:
+    Orchestrators support parallel processing via ThreadPoolExecutor.
+    Parallel thresholds (typically 5+ items) avoid thread overhead for
+    small workloads. Free-threaded Python (3.13t+) is auto-detected for
+    true parallelism without GIL contention.
 
-```python
-from bengal.orchestration import BuildOrchestrator
+Example:
+    >>> from bengal.orchestration import BuildOrchestrator
+    >>> orchestrator = BuildOrchestrator(site)
+    >>> stats = orchestrator.build(parallel=True, incremental=True)
 
-orchestrator = BuildOrchestrator(site)
-stats = orchestrator.build(parallel=True, incremental=True)
-```
+See Also:
+    bengal.core: Passive data models (Page, Site, Section, Asset)
+    bengal.cache: Build caching infrastructure
+    bengal.rendering: Template and content rendering
 """
 
 from __future__ import annotations

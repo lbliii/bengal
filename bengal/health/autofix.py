@@ -1,7 +1,35 @@
 """
 Auto-fix framework for health check issues.
 
-Provides safe, automated fixes for common validation errors.
+This module provides automated fixes for common validation errors detected by
+health checks. Fixes are categorized by safety level to prevent unintended
+modifications.
+
+Safety Levels:
+    SAFE: Can be applied automatically (reversible, no side effects)
+    CONFIRM: Requires user confirmation (may have side effects)
+    UNSAFE: Requires manual review (complex changes)
+
+Supported Fixes:
+    - Directive fence nesting: Adjusts fence depths for proper nesting hierarchy
+    - Link fixes: (Future) Typo detection and moved page reference updates
+
+Architecture:
+    AutoFixer analyzes HealthReport results and generates FixAction objects.
+    Each FixAction contains a callable that applies the fix. Fixes are designed
+    to be atomic and file-local to minimize risk.
+
+Related:
+    - bengal.health.report: HealthReport consumed by AutoFixer
+    - bengal.health.validators.directives: Produces directive issues
+
+Example:
+    >>> from bengal.health.autofix import AutoFixer, FixSafety
+    >>> fixer = AutoFixer(report, site_root=site.root_path)
+    >>> fixes = fixer.suggest_fixes()
+    >>> safe_fixes = [f for f in fixes if f.safety == FixSafety.SAFE]
+    >>> results = fixer.apply_fixes(safe_fixes)
+    >>> print(f"Applied {results['applied']} fixes")
 """
 
 from __future__ import annotations
@@ -19,26 +47,54 @@ logger = get_logger(__name__)
 
 
 class FixSafety(Enum):
-    """Safety level for auto-fixes."""
+    """
+    Safety classification for auto-fix actions.
 
-    SAFE = "safe"  # Can be applied automatically (reversible, no side effects)
-    CONFIRM = "confirm"  # Should ask for confirmation (may have side effects)
-    UNSAFE = "unsafe"  # Should not be auto-applied (requires manual review)
+    Determines how fixes are applied:
+        SAFE: Apply automatically (reversible, file-local, no side effects)
+        CONFIRM: Prompt user before applying (may affect multiple files)
+        UNSAFE: Require manual review (complex structural changes)
+
+    Usage:
+        Use FixSafety.SAFE for well-tested, atomic fixes like fence depth
+        adjustments. Use CONFIRM for fixes that modify cross-references.
+        Use UNSAFE for experimental or risky fixes.
+    """
+
+    SAFE = "safe"
+    CONFIRM = "confirm"
+    UNSAFE = "unsafe"
 
 
 @dataclass
 class FixAction:
     """
-    Represents a single fix action.
+    Single auto-fix action with metadata and application logic.
+
+    FixAction encapsulates what needs to be fixed, where, and how. The apply
+    callable performs the actual fix when invoked. Fixes are designed to be
+    atomic and file-local to minimize risk.
 
     Attributes:
-        description: Human-readable description of what will be fixed
-        file_path: Path to file that needs fixing
-        line_number: Line number (if applicable)
-        fix_type: Type of fix (e.g., "directive_fence", "link_update")
-        safety: Safety level (SAFE, CONFIRM, UNSAFE)
-        apply: Function to apply the fix (returns True if successful)
-        check_result: Original CheckResult that triggered this fix
+        description: Human-readable summary of the fix
+        file_path: Absolute path to file requiring modification
+        line_number: Starting line number (None if file-wide)
+        fix_type: Category identifier (e.g., "directive_fence", "link_update")
+        safety: FixSafety level determining application policy
+        apply: Callable returning True on success, False on failure
+        check_result: Original CheckResult that triggered this fix suggestion
+
+    Example:
+        >>> fix = FixAction(
+        ...     description="Fix fence nesting in cards.md (3 directives)",
+        ...     file_path=Path("/site/content/cards.md"),
+        ...     line_number=24,
+        ...     fix_type="directive_fence",
+        ...     safety=FixSafety.SAFE,
+        ...     apply=lambda: True,
+        ... )
+        >>> if fix.can_apply():
+        ...     fix.apply()
     """
 
     description: str
@@ -46,26 +102,52 @@ class FixAction:
     line_number: int | None = None
     fix_type: str = ""
     safety: FixSafety = FixSafety.SAFE
-    apply: Any = None  # Callable that applies the fix
+    apply: Any = None
     check_result: CheckResult | None = None
 
     def can_apply(self) -> bool:
-        """Check if this fix can be applied automatically."""
+        """
+        Check if this fix can be applied automatically.
+
+        Returns:
+            True if safety is SAFE and apply callable is set.
+        """
         return self.safety == FixSafety.SAFE and self.apply is not None
 
 
 class AutoFixer:
     """
-    Auto-fix framework for health check issues.
+    Framework for automated fixes of health check issues.
 
-    Analyzes health check reports and suggests fixes for common errors.
-    Provides safe fixes that can be applied automatically.
+    AutoFixer analyzes HealthReport results, identifies fixable issues, and
+    generates FixAction objects. Currently supports directive fence nesting
+    fixes with hierarchical depth calculation.
+
+    Supported Fix Types:
+        directive_fence: Adjusts fence depths for proper MyST directive nesting
+        link_update: (Future) Fix broken internal links, update moved pages
+
+    Design Principles:
+        - Fixes are atomic and file-local (no cross-file dependencies)
+        - Safety levels prevent accidental destructive changes
+        - Full hierarchy analysis ensures child/parent consistency
+        - Fixes are reversible via version control
+
+    Attributes:
+        report: HealthReport to analyze for fixable issues
+        site_root: Absolute path to site root (required)
+        fixes: List of suggested FixAction objects (populated by suggest_fixes)
 
     Example:
-        fixer = AutoFixer(report, site_root=site.root_path)
-        fixes = fixer.suggest_fixes()
-        safe_fixes = [f for f in fixes if f.safety == FixSafety.SAFE]
-        fixer.apply_fixes(safe_fixes)
+        >>> fixer = AutoFixer(report, site_root=site.root_path)
+        >>> fixes = fixer.suggest_fixes()
+        >>> safe = [f for f in fixes if f.safety == FixSafety.SAFE]
+        >>> results = fixer.apply_fixes(safe)
+        >>> print(f"Applied {results['applied']} fixes")
+
+    See Also:
+        - bengal.health.report.HealthReport: Input report format
+        - bengal.health.validators.directives: Produces directive issues
     """
 
     def __init__(self, report: HealthReport, site_root: Path):
@@ -118,7 +200,18 @@ class AutoFixer:
         return fixes
 
     def _suggest_directive_fixes(self, validator_report: Any) -> list[FixAction]:
-        """Suggest fixes for directive validation errors and warnings."""
+        """
+        Suggest fixes for directive fence nesting issues.
+
+        Analyzes validation results for fence nesting errors/warnings and creates
+        FixAction objects. Uses metadata (preferred) or falls back to detail parsing.
+
+        Args:
+            validator_report: ValidatorReport from Directives validator.
+
+        Returns:
+            List of FixAction objects for directive fence fixes.
+        """
         fixes: list[FixAction] = []
 
         for result in validator_report.results:
@@ -246,10 +339,24 @@ class AutoFixer:
 
     def _create_file_fix(self, file_path: Path, line_numbers: list[int]) -> Any:
         """
-        Create a fix function that fixes all directives in a file.
+        Create a fix callable for all directives in a file.
 
-        This ensures we fix the entire hierarchy in one pass, including
-        all nested children and grandchildren.
+        The generated fix function analyzes the entire file's directive hierarchy
+        and adjusts fence depths to ensure proper nesting. Fixes are applied in
+        a single pass covering all nested children and grandchildren.
+
+        Args:
+            file_path: Absolute path to the markdown file.
+            line_numbers: Line numbers of directives with nesting issues.
+
+        Returns:
+            Callable that returns True on success, False on failure.
+
+        Algorithm:
+            1. Parse directive hierarchy from file
+            2. Mark affected directives and their ancestors/descendants
+            3. Calculate required depths (baseline=3, +1 per nesting level)
+            4. Apply fixes deepest-first to preserve hierarchy
         """
 
         def apply_fix() -> bool:
@@ -396,7 +503,17 @@ class AutoFixer:
         ancestor: dict[str, Any],
         all_directives: list[dict[str, Any]],
     ) -> bool:
-        """Check if directive is a descendant of ancestor."""
+        """
+        Check if directive is a descendant of ancestor in the hierarchy.
+
+        Args:
+            directive: Candidate descendant directive dict.
+            ancestor: Potential ancestor directive dict.
+            all_directives: Complete list of parsed directives.
+
+        Returns:
+            True if directive is nested within ancestor.
+        """
         current: dict[str, Any] | None = directive
         while current and current.get("parent"):
             if current["parent"] == ancestor["line"]:
@@ -407,7 +524,16 @@ class AutoFixer:
         return False
 
     def _get_depth(self, directive: dict[str, Any], all_directives: list[dict[str, Any]]) -> int:
-        """Get nesting depth of directive (0 = root, 1 = child, etc.)."""
+        """
+        Get nesting depth of a directive in the hierarchy.
+
+        Args:
+            directive: Directive dict to measure.
+            all_directives: Complete list of parsed directives.
+
+        Returns:
+            Nesting depth (0=root level, 1=child of root, etc.).
+        """
         depth = 0
         current: dict[str, Any] | None = directive
         while current and current.get("parent"):
@@ -583,7 +709,22 @@ class AutoFixer:
         """
         Parse directive hierarchy from file lines.
 
-        Returns list of directives with parent relationships.
+        Scans file content for MyST directive fences (backtick and colon style)
+        and builds a parent-child hierarchy using a stack-based approach.
+
+        Args:
+            lines: List of file lines (newline-stripped).
+
+        Returns:
+            List of directive dicts with keys:
+                line: 1-based line number of opening fence
+                type: Directive name (e.g., "note", "tab-set")
+                fence_type: "backtick" or "colon"
+                current_depth: Number of fence characters
+                indent: Leading whitespace count
+                parent: Line number of parent directive (None if root)
+                fence_marker: Actual fence string (e.g., "```", ":::")
+                line_content: Full line text
         """
         directives = []
         stack: list[dict[str, Any]] = []  # Stack of open directives
@@ -668,7 +809,16 @@ class AutoFixer:
         return directives
 
     def _apply_single_fix(self, lines: list[str], directive: dict[str, Any]) -> None:
-        """Apply fix to a single directive (increase fence depth)."""
+        """
+        Apply fix to a single directive by increasing fence depth.
+
+        Modifies lines in-place. Finds and updates both opening and closing
+        fences to match the required depth.
+
+        Args:
+            lines: File lines list (modified in-place).
+            directive: Directive dict with current_depth and required_depth.
+        """
         line_idx = directive["line"] - 1
         if line_idx < 0 or line_idx >= len(lines):
             return
@@ -718,21 +868,35 @@ class AutoFixer:
                         nesting_depth -= 1
 
     def _suggest_link_fixes(self, validator_report: Any) -> list[FixAction]:
-        """Suggest fixes for link validation errors."""
-        # Future: Implement link fixes
-        # - Fix broken internal links (typo detection)
-        # - Update moved page references
+        """
+        Suggest fixes for link validation errors.
+
+        Future implementation will support:
+            - Typo detection for broken internal links
+            - Automatic updates for moved page references
+            - Anchor fixes for renamed headings
+
+        Args:
+            validator_report: ValidatorReport from Links validator.
+
+        Returns:
+            List of FixAction objects (currently empty, future implementation).
+        """
         return []
 
     def apply_fixes(self, fixes: list[FixAction] | None = None) -> dict[str, Any]:
         """
-        Apply fixes to files.
+        Apply specified fixes to files.
+
+        Iterates through fixes and invokes their apply callables. Tracks success,
+        failure, and skip counts. Fixes that cannot be applied (wrong safety
+        level or missing callable) are skipped.
 
         Args:
-            fixes: List of fixes to apply (if None, uses self.fixes)
+            fixes: List of FixAction to apply. If None, uses self.fixes.
 
         Returns:
-            Dictionary with results: {"applied": N, "failed": M, "skipped": K}
+            Dict with counts: {"applied": N, "failed": M, "skipped": K}
         """
         if fixes is None:
             fixes = self.fixes
@@ -764,10 +928,13 @@ class AutoFixer:
 
     def apply_safe_fixes(self) -> dict[str, Any]:
         """
-        Apply only safe fixes automatically.
+        Apply only SAFE fixes automatically.
+
+        Convenience method that filters self.fixes to FixSafety.SAFE and applies
+        them. Use this for unattended/automated fix application.
 
         Returns:
-            Dictionary with results
+            Dict with counts: {"applied": N, "failed": M, "skipped": K}
         """
         safe_fixes = [f for f in self.fixes if f.safety == FixSafety.SAFE]
         return self.apply_fixes(safe_fixes)

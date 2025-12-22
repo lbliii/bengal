@@ -1,25 +1,42 @@
 """
 Health check system for Bengal SSG.
 
-Provides comprehensive validation of builds across all systems:
-- Configuration validation
-- Content discovery validation
-- Rendering validation
-- Navigation validation
-- Taxonomy validation
-- Output validation
-- Cache integrity validation
-- Performance validation
+This package provides comprehensive build validation through a modular validator
+architecture. Validators are organized into execution phases optimized for speed
+and dependencies:
 
-Usage:
+Validation Phases:
+    Phase 1 (Basic): Config, output, URL collisions, ownership policy
+    Phase 2 (Content): Rendering, directives, navigation, menus, taxonomy, links
+    Phase 3 (Advanced): Cache integrity, performance metrics
+    Phase 4 (Production): RSS, sitemap, fonts, assets
+    Phase 5 (Knowledge): Connectivity and orphan detection
 
-```python
-from bengal.health import HealthCheck
+Key Components:
+    HealthCheck: Main orchestrator coordinating all validators
+    HealthReport: Structured report with formatting for console/JSON output
+    BaseValidator: Abstract base class for implementing custom validators
+    CheckResult: Individual check result with status, message, and recommendations
+    CheckStatus: Severity levels (ERROR, WARNING, SUGGESTION, INFO, SUCCESS)
 
-health = HealthCheck(site)
-report = health.run()
-print(report.format_console())
-```
+Architecture:
+    The health check system follows Bengal's orchestrator pattern. HealthCheck
+    coordinates validators but does not perform I/O directly. Each validator
+    is independent and returns CheckResult objects. Parallel execution is
+    supported for validators without interdependencies.
+
+Related:
+    - bengal.health.validators: Built-in validators (20+)
+    - bengal.health.linkcheck: External and internal link checking
+    - bengal.health.autofix: Automated fixes for common issues
+
+Example:
+    >>> from bengal.health import HealthCheck
+    >>> health = HealthCheck(site)
+    >>> report = health.run()
+    >>> print(report.format_console())
+    >>> # Or get JSON for CI integration
+    >>> data = report.format_json()
 """
 
 from __future__ import annotations

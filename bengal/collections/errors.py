@@ -1,8 +1,25 @@
 """
 Collection validation errors.
 
-Provides structured error types for content validation failures with
-helpful error messages including file locations and fix suggestions.
+Provides structured error types for content validation failures, including
+detailed error messages with file locations and actionable fix suggestions.
+
+Exception Hierarchy:
+    BengalContentError (base)
+    ├── ContentValidationError  - Content fails schema validation
+    ├── CollectionNotFoundError - Referenced collection doesn't exist
+    └── SchemaError             - Schema definition is invalid
+
+All exceptions extend :class:`BengalContentError` for consistent error handling
+across the Bengal framework.
+
+Example:
+    >>> try:
+    ...     validate_frontmatter(page, schema)
+    ... except ContentValidationError as e:
+    ...     print(f"Validation failed: {e.path}")
+    ...     for error in e.errors:
+    ...         print(f"  - {error.field}: {error.message}")
 """
 
 from __future__ import annotations
@@ -17,13 +34,30 @@ from bengal.errors import BengalContentError
 @dataclass
 class ValidationError:
     """
-    A single validation error for a frontmatter field.
+    A single field-level validation error.
+
+    Represents one validation failure for a specific frontmatter field.
+    Multiple ``ValidationError`` instances may be collected into a
+    :class:`ContentValidationError` for comprehensive error reporting.
 
     Attributes:
-        field: Name of the field that failed validation (e.g., "title", "tags[0]")
-        message: Human-readable error description
-        value: The actual value that caused the error (for debugging)
-        expected_type: Expected type description (e.g., "str", "list[str]")
+        field: Name of the field that failed validation. May include array
+            indexing for nested errors (e.g., ``"tags[0]"``, ``"author.name"``).
+        message: Human-readable description of what went wrong.
+        value: The actual value that caused the error. Useful for debugging
+            but may be ``None`` for missing required fields.
+        expected_type: Expected type as a string (e.g., ``"str"``, ``"list[str]"``).
+            Included in the string representation when available.
+
+    Example:
+        >>> error = ValidationError(
+        ...     field="date",
+        ...     message="Cannot parse 'not-a-date' as datetime",
+        ...     value="not-a-date",
+        ...     expected_type="datetime",
+        ... )
+        >>> str(error)
+        "date: Cannot parse 'not-a-date' as datetime (expected datetime)"
     """
 
     field: str
@@ -32,7 +66,12 @@ class ValidationError:
     expected_type: str | None = None
 
     def __str__(self) -> str:
-        """Format error for display."""
+        """
+        Format the error for display.
+
+        Returns:
+            Error message with field name, optionally including expected type.
+        """
         if self.expected_type:
             return f"{self.field}: {self.message} (expected {self.expected_type})"
         return f"{self.field}: {self.message}"
@@ -42,15 +81,16 @@ class ContentValidationError(BengalContentError):
     """
     Raised when content fails schema validation.
 
-    Provides detailed error information including file location,
-    specific field errors, and suggestions for fixing.
-
-    Extends BengalContentError for consistent error handling.
+    Aggregates multiple :class:`ValidationError` instances with file context,
+    providing detailed error information for debugging and user feedback.
 
     Attributes:
-        path: Path to the content file that failed validation
-        errors: List of specific field validation errors
-        collection_name: Name of the collection (if known)
+        path: Path to the content file that failed validation.
+        errors: List of :class:`ValidationError` instances, one per field failure.
+        collection_name: Name of the collection (if known), for context in messages.
+        message: Summary error message (inherited from base class).
+        suggestion: Optional suggestion for fixing the error.
+        original_error: Original exception that caused this error (if any).
 
     Example:
         >>> try:
@@ -60,6 +100,19 @@ class ContentValidationError(BengalContentError):
         Content validation failed: content/blog/post.md
           └─ title: Required field 'title' is missing
           └─ date: Cannot parse 'not-a-date' as datetime
+
+    Example:
+        Converting to JSON for API responses:
+
+        >>> error.to_dict()
+        {
+            'message': 'Validation failed',
+            'path': 'content/blog/post.md',
+            'collection': 'blog',
+            'errors': [
+                {'field': 'title', 'message': 'Required field is missing', ...}
+            ]
+        }
     """
 
     def __init__(
@@ -73,15 +126,16 @@ class ContentValidationError(BengalContentError):
         original_error: Exception | None = None,
     ) -> None:
         """
-        Initialize content validation error.
+        Initialize a content validation error.
 
         Args:
-            message: Summary error message
-            path: Path to the content file that failed validation
-            errors: List of specific field validation errors
-            collection_name: Name of the collection (if known)
-            suggestion: Helpful suggestion for fixing
-            original_error: Original exception that caused this error
+            message: Summary error message describing the validation failure.
+            path: Path to the content file that failed validation.
+            errors: List of :class:`ValidationError` instances for each field
+                that failed. May be empty if the error is structural.
+            collection_name: Name of the collection being validated, if known.
+            suggestion: Actionable suggestion for how to fix the error.
+            original_error: The underlying exception, if this error wraps another.
         """
         # Set base class fields
         super().__init__(
@@ -97,7 +151,13 @@ class ContentValidationError(BengalContentError):
         self.collection_name = collection_name
 
     def __str__(self) -> str:
-        """Format error with file location and field details."""
+        """
+        Format the error with file location and field details.
+
+        Returns:
+            Multi-line string with file path, collection name (if known),
+            and each field error on its own line with tree-style formatting.
+        """
         lines = [f"Content validation failed: {self.path}"]
 
         if self.collection_name:
@@ -109,7 +169,12 @@ class ContentValidationError(BengalContentError):
         return "\n".join(lines)
 
     def __repr__(self) -> str:
-        """Detailed repr for debugging."""
+        """
+        Return a detailed string representation for debugging.
+
+        Returns:
+            Compact repr with path, error count, and collection name.
+        """
         return (
             f"ContentValidationError("
             f"path={self.path!r}, "
@@ -119,10 +184,17 @@ class ContentValidationError(BengalContentError):
 
     def to_dict(self) -> dict[str, Any]:
         """
-        Convert to dictionary for JSON serialization.
+        Convert the error to a dictionary for JSON serialization.
+
+        Useful for API responses or structured logging.
 
         Returns:
-            Dictionary with error details suitable for JSON output.
+            Dictionary with keys:
+            - ``message``: The summary error message
+            - ``path``: File path as a string
+            - ``collection``: Collection name or ``None``
+            - ``errors``: List of error dicts with ``field``, ``message``,
+              ``value`` (repr'd), and ``expected_type``
         """
         return {
             "message": self.message,
@@ -144,11 +216,20 @@ class CollectionNotFoundError(BengalContentError):
     """
     Raised when a referenced collection does not exist.
 
-    Extends BengalContentError for consistent error handling.
+    Includes the list of available collections to help users identify typos
+    or configuration issues.
 
     Attributes:
-        collection_name: Name of the missing collection
-        available: List of available collection names
+        collection_name: Name of the collection that was not found.
+        available: List of collection names that do exist.
+
+    Example:
+        >>> raise CollectionNotFoundError(
+        ...     collection_name="blg",
+        ...     available=["blog", "docs", "api"],
+        ... )
+        CollectionNotFoundError: Collection not found: 'blg'
+        Available collections: api, blog, docs
     """
 
     def __init__(
@@ -158,6 +239,15 @@ class CollectionNotFoundError(BengalContentError):
         *,
         suggestion: str | None = None,
     ) -> None:
+        """
+        Initialize the collection not found error.
+
+        Args:
+            collection_name: Name of the collection that was not found.
+            available: List of valid collection names for suggestions.
+            suggestion: Custom suggestion message. If not provided and
+                ``available`` is set, a default suggestion is generated.
+        """
         self.collection_name = collection_name
         self.available = available or []
 
@@ -179,13 +269,18 @@ class SchemaError(BengalContentError):
     """
     Raised when a schema definition is invalid.
 
-    This indicates a problem with how the schema was defined,
-    not with the content being validated against it.
-
-    Extends BengalContentError for consistent error handling.
+    Indicates a problem with the schema class itself (e.g., invalid type hints,
+    conflicting defaults), not with the content being validated against it.
 
     Attributes:
-        schema_name: Name of the schema class
+        schema_name: Name of the invalid schema class.
+
+    Example:
+        >>> raise SchemaError(
+        ...     schema_name="BlogPost",
+        ...     message="Field 'tags' has invalid default (mutable list)",
+        ...     suggestion="Use field(default_factory=list) instead of []",
+        ... )
     """
 
     def __init__(
@@ -197,6 +292,16 @@ class SchemaError(BengalContentError):
         suggestion: str | None = None,
         original_error: Exception | None = None,
     ) -> None:
+        """
+        Initialize the schema error.
+
+        Args:
+            schema_name: Name of the schema class that has the error.
+            message: Description of what's wrong with the schema.
+            file_path: Path to the file where the schema is defined, if known.
+            suggestion: Actionable suggestion for fixing the schema.
+            original_error: Underlying exception, if this wraps another error.
+        """
         self.schema_name = schema_name
         error_message = f"Invalid schema '{schema_name}': {message}"
         super().__init__(

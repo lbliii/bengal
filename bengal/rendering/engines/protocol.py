@@ -1,13 +1,52 @@
 """
-Standardized template engine protocol.
+Template engine protocol definition.
 
-All template engines MUST implement this protocol. No exceptions, no optional methods.
-This ensures consistent behavior across Jinja2, Mako, Patitas, and any future engines.
+This module defines the interface contract that ALL template engines must implement.
+The protocol ensures consistent behavior across Jinja2, Mako, Patitas, and any
+custom or third-party engines.
 
-Example:
-    @runtime_checkable
-    class TemplateEngineProtocol(Protocol):
-        def render_template(self, name: str, context: dict) -> str: ...
+Design Philosophy:
+    - **No optional methods**: Every method is required for predictable behavior
+    - **Runtime checkable**: Can verify implementations at runtime
+    - **Clear contracts**: Each method documents preconditions and guarantees
+    - **Error consistency**: Standardized exception types across engines
+
+Required Attributes:
+    - site: Site instance for accessing config and content
+    - template_dirs: Ordered search paths for template resolution
+
+Required Methods:
+    - render_template(): Render named template file
+    - render_string(): Render inline template string
+    - template_exists(): Check template availability
+    - get_template_path(): Resolve template to filesystem path
+    - list_templates(): Enumerate available templates
+    - validate(): Syntax-check all templates
+
+Implementing Custom Engines:
+    To create a custom engine, implement all protocol methods:
+
+    .. code-block:: python
+
+        class MyEngine:
+            def __init__(self, site: Site):
+                self.site = site
+                self.template_dirs = [site.root_path / "templates"]
+
+            def render_template(self, name: str, context: dict) -> str:
+                # Implementation...
+
+            # ... implement all other methods ...
+
+    Then register it:
+
+    >>> from bengal.rendering.engines import register_engine
+    >>> register_engine("myengine", MyEngine)
+
+Related Modules:
+    - bengal.rendering.engines: Engine factory and registration
+    - bengal.rendering.engines.jinja: Reference Jinja2 implementation
+    - bengal.rendering.engines.errors: Exception types
 """
 
 from __future__ import annotations

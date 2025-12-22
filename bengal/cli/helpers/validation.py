@@ -1,4 +1,21 @@
-"""Validation helpers for CLI commands."""
+"""
+Validation helpers for CLI commands.
+
+Provides decorators for validating CLI flag combinations, including
+mutually exclusive flags and multi-flag conflicts.
+
+Functions:
+    validate_mutually_exclusive: Ensure flag pairs aren't used together
+    validate_flag_conflicts: Validate one-to-many flag conflicts
+
+Example:
+    @click.command()
+    @click.option("--quiet", is_flag=True)
+    @click.option("--verbose", is_flag=True)
+    @validate_mutually_exclusive(("quiet", "verbose"))
+    def my_command(quiet, verbose):
+        pass
+"""
 
 from __future__ import annotations
 

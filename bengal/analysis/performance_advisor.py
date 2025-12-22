@@ -1,8 +1,44 @@
 """
 Performance analysis and intelligent suggestions for Bengal builds.
 
-Analyzes build statistics and provides context-aware recommendations
-for improving build speed, resource usage, and developer experience.
+Analyzes build statistics to identify bottlenecks and generate actionable
+recommendations for improving build speed, resource usage, and developer
+experience. The advisor provides letter grades, priority-ranked suggestions,
+and specific configuration examples.
+
+Analysis Areas:
+    - Parallel Processing: Detect opportunities for multi-core rendering
+    - Incremental Builds: Identify potential for cache-based optimization
+    - Rendering Performance: Find template bottlenecks and slow pages
+    - Asset Optimization: Detect slow image/CSS processing
+    - Memory Usage: Flag high memory consumption patterns
+    - Template Complexity: Identify overly complex template logic
+
+Grading System:
+    - A (90-100): Excellent performance, well-optimized
+    - B (75-89): Good performance, minor optimizations possible
+    - C (60-74): Fair performance, improvements recommended
+    - D (45-59): Poor performance, needs improvement
+    - F (0-44): Critical performance issues
+
+Classes:
+    SuggestionType: Category of performance suggestion
+    SuggestionPriority: Priority level (HIGH, MEDIUM, LOW)
+    PerformanceSuggestion: A single recommendation with impact estimate
+    PerformanceGrade: Overall build performance assessment
+    PerformanceAdvisor: Main analyzer that generates suggestions
+
+Example:
+    >>> from bengal.analysis.performance_advisor import analyze_build
+    >>> advisor = analyze_build(stats)
+    >>> grade = advisor.get_grade()
+    >>> print(f"Performance Grade: {grade.grade} ({grade.score}/100)")
+    >>> for suggestion in advisor.get_top_suggestions(3):
+    ...     print(f"{suggestion.title}: {suggestion.impact}")
+
+See Also:
+    - bengal/orchestration/stats.py: BuildStats data source
+    - bengal/cli/build.py: CLI integration
 """
 
 from __future__ import annotations

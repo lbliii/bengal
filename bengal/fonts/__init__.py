@@ -1,18 +1,52 @@
 """
-Font helper for Bengal SSG.
+Font management for Bengal SSG.
 
-Provides simple font downloading and CSS generation for Google Fonts.
+This package provides automatic font downloading and CSS generation for
+self-hosted Google Fonts. It enables sites to serve fonts locally without
+external requests, improving privacy and performance.
 
-Usage:
+Components:
+    FontHelper: Main interface for processing font configuration
+    GoogleFontsDownloader: Downloads .woff2 files from Google Fonts API
+    FontCSSGenerator: Generates @font-face CSS with CSS custom properties
+    FontVariant: Data class representing a specific font weight/style
 
-```toml
-# In bengal.toml:
-[fonts]
-primary = "Inter:400,600,700"
-heading = "Playfair Display:700"
+Workflow:
+    1. Parse [fonts] configuration from bengal.toml
+    2. Download font files via Google Fonts CSS API
+    3. Generate fonts.css with @font-face rules
+    4. Optionally rewrite URLs for fingerprinted assets
 
-# Bengal automatically downloads fonts and generates CSS
-```
+Configuration:
+    Fonts are configured in bengal.toml using simple string or dict format:
+
+    ```toml
+    [fonts]
+    # Simple format: "family:weight1,weight2,..."
+    primary = "Inter:400,600,700"
+    heading = "Playfair Display:700"
+
+    # Detailed format with italic support
+    [fonts.body]
+    family = "Source Sans Pro"
+    weights = [400, 600]
+    styles = ["normal", "italic"]
+    ```
+
+Output:
+    - Font files: assets/fonts/{family}-{weight}.woff2
+    - CSS file: assets/fonts.css (with @font-face rules and CSS variables)
+
+Example:
+    >>> from bengal.fonts import FontHelper
+    >>> helper = FontHelper({"primary": "Inter:400,700"})
+    >>> css_path = helper.process(Path("output/assets"))
+    >>> print(css_path)
+    output/assets/fonts.css
+
+Related:
+    - bengal/orchestration/asset_orchestrator.py: Asset processing integration
+    - bengal/postprocess/fingerprint.py: URL rewriting for fingerprinted fonts
 """
 
 from __future__ import annotations
@@ -31,19 +65,33 @@ def rewrite_font_urls_with_fingerprints(
     """
     Rewrite font URLs in fonts.css to use fingerprinted filenames.
 
-    After asset fingerprinting, font files have hashed names like:
-        fonts/outfit-400.6c18d579.woff2
-
-    This function updates fonts.css to reference these fingerprinted names
-    instead of the original names like fonts/outfit-400.woff2.
+    After asset fingerprinting, font files have content-hashed names for
+    cache busting (e.g., ``fonts/outfit-400.6c18d579.woff2``). This function
+    updates the generated fonts.css to reference these fingerprinted names
+    instead of the original filenames.
 
     Args:
-        fonts_css_path: Path to fonts.css in output directory
+        fonts_css_path: Absolute path to fonts.css in output directory.
         asset_manifest: Asset manifest dict with 'assets' key mapping
-                       logical paths to fingerprinted output paths
+            logical paths to fingerprinted output paths. Expected structure::
+
+                {
+                    "assets": {
+                        "fonts/outfit-400.woff2": {
+                            "output_path": "assets/fonts/outfit-400.6c18d579.woff2"
+                        }
+                    }
+                }
 
     Returns:
-        True if fonts.css was updated, False otherwise
+        True if fonts.css was modified, False if no changes were needed
+        (file doesn't exist, no font assets in manifest, or URLs already match).
+
+    Example:
+        >>> manifest = {"assets": {"fonts/inter-400.woff2": {"output_path": "assets/fonts/inter-400.abc123.woff2"}}}
+        >>> updated = rewrite_font_urls_with_fingerprints(Path("public/assets/fonts.css"), manifest)
+        >>> print(updated)
+        True
     """
     if not fonts_css_path.exists():
         return False
@@ -87,19 +135,41 @@ def rewrite_font_urls_with_fingerprints(
 
 class FontHelper:
     """
-    Main font helper interface.
+    Main interface for font processing in Bengal.
 
-    Usage:
-        helper = FontHelper(config)
-        helper.process(output_dir)
+    Coordinates font downloading and CSS generation based on the ``[fonts]``
+    configuration section in bengal.toml. Handles caching to avoid redundant
+    downloads and writes.
+
+    Attributes:
+        config: Font configuration dictionary from bengal.toml.
+        downloader: GoogleFontsDownloader instance for fetching font files.
+        generator: FontCSSGenerator instance for creating @font-face CSS.
+
+    Example:
+        >>> config = {
+        ...     "primary": "Inter:400,600,700",
+        ...     "heading": "Playfair Display:700"
+        ... }
+        >>> helper = FontHelper(config)
+        >>> css_path = helper.process(Path("output/assets"))
+        >>> print(css_path)
+        output/assets/fonts.css
+
+    See Also:
+        GoogleFontsDownloader: Font file downloading.
+        FontCSSGenerator: CSS generation.
     """
 
-    def __init__(self, font_config: dict[str, Any]):
+    def __init__(self, font_config: dict[str, Any]) -> None:
         """
-        Initialize font helper with configuration.
+        Initialize the font helper with configuration.
 
         Args:
-            font_config: [fonts] section from bengal.toml
+            font_config: The ``[fonts]`` section from bengal.toml. Keys are
+                font role names (e.g., "primary", "heading"), values are either
+                simple strings (``"Inter:400,700"``) or dicts with ``family``,
+                ``weights``, and ``styles`` keys.
         """
         self.config = font_config
         self.downloader = GoogleFontsDownloader()
@@ -107,13 +177,30 @@ class FontHelper:
 
     def process(self, assets_dir: Path) -> Path | None:
         """
-        Process fonts: download files and generate CSS.
+        Download font files and generate fonts.css.
+
+        Parses the font configuration, downloads any missing font files from
+        Google Fonts, and generates a fonts.css file with @font-face rules
+        and CSS custom properties.
+
+        Font files are cached—existing files are not re-downloaded. The CSS
+        file is only written if its content has changed, preventing file
+        watcher loops during development.
 
         Args:
-            assets_dir: Assets directory (fonts go in assets/fonts/)
+            assets_dir: Absolute path to the assets directory. Font files
+                will be placed in ``assets_dir/fonts/`` and fonts.css will
+                be written to ``assets_dir/fonts.css``.
 
         Returns:
-            Path to generated fonts.css, or None if no fonts configured
+            Path to the generated fonts.css file, or None if no fonts are
+            configured or all font downloads failed.
+
+        Example:
+            >>> helper = FontHelper({"primary": "Inter:400,700"})
+            >>> css_path = helper.process(Path("/project/public/assets"))
+            >>> print(css_path)
+            /project/public/assets/fonts.css
         """
         if not self.config:
             return None
@@ -174,14 +261,31 @@ class FontHelper:
 
     def _parse_config(self) -> dict[str, dict[str, Any]]:
         """
-        Parse [fonts] configuration into normalized format.
+        Parse font configuration into a normalized internal format.
 
-        Supports two formats:
-        1. Simple string: "Inter:400,600,700"
-        2. Detailed dict: {family = "Inter", weights = [400, 600, 700]}
+        Supports two configuration formats:
+
+        1. **Simple string**: ``"FamilyName:weight1,weight2"``
+           Example: ``"Inter:400,600,700"``
+
+        2. **Detailed dict**: ``{family = "...", weights = [...], styles = [...]}``
+           Example::
+
+               [fonts.body]
+               family = "Source Sans Pro"
+               weights = [400, 600]
+               styles = ["normal", "italic"]
 
         Returns:
-            Dict mapping font name to font specification
+            Dictionary mapping font role names to normalized specifications::
+
+                {
+                    "primary": {
+                        "family": "Inter",
+                        "weights": [400, 600, 700],
+                        "styles": ["normal"]
+                    }
+                }
         """
         fonts = {}
 

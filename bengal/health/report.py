@@ -1,7 +1,29 @@
 """
 Health check report formatting and data structures.
 
-Provides structured reporting of health check results with multiple output formats.
+This module provides the core data structures for health check results and
+multiple output formats for different contexts (console, JSON, CI integration).
+
+Data Models:
+    CheckStatus: Severity enum (ERROR, WARNING, SUGGESTION, INFO, SUCCESS)
+    CheckResult: Individual check result with status, message, recommendations
+    ValidatorStats: Observability metrics for validator execution
+    ValidatorReport: Results from a single validator
+    HealthReport: Aggregate report from all validators
+
+Output Formats:
+    - Console: Rich text with colors, progressive disclosure for readability
+    - JSON: Machine-readable for CI integration and automation
+    - Quality scoring: 0-100 score with ratings (Excellent/Good/Fair/Needs Improvement)
+
+Architecture:
+    Reports are immutable data containers with computed properties. Formatting
+    logic is kept in methods rather than separate functions to enable easy
+    serialization and manipulation.
+
+Related:
+    - bengal.health.health_check: Orchestrator that produces HealthReport
+    - bengal.health.base: Validators that produce CheckResult objects
 """
 
 from __future__ import annotations
@@ -16,19 +38,27 @@ from bengal.utils.rich_console import should_use_emoji
 
 
 class CheckStatus(Enum):
-    """Status of a health check.
+    """
+    Severity level for a health check result.
 
-    Severity levels (from most to least critical):
-    - ERROR: Blocks builds, must fix
-    - WARNING: Don't block, but should fix
-    - SUGGESTION: Quality improvements (collapsed by default)
-    - INFO: Contextual information (hidden unless verbose)
-    - SUCCESS: Check passed
+    Severity levels are ordered from most to least critical. The build system
+    uses these levels to determine exit codes and output formatting:
+
+    Severity Levels:
+        ERROR: Blocks builds in strict mode, must fix before shipping
+        WARNING: Does not block but should fix, indicates potential problems
+        SUGGESTION: Quality improvements, collapsed by default in output
+        INFO: Contextual information, hidden unless verbose mode enabled
+        SUCCESS: Check passed, typically not shown unless verbose
+
+    Usage:
+        Validators return CheckResult with appropriate status. Use factory
+        methods like CheckResult.error() or CheckResult.warning() for clarity.
     """
 
     SUCCESS = "success"
     INFO = "info"
-    SUGGESTION = "suggestion"  # Quality improvements, not problems
+    SUGGESTION = "suggestion"
     WARNING = "warning"
     ERROR = "error"
 
@@ -38,12 +68,23 @@ class CheckResult:
     """
     Result of a single health check.
 
+    CheckResult is the standard output from validators. Use factory methods
+    (success, info, suggestion, warning, error) for cleaner construction.
+
     Attributes:
-        status: Status level (success, info, warning, error)
-        message: Human-readable description of the check result
-        recommendation: Optional suggestion for how to fix/improve (shown for warnings/errors)
-        details: Optional additional context (list of strings)
+        status: Severity level (ERROR, WARNING, SUGGESTION, INFO, SUCCESS)
+        message: Human-readable description of what was checked/found
+        recommendation: Optional fix suggestion (shown for warnings/errors)
+        details: Optional list of specific items (e.g., file paths, line numbers)
         validator: Name of validator that produced this result
+        metadata: Optional dict for validator-specific data (cacheable, machine-readable)
+
+    Example:
+        >>> result = CheckResult.error(
+        ...     "Missing required frontmatter field",
+        ...     recommendation="Add 'title' to frontmatter",
+        ...     details=["content/post.md:1"],
+        ... )
     """
 
     status: CheckStatus
@@ -184,20 +225,31 @@ class ValidatorStats:
     """
     Observability metrics for a validator run.
 
-    These stats help diagnose performance issues and validate
-    that optimizations (like caching) are working correctly.
+    Validators can optionally populate stats to provide visibility into
+    execution performance, cache effectiveness, and skip reasons. Stats
+    are displayed in verbose mode and logged for debugging.
 
-    This class follows the ComponentStats pattern from bengal.utils.observability
-    but maintains page-specific naming for validator contexts.
+    Follows the ComponentStats pattern from bengal.utils.observability but
+    uses page-specific naming appropriate for validator contexts.
 
     Attributes:
-        pages_total: Total pages in site
-        pages_processed: Pages actually validated
-        pages_skipped: Dict of skip reasons and counts
-        cache_hits: Number of cache hits (if applicable)
-        cache_misses: Number of cache misses (if applicable)
-        sub_timings: Dict of sub-operation names to duration_ms
-        metrics: Custom metrics (component-specific)
+        pages_total: Total pages available in site
+        pages_processed: Number of pages actually validated
+        pages_skipped: Dict mapping skip reason to count
+        cache_hits: Count of results retrieved from cache
+        cache_misses: Count of results computed fresh
+        sub_timings: Dict mapping operation name to duration in ms
+        metrics: Custom metrics dict (validator-specific)
+
+    Example:
+        >>> stats = ValidatorStats(
+        ...     pages_total=100,
+        ...     pages_processed=95,
+        ...     pages_skipped={"draft": 5},
+        ...     cache_hits=80,
+        ...     cache_misses=15,
+        ... )
+        >>> print(stats.format_summary())
 
     See Also:
         bengal.utils.observability.ComponentStats for the generic pattern
@@ -286,13 +338,17 @@ class ValidatorStats:
 @dataclass
 class ValidatorReport:
     """
-    Report for a single validator's checks.
+    Report from a single validator's execution.
+
+    Aggregates all CheckResult objects from one validator along with timing
+    and optional observability stats. Used by HealthReport to build the
+    complete validation picture.
 
     Attributes:
-        validator_name: Name of the validator
-        results: List of check results from this validator
-        duration_ms: How long the validator took to run
-        stats: Optional observability metrics
+        validator_name: Human-readable name of the validator
+        results: All CheckResult objects produced by this validator
+        duration_ms: Wall-clock time for validator execution
+        stats: Optional ValidatorStats for observability
     """
 
     validator_name: str
@@ -349,12 +405,24 @@ class ValidatorReport:
 @dataclass
 class HealthReport:
     """
-    Complete health check report for a build.
+    Complete health check report aggregating all validator results.
+
+    HealthReport is the top-level output from HealthCheck.run(). It provides
+    multiple output formats (console, JSON) and computed properties for
+    quality assessment.
 
     Attributes:
-        validator_reports: Reports from each validator
-        timestamp: When the health check was run
-        build_stats: Optional build statistics
+        validator_reports: List of ValidatorReport from each validator
+        timestamp: When the health check was executed
+        build_stats: Optional build statistics dict from the build process
+
+    Output Formats:
+        format_console(): Rich text with progressive disclosure
+        format_json(): Machine-readable dict for CI/automation
+
+    Quality Metrics:
+        build_quality_score(): 0-100 penalty-based score
+        quality_rating(): "Excellent"/"Good"/"Fair"/"Needs Improvement"
     """
 
     validator_reports: list[ValidatorReport] = field(default_factory=list)

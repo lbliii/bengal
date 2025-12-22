@@ -1,17 +1,47 @@
 """
 PageRank implementation for Bengal SSG.
 
-Computes page importance scores using the iterative power method.
-Takes advantage of hashable pages for efficient graph operations.
+Computes page importance scores using the iterative power method, the same
+algorithm that powered early Google search. PageRank identifies influential
+pages based on link structure, where a page is important if important pages
+link to it.
 
-The PageRank algorithm assigns importance scores based on:
-- Number of incoming links (popularity)
-- Importance of pages linking to it (authority)
-- Damping factor for random navigation (user behavior)
+Algorithm:
+    PageRank iteratively distributes "importance" through the link graph:
+    1. Initialize all pages with equal probability (1/N)
+    2. Each iteration: pages pass their score to linked pages
+    3. Damping factor (default 0.85) models random navigation jumps
+    4. Continue until convergence or max iterations reached
+
+Key Concepts:
+    - Damping Factor: Probability of following links vs random jump (0.85 typical)
+    - Convergence: Algorithm stops when max score change < threshold
+    - Personalized PageRank: Bias toward seed pages for topic-focused ranking
+
+Classes:
+    PageRankResults: Scores and metadata from computation
+    PageRankCalculator: Main algorithm implementation
+
+Example:
+    >>> from bengal.analysis import KnowledgeGraph
+    >>> graph = KnowledgeGraph(site)
+    >>> graph.build()
+    >>> results = graph.compute_pagerank(damping=0.85)
+    >>> top_pages = results.get_top_pages(10)
+    >>> for page, score in top_pages:
+    ...     print(f"{page.title}: {score:.4f}")
+
+    >>> # Personalized PageRank for topic-focused ranking
+    >>> python_posts = {p for p in site.pages if 'python' in p.tags}
+    >>> results = graph.compute_personalized_pagerank(python_posts)
 
 References:
-    - Brin, S., & Page, L. (1998). The anatomy of a large-scale hypertextual
-      web search engine. Computer networks and ISDN systems.
+    Brin, S., & Page, L. (1998). The anatomy of a large-scale hypertextual
+    web search engine. Computer Networks and ISDN Systems.
+
+See Also:
+    - bengal/analysis/knowledge_graph.py: Graph coordination
+    - bengal/analysis/link_suggestions.py: Uses PageRank for suggestions
 """
 
 from __future__ import annotations

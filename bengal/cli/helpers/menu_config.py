@@ -1,9 +1,25 @@
 """
 Menu configuration generation helpers.
 
-This module provides utilities for automatically generating menu
-configuration entries from site sections, similar to how sidebars
-and TOC are automatically generated.
+Provides utilities for automatically generating TOML menu configuration
+from site sections. Used by the new site wizard to create sensible
+default navigation menus.
+
+Functions:
+    generate_menu_config: Generate TOML menu entries from section list
+    append_menu_to_config: Safely append menu to existing bengal.toml
+    get_menu_suggestions: Get structured menu data for display/prompts
+
+Example:
+    >>> sections = ['blog', 'about', 'projects']
+    >>> toml = generate_menu_config(sections)
+    >>> print(toml)
+    # Navigation Menu
+    [[menu.main]]
+    name = "Home"
+    url = "/"
+    weight = 1
+    ...
 """
 
 from __future__ import annotations

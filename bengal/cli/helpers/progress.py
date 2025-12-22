@@ -1,4 +1,24 @@
-"""Simple progress feedback helpers for CLI commands."""
+"""
+Simple progress feedback helpers for CLI commands.
+
+Provides lightweight progress display utilities for CLI commands,
+with automatic TTY detection and Rich fallback support.
+
+Functions:
+    cli_progress: Context manager for manual progress updates
+    simple_progress: Iterator wrapper with automatic progress tracking
+
+Example:
+    # Manual updates
+    with cli_progress("Processing files...", total=100) as update:
+        for i, item in enumerate(items):
+            process(item)
+            update(current=i + 1)
+
+    # Automatic iteration
+    for item in simple_progress("Checking...", items):
+        check(item)
+"""
 
 from __future__ import annotations
 

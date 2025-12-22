@@ -2,22 +2,45 @@
 Theme system for Bengal SSG.
 
 Provides theme configuration, discovery, and inheritance chain resolution.
+Themes define templates, assets, and visual styling for sites.
 
-Components:
-    - Theme: Configuration object accessible as site.theme in templates
-    - ThemePackage: Installed theme metadata and resource access
-    - Theme resolution: Inheritance chain building for template/asset discovery
+Public API:
+    Theme: Configuration object accessible as site.theme in templates
+    ThemePackage: Installed theme metadata and resource access
+    get_theme_package: Get ThemePackage by name
+    get_installed_themes: List all available themes
+    clear_theme_cache: Clear theme discovery cache
+    resolve_theme_chain: Build inheritance chain for template lookup
+    iter_theme_asset_dirs: Iterate asset directories in theme chain
+
+Package Structure:
+    config.py: Theme dataclass with feature flags and appearance
+    registry.py: Theme discovery via entry points and filesystem
+    resolution.py: Theme inheritance chain resolution
 
 Architecture:
-    Theme configuration (Theme class) is a core model that holds theme settings.
-    Theme discovery (ThemePackage, registry) finds installed themes via entry points.
-    Theme resolution builds inheritance chains for template lookup.
+    Theme Configuration: Theme class holds settings (features, appearance).
+        Accessible in templates as site.theme.
 
-Related:
-    - bengal/rendering/template_engine/: Uses theme chains for template loading
-    - bengal/themes/: Bundled themes
-    - utils/theme_registry.py: Original location (deprecated)
-    - utils/theme_resolution.py: Original location (deprecated)
+    Theme Discovery: ThemePackage represents an installed theme. Found via
+        entry points (bengal.themes) or filesystem (themes/ directory).
+
+    Theme Resolution: Themes can extend other themes. resolve_theme_chain()
+        builds the inheritance chain for template/asset lookup order.
+
+Example:
+    from bengal.core.theme import Theme, resolve_theme_chain
+
+    theme = Theme.from_config(site_config, root_path=site.root_path)
+    if theme.has_feature('navigation.toc'):
+        enable_toc()
+
+    chain = resolve_theme_chain('docs', site.root_path)
+    # Returns: ['docs', 'default'] if docs extends default
+
+Related Packages:
+    bengal.rendering.template_engine: Uses theme chains for template loading
+    bengal.themes: Bundled themes (default, docs)
 """
 
 from __future__ import annotations

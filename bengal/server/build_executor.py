@@ -1,20 +1,41 @@
 """
-Process-isolated build execution for resilience.
+Process-isolated build execution for crash resilience.
 
-Provides build execution in a separate process to ensure that:
-- Build crashes don't take down the dev server
-- Builds can be timed out if they hang
-- Server remains responsive during builds
+Runs site builds in a separate process (or thread) to ensure the dev server
+remains responsive and can recover from build failures without restarting.
 
 Features:
-    - Process isolation via ProcessPoolExecutor
-    - Free-threading aware: Uses ThreadPoolExecutor on Python 3.14+ with GIL disabled
-    - Configurable executor type via BENGAL_BUILD_EXECUTOR env var
+    - Process isolation via ProcessPoolExecutor (default)
+    - GIL-aware: Uses ThreadPoolExecutor on Python 3.14+ with free-threading
+    - Configurable executor type via BENGAL_BUILD_EXECUTOR environment variable
     - Serializable BuildRequest/BuildResult for cross-process communication
+    - Timeout support to recover from hanging builds
+    - Graceful executor lifecycle management
+
+Classes:
+    BuildRequest: Serializable build parameters for cross-process communication
+    BuildResult: Serializable build outcome with success/error status
+    BuildExecutor: Manages executor pool and submits build jobs
+
+Environment Variables:
+    BENGAL_BUILD_EXECUTOR: Force executor type ('thread' or 'process')
+    BENGAL_BUILD_TIMEOUT: Timeout in seconds for build operations
+
+Architecture:
+    BuildExecutor creates a single-worker executor pool at initialization.
+    Builds are submitted as BuildRequest objects and executed in the worker.
+    Results are returned as BuildResult objects with timing and error info.
+
+    Worker Selection:
+    1. If BENGAL_BUILD_EXECUTOR='thread' → ThreadPoolExecutor
+    2. If BENGAL_BUILD_EXECUTOR='process' → ProcessPoolExecutor
+    3. If Python 3.14+ with GIL disabled → ThreadPoolExecutor (free-threading)
+    4. Default → ProcessPoolExecutor (crash isolation)
 
 Related:
     - bengal/server/build_trigger.py: Uses BuildExecutor for safe builds
     - bengal/server/dev_server.py: Manages executor lifecycle
+    - bengal/orchestration/build_orchestrator.py: Actual build logic
 """
 
 from __future__ import annotations

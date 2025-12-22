@@ -1,19 +1,40 @@
-"""
-Typed option parsing for directives.
+"""Typed option parsing for directive configuration.
 
-Provides DirectiveOptions base class for automatic parsing of directive
-options with type coercion, validation, and field aliasing.
+This module provides ``DirectiveOptions``, a base class for parsing directive
+options from raw strings into typed Python objects. Subclass it with typed
+dataclass fields to get automatic parsing, type coercion, validation, and
+default values.
 
-Architecture:
-    Subclass DirectiveOptions with typed fields to get automatic:
-    - Parsing from :option: syntax
-    - Type coercion (str -> bool, str -> int, str -> list)
-    - Validation (via _allowed_values)
-    - Default values
-    - Self-documentation
+Key Features:
+    - **Type Coercion**: Automatic conversion from strings to bool, int, float, list.
+    - **Field Aliases**: Map directive option names to Python field names
+      (e.g., ``:class:`` → ``css_class``).
+    - **Validation**: Restrict values to allowed sets via ``_allowed_values``.
+    - **Default Values**: Dataclass defaults are used for missing options.
 
-Related:
-    - bengal/directives/base.py: BengalDirective uses these
+Classes:
+    - ``DirectiveOptions``: Base class for typed option parsing.
+    - ``StyledOptions``: Preset with ``css_class`` field for CSS classes.
+    - ``ContainerOptions``: Preset with layout options (columns, gap, style).
+    - ``TitledOptions``: Preset with icon support for titled directives.
+
+Example:
+    Define custom options for a directive::
+
+        @dataclass
+        class DropdownOptions(DirectiveOptions):
+            open: bool = False
+            css_class: str = ""
+
+            _field_aliases: ClassVar[dict[str, str]] = {"class": "css_class"}
+
+        # Parse from raw directive options:
+        opts = DropdownOptions.from_raw({"open": "true", "class": "my-class"})
+        # opts.open = True
+        # opts.css_class = "my-class"
+
+See Also:
+    - ``bengal.directives.base``: ``BengalDirective`` uses ``OPTIONS_CLASS``.
 """
 
 from __future__ import annotations
@@ -28,58 +49,66 @@ logger = get_logger(__name__)
 
 @dataclass
 class DirectiveOptions:
-    """
-    Base class for typed directive options.
+    """Base class for typed directive option parsing.
 
-    Subclass with typed fields to get automatic:
-    - Parsing from :option: syntax
-    - Type coercion (str -> bool, str -> int, str -> list)
-    - Validation (via __post_init__)
-    - Default values
-    - Self-documentation
-
-    Example:
-        @dataclass
-        class DropdownOptions(DirectiveOptions):
-            open: bool = False
-            css_class: str = ""
-
-            _field_aliases: ClassVar[dict[str, str]] = {"class": "css_class"}
-
-        # Usage:
-        opts = DropdownOptions.from_raw({"open": "true", "class": "my-class"})
-        # opts.open = True
-        # opts.css_class = "my-class"
+    Subclass with typed dataclass fields to enable automatic:
+        - Parsing from ``:option: value`` syntax.
+        - Type coercion (str → bool, int, float, list).
+        - Validation via ``_allowed_values``.
+        - Default values from field definitions.
 
     Class Variables:
-        _field_aliases: Map option names to field names (e.g., {"class": "css_class"})
-        _allowed_values: Restrict string fields to specific values
+        _field_aliases: Map option names to field names. Use this when the
+            directive option name differs from the Python field name
+            (e.g., ``{"class": "css_class"}`` maps ``:class:`` to ``css_class``).
+        _allowed_values: Restrict field values to specific sets
+            (e.g., ``{"gap": ["small", "medium", "large"]}``).
+
+    Example:
+        Define a custom options class::
+
+            @dataclass
+            class DropdownOptions(DirectiveOptions):
+                open: bool = False
+                css_class: str = ""
+
+                _field_aliases: ClassVar[dict[str, str]] = {"class": "css_class"}
+
+            # Parse from raw options:
+            opts = DropdownOptions.from_raw({"open": "true", "class": "my-class"})
+            assert opts.open is True
+            assert opts.css_class == "my-class"
     """
 
-    # Override in subclass to map :option-name: to field_name
-    # e.g., {"class": "css_class"} maps :class: to self.css_class
     _field_aliases: ClassVar[dict[str, str]] = {}
+    """Map directive option names to Python field names."""
 
-    # Override to specify allowed values for string fields
-    # e.g., {"gap": ["small", "medium", "large"]}
     _allowed_values: ClassVar[dict[str, list[str]]] = {}
+    """Restrict field values to specific allowed sets."""
 
     @classmethod
     def from_raw(cls, raw_options: dict[str, str]) -> DirectiveOptions:
-        """
-        Parse raw string options into typed instance.
+        """Parse raw string options into a typed instance.
 
-        Handles:
-        - Field aliases (:class: -> css_class)
-        - Type coercion (str -> bool, int, list)
-        - Validation via _allowed_values and __post_init__
-        - Unknown options are logged and ignored
+        Processes the raw option dict from Mistune's ``parse_options()`` by:
+            1. Resolving field aliases (e.g., ``:class:`` → ``css_class``).
+            2. Converting hyphens to underscores in option names.
+            3. Coercing string values to target types (bool, int, float, list).
+            4. Validating against ``_allowed_values`` if defined.
+            5. Ignoring unknown options with a debug log.
 
         Args:
-            raw_options: Dict from mistune's parse_options()
+            raw_options: Dict of string key-value pairs from directive parsing.
 
         Returns:
-            Typed options instance with defaults applied
+            A new instance of the options class with parsed values and defaults.
+
+        Example:
+            >>> opts = MyOptions.from_raw({"open": "true", "count": "5"})
+            >>> opts.open
+            True
+            >>> opts.count
+            5
         """
         kwargs: dict[str, Any] = {}
         hints = get_type_hints(cls)
@@ -132,22 +161,22 @@ class DirectiveOptions:
 
     @classmethod
     def _coerce_value(cls, value: str, target_type: type) -> Any:
-        """
-        Coerce string value to target type.
+        """Coerce a string value to the target Python type.
 
-        Supports:
-        - bool: "true", "1", "yes", "" -> True; others -> False
-        - int: numeric strings
-        - float: numeric strings
-        - list[str]: comma-separated values
-        - str: pass-through
+        Supported type conversions:
+            - ``bool``: ``"true"``, ``"1"``, ``"yes"``, ``""`` → ``True``; else ``False``.
+            - ``int``: Numeric strings → int; invalid → 0.
+            - ``float``: Numeric strings → float; invalid → 0.0.
+            - ``list[str]``: Comma-separated values → list of stripped strings.
+            - ``str``: Pass-through unchanged.
+            - ``Optional[T]``: Unwraps to inner type ``T``.
 
         Args:
-            value: String value from options
-            target_type: Target Python type
+            value: String value from directive options.
+            target_type: Target Python type from field annotations.
 
         Returns:
-            Coerced value
+            Coerced value matching the target type.
         """
         # Handle Optional types (e.g., str | None)
         origin = get_origin(target_type)
@@ -182,41 +211,60 @@ class DirectiveOptions:
 
 @dataclass
 class StyledOptions(DirectiveOptions):
-    """
-    Common options for styled directives.
+    """Common options for styled directives with CSS class support.
 
-    Provides css_class field with :class: alias.
+    Provides a ``css_class`` field that maps from the ``:class:`` directive
+    option. Extend this class for directives that accept custom styling.
+
+    Attributes:
+        css_class: Additional CSS classes to apply to the directive output.
 
     Example:
-        :::{note}
-        :class: my-custom-class
-        Content
-        :::
+        ::
+
+            :::{note}
+            :class: my-custom-class
+            Content here.
+            :::
     """
 
     css_class: str = ""
+    """Additional CSS classes (maps from ``:class:``)."""
 
     _field_aliases: ClassVar[dict[str, str]] = {"class": "css_class"}
 
 
 @dataclass
 class ContainerOptions(StyledOptions):
-    """
-    Options for container-style directives (cards, tabs, etc.).
+    """Options for container-style directives with layout controls.
 
-    Extends StyledOptions with layout options.
+    Extends ``StyledOptions`` with grid layout options for directives like
+    cards, tabs, and other multi-item containers.
+
+    Attributes:
+        columns: Number of columns or ``"auto"`` for responsive.
+        gap: Spacing between items (``"small"``, ``"medium"``, ``"large"``).
+        style: Visual style variant (``"default"``, ``"minimal"``, ``"bordered"``).
 
     Example:
-        :::{cards}
-        :columns: 3
-        :gap: large
-        :style: bordered
-        :::
+        ::
+
+            :::{cards}
+            :columns: 3
+            :gap: large
+            :style: bordered
+            Card content...
+            :::
     """
 
     columns: str = "auto"
+    """Number of columns or 'auto' for responsive layout."""
+
     gap: str = "medium"
+    """Spacing between items: 'small', 'medium', or 'large'."""
+
     style: str = "default"
+    """Visual style: 'default', 'minimal', or 'bordered'."""
 
     _allowed_values: ClassVar[dict[str, list[str]]] = {
         "gap": ["small", "medium", "large"],
@@ -226,16 +274,22 @@ class ContainerOptions(StyledOptions):
 
 @dataclass
 class TitledOptions(StyledOptions):
-    """
-    Options for directives with optional title.
+    """Options for directives with titles and optional icons.
 
-    Extends StyledOptions with icon support.
+    Extends ``StyledOptions`` with an icon field for directives that
+    display a title with an optional icon (cards, admonitions, etc.).
+
+    Attributes:
+        icon: Icon name from the theme's icon library (empty for no icon).
 
     Example:
-        :::{card} Card Title
-        :icon: star
-        Content
-        :::
+        ::
+
+            :::{card} Card Title
+            :icon: star
+            Card content here.
+            :::
     """
 
     icon: str = ""
+    """Icon name from theme icon library (empty for no icon)."""

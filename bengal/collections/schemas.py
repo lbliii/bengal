@@ -1,34 +1,53 @@
 """
 Standard collection schemas for common content types.
 
-Provides ready-to-use schemas for blog posts, documentation pages,
-and API references. Users can import and use these directly or
-as a starting point for custom schemas.
+Provides ready-to-use dataclass schemas for blog posts, documentation pages,
+API references, tutorials, and changelogs. Use these directly or extend them
+for custom content types.
 
-Usage:
+Available Schemas:
+    - :class:`BlogPost` (alias: ``Post``): Blog posts with date, author, tags
+    - :class:`DocPage` (alias: ``Doc``): Documentation with weight, category, toc
+    - :class:`APIReference` (alias: ``API``): API endpoint documentation
+    - :class:`Tutorial`: Guides with difficulty, duration, prerequisites
+    - :class:`Changelog`: Release notes with version, breaking changes
 
-```python
-from bengal.collections import define_collection
-from bengal.collections.schemas import BlogPost, DocPage
+Quick Start:
+    Use schemas directly in your collections:
 
-collections = {
-    "blog": define_collection(schema=BlogPost, directory="content/blog"),
-    "docs": define_collection(schema=DocPage, directory="content/docs"),
-}
-```
+    >>> from bengal.collections import define_collection
+    >>> from bengal.collections.schemas import BlogPost, DocPage
+    >>>
+    >>> collections = {
+    ...     "blog": define_collection(schema=BlogPost, directory="content/blog"),
+    ...     "docs": define_collection(schema=DocPage, directory="content/docs"),
+    ... }
 
-Or extend standard schemas:
+Extending Schemas:
+    Create custom schemas by subclassing:
 
-```python
-from dataclasses import dataclass, field
-from bengal.collections.schemas import BlogPost
+    >>> from dataclasses import dataclass
+    >>> from bengal.collections.schemas import BlogPost
+    >>>
+    >>> @dataclass
+    ... class MyBlogPost(BlogPost):
+    ...     '''Extended blog post with custom fields.'''
+    ...     series: str | None = None
+    ...     reading_time: int | None = None
 
-@dataclass
-class MyBlogPost(BlogPost):
-    '''Extended blog post with custom fields.'''
-    series: str | None = None
-    reading_time: int | None = None
-```
+Custom Schemas:
+    For complete control, define your own dataclass:
+
+    >>> from dataclasses import dataclass, field
+    >>> from datetime import datetime
+    >>>
+    >>> @dataclass
+    ... class Product:
+    ...     name: str
+    ...     price: float
+    ...     sku: str
+    ...     in_stock: bool = True
+    ...     categories: list[str] = field(default_factory=list)
 """
 
 from __future__ import annotations
@@ -42,29 +61,32 @@ class BlogPost:
     """
     Standard schema for blog posts.
 
-    Required:
-        title: Post title (displayed in listings and page header)
-        date: Publication date (used for sorting and display)
+    Provides common fields for blog content including publication metadata,
+    authorship, and categorization.
 
-    Optional:
-        author: Post author (defaults to "Anonymous")
-        tags: List of tags for categorization
-        draft: If True, page excluded from production builds
-        description: Short description for meta tags and listings
-        image: Featured image path (relative to assets or absolute URL)
-        excerpt: Manual excerpt (auto-generated from content if not set)
+    Attributes:
+        title: Post title displayed in listings and page header. **Required.**
+        date: Publication date used for sorting and display. **Required.**
+            Accepts ISO 8601 strings (e.g., ``"2025-01-15"``) or datetime objects.
+        author: Post author name. Defaults to ``"Anonymous"``.
+        tags: List of tags for categorization and filtering.
+        draft: If ``True``, page is excluded from production builds.
+        description: Short description for meta tags, social sharing, and listings.
+        image: Featured image path (relative to assets) or absolute URL.
+        excerpt: Manual excerpt. If not set, Bengal auto-generates from content.
 
-    Example frontmatter:
+    Example:
+        Frontmatter for a blog post:
 
-    ```yaml
-    ---
-    title: Getting Started with Bengal
-    date: 2025-01-15
-    author: Jane Doe
-    tags: [tutorial, beginner]
-    description: Learn how to build your first Bengal site
-    ---
-    ```
+        .. code-block:: yaml
+
+            ---
+            title: Getting Started with Bengal
+            date: 2025-01-15
+            author: Jane Doe
+            tags: [tutorial, beginner]
+            description: Learn how to build your first Bengal site
+            ---
     """
 
     title: str
@@ -82,28 +104,33 @@ class DocPage:
     """
     Standard schema for documentation pages.
 
-    Required:
-        title: Page title
+    Optimized for technical documentation with navigation ordering,
+    categorization, and version tracking.
 
-    Optional:
-        weight: Sort order within section (lower = earlier, default 0)
-        category: Category for grouping in navigation
-        tags: List of tags for cross-referencing
-        toc: Whether to show table of contents (default True)
-        description: Page description for meta tags
-        deprecated: Mark page as deprecated (shows warning banner)
-        since: Version when feature was introduced (e.g., "1.2.0")
+    Attributes:
+        title: Page title. **Required.**
+        weight: Sort order within section. Lower values appear first.
+            Defaults to ``0``.
+        category: Category for grouping in navigation (e.g., ``"Reference"``).
+        tags: List of tags for cross-referencing and filtering.
+        toc: Whether to show the table of contents. Defaults to ``True``.
+        description: Page description for meta tags and search results.
+        deprecated: If ``True``, displays a deprecation warning banner.
+        since: Version when the documented feature was introduced
+            (e.g., ``"1.2.0"``).
 
-    Example frontmatter:
+    Example:
+        Frontmatter for a documentation page:
 
-    ```yaml
-    ---
-    title: Configuration Reference
-    weight: 10
-    category: Reference
-    toc: true
-    ---
-    ```
+        .. code-block:: yaml
+
+            ---
+            title: Configuration Reference
+            weight: 10
+            category: Reference
+            toc: true
+            since: "1.0.0"
+            ---
     """
 
     title: str
@@ -121,30 +148,33 @@ class APIReference:
     """
     Standard schema for API reference documentation.
 
-    Required:
-        title: API endpoint or method name
-        endpoint: API endpoint path (e.g., "/api/v1/users")
+    Designed for REST API endpoint documentation with HTTP method,
+    authentication, and rate limiting metadata.
 
-    Optional:
-        method: HTTP method (default "GET")
-        version: API version (default "v1")
-        deprecated: Mark endpoint as deprecated
-        auth_required: Whether authentication is required (default True)
-        rate_limit: Rate limit description (e.g., "100 req/min")
-        description: Endpoint description
+    Attributes:
+        title: Human-readable name for the endpoint. **Required.**
+        endpoint: API endpoint path (e.g., ``"/api/v1/users"``). **Required.**
+        method: HTTP method. Defaults to ``"GET"``. Common values:
+            ``"GET"``, ``"POST"``, ``"PUT"``, ``"PATCH"``, ``"DELETE"``.
+        version: API version string. Defaults to ``"v1"``.
+        deprecated: If ``True``, marks the endpoint as deprecated.
+        auth_required: Whether authentication is required. Defaults to ``True``.
+        rate_limit: Rate limit description (e.g., ``"100 req/min"``).
+        description: Endpoint description for listings and meta tags.
 
-    Example frontmatter:
+    Example:
+        Frontmatter for an API endpoint:
 
-    ```yaml
-    ---
-    title: List Users
-    endpoint: /api/v1/users
-    method: GET
-    version: v1
-    auth_required: true
-    rate_limit: 100 req/min
-    ---
-    ```
+        .. code-block:: yaml
+
+            ---
+            title: List Users
+            endpoint: /api/v1/users
+            method: GET
+            version: v1
+            auth_required: true
+            rate_limit: 100 req/min
+            ---
     """
 
     title: str
@@ -162,27 +192,31 @@ class Changelog:
     """
     Standard schema for changelog entries.
 
-    Required:
-        title: Release title (e.g., "v1.2.0" or "Version 1.2.0")
-        date: Release date
+    Designed for release notes and version history, with support for
+    semantic versioning and breaking change indicators.
 
-    Optional:
-        version: Semantic version string
-        breaking: Whether this release has breaking changes
-        draft: If True, not published yet
-        summary: Short release summary
+    Attributes:
+        title: Release title (e.g., ``"v1.2.0"`` or ``"Version 1.2.0"``).
+            **Required.**
+        date: Release date. **Required.** Accepts ISO 8601 strings or datetime.
+        version: Semantic version string (e.g., ``"1.2.0"``). Optional but
+            recommended for automated version tracking.
+        breaking: If ``True``, indicates the release contains breaking changes.
+        draft: If ``True``, the release is not yet published.
+        summary: Short release summary for listings and feeds.
 
-    Example frontmatter:
+    Example:
+        Frontmatter for a changelog entry:
 
-    ```yaml
-    ---
-    title: Version 1.2.0
-    date: 2025-01-15
-    version: 1.2.0
-    breaking: false
-    summary: New features and bug fixes
-    ---
-    ```
+        .. code-block:: yaml
+
+            ---
+            title: Version 1.2.0
+            date: 2025-01-15
+            version: 1.2.0
+            breaking: false
+            summary: New features and bug fixes
+            ---
     """
 
     title: str
@@ -196,34 +230,41 @@ class Changelog:
 @dataclass
 class Tutorial:
     """
-    Standard schema for tutorial/guide pages.
+    Standard schema for tutorial and guide pages.
 
-    Required:
-        title: Tutorial title
+    Designed for step-by-step learning content with difficulty levels,
+    time estimates, and series organization.
 
-    Optional:
-        difficulty: Skill level (beginner, intermediate, advanced)
-        duration: Estimated completion time (e.g., "30 minutes")
-        prerequisites: List of prerequisite knowledge/tutorials
-        tags: List of tags
-        series: Name of tutorial series this belongs to
-        order: Order within series (1, 2, 3, ...)
+    Attributes:
+        title: Tutorial title. **Required.**
+        difficulty: Skill level. Recommended values: ``"beginner"``,
+            ``"intermediate"``, ``"advanced"``.
+        duration: Estimated completion time (e.g., ``"30 minutes"``).
+        prerequisites: List of prerequisite knowledge or tutorials.
+        tags: List of tags for categorization and filtering.
+        series: Name of the tutorial series this belongs to.
+        order: Position within the series (1, 2, 3, ...). Used for
+            navigation ordering.
 
-    Example frontmatter:
-        ---
-        title: Building Your First Site
-        difficulty: beginner
-        duration: 30 minutes
-        prerequisites:
-          - Python basics
-          - Command line familiarity
-        series: Getting Started
-        order: 1
-        ---
+    Example:
+        Frontmatter for a tutorial:
+
+        .. code-block:: yaml
+
+            ---
+            title: Building Your First Site
+            difficulty: beginner
+            duration: 30 minutes
+            prerequisites:
+              - Python basics
+              - Command line familiarity
+            series: Getting Started
+            order: 1
+            ---
     """
 
     title: str
-    difficulty: str | None = None  # beginner, intermediate, advanced
+    difficulty: str | None = None
     duration: str | None = None
     prerequisites: list[str] = field(default_factory=list)
     tags: list[str] = field(default_factory=list)
@@ -231,8 +272,7 @@ class Tutorial:
     order: int | None = None
 
 
-# Aliases for convenience
-Post = BlogPost
-Doc = DocPage
-API = APIReference
-
+# Convenience aliases for shorter imports
+Post = BlogPost  #: Alias for :class:`BlogPost`
+Doc = DocPage  #: Alias for :class:`DocPage`
+API = APIReference  #: Alias for :class:`APIReference`

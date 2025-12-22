@@ -1,15 +1,66 @@
 """
 Base exception hierarchy for Bengal.
 
-All Bengal-specific exceptions should extend from BengalError or one of its
-subclasses to provide consistent error context, codes, and formatting.
+All Bengal-specific exceptions extend from ``BengalError`` or one of its
+domain-specific subclasses. This provides consistent error context, codes,
+and formatting throughout the Bengal codebase.
 
-Key Features:
-- Unique error codes (ErrorCode) for searchability
-- Build phase tracking for investigation
-- Related files for debugging context
-- Debug payloads for AI troubleshooting
-- Investigation helpers (grep patterns, test files)
+Exception Hierarchy
+===================
+
+::
+
+    BengalError (base)
+    ├── BengalConfigError      # C001-C008: Configuration errors
+    ├── BengalContentError     # N001-N010: Content/frontmatter errors
+    ├── BengalRenderingError   # R001-R010: Template rendering errors
+    ├── BengalDiscoveryError   # D001-D007: Content discovery errors
+    ├── BengalCacheError       # A001-A006: Cache errors
+    ├── BengalServerError      # S001-S005: Dev server errors
+    └── BengalAssetError       # X001-X006: Asset processing errors
+
+Key Features
+============
+
+- **Error Codes**: Unique codes (e.g., ``ErrorCode.R001``) for searchability
+  and documentation linking.
+- **Build Phase**: Tracks which build phase the error occurred in for
+  targeted investigation.
+- **Related Files**: Lists files involved in the error (template, page, config).
+- **Debug Payloads**: Machine-readable context for AI troubleshooting.
+- **Investigation Helpers**: Generates grep patterns and test file suggestions.
+- **Suggestions**: Actionable hints for fixing the error.
+
+Usage
+=====
+
+Raise a basic Bengal error::
+
+    from bengal.errors import BengalRenderingError, ErrorCode
+
+    raise BengalRenderingError(
+        "Template not found: single.html",
+        code=ErrorCode.R001,
+        file_path=template_path,
+        suggestion="Check templates/ directory",
+    )
+
+Use investigation helpers::
+
+    try:
+        render_page(page)
+    except BengalError as e:
+        for cmd in e.get_investigation_commands():
+            print(cmd)
+        for test in e.get_related_test_files():
+            print(test)
+
+See Also
+========
+
+- ``bengal/errors/codes.py`` - Error code definitions
+- ``bengal/errors/context.py`` - Context enrichment utilities
+- ``bengal/errors/suggestions.py`` - Actionable suggestions
 """
 
 from __future__ import annotations
@@ -306,8 +357,25 @@ class BengalConfigError(BengalError):
     """
     Configuration-related errors.
 
-    Common codes: C001-C008
-    Build phase: INITIALIZATION
+    Raised for issues with site configuration loading, validation, or access.
+    Automatically sets build phase to INITIALIZATION.
+
+    Common Error Codes:
+        - C001: YAML parse error in config file
+        - C002: Required config key missing
+        - C003: Invalid config value
+        - C004: Type mismatch in config
+        - C005: Defaults directory missing
+        - C006: Unknown environment
+        - C007: Circular reference in config
+        - C008: Deprecated config key
+
+    Example:
+        >>> raise BengalConfigError(
+        ...     "Missing required key: site.title",
+        ...     code=ErrorCode.C002,
+        ...     file_path=Path("config/_default/site.yaml"),
+        ... )
     """
 
     def __init__(self, message: str, **kwargs: Any) -> None:
@@ -321,10 +389,32 @@ class BengalConfigError(BengalError):
 
 class BengalContentError(BengalError):
     """
-    Content-related errors (frontmatter, markdown, etc.).
+    Content-related errors (frontmatter, markdown, taxonomy).
 
-    Common codes: N001-N010
-    Build phase: PARSING
+    Raised for issues with content files including frontmatter parsing,
+    markdown processing, and content validation. Automatically sets
+    build phase to PARSING.
+
+    Common Error Codes:
+        - N001: Invalid frontmatter YAML
+        - N002: Invalid date format
+        - N003: File encoding error
+        - N004: Content file not found
+        - N005: Markdown parsing error
+        - N006: Shortcode error
+        - N007: TOC extraction error
+        - N008: Invalid taxonomy
+        - N009: Invalid weight value
+        - N010: Invalid slug
+
+    Example:
+        >>> raise BengalContentError(
+        ...     "Invalid date format: 'yesterday'",
+        ...     code=ErrorCode.N002,
+        ...     file_path=Path("content/post.md"),
+        ...     line_number=3,
+        ...     suggestion="Use ISO format: YYYY-MM-DD",
+        ... )
     """
 
     def __init__(self, message: str, **kwargs: Any) -> None:
@@ -337,10 +427,31 @@ class BengalContentError(BengalError):
 
 class BengalRenderingError(BengalError):
     """
-    Rendering-related errors (templates, shortcodes, etc.).
+    Rendering-related errors (templates, shortcodes, output).
 
-    Common codes: R001-R010
-    Build phase: RENDERING
+    Raised for issues during template rendering including template
+    not found, syntax errors, undefined variables, and filter errors.
+    Automatically sets build phase to RENDERING.
+
+    Common Error Codes:
+        - R001: Template not found
+        - R002: Template syntax error
+        - R003: Undefined template variable
+        - R004: Filter error
+        - R005: Include error
+        - R006: Macro error
+        - R007: Block error
+        - R008: Context error
+        - R009: Template inheritance error
+        - R010: Output write error
+
+    Example:
+        >>> raise BengalRenderingError(
+        ...     "Template not found: layouts/custom.html",
+        ...     code=ErrorCode.R001,
+        ...     file_path=Path("content/post.md"),
+        ...     suggestion="Check templates/ and themes/*/templates/",
+        ... )
     """
 
     def __init__(self, message: str, **kwargs: Any) -> None:
@@ -355,8 +466,24 @@ class BengalDiscoveryError(BengalError):
     """
     Content discovery errors.
 
-    Common codes: D001-D007
-    Build phase: DISCOVERY
+    Raised for issues finding and organizing content files and sections.
+    Automatically sets build phase to DISCOVERY.
+
+    Common Error Codes:
+        - D001: Content directory not found
+        - D002: Invalid content path
+        - D003: Section index missing
+        - D004: Circular section reference
+        - D005: Duplicate page path
+        - D006: Invalid file pattern
+        - D007: Permission denied
+
+    Example:
+        >>> raise BengalDiscoveryError(
+        ...     "Content directory not found: content/",
+        ...     code=ErrorCode.D001,
+        ...     suggestion="Run 'bengal init' to create site structure",
+        ... )
     """
 
     def __init__(self, message: str, **kwargs: Any) -> None:
@@ -371,8 +498,24 @@ class BengalCacheError(BengalError):
     """
     Cache-related errors.
 
-    Common codes: A001-A006
-    Build phase: CACHE
+    Raised for issues with the build cache including corruption,
+    version mismatches, and I/O errors. Automatically sets build
+    phase to CACHE.
+
+    Common Error Codes:
+        - A001: Cache corruption detected
+        - A002: Cache version mismatch
+        - A003: Cache read error
+        - A004: Cache write error
+        - A005: Cache invalidation error
+        - A006: Cache lock timeout
+
+    Example:
+        >>> raise BengalCacheError(
+        ...     "Cache corruption detected",
+        ...     code=ErrorCode.A001,
+        ...     suggestion="Clear cache: rm -rf .bengal/cache/",
+        ... )
     """
 
     def __init__(self, message: str, **kwargs: Any) -> None:
@@ -387,8 +530,23 @@ class BengalServerError(BengalError):
     """
     Development server errors.
 
-    Common codes: S001-S005
-    Build phase: SERVER
+    Raised for issues with the Bengal development server including
+    port conflicts, binding errors, and WebSocket issues. Automatically
+    sets build phase to SERVER.
+
+    Common Error Codes:
+        - S001: Port already in use
+        - S002: Server bind error
+        - S003: Hot reload error
+        - S004: WebSocket error
+        - S005: Static file serving error
+
+    Example:
+        >>> raise BengalServerError(
+        ...     "Port 1313 already in use",
+        ...     code=ErrorCode.S001,
+        ...     suggestion="Use --port 8080 or kill the existing process",
+        ... )
     """
 
     def __init__(self, message: str, **kwargs: Any) -> None:
@@ -403,8 +561,24 @@ class BengalAssetError(BengalError):
     """
     Asset processing errors.
 
-    Common codes: X001-X006
-    Build phase: ASSET_PROCESSING
+    Raised for issues with static asset processing including missing
+    files, invalid paths, and processing failures. Automatically sets
+    build phase to ASSET_PROCESSING.
+
+    Common Error Codes:
+        - X001: Asset not found
+        - X002: Invalid asset path
+        - X003: Asset processing failed
+        - X004: Asset copy error
+        - X005: Asset fingerprint error
+        - X006: Asset minification error
+
+    Example:
+        >>> raise BengalAssetError(
+        ...     "Asset not found: images/logo.png",
+        ...     code=ErrorCode.X001,
+        ...     suggestion="Check assets/ and static/ directories",
+        ... )
     """
 
     def __init__(self, message: str, **kwargs: Any) -> None:

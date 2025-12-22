@@ -1,8 +1,72 @@
 """
 Site-wide index.json generator for Bengal SSG.
 
-Generates a comprehensive JSON index of all pages suitable for
-client-side search, filtering, and navigation.
+Generates a comprehensive JSON index of all pages suitable for client-side
+search with Lunr.js, filtering, faceted navigation, and programmatic access.
+
+Output Format:
+    The index.json contains:
+
+    ```json
+    {
+      "site": {
+        "title": "My Site",
+        "description": "Site description",
+        "baseurl": "/docs",
+        "build_time": "2024-01-15T10:30:00"
+      },
+      "pages": [
+        {
+          "objectID": "/docs/getting-started/",
+          "url": "/docs/getting-started/",
+          "title": "Getting Started",
+          "excerpt": "...",
+          "content": "...",
+          "tags": ["tutorial"],
+          "section": "docs",
+          "word_count": 500,
+          "reading_time": 3
+        }
+      ],
+      "sections": [{"name": "docs", "count": 10}],
+      "tags": [{"name": "tutorial", "count": 5}]
+    }
+    ```
+
+Features:
+    - Search-optimized page summaries with excerpts
+    - Section and tag aggregations for faceted search
+    - Enhanced metadata (author, category, difficulty, etc.)
+    - Version-scoped indexes when versioning is enabled
+    - i18n support with per-locale indexes
+    - Autodoc page flagging for result grouping
+    - Write-if-changed optimization to avoid unnecessary rebuilds
+
+Versioning:
+    When versioning is enabled, generates per-version indexes:
+    - Latest version: output_dir/index.json
+    - Older versions: output_dir/docs/v1/index.json
+
+Configuration:
+    Controlled via [output_formats] in bengal.toml:
+
+    ```toml
+    [output_formats]
+    site_wide = ["index_json"]
+    options.excerpt_length = 200
+    options.include_full_content_in_index = false
+    options.json_indent = null  # null = compact
+    ```
+
+Example:
+    >>> generator = SiteIndexGenerator(site, excerpt_length=200)
+    >>> path = generator.generate(pages)
+    >>> print(f"Index written to: {path}")
+
+Related:
+    - bengal.postprocess.output_formats: OutputFormatsGenerator facade
+    - bengal.postprocess.output_formats.lunr_index_generator: Pre-built Lunr index
+    - themes/*/static/js/search.js: Client-side search using index.json
 """
 
 from __future__ import annotations
@@ -32,14 +96,35 @@ class SiteIndexGenerator:
     """
     Generates site-wide index.json for search and navigation.
 
-    Creates a comprehensive JSON index with:
-    - Page summaries (title, URL, excerpt, metadata)
-    - Section counts and tag counts
-    - Site metadata
+    Creates a comprehensive JSON index optimized for Lunr.js client-side
+    search, faceted filtering, and programmatic access to site content.
+
+    Creation:
+        Direct instantiation: SiteIndexGenerator(site, excerpt_length=200)
+            - Created by OutputFormatsGenerator for index generation
+            - Requires Site instance with rendered pages
+
+    Attributes:
+        site: Site instance with pages and configuration
+        excerpt_length: Character length for page excerpts (default: 200)
+        json_indent: JSON indentation (None for compact)
+        include_full_content: Include full content in index (default: False)
+
+    Relationships:
+        - Used by: OutputFormatsGenerator facade
+        - Uses: Site for pages, LunrIndexGenerator for pre-built search index
+
+    Features:
+        - Search-optimized summaries with objectID for Lunr
+        - Section and tag aggregations for faceted navigation
+        - Enhanced metadata fields (author, category, difficulty)
+        - Per-version indexes when versioning enabled
+        - i18n support with per-locale indexes
+        - Write-if-changed optimization
 
     Example:
         >>> generator = SiteIndexGenerator(site, excerpt_length=200)
-        >>> generator.generate(pages)
+        >>> path = generator.generate(pages)  # Returns Path or list[Path]
     """
 
     def __init__(

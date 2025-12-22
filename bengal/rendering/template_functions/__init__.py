@@ -1,11 +1,78 @@
 """
 Template function registry for Bengal SSG.
 
-This module provides 30+ template functions for use in Jinja2 templates,
-organized into focused modules by responsibility.
+This package provides 80+ template functions and filters for use in Jinja2
+templates, organized into focused modules by responsibility. Functions are
+automatically registered with the template engine during site initialization.
 
-Each module self-registers its functions to avoid god objects and maintain
-clean separation of concerns.
+Architecture:
+    Each submodule self-registers its functions via a ``register(env, site)``
+    function, following the Single Responsibility Principle. The main
+    ``register_all()`` function coordinates registration in dependency order.
+
+Function Categories:
+    Phase 1 - Essential (30 functions):
+        - strings: Text manipulation (truncate, slugify, titlecase, etc.)
+        - collections: List/dict operations (sort_by, group_by, filter, etc.)
+        - math_functions: Numeric operations (add, multiply, round, etc.)
+        - dates: Date formatting and manipulation
+        - urls: URL construction and manipulation
+        - get_page: Page lookup by path
+
+    Phase 2 - Advanced (25 functions):
+        - content: Content processing (markdown, highlight, excerpt)
+        - data: Data file loading (yaml, json, csv)
+        - advanced_strings: Regex, pluralization, translations
+        - files: File operations (read, glob, exists)
+        - advanced_collections: Chunking, pagination, tree operations
+
+    Phase 3 - Specialized (20 functions):
+        - images: Image processing and optimization
+        - icons: Icon libraries (FontAwesome, Material, etc.)
+        - seo: Meta tags, Open Graph, structured data
+        - debug: Development helpers (dump, inspect, type)
+        - taxonomies: Tag and category operations
+        - pagination_helpers: Pagination rendering
+        - i18n: Internationalization support
+
+    Phase 4 - Cross-References (5 functions):
+        - crossref: Internal linking between pages
+
+    Phase 5 - Navigation:
+        - navigation/: Breadcrumbs, TOC, auto-nav, tree building
+
+    Phase 6 - Theme:
+        - theme: Asset URLs, theme configuration access
+
+    Phase 7 - Autodoc:
+        - autodoc: API documentation helpers
+
+    Phase 8 - Tests:
+        - template_tests: Jinja2 test functions (match, draft, featured)
+
+    Phase 9 - Versioning:
+        - version_url: Smart version switching URLs
+
+Usage in Templates:
+    Functions are available directly in templates:
+
+    .. code-block:: jinja
+
+        {{ page.content | markdown | safe }}
+        {{ pages | sort_by('date', reverse=True) }}
+        {{ site.pages | where('draft', false) }}
+        {% set data = load_data('data/config.yaml') %}
+
+Registration:
+    Called automatically by the template engine:
+
+    >>> from bengal.rendering.template_functions import register_all
+    >>> register_all(env, site)
+
+Related Modules:
+    - bengal.rendering.engines.jinja: Jinja2 engine that uses these functions
+    - bengal.rendering.template_tests: Jinja2 test registrations
+    - bengal.rendering.template_context: Context wrappers for templates
 """
 
 from __future__ import annotations

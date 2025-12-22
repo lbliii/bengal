@@ -1,14 +1,81 @@
 """
 Error context helpers for enriching exceptions with standardized context.
 
-Provides utilities for capturing and propagating error context including
-file paths, line numbers, operations, build phases, and suggestions.
+This module provides utilities for capturing and propagating error context
+throughout the Bengal build pipeline. Rich context enables better error
+messages, debugging, and AI-assisted troubleshooting.
 
-Key Components:
-- BuildPhase: Enum indicating which build phase the error occurred in
-- ErrorSeverity: Enum for error severity classification
-- ErrorContext: Dataclass capturing all available context
-- ErrorDebugPayload: Machine-readable debug context for AI troubleshooting
+Key Components
+==============
+
+**BuildPhase**
+    Enum indicating which build phase the error occurred in
+    (INITIALIZATION, DISCOVERY, PARSING, RENDERING, etc.).
+    Each phase maps to primary Bengal modules for investigation.
+
+**ErrorSeverity**
+    Enum for error severity classification (FATAL, ERROR, WARNING, HINT).
+    Determines whether the build can continue and if errors should aggregate.
+
+**ErrorContext**
+    Dataclass capturing all available context about an error including
+    file location, operation, build phase, related files, and debug payload.
+
+**ErrorDebugPayload**
+    Machine-readable debug context designed for AI troubleshooting.
+    Includes processing item, template context, config keys, error
+    patterns, and suggested investigation paths.
+
+**RelatedFile**
+    A file related to an error with its role (e.g., "template", "page").
+
+Factory Functions
+=================
+
+- ``enrich_error()`` - Add context to an exception
+- ``get_context_from_exception()`` - Extract context from any exception
+- ``create_rendering_context()`` - Pre-configured context for rendering errors
+- ``create_discovery_context()`` - Pre-configured context for discovery errors
+- ``create_config_context()`` - Pre-configured context for config errors
+
+Usage
+=====
+
+Create and apply error context::
+
+    from bengal.errors.context import (
+        ErrorContext,
+        BuildPhase,
+        enrich_error,
+    )
+
+    try:
+        parse_file(path)
+    except Exception as e:
+        context = ErrorContext(
+            file_path=path,
+            operation="parsing file",
+            build_phase=BuildPhase.PARSING,
+        )
+        enriched = enrich_error(e, context)
+        raise enriched
+
+Use factory functions for common scenarios::
+
+    from bengal.errors.context import create_rendering_context
+
+    context = create_rendering_context(
+        page_path="content/post.md",
+        template_name="single.html",
+        template_line=45,
+        context_vars=["page", "site"],
+    )
+
+See Also
+========
+
+- ``bengal/errors/exceptions.py`` - Exception classes using this context
+- ``bengal/errors/aggregation.py`` - Error aggregation using context
 """
 
 from __future__ import annotations
@@ -30,6 +97,24 @@ class BuildPhase(Enum):
     Build phase where an error occurred.
 
     Helps narrow down which part of the codebase to investigate.
+    Each phase maps to specific Bengal modules for targeted debugging.
+
+    Phases follow the Bengal build pipeline order:
+
+    1. **INITIALIZATION** - Config loading, CLI parsing
+    2. **DISCOVERY** - Content and section discovery
+    3. **PARSING** - Frontmatter and markdown parsing
+    4. **RENDERING** - Template rendering
+    5. **POSTPROCESSING** - Sitemap, RSS, search index
+    6. **ASSET_PROCESSING** - Static asset copying/processing
+    7. **CACHE** - Cache read/write operations
+    8. **SERVER** - Dev server operations
+    9. **OUTPUT** - Final output writing
+
+    Example:
+        >>> phase = BuildPhase.RENDERING
+        >>> phase.primary_modules
+        ['bengal/rendering/', 'bengal/orchestration/render.py']
     """
 
     INITIALIZATION = "initialization"
@@ -44,7 +129,12 @@ class BuildPhase(Enum):
 
     @property
     def primary_modules(self) -> list[str]:
-        """Get primary Bengal modules for this phase."""
+        """
+        Primary Bengal modules to investigate for errors in this phase.
+
+        Returns:
+            List of module paths relative to Bengal package root.
+        """
         module_map = {
             BuildPhase.INITIALIZATION: ["bengal/config/", "bengal/cli/"],
             BuildPhase.DISCOVERY: ["bengal/discovery/", "bengal/content_layer/"],
@@ -63,7 +153,22 @@ class ErrorSeverity(Enum):
     """
     Error severity classification.
 
-    Helps determine how to handle the error and whether build can continue.
+    Determines how errors are handled and whether the build can continue.
+    Severity levels affect logging, aggregation, and user presentation.
+
+    Levels (highest to lowest):
+
+    - **FATAL** - Build cannot continue at all. Raises immediately.
+    - **ERROR** - This item failed, but build may continue with others.
+    - **WARNING** - Something is off but recoverable. Item processed.
+    - **HINT** - Suggestion for improvement. No functional impact.
+
+    Example:
+        >>> severity = ErrorSeverity.ERROR
+        >>> severity.can_continue
+        True
+        >>> severity.should_aggregate
+        True
     """
 
     FATAL = "fatal"  # Build cannot continue at all
@@ -73,12 +178,24 @@ class ErrorSeverity(Enum):
 
     @property
     def can_continue(self) -> bool:
-        """Whether build can typically continue after this severity."""
+        """
+        Whether the build can typically continue after this severity.
+
+        Returns:
+            True for ERROR, WARNING, HINT. False only for FATAL.
+        """
         return self != ErrorSeverity.FATAL
 
     @property
     def should_aggregate(self) -> bool:
-        """Whether errors of this severity should be aggregated."""
+        """
+        Whether errors of this severity should be aggregated.
+
+        Aggregation reduces log noise when many similar errors occur.
+
+        Returns:
+            True for ERROR and WARNING. False for FATAL and HINT.
+        """
         return self in (ErrorSeverity.ERROR, ErrorSeverity.WARNING)
 
 
@@ -169,7 +286,38 @@ class ErrorContext:
     Standardized error context for enriching exceptions.
 
     Captures all available context about where and why an error occurred,
-    including build phase, related files, and debug payload.
+    including build phase, related files, and debug payload. Used by
+    ``enrich_error()`` to add context to exceptions.
+
+    Attributes:
+        file_path: Path to the file where the error occurred.
+        line_number: Line number in the file.
+        column: Column number (optional).
+        operation: Human-readable operation description
+            (e.g., "parsing frontmatter", "rendering template").
+        suggestion: Actionable suggestion for fixing the error.
+        original_error: The original exception that caused this error.
+        build_phase: Build phase where error occurred (for investigation).
+        subsystem: Bengal subsystem name (e.g., "core", "rendering").
+        error_code: Unique error code for documentation linking.
+        severity: Error severity classification.
+        recoverable: Whether the error can be recovered from.
+        skip_allowed: Whether this item can be skipped to continue build.
+        related_files: List of related files for debugging context.
+        template_name: Template name (for rendering errors).
+        template_context_keys: Available template context variable names.
+        config_keys_accessed: Config keys being accessed (for config errors).
+        debug_payload: Full machine-readable debug context.
+
+    Example:
+        >>> context = ErrorContext(
+        ...     file_path=Path("content/post.md"),
+        ...     line_number=10,
+        ...     operation="parsing frontmatter",
+        ...     build_phase=BuildPhase.PARSING,
+        ...     suggestion="Check YAML syntax",
+        ... )
+        >>> context.add_related_file("config", "config/_default/site.yaml")
     """
 
     # Location info
@@ -211,11 +359,26 @@ class ErrorContext:
         path: Path | str,
         line_number: int | None = None,
     ) -> None:
-        """Add a related file for debugging context."""
+        """
+        Add a related file for debugging context.
+
+        Related files help users understand which files are involved
+        in an error, such as templates, configs, or other pages.
+
+        Args:
+            role: What role this file plays (e.g., "template", "page", "config").
+            path: Path to the related file.
+            line_number: Optional line number of interest in that file.
+        """
         self.related_files.append(RelatedFile(role=role, path=path, line_number=line_number))
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert to dictionary for serialization."""
+        """
+        Convert to dictionary for JSON serialization.
+
+        Returns:
+            Dictionary representation of the error context.
+        """
         result: dict[str, Any] = {
             "file_path": str(self.file_path) if self.file_path else None,
             "line_number": self.line_number,

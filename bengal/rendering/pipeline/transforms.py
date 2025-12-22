@@ -1,11 +1,36 @@
 """
-Content transformation utilities for rendering pipeline.
+Content transformation utilities for the rendering pipeline.
 
-Provides HTML transformations including template syntax escaping,
-link transformation, and Jinja2 block escaping.
+This module applies post-parsing transformations to HTML content before
+template rendering. These transformations ensure content displays correctly
+and links work properly across different deployment configurations.
+
+Transformations:
+    escape_template_syntax_in_html():
+        Converts ``{{`` and ``}}`` to HTML entities. Prevents Jinja2 from
+        processing template syntax that should appear literally in output
+        (e.g., code examples showing template syntax).
+
+    escape_jinja_blocks():
+        Converts ``{%`` and ``%}`` to HTML entities. Prevents control flow
+        markers from leaking into final output.
+
+    transform_internal_links():
+        Prepends baseurl to internal links starting with ``/``. Essential
+        for sites deployed to subdirectories (e.g., GitHub Pages projects).
+
+    normalize_markdown_links():
+        Converts ``.md`` file extensions to clean URLs (e.g., ``./page.md``
+        becomes ``./page/``). Enables natural markdown linking that works
+        both in editors/GitHub and the rendered site.
+
+Error Handling:
+    All transformations use graceful degradation - errors are logged but
+    never cause build failures. Original content is returned unchanged
+    if transformation fails.
 
 Related Modules:
-    - bengal.rendering.pipeline.core: Uses these transformations
+    - bengal.rendering.pipeline.core: Calls transformations during rendering
     - bengal.rendering.link_transformer: Link transformation implementation
 """
 

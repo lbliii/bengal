@@ -1,8 +1,37 @@
 """
 Main health check orchestrator.
 
-Coordinates all validators and produces unified health reports.
-Supports parallel execution of validators for improved performance.
+This module provides HealthCheck, the central coordinator for running health
+validators and producing unified reports. It supports parallel execution for
+improved performance and tiered validation for different use cases.
+
+Key Features:
+    - Automatic registration of 20+ built-in validators
+    - Parallel execution with configurable worker count
+    - Tiered validation (build/full/ci) for speed vs thoroughness tradeoffs
+    - Incremental validation of changed files only
+    - Build context sharing for expensive artifact reuse (knowledge graph)
+
+Execution Tiers:
+    - build: Fast validators only (<100ms) for development feedback
+    - full: Includes knowledge graph validators (~500ms)
+    - ci: All validators including external link checks (~30s)
+
+Architecture:
+    HealthCheck follows the orchestrator pattern. It coordinates validators
+    but does not perform validation logic itself. Validators run in isolation
+    and return CheckResult objects, which are aggregated into a HealthReport.
+
+Related:
+    - bengal.health.base: BaseValidator interface
+    - bengal.health.report: HealthReport and result types
+    - bengal.health.validators: Built-in validators
+
+Example:
+    >>> health = HealthCheck(site)
+    >>> report = health.run(tier="build", verbose=True)
+    >>> if report.has_errors():
+    ...     print(report.format_console())
 """
 
 from __future__ import annotations
@@ -28,26 +57,24 @@ class HealthCheckStats:
     """
     Statistics about health check execution.
 
-    Provides observability into parallel execution performance.
+    Provides observability into parallel execution performance, useful for
+    diagnosing slow builds and validating that parallelization is effective.
+
+    Attributes:
+        total_duration_ms: Wall-clock time for entire health check run
+        execution_mode: Either 'parallel' or 'sequential'
+        validator_count: Number of validators that ran
+        worker_count: Number of worker threads used (1 for sequential)
+        cpu_count: Available CPU cores on system
+        sum_validator_duration_ms: Sum of individual validator durations
     """
 
     total_duration_ms: float
-    """Total wall-clock time for all validators."""
-
     execution_mode: str
-    """'parallel' or 'sequential'."""
-
     validator_count: int
-    """Number of validators that ran."""
-
     worker_count: int
-    """Number of worker threads used (1 for sequential)."""
-
     cpu_count: int
-    """Available CPU cores on system."""
-
     sum_validator_duration_ms: float
-    """Sum of individual validator durations (useful for speedup calculation)."""
 
     @property
     def speedup(self) -> float:

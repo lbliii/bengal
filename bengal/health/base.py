@@ -1,7 +1,21 @@
 """
 Base validator interface for health checks.
 
-All validators should inherit from BaseValidator and implement the validate() method.
+This module defines BaseValidator, the abstract base class for all health check
+validators. Each validator checks a specific aspect of the build and returns
+structured results.
+
+Architecture:
+    Validators follow the single-responsibility principle. Each validator:
+    - Has a clear name and description
+    - Implements validate() returning CheckResult list
+    - Targets <100ms execution (for fast feedback)
+    - Operates independently (no cross-validator dependencies)
+
+Related:
+    - bengal.health.validators: Built-in validator implementations
+    - bengal.health.report: CheckResult and status definitions
+    - bengal.health.health_check: Orchestrator that runs validators
 """
 
 from __future__ import annotations
@@ -17,29 +31,35 @@ if TYPE_CHECKING:
 
 class BaseValidator(ABC):
     """
-    Base class for all health check validators.
+    Abstract base class for all health check validators.
 
-    Each validator should:
-    1. Have a clear name (e.g., "Navigation", "Cache Integrity")
-    2. Implement validate() to return a list of CheckResult objects
-    3. Be fast (target: < 100ms for most validators)
-    4. Be independent (no dependencies on other validators)
+    Validators check specific aspects of a Bengal build and return structured
+    results. Each validator runs independently and should complete quickly
+    (<100ms target) to enable fast feedback during development.
+
+    Class Attributes:
+        name: Human-readable validator name (e.g., "Navigation", "Cache Integrity")
+        description: Brief description of what this validator checks
+        enabled_by_default: Whether validator runs unless explicitly disabled
+
+    Subclass Requirements:
+        1. Set ``name`` class attribute to a descriptive name
+        2. Implement ``validate()`` method returning list of CheckResult
+        3. Return only problems - if no issues, return empty list
 
     Example:
-        class MyValidator(BaseValidator):
-            name = "My System"
-
-            def validate(self, site: Site) -> List[CheckResult]:
-                results = []
-
-                if something_wrong:
-                    results.append(CheckResult.error(
-                        "Something is wrong",
-                        recommendation="Fix it like this"
-                    ))
-                # No success message - if no errors, silence is golden
-
-                return results
+        >>> class MyValidator(BaseValidator):
+        ...     name = "My System"
+        ...     description = "Validates my system configuration"
+        ...
+        ...     def validate(self, site: Site, build_context=None) -> list[CheckResult]:
+        ...         results = []
+        ...         if something_wrong:
+        ...             results.append(CheckResult.error(
+        ...                 "Something is wrong",
+        ...                 recommendation="Fix it like this"
+        ...             ))
+        ...         return results
     """
 
     # Validator name (override in subclass)

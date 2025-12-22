@@ -6,20 +6,32 @@ hierarchy. Supports hierarchical menus, active state tracking, and i18n
 localization. Menus are built during content discovery and cached for
 template access.
 
+Public API:
+    MenuItem: Single menu item with URL, name, weight, and optional children
+    MenuBuilder: Constructs hierarchical menus from various sources
+
 Key Concepts:
-    - Menu sources: Config files, page frontmatter, section structure
-    - Hierarchical menus: Parent-child relationships with weight-based sorting
-    - Active state: Current page and active trail tracking
-    - i18n menus: Localized menu variants per language
+    Menu Sources: Menus can be populated from:
+        - Config files (bengal.toml [[menu]] entries)
+        - Page frontmatter (menu: {main: {weight: 5}})
+        - Section structure (auto-generated from content hierarchy)
 
-Related Modules:
-    - bengal.orchestration.menu: Menu building orchestration
-    - bengal.core.site: Site container that holds menus
-    - bengal.rendering.template_functions.navigation: Template access to menus
+    Hierarchical Menus: Items support parent-child relationships via the
+        `parent` field. MenuBuilder.build_hierarchy() constructs the tree.
 
-See Also:
-    - bengal/core/menu.py:MenuItem class for menu item representation
-    - bengal/core/menu.py:MenuBuilder class for menu construction
+    Active State: MenuItem.mark_active() sets `active` for matching URLs
+        and `active_trail` for ancestors of active items.
+
+    Weight Sorting: Items sorted by weight (ascending) then by name.
+        Lower weights appear first in navigation.
+
+    Deduplication: MenuBuilder tracks seen identifiers, URLs, and names
+        to prevent duplicate items from multiple sources.
+
+Related Packages:
+    bengal.orchestration.menu: Menu building orchestration
+    bengal.core.site: Site container that holds menus
+    bengal.rendering.template_functions.navigation: Template access to menus
 """
 
 from __future__ import annotations

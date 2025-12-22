@@ -1,4 +1,43 @@
-"""Author Index - Index pages by author."""
+"""
+Author index for O(1) lookup of pages by author.
+
+This module provides AuthorIndex, a QueryIndex implementation that indexes pages
+by their author(s). Supports both single author and multi-author scenarios.
+
+Frontmatter Formats:
+    Single author (string):
+        author: "Jane Smith"
+
+    Single author (dict with details):
+        author:
+          name: "Jane Smith"
+          email: "jane@example.com"
+          bio: "Python enthusiast"
+
+    Multiple authors:
+        authors:
+          - "Jane Smith"
+          - "Bob Jones"
+
+    Multiple authors with details:
+        authors:
+          - name: "Jane Smith"
+            email: "jane@example.com"
+          - name: "Bob Jones"
+
+Template Usage:
+    {# Get all posts by an author #}
+    {% set posts = site.indexes.author.get('Jane Smith') %}
+
+    {# List all authors #}
+    {% for author in site.indexes.author.keys() %}
+      {{ author }}: {{ site.indexes.author.get(author)|length }} posts
+    {% endfor %}
+
+Related:
+    - bengal.cache.query_index: Base QueryIndex class
+    - bengal.cache.indexes.category_index: Similar single-valued index
+"""
 
 from __future__ import annotations
 

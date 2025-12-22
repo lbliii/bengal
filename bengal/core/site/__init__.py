@@ -1,40 +1,44 @@
 """
 Site package for Bengal SSG.
 
-This package provides the Site class - the central container for all content
-(pages, sections, assets) and the coordinator of the build process.
+Provides the Site class—the central container for all content (pages,
+sections, assets) and coordinator of the build process.
 
 Public API:
-    - Site: Main site dataclass with discovery, build, and serve capabilities
+    Site: Main site dataclass with discovery, build, and serve capabilities
 
-The Site class is composed of several focused mixins:
-    - SitePropertiesMixin: Configuration property accessors
-    - PageCachesMixin: Cached page lists (regular_pages, generated_pages, etc.)
-    - SiteFactoriesMixin: Factory methods (from_config, for_testing)
-    - ContentDiscoveryMixin: Content and asset discovery
-    - ThemeIntegrationMixin: Theme resolution and asset chain
-    - DataLoadingMixin: Data directory loading
-    - SectionRegistryMixin: O(1) section lookups
+Creation:
+    Site.from_config(path): Load from bengal.toml (recommended)
+    Site.for_testing(): Minimal instance for unit tests
+    Site(root_path, config): Direct instantiation (advanced)
 
-Usage:
+Package Structure:
+    core.py: Site dataclass with build/serve methods
+    properties.py: SitePropertiesMixin (config accessors)
+    page_caches.py: PageCachesMixin (cached page lists)
+    factories.py: SiteFactoriesMixin (from_config, for_testing)
+    discovery.py: ContentDiscoveryMixin (content/asset discovery)
+    theme.py: ThemeIntegrationMixin (theme resolution)
+    data.py: DataLoadingMixin (data/ directory)
+    section_registry.py: SectionRegistryMixin (O(1) section lookups)
 
-```python
-from bengal.core.site import Site
+Key Features:
+    Build Coordination: site.build() orchestrates full build pipeline
+    Dev Server: site.serve() starts live-reload development server
+    Content Discovery: site.discover_content() finds pages/sections/assets
+    Theme Resolution: site.theme_config provides theme configuration
+    Query Interface: site.pages, site.sections, site.taxonomies
 
-# From configuration (recommended):
-site = Site.from_config(Path('/path/to/site'))
+Example:
+    from bengal.core import Site
 
-# For testing:
-site = Site.for_testing()
+    site = Site.from_config(Path('/path/to/site'))
+    site.build(parallel=True, incremental=True)
 
-# Direct instantiation (advanced):
-site = Site(root_path=Path('/path'), config={})
-```
-
-Related Modules:
-    - bengal.orchestration.build: Build orchestration
-    - bengal.rendering.template_engine: Template rendering
-    - bengal.cache.build_cache: Build state persistence
+Related Packages:
+    bengal.orchestration.build: Build orchestration
+    bengal.rendering.template_engine: Template rendering
+    bengal.cache.build_cache: Build state persistence
 """
 
 from __future__ import annotations

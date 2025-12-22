@@ -1,25 +1,63 @@
 """
 Dev server error context for hot-reload aware error handling.
 
-Provides enhanced error context for development server scenarios where:
-- Files change frequently
-- Errors may be transient
-- Users need quick feedback on what changed
-- Auto-fix suggestions are especially valuable
+This module provides enhanced error context specifically for development
+server scenarios where files change frequently, errors may be transient,
+and users need quick feedback on what changed and how to fix it.
 
-Usage:
-    from bengal.errors.dev_server import DevServerErrorContext, create_dev_error
+Key Features
+============
 
-    # Create dev server aware error context
-    context = DevServerErrorContext(
-        file_path=changed_file,
+- **File Change Tracking**: Records which files changed before an error
+- **Likely Cause Detection**: Identifies the most likely cause based on changes
+- **Auto-Fix Suggestions**: Provides automated fix commands when possible
+- **Rollback Commands**: Generates git commands to undo recent changes
+- **Quick Actions**: Lists actionable steps for common error patterns
+- **Error History**: Tracks whether errors are new or recurring
+
+Components
+==========
+
+**FileChange**
+    Record of a file change with path, type (modified/created/deleted),
+    timestamp, and relevant line numbers.
+
+**DevServerErrorContext**
+    Extended ErrorContext with dev server-specific fields for file changes,
+    error history, hot-reload state, and auto-fix information.
+
+**DevServerState**
+    Singleton tracking dev server state across hot reloads for richer
+    error context and pattern detection.
+
+Usage
+=====
+
+Create dev server error context::
+
+    from bengal.errors.dev_server import create_dev_error
+
+    context = create_dev_error(
+        error,
         changed_files=[changed_file],
         last_successful_build=last_build_time,
     )
+    print(context.get_likely_cause())
+    print(context.quick_actions)
 
-    # Check if error is new (just introduced)
-    if context.is_new_error:
-        print("This error was just introduced by recent changes")
+Track dev server state::
+
+    from bengal.errors.dev_server import get_dev_server_state
+
+    state = get_dev_server_state()
+    state.record_success()  # After successful build
+    is_new = state.record_failure(error_signature)
+
+See Also
+========
+
+- ``bengal/server/`` - Dev server implementation
+- ``bengal/errors/context.py`` - Base ErrorContext class
 """
 
 from __future__ import annotations
@@ -324,7 +362,21 @@ class DevServerState:
     """
     Track dev server state for error context enrichment.
 
-    Maintains state across hot reloads to provide richer error context.
+    Maintains state across hot reloads to provide richer error context
+    and detect recurring error patterns. This is a singleton managed
+    via ``get_dev_server_state()`` and ``reset_dev_server_state()``.
+
+    Attributes:
+        last_successful_build: Timestamp of last successful build.
+        builds_since_success: Count of failed builds since last success.
+        reload_count: Total number of hot reloads in this session.
+        error_history: Map of error signatures to first occurrence time.
+
+    Example:
+        >>> state = get_dev_server_state()
+        >>> state.record_success()  # After successful build
+        >>> is_new = state.record_failure("R001::template not found")
+        >>> print(f"New error: {is_new}")
     """
 
     last_successful_build: datetime | None = None
@@ -333,7 +385,12 @@ class DevServerState:
     error_history: dict[str, datetime] = field(default_factory=dict)
 
     def record_success(self) -> None:
-        """Record a successful build."""
+        """
+        Record a successful build.
+
+        Updates ``last_successful_build`` timestamp and resets
+        ``builds_since_success`` counter to zero.
+        """
         self.last_successful_build = datetime.now()
         self.builds_since_success = 0
 
@@ -341,11 +398,16 @@ class DevServerState:
         """
         Record a failed build.
 
+        Increments ``builds_since_success`` and tracks the error
+        signature for recurring error detection.
+
         Args:
-            error_signature: Signature of the error
+            error_signature: Unique signature identifying the error pattern
+                (e.g., "R001::template not found").
 
         Returns:
-            True if this is a new error, False if recurring
+            True if this is a new error (first occurrence),
+            False if this error has occurred before.
         """
         self.builds_since_success += 1
         is_new = error_signature not in self.error_history
@@ -353,18 +415,31 @@ class DevServerState:
         return is_new
 
     def record_reload(self) -> None:
-        """Record a hot reload."""
+        """
+        Record a hot reload event.
+
+        Increments the ``reload_count`` counter.
+        """
         self.reload_count += 1
 
     def get_context_for_error(self, error: Exception) -> dict[str, Any]:
         """
-        Get context information for an error.
+        Get dev server context information for an error.
+
+        Generates an error signature and checks if the error has
+        occurred before in this session.
 
         Args:
-            error: The exception
+            error: The exception to get context for.
 
         Returns:
-            Context dict with dev server state
+            Dictionary with dev server state:
+
+            - ``is_new_error``: Whether this is a new error
+            - ``last_successful_build``: Timestamp of last success
+            - ``builds_since_success``: Failed build count
+            - ``reload_count``: Total reload count
+            - ``error_first_seen``: When error was first seen (if recurring)
         """
         # Generate signature
         signature = f"{type(error).__name__}:{str(error)[:50]}"

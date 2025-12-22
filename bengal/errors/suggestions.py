@@ -1,22 +1,79 @@
 """
 Actionable error suggestions for user-facing messages.
 
-Provides consistent, helpful suggestions for common errors across Bengal.
-Each suggestion includes:
-- What went wrong
-- How to fix it (with code snippets)
-- Link to documentation (when available)
-- Files to check for debugging
-- Related error codes
+This module provides a centralized registry of actionable suggestions
+for common errors across Bengal. Each suggestion includes:
 
-Usage:
-    from bengal.errors import get_suggestion, format_suggestion
+- **Fix**: Short one-line fix description
+- **Explanation**: What went wrong and why
+- **Code Snippets**: Before/after examples showing the fix
+- **Documentation Link**: URL to relevant documentation
+- **Files to Check**: Source files to investigate
+- **Grep Patterns**: Search patterns for codebase investigation
+- **Related Codes**: Associated error codes
 
-    # Get suggestion for a specific error pattern
-    suggestion = get_suggestion("directive", "since_empty")
+Suggestion Categories
+=====================
 
-    # Format suggestion for logging
+- **directive**: Version directives (since, deprecated, changed), glossary, include
+- **config**: Configuration errors (YAML, missing keys, environments)
+- **template**: Rendering errors (not found, syntax, undefined variables)
+- **attribute**: Attribute errors (URL model migration helpers)
+- **asset**: Asset errors (not found, invalid path, processing)
+- **content**: Content errors (frontmatter, dates, encoding)
+- **parsing**: Parse errors (markdown, TOC extraction)
+- **cache**: Cache errors (corruption, version mismatch)
+- **server**: Server errors (port in use)
+
+Functions
+=========
+
+**get_suggestion(category, error_key)**
+    Get an ``ActionableSuggestion`` for a specific error pattern.
+
+**format_suggestion(category, error_key)**
+    Format a suggestion as a string for logging.
+
+**format_suggestion_full(category, error_key)**
+    Format a complete suggestion with all details.
+
+**get_attribute_error_suggestion(error_msg)**
+    Pattern-match AttributeError messages to URL model migrations.
+
+**search_suggestions(query)**
+    Search suggestions by keyword across all categories.
+
+Usage
+=====
+
+Get a suggestion::
+
+    from bengal.errors import get_suggestion
+
+    suggestion = get_suggestion("template", "not_found")
+    print(suggestion.fix)
+    print(suggestion.after_snippet)
+
+Format for logging::
+
+    from bengal.errors import format_suggestion
+
     formatted = format_suggestion("directive", "since_empty")
+    logger.info(formatted)
+
+Search for suggestions::
+
+    from bengal.errors import search_suggestions
+
+    results = search_suggestions("template")
+    for category, key, suggestion in results:
+        print(f"{category}.{key}: {suggestion.fix}")
+
+See Also
+========
+
+- ``bengal/errors/exceptions.py`` - Exception classes using suggestions
+- ``bengal/errors/handlers.py`` - Runtime error handlers
 """
 
 from __future__ import annotations

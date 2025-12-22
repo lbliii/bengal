@@ -1,4 +1,42 @@
-"""Date Range Index - Index pages by year and month."""
+"""
+Date range index for O(1) lookup of pages by publication date.
+
+This module provides DateRangeIndex, a QueryIndex implementation that indexes
+pages by their publication date using year and year-month buckets.
+
+Index Keys:
+    Each dated page creates two index entries:
+    - '2024': All pages from 2024
+    - '2024-01': All pages from January 2024
+
+Frontmatter Format:
+    date: 2024-01-15
+    date: 2024-01-15T10:30:00
+
+Template Usage:
+    {# Get all posts from 2024 #}
+    {% set posts_2024 = site.indexes.date_range.get('2024') %}
+
+    {# Get posts from January 2024 #}
+    {% set jan_posts = site.indexes.date_range.get('2024-01') %}
+
+    {# Build archive navigation #}
+    {% for key in site.indexes.date_range.keys()|sort(reverse=true) %}
+      {% if '-' not in key %}  {# Year keys only #}
+        <h2>{{ key }}</h2>
+      {% endif %}
+    {% endfor %}
+
+Use Cases:
+    - Archive pages by year/month
+    - "Recent posts" filtering
+    - Date-based navigation sidebars
+    - Publication timelines and calendars
+
+Related:
+    - bengal.cache.query_index: Base QueryIndex class
+    - bengal.cache.indexes.section_index: Complementary directory-based index
+"""
 
 from __future__ import annotations
 

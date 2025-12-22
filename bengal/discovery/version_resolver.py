@@ -1,23 +1,31 @@
 """
-Version-aware content resolution.
+Version-aware content path resolution.
 
-Provides utilities for resolving versioned content paths and
-injecting shared content across versions.
+This module provides the VersionResolver class that handles versioned content
+path resolution, shared content injection, and cross-version linking.
 
 Key Concepts:
-    - Shared content (_shared/) is included in all versioned sections
-    - Version prefixes are stripped/added based on URL strategy
-    - Cross-version linking is resolved during discovery
+    - **Source paths**: Physical location (e.g., `_versions/v2/docs/guide.md`)
+    - **Logical paths**: Version-agnostic path (e.g., `docs/guide.md`)
+    - **Output paths**: Build output (e.g., `public/docs/v2/guide/index.html`)
+    - **Shared content**: Content in `_shared/` is included in all versions
 
-Design:
-    This module handles the mapping between:
-    - Source paths (e.g., _versions/v2/docs/guide.md)
-    - Logical paths (e.g., docs/guide.md)
-    - Output paths (e.g., public/docs/v2/guide/index.html)
+Features:
+    - Determine which version a content path belongs to
+    - Resolve shared content paths for each version
+    - Compute output paths with version prefixes
+    - Handle cross-version content linking (`[[v2:path/to/page]]` syntax)
+    - Strip/add version prefixes based on URL strategy
+
+Architecture:
+    VersionResolver is used during discovery to assign version information
+    to pages and during URL generation to compute version-aware paths. It
+    integrates with Bengal's URLStrategy for consistent URL handling.
 
 Related:
     - bengal/core/version.py: Version and VersionConfig models
     - bengal/discovery/content_discovery.py: Content discovery
+    - bengal/discovery/git_version_adapter.py: Git-based version discovery
     - bengal/utils/url_strategy.py: URL generation
 """
 
@@ -37,17 +45,28 @@ class VersionResolver:
     """
     Resolves versioned content paths and manages shared content.
 
+    This class handles the mapping between source paths, logical paths, and
+    output paths for versioned documentation. It also manages shared content
+    that appears in all versions.
+
     Responsibilities:
         - Determine which version a content path belongs to
         - Resolve shared content paths for each version
         - Compute output paths with version prefixes
         - Handle cross-version content linking
 
+    Attributes:
+        version_config: Site versioning configuration
+        root_path: Site root directory
+        enabled: Whether versioning is enabled (read-only property)
+
     Example:
+        >>> from bengal.discovery import VersionResolver
         >>> from bengal.core.version import VersionConfig
+        >>> from pathlib import Path
         >>>
         >>> config = VersionConfig.from_config(site_config)
-        >>> resolver = VersionResolver(config, root_path)
+        >>> resolver = VersionResolver(config, Path("."))
         >>>
         >>> # Determine version for a path
         >>> version = resolver.get_version_for_path("_versions/v2/docs/guide.md")
@@ -55,7 +74,11 @@ class VersionResolver:
         >>>
         >>> # Get logical path (without version prefix)
         >>> logical = resolver.get_logical_path("_versions/v2/docs/guide.md")
-        >>> print(logical)  # "docs/guide.md"
+        >>> print(logical)  # Path("docs/guide.md")
+        >>>
+        >>> # Resolve cross-version link
+        >>> url = resolver.resolve_cross_version_link("[[v2:guide]]", current_version)
+        >>> print(url)  # "/docs/v2/guide/"
     """
 
     def __init__(
