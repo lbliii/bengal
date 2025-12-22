@@ -46,6 +46,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from bengal.core.page.page_core import PageCore
+    from bengal.core.site import Site
 
 
 class PageMetadataMixin:
@@ -66,7 +67,7 @@ class PageMetadataMixin:
     output_path: Path | None
     toc: str | None
     core: PageCore | None
-    _site: Any
+    _site: Site | None
     _toc_items_cache: list[dict[str, Any]] | None
     # slug is defined as a property below - no declaration needed here
 

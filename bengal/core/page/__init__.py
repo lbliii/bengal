@@ -48,9 +48,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from bengal.core.diagnostics import emit as emit_diagnostic
+
+if TYPE_CHECKING:
+    from bengal.core.section import Section
+    from bengal.core.site import Site
 
 from .computed import PageComputedMixin
 from .content import PageContentMixin
@@ -172,7 +176,7 @@ class Page(
     aliases: list[str] = field(default_factory=list)
 
     # References for navigation (set during site building)
-    _site: Any | None = field(default=None, repr=False)
+    _site: Site | None = field(default=None, repr=False)
     # Path-based section reference (stable across rebuilds)
     _section_path: Path | None = field(default=None, repr=False)
     # URL-based section reference for virtual sections (path=None)
