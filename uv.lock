@@ -139,6 +139,7 @@ dependencies = [
     { name = "pyyaml" },
     { name = "questionary" },
     { name = "textual" },
+    { name = "textual-serve" },
     { name = "uvloop", marker = "sys_platform != 'win32'" },
     { name = "watchfiles" },
 ]
@@ -158,9 +159,6 @@ rest = [
 ]
 search = [
     { name = "lunr" },
-]
-serve = [
-    { name = "textual-serve" },
 ]
 
 [package.dev-dependencies]
@@ -205,11 +203,11 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "questionary", specifier = ">=2.0.0" },
     { name = "textual", specifier = ">=0.89" },
-    { name = "textual-serve", marker = "extra == 'serve'", specifier = ">=0.1.0" },
+    { name = "textual-serve", specifier = ">=0.1.0" },
     { name = "uvloop", marker = "sys_platform != 'win32'", specifier = ">=0.21.0" },
     { name = "watchfiles", specifier = ">=0.20" },
 ]
-provides-extras = ["search", "serve", "github", "notion", "rest", "all-sources"]
+provides-extras = ["search", "github", "notion", "rest", "all-sources"]
 
 [package.metadata.requires-dev]
 dev = [

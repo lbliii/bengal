@@ -135,8 +135,8 @@ class BengalApp(App):
         self.install_screen(HealthScreen(site=self.site), name="health")
         self.install_screen(HelpScreen(), name="help")
 
-        # Switch to initial screen
-        self.switch_screen(self.start_screen)
+        # Push initial screen onto stack
+        self.push_screen(self.start_screen)
 
     @property
     def mascot(self) -> str:
