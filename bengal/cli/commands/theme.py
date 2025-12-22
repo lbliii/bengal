@@ -43,7 +43,7 @@ def theme() -> None:
 @click.argument("source", type=click.Path(exists=True), default=".")
 def swizzle(template_path: str, source: str) -> None:
     """
-    🎨 Copy a theme template/partial to project templates.
+    Copy a theme template/partial to project templates.
 
     Swizzling copies a template from the active theme to your project's
     templates/ directory, allowing you to customize it while tracking
@@ -111,7 +111,7 @@ def swizzle_list(source: str) -> None:
 @click.argument("source", type=click.Path(exists=True), default=".")
 def swizzle_update(source: str) -> None:
     """
-    🔄 Update swizzled templates if unchanged locally.
+    Update swizzled templates if unchanged locally.
 
     Checks swizzled templates and updates them from the theme if you haven't
     modified them locally. Templates you've customized are skipped.
@@ -226,7 +226,7 @@ def list_themes(source: str) -> None:
 @click.argument("source", type=click.Path(exists=True), default=".")
 def info(slug: str, source: str) -> None:
     """
-    ℹ️  Show theme info for a slug.
+    Show theme info for a slug.
 
     Displays information about a theme including:
     - Source location (project, installed, or bundled)
@@ -292,7 +292,7 @@ def info(slug: str, source: str) -> None:
 @click.argument("source", type=click.Path(exists=True), default=".")
 def discover(source: str) -> None:
     """
-    🔍 List swizzlable templates from the active theme chain.
+    List swizzlable templates from the active theme chain.
 
     Shows all templates available in your active theme(s) that can be
     swizzled (copied) to your project for customization.
@@ -584,7 +584,7 @@ SAFE_PACKAGE_PATTERN = re.compile(r"^[a-zA-Z][a-zA-Z0-9._-]*$")
 @click.option("--force", is_flag=True, help="Install even if name is non-canonical")
 def install(name: str, force: bool) -> None:
     """
-    📦 Install a theme via uv pip.
+    Install a theme via uv pip.
 
     Installs a theme package from PyPI. NAME may be a package name or a slug.
     If a slug without prefix is provided, suggests canonical 'bengal-theme-<slug>'.
@@ -684,7 +684,7 @@ def _sanitize_slug(slug: str) -> str:
 @click.option("--force", is_flag=True, help="Overwrite existing directory if present")
 def new(slug: str, mode: str, output: str, extends: str, force: bool) -> None:
     """
-    🎨 Create a new theme scaffold.
+    Create a new theme scaffold.
 
     Creates a new theme with templates, partials, and assets. SLUG is the
     theme identifier used in config (e.g., [site].theme = SLUG).

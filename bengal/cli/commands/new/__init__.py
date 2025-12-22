@@ -41,7 +41,7 @@ __all__ = [
 @click.group(cls=BengalGroup)
 def new() -> None:
     """
-    ✨ Create new site, page, layout, partial, or theme.
+    Create new site, page, layout, partial, or theme.
 
     Subcommands:
         site      Create a new Bengal site with optional presets

@@ -20,7 +20,7 @@ from bengal.output import CLIOutput
 @click.group(cls=BengalGroup, name="skeleton")
 def skeleton_cli() -> None:
     """
-    🏗️  Skeleton manifest commands.
+    Skeleton manifest commands.
 
     Apply declarative site structures from YAML manifests.
     """
@@ -51,7 +51,7 @@ def skeleton_cli() -> None:
 @handle_cli_errors(show_art=False)
 def apply(manifest: str, dry_run: bool, force: bool) -> None:
     """
-    🏗️  Apply a skeleton manifest to hydrate site structure.
+    Apply a skeleton manifest to hydrate site structure.
 
     The manifest is a YAML file defining the component structure (Identity/Mode/Data).
     """

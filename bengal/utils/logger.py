@@ -65,16 +65,16 @@ class LogEvent:
         """Format for console output using Rich markup."""
         indent = "  " * self.phase_depth
 
-        # Level colors (Rich markup styles)
-        level_styles = {
-            "DEBUG": "cyan",
-            "INFO": "green",
-            "WARNING": "yellow",
-            "ERROR": "red",
-            "CRITICAL": "magenta",
+        # Level colors and indicators
+        level_config = {
+            "DEBUG": ("cyan", "·", ""),
+            "INFO": ("green", "·", ""),
+            "WARNING": ("yellow", "!", "Warning:"),
+            "ERROR": ("red", "x", "Error:"),
+            "CRITICAL": ("magenta", "x", "Critical:"),
         }
 
-        style = level_styles.get(self.level, "white")
+        style, icon, label = level_config.get(self.level, ("white", "·", ""))
 
         # Phase markers
         phase_marker = f" [bold]\\[{self.phase}][/bold]" if self.phase else ""
@@ -93,8 +93,9 @@ class LogEvent:
 
         metrics_str = f" [dim]({', '.join(metrics)})[/dim]" if metrics else ""
 
-        # Basic format with Rich markup
-        base = f"{indent}[{style}]●[/{style}]{phase_marker} {self.message}{metrics_str}"
+        # Build prefix with label for warnings/errors
+        label_str = f" {label}" if label else ""
+        base = f"{indent}[{style}]{icon}{label_str}[/{style}]{phase_marker} {self.message}{metrics_str}"
 
         # Always show context for warnings and errors (actionable issues)
         # In verbose mode, show context for all levels
@@ -267,12 +268,19 @@ class BengalLogger:
         show_console = not self.quiet_console or level.value >= LogLevel.WARNING.value
 
         if show_console:
+            # Add visual separation around warnings/errors
+            needs_separation = level.value >= LogLevel.WARNING.value
+
             try:
                 # Use Rich console for markup rendering
                 from bengal.utils.rich_console import get_console
 
                 console = get_console()
+                if needs_separation:
+                    console.print()  # Blank line before warning/error
                 console.print(event.format_console(verbose=self.verbose))
+                if needs_separation:
+                    console.print()  # Blank line after warning/error
             except ImportError:
                 # Fallback to plain print if Rich not available
                 # Strip markup for plain output
@@ -281,7 +289,11 @@ class BengalLogger:
                 import re
 
                 message = re.sub(r"\[/?[^\]]+\]", "", message)
+                if needs_separation:
+                    print()  # Blank line before warning/error
                 print(message)
+                if needs_separation:
+                    print()  # Blank line after warning/error
 
         # Output to file (JSON format)
         if self._file_handle:

@@ -67,6 +67,7 @@ class BuildTrigger:
         host: str = "localhost",
         port: int = 5173,
         executor: BuildExecutor | None = None,
+        version_scope: str | None = None,
     ) -> None:
         """
         Initialize build trigger.
@@ -76,10 +77,14 @@ class BuildTrigger:
             host: Server host for URL display
             port: Server port for URL display
             executor: BuildExecutor instance (created if not provided)
+            version_scope: RFC: rfc-versioned-docs-pipeline-integration (Phase 3)
+                Focus rebuilds on a single version (e.g., "v2", "latest").
+                If None, all versions are rebuilt on changes.
         """
         self.site = site
         self.host = host
         self.port = port
+        self.version_scope = version_scope
         self._executor = executor or BuildExecutor(max_workers=1)
         self._building = False
         self._build_lock = threading.Lock()
@@ -166,6 +171,7 @@ class BuildTrigger:
 
             # Create build request
             use_incremental = not needs_full_rebuild
+            # RFC: rfc-versioned-docs-pipeline-integration (Phase 3)
             request = BuildRequest(
                 site_root=str(self.site.root_path),
                 changed_paths=tuple(changed_files),
@@ -174,6 +180,7 @@ class BuildTrigger:
                 nav_changed_paths=tuple(str(p) for p in nav_changed_files),
                 structural_changed=structural_changed,
                 parallel=True,
+                version_scope=self.version_scope,
             )
 
             # Execute build in subprocess

@@ -59,7 +59,7 @@ def communities(
     min_size: int, resolution: float, top_n: int, format: str, seed: int, config: str, source: str
 ) -> None:
     """
-    🔍 Discover topical communities in your content.
+    Discover topical communities in your content.
 
     Uses the Louvain algorithm to find natural clusters of related pages.
     Communities represent topic areas or content groups based on link structure.

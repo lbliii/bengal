@@ -151,7 +151,7 @@ bengal analyze                       # Top-level alias for graph analyze
 ================================================================================
 ```
 
-Refer to [Graph Analysis](../../content/analysis/graph/) for details and [Analyze site connectivity](../../tutorials/analyze-site-connectivity/) for a guided walkthrough.
+Refer to [Graph Analysis](../../../content/analysis/graph.md) for details and [Analyze site connectivity](../../../tutorials/analyze-site-connectivity.md) for a guided walkthrough.
 
 **Performance Commands**:
 ```bash

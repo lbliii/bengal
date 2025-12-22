@@ -8,6 +8,7 @@ Robustness:
 
 from __future__ import annotations
 
+import contextlib
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -340,7 +341,13 @@ class ContentDiscovery:
 
         for i, page in enumerate(all_discovered_pages):
             # Check if this page is in cache
-            cached_metadata = cache.get_metadata(page.source_path)
+            # Cache stores relative paths (after normalize_core_paths), so convert to relative
+            cache_lookup_path = page.source_path
+            if self.site and page.source_path.is_absolute():
+                with contextlib.suppress(ValueError):
+                    cache_lookup_path = page.source_path.relative_to(self.site.root_path)
+
+            cached_metadata = cache.get_metadata(cache_lookup_path)
 
             if cached_metadata and self._cache_is_valid(page, cached_metadata):
                 # Page is unchanged - create PageProxy instead

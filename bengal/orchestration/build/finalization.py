@@ -372,7 +372,7 @@ def run_health_check(
         stats = health_check.last_stats
         if stats.execution_mode == "parallel":
             cli.info(
-                f"   ⚡ {stats.validator_count} validators, {stats.worker_count} workers, "
+                f"   {cli.icons.success} {stats.validator_count} validators, {stats.worker_count} workers, "
                 f"{stats.speedup:.1f}x speedup"
             )
             # Also show exact validator list + per-validator durations to make slow builds diagnosable.
@@ -385,27 +385,41 @@ def run_health_check(
                 validators_info = ", ".join(
                     f"{r.validator_name}: {r.duration_ms:.0f}ms" for r in ordered
                 )
-                cli.info(f"   🔎 Validators: {validators_info}")
+                cli.info(f"   {cli.icons.info} Validators: {validators_info}")
         # Show slowest validators if health check took > 1 second
         if health_time_ms > 1000 and report.validator_reports:
             slowest = sorted(report.validator_reports, key=lambda r: r.duration_ms, reverse=True)[
                 :3
             ]
             slow_info = ", ".join(f"{r.validator_name}: {r.duration_ms:.0f}ms" for r in slowest)
-            cli.info(f"   🐌 Slowest: {slow_info}")
+            cli.info(f"   {cli.icons.warning} Slowest: {slow_info}")
 
             # Show detailed stats for ALL slow validators (helps diagnose perf issues)
             for slow_report in slowest:
                 if slow_report.stats and slow_report.duration_ms > 500:
                     cli.info(
-                        f"   📊 {slow_report.validator_name}: {slow_report.stats.format_summary()}"
+                        f"   {cli.icons.info} {slow_report.validator_name}: {slow_report.stats.format_summary()}"
                     )
 
     if health_config.get("verbose", False):
-        cli.info(report.format_console(verbose=True))
+        if cli.use_rich:
+            cli.console.print(report.format_console(verbose=True))
+        else:
+            # Strip Rich markup for plain text output
+            from re import sub
+
+            plain_text = sub(r"\[/?[^\]]+\]", "", report.format_console(verbose=True))
+            print(plain_text)
     # Only print if there are issues
     elif report.has_errors() or report.has_warnings():
-        cli.info(report.format_console(verbose=False))
+        if cli.use_rich:
+            cli.console.print(report.format_console(verbose=False))
+        else:
+            # Strip Rich markup for plain text output
+            from re import sub
+
+            plain_text = sub(r"\[/?[^\]]+\]", "", report.format_console(verbose=False))
+            print(plain_text)
 
     # Store report in stats
     orchestrator.stats.health_report = report

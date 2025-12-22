@@ -180,7 +180,7 @@ def build(
     source: str,
 ) -> None:
     """
-    🔨 Build the static site.
+    Build the static site.
 
     Generates HTML files from your content, applies templates,
     processes assets, and outputs a production-ready site.
@@ -210,8 +210,9 @@ def build(
 
     if memory_optimized and incremental is True:
         cli = get_cli_output(quiet=quiet, verbose=verbose)
-        cli.warning("⚠️  Warning: --memory-optimized with --incremental may not fully utilize cache")
-        cli.warning("   Streaming build processes pages in batches, limiting incremental benefits.")
+        cli.warning(
+            "--memory-optimized with --incremental may not fully utilize cache (streaming limits incremental benefits)"
+        )
         cli.blank()
 
     # Determine build profile with proper precedence.
@@ -306,13 +307,14 @@ def build(
         if build_version or all_versions:
             # Check if versioning is enabled in git mode
             if not getattr(site, "versioning_enabled", False):
-                cli.error("❌ Versioning is not enabled. Add versioning config to bengal.yaml")
+                cli.error("Versioning is not enabled (add versioning config to bengal.yaml)")
                 raise click.Abort()
 
             version_config = getattr(site, "version_config", None)
             if not version_config or not version_config.is_git_mode:
-                cli.error("❌ --version and --all-versions require git mode versioning")
-                cli.info("Set mode: git in your versioning config")
+                cli.error(
+                    "--version and --all-versions require git mode versioning (set mode: git)"
+                )
                 raise click.Abort()
 
             # Import git adapter
@@ -325,21 +327,21 @@ def build(
 
             if all_versions:
                 # Discover and build all versions
-                cli.info("🔍 Discovering versions from git...")
+                cli.info("Discovering versions from git...")
                 discovered_versions = git_adapter.discover_versions()
 
                 if not discovered_versions:
                     cli.warning("No versions found matching git patterns")
                     raise click.Abort()
 
-                cli.info(f"Found {len(discovered_versions)} versions to build")
-                for v in discovered_versions:
-                    cli.info(f"  • {v.id}")
+                cli.info(
+                    f"Found {len(discovered_versions)} versions: {', '.join(v.id for v in discovered_versions)}"
+                )
 
                 # Build each version (sequential for now, parallel in future)
                 for version in discovered_versions:
                     cli.blank()
-                    cli.info(f"📦 Building version {version.id}...")
+                    cli.info(f"{cli.icons.info} Building version {version.id}...")
 
                     # Extract ref from source (e.g., "git:release/0.1.6" → "release/0.1.6")
                     ref = (
@@ -382,22 +384,20 @@ def build(
                 git_adapter.cleanup_worktrees(keep_cached=True)
 
                 cli.blank()
-                cli.success(f"✅ Built {len(discovered_versions)} versions")
+                cli.success(f"Built {len(discovered_versions)} versions")
                 return
 
             elif build_version:
                 # Build specific version
-                cli.info(f"🔍 Looking for version {build_version}...")
+                cli.info(f"Looking for version {build_version}...")
 
                 # Check if it matches any pattern
                 discovered = git_adapter.discover_versions()
                 matching = [v for v in discovered if v.id == build_version]
 
                 if not matching:
-                    cli.error(f"❌ Version {build_version} not found")
-                    cli.info("Available versions:")
-                    for v in discovered[:10]:
-                        cli.info(f"  • {v.id}")
+                    cli.error(f"Version {build_version} not found")
+                    cli.info(f"Available: {', '.join(v.id for v in discovered[:10])}")
                     raise click.Abort()
 
                 version = matching[0]
@@ -409,7 +409,7 @@ def build(
 
                 worktree = git_adapter.get_or_create_worktree(version.id, ref)
 
-                cli.info(f"📦 Building version {version.id} from {ref}")
+                cli.info(f"{cli.icons.info} Building version {version.id} from {ref}")
 
                 # Load site from worktree
                 site = load_site_from_cli(
@@ -429,8 +429,7 @@ def build(
 
             if error_count > 0:
                 cli.blank()
-                cli.error(f"❌ Validation failed with {error_count} error(s).")
-                cli.warning("Fix errors above, then run 'bengal build'")
+                cli.error(f"Validation failed with {error_count} error(s) - fix errors above")
                 raise click.Abort()
 
             cli.blank()  # Blank line before build
@@ -496,11 +495,12 @@ def build(
                 ps.print_stats(20)  # Top 20 functions
 
                 cli.blank()
-                cli.header("📊 Performance Profile (Top 20 by cumulative time):")
+                cli.header("Performance Profile (Top 20 by cumulative time)")
                 for line in s.getvalue().splitlines():
                     cli.info(line)
-                cli.success(f"Full profile saved to: {perf_profile_path}")
-                cli.warning("Analyze with: python -m pstats " + str(perf_profile_path))
+                cli.success(
+                    f"Profile saved to: {perf_profile_path} (analyze with: python -m pstats)"
+                )
         else:
             # Enable template profiling if requested
             if profile_templates:
@@ -533,7 +533,7 @@ def build(
                 if template_profiler:
                     report = template_profiler.get_report()
                     cli.blank()
-                    cli.header("📊 Template Profiling Report")
+                    cli.header("Template Profiling Report")
                     for line in format_profile_report(report, top_n=20).splitlines():
                         cli.info(line)
 
@@ -564,8 +564,8 @@ def build(
                 # Theme-dev: Use existing detailed display
                 display_build_stats(stats, show_art=True, output_dir=str(site.output_dir))
         else:
-            cli.success("✅ Build complete!")
-            cli.path(str(site.output_dir), label="", icon="↪")
+            cli.console.print(f"{cli.icons.success} [success]Build complete![/success]")
+            cli.path(str(site.output_dir), label="")
 
         # Print phase timing summary in dev mode only
         if build_profile == BuildProfile.DEVELOPER and not quiet:

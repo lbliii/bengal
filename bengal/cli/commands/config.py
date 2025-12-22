@@ -34,7 +34,7 @@ from bengal.output import CLIOutput
 @click.group("config", cls=BengalGroup)
 def config_cli() -> None:
     """
-    ⚙️  Configuration management and introspection.
+    Configuration management and introspection.
 
     Commands:
         show     Display merged configuration
@@ -197,7 +197,7 @@ def doctor(
     source: str,
 ) -> None:
     """
-    🩺 Validate and lint configuration.
+    Validate and lint configuration.
 
     Checks for:
     - Valid YAML syntax
@@ -303,7 +303,7 @@ def diff(
     source: str,
 ) -> None:
     """
-    🔍 Compare configurations.
+    Compare configurations.
 
     Shows differences between two configurations (environments, profiles, or files).
     Useful for verifying that production settings differ correctly from local/preview.
@@ -434,7 +434,7 @@ def init(
     source: str,
 ) -> None:
     """
-    ✨ Initialize configuration structure.
+    Initialize configuration structure.
 
     Creates config directory with examples, or a single config file.
     Use --template to choose a preset (docs, blog, minimal).

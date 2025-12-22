@@ -73,7 +73,7 @@ def orphans(
     source: str,
 ) -> None:
     """
-    🔍 List pages by connectivity level.
+    List pages by connectivity level.
 
     Shows pages grouped by how well they're connected:
     - 🔴 isolated: No meaningful connections (score < 0.25)
@@ -105,9 +105,7 @@ def orphans(
     configure_logging(level=LogLevel.WARNING)
 
     # Load site using helper
-    site = load_site_from_cli(
-        source=source, config=config, environment=None, profile=None, cli=cli
-    )
+    site = load_site_from_cli(source=source, config=config, environment=None, profile=None, cli=cli)
 
     try:
         if format != "paths":
@@ -195,10 +193,18 @@ def orphans(
             cli.info("=" * 90)
             cli.header("📊 Connectivity Distribution")
             cli.info("=" * 90)
-            cli.info(f"  🟢 Well-Connected (≥2.0):    {dist['well_connected']:>4} pages ({pct['well_connected']:.1f}%)")
-            cli.info(f"  🟡 Adequately Linked (1-2):  {dist['adequately_linked']:>4} pages ({pct['adequately_linked']:.1f}%)")
-            cli.info(f"  🟠 Lightly Linked (0.25-1):  {dist['lightly_linked']:>4} pages ({pct['lightly_linked']:.1f}%)")
-            cli.info(f"  🔴 Isolated (<0.25):         {dist['isolated']:>4} pages ({pct['isolated']:.1f}%)")
+            cli.info(
+                f"  🟢 Well-Connected (≥2.0):    {dist['well_connected']:>4} pages ({pct['well_connected']:.1f}%)"
+            )
+            cli.info(
+                f"  🟡 Adequately Linked (1-2):  {dist['adequately_linked']:>4} pages ({pct['adequately_linked']:.1f}%)"
+            )
+            cli.info(
+                f"  🟠 Lightly Linked (0.25-1):  {dist['lightly_linked']:>4} pages ({pct['lightly_linked']:.1f}%)"
+            )
+            cli.info(
+                f"  🔴 Isolated (<0.25):         {dist['isolated']:>4} pages ({pct['isolated']:.1f}%)"
+            )
             cli.info("=" * 90)
             cli.blank()
 
@@ -241,4 +247,3 @@ def orphans(
 
 # Compatibility export
 orphans_command = orphans
-

@@ -29,6 +29,11 @@ def mock_site():
     site = MagicMock()
     site.versioning_enabled = True
 
+    # Set up config mock for baseurl handling
+    config_mock = MagicMock()
+    config_mock.get.return_value = ""  # Default empty baseurl
+    site.config = config_mock
+
     # Set up version config
     v2 = Version(id="v2", latest=True, label="2.0")
     v1 = Version(id="v1", latest=False, label="1.0")
@@ -152,6 +157,10 @@ class TestGetVersionTargetUrl:
         """When versioning disabled, return current URL."""
         site = MagicMock()
         site.versioning_enabled = False
+        # Set up config mock for baseurl handling
+        config_mock = MagicMock()
+        config_mock.get.return_value = ""  # Default empty baseurl
+        site.config = config_mock
 
         page = MagicMock()
         page._path = "/docs/guide/"
@@ -283,6 +292,10 @@ class TestPageExistsInVersion:
         """When versioning disabled, always returns False."""
         site = MagicMock()
         site.versioning_enabled = False
+        # Set up config mock (not used in this function, but for consistency)
+        config_mock = MagicMock()
+        config_mock.get.return_value = ""
+        site.config = config_mock
 
         result = page_exists_in_version("/docs/guide/", "v1", site)
         assert result is False

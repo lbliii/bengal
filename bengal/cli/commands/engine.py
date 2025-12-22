@@ -123,7 +123,7 @@ def list_engines(verbose: bool) -> None:
 @click.option("--config", "-c", type=click.Path(), help="Path to config file")
 def info(source: str, config: str | None) -> None:
     """
-    🔍 Show current template engine configuration.
+    Show current template engine configuration.
 
     Displays the active template engine and its configuration for a site.
 

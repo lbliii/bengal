@@ -242,16 +242,22 @@ class BuildOrchestrator:
 
         # Show build header
         cli.header("Building your site...")
-        cli.info(f"   ↪ {self.site.root_path}")
         mode_label = "incremental" if incremental else "full"
         _auto_reason = locals().get("auto_reason")
-        if _auto_reason:
-            cli.detail(f"Mode: {mode_label} ({_auto_reason})", indent=1)
-        else:
-            cli.detail(f"Mode: {mode_label} (flag)", indent=1)
-        # Show active profile
         profile_label = profile.value if profile else "writer"
-        cli.detail(f"Profile: {profile_label}", indent=1)
+
+        if _auto_reason:
+            cli.detail(
+                f"{self.site.root_path} | {mode_label} ({_auto_reason}) | {profile_label}",
+                indent=1,
+                icon=cli.icons.arrow,
+            )
+        else:
+            cli.detail(
+                f"{self.site.root_path} | {mode_label} | {profile_label}",
+                indent=1,
+                icon=cli.icons.arrow,
+            )
         cli.blank()
 
         self.site.build_time = datetime.now()

@@ -87,7 +87,7 @@ def validate(
     source: str,
 ) -> None:
     """
-    🔍 Validate site health and content quality.
+    Validate site health and content quality.
 
     Runs health checks on your site to find errors, warnings, and issues.
     By default, shows only problems (errors and warnings).
@@ -109,8 +109,7 @@ def validate(
     configure_traceback(debug=False, traceback=traceback, site=None)
 
     # Load site
-    cli.header("🔍 Health Check Validation")
-    cli.info("Loading site...")
+    cli.header("Health Check Validation")
 
     # Determine profile (default to WRITER for fast validation)
     build_profile = BuildProfile.from_string(profile) if profile else BuildProfile.WRITER
@@ -216,8 +215,7 @@ def _run_watch_mode(
     from bengal.utils.async_compat import run_async
 
     cli.blank()
-    cli.info("👀 Watch mode: Validating on file changes...")
-    cli.info("   Press Ctrl+C to stop")
+    cli.info("Watch mode: Validating on file changes (Ctrl+C to stop)")
     cli.blank()
 
     # Track files for validation
@@ -242,7 +240,7 @@ def _run_watch_mode(
         """Run validation on changed files."""
         # Show what changed
         cli.blank()
-        cli.info(f"📝 Files changed: {len(files_to_validate)}")
+        cli.info(f"Files changed: {len(files_to_validate)}")
         for file_path in files_to_validate[:5]:  # Show first 5
             cli.info(f"   • {file_path}")
         if len(files_to_validate) > 5:
@@ -275,14 +273,14 @@ def _run_watch_mode(
 
         # Show summary
         if report.has_errors():
-            cli.error(f"❌ {report.total_errors} error(s) found")
+            cli.error(f"{report.total_errors} error(s) found")
         elif report.has_warnings():
-            cli.warning(f"⚠️  {report.total_warnings} warning(s)")
+            cli.warning(f"{report.total_warnings} warning(s)")
         else:
-            cli.success("✅ Validation passed - no issues found")
+            cli.success("Validation passed")
 
         cli.blank()
-        cli.info("👀 Watching for changes...")
+        cli.info("Watching for changes...")
 
     def watch_filter(change: watchfiles.Change, path: str) -> bool:
         """Filter for watchfiles - returns True to INCLUDE."""

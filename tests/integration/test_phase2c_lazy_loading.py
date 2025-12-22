@@ -118,10 +118,13 @@ class TestLazyLoadingDiscovery:
         sections, full_pages = discovery.discover(use_cache=False)
 
         # Build cache from discovered pages
+        # Use RELATIVE paths (discovery converts absolute to relative for cache lookup)
         cache = PageDiscoveryCache(tmpdir_path / ".bengal" / "page_metadata.json")
         for page in full_pages:
+            # Convert absolute path to relative for cache storage
+            rel_path = page.source_path.relative_to(tmpdir_path)
             metadata = PageMetadata(
-                source_path=str(page.source_path),
+                source_path=str(rel_path),
                 title=page.title,
                 date=page.date.isoformat() if page.date else None,
                 tags=page.tags,
@@ -157,11 +160,12 @@ class TestLazyLoadingDiscovery:
         site.sections = sections
         site.register_sections()
 
-        # Build cache
+        # Build cache (use RELATIVE paths for cache storage)
         cache = PageDiscoveryCache(tmpdir_path / ".bengal" / "page_metadata.json")
         for p in full_pages:
+            rel_path = p.source_path.relative_to(tmpdir_path)
             metadata = PageMetadata(
-                source_path=str(p.source_path),
+                source_path=str(rel_path),
                 title=p.title,
                 date=p.date.isoformat() if p.date else None,
                 tags=p.tags,
@@ -211,11 +215,12 @@ class TestLazyLoadingIntegration:
         orchestrator.content.discover(incremental=False, cache=None)
         full_page_count = len(site.pages)
 
-        # Save discovery cache
+        # Save discovery cache (use RELATIVE paths for cache storage)
         cache = PageDiscoveryCache(tmpdir_path / ".bengal" / "page_metadata.json")
         for page in site.pages:
+            rel_path = page.source_path.relative_to(tmpdir_path)
             metadata = PageMetadata(
-                source_path=str(page.source_path),
+                source_path=str(rel_path),
                 title=page.title,
                 date=page.date.isoformat() if page.date else None,
                 tags=page.tags,
@@ -243,11 +248,12 @@ class TestLazyLoadingIntegration:
         discovery = ContentDiscovery(tmpdir_path / "content", site=site)
         sections, pages = discovery.discover(use_cache=False)
 
-        # Create cache
+        # Create cache (use RELATIVE paths for cache storage)
         cache = PageDiscoveryCache(tmpdir_path / ".bengal" / "page_metadata.json")
         for page in pages:
+            rel_path = page.source_path.relative_to(tmpdir_path)
             metadata = PageMetadata(
-                source_path=str(page.source_path),
+                source_path=str(rel_path),
                 title=page.title,
                 date=page.date.isoformat() if page.date else None,
                 tags=page.tags,
@@ -282,14 +288,15 @@ class TestLazyLoadingPerformance:
         """Verify accessing metadata doesn't trigger full load."""
         site, tmpdir_path = temp_site_with_content
 
-        # Create cache
+        # Create cache (use RELATIVE paths for cache storage)
         discovery = ContentDiscovery(tmpdir_path / "content", site=site)
         sections, pages = discovery.discover(use_cache=False)
 
         cache = PageDiscoveryCache(tmpdir_path / ".bengal" / "page_metadata.json")
         for page in pages:
+            rel_path = page.source_path.relative_to(tmpdir_path)
             metadata = PageMetadata(
-                source_path=str(page.source_path),
+                source_path=str(rel_path),
                 title=page.title,
                 date=page.date.isoformat() if page.date else None,
                 tags=page.tags,
@@ -313,20 +320,21 @@ class TestLazyLoadingPerformance:
         _ = proxy.slug
         _ = proxy.date
 
-        assert not proxy._lazy_loaded
+        assert proxy._lazy_loaded is False
 
     def test_content_access_triggers_load(self, temp_site_with_content):
         """Verify accessing content triggers lazy load."""
         site, tmpdir_path = temp_site_with_content
 
-        # Create cache
+        # Create cache (use RELATIVE paths for cache storage)
         discovery = ContentDiscovery(tmpdir_path / "content", site=site)
         sections, pages = discovery.discover(use_cache=False)
 
         cache = PageDiscoveryCache(tmpdir_path / ".bengal" / "page_metadata.json")
         for page in pages:
+            rel_path = page.source_path.relative_to(tmpdir_path)
             metadata = PageMetadata(
-                source_path=str(page.source_path),
+                source_path=str(rel_path),
                 title=page.title,
                 date=page.date.isoformat() if page.date else None,
                 tags=page.tags,
@@ -343,9 +351,9 @@ class TestLazyLoadingPerformance:
         # Get a proxy page
         proxy = next((p for p in pages2 if isinstance(p, PageProxy)), None)
         assert proxy is not None
-        assert not proxy._lazy_loaded
+        assert proxy._lazy_loaded is False
 
         # Access content - should load
         content = proxy.content
-        assert proxy._lazy_loaded
+        assert proxy._lazy_loaded is True
         assert len(content) > 0

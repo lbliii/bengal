@@ -62,7 +62,7 @@ def graph_cli() -> None:
 @click.argument("source", type=click.Path(exists=True), default=".")
 def analyze(show_stats: bool, tree: bool, output: str, config: str, source: str) -> None:
     """
-    📊 Analyze site structure and connectivity.
+    Analyze site structure and connectivity.
     """
     from bengal.analysis.knowledge_graph import KnowledgeGraph
 

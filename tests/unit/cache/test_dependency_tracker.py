@@ -248,3 +248,183 @@ class TestDependencyTracker:
 
         assert file2 in deleted
         assert file1 not in deleted
+
+
+class TestCrossVersionDependencies:
+    """
+    Test suite for cross-version link dependency tracking.
+
+    RFC: rfc-versioned-docs-pipeline-integration (Phase 2)
+    """
+
+    def test_track_cross_version_link(self, tmp_path):
+        """Test tracking a single cross-version link dependency."""
+        cache = BuildCache()
+        tracker = DependencyTracker(cache)
+
+        source_page = tmp_path / "content" / "docs" / "v1" / "guide.md"
+        source_page.parent.mkdir(parents=True)
+        source_page.write_text("# Guide with [[v2:docs/reference]] link")
+
+        # Track a cross-version link from source_page to v2:docs/reference
+        tracker.track_cross_version_link(
+            source_page=source_page,
+            target_version="v2",
+            target_path="docs/reference",
+        )
+
+        # Verify the dependency was recorded
+        dependents = tracker.get_cross_version_dependents(
+            changed_version="v2",
+            changed_path="docs/reference",
+        )
+
+        assert source_page in dependents
+
+    def test_track_multiple_cross_version_links(self, tmp_path):
+        """Test tracking multiple cross-version links from the same source."""
+        cache = BuildCache()
+        tracker = DependencyTracker(cache)
+
+        source_page = tmp_path / "content" / "docs" / "v1" / "overview.md"
+        source_page.parent.mkdir(parents=True)
+        source_page.write_text("# Overview")
+
+        # Track multiple cross-version links
+        tracker.track_cross_version_link(source_page, "v2", "docs/reference")
+        tracker.track_cross_version_link(source_page, "v2", "docs/api")
+        tracker.track_cross_version_link(source_page, "v3", "docs/guide")
+
+        # Verify each dependency
+        assert source_page in tracker.get_cross_version_dependents("v2", "docs/reference")
+        assert source_page in tracker.get_cross_version_dependents("v2", "docs/api")
+        assert source_page in tracker.get_cross_version_dependents("v3", "docs/guide")
+
+        # Verify no false positives
+        assert source_page not in tracker.get_cross_version_dependents("v1", "docs/reference")
+        assert source_page not in tracker.get_cross_version_dependents("v2", "docs/guide")
+
+    def test_multiple_sources_same_target(self, tmp_path):
+        """Test multiple source pages linking to the same cross-version target."""
+        cache = BuildCache()
+        tracker = DependencyTracker(cache)
+
+        source1 = tmp_path / "content" / "docs" / "v1" / "page1.md"
+        source2 = tmp_path / "content" / "docs" / "v1" / "page2.md"
+        source3 = tmp_path / "content" / "tutorial" / "intro.md"
+
+        for p in [source1, source2, source3]:
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text("# Page")
+
+        # All three pages link to v2:docs/reference
+        tracker.track_cross_version_link(source1, "v2", "docs/reference")
+        tracker.track_cross_version_link(source2, "v2", "docs/reference")
+        tracker.track_cross_version_link(source3, "v2", "docs/reference")
+
+        # All three should be returned as dependents
+        dependents = tracker.get_cross_version_dependents("v2", "docs/reference")
+
+        assert len(dependents) == 3
+        assert source1 in dependents
+        assert source2 in dependents
+        assert source3 in dependents
+
+    def test_get_cross_version_dependents_no_matches(self, tmp_path):
+        """Test getting dependents when no cross-version links exist."""
+        cache = BuildCache()
+        tracker = DependencyTracker(cache)
+
+        # Query for a target that has no links
+        dependents = tracker.get_cross_version_dependents("v2", "docs/nonexistent")
+
+        assert len(dependents) == 0
+
+    def test_cross_version_link_thread_safety(self, tmp_path):
+        """Test that cross-version tracking is thread-safe."""
+        import threading
+
+        cache = BuildCache()
+        tracker = DependencyTracker(cache)
+
+        source_pages = []
+        for i in range(10):
+            p = tmp_path / f"page{i}.md"
+            p.write_text(f"# Page {i}")
+            source_pages.append(p)
+
+        errors = []
+
+        def track_links(source_page, version, path):
+            try:
+                tracker.track_cross_version_link(source_page, version, path)
+            except Exception as e:
+                errors.append(e)
+
+        # Create threads that track links concurrently
+        threads = []
+        for i, page in enumerate(source_pages):
+            t = threading.Thread(
+                target=track_links,
+                args=(page, f"v{i % 3}", f"docs/target{i}"),
+            )
+            threads.append(t)
+
+        # Start all threads
+        for t in threads:
+            t.start()
+
+        # Wait for all threads
+        for t in threads:
+            t.join()
+
+        # No errors should have occurred
+        assert len(errors) == 0
+
+        # Verify some dependencies were recorded
+        for i, page in enumerate(source_pages):
+            version = f"v{i % 3}"
+            path = f"docs/target{i}"
+            dependents = tracker.get_cross_version_dependents(version, path)
+            assert page in dependents
+
+    def test_cross_version_link_key_format(self, tmp_path):
+        """Test that cross-version links use correct key format."""
+        cache = BuildCache()
+        tracker = DependencyTracker(cache)
+
+        source_page = tmp_path / "page.md"
+        source_page.write_text("# Page")
+
+        tracker.track_cross_version_link(source_page, "v2", "docs/guide")
+
+        # The internal key should be xver:{version}:{path}
+        # Cross-version deps are stored in reverse_dependencies with the target as key
+        expected_key = "xver:v2:docs/guide"
+        assert expected_key in tracker.reverse_dependencies
+        assert str(source_page) in tracker.reverse_dependencies[expected_key]
+
+    def test_cross_version_link_with_special_paths(self, tmp_path):
+        """Test cross-version links with various path formats."""
+        cache = BuildCache()
+        tracker = DependencyTracker(cache)
+
+        source_page = tmp_path / "page.md"
+        source_page.write_text("# Page")
+
+        # Test various path formats
+        test_cases = [
+            ("v2", "docs/getting-started"),
+            ("v2", "api/reference"),
+            ("latest", "tutorials/quickstart"),
+            ("1.0", "migration-guide"),
+            ("v2.1", "release-notes"),
+        ]
+
+        for version, path in test_cases:
+            tracker.track_cross_version_link(source_page, version, path)
+
+        # Verify all were tracked
+        for version, path in test_cases:
+            dependents = tracker.get_cross_version_dependents(version, path)
+            assert source_page in dependents, f"Failed for {version}:{path}"

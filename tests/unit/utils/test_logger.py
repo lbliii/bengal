@@ -209,7 +209,7 @@ def test_console_format_basic(logger):
 
     output = event.format_console(verbose=False)
     assert "Test message" in output
-    assert "●" in output  # Bullet point
+    assert "·" in output  # Middle dot bullet point
 
 
 def test_console_format_verbose(logger):

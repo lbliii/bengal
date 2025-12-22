@@ -41,7 +41,7 @@ def assets() -> None:
 @click.argument("source", type=click.Path(exists=True), default=".")
 def build(watch: bool, source: str) -> None:
     """
-    🔨 Build assets using the configured pipeline.
+    Build assets using the configured pipeline.
 
     Processes CSS, JavaScript, and other assets according to your
     asset pipeline configuration. Use --watch to automatically rebuild

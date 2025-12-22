@@ -155,20 +155,24 @@ class TestValidatorReport:
         assert report.has_problems  # Still has problems due to warning
 
     def test_status_emoji(self):
-        """Test status emoji selection."""
+        """Test status emoji selection uses icon set."""
+        from bengal.output.icons import get_icon_set
+        from bengal.utils.rich_console import should_use_emoji
+
+        icons = get_icon_set(should_use_emoji())
         report = ValidatorReport("Test")
 
         # Only success
         report.results = [CheckResult.success("OK")]
-        assert report.status_emoji == "✅"
+        assert report.status_emoji == icons.success
 
         # Has info
         report.results = [CheckResult.info("Info")]
-        assert report.status_emoji == "ℹ️"
+        assert report.status_emoji == icons.info
 
         # Has warning
         report.results = [CheckResult.warning("Warning")]
-        assert report.status_emoji == "⚠️"
+        assert report.status_emoji == icons.warning
 
         # Has error (highest priority)
         report.results = [
@@ -176,7 +180,7 @@ class TestValidatorReport:
             CheckResult.warning("Warning"),
             CheckResult.error("Error"),
         ]
-        assert report.status_emoji == "❌"
+        assert report.status_emoji == icons.error
 
 
 class TestHealthReport:
@@ -372,11 +376,12 @@ class TestHealthReportFormatting:
 
         output = report.format_console(mode="auto")
 
-        # Should show normal mode
-        assert "Health Check Summary" in output
+        # Should show normal mode - flows from phase line, no dedicated header
         assert "Test Validator" in output
         assert "Found issue" in output
         assert "Fix it" in output
+        # Summary line at end
+        assert "Health:" in output
 
     def test_format_quiet_mode(self):
         """Test quiet mode formatting."""
@@ -408,14 +413,15 @@ class TestHealthReportFormatting:
 
         output = report.format_console(mode="normal")
 
-        # Should show all validators
-        assert "Health Check Summary" in output
-        assert "Good Validator" in output
+        # Should show problem validator and problem details
         assert "Bad Validator" in output
-        assert "passed" in output
         assert "warning(s)" in output
-        # Should show problem details
         assert "Issue found" in output
+        # Passed validators are collapsed
+        assert "passed" in output
+        # No dedicated header - flows from phase line
+        # Summary line at end
+        assert "Health:" in output
 
     def test_format_verbose_mode(self):
         """Test verbose mode formatting."""
@@ -431,10 +437,12 @@ class TestHealthReportFormatting:
         output = report.format_console(mode="verbose")
 
         # Should show everything including successes
-        assert "Health Check Report" in output
+        # No dedicated header - flows from phase line
+        assert "Validator" in output
         assert "Everything OK" in output
-        assert "FYI message" in output
         assert "Warning message" in output
+        # Summary line at end
+        assert "Health:" in output
 
     def test_format_info_messages_shown(self):
         """Test that INFO-only validators are filtered out (by design)."""
@@ -457,7 +465,9 @@ class TestHealthReportFormatting:
 
         # Legacy parameter should trigger verbose mode
         output = report.format_console(verbose=True)
-        assert "Health Check Report" in output
+        # Verbose mode shows validator details and summary
+        assert "Validator" in output
+        assert "Health:" in output
 
     def test_format_details_truncation(self):
         """Test that details are truncated after 3 items."""
@@ -493,11 +503,11 @@ class TestHealthReportFormatting:
         output = report.format_console(mode="normal")
 
         # Should have summary with error/warning counts
-        # Note: Summary line shows "X error(s), Y warning(s)" format
-        assert "Summary:" in output
+        # Compact format: "Health: X error(s), Y warning(s) | Quality: N% (Rating)"
+        assert "Health:" in output
         assert "1 error" in output
         assert "1 warning" in output
-        assert "Build Quality:" in output
+        assert "Quality:" in output
 
 
 class TestHealthReportJSON:

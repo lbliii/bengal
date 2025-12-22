@@ -3,6 +3,11 @@ Core CLI output manager.
 
 Provides the main CLIOutput class for all terminal output with profile-aware
 formatting, consistent spacing, and automatic TTY detection.
+
+Icon Policy:
+    - ASCII-first by default (✓, !, x, etc.)
+    - Cat (ᓚᘏᗢ) for success headers, mouse (ᘛ⁐̤ᕐᐷ) for error headers
+    - Emoji opt-in via BENGAL_EMOJI=1 environment variable
 """
 
 from __future__ import annotations
@@ -16,6 +21,7 @@ from rich.table import Table
 
 from bengal.output.dev_server import DevServerOutputMixin
 from bengal.output.enums import MessageLevel
+from bengal.output.icons import IconSet, get_icon_set
 
 logger = logging.getLogger(__name__)
 
@@ -92,12 +98,25 @@ class CLIOutput(DevServerOutputMixin):
         self._last_phase_key: str | None = None
         self._last_phase_time_ms: int = 0
 
+        # Track blank lines to prevent consecutive blanks
+        self._last_was_blank: bool = False
+
         # Get profile config
         self.profile_config = profile.get_config() if profile else {}
 
         # Spacing and indentation rules
         self.indent_char = " "
         self.indent_size = 2
+
+        # Icon set (ASCII by default, emoji opt-in via BENGAL_EMOJI=1)
+        from bengal.utils.rich_console import should_use_emoji
+
+        self._icons = get_icon_set(use_emoji=should_use_emoji())
+
+    @property
+    def icons(self) -> IconSet:
+        """Get the current icon set."""
+        return self._icons
 
     def should_show(self, level: MessageLevel) -> bool:
         """Determine if message should be shown based on level and settings."""
@@ -111,16 +130,20 @@ class CLIOutput(DevServerOutputMixin):
         self,
         text: str,
         mascot: bool = True,
-        leading_blank: bool = True,
+        leading_blank: bool = False,
         trailing_blank: bool = True,
     ) -> None:
         """
         Print a header message.
         Example: "ᓚᘏᗢ  Building your site..."
+
+        Note: leading_blank defaults to False because shell prompt already
+        provides spacing before command output.
         """
         if not self.should_show(MessageLevel.INFO):
             return
 
+        self._mark_output()
         if self.use_rich:
             mascot_str = "[bengal]ᓚᘏᗢ[/bengal]  " if mascot else ""
             if leading_blank:
@@ -150,14 +173,14 @@ class CLIOutput(DevServerOutputMixin):
         width: int = 60,
     ) -> None:
         """
-        Print a subheader with subtle border (lighter than header).
+        Print a subheader (simple bold text, no decorations).
 
         Args:
             text: The subheader text
             icon: Optional icon/emoji to display before text
             leading_blank: Add blank line before (default: True)
             trailing_blank: Add blank line after (default: False)
-            width: Total width of the border line (default: 60)
+            width: Unused, kept for API compatibility
         """
         if not self.should_show(MessageLevel.INFO):
             return
@@ -165,28 +188,44 @@ class CLIOutput(DevServerOutputMixin):
         if leading_blank:
             self.blank()
 
-        # Format: === icon text ========================================
+        # Simple format: just the text, bold
         icon_str = f"{icon} " if icon else ""
         label = f"{icon_str}{text}"
 
-        # Calculate remaining border length
-        label_len = len(label)
-        prefix = "=== "
-        remaining = width - len(prefix) - label_len - 1
-        if remaining < 0:
-            remaining = 0
-
-        border = "=" * remaining
-
         if self.use_rich:
-            line = f"{prefix}[header]{label}[/header] {border}"
-            self.console.print(line)
+            self.console.print(f"[bold]{label}[/bold]")
         else:
-            line = f"{prefix}{label} {border}"
-            click.echo(click.style(line, bold=True))
+            click.echo(click.style(label, bold=True))
 
         if trailing_blank:
             self.blank()
+
+    def section(self, title: str, icon: str | None = None) -> None:
+        """
+        Print a section header (e.g., 'Post-processing:').
+
+        Uses sentence case for consistency. Section icon is empty by default
+        in ASCII mode for clean headers. Adds a blank line before if needed.
+
+        Args:
+            title: Section title (will have ':' appended)
+            icon: Optional icon to display before title
+        """
+        if not self.should_show(MessageLevel.INFO):
+            return
+
+        # Add blank line before section (uses tracking to prevent doubles)
+        self.blank()
+        self._mark_output()
+
+        # Use section icon from icon set (empty by default in ASCII mode)
+        section_icon = icon if icon is not None else self.icons.section
+        icon_str = f"{section_icon} " if section_icon else ""
+
+        if self.use_rich:
+            self.console.print(f"[header]{icon_str}{title}:[/header]")
+        else:
+            click.echo(f"{icon_str}{title}:")
 
     def phase(
         self,
@@ -194,7 +233,7 @@ class CLIOutput(DevServerOutputMixin):
         status: str = "Done",
         duration_ms: float | None = None,
         details: str | None = None,
-        icon: str = "✓",
+        icon: str | None = None,
     ) -> None:
         """
         Print a phase status line.
@@ -207,23 +246,38 @@ class CLIOutput(DevServerOutputMixin):
         if not self.should_show(MessageLevel.SUCCESS):
             return
 
-        parts = [f"[success]{icon}[/success]", f"[phase]{name}[/phase]"]
-
-        if duration_ms is not None and self._show_timing():
-            parts.append(f"[dim]{int(duration_ms)}ms[/dim]")
-
-        if details and self._show_details():
-            parts.append(f"([dim]{details}[/dim])")
-
-        line = self._format_phase_line(parts)
-
-        if self._should_dedup_phase(line):
-            return
-        self._mark_phase_emit(line)
+        self._mark_output()
+        phase_icon = icon if icon is not None else self.icons.success
 
         if self.use_rich:
+            parts = [f"[success]{phase_icon}[/success]", f"[phase]{name}[/phase]"]
+
+            if duration_ms is not None and self._show_timing():
+                parts.append(f"[dim]{int(duration_ms)}ms[/dim]")
+
+            if details and self._show_details():
+                parts.append(f"([dim]{details}[/dim])")
+
+            line = self._format_phase_line(parts)
+
+            if self._should_dedup_phase(line):
+                return
+            self._mark_phase_emit(line)
             self.console.print(line)
         else:
+            parts = [phase_icon, name]
+
+            if duration_ms is not None and self._show_timing():
+                parts.append(f"{int(duration_ms)}ms")
+
+            if details and self._show_details():
+                parts.append(f"({details})")
+
+            line = self._format_phase_line(parts)
+
+            if self._should_dedup_phase(line):
+                return
+            self._mark_phase_emit(line)
             click.echo(click.style(line, fg="green"))
 
     def detail(self, text: str, indent: int = 1, icon: str | None = None) -> None:
@@ -231,6 +285,7 @@ class CLIOutput(DevServerOutputMixin):
         if not self.should_show(MessageLevel.INFO):
             return
 
+        self._mark_output()
         indent_str = self.indent_char * (self.indent_size * indent)
         icon_str = f"{icon} " if icon else ""
         line = f"{indent_str}{icon_str}{text}"
@@ -240,23 +295,24 @@ class CLIOutput(DevServerOutputMixin):
         else:
             click.echo(line)
 
-    def success(self, text: str, icon: str = "✨") -> None:
-        """Print a success message."""
+    def success(self, text: str, icon: str | None = None) -> None:
+        """Print a success message (use blank() before if spacing needed)."""
         if not self.should_show(MessageLevel.SUCCESS):
             return
 
+        self._mark_output()
+        success_icon = icon if icon is not None else self.icons.success
         if self.use_rich:
-            self.console.print()
-            self.console.print(f"{icon} [success]{text}[/success]")
-            self.console.print()
+            self.console.print(f"{success_icon} [success]{text}[/success]")
         else:
-            click.echo(f"\n{icon} {text}\n", color=True)
+            click.echo(f"{success_icon} {text}", color=True)
 
     def info(self, text: str, icon: str | None = None) -> None:
         """Print an info message."""
         if not self.should_show(MessageLevel.INFO):
             return
 
+        self._mark_output()
         icon_str = f"{icon} " if icon else ""
 
         if self.use_rich:
@@ -264,35 +320,41 @@ class CLIOutput(DevServerOutputMixin):
         else:
             click.echo(f"{icon_str}{text}")
 
-    def warning(self, text: str, icon: str = "⚠️") -> None:
+    def warning(self, text: str, icon: str | None = None) -> None:
         """Print a warning message."""
         if not self.should_show(MessageLevel.WARNING):
             return
 
+        self._mark_output()
+        warning_icon = icon if icon is not None else self.icons.warning
         if self.use_rich:
-            self.console.print(f"{icon}  [warning]{text}[/warning]")
+            self.console.print(f"{warning_icon}  [warning]{text}[/warning]")
         else:
-            click.echo(click.style(f"{icon}  {text}", fg="yellow"))
+            click.echo(click.style(f"{warning_icon}  {text}", fg="yellow"))
 
-    def error(self, text: str, icon: str = "❌") -> None:
+    def error(self, text: str, icon: str | None = None) -> None:
         """Print an error message."""
         if not self.should_show(MessageLevel.ERROR):
             return
 
+        self._mark_output()
+        error_icon = icon if icon is not None else self.icons.error
         if self.use_rich:
-            self.console.print(f"{icon} [error]{text}[/error]")
+            self.console.print(f"{error_icon} [error]{text}[/error]")
         else:
-            click.echo(click.style(f"{icon} {text}", fg="red", bold=True))
+            click.echo(click.style(f"{error_icon} {text}", fg="red", bold=True))
 
-    def tip(self, text: str, icon: str = "💡") -> None:
+    def tip(self, text: str, icon: str | None = None) -> None:
         """Print a subtle tip/instruction line."""
         if not self.should_show(MessageLevel.INFO):
             return
 
+        self._mark_output()
+        tip_icon = icon if icon is not None else self.icons.tip
         if self.use_rich:
-            self.console.print(f"{icon} [tip]{text}[/tip]")
+            self.console.print(f"{tip_icon} [tip]{text}[/tip]")
         else:
-            click.echo(f"{icon} {text}")
+            click.echo(f"{tip_icon} {text}")
 
     def error_header(self, text: str, mouse: bool = True) -> None:
         """
@@ -318,19 +380,23 @@ class CLIOutput(DevServerOutputMixin):
             mouse_str = "ᘛ⁐̤ᕐᐷ  " if mouse else ""
             click.echo(click.style(f"\n    {mouse_str}{text}\n", fg="red", bold=True))
 
-    def path(self, path: str, icon: str = "📂", label: str = "Output") -> None:
-        """Print a path with icon and label."""
+    def path(self, path: str, icon: str | None = None, label: str = "Output") -> None:
+        """Print a path with optional icon and label."""
         if not self.should_show(MessageLevel.INFO):
             return
 
         display_path = self._format_path(path)
 
+        # Use section icon from icon set (empty by default in ASCII mode)
+        path_icon = icon if icon is not None else self.icons.section
+        icon_prefix = f"{path_icon} " if path_icon else ""
+
         if self.use_rich:
-            self.console.print(f"{icon} {label}:")
-            self.console.print(f"   ↪ [path]{display_path}[/path]")
+            self.console.print(f"{icon_prefix}{label}:")
+            self.console.print(f"   {self.icons.arrow} [path]{display_path}[/path]")
         else:
-            click.echo(f"{icon} {label}:")
-            click.echo(click.style(f"   ↪ {display_path}", fg="cyan"))
+            click.echo(f"{icon_prefix}{label}:")
+            click.echo(click.style(f"   {self.icons.arrow} {display_path}", fg="cyan"))
 
     def metric(self, label: str, value: Any, unit: str | None = None, indent: int = 0) -> None:
         """Print a metric with label and optional unit."""
@@ -376,31 +442,43 @@ class CLIOutput(DevServerOutputMixin):
         if self.use_rich:
             from rich.prompt import Prompt
 
-            return Prompt.ask(
+            result = Prompt.ask(
                 f"[prompt]{text}[/prompt]",
                 default=default,
                 console=self.console,
                 show_default=show_default,
             )
         else:
-            return click.prompt(text, default=default, type=type, show_default=show_default)
+            result = click.prompt(text, default=default, type=type, show_default=show_default)
+        # User's Enter press added a newline, mark it
+        self._last_was_blank = True
+        return result
 
     def confirm(self, text: str, default: bool = False) -> bool:
         """Prompt user for yes/no confirmation with themed styling."""
         if self.use_rich:
             from rich.prompt import Confirm
 
-            return Confirm.ask(f"[prompt]{text}[/prompt]", default=default, console=self.console)
+            result = Confirm.ask(f"[prompt]{text}[/prompt]", default=default, console=self.console)
         else:
-            return click.confirm(text, default=default)
+            result = click.confirm(text, default=default)
+        # User's Enter press added a newline, mark it
+        self._last_was_blank = True
+        return result
 
-    def blank(self, count: int = 1) -> None:
-        """Print blank lines."""
-        for _ in range(count):
-            if self.use_rich:
-                self.console.print()
-            else:
-                click.echo()
+    def blank(self) -> None:
+        """Print a blank line (max one consecutive)."""
+        if self._last_was_blank:
+            return  # Prevent consecutive blank lines
+        self._last_was_blank = True
+        if self.use_rich:
+            self.console.print()
+        else:
+            click.echo()
+
+    def _mark_output(self) -> None:
+        """Mark that non-blank output was printed (resets blank tracking)."""
+        self._last_was_blank = False
 
     # === Internal helpers ===
 

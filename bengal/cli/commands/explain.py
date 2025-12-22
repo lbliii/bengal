@@ -64,7 +64,7 @@ def explain(
     source: str,
 ) -> None:
     """
-    🔍 Explain how a page is built.
+    Explain how a page is built.
 
     Shows complete traceability for any page including:
     - Source file information

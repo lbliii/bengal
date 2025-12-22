@@ -112,7 +112,7 @@ collections = {
 @click.pass_context
 def collections(ctx: click.Context) -> None:
     """
-    📚 Manage content collections.
+    Manage content collections.
 
     Collections provide type-safe schemas for your content's frontmatter.
     Define schemas to validate content during builds and catch errors early.
@@ -146,7 +146,7 @@ def collections(ctx: click.Context) -> None:
 @click.argument("source", type=click.Path(), default=".")
 def init_collections(force: bool, minimal: bool, source: str) -> None:
     """
-    📝 Generate a collections.py file with example schemas.
+    Generate a collections.py file with example schemas.
 
     Creates a starter collections.py file at your project root with
     example schemas for blog posts and documentation pages.

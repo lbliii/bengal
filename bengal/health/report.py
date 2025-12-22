@@ -11,6 +11,9 @@ from datetime import datetime
 from enum import Enum
 from typing import Any
 
+from bengal.output.icons import get_icon_set
+from bengal.utils.rich_console import should_use_emoji
+
 
 class CheckStatus(Enum):
     """Status of a health check.
@@ -329,17 +332,18 @@ class ValidatorReport:
 
     @property
     def status_emoji(self) -> str:
-        """Get emoji representing overall status."""
+        """Get icon representing overall status."""
+        icons = get_icon_set(should_use_emoji())
         if self.error_count > 0:
-            return "❌"
+            return icons.error
         elif self.warning_count > 0:
-            return "⚠️"
+            return icons.warning
         elif self.suggestion_count > 0:
-            return "💡"
+            return icons.tip
         elif self.info_count > 0:
-            return "ℹ️"
+            return icons.info
         else:
-            return "✅"
+            return icons.success
 
 
 @dataclass
@@ -503,10 +507,13 @@ class HealthReport:
         # Perfect build - just success message
         if not self.has_problems():
             score = self.build_quality_score()
-            return f"✓ Build complete. All health checks passed (quality: {score}%)\n"
+            icons = get_icon_set(should_use_emoji())
+            return f"{icons.success} Build complete. All health checks passed (quality: {score}%)\n"
 
         # Has problems - show them
         lines.append("")
+
+        icons = get_icon_set(should_use_emoji())
 
         # Group by validator, only show problems
         for vr in self.validator_reports:
@@ -515,8 +522,8 @@ class HealthReport:
 
             # Show validator name with problem count
             problem_count = vr.warning_count + vr.error_count
-            emoji = "❌" if vr.error_count > 0 else "⚠️"
-            lines.append(f"{emoji} {vr.validator_name} ({problem_count} issue(s)):")
+            status_icon = icons.error if vr.error_count > 0 else icons.warning
+            lines.append(f"{status_icon} {vr.validator_name} ({problem_count} issue(s)):")
 
             # Show problem messages
             for result in vr.results:
@@ -525,7 +532,7 @@ class HealthReport:
 
                     # Show recommendation
                     if result.recommendation:
-                        lines.append(f"     💡 {result.recommendation}")
+                        lines.append(f"     {icons.tip} {result.recommendation}")
 
                     # Show first 3 details
                     if result.details:
@@ -560,10 +567,10 @@ class HealthReport:
         Args:
             show_suggestions: Whether to show suggestions (collapsed by default)
         """
+        icons = get_icon_set(should_use_emoji())
         lines = []
 
-        lines.append("\n🏥 Health Check Summary")
-        lines.append("━" * 60)
+        # No header - flows from phase line "✓ Health check Xms"
         lines.append("")
 
         # Separate validators by priority: problems first, then suggestions, then passed
@@ -618,7 +625,7 @@ class HealthReport:
 
                     # Show recommendation if available
                     if result.recommendation:
-                        lines.append(f"      💡 {result.recommendation}")
+                        lines.append(f"      {icons.tip} {result.recommendation}")
 
                     # Details show location + context (the important part)
                     if result.details:
@@ -646,7 +653,7 @@ class HealthReport:
                 is_last_suggestion = i == len(validators_with_suggestions) - 1
 
                 lines.append(
-                    f"  💡 [bold]{vr.validator_name}[/bold] ([info]{vr.suggestion_count} suggestion(s)[/info])"
+                    f"  {icons.tip} [bold]{vr.validator_name}[/bold] ([info]{vr.suggestion_count} suggestion(s)[/info])"
                 )
 
                 for result in vr.results:
@@ -660,30 +667,31 @@ class HealthReport:
             if validators_with_problems:
                 lines.append("")
             lines.append(
-                f"[info]💡 {self.total_suggestions} quality suggestion(s) available (use --suggestions to view)[/info]"
+                f"[info]{icons.tip} {self.total_suggestions} quality suggestion(s) available (use --suggestions to view)[/info]"
             )
 
         # Show passed validators in a collapsed summary (reduce noise)
         if validators_passed:
             if validators_with_problems or (validators_with_suggestions and show_suggestions):
                 lines.append("")
-            lines.append(f"[success]✓ {len(validators_passed)} validator(s) passed[/success]")
+            lines.append(
+                f"[success]{icons.success} {len(validators_passed)} validator(s) passed[/success]"
+            )
             # List them in a compact format if few, otherwise just count
             if len(validators_passed) <= 5:
                 passed_names = ", ".join([vr.validator_name for vr in validators_passed])
                 lines.append(f"   {passed_names}")
 
-        # Summary
-        lines.append("")
-        lines.append("━" * 60)
-        lines.append(f"Summary: {self.total_errors} error(s), {self.total_warnings} warning(s)")
-
+        # Summary (compact single line)
         score = self.build_quality_score()
         rating = self.quality_rating()
-        lines.append(f"Build Quality: {score}% ({rating})")
         lines.append("")
+        lines.append(
+            f"Health: {self.total_errors} error(s), {self.total_warnings} warning(s) | Quality: {score}% ({rating})"
+        )
 
-        return "\n".join(lines)
+        # Indent all lines since this is a sub-item of the Health check phase
+        return "\n".join(f"  {line}" if line.strip() else "" for line in lines)
 
     def _format_verbose(self, show_suggestions: bool = True) -> str:
         """
@@ -692,11 +700,10 @@ class HealthReport:
         Args:
             show_suggestions: Whether to show suggestions (default True in verbose mode)
         """
+        icons = get_icon_set(should_use_emoji())
         lines = []
 
-        # Header
-        lines.append("\n🏥 Health Check Report")
-        lines.append("━" * 60)
+        # No header - flows from phase line "✓ Health check Xms"
         lines.append("")
 
         # Separate validators by priority: problems first, then suggestions, then passed
@@ -752,7 +759,7 @@ class HealthReport:
 
                 # Show successes briefly (grouped at end)
                 for result in other_results:
-                    lines.append(f"    ✓ {result.message}")
+                    lines.append(f"    {icons.success} {result.message}")
 
                 if not is_last_problem:
                     lines.append("")
@@ -761,23 +768,24 @@ class HealthReport:
         if validators_passed:
             if validators_with_problems:
                 lines.append("")
-            lines.append(f"[success]✓ {len(validators_passed)} validator(s) passed[/success]")
+            lines.append(
+                f"[success]{icons.success} {len(validators_passed)} validator(s) passed[/success]"
+            )
 
             # In verbose mode, show brief summary of passed checks within each validator
             for vr in validators_passed:
-                lines.append(f"   ✓ {vr.validator_name}")
+                lines.append(f"   {icons.success} {vr.validator_name}")
 
-        # Summary
-        lines.append("")
-        lines.append("━" * 60)
-        lines.append(f"Summary: {self.total_errors} error(s), {self.total_warnings} warning(s)")
-
+        # Summary (compact single line)
         score = self.build_quality_score()
         rating = self.quality_rating()
-        lines.append(f"Build Quality: {score}% ({rating})")
         lines.append("")
+        lines.append(
+            f"Health: {self.total_errors} error(s), {self.total_warnings} warning(s) | Quality: {score}% ({rating})"
+        )
 
-        return "\n".join(lines)
+        # Indent all lines since this is a sub-item of the Health check phase
+        return "\n".join(f"  {line}" if line.strip() else "" for line in lines)
 
     def format_json(self) -> dict[str, Any]:
         """

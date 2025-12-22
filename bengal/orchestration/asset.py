@@ -247,13 +247,19 @@ class AssetOrchestrator:
         total_discovered = len(assets)
         total_output = len(css_entries) + len(other_assets)
         if not progress_manager:
-            print("\n📦 Assets:")
-            print(f"   └─ Discovered: {total_discovered} files")
+            from bengal.output import CLIOutput
+
+            cli = CLIOutput()
+            cli.section("Assets")
+            cli.detail(f"{cli.icons.tree_end} Discovered: {total_discovered} files", indent=1)
             if css_modules:
-                print(
-                    f"   └─ CSS bundling: {len(css_entries)} entry point(s), {len(css_modules)} module(s) bundled"
+                cli.detail(
+                    f"{cli.icons.tree_end} CSS bundling: {len(css_entries)} entry point(s), {len(css_modules)} module(s) bundled",
+                    indent=1,
                 )
-            print(f"   └─ Output: {total_output} files ✓")
+            cli.detail(
+                f"{cli.icons.tree_end} Output: {total_output} files {cli.icons.success}", indent=1
+            )
 
         minify = self.site.config.get("minify_assets", True)
         optimize = self.site.config.get("optimize_assets", True)

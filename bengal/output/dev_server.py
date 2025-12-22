@@ -143,8 +143,8 @@ class DevServerOutputMixin:
             is_asset: Whether this is an asset request (affects icon display)
 
         Example:
-            12:34:56 │ GET    │ 200 │ 📄 /index.html
-            12:34:57 │ GET    │ 404 │ ❌ /missing.html
+            12:34:56 │ GET    │ 200 │ - /index.html
+            12:34:57 │ GET    │ 404 │ x /missing.html
         """
         if not self.should_show(MessageLevel.INFO):
             return
@@ -154,13 +154,17 @@ class DevServerOutputMixin:
         if len(path) > 60:
             display_path = path[:57] + "..."
 
-        # Add indicator emoji
+        # Add indicator icon
+        from bengal.output.icons import get_icon_set
+        from bengal.utils.rich_console import should_use_emoji
+
+        icons = get_icon_set(should_use_emoji())
         indicator = ""
         if not is_asset:
             if status_code.startswith("2"):
-                indicator = "📄 "  # Page load
+                indicator = f"{icons.info} "  # Page load
             elif status_code.startswith("4"):
-                indicator = "❌ "  # Error
+                indicator = f"{icons.error} "  # Error
 
         # Color codes for status
         status_color_code = get_status_color_code(status_code)
