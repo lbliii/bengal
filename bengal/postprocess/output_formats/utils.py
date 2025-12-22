@@ -2,11 +2,44 @@
 Shared utilities for output format generation.
 
 Provides common functions used across all output format generators
-including text processing, URL handling, and path resolution.
+including text processing, URL handling, path resolution, and content
+normalization. These utilities ensure consistent behavior across JSON,
+TXT, index, and LLM text generators.
 
-Note:
+Functions:
+    Text Processing:
+        - strip_html: Remove HTML tags and normalize whitespace
+        - generate_excerpt: Create truncated preview text
+
+    URL Handling:
+        - get_page_relative_url: Get URL without baseurl (for objectID)
+        - get_page_public_url: Get full URL with baseurl
+        - get_page_url: Alias for get_page_public_url
+        - normalize_url: Normalize URL for consistent comparison
+
+    Path Resolution:
+        - get_page_json_path: Get output path for page's JSON file
+        - get_page_txt_path: Get output path for page's TXT file
+
+Implementation Notes:
     Text utilities delegate to bengal.utils.text for DRY compliance.
-    See RFC: plan/active/rfc-code-quality-improvements.md
+    URL utilities work with Page._path (internal path) and Page.href
+    (public URL) to avoid baseurl duplication issues.
+
+Example:
+    >>> from bengal.postprocess.output_formats.utils import (
+    ...     generate_excerpt,
+    ...     get_page_json_path,
+    ...     get_page_url,
+    ... )
+    >>>
+    >>> excerpt = generate_excerpt(page.plain_text, length=200)
+    >>> json_path = get_page_json_path(page)
+    >>> url = get_page_url(page, site)
+
+Related:
+    - bengal.utils.text: Canonical text processing utilities
+    - bengal.postprocess.output_formats: Output format generators
 """
 
 from __future__ import annotations
@@ -22,6 +55,7 @@ logger = get_logger(__name__)
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
+    from bengal.core.site import Site
 
 
 def strip_html(text: str) -> str:

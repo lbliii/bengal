@@ -1,8 +1,63 @@
 """
 Site-wide LLM text generator for Bengal SSG.
 
-Generates a single llm-full.txt file containing all site content
-in an AI/LLM-friendly format for training, context, and analysis.
+Generates a single llm-full.txt file containing all site content in an
+AI/LLM-friendly format. This consolidated text file is ideal for:
+- LLM fine-tuning and training data
+- RAG (Retrieval-Augmented Generation) context
+- Documentation analysis and summarization
+- Content auditing and quality review
+
+Output Format:
+    The llm-full.txt contains all pages concatenated with clear separators:
+
+    ```
+    # Site Title
+
+    Site: https://example.com
+    Build Date: 2024-01-15T10:30:00
+    Total Pages: 150
+
+    ================================================================================
+
+    ## Page 1/150: Getting Started
+
+    URL: /docs/getting-started/
+    Section: docs
+    Tags: tutorial, quickstart
+    Date: 2024-01-10
+
+    [Plain text content]
+
+    ================================================================================
+
+    ## Page 2/150: API Reference
+    ...
+    ```
+
+Use Cases:
+    - Feed entire site to LLM for comprehensive context
+    - Generate site summaries and documentation audits
+    - Create training data for custom models
+    - Content migration and analysis
+
+Configuration:
+    Controlled via [output_formats] in bengal.toml:
+
+    ```toml
+    [output_formats]
+    site_wide = ["llm_full"]
+    options.llm_separator_width = 80
+    ```
+
+Example:
+    >>> generator = SiteLlmTxtGenerator(site, separator_width=80)
+    >>> path = generator.generate(pages)
+    >>> print(f"Generated: {path}")
+
+Related:
+    - bengal.postprocess.output_formats: OutputFormatsGenerator facade
+    - bengal.postprocess.output_formats.txt_generator: Per-page LLM text
 """
 
 from __future__ import annotations
@@ -26,14 +81,38 @@ logger = get_logger(__name__)
 
 class SiteLlmTxtGenerator:
     """
-    Generates site-wide llm-full.txt for AI discovery.
+    Generates site-wide llm-full.txt for AI/LLM consumption.
 
-    Creates a single text file containing all site content in a format
-    optimized for AI/LLM consumption with clear page separators.
+    Creates a single consolidated text file containing all site content,
+    formatted for easy parsing by LLMs with clear page separators and
+    structured metadata headers.
+
+    Creation:
+        Direct instantiation: SiteLlmTxtGenerator(site, separator_width=80)
+            - Created by OutputFormatsGenerator for LLM text generation
+            - Requires Site instance with rendered pages
+
+    Attributes:
+        site: Site instance with pages and configuration
+        separator_width: Width of separator lines (default: 80)
+
+    Relationships:
+        - Used by: OutputFormatsGenerator facade
+        - Uses: Site for pages, Page.plain_text for content
+
+    Output Structure:
+        - Site header: Title, URL, build date, page count
+        - Per-page sections: Numbered pages with metadata and content
+        - Separator lines between pages for clear boundaries
+
+    Optimizations:
+        - Write-if-changed to avoid unnecessary file updates
+        - Uses cached Page.plain_text (computed during rendering)
 
     Example:
         >>> generator = SiteLlmTxtGenerator(site, separator_width=80)
         >>> path = generator.generate(pages)
+        >>> print(f"Generated: {path}")
     """
 
     def __init__(

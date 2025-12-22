@@ -72,10 +72,12 @@ class IconSet:
     grade_slow: str = "-"
 
 
-# Default ASCII icon set
+#: Default icon set using ASCII symbols. Provides clean, universally-supported
+#: output across all terminals. This is Bengal's default choice.
 ASCII_ICONS = IconSet()
 
-# Emoji icon set for opt-in users
+#: Emoji icon set for users who prefer richer visual output.
+#: Enabled via BENGAL_EMOJI=1 environment variable.
 EMOJI_ICONS = IconSet(
     success="✨",
     warning="⚠️",
@@ -92,12 +94,23 @@ EMOJI_ICONS = IconSet(
 
 def get_icon_set(use_emoji: bool = False) -> IconSet:
     """
-    Get icon set based on preference.
+    Get icon set based on user preference.
+
+    Returns the appropriate IconSet instance based on the emoji preference.
+    The default is ASCII icons for maximum terminal compatibility.
 
     Args:
-        use_emoji: If True, return emoji icon set; otherwise ASCII
+        use_emoji: If True, returns EMOJI_ICONS with rich visual symbols.
+            If False (default), returns ASCII_ICONS with simple text symbols.
 
     Returns:
-        IconSet with appropriate symbols
+        The IconSet instance matching the preference (ASCII or Emoji).
+
+    Example:
+        >>> icons = get_icon_set()
+        >>> print(f"{icons.success} Done")  # "✓ Done"
+
+        >>> icons = get_icon_set(use_emoji=True)
+        >>> print(f"{icons.success} Done")  # "✨ Done"
     """
     return EMOJI_ICONS if use_emoji else ASCII_ICONS

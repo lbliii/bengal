@@ -1,8 +1,41 @@
 """
 Content discovery and setup orchestration for Bengal SSG.
 
-Handles content and asset discovery, page/section reference setup,
-and cascading frontmatter.
+Handles content and asset discovery, page/section reference setup, cascading
+frontmatter, and cross-reference indexing. This orchestrator is responsible
+for populating the Site with all content before rendering.
+
+Key Responsibilities:
+    Content Discovery
+        Discovers pages and sections from the content/ directory, supports
+        lazy loading with PageProxy for incremental builds
+    Asset Discovery
+        Discovers site and theme assets from assets/ directories
+    Page References
+        Sets up navigation references (next, prev, parent, children) between
+        pages and their sections
+    Cascade Application
+        Applies cascading frontmatter from section _index.md files to
+        descendant pages
+    Cross-Reference Index
+        Builds O(1) lookup indexes for cross-references by path, slug, ID,
+        heading, and anchor
+
+Build Phases:
+    The ContentOrchestrator is called during Phase 2 of the build pipeline.
+    It must complete before taxonomies, menus, or rendering can proceed.
+
+Thread Safety:
+    Not thread-safe. Discovery runs on the main thread before parallel
+    rendering begins.
+
+Related Modules:
+    bengal.discovery.content_discovery: Low-level content discovery
+    bengal.discovery.asset_discovery: Low-level asset discovery
+    bengal.core.cascade_engine: Cascade application logic
+
+See Also:
+    bengal.orchestration.build: Build coordinator that calls this orchestrator
 """
 
 from __future__ import annotations

@@ -1,8 +1,25 @@
 """
-Dev server specific CLI output methods.
+Development server specific CLI output methods.
 
-These methods are used by the dev server for request logging,
+This module provides a mixin class with output methods specifically designed
+for the Bengal development server. These methods handle request logging,
 file change notifications, and server status display.
+
+Features:
+    - HTTP request logging with colorized status codes and methods
+    - File change notifications with timestamps
+    - Server URL display
+    - Table-style request log headers
+
+Architecture:
+    DevServerOutputMixin is mixed into CLIOutput to provide dev server
+    functionality without bloating the core output class. It expects
+    certain attributes (use_rich, console) to be defined by CLIOutput.
+
+Related:
+    - bengal/output/core.py: Main CLIOutput class that uses this mixin
+    - bengal/output/colors.py: Color utilities for HTTP status/method
+    - bengal/cli/commands/serve.py: Dev server command that uses these methods
 """
 
 from __future__ import annotations
@@ -24,25 +41,40 @@ if TYPE_CHECKING:
 
 
 class DevServerOutputMixin:
-    """Mixin providing dev server specific output methods."""
+    """
+    Mixin providing development server specific output methods.
+
+    This mixin adds HTTP request logging, file change notifications,
+    and server status display methods to CLIOutput. It is designed
+    to be mixed into CLIOutput and relies on attributes defined there.
+
+    Required Attributes (from CLIOutput):
+        use_rich: Whether to use Rich console output
+        console: Rich Console instance for styled output
+        should_show: Method to check message visibility based on level
+    """
 
     # These attributes are defined in CLIOutput
     use_rich: bool
     console: Console
 
     def should_show(self, level: MessageLevel) -> bool:
-        """Check if message should be shown (implemented in CLIOutput)."""
+        """Check if message should be shown based on level and settings."""
         ...
 
     def separator(self, width: int = 78, style: str = "dim") -> None:
         """
         Print a horizontal separator line.
 
+        Outputs a line of box-drawing characters (─) to visually separate
+        content sections in the terminal.
+
         Args:
-            width: Width of the separator line
-            style: Style to apply (dim, info, header, etc.)
+            width: Character width of the separator line (default: 78)
+            style: Rich style name to apply (default: "dim" for subtle appearance)
 
         Example:
+            >>> cli.separator()
             ────────────────────────────────────────
         """
         if not self.should_show(MessageLevel.INFO):
@@ -135,15 +167,23 @@ class DevServerOutputMixin:
         """
         Print a formatted HTTP request log line.
 
+        Outputs a table-formatted log entry with colorized status code
+        and method. Non-asset requests show status indicators (success/error
+        icons), while asset requests are displayed without icons to reduce
+        visual noise.
+
         Args:
-            timestamp: Request timestamp (HH:MM:SS format)
-            method: HTTP method (GET, POST, etc.)
-            status_code: HTTP status code as string
-            path: Request path
-            is_asset: Whether this is an asset request (affects icon display)
+            timestamp: Request timestamp in HH:MM:SS format
+            method: HTTP method (GET, POST, PUT, DELETE, PATCH)
+            status_code: HTTP status code as string (e.g., "200", "404")
+            path: Request path (truncated if > 60 characters)
+            is_asset: If True, suppress status indicator icons
 
         Example:
+            >>> cli.http_request("12:34:56", "GET", "200", "/index.html")
             12:34:56 │ GET    │ 200 │ - /index.html
+
+            >>> cli.http_request("12:34:57", "GET", "404", "/missing.html")
             12:34:57 │ GET    │ 404 │ x /missing.html
         """
         if not self.should_show(MessageLevel.INFO):

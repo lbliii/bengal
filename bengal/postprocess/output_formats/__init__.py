@@ -50,24 +50,42 @@ __all__ = [
 
 class OutputFormatsGenerator:
     """
-    Generates custom output formats for pages.
+    Facade for generating all output format variants.
 
-    Provides alternative content formats to enable:
-    - Client-side search via JSON index
-    - AI/LLM discovery via plain text
-    - Programmatic API access via JSON
+    Coordinates generation of alternative content formats to enable
+    client-side search, AI/LLM discovery, and programmatic API access.
+
+    Creation:
+        Direct instantiation: OutputFormatsGenerator(site, config=config)
+            - Created by PostprocessOrchestrator for output format generation
+            - Requires Site instance with rendered pages
+
+    Attributes:
+        site: Site instance with pages
+        config: Normalized configuration dict
+        graph_data: Optional pre-computed graph data for contextual minimap
+        build_context: Optional BuildContext with accumulated JSON data
+
+    Relationships:
+        - Used by: PostprocessOrchestrator for output format generation
+        - Delegates to: PageJSONGenerator, PageTxtGenerator,
+                        SiteIndexGenerator, SiteLlmTxtGenerator
 
     Output Formats:
-    - Per-page JSON: page.json next to each page.html (metadata + content)
-    - Per-page LLM text: page.txt next to each page.html (AI-friendly format)
-    - Site-wide index.json: Searchable index of all pages with summaries
-    - Site-wide llm-full.txt: Full site content in single text file
+        Per-Page:
+            - json: page.json with metadata, content, graph connections
+            - llm_txt: page.txt with structured plain text
 
-    This class acts as a facade, delegating to specialized generators:
-    - PageJSONGenerator: Per-page JSON files
-    - PageTxtGenerator: Per-page LLM text files
-    - SiteIndexGenerator: Site-wide index.json
-    - SiteLlmTxtGenerator: Site-wide llm-full.txt
+        Site-Wide:
+            - index_json: index.json for client-side search
+            - llm_full: llm-full.txt with all site content
+
+    Configuration Formats:
+        Simple (from [build.output_formats]):
+            {'enabled': True, 'json': True, 'llm_txt': True}
+
+        Advanced (from [output_formats]):
+            {'per_page': ['json', 'llm_txt'], 'site_wide': ['index_json']}
 
     Example:
         >>> generator = OutputFormatsGenerator(site, config=config)
