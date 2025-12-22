@@ -445,7 +445,20 @@ class CLIOutput(DevServerOutputMixin):
             click.echo(f"{icon_str}{text}")
 
     def warning(self, text: str, icon: str | None = None) -> None:
-        """Print a warning message."""
+        """
+        Print a warning message in yellow.
+
+        Warnings indicate non-critical issues that don't stop the build
+        but should be addressed.
+
+        Args:
+            text: The warning message text.
+            icon: Override default warning icon (! or ⚠️).
+
+        Example:
+            >>> cli.warning("Missing optional frontmatter field 'description'")
+            # Output: !  Missing optional frontmatter field 'description'
+        """
         if not self.should_show(MessageLevel.WARNING):
             return
 
@@ -457,7 +470,19 @@ class CLIOutput(DevServerOutputMixin):
             click.echo(click.style(f"{warning_icon}  {text}", fg="yellow"))
 
     def error(self, text: str, icon: str | None = None) -> None:
-        """Print an error message."""
+        """
+        Print an error message in red.
+
+        Errors indicate problems that may affect the build outcome.
+
+        Args:
+            text: The error message text.
+            icon: Override default error icon (x or ❌).
+
+        Example:
+            >>> cli.error("Failed to parse frontmatter in about.md")
+            # Output: x Failed to parse frontmatter in about.md
+        """
         if not self.should_show(MessageLevel.ERROR):
             return
 
@@ -469,7 +494,19 @@ class CLIOutput(DevServerOutputMixin):
             click.echo(click.style(f"{error_icon} {text}", fg="red", bold=True))
 
     def tip(self, text: str, icon: str | None = None) -> None:
-        """Print a subtle tip/instruction line."""
+        """
+        Print a subtle tip or instruction.
+
+        Tips provide helpful suggestions without the urgency of warnings.
+
+        Args:
+            text: The tip text.
+            icon: Override default tip icon (* or 💡).
+
+        Example:
+            >>> cli.tip("Run 'bengal serve' to preview your site")
+            # Output: * Run 'bengal serve' to preview your site
+        """
         if not self.should_show(MessageLevel.INFO):
             return
 
@@ -482,8 +519,20 @@ class CLIOutput(DevServerOutputMixin):
 
     def error_header(self, text: str, mouse: bool = True) -> None:
         """
-        Print an error header with mouse emoji.
-        The mouse represents errors that Bengal (the cat) needs to catch!
+        Print a prominent error header with optional mouse mascot.
+
+        Uses the mouse mascot (ᘛ⁐̤ᕐᐷ) to represent errors that Bengal (the cat)
+        needs to catch! In Rich mode, displays in a red-bordered panel.
+
+        Args:
+            text: The error header text.
+            mouse: If True, include mouse mascot before text.
+
+        Example:
+            >>> cli.error_header("Build failed")
+            # Output: ┌──────────────────────┐
+            #         │  ᘛ⁐̤ᕐᐷ  Build failed   │
+            #         └──────────────────────┘
         """
         if not self.should_show(MessageLevel.ERROR):
             return
@@ -505,7 +554,23 @@ class CLIOutput(DevServerOutputMixin):
             click.echo(click.style(f"\n    {mouse_str}{text}\n", fg="red", bold=True))
 
     def path(self, path: str, icon: str | None = None, label: str = "Output") -> None:
-        """Print a path with optional icon and label."""
+        """
+        Print a labeled path with arrow indicator.
+
+        Paths are formatted according to profile: Writer sees just the filename,
+        Theme-Dev sees abbreviated paths, Developer sees full paths.
+
+        Args:
+            path: The filesystem path to display.
+            icon: Optional icon before the label.
+            label: Label text shown before the path (default: "Output").
+
+        Example:
+            >>> cli.path("/Users/dev/site/public", label="Output")
+            # Output: Output:
+            #            ↪ /Users/dev/site/public  (Developer)
+            #            ↪ public                  (Writer)
+        """
         if not self.should_show(MessageLevel.INFO):
             return
 
@@ -523,7 +588,22 @@ class CLIOutput(DevServerOutputMixin):
             click.echo(click.style(f"   {self.icons.arrow} {display_path}", fg="cyan"))
 
     def metric(self, label: str, value: Any, unit: str | None = None, indent: int = 0) -> None:
-        """Print a metric with label and optional unit."""
+        """
+        Print a labeled metric value with optional unit.
+
+        Args:
+            label: Metric name/label.
+            value: Metric value (any type, will be stringified).
+            unit: Optional unit suffix (e.g., "ms", "MB", "pages").
+            indent: Indentation level for the output.
+
+        Example:
+            >>> cli.metric("Build time", 823, unit="ms")
+            # Output: Build time: 823 ms
+
+            >>> cli.metric("Pages", 245)
+            # Output: Pages: 245
+        """
         if not self.should_show(MessageLevel.INFO):
             return
 
@@ -541,7 +621,28 @@ class CLIOutput(DevServerOutputMixin):
             click.echo(line)
 
     def table(self, data: list[dict[str, str]], headers: list[str]) -> None:
-        """Print a table (rich only, falls back to simple list)."""
+        """
+        Print a formatted table.
+
+        In Rich mode, displays a proper table with headers and borders.
+        In plain mode, falls back to a simple key: value list format.
+
+        Args:
+            data: List of row dicts where keys match header names.
+            headers: List of column header strings.
+
+        Example:
+            >>> cli.table(
+            ...     [{"Name": "index.md", "Size": "2.3KB"}],
+            ...     headers=["Name", "Size"]
+            ... )
+            # Rich output:
+            # ┌──────────┬───────┐
+            # │ Name     │ Size  │
+            # ├──────────┼───────┤
+            # │ index.md │ 2.3KB │
+            # └──────────┴───────┘
+        """
         if not self.should_show(MessageLevel.INFO):
             return
 
@@ -562,7 +663,24 @@ class CLIOutput(DevServerOutputMixin):
     def prompt(
         self, text: str, default: Any = None, type: Any = str, show_default: bool = True
     ) -> Any:
-        """Prompt user for input with themed styling."""
+        """
+        Prompt user for text input with themed styling.
+
+        Uses Rich Prompt in Rich mode, Click prompt otherwise.
+
+        Args:
+            text: Prompt text shown to user.
+            default: Default value if user presses Enter.
+            type: Expected input type for validation.
+            show_default: If True, display the default value in prompt.
+
+        Returns:
+            The user's input, converted to the specified type.
+
+        Example:
+            >>> name = cli.prompt("Project name", default="my-site")
+            # Output: Project name [my-site]:
+        """
         if self.use_rich:
             from rich.prompt import Prompt
 
@@ -579,7 +697,22 @@ class CLIOutput(DevServerOutputMixin):
         return result
 
     def confirm(self, text: str, default: bool = False) -> bool:
-        """Prompt user for yes/no confirmation with themed styling."""
+        """
+        Prompt user for yes/no confirmation.
+
+        Uses Rich Confirm in Rich mode, Click confirm otherwise.
+
+        Args:
+            text: Confirmation prompt text.
+            default: Default value if user presses Enter (False = no).
+
+        Returns:
+            True if user confirmed, False otherwise.
+
+        Example:
+            >>> if cli.confirm("Overwrite existing files?"):
+            ...     # proceed with overwrite
+        """
         if self.use_rich:
             from rich.prompt import Confirm
 
@@ -591,7 +724,12 @@ class CLIOutput(DevServerOutputMixin):
         return result
 
     def blank(self) -> None:
-        """Print a blank line (max one consecutive)."""
+        """
+        Print a blank line, preventing consecutive blanks.
+
+        Tracks output state to ensure multiple consecutive blank() calls
+        only produce a single blank line.
+        """
         if self._last_was_blank:
             return  # Prevent consecutive blank lines
         self._last_was_blank = True
@@ -601,13 +739,13 @@ class CLIOutput(DevServerOutputMixin):
             click.echo()
 
     def _mark_output(self) -> None:
-        """Mark that non-blank output was printed (resets blank tracking)."""
+        """Mark that non-blank output was printed, resetting blank tracking."""
         self._last_was_blank = False
 
     # === Internal helpers ===
 
     def _show_timing(self) -> bool:
-        """Should we show timing info based on profile?"""
+        """Check if timing info should be shown based on profile."""
         if not self.profile:
             return False
 
@@ -620,13 +758,13 @@ class CLIOutput(DevServerOutputMixin):
         return "WRITER" not in profile_name
 
     def _show_details(self) -> bool:
-        """Should we show detailed info based on profile?"""
+        """Check if detailed info should be shown based on profile."""
         if not self.profile:
             return True
         return True
 
     def _format_phase_line(self, parts: list[str]) -> str:
-        """Format a phase line with consistent spacing."""
+        """Format a phase line with consistent column spacing."""
         if len(parts) < 2:
             return " ".join(parts)
 
@@ -645,6 +783,7 @@ class CLIOutput(DevServerOutputMixin):
             return f"{icon} {name_padded} Done"
 
     def _now_ms(self) -> int:
+        """Get current monotonic time in milliseconds for phase deduplication."""
         try:
             import time as _time
 
@@ -659,6 +798,7 @@ class CLIOutput(DevServerOutputMixin):
             return 0
 
     def _should_dedup_phase(self, line: str) -> bool:
+        """Check if phase line should be deduplicated in dev server mode."""
         if not getattr(self, "dev_server", False):
             return False
         key = line
@@ -668,13 +808,18 @@ class CLIOutput(DevServerOutputMixin):
         )
 
     def _mark_phase_emit(self, line: str) -> None:
+        """Record phase emission for deduplication tracking."""
         if not getattr(self, "dev_server", False):
             return
         self._last_phase_key = line
         self._last_phase_time_ms = self._now_ms()
 
     def _format_path(self, path: str) -> str:
-        """Format path based on profile (shorten for Writer, full for Developer)."""
+        """
+        Format path based on active profile.
+
+        Writer: filename only, Theme-Dev: abbreviated, Developer: full path.
+        """
         if not self.profile:
             return path
 
