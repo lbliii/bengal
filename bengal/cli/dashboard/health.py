@@ -422,38 +422,36 @@ class BengalHealthDashboard(BengalDashboard):
 
     def _extract_categories_by_validator(self, report: HealthReport) -> dict[str, dict]:
         """Extract and group categories by validator type (Task 3.1)."""
+        from bengal.health.report import CheckStatus
+
         categories: dict[str, dict] = {}
 
-        # Try to extract from report structure
-        if hasattr(report, "results"):
-            # Group by validator name
-            for result in report.results:
-                validator = getattr(result, "validator", "Other")
+        # HealthReport has validator_reports (list of ValidatorReport), not results
+        # Each ValidatorReport has validator_name and results (list of CheckResult)
+        for validator_report in report.validator_reports:
+            validator_name = validator_report.validator_name
 
-                # Get category info from mapping
-                if validator in VALIDATOR_CATEGORIES:
-                    emoji, display_name = VALIDATOR_CATEGORIES[validator]
-                else:
-                    # Default for unknown validators
-                    emoji, display_name = ("📋", validator.replace("Validator", ""))
+            # Get category info from mapping
+            if validator_name in VALIDATOR_CATEGORIES:
+                emoji, display_name = VALIDATOR_CATEGORIES[validator_name]
+            else:
+                # Default for unknown validators
+                emoji, display_name = ("📋", validator_name.replace("Validator", ""))
 
-                if display_name not in categories:
-                    categories[display_name] = {"emoji": emoji, "issues": []}
+            if display_name not in categories:
+                categories[display_name] = {"emoji": emoji, "issues": []}
 
+            # Iterate over CheckResults within this ValidatorReport
+            for result in validator_report.results:
                 # Only add non-success results
-                status = getattr(result, "status", None)
-                if status and hasattr(status, "value") and status.value != "success":
+                if result.status != CheckStatus.SUCCESS:
                     categories[display_name]["issues"].append(
                         {
-                            "severity": status.value if status else "warning",
-                            "message": getattr(result, "message", str(result)),
-                            "file": getattr(result, "metadata", {}).get("file")
-                            if hasattr(result, "metadata") and result.metadata
-                            else None,
-                            "line": getattr(result, "metadata", {}).get("line")
-                            if hasattr(result, "metadata") and result.metadata
-                            else None,
-                            "recommendation": getattr(result, "recommendation", None),
+                            "severity": result.status.name.lower(),
+                            "message": result.message,
+                            "file": None,  # CheckResult doesn't have file/line directly
+                            "line": None,
+                            "recommendation": result.recommendation,
                         }
                     )
 
@@ -469,38 +467,27 @@ class BengalHealthDashboard(BengalDashboard):
         return categories
 
     def _extract_categories(self, report: HealthReport) -> dict[str, list[dict]]:
-        """Extract categories from health report."""
+        """Extract categories from health report (legacy fallback)."""
+        from bengal.health.report import CheckStatus
+
         categories: dict[str, list[dict]] = {}
 
-        # Try to extract from report structure
-        # This adapts to the actual HealthReport structure
-        if hasattr(report, "issues"):
-            # Group by category
-            for issue in report.issues:
-                cat = getattr(issue, "category", "Other")
-                if cat not in categories:
-                    categories[cat] = []
-                categories[cat].append(
-                    {
-                        "severity": getattr(issue, "severity", "warning"),
-                        "message": getattr(issue, "message", str(issue)),
-                        "file": getattr(issue, "file", None),
-                        "line": getattr(issue, "line", None),
-                    }
-                )
-        elif hasattr(report, "categories"):
-            # Already categorized
-            for cat_name, cat_data in report.categories.items():
-                if hasattr(cat_data, "issues"):
-                    categories[cat_name] = [
+        # HealthReport uses validator_reports, not issues/categories
+        for validator_report in report.validator_reports:
+            cat = validator_report.validator_name.replace("Validator", "")
+            if cat not in categories:
+                categories[cat] = []
+
+            for result in validator_report.results:
+                if result.status != CheckStatus.SUCCESS:
+                    categories[cat].append(
                         {
-                            "severity": getattr(i, "severity", "warning"),
-                            "message": getattr(i, "message", str(i)),
-                            "file": getattr(i, "file", None),
-                            "line": getattr(i, "line", None),
+                            "severity": result.status.name.lower(),
+                            "message": result.message,
+                            "file": None,
+                            "line": None,
                         }
-                        for i in cat_data.issues
-                    ]
+                    )
 
         return categories
 
