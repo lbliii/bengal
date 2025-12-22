@@ -24,6 +24,7 @@ See Also:
 from __future__ import annotations
 
 import re
+from contextlib import suppress
 from pathlib import Path
 from typing import Any
 
@@ -171,6 +172,11 @@ class RenderingPipeline:
         self.build_context = build_context
         self.changed_sources = {Path(p) for p in (changed_sources or set())}
 
+        # Extract output collector from build context for hot reload tracking
+        self._output_collector = (
+            getattr(build_context, "output_collector", None) if build_context else None
+        )
+
         # Cache per-pipeline helpers (one pipeline per worker thread).
         # These are safe to reuse and avoid per-page import/initialization overhead.
         self._api_doc_enhancer: Any | None = None
@@ -281,7 +287,7 @@ class RenderingPipeline:
                 self.build_stats.rendered_cache_hits = 0
             self.build_stats.rendered_cache_hits += 1
 
-        write_output(page, self.site, self.dependency_tracker)
+        write_output(page, self.site, self.dependency_tracker, collector=self._output_collector)
 
         if self.dependency_tracker and not page.metadata.get("_generated"):
             self.dependency_tracker.end_page()
@@ -339,7 +345,7 @@ class RenderingPipeline:
         page.rendered_html = self.renderer.render_page(page, html_content)
         page.rendered_html = format_html(page.rendered_html, page, self.site)
 
-        write_output(page, self.site, self.dependency_tracker)
+        write_output(page, self.site, self.dependency_tracker, collector=self._output_collector)
 
         if self.dependency_tracker and not page.metadata.get("_generated"):
             self.dependency_tracker.end_page()
@@ -504,7 +510,7 @@ class RenderingPipeline:
         # Store rendered output in cache
         self._cache_rendered_output(page, template)
 
-        write_output(page, self.site, self.dependency_tracker)
+        write_output(page, self.site, self.dependency_tracker, collector=self._output_collector)
 
         # Accumulate JSON data during rendering
         self._accumulate_json_data(page)
@@ -592,7 +598,7 @@ class RenderingPipeline:
             or page.metadata.get("is_section_index")
         ):
             self._render_autodoc_page(page)
-            write_output(page, self.site, self.dependency_tracker)
+            write_output(page, self.site, self.dependency_tracker, collector=self._output_collector)
             logger.debug(
                 "autodoc_page_rendered",
                 source_path=str(page.source_path),
@@ -623,7 +629,7 @@ class RenderingPipeline:
             page.rendered_html = self.renderer.render_page(page, html_content)
             page.rendered_html = format_html(page.rendered_html, page, self.site)
 
-        write_output(page, self.site, self.dependency_tracker)
+        write_output(page, self.site, self.dependency_tracker, collector=self._output_collector)
 
         logger.debug(
             "virtual_page_rendered",
@@ -785,7 +791,7 @@ class RenderingPipeline:
 
     def _write_output(self, page: Page) -> None:
         """Write rendered page to output directory (backward compatibility wrapper)."""
-        write_output(page, self.site, self.dependency_tracker)
+        write_output(page, self.site, self.dependency_tracker, collector=self._output_collector)
 
     def _preprocess_content(self, page: Page) -> str:
         """Pre-process page content through Jinja2 (legacy parser only)."""
@@ -948,11 +954,8 @@ class RenderingPipeline:
                     obj.href = href
                 except Exception:
                     # If URL computation fails, set to None (template will use fallback)
-                    try:
+                    with suppress(AttributeError, TypeError):
                         obj.href = None
-                    except (AttributeError, TypeError):
-                        # Can't set attribute, skip
-                        pass
 
             # Recursively coerce children if they exist and are iterable
             children = getattr(obj, "children", None)

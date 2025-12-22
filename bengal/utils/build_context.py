@@ -36,6 +36,7 @@ if TYPE_CHECKING:
     from bengal.cache.dependency_tracker import DependencyTracker
     from bengal.cli.progress import LiveProgressManager
     from bengal.core.asset import Asset
+    from bengal.core.output import OutputCollector
     from bengal.core.page import Page
     from bengal.core.site import Site
     from bengal.orchestration.stats import BuildStats
@@ -101,6 +102,9 @@ class BuildContext:
     cli: CLIOutput | None = None
     progress_manager: LiveProgressManager | None = None
     reporter: ProgressReporter | None = None
+
+    # Output collector for hot reload tracking
+    output_collector: OutputCollector | None = None
 
     # Timing (build start time for duration calculation)
     build_start: float = 0.0
