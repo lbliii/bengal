@@ -1,5 +1,14 @@
 ## [Unreleased]
 
+### Build Output Tracking ✅
+- **core(output)**: add `OutputRecord`, `OutputType`, `OutputCollector` protocol for typed output tracking
+- **core(output)**: add `BuildOutputCollector` thread-safe implementation with phase and type classification
+- **orchestration(build)**: create `BuildOutputCollector` per build and wire through asset/render/postprocess phases
+- **orchestration(stats)**: change `BuildStats.changed_outputs` type from `list[str] | None` to `list[OutputRecord]`
+- **server(reload)**: add `decide_from_outputs()` for typed reload decisions (CSS-only vs full reload)
+- **server**: enable CSS hot reload without snapshot diffing when typed outputs available
+- **plan**: remove completed build output tracking RFC and plan - work documented in changelog
+
 ### Parallel Asset Tracking ✅
 - **orchestration(build)**: parallelize `phase_track_assets` using `ThreadPoolExecutor` matching rendering pattern
 - **orchestration(build)**: add `PARALLEL_THRESHOLD = 5` to skip thread overhead for small sites
