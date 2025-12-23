@@ -79,7 +79,6 @@ class IncrementalOrchestrator:
         self.site = site
         self.cache: BuildCache | None = None
         self.tracker: DependencyTracker | None = None
-        self.logger = get_logger(__name__)
 
         # Component instances
         self._cache_manager = CacheManager(site)

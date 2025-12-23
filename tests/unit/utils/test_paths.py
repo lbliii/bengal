@@ -1,8 +1,12 @@
-"""Tests for path utilities."""
+"""Tests for path utilities.
+
+Note: These tests use LegacyBengalPaths for the static method interface.
+For new code, prefer the instance-based bengal.cache.paths.BengalPaths.
+"""
 
 from pathlib import Path
 
-from bengal.utils.paths import BengalPaths
+from bengal.utils.paths import LegacyBengalPaths as BengalPaths
 
 
 class TestGetProfileDir:

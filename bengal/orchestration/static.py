@@ -76,7 +76,6 @@ class StaticOrchestrator:
 
     def __init__(self, site: Site) -> None:
         self.site = site
-        self.logger = get_logger(__name__)
 
         # Get config with defaults
         static_config = site.config.get("static", {})
@@ -107,14 +106,14 @@ class StaticOrchestrator:
             Number of files copied
         """
         if not self.is_enabled():
-            self.logger.debug("static_copy_skipped", reason="disabled_or_missing")
+            logger.debug("static_copy_skipped", reason="disabled_or_missing")
             return 0
 
         # Check for large static folder
         total_size = self.get_total_size()
         if total_size > LARGE_STATIC_WARNING_BYTES:
             size_mb = total_size / (1024 * 1024)
-            self.logger.warning(
+            logger.warning(
                 "static_folder_large",
                 size_mb=f"{size_mb:.1f}",
                 hint="Consider moving large files to external storage",
@@ -139,21 +138,21 @@ class StaticOrchestrator:
                 shutil.copy2(source_path, dest_path)
                 count += 1
 
-                self.logger.debug("static_file_copied", source=str(rel_path))
+                logger.debug("static_file_copied", source=str(rel_path))
 
             except OSError as e:
                 errors += 1
-                self.logger.warning(
+                logger.warning(
                     "static_file_copy_failed",
                     source=str(rel_path),
                     error=str(e),
                 )
 
         if count > 0:
-            self.logger.info("static_files_copied", count=count)
+            logger.info("static_files_copied", count=count)
 
         if errors > 0:
-            self.logger.warning("static_copy_errors", count=errors)
+            logger.warning("static_copy_errors", count=errors)
 
         return count
 
@@ -175,16 +174,16 @@ class StaticOrchestrator:
         dest_path = self.output_dir / rel_path
 
         if not source_path.is_file():
-            self.logger.debug("static_file_not_found", path=str(rel_path))
+            logger.debug("static_file_not_found", path=str(rel_path))
             return False
 
         try:
             dest_path.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source_path, dest_path)
-            self.logger.debug("static_file_updated", path=str(rel_path))
+            logger.debug("static_file_updated", path=str(rel_path))
             return True
         except OSError as e:
-            self.logger.warning(
+            logger.warning(
                 "static_file_copy_failed",
                 path=str(rel_path),
                 error=str(e),
@@ -209,10 +208,10 @@ class StaticOrchestrator:
 
         try:
             dest_path.unlink()
-            self.logger.debug("static_file_removed", path=str(rel_path))
+            logger.debug("static_file_removed", path=str(rel_path))
             return True
         except OSError as e:
-            self.logger.warning(
+            logger.warning(
                 "static_file_remove_failed",
                 path=str(rel_path),
                 error=str(e),

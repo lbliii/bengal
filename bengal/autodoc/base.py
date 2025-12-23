@@ -55,6 +55,10 @@ class DocElement:
         examples: Usage examples
         see_also: Cross-references to related elements
         deprecated: Deprecation notice (if any)
+        _path: Site-relative URL path without baseurl (e.g., "/cli/assets/build/").
+            Computed during page building. Use for internal comparisons.
+        href: Public URL with baseurl (e.g., "/bengal/cli/assets/build/").
+            Computed during page building. Use in templates: <a href="{{ child.href }}">
     """
 
     name: str
@@ -69,6 +73,9 @@ class DocElement:
     examples: list[str] = field(default_factory=list)
     see_also: list[str] = field(default_factory=list)
     deprecated: str | None = None
+    # URL properties - computed during page building when site context is available
+    _path: str | None = None  # Site-relative path without baseurl (e.g., "/cli/assets/build/")
+    href: str | None = None  # Public URL with baseurl (e.g., "/bengal/cli/assets/build/")
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for caching/serialization."""
@@ -108,6 +115,8 @@ class DocElement:
             "examples": self.examples,
             "see_also": self.see_also,
             "deprecated": self.deprecated,
+            "_path": self._path,
+            "href": self.href,
         }
         # Serialize typed_metadata if present
         if self.typed_metadata is not None:
@@ -141,6 +150,8 @@ class DocElement:
             examples=data.get("examples", []),
             see_also=data.get("see_also", []),
             deprecated=data.get("deprecated"),
+            _path=data.get("_path"),
+            href=data.get("href"),
         )
 
     @staticmethod

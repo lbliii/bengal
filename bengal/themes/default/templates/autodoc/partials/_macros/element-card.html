@@ -6,40 +6,20 @@ Renders a single autodoc element as a card (command, class, function, endpoint, 
 Usage:
 {% from 'autodoc/partials/_macros/element-card.html' import element_card %}
 {{ element_card(child) }}
-{{ element_card(child, card_type='command', url_prefix='/cli/') }}
+{{ element_card(child, card_type='command') }}
 
 Args:
 child: DocElement to render (required)
 card_type: Override element type for styling (optional)
-url_prefix: Custom URL prefix (optional)
 
-Note: URLs are built from config output_prefix settings when available.
+Note: DocElement.href is pre-computed during page building with baseurl included.
+Templates should use {{ child.href }} directly for links.
 #}
 
-{% macro element_card(child, card_type=none, url_prefix=none) %}
+{% macro element_card(child, card_type=none) %}
 {% set child_type = card_type or child.element_type %}
-{# Get output prefixes from config, with sensible defaults #}
-{% set cli_config = config.cli if config is defined and config.cli is defined else none %}
-{% set python_config = config.python if config is defined and config.python is defined else none %}
-{% set cli_prefix = (cli_config.output_prefix if cli_config is not none and cli_config.output_prefix else 'cli') |
-trim('/') %}
-{% set python_prefix = (python_config.output_prefix if python_config is not none and python_config.output_prefix else
-'api') | trim('/') %}
-{# Build URL based on element type - match project patterns #}
-{% if child.href %}
-{% set child_url = child.href %}
-{% elif child_type in ['command', 'command-group'] %}
-{# Drop the first segment of qualified_name (the root command name) to get the correct path #}
-{% set qualified_parts = child.qualified_name.split('.') %}
-{% set child_path = (qualified_parts[1:] if qualified_parts | length > 1 else []) | join('/') %}
-{% set child_url = '/' ~ cli_prefix ~ '/' ~ (child_path ~ '/' if child_path else '') %}
-{% elif child_type in ['class', 'function', 'module'] %}
-{% set child_url = '/' ~ python_prefix ~ '/' ~ (child.qualified_name | replace('.', '/')) ~ '/' %}
-{% elif url_prefix %}
-{% set child_url = url_prefix ~ (child.qualified_name | replace('.', '/')) ~ '/' %}
-{% else %}
-{% set child_url = '#' %}
-{% endif %}
+{# Use pre-computed href (includes baseurl), fall back to anchor if not set #}
+{% set child_url = child.href or '#' %}
 <a href="{{ child_url }}" class="autodoc-card" data-card="{{ child_type }}">
     {% if child_type == 'endpoint' and child.metadata.method %}
     <span class="autodoc-method" data-method="{{ child.metadata.method | lower }}">{{ child.metadata.method | upper

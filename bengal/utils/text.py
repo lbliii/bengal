@@ -2,17 +2,18 @@
 Text processing utilities.
 
 Provides canonical implementations for common text operations like slugification,
-HTML stripping, truncation, and excerpt generation. These utilities consolidate
-duplicate implementations found throughout the codebase.
+HTML stripping, truncation, excerpt generation, and path formatting. These
+utilities consolidate duplicate implementations found throughout the codebase.
 
 Example:
 
 ```python
-from bengal.utils.text import slugify, strip_html, truncate_words
+from bengal.utils.text import slugify, strip_html, truncate_words, format_path_for_display
 
 slug = slugify("Hello World!")  # "hello-world"
 text = strip_html("<p>Hello</p>")  # "Hello"
 excerpt = truncate_words("Long text here...", 10)
+display = format_path_for_display("/home/user/site/content/post.md")  # "content/post.md"
 ```
 """
 
@@ -20,6 +21,7 @@ from __future__ import annotations
 
 import html as html_module
 import re
+from pathlib import Path
 
 
 def slugify(
@@ -305,29 +307,45 @@ def normalize_whitespace(text: str, collapse: bool = True) -> str:
 
 def escape_html(text: str) -> str:
     """
-    Escape HTML entities.
+    Escape HTML special characters for safe use in attributes.
 
     Converts special characters to HTML entities:
+    - & becomes &amp;
     - < becomes &lt;
     - > becomes &gt;
-    - & becomes &amp;
     - " becomes &quot;
     - ' becomes &#x27;
+
+    This function escapes apostrophes (single quotes) in addition to the
+    standard characters, making the output safe for use in both single-quoted
+    and double-quoted HTML attributes.
+
+    Consolidates implementations from:
+    - bengal/directives/utils.py (escape_html)
+    - bengal/directives/cards/utils.py (escape_html)
+    - bengal/directives/glossary.py (_escape_html)
 
     Args:
         text: Text to escape
 
     Returns:
-        HTML-escaped text
+        HTML-escaped text safe for use in attribute values
 
     Examples:
         >>> escape_html("<script>alert('xss')</script>")
-        "&lt;script&gt;alert('xss')&lt;/script&gt;"
+        "&lt;script&gt;alert(&#x27;xss&#x27;)&lt;/script&gt;"
+        >>> escape_html('Click "here" & win <prizes>')
+        'Click &quot;here&quot; &amp; win &lt;prizes&gt;'
+        >>> escape_html("")
+        ''
     """
     if not text:
         return ""
 
-    return html_module.escape(text)
+    # Use html.escape for the basics, then escape apostrophes separately
+    # html.escape(text, quote=True) escapes &, <, >, and " but not '
+    escaped = html_module.escape(text, quote=True)
+    return escaped.replace("'", "&#x27;")
 
 
 def unescape_html(text: str) -> str:
@@ -474,3 +492,64 @@ def humanize_slug(slug: str) -> str:
     if not slug:
         return ""
     return slug.replace("-", " ").replace("_", " ").title()
+
+
+def format_path_for_display(
+    path: Path | str | None,
+    base_path: Path | None = None,
+) -> str | None:
+    """
+    Format a path for user-friendly display in logs and warnings.
+
+    Converts absolute paths to relative paths when possible, making error
+    messages and logs more readable by avoiding user-specific directory prefixes.
+
+    Consolidates implementation from:
+    - bengal/utils/paths.py (original location)
+    - bengal/core/page/__init__.py (_format_path_for_log)
+
+    Args:
+        path: Path to format. Accepts Path objects, strings, or None.
+        base_path: Base directory to make paths relative to (typically
+            site.root_path). If None, falls back to showing just the
+            parent directory and filename.
+
+    Returns:
+        Formatted path string suitable for display, or None if path was None.
+
+    Examples:
+        >>> site_root = Path("/home/user/mysite")
+        >>> format_path_for_display(
+        ...     Path("/home/user/mysite/content/blog/post.md"),
+        ...     base_path=site_root
+        ... )
+        'content/blog/post.md'
+
+        >>> # Without base_path, shows parent/filename
+        >>> format_path_for_display(Path("/some/deep/path/file.md"))
+        'path/file.md'
+
+        >>> format_path_for_display(None)
+        None
+
+    Note:
+        This function is used throughout Bengal for consistent path
+        formatting in error messages, warnings, and log output.
+    """
+    if path is None:
+        return None
+
+    p = Path(path) if isinstance(path, str) else path
+
+    # Try to make relative to base path
+    if base_path is not None:
+        try:
+            return str(p.relative_to(base_path))
+        except ValueError:
+            pass  # Path not relative to base
+
+    # Fallback: show just parent/filename for readability
+    if p.is_absolute():
+        return f"{p.parent.name}/{p.name}" if p.parent.name else p.name
+
+    return str(p)

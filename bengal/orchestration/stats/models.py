@@ -8,7 +8,6 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from bengal.core.output import OutputRecord, OutputType
     from bengal.health.report import HealthReport
 
 
@@ -34,7 +33,7 @@ class BuildWarning:
         """Get shortened path for display."""
         from pathlib import Path
 
-        from bengal.utils.paths import format_path_for_display
+        from bengal.utils.text import format_path_for_display
 
         # Try CWD first
         try:
@@ -99,10 +98,9 @@ class BuildStats:
     # Strict mode flag (fail on validation errors)
     strict_mode: bool = False
 
-    # Builder-provided list of changed output records (relative to output dir)
+    # Optional: builder-provided list of changed output paths (relative to output dir)
     # When provided, the dev server will prefer this over snapshot diffing for reload decisions.
-    # Type is list[OutputRecord] but we use forward reference to avoid import cycle at dataclass creation
-    changed_outputs: list[OutputRecord] = field(default_factory=list)
+    changed_outputs: list[str] | None = None
 
     # Health check report (set after health checks run)
     health_report: HealthReport | None = None
@@ -220,22 +218,6 @@ class BuildStats:
         for warning in self.warnings:
             grouped[warning.warning_type].append(warning)
         return dict(grouped)
-
-    def get_output_paths(self, output_type: OutputType | None = None) -> list[str]:
-        """
-        Get output paths as strings, optionally filtered by type.
-
-        Useful for backward compatibility and passing to ReloadController.
-
-        Args:
-            output_type: If provided, filter to only this type
-
-        Returns:
-            List of relative path strings
-        """
-        if output_type is None:
-            return [str(o.path) for o in self.changed_outputs]
-        return [str(o.path) for o in self.changed_outputs if o.output_type == output_type]
 
     def to_dict(self) -> dict[str, Any]:
         """Convert stats to dictionary."""

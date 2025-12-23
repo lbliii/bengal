@@ -11,6 +11,7 @@ Functions:
     - ``data_attrs``: Generate ``data-*`` attribute strings from keyword arguments.
     - ``attr_str``: Generate a single HTML attribute string.
     - ``class_attr``: Generate a ``class="..."`` attribute string.
+    - ``get_markdown_instance``: Get the Markdown parser instance from a renderer.
 
 Example:
     Building an HTML tag with utilities::
@@ -30,6 +31,34 @@ from __future__ import annotations
 from typing import Any
 
 
+def get_markdown_instance(renderer: Any) -> Any | None:
+    """
+    Get the Markdown parser instance from a Mistune renderer.
+
+    Mistune renderers may have the parser instance available as either
+    ``_md`` (internal attribute) or ``md`` (public attribute) depending
+    on the Mistune version and configuration. This helper abstracts the
+    access pattern for consistent inline markdown parsing in directives.
+
+    Consolidates pattern from:
+        - bengal/directives/glossary.py (_parse_inline_markdown)
+        - bengal/directives/steps.py (_parse_inline_markdown)
+
+    Args:
+        renderer: Mistune renderer instance
+
+    Returns:
+        The Markdown parser instance (with ``inline()`` method) or None
+        if not available.
+
+    Example:
+        >>> md = get_markdown_instance(renderer)
+        >>> if md and hasattr(md, 'inline'):
+        ...     html = md.inline("**bold** text")
+    """
+    return getattr(renderer, "_md", None) or getattr(renderer, "md", None)
+
+
 def escape_html(text: str) -> str:
     """Escape HTML special characters for safe use in attributes.
 
@@ -39,6 +68,8 @@ def escape_html(text: str) -> str:
         - ``>`` → ``&gt;``
         - ``"`` → ``&quot;``
         - ``'`` → ``&#x27;``
+
+    This is a convenience re-export of the canonical implementation.
 
     Args:
         text: Raw text to escape.
@@ -51,16 +82,13 @@ def escape_html(text: str) -> str:
         'Click &quot;here&quot; &amp; win &lt;prizes&gt;'
         >>> escape_html("")
         ''
+
+    See Also:
+        ``bengal.utils.text.escape_html``: Canonical implementation.
     """
-    if not text:
-        return ""
-    return (
-        text.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace('"', "&quot;")
-        .replace("'", "&#x27;")
-    )
+    from bengal.utils.text import escape_html as _escape_html
+
+    return _escape_html(text)
 
 
 def build_class_string(*classes: str) -> str:

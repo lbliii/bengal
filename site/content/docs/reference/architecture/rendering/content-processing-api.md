@@ -240,13 +240,41 @@ These are NOT computed by Bengal but are available directly from frontmatter met
 - `page.metadata` - Raw frontmatter dict
 - `page.tags` - Tags list
 - `page.content` - Raw markdown content
-- `page.rendered_html` - Rendered HTML
 - `page.source_path` - Source file path
 - `page.output_path` - Output file path
 - `page.links` - Extracted links
 - `page.lang` - Language code (i18n)
 - `page.translation_key` - Translation identifier (i18n)
 - `page.version` - Version string (for versioned docs)
+
+### Content Representation Properties
+
+Bengal provides multiple representations of page content:
+
+| Property | Type | Purpose |
+|----------|------|---------|
+| `page.content` | `str` | Raw Markdown source |
+| `page.ast` | `list[ASTNode]` | Parsed Abstract Syntax Tree (for advanced processing) |
+| `page.html` | `str` | Rendered HTML (derived from AST) |
+| `page.plain_text` | `str` | Plain text content (for search indexing) |
+
+**AST Access (Advanced)**:
+
+The `page.ast` property provides direct access to the parsed Markdown structure. This enables:
+
+- Custom TOC generation
+- Link extraction and validation
+- Content analysis (heading structure, link density)
+- Plugin development
+
+```python
+# Plugin example: extract all headings
+for node in walk_ast(page.ast):
+    if node.get("type") == "heading":
+        print(f"H{node['level']}: {extract_text(node)}")
+```
+
+**Note**: For most use cases, use `page.html` or template functions. Direct AST access is for advanced scenarios.
 
 These can be accessed directly without configuration:
 

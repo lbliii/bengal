@@ -21,7 +21,8 @@ def create_ast_parser(mistune_module: Any, base_plugins: list[Any] | None) -> An
     Create an AST parser instance.
 
     IMPORTANT: Uses the same plugin set as the HTML parser so directive tokens
-    are present in the returned token stream.
+    are present in the returned token stream. However, renderer-dependent plugins
+    (like syntax highlighting) are filtered out since AST mode uses renderer=None.
 
     Args:
         mistune_module: The imported mistune module
@@ -30,10 +31,22 @@ def create_ast_parser(mistune_module: Any, base_plugins: list[Any] | None) -> An
     Returns:
         Mistune markdown instance configured for AST output
     """
-    plugins = list(base_plugins) if isinstance(base_plugins, list) else []
+    # Filter out renderer-dependent plugins
+    # Syntax highlighting modifies the renderer's block_code method,
+    # which doesn't exist when renderer=None (AST mode)
+    ast_safe_plugins = []
+    if base_plugins:
+        for plugin in base_plugins:
+            # Skip highlighting plugin (it wraps renderer.block_code)
+            plugin_name = getattr(plugin, "__name__", str(plugin))
+            if "highlighting" in plugin_name.lower():
+                logger.debug("ast_parser_skipping_plugin", plugin=plugin_name)
+                continue
+            ast_safe_plugins.append(plugin)
+
     return mistune_module.create_markdown(
         renderer=None,  # None means AST output
-        plugins=plugins,
+        plugins=ast_safe_plugins,
     )
 
 

@@ -46,6 +46,8 @@ from typing import Any
 from bengal.config.defaults import DEFAULT_MAX_WORKERS, DEFAULTS
 from bengal.utils.logger import get_logger
 
+logger = get_logger(__name__)
+
 
 def pretty_print_config(config: dict[str, Any], title: str = "Configuration") -> None:
     """
@@ -169,7 +171,6 @@ class ConfigLoader:
         """
         self.root_path = root_path
         self.warnings: list[str] = []
-        self.logger = get_logger(__name__)
 
     def load(self, config_path: Path | None = None) -> dict[str, Any]:
         """
@@ -195,13 +196,11 @@ class ConfigLoader:
             config_file = self.root_path / filename
             if config_file.exists():
                 # Use debug level to avoid noise in normal output
-                self.logger.debug(
-                    "config_file_found", config_file=filename, format=config_file.suffix
-                )
+                logger.debug("config_file_found", config_file=filename, format=config_file.suffix)
                 return self._load_file(config_file)
 
         # Return default config if no file found
-        self.logger.warning(
+        logger.warning(
             "config_file_not_found",
             search_path=self.root_path.name,
             tried_files=["bengal.toml", "bengal.yaml", "bengal.yml"],
@@ -234,7 +233,7 @@ class ConfigLoader:
 
         try:
             # Use debug level to avoid noise in normal output
-            self.logger.debug("config_load_start", config_path=str(config_path), format=suffix)
+            logger.debug("config_load_start", config_path=str(config_path), format=suffix)
 
             # Load raw config
             if suffix == ".toml":
@@ -255,7 +254,7 @@ class ConfigLoader:
             validated_config = validator.validate(raw_config, source_file=config_path)
 
             # Use debug level to avoid noise in normal output
-            self.logger.debug(
+            logger.debug(
                 "config_load_complete",
                 config_path=str(config_path),
                 sections=list(validated_config.keys()),
@@ -266,7 +265,7 @@ class ConfigLoader:
 
         except ConfigValidationError:
             # Validation error already printed nice errors
-            self.logger.error(
+            logger.error(
                 "config_validation_failed", config_path=str(config_path), error="validation_error"
             )
             raise
@@ -278,7 +277,7 @@ class ConfigLoader:
                 # Re-raise with clearer context word included
                 raise type(e)(f"Config parse error: {e}") from e
             # Otherwise, optionally propagate via env toggle, else fall back to defaults.
-            self.logger.error(
+            logger.error(
                 "config_load_failed",
                 config_path=str(config_path),
                 error=str(e),
@@ -404,7 +403,7 @@ class ConfigLoader:
                         normalized[canonical].update(value)
                         warning_msg = f"⚠️  Both [{key}] and [{canonical}] defined. Merging into [{canonical}]."
                         self.warnings.append(warning_msg)
-                        self.logger.warning(
+                        logger.warning(
                             "config_section_duplicate",
                             alias=key,
                             canonical=canonical,
@@ -415,7 +414,7 @@ class ConfigLoader:
                             f"⚠️  Both [{key}] and [{canonical}] defined. Using [{canonical}]."
                         )
                         self.warnings.append(warning_msg)
-                        self.logger.warning(
+                        logger.warning(
                             "config_section_duplicate",
                             alias=key,
                             canonical=canonical,
@@ -425,7 +424,7 @@ class ConfigLoader:
                     normalized[canonical] = value
                     warning_msg = f"💡 Config note: [{key}] works, but [{canonical}] is preferred for consistency"
                     self.warnings.append(warning_msg)
-                    self.logger.debug(
+                    logger.debug(
                         "config_section_alias_used",
                         alias=key,
                         canonical=canonical,
@@ -437,16 +436,14 @@ class ConfigLoader:
                 if suggestions:
                     warning_msg = f"⚠️  Unknown section [{key}]. Did you mean [{suggestions[0]}]?"
                     self.warnings.append(warning_msg)
-                    self.logger.warning(
+                    logger.warning(
                         "config_section_unknown",
                         section=key,
                         suggestion=suggestions[0],
                         action="including_anyway",
                     )
                 else:
-                    self.logger.debug(
-                        "config_section_custom", section=key, note="not in known sections"
-                    )
+                    logger.debug("config_section_custom", section=key, note="not in known sections")
                 # Still include it (might be user-defined)
                 normalized[key] = value
             else:
@@ -477,7 +474,7 @@ class ConfigLoader:
         if self.warnings and verbose:
             # Log and print warnings in verbose mode
             for warning in self.warnings:
-                self.logger.warning("config_warning", note=warning)
+                logger.warning("config_warning", note=warning)
                 print(warning)
 
     def _default_config(self) -> dict[str, Any]:

@@ -279,7 +279,11 @@ class DevServer:
 
             # 5. Create HTTP server (determines actual port)
             httpd, actual_port = self._create_server()
+            # Register server first, then SSE shutdown
+            # Cleanup happens in LIFO order, so SSE shutdown (last registered)
+            # runs FIRST, allowing SSE handlers to exit before server shutdown
             rm.register_server(httpd)
+            rm.register_sse_shutdown()
 
             # 6. Start file watcher if enabled (needs actual_port for rebuild messages)
             if self.watch:

@@ -156,10 +156,21 @@ def resolve_page(xref_index: dict[str, Any], link: str, current_page_dir: str | 
 
 
 def resolve_link_url(renderer: Any, link: str) -> str:
-    """Resolve a link reference to a URL."""
-    if link.startswith("/") or link.startswith("http://") or link.startswith("https://"):
+    """Resolve a link reference to a URL (includes baseurl for absolute paths)."""
+    # External URLs - return as-is
+    if link.startswith("http://") or link.startswith("https://"):
         return link
 
+    # Site-relative paths need baseurl applied
+    if link.startswith("/"):
+        site = getattr(renderer, "_site", None)
+        if site:
+            from bengal.rendering.template_engine.url_helpers import with_baseurl
+
+            return with_baseurl(link, site)
+        return link
+
+    # Try to resolve as page reference
     xref_index = getattr(renderer, "_xref_index", None)
     if not xref_index:
         return link
@@ -354,13 +365,19 @@ def render_child_card(
 
 
 def escape_html(text: str) -> str:
-    """Escape HTML special characters."""
-    if not text:
-        return ""
-    return (
-        text.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace('"', "&quot;")
-        .replace("'", "&#x27;")
-    )
+    """Escape HTML special characters for safe use in attributes.
+
+    This is a convenience re-export of the canonical implementation.
+
+    Args:
+        text: Raw text to escape.
+
+    Returns:
+        HTML-escaped string safe for use in attribute values.
+
+    See Also:
+        ``bengal.utils.text.escape_html``: Canonical implementation.
+    """
+    from bengal.utils.text import escape_html as _escape_html
+
+    return _escape_html(text)

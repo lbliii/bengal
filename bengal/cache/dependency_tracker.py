@@ -30,6 +30,8 @@ from typing import TYPE_CHECKING
 from bengal.cache.build_cache import BuildCache
 from bengal.utils.logger import get_logger
 
+logger = get_logger(__name__)
+
 if TYPE_CHECKING:
     from bengal.core.site import Site
 
@@ -138,7 +140,6 @@ class DependencyTracker:
         """
         self.cache = cache
         self.site = site
-        self.logger = get_logger(__name__)
         self.tracked_files: dict[Path, str] = {}
         self.dependencies: dict[Path, set[Path]] = {}
         self.reverse_dependencies: dict[Path, set[Path]] = {}
@@ -297,7 +298,7 @@ class DependencyTracker:
 
             self.reverse_dependencies[target_key].add(str(source_page))
 
-        self.logger.debug(
+        logger.debug(
             "cross_version_link_tracked",
             source=str(source_page),
             target_version=target_version,
@@ -359,7 +360,7 @@ class DependencyTracker:
                 changed.add(file_path)
 
         if changed:
-            self.logger.info(
+            logger.info(
                 "changed_files_detected",
                 changed_count=len(changed),
                 total_tracked=len(self.cache.file_fingerprints),
@@ -382,7 +383,7 @@ class DependencyTracker:
         new_files = current_files - tracked_files
 
         if new_files:
-            self.logger.info(
+            logger.info(
                 "new_files_detected", new_count=len(new_files), total_current=len(current_files)
             )
 
@@ -402,7 +403,7 @@ class DependencyTracker:
         deleted_files = tracked_files - current_files
 
         if deleted_files:
-            self.logger.info(
+            logger.info(
                 "deleted_files_detected",
                 deleted_count=len(deleted_files),
                 total_tracked=len(tracked_files),

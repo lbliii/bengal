@@ -33,6 +33,8 @@ from bengal.assets.manifest import AssetManifest
 from bengal.config.defaults import get_max_workers
 from bengal.utils.logger import get_logger
 
+logger = get_logger(__name__)
+
 if TYPE_CHECKING:
     from bengal.cli.progress import LiveProgressManager
     from bengal.core.asset import Asset
@@ -86,7 +88,6 @@ class AssetOrchestrator:
             site: Site instance containing assets and configuration
         """
         self.site = site
-        self.logger = get_logger(__name__)
         # Ephemeral cache for CSS entry points discovered from full site asset list.
         # Invalidation strategy: recompute when the site.assets identity or length changes.
         self._cached_css_entry_points: list[Asset] | None = None
@@ -112,7 +113,7 @@ class AssetOrchestrator:
             current_len = len(self.site.assets)
         except Exception as e:
             # Defensive: if site/assets are not available yet
-            self.logger.debug(
+            logger.debug(
                 "css_entry_cache_id_check_failed",
                 error=str(e),
                 error_type=type(e).__name__,
@@ -129,7 +130,7 @@ class AssetOrchestrator:
                     a for a in self.site.assets if a.is_css_entry_point()
                 ]
             except Exception as e:
-                self.logger.debug(
+                logger.debug(
                     "css_entry_cache_population_failed",
                     error=str(e),
                     error_type=type(e).__name__,
@@ -205,10 +206,10 @@ class AssetOrchestrator:
                         assets.append(Asset(source_path=out_path, output_path=rel))
         except Exception as e:
             # Log and continue with normal asset processing
-            self.logger.warning("asset_pipeline_failed", error=str(e))
+            logger.warning("asset_pipeline_failed", error=str(e))
 
         if not assets:
-            self.logger.info("asset_processing_skipped", reason="no_assets")
+            logger.info("asset_processing_skipped", reason="no_assets")
             return
 
         start_time = time.time()
@@ -227,11 +228,7 @@ class AssetOrchestrator:
         other_assets = [a for a in assets if a.asset_type != "css"]
 
         # Check if JS bundling is enabled
-        assets_cfg = (
-            self.site.config.get("assets", {})
-            if isinstance(self.site.config.get("assets"), dict)
-            else {}
-        )
+        assets_cfg = self.site.assets_config
         bundle_js = assets_cfg.get("bundle_js", False)
 
         # Handle JS bundling if enabled
@@ -261,11 +258,7 @@ class AssetOrchestrator:
                 other_assets.extend(css_modules)
                 css_modules = []
 
-        assets_cfg = (
-            self.site.config.get("assets", {})
-            if isinstance(self.site.config.get("assets"), dict)
-            else {}
-        )
+        assets_cfg = self.site.assets_config
         if assets_cfg.get("pipeline", False):
             skip_exts = {".scss", ".sass", ".ts", ".tsx"}
             other_assets = [
@@ -294,7 +287,7 @@ class AssetOrchestrator:
         fingerprint = self.site.config.get("fingerprint_assets", True)
 
         # Log asset processing configuration
-        self.logger.info(
+        logger.info(
             "asset_processing_start",
             total_assets=len(assets),
             css_entries=len(css_entries),
@@ -344,7 +337,7 @@ class AssetOrchestrator:
 
         # Log completion metrics
         duration_ms = (time.time() - start_time) * 1000
-        self.logger.info(
+        logger.info(
             "asset_processing_complete",
             assets_processed=len(assets),
             output_files=total_output,
@@ -461,7 +454,7 @@ class AssetOrchestrator:
                 progress_manager.update_phase("assets", current=completed_count)
 
         if errors:
-            self.logger.error(
+            logger.error(
                 "asset_batch_processing_failed",
                 total_errors=len(errors),
                 total_assets=total_assets,
@@ -543,7 +536,7 @@ class AssetOrchestrator:
                 # Only log individual error if below threshold or first samples
                 threshold = 5
                 if aggregator.should_log_individual(e, context, threshold=threshold, max_samples=3):
-                    self.logger.error(
+                    logger.error(
                         "asset_processing_failed",
                         asset_path=str(asset.source_path),
                         error=str(enriched),
@@ -570,7 +563,7 @@ class AssetOrchestrator:
             process_one(asset, False)
 
         # Log aggregated summary if threshold exceeded
-        aggregator.log_summary(self.logger, threshold=5, error_type="assets")
+        aggregator.log_summary(logger, threshold=5, error_type="assets")
 
     def _create_js_bundle(
         self, js_modules: list[Asset], assets_cfg: dict[str, Any]
@@ -643,7 +636,7 @@ class AssetOrchestrator:
             ordered_files.extend(remaining)
 
             if not ordered_files:
-                self.logger.warning("js_bundle_no_files_to_bundle")
+                logger.warning("js_bundle_no_files_to_bundle")
                 return None
 
             # Bundle the files
@@ -662,7 +655,7 @@ class AssetOrchestrator:
             bundle_path = bundle_dir / "bundle.js"
             bundle_path.write_text(bundled_content, encoding="utf-8")
 
-            self.logger.info(
+            logger.info(
                 "js_bundle_created",
                 files_bundled=len(ordered_files),
                 size_kb=len(bundled_content) / 1024,
@@ -684,7 +677,7 @@ class AssetOrchestrator:
             return bundle_asset
 
         except Exception as e:
-            self.logger.error("js_bundle_failed", error=str(e))
+            logger.error("js_bundle_failed", error=str(e))
             return None
 
     def _process_css_entry(

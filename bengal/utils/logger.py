@@ -463,8 +463,21 @@ def configure_logging(
         logger.level = level
         logger.verbose = verbose
 
-        # Note: We don't update log_file for existing loggers
-        # to avoid closing/reopening files mid-build
+        # Update log_file for existing loggers if changed
+        # This is needed when reusing loggers across test runs with different log files
+        if logger.log_file != log_file:
+            # Close old file handle if exists
+            if logger._file_handle:
+                logger._file_handle.close()
+                logger._file_handle = None
+            logger.log_file = log_file
+            # Open new file handle if log_file specified
+            if log_file:
+                from contextlib import suppress
+
+                with suppress(Exception):
+                    log_file.parent.mkdir(parents=True, exist_ok=True)
+                logger._file_handle = open(log_file, "a", encoding="utf-8")  # noqa: SIM115
 
 
 def get_logger(name: str) -> BengalLogger:

@@ -47,6 +47,7 @@ from mistune.directives import DirectivePlugin
 
 from bengal.utils.file_io import load_data_file
 from bengal.utils.logger import get_logger
+from bengal.utils.text import escape_html
 
 __all__ = ["GlossaryDirective", "render_glossary"]
 
@@ -406,7 +407,7 @@ def _render_term(renderer: Any, term_data: dict[str, Any], show_tags: bool) -> s
     parts = []
 
     # Term (dt) - escape HTML but don't parse markdown
-    parts.append(f"  <dt>{_escape_html(term)}</dt>")
+    parts.append(f"  <dt>{escape_html(term)}</dt>")
 
     # Definition (dd) - parse inline markdown
     dd_content = _parse_inline_markdown(renderer, definition)
@@ -414,7 +415,7 @@ def _render_term(renderer: Any, term_data: dict[str, Any], show_tags: bool) -> s
     # Optionally show tags
     if show_tags and term_tags:
         tag_badges = " ".join(
-            f'<span class="bengal-glossary-tag">{_escape_html(t)}</span>' for t in term_tags
+            f'<span class="bengal-glossary-tag">{escape_html(t)}</span>' for t in term_tags
         )
         dd_content += f'<div class="bengal-glossary-tags">{tag_badges}</div>'
 
@@ -437,41 +438,26 @@ def _parse_inline_markdown(renderer: Any, text: str) -> str:
     Returns:
         HTML string with inline markdown converted
     """
+    from bengal.directives.utils import get_markdown_instance
+    from bengal.utils.text import escape_html
+
     # Try to use mistune's inline parser (proper way)
-    if hasattr(renderer, "_md"):
-        md_instance = renderer._md
-        if hasattr(md_instance, "inline"):
-            try:
-                result: str = md_instance.inline(text)
-                return result
-            except Exception as e:
-                logger.debug(
-                    "glossary_inline_parse_failed",
-                    method="_md",
-                    error=str(e),
-                    error_type=type(e).__name__,
-                    action="trying_md_fallback",
-                )
-                pass
-    elif hasattr(renderer, "md"):
-        md_instance = renderer.md
-        if hasattr(md_instance, "inline"):
-            try:
-                result = str(md_instance.inline(text))
-                return result
-            except Exception as e:
-                logger.debug(
-                    "glossary_inline_parse_failed",
-                    method="md",
-                    error=str(e),
-                    error_type=type(e).__name__,
-                    action="using_regex_fallback",
-                )
-                pass
+    md_instance = get_markdown_instance(renderer)
+    if md_instance and hasattr(md_instance, "inline"):
+        try:
+            result: str = md_instance.inline(text)
+            return result
+        except Exception as e:
+            logger.debug(
+                "glossary_inline_parse_failed",
+                error=str(e),
+                error_type=type(e).__name__,
+                action="using_regex_fallback",
+            )
 
     # Fallback to simple regex for basic markdown
     # First escape HTML to prevent XSS
-    text = _escape_html(text)
+    text = escape_html(text)
     # **bold** -> <strong>bold</strong>
     text = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", text)
     # *italic* -> <em>italic</em> (but not if it's part of **bold**)
@@ -479,14 +465,3 @@ def _parse_inline_markdown(renderer: Any, text: str) -> str:
     # `code` -> <code>code</code>
     text = re.sub(r"`(.+?)`", r"<code>\1</code>", text)
     return text
-
-
-def _escape_html(text: str) -> str:
-    """Escape HTML special characters."""
-    return (
-        str(text)
-        .replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace('"', "&quot;")
-    )

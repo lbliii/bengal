@@ -6,10 +6,10 @@ from pathlib import Path
 
 import pytest
 
-logger = logging.getLogger(__name__)
-
 from bengal.core.site import Site
 from bengal.utils.file_io import write_text_file
+
+logger = logging.getLogger(__name__)
 
 
 def pytest_configure(config: pytest.Config) -> None:
@@ -268,7 +268,7 @@ def sample_config():
 
 
 @pytest.fixture(autouse=True)
-def reset_bengal_state():
+def reset_bengal_state(request):
     """
     Reset all stateful singletons/caches between tests for test isolation.
 
@@ -277,6 +277,9 @@ def reset_bengal_state():
     - Logger state is cleared (prevents file handle leaks)
     - Theme cache is cleared (ensures fresh theme discovery)
     - Parser cache is cleared (ensures fresh parsers with current directives)
+
+    Tests can skip the logger reset by adding the @pytest.mark.preserve_loggers
+    marker. This is useful for tests that verify logged events across builds.
 
     Future expansions:
     - PageProxyCache (if added as singleton)
@@ -318,12 +321,14 @@ def reset_bengal_state():
         logger.debug("Rich console reset skipped: reset_console not available")
 
     # 2. Reset logger state (close file handles, clear registry)
-    try:
-        from bengal.utils.logger import reset_loggers
+    # Skip for tests that manage their own logger state (marked with preserve_loggers)
+    if not request.node.get_closest_marker("preserve_loggers"):
+        try:
+            from bengal.utils.logger import reset_loggers
 
-        reset_loggers()
-    except ImportError:
-        logger.debug("Logger reset skipped: reset_loggers not available")
+            reset_loggers()
+        except ImportError:
+            logger.debug("Logger reset skipped: reset_loggers not available")
 
     # 3. Clear theme cache (forces fresh discovery)
     try:

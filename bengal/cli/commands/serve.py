@@ -142,11 +142,13 @@ def serve(
     else:
         log_level = LogLevel.WARNING  # Default: only show warnings/errors
 
-    # Determine log file path
-    from bengal.utils.paths import BengalPaths
+    # Determine log file path using canonical BengalPaths
+    from bengal.cache.paths import BengalPaths
 
     root_path = Path(source).resolve()
-    log_path = BengalPaths.get_serve_log_path(root_path)
+    paths = BengalPaths(root_path)
+    paths.logs_dir.mkdir(parents=True, exist_ok=True)
+    log_path = paths.serve_log
 
     configure_logging(
         level=log_level,

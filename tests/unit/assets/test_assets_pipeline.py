@@ -1,12 +1,29 @@
 from pathlib import Path
 
+from bengal.cache.paths import BengalPaths
+
 
 class DummySite:
+    """Minimal Site mock for asset pipeline tests."""
+
     def __init__(self, root_path: Path, config: dict, theme: str = "default") -> None:
         self.root_path = root_path
         self.config = config
         self.theme = theme
         self.output_dir = root_path / "public"
+        self._paths: BengalPaths | None = None
+
+    @property
+    def paths(self) -> BengalPaths:
+        """Access to .bengal directory paths."""
+        if self._paths is None:
+            self._paths = BengalPaths(self.root_path)
+        return self._paths
+
+    @property
+    def assets_config(self) -> dict:
+        """Get the 'assets' configuration section."""
+        return self.config.get("assets", {})
 
 
 def test_asset_orchestrator_runs_pipeline_when_enabled(monkeypatch, tmp_path: Path):

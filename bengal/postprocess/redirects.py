@@ -105,7 +105,6 @@ class RedirectGenerator:
             site: Site instance with pages containing aliases
         """
         self.site = site
-        self.logger = get_logger(__name__)
 
     def generate(self) -> int:
         """
@@ -139,7 +138,7 @@ class RedirectGenerator:
         # Check for conflicts (multiple pages claiming same alias)
         for alias, claimants in alias_map.items():
             if len(claimants) > 1:
-                self.logger.warning(
+                logger.warning(
                     "redirect_alias_conflict",
                     alias=alias,
                     claimants=[f"{url} ({title})" for url, title in claimants],
@@ -154,7 +153,7 @@ class RedirectGenerator:
                 redirects_generated += 1
 
         if redirects_generated > 0:
-            self.logger.info(
+            logger.info(
                 "redirects_generated",
                 count=redirects_generated,
                 conflicts=conflicts,
@@ -179,7 +178,7 @@ class RedirectGenerator:
         # Normalize paths
         from_path_normalized = from_path.strip("/")
         if not from_path_normalized:
-            self.logger.warning(
+            logger.warning(
                 "redirect_invalid_alias",
                 alias=from_path,
                 reason="empty path after normalization",
@@ -201,7 +200,7 @@ class RedirectGenerator:
                 )
             except Exception as e:
                 # Registry rejected claim (higher priority content exists)
-                self.logger.warning(
+                logger.warning(
                     "redirect_conflict",
                     alias=from_path,
                     target=to_url,
@@ -211,7 +210,7 @@ class RedirectGenerator:
         else:
             # Fallback to file existence check if registry not available
             if output_path.exists():
-                self.logger.warning(
+                logger.warning(
                     "redirect_conflict",
                     alias=from_path,
                     target=to_url,
@@ -226,7 +225,7 @@ class RedirectGenerator:
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(html, encoding="utf-8")
 
-        self.logger.debug(
+        logger.debug(
             "redirect_page_created",
             from_path=from_path,
             to_url=to_url,
@@ -301,7 +300,7 @@ class RedirectGenerator:
         if lines:
             redirects_path = self.site.output_dir / "_redirects"
             redirects_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-            self.logger.info(
+            logger.info(
                 "redirects_file_generated",
                 path=str(redirects_path),
                 count=len(lines),

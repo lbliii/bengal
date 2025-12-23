@@ -120,11 +120,11 @@ class PageContentMixin:
         """
         Plain text extracted from content (for search/LLM).
 
-        Strips HTML tags from rendered content to get clean text.
-        Uses the rendered HTML (which includes directive output) for accuracy.
+        Uses AST extraction when available (faster, more accurate),
+        falling back to HTML tag stripping for legacy content.
 
         Returns:
-            Plain text content with HTML tags removed
+            Plain text content
 
         Example:
             >>> page.plain_text
@@ -134,8 +134,16 @@ class PageContentMixin:
         if hasattr(self, "_plain_text_cache") and self._plain_text_cache is not None:
             return self._plain_text_cache
 
-        # Use HTML-based extraction (works correctly with directives)
-        # Get HTML from parsed_ast (the rendered HTML before template)
+        # Prefer AST extraction (Phase 3) - faster and more accurate
+        if hasattr(self, "_ast_cache") and self._ast_cache:
+            from bengal.rendering.ast_utils import extract_plain_text
+
+            text = extract_plain_text(self._ast_cache)
+            if hasattr(self, "_plain_text_cache"):
+                self._plain_text_cache = text
+            return text
+
+        # Fallback: Use HTML-based extraction (works correctly with directives)
         html_content = getattr(self, "parsed_ast", None) or ""
         if html_content:
             text = self._strip_html_to_text(html_content)
@@ -183,8 +191,7 @@ class PageContentMixin:
         """
         Extract plain text from AST tokens.
 
-        Walks the AST tree and extracts all text content,
-        ignoring structural elements like code blocks.
+        Delegates to ast_utils.extract_plain_text for consistency.
 
         Returns:
             Plain text string
@@ -192,36 +199,15 @@ class PageContentMixin:
         if not hasattr(self, "_ast_cache") or not self._ast_cache:
             return ""
 
-        def walk_tokens(tokens: list[dict[str, Any]]) -> str:
-            """Recursively extract text from tokens."""
-            parts = []
-            for token in tokens:
-                token_type = token.get("type", "")
+        from bengal.rendering.ast_utils import extract_plain_text
 
-                # Extract raw text
-                if "raw" in token:
-                    parts.append(token["raw"])
-                elif "text" in token:
-                    parts.append(token["text"])
-
-                # Recurse into children
-                if "children" in token:
-                    parts.append(walk_tokens(token["children"]))
-
-                # Add spacing for block elements
-                if token_type in ("paragraph", "heading", "list", "block_code"):
-                    parts.append("\n")
-
-            return "".join(parts)
-
-        return walk_tokens(self._ast_cache).strip()
+        return extract_plain_text(self._ast_cache)
 
     def _extract_links_from_ast(self) -> list[str]:
         """
         Extract links from AST tokens.
 
-        Walks the AST tree and extracts all link URLs (Phase 3).
-        Handles Mistune 3.x AST format where URLs are in `attrs.url`.
+        Delegates to ast_utils.extract_links_from_ast for consistency.
 
         Returns:
             List of link URLs
@@ -229,32 +215,9 @@ class PageContentMixin:
         if not hasattr(self, "_ast_cache") or not self._ast_cache:
             return []
 
-        links: list[str] = []
+        from bengal.rendering.ast_utils import extract_links_from_ast
 
-        def walk_tokens(tokens: list[dict[str, Any]]) -> None:
-            """Recursively extract links from tokens."""
-            for token in tokens:
-                token_type = token.get("type", "")
-
-                # Extract link URLs (Mistune 3.x stores in attrs.url)
-                if token_type == "link":
-                    # Try attrs.url first (Mistune 3.x format)
-                    attrs = token.get("attrs", {})
-                    url = attrs.get("url", "") if isinstance(attrs, dict) else ""
-                    # Fallback for other formats
-                    if not url:
-                        url = token.get("link", "") or token.get("href", "")
-                    if url:
-                        links.append(url)
-
-                # Recurse into children
-                if "children" in token:
-                    children = token["children"]
-                    if isinstance(children, list):
-                        walk_tokens(children)
-
-        walk_tokens(self._ast_cache)
-        return links
+        return extract_links_from_ast(self._ast_cache)
 
     def _strip_html_to_text(self, html: str) -> str:
         """

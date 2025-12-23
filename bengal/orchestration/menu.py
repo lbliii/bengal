@@ -161,7 +161,7 @@ class MenuOrchestrator:
             SHA256 hash of menu-related data
         """
         # Get menu config
-        menu_config = self.site.config.get("menu", {})
+        menu_config = self.site.menu_config
 
         # Get pages with menu frontmatter
         menu_pages = []
@@ -397,7 +397,7 @@ class MenuOrchestrator:
         from bengal.core.menu import MenuBuilder
 
         # Get menu definitions from config (make deep copy to avoid mutating site config)
-        raw_menu_config = self.site.config.get("menu", {})
+        raw_menu_config = self.site.menu_config
         menu_config = copy.deepcopy(raw_menu_config)
 
         # For "main" menu, integrate auto-nav and dev bundling directly

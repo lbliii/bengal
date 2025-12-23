@@ -72,17 +72,84 @@ parallel = false
 
     yield tmp_path
 
-    # Cleanup loggers
-    _loggers.clear()
+    # Cleanup loggers - clear events, don't remove from registry
+    # (module-level logger references must remain valid)
+    for logger in _loggers.values():
+        logger._events.clear()
+        logger._phase_stack.clear()
 
 
 @pytest.fixture(autouse=True)
 def reset_loggers():
-    """Reset logger state before each test."""
-    _loggers.clear()
-    yield
+    """Reset logger state before each test.
+
+    Note: The global reset_bengal_state fixture in conftest.py calls
+    reset_loggers() which clears the _loggers registry entirely. This
+    orphans module-level logger references (logger = get_logger(__name__)).
+
+    Tests in this module use @pytest.mark.preserve_loggers to disable the
+    global logger reset and only clear events, preserving the registry.
+
+    CRITICAL: When running with pytest-xdist, a previous test on the same worker
+    may have cleared _loggers, orphaning the module-level logger references in
+    orchestration modules. We must reload those modules to get fresh loggers.
+    """
+    import importlib
+
+    from bengal.utils.logger import _global_config, set_console_quiet
+
+    # Close any existing file handles to ensure clean state
     close_all_loggers()
-    _loggers.clear()
+
+    # Clear events from existing loggers instead of removing them from registry
+    # This preserves module-level logger references
+    for logger in _loggers.values():
+        logger._events.clear()
+        logger._phase_stack.clear()
+        # Reset file handle to None so it can be re-opened if needed
+        logger._file_handle = None
+        logger.log_file = None
+
+    # Reset global config to defaults
+    _global_config["log_file"] = None
+    _global_config["verbose"] = False
+    _global_config["level"] = LogLevel.INFO
+
+    # Reset quiet_console to default (False) - builds set this to True
+    # and it persists across tests if not reset
+    set_console_quiet(False)
+
+    # CRITICAL FIX: Reload orchestration modules to ensure their module-level
+    # logger references point to loggers in the current _loggers registry.
+    # Without this, when a previous test on the same xdist worker clears _loggers,
+    # the orchestration modules still reference the old orphaned loggers and
+    # events get logged there instead of to the registry loggers.
+    try:
+        import bengal.orchestration.build
+        import bengal.orchestration.content
+
+        importlib.reload(bengal.orchestration.build)
+        importlib.reload(bengal.orchestration.content)
+    except (ImportError, AttributeError):
+        pass  # Modules not yet imported, will be imported fresh
+
+    yield
+    # Close file handles but DON'T clear the registry - module-level
+    # logger references must remain valid for subsequent tests
+    close_all_loggers()
+    # Clear events again for clean slate, but keep loggers in registry
+    for logger in _loggers.values():
+        logger._events.clear()
+        logger._phase_stack.clear()
+        # Reset file handle to None
+        logger._file_handle = None
+        logger.log_file = None
+    # Reset quiet_console again for clean slate
+    set_console_quiet(False)
+
+
+# Mark all tests in this module to preserve loggers (skip global reset_loggers call)
+pytestmark = pytest.mark.preserve_loggers
 
 
 class TestLoggingIntegration:
@@ -327,8 +394,11 @@ title: Invalid Page
         logger1 = get_logger("bengal.orchestration.build")
         normal_events = logger1.get_events()
 
-        # Reset for verbose mode
-        _loggers.clear()
+        # Reset for verbose mode - clear events but keep loggers in registry
+        # to avoid orphaning module-level logger references
+        for logger in _loggers.values():
+            logger._events.clear()
+            logger._phase_stack.clear()
 
         # Verbose mode
         configure_logging(level=LogLevel.DEBUG, verbose=True)
@@ -400,8 +470,11 @@ class TestLoggingPerformance:
         site1.build(parallel=False)
         duration1 = time.time() - start1
 
-        # Reset
-        _loggers.clear()
+        # Reset - clear events but keep loggers in registry
+        # to avoid orphaning module-level logger references
+        for logger in _loggers.values():
+            logger._events.clear()
+            logger._phase_stack.clear()
 
         # Build with verbose logging
         configure_logging(level=LogLevel.DEBUG, verbose=True)

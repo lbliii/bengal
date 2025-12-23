@@ -1,6 +1,6 @@
 # Plan: Hardening Phase - Codebase Consolidation
 
-**RFC**: `plan/drafted/rfc-hardening-consolidation.md`  
+**RFC**: `plan/evaluated/rfc-hardening-consolidation.md`  
 **Status**: Draft  
 **Created**: 2025-12-21  
 **Estimated Time**: 8-10 hours (phased, multiple PRs)

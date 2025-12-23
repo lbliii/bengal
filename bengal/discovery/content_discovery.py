@@ -48,6 +48,8 @@ from bengal.core.page import Page, PageProxy
 from bengal.core.section import Section
 from bengal.utils.logger import get_logger
 
+logger = get_logger(__name__)
+
 if TYPE_CHECKING:
     from bengal.collections import CollectionConfig
     from bengal.utils.build_context import BuildContext
@@ -119,7 +121,6 @@ class ContentDiscovery:
         self.site = site  # Optional reference for accessing configuration (i18n, etc.)
         self.sections: list[Section] = []
         self.pages: list[Page] = []
-        self.logger = get_logger(__name__)
         # Do not store mutable current section on the instance; pass explicitly
         self.current_section: Section | None = None
         # Symlink loop detection: track visited (device, inode) pairs
@@ -171,7 +172,7 @@ class ContentDiscovery:
         Returns:
             Tuple of (sections, pages)
         """
-        self.logger.info("content_discovery_start", content_dir=str(self.content_dir))
+        logger.info("content_discovery_start", content_dir=str(self.content_dir))
 
         # Reset symlink loop detection set for new discovery
         self._visited_inodes.clear()
@@ -182,7 +183,7 @@ class ContentDiscovery:
 
             has_libyaml = getattr(yaml, "__with_libyaml__", False)
             if not has_libyaml:
-                self.logger.info(
+                logger.info(
                     "pyyaml_c_extensions_missing",
                     hint="Install pyyaml[libyaml] for faster frontmatter parsing",
                 )
@@ -191,10 +192,10 @@ class ContentDiscovery:
             pass
         except Exception as e:
             # Unexpected error during yaml import check
-            self.logger.debug("yaml_import_check_failed", error=str(e))
+            logger.debug("yaml_import_check_failed", error=str(e))
 
         if not self.content_dir.exists():
-            self.logger.warning(
+            logger.warning(
                 "content_dir_missing", content_dir=str(self.content_dir), action="returning_empty"
             )
             return self.sections, self.pages
@@ -287,7 +288,7 @@ class ContentDiscovery:
                     on_error=lambda e: None,  # Skip failed pages, continue processing others
                     error_types=(Exception,),
                     strict_mode=strict_mode,
-                    logger=self.logger,
+                    logger=logger,
                 )
                 if page is not None:
                     self.pages.append(page)
@@ -352,7 +353,7 @@ class ContentDiscovery:
             [p for p in self.pages if not any(p in s.pages for s in self.sections)]
         )
 
-        self.logger.info(
+        logger.info(
             "content_discovery_complete",
             total_sections=len(self.sections),
             total_pages=len(self.pages),
@@ -374,7 +375,7 @@ class ContentDiscovery:
         Returns:
             Tuple of (sections, pages) with mixed Page and PageProxy objects
         """
-        self.logger.info(
+        logger.info(
             "content_discovery_with_cache_start",
             content_dir=str(self.content_dir),
             cached_pages=len(cache.pages) if hasattr(cache, "pages") else 0,
@@ -436,7 +437,7 @@ class ContentDiscovery:
                 all_discovered_pages[i] = proxy  # type: ignore[call-overload]
                 proxy_count += 1
 
-                self.logger.debug(
+                logger.debug(
                     "page_proxy_created",
                     source_path=str(page.source_path),
                     from_cache=True,
@@ -448,7 +449,7 @@ class ContentDiscovery:
         # Update self.pages with the mixed list
         self.pages = all_discovered_pages
 
-        self.logger.info(
+        logger.info(
             "content_discovery_with_cache_complete",
             total_pages=len(all_discovered_pages),
             proxies=proxy_count,
@@ -520,7 +521,7 @@ class ContentDiscovery:
                 # content_section is docs, tutorials, etc. - add to self.sections
                 if content_section.pages or content_section.subsections:
                     self.sections.append(content_section)
-                    self.logger.debug(
+                    logger.debug(
                         "versioned_section_added",
                         section_name=content_section.name,
                         version=version_section.name,
@@ -549,7 +550,7 @@ class ContentDiscovery:
             inode_key = (stat.st_dev, stat.st_ino)
 
             if inode_key in self._visited_inodes:
-                self.logger.warning(
+                logger.warning(
                     "symlink_loop_detected",
                     path=str(directory),
                     action="skipping_to_prevent_infinite_recursion",
@@ -558,7 +559,7 @@ class ContentDiscovery:
 
             self._visited_inodes.add(inode_key)
         except (OSError, PermissionError) as e:
-            self.logger.warning(
+            logger.warning(
                 "directory_stat_failed",
                 path=str(directory),
                 error=str(e),
@@ -573,7 +574,7 @@ class ContentDiscovery:
         try:
             dir_items = sorted(directory.iterdir())
         except PermissionError as e:
-            self.logger.warning(
+            logger.warning(
                 "directory_permission_denied",
                 path=str(directory),
                 error=str(e),
@@ -639,7 +640,7 @@ class ContentDiscovery:
                 on_error=lambda e: None,  # Skip failed pages, continue processing others
                 error_types=(Exception,),
                 strict_mode=strict_mode,
-                logger=self.logger,
+                logger=logger,
             )
             if page is not None:
                 parent_section.add_page(page)
@@ -691,7 +692,7 @@ class ContentDiscovery:
             try:
                 metadata = config.transform(metadata)
             except Exception as e:
-                self.logger.warning(
+                logger.warning(
                     "collection_transform_failed",
                     path=str(file_path),
                     collection=collection_name,
@@ -714,7 +715,7 @@ class ContentDiscovery:
                     collection_name=collection_name,
                 )
             else:
-                self.logger.warning(
+                logger.warning(
                     "collection_validation_failed",
                     path=str(file_path),
                     collection=collection_name,
@@ -850,7 +851,7 @@ class ContentDiscovery:
                                 page.translation_key = key
             except Exception as e:
                 # Do not fail discovery on i18n enrichment errors
-                self.logger.debug(
+                logger.debug(
                     "page_i18n_enrichment_failed",
                     page=str(file_path),
                     error=str(e),
@@ -871,7 +872,7 @@ class ContentDiscovery:
                     if page.core:
                         object.__setattr__(page.core, "version", version.id)
 
-            self.logger.debug(
+            logger.debug(
                 "page_created",
                 page_path=str(file_path),
                 has_metadata=bool(metadata),
@@ -880,7 +881,7 @@ class ContentDiscovery:
 
             return page
         except Exception as e:
-            self.logger.error(
+            logger.error(
                 "page_creation_failed",
                 file_path=str(file_path),
                 error=str(e),
@@ -938,7 +939,7 @@ class ContentDiscovery:
             # Enrich error for better error messages (context captured for logging)
             enrich_error(e, context, BengalDiscoveryError)
 
-            self.logger.debug(
+            logger.debug(
                 "frontmatter_parse_failed",
                 file_path=str(file_path),
                 error=str(e),
@@ -979,7 +980,7 @@ class ContentDiscovery:
                 if build_stats:
                     build_stats.add_error(enriched_error, category="discovery")
 
-            self.logger.warning(
+            logger.warning(
                 "content_parse_unexpected_error",
                 file_path=str(file_path),
                 error=str(e),
@@ -1037,7 +1038,7 @@ class ContentDiscovery:
 
         Called after content discovery is complete.
         """
-        self.logger.debug("sorting_sections_by_weight", total_sections=len(self.sections))
+        logger.debug("sorting_sections_by_weight", total_sections=len(self.sections))
 
         # Sort all sections recursively
         for section in self.sections:
@@ -1046,7 +1047,7 @@ class ContentDiscovery:
         # Also sort top-level sections
         self.sections.sort(key=lambda s: (s.metadata.get("weight", 0), s.title.lower()))
 
-        self.logger.debug("sections_sorted", total_sections=len(self.sections))
+        logger.debug("sections_sorted", total_sections=len(self.sections))
 
     def _sort_section_recursive(self, section: Section) -> None:
         """
