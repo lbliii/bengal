@@ -1,0 +1,87 @@
+---
+description: Context-aware help and command reference
+alwaysApply: false
+---
+
+# Help
+
+Context-aware suggestions based on current state.
+
+**Shortcuts**: `::?` (context-aware), `::help` (full reference)
+
+---
+
+## Context-Aware Help (::?)
+
+Analyze current state and suggest actions:
+
+```yaml
+if editing_python_in_core:
+  suggest:
+    - "::types" - Check type compliance
+    - "::arch" - Verify architecture patterns
+    - "::modify-core" - Guide for core changes
+
+if editing_tests:
+  suggest:
+    - "::validate" - Verify test coverage
+    - "::implement" - Continue implementation
+
+if viewing_plan_or_rfc:
+  suggest:
+    - "::implement" - Start implementation
+    - "::validate" - Verify claims
+
+if uncommitted_changes:
+  suggest:
+    - "::validate" - Pre-commit check
+    - "::workflow-ship" - Full pre-merge flow
+
+if no_clear_context:
+  suggest:
+    - "::research [topic]" - Understand codebase
+    - "::help" - Full command reference
+```
+
+---
+
+## Full Reference (::help)
+
+### Core Workflow
+| Command | Purpose |
+|---------|---------|
+| `::research` | Evidence extraction from codebase |
+| `::rfc` | Draft design proposal |
+| `::plan` | Convert RFC to tasks |
+| `::implement` | Guided code changes |
+| `::validate` | Deep validation with confidence |
+
+### Validation
+| Command | Purpose |
+|---------|---------|
+| `::types` | Type system audit (mypy + Any) |
+| `::arch` | Architecture compliance |
+
+### Implementation Guides
+| Command | Purpose |
+|---------|---------|
+| `::new-directive` | Add MyST directive |
+| `::modify-core` | Change Page/Site safely |
+
+### Workflows
+| Command | Purpose |
+|---------|---------|
+| `::workflow-feature` | research → RFC → plan |
+| `::workflow-fix` | research → plan → implement → validate |
+| `::workflow-ship` | validate → retro → changelog |
+
+---
+
+## Natural Language
+
+Just describe what you want:
+- "How does X work?" → research
+- "Should we add Y?" → RFC
+- "Fix bug in Z" → implement
+- "Check my changes" → validate
+

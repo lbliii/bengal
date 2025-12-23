@@ -1,0 +1,7 @@
+[site]
+title = "Multi-Type CSS Test Site"
+baseurl = "/"
+
+[build]
+output_dir = "public"
+

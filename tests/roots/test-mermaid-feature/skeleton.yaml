@@ -1,0 +1,50 @@
+name: test-mermaid-feature
+description: Site with mermaid diagrams for feature detection testing
+version: "1.0"
+
+structure:
+  - path: _index.md
+    props:
+      title: "Site with Diagrams"
+      description: "Testing mermaid feature detection"
+    content: |
+      # Welcome
+
+      This site contains mermaid diagrams for feature detection testing.
+
+  - path: architecture.md
+    props:
+      title: "Architecture"
+    content: |
+      # System Architecture
+
+      Here's our system diagram:
+
+      ```mermaid
+      graph TD
+          A[User] --> B[Frontend]
+          B --> C[API]
+          C --> D[Database]
+      ```
+
+      ## Flow Description
+
+      The data flows from user to database.
+
+  - path: workflow.md
+    props:
+      title: "Workflow"
+    content: |
+      # Workflow
+
+      Our development workflow:
+
+      ```mermaid
+      sequenceDiagram
+          Developer->>GitHub: Push code
+          GitHub->>CI: Trigger build
+          CI->>Tests: Run tests
+          Tests-->>CI: Results
+          CI-->>Developer: Notification
+      ```
+
