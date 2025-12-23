@@ -14,7 +14,14 @@ import tomllib
 from pathlib import Path
 from typing import Any
 
-from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoescape
+from jinja2 import (
+    ChoiceLoader,
+    Environment,
+    FileSystemLoader,
+    PrefixLoader,
+    StrictUndefined,
+    select_autoescape,
+)
 from jinja2.bccache import FileSystemBytecodeCache
 from jinja2.runtime import Context
 
@@ -56,6 +63,48 @@ def resolve_theme_chain(active_theme: str | None, site: Any) -> list[str]:
 
     # Do not include 'default' twice; fallback is added separately
     return [t for t in chain if t != "default"]
+
+
+def _resolve_theme_templates_path(theme_name: str, site: Any) -> Path | None:
+    """
+    Resolve the templates directory path for a theme.
+
+    Checks site themes, installed themes, and bundled themes in order.
+
+    Args:
+        theme_name: Theme name to look up
+        site: Site instance
+
+    Returns:
+        Path to theme's templates directory, or None if not found
+    """
+    # Site-level theme directory
+    site_theme_templates = site.root_path / "themes" / theme_name / "templates"
+    if site_theme_templates.exists():
+        return site_theme_templates
+
+    # Installed theme directory (via entry point)
+    try:
+        pkg = get_theme_package(theme_name)
+        if pkg:
+            resolved = pkg.resolve_resource_path("templates")
+            if resolved and resolved.exists():
+                return resolved
+    except Exception as e:
+        logger.debug(
+            "theme_resolution_installed_failed",
+            theme=theme_name,
+            error=str(e),
+        )
+
+    # Bundled theme directory
+    bundled_theme_templates = (
+        Path(__file__).parent.parent.parent / "themes" / theme_name / "templates"
+    )
+    if bundled_theme_templates.exists():
+        return bundled_theme_templates
+
+    return None
 
 
 def read_theme_extends(theme_name: str, site: Any) -> str | None:
@@ -243,10 +292,27 @@ def create_jinja_environment(
     # Convert to Path objects for storage
     template_dir_paths = [Path(d) for d in template_dirs]
 
+    # Build PrefixLoader mappings for cross-theme extends support.
+    # This enables templates to explicitly reference parent themes:
+    #   {% extends "default/base.html" %}
+    # Without this, you can only use priority-based resolution.
+    theme_prefix_loaders: dict[str, FileSystemLoader] = {}
+    if not used_cache:
+        # Include all themes in chain plus default
+        all_themes = list(theme_chain) if "theme_chain" in dir() else []
+        if "default" not in all_themes:
+            all_themes.append("default")
+
+        for theme_name in all_themes:
+            theme_templates_path = _resolve_theme_templates_path(theme_name, site)
+            if theme_templates_path:
+                theme_prefix_loaders[theme_name] = FileSystemLoader(str(theme_templates_path))
+
     logger.debug(
         "template_dirs_configured",
         dir_count=len(template_dir_paths),
         dirs=[str(d) for d in template_dir_paths],
+        prefix_loaders=list(theme_prefix_loaders.keys()),
     )
 
     # Setup bytecode cache for faster template compilation
@@ -275,9 +341,29 @@ def create_jinja_environment(
     elif auto_reload:
         logger.debug("template_bytecode_cache_disabled", reason="dev_server_auto_reload")
 
+    # Create loader with cross-theme extends support.
+    # ChoiceLoader tries loaders in order:
+    #   1. FileSystemLoader: Standard priority-based resolution (project > theme > default)
+    #   2. PrefixLoader: Explicit theme references like "default/base.html"
+    #
+    # This enables both patterns:
+    #   {% extends "base.html" %}           -> Priority resolution (normal)
+    #   {% extends "default/base.html" %}   -> Explicit parent theme (cross-theme extends)
+    base_loader = FileSystemLoader(template_dirs) if template_dirs else FileSystemLoader(".")
+
+    if theme_prefix_loaders:
+        loader = ChoiceLoader([base_loader, PrefixLoader(theme_prefix_loaders)])
+        logger.debug(
+            "prefix_loader_enabled",
+            themes=list(theme_prefix_loaders.keys()),
+            usage_example='{% extends "default/base.html" %}',
+        )
+    else:
+        loader = base_loader
+
     # Create environment
     env_kwargs = {
-        "loader": FileSystemLoader(template_dirs) if template_dirs else FileSystemLoader("."),
+        "loader": loader,
         "autoescape": select_autoescape(["html", "xml"]),
         "trim_blocks": True,
         "lstrip_blocks": True,

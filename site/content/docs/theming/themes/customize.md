@@ -87,7 +87,7 @@ You don't need to copy all templates. Override only what you need:
 **`themes/my-custom-theme/templates/base.html`:**
 ```jinja2
 {# Extend default theme's base template #}
-{% extends "default::base.html" %}
+{% extends "default/base.html" %}
 
 {# Override only the header block #}
 {% block header %}
@@ -239,7 +239,7 @@ Include in your base template:
 
 **`themes/my-custom-theme/templates/base.html`:**
 ```jinja2
-{% extends "default::base.html" %}
+{% extends "default/base.html" %}
 
 {% block extra_head %}
 <link rel="stylesheet" href="{{ asset_url('css/custom.css') }}">
@@ -318,7 +318,7 @@ bengal new theme my-theme
 
 ✅ **Good:**
 ```jinja2
-{% extends "default::base.html" %}
+{% extends "default/base.html" %}
 {% block header %}
   {# Only override header #}
 {% endblock %}
@@ -352,7 +352,7 @@ bengal new theme my-theme
 **Issue:** Changes to parent theme not reflected
 
 **Solutions:**
-- Verify `extends` path is correct: `"default::base.html"`
+- Verify `extends` path is correct: `"default/base.html"`
 - Check theme chain: `bengal utils theme debug`
 - Clear cache: `bengal clean --cache`
 :::

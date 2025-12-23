@@ -222,7 +222,7 @@ Create `templates/base.html`. We will extend the default theme and inject our ch
 
 ```html
 <!-- templates/base.html -->
-{% extends "default::base.html" %}
+{% extends "default/base.html" %}
 
 {# Inject our custom CSS into the head #}
 {% block extra_head %}
@@ -245,7 +245,7 @@ Check your browser. The header color should change (if the theme uses the `--pri
 :::{dropdown} How does this work?
 :icon: info
 Bengal looks for templates in your `templates/` folder first.
-*   `{% extends "default::base.html" %}` tells Bengal to load the *original* theme template first.
+*   `{% extends "default/base.html" %}` tells Bengal to load the *original* theme template first.
 *   `{% block %}` allows you to replace specific sections without copy-pasting the whole file.
 :::
 :::{/step}

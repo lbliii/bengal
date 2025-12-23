@@ -303,7 +303,7 @@ Instead of modifying the entire `base.html`, you can create a minimal override t
 
 ```html
 <!-- templates/base.html -->
-{% extends "default::base.html" %}
+{% extends "default/base.html" %}
 
 {# Override only the header block #}
 {% block header %}
@@ -317,7 +317,7 @@ Instead of modifying the entire `base.html`, you can create a minimal override t
 </header>
 {% endblock %}
 
-{# Everything else inherits from default::base.html #}
+{# Everything else inherits from default/base.html #}
 ```
 
 :::{warning}
@@ -433,7 +433,7 @@ If you only need to override a block, use inheritance instead of full swizzle:
 
 ```html
 {# ✅ Good: Override only what's needed #}
-{% extends "default::base.html" %}
+{% extends "default/base.html" %}
 {% block header %}...{% endblock %}
 
 {# ❌ Avoid: Copying entire template when you only need one block #}
@@ -503,11 +503,11 @@ bengal utils theme swizzle partials/navigation-components.html
 :::{dropdown} Template Inheritance Not Working
 :icon: alert
 
-**Issue**: `{% extends "default::base.html" %}` doesn't work
+**Issue**: `{% extends "default/base.html" %}` doesn't work
 
 **Solutions**:
 - Verify theme name: Use `bengal utils theme info default` to confirm
-- Check syntax: Use `"default::base.html"` format (theme name, double colon, path)
+- Check syntax: Use `"default/base.html"` format (theme name, slash, path)
 - Clear cache: `bengal clean --cache`
 :::
 

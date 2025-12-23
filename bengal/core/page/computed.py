@@ -36,6 +36,7 @@ from typing import TYPE_CHECKING, Any, Protocol, cast
 if TYPE_CHECKING:
     from bengal.core.author import Author
     from bengal.core.series import Series
+    from bengal.core.site import Site
 
 
 class HasMetadata(Protocol):
@@ -49,6 +50,14 @@ class HasDate(Protocol):
     """Protocol for objects that have a date attribute."""
 
     date: datetime | None
+
+
+class HasSiteAndMetadata(Protocol):
+    """Protocol for objects with site reference and metadata."""
+
+    metadata: dict[str, Any]
+    _site: Site | None
+    source_path: Any  # Path
 
 
 class PageComputedMixin:
