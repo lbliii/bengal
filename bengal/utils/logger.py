@@ -534,24 +534,19 @@ def configure_logging(
 
 def get_logger(name: str) -> BengalLogger:
     """
-    Get or create a logger instance.
+    Get a logger proxy for the given name.
+
+    Returns a LazyLogger proxy that automatically refreshes when
+    reset_loggers() is called. This ensures module-level logger
+    references never become stale.
 
     Args:
         name: Logger name (typically __name__)
 
     Returns:
-        BengalLogger instance
+        LazyLogger proxy (type-compatible with BengalLogger)
     """
-    if name not in _loggers:
-        _loggers[name] = BengalLogger(
-            name=name,
-            level=_global_config["level"],
-            log_file=_global_config["log_file"],
-            verbose=_global_config["verbose"],
-            quiet_console=_global_config["quiet_console"],
-        )
-
-    return _loggers[name]
+    return LazyLogger(name)  # type: ignore[return-value]
 
 
 def set_console_quiet(quiet: bool = True) -> None:
@@ -578,9 +573,11 @@ def close_all_loggers() -> None:
 
 
 def reset_loggers() -> None:
-    """Close all loggers and clear the registry (for testing)."""
+    """Close all loggers, clear registry, and increment version counter."""
+    global _registry_version
     close_all_loggers()
     _loggers.clear()
+    _registry_version += 1
     _global_config["level"] = LogLevel.INFO
     _global_config["log_file"] = None
     _global_config["verbose"] = False
