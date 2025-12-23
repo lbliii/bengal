@@ -195,15 +195,15 @@ class TestWidgetIntegration:
         assert health_action is not None
 
     @pytest.mark.asyncio
-    async def test_phase_table_on_build_screen(self, pilot):
-        """Phase table exists on build screen."""
-        from textual.widgets import DataTable
+    async def test_phase_progress_on_build_screen(self, pilot):
+        """Phase progress widget exists on build screen."""
+        from bengal.cli.dashboard.widgets import PhaseProgress
 
         await pilot.pause()
         await pilot.press("1")  # Go to build screen
         await pilot.pause()
 
-        table = pilot.app.screen.query_one("#phase-table", DataTable)
-        assert table is not None
-        # Should have columns defined
-        assert len(table.columns) > 0
+        progress = pilot.app.screen.query_one("#phase-progress", PhaseProgress)
+        assert progress is not None
+        # Should have phases defined
+        assert len(progress.PHASE_NAMES) > 0

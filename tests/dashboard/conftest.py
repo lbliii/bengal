@@ -39,6 +39,25 @@ def snapshot_path() -> Path:
     return Path(__file__).parent / "snapshots"
 
 
+def _create_mock_asset(index: int, category: str = "styles") -> MagicMock:
+    """Create a properly configured mock asset."""
+    asset = MagicMock()
+    asset.path = f"assets/{category}/file-{index}.css"
+
+    # Configure source_path to avoid TypeError in _format_size
+    source_path_mock = MagicMock()
+    source_path_mock.name = f"file-{index}.css"
+    source_path_mock.parent = Path(f"assets/{category}")
+    source_path_mock.exists.return_value = True
+    source_path_mock.stat.return_value.st_size = 1024 * (index + 1)  # Return an int
+    source_path_mock.__str__ = lambda self: f"assets/{category}/file-{index}.css"
+
+    asset.source_path = source_path_mock
+    asset.category = category
+
+    return asset
+
+
 @pytest.fixture
 def mock_site() -> MagicMock:
     """
@@ -63,11 +82,14 @@ def mock_site() -> MagicMock:
         for i in range(5)
     ]
 
-    # Mock assets
-    site.assets = [MagicMock(path=f"assets/file-{i}.css") for i in range(10)]
+    # Mock assets with proper source_path configuration
+    site.assets = [_create_mock_asset(i) for i in range(10)]
 
     # Mock sections
     site.sections = [MagicMock(title="Docs", path="docs/")]
+
+    # Mock taxonomies (empty list for health screen)
+    site.taxonomies = {}
 
     return site
 

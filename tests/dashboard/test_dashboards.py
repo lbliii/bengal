@@ -185,7 +185,7 @@ class TestDashboardInstantiation:
         assert app.TITLE == "Bengal Serve"
         assert app.site is None
         assert app.host == "localhost"
-        assert app.port == 3000  # Default port is 3000
+        assert app.port == 5173  # Default port is 5173 (Vite default)
 
     def test_health_dashboard_init(self):
         """Test BengalHealthDashboard can be instantiated."""

@@ -1,0 +1,7 @@
+build:
+  output_dir: public
+  parallel: true
+  incremental: true
+assets:
+  minify: true
+  fingerprint: true

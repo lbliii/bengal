@@ -406,6 +406,7 @@ def truncate_error(e: Exception, max_len: int = 500) -> str:
 
 # Global logger registry
 _loggers: dict[str, BengalLogger] = {}
+_lazy_loggers: dict[str, LazyLogger] = {}  # Cache of proxy objects
 _registry_version: int = 0  # Incremented on reset_loggers()
 
 
@@ -540,13 +541,18 @@ def get_logger(name: str) -> BengalLogger:
     reset_loggers() is called. This ensures module-level logger
     references never become stale.
 
+    The proxy is cached, so calling get_logger() with the same name
+    returns the same proxy instance.
+
     Args:
         name: Logger name (typically __name__)
 
     Returns:
         LazyLogger proxy (type-compatible with BengalLogger)
     """
-    return LazyLogger(name)  # type: ignore[return-value]
+    if name not in _lazy_loggers:
+        _lazy_loggers[name] = LazyLogger(name)
+    return _lazy_loggers[name]  # type: ignore[return-value]
 
 
 def set_console_quiet(quiet: bool = True) -> None:
@@ -577,6 +583,7 @@ def reset_loggers() -> None:
     global _registry_version
     close_all_loggers()
     _loggers.clear()
+    _lazy_loggers.clear()  # Also clear proxy cache
     _registry_version += 1
     _global_config["level"] = LogLevel.INFO
     _global_config["log_file"] = None

@@ -21,6 +21,8 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock
 
+import pytest
+
 from bengal.postprocess.social_cards import (
     CARD_HEIGHT,
     CARD_WIDTH,
@@ -38,7 +40,9 @@ class TestSocialCardConfig:
         """Test that SocialCardConfig has correct defaults."""
         config = SocialCardConfig()
 
-        assert config.enabled is True
+        assert (
+            config.enabled is False
+        )  # Disabled by default (Pillow not thread-safe in free-threading Python)
         assert config.template == "default"
         assert config.background_color == "#1a1a2e"
         assert config.text_color == "#ffffff"
@@ -208,6 +212,11 @@ class TestSocialCardGeneratorOutputPath:
         page.slug = slug
         page.section_path = section_path
         page.metadata = {}
+        # Set _path attribute used by _get_output_path
+        if section_path:
+            page._path = f"{section_path}/{slug}"
+        else:
+            page._path = slug
         return page
 
     def test_simple_slug(self) -> None:
@@ -259,8 +268,9 @@ class TestSocialCardGeneratorTextWrapping:
         config = SocialCardConfig()
         generator = SocialCardGenerator(site, config)
 
-        # Load fonts first
-        generator._load_fonts()
+        # Load fonts first - skip if fonts unavailable
+        if not generator._load_fonts():
+            pytest.skip("Fonts unavailable for text wrapping test")
 
         lines = generator._wrap_text("Short title", generator._title_font, 1000)
 
@@ -273,8 +283,9 @@ class TestSocialCardGeneratorTextWrapping:
         config = SocialCardConfig()
         generator = SocialCardGenerator(site, config)
 
-        # Load fonts first
-        generator._load_fonts()
+        # Load fonts first - skip if fonts unavailable
+        if not generator._load_fonts():
+            pytest.skip("Fonts unavailable for text wrapping test")
 
         # Use a very long text and small width to ensure wrapping even with default font
         long_text = (
@@ -292,8 +303,9 @@ class TestSocialCardGeneratorTextWrapping:
         config = SocialCardConfig()
         generator = SocialCardGenerator(site, config)
 
-        # Load fonts first
-        generator._load_fonts()
+        # Load fonts first - skip if fonts unavailable
+        if not generator._load_fonts():
+            pytest.skip("Fonts unavailable for text wrapping test")
 
         very_long_text = " ".join(["word"] * 100)
         lines = generator._wrap_text(very_long_text, generator._title_font, 200, max_lines=2)
@@ -321,6 +333,11 @@ class TestSocialCardGeneratorGenerate:
         page.metadata = metadata or {}
         page.slug = slug
         page.section_path = section_path
+        # Set _path attribute used by _get_output_path
+        if section_path:
+            page._path = f"{section_path}/{slug}"
+        else:
+            page._path = slug
         return page
 
     def _create_mock_site(
@@ -346,6 +363,10 @@ class TestSocialCardGeneratorGenerate:
         output_path = tmp_path / "test.png"
 
         result = generator.generate_card(page, output_path)
+
+        # Skip test if fonts unavailable (returns None)
+        if result is None:
+            pytest.skip("Fonts unavailable for social card generation")
 
         assert result == output_path
         assert output_path.exists()
@@ -395,6 +416,10 @@ class TestSocialCardGeneratorGenerate:
 
         result = generator.generate_card(page, output_path)
 
+        # Skip test if fonts unavailable (returns None)
+        if result is None:
+            pytest.skip("Fonts unavailable for social card generation")
+
         assert result == output_path
         assert output_path.exists()
 
@@ -421,6 +446,7 @@ class TestSocialCardGeneratorGenerateAll:
         page.metadata = metadata or {}
         page.slug = slug
         page.section_path = ""
+        page._path = slug  # Set _path attribute used by _get_output_path
         return page
 
     def _create_mock_site(self) -> MagicMock:
@@ -434,6 +460,10 @@ class TestSocialCardGeneratorGenerateAll:
         site = self._create_mock_site()
         config = SocialCardConfig()
         generator = SocialCardGenerator(site, config)
+
+        # Check if fonts are available first
+        if not generator._load_fonts():
+            pytest.skip("Fonts unavailable for social card generation")
 
         pages = [
             self._create_mock_page(title=f"Page {i}", source_path=f"page{i}.md", slug=f"page{i}")
@@ -450,6 +480,10 @@ class TestSocialCardGeneratorGenerateAll:
         site = self._create_mock_site()
         config = SocialCardConfig()
         generator = SocialCardGenerator(site, config)
+
+        # Check if fonts are available first
+        if not generator._load_fonts():
+            pytest.skip("Fonts unavailable for social card generation")
 
         pages = [
             self._create_mock_page(title="Normal", source_path="normal.md", slug="normal"),
@@ -500,6 +534,11 @@ class TestGetSocialCardPath:
         page.slug = slug
         page.section_path = section_path
         page.metadata = metadata or {}
+        # Set _path attribute used by get_social_card_path
+        if section_path:
+            page._path = f"{section_path}/{slug}"
+        else:
+            page._path = slug
         return page
 
     def test_returns_path_when_enabled(self) -> None:

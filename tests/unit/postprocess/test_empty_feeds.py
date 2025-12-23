@@ -7,7 +7,7 @@ Verifies that empty sites don't produce invalid XML.
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 
 class TestEmptySitemap:
@@ -24,14 +24,17 @@ class TestEmptySitemap:
 
         generator = SitemapGenerator(mock_site)
 
-        with patch.object(generator.logger, "info") as mock_log:
-            generator.generate()
+        # Replace the logger with a mock to capture calls
+        mock_log = MagicMock()
+        generator.logger = mock_log
 
-            # Should log that generation was skipped
-            mock_log.assert_called_once()
-            call_args = mock_log.call_args
-            assert call_args[0][0] == "sitemap_skipped"
-            assert call_args[1]["reason"] == "no_pages"
+        generator.generate()
+
+        # Should log that generation was skipped
+        mock_log.info.assert_called_once()
+        call_args = mock_log.info.call_args
+        assert call_args[0][0] == "sitemap_skipped"
+        assert call_args[1]["reason"] == "no_pages"
 
         # No sitemap file should be created
         sitemap_path = tmp_path / "sitemap.xml"
@@ -56,9 +59,9 @@ class TestEmptySitemap:
         (tmp_path / "test").mkdir(parents=True, exist_ok=True)
 
         generator = SitemapGenerator(mock_site)
+        generator.logger = MagicMock()  # Suppress logger output
 
-        with patch.object(generator.logger, "info"):
-            generator.generate()
+        generator.generate()
 
         # Sitemap should be created
         sitemap_path = tmp_path / "sitemap.xml"
@@ -83,14 +86,17 @@ class TestEmptyRSS:
 
         generator = RSSGenerator(mock_site)
 
-        with patch.object(generator.logger, "info") as mock_log:
-            generator.generate()
+        # Replace the logger with a mock to capture calls
+        mock_log = MagicMock()
+        generator.logger = mock_log
 
-            # Should log that generation was skipped
-            mock_log.assert_called_once()
-            call_args = mock_log.call_args
-            assert call_args[0][0] == "rss_skipped"
-            assert call_args[1]["reason"] == "no_pages_with_dates"
+        generator.generate()
+
+        # Should log that generation was skipped
+        mock_log.info.assert_called_once()
+        call_args = mock_log.info.call_args
+        assert call_args[0][0] == "rss_skipped"
+        assert call_args[1]["reason"] == "no_pages_with_dates"
 
         # No RSS file should be created
         rss_path = tmp_path / "rss.xml"
@@ -107,12 +113,15 @@ class TestEmptyRSS:
 
         generator = RSSGenerator(mock_site)
 
-        with patch.object(generator.logger, "info") as mock_log:
-            generator.generate()
+        # Replace the logger with a mock to capture calls
+        mock_log = MagicMock()
+        generator.logger = mock_log
 
-            mock_log.assert_called_once()
-            call_args = mock_log.call_args
-            assert call_args[0][0] == "rss_skipped"
+        generator.generate()
+
+        mock_log.info.assert_called_once()
+        call_args = mock_log.info.call_args
+        assert call_args[0][0] == "rss_skipped"
 
         rss_path = tmp_path / "rss.xml"
         assert not rss_path.exists()
@@ -147,9 +156,9 @@ class TestEmptyRSS:
         (tmp_path / "test").mkdir(parents=True, exist_ok=True)
 
         generator = RSSGenerator(mock_site)
+        generator.logger = MagicMock()  # Suppress logger output
 
-        with patch.object(generator.logger, "info"):
-            generator.generate()
+        generator.generate()
 
         # RSS should be created
         rss_path = tmp_path / "rss.xml"
