@@ -36,7 +36,7 @@ See Also:
 from __future__ import annotations
 
 import hashlib
-from concurrent.futures import ThreadPoolExecutor, as_completed
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from threading import Lock
@@ -56,8 +56,12 @@ logger = get_logger(__name__)
 CARD_WIDTH = 1200
 CARD_HEIGHT = 630
 
-# Parallel processing threshold
-PARALLEL_THRESHOLD = 5
+
+# Check if running in free-threading (no-GIL) mode
+# Pillow's C extensions are NOT thread-safe without the GIL
+def _is_free_threading() -> bool:
+    """Check if running in Python's free-threading (no-GIL) mode."""
+    return hasattr(sys, "_is_gil_enabled") and not sys._is_gil_enabled()
 
 
 @dataclass
@@ -213,6 +217,10 @@ class SocialCardGenerator:
         Returns:
             True if fonts loaded successfully, False if unavailable.
             When False, social card generation should be skipped.
+
+        Note:
+            Font loading is done once and cached for the lifetime of the generator.
+            This is a significant optimization for large sites with many pages.
         """
         # Already loaded successfully
         if self._title_font is not None:
@@ -227,6 +235,7 @@ class SocialCardGenerator:
             title_path = self._get_font_path(self.config.title_font, bold=True)
             body_path = self._get_font_path(self.config.body_font, bold=False)
 
+            # Load fonts once - these will be reused for all cards
             self._title_font = ImageFont.truetype(str(title_path), 56)
             self._body_font = ImageFont.truetype(str(body_path), 28)
             self._small_font = ImageFont.truetype(str(body_path), 22)
@@ -770,41 +779,43 @@ class SocialCardGenerator:
         generated_count = 0
         errors: list[tuple[str, str]] = []
 
-        # Sequential for small workloads, parallel for large
-        if len(pages_to_generate) < PARALLEL_THRESHOLD:
-            for page, output_path in pages_to_generate:
-                try:
-                    result = self.generate_card(page, output_path)
-                    if result:
-                        generated_count += 1
-                except Exception as e:
-                    errors.append((str(page.source_path), str(e)))
-                    logger.warning(
-                        "social_card_generation_failed",
-                        page=str(page.source_path),
-                        error=str(e),
-                    )
-        else:
-            # Parallel generation
-            with ThreadPoolExecutor() as executor:
-                futures = {
-                    executor.submit(self.generate_card, page, output_path): page
-                    for page, output_path in pages_to_generate
-                }
+        # IMPORTANT: Pillow's C extensions are NOT thread-safe in free-threading Python.
+        # Parallel generation causes segmentation faults when GIL is disabled.
+        # Always use sequential generation until Pillow adds thread-safety.
+        #
+        # See: https://github.com/python-pillow/Pillow/issues/7739
+        # This affects Python 3.13+ with free-threading builds.
+        #
+        # For standard Python with GIL, parallel ThreadPoolExecutor would be safe,
+        # but we use sequential for consistency and to avoid any potential edge cases.
+        # The performance impact is acceptable (~30ms per card).
+        if _is_free_threading():
+            logger.debug(
+                "social_cards_sequential_mode",
+                reason="free_threading_detected",
+                pages=len(pages_to_generate),
+            )
 
-                for future in as_completed(futures):
-                    page = futures[future]
-                    try:
-                        result = future.result()
-                        if result:
-                            generated_count += 1
-                    except Exception as e:
-                        errors.append((str(page.source_path), str(e)))
-                        logger.warning(
-                            "social_card_generation_failed",
-                            page=str(page.source_path),
-                            error=str(e),
-                        )
+        # Sequential generation (safe for all Python builds)
+        for i, (page, output_path) in enumerate(pages_to_generate):
+            try:
+                result = self.generate_card(page, output_path)
+                if result:
+                    generated_count += 1
+                # Log progress for large batches
+                if len(pages_to_generate) > 100 and (i + 1) % 100 == 0:
+                    logger.debug(
+                        "social_cards_progress",
+                        generated=i + 1,
+                        total=len(pages_to_generate),
+                    )
+            except Exception as e:
+                errors.append((str(page.source_path), str(e)))
+                logger.warning(
+                    "social_card_generation_failed",
+                    page=str(page.source_path),
+                    error=str(e),
+                )
 
         if errors:
             logger.warning(
