@@ -46,6 +46,79 @@ if TYPE_CHECKING:
 
 
 @dataclass
+class AccumulatedPageData:
+    """
+    Unified per-page data accumulated during rendering.
+
+    Contains all fields needed by:
+    - PageJSONGenerator (per-page JSON files)
+    - SiteIndexGenerator (index.json for search)
+
+    Computed once during render phase, consumed by multiple post-processing
+    generators. Eliminates redundant computation and double page iteration.
+
+    See: plan/drafted/rfc-unified-page-data-accumulation.md
+    """
+
+    # =========================================================================
+    # Identity (required by all consumers)
+    # =========================================================================
+    source_path: Path
+    url: str  # Full URL with baseurl (for PageJSONGenerator)
+    uri: str  # Relative path without baseurl (for SiteIndexGenerator)
+
+    # =========================================================================
+    # Core Metadata (required by all consumers)
+    # =========================================================================
+    title: str
+    description: str
+    date: str | None  # ISO format (YYYY-MM-DD for index)
+    date_iso: str | None  # Full ISO format for PageJSONGenerator
+
+    # =========================================================================
+    # Content Derivatives (computed once, used by many)
+    # =========================================================================
+    plain_text: str
+    excerpt: str  # Short excerpt (excerpt_length chars)
+    content_preview: str  # Longer preview for search (excerpt_length * 3)
+    word_count: int
+    reading_time: int
+
+    # =========================================================================
+    # Classification (for search/filtering)
+    # =========================================================================
+    section: str
+    tags: list[str]
+
+    # =========================================================================
+    # Navigation/Structure (for SiteIndexGenerator)
+    # =========================================================================
+    dir: str  # Directory path (e.g., "/docs/getting-started/")
+
+    # =========================================================================
+    # Enhanced Metadata (for SiteIndexGenerator)
+    # These are extracted from page.metadata during accumulation
+    # =========================================================================
+    enhanced_metadata: dict[str, Any] = field(default_factory=dict)
+    # Contains: type, layout, author, authors, category, categories, weight,
+    #           draft, featured, search_keywords, search_exclude, cli_name,
+    #           api_module, difficulty, level, related, lastmod, source_file,
+    #           version, isAutodoc
+
+    # =========================================================================
+    # Extended Data for PageJSONGenerator
+    # Only populated if per-page JSON is enabled
+    # =========================================================================
+    full_json_data: dict[str, Any] | None = None
+    json_output_path: Path | None = None
+
+    # =========================================================================
+    # Raw Metadata (fallback for fields we didn't anticipate)
+    # =========================================================================
+    raw_metadata: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
 class BuildContext:
     """
     Shared build context passed across build phases.
@@ -128,6 +201,23 @@ class BuildContext:
     )
     _accumulated_json_lock: Lock = field(default_factory=Lock, repr=False)
 
+    # Accumulated Asset Dependencies (Inline Asset Extraction)
+    # Eliminates double iteration in phase_track_assets (saves ~5-6s on large sites)
+    # See: changelog.md (Inline Asset Extraction)
+    _accumulated_assets: list[tuple[Path, set[str]]] = field(default_factory=list, repr=False)
+    _accumulated_assets_lock: Lock = field(default_factory=Lock, repr=False)
+
+    # Unified Page Data Accumulation (replaces _accumulated_page_json)
+    # Populated during rendering, consumed by PageJSONGenerator and SiteIndexGenerator
+    # Eliminates redundant computation and double page iteration (~350ms savings)
+    # See: plan/drafted/rfc-unified-page-data-accumulation.md
+    _accumulated_page_data: list[AccumulatedPageData] = field(default_factory=list, repr=False)
+    _accumulated_page_data_lock: Lock = field(default_factory=Lock, repr=False)
+    # Index for O(1) lookup by source_path during hybrid mode (incremental builds)
+    _accumulated_page_index: dict[Path, AccumulatedPageData] = field(
+        default_factory=dict, repr=False
+    )
+
     @property
     def knowledge_graph(self) -> KnowledgeGraph | None:
         """
@@ -189,6 +279,8 @@ class BuildContext:
         """
         self._knowledge_graph = None
         self.clear_content_cache()
+        self.clear_accumulated_assets()
+        self.clear_accumulated_page_data()
 
     # =========================================================================
     # Content Cache Methods (Build-Integrated Validation)
@@ -323,6 +415,10 @@ class BuildContext:
         """
         Get all accumulated JSON data for post-processing.
 
+        .. deprecated::
+            Use :meth:`get_accumulated_page_data` instead. This method will be
+            removed in a future version.
+
         Returns a copy to avoid thread safety issues when iterating.
 
         Returns:
@@ -334,6 +430,13 @@ class BuildContext:
             for json_path, page_data in accumulated:
                 write_json(json_path, page_data)
         """
+        import warnings
+
+        warnings.warn(
+            "get_accumulated_json() is deprecated, use get_accumulated_page_data() instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         with self._accumulated_json_lock:
             return list(self._accumulated_page_json)
 
@@ -352,11 +455,183 @@ class BuildContext:
         """
         Check if accumulated JSON data exists.
 
+        .. deprecated::
+            Use :attr:`has_accumulated_page_data` instead. This property will be
+            removed in a future version.
+
         Post-processing can use this to decide whether to use accumulated
         data or fall back to computing from pages.
 
         Returns:
             True if accumulated JSON data exists
         """
+        import warnings
+
+        warnings.warn(
+            "has_accumulated_json is deprecated, use has_accumulated_page_data instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         with self._accumulated_json_lock:
             return len(self._accumulated_page_json) > 0
+
+    # =========================================================================
+    # Accumulated Asset Dependencies (Inline Asset Extraction)
+    # =========================================================================
+    # These methods enable asset dependencies to be accumulated during rendering
+    # instead of being extracted in a separate phase, eliminating double iteration
+    # and saving ~5-6s on large sites.
+    # See: changelog.md (Inline Asset Extraction)
+
+    def accumulate_page_assets(self, source_path: Path, assets: set[str]) -> None:
+        """
+        Accumulate asset dependencies during rendering (thread-safe).
+
+        Call this during rendering phase to store asset deps for later
+        persistence. Eliminates redundant iteration in phase_track_assets.
+
+        Args:
+            source_path: Page source path (key for asset map)
+            assets: Set of asset URLs/paths referenced by the page
+        """
+        with self._accumulated_assets_lock:
+            self._accumulated_assets.append((source_path, assets))
+
+    def get_accumulated_assets(self) -> list[tuple[Path, set[str]]]:
+        """
+        Get accumulated asset dependencies for persistence.
+
+        Returns a copy to avoid thread safety issues when iterating.
+        """
+        with self._accumulated_assets_lock:
+            return list(self._accumulated_assets)
+
+    @property
+    def has_accumulated_assets(self) -> bool:
+        """Check if asset dependencies were accumulated during render."""
+        with self._accumulated_assets_lock:
+            return len(self._accumulated_assets) > 0
+
+    @property
+    def accumulated_asset_count(self) -> int:
+        """Get count of pages with accumulated assets."""
+        with self._accumulated_assets_lock:
+            return len(self._accumulated_assets)
+
+    def clear_accumulated_assets(self) -> None:
+        """Clear accumulated asset data to free memory."""
+        with self._accumulated_assets_lock:
+            self._accumulated_assets.clear()
+
+    # =========================================================================
+    # Unified Page Data Accumulation (JSON + Index)
+    # =========================================================================
+    # These methods enable unified page data to be accumulated during rendering
+    # for consumption by multiple post-processing generators (PageJSONGenerator,
+    # SiteIndexGenerator). Eliminates redundant computation and double iteration.
+    # See: plan/drafted/rfc-unified-page-data-accumulation.md
+
+    def accumulate_page_data(self, data: AccumulatedPageData) -> None:
+        """
+        Accumulate unified page data during rendering (thread-safe).
+
+        Called once per page during render phase. Data is consumed by
+        multiple post-processing generators.
+
+        Args:
+            data: Unified page data containing all fields needed by consumers
+
+        Example:
+            # During rendering phase
+            data = AccumulatedPageData(
+                source_path=page.source_path,
+                url=get_page_url(page, site),
+                uri=get_page_relative_url(page, site),
+                ...
+            )
+            build_context.accumulate_page_data(data)
+        """
+        with self._accumulated_page_data_lock:
+            self._accumulated_page_data.append(data)
+            self._accumulated_page_index[data.source_path] = data
+
+    def get_accumulated_page_data(self) -> list[AccumulatedPageData]:
+        """
+        Get accumulated page data for post-processing.
+
+        Returns a copy to avoid thread safety issues when iterating.
+
+        Returns:
+            List of AccumulatedPageData for all rendered pages
+
+        Example:
+            # In post-processing phase
+            accumulated = build_context.get_accumulated_page_data()
+            for data in accumulated:
+                process_page_data(data)
+        """
+        with self._accumulated_page_data_lock:
+            return list(self._accumulated_page_data)
+
+    def get_accumulated_for_page(self, source_path: Path) -> AccumulatedPageData | None:
+        """
+        Get accumulated data for a specific page (O(1) lookup).
+
+        Used by SiteIndexGenerator in hybrid mode during incremental builds.
+        Returns None if the page was not rendered (not in accumulated data).
+
+        Args:
+            source_path: Path to source file
+
+        Returns:
+            AccumulatedPageData for the page, or None if not found
+
+        Example:
+            # In SiteIndexGenerator hybrid mode
+            for page in all_pages:
+                if acc_data := ctx.get_accumulated_for_page(page.source_path):
+                    summary = accumulated_to_summary(acc_data)
+                else:
+                    summary = page_to_summary(page)  # Fallback
+        """
+        with self._accumulated_page_data_lock:
+            return self._accumulated_page_index.get(source_path)
+
+    @property
+    def has_accumulated_page_data(self) -> bool:
+        """
+        Check if page data was accumulated during render.
+
+        Post-processing can use this to decide whether to use accumulated
+        data or fall back to computing from pages.
+
+        Returns:
+            True if accumulated page data exists
+        """
+        with self._accumulated_page_data_lock:
+            return len(self._accumulated_page_data) > 0
+
+    @property
+    def accumulated_page_count(self) -> int:
+        """
+        Get count of accumulated pages (for hybrid mode detection).
+
+        Compare this to total page count to determine if full or hybrid
+        mode should be used in post-processing.
+
+        Returns:
+            Number of pages with accumulated data
+        """
+        with self._accumulated_page_data_lock:
+            return len(self._accumulated_page_data)
+
+    def clear_accumulated_page_data(self) -> None:
+        """
+        Clear accumulated page data to free memory.
+
+        Call this after post-processing phase completes to release memory
+        used by accumulated page data.
+        """
+        with self._accumulated_page_data_lock:
+            self._accumulated_page_data.clear()
+            self._accumulated_page_index.clear()

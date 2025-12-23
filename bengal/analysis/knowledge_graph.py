@@ -59,6 +59,7 @@ from bengal.analysis.link_types import (
     LinkMetrics,
     LinkType,
 )
+from bengal.errors import BengalError, ErrorCode
 from bengal.utils.autodoc import is_autodoc_page
 from bengal.utils.logger import get_logger
 
@@ -605,11 +606,13 @@ class KnowledgeGraph:
             PageConnectivity with detailed metrics
 
         Raises:
-            RuntimeError: If graph hasn't been built yet
+            BengalError: If graph hasn't been built yet
         """
         if not self._built or self._analyzer is None:
-            raise RuntimeError(
-                "KnowledgeGraph is not built. Call .build() before getting connectivity."
+            raise BengalError(
+                "KnowledgeGraph is not built",
+                code=ErrorCode.G001,
+                suggestion="Call graph.build() before accessing connectivity data",
             )
         return self._analyzer.get_connectivity(page)
 
@@ -629,10 +632,14 @@ class KnowledgeGraph:
             List of hub pages sorted by incoming references (descending)
 
         Raises:
-            RuntimeError: If graph hasn't been built yet
+            BengalError: If graph hasn't been built yet
         """
         if not self._built or self._analyzer is None:
-            raise RuntimeError("KnowledgeGraph is not built. Call .build() before getting hubs.")
+            raise BengalError(
+                "KnowledgeGraph is not built",
+                code=ErrorCode.G001,
+                suggestion="Call graph.build() before getting hub pages",
+            )
         return self._analyzer.get_hubs(threshold)
 
     def get_leaves(self, threshold: int | None = None) -> list[Page]:
@@ -651,10 +658,14 @@ class KnowledgeGraph:
             List of leaf pages sorted by connectivity (ascending)
 
         Raises:
-            RuntimeError: If graph hasn't been built yet
+            BengalError: If graph hasn't been built yet
         """
         if not self._built or self._analyzer is None:
-            raise RuntimeError("KnowledgeGraph is not built. Call .build() before getting leaves.")
+            raise BengalError(
+                "KnowledgeGraph is not built",
+                code=ErrorCode.G001,
+                suggestion="Call graph.build() before getting leaf pages",
+            )
         return self._analyzer.get_leaves(threshold)
 
     def get_orphans(self) -> list[Page]:
@@ -670,10 +681,14 @@ class KnowledgeGraph:
             List of orphaned pages sorted by slug
 
         Raises:
-            RuntimeError: If graph hasn't been built yet
+            BengalError: If graph hasn't been built yet
         """
         if not self._built or self._analyzer is None:
-            raise RuntimeError("KnowledgeGraph is not built. Call .build() before getting orphans.")
+            raise BengalError(
+                "KnowledgeGraph is not built",
+                code=ErrorCode.G001,
+                suggestion="Call graph.build() before getting orphan pages",
+            )
         return self._analyzer.get_orphans()
 
     def get_connectivity_report(
@@ -697,7 +712,7 @@ class KnowledgeGraph:
             ConnectivityReport with pages grouped by level and statistics.
 
         Raises:
-            RuntimeError: If graph hasn't been built yet
+            BengalError: If graph hasn't been built yet
 
         Example:
             >>> graph.build()
@@ -706,8 +721,10 @@ class KnowledgeGraph:
             >>> print(f"Distribution: {report.get_distribution()}")
         """
         if not self._built:
-            raise RuntimeError(
-                "KnowledgeGraph is not built. Call .build() before getting connectivity report."
+            raise BengalError(
+                "KnowledgeGraph is not built",
+                code=ErrorCode.G001,
+                suggestion="Call graph.build() before getting connectivity report",
             )
 
         t = thresholds or DEFAULT_THRESHOLDS
@@ -758,11 +775,13 @@ class KnowledgeGraph:
             LinkMetrics with breakdown by link type
 
         Raises:
-            RuntimeError: If graph hasn't been built yet
+            BengalError: If graph hasn't been built yet
         """
         if not self._built:
-            raise RuntimeError(
-                "KnowledgeGraph is not built. Call .build() before getting link metrics."
+            raise BengalError(
+                "KnowledgeGraph is not built",
+                code=ErrorCode.G001,
+                suggestion="Call graph.build() before getting link metrics",
             )
         return self.link_metrics.get(page, LinkMetrics())
 
@@ -779,11 +798,13 @@ class KnowledgeGraph:
             Connectivity score (higher = more connected)
 
         Raises:
-            RuntimeError: If graph hasn't been built yet
+            BengalError: If graph hasn't been built yet
         """
         if not self._built or self._analyzer is None:
-            raise RuntimeError(
-                "KnowledgeGraph is not built. Call .build() before getting connectivity score."
+            raise BengalError(
+                "KnowledgeGraph is not built",
+                code=ErrorCode.G001,
+                suggestion="Call graph.build() before getting connectivity score",
             )
         return self._analyzer.get_connectivity_score(page)
 
@@ -801,10 +822,14 @@ class KnowledgeGraph:
             (supports tuple unpacking for backward compatibility)
 
         Raises:
-            RuntimeError: If graph hasn't been built yet
+            BengalError: If graph hasn't been built yet
         """
         if not self._built or self._analyzer is None:
-            raise RuntimeError("KnowledgeGraph is not built. Call .build() before getting layers.")
+            raise BengalError(
+                "KnowledgeGraph is not built",
+                code=ErrorCode.G001,
+                suggestion="Call graph.build() before getting page layers",
+            )
         return self._analyzer.get_layers()
 
     def get_metrics(self) -> GraphMetrics:
@@ -815,10 +840,14 @@ class KnowledgeGraph:
             GraphMetrics with summary statistics
 
         Raises:
-            RuntimeError: If graph hasn't been built yet
+            BengalError: If graph hasn't been built yet
         """
         if not self._built:
-            raise RuntimeError("KnowledgeGraph is not built. Call .build() before getting metrics.")
+            raise BengalError(
+                "KnowledgeGraph is not built",
+                code=ErrorCode.G001,
+                suggestion="Call graph.build() before getting metrics",
+            )
 
         # After build(), metrics is guaranteed to be set
         assert self.metrics is not None, "metrics should be computed after build()"
@@ -832,11 +861,13 @@ class KnowledgeGraph:
             Formatted statistics string
 
         Raises:
-            RuntimeError: If graph hasn't been built yet
+            BengalError: If graph hasn't been built yet
         """
         if not self._built or self._reporter is None:
-            raise RuntimeError(
-                "KnowledgeGraph is not built. Call .build() before formatting stats."
+            raise BengalError(
+                "KnowledgeGraph is not built",
+                code=ErrorCode.G001,
+                suggestion="Call graph.build() before formatting stats",
             )
         return self._reporter.format_stats()
 
@@ -848,11 +879,13 @@ class KnowledgeGraph:
             List of recommendation strings with emoji prefixes
 
         Raises:
-            RuntimeError: If graph hasn't been built yet
+            BengalError: If graph hasn't been built yet
         """
         if not self._built or self._reporter is None:
-            raise RuntimeError(
-                "KnowledgeGraph is not built. Call .build() before getting recommendations."
+            raise BengalError(
+                "KnowledgeGraph is not built",
+                code=ErrorCode.G001,
+                suggestion="Call graph.build() before getting recommendations",
             )
         return self._reporter.get_actionable_recommendations()
 
@@ -864,11 +897,13 @@ class KnowledgeGraph:
             List of SEO insight strings with emoji prefixes
 
         Raises:
-            RuntimeError: If graph hasn't been built yet
+            BengalError: If graph hasn't been built yet
         """
         if not self._built or self._reporter is None:
-            raise RuntimeError(
-                "KnowledgeGraph is not built. Call .build() before getting SEO insights."
+            raise BengalError(
+                "KnowledgeGraph is not built",
+                code=ErrorCode.G001,
+                suggestion="Call graph.build() before getting SEO insights",
             )
         return self._reporter.get_seo_insights()
 
@@ -880,11 +915,13 @@ class KnowledgeGraph:
             List of content gap descriptions
 
         Raises:
-            RuntimeError: If graph hasn't been built yet
+            BengalError: If graph hasn't been built yet
         """
         if not self._built or self._reporter is None:
-            raise RuntimeError(
-                "KnowledgeGraph is not built. Call .build() before getting content gaps."
+            raise BengalError(
+                "KnowledgeGraph is not built",
+                code=ErrorCode.G001,
+                suggestion="Call graph.build() before getting content gaps",
             )
         return self._reporter.get_content_gaps()
 
@@ -906,7 +943,7 @@ class KnowledgeGraph:
             PageRankResults with scores and metadata
 
         Raises:
-            RuntimeError: If graph hasn't been built yet
+            BengalError: If graph hasn't been built yet
 
         Example:
             >>> graph = KnowledgeGraph(site)
@@ -915,8 +952,10 @@ class KnowledgeGraph:
             >>> top_pages = results.get_top_pages(10)
         """
         if not self._built:
-            raise RuntimeError(
-                "KnowledgeGraph is not built. Call .build() before computing PageRank."
+            raise BengalError(
+                "KnowledgeGraph is not built",
+                code=ErrorCode.G001,
+                suggestion="Call graph.build() before computing PageRank",
             )
 
         # Return cached results unless forced
@@ -950,8 +989,7 @@ class KnowledgeGraph:
             PageRankResults with personalized scores
 
         Raises:
-            RuntimeError: If graph hasn't been built yet
-            ValueError: If seed_pages is empty
+            BengalError: If graph hasn't been built yet or seed_pages is empty
 
         Example:
             >>> graph = KnowledgeGraph(site)
@@ -962,13 +1000,17 @@ class KnowledgeGraph:
             >>> related = results.get_top_pages(10)
         """
         if not self._built:
-            raise RuntimeError(
-                "KnowledgeGraph is not built. Call .build() before computing PageRank."
+            raise BengalError(
+                "KnowledgeGraph is not built",
+                code=ErrorCode.G001,
+                suggestion="Call graph.build() before computing PageRank",
             )
 
         if not seed_pages:
-            raise ValueError(
-                "Personalized PageRank requires at least one seed page to bias the ranking."
+            raise BengalError(
+                "Personalized PageRank requires at least one seed page",
+                code=ErrorCode.G002,
+                suggestion="Provide at least one seed page to bias the ranking",
             )
 
         # Import here to avoid circular dependency
@@ -1053,7 +1095,11 @@ class KnowledgeGraph:
             ...     print(f"Community {community.id}: {community.size} pages")
         """
         if not self._built:
-            raise RuntimeError("Must call build() before detecting communities")
+            raise BengalError(
+                "KnowledgeGraph is not built",
+                code=ErrorCode.G001,
+                suggestion="Call graph.build() before detecting communities",
+            )
 
         # Return cached results unless forced
         if self._community_results and not force_recompute:
@@ -1131,7 +1177,11 @@ class KnowledgeGraph:
             >>> print(f"Approximate: {results.is_approximate}")
         """
         if not self._built:
-            raise RuntimeError("Must call build() before analyzing paths")
+            raise BengalError(
+                "KnowledgeGraph is not built",
+                code=ErrorCode.G001,
+                suggestion="Call graph.build() before analyzing paths",
+            )
 
         # Return cached results unless forced
         if self._path_results and not force_recompute:
@@ -1219,7 +1269,11 @@ class KnowledgeGraph:
             ...     print(f"{suggestion.source.title} -> {suggestion.target.title}")
         """
         if not self._built:
-            raise RuntimeError("Must call build() before generating link suggestions")
+            raise BengalError(
+                "KnowledgeGraph is not built",
+                code=ErrorCode.G001,
+                suggestion="Call graph.build() before generating link suggestions",
+            )
 
         # Return cached results unless forced
         if self._link_suggestions and not force_recompute:

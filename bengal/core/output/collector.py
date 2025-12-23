@@ -12,6 +12,7 @@ from pathlib import Path
 from threading import Lock
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
+from bengal.core.diagnostics import emit
 from bengal.core.output.types import OutputRecord, OutputType
 from bengal.utils.logger import get_logger
 
@@ -182,9 +183,9 @@ class BuildOutputCollector:
             self._outputs.clear()
 
     def validate(self, changed_sources: list[str] | None = None) -> None:
-        """Validate tracking integrity and log warnings.
+        """Validate tracking integrity and emit diagnostics.
 
-        Logs a warning if sources were changed but no outputs recorded,
+        Emits a warning if sources were changed but no outputs recorded,
         which may indicate missing record() calls in writers.
 
         Args:
@@ -192,7 +193,9 @@ class BuildOutputCollector:
         """
         with self._lock:
             if changed_sources and not self._outputs:
-                self._logger.warning(
+                emit(
+                    self,
+                    "warning",
                     "output_tracking_empty",
                     changed_source_count=len(changed_sources),
                 )

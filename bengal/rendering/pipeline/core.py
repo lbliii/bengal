@@ -288,6 +288,8 @@ class RenderingPipeline:
             self.build_stats.rendered_cache_hits += 1
 
         write_output(page, self.site, self.dependency_tracker, collector=self._output_collector)
+        # Inline asset extraction for cache hits
+        self._accumulate_asset_deps(page)
 
         if self.dependency_tracker and not page.metadata.get("_generated"):
             self.dependency_tracker.end_page()
@@ -346,6 +348,8 @@ class RenderingPipeline:
         page.rendered_html = format_html(page.rendered_html, page, self.site)
 
         write_output(page, self.site, self.dependency_tracker, collector=self._output_collector)
+        # Inline asset extraction for parsed cache hits
+        self._accumulate_asset_deps(page)
 
         if self.dependency_tracker and not page.metadata.get("_generated"):
             self.dependency_tracker.end_page()
@@ -512,8 +516,11 @@ class RenderingPipeline:
 
         write_output(page, self.site, self.dependency_tracker, collector=self._output_collector)
 
-        # Accumulate JSON data during rendering
-        self._accumulate_json_data(page)
+        # Accumulate unified page data during rendering (JSON + search index)
+        # See: plan/drafted/rfc-unified-page-data-accumulation.md
+        self._accumulate_unified_page_data(page)
+        # Inline asset extraction (eliminates separate Track assets phase)
+        self._accumulate_asset_deps(page)
 
     def _cache_rendered_output(self, page: Page, template: str) -> None:
         """Store rendered output in cache for next build."""
@@ -575,6 +582,233 @@ class RenderingPipeline:
                 error=str(e)[:100],
             )
 
+    def _accumulate_asset_deps(self, page: Page) -> None:
+        """
+        Accumulate asset dependencies during rendering.
+
+        Similar to _accumulate_json_data - extracts asset refs from rendered
+        HTML and stores in BuildContext for later persistence.
+        """
+        if not self.build_context or not page.rendered_html:
+            return
+
+        try:
+            from bengal.rendering.asset_extractor import extract_assets_from_html
+
+            assets = extract_assets_from_html(page.rendered_html)
+            if assets:
+                self.build_context.accumulate_page_assets(page.source_path, assets)
+        except Exception as e:
+            # Extraction failure should not break render
+            # Fallback extraction will handle this page in phase_track_assets
+            logger.debug(
+                "asset_extraction_failed",
+                page=str(page.source_path),
+                error=str(e)[:100],
+            )
+
+    def _accumulate_unified_page_data(self, page: Page) -> None:
+        """
+        Accumulate unified page data during rendering.
+
+        Computes all per-page derivatives once (excerpt, word_count, etc.)
+        for consumption by multiple post-processing generators:
+        - PageJSONGenerator (per-page JSON files)
+        - SiteIndexGenerator (index.json for search)
+
+        Replaces: _accumulate_json_data()
+
+        See: plan/drafted/rfc-unified-page-data-accumulation.md
+        """
+        if not self.build_context or not self.site:
+            return
+
+        from bengal.postprocess.output_formats.utils import (
+            generate_excerpt,
+            get_page_json_path,
+            get_page_relative_url,
+            get_page_url,
+        )
+        from bengal.utils.build_context import AccumulatedPageData
+
+        try:
+            # Compute URLs
+            url = get_page_url(page, self.site)  # Full URL with baseurl
+            uri = get_page_relative_url(page, self.site)  # Relative path
+
+            # Content derivatives (computed once)
+            plain_text = page.plain_text
+            word_count = len(plain_text.split())
+            excerpt_length = 200  # Standard excerpt length
+            excerpt = generate_excerpt(plain_text, excerpt_length)
+            content_preview = generate_excerpt(plain_text, excerpt_length * 3)
+
+            # Directory structure for SiteIndexGenerator
+            dir_path = "/"
+            if uri and isinstance(uri, str):
+                path_parts = uri.strip("/").split("/")
+                if len(path_parts) > 1:
+                    dir_path = "/" + "/".join(path_parts[:-1]) + "/"
+
+            # Extract enhanced metadata for SiteIndexGenerator
+            enhanced = self._extract_enhanced_metadata(page)
+
+            # Date handling
+            page_date = getattr(page, "date", None)
+            date_str = page_date.strftime("%Y-%m-%d") if page_date else None
+            date_iso = page_date.isoformat() if page_date else None
+
+            # Build unified data
+            data = AccumulatedPageData(
+                source_path=page.source_path,
+                url=url,
+                uri=uri,
+                title=page.title or "",
+                description=page.metadata.get("description", "") or "",
+                date=date_str,
+                date_iso=date_iso,
+                plain_text=plain_text,
+                excerpt=excerpt,
+                content_preview=content_preview,
+                word_count=word_count,
+                reading_time=max(1, round(word_count / 200)),
+                section=page._section.name if getattr(page, "_section", None) else "",
+                tags=list(page.tags) if page.tags else [],
+                dir=dir_path,
+                enhanced_metadata=enhanced,
+                raw_metadata=dict(page.metadata),
+            )
+
+            # Extended JSON data (only if per-page JSON enabled)
+            output_formats_config = self.site.config.get("output_formats", {})
+            if output_formats_config.get("enabled", True):
+                per_page = output_formats_config.get("per_page", ["json", "llm_txt"])
+                if "json" in per_page:
+                    json_path = get_page_json_path(page)
+                    if json_path:
+                        data.json_output_path = json_path
+                        data.full_json_data = self._build_full_json_data(page)
+
+            self.build_context.accumulate_page_data(data)
+
+        except Exception as e:
+            logger.debug(
+                "unified_page_data_accumulation_failed",
+                page=str(page.source_path),
+                error=str(e)[:100],
+            )
+
+    def _extract_enhanced_metadata(self, page: Page) -> dict[str, Any]:
+        """
+        Extract enhanced metadata fields for SiteIndexGenerator.
+
+        Mirrors the fields extracted by SiteIndexGenerator._add_enhanced_metadata()
+        to ensure index.json output is identical.
+
+        See: plan/drafted/rfc-unified-page-data-accumulation.md
+        """
+        from bengal.utils.autodoc import is_autodoc_page
+
+        metadata = page.metadata
+        enhanced: dict[str, Any] = {}
+
+        # Content type and layout
+        if value := metadata.get("type"):
+            enhanced["type"] = value
+        if value := metadata.get("layout"):
+            enhanced["layout"] = value
+
+        # Authorship
+        if value := metadata.get("author"):
+            enhanced["author"] = value
+        if value := metadata.get("authors"):
+            enhanced["authors"] = value
+
+        # Categories
+        if value := metadata.get("category"):
+            enhanced["category"] = value
+        if value := metadata.get("categories"):
+            enhanced["categories"] = value
+
+        # Weight for sorting
+        if value := metadata.get("weight"):
+            enhanced["weight"] = value
+
+        # Status flags
+        if metadata.get("draft"):
+            enhanced["draft"] = True
+        if metadata.get("featured"):
+            enhanced["featured"] = True
+
+        # Search-specific
+        if value := metadata.get("search_keywords"):
+            enhanced["search_keywords"] = value
+        if metadata.get("search_exclude"):
+            enhanced["search_exclude"] = True
+
+        # Visibility system integration
+        visibility = metadata.get("visibility")
+        if metadata.get("hidden", False) or (
+            isinstance(visibility, dict) and not visibility.get("search", True)
+        ):
+            enhanced["search_exclude"] = True
+
+        # API/CLI specific
+        if value := metadata.get("cli_name"):
+            enhanced["cli_name"] = value
+        if value := metadata.get("api_module"):
+            enhanced["api_module"] = value
+
+        # Difficulty/level
+        if value := metadata.get("difficulty"):
+            enhanced["difficulty"] = value
+        if value := metadata.get("level"):
+            enhanced["level"] = value
+
+        # Related content
+        if value := metadata.get("related"):
+            enhanced["related"] = value
+
+        # Last modified
+        if value := metadata.get("lastmod"):
+            if hasattr(value, "isoformat"):
+                enhanced["lastmod"] = value.isoformat()
+            else:
+                enhanced["lastmod"] = str(value)
+
+        # Source file path
+        if value := metadata.get("source_file"):
+            enhanced["source_file"] = value
+
+        # Version field
+        if hasattr(page, "version") and page.version:
+            enhanced["version"] = page.version
+
+        # Autodoc flag
+        if is_autodoc_page(page):
+            enhanced["isAutodoc"] = True
+
+        return enhanced
+
+    def _build_full_json_data(self, page: Page) -> dict[str, Any]:
+        """Build full JSON data for per-page JSON files."""
+        from bengal.postprocess.output_formats.json_generator import PageJSONGenerator
+
+        output_formats_config = self.site.config.get("output_formats", {})
+        options = output_formats_config.get("options", {})
+        include_html = options.get("include_html_content", False)
+        include_text = options.get("include_plain_text", True)
+
+        # Reuse per-pipeline generator instance for speed.
+        opts = (include_html, include_text)
+        if self._page_json_generator is None or self._page_json_generator_opts != opts:
+            self._page_json_generator = PageJSONGenerator(self.site, graph_data=None)
+            self._page_json_generator_opts = opts
+
+        return self._page_json_generator.page_to_json(
+            page, include_html=include_html, include_text=include_text
+        )
+
     def _process_virtual_page(self, page: Page) -> None:
         """
         Process a virtual page with pre-rendered HTML content.
@@ -599,6 +833,8 @@ class RenderingPipeline:
         ):
             self._render_autodoc_page(page)
             write_output(page, self.site, self.dependency_tracker, collector=self._output_collector)
+            # Inline asset extraction for autodoc pages
+            self._accumulate_asset_deps(page)
             logger.debug(
                 "autodoc_page_rendered",
                 source_path=str(page.source_path),
@@ -630,6 +866,8 @@ class RenderingPipeline:
             page.rendered_html = format_html(page.rendered_html, page, self.site)
 
         write_output(page, self.site, self.dependency_tracker, collector=self._output_collector)
+        # Inline asset extraction for virtual pages
+        self._accumulate_asset_deps(page)
 
         logger.debug(
             "virtual_page_rendered",
@@ -739,21 +977,23 @@ class RenderingPipeline:
     def _build_variable_context(self, page: Page) -> dict[str, Any]:
         """Build variable context for {{ variable }} substitution in markdown."""
         from bengal.rendering.context import (
-            ConfigContext,
             ParamsContext,
             SectionContext,
-            SiteContext,
+            _get_global_contexts,
         )
 
         section = getattr(page, "_section", None)
         metadata = page.metadata if hasattr(page, "metadata") else {}
 
+        # Get cached global contexts (site/config are stateless wrappers)
+        global_contexts = _get_global_contexts(self.site)
+
         context: dict[str, Any] = {
-            # Core objects with smart wrappers
+            # Core objects with cached smart wrappers
             "page": page,
-            "site": SiteContext(self.site),
-            "config": ConfigContext(self.site.config),
-            # Shortcuts with safe access
+            "site": global_contexts["site"],
+            "config": global_contexts["config"],
+            # Shortcuts with safe access (per-page, not cached)
             "params": ParamsContext(metadata),
             "meta": ParamsContext(metadata),
             # Section with safe access (never None)

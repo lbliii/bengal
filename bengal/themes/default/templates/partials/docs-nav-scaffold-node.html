@@ -1,43 +1,32 @@
 {#
-Navigation Node Component (Recursive)
+Navigation Node Component (Scaffold Mode)
 
-Renders a single NavNodeProxy with its children.
+Renders a NavNode WITHOUT per-page active state.
+Active state is applied client-side via JS for progressive enhancement.
+
+This template produces static HTML that can be cached across pages.
+The JS enhancement reads data-nav-path attributes to apply active classes.
 
 Variables:
-- item: NavNodeProxy to render (required)
+- item: NavNodeProxy or ScaffoldNodeProxy to render (required)
 - depth: Current nesting depth for styling (required)
 - show_nav_icons: Whether to show section icons (default: true)
 
 Features:
 - Collapsible sections with toggle button
-- Simple link rendering for leaf nodes
-- Active page highlighting via item.is_current
-- Active trail via item.is_in_trail
-- Recursive rendering of children
-
-Usage:
-{% set depth = 0 %}
-{% include 'partials/docs-nav-node.html' %}
+- All groups start collapsed (JS expands active trail)
+- data-nav-path attributes for JS active state application
+- Renders ALL children (no pruning - scaffold is cached)
 #}
 
 {% set show_nav_icons = show_nav_icons if show_nav_icons is defined else true %}
 {% set item_title = item.title %}
 {% set item_icon = item.icon %}
 
-{# -------------------------------------------------------------------------
-Docs nav performance:
-- Rendering the full recursive tree for every doc page is expensive.
-- We render children eagerly only up to a small depth, plus the active trail.
-- Opt-out: enable feature flag 'docs.sidebar.render_full_tree' in theme.features.
-------------------------------------------------------------------------- #}
-{% set render_full_tree = 'docs.sidebar.render_full_tree' in theme.features %}
-{% set ALWAYS_RENDER_DEPTH = 1 %}
-{% set should_render_children = render_full_tree or item.is_in_trail or (depth <= ALWAYS_RENDER_DEPTH) %}
-
 {% if item.has_children %}
 {# ===== ROOT NODE (depth 0) - Static header, no toggle ===== #}
 {% if depth == 0 %}
-<div class="docs-nav-group docs-nav-group--root{% if item.is_in_trail %} is-in-trail{% endif %}" data-depth="{{ depth }}">
+<div class="docs-nav-group docs-nav-group--root" data-depth="{{ depth }}" data-nav-path="{{ item._path }}">
   <div class="docs-nav-group-header">
     {% if show_nav_icons %}
     <span class="docs-nav-icon" {% if not item_icon %}data-default="true"{% endif %}>
@@ -47,8 +36,8 @@ Docs nav performance:
 
     {% if item.href %}
     <a href="{{ item.href }}"
-       class="docs-nav-group-title{% if item.is_current %} active{% endif %}"
-       {% if item.is_current %}aria-current="page"{% endif %}>
+       class="docs-nav-group-title"
+       data-nav-path="{{ item._path }}">
       {{ item_title }}
     </a>
     {% else %}
@@ -56,21 +45,21 @@ Docs nav performance:
     {% endif %}
   </div>
 
-  <div class="docs-nav-group-items is-expanded expanded">
+  <div class="docs-nav-group-items">
     {% for child in item.children %}
       {% set item = child %}
       {% set depth = depth + 1 %}
-      {% include 'partials/docs-nav-node.html' %}
+      {% include 'partials/docs-nav-scaffold-node.html' %}
     {% endfor %}
   </div>
 </div>
 
 {% else %}
 {# ===== EXPANDABLE NODE (has children, depth > 0) ===== #}
-<div class="docs-nav-group{% if item.is_in_trail %} is-in-trail{% endif %}" data-depth="{{ depth }}">
+<div class="docs-nav-group" data-depth="{{ depth }}" data-nav-path="{{ item._path }}">
   <div class="docs-nav-group-toggle-wrapper">
     <button class="docs-nav-group-toggle"
-            aria-expanded="{{ 'true' if item.is_in_trail else 'false' }}"
+            aria-expanded="false"
             aria-controls="nav-node-{{ item.id }}">
       {{ icon('caret-right', size=14) }}
     </button>
@@ -83,8 +72,8 @@ Docs nav performance:
 
     {% if item.href %}
     <a href="{{ item.href }}"
-       class="docs-nav-group-link{% if item.is_current %} active{% endif %}"
-       {% if item.is_current %}aria-current="page"{% endif %}>
+       class="docs-nav-group-link"
+       data-nav-path="{{ item._path }}">
       {{ item_title }}
     </a>
     {% else %}
@@ -92,26 +81,24 @@ Docs nav performance:
     {% endif %}
   </div>
 
-  <div class="docs-nav-group-items{% if item.is_in_trail %} is-expanded{% endif %}"
+  <div class="docs-nav-group-items"
        id="nav-node-{{ item.id }}">
-    {% if should_render_children %}
-      {% for child in item.children %}
-        {% set item = child %}
-        {% set depth = depth + 1 %}
-        {% include 'partials/docs-nav-node.html' %}
-      {% endfor %}
-    {% endif %}
+    {% for child in item.children %}
+      {% set item = child %}
+      {% set depth = depth + 1 %}
+      {% include 'partials/docs-nav-scaffold-node.html' %}
+    {% endfor %}
   </div>
 </div>
 {% endif %}
 
 {% else %}
 {# ===== LEAF NODE (no children) ===== #}
-<div class="docs-nav-group docs-nav-group--leaf" data-depth="{{ depth }}">
+<div class="docs-nav-group docs-nav-group--leaf" data-depth="{{ depth }}" data-nav-path="{{ item._path }}">
   {% if item.href %}
   <a href="{{ item.href }}"
-     class="docs-nav-link{% if item.is_section %} docs-nav-link--section{% endif %}{% if item.is_current %} active{% endif %}"
-     {% if item.is_current %}aria-current="page"{% endif %}>
+     class="docs-nav-link{% if item.is_section %} docs-nav-link--section{% endif %}"
+     data-nav-path="{{ item._path }}">
     {% if show_nav_icons and item.is_section %}
     <span class="docs-nav-icon docs-nav-icon--section" {% if not item_icon %}data-default="true"{% endif %}>
       {{ icon(item_icon or 'folder', size=14) }}

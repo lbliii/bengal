@@ -120,7 +120,7 @@ The build pipeline consists of **21 phases**, each extracted into a focused meth
 | 13 | `_phase_assets` | Processes CSS, JS, images (minify, optimize, fingerprint) |
 | 14 | `_phase_render` | Renders markdown to HTML, applies templates |
 | 15 | `_phase_update_site_pages` | Replaces stale PageProxy objects with fresh Pages |
-| 16 | `_phase_track_assets` | Caches page-to-assets mapping for incremental builds |
+| 16 | `_phase_track_assets` | Persists page-to-assets mapping (inline extraction during render) |
 
 #### Finalization (Phases 17-21)
 

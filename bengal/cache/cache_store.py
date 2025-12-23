@@ -211,7 +211,7 @@ class CacheStore:
             # Create parent directory if missing
             self.cache_path.parent.mkdir(parents=True, exist_ok=True)
 
-            # Write uncompressed JSON (using orjson if available)
+            # Write uncompressed JSON
             json_str = json.dumps(data, indent=indent)
             self.cache_path.write_text(json_str, encoding="utf-8")
 

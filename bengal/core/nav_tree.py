@@ -45,18 +45,17 @@ Related Packages:
 
 from __future__ import annotations
 
-import logging
 import threading
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
+from bengal.core.diagnostics import emit
+
 if TYPE_CHECKING:
     from bengal.core.page import Page
     from bengal.core.section import Section
     from bengal.core.site import Site
-
-logger = logging.getLogger(__name__)
 
 
 @dataclass(slots=True)
@@ -195,15 +194,16 @@ class NavTree:
                     continue
                 else:
                     # Both are same type (section+section or page+page) - real collision
-                    logger.warning(
-                        "NavTree URL collision detected: url=%s | "
-                        "existing_id=%s (type=%s) | new_id=%s (type=%s) | "
-                        "Tip: Check for duplicate slugs or conflicting autodoc output",
-                        url,
-                        existing.id,
-                        "section" if existing_is_section else "page",
-                        node.id,
-                        "section" if new_is_section else "page",
+                    emit(
+                        self,
+                        "warning",
+                        "nav_url_collision",
+                        url=url,
+                        existing_id=existing.id,
+                        existing_type="section" if existing_is_section else "page",
+                        new_id=node.id,
+                        new_type="section" if new_is_section else "page",
+                        hint="Check for duplicate slugs or conflicting autodoc output",
                     )
             self._flat_nodes[url] = node
         self._urls = set(self._flat_nodes.keys())
@@ -468,16 +468,21 @@ class NavTreeContext:
         return getattr(self.tree, key)
 
     def _wrap_node(self, node: NavNode) -> NavNodeProxy:
-        """Wrap a NavNode with page-specific state."""
+        """Wrap a NavNode with page-specific state (with caching)."""
         return NavNodeProxy(node, self)
 
 
-@dataclass(slots=True)
 class NavNodeProxy:
     """
     Transient proxy for NavNode that injects page-specific state.
 
     Used during template rendering to avoid mutating the cached NavTree.
+
+    PERFORMANCE:
+    ============
+    Properties are cached on first access to avoid repeated computation.
+    Templates may access is_current, is_in_trail, href multiple times per node.
+    Without caching, this creates millions of redundant computations.
 
     URL CONVENTION:
     ===============
@@ -503,13 +508,30 @@ class NavNodeProxy:
     - `absolute_href`: Fully-qualified URL for meta tags and sitemaps
     """
 
-    _node: NavNode
-    _context: NavTreeContext
+    __slots__ = (
+        "_node",
+        "_context",
+        "_href_cached",
+        "_is_current_cached",
+        "_is_in_trail_cached",
+        "_is_expanded_cached",
+        "_children_cached",
+    )
+
+    def __init__(self, node: NavNode, context: NavTreeContext) -> None:
+        self._node = node
+        self._context = context
+        # Cached values - None means not yet computed
+        self._href_cached: str | None = None
+        self._is_current_cached: bool | None = None
+        self._is_in_trail_cached: bool | None = None
+        self._is_expanded_cached: bool | None = None
+        self._children_cached: list[NavNodeProxy] | None = None
 
     @property
     def href(self) -> str:
         """
-        Get public URL with baseurl applied.
+        Get public URL with baseurl applied (cached).
 
         This is the URL for template href attributes. Automatically includes
         baseurl when configured (e.g., "/bengal/docs/foo/" for GitHub Pages).
@@ -518,20 +540,26 @@ class NavNodeProxy:
 
         For internal comparisons or lookups, use _path instead.
         """
+        if self._href_cached is not None:
+            return self._href_cached
+
         site_path = self._node._path  # NavNode stores site-relative path
 
         # Get site from page context
         site = getattr(self._context.page, "_site", None)
         if not site:
+            self._href_cached = site_path
             return site_path
 
         # Get baseurl from config
         try:
             baseurl = (site.config.get("baseurl", "") or "").rstrip("/")
         except Exception:
+            self._href_cached = site_path
             return site_path
 
         if not baseurl:
+            self._href_cached = site_path
             return site_path
 
         # Ensure site_path starts with /
@@ -540,11 +568,13 @@ class NavNodeProxy:
 
         # Handle absolute baseurl (e.g., https://example.com/subpath)
         if baseurl.startswith(("http://", "https://", "file://")):
-            return f"{baseurl}{site_path}"
+            self._href_cached = f"{baseurl}{site_path}"
+        else:
+            # Path-only baseurl (e.g., /bengal)
+            base_path = "/" + baseurl.lstrip("/")
+            self._href_cached = f"{base_path}{site_path}"
 
-        # Path-only baseurl (e.g., /bengal)
-        base_path = "/" + baseurl.lstrip("/")
-        return f"{base_path}{site_path}"
+        return self._href_cached
 
     @property
     def _path(self) -> str:
@@ -572,15 +602,27 @@ class NavNodeProxy:
 
     @property
     def is_current(self) -> bool:
-        return self._context.is_current(self._node)
+        """True if this node is the current page (cached)."""
+        if self._is_current_cached is not None:
+            return self._is_current_cached
+        self._is_current_cached = self._context.is_current(self._node)
+        return self._is_current_cached
 
     @property
     def is_in_trail(self) -> bool:
-        return self._context.is_active(self._node)
+        """True if this node is in the active trail (cached)."""
+        if self._is_in_trail_cached is not None:
+            return self._is_in_trail_cached
+        self._is_in_trail_cached = self._context.is_active(self._node)
+        return self._is_in_trail_cached
 
     @property
     def is_expanded(self) -> bool:
-        return self._context.is_expanded(self._node)
+        """True if this node should be expanded (cached)."""
+        if self._is_expanded_cached is not None:
+            return self._is_expanded_cached
+        self._is_expanded_cached = self._context.is_expanded(self._node)
+        return self._is_expanded_cached
 
     @property
     def is_section(self) -> bool:
@@ -589,7 +631,11 @@ class NavNodeProxy:
 
     @property
     def children(self) -> list[NavNodeProxy]:
-        return [self._context._wrap_node(child) for child in self._node.children]
+        """Child nodes wrapped as proxies (cached)."""
+        if self._children_cached is not None:
+            return self._children_cached
+        self._children_cached = [self._context._wrap_node(child) for child in self._node.children]
+        return self._children_cached
 
     def __getattr__(self, name: str) -> Any:
         # These attributes have @property implementations above, so __getattr__

@@ -33,9 +33,7 @@ from pathlib import Path
 
 from jinja2 import PackageLoader
 
-from bengal.utils.logger import get_logger
-
-logger = get_logger(__name__)
+from bengal.core.diagnostics import emit
 
 
 @dataclass(frozen=True)
@@ -58,14 +56,15 @@ class ThemePackage:
                 if templates_dir.is_dir():
                     return True
         except Exception as e:
-            logger.debug(
+            emit(
+                None,
+                "debug",
                 "theme_templates_dir_check_failed",
                 package=self.package,
                 method="importlib_import",
                 error=str(e),
                 error_type=type(e).__name__,
             )
-            pass
 
         # Try importlib.resources (for properly installed packages)
         try:
@@ -73,14 +72,15 @@ class ThemePackage:
             # Try calling is_dir() directly - if it exists, it should work
             return bool(traversable.is_dir())
         except Exception as e:
-            logger.debug(
+            emit(
+                None,
+                "debug",
                 "theme_templates_dir_check_failed",
                 package=self.package,
                 method="importlib_resources",
                 error=str(e),
                 error_type=type(e).__name__,
             )
-            pass
 
         return False
 
@@ -97,14 +97,15 @@ class ThemePackage:
                 if assets_dir.is_dir():
                     return True
         except Exception as e:
-            logger.debug(
+            emit(
+                None,
+                "debug",
                 "theme_assets_dir_check_failed",
                 package=self.package,
                 method="importlib_import",
                 error=str(e),
                 error_type=type(e).__name__,
             )
-            pass
 
         # Try importlib.resources (for properly installed packages)
         try:
@@ -112,7 +113,9 @@ class ThemePackage:
             # Try calling is_dir() directly - if it exists, it should work
             return bool(traversable.is_dir())
         except Exception as e:
-            logger.debug(
+            emit(
+                None,
+                "debug",
                 "theme_assets_dir_check_failed",
                 package=self.package,
                 method="importlib_resources",
@@ -135,7 +138,9 @@ class ThemePackage:
                 if manifest_file.is_file():
                     return True
         except Exception as e:
-            logger.debug(
+            emit(
+                None,
+                "debug",
                 "theme_manifest_check_failed",
                 package=self.package,
                 method="importlib_import",
@@ -149,7 +154,9 @@ class ThemePackage:
             # Try calling is_file() directly - if it exists, it should work
             return bool(traversable.is_file())
         except Exception as e:
-            logger.debug(
+            emit(
+                None,
+                "debug",
                 "theme_manifest_check_failed",
                 package=self.package,
                 method="importlib_resources",
@@ -175,7 +182,9 @@ class ThemePackage:
                 if full_path.exists():
                     return full_path
         except Exception as e:
-            logger.debug(
+            emit(
+                None,
+                "debug",
                 "theme_resource_path_import_failed",
                 package=self.package,
                 relative=relative,
@@ -195,7 +204,9 @@ class ThemePackage:
                         fspath = traversable.__fspath__()
                         return Path(fspath)
                 except Exception as e:
-                    logger.debug(
+                    emit(
+                        None,
+                        "debug",
                         "theme_resource_path_fspath_failed",
                         package=self.package,
                         relative=relative,
@@ -203,32 +214,33 @@ class ThemePackage:
                         error_type=type(e).__name__,
                         action="trying_as_file",
                     )
-                    pass
 
                 # For packages in zip files, we need as_file
                 try:
                     with resources.as_file(traversable) as path:
                         return Path(path)
                 except Exception as e:
-                    logger.debug(
+                    emit(
+                        None,
+                        "debug",
                         "theme_resource_path_as_file_failed",
                         package=self.package,
                         relative=relative,
                         error=str(e),
                         error_type=type(e).__name__,
                     )
-                    pass
         except Exception as e:
-            logger.debug(
+            emit(
+                None,
+                "debug",
                 "theme_resource_path_resolve_failed",
                 package=self.package,
                 relative=relative,
                 error=str(e),
                 error_type=type(e).__name__,
             )
-            pass
 
-        logger.debug("theme_resource_resolve_failed", package=self.package, rel=relative)
+        emit(None, "debug", "theme_resource_resolve_failed", package=self.package, rel=relative)
         return None
 
 
@@ -244,7 +256,7 @@ def get_installed_themes() -> dict[str, ThemePackage]:
     try:
         eps = metadata.entry_points(group="bengal.themes")
     except Exception as e:
-        logger.debug("entry_point_discovery_failed", error=str(e))
+        emit(None, "debug", "entry_point_discovery_failed", error=str(e))
         # On error, return empty dict (no themes found)
         return themes
 
@@ -266,7 +278,9 @@ def get_installed_themes() -> dict[str, ThemePackage]:
                 try:
                     version = metadata.version(dist_name)
                 except Exception as e:
-                    logger.debug(
+                    emit(
+                        None,
+                        "debug",
                         "theme_version_lookup_failed",
                         distribution=dist_name,
                         error=str(e),
@@ -274,7 +288,9 @@ def get_installed_themes() -> dict[str, ThemePackage]:
                     )
                     version = None
         except Exception as e:
-            logger.debug(
+            emit(
+                None,
+                "debug",
                 "theme_distribution_lookup_failed",
                 slug=slug,
                 package=package,
@@ -286,7 +302,7 @@ def get_installed_themes() -> dict[str, ThemePackage]:
             slug=slug, package=package, distribution=dist_name, version=version
         )
 
-    logger.debug("installed_themes_discovered", count=len(themes), slugs=list(themes.keys()))
+    emit(None, "debug", "installed_themes_discovered", count=len(themes), slugs=list(themes.keys()))
     return themes
 
 

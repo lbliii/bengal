@@ -187,6 +187,16 @@ class Page(
     # See: plan/active/rfc-page-section-reference-contract.md
     _section_url: str | None = field(default=None, repr=False)
 
+    # Cached resolved Section object for fast repeated access during template rendering.
+    # NOTE: Cache is per-site-object + reference tuple and must be invalidated when those change.
+    _section_obj_cache: Any = field(default=None, repr=False, init=False)
+    _section_obj_cache_key: tuple[int, Path | None, str | None] | None = field(
+        default=None, repr=False, init=False
+    )
+
+    # Sentinel representing a cached "not found" section.
+    _SECTION_NOT_FOUND: ClassVar[object] = object()
+
     # Private cache for lazy toc_items property
     _toc_items_cache: list[dict[str, Any]] | None = field(default=None, repr=False, init=False)
 
@@ -504,7 +514,14 @@ class Page(
                 )
             return None
 
-        # Perform O(1) lookup via appropriate registry
+        # Cache key ties the resolved section to the active site object + reference fields.
+        # This keeps lookups O(1) after the first resolution within a build.
+        cache_key = (id(self._site), self._section_path, self._section_url)
+        if self._section_obj_cache_key == cache_key:
+            cached = self._section_obj_cache
+            return None if cached is self._SECTION_NOT_FOUND else cached
+
+        # Perform O(1) lookup via appropriate registry (but may be non-trivial due to normalization)
         if self._section_path is not None:
             # Regular section: path-based lookup
             section = self._site.get_section_by_path(self._section_path)
@@ -552,6 +569,9 @@ class Page(
                     del self._global_missing_section_warnings[first_key]
                 self._global_missing_section_warnings[warn_key] = count + 1
 
+        # Cache both hits and misses (misses use a sentinel).
+        self._section_obj_cache_key = cache_key
+        self._section_obj_cache = section if section is not None else self._SECTION_NOT_FOUND
         return section
 
     @_section.setter
@@ -583,6 +603,10 @@ class Page(
             # Virtual section: use _path for lookup
             self._section_path = None
             self._section_url = getattr(value, "_path", None) or f"/{value.name}/"
+
+        # Invalidate resolved section cache (reference changed).
+        self._section_obj_cache_key = None
+        self._section_obj_cache = None
 
     @property
     def section_path(self) -> str | None:

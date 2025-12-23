@@ -88,6 +88,7 @@ from bengal.utils.logger import get_logger
 if TYPE_CHECKING:
     from bengal.core.page import Page
     from bengal.core.site import Site
+    from bengal.utils.build_context import AccumulatedPageData, BuildContext
 
 logger = get_logger(__name__)
 
@@ -148,7 +149,12 @@ class SiteIndexGenerator:
         self.json_indent = json_indent
         self.include_full_content = include_full_content
 
-    def generate(self, pages: list[Page]) -> Path | list[Path]:
+    def generate(
+        self,
+        pages: list[Page],
+        accumulated_data: list[AccumulatedPageData] | None = None,
+        build_context: BuildContext | None = None,
+    ) -> Path | list[Path]:
         """
         Generate site-wide index.json.
 
@@ -157,31 +163,67 @@ class SiteIndexGenerator:
         - Older versions: output_dir/docs/v1/index.json, etc.
 
         Args:
-            pages: List of pages to include
+            pages: List of pages to include (always needed for versioning grouping)
+            accumulated_data: Optional pre-computed page data from rendering.
+                            If provided, uses this instead of iterating pages.
+            build_context: Optional BuildContext for hybrid mode lookups.
+
+        Modes:
+            - Full: accumulated_data covers all pages → use accumulated only
+            - Hybrid: partial accumulated_data → use accumulated + fallback
+            - Legacy: no accumulated_data → iterate all pages
 
         Returns:
             Path to the generated index.json file (single index)
             or list of Paths (per-version indexes)
+
+        See: plan/drafted/rfc-unified-page-data-accumulation.md
         """
+        # Store for hybrid mode lookups
+        self._build_context = build_context
+        self._accumulated_index: dict[Path, AccumulatedPageData] = {
+            data.source_path: data for data in (accumulated_data or [])
+        }
+
         # Check if versioning is enabled
         versioning_enabled = getattr(self.site, "versioning_enabled", False)
 
         if not versioning_enabled:
-            # Single index (unchanged behavior)
-            return self._generate_single_index(pages)
+            # Single index
+            return self._generate_single_index(pages, accumulated_data)
 
         # Per-version indexes
         generated = []
         by_version = self._group_by_version(pages)
 
         for version_id, version_pages in by_version.items():
-            path = self._generate_version_index(version_id, version_pages)
+            # Filter accumulated data for this version
+            version_accumulated = None
+            if accumulated_data:
+                version_paths = {p.source_path for p in version_pages}
+                version_accumulated = [
+                    d for d in accumulated_data if d.source_path in version_paths
+                ]
+            path = self._generate_version_index(version_id, version_pages, version_accumulated)
             generated.append(path)
 
         return generated
 
-    def _generate_single_index(self, pages: list[Page]) -> Path:
-        """Generate single index.json (original behavior)."""
+    def _generate_single_index(
+        self,
+        pages: list[Page],
+        accumulated_data: list[AccumulatedPageData] | None = None,
+    ) -> Path:
+        """
+        Generate single index.json with hybrid mode support.
+
+        Modes:
+            - Full: accumulated_data covers all pages → use accumulated only (fast)
+            - Hybrid: partial accumulated_data → use accumulated + fallback
+            - Legacy: no accumulated_data → iterate all pages (original behavior)
+
+        See: plan/drafted/rfc-unified-page-data-accumulation.md
+        """
         logger.debug("generating_site_index_json", page_count=len(pages))
 
         # Build site metadata (per-locale when i18n is enabled)
@@ -202,19 +244,37 @@ class SiteIndexGenerator:
             "tags": {},
         }
 
-        # Add each page (summary only, no full content)
-        for page in pages:
-            page_summary = self.page_to_summary(page)
-            site_data["pages"].append(page_summary)
+        # Determine mode
+        accumulated_count = len(accumulated_data) if accumulated_data else 0
+        use_hybrid = 0 < accumulated_count < len(pages)
+        use_accumulated_only = accumulated_count == len(pages) and accumulated_count > 0
 
-            # Count sections
-            section = page_summary.get("section", "")
-            if section:
-                site_data["sections"][section] = site_data["sections"].get(section, 0) + 1
-
-            # Count tags
-            for tag in page_summary.get("tags", []):
-                site_data["tags"][tag] = site_data["tags"].get(tag, 0) + 1
+        if use_accumulated_only:
+            # FAST PATH: All pages have accumulated data
+            logger.debug("index_generator_mode", mode="accumulated_only")
+            for data in accumulated_data:  # type: ignore[union-attr]
+                page_summary = self._accumulated_to_summary(data)
+                self._add_to_site_data(site_data, page_summary)
+        elif use_hybrid:
+            # HYBRID PATH: Mix of accumulated + computed
+            logger.debug(
+                "index_generator_mode",
+                mode="hybrid",
+                accumulated=accumulated_count,
+                total=len(pages),
+            )
+            for page in pages:
+                if acc_data := self._accumulated_index.get(page.source_path):
+                    page_summary = self._accumulated_to_summary(acc_data)
+                else:
+                    page_summary = self.page_to_summary(page)
+                self._add_to_site_data(site_data, page_summary)
+        else:
+            # LEGACY PATH: Compute from pages
+            logger.debug("index_generator_mode", mode="legacy")
+            for page in pages:
+                page_summary = self.page_to_summary(page)
+                self._add_to_site_data(site_data, page_summary)
 
         # Convert counts to lists
         site_data["sections"] = [
@@ -247,8 +307,77 @@ class SiteIndexGenerator:
 
         return index_path
 
-    def _generate_version_index(self, version_id: str | None, pages: list[Page]) -> Path:
-        """Generate index for a specific version."""
+    def _add_to_site_data(self, site_data: dict[str, Any], page_summary: dict[str, Any]) -> None:
+        """Add page summary to site data and update aggregations."""
+        site_data["pages"].append(page_summary)
+
+        # Count sections
+        section = page_summary.get("section", "")
+        if section:
+            site_data["sections"][section] = site_data["sections"].get(section, 0) + 1
+
+        # Count tags
+        for tag in page_summary.get("tags", []):
+            site_data["tags"][tag] = site_data["tags"].get(tag, 0) + 1
+
+    def _accumulated_to_summary(self, data: AccumulatedPageData) -> dict[str, Any]:
+        """
+        Convert accumulated data to index summary format.
+
+        Produces identical output to page_to_summary() for consistency.
+        Uses pre-computed values from rendering phase instead of
+        re-computing from page objects.
+
+        See: plan/drafted/rfc-unified-page-data-accumulation.md
+        """
+        baseurl = self.site.config.get("baseurl", "").rstrip("/")
+
+        # Construct full URL by combining baseurl with relative URI
+        page_url = f"{baseurl}{data.uri}" if baseurl else data.uri
+
+        summary: dict[str, Any] = {
+            "objectID": data.uri,
+            "url": page_url,
+            "href": page_url,
+            "uri": data.uri,
+            "title": data.title,
+            "description": data.description,
+            "excerpt": data.excerpt,
+            "section": data.section,
+            "tags": data.tags,
+            "word_count": data.word_count,
+            "reading_time": data.reading_time,
+            "dir": data.dir,
+        }
+
+        # Optional date
+        if data.date:
+            summary["date"] = data.date
+
+        # Content for full-text search
+        if data.content_preview:
+            if self.include_full_content:
+                summary["content"] = data.plain_text
+            else:
+                summary["content"] = data.content_preview
+
+        # Enhanced metadata (type, author, draft, etc.)
+        for key, value in data.enhanced_metadata.items():
+            summary[key] = value
+
+        # Content type alias
+        if result_type := summary.get("type"):
+            summary["kind"] = result_type
+
+        return summary
+
+    def _generate_version_index(
+        self,
+        version_id: str | None,
+        pages: list[Page],
+        accumulated_data: list[AccumulatedPageData] | None = None,
+    ) -> Path:
+        """Generate index for a specific version with hybrid mode support."""
         logger.debug(
             "generating_version_index",
             version_id=version_id or "latest",
@@ -273,19 +402,29 @@ class SiteIndexGenerator:
             "tags": {},
         }
 
-        # Add each page (summary only, no full content)
-        for page in pages:
-            page_summary = self.page_to_summary(page)
-            site_data["pages"].append(page_summary)
+        # Determine mode
+        accumulated_count = len(accumulated_data) if accumulated_data else 0
+        use_hybrid = 0 < accumulated_count < len(pages)
+        use_accumulated_only = accumulated_count == len(pages) and accumulated_count > 0
 
-            # Count sections
-            section = page_summary.get("section", "")
-            if section:
-                site_data["sections"][section] = site_data["sections"].get(section, 0) + 1
-
-            # Count tags
-            for tag in page_summary.get("tags", []):
-                site_data["tags"][tag] = site_data["tags"].get(tag, 0) + 1
+        if use_accumulated_only:
+            # FAST PATH: All pages have accumulated data
+            for data in accumulated_data:  # type: ignore[union-attr]
+                page_summary = self._accumulated_to_summary(data)
+                self._add_to_site_data(site_data, page_summary)
+        elif use_hybrid:
+            # HYBRID PATH: Mix of accumulated + computed
+            for page in pages:
+                if acc_data := self._accumulated_index.get(page.source_path):
+                    page_summary = self._accumulated_to_summary(acc_data)
+                else:
+                    page_summary = self.page_to_summary(page)
+                self._add_to_site_data(site_data, page_summary)
+        else:
+            # LEGACY PATH: Compute from pages
+            for page in pages:
+                page_summary = self.page_to_summary(page)
+                self._add_to_site_data(site_data, page_summary)
 
         # Convert counts to lists
         site_data["sections"] = [

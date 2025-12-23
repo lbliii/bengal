@@ -46,6 +46,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.debug.base import DebugRegistry, DebugReport, DebugTool, Severity
+from bengal.utils.atomic_write import atomic_write_text
 
 if TYPE_CHECKING:
     pass
@@ -618,7 +619,7 @@ class DependencyVisualizer(DebugTool):
         if output_path:
             # Wrap in markdown code block
             content = f"```mermaid\n{mermaid}\n```"
-            output_path.write_text(content)
+            atomic_write_text(output_path, content)
 
         return mermaid
 
@@ -641,7 +642,7 @@ class DependencyVisualizer(DebugTool):
         dot = graph.to_dot(root=root)
 
         if output_path:
-            output_path.write_text(dot)
+            atomic_write_text(output_path, dot)
 
         return dot
 

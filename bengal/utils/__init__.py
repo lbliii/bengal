@@ -27,7 +27,7 @@ Categories:
         - text: Text processing (slugify, truncate, HTML strip)
         - dates: Date parsing, formatting, and "time ago"
         - dotdict: Dictionary with dot notation access for templates
-        - json_compat: Rust-accelerated JSON via orjson
+        - json_compat: JSON serialization with atomic file writes
 
     **Build Infrastructure**:
         - build_context: Shared state across build phases

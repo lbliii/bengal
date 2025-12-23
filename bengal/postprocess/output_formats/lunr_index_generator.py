@@ -32,6 +32,7 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from bengal.utils.atomic_write import atomic_write_text
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
@@ -161,13 +162,13 @@ class LunrIndexGenerator:
                 documents=documents,
             )
 
-            # Serialize and write
+            # Serialize and write atomically (crash-safe)
             output_path = self._get_output_path(index_json_path)
             serialized = idx.serialize()
 
-            output_path.write_text(
+            atomic_write_text(
+                output_path,
                 json.dumps(serialized, ensure_ascii=False, separators=(",", ":")),
-                encoding="utf-8",
             )
 
             size_kb = output_path.stat().st_size / 1024

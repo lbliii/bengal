@@ -243,21 +243,23 @@ class TestErrorHandling:
 
     def test_methods_require_build(self, simple_site):
         """Test that analysis methods require build() first."""
+        from bengal.errors import BengalError
+
         graph = KnowledgeGraph(simple_site)
 
-        with pytest.raises(RuntimeError, match="not built.*\\.build\\(\\)"):
+        with pytest.raises(BengalError, match="not built"):
             graph.get_hubs()
 
-        with pytest.raises(RuntimeError, match="not built.*\\.build\\(\\)"):
+        with pytest.raises(BengalError, match="not built"):
             graph.get_leaves()
 
-        with pytest.raises(RuntimeError, match="not built.*\\.build\\(\\)"):
+        with pytest.raises(BengalError, match="not built"):
             graph.get_orphans()
 
-        with pytest.raises(RuntimeError, match="not built.*\\.build\\(\\)"):
+        with pytest.raises(BengalError, match="not built"):
             graph.get_layers()
 
-        with pytest.raises(RuntimeError, match="not built.*\\.build\\(\\)"):
+        with pytest.raises(BengalError, match="not built"):
             graph.get_metrics()
 
     def test_empty_site(self, tmp_path):
@@ -454,12 +456,11 @@ class TestActionableRecommendations:
 
     def test_recommendations_require_build(self, simple_site):
         """Test that recommendations require build."""
+        from bengal.errors import BengalError
+
         graph = KnowledgeGraph(simple_site)
 
-        with pytest.raises(
-            RuntimeError,
-            match="KnowledgeGraph is not built. Call .build\\(\\) before getting recommendations.",
-        ):
+        with pytest.raises(BengalError, match="not built"):
             graph.get_actionable_recommendations()
 
 
@@ -479,12 +480,11 @@ class TestSEOInsights:
 
     def test_seo_insights_require_build(self, simple_site):
         """Test that SEO insights require build."""
+        from bengal.errors import BengalError
+
         graph = KnowledgeGraph(simple_site)
 
-        with pytest.raises(
-            RuntimeError,
-            match="KnowledgeGraph is not built. Call .build\\(\\) before getting SEO insights.",
-        ):
+        with pytest.raises(BengalError, match="not built"):
             graph.get_seo_insights()
 
 
@@ -526,12 +526,11 @@ class TestContentGaps:
 
     def test_content_gaps_require_build(self, simple_site):
         """Test that content gaps require build."""
+        from bengal.errors import BengalError
+
         graph = KnowledgeGraph(simple_site)
 
-        with pytest.raises(
-            RuntimeError,
-            match="KnowledgeGraph is not built. Call .build\\(\\) before getting content gaps.",
-        ):
+        with pytest.raises(BengalError, match="not built"):
             graph.get_content_gaps()
 
 

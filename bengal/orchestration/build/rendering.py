@@ -465,62 +465,44 @@ def phase_update_site_pages(
 
 
 def phase_track_assets(
-    orchestrator: BuildOrchestrator, pages_to_build: list[Any], cli: CLIOutput | None = None
+    orchestrator: BuildOrchestrator,
+    pages_to_build: list[Any],
+    cli: CLIOutput | None = None,
+    build_context: BuildContext | None = None,
 ) -> None:
     """
-    Phase 16: Track Asset Dependencies (Parallel).
+    Phase 16: Persist Asset Dependencies.
 
-    Extracts and caches which assets each rendered page references.
-    Used for incremental builds to invalidate pages when assets change.
-
-    Performance:
-        Uses parallel extraction for sites with >5 pages. On multi-core systems,
-        this provides ~3-4x speedup for large sites (100+ pages).
+    Persists asset dependencies that were accumulated during rendering
+    (inline extraction). Assets are extracted in RenderingPipeline and
+    accumulated in BuildContext for efficient batch persistence.
 
     Args:
         orchestrator: Build orchestrator instance
         pages_to_build: List of rendered pages
         cli: Optional CLI output handler
+        build_context: BuildContext with accumulated assets from rendering
     """
-    from concurrent.futures import ThreadPoolExecutor, as_completed
-
-    # Threshold below which sequential is faster (avoids thread overhead)
-    PARALLEL_THRESHOLD = 5
-
     with orchestrator.logger.phase("track_assets", enabled=True):
         start = time.perf_counter()
         status = "Done"
         icon = "✓"
         details = f"{len(pages_to_build)} pages"
+
         try:
             from bengal.cache.asset_dependency_map import AssetDependencyMap
-            from bengal.rendering.asset_extractor import extract_assets_from_html
 
             asset_map = AssetDependencyMap(orchestrator.site.paths.asset_cache)
 
-            def extract_page_assets(page: Any) -> tuple[Any, set[str]] | None:
-                """Extract assets from a single page (thread-safe)."""
-                if not page.rendered_html:
-                    return None
-                assets = extract_assets_from_html(page.rendered_html)
-                return (page.source_path, assets) if assets else None
+            if build_context and build_context.has_accumulated_assets:
+                # Persist accumulated assets from inline extraction
+                accumulated = build_context.get_accumulated_assets()
+                for source_path, assets in accumulated:
+                    asset_map.track_page_assets(source_path, assets)
+                details = f"{len(accumulated)} pages"
 
-            if len(pages_to_build) < PARALLEL_THRESHOLD:
-                # Sequential for small workloads (avoid thread overhead)
-                for page in pages_to_build:
-                    result = extract_page_assets(page)
-                    if result:
-                        asset_map.track_page_assets(*result)
-            else:
-                # Parallel extraction for larger workloads
-                max_workers = getattr(orchestrator, "max_workers", None)
-                with ThreadPoolExecutor(max_workers=max_workers) as executor:
-                    futures = [executor.submit(extract_page_assets, p) for p in pages_to_build]
-                    for future in as_completed(futures):
-                        result = future.result()
-                        if result:
-                            source_path, assets = result
-                            asset_map.track_page_assets(source_path, assets)
+                # Clear accumulated data to free memory
+                build_context.clear_accumulated_assets()
 
             # Persist asset dependencies to disk
             asset_map.save_to_disk()
@@ -534,10 +516,7 @@ def phase_track_assets(
             status = "Error"
             icon = "✗"
             details = "see logs"
-            orchestrator.logger.warning(
-                "asset_tracking_failed",
-                error=str(e),
-            )
+            orchestrator.logger.warning("asset_tracking_failed", error=str(e))
         finally:
             duration_ms = (time.perf_counter() - start) * 1000
             if cli is not None:

@@ -34,6 +34,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from bengal.errors import BengalError, ErrorCode
+
 if TYPE_CHECKING:
     from bengal.analysis.knowledge_graph import KnowledgeGraph, PageConnectivity
     from bengal.analysis.results import PageLayers
@@ -72,7 +74,11 @@ class GraphAnalyzer:
     def _ensure_built(self) -> None:
         """Verify the graph has been built before analysis."""
         if not self._graph._built:
-            raise RuntimeError("KnowledgeGraph is not built. Call .build() before analysis.")
+            raise BengalError(
+                "KnowledgeGraph is not built",
+                code=ErrorCode.G001,
+                suggestion="Call graph.build() before performing analysis",
+            )
 
     def get_connectivity(self, page: Page) -> PageConnectivity:
         """

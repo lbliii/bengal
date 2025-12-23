@@ -28,10 +28,8 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import cast
 
+from bengal.core.diagnostics import emit
 from bengal.core.theme.registry import get_theme_package
-from bengal.utils.logger import get_logger
-
-logger = get_logger(__name__)
 
 
 def _read_theme_extends(site_root: Path, theme_name: str) -> str | None:
@@ -47,7 +45,9 @@ def _read_theme_extends(site_root: Path, theme_name: str) -> str | None:
                 return cast(str | None, extends) if extends is not None else None
             return None
         except Exception as e:
-            logger.debug(
+            emit(
+                None,
+                "debug",
                 "theme_manifest_read_failed",
                 theme=theme_name,
                 path=str(site_manifest),
@@ -67,7 +67,9 @@ def _read_theme_extends(site_root: Path, theme_name: str) -> str | None:
                     extends_val = data.get("extends")
                     return str(extends_val) if extends_val else None
                 except Exception as e:
-                    logger.debug(
+                    emit(
+                        None,
+                        "debug",
                         "theme_manifest_read_failed",
                         theme=theme_name,
                         path=str(manifest_path),
@@ -75,7 +77,9 @@ def _read_theme_extends(site_root: Path, theme_name: str) -> str | None:
                         error_type=type(e).__name__,
                     )
     except Exception as e:
-        logger.debug(
+        emit(
+            None,
+            "debug",
             "theme_package_resolve_failed",
             theme=theme_name,
             error=str(e),
@@ -91,7 +95,9 @@ def _read_theme_extends(site_root: Path, theme_name: str) -> str | None:
             extends_val = data.get("extends")
             return str(extends_val) if extends_val else None
         except Exception as e:
-            logger.debug(
+            emit(
+                None,
+                "debug",
                 "theme_manifest_read_failed",
                 theme=theme_name,
                 path=str(bundled_manifest),
@@ -171,7 +177,9 @@ def resolve_theme_templates_path(
             if resolved and resolved.exists():
                 return resolved
     except Exception as e:
-        logger.debug(
+        emit(
+            None,
+            "debug",
             "theme_templates_resolution_installed_failed",
             theme=theme_name,
             error=str(e),
@@ -210,8 +218,13 @@ def iter_theme_asset_dirs(site_root: Path, theme_chain: Iterable[str]) -> list[P
                     dirs.append(resolved)
                     continue
         except Exception as e:
-            logger.debug("installed_theme_assets_resolution_failed", theme=theme_name, error=str(e))
-            pass
+            emit(
+                None,
+                "debug",
+                "installed_theme_assets_resolution_failed",
+                theme=theme_name,
+                error=str(e),
+            )
 
         # Bundled theme assets
         try:
@@ -219,7 +232,12 @@ def iter_theme_asset_dirs(site_root: Path, theme_chain: Iterable[str]) -> list[P
             if bundled_dir.exists():
                 dirs.append(bundled_dir)
         except Exception as e:
-            logger.debug("bundled_theme_assets_resolution_failed", theme=theme_name, error=str(e))
-            pass
+            emit(
+                None,
+                "debug",
+                "bundled_theme_assets_resolution_failed",
+                theme=theme_name,
+                error=str(e),
+            )
 
     return dirs

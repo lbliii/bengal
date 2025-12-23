@@ -1,5 +1,14 @@
 ## [Unreleased]
 
+### Inline Asset Extraction ✅
+- **orchestration(build)**: eliminate separate `Track assets` phase by extracting asset dependencies inline during rendering
+- **utils(build_context)**: add `_accumulated_assets` field and thread-safe accumulation methods for asset dependencies
+- **rendering(pipeline)**: add `_accumulate_asset_deps()` method called after `write_output` in all render paths
+- **orchestration(rendering)**: update `phase_track_assets` to use accumulated data (fast path) with fallback to extraction
+- **perf**: ~95% reduction in Track assets phase time (~5-6s → ~20ms for 1134 pages)
+- **tests**: add 10 unit tests for BuildContext asset accumulation and 4 integration tests for inline extraction
+- **plan**: RFC and plan moved to implemented
+
 ### Build Output Tracking ✅
 - **core(output)**: add `OutputRecord`, `OutputType`, `OutputCollector` protocol for typed output tracking
 - **core(output)**: add `BuildOutputCollector` thread-safe implementation with phase and type classification

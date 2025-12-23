@@ -522,7 +522,7 @@ class BuildOrchestrator:
         rendering.phase_update_site_pages(self, incremental, pages_to_build, cli=cli)
 
         # Phase 16: Track Asset Dependencies
-        rendering.phase_track_assets(self, pages_to_build, cli=cli)
+        rendering.phase_track_assets(self, pages_to_build, cli=cli, build_context=ctx)
 
         rendering_duration_ms = (time.time() - rendering_start) * 1000
         notify_phase_complete(
@@ -741,9 +741,11 @@ class BuildOrchestrator:
         """Phase 15: Update Site Pages."""
         rendering.phase_update_site_pages(self, incremental, pages_to_build)
 
-    def _phase_track_assets(self, pages_to_build: list[Page]) -> None:
+    def _phase_track_assets(
+        self, pages_to_build: list[Page], build_context: BuildContext | None = None
+    ) -> None:
         """Phase 16: Track Asset Dependencies."""
-        rendering.phase_track_assets(self, pages_to_build)
+        rendering.phase_track_assets(self, pages_to_build, build_context=build_context)
 
     def _phase_postprocess(
         self,

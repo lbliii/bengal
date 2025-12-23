@@ -121,10 +121,11 @@ class SiteContext:
         {{ site.params.repo_url }}   # Custom params
     """
 
-    __slots__ = ("_site",)
+    __slots__ = ("_site", "_params_cache")
 
     def __init__(self, site: Site):
         self._site = site
+        self._params_cache: ParamsContext | None = None
 
     def __getattr__(self, name: str) -> Any:
         """Proxy to underlying site, with safe fallbacks."""
@@ -176,13 +177,15 @@ class SiteContext:
         """
         Site-level custom parameters from [params] config section.
 
-        Returns a ParamsContext for safe nested access.
+        Returns a ParamsContext for safe nested access (cached after first access).
 
         Example:
             {{ site.params.repo_url }}
             {{ site.params.social.twitter }}
         """
-        return ParamsContext(self._site.config.get("params", {}))
+        if self._params_cache is None:
+            self._params_cache = ParamsContext(self._site.config.get("params", {}))
+        return self._params_cache
 
     def __bool__(self) -> bool:
         """Always truthy since site always exists."""
@@ -209,10 +212,11 @@ class ThemeContext:
         {% if 'feature' in theme.features %}
     """
 
-    __slots__ = ("_theme",)
+    __slots__ = ("_theme", "_config_cache")
 
     def __init__(self, theme: Theme | None):
         self._theme = theme
+        self._config_cache: ParamsContext | None = None
 
     @classmethod
     def _empty(cls) -> ThemeContext:
@@ -267,10 +271,13 @@ class ThemeContext:
 
     @property
     def config(self) -> ParamsContext:
-        """Theme config as ParamsContext for safe nested access."""
-        if self._theme is None or self._theme.config is None:
-            return ParamsContext({})
-        return ParamsContext(self._theme.config)
+        """Theme config as ParamsContext for safe nested access (cached)."""
+        if self._config_cache is None:
+            if self._theme is None or self._theme.config is None:
+                self._config_cache = ParamsContext({})
+            else:
+                self._config_cache = ParamsContext(self._theme.config)
+        return self._config_cache
 
     def has(self, feature: str) -> bool:
         """
@@ -314,10 +321,11 @@ class ConfigContext:
         {{ config.params.repo_url }}
     """
 
-    __slots__ = ("_config",)
+    __slots__ = ("_config", "_nested_cache")
 
     def __init__(self, config: dict[str, Any]):
         self._config = config or {}
+        self._nested_cache: dict[str, SmartDict] = {}
 
     def __getattr__(self, name: str) -> Any:
         if name.startswith("_"):
@@ -325,9 +333,11 @@ class ConfigContext:
 
         value = self._config.get(name)
 
-        # Wrap nested dicts in SmartDict for chained access
+        # Wrap nested dicts in SmartDict for chained access (with caching)
         if isinstance(value, dict):
-            return SmartDict(value)
+            if name not in self._nested_cache:
+                self._nested_cache[name] = SmartDict(value)
+            return self._nested_cache[name]
 
         return value if value is not None else ""
 
@@ -340,7 +350,10 @@ class ConfigContext:
         if value is None:
             return default
         if isinstance(value, dict):
-            return SmartDict(value)
+            # Use same cache as __getattr__ for consistency
+            if key not in self._nested_cache:
+                self._nested_cache[key] = SmartDict(value)
+            return self._nested_cache[key]
         return value
 
     def __contains__(self, key: str) -> bool:
@@ -453,10 +466,11 @@ class SectionContext:
         {% for page in section.pages %}
     """
 
-    __slots__ = ("_section",)
+    __slots__ = ("_section", "_params_cache")
 
     def __init__(self, section: Section | None):
         self._section = section
+        self._params_cache: ParamsContext | None = None
 
     def __getattr__(self, name: str) -> Any:
         if name.startswith("_"):
@@ -513,10 +527,13 @@ class SectionContext:
 
     @property
     def params(self) -> ParamsContext:
-        """Section metadata as ParamsContext for safe access."""
-        if self._section and hasattr(self._section, "metadata"):
-            return ParamsContext(self._section.metadata)
-        return ParamsContext({})
+        """Section metadata as ParamsContext for safe access (cached)."""
+        if self._params_cache is None:
+            if self._section and hasattr(self._section, "metadata"):
+                self._params_cache = ParamsContext(self._section.metadata)
+            else:
+                self._params_cache = ParamsContext({})
+        return self._params_cache
 
     @property
     def metadata(self) -> dict[str, Any]:
@@ -744,6 +761,63 @@ class MenusContext:
         return [item.to_dict() if hasattr(item, "to_dict") else item for item in menu]
 
 
+# =============================================================================
+# Global Context Caching (Ergonomic Overhead Optimization)
+# =============================================================================
+# Context wrappers like SiteContext, ConfigContext, ThemeContext, and MenusContext
+# are stateless - they just provide ergonomic access to the same underlying objects.
+# Creating new instances for every page render is wasteful.
+#
+# This cache stores a single set of global context wrappers per site instance,
+# keyed by the site object's id. This eliminates 4 object allocations per page.
+#
+# For a 225-page site, this saves ~900 object allocations per build.
+
+_global_context_cache: dict[int, dict[str, Any]] = {}
+
+
+def _get_global_contexts(site: Site) -> dict[str, Any]:
+    """
+    Get or create cached global context wrappers for a site.
+
+    Global contexts (site, config, theme, menus) are stateless wrappers
+    that don't change between page renders. Caching them eliminates
+    repeated object allocation overhead.
+
+    Args:
+        site: Site instance to wrap
+
+    Returns:
+        Dict with cached context wrappers: site, config, theme, menus
+    """
+    site_id = id(site)
+
+    if site_id in _global_context_cache:
+        return _global_context_cache[site_id]
+
+    # Build and cache the global contexts
+    theme_obj = site.theme_config if hasattr(site, "theme_config") else None
+
+    contexts = {
+        "site": SiteContext(site),
+        "config": ConfigContext(site.config),
+        "theme": ThemeContext(theme_obj) if theme_obj else ThemeContext._empty(),
+        "menus": MenusContext(site),
+    }
+
+    _global_context_cache[site_id] = contexts
+    return contexts
+
+
+def clear_global_context_cache() -> None:
+    """
+    Clear the global context cache.
+
+    Call this between builds or when site configuration changes.
+    """
+    _global_context_cache.clear()
+
+
 def build_page_context(
     page: Page | SimpleNamespace,
     site: Site,
@@ -799,15 +873,12 @@ def build_page_context(
 
     site_params = site.config.get("params", {})
 
-    # Build smart context objects
-    theme_obj = site.theme_config if hasattr(site, "theme_config") else None
+    # Get cached global contexts (site/config/theme/menus are stateless wrappers)
+    global_contexts = _get_global_contexts(site)
 
     context: dict[str, Any] = {
-        # Layer 1: Globals (smart wrappers)
-        "site": SiteContext(site),
-        "config": ConfigContext(site.config),
-        "theme": ThemeContext(theme_obj) if theme_obj else ThemeContext._empty(),
-        "menus": MenusContext(site),
+        # Layer 1: Globals (cached smart wrappers - no per-page allocation)
+        **global_contexts,
         # Layer 2: Page context (wrapped where needed)
         "page": page,
         "params": CascadingParamsContext(

@@ -51,6 +51,13 @@ from bengal.rendering.template_functions.navigation.models import (
 from bengal.rendering.template_functions.navigation.pagination import (
     get_pagination_items,
 )
+from bengal.rendering.template_functions.navigation.scaffold import (
+    NavScaffold,
+    get_active_trail,
+    get_cached_scaffold_html,
+    get_nav_scaffold,
+    get_nav_scaffold_context,
+)
 from bengal.rendering.template_functions.navigation.section import (
     get_section,
     section_pages,
@@ -84,12 +91,18 @@ __all__ = [
     "get_section",
     "section_pages",
     "combine_track_toc_items",
+    # Scaffold (Phase 2 optimization)
+    "get_nav_scaffold",
+    "get_nav_scaffold_context",
+    "get_active_trail",
+    "get_cached_scaffold_html",
     # Models
     "BreadcrumbItem",
     "PaginationItem",
     "PaginationInfo",
     "TocGroupItem",
     "AutoNavItem",
+    "NavScaffold",
 ]
 
 
@@ -114,6 +127,11 @@ def register(env: Environment, site: Site) -> None:
         """Wrapper with site closure."""
         return section_pages(path, site, recursive)
 
+    # Wrapper for cached scaffold HTML (needs env for template rendering)
+    def get_cached_scaffold_html_wrapper(page: Page, root_section: Section | None = None) -> str:
+        """Get cached scaffold HTML with env closure."""
+        return get_cached_scaffold_html(page, root_section, jinja_env=env)
+
     env.globals.update(
         {
             "get_breadcrumbs": get_breadcrumbs,
@@ -125,5 +143,10 @@ def register(env: Environment, site: Site) -> None:
             "combine_track_toc": combine_track_toc_with_get_page,
             "get_section": get_section_wrapper,
             "section_pages": section_pages_wrapper,
+            # Scaffold-based navigation (Phase 2 optimization)
+            "get_nav_scaffold": get_nav_scaffold,
+            "get_nav_scaffold_context": get_nav_scaffold_context,
+            "get_active_trail": get_active_trail,
+            "get_cached_scaffold_html": get_cached_scaffold_html_wrapper,
         }
     )

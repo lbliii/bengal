@@ -13,6 +13,7 @@ import click
 
 from bengal.cli.base import BengalGroup
 from bengal.output import CLIOutput
+from bengal.utils.atomic_write import atomic_write_text
 
 
 @click.group("codemod", cls=BengalGroup)
@@ -135,7 +136,7 @@ def codemod_urls(path: Path, dry_run: bool, diff: bool) -> None:
                     cli.blank()
 
                 if not dry_run:
-                    file_path.write_text(modified_content, encoding="utf-8")
+                    atomic_write_text(file_path, modified_content)
 
         except Exception as e:
             cli.error(f"✗ {file_path}: {e}")

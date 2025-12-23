@@ -249,7 +249,20 @@ def template_env() -> Environment:
     # Register globals needed by templates
     env.globals["get_element_stats"] = get_element_stats
 
+    # Register translation function (mock that returns default value)
+    env.globals["t"] = mock_translate
+
     return env
+
+
+def mock_translate(
+    key: str,
+    params: dict[str, Any] | None = None,
+    lang: str | None = None,
+    default: str | None = None,
+) -> str:
+    """Mock translation function that returns the default value."""
+    return default or key
 
 
 def mock_icon(name: str, size: int = 16, css_class: str = "") -> str:

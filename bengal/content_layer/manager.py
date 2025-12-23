@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING, Any
 
 from bengal.errors import BengalConfigError, BengalError
 from bengal.utils.async_compat import run_async
+from bengal.utils.atomic_write import atomic_write_text
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
@@ -303,7 +304,7 @@ class ContentLayerManager:
 
         # Save entries
         data = [entry.to_dict() for entry in entries]
-        cache_path.write_text(json.dumps(data, indent=2))
+        atomic_write_text(cache_path, json.dumps(data, indent=2))
 
         # Save metadata
         meta = {
@@ -311,7 +312,7 @@ class ContentLayerManager:
             "cached_at": datetime.now().isoformat(),
             "entry_count": len(entries),
         }
-        meta_path.write_text(json.dumps(meta, indent=2))
+        atomic_write_text(meta_path, json.dumps(meta, indent=2))
 
         logger.debug(f"Cached {len(entries)} entries for '{name}'")
 

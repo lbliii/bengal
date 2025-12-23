@@ -99,9 +99,11 @@ class TestActionableRecommendations:
 
     def test_recommendations_require_build(self, site_with_structure):
         """Test that recommendations require build."""
+        from bengal.errors import BengalError
+
         graph = KnowledgeGraph(site_with_structure)
 
-        with pytest.raises(RuntimeError, match="not built.*\\.build\\(\\)"):
+        with pytest.raises(BengalError, match="not built"):
             graph.get_actionable_recommendations()
 
 
@@ -130,9 +132,11 @@ class TestSEOInsights:
 
     def test_seo_insights_require_build(self, site_with_structure):
         """Test that SEO insights require build."""
+        from bengal.errors import BengalError
+
         graph = KnowledgeGraph(site_with_structure)
 
-        with pytest.raises(RuntimeError, match="not built.*\\.build\\(\\)"):
+        with pytest.raises(BengalError, match="not built"):
             graph.get_seo_insights()
 
 
@@ -153,9 +157,11 @@ class TestContentGaps:
 
     def test_content_gaps_require_build(self, site_with_structure):
         """Test that content gaps require build."""
+        from bengal.errors import BengalError
+
         graph = KnowledgeGraph(site_with_structure)
 
-        with pytest.raises(RuntimeError, match="not built.*\\.build\\(\\)"):
+        with pytest.raises(BengalError, match="not built"):
             graph.get_content_gaps()
 
 

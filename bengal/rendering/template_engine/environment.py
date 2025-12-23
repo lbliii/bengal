@@ -339,6 +339,14 @@ def create_jinja_environment(
             directory=str(cache_dir), pattern="__bengal_template_%s.cache"
         )
         logger.debug("template_bytecode_cache_enabled", cache_dir=str(cache_dir))
+
+        # NOTE: Race conditions in parallel rendering
+        # When multiple threads compile the same template simultaneously, Jinja2's
+        # FileSystemBytecodeCache creates temporary .tmp files that may be cleaned up
+        # before they're read, causing harmless FileNotFoundError warnings. These errors
+        # are caught silently by Jinja2 and don't impact performance - templates simply
+        # recompile if cache is missing. The race condition is inherent to Jinja2's
+        # cache design and doesn't significantly impact build performance.
     elif auto_reload:
         logger.debug("template_bytecode_cache_disabled", reason="dev_server_auto_reload")
 

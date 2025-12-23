@@ -16,9 +16,20 @@ Features:
 - Keyboard accessible
 - Section icons from frontmatter
 
+Performance Modes:
+- Default: SSR-rendered with active-trail-only depth pruning (Phase 1)
+- Scaffold: Static HTML + JS overlay for active state (Phase 2)
+  Enable via theme.features: 'docs.sidebar.scaffold_mode'
+
 Usage:
 {% include 'partials/docs-nav.html' %}
 #}
+
+{# Check for scaffold mode (Phase 2 optimization) #}
+{% set use_scaffold_mode = 'docs.sidebar.scaffold_mode' in theme.features %}
+{% if use_scaffold_mode %}
+  {% include 'partials/docs-nav-scaffold.html' %}
+{% else %}
 
 {# Control icon visibility - defaults to true #}
 {% set show_nav_icons = show_nav_icons if show_nav_icons is defined else true %}
@@ -87,3 +98,4 @@ within a section (e.g., /api/python/ stops at itself, not /api/).
     {% endif %}
   </div>
 </nav>
+{% endif %}

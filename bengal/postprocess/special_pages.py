@@ -52,6 +52,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from bengal.core.page.utils import create_synthetic_page
+from bengal.utils.atomic_write import atomic_write_text
+from bengal.utils.json_compat import dump as json_dump
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -458,15 +460,13 @@ class SpecialPagesGenerator:
                     return False
 
             output_path.parent.mkdir(parents=True, exist_ok=True)
-            output_path.write_text(html, encoding="utf-8")
+            atomic_write_text(output_path, html)
 
             # Also generate JSON data file for minimap/embedding in other pages
-            import json
-
             graph_data = visualizer.generate_graph_data()
             json_path = self.site.output_dir / raw_path.strip("/") / "graph.json"
-            # sort_keys=True ensures deterministic output for cache invalidation
-            json_path.write_text(json.dumps(graph_data, indent=2, sort_keys=True), encoding="utf-8")
+            # json_dump uses atomic writes for crash-safety
+            json_dump(graph_data, json_path, indent=2)
 
             return True
         except Exception as e:
