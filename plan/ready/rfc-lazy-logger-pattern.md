@@ -1,6 +1,6 @@
 # RFC: LazyLogger Pattern for Test Isolation
 
-**Status**: Evaluated  
+**Status**: Ready  
 **Confidence**: 100% 🟢  
 **Created**: 2025-12-22  
 
@@ -8,9 +8,9 @@
 
 ## Executive Summary
 
-Replace module-level `logger = get_logger(__name__)` with a transparent proxy pattern where `get_logger` returns a `LazyLogger`. This eliminates orphaned logger references that cause test failures in pytest-xdist workers by ensuring loggers are always fetched from the current registry generation.
+Replace module-level `logger = get_logger(__name__)` with `logger = LazyLogger(__name__)` to eliminate orphaned logger references that cause test failures in pytest-xdist workers.
 
-**Impact**: 200+ modules covered automatically; eliminates 4+ accumulated test fixture hacks; prevents recurring bug class.
+**Impact**: ~15 module changes, eliminates 4 accumulated test fixture hacks, prevents recurring bug class.
 
 ---
 
@@ -29,10 +29,10 @@ b365a6fb tests(logging): fix orphaned logger instances...
 
 ### Root Cause
 
-Nearly every module in Bengal (200+) uses this pattern:
+Every orchestration module uses this pattern:
 
 ```python
-# bengal/orchestration/build/__init__.py (and 200+ others)
+# bengal/orchestration/build/__init__.py (and 15+ others)
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)  # Reference captured at import time
@@ -42,7 +42,7 @@ class BuildOrchestrator:
         logger.info("build_start", ...)  # Uses the captured reference
 ```
 
-**The problem**: When tests call `reset_loggers()` (which clears the `_loggers` registry), the module-level `logger` variable still references the OLD logger object. Subsequent logs go to the orphaned logger, while test assertions retrieve NEW loggers from the registry, resulting in empty event lists and failed assertions.
+**The problem**: When tests call `reset_loggers()` (which clears `_loggers` registry), the module-level `logger` variable still references the OLD logger object. Events go to the orphaned logger, while tests retrieve NEW loggers from the registry.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -61,9 +61,9 @@ class BuildOrchestrator:
 
 | Fix | Approach | Why Incomplete |
 |-----|----------|----------------|
-| `preserve_loggers` marker | Skip reset for this test | Previous test's reset already ran on the same worker |
-| Clear events, keep registry | Preserve logger objects | Doesn't help if registry was already cleared or needs fresh config |
-| Reload modules | Force fresh logger refs | Fragile hack; slow; requires maintaining list of modules to reload |
+| `preserve_loggers` marker | Skip reset for this test | Previous test's reset already ran |
+| Clear events, keep registry | Preserve logger objects | Doesn't help if registry already cleared |
+| Reload modules | Force fresh logger refs | Hack, fragile, slow |
 
 ---
 
@@ -71,7 +71,7 @@ class BuildOrchestrator:
 
 ### 1. Refactor `get_logger` to return a Proxy
 
-Instead of changing every module to use a new class, we will refactor `bengal/utils/logger.py` so that `get_logger` automatically returns a `LazyLogger` proxy. This eliminates the need to touch 200+ files while solving the orphan reference problem globally.
+Instead of changing every module to use a new class, we will refactor `bengal/utils/logger.py` so that `get_logger` automatically returns a `LazyLogger` proxy. This eliminates the need to touch 200+ files while solving the orphan reference problem everywhere.
 
 ### 2. Implementation in `bengal/utils/logger.py`
 
@@ -121,7 +121,7 @@ class LazyLogger:
         return getattr(self._logger, attr)
 
     def __dir__(self) -> list[str]:
-        """Support autocomplete and inspection."""
+        """Support autocomplete by merging proxy and logger attributes."""
         return list(set(super().__dir__()) | set(dir(BengalLogger)))
 
 def get_logger(name: str) -> BengalLogger:
@@ -149,7 +149,7 @@ def reset_loggers() -> None:
 
 1. **Zero Call-Site Changes**: No need to update 200+ files using `get_logger(__name__)`.
 2. **Infinite Lifetime**: Module-level `logger` variables never become stale.
-3. **Performance**: Registry lookup only happens once per "registry generation" (usually once per test run or after a reset).
+3. **Performance**: Registry lookup only happens once per "registry generation" thanks to version tracking.
 4. **Test Reliability**: Eliminates 100% of orphaned logger bugs in xdist workers.
 
 ---
@@ -159,46 +159,59 @@ def reset_loggers() -> None:
 ### Phase 1: Core Refactor (1 task)
 - [ ] Implement `LazyLogger`, `_get_actual_logger`, and `_registry_version` in `bengal/utils/logger.py`.
 - [ ] Update `get_logger` and `reset_loggers`.
-- [ ] Add unit test for `LazyLogger` proxy behavior.
 
 ### Phase 2: Test Cleanup (1 task)
-- [ ] Remove `importlib.reload()` hacks from `test_logging_integration.py` and `conftest.py`.
+- [ ] Remove `importlib.reload()` hacks from `test_logging_integration.py`.
 - [ ] Simplify `conftest.py` and remove `preserve_loggers` logic.
 
 ### Phase 3: Verification (1 task)
-- [ ] Run full test suite with `-n auto` (pytest-xdist).
-- [ ] Verify no regressions in build performance for large sites.
-
----
-
-## Performance Considerations
-
-**Overhead**: One extra attribute lookup and one version check per log call.
-Given that logging is already an I/O bound or relatively heavy operation (string formatting, JSON serialization), the cost of one integer comparison and one attribute access is negligible.
-
-**Benchmarking**:
-Will be verified using `tests/performance/test_parallel_rendering.py` to ensure no significant regression in total build time.
+- [ ] Run full test suite with `-n auto`.
+- [ ] Verify no regressions in build performance.
 
 ---
 
 ## Alternatives Considered
 
 ### 1. Dependency Injection
-**Rejected**: Requires changing every constructor signature and propagating loggers through thousands of call sites.
+
+```python
+class BuildOrchestrator:
+    def __init__(self, site: Site, logger: BengalLogger | None = None):
+        self.logger = logger or get_logger(__name__)
+```
+
+**Rejected**: Requires changing every constructor signature, propagating logger through call chains.
 
 ### 2. Thread-Local Loggers
-**Rejected**: pytest-xdist uses processes, not threads.
+
+```python
+_thread_loggers = threading.local()
+
+def get_logger(name: str) -> BengalLogger:
+    if not hasattr(_thread_loggers, 'loggers'):
+        _thread_loggers.loggers = {}
+    ...
+```
+
+**Rejected**: pytest-xdist uses processes, not threads. Would need process-local instead.
 
 ### 3. Never Clear Registry in Tests
-**Rejected**: Risks cross-test contamination and memory leaks.
+
+**Rejected**: Risks cross-test contamination, defeats purpose of isolation.
+
+### 4. Keep Current Reload Hack
+
+**Rejected**: Fragile, slow, requires maintaining list of modules to reload.
 
 ---
 
 ## Success Criteria
 
-- [ ] All logging integration tests pass with xdist (`-n 2`, `-n auto`).
-- [ ] No `importlib.reload()` or `preserve_loggers` workarounds remain.
-- [ ] `bengal/utils/logger.py` implementation passes type checking.
+- [ ] All logging integration tests pass with xdist (`-n 2`, `-n auto`)
+- [ ] No `importlib.reload()` in test code
+- [ ] No `preserve_loggers` marker needed
+- [ ] No performance regression in build times
+- [ ] Pattern documented in `bengal/utils/logger.py`
 
 ---
 
@@ -206,6 +219,14 @@ Will be verified using `tests/performance/test_parallel_rendering.py` to ensure 
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|------------|--------|------------|
-| Performance overhead | Low | Low | Version check prevents redundant lookups. |
-| Type compatibility issues | Low | Low | `LazyLogger` implements `__dir__` and delegates all calls; `type: ignore` used at source. |
-| Hidden state in proxy | Low | Low | `__slots__` keeps proxy lightweight. |
+| Performance overhead | Low | Low | Benchmark, cache if needed |
+| Missed module migration | Low | Medium | grep for `get_logger(__name__)` |
+| New test failures | Low | Low | Full test suite run |
+
+---
+
+## References
+
+- Commits attempting to fix: `157be17f`, `8ef9bfe9`, `b365a6fb`, `6d20beed`
+- Python logging best practices: [docs.python.org/3/howto/logging.html](https://docs.python.org/3/howto/logging.html)
+- pytest-xdist isolation: [pytest-xdist docs](https://pytest-xdist.readthedocs.io/)

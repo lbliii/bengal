@@ -1,7 +1,6 @@
 # RFC: Enhanced Tag Pages for Content Discovery
 
-**Status**: Evaluated  
-**Confidence**: 100% 🟢  
+**Status**: Draft  
 **Created**: 2024-12-22  
 **Author**: Bengal Team
 
