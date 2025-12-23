@@ -2,7 +2,7 @@
 title: Coming From Another Tool?
 nav_title: Migrate
 description: Onboarding guides for users migrating from Sphinx, Hugo, Docusaurus,
-  and other documentation tools
+  MkDocs, Mintlify, Fern, and other documentation tools
 weight: 15
 tags:
 - tutorial
@@ -12,10 +12,14 @@ keywords:
 - sphinx
 - hugo
 - docusaurus
+- mkdocs
+- mintlify
+- fern
 - mdx
 - rst
 - migration
 - onboarding
+- api documentation
 icon: boomerang
 ---
 
@@ -47,18 +51,39 @@ You use Hugo shortcodes like `{{</* highlight */>}}` and Go templates. Bengal di
 You write MDX with React components like `<Tabs>`. Bengal offers the same features without JSX.
 :::{/card}
 
+:::{card} From MkDocs
+:icon: file-text
+:link: from-mkdocs
+
+You use `!!! note` admonitions and `mkdocs.yml`. Bengal's Python-native approach will feel right at home.
+:::{/card}
+
+:::{card} From Mintlify
+:icon: sparkle
+:link: from-mintlify
+
+You use Mintlify's hosted MDX with `<Card>` components. Get the same polish, self-hosted.
+:::{/card}
+
+:::{card} From Fern
+:icon: code
+:link: from-fern
+
+You use Fern's API-first docs platform. Bengal gives you documentation freedom without SDK lock-in.
+:::{/card}
+
 :::{/cards}
 
 ## Quick Comparison
 
-| Feature | Sphinx/RST | Hugo | Docusaurus | **Bengal** |
-|---------|------------|------|------------|------------|
-| Callouts | `.. note::` | `{{</* notice */>}}` | `:::note` | `:::{note}` |
-| Tabs | Extension | `{{</* tabs */>}}` | `<Tabs>` | `:::{tab-set}` or `:::{tabs}` |
-| Code inclusion | `.. literalinclude::` | `readFile` | Import | `:::{literalinclude}` |
-| Config format | `conf.py` | `config.toml` | `docusaurus.config.js` | `bengal.toml` |
-| Template engine | Jinja2 | Go templates | React | Jinja2 |
-| Dev server | `sphinx-autobuild` | `hugo server` | `npm start` | `bengal serve` (port 5173) |
+| Feature | Sphinx/RST | Hugo | Docusaurus | MkDocs | Mintlify | Fern | **Bengal** |
+|---------|------------|------|------------|--------|----------|------|------------|
+| Callouts | `.. note::` | `{{</* notice */>}}` | `:::note` | `!!! note` | `<Note>` | `<Callout>` | `:::{note}` |
+| Tabs | Extension | `{{</* tabs */>}}` | `<Tabs>` | `=== "Tab"` | `<Tabs>` | `<CodeBlocks>` | `:::{tab-set}` |
+| Cards | Extension | Shortcode | `<Card>` | Extension | `<CardGroup>` | `<Cards>` | `:::{cards}` |
+| Config format | `conf.py` | `config.toml` | `.js` | `mkdocs.yml` | `mint.json` | `docs.yml` | `bengal.toml` |
+| Template engine | Jinja2 | Go | React | Jinja2 | MDX | MDX | Jinja2 |
+| Hosting | Self-host | Self-host | Self-host | Self-host | Managed | Managed | Self-host |
 
 ## Common Ground
 

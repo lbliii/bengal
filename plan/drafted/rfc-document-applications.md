@@ -90,7 +90,7 @@ Specific version requirements for Document Application features:
 
 **View Transitions**: Now a web standard with 90%+ global support across Chrome, Firefox, Safari, and Edge. Firefox added support in version 144 (October 2025). See [caniuse.com/view-transitions](https://caniuse.com/view-transitions).
 
-**Speculation Rules**: Chrome/Edge only. Other browsers ignore the rules gracefully—navigation works normally, just without prerendering.
+**Speculation Rules**: 74% global support via Chromium browsers (Chrome 121+, Edge 121+, Opera 107+, Samsung Internet 25+). Safari has experimental flag support. Firefox ignores the rules gracefully—navigation works normally, just without prerendering.
 
 ---
 
@@ -1760,3 +1760,4 @@ This is **impossible** with current multi-page architecture without client-side 
 - **2025-12-22**: Added Browser Support Matrix, Testing Plan, Performance Metrics baselines, Rollback Strategy, CSS Generation Strategy for tabs, adjusted Phase 5 timeline, added recommendations to Open Questions
 - **2025-12-23**: Updated Browser Support Matrix—Firefox 144+ now supports View Transitions API (90%+ global support, Baseline October 2025). View Transitions is now a cross-browser standard, not Chrome-first. Source: [caniuse.com/view-transitions](https://caniuse.com/view-transitions)
 - **2025-12-23**: Updated `@starting-style` support—now Baseline since August 2024, supported in all major browsers including Firefox 129+. Dialog/popover animations now work cross-browser. Source: [W3C CSS Transitions Level 2](https://drafts.csswg.org/css-transitions-2/#defining-before-change-style)
+- **2025-12-23**: Updated Speculation Rules support—74% global support via Chromium browsers (Chrome 121+, Edge 121+, Opera 107+). Safari has experimental flag. Better than "Chrome/Edge only" framing.
