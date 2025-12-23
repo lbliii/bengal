@@ -20,6 +20,18 @@ category: cookbook
 
 Add navigation for multi-part content like tutorial series, allowing readers to move between parts.
 
+:::{note}
+**Built into Default Theme**
+
+Bengal's default theme includes navigation components:
+- **Prev/Next navigation** via `{{ page_navigation(page) }}` macro
+- **Section-scoped** for docs/tutorials (respects `weight` order)
+- **Track navigation** for learning paths with progress bars
+- Enable with `navigation.prev_next` feature flag
+
+This recipe shows how to use `page.series` frontmatter for explicit multi-part series with progress tracking.
+:::
+
 ## The Pattern
 
 ### Frontmatter Setup

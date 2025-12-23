@@ -20,6 +20,16 @@ category: cookbook
 
 Display freshness indicators like "new" badges for recent content and staleness warnings for old content.
 
+:::{note}
+**Default Theme Approach**
+
+Bengal's default theme uses **tags** for badges:
+- Add `tags: [new]` for "✨ New" badge
+- Add `tags: [featured]` for "⭐ Featured" badge
+
+This recipe shows how to use `page.age_days` for **automatic** freshness detection based on publication date.
+:::
+
 ## The Pattern
 
 ```jinja2

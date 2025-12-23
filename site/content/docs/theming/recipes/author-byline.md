@@ -20,6 +20,17 @@ category: cookbook
 
 Display author information including avatar, bio, and social links.
 
+:::{note}
+**Built into Default Theme**
+
+Bengal's default theme includes full author support out of the box:
+- **Author pages** at `/authors/{name}/` with posts, social links, and bio
+- **Author bylines** in blog posts (enable with `content.author` feature)
+- **Author index** for O(1) lookup via `site.indexes.author`
+
+This recipe shows how to customize the display or build your own author components.
+:::
+
 ## The Pattern
 
 ### Frontmatter Setup

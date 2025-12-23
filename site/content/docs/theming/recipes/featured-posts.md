@@ -19,6 +19,16 @@ category: cookbook
 
 Highlight important content using the `featured` frontmatter flag.
 
+:::{note}
+**Built into Default Theme**
+
+Bengal's default theme recognizes `featured: true` frontmatter:
+- Shows "⭐ Featured" badge on article cards
+- Use `tags: [featured]` as an alternative
+
+This recipe shows how to create featured sections, hero layouts, and sidebar widgets.
+:::
+
 ## The Pattern
 
 ### Frontmatter Setup

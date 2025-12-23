@@ -20,6 +20,17 @@ category: cookbook
 
 Add share buttons to let readers share your content on social platforms.
 
+:::{note}
+**Built into Default Theme**
+
+Bengal's default theme includes social sharing in blog posts:
+- **Share dropdown** in the page hero component
+- Uses `share_url()` template functions
+- Includes Twitter, LinkedIn, Facebook, and copy-link
+
+This recipe shows how to customize placement or add additional platforms.
+:::
+
 ## The Pattern
 
 ```jinja2

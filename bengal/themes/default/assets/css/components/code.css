@@ -730,6 +730,8 @@ pre code {
   overflow: hidden;
   border: 1px solid rgba(0, 0, 0, 0.1);
   box-shadow: var(--elevation-card);
+  /* Fixed layout prevents table from expanding beyond container width */
+  table-layout: fixed;
   /* Peaceful glow animation - signature Bengal top/bottom border pulse */
   animation: code-border-glow 8s ease-in-out infinite;
 }
@@ -749,6 +751,8 @@ pre code {
 /* Line numbers cell */
 .highlight td.linenos {
   width: 3.5rem;
+  min-width: 3.5rem;
+  max-width: 3.5rem;
   padding: 0;
   /* Use inset box-shadow instead of border so it clips at border-radius */
   box-shadow: inset -1px 0 0 0 var(--color-border-light);
@@ -783,9 +787,10 @@ pre code {
   vertical-align: top;
 }
 
-/* Pygments wraps pre in a div - ensure it fills the cell */
+/* Pygments wraps pre in a div - ensure it fills the cell and scrolls */
 .highlight td.code>div {
   width: 100%;
+  overflow-x: auto;
 }
 
 /* Code pre inside table */
@@ -830,6 +835,9 @@ pre code {
 /* Position context for absolutely-positioned copy button */
 div.highlight {
   position: relative;
+  /* Prevent code blocks from expanding page width */
+  max-width: 100%;
+  overflow: hidden;
 }
 
 /* Clip negative margins on .hll to prevent page overflow.

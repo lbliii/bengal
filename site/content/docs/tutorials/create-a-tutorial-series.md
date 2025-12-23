@@ -22,6 +22,17 @@ category: tutorial
 
 In this tutorial, you'll learn how to create a multi-part tutorial series with navigation between parts, progress tracking, and a series overview page.
 
+:::{tip}
+**Default Theme Navigation**
+
+Bengal's default theme includes prev/next navigation that works automatically:
+- **Section-scoped** for `doc`, `tutorial` types — uses `weight` for ordering
+- **Chronological** for `blog`, `page` types — sorted by date
+- Enable with `navigation.prev_next` feature flag
+
+This tutorial shows how to use **explicit series metadata** for multi-part content with progress bars and "Part X of Y" displays.
+:::
+
 :::{note}
 **Who is this for?**
 This guide is for content creators building courses, tutorials, or any multi-part content where readers progress through sequential lessons.

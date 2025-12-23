@@ -20,6 +20,17 @@ category: cookbook
 
 Create archive pages that group content by year or month.
 
+:::{note}
+**Built into Default Theme**
+
+Bengal's default theme includes archive templates:
+- **`archive.html`** — Full archive page grouped by year
+- **`archive-year.html`** — Year-specific archive pages
+- **`partials/archive-sidebar.html`** — Sidebar widget with year links
+
+This recipe shows how to customize grouping or build your own archive layouts.
+:::
+
 ## The Pattern
 
 ### Yearly Archive

@@ -20,6 +20,16 @@ category: cookbook
 
 Display statistics about sections like post counts, total word count, and reading time.
 
+:::{note}
+**Partial Default Theme Support**
+
+Bengal's default theme includes some statistics:
+- **Word count** in docs meta (`partials/docs-meta.html`)
+- **Post count** in author listings
+
+This recipe shows how to use section-level properties like `section.post_count`, `section.word_count`, and `section.total_reading_time`.
+:::
+
 ## The Pattern
 
 ```jinja2
