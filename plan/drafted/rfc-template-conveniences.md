@@ -187,7 +187,39 @@ class Author:
         return cls(name="Unknown")
 ```
 
-#### 1.2 Page Author Properties
+#### 1.2 Author Index Update
+
+The existing `AuthorIndex` must be updated to extract all structured fields into index metadata. This ensures author details are available in `site.authors` and `get_author()` without loading every page.
+
+```python
+# bengal/cache/indexes/author_index.py
+
+def extract_keys(self, page: Page) -> list[tuple[str, dict[str, Any]]]:
+    """
+    Extract author(s) from page metadata with full structured data.
+    """
+    keys = []
+    # ... logic to check 'author' and 'authors' ...
+    # For each author found:
+    if isinstance(author, dict):
+        name = author.get("name")
+        if name:
+            metadata = {
+                "email": author.get("email", ""),
+                "bio": author.get("bio", ""),
+                "avatar": author.get("avatar", ""),
+                "twitter": author.get("twitter", ""),
+                "github": author.get("github", ""),
+                "linkedin": author.get("linkedin", ""),
+                "mastodon": author.get("mastodon", ""),
+                "website": author.get("website", ""),
+                "social": author.get("social", {}),
+            }
+            keys.append((name, metadata))
+    # ...
+```
+
+#### 1.3 Page Author Properties
 
 ```python
 # In bengal/core/page/computed.py or new author_mixin.py
@@ -559,6 +591,36 @@ def month_name(month: int, short: bool = False) -> str:
     if short:
         return calendar.month_abbr[month]
     return calendar.month_name[month]
+
+
+def humanize_days(days: int) -> str:
+    """
+    Convert number of days to a human-readable string.
+
+    Args:
+        days: Number of days
+
+    Returns:
+        Human-readable string (e.g., "today", "yesterday", "3 days ago")
+
+    Example:
+        {{ page.age_days | humanize_days }}
+    """
+    if days == 0:
+        return "today"
+    if days == 1:
+        return "yesterday"
+    if days < 7:
+        return f"{days} days ago"
+    if days < 30:
+        weeks = days // 7
+        return f"{weeks} {'week' if weeks == 1 else 'weeks'} ago"
+    if days < 365:
+        months = days // 30
+        return f"{months} {'month' if months == 1 else 'months'} ago"
+
+    years = days // 365
+    return f"{years} {'year' if years == 1 else 'years'} ago"
 ```
 
 #### 2.3 Page Age Property
@@ -626,18 +688,14 @@ class Series:
     """
     Multi-part content series.
 
-    Frontmatter (preferred nested format):
+    Frontmatter:
         series:
           name: "Building a Blog"
           part: 1
           description: "A complete guide to building a blog with Bengal"
 
-    Legacy flat format (still supported):
-        series: "Building a Blog"
-        series_part: 1
-
     Note: `total` is calculated automatically from the number of pages
-    in the series - no need to specify it in frontmatter!
+    in the series - no need to specify it in frontmatter.
 
     Template Usage:
         {% if page.series %}
@@ -695,15 +753,11 @@ class SeriesIndex(QueryIndex):
     """
     Index pages by series.
 
-    Preferred frontmatter format (nested):
+    Frontmatter format:
         series:
           name: "Building a Blog"
           part: 1
           description: "Optional series description"
-
-    Legacy format (flat, still supported for backward compatibility):
-        series: "Building a Blog"
-        series_part: 1
 
     Template Usage:
         {% set all_series = site.indexes.series.keys() %}
@@ -716,26 +770,17 @@ class SeriesIndex(QueryIndex):
     def extract_keys(self, page: Page) -> list[tuple[str, dict[str, Any]]]:
         """Extract series from page metadata."""
         series = page.metadata.get("series")
-        if not series:
+        if not series or not isinstance(series, dict):
             return []
 
-        # Preferred: nested dict format
-        if isinstance(series, dict):
-            name = series.get("name", "")
-            part = series.get("part", 0)
-            description = series.get("description", "")
-        # Legacy: flat string format
-        elif isinstance(series, str):
-            name = series
-            part = page.metadata.get("series_part", 0)
-            description = ""
-        else:
+        name = series.get("name", "")
+        if not name:
             return []
 
-        if name:
-            return [(name, {"part": part, "description": description})]
-
-        return []
+        return [(name, {
+            "part": series.get("part", 0),
+            "description": series.get("description", ""),
+        })]
 ```
 
 #### 3.3 Page Series Properties
@@ -755,23 +800,16 @@ def series(self) -> Series | None:
         return None
 
     series_data = self.metadata.get("series")
-    if not series_data:
+    if not series_data or not isinstance(series_data, dict):
         return None
 
     from bengal.core.series import Series
 
-    # Get series name
-    if isinstance(series_data, str):
-        name = series_data
-        description = ""
-    elif isinstance(series_data, dict):
-        name = series_data.get("name", "")
-        description = series_data.get("description", "")
-    else:
-        return None
-
+    name = series_data.get("name", "")
     if not name:
         return None
+
+    description = series_data.get("description", "")
 
     # Get all pages in series from index
     series_index = self._site.indexes.get("series")
@@ -789,18 +827,21 @@ def series(self) -> Series | None:
     for path in paths:
         page = page_map.get(path)
         if page:
-            # Get part number
-            part_data = page.metadata.get("series")
-            if isinstance(part_data, str):
-                part = page.metadata.get("series_part", 0)
-            elif isinstance(part_data, dict):
-                part = part_data.get("part", 0)
-            else:
-                part = 0
+            page_series = page.metadata.get("series", {})
+            part = page_series.get("part", 0) if isinstance(page_series, dict) else 0
             pages_with_part.append((part, page))
 
-    # Sort by part number
-    pages_with_part.sort(key=lambda x: x[0])
+    # Sort by part number:
+    # 1. Numeric parts first (ascending)
+    # 2. String parts (e.g., "intro", "appendix")
+    # 3. Fallback to date sorting for identical parts
+    def series_sort_key(item):
+        part, p = item
+        # Force numeric parts to be compared as floats, strings as large numbers
+        is_num = isinstance(part, (int, float))
+        return (not is_num, part if is_num else str(part), p.date or datetime.min)
+
+    pages_with_part.sort(key=series_sort_key)
     sorted_pages = [p for _, p in pages_with_part]
 
     return Series(name=name, description=description, parts=sorted_pages)
@@ -1075,13 +1116,25 @@ def total_word_count(self) -> int:
     """
     Total word count across all pages in section.
 
+    Performance:
+        Calculated recursively and cached. For sections with >1000 pages,
+        consider pre-computing this during discovery to avoid long first-access delay.
+
     Example:
         {{ section.total_word_count | number_format }} words total
     """
+    if hasattr(self, "_total_word_count_cache"):
+        return self._total_word_count_cache
+
     total = 0
-    for page in self.pages:
-        content = getattr(page, "content", "") or ""
-        total += len(content.split())
+    # Use walk() for efficient recursive traversal
+    for section in self.walk():
+        for page in section.pages:
+            content = getattr(page, "content", "") or ""
+            # Simple word count; for better precision consider stripping HTML
+            total += len(content.split())
+
+    self._total_word_count_cache = total
     return total
 
 
@@ -1163,6 +1216,7 @@ def last_updated(self) -> datetime | None:
 ### Phase 2: Author Support (4-6 hours)
 
 - [ ] `Author` dataclass
+- [ ] Update `AuthorIndex.extract_keys` to support structured fields
 - [ ] `page.author`, `page.authors` properties
 - [ ] `author_url()`, `get_author()`, `author_posts()` functions
 - [ ] `site.authors` property
@@ -1171,6 +1225,7 @@ def last_updated(self) -> datetime | None:
 
 - [ ] `share.py` template functions
 - [ ] Support for Twitter, Facebook, LinkedIn, Reddit, HN, Email, Mastodon, Bluesky
+- [ ] Verify Phosphor icons exist for all supported platforms
 
 ### Phase 4: Series Support (6-8 hours)
 
@@ -1260,18 +1315,17 @@ def test_series_prev_next(tmp_path):
 
 ## Migration Path
 
-### Backward Compatibility
+### Clean Implementation
 
-All new features are **additive** - no existing templates break:
+These are new features with no legacy baggage:
 
-- `page.author` returns `None` if no author in frontmatter (safe)
-- `group_by_year` is a new filter (no conflicts)
-- `share_url` is a new global (no conflicts)
-- `site.featured_posts` is a new property (no conflicts)
+- `page.author` returns `None` if no author in frontmatter
+- `page.series` requires the nested `series.name` / `series.part` format
+- All new filters and functions are additive
 
 ### Feature Flag (Optional)
 
-For cautious rollout, add to `features.yaml`:
+For phased rollout, add to `features.yaml`:
 
 ```yaml
 features:
@@ -1318,30 +1372,30 @@ features:
 
 ## Design Decisions
 
-### Nested vs Flat Frontmatter Format
+### Nested Frontmatter Format
 
-**Decision**: Prefer nested key format for structured data.
+**Decision**: Use nested key format for structured data. No legacy flat formats.
 
-**Rationale**: Nested format is cleaner, groups related data, and is more extensible.
+**Rationale**: Nested format is cleaner, groups related data, and is more extensible. Different releases exist for a reason - we do the right thing, not the backward-compatible thing.
 
 ```yaml
-# ✅ Preferred (nested)
+# Series
 series:
   name: "Building a Blog"
   part: 1
   description: "A complete guide"
 
+# Author (simple)
+author: "Jane Smith"
+
+# Author (with details)
 author:
   name: "Jane Smith"
   twitter: "janesmith"
   bio: "Python enthusiast"
-
-# 🔄 Supported (flat, for backward compatibility)
-series: "Building a Blog"
-series_part: 1
-
-author: "Jane Smith"
 ```
+
+Note: Simple string format for author (`author: "Jane Smith"`) is intentionally supported because it's not a legacy shim - it's a valid shorthand when you don't need additional metadata.
 
 ### Auto-Calculated Fields
 
