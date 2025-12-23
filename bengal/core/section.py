@@ -983,6 +983,94 @@ class Section:
             p for p in self.sorted_pages if tag_lower in [t.lower() for t in getattr(p, "tags", [])]
         ]
 
+    def featured_posts(self, limit: int = 5) -> list[Page]:
+        """
+        Get featured pages from this section.
+
+        Returns pages that have `featured: true` in their frontmatter,
+        sorted by date descending (newest first).
+
+        Args:
+            limit: Maximum number of pages to return (default: 5)
+
+        Returns:
+            List of featured pages sorted by date descending
+
+        Example:
+            {% for post in section.featured_posts(3) %}
+              <article class="featured">{{ post.title }}</article>
+            {% endfor %}
+        """
+        featured = [p for p in self.sorted_pages if p.metadata.get("featured")]
+        # Sort by date if available, newest first
+        featured.sort(key=lambda p: getattr(p, "date", None) or "", reverse=True)
+        return featured[:limit]
+
+    @cached_property
+    def post_count(self) -> int:
+        """
+        Get total number of content pages in this section (non-recursive).
+
+        Returns:
+            Count of pages (excluding index pages)
+
+        Example:
+            <span>{{ section.post_count }} articles</span>
+        """
+        return len(self.sorted_pages)
+
+    @cached_property
+    def post_count_recursive(self) -> int:
+        """
+        Get total number of content pages in this section and all subsections.
+
+        Returns:
+            Count of all descendant pages
+
+        Example:
+            <span>{{ section.post_count_recursive }} total articles</span>
+        """
+        return len(self.regular_pages_recursive)
+
+    @cached_property
+    def word_count(self) -> int:
+        """
+        Get total word count across all pages in this section.
+
+        Counts words in rendered content (HTML stripped) for all pages.
+
+        Returns:
+            Total word count across all section pages
+
+        Example:
+            <span>{{ section.word_count | intcomma }} words</span>
+        """
+        import re
+
+        total = 0
+        for page in self.sorted_pages:
+            content = getattr(page, "content", "")
+            if content:
+                # Strip HTML tags
+                clean = re.sub(r"<[^>]+>", "", content)
+                total += len(clean.split())
+        return total
+
+    @cached_property
+    def total_reading_time(self) -> int:
+        """
+        Get total reading time for all pages in this section.
+
+        Sums reading_time property from all pages.
+
+        Returns:
+            Total reading time in minutes
+
+        Example:
+            <span>{{ section.total_reading_time }} min total reading time</span>
+        """
+        return sum(getattr(p, "reading_time", 0) for p in self.sorted_pages)
+
     def __hash__(self) -> int:
         """
         Hash based on section path (or name for virtual sections) for stable identity.
