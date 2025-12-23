@@ -199,13 +199,25 @@ class SocialCardGenerator:
         self._title_font: ImageFont.FreeTypeFont | None = None
         self._body_font: ImageFont.FreeTypeFont | None = None
         self._small_font: ImageFont.FreeTypeFont | None = None
+        self._fonts_available: bool = True  # Assume available until proven otherwise
 
-    def _load_fonts(self) -> None:
-        """Load fonts for card rendering (cached)."""
+    def _load_fonts(self) -> bool:
+        """
+        Load fonts for card rendering (cached).
+
+        Returns:
+            True if fonts loaded successfully, False if unavailable.
+            When False, social card generation should be skipped.
+        """
+        # Already loaded successfully
         if self._title_font is not None:
-            return
+            return True
 
-        # Try to load bundled Inter font, fall back to default
+        # Previously failed to load - don't retry
+        if not self._fonts_available:
+            return False
+
+        # Try to load bundled Inter font
         try:
             font_path = self._get_font_path(self.config.title_font)
             self._title_font = ImageFont.truetype(str(font_path), 56)
@@ -215,16 +227,19 @@ class SocialCardGenerator:
             self._small_font = ImageFont.truetype(
                 str(self._get_font_path(self.config.body_font)), 22
             )
-        except OSError:
-            # Fall back to default font
+            return True
+        except OSError as e:
+            # Font not available - skip social card generation
+            # Don't use load_default() as it causes segfaults with getbbox()
             logger.warning(
-                "social_cards_font_fallback",
+                "social_cards_fonts_unavailable",
                 requested_font=self.config.title_font,
-                action="using_default_font",
+                error=str(e),
+                action="skipping_social_cards",
+                hint="Install Inter font to bengal/fonts/social/ or disable social_cards",
             )
-            self._title_font = ImageFont.load_default()
-            self._body_font = ImageFont.load_default()
-            self._small_font = ImageFont.load_default()
+            self._fonts_available = False
+            return False
 
     def _get_font_path(self, font_name: str) -> Path:
         """
@@ -389,7 +404,7 @@ class SocialCardGenerator:
         description: str,
         site_name: str,
         site_url: str | None = None,
-    ) -> Image.Image:
+    ) -> Image.Image | None:
         """
         Render default branded template.
 
@@ -405,9 +420,10 @@ class SocialCardGenerator:
             site_url: Optional site URL for footer
 
         Returns:
-            Rendered PIL Image
+            Rendered PIL Image, or None if fonts unavailable
         """
-        self._load_fonts()
+        if not self._load_fonts():
+            return None
         assert self._title_font is not None
         assert self._body_font is not None
         assert self._small_font is not None
@@ -483,7 +499,7 @@ class SocialCardGenerator:
         description: str,
         site_name: str,
         site_url: str | None = None,
-    ) -> Image.Image:
+    ) -> Image.Image | None:
         """
         Render minimal centered template.
 
@@ -498,9 +514,10 @@ class SocialCardGenerator:
             site_url: Optional site URL (unused in minimal)
 
         Returns:
-            Rendered PIL Image
+            Rendered PIL Image, or None if fonts unavailable
         """
-        self._load_fonts()
+        if not self._load_fonts():
+            return None
         assert self._title_font is not None
         assert self._small_font is not None
 
@@ -592,6 +609,10 @@ class SocialCardGenerator:
             img = self._render_minimal_template(title, description, site_name, site_url)
         else:
             img = self._render_default_template(title, description, site_name, site_url)
+
+        # Skip if fonts unavailable (img is None)
+        if img is None:
+            return None
 
         # Ensure output directory exists
         output_path.parent.mkdir(parents=True, exist_ok=True)
