@@ -10,7 +10,7 @@ Key Concepts:
     - Social cards: 1200x630px PNG images for Open Graph
     - Templates: Default (branded), minimal (centered), documentation (badges)
     - Caching: Content-based hash prevents unnecessary regeneration
-    - Parallel generation: ThreadPoolExecutor for large sites
+    - Sequential generation: Required for Pillow thread-safety
 
 Configuration:
     Social cards are configured in bengal.toml:
@@ -31,6 +31,12 @@ Related Modules:
 
 See Also:
     - plan/drafted/rfc-social-cards.md: Design documentation
+
+Thread Safety Note:
+    Pillow's C extensions are NOT thread-safe in free-threading Python (3.13+).
+    Social card generation uses sequential mode to avoid segfaults.
+    This is acceptable since social cards are only generated for production
+    builds, not during dev server operation.
 """
 
 from __future__ import annotations
@@ -180,8 +186,8 @@ class SocialCardGenerator:
         - Uses: Pillow for image generation
 
     Thread Safety:
-        Thread-safe for parallel card generation. Uses locks for
-        cache operations.
+        Uses sequential generation for Pillow thread-safety.
+        Font loading is cached for performance.
 
     Examples:
         generator = SocialCardGenerator(site, config)
@@ -740,7 +746,11 @@ class SocialCardGenerator:
         """
         Generate social cards for all pages.
 
-        Uses parallel processing for large sites (>5 pages).
+        Uses SEQUENTIAL processing because Pillow is NOT thread-safe
+        in free-threading Python. This is acceptable since:
+        - Social cards are only generated for production builds
+        - Dev server skips social cards entirely
+        - ~30ms per card is acceptable for deploy builds
 
         Args:
             pages: List of pages to generate cards for
@@ -780,21 +790,14 @@ class SocialCardGenerator:
         errors: list[tuple[str, str]] = []
 
         # IMPORTANT: Pillow's C extensions are NOT thread-safe in free-threading Python.
-        # Parallel generation causes segmentation faults when GIL is disabled.
-        # Always use sequential generation until Pillow adds thread-safety.
-        #
-        # See: https://github.com/python-pillow/Pillow/issues/7739
-        # This affects Python 3.13+ with free-threading builds.
-        #
-        # For standard Python with GIL, parallel ThreadPoolExecutor would be safe,
-        # but we use sequential for consistency and to avoid any potential edge cases.
-        # The performance impact is acceptable (~30ms per card).
-        if _is_free_threading():
-            logger.debug(
-                "social_cards_sequential_mode",
-                reason="free_threading_detected",
-                pages=len(pages_to_generate),
-            )
+        # We use sequential generation to avoid segmentation faults.
+        # This is acceptable since social cards are only generated for production builds,
+        # not during dev server operation (~30ms per card).
+        logger.debug(
+            "social_cards_sequential_mode",
+            reason="pillow_thread_safety",
+            pages=len(pages_to_generate),
+        )
 
         # Sequential generation (safe for all Python builds)
         for i, (page, output_path) in enumerate(pages_to_generate):
