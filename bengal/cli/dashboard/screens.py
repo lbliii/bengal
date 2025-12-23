@@ -231,6 +231,10 @@ class BuildScreen(BengalScreen):
 
     Shows build progress, phase timing, and output log.
     Integrates BengalThrobber for animated loading and BuildFlash for status.
+
+    Dashboard API Integration (RFC: rfc-dashboard-api-integration):
+    - PhaseProgress widget with real-time streaming updates
+    - Deep BuildStats display after completion
     """
 
     BINDINGS: ClassVar[list[Binding]] = [
@@ -248,7 +252,7 @@ class BuildScreen(BengalScreen):
         """Compose build screen layout."""
         from textual.widgets import DataTable, ProgressBar
 
-        from bengal.cli.dashboard.widgets import BengalThrobber, BuildFlash
+        from bengal.cli.dashboard.widgets import BengalThrobber, BuildFlash, PhaseProgress
 
         yield Header()
 
@@ -263,9 +267,14 @@ class BuildScreen(BengalScreen):
 
             yield ProgressBar(total=100, show_eta=False, id="build-progress")
 
+            # Phase progress with real-time streaming (RFC: rfc-dashboard-api-integration)
             with Vertical(classes="section", id="build-stats"):
-                yield Static("Build Phases:", classes="section-header")
-                yield DataTable(id="phase-table")
+                yield PhaseProgress(id="phase-progress")
+
+            # Build stats table (populated after build completes)
+            with Vertical(classes="section", id="stats-section"):
+                yield Static("Build Statistics:", classes="section-header")
+                yield DataTable(id="stats-table")
 
             with Vertical(classes="section"):
                 yield Static("Output:", classes="section-header")
@@ -278,12 +287,9 @@ class BuildScreen(BengalScreen):
         super().on_mount()
         from textual.widgets import DataTable
 
-        table = self.query_one("#phase-table", DataTable)
-        table.add_columns("Status", "Phase", "Time", "Details")
-
-        phases = ["Discovery", "Taxonomies", "Rendering", "Assets", "Postprocess"]
-        for phase in phases:
-            table.add_row("○", phase, "-", "", key=phase)
+        # Set up stats table (populated after build)
+        stats_table = self.query_one("#stats-table", DataTable)
+        stats_table.add_columns("Metric", "Value")
 
         # Log site context
         log = self.query_one("#build-log", Log)
@@ -313,7 +319,7 @@ class BuildScreen(BengalScreen):
 
     def action_rebuild(self) -> None:
         """Trigger rebuild."""
-        from bengal.cli.dashboard.widgets import BengalThrobber, BuildFlash
+        from bengal.cli.dashboard.widgets import BengalThrobber, BuildFlash, PhaseProgress
 
         if not self.site:
             self.app.notify("No site loaded", title="Error", severity="error")
@@ -325,6 +331,10 @@ class BuildScreen(BengalScreen):
 
         flash = self.query_one("#build-flash", BuildFlash)
         flash.show_building("Starting build...")
+
+        # Reset phase progress (RFC: rfc-dashboard-api-integration)
+        phase_progress = self.query_one("#phase-progress", PhaseProgress)
+        phase_progress.reset()
 
         self.app.notify("Rebuild triggered...", title="Build")
 

@@ -12,6 +12,10 @@ Architecture:
     4. Collects and debounces changes
     5. Triggers builds via BuildTrigger
 
+Dashboard Integration (RFC: rfc-dashboard-api-integration):
+    - on_file_change callback: Called immediately when a file change is detected
+      (before debouncing), allowing the dashboard to show real-time file activity.
+
 Related:
     - bengal/server/file_watcher.py: Async file watching (watchfiles)
     - bengal/server/ignore_filter.py: Path filtering
@@ -65,6 +69,8 @@ class WatcherRunner:
         ignore_filter: IgnoreFilter,
         on_changes: Callable[[set[Path], set[str]], None],
         debounce_ms: int = 300,
+        *,
+        on_file_change: Callable[[Path, str], None] | None = None,
     ) -> None:
         """
         Initialize watcher runner.
@@ -72,13 +78,17 @@ class WatcherRunner:
         Args:
             paths: Directories to watch recursively
             ignore_filter: Filter for paths to ignore
-            on_changes: Callback when changes detected (paths, event_types)
+            on_changes: Callback when changes detected (paths, event_types) - debounced
             debounce_ms: Debounce delay in milliseconds
+            on_file_change: Optional callback for immediate file change events (path, event_type).
+                            Called before debouncing for real-time dashboard updates.
+                            (RFC: rfc-dashboard-api-integration)
         """
         self.paths = paths
         self.ignore_filter = ignore_filter
         self.on_changes = on_changes
         self.debounce_ms = debounce_ms
+        self.on_file_change = on_file_change
 
         self._thread: threading.Thread | None = None
         self._stop_event = threading.Event()
@@ -189,12 +199,27 @@ class WatcherRunner:
         """
         Process changes from the watcher.
 
-        Accumulates changes for debouncing.
+        Accumulates changes for debouncing and notifies dashboard immediately.
         """
         try:
             async for changed_paths, event_types in watcher.watch():
                 if self._stop_event.is_set():
                     break
+
+                # Notify dashboard immediately for real-time file activity display
+                # (RFC: rfc-dashboard-api-integration)
+                if self.on_file_change is not None:
+                    for path in changed_paths:
+                        # Use first event type for the path (typically consistent)
+                        event_type = next(iter(event_types), "modified")
+                        try:
+                            self.on_file_change(path, event_type)
+                        except Exception as e:
+                            logger.debug(
+                                "file_change_callback_error",
+                                path=str(path),
+                                error=str(e),
+                            )
 
                 with self._changes_lock:
                     self._pending_changes.update(changed_paths)
@@ -254,6 +279,8 @@ def create_watcher_runner(
     watch_dirs: list[Path],
     on_changes: Callable[[set[Path], set[str]], None],
     debounce_ms: int = 300,
+    *,
+    on_file_change: Callable[[Path, str], None] | None = None,
 ) -> WatcherRunner:
     """
     Create a WatcherRunner configured for a site.
@@ -264,8 +291,11 @@ def create_watcher_runner(
     Args:
         site: Site instance with config
         watch_dirs: Directories to watch
-        on_changes: Callback for changes (paths, event_types)
+        on_changes: Callback for changes (paths, event_types) - debounced
         debounce_ms: Debounce delay in milliseconds
+        on_file_change: Optional callback for immediate file change events (path, event_type).
+                        Called before debouncing for real-time dashboard updates.
+                        (RFC: rfc-dashboard-api-integration)
 
     Returns:
         Configured WatcherRunner instance
@@ -286,4 +316,5 @@ def create_watcher_runner(
         ignore_filter=ignore_filter,
         on_changes=on_changes,
         debounce_ms=debounce_ms,
+        on_file_change=on_file_change,
     )

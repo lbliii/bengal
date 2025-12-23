@@ -37,6 +37,10 @@ from bengal.postprocess.output_formats import OutputFormatsGenerator
 from bengal.postprocess.redirects import RedirectGenerator
 from bengal.postprocess.rss import RSSGenerator
 from bengal.postprocess.sitemap import SitemapGenerator
+from bengal.postprocess.social_cards import (
+    SocialCardGenerator,
+    parse_social_cards_config,
+)
 from bengal.postprocess.special_pages import SpecialPagesGenerator
 from bengal.utils.logger import get_logger
 
@@ -131,6 +135,11 @@ class PostprocessOrchestrator:
 
         # Always generate special pages (404, etc.) - important for deployment
         tasks.append(("special pages", lambda: self._generate_special_pages(build_context)))
+
+        # Generate social cards (OG images) if enabled
+        social_cards_config = parse_social_cards_config(self.site.config)
+        if social_cards_config.enabled:
+            tasks.append(("social cards", self._generate_social_cards))
 
         # CRITICAL: Always generate output formats (index.json, llm-full.txt)
         # These are essential for search functionality and must reflect current site state
@@ -331,6 +340,37 @@ class PostprocessOrchestrator:
         """
         generator = RedirectGenerator(self.site)
         generator.generate()
+
+    def _generate_social_cards(self) -> None:
+        """
+        Generate social card (Open Graph) images for pages.
+
+        Creates 1200x630px PNG images with page title, description, and
+        site branding for social media preview cards.
+
+        Raises:
+            Exception: If social card generation fails
+        """
+        from bengal.output import CLIOutput
+
+        social_config = parse_social_cards_config(self.site.config)
+
+        if not social_config.enabled:
+            return
+
+        generator = SocialCardGenerator(self.site, social_config)
+        output_dir = self.site.output_dir / social_config.output_dir
+
+        generated, cached = generator.generate_all(self.site.pages, output_dir)
+
+        # Log results using CLI output pattern
+        cli = CLIOutput()
+        if generated > 0 or cached > 0:
+            cli.detail(
+                f"Generated: {generated}, Cached: {cached}",
+                indent=1,
+                icon=cli.icons.tree_end,
+            )
 
     def _build_graph_data(
         self, build_context: BuildContext | Any | None = None

@@ -100,8 +100,8 @@ class BuildStats:
     strict_mode: bool = False
 
     # Builder-provided list of typed output records for hot reload decisions.
-    # When provided, the dev server uses this for CSS-only reload detection instead of snapshot diffing.
-    # See: plan/ready/rfc-build-output-tracking.md
+    # When provided, the dev server uses this for CSS-only reload detection
+    # instead of snapshot diffing. See: plan/ready/rfc-build-output-tracking.md
     changed_outputs: list[OutputRecord] = field(default_factory=list)
 
     # Health check report (set after health checks run)

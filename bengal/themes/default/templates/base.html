@@ -70,23 +70,29 @@ See: plan/active/rfc-template-performance-optimization.md
     {# Use relative_url for canonical URLs (canonical_url adds baseurl) #}
     <meta property="og:url" content="{{ canonical_url(_page_url) }}">
     {% endif %}
-    {# Open Graph Image #}
+    {# Open Graph Image - supports manual override, auto-generated social cards, or site default #}
+    {% set _og_image_path = '' %}
     {% if _has_page and _page.metadata is defined and _page.metadata.get('image') %}
-    <meta property="og:image" content="{{ og_image(_page.metadata.get('image')) }}">
-    {% elif site.config.get('og_image') %}
-    <meta property="og:image" content="{{ og_image(site.config.get('og_image')) }}">
+        {% set _og_image_path = og_image(_page.metadata.get('image'), _page) %}
+    {% elif _has_page %}
+        {# Try auto-generated social card #}
+        {% set _og_image_path = og_image('', _page) %}
+    {% endif %}
+    {% if not _og_image_path and site.config.get('og_image') %}
+        {% set _og_image_path = og_image(site.config.get('og_image')) %}
+    {% endif %}
+    {% if _og_image_path %}
+    <meta property="og:image" content="{{ _og_image_path }}">
     {% endif %}
 
-    {# Twitter Card #}
+    {# Twitter Card - uses same image as Open Graph #}
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="{{ _page_title if _page_title else _site_title }}">
     {% if meta_desc %}
     <meta name="twitter:description" content="{{ meta_desc }}">
     {% endif %}
-    {% if _has_page and _page.metadata is defined and _page.metadata.get('image') %}
-    <meta name="twitter:image" content="{{ og_image(_page.metadata.get('image')) }}">
-    {% elif site.config.get('og_image') %}
-    <meta name="twitter:image" content="{{ og_image(site.config.get('og_image')) }}">
+    {% if _og_image_path %}
+    <meta name="twitter:image" content="{{ _og_image_path }}">
     {% endif %}
 
     {# Bengal config meta for JS to read without template tags inside scripts #}

@@ -47,6 +47,8 @@ from __future__ import annotations
 import http.server
 import io
 import threading
+import time
+from collections.abc import Callable
 from http.client import HTTPMessage
 from pathlib import Path
 from typing import Any, override
@@ -334,6 +336,10 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
         - HTML response caching (LRU, 50 pages)
         - Aggressive cache-busting headers
 
+    Dashboard Integration (RFC: rfc-dashboard-api-integration):
+        - on_request callback: Called for each HTTP request with method, path, status, and duration.
+          Enables real-time request logging display in the dev server dashboard.
+
     Class Attributes:
         server_version: HTTP server version header ("Bengal/1.0")
         protocol_version: HTTP protocol version ("HTTP/1.1" for keep-alive)
@@ -341,6 +347,7 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
         _html_cache: LRU cache for injected HTML responses
         _build_in_progress: Flag indicating active rebuild
         _active_palette: Theme for rebuilding page styling
+        _on_request: Optional callback for request logging (method, path, status_code, duration_ms)
 
     Thread Safety:
         - _html_cache is protected by _html_cache_lock
@@ -377,6 +384,10 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
     # Active theme palette for rebuilding page styling
     # Set by dev_server at startup based on site config
     _active_palette: str | None = None
+
+    # Request logging callback for dashboard integration (RFC: rfc-dashboard-api-integration)
+    # Signature: (method: str, path: str, status_code: int, duration_ms: float) -> None
+    _on_request: Callable[[str, str, int, float], None] | None = None
 
     def __init__(self, *args: Any, directory: str | None = None, **kwargs: Any) -> None:
         """
@@ -467,22 +478,40 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
         3. *.html files → Inject live reload script, serve with cache
         4. Other files → Default SimpleHTTPRequestHandler behavior
         """
-        # Component preview routes
-        if self.path.startswith("/__bengal_components__/") or self.path.startswith(
-            "/__bengal_components__"
-        ):
-            self._handle_component_preview()
-            return
+        request_start = time.time()
+        status_code = 200  # Default, will be updated if error
 
-        # Handle SSE endpoint first (long-lived stream)
-        if self.path == "/__bengal_reload__":
-            self.handle_sse()
-            return
+        try:
+            # Component preview routes
+            if self.path.startswith("/__bengal_components__/") or self.path.startswith(
+                "/__bengal_components__"
+            ):
+                self._handle_component_preview()
+                return
 
-        # Try to serve HTML with injected live reload script
-        # If not HTML or injection fails, fall back to normal file serving
-        if not self.serve_html_with_live_reload():
-            super().do_GET()
+            # Handle SSE endpoint first (long-lived stream)
+            # Skip request logging for SSE (it's long-lived)
+            if self.path == "/__bengal_reload__":
+                self.handle_sse()
+                return
+
+            # Try to serve HTML with injected live reload script
+            # If not HTML or injection fails, fall back to normal file serving
+            if not self.serve_html_with_live_reload():
+                super().do_GET()
+        finally:
+            # Notify dashboard of request completion (RFC: rfc-dashboard-api-integration)
+            # Skip SSE endpoint as it's long-lived
+            if self.path != "/__bengal_reload__" and BengalRequestHandler._on_request is not None:
+                duration_ms = (time.time() - request_start) * 1000
+                try:
+                    BengalRequestHandler._on_request("GET", self.path, status_code, duration_ms)
+                except Exception as e:
+                    logger.debug(
+                        "request_callback_error",
+                        path=self.path,
+                        error=str(e),
+                    )
 
     def _handle_component_preview(self) -> None:
         try:
@@ -764,3 +793,24 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
         with cls._build_lock:
             cls._build_in_progress = in_progress
         logger.debug("build_state_changed", in_progress=in_progress)
+
+    @classmethod
+    def set_on_request(cls, callback: Callable[[str, str, int, float], None] | None) -> None:
+        """
+        Set the request logging callback for dashboard integration.
+
+        Called for each HTTP request with method, path, status code, and duration.
+        Enables real-time request logging display in the dev server dashboard.
+
+        Args:
+            callback: Function to call for each request, or None to disable.
+                      Signature: (method: str, path: str, status_code: int, duration_ms: float) -> None
+
+        Note:
+            SSE endpoint requests (/__bengal_reload__) are not logged as they
+            are long-lived connections.
+
+        RFC: rfc-dashboard-api-integration
+        """
+        cls._on_request = callback
+        logger.debug("request_callback_set", enabled=callback is not None)
