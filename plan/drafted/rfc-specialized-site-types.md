@@ -1,68 +1,271 @@
-# RFC: Specialized Site Types - Portfolio, Product, Resume
+# RFC: Specialized Site Types & Theme Extensibility
 
 **Status**: Draft  
 **Author**: AI Assistant  
 **Created**: 2025-12-23  
-**Subsystems**: content_types, themes/default/templates, core
+**Subsystems**: content_types, themes/default/templates, core, config
 
 ---
 
 ## Executive Summary
 
-Add first-class content type strategies and template support for specialized site types beyond documentation and blogs. Bengal already has CLI scaffolding templates for portfolio, product, and resume sites, but lacks the content type strategies and theme templates needed for polished, production-ready sites.
+Create an **extensible content type ecosystem** where Bengal provides built-in strategies for common site types, themes declare which types they support, and themers can create custom types for specialized use cases.
 
-**Key Additions**:
-- `PortfolioStrategy` - Project showcase with featured projects, technology tags, live demos
-- `ProductStrategy` - E-commerce/product catalog with pricing, inventory, JSON-LD
-- `ResumeStrategy` - CV/professional site with structured data sections
-- `LandingStrategy` - Marketing/landing pages with sections and CTAs
+**Built-in Strategies (Bengal Core)**:
+- `PortfolioStrategy` - Project showcase with featured projects, technology tags
+- `ProductStrategy` - Product catalog with pricing, JSON-LD structured data
+- `LandingStrategy` - Marketing pages with hero, features, testimonials, pricing
+- `WikiStrategy` - Interconnected knowledge base with backlinks, categories
+- `RecipeStrategy` - Cookbook with structured data, cook times, ingredients
+
+**Theme Contract**:
+- Themes declare supported content types in `theme.yaml`
+- Graceful fallback when theme doesn't support a type
+- Clear documentation for themers on what data is available
+
+**Extensibility**:
+- Themers can create custom strategies via `register_strategy()`
+- Custom types work identically to built-in types
+- No Bengal core changes needed for custom types
 
 ---
 
 ## Problem Statement
 
-Bengal has a gap between **scaffolding** and **rendering** for specialized site types:
+### Gap 1: Missing Strategies for Common Site Types
+
+Bengal has CLI scaffolding templates but no content strategies for specialized sites:
 
 | Site Type | CLI Scaffold | Content Strategy | Theme Templates | Gap |
 |-----------|--------------|------------------|-----------------|-----|
-| Portfolio | ✅ `--template portfolio` | ❌ Missing | ❌ Missing | No sorting, no dedicated templates |
-| Product | ✅ `--template product` | ❌ Missing | ⚠️ Partial (JSON-LD only) | No catalog features |
-| Resume | ❌ No scaffold | ❌ Missing | ✅ `resume/list.html`, `resume/single.html` | Templates exist, no strategy |
-| Landing | ❌ No scaffold | ❌ Missing | ❌ Missing | No support |
+| Portfolio | ✅ `--template portfolio` | ❌ Missing | ❌ Missing | No sorting, no templates |
+| Product | ✅ `--template product` | ❌ Missing | ⚠️ JSON-LD only | No catalog logic |
+| Resume | ❌ None | ❌ Missing | ✅ Exists | Templates orphaned |
+| Landing | ❌ None | ❌ Missing | ❌ Missing | No support |
+| Wiki | ❌ None | ❌ Missing | ❌ Missing | No support |
+| Recipe | ❌ None | ❌ Missing | ❌ Missing | No support |
 
-**Current Workarounds**:
-- Portfolio: Use `type: page` with manual sorting/templates
-- Product: Use `type: page` with JSON-LD partial, no catalog logic
-- Resume: Use resume templates directly, but no type detection
-- Landing: Build from scratch with `type: page`
+### Gap 2: No Theme Contract for Content Types
 
-**Result**: Users create these site types but get no platform assistance for common patterns.
+Themes can't declare what types they support:
+- No way to know if a theme has `portfolio/list.html`
+- No graceful degradation when templates are missing
+- Users get silent fallback to generic templates
+
+### Gap 3: Custom Type Creation Undocumented
+
+`register_strategy()` exists but:
+- No documentation for themers
+- No examples of theme-specific types
+- No guidance on when to create custom types
 
 ---
 
 ## Goals
 
 ### Must Have
-1. **Content strategies** for portfolio, product, resume, landing
-2. **Theme templates** that work out of the box
-3. **Auto-detection** from section names (like blog/docs)
-4. **Design system parity** with existing docs/blog polish
+1. **Content strategies** for portfolio, product, landing, wiki, recipe
+2. **Theme contract** - themes declare supported types in `theme.yaml`
+3. **Graceful fallback** with warnings when theme doesn't support a type
+4. **Documentation** for creating custom content types
 
 ### Should Have
-5. **Data file support** (e.g., `data/resume.yaml`, `data/products.yaml`)
-6. **Structured data** (JSON-LD) for SEO
+5. **JSON-LD structured data** for SEO (Product, Recipe, Person)
+6. **Data file support** (e.g., `data/products.yaml`, `data/recipes.yaml`)
 7. **Template conveniences** specific to each type
 
 ### Nice to Have
-8. **Variant support** (e.g., `variant: timeline` for resume)
-9. **Category/filter UI** for portfolios and products
-10. **Print styles** for resume
+8. **CLI scaffolds** for new types (`bengal new site --template wiki`)
+9. **Variant support** within types
+10. **Print styles** for resume and recipes
 
 ### Non-Goals
 - Shopping cart or checkout (static site limitation)
 - User accounts or authentication
-- Dynamic pricing or inventory management
-- Payment processing
+- Real-time wiki editing
+- Dynamic inventory management
+
+---
+
+## Architecture: The Themer Mental Model
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                       Bengal Content Type Registry                       │
+│                                                                          │
+│   Built-in (Core):   blog, doc, tutorial, changelog, track, page        │
+│   Built-in (New):    portfolio, product, landing, wiki, recipe          │
+│   Custom (Themer):   event, faq, testimonial, team-member, etc.         │
+└─────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           Theme Examples                                 │
+├──────────────┬────────────────┬─────────────────┬───────────────────────┤
+│ minimal-blog │ developer-folio│ recipe-starter  │ default (Bengal)      │
+├──────────────┼────────────────┼─────────────────┼───────────────────────┤
+│ ✅ blog      │ ✅ portfolio   │ ✅ recipe       │ ✅ blog               │
+│ ✅ page      │ ✅ blog        │ ✅ blog         │ ✅ doc                │
+│              │ ✅ resume      │ ✅ page         │ ✅ tutorial           │
+│              │ ✅ page        │                 │ ✅ changelog          │
+│              │                │                 │ ✅ portfolio          │
+│              │                │                 │ ✅ landing            │
+│              │                │                 │ ✅ wiki               │
+│              │                │                 │ ✅ recipe             │
+│              │                │                 │ ✅ product            │
+│              │                │                 │ ✅ resume             │
+│              │                │                 │ ✅ autodoc-*          │
+└──────────────┴────────────────┴─────────────────┴───────────────────────┘
+```
+
+**Key Insight**: Themes specialize. A food blogger doesn't need `autodoc-python`. A developer portfolio doesn't need `recipe`. The default Bengal theme supports everything, but specialized themes focus on their niche.
+
+---
+
+## Theme Contract
+
+### Theme Type Declaration
+
+Themes declare supported content types in `theme.yaml`:
+
+```yaml
+# themes/minimal-blog/theme.yaml
+name: minimal-blog
+version: 1.0.0
+
+# Declare what content types this theme supports
+content_types:
+  supported:
+    - blog
+    - page
+  # Optional: declare partial support
+  partial:
+    - doc  # Has templates but not sidebar
+
+# Or for a full-featured theme:
+# themes/default/theme.yaml
+content_types:
+  supported:
+    - blog
+    - doc
+    - tutorial
+    - changelog
+    - track
+    - portfolio
+    - product
+    - landing
+    - wiki
+    - recipe
+    - resume
+    - autodoc-python
+    - autodoc-cli
+```
+
+### Graceful Fallback Behavior
+
+When a user sets `type: portfolio` but theme doesn't support it:
+
+```
+1. PortfolioStrategy handles sorting ✅ (featured first, etc.)
+2. Template lookup: portfolio/list.html → NOT FOUND
+3. Fallback chain: list.html → index.html ✅
+4. Warning logged:
+   ⚠️ Theme 'minimal-blog' doesn't have templates for 'portfolio'
+   Using fallback template. Consider:
+   - Switching to a theme that supports portfolio
+   - Creating templates/portfolio/list.html in your site
+```
+
+### Template Lookup Order
+
+For `type: portfolio`, list page:
+```
+1. themes/{theme}/templates/portfolio/list.html  (type-specific)
+2. site/templates/portfolio/list.html            (site override)
+3. themes/{theme}/templates/list.html            (generic list)
+4. themes/{theme}/templates/index.html           (ultimate fallback)
+```
+
+### Theme Validation (Optional)
+
+`bengal health` can warn about missing templates:
+
+```
+$ bengal health --check-theme
+
+Theme Compatibility Report: minimal-blog
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Content types in use:
+  ✅ blog      - Full support (home, list, single)
+  ✅ page      - Full support
+  ⚠️ portfolio - No templates (using fallback)
+
+Recommendation: Create templates/portfolio/ or switch theme
+```
+
+---
+
+## Custom Strategy Guide (For Themers)
+
+### Creating a Custom Content Type
+
+Themers can create custom strategies for specialized use cases:
+
+```python
+# In your theme's __init__.py or a plugin
+
+from bengal.content_types import ContentTypeStrategy, register_strategy
+
+class EventStrategy(ContentTypeStrategy):
+    """
+    Custom strategy for event/conference sites.
+
+    Sorts by event date (upcoming first, past events last).
+    """
+    default_template = "event/list.html"
+    allows_pagination = True
+
+    def sort_pages(self, pages):
+        from datetime import datetime
+        now = datetime.now()
+
+        def sort_key(p):
+            event_date = p.metadata.get("event_date")
+            if not event_date:
+                return (2, datetime.min)  # No date = sort last
+
+            is_past = event_date < now
+            return (1 if is_past else 0, event_date)
+
+        return sorted(pages, key=sort_key)
+
+    def detect_from_section(self, section):
+        return section.name.lower() in ("events", "conferences", "meetups")
+
+# Register during theme initialization
+register_strategy("event", EventStrategy())
+```
+
+### When to Create Custom Types
+
+| Scenario | Recommendation |
+|----------|----------------|
+| Different sorting logic | ✅ Create custom strategy |
+| Different template | ❌ Use `layout:` frontmatter |
+| Different URL pattern | ✅ Create custom strategy |
+| Domain-specific metadata | ✅ Create custom strategy |
+| Just visual differences | ❌ Use `variant:` frontmatter |
+
+### Custom Type Checklist
+
+- [ ] Strategy class extends `ContentTypeStrategy`
+- [ ] `default_template` points to your templates
+- [ ] `sort_pages()` implements your sorting logic
+- [ ] `detect_from_section()` enables auto-detection
+- [ ] Templates exist in `templates/{type}/`
+- [ ] Type registered via `register_strategy()`
+- [ ] Type declared in `theme.yaml` `content_types.supported`
 
 ---
 
