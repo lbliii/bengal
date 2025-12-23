@@ -19,12 +19,62 @@ from bengal.autodoc.utils import (
 )
 from bengal.core.page import Page
 from bengal.core.section import Section
+from bengal.rendering.template_engine.url_helpers import with_baseurl
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
 
 logger = get_logger(__name__)
+
+
+def compute_element_urls(
+    element: DocElement,
+    site: Site,
+    doc_type: str,
+    resolve_output_prefix: callable,
+) -> None:
+    """
+    Compute _path and href for an element and all its children.
+
+    This sets URL properties on DocElement so templates can use {{ child.href }}
+    directly without manual URL building or filters.
+
+    Args:
+        element: DocElement to process
+        site: Site instance (for baseurl)
+        doc_type: Type of documentation ("python", "cli", "openapi")
+        resolve_output_prefix: Function to resolve output prefix
+    """
+    prefix = resolve_output_prefix(doc_type)
+
+    # Compute URL based on element type
+    if doc_type == "cli":
+        cli_path = resolve_cli_url_path(element.qualified_name)
+        url_path = f"{prefix}/{cli_path}" if cli_path else prefix
+    elif doc_type == "python":
+        url_path = f"{prefix}/{element.qualified_name.replace('.', '/')}"
+    elif doc_type == "openapi":
+        if element.element_type == "openapi_endpoint":
+            method = get_openapi_method(element).lower()
+            path = get_openapi_path(element).strip("/").replace("/", "-")
+            url_path = f"{prefix}/endpoints/{method}-{path}"
+        elif element.element_type == "openapi_schema":
+            url_path = f"{prefix}/schemas/{element.name}"
+        else:
+            url_path = f"{prefix}/{element.name}"
+    else:
+        url_path = f"{prefix}/{element.name}"
+
+    # Set _path (site-relative, no baseurl)
+    element._path = f"/{url_path}/"
+
+    # Set href (public URL with baseurl)
+    element.href = with_baseurl(element._path, site)
+
+    # Recursively process children
+    for child in element.children:
+        compute_element_urls(child, site, doc_type, resolve_output_prefix)
 
 
 def create_pages(
@@ -67,6 +117,10 @@ def create_pages(
         display_source_file = format_source_file_for_display(element.source_file, site.root_path)
         element.display_source_file = display_source_file
         source_file_for_tracking = element.source_file
+
+        # Compute _path and href for element and all children (for template use)
+        compute_element_urls(element, site, doc_type, resolve_output_prefix)
+
         # Determine which elements get pages based on type
         if (
             doc_type == "python"
