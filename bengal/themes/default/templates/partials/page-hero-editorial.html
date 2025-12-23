@@ -47,26 +47,26 @@ Set hero_style: editorial in frontmatter or theme config
       {% set share_prompt = "Please help me understand this documentation: " + llm_txt_url %}
 
       <div class="page-hero__share">
-        <button class="page-hero__share-trigger" aria-label="{{ t('share.ai_assistants', default='Share with AI assistants') }}" aria-expanded="false"
-          aria-controls="page-hero-share-dropdown" title="{{ t('share.ai_assistants', default='Share with AI assistants') }}">
+        <button class="page-hero__share-trigger" popovertarget="page-hero-share-menu"
+          aria-label="{{ t('share.ai_assistants', default='Share with AI assistants') }}" title="{{ t('share.ai_assistants', default='Share with AI assistants') }}">
           <span>ᗢ</span>
           {{ icon('caret-down', size=14, css_class='page-hero__share-chevron') }}
         </button>
 
-        <div class="page-hero__share-dropdown" id="page-hero-share-dropdown" role="menu" aria-hidden="true">
+        <div id="page-hero-share-menu" popover class="page-hero__share-dropdown--popover">
           <div class="page-hero__share-content">
             {# Quick Actions #}
-            <button class="page-hero__share-item" data-action="copy-url" data-url="{{ page_url }}" role="menuitem">
+            <button class="page-hero__share-item" data-action="copy-url" data-url="{{ page_url }}" type="button">
               {{ icon('link', size=16) }}
               <span>{{ t('share.copy_url', default='Copy URL') }}</span>
             </button>
 
-            <a href="{{ llm_txt_url }}" target="_blank" rel="noopener noreferrer" class="page-hero__share-item" role="menuitem">
+            <a href="{{ llm_txt_url }}" target="_blank" rel="noopener noreferrer" class="page-hero__share-item">
               {{ icon('external', size=16) }}
               <span>{{ t('share.open_llm_text', default='Open LLM text') }}</span>
             </a>
 
-            <button class="page-hero__share-item" data-action="copy-llm-txt" data-url="{{ llm_txt_url }}" role="menuitem">
+            <button class="page-hero__share-item" data-action="copy-llm-txt" data-url="{{ llm_txt_url }}" type="button">
               {{ icon('copy', size=16) }}
               <span>{{ t('share.copy_llm_text', default='Copy LLM text') }}</span>
             </button>
@@ -77,25 +77,25 @@ Set hero_style: editorial in frontmatter or theme config
             <div class="page-hero__share-section-header">{{ t('share.with_ai', default='Share with AI') }}</div>
 
             <a href="https://claude.ai/new?q={{ share_prompt | urlencode }}" target="_blank" rel="noopener noreferrer"
-              class="page-hero__share-item page-hero__share-ai" data-ai="claude" role="menuitem">
+              class="page-hero__share-item page-hero__share-ai" data-ai="claude">
               {{ icon('ai-claude', size=16) }}
               <span>{{ t('share.ask_claude', default='Ask Claude') }}</span>
             </a>
 
             <a href="https://chatgpt.com/?q={{ share_prompt | urlencode }}" target="_blank" rel="noopener noreferrer"
-              class="page-hero__share-item page-hero__share-ai" data-ai="chatgpt" role="menuitem">
+              class="page-hero__share-item page-hero__share-ai" data-ai="chatgpt">
               {{ icon('ai-chatgpt', size=16) }}
               <span>{{ t('share.ask_chatgpt', default='Ask ChatGPT') }}</span>
             </a>
 
             <a href="https://gemini.google.com/app?q={{ share_prompt | urlencode }}" target="_blank" rel="noopener noreferrer"
-              class="page-hero__share-item page-hero__share-ai" data-ai="gemini" role="menuitem">
+              class="page-hero__share-item page-hero__share-ai" data-ai="gemini">
               {{ icon('ai-gemini', size=16) }}
               <span>{{ t('share.ask_gemini', default='Ask Gemini') }}</span>
             </a>
 
             <a href="https://copilot.microsoft.com/?q={{ share_prompt | urlencode }}" target="_blank" rel="noopener noreferrer"
-              class="page-hero__share-item page-hero__share-ai" data-ai="copilot" role="menuitem">
+              class="page-hero__share-item page-hero__share-ai" data-ai="copilot">
               {{ icon('ai-copilot', size=16) }}
               <span>{{ t('share.ask_copilot', default='Ask Copilot') }}</span>
             </a>

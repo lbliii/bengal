@@ -7,6 +7,10 @@ from pathlib import Path
 import pytest
 
 from bengal.core.site import Site
+from bengal.rendering.template_functions.get_page import (
+    _get_render_cache,
+    clear_get_page_cache,
+)
 from bengal.utils.file_io import write_text_file
 
 
@@ -264,3 +268,78 @@ output_dir = "public"
             page = get_page(item_path)
             assert page is not None, f"Failed to resolve track item: {item_path}"
             assert page.title is not None
+
+    def test_per_render_cache_reduces_lookups(self, site_with_tracks: Site):
+        """Test per-render cache reduces redundant get_page() calls.
+
+        This simulates how tracks/single.html uses get_page() multiple times
+        for the same track items (contents overview, main content, sidebar, TOC).
+        """
+        from jinja2 import Environment
+
+        from bengal.rendering.template_functions.get_page import register
+
+        clear_get_page_cache()  # Start fresh
+
+        env = Environment()
+        register(env, site_with_tracks)
+        get_page = env.globals["get_page"]
+
+        track = site_with_tracks.data.tracks["getting-started"]
+        items = track["items"]
+
+        # Simulate multiple template passes over the same items
+        # Pass 1: Contents overview
+        for item_path in items:
+            page = get_page(item_path)
+            assert page is not None
+
+        # Check cache is populated
+        cache = _get_render_cache()
+        assert len(cache) >= len(items)
+
+        # Pass 2: Main content rendering (should hit cache)
+        for item_path in items:
+            page = get_page(item_path)
+            assert page is not None
+
+        # Pass 3: Sidebar (should hit cache)
+        for item_path in items:
+            page = get_page(item_path)
+            assert page is not None
+
+        # Cache size should not have grown significantly
+        # (might grow slightly due to path normalization creating additional entries)
+        assert len(cache) <= len(items) * 2
+
+    def test_cache_cleared_between_page_renders(self, site_with_tracks: Site):
+        """Test that cache is cleared between page renders.
+
+        Simulates the rendering pipeline processing multiple pages.
+        """
+        from jinja2 import Environment
+
+        from bengal.rendering.template_functions.get_page import register
+
+        env = Environment()
+        register(env, site_with_tracks)
+        get_page = env.globals["get_page"]
+
+        track = site_with_tracks.data.tracks["getting-started"]
+
+        # Simulate first page render
+        clear_get_page_cache()
+        get_page(track["items"][0])
+        cache = _get_render_cache()
+        assert len(cache) >= 1
+
+        # Simulate cache clear at start of next page render
+        clear_get_page_cache()
+        cache = _get_render_cache()
+        assert len(cache) == 0
+
+        # Second page render starts fresh
+        page2 = get_page(track["items"][1])
+        assert page2 is not None
+        cache = _get_render_cache()
+        assert len(cache) >= 1

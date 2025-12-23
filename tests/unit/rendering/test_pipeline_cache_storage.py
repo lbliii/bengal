@@ -98,7 +98,7 @@ class TestPipelineCacheStorage:
         self, site_with_cache, mock_page, tmp_path
     ):
         """
-        Verify _cache_parsed_content accesses dependency_tracker.cache (not ._cache).
+        Verify cache_parsed_content accesses dependency_tracker.cache (not ._cache).
 
         This test ensures the fix for the ._cache vs .cache bug.
         """
@@ -110,7 +110,7 @@ class TestPipelineCacheStorage:
 
         pipeline = RenderingPipeline(site, dependency_tracker=tracker, build_context=ctx)
 
-        # Manually call _cache_parsed_content
+        # Manually call cache_parsed_content via the cache_checker
         mock_page.parsed_ast = "<p>Test content</p>"
         mock_page.toc = "<nav>TOC</nav>"
         mock_page.links = []
@@ -118,8 +118,8 @@ class TestPipelineCacheStorage:
         # Before caching, parsed_content should be empty
         assert str(mock_page.source_path) not in cache.parsed_content
 
-        # Call the method
-        pipeline._cache_parsed_content(mock_page, "default.html", "mistune-3.0-toc1")
+        # Call the method via the extracted CacheChecker
+        pipeline._cache_checker.cache_parsed_content(mock_page, "default.html", "mistune-3.0-toc1")
 
         # After caching, parsed_content should have an entry
         assert str(mock_page.source_path) in cache.parsed_content
@@ -129,7 +129,7 @@ class TestPipelineCacheStorage:
         self, site_with_cache, mock_page, tmp_path
     ):
         """
-        Verify _cache_rendered_output accesses dependency_tracker.cache (not ._cache).
+        Verify cache_rendered_output accesses dependency_tracker.cache (not ._cache).
 
         This test ensures the fix for the ._cache vs .cache bug.
         """
@@ -150,8 +150,8 @@ class TestPipelineCacheStorage:
         # Before caching, rendered_output should be empty
         assert str(mock_page.source_path) not in cache.rendered_output
 
-        # Call the method
-        pipeline._cache_rendered_output(mock_page, "default.html")
+        # Call the method via the extracted CacheChecker
+        pipeline._cache_checker.cache_rendered_output(mock_page, "default.html")
 
         # After caching, rendered_output should have an entry
         assert str(mock_page.source_path) in cache.rendered_output
@@ -193,7 +193,7 @@ class TestPipelineCacheIntegration:
         mock_page.links = []
 
         cache.update_file(mock_page.source_path)
-        pipeline._cache_parsed_content(mock_page, "default.html", "mistune-3.0-toc1")
+        pipeline._cache_checker.cache_parsed_content(mock_page, "default.html", "mistune-3.0-toc1")
 
         # Save cache to disk
         cache_path = tmp_path / ".bengal" / "cache.json"
@@ -223,7 +223,7 @@ class TestPipelineCacheIntegration:
         cache.update_file(mock_page.source_path)
         mock_page.rendered_html = "<html><body>Rendered content for persistence test</body></html>"
 
-        pipeline._cache_rendered_output(mock_page, "default.html")
+        pipeline._cache_checker.cache_rendered_output(mock_page, "default.html")
 
         # Save cache to disk
         cache_path = tmp_path / ".bengal" / "cache.json"

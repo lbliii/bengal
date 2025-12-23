@@ -107,15 +107,22 @@ main[role="main"],
 
 /* ==============================================
    HERO TRANSITIONS
-   Morph effect for hero sections
+   Crossfade effect for hero sections (no size morphing)
    ============================================== */
 
+/* Prevent the default morph sizing that causes zoom effects */
+::view-transition-group(hero) {
+  animation: none;
+}
+
 ::view-transition-old(hero) {
-  animation: fade-out 200ms ease-out forwards;
+  animation: fade-out 150ms ease-out forwards;
+  mix-blend-mode: normal;
 }
 
 ::view-transition-new(hero) {
-  animation: fade-in 200ms ease-in;
+  animation: fade-in 150ms ease-in forwards;
+  mix-blend-mode: normal;
 }
 
 /* ==============================================

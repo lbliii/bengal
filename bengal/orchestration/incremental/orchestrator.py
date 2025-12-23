@@ -378,14 +378,3 @@ class IncrementalOrchestrator:
                     return True
 
         return False
-
-    def _get_theme_templates_dir(self) -> Path | None:
-        """
-        Get the templates directory for the current theme.
-
-        Delegates to CacheManager.
-
-        Returns:
-            Path to theme templates or None if not found
-        """
-        return self._cache_manager._get_theme_templates_dir()

@@ -53,8 +53,19 @@ See Also:
 from __future__ import annotations
 
 from .graph_analysis import GraphAnalyzer
+from .graph_builder import GraphBuilder
+from .graph_metrics import GraphMetrics, MetricsCalculator, PageConnectivity
 from .graph_reporting import GraphReporter
 from .graph_visualizer import GraphVisualizer
 from .knowledge_graph import KnowledgeGraph
 
-__all__ = ["GraphAnalyzer", "GraphReporter", "GraphVisualizer", "KnowledgeGraph"]
+__all__ = [
+    "GraphAnalyzer",
+    "GraphBuilder",
+    "GraphMetrics",
+    "GraphReporter",
+    "GraphVisualizer",
+    "KnowledgeGraph",
+    "MetricsCalculator",
+    "PageConnectivity",
+]

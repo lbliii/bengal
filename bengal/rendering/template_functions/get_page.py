@@ -3,7 +3,7 @@ Template function for retrieving a page by path.
 
 Used by tracks feature to resolve track item pages.
 
-Performance Optimization (RFC: rfc-track-layout-performance):
+Performance Optimization:
     Per-render caching eliminates redundant get_page() calls within a single
     page render. Track pages call get_page() ~54 times per page; caching
     reduces this to ~9 actual lookups with 45 cache hits.
@@ -52,8 +52,7 @@ def clear_get_page_cache() -> None:
     Thread-safe: only clears the cache for the current thread.
 
     See Also:
-        - bengal/rendering/pipeline/core.py: RenderingPipeline.process_page()
-        - plan/drafted/rfc-track-layout-performance.md
+        bengal/rendering/pipeline/core.py: RenderingPipeline.process_page()
     """
     if hasattr(_render_cache, "pages"):
         _render_cache.pages.clear()
@@ -319,9 +318,23 @@ def register(env: Environment, site: Site) -> None:
         - Handles paths with/without .md extension
         - Caches lookup maps for performance
         - Parses pages on-demand if accessed before rendering pipeline
+
+        Performance:
+        - Per-render caching eliminates redundant lookups within a single page render
+        - Cache is cleared at the start of each page render
+        - Track pages see ~45 cache hits per render (down from 54 lookups)
         """
         if not path:
             return None
+
+        # Per-render cache check - normalize path for consistent cache key
+        # across path variants (./foo.md, content/foo.md, foo.md all hit same entry)
+        cache_key = _normalize_cache_key(path)
+        cache = _get_render_cache()
+
+        # Return cached result (including cached None for misses)
+        if cache_key in cache:
+            return cache[cache_key]
 
         # Validate path for security and correctness
         path_obj = Path(path)
@@ -329,12 +342,14 @@ def register(env: Environment, site: Site) -> None:
         # Reject absolute paths (security)
         if path_obj.is_absolute():
             logger.debug("get_page_absolute_path_rejected", path=path, caller="template")
+            cache[cache_key] = None  # Cache the rejection
             return None
 
         # Reject path traversal attempts (security)
         normalized_path = path.replace("\\", "/")
         if "../" in normalized_path or normalized_path.startswith("../"):
             logger.debug("get_page_path_traversal_rejected", path=path, caller="template")
+            cache[cache_key] = None  # Cache the rejection
             return None
 
         # Build lookup maps if not already built (shared helper)
@@ -371,12 +386,16 @@ def register(env: Environment, site: Site) -> None:
                     page = maps["relative"][stripped_with_ext]
 
         if not page:
-            # Page not found
+            # Page not found - cache the miss to avoid repeated lookups
             logger.debug("get_page_not_found", path=path, caller="template")
+            cache[cache_key] = None
             return None
 
         # Ensure page is parsed if needed (for track rendering)
         _ensure_page_parsed(page, site)
+
+        # Cache the successful lookup
+        cache[cache_key] = page
 
         return page
 

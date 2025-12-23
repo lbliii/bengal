@@ -45,26 +45,26 @@ Set hero_style: overview in frontmatter or auto-detected for list templates
       {% set share_prompt = "Please help me understand this documentation: " + llm_txt_url %}
 
       <div class="page-hero__share">
-        <button class="page-hero__share-trigger" aria-label="Share with AI assistants" aria-expanded="false"
-          aria-controls="page-hero-share-dropdown" title="Share with AI assistants">
+        <button class="page-hero__share-trigger" popovertarget="page-hero-share-menu"
+          aria-label="Share with AI assistants" title="Share with AI assistants">
           <span>ᗢ</span>
           {{ icon('caret-down', size=14, css_class='page-hero__share-chevron') }}
         </button>
 
-        <div class="page-hero__share-dropdown" id="page-hero-share-dropdown" role="menu" aria-hidden="true">
+        <div id="page-hero-share-menu" popover class="page-hero__share-dropdown--popover">
           <div class="page-hero__share-content">
             {# Quick Actions #}
-            <button class="page-hero__share-item" data-action="copy-url" data-url="{{ page_url }}" role="menuitem">
+            <button class="page-hero__share-item" data-action="copy-url" data-url="{{ page_url }}" type="button">
               {{ icon('link', size=16) }}
               <span>Copy URL</span>
             </button>
 
-            <a href="{{ llm_txt_url }}" target="_blank" rel="noopener noreferrer" class="page-hero__share-item" role="menuitem">
+            <a href="{{ llm_txt_url }}" target="_blank" rel="noopener noreferrer" class="page-hero__share-item">
               {{ icon('external', size=16) }}
               <span>Open LLM text</span>
             </a>
 
-            <button class="page-hero__share-item" data-action="copy-llm-txt" data-url="{{ llm_txt_url }}" role="menuitem">
+            <button class="page-hero__share-item" data-action="copy-llm-txt" data-url="{{ llm_txt_url }}" type="button">
               {{ icon('copy', size=16) }}
               <span>Copy LLM text</span>
             </button>
@@ -75,35 +75,26 @@ Set hero_style: overview in frontmatter or auto-detected for list templates
             <div class="page-hero__share-section-header">Share with AI</div>
 
             <a href="https://claude.ai/new?q={{ share_prompt | urlencode }}" target="_blank" rel="noopener noreferrer"
-              class="page-hero__share-item page-hero__share-ai" data-ai="claude" role="menuitem">
-              <svg viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" />
-                <circle cx="12" cy="12" r="3" />
-              </svg>
+              class="page-hero__share-item page-hero__share-ai" data-ai="claude">
+              {{ icon('ai-claude', size=16) }}
               <span>Ask Claude</span>
             </a>
 
             <a href="https://chatgpt.com/?q={{ share_prompt | urlencode }}" target="_blank" rel="noopener noreferrer"
-              class="page-hero__share-item page-hero__share-ai" data-ai="chatgpt" role="menuitem">
-              <svg viewBox="0 0 24 24" fill="currentColor">
-                <path d="M22.282 9.821a5.985 5.985 0 00-.516-4.91 6.046 6.046 0 00-6.51-2.9A6.065 6.065 0 004.888 4.36a5.99 5.99 0 00-2.907 6.507 6.018 6.018 0 00.517 4.91 6.05 6.05 0 006.51 2.9A6.065 6.065 0 0019.376 16.64a5.99 5.99 0 002.907-6.507l-.001-.312z" />
-              </svg>
+              class="page-hero__share-item page-hero__share-ai" data-ai="chatgpt">
+              {{ icon('ai-chatgpt', size=16) }}
               <span>Ask ChatGPT</span>
             </a>
 
             <a href="https://gemini.google.com/app?q={{ share_prompt | urlencode }}" target="_blank" rel="noopener noreferrer"
-              class="page-hero__share-item page-hero__share-ai" data-ai="gemini" role="menuitem">
-              <svg viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-              </svg>
+              class="page-hero__share-item page-hero__share-ai" data-ai="gemini">
+              {{ icon('ai-gemini', size=16) }}
               <span>Ask Gemini</span>
             </a>
 
             <a href="https://copilot.microsoft.com/?q={{ share_prompt | urlencode }}" target="_blank" rel="noopener noreferrer"
-              class="page-hero__share-item page-hero__share-ai" data-ai="copilot" role="menuitem">
-              <svg viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
-              </svg>
+              class="page-hero__share-item page-hero__share-ai" data-ai="copilot">
+              {{ icon('ai-copilot', size=16) }}
               <span>Ask Copilot</span>
             </a>
           </div>

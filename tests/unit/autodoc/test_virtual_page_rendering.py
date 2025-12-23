@@ -219,7 +219,7 @@ class TestRenderingPipelineIntegration:
         build_context.template_engine = MagicMock()
         pipeline = RenderingPipeline(mock_site, build_context=build_context)
 
-        with patch.object(pipeline, "_process_virtual_page") as mock_process:
+        with patch.object(pipeline._autodoc_renderer, "process_virtual_page") as mock_process:
             pipeline.process_page(autodoc_page)
             mock_process.assert_called_once_with(autodoc_page)
 
@@ -247,7 +247,8 @@ class TestRenderingPipelineIntegration:
         mock_site.get_section_by_url.return_value = section
         mock_site.get_section_by_path.return_value = None
 
-        pipeline._render_autodoc_page(autodoc_page)
+        # Call via the extracted AutodocRenderer
+        pipeline._autodoc_renderer._render_autodoc_page(autodoc_page)
 
         fake_template.render.assert_called_once()
         kwargs = fake_template.render.call_args.kwargs

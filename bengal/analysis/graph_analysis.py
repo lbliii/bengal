@@ -37,7 +37,8 @@ from typing import TYPE_CHECKING
 from bengal.errors import BengalError, ErrorCode
 
 if TYPE_CHECKING:
-    from bengal.analysis.knowledge_graph import KnowledgeGraph, PageConnectivity
+    from bengal.analysis.graph_metrics import PageConnectivity
+    from bengal.analysis.knowledge_graph import KnowledgeGraph
     from bengal.analysis.results import PageLayers
     from bengal.core.page import Page
 
@@ -93,17 +94,17 @@ class GraphAnalyzer:
         Raises:
             RuntimeError: If graph hasn't been built yet
         """
-        from bengal.analysis.knowledge_graph import PageConnectivity
+        from bengal.analysis.graph_metrics import PageConnectivity
 
         self._ensure_built()
 
-        incoming = self._graph.incoming_refs[page]
-        outgoing = len(self._graph.outgoing_refs[page])
-        connectivity = incoming + outgoing
+        incoming = self._graph.incoming_refs.get(page, 0)
+        outgoing = len(self._graph.outgoing_refs.get(page, set()))
+        connectivity = int(incoming + outgoing)
 
         return PageConnectivity(
             page=page,
-            incoming_refs=incoming,
+            incoming_refs=int(incoming),
             outgoing_refs=outgoing,
             connectivity_score=connectivity,
             is_hub=incoming >= self._graph.hub_threshold,
@@ -127,7 +128,9 @@ class GraphAnalyzer:
             RuntimeError: If graph hasn't been built yet
         """
         self._ensure_built()
-        return self._graph.incoming_refs[page] + len(self._graph.outgoing_refs[page])
+        incoming = self._graph.incoming_refs.get(page, 0)
+        outgoing = len(self._graph.outgoing_refs.get(page, set()))
+        return int(incoming + outgoing)
 
     def get_hubs(self, threshold: int | None = None) -> list[Page]:
         """
@@ -152,11 +155,13 @@ class GraphAnalyzer:
         threshold = threshold if threshold is not None else self._graph.hub_threshold
 
         hubs = [
-            page for page in self._graph.site.pages if self._graph.incoming_refs[page] >= threshold
+            page
+            for page in self._graph.site.pages
+            if self._graph.incoming_refs.get(page, 0) >= threshold
         ]
 
         # Sort by incoming refs (descending)
-        hubs.sort(key=lambda p: self._graph.incoming_refs[p], reverse=True)
+        hubs.sort(key=lambda p: self._graph.incoming_refs.get(p, 0), reverse=True)
 
         return hubs
 
@@ -215,8 +220,8 @@ class GraphAnalyzer:
         orphans = [
             page
             for page in analysis_pages
-            if self._graph.incoming_refs[page] == 0
-            and len(self._graph.outgoing_refs[page]) == 0
+            if self._graph.incoming_refs.get(page, 0) == 0
+            and len(self._graph.outgoing_refs.get(page, set())) == 0
             and not page.metadata.get("_generated")  # Exclude generated pages
         ]
 

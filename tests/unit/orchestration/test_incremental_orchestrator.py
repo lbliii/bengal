@@ -322,7 +322,9 @@ class TestIncrementalOrchestrator:
         orchestrator.cache.should_bypass.return_value = False
 
         # Mock the _get_theme_templates_dir to return None (no templates to check)
-        with patch.object(orchestrator, "_get_theme_templates_dir", return_value=None):
+        with patch.object(
+            orchestrator._cache_manager, "_get_theme_templates_dir", return_value=None
+        ):
             # Test
             pages_to_build, assets_to_process, change_summary = orchestrator.find_work_early()
 
@@ -346,7 +348,9 @@ class TestIncrementalOrchestrator:
         orchestrator.cache.is_changed.return_value = False  # Legacy fallback
 
         # Mock the _get_theme_templates_dir to return None
-        with patch.object(orchestrator, "_get_theme_templates_dir", return_value=None):
+        with patch.object(
+            orchestrator._cache_manager, "_get_theme_templates_dir", return_value=None
+        ):
             # Test
             pages_to_build, assets_to_process, change_summary = orchestrator.find_work_early(
                 verbose=True
@@ -368,7 +372,9 @@ class TestIncrementalOrchestrator:
         orchestrator.cache.is_changed.return_value = True
 
         # Mock the _get_theme_templates_dir to return None
-        with patch.object(orchestrator, "_get_theme_templates_dir", return_value=None):
+        with patch.object(
+            orchestrator._cache_manager, "_get_theme_templates_dir", return_value=None
+        ):
             # Test
             pages_to_build, _, _ = orchestrator.find_work_early()
 
@@ -390,7 +396,9 @@ class TestIncrementalOrchestrator:
         orchestrator.cache.is_changed.return_value = False  # Legacy fallback
 
         # Mock the _get_theme_templates_dir to return None
-        with patch.object(orchestrator, "_get_theme_templates_dir", return_value=None):
+        with patch.object(
+            orchestrator._cache_manager, "_get_theme_templates_dir", return_value=None
+        ):
             # Test
             pages_to_build, assets_to_process, change_summary = orchestrator.find_work_early(
                 verbose=True
@@ -426,7 +434,9 @@ class TestIncrementalOrchestrator:
         orchestrator.cache.get_affected_pages.return_value = [str(mock_site.pages[0].source_path)]
 
         with patch.object(
-            orchestrator, "_get_theme_templates_dir", return_value=Path("/fake/theme/templates")
+            orchestrator._cache_manager,
+            "_get_theme_templates_dir",
+            return_value=Path("/fake/theme/templates"),
         ):
             pages_to_build, _, change_summary = orchestrator.find_work_early(verbose=True)
 
@@ -448,7 +458,9 @@ class TestPhaseOrderingOptimization:
         orchestrator.cache.is_changed.return_value = True
 
         # Mock the _get_theme_templates_dir to return None
-        with patch.object(orchestrator, "_get_theme_templates_dir", return_value=None):
+        with patch.object(
+            orchestrator._cache_manager, "_get_theme_templates_dir", return_value=None
+        ):
             # Test
             pages_to_build, _, _ = orchestrator.find_work_early()
 
@@ -470,7 +482,9 @@ class TestPhaseOrderingOptimization:
         orchestrator.cache.is_changed.return_value = False
 
         # Mock the _get_theme_templates_dir to return None
-        with patch.object(orchestrator, "_get_theme_templates_dir", return_value=None):
+        with patch.object(
+            orchestrator._cache_manager, "_get_theme_templates_dir", return_value=None
+        ):
             # Test
             pages_to_build, _, _ = orchestrator.find_work_early()
 
@@ -528,7 +542,9 @@ class TestCascadeDependencyTracking:
         orchestrator.cache.is_changed.return_value = False
 
         # Mock the _get_theme_templates_dir to return None
-        with patch.object(orchestrator, "_get_theme_templates_dir", return_value=None):
+        with patch.object(
+            orchestrator._cache_manager, "_get_theme_templates_dir", return_value=None
+        ):
             # Test
             pages_to_build, _, change_summary = orchestrator.find_work_early(verbose=True)
 
@@ -600,7 +616,9 @@ class TestCascadeDependencyTracking:
         orchestrator.cache.is_changed.return_value = False
 
         # Mock the _get_theme_templates_dir to return None
-        with patch.object(orchestrator, "_get_theme_templates_dir", return_value=None):
+        with patch.object(
+            orchestrator._cache_manager, "_get_theme_templates_dir", return_value=None
+        ):
             # Test
             pages_to_build, _, _ = orchestrator.find_work_early()
 
@@ -647,7 +665,9 @@ class TestCascadeDependencyTracking:
         orchestrator.cache.is_changed.return_value = False
 
         # Mock the _get_theme_templates_dir to return None
-        with patch.object(orchestrator, "_get_theme_templates_dir", return_value=None):
+        with patch.object(
+            orchestrator._cache_manager, "_get_theme_templates_dir", return_value=None
+        ):
             # Test
             pages_to_build, _, _ = orchestrator.find_work_early()
 
@@ -696,7 +716,9 @@ class TestCascadeDependencyTracking:
         orchestrator.cache.is_changed.return_value = False
 
         # Mock the _get_theme_templates_dir to return None
-        with patch.object(orchestrator, "_get_theme_templates_dir", return_value=None):
+        with patch.object(
+            orchestrator._cache_manager, "_get_theme_templates_dir", return_value=None
+        ):
             # Test
             pages_to_build, _, change_summary = orchestrator.find_work_early(verbose=True)
 
