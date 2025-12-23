@@ -25,15 +25,15 @@ template: archive-year.html
 
 Context variables:
 - page: Current page with year in metadata
-- page.metadata.year: The year to show
+- params.year: The year to show
 - site.indexes.date_range: Date range index
 #}
 
 {% from 'partials/navigation-components.html' import breadcrumbs %}
 {% from 'partials/content-components.html' import tag_list %}
 
-{% set year = page.metadata.year | string %}
-{% set section_filter = page.metadata.get('section') %}
+{% set year = params.year | string %}
+{% set section_filter = params.section %}
 
 {% block content %}
 {{ breadcrumbs(page) }}
@@ -54,7 +54,7 @@ Context variables:
         <p class="archive-count">{{ year_posts | length }} post{{ 's' if year_posts | length != 1 }} in {{ year }}</p>
 
         {# Optional statistics #}
-        {% if page.metadata.get('show_stats') %}
+        {% if params.show_stats %}
         <div class="archive-stats">
             <div class="stat-grid">
                 <div class="stat">
@@ -111,13 +111,13 @@ Context variables:
                         <a href="{{ post.href }}">{{ post.title }}</a>
                     </h3>
 
-                    {% if post.metadata.get('description') %}
-                    <p class="post-excerpt">{{ post.metadata.get('description') }}</p>
+                    {% if post.metadata.description %}
+                    <p class="post-excerpt">{{ post.metadata.description }}</p>
                     {% endif %}
 
                     <div class="post-meta">
-                        {% if post.metadata.get('author') %}
-                        <span class="post-author">{{ post.metadata.get('author') }}</span>
+                        {% if post.metadata.author %}
+                        <span class="post-author">{{ post.metadata.author }}</span>
                         {% endif %}
 
                         {% if post.content %}

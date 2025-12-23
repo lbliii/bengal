@@ -29,7 +29,7 @@ Usage: Auto-selected for api-hub sections or set template: api-hub/home.html
       </h1>
 
       {# Description #}
-      {% set desc = (section.metadata.get('description', '') if section else '') or page.metadata.get('description', '') %}
+      {% set desc = (section.params.description if section else '') or params.description %}
       {% if desc %}
       <p class="api-hub-hero__subtitle">{{ desc }}</p>
       {% else %}
@@ -43,7 +43,7 @@ Usage: Auto-selected for api-hub sections or set template: api-hub/home.html
         {% set rest_count = 0 %}
         {% set cli_count = 0 %}
         {% for sub in section.sorted_subsections %}
-          {% set sub_type = sub.metadata.get('type', '') %}
+          {% set sub_type = sub.params.type %}
           {% if 'python' in sub_type %}
             {% set python_count = python_count + 1 %}
           {% elif 'openapi' in sub_type %}
@@ -87,7 +87,7 @@ Usage: Auto-selected for api-hub sections or set template: api-hub/home.html
   </header>
 
   {# Custom Content from _index.md #}
-  {% if content is defined and content and content.strip() %}
+  {% if content and content.strip() %}
   <div class="api-hub-content prose">
     {{ content | safe }}
   </div>
@@ -98,8 +98,8 @@ Usage: Auto-selected for api-hub sections or set template: api-hub/home.html
   <section class="api-hub-apis" aria-label="Available APIs">
     <div class="api-hub-grid">
       {% for subsection in section.sorted_subsections %}
-      {% set sub_type = subsection.metadata.get('type', 'python-reference') %}
-      {% set desc = subsection.metadata.get('description', '') | first_sentence %}
+      {% set sub_type = subsection.params.type | default('python-reference') %}
+      {% set desc = subsection.params.description | first_sentence %}
       {% set child_count = (subsection.subsections | length) + (subsection.pages | length) %}
 
       <article class="api-hub-tile api-hub-tile--{{ sub_type }} gradient-border fluid-combined">

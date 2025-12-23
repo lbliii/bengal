@@ -14,8 +14,9 @@ Required: element (DocElement)
   <dl class="autodoc-raises">
     {% for exc in raises %}
     <div class="autodoc-raise">
-      <dt><code>{{ exc.type if exc.type is defined else exc.get('type', exc) }}</code></dt>
-      <dd>{{ exc.description if exc.description is defined else exc.get('description', '') }}</dd>
+      {# ChainableUndefined handles both dict and object access #}
+      <dt><code>{{ exc.type or exc }}</code></dt>
+      <dd>{{ exc.description }}</dd>
     </div>
     {% endfor %}
   </dl>

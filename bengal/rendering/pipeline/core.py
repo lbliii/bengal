@@ -475,10 +475,10 @@ class RenderingPipeline:
 
     def _cache_parsed_content(self, page: Page, template: str, parser_version: str) -> None:
         """Store parsed content in cache for next build."""
-        if not (self.dependency_tracker and hasattr(self.dependency_tracker, "_cache")):
+        if not (self.dependency_tracker and hasattr(self.dependency_tracker, "cache")):
             return
 
-        cache = self.dependency_tracker._cache
+        cache = self.dependency_tracker.cache
         if not cache or page.metadata.get("_generated"):
             return
 
@@ -517,10 +517,10 @@ class RenderingPipeline:
 
     def _cache_rendered_output(self, page: Page, template: str) -> None:
         """Store rendered output in cache for next build."""
-        if not (self.dependency_tracker and hasattr(self.dependency_tracker, "_cache")):
+        if not (self.dependency_tracker and hasattr(self.dependency_tracker, "cache")):
             return
 
-        cache = self.dependency_tracker._cache
+        cache = self.dependency_tracker.cache
         if not cache or page.metadata.get("_generated"):
             return
 
@@ -701,6 +701,13 @@ class RenderingPipeline:
                 # Versioning context - autodoc pages are not versioned
                 current_version=None,
                 is_latest_version=True,
+                # Page context expected by base.html templates
+                params=page.metadata,  # Alias for metadata (required by base.html)
+                metadata=page.metadata,
+                content="",  # Autodoc content is rendered by element templates
+                meta_desc=getattr(page, "meta_description", "") or "",
+                reading_time=getattr(page, "reading_time", 0) or 0,
+                excerpt=getattr(page, "excerpt", "") or "",
             )
         except Exception as e:  # Capture template errors with context
             logger.error(
@@ -731,37 +738,33 @@ class RenderingPipeline:
 
     def _build_variable_context(self, page: Page) -> dict[str, Any]:
         """Build variable context for {{ variable }} substitution in markdown."""
-        context: dict[str, Any] = {}
+        from bengal.rendering.context import (
+            ConfigContext,
+            ParamsContext,
+            SectionContext,
+            SiteContext,
+        )
 
-        # Core objects
-        context["page"] = page
-        context["site"] = self.site
-        context["config"] = self.site.config
+        section = getattr(page, "_section", None)
+        metadata = page.metadata if hasattr(page, "metadata") else {}
 
-        # Shortcuts
-        context["params"] = page.metadata if hasattr(page, "metadata") else {}
-        context["meta"] = context["params"]
+        context: dict[str, Any] = {
+            # Core objects with smart wrappers
+            "page": page,
+            "site": SiteContext(self.site),
+            "config": ConfigContext(self.site.config),
+            # Shortcuts with safe access
+            "params": ParamsContext(metadata),
+            "meta": ParamsContext(metadata),
+            # Section with safe access (never None)
+            "section": SectionContext(section),
+        }
 
-        # Direct frontmatter access
-        if hasattr(page, "metadata") and page.metadata:
-            for key, value in page.metadata.items():
+        # Direct frontmatter access for convenience
+        if metadata:
+            for key, value in metadata.items():
                 if key not in context and not key.startswith("_"):
                     context[key] = value
-
-        # Section access
-        section = getattr(page, "_section", None)
-        if section:
-            section_context = {
-                "title": getattr(section, "title", ""),
-                "name": getattr(section, "name", ""),
-                "path": str(getattr(section, "path", "")),
-                "params": section.metadata if hasattr(section, "metadata") else {},
-            }
-            context["section"] = type("Section", (), section_context)()
-        else:
-            context["section"] = type(
-                "Section", (), {"title": "", "name": "", "path": "", "params": {}}
-            )()
 
         return context
 

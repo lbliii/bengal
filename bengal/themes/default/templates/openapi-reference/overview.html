@@ -54,8 +54,8 @@ This template receives:
         <ul class="autodoc-server-list">
           {% for server in element.metadata.servers %}
           <li class="autodoc-server-item">
-            <code class="autodoc-server-url">{{ server.href if server.href is defined else server }}</code>
-            {% if server.description is defined %}
+            <code class="autodoc-server-url">{{ server.href or server }}</code>
+            {% if server.description %}
             <span class="autodoc-server-desc">— {{ server.description }}</span>
             {% endif %}
           </li>
@@ -71,8 +71,8 @@ This template receives:
         <div class="autodoc-cards">
           {% for tag in element.metadata.tags %}
           <div class="autodoc-card" data-card="tag">
-            <h3 class="autodoc-card-name">{{ tag.name if tag.name is defined else tag }}</h3>
-            {% if tag.description is defined %}
+            <h3 class="autodoc-card-name">{{ tag.name or tag }}</h3>
+            {% if tag.description %}
             <p class="autodoc-card-desc">{{ tag.description }}</p>
             {% endif %}
           </div>

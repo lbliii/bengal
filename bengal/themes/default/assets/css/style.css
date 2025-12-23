@@ -72,6 +72,10 @@
   @import url('base/print.css');
 }
 
+@layer base {
+  @import url('base/transitions.css');
+}
+
 /* ============================================
    COMPOSITION (Layout Primitives)
    ============================================ */
@@ -122,6 +126,10 @@
 
 @layer components {
   @import url('components/tabs.css');
+}
+
+@layer components {
+  @import url('components/tabs-native.css');
 }
 
 @layer components {
@@ -286,6 +294,7 @@
 
 @layer components {
   @import url('components/versioning.css');
+  @import url('components/stale-banner.css');
 }
 
 @layer components {

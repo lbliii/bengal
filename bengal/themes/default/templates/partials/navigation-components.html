@@ -137,10 +137,10 @@ Example:
 #}
 {% macro page_navigation(page) %}
 {# Check feature flag for prev/next navigation #}
-{% set show_nav = 'navigation.prev_next' in site.theme_config.features %}
+{% set show_nav = 'navigation.prev_next' in theme.features %}
 {% if show_nav %}
 {# Determine which navigation to use based on content type #}
-{% set content_type = page.metadata.get('type', 'page') %}
+{% set content_type = params.type | default('page') %}
 {% set section_types = ['doc', 'tutorial', 'autodoc-python', 'autodoc-cli', 'autodoc-rest', 'changelog'] %}
 {% set use_section_nav = content_type in section_types %}
 
@@ -214,7 +214,7 @@ Example:
 {{ section_navigation(page) }}
 #}
 {% macro section_navigation(page) %}
-{% if page.regular_pages is defined or page.sections is defined %}
+{% if page.regular_pages or page.sections %}
 <div class="section-navigation">
   {# Section stats - dogfooding regular_pages and sections properties #}
   <div class="section-stats">
@@ -243,8 +243,8 @@ Example:
         <h3>
           <a href="{{ subsection.href }}">{{ subsection.title }}</a>
         </h3>
-        {% if subsection.metadata.get('description', '') %}
-        <p>{{ subsection.metadata.get('description', '') }}</p>
+        {% if subsection.metadata.description %}
+        <p>{{ subsection.metadata.description }}</p>
         {% endif %}
         <p class="subsection-meta">
           {{ subsection.regular_pages | length }} pages
@@ -340,7 +340,7 @@ Example:
     <div class="toc-meta-item">
       {{ icon('clock', size=14) }}
       <div>
-        <div class="toc-meta-label">Last updated</div>
+        <div class="toc-meta-label">{{ t('toc.last_updated', default='Last updated') }}</div>
         <time datetime="{{ page.date | date_iso }}" class="toc-meta-value">
           {{ page.date | time_ago }}
         </time>
@@ -349,21 +349,21 @@ Example:
     {% endif %}
 
     {# Edit on GitHub (if configured) #}
-    {% if page.metadata.get('edit_url') or site.config.get('github_edit_base') %}
-    <a href="{% if page.metadata.get('edit_url') %}{{ page.metadata.get('edit_url') }}{% else %}{{ site.config.get('github_edit_base') }}{{ page.source_path }}{% endif %}"
+    {% if params.edit_url or config.github_edit_base %}
+    <a href="{% if params.edit_url %}{{ params.edit_url }}{% else %}{{ config.github_edit_base }}{{ page.source_path }}{% endif %}"
       class="toc-edit-link" target="_blank" rel="noopener noreferrer">
       {{ icon('pencil', size=14) }}
-      <span>Edit this page</span>
+      <span>{{ t('toc.edit_page', default='Edit this page') }}</span>
     </a>
     {% endif %}
 
     {# Contributors (if configured) #}
-    {% if page.metadata.get('contributors') %}
+    {% if params.contributors %}
     <div class="toc-meta-item">
       {{ icon('users', size=14) }}
       <div>
-        <div class="toc-meta-label">Contributors</div>
-        <div class="toc-meta-value">{{ page.metadata.get('contributors') | join(', ') }}</div>
+        <div class="toc-meta-label">{{ t('toc.contributors', default='Contributors') }}</div>
+        <div class="toc-meta-value">{{ params.contributors | join(', ') }}</div>
       </div>
     </div>
     {% endif %}

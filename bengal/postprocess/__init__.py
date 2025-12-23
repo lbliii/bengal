@@ -89,6 +89,11 @@ from bengal.postprocess.social_cards import (
     parse_social_cards_config,
 )
 from bengal.postprocess.special_pages import SpecialPagesGenerator
+from bengal.postprocess.speculation import (
+    SpeculationRule,
+    SpeculationRulesGenerator,
+    generate_speculation_rules,
+)
 
 __all__ = [
     # SEO & Syndication
@@ -108,4 +113,8 @@ __all__ = [
     "PageTxtGenerator",
     "SiteIndexGenerator",
     "SiteLlmTxtGenerator",
+    # Document Application
+    "SpeculationRule",
+    "SpeculationRulesGenerator",
+    "generate_speculation_rules",
 ]

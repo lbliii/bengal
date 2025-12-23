@@ -6,22 +6,22 @@ Defaults to minimal (generator only).
 <meta name="generator" content="{{ bengal.engine.name }} {{ bengal.engine.version }}">
 
 {# Standard/Extended extras #}
-{% if bengal.theme is defined and bengal.theme.name %}
+{% if bengal.theme.name %}
 <meta name="bengal:theme"
     content="{{ bengal.theme.name }}{% if bengal.theme.version %}@{{ bengal.theme.version }}{% endif %}">
 {% endif %}
 
 {# Suppress build timestamp in dev to avoid content churn and spurious reloads #}
-{% if (not config.get('dev_server')) and (bengal.build is defined and bengal.build.timestamp) %}
+{% if (not config.dev_server) and bengal.build.timestamp %}
 <meta name="bengal:build" content="{{ bengal.build.timestamp }}">
 {% endif %}
 
 {# Extended extras #}
-{% if bengal.rendering is defined and bengal.rendering.markdown %}
+{% if bengal.rendering.markdown %}
 <meta name="bengal:markdown"
     content="{{ bengal.rendering.markdown }}{% if bengal.rendering.markdownVersion %}@{{ bengal.rendering.markdownVersion }}{% endif %}">
 {% endif %}
-{% if bengal.rendering is defined and bengal.rendering.highlighter %}
+{% if bengal.rendering.highlighter %}
 <meta name="bengal:highlighter"
     content="{{ bengal.rendering.highlighter }}{% if bengal.rendering.highlighterVersion %}@{{ bengal.rendering.highlighterVersion }}{% endif %}">
 {% endif %}

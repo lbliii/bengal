@@ -38,7 +38,7 @@ Usage:
   <div class="page-hero__footer">
     {# Source link (for elements with source files) #}
     {% if element.display_source_file or element.source_file %}
-    {% if config is defined and config %}
+    {% if config %}
     <a href="{{ config.github_repo }}/blob/{{ config.github_branch | default('main') }}/{{ element.display_source_file or element.source_file }}{% if element.line_number %}#L{{ element.line_number }}{% endif %}"
       class="page-hero__source-link" target="_blank" rel="noopener">
       {{ icon('file-code', size=14) }}

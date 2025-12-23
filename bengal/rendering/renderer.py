@@ -26,8 +26,6 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from markupsafe import Markup
-
 from bengal.core.page import Page
 from bengal.utils.logger import get_logger
 
@@ -119,10 +117,9 @@ class Renderer:
         Render a complete page with template.
 
         Architecture:
-        1. Builds initial context (metadata, TOC, content)
+        1. Uses build_page_context() for unified context building
         2. Adds specialized context based on page type:
            - Generated pages (tags/archives): Adds filtered `posts` list
-           - Section pages: Adds section-specific `posts`
            - Root index: Adds top-level pages
         3. Renders using Jinja2 template
 
@@ -138,6 +135,8 @@ class Renderer:
         Returns:
             Fully rendered HTML page
         """
+        from bengal.rendering.context import build_page_context
+
         if content is None:
             content = page.parsed_ast or ""
             # Debug: Check core/page specifically
@@ -159,91 +158,32 @@ class Renderer:
         # Determine which template to use
         template_name = self._get_template_name(page)
 
-        # Build base context
-        # Note: Content and TOC are marked as safe HTML to prevent auto-escaping
-        # (they're already sanitized during markdown parsing)
-        context = {
-            "page": page,
-            "content": Markup(content),  # Mark as safe HTML
-            "title": page.title,
-            "metadata": page.metadata,
-            "toc": Markup(page.toc) if page.toc else "",  # Mark TOC as safe HTML
-            "toc_items": page.toc_items,  # Structured TOC data
-            # Pre-computed cached properties (computed once, reused in templates)
-            # Templates can use these directly or access via page.meta_description, etc.
-            "meta_desc": page.meta_description,  # From cached_property
-            "reading_time": page.reading_time,  # From cached_property
-            "excerpt": page.excerpt,  # From cached_property
-        }
+        # Build base context using unified context builder
+        # This handles: site/config/theme wrappers, params cascade, section context,
+        # versioning, content, toc, meta_desc, reading_time, excerpt
+        context = build_page_context(
+            page=page,
+            site=self.site,
+            content=content,
+        )
 
-        # Add versioning context if enabled
-        # current_version: Version dict for the current page (or None)
-        # is_latest_version: Whether this page is from the latest version
-        if self.site.versioning_enabled and page.version:
-            version_obj = self.site.get_version(page.version)
-            if version_obj:
-                context["current_version"] = version_obj.to_dict()
-                context["is_latest_version"] = version_obj.latest
-            else:
-                context["current_version"] = None
-                context["is_latest_version"] = True
-        else:
-            context["current_version"] = None
-            context["is_latest_version"] = True
-
-        # Add special context for generated pages
+        # Add special context for generated pages (tags, archives, etc.)
+        # These need additional pagination and tag-specific data
         if page.metadata.get("_generated"):
             self._add_generated_page_context(page, context)
-
-        # Add section context for reference documentation types, doc types, and index pages
-        # This allows manual reference pages, doc pages, and section index pages to access section data
-        # NOTE: Exclude tag and tag-index pages - they get their context from _add_generated_page_context
-        page_type = page.metadata.get("type")
-        is_index_page = page.source_path.stem in ("_index", "index")
-
-        if (
-            page_type not in ("tag", "tag-index")  # Exclude tag pages - they have their own context
-            and hasattr(page, "_section")
-            and page._section
-            and (
-                page_type
-                in (
-                    "autodoc/python",
-                    "autodoc-cli",
-                    "tutorial",
-                    "doc",
-                    "blog",
-                    "archive",
-                    "changelog",
-                )
-                or is_index_page
-            )
-        ):
-            # Add section context if:
-            # 1. It's a reference documentation type (autodoc/python, autodoc/cli, tutorial)
-            # 2. It's a doc type page (for doc/list.html templates)
-            # 3. It's a blog or archive type page (for blog/list.html templates)
-            # 4. It's an index page (_index.md or index.md)
-            section = page._section
-
-            # Use pre-filtered/sorted _posts if available (from SectionOrchestrator),
-            # otherwise fall back to section.pages
-            posts = page.metadata.get("_posts", section.pages)
-            subsections = page.metadata.get("_subsections", section.subsections)
-
-            context.update(
-                {
-                    "section": section,
-                    "posts": posts,
-                    "pages": posts,  # Alias
-                    "subsections": subsections,
-                }
-            )
 
         # Handle root index pages (top-level _index.md without enclosing section)
         # Provide context for ALL root index pages, regardless of type
         # EXCLUDE generated pages (tags, archives) which have their own context logic
-        elif is_index_page and page._section is None and not page.metadata.get("_generated"):
+        page_type = page.metadata.get("type")
+        is_index_page = page.source_path.stem in ("_index", "index")
+
+        if (
+            is_index_page
+            and page._section is None
+            and not page.metadata.get("_generated")
+            and page_type not in ("tag", "tag-index")
+        ):
             # For root home page, provide site-level context as fallback
             # Filter to top-level items only (exclude nested sections/pages)
             top_level_pages = [
@@ -259,7 +199,6 @@ class Renderer:
 
             context.update(
                 {
-                    "section": None,  # Root has no section
                     "posts": top_level_pages,
                     "pages": top_level_pages,  # Alias
                     "subsections": top_level_subsections,
@@ -362,6 +301,8 @@ class Renderer:
         Note: Posts are already filtered and sorted by the content type strategy
         in the SectionOrchestrator, so we do not re-sort here.
         """
+        from bengal.rendering.context import SectionContext
+
         section = page.metadata.get("_section") if page.metadata is not None else None
         all_posts = (
             page.metadata.get("_posts", []) if page.metadata is not None else []
@@ -387,7 +328,7 @@ class Renderer:
 
         context.update(
             {
-                "section": section if section else None,
+                "section": SectionContext(section),
                 "posts": posts,
                 "pages": posts,  # Alias
                 "subsections": subsections,

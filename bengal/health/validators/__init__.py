@@ -52,6 +52,7 @@ See Also:
 
 from __future__ import annotations
 
+from bengal.health.validators.accessibility import AccessibilityValidator
 from bengal.health.validators.anchors import AnchorValidator
 from bengal.health.validators.assets import AssetValidator
 from bengal.health.validators.autodoc import AutodocValidator
@@ -76,6 +77,8 @@ from bengal.health.validators.tracks import TrackValidator
 from bengal.health.validators.url_collisions import URLCollisionValidator
 
 __all__ = [
+    # Accessibility validation (RFC: Document Applications Phase 6)
+    "AccessibilityValidator",
     # Anchor validation (RFC: plan/active/rfc-explicit-anchor-targets.md)
     "AnchorValidator",
     "AssetValidator",

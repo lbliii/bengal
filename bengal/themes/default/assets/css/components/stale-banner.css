@@ -1,0 +1,84 @@
+/**
+ * Stale Content Banner
+ *
+ * Warning banner displayed when documentation hasn't been updated recently.
+ * Uses the same aesthetic as version banners for consistency.
+ */
+
+/* =============================================================================
+   STALE CONTENT BANNER
+   ============================================================================= */
+
+.stale-content-banner {
+  --banner-color: var(--color-warning);
+
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-4);
+
+  background: color-mix(in srgb, var(--banner-color) 8%, var(--color-bg-primary));
+  border: 1px solid color-mix(in srgb, var(--banner-color) 25%, transparent);
+  border-left: 3px solid var(--banner-color);
+  border-radius: var(--radius-md);
+
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.stale-content-banner__content {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.stale-content-banner__icon {
+  color: var(--banner-color);
+  flex-shrink: 0;
+}
+
+.stale-content-banner__text {
+  flex: 1;
+  min-width: 200px;
+}
+
+.stale-content-banner__action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: var(--banner-color);
+  text-decoration: none;
+
+  background: color-mix(in srgb, var(--banner-color) 10%, transparent);
+  border-radius: var(--radius-sm);
+
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.stale-content-banner__action:hover {
+  background: color-mix(in srgb, var(--banner-color) 20%, transparent);
+  color: color-mix(in srgb, var(--banner-color) 80%, var(--color-text-primary));
+}
+
+/* =============================================================================
+   RESPONSIVE
+   ============================================================================= */
+
+@media (max-width: 640px) {
+  .stale-content-banner {
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .stale-content-banner__action {
+    width: 100%;
+    justify-content: center;
+    margin-top: var(--space-2);
+  }
+}

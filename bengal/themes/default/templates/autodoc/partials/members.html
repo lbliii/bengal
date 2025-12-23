@@ -102,12 +102,11 @@ Optional: title (str), member_type (str), first_open (bool, default true)
             </thead>
             <tbody>
               {% for param in member_params %}
-              {# Handle both dict and object access patterns #}
-              {% set param_name = param.get('name', '') if param.get else (param.name if param.name is defined else '') %}
-              {% set param_type_val = param.get('type', '') if param.get else (param.type if param.type is defined else '') %}
-              {# docstring is the description from parsed docstring #}
-              {% set param_desc = param.get('docstring', '') if param.get else (param.docstring if param.docstring is defined else '') %}
-              {% set param_default = param.get('default') if param.get else (param.default if param.default is defined else none) %}
+              {# ChainableUndefined handles both dict and object access #}
+              {% set param_name = param.name %}
+              {% set param_type_val = param.type %}
+              {% set param_desc = param.docstring %}
+              {% set param_default = param.default %}
               <tr>
                 <td class="autodoc-cell-name"><code>{{ param_name }}</code></td>
                 <td class="autodoc-cell-type"><code>{{ param_type_val or '—' }}</code></td>
@@ -233,10 +232,11 @@ Optional: title (str), member_type (str), first_open (bool, default true)
               </thead>
               <tbody>
                 {% for param in member_params %}
-                {% set param_name = param.get('name', '') if param.get else (param.name if param.name is defined else '') %}
-                {% set param_type_val = param.get('type', '') if param.get else (param.type if param.type is defined else '') %}
-                {% set param_desc = param.get('docstring', '') if param.get else (param.docstring if param.docstring is defined else '') %}
-                {% set param_default = param.get('default') if param.get else (param.default if param.default is defined else none) %}
+                {# ChainableUndefined handles both dict and object access #}
+                {% set param_name = param.name %}
+                {% set param_type_val = param.type %}
+                {% set param_desc = param.docstring %}
+                {% set param_default = param.default %}
                 <tr>
                   <td class="autodoc-cell-name"><code>{{ param_name }}</code></td>
                   <td class="autodoc-cell-type"><code>{{ param_type_val or '—' }}</code></td>

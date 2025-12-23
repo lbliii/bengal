@@ -320,6 +320,46 @@ DEFAULTS: dict[str, Any] = {
             "persist_tokens": False,
         },
     },
+    # -------------------------------------------------------------------------
+    # Document Application (RFC: Document Applications)
+    # -------------------------------------------------------------------------
+    # Document Application: Modern browser-native interactivity
+    # -------------------------------------------------------------------------
+    # Uses View Transitions, Speculation Rules, CSS state machines, and native
+    # HTML elements (<dialog>, popover). Reduces JavaScript while providing
+    # SPA-like UX. No legacy browser fallbacks - requires modern browsers.
+    "document_application": {
+        "enabled": True,
+        # Navigation experience
+        "navigation": {
+            "view_transitions": True,  # Enable View Transitions API
+            "transition_style": "crossfade",  # crossfade | slide | morph | none
+            "scroll_restoration": True,
+        },
+        # Speculation Rules for prefetching/prerendering
+        "speculation": {
+            "enabled": True,
+            "prerender": {
+                "eagerness": "conservative",  # conservative | moderate | eager
+                "patterns": ["/docs/*"],
+            },
+            "prefetch": {
+                "eagerness": "conservative",
+                "patterns": ["/*"],
+            },
+            "auto_generate": True,
+            "exclude_patterns": [],  # Patterns to exclude from speculation
+        },
+        # Interactive component modes (all use native browser features)
+        "interactivity": {
+            "tabs": "css_state_machine",  # css_state_machine | enhanced (JS sync)
+            "accordions": "native_details",  # native <details> element
+            "modals": "native_dialog",  # native <dialog> element
+            "tooltips": "popover",  # native popover attribute
+            "dropdowns": "popover",  # native popover attribute
+            "code_copy": "enhanced",  # Requires JS for clipboard API
+        },
+    },
 }
 
 

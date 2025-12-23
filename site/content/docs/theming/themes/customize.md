@@ -169,14 +169,14 @@ To customize the hero for API documentation pages:
 
 ```jinja2
 {# themes/my-theme/templates/partials/page-hero/section.html #}
-{% set is_cli = (hero_context.is_cli if (hero_context is defined and hero_context and hero_context.is_cli is defined) else false) %}
+{% set is_cli = hero_context.is_cli %}
 
 {% include 'partials/page-hero/_wrapper.html' %}
 
   <h1 class="page-hero__title">{{ section.title }}</h1>
 
-  {# Section description from metadata (dict access) #}
-  {% set desc = section.metadata.get('description', '') %}
+  {# Section description - safe access returns empty string if missing #}
+  {% set desc = section.metadata.description %}
   {% if desc %}
   <div class="page-hero__description">
     {{ desc | markdownify | safe }}
@@ -208,11 +208,11 @@ The `hero_context.is_cli` flag controls whether stats display:
 - `element.children`
 - `element.source_file`
 
-**Section templates** receive a `Section` object—use dict-style access for metadata:
-- `section.title` (attribute)
-- `section.metadata.get('description', '')` (dict access)
-- `section.sorted_pages` (attribute)
-- `section.sorted_subsections` (attribute)
+**Section templates** receive a `Section` object—use attribute access:
+- `section.title` (section title)
+- `section.metadata.description` (safe access, returns empty string if missing)
+- `section.sorted_pages` (sorted child pages)
+- `section.sorted_subsections` (sorted child sections)
 
 ## Customize CSS
 

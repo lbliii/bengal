@@ -111,6 +111,46 @@ class SitePropertiesMixin:
         return self.config.get("author")
 
     @property
+    def params(self) -> dict[str, Any]:
+        """
+        Site-level custom parameters from [params] config section.
+
+        Provides access to arbitrary site-wide configuration values
+        that can be used in templates.
+
+        Returns:
+            Dict of custom parameters (empty dict if not configured)
+
+        Examples:
+            # In bengal.toml:
+            # [params]
+            # repo_url = "https://github.com/org/repo"
+            # author = "Jane Doe"
+
+            # In templates:
+            # {{ site.params.repo_url }}
+            # {{ site.params.author }}
+        """
+        return self.config.get("params", {})
+
+    @property
+    def logo(self) -> str:
+        """
+        Logo URL from config (checks multiple locations).
+
+        Checks 'logo_image' at root level and under 'site' section
+        for flexibility in configuration.
+
+        Returns:
+            Logo URL string or empty string if not configured
+
+        Examples:
+            site.logo  # Returns "/assets/logo.png" or ""
+        """
+        cfg = self.config
+        return cfg.get("logo_image", "") or cfg.get("site", {}).get("logo_image", "") or ""
+
+    @property
     def config_hash(self) -> str:
         """
         Get deterministic hash of the resolved configuration.
@@ -312,6 +352,163 @@ class SitePropertiesMixin:
         """
         value = self.config.get("output")
         return dict(value) if isinstance(value, dict) else {}
+
+    # =========================================================================
+    # VERSIONING PROPERTIES
+    # =========================================================================
+
+    # =========================================================================
+    # NORMALIZED CONFIG ACCESSORS
+    # =========================================================================
+    # These properties normalize config values that support multiple formats
+    # (bool, dict, None) into consistent dictionaries with all defaults applied.
+    # Templates use these instead of manual .get() chains with fallbacks.
+
+    @property
+    def build_badge(self) -> dict[str, Any]:
+        """
+        Get normalized build badge configuration.
+
+        Handles all supported formats:
+        - None/False: disabled
+        - True: enabled with defaults
+        - dict: enabled with custom settings
+
+        Returns:
+            Normalized dict with keys: enabled, dir_name, label, label_color, message_color
+
+        Example:
+            {% if site.build_badge.enabled %}
+                <span>{{ site.build_badge.label }}</span>
+            {% endif %}
+        """
+        value = self.config.get("build_badge")
+
+        if value is None or value is False:
+            return {
+                "enabled": False,
+                "dir_name": "bengal",
+                "label": "built in",
+                "label_color": "#555",
+                "message_color": "#4c1d95",
+            }
+
+        if value is True:
+            return {
+                "enabled": True,
+                "dir_name": "bengal",
+                "label": "built in",
+                "label_color": "#555",
+                "message_color": "#4c1d95",
+            }
+
+        if isinstance(value, dict):
+            return {
+                "enabled": bool(value.get("enabled", True)),
+                "dir_name": str(value.get("dir_name", "bengal")),
+                "label": str(value.get("label", "built in")),
+                "label_color": str(value.get("label_color", "#555")),
+                "message_color": str(value.get("message_color", "#4c1d95")),
+            }
+
+        # Unknown type: treat as disabled
+        return {
+            "enabled": False,
+            "dir_name": "bengal",
+            "label": "built in",
+            "label_color": "#555",
+            "message_color": "#4c1d95",
+        }
+
+    @property
+    def document_application(self) -> dict[str, Any]:
+        """
+        Get normalized document application configuration.
+
+        Document Application enables modern browser-native features:
+        - View Transitions API for smooth page transitions
+        - Speculation Rules for prefetching/prerendering
+        - Native <dialog>, popover, and CSS state machines
+
+        Returns:
+            Normalized dict with enabled flag and all sub-configs with defaults applied
+
+        Example:
+            {% if site.document_application.enabled and site.document_application.navigation.view_transitions %}
+                <meta name="view-transition" content="same-origin">
+            {% endif %}
+        """
+        from bengal.config.defaults import DEFAULTS
+
+        defaults = DEFAULTS["document_application"]
+        value = self.config.get("document_application", {})
+
+        if not isinstance(value, dict):
+            # If not a dict (e.g., False), return defaults with enabled=False
+            result = {
+                "enabled": False,
+                "navigation": dict(defaults["navigation"]),
+                "speculation": dict(defaults["speculation"]),
+                "interactivity": dict(defaults["interactivity"]),
+                "features": {},
+            }
+            return result
+
+        # Merge with defaults
+        navigation = value.get("navigation", {})
+        speculation = value.get("speculation", {})
+        interactivity = value.get("interactivity", {})
+
+        return {
+            "enabled": bool(value.get("enabled", defaults["enabled"])),
+            "navigation": {
+                "view_transitions": navigation.get(
+                    "view_transitions", defaults["navigation"]["view_transitions"]
+                ),
+                "transition_style": navigation.get(
+                    "transition_style", defaults["navigation"]["transition_style"]
+                ),
+                "scroll_restoration": navigation.get(
+                    "scroll_restoration", defaults["navigation"]["scroll_restoration"]
+                ),
+            },
+            "speculation": {
+                "enabled": speculation.get("enabled", defaults["speculation"]["enabled"]),
+                "prerender": {
+                    "eagerness": speculation.get("prerender", {}).get(
+                        "eagerness", defaults["speculation"]["prerender"]["eagerness"]
+                    ),
+                    "patterns": speculation.get("prerender", {}).get(
+                        "patterns", defaults["speculation"]["prerender"]["patterns"]
+                    ),
+                },
+                "prefetch": {
+                    "eagerness": speculation.get("prefetch", {}).get(
+                        "eagerness", defaults["speculation"]["prefetch"]["eagerness"]
+                    ),
+                    "patterns": speculation.get("prefetch", {}).get(
+                        "patterns", defaults["speculation"]["prefetch"]["patterns"]
+                    ),
+                },
+                "auto_generate": speculation.get(
+                    "auto_generate", defaults["speculation"]["auto_generate"]
+                ),
+                "exclude_patterns": speculation.get(
+                    "exclude_patterns", defaults["speculation"]["exclude_patterns"]
+                ),
+            },
+            "interactivity": {
+                "tabs": interactivity.get("tabs", defaults["interactivity"]["tabs"]),
+                "accordions": interactivity.get(
+                    "accordions", defaults["interactivity"]["accordions"]
+                ),
+                "modals": interactivity.get("modals", defaults["interactivity"]["modals"]),
+                "tooltips": interactivity.get("tooltips", defaults["interactivity"]["tooltips"]),
+                "dropdowns": interactivity.get("dropdowns", defaults["interactivity"]["dropdowns"]),
+                "code_copy": interactivity.get("code_copy", defaults["interactivity"]["code_copy"]),
+            },
+            "features": value.get("features", {}),
+        }
 
     # =========================================================================
     # VERSIONING PROPERTIES

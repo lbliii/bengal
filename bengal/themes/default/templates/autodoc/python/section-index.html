@@ -82,23 +82,24 @@ This template receives:
 
         <div class="autodoc-cards">
           {% for page in module_pages %}
-          {% set desc = page.metadata.description | default('') | first_sentence %}
+          {# ChainableUndefined handles missing metadata gracefully #}
+          {% set desc = page.metadata.description | first_sentence %}
+          {% set elem_type = page.metadata.element_type | default('module') %}
           <a href="{{ page.href }}" class="autodoc-card"
-            data-card="{{ page.metadata.element_type | default('module') }}">
+            data-card="{{ elem_type }}">
             <div class="autodoc-card-header">
               <span class="autodoc-card-icon">
-                {%- if page.metadata.element_type == 'class' -%}
+                {%- if elem_type == 'class' -%}
                 {{ icon("layers", size=16, css_class="icon-info") }}
-                {%- elif page.metadata.element_type == 'function' -%}
+                {%- elif elem_type == 'function' -%}
                 {{ icon("zap", size=16, css_class="icon-success") }}
                 {%- else -%}
                 {{ icon("code", size=16, css_class="icon-muted") }}
                 {%- endif -%}
               </span>
               <span class="autodoc-card-name">{{ page.title }}</span>
-              {% if page.metadata.element_type %}
-              <span class="autodoc-badge" data-badge="{{ page.metadata.element_type }}">{{ page.metadata.element_type
-                }}</span>
+              {% if elem_type != 'module' %}
+              <span class="autodoc-badge" data-badge="{{ elem_type }}">{{ elem_type }}</span>
               {% endif %}
             </div>
             <div class="autodoc-card-body">

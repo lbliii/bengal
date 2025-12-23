@@ -478,8 +478,8 @@ class Site(
         self._section_registry = {}
         self._section_url_registry = {}
 
-        # Reset query registry
-        self._query_registry = None
+        # Reset query registry (clear cached_property)
+        self.__dict__.pop("indexes", None)
 
         # Reset lookup maps
         self._page_lookup_maps = None

@@ -2,92 +2,101 @@
 
 **Audience:** Theme developers  
 **Purpose:** Prevent common template errors and follow best practices  
-**Last Updated:** 2025-10-12
+**Last Updated:** 2025-12-23
 
 ---
 
 ## Quick Reference
 
-| ❌ Unsafe Pattern | ✅ Safe Pattern | Why |
-|-------------------|-----------------|-----|
-| `page.metadata.key` | `page.metadata.get('key')` | Dict key might not exist |
-| `site.config.key` | `site.config.get('key')` | Config value might be missing |
-| `{% from '...' import macro %}` | `{% from '...' import macro with context %}` | Macro needs access to `site`, `page` |
-| `{% if page.keywords %}` | `{% if page.keywords is defined and page.keywords %}` | Attribute might not exist on SimpleNamespace |
-| `{{ value }}` (untrusted) | `{{ value \| e }}` or `{{ value \| escape }}` | Prevent XSS attacks |
+| ❌ Old Pattern | ✅ New Pattern | Why |
+|----------------|----------------|-----|
+| `page.metadata.get('key')` | `params.key` | ParamsContext returns `''` for missing keys |
+| `site.config.get('key')` | `config.key` | ConfigContext has safe dot access |
+| `{% if x is defined %}` | `{% if x %}` | ChainableUndefined + finalize handles this |
+| `site.data.resume.get('name')` | `site.data.resume.name` | DotDict returns `''` for missing keys |
+| Raw dict in loop | `item \| safe_access` | Wrap for safe nested access |
 
 ---
 
-## Pattern 1: Safe Dictionary Access
+## Pattern 1: Safe Context Access (New!)
+
+### The Old Way (Deprecated)
+
+Previously, templates needed defensive `.get()` calls everywhere:
+
+```jinja2
+❌ OLD PATTERN (no longer needed)
+{{ page.metadata.get('description', '') }}
+{{ params.get('author') }}
+{{ config.get('baseurl') }}
+```
+
+### The New Way
+
+Bengal's context wrappers (`ParamsContext`, `ConfigContext`, etc.) return empty string for missing keys:
+
+```jinja2
+✅ NEW PATTERN (clean and safe)
+{{ params.description }}
+{{ params.author }}
+{{ config.baseurl }}
+{{ theme.hero_style }}
+{{ section.title }}
+```
+
+### Why This Works
+
+1. **ParamsContext** wraps `params` (page.metadata) with safe access
+2. **ConfigContext** wraps `config` (site.config) with safe access
+3. **ThemeContext** wraps `theme` with safe access
+4. **SectionContext** wraps `section` with safe access
+5. **ChainableUndefined** + `finalize` converts remaining `None` → `''`
+
+---
+
+## Pattern 2: Safe Data File Access
 
 ### The Problem
 
-Templates receive dictionaries like `page.metadata` and `site.config`. Using dot notation on missing keys causes `UndefinedError` in strict mode:
+Data loaded from `site.data` (YAML/JSON files) returns `DotDict` objects. Previously, missing keys needed `.get()`:
 
 ```jinja2
-❌ UNSAFE
-{{ page.metadata.description }}
-<!-- Error if 'description' key doesn't exist -->
+❌ OLD PATTERN
+{% set resume = site.data.get('resume') %}
+{{ resume.get('name', page.title) }}
+{{ resume.get('contact', {}).get('email', '') }}
 ```
 
 ### The Solution
 
-Use `.get()` method with optional default value:
+`DotDict` now returns `''` for missing keys (consistent with ParamsContext):
 
 ```jinja2
-✅ SAFE
-{{ page.metadata.get('description', '') }}
-<!-- Returns empty string if key missing -->
-
-✅ SAFE with default
-{{ page.metadata.get('author', 'Anonymous') }}
-<!-- Returns 'Anonymous' if key missing -->
-
-✅ SAFE in conditionals
-{% if page.metadata.get('featured') %}
-  <span class="badge">Featured</span>
-{% endif %}
+✅ NEW PATTERN (DotDict returns '' for missing)
+{% set resume = site.data.resume %}
+{{ resume.name or page.title }}
+{{ resume.contact.email }}
 ```
 
-### Common Locations
+### For Nested Loops
 
-Apply this pattern to:
-- `page.metadata.*` - All frontmatter fields
-- `site.config.*` - All configuration values
-- `section.metadata.*` - Section-level metadata
-- `subsection.metadata.*` - Subsection metadata
-
-### Examples
+When looping over lists of dicts from data files, use `| safe_access` to wrap each item:
 
 ```jinja2
-{# Metadata access #}
-<article class="{{ page.metadata.get('css_class', '') }}">
-  <h1>{{ page.title }}</h1>
-
-  {% if page.metadata.get('description') %}
-    <p class="lead">{{ page.metadata.get('description') }}</p>
+✅ SAFE NESTED ACCESS
+{% for job in resume.experience %}
+  {% set job = job | safe_access %}
+  <h3>{{ job.title }}</h3>
+  <p>{{ job.company }}</p>
+  {% if job.location %}
+    <span>{{ job.location }}</span>
   {% endif %}
-
-  {% if page.metadata.get('author') %}
-    <span class="author">By {{ page.metadata.get('author') }}</span>
-  {% endif %}
-</article>
-
-{# Config access #}
-{% if site.config.get('og_image') %}
-  <meta property="og:image" content="{{ og_image(site.config.get('og_image')) }}">
-{% endif %}
-
-{% if site.config.get('github_edit_base') %}
-  <a href="{{ site.config.get('github_edit_base') }}{{ page.source_path }}">
-    Edit this page
-  </a>
-{% endif %}
+{% endfor %}
 ```
 
 ---
 
-## Pattern 2: Macro Imports with Context
+## Pattern 3: Macro Imports with Context
 
 ### The Problem
 
@@ -118,82 +127,48 @@ Always use `with context` when importing macros that:
 - Use template functions like `url_for()`, `og_image()`, etc.
 - Need access to current page context
 
-### Examples
-
-```jinja2
-{# Navigation macros #}
-{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation with context %}
-
-{# Content macros #}
-{% from 'partials/content-components.html' import tag_list, random_posts with context %}
-
-{# Reference macros #}
-{% from 'partials/reference-components.html' import reference_header, reference_metadata with context %}
-```
-
 ---
 
-## Pattern 3: Safe Attribute Checks
+## Pattern 4: Conditional Checks
 
-### The Problem
-
-Not all page objects have all attributes. Special pages (404, search) use `SimpleNamespace` with minimal attributes:
+### The Old Way
 
 ```jinja2
-❌ UNSAFE
+❌ OLD PATTERN (verbose)
+{% if page.keywords is defined and page.keywords %}
+  <meta name="keywords" content="{{ page.keywords | join(', ') }}">
+{% endif %}
+```
+
+### The New Way
+
+With ChainableUndefined and safe context wrappers, most checks can be simplified:
+
+```jinja2
+✅ NEW PATTERN (clean)
 {% if page.keywords %}
-  <!-- Error if 'keywords' attribute doesn't exist -->
+  <meta name="keywords" content="{{ page.keywords | join(', ') }}">
 {% endif %}
 ```
 
-### The Solution
+### Use Template Tests for Semantics
 
-Use `is defined` check before accessing:
-
-```jinja2
-✅ SAFE
-{% if page.keywords is defined and page.keywords %}
-  <meta name="keywords" content="{{ page.keywords | join(', ') }}">
-{% endif %}
-
-✅ SAFE with fallback
-{% if page.keywords is defined and page.keywords %}
-  {% set meta_keywords = page.keywords %}
-{% elif page.tags is defined and page.tags %}
-  {% set meta_keywords = page.tags %}
-{% endif %}
-```
-
-### Common Attributes to Check
-
-- `page.keywords` - May not exist on special pages
-- `page.tags` - May not exist on all page types
-- `page.kind` - Usually exists but check in filters
-- `page.draft` - May not exist on generated pages
-
-### Examples
+Bengal provides cleaner template tests for common checks:
 
 ```jinja2
-{# Keywords with fallback to tags #}
-{% if page.keywords is defined and page.keywords %}
-  <meta name="keywords" content="{{ page.keywords | join(', ') }}">
-{% elif page.tags is defined and page.tags %}
-  <meta name="keywords" content="{{ page.tags | meta_keywords(10) }}">
-{% endif %}
+✅ PREFERRED - Use template tests
+{% if page is draft %}...{% endif %}
+{% if page is featured %}...{% endif %}
+{% if page is outdated %}...{% endif %}
+{% if page is outdated(30) %}...{% endif %}
 
-{# Body classes #}
-<body class="page-kind-{{ page.kind if page.kind is defined else 'page' }}
-             {% if page.draft is defined and page.draft %}draft-page{% endif %}">
-
-{# Conditional rendering #}
-{% if page.tags is defined and (page | has_tag('featured')) %}
-  <span class="badge">Featured</span>
-{% endif %}
+❌ VERBOSE - Old pattern
+{% if page.draft is defined and page.draft %}...{% endif %}
 ```
 
 ---
 
-## Pattern 4: Safe String Operations
+## Pattern 5: Safe String Operations
 
 ### The Problem
 
@@ -201,7 +176,7 @@ User-generated content or metadata values might contain HTML or special characte
 
 ```jinja2
 ❌ UNSAFE (XSS vulnerability)
-<div>{{ page.metadata.get('user_bio') }}</div>
+<div>{{ params.user_bio | safe }}</div>
 <!-- If user_bio contains <script>, it will execute -->
 ```
 
@@ -210,136 +185,47 @@ User-generated content or metadata values might contain HTML or special characte
 Use explicit escaping filters:
 
 ```jinja2
-✅ SAFE (auto-escaped in Jinja2)
-<div>{{ page.metadata.get('user_bio') }}</div>
+✅ SAFE (auto-escaped by default)
+<div>{{ params.user_bio }}</div>
 <!-- Jinja2 auto-escapes by default -->
 
-✅ EXPLICIT escape
-<div>{{ page.metadata.get('user_bio') | e }}</div>
-<!-- Explicitly escape HTML -->
-
 ✅ SAFE HTML (when trusted)
-<div>{{ page.content | safe }}</div>
-<!-- Only use 'safe' for trusted, processed content -->
-```
-
-### When to Escape
-
-- **Auto-escaped by default:** Most template output
-- **Explicitly escape:** User input, external data
-- **Mark as safe:** Pre-processed content (like `page.content`)
-
-### Examples
-
-```jinja2
-{# Auto-escaped #}
-<h1>{{ page.title }}</h1>
-<meta name="description" content="{{ page.metadata.get('description', '') }}">
-
-{# Trusted HTML #}
-<div class="content">
-  {{ page.content | safe }}
-</div>
-
-{# Explicitly escaped user data #}
-<div class="user-comment">
-  {{ comment.text | e }}
-</div>
-
-{# JSON encoding #}
-<script>
-  const pageData = {{ page_json | tojson }};
-</script>
+<div>{{ content }}</div>
+<!-- content is pre-processed and marked safe -->
 ```
 
 ---
 
-## Pattern 5: Loop Safety
+## Pattern 6: Loop Safety
 
-### The Problem
-
-Looping over collections that might be empty or undefined:
+### The Old Way
 
 ```jinja2
-❌ UNSAFE
-{% for tag in page.tags %}
-  <!-- Error if page.tags is undefined -->
-{% endfor %}
-```
-
-### The Solution
-
-Check before looping or use default empty list:
-
-```jinja2
-✅ SAFE with check
+❌ OLD PATTERN (verbose)
 {% if page.tags is defined and page.tags %}
   {% for tag in page.tags %}
     <a href="/tags/{{ tag }}">{{ tag }}</a>
   {% endfor %}
 {% endif %}
+```
 
-✅ SAFE with default
-{% for tag in (page.tags if page.tags is defined else []) %}
+### The New Way
+
+```jinja2
+✅ NEW PATTERN (cleaner)
+{% if page.tags %}
+  {% for tag in page.tags %}
+    <a href="/tags/{{ tag }}">{{ tag }}</a>
+  {% endfor %}
+{% endif %}
+
+✅ WITH ELSE BLOCK
+{% for tag in page.tags %}
   <a href="/tags/{{ tag }}">{{ tag }}</a>
 {% else %}
   <p>No tags</p>
 {% endfor %}
-
-✅ SAFE with length check
-{% if page.tags is defined and page.tags | length > 0 %}
-  <ul>
-    {% for tag in page.tags %}
-      <li>{{ tag }}</li>
-    {% endfor %}
-  </ul>
-{% endif %}
 ```
-
----
-
-## Pattern 6: Template Inheritance
-
-### The Problem
-
-Child templates need to properly extend parents and override blocks:
-
-```jinja2
-❌ INCORRECT
-{% extends "base.html" %}
-<h1>My Content</h1>
-<!-- Content outside blocks is ignored -->
-```
-
-### The Solution
-
-Always put content in named blocks:
-
-```jinja2
-✅ CORRECT
-{% extends "base.html" %}
-
-{% block title %}My Page{% endblock %}
-
-{% block content %}
-  <h1>My Content</h1>
-  <p>This will render properly.</p>
-{% endblock %}
-
-{% block extra_js %}
-  {{ super() }}  {# Include parent block content #}
-  <script src="/my-script.js"></script>
-{% endblock %}
-```
-
-### Common Blocks
-
-Default theme provides these blocks:
-- `title` - Page title
-- `meta_tags` - Additional meta tags
-- `extra_css` - Additional stylesheets
-- `content` - Main content area
-- `extra_js` - Additional scripts
 
 ---
 
@@ -374,16 +260,69 @@ Use template functions for URL generation:
 
 ---
 
+## Pattern 8: Template Inheritance
+
+### The Problem
+
+Child templates need to properly extend parents and override blocks:
+
+```jinja2
+❌ INCORRECT
+{% extends "base.html" %}
+<h1>My Content</h1>
+<!-- Content outside blocks is ignored -->
+```
+
+### The Solution
+
+Always put content in named blocks:
+
+```jinja2
+✅ CORRECT
+{% extends "base.html" %}
+
+{% block title %}My Page{% endblock %}
+
+{% block content %}
+  <h1>My Content</h1>
+  <p>This will render properly.</p>
+{% endblock %}
+
+{% block extra_js %}
+  {{ super() }}  {# Include parent block content #}
+  <script src="/my-script.js"></script>
+{% endblock %}
+```
+
+---
+
+## Available Filters
+
+### `safe_access`
+
+Wraps a dict in `ParamsContext` for safe dot-notation access:
+
+```jinja2
+{% set resume = site.data.resume | safe_access %}
+{{ resume.contact.email }}  {# Returns '' if missing #}
+
+{# Useful for items in loops #}
+{% for job in resume.experience %}
+  {% set job = job | safe_access %}
+  {{ job.title }}
+{% endfor %}
+```
+
+---
+
 ## Error Prevention Checklist
 
 Use this checklist when creating new templates:
 
-- [ ] All `page.metadata.*` uses `.get()`
-- [ ] All `site.config.*` uses `.get()`
+- [ ] Use `params.x` instead of `page.metadata.get('x')`
+- [ ] Use `config.x` instead of `site.config.get('x')`
+- [ ] Use `| safe_access` for raw dicts from `site.data`
 - [ ] All macro imports have `with context`
-- [ ] All attribute checks use `is defined`
-- [ ] All loops check for empty/undefined
-- [ ] All user content properly escaped
 - [ ] All URLs use template functions
 - [ ] All blocks properly named in extends
 - [ ] Template tested with minimal frontmatter
@@ -405,9 +344,9 @@ Use this checklist when creating new templates:
 
 2. **Test special pages:** Visit `/404.html` and `/search/`
 
-3. **Test in strict mode:**
+3. **Test in serve mode:**
    ```bash
-   bengal site serve  # Strict mode enabled by default
+   bengal site serve  # Catches template errors in dev
    ```
 
 ### Common Test Cases
@@ -428,83 +367,6 @@ tags: [featured, important]
 css_class: custom-page
 draft: false
 ---
-
-# Empty metadata (test safety)
----
-title: Empty Metadata Page
-description: ""
-author:
-tags: []
----
-```
-
----
-
-## Strict Mode
-
-### What is Strict Mode?
-
-Strict mode makes Jinja2 raise errors on undefined variables instead of silently rendering empty strings.
-
-### When is Strict Mode Enabled?
-
-- ✅ **Always in `bengal site serve`** (auto-enabled for development)
-- ⚠️ **Optional in `bengal site build`** (use `--strict` flag)
-
-### Why Use Strict Mode?
-
-```jinja2
-# Without strict mode (silent failures)
-{{ page.metadata.typo }}  
-<!-- Renders as empty string, hard to debug -->
-
-# With strict mode (explicit errors)
-{{ page.metadata.typo }}
-<!-- UndefinedError: 'dict object' has no attribute 'typo' -->
-```
-
-### Recommended Workflow
-
-```bash
-# Development (always strict)
-bengal site serve
-
-# Production build (optional strict)
-bengal site build          # Lenient (renders as empty)
-bengal site build --strict # Strict (fails on errors)
-
-# CI/CD (recommended)
-bengal site build --strict # Catch template errors early
-```
-
----
-
-## Enhanced Error Messages
-
-Bengal provides enhanced error messages in strict mode:
-
-### Dict Access Errors
-
-```
-❌ UndefinedError: 'dict object' has no attribute 'og_image'
-
-💡 Suggestions:
-   [red bold]Unsafe dict access detected![/red bold]
-   Replace dict.og_image with dict.get('og_image')
-   Common locations: page.metadata, site.config, section.metadata
-
-   Note: This error only appears in strict mode (serve).
-   Use 'bengal site build --strict' to catch in builds.
-```
-
-### Attribute Errors
-
-```
-❌ UndefinedError: 'keywords' is undefined
-
-💡 Suggestions:
-   Use safe access: {{ page.keywords | default([]) }}
-   Or check first: {% if page.keywords is defined %}
 ```
 
 ---
@@ -524,7 +386,7 @@ If you encounter template errors:
 
 1. **Check error message** - Enhanced messages show exact fix
 2. **Review this guide** - Common patterns covered
-3. **Test in serve mode** - Strict mode catches errors early
+3. **Test in serve mode** - Catches errors early
 4. **Check examples** - Look at existing templates
 
 **Questions?** Open an issue on GitHub or check the documentation.

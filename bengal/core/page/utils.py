@@ -199,4 +199,5 @@ def create_synthetic_page(
         props=metadata or {},
         slug=slug,
         section_path=None,  # Special pages don't have sections
+        robots_meta="noindex, nofollow",  # Special pages shouldn't be indexed
     )

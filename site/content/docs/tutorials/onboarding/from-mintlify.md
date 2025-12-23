@@ -157,7 +157,7 @@ Sample code and tutorials
 :::{tab-set}
 
 :::{tab} Mintlify (MDX)
-```jsx
+````jsx
 <Tabs>
   <Tab title="Python">
     ```python
@@ -176,7 +176,7 @@ Sample code and tutorials
     ```
   </Tab>
 </Tabs>
-```
+````
 :::{/tab}
 
 :::{tab} Bengal (Cleaner!)

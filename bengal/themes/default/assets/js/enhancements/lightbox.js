@@ -2,6 +2,11 @@
  * Bengal SSG Default Theme
  * Image Lightbox
  *
+ * PATTERN: DIALOG (see assets/COMPONENT-PATTERNS.md)
+ * - Uses native <dialog> element with .showModal()
+ * - Browser handles: focus trap, escape key, backdrop, inert on background
+ * - JS handles: Image loading, navigation between images
+ *
  * Click to enlarge images in a beautiful lightbox overlay.
  * No dependencies, vanilla JavaScript.
  */
@@ -17,30 +22,36 @@
 
   const { log, ready } = window.BengalUtils;
 
-  let lightbox = null;
+  let dialog = null;
   let currentImage = null;
 
   /**
-   * Find or create lightbox element (prefer static HTML from template)
+   * Get or create lightbox dialog element
    */
-  function createLightbox() {
-    // Try to find existing lightbox from template first
-    lightbox = document.querySelector('.lightbox');
+  function getDialog() {
+    if (dialog) return dialog;
 
-    if (!lightbox) {
+    // Try to find existing dialog from template first
+    dialog = document.getElementById('lightbox-dialog');
+
+    if (!dialog) {
       // Fallback: create dynamically if not in template
-      lightbox = document.createElement('div');
-      lightbox.className = 'lightbox';
-      lightbox.setAttribute('role', 'dialog');
-      lightbox.setAttribute('aria-label', 'Image lightbox');
-      lightbox.setAttribute('aria-hidden', 'true');
+      dialog = document.createElement('dialog');
+      dialog.id = 'lightbox-dialog';
+      dialog.className = 'lightbox-dialog';
+      dialog.setAttribute('aria-label', 'Image lightbox');
 
       const img = document.createElement('img');
-      img.className = 'lightbox__image';
+      img.className = 'lightbox-dialog__image';
       img.alt = '';
 
+      const form = document.createElement('form');
+      form.method = 'dialog';
+      form.className = 'lightbox-dialog__controls';
+
       const closeButton = document.createElement('button');
-      closeButton.className = 'lightbox__close';
+      closeButton.type = 'submit';
+      closeButton.className = 'lightbox-dialog__close';
       closeButton.setAttribute('aria-label', 'Close lightbox');
       closeButton.innerHTML = `
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -48,29 +59,28 @@
           <line x1="6" y1="6" x2="18" y2="18"></line>
         </svg>
       `;
+      form.appendChild(closeButton);
 
       const caption = document.createElement('div');
-      caption.className = 'lightbox__caption';
+      caption.className = 'lightbox-dialog__caption';
 
-      lightbox.appendChild(img);
-      lightbox.appendChild(closeButton);
-      lightbox.appendChild(caption);
-      document.body.appendChild(lightbox);
+      dialog.appendChild(img);
+      dialog.appendChild(form);
+      dialog.appendChild(caption);
+      document.body.appendChild(dialog);
     }
 
-    // Event listeners
-    closeButton.addEventListener('click', closeLightbox);
-    lightbox.addEventListener('click', function(e) {
-      // Close when clicking backdrop (not the image)
-      if (e.target === lightbox) {
-        closeLightbox();
+    // Click on backdrop (dialog element itself) closes
+    dialog.addEventListener('click', function(e) {
+      if (e.target === dialog) {
+        dialog.close();
       }
     });
 
-    // Keyboard controls
-    document.addEventListener('keydown', handleKeyboard);
+    // Keyboard navigation
+    dialog.addEventListener('keydown', handleKeyboard);
 
-    return lightbox;
+    return dialog;
   }
 
   /**
@@ -79,13 +89,11 @@
    * @param {HTMLImageElement} imgElement - Image element to display
    */
   function openLightbox(imgElement) {
-    if (!lightbox) {
-      lightbox = createLightbox();
-    }
+    const d = getDialog();
 
     currentImage = imgElement;
-    const img = lightbox.querySelector('.lightbox__image');
-    const caption = lightbox.querySelector('.lightbox__caption');
+    const img = d.querySelector('.lightbox-dialog__image');
+    const caption = d.querySelector('.lightbox-dialog__caption');
 
     // Set image source (use high-res version if available)
     const highResSrc = imgElement.getAttribute('data-lightbox-src') || imgElement.src;
@@ -101,28 +109,17 @@
       caption.style.display = 'none';
     }
 
-    // Show lightbox
-    lightbox.classList.add('active');
-    lightbox.setAttribute('aria-hidden', 'false');
-
-    // Prevent body scroll
-    document.body.style.overflow = 'hidden';
-
-    // Focus the lightbox for keyboard controls
-    lightbox.focus();
+    // Show dialog using native modal (handles focus trap, backdrop, escape key)
+    d.showModal();
   }
 
   /**
    * Close lightbox
    */
   function closeLightbox() {
-    if (!lightbox) return;
+    if (!dialog) return;
 
-    lightbox.classList.remove('active');
-    lightbox.setAttribute('aria-hidden', 'true');
-
-    // Restore body scroll
-    document.body.style.overflow = '';
+    dialog.close();
 
     // Return focus to the original image
     if (currentImage) {
@@ -138,22 +135,22 @@
    * @param {KeyboardEvent} e - Keyboard event
    */
   function handleKeyboard(e) {
-    if (!lightbox || !lightbox.classList.contains('active')) return;
+    if (!dialog || !dialog.open) return;
 
     switch (e.key) {
-      case 'Escape':
-        closeLightbox();
-        break;
-
       case 'ArrowLeft':
         // Navigate to previous image (if multiple)
         navigateImages(-1);
+        e.preventDefault();
         break;
 
       case 'ArrowRight':
         // Navigate to next image (if multiple)
         navigateImages(1);
+        e.preventDefault();
         break;
+
+      // Escape is handled natively by <dialog>
     }
   }
 
@@ -237,7 +234,7 @@
    */
   function init() {
     setupImageLightbox();
-    log('Image lightbox initialized');
+    log('Image lightbox initialized (native dialog)');
   }
 
   // Initialize when DOM is ready

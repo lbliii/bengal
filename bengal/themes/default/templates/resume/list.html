@@ -1,49 +1,49 @@
 {% extends "base.html" %}
 
 {% block content %}
-{# Load resume data from site.data (preferred) or page.metadata (fallback) #}
-{% set resume = site.data.get('resume') if site.data is defined and site.data else page.metadata %}
+{# Load resume data from site.data (preferred) or params (fallback) #}
+{# Use safe_access filter for clean dot-notation access without .get() everywhere #}
+{% set resume = (site.data.resume if site.data and site.data.resume else params) | safe_access %}
 
 <div class="resume">
     {# Header Section #}
     <header class="resume-header">
-        <h1 class="resume-name">{{ resume.get('name', page.title) }}</h1>
-        {% if resume.get('headline') %}
-        <p class="resume-headline">{{ resume.get('headline') }}</p>
+        <h1 class="resume-name">{{ resume.name or page.title }}</h1>
+        {% if resume.headline %}
+        <p class="resume-headline">{{ resume.headline }}</p>
         {% endif %}
 
         {# Contact Information #}
-        {% if resume.get('contact') %}
+        {% if resume.contact %}
+        {% set contact = resume.contact %}
         <div class="resume-contact">
-            {% set contact = resume.get('contact') %}
-            {% if contact.get('email') %}
-            <a href="mailto:{{ contact.get('email') }}" class="contact-item">
-                <span class="contact-icon">✉</span> {{ contact.get('email') }}
+            {% if contact.email %}
+            <a href="mailto:{{ contact.email }}" class="contact-item">
+                <span class="contact-icon">✉</span> {{ contact.email }}
             </a>
             {% endif %}
-            {% if contact.get('phone') %}
+            {% if contact.phone %}
             <span class="contact-item">
-                <span class="contact-icon">📱</span> {{ contact.get('phone') }}
+                <span class="contact-icon">📱</span> {{ contact.phone }}
             </span>
             {% endif %}
-            {% if contact.get('location') %}
+            {% if contact.location %}
             <span class="contact-item">
-                <span class="contact-icon">📍</span> {{ contact.get('location') }}
+                <span class="contact-icon">📍</span> {{ contact.location }}
             </span>
             {% endif %}
-            {% if contact.get('website') %}
-            <a href="{{ contact.get('website') }}" class="contact-item" target="_blank">
-                <span class="contact-icon">🌐</span> {{ contact.get('website') | replace('https://', '') |
-                replace('http://', '') }}
+            {% if contact.website %}
+            <a href="{{ contact.website }}" class="contact-item" target="_blank">
+                <span class="contact-icon">🌐</span> {{ contact.website | replace('https://', '') | replace('http://', '') }}
             </a>
             {% endif %}
-            {% if contact.get('linkedin') %}
-            <a href="{{ contact.get('linkedin') }}" class="contact-item" target="_blank">
+            {% if contact.linkedin %}
+            <a href="{{ contact.linkedin }}" class="contact-item" target="_blank">
                 <span class="contact-icon">💼</span> LinkedIn
             </a>
             {% endif %}
-            {% if contact.get('github') %}
-            <a href="{{ contact.get('github') }}" class="contact-item" target="_blank">
+            {% if contact.github %}
+            <a href="{{ contact.github }}" class="contact-item" target="_blank">
                 <span class="contact-icon">🔗</span> GitHub
             </a>
             {% endif %}
@@ -52,10 +52,10 @@
     </header>
 
     {# Summary/About Section #}
-    {% if resume.get('summary') or content %}
+    {% if resume.summary or content %}
     <section class="resume-section resume-summary">
-        {% if resume.get('summary') %}
-        <p class="summary-text">{{ resume.get('summary') }}</p>
+        {% if resume.summary %}
+        <p class="summary-text">{{ resume.summary }}</p>
         {% endif %}
         {% if content %}
         <div class="summary-content prose">
@@ -66,41 +66,39 @@
     {% endif %}
 
     {# Experience Section #}
-    {% if resume.get('experience') %}
+    {% if resume.experience %}
     <section class="resume-section">
         <h2 class="section-title">Experience</h2>
         <div class="timeline">
-            {% for job in resume.get('experience') %}
+            {% for job in resume.experience %}
+            {% set job = job | safe_access %}
             <div class="timeline-item">
                 <div class="timeline-header">
                     <div class="timeline-title-group">
-                        <h3 class="timeline-title">{{ job.get('title') }}</h3>
-                        <p class="timeline-company">{{ job.get('company') }}</p>
+                        <h3 class="timeline-title">{{ job.title }}</h3>
+                        <p class="timeline-company">{{ job.company }}</p>
                     </div>
                     <div class="timeline-meta">
-                        <span class="timeline-date">{{ job.get('start_date') }} - {{ job.get('end_date', 'Present')
-                            }}</span>
-                        {% if job.get('location') %}
-                        <span class="timeline-location">{{ job.get('location') }}</span>
+                        <span class="timeline-date">{{ job.start_date }} - {{ job.end_date or 'Present' }}</span>
+                        {% if job.location %}
+                        <span class="timeline-location">{{ job.location }}</span>
                         {% endif %}
                     </div>
                 </div>
-                {% if job.get('description') %}
-                <p class="timeline-description">{{ job.get('description') }}</p>
+                {% if job.description %}
+                <p class="timeline-description">{{ job.description }}</p>
                 {% endif %}
-                {% if job.get('highlights') and job.get('highlights') is iterable and job.get('highlights') is not
-                string %}
+                {% if job.highlights and job.highlights is iterable and job.highlights is not string %}
                 <ul class="timeline-highlights">
-                    {% for highlight in job.get('highlights') %}
+                    {% for highlight in job.highlights %}
                     <li>{{ highlight }}</li>
                     {% endfor %}
                 </ul>
                 {% endif %}
-                {% if job.get('technologies') and job.get('technologies') is iterable and job.get('technologies') is not
-                string %}
+                {% if job.technologies and job.technologies is iterable and job.technologies is not string %}
                 <div class="timeline-technologies">
                     <strong>Technologies:</strong>
-                    {% for tech in job.get('technologies') %}
+                    {% for tech in job.technologies %}
                     <span class="tech-tag">{{ tech }}</span>
                     {% endfor %}
                 </div>
@@ -112,38 +110,38 @@
     {% endif %}
 
     {# Education Section #}
-    {% if resume.get('education') %}
+    {% if resume.education %}
     <section class="resume-section">
         <h2 class="section-title">Education</h2>
         <div class="timeline">
-            {% for edu in resume.get('education') %}
+            {% for edu in resume.education %}
+            {% set edu = edu | safe_access %}
             <div class="timeline-item">
                 <div class="timeline-header">
                     <div class="timeline-title-group">
-                        <h3 class="timeline-title">{{ edu.get('degree') }}</h3>
-                        <p class="timeline-company">{{ edu.get('institution') }}</p>
+                        <h3 class="timeline-title">{{ edu.degree }}</h3>
+                        <p class="timeline-company">{{ edu.institution }}</p>
                     </div>
                     <div class="timeline-meta">
-                        <span class="timeline-date">{{ edu.get('start_date') }} - {{ edu.get('end_date', 'Present')
-                            }}</span>
-                        {% if edu.get('location') %}
-                        <span class="timeline-location">{{ edu.get('location') }}</span>
+                        <span class="timeline-date">{{ edu.start_date }} - {{ edu.end_date or 'Present' }}</span>
+                        {% if edu.location %}
+                        <span class="timeline-location">{{ edu.location }}</span>
                         {% endif %}
                     </div>
                 </div>
-                {% if edu.get('gpa') %}
-                <p class="timeline-description">GPA: {{ edu.get('gpa') }}</p>
+                {% if edu.gpa %}
+                <p class="timeline-description">GPA: {{ edu.gpa }}</p>
                 {% endif %}
-                {% if edu.get('honors') %}
+                {% if edu.honors %}
                 <ul class="timeline-highlights">
-                    {% for honor in edu.get('honors') %}
+                    {% for honor in edu.honors %}
                     <li>{{ honor }}</li>
                     {% endfor %}
                 </ul>
                 {% endif %}
-                {% if edu.get('coursework') %}
+                {% if edu.coursework %}
                 <div class="timeline-technologies">
-                    <strong>Relevant Coursework:</strong> {{ edu.get('coursework') | join(', ') }}
+                    <strong>Relevant Coursework:</strong> {{ edu.coursework | join(', ') }}
                 </div>
                 {% endif %}
             </div>
@@ -153,15 +151,16 @@
     {% endif %}
 
     {# Skills Section #}
-    {% if resume.get('skills') %}
+    {% if resume.skills %}
     <section class="resume-section">
         <h2 class="section-title">Skills</h2>
         <div class="skills-grid">
-            {% for skill_group in resume.get('skills') %}
+            {% for skill_group in resume.skills %}
+            {% set skill_group = skill_group | safe_access %}
             <div class="skill-group">
-                <h3 class="skill-category">{{ skill_group.get('category') }}</h3>
+                <h3 class="skill-category">{{ skill_group.category }}</h3>
                 <div class="skill-tags">
-                    {% for skill in skill_group.get('items') %}
+                    {% for skill in skill_group.items %}
                     <span class="skill-tag">{{ skill }}</span>
                     {% endfor %}
                 </div>
@@ -172,56 +171,57 @@
     {% endif %}
 
     {# Projects Section #}
-    {% if resume.get('projects') %}
+    {% if resume.projects %}
     <section class="resume-section">
         <h2 class="section-title">Projects</h2>
         <div class="timeline">
-            {% for project in resume.get('projects') %}
+            {% for project in resume.projects %}
+            {% set project = project | safe_access %}
             <div class="timeline-item">
                 <div class="timeline-header">
                     <div class="timeline-title-group">
                         <h3 class="timeline-title">
-                            {% if project.get('url') %}
-                            <a href="{{ project.get('url') }}" target="_blank">{{ project.get('name') }}</a>
+                            {% if project.url %}
+                            <a href="{{ project.url }}" target="_blank">{{ project.name }}</a>
                             {% else %}
-                            {{ project.get('name') }}
+                            {{ project.name }}
                             {% endif %}
                         </h3>
-                        {% if project.get('role') %}
-                        <p class="timeline-company">{{ project.get('role') }}</p>
+                        {% if project.role %}
+                        <p class="timeline-company">{{ project.role }}</p>
                         {% endif %}
                     </div>
-                    {% if project.get('date') %}
+                    {% if project.date %}
                     <div class="timeline-meta">
-                        <span class="timeline-date">{{ project.get('date') }}</span>
+                        <span class="timeline-date">{{ project.date }}</span>
                     </div>
                     {% endif %}
                 </div>
-                {% if project.get('description') %}
-                <p class="timeline-description">{{ project.get('description') }}</p>
+                {% if project.description %}
+                <p class="timeline-description">{{ project.description }}</p>
                 {% endif %}
-                {% if project.get('highlights') %}
+                {% if project.highlights %}
                 <ul class="timeline-highlights">
-                    {% for highlight in project.get('highlights') %}
+                    {% for highlight in project.highlights %}
                     <li>{{ highlight }}</li>
                     {% endfor %}
                 </ul>
                 {% endif %}
-                {% if project.get('technologies') %}
+                {% if project.technologies %}
                 <div class="timeline-technologies">
                     <strong>Technologies:</strong>
-                    {% for tech in project.get('technologies') %}
+                    {% for tech in project.technologies %}
                     <span class="tech-tag">{{ tech }}</span>
                     {% endfor %}
                 </div>
                 {% endif %}
-                {% if project.get('github') or project.get('demo') %}
+                {% if project.github or project.demo %}
                 <div class="project-links">
-                    {% if project.get('github') %}
-                    <a href="{{ project.get('github') }}" target="_blank" class="project-link">GitHub</a>
+                    {% if project.github %}
+                    <a href="{{ project.github }}" target="_blank" class="project-link">GitHub</a>
                     {% endif %}
-                    {% if project.get('demo') %}
-                    <a href="{{ project.get('demo') }}" target="_blank" class="project-link">Live Demo</a>
+                    {% if project.demo %}
+                    <a href="{{ project.demo }}" target="_blank" class="project-link">Live Demo</a>
                     {% endif %}
                 </div>
                 {% endif %}
@@ -232,19 +232,20 @@
     {% endif %}
 
     {# Certifications Section #}
-    {% if resume.get('certifications') %}
+    {% if resume.certifications %}
     <section class="resume-section">
         <h2 class="section-title">Certifications</h2>
         <div class="certifications-list">
-            {% for cert in resume.get('certifications') %}
+            {% for cert in resume.certifications %}
+            {% set cert = cert | safe_access %}
             <div class="certification-item">
-                <h3 class="certification-name">{{ cert.get('name') }}</h3>
-                <p class="certification-issuer">{{ cert.get('issuer') }}</p>
-                {% if cert.get('date') %}
-                <p class="certification-date">{{ cert.get('date') }}</p>
+                <h3 class="certification-name">{{ cert.name }}</h3>
+                <p class="certification-issuer">{{ cert.issuer }}</p>
+                {% if cert.date %}
+                <p class="certification-date">{{ cert.date }}</p>
                 {% endif %}
-                {% if cert.get('url') %}
-                <a href="{{ cert.get('url') }}" target="_blank" class="certification-link">View Credential →</a>
+                {% if cert.url %}
+                <a href="{{ cert.url }}" target="_blank" class="certification-link">View Credential →</a>
                 {% endif %}
             </div>
             {% endfor %}
@@ -253,19 +254,20 @@
     {% endif %}
 
     {# Awards Section #}
-    {% if resume.get('awards') %}
+    {% if resume.awards %}
     <section class="resume-section">
         <h2 class="section-title">Awards & Recognition</h2>
         <div class="awards-list">
-            {% for award in resume.get('awards') %}
+            {% for award in resume.awards %}
+            {% set award = award | safe_access %}
             <div class="award-item">
-                <h3 class="award-name">{{ award.get('name') }}</h3>
-                <p class="award-issuer">{{ award.get('issuer') }}</p>
-                {% if award.get('date') %}
-                <p class="award-date">{{ award.get('date') }}</p>
+                <h3 class="award-name">{{ award.name }}</h3>
+                <p class="award-issuer">{{ award.issuer }}</p>
+                {% if award.date %}
+                <p class="award-date">{{ award.date }}</p>
                 {% endif %}
-                {% if award.get('description') %}
-                <p class="award-description">{{ award.get('description') }}</p>
+                {% if award.description %}
+                <p class="award-description">{{ award.description }}</p>
                 {% endif %}
             </div>
             {% endfor %}
@@ -274,14 +276,15 @@
     {% endif %}
 
     {# Languages Section #}
-    {% if resume.get('languages') %}
+    {% if resume.languages %}
     <section class="resume-section">
         <h2 class="section-title">Languages</h2>
         <div class="languages-list">
-            {% for lang in resume.get('languages') %}
+            {% for lang in resume.languages %}
+            {% set lang = lang | safe_access %}
             <div class="language-item">
-                <span class="language-name">{{ lang.get('language') }}</span>
-                <span class="language-level">{{ lang.get('proficiency') }}</span>
+                <span class="language-name">{{ lang.language }}</span>
+                <span class="language-level">{{ lang.proficiency }}</span>
             </div>
             {% endfor %}
         </div>
@@ -289,24 +292,24 @@
     {% endif %}
 
     {# Volunteer Section #}
-    {% if resume.get('volunteer') %}
+    {% if resume.volunteer %}
     <section class="resume-section">
         <h2 class="section-title">Volunteer Experience</h2>
         <div class="timeline">
-            {% for vol in resume.get('volunteer') %}
+            {% for vol in resume.volunteer %}
+            {% set vol = vol | safe_access %}
             <div class="timeline-item">
                 <div class="timeline-header">
                     <div class="timeline-title-group">
-                        <h3 class="timeline-title">{{ vol.get('role') }}</h3>
-                        <p class="timeline-company">{{ vol.get('organization') }}</p>
+                        <h3 class="timeline-title">{{ vol.role }}</h3>
+                        <p class="timeline-company">{{ vol.organization }}</p>
                     </div>
                     <div class="timeline-meta">
-                        <span class="timeline-date">{{ vol.get('start_date') }} - {{ vol.get('end_date', 'Present')
-                            }}</span>
+                        <span class="timeline-date">{{ vol.start_date }} - {{ vol.end_date or 'Present' }}</span>
                     </div>
                 </div>
-                {% if vol.get('description') %}
-                <p class="timeline-description">{{ vol.get('description') }}</p>
+                {% if vol.description %}
+                <p class="timeline-description">{{ vol.description }}</p>
                 {% endif %}
             </div>
             {% endfor %}

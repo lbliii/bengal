@@ -17,7 +17,7 @@ Usage: Included via page-hero.html dispatcher
 
 {# Macro: Get page URL with fallback chain for robustness #}
 {% macro get_page_url(page) -%}
-    {{ page._path if page._path is defined else (page.href if page.href is defined else '/') }}
+    {{ page._path or page.href or '/' }}
 {%- endmacro %}
 
 {% if page %}
@@ -117,15 +117,15 @@ Usage: Included via page-hero.html dispatcher
   <h1 class="page-hero__title">{{ page.title }}</h1>
 
   {# Description #}
-  {% if page.metadata.get('description', '') %}
-  <p class="page-hero__description">{{ page.metadata.get('description', '') }}</p>
+  {% if params.description %}
+  <p class="page-hero__description">{{ params.description }}</p>
   {% endif %}
 
   {# Inline Metadata #}
-  {% set has_metadata = page.content or page.date or page.metadata.get('lastmod') %}
+  {% set has_metadata = page.content or page.date or params.lastmod %}
   {% if has_metadata %}
   <div class="page-hero__meta">
-    {% if page.content and 'content.reading_time' in site.theme_config.features %}
+    {% if page.content and 'content.reading_time' in theme.features %}
     <span class="page-hero__meta-item">
       {{ icon("clock", size=16) }}
       <span>{{ page.content | reading_time }} min read</span>
@@ -139,10 +139,10 @@ Usage: Included via page-hero.html dispatcher
     </span>
     {% endif %}
 
-    {% if page.metadata.get('lastmod') or page.date %}
+    {% if params.lastmod or page.date %}
     <span class="page-hero__meta-item">
       {{ icon("arrow-clockwise", size=16) }}
-      <span>{{ (page.metadata.get('lastmod') or page.date) | time_ago }}</span>
+      <span>{{ (params.lastmod or page.date) | time_ago }}</span>
     </span>
     {% endif %}
   </div>

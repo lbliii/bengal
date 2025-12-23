@@ -35,6 +35,7 @@ class DotDict:
         - Recursive wrapping of nested dicts (with caching for performance)
         - Dict-like interface (but not inheriting from dict)
         - No method name collisions
+        - Returns '' for missing keys (consistent with ParamsContext)
 
     Usage:
         >>> # Create from dict
@@ -51,6 +52,11 @@ class DotDict:
         >>> data = DotDict({"items": ["a", "b", "c"]})
         >>> data.items  # Returns list, not a method!
         ['a', 'b', 'c']
+
+        >>> # Missing keys return empty string
+        >>> data = DotDict({"name": "Alice"})
+        >>> data.missing
+        ''
 
     Implementation Note:
         Unlike traditional dict subclasses, DotDict does NOT inherit from dict.
@@ -108,8 +114,9 @@ class DotDict:
             return object.__getattribute__(self, key)
         except AttributeError:
             # Key doesn't exist in data or as attribute
-            # Return None for Jinja2 compatibility (allows safe conditionals)
-            return None
+            # Return empty string for Jinja2 compatibility (consistent with ParamsContext)
+            # Empty string is falsy, so `{% if obj.field %}` still works as expected
+            return ""
 
     def __setattr__(self, key: str, value: Any) -> None:
         """Allow dot notation assignment. Invalidates cache for the key."""

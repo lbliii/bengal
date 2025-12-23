@@ -120,6 +120,37 @@ class Theme:
         """
         return feature in self.features
 
+    def has(self, feature: str) -> bool:
+        """
+        Shorter alias for has_feature().
+
+        Example in templates:
+            {% if theme.has('navigation.toc') %}
+        """
+        return feature in self.features
+
+    def get(self, key: str, default: Any = None) -> Any:
+        """
+        Get custom theme configuration value.
+
+        Provides ergonomic access to theme-specific config values without
+        needing to access theme.config directly.
+
+        Args:
+            key: Configuration key to look up
+            default: Default value if key not found (default: None)
+
+        Returns:
+            Configuration value or default
+
+        Example in templates:
+            {{ theme.get('hero_style', 'editorial') }}
+            {{ theme.get('stale_warning_days', 180) }}
+        """
+        if self.config:
+            return self.config.get(key, default)
+        return default
+
     @classmethod
     def from_config(
         cls,

@@ -1,8 +1,10 @@
 {#
 Action Bar Component
 
-Combines breadcrumb navigation (left) with page actions (right)
-such as sharing with AI assistants.
+PATTERN: POPOVER (see assets/COMPONENT-PATTERNS.md)
+- Share dropdown and metadata panel use native [popover]
+- Browser handles: show/hide, light dismiss, escape key, top layer
+- JS handles: Copy actions, AI share functionality
 
 Usage: {% include 'partials/action-bar.html' %}
 
@@ -11,7 +13,7 @@ Requires: page object in context
 
 {# Macro: Get page URL with fallback chain for robustness #}
 {% macro get_page_url(page) -%}
-    {{ page._path if page._path is defined else (page.href if page.href is defined else '/') }}
+    {{ page._path or page.href or '/' }}
 {%- endmacro %}
 
 {% if page %}
@@ -26,14 +28,14 @@ Requires: page object in context
                 {% for item in breadcrumb_items %}
                 <li {% if item.is_current %}aria-current="page" {% endif %}>
                     {% if item.is_current %}
-                    {% set has_metadata = page.metadata.get('author') or page.date or page.content or
-                    page.metadata.get('lastmod') %}
+                    {% set has_metadata = params.author or page.date or page.content or
+                    params.lastmod %}
                     <span class="action-bar-breadcrumb-current-wrapper">
                         <span class="action-bar-breadcrumb-current" title="{{ item.title }}">{{ item.title |
                             truncate(20, true, '…') }}</span>
                         {% if has_metadata %}
-                        <button class="action-bar-meta-toggle" aria-label="Toggle page metadata" aria-expanded="false"
-                            aria-controls="action-bar-metadata" title="Show page details">
+                        <button class="action-bar-meta-toggle" popovertarget="action-bar-metadata-popover"
+                            aria-label="Toggle page metadata" title="Show page details">
                             {{ icon('caret-down', size=14, css_class='action-bar-meta-toggle-icon') }}
                         </button>
                         {% endif %}
@@ -57,77 +59,61 @@ Requires: page object in context
                 {% set share_prompt = "Please help me understand this documentation: " + llm_txt_url %}
 
             <div class="action-bar-share">
-                <button class="action-bar-share-trigger" aria-label="Share with AI assistants" aria-expanded="false"
-                    aria-controls="action-bar-share-dropdown" title="Share with AI assistants">
+                <button class="action-bar-share-trigger" popovertarget="action-bar-share-menu"
+                    aria-label="{{ t('share.ai_assistants', default='Share with AI assistants') }}" title="{{ t('share.ai_assistants', default='Share with AI assistants') }}">
                     {# Bengal cat symbol - on-brand! #}
                     <span>ᗢ</span>
                     {{ icon('caret-down', size=14, css_class='action-bar-share-chevron') }}
                 </button>
 
-                <div class="action-bar-share-dropdown" id="action-bar-share-dropdown" role="menu" aria-hidden="true">
+                <div id="action-bar-share-menu" popover class="action-bar-share-dropdown--popover">
                     <div class="action-bar-share-content">
                         {# Quick Actions #}
-                        <button class="action-bar-share-item" data-action="copy-url" data-url="{{ page_url }}"
-                            role="menuitem">
+                        <button class="action-bar-share-item" data-action="copy-url" data-url="{{ page_url }}" type="button">
                             {{ icon('link', size=16) }}
-                            <span>Copy URL</span>
+                            <span>{{ t('share.copy_url', default='Copy URL') }}</span>
                         </button>
 
                         <a href="{{ llm_txt_url }}" target="_blank" rel="noopener noreferrer"
-                            class="action-bar-share-item" role="menuitem">
+                            class="action-bar-share-item">
                             {{ icon('external', size=16) }}
-                            <span>Open LLM text</span>
+                            <span>{{ t('share.open_llm_text', default='Open LLM text') }}</span>
                         </a>
 
-                        <button class="action-bar-share-item" data-action="copy-llm-txt" data-url="{{ llm_txt_url }}"
-                            role="menuitem">
+                        <button class="action-bar-share-item" data-action="copy-llm-txt" data-url="{{ llm_txt_url }}" type="button">
                             {{ icon('copy', size=16) }}
-                            <span>Copy LLM text</span>
+                            <span>{{ t('share.copy_llm_text', default='Copy LLM text') }}</span>
                         </button>
 
                         <hr class="action-bar-share-separator">
 
                         {# AI Assistant Links #}
-                        <div class="action-bar-share-section-header">Share with AI</div>
+                        <div class="action-bar-share-section-header">{{ t('share.with_ai', default='Share with AI') }}</div>
 
                         <a href="https://claude.ai/new?q={{ share_prompt | urlencode }}" target="_blank"
-                            rel="noopener noreferrer" class="action-bar-share-item action-bar-share-ai" data-ai="claude"
-                            role="menuitem">
-                            <svg viewBox="0 0 24 24" fill="currentColor">
-                                <path
-                                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" />
-                                <circle cx="12" cy="12" r="3" />
-                            </svg>
-                            <span>Ask Claude</span>
+                            rel="noopener noreferrer" class="action-bar-share-item action-bar-share-ai" data-ai="claude">
+                            {{ icon('ai-claude', size=16) }}
+                            <span>{{ t('share.ask_claude', default='Ask Claude') }}</span>
                         </a>
 
                         <a href="https://chatgpt.com/?q={{ share_prompt | urlencode }}" target="_blank"
                             rel="noopener noreferrer" class="action-bar-share-item action-bar-share-ai"
-                            data-ai="chatgpt" role="menuitem">
-                            <svg viewBox="0 0 24 24" fill="currentColor">
-                                <path
-                                    d="M22.282 9.821a5.985 5.985 0 00-.516-4.91 6.046 6.046 0 00-6.51-2.9A6.065 6.065 0 004.888 4.36a5.99 5.99 0 00-2.907 6.507 6.018 6.018 0 00.517 4.91 6.05 6.05 0 006.51 2.9A6.065 6.065 0 0019.376 16.64a5.99 5.99 0 002.907-6.507l-.001-.312z" />
-                            </svg>
-                            <span>Ask ChatGPT</span>
+                            data-ai="chatgpt">
+                            {{ icon('ai-chatgpt', size=16) }}
+                            <span>{{ t('share.ask_chatgpt', default='Ask ChatGPT') }}</span>
                         </a>
 
                         <a href="https://gemini.google.com/app?q={{ share_prompt | urlencode }}" target="_blank"
-                            rel="noopener noreferrer" class="action-bar-share-item action-bar-share-ai" data-ai="gemini"
-                            role="menuitem">
-                            <svg viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                            </svg>
-                            <span>Ask Gemini</span>
+                            rel="noopener noreferrer" class="action-bar-share-item action-bar-share-ai" data-ai="gemini">
+                            {{ icon('ai-gemini', size=16) }}
+                            <span>{{ t('share.ask_gemini', default='Ask Gemini') }}</span>
                         </a>
 
                         <a href="https://copilot.microsoft.com/?q={{ share_prompt | urlencode }}" target="_blank"
                             rel="noopener noreferrer" class="action-bar-share-item action-bar-share-ai"
-                            data-ai="copilot" role="menuitem">
-                            <svg viewBox="0 0 24 24" fill="currentColor">
-                                <path
-                                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
-                            </svg>
-                            <span>Ask Copilot</span>
+                            data-ai="copilot">
+                            {{ icon('ai-copilot', size=16) }}
+                            <span>{{ t('share.ask_copilot', default='Ask Copilot') }}</span>
                         </a>
                     </div>
                 </div>
@@ -135,36 +121,36 @@ Requires: page object in context
         </div>
     </div>
 
-    {# Expandable Metadata Panel - Below action bar #}
-    {% set has_metadata = page.metadata.get('author') or page.date or page.content or page.metadata.get('lastmod') %}
+    {# Expandable Metadata Panel - Native Popover #}
+    {% set has_metadata = params.author or page.date or page.content or params.lastmod %}
     {% if has_metadata %}
-    <div class="action-bar-metadata" id="action-bar-metadata" aria-hidden="true">
+    <div id="action-bar-metadata-popover" popover class="action-bar-metadata--popover">
         <div class="action-bar-metadata-content">
-            {% if page.metadata.get('author') and 'content.author' in site.theme_config.features %}
+            {% if params.author and 'content.author' in theme.features %}
             <span class="action-bar-meta-item">
                 {{ icon("user", size=16) }}
-                <span>{{ page.metadata.get('author') }}</span>
+                <span>{{ params.author }}</span>
             </span>
             {% endif %}
 
-            {% if page.content and 'content.reading_time' in site.theme_config.features %}
+            {% if page.content and 'content.reading_time' in theme.features %}
             <span class="action-bar-meta-item">
                 {{ icon("clock", size=16) }}
-                <span>{{ page.content | reading_time }} min read</span>
+                <span>{{ t('meta.reading_time', {'time': page.content | reading_time}, default='{time} min read') }}</span>
             </span>
             {% endif %}
 
             {% if page.content %}
             <span class="action-bar-meta-item">
                 {{ icon("file-text", size=16) }}
-                <span>{{ page.content | wordcount }} words</span>
+                <span>{{ t('meta.word_count', {'count': page.content | wordcount}, default='{count} words') }}</span>
             </span>
             {% endif %}
 
-            {% if page.metadata.get('lastmod') or page.date %}
+            {% if params.lastmod or page.date %}
             <span class="action-bar-meta-item">
                 {{ icon("arrow-clockwise", size=16) }}
-                <span>Updated {{ (page.metadata.get('lastmod') or page.date) | time_ago }}</span>
+                <span>{{ t('meta.updated', {'time': (params.lastmod or page.date) | time_ago}, default='Updated {time}') }}</span>
             </span>
             {% endif %}
         </div>

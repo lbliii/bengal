@@ -1,24 +1,43 @@
 {# Appearance Dropdown (mode + brand) #}
+{# Native popover API - browser handles open/close, focus, escape key #}
 <div class="theme-controls">
-    <div class="theme-dropdown">
-        <button class="theme-dropdown__button" aria-haspopup="true" aria-expanded="false" title="Theme presets">
-            <span class="theme-dropdown__icon" aria-hidden="true">
-                {{ icon("palette", size=24) }}
-            </span>
-            <span class="theme-dropdown__label">Appearance</span>
-            {{ icon("chevron-down", size=20) }}
-        </button>
-        <ul class="theme-dropdown__menu">
-            <li class="separator" data-label="Mode">Mode</li>
-            <li><button data-appearance="system">{{ icon("monitor", size=18) }} System</button></li>
-            <li><button data-appearance="light">{{ icon("sun", size=18) }} Light</button></li>
-            <li><button data-appearance="dark">{{ icon("moon", size=18) }} Dark</button></li>
-            <li class="separator" data-label="Palette">Palette</li>
-            <li><button data-palette="snow-lynx">Snow Lynx</button></li>
-            <li><button data-palette="brown-bengal">Brown Bengal</button></li>
-            <li><button data-palette="silver-bengal">Silver Bengal</button></li>
-            <li><button data-palette="charcoal-bengal">Charcoal Bengal</button></li>
-            <li><button data-palette="blue-bengal">Blue Bengal</button></li>
-        </ul>
+    <button class="theme-dropdown__button" popovertarget="theme-menu" popovertargetaction="toggle"
+        title="{{ t('theme.presets', default='Theme presets') }}"
+        aria-label="{{ t('theme.open_menu', default='Open theme menu') }}">
+        <span class="theme-dropdown__icon" aria-hidden="true">
+            {{ icon("palette", size=24) }}
+        </span>
+        <span class="theme-dropdown__label">{{ t('theme.appearance', default='Appearance') }}</span>
+        {{ icon("chevron-down", size=20) }}
+    </button>
+    <div id="theme-menu" popover class="theme-dropdown__menu--popover">
+        <fieldset class="theme-menu-section">
+            <legend class="separator">{{ t('theme.mode', default='Mode') }}</legend>
+            <button type="button" data-appearance="system" class="theme-option">
+                {{ icon("monitor", size=18) }}
+                <span>{{ t('theme.system', default='System') }}</span>
+            </button>
+            <button type="button" data-appearance="light" class="theme-option">
+                {{ icon("sun", size=18) }}
+                <span>{{ t('theme.light', default='Light') }}</span>
+            </button>
+            <button type="button" data-appearance="dark" class="theme-option">
+                {{ icon("moon", size=18) }}
+                <span>{{ t('theme.dark', default='Dark') }}</span>
+            </button>
+        </fieldset>
+        <fieldset class="theme-menu-section">
+            <legend class="separator">{{ t('theme.palette', default='Palette') }}</legend>
+            <button type="button" data-palette="snow-lynx" class="theme-option">{{ t('theme.palette_snow_lynx',
+                default='Snow Lynx') }}</button>
+            <button type="button" data-palette="brown-bengal" class="theme-option">{{ t('theme.palette_brown_bengal',
+                default='Brown Bengal') }}</button>
+            <button type="button" data-palette="silver-bengal" class="theme-option">{{ t('theme.palette_silver_bengal',
+                default='Silver Bengal') }}</button>
+            <button type="button" data-palette="charcoal-bengal" class="theme-option">{{
+                t('theme.palette_charcoal_bengal', default='Charcoal Bengal') }}</button>
+            <button type="button" data-palette="blue-bengal" class="theme-option">{{ t('theme.palette_blue_bengal',
+                default='Blue Bengal') }}</button>
+        </fieldset>
     </div>
 </div>

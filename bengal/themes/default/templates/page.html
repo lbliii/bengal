@@ -9,7 +9,7 @@
 {% include 'partials/action-bar.html' %}
 
 <div class="page-layout {% if toc %}page-with-toc{% endif %}">
-    <article class="page prose {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
+    <article class="page prose {% if params.css_class %}{{ params.css_class }}{% endif %}">
         <header class="page-header">
             <h1>{{ page.title }}</h1>
         </header>

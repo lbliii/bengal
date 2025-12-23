@@ -16,7 +16,7 @@ Set hero_style: overview in frontmatter or auto-detected for list templates
 
 {# Macro: Get page URL with fallback chain for robustness #}
 {% macro get_page_url(page) -%}
-    {{ page._path if page._path is defined else (page.href if page.href is defined else '/') }}
+    {{ page._path or page.href or '/' }}
 {%- endmacro %}
 
 {% if page %}
@@ -116,8 +116,8 @@ Set hero_style: overview in frontmatter or auto-detected for list templates
   <h1 class="page-hero__title">{{ page.title }}</h1>
 
   {# Description #}
-  {% if page.metadata.get('description', '') %}
-  <p class="page-hero__description">{{ page.metadata.get('description', '') }}</p>
+  {% if params.description %}
+  <p class="page-hero__description">{{ params.description }}</p>
   {% endif %}
 
   {# Section Stats - page count instead of read time #}

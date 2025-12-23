@@ -192,14 +192,67 @@ For benchmarks and reproducible measurements, refer to [Performance](../meta/per
 
 ## Template Functions
 
-The engine includes 17 modules of helper functions available in all templates.
+The engine includes 80+ helper functions organized into focused modules by responsibility.
 
-:::{dropdown} Available Function Categories
+:::{dropdown} Function Categories
 :icon: code
-- **Strings**: `truncate`, `slugify`, `markdownify`
-- **Collections**: `where`, `group_by`, `sort_by`
-- **Dates**: `time_ago`, `date_iso`
-- **URLs**: `absolute_url`, `relref`
-- **Images**: `image_processed`, `image_url`
-- **Taxonomies**: `related_posts`, `popular_tags`
+
+**Phase 1 - Essential:**
+- **Strings**: `truncate`, `slugify`, `titlecase`, `markdownify`
+- **Collections**: `where`, `group_by`, `sort_by`, `limit`, `first`
+- **Math**: `add`, `multiply`, `round`
+- **Dates**: `dateformat`, `time_ago`, `date_iso`
+- **URLs**: `absolute_url`, `url_for`, `canonical_url`
+- **Page Lookup**: `get_page`, `page_exists`
+
+**Phase 2 - Advanced:**
+- **Content**: `markdown`, `highlight`, `excerpt`
+- **Data**: `load_data` (yaml, json, csv)
+- **Advanced Strings**: Regex, pluralization, translations
+- **Files**: `read_file`, `glob`, `exists`
+- **Advanced Collections**: Chunking, pagination, tree operations
+
+**Phase 3 - Specialized:**
+- **Images**: Image processing and optimization
+- **Icons**: FontAwesome, Material, custom icons
+- **SEO**: Meta tags, Open Graph, structured data
+- **Debug**: `dump`, `inspect`, `type`
+- **Taxonomies**: Tag and category operations
+
+**Phase 4+:**
+- **Cross-References**: Internal linking (`ref`, `doc`, `anchor`)
+- **Navigation**: Breadcrumbs, TOC, auto-nav, tree building
+- **Theme**: Asset URLs, theme configuration access
+- **Autodoc**: API documentation helpers
+- **Template Tests**: `is draft`, `is featured`, `is outdated`
+- **Versioning**: Smart version switching URLs
+:::
+
+## Template Context
+
+The rendering pipeline builds a rich context for each page with safe access patterns.
+
+:::{dropdown} Context Architecture
+:icon: container
+
+**Core Objects:**
+- `page` — Current page with all properties
+- `site` — Site object with pages, sections, config
+- `section` — Parent section
+- `config` — Site configuration (alias for `site.config`)
+- `params` — Page metadata (alias for `page.metadata`)
+
+**Pre-computed Values:**
+- `content` — Rendered HTML (safe)
+- `title`, `toc`, `toc_items`
+- `meta_desc`, `reading_time`, `excerpt`
+
+**Context Wrappers:**
+- `SiteContext` — Safe access to site properties
+- `ConfigContext` — Safe access to configuration
+- `ThemeContext` — Theme features and settings
+- `ParamsContext` — Frontmatter with safe nested access
+- `SectionContext` — Section properties with fallbacks
+
+See [TEMPLATE-CONTEXT.md](https://github.com/lbliii/bengal/blob/main/bengal/themes/default/templates/TEMPLATE-CONTEXT.md) for the complete reference.
 :::

@@ -470,6 +470,20 @@ class PageMetadataMixin:
         return self.metadata
 
     @property
+    def params(self) -> dict[str, Any]:
+        """
+        Get page params (alias for metadata).
+
+        Provides ergonomic access to frontmatter in templates:
+            {{ page.params.author }}
+            {{ page.params.get('custom_field', 'default') }}
+
+        Returns:
+            Page metadata dictionary
+        """
+        return self.metadata
+
+    @property
     def draft(self) -> bool:
         """
         Check if page is marked as draft.

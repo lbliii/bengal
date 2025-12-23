@@ -14,7 +14,7 @@ Usage: Included via page-hero.html dispatcher
 <header class="page-header page-header--classic">
     <h1>{{ page.title }}</h1>
 
-    {% if page.metadata.get('description', '') %}
-    <p class="lead">{{ page.metadata.get('description', '') }}</p>
+    {% if params.description %}
+    <p class="lead">{{ params.description }}</p>
     {% endif %}
 </header>

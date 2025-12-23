@@ -278,7 +278,13 @@ class BuildOrchestrator:
         if profile_config.get("collect_metrics", False):
             from bengal.utils.performance_collector import PerformanceCollector
 
-            collector = PerformanceCollector(metrics_dir=self.site.paths.metrics_dir)
+            # Only enable tracemalloc if profile explicitly requests memory tracking
+            # tracemalloc has ~2-5x overhead alone, ~100x with cProfile
+            track_memory = profile_config.get("track_memory", False)
+            collector = PerformanceCollector(
+                metrics_dir=self.site.paths.metrics_dir,
+                track_memory=track_memory,
+            )
             collector.start_build()
 
         # Initialize stats (incremental may be None, resolve later)

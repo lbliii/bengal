@@ -1,8 +1,13 @@
 /**
  * Navigation Dropdown Handler
  *
- * Handles dropdown menus in main navigation with keyboard navigation support.
- * Uses JavaScript for reliable state management, consistent with theme dropdown pattern.
+ * Pattern: HOVER MENU (see COMPONENT-PATTERNS.md)
+ * - Trigger: Hover (mouseenter/mouseleave)
+ * - State: data-state="open|closed" attributes
+ * - Positioning: CSS absolute within parent
+ *
+ * This pattern is intentionally different from popover-based menus because
+ * navigation dropdowns use hover, not click. Native popover is click-only.
  */
 
 (function() {

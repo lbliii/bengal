@@ -84,12 +84,11 @@ Args:
         </thead>
         <tbody>
           {% for param in func_params %}
-          {# Handle both dict and object access patterns #}
-          {% set param_name = param.get('name', '') if param.get else (param.name if param.name is defined else '') %}
-          {% set param_type = param.get('type', '') if param.get else (param.type if param.type is defined else '') %}
-          {# docstring is the description from parsed docstring #}
-          {% set param_desc = param.get('docstring', '') if param.get else (param.docstring if param.docstring is defined else '') %}
-          {% set param_default = param.get('default') if param.get else (param.default if param.default is defined else none) %}
+          {# ChainableUndefined handles both dict and object access #}
+          {% set param_name = param.name %}
+          {% set param_type = param.type %}
+          {% set param_desc = param.docstring %}
+          {% set param_default = param.default %}
           <tr>
             <td class="autodoc-cell-name"><code>{{ param_name }}</code></td>
             <td class="autodoc-cell-type"><code>{{ param_type or '—' }}</code></td>
@@ -125,8 +124,8 @@ Args:
     <dl class="autodoc-raises">
       {% for exc in func.metadata.raises %}
       <div class="autodoc-raise">
-        <dt><code>{{ exc.type | default(exc.get('type', '')) }}</code></dt>
-        <dd>{{ exc.description | default(exc.get('description', '')) }}</dd>
+        <dt><code>{{ exc.type }}</code></dt>
+        <dd>{{ exc.description }}</dd>
       </div>
       {% endfor %}
     </dl>

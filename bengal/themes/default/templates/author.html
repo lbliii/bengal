@@ -33,23 +33,23 @@ Usage:
 
 Context variables:
   - page: Current author page
-  - page.metadata.author_name: The author to query
+  - params.author_name: The author to query
   - site.indexes.author: Author index
 #}
 
 {% from 'partials/navigation-components.html' import breadcrumbs %}
 {% from 'partials/content-components.html' import tag_list %}
 
-{% set author_name = page.metadata.author_name | default(page.title) %}
-{% set section_filter = page.metadata.get('section_filter') %}
+{% set author_name = params.author_name | default(page.title) %}
+{% set section_filter = params.section_filter %}
 
 {% block content %}
 {{ breadcrumbs(page) }}
 
 <div class="author-page">
   <header class="author-header">
-    {% if page.metadata.get('avatar') %}
-    <img src="{{ page.metadata.get('avatar') }}"
+    {% if params.avatar %}
+    <img src="{{ params.avatar }}"
          alt="{{ author_name }}"
          class="author-avatar-large">
     {% else %}
@@ -61,14 +61,14 @@ Context variables:
     <div class="author-header-content">
       <h1 class="author-name">{{ author_name }}</h1>
 
-      {% if page.metadata.get('bio') %}
-      <p class="author-bio">{{ page.metadata.get('bio') }}</p>
+      {% if params.bio %}
+      <p class="author-bio">{{ params.bio }}</p>
       {% endif %}
 
       {# Social links #}
-      {% if page.metadata.get('social') %}
+      {% if params.social %}
       <div class="author-social">
-        {% set social = page.metadata.get('social') %}
+        {% set social = params.social %}
 
         {% if social.twitter %}
         <a href="https://twitter.com/{{ social.twitter.lstrip('@') }}"
@@ -183,8 +183,8 @@ Context variables:
                   <a href="{{ post.href }}">{{ post.title }}</a>
                 </h3>
 
-                {% if post.metadata.get('description') %}
-                <p class="post-excerpt">{{ post.metadata.get('description') }}</p>
+                {% if post.metadata.description %}
+                <p class="post-excerpt">{{ post.metadata.description }}</p>
                 {% endif %}
 
                 <div class="post-meta">
@@ -242,7 +242,7 @@ Context variables:
         {% for tag in all_tags | sort %}
           {% set tag_posts = [] %}
           {% for post in author_posts %}
-            {% if post.tags is defined and (tag in post.tags) %}
+            {% if post.tags and (tag in post.tags) %}
               {% set _ = tag_posts.append(post) %}
             {% endif %}
           {% endfor %}

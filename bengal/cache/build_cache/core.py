@@ -280,6 +280,10 @@ class BuildCache(
                     k: set(v) for k, v in data["autodoc_dependencies"].items()
                 }
 
+            # Rendered output cache (tolerate missing - Optimization #3)
+            if "rendered_output" not in data or not isinstance(data["rendered_output"], dict):
+                data["rendered_output"] = {}
+
             # Synthetic pages cache (tolerate missing)
             if "synthetic_pages" not in data or not isinstance(data["synthetic_pages"], dict):
                 data["synthetic_pages"] = {}
@@ -412,6 +416,7 @@ class BuildCache(
             "tag_to_pages": {k: list(v) for k, v in self.tag_to_pages.items()},  # Save tag index
             "known_tags": list(self.known_tags),  # Save known tags
             "parsed_content": self.parsed_content,  # Already in dict format
+            "rendered_output": self.rendered_output,  # Already in dict format (Optimization #3)
             "validation_results": self.validation_results,  # Already in dict format
             "autodoc_dependencies": {
                 k: list(v) for k, v in self.autodoc_dependencies.items()

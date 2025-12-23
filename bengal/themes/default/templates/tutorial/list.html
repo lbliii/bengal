@@ -25,9 +25,9 @@ Context variables:
     <header class="page-header page-header--centered">
         <h1>📚 {{ section.title if section else title | default('Tutorials') }}</h1>
 
-        {% if section and section.metadata.get('description', '') %}
-        <p class="tutorial-description">{{ section.metadata.get('description', '') }}</p>
-        {% elif description is defined %}
+        {% if section and section.metadata.description %}
+        <p class="tutorial-description">{{ section.metadata.description }}</p>
+        {% elif description %}
         <p class="tutorial-description">{{ description }}</p>
         {% else %}
         <p class="tutorial-description">Step-by-step guides to help you learn and master the topics.</p>
@@ -88,9 +88,9 @@ Context variables:
                     </div>
 
                     <div class="tutorial-card-content">
-                        {% if subsection.metadata.get('description', '') %}
+                        {% if subsection.metadata.description %}
                         <p class="tutorial-description">
-                            {{ subsection.metadata.get('description', '') | truncate(150) }}
+                            {{ subsection.metadata.description | truncate(150) }}
                         </p>
                         {% endif %}
 
@@ -122,8 +122,8 @@ Context variables:
                 {% for tutorial in posts %}
                 <article class="tutorial-card gradient-border fluid-combined">
                     <div class="tutorial-card-header">
-                        {% if tutorial.metadata.get('icon') %}
-                        <span class="tutorial-icon">{{ tutorial.metadata.get('icon') }}</span>
+                        {% if tutorial.metadata.icon %}
+                        <span class="tutorial-icon">{{ tutorial.metadata.icon }}</span>
                         {% else %}
                         <span class="tutorial-icon">📖</span>
                         {% endif %}
@@ -133,9 +133,9 @@ Context variables:
                     </div>
 
                     <div class="tutorial-card-content">
-                        {% if tutorial.metadata.get('description', '') %}
+                        {% if tutorial.metadata.description %}
                         <p class="tutorial-description">
-                            {{ tutorial.metadata.get('description', '') | truncate(150) }}
+                            {{ tutorial.metadata.description | truncate(150) }}
                         </p>
                         {% elif tutorial.excerpt %}
                         <p class="tutorial-description">
@@ -145,26 +145,26 @@ Context variables:
 
                         <div class="tutorial-meta">
                             {# Difficulty Badge #}
-                            {% if tutorial.metadata.get('difficulty') %}
-                            <span class="tutorial-badge tutorial-badge-{{ tutorial.metadata.get('difficulty') }}">
-                                {{ tutorial.metadata.get('difficulty') | capitalize }}
+                            {% if tutorial.metadata.difficulty %}
+                            <span class="tutorial-badge tutorial-badge-{{ tutorial.metadata.difficulty }}">
+                                {{ tutorial.metadata.difficulty | capitalize }}
                             </span>
                             {% endif %}
 
                             {# Time Estimate #}
-                            {% if tutorial.metadata.get('time') or tutorial.metadata.get('duration') %}
+                            {% if tutorial.metadata.time or tutorial.metadata.duration %}
                             <span class="tutorial-meta-item">
                                 {{ icon('clock', size=14) }}
-                                {{ tutorial.metadata.get('time') | default(tutorial.metadata.get('duration')) }}
+                                {{ tutorial.metadata.time | default(tutorial.metadata.duration) }}
                             </span>
                             {% endif %}
 
                             {# Prerequisites #}
-                            {% if tutorial.metadata.get('prerequisites') %}
+                            {% if tutorial.metadata.prerequisites %}
                             <span class="tutorial-meta-item">
                                 {{ icon('check-circle', size=14) }}
-                                {{ tutorial.metadata.get('prerequisites') | length }} prerequisite{{ 's' if
-                                tutorial.metadata.get('prerequisites') | length != 1 }}
+                                {{ tutorial.metadata.prerequisites | length }} prerequisite{{ 's' if
+                                tutorial.metadata.prerequisites | length != 1 }}
                             </span>
                             {% endif %}
                         </div>

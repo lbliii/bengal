@@ -19,9 +19,9 @@ Or set `template: autodoc/python/home.html` in frontmatter
     {# Hero Section #}
     <header class="docs-home-hero">
         <div class="docs-home-hero-content">
-            <h1 class="docs-home-title">{{ page.title | default(site.config.title) }}</h1>
-            {% if page.metadata.get('description', '') %}
-            <p class="docs-home-subtitle">{{ page.metadata.get('description', '') }}</p>
+            <h1 class="docs-home-title">{{ page.title | default(config.title) }}</h1>
+            {% if params.description %}
+            <p class="docs-home-subtitle">{{ params.description }}</p>
             {% endif %}
         </div>
     </header>
@@ -34,12 +34,12 @@ Or set `template: autodoc/python/home.html` in frontmatter
     {% endif %}
 
     {# Quick Links to Key Sections #}
-    {% set show_quick_links = page.metadata.get('show_quick_links', true) %}
+    {% set show_quick_links = params.show_quick_links | default(true) %}
     {% if show_quick_links %}
     {# Find API reference sections #}
     {% set api_sections = [] %}
     {% for section in site.sections %}
-    {% if section.metadata.get('type') == 'autodoc-python' or section.metadata.get('content_type') == 'autodoc-python' %}
+    {% if section.metadata.type == 'autodoc-python' or section.metadata.content_type == 'autodoc-python' %}
     {% set _ = api_sections.append(section) %}
     {% endif %}
     {% endfor %}
@@ -62,11 +62,12 @@ Or set `template: autodoc/python/home.html` in frontmatter
             {% for section in api_sections | sort(attribute='metadata.weight', reverse=false) | limit(6) %}
             <a href="{{ section.href }}" class="docs-home-section-card gradient-border fluid-combined">
                 <h3 class="docs-home-section-title">{{ section.title }}</h3>
-                {% if section.metadata.get('description') %}
-                <p class="docs-home-section-description">{{ section.metadata.get('description') }}</p>
+                {% if section.metadata.description %}
+                <p class="docs-home-section-description">{{ section.metadata.description }}</p>
                 {% endif %}
                 {% if section.pages %}
-                <span class="docs-home-section-count">{{ section.pages | length }} module{{ 's' if section.pages | length
+                <span class="docs-home-section-count">{{ section.pages | length }} module{{ 's' if section.pages |
+                    length
                     != 1 else '' }}</span>
                 {% endif %}
             </a>
@@ -77,18 +78,18 @@ Or set `template: autodoc/python/home.html` in frontmatter
     {% endif %}
 
     {# Custom Quick Links from metadata #}
-    {% if page.metadata.get('quick_links') %}
+    {% if params.quick_links %}
     <section class="docs-home-quick-links">
         <h2 class="docs-home-quick-links-title">Quick Links</h2>
         <div class="docs-home-quick-links-grid">
-            {% for link in page.metadata.get('quick_links') %}
-            <a href="{{ link.get('href') or link.get('url') }}" class="docs-home-quick-link-card gradient-border">
-                {% if link.get('icon') %}
-                <div class="docs-home-quick-link-icon">{{ link.get('icon') }}</div>
+            {% for link in params.quick_links %}
+            <a href="{{ link.href or link.url }}" class="docs-home-quick-link-card gradient-border">
+                {% if link.icon %}
+                <div class="docs-home-quick-link-icon">{{ link.icon }}</div>
                 {% endif %}
-                <h3>{{ link.get('title') }}</h3>
-                {% if link.get('description') %}
-                <p>{{ link.get('description') }}</p>
+                <h3>{{ link.title }}</h3>
+                {% if link.description %}
+                <p>{{ link.description }}</p>
                 {% endif %}
             </a>
             {% endfor %}

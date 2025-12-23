@@ -57,18 +57,18 @@ Context variables:
 
   {# Add authors from child pages (if not already in registry) #}
   {% for child in page.children | default([]) %}
-    {% set author_key = child.metadata.get('author_name', child.title) %}
+    {% set author_key = child.params.author_name | default(child.title) %}
     {% set existing = authors_list | selectattr('key', 'equalto', author_key) | list %}
     {% if not existing %}
       {% set post_count = (site.indexes.author.get(author_key) | default([])) | length %}
       {% set _ = authors_list.append({
         'key': author_key,
         'name': child.title,
-        'bio': child.metadata.get('bio', ''),
-        'avatar': child.metadata.get('avatar'),
-        'company': child.metadata.get('company'),
-        'location': child.metadata.get('location'),
-        'github': child.metadata.get('social', {}).get('github'),
+        'bio': child.params.bio,
+        'avatar': child.params.avatar,
+        'company': child.params.company,
+        'location': child.params.location,
+        'github': child.params.social.github,
         'post_count': post_count,
         'href': child.href
       }) %}

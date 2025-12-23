@@ -690,8 +690,8 @@ You'll need a custom template function to resolve this:
 ```python
 # In a build hook or custom extension
 def get_author(key):
-    authors = site.data.get('authors', {})
-    return authors.get(key)
+    # site.data supports safe access - returns empty dict if missing
+    return site.data.authors[key] if key in site.data.authors else None
 ```
 
 :::{note}

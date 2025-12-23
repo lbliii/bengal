@@ -96,9 +96,9 @@ You do not need to copy all templates. Extend the default:
 
 {% block header %}
 <header class="custom-header">
-    <h1>{{ site.config.title }}</h1>
-    {% for item in site.menu.get('main', []) %}
-    <a href="{{ item.url }}">{{ item.name }}</a>
+    <h1>{{ site.title }}</h1>
+    {% for item in menus.main %}
+    <a href="{{ item.href }}">{{ item.name }}</a>
     {% endfor %}
 </header>
 {% endblock %}
@@ -132,24 +132,23 @@ Include in your template:
 
 ## Template Variables
 
-Key variables available in templates:
+Key variables available in templates (all support safe dot-notation access):
 
 | Variable | Description |
 |----------|-------------|
-| `site.config.title` | Site title from configuration |
-| `site.config.description` | Site description |
-| `site.config.baseurl` | Site base URL |
+| `site.title` | Site title from configuration |
+| `site.description` | Site description |
+| `site.baseurl` | Site base URL |
 | `site.pages` | All pages in the site |
-| `site.menu` | Menu dictionary (access via `site.menu.get('main', [])`) |
+| `menus.main` | Main navigation menu (safe access) |
 | `page.title` | Current page title |
 | `page.content` | Rendered HTML content (use with `\| safe`) |
-| `page.url` | Page URL path |
+| `page.href` | Page URL with baseurl applied |
 | `page.date` | Publication date |
 | `page.tags` | List of tags |
 | `page.description` | Page description |
-| `page.metadata` | Full frontmatter dictionary |
-| `page.props` | Custom frontmatter fields |
-| `theme` | Theme configuration dictionary |
+| `params` | Page frontmatter (cascades page → section → site) |
+| `theme` | Theme configuration (safe dot-notation access) |
 | `bengal` | Engine metadata |
 
 Bengal provides 80+ template functions. Common ones:

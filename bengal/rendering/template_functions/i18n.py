@@ -20,11 +20,9 @@ try:
     from jinja2 import pass_context  # Jinja2 >=3
 except Exception:  # pragma: no cover - fallback, tests ensure availability
     from collections.abc import Callable
-    from typing import Any, TypeVar
+    from typing import Any
 
-    F = TypeVar("F", bound=Callable[..., Any])
-
-    def pass_context(fn: F) -> F:
+    def pass_context[F: Callable[..., Any]](fn: F) -> F:
         return fn
 
 
@@ -105,10 +103,16 @@ def register(env: Environment, site: Site) -> None:
     base_translate = _make_t(site)
 
     @pass_context
-    def t(ctx: Any, key: str, params: dict[str, Any] | None = None, lang: str | None = None) -> str:
+    def t(
+        ctx: Any,
+        key: str,
+        params: dict[str, Any] | None = None,
+        lang: str | None = None,
+        default: str | None = None,
+    ) -> str:
         page = ctx.get("page") if hasattr(ctx, "get") else None
         use_lang = lang or getattr(page, "lang", None)
-        return base_translate(key, params=params, lang=use_lang)
+        return base_translate(key, params=params, lang=use_lang, default=default)
 
     @pass_context
     def current_lang(ctx: Any) -> str | None:
@@ -181,7 +185,7 @@ def _languages(site: Site) -> list[LanguageInfo]:
     return normalized
 
 
-def _make_t(site: Site) -> Callable[[str, dict[str, Any] | None, str | None], str]:
+def _make_t(site: Site) -> Callable[[str, dict[str, Any] | None, str | None, str | None], str]:
     cache: dict[str, dict[str, Any]] = {}
     i18n_dir = site.root_path / "i18n"
 
@@ -219,9 +223,14 @@ def _make_t(site: Site) -> Callable[[str, dict[str, Any] | None, str | None], st
             )
             return text
 
-    def t(key: str, params: dict[str, Any] | None = None, lang: str | None = None) -> str:
+    def t(
+        key: str,
+        params: dict[str, Any] | None = None,
+        lang: str | None = None,
+        default: str | None = None,
+    ) -> str:
         if not key:
-            return ""
+            return default or ""
         i18n_cfg = site.config.get("i18n", {}) or {}
         default_lang = i18n_cfg.get("default_language", "en")
         use_lang = lang or default_lang
@@ -233,10 +242,12 @@ def _make_t(site: Site) -> Callable[[str, dict[str, Any] | None, str | None], st
             data_def = load_lang(default_lang)
             value = resolve_key(data_def, key)
         if value is None:
-            # Log missing translation once per key per build
-            _warn_missing_translation(key, use_lang)
-            # Return key (debug-friendly) if missing
-            value = key
+            # Use provided default, or log and return key
+            if default is not None:
+                value = default
+            else:
+                _warn_missing_translation(key, use_lang)
+                value = key
         return format_params(value, params or {})
 
     return t

@@ -15,17 +15,18 @@ from pathlib import Path
 from typing import Any
 
 from jinja2 import (
+    ChainableUndefined,
     ChoiceLoader,
     Environment,
     FileSystemLoader,
     PrefixLoader,
-    StrictUndefined,
     select_autoescape,
 )
 from jinja2.bccache import FileSystemBytecodeCache
 from jinja2.runtime import Context
 
-from bengal.core.theme import get_theme_package, resolve_theme_templates_path
+from bengal.core.theme import get_theme_package
+from bengal.rendering.context import ConfigContext, ParamsContext, SiteContext, ThemeContext
 from bengal.rendering.template_functions import register_all
 from bengal.utils.logger import get_logger
 from bengal.utils.metadata import build_template_metadata
@@ -63,6 +64,48 @@ def resolve_theme_chain(active_theme: str | None, site: Any) -> list[str]:
 
     # Do not include 'default' twice; fallback is added separately
     return [t for t in chain if t != "default"]
+
+
+def _resolve_theme_templates_path(theme_name: str, site: Any) -> Path | None:
+    """
+    Resolve the templates directory path for a theme.
+
+    Checks site themes, installed themes, and bundled themes in order.
+
+    Args:
+        theme_name: Theme name to look up
+        site: Site instance
+
+    Returns:
+        Path to theme's templates directory, or None if not found
+    """
+    # Site-level theme directory
+    site_theme_templates = site.root_path / "themes" / theme_name / "templates"
+    if site_theme_templates.exists():
+        return site_theme_templates
+
+    # Installed theme directory (via entry point)
+    try:
+        pkg = get_theme_package(theme_name)
+        if pkg:
+            resolved = pkg.resolve_resource_path("templates")
+            if resolved and resolved.exists():
+                return resolved
+    except Exception as e:
+        logger.debug(
+            "theme_resolution_installed_failed",
+            theme=theme_name,
+            error=str(e),
+        )
+
+    # Bundled theme directory
+    bundled_theme_templates = (
+        Path(__file__).parent.parent.parent / "themes" / theme_name / "templates"
+    )
+    if bundled_theme_templates.exists():
+        return bundled_theme_templates
+
+    return None
 
 
 def read_theme_extends(theme_name: str, site: Any) -> str | None:
@@ -262,7 +305,7 @@ def create_jinja_environment(
             all_themes.append("default")
 
         for theme_name in all_themes:
-            theme_templates_path = resolve_theme_templates_path(theme_name, site.root_path)
+            theme_templates_path = _resolve_theme_templates_path(theme_name, site)
             if theme_templates_path:
                 theme_prefix_loaders[theme_name] = FileSystemLoader(str(theme_templates_path))
 
@@ -319,34 +362,52 @@ def create_jinja_environment(
     else:
         loader = base_loader
 
-    # Create environment
-    env_kwargs = {
-        "loader": loader,
-        "autoescape": select_autoescape(["html", "xml"]),
-        "trim_blocks": True,
-        "lstrip_blocks": True,
-        "bytecode_cache": bytecode_cache,
-        "auto_reload": auto_reload,
+    # Create environment with ChainableUndefined for safe dot-notation access
+    # This allows templates to write {{ params.deeply.nested.missing }} without errors
+    env = Environment(
+        loader=loader,
+        autoescape=select_autoescape(["html", "xml"]),
+        trim_blocks=True,
+        lstrip_blocks=True,
+        bytecode_cache=bytecode_cache,
+        auto_reload=auto_reload,
         # Enable 'do' extension for statement execution in templates (e.g., {% do list.append(x) %})
         # Enable 'loopcontrols' extension for {% break %} and {% continue %} in loops
-        "extensions": ["jinja2.ext.do", "jinja2.ext.loopcontrols"],
-    }
-
-    if site.config.get("strict_mode", False):
-        env_kwargs["undefined"] = StrictUndefined
-
-    env = Environment(**env_kwargs)
+        extensions=["jinja2.ext.do", "jinja2.ext.loopcontrols"],
+        # ChainableUndefined: allows chained attribute access on undefined values
+        # e.g., {{ params.missing.nested.key }} returns Undefined instead of raising
+        undefined=ChainableUndefined,
+        # Finalize: convert None values to empty strings in output
+        finalize=lambda x: "" if x is None else x,
+    )
 
     # Add custom filters
     from bengal.rendering.template_engine.url_helpers import filter_dateformat
 
     env.filters["dateformat"] = filter_dateformat
 
-    # Add global variables
-    env.globals["site"] = site
-    env.globals["config"] = site.config
-    # Add theme object for template access (alias for site.theme_config)
-    env.globals["theme"] = site.theme_config
+    # safe_access filter: wraps raw dicts in ParamsContext for safe dot-notation access
+    # Usage: {% set resume = site.data.resume | safe_access %}
+    #        {{ resume.contact.email }}  # Safe, no .get() needed
+    def filter_safe_access(value):
+        """Wrap dict in ParamsContext for safe dot-notation access with '' defaults."""
+        if isinstance(value, dict):
+            return ParamsContext(value)
+        return value
+
+    env.filters["safe_access"] = filter_safe_access
+
+    # Add global variables with smart wrappers for safe template access
+    # SiteContext wraps Site for ergonomic {{ site.title }}, {{ site.params.x }} access
+    env.globals["site"] = SiteContext(site)
+    # ConfigContext wraps config dict for safe {{ config.key.nested }} access
+    env.globals["config"] = ConfigContext(site.config)
+    # ThemeContext wraps Theme for {{ theme.name }}, {{ theme.has('feature') }} access
+    env.globals["theme"] = (
+        ThemeContext(site.theme_config) if site.theme_config else ThemeContext._empty()
+    )
+    # Keep raw site reference for internal template functions that need it
+    env.globals["_raw_site"] = site
 
     # Add versioning context
     # Templates can access: versions (list), versioning_enabled (bool)

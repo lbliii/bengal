@@ -88,8 +88,8 @@ Error: 'titel' is undefined
 
 **Fix options:**
 1. Correct the typo: `{{ title }}` instead of `{{ titel }}`
-2. Use safe access: `{{ page.metadata.get('custom_field', 'default') }}`
-3. Use the `default` filter: `{{ variable | default('fallback') }}`
+2. Use the `default` filter: `{{ variable | default('fallback') }}`
+3. Use safe dot-notation: `{{ params.custom_field }}` (returns empty string if missing)
 
 ---
 
@@ -180,19 +180,24 @@ Templates in higher-priority directories override lower ones.
 
 ### Use Safe Access for Optional Data
 
-```jinja
-{# Safe access for metadata that might not exist #}
-{{ page.metadata.get('custom_field', 'default_value') }}
+Bengal templates use `ChainableUndefined`, which means missing values return empty strings instead of errors:
 
-{# Or use the default filter #}
-{{ page.custom_field | default('fallback') }}
+```jinja
+{# Direct access - returns empty string if missing #}
+{{ params.custom_field }}
+
+{# With explicit default #}
+{{ params.custom_field | default('fallback') }}
+
+{# Cascading params (page → section → site) #}
+{{ params.author }}  {# Checks page, then section, then site params #}
 ```
 
 ### Check Variables Before Use
 
 ```jinja
-{% if page.metadata.author %}
-  <p>By {{ page.metadata.author }}</p>
+{% if params.author %}
+  <p>By {{ params.author }}</p>
 {% endif %}
 ```
 

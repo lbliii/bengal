@@ -18,139 +18,131 @@ Context variables:
 
 {% block content %}
 <div class="container">
-{# Action Bar: Breadcrumbs + Share #}
-{% include 'partials/action-bar.html' %}
+    {# Action Bar: Breadcrumbs + Share #}
+    {% include 'partials/action-bar.html' %}
 
-<div class="tutorial-page-layout {% if toc %}tutorial-with-toc{% endif %}">
-    <article
-        class="tutorial-page prose {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
-        <header class="page-header">
-            {# Tutorial Icon #}
-            {% if page.metadata.get('icon') %}
-            <div class="tutorial-page-icon">{{ page.metadata.get('icon') }}</div>
-            {% endif %}
-
-            <h1>{{ page.title }}</h1>
-
-            {% if page.metadata.get('description', '') %}
-            <p class="lead">{{ page.metadata.get('description', '') }}</p>
-            {% endif %}
-
-            {# Tutorial Metadata Bar #}
-            <div class="tutorial-page-meta">
-                {# Difficulty #}
-                {% if page.metadata.get('difficulty') %}
-                <span class="tutorial-badge tutorial-badge-{{ page.metadata.get('difficulty') }}">
-                    {{ page.metadata.get('difficulty') | capitalize }}
-                </span>
+    <div class="tutorial-page-layout {% if toc %}tutorial-with-toc{% endif %}">
+        <article class="tutorial-page prose {% if params.css_class %}{{ params.css_class }}{% endif %}">
+            <header class="page-header">
+                {# Tutorial Icon #}
+                {% if params.icon %}
+                <div class="tutorial-page-icon">{{ params.icon }}</div>
                 {% endif %}
 
-                {# Time Estimate #}
-                {% if page.metadata.get('time') or page.metadata.get('duration') %}
-                <span class="tutorial-meta-item">
-                    {{ icon('clock', size=16) }}
-                    {{ page.metadata.get('time') | default(page.metadata.get('duration')) }}
-                </span>
+                <h1>{{ page.title }}</h1>
+
+                {% if params.description %}
+                <p class="lead">{{ params.description }}</p>
                 {% endif %}
 
-                {# Last Updated #}
-                {% if page.date %}
-                <span class="tutorial-meta-item">
-                    {{ icon('calendar', size=16) }}
-                    Updated {{ page.date | time_ago }}
-                </span>
-                {% endif %}
-            </div>
+                {# Tutorial Metadata Bar #}
+                <div class="tutorial-page-meta">
+                    {# Difficulty #}
+                    {% if params.difficulty %}
+                    <span class="tutorial-badge tutorial-badge-{{ params.difficulty }}">
+                        {{ params.difficulty | capitalize }}
+                    </span>
+                    {% endif %}
 
-            {# Prerequisites #}
-            {% if page.metadata.get('prerequisites') %}
-            <div class="tutorial-prerequisites">
-                <h4>Prerequisites</h4>
-                <ul>
-                    {% for prereq in page.metadata.get('prerequisites') %}
-                    <li>
-                        {# Try to resolve as page reference (supports path, slug, or id:xxx) #}
-                        {% if prereq is string %}
-                            {% set prereq_page = doc(prereq, site.indexes.crossref) if site.indexes.crossref else none %}
+                    {# Time Estimate #}
+                    {% if params.time or params.duration %}
+                    <span class="tutorial-meta-item">
+                        {{ icon('clock', size=16) }}
+                        {{ params.time | default(params.duration) }}
+                    </span>
+                    {% endif %}
+
+                    {# Last Updated #}
+                    {% if page.date %}
+                    <span class="tutorial-meta-item">
+                        {{ icon('calendar', size=16) }}
+                        Updated {{ page.date | time_ago }}
+                    </span>
+                    {% endif %}
+                </div>
+
+                {# Prerequisites #}
+                {% if params.prerequisites %}
+                <div class="tutorial-prerequisites">
+                    <h4>{{ t('tutorial.prerequisites', default='Prerequisites') }}</h4>
+                    <ul>
+                        {% for prereq in params.prerequisites %}
+                        <li>
+                            {# Try to resolve as page reference (supports path, slug, or id:xxx) #}
+                            {% if prereq is string %}
+                            {% set prereq_page = doc(prereq, site.indexes.crossref) if site.indexes.crossref else none
+                            %}
                             {% if prereq_page %}
-                                <a href="{{ prereq_page.href }}" class="tutorial-prereq-link">{{ prereq_page.title }}</a>
+                            <a href="{{ prereq_page.href }}" class="tutorial-prereq-link">{{ prereq_page.title }}</a>
                             {% else %}
-                                {# Fallback: if it looks like a path/slug, try ref() for link generation #}
-                                {% set prereq_ref = ref(prereq, site.indexes.crossref) if site.indexes.crossref else none %}
-                                {% if prereq_ref and '<a' in prereq_ref %}
-                                    {{ prereq_ref | safe }}
-                                {% else %}
-                                    {{ prereq }}
-                                {% endif %}
-                            {% endif %}
-                        {% else %}
-                            {{ prereq }}
-                        {% endif %}
-                    </li>
-                    {% endfor %}
-                </ul>
-            </div>
-            {% endif %}
+                            {# Fallback: if it looks like a path/slug, try ref() for link generation #}
+                            {% set prereq_ref = ref(prereq, site.indexes.crossref) if site.indexes.crossref else none %}
+                            {% if prereq_ref and '<a' in prereq_ref %} {{ prereq_ref | safe }} {% else %} {{ prereq }}
+                                {% endif %} {% endif %} {% else %} {{ prereq }} {% endif %} </li>
+                                {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
 
-            {# What You'll Learn #}
-            {% if page.metadata.get('learning_objectives') or page.metadata.get('objectives') %}
-            <div class="tutorial-objectives">
-                <h4>What you'll learn</h4>
-                <ul>
-                    {% for objective in (page.metadata.get('learning_objectives') |
-                    default(page.metadata.get('objectives'))) %}
-                    <li>{{ objective }}</li>
-                    {% endfor %}
-                </ul>
-            </div>
-            {% endif %}
-        </header>
+                {# What You'll Learn #}
+                {% if params.learning_objectives or params.objectives %}
+                <div class="tutorial-objectives">
+                    <h4>{{ t('tutorial.what_you_will_learn', default="What you'll learn") }}</h4>
+                    <ul>
+                        {% for objective in (params.learning_objectives |
+                        default(params.objectives)) %}
+                        <li>{{ objective }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+            </header>
 
-        {# Main Tutorial Content #}
-        <div class="tutorial-content">
-            {{ content | safe }}
-        </div>
-
-        {# What's Next / Further Reading #}
-        {% if page.metadata.get('next_steps') or page.metadata.get('further_reading') %}
-        <footer class="tutorial-footer">
-            {% if page.metadata.get('next_steps') %}
-            <div class="tutorial-next-steps">
-                <h3>What's Next?</h3>
-                <ul>
-                    {% for step in page.metadata.get('next_steps') %}
-                    <li>{{ step }}</li>
-                    {% endfor %}
-                </ul>
+            {# Main Tutorial Content #}
+            <div class="tutorial-content">
+                {{ content | safe }}
             </div>
-            {% endif %}
 
-            {% if page.metadata.get('further_reading') %}
-            <div class="tutorial-further-reading">
-                <h3>Further Reading</h3>
-                <ul>
-                    {% for resource in page.metadata.get('further_reading') %}
-                    <li>{{ resource }}</li>
-                    {% endfor %}
-                </ul>
-            </div>
+            {# What's Next / Further Reading #}
+            {% if params.next_steps or params.further_reading %}
+            <footer class="tutorial-footer">
+                {% if params.next_steps %}
+                <div class="tutorial-next-steps">
+                    <h3>{{ t('tutorial.whats_next', default="What's Next?") }}</h3>
+                    <ul>
+                        {% for step in params.next_steps %}
+                        <li>{{ step }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                {% if params.further_reading %}
+                <div class="tutorial-further-reading">
+                    <h3>{{ t('tutorial.further_reading', default='Further Reading') }}</h3>
+                    <ul>
+                        {% for resource in params.further_reading %}
+                        <li>{{ resource }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+            </footer>
             {% endif %}
-        </footer>
+        </article>
+
+        {# Right Sidebar: TOC #}
+        {% if toc %}
+        <aside class="tutorial-sidebar">
+            <nav class="toc" aria-label="Table of contents">
+                <h2 class="toc-title">Tutorial Steps</h2>
+                <div class="toc-content">
+                    {{ toc | safe }}
+                </div>
+            </nav>
+        </aside>
         {% endif %}
-    </article>
-
-    {# Right Sidebar: TOC #}
-    {% if toc %}
-    <aside class="tutorial-sidebar">
-        <nav class="toc" aria-label="Table of contents">
-            <h2 class="toc-title">Tutorial Steps</h2>
-            <div class="toc-content">
-                {{ toc | safe }}
-            </div>
-        </nav>
-    </aside>
-    {% endif %}
-</div>
+    </div>
 
 </div>
 
@@ -165,13 +157,13 @@ Context variables:
 {% if related %}
 <aside class="related-tutorials">
     <div class="container">
-        <h2>Related Tutorials</h2>
+        <h2>{{ t('tutorial.related', default='Related Tutorials') }}</h2>
         <div class="tutorial-grid">
             {% for tutorial in related %}
             <article class="tutorial-card gradient-border fluid-combined">
                 <div class="tutorial-card-header">
-                    {% if tutorial.metadata.get('icon') %}
-                    <span class="tutorial-icon">{{ tutorial.metadata.get('icon') }}</span>
+                    {% if tutorial.metadata.icon %}
+                    <span class="tutorial-icon">{{ tutorial.metadata.icon }}</span>
                     {% else %}
                     <span class="tutorial-icon">📖</span>
                     {% endif %}
@@ -180,12 +172,12 @@ Context variables:
                     </h3>
                 </div>
                 <div class="tutorial-card-content">
-                    {% if tutorial.metadata.get('description', '') %}
-                    <p class="tutorial-description">{{ tutorial.metadata.get('description', '') | truncate(100) }}</p>
+                    {% if tutorial.metadata.description %}
+                    <p class="tutorial-description">{{ tutorial.metadata.description | truncate(100) }}</p>
                     {% endif %}
-                    {% if tutorial.metadata.get('difficulty') %}
-                    <span class="tutorial-badge tutorial-badge-{{ tutorial.metadata.get('difficulty') }}">
-                        {{ tutorial.metadata.get('difficulty') | capitalize }}
+                    {% if tutorial.metadata.difficulty %}
+                    <span class="tutorial-badge tutorial-badge-{{ tutorial.metadata.difficulty }}">
+                        {{ tutorial.metadata.difficulty | capitalize }}
                     </span>
                     {% endif %}
                 </div>

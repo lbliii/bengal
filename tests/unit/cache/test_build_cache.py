@@ -645,3 +645,70 @@ class TestRenderedOutputCache:
 
         # Rendered output should be gone
         assert str(test_file) not in cache.rendered_output
+
+    def test_rendered_output_persists_through_save_load(self, tmp_path):
+        """Rendered output cache persists across save/load cycles (cold build support)."""
+        cache = BuildCache()
+
+        # Create a test file
+        test_file = tmp_path / "page.md"
+        test_file.write_text("# Test Content")
+        cache.update_file(test_file)
+
+        # Store rendered output
+        metadata = {"title": "Test Page", "date": "2025-01-01"}
+        cache.store_rendered_output(
+            test_file,
+            "<html><body>Rendered content for cold build test</body></html>",
+            "default.html",
+            metadata,
+            dependencies=[str(tmp_path / "templates" / "default.html")],
+        )
+
+        # Verify it's stored
+        assert str(test_file) in cache.rendered_output
+
+        # Save cache (compressed by default - .json.zst)
+        cache_file = tmp_path / ".bengal-cache.json"
+        cache.save(cache_file)
+
+        # Load into a fresh cache instance (simulates cold build)
+        loaded_cache = BuildCache.load(cache_file)
+
+        # Rendered output should be present after load
+        assert str(test_file) in loaded_cache.rendered_output
+        assert loaded_cache.rendered_output[str(test_file)]["html"] == (
+            "<html><body>Rendered content for cold build test</body></html>"
+        )
+        assert loaded_cache.rendered_output[str(test_file)]["template"] == "default.html"
+
+    def test_rendered_output_tolerates_missing_in_old_cache(self, tmp_path):
+        """Loading old cache without rendered_output field works correctly."""
+        import json
+
+        # Create an old-format cache file without rendered_output
+        cache_file = tmp_path / "cache.json"
+        old_cache_data = {
+            "version": 5,  # Old version before rendered_output was persisted
+            "file_fingerprints": {},
+            "dependencies": {},
+            "output_sources": {},
+            "taxonomy_deps": {},
+            "page_tags": {},
+            "tag_to_pages": {},
+            "known_tags": [],
+            "parsed_content": {},
+            "validation_results": {},
+            "autodoc_dependencies": {},
+            "synthetic_pages": {},
+            "url_claims": {},
+            "config_hash": None,
+            "last_build": None,
+            # Note: no rendered_output field
+        }
+        cache_file.write_text(json.dumps(old_cache_data))
+
+        # Load should work and rendered_output should be empty dict
+        loaded_cache = BuildCache.load(cache_file)
+
+        assert loaded_cache.rendered_output == {}

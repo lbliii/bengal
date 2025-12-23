@@ -9,6 +9,17 @@ Architecture:
     - TabSetDirective: requires_children=["tab_item"]
     - TabItemDirective: requires_parent=["tab_set"]
 
+Document Application (RFC):
+    Supports two rendering modes:
+    - "enhanced" (default): JavaScript-based tabs with data-tab-target
+    - "css_state_machine": URL-driven tabs using :target CSS selector
+
+    CSS State Machine mode provides:
+    - URL-addressable tabs: /page#tab-name
+    - Works without JavaScript
+    - Browser back button navigation
+    - Shareable links with tab state
+
 MyST syntax (with named closers):
     :::{tab-set}
     :::{tab-item} Python
@@ -170,17 +181,20 @@ class TabSetOptions(DirectiveOptions):
     Attributes:
         id: Unique ID for the tab set
         sync: Sync key for synchronizing tabs across multiple tab-sets
+        mode: Rendering mode - "enhanced" (JS) or "css_state_machine" (URL-driven)
 
     Example:
         ::::{tab-set}
         :id: my-tabs
         :sync: language
+        :mode: css_state_machine
         ...
         ::::
     """
 
     id: str = ""
     sync: str = ""
+    mode: str = ""  # empty = use config default
 
 
 class TabSetDirective(BengalDirective):
@@ -228,6 +242,7 @@ class TabSetDirective(BengalDirective):
             attrs={
                 "id": options.id,
                 "sync": options.sync,
+                "mode": options.mode,
             },
             children=children,
         )
@@ -238,11 +253,25 @@ class TabSetDirective(BengalDirective):
 
         Extracts tab items from rendered children and builds
         navigation + content panels.
+
+        Supports two modes:
+        - "enhanced" (default): JavaScript-based tabs with data-tab-target
+        - "css_state_machine": URL-driven tabs using :target CSS selector
         """
         # Stable IDs are critical for deterministic builds and output diffs.
-        # Previous behavior used `id(text)` which varies between runs/processes.
         tab_id = attrs.get("id") or f"tabs-{hash_str(text or '', truncate=12)}"
         sync_key = attrs.get("sync", "")
+
+        # Determine rendering mode from attrs or config
+        mode = attrs.get("mode", "")
+        if not mode:
+            # Check renderer for site config
+            if hasattr(renderer, "_site") and renderer._site:
+                doc_app = renderer._site.config.get("document_application", {})
+                interactivity = doc_app.get("interactivity", {})
+                mode = interactivity.get("tabs", "enhanced")
+            else:
+                mode = "enhanced"
 
         # Extract tab items from rendered HTML
         matches = _extract_tab_items(text)
@@ -250,6 +279,14 @@ class TabSetDirective(BengalDirective):
         if not matches:
             return f'<div class="tabs" id="{tab_id}" data-bengal="tabs">\n{text}</div>\n'
 
+        # Route to appropriate renderer
+        if mode == "css_state_machine":
+            return self._render_css_state_machine(tab_id, sync_key, matches)
+        else:
+            return self._render_enhanced(tab_id, sync_key, matches)
+
+    def _render_enhanced(self, tab_id: str, sync_key: str, matches: list[TabItemData]) -> str:
+        """Render JavaScript-enhanced tabs (default mode)."""
         # Build tab navigation
         nav_html = f'<div class="tabs" id="{tab_id}" data-bengal="tabs"'
         if sync_key:
@@ -306,6 +343,82 @@ class TabSetDirective(BengalDirective):
         content_html += "  </div>\n</div>\n"
 
         return nav_html + content_html
+
+    def _render_css_state_machine(
+        self, tab_id: str, sync_key: str, matches: list[TabItemData]
+    ) -> str:
+        """
+        Render CSS state machine tabs (URL-driven, no JS required).
+
+        Uses :target CSS selector for tab state. Tab URLs become:
+        /page#tabset-id-tabname
+
+        Features:
+        - URL-addressable: /page#code-example-python
+        - Works without JavaScript
+        - Browser back button works
+        - Shareable links with tab state preserved
+        """
+        # Build tab navigation using proper ARIA roles
+        nav_html = f'<div class="tabs tabs--native" id="{tab_id}"'
+        if sync_key:
+            nav_html += f' data-sync="{self.escape_html(sync_key)}"'
+        nav_html += '>\n  <nav class="tab-nav" role="tablist">\n'
+
+        for _i, tab_data in enumerate(matches):
+            is_disabled = tab_data.disabled == "true"
+
+            # Generate slug from title for readable URLs
+            tab_slug = self._slugify(tab_data.title)
+            pane_id = f"{tab_id}-{tab_slug}"
+
+            # Build tab label with optional icon and badge
+            label_parts = []
+            if tab_data.icon:
+                label_parts.append(
+                    f'<span class="tab-icon" data-icon="{self.escape_html(tab_data.icon)}"></span>'
+                )
+            label_parts.append(f"<span>{self.escape_html(tab_data.title)}</span>")
+            if tab_data.badge:
+                label_parts.append(
+                    f'<span class="tab-badge">{self.escape_html(tab_data.badge)}</span>'
+                )
+            label = "".join(label_parts)
+
+            # ARIA attributes for accessibility
+            aria_attrs = f'role="tab" aria-controls="{pane_id}"'
+            if is_disabled:
+                aria_attrs += ' aria-disabled="true" tabindex="-1"'
+
+            # Use data-pane for CSS pairing
+            nav_html += f'    <a href="#{pane_id}" {aria_attrs} data-pane="{pane_id}">{label}</a>\n'
+        nav_html += "  </nav>\n"
+
+        # Build content panes with proper roles
+        content_html = '  <div class="tab-content">\n'
+        for _i, tab_data in enumerate(matches):
+            tab_slug = self._slugify(tab_data.title)
+            pane_id = f"{tab_id}-{tab_slug}"
+
+            content_html += (
+                f'    <section id="{pane_id}" role="tabpanel" class="tab-pane">\n'
+                f"{tab_data.content}"
+                f"    </section>\n"
+            )
+        content_html += "  </div>\n</div>\n"
+
+        return nav_html + content_html
+
+    def _slugify(self, text: str) -> str:
+        """Convert text to URL-safe slug."""
+        import re
+
+        # Lowercase, replace spaces with hyphens, remove non-alphanumeric
+        slug = text.lower().strip()
+        slug = re.sub(r"\s+", "-", slug)
+        slug = re.sub(r"[^a-z0-9-]", "", slug)
+        slug = re.sub(r"-+", "-", slug)
+        return slug.strip("-") or "tab"
 
 
 # =============================================================================

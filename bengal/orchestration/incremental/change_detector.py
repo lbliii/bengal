@@ -10,18 +10,28 @@ Key Concepts:
     - Section-level filtering: Skip entire unchanged sections
     - Cascade dependencies: Rebuild descendants when cascade metadata changes
     - Template dependencies: Track which pages use which templates
+    - Parallel change detection: ThreadPoolExecutor for large sites (>50 pages)
 
 Related Modules:
     - bengal.orchestration.incremental.rebuild_filter: Page/asset filtering
     - bengal.orchestration.incremental.cascade_tracker: Cascade dependencies
     - bengal.cache.dependency_tracker: Template dependencies
+
+Performance:
+    RFC: rfc-parallel-change-detection
+    - Uses ThreadPoolExecutor for parallel filesystem operations
+    - Threshold-based: sequential for small workloads, parallel for large
+    - Thread-safe result collection with locks
 """
 
 from __future__ import annotations
 
 import contextlib
+import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from pathlib import Path
+from threading import Lock
 from typing import TYPE_CHECKING, Literal
 
 from bengal.orchestration.build.results import ChangeSummary
@@ -37,6 +47,18 @@ if TYPE_CHECKING:
     from bengal.core.site import Site
 
 logger = get_logger(__name__)
+
+# Threshold for switching from sequential to parallel processing.
+# Below this, thread overhead exceeds benefit. Tuned for typical filesystem latency.
+PARALLEL_THRESHOLD = 50
+
+# Default max workers for parallel operations (None = cpu_count)
+DEFAULT_MAX_WORKERS = min(8, (os.cpu_count() or 4))
+
+
+def _get_max_workers(site: Site) -> int:
+    """Get max workers from site config or use default."""
+    return site.config.get("max_workers", DEFAULT_MAX_WORKERS)
 
 
 @dataclass
@@ -300,11 +322,21 @@ class ChangeDetector:
         change_summary: ChangeSummary,
         verbose: bool,
     ) -> None:
-        """Check pages for changes."""
+        """Check pages for changes.
+
+        Uses parallel processing for large page sets (>PARALLEL_THRESHOLD).
+        For smaller sets, sequential is faster due to thread overhead.
+
+        Performance:
+            - Sequential: O(n) × stat call latency
+            - Parallel: O(n/workers) × stat call latency + thread overhead
+            - Break-even: ~50 pages on typical SSD
+        """
+        # Filter pages first (cheap in-memory operations)
+        pages_to_scan: list[Page] = []
         for page in pages_to_check:
             if page.metadata.get("_generated"):
                 continue
-
             # Skip if page is in an unchanged section
             if (
                 changed_sections is not None
@@ -313,14 +345,79 @@ class ChangeDetector:
                 and page._section not in changed_sections
             ):
                 continue
+            pages_to_scan.append(page)
 
-            # Use centralized cache bypass helper
+        if not pages_to_scan:
+            return
+
+        # Choose sequential or parallel based on workload size
+        if len(pages_to_scan) < PARALLEL_THRESHOLD:
+            self._check_pages_sequential(
+                pages_to_scan, all_changed, pages_to_rebuild, change_summary, verbose
+            )
+        else:
+            self._check_pages_parallel(
+                pages_to_scan, all_changed, pages_to_rebuild, change_summary, verbose
+            )
+
+    def _check_pages_sequential(
+        self,
+        pages: list[Page],
+        all_changed: set[Path],
+        pages_to_rebuild: set[Path],
+        change_summary: ChangeSummary,
+        verbose: bool,
+    ) -> None:
+        """Sequential page checking for small workloads."""
+        for page in pages:
             if self.cache.should_bypass(page.source_path, all_changed):
                 pages_to_rebuild.add(page.source_path)
                 if verbose:
                     change_summary.modified_content.append(page.source_path)
                 if page.tags:
                     self.tracker.track_taxonomy(page.source_path, set(page.tags))
+
+    def _check_pages_parallel(
+        self,
+        pages: list[Page],
+        all_changed: set[Path],
+        pages_to_rebuild: set[Path],
+        change_summary: ChangeSummary,
+        verbose: bool,
+    ) -> None:
+        """Parallel page checking for large workloads.
+
+        Thread-safe: Uses lock for result collection.
+        """
+        max_workers = _get_max_workers(self.site)
+        results_lock = Lock()
+
+        def check_single_page(page: Page) -> tuple[Path, bool, list[str] | None]:
+            """Check a single page (thread-safe, no shared state mutation)."""
+            changed = self.cache.should_bypass(page.source_path, all_changed)
+            tags = list(page.tags) if changed and page.tags else None
+            return (page.source_path, changed, tags)
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {executor.submit(check_single_page, p): p for p in pages}
+
+            for future in as_completed(futures):
+                try:
+                    source_path, changed, tags = future.result()
+                    if changed:
+                        with results_lock:
+                            pages_to_rebuild.add(source_path)
+                            if verbose:
+                                change_summary.modified_content.append(source_path)
+                        if tags:
+                            self.tracker.track_taxonomy(source_path, set(tags))
+                except Exception as e:
+                    page = futures[future]
+                    logger.warning(
+                        "page_change_check_failed",
+                        page=str(page.source_path),
+                        error=str(e),
+                    )
 
     def _check_assets(
         self,
@@ -330,12 +427,62 @@ class ChangeDetector:
         change_summary: ChangeSummary,
         verbose: bool,
     ) -> None:
-        """Check assets for changes."""
-        for asset in self.site.assets:
-            if self.cache.should_bypass(asset.source_path, forced_changed):
-                assets_to_process.append(asset)
-                if verbose:
-                    change_summary.modified_assets.append(asset.source_path)
+        """Check assets for changes.
+
+        Uses parallel processing for large asset sets (>PARALLEL_THRESHOLD).
+        """
+        assets = self.site.assets
+        if not assets:
+            return
+
+        if len(assets) < PARALLEL_THRESHOLD:
+            # Sequential for small workloads
+            for asset in assets:
+                if self.cache.should_bypass(asset.source_path, forced_changed):
+                    assets_to_process.append(asset)
+                    if verbose:
+                        change_summary.modified_assets.append(asset.source_path)
+        else:
+            # Parallel for large workloads
+            self._check_assets_parallel(
+                assets, forced_changed, assets_to_process, change_summary, verbose
+            )
+
+    def _check_assets_parallel(
+        self,
+        assets: list[Asset],
+        forced_changed: set[Path],
+        assets_to_process: list[Asset],
+        change_summary: ChangeSummary,
+        verbose: bool,
+    ) -> None:
+        """Parallel asset checking for large workloads."""
+        max_workers = _get_max_workers(self.site)
+        results_lock = Lock()
+
+        def check_single_asset(asset: Asset) -> tuple[Asset, bool]:
+            """Check a single asset (thread-safe)."""
+            changed = self.cache.should_bypass(asset.source_path, forced_changed)
+            return (asset, changed)
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {executor.submit(check_single_asset, a): a for a in assets}
+
+            for future in as_completed(futures):
+                try:
+                    asset, changed = future.result()
+                    if changed:
+                        with results_lock:
+                            assets_to_process.append(asset)
+                            if verbose:
+                                change_summary.modified_assets.append(asset.source_path)
+                except Exception as e:
+                    asset = futures[future]
+                    logger.warning(
+                        "asset_change_check_failed",
+                        asset=str(asset.source_path),
+                        error=str(e),
+                    )
 
     def _check_templates(
         self,
@@ -344,31 +491,102 @@ class ChangeDetector:
         change_summary: ChangeSummary,
         verbose: bool,
     ) -> None:
-        """Check templates for changes."""
+        """Check templates for changes.
+
+        Collects all template files first, then checks in parallel if above threshold.
+        """
+        template_files: list[Path] = []
+
+        # Collect all template files
         theme_templates_dir = self._get_theme_templates_dir()
         if theme_templates_dir and theme_templates_dir.exists():
-            for template_file in theme_templates_dir.rglob("*.html"):
-                if self.cache.is_changed(template_file):
-                    if verbose and template_file not in change_summary.modified_templates:
-                        change_summary.modified_templates.append(template_file)
-                    affected = self.cache.get_affected_pages(template_file)
-                    for page_path_str in affected:
-                        pages_to_rebuild.add(Path(page_path_str))
-                else:
-                    self.cache.update_file(template_file)
+            template_files.extend(theme_templates_dir.rglob("*.html"))
 
-        # Also check site-level templates
         site_templates_dir = self.site.root_path / "templates"
         if site_templates_dir.exists():
-            for template_file in site_templates_dir.rglob("*.html"):
-                if self.cache.is_changed(template_file):
-                    if verbose and template_file not in change_summary.modified_templates:
-                        change_summary.modified_templates.append(template_file)
-                    affected = self.cache.get_affected_pages(template_file)
-                    for page_path_str in affected:
-                        pages_to_rebuild.add(Path(page_path_str))
-                else:
-                    self.cache.update_file(template_file)
+            template_files.extend(site_templates_dir.rglob("*.html"))
+
+        if not template_files:
+            return
+
+        if len(template_files) < PARALLEL_THRESHOLD:
+            self._check_templates_sequential(
+                template_files, pages_to_rebuild, change_summary, verbose
+            )
+        else:
+            self._check_templates_parallel(
+                template_files, pages_to_rebuild, change_summary, verbose
+            )
+
+    def _check_templates_sequential(
+        self,
+        template_files: list[Path],
+        pages_to_rebuild: set[Path],
+        change_summary: ChangeSummary,
+        verbose: bool,
+    ) -> None:
+        """Sequential template checking for small workloads."""
+        for template_file in template_files:
+            if self.cache.is_changed(template_file):
+                if verbose and template_file not in change_summary.modified_templates:
+                    change_summary.modified_templates.append(template_file)
+                affected = self.cache.get_affected_pages(template_file)
+                for page_path_str in affected:
+                    pages_to_rebuild.add(Path(page_path_str))
+            else:
+                self.cache.update_file(template_file)
+
+    def _check_templates_parallel(
+        self,
+        template_files: list[Path],
+        pages_to_rebuild: set[Path],
+        change_summary: ChangeSummary,
+        verbose: bool,
+    ) -> None:
+        """Parallel template checking for large workloads.
+
+        Note: cache.update_file() is called sequentially after parallel check
+        to avoid potential race conditions in cache updates.
+        """
+        max_workers = _get_max_workers(self.site)
+        results_lock = Lock()
+        unchanged_templates: list[Path] = []
+        unchanged_lock = Lock()
+
+        def check_single_template(template_file: Path) -> tuple[Path, bool, set[str]]:
+            """Check a single template (thread-safe read operations only)."""
+            changed = self.cache.is_changed(template_file)
+            affected: set[str] = set()
+            if changed:
+                affected = self.cache.get_affected_pages(template_file)
+            return (template_file, changed, affected)
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {executor.submit(check_single_template, t): t for t in template_files}
+
+            for future in as_completed(futures):
+                try:
+                    template_file, changed, affected = future.result()
+                    if changed:
+                        with results_lock:
+                            if verbose and template_file not in change_summary.modified_templates:
+                                change_summary.modified_templates.append(template_file)
+                            for page_path_str in affected:
+                                pages_to_rebuild.add(Path(page_path_str))
+                    else:
+                        with unchanged_lock:
+                            unchanged_templates.append(template_file)
+                except Exception as e:
+                    template_file = futures[future]
+                    logger.warning(
+                        "template_change_check_failed",
+                        template=str(template_file),
+                        error=str(e),
+                    )
+
+        # Update unchanged templates sequentially (cache writes should be serialized)
+        for template_file in unchanged_templates:
+            self.cache.update_file(template_file)
 
     def _check_taxonomy_changes(
         self,

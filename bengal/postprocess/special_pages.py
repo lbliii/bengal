@@ -203,6 +203,7 @@ class SpecialPagesGenerator:
                 "content": "",
                 "toc": "",
                 "toc_items": [],
+                "params": page_context.metadata,  # Alias for metadata (required by base.html)
             }
 
             # Render 404 page (template functions are already registered in TemplateEngine.__init__)
@@ -331,6 +332,7 @@ class SpecialPagesGenerator:
                 "content": "",
                 "toc": "",
                 "toc_items": [],
+                "params": page_context.metadata,  # Alias for metadata (required by base.html)
             }
 
             # Render search page
