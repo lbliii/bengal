@@ -10,6 +10,8 @@ Key Properties:
     - excerpt: Content excerpt for listings (max 200 chars)
     - age_days: Days since publication
     - age_months: Months since publication
+    - author: Primary Author object
+    - authors: List of all Author objects
 
 Performance:
     All properties use @cached_property decorator, ensuring expensive operations
@@ -17,6 +19,7 @@ Performance:
 
 Related Modules:
     - bengal.rendering.pipeline: Content rendering that populates page.content
+    - bengal.core.author: Author dataclass for author metadata
 
 See Also:
     - bengal/core/page/__init__.py: Page class that uses this mixin
@@ -27,7 +30,10 @@ from __future__ import annotations
 import re
 from datetime import UTC, datetime
 from functools import cached_property
-from typing import Any, Protocol, cast
+from typing import TYPE_CHECKING, Any, Protocol, cast
+
+if TYPE_CHECKING:
+    from bengal.core.author import Author
 
 
 class HasMetadata(Protocol):
@@ -221,3 +227,78 @@ class PageComputedMixin:
         now = datetime.now(UTC) if page_date.tzinfo is not None else datetime.now()
         months = (now.year - page_date.year) * 12 + (now.month - page_date.month)
         return max(0, months)
+
+    @cached_property
+    def author(self: HasMetadata) -> Author | None:
+        """
+        Get primary author as Author object (computed once, cached).
+
+        Parses the 'author' frontmatter field into a structured Author object.
+        Supports both string format ("Jane Smith") and dict format with details.
+
+        Returns:
+            Author object or None if no author specified
+
+        Example:
+            {% if page.author %}
+              <span class="author">{{ page.author.name }}</span>
+              {% if page.author.avatar %}
+                <img src="{{ page.author.avatar }}" alt="{{ page.author.name }}">
+              {% endif %}
+            {% endif %}
+        """
+        from bengal.core.author import Author
+
+        # Check for 'author' field first
+        author_data = self.metadata.get("author")
+        if author_data:
+            return Author.from_frontmatter(author_data)
+
+        # Fall back to first author in 'authors' list
+        authors_data = self.metadata.get("authors")
+        if authors_data and isinstance(authors_data, list) and len(authors_data) > 0:
+            return Author.from_frontmatter(authors_data[0])
+
+        return None
+
+    @cached_property
+    def authors(self: HasMetadata) -> list[Author]:
+        """
+        Get all authors as list of Author objects (computed once, cached).
+
+        Parses both 'author' and 'authors' frontmatter fields, combining them
+        into a single deduplicated list. Handles string and dict formats.
+
+        Returns:
+            List of Author objects (empty list if no authors)
+
+        Example:
+            {% for author in page.authors %}
+              <a href="/authors/{{ author.name | slugify }}/">
+                {{ author.name }}
+              </a>
+            {% endfor %}
+        """
+        from bengal.core.author import Author
+
+        result: list[Author] = []
+        seen_names: set[str] = set()
+
+        # Process 'author' field (single author)
+        author_data = self.metadata.get("author")
+        if author_data:
+            author = Author.from_frontmatter(author_data)
+            if author and author.name not in seen_names:
+                result.append(author)
+                seen_names.add(author.name)
+
+        # Process 'authors' field (multiple authors)
+        authors_data = self.metadata.get("authors")
+        if authors_data and isinstance(authors_data, list):
+            for item in authors_data:
+                author = Author.from_frontmatter(item)
+                if author and author.name not in seen_names:
+                    result.append(author)
+                    seen_names.add(author.name)
+
+        return result
