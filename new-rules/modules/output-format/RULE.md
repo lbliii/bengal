@@ -1,6 +1,6 @@
 ---
 description: Consistent output formatting standards for all Bengal rules
-alwaysApply: true
+alwaysApply: false
 ---
 
 # Output Format

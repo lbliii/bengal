@@ -226,6 +226,11 @@ class Site(
     # Discovery timing breakdown (set by ContentOrchestrator)
     _discovery_breakdown_ms: dict[str, float] | None = field(default=None, repr=False, init=False)
 
+    # Features detected during content discovery (mermaid, graph, data_tables, etc.)
+    # Used by CSSOptimizer to include only CSS for features actually in use.
+    # See: plan/drafted/rfc-css-tree-shaking.md
+    features_detected: set[str] = field(default_factory=set, repr=False, init=False)
+
     def __post_init__(self) -> None:
         """Initialize site from configuration."""
         if isinstance(self.root_path, str):
@@ -488,6 +493,9 @@ class Site(
         self._bengal_template_metadata_cache = None
         self._discovery_breakdown_ms = None
         self._asset_manifest_fallbacks_global.clear()
+
+        # CSS optimization state
+        self.features_detected.clear()
 
         # Clear thread-local rendering caches (Phase B formalization)
         from bengal.rendering.pipeline.thread_local import get_created_dirs

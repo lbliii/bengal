@@ -1,6 +1,7 @@
 ---
 description: Bengal's core architecture - passive models, orchestrators for operations, composition over inheritance
-alwaysApply: true
+alwaysApply: false
+globs: ["bengal/**/*.py"]
 ---
 
 # Architecture Patterns

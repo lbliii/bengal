@@ -217,6 +217,19 @@ class ContentOrchestrator:
                 sections=len(autodoc_sections),
             )
 
+        # Detect features for CSS optimization (mermaid, data_tables, etc.)
+        # This populates site.features_detected which CSSOptimizer uses to include
+        # only necessary CSS files. Runs efficiently O(n) over all pages.
+        # See: plan/drafted/rfc-css-tree-shaking.md
+        t0 = time.perf_counter()
+        self._detect_features()
+        breakdown_ms["feature_detection"] = (time.perf_counter() - t0) * 1000
+        logger.debug(
+            "features_detected",
+            features=sorted(self.site.features_detected),
+            count=len(self.site.features_detected),
+        )
+
         # Build section registry for path-based lookups (MUST come before _setup_page_references)
         # This enables O(1) section lookups via page._section property
         t0 = time.perf_counter()
@@ -780,6 +793,48 @@ class ContentOrchestrator:
             i += 1
 
         return anchor_ids
+
+    def _detect_features(self) -> None:
+        """
+        Detect CSS-requiring features in all pages.
+
+        Scans page content for features that require specific CSS files:
+        - mermaid: Mermaid diagram code blocks
+        - data_tables: Tabulator/DataTable usage
+        - graph: Graph/network visualization
+        - interactive: Interactive widgets
+
+        Populates site.features_detected for use by CSSOptimizer.
+
+        Performance: O(n) scan over all pages, ~1ms per page.
+        Thread-safe: Can be called from main thread during discovery.
+        """
+        from bengal.orchestration.feature_detector import FeatureDetector
+
+        detector = FeatureDetector()
+
+        for page in self.site.pages:
+            # Skip PageProxy objects (they may not have content loaded)
+            # They'll be detected during rendering if accessed
+            from bengal.core.page.proxy import PageProxy
+
+            if isinstance(page, PageProxy):
+                continue
+
+            # Detect features in page content
+            features = detector.detect_features_in_page(page)
+            self.site.features_detected.update(features)
+
+        # Also check config for explicitly enabled features
+        config = self.site.config
+
+        # Search enabled?
+        if config.get("search", {}).get("enabled", False):
+            self.site.features_detected.add("search")
+
+        # Graph enabled?
+        if config.get("graph", {}).get("enabled", False):
+            self.site.features_detected.add("graph")
 
     def _get_theme_assets_dir(self) -> Path | None:
         """

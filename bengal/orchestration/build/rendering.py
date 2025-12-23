@@ -42,6 +42,98 @@ if TYPE_CHECKING:
     from bengal.utils.progress import ProgressReporter
 
 
+def _optimize_css(
+    orchestrator: BuildOrchestrator,
+    cli: CLIOutput,
+    assets_to_process: list[Asset],
+) -> None:
+    """
+    Generate optimized CSS based on content types and features.
+
+    Analyzes site content to determine which CSS files are needed,
+    then generates a minimal style.css with only necessary imports.
+    The optimized CSS is written to the cache directory and the
+    style.css asset's source is overridden to use it.
+
+    Args:
+        orchestrator: Build orchestrator instance
+        cli: CLI output for user messages
+        assets_to_process: List of assets (may be modified to update style.css source)
+
+    Side effects:
+        - Writes optimized CSS to .bengal/cache/assets/optimized-style.css
+        - Updates style.css asset's _bundled_content to use optimized version
+    """
+    from bengal.orchestration.css_optimizer import CSSOptimizer
+
+    try:
+        optimizer = CSSOptimizer(orchestrator.site)
+        result = optimizer.generate(report=True)
+
+        if isinstance(result, tuple):
+            optimized_css, report = result
+        else:
+            # No optimization possible (no manifest)
+            return
+
+        if report.get("skipped"):
+            orchestrator.logger.debug("css_optimization_skipped", reason="no_manifest")
+            return
+
+        if not optimized_css:
+            return
+
+        # Write optimized CSS to cache directory for debugging
+        cache_dir = orchestrator.site.root_path / ".bengal" / "cache" / "assets"
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        optimized_file = cache_dir / "optimized-style.css"
+        optimized_file.write_text(optimized_css, encoding="utf-8")
+
+        # Find and update the style.css asset to use optimized content
+        for asset in assets_to_process:
+            if asset.is_css_entry_point():
+                # Override the bundled content with optimized CSS
+                # This will be used instead of reading from source file
+                asset._bundled_content = optimized_css
+                orchestrator.logger.debug(
+                    "css_entry_point_optimized",
+                    asset=str(asset.source_path),
+                )
+                break
+
+        # Log optimization report
+        reduction = report.get("reduction_percent", 0)
+        included = report.get("included_count", 0)
+        excluded = report.get("excluded_count", 0)
+
+        if reduction > 0:
+            orchestrator.logger.info(
+                "css_optimized",
+                reduction_percent=reduction,
+                included_files=included,
+                excluded_files=excluded,
+                types=report.get("types_detected", []),
+                features=report.get("features_detected", []),
+            )
+
+            # Show in CLI if verbose mode
+            if orchestrator.site.config.get("verbose"):
+                cli.info(f"CSS optimized: {reduction}% reduction ({included} files)")
+                if report.get("types_detected"):
+                    cli.info(f"  Content types: {', '.join(report['types_detected'])}")
+                if report.get("features_detected"):
+                    cli.info(f"  Features: {', '.join(report['features_detected'])}")
+
+    except Exception as e:
+        # CSS optimization failure should not break the build
+        orchestrator.logger.warning(
+            "css_optimization_failed",
+            error=str(e),
+            error_type=type(e).__name__,
+            action="using_full_css",
+        )
+
+
 def _rewrite_fonts_css_urls(orchestrator: BuildOrchestrator) -> None:
     """
     Rewrite fonts.css to use fingerprinted font filenames.
@@ -125,6 +217,12 @@ def phase_assets(
                 if not output_assets.exists() or len(list(output_assets.rglob("*"))) < 5:
                     # Theme assets not in output - re-process all assets
                     assets_to_process = orchestrator.site.assets
+
+        # CSS Optimization: Generate minimal style.css based on content types and features
+        # See: plan/drafted/rfc-css-tree-shaking.md
+        css_config = orchestrator.site.config.get("css", {})
+        if isinstance(css_config, dict) and css_config.get("optimize", True):
+            _optimize_css(orchestrator, cli, assets_to_process)
 
         orchestrator.assets.process(
             assets_to_process, parallel=parallel, progress_manager=None, collector=collector

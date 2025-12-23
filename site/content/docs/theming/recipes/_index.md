@@ -35,6 +35,8 @@ Work with pages, sections, and taxonomies.
 | [List Recent Posts](./list-recent-posts/) | `where`, `sort_by`, `limit` filters |
 | [Group by Category](./group-by-category/) | `group_by` filter, nested loops |
 | [Filter by Multiple Tags](./filter-by-tags/) | Chaining filters, `in` operator |
+| [Archive Page](./archive-page/) | `group_by_year`, `group_by_month` filters |
+| [Featured Posts](./featured-posts/) | `section.featured_posts`, highlighting content |
 
 ## Page Features
 
@@ -44,6 +46,11 @@ Add features to individual pages.
 |---------|-------------------|
 | [Add Table of Contents](./table-of-contents/) | `page.toc`, scroll highlighting |
 | [Show Reading Time](./reading-time/) | `page.reading_time` property and filter |
+| [Content Freshness](./content-freshness/) | `age_days`, `age_months`, "new" badges |
+| [Author Byline](./author-byline/) | `page.author`, avatars, social links |
+| [Series Navigation](./series-navigation/) | `prev_in_series`, `next_in_series` |
+| [Social Sharing Buttons](./social-sharing-buttons/) | `share_url()`, platform share links |
+| [Section Statistics](./section-statistics/) | `post_count`, `word_count`, totals |
 
 ---
 

@@ -1,6 +1,7 @@
 ---
 description: Bengal's core philosophy - type signatures are contracts that define behavior
-alwaysApply: true
+alwaysApply: false
+globs: ["bengal/**/*.py", "tests/**/*.py"]
 ---
 
 # Types as Contracts

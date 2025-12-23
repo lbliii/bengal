@@ -1,6 +1,6 @@
 ---
 description: Standard patterns for citing code evidence with file:line references across all Bengal rules
-alwaysApply: true
+alwaysApply: false
 ---
 
 # Evidence Handling
