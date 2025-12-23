@@ -12,6 +12,7 @@ Key Properties:
     - age_months: Months since publication
     - author: Primary Author object
     - authors: List of all Author objects
+    - series: Series object for multi-part content
 
 Performance:
     All properties use @cached_property decorator, ensuring expensive operations
@@ -34,6 +35,7 @@ from typing import TYPE_CHECKING, Any, Protocol, cast
 
 if TYPE_CHECKING:
     from bengal.core.author import Author
+    from bengal.core.series import Series
 
 
 class HasMetadata(Protocol):
@@ -302,3 +304,30 @@ class PageComputedMixin:
                     seen_names.add(author.name)
 
         return result
+
+    @cached_property
+    def series(self: HasMetadata) -> Series | None:
+        """
+        Get series info as Series object (computed once, cached).
+
+        Parses the 'series' frontmatter field into a structured Series object
+        for multi-part content navigation.
+
+        Returns:
+            Series object or None if not part of a series
+
+        Example:
+            {% if page.series %}
+              <div class="series-nav">
+                <h4>{{ page.series.name }}</h4>
+                <p>Part {{ page.series.part }} of {{ page.series.total }}</p>
+              </div>
+            {% endif %}
+        """
+        from bengal.core.series import Series
+
+        series_data = self.metadata.get("series")
+        if not series_data:
+            return None
+
+        return Series.from_frontmatter(series_data)

@@ -1372,13 +1372,944 @@ class LandingStrategy(ContentTypeStrategy):
 
 ---
 
+### 5. Wiki Support
+
+#### 5.1 WikiStrategy
+
+```python
+# bengal/content_types/strategies.py
+
+class WikiStrategy(ContentTypeStrategy):
+    """
+    Strategy for wiki/knowledge base content.
+
+    Optimized for interconnected content with bidirectional links,
+    categories, and easy cross-referencing. Emphasizes discoverability
+    and content relationships over chronological ordering.
+
+    Auto-Detection:
+        Detected when section name matches wiki patterns
+        (``wiki``, ``knowledge-base``, ``kb``, ``notes``).
+
+    Sorting:
+        Pages sorted alphabetically by title for easy scanning.
+        Featured/pinned pages can be sorted first via ``pinned: true``.
+
+    Features:
+        - Backlinks (pages that link to this page)
+        - Categories with index pages
+        - Last modified dates prominently displayed
+        - Full-text search emphasis
+        - Graph visualization of connections
+
+    Templates:
+        - List: ``wiki/list.html`` (alphabetical index with categories)
+        - Single: ``wiki/single.html`` (article with backlinks sidebar)
+
+    Frontmatter Support:
+        - ``aliases``: Alternative titles for linking (e.g., ``["JS", "JavaScript"]``)
+        - ``pinned``: Show at top of lists
+        - ``category``: Wiki category
+        - ``related``: Manually specified related pages
+        - ``stub``: Mark as incomplete article
+
+    Class Attributes:
+        default_template: ``"wiki/list.html"``
+        allows_pagination: ``False`` (wikis show all pages)
+    """
+
+    default_template = "wiki/list.html"
+    allows_pagination = False
+
+    def sort_pages(self, pages: list[Page]) -> list[Page]:
+        """
+        Sort wiki pages: pinned first, then alphabetically by title.
+        """
+        def sort_key(p: Page):
+            is_pinned = p.metadata.get("pinned", False)
+            title = p.title.lower()
+            return (not is_pinned, title)
+
+        return sorted(pages, key=sort_key)
+
+    def detect_from_section(self, section: Section) -> bool:
+        """Detect wiki sections by common naming patterns."""
+        name = section.name.lower()
+        return name in ("wiki", "knowledge-base", "kb", "notes", "brain", "garden")
+
+    def get_template(self, page: Page | None = None, template_engine: Any | None = None) -> str:
+        """Wiki-specific template selection."""
+        if page is None:
+            return self.default_template
+
+        is_section_index = page.source_path.stem == "_index"
+
+        if is_section_index:
+            return "wiki/list.html"
+        else:
+            return "wiki/single.html"
+```
+
+#### 5.2 Wiki Templates
+
+**`wiki/list.html`** - Alphabetical index with categories:
+
+```html
+{% extends "base.html" %}
+
+{% block content %}
+<div class="wiki-container">
+    {# Hero #}
+    <header class="wiki-header">
+        <h1>{{ section.title | default('Knowledge Base') }}</h1>
+        {% if section.description %}
+        <p class="wiki-lead">{{ section.description }}</p>
+        {% endif %}
+
+        {# Quick search #}
+        <div class="wiki-search">
+            <input type="search" placeholder="Search wiki..."
+                   class="wiki-search-input"
+                   data-search-target="wiki">
+            {{ icon('search', size=18) }}
+        </div>
+    </header>
+
+    {# Categories #}
+    {% set categories = posts | map(attribute='metadata.category') | unique | reject('none') | sort %}
+    {% if categories | list %}
+    <nav class="wiki-categories" aria-label="Categories">
+        <h2 class="wiki-section-title">Categories</h2>
+        <div class="wiki-category-grid">
+            {% for category in categories %}
+            {% set cat_pages = posts | where('metadata.category', category) %}
+            <a href="#category-{{ category | slugify }}" class="wiki-category-card gradient-border">
+                <span class="wiki-category-name">{{ category }}</span>
+                <span class="wiki-category-count">{{ cat_pages | length }} articles</span>
+            </a>
+            {% endfor %}
+        </div>
+    </nav>
+    {% endif %}
+
+    {# Pinned Articles #}
+    {% set pinned = posts | where('pinned', true) %}
+    {% if pinned %}
+    <section class="wiki-pinned">
+        <h2 class="wiki-section-title">{{ icon('pin', size=18) }} Pinned</h2>
+        <ul class="wiki-article-list">
+            {% for article in pinned %}
+            <li class="wiki-article-item">
+                <a href="{{ article.href }}">{{ article.title }}</a>
+                {% if article.description %}
+                <span class="wiki-article-desc">{{ article.description | truncate(80) }}</span>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+    </section>
+    {% endif %}
+
+    {# Alphabetical Index #}
+    {% set regular = posts | where_not('pinned', true) %}
+    {% set grouped = regular | group_by_first_letter('title') %}
+
+    <section class="wiki-index">
+        <h2 class="wiki-section-title">All Articles ({{ regular | length }})</h2>
+
+        {# Letter navigation #}
+        <nav class="wiki-alphabet" aria-label="Jump to letter">
+            {% for letter in grouped.keys() | sort %}
+            <a href="#letter-{{ letter }}">{{ letter }}</a>
+            {% endfor %}
+        </nav>
+
+        {# Articles by letter #}
+        {% for letter, articles in grouped | dictsort %}
+        <div class="wiki-letter-section" id="letter-{{ letter }}">
+            <h3 class="wiki-letter">{{ letter }}</h3>
+            <ul class="wiki-article-list">
+                {% for article in articles | sort(attribute='title') %}
+                <li class="wiki-article-item">
+                    <a href="{{ article.href }}">{{ article.title }}</a>
+                    {% if article.metadata.get('stub') %}
+                    <span class="wiki-stub-badge">stub</span>
+                    {% endif %}
+                    {% if article.metadata.get('category') %}
+                    <span class="wiki-article-category">{{ article.metadata.get('category') }}</span>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endfor %}
+    </section>
+
+    {# Recently Updated #}
+    {% set recent = posts | sort(attribute='date', reverse=true) | limit(10) %}
+    {% if recent %}
+    <aside class="wiki-recent">
+        <h2 class="wiki-section-title">{{ icon('clock', size=18) }} Recently Updated</h2>
+        <ul class="wiki-article-list wiki-article-list--compact">
+            {% for article in recent %}
+            <li>
+                <a href="{{ article.href }}">{{ article.title }}</a>
+                <time>{{ article.date | time_ago }}</time>
+            </li>
+            {% endfor %}
+        </ul>
+    </aside>
+    {% endif %}
+</div>
+{% endblock %}
+```
+
+**`wiki/single.html`** - Article with backlinks:
+
+```html
+{% extends "base.html" %}
+{% from 'partials/navigation-components.html' import breadcrumbs %}
+
+{% block content %}
+<div class="wiki-article-layout">
+    {# Main Article #}
+    <article class="wiki-article">
+        {{ breadcrumbs(page) }}
+
+        <header class="wiki-article-header">
+            <h1>{{ page.title }}</h1>
+
+            {% if page.metadata.get('aliases') %}
+            <p class="wiki-aliases">
+                Also known as: {{ page.metadata.get('aliases') | join(', ') }}
+            </p>
+            {% endif %}
+
+            <div class="wiki-article-meta">
+                {% if page.metadata.get('category') %}
+                <span class="wiki-meta-item">
+                    {{ icon('folder', size=14) }}
+                    <a href="#category-{{ page.metadata.get('category') | slugify }}">
+                        {{ page.metadata.get('category') }}
+                    </a>
+                </span>
+                {% endif %}
+                {% if page.date %}
+                <span class="wiki-meta-item">
+                    {{ icon('clock', size=14) }}
+                    Updated {{ page.date | time_ago }}
+                </span>
+                {% endif %}
+                {% if page.metadata.get('stub') %}
+                <span class="wiki-stub-warning">
+                    {{ icon('warning', size=14) }}
+                    This article is a stub and needs expansion
+                </span>
+                {% endif %}
+            </div>
+        </header>
+
+        {# Article Content #}
+        <div class="wiki-content prose">
+            {{ content | safe }}
+        </div>
+
+        {# Related Articles (Manual) #}
+        {% if page.metadata.get('related') %}
+        <section class="wiki-related">
+            <h2>Related Articles</h2>
+            <ul>
+                {% for related_slug in page.metadata.get('related') %}
+                {% set related_page = get_page(related_slug) %}
+                {% if related_page %}
+                <li><a href="{{ related_page.href }}">{{ related_page.title }}</a></li>
+                {% endif %}
+                {% endfor %}
+            </ul>
+        </section>
+        {% endif %}
+
+        {# Page Navigation #}
+        <nav class="wiki-nav-footer">
+            {% if page.prev_in_section %}
+            <a href="{{ page.prev_in_section.href }}" class="wiki-nav-prev">
+                {{ icon('arrow-left', size=16) }} {{ page.prev_in_section.title }}
+            </a>
+            {% endif %}
+            {% if page.next_in_section %}
+            <a href="{{ page.next_in_section.href }}" class="wiki-nav-next">
+                {{ page.next_in_section.title }} {{ icon('arrow-right', size=16) }}
+            </a>
+            {% endif %}
+        </nav>
+    </article>
+
+    {# Sidebar: Backlinks & TOC #}
+    <aside class="wiki-sidebar">
+        {# Table of Contents #}
+        {% if toc %}
+        <nav class="wiki-toc">
+            <h2>Contents</h2>
+            {{ toc | safe }}
+        </nav>
+        {% endif %}
+
+        {# Backlinks (pages that link to this one) #}
+        {% set backlinks = get_backlinks(page) %}
+        {% if backlinks %}
+        <section class="wiki-backlinks">
+            <h2>{{ icon('link', size=16) }} Linked From</h2>
+            <ul class="wiki-backlinks-list">
+                {% for backlink in backlinks %}
+                <li><a href="{{ backlink.href }}">{{ backlink.title }}</a></li>
+                {% endfor %}
+            </ul>
+        </section>
+        {% endif %}
+
+        {# Graph Visualization (if enabled) #}
+        {% if site.features.graph %}
+        <section class="wiki-graph">
+            <h2>{{ icon('share', size=16) }} Connections</h2>
+            <div class="graph-contextual" data-page-url="{{ page.href }}">
+                <div class="graph-contextual-container"></div>
+            </div>
+        </section>
+        {% endif %}
+    </aside>
+</div>
+{% endblock %}
+```
+
+#### 5.3 Wiki Template Function
+
+```python
+# bengal/rendering/template_functions/wiki.py
+
+def get_backlinks(page: Page, site: Site) -> list[Page]:
+    """
+    Get all pages that link to this page.
+
+    Uses the crossref index to find incoming links.
+
+    Args:
+        page: Target page to find backlinks for
+        site: Site instance
+
+    Returns:
+        List of pages that contain links to this page
+    """
+    backlinks = []
+    page_url = page.href
+
+    for other_page in site.pages:
+        if other_page == page:
+            continue
+
+        # Check if other_page links to this page
+        # This requires link extraction during parsing
+        links = getattr(other_page, '_outgoing_links', [])
+        if page_url in links or page.source_path.stem in links:
+            backlinks.append(other_page)
+
+    return sorted(backlinks, key=lambda p: p.title.lower())
+
+
+def group_by_first_letter(pages: list[Page], attr: str = 'title') -> dict[str, list[Page]]:
+    """
+    Group pages by the first letter of an attribute.
+
+    Args:
+        pages: List of pages to group
+        attr: Attribute to group by (default: 'title')
+
+    Returns:
+        Dict mapping first letter to list of pages
+    """
+    from collections import defaultdict
+
+    grouped = defaultdict(list)
+    for page in pages:
+        value = getattr(page, attr, '') or ''
+        first_letter = value[0].upper() if value else '#'
+        if not first_letter.isalpha():
+            first_letter = '#'
+        grouped[first_letter].append(page)
+
+    return dict(grouped)
+```
+
+---
+
+### 6. Recipe/Cookbook Support
+
+#### 6.1 RecipeStrategy
+
+```python
+# bengal/content_types/strategies.py
+
+class RecipeStrategy(ContentTypeStrategy):
+    """
+    Strategy for recipe/cookbook content.
+
+    Optimized for cooking recipes with structured data for ingredients,
+    cook times, and step-by-step instructions. Generates JSON-LD Recipe
+    schema for rich search results.
+
+    Auto-Detection:
+        Detected when section name matches recipe patterns
+        (``recipes``, ``cookbook``, ``food``, ``meals``).
+
+    Sorting:
+        1. Featured recipes first
+        2. Then by rating (if available)
+        3. Then by date (newest first)
+
+    Features:
+        - JSON-LD Recipe structured data for Google
+        - Cook time, prep time, total time display
+        - Servings/yield with scaling
+        - Ingredient lists with quantities
+        - Step-by-step instructions
+        - Nutritional info (optional)
+        - Print-friendly layout
+
+    Templates:
+        - List: ``recipe/list.html`` (grid with filters)
+        - Single: ``recipe/single.html`` (recipe card with JSON-LD)
+
+    Frontmatter Support:
+        - ``prep_time``: Preparation time (e.g., "15 minutes")
+        - ``cook_time``: Cooking time (e.g., "30 minutes")
+        - ``total_time``: Total time (auto-calculated if not set)
+        - ``servings``: Number of servings/yield
+        - ``difficulty``: easy, medium, hard
+        - ``cuisine``: Cuisine type (e.g., "Italian", "Mexican")
+        - ``course``: meal course (e.g., "dinner", "dessert")
+        - ``diet``: Dietary info (e.g., "vegetarian", "gluten-free")
+        - ``ingredients``: List of ingredients with quantities
+        - ``instructions``: List of step-by-step instructions
+        - ``nutrition``: Nutritional information dict
+        - ``rating``: Recipe rating (1-5)
+        - ``image``: Recipe photo
+
+    Class Attributes:
+        default_template: ``"recipe/list.html"``
+        allows_pagination: ``True``
+    """
+
+    default_template = "recipe/list.html"
+    allows_pagination = True
+
+    def sort_pages(self, pages: list[Page]) -> list[Page]:
+        """
+        Sort recipes: featured first, then by rating, then by date.
+        """
+        from datetime import datetime
+
+        def sort_key(p: Page):
+            is_featured = p.metadata.get("featured", False)
+            rating = p.metadata.get("rating", 0)
+            date = p.date if p.date else datetime.min
+            return (not is_featured, -rating, date)
+
+        return sorted(pages, key=sort_key, reverse=True)
+
+    def detect_from_section(self, section: Section) -> bool:
+        """Detect recipe sections by common naming patterns."""
+        name = section.name.lower()
+        if name in ("recipes", "cookbook", "food", "meals", "cooking"):
+            return True
+
+        # Check for recipe-specific metadata
+        if section.pages:
+            for page in section.pages[:3]:
+                if page.metadata.get("ingredients") or page.metadata.get("cook_time"):
+                    return True
+
+        return False
+
+    def get_template(self, page: Page | None = None, template_engine: Any | None = None) -> str:
+        """Recipe-specific template selection."""
+        if page is None:
+            return self.default_template
+
+        is_section_index = page.source_path.stem == "_index"
+
+        if is_section_index:
+            return "recipe/list.html"
+        else:
+            return "recipe/single.html"
+```
+
+#### 6.2 Recipe Templates
+
+**`recipe/list.html`** - Recipe grid with filters:
+
+```html
+{% extends "base.html" %}
+
+{% block content %}
+<div class="recipe-container">
+    {# Hero #}
+    <header class="recipe-header hero--blob-background">
+        <div class="hero__blobs" aria-hidden="true">
+            <div class="hero__blob hero__blob--1"></div>
+            <div class="hero__blob hero__blob--2"></div>
+        </div>
+        <div class="recipe-header-content">
+            <h1>{{ section.title | default('Recipes') }}</h1>
+            {% if section.description %}
+            <p class="recipe-lead">{{ section.description }}</p>
+            {% endif %}
+        </div>
+    </header>
+
+    {# Filters #}
+    <nav class="recipe-filters">
+        {# Course filter #}
+        {% set courses = posts | map(attribute='metadata.course') | unique | reject('none') | sort %}
+        {% if courses | list %}
+        <div class="recipe-filter-group">
+            <label>Course</label>
+            <select class="recipe-filter-select" data-filter="course">
+                <option value="all">All</option>
+                {% for course in courses %}
+                <option value="{{ course | slugify }}">{{ course | capitalize }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+
+        {# Difficulty filter #}
+        <div class="recipe-filter-group">
+            <label>Difficulty</label>
+            <select class="recipe-filter-select" data-filter="difficulty">
+                <option value="all">All</option>
+                <option value="easy">Easy</option>
+                <option value="medium">Medium</option>
+                <option value="hard">Hard</option>
+            </select>
+        </div>
+
+        {# Diet filter #}
+        {% set diets = posts | map(attribute='metadata.diet') | flatten | unique | reject('none') | sort %}
+        {% if diets | list %}
+        <div class="recipe-filter-group">
+            <label>Diet</label>
+            <select class="recipe-filter-select" data-filter="diet">
+                <option value="all">All</option>
+                {% for diet in diets %}
+                <option value="{{ diet | slugify }}">{{ diet }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+    </nav>
+
+    {# Featured Recipes #}
+    {% set featured = posts | where('featured', true) %}
+    {% if featured %}
+    <section class="recipe-featured">
+        <h2 class="recipe-section-title">⭐ Featured Recipes</h2>
+        <div class="recipe-grid recipe-grid--featured">
+            {% for recipe in featured %}
+            {% include 'partials/recipe-card.html' with context %}
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    {# All Recipes #}
+    {% set regular = posts | where_not('featured', true) %}
+    <section class="recipe-all">
+        {% if featured %}<h2 class="recipe-section-title">All Recipes</h2>{% endif %}
+        <div class="recipe-grid">
+            {% for recipe in regular %}
+            {% include 'partials/recipe-card.html' with context %}
+            {% endfor %}
+        </div>
+    </section>
+
+    {# Pagination #}
+    {% if total_pages and total_pages > 1 %}
+    {{ pagination(current_page, total_pages, base_url) }}
+    {% endif %}
+</div>
+{% endblock %}
+```
+
+**`partials/recipe-card.html`** - Recipe card component:
+
+```html
+<article class="recipe-card gradient-border fluid-combined"
+         data-course="{{ recipe.metadata.get('course', '') | slugify }}"
+         data-difficulty="{{ recipe.metadata.get('difficulty', '') | slugify }}"
+         data-diet="{{ (recipe.metadata.get('diet', []) | join(' ') | slugify) if recipe.metadata.get('diet') else '' }}">
+    {# Recipe Image #}
+    {% if recipe.metadata.get('image') %}
+    <div class="recipe-card-image">
+        <a href="{{ recipe.href }}">
+            <img src="{{ recipe.metadata.get('image') }}" alt="{{ recipe.title }}" loading="lazy">
+        </a>
+        {# Time badge #}
+        {% if recipe.metadata.get('total_time') or recipe.metadata.get('cook_time') %}
+        <span class="recipe-time-badge">
+            {{ icon('clock', size=12) }}
+            {{ recipe.metadata.get('total_time') or recipe.metadata.get('cook_time') }}
+        </span>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {# Card Content #}
+    <div class="recipe-card-content">
+        <h3 class="recipe-card-title">
+            <a href="{{ recipe.href }}">{{ recipe.title }}</a>
+        </h3>
+
+        {% if recipe.description or recipe.excerpt %}
+        <p class="recipe-card-excerpt">
+            {{ recipe.description | default(recipe.excerpt) | truncate(100) }}
+        </p>
+        {% endif %}
+
+        {# Recipe Meta #}
+        <div class="recipe-card-meta">
+            {% if recipe.metadata.get('difficulty') %}
+            <span class="recipe-difficulty recipe-difficulty--{{ recipe.metadata.get('difficulty') }}">
+                {{ recipe.metadata.get('difficulty') | capitalize }}
+            </span>
+            {% endif %}
+            {% if recipe.metadata.get('servings') %}
+            <span class="recipe-servings">
+                {{ icon('users', size=12) }} {{ recipe.metadata.get('servings') }} servings
+            </span>
+            {% endif %}
+            {% if recipe.metadata.get('rating') %}
+            <span class="recipe-rating">
+                {% for i in range(recipe.metadata.get('rating') | int) %}★{% endfor %}
+            </span>
+            {% endif %}
+        </div>
+
+        {# Diet badges #}
+        {% if recipe.metadata.get('diet') %}
+        <div class="recipe-diet-badges">
+            {% for diet in recipe.metadata.get('diet') %}
+            <span class="recipe-diet-badge">{{ diet }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</article>
+```
+
+**`recipe/single.html`** - Full recipe page:
+
+```html
+{% extends "base.html" %}
+{% from 'partials/navigation-components.html' import breadcrumbs %}
+
+{% block head_extra %}
+{# JSON-LD Recipe Structured Data #}
+{% include 'partials/recipe-jsonld.html' %}
+{% endblock %}
+
+{% block content %}
+<article class="recipe-single">
+    {{ breadcrumbs(page) }}
+
+    {# Recipe Header #}
+    <header class="recipe-header">
+        {% if page.metadata.get('image') %}
+        <div class="recipe-hero-image">
+            <img src="{{ page.metadata.get('image') }}" alt="{{ page.title }}">
+        </div>
+        {% endif %}
+
+        <div class="recipe-hero-content">
+            <h1>{{ page.title }}</h1>
+
+            {% if page.description %}
+            <p class="recipe-lead">{{ page.description }}</p>
+            {% endif %}
+
+            {# Recipe Stats #}
+            <div class="recipe-stats">
+                {% if page.metadata.get('prep_time') %}
+                <div class="recipe-stat">
+                    <span class="recipe-stat-label">Prep Time</span>
+                    <span class="recipe-stat-value">{{ page.metadata.get('prep_time') }}</span>
+                </div>
+                {% endif %}
+                {% if page.metadata.get('cook_time') %}
+                <div class="recipe-stat">
+                    <span class="recipe-stat-label">Cook Time</span>
+                    <span class="recipe-stat-value">{{ page.metadata.get('cook_time') }}</span>
+                </div>
+                {% endif %}
+                {% if page.metadata.get('total_time') %}
+                <div class="recipe-stat">
+                    <span class="recipe-stat-label">Total Time</span>
+                    <span class="recipe-stat-value">{{ page.metadata.get('total_time') }}</span>
+                </div>
+                {% endif %}
+                {% if page.metadata.get('servings') %}
+                <div class="recipe-stat">
+                    <span class="recipe-stat-label">Servings</span>
+                    <span class="recipe-stat-value">{{ page.metadata.get('servings') }}</span>
+                </div>
+                {% endif %}
+            </div>
+
+            {# Meta badges #}
+            <div class="recipe-badges">
+                {% if page.metadata.get('difficulty') %}
+                <span class="recipe-badge recipe-badge--{{ page.metadata.get('difficulty') }}">
+                    {{ page.metadata.get('difficulty') | capitalize }}
+                </span>
+                {% endif %}
+                {% if page.metadata.get('cuisine') %}
+                <span class="recipe-badge">{{ page.metadata.get('cuisine') }}</span>
+                {% endif %}
+                {% if page.metadata.get('course') %}
+                <span class="recipe-badge">{{ page.metadata.get('course') | capitalize }}</span>
+                {% endif %}
+                {% for diet in page.metadata.get('diet', []) %}
+                <span class="recipe-badge recipe-badge--diet">{{ diet }}</span>
+                {% endfor %}
+            </div>
+
+            {# Print button #}
+            <button class="recipe-print-btn" onclick="window.print()">
+                {{ icon('download', size=16) }} Print Recipe
+            </button>
+        </div>
+    </header>
+
+    <div class="recipe-body">
+        {# Ingredients #}
+        {% if page.metadata.get('ingredients') %}
+        <section class="recipe-ingredients">
+            <h2>{{ icon('list', size=20) }} Ingredients</h2>
+            <ul class="recipe-ingredient-list">
+                {% for ingredient in page.metadata.get('ingredients') %}
+                <li class="recipe-ingredient">
+                    <input type="checkbox" id="ing-{{ loop.index }}" class="recipe-checkbox">
+                    <label for="ing-{{ loop.index }}">{{ ingredient }}</label>
+                </li>
+                {% endfor %}
+            </ul>
+        </section>
+        {% endif %}
+
+        {# Instructions #}
+        {% if page.metadata.get('instructions') %}
+        <section class="recipe-instructions">
+            <h2>{{ icon('list', size=20) }} Instructions</h2>
+            <ol class="recipe-step-list">
+                {% for step in page.metadata.get('instructions') %}
+                <li class="recipe-step">
+                    <div class="recipe-step-number">{{ loop.index }}</div>
+                    <div class="recipe-step-content">{{ step }}</div>
+                </li>
+                {% endfor %}
+            </ol>
+        </section>
+        {% endif %}
+
+        {# Additional Content (notes, tips, etc.) #}
+        {% if content and content.strip() %}
+        <section class="recipe-notes prose">
+            <h2>{{ icon('note', size=20) }} Notes</h2>
+            {{ content | safe }}
+        </section>
+        {% endif %}
+
+        {# Nutrition Info #}
+        {% if page.metadata.get('nutrition') %}
+        <section class="recipe-nutrition">
+            <h2>{{ icon('info', size=20) }} Nutrition Facts</h2>
+            <p class="recipe-nutrition-serving">Per serving</p>
+            <dl class="recipe-nutrition-list">
+                {% set nutrition = page.metadata.get('nutrition') %}
+                {% if nutrition.get('calories') %}
+                <div class="recipe-nutrition-item">
+                    <dt>Calories</dt>
+                    <dd>{{ nutrition.get('calories') }}</dd>
+                </div>
+                {% endif %}
+                {% if nutrition.get('protein') %}
+                <div class="recipe-nutrition-item">
+                    <dt>Protein</dt>
+                    <dd>{{ nutrition.get('protein') }}g</dd>
+                </div>
+                {% endif %}
+                {% if nutrition.get('carbs') %}
+                <div class="recipe-nutrition-item">
+                    <dt>Carbs</dt>
+                    <dd>{{ nutrition.get('carbs') }}g</dd>
+                </div>
+                {% endif %}
+                {% if nutrition.get('fat') %}
+                <div class="recipe-nutrition-item">
+                    <dt>Fat</dt>
+                    <dd>{{ nutrition.get('fat') }}g</dd>
+                </div>
+                {% endif %}
+            </dl>
+        </section>
+        {% endif %}
+    </div>
+</article>
+
+{# Related Recipes #}
+{% set related = page.related_posts[:4] %}
+{% if related %}
+<section class="recipe-related">
+    <div class="container">
+        <h2>You Might Also Like</h2>
+        <div class="recipe-grid">
+            {% for recipe in related %}
+            {% include 'partials/recipe-card.html' %}
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+{% endblock %}
+```
+
+#### 6.3 Recipe JSON-LD
+
+**`partials/recipe-jsonld.html`**:
+
+```html
+{%- if page.metadata.get('ingredients') %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org/",
+  "@type": "Recipe",
+  "name": {{ page.title | tojson }},
+  "description": {{ (page.description | default(page.excerpt | default(''))) | tojson }},
+  {%- if page.metadata.get('image') %}
+  "image": ["{{ page.metadata.get('image') | absolute_url }}"],
+  {%- endif %}
+  {%- if page.author %}
+  "author": {
+    "@type": "Person",
+    "name": {{ page.author.name | tojson }}
+  },
+  {%- endif %}
+  "datePublished": "{{ page.date | date_iso }}",
+  {%- if page.metadata.get('prep_time') %}
+  "prepTime": "{{ page.metadata.get('prep_time') | iso_duration }}",
+  {%- endif %}
+  {%- if page.metadata.get('cook_time') %}
+  "cookTime": "{{ page.metadata.get('cook_time') | iso_duration }}",
+  {%- endif %}
+  {%- if page.metadata.get('total_time') %}
+  "totalTime": "{{ page.metadata.get('total_time') | iso_duration }}",
+  {%- endif %}
+  {%- if page.metadata.get('servings') %}
+  "recipeYield": {{ page.metadata.get('servings') | string | tojson }},
+  {%- endif %}
+  {%- if page.metadata.get('cuisine') %}
+  "recipeCuisine": {{ page.metadata.get('cuisine') | tojson }},
+  {%- endif %}
+  {%- if page.metadata.get('course') %}
+  "recipeCategory": {{ page.metadata.get('course') | tojson }},
+  {%- endif %}
+  "recipeIngredient": {{ page.metadata.get('ingredients') | tojson }},
+  "recipeInstructions": [
+    {%- for step in page.metadata.get('instructions', []) %}
+    {
+      "@type": "HowToStep",
+      "text": {{ step | tojson }}
+    }{% if not loop.last %},{% endif %}
+    {%- endfor %}
+  ]
+  {%- if page.metadata.get('nutrition') %},
+  "nutrition": {
+    "@type": "NutritionInformation"
+    {%- if page.metadata.get('nutrition', {}).get('calories') %},
+    "calories": "{{ page.metadata.get('nutrition').get('calories') }} calories"
+    {%- endif %}
+    {%- if page.metadata.get('nutrition', {}).get('protein') %},
+    "proteinContent": "{{ page.metadata.get('nutrition').get('protein') }} g"
+    {%- endif %}
+  }
+  {%- endif %}
+  {%- if page.metadata.get('rating') %},
+  "aggregateRating": {
+    "@type": "AggregateRating",
+    "ratingValue": {{ page.metadata.get('rating') }},
+    "ratingCount": 1
+  }
+  {%- endif %}
+}
+</script>
+{%- endif %}
+```
+
+#### 6.4 Recipe Template Function
+
+```python
+# bengal/rendering/template_functions/time.py
+
+def iso_duration(time_string: str) -> str:
+    """
+    Convert human-readable time to ISO 8601 duration.
+
+    Args:
+        time_string: Human time like "30 minutes", "1 hour 15 minutes"
+
+    Returns:
+        ISO 8601 duration like "PT30M", "PT1H15M"
+
+    Example:
+        {{ "30 minutes" | iso_duration }}  → PT30M
+        {{ "1 hour" | iso_duration }}      → PT1H
+        {{ "2 hours 30 minutes" | iso_duration }} → PT2H30M
+    """
+    import re
+
+    total_minutes = 0
+
+    # Match hours
+    hour_match = re.search(r'(\d+)\s*h(?:our)?s?', time_string, re.I)
+    if hour_match:
+        total_minutes += int(hour_match.group(1)) * 60
+
+    # Match minutes
+    min_match = re.search(r'(\d+)\s*m(?:in(?:ute)?)?s?', time_string, re.I)
+    if min_match:
+        total_minutes += int(min_match.group(1))
+
+    # Build ISO duration
+    hours = total_minutes // 60
+    minutes = total_minutes % 60
+
+    if hours and minutes:
+        return f"PT{hours}H{minutes}M"
+    elif hours:
+        return f"PT{hours}H"
+    elif minutes:
+        return f"PT{minutes}M"
+    else:
+        return "PT0M"
+```
+
+---
+
 ## Registry Updates
 
 ```python
 # bengal/content_types/registry.py
 
 CONTENT_TYPE_REGISTRY: dict[str, ContentTypeStrategy] = {
-    # Existing
+    # Existing (10 types)
     "blog": BlogStrategy(),
     "archive": ArchiveStrategy(),
     "changelog": ChangelogStrategy(),
@@ -1390,11 +2321,13 @@ CONTENT_TYPE_REGISTRY: dict[str, ContentTypeStrategy] = {
     "page": PageStrategy(),
     "list": PageStrategy(),
 
-    # NEW: Specialized site types
+    # NEW: Specialized site types (6 types)
     "portfolio": PortfolioStrategy(),
     "product": ProductStrategy(),
-    "resume": ResumeStrategy(),
     "landing": LandingStrategy(),
+    "wiki": WikiStrategy(),
+    "recipe": RecipeStrategy(),
+    "resume": ResumeStrategy(),  # Already has templates, adding strategy
 }
 ```
 
@@ -1406,27 +2339,44 @@ CONTENT_TYPE_REGISTRY: dict[str, ContentTypeStrategy] = {
 
 | File | Purpose |
 |------|---------|
+| **Portfolio** | |
 | `templates/portfolio/list.html` | Portfolio grid with filtering |
 | `templates/portfolio/single.html` | Project detail page |
 | `templates/partials/portfolio-card.html` | Reusable project card |
+| `css/components/portfolio.css` | Portfolio styles |
+| **Product** | |
 | `templates/product/list.html` | Product catalog grid |
 | `templates/product/single.html` | Product detail page |
 | `templates/partials/product-card.html` | Reusable product card |
-| `templates/landing/single.html` | Marketing landing page |
-| `templates/partials/resume-jsonld.html` | Person structured data |
-| `css/components/portfolio.css` | Portfolio styles |
 | `css/components/product.css` | Product styles |
-| `css/components/landing.css` | Landing page styles |
 | `rendering/template_functions/pricing.py` | format_price() function |
+| **Landing** | |
+| `templates/landing/single.html` | Marketing landing page |
+| `css/components/landing.css` | Landing page styles |
+| **Wiki** | |
+| `templates/wiki/list.html` | Alphabetical index with categories |
+| `templates/wiki/single.html` | Article with backlinks sidebar |
+| `css/components/wiki.css` | Wiki styles |
+| `rendering/template_functions/wiki.py` | get_backlinks(), group_by_first_letter() |
+| **Recipe** | |
+| `templates/recipe/list.html` | Recipe grid with filters |
+| `templates/recipe/single.html` | Full recipe page with JSON-LD |
+| `templates/partials/recipe-card.html` | Reusable recipe card |
+| `templates/partials/recipe-jsonld.html` | Recipe structured data |
+| `css/components/recipe.css` | Recipe styles + print styles |
+| `rendering/template_functions/time.py` | iso_duration() filter |
+| **Resume** | |
+| `templates/partials/resume-jsonld.html` | Person structured data |
 
 ### Modified Files
 
 | File | Changes |
 |------|---------|
-| `content_types/strategies.py` | Add Portfolio, Product, Resume, Landing strategies |
-| `content_types/registry.py` | Register new strategies |
+| `content_types/strategies.py` | Add Portfolio, Product, Landing, Wiki, Recipe, Resume strategies |
+| `content_types/registry.py` | Register 6 new strategies |
 | `templates/resume/single.html` | Add JSON-LD, print styles, variants |
 | `css/components/resume.css` | Add print styles |
+| `themes/default/theme.yaml` | Add `content_types.supported` declaration |
 
 ---
 
@@ -1465,6 +2415,32 @@ CONTENT_TYPE_REGISTRY: dict[str, ContentTypeStrategy] = {
 | `page.metadata.features` | Feature grid items |
 | `page.metadata.testimonials` | Customer quotes |
 | `page.metadata.pricing` | Pricing tiers |
+
+### Wiki
+
+| Function/Property | Purpose |
+|-------------------|---------|
+| `get_backlinks(page)` | Pages that link to this page |
+| `posts \| group_by_first_letter('title')` | Alphabetical grouping |
+| `page.metadata.aliases` | Alternative titles for linking |
+| `page.metadata.pinned` | Featured at top of lists |
+| `page.metadata.stub` | Mark incomplete articles |
+| Graph visualization | Visual connections between pages |
+
+### Recipe
+
+| Function/Property | Purpose |
+|-------------------|---------|
+| `time_string \| iso_duration` | Convert "30 minutes" → "PT30M" |
+| `page.metadata.prep_time` | Prep time display |
+| `page.metadata.cook_time` | Cook time display |
+| `page.metadata.ingredients` | Ingredient list |
+| `page.metadata.instructions` | Step-by-step instructions |
+| `page.metadata.nutrition` | Nutritional info |
+| `page.metadata.servings` | Yield/servings |
+| `page.metadata.difficulty` | easy/medium/hard badge |
+| JSON-LD Recipe schema | Rich search results |
+| Print styles | Print-friendly recipe cards |
 
 ---
 
@@ -1505,13 +2481,28 @@ CONTENT_TYPE_REGISTRY: dict[str, ContentTypeStrategy] = {
 
 | Phase | Tasks | Effort |
 |-------|-------|--------|
-| Phase 1: Strategies | Add 4 content strategies | 2-3 hours |
+| Phase 0: Theme Contract | Add `content_types` to theme.yaml + fallback | 2-3 hours |
+| Phase 1: Strategies | Add 6 content strategies | 3-4 hours |
 | Phase 2: Portfolio | Templates + CSS | 4-5 hours |
 | Phase 3: Product | Templates + CSS + pricing func | 4-5 hours |
-| Phase 4: Resume | Enhance templates + print + JSON-LD | 2-3 hours |
-| Phase 5: Landing | Templates + CSS | 3-4 hours |
-| Phase 6: Polish | Testing, docs, examples | 2-3 hours |
-| **Total** | | **17-23 hours** |
+| Phase 4: Wiki | Templates + CSS + backlinks | 5-6 hours |
+| Phase 5: Recipe | Templates + CSS + JSON-LD + print | 5-6 hours |
+| Phase 6: Resume | Enhance templates + print + JSON-LD | 2-3 hours |
+| Phase 7: Landing | Templates + CSS | 3-4 hours |
+| Phase 8: Polish | Testing, docs, examples | 3-4 hours |
+| **Total** | | **32-40 hours** |
+
+### Suggested Phasing
+
+**MVP (High Value, Low Effort)**:
+1. Portfolio (universal appeal, reuses existing patterns)
+2. Wiki (differentiator, backlinks are unique)
+3. Recipe (strong SEO story with JSON-LD)
+
+**Follow-up**:
+4. Landing (marketing sites)
+5. Product (catalog sites)
+6. Resume (niche but has templates)
 
 ---
 
@@ -1525,13 +2516,25 @@ CONTENT_TYPE_REGISTRY: dict[str, ContentTypeStrategy] = {
 
 4. **Should resume support multiple output formats?** (HTML, PDF via puppeteer, JSON Resume spec)
 
+5. **How should backlinks be indexed?** (Build-time scan, or leverage existing graph feature?)
+
+6. **Should wiki support wikilinks syntax?** (`[[Page Name]]` linking, like Obsidian)
+
+7. **Should recipe support scaling ingredients?** (JS-based serving size adjustment)
+
 ---
 
 ## Success Criteria
 
+- [ ] Theme contract documented: themes can declare supported types
+- [ ] Graceful fallback with warnings when theme doesn't support a type
+- [ ] Custom strategy guide documented for themers
 - [ ] `bengal new site --template portfolio` produces polished portfolio
 - [ ] `bengal new site --template product` produces catalog with JSON-LD
+- [ ] `bengal new site --template wiki` produces interconnected knowledge base
+- [ ] `bengal new site --template recipe` produces cookbook with rich search results
 - [ ] Resume pages print cleanly to PDF
+- [ ] Recipe pages print cleanly
 - [ ] Landing pages feel marketing-quality
 - [ ] All templates use design system (blob backgrounds, gradient borders)
 - [ ] Mobile experience excellent for all types
