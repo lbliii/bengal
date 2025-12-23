@@ -2541,6 +2541,15 @@ CONTENT_TYPE_REGISTRY: dict[str, ContentTypeStrategy] = {
 
 ---
 
+## Related RFCs
+
+- **`rfc-css-tree-shaking.md`** - Content-aware CSS optimization (prevents CSS bundle bloat from new types)
+- **`rfc-template-conveniences.md`** - Template helper functions (Author dataclass, reading_time, etc.)
+- **`rfc-blog-layout-parity.md`** - Blog-specific template improvements
+- **`rfc-theme-developer-ergonomics.md`** - Theme development improvements
+
+---
+
 ## Appendix: Design Inspiration
 
 **Portfolio**:
