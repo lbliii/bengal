@@ -490,10 +490,11 @@ class RelatedDirective(BengalDirective):
 
 
 def _get_section_url(section: Any) -> str:
-    """Get URL for a section."""
+    """Get URL for a section (includes baseurl)."""
+    # Section.href includes baseurl - use it directly
+    if hasattr(section, "href"):
+        return section.href
+    # Fallback for index page
     if hasattr(section, "index_page") and section.index_page:
         return getattr(section.index_page, "href", "/")
-    path = getattr(section, "path", None)
-    if path:
-        return f"/{path}/"
     return "/"
