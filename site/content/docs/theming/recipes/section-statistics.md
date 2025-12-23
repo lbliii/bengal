@@ -76,7 +76,7 @@ This recipe shows how to use section-level properties like `section.post_count`,
 </header>
 ```
 
-:::
+:::{/tab-item}
 :::{tab-item} Sidebar Widget
 
 ```jinja2
@@ -98,7 +98,7 @@ This recipe shows how to use section-level properties like `section.post_count`,
 </aside>
 ```
 
-:::
+:::{/tab-item}
 :::{tab-item} Comparison Table
 
 ```jinja2
@@ -127,7 +127,7 @@ This recipe shows how to use section-level properties like `section.post_count`,
 </div>
 ```
 
-:::
+:::{/tab-item}
 :::{tab-item} Progress Bars
 
 ```jinja2
@@ -146,7 +146,7 @@ This recipe shows how to use section-level properties like `section.post_count`,
 </div>
 ```
 
-:::
+:::{/tab-item}
 :::{tab-item} Site-Wide
 
 ```jinja2
@@ -172,7 +172,7 @@ This recipe shows how to use section-level properties like `section.post_count`,
 </footer>
 ```
 
-:::
+:::{/tab-item}
 :::{tab-item} By Author
 
 Combine with author data:
@@ -195,8 +195,8 @@ Combine with author data:
 </div>
 ```
 
-:::
-:::
+:::{/tab-item}
+:::{/tab-set}
 
 ## Example CSS
 

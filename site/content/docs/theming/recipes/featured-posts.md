@@ -92,7 +92,7 @@ Single featured post as hero:
 {% endif %}
 ```
 
-:::
+:::{/tab-item}
 :::{tab-item} Sidebar + Main
 
 ```jinja2
@@ -121,7 +121,7 @@ Single featured post as hero:
 </div>
 ```
 
-:::
+:::{/tab-item}
 :::{tab-item} Badge in Lists
 
 ```jinja2
@@ -135,7 +135,7 @@ Single featured post as hero:
 {% endfor %}
 ```
 
-:::
+:::{/tab-item}
 :::{tab-item} Image Grid
 
 ```jinja2
@@ -156,7 +156,7 @@ Single featured post as hero:
 </div>
 ```
 
-:::
+:::{/tab-item}
 :::{tab-item} Site-Wide
 
 Get featured posts from any section:
@@ -175,7 +175,7 @@ Get featured posts from any section:
 </section>
 ```
 
-:::
+:::{/tab-item}
 :::{tab-item} With Priority
 
 Support priority ordering:
@@ -191,7 +191,7 @@ featured_priority: 1  # Lower = higher priority
 {% set featured = section.featured_posts | sort_by('metadata.featured_priority') %}
 ```
 
-:::
+:::{/tab-item}
 :::{tab-item} Daily Rotation
 
 Show different featured posts based on day:
@@ -207,8 +207,8 @@ Show different featured posts based on day:
 </aside>
 ```
 
-:::
-:::
+:::{/tab-item}
+:::{/tab-set}
 
 ## Example CSS
 

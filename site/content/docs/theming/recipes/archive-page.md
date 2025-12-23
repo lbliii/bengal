@@ -88,7 +88,7 @@ Quick navigation showing years with counts:
 </aside>
 ```
 
-:::
+:::{/tab-item}
 :::{tab-item} Monthly Archive
 
 ```jinja2
@@ -112,7 +112,7 @@ Quick navigation showing years with counts:
 </div>
 ```
 
-:::
+:::{/tab-item}
 :::{tab-item} Compact Timeline
 
 ```jinja2
@@ -136,7 +136,7 @@ Quick navigation showing years with counts:
 </div>
 ```
 
-:::
+:::{/tab-item}
 :::{tab-item} With Categories
 
 ```jinja2
@@ -162,7 +162,7 @@ Quick navigation showing years with counts:
 {% endfor %}
 ```
 
-:::
+:::{/tab-item}
 :::{tab-item} Stats Header
 
 ```jinja2
@@ -178,8 +178,8 @@ Quick navigation showing years with counts:
 </header>
 ```
 
-:::
-:::
+:::{/tab-item}
+:::{/tab-set}
 
 ## Example CSS
 

@@ -68,7 +68,7 @@ Display content organized by category, tag, or any frontmatter field.
 {% endfor %}
 ```
 
-:::
+:::{/tab-item}
 :::{tab-item} By Tag (Taxonomy)
 
 ```jinja2
@@ -81,7 +81,7 @@ Display content organized by category, tag, or any frontmatter field.
 {% endfor %}
 ```
 
-:::
+:::{/tab-item}
 :::{tab-item} Nested Groups
 
 ```jinja2
@@ -101,8 +101,8 @@ Display content organized by category, tag, or any frontmatter field.
 {% endfor %}
 ```
 
-:::
-:::
+:::{/tab-item}
+:::{/tab-set}
 
 ## Handle Missing Values
 

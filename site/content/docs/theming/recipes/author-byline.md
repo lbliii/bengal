@@ -125,7 +125,7 @@ author: Jane Smith
 {% endif %}
 ```
 
-:::
+:::{/tab-item}
 :::{tab-item} Multiple Authors
 
 ```jinja2
@@ -156,7 +156,7 @@ authors:
 ---
 ```
 
-:::
+:::{/tab-item}
 :::{tab-item} Compact Inline
 
 ```jinja2
@@ -171,7 +171,7 @@ authors:
 {% endif %}
 ```
 
-:::
+:::{/tab-item}
 :::{tab-item} Link to Author Page
 
 ```jinja2
@@ -185,7 +185,7 @@ authors:
 {% endif %}
 ```
 
-:::
+:::{/tab-item}
 :::{tab-item} Full Author Card
 
 ```jinja2
@@ -212,8 +212,8 @@ authors:
 {% endif %}
 ```
 
-:::
-:::
+:::{/tab-item}
+:::{/tab-set}
 
 ## Example CSS
 

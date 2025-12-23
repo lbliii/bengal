@@ -97,7 +97,7 @@ series:
 {% endif %}
 ```
 
-:::
+:::{/tab-item}
 :::{tab-item} Table of Contents
 
 Show all parts with current highlighted:
@@ -117,7 +117,7 @@ Show all parts with current highlighted:
 {% endif %}
 ```
 
-:::
+:::{/tab-item}
 :::{tab-item} Compact Footer
 
 ```jinja2
@@ -140,7 +140,7 @@ Show all parts with current highlighted:
 {% endif %}
 ```
 
-:::
+:::{/tab-item}
 :::{tab-item} Completion Message
 
 ```jinja2
@@ -153,8 +153,8 @@ Show all parts with current highlighted:
 {% endif %}
 ```
 
-:::
-:::
+:::{/tab-item}
+:::{/tab-set}
 
 ## Example CSS
 

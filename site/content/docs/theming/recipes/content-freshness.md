@@ -70,7 +70,7 @@ This recipe shows how to use `page.age_days` for **automatic** freshness detecti
 {% endfor %}
 ```
 
-:::
+:::{/tab-item}
 :::{tab-item} Humanized Date
 
 ```jinja2
@@ -95,7 +95,7 @@ Or use the filter directly:
 <time>Published {{ page.date | days_ago | humanize_days }}</time>
 ```
 
-:::
+:::{/tab-item}
 :::{tab-item} Staleness Warning
 
 ```jinja2
@@ -112,7 +112,7 @@ Or use the filter directly:
 {% endif %}
 ```
 
-:::
+:::{/tab-item}
 :::{tab-item} Tiered Styling
 
 ```jinja2
@@ -126,7 +126,7 @@ Or use the filter directly:
 </article>
 ```
 
-:::
+:::{/tab-item}
 :::{tab-item} Recently Updated
 
 ```jinja2
@@ -148,7 +148,7 @@ Or use the filter directly:
 </section>
 ```
 
-:::
+:::{/tab-item}
 :::{tab-item} Review Reminder
 
 For documentation sites that need regular review:
@@ -164,8 +164,8 @@ For documentation sites that need regular review:
 {% endif %}
 ```
 
-:::
-:::
+:::{/tab-item}
+:::{/tab-set}
 
 ## Example CSS
 

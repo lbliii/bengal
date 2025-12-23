@@ -71,7 +71,7 @@ Then in template:
 {% endif %}
 ```
 
-:::
+:::{/tab-item}
 :::{tab-item} Article Layout
 
 ```jinja2
@@ -92,7 +92,7 @@ Then in template:
 </div>
 ```
 
-:::
+:::{/tab-item}
 :::{tab-item} Conditional by Section
 
 ```jinja2
@@ -104,8 +104,8 @@ Then in template:
 {% endif %}
 ```
 
-:::
-:::
+:::{/tab-item}
+:::{/tab-set}
 
 ## Scroll Highlighting (JavaScript)
 

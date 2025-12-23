@@ -59,7 +59,7 @@ Find content that matches multiple criteria — tags, categories, or custom fiel
 {% set either = python | union(js) %}
 ```
 
-:::
+:::{/tab-item}
 :::{tab-item} ALL of These Tags
 
 ```jinja2
@@ -69,7 +69,7 @@ Find content that matches multiple criteria — tags, categories, or custom fiel
 {% set both = python | intersect(tutorials) %}
 ```
 
-:::
+:::{/tab-item}
 :::{tab-item} Exclude Tags
 
 ```jinja2
@@ -78,7 +78,7 @@ Find content that matches multiple criteria — tags, categories, or custom fiel
   | where('tags', 'archived', 'not_in') %}
 ```
 
-:::
+:::{/tab-item}
 :::{tab-item} Nested Field
 
 ```jinja2
@@ -90,8 +90,8 @@ Find content that matches multiple criteria — tags, categories, or custom fiel
   | where('metadata.series', 'getting-started') %}
 ```
 
-:::
-:::
+:::{/tab-item}
+:::{/tab-set}
 
 ## Build a Tag Filter Page
 

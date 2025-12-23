@@ -59,7 +59,7 @@ Bengal provides a `word_count` filter that strips HTML and counts words:
 
 Both filters work together seamlessly since they use the same word counting logic.
 
-:::
+:::{/tab-item}
 :::{tab-item} Custom WPM
 
 ```jinja2
@@ -70,7 +70,7 @@ Both filters work together seamlessly since they use the same word counting logi
 <span>{{ minutes }} min read</span>
 ```
 
-:::
+:::{/tab-item}
 :::{tab-item} Short Content
 
 ```jinja2
@@ -87,7 +87,7 @@ Both filters work together seamlessly since they use the same word counting logi
 </span>
 ```
 
-:::
+:::{/tab-item}
 :::{tab-item} Frontmatter Override
 
 Allow manual override for complex content:
@@ -109,8 +109,8 @@ reading_time: 25  # Override calculated time
 ---
 ```
 
-:::
-:::
+:::{/tab-item}
+:::{/tab-set}
 
 :::{seealso}
 

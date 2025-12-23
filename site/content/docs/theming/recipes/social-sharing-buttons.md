@@ -84,7 +84,7 @@ This recipe shows how to customize placement or add additional platforms.
 </div>
 ```
 
-:::
+:::{/tab-item}
 :::{tab-item} Twitter via Attribution
 
 ```jinja2
@@ -95,7 +95,7 @@ This recipe shows how to customize placement or add additional platforms.
 
 This adds `via @yourblog` to the tweet.
 
-:::
+:::{/tab-item}
 :::{tab-item} Full Share Bar
 
 ```jinja2
@@ -136,7 +136,7 @@ This adds `via @yourblog` to the tweet.
 </aside>
 ```
 
-:::
+:::{/tab-item}
 :::{tab-item} Copy Link Button
 
 Add a "copy link" button alongside social shares:
@@ -160,7 +160,7 @@ document.querySelector('.copy-link').addEventListener('click', function() {
 </script>
 ```
 
-:::
+:::{/tab-item}
 :::{tab-item} Mastodon
 
 Mastodon requires users to paste into their instance, so we generate share text:
@@ -179,7 +179,7 @@ document.querySelector('.share-mastodon').addEventListener('click', function() {
 </script>
 ```
 
-:::
+:::{/tab-item}
 :::{tab-item} Floating Bar
 
 ```jinja2
@@ -190,8 +190,8 @@ document.querySelector('.share-mastodon').addEventListener('click', function() {
 </aside>
 ```
 
-:::
-:::
+:::{/tab-item}
+:::{/tab-set}
 
 ## Example CSS
 

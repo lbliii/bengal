@@ -62,7 +62,7 @@ Display the most recent posts from a section using Bengal's query filters.
   | limit(10) %}
 ```
 
-:::
+:::{/tab-item}
 :::{tab-item} With Featured
 
 ```jinja2
@@ -82,7 +82,7 @@ Display the most recent posts from a section using Bengal's query filters.
 </ul>
 ```
 
-:::
+:::{/tab-item}
 :::{tab-item} Exclude Current
 
 ```jinja2
@@ -97,8 +97,8 @@ Display the most recent posts from a section using Bengal's query filters.
 {% endfor %}
 ```
 
-:::
-:::
+:::{/tab-item}
+:::{/tab-set}
 
 :::{seealso}
 - [Template Functions](/docs/theming/templating/functions/) — All filter options
