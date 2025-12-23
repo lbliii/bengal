@@ -731,6 +731,19 @@ class PageProxy:
             # Extract and store path from Section object
             self._section_path = value.path
 
+    @property
+    def section_path(self) -> str | None:
+        """
+        Get the section path as a string.
+
+        Returns the path to the section this page belongs to, or None if
+        the page doesn't belong to a section.
+
+        Returns:
+            Section path as string (e.g., "docs/guides") or None
+        """
+        return str(self._section_path) if self._section_path else None
+
     def __hash__(self) -> int:
         """Hash based on source_path (same as Page)."""
         return hash(self.source_path)

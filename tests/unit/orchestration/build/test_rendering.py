@@ -143,7 +143,7 @@ class TestPhaseAssets:
         )
 
         orchestrator.assets.process.assert_called_once_with(
-            assets, parallel=True, progress_manager=None
+            assets, parallel=True, progress_manager=None, collector=None
         )
         assert result == assets
 

@@ -584,5 +584,18 @@ class Page(
             self._section_path = None
             self._section_url = getattr(value, "_path", None) or f"/{value.name}/"
 
+    @property
+    def section_path(self) -> str | None:
+        """
+        Get the section path as a string.
+
+        Returns the path to the section this page belongs to, or None if
+        the page doesn't belong to a section.
+
+        Returns:
+            Section path as string (e.g., "docs/guides") or None
+        """
+        return str(self._section_path) if self._section_path else None
+
 
 __all__ = ["Frontmatter", "Page", "PageProxy"]

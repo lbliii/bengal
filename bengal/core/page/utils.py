@@ -175,6 +175,9 @@ def create_synthetic_page(
     Returns:
         SimpleNamespace object with Page-like attributes
     """
+    # Derive slug from URL or title
+    slug = url.strip("/").split("/")[-1] if url else title.lower().replace(" ", "-")
+
     return SimpleNamespace(
         title=title,
         description=description,
@@ -194,4 +197,6 @@ def create_synthetic_page(
         reading_time=0,
         excerpt="",
         props=metadata or {},
+        slug=slug,
+        section_path=None,  # Special pages don't have sections
     )
