@@ -136,11 +136,6 @@ class PostprocessOrchestrator:
         # Always generate special pages (404, etc.) - important for deployment
         tasks.append(("special pages", lambda: self._generate_special_pages(build_context)))
 
-        # Generate social cards (OG images) if enabled
-        social_cards_config = parse_social_cards_config(self.site.config)
-        if social_cards_config.enabled:
-            tasks.append(("social cards", self._generate_social_cards))
-
         # CRITICAL: Always generate output formats (index.json, llm-full.txt)
         # These are essential for search functionality and must reflect current site state
         output_formats_config = self.site.config.get("output_formats", {})
@@ -153,14 +148,21 @@ class PostprocessOrchestrator:
                 ("output formats", lambda: self._generate_output_formats(graph_data, build_context))
             )
 
-        # OPTIMIZATION: For incremental builds with small changes, skip some postprocessing
+        # OPTIMIZATION: For incremental builds, skip expensive post-processing
         # This is safe because:
-        # - Sitemaps update on full builds (periodic refresh)
-        # - RSS regenerated on content rebuild (not layout changes)
-        # - Redirects regenerated on full builds (aliases rarely change)
-        # - Link validation now runs via the health check system (LinkValidatorWrapper)
+        # - Social cards: Only needed for production (OG images don't change during dev)
+        # - Sitemaps: Update on full builds (periodic refresh)
+        # - RSS: Regenerated on content rebuild (not layout changes)
+        # - Redirects: Regenerated on full builds (aliases rarely change)
         if not incremental:
-            # Full build: run all tasks
+            # Full build: run all expensive tasks
+
+            # Generate social cards (OG images) - EXPENSIVE (~30ms per card)
+            # Only on full builds, not dev server reloads
+            social_cards_config = parse_social_cards_config(self.site.config)
+            if social_cards_config.enabled:
+                tasks.append(("social cards", self._generate_social_cards))
+
             if self.site.config.get("generate_sitemap", True):
                 tasks.append(("sitemap", self._generate_sitemap))
 
@@ -171,12 +173,11 @@ class PostprocessOrchestrator:
             if redirects_config.get("generate_html", True):
                 tasks.append(("redirects", self._generate_redirects))
         else:
-            # Incremental: only regenerate sitemap/RSS/validation if explicitly requested
-            # (Most users don't need updated sitemaps/RSS for every content change)
-            # Note: Output formats ARE still generated (see above) because search requires it
+            # Incremental: skip expensive tasks for dev server responsiveness
+            # Note: Output formats ARE still generated (above) because search requires it
             logger.info(
                 "postprocessing_incremental",
-                reason="skipping_sitemap_rss_validation_for_speed",
+                reason="skipping_social_cards_sitemap_rss_for_speed",
             )
 
         if not tasks:

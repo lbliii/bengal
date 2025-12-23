@@ -341,6 +341,12 @@ class DevServer:
         cfg.setdefault("minify_assets", False)  # Faster builds
         # Disable search index preloading in dev to avoid background index.json fetches
         cfg.setdefault("search_preload", "off")
+        # Disable social cards in dev (OG images not needed, saves ~30s on large sites)
+        # Force disable even if enabled in config - social cards only matter for production
+        if isinstance(cfg.get("social_cards"), dict):
+            cfg["social_cards"]["enabled"] = False
+        else:
+            cfg["social_cards"] = {"enabled": False}
 
         # Clear template bytecode cache to ensure fresh template compilation
         # This prevents stale bytecode from previous builds causing "stuck" templates
