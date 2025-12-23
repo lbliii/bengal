@@ -91,7 +91,7 @@ class SocialCardConfig:
         cache: Whether to cache generated cards
     """
 
-    enabled: bool = True
+    enabled: bool = False  # Disabled by default (Pillow not thread-safe in free-threading Python)
     template: str = "default"
     background_color: str = "#1a1a2e"
     text_color: str = "#ffffff"
