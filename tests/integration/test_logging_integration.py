@@ -89,7 +89,13 @@ def reset_loggers():
 
     Tests in this module use @pytest.mark.preserve_loggers to disable the
     global logger reset and only clear events, preserving the registry.
+
+    CRITICAL: When running with pytest-xdist, a previous test on the same worker
+    may have cleared _loggers, orphaning the module-level logger references in
+    orchestration modules. We must reload those modules to get fresh loggers.
     """
+    import importlib
+
     from bengal.utils.logger import _global_config, set_console_quiet
 
     # Close any existing file handles to ensure clean state
@@ -112,6 +118,21 @@ def reset_loggers():
     # Reset quiet_console to default (False) - builds set this to True
     # and it persists across tests if not reset
     set_console_quiet(False)
+
+    # CRITICAL FIX: Reload orchestration modules to ensure their module-level
+    # logger references point to loggers in the current _loggers registry.
+    # Without this, when a previous test on the same xdist worker clears _loggers,
+    # the orchestration modules still reference the old orphaned loggers and
+    # events get logged there instead of to the registry loggers.
+    try:
+        import bengal.orchestration.build
+        import bengal.orchestration.content
+
+        importlib.reload(bengal.orchestration.build)
+        importlib.reload(bengal.orchestration.content)
+    except (ImportError, AttributeError):
+        pass  # Modules not yet imported, will be imported fresh
+
     yield
     # Close file handles but DON'T clear the registry - module-level
     # logger references must remain valid for subsequent tests
