@@ -74,16 +74,19 @@ Without tree shaking, the CSS bundle will grow to ~200KB+. A recipe site shouldn
 2. **Build-time CSS filtering** - generate optimized style.css
 3. **Zero config** - works out of the box
 4. **No external dependencies** - pure Python
+5. **High Performance** - Integrate feature detection into Phase 2 Discovery to avoid redundant I/O
 
 ### Should Have
-5. **Feature detection** - also filter by features (graph, search, mermaid)
-6. **Logging** - show what was included/excluded
-7. **Override mechanism** - force include/exclude specific CSS
+6. **Feature detection** - also filter by features (graph, search, mermaid)
+7. **Logging** - show what was included/excluded
+8. **Override mechanism** - force include/exclude specific CSS
+9. **Build Cache Integration** - Cache the optimized CSS entry point to speed up incremental builds
 
 ### Nice to Have
-8. **Size reporting** - show before/after bundle size
-9. **Dev mode bypass** - option to include all CSS during development
-10. **Per-page CSS** - load type-specific CSS only on matching pages
+10. **Size reporting** - show before/after bundle size
+11. **Dev mode bypass** - option to include all CSS during development
+12. **Per-page CSS** - load type-specific CSS only on matching pages
+13. **Automatic Manifest Inference** - Infer type mappings if theme follows naming conventions (e.g., `components/type-{name}.css`)
 
 ### Non-Goals
 - Runtime CSS loading (adds complexity, HTTP requests)
@@ -103,16 +106,18 @@ Build Pipeline
 Phase 2: Content Discovery
     └─► site.pages populated with all pages
     └─► site.sections populated with all sections
+    └─► NEW: site.features_detected populated (mermaid, graph, etc.)
 
 Phase 12.5: CSS Optimization (NEW)
-    ├─► Scan pages for content types used
-    ├─► Check features enabled
-    ├─► Generate optimized style.css
-    └─► Write to theme assets directory (temp)
+    ├─► Read site.pages for used content types
+    ├─► Read site.features_detected for enabled features
+    ├─► Consult theme's css_manifest.py
+    ├─► Generate optimized style.css with @layer imports
+    └─► Write to cache directory (e.g., .bengal/assets/optimized-style.css)
 
 Phase 13: Asset Processing
-    └─► Bundle CSS (uses optimized style.css)
-    └─► Minify, fingerprint, output
+    └─► AssetOrchestrator detects optimized entry point
+    └─► Bundles, minifies, and fingerprints
 ```
 
 ### CSS Manifest Structure
@@ -122,38 +127,19 @@ Phase 13: Asset Processing
 
 """
 CSS manifest defining core, shared, and type-specific stylesheets.
-
-Categories:
-    CORE: Always included (tokens, base, essential layout)
-    SHARED: Common components used across most types
-    TYPE_MAP: Content-type-specific CSS
-    FEATURE_MAP: Feature-specific CSS (graph, search, etc.)
 """
 
-# ============================================
-# CORE - Always included (site won't render without these)
-# ============================================
+# Always included (site won't render without these)
 CSS_CORE: list[str] = [
-    # Design tokens (CSS custom properties)
     "tokens/foundation.css",
     "tokens/typography.css",
     "tokens/semantic.css",
-
-    # Base styles (reset, typography, utilities)
     "base/reset.css",
     "base/typography.css",
     "base/utilities.css",
     "base/interactive-patterns.css",
     "base/accessibility.css",
     "base/print.css",
-
-    # Utilities
-    "utilities/motion.css",
-    "utilities/scroll-animations.css",
-    "utilities/gradient-borders.css",
-    "utilities/fluid-blobs.css",
-
-    # Core layout (every page needs these)
     "composition/layouts.css",
     "layouts/grid.css",
     "layouts/header.css",
@@ -161,11 +147,8 @@ CSS_CORE: list[str] = [
     "layouts/page-header.css",
 ]
 
-# ============================================
-# SHARED - Common components (most sites need these)
-# ============================================
+# Common components used across most types
 CSS_SHARED: list[str] = [
-    # UI primitives
     "components/buttons.css",
     "components/forms.css",
     "components/cards.css",
@@ -173,25 +156,19 @@ CSS_SHARED: list[str] = [
     "components/labels.css",
     "components/icons.css",
     "components/alerts.css",
-
-    # Content components
     "components/admonitions.css",
     "components/tabs.css",
     "components/dropdowns.css",
     "components/code.css",
     "components/target-anchor.css",
-
-    # Navigation
     "components/navigation.css",
     "components/pagination.css",
     "components/toc.css",
+    "components/empty-state.css",
 ]
 
-# ============================================
-# TYPE-SPECIFIC - Only loaded when type is used
-# ============================================
+# Content-type-specific CSS
 CSS_TYPE_MAP: dict[str, list[str]] = {
-    # Blog & Archive
     "blog": [
         "components/blog.css",
         "components/archive.css",
@@ -203,8 +180,6 @@ CSS_TYPE_MAP: dict[str, list[str]] = {
         "components/tags.css",
         "components/category-browser.css",
     ],
-
-    # Documentation
     "doc": [
         "components/docs-nav.css",
         "components/action-bar.css",
@@ -213,99 +188,28 @@ CSS_TYPE_MAP: dict[str, list[str]] = {
         "components/steps.css",
         "components/checklist.css",
     ],
-
-    # Tutorials & Learning
-    "tutorial": [
-        "components/tutorial.css",
-        "components/steps.css",
-        "components/checklist.css",
-    ],
-
-    # Tracks (learning paths)
-    "track": [
-        "components/tracks.css",
-        "components/hub-cards.css",
-    ],
-
-    # API Documentation
-    "autodoc-python": [
-        "components/autodoc.css",
-        "components/reference-docs.css",
-        "components/api-hub.css",
-    ],
-    "autodoc-cli": [
-        "components/autodoc.css",
-        "components/reference-docs.css",
-    ],
-
-    # Changelog
-    "changelog": [
-        "layouts/changelog.css",
-    ],
-
-    # Resume
-    "resume": [
-        "layouts/resume.css",
-    ],
-
-    # Landing pages
-    "landing": [
-        "pages/landing.css",
-        "components/hero.css",
-        "components/page-hero.css",
-    ],
-
-    # Portfolio (NEW - from rfc-specialized-site-types)
-    "portfolio": [
-        "components/portfolio.css",
-    ],
-
-    # Product/Catalog (NEW)
-    "product": [
-        "components/product.css",
-    ],
-
-    # Wiki (NEW)
-    "wiki": [
-        "components/wiki.css",
-    ],
-
-    # Recipe (NEW)
-    "recipe": [
-        "components/recipe.css",
-        "layouts/recipe.css",  # Print styles
-    ],
+    "tutorial": ["components/tutorial.css", "components/steps.css"],
+    "track": ["components/tracks.css", "components/hub-cards.css"],
+    "autodoc": ["components/autodoc.css", "components/reference-docs.css", "components/api-hub.css"],
+    "changelog": ["layouts/changelog.css"],
+    "resume": ["layouts/resume.css"],
+    "landing": ["pages/landing.css", "components/hero.css", "components/page-hero.css"],
+    "portfolio": ["components/portfolio.css"],
+    "product": ["components/product.css"],
+    "wiki": ["components/wiki.css"],
+    "recipe": ["components/recipe.css", "layouts/recipe.css"],
 }
 
-# ============================================
-# FEATURE-SPECIFIC - Based on site.features config
-# ============================================
+# Feature-specific CSS (based on site.features_detected)
 CSS_FEATURE_MAP: dict[str, list[str]] = {
-    "graph": [
-        "components/graph.css",
-        "components/graph-minimap.css",
-        "components/graph-contextual.css",
-    ],
-    "search": [
-        "components/search.css",
-        "components/search-modal.css",
-    ],
-    "mermaid": [
-        "components/mermaid.css",
-    ],
-    "data_tables": [
-        "components/data-table.css",
-        "tabulator.min.css",
-    ],
-    "interactive": [
-        "components/interactive.css",
-        "components/widgets.css",
-    ],
+    "graph": ["components/graph.css", "components/graph-minimap.css", "components/graph-contextual.css"],
+    "search": ["components/search.css", "components/search-modal.css"],
+    "mermaid": ["components/mermaid.css"],
+    "data_tables": ["components/data-table.css", "tabulator.min.css"],
+    "interactive": ["components/interactive.css", "components/widgets.css"],
 }
 
-# ============================================
-# PALETTES - Color theme presets
-# ============================================
+# Color theme presets
 CSS_PALETTES: list[str] = [
     "tokens/palettes/snow-lynx.css",
     "tokens/palettes/brown-bengal.css",
@@ -313,6 +217,7 @@ CSS_PALETTES: list[str] = [
     "tokens/palettes/charcoal-bengal.css",
     "tokens/palettes/blue-bengal.css",
 ]
+```
 ```
 
 ### CSS Optimizer Implementation
@@ -419,31 +324,26 @@ class CSSOptimizer:
         Detect features that require CSS.
 
         Checks:
-        - site.config.features for explicit config
-        - Content patterns (e.g., ```mermaid blocks)
+        - site.features_detected (populated during Phase 2 discovery)
+        - site.config.features (explicit overrides)
 
         Returns:
             Set of feature names (e.g., {"search", "graph"})
         """
         features: set[str] = set()
 
-        # Check explicit config
+        # 1. Start with auto-detected features from discovery
+        if hasattr(self.site, "features_detected"):
+            features.update(self.site.features_detected)
+
+        # 2. Add explicit config overrides
         feature_config = self.site.config.get("features", {})
         for feature, enabled in feature_config.items():
             if enabled:
                 features.add(feature)
-
-        # Auto-detect from content (sample first 100 pages for performance)
-        sample_pages = list(self.site.pages)[:100]
-        for page in sample_pages:
-            content = getattr(page, "content", "") or ""
-
-            if "```mermaid" in content:
-                features.add("mermaid")
-
-            # Wiki-style links suggest graph feature
-            if "[[" in content and "]]" in content:
-                features.add("graph")
+            elif enabled is False:
+                # Explicitly disabled in config
+                features.discard(feature)
 
         logger.debug("css_features_detected", features=sorted(features))
         return features
@@ -503,14 +403,18 @@ class CSSOptimizer:
                 imports.extend(css_files)
 
         # 6. Force-include from config
-        force_include = self.site.config.get("css", {}).get("include", [])
+        css_cfg = self.site.config.get("css", {})
+        force_include = css_cfg.get("include", [])
         imports.extend(force_include)
 
-        # Deduplicate while preserving order
+        # 7. Force-exclude from config
+        force_exclude = set(css_cfg.get("exclude", []))
+
+        # Deduplicate while preserving order and filtering exclusions
         seen: set[str] = set()
         unique: list[str] = []
         for css_file in imports:
-            if css_file not in seen:
+            if css_file not in seen and css_file not in force_exclude:
                 seen.add(css_file)
                 unique.append(css_file)
 
@@ -648,19 +552,25 @@ def phase_assets(
         optimized_css, report = optimizer.generate(report=True)
 
         if optimized_css:
-            # Write optimized style.css to temp location
-            # AssetOrchestrator will use this instead of original
-            temp_style = orchestrator.site.paths.cache_dir / "optimized-style.css"
-            temp_style.write_text(optimized_css, encoding="utf-8")
+            # Write optimized style.css to cache directory
+            cache_dir = orchestrator.site.paths.cache_dir / "assets"
+            cache_dir.mkdir(parents=True, exist_ok=True)
 
-            # Update asset source path
+            optimized_file = cache_dir / "optimized-style.css"
+            optimized_file.write_text(optimized_css, encoding="utf-8")
+
+            # Update asset entry point source
             for asset in assets_to_process:
-                if asset.source_path.name == "style.css":
-                    asset._optimized_source = temp_style
+                if asset.is_css_entry_point():
+                    # We tell the asset to use the optimized source instead of theme source
+                    asset._source_override = optimized_file
 
             cli.info(f"CSS optimized: {report['reduction_percent']}% reduction")
+            if orchestrator.site.config.get("verbose"):
+                cli.info(f"  Types: {', '.join(report['types_detected'])}")
+                cli.info(f"  Features: {', '.join(report['features_detected'])}")
 
-    # ... rest of existing phase_assets code
+    # ... existing orchestrator.assets.process(...) call
 ```
 
 ---
@@ -892,16 +802,16 @@ css:
 ## Open Questions
 
 1. **Should we cache the optimization result?**
-   - Pro: Faster incremental builds
-   - Con: Need cache invalidation when pages change types
+   - **Recommendation**: Yes. The optimized `style.css` should be stored in the `.bengal/cache` directory. We can use a hash of the `css_manifest.py`, used content types, and enabled features as the cache key. This ensures that incremental builds only regenerate the CSS if the site's content structure or theme configuration changes.
 
 2. **Should themes be required to have css_manifest.py?**
-   - Current: Falls back to no optimization if missing
-   - Alternative: Generate manifest automatically from directory structure
+   - **Recommendation**: Fallback to no optimization if missing. However, we should implement a "Convention over Configuration" backup where the optimizer looks for files named `components/type-{name}.css` and automatically maps them to content types.
 
 3. **Should we support per-page CSS loading?**
-   - More optimal but adds HTTP requests
-   - Could be a future enhancement
+   - **Recommendation**: Not in Phase 1. The primary goal is reducing the global bundle. Per-page loading adds complexity to the HTML generation and increases HTTP requests. We should revisit this in a future RFC if bundle sizes remain an issue.
+
+4. **Where should feature detection happen?**
+   - **Recommendation**: Move to `ContentOrchestrator` during the discovery phase. As it parses pages, it can easily flag features (mermaid, graph) and store them in `site.features_detected`. This makes `CSSOptimizer` a simple consumer of that data, improving performance and consistency.
 
 ---
 

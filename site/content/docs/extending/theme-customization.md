@@ -233,22 +233,51 @@ themes/my-theme/
 
 ### Theme Configuration
 
-Create `theme.yaml`:
+Create `theme.toml`:
 
-```yaml
-name: my-theme
-version: 1.0.0
-parent: default  # Optional: inherit from another theme
+```toml
+name = "my-theme"
+extends = "default"  # Optional: inherit from another theme
+```
 
-features:
-  navigation:
-    toc: true
-    breadcrumbs: true
-  content:
-    code_copy: true
+### Cross-Theme Template Extends
 
-appearance:
-  default_mode: system
+When your theme extends another theme (like `default`), you can explicitly reference the parent theme's templates using the `theme_name/template.html` syntax:
+
+```jinja
+{# templates/layouts/base.html #}
+{% extends "default/base.html" %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="{{ 'css/my-theme.css' | asset_url }}">
+{% endblock %}
+
+{% block content %}
+<div class="my-theme-wrapper">
+    {{ super() }}
+</div>
+{% endblock %}
+```
+
+This explicit syntax is useful when:
+
+- **Building distributable themes** - Reference parent templates by name for clarity
+- **Avoiding ambiguity** - Specify exactly which theme's template to extend
+- **Debugging** - Make inheritance chain visible in templates
+
+**Without the prefix**, templates use priority-based resolution (project > child theme > parent theme > default):
+
+```jinja
+{# Uses whichever base.html is found first in the chain #}
+{% extends "layouts/base.html" %}
+```
+
+**With the prefix**, templates explicitly target a specific theme:
+
+```jinja
+{# Always extends default theme's base.html #}
+{% extends "default/layouts/base.html" %}
 ```
 
 ### Using Your Theme
