@@ -119,6 +119,8 @@ body {
   background-color: var(--color-bg-primary);
   /* Better text rendering */
   text-rendering: optimizeSpeed;
+  /* Prevent horizontal page scrolling from overflowing content */
+  overflow-x: hidden;
 }
 
 /* ============================================

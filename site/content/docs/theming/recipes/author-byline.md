@@ -86,7 +86,8 @@ author: Jane Smith
 
 ## Variations
 
-### With Social Links
+:::{tab-set}
+:::{tab-item} With Social Links
 
 ```jinja2
 {% if page.author %}
@@ -124,7 +125,8 @@ author: Jane Smith
 {% endif %}
 ```
 
-### Multiple Authors
+:::
+:::{tab-item} Multiple Authors
 
 ```jinja2
 {% if page.authors %}
@@ -154,7 +156,8 @@ authors:
 ---
 ```
 
-### Compact Inline Byline
+:::
+:::{tab-item} Compact Inline
 
 ```jinja2
 {% if page.author %}
@@ -168,7 +171,8 @@ authors:
 {% endif %}
 ```
 
-### Link to Author Page
+:::
+:::{tab-item} Link to Author Page
 
 ```jinja2
 {% if page.author %}
@@ -181,7 +185,8 @@ authors:
 {% endif %}
 ```
 
-### Author Card (Full)
+:::
+:::{tab-item} Full Author Card
 
 ```jinja2
 {% if page.author %}
@@ -206,6 +211,9 @@ authors:
 </aside>
 {% endif %}
 ```
+
+:::
+:::
 
 ## Example CSS
 

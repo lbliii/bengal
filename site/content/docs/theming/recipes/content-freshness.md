@@ -53,7 +53,8 @@ This recipe shows how to use `page.age_days` for **automatic** freshness detecti
 
 ## Variations
 
-### New Badge in Post List
+:::{tab-set}
+:::{tab-item} Post List Badge
 
 ```jinja2
 {% for post in posts %}
@@ -69,7 +70,8 @@ This recipe shows how to use `page.age_days` for **automatic** freshness detecti
 {% endfor %}
 ```
 
-### Humanized Publish Date
+:::
+:::{tab-item} Humanized Date
 
 ```jinja2
 <time datetime="{{ page.date | date_iso }}">
@@ -93,7 +95,8 @@ Or use the filter directly:
 <time>Published {{ page.date | days_ago | humanize_days }}</time>
 ```
 
-### Staleness Warning Banner
+:::
+:::{tab-item} Staleness Warning
 
 ```jinja2
 {% if page.age_months > 6 %}
@@ -109,7 +112,8 @@ Or use the filter directly:
 {% endif %}
 ```
 
-### Tiered Freshness Indicator
+:::
+:::{tab-item} Tiered Styling
 
 ```jinja2
 {% set freshness = 'fresh' if page.age_days < 30
@@ -122,7 +126,8 @@ Or use the filter directly:
 </article>
 ```
 
-### Recently Updated Section
+:::
+:::{tab-item} Recently Updated
 
 ```jinja2
 {# Show posts updated in the last 7 days #}
@@ -143,29 +148,8 @@ Or use the filter directly:
 </section>
 ```
 
-### Age-Based Styling
-
-```jinja2
-<article class="post"
-         data-age-days="{{ page.age_days }}"
-         data-age-months="{{ page.age_months }}">
-  <!-- Content -->
-</article>
-```
-
-```css
-/* Fade older content slightly */
-.post[data-age-months="12"] { opacity: 0.9; }
-.post[data-age-months="24"] { opacity: 0.8; }
-
-/* Or add visual indicator */
-.post[data-age-months="12"]::before {
-  content: "📅";
-  margin-right: 0.5rem;
-}
-```
-
-### Content Review Reminder
+:::
+:::{tab-item} Review Reminder
 
 For documentation sites that need regular review:
 
@@ -179,6 +163,9 @@ For documentation sites that need regular review:
 </div>
 {% endif %}
 ```
+
+:::
+:::
 
 ## Example CSS
 

@@ -85,7 +85,8 @@ series:
 
 ## Variations
 
-### Progress Bar
+:::{tab-set}
+:::{tab-item} Progress Bar
 
 ```jinja2
 {% if page.series %}
@@ -96,7 +97,8 @@ series:
 {% endif %}
 ```
 
-### Series Table of Contents
+:::
+:::{tab-item} Table of Contents
 
 Show all parts with current highlighted:
 
@@ -115,7 +117,8 @@ Show all parts with current highlighted:
 {% endif %}
 ```
 
-### Compact Footer Navigation
+:::
+:::{tab-item} Compact Footer
 
 ```jinja2
 {% if page.series %}
@@ -137,7 +140,8 @@ Show all parts with current highlighted:
 {% endif %}
 ```
 
-### With Completion Message
+:::
+:::{tab-item} Completion Message
 
 ```jinja2
 {% if page.series %}
@@ -148,6 +152,9 @@ Show all parts with current highlighted:
   {% endif %}
 {% endif %}
 ```
+
+:::
+:::
 
 ## Example CSS
 

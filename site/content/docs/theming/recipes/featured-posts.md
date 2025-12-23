@@ -69,7 +69,8 @@ featured: true
 
 ## Variations
 
-### Featured Hero
+:::{tab-set}
+:::{tab-item} Hero Layout
 
 Single featured post as hero:
 
@@ -91,7 +92,8 @@ Single featured post as hero:
 {% endif %}
 ```
 
-### Featured + Regular Posts
+:::
+:::{tab-item} Sidebar + Main
 
 ```jinja2
 {% set all_posts = section.sorted_pages %}
@@ -119,7 +121,8 @@ Single featured post as hero:
 </div>
 ```
 
-### Featured Badge in Lists
+:::
+:::{tab-item} Badge in Lists
 
 ```jinja2
 {% for post in section.sorted_pages %}
@@ -132,7 +135,8 @@ Single featured post as hero:
 {% endfor %}
 ```
 
-### Featured Grid
+:::
+:::{tab-item} Image Grid
 
 ```jinja2
 {% set featured = section.featured_posts | limit(4) %}
@@ -152,7 +156,8 @@ Single featured post as hero:
 </div>
 ```
 
-### Site-Wide Featured
+:::
+:::{tab-item} Site-Wide
 
 Get featured posts from any section:
 
@@ -170,7 +175,8 @@ Get featured posts from any section:
 </section>
 ```
 
-### Featured with Priority
+:::
+:::{tab-item} With Priority
 
 Support priority ordering:
 
@@ -185,7 +191,8 @@ featured_priority: 1  # Lower = higher priority
 {% set featured = section.featured_posts | sort_by('metadata.featured_priority') %}
 ```
 
-### Rotating Featured
+:::
+:::{tab-item} Daily Rotation
 
 Show different featured posts based on day:
 
@@ -199,6 +206,9 @@ Show different featured posts based on day:
   <a href="{{ todays_featured.href }}">{{ todays_featured.title }}</a>
 </aside>
 ```
+
+:::
+:::
 
 ## Example CSS
 

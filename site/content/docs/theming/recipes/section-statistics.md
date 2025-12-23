@@ -51,7 +51,8 @@ This recipe shows how to use section-level properties like `section.post_count`,
 
 ## Variations
 
-### Section Header Stats
+:::{tab-set}
+:::{tab-item} Section Header
 
 ```jinja2
 <header class="section-header">
@@ -75,7 +76,8 @@ This recipe shows how to use section-level properties like `section.post_count`,
 </header>
 ```
 
-### Sidebar Stats Widget
+:::
+:::{tab-item} Sidebar Widget
 
 ```jinja2
 <aside class="stats-widget">
@@ -96,7 +98,8 @@ This recipe shows how to use section-level properties like `section.post_count`,
 </aside>
 ```
 
-### Subsection Comparison
+:::
+:::{tab-item} Comparison Table
 
 ```jinja2
 <div class="subsection-stats">
@@ -124,7 +127,8 @@ This recipe shows how to use section-level properties like `section.post_count`,
 </div>
 ```
 
-### Visual Progress Bars
+:::
+:::{tab-item} Progress Bars
 
 ```jinja2
 {% set max_posts = section.subsections | map(attribute='post_count') | max %}
@@ -142,7 +146,8 @@ This recipe shows how to use section-level properties like `section.post_count`,
 </div>
 ```
 
-### Site-Wide Statistics
+:::
+:::{tab-item} Site-Wide
 
 ```jinja2
 {% set blog = get_section('blog') %}
@@ -167,23 +172,8 @@ This recipe shows how to use section-level properties like `section.post_count`,
 </footer>
 ```
 
-### Humanized Reading Time
-
-```jinja2
-{% set total_mins = section.total_reading_time %}
-
-<p class="reading-estimate">
-  {% if total_mins < 60 %}
-    About {{ total_mins }} minutes to read everything
-  {% elif total_mins < 120 %}
-    About 1 hour to read everything
-  {% else %}
-    About {{ (total_mins / 60) | round | int }} hours to read everything
-  {% endif %}
-</p>
-```
-
-### Author Statistics
+:::
+:::{tab-item} By Author
 
 Combine with author data:
 
@@ -204,6 +194,9 @@ Combine with author data:
   </ul>
 </div>
 ```
+
+:::
+:::
 
 ## Example CSS
 

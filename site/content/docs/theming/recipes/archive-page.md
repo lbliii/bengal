@@ -66,7 +66,8 @@ This recipe shows how to customize grouping or build your own archive layouts.
 
 ## Variations
 
-### Archive Sidebar
+:::{tab-set}
+:::{tab-item} Sidebar Widget
 
 Quick navigation showing years with counts:
 
@@ -87,7 +88,8 @@ Quick navigation showing years with counts:
 </aside>
 ```
 
-### Monthly Archive
+:::
+:::{tab-item} Monthly Archive
 
 ```jinja2
 {% set posts = site.pages | where('section', 'blog') | sort_by('date', reverse=true) %}
@@ -110,7 +112,8 @@ Quick navigation showing years with counts:
 </div>
 ```
 
-### Compact Timeline
+:::
+:::{tab-item} Compact Timeline
 
 ```jinja2
 {% set posts = site.pages | where('section', 'blog') | sort_by('date', reverse=true) %}
@@ -133,7 +136,8 @@ Quick navigation showing years with counts:
 </div>
 ```
 
-### Archive with Categories
+:::
+:::{tab-item} With Categories
 
 ```jinja2
 {% set posts = site.pages | where('section', 'blog') | sort_by('date', reverse=true) %}
@@ -158,7 +162,8 @@ Quick navigation showing years with counts:
 {% endfor %}
 ```
 
-### Archive Stats Header
+:::
+:::{tab-item} Stats Header
 
 ```jinja2
 {% set posts = site.pages | where('section', 'blog') %}
@@ -172,6 +177,9 @@ Quick navigation showing years with counts:
   </p>
 </header>
 ```
+
+:::
+:::
 
 ## Example CSS
 

@@ -52,7 +52,8 @@
 /* Tracks Grid */
 .tracks-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    /* Use min() to ensure grid doesn't overflow on very small screens */
+    grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr));
     gap: var(--space-6);
     margin-top: var(--space-8);
 }
@@ -112,7 +113,7 @@
 /* Responsive Design */
 @media (max-width: 1024px) {
     .tracks-grid {
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
         gap: var(--space-5);
     }
 }

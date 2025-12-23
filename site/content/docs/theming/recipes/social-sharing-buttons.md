@@ -64,7 +64,8 @@ This recipe shows how to customize placement or add additional platforms.
 
 ## Variations
 
-### With Icons
+:::{tab-set}
+:::{tab-item} With Icons
 
 ```jinja2
 <div class="share-buttons">
@@ -83,7 +84,8 @@ This recipe shows how to customize placement or add additional platforms.
 </div>
 ```
 
-### Twitter with Via Attribution
+:::
+:::{tab-item} Twitter via Attribution
 
 ```jinja2
 <a href="{{ twitter_share_url(page.absolute_href, page.title, via='yourblog') }}">
@@ -93,7 +95,8 @@ This recipe shows how to customize placement or add additional platforms.
 
 This adds `via @yourblog` to the tweet.
 
-### Full Share Bar
+:::
+:::{tab-item} Full Share Bar
 
 ```jinja2
 <aside class="share-bar">
@@ -133,7 +136,8 @@ This adds `via @yourblog` to the tweet.
 </aside>
 ```
 
-### Copy Link Button
+:::
+:::{tab-item} Copy Link Button
 
 Add a "copy link" button alongside social shares:
 
@@ -156,7 +160,8 @@ document.querySelector('.copy-link').addEventListener('click', function() {
 </script>
 ```
 
-### Mastodon Share (Text-Based)
+:::
+:::{tab-item} Mastodon
 
 Mastodon requires users to paste into their instance, so we generate share text:
 
@@ -174,7 +179,8 @@ document.querySelector('.share-mastodon').addEventListener('click', function() {
 </script>
 ```
 
-### Floating Share Bar
+:::
+:::{tab-item} Floating Bar
 
 ```jinja2
 <aside class="share-floating">
@@ -183,6 +189,9 @@ document.querySelector('.share-mastodon').addEventListener('click', function() {
   <a href="{{ share_url('facebook', page) }}"><i class="icon-facebook"></i></a>
 </aside>
 ```
+
+:::
+:::
 
 ## Example CSS
 
