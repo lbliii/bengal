@@ -626,15 +626,18 @@ class Series:
     """
     Multi-part content series.
 
-    Frontmatter:
-        series: "Building a Blog"
-        series_part: 1
-
-    Or with metadata:
+    Frontmatter (preferred nested format):
         series:
           name: "Building a Blog"
           part: 1
           description: "A complete guide to building a blog with Bengal"
+
+    Legacy flat format (still supported):
+        series: "Building a Blog"
+        series_part: 1
+
+    Note: `total` is calculated automatically from the number of pages
+    in the series - no need to specify it in frontmatter!
 
     Template Usage:
         {% if page.series %}
@@ -658,7 +661,7 @@ class Series:
 
     @property
     def total(self) -> int:
-        """Total number of parts in series."""
+        """Total number of parts in series (auto-calculated)."""
         return len(self.parts)
 
     def get_position(self, page: Page) -> int | None:
@@ -692,14 +695,15 @@ class SeriesIndex(QueryIndex):
     """
     Index pages by series.
 
-    Frontmatter formats:
-        series: "Building a Blog"
-        series_part: 1
-
-        # Or with metadata:
+    Preferred frontmatter format (nested):
         series:
           name: "Building a Blog"
           part: 1
+          description: "Optional series description"
+
+    Legacy format (flat, still supported for backward compatibility):
+        series: "Building a Blog"
+        series_part: 1
 
     Template Usage:
         {% set all_series = site.indexes.series.keys() %}
@@ -715,17 +719,21 @@ class SeriesIndex(QueryIndex):
         if not series:
             return []
 
-        if isinstance(series, str):
-            name = series
-            part = page.metadata.get("series_part", 0)
-        elif isinstance(series, dict):
+        # Preferred: nested dict format
+        if isinstance(series, dict):
             name = series.get("name", "")
             part = series.get("part", 0)
+            description = series.get("description", "")
+        # Legacy: flat string format
+        elif isinstance(series, str):
+            name = series
+            part = page.metadata.get("series_part", 0)
+            description = ""
         else:
             return []
 
         if name:
-            return [(name, {"part": part})]
+            return [(name, {"part": part, "description": description})]
 
         return []
 ```
@@ -1308,6 +1316,47 @@ features:
 
 ---
 
+## Design Decisions
+
+### Nested vs Flat Frontmatter Format
+
+**Decision**: Prefer nested key format for structured data.
+
+**Rationale**: Nested format is cleaner, groups related data, and is more extensible.
+
+```yaml
+# ✅ Preferred (nested)
+series:
+  name: "Building a Blog"
+  part: 1
+  description: "A complete guide"
+
+author:
+  name: "Jane Smith"
+  twitter: "janesmith"
+  bio: "Python enthusiast"
+
+# 🔄 Supported (flat, for backward compatibility)
+series: "Building a Blog"
+series_part: 1
+
+author: "Jane Smith"
+```
+
+### Auto-Calculated Fields
+
+**Decision**: Calculate derived values automatically rather than requiring manual input.
+
+| Field | Calculated From |
+|-------|----------------|
+| `series.total` | Count of pages in series index |
+| `author.slug` | Slugified author name |
+| `series.slug` | Slugified series name |
+
+This prevents errors from mismatched `total` values across posts.
+
+---
+
 ## Open Questions
 
 1. **Should `Author` be cached in PageCore?**
@@ -1316,7 +1365,7 @@ features:
    - **Recommendation**: No, compute on access for now
 
 2. **Should series ordering support non-numeric parts?**
-   - E.g., `series_part: "introduction"` vs `series_part: 1`
+   - E.g., `part: "introduction"` vs `part: 1`
    - **Recommendation**: Support both, numeric first, then by date
 
 3. **Should social share icons be bundled?**
