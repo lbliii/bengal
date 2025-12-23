@@ -35,7 +35,7 @@ dependencies = [
     "pygments>=2.18.0",
     "python-frontmatter>=1.0.0",
     "jsmin>=3.0.1",
-    "pillow>=10.0.0",                            # Image processing for social cards
+    "pillow>=10.0.0",                          # Image processing for social cards
     "psutil>=5.9.0",                           # For better process management in cleanup
     "textual>=0.96",                           # Interactive dashboards (Visual API requires >=0.96)
     "textual-serve>=0.1.0",                    # Web-based dashboard access
