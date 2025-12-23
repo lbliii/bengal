@@ -48,7 +48,8 @@ Both approaches calculate reading time at 200 words per minute by default.
 
 ## Variations
 
-### With Word Count
+:::{tab-set}
+:::{tab-item} With Word Count
 
 Bengal provides a `word_count` filter that strips HTML and counts words:
 
@@ -58,7 +59,8 @@ Bengal provides a `word_count` filter that strips HTML and counts words:
 
 Both filters work together seamlessly since they use the same word counting logic.
 
-### Custom Calculation
+:::
+:::{tab-item} Custom WPM
 
 ```jinja2
 {# 250 words per minute instead of 200 #}
@@ -68,7 +70,8 @@ Both filters work together seamlessly since they use the same word counting logi
 <span>{{ minutes }} min read</span>
 ```
 
-### Handle Short Content
+:::
+:::{tab-item} Short Content
 
 ```jinja2
 {% set minutes = page.content | reading_time %}
@@ -84,7 +87,8 @@ Both filters work together seamlessly since they use the same word counting logi
 </span>
 ```
 
-### Frontmatter Override
+:::
+:::{tab-item} Frontmatter Override
 
 Allow manual override for complex content:
 
@@ -104,6 +108,9 @@ title: Complex Technical Guide
 reading_time: 25  # Override calculated time
 ---
 ```
+
+:::
+:::
 
 :::{seealso}
 

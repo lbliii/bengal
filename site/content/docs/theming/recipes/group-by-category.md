@@ -50,7 +50,8 @@ Display content organized by category, tag, or any frontmatter field.
 
 ## Variations
 
-### Group by Year
+:::{tab-set}
+:::{tab-item} By Year
 
 ```jinja2
 {# Group blog posts by publication year #}
@@ -67,7 +68,8 @@ Display content organized by category, tag, or any frontmatter field.
 {% endfor %}
 ```
 
-### Group by Tag (Taxonomy)
+:::
+:::{tab-item} By Tag (Taxonomy)
 
 ```jinja2
 {# Show all tags with their post counts #}
@@ -79,7 +81,8 @@ Display content organized by category, tag, or any frontmatter field.
 {% endfor %}
 ```
 
-### Nested Groups
+:::
+:::{tab-item} Nested Groups
 
 ```jinja2
 {# Group by category, then by author #}
@@ -97,6 +100,9 @@ Display content organized by category, tag, or any frontmatter field.
   {% endfor %}
 {% endfor %}
 ```
+
+:::
+:::
 
 ## Handle Missing Values
 
