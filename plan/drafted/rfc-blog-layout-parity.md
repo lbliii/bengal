@@ -682,6 +682,224 @@ theme:
 
 ---
 
+## New Bengal Capabilities That Simplify Implementation
+
+Since the blog templates were originally built, Bengal has added **80+ template functions** and multiple infrastructure improvements that significantly reduce the work needed. Here's what's now available:
+
+### Template Functions & Filters
+
+#### Collection Operations (Phase 3 Accelerators)
+
+```jinja
+{# Filter posts by tag, category, author - supports operators! #}
+{% set tutorials = site.pages | where('tags', 'tutorial', 'in') %}
+{% set recent = site.pages | where('date', one_year_ago, 'gt') %}
+{% set by_author = site.pages | where('metadata.author', 'Jane') %}
+
+{# Group by any attribute #}
+{% set by_category = posts | group_by('category') %}
+{% for category, posts in by_category.items() %}...{% endfor %}
+
+{# Sort, limit, offset for pagination #}
+{% set recent_5 = posts | sort_by('date', reverse=true) | limit(5) %}
+{% set page_2 = posts | offset(10) | limit(10) %}
+
+{# Set operations for "related but not current" patterns #}
+{% set related = post.related_posts | complement([post]) %}
+```
+
+**Impact**: Explore bar, related posts, and archive pages can use these filters directly instead of custom logic.
+
+#### Pagination Helpers (Phase 3 Accelerators)
+
+```jinja
+{# Built-in pagination #}
+{% set pagination = posts | paginate(10, current_page) %}
+{% for post in pagination.items %}...{% endfor %}
+
+{# Smart page range with ellipsis #}
+{% for page_num in page_range(pagination.current_page, pagination.total_pages) %}
+  {% if page_num is none %}<span>...</span>{% else %}...{% endif %}
+{% endfor %}
+```
+
+**Impact**: Pagination is solved - no custom JS or template logic needed.
+
+#### String & Content Processing (Phase 2 Accelerators)
+
+```jinja
+{# Reading time (already available!) #}
+{{ page.content | reading_time }} min read
+
+{# Word count #}
+{{ page.content | word_count }} words
+
+{# Smart excerpt extraction #}
+{{ page.excerpt | truncatewords(30) }}
+
+{# First sentence for summaries #}
+{{ page.description | first_sentence }}
+```
+
+**Impact**: Reading statistics are one-liners now.
+
+#### Navigation Functions (Phase 2-3 Accelerators)
+
+```jinja
+{# Breadcrumbs #}
+{% set breadcrumbs = get_breadcrumbs(page) %}
+
+{# Section-scoped navigation #}
+{% set blog_posts = section_pages('/posts/', recursive=true) %}
+
+{# TOC generation (already in single.html) #}
+{% set toc_items = get_toc_grouped(page.toc_items) %}
+```
+
+**Impact**: Blog navigation and TOC are built-in.
+
+#### SEO Functions (Phase 4 Accelerators)
+
+```jinja
+{# Auto-generate meta descriptions #}
+<meta name="description" content="{{ page.content | meta_description(160) }}">
+
+{# Keywords from tags #}
+<meta name="keywords" content="{{ page.tags | meta_keywords(10) }}">
+
+{# Open Graph with social card fallback #}
+<meta property="og:image" content="{{ og_image(page.metadata.get('image', ''), page) }}">
+
+{# Canonical URLs #}
+<link rel="canonical" href="{{ canonical_url(page.href, page=page) }}">
+```
+
+**Impact**: SEO is largely automatic for blog posts.
+
+#### Icon System (Phase 1-4 Accelerators)
+
+```jinja
+{# Pre-loaded, cached icons #}
+{{ icon('clock', size=14) }} {{ reading_time }} min
+{{ icon('calendar', size=14) }} {{ date | dateformat('%B %d') }}
+{{ icon('tag', size=14) }} {{ tags | length }} tags
+{{ icon('share', size=16, css_class='share-icon') }}
+
+{# Author social links #}
+{{ icon(link.type | default('external'), size=16) }}
+```
+
+**Impact**: Consistent iconography with zero configuration.
+
+#### Image Helpers (Phase 3-4 Accelerators)
+
+```jinja
+{# Responsive images #}
+<img srcset="{{ 'hero.jpg' | image_srcset([400, 800, 1200]) }}" />
+
+{# Auto-generate alt text from filename #}
+<img alt="{{ 'mountain-sunset.jpg' | image_alt }}">
+```
+
+**Impact**: Featured images can be responsive by default.
+
+### Template Tests (Cleaner Conditionals)
+
+```jinja
+{# Instead of verbose metadata checks #}
+{% if page is draft %}...{% endif %}
+{% if page is featured %}...{% endif %}
+{% if page is outdated(90) %}⚠️ May be outdated{% endif %}
+{% if page is translated %}🌐{% endif %}
+```
+
+**Impact**: Simpler templates with readable conditionals.
+
+### Page Properties (New Since Blog Templates Built)
+
+The `Page` object now has many convenience properties:
+
+```jinja
+{# Reading & display #}
+{{ page.reading_time }}     {# Pre-calculated reading time #}
+{{ page.excerpt }}          {# Smart excerpt extraction #}
+{{ page.meta_description }} {# SEO-ready description #}
+{{ page.keywords }}         {# Keywords from tags + metadata #}
+
+{# Navigation #}
+{{ page.prev }}             {# Previous post #}
+{{ page.next }}             {# Next post #}
+{{ page.prev_in_section }}  {# Previous in same section #}
+{{ page.next_in_section }}  {# Next in same section #}
+{{ page.parent }}           {# Parent section #}
+{{ page.ancestors }}        {# Breadcrumb trail #}
+
+{# Relationships #}
+{{ page.related_posts }}    {# Content-based related posts #}
+{{ page.translations }}     {# i18n alternatives #}
+
+{# Visibility control #}
+{{ page.in_listings }}      {# Should show in lists? #}
+{{ page.in_sitemap }}       {# Include in sitemap? #}
+{{ page.in_rss }}           {# Include in RSS? #}
+```
+
+**Impact**: prev/next navigation, related posts, and visibility are built-in.
+
+### Hero System (Phase 1 Accelerator)
+
+The page hero dispatcher now supports multiple variants:
+
+```jinja
+{# In blog templates, just include the dispatcher #}
+{% include 'partials/page-hero.html' %}
+
+{# It routes based on: page.variant > page.metadata.hero_style > theme default #}
+{# Available styles: editorial, overview, magazine, classic #}
+```
+
+**Impact**: Blog can use existing hero infrastructure instead of custom hero code.
+
+### Chunk Filter (Phase 3 Accelerator)
+
+```jinja
+{# Grid layouts #}
+{% for row in posts | chunk(3) %}
+<div class="row">
+  {% for post in row %}
+  <div class="col">{% include 'partials/blog-post-card.html' %}</div>
+  {% endfor %}
+</div>
+{% endfor %}
+```
+
+**Impact**: Grid layouts are trivial.
+
+### Revised Effort Estimate
+
+With these capabilities, the implementation is **significantly simpler**:
+
+| Phase | Original Estimate | Revised Estimate | Reason |
+|-------|------------------|------------------|--------|
+| Phase 1: Visual Polish | 4-6 hours | **2-3 hours** | Hero system reuse |
+| Phase 2: Reading Experience | 4-6 hours | **2-3 hours** | Built-in page props |
+| Phase 3: Content Discovery | 6-8 hours | **3-4 hours** | Filters, pagination |
+| Phase 4: Author Experience | 3-4 hours | **2-3 hours** | Icon, SEO helpers |
+| Phase 5: Config & Polish | 2-3 hours | **1-2 hours** | Feature flags exist |
+| **Total** | **19-27 hours** | **10-15 hours** | ~50% reduction |
+
+### Implementation Shortcuts
+
+1. **Don't rebuild pagination** - Use `paginate()` filter + `page_range()`
+2. **Don't rebuild related posts** - Use `page.related_posts` property
+3. **Don't rebuild prev/next** - Use `page.prev`, `page.next` properties
+4. **Don't rebuild reading time** - Use `page.reading_time` property
+5. **Don't rebuild SEO** - Use `meta_description`, `canonical_url`, `og_image`
+6. **Don't rebuild hero** - Use existing hero dispatcher with `hero_style: magazine`
+7. **Don't rebuild icons** - Use `{{ icon('name') }}` everywhere
+
+---
+
 ## File Changes Summary
 
 ### New Files
