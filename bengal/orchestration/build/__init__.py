@@ -50,6 +50,7 @@ import time
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
+from bengal.core.output import BuildOutputCollector
 from bengal.orchestration.asset import AssetOrchestrator
 from bengal.orchestration.content import ContentOrchestrator
 from bengal.orchestration.menu import MenuOrchestrator
@@ -338,6 +339,11 @@ class BuildOrchestrator:
             stats=self.stats,
         )
 
+        # Create output collector for hot reload tracking
+        # This collector tracks all written files (HTML, CSS, assets) for typed reload decisions.
+        # See: plan/ready/rfc-build-output-tracking.md
+        output_collector = BuildOutputCollector(output_dir=self.site.output_dir)
+
         # Phase 1: Font Processing
         initialization.phase_fonts(self, cli)
 
@@ -419,7 +425,7 @@ class BuildOrchestrator:
 
         # Phase 13: Process Assets
         assets_to_process = rendering.phase_assets(
-            self, cli, incremental, parallel, assets_to_process
+            self, cli, incremental, parallel, assets_to_process, collector=output_collector
         )
 
         # Phase 14: Render Pages (with cached content from discovery)
@@ -439,6 +445,7 @@ class BuildOrchestrator:
             profile_templates=profile_templates,
             early_context=early_ctx,
             changed_sources=changed_sources,
+            collector=output_collector,
         )
 
         # Phase 15: Update Site Pages (replace proxies with rendered pages)
@@ -448,13 +455,18 @@ class BuildOrchestrator:
         rendering.phase_track_assets(self, pages_to_build, cli=cli)
 
         # Phase 17: Post-processing
-        finalization.phase_postprocess(self, cli, parallel, ctx, incremental)
+        finalization.phase_postprocess(
+            self, cli, parallel, ctx, incremental, collector=output_collector
+        )
 
         # Phase 18: Save Cache
         finalization.phase_cache_save(self, pages_to_build, assets_to_process, cli=cli)
 
         # Phase 19: Collect Final Stats
         finalization.phase_collect_stats(self, build_start, cli=cli)
+
+        # Populate changed_outputs from collector for hot reload decisions
+        self.stats.changed_outputs = output_collector.get_outputs()
 
         # Phase 20: Health Check
         with logger.phase("health_check"):

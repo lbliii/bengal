@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from bengal.core.output import OutputRecord
     from bengal.health.report import HealthReport
 
 
@@ -98,9 +99,10 @@ class BuildStats:
     # Strict mode flag (fail on validation errors)
     strict_mode: bool = False
 
-    # Optional: builder-provided list of changed output paths (relative to output dir)
-    # When provided, the dev server will prefer this over snapshot diffing for reload decisions.
-    changed_outputs: list[str] | None = None
+    # Builder-provided list of typed output records for hot reload decisions.
+    # When provided, the dev server uses this for CSS-only reload detection instead of snapshot diffing.
+    # See: plan/ready/rfc-build-output-tracking.md
+    changed_outputs: list[OutputRecord] = field(default_factory=list)
 
     # Health check report (set after health checks run)
     health_report: HealthReport | None = None

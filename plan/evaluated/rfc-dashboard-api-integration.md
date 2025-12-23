@@ -1,7 +1,8 @@
 # RFC: Dashboard Deep API Integration
 
-**Status**: Draft  
+**Status**: Evaluated  
 **Created**: 2024-12-21  
+**Plan**: `plan/ready/plan-dashboard-api-integration.md`  
 **Author**: AI Assistant  
 **Depends On**:
 - Terminal UX with Textual (implemented)

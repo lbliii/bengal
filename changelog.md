@@ -1,5 +1,14 @@
 ## [Unreleased]
 
+### Parallel Asset Tracking ✅
+- **orchestration(build)**: parallelize `phase_track_assets` using `ThreadPoolExecutor` matching rendering pattern
+- **orchestration(build)**: add `PARALLEL_THRESHOLD = 5` to skip thread overhead for small sites
+- **orchestration(build)**: extract assets in parallel for 3-4x speedup on multi-core systems (100+ pages)
+- **cache(asset_dependency_map)**: verify thread safety of `track_page_assets()` (atomic dict assignment)
+- **rendering(asset_extractor)**: verify stateless `extract_assets_from_html()` is thread-safe (new parser per call)
+- **tests(unit)**: add 5 tests for parallel asset tracking (sequential/parallel paths, edge cases, threshold behavior)
+- **plan**: remove completed parallel asset tracking RFC - work documented in changelog
+
 ### CLI Analysis Improvements ✅
 - **cli**: promote `graph` to top-level command (`bengal graph`) alongside `bengal utils graph` for backward compatibility
 - **cli**: add `bengal analyze` alias for `bengal graph report` unified analysis command
