@@ -8,6 +8,8 @@ Key Properties:
     - meta_description: SEO-friendly description (max 160 chars)
     - reading_time: Estimated reading time in minutes
     - excerpt: Content excerpt for listings (max 200 chars)
+    - age_days: Days since publication
+    - age_months: Months since publication
 
 Performance:
     All properties use @cached_property decorator, ensuring expensive operations
@@ -23,6 +25,7 @@ See Also:
 from __future__ import annotations
 
 import re
+from datetime import UTC, datetime
 from functools import cached_property
 from typing import Any, Protocol, cast
 
@@ -32,6 +35,12 @@ class HasMetadata(Protocol):
 
     metadata: dict[str, Any]
     content: str
+
+
+class HasDate(Protocol):
+    """Protocol for objects that have a date attribute."""
+
+    date: datetime | None
 
 
 class PageComputedMixin:
@@ -163,3 +172,52 @@ class PageComputedMixin:
         # Find the last space before the limit (respect word boundaries)
         excerpt_text = clean_text[:length].rsplit(" ", 1)[0]
         return excerpt_text + "..."
+
+    @cached_property
+    def age_days(self: HasDate) -> int:
+        """
+        Calculate days since publication (computed once, cached).
+
+        Returns the number of days since the page's date. Useful for
+        determining content freshness and applying age-based styling.
+
+        Returns:
+            Number of days since publication, or 0 if no date
+
+        Example:
+            {% if page.age_days < 7 %}
+              <span class="badge">New</span>
+            {% endif %}
+        """
+        page_date = getattr(self, "date", None)
+        if page_date is None:
+            return 0
+
+        # Handle timezone-aware dates
+        now = datetime.now(UTC) if page_date.tzinfo is not None else datetime.now()
+        diff = now - page_date
+        return max(0, diff.days)
+
+    @cached_property
+    def age_months(self: HasDate) -> int:
+        """
+        Calculate months since publication (computed once, cached).
+
+        Uses calendar months rather than 30-day periods for more intuitive
+        results. A post from January 15 accessed in March would be 2 months old.
+
+        Returns:
+            Number of months since publication, or 0 if no date
+
+        Example:
+            {% if page.age_months > 6 %}
+              <div class="notice">This content may be outdated.</div>
+            {% endif %}
+        """
+        page_date = getattr(self, "date", None)
+        if page_date is None:
+            return 0
+
+        now = datetime.now(UTC) if page_date.tzinfo is not None else datetime.now()
+        months = (now.year - page_date.year) * 12 + (now.month - page_date.month)
+        return max(0, months)

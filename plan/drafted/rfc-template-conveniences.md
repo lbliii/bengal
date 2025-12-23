@@ -1247,19 +1247,45 @@ def last_updated(self) -> datetime | None:
 ### Unit Tests
 
 ```python
-# tests/unit/core/test_author.py
-def test_author_from_string():
-    author = Author.from_frontmatter("Jane Smith")
-    assert author.name == "Jane Smith"
-    assert author.slug == "jane-smith"
-
-def test_author_from_dict():
-    author = Author.from_frontmatter({
-        "name": "Jane Smith",
-        "twitter": "janesmith",
+# tests/unit/cache/test_author_index_extended.py
+def test_author_index_extraction_all_fields():
+    """Verify that AuthorIndex extracts all structured metadata fields."""
+    page = FakePage(metadata={
+        "author": {
+            "name": "Jane Smith",
+            "twitter": "janesmith",
+            "github": "janesmith",
+            "avatar": "/img/jane.jpg"
+        }
     })
-    assert author.name == "Jane Smith"
-    assert author.twitter == "janesmith"
+    index = AuthorIndex(tmp_path)
+    keys = index.extract_keys(page)
+    name, meta = keys[0]
+    assert name == "Jane Smith"
+    assert meta["twitter"] == "janesmith"
+    assert meta["avatar"] == "/img/jane.jpg"
+
+
+# tests/unit/template_functions/test_dates_extended.py
+def test_humanize_days():
+    assert humanize_days(0) == "today"
+    assert humanize_days(1) == "yesterday"
+    assert humanize_days(5) == "5 days ago"
+    assert humanize_days(14) == "2 weeks ago"
+    assert humanize_days(60) == "2 months ago"
+    assert humanize_days(400) == "1 year ago"
+
+
+# tests/unit/core/test_series_sorting.py
+def test_series_sorting_mixed_types():
+    """Test that series parts sort numeric first, then strings, then by date."""
+    pages = [
+        FakePage(title="Intro", metadata={"series": {"part": "intro"}}, date=d1),
+        FakePage(title="Part 2", metadata={"series": {"part": 2}}, date=d2),
+        FakePage(title="Part 1", metadata={"series": {"part": 1}}, date=d3),
+        FakePage(title="Appendix", metadata={"series": {"part": "appendix"}}, date=d4),
+    ]
+    # ... logic to check order is [Part 1, Part 2, Intro, Appendix]
 
 
 # tests/unit/template_functions/test_collections_extended.py
