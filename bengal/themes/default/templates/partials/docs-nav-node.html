@@ -24,15 +24,8 @@ Usage:
 {% set item_title = item.title %}
 {% set item_icon = item.icon %}
 
-{# -------------------------------------------------------------------------
-Docs nav performance:
-- Rendering the full recursive tree for every doc page is expensive.
-- We render children eagerly only up to a small depth, plus the active trail.
-- Opt-out: enable feature flag 'docs.sidebar.render_full_tree' in theme.features.
-------------------------------------------------------------------------- #}
-{% set render_full_tree = 'docs.sidebar.render_full_tree' in theme.features %}
-{% set ALWAYS_RENDER_DEPTH = 1 %}
-{% set should_render_children = render_full_tree or item.is_in_trail or (depth <= ALWAYS_RENDER_DEPTH) %}
+{# Always render full tree - simpler and more reliable #}
+{% set should_render_children = true %}
 
 {% if item.has_children %}
 {# ===== ROOT NODE (depth 0) - Static header, no toggle ===== #}

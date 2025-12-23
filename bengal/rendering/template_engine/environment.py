@@ -340,13 +340,14 @@ def create_jinja_environment(
         )
         logger.debug("template_bytecode_cache_enabled", cache_dir=str(cache_dir))
 
-        # NOTE: Race conditions in parallel rendering
+        # NOTE: Race condition mitigation
         # When multiple threads compile the same template simultaneously, Jinja2's
         # FileSystemBytecodeCache creates temporary .tmp files that may be cleaned up
-        # before they're read, causing harmless FileNotFoundError warnings. These errors
-        # are caught silently by Jinja2 and don't impact performance - templates simply
-        # recompile if cache is missing. The race condition is inherent to Jinja2's
-        # cache design and doesn't significantly impact build performance.
+        # before they're read, causing harmless FileNotFoundError warnings. To prevent
+        # duplicate compilation work, we use per-template locks in JinjaTemplateEngine
+        # to serialize compilation. Once one thread compiles and writes the bytecode cache,
+        # other threads can load it quickly. This reduces wasted CPU from concurrent
+        # compilation of the same template.
     elif auto_reload:
         logger.debug("template_bytecode_cache_disabled", reason="dev_server_auto_reload")
 

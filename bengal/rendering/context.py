@@ -415,12 +415,16 @@ class ParamsContext:
         return self.__getattr__(key)
 
     def get(self, key: str, default: Any = "") -> Any:
-        """Get with explicit default."""
+        """Get with explicit default (cached for nested dicts)."""
         value = self._data.get(key)
         if value is None:
             return default
         if isinstance(value, dict):
-            return ParamsContext(value)
+            # Use same cache as __getattr__ for consistency
+            cache = object.__getattribute__(self, "_cache")
+            if key not in cache:
+                cache[key] = ParamsContext(value)
+            return cache[key]
         return value
 
     def __contains__(self, key: str) -> bool:
@@ -743,12 +747,18 @@ class MenusContext:
         {% for item in menus.main %}
         {% for item in menus.footer %}
         {% for item in menus.get('sidebar') %}
+
+    Performance:
+        Menu dicts are cached on first access to avoid repeated .to_dict() calls.
+        For a 1000-page site accessing menus 3x per page, this eliminates
+        ~3000 unnecessary dict creations per build.
     """
 
-    __slots__ = ("_site",)
+    __slots__ = ("_site", "_cache")
 
     def __init__(self, site: Site):
         self._site = site
+        self._cache: dict[str, list] = {}
 
     def __getattr__(self, name: str) -> list:
         if name.startswith("_"):
@@ -756,9 +766,44 @@ class MenusContext:
         return self.get(name)
 
     def get(self, name: str, lang: str = "") -> list:
-        """Get menu by name, optionally filtered by language."""
+        """
+        Get menu by name, optionally filtered by language (cached).
+
+        Args:
+            name: Menu name (e.g., 'main', 'footer', 'sidebar')
+            lang: Optional language code for i18n menus
+
+        Returns:
+            List of menu item dicts (cached after first access)
+        """
+        cache_key = f"{name}:{lang}" if lang else name
+
+        if cache_key in self._cache:
+            return self._cache[cache_key]
+
+        # Check for localized menu if language specified
+        if lang:
+            localized = self._site.menu_localized.get(name, {}).get(lang)
+            if localized is not None:
+                self._cache[cache_key] = [
+                    item.to_dict() if hasattr(item, "to_dict") else item for item in localized
+                ]
+                return self._cache[cache_key]
+
+        # Default menu
         menu = self._site.menu.get(name, [])
-        return [item.to_dict() if hasattr(item, "to_dict") else item for item in menu]
+        self._cache[cache_key] = [
+            item.to_dict() if hasattr(item, "to_dict") else item for item in menu
+        ]
+        return self._cache[cache_key]
+
+    def invalidate(self) -> None:
+        """
+        Clear the menu cache.
+
+        Call this when menus are rebuilt (e.g., during dev server reload).
+        """
+        self._cache.clear()
 
 
 # =============================================================================

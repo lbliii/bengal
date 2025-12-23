@@ -30,6 +30,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from bengal.core.nav_tree import NavTreeCache
+from bengal.utils.concurrent_locks import PerKeyLockManager
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
@@ -66,12 +67,22 @@ class NavScaffoldCache:
     """
     Thread-safe cache for pre-rendered nav scaffold HTML.
 
+    Uses per-scaffold locking to prevent duplicate renders when multiple
+    threads request the same scaffold simultaneously. Different scaffolds
+    can still be rendered in parallel.
+
     Caches scaffold HTML per (site, version_id, root_url) scope.
     Invalidated when site object changes (new build session).
+
+    Thread Safety:
+        - _lock: Protects the _scaffolds dictionary
+        - _render_locks: Per-scaffold locks to serialize renders for SAME scope
+        - Different scaffolds render in parallel (no contention)
     """
 
     _scaffolds: dict[tuple[str | None, str], str] = {}
     _lock = threading.Lock()
+    _render_locks = PerKeyLockManager()  # Per-scaffold render serialization
     _site: Site | None = None
     _MAX_CACHE_SIZE = 50
 
@@ -86,6 +97,10 @@ class NavScaffoldCache:
         """
         Get cached scaffold HTML or render and cache it.
 
+        Thread-safe: Multiple threads requesting the same scaffold will serialize
+        on the render, with only one thread doing the actual work. Different
+        scaffolds can be rendered in parallel.
+
         Args:
             site: Site instance
             version_id: Optional version ID for versioned docs
@@ -97,27 +112,36 @@ class NavScaffoldCache:
         """
         cache_key = (version_id, root_url)
 
+        # 1. Quick cache check
         with cls._lock:
             # Full invalidation if site object changed (new build session)
             if cls._site is not site:
                 cls._scaffolds.clear()
+                cls._render_locks.clear()  # Clear render locks on new session
                 cls._site = site
 
             if cache_key in cls._scaffolds:
                 return cls._scaffolds[cache_key]
 
-        # Render outside lock to avoid blocking
-        html = renderer()
+        # 2. Serialize renders for SAME scaffold (different scaffolds render in parallel)
+        # cache_key is a tuple, which is hashable
+        with cls._render_locks.get_lock(cache_key):
+            # Double-check: another thread may have rendered while we waited
+            with cls._lock:
+                if cache_key in cls._scaffolds:
+                    return cls._scaffolds[cache_key]
 
-        with cls._lock:
-            # Double-check and cache
-            if cache_key not in cls._scaffolds:
+            # 3. Render outside cache lock (expensive operation)
+            html = renderer()
+
+            # 4. Store result
+            with cls._lock:
                 # Evict oldest if at capacity
                 if len(cls._scaffolds) >= cls._MAX_CACHE_SIZE:
                     oldest_key = next(iter(cls._scaffolds))
                     cls._scaffolds.pop(oldest_key, None)
                 cls._scaffolds[cache_key] = html
-            return cls._scaffolds[cache_key]
+                return html
 
     @classmethod
     def invalidate(cls, version_id: str | None = None, root_url: str | None = None) -> None:
@@ -125,6 +149,7 @@ class NavScaffoldCache:
         with cls._lock:
             if version_id is None and root_url is None:
                 cls._scaffolds.clear()
+                cls._render_locks.clear()
             else:
                 keys_to_remove = [
                     k
@@ -134,6 +159,16 @@ class NavScaffoldCache:
                 ]
                 for k in keys_to_remove:
                     cls._scaffolds.pop(k, None)
+
+    @classmethod
+    def clear_locks(cls) -> None:
+        """
+        Clear all render locks.
+
+        Call this at the end of a build session to reset lock state.
+        Safe to call when no threads are actively rendering.
+        """
+        cls._render_locks.clear()
 
 
 class ScaffoldNodeProxy:

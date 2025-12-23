@@ -51,6 +51,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 from bengal.core.diagnostics import emit
+from bengal.utils.concurrent_locks import PerKeyLockManager
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
@@ -677,44 +678,67 @@ class NavTreeCache:
     """
     Thread-safe cache for NavTree instances.
 
+    Uses per-version locking to prevent duplicate NavTree builds when multiple
+    threads request the same version simultaneously. Different versions can
+    still be built in parallel.
+
     Memory leak prevention: Cache is limited to 20 entries. When limit is reached,
     oldest entries are evicted (FIFO). This prevents unbounded growth if many
     version_ids are created.
+
+    Thread Safety:
+        - _lock: Protects the _trees dictionary
+        - _build_locks: Per-version locks to serialize builds for SAME version
+        - Different versions build in parallel (no contention)
     """
 
     _trees: dict[str | None, NavTree] = {}
     _lock = threading.Lock()
+    _build_locks = PerKeyLockManager()  # Per-version build serialization
     _site: Site | None = None
     _MAX_CACHE_SIZE = 20
 
     @classmethod
     def get(cls, site: Site, version_id: str | None = None) -> NavTree:
-        """Get a cached NavTree or build it if missing."""
-        # 1. Quick check with lock for existing tree
+        """
+        Get a cached NavTree or build it if missing.
+
+        Thread-safe: Multiple threads requesting the same version will serialize
+        on the build, with only one thread doing the actual work. Different
+        versions can be built in parallel.
+        """
+        # 1. Quick cache check
         with cls._lock:
             # Full invalidation if site object changed (new build session)
             if cls._site is not site:
                 cls._trees.clear()
+                cls._build_locks.clear()  # Clear build locks on new session
                 cls._site = site
 
             if version_id in cls._trees:
                 return cls._trees[version_id]
 
-        # 2. Build outside the main lock to avoid blocking other versions,
-        # but we need a way to prevent concurrent builds for the SAME version.
-        # For Phase 1 simplification, we'll build and then update.
-        # In a high-concurrency production environment, we'd use a per-version lock.
-        tree = NavTree.build(site, version_id)
+        # 2. Serialize builds for SAME version (different versions build in parallel)
+        # Use "__default__" as key for None version_id since None is hashable but
+        # using a string makes debugging clearer
+        build_key = version_id if version_id is not None else "__default__"
+        with cls._build_locks.get_lock(build_key):
+            # Double-check: another thread may have built while we waited
+            with cls._lock:
+                if version_id in cls._trees:
+                    return cls._trees[version_id]
 
-        with cls._lock:
-            # Double-check if another thread built it while we were building
-            if version_id not in cls._trees:
+            # 3. Build outside cache lock (expensive operation)
+            tree = NavTree.build(site, version_id)
+
+            # 4. Store result
+            with cls._lock:
                 # Evict oldest entry if cache is full (prevent memory leak)
                 if len(cls._trees) >= cls._MAX_CACHE_SIZE:
                     oldest_key = next(iter(cls._trees))
                     cls._trees.pop(oldest_key, None)
                 cls._trees[version_id] = tree
-            return cls._trees[version_id]
+                return tree
 
     @classmethod
     def invalidate(cls, version_id: str | None = None) -> None:
@@ -722,5 +746,16 @@ class NavTreeCache:
         with cls._lock:
             if version_id is None:
                 cls._trees.clear()
+                cls._build_locks.clear()
             else:
                 cls._trees.pop(version_id, None)
+
+    @classmethod
+    def clear_locks(cls) -> None:
+        """
+        Clear all build locks.
+
+        Call this at the end of a build session to reset lock state.
+        Safe to call when no threads are actively building.
+        """
+        cls._build_locks.clear()

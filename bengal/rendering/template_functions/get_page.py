@@ -2,11 +2,17 @@
 Template function for retrieving a page by path.
 
 Used by tracks feature to resolve track item pages.
+
+Performance Optimization (RFC: rfc-track-layout-performance):
+    Per-render caching eliminates redundant get_page() calls within a single
+    page render. Track pages call get_page() ~54 times per page; caching
+    reduces this to ~9 actual lookups with 45 cache hits.
 """
 
 from __future__ import annotations
 
 import re
+import threading
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -19,6 +25,68 @@ if TYPE_CHECKING:
     from bengal.core.site import Site
 
 logger = get_logger(__name__)
+
+# Thread-local cache for per-render get_page() results.
+# Each thread gets its own cache dict, ensuring thread safety for parallel builds.
+# Cache is cleared at the start of each page render by clear_get_page_cache().
+_render_cache = threading.local()
+
+
+def _get_render_cache() -> dict[str, Page | None]:
+    """
+    Get per-render cache for get_page() results (thread-safe).
+
+    Returns:
+        Thread-local dict mapping normalized paths to Page objects (or None for misses).
+    """
+    if not hasattr(_render_cache, "pages"):
+        _render_cache.pages = {}
+    return _render_cache.pages
+
+
+def clear_get_page_cache() -> None:
+    """
+    Clear per-render cache for get_page() results.
+
+    Called at the start of each page render by RenderingPipeline.process_page().
+    Thread-safe: only clears the cache for the current thread.
+
+    See Also:
+        - bengal/rendering/pipeline/core.py: RenderingPipeline.process_page()
+        - plan/drafted/rfc-track-layout-performance.md
+    """
+    if hasattr(_render_cache, "pages"):
+        _render_cache.pages.clear()
+
+
+def _normalize_cache_key(path: str) -> str:
+    """
+    Normalize path to canonical form for cache key.
+
+    Ensures all path variants resolve to the same cache entry:
+    - "./foo.md" -> "foo.md"
+    - "content/foo.md" -> "foo.md"
+    - "foo\\bar.md" -> "foo/bar.md" (Windows paths)
+    - "foo.md" -> "foo.md"
+
+    Args:
+        path: Raw path from template
+
+    Returns:
+        Normalized path suitable for cache key
+    """
+    # Normalize path separators (Windows -> Unix)
+    normalized = path.replace("\\", "/")
+
+    # Strip leading "./"
+    if normalized.startswith("./"):
+        normalized = normalized[2:]
+
+    # Strip "content/" prefix
+    if normalized.startswith("content/"):
+        normalized = normalized[8:]  # len("content/") = 8
+
+    return normalized
 
 
 def _ensure_page_parsed(page: Page, site: Site) -> None:

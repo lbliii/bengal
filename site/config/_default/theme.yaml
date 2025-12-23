@@ -22,9 +22,6 @@ theme:
     - navigation.back_to_top      # Back-to-top button when scrolling
     # - navigation.tabs           # Tabbed top-level navigation (disabled)
 
-    # Docs Sidebar (Performance)
-    - docs.sidebar.scaffold_mode  # Full tree + JS active state + HTML caching (fastest!)
-
     # Content
     - content.code.copy           # Copy button on code blocks
     - content.lightbox            # Image lightbox on click

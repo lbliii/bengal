@@ -555,10 +555,6 @@ _path, kind, tags are always defined - no defensive checks needed.
         <script defer src="{{ asset_url('js/enhancements/toc.js') }}"></script>
         <script defer src="{{ asset_url('js/enhancements/action-bar.js') }}"></script>
         <script defer src="{{ asset_url('js/enhancements/copy-link.js') }}"></script>
-        {# Scaffold mode navigation - Feature: docs.sidebar.scaffold_mode (Phase 2 optimization) #}
-        {% if 'docs.sidebar.scaffold_mode' in theme.features %}
-        <script defer src="{{ asset_url('js/enhancements/docs-nav-scaffold.js') }}"></script>
-        {% endif %}
         {# Optional enhancements - Auto-loaded by bengal-enhance.js when data-bengal elements detected #}
         {# Lightbox JS - Feature: content.lightbox (still manually loaded for feature gate) #}
         {% if 'content.lightbox' in theme.features %}

@@ -8,6 +8,7 @@ of concerns, no global mutable state, and comprehensive error handling.
 Categories:
     **Async & Concurrency**:
         - async_compat: uvloop integration for Rust-accelerated async I/O
+        - concurrent_locks: Per-key locking for parallel builds
         - thread_local: Thread-local caching for expensive objects
         - retry: Exponential backoff retry utilities
 
@@ -84,6 +85,7 @@ from __future__ import annotations
 from bengal.core.section import resolve_page_section_path
 from bengal.utils import (
     async_compat,
+    concurrent_locks,
     dates,
     file_io,
     hashing,
@@ -92,6 +94,7 @@ from bengal.utils import (
     thread_local,
 )
 from bengal.utils.async_compat import run_async
+from bengal.utils.concurrent_locks import PerKeyLockManager
 from bengal.utils.hashing import hash_bytes, hash_dict, hash_file, hash_file_with_stat, hash_str
 from bengal.utils.pagination import Paginator
 from bengal.utils.path_resolver import PathResolver, resolve_path
@@ -104,11 +107,13 @@ __all__ = [
     "BengalPaths",
     "Paginator",
     "PathResolver",
+    "PerKeyLockManager",
     "ThreadLocalCache",
     "ThreadSafeSet",
     "async_compat",
     "async_retry_with_backoff",
     "calculate_backoff",
+    "concurrent_locks",
     "dates",
     "file_io",
     "hash_bytes",
