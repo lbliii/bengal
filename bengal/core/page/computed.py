@@ -340,3 +340,112 @@ class PageComputedMixin:
             return None
 
         return Series.from_frontmatter(series_data)
+
+    @cached_property
+    def prev_in_series(self: HasSiteAndMetadata) -> Any | None:
+        """
+        Get previous page in series (computed once, cached).
+
+        Looks up other pages in the same series via the SeriesIndex and
+        returns the page with part number one less than this page.
+
+        Returns:
+            Previous Page in series, or None if first/not in series
+
+        Example:
+            {% if page.prev_in_series %}
+              <a href="{{ page.prev_in_series.href }}">
+                ← {{ page.prev_in_series.title }}
+              </a>
+            {% endif %}
+        """
+        return self._get_series_neighbor(-1)
+
+    @cached_property
+    def next_in_series(self: HasSiteAndMetadata) -> Any | None:
+        """
+        Get next page in series (computed once, cached).
+
+        Looks up other pages in the same series via the SeriesIndex and
+        returns the page with part number one more than this page.
+
+        Returns:
+            Next Page in series, or None if last/not in series
+
+        Example:
+            {% if page.next_in_series %}
+              <a href="{{ page.next_in_series.href }}">
+                {{ page.next_in_series.title }} →
+              </a>
+            {% endif %}
+        """
+        return self._get_series_neighbor(1)
+
+    def _get_series_neighbor(self: HasSiteAndMetadata, offset: int) -> Any | None:
+        """
+        Get neighboring page in series by part offset.
+
+        Args:
+            offset: Part number offset (-1 for prev, +1 for next)
+
+        Returns:
+            Neighboring Page or None
+        """
+        # Get series info from this page
+        series_data = self.metadata.get("series")
+        if not series_data:
+            return None
+
+        # Extract series name and current part
+        if isinstance(series_data, str):
+            series_name = series_data
+            current_part = 1
+        elif isinstance(series_data, dict):
+            series_name = series_data.get("name", "")
+            current_part = int(series_data.get("part", 1))
+        else:
+            return None
+
+        if not series_name:
+            return None
+
+        target_part = current_part + offset
+        if target_part < 1:
+            return None
+
+        # Access site's series index
+        site = getattr(self, "_site", None)
+        if site is None:
+            return None
+
+        # Get series index
+        indexes = getattr(site, "indexes", None)
+        if indexes is None:
+            return None
+
+        series_index = getattr(indexes, "series", None)
+        if series_index is None:
+            return None
+
+        # Get all page paths in this series
+        page_paths = series_index.get(series_name)
+        if not page_paths:
+            return None
+
+        # Get page lookup map
+        page_map = site.get_page_path_map()
+
+        # Find the page with the target part number
+        for path in page_paths:
+            page = page_map.get(path)
+            if page is None:
+                continue
+
+            # Check this page's part number
+            page_series = page.metadata.get("series")
+            page_part = int(page_series.get("part", 1)) if isinstance(page_series, dict) else 1
+
+            if page_part == target_part:
+                return page
+
+        return None

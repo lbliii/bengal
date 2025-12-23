@@ -23,7 +23,7 @@ Implement build-time CSS optimization that analyzes which content types are actu
 
 Bengal's default theme ships **all CSS** regardless of what content types a site uses:
 
-```
+```text
 themes/default/assets/css/style.css
 ├── tokens/         (~8KB)   - Always needed
 ├── base/           (~12KB)  - Always needed  
@@ -44,6 +44,7 @@ TOTAL: ~180KB (minified: ~140KB, gzipped: ~25KB)
 ### The Problem
 
 A **blog-only site** ships CSS for:
+
 - ❌ `autodoc.css` (API documentation)
 - ❌ `tutorial.css` (learning content)
 - ❌ `docs-nav.css` (documentation sidebar)
@@ -57,6 +58,7 @@ A **blog-only site** ships CSS for:
 ### Why This Matters More Now
 
 With the addition of specialized site types (RFC: `rfc-specialized-site-types.md`), we're adding:
+
 - `portfolio.css`
 - `product.css`
 - `wiki.css`
@@ -70,25 +72,29 @@ Without tree shaking, the CSS bundle will grow to ~200KB+. A recipe site shouldn
 ## Goals
 
 ### Must Have
-1. **Automatic detection** of content types used in site
-2. **Build-time CSS filtering** - generate optimized style.css
-3. **Zero config** - works out of the box
-4. **No external dependencies** - pure Python
-5. **High Performance** - Integrate feature detection into Phase 2 Discovery to avoid redundant I/O
+
+1. Automatic detection of content types used in site
+2. Build-time CSS filtering - generate optimized style.css
+3. Zero config - works out of the box
+4. No external dependencies - pure Python
+5. High Performance - Integrate feature detection into Phase 2 Discovery to avoid redundant I/O
 
 ### Should Have
-6. **Feature detection** - also filter by features (graph, search, mermaid)
-7. **Logging** - show what was included/excluded
-8. **Override mechanism** - force include/exclude specific CSS
-9. **Build Cache Integration** - Cache the optimized CSS entry point to speed up incremental builds
+
+1. Feature detection - also filter by features (graph, search, mermaid)
+2. Logging - show what was included/excluded
+3. Override mechanism - force include/exclude specific CSS
+4. Build Cache Integration - Cache the optimized CSS entry point to speed up incremental builds
 
 ### Nice to Have
-10. **Size reporting** - show before/after bundle size
-11. **Dev mode bypass** - option to include all CSS during development
-12. **Per-page CSS** - load type-specific CSS only on matching pages
-13. **Automatic Manifest Inference** - Infer type mappings if theme follows naming conventions (e.g., `components/type-{name}.css`)
+
+1. Size reporting - show before/after bundle size
+2. Dev mode bypass - option to include all CSS during development
+3. Per-page CSS - load type-specific CSS only on matching pages
+4. Automatic Manifest Inference - Infer type mappings if theme follows naming conventions (e.g., `components/type-{name}.css`)
 
 ### Non-Goals
+
 - Runtime CSS loading (adds complexity, HTTP requests)
 - Selector-level tree shaking (requires PurgeCSS)
 - CSS-in-JS or CSS modules
@@ -99,7 +105,7 @@ Without tree shaking, the CSS bundle will grow to ~200KB+. A recipe site shouldn
 
 ### Architecture Overview
 
-```
+```text
 Build Pipeline
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -217,7 +223,6 @@ CSS_PALETTES: list[str] = [
     "tokens/palettes/charcoal-bengal.css",
     "tokens/palettes/blue-bengal.css",
 ]
-```
 ```
 
 ### CSS Optimizer Implementation
@@ -620,7 +625,7 @@ css:
 
 ### Build Output
 
-```
+```text
 $ bengal build
 
 Building site...
@@ -636,7 +641,7 @@ Build complete in 1.2s
 
 ### Verbose Mode
 
-```
+```text
 $ bengal build --verbose
 
 CSS Optimization Report:
@@ -763,6 +768,7 @@ def test_optimized_build_produces_smaller_css(test_site_blog):
 **No action required.** CSS optimization is enabled by default and works automatically.
 
 To disable:
+
 ```yaml
 # bengal.yaml
 css:
@@ -780,17 +786,20 @@ css:
 ## Rollout Plan
 
 ### Phase 1: Core Implementation (4-6 hours)
+
 - [ ] Create `css_manifest.py` for default theme
 - [ ] Implement `CSSOptimizer` class
 - [ ] Add integration point in asset phase
 - [ ] Unit tests
 
 ### Phase 2: Polish (2-3 hours)
+
 - [ ] CLI output improvements
 - [ ] Configuration options
 - [ ] Documentation
 
 ### Phase 3: Validation (2-3 hours)
+
 - [ ] Integration tests
 - [ ] Performance benchmarks
 - [ ] Real-world site testing
