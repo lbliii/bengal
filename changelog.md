@@ -1,5 +1,35 @@
 ## [Unreleased]
 
+### CLI Analysis Improvements ✅
+- **cli**: promote `graph` to top-level command (`bengal graph`) alongside `bengal utils graph` for backward compatibility
+- **cli**: add `bengal analyze` alias for `bengal graph report` unified analysis command
+- **cli(graph)**: add `bengal graph report` unified command combining analyze, suggest, bridges, and communities
+- **cli(graph)**: add `bengal graph orphans` command with connectivity level filtering
+- **plan**: remove completed CLI analysis improvements RFC and plan - work documented in changelog
+
+### Dashboard Content Enrichment ✅
+- **cli(dashboard/build)**: add `_get_build_stats_content()` method showing pages, assets, cache hit rate, memory, and build mode
+- **cli(dashboard/build)**: add build statistics panel with real-time stats display
+- **cli(dashboard/build)**: add phase profiling table with percentage columns and visual indicators
+- **cli(dashboard)**: enrich dashboards with actionable content and real-time statistics
+- **plan**: remove completed dashboard content enrichment RFC and plan - work documented in changelog
+
+### CLI Output Experience ✅
+- **output(icons)**: add ASCII-first icon policy with cat+mouse branding (`ᓚᘏᗢ` and `ᘛ⁐̤ᕐᐷ`)
+- **output(icons)**: implement `IconSet` class with ASCII defaults and optional emoji support via `BENGAL_EMOJI=1`
+- **output(core)**: adopt semantic styling with sentence case headers and consistent color tokens
+- **output**: add comprehensive CLI output conventions documentation (`bengal/output/README.md`)
+- **plan**: remove completed CLI output experience RFC - work documented in changelog
+
+### LazyLogger Pattern for Test Isolation ✅
+- **utils(logger)**: add `LazyLogger` transparent proxy for `BengalLogger` with registry version tracking
+- **utils(logger)**: refactor `get_logger()` to return `LazyLogger` proxy automatically (zero call-site changes)
+- **utils(logger)**: add `_registry_version` counter incremented on `reset_loggers()` to invalidate cached logger references
+- **utils(logger)**: add `_get_actual_logger()` internal factory for lazy logger instantiation
+- **tests(logging)**: simplify `fresh_logger_state` fixture - remove `importlib.reload()` hacks
+- **tests(conftest)**: remove `preserve_loggers` marker logic - LazyLogger handles isolation automatically
+- **plan**: remove completed lazy logger RFC and plan - work documented in changelog
+
 ### AST-Based Content Pipeline ✅
 - **rendering(ast_types)**: add `RawHTMLNode` for directive/prerendered content representation
 - **rendering(ast_types)**: add type guards `is_link()`, `is_image()`, `is_raw_html()` for type-safe AST traversal

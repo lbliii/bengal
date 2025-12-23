@@ -1,6 +1,6 @@
 # RFC: Type System Hardening - Eliminating `Any` at Boundaries
 
-**Status**: Evaluated
+**Status**: Ready
 **Created**: 2025-12-22
 **Updated**: 2025-12-22
 **Author**: AI-assisted
