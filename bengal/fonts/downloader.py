@@ -109,10 +109,12 @@ class GoogleFontsDownloader:
         - Parsing CSS to extract font file URLs
         - SSL certificate issues on macOS (automatic fallback)
         - Atomic file writes to prevent corruption
+        - Both WOFF2 (for web) and TTF (for image generation) formats
 
     Attributes:
         BASE_URL: Google Fonts CSS2 API endpoint.
-        USER_AGENT: Browser user-agent that requests woff2 format.
+        USER_AGENT_WOFF2: Modern browser user-agent that requests woff2 format.
+        USER_AGENT_TTF: Legacy user-agent that requests ttf format.
 
     Example:
         >>> downloader = GoogleFontsDownloader()
@@ -126,15 +128,24 @@ class GoogleFontsDownloader:
         6
 
     Note:
-        The User-Agent string mimics a modern browser to ensure Google
-        returns .woff2 format (the most efficient web font format).
+        The User-Agent string determines the font format Google returns.
+        Modern browsers get WOFF2, legacy browsers get TTF.
     """
 
     BASE_URL = "https://fonts.googleapis.com/css2"
-    USER_AGENT = (
+
+    # Modern browser User-Agent → Google returns WOFF2 (best for web)
+    USER_AGENT_WOFF2 = (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
         "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     )
+
+    # Very old User-Agent → Google returns TTF (needed for Pillow image generation)
+    # Modern browsers get WOFF2, old browsers get WOFF, ancient browsers get TTF
+    USER_AGENT_TTF = "Mozilla/3.0 (compatible)"
+
+    # Default to WOFF2 for backwards compatibility
+    USER_AGENT = USER_AGENT_WOFF2
 
     def download_font(
         self,
@@ -220,6 +231,96 @@ class GoogleFontsDownloader:
             )
             return []
 
+    def download_ttf_font(
+        self,
+        family: str,
+        weights: list[int],
+        styles: list[str] | None = None,
+        output_dir: Path | None = None,
+    ) -> list[FontVariant]:
+        """
+        Download a font family in TTF format (for image generation with Pillow).
+
+        This method uses a legacy User-Agent to request TTF format from Google
+        Fonts, which is needed for rendering text in images with Pillow.
+
+        Args:
+            family: Font family name (e.g., "Inter", "Outfit")
+            weights: List of weights (e.g., [400, 700])
+            styles: List of styles (e.g., ["normal", "italic"])
+            output_dir: Directory to save font files (required)
+
+        Returns:
+            List of downloaded FontVariant objects with TTF files
+
+        Example:
+            >>> downloader = GoogleFontsDownloader()
+            >>> variants = downloader.download_ttf_font(
+            ...     family="Outfit",
+            ...     weights=[400, 700],
+            ...     output_dir=Path("assets/fonts")
+            ... )
+            >>> variants[0].filename
+            'outfit-400.ttf'
+        """
+        from bengal.errors import BengalError
+
+        if output_dir is None:
+            raise BengalError(
+                "output_dir is required for download_ttf_font",
+                suggestion="Provide an absolute output directory path",
+            )
+        styles = styles or ["normal"]
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        # Build Google Fonts CSS URL
+        css_url = self._build_css_url(family, weights, styles)
+
+        try:
+            # Fetch the CSS using legacy User-Agent to get TTF URLs
+            font_urls = self._extract_font_urls(css_url, user_agent=self.USER_AGENT_TTF)
+
+            if not font_urls:
+                logger.warning("no_ttf_fonts_found_for_family", family=family)
+                return []
+
+            # Download each font file
+            variants = []
+            for weight in weights:
+                for style in styles:
+                    key = f"{weight}-{style}"
+                    if key in font_urls:
+                        url = font_urls[key]
+                        variant = FontVariant(family, weight, style, url)
+
+                        # Download the font file
+                        output_path = output_dir / variant.filename
+                        if not output_path.exists():
+                            self._download_file(url, output_path, user_agent=self.USER_AGENT_TTF)
+                            logger.debug(
+                                "ttf_font_downloaded",
+                                family=family,
+                                weight=weight,
+                                filename=variant.filename,
+                            )
+                        else:
+                            logger.debug(
+                                "ttf_font_cached",
+                                family=family,
+                                weight=weight,
+                                filename=variant.filename,
+                            )
+
+                        variants.append(variant)
+
+            return variants
+
+        except Exception as e:
+            logger.error(
+                "ttf_font_download_failed", family=family, error=str(e), error_type=type(e).__name__
+            )
+            return []
+
     def _build_css_url(self, family: str, weights: list[int], styles: list[str]) -> str:
         """
         Build a Google Fonts CSS2 API URL for the specified font configuration.
@@ -254,7 +355,7 @@ class GoogleFontsDownloader:
 
         return url
 
-    def _extract_font_urls(self, css_url: str) -> dict[str, str]:
+    def _extract_font_urls(self, css_url: str, user_agent: str | None = None) -> dict[str, str]:
         """
         Fetch CSS from Google Fonts and extract font file URLs.
 
@@ -263,6 +364,8 @@ class GoogleFontsDownloader:
 
         Args:
             css_url: Complete Google Fonts CSS2 API URL.
+            user_agent: User-Agent string to use. Determines font format returned.
+                Use USER_AGENT_WOFF2 for web fonts, USER_AGENT_TTF for image gen.
 
         Returns:
             Dictionary mapping ``"{weight}-{style}"`` keys to font file URLs.
@@ -272,7 +375,8 @@ class GoogleFontsDownloader:
             urllib.error.URLError: If the network request fails.
             ssl.SSLError: If SSL verification fails (handled with fallback).
         """
-        req = urllib.request.Request(css_url, headers={"User-Agent": self.USER_AGENT})
+        ua = user_agent or self.USER_AGENT
+        req = urllib.request.Request(css_url, headers={"User-Agent": ua})
 
         # Try with standard SSL verification first, fall back to unverified on macOS
         try:
@@ -319,7 +423,7 @@ class GoogleFontsDownloader:
 
         return font_urls
 
-    def _download_file(self, url: str, output_path: Path) -> None:
+    def _download_file(self, url: str, output_path: Path, user_agent: str | None = None) -> None:
         """
         Download a file from URL and save it atomically.
 
@@ -330,12 +434,14 @@ class GoogleFontsDownloader:
         Args:
             url: Direct URL to the font file.
             output_path: Destination path for the downloaded file.
+            user_agent: User-Agent string to use for the request.
 
         Raises:
             urllib.error.URLError: If the download fails after SSL fallback.
             OSError: If the file cannot be written.
         """
-        req = urllib.request.Request(url, headers={"User-Agent": self.USER_AGENT})
+        ua = user_agent or self.USER_AGENT
+        req = urllib.request.Request(url, headers={"User-Agent": ua})
 
         # Try with standard SSL verification first, fall back to unverified on macOS
         try:

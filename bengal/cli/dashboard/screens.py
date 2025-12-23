@@ -373,22 +373,24 @@ class BuildScreen(BengalScreen):
 
         def on_phase_start(phase_name: str) -> None:
             """Callback when a build phase starts."""
-            self.call_from_thread(phase_progress.start_phase, phase_name)
-            self.call_from_thread(log.write_line, f"→ {phase_name.title()}...")
+            self.app.call_from_thread(phase_progress.start_phase, phase_name)
+            self.app.call_from_thread(log.write_line, f"→ {phase_name.title()}...")
             pct = phase_mapping.get(phase_name.lower(), 50)
-            self.call_from_thread(progress.update, progress=pct - 10)
+            self.app.call_from_thread(progress.update, progress=pct - 10)
 
         def on_phase_complete(phase_name: str, duration_ms: float, details: str) -> None:
             """Callback when a build phase completes."""
-            self.call_from_thread(phase_progress.complete_phase, phase_name, duration_ms, details)
-            self.call_from_thread(
+            self.app.call_from_thread(
+                phase_progress.complete_phase, phase_name, duration_ms, details
+            )
+            self.app.call_from_thread(
                 log.write_line, f"  ✓ {phase_name.title()}: {details} ({duration_ms:.0f}ms)"
             )
             pct = phase_mapping.get(phase_name.lower(), 50)
-            self.call_from_thread(progress.update, progress=pct)
+            self.app.call_from_thread(progress.update, progress=pct)
 
         try:
-            self.call_from_thread(log.write_line, "Starting build...")
+            self.app.call_from_thread(log.write_line, "Starting build...")
 
             orchestrator = BuildOrchestrator(self.site)
 
@@ -401,16 +403,16 @@ class BuildScreen(BengalScreen):
                 on_phase_complete=on_phase_complete,
             )
 
-            self.call_from_thread(progress.update, progress=100)
+            self.app.call_from_thread(progress.update, progress=100)
 
             duration_ms = (monotonic() - start_time) * 1000
 
             # Show success
             throbber = self.query_one("#build-throbber", BengalThrobber)
             flash = self.query_one("#build-flash", BuildFlash)
-            self.call_from_thread(setattr, throbber, "active", False)
-            self.call_from_thread(flash.show_success, f"Build complete in {duration_ms:.0f}ms")
-            self.call_from_thread(log.write_line, f"✓ Build complete in {duration_ms:.0f}ms")
+            self.app.call_from_thread(setattr, throbber, "active", False)
+            self.app.call_from_thread(flash.show_success, f"Build complete in {duration_ms:.0f}ms")
+            self.app.call_from_thread(log.write_line, f"✓ Build complete in {duration_ms:.0f}ms")
 
             # Extract deep build stats (RFC: rfc-dashboard-api-integration)
             page_count = getattr(stats, "pages_rendered", 0) or len(getattr(self.site, "pages", []))
@@ -438,23 +440,23 @@ class BuildScreen(BengalScreen):
                     total = getattr(health_report, "total", 0)
                     stats_table.add_row("Health Checks", f"{passed}/{total} passed")
 
-            self.call_from_thread(populate_stats_table)
+            self.app.call_from_thread(populate_stats_table)
 
-            self.call_from_thread(log.write_line, f"  📄 {page_count} pages rendered")
-            self.call_from_thread(log.write_line, f"  🎨 {asset_count} assets copied")
-            self.call_from_thread(log.write_line, f"  📁 {section_count} sections")
+            self.app.call_from_thread(log.write_line, f"  📄 {page_count} pages rendered")
+            self.app.call_from_thread(log.write_line, f"  🎨 {asset_count} assets copied")
+            self.app.call_from_thread(log.write_line, f"  📁 {section_count} sections")
 
             # Show phase timings if available
             if hasattr(stats, "phase_times") and stats.phase_times:
-                self.call_from_thread(log.write_line, "")
-                self.call_from_thread(log.write_line, "Phase timings:")
+                self.app.call_from_thread(log.write_line, "")
+                self.app.call_from_thread(log.write_line, "Phase timings:")
                 for phase_name, phase_ms in stats.phase_times.items():
-                    self.call_from_thread(log.write_line, f"  {phase_name}: {phase_ms:.0f}ms")
+                    self.app.call_from_thread(log.write_line, f"  {phase_name}: {phase_ms:.0f}ms")
 
             # Show output directory
             output_dir = getattr(self.site, "output_dir", "public")
-            self.call_from_thread(log.write_line, "")
-            self.call_from_thread(log.write_line, f"Output: {output_dir}/")
+            self.app.call_from_thread(log.write_line, "")
+            self.app.call_from_thread(log.write_line, f"Output: {output_dir}/")
 
         except Exception as e:
             duration_ms = (monotonic() - start_time) * 1000
@@ -462,9 +464,9 @@ class BuildScreen(BengalScreen):
             # Show error
             throbber = self.query_one("#build-throbber", BengalThrobber)
             flash = self.query_one("#build-flash", BuildFlash)
-            self.call_from_thread(setattr, throbber, "active", False)
-            self.call_from_thread(flash.show_error, str(e))
-            self.call_from_thread(log.write_line, f"✗ Build failed: {e}")
+            self.app.call_from_thread(setattr, throbber, "active", False)
+            self.app.call_from_thread(flash.show_error, str(e))
+            self.app.call_from_thread(log.write_line, f"✗ Build failed: {e}")
 
     def action_clear_log(self) -> None:
         """Clear the build log."""
@@ -544,12 +546,23 @@ class ServeScreen(BengalScreen):
 
     def _get_server_info(self) -> str:
         """Get server info text."""
-        url = (
-            getattr(self.app, "server_url", "http://localhost:1313")
-            if self.app
-            else "http://localhost:1313"
-        )
+        url = self._get_full_server_url()
         return f"[bold]Server:[/bold] {url}  [dim]Press 'o' to open in browser[/dim]"
+
+    def _get_full_server_url(self) -> str:
+        """Get the full server URL including site baseurl."""
+        base_url = (
+            getattr(self.app, "server_url", "http://localhost:5173")
+            if self.app
+            else "http://localhost:5173"
+        )
+        # Append site's baseurl if it's a path (not absolute URL)
+        if self.site:
+            site_baseurl = getattr(self.site, "baseurl", "") or ""
+            if site_baseurl and not site_baseurl.startswith(("http://", "https://")):
+                site_baseurl = site_baseurl.rstrip("/")
+                return f"{base_url}{site_baseurl}"
+        return base_url
 
     def _get_page_count(self) -> str:
         """Get page count."""
@@ -580,7 +593,7 @@ class ServeScreen(BengalScreen):
         """Open browser to dev server."""
         import webbrowser
 
-        url = getattr(self.app, "server_url", "http://localhost:1313")
+        url = self._get_full_server_url()
         webbrowser.open(url)
         self.app.notify(f"Opening {url}", title="Browser")
 
@@ -739,12 +752,12 @@ class HealthScreen(BengalScreen):
 
         try:
             # Run health check
-            self.call_from_thread(summary.update, "Scanning...")
+            self.app.call_from_thread(summary.update, "Scanning...")
 
             report = HealthReport.from_site(self.site)
 
             # Clear and rebuild tree
-            self.call_from_thread(tree.root.remove_children)
+            self.app.call_from_thread(tree.root.remove_children)
 
             # Add issues by category
             total_issues = 0
@@ -752,26 +765,26 @@ class HealthScreen(BengalScreen):
             if hasattr(report, "link_issues") and report.link_issues:
                 links = tree.root.add(f"Links ({len(report.link_issues)})")
                 for issue in report.link_issues[:10]:  # Limit display
-                    self.call_from_thread(links.add_leaf, f"✗ {issue}")
+                    self.app.call_from_thread(links.add_leaf, f"✗ {issue}")
                 total_issues += len(report.link_issues)
 
             if hasattr(report, "content_issues") and report.content_issues:
                 content = tree.root.add(f"Content ({len(report.content_issues)})")
                 for issue in report.content_issues[:10]:
-                    self.call_from_thread(content.add_leaf, f"⚠ {issue}")
+                    self.app.call_from_thread(content.add_leaf, f"⚠ {issue}")
                 total_issues += len(report.content_issues)
 
             if total_issues == 0:
-                self.call_from_thread(tree.root.add_leaf, "✓ No issues found")
-                self.call_from_thread(summary.update, "Site is healthy!")
+                self.app.call_from_thread(tree.root.add_leaf, "✓ No issues found")
+                self.app.call_from_thread(summary.update, "Site is healthy!")
             else:
-                self.call_from_thread(summary.update, f"Found {total_issues} issue(s)")
+                self.app.call_from_thread(summary.update, f"Found {total_issues} issue(s)")
 
-            self.call_from_thread(self.app.notify, "Health scan complete", title="Health")
+            self.app.call_from_thread(self.app.notify, "Health scan complete", title="Health")
 
         except Exception as e:
-            self.call_from_thread(summary.update, f"Scan failed: {e}")
-            self.call_from_thread(self.app.notify, str(e), title="Error", severity="error")
+            self.app.call_from_thread(summary.update, f"Scan failed: {e}")
+            self.app.call_from_thread(self.app.notify, str(e), title="Error", severity="error")
 
 
 class HelpScreen(Screen):

@@ -112,7 +112,7 @@ class BengalServeDashboard(BengalDashboard):
         site: Site | None = None,
         *,
         host: str = "localhost",
-        port: int = 3000,
+        port: int = 5173,
         watch: bool = True,
         open_browser: bool = False,
         **kwargs: Any,
@@ -238,15 +238,24 @@ class BengalServeDashboard(BengalDashboard):
 
                 # Get actual port (may have changed due to auto_port)
                 actual_port = server.port
-                url = f"http://{self.host}:{actual_port}"
+                base_url = f"http://{self.host}:{actual_port}"
+
+                # Append site's baseurl if it's a path (not absolute URL)
+                site_baseurl = getattr(self.site, "baseurl", "") or ""
+                if site_baseurl and not site_baseurl.startswith(("http://", "https://")):
+                    # It's a path like "/blog" - append it
+                    site_baseurl = site_baseurl.rstrip("/")
+                    url = f"{base_url}{site_baseurl}"
+                else:
+                    url = base_url
 
                 # Update UI
-                self.call_from_thread(self._on_server_started, url)
+                self.app.call_from_thread(self._on_server_started, url)
 
                 # Start server (blocks until stopped)
                 server.start()
             except Exception as e:
-                self.call_from_thread(self._on_server_error, str(e))
+                self.app.call_from_thread(self._on_server_error, str(e))
 
         self._server_thread = threading.Thread(target=run_server, daemon=True)
         self._server_thread.start()
@@ -503,7 +512,7 @@ def run_serve_dashboard(
     site: Site,
     *,
     host: str = "localhost",
-    port: int = 3000,
+    port: int = 5173,
     watch: bool = True,
     open_browser: bool = False,
     **kwargs: Any,

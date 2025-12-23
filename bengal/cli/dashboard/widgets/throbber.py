@@ -15,14 +15,19 @@ Usage:
 from __future__ import annotations
 
 from time import monotonic
+from typing import TYPE_CHECKING
 
 from rich.color import Color
 from rich.segment import Segment
 from rich.style import Style as RichStyle
 from textual.reactive import reactive
 from textual.strip import Strip
-from textual.visual import Visual
+from textual.style import Style as TextualStyle
+from textual.visual import RenderOptions, Visual
 from textual.widget import Widget
+
+if TYPE_CHECKING:
+    from textual.css.styles import RulesMap
 
 # Bengal color gradient (orange shades)
 BENGAL_COLORS = [
@@ -88,11 +93,20 @@ class BengalThrobberVisual(Visual):
 
     gradient = Gradient.from_colors(*[Color.parse(c) for c in BENGAL_COLORS])
 
+    def get_optimal_width(self, rules: RulesMap, container_width: int) -> int:
+        """Return optimal width - fill container."""
+        return container_width
+
+    def get_height(self, rules: RulesMap, width: int) -> int:
+        """Return height - always 1 line."""
+        return 1
+
     def render_strips(
         self,
         width: int,
-        height: int,
-        base_style: RichStyle,
+        height: int | None,
+        base_style: TextualStyle,
+        options: RenderOptions,
         /,
     ) -> list[Strip]:
         """
@@ -100,14 +114,16 @@ class BengalThrobberVisual(Visual):
 
         Args:
             width: Width in characters
-            height: Height in characters
+            height: Height in characters or None for any height
             base_style: Base style to apply
+            options: Additional render options
 
         Returns:
             List of Strip objects representing the visual
         """
         time = monotonic()
-        bgcolor = base_style.bgcolor if base_style.bgcolor else None
+        # Get background color from Textual style (uses 'background' not 'bgcolor')
+        bgcolor = base_style.background.rich_color if base_style.background else None
 
         segments = [
             Segment(

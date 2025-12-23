@@ -37,7 +37,7 @@ dependencies = [
     "jsmin>=3.0.1",
     "pillow>=10.0.0",
     "psutil>=5.9.0",                           # For better process management in cleanup
-    "textual>=0.89",                           # Interactive dashboards (includes Rich)
+    "textual>=0.96",                           # Interactive dashboards (Visual API requires >=0.96)
     "textual-serve>=0.1.0",                    # Web-based dashboard access
     "questionary>=2.0.0",                      # Interactive CLI prompts with arrow key navigation
     "watchfiles>=0.20",                        # Rust-based file watching for dev server (fast)

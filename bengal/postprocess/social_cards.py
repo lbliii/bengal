@@ -205,6 +205,11 @@ class SocialCardGenerator:
         """
         Load fonts for card rendering (cached).
 
+        Attempts to load fonts in the following order:
+        1. Explicitly configured title_font/body_font in social_cards config
+        2. Site's configured fonts from [fonts] section (downloads TTF if needed)
+        3. Fails gracefully if no fonts available
+
         Returns:
             True if fonts loaded successfully, False if unavailable.
             When False, social card generation should be skipped.
@@ -217,17 +222,22 @@ class SocialCardGenerator:
         if not self._fonts_available:
             return False
 
-        # Try to load bundled Inter font
         try:
-            font_path = self._get_font_path(self.config.title_font)
-            self._title_font = ImageFont.truetype(str(font_path), 56)
-            self._body_font = ImageFont.truetype(
-                str(self._get_font_path(self.config.body_font)), 28
-            )
-            self._small_font = ImageFont.truetype(
-                str(self._get_font_path(self.config.body_font)), 22
+            # Try to find and load fonts
+            title_path = self._get_font_path(self.config.title_font, bold=True)
+            body_path = self._get_font_path(self.config.body_font, bold=False)
+
+            self._title_font = ImageFont.truetype(str(title_path), 56)
+            self._body_font = ImageFont.truetype(str(body_path), 28)
+            self._small_font = ImageFont.truetype(str(body_path), 22)
+
+            logger.info(
+                "social_cards_fonts_loaded",
+                title_font=title_path.name,
+                body_font=body_path.name,
             )
             return True
+
         except OSError as e:
             # Font not available - skip social card generation
             # Don't use load_default() as it causes segfaults with getbbox()
@@ -236,44 +246,131 @@ class SocialCardGenerator:
                 requested_font=self.config.title_font,
                 error=str(e),
                 action="skipping_social_cards",
-                hint="Install Inter font to bengal/fonts/social/ or disable social_cards",
+                hint="Configure [fonts] in your site config to enable social cards",
             )
             self._fonts_available = False
             return False
 
-    def _get_font_path(self, font_name: str) -> Path:
+    def _get_font_path(self, font_name: str, bold: bool = False) -> Path:
         """
-        Get path to font file.
+        Get path to font file, downloading TTF from Google Fonts if needed.
 
-        Searches for bundled fonts in bengal/fonts/social/, then falls back
-        to the fonts module's discovery mechanism.
+        Search order:
+        1. Explicitly named font (e.g., "Inter-Bold") in site assets
+        2. Site's configured fonts (e.g., "Outfit:700") - downloads TTF if needed
+        3. Common variations of the font name
 
         Args:
-            font_name: Font name (e.g., "Inter-Bold")
+            font_name: Font name (e.g., "Inter-Bold" or "Outfit")
+            bold: Whether to prefer bold weight (700) over regular (400)
 
         Returns:
             Path to font file
 
         Raises:
-            OSError: If font file not found
+            OSError: If font file not found and cannot be downloaded
         """
-        # Check bundled social card fonts
-        bundled_dir = Path(__file__).parent.parent / "fonts" / "social"
-        bundled_path = bundled_dir / f"{font_name}.ttf"
-        if bundled_path.exists():
-            return bundled_path
+        # Check site's fonts directory for existing TTF
+        fonts_dir = self.site.root_path / "assets" / "fonts"
+        fonts_dir.mkdir(parents=True, exist_ok=True)
 
-        # Try fonts module
-
-        # Check if we have a font config that might have downloaded fonts
-        fonts_dir = self.site.output_dir / "assets" / "fonts"
+        # Try exact match first
         for pattern in [f"{font_name}.ttf", f"{font_name.lower()}.ttf"]:
             font_path = fonts_dir / pattern
             if font_path.exists():
                 return font_path
 
-        # Raise if not found
+        # Try to use site's configured fonts and download TTF version
+        site_fonts = self.site.config.get("fonts", {})
+        if site_fonts:
+            font_path = self._download_site_font_as_ttf(site_fonts, fonts_dir, bold)
+            if font_path:
+                return font_path
+
+        # Try common font file name patterns (family-weight format)
+        weight = 700 if bold else 400
+        for family in [
+            font_name,
+            font_name.replace("-Bold", ""),
+            font_name.replace("-Regular", ""),
+        ]:
+            safe_name = family.lower().replace(" ", "-")
+            for filename in [f"{safe_name}-{weight}.ttf", f"{safe_name}.ttf"]:
+                font_path = fonts_dir / filename
+                if font_path.exists():
+                    return font_path
+
+        # Raise if nothing found
         raise OSError(f"Font not found: {font_name}")
+
+    def _download_site_font_as_ttf(
+        self, font_config: dict[str, Any], fonts_dir: Path, bold: bool
+    ) -> Path | None:
+        """
+        Download TTF version of site's configured font for image generation.
+
+        Parses the site's [fonts] configuration and downloads the appropriate
+        weight in TTF format (which Pillow needs for image generation).
+
+        Args:
+            font_config: The [fonts] section from site config
+            fonts_dir: Directory to save downloaded fonts
+            bold: Whether to get bold weight (700) or regular (400)
+
+        Returns:
+            Path to downloaded TTF file, or None if download fails
+        """
+        from bengal.fonts.downloader import GoogleFontsDownloader
+
+        # Find first configured font family
+        for _key, value in font_config.items():
+            if isinstance(value, str):
+                # Simple format: "Outfit:400,600,700"
+                parts = value.split(":")
+                family = parts[0]
+                weights = [int(w) for w in parts[1].split(",")] if len(parts) > 1 else [400]
+            elif isinstance(value, dict):
+                # Detailed format: {family: "Outfit", weights: [400, 700]}
+                family = value.get("family", "")
+                weights = value.get("weights", [400])
+            else:
+                continue
+
+            if not family:
+                continue
+
+            # Pick appropriate weight
+            target_weight = 700 if bold else 400
+            if target_weight not in weights:
+                # Fall back to available weights
+                target_weight = max(weights) if bold else min(weights)
+
+            # Check if already downloaded
+            safe_name = family.lower().replace(" ", "-")
+            ttf_path = fonts_dir / f"{safe_name}-{target_weight}.ttf"
+            if ttf_path.exists():
+                return ttf_path
+
+            # Download TTF version
+            try:
+                downloader = GoogleFontsDownloader()
+                variants = downloader.download_ttf_font(
+                    family=family,
+                    weights=[target_weight],
+                    output_dir=fonts_dir,
+                )
+                if variants:
+                    return fonts_dir / variants[0].filename
+            except Exception as e:
+                logger.debug(
+                    "social_cards_ttf_download_failed",
+                    family=family,
+                    weight=target_weight,
+                    error=str(e),
+                )
+                continue
+
+        return None
 
     def _compute_card_hash(self, page: Page) -> str:
         """
@@ -331,7 +428,7 @@ class SocialCardGenerator:
         """
         Get output path for a page's social card.
 
-        Uses page slug to create unique filename.
+        Uses page URL path to create unique filename.
 
         Args:
             page: Page to generate card for
@@ -340,12 +437,11 @@ class SocialCardGenerator:
         Returns:
             Path for social card image
         """
-        # Create filename from page slug/path
-        slug = page.slug or "index"
-        # Handle nested paths
-        if page.section_path:
-            slug = f"{page.section_path.replace('/', '-')}-{slug}"
-        slug = slug.strip("-")
+        # Use page's internal path (_path) to create a clean, unique filename
+        # e.g., /docs/about/concepts/ → docs-about-concepts.png
+        url_path = getattr(page, "_path", None) or "/"
+        # Strip leading/trailing slashes and convert to slug format
+        slug = url_path.strip("/").replace("/", "-") or "index"
 
         ext = "jpg" if self.config.format == "jpg" else "png"
         return output_dir / f"{slug}.{ext}"
@@ -753,11 +849,9 @@ def get_social_card_path(page: Page, config: SocialCardConfig, base_path: str = 
     if not config.enabled:
         return None
 
-    # Build path
-    slug = page.slug or "index"
-    if page.section_path:
-        slug = f"{page.section_path.replace('/', '-')}-{slug}"
-    slug = slug.strip("-")
+    # Build path using page URL path (same logic as _get_output_path)
+    url_path = getattr(page, "_path", None) or "/"
+    slug = url_path.strip("/").replace("/", "-") or "index"
 
     ext = "jpg" if config.format == "jpg" else "png"
     output_dir = config.output_dir.lstrip("/")

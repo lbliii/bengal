@@ -123,7 +123,7 @@ class ContentBrowser(Vertical):
         orphan_pages: list[Page] = []
 
         for page in self._site.pages:
-            section_path = str(page.section.source_path) if page.section else ""
+            section_path = page.section_path or ""
             if section_path:
                 if section_path not in section_pages:
                     section_pages[section_path] = []

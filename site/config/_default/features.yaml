@@ -31,8 +31,9 @@ features:
 #                   set `image: /path.png` in frontmatter to use custom image
 
 social_cards:
-  enabled: false                # Disabled until fonts are properly configured
+  enabled: true
   template: "default"           # "default" (branded) or "minimal" (centered)
   background_color: "#0f172a"   # Slate-900 - matches dark theme
   text_color: "#f8fafc"         # Slate-50 - high contrast text
   accent_color: "#06b6d4"       # Cyan-500 - matches snow-lynx palette
+  # Uses site's configured fonts from fonts.yaml (downloads TTF for image gen)

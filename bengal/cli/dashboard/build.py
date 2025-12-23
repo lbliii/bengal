@@ -281,8 +281,8 @@ class BengalBuildDashboard(BengalDashboard):
 
         try:
             # Discovery phase
-            self.call_from_thread(self._update_phase_running, "Discovery")
-            self.call_from_thread(log.write_line, "→ Discovery...")
+            self.app.call_from_thread(self._update_phase_running, "Discovery")
+            self.app.call_from_thread(log.write_line, "→ Discovery...")
 
             orchestrator = BuildOrchestrator(self.site)
 
@@ -301,7 +301,7 @@ class BengalBuildDashboard(BengalDashboard):
             self._update_phases_from_stats(stats)
 
             # Post build complete
-            self.call_from_thread(
+            self.app.call_from_thread(
                 self.post_message,
                 BuildComplete(
                     success=True,
@@ -315,9 +315,9 @@ class BengalBuildDashboard(BengalDashboard):
         except Exception as e:
             duration_ms = (monotonic() - start_time) * 1000
 
-            self.call_from_thread(log.write_line, f"✗ Error: {e}")
+            self.app.call_from_thread(log.write_line, f"✗ Error: {e}")
 
-            self.call_from_thread(
+            self.app.call_from_thread(
                 self.post_message,
                 BuildComplete(
                     success=False,
@@ -356,7 +356,9 @@ class BengalBuildDashboard(BengalDashboard):
                 if count:
                     details = f"{count} items"
 
-            self.call_from_thread(self._update_phase_complete, display_name, duration_ms, details)
+            self.app.call_from_thread(
+                self._update_phase_complete, display_name, duration_ms, details
+            )
 
     def _update_phase_complete(self, phase_name: str, duration_ms: float, details: str) -> None:
         """Mark a phase as complete (Task 1.2)."""
