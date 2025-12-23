@@ -83,18 +83,35 @@ parallel = false
 def reset_loggers():
     """Reset logger state before each test.
 
-    Note: We clear events and phase stacks from existing loggers rather than
-    removing loggers from the registry. This is necessary because Python
-    caches module imports - module-level `logger = get_logger(__name__)`
-    only executes once at import time. If we clear `_loggers`, those
-    module-level variables still reference the old (orphaned) logger
-    instances, and events get logged there instead of new loggers.
+    Note: The global reset_bengal_state fixture in conftest.py calls
+    reset_loggers() which clears the _loggers registry entirely. This
+    orphans module-level logger references (logger = get_logger(__name__)).
+
+    Tests in this module use @pytest.mark.preserve_loggers to disable the
+    global logger reset and only clear events, preserving the registry.
     """
+    from bengal.utils.logger import _global_config, set_console_quiet
+
+    # Close any existing file handles to ensure clean state
+    close_all_loggers()
+
     # Clear events from existing loggers instead of removing them from registry
     # This preserves module-level logger references
     for logger in _loggers.values():
         logger._events.clear()
         logger._phase_stack.clear()
+        # Reset file handle to None so it can be re-opened if needed
+        logger._file_handle = None
+        logger.log_file = None
+
+    # Reset global config to defaults
+    _global_config["log_file"] = None
+    _global_config["verbose"] = False
+    _global_config["level"] = LogLevel.INFO
+
+    # Reset quiet_console to default (False) - builds set this to True
+    # and it persists across tests if not reset
+    set_console_quiet(False)
     yield
     # Close file handles but DON'T clear the registry - module-level
     # logger references must remain valid for subsequent tests
@@ -103,6 +120,15 @@ def reset_loggers():
     for logger in _loggers.values():
         logger._events.clear()
         logger._phase_stack.clear()
+        # Reset file handle to None
+        logger._file_handle = None
+        logger.log_file = None
+    # Reset quiet_console again for clean slate
+    set_console_quiet(False)
+
+
+# Mark all tests in this module to preserve loggers (skip global reset_loggers call)
+pytestmark = pytest.mark.preserve_loggers
 
 
 class TestLoggingIntegration:
@@ -347,8 +373,11 @@ title: Invalid Page
         logger1 = get_logger("bengal.orchestration.build")
         normal_events = logger1.get_events()
 
-        # Reset for verbose mode
-        _loggers.clear()
+        # Reset for verbose mode - clear events but keep loggers in registry
+        # to avoid orphaning module-level logger references
+        for logger in _loggers.values():
+            logger._events.clear()
+            logger._phase_stack.clear()
 
         # Verbose mode
         configure_logging(level=LogLevel.DEBUG, verbose=True)
@@ -420,8 +449,11 @@ class TestLoggingPerformance:
         site1.build(parallel=False)
         duration1 = time.time() - start1
 
-        # Reset
-        _loggers.clear()
+        # Reset - clear events but keep loggers in registry
+        # to avoid orphaning module-level logger references
+        for logger in _loggers.values():
+            logger._events.clear()
+            logger._phase_stack.clear()
 
         # Build with verbose logging
         configure_logging(level=LogLevel.DEBUG, verbose=True)
