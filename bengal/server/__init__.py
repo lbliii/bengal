@@ -43,7 +43,6 @@ Features:
     - Process-isolated builds for crash resilience
     - Configurable ignore patterns (exclude_patterns, exclude_regex)
     - Fast file watching via watchfiles (Rust-based, 10-50x faster)
-    - Component preview server for theme development
     - Rebuilding placeholder page during active builds
 
 Architecture:

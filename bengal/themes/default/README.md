@@ -58,27 +58,7 @@ The Bengal Default Theme is a modern, accessible, and highly customizable theme 
 - **Copy Links** - Heading anchor link copying
 - **Smooth Scroll** - Enhanced anchor navigation
 
-### 🔧 Component Library & Development Tools
-
-The default theme includes a comprehensive **component library** with development tools for rapid iteration:
-
-#### Component Preview System
-
-All 14 template partials have **component manifests** for isolated testing and development:
-
-```bash
-# Start dev server
-bengal site serve
-
-# Preview components in browser
-open http://localhost:5173/__bengal_components__/
-```
-
-**Features:**
-- **Isolated rendering** - Test components without full site build
-- **42 test variants** - Edge cases, empty states, long content
-- **Live reload** - Instant updates on template/style changes
-- **Variant testing** - Multiple scenarios per component
+### 🔧 Template Customization
 
 #### Swizzle: Safe Template Customization
 
@@ -96,20 +76,6 @@ bengal theme swizzle-update
 ```
 
 Swizzled templates are tracked in `.bengal/themes/sources.json` with checksums for safe updates.
-
-#### Component Catalog
-
-All 14 partials are documented with:
-- **Standardized headers** documenting props and usage
-- **Test manifests** with 2-3 variants each
-- **Component preview** for visual testing
-
-See [Component Library Documentation](dev/components/README.md) for complete details.
-
-**Quick Links:**
-- 📚 [Component Library README](dev/components/README.md)
-- 🎨 [Component Preview](http://localhost:5173/__bengal_components__/) (dev server required)
-- 🔀 [Swizzle Documentation](/plan/SWIZZLE_AND_COMPONENT_PREVIEW_ANALYSIS.md)
 
 ### 📂 File Structure
 
@@ -147,15 +113,10 @@ default/
 │   ├── page.html             # Generic page template
 │   ├── doc/                  # Documentation templates
 │   ├── blog/                 # Blog templates
-│   ├── autodoc/python/        # API reference templates
-│   ├── autodoc/cli/        # CLI reference templates
+│   ├── autodoc/python/       # API reference templates
+│   ├── autodoc/cli/          # CLI reference templates
 │   ├── tutorial/             # Tutorial templates
-│   └── partials/             # Reusable template fragments (14 components)
-│
-├── dev/
-│   └── components/           # Component manifests (42 variants)
-│       ├── README.md         # Component library documentation
-│       ├── *.yaml            # Component test manifests
+│   └── partials/             # Reusable template fragments
 │
 └── README.md                 # This file
 ```
@@ -353,37 +314,23 @@ Bengal uses a template resolution order:
 - `tags.html` - Tags index
 - `search.html` - Search results
 
-### Partials (Component Library)
+### Partials
 
-**14 reusable template components** in `partials/` with full documentation:
+Reusable template components in `partials/`:
 
-**Simple Components:**
+**Navigation:**
 - `breadcrumbs.html` - Breadcrumb navigation
+- `docs-nav.html` - Full documentation sidebar
 - `page-navigation.html` - Prev/Next links
 - `pagination.html` - Page number navigation
-- `tag-list.html` - Tag badges
-- `popular-tags.html` - Tag cloud widget
-- `random-posts.html` - Random post suggestions
+
+**Content:**
+- `article-card.html` - Article preview card
 - `docs-meta.html` - Date and reading time
-
-**Complex Components:**
-- `article-card.html` - Article preview card with images
-- `child-page-tiles.html` - Section/page listing
-- `docs-nav.html` - Full documentation sidebar
-- `toc-sidebar.html` - Table of contents with progress
-- `section-navigation.html` - Section statistics
-
-**Special Components:**
+- `tag-list.html` - Tag badges
 - `search.html` - Full-text search UI
-- `docs-nav-section.html` - Recursive nav renderer
 
-Each component includes:
-- ✅ Standardized header with prop documentation
-- ✅ Test manifests with 2-3 variants
-- ✅ Component preview support
-- ✅ Swizzle compatibility
-
-**Component Library:** See [dev/components/README.md](dev/components/README.md) for detailed documentation
+All partials include standardized headers documenting props and usage
 
 ### Template Variables
 
@@ -985,11 +932,8 @@ MIT License - See [LICENSE](../../../LICENSE) for details
 - **Extensible** - Custom index support for advanced use cases
 
 ### v2.1.0 (October 2025)
-- **Component Library** - 14 components with 42 test variants
-- **Component Preview System** - Storybook-like isolated component testing
 - **Swizzle Support** - Safe template overriding with provenance tracking
-- **Standardized Documentation** - All components have comprehensive headers
-- **Component Manifests** - YAML test fixtures for all partials
+- **Standardized Documentation** - All partials have comprehensive headers
 
 ### v2.0.0 (October 2025)
 - Semantic design token system
