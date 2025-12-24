@@ -41,6 +41,7 @@ See Also:
 from __future__ import annotations
 
 import importlib
+import threading
 from typing import TYPE_CHECKING
 
 from bengal.utils.logger import get_logger
@@ -260,7 +261,9 @@ def get_directive_classes() -> list[type]:
 
 
 # Lazy property for DIRECTIVE_CLASSES
+# Thread-safe: Protected by _registry_lock using double-check locking
 _directive_classes: list[type] | None = None
+_registry_lock = threading.Lock()
 
 
 def _get_directive_classes() -> list[type]:
@@ -268,13 +271,22 @@ def _get_directive_classes() -> list[type]:
 
     Internal function backing the ``DIRECTIVE_CLASSES`` module attribute.
 
+    Thread-safe: Uses double-check locking pattern for safe initialization.
+
     Returns:
         List of all unique directive classes.
     """
     global _directive_classes
-    if _directive_classes is None:
+    # Fast path: already initialized (safe read of immutable reference)
+    if _directive_classes is not None:
+        return _directive_classes
+
+    with _registry_lock:
+        # Double-check after acquiring lock
+        if _directive_classes is not None:
+            return _directive_classes
         _directive_classes = get_directive_classes()
-    return _directive_classes
+        return _directive_classes
 
 
 # Provide as module-level for compatibility
