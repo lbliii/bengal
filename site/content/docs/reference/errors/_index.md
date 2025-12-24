@@ -1173,19 +1173,37 @@ The included file in directive was not found.
 
 ### T010: Icon Not Found {#t010}
 
-A referenced icon does not exist in the icon library.
+An icon referenced in frontmatter, directive, or inline syntax does not exist in the icon search path.
+
+Bengal searches these directories in order:
+
+1. **Site theme icons**: `themes/{theme}/assets/icons/` in your project
+2. **Theme icons**: Icons bundled with the theme
+3. **Parent theme icons**: If your theme extends another
+4. **Bengal defaults**: Phosphor icons (unless `extend_defaults: false`)
 
 **Common Causes**
 - Typo in icon name (e.g., `icon: warnng` instead of `icon: warning`)
 - Using an icon that hasn't been added to your theme
 - Referencing a Phosphor icon name that differs from Bengal's naming
+- Using `extend_defaults: false` without providing all needed icons
 
 **How to Fix**
 1. Run `bengal icons` to list available icons
 2. Fix typos in icon names
-3. Add missing icons from [Phosphor Icons](https://phosphoricons.com/)
+3. Add custom icons to `themes/{theme}/assets/icons/`
 
-See [T010 details](t010/) for examples and adding custom icons.
+**Adding Custom Icons**
+
+Create an icons directory in your theme:
+
+```text
+themes/my-theme/assets/icons/
+├── my-custom-icon.svg   # New icon
+└── warning.svg          # Overrides default
+```
+
+See [Icon Reference](/docs/reference/icons/#custom-icons) for SVG format requirements and configuration options.
 
 ---
 

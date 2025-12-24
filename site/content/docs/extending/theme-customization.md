@@ -227,8 +227,11 @@ themes/my-theme/
 └── assets/
     ├── css/
     │   └── style.css
-    └── js/
-        └── main.js
+    ├── js/
+    │   └── main.js
+    └── icons/           # Custom icons
+        ├── logo.svg
+        └── custom.svg
 ```
 
 ### Theme Configuration
@@ -392,8 +395,23 @@ Ensure customizations work in both modes:
 /* Automatically works in dark mode via tokens */
 ```
 
+## Icon Customization
+
+Add custom icons or override defaults by placing SVG files in your theme's `assets/icons/` directory:
+
+```
+themes/my-theme/assets/icons/
+├── company-logo.svg   # New icon
+└── warning.svg        # Overrides default
+```
+
+Icons are resolved in priority order: site theme → theme → parent theme → Bengal defaults.
+
+See [Icon Reference](/docs/reference/icons/#custom-icons) for SVG format requirements and configuration options.
+
 ## Related
 
+- [Icon Reference](/docs/reference/icons/) for custom icons and icon library
 - [Build Hooks](/docs/extending/build-hooks/) for CSS preprocessing
 - [Configuration](/docs/building/configuration/) for theme settings
 - [Template Functions](/docs/reference/template-functions/) for template syntax

@@ -281,19 +281,86 @@ All icons at 32px:
 
 ## Custom Icons
 
-Place SVG files in `themes/your-theme/assets/icons/`:
+Bengal supports **theme-aware icon resolution** — add your own icons or override defaults without forking the theme.
+
+### Resolution Order
+
+Icons are resolved in priority order (first match wins):
+
+1. **Site theme**: `themes/{theme}/assets/icons/` in your project
+2. **Theme icons**: Built-in theme icons
+3. **Parent theme**: If your theme extends another
+4. **Bengal defaults**: Phosphor icons (fallback)
+
+### Adding Custom Icons
+
+Create an icons directory in your theme:
+
+```
+your-project/
+└── themes/
+    └── my-theme/
+        └── assets/
+            └── icons/
+                ├── company-logo.svg   # New icon
+                ├── custom-badge.svg   # New icon
+                └── warning.svg        # Overrides default
+```
+
+Then use with the standard syntax:
+
+```markdown
+{icon}`company-logo:24`
+{icon}`custom-badge:32:icon-primary`
+```
+
+### Overriding Default Icons
+
+To replace a default icon, add a file with the same name:
 
 ```
 themes/my-theme/assets/icons/
-├── my-icon.svg
-└── another.svg
+└── warning.svg    # Your custom warning icon
 ```
 
-Then use with the same syntax:
+All uses of `{icon}`warning`` will now render your version.
 
-```markdown
-{icon}`my-icon:24`
+### Disabling Default Fallback
+
+To use **only** your icons (no Phosphor fallback), set `extend_defaults` to false in your `theme.yaml`:
+
+```yaml
+# themes/my-theme/theme.yaml
+name: my-theme
+
+icons:
+  extend_defaults: false  # Only theme icons available
 ```
+
+:::{admonition} Caution
+:class: caution
+With `extend_defaults: false`, any icon not in your theme will show a missing icon indicator.
+:::
+
+### SVG Format Requirements
+
+Icons should follow this format for proper theme integration:
+
+```xml
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">
+  <title>Icon Name</title>
+  <path fill="currentColor" d="..."/>
+</svg>
+```
+
+| Attribute | Value | Purpose |
+|-----------|-------|---------|
+| `viewBox` | `0 0 256 256` | Phosphor's native size (scales via width/height) |
+| `fill` on `<svg>` | `none` | Prevents background fill |
+| `fill` on `<path>` | `currentColor` | Inherits text color (theme-aware) |
+| `<title>` | Icon name | Accessibility |
+
+Icons are automatically sized via the `:size:` parameter and inherit colors from the current theme.
 
 ### Icon Source
 
@@ -302,16 +369,6 @@ Bengal uses [Phosphor Icons](https://phosphoricons.com/) as its base icon set:
 - **MIT License**: Free for commercial use
 - **Consistent design**: All icons follow the same design principles
 - **Theme-aware**: Uses `currentColor` for automatic light/dark mode support
-
-### SVG Format
-
-Icons use:
-- `viewBox="0 0 256 256"` (scales automatically via width/height)
-- `fill="currentColor"` on paths (theme-aware)
-- `fill="none"` on root SVG element
-- Clean, minimal design optimized for UI
-
-Icons are automatically sized via the `:size:` parameter and inherit colors from the current theme.
 
 ## Related
 
