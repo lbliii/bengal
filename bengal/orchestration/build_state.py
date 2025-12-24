@@ -39,7 +39,6 @@ See Also:
 
 from __future__ import annotations
 
-from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime
 from threading import Lock
@@ -107,16 +106,16 @@ class BuildState:
     asset_manifest_previous: Any = None
     asset_manifest_fallbacks: set[str] = field(default_factory=set)
 
-    # Thread-safe locks (using defaultdict for atomic creation)
-    # Note: We use a factory function that returns Lock to ensure
-    # each lock is created on first access (thread-safe via defaultdict)
-    _locks: dict[str, Lock] = field(default_factory=lambda: defaultdict(Lock))
+    # Thread-safe locks - guarded by _locks_guard for atomic creation
+    _locks: dict[str, Lock] = field(default_factory=dict)
+    _locks_guard: Lock = field(default_factory=Lock)
 
     def get_lock(self, name: str) -> Lock:
         """
         Get or create a named lock for thread-safe operations.
 
-        Thread-safe: defaultdict(Lock) ensures atomic lock creation.
+        Thread-safe: Uses _locks_guard to ensure atomic lock creation
+        even when multiple threads request the same lock simultaneously.
 
         Args:
             name: Lock identifier (e.g., "asset_write", "template_compile")
@@ -129,7 +128,16 @@ class BuildState:
                 # Thread-safe manifest updates
                 manifest[key] = value
         """
-        return self._locks[name]
+        # Fast path: lock already exists (no guard needed for read)
+        if name in self._locks:
+            return self._locks[name]
+
+        # Slow path: need to create lock with guard
+        with self._locks_guard:
+            # Double-check after acquiring guard
+            if name not in self._locks:
+                self._locks[name] = Lock()
+            return self._locks[name]
 
     def reset_caches(self) -> None:
         """

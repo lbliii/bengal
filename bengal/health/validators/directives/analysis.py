@@ -550,20 +550,31 @@ class DirectiveAnalyzer:
             directive["completeness_error"] = "Tabs directive has no content"
 
     def _validate_code_tabs_directive(self, directive: dict[str, Any]) -> None:
-        """Validate code-tabs directive content."""
+        """Validate code-tabs directive content.
+
+        Supports both legacy and v2 syntax:
+        - Legacy: ### Tab: Language or ### Language markers
+        - V2 (RFC: Simplified Code Tabs Syntax): Code fences with language tags
+        """
         content = directive["content"]
-
-        # Accept both "### Tab: Language" and "### Language" formats
-        tab_markers = re.findall(r"^### (?:Tab: )?(.+)$", content, re.MULTILINE)
-        directive["tab_count"] = len(tab_markers)
-
-        if len(tab_markers) == 0:
-            directive["completeness_error"] = (
-                "Code-tabs directive has no tab markers (### Tab: Language or ### Language)"
-            )
 
         if not content.strip():
             directive["completeness_error"] = "Code-tabs directive has no content"
+            return
+
+        # V2 syntax: count code blocks with language tags
+        # Pattern matches: ```python, ```javascript, etc.
+        code_blocks = re.findall(r"^```(\w+)", content, re.MULTILINE)
+        directive["tab_count"] = len(code_blocks)
+
+        # Legacy syntax: ### Tab: Language or ### Language markers
+        tab_markers = re.findall(r"^### (?:Tab: )?(.+)$", content, re.MULTILINE)
+
+        # Accept either format - v2 code blocks or legacy tab markers
+        if len(code_blocks) == 0 and len(tab_markers) == 0:
+            directive["completeness_error"] = (
+                "Code-tabs directive has no code blocks or tab markers"
+            )
 
     def _validate_dropdown_directive(self, directive: dict[str, Any]) -> None:
         """Validate dropdown directive content."""
@@ -607,8 +618,14 @@ class DirectiveAnalyzer:
 
         directive_type = directive["type"]
         if directive_type in ("tabs", "code-tabs", "code_tabs"):
-            # Accept both "### Tab: Title" and "### Title" formats
-            tab_count = len(re.findall(r"^### (?:Tab: )?", content, re.MULTILINE))
+            # Count tabs - for tabs directive use markers, for code-tabs use code blocks
+            if directive_type in ("code-tabs", "code_tabs"):
+                # V2 syntax: count code blocks with language tags
+                tab_count = len(re.findall(r"^```\w+", content, re.MULTILINE))
+            else:
+                # Regular tabs: Accept both "### Tab: Title" and "### Title" formats
+                tab_count = len(re.findall(r"^### (?:Tab: )?", content, re.MULTILINE))
+
             content_lines = len([line for line in content.split("\n") if line.strip()])
 
             if tab_count > 0 and content_lines < (tab_count * 3):

@@ -212,6 +212,11 @@ class TestDirectiveClassesCompleteness:
             "AsciinemaDirective",
             "FigureDirective",
             "AudioDirective",
+            # Audio Streaming Directives
+            "SpotifyDirective",
+            "SoundCloudDirective",
+            # Social Video Directive
+            "TikTokDirective",
             # Gallery Directive
             "GalleryDirective",
             # Versioning Directives (RFC: plan/drafted/rfc-versioned-documentation.md)
@@ -315,7 +320,8 @@ class TestKnownDirectiveNamesContent:
         # + 1 asciinema + 1 figure + 1 audio = 58 base
         # + 1 gallery = 59 base
         # + 6 versioning (since, deprecated, changed, versionadded, versionchanged, versionremoved) = 65 total
-        expected_count = 65
+        # + 3 audio/social (spotify, soundcloud, tiktok) = 68 total
+        expected_count = 68
 
         assert len(KNOWN_DIRECTIVE_NAMES) == expected_count, (
             f"KNOWN_DIRECTIVE_NAMES has {len(KNOWN_DIRECTIVE_NAMES)} items, "

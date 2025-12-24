@@ -184,12 +184,17 @@ class TestTabsValidation:
         assert "completeness_error" in directive
         assert "only 1 tab" in directive["completeness_error"]
 
-    def test_tabs_with_malformed_marker(self):
-        """Test tabs directive with malformed tab marker."""
+    def test_tabs_with_typo_treated_as_valid_title(self):
+        """Test that typo like '### Ta: Python' is treated as valid tab with title 'Ta: Python'.
+
+        The regex accepts both "### Tab: Title" and "### Title" formats.
+        Since "Tab: " is optional, "### Ta: Python" matches as a valid tab
+        with title "Ta: Python" (only 1 tab, so completeness_error is set).
+        """
         analyzer = DirectiveAnalyzer()
         directive = {
             "type": "tabs",
-            "content": "### Ta: Python\nContent",  # Typo: "Ta:" instead of "Tab:"
+            "content": "### Ta: Python\nContent",  # Treated as valid tab with title "Ta: Python"
             "title": "",
             "line_number": 10,
             "file_path": Path("test.md"),
@@ -197,6 +202,34 @@ class TestTabsValidation:
 
         analyzer._validate_tabs_directive(directive)
 
+        # It's treated as 1 valid tab, which triggers completeness warning
+        assert directive["tab_count"] == 1
+        assert "completeness_error" in directive
+        assert "only 1 tab" in directive["completeness_error"]
+        # No syntax_error since "### Ta: Python" matches the valid pattern
+        assert "syntax_error" not in directive
+
+    def test_tabs_with_actual_malformed_marker(self):
+        """Test tabs directive with truly malformed marker (no space after ###).
+
+        The malformed marker check only triggers when NO valid tab markers are found.
+        '###Ta:' (no space after ###) doesn't match the valid pattern, triggering
+        the malformed marker detection for 'Ta' followed by non-'b' character.
+        """
+        analyzer = DirectiveAnalyzer()
+        directive = {
+            "type": "tabs",
+            "content": "###Ta: Python\nContent",  # No space after ### = malformed
+            "title": "",
+            "line_number": 10,
+            "file_path": Path("test.md"),
+        }
+
+        analyzer._validate_tabs_directive(directive)
+
+        # No valid tab markers found (requires space after ###)
+        assert directive["tab_count"] == 0
+        # Malformed marker detected
         assert "syntax_error" in directive
         assert "malformed tab marker" in directive["syntax_error"].lower()
 

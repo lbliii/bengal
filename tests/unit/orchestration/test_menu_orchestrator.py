@@ -18,17 +18,20 @@ def test_auto_dev_menu_creation():
     site = Site.for_testing(config=config)
 
     # Create api and cli sections (dev assets)
+    # Set title=None so fallback names ("API Reference", "CLI Reference") are used
     api_section = MagicMock()
     api_section.path = site.root_path / "content" / "api"
     api_section.name = "api"
     api_section.href = "/api/"
     api_section.index_page = None
+    api_section.title = None  # Use fallback name
 
     cli_section = MagicMock()
     cli_section.path = site.root_path / "content" / "cli"
     cli_section.name = "cli"
     cli_section.href = "/cli/"
     cli_section.index_page = None
+    cli_section.title = None  # Use fallback name
 
     site.sections = [api_section, cli_section]
 
@@ -45,8 +48,8 @@ def test_auto_dev_menu_creation():
 
     children_names = {c.name for c in dev_item.children}
     assert "GitHub" in children_names
-    assert "API Reference" in children_names
-    assert "bengal CLI" in children_names
+    assert "API Reference" in children_names  # Fallback since title=None
+    assert "CLI Reference" in children_names  # Fallback since title=None
 
     # Check URLs
     github_item = next(c for c in dev_item.children if c.name == "GitHub")
@@ -176,6 +179,7 @@ def test_dev_menu_preserves_auto_nav():
     del about_section.title
 
     # Dev sections (should be bundled, not shown separately)
+    # Set title=None so fallback names are used
     api_section = MagicMock()
     api_section.path = site.root_path / "content" / "api"
     api_section.name = "api"
@@ -184,6 +188,7 @@ def test_dev_menu_preserves_auto_nav():
     api_section.parent = None
     api_section.subsections = []
     api_section.nav_title = None
+    api_section.title = None  # Use fallback name
 
     cli_section = MagicMock()
     cli_section.path = site.root_path / "content" / "cli"
@@ -193,6 +198,7 @@ def test_dev_menu_preserves_auto_nav():
     cli_section.parent = None
     cli_section.subsections = []
     cli_section.nav_title = None
+    cli_section.title = None  # Use fallback name
 
     site.sections = [blog_section, about_section, api_section, cli_section]
 
@@ -213,12 +219,12 @@ def test_dev_menu_preserves_auto_nav():
     assert "Cli" not in names
 
     dev_item = next(item for item in main_menu if item.name == "Dev")
-    # Should have GitHub, API Reference, and bengal CLI
+    # Should have GitHub, API Reference, and CLI Reference (fallback names since title=None)
     assert len(dev_item.children) == 3
     children_names = {c.name for c in dev_item.children}
     assert "GitHub" in children_names
-    assert "API Reference" in children_names
-    assert "bengal CLI" in children_names
+    assert "API Reference" in children_names  # Fallback since title=None
+    assert "CLI Reference" in children_names  # Fallback since title=None
 
 
 def test_auto_menu_includes_nested_sections():
