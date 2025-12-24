@@ -119,14 +119,14 @@ raise BengalDiscoveryError(
 
 ### Error Code Usage Summary
 
-| File | ErrorCode | Count | Context |
-|------|-----------|-------|---------|
-| `extractor.py` | `D002` | 1 | Invalid source path |
-| `orchestrator.py` | `D001` | 6 | All extraction failures |
-| `cli.py` | `C003` | 2 | Framework validation |
-| `cli.py` | `D001` | 1 | Typer extraction failure |
+| File | ErrorCode | Count | Context | Semantic Match? |
+|------|-----------|-------|---------|-----------------|
+| `extractor.py:212` | `D002` | 1 | Invalid source path | ✅ Correct |
+| `orchestrator.py` | `D001` | 5 | All extraction failures | ❌ Mismatch |
+| `cli.py:102,134` | `C003` | 2 | Framework validation | ✅ Correct |
+| `cli.py:612` | `D001` | 1 | Typer extraction failure | ❌ Mismatch |
 
-**Issue**: All orchestrator failures use `D001` — no differentiation between Python, CLI, and OpenAPI failures.
+**Critical Issue**: `D001` is defined as `"content_dir_not_found"` but used for extraction failures. This is a semantic mismatch — the error code's meaning doesn't match its usage.
 
 ---
 
@@ -596,5 +596,33 @@ grep -r "D001\|ErrorCode\|BengalDiscoveryError" tests/autodoc/
 
 - `bengal/errors/__init__.py` — Error handling framework documentation
 - `bengal/errors/codes.py` — Existing error code definitions
-- `bengal/discovery/content_parser.py:122-131` — Best practice for `enrich_error()`
-- `bengal/errors/context.py` — `ErrorContext`, `BuildPhase` definitions
+- `bengal/discovery/content_parser.py:119-167` — Best practice for `enrich_error()`
+- `bengal/errors/context.py` — `ErrorContext` definition
+
+---
+
+## Verification Commands
+
+Run after implementation to verify success:
+
+```bash
+# 1. Verify no D001 misuse in autodoc (should return 0 matches)
+grep -rn "ErrorCode.D001" bengal/autodoc/
+# Expected: No output
+
+# 2. Verify O* codes are used
+grep -rn "ErrorCode.O00" bengal/autodoc/
+# Expected: Multiple matches in orchestrator.py, cli.py, models/common.py, openapi.py
+
+# 3. Verify no base BengalError without code
+grep -rn "raise BengalError(" bengal/autodoc/
+# Expected: No output
+
+# 4. Verify OpenAPI uses structured errors
+grep -rn "logger.error\|logger.warning.*OpenAPI" bengal/autodoc/extractors/openapi.py
+# Expected: Only $ref warnings (graceful degradation), no file-not-found or parse errors
+
+# 5. Run autodoc tests
+pytest tests/autodoc/ -v
+# Expected: All tests pass
+```

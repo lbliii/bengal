@@ -609,7 +609,7 @@ class CLIExtractor(Extractor):
             "Unable to extract Click app from Typer instance. "
             "Make sure you're passing a Typer() app object.",
             suggestion="Pass a Typer() app instance, not a command function",
-            code=ErrorCode.D001,
+            code=ErrorCode.O004,
         )
 
     def _typer_to_click_group(self, typer_app: Any) -> Any:

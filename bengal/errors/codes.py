@@ -20,6 +20,8 @@ S     Server            Development server
 T     Template          Template functions, shortcodes, directives
 P     Parsing           YAML, JSON, TOML, markdown parsing
 X     Asset             Static asset processing
+G     Graph             Graph analysis and algorithms
+O     Autodoc           Autodoc extraction and generation
 ====  ================  =================================
 
 Usage
@@ -80,6 +82,8 @@ class ErrorCode(Enum):
     - ``T001-T099``: Template function errors (shortcodes, directives)
     - ``P001-P099``: Parsing errors (YAML, JSON, markdown)
     - ``X001-X099``: Asset errors (static files, processing)
+    - ``G001-G099``: Graph/analysis errors
+    - ``O001-O099``: Autodoc extraction/generation errors
 
     Each code maps to documentation at ``/docs/reference/errors/#{code}``.
 
@@ -213,6 +217,16 @@ class ErrorCode(Enum):
     G004 = "graph_disconnected_component"
     G005 = "graph_analysis_failed"
 
+    # ============================================================
+    # Autodoc errors (O001-O099)
+    # ============================================================
+    O001 = "autodoc_extraction_failed"  # General extraction failure (strict mode)
+    O002 = "autodoc_syntax_error"  # Python syntax error in source
+    O003 = "autodoc_openapi_parse_failed"  # OpenAPI YAML/JSON parse failure
+    O004 = "autodoc_cli_load_failed"  # CLI app import/load failure
+    O005 = "autodoc_invalid_source"  # Invalid source path/location
+    O006 = "autodoc_no_elements_produced"  # Extraction produced no elements
+
     @property
     def docs_url(self) -> str:
         """
@@ -246,6 +260,7 @@ class ErrorCode(Enum):
             "P": "parsing",
             "X": "asset",
             "G": "graph",
+            "O": "autodoc",
         }
         prefix = self.name[0]
         return categories.get(prefix, "unknown")
@@ -272,6 +287,7 @@ class ErrorCode(Enum):
             "P": "core",
             "X": "assets",
             "G": "analysis",
+            "O": "autodoc",
         }
         prefix = self.name[0]
         return subsystem_map.get(prefix, "unknown")

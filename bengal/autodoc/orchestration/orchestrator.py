@@ -501,7 +501,7 @@ class VirtualAutodocOrchestrator:
                         f"Python extraction failed in strict mode: {e}",
                         suggestion="Fix Python source code issues or disable strict mode",
                         original_error=e,
-                        code=ErrorCode.D001,
+                        code=ErrorCode.O001,
                     ) from e
 
         # 2. Extract CLI documentation
@@ -545,7 +545,7 @@ class VirtualAutodocOrchestrator:
                         f"CLI extraction failed in strict mode: {e}",
                         suggestion="Fix CLI source code issues or disable strict mode",
                         original_error=e,
-                        code=ErrorCode.D001,
+                        code=ErrorCode.O004,
                     ) from e
 
         # 3. Extract OpenAPI documentation
@@ -592,7 +592,7 @@ class VirtualAutodocOrchestrator:
                         f"OpenAPI extraction failed in strict mode: {e}",
                         suggestion="Fix OpenAPI specification issues or disable strict mode",
                         original_error=e,
-                        code=ErrorCode.D001,
+                        code=ErrorCode.O003,
                     ) from e
 
         if not all_elements:
@@ -604,7 +604,7 @@ class VirtualAutodocOrchestrator:
                     f"Autodoc strict mode: {result.failed_extract} extraction failures, "
                     f"no elements produced",
                     suggestion="Fix extraction errors above or disable strict mode",
-                    code=ErrorCode.D001,
+                    code=ErrorCode.O006,
                 )
             return [], [], result
 
@@ -625,7 +625,7 @@ class VirtualAutodocOrchestrator:
                 f"Autodoc strict mode: {result.failed_extract} extraction failures, "
                 f"{result.failed_render} rendering failures",
                 suggestion="Fix extraction/rendering errors above or disable strict mode",
-                code=ErrorCode.D001,
+                code=ErrorCode.O001,
             )
 
         logger.info(

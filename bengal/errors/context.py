@@ -126,6 +126,7 @@ class BuildPhase(Enum):
     CACHE = "cache"
     SERVER = "server"
     OUTPUT = "output"
+    ANALYSIS = "analysis"
 
     @property
     def primary_modules(self) -> list[str]:
@@ -145,6 +146,7 @@ class BuildPhase(Enum):
             BuildPhase.CACHE: ["bengal/cache/"],
             BuildPhase.SERVER: ["bengal/server/"],
             BuildPhase.OUTPUT: ["bengal/output/"],
+            BuildPhase.ANALYSIS: ["bengal/analysis/"],
         }
         return module_map.get(self, [])
 

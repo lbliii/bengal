@@ -34,17 +34,19 @@ class SourceLocation:
 
     def __post_init__(self) -> None:
         """Validate line number is positive."""
-        from bengal.errors import BengalError
+        from bengal.errors import BengalContentError, ErrorCode
 
         if self.line < 1:
-            raise BengalError(
+            raise BengalContentError(
                 f"Line must be >= 1, got {self.line}",
                 suggestion="Line numbers must be 1-based (first line is 1)",
+                code=ErrorCode.O005,
             )
         if self.column is not None and self.column < 1:
-            raise BengalError(
+            raise BengalContentError(
                 f"Column must be >= 1, got {self.column}",
                 suggestion="Column numbers must be 1-based (first column is 1)",
+                code=ErrorCode.O005,
             )
 
     @classmethod
@@ -89,19 +91,21 @@ class QualifiedName:
     def __post_init__(self) -> None:
         """Validate parts are non-empty."""
         if not self.parts:
-            from bengal.errors import BengalError
+            from bengal.errors import BengalContentError, ErrorCode
 
-            raise BengalError(
+            raise BengalContentError(
                 "QualifiedName cannot be empty",
                 suggestion="Provide at least one name part",
+                code=ErrorCode.O005,
             )
         for part in self.parts:
             if not part:
-                from bengal.errors import BengalError
+                from bengal.errors import BengalContentError, ErrorCode
 
-                raise BengalError(
+                raise BengalContentError(
                     f"QualifiedName contains empty part: {self.parts}",
                     suggestion="Remove empty parts from qualified name",
+                    code=ErrorCode.O005,
                 )
 
     @classmethod

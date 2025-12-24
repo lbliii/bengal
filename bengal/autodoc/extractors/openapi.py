@@ -90,8 +90,14 @@ class OpenAPIExtractor(Extractor):
             List of DocElement objects
         """
         if not source.exists():
-            logger.warning(f"OpenAPI spec not found: {source}")
-            return []
+            from bengal.errors import BengalDiscoveryError, ErrorCode
+
+            raise BengalDiscoveryError(
+                f"OpenAPI spec not found: {source}",
+                file_path=source,
+                suggestion="Ensure the OpenAPI spec file exists at the configured path",
+                code=ErrorCode.D002,
+            )
 
         try:
             content = source.read_text(encoding="utf-8")
@@ -99,9 +105,24 @@ class OpenAPIExtractor(Extractor):
                 spec = yaml.safe_load(content)
             else:
                 spec = json.loads(content)
-        except Exception as e:
-            logger.error(f"Failed to parse OpenAPI spec {source}: {e}")
-            return []
+        except yaml.YAMLError as e:
+            from bengal.errors import BengalContentError, ErrorCode
+
+            raise BengalContentError(
+                f"Failed to parse OpenAPI YAML spec: {e}",
+                file_path=source,
+                suggestion="Check YAML syntax in your OpenAPI specification",
+                code=ErrorCode.O003,
+            ) from e
+        except json.JSONDecodeError as e:
+            from bengal.errors import BengalContentError, ErrorCode
+
+            raise BengalContentError(
+                f"Failed to parse OpenAPI JSON spec: {e}",
+                file_path=source,
+                suggestion="Check JSON syntax in your OpenAPI specification",
+                code=ErrorCode.O003,
+            ) from e
 
         # Store spec for $ref resolution
         self._spec = spec

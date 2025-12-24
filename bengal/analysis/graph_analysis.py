@@ -34,7 +34,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from bengal.errors import BengalError, ErrorCode
+from bengal.errors import BengalGraphError, ErrorCode
 
 if TYPE_CHECKING:
     from bengal.analysis.graph_metrics import PageConnectivity
@@ -75,7 +75,7 @@ class GraphAnalyzer:
     def _ensure_built(self) -> None:
         """Verify the graph has been built before analysis."""
         if not self._graph._built:
-            raise BengalError(
+            raise BengalGraphError(
                 "KnowledgeGraph is not built",
                 code=ErrorCode.G001,
                 suggestion="Call graph.build() before performing analysis",
@@ -92,7 +92,7 @@ class GraphAnalyzer:
             PageConnectivity with detailed metrics
 
         Raises:
-            RuntimeError: If graph hasn't been built yet
+            BengalGraphError: If graph hasn't been built yet (G001)
         """
         from bengal.analysis.graph_metrics import PageConnectivity
 
@@ -125,7 +125,7 @@ class GraphAnalyzer:
             Connectivity score (higher = more connected)
 
         Raises:
-            RuntimeError: If graph hasn't been built yet
+            BengalGraphError: If graph hasn't been built yet (G001)
         """
         self._ensure_built()
         incoming = self._graph.incoming_refs.get(page, 0)
@@ -148,7 +148,7 @@ class GraphAnalyzer:
             List of hub pages sorted by incoming references (descending)
 
         Raises:
-            RuntimeError: If graph hasn't been built yet
+            BengalGraphError: If graph hasn't been built yet (G001)
         """
         self._ensure_built()
 
@@ -181,7 +181,7 @@ class GraphAnalyzer:
             List of leaf pages sorted by connectivity (ascending)
 
         Raises:
-            RuntimeError: If graph hasn't been built yet
+            BengalGraphError: If graph hasn't been built yet (G001)
         """
         self._ensure_built()
 
@@ -211,7 +211,7 @@ class GraphAnalyzer:
             List of orphaned pages sorted by slug
 
         Raises:
-            RuntimeError: If graph hasn't been built yet
+            BengalGraphError: If graph hasn't been built yet (G001)
         """
         self._ensure_built()
 
@@ -244,7 +244,7 @@ class GraphAnalyzer:
             (supports tuple unpacking for backward compatibility)
 
         Raises:
-            RuntimeError: If graph hasn't been built yet
+            BengalGraphError: If graph hasn't been built yet (G001)
         """
         from bengal.analysis.results import PageLayers
 

@@ -178,6 +178,7 @@ from bengal.errors.exceptions import (
     BengalContentError,
     BengalDiscoveryError,
     BengalError,
+    BengalGraphError,
     BengalRenderingError,
     BengalServerError,
 )
@@ -242,6 +243,7 @@ __all__ = [
     "BengalCacheError",
     "BengalServerError",
     "BengalAssetError",
+    "BengalGraphError",
     # ============================================================
     # Context
     # ============================================================
