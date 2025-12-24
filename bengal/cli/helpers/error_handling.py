@@ -22,12 +22,15 @@ from __future__ import annotations
 import contextlib
 from collections.abc import Callable, Generator
 from functools import wraps
-from typing import Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 import click
 
 from bengal.errors.traceback import TracebackConfig
 from bengal.orchestration.stats import show_error
+
+if TYPE_CHECKING:
+    pass
 
 F = TypeVar("F", bound=Callable[..., Any])
 
@@ -66,21 +69,62 @@ def handle_cli_errors(
                 # These are already formatted by Click, just re-raise
                 raise
             except Exception as e:
-                # Generic exceptions - format with our error handler
-                error_msg = str(e) or type(e).__name__
-                show_error(f"Command failed: {error_msg}", show_art=show_art)
+                # Check if this is a BengalError for beautiful display
+                from bengal.errors import BengalError
 
-                # Show traceback if configured
-                if show_traceback is None:
-                    # Auto-detect: show if debug mode or if traceback config says so
-                    with contextlib.suppress(Exception):
-                        config = TracebackConfig.from_environment()
-                        renderer = config.get_renderer()
-                        if renderer.style.value != "off":  # type: ignore[attr-defined]
-                            renderer.display_exception(e)
-                elif show_traceback:
-                    with contextlib.suppress(Exception):
-                        TracebackConfig.from_environment().get_renderer().display_exception(e)
+                if isinstance(e, BengalError):
+                    # Beautiful display for Bengal errors with codes and suggestions
+                    from bengal.cli.helpers.error_display import display_bengal_error
+                    from bengal.output import CLIOutput
+
+                    cli = CLIOutput()
+                    display_bengal_error(e, cli)
+
+                    # Show traceback if configured (non-minimal mode)
+                    if show_traceback is None:
+                        with contextlib.suppress(Exception):
+                            config = TracebackConfig.from_environment()
+                            renderer = config.get_renderer()
+                            if renderer.style.value not in ("off", "minimal"):  # type: ignore[attr-defined]
+                                renderer.display_exception(e)
+                    elif show_traceback:
+                        with contextlib.suppress(Exception):
+                            TracebackConfig.from_environment().get_renderer().display_exception(e)
+                else:
+                    # Try to beautify common exceptions
+                    from bengal.cli.helpers.error_display import beautify_common_exception
+
+                    beautified = beautify_common_exception(e)
+                    if beautified:
+                        message, suggestion = beautified
+                        from bengal.output import CLIOutput
+
+                        cli = CLIOutput()
+                        cli.error_header("Error")
+                        cli.console.print(f"  {message}")
+                        if suggestion:
+                            cli.console.print()
+                            if cli.use_rich:
+                                cli.console.print(f"  [bold cyan]Tip:[/bold cyan] {suggestion}")
+                            else:
+                                cli.console.print(f"  Tip: {suggestion}")
+                        cli.console.print()
+                    else:
+                        # Generic exceptions - format with our error handler
+                        error_msg = str(e) or type(e).__name__
+                        show_error(f"Command failed: {error_msg}", show_art=show_art)
+
+                    # Show traceback if configured
+                    if show_traceback is None:
+                        # Auto-detect: show if debug mode or if traceback config says so
+                        with contextlib.suppress(Exception):
+                            config = TracebackConfig.from_environment()
+                            renderer = config.get_renderer()
+                            if renderer.style.value != "off":  # type: ignore[attr-defined]
+                                renderer.display_exception(e)
+                    elif show_traceback:
+                        with contextlib.suppress(Exception):
+                            TracebackConfig.from_environment().get_renderer().display_exception(e)
 
                 if preserve_chain:
                     raise click.Abort() from e
@@ -118,17 +162,59 @@ def cli_error_context(
     except click.ClickException:
         raise
     except Exception as e:
-        error_msg = str(e) or type(e).__name__
-        show_error(f"Failed to {operation}: {error_msg}", show_art=show_art)
+        # Check if this is a BengalError for beautiful display
+        from bengal.errors import BengalError
 
-        if show_traceback is None:
-            with contextlib.suppress(Exception):
-                config = TracebackConfig.from_environment()
-                renderer = config.get_renderer()
-                if renderer.style.value != "off":  # type: ignore[attr-defined]
-                    renderer.display_exception(e)
-        elif show_traceback:
-            with contextlib.suppress(Exception):
-                TracebackConfig.from_environment().get_renderer().display_exception(e)
+        if isinstance(e, BengalError):
+            # Beautiful display for Bengal errors
+            from bengal.cli.helpers.error_display import display_bengal_error
+            from bengal.output import CLIOutput
+
+            cli = CLIOutput()
+            display_bengal_error(e, cli)
+
+            # Show traceback if configured (non-minimal mode)
+            if show_traceback is None:
+                with contextlib.suppress(Exception):
+                    config = TracebackConfig.from_environment()
+                    renderer = config.get_renderer()
+                    if renderer.style.value not in ("off", "minimal"):  # type: ignore[attr-defined]
+                        renderer.display_exception(e)
+            elif show_traceback:
+                with contextlib.suppress(Exception):
+                    TracebackConfig.from_environment().get_renderer().display_exception(e)
+        else:
+            # Try to beautify common exceptions
+            from bengal.cli.helpers.error_display import beautify_common_exception
+
+            beautified = beautify_common_exception(e)
+            if beautified:
+                message, suggestion = beautified
+                from bengal.output import CLIOutput
+
+                cli = CLIOutput()
+                cli.error_header(f"Failed to {operation}")
+                cli.console.print(f"  {message}")
+                if suggestion:
+                    cli.console.print()
+                    if cli.use_rich:
+                        cli.console.print(f"  [bold cyan]Tip:[/bold cyan] {suggestion}")
+                    else:
+                        cli.console.print(f"  Tip: {suggestion}")
+                cli.console.print()
+            else:
+                # Generic exceptions
+                error_msg = str(e) or type(e).__name__
+                show_error(f"Failed to {operation}: {error_msg}", show_art=show_art)
+
+            if show_traceback is None:
+                with contextlib.suppress(Exception):
+                    config = TracebackConfig.from_environment()
+                    renderer = config.get_renderer()
+                    if renderer.style.value != "off":  # type: ignore[attr-defined]
+                        renderer.display_exception(e)
+            elif show_traceback:
+                with contextlib.suppress(Exception):
+                    TracebackConfig.from_environment().get_renderer().display_exception(e)
 
         raise click.Abort() from e

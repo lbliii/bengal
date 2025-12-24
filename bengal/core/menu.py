@@ -40,7 +40,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from bengal.core.diagnostics import emit as emit_diagnostic
-from bengal.errors import BengalContentError
+from bengal.errors import BengalContentError, ErrorCode
 
 
 @dataclass
@@ -514,6 +514,7 @@ class MenuBuilder:
                 )
                 raise BengalContentError(
                     f"Menu has circular reference involving '{root.name}'",
+                    code=ErrorCode.C007,
                     suggestion="Check menu configuration for circular parent-child relationships",
                 )
 

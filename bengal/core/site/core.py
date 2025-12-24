@@ -781,10 +781,11 @@ class Site(
                     urls_seen[url] = source
 
         if collisions and strict:
-            from bengal.errors import BengalContentError
+            from bengal.errors import BengalContentError, ErrorCode
 
             raise BengalContentError(
                 "URL collisions detected (strict mode):\n\n" + "\n\n".join(collisions),
+                code=ErrorCode.D005,
                 suggestion="Check for duplicate slugs, conflicting autodoc output, or use different URLs for conflicting pages",
             )
 

@@ -58,10 +58,11 @@ def phase_sections(
                     cli.error("Section validation errors:")
                     for error in section_errors:
                         cli.detail(str(error), indent=1, icon="•")
-                    from bengal.errors import BengalContentError
+                    from bengal.errors import BengalContentError, ErrorCode
 
                     raise BengalContentError(
                         f"Build failed: {len(section_errors)} section validation error(s)",
+                        code=ErrorCode.D003,
                         suggestion="Review section validation errors above and fix section structure, or disable strict mode",
                     )
                 else:

@@ -98,24 +98,24 @@ class PageInitializer:
 
         # Validate output_path is set
         if not page.output_path:
-            from bengal.errors import BengalContentError
+            from bengal.errors import BengalContentError, ErrorCode
 
             raise BengalContentError(
                 f"Page '{page.title}' has no output_path set. "
-                f"Orchestrator must compute and set output_path before calling ensure_initialized().\n"
-                f"Source: {page.source_path}",
+                f"Orchestrator must compute and set output_path before calling ensure_initialized().",
+                code=ErrorCode.N004,
                 file_path=page.source_path,
                 suggestion="Ensure the orchestrator computes output_path before calling ensure_initialized()",
             )
 
         # Validate output_path is absolute
         if not page.output_path.is_absolute():
-            from bengal.errors import BengalContentError
+            from bengal.errors import BengalContentError, ErrorCode
 
             raise BengalContentError(
-                f"Page '{page.title}' has relative output_path: {page.output_path}\n"
-                f"Output paths must be absolute. "
-                f"Use site.output_dir as base.",
+                f"Page '{page.title}' has relative output_path: {page.output_path}. "
+                f"Output paths must be absolute. Use site.output_dir as base.",
+                code=ErrorCode.D002,
                 file_path=page.source_path,
                 suggestion=f"Use site.output_dir ({self.site.output_dir}) as base for absolute paths",
             )
@@ -141,10 +141,11 @@ class PageInitializer:
             # Use _path for validation (site-relative path without baseurl)
             rel_url = getattr(page, "_path", None) or f"/{page.slug}/"
             if not rel_url.startswith("/"):
-                from bengal.errors import BengalContentError
+                from bengal.errors import BengalContentError, ErrorCode
 
                 raise BengalContentError(
                     f"Generated URL doesn't start with '/': {rel_url}",
+                    code=ErrorCode.N010,
                     file_path=page.source_path,
                     suggestion="URLs must start with '/' - check page slug and output_path configuration",
                 )

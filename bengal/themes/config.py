@@ -38,7 +38,7 @@ from typing import Any
 
 import yaml
 
-from bengal.errors import BengalConfigError
+from bengal.errors import BengalConfigError, ErrorCode
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -162,6 +162,7 @@ class AppearanceConfig:
             raise BengalConfigError(
                 f"Invalid default_mode '{self.default_mode}'. "
                 f"Must be one of: {', '.join(valid_modes)}",
+                code=ErrorCode.C003,
                 suggestion=f"Set default_mode to one of: {', '.join(valid_modes)}",
             )
 
@@ -298,6 +299,7 @@ class ThemeConfig:
         except yaml.YAMLError as e:
             raise BengalConfigError(
                 f"Invalid YAML in {yaml_path}: {e}",
+                code=ErrorCode.C001,
                 file_path=yaml_path,
                 suggestion="Check YAML syntax and indentation",
                 original_error=e,

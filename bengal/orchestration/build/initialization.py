@@ -145,11 +145,12 @@ def phase_template_validation(
 
                 # In strict mode, fail the build
                 if strict:
-                    from bengal.errors import BengalRenderingError
+                    from bengal.errors import BengalRenderingError, ErrorCode
 
                     raise BengalRenderingError(
                         f"Template validation failed with {len(errors)} error(s). "
                         "Fix template syntax errors or disable strict mode.",
+                        code=ErrorCode.R002,
                         suggestion="Review template errors above and fix syntax issues, or set build.strict_mode=false",
                     )
             else:

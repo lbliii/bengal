@@ -46,7 +46,7 @@ from pathlib import Path
 from typing import Any
 
 from bengal.core.diagnostics import emit as emit_diagnostic
-from bengal.errors import BengalConfigError
+from bengal.errors import BengalConfigError, ErrorCode
 
 
 @dataclass
@@ -90,6 +90,7 @@ class Theme:
             raise BengalConfigError(
                 f"Invalid default_appearance '{self.default_appearance}'. "
                 f"Must be one of: {', '.join(valid_appearances)}",
+                code=ErrorCode.C003,
                 suggestion=f"Set default_appearance to one of: {', '.join(valid_appearances)}",
             )
 

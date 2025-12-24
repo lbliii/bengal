@@ -44,7 +44,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from bengal.errors import BengalRenderingError
+from bengal.errors import BengalRenderingError, ErrorCode
 
 
 @dataclass(frozen=True)
@@ -110,11 +110,13 @@ class DirectiveContract:
         if self.min_children < 0:
             raise BengalRenderingError(
                 "min_children must be >= 0",
+                code=ErrorCode.T005,
                 suggestion="Set min_children to 0 or greater in directive contract",
             )
         if self.max_children < 0:
             raise BengalRenderingError(
                 "max_children must be >= 0",
+                code=ErrorCode.T005,
                 suggestion="Set max_children to 0 or greater in directive contract",
             )
 
