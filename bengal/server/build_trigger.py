@@ -127,6 +127,9 @@ class BuildTrigger:
         self._executor = executor or BuildExecutor(max_workers=1)
         self._building = False
         self._build_lock = threading.Lock()
+        # Queue for changes that arrive during a build (prevents lost changes)
+        self._pending_changes: set[Path] = set()
+        self._pending_event_types: set[str] = set()
         # Reset template dirs cache for this instance (theme may differ)
         self._template_dirs = None
 
@@ -145,21 +148,50 @@ class BuildTrigger:
         4. Runs post-build hooks
         5. Notifies clients to reload
 
+        If a build is already in progress, changes are queued and will trigger
+        another build when the current one completes. This prevents lost changes
+        during rapid editing (especially important for autodoc pages).
+
         Args:
             changed_paths: Set of changed file paths
             event_types: Set of event types (created, modified, deleted, moved)
         """
         with self._build_lock:
             if self._building:
-                logger.debug("build_skipped", reason="build_already_in_progress")
+                # Queue changes instead of discarding them
+                self._pending_changes.update(changed_paths)
+                self._pending_event_types.update(event_types)
+                logger.debug(
+                    "build_changes_queued",
+                    queued_count=len(changed_paths),
+                    total_pending=len(self._pending_changes),
+                )
                 return
             self._building = True
 
         try:
             self._execute_build(changed_paths, event_types)
         finally:
+            # Check for queued changes before releasing lock
+            queued_changes: set[Path] = set()
+            queued_events: set[str] = set()
             with self._build_lock:
                 self._building = False
+                if self._pending_changes:
+                    queued_changes = self._pending_changes.copy()
+                    queued_events = self._pending_event_types.copy()
+                    self._pending_changes.clear()
+                    self._pending_event_types.clear()
+
+            # Trigger another build if changes were queued during this build
+            if queued_changes:
+                logger.info(
+                    "build_queued_changes_triggering",
+                    queued_count=len(queued_changes),
+                    queued_events=list(queued_events),
+                )
+                # Recursive call to handle the queued changes
+                self.trigger_build(queued_changes, queued_events)
 
     def _execute_build(
         self,
