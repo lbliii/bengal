@@ -231,12 +231,11 @@ details.dropdown.info .dropdown-icon .bengal-icon {
   will-change: transform, opacity;
 }
 
-/* View Transitions API for smooth expand/collapse */
-@supports (view-transition-name: dropdown) {
-  .dropdown-content {
-    view-transition-name: dropdown-content;
-  }
-}
+/*
+ * Note: Dropdowns do NOT use view-transition-name.
+ * Cross-document view transitions should only animate main-content.
+ * Dropdown animations are handled by @keyframes slideDown above.
+ */
 
 /* Use GPU-accelerated transform for smoother animation */
 @keyframes slideDown {

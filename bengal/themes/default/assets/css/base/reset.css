@@ -28,32 +28,11 @@ html {
   scroll-behavior: smooth;
 }
 
-/* View Transitions API - Smooth page transitions */
-@supports (view-transition-name: root) {
-  @view-transition {
-    navigation: auto;
-  }
-
-  ::view-transition-old(root),
-  ::view-transition-new(root) {
-    animation-duration: 0.3s;
-    animation-timing-function: var(--ease-smooth);
-  }
-
-  ::view-transition-old(root) {
-    z-index: 1;
-  }
-
-  ::view-transition-new(root) {
-    z-index: 2;
-  }
-
-  /* Theme-aware navigation arrows for swipe gestures */
-  /* Navigation indicators during view transitions use theme primary color */
-  ::view-transition-group(root) {
-    /* Ensure navigation indicators inherit theme colors */
-  }
-}
+/*
+ * View Transitions API
+ * All view transition configuration is in transitions.css
+ * Do NOT add view-transition rules here to avoid conflicts.
+ */
 
 /* Browser navigation UI (Safari swipe arrows, etc.) - Theme-aware */
 /* These arrows appear when swiping with trackpad to navigate back/forward */

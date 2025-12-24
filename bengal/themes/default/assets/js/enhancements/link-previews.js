@@ -369,6 +369,9 @@
     // Skip touch events - handled separately via long-press
     if (event.pointerType === 'touch') return;
 
+    // Guard: event.target may be a non-Element (e.g., Document, TextNode)
+    if (!event.target || typeof event.target.closest !== 'function') return;
+
     const link = event.target.closest('a');
     if (!link || !isPreviewable(link)) return;
 
@@ -381,6 +384,9 @@
 
   function handlePointerLeave(event) {
     if (event.pointerType === 'touch') return;
+
+    // Guard: event.target may be a non-Element (e.g., Document, TextNode)
+    if (!event.target || typeof event.target.closest !== 'function') return;
 
     const link = event.target.closest('a');
     if (!link) return;

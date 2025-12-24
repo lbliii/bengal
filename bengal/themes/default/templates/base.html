@@ -181,6 +181,21 @@ _path, kind, tags are always defined - no defensive checks needed.
         window.Bengal.enhanceBaseUrl = '{{ asset_url("js/enhancements") }}';
         window.Bengal.watchDom = {{ config.enhancements.watch_dom | default (true) | lower }};
         window.Bengal.debug = {{ config.enhancements.debug | default (false) | lower }};
+        // Enhancement URLs (fingerprinted in production builds)
+        window.Bengal.enhanceUrls = {
+            'toc': '{{ asset_url("js/enhancements/toc.js") }}',
+            'docs-nav': '{{ asset_url("js/enhancements/docs-nav.js") }}',
+            'tabs': '{{ asset_url("js/enhancements/tabs.js") }}',
+            'lightbox': '{{ asset_url("js/enhancements/lightbox.js") }}',
+            'interactive': '{{ asset_url("js/enhancements/interactive.js") }}',
+            'mobile-nav': '{{ asset_url("js/enhancements/mobile-nav.js") }}',
+            'action-bar': '{{ asset_url("js/enhancements/action-bar.js") }}',
+            'copy-link': '{{ asset_url("js/enhancements/copy-link.js") }}',
+            'data-table': '{{ asset_url("js/enhancements/data-table.js") }}',
+            'lazy-loaders': '{{ asset_url("js/enhancements/lazy-loaders.js") }}',
+            'holo': '{{ asset_url("js/enhancements/holo.js") }}',
+            'link-previews': '{{ asset_url("js/enhancements/link-previews.js") }}'
+        };
     </script>
 
     {# Theme & Palette initialization - INLINED to prevent FOUC (must be synchronous) #}

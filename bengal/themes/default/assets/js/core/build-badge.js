@@ -101,8 +101,10 @@
     try {
       const date = new Date(timestamp);
       return date.toLocaleString(undefined, {
-        dateStyle: 'medium',
-        timeStyle: 'short',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
       });
     } catch {
       return timestamp;

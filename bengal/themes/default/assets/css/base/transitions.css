@@ -4,10 +4,30 @@
  * Document Application: Browser-native page transitions using the View Transitions API.
  * Provides smooth, SPA-like navigation between pages without JavaScript frameworks.
  *
+ * DESIGN PHILOSOPHY:
+ * -----------------
+ * 1. MINIMAL - Only animate what needs to animate (main-content only)
+ * 2. SUBTLE - Quick 180ms crossfade, no dramatic movement
+ * 3. STABLE - Header, footer, sidebars stay fixed (no view-transition-name)
+ * 4. ACCESSIBLE - Respects prefers-reduced-motion
+ *
+ * WHY ONLY MAIN-CONTENT?
+ * - Prevents "morphing" between elements of different sizes (e.g., hero sections)
+ * - Avoids ghost overlays from sidebar/TOC during transitions
+ * - Keeps chrome stable for spatial continuity
+ * - Simpler = fewer edge cases and jarring effects
+ *
+ * AVAILABLE STYLES (set in bengal.toml):
+ * - crossfade (default): 180ms pure opacity fade
+ * - fade-slide: 150ms opacity + 10px vertical slide
+ * - slide: 200ms horizontal slide
+ * - none: Instant, no animation
+ *
  * Browser Support (as of Dec 2025):
  * - Chrome 111+, Firefox 144+, Safari 18+, Edge 111+ (90%+ global support)
  *
  * @see https://developer.chrome.com/docs/web-platform/view-transitions/
+ * @see MOTION_DESIGN_SYSTEM.md for full motion design documentation
  */
 
 /* ==============================================
@@ -15,7 +35,7 @@
    Named elements for coordinated transitions
    ============================================== */
 
-/* Main content - fades and slides during navigation */
+/* Main content - the only element with a view transition name */
 main[role="main"],
 #main-content {
   view-transition-name: main-content;
@@ -89,15 +109,15 @@ main[role="main"],
 
 /* ==============================================
    MAIN CONTENT TRANSITIONS
-   Primary page content with fade-slide effect
+   Default: Pure crossfade (matches config default)
    ============================================== */
 
 ::view-transition-old(main-content) {
-  animation: fade-slide-out 150ms ease-out forwards;
+  animation: fade-out 180ms ease-out forwards;
 }
 
 ::view-transition-new(main-content) {
-  animation: fade-slide-in 150ms ease-in;
+  animation: fade-in 180ms ease-in;
 }
 
 /* ==============================================
@@ -138,8 +158,18 @@ main[role="main"],
 
 /* ==============================================
    TRANSITION STYLE VARIANTS
-   Applied via data-transition-style attribute
+   Applied via data-transition-style attribute on <html>
+   Set in bengal.toml: document_application.navigation.transition_style
    ============================================== */
+
+/* Fade-slide variant - vertical slide with fade (more dynamic) */
+[data-transition-style="fade-slide"] ::view-transition-old(main-content) {
+  animation: fade-slide-out 150ms ease-out forwards;
+}
+
+[data-transition-style="fade-slide"] ::view-transition-new(main-content) {
+  animation: fade-slide-in 150ms ease-in;
+}
 
 /* Slide variant - horizontal sliding transitions */
 [data-transition-style="slide"] ::view-transition-old(main-content) {
@@ -150,7 +180,7 @@ main[role="main"],
   animation: slide-in-right 200ms ease-in;
 }
 
-/* None variant - instant transitions */
+/* None variant - instant transitions (no animation) */
 [data-transition-style="none"] ::view-transition-old(main-content),
 [data-transition-style="none"] ::view-transition-new(main-content) {
   animation: none;

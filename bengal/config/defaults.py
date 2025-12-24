@@ -367,7 +367,7 @@ DEFAULTS: dict[str, Any] = {
         # Navigation experience
         "navigation": {
             "view_transitions": True,  # Enable View Transitions API
-            "transition_style": "crossfade",  # crossfade | slide | morph | none
+            "transition_style": "crossfade",  # crossfade | fade-slide | slide | none
             "scroll_restoration": True,
         },
         # Speculation Rules for prefetching/prerendering

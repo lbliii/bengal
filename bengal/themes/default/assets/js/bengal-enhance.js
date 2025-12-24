@@ -29,7 +29,9 @@
   const CONFIG = {
     debug: (window.Bengal && window.Bengal.debug) || false,
     watchDom: (window.Bengal && window.Bengal.watchDom !== false) || true,
-    baseUrl: (window.Bengal && window.Bengal.enhanceBaseUrl) || '/assets/js/enhancements'
+    baseUrl: (window.Bengal && window.Bengal.enhanceBaseUrl) || '/assets/js/enhancements',
+    // Pre-resolved URLs for fingerprinted assets (injected by template)
+    urls: (window.Bengal && window.Bengal.enhanceUrls) || {}
   };
 
   /**
@@ -131,7 +133,9 @@
       return;
     }
 
-    const url = `${CONFIG.baseUrl}/${name}.js`;
+    // Use pre-resolved URL if available (handles fingerprinted assets),
+    // otherwise fall back to constructing URL from base
+    const url = CONFIG.urls[name] || `${CONFIG.baseUrl}/${name}.js`;
     PENDING_LOADS.set(name, []);
 
     try {

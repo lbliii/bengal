@@ -403,12 +403,11 @@
   }
 }
 
-/* View Transitions API for smooth navigation */
-@supports (view-transition-name: lightbox) {
-  .lightbox-dialog {
-    view-transition-name: lightbox;
-  }
-}
+/*
+ * Note: Lightbox does NOT use view-transition-name.
+ * Cross-document view transitions should only animate main-content.
+ * Dialog open/close animations are handled by @starting-style above.
+ */
 
 /* Image styling */
 .lightbox-dialog__image {
