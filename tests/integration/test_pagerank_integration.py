@@ -49,11 +49,13 @@ def sample_site(tmp_path):
     graph._built = True  # Skip build method
     graph.incoming_refs = defaultdict(int)
     graph.outgoing_refs = defaultdict(set)
+    graph.incoming_edges = defaultdict(list)  # Reverse adjacency for PageRank
 
     # Set up links: spokes -> hub
     for spoke in spoke_pages:
         graph.incoming_refs[hub_page] += 1
         graph.outgoing_refs[spoke].add(hub_page)
+        graph.incoming_edges[hub_page].append(spoke)  # Hub receives from spoke
 
     return site, graph, hub_page, spoke_pages, orphan_page
 
@@ -237,11 +239,13 @@ class TestPageRankScalability:
         graph._built = True
         graph.incoming_refs = defaultdict(int)
         graph.outgoing_refs = defaultdict(set)
+        graph.incoming_edges = defaultdict(list)  # Reverse adjacency for PageRank
 
         for i, page in enumerate(pages):
             next_page = pages[(i + 1) % 50]
             graph.outgoing_refs[page].add(next_page)
             graph.incoming_refs[next_page] += 1
+            graph.incoming_edges[next_page].append(page)  # next receives from page
 
         # Compute PageRank
         results = graph.compute_pagerank()
@@ -298,14 +302,17 @@ class TestPageRankScalability:
         graph._built = True
         graph.incoming_refs = defaultdict(int)
         graph.outgoing_refs = defaultdict(set)
+        graph.incoming_edges = defaultdict(list)  # Reverse adjacency for PageRank
 
         # Component 1: A -> B
         graph.outgoing_refs[page_a].add(page_b)
         graph.incoming_refs[page_b] += 1
+        graph.incoming_edges[page_b].append(page_a)
 
         # Component 2: C -> D
         graph.outgoing_refs[page_c].add(page_d)
         graph.incoming_refs[page_d] += 1
+        graph.incoming_edges[page_d].append(page_c)
 
         results = graph.compute_pagerank()
 

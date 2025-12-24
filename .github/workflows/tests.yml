@@ -37,7 +37,7 @@ jobs:
         OMP_NUM_THREADS: "1"
       run: |
         echo "Running fast test suite (excluding performance/stateful/slow)..."
-        uv run pytest -n auto -v --tb=short --dist worksteal --max-worker-restart=3 -m "not performance and not stateful and not slow"
+        uv run pytest -n auto -q --no-header --tb=short -r fEs --dist worksteal --max-worker-restart=3 -m "not performance and not stateful and not slow"
 
   # Baseurl spot-checks + Coverage (single-process)
   full-suite:
@@ -68,7 +68,7 @@ jobs:
         OMP_NUM_THREADS: "1"
       run: |
         echo "Running with BENGAL_BASEURL='${BENGAL_BASEURL}'"
-        uv run pytest -q -n auto tests/unit/config/test_config_loader_baseurl_env.py tests/unit/rendering/test_asset_url_baseurl.py tests/unit/rendering/test_template_links_baseurl.py tests/integration/test_baseurl_builds.py
+        uv run pytest -q --no-header --tb=short -r fEs -n auto tests/unit/config/test_config_loader_baseurl_env.py tests/unit/rendering/test_asset_url_baseurl.py tests/unit/rendering/test_template_links_baseurl.py tests/integration/test_baseurl_builds.py
 
     - name: Coverage (single-process, exclude performance/stateful/slow)
       if: matrix.baseurl == ''
@@ -76,7 +76,7 @@ jobs:
         CI: true
         BENGAL_CI_FAST: "1"
       run: |
-        uv run pytest -n 0 -v --tb=short --cov=bengal --cov-report=xml -m "not performance and not stateful and not slow"
+        uv run pytest -n 0 -q --no-header --tb=short -r fEs --cov=bengal --cov-report=xml -m "not performance and not stateful and not slow"
 
   # Slow tests (memory profiling, bytecode cache, etc.)
   slow-tests:
@@ -98,7 +98,7 @@ jobs:
         CI: true
         OMP_NUM_THREADS: "1"
       run: |
-        uv run pytest -n auto -v --tb=short -m "slow and not stateful and not performance" --dist worksteal --max-worker-restart=3
+        uv run pytest -n auto -q --no-header --tb=short -r fEs -m "slow and not stateful and not performance" --dist worksteal --max-worker-restart=3
 
   # Stateful workflows (weekly/manual)
   stateful:
@@ -120,7 +120,7 @@ jobs:
         CI: true
         OMP_NUM_THREADS: "1"
       run: |
-        uv run pytest -n auto -v --tb=short -m stateful --dist worksteal --max-worker-restart=2 -o timeout_method=signal -p pytest_forked --forked
+        uv run pytest -n auto -q --no-header --tb=short -r fEs -m stateful --dist worksteal --max-worker-restart=2 -o timeout_method=signal -p pytest_forked --forked
 
   # Performance suite (weekly/manual)
   performance:
@@ -142,7 +142,7 @@ jobs:
         CI: true
         OMP_NUM_THREADS: "1"
       run: |
-        uv run pytest -n auto -v --tb=short -m performance --dist worksteal --max-worker-restart=2 -o timeout_method=signal
+        uv run pytest -n auto -q --no-header --tb=short -r fEs -m performance --dist worksteal --max-worker-restart=2 -o timeout_method=signal
 
     - name: Upload coverage
       if: matrix.baseurl == ''
