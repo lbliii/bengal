@@ -10,11 +10,18 @@
  * - Reading output artifacts during template rendering would require I/O.
  *
  * How URL resolution works:
- * - We try progressively higher relative paths from the current page until we
- *   find `<dir_name>/build.json`. This supports:
- *   - baseurl deployments (site hosted under a subpath)
- *   - i18n prefix strategy (artifacts mirrored under language subdirs)
- *   - file:// browsing of built output (relative paths)
+ * 1. If `data-bengal-build-badge-path` is provided, try that URL first (avoids 404s).
+ * 2. For HTTP(S), try root-relative path `/<dir_name>/build.json`.
+ * 3. Fall back to relative path walking (`../` prefixes) for:
+ *    - baseurl deployments (site hosted under a subpath)
+ *    - i18n prefix strategy (artifacts mirrored under language subdirs)
+ *    - file:// browsing of built output (relative paths)
+ *
+ * Data attributes:
+ * - data-bengal-build-badge: Marker attribute for badge elements
+ * - data-bengal-build-badge-dir: Directory name for artifacts (default: "bengal")
+ * - data-bengal-build-badge-path: Optional absolute path hint to build.json
+ * - data-bengal-build-badge-label: Label text (default: "built in")
  *
  * Features:
  * - Hover card showing full build stats (like link previews)
@@ -78,10 +85,26 @@
     }
   }
 
-  async function resolveAndLoadBuildJson(dirName) {
+  async function resolveAndLoadBuildJson(dirName, pathHint) {
     const baseDir = new URL('.', window.location.href);
     const dir = normalizeDirName(dirName);
 
+    // If a path hint is provided (from template), try it first.
+    // This avoids 404 noise for the common HTTP case.
+    if (pathHint) {
+      const hintUrl = new URL(pathHint, window.location.href);
+      const hintPayload = await tryFetchJson(hintUrl);
+      if (hintPayload) return { url: hintUrl, payload: hintPayload };
+    }
+
+    // For HTTP(S) without hint, try root-relative path.
+    if (window.location.protocol.startsWith('http') && !pathHint) {
+      const absoluteCandidate = new URL('/' + dir + '/build.json', window.location.origin);
+      const absolutePayload = await tryFetchJson(absoluteCandidate);
+      if (absolutePayload) return { url: absoluteCandidate, payload: absolutePayload };
+    }
+
+    // Fall back to relative path walking for file:// browsing.
     for (let depth = 0; depth <= MAX_PARENT_SEARCH_DEPTH; depth++) {
       const prefix = '../'.repeat(depth);
       const candidate = new URL(prefix + dir + '/build.json', baseDir);
@@ -272,12 +295,13 @@
 
   async function initOne(badgeEl) {
     const dirName = badgeEl.getAttribute('data-bengal-build-badge-dir') || 'bengal';
+    const pathHint = badgeEl.getAttribute('data-bengal-build-badge-path') || '';
     const label = getLabelText(badgeEl);
 
     // Default: keep hidden until populated (prevents showing placeholder text).
     setBadgeHidden(badgeEl, true);
 
-    const resolved = await resolveAndLoadBuildJson(dirName);
+    const resolved = await resolveAndLoadBuildJson(dirName, pathHint);
     if (!resolved) return;
 
     const payload = resolved.payload || {};

@@ -57,14 +57,16 @@ Common badge classes: `badge-primary`, `badge-secondary`, `badge-success`, `badg
 
 ### Examples
 
-**Basic Badge**:
+:::{example-label} Basic Badge
+:::
 
 ````markdown
 :::{badge} New
 :::
 ````
 
-**Custom Class**:
+:::{example-label} Custom Class
+:::
 
 ````markdown
 :::{badge} Deprecated
@@ -72,7 +74,8 @@ Common badge classes: `badge-primary`, `badge-secondary`, `badge-success`, `badg
 :::
 ````
 
-**CLI Command Badge**:
+:::{example-label} CLI Command Badge
+:::
 
 ````markdown
 :::{badge} bengal build
@@ -110,14 +113,16 @@ Icons are loaded from Bengal's theme assets. If an icon is not found, a placehol
 
 ### Examples
 
-**Basic Icon**:
+:::{example-label} Basic Icon
+:::
 
 ```markdown
 :::{icon} home
 :::
 ```
 
-**Sized Icon**:
+:::{example-label} Sized Icon
+:::
 
 ```markdown
 :::{icon} arrow-right
@@ -125,7 +130,8 @@ Icons are loaded from Bengal's theme assets. If an icon is not found, a placehol
 :::
 ```
 
-**With Accessibility Label**:
+:::{example-label} With Accessibility Label
+:::
 
 ```markdown
 :::{icon} external-link
@@ -165,7 +171,8 @@ Button Text
 
 ### Examples
 
-**Basic Button**:
+:::{example-label} Basic Button
+:::
 
 ```markdown
 :::{button} /docs/
@@ -173,7 +180,8 @@ Get Started
 :::
 ```
 
-**Primary CTA**:
+:::{example-label} Primary CTA
+:::
 
 ```markdown
 :::{button} /signup/
@@ -185,7 +193,8 @@ Sign Up Free
 :::
 ```
 
-**External Link**:
+:::{example-label} External Link
+:::
 
 ```markdown
 :::{button} https://github.com/yourproject
@@ -259,7 +268,8 @@ Step content with **markdown** and nested directives.
 
 ### Examples
 
-**Basic Steps**:
+:::{example-label} Basic Steps
+:::
 
 ````markdown
 :::{steps}
@@ -285,7 +295,8 @@ bengal build
 :::{/steps}
 ````
 
-**Steps with Nested Admonitions**:
+:::{example-label} Steps with Nested Admonitions
+:::
 
 Named closers eliminate fence-counting for complex nesting:
 
@@ -337,7 +348,8 @@ Create styled checklist containers for bullet lists and task lists with optional
 
 ### Examples
 
-**Basic Checklist**:
+:::{example-label} Basic Checklist
+:::
 
 ````markdown
 :::{checklist} Prerequisites
@@ -347,7 +359,8 @@ Create styled checklist containers for bullet lists and task lists with optional
 :::{/checklist}
 ````
 
-**Task List with Progress**:
+:::{example-label} Task List with Progress
+:::
 
 ````markdown
 :::{checklist} Setup Tasks
@@ -358,7 +371,8 @@ Create styled checklist containers for bullet lists and task lists with optional
 :::{/checklist}
 ````
 
-**Numbered Checklist**:
+:::{example-label} Numbered Checklist
+:::
 
 ````markdown
 :::{checklist} Getting Started Steps
@@ -389,7 +403,8 @@ Create pseudo-headings that look like headings but don't appear in the table of 
 
 ### Examples
 
-**API Documentation**:
+:::{example-label} API Documentation
+:::
 
 ````markdown
 :::{rubric} Parameters
@@ -438,7 +453,8 @@ Create tables from nested lists (avoids pipe character issues in type annotation
 
 ### Examples
 
-**Basic Table**:
+:::{example-label} Basic Table
+:::
 
 ````markdown
 :::{list-table}
@@ -456,7 +472,8 @@ Create tables from nested lists (avoids pipe character issues in type annotation
 :::
 ````
 
-**With Column Widths**:
+:::{example-label} With Column Widths
+:::
 
 ```markdown
 :::{list-table}

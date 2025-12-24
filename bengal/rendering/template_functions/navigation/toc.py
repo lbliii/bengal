@@ -145,14 +145,16 @@ def combine_track_toc_items(track_items: list[str], get_page_func: Any) -> list[
 
         # Add section header as level 1 item
         section_id = f"track-section-{index}"
+        section_prefix = f"s{index}-"  # Must match template's prefix_heading_ids
         combined.append({"id": section_id, "title": page.title, "level": 1})
 
-        # Add all TOC items from this section, incrementing level by 1
+        # Add all TOC items from this section, with prefixed IDs and incremented levels
         if hasattr(page, "toc_items") and page.toc_items:
             for toc_item in page.toc_items:
+                original_id = toc_item.get("id", "")
                 combined.append(
                     {
-                        "id": toc_item.get("id", ""),
+                        "id": f"{section_prefix}{original_id}" if original_id else "",
                         "title": toc_item.get("title", ""),
                         "level": toc_item.get("level", 2) + 1,  # Increment level
                     }

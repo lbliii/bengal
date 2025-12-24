@@ -63,7 +63,7 @@ def display_bengal_error(error: BengalError, cli: CLIOutput) -> None:
         #
         #   Tip: Check for missing colons, incorrect indentation
         #
-        #   Docs: https://bengal.dev/docs/errors/c001/
+        #   Docs: https://bengal.dev/docs/reference/errors/#c001
     """
     icons = cli.icons
 

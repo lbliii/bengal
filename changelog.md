@@ -1,5 +1,36 @@
 ## [Unreleased]
 
+_Nothing yet._
+
+## 0.1.6 - 2025-12-23
+
+### Link Previews ✅
+- **themes(js)**: add `link-previews.js` (~3.5KB) - Wikipedia-style hover cards powered by per-page JSON
+- **themes(js)**: prefetch on hover intent (50ms before showing) for near-instant previews
+- **themes(js)**: LRU cache (50 entries) with AbortController for rapid navigation
+- **themes(js)**: mobile long-press support (500ms threshold) with haptic feedback
+- **themes(js)**: keyboard accessible (focus shows preview, Escape closes)
+- **themes(js)**: respects `prefers-reduced-motion` media query
+- **themes(css)**: add `link-preview.css` with theme-aware styling and dark mode
+- **themes(templates)**: add `partials/link-previews.html` config bridge for server-to-client settings
+- **config(defaults)**: add `[link_previews]` section with hover_delay, hide_delay, show_section, show_reading_time, exclude_selectors
+- **core(site)**: add `site.link_previews` property for normalized config access
+- **docs**: RFC moved to implemented
+
+### JavaScript Theme Improvements ✅
+- **themes(js)**: add `utils.js` shared utilities module with clipboard, throttle, debounce, focus trap
+- **themes(js)**: add `copyToClipboard()` unified clipboard API with fallback
+- **themes(js)**: add `throttleScroll()` RequestAnimationFrame-based scroll throttling
+- **themes(js)**: add `isExternalUrl()` robust URL parsing for external link detection
+- **themes(js)**: add `createFocusTrap()` for modal/dropdown keyboard navigation
+- **themes(js)**: add `scrollManager` consolidated scroll listener manager
+- **themes(js)**: add `log()` debug logging gated by `window.Bengal.debug`
+- **fix(toc.js)**: critical bug - event listener cleanup now stores handler references correctly (prevents memory leaks)
+- **fix(main.js)**: external link detection now uses proper URL parsing instead of string `includes()`
+- **fix(action-bar.js)**: add 5-second timeout for fetch requests (prevents hanging)
+- **themes(js)**: refactor 10 JS files to use shared utilities, removing ~200 lines of duplicate code
+- **themes(base.html)**: add `utils.js` as first script before all dependent modules
+
 ### Jinja Pattern Adoption ✅
 - **cache**: add magic header validation to compressed caches (`.json.zst`) for robust auto-invalidation on Python/Bengal upgrades
 - **utils(sentinel)**: add `MISSING` sentinel singleton to distinguish between `None` and unset values

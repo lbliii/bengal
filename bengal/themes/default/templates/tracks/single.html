@@ -47,29 +47,6 @@ Or set `type: track` to auto-select this template
             </div>
             {% endif %}
 
-            {# Track Contents Overview (Compact) #}
-            {% if track and track.items %}
-            <div class="track-contents-overview mb-5">
-                <h2 class="h5 mb-3">Track Contents</h2>
-                <div class="track-contents-list">
-                    {% for item_slug in track.items %}
-                    {% set item_page = get_page(item_slug) %}
-                    {% if item_page %}
-                    <a href="#track-section-{{ loop.index }}" class="track-contents-item">
-                        <span class="track-contents-number">{{ loop.index }}</span>
-                        <div class="track-contents-content">
-                            <div class="track-contents-title">{{ item_page.title }}</div>
-                            {% if item_page.description %}
-                            <div class="track-contents-desc">{{ item_page.description }}</div>
-                            {% endif %}
-                        </div>
-                    </a>
-                    {% endif %}
-                    {% endfor %}
-                </div>
-            </div>
-            {% endif %}
-
             {# Render All Track Pages Sequentially (Pillar Page Content) #}
             {% if track and track.items %}
             <div class="track-content">
@@ -90,15 +67,13 @@ Or set `type: track` to auto-select this template
                         </div>
                     </div>
 
-                    {# Section Content #}
+                    {# Section Content (headings demoted + IDs prefixed for uniqueness) #}
+                    {% set section_prefix = "s" ~ loop.index ~ "-" %}
                     <div class="track-section-content">
                         {% if item_page.parsed_ast %}
-                        {# Use parsed_ast and update heading IDs to be unique #}
-                        {# Note: In a real implementation, you'd want to update heading IDs here #}
-                        {{ item_page.parsed_ast | safe }}
+                        {{ item_page.parsed_ast | demote_headings | prefix_heading_ids(section_prefix) | safe }}
                         {% elif item_page.content %}
-                        {# Fallback to rendered content if parsed_ast not available #}
-                        {{ item_page.content | safe }}
+                        {{ item_page.content | demote_headings | prefix_heading_ids(section_prefix) | safe }}
                         {% else %}
                         <div class="alert alert-warning">
                             <p><strong>Content Unavailable</strong></p>
@@ -112,36 +87,14 @@ Or set `type: track` to auto-select this template
                         {% endif %}
                     </div>
 
-                    {# Section Navigation #}
-                    <div class="track-section-nav">
-                        {% if loop.index > 1 %}
-                        {% set prev_slug = track.items[loop.index - 2] %}
-                        {% set prev_page = get_page(prev_slug) %}
-                        {% if prev_page %}
-                        <a href="#track-section-{{ loop.index - 1 }}" class="btn btn-outline-primary btn-sm">
-                            &larr; Previous: {{ prev_page.title }}
-                        </a>
-                        {% endif %}
-                        {% else %}
-                        <span></span>
-                        {% endif %}
-
-                        {% if not loop.last %}
-                        {% set next_slug = track.items[loop.index] %}
-                        {% set next_page = get_page(next_slug) %}
-                        {% if next_page %}
-                        <a href="#track-section-{{ loop.index + 1 }}" class="btn btn-primary btn-sm">
-                            Next: {{ next_page.title }} &rarr;
-                        </a>
-                        {% endif %}
-                        {% else %}
-                        <div class="text-center flex-grow-1">
-                            <span class="badge bg-success fs-6 px-3 py-2">
-                                ✓ Track Complete
-                            </span>
-                        </div>
-                        {% endif %}
+                    {# Track Complete Badge (only after final section) #}
+                    {% if loop.last %}
+                    <div class="track-complete">
+                        <span class="badge bg-success fs-6 px-3 py-2">
+                            ✓ Track Complete
+                        </span>
                     </div>
+                    {% endif %}
                 </section>
                 {% else %}
                 {# Missing Page Warning #}

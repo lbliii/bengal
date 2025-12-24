@@ -58,7 +58,8 @@ Get a unified analysis report:
 bengal graph report
 ```
 
-**Example output:**
+:::{example-label} Output
+:::
 
 ```
 ================================================================================
@@ -95,7 +96,8 @@ For CI pipelines:
 bengal graph report --brief --ci --threshold-isolated 5
 ```
 
-**Example CI output:**
+:::{example-label} CI Output
+:::
 
 ```
 📊 Site Analysis: 124 pages
@@ -160,7 +162,8 @@ bengal graph orphans --level lightly
 bengal graph orphans --level all
 ```
 
-**Example output:**
+:::{example-label} Output
+:::
 
 ```
 📊 Connectivity Distribution
@@ -239,7 +242,8 @@ Identify your most important pages using Google's PageRank algorithm:
 bengal graph pagerank --top-n 10
 ```
 
-**Example output:**
+:::{example-label} Output
+:::
 
 ```
 🏆 Top 10 Pages by PageRank
@@ -287,7 +291,8 @@ Find critical navigation pages:
 bengal graph bridges --top-n 10
 ```
 
-**Example output:**
+:::{example-label} Output
+:::
 
 ```
 ====================================================================================================

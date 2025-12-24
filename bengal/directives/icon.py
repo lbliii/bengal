@@ -3,8 +3,8 @@ Icon directive for Mistune.
 
 Provides inline SVG icons from Bengal's icon library.
 
-Architecture:
-    Module-level icon cache preserved for performance.
+Icons are loaded via the theme-aware resolver (site > theme > parent > default).
+See: plan/drafted/rfc-theme-aware-icons.md
 
 Syntax:
 
@@ -20,70 +20,23 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any, ClassVar
 
 from bengal.directives.base import BengalDirective
 from bengal.directives.options import DirectiveOptions
 from bengal.directives.tokens import DirectiveToken
+from bengal.errors import ErrorCode
+from bengal.icons import resolver as icon_resolver
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
 __all__ = ["IconDirective", "IconOptions", "get_available_icons"]
 
-# Icon registry - maps icon names to SVG content
-# Populated lazily when icons are first requested
-_icon_cache: dict[str, str] = {}
-_icons_dir: Path | None = None
-
-
-def _set_icons_directory(path: Path) -> None:
-    """Set the icons directory (called during site initialization)."""
-    global _icons_dir
-    _icons_dir = path
-    _icon_cache.clear()
-
-
-def _load_icon(name: str) -> str | None:
-    """Load an icon SVG by name."""
-    if name in _icon_cache:
-        return _icon_cache[name]
-
-    icons_dir = _icons_dir
-    if icons_dir is None:
-        # Path: bengal/directives/icon.py -> bengal/themes/default/assets/icons
-        icons_dir = Path(__file__).parents[1] / "themes" / "default" / "assets" / "icons"
-
-    if not icons_dir.exists():
-        logger.debug("icons_dir_not_found", path=str(icons_dir))
-        return None
-
-    icon_path = icons_dir / f"{name}.svg"
-    if not icon_path.exists():
-        logger.warning("icon_not_found", name=name, searched=str(icons_dir))
-        return None
-
-    try:
-        svg_content = icon_path.read_text(encoding="utf-8")
-        _icon_cache[name] = svg_content
-        return svg_content
-    except OSError as e:
-        logger.error("icon_load_error", name=name, error=str(e))
-        return None
-
 
 def get_available_icons() -> list[str]:
     """Get list of available icon names."""
-    icons_dir = _icons_dir
-    if icons_dir is None:
-        # Path: bengal/directives/icon.py -> bengal/themes/default/assets/icons
-        icons_dir = Path(__file__).parents[1] / "themes" / "default" / "assets" / "icons"
-
-    if not icons_dir.exists():
-        return []
-
-    return [p.stem for p in icons_dir.glob("*.svg")]
+    return icon_resolver.get_available_icons()
 
 
 @dataclass
@@ -179,9 +132,16 @@ class IconDirective(BengalDirective):
         css_class = attrs.get("css_class", "")
         aria_label = attrs.get("aria_label", "")
 
-        # Load the SVG content
-        svg_content = _load_icon(name)
+        # Load the SVG content via theme-aware resolver
+        svg_content = icon_resolver.load_icon(name)
         if svg_content is None:
+            logger.warning(
+                "icon_not_found",
+                icon=name,
+                code=ErrorCode.T010.name,
+                searched=[str(p) for p in icon_resolver.get_search_paths()],
+                hint=f"Add to theme: themes/{{theme}}/assets/icons/{name}.svg",
+            )
             return (
                 f'<span class="bengal-icon bengal-icon--missing" aria-hidden="true" '
                 f'title="Icon not found: {name}">❓</span>'

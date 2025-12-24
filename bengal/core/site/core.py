@@ -59,6 +59,7 @@ from bengal.core.site.theme import ThemeIntegrationMixin
 from bengal.core.theme import Theme
 from bengal.core.url_ownership import URLRegistry
 from bengal.core.version import Version, VersionConfig
+from bengal.icons import resolver as icon_resolver
 from bengal.orchestration.stats import BuildStats
 
 if TYPE_CHECKING:
@@ -256,6 +257,11 @@ class Site(
             root_path=self.root_path,
             diagnostics_site=self,
         )
+
+        # Initialize theme-aware icon resolver for all icon consumers
+        # (template functions, inline icon plugin, directives)
+        # See: plan/drafted/rfc-theme-aware-icons.md
+        icon_resolver.initialize(self)
 
         if "output_dir" in self.config:
             self.output_dir = Path(self.config["output_dir"])

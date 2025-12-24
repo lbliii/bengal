@@ -70,14 +70,16 @@ Paths are resolved relative to:
 
 ### Examples
 
-**Include Entire File**:
+:::{example-label} Include Entire File
+:::
 
 ````markdown
 :::{include} snippets/warning.md
 :::
 ````
 
-**Include Specific Lines**:
+:::{example-label} Include Specific Lines
+:::
 
 ````markdown
 :::{include} snippets/api-example.md
@@ -86,7 +88,10 @@ Paths are resolved relative to:
 :::
 ````
 
-**Nested Directives**: Included content can use other directives:
+:::{example-label} Nested Directives
+:::
+
+Included content can use other directives:
 
 ````markdown
 <!-- snippets/warning.md -->
@@ -139,14 +144,16 @@ Include code files as syntax-highlighted code blocks.
 
 ### Examples
 
-**Basic Include**:
+:::{example-label} Basic Include
+:::
 
 ````markdown
 :::{literalinclude} examples/api.py
 :::
 ````
 
-**With Line Range**:
+:::{example-label} With Line Range
+:::
 
 ````markdown
 :::{literalinclude} examples/api.py
@@ -155,7 +162,8 @@ Include code files as syntax-highlighted code blocks.
 :::
 ````
 
-**With Emphasized Lines**:
+:::{example-label} With Emphasized Lines
+:::
 
 ````markdown
 :::{literalinclude} examples/api.py
@@ -163,7 +171,8 @@ Include code files as syntax-highlighted code blocks.
 :::
 ````
 
-**With Line Numbers**:
+:::{example-label} With Line Numbers
+:::
 
 ````markdown
 :::{literalinclude} examples/api.py
@@ -171,7 +180,8 @@ Include code files as syntax-highlighted code blocks.
 :::
 ````
 
-**Complete Example**:
+:::{example-label} Complete Example
+:::
 
 ````markdown
 :::{literalinclude} examples/api.py

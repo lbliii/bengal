@@ -4,8 +4,11 @@ Shared SVG icon utilities for directive rendering.
 Provides inline SVG icons from Bengal's icon library for use in cards, buttons,
 and other directives without requiring the full icon directive.
 
+Icons are loaded via the theme-aware resolver (site > theme > parent > default).
+See: plan/drafted/rfc-theme-aware-icons.md
+
 Performance:
-    - Icons are lazily loaded on first access and cached
+    - Icons are loaded via bengal.icons.resolver (theme-aware, cached)
     - Rendered output is LRU cached by (name, size, css_class, aria_label)
     - Regex patterns are pre-compiled at module load
 
@@ -36,13 +39,9 @@ from __future__ import annotations
 
 import re
 from functools import lru_cache
-from pathlib import Path
-from typing import TYPE_CHECKING
 
+from bengal.icons import resolver as icon_resolver
 from bengal.utils.logger import get_logger
-
-if TYPE_CHECKING:
-    pass
 
 __all__ = [
     "render_svg_icon",
@@ -56,54 +55,10 @@ __all__ = [
 
 logger = get_logger(__name__)
 
-# Icon registry - maps icon names to SVG content (lazy loaded)
-# Limited to 200 entries to prevent memory leaks (icons are small but can accumulate)
-_icon_cache: dict[str, str] = {}
-_ICON_CACHE_MAX_SIZE = 200
-
 # Pre-compiled regex patterns for SVG manipulation
 _RE_WIDTH_HEIGHT = re.compile(r'\s+(width|height)="[^"]*"')
 _RE_CLASS = re.compile(r'\s+class="[^"]*"')
 _RE_SVG_TAG = re.compile(r"<svg\s")
-
-
-def _get_icons_directory() -> Path:
-    """Get the icons directory from the default theme."""
-    # Path: bengal/directives/_icons.py -> bengal/themes/default/assets/icons
-    return Path(__file__).parents[1] / "themes" / "default" / "assets" / "icons"
-
-
-def _load_icon(name: str) -> str | None:
-    """
-    Load an icon SVG by name (with caching).
-
-    Args:
-        name: Icon name (without .svg extension)
-
-    Returns:
-        SVG content string, or None if not found
-    """
-    if name in _icon_cache:
-        return _icon_cache[name]
-
-    icons_dir = _get_icons_directory()
-    if not icons_dir.exists():
-        return None
-
-    icon_path = icons_dir / f"{name}.svg"
-    if not icon_path.exists():
-        return None
-
-    try:
-        svg_content = icon_path.read_text(encoding="utf-8")
-        # Evict oldest entry if cache is full (prevent memory leak)
-        if len(_icon_cache) >= _ICON_CACHE_MAX_SIZE:
-            oldest_key = next(iter(_icon_cache))
-            _icon_cache.pop(oldest_key, None)
-        _icon_cache[name] = svg_content
-        return svg_content
-    except OSError:
-        return None
 
 
 def get_icon_svg(name: str) -> str | None:
@@ -116,7 +71,7 @@ def get_icon_svg(name: str) -> str | None:
     Returns:
         Raw SVG string, or None if not found
     """
-    return _load_icon(name)
+    return icon_resolver.load_icon(name)
 
 
 def _escape_attr(value: str) -> str:
@@ -164,7 +119,7 @@ def render_svg_icon(
     # Map semantic name to actual icon name (e.g., "alert" -> "warning")
     icon_name = ICON_MAP.get(name, name)
 
-    svg_content = _load_icon(icon_name)
+    svg_content = icon_resolver.load_icon(icon_name)
     if svg_content is None:
         return ""
 
@@ -329,11 +284,11 @@ def render_icon(name: str, size: int = 20) -> str:
 
 def clear_icon_cache() -> None:
     """
-    Clear both the raw icon cache and the render cache.
+    Clear both the resolver cache and the render cache.
 
     Useful for testing or when icons are modified during development.
     """
-    _icon_cache.clear()
+    icon_resolver.clear_cache()
     render_svg_icon.cache_clear()
 
 
@@ -369,7 +324,7 @@ def icon_exists(name: str) -> bool:
     icon_name = ICON_MAP.get(name, name)
 
     # Check if icon file exists
-    return _load_icon(icon_name) is not None
+    return icon_resolver.load_icon(icon_name) is not None
 
 
 def warn_missing_icon(
@@ -397,7 +352,8 @@ def warn_missing_icon(
         icon=icon_name,
         directive=directive or "unknown",
         context=context or "",
-        hint="Run 'bengal icons' to see available icons",
+        searched=[str(p) for p in icon_resolver.get_search_paths()],
+        hint=f"Add to theme: themes/{{theme}}/assets/icons/{icon_name}.svg",
     )
 
 
@@ -416,12 +372,8 @@ def get_available_icons() -> list[str]:
         >>> "info" in icons
         True
     """
-    icons_dir = _get_icons_directory()
-    if not icons_dir.exists():
-        return []
-
-    # Get raw icon names (without .svg extension)
-    raw_icons = {p.stem for p in icons_dir.glob("*.svg")}
+    # Get raw icon names from resolver
+    raw_icons = set(icon_resolver.get_available_icons())
 
     # Add semantic aliases from ICON_MAP
     all_icons = raw_icons | set(ICON_MAP.keys())

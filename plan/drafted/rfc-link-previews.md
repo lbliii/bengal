@@ -5,7 +5,7 @@
 | **Title** | Link Previews (Page Cards on Hover) |
 | **Author** | AI + Human reviewer |
 | **Date** | 2025-12-23 |
-| **Status** | Draft |
+| **Status** | Implemented |
 | **Priority** | P2 (Medium) |
 | **Confidence** | 85% 🟢 |
 

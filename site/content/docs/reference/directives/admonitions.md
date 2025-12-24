@@ -51,34 +51,34 @@ Content with **full markdown** support.
 
 ## Examples
 
-### Basic Note
+::::{tab-set}
 
+:::{tab-item} Basic Note
 ```markdown
 :::{note}
 This is a note with **markdown** support.
 :::
 ```
+:::
 
-### With Title
-
+:::{tab-item} With Title
 ```markdown
 :::{warning} Important
 This feature requires admin access.
 :::
 ```
+:::
 
-### Without Title (Uses Type Name)
-
+:::{tab-item} Without Title
 ```markdown
 :::{tip}
 Use this pattern for better performance.
 :::
 ```
-
 Renders as "Tip" (capitalized type name).
+:::
 
-### Nested Content
-
+:::{tab-item} Nested Content
 Admonitions support full markdown including nested directives. Use named closers for clarity:
 
 ```markdown
@@ -90,6 +90,9 @@ Nested admonitions work!
 :::
 :::{/note}
 ```
+:::
+
+:::{/tab-set}
 
 ### All Types
 

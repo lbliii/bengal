@@ -11,61 +11,26 @@ Syntax:
 
 This works inside table cells and other inline contexts where
 the block-level :::{icon} directive cannot be used.
+
+Icons are loaded via the theme-aware resolver (site > theme > parent > default).
+See: plan/drafted/rfc-theme-aware-icons.md
 """
 
 from __future__ import annotations
 
 import re
-from pathlib import Path
 from typing import Any
 
+from bengal.errors import ErrorCode
+from bengal.icons import resolver as icon_resolver
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
 __all__ = ["InlineIconPlugin"]
 
-# Icon cache shared with directive (import from there if available)
-_icon_cache: dict[str, str] = {}
-_icons_dir: Path | None = None
-
-
-def _get_icons_dir() -> Path:
-    """Get the icons directory path."""
-    global _icons_dir
-    if _icons_dir is None:
-        _icons_dir = Path(__file__).parents[2] / "themes" / "default" / "assets" / "icons"
-    return _icons_dir
-
-
-def _load_icon(name: str) -> str | None:
-    """
-    Load an icon SVG by name.
-
-    Args:
-        name: Icon name (without .svg extension)
-
-    Returns:
-        SVG content string, or None if not found
-    """
-    if name in _icon_cache:
-        return _icon_cache[name]
-
-    icons_dir = _get_icons_dir()
-    if not icons_dir.exists():
-        return None
-
-    icon_path = icons_dir / f"{name}.svg"
-    if not icon_path.exists():
-        logger.debug("inline_icon_not_found", name=name)
-        return None
-
-    try:
-        svg_content = icon_path.read_text(encoding="utf-8")
-        _icon_cache[name] = svg_content
-        return svg_content
-    except OSError:
-        return None
+# Track warned icons to avoid duplicate warnings
+_warned_icons: set[str] = set()
 
 
 class InlineIconPlugin:
@@ -181,9 +146,19 @@ class InlineIconPlugin:
         if len(parts) >= 3 and parts[2].strip():
             css_class = parts[2].strip()
 
-        # Load the SVG content
-        svg_content = _load_icon(name)
+        # Load the SVG content via theme-aware resolver
+        svg_content = icon_resolver.load_icon(name)
         if svg_content is None:
+            # Warn once per icon name (deduplicated)
+            if name not in _warned_icons:
+                _warned_icons.add(name)
+                logger.warning(
+                    "icon_not_found",
+                    icon=name,
+                    code=ErrorCode.T010.name,
+                    searched=[str(p) for p in icon_resolver.get_search_paths()],
+                    hint=f"Add to theme: themes/{{theme}}/assets/icons/{name}.svg",
+                )
             return f'<span class="bengal-icon bengal-icon--missing" title="Icon not found: {name}">❓</span>'
 
         # Build class list
@@ -207,3 +182,9 @@ class InlineIconPlugin:
         )
 
         return svg_modified
+
+
+def clear_inline_icon_cache() -> None:
+    """Clear the inline icon cache and warned icons set."""
+    _warned_icons.clear()
+    icon_resolver.clear_cache()

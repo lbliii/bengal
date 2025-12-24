@@ -173,12 +173,12 @@ class DirectiveSyntaxValidator:
             errors.append("Code-tabs directive has no content")
             return errors
 
-        # Check for tab markers
-        tab_markers = re.findall(r"^### Tab: (.+)$", content, re.MULTILINE)
+        # Check for tab markers (both "### Tab: Language" and "### Language" are valid)
+        tab_markers = re.findall(r"^### (?:Tab: )?(.+)$", content, re.MULTILINE)
 
         if len(tab_markers) == 0:
             errors.append(
-                "Code-tabs directive has no tab markers. Use ### Tab: Language to create code tabs"
+                "Code-tabs directive has no tab markers. Use ### Tab: Language or ### Language to create code tabs"
             )
 
         return errors

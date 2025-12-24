@@ -32,7 +32,8 @@ These filters work with lists of pages, dictionaries, or any iterable.
 
 Filter items where a key matches a value. Supports Hugo-like comparison operators.
 
-**Basic Usage:**
+:::{example-label} Basic Usage
+:::
 
 ```jinja2
 {# Filter by exact value (default) #}
@@ -42,7 +43,8 @@ Filter items where a key matches a value. Supports Hugo-like comparison operator
 {% set track_pages = site.pages | where('metadata.track_id', 'getting-started') %}
 ```
 
-**With Comparison Operators:**
+:::{example-label} With Comparison Operators
+:::
 
 | Operator | Description | Example |
 |----------|-------------|---------|
@@ -55,7 +57,8 @@ Filter items where a key matches a value. Supports Hugo-like comparison operator
 | `in` | Value in list | `where('tags', 'python', 'in')` |
 | `not_in` | Value not in list | `where('status', ['archived'], 'not_in')` |
 
-**Operator Examples:**
+:::{example-label} Operator Examples
+:::
 
 ```jinja2
 {# Pages newer than a year ago #}
@@ -513,7 +516,8 @@ Generate a cross-reference link to a page.
 - Breadcrumbs
 - Conditional links
 
-**Examples**:
+:::{example-label} Usage
+:::
 
 ```jinja2
 {# Link with auto-title #}
@@ -554,7 +558,8 @@ Get a page object for custom link generation or metadata access.
 - Conditional rendering based on page properties
 - Building custom navigation structures
 
-**Examples**:
+:::{example-label} Usage
+:::
 
 ```jinja2
 {# Custom link with metadata #}
@@ -597,7 +602,8 @@ Link to a heading (anchor) in a page.
 - Cross-page heading references
 - Section navigation
 
-**Examples**:
+:::{example-label} Usage
+:::
 
 ```jinja2
 {# Link to any heading with this text #}
@@ -639,7 +645,8 @@ Get relative URL for a page without generating a full link.
 - OpenGraph URLs
 - Custom button styling
 
-**Examples**:
+:::{example-label} Usage
+:::
 
 ```jinja2
 {# Custom styled link #}

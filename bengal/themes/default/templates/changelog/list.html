@@ -118,7 +118,7 @@ Supports two modes:
     {% if changelog_data and changelog_data.releases %}
     <section class="changelog-timeline">
         <div class="timeline">
-            {% for release in changelog_data.releases %}
+            {% for release in changelog_data.releases | reverse %}
             {# Build list of change types for filtering #}
             {% set change_types = [] %}
             {% if release.added %} {% set _ = change_types.append('added') %} {% endif %}
@@ -255,7 +255,7 @@ Supports two modes:
     {% elif pages %}
     <section class="changelog-timeline">
         <div class="timeline">
-            {% for release in pages %}
+            {% for release in pages | reverse if release.href != section.href %}
             {# Build list of change types for filtering #}
             {# If no structured metadata, leave empty - JavaScript will show for all filters #}
             {% set change_types = [] %}

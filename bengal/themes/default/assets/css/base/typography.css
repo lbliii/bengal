@@ -629,13 +629,14 @@ table {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   width: 100%;
+  max-width: 100%;
   margin: var(--space-8) 0;
 }
 
 .table-wrapper table {
   display: table;
   width: 100%;
-  min-width: 100%;
+  min-width: max-content;
   margin: 0;
 }
 

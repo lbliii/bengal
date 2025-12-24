@@ -135,7 +135,9 @@ bengal g report                      # g → graph
 bengal analyze                       # Top-level alias for graph analyze
 ```
 
-**Example `bengal graph report` output:**
+:::{example-label} bengal graph report Output
+:::
+
 ```
 📊 Site Analysis Report
 ================================================================================

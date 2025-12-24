@@ -109,12 +109,13 @@ def get_theme_js_bundle_order() -> list[str]:
     8. enhancements/mobile-nav.js - Mobile navigation
     9. enhancements/tabs.js - Tab component
     10. enhancements/toc.js - Table of contents
-    11. enhancements/action-bar.js - Action bar (copy, etc.)
-    12. enhancements/interactive.js - Interactive elements
-    13. main.js - Main initialization
-    14. enhancements/copy-link.js - Copy link functionality
-    15. enhancements/holo.js - Holographic effects (merged from holo.js + holo-cards.js)
-    16. enhancements/lazy-loaders.js - Lazy loading (Mermaid, D3, etc.)
+    11. enhancements/tracks.js - Learning track progress/navigation
+    12. enhancements/action-bar.js - Action bar (copy, etc.)
+    13. enhancements/interactive.js - Interactive elements
+    14. main.js - Main initialization
+    15. enhancements/copy-link.js - Copy link functionality
+    16. enhancements/holo.js - Holographic effects (merged from holo.js + holo-cards.js)
+    17. enhancements/lazy-loaders.js - Lazy loading (Mermaid, D3, etc.)
 
     Returns:
         List of JS filenames in load order (with paths relative to js/ directory)
@@ -130,6 +131,7 @@ def get_theme_js_bundle_order() -> list[str]:
         "enhancements/mobile-nav.js",
         "enhancements/tabs.js",
         "enhancements/toc.js",
+        "enhancements/tracks.js",
         "enhancements/action-bar.js",
         "enhancements/interactive.js",
         "main.js",

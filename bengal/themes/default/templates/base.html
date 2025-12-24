@@ -301,7 +301,12 @@ _path, kind, tags are always defined - no defensive checks needed.
                     {% if _main_menu %}
                     {% for item in _main_menu %}
                     <li class="{{ 'active' if item.active else '' }} {{ 'active-trail' if item.active_trail else '' }}">
+                        {# If item has children and no unique link (href is #), render as non-clickable dropdown trigger #}
+                        {% if item.children and item.href == '#' %}
+                        <span class="nav-dropdown-trigger" tabindex="0" role="button" aria-haspopup="true">{{ item.name }}</span>
+                        {% else %}
                         <a href="{{ item.href | absolute_url }}">{{ item.name }}</a>
+                        {% endif %}
                         {% if item.children %}
                         <ul class="submenu">
                             {% for child in item.children %}
@@ -427,7 +432,12 @@ _path, kind, tags are always defined - no defensive checks needed.
                     {% if _main_menu %}
                     {% for item in _main_menu %}
                     <li class="{{ 'has-submenu' if item.children else '' }} {{ 'active' if item.active else '' }}">
+                        {# If item has children and no unique link (href is #), render as non-clickable dropdown trigger #}
+                        {% if item.children and item.href == '#' %}
+                        <span class="nav-dropdown-trigger" tabindex="0" role="button" aria-haspopup="true">{{ item.name }}</span>
+                        {% else %}
                         <a href="{{ item.href | absolute_url }}">{{ item.name }}</a>
+                        {% endif %}
                         {% if item.children %}
                         <ul class="submenu">
                             {% for child in item.children %}
@@ -517,6 +527,7 @@ _path, kind, tags are always defined - no defensive checks needed.
                         {% if _build_badge.enabled %}
                         <a class="bengal-build-time" data-bengal-build-badge
                             data-bengal-build-badge-dir="{{ _build_badge.dir_name }}"
+                            data-bengal-build-badge-path="{{ build_artifact_url('build.json', _build_badge.dir_name) }}"
                             data-bengal-build-badge-label="{{ _build_badge.label }}" href="#"
                             aria-label="{{ _build_badge.label }}" title="{{ _build_badge.label }}" hidden>
                             <span class="bengal-build-time__label">{{ _build_badge.label }}</span>
@@ -574,6 +585,7 @@ _path, kind, tags are always defined - no defensive checks needed.
         <script defer src="{{ asset_url('js/enhancements/mobile-nav.js') }}"></script>
         <script defer src="{{ asset_url('js/enhancements/tabs.js') }}"></script>
         <script defer src="{{ asset_url('js/enhancements/toc.js') }}"></script>
+        <script defer src="{{ asset_url('js/enhancements/tracks.js') }}"></script>
         <script defer src="{{ asset_url('js/enhancements/action-bar.js') }}"></script>
         <script defer src="{{ asset_url('js/enhancements/copy-link.js') }}"></script>
         {# Optional enhancements - Auto-loaded by bengal-enhance.js when data-bengal elements detected #}

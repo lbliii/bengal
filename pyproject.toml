@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bengal"
-version = "0.1.5"
+version = "0.1.6"
 description = "A high-performance static site generator with modular architecture"
 readme = "README.md"
 requires-python = ">=3.14"
@@ -59,7 +59,7 @@ all-sources = ["aiohttp>=3.9.0"] # All remote sources
 # Note: Dev dependencies use [dependency-groups] (PEP 735) - install with: uv sync --group dev
 
 [project.scripts]
-bengal = "bengal.cli:main"
+bengal = "bengal.__main__:run"
 
 [project.urls]
 Homepage = "https://github.com/lbliii/bengal"

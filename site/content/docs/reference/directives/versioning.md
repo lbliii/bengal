@@ -31,7 +31,8 @@ This feature was added in version 2.0.
 
 ### Examples
 
-**Basic usage:**
+:::{example-label} Basic Usage
+:::
 
 ```markdown
 :::{since} v2.0
@@ -39,7 +40,8 @@ Webhooks allow real-time event notifications.
 :::
 ```
 
-**Without version (generic):**
+:::{example-label} Without Version (Generic)
+:::
 
 ```markdown
 :::{since}
@@ -47,7 +49,8 @@ This is a recent addition.
 :::
 ```
 
-**Inline in tables:**
+:::{example-label} Inline in Tables
+:::
 
 ```markdown
 | Option | Description |
@@ -94,7 +97,8 @@ Use `new_function()` instead.
 
 ### Examples
 
-**Basic usage:**
+:::{example-label} Basic Usage
+:::
 
 ```markdown
 :::{deprecated} v3.0
@@ -102,7 +106,8 @@ This function is deprecated. Use `new_api()` instead.
 :::
 ```
 
-**With migration path:**
+:::{example-label} With Migration Path
+:::
 
 ```markdown
 :::{deprecated} v3.0
@@ -116,7 +121,8 @@ See [[docs/migration|migration guide]] for details.
 :::
 ```
 
-**Without version:**
+:::{example-label} Without Version
+:::
 
 ```markdown
 :::{deprecated}
@@ -163,7 +169,8 @@ Default timeout changed from 30s to 60s.
 
 ### Examples
 
-**Basic usage:**
+:::{example-label} Basic Usage
+:::
 
 ```markdown
 :::{changed} v2.5
@@ -171,7 +178,8 @@ The default batch size increased from 100 to 1000.
 :::
 ```
 
-**API response change:**
+:::{example-label} API Response Change
+:::
 
 ```markdown
 :::{changed} v3.0
@@ -186,7 +194,8 @@ Response now includes a `metadata` field:
 :::
 ```
 
-**Without version:**
+:::{example-label} Without Version
+:::
 
 ```markdown
 :::{changed}

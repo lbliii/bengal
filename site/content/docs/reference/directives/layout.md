@@ -113,7 +113,8 @@ Footer content
 
 ### Examples
 
-**Basic Card Grid**:
+:::{example-label} Basic Card Grid
+:::
 
 ```markdown
 :::{cards}
@@ -143,7 +144,8 @@ Step-by-step tutorials
 :::{/cards}
 ```
 
-**Responsive Columns**:
+:::{example-label} Responsive Columns
+:::
 
 ```markdown
 :::{cards}
@@ -161,7 +163,8 @@ Content
 :::{/cards}
 ```
 
-**Cards with Nested Admonitions**:
+:::{example-label} Cards with Nested Admonitions
+:::
 
 Named closers eliminate fence-counting for complex nesting:
 
@@ -186,7 +189,8 @@ Standard content here.
 Use `:::{/name}` to explicitly close any container directive, eliminating the need to count colons.
 :::
 
-**Auto-Pull from Linked Pages**:
+:::{example-label} Auto-Pull from Linked Pages
+:::
 
 Use `:pull:` to automatically fetch metadata from linked pages, reducing content duplication:
 
@@ -226,7 +230,8 @@ The `:pull:` option supports:
 Use `id:ref-name` syntax to reference pages by their frontmatter `id` field instead of path. This makes links stable even if you reorganize content.
 :::
 
-**Layout Variants**:
+:::{example-label} Layout Variants
+:::
 
 Use `:layout:` for different card arrangements:
 
@@ -256,7 +261,8 @@ Layout options:
 - `portrait` - Tall aspect ratio (2:3), great for app screenshots or TCG-style cards
 - `compact` - Reduced padding for dense reference lists
 
-**Portrait Cards (TCG/Phone Style)**:
+:::{example-label} Portrait Cards (TCG/Phone Style)
+:::
 
 ```markdown
 :::{cards}
@@ -343,7 +349,8 @@ Tab content
 
 ### Examples
 
-**Basic Tabs**:
+:::{example-label} Basic Tabs
+:::
 
 ````markdown
 :::{tab-set}
@@ -363,7 +370,8 @@ console.log("Hello");
 :::{/tab-set}
 ````
 
-**Synchronized Tabs**:
+:::{example-label} Synchronized Tabs
+:::
 
 ````markdown
 :::{tab-set}
@@ -385,7 +393,8 @@ Same Python code (synced)
 :::{/tab-set}
 ````
 
-**Tabs with Icons and Badges**:
+:::{example-label} Tabs with Icons and Badges
+:::
 
 ````markdown
 :::{tab-set}
@@ -413,7 +422,8 @@ Ruby support coming soon.
 :::{/tab-set}
 ````
 
-**Tabs with Nested Admonitions**:
+:::{example-label} Tabs with Nested Admonitions
+:::
 
 Named closers eliminate fence-counting for complex nesting:
 
@@ -474,7 +484,8 @@ Nested directives work!
 
 ### Examples
 
-**Collapsed by Default**:
+:::{example-label} Collapsed by Default
+:::
 
 ````markdown
 :::{dropdown} Advanced Options
@@ -484,7 +495,8 @@ Click to expand advanced configuration options.
 :::
 ````
 
-**Open by Default**:
+:::{example-label} Open by Default
+:::
 
 ````markdown
 :::{dropdown} Quick Reference
@@ -495,7 +507,8 @@ Common commands and shortcuts.
 :::
 ````
 
-**With Description**:
+:::{example-label} With Description
+:::
 
 ````markdown
 :::{dropdown} API Authentication
@@ -506,7 +519,8 @@ Detailed authentication documentation here.
 :::
 ````
 
-**With Badge and Color**:
+:::{example-label} With Badge and Color
+:::
 
 ````markdown
 :::{dropdown} New Features
@@ -518,7 +532,8 @@ Check out the latest features!
 :::
 ````
 
-**Warning Dropdown**:
+:::{example-label} Warning Dropdown
+:::
 
 ````markdown
 :::{dropdown} Breaking Changes

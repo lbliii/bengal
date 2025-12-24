@@ -291,7 +291,10 @@ The `{glossary}` directive renders terms from a centralized glossary data file (
 
 ### Examples
 
-**Basic Usage** - Show terms tagged with "directives":
+:::{example-label} Basic Usage
+:::
+
+Show terms tagged with "directives":
 
 ```markdown
 :::{glossary}
@@ -299,7 +302,10 @@ The `{glossary}` directive renders terms from a centralized glossary data file (
 :::
 ```
 
-**Progressive Disclosure** - Show first 3 terms, rest expandable:
+:::{example-label} Progressive Disclosure
+:::
+
+Show first 3 terms, rest expandable:
 
 ```markdown
 :::{glossary}
@@ -308,7 +314,10 @@ The `{glossary}` directive renders terms from a centralized glossary data file (
 :::
 ```
 
-**Fully Collapsed** - Entire glossary in collapsible section:
+:::{example-label} Fully Collapsed
+:::
+
+Entire glossary in collapsible section:
 
 ```markdown
 :::{glossary}
@@ -317,7 +326,10 @@ The `{glossary}` directive renders terms from a centralized glossary data file (
 :::
 ```
 
-**Both Options** - Collapsed, with limited terms when expanded:
+:::{example-label} Both Options
+:::
+
+Collapsed, with limited terms when expanded:
 
 ```markdown
 :::{glossary}

@@ -190,12 +190,39 @@ class MenuOrchestrator:
                 dev_section_names.append(section.name)
         dev_section_names.sort()
 
+        # Include dropdown configurations from section frontmatter
+        dropdown_configs = []
+        for section in self.site.sections:
+            if hasattr(section, "index_page") and section.index_page:
+                metadata = getattr(section.index_page, "metadata", {})
+                menu_cfg = metadata.get("menu", {})
+                if isinstance(menu_cfg, dict) and menu_cfg.get("dropdown"):
+                    dropdown_cfg = menu_cfg["dropdown"]
+                    dropdown_configs.append({
+                        "section": section.name,
+                        "dropdown": str(dropdown_cfg),
+                    })
+                    # If data-driven, include the data keys
+                    if isinstance(dropdown_cfg, str) and dropdown_cfg.startswith("data:"):
+                        data_key = dropdown_cfg[5:]
+                        if hasattr(self.site.data, data_key):
+                            data = getattr(self.site.data, data_key)
+                            if isinstance(data, dict):
+                                dropdown_configs[-1]["data_keys"] = sorted(data.keys())
+
+        # Include bundles config
+        bundles_config = self.site.config.get("menu", {}).get("bundles", {})
+        auto_dev_bundle = self.site.config.get("menu", {}).get("auto_dev_bundle", True)
+
         # Create cache key data
         cache_data = {
             "config": menu_config,
             "pages": menu_pages,
             "dev_params": dev_params,
             "dev_sections": dev_section_names,
+            "dropdowns": dropdown_configs,
+            "bundles": bundles_config,
+            "auto_dev_bundle": auto_dev_bundle,
         }
 
         # Hash to create cache key
@@ -204,169 +231,511 @@ class MenuOrchestrator:
 
     def _build_auto_menu_with_dev_bundling(self) -> list[dict[str, Any]]:
         """
-        Build auto-discovered menu with dev assets bundled into dropdown.
+        Build auto-discovered menu with configurable bundling.
 
-        This is the single source of truth for auto menu generation.
-        Integrates section discovery, dev bundling, and menu structure in one place.
+        Processing hierarchy (most specific wins):
+        1. Config bundles [menu.bundles.xxx] - Synthetic dropdowns
+        2. Section frontmatter menu.dropdown - Per-section dropdowns
+        3. Auto-discovery defaults - Dev bundling when 2+ items
 
         Returns:
             List of menu item dicts ready for MenuBuilder (with deduplication)
         """
         from bengal.rendering.template_functions.navigation import get_auto_nav
 
-        # Detect dev assets first
-        dev_assets = []
-        dev_sections_to_remove = set()
+        # Get menu config for bundles
+        menu_config = self.site.config.get("menu", {})
+        bundles_config = menu_config.get("bundles", {})
 
-        params = self.site.config.get("params", {})
+        # Detect available assets for bundling
+        available_assets = self._detect_bundleable_assets()
 
-        # Check for GitHub repo URL
-        if repo_url := params.get("repo_url"):
-            dev_assets.append({"name": "GitHub", "url": repo_url, "type": "github"})
+        # Determine which sections to exclude from auto-nav (they'll be in bundles)
+        sections_to_exclude = set()
 
-        # Check for API section
-        api_section = self._find_section_by_name("api")
-        if api_section:
-            # Use _path (templates apply baseurl via | absolute_url filter)
-            api_url = getattr(api_section, "_path", None) or "/api/"
-            dev_assets.append({"name": "API Reference", "url": api_url, "type": "api"})
-            dev_sections_to_remove.add("api")
+        # Process config-defined bundles first (highest priority for bundles)
+        config_bundles = self._process_config_bundles(bundles_config, available_assets)
+        for bundle in config_bundles:
+            sections_to_exclude.update(bundle.get("_exclude_sections", []))
 
-        # Check for CLI section
-        cli_section = self._find_section_by_name("cli")
-        if cli_section:
-            # Use _path (templates apply baseurl via | absolute_url filter)
-            cli_url = getattr(cli_section, "_path", None) or "/cli/"
-            dev_assets.append({"name": "bengal CLI", "url": cli_url, "type": "cli"})
-            dev_sections_to_remove.add("cli")
+        # Check if Dev bundle should be auto-created (default behavior)
+        # Skip if explicitly disabled or if a custom dev bundle is defined in config
+        auto_dev_enabled = menu_config.get("auto_dev_bundle", True)
+        has_custom_dev_bundle = "dev" in bundles_config
 
-        # Only exclude API/CLI sections from auto-nav when we are actually bundling them
-        # into the Dev dropdown (2+ dev assets). If there is only one dev asset, it should
-        # remain visible as a normal top-level nav item.
-        should_bundle = len(dev_assets) >= 2
+        dev_bundle = None
+        if auto_dev_enabled and not has_custom_dev_bundle:
+            dev_bundle = self._create_default_dev_bundle(available_assets)
+            if dev_bundle:
+                sections_to_exclude.update(dev_bundle.get("_exclude_sections", []))
 
-        # Mark dev sections to exclude from auto-nav (only when bundling is active)
-        if should_bundle and dev_sections_to_remove:
+        # Mark sections to exclude from auto-nav
+        if sections_to_exclude:
             if self.site._dev_menu_metadata is None:
                 self.site._dev_menu_metadata = {}
-            self.site._dev_menu_metadata["exclude_sections"] = list(dev_sections_to_remove)
+            self.site._dev_menu_metadata["exclude_sections"] = list(sections_to_exclude)
 
-        # Get auto-discovered sections (will exclude dev sections)
+        # Get auto-discovered sections (will exclude bundled sections)
         auto_items = get_auto_nav(self.site)
 
         # Clear the exclude flag after use
-        if should_bundle and (
-            self.site._dev_menu_metadata is not None
-            and "exclude_sections" in self.site._dev_menu_metadata
-        ):
-            del self.site._dev_menu_metadata["exclude_sections"]
+        if sections_to_exclude and self.site._dev_menu_metadata:
+            self.site._dev_menu_metadata.pop("exclude_sections", None)
 
         # Build menu items list with deduplication
         menu_items = []
-        seen_identifiers = set()
-        seen_urls = set()
-        seen_names = set()
+        seen_identifiers: set[str] = set()
+        seen_urls: set[str] = set()
+        seen_names: set[str] = set()
 
         # Add auto items with deduplication
         for item in auto_items:
-            item_id = item.get("identifier")
-            item_url = item.get("url", "").rstrip("/")
-            item_name = item.get("name", "").lower()
+            if self._add_item_if_unique(item, menu_items, seen_identifiers, seen_urls, seen_names):
+                pass  # Item added
 
-            # Skip duplicates
-            if item_id and item_id in seen_identifiers:
-                continue
-            if item_url and item_url in seen_urls:
-                continue
-            if item_name and item_name in seen_names:
-                continue
+        # Add config-defined bundles
+        for bundle in config_bundles:
+            self._add_bundle_to_menu(bundle, menu_items, seen_identifiers, seen_urls, seen_names)
 
-            menu_items.append(item)
-            if item_id:
-                seen_identifiers.add(item_id)
-            if item_url:
-                seen_urls.add(item_url)
-            if item_name:
-                seen_names.add(item_name)
-
-        # Bundle dev assets if 2+ exist
-        if should_bundle:
-            parent_id = "dev-auto"
-
-            # Check if Dev already exists
-            if parent_id not in seen_identifiers:
-                # Add Dev parent item
-                menu_items.append(
-                    {
-                        "name": "Dev",
-                        "url": "#",
-                        "identifier": parent_id,
-                        "weight": 90,
-                    }
-                )
-                seen_identifiers.add(parent_id)
-
-            # Add dev asset children in order
-            order_map = {"github": 1, "api": 2, "cli": 3}
-            dev_assets.sort(key=lambda x: order_map.get(x["type"], 99))
-
-            for i, asset in enumerate(dev_assets):
-                asset_url = asset["url"].rstrip("/")
-                asset_name = asset["name"].lower()
-
-                # Skip if duplicate
-                if asset_url in seen_urls or asset_name in seen_names:
-                    continue
-
-                menu_items.append(
-                    {
-                        "name": asset["name"],
-                        "url": asset["url"],
-                        "parent": parent_id,
-                        "weight": i + 1,
-                    }
-                )
-                seen_urls.add(asset_url)
-                seen_names.add(asset_name)
-
+        # Add default Dev bundle if applicable
+        if dev_bundle:
+            self._add_bundle_to_menu(dev_bundle, menu_items, seen_identifiers, seen_urls, seen_names)
             # Store metadata for template
             if self.site._dev_menu_metadata is None:
                 self.site._dev_menu_metadata = {}
             self.site._dev_menu_metadata["github_bundled"] = any(
-                a["type"] == "github" for a in dev_assets
+                item.get("type") == "github" for item in dev_bundle.get("items", [])
             )
-        else:
-            # Single dev asset case: do NOT hide it behind Dev (Dev requires 2+), but also
-            # do NOT rely on section auto-nav for virtual autodoc sections (path=None).
-            #
-            # If the only available dev asset is API or CLI, expose it as a normal top-level
-            # menu item so it remains discoverable.
-            for asset in dev_assets:
-                if asset.get("type") not in {"api", "cli"}:
-                    continue
 
-                asset_url = asset.get("url", "").rstrip("/")
-                asset_name = asset.get("name", "").lower()
-
-                if (asset_url and asset_url in seen_urls) or (
-                    asset_name and asset_name in seen_names
-                ):
-                    continue
-
-                menu_items.append(
-                    {
-                        "name": asset["name"],
-                        "url": asset["url"],
-                        "identifier": asset["type"],
-                        "weight": 90,
-                    }
-                )
-                if asset_url:
-                    seen_urls.add(asset_url)
-                if asset_name:
-                    seen_names.add(asset_name)
+        # Process sections with dropdown frontmatter (lowest priority - after bundles)
+        menu_items = self._process_dropdown_sections(
+            menu_items, seen_identifiers, seen_urls, seen_names
+        )
 
         return menu_items
+
+    def _detect_bundleable_assets(self) -> dict[str, dict[str, Any]]:
+        """
+        Detect all assets that can be bundled into dropdowns.
+
+        Returns:
+            Dict mapping asset type to asset info (name, url, section if applicable)
+        """
+        assets: dict[str, dict[str, Any]] = {}
+        params = self.site.config.get("params", {})
+
+        # GitHub repo URL
+        if repo_url := params.get("repo_url"):
+            assets["github"] = {"name": "GitHub", "url": repo_url, "type": "github"}
+
+        # API section
+        api_section = self._find_section_by_name("api")
+        if api_section:
+            api_url = getattr(api_section, "_path", None) or "/api/"
+            assets["api"] = {
+                "name": "API Reference",
+                "url": api_url,
+                "type": "api",
+                "section": "api",
+            }
+
+        # CLI section
+        cli_section = self._find_section_by_name("cli")
+        if cli_section:
+            cli_url = getattr(cli_section, "_path", None) or "/cli/"
+            assets["cli"] = {
+                "name": "CLI Reference",
+                "url": cli_url,
+                "type": "cli",
+                "section": "cli",
+            }
+
+        return assets
+
+    def _process_config_bundles(
+        self, bundles_config: dict[str, Any], available_assets: dict[str, dict[str, Any]]
+    ) -> list[dict[str, Any]]:
+        """
+        Process config-defined bundles from [menu.bundles.xxx].
+
+        Config format:
+            [menu.bundles.dev]
+            name = "Developer"
+            weight = 90
+            items = ["github", "api", "cli"]
+            min_items = 2
+
+        Args:
+            bundles_config: Dict of bundle configurations
+            available_assets: Available assets that can be bundled
+
+        Returns:
+            List of bundle dicts with name, url, items, weight, _exclude_sections
+        """
+        bundles = []
+
+        for bundle_id, config in bundles_config.items():
+            if not isinstance(config, dict):
+                continue
+
+            # Check if bundle is enabled (default true)
+            if not config.get("enabled", True):
+                continue
+
+            # Get bundle settings
+            bundle_name = config.get("name", bundle_id.title())
+            bundle_weight = config.get("weight", 90)
+            bundle_url = config.get("url", "#")
+            requested_items = config.get("items", [])
+            min_items = config.get("min_items", 2)
+
+            # Collect available items for this bundle
+            bundle_items = []
+            exclude_sections = []
+
+            for item_type in requested_items:
+                if item_type in available_assets:
+                    asset = available_assets[item_type]
+                    bundle_items.append(asset)
+                    if "section" in asset:
+                        exclude_sections.append(asset["section"])
+
+            # Only create bundle if enough items
+            if len(bundle_items) >= min_items:
+                bundles.append({
+                    "identifier": f"{bundle_id}-bundle",
+                    "name": bundle_name,
+                    "url": bundle_url,
+                    "weight": bundle_weight,
+                    "items": bundle_items,
+                    "_exclude_sections": exclude_sections,
+                })
+
+        return bundles
+
+    def _create_default_dev_bundle(
+        self, available_assets: dict[str, dict[str, Any]]
+    ) -> dict[str, Any] | None:
+        """
+        Create the default Dev bundle if conditions are met.
+
+        Default behavior: Bundle GitHub, API, CLI into "Dev" dropdown
+        when 2+ of these assets exist.
+
+        Args:
+            available_assets: Available assets
+
+        Returns:
+            Bundle dict or None if conditions not met
+        """
+        dev_item_types = ["github", "api", "cli"]
+        dev_items = []
+        exclude_sections = []
+
+        for item_type in dev_item_types:
+            if item_type in available_assets:
+                asset = available_assets[item_type]
+                dev_items.append(asset)
+                if "section" in asset:
+                    exclude_sections.append(asset["section"])
+
+        # Only bundle if 2+ items
+        if len(dev_items) < 2:
+            return None
+
+        return {
+            "identifier": "dev-auto",
+            "name": "Dev",
+            "url": "#",
+            "weight": 90,
+            "items": dev_items,
+            "_exclude_sections": exclude_sections,
+        }
+
+    def _add_item_if_unique(
+        self,
+        item: dict[str, Any],
+        menu_items: list[dict[str, Any]],
+        seen_identifiers: set[str],
+        seen_urls: set[str],
+        seen_names: set[str],
+    ) -> bool:
+        """
+        Add item to menu if it's unique (not a duplicate).
+
+        Returns:
+            True if item was added, False if duplicate
+        """
+        item_id = item.get("identifier")
+        item_url = item.get("url", "").rstrip("/")
+        item_name = item.get("name", "").lower()
+
+        # Check for duplicates
+        if item_id and item_id in seen_identifiers:
+            return False
+        if item_url and item_url in seen_urls:
+            return False
+        if item_name and item_name in seen_names:
+            return False
+
+        # Add item
+        menu_items.append(item)
+        if item_id:
+            seen_identifiers.add(item_id)
+        if item_url:
+            seen_urls.add(item_url)
+        if item_name:
+            seen_names.add(item_name)
+
+        return True
+
+    def _add_bundle_to_menu(
+        self,
+        bundle: dict[str, Any],
+        menu_items: list[dict[str, Any]],
+        seen_identifiers: set[str],
+        seen_urls: set[str],
+        seen_names: set[str],
+    ) -> None:
+        """
+        Add a bundle (parent + children) to the menu.
+
+        Args:
+            bundle: Bundle dict with identifier, name, url, items, weight
+            menu_items: Menu items list to append to
+            seen_*: Deduplication sets
+        """
+        parent_id = bundle["identifier"]
+
+        # Add parent item if not already present
+        if parent_id not in seen_identifiers:
+            parent_item = {
+                "name": bundle["name"],
+                "url": bundle["url"],
+                "identifier": parent_id,
+                "weight": bundle["weight"],
+            }
+            menu_items.append(parent_item)
+            seen_identifiers.add(parent_id)
+
+        # Add child items
+        order_map = {"github": 1, "api": 2, "cli": 3}
+        items = sorted(bundle.get("items", []), key=lambda x: order_map.get(x.get("type", ""), 99))
+
+        for i, item in enumerate(items):
+            item_url = item["url"].rstrip("/")
+            item_name = item["name"].lower()
+
+            # Skip if duplicate
+            if item_url in seen_urls or item_name in seen_names:
+                continue
+
+            menu_items.append({
+                "name": item["name"],
+                "url": item["url"],
+                "parent": parent_id,
+                "weight": i + 1,
+            })
+            seen_urls.add(item_url)
+            seen_names.add(item_name)
+
+    def _process_dropdown_sections(
+        self,
+        menu_items: list[dict[str, Any]],
+        seen_identifiers: set[str],
+        seen_urls: set[str],
+        seen_names: set[str],
+    ) -> list[dict[str, Any]]:
+        """
+        Process sections with dropdown configuration in their _index.md frontmatter.
+
+        Supports two dropdown modes:
+        - dropdown: true - Shows subsections as dropdown children
+        - dropdown: data:filename - Shows items from data/filename.yaml
+
+        Example frontmatter:
+            ---
+            title: Learning Tracks
+            menu:
+              dropdown: data:tracks
+            ---
+
+            ---
+            title: Documentation
+            menu:
+              dropdown: true
+            ---
+
+        Args:
+            menu_items: Current list of menu items
+            seen_identifiers: Set of seen identifiers for deduplication
+            seen_urls: Set of seen URLs for deduplication
+            seen_names: Set of seen names for deduplication
+
+        Returns:
+            Updated menu items list with dropdown children added
+        """
+        # Find sections with dropdown configuration
+        for section in self.site.sections:
+            if not hasattr(section, "index_page") or not section.index_page:
+                continue
+
+            index_page = section.index_page
+            metadata = getattr(index_page, "metadata", {})
+            menu_config = metadata.get("menu", {})
+
+            # Skip if no dropdown config
+            if not isinstance(menu_config, dict):
+                continue
+
+            dropdown_config = menu_config.get("dropdown")
+            if not dropdown_config:
+                continue
+
+            # Find this section in menu items
+            section_url = getattr(section, "_path", None) or f"/{section.name}/"
+            section_item = None
+            for item in menu_items:
+                item_url = item.get("url", "").rstrip("/")
+                if item_url == section_url.rstrip("/") or item.get("identifier") == section.name:
+                    section_item = item
+                    break
+
+            if not section_item:
+                continue
+
+            # Ensure section item has an identifier for parent reference
+            parent_id = section_item.get("identifier") or section.name
+            section_item["identifier"] = parent_id
+
+            # Process based on dropdown type
+            if dropdown_config is True:
+                # dropdown: true - add subsections as children
+                self._add_subsection_children(
+                    section, parent_id, menu_items, seen_identifiers, seen_urls, seen_names
+                )
+            elif isinstance(dropdown_config, str) and dropdown_config.startswith("data:"):
+                # dropdown: data:filename - load from data file
+                data_key = dropdown_config[5:]  # Remove "data:" prefix
+                self._add_data_children(
+                    section, parent_id, data_key, menu_items, seen_identifiers, seen_urls, seen_names
+                )
+
+        return menu_items
+
+    def _add_subsection_children(
+        self,
+        section: Any,
+        parent_id: str,
+        menu_items: list[dict[str, Any]],
+        seen_identifiers: set[str],
+        seen_urls: set[str],
+        seen_names: set[str],
+    ) -> None:
+        """
+        Add subsections as dropdown children.
+
+        Args:
+            section: Parent section
+            parent_id: Parent menu item identifier
+            menu_items: Menu items list to append to
+            seen_*: Deduplication sets
+        """
+        from bengal.rendering.template_functions.navigation.helpers import get_nav_title
+
+        if not hasattr(section, "subsections"):
+            return
+
+        for i, subsection in enumerate(section.subsections):
+            # Get subsection info
+            sub_name = getattr(subsection, "name", "")
+            sub_url = getattr(subsection, "_path", None) or f"/{section.name}/{sub_name}/"
+            sub_title = get_nav_title(subsection, sub_name.replace("-", " ").title())
+
+            # Check for nav_title in index page
+            if hasattr(subsection, "index_page") and subsection.index_page:
+                sub_title = get_nav_title(subsection.index_page, sub_title)
+
+            # Skip if duplicate
+            if sub_url.rstrip("/") in seen_urls or sub_title.lower() in seen_names:
+                continue
+
+            # Check if subsection is hidden from menu
+            if hasattr(subsection, "index_page") and subsection.index_page:
+                sub_metadata = getattr(subsection.index_page, "metadata", {})
+                sub_menu = sub_metadata.get("menu", True)
+                if sub_menu is False:
+                    continue
+
+            menu_items.append(
+                {
+                    "name": sub_title,
+                    "url": sub_url,
+                    "parent": parent_id,
+                    "weight": getattr(subsection, "weight", i + 1),
+                    "identifier": f"{parent_id}-{sub_name}",
+                }
+            )
+            seen_urls.add(sub_url.rstrip("/"))
+            seen_names.add(sub_title.lower())
+
+    def _add_data_children(
+        self,
+        section: Any,
+        parent_id: str,
+        data_key: str,
+        menu_items: list[dict[str, Any]],
+        seen_identifiers: set[str],
+        seen_urls: set[str],
+        seen_names: set[str],
+    ) -> None:
+        """
+        Add children from a data file.
+
+        Loads data from site.data[data_key] and creates menu items.
+        Expects data to be a dict where keys are slugs and values have 'title'.
+
+        Args:
+            section: Parent section
+            parent_id: Parent menu item identifier
+            data_key: Key to look up in site.data (e.g., 'tracks')
+            menu_items: Menu items list to append to
+            seen_*: Deduplication sets
+        """
+        # Get data from site.data
+        if not hasattr(self.site.data, data_key):
+            return
+
+        data = getattr(self.site.data, data_key)
+        if not data or not isinstance(data, dict):
+            return
+
+        section_url = getattr(section, "_path", None) or f"/{section.name}/"
+
+        # Add each data item as a child
+        for i, (item_id, item_info) in enumerate(data.items()):
+            if isinstance(item_info, dict):
+                item_title = item_info.get("title", item_id.replace("-", " ").title())
+            else:
+                item_title = item_id.replace("-", " ").title()
+
+            item_url = f"{section_url.rstrip('/')}/{item_id}/"
+
+            # Skip if duplicate
+            if item_url.rstrip("/") in seen_urls or item_title.lower() in seen_names:
+                continue
+
+            menu_items.append(
+                {
+                    "name": item_title,
+                    "url": item_url,
+                    "parent": parent_id,
+                    "weight": i + 1,
+                    "identifier": f"{parent_id}-{item_id}",
+                }
+            )
+            seen_urls.add(item_url.rstrip("/"))
+            seen_names.add(item_title.lower())
 
     def _find_section_by_name(self, section_name: str) -> Any | None:
         """

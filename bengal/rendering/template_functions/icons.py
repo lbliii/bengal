@@ -2,21 +2,22 @@
 Template functions for rendering SVG icons.
 
 Provides optimized icon rendering functions for use in Jinja2 templates.
-Icons are pre-loaded at registration time and rendered output is cached
+Icons are loaded via the theme-aware resolver and rendered output is cached
 by (name, size, css_class, aria_label) to minimize per-render overhead.
 
 Performance:
-    - All icons pre-loaded at template engine initialization (~86 icons, ~50KB)
+    - Icons loaded via bengal.icons.resolver (theme-aware, cached)
     - Rendered SVG cached by parameters (typical hit rate: >95%)
     - Regex processing only on cache miss
-    - Zero file I/O during template rendering
+    - Zero file I/O during template rendering (after first load)
+
+See: plan/drafted/rfc-theme-aware-icons.md
 """
 
 from __future__ import annotations
 
 import re
 from functools import lru_cache
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from markupsafe import Markup
@@ -27,51 +28,17 @@ if TYPE_CHECKING:
     from bengal.core.site import Site
 
 from bengal.directives._icons import ICON_MAP
+from bengal.errors import ErrorCode
+from bengal.icons import resolver as icon_resolver
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-# Pre-loaded icon cache: icon_name -> raw SVG content
-_preloaded_icons: dict[str, str] = {}
-
-# Flag to track if icons have been preloaded
-_icons_preloaded: bool = False
+# Track warned icons to avoid duplicate warnings (reset per build)
+_warned_icons: set[str] = set()
 
 # Site instance for theme config access (set during registration)
 _site_instance: Site | None = None
-
-
-def _get_icons_directory() -> Path:
-    """Get the icons directory from the default theme."""
-    return Path(__file__).parents[2] / "themes" / "default" / "assets" / "icons"
-
-
-def _preload_all_icons() -> None:
-    """
-    Pre-load all icons into memory at startup.
-
-    Called once during template engine initialization. Loads all SVG files
-    from the icons directory into the _preloaded_icons cache.
-    """
-    global _icons_preloaded
-    if _icons_preloaded:
-        return
-
-    icons_dir = _get_icons_directory()
-    if not icons_dir.exists():
-        _icons_preloaded = True
-        return
-
-    for icon_path in icons_dir.glob("*.svg"):
-        try:
-            svg_content = icon_path.read_text(encoding="utf-8")
-            icon_name = icon_path.stem
-            _preloaded_icons[icon_name] = svg_content
-        except OSError as e:
-            # Skip unreadable files (graceful degradation)
-            logger.debug("icon_preload_skipped", path=str(icon_path), error=str(e))
-
-    _icons_preloaded = True
 
 
 def _escape_attr(value: str) -> str:
@@ -114,7 +81,8 @@ def _render_icon_cached(
     Returns:
         Rendered SVG HTML string, or empty string if icon not found
     """
-    svg_content = _preloaded_icons.get(name)
+    # Load icon via theme-aware resolver
+    svg_content = icon_resolver.load_icon(name)
     if svg_content is None:
         return ""
 
@@ -148,9 +116,8 @@ def icon(name: str, size: int = 24, css_class: str = "", aria_label: str = "") -
     """
     Render an SVG icon for use in templates.
 
-    Uses pre-loaded icons and LRU caching for optimal performance.
-    Icons are loaded once at startup and rendered output is cached
-    by (name, size, css_class, aria_label) to minimize repeated work.
+    Uses theme-aware icon resolution and LRU caching for optimal performance.
+    Icons are loaded from the theme asset chain (site > theme > parent > default).
 
     Icon name mapping priority:
     1. theme.yaml aliases (if theme config available)
@@ -209,16 +176,27 @@ def icon(name: str, size: int = 24, css_class: str = "", aria_label: str = "") -
     if not svg_html and mapped_name != name:
         svg_html = _render_icon_cached(name, size, css_class, aria_label)
 
+    # Warn if icon not found (deduplicated per icon name)
+    if not svg_html and name not in _warned_icons:
+        _warned_icons.add(name)
+        logger.warning(
+            "icon_not_found",
+            icon=name,
+            code=ErrorCode.T010.name,
+            searched=[str(p) for p in icon_resolver.get_search_paths()],
+            hint=f"Add to theme: themes/{{theme}}/assets/icons/{name}.svg",
+        )
+
     # Return as Markup to prevent Jinja2 auto-escaping
     return Markup(svg_html)
 
 
 def register(env: Environment, site: Site) -> None:
     """
-    Register icon template functions and pre-load all icons.
+    Register icon template functions.
 
-    Pre-loads all SVG icons into memory at registration time for
-    optimal render performance. Icons are typically ~50KB total.
+    Icons are loaded on-demand via the theme-aware resolver, which is
+    initialized during Site setup.
 
     Args:
         env: Jinja2 environment
@@ -226,9 +204,6 @@ def register(env: Environment, site: Site) -> None:
     """
     global _site_instance
     _site_instance = site
-
-    # Pre-load all icons at startup
-    _preload_all_icons()
 
     env.globals["icon"] = icon
     env.globals["render_icon"] = icon  # Alias
@@ -243,7 +218,7 @@ def get_icon_cache_stats() -> dict[str, int]:
     """
     cache_info = _render_icon_cached.cache_info()
     return {
-        "preloaded_icons": len(_preloaded_icons),
+        "available_icons": len(icon_resolver.get_available_icons()),
         "cache_hits": cache_info.hits,
         "cache_misses": cache_info.misses,
         "cache_size": cache_info.currsize,
@@ -253,8 +228,10 @@ def get_icon_cache_stats() -> dict[str, int]:
 
 def clear_icon_cache() -> None:
     """
-    Clear the icon render cache.
+    Clear the icon render cache and warned icons set.
 
     Useful for testing or when icons are modified during development.
     """
     _render_icon_cached.cache_clear()
+    _warned_icons.clear()
+    icon_resolver.clear_cache()

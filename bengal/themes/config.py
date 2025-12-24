@@ -195,16 +195,22 @@ class IconConfig:
         library: Icon library name (e.g., "phosphor", "heroicons")
         aliases: Semantic-to-icon name mappings (e.g., {"search": "magnifying-glass"})
         defaults: Default icons for common UI elements (e.g., {"external_link": "arrow-up-right"})
+        extend_defaults: Whether to fall through to Bengal's default icons (Phosphor)
+            when an icon is not found in the theme. Defaults to True.
 
     Example:
         >>> icons = IconConfig(library="phosphor", aliases={"search": "magnifying-glass"})
         >>> icons.library
         'phosphor'
+
+        >>> # Disable fallback to default icons
+        >>> icons = IconConfig(extend_defaults=False)
     """
 
     library: str = "phosphor"
     aliases: dict[str, str] = field(default_factory=dict)
     defaults: dict[str, str] = field(default_factory=dict)
+    extend_defaults: bool = True
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> IconConfig:
@@ -221,6 +227,7 @@ class IconConfig:
             library=data.get("library", "phosphor"),
             aliases=data.get("aliases", {}),
             defaults=data.get("defaults", {}),
+            extend_defaults=data.get("extend_defaults", True),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -234,6 +241,7 @@ class IconConfig:
             "library": self.library,
             "aliases": self.aliases,
             "defaults": self.defaults,
+            "extend_defaults": self.extend_defaults,
         }
 
 

@@ -51,7 +51,7 @@ Get all codes in a category::
 See Also
 ========
 
-- Each code maps to documentation at ``/docs/errors/{code}/``
+- Each code maps to documentation at ``/docs/reference/errors/#{code}``
 - ``bengal/errors/exceptions.py`` - Exception classes using these codes
 """
 
@@ -81,7 +81,7 @@ class ErrorCode(Enum):
     - ``P001-P099``: Parsing errors (YAML, JSON, markdown)
     - ``X001-X099``: Asset errors (static files, processing)
 
-    Each code maps to documentation at ``/docs/errors/{code}/``.
+    Each code maps to documentation at ``/docs/reference/errors/#{code}``.
 
     Attributes:
         value: Human-readable identifier (e.g., "template_not_found")
@@ -97,7 +97,7 @@ class ErrorCode(Enum):
         >>> code.category
         'rendering'
         >>> code.docs_url
-        '/docs/errors/r001/'
+        '/docs/reference/errors/#r001'
     """
 
     # ============================================================
@@ -182,6 +182,7 @@ class ErrorCode(Enum):
     T007 = "directive_deprecated_empty"
     T008 = "directive_changed_empty"
     T009 = "directive_include_not_found"
+    T010 = "icon_not_found"
 
     # ============================================================
     # Parsing errors (P001-P099)
@@ -218,9 +219,9 @@ class ErrorCode(Enum):
         Documentation URL for this error code.
 
         Returns:
-            URL path to error documentation (e.g., "/docs/errors/r001/")
+            URL path to error documentation anchor (e.g., "/docs/reference/errors/#r001")
         """
-        return f"/docs/errors/{self.name.lower()}/"
+        return f"/docs/reference/errors/#{self.name.lower()}"
 
     @property
     def category(self) -> str:

@@ -27,6 +27,8 @@ def register(env: Environment, site: Site) -> None:
             "smartquotes": smartquotes,
             "emojify": emojify,
             "extract_content": extract_content,
+            "demote_headings": demote_headings,
+            "prefix_heading_ids": prefix_heading_ids,
         }
     )
 
@@ -340,3 +342,105 @@ def extract_content(html: str) -> str:
     # Fallback: Return empty string if we can't extract content
     # This prevents embedding full page HTML
     return ""
+
+
+def demote_headings(html: str, levels: int = 1) -> str:
+    """
+    Demote HTML headings by the specified number of levels.
+
+    Shifts heading levels down (h1→h2, h2→h3, etc.) to maintain proper
+    document hierarchy when embedding content within other pages.
+    Headings cannot go below h6.
+
+    Args:
+        html: HTML content with headings
+        levels: Number of levels to demote (default: 1)
+
+    Returns:
+        HTML with demoted headings
+
+    Example:
+        {{ page.content | demote_headings | safe }}
+        # <h1>Title</h1> becomes <h2>Title</h2>
+        # <h2>Section</h2> becomes <h3>Section</h3>
+
+        {{ page.content | demote_headings(2) | safe }}
+        # <h1>Title</h1> becomes <h3>Title</h3>
+    """
+    if not html or levels < 1:
+        return html or ""
+
+    def replace_heading(match: re.Match[str]) -> str:
+        tag = match.group(1)  # 'h' or '/h'
+        level = int(match.group(2))
+        rest = match.group(3)  # attributes or empty for closing tag
+
+        # Demote heading level, capping at h6
+        new_level = min(level + levels, 6)
+
+        return f"<{tag}{new_level}{rest}>"
+
+    # Match opening and closing heading tags: <h1>, </h1>, <h2 class="...">, etc.
+    pattern = r"<(/?h)([1-6])([^>]*)>"
+
+    return re.sub(pattern, replace_heading, html, flags=re.IGNORECASE)
+
+
+def prefix_heading_ids(html: str, prefix: str) -> str:
+    """
+    Prefix all heading IDs and their corresponding anchor links with a prefix.
+
+    This ensures heading IDs are unique when embedding multiple pages on a
+    single page (e.g., track pillar pages). Also updates href="#id" links
+    that point to these headings.
+
+    Args:
+        html: HTML content with headings
+        prefix: Prefix to add (e.g., "s1-" for section 1)
+
+    Returns:
+        HTML with prefixed heading IDs and updated anchor links
+
+    Example:
+        {{ page.content | prefix_heading_ids("s1-") | safe }}
+        # <h2 id="quick-start"> becomes <h2 id="s1-quick-start">
+        # <a href="#quick-start"> becomes <a href="#s1-quick-start">
+    """
+    if not html or not prefix:
+        return html or ""
+
+    # Collect all heading IDs first
+    heading_ids: set[str] = set()
+    id_pattern = r'<h[1-6][^>]*\sid=["\']([^"\']+)["\']'
+    for match in re.finditer(id_pattern, html, re.IGNORECASE):
+        heading_ids.add(match.group(1))
+
+    if not heading_ids:
+        return html
+
+    # Replace heading IDs
+    def replace_heading_id(match: re.Match[str]) -> str:
+        tag_start = match.group(1)
+        old_id = match.group(2)
+        quote = match.group(3)
+        tag_rest = match.group(4)
+        return f'{tag_start}id={quote}{prefix}{old_id}{quote}{tag_rest}'
+
+    # Pattern for heading tags with id attribute
+    html = re.sub(
+        r'(<h[1-6][^>]*\s)id=(["\'])([^"\']+)\2([^>]*>)',
+        lambda m: f'{m.group(1)}id={m.group(2)}{prefix}{m.group(3)}{m.group(2)}{m.group(4)}',
+        html,
+        flags=re.IGNORECASE,
+    )
+
+    # Update anchor links that reference these IDs
+    for old_id in heading_ids:
+        # Match href="#old_id" patterns
+        html = re.sub(
+            rf'href=(["\'])#{re.escape(old_id)}\1',
+            rf'href=\1#{prefix}{old_id}\1',
+            html,
+        )
+
+    return html

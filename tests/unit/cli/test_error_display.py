@@ -7,8 +7,11 @@ common exception beautification.
 
 from __future__ import annotations
 
+from io import StringIO
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 from bengal.cli.helpers.error_display import (
     beautify_common_exception,
@@ -255,7 +258,7 @@ class TestErrorCodeIntegration:
         )
 
         assert error.code is not None
-        assert error.code.docs_url == "/docs/errors/c001/"
+        assert error.code.docs_url == "/docs/reference/errors/#c001"
 
     def test_error_code_category(self) -> None:
         """Test that error codes have correct categories."""
@@ -283,14 +286,14 @@ class TestErrorCodeIntegration:
         }
 
         for code in ErrorCode:
-            assert code.category in valid_categories, (
-                f"ErrorCode {code.name} has invalid category: {code.category}"
-            )
+            assert (
+                code.category in valid_categories
+            ), f"ErrorCode {code.name} has invalid category: {code.category}"
 
     def test_all_error_codes_have_docs_urls(self) -> None:
         """Test that all error codes generate valid docs URLs."""
         for code in ErrorCode:
             url = code.docs_url
-            assert url.startswith("/docs/errors/")
-            assert url.endswith("/")
+            assert url.startswith("/docs/reference/errors/#")
             assert code.name.lower() in url
+

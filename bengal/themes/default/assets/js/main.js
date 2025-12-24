@@ -368,6 +368,9 @@
       return; // No track sections found
     }
 
+    const navLinks = document.querySelectorAll('.track-progress-nav-link');
+    let currentActiveSection = null;
+
     function updateProgress() {
       const windowHeight = window.innerHeight;
       const documentHeight = document.documentElement.scrollHeight;
@@ -389,25 +392,41 @@
     }
 
     function updateActiveSection() {
-      // Find which section is currently in view
-      const scrollPosition = window.pageYOffset + window.innerHeight / 3; // Trigger at 1/3 down viewport
+      // Use getBoundingClientRect for accurate viewport-relative positions
+      // This is more reliable than offsetTop for nested/complex layouts
+      const viewportOffset = 150; // Trigger point from top of viewport
 
+      // Find the section whose header is closest to (but above) the trigger point
+      // Search backwards to find the most recently scrolled-past section header
       let activeSection = null;
-      trackSections.forEach(function(section) {
-        const sectionTop = section.offsetTop;
-        const sectionBottom = sectionTop + section.offsetHeight;
 
-        if (scrollPosition >= sectionTop && scrollPosition < sectionBottom) {
+      for (let i = trackSections.length - 1; i >= 0; i--) {
+        const section = trackSections[i];
+        const rect = section.getBoundingClientRect();
+
+        // Section header is above or at the trigger point
+        if (rect.top <= viewportOffset) {
           activeSection = section.id;
+          break;
         }
-      });
+      }
 
-      // Update sidebar navigation active state
-      if (activeSection) {
-        document.querySelectorAll('.track-progress-nav-link').forEach(function(link) {
-          link.classList.remove('active');
-          if (link.getAttribute('href') === '#' + activeSection) {
+      // Fallback: if no section header is above trigger, use first section
+      // (user is at the very top of the page)
+      if (!activeSection && trackSections.length > 0) {
+        activeSection = trackSections[0].id;
+      }
+
+      // Only update DOM if the active section changed
+      if (activeSection !== currentActiveSection) {
+        currentActiveSection = activeSection;
+
+        navLinks.forEach(function(link) {
+          const isActive = link.getAttribute('href') === '#' + activeSection;
+          if (isActive) {
             link.classList.add('active');
+          } else {
+            link.classList.remove('active');
           }
         });
       }

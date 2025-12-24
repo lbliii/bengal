@@ -769,17 +769,17 @@
     /* Track sidebar navigation */
 }
 
-.track-sidebar-content {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-6);
+/* ============================================
+   TRACK NAVIGATION (Left Sidebar)
+   Uses data-bengal="track-nav" for JS targeting
+   ============================================ */
+
+/* Section navigation (current track lessons) */
+.track-nav-sections {
+    margin-bottom: var(--space-6);
 }
 
-.track-sidebar-section {
-    /* Section in sidebar */
-}
-
-.track-sidebar-title {
+.track-nav-title {
     font-size: var(--text-sm);
     font-weight: var(--weight-semibold);
     text-transform: uppercase;
@@ -788,113 +788,17 @@
     margin-bottom: var(--space-3);
 }
 
-.track-sidebar-list {
+.track-nav-list {
     list-style: none;
     padding: 0;
     margin: 0;
     display: flex;
     flex-direction: column;
     gap: var(--space-1);
+    counter-reset: none; /* Using explicit numbers, not counter */
 }
 
-.track-sidebar-item {
-    /* List item */
-}
-
-.track-sidebar-link {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-1);
-    padding: var(--space-3);
-    border-radius: var(--radius-md);
-    text-decoration: none;
-    color: var(--color-text-primary);
-    transition: all var(--transition-fast);
-    border: 1px solid transparent;
-}
-
-.track-sidebar-link:hover {
-    background: var(--color-surface-elevated);
-    border-color: var(--color-border);
-}
-
-.track-sidebar-link.active {
-    background: var(--color-primary-muted);
-    border-color: var(--color-primary);
-    color: var(--color-primary);
-}
-
-.track-sidebar-link-title {
-    font-weight: var(--weight-semibold);
-    font-size: var(--text-sm);
-}
-
-.track-sidebar-link-desc {
-    font-size: var(--text-xs);
-    color: var(--color-text-muted);
-    line-height: 1.4;
-}
-
-.track-sidebar-link.active .track-sidebar-link-desc {
-    color: var(--color-text-secondary);
-}
-
-.track-sidebar-link-meta {
-    font-size: var(--text-xs);
-    color: var(--color-text-muted);
-    margin-top: var(--space-1);
-}
-
-/* Track Progress Sidebar */
-.track-progress-sidebar {
-    /* Progress section */
-}
-
-.track-progress-stats {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: var(--space-3);
-    font-size: var(--text-sm);
-}
-
-.track-progress-label {
-    color: var(--color-text-muted);
-}
-
-.track-progress-value {
-    font-weight: var(--weight-semibold);
-    color: var(--color-text-primary);
-}
-
-.track-progress-bar-container {
-    height: 4px;
-    background: var(--color-border);
-    border-radius: 2px;
-    margin-bottom: var(--space-4);
-    overflow: hidden;
-}
-
-.track-progress-bar {
-    height: 100%;
-    background: var(--color-primary);
-    transition: width 0.3s ease;
-}
-
-.track-progress-nav {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-1);
-}
-
-.track-progress-nav-item {
-    /* Nav item */
-}
-
-.track-progress-nav-link {
+.track-nav-link {
     display: flex;
     align-items: center;
     gap: var(--space-2);
@@ -906,24 +810,20 @@
     transition: all var(--transition-fast);
 }
 
-.track-progress-nav-link:hover {
+.track-nav-link:hover {
     background: var(--color-surface-elevated);
     color: var(--color-text-primary);
 }
 
-.track-progress-nav-link.active {
+/* Active state via data attribute (JS sets this) */
+.track-nav-link[data-track-active],
+.track-nav-link.is-active {
     background: var(--color-primary-muted);
     color: var(--color-primary);
     font-weight: var(--weight-semibold);
 }
 
-.track-progress-nav-link.active .track-progress-nav-number {
-    background: var(--color-primary);
-    color: var(--color-text-inverse);
-    border-color: var(--color-primary);
-}
-
-.track-progress-nav-number {
+.track-nav-number {
     flex-shrink: 0;
     width: 20px;
     height: 20px;
@@ -937,10 +837,186 @@
     font-weight: var(--weight-medium);
 }
 
-.track-progress-nav-title {
+.track-nav-link[data-track-active] .track-nav-number,
+.track-nav-link.is-active .track-nav-number {
+    background: var(--color-primary);
+    color: var(--color-text-inverse);
+    border-color: var(--color-primary);
+}
+
+.track-nav-label {
     flex: 1;
     min-width: 0;
     line-height: 1.4;
+}
+
+/* ============================================
+   PROGRESS STATES (set by JS)
+   ============================================ */
+
+/* Visited state - section has been viewed (subtle indicator) */
+.track-nav-link[data-track-visited]:not([data-track-active]) {
+    color: var(--color-text-primary);
+}
+
+/* Completed state - section scrolled past (checkmark) */
+.track-nav-link[data-track-completed]:not([data-track-active]) .track-nav-number {
+    position: relative;
+    background: var(--color-success-bg);
+    border-color: var(--color-success-border);
+    font-size: 0; /* Hide number text */
+}
+
+/* Checkmark icon for completed sections */
+.track-nav-link[data-track-completed]:not([data-track-active]) .track-nav-number::before {
+    content: '✓';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: bold;
+    /* Use success-text for contrast against success-bg */
+    color: var(--color-success-text);
+}
+
+/* Active state overrides completed styling */
+.track-nav-link[data-track-active] .track-nav-number,
+.track-nav-link.is-active .track-nav-number {
+    font-size: var(--text-xs);
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: var(--color-text-inverse);
+}
+
+.track-nav-link[data-track-active] .track-nav-number::before,
+.track-nav-link.is-active .track-nav-number::before {
+    display: none;
+}
+
+/* ============================================
+   RESUME BANNER
+   ============================================ */
+
+.track-resume-banner {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    margin-bottom: var(--space-6);
+    background: var(--color-primary-muted);
+    border: 1px solid var(--color-primary);
+    border-radius: var(--radius-lg);
+    animation: track-resume-slide-in 0.3s ease-out;
+}
+
+@keyframes track-resume-slide-in {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.track-resume-banner--dismissed {
+    animation: track-resume-slide-out 0.3s ease-out forwards;
+}
+
+@keyframes track-resume-slide-out {
+    to {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+}
+
+.track-resume-text {
+    font-size: var(--text-sm);
+    color: var(--color-text-secondary);
+}
+
+.track-resume-button {
+    padding: var(--space-2) var(--space-3);
+    background: var(--color-primary);
+    color: var(--color-text-inverse);
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.track-resume-button:hover {
+    background: var(--color-primary-hover);
+}
+
+.track-resume-dismiss {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    margin-left: auto;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.track-resume-dismiss:hover {
+    background: var(--color-surface-elevated);
+    color: var(--color-text-primary);
+}
+
+/* Other tracks section */
+.track-nav-other {
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--color-border);
+}
+
+.track-nav-tracks {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.track-nav-track-link {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: var(--space-3);
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    color: var(--color-text-primary);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    transition: all var(--transition-fast);
+}
+
+.track-nav-track-link:hover {
+    background: var(--color-surface-elevated);
+    border-color: var(--color-primary);
+}
+
+.track-nav-track-title {
+    font-weight: var(--weight-medium);
+    font-size: var(--text-sm);
+    line-height: 1.3;
+}
+
+.track-nav-track-meta {
+    font-size: var(--text-xs);
+    color: var(--color-text-muted);
 }
 
 /* ============================================
@@ -953,29 +1029,87 @@
 
 .track-section {
     scroll-margin-top: 2rem;
-    /* For smooth scroll to anchor */
     padding-top: var(--space-6);
     padding-bottom: var(--space-8);
     margin-bottom: var(--space-8);
-    border-bottom: 2px solid var(--color-border);
+    position: relative;
+}
+
+/* Gradient fade divider between sections */
+.track-section::after {
+    content: '';
+    display: block;
+    height: 2px;
+    margin-top: var(--space-6);
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        var(--color-primary) 30%,
+        var(--color-primary) 70%,
+        transparent 100%
+    );
+    opacity: 0.35;
+}
+
+/* ============================================
+   TRACK TOC FILTERING
+   When a section is active, only show its TOC items
+   ============================================ */
+
+/* ============================================
+   TOC FILTERING FOR TRACKS
+   JS sets data-track-filtering and data-toc-active
+   ============================================ */
+
+/* Hide all section groups by default when filtering is active */
+.track-layout .toc-sidebar[data-track-filtering="true"] .toc-group {
+    display: none;
+}
+
+/* Show only the active section's TOC group (via data attribute) */
+.track-layout .toc-sidebar[data-track-filtering="true"] .toc-group[data-toc-active] {
+    display: block;
+}
+
+/* Hide the count/toggle button - not needed for tracks (always expanded) */
+.track-layout .toc-sidebar[data-track-filtering="true"] .toc-group-toggle {
+    display: none;
+}
+
+/* Style the active section header - cleaner without toggle */
+.track-layout .toc-sidebar[data-track-filtering="true"] .toc-group[data-toc-active] > .toc-group-header {
+    margin-bottom: var(--space-2);
+}
+
+.track-layout .toc-sidebar[data-track-filtering="true"] .toc-group[data-toc-active] .toc-link-h2 {
+    font-weight: var(--weight-semibold);
+    color: var(--color-primary);
+}
+
+/* Expand the active group's children */
+.track-layout .toc-sidebar[data-track-filtering="true"] .toc-group[data-toc-active] .toc-subitems {
+    display: block !important;
 }
 
 .track-section:last-of-type {
-    border-bottom: none;
     margin-bottom: 0;
+}
+
+.track-section:last-of-type::after {
+    display: none;
 }
 
 .track-section-header {
     display: flex;
     align-items: flex-start;
-    gap: var(--space-4);
+    gap: var(--space-5);
     margin-bottom: var(--space-6);
 }
 
 .track-section-number {
     flex-shrink: 0;
-    width: 48px;
-    height: 48px;
+    width: 56px;
+    height: 56px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -989,22 +1123,24 @@
 .track-section-title-group {
     flex: 1;
     min-width: 0;
-    padding-top: 12px; /* Align h2 text with number center (48px / 2 - h2 line-height adjustment) */
+    /* Small nudge to align title cap-height with number box */
+    padding-top: 2px;
 }
 
 .track-section-title {
-    font-size: var(--text-2xl);
+    font-family: var(--font-heading-section);
+    font-size: var(--text-h2);
     font-weight: var(--weight-bold);
-    margin-bottom: var(--space-2);
-    margin-top: 0;
-    line-height: 1.2;
+    letter-spacing: var(--tracking-tighter);
+    line-height: 1.15;
+    margin: 0 0 var(--space-1) 0;
     color: var(--color-text-primary);
 }
 
 .track-section-description {
     font-size: var(--text-base);
     color: var(--color-text-secondary);
-    line-height: 1.6;
+    line-height: 1.5;
     margin: 0;
 }
 
@@ -1017,15 +1153,17 @@
     max-width: 100%;
 }
 
-/* Hide h1 elements in track section content since the title is already shown in track-section-header */
-.track-section-content h1 {
-    display: none;
+/* Hide the first heading (demoted page title) since it's already shown in track-section-header */
+.track-section-content > h2:first-child,
+.track-section-content > h3:first-child,
+.track-section-content > .prose > h2:first-child,
+.track-section-content > .prose > h3:first-child {
+    display: none !important;
 }
 
-.track-section-nav {
+.track-complete {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    justify-content: center;
     margin-top: var(--space-8);
     padding-top: var(--space-6);
     border-top: 1px solid var(--color-border);

@@ -127,7 +127,7 @@ class TestBengalError:
         )
 
         docs_url = error.get_docs_url()
-        assert docs_url == "/docs/errors/c001/"
+        assert docs_url == "/docs/reference/errors/#c001"
 
     def test_error_code_in_message_format(self) -> None:
         """Test that error code appears in formatted message."""

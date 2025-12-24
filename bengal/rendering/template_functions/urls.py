@@ -1,7 +1,7 @@
 """
 URL manipulation functions for templates.
 
-Provides 4 functions for working with URLs in templates.
+Provides URL manipulation filters and functions for working with URLs in templates.
 """
 
 from __future__ import annotations
@@ -28,6 +28,9 @@ def register(env: Environment, site: Site) -> None:
 
         return with_baseurl(path, site)
 
+    def build_artifact_url_with_site(filename: str = "build.json", dir_name: str = "") -> str:
+        return build_artifact_url(site, filename, dir_name)
+
     env.filters.update(
         {
             "absolute_url": absolute_url_with_site,
@@ -41,6 +44,7 @@ def register(env: Environment, site: Site) -> None:
     env.globals.update(
         {
             "ensure_trailing_slash": ensure_trailing_slash,
+            "build_artifact_url": build_artifact_url_with_site,
         }
     )
 
@@ -166,3 +170,61 @@ def ensure_trailing_slash(url: str) -> str:
         return "/"
 
     return url if url.endswith("/") else url + "/"
+
+
+def build_artifact_url(site: "Site", filename: str = "build.json", dir_name: str = "") -> str:
+    """
+    Compute URL for build artifacts (build.json, build.svg).
+
+    Handles all deployment scenarios:
+    - Local dev server (no baseurl)
+    - Production with baseurl (e.g., GitHub Pages at /my-repo/)
+    - i18n prefix strategy (artifacts in language subdirectories)
+
+    Args:
+        site: Site instance for config access
+        filename: Artifact filename (default: "build.json")
+        dir_name: Directory name for artifacts (default: from config or "bengal")
+
+    Returns:
+        Absolute URL to the build artifact
+
+    Example:
+        {{ build_artifact_url('build.json') }}
+        # Output: /bengal/build.json (no baseurl)
+        # Output: /my-repo/bengal/build.json (with baseurl)
+        # Output: /fr/bengal/build.json (i18n prefix, French)
+    """
+    config = getattr(site, "config", {}) or {}
+
+    # Get dir_name from argument or config
+    if not dir_name:
+        build_badge_cfg = config.get("build_badge", {})
+        if isinstance(build_badge_cfg, dict):
+            dir_name = str(build_badge_cfg.get("dir_name", "bengal"))
+        else:
+            dir_name = "bengal"
+
+    # Get baseurl
+    baseurl = str(config.get("baseurl", "") or "").rstrip("/")
+
+    # Check for i18n prefix strategy
+    prefix = ""
+    i18n = config.get("i18n", {}) or {}
+    if i18n.get("strategy") == "prefix":
+        current_lang = getattr(site, "current_language", None) or i18n.get(
+            "default_language", "en"
+        )
+        default_lang = i18n.get("default_language", "en")
+        default_in_subdir = bool(i18n.get("default_in_subdir", False))
+        if default_in_subdir or str(current_lang) != str(default_lang):
+            prefix = f"/{current_lang}"
+
+    # Build the path
+    path = f"{prefix}/{dir_name}/{filename}".replace("//", "/")
+
+    # Prepend baseurl if configured
+    if baseurl:
+        return f"{baseurl}{path}"
+
+    return path

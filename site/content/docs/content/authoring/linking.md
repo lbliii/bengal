@@ -207,7 +207,8 @@ Create anchor targets anywhere in content (not just on headings) using the `{tar
 :::
 ```
 
-**Example**:
+:::{example-label} Target Directive Usage
+:::
 
 ```markdown
 :::{target} important-caveat

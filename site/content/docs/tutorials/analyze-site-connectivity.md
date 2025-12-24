@@ -51,7 +51,8 @@ Start by getting an overview of your site's connectivity:
 bengal graph report
 ```
 
-**Example output:**
+:::{example-label} Output
+:::
 
 ```
 ================================================================================
@@ -121,7 +122,8 @@ Let's look at what's actually isolated:
 bengal graph orphans --level isolated
 ```
 
-**Example output:**
+:::{example-label} Output
+:::
 
 ```
 📊 Connectivity Distribution
@@ -167,7 +169,8 @@ The **lightly linked** pages are often more actionable than isolated ones:
 bengal graph orphans --level lightly
 ```
 
-**Example output:**
+:::{example-label} Output
+:::
 
 ```
 🟠 Lightly Linked Pages (26 total)
@@ -196,7 +199,8 @@ For deeper analysis, export to JSON:
 bengal graph orphans --level lightly --format json
 ```
 
-**Example output:**
+:::{example-label} JSON Output
+:::
 
 ```json
 {
@@ -241,7 +245,8 @@ Not all under-linked pages are equally important. Use PageRank:
 bengal graph pagerank --top-n 10
 ```
 
-**Example output:**
+:::{example-label} Output
+:::
 
 ```
 🏆 Top 10 Pages by PageRank
@@ -330,7 +335,8 @@ bengal graph report --ci --threshold-isolated 25
 bengal graph report --brief --ci --threshold-isolated 25
 ```
 
-**Example CI output (passing):**
+:::{example-label} CI Output (passing)
+:::
 
 ```
 📊 Site Analysis: 124 pages
@@ -340,7 +346,8 @@ bengal graph report --brief --ci --threshold-isolated 25
 ✅ CI PASSED: 21 isolated pages within threshold (25)
 ```
 
-**Example CI output (failing):**
+:::{example-label} CI Output (failing)
+:::
 
 ```
 📊 Site Analysis: 124 pages

@@ -55,7 +55,8 @@ more code
 
 ### Examples
 
-**Python and JavaScript**:
+:::{example-label} Python and JavaScript
+:::
 
 ````markdown
 :::{code-tabs}
@@ -76,7 +77,8 @@ function hello() {
 :::{/code-tabs}
 ````
 
-**Multiple Languages**:
+:::{example-label} Multiple Languages
+:::
 
 ````markdown
 :::{code-tabs}
@@ -135,7 +137,8 @@ Row 2, Col 1 | Row 2, Col 2 | Row 2, Col 3
 
 ### Examples
 
-**Basic Data Table**:
+:::{example-label} Basic Data Table
+:::
 
 ```markdown
 :::{data-table}
@@ -148,7 +151,8 @@ Row 2, Col 1 | Row 2, Col 2 | Row 2, Col 3
 :::
 ```
 
-**With Options**:
+:::{example-label} With Options
+:::
 
 ```markdown
 :::{data-table}

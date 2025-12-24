@@ -107,7 +107,8 @@ def hello():
 | `:language: python` | `:language: python` | ✅ Same option |
 | `.. include:: file.md` | `:::{include} file.md` | ✅ Same |
 
-**Example:**
+:::{example-label} Literalinclude Usage
+:::
 
 ```markdown
 :::{literalinclude} ../examples/hello.py
@@ -126,7 +127,8 @@ def hello():
 | `:term:\`glossary\`` | `:::{glossary}` directive | Data-driven |
 | `.. _label:` | `{#label}` in heading | MyST anchor syntax |
 
-**Cross-reference examples:**
+:::{example-label} Cross-Reference Examples
+:::
 
 ```markdown
 <!-- Link to another page -->
@@ -167,7 +169,8 @@ weight: 10  # Lower = appears first
 | `html_static_path = ['_static']` | `assets/` directory |
 | `templates_path = ['_templates']` | `themes/[name]/templates/` |
 
-**Minimal `bengal.toml`:**
+:::{example-label} Minimal bengal.toml
+:::
 
 ```toml
 [site]

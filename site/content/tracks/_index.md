@@ -4,6 +4,8 @@ nav_title: Tracks
 description: Goal-oriented learning journeys through Bengal documentation
 weight: 5
 icon: pin
+menu:
+  dropdown: data:tracks
 cascade:
   type: track
 ---

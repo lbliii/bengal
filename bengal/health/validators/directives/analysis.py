@@ -527,16 +527,17 @@ class DirectiveAnalyzer:
         """Validate tabs directive content."""
         content = directive["content"]
 
-        tab_markers = re.findall(r"^### Tab: (.+)$", content, re.MULTILINE)
+        # Accept both "### Tab: Title" and "### Title" formats
+        tab_markers = re.findall(r"^### (?:Tab: )?(.+)$", content, re.MULTILINE)
         directive["tab_count"] = len(tab_markers)
 
         if len(tab_markers) == 0:
             bad_markers = re.findall(r"^###\s*Ta[^b]", content, re.MULTILINE)
             if bad_markers:
-                directive["syntax_error"] = 'Malformed tab marker (use "### Tab: Title")'
+                directive["syntax_error"] = 'Malformed tab marker (use "### Tab: Title" or "### Title")'
             else:
                 directive["completeness_error"] = (
-                    "Tabs directive has no tab markers (### Tab: Title)"
+                    "Tabs directive has no tab markers (### Tab: Title or ### Title)"
                 )
         elif len(tab_markers) == 1:
             directive["completeness_error"] = (
@@ -550,12 +551,13 @@ class DirectiveAnalyzer:
         """Validate code-tabs directive content."""
         content = directive["content"]
 
-        tab_markers = re.findall(r"^### Tab: (.+)$", content, re.MULTILINE)
+        # Accept both "### Tab: Language" and "### Language" formats
+        tab_markers = re.findall(r"^### (?:Tab: )?(.+)$", content, re.MULTILINE)
         directive["tab_count"] = len(tab_markers)
 
         if len(tab_markers) == 0:
             directive["completeness_error"] = (
-                "Code-tabs directive has no tab markers (### Tab: Language)"
+                "Code-tabs directive has no tab markers (### Tab: Language or ### Language)"
             )
 
         if not content.strip():
@@ -603,7 +605,8 @@ class DirectiveAnalyzer:
 
         directive_type = directive["type"]
         if directive_type in ("tabs", "code-tabs", "code_tabs"):
-            tab_count = len(re.findall(r"^### Tab:", content, re.MULTILINE))
+            # Accept both "### Tab: Title" and "### Title" formats
+            tab_count = len(re.findall(r"^### (?:Tab: )?", content, re.MULTILINE))
             content_lines = len([line for line in content.split("\n") if line.strip()])
 
             if tab_count > 0 and content_lines < (tab_count * 3):

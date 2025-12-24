@@ -158,7 +158,8 @@ Bengal provides granular control over page visibility in different contexts:
 | `page.in_rss` | True if page appears in RSS feeds |
 | `page.robots_meta` | Robots directive (e.g., "index, follow") |
 
-**Using visibility in templates**:
+:::{example-label} Using Visibility in Templates
+:::
 
 ```jinja2
 {# Conditional rendering based on visibility #}

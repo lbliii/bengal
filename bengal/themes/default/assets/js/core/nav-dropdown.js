@@ -25,7 +25,8 @@
 
     navItems.forEach(function(navItem) {
       const submenu = navItem.querySelector('.submenu');
-      const navLink = navItem.querySelector('a');
+      // Support both <a> links and <span class="nav-dropdown-trigger"> for dropdown-only items
+      const navLink = navItem.querySelector(':scope > a') || navItem.querySelector(':scope > .nav-dropdown-trigger');
 
       if (!submenu || !navLink) {
         return;

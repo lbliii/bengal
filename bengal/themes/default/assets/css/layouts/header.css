@@ -165,7 +165,8 @@ header nav {
   list-style: none;
 }
 
-.nav-main a {
+.nav-main a,
+.nav-main .nav-dropdown-trigger {
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -178,12 +179,19 @@ header nav {
   transition: all var(--transition-fast) var(--ease-out);
 }
 
+/* Non-clickable dropdown trigger (e.g., Dev menu with no unique link) */
+.nav-main .nav-dropdown-trigger {
+  cursor: default;
+}
+
 /* Nav links with dropdowns - position relative for dropdown positioning */
 .nav-main > li.has-dropdown > a {
   position: relative;
 }
 
-.nav-main a:hover {
+.nav-main a:hover,
+.nav-main .nav-dropdown-trigger:hover,
+.nav-main .nav-dropdown-trigger:focus {
   color: var(--color-primary);
   background-color: var(--color-bg-hover);
   text-decoration: none;
@@ -1168,7 +1176,8 @@ header nav {
 }
 
 /* Navigation links - same as classic mobile nav */
-.mobile-nav-dialog .mobile-nav-content a {
+.mobile-nav-dialog .mobile-nav-content a,
+.mobile-nav-dialog .mobile-nav-content .nav-dropdown-trigger {
   display: flex;
   align-items: center;
   gap: var(--space-3);
@@ -1183,7 +1192,14 @@ header nav {
   transition: all var(--transition-fast) var(--ease-out);
 }
 
-.mobile-nav-dialog .mobile-nav-content a:hover {
+/* Non-clickable dropdown trigger in mobile nav */
+.mobile-nav-dialog .mobile-nav-content .nav-dropdown-trigger {
+  cursor: default;
+}
+
+.mobile-nav-dialog .mobile-nav-content a:hover,
+.mobile-nav-dialog .mobile-nav-content .nav-dropdown-trigger:hover,
+.mobile-nav-dialog .mobile-nav-content .nav-dropdown-trigger:focus {
   color: var(--color-primary);
   background: linear-gradient(180deg,
     var(--color-surface, var(--color-bg-elevated)),

@@ -65,7 +65,8 @@ Automatically generate a card grid from child sections and pages. This is the re
 
 ### Examples
 
-**Basic Child Cards**:
+:::{example-label} Basic Child Cards
+:::
 
 ```markdown
 :::{child-cards}
@@ -75,7 +76,8 @@ Automatically generate a card grid from child sections and pages. This is the re
 :::
 ```
 
-**Include All Children**:
+:::{example-label} Include All Children
+:::
 
 ```markdown
 :::{child-cards}
@@ -85,7 +87,8 @@ Automatically generate a card grid from child sections and pages. This is the re
 :::
 ```
 
-**Pages Only**:
+:::{example-label} Pages Only
+:::
 
 ```markdown
 :::{child-cards}

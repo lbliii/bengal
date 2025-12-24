@@ -45,7 +45,9 @@ This validates all templates during build, even those not used by every page. Co
 - Missing closing brackets
 - Invalid Jinja2 syntax
 
-**Example error:**
+:::{example-label} Error Message
+:::
+
 ```
 ⚠️  Template Syntax Error in partials/nav.html:15
 
@@ -74,7 +76,9 @@ Error: unexpected end of template, expected 'end of print statement'
 - Variable not passed to template context
 - Accessing dict key that doesn't exist
 
-**Example error:**
+:::{example-label} Error Message
+:::
+
 ```
 ⚠️  Undefined Variable in page.html:8
 
@@ -103,7 +107,9 @@ Error: 'titel' is undefined
 - Using a filter from another SSG (Hugo, Jekyll, etc.)
 - Custom filter not registered
 
-**Example error:**
+:::{example-label} Error Message
+:::
+
 ```
 ⚠️  Unknown Filter in page.html:12
 
@@ -139,7 +145,9 @@ Did you mean:
 - Template in wrong directory
 - Theme not installed or misconfigured
 
-**Example error:**
+:::{example-label} Error Message
+:::
+
 ```
 ⚠️  Template Error
 

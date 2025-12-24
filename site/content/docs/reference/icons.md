@@ -18,7 +18,7 @@ keywords:
 
 # Icon Reference
 
-Theme-aware SVG icons powered by [Phosphor Icons](https://phosphoricons.com/). All icons adapt to light/dark mode using `currentColor`.
+**125 theme-aware SVG icons** powered by [Phosphor Icons](https://phosphoricons.com/). All icons adapt to light/dark mode using `currentColor`.
 
 ## Syntax
 
@@ -60,6 +60,7 @@ Theme-aware SVG icons powered by [Phosphor Icons](https://phosphoricons.com/). A
 | {icon}`bengal-rosette:24` | `bengal-rosette` | Bengal signature rosette |
 | {icon}`terminal:24` | `terminal` | CLI/commands |
 | {icon}`docs:24` | `docs` | Documentation |
+| {icon}`bug:24` | `bug` | Bugs/errors |
 
 ### Navigation
 
@@ -96,20 +97,29 @@ Theme-aware SVG icons powered by [Phosphor Icons](https://phosphoricons.com/). A
 |------|------|-------------|
 | {icon}`file:24` | `file` | File/document |
 | {icon}`file-text:24` | `file-text` | Text document |
+| {icon}`file-py:24` | `file-py` | Python file |
+| {icon}`file-js:24` | `file-js` | JavaScript file |
+| {icon}`file-ts:24` | `file-ts` | TypeScript file |
 | {icon}`folder:24` | `folder` | Folder/directory |
 | {icon}`code:24` | `code` | Code block |
+| {icon}`function:24` | `function` | Function/method |
 | {icon}`notepad:24` | `notepad` | Notes/text |
 | {icon}`book:24` | `book` | Book/guide |
 | {icon}`book-open:24` | `book-open` | Open book |
+| {icon}`article:24` | `article` | Article/blog post |
+| {icon}`newspaper:24` | `newspaper` | News/updates |
 | {icon}`copy:24` | `copy` | Copy |
 | {icon}`edit:24` | `edit` | Edit |
 | {icon}`pencil:24` | `pencil` | Pencil/write |
+| {icon}`feather:24` | `feather` | Light writing |
 | {icon}`bookmark:24` | `bookmark` | Bookmark |
 | {icon}`tag:24` | `tag` | Tag/label |
 | {icon}`image:24` | `image` | Image |
 | {icon}`list:24` | `list` | List |
 | {icon}`layers:24` | `layers` | Layers/stack |
+| {icon}`stack:24` | `stack` | Stack/architecture |
 | {icon}`funnel:24` | `funnel` | Filter |
+| {icon}`tree-structure:24` | `tree-structure` | Hierarchy/tree |
 
 ### Status & Admonitions
 
@@ -119,6 +129,7 @@ Theme-aware SVG icons powered by [Phosphor Icons](https://phosphoricons.com/). A
 | {icon}`check-circle:24` | `check-circle` | Success (circled) |
 | {icon}`success:24` | `success` | Success admonition |
 | {icon}`info:24` | `info` | Information |
+| {icon}`lightbulb:24` | `lightbulb` | Ideas/tips |
 | {icon}`note:24` | `note` | Note admonition |
 | {icon}`tip:24` | `tip` | Tip admonition |
 | {icon}`warning:24` | `warning` | Warning |
@@ -127,6 +138,7 @@ Theme-aware SVG icons powered by [Phosphor Icons](https://phosphoricons.com/). A
 | {icon}`error:24` | `error` | Error |
 | {icon}`example:24` | `example` | Example |
 | {icon}`question:24` | `question` | Help/question |
+| {icon}`sparkle:24` | `sparkle` | New/sparkle |
 
 ### Actions
 
@@ -144,16 +156,48 @@ Theme-aware SVG icons powered by [Phosphor Icons](https://phosphoricons.com/). A
 | {icon}`enlarge:24` | `enlarge` | Expand/enlarge |
 | {icon}`reset:24` | `reset` | Reset |
 | {icon}`recycle:24` | `recycle` | Recycle/refresh |
-| {icon}`zap:24` | `zap` | Quick action/lightning |
+| {icon}`wrench:24` | `wrench` | Tools/fix |
+| {icon}`zap:24` | `zap` | Quick action |
+| {icon}`lightning:24` | `lightning` | Fast/speed |
 | {icon}`rocket:24` | `rocket` | Launch/start |
+
+### Development & Git
+
+| Icon | Name | Description |
+|------|------|-------------|
+| {icon}`git-branch:24` | `git-branch` | Git branch |
+| {icon}`git-commit:24` | `git-commit` | Git commit |
+| {icon}`package:24` | `package` | Package/module |
+| {icon}`cube:24` | `cube` | Block/component |
+| {icon}`puzzle-piece:24` | `puzzle-piece` | Integration/plugin |
+| {icon}`puzzle:24` | `puzzle` | Puzzle (alias) |
+| {icon}`flask:24` | `flask` | Testing/experiments |
+
+### Infrastructure & Security
+
+| Icon | Name | Description |
+|------|------|-------------|
+| {icon}`server:24` | `server` | Server |
+| {icon}`hard-drives:24` | `hard-drives` | Storage/drives |
+| {icon}`database:24` | `database` | Database |
+| {icon}`cloud:24` | `cloud` | Cloud/hosting |
+| {icon}`network:24` | `network` | Network/connectivity |
+| {icon}`cpu:24` | `cpu` | CPU/performance |
+| {icon}`shield:24` | `shield` | Security |
+| {icon}`lock:24` | `lock` | Locked/private |
+| {icon}`key:24` | `key` | Key/authentication |
+| {icon}`briefcase:24` | `briefcase` | Business/work |
 
 ### Time & Location
 
 | Icon | Name | Description |
 |------|------|-------------|
 | {icon}`clock:24` | `clock` | Time |
+| {icon}`timer:24` | `timer` | Timer/countdown |
 | {icon}`calendar:24` | `calendar` | Date |
 | {icon}`pin:24` | `pin` | Location |
+| {icon}`globe:24` | `globe` | Global/international |
+| {icon}`translate:24` | `translate` | Translation/i18n |
 
 ### Theme & Settings
 
@@ -207,25 +251,31 @@ All icons at 32px:
 
 **Navigation**: {icon}`menu:32` {icon}`search:32` {icon}`close:32` {icon}`chevron-up:32` {icon}`chevron-down:32` {icon}`chevron-left:32` {icon}`chevron-right:32` {icon}`arrow-left:32` {icon}`arrow-right:32` {icon}`link:32` {icon}`external:32` {icon}`house:32` {icon}`compass:32`
 
-**Status**: {icon}`check:32` {icon}`check-circle:32` {icon}`info:32` {icon}`warning:32` {icon}`error:32` {icon}`note:32` {icon}`tip:32` {icon}`danger:32`
+**Status**: {icon}`check:32` {icon}`check-circle:32` {icon}`info:32` {icon}`lightbulb:32` {icon}`warning:32` {icon}`error:32` {icon}`note:32` {icon}`tip:32` {icon}`danger:32` {icon}`sparkle:32`
 
-**Files**: {icon}`file:32` {icon}`file-text:32` {icon}`folder:32` {icon}`code:32` {icon}`notepad:32` {icon}`book:32` {icon}`copy:32` {icon}`edit:32`
+**Files**: {icon}`file:32` {icon}`file-text:32` {icon}`file-py:32` {icon}`file-js:32` {icon}`file-ts:32` {icon}`folder:32` {icon}`code:32` {icon}`function:32` {icon}`notepad:32` {icon}`book:32` {icon}`article:32` {icon}`newspaper:32`
 
-**Actions**: {icon}`download:32` {icon}`upload:32` {icon}`trash:32` {icon}`star:32` {icon}`heart:32` {icon}`share:32` {icon}`eye:32` {icon}`rocket:32` {icon}`zap:32`
+**Actions**: {icon}`download:32` {icon}`upload:32` {icon}`trash:32` {icon}`star:32` {icon}`heart:32` {icon}`share:32` {icon}`eye:32` {icon}`wrench:32` {icon}`rocket:32` {icon}`zap:32` {icon}`lightning:32`
 
-**Time & Location**: {icon}`clock:32` {icon}`calendar:32` {icon}`pin:32`
+**Development**: {icon}`git-branch:32` {icon}`git-commit:32` {icon}`package:32` {icon}`cube:32` {icon}`puzzle-piece:32` {icon}`flask:32`
+
+**Infrastructure**: {icon}`server:32` {icon}`hard-drives:32` {icon}`database:32` {icon}`cloud:32` {icon}`network:32` {icon}`cpu:32` {icon}`shield:32` {icon}`lock:32` {icon}`key:32`
+
+**Time & Location**: {icon}`clock:32` {icon}`timer:32` {icon}`calendar:32` {icon}`pin:32` {icon}`globe:32` {icon}`translate:32`
 
 **Theme**: {icon}`settings:32` {icon}`palette:32` {icon}`sun:32` {icon}`moon:32` {icon}`monitor:32`
 
-**Users**: {icon}`user:32` {icon}`users:32` {icon}`graduation-cap:32`
+**Users**: {icon}`user:32` {icon}`users:32` {icon}`graduation-cap:32` {icon}`briefcase:32`
 
 **Social**: {icon}`github-logo:32` {icon}`twitter-logo:32` {icon}`linkedin-logo:32`
 
 **AI**: {icon}`ai-chatgpt:32` {icon}`ai-claude:32` {icon}`ai-copilot:32` {icon}`ai-gemini:32`
 
-**Bengal**: {icon}`bengal-rosette:32` {icon}`terminal:32` {icon}`docs:32`
+**Bengal**: {icon}`bengal-rosette:32` {icon}`terminal:32` {icon}`docs:32` {icon}`bug:32`
 
 **Mid-Century**: {icon}`atomic:32` {icon}`starburst:32` {icon}`boomerang:32`
+
+**Structure**: {icon}`layers:32` {icon}`stack:32` {icon}`tree-structure:32` {icon}`feather:32`
 
 ---
 

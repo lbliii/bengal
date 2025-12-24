@@ -26,23 +26,122 @@ Configure and customize navigation menus in Bengal.
 
 Bengal supports multiple menu types that can be configured in frontmatter or configuration files.
 
-## Auto topbar menu (when `menu.main` is not defined)
+:::{note} Core vs. Theme Features
+**Bengal Core** builds the menu data structure—this works with any theme. How menus are *rendered* (dropdowns, styling, hover behavior) depends on your theme. The default theme supports all features described here. Custom themes need to implement dropdown rendering themselves.
+:::
 
-If you do not define `menu.main`, Bengal generates a topbar menu automatically.
+## Menu Processing Hierarchy
 
-- **Manual menu overrides auto menu**: If `menu.main` is present and non-empty, Bengal uses it and does not auto-discover topbar items. (`bengal/orchestration/menu.py:401-406`, `bengal/rendering/template_functions/navigation.py:904-915`)
-- **Auto menu only includes “real” sections**: Auto-discovery builds items from sections that exist on disk (virtual sections do not participate). (`bengal/rendering/template_functions/navigation.py:918-926`)
+Bengal processes menu configuration in a clear hierarchy (most specific wins):
 
-### Dev dropdown bundling
+| Priority | Source | Description | Scope |
+|----------|--------|-------------|-------|
+| 1 | `[[menu.main]]` in config | Full manual control, disables all auto-magic | Core |
+| 2 | `[menu.bundles.xxx]` in config | Define synthetic dropdowns (like Dev) | Core |
+| 3 | `menu.dropdown` in frontmatter | Per-section dropdown configuration | Core |
+| 4 | Auto-discovery defaults | Dev bundling, section discovery | Core |
 
-In auto mode, Bengal can bundle development-related links into a **Dev** dropdown in the topbar:
+## Auto Topbar Menu
 
-- **GitHub**: If `params.repo_url` is set, it is eligible to appear in Dev (or as a standalone link). (`bengal/orchestration/menu.py:221-226`, `bengal/themes/default/templates/base.html:272-286`)
-- **API Reference**: If an `api` section exists, it is eligible to appear under Dev.
-- **CLI Reference**: If a `cli` section exists, it is eligible to appear under Dev.
-- **Bundling rule**: Dev dropdown appears when 2 or more eligible items exist. If only one eligible item exists, it appears as a normal top-level menu entry.
+If you do not define `[[menu.main]]`, Bengal generates a topbar menu automatically from your content sections.
 
-If you want a specific layout, define `menu.main` explicitly.
+- **Manual menu overrides auto menu**: If `menu.main` is present and non-empty, Bengal uses it and does not auto-discover.
+- **Auto menu only includes "real" sections**: Auto-discovery builds items from sections that exist on disk.
+
+### Dev Dropdown (Default Behavior)
+
+By default, Bengal bundles development-related links into a **Dev** dropdown:
+
+- **GitHub**: If `params.repo_url` is set
+- **API Reference**: If an `api` section exists
+- **CLI Reference**: If a `cli` section exists
+
+The Dev dropdown appears when **2 or more** eligible items exist. With only one item, it appears as a standalone link.
+
+#### Disable Auto Dev Bundle
+
+```toml
+[menu]
+auto_dev_bundle = false
+```
+
+#### Customize the Dev Bundle
+
+```toml
+[menu.bundles.dev]
+name = "Developer"     # Custom name (default: "Dev")
+items = ["github", "api", "cli"]
+min_items = 2          # Minimum items to show dropdown
+weight = 90
+```
+
+## Section Dropdowns
+
+Make any section display its children as a dropdown in the navigation.
+
+:::{info} Theme Support
+Bengal Core builds menu items with `children` arrays. The **default theme** renders these as hover dropdowns. Custom themes can access the same data via `item.children` in templates.
+:::
+
+### Show Subsections
+
+Add `menu.dropdown: true` to a section's `_index.md`:
+
+```yaml
+---
+title: Documentation
+menu:
+  dropdown: true
+---
+```
+
+This shows the section's subsections as dropdown children.
+
+### Data-Driven Dropdowns
+
+Load dropdown items from a data file:
+
+```yaml
+---
+title: Learning Tracks
+menu:
+  dropdown: data:tracks
+---
+```
+
+This loads items from `data/tracks.yaml`. Each key becomes a dropdown item linking to `/{section}/{key}/`.
+
+:::{example-label} Tracks Data File
+:::
+
+```yaml
+# data/tracks.yaml
+zero-to-deployed:
+  title: "Zero to Deployed"
+  description: "Build your first site"
+
+content-mastery:
+  title: "Content Author Mastery"
+  description: "Master advanced features"
+```
+
+## Custom Bundles
+
+Create synthetic dropdown menus that bundle multiple items:
+
+```toml
+[menu.bundles.resources]
+name = "Resources"
+url = "#"              # Non-clickable (dropdown only)
+items = ["github", "api"]
+min_items = 1
+weight = 85
+```
+
+Available item types:
+- `github` - Links to `params.repo_url`
+- `api` - Links to `/api/` section
+- `cli` - Links to `/cli/` section
 
 ## Frontmatter Configuration
 
@@ -112,7 +211,41 @@ menu:
 ---
 ```
 
+## Non-Clickable Dropdown Parents
+
+:::{tip} Default Theme Feature
+The default theme automatically renders menu items with `url="#"` and children as non-clickable dropdown triggers. Custom themes can check `item.href == '#'` to implement similar behavior.
+:::
+
+When a menu item has children but no meaningful destination, use `url = "#"` to make it non-clickable:
+
+```toml
+[[menu.main]]
+name = "Resources"
+url = "#"           # Not a link, just opens dropdown
+identifier = "resources"
+weight = 80
+
+[[menu.main]]
+name = "Blog"
+url = "/blog/"
+parent = "resources"
+
+[[menu.main]]
+name = "Newsletter"
+url = "/newsletter/"
+parent = "resources"
+```
+
+The parent "Resources" will open the dropdown on hover but won't navigate anywhere when clicked.
+
+:::{tip}
+Bundles like Dev automatically use `url = "#"` since they're just containers for their children.
+:::
+
 ## Accessing Menus in Templates
+
+Menu data is available to all themes via `site.menus`:
 
 ```jinja
 {% for item in site.menus.main %}
@@ -125,4 +258,31 @@ menu:
     </ul>
   {% endif %}
 {% endfor %}
+```
+
+### Menu Item Properties (Core)
+
+All themes have access to these properties on each menu item:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `item.name` | string | Display name |
+| `item.url` / `item.href` | string | Link URL |
+| `item.children` | list | Child menu items (for dropdowns) |
+| `item.active` | bool | True if current page |
+| `item.active_trail` | bool | True if ancestor of current page |
+| `item.icon` | string | Icon name (if set) |
+| `item.identifier` | string | Unique ID |
+
+### Dropdown-Only Detection
+
+To render non-clickable dropdown triggers (like the default theme does):
+
+```jinja
+{% if item.children and item.href == '#' %}
+  {# Render as button/span, not link #}
+  <span class="dropdown-trigger">{{ item.name }}</span>
+{% else %}
+  <a href="{{ item.href }}">{{ item.name }}</a>
+{% endif %}
 ```
