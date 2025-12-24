@@ -188,8 +188,12 @@ class GraphVisualizer:
             # Determine node color based on type or connectivity
             color = self._get_node_color(page, connectivity)
 
-            # Get reading time (content depth indicator)
-            reading_time = getattr(page, "reading_time", 1)
+            # Get reading time (content depth indicator) - ensure it's an int
+            reading_time_raw = getattr(page, "reading_time", 1)
+            try:
+                reading_time = int(reading_time_raw) if reading_time_raw else 1
+            except (ValueError, TypeError):
+                reading_time = 1
 
             # Calculate visual size based on BOTH connectivity AND content depth
             # - Connectivity: how central/important (links)

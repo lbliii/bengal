@@ -2,7 +2,7 @@
 
 **Status**: Draft  
 **Created**: 2025-12-08  
-**Revised**: 2025-01-XX  
+**Revised**: 2025-12-23  
 **Author**: AI Assistant  
 **Confidence**: 85% 🟢
 **Priority**: P2 (Medium)  
@@ -11,7 +11,7 @@
 
 ## Executive Summary
 
-Enhance Bengal's existing performance infrastructure with per-page and per-shortcode timing, rich terminal output, and baseline comparison capabilities. This builds on existing phase timing (`BuildStats`), historical tracking (`PerformanceCollector`), and template profiling (`TemplateProfiler`) to provide actionable insights into build performance.
+Enhance Bengal's existing performance infrastructure with per-page and per-directive timing, rich terminal output, and baseline comparison capabilities. This builds on existing phase timing (`BuildStats`), historical tracking (`PerformanceCollector`), and template profiling (`TemplateProfiler`) to provide actionable insights into build performance.
 
 ---
 
@@ -22,15 +22,18 @@ Enhance Bengal's existing performance infrastructure with per-page and per-short
 Bengal already provides substantial performance visibility:
 
 **✅ Existing Capabilities**:
-- **Phase timing**: `BuildStats` tracks `discovery_time_ms`, `taxonomy_time_ms`, `rendering_time_ms`, `assets_time_ms`, `postprocess_time_ms` (see `bengal/orchestration/stats/models.py:69-74`)
+- **Phase timing**: `BuildStats` tracks core phases (`discovery_time_ms`, `taxonomy_time_ms`, `rendering_time_ms`, `assets_time_ms`, `postprocess_time_ms`, `health_check_time_ms`) plus additional phases (`menu_time_ms`, `related_posts_time_ms`, `fonts_time_ms`) (see `bengal/orchestration/stats/models.py:69-94`)
+- **Memory tracking**: `BuildStats` includes `memory_rss_mb`, `memory_heap_mb`, `memory_peak_mb` (lines 78-80)
+- **Cache statistics**: `BuildStats` tracks `cache_hits`, `cache_misses`, `time_saved_ms`, `cache_bypass_hits`, `cache_bypass_misses` (lines 84-89)
 - **Historical tracking**: `PerformanceCollector` saves metrics to `.bengal/metrics/history.jsonl` (see `bengal/utils/performance_collector.py`)
 - **Trend analysis**: `PerformanceReport` compares builds and detects regressions (see `bengal/utils/performance_report.py`)
 - **Template profiling**: `TemplateProfiler` tracks template render times and function calls (see `bengal/rendering/template_profiler.py`)
-- **Python profiling**: `--perf-profile` flag for cProfile integration (see `bengal/cli/commands/build.py:76-78`)
+- **Python profiling**: `--perf-profile` flag for cProfile integration (see `bengal/cli/commands/build.py:76-79`)
+- **CLI access**: `bengal perf` command for viewing metrics (`bengal perf -n 20`, `bengal perf --compare`)
 
 **❌ Missing Capabilities**:
 - **Per-page timing**: Cannot identify which individual pages are slow
-- **Shortcode timing**: No visibility into which shortcodes are expensive
+- **Directive timing**: No visibility into which directives (shortcodes) are expensive (note: Bengal uses "directives" not "shortcodes")
 - **Rich output**: Phase timing exists but lacks visual formatting and recommendations
 - **Baseline comparison**: Historical tracking exists but no explicit baseline save/compare workflow
 - **Actionable recommendations**: No automated suggestions based on profile data
@@ -38,14 +41,14 @@ Bengal already provides substantial performance visibility:
 ### Pain Points
 
 1. **Slow page mystery**: Phase timing shows "rendering took 10s" but which page(s) caused it?
-2. **Shortcode culprits**: That `diagram` shortcode might be expensive, but no data to confirm
+2. **Directive culprits**: That `diagram` directive might be expensive, but no data to confirm
 3. **Baseline workflow**: Want to compare current build to a known-good baseline, not just previous build
 4. **Output clarity**: Phase timing exists in `BuildStats` but needs rich formatting for quick insights
 5. **Recommendations**: Users need actionable suggestions, not just raw data
 
 ### User Impact
 
-While Bengal has good performance infrastructure, users still struggle to answer "which page/shortcode is slow?" and "is this build slower than my baseline?" The missing pieces prevent efficient performance optimization workflows.
+While Bengal has good performance infrastructure, users still struggle to answer "which page/directive is slow?" and "is this build slower than my baseline?" The missing pieces prevent efficient performance optimization workflows.
 
 ---
 
@@ -53,17 +56,18 @@ While Bengal has good performance infrastructure, users still struggle to answer
 
 **Goals**:
 - ✅ **Per-page timing**: Track parse + render time for each individual page
-- ✅ **Shortcode timing**: Track performance of each shortcode type (calls, total time, avg time)
+- ✅ **Directive timing**: Track performance of each directive type (calls, total time, avg time)
 - ✅ **Rich terminal output**: Visual formatting with bars, colors, and clear hierarchy
 - ✅ **Baseline comparison**: Save/load baseline profiles and compare current build
 - ✅ **Actionable recommendations**: Automated suggestions based on profile data
 
 **Non-Goals**:
-- ❌ Phase-by-phase timing (already exists in `BuildStats`)
+- ❌ Phase-by-phase timing (already exists in `BuildStats` with 9+ phase fields)
 - ❌ Historical trend tracking (already exists in `PerformanceReport`)
 - ❌ Template profiling (already exists in `TemplateProfiler`)
 - ❌ Line-level Python profiling (use `--perf-profile` with cProfile)
-- ❌ Memory profiling (already tracked in `PerformanceCollector`)
+- ❌ Memory profiling (already tracked in `BuildStats` and `PerformanceCollector`)
+- ❌ Cache statistics (already tracked in `BuildStats`)
 - ❌ Real-time monitoring (batch analysis only)
 
 ---
@@ -72,18 +76,18 @@ While Bengal has good performance infrastructure, users still struggle to answer
 
 **Affected Subsystems**:
 - **Orchestration** (`bengal/orchestration/`): Add per-page timing instrumentation
-- **Rendering** (`bengal/rendering/`): Add shortcode timing instrumentation
+- **Directives** (`bengal/directives/`): Add directive timing instrumentation
 - **CLI** (`bengal/cli/`): Add `--timing-profile` flag (note: `--profile` already used for build profiles)
-- **Stats** (`bengal/orchestration/stats/`): Extend `BuildStats` with per-page/shortcode data
+- **Stats** (`bengal/orchestration/stats/`): Extend `BuildStats` with per-page/directive data
 
 **Integration Points**:
 - **Build on existing**: `PerformanceCollector` for storage, `BuildStats` for phase timing
-- **Extend existing**: Add per-page/shortcode fields to `BuildStats`
+- **Extend existing**: Add per-page/directive fields to `BuildStats`
 - **New components**: Reporter for rich output, analyzer for recommendations
 
 **New Components**:
 - `bengal/profiling/page_timing.py` - Per-page timing collector
-- `bengal/profiling/shortcode_timing.py` - Shortcode timing collector
+- `bengal/profiling/directive_timing.py` - Directive timing collector
 - `bengal/profiling/reporter.py` - Rich terminal output formatter
 - `bengal/profiling/analyzer.py` - Recommendations engine
 - `bengal/profiling/baseline.py` - Baseline save/load/compare
@@ -118,18 +122,18 @@ bengal build --timing-profile
 #
 # 🔧 Recommendations:
 # • api/reference.md: Consider splitting (4,521 lines, 0.45s build time)
-# • Shortcode 'diagram' took 0.6s total across 12 uses (50ms avg)
+# • Directive 'diagram' took 0.6s total across 12 uses (50ms avg)
 ```
 
 ### Detailed Profiling
 
 ```bash
-# Full breakdown including shortcodes
+# Full breakdown including directives
 bengal build --timing-profile --verbose
 
 # Output includes:
 #
-# Shortcode Performance:
+# Directive Performance:
 # ├─ diagram        12 calls   0.60s total   50ms avg
 # ├─ code-tabs       8 calls   0.12s total   15ms avg
 # ├─ admonition     45 calls   0.05s total    1ms avg
@@ -168,7 +172,7 @@ bengal build --timing-profile --compare-baseline
 
 ```bash
 # Historical tracking (already exists)
-bengal perf show --last 10
+bengal perf -n 10  # or: bengal perf --last 10
 
 # Template profiling (already exists)
 bengal build --profile-templates
@@ -192,8 +196,8 @@ class BuildStats:
     # New: Per-page timing (only populated when --timing-profile enabled)
     page_timings: dict[str, PageTiming] = field(default_factory=dict)
 
-    # New: Shortcode timing (only populated when --timing-profile enabled)
-    shortcode_timings: dict[str, ShortcodeTiming] = field(default_factory=dict)
+    # New: Directive timing (only populated when --timing-profile enabled)
+    directive_timings: dict[str, DirectiveTiming] = field(default_factory=dict)
 
 @dataclass
 class PageTiming:
@@ -207,8 +211,8 @@ class PageTiming:
         return self.parse_time_ms + self.render_time_ms
 
 @dataclass
-class ShortcodeTiming:
-    """Timing data for a shortcode type."""
+class DirectiveTiming:
+    """Timing data for a directive type."""
     name: str
     call_count: int = 0
     total_time_ms: float = 0
@@ -263,10 +267,10 @@ class PageTimingCollector:
             self.stats.page_timings[page_path].render_time_ms = duration_ms
 ```
 
-### Shortcode Timing Collector
+### Directive Timing Collector
 
 ```python
-# bengal/profiling/shortcode_timing.py
+# bengal/profiling/directive_timing.py
 from contextlib import contextmanager
 from time import perf_counter
 from typing import TYPE_CHECKING
@@ -274,25 +278,25 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from bengal.orchestration.stats import BuildStats
 
-class ShortcodeTimingCollector:
-    """Collect shortcode timing data."""
+class DirectiveTimingCollector:
+    """Collect directive timing data."""
 
     def __init__(self, stats: BuildStats):
         self.stats = stats
 
     @contextmanager
-    def measure(self, shortcode_name: str):
-        """Measure shortcode execution time."""
+    def measure(self, directive_name: str):
+        """Measure directive execution time."""
         start = perf_counter()
         try:
             yield
         finally:
             duration_ms = (perf_counter() - start) * 1000
-            if shortcode_name not in self.stats.shortcode_timings:
-                from bengal.orchestration.stats.models import ShortcodeTiming
-                self.stats.shortcode_timings[shortcode_name] = ShortcodeTiming(name=shortcode_name)
+            if directive_name not in self.stats.directive_timings:
+                from bengal.orchestration.stats.models import DirectiveTiming
+                self.stats.directive_timings[directive_name] = DirectiveTiming(name=directive_name)
 
-            timing = self.stats.shortcode_timings[shortcode_name]
+            timing = self.stats.directive_timings[directive_name]
             timing.call_count += 1
             timing.total_time_ms += duration_ms
 ```
@@ -307,12 +311,12 @@ class BuildOrchestrator:
 
         # Initialize timing collectors if enabled
         page_collector = None
-        shortcode_collector = None
+        directive_collector = None
         if timing_profile:
             from bengal.profiling.page_timing import PageTimingCollector
-            from bengal.profiling.shortcode_timing import ShortcodeTimingCollector
+            from bengal.profiling.directive_timing import DirectiveTimingCollector
             page_collector = PageTimingCollector(self.stats)
-            shortcode_collector = ShortcodeTimingCollector(self.stats)
+            directive_collector = DirectiveTimingCollector(self.stats)
 
         # ... existing phase code ...
 
@@ -334,16 +338,17 @@ class BuildOrchestrator:
 
         # ... rest of build ...
 
-# bengal/rendering/shortcodes.py (or wherever shortcodes are processed)
-class ShortcodeProcessor:
-    def __init__(self, shortcode_collector: ShortcodeTimingCollector | None = None):
-        self.shortcode_collector = shortcode_collector
+# bengal/directives/base.py (instrument BengalDirective base class)
+class BengalDirective(DirectivePlugin):
+    def __init__(self, directive_collector: DirectiveTimingCollector | None = None):
+        self.directive_collector = directive_collector
 
-    def process(self, name: str, content: str, **kwargs) -> str:
-        if self.shortcode_collector:
-            with self.shortcode_collector.measure(name):
-                return self._do_process(name, content, **kwargs)
-        return self._do_process(name, content, **kwargs)
+    def __call__(self, md: Any) -> None:
+        # Wrap directive processing with timing
+        if self.directive_collector:
+            with self.directive_collector.measure(self.DIRECTIVE_NAMES[0]):
+                return super().__call__(md)
+        return super().__call__(md)
 ```
 
 ### Profile Analyzer
@@ -354,7 +359,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from bengal.orchestration.stats import BuildStats, PageTiming, ShortcodeTiming
+    from bengal.orchestration.stats import BuildStats, PageTiming, DirectiveTiming
 
 @dataclass
 class Recommendation:
@@ -378,10 +383,10 @@ class ProfileAnalyzer:
         ]
         return sorted(pages, key=lambda x: -x[1])[:n]
 
-    def get_shortcode_stats(self) -> list[ShortcodeTiming]:
-        """Get shortcode statistics sorted by total time."""
+    def get_directive_stats(self) -> list[DirectiveTiming]:
+        """Get directive statistics sorted by total time."""
         return sorted(
-            self.stats.shortcode_timings.values(),
+            self.stats.directive_timings.values(),
             key=lambda x: -x.total_time_ms
         )
 
@@ -401,14 +406,14 @@ class ProfileAnalyzer:
                     suggestion=f"Consider splitting (parse: {timing.parse_time_ms:.0f}ms, render: {timing.render_time_ms:.0f}ms)",
                 ))
 
-        # Check for expensive shortcodes
-        for sc in self.get_shortcode_stats():
-            if sc.avg_time_ms > 100:  # >100ms average
+        # Check for expensive directives
+        for d in self.get_directive_stats():
+            if d.avg_time_ms > 100:  # >100ms average
                 recs.append(Recommendation(
                     severity="info",
-                    target=f"shortcode:{sc.name}",
-                    message=f"Shortcode '{sc.name}' averages {sc.avg_time_ms:.0f}ms per call",
-                    suggestion=f"Consider caching or optimizing ({sc.call_count} calls, {sc.total_time_ms:.0f}ms total)",
+                    target=f"directive:{d.name}",
+                    message=f"Directive '{d.name}' averages {d.avg_time_ms:.0f}ms per call",
+                    suggestion=f"Consider caching or optimizing ({d.call_count} calls, {d.total_time_ms:.0f}ms total)",
                 ))
 
         # Check phase balance (use existing BuildStats phase timing)
@@ -461,12 +466,12 @@ class BaselineManager:
                 }
                 for path, timing in stats.page_timings.items()
             },
-            "shortcode_timings": {
+            "directive_timings": {
                 name: {
                     "call_count": timing.call_count,
                     "total_time_ms": timing.total_time_ms,
                 }
-                for name, timing in stats.shortcode_timings.items()
+                for name, timing in stats.directive_timings.items()
             },
         }
         self.baseline_path.write_text(json.dumps(baseline_data, indent=2))
@@ -544,13 +549,13 @@ class ProfileReporter:
                     f"(parse: {timing.parse_time_ms:.0f}ms, render: {timing.render_time_ms:.0f}ms)"
                 )
 
-        # Shortcode performance (if verbose)
-        if verbose and self.stats.shortcode_timings:
-            self.console.print("\n[bold]Shortcode Performance:[/bold]")
-            for sc in self.analyzer.get_shortcode_stats()[:10]:  # Top 10
+        # Directive performance (if verbose)
+        if verbose and self.stats.directive_timings:
+            self.console.print("\n[bold]Directive Performance:[/bold]")
+            for d in self.analyzer.get_directive_stats()[:10]:  # Top 10
                 self.console.print(
-                    f"├─ {sc.name:<20} {sc.call_count:>4} calls  "
-                    f"{sc.total_time_ms:>6.0f}ms total  {sc.avg_time_ms:>5.0f}ms avg"
+                    f"├─ {d.name:<20} {d.call_count:>4} calls  "
+                    f"{d.total_time_ms:>6.0f}ms total  {d.avg_time_ms:>5.0f}ms avg"
                 )
 
         # Recommendations
@@ -574,7 +579,7 @@ enabled = false
 
 # Warning thresholds
 slow_page_threshold_ms = 500      # milliseconds
-slow_shortcode_threshold_ms = 100 # milliseconds
+slow_directive_threshold_ms = 100 # milliseconds
 
 # Baseline management
 baseline_auto_save = false  # Auto-save after each build
@@ -587,10 +592,10 @@ baseline_auto_save = false  # Auto-save after each build
 ## Implementation Plan
 
 ### Phase 1: Data Collection (1 week)
-- [ ] Extend `BuildStats` with `page_timings` and `shortcode_timings` fields
+- [ ] Extend `BuildStats` with `page_timings` and `directive_timings` fields
 - [ ] Implement `PageTimingCollector` with parse/render instrumentation
-- [ ] Implement `ShortcodeTimingCollector` with shortcode instrumentation
-- [ ] Add instrumentation points in build orchestrator and shortcode processor
+- [ ] Implement `DirectiveTimingCollector` with directive instrumentation
+- [ ] Add instrumentation points in build orchestrator and directive base class
 - [ ] CLI `--timing-profile` flag (note: `--profile` already used)
 
 ### Phase 2: Analysis & Reporting (1 week)
@@ -617,7 +622,7 @@ baseline_auto_save = false  # Auto-save after each build
 
 - [ ] `bengal build --timing-profile` shows phase breakdown with visual bars
 - [ ] Per-page timing identifies slowest pages with >90% accuracy
-- [ ] Shortcode timing tracks all shortcode calls correctly
+- [ ] Directive timing tracks all directive calls correctly
 - [ ] Baseline comparison shows meaningful deltas
 - [ ] Recommendations are actionable and accurate
 - [ ] <1% overhead when `--timing-profile` disabled
@@ -628,11 +633,14 @@ baseline_auto_save = false  # Auto-save after each build
 ## References
 
 ### Existing Bengal Infrastructure
-- `bengal/orchestration/stats/models.py` - `BuildStats` with phase timing
-- `bengal/utils/performance_collector.py` - Historical metrics collection
-- `bengal/utils/performance_report.py` - Trend analysis and comparison
-- `bengal/rendering/template_profiler.py` - Template-level profiling
-- `bengal/cli/commands/build.py` - `--perf-profile` and `--profile-templates` flags
+- `bengal/orchestration/stats/models.py` - `BuildStats` with phase timing (lines 69-94), memory metrics (lines 78-80), cache stats (lines 84-89)
+- `bengal/utils/performance_collector.py` - Historical metrics collection to `.bengal/metrics/history.jsonl`
+- `bengal/utils/performance_report.py` - Trend analysis and build comparison
+- `bengal/rendering/template_profiler.py` - Template-level profiling with function timing
+- `bengal/cli/commands/build.py` - `--perf-profile` (cProfile) and `--profile-templates` flags
+- `bengal/cli/commands/perf.py` - `bengal perf` command for viewing historical metrics
+- `bengal/directives/base.py` - `BengalDirective` base class (instrumentation point for directive timing)
+- `bengal/directives/cache.py` - `DirectiveCache` for caching parsed directive content
 
 ### External References
 - [Python cProfile](https://docs.python.org/3/library/profile.html)
@@ -643,7 +651,9 @@ baseline_auto_save = false  # Auto-save after each build
 ## Notes
 
 - This RFC builds on existing performance infrastructure rather than creating parallel systems
-- Phase timing already exists; this adds per-page and per-shortcode granularity
+- Phase timing already exists; this adds per-page and per-directive granularity
 - Historical tracking exists; this adds explicit baseline comparison workflow
 - Template profiling exists separately; this focuses on build-level performance
 - CLI naming: `--timing-profile` avoids conflict with existing `--profile` flag
+- Bengal uses "directives" (not "shortcodes") for reusable content blocks
+- Directive timing could leverage existing `DirectiveCache` hit/miss tracking
