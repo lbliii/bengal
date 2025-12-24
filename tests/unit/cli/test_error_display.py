@@ -280,6 +280,7 @@ class TestErrorCodeIntegration:
             "parsing",
             "asset",
             "graph",
+            "autodoc",
         }
 
         for code in ErrorCode:

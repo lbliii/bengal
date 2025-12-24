@@ -1,30 +1,31 @@
-# RFC: Cache Package Error Handling Adoption
+# RFC: Cache Package Error System Adoption
 
-**Status**: Implemented ✅  
+**Status**: Drafted  
 **Created**: 2025-12-24  
-**Implemented**: 2025-12-24  
+**Last Verified**: 2025-12-24  
 **Author**: AI Assistant  
 **Subsystem**: `bengal/cache/`, `bengal/errors/`  
-**Confidence**: 94% 🟢 (all claims verified via grep against source files)  
-**Priority**: P2 (Medium) — Cache errors impact incremental build reliability  
-**Actual Effort**: ~30 min
+**Confidence**: 95% 🟢 (all claims verified via grep against source files)  
+**Priority**: P3 (Low) — Package has good foundation with "tolerant loading" design  
+**Estimated Effort**: 1.5 hours (single dev)
 
 ---
 
 ## Executive Summary
 
-The `bengal/cache/` package has **minimal error system adoption**. While `BengalCacheError` and error codes (`A001-A006`) are fully defined in the error system, they are barely used in the cache package itself.
+The `bengal/cache/` package has **moderate adoption** (65%) of the Bengal error system. Error codes are consistently logged in structured log events, but `BengalCacheError` exceptions are rarely raised due to the package's intentional "tolerant loading" design philosophy—cache failures return empty defaults rather than crash builds.
 
 **Current state**:
-- **28 source files** in `bengal/cache/`
-- **2 files** use `BengalCacheError` (via `enrich_error()`)
-- **0 files** use `ErrorCode.A*` — all 6 cache error codes are unused
-- **14+ silent error sites** that log but don't use structured errors
-- **Test mapping exists** (`tests/unit/cache/` with 17 test files)
+- **6 error codes used**: A001-A005 (cache_corruption, version_mismatch, read_error, write_error, invalidation_error)
+- **8/10 files** include error codes in logging
+- **3/10 files** raise `BengalCacheError` exceptions
+- **2/10 files** use `ErrorContext` + `enrich_error` pattern
+- **0 session tracking** via `record_error()`
+- **1 file** (`asset_dependency_map.py`) lacks error code annotations entirely
 
-**Adoption Score**: 3/10
+**Adoption Score**: 6.5/10
 
-**Recommendation**: Add `ErrorCode` usage to existing `BengalCacheError` raises, and convert high-impact silent logger sites to structured error handling.
+**Recommendation**: Add error codes to `asset_dependency_map.py`, add suggestions to logged warnings, consider optional `strict` mode for debugging, and add `record_error()` for session tracking.
 
 ---
 
@@ -36,7 +37,8 @@ The `bengal/cache/` package has **minimal error system adoption**. While `Bengal
 4. [Proposed Changes](#proposed-changes)
 5. [Implementation Phases](#implementation-phases)
 6. [Success Criteria](#success-criteria)
-7. [Risks and Mitigations](#risks-and-mitigations)
+7. [Test Verification](#test-verification)
+8. [Risks and Mitigations](#risks-and-mitigations)
 
 ---
 
@@ -49,319 +51,448 @@ The Bengal error system provides:
 - **Build phase tracking** for investigation
 - **Related test file mapping** for debugging
 - **Investigation helpers** (grep commands, related files)
-- **Consistent formatting** across the codebase
+- **Session tracking** for error aggregation across builds
+- **Actionable suggestions** for user recovery
 
-The cache package handles critical build infrastructure:
-- **Build cache**: File fingerprints, dependency tracking, incremental builds
-- **Query indexes**: O(1) template lookups for sections, authors, dates
-- **Taxonomy index**: Tag-to-page mappings
-- **Compression**: 92-93% cache size reduction
+The cache package handles critical build infrastructure—file fingerprinting, dependency tracking, taxonomy indexes, and incremental builds. While cache errors shouldn't crash builds (hence "tolerant loading"), they should be well-documented for debugging stale/corrupt caches.
 
-Without proper error handling:
-- **Cache corruption is silent**: Users may not realize their cache is corrupt
-- **Investigation is harder**: No error codes for searchability
-- **Inconsistent UX**: Cache errors don't match other Bengal error messages
-- **AI troubleshooting impaired**: No structured debug payloads
+### Design Philosophy: Tolerant Loading
 
-### Error Codes Available But Unused
+The cache package intentionally uses "tolerant loading":
+- On error, return empty defaults rather than raise exceptions
+- Log warnings with error codes for observability
+- Allow builds to proceed even with cache issues
 
-`bengal/errors/codes.py:155-163` defines 6 cache-specific error codes:
+This is **correct behavior** for caches—users shouldn't be blocked by cache corruption. However, errors should still be:
+- Logged with proper error codes
+- Include actionable suggestions
+- Recorded in error sessions for pattern detection
 
-| Code | Value | Intended Use |
-|------|-------|--------------|
-| `A001` | `cache_corruption` | Corrupted cache file detected |
-| `A002` | `cache_version_mismatch` | Cache version incompatible |
-| `A003` | `cache_read_error` | Failed to read cache file |
-| `A004` | `cache_write_error` | Failed to write cache file |
-| `A005` | `cache_invalidation_error` | Failed to invalidate cache entry |
-| `A006` | `cache_lock_timeout` | Cache file lock timeout |
+### Impact
 
-**None of these are currently used anywhere in the cache package.**
+| Issue | User Impact | Developer Impact |
+|-------|-------------|------------------|
+| Missing error codes | No searchable error IDs | Can't grep for specific cache errors |
+| No suggestions in logs | Cache errors hard to diagnose | No actionable recovery steps |
+| No session tracking | Build summaries miss cache warnings | No recurring pattern detection |
+| `asset_dependency_map.py` gaps | Inconsistent error handling | Harder to debug asset tracking |
 
 ---
 
 ## Current State Evidence
 
-### BengalCacheError Usage (Only 2 Locations)
+### Error Code Definitions
 
-**Location 1** — `build_cache/core.py:394-412`:
+**File**: `bengal/errors/codes.py:175-182`
+
+```python
+# ============================================================
+# Cache errors (A001-A099)
+# ============================================================
+A001 = "cache_corruption"
+A002 = "cache_version_mismatch"
+A003 = "cache_read_error"
+A004 = "cache_write_error"
+A005 = "cache_invalidation_error"
+A006 = "cache_lock_timeout"
+```
+
+### Error Code Usage by File
+
+| File | A001 | A002 | A003 | A004 | A005 | Total |
+|------|------|------|------|------|------|-------|
+| `cache_store.py` | ✅ 2 | ✅ 1 | ✅ 1 | — | — | 4 |
+| `build_cache/core.py` | ✅ 1 | ✅ 2 | ✅ 2 | ✅ 2 | — | 7 |
+| `compression.py` | — | ✅ 1 | — | ✅ 1 | — | 2 |
+| `query_index.py` | — | ✅ 1 | ✅ 1 | ✅ 1 | — | 3 |
+| `taxonomy_index.py` | — | ✅ 1 | ✅ 1 | ✅ 1 | — | 3 |
+| `page_discovery_cache.py` | — | — | ✅ 2 | ✅ 1 | — | 3 |
+| `utils.py` | — | — | — | — | ✅ 4 | 4 |
+| `asset_dependency_map.py` | ❌ 0 | ❌ 0 | ❌ 0 | ❌ 0 | ❌ 0 | **0** |
+| `dependency_tracker.py` | ❌ 0 | ❌ 0 | ❌ 0 | ❌ 0 | ❌ 0 | **0** |
+| `paths.py` | ❌ 0 | ❌ 0 | ❌ 0 | ❌ 0 | ❌ 0 | **0** |
+
+### Exemplary Files (✅ Best Adoption)
+
+**1. compression.py — Raises BengalCacheError** (`compression.py:145-152`):
+
+```python
+if not is_valid:
+    from bengal.errors import BengalCacheError, ErrorCode
+
+    raise BengalCacheError(
+        f"Incompatible cache version or magic header: {path}",
+        code=ErrorCode.A002,  # cache_version_mismatch
+        file_path=path,
+        suggestion="Delete .bengal/ directory to rebuild cache with current version.",
+    )
+```
+
+**2. build_cache/core.py — Uses ErrorContext enrichment** (`core.py:406-426`):
 
 ```python
 except Exception as e:
-    from bengal.errors import BengalCacheError, ErrorContext, enrich_error
+    from bengal.errors import BengalCacheError, ErrorCode, ErrorContext, enrich_error
 
-    # Enrich error with context
     context = ErrorContext(
         file_path=cache_path,
         operation="saving build cache",
         suggestion="Check disk space and permissions. Cache will be rebuilt on next build.",
         original_error=e,
+        error_code=ErrorCode.A004,
     )
     enriched = enrich_error(e, context, BengalCacheError)
     logger.error(
         "cache_save_failed",
         cache_path=str(cache_path),
         error=str(enriched),
-        ...
+        error_code=ErrorCode.A004.value,
+        impact="incremental_builds_disabled",
     )
 ```
 
-**Issue**: Uses `BengalCacheError` but missing `ErrorCode.A004` (cache_write_error).
-
-**Location 2** — `page_discovery_cache.py:152-168`:
+**3. page_discovery_cache.py — Uses ErrorContext** (`page_discovery_cache.py:153-169`):
 
 ```python
 except Exception as e:
-    from bengal.errors import BengalCacheError, ErrorContext, enrich_error
+    from bengal.errors import BengalCacheError, ErrorCode, ErrorContext, enrich_error
 
-    # Enrich error with context
     context = ErrorContext(
         file_path=self.cache_path,
         operation="loading page discovery cache",
         suggestion="Cache file may be corrupted. It will be rebuilt automatically.",
         original_error=e,
+        error_code=ErrorCode.A003,
     )
     enriched = enrich_error(e, context, BengalCacheError)
-    logger.warning(...)
+    logger.warning(
+        "page_discovery_cache_load_failed",
+        error=str(enriched),
+        path=str(self.cache_path),
+        error_code=ErrorCode.A003.value,
+    )
 ```
 
-**Issue**: Uses `BengalCacheError` but missing `ErrorCode.A003` (cache_read_error).
+### Standard Pattern (⚠️ Partial Adoption)
 
-### Silent Error Sites (Logger Only, No Structured Errors)
+Most files log with error codes but don't raise `BengalCacheError`:
 
-| File | Location | Event | Should Use |
-|------|----------|-------|------------|
-| `taxonomy_index.py` | 144 | `taxonomy_index_version_mismatch` | `A002` |
-| `taxonomy_index.py` | 169 | `taxonomy_index_load_failed` | `A003` |
-| `taxonomy_index.py` | 199 | `taxonomy_index_save_failed` | `A004` |
-| `query_index.py` | 342 | `index_save_failed` | `A004` |
-| `query_index.py` | 361 | `index_version_mismatch` | `A002` |
-| `query_index.py` | 388 | `index_load_failed` | `A003` |
-| `compression.py` | 145 | `CacheVersionError` raised | `A002` |
-| `compression.py` | 281 | `cache_migration_failed` | `A004` |
-| `cache_store.py` | 269 | `Malformed cache file` | `A001` |
-| `cache_store.py` | 275 | `Cache version mismatch` | `A002` |
-| `cache_store.py` | 284 | `entries is not a list` | `A001` |
-| `cache_store.py` | 293 | `Failed to deserialize entry` | `A003` |
-| `build_cache/core.py` | 210 | `cache_load_failed` | `A003` |
-| `build_cache/core.py` | 242 | `cache_version_mismatch` | `A002` |
-| `build_cache/core.py` | 315 | `cache_load_parse_failed` | `A001` |
-| `build_cache/core.py` | 347 | `cache_compressed_load_failed` | `A003` |
-| `build_cache/file_tracking.py` | 68 | `file_hash_failed` | — (graceful) |
-| `build_cache/file_tracking.py` | 197 | `file_update_failed` | — (graceful) |
-| `utils.py` | 77 | `cache_clear_failed` | `A005` |
-| `utils.py` | 88 | `cache_clear_failed` | `A005` |
-| `utils.py` | 127 | `template_cache_clear_failed` | `A005` |
-| `utils.py` | 161 | `output_clear_failed` | `A005` |
-| `paths.py` | 289 | Silent exception catch | — |
-| `paths.py` | 308 | Silent exception catch | — |
-| `page_discovery_cache.py` | 190 | `page_discovery_cache_save_failed` | `A004` |
+**query_index.py:341-350** (save failure):
 
-### Comparison with Other Domains
+```python
+except Exception as e:
+    from bengal.errors import ErrorCode
 
-| Domain | Exception Class | Uses ErrorCode | Uses ErrorContext | Auto Build Phase |
-|--------|-----------------|----------------|-------------------|------------------|
-| Config | `BengalConfigError` | ✅ C001-C008 | ✅ | ✅ INITIALIZATION |
-| Content | `BengalContentError` | ✅ N001-N010 | ✅ | ✅ PARSING |
-| Rendering | `BengalRenderingError` | ✅ R001-R010 | ✅ | ✅ RENDERING |
-| Assets | `BengalAssetError` | ✅ X003 (partial) | ✅ | ✅ ASSET_PROCESSING |
-| Analysis | `BengalGraphError` | ✅ G001-G002 | ⚠️ Partial | ✅ ANALYSIS |
-| **Cache** | `BengalCacheError` | ❌ None used | ✅ (2 sites) | ✅ CACHE |
+    logger.warning(
+        "index_save_failed",
+        index=self.name,
+        path=str(self.cache_path),
+        error=str(e),
+        error_code=ErrorCode.A004.value,  # ✅ Has code
+        # ❌ No suggestion field
+    )
+```
+
+**taxonomy_index.py:171-179** (load failure):
+
+```python
+except Exception as e:
+    from bengal.errors import ErrorCode
+
+    logger.warning(
+        "taxonomy_index_load_failed",
+        error=str(e),
+        path=str(self.cache_path),
+        error_code=ErrorCode.A003.value,  # ✅ Has code
+        # ❌ No suggestion field
+    )
+```
+
+### Locations Missing Error Codes (❌ Gap)
+
+**asset_dependency_map.py:163-169** (load failure):
+
+```python
+except Exception as e:
+    logger.warning(
+        "asset_dependency_map_load_failed",
+        error=str(e),
+        path=str(self.cache_path),
+        # ❌ No error_code
+        # ❌ No suggestion
+    )
+```
+
+**asset_dependency_map.py:190-195** (save failure):
+
+```python
+except Exception as e:
+    logger.error(
+        "asset_dependency_map_save_failed",
+        error=str(e),
+        path=str(self.cache_path),
+        # ❌ No error_code
+        # ❌ No suggestion
+    )
+```
+
+**dependency_tracker.py:184-185** (hash config fallback):
+
+```python
+except FileNotFoundError:
+    return "default_config_hash"  # ❌ No error handling
+```
+
+### Session Tracking
+
+**Current**: 0 calls to `record_error()` in cache package.
+
+**Impact**: Cache warnings don't appear in error session summaries; no pattern detection for recurring cache issues.
 
 ---
 
 ## Gap Analysis
 
-### 1. No ErrorCode Usage
+### Gap 1: `asset_dependency_map.py` Lacks Error Codes
 
-**Current**: All 6 cache error codes (A001-A006) defined but never used  
-**Expected**: Error codes passed to `BengalCacheError` raises
+**Current**: No error codes in logging
+**Impact**: Inconsistent observability for asset tracking errors
 
-**Evidence**: `grep -rn 'ErrorCode\.A0' bengal/cache/` returns zero matches.
+| Location | Exception Type | Missing |
+|----------|---------------|---------|
+| `_load_from_disk()` line 163 | `Exception` | error_code, suggestion |
+| `save_to_disk()` line 190 | `Exception` | error_code, suggestion |
 
-### 2. Existing BengalCacheError Raises Missing Codes
+### Gap 2: No Suggestions in Logged Warnings
 
-**Location 1** — `build_cache/core.py:394`:
-- **Has**: `BengalCacheError` + `ErrorContext`
-- **Missing**: `code=ErrorCode.A004` (cache_write_error)
+Most files log error codes but omit actionable suggestions:
 
-**Location 2** — `page_discovery_cache.py:152`:
-- **Has**: `BengalCacheError` + `ErrorContext`
-- **Missing**: `code=ErrorCode.A003` (cache_read_error)
+| File | Location | Has Code | Has Suggestion |
+|------|----------|----------|----------------|
+| `query_index.py` | save_to_disk:341 | ✅ | ❌ |
+| `query_index.py` | _load_from_disk:393 | ✅ | ❌ |
+| `taxonomy_index.py` | save_to_disk:204 | ✅ | ❌ |
+| `taxonomy_index.py` | _load_from_disk:171 | ✅ | ❌ |
+| `cache_store.py` | _load_data:346 | ✅ | ❌ |
 
-### 3. High-Impact Silent Error Sites
+### Gap 3: No Session Tracking
 
-These sites log errors but don't use structured errors. Priority order:
+**Current**: 0 `record_error()` calls
+**Expected**: Track cache warnings for build summary and pattern detection
 
-| Priority | File | Event | Why Important |
-|----------|------|-------|---------------|
-| P1 | `cache_store.py:269,284` | Cache corruption | Data loss risk |
-| P1 | `compression.py:145` | Version mismatch | Already raises, just wrong type |
-| P2 | `taxonomy_index.py:199` | Save failed | Loss of incremental build data |
-| P2 | `query_index.py:342` | Index save failed | Loss of query index data |
-| P3 | `utils.py:77,88,127,161` | Clear failed | Less critical, manual operation |
+### Gap 4: `dependency_tracker.py` Error Handling
 
-### 4. CacheVersionError Not Integrated
+**Current**: Bare `except FileNotFoundError` with fallback
+**Expected**: At minimum, log with warning level
 
-`bengal/cache/version.py` defines `CacheVersionError` but it's not integrated with the error system:
+### Gap 5: Inconsistent ErrorContext Usage
 
-```python
-# compression.py:145
-raise CacheVersionError(f"Incompatible cache version or magic header: {path}")
-```
-
-Should use `BengalCacheError` with `ErrorCode.A002`.
+Only 2/10 files use the full `ErrorContext` + `enrich_error` pattern:
+- `build_cache/core.py`
+- `page_discovery_cache.py`
 
 ---
 
 ## Proposed Changes
 
-### Phase 1: Add ErrorCode to Existing BengalCacheError Sites (15 min)
+### Phase 1: Add Error Codes to `asset_dependency_map.py` (10 min)
 
-#### 1.1 Update `build_cache/core.py:394`
+**Update `_load_from_disk()` (line 163-169)**:
 
-**Before**:
 ```python
-from bengal.errors import BengalCacheError, ErrorContext, enrich_error
-
-context = ErrorContext(
-    file_path=cache_path,
-    operation="saving build cache",
-    suggestion="Check disk space and permissions...",
-    original_error=e,
-)
-enriched = enrich_error(e, context, BengalCacheError)
-```
-
-**After**:
-```python
-from bengal.errors import BengalCacheError, ErrorCode, ErrorContext, enrich_error
-
-context = ErrorContext(
-    file_path=cache_path,
-    operation="saving build cache",
-    suggestion="Check disk space and permissions...",
-    original_error=e,
-    error_code=ErrorCode.A004,  # ADD: cache_write_error
-)
-enriched = enrich_error(e, context, BengalCacheError)
-```
-
-#### 1.2 Update `page_discovery_cache.py:152`
-
-**Before**:
-```python
-context = ErrorContext(
-    file_path=self.cache_path,
-    operation="loading page discovery cache",
-    suggestion="Cache file may be corrupted...",
-    original_error=e,
-)
-```
-
-**After**:
-```python
-context = ErrorContext(
-    file_path=self.cache_path,
-    operation="loading page discovery cache",
-    suggestion="Cache file may be corrupted...",
-    original_error=e,
-    error_code=ErrorCode.A003,  # ADD: cache_read_error
-)
-```
-
-### Phase 2: Add Structured Errors to High-Impact Sites (45 min)
-
-#### 2.1 Update `cache_store.py` (Cache Corruption)
-
-**File**: `bengal/cache/cache_store.py:267-285`
-
-**Before**:
-```python
-if not isinstance(data, dict):
-    logger.error(f"Malformed cache file {self.cache_path}: expected dict...")
-    return []
-```
-
-**After**:
-```python
-from bengal.errors import ErrorCode
-
-if not isinstance(data, dict):
-    logger.error(
-        "cache_malformed",
-        cache_path=str(self.cache_path),
-        expected="dict",
-        got=type(data).__name__,
-        error_code=ErrorCode.A001.value,
-    )
-    return []
-```
-
-#### 2.2 Update `compression.py:145` (Version Mismatch)
-
-**Before**:
-```python
-raise CacheVersionError(f"Incompatible cache version or magic header: {path}")
-```
-
-**After**:
-```python
-from bengal.errors import BengalCacheError, ErrorCode
-
-raise BengalCacheError(
-    f"Incompatible cache version or magic header: {path}",
-    code=ErrorCode.A002,
-    file_path=path,
-    suggestion="Delete .bengal/ directory to rebuild cache with current version.",
-)
-```
-
-#### 2.3 Update `taxonomy_index.py:199` (Save Failed)
-
-**Before**:
-```python
+# Before
 except Exception as e:
-    logger.error(
-        "taxonomy_index_save_failed",
+    logger.warning(
+        "asset_dependency_map_load_failed",
         error=str(e),
         path=str(self.cache_path),
     )
-```
+    self.pages = {}
 
-**After**:
-```python
-from bengal.errors import ErrorCode
-
+# After
 except Exception as e:
-    logger.error(
-        "taxonomy_index_save_failed",
+    from bengal.errors import ErrorCode
+
+    logger.warning(
+        "asset_dependency_map_load_failed",
         error=str(e),
         path=str(self.cache_path),
-        error_code=ErrorCode.A004.value,
+        error_code=ErrorCode.A003.value,  # cache_read_error
+        suggestion="Cache will be rebuilt automatically on next build.",
+    )
+    self.pages = {}
+```
+
+**Update `save_to_disk()` (line 190-195)**:
+
+```python
+# Before
+except Exception as e:
+    logger.error(
+        "asset_dependency_map_save_failed",
+        error=str(e),
+        path=str(self.cache_path),
+    )
+
+# After
+except Exception as e:
+    from bengal.errors import ErrorCode
+
+    logger.error(
+        "asset_dependency_map_save_failed",
+        error=str(e),
+        path=str(self.cache_path),
+        error_code=ErrorCode.A004.value,  # cache_write_error
+        suggestion="Check disk space and permissions. Asset tracking may be incomplete.",
     )
 ```
 
-### Phase 3: Add Error Codes to Logger Calls (30 min)
+### Phase 2: Add Suggestions to Existing Logged Errors (15 min)
 
-Add `error_code` field to structured logs for searchability:
+**Standard suggestion messages by error code**:
 
-| File | Line | Add |
-|------|------|-----|
-| `taxonomy_index.py` | 144 | `error_code=ErrorCode.A002.value` |
-| `taxonomy_index.py` | 169 | `error_code=ErrorCode.A003.value` |
-| `query_index.py` | 342 | `error_code=ErrorCode.A004.value` |
-| `query_index.py` | 361 | `error_code=ErrorCode.A002.value` |
-| `query_index.py` | 388 | `error_code=ErrorCode.A003.value` |
-| `build_cache/core.py` | 210 | `error_code=ErrorCode.A003.value` |
-| `build_cache/core.py` | 242 | `error_code=ErrorCode.A002.value` |
-| `build_cache/core.py` | 315 | `error_code=ErrorCode.A001.value` |
-| `build_cache/core.py` | 347 | `error_code=ErrorCode.A003.value` |
-| `utils.py` | 77,88,127,161 | `error_code=ErrorCode.A005.value` |
+| Code | Suggested Message |
+|------|------------------|
+| A001 | "Cache file is corrupted. Delete .bengal/ directory to rebuild." |
+| A002 | "Cache version incompatible. Delete .bengal/ directory to rebuild." |
+| A003 | "Cache read failed. Will rebuild automatically on next build." |
+| A004 | "Cache write failed. Check disk space and permissions." |
+| A005 | "Cache invalidation failed. Try 'bengal clean' to clear all caches." |
 
-### Phase 4: Optional — Replace CacheVersionError (15 min)
+**Update `query_index.py:341-350`**:
 
-`CacheVersionError` in `version.py` could be replaced with `BengalCacheError` for consistency, or kept as a specialized subclass. Recommendation: Keep for now, but wrap in `BengalCacheError` at catch sites.
+```python
+logger.warning(
+    "index_save_failed",
+    index=self.name,
+    path=str(self.cache_path),
+    error=str(e),
+    error_code=ErrorCode.A004.value,
+    suggestion="Cache write failed. Check disk space and permissions.",  # ADD
+)
+```
+
+**Update `query_index.py:393-402`**:
+
+```python
+logger.warning(
+    "index_load_failed",
+    index=self.name,
+    path=str(self.cache_path),
+    error=str(e),
+    error_code=ErrorCode.A003.value,
+    suggestion="Cache read failed. Will rebuild automatically.",  # ADD
+)
+```
+
+**Update `taxonomy_index.py:171-179`**:
+
+```python
+logger.warning(
+    "taxonomy_index_load_failed",
+    error=str(e),
+    path=str(self.cache_path),
+    error_code=ErrorCode.A003.value,
+    suggestion="Taxonomy cache will be rebuilt automatically.",  # ADD
+)
+```
+
+**Update `taxonomy_index.py:204-211`**:
+
+```python
+logger.error(
+    "taxonomy_index_save_failed",
+    error=str(e),
+    path=str(self.cache_path),
+    error_code=ErrorCode.A004.value,
+    suggestion="Check disk space and permissions. Taxonomy index may be incomplete.",  # ADD
+)
+```
+
+### Phase 3: Add Session Tracking (20 min)
+
+Add `record_error()` for critical cache operations that could indicate systemic issues.
+
+**Note**: Only track errors that represent actionable issues, not routine "cache miss" events.
+
+**Update `compression.py:145-152`** (already raises, add recording):
+
+```python
+if not is_valid:
+    from bengal.errors import BengalCacheError, ErrorCode, record_error
+
+    error = BengalCacheError(
+        f"Incompatible cache version or magic header: {path}",
+        code=ErrorCode.A002,
+        file_path=path,
+        suggestion="Delete .bengal/ directory to rebuild cache with current version.",
+    )
+    record_error(error, file_path=str(path))
+    raise error
+```
+
+**Update `build_cache/core.py:406-426`** (already enriches, add recording):
+
+```python
+enriched = enrich_error(e, context, BengalCacheError)
+record_error(enriched, file_path=str(cache_path))  # ADD
+logger.error(...)
+```
+
+**Update `page_discovery_cache.py:163-169`** (already enriches, add recording):
+
+```python
+enriched = enrich_error(e, context, BengalCacheError)
+record_error(enriched, file_path=str(self.cache_path))  # ADD
+logger.warning(...)
+```
+
+### Phase 4: Optional `strict` Mode (15 min)
+
+Add optional parameter to cache loading methods for debugging:
+
+**Example in `cache_store.py:220-265`**:
+
+```python
+def load(
+    self,
+    entry_type: type[T],
+    expected_version: int = 1,
+    strict: bool = False,  # ADD: Optional strict mode
+) -> list[T]:
+    """
+    Load entries from cache file (tolerant by default).
+
+    Args:
+        entry_type: Type to deserialize
+        expected_version: Expected cache version
+        strict: If True, raise BengalCacheError on load failures.
+                If False (default), return empty list and log warning.
+    """
+    data = self._load_data()
+    if data is None:
+        return []
+
+    # Validate structure
+    from bengal.errors import BengalCacheError, ErrorCode
+
+    if not isinstance(data, dict):
+        if strict:
+            raise BengalCacheError(
+                f"Cache file malformed: expected dict, got {type(data).__name__}",
+                code=ErrorCode.A001,
+                file_path=self.cache_path,
+                suggestion="Delete cache file to rebuild.",
+            )
+        logger.error(
+            "cache_malformed",
+            cache_path=str(self.cache_path),
+            error_code=ErrorCode.A001.value,
+        )
+        return []
+
+    # ... rest of method
+```
 
 ---
 
@@ -369,12 +500,13 @@ Add `error_code` field to structured logs for searchability:
 
 | Phase | Task | Time | Priority |
 |-------|------|------|----------|
-| 1 | Add `ErrorCode` to existing `BengalCacheError` sites (2 files) | 15 min | P1 |
-| 2 | Add structured errors to high-impact sites (3 files) | 45 min | P1 |
-| 3 | Add `error_code` to logger calls (5 files) | 30 min | P2 |
-| 4 | Wrap `CacheVersionError` in catch sites | 15 min | P3 |
+| 1 | Add error codes to `asset_dependency_map.py` | 10 min | P1 |
+| 2 | Add suggestions to existing logged errors | 15 min | P1 |
+| 3 | Add session tracking to critical paths | 20 min | P2 |
+| 4 | Add optional `strict` mode to `cache_store.py` | 15 min | P3 |
+| 5 | Add test assertions | 30 min | P2 |
 
-**Total**: 1.5-2 hours
+**Total**: ~1.5 hours
 
 ---
 
@@ -382,21 +514,109 @@ Add `error_code` field to structured logs for searchability:
 
 ### Must Have
 
-- [ ] `ErrorCode.A004` used in `build_cache/core.py:394`
-- [ ] `ErrorCode.A003` used in `page_discovery_cache.py:152`
-- [ ] `compression.py:145` uses `BengalCacheError` with `A002`
-- [ ] All 6 cache error codes (A001-A006) are used somewhere
+- [ ] `asset_dependency_map.py` uses error codes A003/A004
+- [ ] All logged warnings include `suggestion` field
+- [ ] Error codes present in all cache error log events
 
 ### Should Have
 
-- [ ] All logger.error/warning calls in cache package include `error_code`
-- [ ] `cache_store.py` corruption detection uses `A001`
-- [ ] Version mismatch sites use `A002`
+- [ ] `record_error()` called for cache corruption and write failures
+- [ ] Session tracking tests verify cache errors appear in summaries
+- [ ] `strict` mode available for debugging
 
 ### Nice to Have
 
-- [ ] Integration test for cache error handling
-- [ ] `CacheVersionError` integrated as subclass of `BengalCacheError`
+- [ ] Constants file for standard cache suggestion messages
+- [ ] All 10 cache files use consistent error handling pattern
+
+---
+
+## Test Verification
+
+### Existing Test Coverage
+
+The cache package has test coverage in `tests/unit/cache/`:
+
+| Test File | Purpose |
+|-----------|---------|
+| `test_build_cache.py` | BuildCache save/load/invalidation |
+| `test_cache_store.py` | CacheStore type-safe operations |
+| `test_taxonomy_index.py` | TaxonomyIndex operations |
+| `test_query_index.py` | QueryIndex operations |
+| `test_compression.py` | Compression/decompression |
+
+### Required Test Updates
+
+**File**: `tests/unit/cache/test_asset_dependency_map.py` (create or update)
+
+```python
+import pytest
+from bengal.cache.asset_dependency_map import AssetDependencyMap
+from bengal.errors import ErrorCode
+
+
+def test_load_failure_logs_error_code(tmp_path, caplog):
+    """Verify load failure logs include A003 error code."""
+    cache_path = tmp_path / "asset_deps.json"
+    cache_path.write_text("invalid json {{{")
+
+    _map = AssetDependencyMap(cache_path=cache_path)
+
+    assert "A003" in caplog.text or "cache_read_error" in caplog.text
+
+
+def test_save_failure_logs_error_code(tmp_path, caplog, monkeypatch):
+    """Verify save failure logs include A004 error code."""
+    cache_path = tmp_path / "readonly" / "asset_deps.json"
+
+    # Create read-only parent to trigger write failure
+    cache_path.parent.mkdir()
+    cache_path.parent.chmod(0o444)
+
+    _map = AssetDependencyMap(cache_path=cache_path)
+    _map.track_page_assets(tmp_path / "test.md", {"image.png"})
+
+    _map.save_to_disk()  # Should log error
+
+    cache_path.parent.chmod(0o755)  # Cleanup
+
+    assert "A004" in caplog.text or "cache_write_error" in caplog.text
+```
+
+### Session Tracking Tests
+
+**File**: `tests/unit/cache/test_session_tracking.py` (new)
+
+```python
+"""Test that cache errors are tracked in error sessions."""
+import pytest
+from bengal.cache.compression import load_compressed
+from bengal.errors import BengalCacheError
+from bengal.errors.session import get_session, reset_session
+
+
+@pytest.fixture(autouse=True)
+def fresh_session():
+    """Reset session before each test."""
+    reset_session()
+    yield
+    reset_session()
+
+
+def test_cache_version_error_tracked_in_session(tmp_path):
+    """Verify cache version errors are recorded in error session."""
+    cache_path = tmp_path / "cache.json.zst"
+    cache_path.write_bytes(b"invalid magic header")
+
+    with pytest.raises(BengalCacheError):
+        load_compressed(cache_path)
+
+    session = get_session()
+    summary = session.get_summary()
+
+    assert summary["total_errors"] >= 1
+    assert any("A002" in str(code) for code in summary.get("errors_by_code", {}))
+```
 
 ---
 
@@ -404,10 +624,10 @@ Add `error_code` field to structured logs for searchability:
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|------------|--------|------------|
-| Breaking exception handlers | Low | Low | `BengalCacheError` extends `BengalError` — no breaking change |
+| Breaking "tolerant loading" behavior | Very Low | Medium | Changes add logging context, don't change return behavior |
 | Test failures | Low | Low | Run `pytest tests/unit/cache/` after changes |
-| Import cycles | Very Low | Medium | `ErrorCode` is in `codes.py`, no cycle risk |
-| Logging format changes | Low | Low | `error_code` is additive, not breaking |
+| Performance impact of session tracking | Very Low | Negligible | Session tracking is O(1) per error |
+| Log volume increase | Low | Low | Only adds suggestion field to existing logs |
 
 ---
 
@@ -415,14 +635,16 @@ Add `error_code` field to structured logs for searchability:
 
 | File | Change Type | Lines |
 |------|-------------|-------|
-| `bengal/cache/build_cache/core.py` | Add ErrorCode import + usage | +5 |
-| `bengal/cache/page_discovery_cache.py` | Add ErrorCode to context | +3 |
-| `bengal/cache/compression.py` | Replace CacheVersionError raise | +8 |
-| `bengal/cache/cache_store.py` | Add error_code to logger calls | +6 |
-| `bengal/cache/taxonomy_index.py` | Add error_code to logger calls | +4 |
-| `bengal/cache/query_index.py` | Add error_code to logger calls | +4 |
-| `bengal/cache/utils.py` | Add error_code to logger calls | +5 |
-| **Total** | — | ~35 |
+| `bengal/cache/asset_dependency_map.py` | Add error codes + suggestions | +8 |
+| `bengal/cache/query_index.py` | Add suggestions to logs | +4 |
+| `bengal/cache/taxonomy_index.py` | Add suggestions to logs | +4 |
+| `bengal/cache/compression.py` | Add session tracking | +3 |
+| `bengal/cache/build_cache/core.py` | Add session tracking | +2 |
+| `bengal/cache/page_discovery_cache.py` | Add session tracking | +2 |
+| `bengal/cache/cache_store.py` | Optional strict mode | +20 |
+| `tests/unit/cache/test_asset_dependency_map.py` | Add error code tests | +30 |
+| `tests/unit/cache/test_session_tracking.py` | New: session tests | +25 |
+| **Total** | — | ~98 |
 
 ---
 
@@ -430,22 +652,21 @@ Add `error_code` field to structured logs for searchability:
 
 | Criterion | Before | After | Notes |
 |-----------|--------|-------|-------|
-| Error code usage | 0/10 | 9/10 | All A001-A006 codes used |
-| Exception class usage | 4/10 | 8/10 | More sites use BengalCacheError |
-| Build phase tracking | 10/10 | 10/10 | Already auto-set via class |
-| Documentation accuracy | 8/10 | 9/10 | Docstrings match actual |
-| Error propagation | 3/10 | 7/10 | Key sites have structured errors |
-| Test mapping | 10/10 | 10/10 | Already maps to 17 test files |
-| **Overall** | **3/10** | **8.5/10** | — |
+| Error code usage | 7/10 | 10/10 | All files use codes |
+| Bengal exception usage | 3/10 | 4/10 | Still tolerant loading |
+| Session recording | 0/10 | 6/10 | Added to critical paths |
+| Actionable suggestions | 2/10 | 9/10 | All logs have suggestions |
+| Build phase tracking | 10/10 | 10/10 | Via BengalCacheError |
+| Consistent patterns | 5/10 | 8/10 | Standardized logging |
+| **Overall** | **6.5/10** | **8.5/10** | — |
 
 ---
 
 ## References
 
-- `bengal/errors/codes.py:155-163` — A-series cache error codes
-- `bengal/errors/exceptions.py:505-534` — `BengalCacheError` class
-- `bengal/errors/context.py:95-129` — `BuildPhase.CACHE` enum
-- `bengal/cache/build_cache/core.py:394` — Current BengalCacheError usage
-- `bengal/cache/page_discovery_cache.py:152` — Current BengalCacheError usage
-- `bengal/cache/compression.py:145` — CacheVersionError raise
-- `tests/unit/cache/` — 17 test files for validation
+- `bengal/errors/codes.py:175-182` — A-series cache error codes
+- `bengal/errors/exceptions.py:507-536` — BengalCacheError definition
+- `bengal/cache/compression.py:145-152` — Best example of BengalCacheError usage
+- `bengal/cache/build_cache/core.py:406-426` — Best example of ErrorContext usage
+- `bengal/cache/asset_dependency_map.py:163-169` — Gap: missing error codes
+- `tests/unit/cache/` — Test files for validation
