@@ -44,10 +44,10 @@ from bengal.rendering.pipeline.output import (
 from bengal.rendering.pipeline.thread_local import get_thread_parser
 from bengal.rendering.pipeline.toc import TOC_EXTRACTION_VERSION
 from bengal.rendering.pipeline.transforms import (
-    escape_jinja_blocks,
     escape_template_syntax_in_html,
-    normalize_markdown_links,
-    transform_internal_links,
+)
+from bengal.rendering.pipeline.unified_transform import (
+    HybridHTMLTransformer,
 )
 from bengal.rendering.renderer import Renderer
 from bengal.utils.logger import get_logger, truncate_error
@@ -199,6 +199,10 @@ class RenderingPipeline:
             output_collector=self._output_collector,
         )
 
+        # PERF: Unified HTML transformer (RFC: rfc-rendering-package-optimizations)
+        # Single instance reused across all pages, ~27% faster than separate transforms
+        self._html_transformer = HybridHTMLTransformer(baseurl=site.config.get("baseurl", ""))
+
         # Cache per-pipeline helpers (one pipeline per worker thread).
         # These are safe to reuse and avoid per-page import/initialization overhead.
         self._api_doc_enhancer: Any | None = None
@@ -304,14 +308,10 @@ class RenderingPipeline:
         else:
             self._parse_with_legacy(page, need_toc)
 
-        # Additional hardening: escape Jinja2 blocks
-        page.parsed_ast = escape_jinja_blocks(page.parsed_ast or "")
-
-        # Normalize .md links to clean URLs (./page.md -> ./page/)
-        page.parsed_ast = normalize_markdown_links(page.parsed_ast)
-
-        # Transform internal links (add baseurl prefix)
-        page.parsed_ast = transform_internal_links(page.parsed_ast, self.site.config)
+        # PERF: Unified HTML transformation (~27% faster than separate passes)
+        # Handles: Jinja block escaping, .md link normalization, baseurl prefixing
+        # RFC: rfc-rendering-package-optimizations.md
+        page.parsed_ast = self._html_transformer.transform(page.parsed_ast or "")
 
         # Pre-compute plain_text cache
         _ = page.plain_text
