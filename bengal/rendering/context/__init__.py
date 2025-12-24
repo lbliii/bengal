@@ -42,6 +42,7 @@ Example:
 
 from __future__ import annotations
 
+import threading
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any
 
@@ -96,8 +97,11 @@ __all__ = [
 # keyed by the site object's id. This eliminates 4 object allocations per page.
 #
 # For a 225-page site, this saves ~900 object allocations per build.
+#
+# Thread-safe: Protected by _context_lock for concurrent parallel rendering.
 
 _global_context_cache: dict[int, dict[str, Any]] = {}
+_context_lock = threading.Lock()
 
 
 def _get_global_contexts(site: Site) -> dict[str, Any]:
@@ -108,6 +112,8 @@ def _get_global_contexts(site: Site) -> dict[str, Any]:
     that don't change between page renders. Caching them eliminates
     repeated object allocation overhead.
 
+    Thread-safe: Uses double-check locking for safe concurrent access.
+
     Args:
         site: Site instance to wrap
 
@@ -116,10 +122,12 @@ def _get_global_contexts(site: Site) -> dict[str, Any]:
     """
     site_id = id(site)
 
-    if site_id in _global_context_cache:
-        return _global_context_cache[site_id]
+    # Fast path: check if already cached
+    with _context_lock:
+        if site_id in _global_context_cache:
+            return _global_context_cache[site_id]
 
-    # Build and cache the global contexts
+    # Build contexts outside lock (object creation)
     theme_obj = site.theme_config if hasattr(site, "theme_config") else None
 
     contexts = {
@@ -129,8 +137,12 @@ def _get_global_contexts(site: Site) -> dict[str, Any]:
         "menus": MenusContext(site),
     }
 
-    _global_context_cache[site_id] = contexts
-    return contexts
+    # Store under lock, with double-check
+    with _context_lock:
+        # Another thread may have populated while we computed
+        if site_id not in _global_context_cache:
+            _global_context_cache[site_id] = contexts
+        return _global_context_cache[site_id]
 
 
 def clear_global_context_cache() -> None:
@@ -138,8 +150,11 @@ def clear_global_context_cache() -> None:
     Clear the global context cache.
 
     Call this between builds or when site configuration changes.
+
+    Thread-safe: Clears under lock.
     """
-    _global_context_cache.clear()
+    with _context_lock:
+        _global_context_cache.clear()
 
 
 def build_page_context(

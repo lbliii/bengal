@@ -39,6 +39,7 @@ See Also:
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, fields
 from typing import Any, ClassVar, get_args, get_origin, get_type_hints
 
@@ -86,6 +87,26 @@ class DirectiveOptions:
     _allowed_values: ClassVar[dict[str, list[str]]] = {}
     """Restrict field values to specific allowed sets."""
 
+    # Cached at class definition time
+    _cached_hints: ClassVar[dict[str, type]] = {}
+    """Cached type hints to avoid repeated get_type_hints() calls."""
+
+    _cached_fields: ClassVar[set[str]] = set()
+    """Cached field names to avoid repeated fields() calls."""
+
+    # Pre-compiled coercers for each field
+    _coercers: ClassVar[dict[str, Callable[[str], Any]]] = {}
+    """Pre-compiled coercion functions to avoid runtime type-checking conditionals."""
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        """Initialize subclass.
+
+        Note: Caching of type hints and fields is done lazily in from_raw()
+        because __init_subclass__ runs BEFORE the @dataclass decorator,
+        so fields(cls) would return incomplete (parent-only) fields here.
+        """
+        super().__init_subclass__(**kwargs)
+
     @classmethod
     def from_raw(cls, raw_options: dict[str, str]) -> DirectiveOptions:
         """Parse raw string options into a typed instance.
@@ -111,8 +132,29 @@ class DirectiveOptions:
             5
         """
         kwargs: dict[str, Any] = {}
-        hints = get_type_hints(cls)
-        known_fields = {f.name for f in fields(cls) if not f.name.startswith("_")}
+
+        # Check if cache was set on THIS class (not inherited from parent).
+        # __init_subclass__ runs before @dataclass decorator, so child classes
+        # inherit parent's incomplete cache. Use vars(cls) to check for own attrs.
+        own_cache = "_cached_fields" in vars(cls)
+
+        if own_cache and cls._cached_fields:
+            known_fields = cls._cached_fields
+            hints = cls._cached_hints
+        else:
+            # Compute fields for this class and cache for future calls
+            known_fields = {f.name for f in fields(cls) if not f.name.startswith("_")}
+            hints = get_type_hints(cls)
+            try:
+                cls._cached_fields = known_fields
+                cls._cached_hints = hints
+                # Pre-compile coercers for this class
+                cls._coercers = {}
+                for name, hint in hints.items():
+                    if not name.startswith("_"):
+                        cls._coercers[name] = cls._compile_coercer(hint)
+            except Exception:
+                pass  # Continue with computed values
 
         for raw_name, raw_value in raw_options.items():
             # Resolve alias
@@ -126,38 +168,106 @@ class DirectiveOptions:
                 )
                 continue
 
-            # Get target type
-            target_type = hints.get(field_name, str)
+            # Use pre-compiled coercer if available
+            coercer = cls._coercers.get(field_name)
+            if coercer:
+                try:
+                    coerced = coercer(raw_value)
 
-            # Coerce value
-            try:
-                coerced = cls._coerce_value(raw_value, target_type)
+                    # Validate allowed values
+                    if field_name in cls._allowed_values:
+                        allowed = cls._allowed_values[field_name]
+                        if coerced not in allowed:
+                            logger.warning(
+                                "directive_invalid_option_value",
+                                option=raw_name,
+                                value=raw_value,
+                                allowed=allowed,
+                                directive=cls.__name__,
+                            )
+                            continue  # Skip invalid, use default
 
-                # Validate allowed values
-                if field_name in cls._allowed_values:
-                    allowed = cls._allowed_values[field_name]
-                    if coerced not in allowed:
-                        logger.warning(
-                            "directive_invalid_option_value",
-                            option=raw_name,
-                            value=raw_value,
-                            allowed=allowed,
-                            directive=cls.__name__,
-                        )
-                        continue  # Skip invalid, use default
+                    kwargs[field_name] = coerced
+                except (ValueError, TypeError):
+                    pass  # Use default
+            else:
+                # Fallback to runtime coercion
+                target_type = hints.get(field_name, str)
+                try:
+                    coerced = cls._coerce_value(raw_value, target_type)
 
-                kwargs[field_name] = coerced
+                    # Validate allowed values
+                    if field_name in cls._allowed_values:
+                        allowed = cls._allowed_values[field_name]
+                        if coerced not in allowed:
+                            logger.warning(
+                                "directive_invalid_option_value",
+                                option=raw_name,
+                                value=raw_value,
+                                allowed=allowed,
+                                directive=cls.__name__,
+                            )
+                            continue  # Skip invalid, use default
 
-            except (ValueError, TypeError) as e:
-                logger.warning(
-                    "directive_option_coerce_failed",
-                    option=raw_name,
-                    value=raw_value,
-                    target_type=str(target_type),
-                    error=str(e),
-                )
+                    kwargs[field_name] = coerced
+
+                except (ValueError, TypeError) as e:
+                    logger.warning(
+                        "directive_option_coerce_failed",
+                        option=raw_name,
+                        value=raw_value,
+                        target_type=str(target_type),
+                        error=str(e),
+                    )
 
         return cls(**kwargs)
+
+    @staticmethod
+    def _compile_coercer(target_type: type) -> Callable[[str], Any]:
+        """Return a fast coercion function for the target type.
+
+        Pre-compiles coercion logic into a function that avoids runtime
+        type-checking conditionals, saving ~30μs per option coercion.
+
+        Args:
+            target_type: Target Python type from field annotations.
+
+        Returns:
+            A function that takes a string and returns the coerced value.
+        """
+        # Handle Optional[T] / T | None
+        origin = get_origin(target_type)
+        if origin is type(None) or (origin and type(None) in get_args(target_type)):
+            args = get_args(target_type)
+            target_type = next((a for a in args if a is not type(None)), str)
+            origin = get_origin(target_type)
+
+        if target_type is bool:
+            _truthy = frozenset(("true", "1", "yes", ""))
+            return lambda v: v.lower() in _truthy
+
+        if target_type is int:
+
+            def _int_coerce(v: str) -> int:
+                return int(v) if v.lstrip("-").isdigit() else 0
+
+            return _int_coerce
+
+        if target_type is float:
+
+            def _float_coerce(v: str) -> float:
+                try:
+                    return float(v)
+                except ValueError:
+                    return 0.0
+
+            return _float_coerce
+
+        if origin is list or target_type is list:
+            return lambda v: [x.strip() for x in v.split(",") if x.strip()]
+
+        # String passthrough (identity function)
+        return lambda v: v
 
     @classmethod
     def _coerce_value(cls, value: str, target_type: type) -> Any:

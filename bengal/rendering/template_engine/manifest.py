@@ -64,6 +64,27 @@ class ManifestHelpersMixin:
         """
         manifest_path = self._asset_manifest_path
 
+        # Production mode: skip mtime checks entirely (manifest is static)
+        production_mode = getattr(self, "_production_mode", False)
+        if production_mode:
+            if self._asset_manifest_loaded:
+                return self._asset_manifest_cache
+
+            # Load once and never recheck
+            try:
+                manifest = AssetManifest.load(manifest_path)
+                if manifest is None:
+                    self._asset_manifest_cache = {}
+                else:
+                    self._asset_manifest_cache = dict(manifest.entries)
+                self._asset_manifest_present = manifest is not None
+            except FileNotFoundError:
+                self._asset_manifest_cache = {}
+                self._asset_manifest_present = False
+
+            self._asset_manifest_loaded = True
+            return self._asset_manifest_cache
+
         # In dev server mode, be conservative: allow the manifest to change while
         # the process is running (e.g., assets pipeline updates).
         if getattr(self.site, "dev_mode", False):

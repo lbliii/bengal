@@ -62,8 +62,10 @@ from bengal.utils.url_strategy import URLStrategy
 logger = get_logger(__name__)
 
 # Threshold for parallel processing - below this we use sequential processing
-# to avoid thread pool overhead for small workloads
-MIN_TAGS_FOR_PARALLEL = 20
+# to avoid thread pool overhead for small workloads.
+# Lowered from 20 to 10 based on I/O-bound analysis (tag page generation is ~5-10ms each).
+# See: plan/drafted/rfc-orchestration-package-optimizations.md (Phase 3)
+MIN_TAGS_FOR_PARALLEL = 10
 
 if TYPE_CHECKING:
     from bengal.cache.build_cache import BuildCache

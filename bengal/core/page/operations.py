@@ -22,10 +22,12 @@ See Also:
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+    from bengal.rendering.template_engine import TemplateEngine
 
 
 class PageOperationsMixin:
@@ -50,7 +52,7 @@ class PageOperationsMixin:
     links: list[str]
     source_path: Path
 
-    def render(self, template_engine: Any) -> str:
+    def render(self, template_engine: TemplateEngine) -> str:
         """
         Render the page using the provided template engine.
 
@@ -79,7 +81,7 @@ class PageOperationsMixin:
         broken_links = validator.validate_page_links(self)
         return broken_links
 
-    def apply_template(self, template_name: str, context: dict[str, Any] | None = None) -> str:
+    def apply_template(self, template_name: str, context: dict[str, object] | None = None) -> str:
         """
         Apply a specific template to this page.
 

@@ -165,6 +165,11 @@ class Site(
     # Page path map cache for O(1) page resolution (used by resolve_pages template function)
     _page_path_map: dict[str, Page] | None = field(default=None, repr=False, init=False)
     _page_path_map_version: int = field(default=-1, repr=False, init=False)
+    # Page source path lookup cache for O(1) page resolution (shared by orchestrators)
+    # See: plan/drafted/rfc-orchestration-package-optimizations.md (Phase 1)
+    _page_by_source_path_cache: dict[Path, Page] | None = field(
+        default=None, repr=False, init=False
+    )
     _theme_obj: Theme | None = field(default=None, repr=False, init=False)
     _query_registry: Any = field(default=None, repr=False, init=False)
 

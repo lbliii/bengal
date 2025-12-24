@@ -28,11 +28,12 @@ import concurrent.futures
 import sys
 import threading
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from bengal.config.defaults import get_max_workers
 from bengal.errors import ErrorAggregator, extract_error_context
 from bengal.utils.logger import get_logger
+from bengal.utils.progress import ProgressReporter
 from bengal.utils.url_strategy import URLStrategy
 
 logger = get_logger(__name__)
@@ -71,6 +72,8 @@ if TYPE_CHECKING:
     from bengal.core.page import Page
     from bengal.core.site import Site
     from bengal.orchestration.stats import BuildStats
+    from bengal.orchestration.types import ProgressManagerProtocol
+    from bengal.utils.build_context import BuildContext
 
 # Thread-local storage for pipelines (reuse per thread, not per page!)
 _thread_local = threading.local()
@@ -161,9 +164,9 @@ class RenderOrchestrator:
         quiet: bool = False,
         tracker: DependencyTracker | None = None,
         stats: BuildStats | None = None,
-        progress_manager: Any | None = None,
-        reporter: Any | None = None,
-        build_context: Any | None = None,
+        progress_manager: ProgressManagerProtocol | None = None,
+        reporter: ProgressReporter | None = None,
+        build_context: BuildContext | None = None,
         changed_sources: set[Path] | None = None,
     ) -> None:
         """
@@ -218,8 +221,8 @@ class RenderOrchestrator:
         tracker: DependencyTracker | None,
         quiet: bool,
         stats: BuildStats | None,
-        progress_manager: Any | None = None,
-        build_context: Any | None = None,
+        progress_manager: ProgressManagerProtocol | None = None,
+        build_context: BuildContext | None = None,
         changed_sources: set[Path] | None = None,
     ) -> None:
         """
@@ -300,8 +303,8 @@ class RenderOrchestrator:
         tracker: DependencyTracker | None,
         quiet: bool,
         stats: BuildStats | None,
-        progress_manager: Any | None = None,
-        build_context: Any | None = None,
+        progress_manager: ProgressManagerProtocol | None = None,
+        build_context: BuildContext | None = None,
         changed_sources: set[Path] | None = None,
     ) -> None:
         """
@@ -389,7 +392,7 @@ class RenderOrchestrator:
         tracker: DependencyTracker | None,
         quiet: bool,
         stats: BuildStats | None,
-        build_context: Any | None = None,
+        build_context: BuildContext | None = None,
         changed_sources: set[Path] | None = None,
     ) -> None:
         """Parallel rendering without progress (traditional)."""
@@ -467,7 +470,7 @@ class RenderOrchestrator:
         tracker: DependencyTracker | None,
         quiet: bool,
         stats: BuildStats | None,
-        build_context: Any | None = None,
+        build_context: BuildContext | None = None,
         changed_sources: set[Path] | None = None,
     ) -> None:
         """Render pages sequentially with rich progress bar."""
@@ -535,8 +538,8 @@ class RenderOrchestrator:
         tracker: DependencyTracker | None,
         quiet: bool,
         stats: BuildStats | None,
-        progress_manager: Any,
-        build_context: Any | None = None,
+        progress_manager: ProgressManagerProtocol,
+        build_context: BuildContext | None = None,
         changed_sources: set[Path] | None = None,
     ) -> None:
         """Render pages in parallel with live progress manager."""
@@ -658,7 +661,7 @@ class RenderOrchestrator:
         tracker: DependencyTracker | None,
         quiet: bool,
         stats: BuildStats | None,
-        build_context: Any | None = None,
+        build_context: BuildContext | None = None,
         changed_sources: set[Path] | None = None,
     ) -> None:
         """Render pages in parallel with rich progress bar."""

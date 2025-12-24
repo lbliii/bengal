@@ -78,15 +78,27 @@ class BuildTrigger:
     Features:
         - Pre/post build hooks
         - Incremental vs full rebuild detection
-        - Navigation frontmatter detection
-        - Template change detection
+        - Navigation frontmatter detection (with caching)
+        - Template change detection (with directory caching)
         - Autodoc source change detection
         - Live reload notification
+
+    Caching:
+        - Frontmatter cache: (path, mtime) -> has_nav_keys (avoids re-parsing)
+        - Template dirs cache: Resolved template directories (avoids exists() calls)
 
     Example:
         >>> trigger = BuildTrigger(site, host="localhost", port=5173)
         >>> trigger.trigger_build(changed_paths, event_types)
     """
+
+    # Class-level caches (shared across instances for efficiency)
+    # Frontmatter cache: path -> (mtime, has_nav_keys)
+    _frontmatter_cache: dict[Path, tuple[float, bool]] = {}
+    _frontmatter_cache_max = 500
+
+    # Template directories cache (per-instance, set to None to invalidate)
+    _template_dirs: list[Path] | None = None
 
     def __init__(
         self,
@@ -115,6 +127,11 @@ class BuildTrigger:
         self._executor = executor or BuildExecutor(max_workers=1)
         self._building = False
         self._build_lock = threading.Lock()
+        # Queue for changes that arrive during a build (prevents lost changes)
+        self._pending_changes: set[Path] = set()
+        self._pending_event_types: set[str] = set()
+        # Reset template dirs cache for this instance (theme may differ)
+        self._template_dirs = None
 
     def trigger_build(
         self,
@@ -131,21 +148,50 @@ class BuildTrigger:
         4. Runs post-build hooks
         5. Notifies clients to reload
 
+        If a build is already in progress, changes are queued and will trigger
+        another build when the current one completes. This prevents lost changes
+        during rapid editing (especially important for autodoc pages).
+
         Args:
             changed_paths: Set of changed file paths
             event_types: Set of event types (created, modified, deleted, moved)
         """
         with self._build_lock:
             if self._building:
-                logger.debug("build_skipped", reason="build_already_in_progress")
+                # Queue changes instead of discarding them
+                self._pending_changes.update(changed_paths)
+                self._pending_event_types.update(event_types)
+                logger.debug(
+                    "build_changes_queued",
+                    queued_count=len(changed_paths),
+                    total_pending=len(self._pending_changes),
+                )
                 return
             self._building = True
 
         try:
             self._execute_build(changed_paths, event_types)
         finally:
+            # Check for queued changes before releasing lock
+            queued_changes: set[Path] = set()
+            queued_events: set[str] = set()
             with self._build_lock:
                 self._building = False
+                if self._pending_changes:
+                    queued_changes = self._pending_changes.copy()
+                    queued_events = self._pending_event_types.copy()
+                    self._pending_changes.clear()
+                    self._pending_event_types.clear()
+
+            # Trigger another build if changes were queued during this build
+            if queued_changes:
+                logger.info(
+                    "build_queued_changes_triggering",
+                    queued_count=len(queued_changes),
+                    queued_events=list(queued_events),
+                )
+                # Recursive call to handle the queued changes
+                self.trigger_build(queued_changes, queued_events)
 
     def _execute_build(
         self,
@@ -420,11 +466,13 @@ class BuildTrigger:
     ) -> set[Path]:
         """
         Detect which changed files have navigation-affecting frontmatter.
+
+        Uses caching with mtime invalidation for efficiency:
+        - Cache hit: O(1) lookup
+        - Cache miss: Read only first 4KB (frontmatter is at file start)
         """
         if needs_full_rebuild:
             return set()
-
-        from bengal.orchestration.constants import NAV_AFFECTING_KEYS
 
         nav_changed: set[Path] = set()
 
@@ -432,51 +480,123 @@ class BuildTrigger:
             if path.suffix.lower() not in {".md", ".markdown"}:
                 continue
 
-            try:
-                text = path.read_text(encoding="utf-8")
-                match = re.match(r"^---\s*\n(.*?)\n---\s*(?:\n|$)", text, flags=re.DOTALL)
-                if not match:
-                    continue
-
-                fm = yaml.safe_load(match.group(1)) or {}
-                if not isinstance(fm, dict):
-                    continue
-
-                if any(str(key).lower() in NAV_AFFECTING_KEYS for key in fm):
-                    nav_changed.add(path)
-                    logger.debug("nav_frontmatter_detected", file=str(path))
-            except Exception as e:
-                logger.debug("frontmatter_parse_failed", file=str(path), error=str(e))
+            if self._has_nav_affecting_frontmatter(path):
+                nav_changed.add(path)
+                logger.debug("nav_frontmatter_detected", file=str(path))
 
         return nav_changed
 
-    def _is_template_change(self, changed_paths: set[Path]) -> bool:
-        """Check if any changed file is a template."""
+    def _has_nav_affecting_frontmatter(self, path: Path) -> bool:
+        """
+        Check if file has navigation-affecting frontmatter (cached).
+
+        Optimizations:
+        1. LRU cache keyed by (path, mtime) - avoids re-parsing unchanged files
+        2. Partial read (4KB) - frontmatter is always at file start
+
+        Args:
+            path: Path to markdown file
+
+        Returns:
+            True if file has navigation-affecting frontmatter keys
+        """
+        try:
+            stat = path.stat()
+            mtime = stat.st_mtime
+
+            # Check cache (keyed by path, validated by mtime)
+            cached = self._frontmatter_cache.get(path)
+            if cached is not None and cached[0] == mtime:
+                return cached[1]
+
+            # Read only first 4KB (frontmatter is at start)
+            # Most frontmatter is < 500 bytes, but YAML-heavy files may be larger
+            with open(path, encoding="utf-8") as f:
+                text = f.read(4096)
+
+            # Extract frontmatter
+            match = re.match(r"^---\s*\n(.*?)\n---\s*(?:\n|$)", text, flags=re.DOTALL)
+            if not match:
+                result = False
+            else:
+                try:
+                    fm = yaml.safe_load(match.group(1)) or {}
+                    if not isinstance(fm, dict):
+                        result = False
+                    else:
+                        from bengal.orchestration.constants import NAV_AFFECTING_KEYS
+
+                        result = any(str(key).lower() in NAV_AFFECTING_KEYS for key in fm)
+                except yaml.YAMLError:
+                    result = False
+
+            # Update cache with LRU eviction
+            if len(self._frontmatter_cache) >= self._frontmatter_cache_max:
+                first_key = next(iter(self._frontmatter_cache))
+                del self._frontmatter_cache[first_key]
+            self._frontmatter_cache[path] = (mtime, result)
+
+            return result
+
+        except (FileNotFoundError, PermissionError, OSError) as e:
+            logger.debug("frontmatter_check_failed", file=str(path), error=str(e))
+            return False
+
+    def _get_template_dirs(self) -> list[Path]:
+        """
+        Get template directories (cached).
+
+        Caches the list of existing template directories to avoid
+        repeated exists() calls on every file change check.
+
+        Returns:
+            List of existing template directories
+        """
+        if self._template_dirs is not None:
+            return self._template_dirs
+
         import bengal
 
         bengal_dir = Path(bengal.__file__).parent
         root_path = getattr(self.site, "root_path", None)
-        if not root_path:
-            return False
 
-        template_dirs = [
+        if not root_path:
+            self._template_dirs = []
+            return self._template_dirs
+
+        dirs = [
             root_path / "templates",
             root_path / "themes",
         ]
 
         theme = getattr(self.site, "theme", None)
         if theme:
-            bundled_theme_dir = bengal_dir / "themes" / theme / "templates"
-            if bundled_theme_dir.exists():
-                template_dirs.append(bundled_theme_dir)
+            bundled = bengal_dir / "themes" / theme / "templates"
+            dirs.append(bundled)
 
-        for path in changed_paths:
-            if path.suffix.lower() != ".html":
-                continue
+        # Filter to existing directories (cached)
+        self._template_dirs = [d for d in dirs if d.exists()]
+        return self._template_dirs
 
+    def _is_template_change(self, changed_paths: set[Path]) -> bool:
+        """
+        Check if any changed file is a template.
+
+        Optimizations:
+        1. Filter to .html files first (skip non-templates early)
+        2. Use cached template directories (avoids exists() calls)
+        """
+        template_dirs = self._get_template_dirs()
+        if not template_dirs:
+            return False
+
+        # Filter to .html files first (early exit optimization)
+        html_paths = [p for p in changed_paths if p.suffix.lower() == ".html"]
+        if not html_paths:
+            return False
+
+        for path in html_paths:
             for template_dir in template_dirs:
-                if not template_dir.exists():
-                    continue
                 try:
                     path.relative_to(template_dir)
                     return True
@@ -530,13 +650,19 @@ class BuildTrigger:
     ) -> None:
         """Handle reload decision and notification.
 
+        Uses a three-tier decision flow for optimal performance:
+        1. Source-gated: Immediate CSS-only detection from source files (fastest)
+        2. Typed outputs: O(o) decision from OutputRecords (preferred)
+        3. Fallback: Path-based decision (should rarely occur)
+
         Args:
             changed_files: List of source file paths that changed
             changed_outputs: Serialized OutputRecords as (path, type, phase) tuples
         """
         decision = None
+        decision_source = "none"  # Track which tier made the decision
 
-        # Source-gated reload decision
+        # TIER 1: Source-gated reload decision (fastest path)
         if changed_files:
             try:
                 lower = [p.lower() for p in changed_files]
@@ -563,18 +689,17 @@ class BuildTrigger:
                     decision = ReloadDecision(
                         action="reload-css", reason="css-only", changed_paths=css_paths
                     )
+                    decision_source = "source-gated-css"
                 else:
                     decision = ReloadDecision(
                         action="reload", reason="source-change", changed_paths=[]
                     )
+                    decision_source = "source-gated-full"
             except Exception as e:
                 logger.debug("reload_decision_failed", error=str(e))
 
-        # Use typed builder outputs if available - preferred path (no snapshot diffing)
+        # TIER 2: Typed builder outputs - preferred path (O(o) not O(F))
         if decision is None and changed_outputs:
-            # Reconstruct OutputRecord objects for decide_from_outputs
-            from pathlib import Path
-
             from bengal.core.output import OutputRecord, OutputType
 
             records = []
@@ -590,14 +715,30 @@ class BuildTrigger:
 
             if records:
                 decision = controller.decide_from_outputs(records)
+                decision_source = "typed-outputs"
             else:
-                # Fall back to path-based decision
+                # TIER 3: Fall back to path-based decision (should rarely occur)
                 paths = [path for path, _type, _phase in changed_outputs]
                 decision = controller.decide_from_changed_paths(paths)
+                decision_source = "fallback-paths"
+                logger.warning(
+                    "reload_decision_fallback",
+                    reason="typed_output_reconstruction_failed",
+                    output_count=len(changed_outputs),
+                )
 
         # Default: suppress reload
         if decision is None:
             decision = ReloadDecision(action="none", reason="no-source-change", changed_paths=[])
+            decision_source = "suppressed"
+
+        # Log decision source for observability
+        logger.debug(
+            "reload_decision_source",
+            source=decision_source,
+            action=decision.action,
+            reason=decision.reason,
+        )
 
         # Send reload notification
         if decision.action == "none":
@@ -609,6 +750,7 @@ class BuildTrigger:
                 "reload_decision",
                 action=decision.action,
                 reason=decision.reason,
+                source=decision_source,
             )
             send_reload_payload(decision.action, decision.reason, decision.changed_paths)
 

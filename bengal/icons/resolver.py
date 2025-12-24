@@ -19,6 +19,7 @@ Usage:
 
 from __future__ import annotations
 
+import threading
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -34,6 +35,8 @@ __all__ = [
 ]
 
 # Module-level state (set during Site initialization)
+# Thread-safe: All state access protected by _icon_lock for concurrent access
+_icon_lock = threading.Lock()
 _search_paths: list[Path] = []
 _icon_cache: dict[str, str] = {}
 _not_found_cache: set[str] = set()  # Avoid repeated disk checks
@@ -47,15 +50,21 @@ def initialize(site: Site, preload: bool = False) -> None:
     Called once during Site initialization, before any rendering.
     Sets up search paths based on theme configuration.
 
+    Thread-safe: Atomically updates all state under lock.
+
     Args:
         site: Site instance for theme resolution
         preload: If True, eagerly load all icons (production mode)
     """
     global _search_paths, _initialized
-    _search_paths = _get_icon_search_paths(site)
-    _icon_cache.clear()
-    _not_found_cache.clear()
-    _initialized = True
+    # Compute paths outside lock (expensive I/O)
+    paths = _get_icon_search_paths(site)
+
+    with _icon_lock:
+        _search_paths = paths
+        _icon_cache.clear()
+        _not_found_cache.clear()
+        _initialized = True
 
     if preload:
         _preload_all_icons()
@@ -111,32 +120,39 @@ def load_icon(name: str) -> str | None:
     - Found icons cached by content
     - Not-found icons cached to skip repeated searches
 
+    Thread-safe: Cache reads/writes protected by lock.
+
     Args:
         name: Icon name (without .svg extension)
 
     Returns:
         SVG content string, or None if not found
     """
-    if name in _icon_cache:
-        return _icon_cache[name]
+    # Check caches under lock
+    with _icon_lock:
+        if name in _icon_cache:
+            return _icon_cache[name]
 
-    if name in _not_found_cache:
-        return None
+        if name in _not_found_cache:
+            return None
 
-    # Use search paths if initialized, otherwise fallback to default
-    search_paths = _search_paths if _initialized else [_get_fallback_path()]
+        # Copy search paths under lock for safe iteration outside lock
+        search_paths = _search_paths.copy() if _initialized else [_get_fallback_path()]
 
+    # Expensive I/O outside lock
     for icons_dir in search_paths:
         icon_path = icons_dir / f"{name}.svg"
         if icon_path.exists():
             try:
                 content = icon_path.read_text(encoding="utf-8")
-                _icon_cache[name] = content
+                with _icon_lock:
+                    _icon_cache[name] = content
                 return content
             except OSError:
                 continue
 
-    _not_found_cache.add(name)
+    with _icon_lock:
+        _not_found_cache.add(name)
     return None
 
 
@@ -144,11 +160,14 @@ def get_search_paths() -> list[Path]:
     """
     Get current search paths (for error messages).
 
+    Thread-safe: Returns copy under lock.
+
     Returns:
         Copy of the current search paths list
     """
-    if _initialized:
-        return _search_paths.copy()
+    with _icon_lock:
+        if _initialized:
+            return _search_paths.copy()
     return [_get_fallback_path()]
 
 
@@ -159,14 +178,19 @@ def get_available_icons() -> list[str]:
     Returns icon names in priority order (higher priority first).
     Duplicates are included only once (first occurrence wins).
 
+    Thread-safe: Copies search paths under lock.
+
     Returns:
         List of icon names (without .svg extension)
     """
     seen: set[str] = set()
     icons: list[str] = []
 
-    search_paths = _search_paths if _initialized else [_get_fallback_path()]
+    # Copy search paths under lock
+    with _icon_lock:
+        search_paths = _search_paths.copy() if _initialized else [_get_fallback_path()]
 
+    # Disk I/O outside lock
     for icons_dir in search_paths:
         if icons_dir.exists():
             for icon_path in sorted(icons_dir.glob("*.svg")):
@@ -183,9 +207,12 @@ def clear_cache() -> None:
     Clear icon cache (for dev server hot reload).
 
     Call this when theme assets change to reload modified icons.
+
+    Thread-safe: Clears under lock.
     """
-    _icon_cache.clear()
-    _not_found_cache.clear()
+    with _icon_lock:
+        _icon_cache.clear()
+        _not_found_cache.clear()
 
 
 def _preload_all_icons() -> None:
@@ -194,21 +221,35 @@ def _preload_all_icons() -> None:
 
     Scans all icon directories and loads SVG content into cache.
     First match wins for duplicate icon names.
+
+    Thread-safe: Cache writes protected by lock.
     """
+    # Copy search paths under lock
+    with _icon_lock:
+        search_paths = _search_paths.copy()
+
     seen: set[str] = set()
-    for icons_dir in _search_paths:
+    loaded: dict[str, str] = {}
+
+    # Disk I/O outside lock
+    for icons_dir in search_paths:
         if not icons_dir.exists():
             continue
         for icon_path in icons_dir.glob("*.svg"):
             name = icon_path.stem
             if name not in seen:  # First match wins
                 try:
-                    _icon_cache[name] = icon_path.read_text(encoding="utf-8")
+                    loaded[name] = icon_path.read_text(encoding="utf-8")
                     seen.add(name)
                 except OSError:
                     pass
 
+    # Batch update cache under lock
+    with _icon_lock:
+        _icon_cache.update(loaded)
+
 
 def is_initialized() -> bool:
     """Check if resolver has been initialized with a Site."""
-    return _initialized
+    with _icon_lock:
+        return _initialized

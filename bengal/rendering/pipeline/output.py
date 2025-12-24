@@ -34,20 +34,22 @@ Related Modules:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from bengal.rendering.pipeline.thread_local import mark_dir_created
 from bengal.utils.logger import get_logger
 from bengal.utils.url_strategy import URLStrategy
 
 if TYPE_CHECKING:
+    from bengal.cache import DependencyTracker
     from bengal.core.output import OutputCollector
     from bengal.core.page import Page
+    from bengal.core.site import Site
 
 logger = get_logger(__name__)
 
 
-def determine_output_path(page: Page, site: Any) -> Path:
+def determine_output_path(page: Page, site: Site) -> Path:
     """
     Determine the output path for a page.
 
@@ -102,8 +104,8 @@ def determine_template(page: Page) -> str:
 
 def write_output(
     page: Page,
-    site: Any,
-    dependency_tracker: Any = None,
+    site: Site,
+    dependency_tracker: DependencyTracker | None = None,
     collector: OutputCollector | None = None,
 ) -> None:
     """
@@ -187,7 +189,7 @@ def write_output(
         collector.record(page.output_path, OutputType.HTML, phase="render")
 
 
-def format_html(html: str, page: Page, site: Any) -> str:
+def format_html(html: str, page: Page, site: Site) -> str:
     """
     Format HTML output (minify/pretty).
 

@@ -37,6 +37,9 @@ def mock_site(tmp_path):
     site.assets = []
     site.regular_pages = site.pages
     site.generated_pages = []
+    # page_by_source_path is a dict property built from site.pages
+    # The real implementation is a cached property on PageCachesMixin
+    site.page_by_source_path = {p.source_path: p for p in site.pages}
     return site
 
 

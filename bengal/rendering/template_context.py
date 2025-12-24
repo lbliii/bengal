@@ -23,7 +23,12 @@ See Also:
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from bengal.core.page import Page
+    from bengal.core.section import Section
+    from bengal.core.site import Site
 
 
 class TemplatePageWrapper:
@@ -60,7 +65,7 @@ class TemplatePageWrapper:
         wrapped.title  # Delegates to page.title
     """
 
-    def __init__(self, page: Any, baseurl: str = ""):
+    def __init__(self, page: Page, baseurl: str = ""):
         """
         Initialize wrapper.
 
@@ -68,7 +73,7 @@ class TemplatePageWrapper:
             page: Page object to wrap
             baseurl: Base URL from site config (can be empty, path-only, or absolute)
         """
-        self._page = page
+        self._page: Page = page
         self._baseurl = (baseurl or "").rstrip("/")
 
     @property
@@ -146,7 +151,7 @@ class TemplateSectionWrapper:
         wrapped.pages  # Returns wrapped pages with baseurl
     """
 
-    def __init__(self, section: Any, baseurl: str = ""):
+    def __init__(self, section: Section, baseurl: str = ""):
         """
         Initialize wrapper.
 
@@ -154,7 +159,7 @@ class TemplateSectionWrapper:
             section: Section object to wrap
             baseurl: Base URL from site config
         """
-        self._section = section
+        self._section: Section = section
         self._baseurl = (baseurl or "").rstrip("/")
 
     @property
@@ -207,11 +212,12 @@ class TemplateSectionWrapper:
         return [wrap_for_template(s, self._baseurl) for s in self._section.sorted_subsections]
 
     @property
-    def index_page(self) -> Any:
+    def index_page(self) -> TemplatePageWrapper | None:
         """Return wrapped index page."""
         if not hasattr(self._section, "index_page") or self._section.index_page is None:
             return None
-        return wrap_for_template(self._section.index_page, self._baseurl)
+        wrapped = wrap_for_template(self._section.index_page, self._baseurl)
+        return wrapped if isinstance(wrapped, TemplatePageWrapper) else None
 
     def __getattr__(self, name: str) -> Any:
         """Delegate all other attributes to wrapped section."""
@@ -245,7 +251,7 @@ class TemplateSiteWrapper:
         "_regular_pages_cache_len",
     )
 
-    def __init__(self, site: Any, baseurl: str = ""):
+    def __init__(self, site: Site, baseurl: str = ""):
         """
         Initialize wrapper.
 
@@ -253,7 +259,7 @@ class TemplateSiteWrapper:
             site: Site object to wrap
             baseurl: Base URL from site config
         """
-        self._site = site
+        self._site: Site = site
         self._baseurl = baseurl
         # PERF: Caches for wrapped lists (avoids O(n) list creation on each access)
         self._pages_cache: list[TemplatePageWrapper] | None = None
@@ -299,7 +305,9 @@ class TemplateSiteWrapper:
         return getattr(self._site, name)
 
 
-def wrap_for_template(obj: Any, baseurl: str = "") -> Any:
+def wrap_for_template(
+    obj: Page | Section | Site | object | None, baseurl: str = ""
+) -> TemplatePageWrapper | TemplateSectionWrapper | TemplateSiteWrapper | object | None:
     """
     Wrap Page or Section objects for template context.
 

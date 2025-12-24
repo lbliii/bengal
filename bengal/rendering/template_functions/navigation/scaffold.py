@@ -33,6 +33,9 @@ from bengal.core.nav_tree import NavTreeCache
 from bengal.utils.concurrent_locks import PerKeyLockManager
 
 if TYPE_CHECKING:
+    from jinja2 import Environment
+
+    from bengal.core.nav_tree import NavTree, NavTreeNode
     from bengal.core.page import Page
     from bengal.core.section import Section
     from bengal.core.site import Site
@@ -92,7 +95,7 @@ class NavScaffoldCache:
         site: Site,
         version_id: str | None,
         root_url: str,
-        renderer: Any,
+        renderer: object,
     ) -> str:
         """
         Get cached scaffold HTML or render and cache it.
@@ -183,7 +186,7 @@ class ScaffoldNodeProxy:
 
     __slots__ = ("_node", "_context", "_href_cached", "_children_cached")
 
-    def __init__(self, node: Any, context: Any) -> None:
+    def __init__(self, node: NavTreeNode, context: ScaffoldContext) -> None:
         self._node = node
         self._context = context
         self._href_cached: str | None = None
@@ -299,7 +302,7 @@ class ScaffoldContext:
     producing static HTML that can be cached and reused.
     """
 
-    def __init__(self, tree: Any, page: Any, root_node: Any = None):
+    def __init__(self, tree: NavTree, page: Page, root_node: NavTreeNode | None = None):
         self.tree = tree
         self.page = page
         self._root_node = root_node or tree.root
@@ -314,7 +317,7 @@ class ScaffoldContext:
             return self._wrap_node(self._root_node)
         return getattr(self.tree, key)
 
-    def _wrap_node(self, node: Any) -> ScaffoldNodeProxy:
+    def _wrap_node(self, node: NavTreeNode) -> ScaffoldNodeProxy:
         return ScaffoldNodeProxy(node, self)
 
 
@@ -388,7 +391,7 @@ def get_active_trail(page: Page) -> list[str]:
 def render_scaffold_html(
     page: Page,
     root_section: Section | None = None,
-    jinja_env: Any = None,
+    jinja_env: Environment | None = None,
 ) -> str:
     """
     Render scaffold HTML for a scope (internal helper).
@@ -429,7 +432,7 @@ def render_scaffold_html(
 def get_cached_scaffold_html(
     page: Page,
     root_section: Section | None = None,
-    jinja_env: Any = None,
+    jinja_env: Environment | None = None,
 ) -> str:
     """
     Get cached scaffold HTML for a scope.

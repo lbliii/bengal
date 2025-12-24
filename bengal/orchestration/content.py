@@ -41,12 +41,17 @@ See Also:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
+    from bengal.autodoc.orchestration.result import AutodocRunResult
+    from bengal.cache.build_cache import BuildCache
+    from bengal.core.asset import Asset
+    from bengal.core.page import Page
     from bengal.core.site import Site
+    from bengal.discovery.content_discovery import DiscoveryCache
     from bengal.utils.build_context import BuildContext
 
 logger = get_logger(__name__)
@@ -75,9 +80,9 @@ class ContentOrchestrator:
     def discover(
         self,
         incremental: bool = False,
-        cache: Any | None = None,
+        cache: DiscoveryCache | None = None,
         build_context: BuildContext | None = None,
-        build_cache: Any | None = None,
+        build_cache: BuildCache | None = None,
     ) -> None:
         """
         Discover all content and assets.
@@ -105,9 +110,9 @@ class ContentOrchestrator:
         self,
         content_dir: Path | None = None,
         incremental: bool = False,
-        cache: Any | None = None,
+        cache: DiscoveryCache | None = None,
         build_context: BuildContext | None = None,
-        build_cache: Any | None = None,
+        build_cache: BuildCache | None = None,
     ) -> None:
         """
         Discover all content (pages, sections) in the content directory.
@@ -267,7 +272,9 @@ class ContentOrchestrator:
         # This is ephemeral, per-build-only state.
         self.site._discovery_breakdown_ms = breakdown_ms
 
-    def _discover_autodoc_content(self, cache: Any | None = None) -> tuple[list[Any], list[Any]]:
+    def _discover_autodoc_content(
+        self, cache: DiscoveryCache | None = None
+    ) -> tuple[list[Page], list[Asset]]:
         """
         Generate virtual autodoc pages if enabled.
 
@@ -427,7 +434,7 @@ class ContentOrchestrator:
         # Note: Other exceptions (e.g., RuntimeError from strict mode) propagate
         # to allow strict mode enforcement. Non-strict failures are logged in summary.
 
-    def _log_autodoc_summary(self, result: Any) -> None:
+    def _log_autodoc_summary(self, result: AutodocRunResult) -> None:
         """
         Log a summary of autodoc run results.
 

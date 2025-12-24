@@ -29,11 +29,14 @@ from __future__ import annotations
 import re
 from abc import abstractmethod
 from dataclasses import dataclass
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
 from bengal.directives.base import BengalDirective
 from bengal.directives.options import DirectiveOptions
 from bengal.directives.tokens import DirectiveToken
+
+if TYPE_CHECKING:
+    from bengal.directives.types import DirectiveRenderer, MistuneBlockState
 
 __all__ = [
     "VideoDirective",
@@ -254,8 +257,8 @@ class YouTubeDirective(VideoDirective):
         title: str,
         options: YouTubeOptions,  # type: ignore[override]
         content: str,
-        children: list[Any],
-        state: Any,
+        children: list[dict[str, object]],
+        state: MistuneBlockState,
     ) -> DirectiveToken:
         """Build YouTube embed token."""
         video_id = title.strip()
@@ -291,7 +294,7 @@ class YouTubeDirective(VideoDirective):
             },
         )
 
-    def render(self, renderer: Any, text: str, **attrs: Any) -> str:
+    def render(self, renderer: DirectiveRenderer, text: str, **attrs: object) -> str:
         """Render YouTube embed to HTML."""
         error = attrs.get("error")
         if error:
@@ -438,8 +441,8 @@ class VimeoDirective(VideoDirective):
         title: str,
         options: VimeoOptions,  # type: ignore[override]
         content: str,
-        children: list[Any],
-        state: Any,
+        children: list[dict[str, object]],
+        state: MistuneBlockState,
     ) -> DirectiveToken:
         """Build Vimeo embed token."""
         video_id = title.strip()
@@ -474,7 +477,7 @@ class VimeoDirective(VideoDirective):
             },
         )
 
-    def render(self, renderer: Any, text: str, **attrs: Any) -> str:
+    def render(self, renderer: DirectiveRenderer, text: str, **attrs: object) -> str:
         """Render Vimeo embed to HTML."""
         error = attrs.get("error")
         if error:
@@ -636,8 +639,8 @@ class SelfHostedVideoDirective(VideoDirective):
         title: str,
         options: SelfHostedVideoOptions,  # type: ignore[override]
         content: str,
-        children: list[Any],
-        state: Any,
+        children: list[dict[str, object]],
+        state: MistuneBlockState,
     ) -> DirectiveToken:
         """Build self-hosted video token."""
         video_path = title.strip()
@@ -678,7 +681,7 @@ class SelfHostedVideoDirective(VideoDirective):
             },
         )
 
-    def render(self, renderer: Any, text: str, **attrs: Any) -> str:
+    def render(self, renderer: DirectiveRenderer, text: str, **attrs: object) -> str:
         """Render self-hosted video to HTML."""
         error = attrs.get("error")
         if error:
@@ -828,8 +831,8 @@ class TikTokDirective(VideoDirective):
         title: str,
         options: TikTokOptions,  # type: ignore[override]
         content: str,
-        children: list[Any],
-        state: Any,
+        children: list[dict[str, object]],
+        state: MistuneBlockState,
     ) -> DirectiveToken:
         """Build TikTok embed token."""
         video_id = title.strip()
@@ -864,7 +867,7 @@ class TikTokDirective(VideoDirective):
             },
         )
 
-    def render(self, renderer: Any, text: str, **attrs: Any) -> str:
+    def render(self, renderer: DirectiveRenderer, text: str, **attrs: object) -> str:
         """Render TikTok embed to HTML."""
         error = attrs.get("error")
         if error:

@@ -20,7 +20,7 @@ from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
-    from bengal.rendering.engines.base import TemplateEngine
+    from bengal.rendering.engines.protocol import TemplateEngine
     from bengal.rendering.renderer import Renderer
 
 logger = get_logger(__name__)

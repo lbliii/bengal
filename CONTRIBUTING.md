@@ -200,8 +200,48 @@ raise BengalError(
 5. Commit with descriptive messages
 6. Push and create a PR
 
+## Thread Safety
+
+Bengal supports Python 3.14 free-threading. When working with shared state:
+
+### Checklist for Global State
+
+- [ ] **Protected?** Does the global use a lock?
+- [ ] **Lock type?** Use `Lock()` by default, `RLock()` for nested calls
+- [ ] **Lock order?** Follow documented order in `THREAD_SAFETY.md`
+- [ ] **I/O outside lock?** Move expensive operations outside lock scope
+- [ ] **Tests?** Add concurrent access tests to `tests/test_thread_safety.py`
+
+### Quick Patterns
+
+```python
+# Simple cache protection
+_cache: dict[str, Any] = {}
+_lock = threading.Lock()
+
+def get_cached(key: str) -> Any | None:
+    with _lock:
+        return _cache.get(key)
+
+# Double-check locking for lazy initialization
+_value: Any | None = None
+_lock = threading.Lock()
+
+def get_value() -> Any:
+    if _value is not None:  # Fast path
+        return _value
+    with _lock:
+        if _value is not None:  # Double-check
+            return _value
+        _value = compute_once()
+        return _value
+```
+
+See **[Thread Safety Guide](THREAD_SAFETY.md)** for full patterns and lock ordering.
+
 ## Resources
 
 - **[UV Quick Reference](UV_QUICK_REFERENCE.md)** — uv commands and troubleshooting
 - **[Type Checking Guide](TYPE_CHECKING_GUIDE.md)** — mypy patterns for Bengal
+- **[Thread Safety Guide](THREAD_SAFETY.md)** — Concurrency patterns and lock ordering
 - **[Contributor Quickstart](site/content/docs/get-started/quickstart-contributor.md)** — Detailed setup guide

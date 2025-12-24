@@ -48,13 +48,22 @@ See Also:
 
 from __future__ import annotations
 
+import logging
 from abc import abstractmethod
 from re import Match
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from mistune.directives import DirectivePlugin
 
 from bengal.utils.logger import get_logger
+
+if TYPE_CHECKING:
+    from bengal.directives.types import (
+        DirectiveRenderer,
+        MistuneBlockParser,
+        MistuneBlockState,
+        MistuneMarkdown,
+    )
 
 # Re-export commonly used items for convenience
 from .contracts import (  # noqa: F401
@@ -163,32 +172,56 @@ class BengalDirective(DirectivePlugin):
     # Priority constants for common cases
     PRIORITY_FIRST = 0  # Preprocessing (includes, macros)
     PRIORITY_EARLY = 50  # Before most directives
-    PRIORITY_NORMAL = 100  # Default
+    PRIORITY_NORMAL = 100  # Default priority
     PRIORITY_LATE = 150  # After most directives
     PRIORITY_LAST = 200  # Post-processing
+
+    # Class-level logger, initialized per subclass
+    _class_logger: ClassVar[logging.Logger | None] = None
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        """Initialize class-level logger when subclass is defined.
+
+        This optimization creates a logger once per directive class rather
+        than once per instance, saving ~20μs per directive instance creation.
+        """
+        super().__init_subclass__(**kwargs)
+        cls._class_logger = get_logger(cls.__module__)
 
     # -------------------------------------------------------------------------
     # Initialization
     # -------------------------------------------------------------------------
 
+    @property
+    def logger(self) -> logging.Logger:
+        """Instance property that returns the class-level logger.
+
+        This uses the class-level logger initialized in __init_subclass__,
+        avoiding repeated logger creation in __init__.
+        """
+        if self._class_logger is not None:
+            return self._class_logger
+        # Fallback for base class or edge cases
+        return get_logger(self.__class__.__module__)
+
     def __init__(self) -> None:
-        """Initialize the directive with a subclass-aware logger.
+        """Initialize the directive.
 
         Note:
-            This uses ``self.__class__.__module__`` rather than ``__name__``
-            so that logs are attributed to the concrete directive subclass
-            (e.g., ``bengal.directives.admonition``) instead of this base
-            module. This is intentional and documented in the codebase
-            consolidation RFC (plan-hardening-consolidation.md, Task 6.2).
+            Logger is now accessed via the logger property, which uses
+            the class-level logger created in __init_subclass__. This avoids
+            creating a new logger instance for each directive instance.
         """
         super().__init__()
-        self.logger = get_logger(self.__class__.__module__)
+        # No logger creation here - uses class-level logger via property
 
     # -------------------------------------------------------------------------
     # Parse Flow with Contract Validation
     # -------------------------------------------------------------------------
 
-    def parse(self, block: Any, m: Match[str], state: Any) -> dict[str, Any]:
+    def parse(
+        self, block: MistuneBlockParser, m: Match[str], state: MistuneBlockState
+    ) -> dict[str, Any]:
         """Parse directive content with automatic contract validation.
 
         This method implements the standard parse flow:
@@ -217,8 +250,19 @@ class BengalDirective(DirectivePlugin):
         location = self._get_source_location(state)
 
         # STEP 1: Validate parent context BEFORE parsing
+        # Check validation mode from state.env (set by build orchestrator)
+        # Skip validation in production mode unless explicitly enabled
+        env = getattr(state, "env", {}) or {}
+        validate_contracts = env.get("validate_contracts", True)
+
         # Only validate if we know the source file (skip examples/secondary parsing)
-        if self.CONTRACT and self.CONTRACT.has_parent_requirement and location:
+        # and if validation is enabled
+        if (
+            validate_contracts
+            and self.CONTRACT
+            and self.CONTRACT.has_parent_requirement
+            and location
+        ):
             parent_type = self._get_parent_directive_type(state)
             violations = ContractValidator.validate_parent(
                 self.CONTRACT, self.TOKEN_TYPE, parent_type, location
@@ -244,7 +288,8 @@ class BengalDirective(DirectivePlugin):
         options = self.OPTIONS_CLASS.from_raw(raw_options)
 
         # STEP 3: Validate children AFTER parsing
-        if self.CONTRACT and self.CONTRACT.has_child_requirement:
+        # Use same validation mode check as parent validation
+        if validate_contracts and self.CONTRACT and self.CONTRACT.has_child_requirement:
             # Convert children to list of dicts for validation
             child_dicts = [c if isinstance(c, dict) else {"type": "unknown"} for c in children]
             violations = ContractValidator.validate_children(
@@ -261,7 +306,7 @@ class BengalDirective(DirectivePlugin):
             return token.to_dict()
         return token
 
-    def _get_parent_directive_type(self, state: Any) -> str | None:
+    def _get_parent_directive_type(self, state: MistuneBlockState) -> str | None:
         """Extract the parent directive type from parser state.
 
         Used by contract validation to verify ``requires_parent`` constraints.
@@ -287,7 +332,7 @@ class BengalDirective(DirectivePlugin):
 
         return None
 
-    def _push_directive_stack(self, state: Any, directive_type: str) -> None:
+    def _push_directive_stack(self, state: MistuneBlockState, directive_type: str) -> None:
         """Push the current directive onto the nesting stack.
 
         Called before parsing nested content so child directives can validate
@@ -311,7 +356,7 @@ class BengalDirective(DirectivePlugin):
                 env["directive_stack"] = []
             env["directive_stack"].append(directive_type)
 
-    def _pop_directive_stack(self, state: Any) -> None:
+    def _pop_directive_stack(self, state: MistuneBlockState) -> None:
         """Pop the current directive from the nesting stack.
 
         Called after parsing nested content to restore the previous context.
@@ -325,7 +370,7 @@ class BengalDirective(DirectivePlugin):
             if stack:
                 stack.pop()
 
-    def _get_source_location(self, state: Any) -> str | None:
+    def _get_source_location(self, state: MistuneBlockState) -> str | None:
         """Extract the source file path from parser state.
 
         Used for error messages and logging to help locate issues in content.
@@ -354,8 +399,8 @@ class BengalDirective(DirectivePlugin):
         title: str,
         options: DirectiveOptions,
         content: str,
-        children: list[Any],
-        state: Any,
+        children: list[dict[str, object]],
+        state: MistuneBlockState,
     ) -> DirectiveToken | dict[str, Any]:
         """Build the AST token from parsed components.
 
@@ -385,7 +430,7 @@ class BengalDirective(DirectivePlugin):
         ...
 
     @abstractmethod
-    def render(self, renderer: Any, text: str, **attrs: Any) -> str:
+    def render(self, renderer: DirectiveRenderer, text: str, **attrs: Any) -> str:
         """Render the directive token to HTML.
 
         Override this method to produce the final HTML output for the directive.
@@ -412,7 +457,7 @@ class BengalDirective(DirectivePlugin):
     # Registration
     # -------------------------------------------------------------------------
 
-    def __call__(self, directive: Any, md: Any) -> None:
+    def __call__(self, directive: object, md: MistuneMarkdown) -> None:
         """Register directive names and the renderer with Mistune.
 
         Called when the directive is added to a Mistune markdown instance.

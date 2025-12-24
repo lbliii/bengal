@@ -20,6 +20,9 @@ def mock_site(tmp_path):
     site.output_dir = tmp_path / "public"
     site.pages = []
     site.sections = []
+    # page_by_source_path is a dict property built from site.pages
+    # The real implementation is a cached property on PageCachesMixin
+    site.page_by_source_path = {}
     return site
 
 
@@ -63,6 +66,8 @@ class TestCascadeRebuilds:
 
         mock_site.pages = [index_page, child1, child2]
         mock_site.sections = [section]
+        # Update page_by_source_path cache (mirrors PageCachesMixin behavior)
+        mock_site.page_by_source_path = {p.source_path: p for p in mock_site.pages}
 
         # Prepare inputs
         pages_to_rebuild = {index_page.source_path}
@@ -106,6 +111,8 @@ class TestCascadeRebuilds:
 
         mock_site.pages = [index_page, child]
         mock_site.sections = [section]
+        # Update page_by_source_path cache (mirrors PageCachesMixin behavior)
+        mock_site.page_by_source_path = {p.source_path: p for p in mock_site.pages}
 
         pages_to_rebuild = {index_page.source_path}
         change_summary = ChangeSummary()
@@ -143,6 +150,8 @@ class TestAdjacentNavigationRebuilds:
         page1.next = page2
 
         mock_site.pages = [page1, page2]
+        # Update page_by_source_path cache (mirrors PageCachesMixin behavior)
+        mock_site.page_by_source_path = {p.source_path: p for p in mock_site.pages}
 
         # page2 changed
         pages_to_rebuild = {page2.source_path}
@@ -178,6 +187,8 @@ class TestAdjacentNavigationRebuilds:
         page2.prev = page1
 
         mock_site.pages = [page1, page2]
+        # Update page_by_source_path cache (mirrors PageCachesMixin behavior)
+        mock_site.page_by_source_path = {p.source_path: p for p in mock_site.pages}
 
         # page1 changed
         pages_to_rebuild = {page1.source_path}
@@ -209,6 +220,8 @@ class TestAdjacentNavigationRebuilds:
 
         page1.next = generated
         mock_site.pages = [page1, generated]
+        # Update page_by_source_path cache (mirrors PageCachesMixin behavior)
+        mock_site.page_by_source_path = {p.source_path: p for p in mock_site.pages}
 
         pages_to_rebuild = {page1.source_path}
         change_summary = ChangeSummary()

@@ -31,14 +31,17 @@ from __future__ import annotations
 import re
 from datetime import UTC, datetime
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, Protocol, cast
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Protocol, cast, runtime_checkable
 
 if TYPE_CHECKING:
     from bengal.core.author import Author
+    from bengal.core.page.frontmatter import Frontmatter
     from bengal.core.series import Series
     from bengal.core.site import Site
 
 
+@runtime_checkable
 class HasMetadata(Protocol):
     """Protocol for objects that have metadata and content attributes."""
 
@@ -46,18 +49,80 @@ class HasMetadata(Protocol):
     content: str
 
 
+@runtime_checkable
 class HasDate(Protocol):
     """Protocol for objects that have a date attribute."""
 
     date: datetime | None
 
 
+@runtime_checkable
 class HasSiteAndMetadata(Protocol):
     """Protocol for objects with site reference and metadata."""
 
     metadata: dict[str, Any]
     _site: Site | None
-    source_path: Any  # Path
+    source_path: Path
+
+
+@runtime_checkable
+class PageLike(Protocol):
+    """
+    Protocol for page-like objects.
+
+    Provides a unified interface for objects that can be treated as pages
+    in templates, navigation, and rendering. This enables type-safe access
+    to page properties without depending on the concrete Page class.
+
+    Use Cases:
+        - Template rendering: Functions accept PageLike for flexibility
+        - Navigation building: Menu items work with any PageLike
+        - Testing: Create minimal page-like objects for unit tests
+
+    Example:
+        >>> def render_page(page: PageLike) -> str:
+        ...     return f"<h1>{page.title}</h1>{page.content}"
+    """
+
+    @property
+    def title(self) -> str:
+        """Page title from frontmatter or filename."""
+        ...
+
+    @property
+    def href(self) -> str:
+        """URL path to the page (e.g., '/docs/guide/')."""
+        ...
+
+    @property
+    def content(self) -> str:
+        """Rendered HTML content."""
+        ...
+
+    @property
+    def frontmatter(self) -> Frontmatter:
+        """Page frontmatter object."""
+        ...
+
+    @property
+    def date(self) -> datetime | None:
+        """Publication date, if set."""
+        ...
+
+    @property
+    def draft(self) -> bool:
+        """Whether this is a draft page."""
+        ...
+
+    @property
+    def weight(self) -> int:
+        """Sort weight for ordering."""
+        ...
+
+    @property
+    def source_path(self) -> Path:
+        """Path to source file."""
+        ...
 
 
 class PageComputedMixin:

@@ -34,7 +34,11 @@ Related Packages:
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from bengal.core.page import Page
+    from bengal.core.section import Section
 
 
 class CascadeEngine:
@@ -88,7 +92,7 @@ class CascadeEngine:
             pages.update(section.get_all_pages(recursive=True))
         return pages
 
-    def is_top_level_page(self, page: Any) -> bool:
+    def is_top_level_page(self, page: Page) -> bool:
         """
         Check if a page is top-level (not in any section).
 
@@ -154,7 +158,7 @@ class CascadeEngine:
 
     def _apply_section_cascade(
         self,
-        section: Any,
+        section: Section,
         parent_cascade: dict[str, Any] | None = None,
         stats: dict[str, Any] | None = None,
     ) -> None:

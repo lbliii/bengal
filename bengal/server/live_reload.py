@@ -625,6 +625,8 @@ def set_reload_action(action: str) -> None:
     Updates the global action that will be sent with the next reload event.
     Used by ReloadController to specify CSS-only vs full page reload.
 
+    Thread-safe: Protected by _reload_condition for safe concurrent access.
+
     Args:
         action: One of:
             - 'reload': Full page reload (default)
@@ -635,8 +637,9 @@ def set_reload_action(action: str) -> None:
     global _last_action
     if action not in ("reload", "reload-css", "reload-page"):
         action = "reload"
-    _last_action = action
-    logger.debug("reload_action_set", action=_last_action)
+    with _reload_condition:
+        _last_action = action
+    logger.debug("reload_action_set", action=action)
 
 
 def inject_live_reload_into_response(response: bytes) -> bytes:

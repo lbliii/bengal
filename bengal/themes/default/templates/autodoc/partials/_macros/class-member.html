@@ -78,10 +78,10 @@ Args:
         <tbody>
           {% for attr in all_attrs %}
           {# Attributes are DocElements with name, description, and metadata.annotation #}
-          {% set attr_type = attr.metadata.annotation if attr.metadata else '' %}
+          {% set attr_type = attr.metadata.annotation if attr.metadata and attr.metadata.annotation else none %}
           <tr>
             <td class="autodoc-cell-name"><code>{{ attr.name }}</code></td>
-            <td class="autodoc-cell-type"><code>{{ attr_type }}</code></td>
+            <td class="autodoc-cell-type">{% if attr_type %}<code>{{ attr_type }}</code>{% else %}—{% endif %}</td>
             <td class="autodoc-cell-desc">{{ attr.description | markdownify | safe }}</td>
           </tr>
           {% endfor %}

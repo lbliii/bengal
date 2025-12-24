@@ -371,18 +371,18 @@ class AutoFixer:
                 # Parse directive hierarchy
                 directives = self._parse_directive_hierarchy(lines)
 
+                # Build O(1) lookup index for parent chain traversal
+                # Optimization: O(D) build, then O(1) lookups instead of O(D) per lookup
+                directive_by_line: dict[int, dict[str, Any]] = {d["line"]: d for d in directives}
+
                 # Find all directives that need fixing (those at reported line numbers or their parents/children)
-                directives_to_fix = set()
+                directives_to_fix: set[int] = set()
                 baseline_depth = 3
 
                 # For each reported line number, find the directive and mark it + all its hierarchy for fixing
                 for line_num in line_numbers:
-                    # Find directive at this line (or corresponding opening fence)
-                    target_directive = None
-                    for directive in directives:
-                        if directive["line"] == line_num:
-                            target_directive = directive
-                            break
+                    # O(1) lookup instead of O(D) linear search
+                    target_directive = directive_by_line.get(line_num)
 
                     # If not found, might be a closing fence - find corresponding opening
                     if not target_directive and line_num <= len(lines):
@@ -414,18 +414,18 @@ class AutoFixer:
                     # Mark this directive and all its ancestors and descendants for fixing
                     directives_to_fix.add(target_directive["line"])
 
-                    # Add ancestors
+                    # Add ancestors - O(1) lookups via dict
                     current = target_directive
                     while current.get("parent"):
                         parent_line = current["parent"]
-                        parent = next((d for d in directives if d["line"] == parent_line), None)
+                        parent = directive_by_line.get(parent_line)
                         if parent:
                             directives_to_fix.add(parent["line"])
                             current = parent
                         else:
                             break
 
-                    # Add descendants (children, grandchildren, etc.)
+                    # Add descendants (children, grandchildren, etc.) - O(1) lookups via dict
                     for directive in directives:
                         current = directive
                         while current.get("parent"):
@@ -436,7 +436,7 @@ class AutoFixer:
                             ):
                                 directives_to_fix.add(directive["line"])
                                 break
-                            parent = next((d for d in directives if d["line"] == parent_line), None)
+                            parent = directive_by_line.get(parent_line)
                             if parent:
                                 current = parent
                             else:
@@ -445,14 +445,14 @@ class AutoFixer:
                 # Calculate required depths for all directives to fix
                 directives_list = [d for d in directives if d["line"] in directives_to_fix]
 
-                # Build hierarchy and calculate depths
+                # Build hierarchy and calculate depths - O(1) lookups via dict
                 for directive in directives_list:
                     # Find ancestors
                     ancestors = []
                     current = directive
                     while current.get("parent"):
                         parent_line = current["parent"]
-                        parent = next((d for d in directives if d["line"] == parent_line), None)
+                        parent = directive_by_line.get(parent_line)
                         if parent:
                             ancestors.append(parent)
                             current = parent
@@ -461,13 +461,17 @@ class AutoFixer:
 
                     # Find deepest nested descendant
                     descendants = [
-                        d for d in directives if self._is_descendant(d, directive, directives)
+                        d
+                        for d in directives
+                        if self._is_descendant(d, directive, directive_by_line)
                     ]
                     if descendants:
-                        deepest = max(descendants, key=lambda d: self._get_depth(d, directives))
+                        deepest = max(
+                            descendants, key=lambda d: self._get_depth(d, directive_by_line)
+                        )
                         depth_from_deepest = self._get_depth(
-                            directive, directives
-                        ) - self._get_depth(deepest, directives)
+                            directive, directive_by_line
+                        ) - self._get_depth(deepest, directive_by_line)
                         directive["required_depth"] = baseline_depth + abs(depth_from_deepest)
                     else:
                         # No descendants, use ancestor count
@@ -501,15 +505,18 @@ class AutoFixer:
         self,
         directive: dict[str, Any],
         ancestor: dict[str, Any],
-        all_directives: list[dict[str, Any]],
+        directive_by_line: dict[int, dict[str, Any]],
     ) -> bool:
         """
         Check if directive is a descendant of ancestor in the hierarchy.
 
+        Optimized: Uses dict lookup for O(1) parent access instead of O(D) linear search.
+        Total complexity: O(H) where H = hierarchy depth, instead of O(D × H).
+
         Args:
             directive: Candidate descendant directive dict.
             ancestor: Potential ancestor directive dict.
-            all_directives: Complete list of parsed directives.
+            directive_by_line: Dict mapping line numbers to directive dicts for O(1) lookup.
 
         Returns:
             True if directive is nested within ancestor.
@@ -518,18 +525,24 @@ class AutoFixer:
         while current and current.get("parent"):
             if current["parent"] == ancestor["line"]:
                 return True
-            current = next((d for d in all_directives if d["line"] == current["parent"]), None)
+            # O(1) lookup instead of O(D) linear search
+            current = directive_by_line.get(current["parent"])
             if not current:
                 break
         return False
 
-    def _get_depth(self, directive: dict[str, Any], all_directives: list[dict[str, Any]]) -> int:
+    def _get_depth(
+        self, directive: dict[str, Any], directive_by_line: dict[int, dict[str, Any]]
+    ) -> int:
         """
         Get nesting depth of a directive in the hierarchy.
 
+        Optimized: Uses dict lookup for O(1) parent access instead of O(D) linear search.
+        Total complexity: O(H) where H = hierarchy depth, instead of O(D × H).
+
         Args:
             directive: Directive dict to measure.
-            all_directives: Complete list of parsed directives.
+            directive_by_line: Dict mapping line numbers to directive dicts for O(1) lookup.
 
         Returns:
             Nesting depth (0=root level, 1=child of root, etc.).
@@ -538,7 +551,8 @@ class AutoFixer:
         current: dict[str, Any] | None = directive
         while current and current.get("parent"):
             depth += 1
-            current = next((d for d in all_directives if d["line"] == current["parent"]), None)
+            # O(1) lookup instead of O(D) linear search
+            current = directive_by_line.get(current["parent"])
             if not current:
                 break
         return depth
@@ -577,6 +591,10 @@ class AutoFixer:
 
                 # Step 1: Build directive hierarchy
                 directives = self._parse_directive_hierarchy(lines)
+
+                # Build O(1) lookup index for parent traversal
+                # Optimization: O(D) build + O(1) lookups vs O(D) per lookup
+                directive_by_line: dict[int, dict[str, Any]] = {d["line"]: d for d in directives}
 
                 # Step 2: Find the directive at line_number and its ancestors
                 # Handle case where line_number might be a closing fence instead of opening fence
@@ -617,11 +635,12 @@ class AutoFixer:
 
                 # Step 3: Build ancestor chain (parent -> grandparent -> ...)
                 # Build from child to root (deepest first)
+                # Uses O(1) dict lookup instead of O(D) linear search
                 ancestors = []
                 current = target_directive
                 while current.get("parent"):
                     parent_line = current["parent"]
-                    parent = next((d for d in directives if d["line"] == parent_line), None)
+                    parent = directive_by_line.get(parent_line)
                     if parent:
                         ancestors.append(parent)
                         current = parent
@@ -651,13 +670,14 @@ class AutoFixer:
                     found_target = False
 
                     # Walk up the parent chain to see if target_directive is an ancestor
+                    # Uses O(1) dict lookup instead of O(D) linear search
                     while current.get("parent"):
                         parent_line = current["parent"]
                         if parent_line == target_directive["line"]:
                             # This directive is a direct child of target_directive
                             found_target = True
                             break
-                        parent = next((d for d in directives if d["line"] == parent_line), None)
+                        parent = directive_by_line.get(parent_line)
                         if parent:
                             depth_from_target += 1
                             current = parent

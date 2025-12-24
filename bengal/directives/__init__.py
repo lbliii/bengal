@@ -151,6 +151,7 @@ def _get_directive_classes() -> list[type]:
 __all__ = [
     # Factory function for Mistune plugin (lazy-loaded)
     "create_documentation_directives",
+    "reset_directive_instances",  # For testing only
     # Registry API
     "DIRECTIVE_CLASSES",
     "KNOWN_DIRECTIVE_NAMES",
@@ -194,6 +195,26 @@ __all__ = [
 
 # Lazy loading for create_documentation_directives to avoid circular imports
 _factory_func: Callable[[], Callable[[Any], None]] | None = None
+
+
+def reset_directive_instances() -> None:
+    """Reset singleton directive instances (for testing only).
+
+    This function is intended for use in tests to ensure clean state
+    between test runs. It should not be called in production code.
+
+    Example:
+        ::
+
+            from bengal.directives import reset_directive_instances
+
+            def test_something():
+                reset_directive_instances()  # Clear cache
+                # ... test code ...
+    """
+    from bengal.directives.factory import reset_directive_instances as _reset
+
+    _reset()
 
 
 def create_documentation_directives() -> Callable[[Any], None]:

@@ -28,9 +28,15 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from bengal.core.page import Page
+
+if TYPE_CHECKING:
+    from bengal.cache import DependencyTracker
+    from bengal.core.site import Site
+    from bengal.orchestration.stats import BuildStats
+    from bengal.utils.build_context import BuildContext
 from bengal.rendering.engines import create_engine
 from bengal.rendering.pipeline.autodoc_renderer import AutodocRenderer
 from bengal.rendering.pipeline.cache_checker import CacheChecker
@@ -44,10 +50,10 @@ from bengal.rendering.pipeline.output import (
 from bengal.rendering.pipeline.thread_local import get_thread_parser
 from bengal.rendering.pipeline.toc import TOC_EXTRACTION_VERSION
 from bengal.rendering.pipeline.transforms import (
-    escape_jinja_blocks,
     escape_template_syntax_in_html,
-    normalize_markdown_links,
-    transform_internal_links,
+)
+from bengal.rendering.pipeline.unified_transform import (
+    HybridHTMLTransformer,
 )
 from bengal.rendering.renderer import Renderer
 from bengal.utils.logger import get_logger, truncate_error
@@ -100,11 +106,11 @@ class RenderingPipeline:
 
     def __init__(
         self,
-        site: Any,
-        dependency_tracker: Any = None,
+        site: Site,
+        dependency_tracker: DependencyTracker | None = None,
         quiet: bool = False,
-        build_stats: Any = None,
-        build_context: Any | None = None,
+        build_stats: BuildStats | None = None,
+        build_context: BuildContext | None = None,
         changed_sources: set[Path] | None = None,
     ) -> None:
         """
@@ -198,6 +204,10 @@ class RenderingPipeline:
             dependency_tracker=dependency_tracker,
             output_collector=self._output_collector,
         )
+
+        # PERF: Unified HTML transformer (RFC: rfc-rendering-package-optimizations)
+        # Single instance reused across all pages, ~27% faster than separate transforms
+        self._html_transformer = HybridHTMLTransformer(baseurl=site.config.get("baseurl", ""))
 
         # Cache per-pipeline helpers (one pipeline per worker thread).
         # These are safe to reuse and avoid per-page import/initialization overhead.
@@ -304,14 +314,10 @@ class RenderingPipeline:
         else:
             self._parse_with_legacy(page, need_toc)
 
-        # Additional hardening: escape Jinja2 blocks
-        page.parsed_ast = escape_jinja_blocks(page.parsed_ast or "")
-
-        # Normalize .md links to clean URLs (./page.md -> ./page/)
-        page.parsed_ast = normalize_markdown_links(page.parsed_ast)
-
-        # Transform internal links (add baseurl prefix)
-        page.parsed_ast = transform_internal_links(page.parsed_ast, self.site.config)
+        # PERF: Unified HTML transformation (~27% faster than separate passes)
+        # Handles: Jinja block escaping, .md link normalization, baseurl prefixing
+        # RFC: rfc-rendering-package-optimizations.md
+        page.parsed_ast = self._html_transformer.transform(page.parsed_ast or "")
 
         # Pre-compute plain_text cache
         _ = page.plain_text

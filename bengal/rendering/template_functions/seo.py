@@ -15,11 +15,12 @@ Extended for social cards:
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from jinja2 import Environment
 
+    from bengal.core.page import Page
     from bengal.core.site import Site
 
 
@@ -35,13 +36,13 @@ def register(env: Environment, site: Site) -> None:
     base_url = site.config.get("baseurl", "")
 
     # Create closures that have access to site
-    def canonical_url_with_site(path: str, page: Any | None = None) -> str:
+    def canonical_url_with_site(path: str, page: Page | None = None) -> str:
         return canonical_url(path, base_url, site, page)
 
-    def og_image_with_site(image_path: str, page: Any | None = None) -> str:
+    def og_image_with_site(image_path: str, page: Page | None = None) -> str:
         return og_image(image_path, base_url, page, social_config)
 
-    def get_social_card_url_with_site(page: Any | None = None) -> str:
+    def get_social_card_url_with_site(page: Page | None = None) -> str:
         """Get URL to generated social card for a page."""
         if page is None:
             return ""
@@ -139,8 +140,8 @@ def meta_keywords(tags: list[str], max_count: int = 10) -> str:
 def canonical_url(
     path: str,
     base_url: str,
-    site: Any | None = None,
-    page: Any | None = None,
+    site: Site | None = None,
+    page: Page | None = None,
 ) -> str:
     """
     Generate canonical URL for SEO.
@@ -200,8 +201,8 @@ def canonical_url(
 def og_image(
     image_path: str,
     base_url: str,
-    page: Any | None = None,
-    social_config: Any | None = None,
+    page: Page | None = None,
+    social_config: object | None = None,
 ) -> str:
     """
     Generate Open Graph image URL.
