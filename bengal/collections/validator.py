@@ -116,11 +116,12 @@ class SchemaValidator:
         - ``int``, ``float``, ``str``: Standard Python coercion
         - ``list[T]``: Validates each item against type ``T``
         - ``Optional[T]``: Accepts ``None`` or validates against ``T``
-        - Nested dataclasses: Validates recursively
+        - Nested dataclasses: Validates recursively (up to ``max_depth`` levels)
 
     Attributes:
         schema: The schema class being validated against.
         strict: Whether unknown fields raise errors.
+        max_depth: Maximum nesting depth for recursive validation.
 
     Example:
         >>> from dataclasses import dataclass
@@ -153,7 +154,15 @@ class SchemaValidator:
         'unknown'
     """
 
-    def __init__(self, schema: type, strict: bool = True) -> None:
+    MAX_RECURSION_DEPTH = 10
+    """Default maximum nesting depth for recursive dataclass validation."""
+
+    def __init__(
+        self,
+        schema: type,
+        strict: bool = True,
+        max_depth: int | None = None,
+    ) -> None:
         """
         Initialize a validator for the given schema.
 
@@ -161,9 +170,13 @@ class SchemaValidator:
             schema: Dataclass or Pydantic model class to validate against.
             strict: If ``True`` (default), reject frontmatter with fields not
                 defined in the schema. If ``False``, ignore unknown fields.
+            max_depth: Maximum nesting depth for recursive validation.
+                Defaults to ``MAX_RECURSION_DEPTH`` (10). Prevents stack
+                overflow from deeply nested or malicious input.
         """
         self.schema = schema
         self.strict = strict
+        self.max_depth = max_depth if max_depth is not None else self.MAX_RECURSION_DEPTH
         self._is_pydantic = hasattr(schema, "model_validate")
         self._type_hints: dict[str, Any] = {}
 
@@ -271,13 +284,33 @@ class SchemaValidator:
         self,
         data: dict[str, Any],
         source_file: Path | None,
+        _depth: int = 0,
     ) -> ValidationResult:
         """
         Validate data using a dataclass schema.
 
         Iterates through schema fields, coerces types, applies defaults,
         and checks for unknown fields (in strict mode).
+
+        Args:
+            data: Dictionary of field values to validate.
+            source_file: Optional source file for error context.
+            _depth: Current recursion depth (internal use only).
         """
+        # Check depth limit before validation
+        if _depth > self.max_depth:
+            return ValidationResult(
+                valid=False,
+                data=None,
+                errors=[
+                    ValidationError(
+                        field="(schema)",
+                        message=f"Maximum nesting depth ({self.max_depth}) exceeded",
+                    )
+                ],
+                warnings=[],
+            )
+
         errors: list[ValidationError] = []
         warnings: list[str] = []
         validated_data: dict[str, Any] = {}
@@ -292,7 +325,7 @@ class SchemaValidator:
             if name in data:
                 # Field present - validate and coerce type
                 value = data[name]
-                coerced, type_errors = self._coerce_type(name, value, type_hint)
+                coerced, type_errors = self._coerce_type(name, value, type_hint, _depth=_depth)
 
                 if type_errors:
                     errors.extend(type_errors)
