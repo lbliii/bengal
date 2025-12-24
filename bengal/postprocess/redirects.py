@@ -143,7 +143,7 @@ class RedirectGenerator:
                     "redirect_alias_conflict",
                     alias=alias,
                     claimants=[f"{url} ({title})" for url, title in claimants],
-                    hint="Multiple pages claim the same alias; only the first will be used",
+                    suggestion="Remove duplicate 'aliases:' entries from page frontmatter. Only first claimant will generate redirect.",
                 )
                 conflicts += 1
 
@@ -183,6 +183,7 @@ class RedirectGenerator:
                 "redirect_invalid_alias",
                 alias=from_path,
                 reason="empty path after normalization",
+                suggestion="Provide a valid non-empty path for the alias in frontmatter.",
             )
             return False
 
@@ -206,6 +207,7 @@ class RedirectGenerator:
                     alias=from_path,
                     target=to_url,
                     reason=f"URL already claimed by higher priority content: {e}",
+                    suggestion="Remove the alias or rename the conflicting content page.",
                 )
                 return False
         else:
@@ -216,6 +218,7 @@ class RedirectGenerator:
                     alias=from_path,
                     target=to_url,
                     reason="path already exists (real content takes precedence)",
+                    suggestion="Remove the alias or rename the conflicting content page.",
                 )
                 return False
 

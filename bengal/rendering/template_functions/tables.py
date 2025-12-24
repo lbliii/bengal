@@ -15,6 +15,7 @@ from bengal.directives.data_table import (
     DataTableDirective,
     render_data_table,
 )
+from bengal.errors import ErrorCode
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
@@ -79,7 +80,12 @@ def data_table(env: Environment, path: str, **options: Any) -> Markup:
                       columns='Feature,Chrome,Firefox') }}
     """
     if not path:
-        logger.warning("data_table_empty_path", caller="template")
+        logger.warning(
+            "data_table_empty_path",
+            caller="template",
+            error_code=ErrorCode.R003.value,
+            suggestion="Provide a valid data file path to data_table()",
+        )
         return Markup(
             '<div class="bengal-data-table-error" role="alert">'
             "<strong>Data Table Error:</strong> No file path specified"
@@ -128,6 +134,8 @@ def data_table(env: Environment, path: str, **options: Any) -> Markup:
             path=path,
             error=data_result["error"],
             caller="template",
+            error_code=ErrorCode.R003.value,
+            suggestion="Check that data file exists and is valid JSON/YAML/CSV",
         )
         return Markup(
             f'<div class="bengal-data-table-error" role="alert">'

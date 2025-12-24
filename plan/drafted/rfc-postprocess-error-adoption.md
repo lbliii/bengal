@@ -6,7 +6,7 @@
 **Subsystem**: `bengal/postprocess/`, `bengal/errors/`  
 **Confidence**: 95% 🟢 (all claims verified via grep against source files)  
 **Priority**: P2 (Medium) — Post-processing errors are user-facing; failures affect build output  
-**Estimated Effort**: 2-2.5 hours (single dev)
+**Estimated Effort**: 1.5-2 hours (single dev)
 
 ---
 
@@ -23,8 +23,8 @@ The `bengal/postprocess/` package has **zero adoption** (0%) of the Bengal error
 **Current state**:
 - **0 imports** from `bengal.errors`
 - **0/16 files** use `BengalError` or `ErrorCode`
-- **8 logger.error() calls** without `error_code` field
-- **12 logger.warning() calls** without structured codes
+- **5 logger.error() calls** without `error_code` field
+- **15 logger.warning() calls** without structured codes
 - **0 session tracking** via `record_error()`
 - **0 actionable suggestions** in error messages
 
@@ -124,7 +124,7 @@ B008 = "postprocess_task_failed"  # Post-processing task failure
 
 This code was defined but is **not used** anywhere in the codebase.
 
-### Logger.error Calls (8 total, none with error_code)
+### Logger.error Calls (5 total, none with error_code)
 
 | File | Location | Event Name | Has error_code | Has suggestion |
 |------|----------|------------|----------------|----------------|
@@ -133,11 +133,8 @@ This code was defined but is **not used** anywhere in the codebase.
 | `special_pages.py` | line 263 | `404_page_generation_failed` | ❌ | ❌ |
 | `special_pages.py` | line 374 | `search_page_generation_failed` | ❌ | ❌ |
 | `special_pages.py` | line 473 | `graph_generation_failed` | ❌ | ❌ |
-| `output_formats/json_generator.py` | line 191 | `page_json_generation_failed` | ❌ | ❌ |
-| `output_formats/txt_generator.py` | line 161 | `page_txt_generation_failed` | ❌ | ❌ |
-| `output_formats/llm_generator.py` | line 237 | `llm_full_generation_failed` | ❌ | ❌ |
 
-### Logger.warning Calls (12 total, none with error_code)
+### Logger.warning Calls (15 total, none with error_code)
 
 | File | Location | Event Name |
 |------|----------|------------|
@@ -146,12 +143,16 @@ This code was defined but is **not used** anywhere in the codebase.
 | `redirects.py` | line 204 | `redirect_conflict` |
 | `redirects.py` | line 214 | `redirect_conflict` |
 | `social_cards.py` | line 259 | `social_cards_fonts_unavailable` |
-| `social_cards.py` | line 381 | `social_cards_ttf_download_failed` |
 | `social_cards.py` | line 817 | `social_card_generation_failed` |
-| `social_cards.py` | line 823 | `social_card_generation_completed_with_errors` |
+| `social_cards.py` | line 824 | `social_card_generation_completed_with_errors` |
 | `special_pages.py` | line 146 | `no_special_pages_generated` |
-| `output_formats/index_generator.py` | line 513 | `index_generation_failed` |
-| `output_formats/lunr_index_generator.py` | line 184 | `lunr_index_generation_failed` |
+| `output_formats/json_generator.py` | line 192 | `page_json_write_failed` |
+| `output_formats/txt_generator.py` | line 162 | `page_txt_write_failed` |
+| `output_formats/lunr_index_generator.py` | line 118 | `lunr_dependency_not_available` |
+| `output_formats/lunr_index_generator.py` | line 129 | `index_json_not_found` |
+| `output_formats/lunr_index_generator.py` | line 141 | `no_pages_for_lunr_index` |
+| `output_formats/lunr_index_generator.py` | line 148 | `no_searchable_documents` |
+| `output_formats/lunr_index_generator.py` | line 185 | `lunr_index_generation_failed` |
 
 ### Session Tracking
 
@@ -186,7 +187,17 @@ except Exception as e:
 
 **Gap**: No error code, no suggestion. Failure silently continues build.
 
-**Pattern 3: Log Warning Only** (`social_cards.py:256-266`)
+**Pattern 3: Log Warning and Continue** (`output_formats/json_generator.py:191-193`)
+
+```python
+except Exception as e:
+    logger.warning("page_json_write_failed", path=str(json_path), error=str(e))
+    return False
+```
+
+**Gap**: No error code, no suggestion. Uses warning level for graceful degradation.
+
+**Pattern 4: Log Warning with Hint** (`social_cards.py:256-266`)
 
 ```python
 except OSError as e:
@@ -229,15 +240,16 @@ BuildOrchestrator
 
 | Generator | On Error | Build Continues? |
 |-----------|----------|------------------|
-| SitemapGenerator | Log + raise | ❌ No |
-| RSSGenerator | Log + raise | ❌ No |
+| SitemapGenerator | Log error + raise | ❌ No |
+| RSSGenerator | Log error + raise | ❌ No |
 | RedirectGenerator | Log warning | ✅ Yes |
-| SpecialPagesGenerator | Log + return False | ✅ Yes |
+| SpecialPagesGenerator | Log error + return False | ✅ Yes |
 | SocialCardGenerator | Log warning | ✅ Yes |
-| OutputFormatsGenerator | Log (delegates) | Depends |
-| PageJSONGenerator | Log + raise RuntimeError | ❌ No |
-| PageTxtGenerator | Log + raise RuntimeError | ❌ No |
-| SiteIndexGenerator | Log warning | ✅ Yes |
+| OutputFormatsGenerator | Delegates to children | Depends |
+| PageJSONGenerator | Log warning + return False | ✅ Yes |
+| PageTxtGenerator | Log warning + return False | ✅ Yes |
+| SiteIndexGenerator | No warning on failure | ✅ Yes |
+| LunrIndexGenerator | Log warning | ✅ Yes |
 
 ### Graceful Degradation Strategy
 
@@ -245,8 +257,9 @@ The postprocess package correctly uses graceful degradation for non-critical fai
 - Missing 404 template → Skip 404 page (build succeeds)
 - Font not found → Skip social cards (build succeeds)
 - Redirect conflict → Skip that redirect (build succeeds)
+- JSON/TXT write failure → Skip that file (build succeeds)
 
-However, critical failures (sitemap, RSS, output formats) should be tracked with structured errors.
+Critical failures (sitemap, RSS) halt the build and should be tracked with structured errors.
 
 ---
 
@@ -258,18 +271,15 @@ However, critical failures (sitemap, RSS, output formats) should be tracked with
 
 **Action**: Import and use `ErrorCode.B008` across all critical error locations.
 
-### Gap 2: No Error Codes in Logging
+### Gap 2: No Error Codes in Critical Logging
 
-**Files needing `error_code` field**:
+**Files with `logger.error()` needing `error_code` field**:
 
 | File | Lines | Current | After |
 |------|-------|---------|-------|
 | `sitemap.py` | 234 | No error_code | Add B008 |
 | `rss.py` | 221 | No error_code | Add B008 |
 | `special_pages.py` | 263, 374, 473 | No error_code | Add B008 |
-| `output_formats/json_generator.py` | 191 | No error_code | Add B008 |
-| `output_formats/txt_generator.py` | 161 | No error_code | Add B008 |
-| `output_formats/llm_generator.py` | 237 | No error_code | Add B008 |
 
 ### Gap 3: No Actionable Suggestions
 
@@ -283,8 +293,9 @@ However, critical failures (sitemap, RSS, output formats) should be tracked with
 | Search page | "Check [search] configuration and search.html template." |
 | Graph page | "Verify knowledge graph is enabled and build succeeded." |
 | Social cards | "Configure [fonts] in bengal.toml or install required fonts." |
-| JSON generator | "Check page content for serialization errors (dates, paths)." |
-| TXT generator | "Verify page plain_text extraction succeeded." |
+| JSON write | "Check output directory permissions or page content for serialization errors." |
+| TXT write | "Check output directory permissions and available disk space." |
+| Lunr index | "Ensure lunr package is installed: pip install lunr" |
 
 ### Gap 4: No Session Tracking
 
@@ -292,16 +303,16 @@ However, critical failures (sitemap, RSS, output formats) should be tracked with
 
 | File | When to Track |
 |------|---------------|
-| `sitemap.py:233` | Sitemap generation failure |
-| `rss.py:220` | RSS generation failure |
-| `output_formats/json_generator.py:191` | Page JSON failure |
-| `output_formats/txt_generator.py:161` | Page TXT failure |
+| `sitemap.py:233` | Sitemap generation failure (critical) |
+| `rss.py:220` | RSS generation failure (critical) |
+
+Note: Warning-level failures (json_generator, txt_generator) use graceful degradation and don't require session tracking.
 
 ---
 
 ## Proposed Changes
 
-### Phase 1: Add Error Codes to Critical Logging (30 min)
+### Phase 1: Add Error Codes to Critical logger.error() Calls (20 min)
 
 **File**: `bengal/postprocess/sitemap.py`
 
@@ -373,7 +384,7 @@ logger.error(
 
 Apply similar pattern to lines 374 (search) and 473 (graph).
 
-### Phase 2: Add Suggestions to Warnings (30 min)
+### Phase 2: Add Suggestions to Warning Calls (30 min)
 
 **File**: `bengal/postprocess/social_cards.py`
 
@@ -417,7 +428,43 @@ logger.warning(
 )
 ```
 
-### Phase 3: Add Session Tracking (45 min)
+**File**: `bengal/postprocess/output_formats/json_generator.py`
+
+```python
+# Before (line 192)
+logger.warning("page_json_write_failed", path=str(json_path), error=str(e))
+
+# After
+logger.warning(
+    "page_json_write_failed",
+    path=str(json_path),
+    error=str(e),
+    error_type=type(e).__name__,
+    suggestion="Check output directory permissions or page content for serialization errors.",
+)
+```
+
+**File**: `bengal/postprocess/output_formats/txt_generator.py`
+
+```python
+# Before (line 162)
+logger.warning("page_txt_write_failed", path=str(txt_path), error=str(e))
+
+# After
+logger.warning(
+    "page_txt_write_failed",
+    path=str(txt_path),
+    error=str(e),
+    error_type=type(e).__name__,
+    suggestion="Check output directory permissions and available disk space.",
+)
+```
+
+**File**: `bengal/postprocess/output_formats/lunr_index_generator.py`
+
+Add suggestions to the 5 warning calls (lines 118, 129, 141, 148, 185).
+
+### Phase 3: Add Session Tracking for Critical Errors (30 min)
 
 **File**: `bengal/postprocess/sitemap.py`
 
@@ -452,36 +499,7 @@ except Exception as e:
     raise error from e
 ```
 
-Apply similar pattern to `rss.py`, `output_formats/json_generator.py`, and `output_formats/txt_generator.py`.
-
-### Phase 4: Update Output Format Generators (30 min)
-
-**File**: `bengal/postprocess/output_formats/json_generator.py`
-
-```python
-# Before (line 191)
-except Exception as e:
-    logger.error(
-        "page_json_generation_failed",
-        page=str(page.source_path),
-        error=str(e),
-    )
-
-# After
-from bengal.errors import ErrorCode
-
-except Exception as e:
-    logger.error(
-        "page_json_generation_failed",
-        page=str(page.source_path),
-        error=str(e),
-        error_type=type(e).__name__,
-        error_code=ErrorCode.B008.value,
-        suggestion="Check page content for JSON serialization errors. Verify dates and paths are valid.",
-    )
-```
-
-Apply to `txt_generator.py`, `llm_generator.py`, `index_generator.py`.
+Apply similar pattern to `rss.py`.
 
 ---
 
@@ -489,13 +507,12 @@ Apply to `txt_generator.py`, `llm_generator.py`, `index_generator.py`.
 
 | Phase | Task | Time | Priority |
 |-------|------|------|----------|
-| 1 | Add `error_code` to critical `logger.error()` calls | 30 min | P1 |
-| 2 | Add `suggestion` to `logger.warning()` calls | 30 min | P1 |
-| 3 | Add session tracking with `record_error()` | 45 min | P2 |
-| 4 | Update output format generators | 30 min | P2 |
-| 5 | Add tests for error handling | 30 min | P3 |
+| 1 | Add `error_code` + `suggestion` to 5 `logger.error()` calls | 20 min | P1 |
+| 2 | Add `suggestion` to 15 `logger.warning()` calls | 30 min | P1 |
+| 3 | Add session tracking with `record_error()` to 2 critical paths | 30 min | P2 |
+| 4 | Add tests for error handling | 20 min | P3 |
 
-**Total**: ~2.5 hours
+**Total**: ~1.5-2 hours
 
 ---
 
@@ -503,14 +520,14 @@ Apply to `txt_generator.py`, `llm_generator.py`, `index_generator.py`.
 
 ### Must Have
 
-- [ ] All `logger.error()` calls include `error_code=ErrorCode.B008.value`
-- [ ] All `logger.error()` calls include actionable `suggestion` field
-- [ ] `ErrorCode.B008` imported and used in 6+ files
+- [ ] All 5 `logger.error()` calls include `error_code=ErrorCode.B008.value`
+- [ ] All 5 `logger.error()` calls include actionable `suggestion` field
+- [ ] `ErrorCode.B008` imported and used in 3 files (sitemap, rss, special_pages)
 
 ### Should Have
 
-- [ ] Session tracking via `record_error()` in 4+ critical locations
-- [ ] `logger.warning()` calls have `suggestion` field
+- [ ] Session tracking via `record_error()` in 2 critical locations (sitemap, rss)
+- [ ] `logger.warning()` calls have `suggestion` field (standardize from `hint`)
 - [ ] Tests verify error codes appear in logs
 
 ### Nice to Have
@@ -538,14 +555,13 @@ Apply to `txt_generator.py`, `llm_generator.py`, `index_generator.py`.
 |------|-------------|-------|
 | `bengal/postprocess/sitemap.py` | Add error code + suggestion + session | +8 |
 | `bengal/postprocess/rss.py` | Add error code + suggestion + session | +8 |
-| `bengal/postprocess/special_pages.py` | Add error code + suggestion (3 locations) | +12 |
-| `bengal/postprocess/redirects.py` | Add suggestion (3 locations) | +6 |
-| `bengal/postprocess/social_cards.py` | Add suggestion (2 locations) | +4 |
-| `bengal/postprocess/output_formats/json_generator.py` | Add error code + suggestion | +4 |
-| `bengal/postprocess/output_formats/txt_generator.py` | Add error code + suggestion | +4 |
-| `bengal/postprocess/output_formats/llm_generator.py` | Add error code + suggestion | +4 |
-| `bengal/postprocess/output_formats/index_generator.py` | Add error code + suggestion | +4 |
-| **Total** | — | ~54 lines |
+| `bengal/postprocess/special_pages.py` | Add error code + suggestion (3 locations) | +9 |
+| `bengal/postprocess/redirects.py` | Add suggestion (4 locations) | +4 |
+| `bengal/postprocess/social_cards.py` | Add suggestion (3 locations) | +3 |
+| `bengal/postprocess/output_formats/json_generator.py` | Add suggestion | +3 |
+| `bengal/postprocess/output_formats/txt_generator.py` | Add suggestion | +3 |
+| `bengal/postprocess/output_formats/lunr_index_generator.py` | Add suggestion (5 locations) | +5 |
+| **Total** | — | ~43 lines |
 
 ---
 
@@ -553,10 +569,10 @@ Apply to `txt_generator.py`, `llm_generator.py`, `index_generator.py`.
 
 | Criterion | Before | After | Notes |
 |-----------|--------|-------|-------|
-| Error code usage | 0/10 | 8/10 | B008 used consistently |
-| Bengal exception usage | 0/10 | 4/10 | Added to critical paths |
-| Session recording | 0/10 | 6/10 | Added to 4 locations |
-| Actionable suggestions | 0/10 | 8/10 | All errors have suggestions |
+| Error code usage | 0/10 | 8/10 | B008 used consistently in error() calls |
+| Bengal exception usage | 0/10 | 4/10 | Added to 2 critical paths |
+| Session recording | 0/10 | 4/10 | Added to 2 locations |
+| Actionable suggestions | 0/10 | 8/10 | All errors/warnings have suggestions |
 | Build phase tracking | 0/10 | 6/10 | POSTPROCESS phase used |
 | Consistent patterns | 0/10 | 7/10 | Standardized logging |
 | **Overall** | **0/10** | **6/10** | — |

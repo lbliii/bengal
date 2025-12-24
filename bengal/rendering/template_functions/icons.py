@@ -182,8 +182,9 @@ def icon(name: str, size: int = 24, css_class: str = "", aria_label: str = "") -
         logger.warning(
             "icon_not_found",
             icon=name,
-            code=ErrorCode.T010.name,
+            error_code=ErrorCode.T010.value,
             searched=[str(p) for p in icon_resolver.get_search_paths()],
+            suggestion="Check icon name spelling. Run 'bengal icons list' to see available icons.",
             hint=f"Add to theme: themes/{{theme}}/assets/icons/{name}.svg",
         )
 

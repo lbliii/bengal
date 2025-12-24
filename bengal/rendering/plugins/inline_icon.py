@@ -155,8 +155,9 @@ class InlineIconPlugin:
                 logger.warning(
                     "icon_not_found",
                     icon=name,
-                    code=ErrorCode.T010.name,
+                    error_code=ErrorCode.T010.value,
                     searched=[str(p) for p in icon_resolver.get_search_paths()],
+                    suggestion="Check icon name spelling. Run 'bengal icons list' to see available icons.",
                     hint=f"Add to theme: themes/{{theme}}/assets/icons/{name}.svg",
                 )
             return f'<span class="bengal-icon bengal-icon--missing" title="Icon not found: {name}">❓</span>'

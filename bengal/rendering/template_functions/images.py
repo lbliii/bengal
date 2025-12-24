@@ -11,6 +11,7 @@ import base64
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from bengal.errors import ErrorCode
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
@@ -132,7 +133,14 @@ def image_dimensions(path: str, root_path: Path) -> tuple[int, int] | None:
         file_path = Path(root_path) / "assets" / path
         tried_paths.append(str(file_path))
         if not file_path.exists():
-            logger.warning("image_not_found", path=path, tried_paths=tried_paths, caller="template")
+            logger.warning(
+                "image_not_found",
+                path=path,
+                tried_paths=tried_paths,
+                caller="template",
+                error_code=ErrorCode.X001.value,
+                suggestion="Check that the image exists in assets/ or content/ directory",
+            )
             return None
 
     try:
@@ -165,6 +173,8 @@ def image_dimensions(path: str, root_path: Path) -> tuple[int, int] | None:
             error=str(e),
             error_type=type(e).__name__,
             caller="template",
+            error_code=ErrorCode.X003.value,
+            suggestion="Check image file is not corrupted and has valid format",
         )
         return None
 
@@ -274,7 +284,14 @@ def image_data_uri(path: str, root_path: Path) -> str:
         file_path = Path(root_path) / "assets" / path
         tried_paths.append(str(file_path))
         if not file_path.exists():
-            logger.warning("image_not_found", path=path, tried_paths=tried_paths, caller="template")
+            logger.warning(
+                "image_not_found",
+                path=path,
+                tried_paths=tried_paths,
+                caller="template",
+                error_code=ErrorCode.X001.value,
+                suggestion="Check that the image exists in assets/ or content/ directory",
+            )
             return ""
 
     try:
@@ -333,6 +350,8 @@ def image_data_uri(path: str, root_path: Path) -> str:
             error=str(e),
             error_type="IOError",
             caller="template",
+            error_code=ErrorCode.X003.value,
+            suggestion="Check file permissions and disk space",
         )
         return ""
     except Exception as e:
@@ -343,5 +362,7 @@ def image_data_uri(path: str, root_path: Path) -> str:
             error=str(e),
             error_type=type(e).__name__,
             caller="template",
+            error_code=ErrorCode.X003.value,
+            suggestion="Check image file format is supported (PNG, JPG, GIF, SVG, WebP)",
         )
         return ""

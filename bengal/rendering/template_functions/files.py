@@ -9,6 +9,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from bengal.errors import ErrorCode
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
@@ -119,7 +120,14 @@ def file_size(path: str, root_path: Path) -> str:
     file_path = Path(root_path) / path
 
     if not file_path.exists():
-        logger.warning("file_not_found", path=path, attempted=str(file_path), caller="template")
+        logger.warning(
+            "file_not_found",
+            path=path,
+            attempted=str(file_path),
+            caller="template",
+            error_code=ErrorCode.X001.value,
+            suggestion="Verify file path spelling and that file exists in content/ or assets/",
+        )
         return "0 B"
 
     if not file_path.is_file():
@@ -160,5 +168,7 @@ def file_size(path: str, root_path: Path) -> str:
             error=str(e),
             error_type=type(e).__name__,
             caller="template",
+            error_code=ErrorCode.X003.value,
+            suggestion="Check file permissions and disk space",
         )
         return "0 B"

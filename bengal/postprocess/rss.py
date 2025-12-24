@@ -26,6 +26,7 @@ import heapq
 import xml.etree.ElementTree as ET
 from typing import TYPE_CHECKING, Any
 
+from bengal.errors import BengalRenderingError, ErrorCode, record_error
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
@@ -218,14 +219,26 @@ class RSSGenerator:
                     total_pages_with_dates=len(pages_with_dates),
                 )
             except Exception as e:
+                # Create structured error for session tracking
+                error = BengalRenderingError(
+                    f"RSS generation failed for language '{code}': {e}",
+                    code=ErrorCode.B008,
+                    file_path=rss_path,
+                    suggestion="Verify pages have valid dates in frontmatter. Add 'date:' to include in RSS.",
+                    original_error=e,
+                )
+                record_error(error, context="postprocess:rss")
+
                 self.logger.error(
                     "rss_generation_failed",
                     lang=code,
                     rss_path=str(rss_path),
                     error=str(e),
                     error_type=type(e).__name__,
+                    error_code=ErrorCode.B008.value,
+                    suggestion="Verify pages have valid dates in frontmatter. Add 'date:' to include in RSS.",
                 )
-                raise
+                raise error from e
 
     def _indent(self, elem: ET.Element, level: int = 0) -> None:
         """
