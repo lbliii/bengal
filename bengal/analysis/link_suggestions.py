@@ -170,6 +170,17 @@ class LinkSuggestionEngine:
         page_tags = self._build_tag_map(pages)
         page_categories = self._build_category_map(pages)
 
+        # Build inverted indices for O(overlap) candidate filtering
+        # RFC: rfc-analysis-algorithm-optimization
+        tag_to_pages = self._build_inverted_tag_index(pages, page_tags)
+        category_to_pages = self._build_inverted_category_index(pages, page_categories)
+
+        # Pre-compute underlinked pages (pages with < 3 incoming refs)
+        # These are always included as candidates because they receive the underlinked bonus
+        underlinked_pages: set[Page] = {
+            page for page in pages if self.graph.incoming_refs.get(page, 0) < 3
+        }
+
         # Get PageRank scores (if available)
         pagerank_scores = {}
         try:
@@ -191,7 +202,15 @@ class LinkSuggestionEngine:
 
         for source_page in pages:
             suggestions = self._generate_suggestions_for_page(
-                source_page, pages, page_tags, page_categories, pagerank_scores, betweenness_scores
+                source_page,
+                pages,
+                page_tags,
+                page_categories,
+                pagerank_scores,
+                betweenness_scores,
+                tag_to_pages,
+                category_to_pages,
+                underlinked_pages,
             )
             all_suggestions.extend(suggestions)
 
@@ -215,14 +234,47 @@ class LinkSuggestionEngine:
         page_categories: dict[Page, set[str]],
         pagerank_scores: dict[Page, float],
         betweenness_scores: dict[Page, float],
+        tag_to_pages: dict[str, set[Page]],
+        category_to_pages: dict[str, set[Page]],
+        underlinked_pages: set[Page],
     ) -> list[LinkSuggestion]:
-        """Generate link suggestions for a single page."""
+        """
+        Generate link suggestions for a single page.
+
+        OPTIMIZED: Uses inverted indices to filter candidates before scoring.
+        RFC: rfc-analysis-algorithm-optimization
+
+        Only considers pages that:
+        1. Share at least one tag with the source page, OR
+        2. Share at least one category with the source page, OR
+        3. Are underlinked (< 3 incoming refs, for orphan bonus)
+
+        This reduces comparisons from O(N) to O(overlap) where overlap << N.
+        """
         # Get existing links from this page
         existing_links = self.graph.outgoing_refs.get(source, set())
 
+        # OPTIMIZED: Build candidate set from inverted indices instead of all_pages
+        # This skips pages with no potential for high scores
+        candidate_pages: set[Page] = set()
+
+        # Add pages with shared tags
+        source_tags = page_tags.get(source, set())
+        for tag in source_tags:
+            candidate_pages.update(tag_to_pages.get(tag, set()))
+
+        # Add pages with shared categories
+        source_cats = page_categories.get(source, set())
+        for cat in source_cats:
+            candidate_pages.update(category_to_pages.get(cat, set()))
+
+        # Always include underlinked pages (they get bonus regardless of overlap)
+        candidate_pages.update(underlinked_pages)
+
+        # Score only filtered candidates
         candidates: list[tuple[Page, float, list[str]]] = []
 
-        for target in all_pages:
+        for target in candidate_pages:
             # Skip self-links and existing links
             if target == source or target in existing_links:
                 continue
@@ -342,6 +394,40 @@ class LinkSuggestionEngine:
                 categories = {cat.lower().replace(" ", "-") for cat in page.categories}
             category_map[page] = categories
         return category_map
+
+    def _build_inverted_tag_index(
+        self, pages: list[Page], page_tags: dict[Page, set[str]]
+    ) -> dict[str, set[Page]]:
+        """
+        Build inverted tag index: tag -> set of pages with that tag.
+
+        RFC: rfc-analysis-algorithm-optimization
+        This enables O(overlap) candidate filtering instead of O(N) brute force.
+        """
+        tag_to_pages: dict[str, set[Page]] = {}
+        for page in pages:
+            for tag in page_tags.get(page, set()):
+                if tag not in tag_to_pages:
+                    tag_to_pages[tag] = set()
+                tag_to_pages[tag].add(page)
+        return tag_to_pages
+
+    def _build_inverted_category_index(
+        self, pages: list[Page], page_categories: dict[Page, set[str]]
+    ) -> dict[str, set[Page]]:
+        """
+        Build inverted category index: category -> set of pages in that category.
+
+        RFC: rfc-analysis-algorithm-optimization
+        This enables O(overlap) candidate filtering instead of O(N) brute force.
+        """
+        category_to_pages: dict[str, set[Page]] = {}
+        for page in pages:
+            for cat in page_categories.get(page, set()):
+                if cat not in category_to_pages:
+                    category_to_pages[cat] = set()
+                category_to_pages[cat].add(page)
+        return category_to_pages
 
 
 def suggest_links(

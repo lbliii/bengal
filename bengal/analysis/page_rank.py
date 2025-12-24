@@ -217,6 +217,32 @@ class PageRankCalculator:
         iterations_run = 0
         converged = False
 
+        # Build or use pre-computed incoming edges index for O(E) iteration
+        # RFC: rfc-analysis-algorithm-optimization
+        graph_incoming_edges = getattr(self.graph, "incoming_edges", None)
+
+        # Validate that incoming_edges is a proper dict, not a Mock or None
+        if (
+            graph_incoming_edges is None
+            or not isinstance(graph_incoming_edges, dict)
+            or not graph_incoming_edges
+        ):
+            # Fallback: build incoming edges from outgoing_refs if not available
+            from collections import defaultdict
+
+            incoming_edges: dict[Page, list[Page]] = defaultdict(list)
+            for source_page in pages:
+                for target in self.graph.outgoing_refs.get(source_page, set()):
+                    if target in pages:
+                        incoming_edges[target].append(source_page)
+        else:
+            incoming_edges = graph_incoming_edges
+
+        # Pre-compute outgoing link counts for efficiency
+        outgoing_counts: dict[Page, int] = {
+            page: len(self.graph.outgoing_refs.get(page, set())) for page in pages
+        }
+
         for iteration in range(self.max_iterations):
             new_scores = {}
             max_diff = 0.0
@@ -229,18 +255,12 @@ class PageRankCalculator:
                     base_score = (1 - self.damping) / N
 
                 # Add contributions from incoming links
+                # OPTIMIZED: O(degree) instead of O(N) - iterate only incoming edges
                 link_score = 0.0
-
-                # Find pages linking to this one
-                for source_page in pages:
-                    outgoing_links = self.graph.outgoing_refs.get(source_page, set())
-
-                    if page in outgoing_links:
-                        # Page receives score proportional to linking page's score
-                        # divided by linking page's outgoing link count
-                        outgoing_count = len(outgoing_links)
-                        if outgoing_count > 0:
-                            link_score += scores[source_page] / outgoing_count
+                for source_page in incoming_edges.get(page, []):
+                    outgoing_count = outgoing_counts.get(source_page, 0)
+                    if outgoing_count > 0:
+                        link_score += scores[source_page] / outgoing_count
 
                 new_score = base_score + self.damping * link_score
                 new_scores[page] = new_score

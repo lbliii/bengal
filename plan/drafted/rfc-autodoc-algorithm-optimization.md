@@ -1,6 +1,6 @@
 # RFC: Autodoc Algorithm Optimization
 
-**Status**: Draft  
+**Status**: Planned  
 **Created**: 2025-12-24  
 **Author**: AI Assistant  
 **Subsystem**: Autodoc (Python Extraction, Inheritance Resolution, Docstring Parsing)  
@@ -526,4 +526,107 @@ uv run python -m cProfile -s cumtime -m bengal build --profile autodoc
 # Compare parallel vs sequential
 BENGAL_NO_PARALLEL=1 uv run bengal build  # Sequential
 uv run bengal build                        # Parallel (default)
+```
+
+---
+
+## Implementation Plan
+
+### Phase 1: Inheritance Reverse Index (Priority: High)
+
+**Goal**: 12x speedup for inheritance resolution (60s → 5s for 1K classes)
+
+| Step | File | Change | Effort |
+|------|------|--------|--------|
+| **1.1** | `extractors/python/extractor.py` | Add `simple_name_index: dict[str, list[str]]` to `PythonExtractor.__init__` | 10 min |
+| **1.2** | `extractors/python/extractor.py:216-220` | Populate index during class_index build phase | 15 min |
+| **1.3** | `extractors/python/inheritance.py:36-40` | Add `simple_name_index` parameter | 10 min |
+| **1.4** | `extractors/python/inheritance.py:71-75` | Replace linear scan with O(1) index lookup | 20 min |
+| **1.5** | `extractors/python/extractor.py:228` | Pass `simple_name_index` to `synthesize_inherited_members()` | 5 min |
+
+**Edge Cases to Handle**:
+- Multiple classes with same simple name (e.g., `pkg1.Config` and `pkg2.Config`)
+- External base classes not in index
+- Diamond inheritance patterns
+
+**Verification**:
+```bash
+# Run existing inheritance tests
+uv run pytest tests/unit/autodoc/test_python_extractor.py -k "inherited" -v
+```
+
+### Phase 2: Parallel Extraction Tuning (Priority: Medium)
+
+**Goal**: Better utilization on multi-core machines
+
+| Step | File | Change | Effort |
+|------|------|--------|--------|
+| **2.1** | `extractors/python/extractor.py` | Add `_should_use_parallel()` method with hardware-aware threshold | 20 min |
+| **2.2** | `extractors/python/extractor.py:267-332` | Add timing/performance logging | 15 min |
+| **2.3** | Config | Document `BENGAL_PARALLEL_THRESHOLD` env override | 10 min |
+
+**Current threshold**: `MIN_MODULES_FOR_PARALLEL = 10` (line 67)
+
+**Proposed formula**:
+```python
+threshold = max(5, 15 - core_count)
+# 4 cores → 11 files
+# 8 cores → 7 files
+# 16+ cores → 5 files
+```
+
+### Phase 3: Cache-Aware Deserialization (Priority: Low)
+
+**Goal**: 10-20% speedup for cached builds
+
+| Step | File | Change | Effort |
+|------|------|--------|--------|
+| **3.1** | `base.py` | Add `@lru_cache` wrapper for `ParameterInfo` construction | 30 min |
+| **3.2** | `base.py` | Add cache clearing hook for build lifecycle | 15 min |
+
+---
+
+### New Tests Required
+
+| Test | Description | File |
+|------|-------------|------|
+| `test_simple_name_collision` | Two classes with same name in different packages | `test_python_extractor.py` |
+| `test_inheritance_ambiguous_resolution` | Verify first-match behavior documented | `test_python_extractor.py` |
+| `test_diamond_inheritance` | Multiple inheritance with shared ancestor | `test_python_extractor.py` |
+
+---
+
+### Implementation Order
+
+```
+Week 1 (2-4 hours):
+├── 1.1 Add simple_name_index field
+├── 1.2 Populate during class_index build
+├── 1.3-1.5 Update inheritance lookup
+└── Run existing tests
+
+Week 1 (1-2 hours):
+├── Add collision edge case tests
+├── Add benchmark scenarios
+└── Measure before/after
+
+Week 1 (optional, 1-2 hours):
+├── 2.1-2.3 Parallel tuning
+├── 3.1-3.2 Cache optimization
+└── Documentation updates
+```
+
+---
+
+### Commands to Start
+
+```bash
+# 1. Verify current tests pass
+uv run pytest tests/unit/autodoc/test_python_extractor.py -v
+
+# 2. Create feature branch
+git checkout -b feat/autodoc-inheritance-optimization
+
+# 3. After implementation, verify
+uv run pytest tests/unit/autodoc/ -v
 ```
