@@ -99,11 +99,12 @@ class CLIExtractor(Extractor):
         self.include_hidden = include_hidden
 
         if framework not in ("click", "argparse", "typer"):
-            from bengal.errors import BengalConfigError
+            from bengal.errors import BengalConfigError, ErrorCode
 
             raise BengalConfigError(
                 f"Unsupported framework: {framework}. Use 'click', 'argparse', or 'typer'",
                 suggestion="Set framework to 'click', 'argparse', or 'typer'",
+                code=ErrorCode.C003,
             )
 
     @override
@@ -130,11 +131,12 @@ class CLIExtractor(Extractor):
         elif self.framework == "typer":
             return self._extract_from_typer(source)
         else:
-            from bengal.errors import BengalConfigError
+            from bengal.errors import BengalConfigError, ErrorCode
 
             raise BengalConfigError(
                 f"Unknown framework: {self.framework}",
                 suggestion="Set framework to 'click', 'argparse', or 'typer'",
+                code=ErrorCode.C003,
             )
 
     def _extract_from_click(self, cli: click.Group) -> list[DocElement]:
@@ -601,12 +603,13 @@ class CLIExtractor(Extractor):
             return self._extract_from_click(click_app)
 
         # Fallback: raise error if we couldn't extract
-        from bengal.errors import BengalDiscoveryError
+        from bengal.errors import BengalDiscoveryError, ErrorCode
 
         raise BengalDiscoveryError(
             "Unable to extract Click app from Typer instance. "
             "Make sure you're passing a Typer() app object.",
             suggestion="Pass a Typer() app instance, not a command function",
+            code=ErrorCode.D001,
         )
 
     def _typer_to_click_group(self, typer_app: Any) -> Any:

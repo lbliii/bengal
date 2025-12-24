@@ -209,12 +209,13 @@ class PythonExtractor(Extractor):
         elif source.is_dir():
             return self._extract_directory(source)
         else:
-            from bengal.errors import BengalDiscoveryError
+            from bengal.errors import BengalDiscoveryError, ErrorCode
 
             raise BengalDiscoveryError(
                 f"Source must be a file or directory: {source}",
                 file_path=source if isinstance(source, Path) else None,
                 suggestion="Provide a valid file or directory path for autodoc extraction",
+                code=ErrorCode.D002,
             )
 
     def _extract_directory(self, directory: Path) -> list[DocElement]:

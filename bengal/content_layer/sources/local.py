@@ -99,12 +99,13 @@ class LocalSource(ContentSource):
         """
         super().__init__(name, config)
 
-        from bengal.errors import BengalConfigError
+        from bengal.errors import BengalConfigError, ErrorCode
 
         if "directory" not in config:
             raise BengalConfigError(
                 f"LocalSource '{name}' requires 'directory' in config",
                 suggestion="Add 'directory' to LocalSource configuration",
+                code=ErrorCode.C002,
             )
 
         self.directory = Path(config["directory"])

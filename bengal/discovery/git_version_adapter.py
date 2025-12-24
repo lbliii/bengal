@@ -275,12 +275,13 @@ class GitVersionAdapter:
                 ref=ref,
                 error=e.stderr,
             )
-            from bengal.errors import BengalDiscoveryError
+            from bengal.errors import BengalDiscoveryError, ErrorCode
 
             raise BengalDiscoveryError(
                 f"Failed to create worktree for {ref}: {e.stderr}",
                 suggestion="Check git repository state and permissions. Ensure git is installed and the repository is accessible.",
                 original_error=e,
+                code=ErrorCode.D007,
             ) from e
 
         # Get commit SHA

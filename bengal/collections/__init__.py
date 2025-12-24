@@ -160,13 +160,14 @@ class CollectionConfig[T]:
             self.directory = Path(self.directory)
 
         # Validate: must have either directory or loader
-        from bengal.errors import BengalConfigError
+        from bengal.errors import BengalConfigError, ErrorCode
 
         if self.directory is None and self.loader is None:
             raise BengalConfigError(
                 "CollectionConfig requires either 'directory' (for local content) "
                 "or 'loader' (for remote content)",
                 suggestion="Set either 'directory' for local content or 'loader' for remote content",
+                code=ErrorCode.C002,
             )
 
     @property
