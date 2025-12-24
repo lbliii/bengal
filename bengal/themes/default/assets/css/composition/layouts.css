@@ -57,6 +57,7 @@
   /* Tighter to header */
   max-height: calc(100vh - 60px);
   overflow-y: auto;
+  overflow-x: hidden; /* Prevent horizontal scroll from long nav item names */
   overscroll-behavior: contain;
   /* Internal padding - content doesn't touch edges */
   padding-block: var(--space-5) var(--space-8);
