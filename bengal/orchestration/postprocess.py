@@ -214,9 +214,37 @@ class PostprocessOrchestrator:
                     )
                 task_fn()
             except Exception as e:
-                if progress_manager:
-                    logger.error("postprocess_task_failed", task=task_name, error=str(e))
-                else:
+                from bengal.errors import (
+                    BengalError,
+                    ErrorCode,
+                    ErrorContext,
+                    enrich_error,
+                    record_error,
+                )
+
+                # Enrich error with context for better debugging
+                context = ErrorContext(
+                    operation=f"post-processing task: {task_name}",
+                    suggestion=f"Check {task_name} configuration and file permissions",
+                    original_error=e,
+                )
+                enriched = enrich_error(e, context, BengalError)
+
+                # Log with error code
+                logger.error(
+                    "postprocess_task_failed",
+                    task=task_name,
+                    error=str(enriched),
+                    error_type=type(e).__name__,
+                    error_code=ErrorCode.B008.value,
+                    suggestion=f"Check {task_name} configuration and file permissions",
+                )
+
+                # Record in error session for pattern detection
+                record_error(enriched, file_path=f"postprocess:{task_name}")
+
+                # Also print for user visibility
+                if not progress_manager:
                     with _print_lock:
                         if reporter:
                             try:
@@ -274,8 +302,36 @@ class PostprocessOrchestrator:
                             logger.debug("postprocess_shutdown", task=task_name)
                             continue
                         errors.append((task_name, error_msg))
-                        if progress_manager:
-                            logger.error("postprocess_task_failed", task=task_name, error=error_msg)
+
+                        # Import error handling utilities
+                        from bengal.errors import (
+                            BengalError,
+                            ErrorCode,
+                            ErrorContext,
+                            enrich_error,
+                            record_error,
+                        )
+
+                        # Enrich error with context
+                        context = ErrorContext(
+                            operation=f"post-processing task: {task_name}",
+                            suggestion=f"Check {task_name} configuration and file permissions",
+                            original_error=e,
+                        )
+                        enriched = enrich_error(e, context, BengalError)
+
+                        # Log with error code
+                        logger.error(
+                            "postprocess_task_failed",
+                            task=task_name,
+                            error=str(enriched),
+                            error_type=type(e).__name__,
+                            error_code=ErrorCode.B008.value,
+                            suggestion=f"Check {task_name} configuration and file permissions",
+                        )
+
+                        # Record in error session
+                        record_error(enriched, file_path=f"postprocess:{task_name}")
         except RuntimeError as e:
             # Handle graceful shutdown at executor level
             if "interpreter shutdown" in str(e):

@@ -86,6 +86,7 @@ class ErrorCode(Enum):
     - ``G001-G099``: Graph/analysis errors
     - ``O001-O099``: Autodoc extraction/generation errors
     - ``V001-V099``: Validator/health check errors
+    - ``B001-B099``: Build/orchestration errors
 
     Each code maps to documentation at ``/docs/reference/errors/#{code}``.
 
@@ -265,6 +266,20 @@ class ErrorCode(Enum):
     V005 = "linkcheck_network_error"  # Network error during link check
     V006 = "graph_analysis_failed"  # Connectivity/graph analysis failed in health
 
+    # ============================================================
+    # Build/Orchestration errors (B001-B099)
+    # ============================================================
+    B001 = "build_phase_failed"  # Generic build phase failure
+    B002 = "build_parallel_error"  # Parallel processing failure
+    B003 = "build_incremental_failed"  # Incremental build detection/cache failure
+    B004 = "menu_build_failed"  # Menu building failure
+    B005 = "taxonomy_collection_failed"  # Taxonomy collection failure
+    B006 = "taxonomy_page_generation_failed"  # Taxonomy page generation failure
+    B007 = "asset_processing_failed"  # Asset processing failure
+    B008 = "postprocess_task_failed"  # Post-processing task failure
+    B009 = "section_finalization_failed"  # Section finalization failure
+    B010 = "cache_initialization_failed"  # Cache/tracker initialization failure
+
     @property
     def docs_url(self) -> str:
         """
@@ -300,6 +315,7 @@ class ErrorCode(Enum):
             "G": "graph",
             "O": "autodoc",
             "V": "validator",
+            "B": "build",
         }
         prefix = self.name[0]
         return categories.get(prefix, "unknown")
@@ -328,6 +344,7 @@ class ErrorCode(Enum):
             "G": "analysis",
             "O": "autodoc",
             "V": "health",
+            "B": "orchestration",
         }
         prefix = self.name[0]
         return subsystem_map.get(prefix, "unknown")

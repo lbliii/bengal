@@ -160,10 +160,11 @@ class IncrementalOrchestrator:
             Tuple of (pages_to_build, assets_to_process, change_summary)
         """
         if not self.cache or not self.tracker:
-            from bengal.errors import BengalError
+            from bengal.errors import BengalError, ErrorCode
 
             raise BengalError(
                 "Cache not initialized - call initialize() first",
+                code=ErrorCode.B010,
                 suggestion="Call IncrementalBuildOrchestrator.initialize() before using this method",
             )
 
@@ -217,10 +218,11 @@ class IncrementalOrchestrator:
             Tuple of (pages_to_build, assets_to_process, change_summary)
         """
         if not self.cache or not self.tracker:
-            from bengal.errors import BengalError
+            from bengal.errors import BengalError, ErrorCode
 
             raise BengalError(
                 "Cache not initialized - call initialize() first",
+                code=ErrorCode.B010,
                 suggestion="Call IncrementalBuildOrchestrator.initialize() before using this method",
             )
 
@@ -249,10 +251,11 @@ class IncrementalOrchestrator:
         ⚠️  TEST BRIDGE ONLY - See docstring for details.
         """
         if not self.tracker:
-            from bengal.errors import BengalError
+            from bengal.errors import BengalError, ErrorCode
 
             raise BengalError(
                 "Tracker not initialized - call initialize() first",
+                code=ErrorCode.B010,
                 suggestion="Call IncrementalBuildOrchestrator.initialize() before using this method",
             )
 

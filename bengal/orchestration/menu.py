@@ -774,14 +774,35 @@ class MenuOrchestrator:
 
         Returns:
             True (menus were rebuilt)
+
+        Raises:
+            BengalError: If menu building fails with configuration or page errors
         """
         import copy
 
         from bengal.core.menu import MenuBuilder
+        from bengal.errors import BengalError, ErrorCode, ErrorContext, enrich_error
 
         # Get menu definitions from config (make deep copy to avoid mutating site config)
-        raw_menu_config = self.site.menu_config
-        menu_config = copy.deepcopy(raw_menu_config)
+        try:
+            raw_menu_config = self.site.menu_config
+            menu_config = copy.deepcopy(raw_menu_config)
+        except Exception as e:
+            context = ErrorContext(
+                operation="loading menu configuration",
+                suggestion="Check menu config syntax in bengal.toml",
+                original_error=e,
+            )
+            enriched = enrich_error(e, context, BengalError)
+            logger.error(
+                "menu_build_failed",
+                menu_name="config",
+                error=str(enriched),
+                error_type=type(e).__name__,
+                error_code=ErrorCode.B004.value,
+                suggestion="Check menu configuration in site config",
+            )
+            raise enriched from e
 
         # For "main" menu, integrate auto-nav and dev bundling directly
         # This ensures single source of truth - no separate injection step
@@ -811,51 +832,107 @@ class MenuOrchestrator:
 
         for menu_name, items in menu_config.items():
             if strategy == "none":
-                builder = MenuBuilder(diagnostics=getattr(self.site, "diagnostics", None))
-                if isinstance(items, list):
-                    builder.add_from_config(items)
-                for page in self.site.pages:
-                    page_menu = page.metadata.get("menu", {})
-                    # Skip if menu is False or not a dict (menu: false means hide from menu)
-                    if not isinstance(page_menu, dict):
-                        continue
-                    if menu_name in page_menu:
-                        builder.add_from_page(page, menu_name, page_menu[menu_name])
-                self.site.menu[menu_name] = builder.build_hierarchy()
-                self.site.menu_builders[menu_name] = builder
-                logger.info(
-                    "menu_built", menu_name=menu_name, item_count=len(self.site.menu[menu_name])
-                )
-            else:
-                # Build per-locale
-                self.site.menu_localized.setdefault(menu_name, {})
-                for lang in sorted(languages):
+                try:
                     builder = MenuBuilder(diagnostics=getattr(self.site, "diagnostics", None))
-                    # Config-defined items may have optional 'lang'
                     if isinstance(items, list):
-                        filtered_items = []
-                        for it in items:
-                            if (
-                                isinstance(it, dict)
-                                and "lang" in it
-                                and it["lang"] not in (lang, "*")
-                            ):
-                                continue
-                            filtered_items.append(it)
-                        builder.add_from_config(filtered_items)
-                    # Pages in this language
+                        builder.add_from_config(items)
                     for page in self.site.pages:
-                        if getattr(page, "lang", None) and page.lang != lang:
-                            continue
                         page_menu = page.metadata.get("menu", {})
                         # Skip if menu is False or not a dict (menu: false means hide from menu)
                         if not isinstance(page_menu, dict):
                             continue
                         if menu_name in page_menu:
                             builder.add_from_page(page, menu_name, page_menu[menu_name])
-                    menu_tree = builder.build_hierarchy()
-                    self.site.menu_localized[menu_name][lang] = menu_tree
-                    self.site.menu_builders_localized.setdefault(menu_name, {})[lang] = builder
+                    self.site.menu[menu_name] = builder.build_hierarchy()
+                    self.site.menu_builders[menu_name] = builder
+                    logger.info(
+                        "menu_built", menu_name=menu_name, item_count=len(self.site.menu[menu_name])
+                    )
+                except KeyError as e:
+                    context = ErrorContext(
+                        operation=f"building menu '{menu_name}'",
+                        suggestion="Check menu config for missing or misspelled page references",
+                        original_error=e,
+                    )
+                    enriched = enrich_error(e, context, BengalError)
+                    logger.error(
+                        "menu_build_failed",
+                        menu_name=menu_name,
+                        error=str(enriched),
+                        error_type=type(e).__name__,
+                        error_code=ErrorCode.B004.value,
+                        suggestion="Verify menu config syntax and ensure referenced pages exist",
+                    )
+                    raise enriched from e
+                except Exception as e:
+                    logger.error(
+                        "menu_build_failed",
+                        menu_name=menu_name,
+                        error=str(e),
+                        error_type=type(e).__name__,
+                        error_code=ErrorCode.B004.value,
+                        suggestion="Check menu configuration in site config",
+                    )
+                    raise
+            else:
+                # Build per-locale
+                self.site.menu_localized.setdefault(menu_name, {})
+                for lang in sorted(languages):
+                    try:
+                        builder = MenuBuilder(diagnostics=getattr(self.site, "diagnostics", None))
+                        # Config-defined items may have optional 'lang'
+                        if isinstance(items, list):
+                            filtered_items = []
+                            for it in items:
+                                if (
+                                    isinstance(it, dict)
+                                    and "lang" in it
+                                    and it["lang"] not in (lang, "*")
+                                ):
+                                    continue
+                                filtered_items.append(it)
+                            builder.add_from_config(filtered_items)
+                        # Pages in this language
+                        for page in self.site.pages:
+                            if getattr(page, "lang", None) and page.lang != lang:
+                                continue
+                            page_menu = page.metadata.get("menu", {})
+                            # Skip if menu is False or not a dict (menu: false means hide from menu)
+                            if not isinstance(page_menu, dict):
+                                continue
+                            if menu_name in page_menu:
+                                builder.add_from_page(page, menu_name, page_menu[menu_name])
+                        menu_tree = builder.build_hierarchy()
+                        self.site.menu_localized[menu_name][lang] = menu_tree
+                        self.site.menu_builders_localized.setdefault(menu_name, {})[lang] = builder
+                    except KeyError as e:
+                        context = ErrorContext(
+                            operation=f"building localized menu '{menu_name}' for language '{lang}'",
+                            suggestion="Check menu config for missing or misspelled page references",
+                            original_error=e,
+                        )
+                        enriched = enrich_error(e, context, BengalError)
+                        logger.error(
+                            "menu_build_failed",
+                            menu_name=menu_name,
+                            lang=lang,
+                            error=str(enriched),
+                            error_type=type(e).__name__,
+                            error_code=ErrorCode.B004.value,
+                            suggestion="Verify menu config syntax and ensure referenced pages exist",
+                        )
+                        raise enriched from e
+                    except Exception as e:
+                        logger.error(
+                            "menu_build_failed",
+                            menu_name=menu_name,
+                            lang=lang,
+                            error=str(e),
+                            error_type=type(e).__name__,
+                            error_code=ErrorCode.B004.value,
+                            suggestion="Check menu configuration in site config",
+                        )
+                        raise
                 logger.info("menu_built_localized", menu_name=menu_name, languages=len(languages))
 
         # Update cache key

@@ -144,7 +144,14 @@ class ContentOrchestrator:
             )
 
         if not content_dir.exists():
-            logger.warning("content_dir_not_found", path=str(content_dir))
+            from bengal.errors import ErrorCode
+
+            logger.warning(
+                "content_dir_not_found",
+                path=str(content_dir),
+                error_code=ErrorCode.D001.value,
+                suggestion="Run 'bengal init' to create site structure, or check path spelling",
+            )
             return
 
         logger.debug(

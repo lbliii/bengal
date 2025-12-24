@@ -675,6 +675,8 @@ class TaxonomyOrchestrator:
         Returns:
             Number of pages generated
         """
+        from bengal.errors import ErrorAggregator, ErrorCode
+
         # Get max_workers from site config (auto-detect if not set)
         max_workers = get_max_workers(self.site.config.get("max_workers"))
 
@@ -688,6 +690,10 @@ class TaxonomyOrchestrator:
                 for tag_slug, tag_data in locale_tags.items()
             }
 
+            # Use ErrorAggregator for batch error handling
+            aggregator = ErrorAggregator(total_items=len(locale_tags))
+            threshold = 5
+
             # Collect results as they complete
             for future in concurrent.futures.as_completed(future_to_tag):
                 tag_slug = future_to_tag[future]
@@ -698,13 +704,23 @@ class TaxonomyOrchestrator:
                         page.lang = lang
                     all_generated_pages.extend(tag_pages)
                 except Exception as e:
-                    # Log error but don't fail the build
-                    logger.error(
-                        "taxonomy_page_generation_failed",
-                        tag_slug=tag_slug,
-                        lang=lang,
-                        error=str(e),
-                    )
+                    # Use ErrorAggregator for structured error handling
+                    context = {
+                        "tag_slug": tag_slug,
+                        "lang": lang,
+                        "error": str(e),
+                        "error_type": type(e).__name__,
+                        "error_code": ErrorCode.B006.value,
+                        "suggestion": "Check tag template 'tag.html' exists and is valid Jinja2",
+                    }
+                    if aggregator.should_log_individual(
+                        e, context, threshold=threshold, max_samples=3
+                    ):
+                        logger.error("taxonomy_page_generation_failed", **context)
+                    aggregator.add_error(e, context=context)
+
+            # Log summary if errors occurred
+            aggregator.log_summary(logger, threshold=threshold, error_type="taxonomy")
 
         # Append all generated pages at once (thread-safe)
         self.site.pages.extend(all_generated_pages)
