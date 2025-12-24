@@ -253,32 +253,72 @@ def _make_t(site: Site) -> Callable[[str, dict[str, Any] | None, str | None, str
     return t
 
 
+# PERF: Cache for translation_key -> list[Page] index.
+# Built once per build, keyed by site id and page count for auto-invalidation.
+_translation_key_index_cache: dict[int, tuple[int, dict[str, list[Any]]]] = {}
+
+
+def _get_translation_key_index(site: Site) -> dict[str, list[Any]]:
+    """
+    Get or build translation_key -> pages index.
+
+    PERF: This is O(pages) once per build instead of O(pages) per page render.
+    Cache is invalidated when page count changes (e.g., dev server rebuild).
+
+    Returns:
+        Dict mapping translation_key to list of pages with that key.
+    """
+    site_id = id(site)
+    current_page_count = len(site.pages)
+
+    cached = _translation_key_index_cache.get(site_id)
+    if cached is not None:
+        cached_count, index = cached
+        if cached_count == current_page_count:
+            return index
+
+    # Build fresh index
+    index: dict[str, list[Any]] = {}
+    for p in site.pages:
+        key = getattr(p, "translation_key", None)
+        if key and p.output_path:
+            if key not in index:
+                index[key] = []
+            index[key].append(p)
+
+    _translation_key_index_cache[site_id] = (current_page_count, index)
+    return index
+
+
 def _alternate_links(site: Site, page: Any | None) -> list[dict[str, str]]:
     if page is None:
         return []
     # Build alternates via translation_key
     i18n = site.config.get("i18n", {}) or {}
-    if not getattr(page, "translation_key", None):
+    key = getattr(page, "translation_key", None)
+    if not key:
         return []
-    # Collect pages by lang
-    key = page.translation_key
+
+    # PERF: Use indexed lookup instead of scanning all pages
+    index = _get_translation_key_index(site)
+    pages_with_key = index.get(key, [])
+
     alternates: list[dict[str, str]] = []
-    for p in site.pages:
-        if getattr(p, "translation_key", None) == key and p.output_path:
-            try:
-                rel = p.output_path.relative_to(site.output_dir)
-                href = "/" + str(rel).replace("index.html", "").replace("\\", "/").rstrip("/") + "/"
-                lang = getattr(p, "lang", None) or i18n.get("default_language", "en")
-                alternates.append({"hreflang": lang, "href": href})
-            except Exception as e:
-                logger.debug(
-                    "i18n_alternate_link_failed",
-                    page_path=str(p.output_path) if hasattr(p, "output_path") else None,
-                    error=str(e),
-                    error_type=type(e).__name__,
-                    action="skipping_alternate",
-                )
-                continue
+    for p in pages_with_key:
+        try:
+            rel = p.output_path.relative_to(site.output_dir)
+            href = "/" + str(rel).replace("index.html", "").replace("\\", "/").rstrip("/") + "/"
+            lang = getattr(p, "lang", None) or i18n.get("default_language", "en")
+            alternates.append({"hreflang": lang, "href": href})
+        except Exception as e:
+            logger.debug(
+                "i18n_alternate_link_failed",
+                page_path=str(p.output_path) if hasattr(p, "output_path") else None,
+                error=str(e),
+                error_type=type(e).__name__,
+                action="skipping_alternate",
+            )
+            continue
     # Add x-default pointing to default language
     default_lang = i18n.get("default_language", "en")
     default = next((a for a in alternates if a["hreflang"] == default_lang), None)

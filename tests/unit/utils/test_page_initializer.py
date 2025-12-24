@@ -32,9 +32,14 @@ class TestPageInitializer:
         site.output_dir = tmp_path / "public"
         site.output_dir.mkdir(parents=True)
         site.config = {"site": {"base_url": "https://example.com"}}
-        # Mock section registry for path-based section lookups
-        site._section_registry = {}
-        site.get_section_by_path = Mock(side_effect=lambda path: site._section_registry.get(path))
+        # Mock registry for section lookups
+        site._mock_sections = {}
+        site.registry = Mock()
+        site.registry.epoch = 0
+        site.registry.register_section = Mock(
+            side_effect=lambda s: site._mock_sections.update({s.path: s})
+        )
+        site.get_section_by_path = Mock(side_effect=lambda path: site._mock_sections.get(path))
         return site
 
     @pytest.fixture
@@ -195,7 +200,7 @@ class TestPageInitializer:
         page.output_path = mock_site.output_dir / "docs" / "index.html"
 
         # Register section in site registry for path-based lookup
-        mock_site._section_registry[section.path] = section
+        mock_site.registry.register_section(section)
 
         initializer.ensure_initialized_for_section(page, section)
 
@@ -213,8 +218,8 @@ class TestPageInitializer:
         page.output_path = mock_site.output_dir / "test" / "index.html"
 
         # Register sections in site registry for path-based lookup
-        mock_site._section_registry[section1.path] = section1
-        mock_site._section_registry[section2.path] = section2
+        mock_site.registry.register_section(section1)
+        mock_site.registry.register_section(section2)
         page._site = mock_site
         page._section = section1  # Already set
 
@@ -243,7 +248,7 @@ class TestPageInitializer:
         page.output_path = tmp_path / "other" / "test.html"  # Outside output_dir
 
         # Register section in site registry for path-based lookup
-        mock_site._section_registry[section.path] = section
+        mock_site.registry.register_section(section)
 
         # Should not raise - Page.url falls back gracefully
         initializer.ensure_initialized_for_section(page, section)
@@ -334,7 +339,7 @@ class TestPageInitializer:
         archive_page.output_path = mock_site.output_dir / "blog" / "index.html"
 
         # Register section in site registry for path-based lookup
-        mock_site._section_registry[section.path] = section
+        mock_site.registry.register_section(section)
 
         # Initialize
         initializer.ensure_initialized_for_section(archive_page, section)
@@ -408,7 +413,7 @@ class TestPageInitializer:
         index_page.output_path = mock_site.output_dir / "docs" / "index.html"
 
         # Register section in site registry for path-based lookup
-        mock_site._section_registry[section.path] = section
+        mock_site.registry.register_section(section)
 
         initializer.ensure_initialized_for_section(index_page, section)
 
@@ -423,7 +428,7 @@ class TestPageInitializer:
         parent.add_subsection(child)
 
         # Register section in mock site's registry for path-based lookup
-        mock_site._section_registry[child.path] = child
+        mock_site.registry.register_section(child)
 
         page = Page(
             source_path=tmp_path / "content" / "docs" / "guides" / "intro.md",

@@ -293,14 +293,16 @@ class TestIncrementalUpdates:
 
         # Create a mock site with section registry
         mock_site = Mock(spec=Site)
-        mock_site._section_registry = {}
+        mock_site._mock_sections = {}
+        mock_site.registry = Mock()
+        mock_site.registry.epoch = 0
         mock_site.get_section_by_path = Mock(
-            side_effect=lambda path: mock_site._section_registry.get(path)
+            side_effect=lambda path: mock_site._mock_sections.get(path)
         )
 
         # First update - page in 'blog'
         blog_section = Section(name="blog", path=Path("content/blog"))
-        mock_site._section_registry[blog_section.path] = blog_section
+        mock_site._mock_sections[blog_section.path] = blog_section
 
         page = Page(source_path=Path("content/post.md"), content="Test")
         page._site = mock_site
@@ -311,7 +313,7 @@ class TestIncrementalUpdates:
 
         # Second update - page moved to 'docs'
         docs_section = Section(name="docs", path=Path("content/docs"))
-        mock_site._section_registry[docs_section.path] = docs_section
+        mock_site._mock_sections[docs_section.path] = docs_section
 
         page._section = docs_section  # This updates the path
         affected = index.update_page(page, build_cache)

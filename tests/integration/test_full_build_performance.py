@@ -90,8 +90,7 @@ def test_full_build_baseline_performance(test_site_dir):
     assert elapsed_ms < 500, f"Content discovery too slow: {elapsed_ms:.2f}ms"
 
     # Verify sections are registered
-    assert len(site._section_registry) > 0
-    assert site._section_registry is not None
+    assert site.registry.section_count > 0
 
 
 def test_incremental_rebuild_performance(test_site_dir):
@@ -101,7 +100,7 @@ def test_incremental_rebuild_performance(test_site_dir):
 
     # Initial build
     initial_page_count = len(site.pages)
-    initial_section_count = len(site._section_registry)
+    initial_section_count = site.registry.section_count
 
     # Simulate incremental rebuild
     start = time.perf_counter()
@@ -116,7 +115,7 @@ def test_incremental_rebuild_performance(test_site_dir):
 
     # Verify state was rebuilt correctly
     assert len(site.pages) == initial_page_count
-    assert len(site._section_registry) == initial_section_count
+    assert site.registry.section_count == initial_section_count
 
 
 def test_section_lookup_doesnt_slow_page_processing(test_site_dir):
@@ -186,7 +185,7 @@ def test_multiple_rebuild_cycles_no_degradation(test_site_dir, test_progress):
     assert ratio < 2.0, f"Performance degraded: {ratio:.2f}x slower"
 
 
-def test_section_registry_overhead_minimal(test_site_dir, test_progress):
+def test_content_registry_overhead_minimal(test_site_dir, test_progress):
     """Test that section registry adds minimal overhead to discovery."""
     site = Site.from_config(test_site_dir)
 
@@ -210,7 +209,7 @@ def test_section_registry_overhead_minimal(test_site_dir, test_progress):
     assert avg_ms < 200, f"Discovery too slow: {avg_ms:.2f}ms average"
 
     # Verify registry is built
-    assert len(site._section_registry) > 0
+    assert site.registry.section_count > 0
 
 
 def test_large_section_tree_performance(tmp_path, test_progress):
@@ -260,7 +259,7 @@ Content for page {j}.
     assert elapsed_ms < 2000, f"Large site discovery too slow: {elapsed_ms:.2f}ms"
 
     # Verify discovery worked
-    assert len(site._section_registry) == num_sections
+    assert site.registry.section_count == num_sections
     assert len(site.pages) >= num_sections * pages_per_section
 
     # Test lookups are still fast

@@ -5,7 +5,7 @@ Covers strict mode, failure tracking, fallback tagging, and summary reporting.
 """
 
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
@@ -39,8 +39,10 @@ def mock_site():
     site.baseurl = "/"
     site.menu = {"main": []}
     site.menu_localized = {}
-    site._section_registry = {}
-    site._section_url_registry = {}
+    site.registry = Mock()
+    site.registry.epoch = 0
+    site.registry.register_section = Mock()
+    site.registry.get_section = Mock(return_value=None)
     return site
 
 

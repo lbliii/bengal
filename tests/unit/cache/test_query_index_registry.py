@@ -30,12 +30,14 @@ def sample_pages(temp_site):
     docs_section = Section(name="docs", path=Path("content/docs"))
 
     # Set up site registry
-    temp_site._section_registry = {
+    temp_site._mock_sections = {
         blog_section.path: blog_section,
         docs_section.path: docs_section,
     }
+    temp_site.registry.register_section(blog_section)
+    temp_site.registry.register_section(docs_section)
     temp_site.get_section_by_path = Mock(
-        side_effect=lambda path: temp_site._section_registry.get(path)
+        side_effect=lambda path: temp_site._mock_sections.get(path)
     )
 
     # Blog posts

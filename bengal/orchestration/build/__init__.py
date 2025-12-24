@@ -53,6 +53,7 @@ from typing import TYPE_CHECKING, Any
 
 from bengal.core.output import BuildOutputCollector
 from bengal.orchestration.asset import AssetOrchestrator
+from bengal.orchestration.build_state import BuildState
 from bengal.orchestration.content import ContentOrchestrator
 from bengal.orchestration.menu import MenuOrchestrator
 from bengal.orchestration.postprocess import PostprocessOrchestrator
@@ -331,6 +332,15 @@ class BuildOrchestrator:
 
         self.site.build_time = datetime.now()
 
+        # Create fresh BuildState for this build
+        # See: plan/drafted/rfc-site-responsibility-separation.md
+        build_state = BuildState(
+            build_time=self.site.build_time,
+            incremental=bool(incremental),
+            dev_mode=self.site.dev_mode,
+        )
+        self.site.set_build_state(build_state)
+
         # Initialize cache and tracker (ALWAYS, even for full builds)
         # We need cache for cleanup of deleted files and auto-mode decision
         with logger.phase("initialization"):
@@ -575,6 +585,10 @@ class BuildOrchestrator:
 
         # Phase 21: Finalize Build
         finalization.phase_finalize(self, verbose, collector)
+
+        # Clear build state (build complete)
+        # See: plan/drafted/rfc-site-responsibility-separation.md
+        self.site.set_build_state(None)
 
         return self.stats
 

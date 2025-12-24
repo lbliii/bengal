@@ -76,9 +76,11 @@ class TestSectionTrackingInBuilds:
 
         # Create a mock site with section registry
         mock_site = Mock(spec=Site)
-        mock_site._section_registry = {}
+        mock_site._mock_sections = {}
+        mock_site.registry = Mock()
+        mock_site.registry.epoch = 0
         mock_site.get_section_by_path = Mock(
-            side_effect=lambda path: mock_site._section_registry.get(path)
+            side_effect=lambda path: mock_site._mock_sections.get(path)
         )
 
         # Create sections
@@ -87,9 +89,9 @@ class TestSectionTrackingInBuilds:
         tutorials_section = Section(name="tutorials", path=tmp_path / "tutorials")
 
         # Register sections
-        mock_site._section_registry[blog_section.path] = blog_section
-        mock_site._section_registry[docs_section.path] = docs_section
-        mock_site._section_registry[tutorials_section.path] = tutorials_section
+        mock_site._mock_sections[blog_section.path] = blog_section
+        mock_site._mock_sections[docs_section.path] = docs_section
+        mock_site._mock_sections[tutorials_section.path] = tutorials_section
 
         # Create pages in sections
         pages = [

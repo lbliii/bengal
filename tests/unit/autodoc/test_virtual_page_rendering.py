@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from collections.abc import Generator
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
@@ -44,8 +44,10 @@ def mock_site() -> Generator[MagicMock]:
     site.menu_localized = {}
 
     # Mock sections registry
-    site._section_registry = {}
-    site._section_url_registry = {}
+    site.registry = Mock()
+    site.registry.epoch = 0
+    site.registry.register_section = Mock()
+    site.registry.get_section = Mock(return_value=None)
 
     yield site
 

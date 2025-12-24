@@ -46,6 +46,14 @@ class VersionChangeDetector:
         """
         self.site = site
         self.tracker = tracker
+        # PERF: Cached page lookup (built lazily on first access)
+        self._page_by_path: dict[Path, Page] | None = None
+
+    def _get_page_by_path(self, path: Path) -> Page | None:
+        """O(1) page lookup by source path (cached)."""
+        if self._page_by_path is None:
+            self._page_by_path = {p.source_path: p for p in self.site.pages}
+        return self._page_by_path.get(path)
 
     def apply_cross_version_rebuilds(
         self,
@@ -85,7 +93,8 @@ class VersionChangeDetector:
         # For each page being rebuilt, check if other pages have cross-version links to it
         for changed_path in list(pages_to_rebuild):
             # Find the page to get its version
-            page = next((p for p in self.site.pages if p.source_path == changed_path), None)
+            # PERF: O(1) lookup instead of O(n) scan
+            page = self._get_page_by_path(changed_path)
             if not page:
                 continue
 

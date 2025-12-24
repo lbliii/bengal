@@ -228,7 +228,22 @@ class TemplateSiteWrapper:
 
     When templates access site.pages or site.sections, the pages/sections
     are automatically wrapped so they have .href with baseurl applied.
+
+    PERF: Wrapped lists are cached to avoid O(n) list creation on every access.
+    Cache is keyed by the underlying list length, so it auto-invalidates when
+    pages/sections are added/removed (e.g., during dev server rebuilds).
     """
+
+    __slots__ = (
+        "_site",
+        "_baseurl",
+        "_pages_cache",
+        "_pages_cache_len",
+        "_sections_cache",
+        "_sections_cache_len",
+        "_regular_pages_cache",
+        "_regular_pages_cache_len",
+    )
 
     def __init__(self, site: Any, baseurl: str = ""):
         """
@@ -240,21 +255,44 @@ class TemplateSiteWrapper:
         """
         self._site = site
         self._baseurl = baseurl
+        # PERF: Caches for wrapped lists (avoids O(n) list creation on each access)
+        self._pages_cache: list[TemplatePageWrapper] | None = None
+        self._pages_cache_len: int = -1
+        self._sections_cache: list[TemplateSectionWrapper] | None = None
+        self._sections_cache_len: int = -1
+        self._regular_pages_cache: list[TemplatePageWrapper] | None = None
+        self._regular_pages_cache_len: int = -1
 
     @property
     def pages(self) -> list[TemplatePageWrapper]:
-        """Return wrapped pages."""
-        return [wrap_for_template(p, self._baseurl) for p in self._site.pages]
+        """Return wrapped pages (cached)."""
+        current_len = len(self._site.pages)
+        if self._pages_cache is None or self._pages_cache_len != current_len:
+            self._pages_cache = [wrap_for_template(p, self._baseurl) for p in self._site.pages]
+            self._pages_cache_len = current_len
+        return self._pages_cache
 
     @property
     def sections(self) -> list[TemplateSectionWrapper]:
-        """Return wrapped sections."""
-        return [wrap_for_template(s, self._baseurl) for s in self._site.sections]
+        """Return wrapped sections (cached)."""
+        current_len = len(self._site.sections)
+        if self._sections_cache is None or self._sections_cache_len != current_len:
+            self._sections_cache = [
+                wrap_for_template(s, self._baseurl) for s in self._site.sections
+            ]
+            self._sections_cache_len = current_len
+        return self._sections_cache
 
     @property
     def regular_pages(self) -> list[TemplatePageWrapper]:
-        """Return wrapped regular pages."""
-        return [wrap_for_template(p, self._baseurl) for p in self._site.regular_pages]
+        """Return wrapped regular pages (cached)."""
+        current_len = len(self._site.regular_pages)
+        if self._regular_pages_cache is None or self._regular_pages_cache_len != current_len:
+            self._regular_pages_cache = [
+                wrap_for_template(p, self._baseurl) for p in self._site.regular_pages
+            ]
+            self._regular_pages_cache_len = current_len
+        return self._regular_pages_cache
 
     def __getattr__(self, name: str) -> Any:
         """Delegate all other attributes to wrapped site."""

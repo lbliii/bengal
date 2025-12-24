@@ -44,7 +44,7 @@ class TestTemplateSelection:
 
         # Create minimal mock site with section registry
         site = Site(root_path=Path("/site"), config={})
-        site._section_registry[section.path] = section
+        site.registry.register_section(section)
 
         page._site = site
         page._section = section

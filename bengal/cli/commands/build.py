@@ -589,6 +589,14 @@ def build(
         # Print phase timing summary in dev mode only
         if build_profile == BuildProfile.DEVELOPER and not quiet:
             print_all_summaries()
+
+        # Show GIL tip for performance (only if not quiet and GIL could be disabled)
+        if not quiet:
+            from bengal.utils.gil import format_gil_tip_for_cli
+
+            gil_tip = format_gil_tip_for_cli()
+            if gil_tip:
+                cli.tip(gil_tip)
     finally:
         # Always close log file handles
         close_all_loggers()

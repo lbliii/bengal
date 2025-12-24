@@ -58,9 +58,16 @@ Represents a single content page with source, metadata, rendered HTML, and navig
 :::
 
 :::{tab-item} Section
-**Structural Unit** (`bengal/core/section.py`)
+**Structural Unit** (`bengal/core/section/`)
 
 Represents folder-based grouping of pages with hierarchical organization.
+
+**Architecture:**
+- **Composition Pattern**: Split into focused mixins:
+  - `hierarchy.py`: Tree traversal, parent/child, identity (`__hash__`, `__eq__`)
+  - `navigation.py`: URL generation, version-aware filtering
+  - `queries.py`: Page retrieval, sorting, index detection
+  - `ergonomics.py`: Theme developer helpers (recent_pages, featured_posts, etc.)
 
 **Features:**
 - **Hierarchy**: Parent/child relationships (`subsections`)

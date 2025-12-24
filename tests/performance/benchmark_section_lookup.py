@@ -55,7 +55,7 @@ def test_registry_build_performance(site_with_many_sections):
     assert elapsed_ms < 500, f"Registry build too slow: {elapsed_ms:.2f}ms for 1000 sections"
 
     # Verify registry was built correctly
-    assert len(site._section_registry) == 1000
+    assert site.registry.section_count == 1000
 
 
 def test_single_lookup_performance(site_with_many_sections):
@@ -107,8 +107,8 @@ def test_registry_memory_bounded(site_with_many_sections):
     site.register_sections()
 
     # Estimate memory usage (rough approximation)
-    registry_size = sys.getsizeof(site._section_registry)
-    for key, value in site._section_registry.items():
+    registry_size = sys.getsizeof(site.registry._sections_by_path)
+    for key, value in site.registry._sections_by_path.items():
         registry_size += sys.getsizeof(key)
         registry_size += sys.getsizeof(value)
 
@@ -246,7 +246,7 @@ def test_registry_rebuild_performance(site_with_many_sections):
     elapsed_ms = elapsed * 1000
     # Rebuild should be reasonably fast
     assert elapsed_ms < 600, f"Registry rebuild too slow: {elapsed_ms:.2f}ms for 1100 sections"
-    assert len(site._section_registry) == 1100
+    assert site.registry.section_count == 1100
 
 
 def test_concurrent_lookup_performance(site_with_many_sections):

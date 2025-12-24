@@ -188,9 +188,9 @@ class Page(
     _section_url: str | None = field(default=None, repr=False)
 
     # Cached resolved Section object for fast repeated access during template rendering.
-    # NOTE: Cache is per-site-object + reference tuple and must be invalidated when those change.
+    # NOTE: Cache is per-site-object + epoch + reference tuple and must be invalidated when those change.
     _section_obj_cache: Any = field(default=None, repr=False, init=False)
-    _section_obj_cache_key: tuple[int, Path | None, str | None] | None = field(
+    _section_obj_cache_key: tuple[int, int, Path | None, str | None] | None = field(
         default=None, repr=False, init=False
     )
 
@@ -514,9 +514,11 @@ class Page(
                 )
             return None
 
-        # Cache key ties the resolved section to the active site object + reference fields.
+        # Cache key ties the resolved section to the active site object + reference fields + registry epoch.
         # This keeps lookups O(1) after the first resolution within a build.
-        cache_key = (id(self._site), self._section_path, self._section_url)
+        # The epoch ensures cache invalidation when sections are re-registered.
+        epoch = self._site.registry.epoch if hasattr(self._site, "registry") else 0
+        cache_key = (id(self._site), epoch, self._section_path, self._section_url)
         if self._section_obj_cache_key == cache_key:
             cached = self._section_obj_cache
             return None if cached is self._SECTION_NOT_FOUND else cached

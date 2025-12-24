@@ -74,6 +74,40 @@ class Renderer:
         self.template_engine = template_engine
         self.site = template_engine.site  # Access to site config for strict mode
         self.build_stats = build_stats  # For collecting template errors
+        # PERF: Cache for top-level content (computed once per build)
+        self._top_level_cache: tuple[list[Page], list[Any]] | None = None
+
+    def _get_top_level_content(self) -> tuple[list[Page], list[Any]]:
+        """
+        Get top-level pages and sections (not nested in any section).
+
+        PERF: Uses O(n) algorithm with set-based filtering instead of O(n²).
+        Result is cached for the lifetime of the Renderer instance.
+
+        Returns:
+            Tuple of (top_level_pages, top_level_subsections)
+        """
+        if self._top_level_cache is not None:
+            return self._top_level_cache
+
+        # Build set of all pages that are in any section (O(sections × pages_per_section))
+        pages_in_sections: set[int] = set()
+        for section in self.site.sections:
+            for p in section.pages:
+                pages_in_sections.add(id(p))
+
+        # Build set of all sections that are subsections of another (O(sections × subsections))
+        nested_sections: set[int] = set()
+        for parent in self.site.sections:
+            for s in parent.subsections:
+                nested_sections.add(id(s))
+
+        # Filter using O(1) set membership
+        top_level_pages = [p for p in self.site.regular_pages if id(p) not in pages_in_sections]
+        top_level_subsections = [s for s in self.site.sections if id(s) not in nested_sections]
+
+        self._top_level_cache = (top_level_pages, top_level_subsections)
+        return self._top_level_cache
 
     def render_content(self, content: str) -> str:
         """
@@ -186,16 +220,8 @@ class Renderer:
         ):
             # For root home page, provide site-level context as fallback
             # Filter to top-level items only (exclude nested sections/pages)
-            top_level_pages = [
-                p
-                for p in self.site.regular_pages
-                if not any(p in s.pages for s in self.site.sections)
-            ]
-            top_level_subsections = [
-                s
-                for s in self.site.sections
-                if not any(s in parent.subsections for parent in self.site.sections)
-            ]
+            # PERF: Use cached sets for O(n) instead of O(n²) filtering
+            top_level_pages, top_level_subsections = self._get_top_level_content()
 
             context.update(
                 {
@@ -343,8 +369,9 @@ class Renderer:
         tag_slug = page.metadata.get("_tag_slug")
         page_num = page.metadata.get("_page_num", 1)
 
-        page_map = None
-        str_page_map = None
+        # PERF: Use cached page lookup map instead of rebuilding on each tag page render.
+        # get_page_path_map() returns {str(source_path): Page} and is cached on site.
+        str_page_map = self.site.get_page_path_map()
 
         # Get pages directly from site.taxonomies (most reliable source)
         # But resolve them from site.pages to ensure we have current Page objects
@@ -358,17 +385,11 @@ class Renderer:
             tag_data = self.site.taxonomies["tags"][tag_slug]
             taxonomy_pages = tag_data.get("pages", [])
 
-            # Build lookup map from site.pages for reliable resolution
-            page_map = {p.source_path: p for p in self.site.pages}
-            # Also build map with string keys for robust fallback
-            str_page_map = {str(p.source_path): p for p in self.site.pages}
-
             for tax_page in taxonomy_pages:
                 resolved_page = None
                 if hasattr(tax_page, "source_path"):
-                    resolved_page = page_map.get(tax_page.source_path)
-                    if not resolved_page:
-                        resolved_page = str_page_map.get(str(tax_page.source_path))
+                    # Use cached string-keyed map for O(1) lookup
+                    resolved_page = str_page_map.get(str(tax_page.source_path))
 
                 if resolved_page:
                     source_str = str(resolved_page.source_path)
@@ -391,40 +412,17 @@ class Renderer:
         if not all_posts and page.metadata is not None:
             stored_posts = page.metadata.get("_posts", [])
             if stored_posts:
-                if page_map is None:
-                    page_map = {p.source_path: p for p in self.site.pages}
-                    str_page_map = {str(p.source_path): p for p in self.site.pages}
-
+                # str_page_map is already set from cached get_page_path_map() above
                 for stored_item in stored_posts:
                     resolved_page = None
-                    if (
-                        hasattr(stored_item, "source_path")
-                        and page_map is not None
-                        and str_page_map is not None
-                    ):
-                        resolved_page = page_map.get(stored_item.source_path)
-                        if not resolved_page:
-                            page_from_str_map = str_page_map.get(str(stored_item.source_path))
-                            if page_from_str_map is not None:
-                                resolved_page = page_from_str_map
-
+                    if hasattr(stored_item, "source_path"):
+                        resolved_page = str_page_map.get(str(stored_item.source_path))
                         if resolved_page:
                             all_posts.append(resolved_page)
                         else:
                             all_posts.append(stored_item)
-
-                    elif (
-                        isinstance(stored_item, str)
-                        and page_map is not None
-                        and str_page_map is not None
-                    ):
-                        from pathlib import Path
-
-                        path_obj = Path(stored_item)
-                        resolved_page = page_map.get(path_obj)
-                        if not resolved_page:
-                            resolved_page = str_page_map.get(str(path_obj))
-
+                    elif isinstance(stored_item, str):
+                        resolved_page = str_page_map.get(stored_item)
                         if resolved_page:
                             all_posts.append(resolved_page)
 
@@ -462,11 +460,10 @@ class Renderer:
                 }
         elif paginator and hasattr(paginator, "items") and paginator.items:
             resolved_items = []
-            if page_map is None:
-                page_map = {p.source_path: p for p in self.site.pages}
+            # str_page_map is already set from cached get_page_path_map() above
             for item in paginator.items:
-                if hasattr(item, "source_path") and page_map is not None:
-                    resolved = page_map.get(item.source_path)
+                if hasattr(item, "source_path"):
+                    resolved = str_page_map.get(str(item.source_path))
                     if resolved:
                         resolved_items.append(resolved)
                     elif item and hasattr(item, "title"):

@@ -42,6 +42,63 @@ if TYPE_CHECKING:
     from bengal.utils.progress import ProgressReporter
 
 
+def _get_top_bottleneck(total_render_ms: float) -> str | None:
+    """
+    Get the top rendering bottleneck from template profiler.
+
+    Returns the slowest template function or template as a formatted string
+    showing what percentage of total render time it consumed.
+
+    Args:
+        total_render_ms: Total rendering time in milliseconds
+
+    Returns:
+        Formatted string like "get_nav 42%" or None if no profiler data
+    """
+    from bengal.rendering.template_profiler import get_profiler
+
+    profiler = get_profiler()
+    if not profiler or total_render_ms <= 0:
+        return None
+
+    report = profiler.get_report()
+    if not report:
+        return None
+
+    # Find the single biggest time consumer (function or template)
+    top_item: tuple[str, float] | None = None
+
+    # Check functions first (usually more actionable)
+    functions = report.get("functions", {})
+    for name, stats in functions.items():
+        total_ms = stats.get("total_ms", 0)
+        if top_item is None or total_ms > top_item[1]:
+            top_item = (name, total_ms)
+
+    # Also check templates
+    templates = report.get("templates", {})
+    for name, stats in templates.items():
+        total_ms = stats.get("total_ms", 0)
+        if top_item is None or total_ms > top_item[1]:
+            # Shorten template names for display
+            short_name = name.split("/")[-1] if "/" in name else name
+            top_item = (short_name, total_ms)
+
+    if not top_item or top_item[1] <= 0:
+        return None
+
+    name, time_ms = top_item
+    pct = (time_ms / total_render_ms) * 100
+
+    # Only show if it's a meaningful percentage (>10%)
+    if pct < 10:
+        return None
+
+    # Truncate long names
+    display_name = name if len(name) <= 20 else name[:17] + "..."
+    return f"{display_name} {pct:.0f}%"
+
+
 def _optimize_css(
     orchestrator: BuildOrchestrator,
     cli: CLIOutput,
@@ -372,12 +429,27 @@ def phase_render(
 
         orchestrator.stats.rendering_time_ms = (time.time() - rendering_start) * 1000
 
-        # Show phase completion with page count
+        # Show phase completion with page count, throughput, and top bottleneck
         page_count = len(pages_to_build)
+        rendering_ms = orchestrator.stats.rendering_time_ms
+
+        # Build details string with throughput
+        detail_parts = [f"{page_count} pages"]
+        if rendering_ms > 0:
+            pages_per_sec = (page_count / rendering_ms) * 1000
+            detail_parts.append(f"{pages_per_sec:.0f}/sec")
+
+        # Add top bottleneck if profiling is enabled
+        if profile_templates:
+            bottleneck = _get_top_bottleneck(rendering_ms)
+            if bottleneck:
+                detail_parts.append(bottleneck)
+
+        details = ", ".join(detail_parts)
         cli.phase(
             "Rendering",
-            duration_ms=orchestrator.stats.rendering_time_ms,
-            details=f"{page_count} pages",
+            duration_ms=rendering_ms,
+            details=details,
         )
 
         orchestrator.logger.info(

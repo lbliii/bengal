@@ -162,13 +162,24 @@ class SectionBuilder:
         """
         Get counts of top-level sections and pages.
 
+        PERF: Uses O(n) set-based membership instead of O(n²) nested iteration.
+        Pre-computes set of all pages in sections, then counts pages not in that set.
+
         Returns:
             Tuple of (top_level_section_count, top_level_page_count)
         """
         top_level_sections = len(
             [s for s in self.sections if not hasattr(s, "parent") or s.parent is None]
         )
-        top_level_pages = len(
-            [p for p in self.pages if not any(p in s.pages for s in self.sections)]
-        )
+
+        # PERF: Build set of all pages in any section (O(sections × pages_per_section))
+        # Then use O(1) set membership instead of O(sections × pages_per_section) per page
+        pages_in_sections: set[int] = set()
+        for section in self.sections:
+            for page in section.pages:
+                pages_in_sections.add(id(page))
+
+        # O(n) filter using O(1) set lookup
+        top_level_pages = sum(1 for p in self.pages if id(p) not in pages_in_sections)
+
         return top_level_sections, top_level_pages

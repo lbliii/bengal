@@ -303,8 +303,9 @@ class ChangeDetector:
         changed_sections = self.rebuild_filter.get_changed_sections(self.site.sections)
 
         # Ensure forced/explicit changes keep their sections in scope
+        # PERF: Use cached page lookup from cascade_tracker instead of O(n) scan
         for forced_path in forced_changed | nav_changed:
-            forced_page = next((p for p in self.site.pages if p.source_path == forced_path), None)
+            forced_page = self.cascade_tracker._get_page_by_path(forced_path)
             sec = getattr(forced_page, "_section", None)
             if sec:
                 changed_sections.add(sec)
