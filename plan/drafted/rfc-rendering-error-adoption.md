@@ -1,7 +1,8 @@
 # RFC: Rendering Package Error System Adoption
 
-**Status**: Draft  
+**Status**: Implemented  
 **Created**: 2025-12-24  
+**Implemented**: 2025-12-24  
 **Author**: AI Assistant  
 **Subsystem**: `bengal/rendering/`, `bengal/errors/`  
 **Confidence**: 95% 🟢 (all claims verified via grep against source files)  
