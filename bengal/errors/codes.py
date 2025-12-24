@@ -22,6 +22,7 @@ P     Parsing           YAML, JSON, TOML, markdown parsing
 X     Asset             Static asset processing
 G     Graph             Graph analysis and algorithms
 O     Autodoc           Autodoc extraction and generation
+V     Validator         Health check and validation operations
 ====  ================  =================================
 
 Usage
@@ -84,6 +85,7 @@ class ErrorCode(Enum):
     - ``X001-X099``: Asset errors (static files, processing)
     - ``G001-G099``: Graph/analysis errors
     - ``O001-O099``: Autodoc extraction/generation errors
+    - ``V001-V099``: Validator/health check errors
 
     Each code maps to documentation at ``/docs/reference/errors/#{code}``.
 
@@ -253,6 +255,16 @@ class ErrorCode(Enum):
     O005 = "autodoc_invalid_source"  # Invalid source path/location
     O006 = "autodoc_no_elements_produced"  # Extraction produced no elements
 
+    # ============================================================
+    # Validator/Health errors (V001-V099)
+    # ============================================================
+    V001 = "validator_crashed"  # Validator raised unhandled exception
+    V002 = "health_check_failed"  # HealthCheck.run() failed
+    V003 = "autofix_failed"  # AutoFixer operation failed
+    V004 = "linkcheck_timeout"  # External link check timed out
+    V005 = "linkcheck_network_error"  # Network error during link check
+    V006 = "graph_analysis_failed"  # Connectivity/graph analysis failed in health
+
     @property
     def docs_url(self) -> str:
         """
@@ -287,6 +299,7 @@ class ErrorCode(Enum):
             "X": "asset",
             "G": "graph",
             "O": "autodoc",
+            "V": "validator",
         }
         prefix = self.name[0]
         return categories.get(prefix, "unknown")
@@ -314,6 +327,7 @@ class ErrorCode(Enum):
             "X": "assets",
             "G": "analysis",
             "O": "autodoc",
+            "V": "health",
         }
         prefix = self.name[0]
         return subsystem_map.get(prefix, "unknown")

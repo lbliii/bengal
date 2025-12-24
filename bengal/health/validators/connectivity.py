@@ -419,10 +419,27 @@ class ConnectivityValidator(BaseValidator):
             )
             return results
         except Exception as e:
-            logger.error("connectivity_validator_error", error=str(e))
+            from bengal.errors import BengalError, ErrorCode, record_error
+
+            error = BengalError(
+                f"Connectivity analysis failed: {e}",
+                code=ErrorCode.V006,
+                suggestion="Ensure bengal.analysis module is properly installed",
+                original_error=e,
+            )
+            record_error(error)
+
+            logger.error(
+                "connectivity_validator_error",
+                error=str(e),
+                error_code=ErrorCode.V006.value,
+                suggestion="Check logs for details. Run 'bengal health check --verbose' for more info.",
+            )
             results.append(
                 CheckResult.error(
-                    f"Connectivity analysis failed: {e!s}", recommendation="Check logs for details"
+                    f"Connectivity analysis failed: {e!s}",
+                    code="V006",
+                    recommendation="Check logs for details",
                 )
             )
 

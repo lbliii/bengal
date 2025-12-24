@@ -166,11 +166,12 @@ class AutoFixer:
             consistent behavior regardless of working directory.
             See: plan/implemented/rfc-path-resolution-architecture.md
         """
-        from bengal.errors import BengalError
+        from bengal.errors import BengalError, ErrorCode
 
         if not site_root:
             raise BengalError(
                 "site_root is required for AutoFixer",
+                code=ErrorCode.V003,
                 suggestion="Provide an absolute site root path",
             )
         if not site_root.is_absolute():
@@ -490,11 +491,15 @@ class AutoFixer:
             except Exception as e:
                 import traceback
 
+                from bengal.errors import ErrorCode
+
                 logger.error(
                     "autofix_apply_failed",
                     file_path=str(file_path),
                     error=str(e),
                     error_type=type(e).__name__,
+                    error_code=ErrorCode.V003.value,
+                    suggestion="Check file permissions and content syntax. See autofix docs for supported fix types.",
                 )
                 traceback.print_exc()
                 return False
@@ -714,11 +719,15 @@ class AutoFixer:
             except Exception as e:
                 import traceback
 
+                from bengal.errors import ErrorCode
+
                 logger.error(
                     "autofix_apply_failed",
                     file_path=str(file_path),
                     error=str(e),
                     error_type=type(e).__name__,
+                    error_code=ErrorCode.V003.value,
+                    suggestion="Check file permissions and content syntax. See autofix docs for supported fix types.",
                 )
                 traceback.print_exc()
                 return False
@@ -936,11 +945,15 @@ class AutoFixer:
                 else:
                     failed += 1
             except Exception as e:
+                from bengal.errors import ErrorCode
+
                 logger.error(
                     "autofix_apply_failed",
                     fix_type=type(fix).__name__,
                     error=str(e),
                     error_type=type(e).__name__,
+                    error_code=ErrorCode.V003.value,
+                    suggestion="Check file permissions and content syntax. See autofix docs for supported fix types.",
                 )
                 failed += 1
 
