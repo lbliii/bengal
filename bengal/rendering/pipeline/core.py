@@ -28,9 +28,15 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from bengal.core.page import Page
+
+if TYPE_CHECKING:
+    from bengal.cache import DependencyTracker
+    from bengal.core.site import Site
+    from bengal.orchestration.stats import BuildStats
+    from bengal.utils.build_context import BuildContext
 from bengal.rendering.engines import create_engine
 from bengal.rendering.pipeline.autodoc_renderer import AutodocRenderer
 from bengal.rendering.pipeline.cache_checker import CacheChecker
@@ -100,11 +106,11 @@ class RenderingPipeline:
 
     def __init__(
         self,
-        site: Any,
-        dependency_tracker: Any = None,
+        site: Site,
+        dependency_tracker: DependencyTracker | None = None,
         quiet: bool = False,
-        build_stats: Any = None,
-        build_context: Any | None = None,
+        build_stats: BuildStats | None = None,
+        build_context: BuildContext | None = None,
         changed_sources: set[Path] | None = None,
     ) -> None:
         """

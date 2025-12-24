@@ -17,13 +17,14 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from bengal.rendering.jinja_utils import has_value, safe_get
 
 if TYPE_CHECKING:
     from jinja2 import Environment
 
+    from bengal.core.page import Page
     from bengal.core.site import Site
 
 
@@ -47,7 +48,7 @@ def register(env: Environment, site: Site) -> None:
     )
 
 
-def test_draft(page: Any) -> bool:
+def test_draft(page: Page) -> bool:
     """
     Test if page is a draft.
 
@@ -67,7 +68,7 @@ def test_draft(page: Any) -> bool:
     return bool(metadata.get("draft", False))
 
 
-def test_featured(page: Any) -> bool:
+def test_featured(page: Page) -> bool:
     """
     Test if page has 'featured' tag.
 
@@ -87,7 +88,7 @@ def test_featured(page: Any) -> bool:
     return "featured" in tags
 
 
-def test_match(value: Any, pattern: str) -> bool:
+def test_match(value: object, pattern: str) -> bool:
     """
     Test if value matches a regex pattern.
 
@@ -108,7 +109,7 @@ def test_match(value: Any, pattern: str) -> bool:
     return bool(re.search(pattern, str(value)))
 
 
-def test_outdated(page: Any, days: int = 90) -> bool:
+def test_outdated(page: Page, days: int = 90) -> bool:
     """
     Test if page is older than N days.
 
@@ -137,7 +138,7 @@ def test_outdated(page: Any, days: int = 90) -> bool:
         return False
 
 
-def test_section(obj: Any) -> bool:
+def test_section(obj: object) -> bool:
     """
     Test if object is a Section.
 
@@ -156,7 +157,7 @@ def test_section(obj: Any) -> bool:
     return isinstance(obj, Section)
 
 
-def test_translated(page: Any) -> bool:
+def test_translated(page: Page) -> bool:
     """
     Test if page has translations.
 
