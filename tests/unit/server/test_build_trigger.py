@@ -539,3 +539,266 @@ weight: 5
         # Second detection should use cache
         result2 = trigger._detect_nav_changes({test_file}, needs_full_rebuild=False)
         assert test_file in result2
+
+
+class TestBuildTriggerQueuing:
+    """Tests for BuildTrigger change queuing during builds.
+
+    When a build is in progress, changes should be queued instead of discarded.
+    This prevents lost changes during rapid editing (important for autodoc pages).
+    """
+
+    @pytest.fixture
+    def mock_site(self) -> MagicMock:
+        """Create a mock site for testing."""
+        site = MagicMock()
+        site.root_path = Path("/test/site")
+        site.output_dir = Path("/test/site/public")
+        site.config = {}
+        site.theme = None
+        return site
+
+    @pytest.fixture
+    def mock_executor(self) -> MagicMock:
+        """Create a mock executor for testing."""
+        executor = MagicMock()
+        result = MagicMock()
+        result.success = True
+        result.pages_built = 5
+        result.build_time_ms = 100.0
+        result.error_message = None
+        result.changed_outputs = ()
+        executor.submit.return_value = result
+        return executor
+
+    def test_pending_changes_initialized_empty(
+        self, mock_site: MagicMock, mock_executor: MagicMock
+    ) -> None:
+        """Test that pending changes are initialized as empty sets."""
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+        assert trigger._pending_changes == set()
+        assert trigger._pending_event_types == set()
+
+    @patch("bengal.server.build_trigger.run_pre_build_hooks")
+    @patch("bengal.server.build_trigger.run_post_build_hooks")
+    @patch("bengal.server.build_trigger.show_building_indicator")
+    @patch("bengal.server.build_trigger.CLIOutput")
+    @patch("bengal.server.build_trigger.display_build_stats")
+    @patch("bengal.server.build_trigger.controller")
+    @patch("bengal.server.live_reload.send_reload_payload")
+    def test_changes_queued_when_build_in_progress(
+        self,
+        mock_send_reload: MagicMock,
+        mock_controller: MagicMock,
+        mock_display: MagicMock,
+        mock_cli: MagicMock,
+        mock_building: MagicMock,
+        mock_post_hooks: MagicMock,
+        mock_pre_hooks: MagicMock,
+        mock_site: MagicMock,
+        mock_executor: MagicMock,
+    ) -> None:
+        """Test that changes are queued when a build is in progress."""
+        import threading
+
+        mock_pre_hooks.return_value = True
+        mock_post_hooks.return_value = True
+        mock_controller.decide_from_changed_paths.return_value = MagicMock(
+            action="reload", reason="test", changed_paths=[]
+        )
+
+        # Create an event to control build timing
+        build_started = threading.Event()
+        build_can_finish = threading.Event()
+
+        def slow_submit(*args, **kwargs):
+            build_started.set()
+            build_can_finish.wait(timeout=5.0)
+            result = MagicMock()
+            result.success = True
+            result.pages_built = 5
+            result.build_time_ms = 100.0
+            result.error_message = None
+            result.changed_outputs = ()
+            return result
+
+        mock_executor.submit.side_effect = slow_submit
+
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+        # Start first build in background thread
+        first_build = threading.Thread(
+            target=trigger.trigger_build,
+            args=({Path("first.md")}, {"modified"}),
+        )
+        first_build.start()
+
+        # Wait for first build to start
+        build_started.wait(timeout=5.0)
+
+        # Try to trigger second build while first is in progress
+        trigger.trigger_build({Path("second.md")}, {"created"})
+
+        # Changes should be queued
+        assert Path("second.md") in trigger._pending_changes
+        assert "created" in trigger._pending_event_types
+
+        # Let first build finish
+        build_can_finish.set()
+        first_build.join(timeout=5.0)
+
+    @patch("bengal.server.build_trigger.run_pre_build_hooks")
+    @patch("bengal.server.build_trigger.run_post_build_hooks")
+    @patch("bengal.server.build_trigger.show_building_indicator")
+    @patch("bengal.server.build_trigger.CLIOutput")
+    @patch("bengal.server.build_trigger.display_build_stats")
+    @patch("bengal.server.build_trigger.controller")
+    @patch("bengal.server.live_reload.send_reload_payload")
+    def test_queued_changes_trigger_another_build(
+        self,
+        mock_send_reload: MagicMock,
+        mock_controller: MagicMock,
+        mock_display: MagicMock,
+        mock_cli: MagicMock,
+        mock_building: MagicMock,
+        mock_post_hooks: MagicMock,
+        mock_pre_hooks: MagicMock,
+        mock_site: MagicMock,
+        mock_executor: MagicMock,
+    ) -> None:
+        """Test that queued changes trigger another build after first completes."""
+        import threading
+
+        mock_pre_hooks.return_value = True
+        mock_post_hooks.return_value = True
+        mock_controller.decide_from_changed_paths.return_value = MagicMock(
+            action="reload", reason="test", changed_paths=[]
+        )
+
+        # Track build requests
+        build_requests = []
+        build_started = threading.Event()
+        build_can_finish = threading.Event()
+        first_build_done = False
+
+        def tracking_submit(request, **kwargs):
+            nonlocal first_build_done
+            build_requests.append(request)
+            if not first_build_done:
+                build_started.set()
+                build_can_finish.wait(timeout=5.0)
+                first_build_done = True
+            result = MagicMock()
+            result.success = True
+            result.pages_built = 5
+            result.build_time_ms = 100.0
+            result.error_message = None
+            result.changed_outputs = ()
+            return result
+
+        mock_executor.submit.side_effect = tracking_submit
+
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+        # Start first build in background thread
+        first_build = threading.Thread(
+            target=trigger.trigger_build,
+            args=({Path("first.md")}, {"modified"}),
+        )
+        first_build.start()
+
+        # Wait for first build to start
+        build_started.wait(timeout=5.0)
+
+        # Queue a second change
+        trigger.trigger_build({Path("second.md")}, {"created"})
+
+        # Let first build finish (which should trigger second build)
+        build_can_finish.set()
+        first_build.join(timeout=5.0)
+
+        # Should have two builds: first + queued
+        assert len(build_requests) == 2
+        assert "first.md" in build_requests[0].changed_paths[0]
+        assert "second.md" in build_requests[1].changed_paths[0]
+
+    @patch("bengal.server.build_trigger.run_pre_build_hooks")
+    @patch("bengal.server.build_trigger.run_post_build_hooks")
+    @patch("bengal.server.build_trigger.show_building_indicator")
+    @patch("bengal.server.build_trigger.CLIOutput")
+    @patch("bengal.server.build_trigger.display_build_stats")
+    @patch("bengal.server.build_trigger.controller")
+    @patch("bengal.server.live_reload.send_reload_payload")
+    def test_multiple_queued_changes_batched(
+        self,
+        mock_send_reload: MagicMock,
+        mock_controller: MagicMock,
+        mock_display: MagicMock,
+        mock_cli: MagicMock,
+        mock_building: MagicMock,
+        mock_post_hooks: MagicMock,
+        mock_pre_hooks: MagicMock,
+        mock_site: MagicMock,
+        mock_executor: MagicMock,
+    ) -> None:
+        """Test that multiple queued changes are batched into a single build."""
+        import threading
+
+        mock_pre_hooks.return_value = True
+        mock_post_hooks.return_value = True
+        mock_controller.decide_from_changed_paths.return_value = MagicMock(
+            action="reload", reason="test", changed_paths=[]
+        )
+
+        build_requests = []
+        build_started = threading.Event()
+        build_can_finish = threading.Event()
+        first_build_done = False
+
+        def tracking_submit(request, **kwargs):
+            nonlocal first_build_done
+            build_requests.append(request)
+            if not first_build_done:
+                build_started.set()
+                build_can_finish.wait(timeout=5.0)
+                first_build_done = True
+            result = MagicMock()
+            result.success = True
+            result.pages_built = 5
+            result.build_time_ms = 100.0
+            result.error_message = None
+            result.changed_outputs = ()
+            return result
+
+        mock_executor.submit.side_effect = tracking_submit
+
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+        # Start first build
+        first_build = threading.Thread(
+            target=trigger.trigger_build,
+            args=({Path("first.md")}, {"modified"}),
+        )
+        first_build.start()
+        build_started.wait(timeout=5.0)
+
+        # Queue multiple changes while first build is running
+        trigger.trigger_build({Path("second.md")}, {"created"})
+        trigger.trigger_build({Path("third.md")}, {"modified"})
+        trigger.trigger_build({Path("fourth.md")}, {"deleted"})
+
+        # All should be queued
+        assert len(trigger._pending_changes) == 3
+        assert {"created", "modified", "deleted"} == trigger._pending_event_types
+
+        # Let first build finish
+        build_can_finish.set()
+        first_build.join(timeout=5.0)
+
+        # Should have exactly 2 builds: first + batched queued changes
+        assert len(build_requests) == 2
+
+        # Second build should contain all three queued files
+        second_build_paths = set(build_requests[1].changed_paths)
+        assert len(second_build_paths) == 3
