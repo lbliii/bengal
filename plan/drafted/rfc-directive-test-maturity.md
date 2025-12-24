@@ -4,29 +4,30 @@
 **Created**: 2025-12-24  
 **Author**: AI Assistant  
 **Subsystem**: `bengal/directives/`  
-**Confidence**: 92% 🟢 (metrics verified via find/grep/wc)  
-**Priority**: P2 (Medium) — Core rendering feature with partial test coverage  
-**Estimated Effort**: 2-3 days (single dev) | 1.5 days (2 devs, parallelized)
+**Confidence**: 95% 🟢 (metrics verified via find/grep/wc across source and test files)  
+**Priority**: P2 (Medium) — Infrastructure layer needs focused unit testing  
+**Estimated Effort**: 1.5-2 days (single dev)
 
 ---
 
 ## Executive Summary
 
-The `bengal/directives/` package has **47 source files** and **mixed test coverage**. While many directives have dedicated tests in `tests/unit/rendering/`, the infrastructure layer (`base.py`, `registry.py`, `factory.py`, `options.py`, `validator.py`) lacks focused unit tests.
+The `bengal/directives/` package has **47 source files** with **strong directive behavior coverage** but **weak infrastructure unit testing**. Directive rendering is well-tested through integration and rendering test files, but the foundation classes (`base.py`, `factory.py`, `options.py`, `validator.py`) lack focused unit tests.
 
 **Current state**:
-- **15 directive test files** in `tests/unit/rendering/` (~5,968 LOC)
-- **4 infrastructure test files** in `tests/unit/directives/` (~1,116 LOC)
-- **2 TODO comments** in production code (`marimo.py`)
-- **43 `# type: ignore` comments** (40 are intentional override suppressions)
-- **~98 `: Any` type annotations** indicating opportunities for type refinement
+- **20+ directive test files** across `tests/unit/rendering/`, `tests/unit/directives/`, and `tests/integration/`
+- **~9,500+ LOC** of directive-related tests
+- **Strong coverage**: admonitions (16+ tests), dropdown (10+ tests), gallery (11 tests), media (185+ tests), badges (22+ tests)
+- **Weak coverage**: infrastructure layer (base, factory, options) — tested only indirectly
 
-**Key gaps**:
-- Admonitions directive (most common) — no dedicated test file
-- Dropdown, embed, video, figure, gallery directives — no dedicated tests
-- Infrastructure layer (base, registry, factory, options, validator) — minimal testing
+**True gaps**:
+- `base.py` (568 LOC) — foundation class, no direct unit tests
+- `factory.py` (~100 LOC) — instantiation logic, no unit tests
+- `options.py` (433 LOC) — option parsing, partial coverage via `test_foundation.py`
+- `validator.py` (644 LOC) — validation logic, tested only via health validators
+- **2 TODO comments** in `marimo.py` (caching feature incomplete)
 
-**Recommendation**: Add 10-12 targeted test files focusing on untested directives and infrastructure, then improve type safety.
+**Recommendation**: Create infrastructure unit tests for `base.py`, `factory.py`, and `options.py`, then address type safety improvements.
 
 ---
 
@@ -35,7 +36,7 @@ The `bengal/directives/` package has **47 source files** and **mixed test covera
 1. [Problem Statement](#problem-statement)
 2. [Current State Evidence](#current-state-evidence)
 3. [Coverage Analysis](#coverage-analysis)
-4. [Gap Analysis by Directive](#gap-analysis-by-directive)
+4. [Gap Analysis](#gap-analysis)
 5. [Incomplete Implementations](#incomplete-implementations)
 6. [Type Safety Analysis](#type-safety-analysis)
 7. [Proposed Test Plan](#proposed-test-plan)
@@ -49,40 +50,29 @@ The `bengal/directives/` package has **47 source files** and **mixed test covera
 
 ### Why This Matters
 
-Directives are a **core user-facing feature** of Bengal. Users write content like:
+Directives are a **core user-facing feature** of Bengal. The directive infrastructure (`base.py`, `factory.py`, `options.py`) provides:
+- Automatic registration via `NAMES` and `TOKEN_TYPE`
+- Typed option parsing via `OPTIONS_CLASS`
+- Contract-based nesting validation via `CONTRACT`
+- Error context creation for debugging
 
-```markdown
-:::{admonition} Warning
-:class: warning
-This is critical user content that must render correctly.
-:::
-
-:::{literalinclude} /path/to/code.py
-:language: python
-:lines: 1-20
-:::
-
-:::{cards}
-:columns: 3
-Card content...
-:::
-```
-
-If directives fail, user content breaks silently or renders incorrectly. Without comprehensive tests:
-- **Regressions go undetected** during refactoring
-- **Edge cases** are undiscovered
-- **Breaking changes** in upstream Mistune are not caught
-- **Documentation claims** cannot be verified
+Without infrastructure unit tests:
+- **Regressions in option parsing** go undetected
+- **Registration edge cases** are undiscovered
+- **Error handling paths** are untested
+- **Refactoring is risky** — no safety net for foundation changes
 
 ### Current Coverage Summary
 
 | Location | Test Files | LOC | Focus |
 |----------|------------|-----|-------|
 | `tests/unit/rendering/test_*directive*.py` | 15 | ~5,968 | Directive behavior |
-| `tests/unit/directives/` | 4 | ~1,116 | Infrastructure |
-| **Total** | **19** | **~7,084** | — |
+| `tests/unit/rendering/directives/` | 5 | ~2,200 | Media, foundation, contracts |
+| `tests/unit/directives/` | 4 | ~1,116 | Tabs, tokens, priority |
+| `tests/integration/test_*directive*.py` | 3 | ~500 | Nesting, gallery |
+| **Total** | **27** | **~9,784** | — |
 
-This is **better than initially assessed**, but significant gaps remain in specific directives and the infrastructure layer.
+**Directive behavior is well-tested. Infrastructure is not.**
 
 ---
 
@@ -90,27 +80,36 @@ This is **better than initially assessed**, but significant gaps remain in speci
 
 ### Existing Test Files
 
-**`tests/unit/rendering/` — Directive Behavior Tests** (15 files, ~5,968 LOC):
+**`tests/unit/rendering/directives/`** (5 files, ~2,200 LOC):
+
+| Test File | What It Tests | LOC |
+|-----------|---------------|-----|
+| `test_media_directives.py` | YouTube, Vimeo, Gist, CodePen, Figure, Audio, etc. | 1,217 |
+| `test_foundation.py` | DirectiveToken, DirectiveOptions, utilities | 462 |
+| `test_named_closers.py` | Named fence closers | ~250 |
+| `test_contracts.py` | Nesting validation contracts | ~200 |
+
+**`tests/unit/rendering/test_*.py`** — Directive Behavior (15 files, ~5,968 LOC):
 
 | Test File | Directive(s) Covered | LOC |
 |-----------|----------------------|-----|
 | `test_cards_directive.py` | cards, card | ~913 |
 | `test_literalinclude_directive.py` | literalinclude | ~527 |
-| `test_navigation_directives.py` | breadcrumbs, prev-next, siblings | ~400+ |
-| `test_steps_directive.py` | steps, step | ~300+ |
-| `test_glossary_directive.py` | glossary, term | ~250+ |
-| `test_marimo_directive.py` | marimo | ~200+ |
-| `test_include_directive.py` | include | ~200+ |
-| `test_checklist_directive.py` | checklist | ~150+ |
-| `test_data_table_directive.py` | data-table | ~150+ |
-| `test_button_directive.py` | button | ~150+ |
-| `test_icon_directive.py` | icon | ~150+ |
-| `test_target_directive.py` | target | ~100+ |
-| `test_directive_registration.py` | registration system | ~200+ |
-| `test_directive_registry.py` | registry | ~150+ |
-| `test_directive_optimizations.py` | performance | ~100+ |
+| `test_mistune_parser.py` | admonitions, dropdown, tabs | ~720 |
+| `test_myst_syntax.py` | admonitions, dropdown, tabs | ~802 |
+| `test_navigation_directives.py` | breadcrumbs, prev-next, siblings | ~400 |
+| `test_steps_directive.py` | steps, step | ~300 |
+| `test_glossary_directive.py` | glossary, term | ~250 |
+| `test_badges.py` | badge | ~171 |
+| `test_marimo_directive.py` | marimo | ~200 |
+| `test_include_directive.py` | include | ~200 |
+| `test_checklist_directive.py` | checklist | ~150 |
+| `test_data_table_directive.py` | data-table | ~150 |
+| `test_button_directive.py` | button | ~150 |
+| `test_icon_directive.py` | icon | ~150 |
+| `test_target_directive.py` | target | ~100 |
 
-**`tests/unit/directives/` — Infrastructure Tests** (4 files, ~1,116 LOC):
+**`tests/unit/directives/`** (4 files, ~1,116 LOC):
 
 | Test File | What It Tests | LOC |
 |-----------|---------------|-----|
@@ -119,140 +118,126 @@ This is **better than initially assessed**, but significant gaps remain in speci
 | `test_tokens.py` | Token processing | ~250 |
 | `test_priority.py` | Directive priority ordering | ~166 |
 
+**`tests/integration/`** — Directive Integration:
+
+| Test File | What It Tests | LOC |
+|-----------|---------------|-----|
+| `test_directive_nesting.py` | Nested directive rendering | ~150 |
+| `test_gallery.py` | Gallery directive end-to-end | ~178 |
+
 ### Source Files (47 total)
 
 **Evidence**: `find bengal/directives -name "*.py" | wc -l` → 47
 
-**Breakdown by category**:
+**By lines of code** (top 15):
 
-| Category | Files | Has Tests |
-|----------|-------|-----------|
-| **Infrastructure** | `base.py`, `registry.py`, `factory.py`, `options.py`, `validator.py`, `contracts.py`, `types.py`, `tokens.py`, `errors.py`, `cache.py`, `utils.py` | Partial |
-| **Admonitions** | `admonitions.py` | ❌ |
-| **Cards** | `cards/card.py`, `cards_grid.py`, `child_cards.py`, `utils.py` | ✅ |
-| **Code** | `literalinclude.py`, `fenced.py`, `code_tabs.py`, `terminal.py` | ✅ Partial |
-| **Navigation** | `navigation.py`, `target.py` | ✅ |
-| **Interactive** | `dropdown.py`, `tabs.py`, `steps.py`, `checklist.py` | ✅ Partial |
-| **Media** | `video.py`, `figure.py`, `gallery.py`, `embed.py` | ❌ |
-| **Metadata** | `badge.py`, `versioning.py`, `glossary.py`, `term.py` | ✅ Partial |
-| **Other** | `button.py`, `icon.py`, `include.py`, `container.py`, `rubric.py`, `list_table.py`, `data_table.py`, `example_label.py`, `build.py`, `marimo.py` | ✅ Partial |
+| File | Lines | Has Tests |
+|------|-------|-----------|
+| `embed.py` | 1,188 | ✅ `test_media_directives.py` |
+| `video.py` | 908 | ✅ `test_media_directives.py` |
+| `code_tabs.py` | 814 | ✅ `test_code_tabs.py` |
+| `validator.py` | 644 | ⚠️ Indirect via health validators |
+| `base.py` | 567 | ❌ No direct unit tests |
+| `navigation.py` | 508 | ✅ `test_navigation_directives.py` |
+| `tabs.py` | 504 | ✅ `test_tabs_native.py` |
+| `figure.py` | 471 | ✅ `test_media_directives.py` |
+| `glossary.py` | 467 | ✅ `test_glossary_directive.py` |
+| `steps.py` | 453 | ✅ `test_steps_directive.py` |
+| `data_table.py` | 435 | ✅ `test_data_table_directive.py` |
+| `options.py` | 433 | ⚠️ Partial via `test_foundation.py` |
+| `literalinclude.py` | 430 | ✅ `test_literalinclude_directive.py` |
+| `contracts.py` | 408 | ✅ `test_contracts.py` |
+| `versioning.py` | 397 | ✅ `test_versioning.py` |
 
 ---
 
 ## Coverage Analysis
 
-### Directives WITH Dedicated Tests
+### Directives WITH Comprehensive Tests
 
-| Directive | Test File | Coverage Level |
-|-----------|-----------|----------------|
-| cards/card | `test_cards_directive.py` | 🟢 Good (913 LOC) |
-| literalinclude | `test_literalinclude_directive.py` | 🟢 Good (527 LOC) |
-| navigation | `test_navigation_directives.py` | 🟢 Good |
-| steps | `test_steps_directive.py` | 🟢 Good |
-| glossary/term | `test_glossary_directive.py` | 🟢 Good |
-| marimo | `test_marimo_directive.py` | 🟡 Moderate |
-| include | `test_include_directive.py` | 🟡 Moderate |
+| Directive | Test Coverage | Assessment |
+|-----------|--------------|------------|
+| cards/card | `test_cards_directive.py` (913 LOC) | 🟢 Excellent |
+| literalinclude | `test_literalinclude_directive.py` (527 LOC) | 🟢 Excellent |
+| video/embed/figure/audio | `test_media_directives.py` (1,217 LOC) | 🟢 Excellent |
+| navigation | `test_navigation_directives.py` (400 LOC) | 🟢 Good |
+| steps | `test_steps_directive.py` (300 LOC) | 🟢 Good |
+| glossary/term | `test_glossary_directive.py` (250 LOC) | 🟢 Good |
+| code_tabs | `test_code_tabs.py` (400 LOC) | 🟢 Good |
+| tabs | `test_tabs_native.py` (300 LOC) | 🟢 Good |
+| admonitions | 16+ tests in `test_mistune_parser.py`, `test_myst_syntax.py` | 🟢 Good |
+| dropdown | 10+ tests in `test_mistune_parser.py`, `test_myst_syntax.py` | 🟢 Good |
+| badge | `test_badges.py` (171 LOC) | 🟢 Good |
+| gallery | `test_gallery.py` (178 LOC) | 🟡 Moderate |
 | checklist | `test_checklist_directive.py` | 🟡 Moderate |
-| data-table | `test_data_table_directive.py` | 🟡 Moderate |
-| button | `test_button_directive.py` | 🟡 Moderate |
 | icon | `test_icon_directive.py` | 🟡 Moderate |
+| button | `test_button_directive.py` | 🟡 Moderate |
 | target | `test_target_directive.py` | 🟡 Moderate |
-| code_tabs | `test_code_tabs.py` | 🟢 Good |
-| tabs | `test_tabs_native.py` | 🟢 Good |
+| versioning | `test_versioning.py` (3 tests) | 🟡 Moderate |
 
-### Directives WITHOUT Dedicated Tests
+### Infrastructure WITHOUT Direct Unit Tests
 
-| Directive | Source File | Lines | Impact | Priority |
-|-----------|-------------|-------|--------|----------|
-| **admonitions** | `admonitions.py` | ~200 | 🔴 High — most common directive | P1 |
-| **dropdown** | `dropdown.py` | ~200 | 🟡 Medium — interactive content | P2 |
-| **embed** | `embed.py` | ~1,100 | 🟡 Medium — 6 embed types | P2 |
-| **video** | `video.py` | ~900 | 🟡 Medium — 4 video platforms | P2 |
-| **gallery** | `gallery.py` | ~200 | 🟡 Medium — image grids | P2 |
-| **figure** | `figure.py` | ~450 | 🟡 Medium — captions, alignment | P2 |
-| **versioning** | `versioning.py` | ~400 | 🟢 Low — since/deprecated/changed | P3 |
-| **badge** | `badge.py` | ~150 | 🟢 Low — decorative | P3 |
-| **container** | `container.py` | ~150 | 🟢 Low — generic wrapper | P3 |
-| **rubric** | `rubric.py` | ~100 | 🟢 Low — headings | P3 |
-| **list_table** | `list_table.py` | ~200 | 🟢 Low — table variant | P3 |
-| **terminal** | `terminal.py` | ~200 | 🟢 Low — asciinema | P3 |
-| **example_label** | `example_label.py` | ~150 | 🟢 Low — cross-refs | P3 |
-| **build** | `build.py` | ~150 | 🟢 Low — build-only content | P3 |
-
-### Infrastructure WITHOUT Dedicated Tests
-
-| File | Lines | Impact | Priority |
-|------|-------|--------|----------|
-| `base.py` | 568 | 🔴 High — foundation | P1 |
-| `factory.py` | ~100 | 🔴 High — instantiation | P1 |
-| `options.py` | ~200 | 🔴 High — option parsing | P1 |
-| `validator.py` | ~200 | 🟡 Medium — validation | P2 |
-
-**Note**: `registry.py` has partial coverage via `test_directive_registry.py`.
+| File | Lines | Current Coverage | Priority |
+|------|-------|------------------|----------|
+| `base.py` | 567 | ❌ None — tested only through subclasses | 🔴 P1 |
+| `factory.py` | ~100 | ❌ None — tested indirectly | 🔴 P1 |
+| `options.py` | 433 | ⚠️ Partial — `test_foundation.py` covers ~40% | 🟡 P2 |
+| `validator.py` | 644 | ⚠️ Indirect — via `test_directive_validator.py` | 🟡 P2 |
 
 ---
 
-## Gap Analysis by Directive
+## Gap Analysis
 
-### Tier 1: Critical (High Usage, Zero Tests)
+### Tier 1: Critical (Foundation, Zero Direct Tests)
 
-#### `admonitions.py` — UNTESTED ❌
+#### `base.py` — NO DIRECT UNIT TESTS ❌
 
-**Usage**: Most common directive in documentation.
+**Usage**: Foundation for all 40+ directives.
 
-```markdown
-:::{note}
-This is a note.
-:::
-
-:::{warning}
-This is critical.
-:::
-```
-
-**Source**: `bengal/directives/admonitions.py` (~200 lines)
+**Source**: `bengal/directives/base.py` (567 lines)
 
 **What needs testing**:
-- All admonition types (note, warning, danger, tip, important, caution, attention, error, hint, seealso)
-- Custom titles
-- Nested content (bold, code, links)
-- Class attribute handling
-- Icon rendering
-- Collapsible admonitions (if supported)
-
-#### `base.py` — UNTESTED ❌
-
-**Usage**: Foundation for all directives.
-
-**Source**: `bengal/directives/base.py` (568 lines)
-
-**What needs testing**:
-- Option parsing
-- Argument validation
-- Content extraction
-- Error context creation
-- Plugin registration hooks
+- `parse_directive()` — argument/option/content extraction
+- `_parse_children()` — nested content parsing
+- `render()` — template method dispatch
+- Option validation hooks
+- Error context creation (`_create_error_context()`)
 - Default value handling
+- Plugin registration mechanics
 
-### Tier 2: High Impact (Complex, Zero Tests)
+#### `factory.py` — NO UNIT TESTS ❌
 
-| Directive | Lines | Key Features to Test |
-|-----------|-------|---------------------|
-| `dropdown.py` | ~200 | Expand/collapse, nested content, open-by-default |
-| `embed.py` | ~1,100 | Gist, CodePen, CodeSandbox, StackBlitz, Spotify, SoundCloud |
-| `video.py` | ~900 | YouTube, Vimeo, self-hosted, TikTok |
-| `gallery.py` | ~200 | Image grid, lightbox integration |
-| `figure.py` | ~450 | Captions, alignment, sizing |
+**Usage**: Directive instantiation and lookup.
 
-### Tier 3: Lower Priority (Less Used)
+**Source**: `bengal/directives/factory.py` (~100 lines)
 
-| Directive | Lines | Key Features to Test |
-|-----------|-------|---------------------|
-| `versioning.py` | ~400 | Since, deprecated, changed annotations |
-| `badge.py` | ~150 | Badge styles, links |
-| `container.py` | ~150 | Generic div wrapper |
-| `terminal.py` | ~200 | Asciinema player |
-| `list_table.py` | ~200 | Alternative table syntax |
+**What needs testing**:
+- Directive lookup by name
+- Instantiation with options
+- Missing directive handling
+- Alias resolution
+
+### Tier 2: Partial Coverage
+
+#### `options.py` — PARTIAL COVERAGE ⚠️
+
+**Current tests**: `test_foundation.py` covers `DirectiveOptions`, `StyledOptions`, `ContainerOptions`, `TitledOptions`
+
+**Gaps**:
+- Boolean option parsing edge cases
+- Integer/float option parsing
+- List option parsing (comma-separated values)
+- Required option validation
+- Unknown option handling
+
+#### `validator.py` — INDIRECT COVERAGE ⚠️
+
+**Current tests**: `test_directive_validator.py`, `test_directive_validator_fences.py` in health validators
+
+**Gaps**:
+- Unit tests for validation logic in isolation
+- Edge cases in fence detection
+- Error message formatting
 
 ---
 
@@ -274,10 +259,7 @@ This is critical.
 
 **Impact**: Performance — without caching, Marimo cells re-execute on every build.
 
-**Resolution Options**:
-1. Implement cache using `bengal.cache` infrastructure
-2. Remove caching option from public API until implemented
-3. Document as "planned feature"
+**Resolution**: Document as "Planned Feature" in docstring until implementation prioritized.
 
 ---
 
@@ -287,49 +269,26 @@ This is critical.
 
 **Evidence**: `grep -r "type: ignore" bengal/directives --include="*.py" | wc -l` → 43
 
-**Breakdown by type**:
-
 | Type | Count | Reason | Action |
 |------|-------|--------|--------|
-| `# type: ignore[override]` | 40 | Method signature narrowing (intentional) | Keep — valid pattern |
-| `# type: ignore[attr-defined]` | 3 | State attribute access in `include.py` | Fix — add proper typing |
+| `# type: ignore[override]` | 40 | Method signature narrowing (intentional) | ✅ Keep — valid pattern |
+| `# type: ignore[attr-defined]` | 3 | State attribute access in `include.py` | 🔧 Fix — add proper typing |
 
 **The `# type: ignore[override]` Pattern**:
 
-This pattern appears in every directive subclass:
-
-```python
-def render(
-    self,
-    options: CardOptions,  # type: ignore[override]
-) -> str:
-```
-
-This is **intentional**: Python's type system doesn't support covariant parameter types, so subclasses narrowing `BaseOptions` to `CardOptions` require the suppression. This is a known limitation, not a code smell.
-
-**Action items**:
-- Keep the 40 `[override]` suppressions
-- Fix the 3 `[attr-defined]` in `include.py` by adding type stubs or proper state typing
+This is **intentional** and **correct**. Python's type system doesn't support covariant parameter types, so subclasses narrowing `BaseOptions` to specific options require this suppression.
 
 ### `: Any` Distribution (~98 total)
 
-**Evidence**: `grep -r ": Any" bengal/directives --include="*.py"` → 98 matches across 36 files
-
-**Hotspots**:
+**Hotspots for TypedDict improvement**:
 
 | File | Count | Recommendation |
 |------|-------|----------------|
 | `cards/utils.py` | 6 | Add `CardData` TypedDict |
 | `glossary.py` | 6 | Add `GlossaryTerm` TypedDict |
 | `steps.py` | 6 | Add `StepItem` TypedDict |
-| `versioning.py` | 6 | Add `VersionInfo` TypedDict |
-| `data_table.py` | 5 | Add `TableRow` TypedDict |
-| `build.py` | 4 | Add `BuildContext` TypedDict |
-| `code_tabs.py` | 4 | Add `TabInfo` TypedDict |
-| `tabs.py` | 4 | Already uses options; review |
-| `figure.py` | 4 | Add `FigureData` TypedDict |
 
-**Target**: Reduce from ~98 to <50 by adding TypedDicts for common structures.
+**Target**: Reduce from ~98 to ~70 by adding 3-4 TypedDicts.
 
 ---
 
@@ -346,192 +305,150 @@ tests/unit/directives/
 ├── test_tabs_native.py          # ✅ Existing
 ├── test_tokens.py               # ✅ Existing
 │
-├── infrastructure/              # NEW
-│   ├── test_base.py             # Base directive class
-│   ├── test_factory.py          # Directive instantiation
-│   └── test_options.py          # Option parsing
-│
-└── content/                     # NEW
-    └── test_admonitions.py      # Admonition rendering
-
-tests/unit/rendering/
-├── test_dropdown_directive.py   # NEW
-├── test_embed_directive.py      # NEW
-├── test_video_directive.py      # NEW
-├── test_gallery_directive.py    # NEW
-├── test_figure_directive.py     # NEW
-├── ... (existing files)         # ✅ Keep
+└── infrastructure/              # NEW
+    ├── __init__.py
+    ├── conftest.py              # Infrastructure-specific fixtures
+    ├── test_base.py             # Base directive class
+    ├── test_factory.py          # Directive instantiation
+    └── test_options_parsing.py  # Option parsing edge cases
 ```
 
 ### Test Patterns
 
-#### Pattern 1: Parse-and-Render Test
+#### Pattern 1: Base Class Method Test
 
 ```python
-"""Tests for admonitions directive."""
+"""Tests for BengalDirective base class."""
 import pytest
-from tests._testing.rendering import render_directive
+from bengal.directives.base import BengalDirective
+from bengal.directives.options import DirectiveOptions
 
-class TestAdmonitions:
-    """Test admonition rendering."""
 
-    @pytest.mark.parametrize("admon_type", [
-        "note", "warning", "danger", "tip", "important",
-        "caution", "attention", "error", "hint", "seealso"
-    ])
-    def test_all_types_render(self, parser, admon_type: str) -> None:
-        """All admonition types render without error."""
-        content = f"""
-        :::{{admonition}} Test
-        :class: {admon_type}
-        Content here.
-        :::
-        """
-        html = parser.parse(content, {})
-        assert f'class="admonition {admon_type}"' in html or admon_type in html
-        assert "Content here." in html
+class TestBengalDirectiveOptionParsing:
+    """Test option parsing in base directive."""
 
-    def test_custom_title(self, parser) -> None:
-        """Custom title is rendered."""
-        content = """
-        :::{note} Custom Title
-        Content.
-        :::
-        """
-        html = parser.parse(content, {})
-        assert "Custom Title" in html
+    def test_boolean_option_true_string(self) -> None:
+        """Boolean options parse 'true' string correctly."""
+        raw = {"open": "true"}
+        result = DirectiveOptions.from_raw(raw)
+        # Verify boolean conversion
 
-    def test_nested_markdown(self, parser) -> None:
-        """Nested markdown is processed."""
-        content = """
-        :::{warning}
-        This has **bold** and `code`.
-        :::
-        """
-        html = parser.parse(content, {})
-        assert "<strong>bold</strong>" in html or "<b>bold</b>" in html
-        assert "<code>code</code>" in html
-```
-
-#### Pattern 2: Option Validation Test
-
-```python
-"""Tests for base directive option handling."""
-import pytest
-from bengal.directives.base import BaseDirective
-
-class TestBaseDirectiveOptions:
-    """Test option parsing and validation."""
-
-    def test_boolean_option_true(self) -> None:
-        """Boolean options parse 'true' correctly."""
-        result = BaseDirective._parse_boolean_option("true")
-        assert result is True
-
-    def test_boolean_option_false(self) -> None:
-        """Boolean options parse 'false' correctly."""
-        result = BaseDirective._parse_boolean_option("false")
-        assert result is False
+    def test_boolean_option_empty_means_true(self) -> None:
+        """Empty boolean option value means True (flag-style)."""
+        raw = {"open": ""}
+        result = DirectiveOptions.from_raw(raw)
+        # Verify empty = True for flags
 
     def test_missing_required_option_raises(self) -> None:
         """Missing required option raises descriptive error."""
-        with pytest.raises(ValueError) as exc:
-            BaseDirective._validate_required_options({}, ["required_key"])
-        assert "required_key" in str(exc.value)
+        with pytest.raises(ValueError, match="required"):
+            # Test validation
+            pass
+```
+
+#### Pattern 2: Factory Test
+
+```python
+"""Tests for directive factory."""
+import pytest
+from bengal.directives.factory import get_directive, DirectiveNotFoundError
+
+
+class TestDirectiveFactory:
+    """Test directive lookup and instantiation."""
+
+    def test_lookup_by_primary_name(self) -> None:
+        """Directive found by primary name."""
+        directive = get_directive("note")
+        assert directive is not None
+
+    def test_lookup_by_alias(self) -> None:
+        """Directive found by alias name."""
+        directive = get_directive("details")  # alias for dropdown
+        assert directive is not None
+
+    def test_unknown_directive_raises(self) -> None:
+        """Unknown directive name raises clear error."""
+        with pytest.raises(DirectiveNotFoundError, match="unknown_directive"):
+            get_directive("unknown_directive")
 ```
 
 ---
 
 ## Implementation Phases
 
-### Phase 1: Infrastructure (Day 1)
+### Phase 1: Infrastructure Unit Tests (1 day)
 
-**Goal**: Test the directive foundation.
+**Goal**: Direct unit test coverage for foundation classes.
 
-| Test File | Source File | Priority | Est. Tests |
-|-----------|-------------|----------|------------|
-| `test_base.py` | `base.py` | 🔴 Critical | ~30 |
-| `test_factory.py` | `factory.py` | 🔴 Critical | ~15 |
-| `test_options.py` | `options.py` | 🔴 Critical | ~25 |
+| Test File | Source File | Est. Tests |
+|-----------|-------------|------------|
+| `test_base.py` | `base.py` | ~25-30 |
+| `test_factory.py` | `factory.py` | ~10-15 |
+| `test_options_parsing.py` | `options.py` | ~20-25 |
 
-**Expected outcome**: Infrastructure layer 80%+ coverage
+**Focus areas**:
+- Option parsing: booleans, integers, lists, defaults
+- Error handling: missing required, invalid values
+- Registration: name lookup, alias resolution
+- Child parsing: nested content extraction
 
-### Phase 2: Critical Directives (Day 1-2)
+**Expected outcome**: 60+ new unit tests, infrastructure layer directly tested
 
-**Goal**: Test the highest-impact untested directives.
+### Phase 2: Validator Unit Tests (0.5 day)
 
-| Test File | Source File | Priority | Est. Tests |
-|-----------|-------------|----------|------------|
-| `test_admonitions.py` | `admonitions.py` | 🔴 Critical | ~40 |
-| `test_dropdown_directive.py` | `dropdown.py` | 🟡 High | ~20 |
+**Goal**: Isolated unit tests for validation logic.
 
-**Expected outcome**: Core user-facing directives covered
+| Test File | Source File | Est. Tests |
+|-----------|-------------|------------|
+| `test_validator_unit.py` | `validator.py` | ~15-20 |
 
-### Phase 3: Media & Embed (Day 2-3)
+**Focus areas**:
+- Fence detection edge cases
+- Error message formatting
+- Validation rule logic
 
-**Goal**: Test media and embed directives.
+### Phase 3: Type Safety (0.5 day)
 
-| Test File | Source File | Priority | Est. Tests |
-|-----------|-------------|----------|------------|
-| `test_embed_directive.py` | `embed.py` | 🟡 High | ~50 |
-| `test_video_directive.py` | `video.py` | 🟡 High | ~40 |
-| `test_figure_directive.py` | `figure.py` | 🟡 High | ~25 |
-| `test_gallery_directive.py` | `gallery.py` | 🟡 Medium | ~20 |
-
-**Expected outcome**: All media directives covered
-
-### Phase 4: Type Fixes (Day 3)
-
-**Goal**: Improve type safety.
-
-| Task | Files | Effort |
-|------|-------|--------|
-| Fix `include.py` type ignores | `include.py` | 30min |
-| Add `CardData` TypedDict | `cards/utils.py` | 30min |
-| Add `GlossaryTerm` TypedDict | `glossary.py` | 30min |
+| Task | File(s) | Effort |
+|------|---------|--------|
+| Fix `[attr-defined]` ignores | `include.py` | 30min |
 | Add `StepItem` TypedDict | `steps.py` | 30min |
-| Implement marimo caching OR remove option | `marimo.py` | 2h |
-
-**Expected outcome**:
-- TODO count: 0 (or documented as planned feature)
-- `# type: ignore`: 40 (all intentional overrides)
-- `: Any`: <70
+| Add `GlossaryTerm` TypedDict | `glossary.py` | 30min |
+| Document marimo caching as planned | `marimo.py` | 15min |
 
 ---
 
 ## Success Criteria
 
-### Phase 1-2 Complete When:
+### Phase 1 Complete When:
 
-- [ ] 3 infrastructure test files created
-- [ ] `test_admonitions.py` created with 30+ tests
-- [ ] `base.py` coverage >70%
-- [ ] All admonition types verified
+- [ ] `tests/unit/directives/infrastructure/` directory created
+- [ ] `test_base.py` with 25+ tests
+- [ ] `test_factory.py` with 10+ tests
+- [ ] `test_options_parsing.py` with 20+ tests
+- [ ] All new tests pass
+
+### Phase 2 Complete When:
+
+- [ ] `test_validator_unit.py` created with 15+ tests
+- [ ] Validation edge cases covered
+- [ ] All tests pass
 
 ### Phase 3 Complete When:
 
-- [ ] 4 media/embed test files created
-- [ ] 150+ new tests pass
-- [ ] All embed types (Gist, CodePen, etc.) have at least 1 test
-- [ ] All video types (YouTube, Vimeo, etc.) have at least 1 test
+- [ ] `# type: ignore[attr-defined]` reduced to 0
+- [ ] 2+ TypedDicts added
+- [ ] Marimo TODO documented in docstring
 
-### Phase 4 Complete When:
-
-- [ ] Marimo caching implemented or option documented as planned
-- [ ] `include.py` type ignores fixed
-- [ ] At least 3 TypedDicts added
-- [ ] All existing tests still pass
-
-### Final State:
+### Final Metrics:
 
 | Metric | Before | After |
 |--------|--------|-------|
-| Directive test files | 19 | 27+ |
-| Test LOC | ~7,084 | ~9,000+ |
-| `: Any` usages | ~98 | <70 |
+| Infrastructure test files | 0 | 4 |
+| New unit tests | 0 | 75+ |
 | `# type: ignore[attr-defined]` | 3 | 0 |
-| TODO comments | 2 | 0 |
-| Untested critical directives | 1 (admonitions) | 0 |
+| TODO comments | 2 | 0 (documented) |
 
 ---
 
@@ -539,10 +456,9 @@ class TestBaseDirectiveOptions:
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|------------|--------|------------|
-| Tests reveal bugs | High | Low | Fix bugs — that's the point |
-| Mistune API changes | Medium | Medium | Pin Mistune version, add API tests |
-| Slow test suite | Low | Low | Use fixtures, avoid full renders when possible |
-| Type fixes break code | Low | Medium | Run full test suite after each change |
+| Tests reveal bugs in base.py | Medium | Low | Fix bugs — that's the point |
+| Mistune API changes | Low | Medium | Pin version, test API surface |
+| Base class refactoring needed | Low | Medium | Tests enable safe refactoring |
 
 ---
 
@@ -550,21 +466,18 @@ class TestBaseDirectiveOptions:
 
 ### On Other RFCs
 
-- **rfc-type-refinement-sweep.md**: Type improvements should align with the broader type refinement effort.
-- **rfc-test-coverage-gaps.md**: This RFC addresses a specific subset of the overall coverage gap.
+- **rfc-type-refinement-sweep.md**: Type improvements should align with broader type refinement effort
 
 ### On External Packages
 
-- **Mistune**: Directive parsing relies on Mistune's plugin API.
-- **pytest**: Test infrastructure.
-- **hypothesis**: Optional — property-based tests for option parsing.
+- **Mistune**: Directive parsing relies on Mistune's plugin API
+- **pytest**: Test infrastructure
 
 ---
 
 ## References
 
-- `bengal/directives/` — Source directory (47 files)
-- `tests/unit/directives/` — Infrastructure tests (4 files, ~1,116 LOC)
-- `tests/unit/rendering/test_*directive*.py` — Behavior tests (15 files, ~5,968 LOC)
-- `plan/drafted/rfc-test-coverage-gaps.md` — Related coverage RFC
-- `plan/drafted/rfc-type-refinement-sweep.md` — Related type RFC
+- `bengal/directives/` — Source directory (47 files, ~16,000 LOC)
+- `tests/unit/directives/` — Current tests (4 files, ~1,116 LOC)
+- `tests/unit/rendering/directives/` — Behavior tests (5 files, ~2,200 LOC)
+- `tests/unit/rendering/test_*directive*.py` — More behavior tests (15 files, ~5,968 LOC)
