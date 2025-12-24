@@ -1,7 +1,8 @@
 # RFC: Core Module Algorithm Optimization
 
-**Status**: Draft  
+**Status**: Implemented  
 **Created**: 2025-12-24  
+**Implemented**: 2025-12-24  
 **Last Verified**: 2025-12-24  
 **Author**: AI Assistant  
 **Subsystem**: Core (NavTree, ContentRegistry, Menu, URLRegistry, Section, Site)  
@@ -474,11 +475,11 @@ class NavTreeCache:
 
 | Phase | Tasks | Effort | Status |
 |-------|-------|--------|--------|
-| Phase 0: Baseline | Create benchmark suite | 2h | ⬜ Pending |
-| Phase 1: Code Hygiene | Deprecate + backtracking | 1h | ⬜ Pending |
-| Phase 2: Menu Optimization | Deferred sort | 1h | ⬜ Pending |
-| Phase 3: LRU Cache | OrderedDict migration | 30m | ⬜ Conditional |
-| Verification | Regression testing | 1h | ⬜ Pending |
+| Phase 0: Baseline | Create benchmark suite | 2h | ✅ Complete |
+| Phase 1: Code Hygiene | Deprecate + backtracking | 1h | ✅ Complete |
+| Phase 2: Menu Optimization | Deferred sort | 1h | ✅ Complete |
+| Phase 3: LRU Cache | OrderedDict migration | 30m | ✅ Complete |
+| Verification | Regression testing | 1h | ✅ Complete |
 
 **Total**: 4-5.5 hours (0.5-1 day)
 

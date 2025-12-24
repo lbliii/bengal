@@ -46,6 +46,8 @@ Related Packages:
 from __future__ import annotations
 
 import threading
+import warnings
+from collections import OrderedDict
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
@@ -105,13 +107,27 @@ class NavNode:
             yield from child.walk()
 
     def find(self, url: str) -> NavNode | None:
-        """Find a node by URL in this subtree."""
+        """
+        Find a node by URL in this subtree.
+
+        .. deprecated::
+            This method performs O(n) recursive search.
+            Use NavTree.find() for O(1) lookup instead.
+        """
+        warnings.warn(
+            "NavNode.find() is O(n). Use NavTree.find() for O(1) lookup.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         if self._path == url:
             return self
         for child in self.children:
-            found = child.find(url)
-            if found:
-                return found
+            # Avoid triggering warning recursively - call internal implementation
+            if child._path == url:
+                return child
+            for node in child.walk():
+                if node._path == url:
+                    return node
         return None
 
     # --- Jinja2 Compatibility (Dict-like access) ---
@@ -676,23 +692,28 @@ class NavNodeProxy:
 
 class NavTreeCache:
     """
-    Thread-safe cache for NavTree instances.
+    Thread-safe cache for NavTree instances with LRU eviction.
 
     Uses per-version locking to prevent duplicate NavTree builds when multiple
     threads request the same version simultaneously. Different versions can
     still be built in parallel.
 
     Memory leak prevention: Cache is limited to 20 entries. When limit is reached,
-    oldest entries are evicted (FIFO). This prevents unbounded growth if many
-    version_ids are created.
+    least-recently-used entries are evicted (LRU). This prevents unbounded growth
+    if many version_ids are created while keeping frequently-accessed versions cached.
 
     Thread Safety:
         - _lock: Protects the _trees dictionary
         - _build_locks: Per-version locks to serialize builds for SAME version
         - Different versions build in parallel (no contention)
+
+    Eviction Strategy:
+        LRU (Least Recently Used) - entries accessed most recently stay in cache,
+        while entries not accessed recently are evicted first. Uses OrderedDict
+        with move_to_end() on access for O(1) LRU operations.
     """
 
-    _trees: dict[str | None, NavTree] = {}
+    _trees: OrderedDict[str | None, NavTree] = OrderedDict()
     _lock = threading.Lock()
     _build_locks = PerKeyLockManager()  # Per-version build serialization
     _site: Site | None = None
@@ -706,8 +727,11 @@ class NavTreeCache:
         Thread-safe: Multiple threads requesting the same version will serialize
         on the build, with only one thread doing the actual work. Different
         versions can be built in parallel.
+
+        Uses LRU semantics: accessed entries are moved to end, eviction removes
+        from front (least recently used).
         """
-        # 1. Quick cache check
+        # 1. Quick cache check with LRU update
         with cls._lock:
             # Full invalidation if site object changed (new build session)
             if cls._site is not site:
@@ -716,6 +740,8 @@ class NavTreeCache:
                 cls._site = site
 
             if version_id in cls._trees:
+                # LRU: Move accessed entry to end (most recently used)
+                cls._trees.move_to_end(version_id)
                 return cls._trees[version_id]
 
         # 2. Serialize builds for SAME version (different versions build in parallel)
@@ -726,6 +752,8 @@ class NavTreeCache:
             # Double-check: another thread may have built while we waited
             with cls._lock:
                 if version_id in cls._trees:
+                    # LRU: Move accessed entry to end
+                    cls._trees.move_to_end(version_id)
                     return cls._trees[version_id]
 
             # 3. Build outside cache lock (expensive operation)
@@ -733,10 +761,9 @@ class NavTreeCache:
 
             # 4. Store result
             with cls._lock:
-                # Evict oldest entry if cache is full (prevent memory leak)
+                # LRU eviction: remove least recently used (first) if cache is full
                 if len(cls._trees) >= cls._MAX_CACHE_SIZE:
-                    oldest_key = next(iter(cls._trees))
-                    cls._trees.pop(oldest_key, None)
+                    cls._trees.popitem(last=False)  # Remove oldest (LRU)
                 cls._trees[version_id] = tree
                 return tree
 

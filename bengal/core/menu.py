@@ -68,6 +68,11 @@ class MenuItem:
         active: Whether this item matches the current page URL
         active_trail: Whether this item is in the active path (has active child)
 
+    Performance:
+        Children are sorted lazily via sort_children() rather than on every
+        add_child() call. This changes complexity from O(n × k log k) to
+        O(n + k log k) for menu building with n inserts and k children.
+
     Relationships:
         - Used by: MenuBuilder for menu construction
         - Used by: MenuOrchestrator for menu building
@@ -96,6 +101,9 @@ class MenuItem:
     active: bool = False
     active_trail: bool = False
 
+    # Internal state for deferred sorting
+    _children_dirty: bool = field(default=False, repr=False)
+
     def __post_init__(self) -> None:
         """
         Set identifier from name if not provided.
@@ -123,10 +131,14 @@ class MenuItem:
 
     def add_child(self, child: MenuItem) -> None:
         """
-        Add a child menu item and sort children by weight.
+        Add a child menu item (O(1) operation).
 
-        Adds the child to the children list and immediately sorts all children
-        by weight (ascending). Lower weights appear first in the list.
+        Appends the child to the children list without sorting. Call sort_children()
+        or get_sorted_children() after all children are added to sort by weight.
+
+        Performance:
+            O(1) per insert. With deferred sorting, building a menu with n inserts
+            and k children is O(n + k log k) instead of O(n × k log k).
 
         Args:
             child: MenuItem to add as a child
@@ -135,10 +147,41 @@ class MenuItem:
             item = MenuItem(name="Parent", url="/parent")
             item.add_child(MenuItem(name="Child 1", url="/child1", weight=2))
             item.add_child(MenuItem(name="Child 2", url="/child2", weight=1))
+            item.sort_children()  # Sort once after all children added
             # Children are sorted: Child 2 (weight=1) appears before Child 1 (weight=2)
         """
         self.children.append(child)
-        self.children.sort(key=lambda x: x.weight)
+        self._children_dirty = True
+
+    def sort_children(self) -> None:
+        """
+        Sort children by weight (O(k log k) where k = number of children).
+
+        Only sorts if children have been modified since last sort. Safe to call
+        multiple times - subsequent calls are O(1) if no children were added.
+
+        Examples:
+            item.add_child(child1)
+            item.add_child(child2)
+            item.sort_children()  # Sorts children by weight
+            item.sort_children()  # No-op (already sorted)
+        """
+        if self._children_dirty:
+            self.children.sort(key=lambda x: x.weight)
+            self._children_dirty = False
+
+    def get_sorted_children(self) -> list[MenuItem]:
+        """
+        Get children, sorting if needed.
+
+        Convenience method that ensures children are sorted before returning.
+        Equivalent to calling sort_children() then accessing .children.
+
+        Returns:
+            List of child MenuItems sorted by weight.
+        """
+        self.sort_children()
+        return self.children
 
     def mark_active(self, current_url: str) -> bool:
         """
@@ -518,6 +561,15 @@ class MenuBuilder:
                     suggestion="Check menu configuration for circular parent-child relationships",
                 )
 
+        # Sort all nodes once (DFS) - O(n + k log k) instead of O(n × k log k)
+        def sort_recursive(item: MenuItem) -> None:
+            item.sort_children()
+            for child in item.children:
+                sort_recursive(child)
+
+        for root in roots:
+            sort_recursive(root)
+
         # Sort roots by weight
         roots.sort(key=lambda x: x.weight)
 
@@ -534,10 +586,14 @@ class MenuBuilder:
 
     def _has_cycle(self, item: MenuItem, visited: set[str], path: set[str]) -> bool:
         """
-        Detect circular references in menu tree using DFS.
+        Detect circular references in menu tree using DFS with backtracking.
 
-        Uses depth-first search to detect cycles in parent-child relationships.
-        A cycle exists if an item appears in its own descendant chain.
+        Uses depth-first search with backtracking to detect cycles in parent-child
+        relationships. A cycle exists if an item appears in its own descendant chain.
+
+        Space Complexity:
+            O(d) where d is max depth - uses single mutable set with backtracking
+            instead of O(n × d) from copying the path set on each recursive call.
 
         Args:
             item: Current menu item being checked
@@ -551,7 +607,8 @@ class MenuBuilder:
         Algorithm:
             - If item.identifier in path: cycle detected
             - Add item to path and visited
-            - Recursively check all children
+            - Recursively check all children (with backtracking)
+            - Remove item from path after checking subtree (backtrack)
             - Return True if any child has cycle
 
         Examples:
@@ -567,7 +624,15 @@ class MenuBuilder:
         path.add(item.identifier)
         visited.add(item.identifier)
 
-        return any(self._has_cycle(child, visited, path.copy()) for child in item.children)
+        # Check each child; short-circuit on first cycle found
+        for child in item.children:
+            if self._has_cycle(child, visited, path):
+                path.discard(item.identifier)  # Clean up before returning
+                return True
+
+        # Backtrack: remove from path after checking subtree
+        path.discard(item.identifier)
+        return False
 
     def _get_depth(self, item: MenuItem) -> int:
         """
