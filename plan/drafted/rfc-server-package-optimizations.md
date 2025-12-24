@@ -23,6 +23,8 @@ Comprehensive Big O analysis of the `bengal.server` package (16 modules) identif
    - Throttling: Prevents notification spam (configurable interval)
    - Lazy imports: Reduces startup overhead
    - Dual caching (found + not-found): Prevents repeated I/O
+   - Source-gated reload: CSS-only detection from source files (skips output analysis)
+   - Typed output records: `decide_from_outputs()` bypasses O(F) snapshot diffing
 
 2. ⚠️ **Snapshot Diffing** — `ReloadController._take_snapshot()` walks entire output dir O(F)
 3. ⚠️ **Ignore Filter Hot Path** — O((d+g+r)·p) per file event
@@ -32,8 +34,8 @@ Comprehensive Big O analysis of the `bengal.server` package (16 modules) identif
 **Current State**: The implementation handles typical development workflows well. These are **polish optimizations** for very large codebases (1000+ watched files) or output directories (10K+ files).
 
 **Impact**:
-- Incremental snapshot diffing: **O(F) → O(c)** where c << F
-- Pattern pre-compilation: **O((d+g+r)·p) → O(d+g+r)** per event
+- Verify incremental outputs path: Ensure **O(F) → O(o)** is always taken
+- Pattern filter caching: **O(translate+match) → O(match)** per event with LRU cache
 - Frontmatter caching: **O(c·f) → O(c)** for repeated changes
 
 ---
@@ -243,11 +245,11 @@ def _is_template_change(self, changed_paths: set[Path]) -> bool:
 
 ## Proposed Solutions
 
-### Solution 1: Incremental Snapshot Diffing (P2)
+### Solution 1: Verify Incremental Outputs Path (P2)
 
-**Approach**: Use build output records instead of walking entire directory.
+**Approach**: Ensure build pipeline always uses `decide_from_outputs()` to bypass O(F) snapshot diffing.
 
-**Implementation**:
+**Current Implementation** (already exists):
 
 ```python
 # In bengal/server/reload_controller.py
@@ -306,11 +308,29 @@ def decide_from_outputs(self, outputs: list[OutputRecord]) -> ReloadDecision:
 
 **Status**: ✅ **Already implemented!** See `reload_controller.py:416-471`
 
-**Recommendation**: Ensure build pipeline always passes `changed_outputs` to skip snapshot diffing. Update `build_trigger.py:526-596` to prefer `decide_from_outputs()` path.
+**Current Flow in `_handle_reload()`** (`build_trigger.py:526-614`):
+
+```
+1. Source-gated check (lines 540-569):
+   - If all source files are CSS → immediate CSS-only decision
+   - Bypasses output processing entirely
+
+2. Typed outputs path (lines 574-596):
+   - Reconstructs OutputRecord objects from serialized tuples
+   - Calls controller.decide_from_outputs() — O(o) not O(F)
+
+3. Fallback (line 596):
+   - controller.decide_from_changed_paths() if reconstruction fails
+
+4. Default (line 599-600):
+   - Suppress reload if no decision made
+```
+
+**Recommendation**: Add debug logging to confirm the preferred path is taken. The source-gated check provides an additional optimization layer not previously documented.
 
 **Files to Verify**:
-- `bengal/server/build_trigger.py:526-596` — Ensure outputs path is taken
-- `bengal/server/reload_controller.py:235-414` — `decide_and_update()` as fallback only
+- `bengal/server/build_trigger.py:526-614` — Confirm outputs path is taken
+- `bengal/server/reload_controller.py:235-414` — `decide_and_update()` should be fallback only
 
 **Complexity Improvement**: O(F) → O(o) where o << F
 
@@ -417,8 +437,9 @@ class IgnoreFilter:
 - `bengal/server/ignore_filter.py` — Add caching and pre-compilation
 
 **Complexity Improvement**:
-- O((d+g+r)·p) → O(d+g+r) for cache hits (common case)
-- Glob matching: O(pattern×path) → O(path) with compiled regex
+- O((d+g+r)·p) → O(1) for cache hits (common case)
+- Glob matching: O(translate+match) → O(match) per invocation (avoids repeated `fnmatch.translate()`)
+- Path resolution: O(resolve) → O(1) for cached paths (avoids repeated `path.resolve()`)
 
 ---
 
@@ -455,10 +476,10 @@ class BuildTrigger:
             if cached and cached[0] == mtime:
                 return cached[1]
 
-            # Read only first 2KB (frontmatter is always at file start)
-            # Most frontmatter is < 500 bytes
+            # Read only first 4KB (frontmatter is always at file start)
+            # Most frontmatter is < 500 bytes, but YAML-heavy files may be larger
             with open(path, "r", encoding="utf-8") as f:
-                text = f.read(2048)  # O(1) bounded read
+                text = f.read(4096)  # O(1) bounded read
 
             # Extract frontmatter
             match = re.match(r"^---\s*\n(.*?)\n---\s*(?:\n|$)", text, flags=re.DOTALL)
@@ -511,6 +532,18 @@ class BuildTrigger:
 **Complexity Improvement**:
 - File I/O: O(f) → O(1) bounded (2KB max)
 - Repeated checks: O(c·parse) → O(c) with cache hits
+
+**Cache Invalidation Considerations**:
+
+The mtime-based cache is suitable for local development but has edge cases:
+
+| Scenario | Risk | Mitigation |
+|----------|------|------------|
+| File moved (same mtime) | Low | File moves trigger `created` event → full rebuild anyway |
+| Clock drift | Very Low | Monotonic mtime comparison within same session |
+| Network filesystems | Medium | Consider content hash fallback for NFS/SMB if reported |
+
+For typical dev server usage (local filesystem), mtime invalidation is sufficient and performant.
 
 ---
 
@@ -592,15 +625,23 @@ class BuildTrigger:
 ### Phase 1: Verify Incremental Outputs Path (P2) — 0.5 days
 
 **Steps**:
-1. Audit `build_trigger.py:526-596` to ensure `decide_from_outputs()` is preferred
-2. Add logging to confirm snapshot diffing is skipped when outputs available
-3. Verify `changed_outputs` is always populated by build pipeline
-4. Add fallback warning when snapshot diffing is used
+1. Audit `build_trigger.py:526-614` to understand three-tier decision flow:
+   - Source-gated check (CSS-only from source files)
+   - Typed outputs path (`decide_from_outputs()`)
+   - Fallback path (`decide_from_changed_paths()`)
+2. Add debug logging at each decision point:
+   ```python
+   logger.debug("reload_decision_source_gated", css_only=css_only)
+   logger.debug("reload_decision_from_outputs", count=len(records))
+   logger.debug("reload_decision_fallback")
+   ```
+3. Verify `changed_outputs` is always populated by `BuildExecutor`
+4. Add warning when fallback path is taken unexpectedly
 
 **Success Criteria**:
-- Snapshot diffing only used as fallback
-- Logs confirm `decide_from_outputs()` path taken
-- No functional changes
+- Source-gated or `decide_from_outputs()` path taken in 99%+ of cases
+- Snapshot diffing (`decide_and_update()`) never called during normal operation
+- Debug logs confirm decision path for each reload
 
 ---
 
@@ -623,14 +664,16 @@ class BuildTrigger:
 
 **Steps**:
 1. Add frontmatter cache to `BuildTrigger`
-2. Limit file read to 2KB
-3. Key cache by (path, mtime)
+2. Limit file read to 4KB (covers YAML-heavy frontmatter)
+3. Key cache by (path, mtime) with LRU eviction
 4. Benchmark with rapid file changes
+5. Document cache invalidation behavior
 
 **Success Criteria**:
 - File reads reduced by 80%+ on repeated changes
 - No change in nav detection behavior
 - All tests pass
+- Cache invalidation works correctly for file modifications
 
 ---
 
@@ -750,7 +793,29 @@ This RFC was verified against the actual source code:
 
 ## Existing Optimizations (Do Not Modify)
 
-The following optimizations are already well-implemented:
+The following optimizations are already well-implemented and should be preserved:
+
+### 0. Source-Gated Reload Decision
+
+```python
+# build_trigger.py:540-569
+if changed_files:
+    lower = [p.lower() for p in changed_files]
+    src_only = [p for p in lower if "/public/" not in p and "\\public\\" not in p]
+
+    css_only = (
+        bool(src_only)
+        and all(p.endswith(".css") for p in src_only)
+        and not has_svg_icons
+    )
+
+    if css_only:
+        decision = ReloadDecision(action="reload-css", ...)
+    else:
+        decision = ReloadDecision(action="reload", ...)
+```
+
+This check runs BEFORE output analysis and provides immediate CSS-only detection from source files, bypassing the entire output processing pipeline for the common case.
 
 ### 1. LRU HTML Cache
 
@@ -831,10 +896,10 @@ The server package is well-designed with **O(1) to O(n) scaling** and sophistica
 
 These changes can be made immediately with minimal risk:
 
-### Verify Incremental Outputs Path (< 30 minutes)
+### Add Reload Decision Logging (< 30 minutes)
 
 ```python
-# bengal/server/build_trigger.py:526-596 — _handle_reload()
+# bengal/server/build_trigger.py:526-614 — _handle_reload()
 
 def _handle_reload(
     self,
@@ -843,18 +908,32 @@ def _handle_reload(
 ) -> None:
     decision = None
 
-    # PREFERRED PATH: Use typed builder outputs (no snapshot diffing)
-    if changed_outputs:
+    # TIER 1: Source-gated check (fastest path)
+    if changed_files:
+        css_only = ...  # Check source file extensions
+        if css_only:
+            decision = ReloadDecision(action="reload-css", ...)
+            logger.debug("reload_decision_source_gated", action="reload-css")
+        else:
+            decision = ReloadDecision(action="reload", ...)
+            logger.debug("reload_decision_source_gated", action="reload")
+
+    # TIER 2: Typed outputs (O(o) not O(F))
+    if decision is None and changed_outputs:
         records = [...]  # Convert to OutputRecord
         if records:
-            decision = controller.decide_from_outputs(records)  # O(o) not O(F)!
+            decision = controller.decide_from_outputs(records)
             logger.debug("reload_decision_from_outputs", count=len(records))
+        else:
+            # TIER 3: Fallback to path-based
+            paths = [path for path, _type, _phase in changed_outputs]
+            decision = controller.decide_from_changed_paths(paths)
+            logger.warning("reload_decision_fallback_to_paths")  # Should rarely happen
 
-    # FALLBACK: Only if no outputs available
+    # TIER 4: Suppress (no source change)
     if decision is None:
-        logger.warning("reload_decision_fallback_to_paths")  # Add warning
-        paths = [path for path, _type, _phase in changed_outputs]
-        decision = controller.decide_from_changed_paths(paths)
+        decision = ReloadDecision(action="none", reason="no-source-change", ...)
+        logger.debug("reload_decision_suppressed")
 ```
 
 ### Pattern Filter Cache Initialization (< 15 minutes)
@@ -877,10 +956,12 @@ def __init__(self, ...):
 - **Big O Analysis**: Previous conversation analysis
 - **Existing Optimization RFC**: `plan/drafted/rfc-postprocess-package-optimizations.md`
 - **Source Code**:
-  - `bengal/server/reload_controller.py:196-211` — Snapshot walking
+  - `bengal/server/reload_controller.py:196-211` — Snapshot walking (fallback only)
   - `bengal/server/reload_controller.py:416-471` — Incremental outputs (implemented!)
-  - `bengal/server/ignore_filter.py:111-148` — Pattern matching
-  - `bengal/server/build_trigger.py:416-451` — Frontmatter parsing
-  - `bengal/server/build_trigger.py:453-486` — Template detection
-  - `bengal/server/request_handler.py:365-367` — HTML cache (optimized)
+  - `bengal/server/build_trigger.py:526-614` — Three-tier reload decision flow
+  - `bengal/server/build_trigger.py:540-569` — Source-gated CSS-only detection
+  - `bengal/server/ignore_filter.py:111-148` — Pattern matching (no cache)
+  - `bengal/server/build_trigger.py:416-451` — Frontmatter parsing (no cache)
+  - `bengal/server/build_trigger.py:453-486` — Template detection (no cache)
+  - `bengal/server/request_handler.py:365-367` — HTML cache (50 entries, optimized)
   - `bengal/server/watcher_runner.py:240-274` — Debouncing (optimized)

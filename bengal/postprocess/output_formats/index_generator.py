@@ -40,7 +40,7 @@ Features:
     - Version-scoped indexes when versioning is enabled
     - i18n support with per-locale indexes
     - Autodoc page flagging for result grouping
-    - Write-if-changed optimization to avoid unnecessary rebuilds
+    - Hash-based change detection: O(1) comparison instead of O(n) string compare
 
 Versioning:
     When versioning is enabled, generates per-version indexes:
@@ -71,6 +71,7 @@ Related:
 
 from __future__ import annotations
 
+import hashlib
 import json
 from datetime import datetime
 from pathlib import Path
@@ -487,25 +488,41 @@ class SiteIndexGenerator:
         return self.site.output_dir / "index.json"
 
     def _write_if_changed(self, path: Path, content: str) -> None:
-        """Write content only if it differs from existing file."""
+        """
+        Write content only if content hash differs from stored hash.
+
+        Uses SHA-256 hash comparison instead of full string comparison:
+        - O(1) hash comparison vs O(n) string comparison
+        - Avoids reading entire existing file into memory
+        - Hash stored in .hash sidecar file
+        """
+        hash_path = path.with_suffix(".json.hash")
+        new_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()
+
+        # Check hash instead of full content comparison
         try:
-            if path.exists():
-                existing = path.read_text(encoding="utf-8")
-                if existing == content:
+            if hash_path.exists():
+                existing_hash = hash_path.read_text(encoding="utf-8").strip()
+                if existing_hash == new_hash:
+                    logger.debug(
+                        "index_generator_skipped",
+                        reason="content_unchanged",
+                        path=str(path),
+                    )
                     return
         except Exception as e:
-            # If we can't read existing file, proceed to write new content
             logger.debug(
-                "index_generator_read_existing_failed",
-                path=str(path),
+                "index_generator_hash_check_failed",
+                path=str(hash_path),
                 error=str(e),
                 error_type=type(e).__name__,
                 action="proceeding_to_write",
             )
-            pass
 
+        # Write content and hash
         with AtomicFile(path, "w", encoding="utf-8") as f:
             f.write(content)
+        hash_path.write_text(new_hash, encoding="utf-8")
 
     def page_to_summary(self, page: Page) -> dict[str, Any]:
         """

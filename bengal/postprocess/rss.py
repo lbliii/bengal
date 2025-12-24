@@ -22,6 +22,7 @@ See Also:
 
 from __future__ import annotations
 
+import heapq
 import xml.etree.ElementTree as ET
 from typing import TYPE_CHECKING, Any
 
@@ -127,14 +128,16 @@ class RSSGenerator:
                 and p.in_rss
                 and (strategy == "none" or getattr(p, "lang", default_lang) == code)
             ]
-            sorted_pages = sorted(pages_with_dates, key=lambda p: p.date, reverse=True)
+            # OPTIMIZATION: Heap selection for top-20 instead of full sort
+            # O(n log 20) instead of O(n log n) - significant for large sites
+            sorted_pages = heapq.nlargest(20, pages_with_dates, key=lambda p: p.date)
 
             self.logger.info(
                 "rss_generation_start",
                 lang=code,
                 total_pages=len(self.site.pages),
                 pages_with_dates=len(pages_with_dates),
-                rss_limit=min(20, len(sorted_pages)),
+                rss_limit=len(sorted_pages),
             )
 
             # Create root element
@@ -150,8 +153,8 @@ class RSSGenerator:
             ET.SubElement(channel, "link").text = baseurl
             ET.SubElement(channel, "description").text = description
 
-            # Items
-            for page in sorted_pages[:20]:
+            # Items (heapq.nlargest already limits to 20)
+            for page in sorted_pages:
                 item = ET.SubElement(channel, "item")
                 ET.SubElement(item, "title").text = page.title
 
@@ -211,7 +214,7 @@ class RSSGenerator:
                     "rss_generation_complete",
                     lang=code,
                     rss_path=str(rss_path),
-                    items_included=min(20, len(sorted_pages)),
+                    items_included=len(sorted_pages),
                     total_pages_with_dates=len(pages_with_dates),
                 )
             except Exception as e:

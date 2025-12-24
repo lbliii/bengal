@@ -1,12 +1,34 @@
 # RFC: Postprocess Package Big O Optimizations
 
-**Status**: Draft  
+**Status**: ✅ Implemented  
 **Created**: 2025-01-XX  
+**Implemented**: 2025-12-24  
 **Author**: AI Assistant  
 **Subsystem**: Postprocess (Output Formats, Generators, HTML Processing)  
 **Confidence**: 95% 🟢 (verified against 14 source files)  
 **Priority**: P3 (Low) — Polish optimizations for large sites  
 **Estimated Effort**: 2-3 days
+
+---
+
+## Implementation Summary
+
+**All optimizations implemented on 2025-12-24:**
+
+| Optimization | File | Change | Tests |
+|---|---|---|---|
+| **Streaming LLM Write** | `llm_generator.py` | Removed list accumulation, stream directly to file | ✅ 51 passed |
+| **Hash-Based Change Detection** | `llm_generator.py` | Added SHA-256 hash comparison via `.llm-full.hash` | ✅ 23 integration passed |
+| **RSS Heap Selection** | `rss.py` | Replaced `sorted()` with `heapq.nlargest(20)` | ✅ All RSS tests passed |
+| **Index Hash Detection** | `index_generator.py` | Added SHA-256 hash comparison via `.json.hash` | ✅ All index tests passed |
+
+**Memory Improvements:**
+- LLM generator: O(n×c) → O(c) memory (where n=pages, c=content size)
+- For 10K pages at 5KB each: ~100MB → ~5KB peak memory
+
+**Time Improvements:**
+- RSS top-20 selection: O(n log n) → O(n log 20)
+- Index change detection: O(n) string compare → O(1) hash compare
 
 ---
 

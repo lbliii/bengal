@@ -4,9 +4,9 @@
 **Created**: 2025-01-XX  
 **Author**: AI Assistant  
 **Subsystem**: Rendering (Pipeline, Parsers, Plugins, Template Functions)  
-**Confidence**: 90% 🟢 (verified against source code)  
+**Confidence**: 85% 🟢 (verified against source code 2025-01-XX)  
 **Priority**: P2 (Medium) — Performance improvements for large sites (1000+ pages)  
-**Estimated Effort**: 2-3 days
+**Estimated Effort**: 1.5-2 days
 
 ---
 
@@ -22,21 +22,23 @@ Comprehensive Big O analysis of the `bengal.rendering` package (91+ files) revea
    - Navigation tree: O(1) lookup via NavTreeCache
    - Thread-local parser caching: Eliminates O(plugin_count) per-page overhead
    - Template wrapper caching: Avoids O(pages) wrapper creation per access
+   - Tag page resolution: O(1) via cached `str_page_map`
 
-2. ⚠️ **Multiple Regex Passes on HTML** — 4-5 sequential O(n) transformations per page
-3. ⚠️ **Heading Anchor Slow Path** — O(n×depth) for blockquote handling
-4. ⚠️ **Tag Page Context Building** — O(tag_pages) with redundant filtering
-5. ⚠️ **Xref Code Block Splitting** — Repeated O(n) regex splits
+2. ⚠️ **Multiple Transform Passes on HTML** — 3 sequential O(n) transformations per page
+3. ⚠️ **Heading Anchor Slow Path** — O(n + m×r) for blockquote handling (m=blockquote count, r=avg content between)
+4. ⚠️ **Tag Page Context Filtering** — O(tag_pages) filtering repeated per paginated render
+5. ⚠️ **API Doc Badge Injection** — 5 sequential O(n) regex passes (gated to API pages only)
 
 **Current State**: The rendering pipeline performs well for typical sites (100-5000 pages). These optimizations target:
 - Build time reduction for large sites (5K+ pages)
 - Memory efficiency during template rendering
 - Dev server responsiveness
 
-**Impact**:
-- Unified transform pass: **20-40% reduction** in HTML processing time
-- Heading anchor optimization: **2-5× faster** for blockquote-heavy content
-- Tag context caching: **O(1)** instead of O(tag_pages) repeated lookups
+**Impact** (realistic estimates):
+- Unified transform pass: **10-25% reduction** in HTML processing time (3 passes → 1)
+- Tag context caching: **Eliminates repeated filtering** — O(T×P) once instead of per-render
+- Heading anchor optimization: **Marginal** — slow path already rare in practice
+- API badge combining: **Negligible** — gated to API doc pages only
 
 ---
 
@@ -65,87 +67,98 @@ Comprehensive Big O analysis of the `bengal.rendering` package (91+ files) revea
 
 ## Problem Statement
 
-### Bottleneck 1: Multiple Regex Passes on HTML — 4-5× O(n)
+### Bottleneck 1: Multiple Transform Passes on HTML — 3× O(n)
 
-**Location**: `bengal/rendering/pipeline/core.py:298-314`
+**Location**: `bengal/rendering/pipeline/core.py:307-314`
 
 **Current Implementation**:
 
 ```python
 def _parse_content(self, page: Page) -> None:
     """Parse page content through markdown parser."""
-    # ... parsing ...
+    # ... parsing (lines 298-306) ...
 
-    # Pass 1: Escape Jinja blocks
+    # Pass 1: Escape Jinja blocks (str.replace - fast)
     page.parsed_ast = escape_jinja_blocks(page.parsed_ast or "")  # O(n)
 
-    # Pass 2: Normalize .md links
+    # Pass 2: Normalize .md links (regex)
     page.parsed_ast = normalize_markdown_links(page.parsed_ast)   # O(n)
 
-    # Pass 3: Transform internal links (baseurl)
+    # Pass 3: Transform internal links with baseurl (regex)
     page.parsed_ast = transform_internal_links(page.parsed_ast, self.site.config)  # O(n)
 ```
 
-**Additional passes in `link_transformer.py`**:
+**Transform implementations** (`bengal/rendering/pipeline/transforms.py`):
 
-```30:92:bengal/rendering/link_transformer.py
-def transform_internal_links(html: str, baseurl: str) -> str:
-    # ... regex substitution ...  # O(n)
-
-def normalize_md_links(html: str) -> str:
-    # ... regex substitution ...  # O(n)
-```
+| Transform | Method | Lines |
+|-----------|--------|-------|
+| `escape_jinja_blocks` | `str.replace()` (2 calls) | 71-93 |
+| `normalize_markdown_links` | `re.sub()` via `link_transformer.normalize_md_links` | 131-152 |
+| `transform_internal_links` | `re.sub()` via `link_transformer.transform_internal_links` | 96-128 |
 
 **Problem**:
 - Each transformation creates a new string and scans the entire HTML
-- For 10KB HTML × 1000 pages = 50MB+ of string allocations
-- Total: 4-5 full passes over each page's HTML
+- For 10KB HTML × 1000 pages = 30MB+ of string allocations
+- Total: 3 full passes over each page's HTML
 
-**Impact**:
-- Small pages (< 5KB): Negligible
-- Medium pages (5-20KB): Moderate overhead
-- Large pages (20KB+): Significant allocation overhead
+**Important Context**:
+- Pass 1 (`escape_jinja_blocks`) uses `str.replace()` which is C-optimized and very fast
+- Passes 2-3 use compiled regex patterns (already optimal for their complexity)
+- The benefit of combining depends on regex vs. string method trade-offs
+
+**Impact by Page Size**:
+- Small pages (< 5KB): Negligible overhead
+- Medium pages (5-20KB): ~1-2ms per page
+- Large pages (20KB+): ~3-5ms per page, noticeable on 1000+ page sites
 
 ---
 
-### Bottleneck 2: Heading Anchor Slow Path — O(n×depth)
+### Bottleneck 2: Heading Anchor Slow Path — O(n + m×r)
 
-**Location**: `bengal/rendering/parsers/mistune/toc.py:92-172`
+**Location**: `bengal/rendering/parsers/mistune/toc.py:91-172`
 
 **Current Implementation**:
 
 ```python
 def inject_heading_anchors(html: str, slugify_func: Any) -> str:
-    # Quick rejection: skip if no headings
+    # Quick rejection: skip if no headings (lines 44-46)
     if not html or not ("<h2" in html or "<h3" in html or "<h4" in html):
         return html
 
-    # If no blockquotes, use fast path
+    # Fast path: no blockquotes (lines 48-89)
     if "<blockquote" not in html:
-        # Fast O(n) regex path
-        return HEADING_PATTERN.sub(replace_heading, html)
+        return HEADING_PATTERN.sub(replace_heading, html)  # O(n) ✅
 
-    # Slow path: need to skip headings inside blockquotes
-    # O(blockquote_tags) iterations, each processing O(content_between) text
-    for match in blockquote_pattern.finditer(html):  # O(blockquotes)
-        before = html[current_pos : match.start()]   # Slice O(n)
+    # Slow path: skip headings inside blockquotes (lines 91-172)
+    for match in blockquote_pattern.finditer(html):  # O(m) iterations
+        before = html[current_pos : match.start()]   # Slice
         if in_blockquote == 0:
-            parts.append(HEADING_PATTERN.sub(replace_heading, before))  # O(n)
+            parts.append(HEADING_PATTERN.sub(replace_heading, before))  # O(r)
         # ...
 ```
 
-**Problem**:
-- Pages with many blockquotes trigger slow path
-- Each blockquote boundary causes string slicing and regex processing
-- Typical API docs (with code examples in blockquotes) hit this path often
+**Complexity Analysis**:
+- **Fast path**: O(n) — single regex pass, already optimal
+- **Slow path**: O(n + m×r) where:
+  - n = HTML length (scanned once for blockquote tags)
+  - m = number of blockquote open/close tags
+  - r = average content length between blockquotes
+
+**Realistic Assessment**:
+- Most content pages use fast path (no blockquotes in headings)
+- Slow path is **not** O(n×depth) as previously stated
+- API docs with blockquotes: m ≈ 10-50, r ≈ n/m, so effectively ~O(n)
+- The current implementation is already reasonably efficient
 
 **Measured Impact**:
-- Fast path: 5-10x faster than BeautifulSoup alternative
-- Slow path: Degrades with blockquote count
+- Fast path: 5-10× faster than BeautifulSoup alternative
+- Slow path: ~1.5-2× slower than fast path (acceptable)
+
+**Recommendation**: Low priority — current implementation is adequate
 
 ---
 
-### Bottleneck 3: Tag Page Context — Repeated O(tag_pages) Lookups
+### Bottleneck 3: Tag Page Context — Repeated O(P) Filtering
 
 **Location**: `bengal/rendering/renderer.py:366-518`
 
@@ -153,39 +166,44 @@ def inject_heading_anchors(html: str, slugify_func: Any) -> str:
 
 ```python
 def _add_tag_generated_page_context(self, page: Page, context: dict[str, Any]) -> None:
-    # ...
-    # Get pages directly from site.taxonomies
-    all_posts = []
-    if tag_slug and self.site.taxonomies.get("tags") and tag_slug in self.site.taxonomies["tags"]:
-        tag_data = self.site.taxonomies["tags"][tag_slug]
-        taxonomy_pages = tag_data.get("pages", [])
+    # Line 374: Page lookup map is already cached and O(1) ✅
+    str_page_map = self.site.get_page_path_map()
 
-        for tax_page in taxonomy_pages:                    # O(tag_pages)
-            resolved_page = None
-            if hasattr(tax_page, "source_path"):
-                # Use cached string-keyed map for O(1) lookup
-                resolved_page = str_page_map.get(str(tax_page.source_path))  # O(1) ✅
+    # Lines 388-401: Loop with filtering
+    for tax_page in taxonomy_pages:                    # O(P) iterations
+        if hasattr(tax_page, "source_path"):
+            # O(1) lookup - ALREADY OPTIMIZED ✅
+            resolved_page = str_page_map.get(str(tax_page.source_path))
 
-            if resolved_page:
-                source_str = str(resolved_page.source_path)
-                if (                                        # Filtering on every call
-                    not resolved_page.metadata.get("_generated")
-                    and "content/api" not in source_str
-                    and "content/cli" not in source_str
-                ):
-                    all_posts.append(resolved_page)
+        if resolved_page:
+            source_str = str(resolved_page.source_path)
+            # Filtering logic - REPEATED ON EACH RENDER ⚠️
+            if (
+                not resolved_page.metadata.get("_generated")
+                and "content/api" not in source_str      # O(1) substring check
+                and "content/cli" not in source_str      # O(1) substring check
+            ):
+                all_posts.append(resolved_page)
 ```
 
-**Problem**:
-- Page resolution loop runs for every tag page render
-- Same filtering logic repeated for each paginated page (page 1, page 2, etc.)
-- For 50 tags × 3 pagination pages = 150 calls with same resolution work
+**What's Already Optimized**:
+- ✅ Page resolution: O(1) via cached `str_page_map` (line 374, 391-392)
+- ✅ Taxonomy lookup: O(1) dict access (line 383-386)
 
-**Note**: The O(1) page map lookup (`str_page_map`) is already optimized. The issue is the filtering and resolution happening repeatedly.
+**What Can Be Improved**:
+- ⚠️ Filtering loop: O(P) per render where P = pages in tag
+- ⚠️ Repeated for each pagination page (page 1, page 2, etc.)
+
+**Impact Calculation**:
+- 50 tags × 20 avg pages/tag × 3 pagination pages = 3,000 filter iterations
+- With caching: 50 tags × 20 pages = 1,000 iterations (once)
+- **Savings**: ~67% reduction in filtering work for tag-heavy sites
+
+**Note**: This is a moderate win, not a major bottleneck. The per-iteration cost is low (metadata dict lookup + 2 substring checks).
 
 ---
 
-### Bottleneck 4: Xref Code Block Splitting — Repeated O(n) Splits
+### Bottleneck 4: Xref Code Block Splitting — O(n) per Page
 
 **Location**: `bengal/rendering/plugins/cross_references.py:116-141`
 
@@ -193,27 +211,30 @@ def _add_tag_generated_page_context(self, page: Page, context: dict[str, Any]) -
 
 ```python
 def _substitute_xrefs(self, html: str) -> str:
-    # Quick rejection: most text doesn't have [[link]] patterns
+    # Quick rejection: O(n) substring check, but fast in practice
     if "[[" not in html:
-        return html
+        return html  # Most pages exit here ✅
 
-    # Split by code blocks (both pre/code blocks and inline code)
-    # O(n) regex split
+    # Split by code blocks - O(n) regex split
     parts = re.split(
         r"(<pre.*?</pre>|<code[^>]*>.*?</code>)", html, flags=re.DOTALL | re.IGNORECASE
     )
 
     for i in range(0, len(parts), 2):
-        # Even indices are text outside code blocks
         parts[i] = self._replace_xrefs_in_text(parts[i])  # O(part_size)
 
     return "".join(parts)  # O(n) join
 ```
 
-**Problem**:
-- Code block splitting uses compiled regex but still O(n)
-- Pages with many xrefs and code blocks pay this cost multiple times
-- Pattern matching is case-insensitive with DOTALL (slightly slower)
+**Assessment**:
+- ✅ Quick rejection (`"[[" not in html`) skips most pages
+- ✅ Xref resolution uses O(1) dict lookups (line 187: `xref_index.get("by_path", {}).get(clean_path)`)
+- ⚠️ Pages with `[[` patterns pay O(n) split + O(n) join cost
+
+**Realistic Impact**:
+- Most pages: O(1) rejection (no `[[` in content)
+- Pages with xrefs: O(n) but necessary — code block protection is essential
+- **Not a priority for optimization** — the quick rejection handles the common case
 
 ---
 
