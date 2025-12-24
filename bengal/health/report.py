@@ -387,36 +387,79 @@ class ValidatorReport:
     results: list[CheckResult] = field(default_factory=list)
     duration_ms: float = 0.0
     stats: ValidatorStats | None = None
+    # Cache for computed counts (invalidated when results list changes)
+    _cached_counts: dict[str, int] | None = field(default=None, repr=False)
+    _cached_results_id: int = field(default=0, repr=False)
+    _cached_results_len: int = field(default=-1, repr=False)
+
+    def _get_counts(self) -> dict[str, int]:
+        """
+        Get status counts, computing and caching on first call or after mutation.
+
+        Optimization: Instead of O(R) per count property access, this computes
+        all counts once and caches the result. Subsequent property accesses
+        are O(1) dict lookups. Cache is invalidated when results list is
+        replaced or its length changes.
+
+        Returns:
+            Dict mapping status names to counts.
+
+        Complexity:
+            First call or after mutation: O(R)
+            Subsequent calls: O(1)
+        """
+        # Invalidate cache if results list changed (replacement or mutation)
+        current_id = id(self.results)
+        current_len = len(self.results)
+        if (
+            self._cached_counts is None
+            or self._cached_results_id != current_id
+            or self._cached_results_len != current_len
+        ):
+            counts = {
+                "success": 0,
+                "info": 0,
+                "warning": 0,
+                "suggestion": 0,
+                "error": 0,
+            }
+            for r in self.results:
+                counts[r.status.value] = counts.get(r.status.value, 0) + 1
+            self._cached_counts = counts
+            self._cached_results_id = current_id
+            self._cached_results_len = current_len
+        return self._cached_counts
 
     @property
     def passed_count(self) -> int:
         """Count of successful checks."""
-        return sum(1 for r in self.results if r.status == CheckStatus.SUCCESS)
+        return self._get_counts()["success"]
 
     @property
     def info_count(self) -> int:
         """Count of info messages."""
-        return sum(1 for r in self.results if r.status == CheckStatus.INFO)
+        return self._get_counts()["info"]
 
     @property
     def warning_count(self) -> int:
         """Count of warnings."""
-        return sum(1 for r in self.results if r.status == CheckStatus.WARNING)
+        return self._get_counts()["warning"]
 
     @property
     def suggestion_count(self) -> int:
         """Count of suggestions (quality improvements)."""
-        return sum(1 for r in self.results if r.status == CheckStatus.SUGGESTION)
+        return self._get_counts()["suggestion"]
 
     @property
     def error_count(self) -> int:
         """Count of errors."""
-        return sum(1 for r in self.results if r.status == CheckStatus.ERROR)
+        return self._get_counts()["error"]
 
     @property
     def has_problems(self) -> bool:
         """Check if this validator found any warnings or errors."""
-        return self.warning_count > 0 or self.error_count > 0
+        counts = self._get_counts()
+        return counts["warning"] > 0 or counts["error"] > 0
 
     @property
     def status_emoji(self) -> str:

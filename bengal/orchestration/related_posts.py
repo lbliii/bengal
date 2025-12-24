@@ -44,8 +44,10 @@ from bengal.utils.logger import get_logger
 logger = get_logger(__name__)
 
 # Threshold for parallel processing - below this we use sequential processing
-# to avoid thread pool overhead for small workloads
-MIN_PAGES_FOR_PARALLEL = 100
+# to avoid thread pool overhead for small workloads.
+# Lowered from 100 to 50 based on I/O-bound analysis.
+# See: plan/drafted/rfc-orchestration-package-optimizations.md (Phase 3)
+MIN_PAGES_FOR_PARALLEL = 50
 
 if TYPE_CHECKING:
     from bengal.core.page import Page

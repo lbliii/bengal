@@ -11,6 +11,7 @@ Related Modules:
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -37,6 +38,7 @@ class PageCachesMixin:
     _listable_pages_cache: list[Page] | None
     _page_path_map: dict[str, Page] | None
     _page_path_map_version: int
+    _page_by_source_path_cache: dict[Path, Page] | None
 
     @property
     def regular_pages(self) -> list[Page]:
@@ -139,6 +141,34 @@ class PageCachesMixin:
             self._page_path_map_version = current_version
         return self._page_path_map
 
+    @property
+    def page_by_source_path(self) -> dict[Path, Page]:
+        """
+        O(1) page lookup by source path (site-level cache).
+
+        Provides centralized page lookup cache shared across all consumers
+        (CascadeTracker, RebuildFilter, ContentOrchestrator). Built lazily
+        on first access, invalidated when pages change.
+
+        Returns:
+            Dictionary mapping source Path to Page objects
+
+        Performance:
+            - First access: O(P) to build cache
+            - Subsequent access: O(1)
+            - Replaces 3 separate O(P) builds with 1 shared build
+
+        Example:
+            page = site.page_by_source_path.get(source_path)
+
+        See Also:
+            get_page_path_map(): String-based path map (for template functions)
+            invalidate_page_caches(): Clears this cache
+        """
+        if self._page_by_source_path_cache is None:
+            self._page_by_source_path_cache = {p.source_path: p for p in self.pages}
+        return self._page_by_source_path_cache
+
     def invalidate_page_caches(self) -> None:
         """
         Invalidate cached page lists when pages are modified.
@@ -149,13 +179,14 @@ class PageCachesMixin:
         - Any operation that changes the pages list
 
         This ensures cached properties (regular_pages, generated_pages, listable_pages,
-        page_path_map) will recompute on next access.
+        page_path_map, page_by_source_path) will recompute on next access.
         """
         self._regular_pages_cache = None
         self._generated_pages_cache = None
         self._listable_pages_cache = None
         self._page_path_map = None
         self._page_path_map_version = -1
+        self._page_by_source_path_cache = None
 
     def invalidate_regular_pages_cache(self) -> None:
         """

@@ -104,6 +104,13 @@ class JinjaTemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin)
         self._asset_manifest_loaded: bool = False
         self._fingerprinted_asset_cache: dict[str, str | None] = {}
 
+        # Production mode skips mtime checks entirely
+        # Check site.config for production flag (may be dict or Config object)
+        if isinstance(self.site.config, dict):
+            self._production_mode = self.site.config.get("production", False)
+        else:
+            self._production_mode = getattr(self.site.config, "production", False)
+
         # Thread-safe warnings - fields are pre-initialized in Site.__post_init__()
         # No setup needed here, just use the formalized Site attributes directly
 

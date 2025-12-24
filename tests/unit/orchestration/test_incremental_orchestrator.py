@@ -58,6 +58,10 @@ def mock_site(tmp_path):
     # Set sections to empty list (section-level filtering requires iterable)
     site.sections = []
 
+    # page_by_source_path is a dict property built from site.pages
+    # The real implementation is a cached property on PageCachesMixin
+    site.page_by_source_path = {p.source_path: p for p in site.pages}
+
     return site
 
 
@@ -171,6 +175,8 @@ class TestIncrementalOrchestrator:
         # (prevents navigation dependency logic from adding adjacent pages)
         site.pages = [nav_page]
         site.assets = []
+        # Update page_by_source_path cache (mirrors PageCachesMixin behavior)
+        site.page_by_source_path = {p.source_path: p for p in site.pages}
 
         # Cache with matching nav_metadata_hash (including nav_metadata_hash for Phase 3)
         cache = BuildCache()
@@ -241,6 +247,8 @@ class TestIncrementalOrchestrator:
         section.regular_pages_recursive = [nav_page, child_page]
         site.pages = [nav_page, child_page]
         site.assets = []
+        # Update page_by_source_path cache (mirrors PageCachesMixin behavior)
+        site.page_by_source_path = {p.source_path: p for p in site.pages}
 
         cache = BuildCache()
         # Store a different nav_metadata_hash to force section rebuild
@@ -529,6 +537,8 @@ class TestCascadeDependencyTracking:
         # Update mock site
         mock_site.pages = [index_page, child1, child2]
         mock_site.sections = [section]
+        # Update page_by_source_path cache (mirrors PageCachesMixin behavior)
+        mock_site.page_by_source_path = {p.source_path: p for p in mock_site.pages}
 
         # Setup cache - only _index.md changed (RFC: use should_bypass)
         orchestrator.cache = Mock()
@@ -603,6 +613,8 @@ class TestCascadeDependencyTracking:
         # Update mock site
         mock_site.pages = [parent_index, parent_page, child_index, nested_page]
         mock_site.sections = [parent_section, child_section]
+        # Update page_by_source_path cache (mirrors PageCachesMixin behavior)
+        mock_site.page_by_source_path = {p.source_path: p for p in mock_site.pages}
 
         # Setup cache - only child _index.md changed (RFC: use should_bypass)
         orchestrator.cache = Mock()
@@ -652,6 +664,8 @@ class TestCascadeDependencyTracking:
         # Update mock site - no sections (root level)
         mock_site.pages = [root_index, page1, page2]
         mock_site.sections = []
+        # Update page_by_source_path cache (mirrors PageCachesMixin behavior)
+        mock_site.page_by_source_path = {p.source_path: p for p in mock_site.pages}
 
         # Setup cache - only root index changed (RFC: use should_bypass)
         orchestrator.cache = Mock()
@@ -703,6 +717,8 @@ class TestCascadeDependencyTracking:
         # Update mock site
         mock_site.pages = [index_page, child]
         mock_site.sections = [section]
+        # Update page_by_source_path cache (mirrors PageCachesMixin behavior)
+        mock_site.page_by_source_path = {p.source_path: p for p in mock_site.pages}
 
         # Setup cache - only _index.md changed (RFC: use should_bypass)
         orchestrator.cache = Mock()

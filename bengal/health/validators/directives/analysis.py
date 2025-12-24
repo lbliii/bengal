@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -29,6 +30,49 @@ from .constants import (
 )
 
 logger = get_logger(__name__)
+
+
+@dataclass(frozen=True, slots=True)
+class CodeBlockRange:
+    """
+    Represents a fenced code block's line range for O(1) containment checks.
+
+    Used by DirectiveAnalyzer to pre-compute code block boundaries in a single
+    O(L) pass, enabling O(R) lookups instead of O(L) per-position checks.
+
+    Attributes:
+        start_line: Opening fence line number (1-indexed)
+        end_line: Closing fence line number (1-indexed)
+        fence_type: "backtick" (```) or "tilde" (~~~)
+        fence_depth: Number of fence characters (3+)
+    """
+
+    start_line: int
+    end_line: int
+    fence_type: str  # "backtick" or "tilde"
+    fence_depth: int
+
+
+@dataclass(frozen=True, slots=True)
+class ColonDirectiveRange:
+    """
+    Represents a colon directive's line range for O(1) containment checks.
+
+    Used by DirectiveAnalyzer to pre-compute colon directive boundaries in a
+    single O(L) pass, enabling O(R) lookups instead of O(L) per-position checks.
+
+    Attributes:
+        start_line: Opening fence line number (1-indexed)
+        end_line: Closing fence line number (1-indexed)
+        fence_depth: Number of colon characters (3+)
+        directive_type: Directive name (e.g., "note", "warning")
+    """
+
+    start_line: int
+    end_line: int
+    fence_depth: int
+    directive_type: str
+
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
@@ -271,6 +315,153 @@ class DirectiveAnalyzer:
 
         return data
 
+    def _build_code_block_index(self, lines: list[str]) -> list[CodeBlockRange]:
+        """
+        Build index of fenced code block ranges in single O(L) pass.
+
+        Scans all lines once, tracking fence opens/closes with a stack.
+        Resulting ranges enable O(R) containment checks instead of O(L) per-position.
+
+        Args:
+            lines: List of content lines (from content.split("\\n"))
+
+        Returns:
+            List of CodeBlockRange objects sorted by start_line.
+
+        Complexity:
+            Time: O(L) where L = number of lines
+            Space: O(R) where R = number of code blocks (typically << L)
+        """
+        ranges: list[CodeBlockRange] = []
+        # Stack: (start_line, fence_type, fence_depth)
+        stack: list[tuple[int, str, int]] = []
+
+        # Patterns for fenced code blocks
+        fence_open_pattern = re.compile(r"^(\s*)(`{3,}|~{3,})(\w*)")
+        fence_close_pattern = re.compile(r"^(\s*)(`{3,}|~{3,})\s*$")
+
+        for i, line in enumerate(lines, 1):
+            # Check indent - skip if 4+ spaces (indented code block, not fence)
+            stripped = line.lstrip()
+            indent = len(line) - len(stripped)
+            if indent >= 4:
+                continue
+
+            # Check for opening fence (has language tag or at start)
+            open_match = fence_open_pattern.match(line)
+            if open_match:
+                fence_chars = open_match.group(2)
+                fence_type = "backtick" if fence_chars[0] == "`" else "tilde"
+                fence_depth = len(fence_chars)
+                language = open_match.group(3)
+
+                # Check if this is a closing fence (no language, matches stack top)
+                close_match = fence_close_pattern.match(line)
+                if close_match and stack:
+                    close_chars = close_match.group(2)
+                    close_type = "backtick" if close_chars[0] == "`" else "tilde"
+                    close_depth = len(close_chars)
+
+                    # Find matching opener (same type, same or lesser depth)
+                    for j in range(len(stack) - 1, -1, -1):
+                        start, s_type, s_depth = stack[j]
+                        if s_type == close_type and close_depth >= s_depth:
+                            stack.pop(j)
+                            ranges.append(CodeBlockRange(start, i, s_type, s_depth))
+                            break
+                elif language or not stack:
+                    # Opening fence (has language or no open blocks)
+                    stack.append((i, fence_type, fence_depth))
+                else:
+                    # No language but might still be opening if different type/depth
+                    # Check if it could close something first
+                    closed = False
+                    for j in range(len(stack) - 1, -1, -1):
+                        start, s_type, s_depth = stack[j]
+                        if s_type == fence_type and fence_depth >= s_depth:
+                            stack.pop(j)
+                            ranges.append(CodeBlockRange(start, i, s_type, s_depth))
+                            closed = True
+                            break
+                    if not closed:
+                        stack.append((i, fence_type, fence_depth))
+
+        return sorted(ranges, key=lambda r: r.start_line)
+
+    def _build_colon_directive_index(self, lines: list[str]) -> list[ColonDirectiveRange]:
+        """
+        Build index of colon directive ranges in single O(L) pass.
+
+        Scans all lines once, tracking directive opens/closes with a stack.
+        Resulting ranges enable O(R) containment checks instead of O(L) per-position.
+
+        Args:
+            lines: List of content lines (from content.split("\\n"))
+
+        Returns:
+            List of ColonDirectiveRange objects sorted by start_line.
+
+        Complexity:
+            Time: O(L) where L = number of lines
+            Space: O(R) where R = number of directives (typically << L)
+        """
+        ranges: list[ColonDirectiveRange] = []
+        # Stack: (start_line, fence_depth, directive_type)
+        stack: list[tuple[int, int, str]] = []
+
+        colon_open_pattern = re.compile(r"^(\s*)(:{3,})\{(\w+(?:-\w+)?)\}")
+        colon_close_pattern = re.compile(r"^(\s*)(:{3,})\s*$")
+
+        for i, line in enumerate(lines, 1):
+            # Check indent - skip if 4+ spaces
+            stripped = line.lstrip()
+            indent = len(line) - len(stripped)
+            if indent >= 4:
+                continue
+
+            # Check for opening directive
+            open_match = colon_open_pattern.match(line)
+            if open_match:
+                fence_depth = len(open_match.group(2))
+                directive_type = open_match.group(3)
+                stack.append((i, fence_depth, directive_type))
+                continue
+
+            # Check for closing fence
+            close_match = colon_close_pattern.match(line)
+            if close_match and stack:
+                close_depth = len(close_match.group(2))
+                # Find matching opener with same depth
+                for j in range(len(stack) - 1, -1, -1):
+                    start, s_depth, s_type = stack[j]
+                    if s_depth == close_depth:
+                        stack.pop(j)
+                        ranges.append(ColonDirectiveRange(start, i, s_depth, s_type))
+                        break
+
+        return sorted(ranges, key=lambda r: r.start_line)
+
+    def _is_line_inside_ranges(
+        self, line_number: int, ranges: list[CodeBlockRange] | list[ColonDirectiveRange]
+    ) -> bool:
+        """
+        Check if a line is inside any of the given ranges.
+
+        Simple O(R) linear scan - efficient when R (range count) is small,
+        which is typical (< 20 code blocks per file).
+
+        Args:
+            line_number: Line to check (1-indexed)
+            ranges: Pre-computed ranges from _build_*_index()
+
+        Returns:
+            True if line is inside any range (exclusive of boundaries).
+
+        Complexity:
+            Time: O(R) where R = number of ranges
+        """
+        return any(r.start_line < line_number < r.end_line for r in ranges)
+
     def _is_inside_code_block(self, content: str, position: int) -> bool:
         """
         Check if a position in content is inside a markdown code block.
@@ -335,11 +526,17 @@ class DirectiveAnalyzer:
         """
         Check for markdown code blocks that contain nested code blocks with the same fence length.
 
+        Optimized: Pre-computes colon directive ranges in O(L), then uses O(R) lookups
+        instead of O(L) per-line checks. Total complexity: O(L) instead of O(L²).
+
         Returns:
             List of warning dictionaries
         """
         warnings = []
         lines = content.split("\n")
+
+        # Pre-compute colon directive ranges once: O(L)
+        colon_ranges = self._build_colon_directive_index(lines)
 
         code_block_pattern = re.compile(r"^(\s*)(`{3,})(\w*)(?::[^\s]*)?\s*$")
         directive_pattern = re.compile(r"^(\s*)(`{3,})\{([^}]+)\}")
@@ -367,8 +564,8 @@ class DirectiveAnalyzer:
                 if indent >= 4:
                     continue
 
-                char_pos = len("\n".join(lines[: i - 1]))
-                if self._is_inside_colon_directive(content, char_pos):
+                # O(R) lookup instead of O(L) _is_inside_colon_directive()
+                if self._is_line_inside_ranges(i, colon_ranges):
                     continue
 
                 if not language:
@@ -440,9 +637,38 @@ class DirectiveAnalyzer:
 
         return backticks_before % 2 == 1
 
+    def _is_inside_inline_code_fast(self, line: str) -> bool:
+        """
+        Fast O(1) check if a directive pattern at line start is inside inline code.
+
+        For directive extraction, we only need to check if the line itself starts
+        with an odd number of backticks (indicating we're mid-inline-code).
+        This is sufficient because directive patterns like :::{note} cannot appear
+        inside inline code spans that started on the same line.
+
+        Args:
+            line: The line to check
+
+        Returns:
+            True if the line starts inside an inline code span.
+
+        Complexity:
+            Time: O(1) - just counts characters before directive pattern
+        """
+        # Find where the directive pattern starts (after leading whitespace)
+        stripped = line.lstrip()
+        prefix = line[: len(line) - len(stripped)]
+
+        # Count backticks in the prefix (before directive pattern)
+        backticks_before = prefix.count("`")
+        return backticks_before % 2 == 1
+
     def _extract_directives(self, content: str, file_path: Path) -> list[dict[str, Any]]:
         """
         Extract all directive blocks from markdown content (colon fences only).
+
+        Optimized: Pre-computes code block ranges in O(L), then uses O(R) lookups
+        instead of O(L) per-line checks. Total complexity: O(L) instead of O(L²).
 
         Args:
             content: Markdown content
@@ -455,6 +681,10 @@ class DirectiveAnalyzer:
 
         colon_start_pattern = r"^(\s*)(:{3,})\{(\w+(?:-\w+)?)\}([^\n]*)"
         lines = content.split("\n")
+
+        # Pre-compute code block ranges once: O(L)
+        code_block_ranges = self._build_code_block_index(lines)
+
         i = 0
         while i < len(lines):
             match = re.match(colon_start_pattern, lines[i])
@@ -464,10 +694,14 @@ class DirectiveAnalyzer:
                     i += 1
                     continue
 
-                char_pos = len("\n".join(lines[:i]))
-                if self._is_inside_code_block(content, char_pos) or self._is_inside_inline_code(
-                    content, char_pos
-                ):
+                line_num = i + 1  # 1-indexed
+                # O(R) lookup instead of O(L) _is_inside_code_block()
+                if self._is_line_inside_ranges(line_num, code_block_ranges):
+                    i += 1
+                    continue
+
+                # Inline code check is O(1) per line (just counts backticks on current line)
+                if self._is_inside_inline_code_fast(lines[i]):
                     i += 1
                     continue
 

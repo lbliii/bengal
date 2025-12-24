@@ -19,6 +19,9 @@ def mock_site(tmp_path):
     site.root_path = tmp_path
     site.sections = []
     site.pages = []
+    # page_by_source_path is a dict property built from site.pages
+    # The real implementation is a cached property on PageCachesMixin
+    site.page_by_source_path = {}
     return site
 
 

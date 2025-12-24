@@ -55,14 +55,14 @@ class CascadeTracker:
         """
         self.site = site
         # PERF: Cached lookups (built lazily on first access)
-        self._page_by_path: dict[Path, Page] | None = None
+        # Note: Page lookup uses site.page_by_source_path (shared cache)
         self._pages_in_sections: set[int] | None = None
 
     def _get_page_by_path(self, path: Path) -> Page | None:
-        """O(1) page lookup by source path (cached)."""
-        if self._page_by_path is None:
-            self._page_by_path = {p.source_path: p for p in self.site.pages}
-        return self._page_by_path.get(path)
+        """O(1) page lookup by source path (uses site-level cache)."""
+        # Use site-level cache to avoid duplicate O(P) builds across orchestrators
+        # See: plan/drafted/rfc-orchestration-package-optimizations.md (Phase 1)
+        return self.site.page_by_source_path.get(path)
 
     def _is_page_in_any_section(self, page: Page) -> bool:
         """O(1) check if page is in any section (cached)."""
