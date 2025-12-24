@@ -3,11 +3,17 @@ NotionSource - Content source for Notion databases.
 
 Fetches pages from Notion databases and converts them to markdown.
 
-Requires: pip install bengal[notion] (installs aiohttp)
+Performance Optimizations:
+- Parallel page processing with configurable concurrency (default: 5 concurrent)
+- In-memory block caching with TTL (reduces API calls on repeated fetches)
+- Streaming results as they complete via asyncio.as_completed()
+
+Requires: pip install bengal[notion] (installs aiohttp, optionally cachetools)
 """
 
 from __future__ import annotations
 
+import asyncio
 import os
 from collections.abc import AsyncIterator
 from datetime import datetime
@@ -19,6 +25,15 @@ except ImportError as e:
     raise ImportError(
         "NotionSource requires aiohttp.\nInstall with: pip install bengal[notion]"
     ) from e
+
+# Optional cachetools for block caching (graceful degradation if unavailable)
+try:
+    from cachetools import TTLCache
+
+    CACHETOOLS_AVAILABLE = True
+except ImportError:
+    TTLCache = None  # type: ignore[misc, assignment]
+    CACHETOOLS_AVAILABLE = False
 
 from bengal.content_layer.entry import ContentEntry
 from bengal.content_layer.source import ContentSource
@@ -42,6 +57,11 @@ class NotionSource(ContentSource):
         filter: dict - Notion filter object (optional)
         sorts: list - Notion sorts array (optional)
 
+    Performance:
+        Pages are processed in parallel with a configurable concurrency limit.
+        Block content is cached in-memory with TTL to reduce API calls.
+        Results are streamed as they complete (order is non-deterministic).
+
     Setup:
         1. Create a Notion integration at https://www.notion.so/my-integrations
         2. Share your database with the integration
@@ -60,6 +80,11 @@ class NotionSource(ContentSource):
     """
 
     source_type = "notion"
+
+    # Concurrency and caching configuration
+    MAX_CONCURRENT_PAGES = 5  # Notion API rate limit friendly (3 req/sec avg)
+    BLOCK_CACHE_TTL = 300  # 5 minutes
+    BLOCK_CACHE_MAXSIZE = 500  # Max cached pages (~5MB typical)
 
     def __init__(self, name: str, config: dict[str, Any]) -> None:
         """
@@ -105,17 +130,37 @@ class NotionSource(ContentSource):
             "Content-Type": "application/json",
         }
 
+        # Instance-level block cache with TTL and size limit
+        # Uses cachetools.TTLCache if available, otherwise no caching
+        if CACHETOOLS_AVAILABLE and TTLCache is not None:
+            self._block_cache: TTLCache[str, str] | None = TTLCache(
+                maxsize=self.BLOCK_CACHE_MAXSIZE,
+                ttl=self.BLOCK_CACHE_TTL,
+            )
+        else:
+            self._block_cache = None
+            if not CACHETOOLS_AVAILABLE:
+                logger.debug(
+                    "cachetools not available; block caching disabled. "
+                    "Install with: pip install bengal[notion]"
+                )
+
     async def fetch_all(self) -> AsyncIterator[ContentEntry]:
         """
         Fetch all pages from the database.
 
-        Handles pagination automatically.
+        Handles pagination automatically. Pages are processed in parallel
+        with a concurrency limit for performance. Results are yielded as
+        they complete (order is non-deterministic).
 
         Yields:
             ContentEntry for each page
         """
         async with aiohttp.ClientSession(headers=self._headers) as session:
             url = f"{self.api_base}/databases/{self.database_id}/query"
+
+            # Collect all pages first (paginated query)
+            all_pages: list[dict[str, Any]] = []
             has_more = True
             start_cursor: str | None = None
 
@@ -138,13 +183,38 @@ class NotionSource(ContentSource):
                     resp.raise_for_status()
                     data = await resp.json()
 
-                for page in data.get("results", []):
-                    entry = await self._page_to_entry(session, page)
-                    if entry:
-                        yield entry
-
+                all_pages.extend(data.get("results", []))
                 has_more = data.get("has_more", False)
                 start_cursor = data.get("next_cursor")
+
+            if not all_pages:
+                return
+
+            # Process pages in parallel with concurrency limit
+            semaphore = asyncio.Semaphore(self.MAX_CONCURRENT_PAGES)
+
+            async def process_with_limit(page: dict[str, Any]) -> ContentEntry | None:
+                async with semaphore:
+                    return await self._page_to_entry(session, page)
+
+            # Create tasks for parallel processing
+            tasks = [process_with_limit(page) for page in all_pages]
+
+            # Track failed pages for error reporting
+            failed_count = 0
+
+            # Stream results as they complete (order not guaranteed)
+            for coro in asyncio.as_completed(tasks):
+                try:
+                    entry = await coro
+                    if entry:
+                        yield entry
+                except Exception as e:
+                    failed_count += 1
+                    logger.error(f"Failed to process page: {e}")
+
+            if failed_count > 0:
+                logger.warning(f"Failed to process {failed_count}/{len(all_pages)} pages")
 
     async def fetch_one(self, id: str) -> ContentEntry | None:
         """
@@ -217,6 +287,38 @@ class NotionSource(ContentSource):
     ) -> str:
         """
         Fetch and convert page blocks to markdown.
+
+        Uses in-memory caching to reduce API calls on repeated fetches.
+        Cache entries expire after BLOCK_CACHE_TTL seconds.
+
+        Args:
+            session: aiohttp session
+            page_id: Notion page ID
+
+        Returns:
+            Markdown content string
+        """
+        # Check cache first (TTLCache handles expiration automatically)
+        if self._block_cache is not None and page_id in self._block_cache:
+            logger.debug(f"Block cache hit for page {page_id}")
+            return self._block_cache[page_id]
+
+        # Fetch blocks from API
+        content = await self._fetch_blocks(session, page_id)
+
+        # Cache result (TTLCache handles eviction automatically)
+        if self._block_cache is not None:
+            self._block_cache[page_id] = content
+
+        return content
+
+    async def _fetch_blocks(
+        self,
+        session: aiohttp.ClientSession,
+        page_id: str,
+    ) -> str:
+        """
+        Fetch blocks from Notion API and convert to markdown.
 
         Args:
             session: aiohttp session

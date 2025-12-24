@@ -52,9 +52,9 @@ search = ["lunr>=0.7.0"]
 # Content Layer - Remote content sources
 # These provide async HTTP for fetching from GitHub, REST APIs, Notion, etc.
 github = ["aiohttp>=3.9.0"]
-notion = ["aiohttp>=3.9.0"]
+notion = ["aiohttp>=3.9.0", "cachetools>=5.0.0"]  # cachetools for block caching
 rest = ["aiohttp>=3.9.0"]
-all-sources = ["aiohttp>=3.9.0"] # All remote sources
+all-sources = ["aiohttp>=3.9.0", "cachetools>=5.0.0"]  # All remote sources
 
 # Note: Dev dependencies use [dependency-groups] (PEP 735) - install with: uv sync --group dev
 

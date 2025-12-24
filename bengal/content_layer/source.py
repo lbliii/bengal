@@ -2,6 +2,9 @@
 ContentSource - Abstract base class for content sources.
 
 Defines the protocol that all content sources must implement.
+
+Performance Optimizations:
+- Cache key memoization: O(1) after first computation
 """
 
 from __future__ import annotations
@@ -9,6 +12,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator, Iterator
 from datetime import datetime
+from functools import cached_property
 from typing import TYPE_CHECKING, Any
 
 from bengal.utils.hashing import hash_str
@@ -93,19 +97,30 @@ class ContentSource(ABC):
         """
         ...
 
-    def get_cache_key(self) -> str:
+    @cached_property
+    def cache_key(self) -> str:
         """
         Generate cache key for this source configuration.
 
-        Used to invalidate cache when config changes. Override for
-        custom cache key logic.
+        Computed once and cached for the lifetime of the source instance.
+        Uses sorted config items for deterministic hashing.
 
         Returns:
             16-character hex string based on config hash
         """
-        # Sort config items for deterministic hashing
         config_str = f"{self.source_type}:{self.name}:{sorted(self.config.items())}"
         return hash_str(config_str, truncate=16)
+
+    def get_cache_key(self) -> str:
+        """
+        Get cache key for this source configuration (memoized).
+
+        Used to invalidate cache when config changes. O(1) after first call.
+
+        Returns:
+            16-character hex string based on config hash
+        """
+        return self.cache_key
 
     async def get_last_modified(self) -> datetime | None:
         """
