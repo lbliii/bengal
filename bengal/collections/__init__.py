@@ -73,6 +73,8 @@ from typing import TYPE_CHECKING, Any
 # Re-export commonly used items (placed here to satisfy E402)
 from bengal.collections.errors import ContentValidationError, ValidationError
 from bengal.collections.loader import (
+    CollectionPathTrie,
+    build_collection_trie,
     get_collection_for_path,
     load_collections,
     validate_collections_config,
@@ -300,6 +302,8 @@ __all__ = [
     "ValidationError",
     "ValidationResult",
     # --- Loader Utilities ---
+    "CollectionPathTrie",
+    "build_collection_trie",
     "get_collection_for_path",
     "load_collections",
     "validate_collections_config",

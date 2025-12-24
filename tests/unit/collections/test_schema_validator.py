@@ -529,3 +529,163 @@ class TestBlogPostSchema:
         assert result.valid is True
         assert result.data.title == "Getting Started with Bengal"
         assert result.data.date.year == 2025
+
+
+# Recursion depth limit tests
+
+
+def _generate_nested_schema(depth: int) -> type:
+    """Generate a dataclass schema with N levels of nesting."""
+    current_class = None
+
+    for level in range(depth, 0, -1):
+        if current_class is None:
+
+            @dataclass
+            class InnerSchema:
+                value: str
+
+            current_class = InnerSchema
+            current_class.__name__ = f"Level{level}"
+            current_class.__qualname__ = f"Level{level}"
+        else:
+            inner = current_class
+
+            @dataclass
+            class WrapperSchema:
+                nested: inner  # type: ignore[valid-type]
+                name: str = ""
+
+            WrapperSchema.__name__ = f"Level{level}"
+            WrapperSchema.__qualname__ = f"Level{level}"
+            current_class = WrapperSchema
+
+    return current_class
+
+
+def _generate_nested_data(depth: int) -> dict[str, Any]:
+    """Generate nested dictionary data matching the schema depth."""
+    if depth <= 1:
+        return {"value": "leaf"}
+
+    result: dict[str, Any] = {"name": "level_1"}
+    current = result
+
+    for level in range(2, depth):
+        current["nested"] = {"name": f"level_{level}"}
+        current = current["nested"]
+
+    current["nested"] = {"value": "leaf"}
+    return result
+
+
+class TestRecursionDepthLimit:
+    """Tests for max_depth recursion limiting."""
+
+    def test_default_max_depth(self) -> None:
+        """Test default max_depth is 10."""
+        validator = SchemaValidator(SimpleSchema)
+        assert validator.max_depth == 10
+
+    def test_custom_max_depth(self) -> None:
+        """Test custom max_depth is respected."""
+        validator = SchemaValidator(SimpleSchema, max_depth=5)
+        assert validator.max_depth == 5
+
+    def test_nested_within_limit(self) -> None:
+        """Test validation passes when nesting is within limit."""
+        schema = _generate_nested_schema(5)
+        validator = SchemaValidator(schema, max_depth=10)
+        data = _generate_nested_data(5)
+
+        result = validator.validate(data)
+
+        assert result.valid is True
+
+    def test_nested_at_exact_limit(self) -> None:
+        """Test validation passes when nesting equals limit."""
+        schema = _generate_nested_schema(10)
+        validator = SchemaValidator(schema, max_depth=10)
+        data = _generate_nested_data(10)
+
+        result = validator.validate(data)
+
+        assert result.valid is True
+
+    def test_nested_exceeds_limit(self) -> None:
+        """Test validation fails when nesting exceeds limit."""
+        schema = _generate_nested_schema(5)
+        validator = SchemaValidator(schema, max_depth=3)
+        data = _generate_nested_data(5)
+
+        result = validator.validate(data)
+
+        assert result.valid is False
+        assert len(result.errors) >= 1
+        assert any("depth" in e.message.lower() for e in result.errors)
+
+    def test_deeply_nested_fails_gracefully(self) -> None:
+        """Test deeply nested data returns error, not stack overflow."""
+        schema = _generate_nested_schema(15)
+        validator = SchemaValidator(schema, max_depth=10)
+        data = _generate_nested_data(15)
+
+        # Should not raise, should return validation error
+        result = validator.validate(data)
+
+        assert result.valid is False
+        assert any("depth" in e.message.lower() for e in result.errors)
+
+    def test_max_depth_1_allows_flat(self) -> None:
+        """Test max_depth=1 allows flat schemas."""
+        validator = SchemaValidator(SimpleSchema, max_depth=1)
+        result = validator.validate({"title": "Hello", "count": 42})
+
+        assert result.valid is True
+
+    def test_max_depth_1_rejects_nested(self) -> None:
+        """Test max_depth=1 rejects any nesting."""
+        validator = SchemaValidator(NestedSchema, max_depth=1)
+        result = validator.validate({"name": "Parent", "metadata": {"title": "Child"}})
+
+        assert result.valid is False
+        assert any("depth" in e.message.lower() for e in result.errors)
+
+    def test_list_of_nested_respects_depth(self) -> None:
+        """Test list of nested dataclasses respects depth limit."""
+
+        @dataclass
+        class Inner:
+            value: str
+
+        @dataclass
+        class Outer:
+            items: list[Inner]
+
+        validator = SchemaValidator(Outer, max_depth=2)
+        result = validator.validate({"items": [{"value": "a"}, {"value": "b"}]})
+
+        assert result.valid is True
+
+    def test_list_does_not_increment_depth(self) -> None:
+        """Test that lists themselves don't count toward depth."""
+
+        @dataclass
+        class Level3:
+            value: str
+
+        @dataclass
+        class Level2:
+            nested: Level3
+
+        @dataclass
+        class Level1:
+            items: list[Level2]
+
+        # Level1 -> list[Level2] -> Level3 = 3 actual dataclass levels
+        validator = SchemaValidator(Level1, max_depth=3)
+        data = {"items": [{"nested": {"value": "leaf"}}]}
+
+        result = validator.validate(data)
+
+        assert result.valid is True

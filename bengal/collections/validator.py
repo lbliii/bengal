@@ -399,6 +399,7 @@ class SchemaValidator:
         name: str,
         value: Any,
         expected: type,
+        _depth: int = 0,
     ) -> tuple[Any, list[ValidationError]]:
         """
         Coerce a value to the expected type with error handling.
@@ -410,12 +411,13 @@ class SchemaValidator:
         - ``dict[K, V]``: Validates dict structure (keys/values not yet typed)
         - ``datetime`` / ``date``: Parses from ISO strings or other formats
         - Basic types (``str``, ``int``, ``float``, ``bool``): Standard coercion
-        - Nested dataclasses: Recursive validation
+        - Nested dataclasses: Recursive validation (up to max_depth)
 
         Args:
             name: Field name for error messages (may include path, e.g., ``"tags[0]"``).
             value: The value to coerce.
             expected: The expected type (may be a generic like ``list[str]``).
+            _depth: Current recursion depth (internal use only).
 
         Returns:
             Tuple of ``(coerced_value, errors)`` where ``errors`` is empty on
@@ -445,11 +447,11 @@ class SchemaValidator:
 
             if len(non_none_args) == 1:
                 # Simple Optional[X]
-                return self._coerce_type(name, value, non_none_args[0])
+                return self._coerce_type(name, value, non_none_args[0], _depth=_depth)
             else:
                 # Union of multiple types - try each
                 for arg in non_none_args:
-                    result, errors = self._coerce_type(name, value, arg)
+                    result, errors = self._coerce_type(name, value, arg, _depth=_depth)
                     if not errors:
                         return result, []
 
@@ -480,7 +482,10 @@ class SchemaValidator:
                 all_errors: list[ValidationError] = []
 
                 for i, item in enumerate(value):
-                    coerced, errors = self._coerce_type(f"{name}[{i}]", item, item_type)
+                    # Lists don't increment depth - only nested dataclasses do
+                    coerced, errors = self._coerce_type(
+                        f"{name}[{i}]", item, item_type, _depth=_depth
+                    )
                     if errors:
                         all_errors.extend(errors)
                     else:
@@ -553,9 +558,24 @@ class SchemaValidator:
 
         # Handle nested dataclasses
         if is_dataclass(expected):
+            # Check depth BEFORE creating nested validator
+            if _depth >= self.max_depth:
+                return value, [
+                    ValidationError(
+                        field=name,
+                        message=f"Maximum nesting depth ({self.max_depth}) exceeded at '{name}'",
+                    )
+                ]
+
             if isinstance(value, dict):
-                nested_validator = SchemaValidator(expected, strict=self.strict)
-                result = nested_validator.validate(value)
+                # Pass max_depth to nested validator
+                nested_validator = SchemaValidator(
+                    expected,
+                    strict=self.strict,
+                    max_depth=self.max_depth,
+                )
+                # Call internal method with incremented depth
+                result = nested_validator._validate_dataclass(value, None, _depth=_depth + 1)
                 if result.valid:
                     return result.data, []
                 else:
