@@ -86,27 +86,27 @@ Basic embed:
 :::
 ```
 
-With start time and custom aspect ratio:
+**Live example**:
 
-```markdown
 :::{youtube} dQw4w9WgXcQ
 :title: Rick Astley - Never Gonna Give You Up
-:start: 30
-:aspect: 4/3
 :::
-```
 
-Background video (autoplay, muted, looped, no controls):
+With start time (starts at 43 seconds):
 
 ```markdown
 :::{youtube} dQw4w9WgXcQ
-:title: Background video
-:autoplay: true
-:muted: true
-:loop: true
-:controls: false
+:title: Rick Astley - Never Gonna Give You Up (Chorus)
+:start: 43
 :::
 ```
+
+**Live example**:
+
+:::{youtube} dQw4w9WgXcQ
+:title: Rick Astley - Never Gonna Give You Up (Chorus)
+:start: 43
+:::
 
 ### Vimeo
 
@@ -348,11 +348,16 @@ Embed GitHub Gists with optional file selection.
 Basic gist:
 
 ```markdown
-:::{gist} octocat/12345678901234567890123456789012
+:::{gist} lbliii/21314a0babc8838bc2b5eecb53faec75
 :::
 ```
 
-Specific file:
+**Live example**:
+
+:::{gist} lbliii/21314a0babc8838bc2b5eecb53faec75
+:::
+
+Specific file from multi-file gist:
 
 ```markdown
 :::{gist} octocat/12345678901234567890123456789012
@@ -390,20 +395,35 @@ Embed CodePen pens.
 Basic embed:
 
 ```markdown
-:::{codepen} chriscoyier/KBQqza
-:title: CSS Grid Layout Example
+:::{codepen} mrdanielschwarz/VYaPVgr
+:title: CSS Animation Demo
 :::
 ```
 
-With HTML tab visible:
+**Live example**:
+
+:::{codepen} mrdanielschwarz/VYaPVgr
+:title: CSS Animation Demo
+:height: 400
+:::
+
+With CSS tab visible:
 
 ```markdown
-:::{codepen} chriscoyier/KBQqza
-:title: CSS Grid Layout Example
-:default-tab: html
-:height: 500
+:::{codepen} mrdanielschwarz/VYaPVgr
+:title: CSS Animation Demo
+:default-tab: css
+:height: 400
 :::
 ```
+
+**Live example**:
+
+:::{codepen} mrdanielschwarz/VYaPVgr
+:title: CSS Animation Demo
+:default-tab: css
+:height: 400
+:::
 
 ### CodeSandbox
 

@@ -337,3 +337,192 @@
 [data-theme="dark"] .tab-nav li.disabled a {
   color: var(--color-text-disabled);
 }
+
+/* ==============================================
+   CODE TABS ENHANCED (RFC: Enhanced Code Tabs)
+   - Language icons
+   - Filename badges
+   - Copy button per pane
+   - Pygments integration
+   ============================================== */
+
+/* Tab Label - language name */
+.code-tabs .tab-label {
+  font-weight: var(--weight-medium);
+}
+
+/* Tab Filename Badge */
+.code-tabs .tab-filename {
+  display: inline-flex;
+  align-items: center;
+  margin-left: var(--space-2);
+  padding: 0.125rem 0.5rem;
+  font-size: var(--text-xxs);
+  font-family: var(--font-mono);
+  font-weight: var(--weight-normal);
+  color: var(--color-text-muted);
+  background: var(--color-bg-tertiary);
+  border-radius: var(--radius-sm);
+  opacity: 0.85;
+}
+
+.tab-nav li.active .tab-filename {
+  color: var(--color-text-secondary);
+  background: color-mix(in srgb, var(--color-primary) 15%, transparent);
+  opacity: 1;
+}
+
+[data-theme="dark"] .code-tabs .tab-filename {
+  background: var(--color-bg-tertiary);
+}
+
+[data-theme="dark"] .tab-nav li.active .tab-filename {
+  background: color-mix(in srgb, var(--color-primary) 20%, transparent);
+}
+
+/* Tab link with icon and filename layout */
+.code-tabs .tab-nav a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* Tab icon positioning within code-tabs */
+.code-tabs .tab-icon {
+  margin-right: 0;
+  flex-shrink: 0;
+}
+
+.code-tabs .tab-icon .bengal-icon {
+  display: block;
+}
+
+/* Code Toolbar (contains copy button) */
+.code-tabs .code-toolbar {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  z-index: 10;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.code-tabs .tab-pane:hover .code-toolbar,
+.code-tabs .tab-pane:focus-within .code-toolbar {
+  opacity: 1;
+}
+
+/* Copy Button in code-tabs */
+.code-tabs .copy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  color: var(--color-text-secondary);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.code-tabs .copy-btn:hover {
+  color: var(--color-text-primary);
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.code-tabs .copy-btn:active {
+  transform: scale(0.95);
+}
+
+.code-tabs .copy-btn.copied {
+  color: var(--color-success);
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+/* Dark mode copy button */
+[data-theme="dark"] .code-tabs .copy-btn {
+  background: rgba(0, 0, 0, 0.2);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .code-tabs .copy-btn:hover {
+  background: rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Copy icon sizing */
+.code-tabs .copy-icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* Visually hidden but accessible */
+.code-tabs .visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Tab pane with relative positioning for copy button */
+.code-tabs .tab-pane {
+  position: relative;
+}
+
+/* Reset Pygments styles within code-tabs */
+.code-tabs .tab-pane .highlight,
+.code-tabs .tab-pane pre {
+  margin: 0;
+  border: none;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  box-shadow: none;
+  animation: none;
+}
+
+.code-tabs .tab-pane .highlighttable {
+  margin: 0;
+  border: none;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  box-shadow: none;
+  animation: none;
+}
+
+/* Sync indicator (visual feedback when tabs sync) */
+.code-tabs[data-sync] .tab-nav li.active a {
+  position: relative;
+}
+
+/* Mobile adjustments */
+@media (max-width: 639px) {
+  .code-tabs .tab-filename {
+    display: none;
+  }
+  
+  .code-tabs .tab-nav a {
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-xs);
+  }
+  
+  .code-tabs .code-toolbar {
+    opacity: 1;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .code-tabs .tab-nav li.active a::after {
+    animation: none;
+  }
+}

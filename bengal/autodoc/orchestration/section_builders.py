@@ -56,11 +56,16 @@ def create_python_sections(
             # This module's description can describe its package
             package_descriptions[element.qualified_name] = element.description
 
+    # Get display name from config, fallback to default
+    autodoc_config = site.config.get("autodoc", {})
+    python_config = autodoc_config.get("python", {})
+    display_name = python_config.get("display_name") or "Python API Reference"
+
     # Create root Python API section
     api_section = Section.create_virtual(
         name=root_name,
         relative_url=join_url_paths(prefix),
-        title="Python API Reference",
+        title=display_name,
         metadata={
             "type": "autodoc-python",
             "weight": 100,
@@ -150,11 +155,16 @@ def create_cli_sections(
     prefix_parts = prefix.split("/") if prefix else []
     root_name = prefix_parts[-1] if prefix_parts else "cli"
 
+    # Get display name from config, fallback to default
+    autodoc_config = site.config.get("autodoc", {})
+    cli_config = autodoc_config.get("cli", {})
+    display_name = cli_config.get("display_name") or "CLI Reference"
+
     # Create root CLI section
     cli_section = Section.create_virtual(
         name=root_name,
         relative_url=join_url_paths(prefix),
-        title="CLI Reference",
+        title=display_name,
         metadata={
             "type": "autodoc-cli",
             "weight": 100,
@@ -255,11 +265,16 @@ def create_openapi_sections(
     prefix_parts = prefix.split("/") if prefix else []
     root_name = prefix_parts[-1] if prefix_parts else "rest"
 
+    # Get display name from config, fallback to default
+    autodoc_config = site.config.get("autodoc", {})
+    openapi_config = autodoc_config.get("openapi", {})
+    display_name = openapi_config.get("display_name") or "REST API Reference"
+
     # Create root OpenAPI section (always new, never reuse)
     api_section = Section.create_virtual(
         name=root_name,
         relative_url=join_url_paths(prefix),
-        title="REST API Reference",
+        title=display_name,
         metadata={
             "type": "autodoc-rest",
             "weight": 100,

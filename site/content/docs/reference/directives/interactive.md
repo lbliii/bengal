@@ -15,6 +15,8 @@ keywords:
 - interactive
 - tabs
 - tables
+- language sync
+- copy button
 ---
 
 # Interactive Directives
@@ -29,23 +31,45 @@ Interactive directives provide JavaScript-enhanced components for code examples 
 
 ## Code Tabs
 
-Create tabbed interfaces for multi-language code examples.
+Create tabbed interfaces for multi-language code examples with automatic language sync, syntax highlighting, and copy buttons.
 
 **Aliases**: `{code_tabs}`
 
-**Syntax**:
+### Enhanced Features
+
+Code tabs include several developer-experience enhancements:
+
+- **Auto language sync** — All code-tabs on a page sync when user picks a language
+- **Language icons** — Automatic icons for common language categories
+- **Pygments highlighting** — Proper syntax coloring with line numbers and line emphasis
+- **Copy button** — One-click copy per tab
+- **Filename display** — Show filename badges in tab labels
+
+### Syntax
 
 ````markdown
 :::{code-tabs}
+:sync: language
+:line-numbers: true
+:highlight: 3-5
 
-### Tab: Language Name
-```language
-code here
+### Python (main.py)
+```python
+def greet(name):
+    """Say hello."""
+    print(f"Hello, {name}!")
+
+greet("World")
 ```
 
-### Tab: Another Language
-```language
-more code
+### JavaScript (index.js)
+```javascript {2-3}
+function greet(name) {
+    // Say hello
+    console.log(`Hello, ${name}!`);
+}
+
+greet("World");
 ```
 
 :::{/code-tabs}
@@ -53,24 +77,127 @@ more code
 
 **Note**: You can also use `### Language Name` (without "Tab:" prefix) for simpler headings.
 
+### Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `:sync:` | `"language"` | Sync key for cross-tab synchronization. Use `"none"` to disable. |
+| `:line-numbers:` | auto | Force line numbers on/off. Auto-enabled for 3+ lines. |
+| `:highlight:` | — | Global line highlights for all tabs (e.g., `"1,3-5"`) |
+| `:icons:` | `true` | Show language icons in tab labels |
+
+**Option aliases**: `:linenos:` = `:line-numbers:`, `:hl:` = `:highlight:`, `:hl-lines:` = `:highlight:`
+
+### Filename Display
+
+Add filenames to tab labels using parentheses:
+
+```markdown
+### Python (main.py)
+### JavaScript (app.js)
+### Config (settings.yaml)
+```
+
+Filenames must end with a file extension (e.g., `.py`, `.js`). Version annotations like `(v3.12+)` are treated as part of the language name, not filenames.
+
+### Per-Tab Line Highlights
+
+Add line highlights to individual tabs using the standard fence syntax:
+
+````markdown
+### Python
+```python {2-3}
+def hello():
+    # These lines are highlighted
+    print("Hello!")
+```
+````
+
+### Language Sync
+
+By default, all code-tabs on a page with the same sync key synchronize. When a user selects Python in one code-tabs block, all other blocks switch to Python.
+
+**Sync is persistent**: User preferences are saved to localStorage and restored on page load.
+
+**Disable sync** for a specific block:
+
+```markdown
+:::{code-tabs}
+:sync: none
+
+### Before
+...
+
+### After
+...
+:::
+```
+
+**Custom sync groups**:
+
+```markdown
+:::{code-tabs}
+:sync: api-examples
+
+### Python
+...
+:::
+
+:::{code-tabs}
+:sync: config-examples
+
+### YAML
+...
+:::
+```
+
 ### Examples
 
-:::{example-label} Python and JavaScript
+:::{example-label} Basic Usage
 :::
 
 ````markdown
 :::{code-tabs}
 
-### Tab: Python
+### Python
 ```python
 def hello():
     print("Hello, World!")
 ```
 
-### Tab: JavaScript
+### JavaScript
 ```javascript
 function hello() {
     console.log("Hello, World!");
+}
+```
+
+:::{/code-tabs}
+````
+
+:::{example-label} With Filenames and Highlights
+:::
+
+````markdown
+:::{code-tabs}
+:line-numbers: true
+
+### Python (api_client.py)
+```python {3-4}
+import requests
+
+def get_users():
+    response = requests.get("/api/users")
+    return response.json()
+```
+
+### JavaScript (client.js)
+```javascript {3-4}
+import fetch from 'node-fetch';
+
+async function getUsers() {
+    const response = await fetch('/api/users');
+    return response.json();
 }
 ```
 
@@ -98,15 +225,37 @@ console.log("Hello");
 fmt.Println("Hello")
 ```
 
+### Bash
+```bash
+echo "Hello"
+```
+
 :::{/code-tabs}
 ````
 
 ### Rendering
 
-Code tabs render as interactive tabbed interface with:
+Code tabs render as an interactive tabbed interface with:
+
 - Tab navigation for switching languages
-- Syntax highlighting for each language
+- Language icons (terminal for bash/shell, database for SQL, code for others)
+- Filename badges in tab labels
+- Pygments syntax highlighting with line numbers
+- Line emphasis for highlighted lines
+- Copy button on hover
 - First tab selected by default
+- Synced tab selection across the page
+
+### Language Icons
+
+Icons are automatically assigned based on language category:
+
+| Languages | Icon |
+|-----------|------|
+| bash, shell, sh, zsh, powershell, cmd | Terminal |
+| sql, mysql, postgresql, sqlite | Database |
+| json, yaml, toml, xml, ini | File/Code |
+| All others | Code |
 
 ## Data Table
 
@@ -181,11 +330,15 @@ Data tables render as interactive tables with:
 ## Best Practices
 
 1. **Code Tabs**: Use for comparing code across languages or showing multiple approaches
-2. **Data Tables**: Use for large datasets that benefit from sorting/filtering
-3. **Performance**: Consider pagination for very large tables
-4. **Accessibility**: Ensure JavaScript is enabled for interactive features
+2. **Language Sync**: Keep sync enabled (default) for API docs with consistent language examples
+3. **Filenames**: Add filenames when showing complete file contents
+4. **Line Highlights**: Use sparingly to draw attention to key lines
+5. **Data Tables**: Use for large datasets that benefit from sorting/filtering
+6. **Performance**: Consider pagination for very large tables
+7. **Accessibility**: Keyboard navigation is supported for both directives
 
 ## Related
 
-- [Layout Directives](/docs/reference/directives/layout/) - Static tabs and cards
+- [Layout Directives](/docs/reference/directives/layout/) - Static tabs (`tab-set`) and cards
 - [Formatting Directives](/docs/reference/directives/formatting/) - List tables (static)
+- [Code Blocks](/docs/content/authoring/code-blocks/) - Standard code block syntax

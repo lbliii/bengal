@@ -166,6 +166,7 @@ ICON_MAP: dict[str, str] = {
     "search": "magnifying-glass",
     "menu": "list",
     "close": "x",
+    "x-mark": "x",  # Alias for clear buttons
     # Status & Feedback
     "info": "info",
     "warning": "warning",
