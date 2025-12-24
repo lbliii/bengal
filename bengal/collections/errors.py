@@ -28,7 +28,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from bengal.errors import BengalContentError
+from bengal.errors import BengalContentError, ErrorCode
 
 
 @dataclass
@@ -122,6 +122,7 @@ class ContentValidationError(BengalContentError):
         errors: list[ValidationError] | None = None,
         collection_name: str | None = None,
         *,
+        code: ErrorCode | None = None,
         suggestion: str | None = None,
         original_error: Exception | None = None,
     ) -> None:
@@ -134,15 +135,21 @@ class ContentValidationError(BengalContentError):
             errors: List of :class:`ValidationError` instances for each field
                 that failed. May be empty if the error is structural.
             collection_name: Name of the collection being validated, if known.
+            code: Error code for this error. Defaults to ``ErrorCode.N011``.
             suggestion: Actionable suggestion for how to fix the error.
             original_error: The underlying exception, if this error wraps another.
         """
+        # Default to N011 if not provided
+        if code is None:
+            code = ErrorCode.N011
+
         # Set base class fields
         super().__init__(
             message=message,
             file_path=path,
             suggestion=suggestion,
             original_error=original_error,
+            code=code,
         )
 
         # Set content-specific fields
@@ -262,6 +269,7 @@ class CollectionNotFoundError(BengalContentError):
         super().__init__(
             message=message,
             suggestion=suggestion,
+            code=ErrorCode.N012,
         )
 
 
@@ -309,4 +317,5 @@ class SchemaError(BengalContentError):
             file_path=file_path,
             suggestion=suggestion,
             original_error=original_error,
+            code=ErrorCode.N013,
         )

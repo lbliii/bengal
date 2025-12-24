@@ -130,6 +130,13 @@ class ErrorCode(Enum):
     N009 = "content_weight_invalid"
     N010 = "content_slug_invalid"
 
+    # Collections (N011-N020)
+    N011 = "collection_validation_failed"  # Schema validation failure
+    N012 = "collection_not_found"  # Unknown collection referenced
+    N013 = "collection_schema_invalid"  # Schema class definition error
+    N014 = "collection_load_failed"  # collections.py import error
+    N015 = "collection_directory_missing"  # Collection directory doesn't exist
+
     # ============================================================
     # Rendering errors (R001-R099)
     # ============================================================

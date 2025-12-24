@@ -267,11 +267,23 @@ def load_collections(
         return cast(dict[str, CollectionConfig[Any]], collections)
 
     except Exception as e:
+        from bengal.errors import BengalContentError, ErrorCode, record_error
+
+        error = BengalContentError(
+            f"Failed to load collections from {collections_path}",
+            code=ErrorCode.N014,
+            file_path=collections_path,
+            original_error=e,
+            suggestion="Check collections.py for syntax errors",
+        )
+        record_error(error, file_path=str(collections_path))
+
         logger.error(
             "collections_load_error",
             path=str(collections_path),
             error=str(e),
             error_type=type(e).__name__,
+            code="N014",
         )
         return {}
 
@@ -353,7 +365,7 @@ def get_collection_for_path(
 def validate_collections_config(
     collections: dict[str, CollectionConfig[Any]],
     content_root: Path,
-) -> list[str]:
+) -> list[tuple[str, str]]:
     """
     Validate collection configurations for common issues.
 
@@ -365,21 +377,21 @@ def validate_collections_config(
         content_root: Root content directory to resolve relative paths.
 
     Returns:
-        List of warning messages for invalid configurations. Empty list if
-        all configurations are valid.
+        List of tuples ``(warning_message, error_code)`` for invalid
+        configurations. Empty list if all configurations are valid.
 
     Example:
         >>> warnings = validate_collections_config(collections, Path("content"))
-        >>> for warning in warnings:
-        ...     print(f"Warning: {warning}")
-        Warning: Collection 'blog' directory does not exist: content/blog
+        >>> for message, code in warnings:
+        ...     print(f"[{code}] Warning: {message}")
+        [N015] Warning: Collection 'blog' directory does not exist: content/blog
 
     Note:
         This performs filesystem checks and should be called during site
         initialization, not during hot-reload. Remote collections with
         ``loader`` but no ``directory`` are automatically skipped.
     """
-    warnings: list[str] = []
+    warnings: list[tuple[str, str]] = []
 
     for name, config in collections.items():
         if config.directory is None:
@@ -387,8 +399,18 @@ def validate_collections_config(
         collection_dir = content_root / config.directory
 
         if not collection_dir.exists():
-            warnings.append(f"Collection '{name}' directory does not exist: {collection_dir}")
+            warnings.append(
+                (
+                    f"Collection '{name}' directory does not exist: {collection_dir}",
+                    "N015",
+                )
+            )
         elif not collection_dir.is_dir():
-            warnings.append(f"Collection '{name}' path is not a directory: {collection_dir}")
+            warnings.append(
+                (
+                    f"Collection '{name}' path is not a directory: {collection_dir}",
+                    "N015",
+                )
+            )
 
     return warnings

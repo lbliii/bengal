@@ -273,6 +273,7 @@ class BengalError(Exception):
                 "tests/integration/test_config.py",
             ],
             BengalContentError: [
+                "tests/unit/collections/",
                 "tests/unit/core/test_page.py",
                 "tests/integration/test_content.py",
             ],
