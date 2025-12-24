@@ -187,7 +187,7 @@ def cache_status(ctx: click.Context) -> None:
         table.add_row(name, cached, entries, age, status_text)
 
     console.print(table)
-    console.print(f"\n[dim]Cache directory: {cache_dir}[/dim]")
+    console.print(f"\n[dim]Cache directory: {paths.content_dir}[/dim]")
 
 
 @sources_group.command("fetch")
@@ -256,7 +256,7 @@ def fetch_sources(ctx: click.Context, source: str | None, force: bool) -> None:
 
     except Exception as e:
         console.print(f"[red]❌ Fetch failed: {e}[/red]")
-        raise click.Abort()
+        raise click.Abort() from None
 
 
 @sources_group.command("clear")

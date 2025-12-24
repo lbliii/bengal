@@ -71,9 +71,9 @@ if TYPE_CHECKING:
     from bengal.cache import DependencyTracker
     from bengal.core.page import Page
     from bengal.core.site import Site
-    from bengal.orchestration.build_context import BuildContext
     from bengal.orchestration.stats import BuildStats
     from bengal.orchestration.types import ProgressManagerProtocol
+    from bengal.utils.build_context import BuildContext
 
 # Thread-local storage for pipelines (reuse per thread, not per page!)
 _thread_local = threading.local()

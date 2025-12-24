@@ -20,7 +20,7 @@ from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult, CheckStatus
 
 if TYPE_CHECKING:
-    from bengal.core.site.site import Site
+    from bengal.core.site import Site
     from bengal.utils.build_context import BuildContext
 
 __all__ = ["AccessibilityValidator"]

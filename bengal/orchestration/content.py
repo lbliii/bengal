@@ -46,7 +46,7 @@ from typing import TYPE_CHECKING
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.autodoc.runner import AutodocRunResult
+    from bengal.autodoc.orchestration.result import AutodocRunResult
     from bengal.cache.build_cache import BuildCache
     from bengal.core.asset import Asset
     from bengal.core.page import Page

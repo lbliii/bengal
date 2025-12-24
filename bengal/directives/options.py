@@ -99,32 +99,13 @@ class DirectiveOptions:
     """Pre-compiled coercion functions to avoid runtime type-checking conditionals."""
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
-        """Pre-compute type hints, fields, and coercers when class is defined.
+        """Initialize subclass.
 
-        This optimization caches type hints, field names, and pre-compiles
-        coercion functions at class definition time, avoiding expensive runtime
-        calls to get_type_hints(), fields(), and type-checking conditionals
-        on every from_raw() invocation.
+        Note: Caching of type hints and fields is done lazily in from_raw()
+        because __init_subclass__ runs BEFORE the @dataclass decorator,
+        so fields(cls) would return incomplete (parent-only) fields here.
         """
         super().__init_subclass__(**kwargs)
-
-        # Only cache after @dataclass decorator has run
-        # Check for __dataclass_fields__ to confirm dataclass is ready
-        if hasattr(cls, "__dataclass_fields__"):
-            try:
-                cls._cached_hints = get_type_hints(cls)
-                cls._cached_fields = {f.name for f in fields(cls) if not f.name.startswith("_")}
-
-                # Pre-compile coercers for each typed field
-                cls._coercers = {}
-                for name, hint in cls._cached_hints.items():
-                    if not name.startswith("_"):
-                        cls._coercers[name] = cls._compile_coercer(hint)
-            except Exception:
-                # Fallback: will compute at runtime
-                cls._cached_hints = {}
-                cls._cached_fields = set()
-                cls._coercers = {}
 
     @classmethod
     def from_raw(cls, raw_options: dict[str, str]) -> DirectiveOptions:
@@ -152,37 +133,28 @@ class DirectiveOptions:
         """
         kwargs: dict[str, Any] = {}
 
-        # Ensure cache is populated (for classes defined before __init_subclass__ was added)
-        # Check if cache needs population: empty dict/set or not yet computed
-        needs_cache = hasattr(cls, "__dataclass_fields__") and (
-            not cls._cached_hints
-            or len(cls._cached_hints) == 0
-            or not cls._cached_fields
-            or len(cls._cached_fields) == 0
-        )
-        if needs_cache:
-            try:
-                cls._cached_hints = get_type_hints(cls)
-                cls._cached_fields = {f.name for f in fields(cls) if not f.name.startswith("_")}
-                # Pre-compile coercers if not already done
-                if not cls._coercers or len(cls._coercers) == 0:
-                    cls._coercers = {}
-                    for name, hint in cls._cached_hints.items():
-                        if not name.startswith("_"):
-                            cls._coercers[name] = cls._compile_coercer(hint)
-            except Exception:
-                pass  # Fallback to runtime computation
+        # Check if cache was set on THIS class (not inherited from parent).
+        # __init_subclass__ runs before @dataclass decorator, so child classes
+        # inherit parent's incomplete cache. Use vars(cls) to check for own attrs.
+        own_cache = "_cached_fields" in vars(cls)
 
-        # Use cached values, with fallback for edge cases
-        if cls._cached_hints and len(cls._cached_hints) > 0:
+        if own_cache and cls._cached_fields:
+            known_fields = cls._cached_fields
             hints = cls._cached_hints
         else:
-            hints = get_type_hints(cls)
-
-        if cls._cached_fields and len(cls._cached_fields) > 0:
-            known_fields = cls._cached_fields
-        else:
+            # Compute fields for this class and cache for future calls
             known_fields = {f.name for f in fields(cls) if not f.name.startswith("_")}
+            hints = get_type_hints(cls)
+            try:
+                cls._cached_fields = known_fields
+                cls._cached_hints = hints
+                # Pre-compile coercers for this class
+                cls._coercers = {}
+                for name, hint in hints.items():
+                    if not name.startswith("_"):
+                        cls._coercers[name] = cls._compile_coercer(hint)
+            except Exception:
+                pass  # Continue with computed values
 
         for raw_name, raw_value in raw_options.items():
             # Resolve alias

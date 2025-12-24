@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING, Any
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.site.site import Site
+    from bengal.core.site import Site
 
 __all__ = [
     "LinkPatternAnalyzer",

@@ -29,12 +29,6 @@ from pathlib import Path
 from bengal.cli.dashboard.app import BengalApp
 
 
-def create_demo_site() -> None:
-    """Create a minimal demo site for testing."""
-    # Return None - dashboards handle missing site gracefully
-    return None
-
-
 def main() -> None:
     """Run dashboard in development mode."""
     parser = argparse.ArgumentParser(
@@ -71,16 +65,16 @@ def main() -> None:
     site = None
     if args.site and not args.demo:
         try:
-            from bengal.config.site_loader import load_site
+            from bengal.cli.helpers.site_loader import load_site_from_cli
 
-            site = load_site(args.site)
+            site = load_site_from_cli(str(args.site))
         except ImportError:
             print("Could not load site config. Running in demo mode.")
         except Exception as e:
             print(f"Error loading site: {e}. Running in demo mode.")
 
     if args.demo or site is None:
-        site = create_demo_site()
+        # site stays None - dashboards handle missing site gracefully
         print("🐱 Running in demo mode (no site loaded)")
 
     # Create and run app

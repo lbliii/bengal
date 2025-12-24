@@ -4,7 +4,7 @@
 **Created**: 2025-12-24  
 **Author**: AI Assistant  
 **Subsystem**: `bengal/directives/`  
-**Confidence**: 95% 🟢 (metrics verified via find/grep/wc across source and test files)  
+**Confidence**: 92% 🟢 (metrics verified via find/grep/wc across source and test files)  
 **Priority**: P2 (Medium) — Infrastructure layer needs focused unit testing  
 **Estimated Effort**: 1.5-2 days (single dev)
 
@@ -15,14 +15,14 @@
 The `bengal/directives/` package has **47 source files** with **strong directive behavior coverage** but **weak infrastructure unit testing**. Directive rendering is well-tested through integration and rendering test files, but the foundation classes (`base.py`, `factory.py`, `options.py`, `validator.py`) lack focused unit tests.
 
 **Current state**:
-- **20+ directive test files** across `tests/unit/rendering/`, `tests/unit/directives/`, and `tests/integration/`
-- **~9,500+ LOC** of directive-related tests
+- **25 directive test files** across `tests/unit/rendering/`, `tests/unit/directives/`, and `tests/integration/`
+- **~10,000 LOC** of directive-related tests
 - **Strong coverage**: admonitions (16+ tests), dropdown (10+ tests), gallery (11 tests), media (185+ tests), badges (22+ tests)
 - **Weak coverage**: infrastructure layer (base, factory, options) — tested only indirectly
 
 **True gaps**:
-- `base.py` (568 LOC) — foundation class, no direct unit tests
-- `factory.py` (~100 LOC) — instantiation logic, no unit tests
+- `base.py` (567 LOC) — foundation class, no direct unit tests
+- `factory.py` (330 LOC) — plugin factory with singleton management, no unit tests
 - `options.py` (433 LOC) — option parsing, partial coverage via `test_foundation.py`
 - `validator.py` (644 LOC) — validation logic, tested only via health validators
 - **2 TODO comments** in `marimo.py` (caching feature incomplete)
@@ -67,10 +67,10 @@ Without infrastructure unit tests:
 | Location | Test Files | LOC | Focus |
 |----------|------------|-----|-------|
 | `tests/unit/rendering/test_*directive*.py` | 15 | ~5,968 | Directive behavior |
-| `tests/unit/rendering/directives/` | 5 | ~2,200 | Media, foundation, contracts |
+| `tests/unit/rendering/directives/` | 4 | ~2,473 | Media, foundation, contracts |
 | `tests/unit/directives/` | 4 | ~1,116 | Tabs, tokens, priority |
-| `tests/integration/test_*directive*.py` | 3 | ~500 | Nesting, gallery |
-| **Total** | **27** | **~9,784** | — |
+| `tests/integration/test_*directive*.py` | 2 | ~460 | Nesting, gallery |
+| **Total** | **25** | **~10,017** | — |
 
 **Directive behavior is well-tested. Infrastructure is not.**
 
@@ -80,21 +80,21 @@ Without infrastructure unit tests:
 
 ### Existing Test Files
 
-**`tests/unit/rendering/directives/`** (5 files, ~2,200 LOC):
+**`tests/unit/rendering/directives/`** (4 files, ~2,473 LOC):
 
 | Test File | What It Tests | LOC |
 |-----------|---------------|-----|
 | `test_media_directives.py` | YouTube, Vimeo, Gist, CodePen, Figure, Audio, etc. | 1,217 |
-| `test_foundation.py` | DirectiveToken, DirectiveOptions, utilities | 462 |
-| `test_named_closers.py` | Named fence closers | ~250 |
-| `test_contracts.py` | Nesting validation contracts | ~200 |
+| `test_foundation.py` | DirectiveToken, DirectiveOptions, utilities | 461 |
+| `test_contracts.py` | Nesting validation contracts | 440 |
+| `test_named_closers.py` | Named fence closers | 355 |
 
 **`tests/unit/rendering/test_*.py`** — Directive Behavior (15 files, ~5,968 LOC):
 
 | Test File | Directive(s) Covered | LOC |
 |-----------|----------------------|-----|
-| `test_cards_directive.py` | cards, card | ~913 |
-| `test_literalinclude_directive.py` | literalinclude | ~527 |
+| `test_cards_directive.py` | cards, card | 912 |
+| `test_literalinclude_directive.py` | literalinclude | 526 |
 | `test_mistune_parser.py` | admonitions, dropdown, tabs | ~720 |
 | `test_myst_syntax.py` | admonitions, dropdown, tabs | ~802 |
 | `test_navigation_directives.py` | breadcrumbs, prev-next, siblings | ~400 |
@@ -122,8 +122,8 @@ Without infrastructure unit tests:
 
 | Test File | What It Tests | LOC |
 |-----------|---------------|-----|
-| `test_directive_nesting.py` | Nested directive rendering | ~150 |
-| `test_gallery.py` | Gallery directive end-to-end | ~178 |
+| `test_directive_nesting.py` | Nested directive rendering | 282 |
+| `test_gallery.py` | Gallery directive end-to-end | 178 |
 
 ### Source Files (47 total)
 
@@ -148,6 +148,7 @@ Without infrastructure unit tests:
 | `literalinclude.py` | 430 | ✅ `test_literalinclude_directive.py` |
 | `contracts.py` | 408 | ✅ `test_contracts.py` |
 | `versioning.py` | 397 | ✅ `test_versioning.py` |
+| `factory.py` | 330 | ❌ No direct unit tests |
 
 ---
 
@@ -157,8 +158,8 @@ Without infrastructure unit tests:
 
 | Directive | Test Coverage | Assessment |
 |-----------|--------------|------------|
-| cards/card | `test_cards_directive.py` (913 LOC) | 🟢 Excellent |
-| literalinclude | `test_literalinclude_directive.py` (527 LOC) | 🟢 Excellent |
+| cards/card | `test_cards_directive.py` (912 LOC) | 🟢 Excellent |
+| literalinclude | `test_literalinclude_directive.py` (526 LOC) | 🟢 Excellent |
 | video/embed/figure/audio | `test_media_directives.py` (1,217 LOC) | 🟢 Excellent |
 | navigation | `test_navigation_directives.py` (400 LOC) | 🟢 Good |
 | steps | `test_steps_directive.py` (300 LOC) | 🟢 Good |
@@ -180,7 +181,7 @@ Without infrastructure unit tests:
 | File | Lines | Current Coverage | Priority |
 |------|-------|------------------|----------|
 | `base.py` | 567 | ❌ None — tested only through subclasses | 🔴 P1 |
-| `factory.py` | ~100 | ❌ None — tested indirectly | 🔴 P1 |
+| `factory.py` | 330 | ❌ None — tested indirectly | 🔴 P1 |
 | `options.py` | 433 | ⚠️ Partial — `test_foundation.py` covers ~40% | 🟡 P2 |
 | `validator.py` | 644 | ⚠️ Indirect — via `test_directive_validator.py` | 🟡 P2 |
 
@@ -207,15 +208,22 @@ Without infrastructure unit tests:
 
 #### `factory.py` — NO UNIT TESTS ❌
 
-**Usage**: Directive instantiation and lookup.
+**Usage**: Mistune plugin factory with singleton directive management.
 
-**Source**: `bengal/directives/factory.py` (~100 lines)
+**Source**: `bengal/directives/factory.py` (330 lines)
+
+**Architecture**:
+- `create_documentation_directives()` — Returns Mistune plugin function
+- `_get_directive_instances()` — Thread-safe singleton cache
+- `reset_directive_instances()` — Test isolation helper
+- Conditional Marimo directive loading
 
 **What needs testing**:
-- Directive lookup by name
-- Instantiation with options
-- Missing directive handling
-- Alias resolution
+- Singleton instance management (thread safety via `_INSTANCE_LOCK`)
+- Plugin registration with Mistune
+- Conditional Marimo loading (import check)
+- Error handling (`BengalRenderingError` on failure)
+- `reset_directive_instances()` cleanup
 
 ### Tier 2: Partial Coverage
 
@@ -349,28 +357,56 @@ class TestBengalDirectiveOptionParsing:
 #### Pattern 2: Factory Test
 
 ```python
-"""Tests for directive factory."""
+"""Tests for directive factory singleton and plugin registration."""
 import pytest
-from bengal.directives.factory import get_directive, DirectiveNotFoundError
+from unittest.mock import patch, MagicMock
+
+from bengal.directives.factory import (
+    create_documentation_directives,
+    reset_directive_instances,
+    _get_directive_instances,
+)
 
 
 class TestDirectiveFactory:
-    """Test directive lookup and instantiation."""
+    """Test singleton management and plugin registration."""
 
-    def test_lookup_by_primary_name(self) -> None:
-        """Directive found by primary name."""
-        directive = get_directive("note")
-        assert directive is not None
+    def setup_method(self) -> None:
+        """Reset singleton state before each test."""
+        reset_directive_instances()
 
-    def test_lookup_by_alias(self) -> None:
-        """Directive found by alias name."""
-        directive = get_directive("details")  # alias for dropdown
-        assert directive is not None
+    def test_singleton_returns_same_instances(self) -> None:
+        """Directive instances are reused across calls."""
+        instances_1 = _get_directive_instances()
+        instances_2 = _get_directive_instances()
+        assert instances_1 is instances_2
 
-    def test_unknown_directive_raises(self) -> None:
-        """Unknown directive name raises clear error."""
-        with pytest.raises(DirectiveNotFoundError, match="unknown_directive"):
-            get_directive("unknown_directive")
+    def test_reset_clears_singleton(self) -> None:
+        """reset_directive_instances() clears the cache."""
+        _get_directive_instances()  # Prime the cache
+        reset_directive_instances()
+        # Next call should create fresh instances
+        # (verify via identity check or instance count)
+
+    def test_plugin_registers_with_mistune(self) -> None:
+        """Plugin function registers directives with Mistune."""
+        plugin = create_documentation_directives()
+        mock_md = MagicMock()
+        plugin(mock_md)
+        # Verify FencedDirective was applied to mock_md
+
+    def test_marimo_loaded_when_available(self) -> None:
+        """Marimo directive included when marimo package installed."""
+        # Test conditional import behavior
+
+    def test_registration_error_raises_bengal_error(self) -> None:
+        """Plugin raises BengalRenderingError on registration failure."""
+        from bengal.errors import BengalRenderingError
+
+        with patch("bengal.directives.factory.FencedDirective", side_effect=Exception("fail")):
+            plugin = create_documentation_directives()
+            with pytest.raises(BengalRenderingError, match="Failed to register"):
+                plugin(MagicMock())
 ```
 
 ---
@@ -383,17 +419,18 @@ class TestDirectiveFactory:
 
 | Test File | Source File | Est. Tests |
 |-----------|-------------|------------|
-| `test_base.py` | `base.py` | ~25-30 |
-| `test_factory.py` | `factory.py` | ~10-15 |
-| `test_options_parsing.py` | `options.py` | ~20-25 |
+| `test_base.py` | `base.py` (567 LOC) | ~25-30 |
+| `test_factory.py` | `factory.py` (330 LOC) | ~15-20 |
+| `test_options_parsing.py` | `options.py` (433 LOC) | ~20-25 |
 
 **Focus areas**:
 - Option parsing: booleans, integers, lists, defaults
 - Error handling: missing required, invalid values
-- Registration: name lookup, alias resolution
+- Singleton management: thread safety, reset behavior
+- Plugin registration: Mistune integration, error handling
 - Child parsing: nested content extraction
 
-**Expected outcome**: 60+ new unit tests, infrastructure layer directly tested
+**Expected outcome**: 65+ new unit tests, infrastructure layer directly tested
 
 ### Phase 2: Validator Unit Tests (0.5 day)
 
@@ -425,7 +462,7 @@ class TestDirectiveFactory:
 
 - [ ] `tests/unit/directives/infrastructure/` directory created
 - [ ] `test_base.py` with 25+ tests
-- [ ] `test_factory.py` with 10+ tests
+- [ ] `test_factory.py` with 15+ tests
 - [ ] `test_options_parsing.py` with 20+ tests
 - [ ] All new tests pass
 
@@ -446,7 +483,7 @@ class TestDirectiveFactory:
 | Metric | Before | After |
 |--------|--------|-------|
 | Infrastructure test files | 0 | 4 |
-| New unit tests | 0 | 75+ |
+| New unit tests | 0 | 80+ |
 | `# type: ignore[attr-defined]` | 3 | 0 |
 | TODO comments | 2 | 0 (documented) |
 
@@ -479,5 +516,32 @@ class TestDirectiveFactory:
 
 - `bengal/directives/` — Source directory (47 files, ~16,000 LOC)
 - `tests/unit/directives/` — Current tests (4 files, ~1,116 LOC)
-- `tests/unit/rendering/directives/` — Behavior tests (5 files, ~2,200 LOC)
+- `tests/unit/rendering/directives/` — Behavior tests (4 files, ~2,473 LOC)
 - `tests/unit/rendering/test_*directive*.py` — More behavior tests (15 files, ~5,968 LOC)
+
+---
+
+## Evaluation Notes
+
+**Evaluated**: 2025-12-24
+
+**Corrections Applied**:
+
+| Original Claim | Corrected Value | Evidence |
+|----------------|-----------------|----------|
+| `factory.py` ~100 LOC | 330 LOC | `wc -l factory.py` |
+| `test_foundation.py` 462 LOC | 461 LOC | `wc -l test_foundation.py` |
+| `test_contracts.py` ~200 LOC | 440 LOC | `wc -l` |
+| `test_named_closers.py` ~250 LOC | 355 LOC | `wc -l` |
+| 5 files in `rendering/directives/` | 4 files | Correct (header was wrong, table had 4) |
+| ~2,200 LOC in `rendering/directives/` | ~2,473 LOC | `wc -l *.py` (excludes `__init__.py`) |
+| 3 integration test files | 2 files | `ls tests/integration/test_*directive*.py` |
+| `test_directive_nesting.py` ~150 LOC | 282 LOC | `wc -l` |
+| Factory uses `get_directive()` | Uses `create_documentation_directives()` | Code inspection |
+
+**Architecture Clarification**: `factory.py` is a Mistune plugin factory with:
+- Thread-safe singleton instance management
+- Conditional Marimo directive loading
+- `BengalRenderingError` on registration failure
+
+Test patterns updated to match actual API.
