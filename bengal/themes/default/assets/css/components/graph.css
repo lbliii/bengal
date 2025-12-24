@@ -15,6 +15,18 @@
 .graph-svg {
     width: 100%;
     height: 100%;
+    animation: graphFadeIn 0.6s ease-out;
+}
+
+@keyframes graphFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.97);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
 .graph-body {
@@ -284,64 +296,73 @@
 /* Graph Nodes and Links */
 .graph-node {
     cursor: pointer;
-    stroke: rgba(255, 255, 255, 0.15);
+    stroke: rgba(255, 255, 255, 0.12);
     stroke-width: 1.5px;
-    transition: stroke 0.1s ease, stroke-width 0.1s ease;
 }
 
 .graph-node:hover {
-    stroke: rgba(255, 255, 255, 0.8);
+    stroke: rgba(255, 255, 255, 0.6);
     stroke-width: 2.5px;
 }
 
-/* Node type styling - static glow via CSS filter (no JS changes) */
+/* Node type styling - subtle static glow */
 .graph-node-hub {
     stroke-width: 2px;
-    filter: drop-shadow(0 0 4px var(--graph-node-hub-glow, rgba(255, 180, 60, 0.5)));
+    filter: drop-shadow(0 0 3px var(--graph-node-hub-glow, rgba(255, 180, 60, 0.4)));
 }
 
 .graph-node-orphan {
-    filter: drop-shadow(0 0 3px var(--graph-node-orphan-glow, rgba(255, 100, 100, 0.4)));
+    filter: drop-shadow(0 0 2px var(--graph-node-orphan-glow, rgba(255, 100, 100, 0.35)));
 }
 
 .graph-node-generated {
-    filter: drop-shadow(0 0 3px var(--graph-node-generated-glow, rgba(78, 205, 196, 0.4)));
+    filter: drop-shadow(0 0 2px var(--graph-node-generated-glow, rgba(78, 205, 196, 0.35)));
 }
 
 .graph-node-regular {
-    filter: drop-shadow(0 0 2px var(--graph-node-regular-glow, rgba(200, 200, 200, 0.25)));
+    filter: drop-shadow(0 0 1px var(--graph-node-regular-glow, rgba(200, 200, 200, 0.2)));
 }
 
-/* Hover amplifies existing glow */
+/* Hover enhances glow with subtle pulse */
 .graph-node-hub:hover {
     stroke-width: 3px;
     filter: drop-shadow(0 0 8px var(--graph-node-hub-glow, rgba(255, 180, 60, 0.7)));
+    animation: nodeGlow 1.5s ease-in-out infinite alternate;
 }
 
 .graph-node-orphan:hover {
     filter: drop-shadow(0 0 6px var(--graph-node-orphan-glow, rgba(255, 100, 100, 0.6)));
+    animation: nodeGlow 1.5s ease-in-out infinite alternate;
 }
 
 .graph-node-generated:hover {
     filter: drop-shadow(0 0 6px var(--graph-node-generated-glow, rgba(78, 205, 196, 0.6)));
+    animation: nodeGlow 1.5s ease-in-out infinite alternate;
 }
 
 .graph-node-regular:hover {
     filter: drop-shadow(0 0 5px var(--graph-node-regular-glow, rgba(200, 200, 200, 0.5)));
+    animation: nodeGlow 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes nodeGlow {
+    from { filter: drop-shadow(0 0 4px currentColor); }
+    to { filter: drop-shadow(0 0 10px currentColor); }
 }
 
 .graph-link {
-    stroke: var(--graph-link-color, rgba(100, 100, 100, 0.2));
+    stroke: var(--graph-link-color, rgba(100, 100, 100, 0.25));
     stroke-width: 1px;
     stroke-linecap: round;
-    opacity: 0.5;
+    opacity: 0.6;
+    transition: stroke 0.15s ease, stroke-width 0.15s ease, opacity 0.15s ease;
 }
 
 .graph-link.highlighted {
-    stroke: var(--graph-link-highlight, rgba(255, 180, 100, 0.9));
+    stroke: var(--graph-link-highlight, rgba(255, 200, 120, 0.95));
     stroke-width: 2.5px;
     opacity: 1;
-    filter: drop-shadow(0 0 2px var(--graph-link-highlight, rgba(255, 180, 100, 0.5)));
+    filter: drop-shadow(0 0 3px var(--graph-link-highlight, rgba(255, 200, 120, 0.6)));
 }
 
 

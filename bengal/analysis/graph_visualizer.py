@@ -67,7 +67,8 @@ class GraphNode:
         incoming_refs: Number of incoming references
         outgoing_refs: Number of outgoing references
         connectivity: Total connectivity score
-        size: Visual size (based on connectivity)
+        reading_time: Content depth (minutes to read)
+        size: Visual size (based on connectivity + content depth)
         color: Node color (based on type or connectivity)
     """
 
@@ -79,6 +80,7 @@ class GraphNode:
     incoming_refs: int
     outgoing_refs: int
     connectivity: int
+    reading_time: int
     size: int
     color: str
 
@@ -186,8 +188,17 @@ class GraphVisualizer:
             # Determine node color based on type or connectivity
             color = self._get_node_color(page, connectivity)
 
-            # Calculate visual size (min 10, max 50)
-            size = min(50, 10 + connectivity.connectivity_score * 2)
+            # Get reading time (content depth indicator)
+            reading_time = getattr(page, "reading_time", 1)
+
+            # Calculate visual size based on BOTH connectivity AND content depth
+            # - Connectivity: how central/important (links)
+            # - Reading time: how substantial (content depth)
+            # Formula: base + connectivity bonus + content depth bonus
+            base_size = 8
+            connectivity_bonus = min(connectivity.connectivity_score * 1.5, 20)  # max +20
+            content_bonus = min(reading_time * 0.8, 15)  # max +15 (long articles get bigger)
+            size = min(50, base_size + connectivity_bonus + content_bonus)
 
             # Get tags safely
             tags = []
@@ -269,23 +280,42 @@ class GraphVisualizer:
                 incoming_refs=connectivity.incoming_refs,
                 outgoing_refs=connectivity.outgoing_refs,
                 connectivity=connectivity.connectivity_score,
+                reading_time=reading_time,
                 size=size,
                 color=color,
             )
 
             nodes.append(asdict(node))
 
-        # Generate edges (using pages directly as keys, matching graph structure)
+        # Generate edges with bidirectional weight detection
+        # If A→B and B→A both exist, that's a stronger relationship (weight=2)
+        edge_set = set()  # Track (source, target) pairs to detect bidirectionality
+
+        # First pass: collect all edges
+        raw_edges = []
         for page in content_pages:
             source_id = page_id_map[page]
-
-            # Get outgoing references (graph uses pages directly as keys)
             targets = self.graph.outgoing_refs.get(page, set())
             for target in targets:
-                # Only include edges to pages we're visualizing
                 if target in page_id_map:
                     target_id = page_id_map[target]
-                    edges.append(asdict(GraphEdge(source=source_id, target=target_id, weight=1)))
+                    raw_edges.append((source_id, target_id))
+                    edge_set.add((source_id, target_id))
+
+        # Second pass: create edges with weight based on bidirectionality
+        seen_pairs = set()  # Avoid duplicate edges for bidirectional links
+        for source_id, target_id in raw_edges:
+            # Normalize pair to avoid duplicates (smaller id first)
+            pair = tuple(sorted([source_id, target_id]))
+            if pair in seen_pairs:
+                continue
+            seen_pairs.add(pair)
+
+            # Check if reverse edge exists (bidirectional)
+            is_bidirectional = (target_id, source_id) in edge_set
+            weight = 2 if is_bidirectional else 1
+
+            edges.append(asdict(GraphEdge(source=source_id, target=target_id, weight=weight)))
 
         logger.info("graph_viz_generate_complete", nodes=len(nodes), edges=len(edges))
 
@@ -528,25 +558,42 @@ class GraphVisualizer:
         const linkHighlightColor = resolveCSSVariable('--graph-link-highlight') || 'rgba(255, 180, 100, 0.7)';
 
         // Create force simulation and PRE-COMPUTE positions before rendering
-        const nodeCount = graphData.nodes.length;
-        const scaleFactor = Math.max(1, Math.sqrt(nodeCount / 50));
+        //
+        // Philosophy: Let LINKS define structure, use collision only to prevent overlap
+        // - No charge/repulsion - that tears connected nodes apart
+        // - Link strength scaled by connectivity - hubs pull harder, become cluster centers
+        // - Collision prevents overlap without pushing clusters apart
+
+        // Build node lookup for link strength calculation
+        const nodeById = new Map(graphData.nodes.map(n => [n.id, n]));
 
         const simulation = d3.forceSimulation(graphData.nodes)
-            .force("link", d3.forceLink(graphData.edges).id(d => d.id).distance(70 * scaleFactor))
-            .force("charge", d3.forceManyBody().strength(-300 * scaleFactor).distanceMax(400))
+            .force("link", d3.forceLink(graphData.edges)
+                .id(d => d.id)
+                .distance(d => {{
+                    // Bidirectional links (weight=2) are closer
+                    return d.weight === 2 ? 60 : 100;
+                }})
+                .strength(d => {{
+                    // Bidirectional links pull harder
+                    return d.weight === 2 ? 1.5 : 0.8;
+                }}))
+            .force("charge", d3.forceManyBody()
+                .strength(-200)       // More repulsion for spacing
+                .distanceMax(400))    // Affects further nodes
             .force("center", d3.forceCenter(width / 2, height / 2))
-            .force("collision", d3.forceCollide().radius(d => d.size + 8).strength(0.7))
-            .force("x", d3.forceX(width / 2).strength(0.04))
-            .force("y", d3.forceY(height / 2).strength(0.04))
-            .stop(); // Don't auto-run
+            .force("collision", d3.forceCollide()
+                .radius(d => d.size + 12)
+                .strength(0.8))
 
-        // Pre-compute layout (run simulation synchronously)
-        const iterations = Math.ceil(Math.log(simulation.alphaMin()) / Math.log(1 - simulation.alphaDecay()));
-        for (let i = 0; i < iterations; i++) {{
+        // Pre-compute 85% of layout (run simulation synchronously)
+        const totalIterations = Math.ceil(Math.log(simulation.alphaMin()) / Math.log(1 - simulation.alphaDecay()));
+        const precomputeIterations = Math.floor(totalIterations * 0.85);
+        for (let i = 0; i < precomputeIterations; i++) {{
             simulation.tick();
         }}
 
-        // NOW render with computed positions - links first (behind nodes)
+        // Render with mostly-computed positions - links first (behind nodes)
         const link = g.append("g")
             .attr("class", "graph-links")
             .selectAll("line")
@@ -589,7 +636,7 @@ class GraphVisualizer:
                 clearHighlights();
             }});
 
-        // Setup tick handler for interactive dragging
+        // Setup tick handler for animations and dragging
         simulation.on("tick", () => {{
             link
                 .attr("x1", d => d.source.x)
@@ -600,6 +647,9 @@ class GraphVisualizer:
                 .attr("cx", d => d.x)
                 .attr("cy", d => d.y);
         }});
+
+        // Very quick settling - barely noticeable snap
+        simulation.alphaDecay(0.2).alpha(0.05).restart();
 
         // Drag functions
         function dragstarted(event, d) {{
@@ -633,8 +683,7 @@ class GraphVisualizer:
                 .style("top", (event.pageY + 10) + "px")
                 .html(`
                     <h4>${{d.label}}</h4>
-                    <p>Type: ${{d.type}}</p>
-                    <p>Incoming: ${{d.incoming_refs}} | Outgoing: ${{d.outgoing_refs}}</p>
+                    <p>${{d.reading_time}} min read · ${{d.incoming_refs}} in / ${{d.outgoing_refs}} out</p>
                     ${{tags}}
                 `);
         }}
@@ -643,9 +692,47 @@ class GraphVisualizer:
             tooltip.style("display", "none");
         }}
 
-        // Highlight connections - instant, no transitions (prevents flicker on mouse sweep)
+        // Highlight state management
+        let currentHighlight = null;
+        let clearTimer = null;
+
         function highlightConnections(d) {{
-            // Just add CSS class for connected links - let CSS handle styling
+            // Cancel any pending clear
+            if (clearTimer) {{
+                clearTimeout(clearTimer);
+                clearTimer = null;
+            }}
+
+            // Skip if already highlighting this node
+            if (currentHighlight === d.id) return;
+            currentHighlight = d.id;
+
+            // Find connected node IDs
+            const connectedIds = new Set([d.id]);
+            graphData.edges.forEach(e => {{
+                const sourceId = typeof e.source === 'object' ? e.source.id : e.source;
+                const targetId = typeof e.target === 'object' ? e.target.id : e.target;
+                if (sourceId === d.id) connectedIds.add(targetId);
+                if (targetId === d.id) connectedIds.add(sourceId);
+            }});
+
+            // Animate the fade (smooth transition now that we have debouncing)
+            node.transition().duration(150)
+                .style("opacity", n => connectedIds.has(n.id) ? 1 : 0.12);
+
+            // Highlight connected links with animation
+            link.transition().duration(150)
+                .style("opacity", e => {{
+                    const sourceId = typeof e.source === 'object' ? e.source.id : e.source;
+                    const targetId = typeof e.target === 'object' ? e.target.id : e.target;
+                    return (sourceId === d.id || targetId === d.id) ? 1 : 0.06;
+                }})
+                .style("stroke-width", e => {{
+                    const sourceId = typeof e.source === 'object' ? e.source.id : e.source;
+                    const targetId = typeof e.target === 'object' ? e.target.id : e.target;
+                    return (sourceId === d.id || targetId === d.id) ? 2 : 1;
+                }});
+
             link.classed("highlighted", e => {{
                 const sourceId = typeof e.source === 'object' ? e.source.id : e.source;
                 const targetId = typeof e.target === 'object' ? e.target.id : e.target;
@@ -653,8 +740,21 @@ class GraphVisualizer:
             }});
         }}
 
+        function scheduleClearHighlights() {{
+            // Delay clearing - gives time to move to another node
+            if (clearTimer) clearTimeout(clearTimer);
+            clearTimer = setTimeout(() => {{
+                currentHighlight = null;
+                node.transition().duration(300).style("opacity", 1);
+                link.transition().duration(300)
+                    .style("opacity", 0.6)
+                    .style("stroke-width", 1);
+                link.classed("highlighted", false);
+            }}, 800);
+        }}
+
         function clearHighlights() {{
-            link.classed("highlighted", false);
+            scheduleClearHighlights();
         }}
 
         // Search and filter functionality
