@@ -57,7 +57,7 @@ from bengal.config.environment import detect_environment, get_environment_file_c
 from bengal.config.feature_mappings import expand_features
 from bengal.config.merge import batch_deep_merge, deep_merge
 from bengal.config.origin_tracker import ConfigWithOrigin
-from bengal.errors import BengalConfigError, format_suggestion
+from bengal.errors import BengalConfigError, ErrorCode, format_suggestion, record_error
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -169,6 +169,7 @@ class ConfigDirectoryLoader:
         if not config_dir.exists():
             raise ConfigLoadError(
                 f"Config directory not found: {config_dir}",
+                code=ErrorCode.C005,  # config_defaults_missing
                 file_path=config_dir,
                 suggestion="Ensure config directory exists or run 'bengal init' to create site structure",
             )
@@ -176,6 +177,7 @@ class ConfigDirectoryLoader:
         if not config_dir.is_dir():
             raise ConfigLoadError(
                 f"Not a directory: {config_dir}",
+                code=ErrorCode.C003,  # config_invalid_value
                 file_path=config_dir,
                 suggestion="Ensure path points to a directory, not a file",
             )
@@ -308,6 +310,7 @@ class ConfigDirectoryLoader:
             first_file, first_error = errors[0]
             raise ConfigLoadError(
                 message=f"Failed to load config files: {error_msg}",
+                code=ErrorCode.C001,  # config_yaml_parse_error
                 file_path=first_file,
                 suggestion="Check YAML syntax and file encoding (must be UTF-8). Failed files were skipped.",
                 original_error=first_error if isinstance(first_error, Exception) else None,
@@ -411,20 +414,26 @@ class ConfigDirectoryLoader:
             else:
                 line_num = None
 
-            raise ConfigLoadError(
+            error = ConfigLoadError(
                 f"Invalid YAML in {path}: {e}",
+                code=ErrorCode.C001,  # config_yaml_parse_error
                 file_path=path,
                 line_number=line_num,
                 suggestion="Check YAML syntax, indentation, and ensure all quotes are properly closed",
                 original_error=e,
-            ) from e
+            )
+            record_error(error, file_path=str(path))
+            raise error from e
         except Exception as e:
-            raise ConfigLoadError(
+            error = ConfigLoadError(
                 f"Failed to load {path}: {e}",
+                code=ErrorCode.C003,  # config_invalid_value
                 file_path=path,
                 suggestion="Check file permissions and encoding (must be UTF-8)",
                 original_error=e,
-            ) from e
+            )
+            record_error(error, file_path=str(path))
+            raise error from e
 
     def get_origin_tracker(self) -> ConfigWithOrigin | None:
         """

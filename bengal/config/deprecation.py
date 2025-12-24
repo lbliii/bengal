@@ -37,6 +37,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from bengal.errors import BengalConfigError, ErrorCode, record_error
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -95,6 +96,17 @@ def check_deprecated_keys(
             new_location = f"{section}.{new_key}"
             found_deprecated.append((old_key, new_location, note))
             if warn:
+                # Record deprecation in error session for pattern detection
+                # Note: Deprecations are warnings, not fatal errors, so we log
+                # but don't raise. Session tracking helps detect systematic issues.
+                warning = BengalConfigError(
+                    f"Deprecated key '{old_key}' found, use '{new_location}' instead",
+                    code=ErrorCode.C008,  # config_deprecated_key
+                    suggestion=note,
+                )
+                record_error(warning, file_path=source)
+
+                # Keep existing logger.warning() for console output
                 logger.warning(
                     "config_deprecated_key",
                     old_key=old_key,
