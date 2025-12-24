@@ -1,37 +1,32 @@
 """
 Content transformation utilities for the rendering pipeline.
 
-This module applies post-parsing transformations to HTML content before
-template rendering. These transformations ensure content displays correctly
-and links work properly across different deployment configurations.
+This module provides individual transformation functions for HTML content.
+For production use, prefer the unified `HybridHTMLTransformer` which combines
+multiple transformations into a single optimized pass (~27% faster).
 
-Transformations:
+Active Functions:
     escape_template_syntax_in_html():
         Converts ``{{`` and ``}}`` to HTML entities. Prevents Jinja2 from
-        processing template syntax that should appear literally in output
-        (e.g., code examples showing template syntax).
+        processing template syntax that should appear literally in output.
 
+Deprecated Functions (use HybridHTMLTransformer instead):
     escape_jinja_blocks():
-        Converts ``{%`` and ``%}`` to HTML entities. Prevents control flow
-        markers from leaking into final output.
+        Deprecated. Use HybridHTMLTransformer.transform() instead.
 
     transform_internal_links():
-        Prepends baseurl to internal links starting with ``/``. Essential
-        for sites deployed to subdirectories (e.g., GitHub Pages projects).
+        Deprecated. Use HybridHTMLTransformer.transform() instead.
 
     normalize_markdown_links():
-        Converts ``.md`` file extensions to clean URLs (e.g., ``./page.md``
-        becomes ``./page/``). Enables natural markdown linking that works
-        both in editors/GitHub and the rendered site.
-
-Error Handling:
-    All transformations use graceful degradation - errors are logged but
-    never cause build failures. Original content is returned unchanged
-    if transformation fails.
+        Deprecated. Use HybridHTMLTransformer.transform() instead.
 
 Related Modules:
-    - bengal.rendering.pipeline.core: Calls transformations during rendering
-    - bengal.rendering.link_transformer: Link transformation implementation
+    - bengal.rendering.pipeline.unified_transform: Optimized unified transformer
+    - bengal.rendering.pipeline.core: Uses HybridHTMLTransformer for rendering
+    - bengal.rendering.link_transformer: Low-level link transformation utilities
+
+See Also:
+    - plan/drafted/rfc-rendering-package-optimizations.md: Performance RFC
 """
 
 from __future__ import annotations
@@ -49,6 +44,11 @@ def escape_template_syntax_in_html(html: str) -> str:
 
     Converts "{{" and "}}" to HTML entities so they appear literally
     in documentation pages but won't be detected by tests as unrendered.
+
+    Note:
+        This function is NOT deprecated. It handles variable syntax ({{ }})
+        which is separate from block syntax ({% %}) handled by the unified
+        transformer.
 
     Args:
         html: HTML content to escape
@@ -71,6 +71,11 @@ def escape_template_syntax_in_html(html: str) -> str:
 def escape_jinja_blocks(html: str) -> str:
     """
     Escape Jinja2 block delimiters in already-rendered HTML content.
+
+    .. deprecated::
+        Use `HybridHTMLTransformer.transform()` from
+        `bengal.rendering.pipeline.unified_transform` instead.
+        This function is retained for backward compatibility and benchmarking.
 
     Converts "{%" and "%}" to HTML entities to avoid leaking raw
     control-flow markers into final HTML outside template processing.
@@ -96,6 +101,11 @@ def escape_jinja_blocks(html: str) -> str:
 def transform_internal_links(html: str, config: dict[str, Any]) -> str:
     """
     Transform internal links to include baseurl prefix.
+
+    .. deprecated::
+        Use `HybridHTMLTransformer.transform()` from
+        `bengal.rendering.pipeline.unified_transform` instead.
+        This function is retained for backward compatibility and benchmarking.
 
     This handles standard markdown links like [text](/path/) by prepending
     the configured baseurl. Essential for GitHub Pages project sites and
@@ -131,6 +141,11 @@ def transform_internal_links(html: str, config: dict[str, Any]) -> str:
 def normalize_markdown_links(html: str) -> str:
     """
     Transform .md links to clean URLs.
+
+    .. deprecated::
+        Use `HybridHTMLTransformer.transform()` from
+        `bengal.rendering.pipeline.unified_transform` instead.
+        This function is retained for backward compatibility and benchmarking.
 
     Converts markdown-style file links (e.g., ./page.md) to clean URLs
     (e.g., ./page/). This allows users to write natural markdown links
