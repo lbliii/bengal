@@ -109,13 +109,8 @@ class LocalSource(ContentSource):
 
         self.directory = Path(config["directory"])
         self.glob_pattern = config.get("glob", "**/*.md")
-        self._exclude_patterns: list[str] = config.get("exclude", [])
+        self.exclude_patterns: list[str] = config.get("exclude", [])
         self.sort_entries = config.get("sort", False)
-
-    @property
-    def exclude_patterns(self) -> list[str]:
-        """Get exclude patterns (for backward compatibility)."""
-        return self._exclude_patterns
 
     @cached_property
     def _exclude_regex(self) -> re.Pattern[str] | None:
@@ -128,12 +123,12 @@ class LocalSource(ContentSource):
         Returns:
             Compiled regex pattern or None if no patterns
         """
-        if not self._exclude_patterns:
+        if not self.exclude_patterns:
             return None
 
         try:
             # Convert fnmatch patterns to regex and combine
-            regex_parts = [fnmatch.translate(p) for p in self._exclude_patterns]
+            regex_parts = [fnmatch.translate(p) for p in self.exclude_patterns]
             combined = "|".join(f"(?:{p})" for p in regex_parts)
             return re.compile(combined)
         except re.error as e:
@@ -246,7 +241,7 @@ class LocalSource(ContentSource):
         Returns:
             True if path matches an exclude pattern
         """
-        if not self._exclude_patterns:
+        if not self.exclude_patterns:
             return False
 
         rel_path = str(path.relative_to(self.directory))
@@ -256,7 +251,7 @@ class LocalSource(ContentSource):
             return bool(self._exclude_regex.fullmatch(rel_path))
 
         # Fallback to original fnmatch loop (O(p) per file)
-        return any(fnmatch.fnmatch(rel_path, pattern) for pattern in self._exclude_patterns)
+        return any(fnmatch.fnmatch(rel_path, pattern) for pattern in self.exclude_patterns)
 
     def _path_to_slug(self, rel_path: Path) -> str:
         """
