@@ -347,6 +347,7 @@ class QueryIndex(ABC):
                 path=str(self.cache_path),
                 error=str(e),
                 error_code=ErrorCode.A004.value,  # cache_write_error
+                suggestion="Cache write failed. Check disk space and permissions.",
             )
 
     def _load_from_disk(self) -> None:
@@ -369,6 +370,7 @@ class QueryIndex(ABC):
                     expected=self.VERSION,
                     found=data.get("version"),
                     error_code=ErrorCode.A002.value,  # cache_version_mismatch
+                    suggestion="Cache version incompatible. Index will be rebuilt.",
                 )
                 self.entries = {}
                 return
@@ -399,6 +401,7 @@ class QueryIndex(ABC):
                 path=str(self.cache_path),
                 error=str(e),
                 error_code=ErrorCode.A003.value,  # cache_read_error
+                suggestion="Cache read failed. Index will be rebuilt automatically.",
             )
             self.entries = {}
 

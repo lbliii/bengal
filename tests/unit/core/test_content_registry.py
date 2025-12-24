@@ -15,6 +15,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from bengal.core.registry import ContentRegistry
+from bengal.errors import BengalError
 
 
 class TestContentRegistryBasics:
@@ -165,7 +166,7 @@ class TestFreezeLifecycle:
         page.source_path = Path("/test.md")
         page._path = "/test/"
 
-        with pytest.raises(RuntimeError, match="Cannot modify frozen registry"):
+        with pytest.raises(BengalError, match="Cannot modify frozen registry"):
             registry.register_page(page)
 
     def test_freeze_prevents_section_registration(self) -> None:
@@ -177,7 +178,7 @@ class TestFreezeLifecycle:
         section.path = Path("/test")
         section.subsections = []
 
-        with pytest.raises(RuntimeError, match="Cannot modify frozen registry"):
+        with pytest.raises(BengalError, match="Cannot modify frozen registry"):
             registry.register_section(section)
 
     def test_unfreeze_allows_registration(self) -> None:

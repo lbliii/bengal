@@ -404,7 +404,13 @@ class BuildCache(
                 self._save_to_file(cache_path)
 
         except Exception as e:
-            from bengal.errors import BengalCacheError, ErrorCode, ErrorContext, enrich_error
+            from bengal.errors import (
+                BengalCacheError,
+                ErrorCode,
+                ErrorContext,
+                enrich_error,
+                record_error,
+            )
 
             # Enrich error with context
             context = ErrorContext(
@@ -415,6 +421,7 @@ class BuildCache(
                 error_code=ErrorCode.A004,  # cache_write_error
             )
             enriched = enrich_error(e, context, BengalCacheError)
+            record_error(enriched, file_path=str(cache_path))
             logger.error(
                 "cache_save_failed",
                 cache_path=str(cache_path),

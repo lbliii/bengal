@@ -150,7 +150,13 @@ class PageDiscoveryCache:
                 path=str(self.cache_path),
             )
         except Exception as e:
-            from bengal.errors import BengalCacheError, ErrorCode, ErrorContext, enrich_error
+            from bengal.errors import (
+                BengalCacheError,
+                ErrorCode,
+                ErrorContext,
+                enrich_error,
+                record_error,
+            )
 
             # Enrich error with context
             context = ErrorContext(
@@ -161,6 +167,7 @@ class PageDiscoveryCache:
                 error_code=ErrorCode.A003,  # cache_read_error
             )
             enriched = enrich_error(e, context, BengalCacheError)
+            record_error(enriched, file_path=str(self.cache_path))
             logger.warning(
                 "page_discovery_cache_load_failed",
                 error=str(enriched),

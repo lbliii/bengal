@@ -161,10 +161,14 @@ class AssetDependencyMap:
                 path=str(self.cache_path),
             )
         except Exception as e:
+            from bengal.errors import ErrorCode
+
             logger.warning(
                 "asset_dependency_map_load_failed",
                 error=str(e),
                 path=str(self.cache_path),
+                error_code=ErrorCode.A003.value,  # cache_read_error
+                suggestion="Cache will be rebuilt automatically on next build.",
             )
             self.pages = {}
 
@@ -188,10 +192,14 @@ class AssetDependencyMap:
                 path=str(self.cache_path),
             )
         except Exception as e:
+            from bengal.errors import ErrorCode
+
             logger.error(
                 "asset_dependency_map_save_failed",
                 error=str(e),
                 path=str(self.cache_path),
+                error_code=ErrorCode.A004.value,  # cache_write_error
+                suggestion="Check disk space and permissions. Asset tracking may be incomplete.",
             )
 
     def track_page_assets(self, source_path: Path, assets: set[str]) -> None:

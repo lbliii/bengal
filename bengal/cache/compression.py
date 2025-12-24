@@ -142,14 +142,16 @@ def load_compressed(path: Path) -> dict[str, Any]:
     # Validate magic header before decompression
     is_valid, remaining = validate_cache_header(compressed)
     if not is_valid:
-        from bengal.errors import BengalCacheError, ErrorCode
+        from bengal.errors import BengalCacheError, ErrorCode, record_error
 
-        raise BengalCacheError(
+        error = BengalCacheError(
             f"Incompatible cache version or magic header: {path}",
             code=ErrorCode.A002,  # cache_version_mismatch
             file_path=path,
             suggestion="Delete .bengal/ directory to rebuild cache with current version.",
         )
+        record_error(error, file_path=str(path))
+        raise error
 
     json_bytes = zstd.decompress(remaining)
     data = json.loads(json_bytes)
