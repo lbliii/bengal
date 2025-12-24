@@ -561,6 +561,7 @@ class SitePropertiesMixin:
             "show_date": value.get("show_date", defaults["show_date"]),
             "show_tags": value.get("show_tags", defaults["show_tags"]),
             "max_tags": value.get("max_tags", defaults["max_tags"]),
+            "include_selectors": value.get("include_selectors", defaults["include_selectors"]),
             "exclude_selectors": value.get("exclude_selectors", defaults["exclude_selectors"]),
         }
 

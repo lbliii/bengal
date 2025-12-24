@@ -39,14 +39,16 @@ This RFC proposes **Kida**, a new Python template engine designed as a modern al
 
 | Aspect | Jinja2 | Kida |
 |--------|--------|------|
-| **Codebase** | ~14,350 lines | ~3500 lines (revised) |
-| **Architecture** | Compile to Python | Hybrid: interpret + optional bytecode |
-| **Error messages** | Cryptic, wrong line numbers | Precise, with suggestions |
-| **Type checking** | None | Optional validation |
-| **Caching** | External/bytecode only | Built-in fragment caching |
+| **Codebase** | ~14,350 lines | ~4250 lines (refined) |
+| **Architecture** | Compile to Python Source | Hybrid: direct AST interpreter + direct bytecode |
+| **Error messages** | Cryptic, wrong line numbers | Precise, with suggestions and migration hints |
+| **Type checking** | None | Optional validation (`{% template %}`) |
+| **Caching** | External/bytecode only | Built-in fragment caching + dependency tracking |
 | **Block endings** | `{% endif %}`, `{% endfor %}`, etc. | Unified `{% end %}` |
-| **Dependencies** | MarkupSafe | Zero |
-| **Free-threading** | Limited | Designed for 3.14t |
+| **Whitespace** | Manual `{%- -%}` (fiddly) | Automatic "Smart-Trim" + `{% trim %}` blocks |
+| **Security** | Manual escaping (fragile) | Context-Aware Auto-escaping (Go-style) |
+| **Logic** | Restricted Python | Modern Python patterns (`match`, `|>`) |
+| **Free-threading** | Limited | Designed for 3.14t parallelism |
 
 **Why "Kida"?** Named after Kida, a Bengal cat. Keeps the feline theme.
 
@@ -318,14 +320,67 @@ Kida uses familiar `{{ }}` and `{% %}` delimiters with improvements:
 {% cache key="nav-" + site.nav_hash, ttl="1h" %}
   {{ build_nav_tree(site.pages) }}
 {% end %}
+```
 
-{# With dependency tracking #}
-{% cache "sidebar", depends=[site.nav, config.theme] %}
-  {{ render_sidebar() }}
+#### 6. Context-Aware Auto-escaping (Security)
+
+Inspired by Go Templates, Kida understands the context of a variable.
+
+```jinja
+<a href="{{ url }}" onclick="alert('{{ msg }}')">{{ content }}</a>
+```
+- `url` is escaped for an attribute value and validated as a safe URL scheme.
+- `msg` is escaped for a JavaScript string literal.
+- `content` is escaped for HTML body text.
+
+#### 7. Modern Control Flow: `match`
+
+Avoid deep `if/elif` chains when checking page types or status codes.
+
+```jinja
+{% match page.type %}
+  {% case "post" %}   <i class="icon-pen"></i>
+  {% case "gallery" %} <i class="icon-image"></i>
+  {% case _ %}        <i class="icon-file"></i>
 {% end %}
 ```
 
-#### 6. Explicit Template Context (Optional)
+#### 8. Clean Whitespace Management
+
+Jinja's `{%-` and `-%}` are difficult to read. Kida defaults to "Smart-Trim" (removes trailing newlines from block tags) and provides a dedicated block for manual control:
+
+```jinja
+<ul>
+  {% trim %}
+  {% for i in items %}
+    <li>{{ i }}</li>
+  {% end %}
+  {% end %}
+</ul>
+```
+
+#### 9. Slots and Components
+
+Better than macros, components support "slots" for child content.
+
+```jinja
+{# Define a component #}
+{% def card(title) %}
+  <div class="card">
+    <h3>{{ title }}</h3>
+    <div class="body">
+      {% slot %} {# Where child content goes #}
+    </div>
+  </div>
+{% end %}
+
+{# Use it #}
+{% call card("My Title") %}
+  <p>This is the slot content!</p>
+{% end %}
+```
+
+#### 10. Explicit Template Context (Optional)
 
 ```jinja
 {# Declare expected variables at top #}
@@ -493,7 +548,21 @@ Error in templates/base.html line 45:
      │  
      │    In Kida, use {% end %} to close all blocks.
      │    Migration: Replace {% endblock %} with {% end %}
+
+Error in templates/page.html line 12:
+
+  11 │ {% for item in items %}
+  12 │   <li>{{ item.titl }}</li>
+     │               ^^^^
+     │               Unknown attribute 'titl' on Page object
+     │  
+     │               Did you mean: 'title', 'tags', 'template'? (90% match)
 ```
+
+**Intelligence Features:**
+- **Jinja/Liquid Awareness**: If a user types `{% endif %}`, `{% endfor %}`, or `{{ item.name | upcase }}`, the error specifically mentions the Kida equivalent.
+- **Contextual Hints**: Links to Bengal documentation based on the object type being accessed.
+- **Traceback Preservation**: In compiled mode, Kida uses `types.CodeType` to ensure that standard Python tracebacks point to the correct line in the `.html` file, not a generated `.py` file.
 
 ---
 
@@ -1133,6 +1202,21 @@ def test_parity(template, context, expected):
 **Cons**: Can't fix core issues (errors, architecture, performance)
 
 **Decision**: Current approach. Works but doesn't scale.
+
+---
+
+## Appendix C: Solving the "Top Hates" of Template Engines
+
+| Hate | Engine(s) | Kida's Solution |
+| :--- | :--- | :--- |
+| **Cryptic Errors** | Jinja2, Mako | Rich formatting, "Did you mean?", and perfect line mapping. |
+| **Helper Hell** | Mustache | Built-in `|>`, `match`, and a rich (but lean) standard library. |
+| **Logic-less limits** | Liquid, Mustache | Flexible Python-like logic with clean scoping. |
+| **Fiddly Whitespace** | Jinja2 | Smart-Trim defaults + `{% trim %}` blocks instead of `{%-`. |
+| **Insecure by Default** | Mako, EJS | Context-aware auto-escaping (JS vs HTML vs CSS). |
+| **Implicit "Dot" Context** | Go Templates | Explicit variable access (`page.title`) + optional types. |
+| **Build Step Bloat** | JSX/TSX | No build step required; runs instantly via direct interpreter. |
+| **Inherited Debt** | Jinja2 | Zero-dependency, modern codebase (<5k lines). |
 
 ---
 

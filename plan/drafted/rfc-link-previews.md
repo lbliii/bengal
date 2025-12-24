@@ -1023,6 +1023,12 @@ exclude_selectors = [       # Links inside these won't show previews
   ".toc",
   ".breadcrumb",
   ".pagination",
+  ".card",
+  "[class*='-card']",
+  ".tab-nav",
+  "[class*='-widget']",
+  ".child-items",
+  ".content-tiles",
 ]
 ```
 

@@ -338,11 +338,20 @@ DEFAULTS: dict[str, Any] = {
         "show_date": True,  # Show date (if available)
         "show_tags": True,  # Show tags
         "max_tags": 3,  # Maximum tags to display
+        "include_selectors": [
+            ".prose"
+        ],  # Only links inside these show previews (if empty, all links)
         "exclude_selectors": [  # Links inside these won't show previews
             "nav",
             ".toc",
             ".breadcrumb",
             ".pagination",
+            ".card",
+            "[class*='-card']",
+            ".tab-nav",
+            "[class*='-widget']",
+            ".child-items",
+            ".content-tiles",
         ],
     },
     # -------------------------------------------------------------------------

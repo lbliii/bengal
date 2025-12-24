@@ -225,7 +225,11 @@ def load_auto(path: Path) -> dict[str, Any]:
     # Try compressed first
     compressed_path = get_compressed_path(path)
     if compressed_path.exists():
-        return load_compressed(compressed_path)
+        try:
+            return load_compressed(compressed_path)
+        except CacheVersionError:
+            # Incompatible version - fallback to JSON or re-raise if no JSON
+            logger.debug("compressed_cache_incompatible", path=str(compressed_path))
 
     # Fall back to uncompressed JSON
     json_path = path if path.suffix == ".json" else path.with_suffix(".json")

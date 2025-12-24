@@ -1,5 +1,16 @@
 ## [Unreleased]
 
+### Jinja Pattern Adoption ✅
+- **cache**: add magic header validation to compressed caches (`.json.zst`) for robust auto-invalidation on Python/Bengal upgrades
+- **utils(sentinel)**: add `MISSING` sentinel singleton to distinguish between `None` and unset values
+- **cache(build_cache)**: adopt `MISSING` sentinel in `get_parsed_content` and `get_rendered_output` for technical correctness
+- **directives(base)**: add `PRIORITY` system to `BengalDirective` for explicit processing order control
+- **directives(factory)**: update factory to sort directives by priority before registration
+- **directives(include)**: set `PRIORITY_FIRST` to ensure content is included before other processing
+- **directives(navigation)**: set `PRIORITY_LATE` for breadcrumbs, siblings, prev-next, and related directives
+- **tests(unit)**: add 14 unit tests for cache versioning, sentinel behavior, and directive priority
+- **plan**: move rfc-jinja-pattern-adoption.md to implemented status
+
 ### Inline Asset Extraction ✅
 - **orchestration(build)**: eliminate separate `Track assets` phase by extracting asset dependencies inline during rendering
 - **utils(build_context)**: add `_accumulated_assets` field and thread-safe accumulation methods for asset dependencies

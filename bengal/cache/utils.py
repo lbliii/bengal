@@ -61,19 +61,33 @@ def clear_build_cache(site_root_path: str | Path, logger: BengalLogger | None = 
 
     paths = BengalPaths(Path(site_root_path))
     cache_path = paths.build_cache
+    compressed_path = cache_path.with_suffix(".json.zst")
 
-    if not cache_path.exists():
-        return False
+    cleared = False
 
-    try:
-        cache_path.unlink()
-        if logger:
-            logger.debug("build_cache_cleared", cache_path=str(cache_path))
-        return True
-    except Exception as e:
-        if logger:
-            logger.warning("cache_clear_failed", error=str(e), cache_path=str(cache_path))
-        return False
+    # Clear uncompressed
+    if cache_path.exists():
+        try:
+            cache_path.unlink()
+            cleared = True
+            if logger:
+                logger.debug("build_cache_cleared", cache_path=str(cache_path))
+        except Exception as e:
+            if logger:
+                logger.warning("cache_clear_failed", error=str(e), cache_path=str(cache_path))
+
+    # Clear compressed
+    if compressed_path.exists():
+        try:
+            compressed_path.unlink()
+            cleared = True
+            if logger:
+                logger.debug("compressed_cache_cleared", cache_path=str(compressed_path))
+        except Exception as e:
+            if logger:
+                logger.warning("cache_clear_failed", error=str(e), cache_path=str(compressed_path))
+
+    return cleared
 
 
 def clear_template_cache(site_root_path: str | Path, logger: BengalLogger | None = None) -> bool:

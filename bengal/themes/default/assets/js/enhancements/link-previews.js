@@ -59,6 +59,7 @@
     showDate: previewConfig.showDate ?? true,
     showTags: previewConfig.showTags ?? true,
     maxTags: previewConfig.maxTags ?? 3,
+    includeSelectors: previewConfig.includeSelectors ?? ['.prose'],
     excludeSelectors: previewConfig.excludeSelectors ?? [
       'nav', '.toc', '.breadcrumb', '.pagination'
     ],
@@ -119,6 +120,10 @@
     if (link.hasAttribute('download')) return false;
     if (link.dataset.noPreview !== undefined) return false;
     if (link.closest('.link-preview')) return false; // Prevent nesting
+
+    // Include only links inside prose sections (if configured)
+    const includeSelector = CONFIG.includeSelectors.join(', ');
+    if (includeSelector && !link.closest(includeSelector)) return false;
 
     // Skip links inside excluded selectors (nav, toc, etc.)
     const excludeSelector = CONFIG.excludeSelectors.join(', ');
