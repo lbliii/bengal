@@ -50,6 +50,7 @@ import subprocess
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from bengal.errors import ErrorCode
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
@@ -125,6 +126,7 @@ def run_hooks(
 
                 logger.error(
                     f"{hook_type}_hook_failed",
+                    error_code=ErrorCode.S003.name,
                     command=command,
                     returncode=result.returncode,
                     stderr=stderr_preview,
@@ -148,6 +150,7 @@ def run_hooks(
             failure_count += 1
             logger.error(
                 f"{hook_type}_hook_timeout",
+                error_code=ErrorCode.S003.name,
                 command=command,
                 timeout=timeout,
             )
@@ -159,6 +162,7 @@ def run_hooks(
             failure_count += 1
             logger.error(
                 f"{hook_type}_hook_not_found",
+                error_code=ErrorCode.S003.name,
                 command=command,
                 error=str(e),
             )
@@ -170,6 +174,7 @@ def run_hooks(
             failure_count += 1
             logger.error(
                 f"{hook_type}_hook_error",
+                error_code=ErrorCode.S003.name,
                 command=command,
                 error=str(e),
                 error_type=type(e).__name__,

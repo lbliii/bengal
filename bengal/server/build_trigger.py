@@ -55,6 +55,7 @@ from typing import Any
 
 import yaml
 
+from bengal.errors import ErrorCode, create_dev_error, get_dev_server_state
 from bengal.orchestration.stats import display_build_stats, show_building_indicator, show_error
 from bengal.output import CLIOutput
 from bengal.server.build_executor import BuildExecutor, BuildRequest, BuildResult
@@ -132,6 +133,8 @@ class BuildTrigger:
         self._pending_event_types: set[str] = set()
         # Reset template dirs cache for this instance (theme may differ)
         self._template_dirs = None
+        # Track last successful build for error context
+        self._last_successful_build: datetime | None = None
 
     def trigger_build(
         self,
@@ -263,10 +266,24 @@ class BuildTrigger:
             if not result.success:
                 show_error(f"Build failed: {result.error_message}", show_art=False)
                 cli.request_log_header()
+
+                # Record failure for pattern detection
+                error_sig = f"build_failed:{result.error_message[:50] if result.error_message else 'unknown'}"
+                is_new = get_dev_server_state().record_failure(error_sig)
+                if not is_new:
+                    logger.warning(
+                        "recurring_error_detected",
+                        error_code=ErrorCode.S003.name,
+                        signature=error_sig,
+                    )
+
                 logger.error(
                     "rebuild_failed",
+                    error_code=ErrorCode.S003.name,
                     duration_seconds=round(build_duration, 2),
                     error=result.error_message,
+                    changed_files=[str(p) for p in changed_paths][:5],
+                    is_recurring=not is_new,
                 )
                 return
 
@@ -280,6 +297,10 @@ class BuildTrigger:
             # Show server URL
             cli.server_url_inline(host=self.host, port=self.port)
             cli.request_log_header()
+
+            # Record success for session tracking
+            self._last_successful_build = datetime.now()
+            get_dev_server_state().record_success()
 
             logger.info(
                 "rebuild_complete",
@@ -295,11 +316,38 @@ class BuildTrigger:
             self._clear_html_cache()
 
         except Exception as e:
+            # Create dev server error context for rich debugging
+            context = create_dev_error(
+                e,
+                changed_files=[str(p) for p in changed_paths],
+                trigger_file=str(changed_paths.pop()) if changed_paths else None,
+                last_successful_build=self._last_successful_build,
+            )
+
+            # Record failure for pattern detection
+            error_sig = f"{type(e).__name__}:{str(e)[:50]}"
+            is_new = get_dev_server_state().record_failure(error_sig)
+            if not is_new:
+                logger.warning(
+                    "recurring_error_detected",
+                    error_code=ErrorCode.S003.name,
+                    signature=error_sig,
+                )
+
             logger.error(
                 "rebuild_error",
+                error_code=ErrorCode.S003.name,
                 error=str(e),
                 error_type=type(e).__name__,
+                likely_cause=context.get_likely_cause(),
+                quick_actions=context.quick_actions[:3],
+                auto_fixable=context.auto_fixable,
+                is_recurring=not is_new,
             )
+
+            # Show auto-fix suggestion if available
+            if context.auto_fix_command:
+                show_error(f"Build failed: {e}\n\nTry: {context.auto_fix_command}", show_art=False)
         finally:
             self._set_build_in_progress(False)
 

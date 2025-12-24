@@ -72,6 +72,7 @@ from io import BufferedIOBase
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from bengal.errors import ErrorCode
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
@@ -341,6 +342,7 @@ class LiveReloadMixin:
                     # Client disconnected
                     logger.debug(
                         "sse_client_disconnected_error",
+                        error_code=ErrorCode.S004.name,
                         client_address=client_addr,
                         error_type=type(e).__name__,
                         messages_sent=message_count,
@@ -593,6 +595,7 @@ def send_reload_payload(action: str, reason: str, changed_paths: list[str]) -> N
     except Exception as e:
         logger.warning(
             "reload_payload_serialization_failed",
+            error_code=ErrorCode.S003.name,
             action=action,
             reason=reason,
             error=str(e),

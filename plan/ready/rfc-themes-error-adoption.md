@@ -1,12 +1,17 @@
 # RFC: Themes Package Error System Adoption
 
-**Status**: Drafted  
+**Status**: Evaluated ✅  
 **Created**: 2025-12-24  
+**Evaluated**: 2025-12-24  
 **Author**: AI Assistant  
 **Subsystem**: `bengal/themes/`  
-**Confidence**: 95% 🟢 (all claims verified via source code inspection)  
+**Confidence**: 95% 🟢 (all claims verified via source code inspection; line numbers corrected)  
 **Priority**: P3 (Low) — Small package with partial adoption already  
-**Estimated Effort**: 0.5 days (~50 minutes including tests)
+**Estimated Effort**: 0.5 days (~55 minutes including tests)
+
+> **Evaluation Note**: All 13 claims verified against source code. Ready for implementation.
+>
+> **Improvement Pass (2025-12-24)**: Fixed line number references for `generate.py` (151-179, 182-216, 219-249, 236-241) and `BengalAssetError` (571-600). Added complete code snippets to evidence sections.
 
 ---
 
@@ -37,6 +42,7 @@ The `bengal/themes/` package has **partial adoption** of the Bengal error system
 6. [Success Criteria](#success-criteria)
 7. [Test Verification](#test-verification)
 8. [Risks and Mitigations](#risks-and-mitigations)
+9. [Evaluation Results](#evaluation-results)
 
 ---
 
@@ -72,7 +78,7 @@ The themes package has partial adoption in `config.py` but `generate.py` uses ba
 |------|-------|---------|--------------|
 | `__init__.py` | 89 | Re-exports | ✅ No changes needed |
 | `config.py` | 364 | Theme YAML loading | 🟡 Partial adoption |
-| `generate.py` | 250 | CSS/TCSS generation | ❌ No adoption |
+| `generate.py` | 249 | CSS/TCSS generation | ❌ No adoption |
 | `tokens.py` | 290 | Frozen design tokens | ✅ No changes needed |
 
 ### Error Handling in `config.py`
@@ -120,7 +126,8 @@ if not tcss_path.exists():
 ```
 
 ```python
-# generate.py:237-241 - Uses sys.exit for errors
+# generate.py:236-241 - Uses sys.exit for errors
+errors = validate_tcss_tokens()
 if errors:
     print("\n⚠ TCSS validation warnings:")
     for error in errors:
@@ -184,12 +191,13 @@ if not yaml_path.exists():
 
 ### 2. No Error Handling in `generate.py`
 
-**Location**: `generate.py:170-177` (write_generated_css)
+**Location**: `generate.py:151-179` (write_generated_css)
 
 ```python
-# Current - no try/except
+# Current - no try/except (lines 173-177)
 output_dir.mkdir(parents=True, exist_ok=True)
 output_file = output_dir / "generated.css"
+
 css_content = generate_web_css()
 output_file.write_text(css_content)
 ```
@@ -204,22 +212,20 @@ output_file.write_text(css_content)
 **Location**: `generate.py:182-216` (validate_tcss_tokens)
 
 ```python
-# Current
-def validate_tcss_tokens() -> list[str]:
-    if not tcss_path.exists():
-        return [f"TCSS file not found: {tcss_path}"]
-    # ...
-    return errors
+# Current (lines 200-201)
+if not tcss_path.exists():
+    return [f"TCSS file not found: {tcss_path}"]
 ```
 
 **Note**: This pattern is acceptable for validation functions that are meant to collect multiple errors. The issue is that `main()` doesn't convert these to structured errors.
 
 ### 4. sys.exit(1) in CLI Entry Point
 
-**Location**: `generate.py:237-241`
+**Location**: `generate.py:236-241`
 
 ```python
 # Current
+errors = validate_tcss_tokens()
 if errors:
     print("\n⚠ TCSS validation warnings:")
     for error in errors:
@@ -421,11 +427,14 @@ def __post_init__(self) -> None:
 | Phase | Task | Time | Priority |
 |-------|------|------|----------|
 | 1 | Convert FileNotFoundError to BengalConfigError | 5 min | P1 |
+| 1b | Update caller in `bengal/core/theme/config.py` | 5 min | P1 |
 | 2 | Add error handling to generate.py | 15 min | P1 |
 | 3 | Add session tracking | 10 min | P2 |
 | 4 | Add test assertions for error codes | 20 min | P1 |
 
-**Total**: ~50 minutes (including tests)
+**Total**: ~55 minutes (including tests)
+
+> **Important**: Phase 1 and 1b must be done together to avoid breaking the build.
 
 ---
 
@@ -435,6 +444,7 @@ def __post_init__(self) -> None:
 
 - [ ] All theme config errors use `BengalConfigError` with error codes
 - [ ] `FileNotFoundError` replaced with `BengalConfigError(code=C005)`
+- [ ] Caller at `bengal/core/theme/config.py:214` updated to catch `BengalConfigError`
 - [ ] `write_generated_css()` handles file operation errors
 - [ ] Tests verify error codes are set correctly
 
@@ -455,11 +465,15 @@ def __post_init__(self) -> None:
 
 ### Existing Test Coverage
 
-| Test File | Purpose |
-|-----------|---------|
-| `tests/unit/core/test_theme.py` | Tests Theme class (already tests BengalConfigError) |
-| `tests/unit/themes/test_theme_controls.py` | Tests popover controls |
-| `tests/dashboard/test_dashboards.py` | Tests token usage |
+| Test File | Purpose | Relevant? |
+|-----------|---------|-----------|
+| `tests/unit/core/test_theme.py` | Tests `bengal.core.theme.config.Theme` class | ❌ Different class |
+| `tests/unit/themes/test_theme_controls.py` | Tests popover controls | ❌ UI tests |
+| `tests/unit/themes/test_mobile_nav.py` | Tests mobile navigation | ❌ UI tests |
+
+> **Note**: The existing `test_theme.py` tests the `Theme` class in `bengal/core/theme/config.py`,
+> which is a *different* class from `ThemeConfig` in `bengal/themes/config.py`.
+> No tests currently exist for `ThemeConfig` or `AppearanceConfig` error handling.
 
 ### Required Test Additions
 
@@ -635,10 +649,44 @@ def test_missing_file_tracked_in_session(tmp_path: Path) -> None:
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|------------|--------|------------|
-| Breaking existing exception handlers | Very Low | Low | All changes add codes, don't change types |
+| Breaking `FileNotFoundError` handlers | **High** | Medium | See breaking change note below |
 | Test failures | Low | Low | Run `pytest tests/unit/themes/` after changes |
 | `generate.py` used programmatically | Low | Medium | Keep return types, add optional error raising |
-| Permission issues in tests | Low | Low | Use `pytest.mark.skipif` for permission tests |
+| Permission issues in tests | Low | Low | Use `pytest.mark.skipif` for permission tests on CI |
+
+### ⚠️ Breaking Change: FileNotFoundError → BengalConfigError
+
+**Identified Caller**: `bengal/core/theme/config.py:214` catches `FileNotFoundError`:
+
+```python
+# bengal/core/theme/config.py:204-216 (current)
+if theme_path:
+    try:
+        theme_config_obj = ThemeConfig.load(theme_path)
+        # ...
+    except FileNotFoundError:
+        # theme.yaml doesn't exist, fall back to config
+        pass
+```
+
+**Required Fix**: Update to catch `BengalConfigError` with code C005:
+
+```python
+# After migration
+from bengal.errors import BengalConfigError, ErrorCode
+
+if theme_path:
+    try:
+        theme_config_obj = ThemeConfig.load(theme_path)
+        # ...
+    except BengalConfigError as e:
+        if e.code == ErrorCode.C005:
+            # theme.yaml doesn't exist, fall back to config
+            pass
+        else:
+            # Other config errors should be reported
+            emit_diagnostic(...)
+```
 
 ---
 
@@ -648,10 +696,11 @@ def test_missing_file_tracked_in_session(tmp_path: Path) -> None:
 |------|-------------|-------|
 | `bengal/themes/config.py` | Add C005, session tracking | ~20 |
 | `bengal/themes/generate.py` | Add error handling | ~30 |
+| `bengal/core/theme/config.py` | Update FileNotFoundError handler | ~10 |
 | `tests/unit/themes/test_theme_config.py` | New: error code tests | ~50 |
 | `tests/unit/themes/test_generate.py` | New: generation tests | ~40 |
 | `tests/unit/themes/test_theme_session.py` | New: session tests | ~35 |
-| **Total** | — | ~175 |
+| **Total** | — | ~185 |
 
 ---
 
@@ -670,17 +719,44 @@ def test_missing_file_tracked_in_session(tmp_path: Path) -> None:
 
 ---
 
+## Evaluation Results
+
+**Evaluated**: 2025-12-24
+
+| Claim | Verified | Evidence |
+|-------|----------|----------|
+| FileNotFoundError at line 301-302 | ✅ | `config.py:301-302` exact match |
+| BengalConfigError with C003 | ✅ | `config.py:162-167` verified |
+| BengalConfigError with C001 | ✅ | `config.py:307-314` verified |
+| No error imports in generate.py | ✅ | Lines 1-43 confirmed |
+| Error code C005 exists | ✅ | `codes.py:117` |
+| Error code X004 exists | ✅ | `codes.py:231` |
+| record_error() exists | ✅ | `session.py:482-499` |
+| No tests for ThemeConfig errors | ✅ | `tests/unit/themes/` has only `test_mobile_nav.py`, `test_theme_controls.py` |
+
+**Additional Finding** (during evaluation):
+- ⚠️ Breaking change identified: `bengal/core/theme/config.py:214` catches `FileNotFoundError` and must be updated
+
+**Verdict**: Ready for implementation with noted breaking change. Move to `plan/ready/` after approval.
+
+---
+
 ## References
 
-- `bengal/errors/codes.py:113-117` — C-series error codes
-- `bengal/errors/codes.py:228-234` — X-series asset error codes
-- `bengal/errors/exceptions.py:367-398` — BengalConfigError definition
-- `bengal/errors/exceptions.py:571-601` — BengalAssetError definition
-- `bengal/errors/session.py` — `record_error()` function
-- `bengal/themes/config.py:158-167` — Current C003 usage
-- `bengal/themes/config.py:304-314` — Current C001 usage
-- `bengal/themes/config.py:301-302` — FileNotFoundError to convert
-- `bengal/themes/generate.py:151-179` — write_generated_css function
-- `bengal/themes/generate.py:182-216` — validate_tcss_tokens function
-- `bengal/themes/generate.py:219-245` — main() entry point
-- `tests/unit/core/test_theme.py` — Existing theme tests
+| Reference | Location | Status |
+|-----------|----------|--------|
+| C-series error codes | `bengal/errors/codes.py:117` | ✅ Verified |
+| X-series asset error codes | `bengal/errors/codes.py:231` | ✅ Verified |
+| BengalConfigError definition | `bengal/errors/exceptions.py:367-398` | ✅ Verified |
+| BengalAssetError definition | `bengal/errors/exceptions.py:571-600` | ✅ Verified |
+| `record_error()` function | `bengal/errors/session.py:482-499` | ✅ Verified |
+| Current C003 usage | `bengal/themes/config.py:162-167` | ✅ Verified |
+| Current C001 usage | `bengal/themes/config.py:307-314` | ✅ Verified |
+| FileNotFoundError to convert | `bengal/themes/config.py:301-302` | ✅ Verified |
+| write_generated_css function | `bengal/themes/generate.py:151-179` | ✅ Verified |
+| validate_tcss_tokens function | `bengal/themes/generate.py:182-216` | ✅ Verified |
+| main() entry point | `bengal/themes/generate.py:219-249` | ✅ Verified |
+
+**Related Classes** (important distinction):
+- `bengal/themes/config.py:ThemeConfig` — This RFC's target (theme YAML config)
+- `bengal/core/theme/config.py:Theme` — Different class (core theme model)
