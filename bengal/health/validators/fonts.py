@@ -69,6 +69,7 @@ class FontValidator(BaseValidator):
             results.append(
                 CheckResult.warning(
                     "fonts.css not generated despite font configuration",
+                    code="H601",
                     recommendation="Check if FontHelper.process() is called during build.",
                 )
             )
@@ -94,6 +95,7 @@ class FontValidator(BaseValidator):
             results.append(
                 CheckResult.error(
                     "Fonts directory does not exist",
+                    code="H602",
                     recommendation="Font files should be in assets/fonts/. Check FontHelper.process().",
                 )
             )
@@ -106,6 +108,7 @@ class FontValidator(BaseValidator):
             results.append(
                 CheckResult.error(
                     "No font files found in assets/fonts/",
+                    code="H603",
                     recommendation="Font download may have failed. Check FontHelper and network connectivity.",
                 )
             )
@@ -120,6 +123,7 @@ class FontValidator(BaseValidator):
             results.append(
                 CheckResult.warning(
                     f"Found {len(font_files)} font file(s) but configured {num_families} font familie(s)",
+                    code="H604",
                     recommendation="Some fonts may not have downloaded. Check for download errors in logs.",
                 )
             )
@@ -137,6 +141,7 @@ class FontValidator(BaseValidator):
             results.append(
                 CheckResult.error(
                     f"Cannot read fonts.css: {e}",
+                    code="H605",
                     recommendation="Check file permissions and encoding.",
                 )
             )
@@ -149,6 +154,7 @@ class FontValidator(BaseValidator):
             results.append(
                 CheckResult.error(
                     "fonts.css has no @font-face rules",
+                    code="H606",
                     recommendation="CSS should contain @font-face declarations. Check FontCSSGenerator.",
                 )
             )
@@ -161,6 +167,7 @@ class FontValidator(BaseValidator):
             results.append(
                 CheckResult.error(
                     f"{len(broken_refs)} font reference(s) point to missing files",
+                    code="H607",
                     recommendation="Font files referenced in CSS don't exist. Check font download.",
                     details=broken_refs[:5],
                 )
@@ -213,6 +220,7 @@ class FontValidator(BaseValidator):
             results.append(
                 CheckResult.warning(
                     f"{len(oversized)} font file(s) are very large (>{self.MAX_FONT_SIZE_KB} KB)",
+                    code="H608",
                     recommendation="Large font files slow page load. Consider using fewer weights or variable fonts.",
                     details=oversized[:3],
                 )
@@ -223,6 +231,7 @@ class FontValidator(BaseValidator):
             results.append(
                 CheckResult.warning(
                     f"Total font size is {total_size_kb:.0f} KB ({total_size_kb / 1024:.1f} MB)",
+                    code="H609",
                     recommendation="Consider reducing number of font weights to improve performance.",
                 )
             )

@@ -61,6 +61,7 @@ class ConfigValidatorWrapper(BaseValidator):
             results.append(
                 CheckResult.warning(
                     f"Missing configuration fields: {', '.join(missing)}",
+                    code="H010",
                     recommendation="Add these fields to your bengal.toml for better control.",
                 )
             )
@@ -88,6 +89,7 @@ class ConfigValidatorWrapper(BaseValidator):
             results.append(
                 CheckResult.warning(
                     f"max_workers is very high ({max_workers})",
+                    code="H011",
                     recommendation="Very high worker counts may cause resource exhaustion. Consider reducing to 8-12.",
                 )
             )

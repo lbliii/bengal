@@ -90,6 +90,7 @@ class PerformanceValidator(BaseValidator):
             results.append(
                 CheckResult.warning(
                     f"Build is slower than expected ({build_time_s:.2f}s for {total_pages} pages)",
+                    code="H410",
                     recommendation="Check for slow template functions, large assets, or system issues.",
                 )
             )
@@ -131,6 +132,7 @@ class PerformanceValidator(BaseValidator):
             results.append(
                 CheckResult.warning(
                     f"Throughput: {throughput:.1f} pages/second (slow)",
+                    code="H411",
                     recommendation="Consider enabling parallel builds or check for performance bottlenecks.",
                 )
             )
@@ -160,6 +162,7 @@ class PerformanceValidator(BaseValidator):
             results.append(
                 CheckResult.warning(
                     f"Average page render time is high ({avg_render_ms:.0f}ms/page)",
+                    code="H412",
                     recommendation="Check for complex templates or slow template functions.",
                 )
             )

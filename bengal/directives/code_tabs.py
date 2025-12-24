@@ -50,8 +50,9 @@ _CODE_TAB_SPLIT_PATTERN = re.compile(r"^### (?:Tab: )?(.+)$", re.MULTILINE)
 
 # Enhanced code block pattern: captures language, info string, and code
 # Matches: ```python, ```python {1,3-5}, ```python title="file.py" {1,3}
+# Uses [ \t] for horizontal whitespace and [^\n]* for info to avoid DOTALL issues
 _CODE_BLOCK_PATTERN = re.compile(
-    r"```(\w+)?(?:\s+(.+?))?\n(.*?)```",
+    r"```(\w+)?(?:[ \t]+([^\n]*))?\n(.*?)```",
     re.DOTALL,
 )
 
@@ -355,6 +356,15 @@ class CodeTabsDirective(BengalDirective):
 
     DIRECTIVE_NAMES: ClassVar[list[str]] = ["code-tabs", "code_tabs"]
 
+    def __call__(self, directive: Any, md: Any) -> None:
+        """Register directive with Mistune, including code_tab_item renderer."""
+        # Call parent registration
+        super().__call__(directive, md)
+
+        # Also register the internal code_tab_item renderer
+        if md.renderer and md.renderer.NAME == "html":
+            md.renderer.register("code_tab_item", render_code_tab_item)
+
     def parse_directive(
         self,
         title: str,
@@ -404,11 +414,7 @@ class CodeTabsDirective(BengalDirective):
                     else:
                         # Fallback to legacy extraction
                         legacy_match = _CODE_BLOCK_EXTRACT_PATTERN.search(code_content)
-                        code = (
-                            legacy_match.group(1).strip()
-                            if legacy_match
-                            else code_content
-                        )
+                        code = legacy_match.group(1).strip() if legacy_match else code_content
                         code_lang = lang.lower()
                         tab_hl_lines = []
 
@@ -460,18 +466,13 @@ class CodeTabsDirective(BengalDirective):
 
         # Try enhanced pattern first, fall back to legacy
         matches = _CODE_TAB_ITEM_PATTERN.findall(text)
-        use_legacy = False
 
         if not matches:
             # Try legacy pattern for backward compatibility
             legacy_matches = _LEGACY_CODE_TAB_ITEM_PATTERN.findall(text)
             if legacy_matches:
                 # Convert legacy format to enhanced format
-                matches = [
-                    (lang, code, "", "", lang.lower())
-                    for lang, code in legacy_matches
-                ]
-                use_legacy = True
+                matches = [(lang, code, "", "", lang.lower()) for lang, code in legacy_matches]
 
         if not matches:
             return f'<div class="code-tabs" data-bengal="tabs">{text}</div>'
@@ -509,9 +510,7 @@ class CodeTabsDirective(BengalDirective):
 
             filename_html = ""
             if filename:
-                filename_html = (
-                    f'<span class="tab-filename">{html_lib.escape(filename)}</span>'
-                )
+                filename_html = f'<span class="tab-filename">{html_lib.escape(filename)}</span>'
 
             nav_html += (
                 f'    <li{active_class} role="presentation">\n'
@@ -559,7 +558,6 @@ class CodeTabsDirective(BengalDirective):
                     f'<pre><code class="language-{html_lib.escape(code_lang or lang)}">'
                     f"{html_lib.escape(code)}</code></pre>"
                 )
-                plain_code = code
 
             # Build pane with copy button
             code_id = f"{tab_id}-{i}-code"
@@ -568,7 +566,7 @@ class CodeTabsDirective(BengalDirective):
                 f'  <button class="copy-btn" '
                 f'data-copy-target="{code_id}" '
                 f'aria-label="Copy code to clipboard">\n'
-                f'    {render_svg_icon("copy", size=16, css_class="copy-icon")}\n'
+                f"    {render_svg_icon('copy', size=16, css_class='copy-icon')}\n"
                 f'    <span class="copy-label visually-hidden">Copy</span>\n'
                 f"  </button>\n"
                 f"</div>\n"
@@ -577,9 +575,7 @@ class CodeTabsDirective(BengalDirective):
             # Wrap highlighted code with ID for copy functionality
             # Inject id into the code element for copy targeting
             if "<code" in highlighted_html:
-                highlighted_html = highlighted_html.replace(
-                    "<code", f'<code id="{code_id}"', 1
-                )
+                highlighted_html = highlighted_html.replace("<code", f'<code id="{code_id}"', 1)
 
             content_html += (
                 f'    <div id="{tab_id}-{i}" class="tab-pane{active}" '

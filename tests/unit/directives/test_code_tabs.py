@@ -12,12 +12,10 @@ Tests:
 
 from __future__ import annotations
 
-import pytest
-
 from bengal.directives.code_tabs import (
+    LANGUAGE_ICONS,
     CodeTabsDirective,
     CodeTabsOptions,
-    LANGUAGE_ICONS,
     get_language_icon,
     parse_code_block_info,
     parse_hl_lines,
@@ -275,16 +273,12 @@ class TestRenderCodeTabItem:
 
     def test_with_filename(self):
         """Filename is included in output."""
-        html = render_code_tab_item(
-            None, lang="Python", code="pass", filename="main.py"
-        )
+        html = render_code_tab_item(None, lang="Python", code="pass", filename="main.py")
         assert 'data-filename="main.py"' in html
 
     def test_with_hl_lines(self):
         """Highlight lines are serialized."""
-        html = render_code_tab_item(
-            None, lang="Python", code="pass", hl_lines=[1, 3, 5]
-        )
+        html = render_code_tab_item(None, lang="Python", code="pass", hl_lines=[1, 3, 5])
         assert 'data-hl-lines="1,3,5"' in html
 
     def test_html_escaping(self):
@@ -310,7 +304,7 @@ class TestCodeTabsDirectiveRender:
             'data-filename="" '
             'data-hl-lines="" '
             'data-code-lang="python">'
-            '</div>'
+            "</div>"
         )
         html = self.directive.render(None, text, sync="language")
         assert 'data-sync="language"' in html
@@ -325,11 +319,11 @@ class TestCodeTabsDirectiveRender:
             'data-filename="" '
             'data-hl-lines="" '
             'data-code-lang="python">'
-            '</div>'
+            "</div>"
         )
         html = self.directive.render(None, text, sync="none")
-        assert 'data-sync=' not in html
-        assert 'data-sync-value=' not in html
+        assert "data-sync=" not in html
+        assert "data-sync-value=" not in html
 
     def test_aria_attributes(self):
         """ARIA attributes are present for accessibility."""
@@ -340,11 +334,11 @@ class TestCodeTabsDirectiveRender:
             'data-filename="" '
             'data-hl-lines="" '
             'data-code-lang="python">'
-            '</div>'
+            "</div>"
         )
         html = self.directive.render(None, text, sync="language")
         assert 'role="tab"' in html
-        assert 'aria-selected=' in html
+        assert "aria-selected=" in html
         assert 'role="tabpanel"' in html
 
     def test_copy_button_present(self):
@@ -356,11 +350,11 @@ class TestCodeTabsDirectiveRender:
             'data-filename="" '
             'data-hl-lines="" '
             'data-code-lang="python">'
-            '</div>'
+            "</div>"
         )
         html = self.directive.render(None, text, sync="language")
         assert 'class="copy-btn"' in html
-        assert 'data-copy-target=' in html
+        assert "data-copy-target=" in html
 
     def test_filename_badge(self):
         """Filename badge appears when filename is present."""
@@ -371,7 +365,7 @@ class TestCodeTabsDirectiveRender:
             'data-filename="main.py" '
             'data-hl-lines="" '
             'data-code-lang="python">'
-            '</div>'
+            "</div>"
         )
         html = self.directive.render(None, text, sync="language")
         assert 'class="tab-filename"' in html
@@ -395,7 +389,7 @@ class TestCodeTabsDirectiveRender:
             'data-filename="" '
             'data-hl-lines="" '
             'data-code-lang="python">'
-            '</div>'
+            "</div>"
         )
         html = self.directive.render(None, text, sync="language")
         assert 'data-bengal="tabs"' in html
@@ -535,4 +529,3 @@ pass
 
         assert result["attrs"]["sync"] == "api-examples"
         assert result["attrs"]["icons"] is False
-

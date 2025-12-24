@@ -28,13 +28,18 @@
   margin-block: var(--spacing-4, 1rem);
   border-radius: var(--radius-md, 8px);
   overflow: hidden;
+  /* Aspect ratio on container for reliable iframe sizing */
+  aspect-ratio: var(--video-aspect, 16/9);
 }
 
 .video-embed iframe,
 .video-embed video {
+  /* Fill the container completely */
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
-  height: auto;
-  aspect-ratio: var(--video-aspect, 16/9);
+  height: 100%;
   border: 0;
   border-radius: var(--radius-md, 8px);
   background-color: var(--color-surface-secondary, #1a1a2e);
@@ -91,6 +96,21 @@
     135deg,
     var(--color-surface-secondary, #1a1a2e) 0%,
     var(--color-surface-primary, #0d0d1a) 100%
+  );
+}
+
+/* TikTok */
+.video-embed.tiktok {
+  --video-brand-color: #fe2c55;
+  /* TikTok videos are typically vertical - limit max width for readability */
+  max-width: min(100%, 400px);
+}
+
+.video-embed.tiktok iframe {
+  background: linear-gradient(
+    135deg,
+    var(--color-surface-secondary, #1a1a2e) 0%,
+    #000 100%
   );
 }
 
@@ -170,6 +190,8 @@
 
 @supports not (aspect-ratio: 16/9) {
   .video-embed {
+    /* Use padding-bottom trick instead of aspect-ratio */
+    aspect-ratio: unset;
     padding-bottom: 56.25%; /* 16:9 */
     height: 0;
   }
@@ -188,15 +210,6 @@
 
   .video-embed[data-aspect="21/9"] {
     padding-bottom: 42.86%; /* 21:9 */
-  }
-
-  .video-embed iframe,
-  .video-embed video {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
   }
 }
 

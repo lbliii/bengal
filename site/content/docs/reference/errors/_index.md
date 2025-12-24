@@ -11,7 +11,14 @@ tags: [reference, errors, troubleshooting]
 
 Bengal uses prefixed error codes for quick identification and searchability. Each code links to its entry below with explanations and solutions.
 
-## Error Categories
+## Code Systems
+
+Bengal has two code systems:
+
+- **Build Errors (Axxx-Xxxx)**: Errors that occur during the build process. These stop the build or cause content issues.
+- **Health Codes (Hxxx)**: Health check warnings and suggestions from `bengal validate`. See [Health Check Codes](/docs/reference/errors/health-codes/) for the complete reference.
+
+## Build Error Categories
 
 | Prefix | Category | Description |
 |--------|----------|-------------|

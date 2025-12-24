@@ -70,6 +70,11 @@ if TYPE_CHECKING:
     help="Use incremental validation (only check changed files)",
 )
 @click.option(
+    "--ignore",
+    multiple=True,
+    help="Health check code to ignore (e.g., H101, H202). Can be specified multiple times.",
+)
+@click.option(
     "--traceback",
     type=click.Choice([s.value for s in TracebackStyle]),
     help="Traceback verbosity: full | compact | minimal | off",
@@ -83,6 +88,7 @@ def validate(
     verbose: bool,
     suggestions: bool,
     incremental: bool,
+    ignore: tuple[str, ...],
     traceback: str | None,
     source: str,
 ) -> None:
@@ -98,6 +104,7 @@ def validate(
         bengal validate --changed
         bengal validate --profile writer
         bengal validate --verbose
+        bengal validate --ignore H101 --ignore H202
 
     See also:
         bengal site build - Build the site
@@ -158,12 +165,17 @@ def validate(
     # Run health checks
     cli.blank()
     health_check = HealthCheck(site)
+
+    # Convert ignore codes to set
+    ignore_codes = set(code.upper() for code in ignore) if ignore else None
+
     report = health_check.run(
         profile=build_profile,
         verbose=verbose,
         incremental=incremental or changed,
         context=context,
         cache=cache,
+        ignore_codes=ignore_codes,
     )
 
     # Print report

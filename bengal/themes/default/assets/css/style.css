@@ -314,6 +314,15 @@
   @import url('components/link-preview.css');
 }
 
+/* Media embed components */
+@layer components {
+  @import url('components/_video-embed.css');
+  @import url('components/_audio-embed.css');
+  @import url('components/_code-embed.css');
+  @import url('components/_figure.css');
+  @import url('components/_terminal-embed.css');
+}
+
 /* Third-party libraries */
 @layer components {
   @import url('tabulator.min.css');

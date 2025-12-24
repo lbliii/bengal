@@ -100,6 +100,7 @@ def check_directive_syntax(data: dict[str, Any]) -> list[CheckResult]:
         results.append(
             CheckResult.error(
                 f"{len(errors)} directive(s) have syntax errors",
+                code="H201",
                 recommendation="Fix directive syntax. Check directive names and closing backticks.",
                 details=details,
             )
@@ -160,6 +161,7 @@ def check_directive_syntax(data: dict[str, Any]) -> list[CheckResult]:
         results.append(
             CheckResult.warning(
                 f"{len(fence_warnings)} directive(s) have fence nesting issues",
+                code="H202",
                 recommendation=(
                     "These directives use 3 backticks (```) but contain code blocks with 3 backticks. "
                     "Fix: Change directive opening from ```{name} to ````{name} (use 4+ backticks)."
@@ -194,6 +196,7 @@ def check_directive_completeness(data: dict[str, Any]) -> list[CheckResult]:
             results.append(
                 CheckResult.error(
                     f"{len(hard_errors)} directive(s) incomplete",
+                    code="H203",
                     recommendation="Fix incomplete directives. Add required content and options.",
                     details=details,
                 )
@@ -211,6 +214,7 @@ def check_directive_completeness(data: dict[str, Any]) -> list[CheckResult]:
             results.append(
                 CheckResult.warning(
                     f"{len(warnings)} directive(s) could be improved",
+                    code="H204",
                     recommendation="Review directive usage. Consider simpler alternatives for single-item directives.",
                     details=details,
                 )
@@ -255,6 +259,7 @@ def check_directive_performance(data: dict[str, Any]) -> list[CheckResult]:
             results.append(
                 CheckResult.warning(
                     f"{len(heavy_pages)} page(s) have heavy directive usage (>{MAX_DIRECTIVES_PER_PAGE} directives)",
+                    code="H205",
                     recommendation="Consider splitting large pages for better performance.",
                     details=details,
                 )
@@ -264,6 +269,7 @@ def check_directive_performance(data: dict[str, Any]) -> list[CheckResult]:
             results.append(
                 CheckResult.warning(
                     f"{len(too_many_tabs)} tabs block(s) have many tabs (>{MAX_TABS_PER_BLOCK})",
+                    code="H206",
                     recommendation="Consider splitting into multiple tabs blocks or separate pages. Large tabs blocks slow rendering.",
                     details=[
                         f"{_get_relative_content_path(w['page'])}:{w['line']}: {w['count']} tabs"
@@ -366,6 +372,7 @@ def check_directive_rendering(site: Site, data: dict[str, Any]) -> list[CheckRes
         results.append(
             CheckResult.error(
                 f"{len(file_issues)} page(s) have directive rendering errors",
+                code="H207",
                 recommendation=(
                     "Directives failed to render. Common causes: "
                     "missing closing fence, invalid syntax, or unknown directive type. "

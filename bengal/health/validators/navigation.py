@@ -96,6 +96,7 @@ class NavigationValidator(BaseValidator):
             results.append(
                 CheckResult.error(
                     f"{len(issues)} page(s) have broken next/prev links",
+                    code="H110",
                     recommendation="Check page navigation setup. This may indicate a bug in navigation system.",
                     details=issues[:5],
                 )
@@ -166,6 +167,7 @@ class NavigationValidator(BaseValidator):
             return [
                 CheckResult.error(
                     f"{sum('not found in site.sections' in d for d in issues)} breadcrumb issue(s)",
+                    code="H111",
                     recommendation="Ensure all breadcrumb ancestors correspond to real sections.",
                     details=[d for d in issues if "not found in site.sections" in d][:5],
                 )
@@ -175,6 +177,7 @@ class NavigationValidator(BaseValidator):
             results.append(
                 CheckResult.warning(
                     f"{len(issues)} page(s) have invalid breadcrumb trails",
+                    code="H112",
                     recommendation="Check section hierarchy and index pages.",
                     details=issues[:5],
                 )
@@ -224,6 +227,7 @@ class NavigationValidator(BaseValidator):
             results.append(
                 CheckResult.warning(
                     f"{len(issues)} section navigation issue(s)",
+                    code="H113",
                     recommendation="Sections with pages should have an _index.md or auto-generated archive page.",
                     details=issues[:5],
                 )
@@ -336,6 +340,7 @@ class NavigationValidator(BaseValidator):
             results.append(
                 CheckResult.error(
                     f"{len(issues)} weight-based navigation issue(s)",
+                    code="H114",
                     recommendation="This may indicate a bug in navigation system. "
                     "Check that next_in_section/prev_in_section use sorted_pages.",
                     details=issues[:5],
@@ -377,6 +382,7 @@ class NavigationValidator(BaseValidator):
             results.append(
                 CheckResult.error(
                     f"{len(missing)} page(s) missing output_path",
+                    code="H115",
                     recommendation="This is a critical bug. All pages should have output_path set during discovery. "
                     "Check ContentOrchestrator._set_output_paths() is being called.",
                     details=missing[:10],

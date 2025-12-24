@@ -57,7 +57,7 @@ Or set `template: autodoc/cli/home.html` in frontmatter
 
     {% if cli_sections %}
     <section class="docs-home-sections">
-        <h2 class="docs-home-sections-title">CLI Reference Sections</h2>
+        <h2 class="docs-home-sections-title">{{ page.title | default('CLI Reference') }} Sections</h2>
         <div class="docs-home-sections-grid">
             {% for section in cli_sections | sort(attribute='metadata.weight', reverse=false) | limit(6) %}
             <a href="{{ section.href }}" class="docs-home-section-card gradient-border fluid-combined">

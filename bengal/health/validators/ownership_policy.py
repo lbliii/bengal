@@ -79,6 +79,7 @@ class OwnershipPolicyValidator(BaseValidator):
             results.append(
                 CheckResult.warning(
                     f"{len(violations)} ownership violation(s) detected - content in reserved namespaces",
+                    code="H022",
                     recommendation=(
                         "User content should not be placed in reserved namespaces:\n"
                         "  - /tags/ (reserved for taxonomy)\n"

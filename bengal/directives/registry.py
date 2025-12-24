@@ -128,12 +128,16 @@ _DIRECTIVE_MAP: dict[str, str] = {
     # Video embeds
     "youtube": "bengal.directives.video",
     "vimeo": "bengal.directives.video",
+    "tiktok": "bengal.directives.video",
     "video": "bengal.directives.video",
     # Developer tool embeds
     "gist": "bengal.directives.embed",
     "codepen": "bengal.directives.embed",
     "codesandbox": "bengal.directives.embed",
     "stackblitz": "bengal.directives.embed",
+    # Audio streaming embeds
+    "spotify": "bengal.directives.embed",
+    "soundcloud": "bengal.directives.embed",
     # Terminal recording embeds
     "asciinema": "bengal.directives.terminal",
     # Figure and audio

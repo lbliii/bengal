@@ -1,7 +1,7 @@
 ---
 title: Media Directives
 nav_title: Media
-description: Reference for media embed directives (YouTube, Vimeo, video, audio, figure, code playgrounds, terminal recordings)
+description: Reference for media embed directives (YouTube, Vimeo, TikTok, Spotify, SoundCloud, video, audio, figure, code playgrounds, terminal recordings)
 weight: 15
 tags:
 - reference
@@ -12,10 +12,16 @@ tags:
 - embed
 - youtube
 - vimeo
+- tiktok
+- spotify
+- soundcloud
 - figure
 keywords:
 - youtube
 - vimeo
+- tiktok
+- spotify
+- soundcloud
 - video
 - audio
 - figure
@@ -37,7 +43,10 @@ Media directives embed external content like videos, code playgrounds, and termi
 |-----------|---------|------------------|
 | `{youtube}` | YouTube video | `:title:` |
 | `{vimeo}` | Vimeo video | `:title:` |
+| `{tiktok}` | TikTok video | `:title:` |
 | `{video}` | Self-hosted video | `:title:` |
+| `{spotify}` | Spotify track/album/playlist/podcast | `:title:` |
+| `{soundcloud}` | SoundCloud track/playlist | `:title:` |
 | `{figure}` | Image with caption | `:alt:` |
 | `{audio}` | Self-hosted audio | `:title:` |
 | `{gist}` | GitHub Gist | — |
@@ -65,6 +74,7 @@ Embed YouTube videos with privacy-enhanced mode enabled by default (`youtube-noc
 | Option | Default | Description |
 |--------|---------|-------------|
 | `:title:` | (required) | Accessible title for the iframe |
+| `:width:` | `100%` | Container width (`100%`, `80%`, `800px`) |
 | `:privacy:` | `true` | Use `youtube-nocookie.com` |
 | `:start:` | — | Start time in seconds |
 | `:end:` | — | End time in seconds |
@@ -108,6 +118,22 @@ With start time (starts at 43 seconds):
 :start: 43
 :::
 
+With custom width (50%):
+
+```markdown
+:::{youtube} dQw4w9WgXcQ
+:title: Rick Astley - Never Gonna Give You Up
+:width: 50%
+:::
+```
+
+**Live example**:
+
+:::{youtube} dQw4w9WgXcQ
+:title: Rick Astley - Never Gonna Give You Up (50% width)
+:width: 50%
+:::
+
 ### Vimeo
 
 Embed Vimeo videos with Do Not Track enabled by default.
@@ -125,6 +151,7 @@ Embed Vimeo videos with Do Not Track enabled by default.
 | Option | Default | Description |
 |--------|---------|-------------|
 | `:title:` | (required) | Accessible title for the iframe |
+| `:width:` | `100%` | Container width (`100%`, `80%`, `800px`) |
 | `:dnt:` | `true` | Enable Do Not Track mode |
 | `:color:` | — | Player accent color (hex without `#`) |
 | `:autopause:` | `true` | Pause when another video starts |
@@ -141,19 +168,77 @@ Embed Vimeo videos with Do Not Track enabled by default.
 Basic embed:
 
 ```markdown
-:::{vimeo} 123456789
-:title: My Vimeo Video
+:::{vimeo} 203011020
+:title: Beautiful Cinematic Video
 :::
 ```
 
-With custom color:
+**Live example**:
+
+:::{vimeo} 203011020
+:title: Beautiful Cinematic Video
+:::
+
+With custom accent color:
 
 ```markdown
-:::{vimeo} 123456789
-:title: My Vimeo Video
-:color: ff0000
+:::{vimeo} 203011020
+:title: Beautiful Cinematic Video
+:color: 00adef
 :::
 ```
+
+**Live example**:
+
+:::{vimeo} 203011020
+:title: Beautiful Cinematic Video
+:color: 00adef
+:::
+
+### TikTok
+
+Embed TikTok videos. Ideal for blogs and social content.
+
+**Syntax**:
+
+```markdown
+:::{tiktok} VIDEO_ID
+:title: Video title for accessibility
+:::
+```
+
+**Options**:
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `:title:` | (required) | Accessible title for the iframe |
+| `:width:` | `100%` | Container width (`100%`, `80%`, `400px`) |
+| `:autoplay:` | `false` | Auto-start video |
+| `:muted:` | `false` | Start muted |
+| `:loop:` | `false` | Loop video |
+| `:aspect:` | `9/16` | Aspect ratio (vertical by default) |
+| `:class:` | — | Additional CSS classes |
+
+:::{example-label} Examples
+:::
+
+Basic embed:
+
+```markdown
+:::{tiktok} 7251756576833309995
+:title: Bengal Cat Video
+:::
+```
+
+**Live example**:
+
+:::{tiktok} 7251756576833309995
+:title: Bengal Cat from @bengalsofbama
+:::
+
+:::{tip}
+TikTok video IDs are 19 digits. Find them in the URL: `tiktok.com/@user/video/7251756576833309995`
+:::
 
 ### Self-Hosted Video
 
@@ -322,6 +407,116 @@ Background audio:
 :::
 ```
 
+## Audio Streaming Embeds
+
+### Spotify
+
+Embed Spotify tracks, albums, playlists, and podcast episodes.
+
+**Syntax**:
+
+```markdown
+:::{spotify} SPOTIFY_ID
+:title: Track/Album/Playlist title
+:type: track
+:::
+```
+
+The `SPOTIFY_ID` is the 22-character alphanumeric ID from the Spotify URL. For example, in `https://open.spotify.com/track/4iV5W9uYEdYUVa79Axb7Rh`, the ID is `4iV5W9uYEdYUVa79Axb7Rh`.
+
+**Options**:
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `:title:` | (required) | Accessible title for iframe |
+| `:type:` | `track` | Content type: `track`, `album`, `playlist`, `episode`, `show`, `artist` |
+| `:height:` | (auto) | Embed height in pixels (auto-detected by type) |
+| `:theme:` | `0` | Color theme: `0` for dark, `1` for light |
+| `:class:` | — | Additional CSS classes |
+
+**Default heights by type**:
+
+| Type | Height |
+|------|--------|
+| `track` | 152px |
+| `album`, `playlist`, `show`, `artist` | 352px |
+| `episode` | 232px |
+
+:::{example-label} Examples
+:::
+
+**Track embed**:
+
+```markdown
+:::{spotify} 4iV5W9uYEdYUVa79Axb7Rh
+:title: Bohemian Rhapsody by Queen
+:type: track
+:::
+```
+
+:::{spotify} 4iV5W9uYEdYUVa79Axb7Rh
+:title: Bohemian Rhapsody by Queen
+:type: track
+:::
+
+**Album embed**:
+
+```markdown
+:::{spotify} 5xBJBxfQFowtJ5yq7MnXMG
+:title: HEAT by Tove Lo
+:type: album
+:::
+```
+
+:::{spotify} 5xBJBxfQFowtJ5yq7MnXMG
+:title: HEAT by Tove Lo
+:type: album
+:::
+
+**Playlist embed**:
+
+```markdown
+:::{spotify} 37i9dQZF1DXcBWIGoYBM5M
+:title: Today's Top Hits
+:type: playlist
+:::
+```
+
+:::{spotify} 37i9dQZF1DXcBWIGoYBM5M
+:title: Today's Top Hits
+:type: playlist
+:::
+
+**Podcast episode**:
+
+```markdown
+:::{spotify} 4rOoJ6Egrf8K2IrywzwOMk
+:title: The Joe Rogan Experience Episode
+:type: episode
+:::
+```
+
+:::{spotify} 4rOoJ6Egrf8K2IrywzwOMk
+:title: The Joe Rogan Experience Episode
+:type: episode
+:::
+
+**Light theme**:
+
+```markdown
+:::{spotify} 4iV5W9uYEdYUVa79Axb7Rh
+:title: Bohemian Rhapsody by Queen
+:type: track
+:theme: 1
+:::
+```
+
+:::{spotify} 4iV5W9uYEdYUVa79Axb7Rh
+:title: Bohemian Rhapsody by Queen
+:type: track
+:theme: 1
+:::
+
 ## Code Playground Embeds
 
 ### GitHub Gist
@@ -456,20 +651,35 @@ Embed CodeSandbox projects.
 Basic embed:
 
 ```markdown
-:::{codesandbox} new-react-app
-:title: React Starter
+:::{codesandbox} new
+:title: New Sandbox
 :::
 ```
 
-With specific file:
+**Live example**:
+
+:::{codesandbox} new
+:title: New Sandbox
+:height: 400
+:::
+
+With preview only:
 
 ```markdown
-:::{codesandbox} new-react-app
-:title: React Starter
-:module: /src/App.js
-:view: editor
+:::{codesandbox} new
+:title: New Sandbox Preview
+:view: preview
+:height: 400
 :::
 ```
+
+**Live example**:
+
+:::{codesandbox} new
+:title: New Sandbox Preview
+:view: preview
+:height: 400
+:::
 
 ### StackBlitz
 
@@ -501,20 +711,35 @@ Embed StackBlitz projects.
 Basic embed:
 
 ```markdown
-:::{stackblitz} angular-quickstart
-:title: Angular Quickstart
+:::{stackblitz} vitejs-vite
+:title: Vite Starter Project
 :::
 ```
 
-With specific file:
+**Live example**:
+
+:::{stackblitz} vitejs-vite
+:title: Vite Starter Project
+:height: 450
+:::
+
+With preview only:
 
 ```markdown
-:::{stackblitz} angular-quickstart
-:title: Angular Quickstart
-:file: src/app.component.ts
-:view: editor
+:::{stackblitz} vitejs-vite
+:title: Vite Starter Preview
+:view: preview
+:height: 400
 :::
 ```
+
+**Live example**:
+
+:::{stackblitz} vitejs-vite
+:title: Vite Starter Preview
+:view: preview
+:height: 400
+:::
 
 ## Terminal Recordings
 

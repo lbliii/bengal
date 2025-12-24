@@ -74,14 +74,28 @@ class CheckResult:
     Attributes:
         status: Severity level (ERROR, WARNING, SUGGESTION, INFO, SUCCESS)
         message: Human-readable description of what was checked/found
+        code: Optional health check code (e.g., "H101") for searchability and CI integration
         recommendation: Optional fix suggestion (shown for warnings/errors)
         details: Optional list of specific items (e.g., file paths, line numbers)
         validator: Name of validator that produced this result
         metadata: Optional dict for validator-specific data (cacheable, machine-readable)
 
+    Code Ranges:
+        H0xx: Core/Basic (Output, Config, URL Collisions, Ownership)
+        H1xx: Links & Navigation
+        H2xx: Directives
+        H3xx: Taxonomy
+        H4xx: Cache & Performance
+        H5xx: Feeds (RSS, Sitemap)
+        H6xx: Assets (Fonts, Images)
+        H7xx: Graph & References (Connectivity, Anchors, Cross-refs)
+        H8xx: Tracks
+        H9xx: Accessibility
+
     Example:
         >>> result = CheckResult.error(
         ...     "Missing required frontmatter field",
+        ...     code="H001",
         ...     recommendation="Add 'title' to frontmatter",
         ...     details=["content/post.md:1"],
         ... )
@@ -89,20 +103,22 @@ class CheckResult:
 
     status: CheckStatus
     message: str
+    code: str | None = None
     recommendation: str | None = None
     details: list[str] | None = None
     validator: str = ""
     metadata: dict[str, Any] | None = None
 
     @classmethod
-    def success(cls, message: str, validator: str = "") -> CheckResult:
+    def success(cls, message: str, code: str | None = None, validator: str = "") -> CheckResult:
         """Create a success result."""
-        return cls(CheckStatus.SUCCESS, message, validator=validator)
+        return cls(CheckStatus.SUCCESS, message, code=code, validator=validator)
 
     @classmethod
     def info(
         cls,
         message: str,
+        code: str | None = None,
         recommendation: str | None = None,
         details: list[str] | None = None,
         validator: str = "",
@@ -112,8 +128,9 @@ class CheckResult:
         return cls(
             CheckStatus.INFO,
             message,
-            recommendation,
-            details,
+            code=code,
+            recommendation=recommendation,
+            details=details,
             validator=validator,
             metadata=metadata,
         )
@@ -122,6 +139,7 @@ class CheckResult:
     def suggestion(
         cls,
         message: str,
+        code: str | None = None,
         recommendation: str | None = None,
         details: list[str] | None = None,
         validator: str = "",
@@ -131,8 +149,9 @@ class CheckResult:
         return cls(
             CheckStatus.SUGGESTION,
             message,
-            recommendation,
-            details,
+            code=code,
+            recommendation=recommendation,
+            details=details,
             validator=validator,
             metadata=metadata,
         )
@@ -141,6 +160,7 @@ class CheckResult:
     def warning(
         cls,
         message: str,
+        code: str | None = None,
         recommendation: str | None = None,
         details: list[str] | None = None,
         validator: str = "",
@@ -150,8 +170,9 @@ class CheckResult:
         return cls(
             CheckStatus.WARNING,
             message,
-            recommendation,
-            details,
+            code=code,
+            recommendation=recommendation,
+            details=details,
             validator=validator,
             metadata=metadata,
         )
@@ -160,6 +181,7 @@ class CheckResult:
     def error(
         cls,
         message: str,
+        code: str | None = None,
         recommendation: str | None = None,
         details: list[str] | None = None,
         validator: str = "",
@@ -169,8 +191,9 @@ class CheckResult:
         return cls(
             CheckStatus.ERROR,
             message,
-            recommendation,
-            details,
+            code=code,
+            recommendation=recommendation,
+            details=details,
             validator=validator,
             metadata=metadata,
         )
@@ -183,6 +206,13 @@ class CheckResult:
         """Check if this requires action (error, warning, or suggestion)."""
         return self.status in (CheckStatus.ERROR, CheckStatus.WARNING, CheckStatus.SUGGESTION)
 
+    @property
+    def formatted_message(self) -> str:
+        """Get message with code prefix if available (e.g., '[H101] Message')."""
+        if self.code:
+            return f"[{self.code}] {self.message}"
+        return self.message
+
     def to_cache_dict(self) -> dict[str, Any]:
         """
         Serialize CheckResult to JSON-serializable dict for caching.
@@ -193,6 +223,7 @@ class CheckResult:
         return {
             "status": self.status.value,  # Enum to string
             "message": self.message,
+            "code": self.code,
             "recommendation": self.recommendation,
             "details": self.details,
             "validator": self.validator,
@@ -213,6 +244,7 @@ class CheckResult:
         return cls(
             status=CheckStatus(data["status"]),  # String to enum
             message=data["message"],
+            code=data.get("code"),
             recommendation=data.get("recommendation"),
             details=data.get("details"),
             validator=data.get("validator", ""),
@@ -596,7 +628,7 @@ class HealthReport:
             # Show problem messages
             for result in vr.results:
                 if result.is_problem():
-                    lines.append(f"   • {result.message}")
+                    lines.append(f"   • {result.formatted_message}")
 
                     # Show recommendation
                     if result.recommendation:
@@ -688,8 +720,8 @@ class HealthReport:
                 # Show problem details - location first, then context
                 problem_results = [r for r in vr.results if r.is_problem()]
                 for j, result in enumerate(problem_results):
-                    # Brief message describing the issue type
-                    lines.append(f"    • {result.message}")
+                    # Brief message describing the issue type (with code if available)
+                    lines.append(f"    • {result.formatted_message}")
 
                     # Show recommendation if available
                     if result.recommendation:
@@ -726,7 +758,7 @@ class HealthReport:
 
                 for result in vr.results:
                     if result.status == CheckStatus.SUGGESTION:
-                        lines.append(f"    • {result.message}")
+                        lines.append(f"    • {result.formatted_message}")
 
                 if not is_last_suggestion:
                     lines.append("")
@@ -813,8 +845,8 @@ class HealthReport:
                 other_results = [r for r in vr.results if not r.is_problem()]
 
                 for j, result in enumerate(problem_results):
-                    # Problems get full detail - location first
-                    lines.append(f"    • {result.message}")
+                    # Problems get full detail - location first (with code if available)
+                    lines.append(f"    • {result.formatted_message}")
                     if result.details:
                         for detail in result.details[:5]:
                             lines.append(f"      {detail}")
@@ -827,7 +859,7 @@ class HealthReport:
 
                 # Show successes briefly (grouped at end)
                 for result in other_results:
-                    lines.append(f"    {icons.success} {result.message}")
+                    lines.append(f"    {icons.success} {result.formatted_message}")
 
                 if not is_last_problem:
                     lines.append("")
@@ -886,6 +918,7 @@ class HealthReport:
                     "results": [
                         {
                             "status": r.status.value,
+                            "code": r.code,
                             "message": r.message,
                             "recommendation": r.recommendation,
                             "details": r.details,

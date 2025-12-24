@@ -1,11 +1,13 @@
 """
-Developer tool embed directives for Bengal.
+External service embed directives for Bengal.
 
-Provides directives for embedding code playgrounds and developer tools:
+Provides directives for embedding external services:
 - GitHub Gists
 - CodePen
 - CodeSandbox
 - StackBlitz
+- Spotify (tracks, albums, playlists, podcasts)
+- SoundCloud (tracks, playlists)
 
 Architecture:
     All embed directives extend BengalDirective with type-specific validation
@@ -42,6 +44,8 @@ __all__ = [
     "CodeSandboxOptions",
     "StackBlitzDirective",
     "StackBlitzOptions",
+    "SpotifyDirective",
+    "SpotifyOptions",
 ]
 
 
@@ -733,6 +737,415 @@ class StackBlitzDirective(BengalDirective):
             f"  ></iframe>\n"
             f"  <noscript>\n"
             f'    <p>View on StackBlitz: <a href="{project_url}">{safe_title}</a></p>\n'
+            f"  </noscript>\n"
+            f"</div>\n"
+        )
+
+
+# =============================================================================
+# Spotify Directive
+# =============================================================================
+
+
+@dataclass
+class SpotifyOptions(DirectiveOptions):
+    """
+    Options for Spotify embed.
+
+    Attributes:
+        title: Required - Accessible title for iframe
+        type: Content type - track, album, playlist, episode, show (default: track)
+        height: Embed height in pixels (default: 152 for track, 352 for others)
+        theme: Color theme - 0 for dark, 1 for light (default: 0)
+        css_class: Additional CSS classes
+
+    Example:
+        :::{spotify} 4iV5W9uYEdYUVa79Axb7Rh
+        :title: Bohemian Rhapsody by Queen
+        :type: track
+        :::
+    """
+
+    title: str = ""
+    type: str = "track"
+    height: int = 0  # 0 means auto-detect based on type
+    theme: int = 0  # 0 = dark, 1 = light
+    css_class: str = ""
+
+    _field_aliases: ClassVar[dict[str, str]] = {"class": "css_class"}
+    _allowed_values: ClassVar[dict[str, list[str]]] = {
+        "type": ["track", "album", "playlist", "episode", "show", "artist"],
+        "theme": [0, 1],
+    }
+
+
+class SpotifyDirective(BengalDirective):
+    """
+    Spotify embed directive.
+
+    Embeds Spotify content (tracks, albums, playlists, podcasts) using iframe.
+    Validates Spotify IDs (22 alphanumeric characters).
+
+    Syntax:
+        :::{spotify} 4iV5W9uYEdYUVa79Axb7Rh
+        :title: Bohemian Rhapsody by Queen
+        :type: track
+        :::
+
+    Options:
+        :title: (required) Accessible title for iframe
+        :type: Content type - track, album, playlist, episode, show, artist (default: track)
+        :height: Embed height in pixels (auto-detected if not set)
+        :theme: 0 for dark, 1 for light (default: 0)
+        :class: Additional CSS classes
+
+    Heights by type (defaults):
+        - track: 152px (compact player)
+        - album/playlist/show/artist: 352px (full player with art)
+        - episode: 232px (medium player)
+
+    Output:
+        <div class="audio-embed spotify">
+          <iframe src="https://open.spotify.com/embed/track/..."
+                  title="..." loading="lazy" allowfullscreen></iframe>
+        </div>
+
+    Security:
+        - Spotify ID validated via regex (22 alphanumeric characters)
+        - XSS prevention via strict ID validation
+    """
+
+    NAMES: ClassVar[list[str]] = ["spotify"]
+    TOKEN_TYPE: ClassVar[str] = "spotify_embed"
+    OPTIONS_CLASS: ClassVar[type[DirectiveOptions]] = SpotifyOptions
+    DIRECTIVE_NAMES: ClassVar[list[str]] = ["spotify"]
+
+    # Spotify ID: 22 alphanumeric characters (base62)
+    ID_PATTERN: ClassVar[re.Pattern[str]] = re.compile(r"^[a-zA-Z0-9]{22}$")
+
+    # Default heights by content type
+    DEFAULT_HEIGHTS: ClassVar[dict[str, int]] = {
+        "track": 152,
+        "album": 352,
+        "playlist": 352,
+        "episode": 232,
+        "show": 352,
+        "artist": 352,
+    }
+
+    def validate_source(self, spotify_id: str) -> str | None:
+        """Validate Spotify ID (22 alphanumeric chars)."""
+        if not self.ID_PATTERN.match(spotify_id):
+            return f"Invalid Spotify ID: {spotify_id!r}. Expected 22 alphanumeric characters."
+        return None
+
+    def parse_directive(
+        self,
+        title: str,
+        options: SpotifyOptions,  # type: ignore[override]
+        content: str,
+        children: list[Any],
+        state: Any,
+    ) -> DirectiveToken:
+        """Build Spotify embed token."""
+        spotify_id = title.strip()
+
+        # Validate Spotify ID
+        error = self.validate_source(spotify_id)
+        if error:
+            return DirectiveToken(
+                type=self.TOKEN_TYPE,
+                attrs={"error": error, "spotify_id": spotify_id},
+            )
+
+        # Validate title (accessibility requirement)
+        if not options.title:
+            return DirectiveToken(
+                type=self.TOKEN_TYPE,
+                attrs={
+                    "error": f"Missing required :title: option for Spotify embed. ID: {spotify_id}",
+                    "spotify_id": spotify_id,
+                },
+            )
+
+        # Auto-detect height based on content type if not specified
+        height = (
+            options.height if options.height > 0 else self.DEFAULT_HEIGHTS.get(options.type, 152)
+        )
+
+        return DirectiveToken(
+            type=self.TOKEN_TYPE,
+            attrs={
+                "spotify_id": spotify_id,
+                "title": options.title,
+                "content_type": options.type,
+                "height": height,
+                "theme": options.theme,
+                "css_class": options.css_class,
+            },
+        )
+
+    def render(self, renderer: Any, text: str, **attrs: Any) -> str:
+        """Render Spotify embed to HTML."""
+        error = attrs.get("error")
+        if error:
+            spotify_id = attrs.get("spotify_id", "unknown")
+            return (
+                f'<div class="audio-embed spotify audio-error">\n'
+                f'  <p class="error">Spotify Error: {self.escape_html(error)}</p>\n'
+                f"  <p>ID: <code>{self.escape_html(spotify_id)}</code></p>\n"
+                f"</div>\n"
+            )
+
+        spotify_id = attrs.get("spotify_id", "")
+        title = attrs.get("title", "Spotify Embed")
+        content_type = attrs.get("content_type", "track")
+        height = attrs.get("height", 152)
+        theme = attrs.get("theme", 0)
+        css_class = attrs.get("css_class", "")
+
+        class_str = self.build_class_string("audio-embed", "spotify", css_class)
+        safe_title = self.escape_html(title)
+
+        # Build embed URL
+        embed_url = f"https://open.spotify.com/embed/{content_type}/{spotify_id}?theme={theme}"
+        spotify_url = f"https://open.spotify.com/{content_type}/{spotify_id}"
+
+        return (
+            f'<div class="{class_str}" style="height: {height}px">\n'
+            f"  <iframe\n"
+            f'    src="{embed_url}"\n'
+            f'    title="{safe_title}"\n'
+            f'    style="width: 100%; height: 100%; border: 0; border-radius: 12px"\n'
+            f'    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"\n'
+            f'    loading="lazy"\n'
+            f"  ></iframe>\n"
+            f"  <noscript>\n"
+            f'    <p>Listen on Spotify: <a href="{spotify_url}">{safe_title}</a></p>\n'
+            f"  </noscript>\n"
+            f"</div>\n"
+        )
+
+
+# =============================================================================
+# SoundCloud Directive
+# =============================================================================
+
+
+@dataclass
+class SoundCloudOptions(DirectiveOptions):
+    """
+    Options for SoundCloud embed.
+
+    Attributes:
+        title: Required - Accessible title for iframe
+        type: Content type - track or playlist (default: track)
+        height: Embed height in pixels (default: 166 for track, 450 for playlist)
+        color: Accent color hex code without # (default: ff5500 - SoundCloud orange)
+        autoplay: Auto-start playback (default: false)
+        hide_related: Hide related tracks (default: false)
+        show_comments: Show comments (default: true)
+        show_user: Show uploader info (default: true)
+        show_reposts: Show reposts (default: false)
+        visual: Use visual player (larger artwork) (default: false for tracks)
+        css_class: Additional CSS classes
+
+    Example:
+        :::{soundcloud} 293
+        :title: Roygbiv by Boards of Canada
+        :::
+    """
+
+    title: str = ""
+    type: str = "track"
+    height: int = 0  # 0 means auto-detect based on type
+    color: str = "ff5500"  # SoundCloud orange
+    autoplay: bool = False
+    hide_related: bool = False
+    show_comments: bool = True
+    show_user: bool = True
+    show_reposts: bool = False
+    visual: bool = False
+    css_class: str = ""
+
+    _field_aliases: ClassVar[dict[str, str]] = {"class": "css_class"}
+    _allowed_values: ClassVar[dict[str, list[str]]] = {
+        "type": ["track", "playlist"],
+    }
+
+
+class SoundCloudDirective(BengalDirective):
+    """
+    SoundCloud embed directive.
+
+    Embeds SoundCloud tracks and playlists using iframe.
+    Accepts numeric track/playlist IDs.
+
+    Syntax:
+        :::{soundcloud} 293
+        :title: Roygbiv by Boards of Canada
+        :::
+
+    Options:
+        :title: (required) Accessible title for iframe
+        :type: Content type - track or playlist (default: track)
+        :height: Embed height in pixels (auto-detected if not set)
+        :color: Accent color hex without # (default: ff5500)
+        :autoplay: Auto-start playback (default: false)
+        :hide_related: Hide related tracks (default: false)
+        :show_comments: Show comments (default: true)
+        :show_user: Show uploader info (default: true)
+        :show_reposts: Show reposts (default: false)
+        :visual: Use visual player with large artwork (default: false)
+        :class: Additional CSS classes
+
+    Heights by type (defaults):
+        - track: 166px (compact player)
+        - track (visual): 300px (visual player)
+        - playlist: 450px (list view)
+
+    Output:
+        <div class="audio-embed soundcloud">
+          <iframe src="https://w.soundcloud.com/player/?url=..."
+                  title="..." loading="lazy"></iframe>
+        </div>
+
+    Security:
+        - Track/playlist ID validated via regex (numeric)
+        - XSS prevention via strict ID validation
+    """
+
+    NAMES: ClassVar[list[str]] = ["soundcloud"]
+    TOKEN_TYPE: ClassVar[str] = "soundcloud_embed"
+    OPTIONS_CLASS: ClassVar[type[DirectiveOptions]] = SoundCloudOptions
+    DIRECTIVE_NAMES: ClassVar[list[str]] = ["soundcloud"]
+
+    # SoundCloud IDs are numeric
+    ID_PATTERN: ClassVar[re.Pattern[str]] = re.compile(r"^\d+$")
+
+    # Default heights by content type
+    DEFAULT_HEIGHTS: ClassVar[dict[str, int]] = {
+        "track": 166,
+        "track_visual": 300,
+        "playlist": 450,
+    }
+
+    def validate_source(self, soundcloud_id: str) -> str | None:
+        """Validate SoundCloud ID (numeric)."""
+        if not self.ID_PATTERN.match(soundcloud_id):
+            return f"Invalid SoundCloud ID: {soundcloud_id!r}. Expected numeric ID."
+        return None
+
+    def parse_directive(
+        self,
+        title: str,
+        options: SoundCloudOptions,  # type: ignore[override]
+        content: str,
+        children: list[Any],
+        state: Any,
+    ) -> DirectiveToken:
+        """Build SoundCloud embed token."""
+        soundcloud_id = title.strip()
+
+        # Validate SoundCloud ID
+        error = self.validate_source(soundcloud_id)
+        if error:
+            return DirectiveToken(
+                type=self.TOKEN_TYPE,
+                attrs={"error": error, "soundcloud_id": soundcloud_id},
+            )
+
+        # Validate title (accessibility requirement)
+        if not options.title:
+            return DirectiveToken(
+                type=self.TOKEN_TYPE,
+                attrs={
+                    "error": f"Missing required :title: option for SoundCloud embed. ID: {soundcloud_id}",
+                    "soundcloud_id": soundcloud_id,
+                },
+            )
+
+        # Auto-detect height based on content type and visual mode
+        if options.height > 0:
+            height = options.height
+        elif options.visual and options.type == "track":
+            height = self.DEFAULT_HEIGHTS["track_visual"]
+        else:
+            height = self.DEFAULT_HEIGHTS.get(options.type, 166)
+
+        return DirectiveToken(
+            type=self.TOKEN_TYPE,
+            attrs={
+                "soundcloud_id": soundcloud_id,
+                "title": options.title,
+                "content_type": options.type,
+                "height": height,
+                "color": options.color.lstrip("#"),  # Remove # if present
+                "autoplay": options.autoplay,
+                "hide_related": options.hide_related,
+                "show_comments": options.show_comments,
+                "show_user": options.show_user,
+                "show_reposts": options.show_reposts,
+                "visual": options.visual,
+                "css_class": options.css_class,
+            },
+        )
+
+    def render(self, renderer: Any, text: str, **attrs: Any) -> str:
+        """Render SoundCloud embed to HTML."""
+        error = attrs.get("error")
+        if error:
+            soundcloud_id = attrs.get("soundcloud_id", "unknown")
+            return (
+                f'<div class="audio-embed soundcloud audio-error">\n'
+                f'  <p class="error">SoundCloud Error: {self.escape_html(error)}</p>\n'
+                f"  <p>ID: <code>{self.escape_html(soundcloud_id)}</code></p>\n"
+                f"</div>\n"
+            )
+
+        soundcloud_id = attrs.get("soundcloud_id", "")
+        title = attrs.get("title", "SoundCloud Embed")
+        content_type = attrs.get("content_type", "track")
+        height = attrs.get("height", 166)
+        color = attrs.get("color", "ff5500")
+        autoplay = attrs.get("autoplay", False)
+        hide_related = attrs.get("hide_related", False)
+        show_comments = attrs.get("show_comments", True)
+        show_user = attrs.get("show_user", True)
+        show_reposts = attrs.get("show_reposts", False)
+        visual = attrs.get("visual", False)
+        css_class = attrs.get("css_class", "")
+
+        class_str = self.build_class_string("audio-embed", "soundcloud", css_class)
+        safe_title = self.escape_html(title)
+
+        # Build embed URL with parameters
+        # SoundCloud uses URL-encoded API URLs
+        api_url = f"https%3A//api.soundcloud.com/{content_type}s/{soundcloud_id}"
+        params = [
+            f"url={api_url}",
+            f"color=%23{color}",
+            f"auto_play={'true' if autoplay else 'false'}",
+            f"hide_related={'true' if hide_related else 'false'}",
+            f"show_comments={'true' if show_comments else 'false'}",
+            f"show_user={'true' if show_user else 'false'}",
+            f"show_reposts={'true' if show_reposts else 'false'}",
+            f"visual={'true' if visual else 'false'}",
+        ]
+        embed_url = f"https://w.soundcloud.com/player/?{'&'.join(params)}"
+        soundcloud_url = "https://soundcloud.com"
+
+        return (
+            f'<div class="{class_str}" style="height: {height}px">\n'
+            f"  <iframe\n"
+            f'    src="{embed_url}"\n'
+            f'    title="{safe_title}"\n'
+            f'    style="width: 100%; height: 100%; border: 0"\n'
+            f'    allow="autoplay"\n'
+            f'    loading="lazy"\n'
+            f"  ></iframe>\n"
+            f"  <noscript>\n"
+            f'    <p>Listen on SoundCloud: <a href="{soundcloud_url}">{safe_title}</a></p>\n'
             f"  </noscript>\n"
             f"</div>\n"
         )

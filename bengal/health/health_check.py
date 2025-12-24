@@ -248,6 +248,7 @@ class HealthCheck:
         cache: Any = None,
         build_context: Any = None,
         tier: str = "build",
+        ignore_codes: set[str] | None = None,
     ) -> HealthReport:
         """
         Run all registered validators and produce a health report.
@@ -270,10 +271,14 @@ class HealthCheck:
                   - "build": Fast validators only (<100ms) - default
                   - "full": + Knowledge graph validators (~500ms)
                   - "ci": All validators including external checks (~30s)
+            ignore_codes: Optional set of health check codes to ignore (e.g., {"H101", "H202"}).
+                         Results with these codes are excluded from the report.
 
         Returns:
             HealthReport with results from all validators
         """
+        # Store ignore_codes for use in _run_single_validator
+        self._ignore_codes = ignore_codes or set()
         overall_start = time.time()
         report = HealthReport(build_stats=build_stats)
 
@@ -523,6 +528,11 @@ class HealthCheck:
             for result in results:
                 if not result.validator:
                     result.validator = validator.name
+
+            # Filter out ignored codes
+            ignore_codes = getattr(self, "_ignore_codes", set())
+            if ignore_codes:
+                results = [r for r in results if not (r.code and r.code in ignore_codes)]
 
         except Exception as e:
             # If validator crashes, record as error

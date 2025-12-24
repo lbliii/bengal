@@ -50,7 +50,8 @@ class TrackValidator(BaseValidator):
                 results.append(
                     CheckResult.error(
                         f"Invalid track structure: {track_id}",
-                        f"Track '{track_id}' is not a dictionary. Expected dict with 'title' and 'items' fields.",
+                        code="H801",
+                        recommendation=f"Track '{track_id}' is not a dictionary. Expected dict with 'title' and 'items' fields.",
                     )
                 )
                 continue
@@ -60,7 +61,8 @@ class TrackValidator(BaseValidator):
                 results.append(
                     CheckResult.error(
                         f"Track missing 'items' field: {track_id}",
-                        f"Track '{track_id}' is missing required 'items' field. Add an 'items' list with page paths.",
+                        code="H802",
+                        recommendation=f"Track '{track_id}' is missing required 'items' field. Add an 'items' list with page paths.",
                     )
                 )
                 continue
@@ -69,7 +71,8 @@ class TrackValidator(BaseValidator):
                 results.append(
                     CheckResult.error(
                         f"Track 'items' must be a list: {track_id}",
-                        f"Track '{track_id}' has 'items' field that is not a list. Expected list of page paths.",
+                        code="H803",
+                        recommendation=f"Track '{track_id}' has 'items' field that is not a list. Expected list of page paths.",
                     )
                 )
                 continue
@@ -81,6 +84,7 @@ class TrackValidator(BaseValidator):
                     results.append(
                         CheckResult.warning(
                             f"Invalid track item type in {track_id}",
+                            code="H804",
                             recommendation=f"Track item must be a string (page path), got {type(item_path).__name__}.",
                         )
                     )
@@ -99,6 +103,7 @@ class TrackValidator(BaseValidator):
                 results.append(
                     CheckResult.warning(
                         f"Track '{track_id}' has {len(missing_items)} missing page(s)",
+                        code="H805",
                         recommendation="Check that page paths in tracks.yaml match actual content files.",
                         details=[details_text],
                     )
@@ -118,6 +123,7 @@ class TrackValidator(BaseValidator):
                 results.append(
                     CheckResult.warning(
                         f"Page '{page.relative_path}' has invalid track_id",
+                        code="H806",
                         recommendation=f"Either add '{track_id}' to tracks.yaml or remove track_id from page metadata.",
                         details=[
                             f"Page references track_id '{track_id}' which doesn't exist in tracks.yaml."

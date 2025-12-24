@@ -63,6 +63,7 @@ class AssetValidator(BaseValidator):
             results.append(
                 CheckResult.warning(
                     "No assets directory found in output",
+                    code="H620",
                     recommendation="Assets may not be copied. Check asset discovery and copying.",
                 )
             )
@@ -92,6 +93,7 @@ class AssetValidator(BaseValidator):
             results.append(
                 CheckResult.warning(
                     "No CSS files found in assets",
+                    code="H621",
                     recommendation="Theme may not be applied. Check theme asset discovery.",
                 )
             )
@@ -114,6 +116,7 @@ class AssetValidator(BaseValidator):
             results.append(
                 CheckResult.warning(
                     f"{len(large_css)} CSS file(s) are very large (>{self.LARGE_CSS_KB} KB)",
+                    code="H622",
                     recommendation="Large CSS files slow page load. Consider CSS minification or splitting.",
                     details=large_css[:3],
                 )
@@ -130,6 +133,7 @@ class AssetValidator(BaseValidator):
             results.append(
                 CheckResult.warning(
                     f"{len(large_js)} JavaScript file(s) are very large (>{self.LARGE_JS_KB} KB)",
+                    code="H623",
                     recommendation="Large JS files slow page load. Consider minification or code splitting.",
                     details=large_js[:3],
                 )
@@ -148,6 +152,7 @@ class AssetValidator(BaseValidator):
             results.append(
                 CheckResult.warning(
                     f"{len(large_images)} image(s) are very large (>{self.LARGE_IMAGE_KB} KB)",
+                    code="H624",
                     recommendation="Large images slow page load. Consider image optimization or compression.",
                     details=large_images[:3],
                 )
@@ -160,6 +165,7 @@ class AssetValidator(BaseValidator):
             results.append(
                 CheckResult.warning(
                     f"Total asset size is very large ({total_size_kb / 1024:.1f} MB)",
+                    code="H625",
                     recommendation="Consider asset optimization to improve site performance.",
                 )
             )

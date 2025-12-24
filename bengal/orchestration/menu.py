@@ -337,7 +337,7 @@ class MenuOrchestrator:
         if api_section:
             api_url = getattr(api_section, "_path", None) or "/api/"
             assets["api"] = {
-                "name": "API Reference",
+                "name": api_section.title or "API Reference",
                 "url": api_url,
                 "type": "api",
                 "section": "api",
@@ -348,7 +348,7 @@ class MenuOrchestrator:
         if cli_section:
             cli_url = getattr(cli_section, "_path", None) or "/cli/"
             assets["cli"] = {
-                "name": "CLI Reference",
+                "name": cli_section.title or "CLI Reference",
                 "url": cli_url,
                 "type": "cli",
                 "section": "cli",
