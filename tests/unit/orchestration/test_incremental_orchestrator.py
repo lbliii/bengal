@@ -313,12 +313,13 @@ class TestIncrementalOrchestrator:
         # Setup section pages after creating pages
         section.pages = [nav_page, child_page]
         section.regular_pages_recursive = [nav_page, child_page]
-        # Put child_page first in site.pages to avoid prev/next cascade
-        # (prev property computes from site.pages index, so child at index 0 has no prev)
-        site.pages = [child_page, nav_page]
+        # Only put child_page in site.pages to avoid prev/next cascade
+        # (prev/next properties compute from site.pages index)
+        site.pages = [child_page]
         site.assets = []
         # Update page_by_source_path cache (mirrors PageCachesMixin behavior)
-        site.page_by_source_path = {p.source_path: p for p in site.pages}
+        # Include both pages so cascade tracker can find them
+        site.page_by_source_path = {nav_path: nav_page, child_path: child_page}
 
         cache = BuildCache()
         # RFC: should_bypass returns True when path is in changed_sources
