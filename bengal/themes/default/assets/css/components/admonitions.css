@@ -473,39 +473,6 @@
 }
 
 /* ============================================
-   COLLAPSIBLE ADMONITIONS
-   ============================================ */
-
-.admonition.collapsible {
-  cursor: pointer;
-}
-
-/* Collapsible chevron using Phosphor icon (chevron-down) */
-.admonition.collapsible .admonition-title::after {
-  content: '';
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  margin-inline-start: auto;
-  background-color: currentColor;
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256' fill='none'%3E%3Cpath fill='currentColor' d='M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z'/%3E%3C/svg%3E");
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256' fill='none'%3E%3Cpath fill='currentColor' d='M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z'/%3E%3C/svg%3E");
-  -webkit-mask-size: contain;
-  mask-size: contain;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  transition: transform var(--transition-fast) var(--ease-out);
-}
-
-.admonition.collapsible.collapsed .admonition-title::after {
-  transform: rotate(-90deg);
-}
-
-.admonition.collapsible.collapsed>*:not(.admonition-title) {
-  display: none;
-}
-
-/* ============================================
    NESTED ADMONITIONS
    ============================================ */
 
