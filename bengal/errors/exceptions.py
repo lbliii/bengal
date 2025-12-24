@@ -287,6 +287,10 @@ class BengalError(Exception):
                 "tests/unit/cache/",
                 "tests/integration/test_cache.py",
             ],
+            BengalAssetError: [
+                "tests/unit/assets/",
+                "tests/integration/test_assets.py",
+            ],
         }
 
         # Check error type hierarchy

@@ -199,7 +199,12 @@ class NodePipeline:
             List of paths to compiled CSS files.
         """
         if not self._which("sass"):
-            logger.error("pipeline_missing_cli", tool="sass", hint="npm i -D sass")
+            logger.error(
+                "pipeline_missing_cli",
+                tool="sass",
+                hint="npm i -D sass",
+                error_code="X003",
+            )
             return []
 
         scss_files = self._find_sources([".scss"], subdirs=["assets", self._theme_assets_subdir()])
@@ -223,7 +228,12 @@ class NodePipeline:
                 self._run(cmd, cwd=self.config.root_path)
                 outputs.append(out_path)
             except Exception as e:
-                logger.error("scss_compile_failed", source=str(src), error=str(e))
+                logger.error(
+                    "scss_compile_failed",
+                    source=str(src),
+                    error=str(e),
+                    error_code="X003",
+                )
         return outputs
 
     def _run_postcss_on_css(self, css_files: list[Path]) -> None:
@@ -237,7 +247,11 @@ class NodePipeline:
             css_files: List of CSS file paths to process.
         """
         if not self._which("postcss"):
-            logger.warning("postcss_not_found", hint="npm i -D postcss postcss-cli autoprefixer")
+            logger.warning(
+                "postcss_not_found",
+                hint="npm i -D postcss postcss-cli autoprefixer",
+                error_code="X003",
+            )
             return
         for css in css_files:
             try:
@@ -246,7 +260,12 @@ class NodePipeline:
                     cmd += ["--config", self.config.postcss_config]
                 self._run(cmd, cwd=self.config.root_path)
             except Exception as e:
-                logger.error("postcss_failed", css=str(css), error=str(e))
+                logger.error(
+                    "postcss_failed",
+                    css=str(css),
+                    error=str(e),
+                    error_code="X003",
+                )
 
     def _bundle_js(self) -> list[Path]:
         """
@@ -259,7 +278,12 @@ class NodePipeline:
             List of paths to bundled JS files and their source maps.
         """
         if not self._which("esbuild"):
-            logger.error("pipeline_missing_cli", tool="esbuild", hint="npm i -D esbuild")
+            logger.error(
+                "pipeline_missing_cli",
+                tool="esbuild",
+                hint="npm i -D esbuild",
+                error_code="X003",
+            )
             return []
 
         entries = self._find_js_entries()
@@ -289,7 +313,12 @@ class NodePipeline:
                 if map_path.exists():
                     outputs.append(map_path)
             except Exception as e:
-                logger.error("esbuild_failed", source=str(src), error=str(e))
+                logger.error(
+                    "esbuild_failed",
+                    source=str(src),
+                    error=str(e),
+                    error_code="X003",
+                )
         return outputs
 
     # -------------------------------------------------------------------------
@@ -464,16 +493,17 @@ class NodePipeline:
             cwd: Working directory for the subprocess.
 
         Raises:
-            BengalError: If the command exits with non-zero status.
+            BengalAssetError: If the command exits with non-zero status (code X003).
         """
         logger.debug("pipeline_exec", cmd=" ".join(cmd))
         proc = subprocess.run(cmd, check=False, cwd=str(cwd), capture_output=True, text=True)
         if proc.returncode != 0:
-            from bengal.errors import BengalError
+            from bengal.errors import BengalAssetError, ErrorCode
 
             error_msg = proc.stderr.strip() or proc.stdout.strip()
-            raise BengalError(
+            raise BengalAssetError(
                 f"Asset pipeline command failed: {error_msg}",
+                code=ErrorCode.X003,
                 suggestion="Check command output and ensure required tools are installed",
             )
 
