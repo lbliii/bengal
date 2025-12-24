@@ -65,7 +65,7 @@ def generate_taxonomy_data(
 def generate_query_index_data(
     num_pages: int = 1000,
     num_keys: int = 50,
-) -> dict[str, list[str]]:
+) -> dict[str, set[str]]:
     """
     Generate synthetic query index data (key → page_paths).
 
@@ -74,14 +74,14 @@ def generate_query_index_data(
         num_keys: Number of index keys (e.g., sections, authors)
 
     Returns:
-        Dict mapping index key to list of page paths
+        Dict mapping index key to set of page paths
     """
-    entries: dict[str, list[str]] = {f"section-{i}": [] for i in range(num_keys)}
+    entries: dict[str, set[str]] = {f"section-{i}": set() for i in range(num_keys)}
 
     for p in range(num_pages):
         page_path = f"content/section-{p % num_keys}/post-{p:05d}.md"
         key = f"section-{p % num_keys}"
-        entries[key].append(page_path)
+        entries[key].add(page_path)
 
     return entries
 
@@ -194,7 +194,7 @@ class MockIndexEntry:
     """Minimal IndexEntry for benchmarking page_paths operations."""
 
     key: str
-    page_paths: list[str] = field(default_factory=list)
+    page_paths: set[str] = field(default_factory=set)
     metadata: dict[str, Any] = field(default_factory=dict)
     updated_at: str = field(default_factory=lambda: datetime.now().isoformat())
 
@@ -382,68 +382,67 @@ class TestTaxonomyRemovePageFromAllTags:
 class TestQueryIndexRemovePageFromKey:
     """Benchmark _remove_page_from_key() - list.remove() is O(p)."""
 
-    def test_list_remove_1k(self, query_index_entries_1k):
-        """Baseline: list.remove() on 1K pages across 50 keys."""
+    def test_set_discard_1k(self, query_index_entries_1k):
+        """Benchmark: set.discard() on 1K pages across 50 keys."""
         # Pick a key with many pages
         key = "section-0"
         entry = query_index_entries_1k[key]
-        page_to_remove = entry.page_paths[len(entry.page_paths) // 2]
+        page_to_remove = next(iter(entry.page_paths))
 
         iterations = 1000
         timings = []
 
         for _ in range(iterations):
-            # Create fresh list each time
-            test_list = entry.page_paths.copy()
+            # Create fresh set each time
+            test_set = entry.page_paths.copy()
             start = time.perf_counter()
-            if page_to_remove in test_list:
-                test_list.remove(page_to_remove)
+            test_set.discard(page_to_remove)
             timings.append(time.perf_counter() - start)
 
         avg_us = (sum(timings) / len(timings)) * 1_000_000
-        print(f"\n📊 list.remove() (1K pages, 50 keys, ~20 pages/key): {avg_us:.2f}μs avg")
+        print(f"\n📊 set.discard() (1K pages, 50 keys, ~20 pages/key): {avg_us:.2f}μs avg")
 
-    def test_list_remove_10k(self, query_index_entries_10k):
-        """Baseline: list.remove() on 10K pages across 100 keys (~100 pages/key)."""
+    def test_set_discard_10k(self, query_index_entries_10k):
+        """Benchmark: set.discard() on 10K pages across 100 keys (~100 pages/key)."""
         key = "section-0"
         entry = query_index_entries_10k[key]
-        page_to_remove = entry.page_paths[len(entry.page_paths) // 2]
+        page_to_remove = next(iter(entry.page_paths))
 
         iterations = 500
         timings = []
 
         for _ in range(iterations):
-            test_list = entry.page_paths.copy()
+            test_set = entry.page_paths.copy()
             start = time.perf_counter()
-            if page_to_remove in test_list:
-                test_list.remove(page_to_remove)
+            test_set.discard(page_to_remove)
             timings.append(time.perf_counter() - start)
 
         avg_us = (sum(timings) / len(timings)) * 1_000_000
-        print(f"\n📊 list.remove() (10K pages, 100 keys, ~100 pages/key): {avg_us:.2f}μs avg")
-        print("   ⚠️ Target with set.discard(): <1μs")
+        print(f"\n📊 set.discard() (10K pages, 100 keys, ~100 pages/key): {avg_us:.2f}μs avg")
+        print("   ✅ O(1) set operations achieved")
 
-    def test_set_discard_comparison(self, query_index_entries_10k):
-        """Compare list.remove() vs set.discard() for same data."""
+    def test_set_vs_list_comparison(self, query_index_entries_10k):
+        """Compare old list.remove() vs new set.discard() for same data."""
         key = "section-0"
         entry = query_index_entries_10k[key]
-        page_to_remove = entry.page_paths[len(entry.page_paths) // 2]
+        pages_list = list(entry.page_paths)  # Convert to list for comparison
+        page_to_remove = pages_list[len(pages_list) // 2]
 
         iterations = 500
 
-        # Benchmark list.remove()
+        # Benchmark list.remove() (old approach)
         list_timings = []
         for _ in range(iterations):
-            test_list = entry.page_paths.copy()
+            test_list = pages_list.copy()
             start = time.perf_counter()
             if page_to_remove in test_list:
                 test_list.remove(page_to_remove)
             list_timings.append(time.perf_counter() - start)
 
-        # Benchmark set.discard()
+        # Benchmark set.discard() (new approach)
         set_timings = []
         for _ in range(iterations):
-            test_set = set(entry.page_paths)
+            test_set = entry.page_paths.copy()
             start = time.perf_counter()
             test_set.discard(page_to_remove)
             set_timings.append(time.perf_counter() - start)
@@ -453,9 +452,9 @@ class TestQueryIndexRemovePageFromKey:
         speedup = list_avg_us / set_avg_us if set_avg_us > 0 else float("inf")
 
         print("\n📊 list.remove() vs set.discard() (~100 pages/key):")
-        print(f"   list.remove(): {list_avg_us:.2f}μs")
-        print(f"   set.discard(): {set_avg_us:.2f}μs")
-        print(f"   Speedup: {speedup:.1f}x")
+        print(f"   list.remove() (old): {list_avg_us:.2f}μs")
+        print(f"   set.discard() (new): {set_avg_us:.2f}μs")
+        print(f"   Speedup: {speedup:.1f}x ✅")
 
 
 # ---------------------------------------------------------------------------

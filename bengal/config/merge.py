@@ -79,112 +79,34 @@ def deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]
 
 
 def _merge_into(target: dict[str, Any], source: dict[str, Any]) -> None:
-    """
-    Merge source dictionary into target dictionary in place.
-
-    This is an internal helper that mutates the target dictionary directly,
-    avoiding the overhead of creating new dictionaries at each step. Used by
-    :func:`batch_deep_merge` for efficient multi-config merging.
-
-    Args:
-        target: Target dictionary to merge into (**mutated in place**).
-        source: Source dictionary to merge from (not mutated).
-
-    Warning:
-        This function mutates the target dictionary. Only use when you own
-        the target dictionary and don't need to preserve its original state.
-
-    Example:
-        >>> target = {"site": {"title": "Base"}}
-        >>> source = {"site": {"baseurl": "/"}, "build": {"parallel": True}}
-        >>> _merge_into(target, source)
-        >>> target
-        {'site': {'title': 'Base', 'baseurl': '/'}, 'build': {'parallel': True}}
-    """
+    """Merge source into target in place. Copies source dicts to avoid mutation."""
     for key, value in source.items():
         if key in target and isinstance(target[key], dict) and isinstance(value, dict):
-            # Both are dicts: recursively merge in place
-            # Note: target[key] is already owned by target, so safe to mutate
             _merge_into(target[key], value)
         elif isinstance(value, dict):
-            # Source value is a dict not in target: copy to avoid mutating source
-            target[key] = _deep_copy_dict(value)
+            target[key] = _copy_dict(value)
         else:
-            # Override wins: lists, primitives, or type mismatch
-            # Lists and primitives are safe to assign (immutable or we don't mutate)
             target[key] = value
 
 
-def _deep_copy_dict(d: dict[str, Any]) -> dict[str, Any]:
-    """
-    Recursively copy a dictionary.
-
-    Optimized for config dicts: only copies nested dicts, leaves
-    primitives and lists as-is (they're not mutated by merge).
-
-    Args:
-        d: Dictionary to copy.
-
-    Returns:
-        Deep copy of the dictionary.
-    """
-    result: dict[str, Any] = {}
-    for key, value in d.items():
-        if isinstance(value, dict):
-            result[key] = _deep_copy_dict(value)
-        else:
-            result[key] = value
-    return result
+def _copy_dict(d: dict[str, Any]) -> dict[str, Any]:
+    """Recursively copy dict. Leaves primitives/lists as-is (not mutated by merge)."""
+    return {k: _copy_dict(v) if isinstance(v, dict) else v for k, v in d.items()}
 
 
 def batch_deep_merge(configs: list[dict[str, Any]]) -> dict[str, Any]:
     """
-    Merge multiple configuration dictionaries in a single pass.
-
-    This is an optimized alternative to calling :func:`deep_merge` repeatedly.
-    Instead of O(F × K × D) complexity from cumulative merging, this achieves
-    O(K × D) by merging all configs into a single result dictionary in place.
-
-    Complexity:
-        - Sequential deep_merge: O(F × K × D) where F = files, K = keys, D = depth
-        - batch_deep_merge: O(K × D) - single pass through all keys
-
-    For 12 config files with 130 keys at depth 3:
-        - Sequential: ~4,680 operations
-        - Batch: ~390 operations (12× reduction)
+    Merge multiple config dicts in a single pass. O(K×D) vs O(F×K×D) sequential.
 
     Args:
-        configs: List of configuration dictionaries to merge, in precedence order
-            (later configs override earlier ones).
+        configs: Dicts to merge in precedence order (later overrides earlier).
 
     Returns:
-        New merged dictionary containing all keys from all configs.
-
-    Example:
-        >>> configs = [
-        ...     {"site": {"title": "Base"}},
-        ...     {"site": {"baseurl": "/"}},
-        ...     {"build": {"parallel": True}},
-        ... ]
-        >>> result = batch_deep_merge(configs)
-        >>> result
-        {'site': {'title': 'Base', 'baseurl': '/'}, 'build': {'parallel': True}}
-
-    Note:
-        The input dictionaries are not mutated. A new result dictionary is
-        created and populated using in-place merge operations.
-
-    See Also:
-        - :func:`deep_merge`: For merging exactly two dictionaries.
+        New merged dictionary. Input dicts are not mutated.
     """
-    if not configs:
-        return {}
-
-    # Start with empty dict and merge all configs in place
     result: dict[str, Any] = {}
     for config in configs:
         _merge_into(result, config)
-
     return result
 
 
