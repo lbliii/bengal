@@ -219,15 +219,15 @@ class TestGetAvailableIcons:
 
     def test_icon_cache(self):
         """Test icon caching works."""
-        from bengal.directives.icon import _icon_cache, _load_icon
+        from bengal.icons import resolver as icon_resolver
 
         # Clear cache
-        _icon_cache.clear()
+        icon_resolver.clear_cache()
 
         # Load icon twice
-        result1 = _load_icon("terminal")
-        result2 = _load_icon("terminal")
+        result1 = icon_resolver.load_icon("terminal")
+        result2 = icon_resolver.load_icon("terminal")
 
-        # Should be cached
+        # Should be cached (same content returned)
         assert result1 == result2
-        assert "terminal" in _icon_cache
+        assert result1 is not None

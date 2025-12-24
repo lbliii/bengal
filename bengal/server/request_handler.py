@@ -2,12 +2,11 @@
 HTTP request handler for Bengal dev server.
 
 Provides the main request handler that combines file serving, live reload
-injection, custom error pages, and component preview functionality.
+injection, and custom error pages.
 
 Features:
     - Automatic live reload script injection into HTML responses
     - Custom 404.html page support (serves user's error page if present)
-    - Component preview routes (/__bengal_components__/*)
     - Rebuild-aware directory listing (shows "rebuilding" page during builds)
     - HTML response caching for rapid navigation
     - Cache-busting headers for development
@@ -30,15 +29,13 @@ Architecture:
     - SimpleHTTPRequestHandler: Base file serving
 
     Request flow:
-    1. Component preview routes → ComponentPreviewServer
-    2. SSE endpoint (/__bengal_reload__) → LiveReloadMixin.handle_sse()
-    3. HTML files → inject live reload script via mixin
-    4. Other files → default SimpleHTTPRequestHandler behavior
+    1. SSE endpoint (/__bengal_reload__) → LiveReloadMixin.handle_sse()
+    2. HTML files → inject live reload script via mixin
+    3. Other files → default SimpleHTTPRequestHandler behavior
 
 Related:
     - bengal/server/live_reload.py: LiveReloadMixin implementation
     - bengal/server/request_logger.py: RequestLogger mixin
-    - bengal/server/component_preview.py: Component preview functionality
     - bengal/server/dev_server.py: Creates and manages this handler
 """
 
@@ -53,10 +50,9 @@ from http.client import HTTPMessage
 from pathlib import Path
 from typing import Any, override
 
-from bengal.server.component_preview import ComponentPreviewServer
 from bengal.server.live_reload import LiveReloadMixin
 from bengal.server.request_logger import RequestLogger
-from bengal.utils.logger import get_logger, truncate_str
+from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -331,7 +327,6 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
         - Live reload script auto-injection into HTML pages
         - Server-Sent Events endpoint at /__bengal_reload__
         - Custom 404.html page support
-        - Component preview at /__bengal_components__/
         - "Rebuilding" placeholder during active builds
         - HTML response caching (LRU, 50 pages)
         - Aggressive cache-busting headers
@@ -343,7 +338,6 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
     Class Attributes:
         server_version: HTTP server version header ("Bengal/1.0")
         protocol_version: HTTP protocol version ("HTTP/1.1" for keep-alive)
-        _cached_site: Cached Site instance for component preview
         _html_cache: LRU cache for injected HTML responses
         _build_in_progress: Flag indicating active rebuild
         _active_palette: Theme for rebuilding page styling
@@ -365,10 +359,6 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
     sys_version = ""
     # Ensure HTTP/1.1 for proper keep-alive behavior on SSE
     protocol_version = "HTTP/1.1"
-
-    # Cached Site instance for component preview (avoids expensive reconstruction on every request)
-    _cached_site = None
-    _cached_site_root = None
 
     # Cache for injected HTML responses (avoids re-reading files on rapid navigation)
     # Key: (file_path_str, mtime), Value: modified_content bytes
@@ -473,22 +463,14 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
         Handle GET requests with live reload injection and special routes.
 
         Request routing (in priority order):
-        1. /__bengal_components__/* → Component preview server
-        2. /__bengal_reload__ → SSE endpoint (long-lived connection)
-        3. *.html files → Inject live reload script, serve with cache
-        4. Other files → Default SimpleHTTPRequestHandler behavior
+        1. /__bengal_reload__ → SSE endpoint (long-lived connection)
+        2. *.html files → Inject live reload script, serve with cache
+        3. Other files → Default SimpleHTTPRequestHandler behavior
         """
         request_start = time.time()
         status_code = 200  # Default, will be updated if error
 
         try:
-            # Component preview routes
-            if self.path.startswith("/__bengal_components__/") or self.path.startswith(
-                "/__bengal_components__"
-            ):
-                self._handle_component_preview()
-                return
-
             # Handle SSE endpoint first (long-lived stream)
             # Skip request logging for SSE (it's long-lived)
             if self.path == "/__bengal_reload__":
@@ -512,54 +494,6 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
                         path=self.path,
                         error=str(e),
                     )
-
-    def _handle_component_preview(self) -> None:
-        try:
-            # Site is bound at server creation via directory chdir; fetch from env on demand
-            # Use cached Site instance to avoid expensive reconstruction on every request
-            from bengal.core.site import Site
-
-            site_root = Path(self.directory).parent  # output_dir -> site root
-
-            # Cache the site object to avoid expensive reconstruction
-            if (
-                BengalRequestHandler._cached_site is None
-                or BengalRequestHandler._cached_site_root != site_root
-            ):
-                logger.debug("component_preview_initializing_site", site_root=str(site_root))
-                BengalRequestHandler._cached_site = Site.from_config(site_root)
-                BengalRequestHandler._cached_site_root = site_root
-
-            site = BengalRequestHandler._cached_site
-            cps = ComponentPreviewServer(site)
-
-            # Routing
-            if self.path.startswith("/__bengal_components__/view"):
-                from urllib.parse import parse_qs, urlparse
-
-                q = parse_qs(urlparse(self.path).query)
-                comp_id = (q.get("c") or [""])[0]
-                variant_list = q.get("v") or []
-                variant_id = variant_list[0] if variant_list else None
-                html = cps.view_page(comp_id, variant_id)
-            else:
-                html = cps.list_page()
-
-            body = html.encode("utf-8")
-            self.send_response(200)
-            self.send_header("Content-Type", "text/html; charset=utf-8")
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
-        except Exception as e:
-            logger.error("component_preview_failed", error=str(e), error_type=type(e).__name__)
-            self.send_response(500)
-            e_str = truncate_str(str(e), 2000, "\n... (truncated for security)")
-            msg = f"<h1>Component Preview Error</h1><pre>{e_str}</pre>".encode()
-            self.send_header("Content-Type", "text/html; charset=utf-8")
-            self.send_header("Content-Length", str(len(msg)))
-            self.end_headers()
-            self.wfile.write(msg)
 
     def _might_be_html(self, path: str) -> bool:
         """
@@ -763,18 +697,6 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
         # when build is not in progress. This was causing infinite refresh loops
         # where the page would refresh forever waiting for a file that may never come.
         return super().list_directory(path)
-
-    @classmethod
-    def clear_cached_site(cls) -> None:
-        """
-        Clear the cached Site instance used for component preview.
-
-        Should be called after site configuration changes to ensure
-        component preview uses fresh site data.
-        """
-        cls._cached_site = None
-        cls._cached_site_root = None
-        logger.debug("handler_site_cache_cleared")
 
     @classmethod
     def set_build_in_progress(cls, in_progress: bool) -> None:

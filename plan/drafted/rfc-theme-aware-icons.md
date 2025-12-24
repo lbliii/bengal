@@ -1,12 +1,13 @@
 # RFC: Theme-Aware Icon System
 
-**Status**: Draft  
+**Status**: Implemented  
 **Created**: 2025-12-24  
+**Implemented**: 2025-12-24  
 **Author**: AI Assistant  
 **Subsystem**: Rendering, Themes  
 **Confidence**: 92% 🟢  
 **Priority**: P2 (Medium) — Developer ergonomics, enables theme ecosystem  
-**Estimated Effort**: 2-3 days
+**Estimated Effort**: 2-3 days (Actual: ~1 day)
 
 ---
 
@@ -205,7 +206,7 @@ _not_found_cache: set[str] = set()  # Avoid repeated disk checks
 def initialize(site: Site) -> None:
     """
     Initialize icon resolver with Site context.
-    
+
     Called once during Site initialization, before any rendering.
     Sets up search paths based on theme configuration.
     """
@@ -218,50 +219,50 @@ def initialize(site: Site) -> None:
 def _get_icon_search_paths(site: Site) -> list[Path]:
     """
     Get ordered list of icon directories to search.
-    
+
     Returns directories from highest to lowest priority:
     1. Site theme icons (site/themes/{theme}/assets/icons)
     2. Theme icons with inheritance chain
     3. Default theme icons (if extend_defaults=True)
     """
     paths = []
-    
+
     # Get theme asset chain (handles inheritance)
     for assets_dir in site._get_theme_assets_chain():
         icons_dir = assets_dir / "icons"
         if icons_dir.exists():
             paths.append(icons_dir)
-    
+
     # Add default theme if extending (default behavior)
     if site.theme_config.icons.extend_defaults:
         import bengal
         default_icons = Path(bengal.__file__).parent / "themes" / "default" / "assets" / "icons"
         if default_icons.exists() and default_icons not in paths:
             paths.append(default_icons)
-    
+
     return paths
 
 
 def load_icon(name: str) -> str | None:
     """
     Load icon from first matching path in search chain.
-    
+
     Uses caching to avoid repeated disk I/O:
     - Found icons cached by content
     - Not-found icons cached to skip repeated searches
-    
+
     Args:
         name: Icon name (without .svg extension)
-        
+
     Returns:
         SVG content string, or None if not found
     """
     if name in _icon_cache:
         return _icon_cache[name]
-    
+
     if name in _not_found_cache:
         return None
-    
+
     for icons_dir in _search_paths:
         icon_path = icons_dir / f"{name}.svg"
         if icon_path.exists():
@@ -271,7 +272,7 @@ def load_icon(name: str) -> str | None:
                 return content
             except OSError:
                 continue
-    
+
     _not_found_cache.add(name)
     return None
 
@@ -313,7 +314,7 @@ class IconConfig:
     aliases: dict[str, str] = field(default_factory=dict)
     defaults: dict[str, str] = field(default_factory=dict)
     extend_defaults: bool = True  # NEW: Fall through to Bengal defaults
-    
+
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> IconConfig:
         return cls(
@@ -381,7 +382,7 @@ Current preloading loads ALL icons from default theme at startup. New approach:
 def initialize(site: Site, preload: bool = False) -> None:
     """
     Initialize icon resolver.
-    
+
     Args:
         site: Site instance for theme resolution
         preload: If True, eagerly load all icons (production mode)
@@ -390,7 +391,7 @@ def initialize(site: Site, preload: bool = False) -> None:
     _search_paths = _get_icon_search_paths(site)
     _icon_cache.clear()
     _not_found_cache.clear()
-    
+
     if preload:
         _preload_all_icons()
 
@@ -468,44 +469,44 @@ from bengal.icons import resolver as icon_resolver
 
 class TestIconResolution:
     """Test icon search path ordering."""
-    
+
     def test_icon_resolution_order(self, site_with_theme_icons):
         """Site icons take precedence over theme icons."""
         # Setup: site/themes/test/assets/icons/custom.svg exists
         # AND bengal/themes/default/assets/icons/custom.svg exists
         icon_resolver.initialize(site_with_theme_icons)
-        
+
         # Should load site's version, not default
         content = icon_resolver.load_icon("custom")
         assert "site-version" in content
-    
+
     def test_icon_fallthrough_to_defaults(self, site_with_empty_theme):
         """Missing icons fall through to Bengal defaults."""
         icon_resolver.initialize(site_with_empty_theme)
-        
+
         # Theme has no icons, should fall through to Phosphor
         content = icon_resolver.load_icon("warning")
         assert content is not None
         assert "<svg" in content
-    
+
     def test_icon_extend_defaults_false(self, site_no_extend):
         """When extend_defaults=false, no fallthrough occurs."""
         # Theme config: icons.extend_defaults = false
         icon_resolver.initialize(site_no_extend)
-        
+
         # Default icon should NOT be available
         content = icon_resolver.load_icon("warning")
         assert content is None
-    
+
     def test_icon_theme_inheritance(self, site_with_child_theme):
         """Child theme inherits parent theme icons."""
         # Child theme extends parent theme
         icon_resolver.initialize(site_with_child_theme)
-        
+
         # Parent's icon should be available
         content = icon_resolver.load_icon("parent-only-icon")
         assert content is not None
-        
+
         # Child's override should win
         content = icon_resolver.load_icon("shared-icon")
         assert "child-version" in content
@@ -513,36 +514,36 @@ class TestIconResolution:
 
 class TestIconCaching:
     """Test caching behavior."""
-    
+
     def test_icon_cache_hit(self, site_with_icons):
         """Second load uses cache, no disk I/O."""
         icon_resolver.initialize(site_with_icons)
-        
+
         # First load
         icon_resolver.load_icon("test")
-        
+
         # Modify file (simulate)
         # Second load should return cached version
         content = icon_resolver.load_icon("test")
         assert content is not None
-    
+
     def test_icon_not_found_cache(self, site_with_icons):
         """Not-found icons are cached to avoid repeated disk checks."""
         icon_resolver.initialize(site_with_icons)
-        
+
         # First miss
         assert icon_resolver.load_icon("nonexistent") is None
-        
+
         # Second miss should not hit disk (verified via mock)
         assert icon_resolver.load_icon("nonexistent") is None
-    
+
     def test_clear_cache(self, site_with_icons):
         """clear_cache() allows reloading modified icons."""
         icon_resolver.initialize(site_with_icons)
         icon_resolver.load_icon("test")
-        
+
         icon_resolver.clear_cache()
-        
+
         # Cache should be empty
         assert len(icon_resolver._icon_cache) == 0
 ```
@@ -556,10 +557,10 @@ def test_theme_with_custom_icons(tmp_path, build_site):
     theme_dir = tmp_path / "themes" / "custom" / "assets" / "icons"
     theme_dir.mkdir(parents=True)
     (theme_dir / "logo.svg").write_text('<svg><!-- custom --></svg>')
-    
+
     # Build site using theme
     site = build_site(tmp_path, theme="custom")
-    
+
     # Template using {{ icon("logo") }} should render custom icon
     output = (tmp_path / "_site" / "index.html").read_text()
     assert "<!-- custom -->" in output
@@ -571,9 +572,9 @@ def test_site_level_icon_override(tmp_path, build_site):
     site_icons = tmp_path / "themes" / "default" / "assets" / "icons"
     site_icons.mkdir(parents=True)
     (site_icons / "warning.svg").write_text('<svg><!-- site override --></svg>')
-    
+
     site = build_site(tmp_path)
-    
+
     # Should use site's warning icon, not Phosphor default
     output = (tmp_path / "_site" / "index.html").read_text()
     assert "<!-- site override -->" in output
@@ -583,9 +584,9 @@ def test_t010_shows_searched_paths(tmp_path, build_site, caplog):
     """Warning includes all directories that were searched."""
     # Use nonexistent icon
     (tmp_path / "content" / "index.md").write_text('{{ icon("nonexistent") }}')
-    
+
     build_site(tmp_path)
-    
+
     # Warning should include search paths
     assert "searched" in caplog.text
     assert "assets/icons" in caplog.text
@@ -834,4 +835,3 @@ icons:
   - Icon sprite sheets for performance
   - CDN-hosted icon libraries
   - Icon optimization/minification
-

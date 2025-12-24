@@ -424,12 +424,12 @@ def prefix_heading_ids(html: str, prefix: str) -> str:
         old_id = match.group(2)
         quote = match.group(3)
         tag_rest = match.group(4)
-        return f'{tag_start}id={quote}{prefix}{old_id}{quote}{tag_rest}'
+        return f"{tag_start}id={quote}{prefix}{old_id}{quote}{tag_rest}"
 
     # Pattern for heading tags with id attribute
     html = re.sub(
         r'(<h[1-6][^>]*\s)id=(["\'])([^"\']+)\2([^>]*>)',
-        lambda m: f'{m.group(1)}id={m.group(2)}{prefix}{m.group(3)}{m.group(2)}{m.group(4)}',
+        lambda m: f"{m.group(1)}id={m.group(2)}{prefix}{m.group(3)}{m.group(2)}{m.group(4)}",
         html,
         flags=re.IGNORECASE,
     )
@@ -439,7 +439,7 @@ def prefix_heading_ids(html: str, prefix: str) -> str:
         # Match href="#old_id" patterns
         html = re.sub(
             rf'href=(["\'])#{re.escape(old_id)}\1',
-            rf'href=\1#{prefix}{old_id}\1',
+            rf"href=\1#{prefix}{old_id}\1",
             html,
         )
 

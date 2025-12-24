@@ -89,9 +89,7 @@ def _get_icon_search_paths(site: Site) -> list[Path]:
     if extend_defaults:
         import bengal
 
-        default_icons = (
-            Path(bengal.__file__).parent / "themes" / "default" / "assets" / "icons"
-        )
+        default_icons = Path(bengal.__file__).parent / "themes" / "default" / "assets" / "icons"
         if default_icons.exists() and default_icons not in paths:
             paths.append(default_icons)
 
@@ -214,4 +212,3 @@ def _preload_all_icons() -> None:
 def is_initialized() -> bool:
     """Check if resolver has been initialized with a Site."""
     return _initialized
-

@@ -6,6 +6,7 @@ Provides:
 - site_factory: Factory to create Site from test roots
 - site_builder: Factory to create ephemeral sites from config/content dicts
 - build_site: Helper to build a site
+- reset_icon_resolver: Autouse fixture to reset icon resolver state
 """
 
 import shutil
@@ -19,6 +20,28 @@ import pytest
 import tomli_w
 
 from bengal.core.site import Site
+from bengal.icons import resolver as icon_resolver
+
+
+@pytest.fixture(autouse=True)
+def reset_icon_resolver():
+    """
+    Reset icon resolver state before each test.
+
+    This ensures test isolation when running in parallel - tests that
+    initialize the resolver with custom sites won't affect other tests.
+    After the test, resets to uninitialized state so fallback to default
+    theme works correctly.
+    """
+    # Clear cache before test
+    icon_resolver.clear_cache()
+
+    yield
+
+    # Reset to uninitialized state after test
+    icon_resolver._initialized = False
+    icon_resolver._search_paths = []
+    icon_resolver.clear_cache()
 
 
 @pytest.fixture(scope="session")

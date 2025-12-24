@@ -198,10 +198,12 @@ class MenuOrchestrator:
                 menu_cfg = metadata.get("menu", {})
                 if isinstance(menu_cfg, dict) and menu_cfg.get("dropdown"):
                     dropdown_cfg = menu_cfg["dropdown"]
-                    dropdown_configs.append({
-                        "section": section.name,
-                        "dropdown": str(dropdown_cfg),
-                    })
+                    dropdown_configs.append(
+                        {
+                            "section": section.name,
+                            "dropdown": str(dropdown_cfg),
+                        }
+                    )
                     # If data-driven, include the data keys
                     if isinstance(dropdown_cfg, str) and dropdown_cfg.startswith("data:"):
                         data_key = dropdown_cfg[5:]
@@ -299,7 +301,9 @@ class MenuOrchestrator:
 
         # Add default Dev bundle if applicable
         if dev_bundle:
-            self._add_bundle_to_menu(dev_bundle, menu_items, seen_identifiers, seen_urls, seen_names)
+            self._add_bundle_to_menu(
+                dev_bundle, menu_items, seen_identifiers, seen_urls, seen_names
+            )
             # Store metadata for template
             if self.site._dev_menu_metadata is None:
                 self.site._dev_menu_metadata = {}
@@ -402,14 +406,16 @@ class MenuOrchestrator:
 
             # Only create bundle if enough items
             if len(bundle_items) >= min_items:
-                bundles.append({
-                    "identifier": f"{bundle_id}-bundle",
-                    "name": bundle_name,
-                    "url": bundle_url,
-                    "weight": bundle_weight,
-                    "items": bundle_items,
-                    "_exclude_sections": exclude_sections,
-                })
+                bundles.append(
+                    {
+                        "identifier": f"{bundle_id}-bundle",
+                        "name": bundle_name,
+                        "url": bundle_url,
+                        "weight": bundle_weight,
+                        "items": bundle_items,
+                        "_exclude_sections": exclude_sections,
+                    }
+                )
 
         return bundles
 
@@ -530,12 +536,14 @@ class MenuOrchestrator:
             if item_url in seen_urls or item_name in seen_names:
                 continue
 
-            menu_items.append({
-                "name": item["name"],
-                "url": item["url"],
-                "parent": parent_id,
-                "weight": i + 1,
-            })
+            menu_items.append(
+                {
+                    "name": item["name"],
+                    "url": item["url"],
+                    "parent": parent_id,
+                    "weight": i + 1,
+                }
+            )
             seen_urls.add(item_url)
             seen_names.add(item_name)
 
@@ -618,7 +626,13 @@ class MenuOrchestrator:
                 # dropdown: data:filename - load from data file
                 data_key = dropdown_config[5:]  # Remove "data:" prefix
                 self._add_data_children(
-                    section, parent_id, data_key, menu_items, seen_identifiers, seen_urls, seen_names
+                    section,
+                    parent_id,
+                    data_key,
+                    menu_items,
+                    seen_identifiers,
+                    seen_urls,
+                    seen_names,
                 )
 
         return menu_items

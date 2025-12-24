@@ -534,7 +534,9 @@ class DirectiveAnalyzer:
         if len(tab_markers) == 0:
             bad_markers = re.findall(r"^###\s*Ta[^b]", content, re.MULTILINE)
             if bad_markers:
-                directive["syntax_error"] = 'Malformed tab marker (use "### Tab: Title" or "### Title")'
+                directive["syntax_error"] = (
+                    'Malformed tab marker (use "### Tab: Title" or "### Title")'
+                )
             else:
                 directive["completeness_error"] = (
                     "Tabs directive has no tab markers (### Tab: Title or ### Title)"

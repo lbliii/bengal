@@ -172,7 +172,7 @@ def ensure_trailing_slash(url: str) -> str:
     return url if url.endswith("/") else url + "/"
 
 
-def build_artifact_url(site: "Site", filename: str = "build.json", dir_name: str = "") -> str:
+def build_artifact_url(site: Site, filename: str = "build.json", dir_name: str = "") -> str:
     """
     Compute URL for build artifacts (build.json, build.svg).
 
@@ -212,9 +212,7 @@ def build_artifact_url(site: "Site", filename: str = "build.json", dir_name: str
     prefix = ""
     i18n = config.get("i18n", {}) or {}
     if i18n.get("strategy") == "prefix":
-        current_lang = getattr(site, "current_language", None) or i18n.get(
-            "default_language", "en"
-        )
+        current_lang = getattr(site, "current_language", None) or i18n.get("default_language", "en")
         default_lang = i18n.get("default_language", "en")
         default_in_subdir = bool(i18n.get("default_in_subdir", False))
         if default_in_subdir or str(current_lang) != str(default_lang):

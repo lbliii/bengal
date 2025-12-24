@@ -622,7 +622,7 @@ class BuildTrigger:
             logger.debug("build_state_signal_failed", error=str(e))
 
     def _clear_html_cache(self) -> None:
-        """Clear HTML and Site caches after rebuild."""
+        """Clear HTML cache after rebuild."""
         try:
             from bengal.server.request_handler import BengalRequestHandler
 
@@ -630,9 +630,6 @@ class BuildTrigger:
             with BengalRequestHandler._html_cache_lock:
                 cache_size = len(BengalRequestHandler._html_cache)
                 BengalRequestHandler._html_cache.clear()
-
-            # Clear static Site cache (component preview)
-            BengalRequestHandler.clear_cached_site()
 
             if cache_size > 0:
                 logger.debug("html_cache_cleared", entries=cache_size)

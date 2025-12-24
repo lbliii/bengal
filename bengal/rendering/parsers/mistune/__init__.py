@@ -161,7 +161,7 @@ class MistuneParser(BaseMarkdownParser):
         # Override table renderer to wrap tables in scrollable container
         # This prevents wide tables from escaping their container
         def render_table_with_wrapper(renderer: Any, text: str) -> str:
-            return '<div class="table-wrapper"><table>\n' + text + '</table></div>\n'
+            return '<div class="table-wrapper"><table>\n' + text + "</table></div>\n"
 
         self._shared_renderer.register("table", render_table_with_wrapper)
 

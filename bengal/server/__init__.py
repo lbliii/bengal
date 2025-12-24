@@ -27,7 +27,6 @@ Components:
     - send_reload_payload: Send structured reload events
 
     Utilities:
-    - ComponentPreviewServer: UI component catalog at /__bengal_components__/
     - RequestLogger: Beautiful, filtered HTTP request logging
 
 Features:
