@@ -17,6 +17,7 @@ from bengal.errors import (
     BengalDiscoveryError,
     BengalError,
     BengalRenderingError,
+    ErrorCode,
     ErrorContext,
     enrich_error,
     error_recovery_context,
@@ -103,6 +104,45 @@ class TestBengalError:
             raise content_error
         with pytest.raises(BengalError):
             raise rendering_error
+
+    def test_error_with_code(self) -> None:
+        """Test BengalError with error code."""
+        error = BengalRenderingError(
+            "Template not found",
+            code=ErrorCode.R001,
+            file_path=Path("content/post.md"),
+            suggestion="Check templates directory",
+        )
+
+        assert error.code == ErrorCode.R001
+        assert error.code.name == "R001"
+        assert error.code.category == "rendering"
+        assert "[R001]" in str(error)
+
+    def test_error_code_docs_url(self) -> None:
+        """Test error code documentation URL."""
+        error = BengalConfigError(
+            "Invalid config",
+            code=ErrorCode.C001,
+        )
+
+        docs_url = error.get_docs_url()
+        assert docs_url == "/docs/errors/c001/"
+
+    def test_error_code_in_message_format(self) -> None:
+        """Test that error code appears in formatted message."""
+        error = BengalContentError(
+            "Invalid frontmatter",
+            code=ErrorCode.N001,
+            file_path=Path("test.md"),
+            line_number=5,
+        )
+
+        message = str(error)
+        assert "[N001]" in message
+        assert "Invalid frontmatter" in message
+        assert "test.md" in message
+        assert "5" in message
 
 
 class TestErrorContext:

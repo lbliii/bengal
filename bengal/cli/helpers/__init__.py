@@ -9,6 +9,7 @@ Modules:
     cli_app_loader: CLI application loading utilities
     cli_output: CLI output instance management
     config_validation: Configuration file validation
+    error_display: Beautiful error display for BengalError instances
     error_handling: CLI error handling decorators
     metadata: Command metadata and categorization
     progress: Progress display helpers
@@ -30,6 +31,10 @@ from bengal.cli.helpers.config_validation import (
     check_yaml_syntax,
     validate_config_types,
     validate_config_values,
+)
+from bengal.cli.helpers.error_display import (
+    beautify_common_exception,
+    display_bengal_error,
 )
 from bengal.cli.helpers.error_handling import cli_error_context, handle_cli_errors
 from bengal.cli.helpers.metadata import (
@@ -65,4 +70,7 @@ __all__ = [
     "validate_config_types",
     "validate_config_values",
     "check_unknown_keys",
+    # Error display
+    "display_bengal_error",
+    "beautify_common_exception",
 ]
