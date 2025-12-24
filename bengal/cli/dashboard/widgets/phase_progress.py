@@ -239,7 +239,7 @@ class PhaseProgress(Vertical):
             details = self.query_one("#phase-details", Static)
             details.update(text)
         except Exception:
-            pass
+            pass  # Widget may not be mounted yet during compose
 
     def _update_elapsed(self) -> None:
         """Update the elapsed time display."""
@@ -253,7 +253,7 @@ class PhaseProgress(Vertical):
             else:
                 elapsed.update("")
         except Exception:
-            pass
+            pass  # Widget may not be mounted yet during compose
 
     @property
     def is_complete(self) -> bool:

@@ -173,7 +173,7 @@ class TaxonomyExplorer(Vertical):
             header = self.query_one("#taxonomy-header", Static)
             header.update(self._format_header())
         except Exception:
-            pass
+            pass  # Widget may not be mounted yet during compose
 
     def refresh_from_site(self) -> None:
         """Refresh data from current site."""

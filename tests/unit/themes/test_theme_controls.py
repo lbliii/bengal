@@ -34,8 +34,12 @@ class TestThemeControlsPopover:
         site.build()
 
         html = site.read_output("index.html")
-        assert 'popovertarget="theme-menu"' in html
-        assert 'id="theme-menu"' in html
+        # Template uses dynamic IDs: theme-menu-desktop and theme-menu-mobile
+        assert (
+            'popovertarget="theme-menu-desktop"' in html
+            or 'popovertarget="theme-menu-mobile"' in html
+        )
+        assert 'id="theme-menu-desktop"' in html or 'id="theme-menu-mobile"' in html
         assert "popover" in html
 
     @pytest.mark.skip(

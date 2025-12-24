@@ -3,6 +3,7 @@ Unit tests for BuildCache.
 """
 
 from bengal.cache.build_cache import BuildCache
+from bengal.utils.sentinel import MISSING
 
 
 class TestBuildCache:
@@ -471,7 +472,7 @@ class TestRenderedOutputCache:
 
         # Cache should be invalid
         result = cache.get_rendered_output(test_file, "default.html", metadata)
-        assert result is None
+        assert result is MISSING
 
     def test_rendered_output_invalid_on_metadata_change(self, tmp_path):
         """Rendered output cache is invalidated when metadata changes."""
@@ -494,7 +495,7 @@ class TestRenderedOutputCache:
         # Try to get with different metadata
         metadata_v2 = {"title": "Modified Title"}
         result = cache.get_rendered_output(test_file, "default.html", metadata_v2)
-        assert result is None
+        assert result is MISSING
 
     def test_rendered_output_invalid_on_template_change(self, tmp_path):
         """Rendered output cache is invalidated when template name changes."""
@@ -516,7 +517,7 @@ class TestRenderedOutputCache:
 
         # Try to get with different template
         result = cache.get_rendered_output(test_file, "custom.html", metadata)
-        assert result is None
+        assert result is MISSING
 
     def test_rendered_output_invalid_on_dependency_change(self, tmp_path):
         """Rendered output cache is invalidated when a dependency file changes."""
@@ -551,7 +552,7 @@ class TestRenderedOutputCache:
 
         # Cache should be invalid
         result = cache.get_rendered_output(test_file, "default.html", metadata)
-        assert result is None
+        assert result is MISSING
 
     def test_invalidate_rendered_output(self, tmp_path):
         """Test explicit invalidation of rendered output."""
@@ -576,7 +577,7 @@ class TestRenderedOutputCache:
 
         # Cache should be invalid
         result = cache.get_rendered_output(test_file, "default.html", metadata)
-        assert result is None
+        assert result is MISSING
 
     def test_rendered_output_stats(self, tmp_path):
         """Test rendered output cache statistics."""

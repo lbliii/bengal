@@ -93,11 +93,11 @@ class BengalThrobberVisual(Visual):
 
     gradient = Gradient.from_colors(*[Color.parse(c) for c in BENGAL_COLORS])
 
-    def get_optimal_width(self, rules: RulesMap, container_width: int) -> int:
+    def get_optimal_width(self, _rules: RulesMap, container_width: int) -> int:
         """Return optimal width - fill container."""
         return container_width
 
-    def get_height(self, rules: RulesMap, width: int) -> int:
+    def get_height(self, _rules: RulesMap, width: int) -> int:
         """Return height - always 1 line."""
         return 1
 

@@ -75,9 +75,17 @@ class SeriesIndex(QueryIndex):
             if not name:
                 return []
 
+            try:
+                part = int(series_data.get("part", 1))
+                total = int(series_data.get("total", 0))
+            except (TypeError, ValueError):
+                # Invalid part/total values in frontmatter - use defaults
+                part = 1
+                total = 0
+
             metadata: dict[str, Any] = {
-                "part": int(series_data.get("part", 1)),
-                "total": int(series_data.get("total", 0)),
+                "part": part,
+                "total": total,
                 "description": str(series_data.get("description", "")),
             }
 

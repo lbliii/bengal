@@ -62,6 +62,7 @@
   @import url('utilities/scroll-animations.css');
   @import url('utilities/gradient-borders.css');
   @import url('utilities/fluid-blobs.css');
+  @import url('utilities/micro-interactions.css');
 }
 
 @layer base {

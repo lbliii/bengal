@@ -146,7 +146,7 @@ class FileWatcherLog(Vertical):
             header = self.query_one("#watcher-header", Static)
             header.update(self._format_header())
         except Exception:
-            pass
+            pass  # Widget may not be mounted yet during compose
 
     def clear(self) -> None:
         """Clear the log and reset count."""
