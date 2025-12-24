@@ -44,6 +44,9 @@ def register(env: Environment, site: Site) -> None:
             "intersect": intersect,
             "complement": complement,
             "resolve_pages": resolve_pages_with_site,
+            "group_by_year": group_by_year,
+            "group_by_month": group_by_month,
+            "archive_years": archive_years,
         }
     )
 
@@ -580,3 +583,141 @@ def resolve_pages(page_paths: list[str], site: Site) -> list[Any]:
             pages.append(page)
 
     return pages
+
+
+def group_by_year(items: list[Any], date_attr: str = "date") -> dict[int, list[Any]]:
+    """
+    Group items by year, sorted by year descending (newest first).
+
+    Useful for creating blog archives organized by publication year.
+
+    Args:
+        items: List of items with date attributes (e.g., Page objects)
+        date_attr: Attribute name containing the date (default: 'date')
+
+    Returns:
+        Dictionary mapping years to lists of items, sorted by year descending
+
+    Example:
+        {% set by_year = posts | group_by_year %}
+        {% for year, posts in by_year.items() %}
+          <h2>{{ year }}</h2>
+          {% for post in posts %}
+            <a href="{{ post.href }}">{{ post.title }}</a>
+          {% endfor %}
+        {% endfor %}
+    """
+    if not items:
+        return {}
+
+    result: dict[int, list[Any]] = {}
+
+    for item in items:
+        # Get date value from attribute
+        date = _get_nested_value(item, date_attr)
+        if date is None:
+            continue
+
+        # Extract year from datetime or date object
+        year = getattr(date, "year", None)
+        if year is None:
+            continue
+
+        if year not in result:
+            result[year] = []
+        result[year].append(item)
+
+    # Return as dict sorted by year descending
+    return dict(sorted(result.items(), key=lambda x: x[0], reverse=True))
+
+
+def group_by_month(items: list[Any], date_attr: str = "date") -> dict[tuple[int, int], list[Any]]:
+    """
+    Group items by year-month, sorted by date descending (newest first).
+
+    Returns dictionary keyed by (year, month) tuples for granular archives.
+
+    Args:
+        items: List of items with date attributes (e.g., Page objects)
+        date_attr: Attribute name containing the date (default: 'date')
+
+    Returns:
+        Dictionary mapping (year, month) tuples to lists of items
+
+    Example:
+        {% set by_month = posts | group_by_month %}
+        {% for (year, month), posts in by_month.items() %}
+          <h2>{{ month | month_name }} {{ year }}</h2>
+          {% for post in posts %}
+            <a href="{{ post.href }}">{{ post.title }}</a>
+          {% endfor %}
+        {% endfor %}
+    """
+    if not items:
+        return {}
+
+    result: dict[tuple[int, int], list[Any]] = {}
+
+    for item in items:
+        # Get date value from attribute
+        date = _get_nested_value(item, date_attr)
+        if date is None:
+            continue
+
+        # Extract year and month from datetime or date object
+        year = getattr(date, "year", None)
+        month = getattr(date, "month", None)
+        if year is None or month is None:
+            continue
+
+        key = (year, month)
+        if key not in result:
+            result[key] = []
+        result[key].append(item)
+
+    # Return as dict sorted by (year, month) descending
+    return dict(sorted(result.items(), key=lambda x: x[0], reverse=True))
+
+
+def archive_years(items: list[Any], date_attr: str = "date") -> list[dict[str, Any]]:
+    """
+    Get list of years with post counts for archive navigation.
+
+    Returns a list of dictionaries with year and count, sorted by year descending.
+    Useful for building archive sidebars and navigation.
+
+    Args:
+        items: List of items with date attributes (e.g., Page objects)
+        date_attr: Attribute name containing the date (default: 'date')
+
+    Returns:
+        List of dicts with 'year' and 'count' keys, sorted by year descending
+
+    Example:
+        {% set years = posts | archive_years %}
+        <ul class="archive-years">
+        {% for item in years %}
+          <li><a href="/blog/{{ item.year }}/">{{ item.year }}</a> ({{ item.count }})</li>
+        {% endfor %}
+        </ul>
+    """
+    if not items:
+        return []
+
+    year_counts: dict[int, int] = {}
+
+    for item in items:
+        date = _get_nested_value(item, date_attr)
+        if date is None:
+            continue
+
+        year = getattr(date, "year", None)
+        if year is None:
+            continue
+
+        year_counts[year] = year_counts.get(year, 0) + 1
+
+    # Return as list of dicts sorted by year descending
+    return [
+        {"year": year, "count": count} for year, count in sorted(year_counts.items(), reverse=True)
+    ]

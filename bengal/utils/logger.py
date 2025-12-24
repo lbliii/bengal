@@ -406,6 +406,8 @@ def truncate_error(e: Exception, max_len: int = 500) -> str:
 
 # Global logger registry
 _loggers: dict[str, BengalLogger] = {}
+_lazy_loggers: dict[str, LazyLogger] = {}  # Cache of proxy objects
+_registry_version: int = 0  # Incremented on reset_loggers()
 
 
 class _GlobalConfig(TypedDict):
@@ -421,6 +423,57 @@ _global_config: _GlobalConfig = {
     "verbose": False,
     "quiet_console": False,
 }
+
+
+def _get_actual_logger(name: str) -> BengalLogger:
+    """Internal helper to fetch or create the real logger instance."""
+    if name not in _loggers:
+        _loggers[name] = BengalLogger(
+            name=name,
+            level=_global_config["level"],
+            log_file=_global_config["log_file"],
+            verbose=_global_config["verbose"],
+            quiet_console=_global_config["quiet_console"],
+        )
+    return _loggers[name]
+
+
+class LazyLogger:
+    """
+    Transparent proxy for BengalLogger that tracks registry resets.
+
+    Module-level `logger = get_logger(__name__)` references hold this proxy.
+    When `reset_loggers()` is called, the registry version increments and
+    the proxy will fetch a fresh logger on next access.
+
+    Attributes:
+        _name: The logger name to fetch.
+        _real_logger: Cached reference to the actual logger.
+        _version: The registry version when the logger was cached.
+    """
+
+    __slots__ = ("_name", "_real_logger", "_version")
+
+    def __init__(self, name: str):
+        self._name = name
+        self._real_logger: BengalLogger | None = None
+        self._version: int = -1
+
+    @property
+    def _logger(self) -> BengalLogger:
+        """Fetch the real logger, refreshing if the registry was reset."""
+        global _registry_version
+        if self._real_logger is None or self._version != _registry_version:
+            self._real_logger = _get_actual_logger(self._name)
+            self._version = _registry_version
+        return self._real_logger
+
+    def __getattr__(self, attr: str) -> Any:
+        return getattr(self._logger, attr)
+
+    def __dir__(self) -> list[str]:
+        """Support autocomplete by merging proxy and logger attributes."""
+        return list(set(super().__dir__()) | set(dir(BengalLogger)))
 
 
 def configure_logging(
@@ -482,24 +535,24 @@ def configure_logging(
 
 def get_logger(name: str) -> BengalLogger:
     """
-    Get or create a logger instance.
+    Get a logger proxy for the given name.
+
+    Returns a LazyLogger proxy that automatically refreshes when
+    reset_loggers() is called. This ensures module-level logger
+    references never become stale.
+
+    The proxy is cached, so calling get_logger() with the same name
+    returns the same proxy instance.
 
     Args:
         name: Logger name (typically __name__)
 
     Returns:
-        BengalLogger instance
+        LazyLogger proxy (type-compatible with BengalLogger)
     """
-    if name not in _loggers:
-        _loggers[name] = BengalLogger(
-            name=name,
-            level=_global_config["level"],
-            log_file=_global_config["log_file"],
-            verbose=_global_config["verbose"],
-            quiet_console=_global_config["quiet_console"],
-        )
-
-    return _loggers[name]
+    if name not in _lazy_loggers:
+        _lazy_loggers[name] = LazyLogger(name)
+    return _lazy_loggers[name]  # type: ignore[return-value]
 
 
 def set_console_quiet(quiet: bool = True) -> None:
@@ -526,9 +579,12 @@ def close_all_loggers() -> None:
 
 
 def reset_loggers() -> None:
-    """Close all loggers and clear the registry (for testing)."""
+    """Close all loggers, clear registry, and increment version counter."""
+    global _registry_version
     close_all_loggers()
     _loggers.clear()
+    _lazy_loggers.clear()  # Also clear proxy cache
+    _registry_version += 1
     _global_config["level"] = LogLevel.INFO
     _global_config["log_file"] = None
     _global_config["verbose"] = False

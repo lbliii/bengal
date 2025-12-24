@@ -5,7 +5,7 @@ Integration-style unit test for OpenAPI virtual page generation.
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, Mock
 
 from bengal.autodoc.orchestration import VirtualAutodocOrchestrator
 
@@ -29,8 +29,10 @@ def _make_mock_site(tmp_path: Path, spec_path: Path) -> MagicMock:
     site.theme_config = {}
     site.menu = {"main": []}
     site.menu_localized = {}
-    site._section_registry = {}
-    site._section_url_registry = {}
+    site.registry = Mock()
+    site.registry.epoch = 0
+    site.registry.register_section = Mock()
+    site.registry.get_section = Mock(return_value=None)
     return site
 
 
@@ -150,8 +152,10 @@ paths:
     site.theme_config = {}
     site.menu = {"main": []}
     site.menu_localized = {}
-    site._section_registry = {}
-    site._section_url_registry = {}
+    site.registry = Mock()
+    site.registry.epoch = 0
+    site.registry.register_section = Mock()
+    site.registry.get_section = Mock(return_value=None)
 
     orchestrator = VirtualAutodocOrchestrator(site)
     pages, _sections, _result = orchestrator.generate()

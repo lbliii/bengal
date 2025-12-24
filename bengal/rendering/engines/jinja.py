@@ -36,12 +36,18 @@ from bengal.rendering.template_profiler import (
     TemplateProfiler,
     get_profiler,
 )
+from bengal.utils.concurrent_locks import PerKeyLockManager
 from bengal.utils.logger import get_logger, truncate_error
 
 if TYPE_CHECKING:
     from bengal.core import Site
 
 logger = get_logger(__name__)
+
+# Per-template locks to prevent duplicate compilation across threads.
+# When multiple threads try to compile the same template simultaneously,
+# only one thread does the work; others wait and then read from bytecode cache.
+_template_compilation_locks = PerKeyLockManager()
 
 
 class JinjaTemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin):
@@ -145,7 +151,15 @@ class JinjaTemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin)
         self.invalidate_menu_cache()
 
         try:
-            template = self.env.get_template(name)
+            # Use per-template lock to prevent duplicate compilation across threads.
+            # This ensures only one thread compiles a template at a time, reducing
+            # wasted CPU from concurrent compilation of the same template.
+            # Once compiled, the bytecode cache allows other threads to load it quickly.
+            # Note: Jinja2's Environment.get_template() checks its internal cache first,
+            # so if the template is already compiled in this Environment, it returns immediately.
+            # The lock only serializes compilation when the bytecode cache is missing.
+            with _template_compilation_locks.get_lock(name):
+                template = self.env.get_template(name)
 
             if self._profiler:
                 profiled_template = ProfiledTemplate(template, self._profiler)
@@ -435,3 +449,13 @@ class JinjaTemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin)
     def _with_baseurl(self, path: str) -> str:
         """Apply base URL prefix to a path."""
         return with_baseurl(path, self.site)
+
+
+def clear_template_locks() -> None:
+    """
+    Clear all template compilation locks.
+
+    Call this at the end of a build session to reset lock state.
+    Safe to call when no threads are actively compiling templates.
+    """
+    _template_compilation_locks.clear()

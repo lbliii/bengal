@@ -61,14 +61,18 @@ class PerformanceCollector:
         collector.save(stats)
     """
 
-    def __init__(self, metrics_dir: Path | None = None):
+    def __init__(self, metrics_dir: Path | None = None, track_memory: bool = False):
         """
         Initialize performance collector.
 
         Args:
             metrics_dir: Directory to store metrics (default: .bengal/metrics)
+            track_memory: Whether to enable tracemalloc memory tracking.
+                         Disabled by default because tracemalloc has significant
+                         overhead (~2-5x) and conflicts badly with cProfile (~100x).
         """
         self.metrics_dir = metrics_dir or Path(".bengal/metrics")
+        self.track_memory = track_memory
         self.start_time: float | None = None
         self.start_memory: int | None = None
         self.start_rss: int | None = None
@@ -83,13 +87,15 @@ class PerformanceCollector:
         """Start collecting metrics for a build."""
         self.start_time = time.time()
 
-        # Start memory tracking with tracemalloc
-        if not tracemalloc.is_tracing():
+        # Only start tracemalloc if explicitly requested
+        # tracemalloc has ~2-5x overhead on its own, and ~100x when combined with cProfile
+        if self.track_memory and not tracemalloc.is_tracing():
             tracemalloc.start()
 
-        self.start_memory = tracemalloc.get_traced_memory()[0]
+        if tracemalloc.is_tracing():
+            self.start_memory = tracemalloc.get_traced_memory()[0]
 
-        # Get initial RSS if psutil available
+        # Get initial RSS if psutil available (lightweight, always ok)
         if self.process:
             self.start_rss = self.process.memory_info().rss
 
@@ -103,10 +109,13 @@ class PerformanceCollector:
         Returns:
             Updated BuildStats object
         """
-        # Calculate Python heap memory
-        current_mem, peak_mem = tracemalloc.get_traced_memory()
-        memory_heap_mb = (current_mem - (self.start_memory or 0)) / 1024 / 1024
-        memory_peak_mb = peak_mem / 1024 / 1024
+        # Calculate Python heap memory (only if tracemalloc was started)
+        memory_heap_mb = 0.0
+        memory_peak_mb = 0.0
+        if tracemalloc.is_tracing():
+            current_mem, peak_mem = tracemalloc.get_traced_memory()
+            memory_heap_mb = (current_mem - (self.start_memory or 0)) / 1024 / 1024
+            memory_peak_mb = peak_mem / 1024 / 1024
 
         # Calculate RSS memory if available
         memory_rss_mb = 0.0

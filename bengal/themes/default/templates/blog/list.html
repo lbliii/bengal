@@ -34,9 +34,9 @@ Context variables:
     <header class="page-header page-header--centered">
         <h1>✍️ {{ section.title if section else title | default('Blog') }}</h1>
 
-        {% if section and section.metadata.get('description', '') %}
-        <p class="blog-description">{{ section.metadata.get('description', '') }}</p>
-        {% elif description is defined and description %}
+        {% if section and section.metadata.description %}
+        <p class="blog-description">{{ section.metadata.description }}</p>
+        {% elif description %}
         <p class="blog-description">{{ description }}</p>
         {% endif %}
 
@@ -57,10 +57,10 @@ Context variables:
         <div class="blog-featured-grid stagger-fade-in">
             {% for post in featured_posts %}
             <article class="blog-featured-card gradient-border-strong fluid-bg">
-                {% if post.metadata.get('image') or post.metadata.get('cover') %}
+                {% if post.metadata.image or post.metadata.cover %}
                 <div class="blog-card-image">
                     <a href="{{ post.href }}">
-                        <img src="{{ post.metadata.get('image') | default(post.metadata.get('cover')) }}"
+                        <img src="{{ post.metadata.image | default(post.metadata.cover) }}"
                             alt="{{ post.title }}">
                     </a>
                 </div>
@@ -71,20 +71,20 @@ Context variables:
                     <a href="{{ post.href }}">{{ post.title }}</a>
                     </h3>
 
-                    {% if post.metadata.get('description') or post.excerpt %}
+                    {% if post.metadata.description or post.excerpt %}
                     <p class="blog-card-excerpt">
-                        {{ post.metadata.get('description') | default(post.excerpt) | truncate(180) }}
+                        {{ post.metadata.description | default(post.excerpt) | truncate(180) }}
                     </p>
                     {% endif %}
 
                     <div class="blog-card-meta">
-                        {% if post.metadata.get('author') %}
+                        {% if post.metadata.author %}
                         <span class="blog-author">
-                            {% if post.metadata.get('author_avatar') %}
-                            <img src="{{ post.metadata.get('author_avatar') }}" alt="{{ post.metadata.get('author') }}"
+                            {% if post.metadata.author_avatar %}
+                            <img src="{{ post.metadata.author_avatar }}" alt="{{ post.metadata.author }}"
                                 class="author-avatar">
                             {% endif %}
-                            {{ post.metadata.get('author') }}
+                            {{ post.metadata.author }}
                         </span>
                         {% endif %}
 
@@ -124,10 +124,10 @@ Context variables:
         <div class="blog-post-list">
             {% for post in regular_posts %}
             <article class="blog-post-card gradient-border fluid-combined">
-                {% if post.metadata.get('image') or post.metadata.get('cover') %}
+                {% if post.metadata.image or post.metadata.cover %}
                 <div class="blog-card-image">
                 <a href="{{ post.href }}">
-                        <img src="{{ post.metadata.get('image') | default(post.metadata.get('cover')) }}"
+                        <img src="{{ post.metadata.image | default(post.metadata.cover) }}"
                             alt="{{ post.title }}">
                     </a>
                 </div>
@@ -138,20 +138,20 @@ Context variables:
                     <a href="{{ post.href }}">{{ post.title }}</a>
                     </h3>
 
-                    {% if post.metadata.get('description') or post.excerpt %}
+                    {% if post.metadata.description or post.excerpt %}
                     <p class="blog-card-excerpt">
-                        {{ post.metadata.get('description') | default(post.excerpt) | truncate(200) }}
+                        {{ post.metadata.description | default(post.excerpt) | truncate(200) }}
                     </p>
                     {% endif %}
 
                     <div class="blog-card-meta">
-                        {% if post.metadata.get('author') %}
+                        {% if post.metadata.author %}
                         <span class="blog-author">
-                            {% if post.metadata.get('author_avatar') %}
-                            <img src="{{ post.metadata.get('author_avatar') }}" alt="{{ post.metadata.get('author') }}"
+                            {% if post.metadata.author_avatar %}
+                            <img src="{{ post.metadata.author_avatar }}" alt="{{ post.metadata.author }}"
                                 class="author-avatar">
                             {% endif %}
-                            {{ post.metadata.get('author') }}
+                            {{ post.metadata.author }}
                         </span>
                         {% endif %}
 
@@ -200,8 +200,8 @@ Context variables:
                     <h3 class="blog-card-title">
                     <a href="{{ subsection.href }}">{{ subsection.title }}</a>
                     </h3>
-                    {% if subsection.metadata.get('description', '') %}
-                    <p class="blog-card-excerpt">{{ subsection.metadata.get('description', '') }}</p>
+                    {% if subsection.metadata.description %}
+                    <p class="blog-card-excerpt">{{ subsection.metadata.description }}</p>
                     {% endif %}
                     {% if subsection.regular_pages %}
                     {# Count only non-index pages #}

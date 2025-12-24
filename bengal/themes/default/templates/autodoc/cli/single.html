@@ -29,7 +29,7 @@ Or set `type: autodoc-cli` to auto-select this template
     {% include 'partials/page-hero.html' %}
 
     {# Article Content - flattened structure #}
-    <article class="prose docs-content {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
+    <article class="prose docs-content {% if params.css_class %}{{ params.css_class }}{% endif %}">
       {{ content | safe }}
 
       {# Tags #}

@@ -37,11 +37,11 @@
   {% if page.content %}
   <span class="docs-meta-item">
     {{ icon("file-text", size=14) }}
-    <span>{{ page.content | word_count | commas }} words</span>
+    <span>{{ t('meta.word_count', {'count': page.content | word_count | commas}, default='{count} words') }}</span>
   </span>
   <span class="docs-meta-item">
     {{ icon("clock", size=14) }}
-    <span>{{ page.content | reading_time }} min read</span>
+    <span>{{ t('meta.reading_time', {'time': page.content | reading_time}, default='{time} min read') }}</span>
   </span>
   {% endif %}
 </div>

@@ -118,6 +118,65 @@ Group items by a key value, returning a dictionary.
 {% endfor %}
 ```
 
+### group_by_year
+
+Group pages by publication year. Returns dictionary sorted by year (newest first).
+
+```jinja2
+{% set by_year = site.pages | group_by_year %}
+
+{% for year, posts in by_year.items() %}
+<h2>{{ year }}</h2>
+<ul>
+  {% for post in posts %}
+  <li><a href="{{ post.href }}">{{ post.title }}</a></li>
+  {% endfor %}
+</ul>
+{% endfor %}
+```
+
+**Parameters:**
+- `date_attr`: Attribute containing the date (default: `'date'`)
+
+### group_by_month
+
+Group pages by year-month. Returns dictionary keyed by `(year, month)` tuples.
+
+```jinja2
+{% set by_month = site.pages | group_by_month %}
+
+{% for (year, month), posts in by_month.items() %}
+<h2>{{ month | month_name }} {{ year }}</h2>
+<ul>
+  {% for post in posts %}
+  <li><a href="{{ post.href }}">{{ post.title }}</a></li>
+  {% endfor %}
+</ul>
+{% endfor %}
+```
+
+### archive_years
+
+Get list of years with post counts for archive navigation.
+
+```jinja2
+{% set years = site.pages | archive_years %}
+
+<aside class="archive">
+  <h3>Archive</h3>
+  <ul>
+    {% for item in years %}
+    <li>
+      <a href="/blog/{{ item.year }}/">{{ item.year }}</a>
+      <span>({{ item.count }})</span>
+    </li>
+    {% endfor %}
+  </ul>
+</aside>
+```
+
+**Returns:** List of dicts with `year` and `count` keys, sorted newest first.
+
 ### limit
 
 Take the first N items from a list.
@@ -782,3 +841,205 @@ Count words in text, stripping HTML first. Uses same logic as `reading_time`.
 ```
 
 Also available as `wordcount` (Jinja naming convention).
+
+---
+
+## Date Filters
+
+These filters help calculate and display content age and date information.
+
+### days_ago
+
+Calculate days since a date. Useful for freshness indicators.
+
+```jinja2
+{# Days since publication #}
+{{ page.date | days_ago }} days old
+
+{# Conditional styling #}
+{% if page.date | days_ago < 7 %}
+<span class="badge badge-new">New</span>
+{% endif %}
+```
+
+### months_ago
+
+Calculate calendar months since a date.
+
+```jinja2
+{% if page.date | months_ago > 6 %}
+<div class="notice">This content may be outdated.</div>
+{% endif %}
+```
+
+### month_name
+
+Get month name from number (1-12).
+
+```jinja2
+{{ 3 | month_name }}         {# → "March" #}
+{{ 3 | month_name(true) }}   {# → "Mar" (abbreviated) #}
+
+{# With date #}
+{{ page.date.month | month_name }}
+```
+
+### humanize_days
+
+Convert day count to human-readable relative time.
+
+```jinja2
+{{ page.date | days_ago | humanize_days }}
+{# → "today", "yesterday", "3 days ago", "2 weeks ago", etc. #}
+```
+
+---
+
+## Social Sharing
+
+Generate share URLs for social platforms.
+
+### share_url
+
+Generate share URL for any supported platform.
+
+```jinja2
+<a href="{{ share_url('twitter', page) }}">Share on Twitter</a>
+<a href="{{ share_url('linkedin', page) }}">Share on LinkedIn</a>
+<a href="{{ share_url('facebook', page) }}">Share on Facebook</a>
+<a href="{{ share_url('reddit', page) }}">Share on Reddit</a>
+<a href="{{ share_url('hackernews', page) }}">Share on HN</a>
+```
+
+**Supported Platforms:** `twitter`, `linkedin`, `facebook`, `reddit`, `hackernews` (or `hn`), `email`, `mastodon`
+
+### Individual Share Functions
+
+For more control, use platform-specific functions:
+
+```jinja2
+{# Twitter with via attribution #}
+<a href="{{ twitter_share_url(page.absolute_href, page.title, via='myblog') }}">
+  Tweet this
+</a>
+
+{# Reddit #}
+<a href="{{ reddit_share_url(page.absolute_href, page.title) }}">
+  Submit to Reddit
+</a>
+
+{# Email #}
+<a href="{{ email_share_url(page.absolute_href, page.title) }}">
+  Share via Email
+</a>
+```
+
+---
+
+## Page Properties
+
+These properties are available on all page objects.
+
+### Author Properties
+
+Access structured author information from frontmatter.
+
+```jinja2
+{# Single author #}
+{% if page.author %}
+<div class="author">
+  {% if page.author.avatar %}
+  <img src="{{ page.author.avatar }}" alt="{{ page.author.name }}">
+  {% endif %}
+  <span>{{ page.author.name }}</span>
+  {% if page.author.twitter %}
+  <a href="https://twitter.com/{{ page.author.twitter }}">@{{ page.author.twitter }}</a>
+  {% endif %}
+</div>
+{% endif %}
+
+{# Multiple authors #}
+{% for author in page.authors %}
+<span class="author">{{ author.name }}</span>
+{% endfor %}
+```
+
+**Author fields:** `name`, `email`, `bio`, `avatar`, `url`, `twitter`, `github`, `linkedin`, `mastodon`, `social` (dict)
+
+### Series Properties
+
+For multi-part content like tutorials.
+
+```jinja2
+{% if page.series %}
+<nav class="series-nav">
+  <h4>{{ page.series.name }}</h4>
+  <p>Part {{ page.series.part }} of {{ page.series.total }}</p>
+
+  {% if page.prev_in_series %}
+  <a href="{{ page.prev_in_series.href }}">← {{ page.prev_in_series.title }}</a>
+  {% endif %}
+
+  {% if page.next_in_series %}
+  <a href="{{ page.next_in_series.href }}">{{ page.next_in_series.title }} →</a>
+  {% endif %}
+</nav>
+{% endif %}
+```
+
+**Series frontmatter:**
+```yaml
+series:
+  name: "Building a Blog with Bengal"
+  part: 2
+  total: 5
+```
+
+### Age Properties
+
+Content age as computed properties.
+
+```jinja2
+{# Days since publication #}
+{% if page.age_days < 7 %}
+<span class="badge">New</span>
+{% elif page.age_months > 6 %}
+<div class="notice">This article is {{ page.age_months }} months old.</div>
+{% endif %}
+```
+
+---
+
+## Section Properties
+
+These properties are available on section objects.
+
+### post_count
+
+Count of pages in a section.
+
+```jinja2
+<span>{{ section.post_count }} articles</span>
+<span>{{ section.post_count_recursive }} total in all subsections</span>
+```
+
+### featured_posts
+
+Get featured pages from a section.
+
+```jinja2
+{% for post in section.featured_posts(3) %}
+<article class="featured">
+  <h2>{{ post.title }}</h2>
+</article>
+{% endfor %}
+```
+
+### Section Statistics
+
+```jinja2
+<div class="section-stats">
+  <span>{{ section.word_count | intcomma }} words</span>
+  <span>{{ section.total_reading_time }} min total reading time</span>
+</div>
+```

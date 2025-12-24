@@ -211,7 +211,7 @@ class CacheStore:
             # Create parent directory if missing
             self.cache_path.parent.mkdir(parents=True, exist_ok=True)
 
-            # Write uncompressed JSON (using orjson if available)
+            # Write uncompressed JSON
             json_str = json.dumps(data, indent=indent)
             self.cache_path.write_text(json_str, encoding="utf-8")
 
@@ -314,10 +314,11 @@ class CacheStore:
         if self._compressed_path and self._compressed_path.exists():
             try:
                 from bengal.cache.compression import ZstdError, load_compressed
+                from bengal.cache.version import CacheVersionError
 
                 data: dict[Any, Any] | None = load_compressed(self._compressed_path)
                 return data
-            except (ZstdError, json.JSONDecodeError, OSError) as e:
+            except (ZstdError, json.JSONDecodeError, OSError, CacheVersionError) as e:
                 logger.error(f"Failed to load compressed cache {self._compressed_path}: {e}")
                 return None
 

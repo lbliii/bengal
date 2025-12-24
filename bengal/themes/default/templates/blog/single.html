@@ -26,35 +26,35 @@ Context variables:
 
 <div class="blog-post-layout {% if toc %}blog-with-toc{% endif %}">
     <article
-        class="blog-post prose {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
+        class="blog-post prose {% if params.css_class %}{{ params.css_class }}{% endif %}">
         <header class="blog-post-header">
             {# Featured Image #}
-            {% if page.metadata.get('image') or page.metadata.get('cover') %}
+            {% if params.image or params.cover %}
             <div class="blog-post-image">
-                <img src="{{ page.metadata.get('image') | default(page.metadata.get('cover')) }}"
+                <img src="{{ params.image | default(params.cover) }}"
                     alt="{{ page.title }}">
             </div>
             {% endif %}
 
             <h1>{{ page.title }}</h1>
 
-            {% if page.metadata.get('description', '') %}
-            <p class="lead">{{ page.metadata.get('description', '') }}</p>
+            {% if params.description %}
+            <p class="lead">{{ params.description }}</p>
             {% endif %}
 
             {# Post Metadata #}
             <div class="blog-post-meta">
                 {# Author Info - Feature: content.author #}
-                {% if page.metadata.get('author') and 'content.author' in site.theme_config.features %}
+                {% if params.author and 'content.author' in theme.features %}
                 <div class="blog-post-author">
-                    {% if page.metadata.get('author_avatar') %}
-                    <img src="{{ page.metadata.get('author_avatar') }}" alt="{{ page.metadata.get('author') }}"
+                    {% if params.author_avatar %}
+                    <img src="{{ params.author_avatar }}" alt="{{ params.author }}"
                         class="author-avatar">
                     {% endif %}
                     <div class="author-info">
-                        <strong>{{ page.metadata.get('author') }}</strong>
-                        {% if page.metadata.get('author_title') %}
-                        <span class="author-title">{{ page.metadata.get('author_title') }}</span>
+                        <strong>{{ params.author }}</strong>
+                        {% if params.author_title %}
+                        <span class="author-title">{{ params.author_title }}</span>
                         {% endif %}
                     </div>
                 </div>
@@ -70,18 +70,18 @@ Context variables:
                     {% endif %}
 
                     {# Reading Time - Feature: content.reading_time #}
-                    {% if page.content and 'content.reading_time' in site.theme_config.features %}
+                    {% if page.content and 'content.reading_time' in theme.features %}
                     <span class="reading-time">
                         {{ icon('clock', size=14) }}
-                        {{ (page.content | wordcount / 200) | round }} min read
+                        {{ page.content | reading_time }} min read
                     </span>
                     {% endif %}
 
                     {# View Count (if tracked) #}
-                    {% if page.metadata.get('views') %}
+                    {% if params.views %}
                     <span class="view-count">
                         {{ icon('eye', size=14) }}
-                        {{ page.metadata.get('views') | default(0) }} views
+                        {{ params.views | default(0) }} views
                     </span>
                     {% endif %}
                 </div>
@@ -103,59 +103,72 @@ Context variables:
         {# Post Footer #}
         <footer class="blog-post-footer">
             {# Updated Date #}
-            {% if page.metadata.get('updated') and page.metadata.get('updated') != page.date %}
+            {% if params.updated and params.updated != page.date %}
             <p class="blog-updated">
-                <em>Last updated: {{ page.metadata.get('updated') | dateformat('%B %d, %Y') }}</em>
+                <em>Last updated: {{ params.updated | dateformat('%B %d, %Y') }}</em>
             </p>
             {% endif %}
 
             {# Author Bio - Feature: content.author #}
-            {% if page.metadata.get('author') and page.metadata.get('author_bio') and
-            'content.author' in site.theme_config.features %}
+            {% if params.author and params.author_bio and
+            'content.author' in theme.features %}
             <div class="author-bio">
                 <div class="author-bio-header">
-                    {% if page.metadata.get('author_avatar') %}
-                    <img src="{{ page.metadata.get('author_avatar') }}" alt="{{ page.metadata.get('author') }}"
+                    {% if params.author_avatar %}
+                    <img src="{{ params.author_avatar }}" alt="{{ params.author }}"
                         class="author-avatar-large">
                     {% endif %}
                     <div>
-                        <h3>About {{ page.metadata.get('author') }}</h3>
-                        {% if page.metadata.get('author_title') %}
-                        <p class="author-title">{{ page.metadata.get('author_title') }}</p>
+                        <h3>About {{ params.author }}</h3>
+                        {% if params.author_title %}
+                        <p class="author-title">{{ params.author_title }}</p>
                         {% endif %}
                     </div>
                 </div>
-                <p class="author-bio-text">{{ page.metadata.get('author_bio') }}</p>
-                {% if page.metadata.get('author_links') %}
+                <p class="author-bio-text">{{ params.author_bio }}</p>
+                {% if params.author_links %}
                 <div class="author-links">
-                    {% for link in page.metadata.get('author_links') %}
-                    <a href="{{ link.get('href') or link.get('url') }}" target="_blank" rel="noopener noreferrer">{{ link.get('text') }}</a>
+                    {% for link in params.author_links %}
+                    <a href="{{ link.href or link.url }}" target="_blank" rel="noopener noreferrer">{{ link.text }}</a>
                     {% endfor %}
                 </div>
                 {% endif %}
             </div>
             {% endif %}
 
-            {# Social Sharing #}
+            {# Social Sharing - uses Bengal's share_url() helpers #}
             <div class="blog-social-share">
-                <h4>Share this post</h4>
+                <h4>{{ t('blog.share_post', default='Share this post') }}</h4>
                 <div class="share-buttons">
-                    <a href="https://twitter.com/intent/tweet?url={{ page.href | urlencode }}&text={{ page.title | urlencode }}"
+                    <a href="{{ share_url('twitter', page) }}"
                         target="_blank" rel="noopener noreferrer" class="share-button share-twitter"
                         aria-label="Share on Twitter">
                         {{ icon('twitter-logo', size=20) }}
                         Twitter
                     </a>
-                    <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ page.href | urlencode }}"
+                    <a href="{{ share_url('linkedin', page) }}"
                         target="_blank" rel="noopener noreferrer" class="share-button share-linkedin"
                         aria-label="Share on LinkedIn">
                         {{ icon('linkedin-logo', size=20) }}
                         LinkedIn
                     </a>
-                    <a href="https://www.facebook.com/sharer/sharer.php?u={{ page.href | urlencode }}" target="_blank"
-                        rel="noopener noreferrer" class="share-button share-facebook" aria-label="Share on Facebook">
+                    <a href="{{ share_url('facebook', page) }}"
+                        target="_blank" rel="noopener noreferrer" class="share-button share-facebook"
+                        aria-label="Share on Facebook">
                         {{ icon('facebook-logo', size=20) }}
                         Facebook
+                    </a>
+                    <a href="{{ share_url('reddit', page) }}"
+                        target="_blank" rel="noopener noreferrer" class="share-button share-reddit"
+                        aria-label="Share on Reddit">
+                        {{ icon('reddit-logo', size=20) }}
+                        Reddit
+                    </a>
+                    <a href="{{ share_url('email', page) }}"
+                        class="share-button share-email"
+                        aria-label="Share via Email">
+                        {{ icon('envelope-simple', size=20) }}
+                        Email
                     </a>
                     <button class="share-button share-copy"
                         onclick="navigator.clipboard.writeText('{{ page.href }}'); this.innerHTML = '✓ Copied!'"
@@ -179,7 +192,7 @@ Context variables:
         </nav>
 
         {# Newsletter CTA (Optional) #}
-        {% if page.metadata.get('show_newsletter') %}
+        {% if params.show_newsletter %}
         <div class="newsletter-cta">
             <h3>Stay Updated</h3>
             <p>Get notified when we publish new content.</p>
@@ -203,14 +216,14 @@ Context variables:
 {% if related %}
 <aside class="related-posts">
     <div class="container">
-        <h2>Related Posts</h2>
+        <h2>{{ t('blog.related_posts', default='Related Posts') }}</h2>
         <div class="blog-featured-grid">
             {% for post in related %}
             <article class="blog-post-card gradient-border fluid-combined">
-                {% if post.metadata.get('image') or post.metadata.get('cover') %}
+                {% if post.metadata.image or post.metadata.cover %}
                 <div class="blog-card-image">
                     <a href="{{ post.href }}">
-                        <img src="{{ post.metadata.get('image') | default(post.metadata.get('cover')) }}"
+                        <img src="{{ post.metadata.image | default(post.metadata.cover) }}"
                             alt="{{ post.title }}">
                     </a>
                 </div>
@@ -219,8 +232,8 @@ Context variables:
                     <h3 class="blog-card-title">
                         <a href="{{ post.href }}">{{ post.title }}</a>
                     </h3>
-                    {% if post.metadata.get('description') or post.excerpt %}
-                    <p class="blog-card-excerpt">{{ post.metadata.get('description') | default(post.excerpt) |
+                    {% if post.metadata.description or post.excerpt %}
+                    <p class="blog-card-excerpt">{{ post.metadata.description | default(post.excerpt) |
                         truncate(120) }}
                     </p>
                     {% endif %}
@@ -236,14 +249,14 @@ Context variables:
 {% endif %}
 
 {# Comments Section (Integration Point) #}
-{% if page.metadata.get('comments') != false %}
+{% if params.comments != false %}
 <div class="comments-section">
     <div class="container">
-        <h2>Comments</h2>
+        <h2>{{ t('blog.comments', default='Comments') }}</h2>
         {# Integration point for comments systems (Disqus, utterances, etc) #}
         <div id="comments" data-comments-target></div>
         <p class="comments-placeholder">
-            <em>Comments are loaded dynamically. Configure your comments system in the theme.</em>
+            <em>{{ t('blog.comments_placeholder', default='Comments are loaded dynamically. Configure your comments system in the theme.') }}</em>
         </p>
     </div>
 </div>

@@ -209,9 +209,11 @@ class TestChangeDetectorTemplates:
         mock_cache.should_bypass.return_value = False
         mock_cache.get_affected_pages.return_value = [str(mock_site.pages[0].source_path)]
 
-        # Patch _get_theme_templates_dir
+        # Patch _get_theme_templates_dir on the template detector
         with patch.object(
-            detector, "_get_theme_templates_dir", return_value=Path("/fake/theme/templates")
+            detector._template_detector,
+            "_get_theme_templates_dir",
+            return_value=Path("/fake/theme/templates"),
         ):
             change_set = detector.detect_changes("early", verbose=True)
 

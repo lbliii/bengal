@@ -51,6 +51,5 @@ def test_base_template_does_not_render_none_variant_attribute() -> None:
     base = base_path.read_text(encoding="utf-8")
 
     # Require a guard that emits an empty string when variant is falsy.
-    assert re.search(
-        r'data-variant="\{\{\s*\([^}]*_page\.variant[^}]*else\s*\'\'\s*\)\s*\}\}"', base
-    )
+    # Pattern: page.variant or '' (Jinja2 shorthand for fallback)
+    assert re.search(r'data-variant="\{\{\s*page\.variant\s+or\s+\'\'\s*\}\}"', base)

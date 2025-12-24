@@ -20,17 +20,19 @@ class TestDotDictBasics:
         assert data["name"] == "Alice"
         assert data["age"] == 30
 
-    def test_missing_attribute_returns_none(self):
-        """Test that missing attributes return None (Jinja2 compatibility)."""
+    def test_missing_attribute_returns_empty_string(self):
+        """Test that missing attributes return '' (consistent with ParamsContext)."""
         data = DotDict({"name": "Alice"})
-        assert data.missing is None
-        assert data.nonexistent is None
+        assert data.missing == ""
+        assert data.nonexistent == ""
 
     def test_get_with_default(self):
         """Test get() method with default values."""
         data = DotDict({"name": "Alice"})
         assert data.get("name") == "Alice"
-        assert data.get("missing") is None
+        assert (
+            data.get("missing") is None
+        )  # .get() returns None (not ''), consistent with dict.get()
         assert data.get("missing", "default") == "default"
 
     def test_contains(self):
@@ -167,7 +169,7 @@ class TestDotDictModification:
         data = DotDict({"name": "Alice", "age": 30})
         del data.age
         assert "age" not in data
-        assert data.age is None  # Returns None for missing keys
+        assert data.age == ""  # Returns '' for missing keys (consistent with ParamsContext)
 
     def test_delattr_nonexistent_raises(self):
         """Test deleting non-existent attribute raises error."""
@@ -349,7 +351,7 @@ class TestDotDictEdgeCases:
         data = DotDict()
         assert len(data) == 0
         assert list(data) == []
-        assert data.anything is None
+        assert data.anything == ""  # Returns '' for missing keys
 
     def test_none_values(self):
         """Test DotDict with None values."""

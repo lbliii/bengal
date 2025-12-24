@@ -47,6 +47,7 @@ from bengal.core.asset import Asset
 from bengal.core.diagnostics import emit as emit_diagnostic
 from bengal.core.menu import MenuBuilder, MenuItem
 from bengal.core.page import Page
+from bengal.core.registry import ContentRegistry
 from bengal.core.section import Section
 from bengal.core.site.data import DataLoadingMixin
 from bengal.core.site.discovery import ContentDiscoveryMixin
@@ -62,6 +63,7 @@ from bengal.orchestration.stats import BuildStats
 
 if TYPE_CHECKING:
     from bengal.orchestration.build.options import BuildOptions
+    from bengal.orchestration.build_state import BuildState
     from bengal.utils.profile import BuildProfile
 
 
@@ -165,16 +167,17 @@ class Site(
     _theme_obj: Theme | None = field(default=None, repr=False, init=False)
     _query_registry: Any = field(default=None, repr=False, init=False)
 
-    # Section registry for path-based lookups (O(1) section access by path)
-    _section_registry: dict[Path, Section] = field(default_factory=dict, repr=False, init=False)
-
-    # Section URL registry for virtual sections (O(1) section access by URL)
-    # See: plan/active/rfc-page-section-reference-contract.md
-    _section_url_registry: dict[str, Section] = field(default_factory=dict, repr=False, init=False)
-
     # URL ownership registry for claim-time enforcement
     # See: plan/drafted/plan-url-ownership-architecture.md
     url_registry: URLRegistry = field(default_factory=URLRegistry, init=False)
+
+    # Content registry for O(1) page/section lookups
+    # See: plan/drafted/rfc-site-responsibility-separation.md
+    _registry: ContentRegistry | None = field(default=None, repr=False, init=False)
+
+    # Current build state (set during build, None outside build context)
+    # See: plan/drafted/rfc-site-responsibility-separation.md
+    _current_build_state: BuildState | None = field(default=None, repr=False, init=False)
 
     # Config hash for cache invalidation (computed on init)
     _config_hash: str | None = field(default=None, repr=False, init=False)
@@ -225,6 +228,11 @@ class Site(
     # --- Discovery State ---
     # Discovery timing breakdown (set by ContentOrchestrator)
     _discovery_breakdown_ms: dict[str, float] | None = field(default=None, repr=False, init=False)
+
+    # Features detected during content discovery (mermaid, graph, data_tables, etc.)
+    # Used by CSSOptimizer to include only CSS for features actually in use.
+    # See: plan/drafted/rfc-css-tree-shaking.md
+    features_detected: set[str] = field(default_factory=set, repr=False, init=False)
 
     def __post_init__(self) -> None:
         """Initialize site from configuration."""
@@ -279,6 +287,14 @@ class Site(
         # See: plan/drafted/plan-url-ownership-architecture.md
         if not hasattr(self, "url_registry") or self.url_registry is None:
             self.url_registry = URLRegistry()
+
+        # Initialize content registry for O(1) lookups
+        # See: plan/drafted/rfc-site-responsibility-separation.md
+        if self._registry is None:
+            self._registry = ContentRegistry()
+            self._registry.set_root_path(self.root_path)
+            # Share URL registry with content registry
+            self._registry.url_ownership = self.url_registry
 
     def build(
         self,
@@ -469,12 +485,16 @@ class Site(
         # Cached properties
         self.invalidate_page_caches()
 
-        # Section registries (rebuilt from sections)
-        self._section_registry = {}
-        self._section_url_registry = {}
+        # Clear content registry (includes section registries and URL ownership)
+        # See: plan/drafted/rfc-site-responsibility-separation.md
+        self.registry.clear()
 
-        # Reset query registry
-        self._query_registry = None
+        # Reset URL registry and reconnect with content registry
+        self.url_registry = URLRegistry()
+        self.registry.url_ownership = self.url_registry
+
+        # Reset query registry (clear cached_property)
+        self.__dict__.pop("indexes", None)
 
         # Reset lookup maps
         self._page_lookup_maps = None
@@ -488,6 +508,9 @@ class Site(
         self._bengal_template_metadata_cache = None
         self._discovery_breakdown_ms = None
         self._asset_manifest_fallbacks_global.clear()
+
+        # CSS optimization state
+        self.features_detected.clear()
 
         # Clear thread-local rendering caches (Phase B formalization)
         from bengal.rendering.pipeline.thread_local import get_created_dirs
@@ -597,6 +620,62 @@ class Site(
         sections = len(self.sections)
         assets = len(self.assets)
         return f"Site(pages={pages}, sections={sections}, assets={assets})"
+
+    # =========================================================================
+    # BUILD STATE ACCESS (rfc-site-responsibility-separation.md)
+    # =========================================================================
+
+    @property
+    def build_state(self) -> BuildState | None:
+        """
+        Current build state (None outside build context).
+
+        Returns:
+            BuildState during build execution, None otherwise
+
+        Example:
+            if site.build_state:
+                lock = site.build_state.get_lock("asset_write")
+        """
+        return self._current_build_state
+
+    def set_build_state(self, state: BuildState | None) -> None:
+        """
+        Set current build state (called by BuildOrchestrator).
+
+        Args:
+            state: BuildState to set, or None to clear
+
+        Note:
+            This is called internally by BuildOrchestrator at build start/end.
+            Do not call directly unless implementing custom build coordination.
+        """
+        self._current_build_state = state
+
+    # =========================================================================
+    # REGISTRY ACCESS (rfc-site-responsibility-separation.md)
+    # =========================================================================
+
+    @property
+    def registry(self) -> ContentRegistry:
+        """
+        Content registry for O(1) page/section lookups.
+
+        Provides centralized access to content lookups without scanning
+        hierarchies. Initialized lazily on first access.
+
+        Returns:
+            ContentRegistry instance
+
+        Example:
+            page = site.registry.get_page(path)
+            section = site.registry.get_section_by_url("/api/")
+        """
+        if self._registry is None:
+            self._registry = ContentRegistry()
+            self._registry.set_root_path(self.root_path)
+            self._registry.url_ownership = self.url_registry
+        return self._registry
 
     # =========================================================================
     # VALIDATION METHODS

@@ -168,7 +168,7 @@ Any fields not part of Bengal's standard frontmatter are automatically available
 
 **Custom fields** (Component Model props):
 - Any field not listed above goes into `page.props`
-- Access in templates via `page.props.icon` or `page.metadata.get('icon')`
+- Access in templates via `params.icon` or `page.props.icon` (safe dot-notation)
 
 :::{example-label}
 :::
@@ -185,10 +185,10 @@ custom_setting: value
 ---
 ```
 
-Access custom fields via:
-- `page.metadata.get('icon')` or `page.props.get('icon')`
-- `page.metadata.get('card_color')`
-- `page.metadata.get('custom_setting')`
+Access custom fields via safe dot-notation:
+- `params.icon` (cascading: page → section → site)
+- `params.card_color`
+- `params.custom_setting`
 
 **Note**: The `props:` key is only used in skeleton manifests (`bengal project skeleton apply`). For regular markdown files, use flat frontmatter (all fields at top level).
 

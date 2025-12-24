@@ -19,7 +19,7 @@ Usage:
         {% set track = site.data.tracks[track_id] %}
       {% endif %}
   #}
-  {% set track_id = page.metadata.get('track_id') or page.slug %}
+  {% set track_id = params.track_id or page.slug %}
   {% if site.data.tracks and track_id in site.data.tracks %}
     {{ track_id }}
   {% else %}

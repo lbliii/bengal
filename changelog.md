@@ -1,5 +1,73 @@
 ## [Unreleased]
 
+### Jinja Pattern Adoption ✅
+- **cache**: add magic header validation to compressed caches (`.json.zst`) for robust auto-invalidation on Python/Bengal upgrades
+- **utils(sentinel)**: add `MISSING` sentinel singleton to distinguish between `None` and unset values
+- **cache(build_cache)**: adopt `MISSING` sentinel in `get_parsed_content` and `get_rendered_output` for technical correctness
+- **directives(base)**: add `PRIORITY` system to `BengalDirective` for explicit processing order control
+- **directives(factory)**: update factory to sort directives by priority before registration
+- **directives(include)**: set `PRIORITY_FIRST` to ensure content is included before other processing
+- **directives(navigation)**: set `PRIORITY_LATE` for breadcrumbs, siblings, prev-next, and related directives
+- **tests(unit)**: add 14 unit tests for cache versioning, sentinel behavior, and directive priority
+- **plan**: move rfc-jinja-pattern-adoption.md to implemented status
+
+### Inline Asset Extraction ✅
+- **orchestration(build)**: eliminate separate `Track assets` phase by extracting asset dependencies inline during rendering
+- **utils(build_context)**: add `_accumulated_assets` field and thread-safe accumulation methods for asset dependencies
+- **rendering(pipeline)**: add `_accumulate_asset_deps()` method called after `write_output` in all render paths
+- **orchestration(rendering)**: update `phase_track_assets` to use accumulated data (fast path) with fallback to extraction
+- **perf**: ~95% reduction in Track assets phase time (~5-6s → ~20ms for 1134 pages)
+- **tests**: add 10 unit tests for BuildContext asset accumulation and 4 integration tests for inline extraction
+- **plan**: RFC and plan moved to implemented
+
+### Build Output Tracking ✅
+- **core(output)**: add `OutputRecord`, `OutputType`, `OutputCollector` protocol for typed output tracking
+- **core(output)**: add `BuildOutputCollector` thread-safe implementation with phase and type classification
+- **orchestration(build)**: create `BuildOutputCollector` per build and wire through asset/render/postprocess phases
+- **orchestration(stats)**: change `BuildStats.changed_outputs` type from `list[str] | None` to `list[OutputRecord]`
+- **server(reload)**: add `decide_from_outputs()` for typed reload decisions (CSS-only vs full reload)
+- **server**: enable CSS hot reload without snapshot diffing when typed outputs available
+- **plan**: remove completed build output tracking RFC and plan - work documented in changelog
+
+### Parallel Asset Tracking ✅
+- **orchestration(build)**: parallelize `phase_track_assets` using `ThreadPoolExecutor` matching rendering pattern
+- **orchestration(build)**: add `PARALLEL_THRESHOLD = 5` to skip thread overhead for small sites
+- **orchestration(build)**: extract assets in parallel for 3-4x speedup on multi-core systems (100+ pages)
+- **cache(asset_dependency_map)**: verify thread safety of `track_page_assets()` (atomic dict assignment)
+- **rendering(asset_extractor)**: verify stateless `extract_assets_from_html()` is thread-safe (new parser per call)
+- **tests(unit)**: add 5 tests for parallel asset tracking (sequential/parallel paths, edge cases, threshold behavior)
+- **plan**: remove completed parallel asset tracking RFC - work documented in changelog
+
+### CLI Analysis Improvements ✅
+- **cli**: promote `graph` to top-level command (`bengal graph`) alongside `bengal utils graph` for backward compatibility
+- **cli**: add `bengal analyze` alias for `bengal graph report` unified analysis command
+- **cli(graph)**: add `bengal graph report` unified command combining analyze, suggest, bridges, and communities
+- **cli(graph)**: add `bengal graph orphans` command with connectivity level filtering
+- **plan**: remove completed CLI analysis improvements RFC and plan - work documented in changelog
+
+### Dashboard Content Enrichment ✅
+- **cli(dashboard/build)**: add `_get_build_stats_content()` method showing pages, assets, cache hit rate, memory, and build mode
+- **cli(dashboard/build)**: add build statistics panel with real-time stats display
+- **cli(dashboard/build)**: add phase profiling table with percentage columns and visual indicators
+- **cli(dashboard)**: enrich dashboards with actionable content and real-time statistics
+- **plan**: remove completed dashboard content enrichment RFC and plan - work documented in changelog
+
+### CLI Output Experience ✅
+- **output(icons)**: add ASCII-first icon policy with cat+mouse branding (`ᓚᘏᗢ` and `ᘛ⁐̤ᕐᐷ`)
+- **output(icons)**: implement `IconSet` class with ASCII defaults and optional emoji support via `BENGAL_EMOJI=1`
+- **output(core)**: adopt semantic styling with sentence case headers and consistent color tokens
+- **output**: add comprehensive CLI output conventions documentation (`bengal/output/README.md`)
+- **plan**: remove completed CLI output experience RFC - work documented in changelog
+
+### LazyLogger Pattern for Test Isolation ✅
+- **utils(logger)**: add `LazyLogger` transparent proxy for `BengalLogger` with registry version tracking
+- **utils(logger)**: refactor `get_logger()` to return `LazyLogger` proxy automatically (zero call-site changes)
+- **utils(logger)**: add `_registry_version` counter incremented on `reset_loggers()` to invalidate cached logger references
+- **utils(logger)**: add `_get_actual_logger()` internal factory for lazy logger instantiation
+- **tests(logging)**: simplify `fresh_logger_state` fixture - remove `importlib.reload()` hacks
+- **tests(conftest)**: remove `preserve_loggers` marker logic - LazyLogger handles isolation automatically
+- **plan**: remove completed lazy logger RFC and plan - work documented in changelog
+
 ### AST-Based Content Pipeline ✅
 - **rendering(ast_types)**: add `RawHTMLNode` for directive/prerendered content representation
 - **rendering(ast_types)**: add type guards `is_link()`, `is_image()`, `is_raw_html()` for type-safe AST traversal

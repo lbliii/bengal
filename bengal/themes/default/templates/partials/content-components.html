@@ -38,20 +38,19 @@ Example:
 {{ article_card(post, show_image=True, show_excerpt=True) }}
 #}
 {% macro article_card(article, show_excerpt=True, show_image=False) %}
-<article
-  class="article-card gradient-border fluid-combined {% if article | has_tag('featured') %}featured-card{% endif %}">
-  {% if show_image and article.metadata.get('image') %}
+<article class="article-card gradient-border fluid-combined {% if article is featured %}featured-card{% endif %}">
+  {% if show_image and article.metadata.image %}
   {# Responsive image with srcset - dogfooding image_srcset() #}
-  <img src="{{ image_url(article.metadata.get('image'), width=800) }}"
-    srcset="{{ article.metadata.get('image') | image_srcset([400, 800, 1200]) }}"
-    sizes="(max-width: 640px) 400px, (max-width: 1024px) 800px, 1200px"
-    alt="{{ article.metadata.get('image') | image_alt }}" class="article-card-image" loading="lazy">
+  <img src="{{ image_url(article.metadata.image, width=800) }}"
+    srcset="{{ article.metadata.image | image_srcset([400, 800, 1200]) }}"
+    sizes="(max-width: 640px) 400px, (max-width: 1024px) 800px, 1200px" alt="{{ article.metadata.image | image_alt }}"
+    class="article-card-image" loading="lazy">
   {% endif %}
 
   <div class="article-card-content">
     {# Tag badges - dogfooding has_tag() #}
     <div class="article-card-badges">
-      {% if article | has_tag('featured') %}
+      {% if article is featured %}
       <span class="badge badge-featured">⭐ Featured</span>
       {% endif %}
       {% if article | has_tag('tutorial') %}
@@ -73,21 +72,21 @@ Example:
       </time>
       {% endif %}
 
-      {% if article.metadata.get('author') and 'content.author' in site.theme_config.features %}
-      <span class="author">{{ article.metadata.get('author') }}</span>
+      {% if article.metadata.author and 'content.author' in theme.features %}
+      <span class="author">{{ article.metadata.author }}</span>
       {% endif %}
 
-      {% if article.content and 'content.reading_time' in site.theme_config.features %}
+      {% if article.content and 'content.reading_time' in theme.features %}
       <span class="reading-time">
         {{ article.content | reading_time }} min read
       </span>
       {% endif %}
     </div>
 
-    {% if show_excerpt and 'content.excerpts' in site.theme_config.features %}
+    {% if show_excerpt and 'content.excerpts' in theme.features %}
     <p class="article-card-excerpt">
-      {% if article.metadata.get('description') %}
-      {{ article.metadata.get('description') }}
+      {% if article.metadata.description %}
+      {{ article.metadata.description }}
       {% elif article.content %}
       {{ article.content | strip_html | excerpt(150) }}
       {% endif %}
@@ -155,11 +154,10 @@ group_by=None
 'obj': subsection,
 'title': subsection.title,
 'href': subsection.href,
-'description': subsection.metadata.get('description', '') if subsection.metadata and
-subsection.metadata.get('description', '') else '',
-'weight': subsection.metadata.get('weight', 999999) if subsection.metadata else 999999,
+'description': subsection.metadata.description | default(''),
+'weight': subsection.metadata.weight | default(999999),
 'page_count': subsection.pages | length if subsection.pages else 0,
-'icon': subsection.metadata.get('icon', '') if subsection.metadata else ''
+'icon': subsection.metadata.icon | default('')
 }) %}
 {% endfor %}
 {% endif %}
@@ -168,18 +166,17 @@ subsection.metadata.get('description', '') else '',
 {% if children %}
 {% for post in children %}
 {# Skip the current page if it appears in child posts #}
-{% if not ((page is defined and page) and (post._path == page._path)) %}
+{% if not (page and (post._path == page._path)) %}
 {% set _ = all_items.append({
 'type': 'page',
 'group': 'children',
 'obj': post,
 'title': post.title,
 'href': post.href,
-'description': post.metadata.get('description', '') if post.metadata and post.metadata.get('description', '') else
-(post.content | strip_html | excerpt(120) if post.content else ''),
-'weight': post.metadata.get('weight', 999999) if post.metadata else 999999,
+'description': post.metadata.description | default(post.content | strip_html | excerpt(120) if post.content else ''),
+'weight': post.metadata.weight | default(999999),
 'date': post.date if post.date else none,
-'icon': post.metadata.get('icon', '') if post.metadata else ''
+'icon': post.metadata.icon | default('')
 }) %}
 {% endif %}
 {% endfor %}
@@ -189,7 +186,7 @@ subsection.metadata.get('description', '') else '',
 {% set related_pages = [] %}
 {% if related is sameas true %}
 {# Auto-get from page.related_posts #}
-{% if page is defined and page and page.related_posts %}
+{% if page and page.related_posts %}
 {% set related_pages = page.related_posts[:related_limit] %}
 {% endif %}
 {% elif related %}
@@ -204,7 +201,7 @@ subsection.metadata.get('description', '') else '',
 
 {% for rel_page in related_pages %}
 {# Skip current page and any pages already in children #}
-{% set is_current = (page is defined and page) and (rel_page._path == page._path) %}
+{% set is_current = page and (rel_page._path == page._path) %}
 {% set is_duplicate = rel_page.href in children_urls %}
 {% if not is_current and not is_duplicate %}
 {% set _ = all_items.append({
@@ -213,11 +210,11 @@ subsection.metadata.get('description', '') else '',
 'obj': rel_page,
 'title': rel_page.title,
 'href': rel_page.href,
-'description': rel_page.metadata.get('description', '') if rel_page.metadata and rel_page.metadata.get('description',
-'') else (rel_page.content | strip_html | excerpt(100) if rel_page.content else ''),
+'description': rel_page.metadata.description | default(rel_page.content | strip_html | excerpt(100) if rel_page.content
+else ''),
 'weight': 999999,
 'date': rel_page.date if rel_page.date else none,
-'icon': rel_page.metadata.get('icon', '') if rel_page.metadata else ''
+'icon': rel_page.metadata.icon | default('')
 }) %}
 {% endif %}
 {% endfor %}
@@ -356,11 +353,10 @@ Example:
 'obj': subsection,
 'title': subsection.title,
 'href': subsection.href,
-'description': subsection.metadata.get('description', '') if subsection.metadata and
-subsection.metadata.get('description', '') else '',
-'weight': subsection.metadata.get('weight', 999999) if subsection.metadata else 999999,
+'description': subsection.metadata.description | default(''),
+'weight': subsection.metadata.weight | default(999999),
 'page_count': subsection.pages | length if subsection.pages else 0,
-'icon': subsection.metadata.get('icon', '') if subsection.metadata else ''
+'icon': subsection.metadata.icon | default('')
 }) %}
 {% endfor %}
 {% endif %}
@@ -369,17 +365,16 @@ subsection.metadata.get('description', '') else '',
 {% if posts %}
 {% for post in posts %}
 {# Skip the current section index page if it appears in child posts #}
-{% if not ((page is defined and page) and (post._path == page._path)) %}
+{% if not (page and (post._path == page._path)) %}
 {% set _ = all_items.append({
 'type': 'page',
 'obj': post,
 'title': post.title,
 'href': post.href,
-'description': post.metadata.get('description', '') if post.metadata and post.metadata.get('description', '') else
-(post.content | strip_html | excerpt(120) if post.content else ''),
-'weight': post.metadata.get('weight', 999999) if post.metadata else 999999,
+'description': post.metadata.description | default(post.content | strip_html | excerpt(120) if post.content else ''),
+'weight': post.metadata.weight | default(999999),
 'date': post.date if post.date else none,
-'icon': post.metadata.get('icon', '') if post.metadata else ''
+'icon': post.metadata.icon | default('')
 }) %}
 {% endif %}
 {% endfor %}
@@ -487,7 +482,7 @@ Usage:
 {% endmacro %}
 
 {% macro tag_list(tags, small=False, linkable=True) %}
-{% set max_display = site.theme_config.config.get('max_tags_display', none) %}
+{% set max_display = theme.max_tags_display %}
 {% set display_tags = tags[:max_display] if max_display else tags %}
 <div class="tags {% if small %}tags-small{% endif %}">
   {% for tag in display_tags %}
@@ -518,11 +513,11 @@ Example:
 {{ popular_tags(limit=20) }}
 #}
 {% macro popular_tags_widget(limit=None) %}
-{% set tag_limit = limit if limit is not none else site.theme_config.config.get('popular_tags_count', 10) %}
+{% set tag_limit = limit if limit is not none else (theme.popular_tags_count | default(10)) %}
 {% set top_tags = popular_tags(limit=tag_limit) %}
 {% if top_tags %}
 <div class="popular-tags-widget">
-  <h3>Popular Topics</h3>
+  <h3>{{ t('tags.popular', default='Popular Topics') }}</h3>
   <div class="tag-cloud">
     {% for tag, count in top_tags %}
     <!-- DEBUG: tag={{ tag }}, count={{ count }}, count_type={{ count|string }} -->
@@ -551,7 +546,7 @@ Example:
 {% set random_posts = site.regular_pages | sample(count) %}
 {% if random_posts %}
 <aside class="random-posts-widget">
-  <h3>You Might Also Like</h3>
+  <h3>{{ t('posts.you_might_like', default='You Might Also Like') }}</h3>
   <div class="random-posts-list">
     {% for post in random_posts %}
     <article class="random-post-item">

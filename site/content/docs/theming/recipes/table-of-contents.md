@@ -53,7 +53,8 @@ end_level = 3    # Stop at H3
 
 ## Variations
 
-### Per-Page Disable
+:::{tab-set}
+:::{tab-item} Per-Page Disable
 
 ```yaml
 ---
@@ -70,7 +71,8 @@ Then in template:
 {% endif %}
 ```
 
-### With Article Layout
+:::{/tab-item}
+:::{tab-item} Article Layout
 
 ```jinja2
 <div class="article-layout">
@@ -90,7 +92,8 @@ Then in template:
 </div>
 ```
 
-### Conditional by Section
+:::{/tab-item}
+:::{tab-item} Conditional by Section
 
 ```jinja2
 {# Only show TOC for docs section #}
@@ -100,6 +103,9 @@ Then in template:
   </nav>
 {% endif %}
 ```
+
+:::{/tab-item}
+:::{/tab-set}
 
 ## Scroll Highlighting (JavaScript)
 

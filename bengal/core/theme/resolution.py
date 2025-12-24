@@ -28,10 +28,8 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import cast
 
+from bengal.core.diagnostics import emit
 from bengal.core.theme.registry import get_theme_package
-from bengal.utils.logger import get_logger
-
-logger = get_logger(__name__)
 
 
 def _read_theme_extends(site_root: Path, theme_name: str) -> str | None:
@@ -47,7 +45,9 @@ def _read_theme_extends(site_root: Path, theme_name: str) -> str | None:
                 return cast(str | None, extends) if extends is not None else None
             return None
         except Exception as e:
-            logger.debug(
+            emit(
+                None,
+                "debug",
                 "theme_manifest_read_failed",
                 theme=theme_name,
                 path=str(site_manifest),
@@ -67,7 +67,9 @@ def _read_theme_extends(site_root: Path, theme_name: str) -> str | None:
                     extends_val = data.get("extends")
                     return str(extends_val) if extends_val else None
                 except Exception as e:
-                    logger.debug(
+                    emit(
+                        None,
+                        "debug",
                         "theme_manifest_read_failed",
                         theme=theme_name,
                         path=str(manifest_path),
@@ -75,7 +77,9 @@ def _read_theme_extends(site_root: Path, theme_name: str) -> str | None:
                         error_type=type(e).__name__,
                     )
     except Exception as e:
-        logger.debug(
+        emit(
+            None,
+            "debug",
             "theme_package_resolve_failed",
             theme=theme_name,
             error=str(e),
@@ -91,7 +95,9 @@ def _read_theme_extends(site_root: Path, theme_name: str) -> str | None:
             extends_val = data.get("extends")
             return str(extends_val) if extends_val else None
         except Exception as e:
-            logger.debug(
+            emit(
+                None,
+                "debug",
                 "theme_manifest_read_failed",
                 theme=theme_name,
                 path=str(bundled_manifest),
@@ -127,6 +133,68 @@ def resolve_theme_chain(site_root: Path, active_theme: str | None) -> list[str]:
     return [t for t in chain if t != "default"]
 
 
+def resolve_theme_templates_path(
+    theme_name: str,
+    site_root: Path,
+    bundled_themes_root: Path | None = None,
+) -> Path | None:
+    """
+    Resolve the templates directory path for a theme.
+
+    Checks site themes, installed themes, and bundled themes in order.
+    This is the canonical function for finding theme template directories,
+    used by all template engines (Jinja2, Mako, etc.) for cross-theme extends.
+
+    Args:
+        theme_name: Theme name to look up (e.g., "default", "docs")
+        site_root: Site root directory
+        bundled_themes_root: Optional root for bundled themes. If None,
+            defaults to bengal/themes/ relative to this module.
+
+    Returns:
+        Path to theme's templates directory, or None if not found
+
+    Example:
+        >>> path = resolve_theme_templates_path("default", site.root_path)
+        >>> path
+        PosixPath('/path/to/bengal/themes/default/templates')
+
+    Used by:
+        - bengal.rendering.engines.jinja: PrefixLoader for cross-theme extends
+        - bengal.rendering.engines.mako: (future) similar functionality
+        - Any custom engine implementing TemplateEngineProtocol
+    """
+    # Site-level theme directory
+    site_theme_templates = site_root / "themes" / theme_name / "templates"
+    if site_theme_templates.exists():
+        return site_theme_templates
+
+    # Installed theme directory (via entry point)
+    try:
+        pkg = get_theme_package(theme_name)
+        if pkg:
+            resolved = pkg.resolve_resource_path("templates")
+            if resolved and resolved.exists():
+                return resolved
+    except Exception as e:
+        emit(
+            None,
+            "debug",
+            "theme_templates_resolution_installed_failed",
+            theme=theme_name,
+            error=str(e),
+        )
+
+    # Bundled theme directory
+    if bundled_themes_root is None:
+        bundled_themes_root = Path(__file__).parent.parent.parent / "themes"
+    bundled_theme_templates = bundled_themes_root / theme_name / "templates"
+    if bundled_theme_templates.exists():
+        return bundled_theme_templates
+
+    return None
+
+
 def iter_theme_asset_dirs(site_root: Path, theme_chain: Iterable[str]) -> list[Path]:
     """
     Return list of theme asset directories from parents to child (low → high priority).
@@ -150,8 +218,13 @@ def iter_theme_asset_dirs(site_root: Path, theme_chain: Iterable[str]) -> list[P
                     dirs.append(resolved)
                     continue
         except Exception as e:
-            logger.debug("installed_theme_assets_resolution_failed", theme=theme_name, error=str(e))
-            pass
+            emit(
+                None,
+                "debug",
+                "installed_theme_assets_resolution_failed",
+                theme=theme_name,
+                error=str(e),
+            )
 
         # Bundled theme assets
         try:
@@ -159,7 +232,12 @@ def iter_theme_asset_dirs(site_root: Path, theme_chain: Iterable[str]) -> list[P
             if bundled_dir.exists():
                 dirs.append(bundled_dir)
         except Exception as e:
-            logger.debug("bundled_theme_assets_resolution_failed", theme=theme_name, error=str(e))
-            pass
+            emit(
+                None,
+                "debug",
+                "bundled_theme_assets_resolution_failed",
+                theme=theme_name,
+                error=str(e),
+            )
 
     return dirs

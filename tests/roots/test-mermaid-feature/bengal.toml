@@ -1,0 +1,6 @@
+[site]
+title = "Mermaid Feature Test Site"
+baseurl = "/"
+
+[build]
+output_dir = "public"

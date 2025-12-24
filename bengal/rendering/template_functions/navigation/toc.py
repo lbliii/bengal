@@ -122,11 +122,24 @@ def combine_track_toc_items(track_items: list[str], get_page_func: Any) -> list[
 
     Returns:
         Combined list of TOC items with section headers and nested headings
+
+    Performance:
+        Uses local cache to avoid redundant get_page() calls within a single
+        TOC generation. With per-render caching in get_page(), this provides
+        defense-in-depth optimization.
     """
     combined: list[dict[str, Any]] = []
+    # Local cache for pages within this function call.
+    # Provides defense-in-depth: even if per-render cache is bypassed,
+    # this ensures we don't fetch the same page multiple times.
+    page_cache: dict[str, Any] = {}
 
     for index, item_slug in enumerate(track_items, start=1):
-        page = get_page_func(item_slug)
+        # Check local cache first
+        if item_slug not in page_cache:
+            page_cache[item_slug] = get_page_func(item_slug)
+        page = page_cache[item_slug]
+
         if not page:
             continue
 

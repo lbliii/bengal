@@ -1,0 +1,35 @@
+{#
+Stale Content Warning Banner
+
+Displays a warning when documentation hasn't been updated in a while.
+Uses the `is outdated` template test for clean conditional logic.
+
+Configuration:
+- Default threshold: 180 days (6 months)
+- Can be disabled per-page: stale_warning: false in frontmatter
+- Site-wide setting: theme.stale_warning_days in bengal.toml
+
+Usage: {% include 'partials/stale-content-banner.html' %}
+#}
+
+{% set stale_days = theme.config.stale_warning_days | default(180) %}
+{% set show_warning = params.stale_warning | default(true) %}
+
+{% if show_warning and page is outdated(stale_days) %}
+<div class="stale-content-banner" role="alert">
+    <div class="stale-content-banner__content">
+        {{ icon('calendar', size=18, css_class='stale-content-banner__icon') }}
+        <span class="stale-content-banner__text">
+            {{ t('stale.warning', {'days': stale_days}, default="This page hasn't been updated in over {days} days.
+            Information may be outdated.") }}
+        </span>
+        {% if config.github_edit_base and page.source_path %}
+        <a href="{{ config.github_edit_base }}{{ page.source_path }}" class="stale-content-banner__action"
+            target="_blank" rel="noopener noreferrer">
+            {{ icon('pencil', size=14) }}
+            <span>{{ t('stale.help_update', default='Help update this page') }}</span>
+        </a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}

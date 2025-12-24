@@ -21,7 +21,11 @@ from pathlib import Path
 import pytest
 
 from bengal.core.site import Site
-from bengal.utils.logger import LogLevel, _loggers, close_all_loggers, configure_logging
+from bengal.utils.logger import (
+    LogLevel,
+    configure_logging,
+    reset_loggers,
+)
 
 from .memory_test_helpers import MemoryProfiler, profile_memory
 
@@ -130,11 +134,10 @@ def hello_world():
 @pytest.fixture(autouse=True)
 def cleanup():
     """Clean up before and after each test."""
-    _loggers.clear()
+    reset_loggers()
     gc.collect()
     yield
-    close_all_loggers()
-    _loggers.clear()
+    reset_loggers()
     gc.collect()
 
 
@@ -244,8 +247,7 @@ class TestMemoryProfiling:
             )
 
             # Clean up between runs
-            close_all_loggers()
-            _loggers.clear()
+            reset_loggers()
             gc.collect()
 
         # Analyze scaling
@@ -315,8 +317,7 @@ class TestMemoryProfiling:
 
         for i in range(10):
             # Clean up thoroughly
-            close_all_loggers()
-            _loggers.clear()
+            reset_loggers()
             gc.collect()
 
             # Measure build

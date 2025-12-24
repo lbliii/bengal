@@ -1,0 +1,68 @@
+---
+description: Bengal commit message format and atomic commit guidelines
+alwaysApply: true
+---
+
+# Atomic Commits
+
+## Format
+
+```bash
+git add -A && git commit -m "<scope>: <description>"
+```
+
+## Scopes
+
+| Scope | Directory |
+|-------|-----------|
+| `core` | `bengal/core/` |
+| `orchestration` | `bengal/orchestration/` |
+| `rendering` | `bengal/rendering/` |
+| `cache` | `bengal/cache/` |
+| `health` | `bengal/health/` |
+| `cli` | `bengal/cli/` |
+| `directives` | `bengal/directives/` |
+| `config` | `bengal/config/` |
+| `tests` | `tests/` |
+| `docs` | `site/content/` |
+| `themes` | `bengal/themes/` |
+
+## Guidelines
+
+- Start with lowercase verb: add, fix, implement, update, remove, refactor
+- 50 chars max for description
+- No period at end
+- One logical change per commit
+- Include tests with the change
+
+## Examples
+
+```bash
+# Good
+git add -A && git commit -m "core: add incremental build state tracking"
+git add -A && git commit -m "orchestration: fix race condition in parallel render"
+git add -A && git commit -m "tests: add integration tests for taxonomy"
+git add -A && git commit -m "rendering: implement lazy image loading"
+
+# Bad
+git add -A && git commit -m "updates"                    # Too vague
+git add -A && git commit -m "Fixed the bug."             # Period, past tense, vague
+git add -A && git commit -m "Added new feature"          # Past tense, vague
+```
+
+## Breaking Changes
+
+Add `!` after scope:
+
+```bash
+git add -A && git commit -m "core!: rename Page.url to Page.permalink"
+```
+
+## Atomic Principle
+
+Each commit should:
+1. **Do one thing** - Single logical change
+2. **Be complete** - Include tests for the change
+3. **Pass CI** - Linter + tests should pass
+4. **Be revertable** - Can `git revert` cleanly
+

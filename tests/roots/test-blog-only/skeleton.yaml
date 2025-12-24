@@ -1,0 +1,61 @@
+name: test-blog-only
+description: Blog-only site for CSS optimization testing - validates blog type CSS inclusion
+version: "1.0"
+
+structure:
+  # Home page (not blog type)
+  - path: _index.md
+    props:
+      title: "My Blog Site"
+      description: "A simple blog site for testing CSS optimization"
+    content: |
+      # Welcome to My Blog
+
+      This is a blog-only site for testing CSS tree shaking.
+
+  # Blog section
+  - path: blog/_index.md
+    type: section
+    cascade:
+      type: blog
+    props:
+      title: "Blog"
+      description: "Blog posts"
+    content: |
+      # Blog Posts
+
+      All the latest posts.
+
+  - path: blog/post-1.md
+    type: blog
+    props:
+      title: "First Post"
+      date: "2025-01-15"
+      tags:
+        - python
+        - testing
+    content: |
+      # First Post
+
+      This is the first blog post.
+
+      ## Introduction
+
+      Welcome to the blog!
+
+  - path: blog/post-2.md
+    type: blog
+    props:
+      title: "Second Post"
+      date: "2025-01-20"
+      tags:
+        - css
+        - optimization
+    content: |
+      # Second Post
+
+      This is the second blog post.
+
+      ## CSS Optimization
+
+      We're testing CSS tree shaking.

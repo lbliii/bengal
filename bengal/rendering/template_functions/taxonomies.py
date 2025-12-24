@@ -12,11 +12,9 @@ try:
     from jinja2 import pass_context
 except Exception:  # pragma: no cover
     from collections.abc import Callable
-    from typing import Any, TypeVar
+    from typing import Any
 
-    F = TypeVar("F", bound=Callable[..., Any])
-
-    def pass_context(fn: F) -> F:
+    def pass_context[F: Callable[..., Any]](fn: F) -> F:
         return fn
 
 
@@ -64,6 +62,9 @@ def register(env: Environment, site: Site) -> None:
         baseurl = site.baseurl or ""
         if baseurl:
             baseurl = baseurl.rstrip("/")
+            # If baseurl was just "/" it's now empty - treat as root (no prefix needed)
+            if not baseurl:
+                return relative_url
             # Ensure relative_url starts with /
             if not relative_url.startswith("/"):
                 relative_url = "/" + relative_url

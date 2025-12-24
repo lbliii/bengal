@@ -157,6 +157,16 @@ class BengalDirective(DirectivePlugin):
     # Contract for nesting validation (optional)
     CONTRACT: ClassVar[DirectiveContract | None] = None
 
+    # Priority for processing order (lower = earlier)
+    PRIORITY: ClassVar[int] = 100
+
+    # Priority constants for common cases
+    PRIORITY_FIRST = 0  # Preprocessing (includes, macros)
+    PRIORITY_EARLY = 50  # Before most directives
+    PRIORITY_NORMAL = 100  # Default
+    PRIORITY_LATE = 150  # After most directives
+    PRIORITY_LAST = 200  # Post-processing
+
     # -------------------------------------------------------------------------
     # Initialization
     # -------------------------------------------------------------------------

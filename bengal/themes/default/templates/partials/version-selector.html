@@ -28,8 +28,8 @@ engine (Jinja2, Mako, or BYORenderer). No global function dependency.
 3. The current page is actually versioned (has a version attribute)
 4. The page is not an autodoc page (autodoc pages are not versioned)
 #}
-{% set is_autodoc = is_autodoc_page(page) if is_autodoc_page is defined else false %}
-{% set page_is_versioned = page.version is defined and page.version is not none %}
+{% set is_autodoc = is_autodoc_page(page) if is_autodoc_page else false %}
+{% set page_is_versioned = page.version is not none %}
 {% if versioning_enabled and versions | length > 1 and page_is_versioned and not is_autodoc %}
 <div class="version-selector">
   {#

@@ -270,31 +270,45 @@ class TestBuildOutputCollector:
 
         assert not errors, f"Errors during concurrent access: {errors}"
 
-    def test_validate_warns_on_empty(self, capsys: pytest.CaptureFixture[str]) -> None:
-        """validate() logs warning when sources changed but no outputs recorded."""
+    def test_validate_warns_on_empty(self) -> None:
+        """validate() emits warning when sources changed but no outputs recorded."""
+        from bengal.core.diagnostics import DiagnosticsCollector
+
         collector = BuildOutputCollector()
+        diagnostics = DiagnosticsCollector()
+        collector._diagnostics = diagnostics
         collector.validate(changed_sources=["content/post.md"])
 
-        captured = capsys.readouterr()
-        assert "output_tracking_empty" in captured.out
+        events = diagnostics.drain()
+        assert len(events) == 1
+        assert events[0].code == "output_tracking_empty"
+        assert events[0].level == "warning"
 
-    def test_validate_no_warn_when_outputs_exist(self, capsys: pytest.CaptureFixture[str]) -> None:
+    def test_validate_no_warn_when_outputs_exist(self) -> None:
         """validate() does not warn when outputs recorded."""
+        from bengal.core.diagnostics import DiagnosticsCollector
+
         collector = BuildOutputCollector()
+        diagnostics = DiagnosticsCollector()
+        collector._diagnostics = diagnostics
         collector.record(Path("index.html"), OutputType.HTML, phase="render")
         collector.validate(changed_sources=["content/post.md"])
 
-        captured = capsys.readouterr()
-        assert "output_tracking_empty" not in captured.out
+        events = diagnostics.drain()
+        assert len(events) == 0
 
-    def test_validate_no_warn_when_no_sources(self, capsys: pytest.CaptureFixture[str]) -> None:
+    def test_validate_no_warn_when_no_sources(self) -> None:
         """validate() does not warn when no sources changed."""
+        from bengal.core.diagnostics import DiagnosticsCollector
+
         collector = BuildOutputCollector()
+        diagnostics = DiagnosticsCollector()
+        collector._diagnostics = diagnostics
         collector.validate(changed_sources=None)
         collector.validate(changed_sources=[])
 
-        captured = capsys.readouterr()
-        assert "output_tracking_empty" not in captured.out
+        events = diagnostics.drain()
+        assert len(events) == 0
 
 
 class TestOutputCollectorProtocol:

@@ -203,6 +203,15 @@ class ErrorCode(Enum):
     X005 = "asset_fingerprint_error"
     X006 = "asset_minify_error"
 
+    # ============================================================
+    # Graph/Analysis errors (G001-G099)
+    # ============================================================
+    G001 = "graph_not_built"
+    G002 = "graph_invalid_parameter"
+    G003 = "graph_cycle_detected"
+    G004 = "graph_disconnected_component"
+    G005 = "graph_analysis_failed"
+
     @property
     def docs_url(self) -> str:
         """
@@ -220,7 +229,7 @@ class ErrorCode(Enum):
 
         Maps single-letter prefixes to descriptive category names:
         C→config, N→content, R→rendering, D→discovery, A→cache,
-        S→server, T→template_function, P→parsing, X→asset.
+        S→server, T→template_function, P→parsing, X→asset, G→graph.
 
         Returns:
             Category name (e.g., "rendering", "config") or "unknown"
@@ -235,6 +244,7 @@ class ErrorCode(Enum):
             "T": "template_function",
             "P": "parsing",
             "X": "asset",
+            "G": "graph",
         }
         prefix = self.name[0]
         return categories.get(prefix, "unknown")
@@ -260,6 +270,7 @@ class ErrorCode(Enum):
             "T": "rendering",
             "P": "core",
             "X": "assets",
+            "G": "analysis",
         }
         prefix = self.name[0]
         return subsystem_map.get(prefix, "unknown")

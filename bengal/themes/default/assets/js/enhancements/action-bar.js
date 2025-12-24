@@ -1,10 +1,10 @@
 /**
  * Action Bar Component
  *
- * Handles:
- * - Expandable metadata toggle
- * - Share dropdown interactions
- * - Copy functionality for URLs and LLM text
+ * PATTERN: POPOVER (see assets/COMPONENT-PATTERNS.md)
+ * - Share dropdowns and metadata panel use native [popover] API
+ * - Browser handles: show/hide, light dismiss, escape key, top layer
+ * - JS handles: Copy functionality, AI share, popover positioning
  *
  * Supports both action-bar (classic) and page-hero (magazine) variants.
  */
@@ -23,95 +23,111 @@
   ready(init);
 
   function init() {
-    initMetadataToggle();
-    initShareDropdowns();
+    initPopoverPositioning();
+    initCopyActions();
+    initAIShareActions();
     updateShareLinks();
   }
 
   /**
-   * Initialize metadata toggle functionality
+   * Initialize popover positioning relative to triggers
+   * Native popover appears in top layer, so we need to position it manually
    */
-  function initMetadataToggle() {
-    const toggleBtn = document.querySelector('.action-bar-meta-toggle');
-    const metadataPanel = document.getElementById('action-bar-metadata');
+  function initPopoverPositioning() {
+    // Find all popover triggers
+    const triggers = document.querySelectorAll('[popovertarget]');
 
-    if (!toggleBtn || !metadataPanel) return;
+    triggers.forEach(trigger => {
+      const targetId = trigger.getAttribute('popovertarget');
+      const popover = document.getElementById(targetId);
 
-    toggleBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const isExpanded = toggleBtn.getAttribute('aria-expanded') === 'true';
+      if (!popover) return;
 
-      toggleBtn.setAttribute('aria-expanded', !isExpanded);
-      metadataPanel.setAttribute('aria-hidden', isExpanded);
+      // Position popover when it opens (not beforetoggle - need dimensions)
+      popover.addEventListener('toggle', (e) => {
+        if (e.newState === 'open') {
+          positionPopover(trigger, popover);
+        }
+      });
+
+      // Handle chevron rotation
+      const chevron = trigger.querySelector('[class*="chevron"]');
+      if (chevron) {
+        popover.addEventListener('toggle', (e) => {
+          if (e.newState === 'open') {
+            chevron.style.transform = 'rotate(180deg)';
+          } else {
+            chevron.style.transform = 'rotate(0deg)';
+          }
+        });
+      }
     });
   }
 
   /**
-   * Initialize share dropdown functionality for all variants
-   * Supports both action-bar-share and page-hero__share components
+   * Position popover relative to its trigger
    */
-  function initShareDropdowns() {
-    // Support both action-bar and page-hero variants
-    const shareContainers = document.querySelectorAll('.action-bar-share, .page-hero__share');
+  function positionPopover(trigger, popover) {
+    const rect = trigger.getBoundingClientRect();
+    const popoverRect = popover.getBoundingClientRect();
 
-    shareContainers.forEach(container => {
-      const trigger = container.querySelector('[class$="-trigger"], [class*="__share-trigger"]');
-      const dropdown = container.querySelector('[class$="-dropdown"], [class*="__share-dropdown"]');
+    // Position below trigger, aligned to right edge
+    let top = rect.bottom + 8;
+    let left = rect.right - popoverRect.width;
 
-      if (!trigger || !dropdown) return;
+    // Ensure it doesn't go off-screen left
+    if (left < 8) {
+      left = 8;
+    }
 
-      initShareDropdown(container, trigger, dropdown);
+    // Ensure it doesn't go off-screen right
+    const rightOverflow = left + popoverRect.width - window.innerWidth + 8;
+    if (rightOverflow > 0) {
+      left -= rightOverflow;
+    }
+
+    // Ensure it doesn't go off-screen bottom
+    if (top + popoverRect.height > window.innerHeight - 8) {
+      // Position above trigger instead
+      top = rect.top - popoverRect.height - 8;
+    }
+
+    popover.style.top = `${top}px`;
+    popover.style.left = `${left}px`;
+  }
+
+  /**
+   * Initialize copy action buttons
+   */
+  function initCopyActions() {
+    // Use event delegation for copy buttons
+    document.addEventListener('click', async (e) => {
+      const button = e.target.closest('[data-action^="copy"]');
+      if (!button) return;
+
+      e.preventDefault();
+      await handleCopyAction(button);
     });
   }
 
   /**
-   * Initialize a single share dropdown
+   * Initialize AI share links
+   * Fetch content, copy to clipboard, then navigate
    */
-  function initShareDropdown(container, trigger, dropdown) {
-    // Toggle dropdown
-    trigger.addEventListener('click', (e) => {
-      e.stopPropagation();
-      toggleDropdown(trigger, dropdown);
-    });
+  function initAIShareActions() {
+    document.addEventListener('click', async (e) => {
+      const aiLink = e.target.closest('[data-ai]');
+      if (!aiLink) return;
 
-    // Copy actions
-    const copyButtons = dropdown.querySelectorAll('[data-action^="copy"]');
-    copyButtons.forEach(button => {
-      button.addEventListener('click', (e) => {
-        e.preventDefault();
-        handleCopyAction(button);
-      });
-    });
-
-    // Close dropdown when clicking outside
-    document.addEventListener('click', (e) => {
-      if (!container.contains(e.target)) {
-        closeDropdown(trigger, dropdown);
-      }
-    });
-
-    // Close dropdown on Escape key
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && dropdown.getAttribute('aria-hidden') === 'false') {
-        closeDropdown(trigger, dropdown);
-        trigger.focus();
-      }
-    });
-
-    // AI assistant links - fetch content, copy to clipboard, then navigate
-    const aiLinks = dropdown.querySelectorAll('[class*="share-ai"], [class*="__share-ai"]');
-    aiLinks.forEach(link => {
-      link.addEventListener('click', async (e) => {
-        e.preventDefault();
-        await handleAIShare(link, trigger, dropdown);
-      });
+      e.preventDefault();
+      await handleAIShare(aiLink);
     });
   }
 
   /**
    * Handle AI assistant share - fetch content, copy to clipboard, then navigate
    */
-  async function handleAIShare(link, trigger, dropdown) {
+  async function handleAIShare(link) {
     const aiName = link.getAttribute('data-ai');
     const originalHref = link.getAttribute('href');
 
@@ -121,15 +137,14 @@
     if (!urlMatch) {
       // Fallback: just navigate normally
       window.open(originalHref, '_blank', 'noopener,noreferrer');
-      closeDropdown(trigger, dropdown);
       return;
     }
 
     // Get the LLM text URL from the copy-llm-txt button (it has the correct URL)
-    const copyLlmBtn = dropdown.querySelector('[data-action="copy-llm-txt"]');
+    const popover = link.closest('[popover]');
+    const copyLlmBtn = popover?.querySelector('[data-action="copy-llm-txt"]');
     if (!copyLlmBtn) {
       window.open(originalHref, '_blank', 'noopener,noreferrer');
-      closeDropdown(trigger, dropdown);
       return;
     }
 
@@ -178,8 +193,9 @@
 
       setTimeout(() => {
         link.innerHTML = originalHTML;
+        // Close the popover
+        popover?.hidePopover?.();
         window.open(aiUrl, '_blank', 'noopener,noreferrer');
-        closeDropdown(trigger, dropdown);
       }, 500);
 
     } catch (error) {
@@ -194,8 +210,8 @@
 
       setTimeout(() => {
         link.innerHTML = originalHTML;
+        popover?.hidePopover?.();
         window.open(originalHref, '_blank', 'noopener,noreferrer');
-        closeDropdown(trigger, dropdown);
       }, 1500);
     }
   }
@@ -216,35 +232,6 @@
 
     const baseUrl = baseUrls[aiName] || baseUrls['claude'];
     return baseUrl + encodedPrompt;
-  }
-
-  /**
-   * Toggle dropdown open/closed
-   */
-  function toggleDropdown(trigger, dropdown) {
-    const isOpen = trigger.getAttribute('aria-expanded') === 'true';
-
-    if (isOpen) {
-      closeDropdown(trigger, dropdown);
-    } else {
-      openDropdown(trigger, dropdown);
-    }
-  }
-
-  /**
-   * Open dropdown
-   */
-  function openDropdown(trigger, dropdown) {
-    trigger.setAttribute('aria-expanded', 'true');
-    dropdown.setAttribute('aria-hidden', 'false');
-  }
-
-  /**
-   * Close dropdown
-   */
-  function closeDropdown(trigger, dropdown) {
-    trigger.setAttribute('aria-expanded', 'false');
-    dropdown.setAttribute('aria-hidden', 'true');
   }
 
   /**

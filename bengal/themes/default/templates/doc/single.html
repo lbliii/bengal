@@ -28,12 +28,15 @@ Or set `type: doc` to auto-select this template
     {# Version Banner - warns users when viewing old/deprecated versions #}
     {% include 'partials/version-banner.html' %}
 
+    {# Stale Content Banner - warns when page hasn't been updated recently #}
+    {% include 'partials/stale-content-banner.html' %}
+
     {# Page Hero: Breadcrumbs + Title + Description + Metadata #}
     {# Supports variants: classic (default) or magazine (set via hero_style) #}
     {% include 'partials/page-hero.html' %}
 
     {# Article Content #}
-    <article class="prose {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
+    <article class="prose {% if params.css_class %}{{ params.css_class }}{% endif %}">
 
       {# Track Navigation (Top) #}
       {% include 'partials/track_nav.html' %}
@@ -46,7 +49,7 @@ Or set `type: doc` to auto-select this template
       {# Tags #}
       {% if page.tags %}
       <footer class="docs-footer">
-        <span class="docs-footer-label">Tagged</span>
+        <span class="docs-footer-label">{{ t('docs.tagged', default='Tagged') }}</span>
         {{ tag_list(page.tags) }}
       </footer>
       {% endif %}

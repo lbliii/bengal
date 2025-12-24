@@ -47,7 +47,7 @@ Frontmatter (discover: structure):
     {% include 'partials/page-hero.html' %}
 
     {# Article Content #}
-    <article class="prose {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
+    <article class="prose {% if params.css_class %}{{ params.css_class }}{% endif %}">
 
       {# Main content #}
       <div class="docs-content">
@@ -55,10 +55,10 @@ Frontmatter (discover: structure):
       </div>
 
       {# Content tiles - children and related pages #}
-      {# 
+      {#
          Smart defaults: Both children and related enabled with default titles.
          Use discover: frontmatter only to customize or disable.
-         
+
          discover:
            children:
              title: "Custom Title"    # or false to hide title
@@ -69,32 +69,32 @@ Frontmatter (discover: structure):
              limit: 5
            related: false             # disable related entirely
       #}
-      {% set discover = page.metadata.get('discover', {}) if page else {} %}
-      {% set children_config = discover.get('children', {}) if discover else {} %}
-      {% set related_config = discover.get('related', {}) if discover else {} %}
-      
+      {% set discover = params.discover if page else {} %}
+      {% set children_config = discover.children if discover else {} %}
+      {% set related_config = discover.related if discover else {} %}
+
       {# Check if explicitly disabled #}
       {% set children_disabled = children_config is sameas false %}
       {% set related_disabled = related_config is sameas false %}
-      
+
       {# Feature flag fallback #}
-      {% set show_children_feature = 'content.children' in site.theme_config.features %}
+      {% set show_children_feature = 'content.children' in theme.features %}
       {% set show_children = (not children_disabled) and show_children_feature %}
       {% set show_related = not related_disabled %}
-      
+
       {# Get config values with smart defaults #}
-      {% set children_title = children_config.get('title', 'In This Section') if children_config is mapping else 'In This Section' %}
-      {% set children_variant = children_config.get('variant', 'compact') if children_config is mapping else 'compact' %}
-      {% set related_title = related_config.get('title', 'Related Pages') if related_config is mapping else 'Related Pages' %}
-      {% set related_limit = related_config.get('limit', 5) if related_config is mapping else (related_config if related_config is number else 5) %}
-      
+      {% set children_title = children_config.title | default('In This Section') if children_config is mapping else 'In This Section' %}
+      {% set children_variant = children_config.variant | default('compact') if children_config is mapping else 'compact' %}
+      {% set related_title = related_config.title | default('Related Pages') if related_config is mapping else 'Related Pages' %}
+      {% set related_limit = related_config.limit | default(5) if related_config is mapping else (related_config if related_config is number else 5) %}
+
       {# Handle title: false to hide title #}
       {% set children_title = none if children_title is sameas false else children_title %}
       {% set related_title = none if related_title is sameas false else related_title %}
-      
+
       {% set has_children = posts or subsections %}
       {% set has_related = show_related and page and page.related_posts %}
-      
+
       {% if show_children and (has_children or has_related) %}
       <div class="docs-children">
         {{ content_tiles(

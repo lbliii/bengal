@@ -28,16 +28,16 @@ related: false # disable related entirely
 {% from 'partials/content-components.html' import content_tiles %}
 
 {% block content %}
-{{ breadcrumbs(page if page is defined else section) }}
+{{ breadcrumbs(page if page else section) }}
 
 <div class="section-index">
     <header class="section-header">
-        <h1>{{ page.title if (page is defined and page) else section.title if section else site.config.title }}</h1>
+        <h1>{{ page.title if page else section.title if section else config.title }}</h1>
 
-        {% if (page is defined and page) and page.metadata.get('description', '') %}
-        <p class="section-description">{{ page.metadata.get('description', '') }}</p>
-        {% elif section and section.metadata.get('description') %}
-        <p class="section-description">{{ section.metadata.get('description', '') }}</p>
+        {% if page and params.description %}
+        <p class="section-description">{{ params.description }}</p>
+        {% elif section and section.params.description %}
+        <p class="section-description">{{ section.params.description }}</p>
         {% endif %}
     </header>
 
@@ -49,9 +49,9 @@ related: false # disable related entirely
     {% endif %}
 
     {# Content tiles with smart defaults - use discover: frontmatter to customize #}
-    {% set discover = page.metadata.get('discover', {}) if (page is defined and page) else {} %}
-    {% set children_config = discover.get('children', {}) if discover else {} %}
-    {% set related_config = discover.get('related', {}) if discover else {} %}
+    {% set discover = params.discover if page else {} %}
+    {% set children_config = discover.children if discover else {} %}
+    {% set related_config = discover.related if discover else {} %}
 
     {% set children_disabled = children_config is sameas false %}
     {% set related_disabled = related_config is sameas false %}
@@ -59,19 +59,16 @@ related: false # disable related entirely
     {% set show_children = not children_disabled %}
     {% set show_related = not related_disabled %}
 
-    {% set children_title = children_config.get('title', 'In This Section') if children_config is mapping else 'In This
-    Section' %}
-    {% set children_variant = children_config.get('variant', 'compact') if children_config is mapping else 'compact' %}
-    {% set related_title = related_config.get('title', 'Related Pages') if related_config is mapping else 'Related
-    Pages' %}
-    {% set related_limit = related_config.get('limit', 5) if related_config is mapping else (related_config if
-    related_config is number else 5) %}
+    {% set children_title = children_config.title | default('In This Section') if children_config is mapping else 'In This Section' %}
+    {% set children_variant = children_config.variant | default('compact') if children_config is mapping else 'compact' %}
+    {% set related_title = related_config.title | default('Related Pages') if related_config is mapping else 'Related Pages' %}
+    {% set related_limit = related_config.limit | default(5) if related_config is mapping else (related_config if related_config is number else 5) %}
 
     {% set children_title = none if children_title is sameas false else children_title %}
     {% set related_title = none if related_title is sameas false else related_title %}
 
     {% set has_children = posts or subsections %}
-    {% set has_related = show_related and (page is defined and page) and page.related_posts %}
+    {% set has_related = show_related and page and page.related_posts %}
 
     {% if show_children and (has_children or has_related) %}
     {{ content_tiles(

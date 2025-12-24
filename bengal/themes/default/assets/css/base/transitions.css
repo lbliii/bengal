@@ -1,0 +1,186 @@
+/**
+ * View Transitions CSS
+ *
+ * Document Application: Browser-native page transitions using the View Transitions API.
+ * Provides smooth, SPA-like navigation between pages without JavaScript frameworks.
+ *
+ * Browser Support (as of Dec 2025):
+ * - Chrome 111+, Firefox 144+, Safari 18+, Edge 111+ (90%+ global support)
+ *
+ * @see https://developer.chrome.com/docs/web-platform/view-transitions/
+ */
+
+/* ==============================================
+   VIEW TRANSITION NAMES
+   Named elements for coordinated transitions
+   ============================================== */
+
+/* Main content - fades and slides during navigation */
+main[role="main"],
+#main-content {
+  view-transition-name: main-content;
+}
+
+/*
+ * NOTE: Sidebars (docs-nav, toc) intentionally DO NOT have view-transition-name.
+ * This prevents "ghost" overlays during page transitions.
+ * They naturally stay in place as part of the document flow.
+ */
+
+/* Page hero sections - can morph between pages */
+.page-hero,
+.hero {
+  view-transition-name: hero;
+}
+
+/* Header - exclude from transitions to prevent overlay issues */
+/* The header stays stable because it's outside the main-content transition */
+
+/* Footer - exclude from transitions */
+/* The footer stays stable because it's outside the main-content transition */
+
+/* ==============================================
+   TRANSITION ANIMATIONS
+   ============================================== */
+
+/* Fade-slide animation keyframes */
+@keyframes fade-slide-out {
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes fade-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+/* Simple fade keyframes */
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Slide keyframes */
+@keyframes slide-out-left {
+  to {
+    transform: translateX(-20px);
+    opacity: 0;
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    transform: translateX(20px);
+    opacity: 0;
+  }
+}
+
+/* ==============================================
+   MAIN CONTENT TRANSITIONS
+   Primary page content with fade-slide effect
+   ============================================== */
+
+::view-transition-old(main-content) {
+  animation: fade-slide-out 150ms ease-out forwards;
+}
+
+::view-transition-new(main-content) {
+  animation: fade-slide-in 150ms ease-in;
+}
+
+/* ==============================================
+   STABLE ELEMENTS
+   Elements without view-transition-name stay stable naturally.
+   They're not captured in the transition layer, avoiding ghost overlays.
+   ============================================== */
+
+/* ==============================================
+   HERO TRANSITIONS
+   Crossfade effect for hero sections (no size morphing)
+   ============================================== */
+
+/* Prevent the default morph sizing that causes zoom effects */
+::view-transition-group(hero) {
+  animation: none;
+}
+
+::view-transition-old(hero) {
+  animation: fade-out 150ms ease-out forwards;
+  mix-blend-mode: normal;
+}
+
+::view-transition-new(hero) {
+  animation: fade-in 150ms ease-in forwards;
+  mix-blend-mode: normal;
+}
+
+/* ==============================================
+   CROSS-DOCUMENT VIEW TRANSITIONS
+   Enable view transitions for same-origin navigation
+   ============================================== */
+
+@view-transition {
+  navigation: auto;
+}
+
+/* ==============================================
+   REDUCED MOTION
+   Respect user preference for reduced motion
+   ============================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  /* Disable all view transition animations */
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+    animation-duration: 0s !important;
+  }
+
+  /* Instant transitions instead of animated */
+  @view-transition {
+    navigation: auto;
+  }
+}
+
+/* ==============================================
+   TRANSITION STYLE VARIANTS
+   Applied via data-transition-style attribute
+   ============================================== */
+
+/* Slide variant - horizontal sliding transitions */
+[data-transition-style="slide"] ::view-transition-old(main-content) {
+  animation: slide-out-left 200ms ease-out forwards;
+}
+
+[data-transition-style="slide"] ::view-transition-new(main-content) {
+  animation: slide-in-right 200ms ease-in;
+}
+
+/* None variant - instant transitions */
+[data-transition-style="none"] ::view-transition-old(main-content),
+[data-transition-style="none"] ::view-transition-new(main-content) {
+  animation: none;
+}
+
+/* ==============================================
+   PRINT
+   Disable transitions for print
+   ============================================== */
+
+@media print {
+  * {
+    view-transition-name: none !important;
+  }
+}

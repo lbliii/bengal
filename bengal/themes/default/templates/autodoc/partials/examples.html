@@ -8,7 +8,7 @@ Optional: language (str, default based on element type)
 #}
 
 {% set examples_list = examples | default(element.examples | default([])) %}
-{% set is_cli = element.element_type in ['command', 'command-group'] if element is defined else false %}
+{% set is_cli = element and element.element_type in ['command', 'command-group'] %}
 {% set language = language | default('bash' if is_cli else 'python') %}
 
 {% if examples_list %}

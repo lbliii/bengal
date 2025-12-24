@@ -341,6 +341,12 @@ class DevServer:
         cfg.setdefault("minify_assets", False)  # Faster builds
         # Disable search index preloading in dev to avoid background index.json fetches
         cfg.setdefault("search_preload", "off")
+        # Disable social cards in dev (OG images not needed, saves ~30s on large sites)
+        # Force disable even if enabled in config - social cards only matter for production
+        if isinstance(cfg.get("social_cards"), dict):
+            cfg["social_cards"]["enabled"] = False
+        else:
+            cfg["social_cards"] = {"enabled": False}
 
         # Clear template bytecode cache to ensure fresh template compilation
         # This prevents stale bytecode from previous builds causing "stuck" templates
@@ -719,11 +725,12 @@ class DevServer:
         url = f"http://{self.host}:{port}/"
         lines.append(f"   [cyan]➜[/cyan]  Local:   [bold]{url}[/bold]")
 
-        # Serving path (truncate intelligently if too long)
-        serving_path = str(self.site.output_dir)
-        if len(serving_path) > 60:
-            # Show start and end of path with ellipsis
-            serving_path = serving_path[:30] + "..." + serving_path[-27:]
+        # Serving path (relative to project root for cleaner display)
+        try:
+            serving_path = str(self.site.output_dir.relative_to(self.site.root_path))
+        except ValueError:
+            # Fall back to full path if not relative to root
+            serving_path = str(self.site.output_dir)
         lines.append(f"   [dim]➜[/dim]  Serving: {serving_path}")
 
         lines.append("")  # Blank line
@@ -738,6 +745,14 @@ class DevServer:
             lines.append("      [dim](Live reload enabled - browser refreshes after rebuild)[/dim]")
         else:
             lines.append("   [dim]○  File watching disabled[/dim]")
+
+        # Show GIL status hint if parallelism could be improved
+        from bengal.utils.gil import format_gil_tip_for_cli
+
+        gil_tip = format_gil_tip_for_cli()
+        if gil_tip:
+            lines.append("")  # Blank line
+            lines.append(f"   [dim]💡 {gil_tip}[/dim]")
 
         lines.append("")  # Blank line
         lines.append("   [dim]Press Ctrl+C to stop (or twice to force quit)[/dim]")

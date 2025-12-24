@@ -42,6 +42,155 @@ if TYPE_CHECKING:
     from bengal.utils.progress import ProgressReporter
 
 
+def _get_top_bottleneck(total_render_ms: float) -> str | None:
+    """
+    Get the top rendering bottleneck from template profiler.
+
+    Returns the slowest template function or template as a formatted string
+    showing what percentage of total render time it consumed.
+
+    Args:
+        total_render_ms: Total rendering time in milliseconds
+
+    Returns:
+        Formatted string like "get_nav 42%" or None if no profiler data
+    """
+    from bengal.rendering.template_profiler import get_profiler
+
+    profiler = get_profiler()
+    if not profiler or total_render_ms <= 0:
+        return None
+
+    report = profiler.get_report()
+    if not report:
+        return None
+
+    # Find the single biggest time consumer (function or template)
+    top_item: tuple[str, float] | None = None
+
+    # Check functions first (usually more actionable)
+    functions = report.get("functions", {})
+    for name, stats in functions.items():
+        total_ms = stats.get("total_ms", 0)
+        if top_item is None or total_ms > top_item[1]:
+            top_item = (name, total_ms)
+
+    # Also check templates
+    templates = report.get("templates", {})
+    for name, stats in templates.items():
+        total_ms = stats.get("total_ms", 0)
+        if top_item is None or total_ms > top_item[1]:
+            # Shorten template names for display
+            short_name = name.split("/")[-1] if "/" in name else name
+            top_item = (short_name, total_ms)
+
+    if not top_item or top_item[1] <= 0:
+        return None
+
+    name, time_ms = top_item
+    pct = (time_ms / total_render_ms) * 100
+
+    # Only show if it's a meaningful percentage (>10%)
+    if pct < 10:
+        return None
+
+    # Truncate long names
+    display_name = name if len(name) <= 20 else name[:17] + "..."
+    return f"{display_name} {pct:.0f}%"
+
+
+def _optimize_css(
+    orchestrator: BuildOrchestrator,
+    cli: CLIOutput,
+    assets_to_process: list[Asset],
+) -> None:
+    """
+    Generate optimized CSS based on content types and features.
+
+    Analyzes site content to determine which CSS files are needed,
+    then generates a minimal style.css with only necessary imports.
+    The optimized CSS is written to the cache directory and the
+    style.css asset's source is overridden to use it.
+
+    Args:
+        orchestrator: Build orchestrator instance
+        cli: CLI output for user messages
+        assets_to_process: List of assets (may be modified to update style.css source)
+
+    Side effects:
+        - Writes optimized CSS to .bengal/cache/assets/optimized-style.css
+        - Updates style.css asset's _bundled_content to use optimized version
+    """
+    from bengal.orchestration.css_optimizer import CSSOptimizer
+
+    try:
+        optimizer = CSSOptimizer(orchestrator.site)
+        result = optimizer.generate(report=True)
+
+        if isinstance(result, tuple):
+            optimized_css, report = result
+        else:
+            # No optimization possible (no manifest)
+            return
+
+        if report.get("skipped"):
+            orchestrator.logger.debug("css_optimization_skipped", reason="no_manifest")
+            return
+
+        if not optimized_css:
+            return
+
+        # Write optimized CSS to cache directory for debugging
+        cache_dir = orchestrator.site.root_path / ".bengal" / "cache" / "assets"
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        optimized_file = cache_dir / "optimized-style.css"
+        optimized_file.write_text(optimized_css, encoding="utf-8")
+
+        # Find and update the style.css asset to use optimized content
+        for asset in assets_to_process:
+            if asset.is_css_entry_point():
+                # Override the bundled content with optimized CSS
+                # This will be used instead of reading from source file
+                asset._bundled_content = optimized_css
+                orchestrator.logger.debug(
+                    "css_entry_point_optimized",
+                    asset=str(asset.source_path),
+                )
+                break
+
+        # Log optimization report
+        reduction = report.get("reduction_percent", 0)
+        included = report.get("included_count", 0)
+        excluded = report.get("excluded_count", 0)
+
+        if reduction > 0:
+            orchestrator.logger.info(
+                "css_optimized",
+                reduction_percent=reduction,
+                included_files=included,
+                excluded_files=excluded,
+                types=report.get("types_detected", []),
+                features=report.get("features_detected", []),
+            )
+
+            # Show in CLI if verbose mode
+            if orchestrator.site.config.get("verbose"):
+                cli.info(f"CSS optimized: {reduction}% reduction ({included} files)")
+                if report.get("types_detected"):
+                    cli.info(f"  Content types: {', '.join(report['types_detected'])}")
+                if report.get("features_detected"):
+                    cli.info(f"  Features: {', '.join(report['features_detected'])}")
+
+    except Exception as e:
+        # CSS optimization failure should not break the build
+        orchestrator.logger.warning(
+            "css_optimization_failed",
+            error=str(e),
+            error_type=type(e).__name__,
+            action="using_full_css",
+        )
+
+
 def _rewrite_fonts_css_urls(orchestrator: BuildOrchestrator) -> None:
     """
     Rewrite fonts.css to use fingerprinted font filenames.
@@ -125,6 +274,12 @@ def phase_assets(
                 if not output_assets.exists() or len(list(output_assets.rglob("*"))) < 5:
                     # Theme assets not in output - re-process all assets
                     assets_to_process = orchestrator.site.assets
+
+        # CSS Optimization: Generate minimal style.css based on content types and features
+        # See: plan/drafted/rfc-css-tree-shaking.md
+        css_config = orchestrator.site.config.get("css", {})
+        if isinstance(css_config, dict) and css_config.get("optimize", True):
+            _optimize_css(orchestrator, cli, assets_to_process)
 
         orchestrator.assets.process(
             assets_to_process, parallel=parallel, progress_manager=None, collector=collector
@@ -274,12 +429,27 @@ def phase_render(
 
         orchestrator.stats.rendering_time_ms = (time.time() - rendering_start) * 1000
 
-        # Show phase completion with page count
+        # Show phase completion with page count, throughput, and top bottleneck
         page_count = len(pages_to_build)
+        rendering_ms = orchestrator.stats.rendering_time_ms
+
+        # Build details string with throughput
+        detail_parts = [f"{page_count} pages"]
+        if rendering_ms > 0:
+            pages_per_sec = (page_count / rendering_ms) * 1000
+            detail_parts.append(f"{pages_per_sec:.0f}/sec")
+
+        # Add top bottleneck if profiling is enabled
+        if profile_templates:
+            bottleneck = _get_top_bottleneck(rendering_ms)
+            if bottleneck:
+                detail_parts.append(bottleneck)
+
+        details = ", ".join(detail_parts)
         cli.phase(
             "Rendering",
-            duration_ms=orchestrator.stats.rendering_time_ms,
-            details=f"{page_count} pages",
+            duration_ms=rendering_ms,
+            details=details,
         )
 
         orchestrator.logger.info(
@@ -367,62 +537,44 @@ def phase_update_site_pages(
 
 
 def phase_track_assets(
-    orchestrator: BuildOrchestrator, pages_to_build: list[Any], cli: CLIOutput | None = None
+    orchestrator: BuildOrchestrator,
+    pages_to_build: list[Any],
+    cli: CLIOutput | None = None,
+    build_context: BuildContext | None = None,
 ) -> None:
     """
-    Phase 16: Track Asset Dependencies (Parallel).
+    Phase 16: Persist Asset Dependencies.
 
-    Extracts and caches which assets each rendered page references.
-    Used for incremental builds to invalidate pages when assets change.
-
-    Performance:
-        Uses parallel extraction for sites with >5 pages. On multi-core systems,
-        this provides ~3-4x speedup for large sites (100+ pages).
+    Persists asset dependencies that were accumulated during rendering
+    (inline extraction). Assets are extracted in RenderingPipeline and
+    accumulated in BuildContext for efficient batch persistence.
 
     Args:
         orchestrator: Build orchestrator instance
         pages_to_build: List of rendered pages
         cli: Optional CLI output handler
+        build_context: BuildContext with accumulated assets from rendering
     """
-    from concurrent.futures import ThreadPoolExecutor, as_completed
-
-    # Threshold below which sequential is faster (avoids thread overhead)
-    PARALLEL_THRESHOLD = 5
-
     with orchestrator.logger.phase("track_assets", enabled=True):
         start = time.perf_counter()
         status = "Done"
         icon = "✓"
         details = f"{len(pages_to_build)} pages"
+
         try:
             from bengal.cache.asset_dependency_map import AssetDependencyMap
-            from bengal.rendering.asset_extractor import extract_assets_from_html
 
             asset_map = AssetDependencyMap(orchestrator.site.paths.asset_cache)
 
-            def extract_page_assets(page: Any) -> tuple[Any, set[str]] | None:
-                """Extract assets from a single page (thread-safe)."""
-                if not page.rendered_html:
-                    return None
-                assets = extract_assets_from_html(page.rendered_html)
-                return (page.source_path, assets) if assets else None
+            if build_context and build_context.has_accumulated_assets:
+                # Persist accumulated assets from inline extraction
+                accumulated = build_context.get_accumulated_assets()
+                for source_path, assets in accumulated:
+                    asset_map.track_page_assets(source_path, assets)
+                details = f"{len(accumulated)} pages"
 
-            if len(pages_to_build) < PARALLEL_THRESHOLD:
-                # Sequential for small workloads (avoid thread overhead)
-                for page in pages_to_build:
-                    result = extract_page_assets(page)
-                    if result:
-                        asset_map.track_page_assets(*result)
-            else:
-                # Parallel extraction for larger workloads
-                max_workers = getattr(orchestrator, "max_workers", None)
-                with ThreadPoolExecutor(max_workers=max_workers) as executor:
-                    futures = [executor.submit(extract_page_assets, p) for p in pages_to_build]
-                    for future in as_completed(futures):
-                        result = future.result()
-                        if result:
-                            source_path, assets = result
-                            asset_map.track_page_assets(source_path, assets)
+                # Clear accumulated data to free memory
+                build_context.clear_accumulated_assets()
 
             # Persist asset dependencies to disk
             asset_map.save_to_disk()
@@ -436,10 +588,7 @@ def phase_track_assets(
             status = "Error"
             icon = "✗"
             details = "see logs"
-            orchestrator.logger.warning(
-                "asset_tracking_failed",
-                error=str(e),
-            )
+            orchestrator.logger.warning("asset_tracking_failed", error=str(e))
         finally:
             duration_ms = (time.perf_counter() - start) * 1000
             if cli is not None:

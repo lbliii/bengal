@@ -409,5 +409,10 @@ def phase_update_pages_list(
             if should_include:
                 pages_to_build_set.add(page)  # O(1) + automatic dedup
 
+    # Freeze content registry before rendering
+    # This enables thread-safe reads during parallel rendering
+    # See: plan/drafted/rfc-site-responsibility-separation.md
+    orchestrator.site.registry.freeze()
+
     # Convert back to list for rendering
     return list(pages_to_build_set)

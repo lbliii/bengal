@@ -85,7 +85,9 @@ class TestFindWorkEarly:
         orchestrator.cache.should_bypass = Mock(return_value=True)
         orchestrator.cache.is_changed = Mock(return_value=False)
 
-        with patch.object(orchestrator, "_get_theme_templates_dir", return_value=None):
+        with patch.object(
+            orchestrator._cache_manager, "_get_theme_templates_dir", return_value=None
+        ):
             pages, assets, summary = orchestrator.find_work_early(verbose=True)
 
         assert len(pages) == 2
@@ -96,7 +98,9 @@ class TestFindWorkEarly:
         orchestrator.cache.should_bypass = Mock(return_value=True)
         orchestrator.cache.is_changed = Mock(return_value=False)
 
-        with patch.object(orchestrator, "_get_theme_templates_dir", return_value=None):
+        with patch.object(
+            orchestrator._cache_manager, "_get_theme_templates_dir", return_value=None
+        ):
             pages, assets, summary = orchestrator.find_work_early(
                 verbose=True,
                 forced_changed_sources={forced_path},
@@ -121,7 +125,9 @@ class TestFindWork:
         orchestrator.cache.should_bypass = Mock(return_value=True)
         orchestrator.cache.get_previous_tags = Mock(return_value=set())
 
-        with patch.object(orchestrator, "_get_theme_templates_dir", return_value=None):
+        with patch.object(
+            orchestrator._cache_manager, "_get_theme_templates_dir", return_value=None
+        ):
             pages, assets, summary = orchestrator.find_work(verbose=True)
 
         assert len(pages) == 2
@@ -132,7 +138,9 @@ class TestFindWork:
         orchestrator.cache.should_bypass = Mock(return_value=True)
         orchestrator.cache.get_previous_tags = Mock(return_value=set())
 
-        with patch.object(orchestrator, "_get_theme_templates_dir", return_value=None):
+        with patch.object(
+            orchestrator._cache_manager, "_get_theme_templates_dir", return_value=None
+        ):
             pages, assets, summary = orchestrator.find_work(verbose=True)
 
         # Summary should be dict format for backwards compatibility
@@ -160,7 +168,9 @@ class TestChangeDetectorDelegation:
         orchestrator.cache.should_bypass = Mock(return_value=False)
         orchestrator.cache.is_changed = Mock(return_value=False)
 
-        with patch.object(orchestrator, "_get_theme_templates_dir", return_value=None):
+        with patch.object(
+            orchestrator._cache_manager, "_get_theme_templates_dir", return_value=None
+        ):
             orchestrator.find_work_early()
 
         assert orchestrator._change_detector is not None
@@ -171,7 +181,9 @@ class TestChangeDetectorDelegation:
         orchestrator.cache.is_changed = Mock(return_value=False)
         orchestrator.cache.get_previous_tags = Mock(return_value=set())
 
-        with patch.object(orchestrator, "_get_theme_templates_dir", return_value=None):
+        with patch.object(
+            orchestrator._cache_manager, "_get_theme_templates_dir", return_value=None
+        ):
             orchestrator.find_work_early()
             first_detector = orchestrator._change_detector
 

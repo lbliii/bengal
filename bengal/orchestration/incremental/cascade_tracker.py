@@ -54,6 +54,24 @@ class CascadeTracker:
             site: Site instance for page and section lookup
         """
         self.site = site
+        # PERF: Cached lookups (built lazily on first access)
+        self._page_by_path: dict[Path, Page] | None = None
+        self._pages_in_sections: set[int] | None = None
+
+    def _get_page_by_path(self, path: Path) -> Page | None:
+        """O(1) page lookup by source path (cached)."""
+        if self._page_by_path is None:
+            self._page_by_path = {p.source_path: p for p in self.site.pages}
+        return self._page_by_path.get(path)
+
+    def _is_page_in_any_section(self, page: Page) -> bool:
+        """O(1) check if page is in any section (cached)."""
+        if self._pages_in_sections is None:
+            self._pages_in_sections = set()
+            for section in self.site.sections:
+                for p in section.pages:
+                    self._pages_in_sections.add(id(p))
+        return id(page) in self._pages_in_sections
 
     def apply_cascade_rebuilds(
         self,
@@ -81,7 +99,8 @@ class CascadeTracker:
             if changed_path.stem not in ("_index", "index"):
                 continue
 
-            changed_page = next((p for p in self.site.pages if p.source_path == changed_path), None)
+            # PERF: O(1) lookup instead of O(n) scan
+            changed_page = self._get_page_by_path(changed_path)
             if not changed_page or "cascade" not in changed_page.metadata:
                 continue
 
@@ -116,7 +135,8 @@ class CascadeTracker:
         affected: set[Path] = set()
 
         # Check if this is a root-level page (affects ALL pages)
-        is_root_level = not any(index_page in section.pages for section in self.site.sections)
+        # PERF: O(1) check instead of O(sections × pages_per_section)
+        is_root_level = not self._is_page_in_any_section(index_page)
 
         if is_root_level:
             # Root-level cascade affects all pages in the site
@@ -170,7 +190,8 @@ class CascadeTracker:
         """
         navigation_affected_count = 0
         for changed_path in list(pages_to_rebuild):  # Iterate over snapshot
-            changed_page = next((p for p in self.site.pages if p.source_path == changed_path), None)
+            # PERF: O(1) lookup instead of O(n) scan
+            changed_page = self._get_page_by_path(changed_path)
             if not changed_page or changed_page.metadata.get("_generated"):
                 continue
 

@@ -24,6 +24,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from bengal.postprocess.output_formats.base import BaseOutputGenerator
 from bengal.postprocess.output_formats.index_generator import SiteIndexGenerator
 from bengal.postprocess.output_formats.json_generator import PageJSONGenerator
 from bengal.postprocess.output_formats.llm_generator import SiteLlmTxtGenerator
@@ -39,6 +40,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 __all__ = [
+    "BaseOutputGenerator",
     "LunrIndexGenerator",
     "OutputFormatsGenerator",
     "PageJSONGenerator",
@@ -216,6 +218,17 @@ class OutputFormatsGenerator:
         generated = []
         options = self.config.get("options", {})
 
+        # Get accumulated page data once (shared by multiple generators)
+        # See: plan/drafted/rfc-unified-page-data-accumulation.md
+        accumulated_data = None
+        if self.build_context and self.build_context.has_accumulated_page_data:
+            accumulated_data = self.build_context.get_accumulated_page_data()
+            logger.debug(
+                "using_accumulated_page_data",
+                count=len(accumulated_data),
+                total_pages=len(pages),
+            )
+
         # Per-page outputs
         if "json" in per_page:
             # Get config options for HTML/text inclusion
@@ -227,11 +240,18 @@ class OutputFormatsGenerator:
                 include_html=include_html,
                 include_text=include_text,
             )
-            # OPTIMIZATION: Use accumulated JSON data if available (Phase 2 of post-processing optimization)
-            # This eliminates double iteration of pages, saving ~500-700ms on large sites
-            # See: plan/active/rfc-postprocess-optimization.md
+            # OPTIMIZATION: Use accumulated page data if available
+            # Extract JSON-specific data from unified accumulator
+            # See: plan/drafted/rfc-unified-page-data-accumulation.md
             accumulated_json = None
-            if self.build_context and self.build_context.has_accumulated_json:
+            if accumulated_data:
+                accumulated_json = [
+                    (data.json_output_path, data.full_json_data)
+                    for data in accumulated_data
+                    if data.full_json_data is not None
+                ]
+            # Fallback to legacy method if unified accumulator not populated
+            elif self.build_context and self.build_context.has_accumulated_json:
                 accumulated_json = self.build_context.get_accumulated_json()
             count = json_gen.generate(pages, accumulated_json=accumulated_json)
             generated.append(f"JSON ({count} files)")
@@ -255,7 +275,13 @@ class OutputFormatsGenerator:
                 json_indent=json_indent,
                 include_full_content=include_full_content,
             )
-            index_result = index_gen.generate(pages)
+            # OPTIMIZATION: Pass accumulated page data for hybrid mode
+            # See: plan/drafted/rfc-unified-page-data-accumulation.md
+            index_result = index_gen.generate(
+                pages,
+                accumulated_data=accumulated_data,
+                build_context=self.build_context,
+            )
 
             # Handle both single Path and list[Path] return
             if isinstance(index_result, list):

@@ -195,7 +195,7 @@ class BengalHealthDashboard(BengalDashboard):
         try:
             if self.site is None:
                 # No site - show demo/placeholder
-                self.call_from_thread(self._populate_demo)
+                self.app.call_from_thread(self._populate_demo)
                 return
 
             # Try to run link check if available
@@ -210,14 +210,14 @@ class BengalHealthDashboard(BengalDashboard):
                 results, summary = orchestrator.check_all_links()
 
                 # Convert to our format
-                self.call_from_thread(self._populate_from_linkcheck, results, summary)
+                self.app.call_from_thread(self._populate_from_linkcheck, results, summary)
 
             except ImportError:
                 # Fallback to demo mode
-                self.call_from_thread(self._populate_demo)
+                self.app.call_from_thread(self._populate_demo)
 
         except Exception as e:
-            self.call_from_thread(self._on_scan_error, str(e))
+            self.app.call_from_thread(self._on_scan_error, str(e))
 
     def _populate_demo(self) -> None:
         """Populate tree with demo/placeholder data (Task 4.2)."""

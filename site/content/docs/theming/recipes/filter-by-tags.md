@@ -49,7 +49,8 @@ Find content that matches multiple criteria — tags, categories, or custom fiel
 
 ## Variations
 
-### Pages with Any of These Tags
+:::{tab-set}
+:::{tab-item} Any of These Tags
 
 ```jinja2
 {# Has 'python' OR 'javascript' tag #}
@@ -58,7 +59,8 @@ Find content that matches multiple criteria — tags, categories, or custom fiel
 {% set either = python | union(js) %}
 ```
 
-### Pages with ALL of These Tags
+:::{/tab-item}
+:::{tab-item} ALL of These Tags
 
 ```jinja2
 {# Has both 'python' AND 'tutorial' tags #}
@@ -67,7 +69,8 @@ Find content that matches multiple criteria — tags, categories, or custom fiel
 {% set both = python | intersect(tutorials) %}
 ```
 
-### Exclude Certain Tags
+:::{/tab-item}
+:::{tab-item} Exclude Tags
 
 ```jinja2
 {# Everything except archived posts #}
@@ -75,7 +78,8 @@ Find content that matches multiple criteria — tags, categories, or custom fiel
   | where('tags', 'archived', 'not_in') %}
 ```
 
-### Filter by Nested Field
+:::{/tab-item}
+:::{tab-item} Nested Field
 
 ```jinja2
 {# Access frontmatter via metadata #}
@@ -85,6 +89,9 @@ Find content that matches multiple criteria — tags, categories, or custom fiel
 {% set series = site.pages
   | where('metadata.series', 'getting-started') %}
 ```
+
+:::{/tab-item}
+:::{/tab-set}
 
 ## Build a Tag Filter Page
 

@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.utils.hashing import hash_str
+from bengal.utils.sentinel import MISSING
 
 if TYPE_CHECKING:
     pass
@@ -85,7 +86,7 @@ class RenderedOutputCacheMixin:
 
     def get_rendered_output(
         self, file_path: Path, template: str, metadata: dict[str, Any]
-    ) -> str | None:
+    ) -> str | Any:
         """
         Get cached rendered HTML if still valid.
 
@@ -102,36 +103,35 @@ class RenderedOutputCacheMixin:
             metadata: Current page metadata
 
         Returns:
-            Cached HTML string if valid, None if invalid or not found
+            Cached HTML string if valid, MISSING if invalid or not found
         """
         key = str(file_path)
 
         # Check if cached
-        if key not in self.rendered_output:
-            return None
-
-        cached = self.rendered_output[key]
+        cached = self.rendered_output.get(key, MISSING)
+        if cached is MISSING:
+            return MISSING
 
         # Validate file hasn't changed (uses fast mtime+size first)
         if self.is_changed(file_path):
-            return None
+            return MISSING
 
         # Validate metadata hasn't changed
         metadata_str = json.dumps(metadata, sort_keys=True, default=str)
         metadata_hash = hash_str(metadata_str)
         if cached.get("metadata_hash") != metadata_hash:
-            return None
+            return MISSING
 
         # Validate template name matches
         if cached.get("template") != template:
-            return None
+            return MISSING
 
         # Validate dependencies haven't changed (templates, partials)
         for dep_path in cached.get("dependencies", []):
             dep = Path(dep_path)
             if dep.exists() and self.is_changed(dep):
                 # A dependency changed - invalidate cache
-                return None
+                return MISSING
 
         return cached.get("html")
 

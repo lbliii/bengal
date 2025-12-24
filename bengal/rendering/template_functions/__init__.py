@@ -107,6 +107,7 @@ from . import (
     navigation,
     pagination_helpers,
     seo,
+    sharing,
     strings,
     taxonomies,
     theme,
@@ -153,6 +154,7 @@ def register_all(env: Environment, site: Site) -> None:
     taxonomies.register(env, site)
     pagination_helpers.register(env, site)
     i18n.register(env, site)
+    sharing.register(env, site)
 
     # Phase 4: Cross-reference functions (5 functions)
     crossref.register(env, site)
@@ -194,6 +196,7 @@ __all__ = [
     "pagination_helpers",
     "register_all",
     "seo",
+    "sharing",
     "strings",
     "taxonomies",
     "template_tests",

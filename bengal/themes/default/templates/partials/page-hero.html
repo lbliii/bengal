@@ -20,11 +20,10 @@ Usage:
 {# Determine hero style: page variant > page frontmatter > template default > theme config > default (editorial) #}
 {# Priority: variant (PageCore) > hero_style (PageCore/Metadata) > _list_hero_default > theme config > editorial #}
 
-{% set _page_variant = page.variant if (page is defined and page) else none %}
-{% set _page_hero_style = page.metadata.get('hero_style') if (page.metadata is defined and page.metadata) else none %}
+{% set _page_variant = page.variant if page else none %}
+{% set _page_hero_style = params.hero_style if params else none %}
 {% set _template_default = _list_hero_default if _list_hero_default is defined else none %}
-{% set _theme_hero_style = site.theme_config.hero_style if (site.theme_config is defined and
-site.theme_config.hero_style is defined) else 'editorial' %}
+{% set _theme_hero_style = theme.config.hero_style | default('editorial') if theme else 'editorial' %}
 
 {# Resolve effective variant #}
 {% set hero_style = _page_variant if _page_variant else (_page_hero_style if _page_hero_style else (_template_default if
@@ -38,9 +37,9 @@ _template_default else _theme_hero_style)) %}
 {% include 'partials/page-hero-overview.html' %}
 {% elif hero_style == 'api' %}
 {# Route to appropriate separated template based on whether element exists #}
-{% if element is defined and element %}
+{% if element %}
 {% include 'partials/page-hero/element.html' %}
-{% elif section is defined and section %}
+{% elif section %}
 {% include 'partials/page-hero/section.html' %}
 {% else %}
 {# Fallback to editorial: API hero requires element/section context; without it we cannot render an API-specific layout, so we use the standard editorial hero as the safe, context-agnostic default. #}

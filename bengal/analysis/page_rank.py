@@ -49,6 +49,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from bengal.errors import BengalError, ErrorCode
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
@@ -154,10 +155,18 @@ class PageRankCalculator:
             convergence_threshold: Stop when max score change < this value
         """
         if not 0 < damping < 1:
-            raise ValueError(f"Damping factor must be between 0 and 1, got {damping}")
+            raise BengalError(
+                f"Damping factor must be between 0 and 1, got {damping}",
+                code=ErrorCode.G002,
+                suggestion="Use a damping factor between 0 and 1 (typically 0.85)",
+            )
 
         if max_iterations < 1:
-            raise ValueError(f"Max iterations must be >= 1, got {max_iterations}")
+            raise BengalError(
+                f"Max iterations must be >= 1, got {max_iterations}",
+                code=ErrorCode.G002,
+                suggestion="Use a positive number of max iterations (typically 100)",
+            )
 
         self.graph = graph
         self.damping = damping
@@ -280,7 +289,11 @@ class PageRankCalculator:
             PageRankResults with personalized scores
         """
         if not seed_pages:
-            raise ValueError("seed_pages cannot be empty for personalized PageRank")
+            raise BengalError(
+                "Personalized PageRank requires at least one seed page",
+                code=ErrorCode.G002,
+                suggestion="Provide at least one seed page to bias the ranking",
+            )
 
         return self.compute(seed_pages=seed_pages, personalized=True)
 

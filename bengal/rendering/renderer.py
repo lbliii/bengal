@@ -26,8 +26,6 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from markupsafe import Markup
-
 from bengal.core.page import Page
 from bengal.utils.logger import get_logger
 
@@ -76,6 +74,40 @@ class Renderer:
         self.template_engine = template_engine
         self.site = template_engine.site  # Access to site config for strict mode
         self.build_stats = build_stats  # For collecting template errors
+        # PERF: Cache for top-level content (computed once per build)
+        self._top_level_cache: tuple[list[Page], list[Any]] | None = None
+
+    def _get_top_level_content(self) -> tuple[list[Page], list[Any]]:
+        """
+        Get top-level pages and sections (not nested in any section).
+
+        PERF: Uses O(n) algorithm with set-based filtering instead of O(n²).
+        Result is cached for the lifetime of the Renderer instance.
+
+        Returns:
+            Tuple of (top_level_pages, top_level_subsections)
+        """
+        if self._top_level_cache is not None:
+            return self._top_level_cache
+
+        # Build set of all pages that are in any section (O(sections × pages_per_section))
+        pages_in_sections: set[int] = set()
+        for section in self.site.sections:
+            for p in section.pages:
+                pages_in_sections.add(id(p))
+
+        # Build set of all sections that are subsections of another (O(sections × subsections))
+        nested_sections: set[int] = set()
+        for parent in self.site.sections:
+            for s in parent.subsections:
+                nested_sections.add(id(s))
+
+        # Filter using O(1) set membership
+        top_level_pages = [p for p in self.site.regular_pages if id(p) not in pages_in_sections]
+        top_level_subsections = [s for s in self.site.sections if id(s) not in nested_sections]
+
+        self._top_level_cache = (top_level_pages, top_level_subsections)
+        return self._top_level_cache
 
     def render_content(self, content: str) -> str:
         """
@@ -119,10 +151,9 @@ class Renderer:
         Render a complete page with template.
 
         Architecture:
-        1. Builds initial context (metadata, TOC, content)
+        1. Uses build_page_context() for unified context building
         2. Adds specialized context based on page type:
            - Generated pages (tags/archives): Adds filtered `posts` list
-           - Section pages: Adds section-specific `posts`
            - Root index: Adds top-level pages
         3. Renders using Jinja2 template
 
@@ -138,6 +169,8 @@ class Renderer:
         Returns:
             Fully rendered HTML page
         """
+        from bengal.rendering.context import build_page_context
+
         if content is None:
             content = page.parsed_ast or ""
             # Debug: Check core/page specifically
@@ -159,107 +192,39 @@ class Renderer:
         # Determine which template to use
         template_name = self._get_template_name(page)
 
-        # Build base context
-        # Note: Content and TOC are marked as safe HTML to prevent auto-escaping
-        # (they're already sanitized during markdown parsing)
-        context = {
-            "page": page,
-            "content": Markup(content),  # Mark as safe HTML
-            "title": page.title,
-            "metadata": page.metadata,
-            "toc": Markup(page.toc) if page.toc else "",  # Mark TOC as safe HTML
-            "toc_items": page.toc_items,  # Structured TOC data
-            # Pre-computed cached properties (computed once, reused in templates)
-            # Templates can use these directly or access via page.meta_description, etc.
-            "meta_desc": page.meta_description,  # From cached_property
-            "reading_time": page.reading_time,  # From cached_property
-            "excerpt": page.excerpt,  # From cached_property
-        }
+        # Build base context using unified context builder
+        # This handles: site/config/theme wrappers, params cascade, section context,
+        # versioning, content, toc, meta_desc, reading_time, excerpt
+        context = build_page_context(
+            page=page,
+            site=self.site,
+            content=content,
+        )
 
-        # Add versioning context if enabled
-        # current_version: Version dict for the current page (or None)
-        # is_latest_version: Whether this page is from the latest version
-        if self.site.versioning_enabled and page.version:
-            version_obj = self.site.get_version(page.version)
-            if version_obj:
-                context["current_version"] = version_obj.to_dict()
-                context["is_latest_version"] = version_obj.latest
-            else:
-                context["current_version"] = None
-                context["is_latest_version"] = True
-        else:
-            context["current_version"] = None
-            context["is_latest_version"] = True
-
-        # Add special context for generated pages
+        # Add special context for generated pages (tags, archives, etc.)
+        # These need additional pagination and tag-specific data
         if page.metadata.get("_generated"):
             self._add_generated_page_context(page, context)
-
-        # Add section context for reference documentation types, doc types, and index pages
-        # This allows manual reference pages, doc pages, and section index pages to access section data
-        # NOTE: Exclude tag and tag-index pages - they get their context from _add_generated_page_context
-        page_type = page.metadata.get("type")
-        is_index_page = page.source_path.stem in ("_index", "index")
-
-        if (
-            page_type not in ("tag", "tag-index")  # Exclude tag pages - they have their own context
-            and hasattr(page, "_section")
-            and page._section
-            and (
-                page_type
-                in (
-                    "autodoc/python",
-                    "autodoc-cli",
-                    "tutorial",
-                    "doc",
-                    "blog",
-                    "archive",
-                    "changelog",
-                )
-                or is_index_page
-            )
-        ):
-            # Add section context if:
-            # 1. It's a reference documentation type (autodoc/python, autodoc/cli, tutorial)
-            # 2. It's a doc type page (for doc/list.html templates)
-            # 3. It's a blog or archive type page (for blog/list.html templates)
-            # 4. It's an index page (_index.md or index.md)
-            section = page._section
-
-            # Use pre-filtered/sorted _posts if available (from SectionOrchestrator),
-            # otherwise fall back to section.pages
-            posts = page.metadata.get("_posts", section.pages)
-            subsections = page.metadata.get("_subsections", section.subsections)
-
-            context.update(
-                {
-                    "section": section,
-                    "posts": posts,
-                    "pages": posts,  # Alias
-                    "subsections": subsections,
-                }
-            )
 
         # Handle root index pages (top-level _index.md without enclosing section)
         # Provide context for ALL root index pages, regardless of type
         # EXCLUDE generated pages (tags, archives) which have their own context logic
-        elif is_index_page and page._section is None and not page.metadata.get("_generated"):
+        page_type = page.metadata.get("type")
+        is_index_page = page.source_path.stem in ("_index", "index")
+
+        if (
+            is_index_page
+            and page._section is None
+            and not page.metadata.get("_generated")
+            and page_type not in ("tag", "tag-index")
+        ):
             # For root home page, provide site-level context as fallback
             # Filter to top-level items only (exclude nested sections/pages)
-            top_level_pages = [
-                p
-                for p in self.site.regular_pages
-                if not any(p in s.pages for s in self.site.sections)
-            ]
-            top_level_subsections = [
-                s
-                for s in self.site.sections
-                if not any(s in parent.subsections for parent in self.site.sections)
-            ]
+            # PERF: Use cached sets for O(n) instead of O(n²) filtering
+            top_level_pages, top_level_subsections = self._get_top_level_content()
 
             context.update(
                 {
-                    "section": None,  # Root has no section
                     "posts": top_level_pages,
                     "pages": top_level_pages,  # Alias
                     "subsections": top_level_subsections,
@@ -362,6 +327,8 @@ class Renderer:
         Note: Posts are already filtered and sorted by the content type strategy
         in the SectionOrchestrator, so we do not re-sort here.
         """
+        from bengal.rendering.context import SectionContext
+
         section = page.metadata.get("_section") if page.metadata is not None else None
         all_posts = (
             page.metadata.get("_posts", []) if page.metadata is not None else []
@@ -387,7 +354,7 @@ class Renderer:
 
         context.update(
             {
-                "section": section if section else None,
+                "section": SectionContext(section),
                 "posts": posts,
                 "pages": posts,  # Alias
                 "subsections": subsections,
@@ -402,8 +369,9 @@ class Renderer:
         tag_slug = page.metadata.get("_tag_slug")
         page_num = page.metadata.get("_page_num", 1)
 
-        page_map = None
-        str_page_map = None
+        # PERF: Use cached page lookup map instead of rebuilding on each tag page render.
+        # get_page_path_map() returns {str(source_path): Page} and is cached on site.
+        str_page_map = self.site.get_page_path_map()
 
         # Get pages directly from site.taxonomies (most reliable source)
         # But resolve them from site.pages to ensure we have current Page objects
@@ -417,17 +385,11 @@ class Renderer:
             tag_data = self.site.taxonomies["tags"][tag_slug]
             taxonomy_pages = tag_data.get("pages", [])
 
-            # Build lookup map from site.pages for reliable resolution
-            page_map = {p.source_path: p for p in self.site.pages}
-            # Also build map with string keys for robust fallback
-            str_page_map = {str(p.source_path): p for p in self.site.pages}
-
             for tax_page in taxonomy_pages:
                 resolved_page = None
                 if hasattr(tax_page, "source_path"):
-                    resolved_page = page_map.get(tax_page.source_path)
-                    if not resolved_page:
-                        resolved_page = str_page_map.get(str(tax_page.source_path))
+                    # Use cached string-keyed map for O(1) lookup
+                    resolved_page = str_page_map.get(str(tax_page.source_path))
 
                 if resolved_page:
                     source_str = str(resolved_page.source_path)
@@ -450,40 +412,17 @@ class Renderer:
         if not all_posts and page.metadata is not None:
             stored_posts = page.metadata.get("_posts", [])
             if stored_posts:
-                if page_map is None:
-                    page_map = {p.source_path: p for p in self.site.pages}
-                    str_page_map = {str(p.source_path): p for p in self.site.pages}
-
+                # str_page_map is already set from cached get_page_path_map() above
                 for stored_item in stored_posts:
                     resolved_page = None
-                    if (
-                        hasattr(stored_item, "source_path")
-                        and page_map is not None
-                        and str_page_map is not None
-                    ):
-                        resolved_page = page_map.get(stored_item.source_path)
-                        if not resolved_page:
-                            page_from_str_map = str_page_map.get(str(stored_item.source_path))
-                            if page_from_str_map is not None:
-                                resolved_page = page_from_str_map
-
+                    if hasattr(stored_item, "source_path"):
+                        resolved_page = str_page_map.get(str(stored_item.source_path))
                         if resolved_page:
                             all_posts.append(resolved_page)
                         else:
                             all_posts.append(stored_item)
-
-                    elif (
-                        isinstance(stored_item, str)
-                        and page_map is not None
-                        and str_page_map is not None
-                    ):
-                        from pathlib import Path
-
-                        path_obj = Path(stored_item)
-                        resolved_page = page_map.get(path_obj)
-                        if not resolved_page:
-                            resolved_page = str_page_map.get(str(path_obj))
-
+                    elif isinstance(stored_item, str):
+                        resolved_page = str_page_map.get(stored_item)
                         if resolved_page:
                             all_posts.append(resolved_page)
 
@@ -521,11 +460,10 @@ class Renderer:
                 }
         elif paginator and hasattr(paginator, "items") and paginator.items:
             resolved_items = []
-            if page_map is None:
-                page_map = {p.source_path: p for p in self.site.pages}
+            # str_page_map is already set from cached get_page_path_map() above
             for item in paginator.items:
-                if hasattr(item, "source_path") and page_map is not None:
-                    resolved = page_map.get(item.source_path)
+                if hasattr(item, "source_path"):
+                    resolved = str_page_map.get(str(item.source_path))
                     if resolved:
                         resolved_items.append(resolved)
                     elif item and hasattr(item, "title"):

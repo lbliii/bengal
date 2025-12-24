@@ -10,6 +10,7 @@ import pytest
 
 from bengal.analysis.community_detection import CommunityDetectionResults
 from bengal.analysis.knowledge_graph import KnowledgeGraph
+from bengal.errors import BengalError
 
 
 @pytest.fixture
@@ -167,7 +168,7 @@ class TestCommunityDetectionIntegration:
         # Create new graph without building
         new_graph = KnowledgeGraph(site)
 
-        with pytest.raises(RuntimeError, match="Must call build"):
+        with pytest.raises(BengalError, match="KnowledgeGraph is not built"):
             new_graph.detect_communities()
 
     def test_resolution_parameter(self, clustered_site):

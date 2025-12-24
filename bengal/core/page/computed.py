@@ -8,6 +8,11 @@ Key Properties:
     - meta_description: SEO-friendly description (max 160 chars)
     - reading_time: Estimated reading time in minutes
     - excerpt: Content excerpt for listings (max 200 chars)
+    - age_days: Days since publication
+    - age_months: Months since publication
+    - author: Primary Author object
+    - authors: List of all Author objects
+    - series: Series object for multi-part content
 
 Performance:
     All properties use @cached_property decorator, ensuring expensive operations
@@ -15,6 +20,7 @@ Performance:
 
 Related Modules:
     - bengal.rendering.pipeline: Content rendering that populates page.content
+    - bengal.core.author: Author dataclass for author metadata
 
 See Also:
     - bengal/core/page/__init__.py: Page class that uses this mixin
@@ -23,8 +29,14 @@ See Also:
 from __future__ import annotations
 
 import re
+from datetime import UTC, datetime
 from functools import cached_property
-from typing import Any, Protocol, cast
+from typing import TYPE_CHECKING, Any, Protocol, cast
+
+if TYPE_CHECKING:
+    from bengal.core.author import Author
+    from bengal.core.series import Series
+    from bengal.core.site import Site
 
 
 class HasMetadata(Protocol):
@@ -32,6 +44,20 @@ class HasMetadata(Protocol):
 
     metadata: dict[str, Any]
     content: str
+
+
+class HasDate(Protocol):
+    """Protocol for objects that have a date attribute."""
+
+    date: datetime | None
+
+
+class HasSiteAndMetadata(Protocol):
+    """Protocol for objects with site reference and metadata."""
+
+    metadata: dict[str, Any]
+    _site: Site | None
+    source_path: Any  # Path
 
 
 class PageComputedMixin:
@@ -163,3 +189,263 @@ class PageComputedMixin:
         # Find the last space before the limit (respect word boundaries)
         excerpt_text = clean_text[:length].rsplit(" ", 1)[0]
         return excerpt_text + "..."
+
+    @cached_property
+    def age_days(self: HasDate) -> int:
+        """
+        Calculate days since publication (computed once, cached).
+
+        Returns the number of days since the page's date. Useful for
+        determining content freshness and applying age-based styling.
+
+        Returns:
+            Number of days since publication, or 0 if no date
+
+        Example:
+            {% if page.age_days < 7 %}
+              <span class="badge">New</span>
+            {% endif %}
+        """
+        page_date = getattr(self, "date", None)
+        if page_date is None:
+            return 0
+
+        # Handle timezone-aware dates
+        now = datetime.now(UTC) if page_date.tzinfo is not None else datetime.now()
+        diff = now - page_date
+        return max(0, diff.days)
+
+    @cached_property
+    def age_months(self: HasDate) -> int:
+        """
+        Calculate months since publication (computed once, cached).
+
+        Uses calendar months rather than 30-day periods for more intuitive
+        results. A post from January 15 accessed in March would be 2 months old.
+
+        Returns:
+            Number of months since publication, or 0 if no date
+
+        Example:
+            {% if page.age_months > 6 %}
+              <div class="notice">This content may be outdated.</div>
+            {% endif %}
+        """
+        page_date = getattr(self, "date", None)
+        if page_date is None:
+            return 0
+
+        now = datetime.now(UTC) if page_date.tzinfo is not None else datetime.now()
+        months = (now.year - page_date.year) * 12 + (now.month - page_date.month)
+        return max(0, months)
+
+    @cached_property
+    def author(self: HasMetadata) -> Author | None:
+        """
+        Get primary author as Author object (computed once, cached).
+
+        Parses the 'author' frontmatter field into a structured Author object.
+        Supports both string format ("Jane Smith") and dict format with details.
+
+        Returns:
+            Author object or None if no author specified
+
+        Example:
+            {% if page.author %}
+              <span class="author">{{ page.author.name }}</span>
+              {% if page.author.avatar %}
+                <img src="{{ page.author.avatar }}" alt="{{ page.author.name }}">
+              {% endif %}
+            {% endif %}
+        """
+        from bengal.core.author import Author
+
+        # Check for 'author' field first
+        author_data = self.metadata.get("author")
+        if author_data:
+            return Author.from_frontmatter(author_data)
+
+        # Fall back to first author in 'authors' list
+        authors_data = self.metadata.get("authors")
+        if authors_data and isinstance(authors_data, list) and len(authors_data) > 0:
+            return Author.from_frontmatter(authors_data[0])
+
+        return None
+
+    @cached_property
+    def authors(self: HasMetadata) -> list[Author]:
+        """
+        Get all authors as list of Author objects (computed once, cached).
+
+        Parses both 'author' and 'authors' frontmatter fields, combining them
+        into a single deduplicated list. Handles string and dict formats.
+
+        Returns:
+            List of Author objects (empty list if no authors)
+
+        Example:
+            {% for author in page.authors %}
+              <a href="/authors/{{ author.name | slugify }}/">
+                {{ author.name }}
+              </a>
+            {% endfor %}
+        """
+        from bengal.core.author import Author
+
+        result: list[Author] = []
+        seen_names: set[str] = set()
+
+        # Process 'author' field (single author)
+        author_data = self.metadata.get("author")
+        if author_data:
+            author = Author.from_frontmatter(author_data)
+            if author and author.name not in seen_names:
+                result.append(author)
+                seen_names.add(author.name)
+
+        # Process 'authors' field (multiple authors)
+        authors_data = self.metadata.get("authors")
+        if authors_data and isinstance(authors_data, list):
+            for item in authors_data:
+                author = Author.from_frontmatter(item)
+                if author and author.name not in seen_names:
+                    result.append(author)
+                    seen_names.add(author.name)
+
+        return result
+
+    @cached_property
+    def series(self: HasMetadata) -> Series | None:
+        """
+        Get series info as Series object (computed once, cached).
+
+        Parses the 'series' frontmatter field into a structured Series object
+        for multi-part content navigation.
+
+        Returns:
+            Series object or None if not part of a series
+
+        Example:
+            {% if page.series %}
+              <div class="series-nav">
+                <h4>{{ page.series.name }}</h4>
+                <p>Part {{ page.series.part }} of {{ page.series.total }}</p>
+              </div>
+            {% endif %}
+        """
+        from bengal.core.series import Series
+
+        series_data = self.metadata.get("series")
+        if not series_data:
+            return None
+
+        return Series.from_frontmatter(series_data)
+
+    @cached_property
+    def prev_in_series(self: HasSiteAndMetadata) -> Any | None:
+        """
+        Get previous page in series (computed once, cached).
+
+        Looks up other pages in the same series via the SeriesIndex and
+        returns the page with part number one less than this page.
+
+        Returns:
+            Previous Page in series, or None if first/not in series
+
+        Example:
+            {% if page.prev_in_series %}
+              <a href="{{ page.prev_in_series.href }}">
+                ← {{ page.prev_in_series.title }}
+              </a>
+            {% endif %}
+        """
+        return self._get_series_neighbor(-1)
+
+    @cached_property
+    def next_in_series(self: HasSiteAndMetadata) -> Any | None:
+        """
+        Get next page in series (computed once, cached).
+
+        Looks up other pages in the same series via the SeriesIndex and
+        returns the page with part number one more than this page.
+
+        Returns:
+            Next Page in series, or None if last/not in series
+
+        Example:
+            {% if page.next_in_series %}
+              <a href="{{ page.next_in_series.href }}">
+                {{ page.next_in_series.title }} →
+              </a>
+            {% endif %}
+        """
+        return self._get_series_neighbor(1)
+
+    def _get_series_neighbor(self: HasSiteAndMetadata, offset: int) -> Any | None:
+        """
+        Get neighboring page in series by part offset.
+
+        Args:
+            offset: Part number offset (-1 for prev, +1 for next)
+
+        Returns:
+            Neighboring Page or None
+        """
+        # Get series info from this page
+        series_data = self.metadata.get("series")
+        if not series_data:
+            return None
+
+        # Extract series name and current part
+        if isinstance(series_data, str):
+            series_name = series_data
+            current_part = 1
+        elif isinstance(series_data, dict):
+            series_name = series_data.get("name", "")
+            current_part = int(series_data.get("part", 1))
+        else:
+            return None
+
+        if not series_name:
+            return None
+
+        target_part = current_part + offset
+        if target_part < 1:
+            return None
+
+        # Access site's series index
+        site = getattr(self, "_site", None)
+        if site is None:
+            return None
+
+        # Get series index
+        indexes = getattr(site, "indexes", None)
+        if indexes is None:
+            return None
+
+        series_index = getattr(indexes, "series", None)
+        if series_index is None:
+            return None
+
+        # Get all page paths in this series
+        page_paths = series_index.get(series_name)
+        if not page_paths:
+            return None
+
+        # Get page lookup map
+        page_map = site.get_page_path_map()
+
+        # Find the page with the target part number
+        for path in page_paths:
+            page = page_map.get(path)
+            if page is None:
+                continue
+
+            # Check this page's part number
+            page_series = page.metadata.get("series")
+            page_part = int(page_series.get("part", 1)) if isinstance(page_series, dict) else 1
+
+            if page_part == target_part:
+                return page
+
+        return None

@@ -78,10 +78,12 @@ class TestGraphAnalyzerDirect:
 
     def test_analyzer_requires_built_graph(self, simple_site):
         """Test that analyzer methods require graph to be built."""
+        from bengal.errors import BengalError
+
         graph = KnowledgeGraph(simple_site)
         analyzer = GraphAnalyzer(graph)
 
-        with pytest.raises(RuntimeError, match="not built.*\\.build\\(\\)"):
+        with pytest.raises(BengalError, match="not built"):
             analyzer.get_hubs()
 
     def test_get_connectivity_score(self, simple_site):
@@ -196,23 +198,25 @@ class TestGraphAnalyzerDelegation:
         assert graph_layers.leaves == analyzer_layers.leaves
 
     def test_delegation_error_handling(self, simple_site):
-        """Test that delegated methods still raise RuntimeError before build."""
+        """Test that delegated methods raise BengalError before build."""
+        from bengal.errors import BengalError
+
         graph = KnowledgeGraph(simple_site)
 
-        with pytest.raises(RuntimeError, match="not built.*\\.build\\(\\)"):
+        with pytest.raises(BengalError, match="not built"):
             graph.get_hubs()
 
-        with pytest.raises(RuntimeError, match="not built.*\\.build\\(\\)"):
+        with pytest.raises(BengalError, match="not built"):
             graph.get_leaves()
 
-        with pytest.raises(RuntimeError, match="not built.*\\.build\\(\\)"):
+        with pytest.raises(BengalError, match="not built"):
             graph.get_orphans()
 
-        with pytest.raises(RuntimeError, match="not built.*\\.build\\(\\)"):
+        with pytest.raises(BengalError, match="not built"):
             graph.get_layers()
 
-        with pytest.raises(RuntimeError, match="not built.*\\.build\\(\\)"):
+        with pytest.raises(BengalError, match="not built"):
             graph.get_connectivity_score(simple_site.pages[0])
 
-        with pytest.raises(RuntimeError, match="not built.*\\.build\\(\\)"):
+        with pytest.raises(BengalError, match="not built"):
             graph.get_connectivity(simple_site.pages[0])

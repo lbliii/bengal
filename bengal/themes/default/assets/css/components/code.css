@@ -521,6 +521,61 @@ pre code {
     inset -0.5px -0.5px 1px rgba(0, 0, 0, 0.1),
     1px 1px 3px rgba(34, 197, 94, 0.2),
     -0.5px -0.5px 1px rgba(34, 197, 94, 0.15);
+  /* Satisfying bounce animation on success */
+  animation: copy-button-burst 0.5s var(--ease-bounce, cubic-bezier(0.34, 1.56, 0.64, 1));
+}
+
+/* Burst ring animation on copy success */
+.code-copy-button.copied::before {
+  content: '' !important;
+  position: absolute;
+  inset: -3px;
+  border-radius: inherit;
+  border: 2px solid var(--color-success);
+  opacity: 0;
+  pointer-events: none;
+  animation: copy-burst-ring 0.6s var(--ease-overshoot, cubic-bezier(0.175, 0.885, 0.32, 1.275)) forwards;
+}
+
+@keyframes copy-button-burst {
+  0% {
+    transform: scale(1);
+  }
+  15% {
+    transform: scale(0.88);
+  }
+  35% {
+    transform: scale(1.18);
+  }
+  55% {
+    transform: scale(0.96);
+  }
+  75%, 100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes copy-burst-ring {
+  0% {
+    opacity: 0.9;
+    transform: scale(1);
+    border-width: 3px;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.6);
+    border-width: 1px;
+  }
+}
+
+/* Reduced motion: disable burst animations */
+@media (prefers-reduced-motion: reduce) {
+  .code-copy-button.copied {
+    animation: none;
+  }
+  .code-copy-button.copied::before {
+    animation: none;
+  }
 }
 
 /* Update tooltip text when copied */
@@ -714,7 +769,8 @@ pre code {
 /* Absolute positioned copy button (for table layout) */
 .code-copy-button--absolute {
   position: absolute;
-  top: var(--space-2);
+  /* Offset by table's margin-block-start (1.5rem) plus padding inside */
+  top: calc(1.5rem + var(--space-2));
   right: var(--space-2);
   z-index: 10;
 }
@@ -730,6 +786,8 @@ pre code {
   overflow: hidden;
   border: 1px solid rgba(0, 0, 0, 0.1);
   box-shadow: var(--elevation-card);
+  /* Fixed layout prevents table from expanding beyond container width */
+  table-layout: fixed;
   /* Peaceful glow animation - signature Bengal top/bottom border pulse */
   animation: code-border-glow 8s ease-in-out infinite;
 }
@@ -749,6 +807,8 @@ pre code {
 /* Line numbers cell */
 .highlight td.linenos {
   width: 3.5rem;
+  min-width: 3.5rem;
+  max-width: 3.5rem;
   padding: 0;
   /* Use inset box-shadow instead of border so it clips at border-radius */
   box-shadow: inset -1px 0 0 0 var(--color-border-light);
@@ -783,9 +843,10 @@ pre code {
   vertical-align: top;
 }
 
-/* Pygments wraps pre in a div - ensure it fills the cell */
+/* Pygments wraps pre in a div - ensure it fills the cell and scrolls */
 .highlight td.code>div {
   width: 100%;
+  overflow-x: auto;
 }
 
 /* Code pre inside table */
@@ -830,6 +891,9 @@ pre code {
 /* Position context for absolutely-positioned copy button */
 div.highlight {
   position: relative;
+  /* Prevent code blocks from expanding page width */
+  max-width: 100%;
+  overflow: hidden;
 }
 
 /* Clip negative margins on .hll to prevent page overflow.

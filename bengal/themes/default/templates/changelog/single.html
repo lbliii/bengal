@@ -35,8 +35,8 @@ fixed:
     <header class="release-header">
         <h1>{{ page.title }}</h1>
 
-        {% if page.metadata.get('name') %}
-        <p class="release-name">{{ page.metadata.get('name') }}</p>
+        {% if params.name %}
+        <p class="release-name">{{ params.name }}</p>
         {% endif %}
 
         <div class="release-meta">
@@ -46,28 +46,28 @@ fixed:
             </time>
             {% endif %}
 
-            {% if page.metadata.get('status') %}
-            <span class="release-status status-{{ page.metadata.get('status') | lower }}">
-                {{ page.metadata.get('status') }}
+            {% if params.status %}
+            <span class="release-status status-{{ params.status | lower }}">
+                {{ params.status }}
             </span>
             {% endif %}
         </div>
 
-        {% if page.metadata.get('description') %}
-        <p class="release-summary">{{ page.metadata.get('description') }}</p>
-        {% elif page.metadata.get('summary') %}
-        <p class="release-summary">{{ page.metadata.get('summary') }}</p>
+        {% if params.description %}
+        <p class="release-summary">{{ params.description }}</p>
+        {% elif params.summary %}
+        <p class="release-summary">{{ params.summary }}</p>
         {% endif %}
     </header>
 
     <div class="release-content">
         {# Added Features #}
-        {% if page.metadata.get('added') and page.metadata.get('added') is iterable and page.metadata.get('added') is
+        {% if params.added and params.added is iterable and params.added is
         not string %}
         <section class="changelog-category">
             <h2 class="category-title">✨ Added</h2>
             <ul class="changelog-list">
-                {% for item in page.metadata.get('added') %}
+                {% for item in params.added %}
                 <li>{{ item }}</li>
                 {% endfor %}
             </ul>
@@ -75,12 +75,12 @@ fixed:
         {% endif %}
 
         {# Changed/Improved #}
-        {% if page.metadata.get('changed') and page.metadata.get('changed') is iterable and page.metadata.get('changed')
+        {% if params.changed and params.changed is iterable and params.changed
         is not string %}
         <section class="changelog-category">
             <h2 class="category-title">🔄 Changed</h2>
             <ul class="changelog-list">
-                {% for item in page.metadata.get('changed') %}
+                {% for item in params.changed %}
                 <li>{{ item }}</li>
                 {% endfor %}
             </ul>
@@ -88,12 +88,12 @@ fixed:
         {% endif %}
 
         {# Fixed Bugs #}
-        {% if page.metadata.get('fixed') and page.metadata.get('fixed') is iterable and page.metadata.get('fixed') is
+        {% if params.fixed and params.fixed is iterable and params.fixed is
         not string %}
         <section class="changelog-category">
             <h2 class="category-title">🐛 Fixed</h2>
             <ul class="changelog-list">
-                {% for item in page.metadata.get('fixed') %}
+                {% for item in params.fixed %}
                 <li>{{ item }}</li>
                 {% endfor %}
             </ul>
@@ -101,12 +101,12 @@ fixed:
         {% endif %}
 
         {# Deprecated #}
-        {% if page.metadata.get('deprecated') and page.metadata.get('deprecated') is iterable and
-        page.metadata.get('deprecated') is not string %}
+        {% if params.deprecated and params.deprecated is iterable and
+        params.deprecated is not string %}
         <section class="changelog-category">
             <h2 class="category-title">⚠️ Deprecated</h2>
             <ul class="changelog-list">
-                {% for item in page.metadata.get('deprecated') %}
+                {% for item in params.deprecated %}
                 <li>{{ item }}</li>
                 {% endfor %}
             </ul>
@@ -114,12 +114,12 @@ fixed:
         {% endif %}
 
         {# Removed #}
-        {% if page.metadata.get('removed') and page.metadata.get('removed') is iterable and page.metadata.get('removed')
+        {% if params.removed and params.removed is iterable and params.removed
         is not string %}
         <section class="changelog-category">
             <h2 class="category-title">🗑️ Removed</h2>
             <ul class="changelog-list">
-                {% for item in page.metadata.get('removed') %}
+                {% for item in params.removed %}
                 <li>{{ item }}</li>
                 {% endfor %}
             </ul>
@@ -127,12 +127,12 @@ fixed:
         {% endif %}
 
         {# Security #}
-        {% if page.metadata.get('security') and page.metadata.get('security') is iterable and
-        page.metadata.get('security') is not string %}
+        {% if params.security and params.security is iterable and
+        params.security is not string %}
         <section class="changelog-category">
             <h2 class="category-title">🔒 Security</h2>
             <ul class="changelog-list">
-                {% for item in page.metadata.get('security') %}
+                {% for item in params.security %}
                 <li>{{ item }}</li>
                 {% endfor %}
             </ul>
@@ -140,12 +140,12 @@ fixed:
         {% endif %}
 
         {# Breaking Changes #}
-        {% if page.metadata.get('breaking') and page.metadata.get('breaking') is iterable and
-        page.metadata.get('breaking') is not string %}
+        {% if params.breaking and params.breaking is iterable and
+        params.breaking is not string %}
         <section class="changelog-category changelog-breaking">
             <h2 class="category-title">⚡ Breaking Changes</h2>
             <ul class="changelog-list">
-                {% for item in page.metadata.get('breaking') %}
+                {% for item in params.breaking %}
                 <li>{{ item }}</li>
                 {% endfor %}
             </ul>
@@ -160,16 +160,16 @@ fixed:
         {% endif %}
 
         {# Links #}
-        {% if page.metadata.get('github_release') or page.metadata.get('download_url') %}
+        {% if params.github_release or params.download_url %}
         <footer class="release-footer">
             <div class="release-links">
-                {% if page.metadata.get('github_release') %}
-                <a href="{{ page.metadata.get('github_release') }}" class="release-link" target="_blank">
+                {% if params.github_release %}
+                <a href="{{ params.github_release }}" class="release-link" target="_blank">
                     View on GitHub →
                 </a>
                 {% endif %}
-                {% if page.metadata.get('download_url') %}
-                <a href="{{ page.metadata.get('download_url') }}" class="release-link release-download" target="_blank">
+                {% if params.download_url %}
+                <a href="{{ params.download_url }}" class="release-link release-download" target="_blank">
                     Download Release ↓
                 </a>
                 {% endif %}

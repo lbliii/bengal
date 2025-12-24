@@ -51,7 +51,8 @@ Display the most recent posts from a section using Bengal's query filters.
 
 ## Variations
 
-### From Any Section
+:::{tab-set}
+:::{tab-item} Any Section
 
 ```jinja2
 {# All non-draft pages, any section #}
@@ -61,7 +62,8 @@ Display the most recent posts from a section using Bengal's query filters.
   | limit(10) %}
 ```
 
-### With Featured Post
+:::{/tab-item}
+:::{tab-item} With Featured
 
 ```jinja2
 {% set posts = site.pages | where('section', 'blog') | sort_by('date', reverse=true) %}
@@ -80,7 +82,8 @@ Display the most recent posts from a section using Bengal's query filters.
 </ul>
 ```
 
-### Exclude Current Page
+:::{/tab-item}
+:::{tab-item} Exclude Current
 
 ```jinja2
 {# In a sidebar, show recent posts excluding the current one #}
@@ -93,6 +96,9 @@ Display the most recent posts from a section using Bengal's query filters.
   <a href="{{ post.href }}">{{ post.title }}</a>
 {% endfor %}
 ```
+
+:::{/tab-item}
+:::{/tab-set}
 
 :::{seealso}
 - [Template Functions](/docs/theming/templating/functions/) — All filter options

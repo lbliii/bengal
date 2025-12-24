@@ -1,19 +1,21 @@
 """
 Section registry mixin for Site.
 
-Provides O(1) section lookups by path and URL via registries.
+Provides O(1) section lookups by path and URL via ContentRegistry.
+
+See: plan/drafted/rfc-site-responsibility-separation.md
 
 Related Modules:
     - bengal.core.site.core: Main Site dataclass using this mixin
     - bengal.core.section: Section model
+    - bengal.core.registry: ContentRegistry for centralized lookups
 """
 
 from __future__ import annotations
 
-import platform
 import time
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from bengal.core.diagnostics import emit as emit_diagnostic
 
@@ -25,65 +27,29 @@ class SectionRegistryMixin:
     """
     Mixin providing section registry for O(1) lookups.
 
+    Delegates to ContentRegistry for all lookups.
+
     Requires these attributes on the host class:
         - root_path: Path
         - sections: list[Section]
-        - _section_registry: dict[Path, Section]
-        - _section_url_registry: dict[str, Section]
+        - registry: ContentRegistry (property)
     """
 
     # Type hints for mixin attributes (provided by host class)
     root_path: Path
     sections: list[Section]
-    _section_registry: dict[Path, Section]
-    _section_url_registry: dict[str, Section]
 
-    def _normalize_section_path(self, path: Path) -> Path:
-        """
-        Normalize a section path for registry lookups.
-
-        Normalization ensures consistent lookups across platforms:
-        - Resolves symlinks to canonical paths
-        - Makes path relative to content/ directory
-        - Lowercases on case-insensitive filesystems (macOS, Windows)
-
-        Args:
-            path: Absolute or relative section path
-
-        Returns:
-            Normalized path suitable for registry keys
-
-        Examples:
-            /site/content/blog → blog
-            /site/content/docs/guides → docs/guides
-            content/BLOG → blog (on macOS/Windows)
-        """
-        # Resolve symlinks to canonical path
-        resolved = path.resolve()
-
-        # Make relative to content/ directory
-        content_dir = (self.root_path / "content").resolve()
-        try:
-            relative = resolved.relative_to(content_dir)
-        except ValueError:
-            # Path not under content/, use as-is
-            relative = resolved
-
-        # Lowercase on case-insensitive filesystems (macOS, Windows)
-        system = platform.system()
-        if system in ("Darwin", "Windows"):
-            # Convert to lowercase string then back to Path
-            relative = Path(str(relative).lower())
-
-        return relative
+    # Registry property (provided by Site)
+    @property
+    def registry(self) -> Any:  # Returns ContentRegistry, using Any to avoid import cycle
+        """Override in Site class."""
+        raise NotImplementedError
 
     def get_section_by_path(self, path: Path | str) -> Section | None:
         """
         Look up a section by its path (O(1) operation).
 
-        Uses the section registry for fast lookups without scanning the section tree.
-        Paths are normalized before lookup to handle case-insensitive filesystems
-        and symlinks consistently.
+        Delegates to ContentRegistry for fast lookups without scanning the section tree.
 
         Args:
             path: Section path (absolute, relative to content/, or relative to root)
@@ -114,8 +80,8 @@ class SectionRegistryMixin:
                 if root_relative.exists():
                     path = root_relative
 
-        normalized = self._normalize_section_path(path)
-        section = self._section_registry.get(normalized)
+        # Delegate to ContentRegistry
+        section = self.registry.get_section(path)
 
         if section is None:
             emit_diagnostic(
@@ -123,8 +89,7 @@ class SectionRegistryMixin:
                 "debug",
                 "section_not_found_in_registry",
                 path=str(path),
-                normalized=str(normalized),
-                registry_size=len(self._section_registry),
+                registry_size=self.registry.section_count,
             )
 
         return section
@@ -152,7 +117,8 @@ class SectionRegistryMixin:
         See Also:
             plan/active/rfc-page-section-reference-contract.md
         """
-        section = self._section_url_registry.get(url)
+        # Delegate to ContentRegistry
+        section = self.registry.get_section_by_url(url)
 
         if section is None:
             emit_diagnostic(
@@ -160,18 +126,16 @@ class SectionRegistryMixin:
                 "debug",
                 "section_not_found_in_url_registry",
                 url=url,
-                registry_size=len(self._section_url_registry),
+                registry_size=self.registry.section_count,
             )
 
         return section
 
     def register_sections(self) -> None:
         """
-        Build the section registries for path-based and URL-based lookups.
+        Build the section registry for path-based and URL-based lookups.
 
-        Scans all sections recursively and populates:
-        - _section_registry: normalized path → Section mappings
-        - _section_url_registry: relative_url → Section mappings (for virtual sections)
+        Populates ContentRegistry with all sections (recursive).
 
         This enables O(1) section lookups without scanning the section hierarchy.
 
@@ -196,62 +160,32 @@ class SectionRegistryMixin:
 
         See Also:
             plan/active/rfc-page-section-reference-contract.md
+            plan/drafted/rfc-site-responsibility-separation.md
         """
         start = time.time()
-        self._section_registry = {}
-        self._section_url_registry = {}
+
+        # Clear ContentRegistry section entries for fresh registration
+        # This ensures re-registration picks up new Section objects
+        self.registry._sections_by_path.clear()
+        self.registry._sections_by_url.clear()
 
         # Register all sections recursively
         for section in self.sections:
-            self._register_section_recursive(section)
+            self.registry.register_sections_recursive(section)
+
+        # Increment epoch to invalidate page section caches
+        # This ensures Page._section lookups see the new Section objects
+        self.registry.increment_epoch()
 
         elapsed_ms = (time.time() - start) * 1000
-        total_registered = len(self._section_registry) + len(self._section_url_registry)
 
         emit_diagnostic(
             self,
             "debug",
             "section_registry_built",
-            path_sections=len(self._section_registry),
-            url_sections=len(self._section_url_registry),
-            total_registered=total_registered,
+            sections=self.registry.section_count,
             elapsed_ms=f"{elapsed_ms:.2f}",
-            avg_us_per_section=f"{(elapsed_ms * 1000 / total_registered):.2f}"
-            if total_registered
+            avg_us_per_section=f"{(elapsed_ms * 1000 / self.registry.section_count):.2f}"
+            if self.registry.section_count
             else "0",
         )
-
-    def _register_section_recursive(self, section: Section) -> None:
-        """
-        Recursively register a section and its subsections in the registries.
-
-        Handles both regular sections (with path) and virtual sections (path=None).
-
-        Regular sections: Registered in _section_registry by normalized path.
-        Virtual sections: Registered in _section_url_registry by relative_url,
-                         enabling page._section lookups via get_section_by_url().
-
-        Args:
-            section: Section to register (along with all its subsections)
-
-        See Also:
-            plan/active/rfc-page-section-reference-contract.md
-        """
-        # Handle virtual sections (path is None)
-        if section.path is None:
-            # Register in URL registry for virtual section lookups
-            rel_url = getattr(section, "_path", None) or f"/{section.name}/"
-            self._section_url_registry[rel_url] = section
-
-            # Also register in path registry using URL path as key
-            rel_url_path = rel_url.strip("/") if rel_url else section.name
-            self._section_registry[Path(rel_url_path)] = section
-
-        else:
-            # Register regular section by normalized path
-            normalized = self._normalize_section_path(section.path)
-            self._section_registry[normalized] = section
-
-        # Register subsections recursively
-        for subsection in section.subsections:
-            self._register_section_recursive(subsection)

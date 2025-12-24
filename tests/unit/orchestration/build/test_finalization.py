@@ -87,6 +87,7 @@ class TestPhasePostprocess:
             progress_manager=None,
             build_context=ctx,
             incremental=False,
+            collector=None,
         )
 
     def test_updates_postprocess_time_stats(self, tmp_path):

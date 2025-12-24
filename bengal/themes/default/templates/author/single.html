@@ -18,11 +18,11 @@ Optional metadata:
 - section_filter: "blog" (only show posts from specific section)
 
 Can also pull from data/authors.yaml:
-{% set author_data = site.data.authors[page.metadata.author_name] %}
+{% set author_data = site.data.authors[params.author_name] %}
 
 Context variables:
 - page: Current author page
-- page.metadata.author_name: The author key to look up
+- params.author_name: The author key to look up
 - site.indexes.author: Author index
 - site.data.authors: Author registry (if data/authors.yaml exists)
 #}
@@ -30,14 +30,14 @@ Context variables:
 {% from 'partials/navigation-components.html' import breadcrumbs %}
 {% from 'partials/content-components.html' import tag_list %}
 
-{% set author_key = page.metadata.author_name | default(page.title) %}
+{% set author_key = params.author_name | default(page.title) %}
 
 {# Try to get author data from registry first, fall back to page metadata #}
 {% set author_data = site.data.authors[author_key] if site.data.authors and author_key in site.data.authors else {} %}
 {% set author_name = author_data.name | default(page.title) %}
-{% set author_bio = author_data.bio | default(page.metadata.get('bio', '')) %}
-{% set author_avatar = author_data.avatar | default(page.metadata.get('avatar')) %}
-{% set author_social = author_data.social | default(page.metadata.get('social', {})) %}
+{% set author_bio = author_data.bio | default(params.bio) %}
+{% set author_avatar = author_data.avatar | default(params.avatar) %}
+{% set author_social = author_data.social | default(params.social) | default({}) %}
 
 {# Merge social links from data file format #}
 {% if author_data.github and not author_social.github %}
@@ -45,14 +45,14 @@ Context variables:
 {% endif %}
 {% if author_data.links %}
 {% for link in author_data.links %}
-{% set link_url = link.get('href') or link.get('url') or '' %}
+{% set link_url = link.href or link.url or '' %}
 {% if 'github' in link_url %}
 {% set author_social = author_social | merge({'github': link_url | replace('https://github.com/', '')}) %}
 {% endif %}
 {% endfor %}
 {% endif %}
 
-{% set section_filter = page.metadata.get('section_filter') %}
+{% set section_filter = params.section_filter %}
 
 {% block content %}
 {{ breadcrumbs(page) }}
@@ -190,8 +190,8 @@ Context variables:
               <a href="{{ post.href }}">{{ post.title }}</a>
             </h3>
 
-            {% if post.metadata.get('description') %}
-            <p class="post-excerpt">{{ post.metadata.get('description') }}</p>
+            {% if post.params.description %}
+            <p class="post-excerpt">{{ post.params.description }}</p>
             {% endif %}
 
             <div class="post-meta">
@@ -249,7 +249,7 @@ Context variables:
       {% for tag in all_tags | sort %}
       {% set tag_posts = [] %}
       {% for post in author_posts %}
-      {% if post.tags is defined and (tag in post.tags) %}
+      {% if post.tags and (tag in post.tags) %}
       {% set _ = tag_posts.append(post) %}
       {% endif %}
       {% endfor %}

@@ -82,12 +82,28 @@ from bengal.postprocess.output_formats import (
 from bengal.postprocess.redirects import RedirectGenerator
 from bengal.postprocess.rss import RSSGenerator
 from bengal.postprocess.sitemap import SitemapGenerator
+from bengal.postprocess.social_cards import (
+    SocialCardConfig,
+    SocialCardGenerator,
+    get_social_card_path,
+    parse_social_cards_config,
+)
 from bengal.postprocess.special_pages import SpecialPagesGenerator
+from bengal.postprocess.speculation import (
+    SpeculationRule,
+    SpeculationRulesGenerator,
+    generate_speculation_rules,
+)
 
 __all__ = [
     # SEO & Syndication
     "RSSGenerator",
     "SitemapGenerator",
+    # Social Cards
+    "SocialCardConfig",
+    "SocialCardGenerator",
+    "get_social_card_path",
+    "parse_social_cards_config",
     # Special Pages
     "RedirectGenerator",
     "SpecialPagesGenerator",
@@ -97,4 +113,8 @@ __all__ = [
     "PageTxtGenerator",
     "SiteIndexGenerator",
     "SiteLlmTxtGenerator",
+    # Document Application
+    "SpeculationRule",
+    "SpeculationRulesGenerator",
+    "generate_speculation_rules",
 ]

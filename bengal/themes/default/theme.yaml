@@ -16,6 +16,7 @@ features:
     tabs.link: false
     lightbox: true
     reading_time: true
+    link_previews: true
     author: true
     excerpts: true
     children: true

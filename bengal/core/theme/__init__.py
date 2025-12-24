@@ -56,6 +56,7 @@ from bengal.core.theme.resolution import (
     _read_theme_extends,
     iter_theme_asset_dirs,
     resolve_theme_chain,
+    resolve_theme_templates_path,
 )
 
 __all__ = [
@@ -68,6 +69,7 @@ __all__ = [
     "clear_theme_cache",
     # Theme resolution
     "resolve_theme_chain",
+    "resolve_theme_templates_path",
     "iter_theme_asset_dirs",
     "_read_theme_extends",  # Internal helper (used by CLI)
 ]

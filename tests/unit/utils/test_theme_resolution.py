@@ -3,6 +3,7 @@ Tests for theme resolution and inheritance chain building.
 
 Covers:
 - resolve_theme_chain() function
+- resolve_theme_templates_path() function
 - _read_theme_extends() helper
 - iter_theme_asset_dirs() function
 - Theme inheritance cycles
@@ -15,6 +16,7 @@ from bengal.core.theme import (
     _read_theme_extends,
     iter_theme_asset_dirs,
     resolve_theme_chain,
+    resolve_theme_templates_path,
 )
 
 
@@ -278,6 +280,116 @@ class TestIterThemeAssetDirs:
         assert dirs == []
 
 
+class TestResolveThemeTemplatesPath:
+    """Tests for resolve_theme_templates_path function.
+
+    This function is the canonical way to find theme template directories,
+    used by all template engines for cross-theme extends support.
+    """
+
+    def test_finds_site_theme_templates(self, tmp_path):
+        """Finds templates in site themes/ directory."""
+        # Create site theme with templates
+        templates_dir = tmp_path / "themes" / "my-theme" / "templates"
+        templates_dir.mkdir(parents=True)
+        (templates_dir / "base.html").write_text("<html></html>")
+
+        with patch("bengal.core.theme.resolution.get_theme_package", return_value=None):
+            result = resolve_theme_templates_path("my-theme", tmp_path)
+
+        assert result == templates_dir
+
+    def test_finds_installed_theme_templates(self, tmp_path):
+        """Finds templates in installed theme packages."""
+        mock_templates_dir = tmp_path / "installed_templates"
+        mock_templates_dir.mkdir()
+
+        mock_pkg = MagicMock()
+        mock_pkg.resolve_resource_path.return_value = mock_templates_dir
+
+        with patch("bengal.core.theme.resolution.get_theme_package", return_value=mock_pkg):
+            result = resolve_theme_templates_path("installed-theme", tmp_path)
+
+        assert result == mock_templates_dir
+
+    def test_site_theme_takes_precedence(self, tmp_path):
+        """Site theme templates take precedence over installed."""
+        # Create site theme templates
+        site_templates = tmp_path / "themes" / "dual-theme" / "templates"
+        site_templates.mkdir(parents=True)
+
+        # Mock installed theme
+        installed_templates = tmp_path / "installed_templates"
+        installed_templates.mkdir()
+        mock_pkg = MagicMock()
+        mock_pkg.resolve_resource_path.return_value = installed_templates
+
+        with patch("bengal.core.theme.resolution.get_theme_package", return_value=mock_pkg):
+            result = resolve_theme_templates_path("dual-theme", tmp_path)
+
+        # Should return site templates (takes precedence)
+        assert result == site_templates
+
+    def test_returns_none_for_nonexistent_theme(self, tmp_path):
+        """Returns None when theme templates don't exist."""
+        with patch("bengal.core.theme.resolution.get_theme_package", return_value=None):
+            result = resolve_theme_templates_path("nonexistent-theme", tmp_path)
+
+        assert result is None
+
+    def test_handles_package_lookup_errors(self, tmp_path):
+        """Handles errors during package lookup gracefully."""
+        with patch(
+            "bengal.core.theme.resolution.get_theme_package",
+            side_effect=Exception("Package error"),
+        ):
+            # Should not raise
+            result = resolve_theme_templates_path("error-theme", tmp_path)
+
+        assert result is None
+
+    def test_bundled_themes_root_parameter(self, tmp_path):
+        """Uses custom bundled_themes_root when provided."""
+        # Create custom bundled themes location
+        custom_bundled = tmp_path / "custom_bundled"
+        custom_templates = custom_bundled / "my-bundled" / "templates"
+        custom_templates.mkdir(parents=True)
+
+        with patch("bengal.core.theme.resolution.get_theme_package", return_value=None):
+            result = resolve_theme_templates_path(
+                "my-bundled",
+                tmp_path,  # Site root (no site theme)
+                bundled_themes_root=custom_bundled,
+            )
+
+        assert result == custom_templates
+
+    def test_used_by_template_engines(self, tmp_path):
+        """Verify function signature is suitable for template engine use.
+
+        This test documents the expected usage by template engines like
+        Jinja2's PrefixLoader for cross-theme extends.
+        """
+        # Create theme with templates
+        templates_dir = tmp_path / "themes" / "parent-theme" / "templates"
+        templates_dir.mkdir(parents=True)
+        (templates_dir / "base.html").write_text("{% block content %}{% endblock %}")
+
+        with patch("bengal.core.theme.resolution.get_theme_package", return_value=None):
+            # Typical usage: building PrefixLoader mappings
+            theme_names = ["parent-theme", "child-theme"]
+            prefix_loaders = {}
+
+            for theme_name in theme_names:
+                path = resolve_theme_templates_path(theme_name, tmp_path)
+                if path:
+                    prefix_loaders[theme_name] = str(path)
+
+        # parent-theme found, child-theme not found
+        assert "parent-theme" in prefix_loaders
+        assert "child-theme" not in prefix_loaders
+
+
 class TestThemeResolutionIntegration:
     """Integration tests for theme resolution."""
 
@@ -315,3 +427,41 @@ class TestThemeResolutionIntegration:
 
         # With no custom theme, chain is empty
         assert chain == []
+
+    def test_resolve_templates_path_for_chain(self, tmp_path):
+        """Test resolving template paths for entire theme chain.
+
+        This is the pattern used by template engines (Jinja2 PrefixLoader)
+        to enable cross-theme extends like {% extends "default/base.html" %}.
+        """
+        # Create theme hierarchy: child -> parent
+        for theme_name in ["child", "parent"]:
+            templates_dir = tmp_path / "themes" / theme_name / "templates"
+            templates_dir.mkdir(parents=True)
+            (templates_dir / "base.html").write_text(f"<!-- {theme_name} base -->")
+
+        (tmp_path / "themes" / "child" / "theme.toml").write_text(
+            'name = "child"\nextends = "parent"'
+        )
+        (tmp_path / "themes" / "parent" / "theme.toml").write_text('name = "parent"')
+
+        # Resolve chain
+        chain = resolve_theme_chain(tmp_path, "child")
+        assert chain == ["child", "parent"]
+
+        # Resolve template paths for each theme in chain
+        with patch("bengal.core.theme.resolution.get_theme_package", return_value=None):
+            template_paths = {}
+            for theme_name in chain:
+                path = resolve_theme_templates_path(theme_name, tmp_path)
+                if path:
+                    template_paths[theme_name] = path
+
+        # Both themes have template paths
+        assert len(template_paths) == 2
+        assert template_paths["child"].name == "templates"
+        assert template_paths["parent"].name == "templates"
+
+        # This enables templates to use:
+        #   {% extends "parent/base.html" %}
+        # via PrefixLoader mapping

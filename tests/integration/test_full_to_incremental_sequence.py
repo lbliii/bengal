@@ -258,8 +258,8 @@ class TestIncrementalBuildRegression:
         cache_data = load_compressed(cache_file)
 
         config_path = str(config_file)
-        assert any(config_path in key for key in cache_data["file_hashes"]), (
-            "BUG: Config file hash not in cache after full build"
+        assert any(config_path in key for key in cache_data["file_fingerprints"]), (
+            "BUG: Config file fingerprint not in cache after full build"
         )
 
         # Incremental build should not think config changed

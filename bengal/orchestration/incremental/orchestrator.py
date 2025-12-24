@@ -126,6 +126,12 @@ class IncrementalOrchestrator:
             invalidate_version_page_index()
             logger.debug("version_page_index_cache_invalidated", reason="config_changed")
 
+            # Invalidate site version dict caches (site.versions, site.latest_version)
+            # These cache .to_dict() results for template performance
+            if hasattr(self.site, "invalidate_version_caches"):
+                self.site.invalidate_version_caches()
+                logger.debug("site_version_dict_cache_invalidated", reason="config_changed")
+
         return config_changed
 
     def find_work_early(
@@ -372,14 +378,3 @@ class IncrementalOrchestrator:
                     return True
 
         return False
-
-    def _get_theme_templates_dir(self) -> Path | None:
-        """
-        Get the templates directory for the current theme.
-
-        Delegates to CacheManager.
-
-        Returns:
-            Path to theme templates or None if not found
-        """
-        return self._cache_manager._get_theme_templates_dir()

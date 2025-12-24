@@ -278,8 +278,8 @@ def reset_bengal_state(request):
     - Theme cache is cleared (ensures fresh theme discovery)
     - Parser cache is cleared (ensures fresh parsers with current directives)
 
-    Tests can skip the logger reset by adding the @pytest.mark.preserve_loggers
-    marker. This is useful for tests that verify logged events across builds.
+    With the LazyLogger pattern, module-level logger references automatically
+    refresh when reset_loggers() is called, eliminating orphaned logger issues.
 
     Future expansions:
     - PageProxyCache (if added as singleton)
@@ -321,14 +321,13 @@ def reset_bengal_state(request):
         logger.debug("Rich console reset skipped: reset_console not available")
 
     # 2. Reset logger state (close file handles, clear registry)
-    # Skip for tests that manage their own logger state (marked with preserve_loggers)
-    if not request.node.get_closest_marker("preserve_loggers"):
-        try:
-            from bengal.utils.logger import reset_loggers
+    # LazyLogger pattern ensures module-level references auto-refresh
+    try:
+        from bengal.utils.logger import reset_loggers
 
-            reset_loggers()
-        except ImportError:
-            logger.debug("Logger reset skipped: reset_loggers not available")
+        reset_loggers()
+    except ImportError:
+        logger.debug("Logger reset skipped: reset_loggers not available")
 
     # 3. Clear theme cache (forces fresh discovery)
     try:

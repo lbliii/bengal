@@ -182,6 +182,12 @@ class RenderOrchestrator:
         # the old Jinja2 environment with its internal cache would be reused.
         clear_thread_local_pipelines()
 
+        # Clear global context cache to ensure fresh wrappers for this build
+        # (SiteContext, ConfigContext, ThemeContext, MenusContext are cached per-site)
+        from bengal.rendering.context import clear_global_context_cache
+
+        clear_global_context_cache()
+
         # Resolve progress manager from context if not provided
         if (
             not progress_manager

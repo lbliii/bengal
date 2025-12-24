@@ -137,6 +137,60 @@ bengal/
 - **Type hints required**: Use Python type hints everywhere
 - **Coverage target**: 85% minimum
 
+## Architectural Patterns
+
+Bengal uses several established patterns across the codebase. Follow these when contributing:
+
+### Atomic Writes
+
+Always use atomic writes for file operations to prevent data corruption on crashes:
+
+```python
+from bengal.utils.atomic_write import atomic_write_text, atomic_write_bytes
+
+# Text files
+atomic_write_text(path, content)
+
+# Binary files
+atomic_write_bytes(path, data)
+
+# JSON files (use json_compat which handles atomic writes)
+from bengal.utils.json_compat import dump
+dump(data, path)
+```
+
+### Diagnostics Sink
+
+In `bengal/core/` modules, use the diagnostics sink instead of direct logging:
+
+```python
+from bengal.core.diagnostics import emit
+
+# Instead of: logger.warning("message", key=value)
+emit(self, "warning", "event_name", key=value)
+```
+
+This decouples core models from logging infrastructure.
+
+### Rich Exceptions
+
+Use `BengalError` with structured context for better debugging:
+
+```python
+from bengal.errors import BengalError, ErrorDebugPayload
+
+raise BengalError(
+    "Clear error message",
+    code="X001",  # Use appropriate error code
+    context={"key": "value"},
+    suggestion="How to fix this issue",
+    debug_payload=ErrorDebugPayload(
+        operation="what_was_attempted",
+        input_data={"relevant": "data"},
+    ),
+)
+```
+
 ## Pull Request Process
 
 1. Create a feature branch: `git checkout -b feature/my-feature`

@@ -9,7 +9,7 @@ Usage:
 {% include 'partials/track-sidebar.html' %}
 #}
 
-{% set track_id = page.metadata.get('track_id') or page.slug %}
+{% set track_id = params.track_id or page.slug %}
 {% set current_track = site.data.tracks[track_id] if (track_id and site.data.tracks and track_id in site.data.tracks) else none %}
 
 <nav class="track-sidebar" aria-label="Track navigation">

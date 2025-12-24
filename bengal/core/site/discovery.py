@@ -101,6 +101,8 @@ class ContentDiscoveryMixin:
         self._apply_cascades()
         # Set output paths for all pages immediately after discovery
         self._set_output_paths()
+        # Detect features for CSS optimization (mermaid, data_tables, etc.)
+        self._detect_features()
 
     def _set_output_paths(self) -> None:
         """
@@ -139,6 +141,43 @@ class ContentDiscoveryMixin:
                     # Don't fail discovery on registry errors (graceful degradation)
                     # Registry errors will be caught during validation phase
                     pass
+
+    def _detect_features(self) -> None:
+        """
+        Detect CSS-requiring features in page content.
+
+        Scans page content for features like mermaid diagrams, data tables,
+        and graph visualizations. Populates site.features_detected for use
+        by the CSSOptimizer during asset processing.
+
+        See Also:
+            bengal/orchestration/css_optimizer.py: Consumes detected features
+            plan/drafted/rfc-css-tree-shaking.md: Design rationale
+        """
+        from bengal.core.page.proxy import PageProxy
+        from bengal.orchestration.feature_detector import FeatureDetector
+
+        detector = FeatureDetector()
+
+        for page in self.pages:
+            # Skip PageProxy objects (they may not have content loaded)
+            if isinstance(page, PageProxy):
+                continue
+
+            # Detect features in page content
+            features = detector.detect_features_in_page(page)
+            self.features_detected.update(features)
+
+        # Also check config for explicitly enabled features
+        config = self.config
+
+        # Search enabled?
+        if config.get("search", {}).get("enabled", False):
+            self.features_detected.add("search")
+
+        # Graph enabled?
+        if config.get("graph", {}).get("enabled", False):
+            self.features_detected.add("graph")
 
     def discover_assets(self, assets_dir: Path | None = None) -> None:
         """

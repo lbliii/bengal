@@ -1,5 +1,5 @@
 """
-Tests for _normalize_config github_repo URL handling.
+Tests for AutodocRenderer._normalize_config github_repo URL handling.
 
 The _normalize_config method extracts github_repo and github_branch from the
 autodoc config section and normalizes owner/repo format to full GitHub URLs.
@@ -9,7 +9,7 @@ Regression test for: View source links producing 404s when github_repo is
 specified in autodoc.yaml but not at the top level of site config.
 """
 
-from bengal.rendering.pipeline.core import RenderingPipeline
+from bengal.rendering.pipeline.autodoc_renderer import AutodocRenderer
 
 
 class TestNormalizeConfigGithubRepo:
@@ -17,13 +17,13 @@ class TestNormalizeConfigGithubRepo:
 
     def _normalize(self, config: dict) -> dict:
         """
-        Call _normalize_config without needing a full pipeline instance.
+        Call _normalize_config without needing a full AutodocRenderer instance.
 
         We use __new__ to create an instance without calling __init__,
         then call the method directly.
         """
-        pipeline = object.__new__(RenderingPipeline)
-        return pipeline._normalize_config(config)
+        renderer = object.__new__(AutodocRenderer)
+        return renderer._normalize_config(config)
 
     def test_extracts_github_repo_from_autodoc_section(self) -> None:
         """github_repo in autodoc section is extracted and normalized."""

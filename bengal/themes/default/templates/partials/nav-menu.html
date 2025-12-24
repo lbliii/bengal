@@ -69,18 +69,18 @@ Args:
 #}
 {% macro render_github_link(site, is_mobile=false) %}
 {% set github_bundled = false %}
-{% if site._dev_menu_metadata is defined and site._dev_menu_metadata is not none %}
+{% if site._dev_menu_metadata %}
 {% set github_bundled = site._dev_menu_metadata.get("github_bundled", false) %}
 {% endif %}
-{% if site.config.params and site.config.params.repo_url and not github_bundled %}
+{% if config.params and config.params.repo_url and not github_bundled %}
 <li>
     {% if is_mobile %}
-    <a href="{{ site.config.params.repo_url }}" target="_blank" rel="noopener">
+    <a href="{{ config.params.repo_url }}" target="_blank" rel="noopener">
         {{ icon('github-logo', size=16, css_class='nav-icon') }}
         GitHub
     </a>
     {% else %}
-    <a href="{{ site.config.params.repo_url }}" target="_blank" rel="noopener"
+    <a href="{{ config.params.repo_url }}" target="_blank" rel="noopener"
         title="GitHub Repository" data-external="true" aria-label="GitHub (opens in new tab)">
         {{ icon('github-logo', size=16) }}
         <span>GitHub</span>
@@ -98,8 +98,8 @@ Args:
     site_title: Pre-cached site title
 #}
 {% macro render_logo(site, site_title) %}
-{% set _logo_image = site.config.get('logo_image') or site.config.get('site', {}).get('logo_image') %}
-{% set _logo_text = site.config.get('logo_text') or site.config.get('site', {}).get('logo_text') %}
+{% set _logo_image = config.logo_image or config.site.logo_image %}
+{% set _logo_text = config.logo_text or config.site.logo_text %}
 {% if _logo_image %}
 <img src="{{ _logo_image | absolute_url }}" alt="{{ site_title }}" class="brand-image" />
 {% elif _logo_text %}

@@ -5,8 +5,9 @@
 | **Title** | Auto-Generated Social Cards |
 | **Author** | AI + Human reviewer |
 | **Date** | 2025-12-10 |
-| **Status** | Draft |
+| **Status** | Planned |
 | **Confidence** | 88% 🟢 |
+| **Plan** | `plan/drafted/plan-social-cards.md` |
 
 ---
 

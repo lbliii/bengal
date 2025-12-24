@@ -16,68 +16,93 @@ keywords:
 - jinja2
 - site
 - page
+- context
 category: reference
 ---
 
 # Theme Variables Reference
 
-Complete reference for all variables, objects, and functions available in Bengal templates.
+Complete reference for all variables, objects, and context available in Bengal templates.
+
+## Quick Reference
+
+```jinja2
+{# Core objects - always available #}
+{{ page }}          {# Current page #}
+{{ site }}          {# Site object #}
+{{ config }}        {# Site config (alias for site.config) #}
+{{ params }}        {# Page metadata (alias for page.metadata) #}
+{{ section }}       {# Current section #}
+
+{# Pre-computed values - cached for performance #}
+{{ content }}       {# Rendered page content (safe HTML) #}
+{{ title }}         {# Page title #}
+{{ toc }}           {# Table of contents HTML #}
+{{ toc_items }}     {# Structured TOC data #}
+{{ meta_desc }}     {# Pre-computed meta description #}
+{{ reading_time }}  {# Pre-computed reading time #}
+{{ excerpt }}       {# Pre-computed excerpt #}
+```
+
+---
+
+## Template Tests
+
+Clean conditional checks using `is` operator:
+
+```jinja2
+{% if page is draft %}
+  <span class="badge badge-draft">Draft</span>
+{% endif %}
+
+{% if page is featured %}
+  <article class="featured">...</article>
+{% endif %}
+
+{% if page is outdated(180) %}
+  <div class="warning">This page may be outdated.</div>
+{% endif %}
+```
+
+| Test | Usage | Description |
+|------|-------|-------------|
+| `is draft` | `{% if page is draft %}` | Check if page is a draft |
+| `is featured` | `{% if page is featured %}` | Check if page has 'featured' tag |
+| `is outdated` | `{% if page is outdated %}` | Check if page is older than 90 days |
+| `is outdated(N)` | `{% if page is outdated(30) %}` | Check if page is older than N days |
+| `is match` | `{% if value is match('pattern') %}` | Regex pattern matching |
+| `is section` | `{% if obj is section %}` | Check if object is a Section |
+| `is translated` | `{% if page is translated %}` | Check if page has translations |
+
+---
 
 ## Global Objects
-
-These variables are available in **all** templates.
-
-### `site`
-
-The global site object.
-
-| Attribute | Type | Description |
-| :--- | :--- | :--- |
-| `site.title` | `str` | Site title from config |
-| `site.baseurl` | `str` | Base URL (e.g., `https://example.com`) |
-| `site.author` | `str` | Site author name |
-| `site.language` | `str` | Language code (e.g., `en`) |
-| `site.pages` | `list[Page]` | All pages in the site |
-| `site.regular_pages` | `list[Page]` | Content pages only (no list pages) |
-| `site.sections` | `list[Section]` | Top-level sections |
-| `site.taxonomies` | `dict` | Map of taxonomies (tags, categories) |
-| `site.data` | `dict` | Data loaded from `data/` directory |
-| `site.config` | `dict` | Full configuration object |
 
 ### `page`
 
 The current page being rendered.
 
-| Attribute | Type | Description |
-| :--- | :--- | :--- |
+#### Core Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
 | `page.title` | `str` | Page title |
-| `page.content` | `str` | Raw content |
-| `page.rendered_html` | `str` | Rendered HTML content |
+| `page.content` | `str` | Raw markdown content |
 | `page.date` | `datetime` | Publication date |
-| `page.href` | `str` | URL with baseurl applied (for display in templates) |
-| `page._path` | `str` | Site-relative URL without baseurl (for comparisons) |
 | `page.metadata` | `dict` | All frontmatter keys |
-| `page.toc` | `str` | Auto-generated Table of Contents |
-| `page.is_home` | `bool` | True if homepage |
-| `page.is_section` | `bool` | True if section index |
-| `page.reading_time` | `int` | Estimated reading time in minutes |
+| `page.kind` | `str` | Page kind (page, section, etc.) |
+| `page.type` | `str` | Content type |
+| `page.draft` | `bool` | Is draft? |
+| `page.hidden` | `bool` | Is hidden? |
+| `page.tags` | `list` | List of tags |
 
 #### URL Properties
 
-Bengal provides two URL properties with clear purposes:
-
-**`page.href`** - **Primary property for display**
-- Automatically includes baseurl (e.g., `/bengal/docs/page/`)
-- Use in `<a href>`, `<link>`, `<img src>` attributes
-- Works correctly for all deployment scenarios
-
-**`page._path`** - **For comparisons and logic**
-- Site-relative URL without baseurl (e.g., `/docs/page/`)
-- Use for comparisons: `{% if page._path == '/docs/' %}`
-- Use for menu activation, filtering, and conditional logic
-
-:::{example-label} Usage
-:::
+| Property | Description |
+|----------|-------------|
+| `page.href` | Full URL with baseurl (use in `<a href>`) |
+| `page._path` | Site-relative URL without baseurl (use for comparisons) |
+| `page.source_path` | Source file path |
 
 ```jinja2
 {# Display URL (includes baseurl) #}
@@ -89,75 +114,193 @@ Bengal provides two URL properties with clear purposes:
 {% endif %}
 ```
 
-## Global Functions
+#### Relationships
 
-Functions available in all templates.
+| Property | Type | Description |
+|----------|------|-------------|
+| `page.section` | `Section` | Parent section |
+| `page.translations` | `list` | Available translations |
+| `page.prev_in_series` | `Page` | Previous page in series |
+| `page.next_in_series` | `Page` | Next page in series |
 
-### `asset_url(path)`
+#### Computed Properties
 
-Generates a fingerprint-aware URL for an asset.
+| Property | Type | Description |
+|----------|------|-------------|
+| `page.reading_time` | `int` | Estimated reading time in minutes |
+| `page.age_days` | `int` | Days since publication |
+| `page.age_months` | `int` | Months since publication |
+| `page.author` | `Author` | Structured author info |
+| `page.authors` | `list` | Multiple authors |
+| `page.series` | `dict` | Series metadata |
+
+---
+
+### `site`
+
+The global site object.
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `site.title` | `str` | Site title from config |
+| `site.baseurl` | `str` | Base URL |
+| `site.author` | `str` | Site author name |
+| `site.language` | `str` | Language code |
+| `site.pages` | `list[Page]` | All pages |
+| `site.regular_pages` | `list[Page]` | Content pages only |
+| `site.sections` | `list[Section]` | Top-level sections |
+| `site.taxonomies` | `dict` | Tags, categories |
+| `site.data` | `dict` | Data from `data/` directory |
+| `site.config` | `dict` | Full configuration |
+| `site.params` | `dict` | Site-level custom parameters |
+| `site.logo` | `str` | Logo URL from config |
+| `site.versioning_enabled` | `bool` | Is versioning on? |
+| `site.versions` | `list` | Available versions |
+| `site.theme_config` | `dict` | Theme configuration |
+
+---
+
+### `section`
+
+The current section (parent of the page).
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `section.title` | `str` | Section title |
+| `section.href` | `str` | Section URL |
+| `section.pages` | `list[Page]` | Pages in section |
+| `section.subsections` | `list[Section]` | Child sections |
+| `section.metadata` | `dict` | Section frontmatter |
+| `section.post_count` | `int` | Number of pages |
+| `section.post_count_recursive` | `int` | Including subsections |
+| `section.word_count` | `int` | Total words |
+| `section.total_reading_time` | `int` | Total reading time |
+
+---
+
+## Context Shortcuts
+
+Bengal provides shortcuts for common patterns:
+
+| Shortcut | Equivalent To | Description |
+|----------|---------------|-------------|
+| `params` | `page.metadata` | Page frontmatter |
+| `meta` | `page.metadata` | Alias for params |
+| `config` | `site.config` | Site configuration |
+| `theme` | `site.theme_config` | Theme configuration |
 
 ```jinja2
-<link rel="stylesheet" href="{{ asset_url('css/style.css') }}">
-{# Outputs: /assets/css/style.a1b2c3d4.css #}
+{# Instead of #}
+{{ page.metadata.get('author') }}
+{{ site.config.get('baseurl') }}
+
+{# Use #}
+{{ params.author }}
+{{ config.baseurl }}
 ```
 
-### `url_for(page_or_slug)`
+---
 
-Generates a URL for a page object or slug.
+## Pre-computed Context
+
+These values are computed once and cached in the template context:
+
+| Variable | Description |
+|----------|-------------|
+| `content` | Rendered page content (safe HTML) |
+| `title` | Page title |
+| `toc` | Table of contents HTML |
+| `toc_items` | Structured TOC data (for custom rendering) |
+| `meta_desc` | Meta description for SEO |
+| `reading_time` | Reading time in minutes |
+| `excerpt` | Page excerpt/summary |
 
 ```jinja2
-<a href="{{ url_for(page) }}">Link</a>
+{# Use pre-computed values #}
+<h1>{{ title }}</h1>
+<p class="meta">{{ reading_time }} min read</p>
+<article>{{ content }}</article>
+
+{# TOC in sidebar #}
+<nav class="toc">{{ toc | safe }}</nav>
 ```
 
-### `dateformat(date, format)`
+---
 
-Formats a date object.
+## Theme Configuration Access
+
+Access theme features and settings:
 
 ```jinja2
-{{ dateformat(page.date, "%B %d, %Y") }}
+{# Check if feature is enabled #}
+{% if 'navigation.back_to_top' in theme.features %}
+  <button class="back-to-top">↑</button>
+{% endif %}
+
+{# Get theme defaults #}
+{{ theme.default_appearance }}  {# light, dark, system #}
+{{ theme.default_palette }}     {# color palette name #}
 ```
 
-### `get_menu(menu_name)`
+---
 
-Retrieves a navigation menu.
+## Best Practices
+
+### 1. Use Template Tests
 
 ```jinja2
-{% for item in get_menu('main') %}
-  <a href="{{ item.href }}">{{ item.name }}</a>
-{% endfor %}
+{# ✅ Preferred #}
+{% if page is draft %}
+{% if page is featured %}
+{% if page is outdated(90) %}
+
+{# ❌ Verbose #}
+{% if page.draft is defined and page.draft %}
+{% if page.tags is defined and (page | has_tag('featured')) %}
 ```
 
-### `get_nav_tree(page)`
-
-Builds navigation tree with active trail marking. Returns a list of navigation items for sidebar menus.
+### 2. Use Shortcuts
 
 ```jinja2
-{% for item in get_nav_tree(page) %}
-  <a href="{{ item.href }}"
-     {% if item.is_current %}class="active"{% endif %}>
-    {{ item.title }}
-  </a>
-{% endfor %}
+{# ✅ Preferred #}
+{{ params.author }}
+{{ config.baseurl }}
+
+{# ❌ Verbose #}
+{{ page.metadata.get('author') }}
+{{ site.config.get('baseurl') }}
 ```
 
-## Template Helpers
+### 3. Cache Function Calls
 
-Bengal includes categorized helper modules:
+```jinja2
+{# ✅ Cache at top of template #}
+{% set _breadcrumbs = breadcrumbs(page) %}
+{% set _menu = get_menu_lang('main', current_lang()) %}
 
-- **Strings**: `truncate`, `slugify`, `markdownify`
-- **Collections**: `where`, `group_by`, `sort_by`
-- **Dates**: `time_ago`, `date_iso`
-- **Images**: `image_processed`, `image_url`
-- **Taxonomies**: `related_posts`, `popular_tags`
+{# Then use cached values #}
+{% for item in _breadcrumbs %}...{% endfor %}
+{% for item in _menu %}...{% endfor %}
+```
 
-:::{tip}
-**Debugging**
-You can inspect available variables by printing them in a comment:
-`<!-- {{ page.metadata }} -->`
-:::
+### 4. Use Pre-computed Values
+
+```jinja2
+{# ✅ Use pre-computed #}
+{{ content }}
+{{ meta_desc }}
+{{ reading_time }}
+
+{# ❌ Recompute each time #}
+{{ page.content | markdownify | safe }}
+{{ page.content | truncate(160) }}
+{{ page.content | reading_time }}
+```
+
+---
 
 :::{seealso}
-- [Template Functions](/docs/theming/templating/functions/) — Filter and function reference
-- [Templating](/docs/theming/templating/) — Template basics
+- [Template Functions Reference](/docs/reference/template-functions/) — Complete function and filter documentation
+- [Template Functions Overview](/docs/theming/templating/functions/) — Quick function reference
+- [Templating Basics](/docs/theming/templating/) — Template inheritance and syntax
 :::

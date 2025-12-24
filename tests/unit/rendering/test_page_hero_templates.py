@@ -143,6 +143,19 @@ class MockPage:
         return self.metadata.get(key, default)
 
 
+class AttrDict(dict):
+    """Dict subclass that supports attribute access for Jinja2 templates."""
+
+    def __getattr__(self, key: str) -> Any:
+        try:
+            return self[key]
+        except KeyError:
+            return ""  # Return empty string for missing keys (ChainableUndefined behavior)
+
+    def __setattr__(self, key: str, value: Any) -> None:
+        self[key] = value
+
+
 @dataclass
 class MockSection:
     """
@@ -155,10 +168,15 @@ class MockSection:
     name: str = "test_section"
     title: str = "Test Section"
     path: Path = field(default_factory=lambda: Path("content/test_section"))
-    metadata: dict[str, Any] = field(default_factory=dict)
+    metadata: AttrDict = field(default_factory=AttrDict)
     pages: list[MockPage] = field(default_factory=list)
     subsections: list[MockSection] = field(default_factory=list)
     index_page: MockPage | None = None
+
+    def __post_init__(self) -> None:
+        """Ensure metadata is an AttrDict for Jinja2 attribute access."""
+        if not isinstance(self.metadata, AttrDict):
+            self.metadata = AttrDict(self.metadata)
 
     @property
     def sorted_pages(self) -> list[MockPage]:
@@ -231,7 +249,20 @@ def template_env() -> Environment:
     # Register globals needed by templates
     env.globals["get_element_stats"] = get_element_stats
 
+    # Register translation function (mock that returns default value)
+    env.globals["t"] = mock_translate
+
     return env
+
+
+def mock_translate(
+    key: str,
+    params: dict[str, Any] | None = None,
+    lang: str | None = None,
+    default: str | None = None,
+) -> str:
+    """Mock translation function that returns the default value."""
+    return default or key
 
 
 def mock_icon(name: str, size: int = 16, css_class: str = "") -> str:

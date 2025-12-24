@@ -1,0 +1,151 @@
+/* ============================================================
+   Link Previews
+   Wikipedia-style hover cards for internal links
+
+   Shows page title, excerpt, reading time, and tags when
+   hovering over internal links. Uses per-page JSON data.
+
+   @see plan/drafted/rfc-link-previews.md
+   ============================================================ */
+
+.link-preview {
+  position: absolute;
+  z-index: var(--z-tooltip, 1070);
+  width: 320px;
+  max-width: calc(100vw - 16px);
+  padding: var(--space-4);
+
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-large);
+  box-shadow: var(--elevation-high);
+
+  /* Entrance animation */
+  animation: link-preview-enter 150ms var(--ease-out);
+  pointer-events: auto;
+}
+
+/* Transform origin based on position */
+.link-preview--above {
+  transform-origin: center bottom;
+}
+
+.link-preview--below {
+  transform-origin: center top;
+}
+
+@keyframes link-preview-enter {
+  from {
+    opacity: 0;
+    transform: translateY(var(--motion-distance-2)) scale(var(--motion-scale-down));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Section badge */
+.link-preview__section {
+  font-size: var(--text-xxs);
+  font-weight: var(--weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+  color: var(--color-primary);
+  margin-bottom: var(--space-2);
+}
+
+/* Title */
+.link-preview__title {
+  font-family: var(--font-heading);
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-2) 0;
+}
+
+/* Excerpt */
+.link-preview__excerpt {
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  color: var(--color-text-secondary);
+  margin: 0;
+
+  /* Clamp to 3 lines */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Metadata row */
+.link-preview__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+}
+
+.link-preview__meta-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* Tags */
+.link-preview__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1-5);
+  margin-top: var(--space-2-5);
+}
+
+.link-preview__tag {
+  background: var(--color-bg-secondary);
+  color: var(--color-primary);
+  padding: var(--space-0-5) var(--space-2);
+  border-radius: var(--border-radius-round);
+  font-size: var(--text-xxs);
+  font-weight: var(--weight-medium);
+  border: 1px solid var(--color-border);
+}
+
+/* ============================================================
+   Reduced Motion
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .link-preview {
+    animation: none;
+  }
+}
+
+/* ============================================================
+   Mobile Responsiveness
+   ============================================================ */
+
+@media (max-width: 480px) {
+  .link-preview {
+    width: calc(100vw - var(--space-8));
+    left: var(--space-4) !important;
+    right: var(--space-4);
+  }
+}
+
+/* Long-press visual feedback on mobile */
+@media (hover: none) and (pointer: coarse) {
+  a:active:not([data-no-preview]) {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+    border-radius: var(--border-radius-small);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  a:active:not([data-no-preview]) {
+    outline: none;
+  }
+}

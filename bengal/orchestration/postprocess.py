@@ -37,6 +37,10 @@ from bengal.postprocess.output_formats import OutputFormatsGenerator
 from bengal.postprocess.redirects import RedirectGenerator
 from bengal.postprocess.rss import RSSGenerator
 from bengal.postprocess.sitemap import SitemapGenerator
+from bengal.postprocess.social_cards import (
+    SocialCardGenerator,
+    parse_social_cards_config,
+)
 from bengal.postprocess.special_pages import SpecialPagesGenerator
 from bengal.utils.logger import get_logger
 
@@ -144,14 +148,21 @@ class PostprocessOrchestrator:
                 ("output formats", lambda: self._generate_output_formats(graph_data, build_context))
             )
 
-        # OPTIMIZATION: For incremental builds with small changes, skip some postprocessing
+        # OPTIMIZATION: For incremental builds, skip expensive post-processing
         # This is safe because:
-        # - Sitemaps update on full builds (periodic refresh)
-        # - RSS regenerated on content rebuild (not layout changes)
-        # - Redirects regenerated on full builds (aliases rarely change)
-        # - Link validation now runs via the health check system (LinkValidatorWrapper)
+        # - Social cards: Only needed for production (OG images don't change during dev)
+        # - Sitemaps: Update on full builds (periodic refresh)
+        # - RSS: Regenerated on content rebuild (not layout changes)
+        # - Redirects: Regenerated on full builds (aliases rarely change)
         if not incremental:
-            # Full build: run all tasks
+            # Full build: run all expensive tasks
+
+            # Generate social cards (OG images) - EXPENSIVE (~30ms per card)
+            # Only on full builds, not dev server reloads
+            social_cards_config = parse_social_cards_config(self.site.config)
+            if social_cards_config.enabled:
+                tasks.append(("social cards", self._generate_social_cards))
+
             if self.site.config.get("generate_sitemap", True):
                 tasks.append(("sitemap", self._generate_sitemap))
 
@@ -162,12 +173,11 @@ class PostprocessOrchestrator:
             if redirects_config.get("generate_html", True):
                 tasks.append(("redirects", self._generate_redirects))
         else:
-            # Incremental: only regenerate sitemap/RSS/validation if explicitly requested
-            # (Most users don't need updated sitemaps/RSS for every content change)
-            # Note: Output formats ARE still generated (see above) because search requires it
+            # Incremental: skip expensive tasks for dev server responsiveness
+            # Note: Output formats ARE still generated (above) because search requires it
             logger.info(
                 "postprocessing_incremental",
-                reason="skipping_sitemap_rss_validation_for_speed",
+                reason="skipping_social_cards_sitemap_rss_for_speed",
             )
 
         if not tasks:
@@ -331,6 +341,37 @@ class PostprocessOrchestrator:
         """
         generator = RedirectGenerator(self.site)
         generator.generate()
+
+    def _generate_social_cards(self) -> None:
+        """
+        Generate social card (Open Graph) images for pages.
+
+        Creates 1200x630px PNG images with page title, description, and
+        site branding for social media preview cards.
+
+        Raises:
+            Exception: If social card generation fails
+        """
+        from bengal.output import CLIOutput
+
+        social_config = parse_social_cards_config(self.site.config)
+
+        if not social_config.enabled:
+            return
+
+        generator = SocialCardGenerator(self.site, social_config)
+        output_dir = self.site.output_dir / social_config.output_dir
+
+        generated, cached = generator.generate_all(self.site.pages, output_dir)
+
+        # Log results using CLI output pattern
+        cli = CLIOutput()
+        if generated > 0 or cached > 0:
+            cli.detail(
+                f"Generated: {generated}, Cached: {cached}",
+                indent=1,
+                icon=cli.icons.tree_end,
+            )
 
     def _build_graph_data(
         self, build_context: BuildContext | Any | None = None

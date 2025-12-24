@@ -22,11 +22,11 @@ Usage:
 {# Determine section type from explicit context, page type, or URL sniffing (fallback) #}
 {# Priority: 1. hero_context.is_cli, 2. page.type == 'autodoc-cli', 3. '/cli' in page.href #}
 {% set is_cli = false %}
-{% if hero_context is defined and hero_context and hero_context.is_cli is defined %}
+{% if hero_context and hero_context.is_cli %}
   {% set is_cli = hero_context.is_cli %}
-{% elif page.type is defined and page.type == 'autodoc-cli' %}
+{% elif page.type == 'autodoc-cli' %}
   {% set is_cli = true %}
-{% elif page.href is defined and '/cli' in page.href %}
+{% elif page.href and '/cli' in page.href %}
   {% set is_cli = true %}
 {% endif %}
 
@@ -44,7 +44,7 @@ Usage:
 
   {# Description from section metadata (dict access) #}
   {% if section %}
-  {% set desc = section.metadata.get('description', '') %}
+  {% set desc = section.metadata.description %}
   {% if desc %}
   <div class="page-hero__description page-hero__description--prose">
     {{ desc | markdownify | safe }}

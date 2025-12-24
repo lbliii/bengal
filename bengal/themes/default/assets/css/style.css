@@ -62,6 +62,7 @@
   @import url('utilities/scroll-animations.css');
   @import url('utilities/gradient-borders.css');
   @import url('utilities/fluid-blobs.css');
+  @import url('utilities/micro-interactions.css');
 }
 
 @layer base {
@@ -70,6 +71,10 @@
 
 @layer base {
   @import url('base/print.css');
+}
+
+@layer base {
+  @import url('base/transitions.css');
 }
 
 /* ============================================
@@ -122,6 +127,10 @@
 
 @layer components {
   @import url('components/tabs.css');
+}
+
+@layer components {
+  @import url('components/tabs-native.css');
 }
 
 @layer components {
@@ -286,6 +295,7 @@
 
 @layer components {
   @import url('components/versioning.css');
+  @import url('components/stale-banner.css');
 }
 
 @layer components {
@@ -298,6 +308,10 @@
 
 @layer components {
   @import url('components/graph-contextual.css');
+}
+
+@layer components {
+  @import url('components/link-preview.css');
 }
 
 /* Third-party libraries */

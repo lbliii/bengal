@@ -1,0 +1,780 @@
+/**
+ * Bengal SSG - Micro-Interactions System
+ * Delightful, satisfying feedback animations
+ *
+ * Inspired by: Spotify's add button burst, iOS haptic feedback,
+ * Linear's attention to detail, Stripe's button confirmations
+ *
+ * All animations respect prefers-reduced-motion.
+ */
+
+/* ============================================
+   CSS CUSTOM PROPERTIES FOR MICRO-INTERACTIONS
+   ============================================ */
+
+:root {
+  /* Burst particle colors */
+  --burst-color-1: var(--color-success, #22c55e);
+  --burst-color-2: var(--color-primary, #3b82f6);
+  --burst-color-3: var(--color-accent, #f59e0b);
+
+  /* Spring timing functions (for bounce effects) */
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-overshoot: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  --ease-elastic: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --ease-snappy: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Micro-interaction durations */
+  --micro-fast: 150ms;
+  --micro-base: 250ms;
+  --micro-slow: 400ms;
+
+  /* Haptic-like pulse intensity */
+  --haptic-scale: 1.15;
+  --haptic-scale-down: 0.92;
+}
+
+/* ============================================
+   1. SUCCESS BURST (Spotify-style particle explosion)
+   ============================================ */
+
+/**
+ * Usage: Add .burst-container to parent, .burst-trigger to clickable element
+ * JavaScript adds .burst-active class on click
+ */
+
+.burst-container {
+  position: relative;
+  display: inline-flex;
+}
+
+/* The actual burst effect - creates 8 particles in a circle */
+.burst-container::before,
+.burst-container::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0);
+}
+
+/* Particle burst ring effect */
+.burst-effect {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.burst-effect::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 2px solid var(--burst-color-1);
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.5);
+}
+
+/* Activated burst - ring expands and fades */
+.burst-active .burst-effect::before {
+  animation: burst-ring 0.6s var(--ease-overshoot) forwards;
+}
+
+@keyframes burst-ring {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.5);
+    border-width: 3px;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(2);
+    border-width: 1px;
+  }
+}
+
+/* Particle burst with pseudo-elements trick for 4 particles */
+.burst-particles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.burst-particles::before,
+.burst-particles::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  opacity: 0;
+  background: var(--burst-color-1);
+  box-shadow:
+    0 0 0 var(--burst-color-2),
+    0 0 0 var(--burst-color-3),
+    0 0 0 var(--burst-color-1),
+    0 0 0 var(--burst-color-2);
+}
+
+.burst-active .burst-particles::before {
+  animation: burst-particles-1 0.5s var(--ease-overshoot) forwards;
+}
+
+.burst-active .burst-particles::after {
+  animation: burst-particles-2 0.5s var(--ease-overshoot) 0.05s forwards;
+}
+
+/* First set of particles - diagonal directions */
+@keyframes burst-particles-1 {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+    box-shadow:
+      0 0 0 var(--burst-color-1),
+      0 0 0 var(--burst-color-2),
+      0 0 0 var(--burst-color-3),
+      0 0 0 var(--burst-color-1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.5);
+    box-shadow:
+      -20px -20px 0 var(--burst-color-1),
+      20px -20px 0 var(--burst-color-2),
+      20px 20px 0 var(--burst-color-3),
+      -20px 20px 0 var(--burst-color-1);
+  }
+}
+
+/* Second set of particles - cardinal directions */
+@keyframes burst-particles-2 {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+    box-shadow:
+      0 0 0 var(--burst-color-2),
+      0 0 0 var(--burst-color-3),
+      0 0 0 var(--burst-color-1),
+      0 0 0 var(--burst-color-2);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.5);
+    box-shadow:
+      0 -25px 0 var(--burst-color-2),
+      25px 0 0 var(--burst-color-3),
+      0 25px 0 var(--burst-color-1),
+      -25px 0 0 var(--burst-color-2);
+  }
+}
+
+/* ============================================
+   2. RIPPLE EFFECT (Material Design style)
+   ============================================ */
+
+/**
+ * Usage: Add .ripple class to button/clickable
+ * CSS-only version with :active pseudo-class
+ */
+
+.ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.ripple::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.4) 0%,
+    transparent 70%
+  );
+  transform: translate(-50%, -50%);
+  transition: width 0s, height 0s, opacity 0.4s;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ripple:active::after {
+  width: 300%;
+  height: 300%;
+  opacity: 1;
+  transition: width 0.3s var(--ease-snappy),
+              height 0.3s var(--ease-snappy),
+              opacity 0s;
+}
+
+/* Dark ripple variant (for light backgrounds) */
+.ripple-dark::after {
+  background: radial-gradient(
+    circle,
+    rgba(0, 0, 0, 0.15) 0%,
+    transparent 70%
+  );
+}
+
+/* Color ripple (for accent buttons) */
+.ripple-accent::after {
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--color-primary) 30%, transparent) 0%,
+    transparent 70%
+  );
+}
+
+/* ============================================
+   3. SATISFYING CHECKMARK ANIMATION
+   ============================================ */
+
+/**
+ * Usage: Add .check-success to checkmark SVG container
+ * Animates the checkmark with satisfying overshoot
+ */
+
+.check-success {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.check-success svg {
+  stroke-dasharray: 50;
+  stroke-dashoffset: 50;
+}
+
+.check-success.is-checked svg {
+  animation: draw-check 0.4s var(--ease-overshoot) forwards;
+}
+
+@keyframes draw-check {
+  0% {
+    stroke-dashoffset: 50;
+    transform: scale(0.8);
+  }
+  50% {
+    transform: scale(1.15);
+  }
+  100% {
+    stroke-dashoffset: 0;
+    transform: scale(1);
+  }
+}
+
+/* Wrapper bounce on success */
+.check-success.is-checked {
+  animation: check-bounce 0.4s var(--ease-bounce);
+}
+
+@keyframes check-bounce {
+  0%, 100% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.2);
+  }
+  60% {
+    transform: scale(0.95);
+  }
+}
+
+/* Success glow ring */
+.check-success::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid var(--color-success);
+  opacity: 0;
+  transform: scale(0.8);
+}
+
+.check-success.is-checked::after {
+  animation: success-glow 0.5s var(--ease-overshoot) forwards;
+}
+
+@keyframes success-glow {
+  0% {
+    opacity: 0.8;
+    transform: scale(0.8);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+
+/* ============================================
+   4. HAPTIC PULSE (Visual haptic feedback)
+   ============================================ */
+
+/**
+ * Usage: Add .haptic-pulse class + trigger .pulse-active
+ * Creates a satisfying "thump" visual like iOS haptic feedback
+ */
+
+.haptic-pulse {
+  transition: transform var(--micro-fast) var(--ease-elastic);
+}
+
+.haptic-pulse.pulse-active {
+  animation: haptic-thump 0.3s var(--ease-bounce);
+}
+
+@keyframes haptic-thump {
+  0% {
+    transform: scale(1);
+  }
+  20% {
+    transform: scale(var(--haptic-scale-down));
+  }
+  50% {
+    transform: scale(var(--haptic-scale));
+  }
+  80% {
+    transform: scale(0.97);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Subtle version for smaller elements */
+.haptic-subtle.pulse-active {
+  animation: haptic-subtle 0.2s var(--ease-bounce);
+}
+
+@keyframes haptic-subtle {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+/* ============================================
+   5. SQUEEZE & RELEASE (Spring-like press)
+   ============================================ */
+
+/**
+ * Usage: Add .squeeze class to buttons
+ * Creates satisfying spring-back effect on press
+ */
+
+.squeeze {
+  transition: transform var(--micro-fast) var(--ease-elastic);
+  will-change: transform;
+}
+
+.squeeze:active {
+  transform: scale(0.92);
+}
+
+.squeeze:not(:active) {
+  transition: transform var(--micro-base) var(--ease-bounce);
+}
+
+/* Horizontal squeeze (for wide buttons) */
+.squeeze-horizontal:active {
+  transform: scaleX(0.95) scaleY(1.02);
+}
+
+/* Vertical squeeze (for tall elements) */
+.squeeze-vertical:active {
+  transform: scaleY(0.95) scaleX(1.02);
+}
+
+/* ============================================
+   6. GLOW PULSE ON SUCCESS
+   ============================================ */
+
+/**
+ * Usage: Add .glow-success class when action succeeds
+ * Pulses with success color glow
+ */
+
+.glow-success {
+  position: relative;
+}
+
+.glow-success.is-success {
+  animation: glow-pulse-success 0.6s ease-out;
+}
+
+@keyframes glow-pulse-success {
+  0% {
+    box-shadow:
+      0 0 0 0 var(--color-success),
+      0 0 0 0 color-mix(in srgb, var(--color-success) 40%, transparent);
+  }
+  50% {
+    box-shadow:
+      0 0 20px 2px var(--color-success),
+      0 0 40px 10px color-mix(in srgb, var(--color-success) 20%, transparent);
+  }
+  100% {
+    box-shadow:
+      0 0 0 0 transparent,
+      0 0 0 0 transparent;
+  }
+}
+
+/* ============================================
+   7. ICON MORPH (Copy → Check transition)
+   ============================================ */
+
+/**
+ * Usage: For icon transitions on state change
+ * Smoothly morphs between two icons
+ */
+
+.icon-morph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.icon-morph .icon-default,
+.icon-morph .icon-success {
+  transition: opacity var(--micro-fast),
+              transform var(--micro-base) var(--ease-bounce);
+}
+
+.icon-morph .icon-success {
+  position: absolute;
+  opacity: 0;
+  transform: scale(0.5) rotate(-10deg);
+}
+
+.icon-morph.is-success .icon-default {
+  opacity: 0;
+  transform: scale(0.5) rotate(10deg);
+}
+
+.icon-morph.is-success .icon-success {
+  opacity: 1;
+  transform: scale(1) rotate(0deg);
+}
+
+/* ============================================
+   8. CONFETTI BURST (Pure CSS celebration)
+   ============================================ */
+
+/**
+ * Usage: Add .confetti-container, trigger .confetti-active
+ * Creates celebration confetti effect
+ */
+
+.confetti-container {
+  position: relative;
+  display: inline-flex;
+}
+
+.confetti {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+
+/* Generate 6 confetti pieces with different delays */
+.confetti::before,
+.confetti::after,
+.confetti span::before,
+.confetti span::after {
+  content: '';
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 1px;
+  opacity: 0;
+}
+
+.confetti::before {
+  background: var(--burst-color-1);
+}
+.confetti::after {
+  background: var(--burst-color-2);
+}
+.confetti span::before {
+  background: var(--burst-color-3);
+}
+.confetti span::after {
+  background: var(--burst-color-1);
+}
+
+.confetti-active .confetti::before {
+  animation: confetti-1 0.8s var(--ease-overshoot) forwards;
+}
+.confetti-active .confetti::after {
+  animation: confetti-2 0.8s var(--ease-overshoot) 0.05s forwards;
+}
+.confetti-active .confetti span::before {
+  animation: confetti-3 0.8s var(--ease-overshoot) 0.1s forwards;
+}
+.confetti-active .confetti span::after {
+  animation: confetti-4 0.8s var(--ease-overshoot) 0.15s forwards;
+}
+
+@keyframes confetti-1 {
+  0% { opacity: 1; transform: translate(0, 0) rotate(0deg); }
+  100% { opacity: 0; transform: translate(-30px, -50px) rotate(200deg); }
+}
+@keyframes confetti-2 {
+  0% { opacity: 1; transform: translate(0, 0) rotate(0deg); }
+  100% { opacity: 0; transform: translate(35px, -45px) rotate(-180deg); }
+}
+@keyframes confetti-3 {
+  0% { opacity: 1; transform: translate(0, 0) rotate(0deg); }
+  100% { opacity: 0; transform: translate(-25px, 40px) rotate(150deg); }
+}
+@keyframes confetti-4 {
+  0% { opacity: 1; transform: translate(0, 0) rotate(0deg); }
+  100% { opacity: 0; transform: translate(40px, 35px) rotate(-220deg); }
+}
+
+/* ============================================
+   9. MAGNETIC HOVER (Subtle cursor attraction)
+   ============================================ */
+
+/**
+ * Usage: Add .magnetic class
+ * Element subtly follows cursor on hover
+ * Requires JS for full effect, but CSS provides base
+ */
+
+.magnetic {
+  transition: transform var(--micro-fast) var(--ease-snappy);
+}
+
+.magnetic:hover {
+  /* Base magnetic effect - JS can enhance with actual cursor tracking */
+  transform: scale(1.02);
+}
+
+/* ============================================
+   10. TOAST/NOTIFICATION ENTRANCE
+   ============================================ */
+
+.toast-enter {
+  animation: toast-slide-in 0.4s var(--ease-overshoot) forwards;
+}
+
+@keyframes toast-slide-in {
+  0% {
+    opacity: 0;
+    transform: translateY(100%) scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.toast-exit {
+  animation: toast-slide-out 0.3s var(--ease-snappy) forwards;
+}
+
+@keyframes toast-slide-out {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-20%) scale(0.9);
+  }
+}
+
+/* ============================================
+   11. COPY SUCCESS ANIMATION (For code copy button)
+   ============================================ */
+
+/**
+ * Enhanced copy button success state
+ * Combines burst + glow + icon morph
+ */
+
+.copy-success-burst {
+  position: relative;
+}
+
+.copy-success-burst.copied {
+  animation: copy-success 0.5s var(--ease-bounce);
+}
+
+@keyframes copy-success {
+  0% {
+    transform: scale(1);
+  }
+  15% {
+    transform: scale(0.9);
+  }
+  30% {
+    transform: scale(1.15);
+  }
+  45% {
+    transform: scale(0.98);
+  }
+  60%, 100% {
+    transform: scale(1);
+  }
+}
+
+/* Success ring burst for copy buttons */
+.copy-success-burst::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  border: 2px solid var(--color-success);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.copy-success-burst.copied::before {
+  animation: copy-ring-burst 0.6s var(--ease-overshoot) forwards;
+}
+
+@keyframes copy-ring-burst {
+  0% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.8);
+  }
+}
+
+/* ============================================
+   12. BUTTON SHINE SWEEP
+   ============================================ */
+
+/**
+ * Usage: Add .shine-sweep class to buttons
+ * Creates sweeping highlight on hover
+ */
+
+.shine-sweep {
+  position: relative;
+  overflow: hidden;
+}
+
+.shine-sweep::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.3) 50%,
+    transparent 100%
+  );
+  transform: skewX(-20deg);
+  transition: left 0.5s ease;
+  pointer-events: none;
+}
+
+.shine-sweep:hover::before {
+  left: 150%;
+}
+
+/* ============================================
+   13. WIGGLE ATTENTION
+   ============================================ */
+
+/**
+ * Usage: Add .wiggle class to draw attention
+ */
+
+.wiggle {
+  animation: wiggle 0.5s var(--ease-bounce);
+}
+
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  20% { transform: rotate(-3deg); }
+  40% { transform: rotate(3deg); }
+  60% { transform: rotate(-2deg); }
+  80% { transform: rotate(2deg); }
+}
+
+/* ============================================
+   REDUCED MOTION
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .burst-active .burst-effect::before,
+  .burst-active .burst-particles::before,
+  .burst-active .burst-particles::after,
+  .ripple::after,
+  .check-success.is-checked svg,
+  .check-success.is-checked,
+  .check-success.is-checked::after,
+  .haptic-pulse.pulse-active,
+  .haptic-subtle.pulse-active,
+  .squeeze,
+  .squeeze:active,
+  .glow-success.is-success,
+  .icon-morph .icon-default,
+  .icon-morph .icon-success,
+  .confetti-active .confetti::before,
+  .confetti-active .confetti::after,
+  .confetti-active .confetti span::before,
+  .confetti-active .confetti span::after,
+  .toast-enter,
+  .toast-exit,
+  .copy-success-burst.copied,
+  .copy-success-burst.copied::before,
+  .shine-sweep::before,
+  .wiggle {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+
+  /* Still show state changes, just without animation */
+  .icon-morph.is-success .icon-default {
+    opacity: 0;
+  }
+
+  .icon-morph.is-success .icon-success {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ============================================
+   UTILITY: TIMING DELAY CLASSES
+   ============================================ */
+
+.delay-50 { animation-delay: 50ms; }
+.delay-100 { animation-delay: 100ms; }
+.delay-150 { animation-delay: 150ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }

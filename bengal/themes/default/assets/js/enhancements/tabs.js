@@ -1,11 +1,15 @@
 /**
  * Bengal Enhancement: Tabs Component
  *
- * Provides tabbed content functionality:
- * - Event delegation (works with dynamic content)
- * - ID-based targeting (more robust than index-based)
- * - Handles nested tabs correctly
- * - Accessible keyboard navigation
+ * Pattern: CSS STATE MACHINE + JS ENHANCEMENT (see COMPONENT-PATTERNS.md)
+ *
+ * Base functionality uses CSS :target selector (tabs-native.css).
+ * This JS provides optional enhancements:
+ * - Tab sync across multiple tab-sets (data-sync-group)
+ * - Enhanced keyboard navigation
+ * - Event delegation for dynamic content
+ *
+ * Without this JS, tabs still work via URL fragments (#tab-id).
  *
  * @requires utils.js (optional, for logging)
  * @requires bengal-enhance.js (for enhancement registration)

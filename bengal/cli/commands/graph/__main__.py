@@ -14,6 +14,7 @@ from bengal.cli.helpers import (
     handle_cli_errors,
     load_site_from_cli,
 )
+from bengal.utils.atomic_write import atomic_write_text
 from bengal.utils.logger import LogLevel, close_all_loggers, configure_logging
 
 from .bridges import bridges
@@ -212,7 +213,7 @@ def analyze(show_stats: bool, tree: bool, output: str, config: str, source: str)
             output_path.parent.mkdir(parents=True, exist_ok=True)
 
             # Write HTML file
-            output_path.write_text(html, encoding="utf-8")
+            atomic_write_text(output_path, html)
 
             cli.success("✅ Visualization generated!")
             cli.info(f"   Open {output_path} in your browser to explore.")

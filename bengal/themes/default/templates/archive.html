@@ -23,7 +23,7 @@ Context variables:
 
 {% block content %}
 <div class="container">
-{{ breadcrumbs(section if section is defined else page) }}
+{{ breadcrumbs(section or page) }}
 
 {# Section navigation for section pages - dogfooding section properties #}
 {% if section %}
@@ -34,10 +34,10 @@ Context variables:
     <header class="page-header page-header--centered">
         <h1>{{ title | default(section.title if section else 'Archive') }}</h1>
 
-        {% if description is defined and description %}
+        {% if description %}
         <p class="archive-description">{{ description }}</p>
-        {% elif section and section.metadata.get('description') %}
-        <p class="archive-description">{{ section.metadata.get('description') }}</p>
+        {% elif section and section.params.description %}
+        <p class="archive-description">{{ section.params.description }}</p>
         {% endif %}
 
         {% if total_pages %}
@@ -87,8 +87,8 @@ Context variables:
             {% for subsection in subsections %}
             <article class="archive-item">
                 <h3><a href="{{ subsection.href }}">{{ subsection.title }}</a></h3>
-                {% if subsection.metadata.get('description') %}
-                <p>{{ subsection.metadata.get('description') }}</p>
+                {% if subsection.params.description %}
+                <p>{{ subsection.params.description }}</p>
                 {% endif %}
                 {% if subsection.pages %}
                 <p class="meta">{{ subsection.pages | length }} page(s)</p>

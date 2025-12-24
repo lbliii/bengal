@@ -19,3 +19,21 @@ features:
   # ALWAYS computed by Bengal. They're controlled by:
   #   - content.yaml: HOW to compute (reading_speed, excerpt_length, etc.)
   #   - theme.yaml: WHETHER to display (show_reading_time, etc.)
+
+# Social Cards Configuration
+# ==========================
+# Auto-generates Open Graph images for social media sharing.
+# When links are shared on Twitter, Slack, Discord, etc., users see
+# branded preview cards with the page title, description, and site branding.
+#
+# Generated images are 1200x630px PNGs placed in /social/
+# Per-page control: set `social_card: false` in frontmatter to disable
+#                   set `image: /path.png` in frontmatter to use custom image
+
+social_cards:
+  enabled: false  # Disabled: Pillow not thread-safe in Python 3.14 free-threading
+  template: "default"           # "default" (branded) or "minimal" (centered)
+  background_color: "#0f172a"   # Slate-900 - matches dark theme
+  text_color: "#f8fafc"         # Slate-50 - high contrast text
+  accent_color: "#06b6d4"       # Cyan-500 - matches snow-lynx palette
+  # Uses site's configured fonts from fonts.yaml (downloads TTF for image gen)

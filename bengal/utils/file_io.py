@@ -262,7 +262,7 @@ def load_json(
     if not content:
         return {} if on_error == "return_empty" else None
 
-    # Parse JSON (using orjson if available for 3-10x speedup)
+    # Parse JSON
     try:
         data = json.loads(content)
 
@@ -553,7 +553,7 @@ def write_json(
     """
     Write data as JSON file.
 
-    Uses orjson for Rust-accelerated serialization (3-10x faster) if available.
+    Writes data as JSON to a file.
 
     Args:
         file_path: Path to JSON file

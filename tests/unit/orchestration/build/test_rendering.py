@@ -143,7 +143,7 @@ class TestPhaseAssets:
         )
 
         orchestrator.assets.process.assert_called_once_with(
-            assets, parallel=True, progress_manager=None
+            assets, parallel=True, progress_manager=None, collector=None
         )
         assert result == assets
 
@@ -396,8 +396,10 @@ class TestPhaseUpdateSitePages:
 class TestPhaseTrackAssets:
     """Tests for phase_track_assets function."""
 
-    def test_tracks_page_asset_dependencies(self, tmp_path):
-        """Tracks asset dependencies from rendered pages."""
+    def test_persists_accumulated_assets(self, tmp_path):
+        """Persists accumulated assets from BuildContext."""
+        from bengal.utils.build_context import BuildContext
+
         orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
 
         page = MagicMock()
@@ -405,35 +407,64 @@ class TestPhaseTrackAssets:
         page.rendered_html = '<img src="/assets/image.png">'
         pages_to_build = [page]
 
-        with (
-            patch("bengal.cache.asset_dependency_map.AssetDependencyMap") as MockMap,
-            patch("bengal.rendering.asset_extractor.extract_assets_from_html") as mock_extract,
-        ):
-            mock_map = MagicMock()
-            MockMap.return_value = mock_map
-            mock_extract.return_value = ["/assets/image.png"]
-
-            phase_track_assets(orchestrator, pages_to_build)
-
-        mock_map.track_page_assets.assert_called_once_with(page.source_path, ["/assets/image.png"])
-        mock_map.save_to_disk.assert_called_once()
-
-    def test_skips_pages_without_html(self, tmp_path):
-        """Skips pages without rendered HTML."""
-        orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
-
-        page = MagicMock()
-        page.rendered_html = None
-        pages_to_build = [page]
+        # Create build context with accumulated assets
+        ctx = BuildContext()
+        ctx.accumulate_page_assets(Path("test.md"), {"/assets/image.png"})
 
         with patch("bengal.cache.asset_dependency_map.AssetDependencyMap") as MockMap:
             mock_map = MagicMock()
             MockMap.return_value = mock_map
 
-            phase_track_assets(orchestrator, pages_to_build)
+            phase_track_assets(orchestrator, pages_to_build, build_context=ctx)
 
-        # Should not track for pages without HTML
+        # Should persist accumulated assets
+        mock_map.track_page_assets.assert_called_once()
+        mock_map.save_to_disk.assert_called_once()
+        # Accumulated assets should be cleared after persistence
+        assert not ctx.has_accumulated_assets
+
+    def test_handles_multiple_pages(self, tmp_path):
+        """Handles multiple pages with accumulated assets."""
+        from bengal.utils.build_context import BuildContext
+
+        orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
+
+        pages = [
+            MagicMock(source_path=Path("p1.md"), rendered_html="<html>"),
+            MagicMock(source_path=Path("p2.md"), rendered_html="<html>"),
+            MagicMock(source_path=Path("p3.md"), rendered_html="<html>"),
+        ]
+
+        ctx = BuildContext()
+        ctx.accumulate_page_assets(Path("p1.md"), {"/a.png"})
+        ctx.accumulate_page_assets(Path("p2.md"), {"/b.png", "/c.js"})
+        ctx.accumulate_page_assets(Path("p3.md"), {"/d.css"})
+
+        with patch("bengal.cache.asset_dependency_map.AssetDependencyMap") as MockMap:
+            mock_map = MagicMock()
+            MockMap.return_value = mock_map
+
+            phase_track_assets(orchestrator, pages, build_context=ctx)
+
+        assert mock_map.track_page_assets.call_count == 3
+        mock_map.save_to_disk.assert_called_once()
+
+    def test_handles_empty_accumulated_assets(self, tmp_path):
+        """Handles build context with no accumulated assets."""
+        from bengal.utils.build_context import BuildContext
+
+        orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
+        ctx = BuildContext()  # Empty context
+
+        with patch("bengal.cache.asset_dependency_map.AssetDependencyMap") as MockMap:
+            mock_map = MagicMock()
+            MockMap.return_value = mock_map
+
+            phase_track_assets(orchestrator, [], build_context=ctx)
+
+        # Should still save (even if empty)
         mock_map.track_page_assets.assert_not_called()
+        mock_map.save_to_disk.assert_called_once()
 
     def test_handles_tracking_errors(self, tmp_path):
         """Handles asset tracking errors gracefully."""
@@ -447,136 +478,3 @@ class TestPhaseTrackAssets:
             phase_track_assets(orchestrator, [])
 
         orchestrator.logger.warning.assert_called()
-
-
-class TestPhaseTrackAssetsParallel:
-    """Tests for parallel asset tracking in phase_track_assets."""
-
-    def test_parallel_produces_same_results_as_sequential(self, tmp_path):
-        """Parallel extraction produces identical results to sequential."""
-        orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
-        orchestrator.max_workers = None  # Use default thread count
-
-        # Create 10 mock pages with assets (above threshold)
-        pages = []
-        for i in range(10):
-            page = MagicMock()
-            page.source_path = Path(f"page{i}.md")
-            page.rendered_html = f'<img src="/assets/img{i}.png">'
-            pages.append(page)
-
-        # Use real extract_assets_from_html (it's stateless and thread-safe)
-        with patch("bengal.cache.asset_dependency_map.AssetDependencyMap") as MockMap:
-            mock_instance = MagicMock()
-            mock_instance.pages = {}
-            mock_instance.get_all_assets.return_value = set()
-            MockMap.return_value = mock_instance
-
-            phase_track_assets(orchestrator, pages)
-
-            # Verify all 10 pages were tracked (each has an <img> tag)
-            assert mock_instance.track_page_assets.call_count == 10
-            mock_instance.save_to_disk.assert_called_once()
-
-    def test_below_threshold_runs_sequential(self, tmp_path):
-        """Small workloads (<5 pages) run sequentially without ThreadPoolExecutor."""
-        orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
-
-        # Create only 3 pages (below PARALLEL_THRESHOLD of 5)
-        pages = [
-            MagicMock(rendered_html='<img src="/a.png">', source_path=Path("p1.md")),
-            MagicMock(rendered_html='<img src="/b.png">', source_path=Path("p2.md")),
-            MagicMock(rendered_html='<img src="/c.png">', source_path=Path("p3.md")),
-        ]
-
-        with (
-            patch("bengal.cache.asset_dependency_map.AssetDependencyMap") as MockMap,
-            patch("bengal.rendering.asset_extractor.extract_assets_from_html") as mock_extract,
-            patch("concurrent.futures.ThreadPoolExecutor") as mock_executor_class,
-        ):
-            mock_instance = MagicMock()
-            mock_instance.pages = {}
-            mock_instance.get_all_assets.return_value = set()
-            MockMap.return_value = mock_instance
-            mock_extract.return_value = {"/asset.png"}
-
-            phase_track_assets(orchestrator, pages)
-
-            # ThreadPoolExecutor should NOT be instantiated for <5 pages
-            mock_executor_class.assert_not_called()
-
-            # All 3 pages should still be tracked
-            assert mock_instance.track_page_assets.call_count == 3
-
-    def test_above_threshold_runs_parallel(self, tmp_path):
-        """Large workloads (>=5 pages) run in parallel with ThreadPoolExecutor."""
-        orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
-        orchestrator.max_workers = 4
-
-        # Create 10 pages (above PARALLEL_THRESHOLD of 5)
-        pages = [
-            MagicMock(rendered_html=f'<img src="/{i}.png">', source_path=Path(f"{i}.md"))
-            for i in range(10)
-        ]
-
-        # Use real extract_assets_from_html (it's stateless and thread-safe)
-        with patch("bengal.cache.asset_dependency_map.AssetDependencyMap") as MockMap:
-            mock_instance = MagicMock()
-            mock_instance.pages = {}
-            mock_instance.get_all_assets.return_value = set()
-            MockMap.return_value = mock_instance
-
-            # Run phase_track_assets - it will use real ThreadPoolExecutor
-            phase_track_assets(orchestrator, pages)
-
-            # All 10 pages should be tracked (order may vary due to parallelism)
-            assert mock_instance.track_page_assets.call_count == 10
-            mock_instance.save_to_disk.assert_called_once()
-
-    def test_handles_empty_rendered_html_in_parallel(self, tmp_path):
-        """Pages with no rendered HTML are skipped in parallel mode."""
-        orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
-        orchestrator.max_workers = None  # Use default thread count
-
-        # Mix of pages with and without HTML (above threshold)
-        pages = [
-            MagicMock(rendered_html=None, source_path=Path("empty1.md")),
-            MagicMock(rendered_html=None, source_path=Path("empty2.md")),
-            MagicMock(rendered_html='<img src="/a.png">', source_path=Path("has1.md")),
-            MagicMock(rendered_html=None, source_path=Path("empty3.md")),
-            MagicMock(rendered_html='<img src="/b.png">', source_path=Path("has2.md")),
-            MagicMock(rendered_html=None, source_path=Path("empty4.md")),
-        ]
-
-        # Use real extract_assets_from_html (it's stateless and thread-safe)
-        with patch("bengal.cache.asset_dependency_map.AssetDependencyMap") as MockMap:
-            mock_instance = MagicMock()
-            mock_instance.pages = {}
-            mock_instance.get_all_assets.return_value = set()
-            MockMap.return_value = mock_instance
-
-            phase_track_assets(orchestrator, pages)
-
-            # Only 2 pages have HTML with assets
-            assert mock_instance.track_page_assets.call_count == 2
-
-    def test_handles_no_assets_in_html(self, tmp_path):
-        """Pages with no asset references are handled gracefully."""
-        orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
-
-        # Pages with HTML but no assets
-        pages = [
-            MagicMock(rendered_html="<p>No assets here</p>", source_path=Path("p.md")),
-        ]
-
-        # Use real extract_assets_from_html (it's stateless and thread-safe)
-        with patch("bengal.cache.asset_dependency_map.AssetDependencyMap") as MockMap:
-            mock_instance = MagicMock()
-            mock_instance.pages = {}
-            mock_instance.get_all_assets.return_value = set()
-            MockMap.return_value = mock_instance
-
-            phase_track_assets(orchestrator, pages)
-
-            # No assets tracked when HTML has no asset references
-            mock_instance.track_page_assets.assert_not_called()

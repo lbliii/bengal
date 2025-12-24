@@ -4,12 +4,14 @@ Shared pytest fixtures for Bengal test suite.
 Provides:
 - rootdir: Path to tests/roots/ directory
 - site_factory: Factory to create Site from test roots
+- site_builder: Factory to create ephemeral sites from config/content dicts
 - build_site: Helper to build a site
 """
 
 import shutil
 import tomllib
 from collections.abc import Callable
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -147,3 +149,113 @@ def build_site(request) -> Callable:
         site.build(parallel=parallel, incremental=incremental)
 
     return _build
+
+
+@dataclass
+class EphemeralSite:
+    """
+    Wrapper for ephemeral test sites created by site_builder.
+
+    Provides convenient methods for building and inspecting output.
+    """
+
+    site: Site
+    site_dir: Path
+    output_dir: Path = field(init=False)
+
+    def __post_init__(self) -> None:
+        self.output_dir = self.site_dir / "public"
+
+    def build(self, parallel: bool = False, incremental: bool = False) -> None:
+        """Build the site."""
+        self.site.build(parallel=parallel, incremental=incremental)
+
+    def read_output(self, path: str) -> str:
+        """Read a file from the output directory."""
+        output_path = self.output_dir / path
+        if not output_path.exists():
+            raise FileNotFoundError(f"Output file not found: {output_path}")
+        return output_path.read_text()
+
+    def output_exists(self, path: str) -> bool:
+        """Check if an output file exists."""
+        return (self.output_dir / path).exists()
+
+
+@pytest.fixture
+def site_builder(tmp_path: Path) -> Callable:
+    """
+    Factory to create ephemeral sites from config and content dicts.
+
+    Usage:
+        def test_something(site_builder):
+            site = site_builder(
+                config={"title": "Test Site", "document_application": {"enabled": True}},
+                content={"_index.md": "---\\ntitle: Home\\n---\\nWelcome"}
+            )
+            site.build()
+            html = site.read_output("index.html")
+            assert "Welcome" in html
+
+    Args:
+        config: Dict of site configuration (nested structure)
+        content: Dict mapping relative paths to content strings
+
+    Returns:
+        EphemeralSite instance with build() and read_output() methods
+    """
+
+    def _factory(
+        config: dict[str, Any] | None = None,
+        content: dict[str, str] | None = None,
+    ) -> EphemeralSite:
+        # Create site directory
+        site_dir = tmp_path / "ephemeral_site"
+        site_dir.mkdir(exist_ok=True)
+
+        # Build config with sensible defaults
+        full_config: dict[str, Any] = {
+            "site": {
+                "title": "Test Site",
+                "baseurl": "/",
+            },
+            "build": {
+                "output_dir": "public",
+            },
+        }
+
+        # Merge provided config
+        if config:
+            for key, value in config.items():
+                if (
+                    key in full_config
+                    and isinstance(full_config[key], dict)
+                    and isinstance(value, dict)
+                ):
+                    full_config[key].update(value)
+                else:
+                    full_config[key] = value
+
+        # Write config file
+        config_path = site_dir / "bengal.toml"
+        with open(config_path, "wb") as f:
+            tomli_w.dump(full_config, f)
+
+        # Create content directory and files
+        content_dir = site_dir / "content"
+        content_dir.mkdir(exist_ok=True)
+
+        if content:
+            for rel_path, file_content in content.items():
+                file_path = content_dir / rel_path
+                file_path.parent.mkdir(parents=True, exist_ok=True)
+                file_path.write_text(file_content)
+
+        # Create and initialize Site
+        site = Site.from_config(site_dir)
+        site.discover_content()
+        site.discover_assets()
+
+        return EphemeralSite(site=site, site_dir=site_dir)
+
+    return _factory

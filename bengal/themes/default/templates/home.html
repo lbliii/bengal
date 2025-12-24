@@ -6,11 +6,11 @@
 <div class="home">
     {# Hero Section #}
     {% set hero_classes = ['hero', 'hero--large'] %}
-    {% if page.metadata.get('blob_background', false) %}
+    {% if params.blob_background %}
     {% set _ = hero_classes.append('hero--blob-background') %}
     {% endif %}
     <header class="{{ hero_classes | join(' ') }}">
-        {% if page.metadata.get('blob_background', false) %}
+        {% if params.blob_background %}
         {# Organic blob background animation #}
         <div class="hero__blobs" aria-hidden="true">
             <div class="hero__blob hero__blob--1"></div>
@@ -22,18 +22,18 @@
         <div class="hero__container">
             <div class="hero__content">
                 <h1 class="hero__title">
-                    <span class="fluid-text">{{ page.title | default(site.config.title) }}</span>
+                    <span class="fluid-text">{{ page.title | default(config.title) }}</span>
                 </h1>
-                {% if page.metadata.get('description', '') %}
-                <p class="hero__subtitle">{{ page.metadata.get('description', '') }}</p>
+                {% if params.description %}
+                <p class="hero__subtitle">{{ params.description }}</p>
                 {% endif %}
 
-                {% if page.metadata.get('cta_buttons') %}
+                {% if params.cta_buttons %}
                 <div class="hero__actions">
-                    {% for button in page.metadata.get('cta_buttons') %}
-                    <a href="{{ button.get('href') or button.get('url') | absolute_url }}"
-                        class="hero__button hero__button--{{ button.get('style', 'primary') }} {% if button.get('style') != 'primary' %}gradient-border{% endif %}">
-                        {{ button.get('text') }}
+                    {% for button in params.cta_buttons %}
+                    <a href="{{ button.href or button.url | absolute_url }}"
+                        class="hero__button hero__button--{{ button.style | default('primary') }} {% if button.style != 'primary' %}gradient-border{% endif %}">
+                        {{ button.text }}
                     </a>
                     {% endfor %}
                 </div>
@@ -43,10 +43,10 @@
     </header>
 
     {# Feature Highlights - Value Proposition Grid #}
-    {% if page.metadata.get('features') %}
+    {% if params.features %}
     <section class="features" aria-label="Key features">
         <div class="features-grid">
-            {% for feature in page.metadata.get('features') %}
+            {% for feature in params.features %}
             <article class="feature-card">
                 {% if feature.icon %}
                 <div class="feature-icon" aria-hidden="true">{{ feature.icon }}</div>
@@ -54,8 +54,8 @@
                 <h3 class="feature-title">{{ feature.title }}</h3>
                 <p class="feature-description">{{ feature.description }}</p>
                 {% if feature.link %}
-                <a href="{{ feature.link.get('href') or feature.link.get('url') | absolute_url }}" class="feature-link">
-                    {{ feature.link.get('text', 'Learn more') }}
+                <a href="{{ feature.link.href or feature.link.url | absolute_url }}" class="feature-link">
+                    {{ feature.link.text | default('Learn more') }}
                     <span aria-hidden="true">→</span>
                 </a>
                 {% endif %}
@@ -71,18 +71,18 @@
     </div>
 
     {# Quick Links Section - Navigation Cards #}
-    {% if page.metadata.get('quick_links') %}
+    {% if params.quick_links %}
     <section class="quick-links" aria-label="Quick navigation">
         <h2>Quick Links</h2>
         <div class="quick-links-grid">
-            {% for link in page.metadata.get('quick_links') %}
-            <a href="{{ link.get('href') or link.get('url') | absolute_url }}" class="quick-link-card">
-                {% if link.get('icon') %}
-                <div class="quick-link-icon" aria-hidden="true">{{ link.get('icon') }}</div>
+            {% for link in params.quick_links %}
+            <a href="{{ link.href or link.url | absolute_url }}" class="quick-link-card">
+                {% if link.icon %}
+                <div class="quick-link-icon" aria-hidden="true">{{ link.icon }}</div>
                 {% endif %}
-                <h3>{{ link.get('title') }}</h3>
-                {% if link.get('description') %}
-                <p>{{ link.get('description') }}</p>
+                <h3>{{ link.title }}</h3>
+                {% if link.description %}
+                <p>{{ link.description }}</p>
                 {% endif %}
             </a>
             {% endfor %}
@@ -91,10 +91,10 @@
     {% endif %}
 
     {# Statistics/Metrics Section - Impressive Numbers #}
-    {% if page.metadata.get('stats') %}
+    {% if params.stats %}
     <section class="stats" aria-label="Key metrics">
         <div class="stats-grid">
-            {% for stat in page.metadata.get('stats') %}
+            {% for stat in params.stats %}
             <div class="stat-card">
                 <div class="stat-value">{{ stat.value }}</div>
                 <div class="stat-label">{{ stat.label }}</div>
@@ -106,10 +106,10 @@
 
     {# Recent Posts/Updates (if this is a blog-style home) #}
     {# Show recent posts by default for blog sites, or if explicitly enabled #}
-    {% set show_recent = page.metadata.get('show_recent_posts', true) %}
+    {% set show_recent = params.show_recent_posts | default(true) %}
     {% if show_recent %}
     {# Find blog section and get recent posts #}
-    {% set blog_section_name = page.metadata.get('blog_section', 'blog') %}
+    {% set blog_section_name = params.blog_section | default('blog') %}
     {% set blog_section_candidates = site.sections | selectattr('name', 'equalto', blog_section_name) | list if
     site.sections else [] %}
     {% set blog_section = blog_section_candidates[0] if blog_section_candidates else None %}
@@ -120,7 +120,7 @@
     {% set blog_posts = [] %}
     {% for p in site.pages %}
     {# Use relative_url for comparisons (without baseurl) #}
-    {% if p.metadata.get('type') == 'blog' or '/blog/' in p._path %}
+    {% if p.metadata.type == 'blog' or '/blog/' in p._path %}
     {% set _ = blog_posts.append(p) %}
     {% endif %}
     {% endfor %}
@@ -135,10 +135,10 @@
         <div class="posts-grid">
             {% for post in recent %}
             <article class="post-card gradient-border fluid-combined">
-                {% if post.metadata.get('image') or post.metadata.get('cover') %}
+                {% if post.metadata.image or post.metadata.cover %}
                 <div class="post-card-image">
                     <a href="{{ post.href }}">
-                        <img src="{{ post.metadata.get('image') | default(post.metadata.get('cover')) }}"
+                        <img src="{{ post.metadata.image | default(post.metadata.cover) }}"
                             alt="{{ post.title }}">
                     </a>
                 </div>
@@ -150,9 +150,9 @@
                         {{ post.date | dateformat('%B %d, %Y') }}
                     </time>
                     {% endif %}
-                    {% if post.metadata.get('description') or post.excerpt %}
+                    {% if post.metadata.description or post.excerpt %}
                     <p class="post-card-excerpt">
-                        {{ post.metadata.get('description') | default(post.excerpt) | truncate(150) }}
+                        {{ post.metadata.description | default(post.excerpt) | truncate(150) }}
                     </p>
                     {% endif %}
                     <a href="{{ post.href }}" class="read-more">Read more →</a>

@@ -56,6 +56,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from bengal.utils.atomic_write import atomic_write_text
 from bengal.utils.hashing import hash_file, hash_str
 from bengal.utils.logger import get_logger
 
@@ -180,7 +181,7 @@ class SwizzleManager:
         dest.parent.mkdir(parents=True, exist_ok=True)
 
         content = source.read_text(encoding="utf-8")
-        dest.write_text(content, encoding="utf-8")
+        atomic_write_text(dest, content)
 
         upstream_checksum = _checksum_str(content)
         local_checksum = _checksum_file(dest)
@@ -314,7 +315,7 @@ class SwizzleManager:
                 continue
 
             new_content = source_path.read_text(encoding="utf-8")
-            target_path.write_text(new_content, encoding="utf-8")
+            atomic_write_text(target_path, new_content)
 
             # Update checksums
             rec["upstream_checksum"] = _checksum_str(new_content)
@@ -428,7 +429,7 @@ class SwizzleManager:
     def _write_registry(self, data: dict[str, Any]) -> None:
         try:
             self.registry_path.parent.mkdir(parents=True, exist_ok=True)
-            self.registry_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+            atomic_write_text(self.registry_path, json.dumps(data, indent=2))
             logger.debug(
                 "swizzle_registry_saved",
                 path=str(self.registry_path),

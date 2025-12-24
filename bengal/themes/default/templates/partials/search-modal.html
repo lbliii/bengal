@@ -17,22 +17,22 @@ Dependencies:
 - Search: BengalSearch module (core/search.js)
 
 Configuration:
-  search:
-    ui:
-      modal: true
-      recent_searches: 5
+search:
+ui:
+modal: true
+recent_searches: 5
 
 Usage:
-  {% include 'partials/search-modal.html' %}
+{% include 'partials/search-modal.html' %}
 #}
 
 {# Only render if modal is enabled #}
-{% set search_config = site.config.get('search', {}) %}
-{% set ui_config = search_config.get('ui', {}) %}
-{% set modal_enabled = ui_config.get('modal', false) %}
+{% set search_config = config.search %}
+{% set ui_config = search_config.ui if search_config else {} %}
+{% set modal_enabled = ui_config.modal if ui_config else false %}
 
 {% if modal_enabled %}
-<dialog id="search-modal" class="search-modal" aria-label="Search documentation">
+<dialog id="search-modal" class="search-modal" aria-label="{{ t('search.aria_label', default='Search documentation') }}">
   {# Backdrop for clicking outside to close #}
   <div class="search-modal__backdrop" data-close-modal></div>
 
@@ -43,20 +43,10 @@ Usage:
       <div class="search-modal__input-wrapper">
         {{ icon('magnifying-glass', size=20, css_class='search-modal__icon') }}
 
-        <input
-          type="search"
-          id="search-modal-input"
-          class="search-modal__input"
-          placeholder="{{ ui_config.get('placeholder', 'Search documentation...') }}"
-          autocomplete="off"
-          autocorrect="off"
-          autocapitalize="off"
-          spellcheck="false"
-          aria-label="Search"
-          aria-describedby="search-modal-status"
-          aria-controls="search-modal-results"
-          aria-autocomplete="list"
-        >
+        <input type="search" id="search-modal-input" class="search-modal__input"
+          placeholder="{{ ui_config.placeholder | default(t('search.placeholder', default='Search documentation...')) }}" autocomplete="off"
+          autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="{{ t('search.aria_label', default='Search') }}"
+          aria-describedby="search-modal-status" aria-controls="search-modal-results" aria-autocomplete="list">
 
         <div class="search-modal__loading" id="search-modal-loading" style="display: none;">
           <div class="search-modal__spinner"></div>
@@ -72,11 +62,12 @@ Usage:
     <div id="search-modal-status" class="sr-only" role="status" aria-live="polite"></div>
 
     {# Recent searches section #}
-    <section class="search-modal__recent" id="search-modal-recent" aria-label="Recent searches">
+    <section class="search-modal__recent" id="search-modal-recent" aria-label="{{ t('search.recent_aria_label', default='Recent searches') }}">
       <div class="search-modal__section-header">
-        <span class="search-modal__section-title">Recent</span>
-        <button type="button" class="search-modal__clear-recent" id="clear-recent-searches" title="Clear recent searches">
-          Clear
+        <span class="search-modal__section-title">{{ t('search.recent', default='Recent') }}</span>
+        <button type="button" class="search-modal__clear-recent" id="clear-recent-searches"
+          title="{{ t('search.clear_recent', default='Clear recent searches') }}">
+          {{ t('search.clear', default='Clear') }}
         </button>
       </div>
       <ul class="search-modal__recent-list" id="search-modal-recent-list" role="listbox">
@@ -85,7 +76,7 @@ Usage:
     </section>
 
     {# Search results #}
-    <section class="search-modal__results" id="search-modal-results" aria-label="Search results">
+    <section class="search-modal__results" id="search-modal-results" aria-label="{{ t('search.results_aria_label', default='Search results') }}">
       <div class="search-modal__results-list" id="search-modal-results-list" role="listbox">
         {# Results populated by JS #}
       </div>
@@ -93,13 +84,13 @@ Usage:
       {# No results message #}
       <div class="search-modal__no-results" id="search-modal-no-results" style="display: none;">
         {{ icon('magnifying-glass', size=48) }}
-        <p class="search-modal__no-results-text">No results for "<span id="search-modal-no-results-query"></span>"</p>
-        <p class="search-modal__no-results-hint">Try different keywords or check your spelling</p>
+        <p class="search-modal__no-results-text">{{ t('search.no_results', default='No results for') }} "<span id="search-modal-no-results-query"></span>"</p>
+        <p class="search-modal__no-results-hint">{{ t('search.no_results_hint', default='Try different keywords or check your spelling') }}</p>
       </div>
 
       {# Empty state (before search) #}
       <div class="search-modal__empty" id="search-modal-empty">
-        <p class="search-modal__empty-hint">Start typing to search...</p>
+        <p class="search-modal__empty-hint">{{ t('search.empty_hint', default='Start typing to search...') }}</p>
       </div>
     </section>
 
@@ -108,19 +99,19 @@ Usage:
       <div class="search-modal__hints">
         <span class="search-modal__hint">
           <kbd>↑</kbd><kbd>↓</kbd>
-          <span>Navigate</span>
+          <span>{{ t('search.hint_navigate', default='Navigate') }}</span>
         </span>
         <span class="search-modal__hint">
           <kbd>↵</kbd>
-          <span>Open</span>
+          <span>{{ t('search.hint_open', default='Open') }}</span>
         </span>
         <span class="search-modal__hint">
           <kbd>ESC</kbd>
-          <span>Close</span>
+          <span>{{ t('search.hint_close', default='Close') }}</span>
         </span>
       </div>
       <div class="search-modal__powered-by">
-        <span>Powered by</span>
+        <span>{{ t('search.powered_by', default='Powered by') }}</span>
         <a href="https://lunrjs.com/" target="_blank" rel="noopener">Lunr</a>
       </div>
     </footer>

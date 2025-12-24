@@ -1,11 +1,10 @@
 /**
  * Bengal SSG - Search Implementation (Consolidated)
  *
- * Merged from:
- * - search.js (core search functionality)
- * - search-modal.js (Cmd/Ctrl+K modal)
- * - search-page.js (search page functionality)
- * - search-preload.js (smart preloading)
+ * Pattern: DIALOG (see COMPONENT-PATTERNS.md)
+ * - Element: <dialog id="search-modal">
+ * - Browser: focus trap, escape key, backdrop
+ * - JS: search logic, keyboard shortcuts, result rendering
  *
  * Using Lunr.js for client-side full-text search
  *

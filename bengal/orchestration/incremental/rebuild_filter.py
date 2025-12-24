@@ -61,6 +61,14 @@ class RebuildFilter:
         """
         self.site = site
         self.cache = cache
+        # PERF: Cached page lookup (built lazily on first access)
+        self._page_by_path: dict[Path, Page] | None = None
+
+    def _get_page_by_path(self, path: Path) -> Page | None:
+        """O(1) page lookup by source path (cached)."""
+        if self._page_by_path is None:
+            self._page_by_path = {p.source_path: p for p in self.site.pages}
+        return self._page_by_path.get(path)
 
     def get_changed_sections(self, sections: list[Section] | None = None) -> set[Section]:
         """
@@ -300,7 +308,8 @@ class RebuildFilter:
             if changed_path.stem not in ("_index", "index"):
                 continue
 
-            section_page = next((p for p in self.site.pages if p.source_path == changed_path), None)
+            # PERF: O(1) lookup instead of O(n) scan
+            section_page = self._get_page_by_path(changed_path)
             if not section_page:
                 continue
 

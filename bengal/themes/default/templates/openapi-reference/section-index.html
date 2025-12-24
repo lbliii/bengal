@@ -34,9 +34,9 @@ This template receives:
       {# Header #}
       <header class="autodoc-header">
         <h1 class="autodoc-title">{{ section.title if section else 'API Reference' }}</h1>
-        {% if section and section.metadata.get('description') %}
+        {% if section and section.params.description %}
         <div class="autodoc-description">
-          <p>{{ section.metadata.get('description') | first_sentence }}</p>
+          <p>{{ section.params.description | first_sentence }}</p>
         </div>
         {% elif section %}
         <div class="autodoc-description">
@@ -114,23 +114,23 @@ This template receives:
 
         <div class="autodoc-cards">
           {% for page in endpoint_pages %}
-          {% set desc = page.metadata.description | default('') | first_sentence %}
+          {% set desc = params.description | default('') | first_sentence %}
           <a href="{{ page.href }}" class="autodoc-card" data-card="endpoint">
             <div class="autodoc-card-header">
               <span class="autodoc-card-icon">
-                {%- if page.metadata.http_method -%}
-                {{ icon("zap", size=16, css_class="icon-" ~ page.metadata.http_method|lower) }}
-                {%- elif page.metadata.element_type == 'schema' -%}
+                {%- if params.http_method -%}
+                {{ icon("zap", size=16, css_class="icon-" ~ params.http_method|lower) }}
+                {%- elif params.element_type == 'schema' -%}
                 {{ icon("layers", size=16, css_class="icon-info") }}
                 {%- else -%}
                 {{ icon("code", size=16, css_class="icon-muted") }}
                 {%- endif -%}
               </span>
               <span class="autodoc-card-name">{{ page.title }}</span>
-              {% if page.metadata.http_method %}
-              <span class="autodoc-badge" data-badge="{{ page.metadata.http_method|lower }}">{{ page.metadata.http_method }}</span>
-              {% elif page.metadata.element_type %}
-              <span class="autodoc-badge" data-badge="{{ page.metadata.element_type }}">{{ page.metadata.element_type }}</span>
+              {% if params.http_method %}
+              <span class="autodoc-badge" data-badge="{{ params.http_method|lower }}">{{ params.http_method }}</span>
+              {% elif params.element_type %}
+              <span class="autodoc-badge" data-badge="{{ params.element_type }}">{{ params.element_type }}</span>
               {% endif %}
             </div>
             <div class="autodoc-card-body">

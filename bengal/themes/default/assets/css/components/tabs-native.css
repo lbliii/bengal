@@ -1,0 +1,259 @@
+/**
+ * CSS STATE MACHINE PATTERN: Tabs
+ * See: assets/COMPONENT-PATTERNS.md
+ *
+ * - Trigger: Click (URL fragment via href="#id")
+ * - State: :target pseudo-class + :has() for active styling
+ * - JS: None required (optional sync via tabs.js)
+ * - Suffix: -native.css indicates CSS-only implementation
+ *
+ * Features:
+ * - URL-addressable: /page#tabset-id-tabname
+ * - Works without JavaScript
+ * - Browser back button works
+ * - Shareable links with tab state preserved
+ *
+ * Browser Support:
+ * - :has() selector: Chrome 105+, Firefox 121+, Safari 15.4+ (97%+ global)
+ * - :target selector: All browsers (universal support)
+ */
+
+/* ==============================================
+   NATIVE TABS CONTAINER
+   ============================================== */
+
+.tabs--native {
+  position: relative;
+  margin: var(--space-6) 0;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-primary);
+  overflow: visible;
+}
+
+/* ==============================================
+   TAB NAVIGATION
+   ============================================== */
+
+.tabs--native .tab-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  border-bottom: 1px solid var(--color-border-light);
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  overflow: hidden;
+}
+
+.tabs--native .tab-nav a {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-text-tertiary);
+  text-decoration: none;
+  font-weight: var(--weight-medium);
+  font-size: var(--text-sm);
+  border-bottom: 2px solid transparent;
+  transition: all var(--transition-fast) var(--ease-out);
+  cursor: pointer;
+}
+
+.tabs--native .tab-nav a:hover {
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-hover);
+}
+
+/* ==============================================
+   TAB PANE VISIBILITY (CSS State Machine)
+   ============================================== */
+
+/* Default: hide all panes */
+.tabs--native .tab-pane {
+  display: none;
+}
+
+/* Show first pane by default (when no :target) */
+.tabs--native .tab-pane:first-of-type {
+  display: block;
+}
+
+/* Show targeted pane */
+.tabs--native .tab-pane:target {
+  display: block;
+  animation: tabFadeIn var(--duration-200) var(--ease-out);
+}
+
+/* Hide first pane when another is targeted */
+.tabs--native:has(.tab-pane:target) .tab-pane:first-of-type:not(:target) {
+  display: none;
+}
+
+/* ==============================================
+   ACTIVE TAB STYLING (CSS State Machine)
+   ============================================== */
+
+/* First tab active by default */
+.tabs--native .tab-nav a:first-of-type {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+  background-color: var(--color-primary-light);
+  font-weight: var(--weight-semibold);
+}
+
+/* When a pane is targeted, remove first-tab styling */
+.tabs--native:has(.tab-pane:target:not(:first-of-type)) .tab-nav a:first-of-type {
+  color: var(--color-text-tertiary);
+  border-bottom-color: transparent;
+  background-color: transparent;
+  font-weight: var(--weight-medium);
+}
+
+/* Style tab when its pane is targeted - using data-pane attribute */
+/* This requires generating CSS rules per tab set, or using :has() creatively */
+
+/* Generic approach: style any tab whose pane is targeted */
+/* Note: CSS can't directly match a[href="#foo"] to #foo:target */
+/* We use :has() on the container to detect the targeted pane */
+
+/* Tab styling via :has() - matches tab link to targeted pane by ID */
+/* Each tab gets data-pane="pane-id" attribute, then CSS can match */
+
+/* Example: .tabs--native:has(#tabset-python:target) a[data-pane="tabset-python"] */
+/* This is generated per-tabset in the HTML or via build-time CSS generation */
+
+/* Fallback: Apply active styling to any focused/visited tab link */
+.tabs--native .tab-nav a:focus {
+  color: var(--color-primary);
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Active tab indicator glow - same as enhanced tabs */
+.tabs--native .tab-nav a:first-of-type::after,
+.tabs--native:has(.tab-pane:target) .tab-nav a:first-of-type:not([data-pane])::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg,
+      color-mix(in srgb, var(--color-primary) 40%, transparent) 0%,
+      var(--color-primary) 50%,
+      color-mix(in srgb, var(--color-primary) 40%, transparent) 100%);
+}
+
+/* ==============================================
+   TAB CONTENT
+   ============================================== */
+
+.tabs--native .tab-content {
+  padding: var(--space-4);
+}
+
+/* Animation for tab switch */
+@keyframes tabFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-1));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ==============================================
+   DISABLED TABS
+   ============================================== */
+
+.tabs--native .tab-nav a[aria-disabled="true"] {
+  color: var(--color-text-disabled);
+  cursor: not-allowed;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+/* ==============================================
+   TAB ICONS & BADGES
+   ============================================== */
+
+.tabs--native .tab-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1em;
+  opacity: 0.75;
+}
+
+.tabs--native .tab-icon svg {
+  width: 1em;
+  height: 1em;
+}
+
+.tabs--native .tab-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.0625rem 0.375rem;
+  font-size: 0.625rem;
+  font-weight: var(--weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--color-text-inverse);
+  background: var(--color-primary);
+  border-radius: var(--radius-full);
+}
+
+/* ==============================================
+   DARK MODE
+   ============================================== */
+
+[data-theme="dark"] .tabs--native {
+  border-color: var(--color-border-dark);
+}
+
+[data-theme="dark"] .tabs--native .tab-nav {
+  border-bottom-color: var(--color-border-dark);
+  background-color: var(--color-bg-secondary);
+}
+
+/* ==============================================
+   REDUCED MOTION
+   ============================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .tabs--native .tab-pane:target {
+    animation: none;
+  }
+}
+
+/* ==============================================
+   PRINT
+   ============================================== */
+
+@media print {
+  /* Show all panes when printing */
+  .tabs--native .tab-pane {
+    display: block !important;
+    page-break-inside: avoid;
+  }
+
+  /* Add tab title before each pane */
+  .tabs--native .tab-pane::before {
+    content: attr(aria-label);
+    display: block;
+    font-weight: var(--weight-semibold);
+    margin-bottom: var(--space-2);
+    padding-bottom: var(--space-2);
+    border-bottom: 1px solid #ccc;
+  }
+
+  /* Hide tab navigation */
+  .tabs--native .tab-nav {
+    display: none;
+  }
+}

@@ -231,6 +231,10 @@ class BuildScreen(BengalScreen):
 
     Shows build progress, phase timing, and output log.
     Integrates BengalThrobber for animated loading and BuildFlash for status.
+
+    Dashboard API Integration (RFC: rfc-dashboard-api-integration):
+    - PhaseProgress widget with real-time streaming updates
+    - Deep BuildStats display after completion
     """
 
     BINDINGS: ClassVar[list[Binding]] = [
@@ -248,7 +252,7 @@ class BuildScreen(BengalScreen):
         """Compose build screen layout."""
         from textual.widgets import DataTable, ProgressBar
 
-        from bengal.cli.dashboard.widgets import BengalThrobber, BuildFlash
+        from bengal.cli.dashboard.widgets import BengalThrobber, BuildFlash, PhaseProgress
 
         yield Header()
 
@@ -263,9 +267,14 @@ class BuildScreen(BengalScreen):
 
             yield ProgressBar(total=100, show_eta=False, id="build-progress")
 
+            # Phase progress with real-time streaming (RFC: rfc-dashboard-api-integration)
             with Vertical(classes="section", id="build-stats"):
-                yield Static("Build Phases:", classes="section-header")
-                yield DataTable(id="phase-table")
+                yield PhaseProgress(id="phase-progress")
+
+            # Build stats table (populated after build completes)
+            with Vertical(classes="section", id="stats-section"):
+                yield Static("Build Statistics:", classes="section-header")
+                yield DataTable(id="stats-table")
 
             with Vertical(classes="section"):
                 yield Static("Output:", classes="section-header")
@@ -278,12 +287,9 @@ class BuildScreen(BengalScreen):
         super().on_mount()
         from textual.widgets import DataTable
 
-        table = self.query_one("#phase-table", DataTable)
-        table.add_columns("Status", "Phase", "Time", "Details")
-
-        phases = ["Discovery", "Taxonomies", "Rendering", "Assets", "Postprocess"]
-        for phase in phases:
-            table.add_row("○", phase, "-", "", key=phase)
+        # Set up stats table (populated after build)
+        stats_table = self.query_one("#stats-table", DataTable)
+        stats_table.add_columns("Metric", "Value")
 
         # Log site context
         log = self.query_one("#build-log", Log)
@@ -313,7 +319,7 @@ class BuildScreen(BengalScreen):
 
     def action_rebuild(self) -> None:
         """Trigger rebuild."""
-        from bengal.cli.dashboard.widgets import BengalThrobber, BuildFlash
+        from bengal.cli.dashboard.widgets import BengalThrobber, BuildFlash, PhaseProgress
 
         if not self.site:
             self.app.notify("No site loaded", title="Error", severity="error")
@@ -325,6 +331,10 @@ class BuildScreen(BengalScreen):
 
         flash = self.query_one("#build-flash", BuildFlash)
         flash.show_building("Starting build...")
+
+        # Reset phase progress (RFC: rfc-dashboard-api-integration)
+        phase_progress = self.query_one("#phase-progress", PhaseProgress)
+        phase_progress.reset()
 
         self.app.notify("Rebuild triggered...", title="Build")
 
@@ -342,79 +352,111 @@ class BuildScreen(BengalScreen):
 
         from textual.widgets import DataTable, ProgressBar
 
-        from bengal.cli.dashboard.widgets import BengalThrobber, BuildFlash
+        from bengal.cli.dashboard.widgets import BengalThrobber, BuildFlash, PhaseProgress
         from bengal.orchestration.build import BuildOrchestrator
 
         start_time = monotonic()
         log = self.query_one("#build-log", Log)
-        table = self.query_one("#phase-table", DataTable)
+        phase_progress = self.query_one("#phase-progress", PhaseProgress)
         progress = self.query_one("#build-progress", ProgressBar)
+        stats_table = self.query_one("#stats-table", DataTable)
 
-        def update_phase(name: str, status: str, time_ms: float | None = None) -> None:
-            """Update phase status in table."""
-            icons = {"pending": "○", "running": "●", "complete": "✓", "error": "✗"}
-            icon = icons.get(status, "?")
-            time_str = f"{time_ms:.0f}ms" if time_ms else "-"
-            try:
-                table.update_cell(name, "Status", icon)
-                table.update_cell(name, "Time", time_str)
-            except Exception:
-                pass
+        # Phase progress callbacks for real-time streaming (RFC: rfc-dashboard-api-integration)
+        phase_mapping = {
+            "discovery": 20,
+            "content": 40,
+            "assets": 55,
+            "rendering": 85,
+            "finalization": 95,
+            "health": 100,
+        }
+
+        def on_phase_start(phase_name: str) -> None:
+            """Callback when a build phase starts."""
+            self.app.call_from_thread(phase_progress.start_phase, phase_name)
+            self.app.call_from_thread(log.write_line, f"→ {phase_name.title()}...")
+            pct = phase_mapping.get(phase_name.lower(), 50)
+            self.app.call_from_thread(progress.update, progress=pct - 10)
+
+        def on_phase_complete(phase_name: str, duration_ms: float, details: str) -> None:
+            """Callback when a build phase completes."""
+            self.app.call_from_thread(
+                phase_progress.complete_phase, phase_name, duration_ms, details
+            )
+            self.app.call_from_thread(
+                log.write_line, f"  ✓ {phase_name.title()}: {details} ({duration_ms:.0f}ms)"
+            )
+            pct = phase_mapping.get(phase_name.lower(), 50)
+            self.app.call_from_thread(progress.update, progress=pct)
 
         try:
-            # Discovery phase
-            self.call_from_thread(update_phase, "Discovery", "running")
-            self.call_from_thread(log.write_line, "→ Discovery...")
-            self.call_from_thread(progress.update, progress=20)
+            self.app.call_from_thread(log.write_line, "Starting build...")
 
             orchestrator = BuildOrchestrator(self.site)
 
-            # Run the actual build
-            phase_start = monotonic()
+            # Run the actual build with streaming callbacks (RFC: rfc-dashboard-api-integration)
             stats = orchestrator.build(
                 parallel=True,
                 incremental=False,
                 quiet=True,
+                on_phase_start=on_phase_start,
+                on_phase_complete=on_phase_complete,
             )
-            phase_time = (monotonic() - phase_start) * 1000
 
-            # Update all phases as complete
-            for phase in ["Discovery", "Taxonomies", "Rendering", "Assets", "Postprocess"]:
-                self.call_from_thread(update_phase, phase, "complete", phase_time / 5)
-
-            self.call_from_thread(progress.update, progress=100)
+            self.app.call_from_thread(progress.update, progress=100)
 
             duration_ms = (monotonic() - start_time) * 1000
 
             # Show success
             throbber = self.query_one("#build-throbber", BengalThrobber)
             flash = self.query_one("#build-flash", BuildFlash)
-            self.call_from_thread(setattr, throbber, "active", False)
-            self.call_from_thread(flash.show_success, f"Build complete in {duration_ms:.0f}ms")
-            self.call_from_thread(log.write_line, f"✓ Build complete in {duration_ms:.0f}ms")
+            self.app.call_from_thread(setattr, throbber, "active", False)
+            self.app.call_from_thread(flash.show_success, f"Build complete in {duration_ms:.0f}ms")
+            self.app.call_from_thread(log.write_line, f"✓ Build complete in {duration_ms:.0f}ms")
 
-            # Log rich build stats
+            # Extract deep build stats (RFC: rfc-dashboard-api-integration)
             page_count = getattr(stats, "pages_rendered", 0) or len(getattr(self.site, "pages", []))
             asset_count = getattr(stats, "assets_copied", 0) or len(
                 getattr(self.site, "assets", [])
             )
             section_count = len(getattr(self.site, "sections", []))
+            incremental = getattr(stats, "incremental", False)
+            parallel = getattr(stats, "parallel", True)
 
-            self.call_from_thread(log.write_line, f"  📄 {page_count} pages rendered")
-            self.call_from_thread(log.write_line, f"  🎨 {asset_count} assets copied")
-            self.call_from_thread(log.write_line, f"  📁 {section_count} sections")
+            # Populate stats table (RFC: rfc-dashboard-api-integration)
+            def populate_stats_table() -> None:
+                stats_table.clear()
+                stats_table.add_row("Pages Rendered", str(page_count))
+                stats_table.add_row("Assets Copied", str(asset_count))
+                stats_table.add_row("Sections", str(section_count))
+                stats_table.add_row("Total Duration", f"{duration_ms:.0f}ms")
+                stats_table.add_row("Mode", "Incremental" if incremental else "Full")
+                stats_table.add_row("Parallel", "Yes" if parallel else "No")
+
+                # Health report summary if available
+                health_report = getattr(stats, "health_report", None)
+                if health_report:
+                    passed = getattr(health_report, "passed", 0)
+                    total = getattr(health_report, "total", 0)
+                    stats_table.add_row("Health Checks", f"{passed}/{total} passed")
+
+            self.app.call_from_thread(populate_stats_table)
+
+            self.app.call_from_thread(log.write_line, f"  📄 {page_count} pages rendered")
+            self.app.call_from_thread(log.write_line, f"  🎨 {asset_count} assets copied")
+            self.app.call_from_thread(log.write_line, f"  📁 {section_count} sections")
 
             # Show phase timings if available
             if hasattr(stats, "phase_times") and stats.phase_times:
-                self.call_from_thread(log.write_line, "")
-                self.call_from_thread(log.write_line, "Phase timings:")
+                self.app.call_from_thread(log.write_line, "")
+                self.app.call_from_thread(log.write_line, "Phase timings:")
                 for phase_name, phase_ms in stats.phase_times.items():
-                    self.call_from_thread(log.write_line, f"  {phase_name}: {phase_ms:.0f}ms")
+                    self.app.call_from_thread(log.write_line, f"  {phase_name}: {phase_ms:.0f}ms")
 
             # Show output directory
             output_dir = getattr(self.site, "output_dir", "public")
-            self.call_from_thread(log.write_line, "")
-            self.call_from_thread(log.write_line, f"Output: {output_dir}/")
+            self.app.call_from_thread(log.write_line, "")
+            self.app.call_from_thread(log.write_line, f"Output: {output_dir}/")
 
         except Exception as e:
             duration_ms = (monotonic() - start_time) * 1000
@@ -422,10 +464,9 @@ class BuildScreen(BengalScreen):
             # Show error
             throbber = self.query_one("#build-throbber", BengalThrobber)
             flash = self.query_one("#build-flash", BuildFlash)
-            self.call_from_thread(setattr, throbber, "active", False)
-            self.call_from_thread(flash.show_error, str(e))
-            self.call_from_thread(log.write_line, f"✗ Build failed: {e}")
-            self.call_from_thread(update_phase, "Discovery", "error")
+            self.app.call_from_thread(setattr, throbber, "active", False)
+            self.app.call_from_thread(flash.show_error, str(e))
+            self.app.call_from_thread(log.write_line, f"✗ Build failed: {e}")
 
     def action_clear_log(self) -> None:
         """Clear the build log."""
@@ -440,6 +481,11 @@ class ServeScreen(BengalScreen):
 
     Shows dev server status, file changes, and build history.
     Reuses components from BengalServeDashboard.
+
+    Dashboard API Integration (RFC: rfc-dashboard-api-integration):
+    - FileWatcherLog for real-time file change display
+    - RequestLog for HTTP request logging
+    - ContentBrowser for page/section navigation
     """
 
     BINDINGS: ClassVar[list[Binding]] = [
@@ -455,7 +501,13 @@ class ServeScreen(BengalScreen):
 
     def compose(self) -> ComposeResult:
         """Compose serve screen layout."""
-        from textual.widgets import Log, Sparkline, TabbedContent, TabPane
+        from textual.widgets import Log, TabbedContent, TabPane
+
+        from bengal.cli.dashboard.widgets import (
+            ContentBrowser,
+            FileWatcherLog,
+            RequestLog,
+        )
 
         yield Header()
 
@@ -474,15 +526,19 @@ class ServeScreen(BengalScreen):
                     yield Static("⏱️", classes="stat-icon")
                     yield Static("0ms", id="stat-last-build")
 
-            with Vertical(classes="section"):
-                yield Static("Build History:", classes="section-header")
-                yield Sparkline([0], id="build-sparkline")
+            with Horizontal(classes="serve-panels"):
+                # Left panel: File watcher log (RFC: rfc-dashboard-api-integration)
+                yield FileWatcherLog(id="file-watcher-log")
+
+                # Right panel: Request log (RFC: rfc-dashboard-api-integration)
+                yield RequestLog(id="request-log")
 
             with TabbedContent(id="serve-tabs"):
+                with TabPane("Pages", id="pages-tab"):
+                    # Content browser (RFC: rfc-dashboard-api-integration)
+                    yield ContentBrowser(id="content-browser")
                 with TabPane("Changes", id="changes-tab"):
                     yield Log(id="changes-log", auto_scroll=True)
-                with TabPane("Pages", id="pages-tab"):
-                    yield Log(id="pages-log", auto_scroll=True)
                 with TabPane("Errors", id="errors-tab"):
                     yield Log(id="errors-log", auto_scroll=True)
 
@@ -490,12 +546,23 @@ class ServeScreen(BengalScreen):
 
     def _get_server_info(self) -> str:
         """Get server info text."""
-        url = (
-            getattr(self.app, "server_url", "http://localhost:1313")
-            if self.app
-            else "http://localhost:1313"
-        )
+        url = self._get_full_server_url()
         return f"[bold]Server:[/bold] {url}  [dim]Press 'o' to open in browser[/dim]"
+
+    def _get_full_server_url(self) -> str:
+        """Get the full server URL including site baseurl."""
+        base_url = (
+            getattr(self.app, "server_url", "http://localhost:5173")
+            if self.app
+            else "http://localhost:5173"
+        )
+        # Append site's baseurl if it's a path (not absolute URL)
+        if self.site:
+            site_baseurl = getattr(self.site, "baseurl", "") or ""
+            if site_baseurl and not site_baseurl.startswith(("http://", "https://")):
+                site_baseurl = site_baseurl.rstrip("/")
+                return f"{base_url}{site_baseurl}"
+        return base_url
 
     def _get_page_count(self) -> str:
         """Get page count."""
@@ -515,26 +582,18 @@ class ServeScreen(BengalScreen):
         """Set up serve screen."""
         super().on_mount()
 
-        # Populate pages log
-        pages_log = self.query_one("#pages-log", Log)
+        from bengal.cli.dashboard.widgets import ContentBrowser
+
+        # Populate content browser (RFC: rfc-dashboard-api-integration)
         if self.site:
-            pages = getattr(self.site, "pages", []) or []
-            pages_log.write_line(f"[bold]{len(pages)} pages in site:[/bold]")
-            pages_log.write_line("")
-            for page in pages[:20]:  # Show first 20
-                title = getattr(page, "title", None) or "Untitled"
-                url = getattr(page, "url", None) or "/"
-                pages_log.write_line(f"  {title[:40]:<40} {url}")
-            if len(pages) > 20:
-                pages_log.write_line(f"  ... and {len(pages) - 20} more")
-        else:
-            pages_log.write_line("[yellow]No site loaded[/yellow]")
+            content_browser = self.query_one("#content-browser", ContentBrowser)
+            content_browser.set_site(self.site)
 
     def action_open_browser(self) -> None:
         """Open browser to dev server."""
         import webbrowser
 
-        url = getattr(self.app, "server_url", "http://localhost:1313")
+        url = self._get_full_server_url()
         webbrowser.open(url)
         self.app.notify(f"Opening {url}", title="Browser")
 
@@ -556,6 +615,12 @@ class HealthScreen(BengalScreen):
 
     Shows health issues in a tree with details panel.
     Reuses components from BengalHealthDashboard.
+
+    Dashboard API Integration (RFC: rfc-dashboard-api-integration):
+    - ContentBrowser for page/section navigation
+    - AssetExplorer for asset inspection
+    - TaxonomyExplorer for taxonomy drill-down
+    - Deep HealthReport integration with issue categorization
     """
 
     BINDINGS: ClassVar[list[Binding]] = [
@@ -570,22 +635,40 @@ class HealthScreen(BengalScreen):
 
     def compose(self) -> ComposeResult:
         """Compose health screen layout."""
-        from textual.widgets import Static, Tree
+        from textual.widgets import Static, TabbedContent, TabPane, Tree
+
+        from bengal.cli.dashboard.widgets import AssetExplorer, ContentBrowser, TaxonomyExplorer
 
         yield Header()
 
         with Vertical(id="main-content"):
             yield Static("🏥 Health Dashboard", id="screen-title", classes="section-header")
-            yield Static("Select an issue to view details", id="health-summary")
+            yield Static(
+                "Select an issue to view details | Press 'r' to run health scan",
+                id="health-summary",
+            )
 
-            with Horizontal(classes="health-layout"):
-                with Vertical(id="tree-container"):
-                    yield Static("Issues:", classes="section-header")
-                    yield Tree("Health Report", id="health-tree")
+            with TabbedContent(id="health-tabs"):
+                # Health Issues tab
+                with TabPane("🩺 Issues", id="issues-tab"), Horizontal(classes="health-layout"):
+                    with Vertical(id="tree-container"):
+                        yield Tree("Health Report", id="health-tree")
 
-                with Vertical(id="details-container", classes="panel"):
-                    yield Static("Details:", classes="panel-title")
-                    yield Static("Select an issue", id="issue-details")
+                    with Vertical(id="details-container", classes="panel"):
+                        yield Static("Details:", classes="panel-title")
+                        yield Static("Select an issue", id="issue-details")
+
+                # Content browser tab (RFC: rfc-dashboard-api-integration)
+                with TabPane("📄 Content", id="content-tab"):
+                    yield ContentBrowser(id="health-content-browser")
+
+                # Asset explorer tab (RFC: rfc-dashboard-api-integration)
+                with TabPane("📦 Assets", id="assets-tab"):
+                    yield AssetExplorer(id="health-asset-explorer")
+
+                # Taxonomy explorer tab (RFC: rfc-dashboard-api-integration)
+                with TabPane("🏷️ Taxonomies", id="taxonomies-tab"):
+                    yield TaxonomyExplorer(id="health-taxonomy-explorer")
 
         yield Footer()
 
@@ -593,10 +676,24 @@ class HealthScreen(BengalScreen):
         """Set up health screen."""
         from textual.widgets import Tree
 
+        from bengal.cli.dashboard.widgets import AssetExplorer, ContentBrowser, TaxonomyExplorer
+
         tree = self.query_one("#health-tree", Tree)
         tree.show_root = False
 
         if self.site:
+            # Populate content browser (RFC: rfc-dashboard-api-integration)
+            content_browser = self.query_one("#health-content-browser", ContentBrowser)
+            content_browser.set_site(self.site)
+
+            # Populate asset explorer (RFC: rfc-dashboard-api-integration)
+            asset_explorer = self.query_one("#health-asset-explorer", AssetExplorer)
+            asset_explorer.set_site(self.site)
+
+            # Populate taxonomy explorer (RFC: rfc-dashboard-api-integration)
+            taxonomy_explorer = self.query_one("#health-taxonomy-explorer", TaxonomyExplorer)
+            taxonomy_explorer.set_site(self.site)
+
             # Show site stats in tree
             pages = getattr(self.site, "pages", []) or []
             sections = getattr(self.site, "sections", []) or []
@@ -655,12 +752,12 @@ class HealthScreen(BengalScreen):
 
         try:
             # Run health check
-            self.call_from_thread(summary.update, "Scanning...")
+            self.app.call_from_thread(summary.update, "Scanning...")
 
             report = HealthReport.from_site(self.site)
 
             # Clear and rebuild tree
-            self.call_from_thread(tree.root.remove_children)
+            self.app.call_from_thread(tree.root.remove_children)
 
             # Add issues by category
             total_issues = 0
@@ -668,26 +765,26 @@ class HealthScreen(BengalScreen):
             if hasattr(report, "link_issues") and report.link_issues:
                 links = tree.root.add(f"Links ({len(report.link_issues)})")
                 for issue in report.link_issues[:10]:  # Limit display
-                    self.call_from_thread(links.add_leaf, f"✗ {issue}")
+                    self.app.call_from_thread(links.add_leaf, f"✗ {issue}")
                 total_issues += len(report.link_issues)
 
             if hasattr(report, "content_issues") and report.content_issues:
                 content = tree.root.add(f"Content ({len(report.content_issues)})")
                 for issue in report.content_issues[:10]:
-                    self.call_from_thread(content.add_leaf, f"⚠ {issue}")
+                    self.app.call_from_thread(content.add_leaf, f"⚠ {issue}")
                 total_issues += len(report.content_issues)
 
             if total_issues == 0:
-                self.call_from_thread(tree.root.add_leaf, "✓ No issues found")
-                self.call_from_thread(summary.update, "Site is healthy!")
+                self.app.call_from_thread(tree.root.add_leaf, "✓ No issues found")
+                self.app.call_from_thread(summary.update, "Site is healthy!")
             else:
-                self.call_from_thread(summary.update, f"Found {total_issues} issue(s)")
+                self.app.call_from_thread(summary.update, f"Found {total_issues} issue(s)")
 
-            self.call_from_thread(self.app.notify, "Health scan complete", title="Health")
+            self.app.call_from_thread(self.app.notify, "Health scan complete", title="Health")
 
         except Exception as e:
-            self.call_from_thread(summary.update, f"Scan failed: {e}")
-            self.call_from_thread(self.app.notify, str(e), title="Error", severity="error")
+            self.app.call_from_thread(summary.update, f"Scan failed: {e}")
+            self.app.call_from_thread(self.app.notify, str(e), title="Error", severity="error")
 
 
 class HelpScreen(Screen):

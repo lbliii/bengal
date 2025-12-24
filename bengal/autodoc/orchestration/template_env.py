@@ -110,19 +110,33 @@ def create_template_environment(site: Site) -> Environment:
 
     # Register menu functions (required by base.html templates)
     # These are simplified versions that work without TemplateEngine instance
+    # Menu dicts are cached via closure to avoid repeated .to_dict() calls
+    # (Ergonomic Overhead Optimization - see rfc-ergonomic-overhead-diagnostics.md)
+    _menu_cache: dict[str, list[dict[str, Any]]] = {}
+
     def get_menu(menu_name: str = "main") -> list[dict[str, Any]]:
-        """Get menu items by name."""
+        """Get menu items by name (cached)."""
+        if menu_name in _menu_cache:
+            return _menu_cache[menu_name]
         menu = site.menu.get(menu_name, [])
-        return [item.to_dict() for item in menu]
+        _menu_cache[menu_name] = [item.to_dict() for item in menu]
+        return _menu_cache[menu_name]
 
     def get_menu_lang(menu_name: str = "main", lang: str = "") -> list[dict[str, Any]]:
-        """Get menu items for a specific language."""
+        """Get menu items for a specific language (cached)."""
         if not lang:
             return get_menu(menu_name)
+
+        cache_key = f"{menu_name}:{lang}"
+        if cache_key in _menu_cache:
+            return _menu_cache[cache_key]
+
         localized = site.menu_localized.get(menu_name, {}).get(lang)
         if localized is None:
             return get_menu(menu_name)
-        return [item.to_dict() for item in localized]
+
+        _menu_cache[cache_key] = [item.to_dict() for item in localized]
+        return _menu_cache[cache_key]
 
     env.globals["get_menu"] = get_menu
     env.globals["get_menu_lang"] = get_menu_lang

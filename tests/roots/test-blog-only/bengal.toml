@@ -1,0 +1,21 @@
+# Test fixture: Blog-only site for CSS optimization testing
+# This site should have only blog content type, no docs/tutorials/etc.
+
+[site]
+title = "Test Blog Only Site"
+baseurl = ""
+output_dir = "public"
+
+[theme]
+name = "default"
+palette = "blue-bengal"
+
+# CSS optimization should work by default
+# No explicit css config needed
+
+# Disable features for minimal CSS
+[search]
+enabled = false
+
+[graph]
+enabled = false

@@ -24,6 +24,9 @@ Usage:
 {% set item_title = item.title %}
 {% set item_icon = item.icon %}
 
+{# Always render full tree - simpler and more reliable #}
+{% set should_render_children = true %}
+
 {% if item.has_children %}
 {# ===== ROOT NODE (depth 0) - Static header, no toggle ===== #}
 {% if depth == 0 %}
@@ -84,11 +87,13 @@ Usage:
 
   <div class="docs-nav-group-items{% if item.is_in_trail %} is-expanded{% endif %}"
        id="nav-node-{{ item.id }}">
-    {% for child in item.children %}
-      {% set item = child %}
-      {% set depth = depth + 1 %}
-      {% include 'partials/docs-nav-node.html' %}
-    {% endfor %}
+    {% if should_render_children %}
+      {% for child in item.children %}
+        {% set item = child %}
+        {% set depth = depth + 1 %}
+        {% include 'partials/docs-nav-node.html' %}
+      {% endfor %}
+    {% endif %}
   </div>
 </div>
 {% endif %}

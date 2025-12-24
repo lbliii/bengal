@@ -8,6 +8,7 @@ from unittest.mock import Mock
 import pytest
 
 from bengal.analysis.page_rank import PageRankCalculator, PageRankResults, analyze_page_importance
+from bengal.errors import BengalError
 
 
 class TestPageRankResults:
@@ -100,15 +101,15 @@ class TestPageRankCalculator:
         assert calc.damping == 0.85
 
         # Invalid damping - too low
-        with pytest.raises(ValueError, match="Damping factor must be between 0 and 1"):
+        with pytest.raises(BengalError, match="Damping factor must be between 0 and 1"):
             PageRankCalculator(graph, damping=0.0)
 
         # Invalid damping - too high
-        with pytest.raises(ValueError, match="Damping factor must be between 0 and 1"):
+        with pytest.raises(BengalError, match="Damping factor must be between 0 and 1"):
             PageRankCalculator(graph, damping=1.0)
 
         # Invalid damping - negative
-        with pytest.raises(ValueError, match="Damping factor must be between 0 and 1"):
+        with pytest.raises(BengalError, match="Damping factor must be between 0 and 1"):
             PageRankCalculator(graph, damping=-0.5)
 
     def test_init_validates_max_iterations(self):
@@ -120,10 +121,10 @@ class TestPageRankCalculator:
         assert calc.max_iterations == 100
 
         # Invalid iterations
-        with pytest.raises(ValueError, match="Max iterations must be >= 1"):
+        with pytest.raises(BengalError, match="Max iterations must be >= 1"):
             PageRankCalculator(graph, damping=0.85, max_iterations=0)
 
-        with pytest.raises(ValueError, match="Max iterations must be >= 1"):
+        with pytest.raises(BengalError, match="Max iterations must be >= 1"):
             PageRankCalculator(graph, damping=0.85, max_iterations=-1)
 
     def test_compute_empty_site(self):
@@ -299,7 +300,7 @@ class TestPageRankCalculator:
 
         calc = PageRankCalculator(graph, damping=0.85)
 
-        with pytest.raises(ValueError, match="seed_pages cannot be empty"):
+        with pytest.raises(BengalError, match="requires at least one seed page"):
             calc.compute_personalized(seed_pages=set())
 
     def test_compute_filters_generated_pages(self):

@@ -27,7 +27,7 @@ Configuration:
 <aside class="docs-toc" role="complementary" aria-label="Table of contents">
   {# Contextual Graph Minimap - shows connections to current page #}
   {# Feature: graph.contextual (enabled by default for docs) #}
-  {% set show_graph = site.theme_config.features is not defined or 'graph.contextual' in site.theme_config.features %}
+  {% set show_graph = theme.features is not defined or 'graph.contextual' in theme.features %}
   {% if show_graph %}
   <div class="graph-contextual" data-page-url="{{ page.href }}">
     {# Placeholder - will be replaced by JavaScript #}

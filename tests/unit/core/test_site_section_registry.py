@@ -58,7 +58,7 @@ def test_register_sections_builds_registry(temp_site):
     temp_site.register_sections()
 
     # Verify registry was built
-    assert len(temp_site._section_registry) == 2
+    assert temp_site.registry.section_count == 2
 
     # Verify sections are accessible
     assert temp_site.get_section_by_path("blog") == blog
@@ -166,7 +166,7 @@ def test_registry_recursive_subsections(temp_site):
     temp_site.register_sections()
 
     # Verify both parent and child are registered
-    assert len(temp_site._section_registry) == 2
+    assert temp_site.registry.section_count == 2
     assert temp_site.get_section_by_path("docs") == docs
     assert temp_site.get_section_by_path("docs/guides") == guides
 
@@ -225,7 +225,7 @@ def test_registry_rebuilt_on_call(temp_site):
     temp_site.sections = [blog]
     temp_site.register_sections()
 
-    assert len(temp_site._section_registry) == 1
+    assert temp_site.registry.section_count == 1
 
     # Add another section
     docs = Section(
@@ -240,6 +240,6 @@ def test_registry_rebuilt_on_call(temp_site):
     temp_site.register_sections()
 
     # Registry should now have both sections
-    assert len(temp_site._section_registry) == 2
+    assert temp_site.registry.section_count == 2
     assert temp_site.get_section_by_path("blog") == blog
     assert temp_site.get_section_by_path("docs") == docs

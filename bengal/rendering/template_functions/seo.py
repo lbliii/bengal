@@ -6,6 +6,10 @@ Provides 4 functions for generating SEO-friendly meta tags and content.
 Extended for versioned documentation:
 - canonical_url: Returns canonical URL (always points to latest version for versioned pages)
 - Version-aware SEO for proper search engine indexing
+
+Extended for social cards:
+- og_image: Now supports auto-generated social card fallback
+- get_social_card_url: Get path to generated social card for a page
 """
 
 from __future__ import annotations
@@ -21,13 +25,28 @@ if TYPE_CHECKING:
 
 def register(env: Environment, site: Site) -> None:
     """Register SEO helper functions with Jinja2 environment."""
+    from bengal.postprocess.social_cards import (
+        get_social_card_path,
+        parse_social_cards_config,
+    )
+
+    # Parse social card config once for all template calls
+    social_config = parse_social_cards_config(site.config)
+    base_url = site.config.get("baseurl", "")
 
     # Create closures that have access to site
     def canonical_url_with_site(path: str, page: Any | None = None) -> str:
-        return canonical_url(path, site.config.get("baseurl", ""), site, page)
+        return canonical_url(path, base_url, site, page)
 
-    def og_image_with_site(image_path: str) -> str:
-        return og_image(image_path, site.config.get("baseurl", ""))
+    def og_image_with_site(image_path: str, page: Any | None = None) -> str:
+        return og_image(image_path, base_url, page, social_config)
+
+    def get_social_card_url_with_site(page: Any | None = None) -> str:
+        """Get URL to generated social card for a page."""
+        if page is None:
+            return ""
+        card_path = get_social_card_path(page, social_config, base_url)
+        return card_path or ""
 
     env.filters.update(
         {
@@ -40,6 +59,7 @@ def register(env: Environment, site: Site) -> None:
         {
             "canonical_url": canonical_url_with_site,
             "og_image": og_image_with_site,
+            "get_social_card_url": get_social_card_url_with_site,
         }
     )
 
@@ -177,35 +197,57 @@ def canonical_url(
     return base_url + path
 
 
-def og_image(image_path: str, base_url: str) -> str:
+def og_image(
+    image_path: str,
+    base_url: str,
+    page: Any | None = None,
+    social_config: Any | None = None,
+) -> str:
     """
     Generate Open Graph image URL.
 
+    Supports three sources in priority order:
+    1. Manual image path (from frontmatter)
+    2. Auto-generated social card (if enabled)
+    3. Empty string (no image)
+
     Args:
-        image_path: Relative path to image
+        image_path: Relative path to image (from frontmatter)
         base_url: Site base URL
+        page: Optional page for social card lookup
+        social_config: Optional social card config
 
     Returns:
-        Full image URL for og:image
+        Full image URL for og:image, or empty string if no image
 
     Example:
-        <meta property="og:image" content="{{ og_image('images/hero.jpg') }}">
+        <meta property="og:image" content="{{ og_image(page.metadata.get('image', ''), page) }}">
     """
-    if not image_path:
-        return ""
+    # Priority 1: Manual image path from frontmatter
+    if image_path:
+        # Already absolute
+        if image_path.startswith(("http://", "https://")):
+            return image_path
 
-    # Already absolute
-    if image_path.startswith(("http://", "https://")):
-        return image_path
+        # Ensure base URL
+        if not base_url:
+            return image_path
 
-    # Ensure base URL
-    if not base_url:
-        return image_path
+        base_url = base_url.rstrip("/")
 
-    base_url = base_url.rstrip("/")
+        # Handle assets directory
+        if not image_path.startswith("/"):
+            image_path = f"/assets/{image_path}"
 
-    # Handle assets directory
-    if not image_path.startswith("/"):
-        image_path = f"/assets/{image_path}"
+        return base_url + image_path
 
-    return base_url + image_path
+    # Priority 2: Auto-generated social card
+    if page is not None and social_config is not None:
+        from bengal.postprocess.social_cards import get_social_card_path
+
+        card_path = get_social_card_path(page, social_config, base_url)
+        if card_path:
+            return card_path
+
+    # No image available
+    return ""

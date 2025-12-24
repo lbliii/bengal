@@ -49,17 +49,17 @@ This template receives:
       </header>
 
       {# Schema Type #}
-      {% if element.metadata.get('type') %}
+      {% if element.metadata.type %}
       <div class="autodoc-stats">
         <span class="autodoc-stat">
           <span class="autodoc-stat-label">Type:</span>
-          <span class="autodoc-stat-value"><code>{{ element.metadata.get('type') }}</code></span>
+          <span class="autodoc-stat-value"><code>{{ element.metadata.type }}</code></span>
         </span>
       </div>
       {% endif %}
 
       {# Properties #}
-      {% if element.metadata.get('properties') %}
+      {% if element.metadata.properties %}
       <section class="autodoc-section" data-section="properties">
         <h2 class="autodoc-section-title">Properties</h2>
         <table class="autodoc-table" data-table="properties">
@@ -72,12 +72,13 @@ This template receives:
             </tr>
           </thead>
           <tbody>
-            {% for prop_name, prop_schema in element.metadata.get('properties', {}).items() %}
-            <tr {% if element.metadata.get('required') and prop_name in element.metadata.get('required', []) %}data-required="true"{% endif %}>
+            {% set required_props = element.metadata.required | default([]) %}
+            {% for prop_name, prop_schema in element.metadata.properties.items() %}
+            <tr {% if prop_name in required_props %}data-required="true"{% endif %}>
               <td class="autodoc-cell-name"><code>{{ prop_name }}</code></td>
-              <td class="autodoc-cell-type"><code>{{ prop_schema.get('type', 'object') if prop_schema is mapping else 'object' }}</code></td>
-              <td>{% if element.metadata.get('required') and prop_name in element.metadata.get('required', []) %}Yes{% else %}No{% endif %}</td>
-              <td class="autodoc-cell-desc">{{ prop_schema.get('description', '—') if prop_schema is mapping else '—' }}</td>
+              <td class="autodoc-cell-type"><code>{{ prop_schema.type | default('object') }}</code></td>
+              <td>{% if prop_name in required_props %}Yes{% else %}No{% endif %}</td>
+              <td class="autodoc-cell-desc">{{ prop_schema.description | default('—') }}</td>
             </tr>
             {% endfor %}
           </tbody>
@@ -86,11 +87,11 @@ This template receives:
       {% endif %}
 
       {# Example #}
-      {% if element.metadata.get('example') %}
+      {% if element.metadata.example %}
       <section class="autodoc-section" data-section="examples">
         <h2 class="autodoc-section-title">Example</h2>
         <div class="autodoc-example">
-          <pre><code class="language-json">{{ element.metadata.get('example') | tojson(indent=2) }}</code></pre>
+          <pre><code class="language-json">{{ element.metadata.example | tojson(indent=2) }}</code></pre>
         </div>
       </section>
       {% endif %}

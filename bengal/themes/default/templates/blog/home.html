@@ -20,9 +20,9 @@ Or set `type: blog` on home page to auto-select
     {# Simplified Hero Section #}
     <header class="blog-home-hero">
         <div class="blog-home-hero-content">
-            <h1 class="blog-home-title">{{ page.title | default(site.config.title) }}</h1>
-            {% if page.metadata.get('description', '') %}
-            <p class="blog-home-subtitle">{{ page.metadata.get('description', '') }}</p>
+            <h1 class="blog-home-title">{{ page.title | default(config.title) }}</h1>
+            {% if params.description %}
+            <p class="blog-home-subtitle">{{ params.description }}</p>
             {% endif %}
         </div>
     </header>
@@ -36,11 +36,11 @@ Or set `type: blog` on home page to auto-select
 
     {# Recent Posts - Prominent Section #}
     {# Show recent posts by default for blog sites #}
-    {% set show_recent = page.metadata.get('show_recent_posts', true) %}
+    {% set show_recent = params.show_recent_posts | default(true) %}
     {% if show_recent %}
     {# Find blog section and get recent posts #}
     {# Default to "posts" since blog template creates posts/ section #}
-    {% set blog_section_name = page.metadata.get('blog_section', 'posts') %}
+    {% set blog_section_name = params.blog_section | default('posts') %}
     {% set blog_section_candidates = site.sections | selectattr('name', 'equalto', blog_section_name) | list if
     site.sections else [] %}
     {% set blog_section = blog_section_candidates[0] if blog_section_candidates else None %}
@@ -50,7 +50,7 @@ Or set `type: blog` on home page to auto-select
     {# Fallback: find blog posts by URL path or metadata type #}
     {% set blog_posts = [] %}
     {% for p in site.pages %}
-    {% if p.metadata.get('type') == 'blog' or '/blog/' in p._path or '/posts/' in p._path %}
+    {% if p.metadata.type == 'blog' or '/blog/' in p._path or '/posts/' in p._path %}
     {% set _ = blog_posts.append(p) %}
     {% endif %}
     {% endfor %}
@@ -70,10 +70,10 @@ Or set `type: blog` on home page to auto-select
         <div class="blog-home-posts-grid">
             {% for post in recent %}
             <article class="blog-home-post-card gradient-border fluid-combined">
-                {% if post.metadata.get('image') or post.metadata.get('cover') %}
+                {% if post.metadata.image or post.metadata.cover %}
                 <div class="blog-home-post-image">
                     <a href="{{ post.href }}">
-                        <img src="{{ post.metadata.get('image') | default(post.metadata.get('cover')) }}"
+                        <img src="{{ post.metadata.image | default(post.metadata.cover) }}"
                             alt="{{ post.title }}">
                     </a>
                 </div>
@@ -87,9 +87,9 @@ Or set `type: blog` on home page to auto-select
                         {{ post.date | dateformat('%B %d, %Y') }}
                     </time>
                     {% endif %}
-                    {% if post.metadata.get('description') or post.excerpt %}
+                    {% if post.metadata.description or post.excerpt %}
                     <p class="blog-home-post-excerpt">
-                        {{ post.metadata.get('description') | default(post.excerpt) | truncate(150) }}
+                        {{ post.metadata.description | default(post.excerpt) | truncate(150) }}
                     </p>
                     {% endif %}
                     {% if post.tags %}

@@ -53,6 +53,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from bengal.utils.atomic_write import atomic_write_text
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
@@ -221,9 +222,9 @@ class RedirectGenerator:
         # Generate redirect HTML
         html = self._render_redirect_html(from_path, to_url)
 
-        # Write file
+        # Write file atomically (crash-safe)
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(html, encoding="utf-8")
+        atomic_write_text(output_path, html)
 
         logger.debug(
             "redirect_page_created",
@@ -299,7 +300,7 @@ class RedirectGenerator:
 
         if lines:
             redirects_path = self.site.output_dir / "_redirects"
-            redirects_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+            atomic_write_text(redirects_path, "\n".join(lines) + "\n")
             logger.info(
                 "redirects_file_generated",
                 path=str(redirects_path),

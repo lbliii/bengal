@@ -1,6 +1,6 @@
 # RFC: Test Coverage Gap Analysis and Remediation
 
-**Status**: Review  
+**Status**: Draft  
 **Created**: 2025-12-05  
 **Author**: AI Assistant  
 **Priority**: P2 (Medium)  

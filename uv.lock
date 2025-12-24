@@ -202,7 +202,7 @@ requires-dist = [
     { name = "python-frontmatter", specifier = ">=1.0.0" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "questionary", specifier = ">=2.0.0" },
-    { name = "textual", specifier = ">=0.89" },
+    { name = "textual", specifier = ">=0.96" },
     { name = "textual-serve", specifier = ">=0.1.0" },
     { name = "uvloop", marker = "sys_platform != 'win32'", specifier = ">=0.21.0" },
     { name = "watchfiles", specifier = ">=0.20" },

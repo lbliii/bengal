@@ -21,8 +21,6 @@ Key Capabilities:
     - Delegated analysis: PageRank, communities, paths, suggestions
 
 Classes:
-    GraphMetrics: Summary statistics about the graph structure
-    PageConnectivity: Connectivity details for a single page
     KnowledgeGraph: Main graph builder and analysis coordinator
 
 Example:
@@ -38,6 +36,8 @@ Example:
     >>> suggestions = graph.suggest_links()
 
 See Also:
+    - bengal/analysis/graph_builder.py: GraphBuilder implementation
+    - bengal/analysis/graph_metrics.py: MetricsCalculator implementation
     - bengal/analysis/graph_analysis.py: GraphAnalyzer implementation
     - bengal/analysis/graph_reporting.py: GraphReporter implementation
     - bengal/analysis/link_types.py: Semantic link type definitions
@@ -45,11 +45,11 @@ See Also:
 
 from __future__ import annotations
 
-from collections import defaultdict
-from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from bengal.analysis.graph_analysis import GraphAnalyzer
+from bengal.analysis.graph_builder import GraphBuilder
+from bengal.analysis.graph_metrics import GraphMetrics, MetricsCalculator, PageConnectivity
 from bengal.analysis.graph_reporting import GraphReporter
 from bengal.analysis.link_types import (
     DEFAULT_THRESHOLDS,
@@ -59,7 +59,7 @@ from bengal.analysis.link_types import (
     LinkMetrics,
     LinkType,
 )
-from bengal.utils.autodoc import is_autodoc_page
+from bengal.errors import BengalError, ErrorCode
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
@@ -73,51 +73,8 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
-
-@dataclass
-class GraphMetrics:
-    """
-    Metrics about the knowledge graph structure.
-
-    Attributes:
-        total_pages: Total number of pages analyzed
-        total_links: Total number of links between pages
-        avg_connectivity: Average connectivity score per page
-        hub_count: Number of hub pages (highly connected)
-        leaf_count: Number of leaf pages (low connectivity)
-        orphan_count: Number of orphaned pages (no connections at all)
-    """
-
-    total_pages: int
-    total_links: int
-    avg_connectivity: float
-    hub_count: int
-    leaf_count: int
-    orphan_count: int
-
-
-@dataclass
-class PageConnectivity:
-    """
-    Connectivity information for a single page.
-
-    Attributes:
-        page: The page object
-        incoming_refs: Number of incoming references
-        outgoing_refs: Number of outgoing references
-        connectivity_score: Total connectivity (incoming + outgoing)
-        is_hub: True if page has many incoming references
-        is_leaf: True if page has few connections
-        is_orphan: True if page has no connections at all
-    """
-
-    page: Page
-    incoming_refs: int
-    outgoing_refs: int
-    connectivity_score: int
-    is_hub: bool
-    is_leaf: bool
-    is_orphan: bool
+# Re-export for backward compatibility
+__all__ = ["GraphMetrics", "KnowledgeGraph", "PageConnectivity"]
 
 
 class KnowledgeGraph:
@@ -165,14 +122,11 @@ class KnowledgeGraph:
         self.leaf_threshold = leaf_threshold
         self.exclude_autodoc = exclude_autodoc
 
-        # Graph data structures - now using pages directly as keys (hashable!)
-        self.incoming_refs: dict[Page, int] = defaultdict(int)  # page -> count
-        self.outgoing_refs: dict[Page, set[Page]] = defaultdict(set)  # page -> target pages
-        # Note: page_by_id no longer needed - pages are directly hashable
-
-        # Semantic link tracking (NEW)
-        self.link_metrics: dict[Page, LinkMetrics] = {}  # page -> detailed link breakdown
-        self.link_types: dict[tuple[Page, Page], LinkType] = {}  # (source, target) -> link type
+        # Graph data structures (populated by GraphBuilder)
+        self.incoming_refs: dict[Page, float] = {}
+        self.outgoing_refs: dict[Page, set[Page]] = {}
+        self.link_metrics: dict[Page, LinkMetrics] = {}
+        self.link_types: dict[tuple[Page | None, Page], LinkType] = {}
 
         # Analysis results
         self.metrics: GraphMetrics | None = None
@@ -184,7 +138,9 @@ class KnowledgeGraph:
         self._path_results: PathAnalysisResults | None = None
         self._link_suggestions: LinkSuggestionResults | None = None
 
-        # Delegated analyzers (initialized after build)
+        # Delegated components (initialized after build)
+        self._builder: GraphBuilder | None = None
+        self._metrics_calculator: MetricsCalculator | None = None
         self._analyzer: GraphAnalyzer | None = None
         self._reporter: GraphReporter | None = None
 
@@ -204,8 +160,10 @@ class KnowledgeGraph:
             logger.debug("knowledge_graph_already_built", action="skipping")
             return
 
-        # Get pages to analyze (excluding autodoc if configured)
-        analysis_pages = self.get_analysis_pages()
+        # Initialize and run the builder
+        self._builder = GraphBuilder(self.site, exclude_autodoc=self.exclude_autodoc)
+
+        analysis_pages = self._builder.get_analysis_pages()
         total_analysis_pages = len(analysis_pages)
         excluded_count = len(self.site.pages) - total_analysis_pages
 
@@ -216,27 +174,26 @@ class KnowledgeGraph:
             excluded_autodoc=excluded_count if self.exclude_autodoc else 0,
         )
 
-        # No need to build page ID mapping - pages are directly hashable!
+        # Build the graph
+        self._builder.build()
 
-        # Ensure links are extracted from pages we'll analyze
-        # (links are normally extracted during rendering, but we need them for graph analysis)
-        self._ensure_links_extracted()
+        # Copy data from builder to self (for backward compatibility)
+        self.incoming_refs = dict(self._builder.incoming_refs)
+        self.outgoing_refs = dict(self._builder.outgoing_refs)
+        self.link_metrics = dict(self._builder.link_metrics)
+        self.link_types = dict(self._builder.link_types)
 
-        # Count references from different sources (only from analysis pages)
-        self._analyze_cross_references()
-        self._analyze_taxonomies()
-        self._analyze_related_posts()
-        self._analyze_menus()
-
-        # Semantic link analysis (NEW) - track structural relationships
-        self._analyze_section_hierarchy()
-        self._analyze_navigation_links()
-
-        # Build link metrics for each page
-        self._build_link_metrics()
+        # Initialize metrics calculator
+        self._metrics_calculator = MetricsCalculator(
+            incoming_refs=self.incoming_refs,
+            outgoing_refs=self.outgoing_refs,
+            analysis_pages=analysis_pages,
+            hub_threshold=self.hub_threshold,
+            leaf_threshold=self.leaf_threshold,
+        )
 
         # Compute metrics
-        self.metrics = self._compute_metrics()
+        self.metrics = self._metrics_calculator.compute_metrics()
 
         self._built = True
 
@@ -260,339 +217,15 @@ class KnowledgeGraph:
         Returns:
             List of pages to include in graph analysis
         """
+        if self._builder:
+            return self._builder.get_analysis_pages()
+
+        # Fallback if build() not called yet
+        from bengal.utils.autodoc import is_autodoc_page
+
         if not self.exclude_autodoc:
             return list(self.site.pages)
-
         return [p for p in self.site.pages if not is_autodoc_page(p)]
-
-    def _ensure_links_extracted(self) -> None:
-        """
-        Extract links from all pages if not already extracted.
-
-        Links are normally extracted during rendering, but graph analysis
-        needs them before rendering happens. This ensures links are available.
-        """
-        # Only extract links from pages we'll analyze
-        analysis_pages = self.get_analysis_pages()
-        for page in analysis_pages:
-            # Extract links if not already extracted
-            if not hasattr(page, "links") or not page.links:
-                try:
-                    page.extract_links()
-                except (AttributeError, TypeError) as e:
-                    # Specific error handling for missing content
-                    logger.warning(
-                        "knowledge_graph_link_extraction_error",
-                        page=str(page.source_path),
-                        error=str(e),
-                        type=type(e).__name__,
-                    )
-                except Exception as e:
-                    # Log but don't fail - some pages might not have extractable links
-                    logger.debug(
-                        "knowledge_graph_link_extraction_failed",
-                        page=str(page.source_path),
-                        error=str(e),
-                        exc_info=True,
-                    )
-
-    def _analyze_cross_references(self) -> None:
-        """
-        Analyze cross-references (internal links between pages).
-
-        Uses the site's xref_index to find all internal links.
-        Only analyzes links from/to pages included in analysis (excludes autodoc).
-        """
-        if not hasattr(self.site, "xref_index") or not self.site.xref_index:
-            logger.debug("knowledge_graph_no_xref_index", action="skipping cross-ref analysis")
-            return
-
-        # Get pages to analyze (excluding autodoc)
-        analysis_pages = self.get_analysis_pages()
-        analysis_pages_set = set(analysis_pages)
-
-        # The xref_index maps paths/slugs/IDs to pages
-        # We need to analyze which pages link to which
-        for page in analysis_pages:
-            # Analyze outgoing links from this page
-            for link in getattr(page, "links", []):
-                # Try to resolve the link to a target page
-                target = self._resolve_link(link)
-                # Only count links to pages we're analyzing (exclude autodoc targets)
-                if target and target != page and target in analysis_pages_set:
-                    self.incoming_refs[target] += 1  # Direct page reference
-                    self.outgoing_refs[page].add(target)  # Direct page reference
-                    # Track link type
-                    self.link_types[(page, target)] = LinkType.EXPLICIT
-
-    def _resolve_link(self, link: str) -> Page | None:
-        """
-        Resolve a link string to a target page.
-
-        Args:
-            link: Link string (path, slug, or ID)
-
-        Returns:
-            Target page or None if not found
-        """
-        if not hasattr(self.site, "xref_index") or not self.site.xref_index:
-            return None
-
-        # Try different lookup strategies
-        xref = self.site.xref_index
-
-        # Try by ID
-        if link.startswith("id:"):
-            page = xref.get("by_id", {}).get(link[3:])
-            return page if page is not None else None
-
-        # Try by path
-        if "/" in link or link.endswith(".md"):
-            clean_link = link.replace(".md", "").strip("/")
-            page = xref.get("by_path", {}).get(clean_link)
-            return page if page is not None else None
-
-        # Try by slug
-        pages = xref.get("by_slug", {}).get(link, [])
-        return pages[0] if pages else None
-
-    def _analyze_taxonomies(self) -> None:
-        """
-        Analyze taxonomy references (pages grouped by tags/categories).
-
-        Pages in the same taxonomy group reference each other implicitly.
-        Only includes pages in analysis (excludes autodoc).
-        """
-        if not hasattr(self.site, "taxonomies") or not self.site.taxonomies:
-            logger.debug("knowledge_graph_no_taxonomies", action="skipping taxonomy analysis")
-            return
-
-        # Get pages to analyze (excluding autodoc)
-        analysis_pages_set = set(self.get_analysis_pages())
-
-        # For each taxonomy (tags, categories, etc.)
-        for _taxonomy_name, taxonomy_dict in self.site.taxonomies.items():
-            # For each term in the taxonomy (e.g., 'python', 'tutorial')
-            for _term_slug, term_data in taxonomy_dict.items():
-                # Get pages with this term
-                pages = term_data.get("pages", [])
-
-                # Each page in the group has incoming refs from the taxonomy
-                # Only count pages we're analyzing
-                for page in pages:
-                    if page in analysis_pages_set:
-                        # Each page in a taxonomy gets a small boost
-                        # (exists in this conceptual grouping)
-                        self.incoming_refs[page] += 1  # Direct page reference
-                        # Track link type (None source = taxonomy)
-                        self.link_types[(None, page)] = LinkType.TAXONOMY
-
-    def _analyze_related_posts(self) -> None:
-        """
-        Analyze related posts (pre-computed relationships).
-
-        Related posts are pages that share tags or other criteria.
-        Only includes pages in analysis (excludes autodoc).
-        """
-        # Get pages to analyze (excluding autodoc)
-        analysis_pages = self.get_analysis_pages()
-        analysis_pages_set = set(analysis_pages)
-
-        for page in analysis_pages:
-            if not hasattr(page, "related_posts") or not page.related_posts:
-                continue
-
-            # Each related post is an outgoing reference
-            # Only count links to pages we're analyzing
-            for related in page.related_posts:
-                if related != page and related in analysis_pages_set:
-                    self.incoming_refs[related] += 1  # Direct page reference
-                    self.outgoing_refs[page].add(related)  # Direct page reference
-                    # Track link type
-                    self.link_types[(page, related)] = LinkType.RELATED
-
-    def _analyze_menus(self) -> None:
-        """
-        Analyze menu items (navigation references).
-
-        Pages in menus get a significant boost in importance.
-        Only includes pages in analysis (excludes autodoc).
-        """
-        if not hasattr(self.site, "menu") or not self.site.menu:
-            logger.debug("knowledge_graph_no_menus", action="skipping menu analysis")
-            return
-
-        # Get pages to analyze (excluding autodoc)
-        analysis_pages_set = set(self.get_analysis_pages())
-
-        # For each menu (main, footer, etc.)
-        for _menu_name, menu_items in self.site.menu.items():
-            for item in menu_items:
-                # Check if menu item has a page reference
-                if hasattr(item, "page") and item.page and item.page in analysis_pages_set:
-                    # Menu items get a significant boost (10 points)
-                    self.incoming_refs[item.page] += 10  # Direct page reference
-                    # Track link type
-                    self.link_types[(None, item.page)] = LinkType.MENU
-
-    def _analyze_section_hierarchy(self) -> None:
-        """
-        Analyze implicit section links (parent _index.md → children).
-
-        Section index pages implicitly link to all child pages in their
-        directory. This represents topical containment—the parent page
-        defines the topic, children belong to that topic.
-
-        Weight: 0.5 (structural but semantically meaningful)
-        """
-        analysis_pages = self.get_analysis_pages()
-        analysis_pages_set = set(analysis_pages)
-
-        for page in analysis_pages:
-            # Only process index pages (detect by filename stem)
-            is_index = hasattr(page, "source_path") and page.source_path.stem in ("_index", "index")
-            if not is_index:
-                continue
-
-            # Get the section this index belongs to via the _section property
-            section = getattr(page, "_section", None)
-            if not section:
-                continue
-
-            # Link to all child pages in this section
-            section_pages = getattr(section, "pages", [])
-            for child in section_pages:
-                if child != page and child in analysis_pages_set:
-                    # Topical link: parent defines topic, child belongs to it
-                    # Use reduced weight (0.5) compared to explicit links
-                    self.incoming_refs[child] += 0.5
-                    self.outgoing_refs[page].add(child)
-                    # Track link type
-                    self.link_types[(page, child)] = LinkType.TOPICAL
-
-        logger.debug(
-            "knowledge_graph_section_hierarchy_complete",
-            topical_links=sum(1 for lt in self.link_types.values() if lt == LinkType.TOPICAL),
-        )
-
-    def _analyze_navigation_links(self) -> None:
-        """
-        Analyze next/prev sequential relationships.
-
-        Pages in a section often have prev/next relationships representing
-        a reading order or logical sequence (e.g., tutorial steps, changelogs).
-
-        Weight: 0.25 (pure navigation, lowest editorial intent)
-        """
-        analysis_pages = self.get_analysis_pages()
-        analysis_pages_set = set(analysis_pages)
-
-        for page in analysis_pages:
-            # Check next_in_section
-            next_page = getattr(page, "next_in_section", None)
-            if next_page and next_page in analysis_pages_set:
-                self.incoming_refs[next_page] += 0.25
-                self.outgoing_refs[page].add(next_page)
-                self.link_types[(page, next_page)] = LinkType.SEQUENTIAL
-
-            # Check prev_in_section (bidirectional)
-            prev_page = getattr(page, "prev_in_section", None)
-            if prev_page and prev_page in analysis_pages_set:
-                self.incoming_refs[prev_page] += 0.25
-                self.outgoing_refs[page].add(prev_page)
-                self.link_types[(page, prev_page)] = LinkType.SEQUENTIAL
-
-        logger.debug(
-            "knowledge_graph_navigation_links_complete",
-            sequential_links=sum(1 for lt in self.link_types.values() if lt == LinkType.SEQUENTIAL),
-        )
-
-    def _build_link_metrics(self) -> None:
-        """
-        Build detailed link metrics for each page.
-
-        Aggregates links by type into LinkMetrics objects for
-        weighted connectivity scoring.
-        """
-        analysis_pages = self.get_analysis_pages()
-
-        for page in analysis_pages:
-            metrics = LinkMetrics()
-
-            # Count links by type from link_types tracking
-            for (_source, target), link_type in self.link_types.items():
-                if target == page:
-                    if link_type == LinkType.EXPLICIT:
-                        metrics.explicit += 1
-                    elif link_type == LinkType.MENU:
-                        metrics.menu += 1
-                    elif link_type == LinkType.TAXONOMY:
-                        metrics.taxonomy += 1
-                    elif link_type == LinkType.RELATED:
-                        metrics.related += 1
-                    elif link_type == LinkType.TOPICAL:
-                        metrics.topical += 1
-                    elif link_type == LinkType.SEQUENTIAL:
-                        metrics.sequential += 1
-
-            # Fallback: count untracked incoming refs as explicit
-            # (for backward compatibility with existing link tracking)
-            total_tracked = metrics.total_links()
-            total_incoming = int(self.incoming_refs[page])
-            untracked = max(0, total_incoming - total_tracked)
-            metrics.explicit += untracked
-
-            self.link_metrics[page] = metrics
-
-        logger.debug(
-            "knowledge_graph_link_metrics_built",
-            pages_with_metrics=len(self.link_metrics),
-        )
-
-    def _compute_metrics(self) -> GraphMetrics:
-        """
-        Compute overall graph metrics.
-
-        Returns:
-            GraphMetrics with summary statistics
-        """
-        # Use analysis pages, not all pages
-        analysis_pages = self.get_analysis_pages()
-        total_pages = len(analysis_pages)
-        total_links = sum(len(targets) for targets in self.outgoing_refs.values())
-
-        # Count hubs, leaves, orphans
-        hub_count = 0
-        leaf_count = 0
-        orphan_count = 0
-        total_connectivity = 0
-
-        for page in analysis_pages:
-            incoming = self.incoming_refs[page]  # Direct page lookup
-            outgoing = len(self.outgoing_refs[page])  # Direct page lookup
-            connectivity = incoming + outgoing
-
-            total_connectivity += connectivity
-
-            if incoming >= self.hub_threshold:
-                hub_count += 1
-
-            if connectivity <= self.leaf_threshold:
-                leaf_count += 1
-
-            if incoming == 0 and outgoing == 0:
-                orphan_count += 1
-
-        avg_connectivity = total_connectivity / total_pages if total_pages > 0 else 0
-
-        return GraphMetrics(
-            total_pages=total_pages,
-            total_links=total_links,
-            avg_connectivity=avg_connectivity,
-            hub_count=hub_count,
-            leaf_count=leaf_count,
-            orphan_count=orphan_count,
-        )
 
     def get_connectivity(self, page: Page) -> PageConnectivity:
         """
@@ -605,11 +238,13 @@ class KnowledgeGraph:
             PageConnectivity with detailed metrics
 
         Raises:
-            RuntimeError: If graph hasn't been built yet
+            BengalError: If graph hasn't been built yet
         """
         if not self._built or self._analyzer is None:
-            raise RuntimeError(
-                "KnowledgeGraph is not built. Call .build() before getting connectivity."
+            raise BengalError(
+                "KnowledgeGraph is not built",
+                code=ErrorCode.G001,
+                suggestion="Call graph.build() before accessing connectivity data",
             )
         return self._analyzer.get_connectivity(page)
 
@@ -629,10 +264,14 @@ class KnowledgeGraph:
             List of hub pages sorted by incoming references (descending)
 
         Raises:
-            RuntimeError: If graph hasn't been built yet
+            BengalError: If graph hasn't been built yet
         """
         if not self._built or self._analyzer is None:
-            raise RuntimeError("KnowledgeGraph is not built. Call .build() before getting hubs.")
+            raise BengalError(
+                "KnowledgeGraph is not built",
+                code=ErrorCode.G001,
+                suggestion="Call graph.build() before getting hub pages",
+            )
         return self._analyzer.get_hubs(threshold)
 
     def get_leaves(self, threshold: int | None = None) -> list[Page]:
@@ -651,10 +290,14 @@ class KnowledgeGraph:
             List of leaf pages sorted by connectivity (ascending)
 
         Raises:
-            RuntimeError: If graph hasn't been built yet
+            BengalError: If graph hasn't been built yet
         """
         if not self._built or self._analyzer is None:
-            raise RuntimeError("KnowledgeGraph is not built. Call .build() before getting leaves.")
+            raise BengalError(
+                "KnowledgeGraph is not built",
+                code=ErrorCode.G001,
+                suggestion="Call graph.build() before getting leaf pages",
+            )
         return self._analyzer.get_leaves(threshold)
 
     def get_orphans(self) -> list[Page]:
@@ -670,10 +313,14 @@ class KnowledgeGraph:
             List of orphaned pages sorted by slug
 
         Raises:
-            RuntimeError: If graph hasn't been built yet
+            BengalError: If graph hasn't been built yet
         """
         if not self._built or self._analyzer is None:
-            raise RuntimeError("KnowledgeGraph is not built. Call .build() before getting orphans.")
+            raise BengalError(
+                "KnowledgeGraph is not built",
+                code=ErrorCode.G001,
+                suggestion="Call graph.build() before getting orphan pages",
+            )
         return self._analyzer.get_orphans()
 
     def get_connectivity_report(
@@ -697,7 +344,7 @@ class KnowledgeGraph:
             ConnectivityReport with pages grouped by level and statistics.
 
         Raises:
-            RuntimeError: If graph hasn't been built yet
+            BengalError: If graph hasn't been built yet
 
         Example:
             >>> graph.build()
@@ -706,8 +353,10 @@ class KnowledgeGraph:
             >>> print(f"Distribution: {report.get_distribution()}")
         """
         if not self._built:
-            raise RuntimeError(
-                "KnowledgeGraph is not built. Call .build() before getting connectivity report."
+            raise BengalError(
+                "KnowledgeGraph is not built",
+                code=ErrorCode.G001,
+                suggestion="Call graph.build() before getting connectivity report",
             )
 
         t = thresholds or DEFAULT_THRESHOLDS
@@ -758,11 +407,13 @@ class KnowledgeGraph:
             LinkMetrics with breakdown by link type
 
         Raises:
-            RuntimeError: If graph hasn't been built yet
+            BengalError: If graph hasn't been built yet
         """
         if not self._built:
-            raise RuntimeError(
-                "KnowledgeGraph is not built. Call .build() before getting link metrics."
+            raise BengalError(
+                "KnowledgeGraph is not built",
+                code=ErrorCode.G001,
+                suggestion="Call graph.build() before getting link metrics",
             )
         return self.link_metrics.get(page, LinkMetrics())
 
@@ -779,11 +430,13 @@ class KnowledgeGraph:
             Connectivity score (higher = more connected)
 
         Raises:
-            RuntimeError: If graph hasn't been built yet
+            BengalError: If graph hasn't been built yet
         """
         if not self._built or self._analyzer is None:
-            raise RuntimeError(
-                "KnowledgeGraph is not built. Call .build() before getting connectivity score."
+            raise BengalError(
+                "KnowledgeGraph is not built",
+                code=ErrorCode.G001,
+                suggestion="Call graph.build() before getting connectivity score",
             )
         return self._analyzer.get_connectivity_score(page)
 
@@ -801,10 +454,14 @@ class KnowledgeGraph:
             (supports tuple unpacking for backward compatibility)
 
         Raises:
-            RuntimeError: If graph hasn't been built yet
+            BengalError: If graph hasn't been built yet
         """
         if not self._built or self._analyzer is None:
-            raise RuntimeError("KnowledgeGraph is not built. Call .build() before getting layers.")
+            raise BengalError(
+                "KnowledgeGraph is not built",
+                code=ErrorCode.G001,
+                suggestion="Call graph.build() before getting page layers",
+            )
         return self._analyzer.get_layers()
 
     def get_metrics(self) -> GraphMetrics:
@@ -815,10 +472,14 @@ class KnowledgeGraph:
             GraphMetrics with summary statistics
 
         Raises:
-            RuntimeError: If graph hasn't been built yet
+            BengalError: If graph hasn't been built yet
         """
         if not self._built:
-            raise RuntimeError("KnowledgeGraph is not built. Call .build() before getting metrics.")
+            raise BengalError(
+                "KnowledgeGraph is not built",
+                code=ErrorCode.G001,
+                suggestion="Call graph.build() before getting metrics",
+            )
 
         # After build(), metrics is guaranteed to be set
         assert self.metrics is not None, "metrics should be computed after build()"
@@ -832,11 +493,13 @@ class KnowledgeGraph:
             Formatted statistics string
 
         Raises:
-            RuntimeError: If graph hasn't been built yet
+            BengalError: If graph hasn't been built yet
         """
         if not self._built or self._reporter is None:
-            raise RuntimeError(
-                "KnowledgeGraph is not built. Call .build() before formatting stats."
+            raise BengalError(
+                "KnowledgeGraph is not built",
+                code=ErrorCode.G001,
+                suggestion="Call graph.build() before formatting stats",
             )
         return self._reporter.format_stats()
 
@@ -848,11 +511,13 @@ class KnowledgeGraph:
             List of recommendation strings with emoji prefixes
 
         Raises:
-            RuntimeError: If graph hasn't been built yet
+            BengalError: If graph hasn't been built yet
         """
         if not self._built or self._reporter is None:
-            raise RuntimeError(
-                "KnowledgeGraph is not built. Call .build() before getting recommendations."
+            raise BengalError(
+                "KnowledgeGraph is not built",
+                code=ErrorCode.G001,
+                suggestion="Call graph.build() before getting recommendations",
             )
         return self._reporter.get_actionable_recommendations()
 
@@ -864,11 +529,13 @@ class KnowledgeGraph:
             List of SEO insight strings with emoji prefixes
 
         Raises:
-            RuntimeError: If graph hasn't been built yet
+            BengalError: If graph hasn't been built yet
         """
         if not self._built or self._reporter is None:
-            raise RuntimeError(
-                "KnowledgeGraph is not built. Call .build() before getting SEO insights."
+            raise BengalError(
+                "KnowledgeGraph is not built",
+                code=ErrorCode.G001,
+                suggestion="Call graph.build() before getting SEO insights",
             )
         return self._reporter.get_seo_insights()
 
@@ -880,11 +547,13 @@ class KnowledgeGraph:
             List of content gap descriptions
 
         Raises:
-            RuntimeError: If graph hasn't been built yet
+            BengalError: If graph hasn't been built yet
         """
         if not self._built or self._reporter is None:
-            raise RuntimeError(
-                "KnowledgeGraph is not built. Call .build() before getting content gaps."
+            raise BengalError(
+                "KnowledgeGraph is not built",
+                code=ErrorCode.G001,
+                suggestion="Call graph.build() before getting content gaps",
             )
         return self._reporter.get_content_gaps()
 
@@ -906,7 +575,7 @@ class KnowledgeGraph:
             PageRankResults with scores and metadata
 
         Raises:
-            RuntimeError: If graph hasn't been built yet
+            BengalError: If graph hasn't been built yet
 
         Example:
             >>> graph = KnowledgeGraph(site)
@@ -915,8 +584,10 @@ class KnowledgeGraph:
             >>> top_pages = results.get_top_pages(10)
         """
         if not self._built:
-            raise RuntimeError(
-                "KnowledgeGraph is not built. Call .build() before computing PageRank."
+            raise BengalError(
+                "KnowledgeGraph is not built",
+                code=ErrorCode.G001,
+                suggestion="Call graph.build() before computing PageRank",
             )
 
         # Return cached results unless forced
@@ -950,8 +621,7 @@ class KnowledgeGraph:
             PageRankResults with personalized scores
 
         Raises:
-            RuntimeError: If graph hasn't been built yet
-            ValueError: If seed_pages is empty
+            BengalError: If graph hasn't been built yet or seed_pages is empty
 
         Example:
             >>> graph = KnowledgeGraph(site)
@@ -962,13 +632,17 @@ class KnowledgeGraph:
             >>> related = results.get_top_pages(10)
         """
         if not self._built:
-            raise RuntimeError(
-                "KnowledgeGraph is not built. Call .build() before computing PageRank."
+            raise BengalError(
+                "KnowledgeGraph is not built",
+                code=ErrorCode.G001,
+                suggestion="Call graph.build() before computing PageRank",
             )
 
         if not seed_pages:
-            raise ValueError(
-                "Personalized PageRank requires at least one seed page to bias the ranking."
+            raise BengalError(
+                "Personalized PageRank requires at least one seed page",
+                code=ErrorCode.G002,
+                suggestion="Provide at least one seed page to bias the ranking",
             )
 
         # Import here to avoid circular dependency
@@ -1053,7 +727,11 @@ class KnowledgeGraph:
             ...     print(f"Community {community.id}: {community.size} pages")
         """
         if not self._built:
-            raise RuntimeError("Must call build() before detecting communities")
+            raise BengalError(
+                "KnowledgeGraph is not built",
+                code=ErrorCode.G001,
+                suggestion="Call graph.build() before detecting communities",
+            )
 
         # Return cached results unless forced
         if self._community_results and not force_recompute:
@@ -1131,7 +809,11 @@ class KnowledgeGraph:
             >>> print(f"Approximate: {results.is_approximate}")
         """
         if not self._built:
-            raise RuntimeError("Must call build() before analyzing paths")
+            raise BengalError(
+                "KnowledgeGraph is not built",
+                code=ErrorCode.G001,
+                suggestion="Call graph.build() before analyzing paths",
+            )
 
         # Return cached results unless forced
         if self._path_results and not force_recompute:
@@ -1219,7 +901,11 @@ class KnowledgeGraph:
             ...     print(f"{suggestion.source.title} -> {suggestion.target.title}")
         """
         if not self._built:
-            raise RuntimeError("Must call build() before generating link suggestions")
+            raise BengalError(
+                "KnowledgeGraph is not built",
+                code=ErrorCode.G001,
+                suggestion="Call graph.build() before generating link suggestions",
+            )
 
         # Return cached results unless forced
         if self._link_suggestions and not force_recompute:

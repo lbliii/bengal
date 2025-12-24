@@ -111,6 +111,46 @@ class SitePropertiesMixin:
         return self.config.get("author")
 
     @property
+    def params(self) -> dict[str, Any]:
+        """
+        Site-level custom parameters from [params] config section.
+
+        Provides access to arbitrary site-wide configuration values
+        that can be used in templates.
+
+        Returns:
+            Dict of custom parameters (empty dict if not configured)
+
+        Examples:
+            # In bengal.toml:
+            # [params]
+            # repo_url = "https://github.com/org/repo"
+            # author = "Jane Doe"
+
+            # In templates:
+            # {{ site.params.repo_url }}
+            # {{ site.params.author }}
+        """
+        return self.config.get("params", {})
+
+    @property
+    def logo(self) -> str:
+        """
+        Logo URL from config (checks multiple locations).
+
+        Checks 'logo_image' at root level and under 'site' section
+        for flexibility in configuration.
+
+        Returns:
+            Logo URL string or empty string if not configured
+
+        Examples:
+            site.logo  # Returns "/assets/logo.png" or ""
+        """
+        cfg = self.config
+        return cfg.get("logo_image", "") or cfg.get("site", {}).get("logo_image", "") or ""
+
+    @property
     def config_hash(self) -> str:
         """
         Get deterministic hash of the resolved configuration.
@@ -317,6 +357,218 @@ class SitePropertiesMixin:
     # VERSIONING PROPERTIES
     # =========================================================================
 
+    # =========================================================================
+    # NORMALIZED CONFIG ACCESSORS
+    # =========================================================================
+    # These properties normalize config values that support multiple formats
+    # (bool, dict, None) into consistent dictionaries with all defaults applied.
+    # Templates use these instead of manual .get() chains with fallbacks.
+
+    @property
+    def build_badge(self) -> dict[str, Any]:
+        """
+        Get normalized build badge configuration.
+
+        Handles all supported formats:
+        - None/False: disabled
+        - True: enabled with defaults
+        - dict: enabled with custom settings
+
+        Returns:
+            Normalized dict with keys: enabled, dir_name, label, label_color, message_color
+
+        Example:
+            {% if site.build_badge.enabled %}
+                <span>{{ site.build_badge.label }}</span>
+            {% endif %}
+        """
+        value = self.config.get("build_badge")
+
+        if value is None or value is False:
+            return {
+                "enabled": False,
+                "dir_name": "bengal",
+                "label": "built in",
+                "label_color": "#555",
+                "message_color": "#4c1d95",
+            }
+
+        if value is True:
+            return {
+                "enabled": True,
+                "dir_name": "bengal",
+                "label": "built in",
+                "label_color": "#555",
+                "message_color": "#4c1d95",
+            }
+
+        if isinstance(value, dict):
+            return {
+                "enabled": bool(value.get("enabled", True)),
+                "dir_name": str(value.get("dir_name", "bengal")),
+                "label": str(value.get("label", "built in")),
+                "label_color": str(value.get("label_color", "#555")),
+                "message_color": str(value.get("message_color", "#4c1d95")),
+            }
+
+        # Unknown type: treat as disabled
+        return {
+            "enabled": False,
+            "dir_name": "bengal",
+            "label": "built in",
+            "label_color": "#555",
+            "message_color": "#4c1d95",
+        }
+
+    @property
+    def document_application(self) -> dict[str, Any]:
+        """
+        Get normalized document application configuration.
+
+        Document Application enables modern browser-native features:
+        - View Transitions API for smooth page transitions
+        - Speculation Rules for prefetching/prerendering
+        - Native <dialog>, popover, and CSS state machines
+
+        Returns:
+            Normalized dict with enabled flag and all sub-configs with defaults applied
+
+        Example:
+            {% if site.document_application.enabled and site.document_application.navigation.view_transitions %}
+                <meta name="view-transition" content="same-origin">
+            {% endif %}
+        """
+        from bengal.config.defaults import DEFAULTS
+
+        defaults = DEFAULTS["document_application"]
+        value = self.config.get("document_application", {})
+
+        if not isinstance(value, dict):
+            # If not a dict (e.g., False), return defaults with enabled=False
+            result = {
+                "enabled": False,
+                "navigation": dict(defaults["navigation"]),
+                "speculation": dict(defaults["speculation"]),
+                "interactivity": dict(defaults["interactivity"]),
+                "features": {},
+            }
+            return result
+
+        # Merge with defaults
+        navigation = value.get("navigation", {})
+        speculation = value.get("speculation", {})
+        interactivity = value.get("interactivity", {})
+
+        return {
+            "enabled": bool(value.get("enabled", defaults["enabled"])),
+            "navigation": {
+                "view_transitions": navigation.get(
+                    "view_transitions", defaults["navigation"]["view_transitions"]
+                ),
+                "transition_style": navigation.get(
+                    "transition_style", defaults["navigation"]["transition_style"]
+                ),
+                "scroll_restoration": navigation.get(
+                    "scroll_restoration", defaults["navigation"]["scroll_restoration"]
+                ),
+            },
+            "speculation": {
+                "enabled": speculation.get("enabled", defaults["speculation"]["enabled"]),
+                "prerender": {
+                    "eagerness": speculation.get("prerender", {}).get(
+                        "eagerness", defaults["speculation"]["prerender"]["eagerness"]
+                    ),
+                    "patterns": speculation.get("prerender", {}).get(
+                        "patterns", defaults["speculation"]["prerender"]["patterns"]
+                    ),
+                },
+                "prefetch": {
+                    "eagerness": speculation.get("prefetch", {}).get(
+                        "eagerness", defaults["speculation"]["prefetch"]["eagerness"]
+                    ),
+                    "patterns": speculation.get("prefetch", {}).get(
+                        "patterns", defaults["speculation"]["prefetch"]["patterns"]
+                    ),
+                },
+                "auto_generate": speculation.get(
+                    "auto_generate", defaults["speculation"]["auto_generate"]
+                ),
+                "exclude_patterns": speculation.get(
+                    "exclude_patterns", defaults["speculation"]["exclude_patterns"]
+                ),
+            },
+            "interactivity": {
+                "tabs": interactivity.get("tabs", defaults["interactivity"]["tabs"]),
+                "accordions": interactivity.get(
+                    "accordions", defaults["interactivity"]["accordions"]
+                ),
+                "modals": interactivity.get("modals", defaults["interactivity"]["modals"]),
+                "tooltips": interactivity.get("tooltips", defaults["interactivity"]["tooltips"]),
+                "dropdowns": interactivity.get("dropdowns", defaults["interactivity"]["dropdowns"]),
+                "code_copy": interactivity.get("code_copy", defaults["interactivity"]["code_copy"]),
+            },
+            "features": value.get("features", {}),
+        }
+
+    @property
+    def link_previews(self) -> dict[str, Any]:
+        """
+        Get normalized link previews configuration.
+
+        Link Previews provide Wikipedia-style hover cards for internal links,
+        showing page title, excerpt, reading time, and tags. Requires per-page
+        JSON generation to be enabled.
+
+        Returns:
+            Normalized dict with enabled flag and all display options
+
+        Example:
+            {% if site.link_previews.enabled %}
+                {# Include link preview script and config bridge #}
+            {% endif %}
+        """
+        from bengal.config.defaults import DEFAULTS
+
+        defaults = DEFAULTS["link_previews"]
+        value = self.config.get("link_previews", {})
+
+        if not isinstance(value, dict):
+            # If not a dict (e.g., False), return defaults with enabled=False
+            if value is False:
+                return {
+                    "enabled": False,
+                    "hover_delay": defaults["hover_delay"],
+                    "hide_delay": defaults["hide_delay"],
+                    "show_section": defaults["show_section"],
+                    "show_reading_time": defaults["show_reading_time"],
+                    "show_word_count": defaults["show_word_count"],
+                    "show_date": defaults["show_date"],
+                    "show_tags": defaults["show_tags"],
+                    "max_tags": defaults["max_tags"],
+                    "exclude_selectors": defaults["exclude_selectors"],
+                }
+            # True or None: use defaults with enabled=True
+            return dict(defaults)
+
+        # Merge with defaults
+        return {
+            "enabled": bool(value.get("enabled", defaults["enabled"])),
+            "hover_delay": value.get("hover_delay", defaults["hover_delay"]),
+            "hide_delay": value.get("hide_delay", defaults["hide_delay"]),
+            "show_section": value.get("show_section", defaults["show_section"]),
+            "show_reading_time": value.get("show_reading_time", defaults["show_reading_time"]),
+            "show_word_count": value.get("show_word_count", defaults["show_word_count"]),
+            "show_date": value.get("show_date", defaults["show_date"]),
+            "show_tags": value.get("show_tags", defaults["show_tags"]),
+            "max_tags": value.get("max_tags", defaults["max_tags"]),
+            "include_selectors": value.get("include_selectors", defaults["include_selectors"]),
+            "exclude_selectors": value.get("exclude_selectors", defaults["exclude_selectors"]),
+        }
+
+    # =========================================================================
+    # VERSIONING PROPERTIES
+    # =========================================================================
+
     @property
     def versioning_enabled(self) -> bool:
         """
@@ -331,7 +583,7 @@ class SitePropertiesMixin:
     @property
     def versions(self) -> list[dict[str, Any]]:
         """
-        Get list of all versions for templates.
+        Get list of all versions for templates (cached).
 
         Available in templates as `site.versions` for version selector rendering.
         Each version dict contains: id, label, latest, deprecated, url_prefix.
@@ -346,25 +598,57 @@ class SitePropertiesMixin:
                     {{ v.label }}{% if v.latest %} (Latest){% endif %}
                 </option>
             {% endfor %}
+
+        Performance:
+            Version dicts are cached on first access. For a 1000-page site with
+            version selector in header, this eliminates ~1000 list creations.
         """
+        # Return cached value if available
+        cache_attr = "_versions_dict_cache"
+        cached = getattr(self, cache_attr, None)
+        if cached is not None:
+            return cached
+
         version_config: VersionConfig = getattr(self, "version_config", None)  # type: ignore[assignment]
         if not version_config or not version_config.enabled:
-            return []
-        return [v.to_dict() for v in version_config.versions]
+            result: list[dict[str, Any]] = []
+        else:
+            result = [v.to_dict() for v in version_config.versions]
+
+        # Cache the result
+        object.__setattr__(self, cache_attr, result)
+        return result
 
     @property
     def latest_version(self) -> dict[str, Any] | None:
         """
-        Get the latest version info for templates.
+        Get the latest version info for templates (cached).
 
         Returns:
             Latest version dictionary or None if versioning disabled
+
+        Performance:
+            Cached on first access to avoid repeated .to_dict() calls.
         """
+        # Return cached value if available
+        cache_attr = "_latest_version_dict_cache"
+        cached = getattr(self, cache_attr, None)
+        if cached is not None:
+            # None means "not cached yet", use sentinel for "cached None"
+            return cached if cached != "_NO_LATEST_VERSION_" else None
+
         version_config: VersionConfig = getattr(self, "version_config", None)  # type: ignore[assignment]
         if not version_config or not version_config.enabled:
-            return None
-        latest = version_config.latest_version
-        return latest.to_dict() if latest else None
+            result = None
+        else:
+            latest = version_config.latest_version
+            result = latest.to_dict() if latest else None
+
+        # Cache the result (use sentinel for None to distinguish from "not cached")
+        object.__setattr__(
+            self, cache_attr, result if result is not None else "_NO_LATEST_VERSION_"
+        )
+        return result
 
     def get_version(self, version_id: str) -> Version | None:
         """
@@ -380,3 +664,13 @@ class SitePropertiesMixin:
         if not version_config or not version_config.enabled:
             return None
         return version_config.get_version_or_alias(version_id)
+
+    def invalidate_version_caches(self) -> None:
+        """
+        Invalidate cached version dict lists.
+
+        Call this when versioning configuration changes (e.g., during dev server reload).
+        """
+        for attr in ("_versions_dict_cache", "_latest_version_dict_cache"):
+            if hasattr(self, attr):
+                object.__delattr__(self, attr)

@@ -171,6 +171,51 @@ python -c "import sys; print(sys._is_gil_enabled())"
 make shell
 ```
 
+## Parallel Build Configuration
+
+Bengal automatically parallelizes CPU-bound build phases when running on
+free-threaded Python (3.13t/3.14t) with `PYTHON_GIL=0`.
+
+### Parallel Phases
+
+| Phase | Threshold | Config Option |
+|-------|-----------|---------------|
+| Page Rendering | Always | `parallel` |
+| Knowledge Graph | 100+ pages | `parallel_graph` |
+| Autodoc Extraction | 10+ modules | `parallel_autodoc` |
+| Related Posts | 100+ pages | (automatic) |
+
+### Configuration
+
+```toml
+# bengal.toml
+[build]
+max_workers = 8          # Worker threads (default: CPU count - 1)
+parallel_graph = true    # Parallel knowledge graph building
+parallel_autodoc = true  # Parallel autodoc extraction
+```
+
+### Debugging Parallel Issues
+
+```bash
+# Disable all parallel processing for debugging
+export BENGAL_NO_PARALLEL=1
+bengal build
+
+# Or via config
+# bengal.toml
+[build]
+parallel_graph = false
+parallel_autodoc = false
+```
+
+### Performance Tips
+
+With free-threading enabled (`PYTHON_GIL=0`), you can expect:
+- **Page Rendering**: ~1.5-2x faster
+- **Knowledge Graph**: ~3-4x faster for 500+ pages
+- **Autodoc**: ~3-4x faster for large codebases
+
 ## Environment Activation
 
 ```bash

@@ -34,6 +34,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from bengal.errors import BengalError, ErrorCode
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
@@ -73,7 +74,11 @@ class GraphReporter:
     def _ensure_built(self) -> None:
         """Verify the graph has been built before reporting."""
         if not self._graph._built:
-            raise ValueError("Must call graph.build() before reporting")
+            raise BengalError(
+                "KnowledgeGraph is not built",
+                code=ErrorCode.G001,
+                suggestion="Call graph.build() before generating reports",
+            )
 
     def format_stats(self) -> str:
         """

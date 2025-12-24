@@ -108,6 +108,8 @@ DEFAULTS: dict[str, Any] = {
     "parallel": True,
     "incremental": True,
     "max_workers": None,  # None = auto-detect via get_max_workers()
+    "parallel_graph": True,  # Parallel knowledge graph building (auto for 100+ pages)
+    "parallel_autodoc": True,  # Parallel autodoc extraction (auto for 10+ modules)
     "pretty_urls": True,
     "minify_html": True,
     "strict_mode": False,
@@ -320,6 +322,78 @@ DEFAULTS: dict[str, Any] = {
             "persist_tokens": False,
         },
     },
+    # -------------------------------------------------------------------------
+    # Link Previews (RFC: Link Previews)
+    # -------------------------------------------------------------------------
+    # Wikipedia-style hover cards for internal links.
+    # Shows page title, excerpt, reading time, and tags.
+    # Requires per_page JSON to be enabled.
+    "link_previews": {
+        "enabled": True,  # Auto-enabled when per_page JSON is configured
+        "hover_delay": 200,  # ms before showing preview
+        "hide_delay": 150,  # ms grace period for moving to preview
+        "show_section": True,  # Show section badge
+        "show_reading_time": True,  # Show reading time
+        "show_word_count": True,  # Show word count
+        "show_date": True,  # Show date (if available)
+        "show_tags": True,  # Show tags
+        "max_tags": 3,  # Maximum tags to display
+        "include_selectors": [
+            ".prose"
+        ],  # Only links inside these show previews (if empty, all links)
+        "exclude_selectors": [  # Links inside these won't show previews
+            "nav",
+            ".toc",
+            ".breadcrumb",
+            ".pagination",
+            ".card",
+            "[class*='-card']",
+            ".tab-nav",
+            "[class*='-widget']",
+            ".child-items",
+            ".content-tiles",
+        ],
+    },
+    # -------------------------------------------------------------------------
+    # Document Application (RFC: Document Applications)
+    # -------------------------------------------------------------------------
+    # Document Application: Modern browser-native interactivity
+    # -------------------------------------------------------------------------
+    # Uses View Transitions, Speculation Rules, CSS state machines, and native
+    # HTML elements (<dialog>, popover). Reduces JavaScript while providing
+    # SPA-like UX. No legacy browser fallbacks - requires modern browsers.
+    "document_application": {
+        "enabled": True,
+        # Navigation experience
+        "navigation": {
+            "view_transitions": True,  # Enable View Transitions API
+            "transition_style": "crossfade",  # crossfade | slide | morph | none
+            "scroll_restoration": True,
+        },
+        # Speculation Rules for prefetching/prerendering
+        "speculation": {
+            "enabled": True,
+            "prerender": {
+                "eagerness": "conservative",  # conservative | moderate | eager
+                "patterns": ["/docs/*"],
+            },
+            "prefetch": {
+                "eagerness": "conservative",
+                "patterns": ["/*"],
+            },
+            "auto_generate": True,
+            "exclude_patterns": [],  # Patterns to exclude from speculation
+        },
+        # Interactive component modes (all use native browser features)
+        "interactivity": {
+            "tabs": "css_state_machine",  # css_state_machine | enhanced (JS sync)
+            "accordions": "native_details",  # native <details> element
+            "modals": "native_dialog",  # native <dialog> element
+            "tooltips": "popover",  # native popover attribute
+            "dropdowns": "popover",  # native popover attribute
+            "code_copy": "enhanced",  # Requires JS for clipboard API
+        },
+    },
 }
 
 
@@ -398,6 +472,7 @@ BOOL_OR_DICT_KEYS = frozenset(
         "search",
         "graph",
         "output_formats",
+        "link_previews",
     }
 )
 

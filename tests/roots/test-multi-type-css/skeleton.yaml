@@ -1,0 +1,79 @@
+name: test-multi-type-css
+description: Multi-type site for CSS optimization - blog, doc, tutorial, and landing types
+version: "1.0"
+
+structure:
+  # Landing page
+  - path: _index.md
+    type: landing
+    props:
+      title: "Multi-Type Site"
+      description: "A site with multiple content types"
+    content: |
+      # Welcome to Multi-Type Site
+
+      This site demonstrates multiple content types for CSS optimization testing.
+
+  # Blog section
+  - path: blog/_index.md
+    type: section
+    cascade:
+      type: blog
+    props:
+      title: "Blog"
+    content: |
+      # Blog
+
+      Blog posts go here.
+
+  - path: blog/post.md
+    type: blog
+    props:
+      title: "Sample Post"
+      date: "2025-01-15"
+    content: |
+      # Sample Blog Post
+
+      Content here.
+
+  # Docs section
+  - path: docs/_index.md
+    type: section
+    cascade:
+      type: doc
+    props:
+      title: "Documentation"
+    content: |
+      # Documentation
+
+      Technical docs.
+
+  - path: docs/guide.md
+    type: doc
+    props:
+      title: "Getting Started"
+    content: |
+      # Getting Started
+
+      Installation guide.
+
+  # Tutorials section
+  - path: tutorials/_index.md
+    type: section
+    cascade:
+      type: tutorial
+    props:
+      title: "Tutorials"
+    content: |
+      # Tutorials
+
+      Step-by-step guides.
+
+  - path: tutorials/intro.md
+    type: tutorial
+    props:
+      title: "Introduction Tutorial"
+    content: |
+      # Introduction Tutorial
+
+      Learn the basics.
