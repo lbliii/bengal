@@ -150,7 +150,7 @@ class PageDiscoveryCache:
                 path=str(self.cache_path),
             )
         except Exception as e:
-            from bengal.errors import BengalCacheError, ErrorContext, enrich_error
+            from bengal.errors import BengalCacheError, ErrorCode, ErrorContext, enrich_error
 
             # Enrich error with context
             context = ErrorContext(
@@ -158,12 +158,14 @@ class PageDiscoveryCache:
                 operation="loading page discovery cache",
                 suggestion="Cache file may be corrupted. It will be rebuilt automatically.",
                 original_error=e,
+                error_code=ErrorCode.A003,  # cache_read_error
             )
             enriched = enrich_error(e, context, BengalCacheError)
             logger.warning(
                 "page_discovery_cache_load_failed",
                 error=str(enriched),
                 path=str(self.cache_path),
+                error_code=ErrorCode.A003.value,
             )
             self.pages = {}
 
@@ -187,10 +189,13 @@ class PageDiscoveryCache:
                 path=str(self.cache_path),
             )
         except Exception as e:
+            from bengal.errors import ErrorCode
+
             logger.error(
                 "page_discovery_cache_save_failed",
                 error=str(e),
                 path=str(self.cache_path),
+                error_code=ErrorCode.A004.value,  # cache_write_error
             )
 
     def has_metadata(self, source_path: Path) -> bool:

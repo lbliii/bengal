@@ -74,7 +74,14 @@ def clear_build_cache(site_root_path: str | Path, logger: BengalLogger | None = 
                 logger.debug("build_cache_cleared", cache_path=str(cache_path))
         except Exception as e:
             if logger:
-                logger.warning("cache_clear_failed", error=str(e), cache_path=str(cache_path))
+                from bengal.errors import ErrorCode
+
+                logger.warning(
+                    "cache_clear_failed",
+                    error=str(e),
+                    cache_path=str(cache_path),
+                    error_code=ErrorCode.A005.value,  # cache_invalidation_error
+                )
 
     # Clear compressed
     if compressed_path.exists():
@@ -85,7 +92,14 @@ def clear_build_cache(site_root_path: str | Path, logger: BengalLogger | None = 
                 logger.debug("compressed_cache_cleared", cache_path=str(compressed_path))
         except Exception as e:
             if logger:
-                logger.warning("cache_clear_failed", error=str(e), cache_path=str(compressed_path))
+                from bengal.errors import ErrorCode
+
+                logger.warning(
+                    "cache_clear_failed",
+                    error=str(e),
+                    cache_path=str(compressed_path),
+                    error_code=ErrorCode.A005.value,  # cache_invalidation_error
+                )
 
     return cleared
 
@@ -124,7 +138,14 @@ def clear_template_cache(site_root_path: str | Path, logger: BengalLogger | None
         return True
     except Exception as e:
         if logger:
-            logger.warning("template_cache_clear_failed", error=str(e), cache_dir=str(cache_dir))
+            from bengal.errors import ErrorCode
+
+            logger.warning(
+                "template_cache_clear_failed",
+                error=str(e),
+                cache_dir=str(cache_dir),
+                error_code=ErrorCode.A005.value,  # cache_invalidation_error
+            )
         return False
 
 
@@ -158,5 +179,12 @@ def clear_output_directory(output_dir_path: str | Path, logger: BengalLogger | N
         return True
     except Exception as e:
         if logger:
-            logger.warning("output_clear_failed", error=str(e), output_dir=str(output_dir))
+            from bengal.errors import ErrorCode
+
+            logger.warning(
+                "output_clear_failed",
+                error=str(e),
+                output_dir=str(output_dir),
+                error_code=ErrorCode.A005.value,  # cache_invalidation_error
+            )
         return False
