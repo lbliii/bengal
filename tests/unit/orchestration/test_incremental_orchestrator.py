@@ -310,6 +310,12 @@ class TestIncrementalOrchestrator:
             _section_path=section.path,
         )
 
+        # Mock prev/next to prevent adjacent navigation cascade (testing section filter bypass only)
+        nav_page._prev = None
+        nav_page._next = None
+        child_page._prev = None
+        child_page._next = None
+
         # Setup section pages after creating pages
         section.pages = [nav_page, child_page]
         section.regular_pages_recursive = [nav_page, child_page]

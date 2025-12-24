@@ -27,10 +27,13 @@ from __future__ import annotations
 import concurrent.futures
 from collections.abc import Callable
 from threading import Lock
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
+
+from bengal.utils.progress import ProgressReporter
 
 if TYPE_CHECKING:
     from bengal.core.output import OutputCollector
+    from bengal.orchestration.types import ProgressManagerProtocol
     from bengal.utils.build_context import BuildContext
 
 from bengal.postprocess.output_formats import OutputFormatsGenerator
@@ -97,8 +100,8 @@ class PostprocessOrchestrator:
     def run(
         self,
         parallel: bool = True,
-        progress_manager: Any | None = None,
-        build_context: BuildContext | Any | None = None,
+        progress_manager: ProgressManagerProtocol | None = None,
+        build_context: BuildContext | None = None,
         incremental: bool = False,
         collector: OutputCollector | None = None,
     ) -> None:
@@ -193,8 +196,8 @@ class PostprocessOrchestrator:
     def _run_sequential(
         self,
         tasks: list[tuple[str, Callable[[], None]]],
-        progress_manager: Any | None = None,
-        reporter: Any | None = None,
+        progress_manager: ProgressManagerProtocol | None = None,
+        reporter: ProgressReporter | None = None,
     ) -> None:
         """
         Run post-processing tasks sequentially.
@@ -233,8 +236,8 @@ class PostprocessOrchestrator:
     def _run_parallel(
         self,
         tasks: list[tuple[str, Callable[[], None]]],
-        progress_manager: Any | None = None,
-        reporter: Any | None = None,
+        progress_manager: ProgressManagerProtocol | None = None,
+        reporter: ProgressReporter | None = None,
     ) -> None:
         """
         Run post-processing tasks in parallel.
@@ -305,7 +308,7 @@ class PostprocessOrchestrator:
                     for task_name, error in errors:
                         print(f"    • {task_name}: {error}")
 
-    def _generate_special_pages(self, build_context: BuildContext | Any | None = None) -> None:
+    def _generate_special_pages(self, build_context: BuildContext | None = None) -> None:
         """
         Generate special pages like 404 (extracted for parallel execution).
 
@@ -385,8 +388,8 @@ class PostprocessOrchestrator:
             )
 
     def _build_graph_data(
-        self, build_context: BuildContext | Any | None = None
-    ) -> dict[str, Any] | None:
+        self, build_context: BuildContext | None = None
+    ) -> dict[str, object] | None:
         """
         Build knowledge graph and return graph data for inclusion in page JSON.
 
@@ -435,8 +438,8 @@ class PostprocessOrchestrator:
 
     def _generate_output_formats(
         self,
-        graph_data: dict[str, Any] | None = None,
-        build_context: BuildContext | Any | None = None,
+        graph_data: dict[str, object] | None = None,
+        build_context: BuildContext | None = None,
     ) -> None:
         """
         Generate custom output formats like JSON, plain text (extracted for parallel execution).

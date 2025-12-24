@@ -39,9 +39,10 @@ from __future__ import annotations
 
 import gc
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from bengal.utils.logger import get_logger
+from bengal.utils.progress import ProgressReporter
 
 if TYPE_CHECKING:
     from bengal.cache import DependencyTracker
@@ -49,6 +50,8 @@ if TYPE_CHECKING:
     from bengal.core.site import Site
     from bengal.orchestration.render import RenderOrchestrator
     from bengal.orchestration.stats import BuildStats
+    from bengal.orchestration.types import ProgressManagerProtocol
+    from bengal.utils.build_context import BuildContext
 
 logger = get_logger(__name__)
 
@@ -111,9 +114,9 @@ class StreamingRenderOrchestrator:
         tracker: DependencyTracker | None = None,
         stats: BuildStats | None = None,
         batch_size: int = 100,
-        progress_manager: Any | None = None,
-        reporter: Any | None = None,
-        build_context: Any | None = None,
+        progress_manager: ProgressManagerProtocol | None = None,
+        reporter: ProgressReporter | None = None,
+        build_context: BuildContext | None = None,
         changed_sources: set[Path] | None = None,
     ) -> None:
         """
@@ -349,7 +352,7 @@ class StreamingRenderOrchestrator:
         stats: BuildStats | None,
         batch_label: str = "pages",
         release_memory: bool = False,
-        progress_manager: Any | None = None,
+        progress_manager: ProgressManagerProtocol | None = None,
         changed_sources: set[Path] | None = None,
     ) -> None:
         """
