@@ -46,7 +46,6 @@ Related Packages:
 from __future__ import annotations
 
 import threading
-import warnings
 from collections import OrderedDict
 from collections.abc import Iterator
 from dataclasses import dataclass, field
@@ -105,30 +104,6 @@ class NavNode:
         yield self
         for child in self.children:
             yield from child.walk()
-
-    def find(self, url: str) -> NavNode | None:
-        """
-        Find a node by URL in this subtree.
-
-        .. deprecated::
-            This method performs O(n) recursive search.
-            Use NavTree.find() for O(1) lookup instead.
-        """
-        warnings.warn(
-            "NavNode.find() is O(n). Use NavTree.find() for O(1) lookup.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        if self._path == url:
-            return self
-        for child in self.children:
-            # Avoid triggering warning recursively - call internal implementation
-            if child._path == url:
-                return child
-            for node in child.walk():
-                if node._path == url:
-                    return node
-        return None
 
     # --- Jinja2 Compatibility (Dict-like access) ---
 

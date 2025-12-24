@@ -460,7 +460,7 @@ class NavTreeCache:
 
 ## Success Criteria
 
-1. **NavNode.find() deprecated**: Warning emitted on direct usage ✅
+1. **NavNode.find() removed**: O(n) method eliminated; use NavTree.find() O(1) ✅
 2. **_has_cycle() uses backtracking**: No `path.copy()` calls ✅
 3. **Menu building improved**: Measurable improvement vs baseline (target: 2x faster for 100+ items)
 4. **No API changes**: Existing public interfaces unchanged ✅

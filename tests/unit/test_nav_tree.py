@@ -106,51 +106,6 @@ class TestNavNode:
         assert nodes[1] == node_with_children.children[0]
         assert nodes[2] == node_with_children.children[1]
 
-    def test_find_lookup(self, node_with_children):
-        """Test find() locates nodes by URL.
-
-        Note: NavNode.find() is deprecated in favor of NavTree.find() which is O(1).
-        This test verifies the deprecated method still works correctly.
-        """
-        import warnings
-
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", DeprecationWarning)
-            found = node_with_children.find("/parent/child1/")
-            assert found is not None
-            assert found.id == "child1"
-
-            found = node_with_children.find("/parent/child2/")
-            assert found is not None
-            assert found.id == "child2"
-
-            not_found = node_with_children.find("/nonexistent/")
-            assert not_found is None
-
-    def test_find_self(self, simple_node):
-        """Test find() returns self when URL matches.
-
-        Note: NavNode.find() is deprecated in favor of NavTree.find() which is O(1).
-        """
-        import warnings
-
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", DeprecationWarning)
-            found = simple_node.find("/test/")
-            assert found == simple_node
-
-    def test_find_deprecation_warning(self, simple_node):
-        """Test that NavNode.find() emits deprecation warning."""
-        import warnings
-
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            simple_node.find("/test/")
-            assert len(w) == 1
-            assert issubclass(w[0].category, DeprecationWarning)
-            assert "NavNode.find()" in str(w[0].message)
-            assert "NavTree.find()" in str(w[0].message)
-
 
 class TestNavTree:
     """Test NavTree building and operations."""
