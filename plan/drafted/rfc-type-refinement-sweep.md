@@ -4,27 +4,27 @@
 **Created**: 2025-01-24
 **Author**: AI Assistant
 **Subsystem**: Cross-cutting (all packages)
-**Confidence**: 90% 🟢 (verified via comprehensive codebase scan)
+**Confidence**: 95% 🟢 (all metrics verified via grep; protocols audited)
 **Priority**: P1 (High) — Developer experience, IDE support, bug prevention
-**Estimated Effort**: 5-7 days
+**Estimated Effort**: 5-7 days (single dev) | 3-4 days (2 devs, parallelized by package)
 
 ---
 
 ## Executive Summary
 
-This RFC proposes a systematic refinement of type annotations across the Bengal codebase to replace 541 `Any` usages and 806 `dict[str, Any]` patterns with precise types. This enables better IDE autocomplete, catches bugs at type-check time, and improves code maintainability.
+This RFC proposes a systematic refinement of type annotations across the Bengal codebase to replace 541 `Any` usages and 769 `dict[str, Any]` patterns with precise types. This enables better IDE autocomplete, catches bugs at type-check time, and improves code maintainability.
 
 **Key Metrics**:
 
 | Pattern | Count | Files | Impact |
 |---------|-------|-------|--------|
 | `: Any` annotations | 541 | 193 | 🔴 High — loses all type checking |
-| `dict[str, Any]` | 806 | 282 | 🟠 Medium — partial type info only |
+| `dict[str, Any]` | 769 | 238 | 🟠 Medium — partial type info only |
 | `-> Any` returns | 127 | 63 | 🔴 High — propagates untyped values |
 | Existing `TypedDict` | 27 | 4 | 🟢 Good foundation to expand |
-| Existing `Protocol` | 7 | 5 | 🟢 Good foundation to expand |
+| Existing `Protocol` | 17 | 13 | 🟢 Good foundation to expand |
 
-**Current State**: Bengal has **excellent typing infrastructure** with 594 files using `from __future__ import annotations` and 270 files using `TYPE_CHECKING` imports. The codebase is ready for type refinement.
+**Current State**: Bengal has **excellent typing infrastructure** with 595 files using `from __future__ import annotations` and 270 files using `TYPE_CHECKING` imports. The codebase is ready for type refinement.
 
 **Impact**:
 - **IDE Experience**: Autocomplete for config, frontmatter, context objects
@@ -38,11 +38,14 @@ This RFC proposes a systematic refinement of type annotations across the Bengal 
 
 1. [Current State Assessment](#current-state-assessment)
 2. [Existing Patterns to Expand](#existing-patterns-to-expand)
-3. [High-Impact Type Refinements](#high-impact-type-refinements)
-4. [Proposed TypedDict Definitions](#proposed-typeddict-definitions)
-5. [Protocol Definitions](#protocol-definitions)
-6. [Migration Strategy](#migration-strategy)
-7. [File-by-File Priority](#file-by-file-priority)
+3. [Existing Protocols Inventory](#existing-protocols-inventory)
+4. [External Type Dependencies](#external-type-dependencies)
+5. [High-Impact Type Refinements](#high-impact-type-refinements)
+6. [Proposed TypedDict Definitions](#proposed-typeddict-definitions)
+7. [Protocol Definitions](#protocol-definitions)
+8. [Migration Strategy](#migration-strategy)
+9. [Risk Mitigation & Rollback](#risk-mitigation--rollback)
+10. [File-by-File Priority](#file-by-file-priority)
 
 ---
 
@@ -53,7 +56,7 @@ This RFC proposes a systematic refinement of type annotations across the Bengal 
 Bengal has strong typing foundations:
 
 ```python
-# 594 files use future annotations (99%+ coverage)
+# 595 files use future annotations (99%+ coverage)
 from __future__ import annotations
 
 # 270 files use TYPE_CHECKING guards
@@ -83,7 +86,7 @@ def get(self, key: str, default: Any = None) -> Any:
 def plugin_documentation_directives(md: Any) -> None:
 ```
 
-#### Pattern 2: Stringly-Typed Dicts (806 occurrences)
+#### Pattern 2: Stringly-Typed Dicts (769 occurrences)
 
 ```python
 # ❌ No IDE support for valid keys or value types
@@ -171,6 +174,94 @@ class Frontmatter:
 - Explicit types for known fields
 - `extra` dict for unknown fields
 - Dict compatibility for templates
+
+---
+
+## Existing Protocols Inventory
+
+Before creating new protocols, audit existing ones to avoid duplication:
+
+| Protocol | Location | Purpose | Reuse Potential |
+|----------|----------|---------|-----------------|
+| `TemplateEngineProtocol` | `rendering/engines/protocol.py` | Template engine interface | ✅ Use for renderer types |
+| `OutputCollector` | `core/output/collector.py` | Build output collection | ✅ Use for output types |
+| `CoreStats` | `utils/stats_protocol.py` | Statistics interface | ✅ Use for `BuildStats` |
+| `DisplayableStats` | `utils/stats_protocol.py` | Stats with display methods | ✅ Extend for dashboard |
+| `ProgressReporter` | `utils/progress.py` | Progress reporting | ✅ Use in orchestration |
+| `HasStats` | `utils/observability.py` | Objects with stats | ✅ Composition pattern |
+| `HasMetadata` | `core/page/computed.py` | Objects with metadata | ⚠️ May overlap with `PageLike` |
+| `HasDate` | `core/page/computed.py` | Objects with date | ⚠️ May overlap with `PageLike` |
+| `HasSiteAndMetadata` | `core/page/computed.py` | Site + metadata access | ⚠️ May overlap with `PageLike` |
+| `FileWatcher` | `server/file_watcher.py` | File watching interface | ✅ Use for server types |
+| `HeaderSender` | `server/utils.py` | HTTP header sending | ✅ Use for server types |
+| `DiagnosticsSink` | `core/diagnostics.py` | Diagnostics collection | ✅ Use for health types |
+| `TemplateProvider` | `cli/templates/base.py` | Template provisioning | ✅ Use for CLI types |
+| `Cacheable` | `cache/cacheable.py` | Cacheable objects | ✅ Use for cache types |
+| `TemplateValidationService` | `services/validation.py` | Template validation | ✅ Use for validation |
+
+### Recommendations
+
+1. **Consolidate Page Protocols**: `HasMetadata`, `HasDate`, `HasSiteAndMetadata` in `core/page/computed.py` overlap with proposed `PageLike`. Consider:
+   - Extending existing protocols rather than creating new ones
+   - Creating `PageLike` as a union/intersection of existing protocols
+
+2. **Reuse `CoreStats`**: The proposed `BuildStats` TypedDict should implement `CoreStats` protocol for compatibility with existing stats infrastructure.
+
+3. **Avoid Duplication**: Before creating `bengal/core/protocols.py`, evaluate if existing protocols can be extended.
+
+---
+
+## External Type Dependencies
+
+Some `Any` usages exist because of external library types. These require special handling:
+
+### Mistune Types
+
+**Current** (`bengal/directives/base.py`):
+
+```python
+def parse(self, block: Any, m: Match[str], state: Any) -> dict[str, Any]:
+    ...
+```
+
+**Challenge**: `block` and `state` are mistune internal types (`BlockParser`, `BlockState`).
+
+**Options**:
+
+1. **Shadow Protocols** (Recommended):
+   ```python
+   # bengal/directives/types.py
+
+   class MistuneBlockParser(Protocol):
+       """Protocol matching mistune's BlockParser interface."""
+       def parse(self, text: str) -> list[dict[str, Any]]: ...
+
+   class MistuneBlockState(Protocol):
+       """Protocol matching mistune's BlockState interface."""
+       cursor: int
+       tokens: list[dict[str, Any]]
+   ```
+
+2. **Type Stubs**: Create `stubs/mistune.pyi` with type definitions
+
+3. **Accept `Any`**: For truly dynamic mistune internals, document why `Any` is acceptable
+
+### Jinja2 Types
+
+**Current**: Various `Any` for Jinja environment and context.
+
+**Solution**: Jinja2 has type stubs (`types-jinja2`). Add to dependencies:
+
+```toml
+[dependency-groups]
+dev = [
+    "types-jinja2>=2.11.0",
+]
+```
+
+### PyYAML Types
+
+**Status**: Already using `types-pyyaml` ✅
 
 ---
 
@@ -434,16 +525,21 @@ class HealthReport(TypedDict):
 
 ## Protocol Definitions
 
-### New Protocols to Define
+### Strategy: Extend Existing Protocols
+
+Rather than creating `bengal/core/protocols.py` as a new file, **extend existing protocol files** to avoid duplication:
+
+#### Extend `bengal/core/page/computed.py`
 
 ```python
-# bengal/core/protocols.py (NEW FILE)
-
-from typing import Protocol, runtime_checkable
+# Add to existing file (already has HasMetadata, HasDate, HasSiteAndMetadata)
 
 @runtime_checkable
-class PageLike(Protocol):
-    """Protocol for page-like objects."""
+class PageLike(HasMetadata, HasDate, Protocol):
+    """Unified protocol for page-like objects.
+
+    Combines existing HasMetadata and HasDate with page-specific properties.
+    """
     @property
     def title(self) -> str: ...
     @property
@@ -452,6 +548,27 @@ class PageLike(Protocol):
     def content(self) -> str: ...
     @property
     def frontmatter(self) -> Frontmatter: ...
+```
+
+#### Extend `bengal/utils/stats_protocol.py`
+
+```python
+# Add to existing file (already has CoreStats, DisplayableStats)
+
+class BuildStatsProtocol(CoreStats, Protocol):
+    """Protocol for build statistics objects."""
+    @property
+    def pages_rendered(self) -> int: ...
+    @property
+    def cache_hit_rate(self) -> float: ...
+```
+
+#### New: `bengal/core/section/protocols.py`
+
+```python
+# New file for section protocols (no existing protocols for sections)
+
+from typing import Protocol, runtime_checkable
 
 @runtime_checkable
 class SectionLike(Protocol):
@@ -476,13 +593,42 @@ class SiteLike(Protocol):
 
 ### Benefits
 
-1. **Decoupling**: Functions accept protocols instead of concrete types
-2. **Testing**: Easy to create mock objects
-3. **Runtime checking**: `isinstance(obj, PageLike)` works
+1. **No Duplication**: Reuses existing `HasMetadata`, `HasDate`, `CoreStats`
+2. **Decoupling**: Functions accept protocols instead of concrete types
+3. **Testing**: Easy to create mock objects
+4. **Runtime checking**: `isinstance(obj, PageLike)` works
+5. **Incremental**: Existing code using `HasMetadata` continues to work
 
 ---
 
 ## Migration Strategy
+
+### Phase 0: Baseline Measurement (Day 0)
+
+**Before starting any changes**, establish baseline metrics:
+
+```bash
+# 1. Generate type coverage report
+mypy bengal/ --txt-report reports/type-coverage-baseline.txt
+
+# 2. Count current Any usages (should match RFC metrics)
+grep -r ": Any" bengal/ --include="*.py" | wc -l  # Expected: 541
+grep -r "dict\[str, Any\]" bengal/ --include="*.py" | wc -l  # Expected: 769
+
+# 3. Run full test suite (baseline for regression)
+pytest tests/ -v --tb=short > reports/test-baseline.txt
+
+# 4. Build example site (baseline for template compatibility)
+bengal build example-sites/docs/ -v > reports/build-baseline.txt
+```
+
+**Baseline Targets**:
+| Metric | Baseline | Day 3 | Day 7 | Final |
+|--------|----------|-------|-------|-------|
+| `: Any` count | 541 | <400 | <200 | <50 |
+| `dict[str, Any]` | 769 | <600 | <300 | <100 |
+| mypy errors | TBD | ≤baseline | ≤baseline | 0 |
+| Test pass rate | 100% | 100% | 100% | 100% |
 
 ### Phase 1: Create Type Definition Files (Day 1-2)
 
@@ -490,7 +636,7 @@ class SiteLike(Protocol):
 2. Create `bengal/orchestration/types.py` with `BuildStats`
 3. Create `bengal/directives/types.py` with directive attributes
 4. Create `bengal/health/types.py` with validator results
-5. Create `bengal/core/protocols.py` with core protocols
+5. Extend existing protocols in `bengal/core/page/computed.py` (prefer extension over new file)
 
 ### Phase 2: High-Traffic Path Refinement (Day 2-4)
 
@@ -532,6 +678,87 @@ def get(self, key: Literal["draft"], default: bool = False) -> bool: ...
 def get(self, key: str, default: T) -> T: ...
 def get(self, key: str, default: Any = None) -> Any:
     ...
+```
+
+---
+
+## Risk Mitigation & Rollback
+
+### Template Compatibility Risk
+
+**Problem**: Jinja templates use duck-typed dict access. Changing return types can break templates.
+
+**Example Risk**:
+
+```python
+# Before: Works with any key
+fm.get("custom_field")  # Returns Any
+
+# After with overloads: May not cover all custom keys
+@overload
+def get(self, key: Literal["title"], default: str = "") -> str: ...
+# custom_field not in overloads → type error
+```
+
+**Mitigation Strategies**:
+
+1. **Keep Fallback `-> Any`** for unknown keys:
+   ```python
+   @overload
+   def get(self, key: Literal["title"], default: str = "") -> str: ...
+   @overload
+   def get(self, key: Literal["draft"], default: bool = False) -> bool: ...
+   @overload
+   def get(self, key: str, default: Any = None) -> Any: ...  # Fallback
+   def get(self, key: str, default: Any = None) -> Any:
+       ...
+   ```
+
+2. **Use `total=False` Liberally**: All TypedDict fields optional by default
+
+3. **Preserve `extra: dict[str, Any]`**: Always allow extension fields
+
+### Rollback Strategy
+
+If TypedDict changes break functionality:
+
+**Immediate Rollback** (< 5 min):
+```bash
+# Revert type file changes
+git checkout HEAD~1 -- bengal/config/types.py
+git checkout HEAD~1 -- bengal/orchestration/types.py
+# etc.
+```
+
+**Graceful Degradation**:
+```python
+# Keep both typed and untyped versions during migration
+SiteConfig = TypedDict("SiteConfig", {...}, total=False)
+
+# Fallback function
+def get_config_value(config: SiteConfig | dict[str, Any], key: str) -> Any:
+    """Type-safe config access with fallback."""
+    return config.get(key)
+```
+
+**Phase-Gate Rollback**:
+- Each phase is independently revertable
+- Don't proceed to Phase N+1 until Phase N is stable
+- Keep `main` branch clean; work in feature branches
+
+### Breaking Change Detection
+
+Run before each phase merge:
+
+```bash
+# 1. Type check
+mypy bengal/ --strict
+
+# 2. Template rendering test
+pytest tests/integration/test_template_rendering.py -v
+
+# 3. Full build test on example site
+bengal build example-sites/docs/ --strict
 ```
 
 ---
@@ -611,6 +838,40 @@ disallow_any_explicit = true  # Enforce no explicit Any after migration
       - types-pyyaml
       - types-psutil
       - types-pygments
+      - types-jinja2
+```
+
+### CI Pipeline Integration
+
+```yaml
+# .github/workflows/type-check.yml
+
+name: Type Check
+on: [push, pull_request]
+
+jobs:
+  mypy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+      - run: uv sync --group dev
+      - run: uv run mypy bengal/ --strict
+
+  type-coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+      - run: uv sync --group dev
+      - name: Check Any count regression
+        run: |
+          ANY_COUNT=$(grep -r ": Any" bengal/ --include="*.py" | wc -l)
+          if [ "$ANY_COUNT" -gt 50 ]; then
+            echo "❌ Any count ($ANY_COUNT) exceeds threshold (50)"
+            exit 1
+          fi
+          echo "✅ Any count: $ANY_COUNT"
 ```
 
 ---
@@ -674,19 +935,24 @@ def test_build_stats_structure():
 
 ### Pre-Implementation
 
+- [ ] Run baseline measurements (Phase 0)
+- [ ] Audit existing 17 protocols for reuse opportunities
 - [ ] Review all 541 `Any` usages, categorize by domain
+- [ ] Identify mistune types requiring shadow protocols
 - [ ] Identify common dict structures for TypedDict candidates
 - [ ] Create type definition files skeleton
 - [ ] Update mypy configuration for gradual migration
+- [ ] Add `types-jinja2` to dev dependencies
 
 ### Phase 1: Type Definitions
 
 - [ ] Create `bengal/config/types.py` with `SiteConfig`
-- [ ] Create `bengal/orchestration/types.py` with `BuildStats`
-- [ ] Create `bengal/directives/types.py` with directive types
+- [ ] Create `bengal/orchestration/types.py` with `BuildStats` (implement `CoreStats` protocol)
+- [ ] Create `bengal/directives/types.py` with directive types + mistune shadow protocols
 - [ ] Create `bengal/health/types.py` with validator types
-- [ ] Create `bengal/core/protocols.py` with core protocols
+- [ ] Extend `bengal/core/page/computed.py` with `PageLike` (consolidate existing protocols)
 - [ ] Expand `bengal/rendering/ast_types.py`
+- [ ] Verify baseline metrics still hold
 
 ### Phase 2: Critical Path Migration
 
@@ -712,8 +978,11 @@ def test_build_stats_structure():
 
 - [ ] mypy passes with `--strict`
 - [ ] No new `Any` in critical path files
-- [ ] Type coverage > 85%
+- [ ] `: Any` count < 50 (from baseline 541)
+- [ ] `dict[str, Any]` count < 100 (from baseline 769)
 - [ ] All protocol tests pass
+- [ ] Template rendering tests pass (no regressions)
+- [ ] Example site builds successfully
 - [ ] IDE autocomplete works for config, frontmatter, context
 
 ---
@@ -780,10 +1049,29 @@ def test_build_stats_structure():
 
 ## References
 
+### Python PEPs
+
 - [PEP 589 – TypedDict](https://peps.python.org/pep-0589/)
 - [PEP 544 – Protocols](https://peps.python.org/pep-0544/)
 - [PEP 673 – Self Type](https://peps.python.org/pep-0673/)
 - [PEP 695 – Type Parameter Syntax](https://peps.python.org/pep-0695/)
-- `bengal/rendering/ast_types.py` — Existing TypedDict patterns
-- `bengal/orchestration/css_manifest_types.py` — Existing TypedDict patterns
-- `bengal/core/page/frontmatter.py` — Hybrid dataclass pattern
+
+### Existing TypedDict Patterns
+
+- `bengal/rendering/ast_types.py` — Discriminated union with Literal types
+- `bengal/orchestration/css_manifest_types.py` — Nested TypedDict with `total=False`
+- `bengal/core/page/frontmatter.py` — Hybrid dataclass with dict compatibility
+
+### Existing Protocol Patterns
+
+- `bengal/utils/stats_protocol.py` — `CoreStats`, `DisplayableStats`
+- `bengal/core/page/computed.py` — `HasMetadata`, `HasDate`, `HasSiteAndMetadata`
+- `bengal/rendering/engines/protocol.py` — `TemplateEngineProtocol`
+- `bengal/cache/cacheable.py` — `Cacheable`
+- `bengal/core/output/collector.py` — `OutputCollector`
+
+### External Type Stubs
+
+- [types-PyYAML](https://pypi.org/project/types-PyYAML/) — Already in use
+- [types-Jinja2](https://pypi.org/project/types-Jinja2/) — Recommended addition
+- [types-Pygments](https://pypi.org/project/types-Pygments/) — Already in use

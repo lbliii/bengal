@@ -164,6 +164,7 @@ class BengalDirective(DirectivePlugin):
     # Priority constants for common cases
     PRIORITY_FIRST = 0  # Preprocessing (includes, macros)
     PRIORITY_EARLY = 50  # Before most directives
+    PRIORITY_NORMAL = 100  # Default priority
     PRIORITY_LATE = 150  # After most directives
     PRIORITY_LAST = 200  # Post-processing
 

@@ -180,6 +180,7 @@ dev = [
     { name = "pytest-xdist" },
     { name = "ruff" },
     { name = "tomli-w" },
+    { name = "types-jinja2" },
     { name = "types-markdown" },
     { name = "types-psutil" },
     { name = "types-pygments" },
@@ -231,6 +232,7 @@ dev = [
     { name = "pytest-xdist", specifier = ">=3.3.0" },
     { name = "ruff", specifier = ">=0.14.0" },
     { name = "tomli-w", specifier = ">=1.0.0" },
+    { name = "types-jinja2", specifier = ">=2.11.0" },
     { name = "types-markdown", specifier = ">=3.5.0" },
     { name = "types-psutil", specifier = ">=5.9.0" },
     { name = "types-pygments", specifier = ">=2.18.0" },
@@ -1096,12 +1098,33 @@ wheels = [
 ]
 
 [[package]]
+name = "types-jinja2"
+version = "2.11.9"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "types-markupsafe" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/46/c4/b82309bfed8195de7997672deac301bd6f5bd5cbb6a3e392b7fe780d7852/types-Jinja2-2.11.9.tar.gz", hash = "sha256:dbdc74a40aba7aed520b7e4d89e8f0fe4286518494208b35123bcf084d4b8c81", size = 13302, upload-time = "2021-11-26T06:21:17.496Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b7/b0/e79d84748f1d34304f13191424348a719c3febaa3493835370fe9528e1e6/types_Jinja2-2.11.9-py3-none-any.whl", hash = "sha256:60a1e21e8296979db32f9374d8a239af4cb541ff66447bb915d8ad398f9c63b2", size = 18190, upload-time = "2021-11-26T06:21:16.18Z" },
+]
+
+[[package]]
 name = "types-markdown"
 version = "3.10.0.20251106"
 source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/de/e4/060f0dadd9b551cae77d6407f2bc84b168f918d90650454aff219c1b3ed2/types_markdown-3.10.0.20251106.tar.gz", hash = "sha256:12836f7fcbd7221db8baeb0d3a2f820b95050d0824bfa9665c67b4d144a1afa1", size = 19486, upload-time = "2025-11-06T03:06:44.317Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/92/58/f666ca9391f2a8bd33bb0b0797cde6ac3e764866708d5f8aec6fab215320/types_markdown-3.10.0.20251106-py3-none-any.whl", hash = "sha256:2c39512a573899b59efae07e247ba088a75b70e3415e81277692718f430afd7e", size = 25862, upload-time = "2025-11-06T03:06:43.082Z" },
+]
+
+[[package]]
+name = "types-markupsafe"
+version = "1.1.10"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/39/31/b5f059142d058aec41e913d8e0eff0a967e7bc46f9a2ba2f31bc11cff059/types-MarkupSafe-1.1.10.tar.gz", hash = "sha256:85b3a872683d02aea3a5ac2a8ef590193c344092032f58457287fbf8e06711b1", size = 2986, upload-time = "2021-11-27T03:18:07.558Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/bc/d6/b8effb1c48539260a5eb4196afc55efac4ea1684a4991977555eb266b2ef/types_MarkupSafe-1.1.10-py3-none-any.whl", hash = "sha256:ca2bee0f4faafc45250602567ef38d533e877d2ddca13003b319c551ff5b3cc5", size = 3998, upload-time = "2021-11-27T03:18:06.398Z" },
 ]
 
 [[package]]
