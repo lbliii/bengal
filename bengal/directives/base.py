@@ -51,11 +51,19 @@ from __future__ import annotations
 import logging
 from abc import abstractmethod
 from re import Match
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from mistune.directives import DirectivePlugin
 
 from bengal.utils.logger import get_logger
+
+if TYPE_CHECKING:
+    from bengal.directives.types import (
+        DirectiveRenderer,
+        MistuneBlockParser,
+        MistuneBlockState,
+        MistuneMarkdown,
+    )
 
 # Re-export commonly used items for convenience
 from .contracts import (  # noqa: F401
@@ -211,7 +219,9 @@ class BengalDirective(DirectivePlugin):
     # Parse Flow with Contract Validation
     # -------------------------------------------------------------------------
 
-    def parse(self, block: Any, m: Match[str], state: Any) -> dict[str, Any]:
+    def parse(
+        self, block: MistuneBlockParser, m: Match[str], state: MistuneBlockState
+    ) -> dict[str, Any]:
         """Parse directive content with automatic contract validation.
 
         This method implements the standard parse flow:
@@ -296,7 +306,7 @@ class BengalDirective(DirectivePlugin):
             return token.to_dict()
         return token
 
-    def _get_parent_directive_type(self, state: Any) -> str | None:
+    def _get_parent_directive_type(self, state: MistuneBlockState) -> str | None:
         """Extract the parent directive type from parser state.
 
         Used by contract validation to verify ``requires_parent`` constraints.
@@ -322,7 +332,7 @@ class BengalDirective(DirectivePlugin):
 
         return None
 
-    def _push_directive_stack(self, state: Any, directive_type: str) -> None:
+    def _push_directive_stack(self, state: MistuneBlockState, directive_type: str) -> None:
         """Push the current directive onto the nesting stack.
 
         Called before parsing nested content so child directives can validate
@@ -346,7 +356,7 @@ class BengalDirective(DirectivePlugin):
                 env["directive_stack"] = []
             env["directive_stack"].append(directive_type)
 
-    def _pop_directive_stack(self, state: Any) -> None:
+    def _pop_directive_stack(self, state: MistuneBlockState) -> None:
         """Pop the current directive from the nesting stack.
 
         Called after parsing nested content to restore the previous context.
@@ -360,7 +370,7 @@ class BengalDirective(DirectivePlugin):
             if stack:
                 stack.pop()
 
-    def _get_source_location(self, state: Any) -> str | None:
+    def _get_source_location(self, state: MistuneBlockState) -> str | None:
         """Extract the source file path from parser state.
 
         Used for error messages and logging to help locate issues in content.
@@ -389,8 +399,8 @@ class BengalDirective(DirectivePlugin):
         title: str,
         options: DirectiveOptions,
         content: str,
-        children: list[Any],
-        state: Any,
+        children: list[dict[str, object]],
+        state: MistuneBlockState,
     ) -> DirectiveToken | dict[str, Any]:
         """Build the AST token from parsed components.
 
@@ -420,7 +430,7 @@ class BengalDirective(DirectivePlugin):
         ...
 
     @abstractmethod
-    def render(self, renderer: Any, text: str, **attrs: Any) -> str:
+    def render(self, renderer: DirectiveRenderer, text: str, **attrs: Any) -> str:
         """Render the directive token to HTML.
 
         Override this method to produce the final HTML output for the directive.
@@ -447,7 +457,7 @@ class BengalDirective(DirectivePlugin):
     # Registration
     # -------------------------------------------------------------------------
 
-    def __call__(self, directive: Any, md: Any) -> None:
+    def __call__(self, directive: object, md: MistuneMarkdown) -> None:
         """Register directive names and the renderer with Mistune.
 
         Called when the directive is added to a Mistune markdown instance.

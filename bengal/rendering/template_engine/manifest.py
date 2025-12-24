@@ -13,7 +13,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from bengal.assets.manifest import AssetManifestEntry
+from bengal.assets.manifest import AssetManifest, AssetManifestEntry
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -72,8 +72,6 @@ class ManifestHelpersMixin:
 
             # Load once and never recheck
             try:
-                from bengal.assets.manifest import AssetManifest
-
                 manifest = AssetManifest.load(manifest_path)
                 if manifest is None:
                     self._asset_manifest_cache = {}
