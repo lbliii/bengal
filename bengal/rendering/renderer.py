@@ -76,6 +76,9 @@ class Renderer:
         self.build_stats = build_stats  # For collecting template errors
         # PERF: Cache for top-level content (computed once per build)
         self._top_level_cache: tuple[list[Page], list[Any]] | None = None
+        # PERF: Cache for resolved tag pages (computed once per build)
+        # Maps tag_slug -> list of filtered, resolved Page objects
+        self._tag_pages_cache: dict[str, list[Page]] | None = None
 
     def _get_top_level_content(self) -> tuple[list[Page], list[Any]]:
         """
@@ -108,6 +111,74 @@ class Renderer:
 
         self._top_level_cache = (top_level_pages, top_level_subsections)
         return self._top_level_cache
+
+    def _get_resolved_tag_pages(self, tag_slug: str) -> list[Page]:
+        """
+        Get resolved and filtered pages for a tag (cached).
+
+        Cache is built once per Renderer instance (per build). This eliminates
+        repeated O(P) filtering per tag page render.
+
+        PERF: O(T × P) total once, then O(1) lookups per tag page render.
+        Previously: O(P) per render × R pagination pages per tag.
+
+        Args:
+            tag_slug: The tag slug to get pages for
+
+        Returns:
+            List of filtered, resolved Page objects for the tag
+        """
+        if self._tag_pages_cache is None:
+            self._tag_pages_cache = self._build_all_tag_pages_cache()
+
+        return self._tag_pages_cache.get(tag_slug, [])
+
+    def _build_all_tag_pages_cache(self) -> dict[str, list[Page]]:
+        """
+        Build complete cache of resolved tag pages.
+
+        Filters and resolves all tag pages once per build:
+        - Excludes generated pages
+        - Excludes API/CLI documentation pages
+        - Resolves stale Page references via site's page path map
+
+        Returns:
+            Dict mapping tag_slug -> list of resolved Page objects
+        """
+        cache: dict[str, list[Page]] = {}
+        str_page_map = self.site.get_page_path_map()
+        tags_data = self.site.taxonomies.get("tags", {})
+
+        for tag_slug, tag_info in tags_data.items():
+            resolved_pages: list[Page] = []
+
+            for tax_page in tag_info.get("pages", []):
+                resolved_page = None
+                if hasattr(tax_page, "source_path"):
+                    # Use cached string-keyed map for O(1) lookup
+                    resolved_page = str_page_map.get(str(tax_page.source_path))
+
+                page_to_check = resolved_page if resolved_page else tax_page
+
+                if page_to_check and hasattr(page_to_check, "source_path"):
+                    source_str = str(page_to_check.source_path)
+                    # Apply filtering rules: exclude generated, API, and CLI pages
+                    if (
+                        not page_to_check.metadata.get("_generated")
+                        and "content/api" not in source_str
+                        and "content/cli" not in source_str
+                    ):
+                        resolved_pages.append(page_to_check)
+
+            cache[tag_slug] = resolved_pages
+
+        logger.debug(
+            "tag_pages_cache_built",
+            total_tags=len(cache),
+            total_pages=sum(len(pages) for pages in cache.values()),
+        )
+
+        return cache
 
     def render_content(self, content: str) -> str:
         """
@@ -369,50 +440,16 @@ class Renderer:
         tag_slug = page.metadata.get("_tag_slug")
         page_num = page.metadata.get("_page_num", 1)
 
-        # PERF: Use cached page lookup map instead of rebuilding on each tag page render.
-        # get_page_path_map() returns {str(source_path): Page} and is cached on site.
-        str_page_map = self.site.get_page_path_map()
+        # PERF: Use cached resolved tag pages instead of filtering on each render.
+        # Cache is built once per Renderer instance and reused across all tag page renders.
+        # Complexity: O(T × P) once at cache build, then O(1) lookup per render.
+        all_posts = self._get_resolved_tag_pages(tag_slug) if tag_slug else []
 
-        # Get pages directly from site.taxonomies (most reliable source)
-        # But resolve them from site.pages to ensure we have current Page objects
-        # (Page objects in taxonomies might be stale)
-        all_posts = []
-        if (
-            tag_slug
-            and self.site.taxonomies.get("tags")
-            and tag_slug in self.site.taxonomies["tags"]
-        ):
-            tag_data = self.site.taxonomies["tags"][tag_slug]
-            taxonomy_pages = tag_data.get("pages", [])
-
-            for tax_page in taxonomy_pages:
-                resolved_page = None
-                if hasattr(tax_page, "source_path"):
-                    # Use cached string-keyed map for O(1) lookup
-                    resolved_page = str_page_map.get(str(tax_page.source_path))
-
-                if resolved_page:
-                    source_str = str(resolved_page.source_path)
-                    if (
-                        not resolved_page.metadata.get("_generated")
-                        and "content/api" not in source_str
-                        and "content/cli" not in source_str
-                    ):
-                        all_posts.append(resolved_page)
-                elif tax_page and hasattr(tax_page, "title"):
-                    source_str = str(tax_page.source_path)
-                    if (
-                        not tax_page.metadata.get("_generated")
-                        and "content/api" not in source_str
-                        and "content/cli" not in source_str
-                    ):
-                        all_posts.append(tax_page)
-
-        # Fallback: Try to resolve from stored metadata if taxonomy yielded nothing
+        # Fallback: Try to resolve from stored metadata if cache yielded nothing
         if not all_posts and page.metadata is not None:
             stored_posts = page.metadata.get("_posts", [])
             if stored_posts:
-                # str_page_map is already set from cached get_page_path_map() above
+                str_page_map = self.site.get_page_path_map()
                 for stored_item in stored_posts:
                     resolved_page = None
                     if hasattr(stored_item, "source_path"):
@@ -460,7 +497,7 @@ class Renderer:
                 }
         elif paginator and hasattr(paginator, "items") and paginator.items:
             resolved_items = []
-            # str_page_map is already set from cached get_page_path_map() above
+            str_page_map = self.site.get_page_path_map()
             for item in paginator.items:
                 if hasattr(item, "source_path"):
                     resolved = str_page_map.get(str(item.source_path))

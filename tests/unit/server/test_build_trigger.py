@@ -358,3 +358,184 @@ class TestBuildTriggerIntegration:
         request = mock_executor.submit.call_args[0][0]
         assert request.site_root == str(mock_site.root_path)
         assert "test.md" in request.changed_paths[0]
+
+
+class TestBuildTriggerCaching:
+    """Tests for BuildTrigger caching optimizations.
+
+    RFC: rfc-server-package-optimizations
+    """
+
+    @pytest.fixture
+    def mock_site(self) -> MagicMock:
+        """Create a mock site for testing."""
+        site = MagicMock()
+        site.root_path = Path("/test/site")
+        site.output_dir = Path("/test/site/public")
+        site.config = {}
+        site.theme = None
+        return site
+
+    @pytest.fixture
+    def mock_executor(self) -> MagicMock:
+        """Create a mock executor for testing."""
+        executor = MagicMock()
+        return executor
+
+    def test_frontmatter_cache_hit(
+        self, mock_site: MagicMock, mock_executor: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test that frontmatter parsing is cached by mtime."""
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+        # Create a test file with nav frontmatter
+        test_file = tmp_path / "test.md"
+        test_file.write_text(
+            """---
+title: Test Page
+weight: 10
+---
+
+Content here.
+"""
+        )
+
+        # First call - cache miss
+        result1 = trigger._has_nav_affecting_frontmatter(test_file)
+        assert result1 is True
+        assert test_file in trigger._frontmatter_cache
+
+        # Second call - cache hit (same mtime)
+        result2 = trigger._has_nav_affecting_frontmatter(test_file)
+        assert result2 is True
+
+    def test_frontmatter_cache_invalidation_on_mtime_change(
+        self, mock_site: MagicMock, mock_executor: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test that frontmatter cache is invalidated when mtime changes."""
+        import os
+        import time
+
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+        # Create initial file with nav frontmatter
+        test_file = tmp_path / "test.md"
+        test_file.write_text(
+            """---
+title: Test Page
+weight: 10
+---
+"""
+        )
+
+        # First call
+        result1 = trigger._has_nav_affecting_frontmatter(test_file)
+        assert result1 is True
+
+        # Modify file (change content, touch mtime)
+        time.sleep(0.01)  # Ensure mtime changes
+        test_file.write_text(
+            """---
+author: Someone
+---
+"""
+        )
+        # Force mtime update
+        os.utime(test_file, None)
+
+        # Second call - should re-parse due to mtime change
+        result2 = trigger._has_nav_affecting_frontmatter(test_file)
+        assert result2 is False  # No nav-affecting keys now
+
+    def test_frontmatter_partial_read(
+        self, mock_site: MagicMock, mock_executor: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test that only first 4KB is read for frontmatter."""
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+        # Create a file with frontmatter and lots of content
+        large_content = "x" * 100000  # 100KB of content
+        test_file = tmp_path / "large.md"
+        test_file.write_text(
+            f"""---
+title: Large File
+---
+
+{large_content}
+"""
+        )
+
+        # Should still detect nav frontmatter without reading entire file
+        result = trigger._has_nav_affecting_frontmatter(test_file)
+        assert result is True
+
+    def test_template_dirs_cached(
+        self, mock_site: MagicMock, mock_executor: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test that template directories are cached."""
+        mock_site.root_path = tmp_path
+
+        # Create template directory
+        templates_dir = tmp_path / "templates"
+        templates_dir.mkdir()
+
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+        # First call - populates cache
+        dirs1 = trigger._get_template_dirs()
+        assert templates_dir in dirs1
+
+        # Second call - returns cached
+        dirs2 = trigger._get_template_dirs()
+        assert dirs1 == dirs2
+
+        # Should be same list object (cached)
+        assert dirs1 is dirs2
+
+    def test_template_change_early_exit_non_html(
+        self, mock_site: MagicMock, mock_executor: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test that template check exits early for non-.html files."""
+        mock_site.root_path = tmp_path
+
+        # Create template directory
+        templates_dir = tmp_path / "templates"
+        templates_dir.mkdir()
+
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+        # Non-HTML files should not be detected as template changes
+        non_html_paths = {
+            Path(templates_dir / "style.css"),
+            Path(tmp_path / "content" / "post.md"),
+        }
+
+        result = trigger._is_template_change(non_html_paths)
+        assert result is False
+
+    def test_detect_nav_changes_uses_cache(
+        self, mock_site: MagicMock, mock_executor: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test that _detect_nav_changes uses the frontmatter cache."""
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+        # Create test file
+        test_file = tmp_path / "test.md"
+        test_file.write_text(
+            """---
+title: Test
+weight: 5
+---
+"""
+        )
+
+        # First detection
+        result1 = trigger._detect_nav_changes({test_file}, needs_full_rebuild=False)
+        assert test_file in result1
+
+        # File should be cached now
+        assert test_file in trigger._frontmatter_cache
+
+        # Second detection should use cache
+        result2 = trigger._detect_nav_changes({test_file}, needs_full_rebuild=False)
+        assert test_file in result2

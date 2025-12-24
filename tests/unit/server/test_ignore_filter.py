@@ -306,3 +306,84 @@ class TestIgnoreFilterBengalCache:
         # Temp file patterns that appear during cache updates
         assert f(Path("/project/.bengal/.cache.json.12345.tmp")) is True
         assert f(Path("/project/.bengal/.author_index.json.89978.tmp")) is True
+
+
+class TestIgnoreFilterCaching:
+    """Tests for path result caching.
+
+    RFC: rfc-server-package-optimizations
+    The IgnoreFilter caches path check results for O(1) repeated lookups.
+    """
+
+    def test_cache_hit_returns_same_result(self) -> None:
+        """Test that cache hit returns the same result."""
+        f = IgnoreFilter(glob_patterns=["*.pyc"], include_defaults=False)
+
+        path = Path("/project/foo.pyc")
+
+        # First call - cache miss
+        result1 = f(path)
+        assert result1 is True
+
+        # Second call - cache hit (should return same result)
+        result2 = f(path)
+        assert result2 is True
+        assert result1 == result2
+
+    def test_cache_different_paths(self) -> None:
+        """Test that different paths are cached separately."""
+        f = IgnoreFilter(glob_patterns=["*.pyc"], include_defaults=False)
+
+        path1 = Path("/project/foo.pyc")
+        path2 = Path("/project/bar.py")
+
+        assert f(path1) is True
+        assert f(path2) is False
+
+        # Both should be cached
+        assert str(path1) in f._path_cache
+        assert str(path2) in f._path_cache
+
+    def test_cache_eviction_when_full(self) -> None:
+        """Test that LRU eviction works when cache is full."""
+        # Small cache for testing
+        f = IgnoreFilter(glob_patterns=["*.pyc"], include_defaults=False, cache_max_size=3)
+
+        # Fill the cache
+        paths = [Path(f"/project/file{i}.py") for i in range(5)]
+        for path in paths:
+            f(path)
+
+        # Cache should be at max size
+        assert len(f._path_cache) <= 3
+
+    def test_clear_cache(self) -> None:
+        """Test that clear_cache empties the cache."""
+        f = IgnoreFilter(glob_patterns=["*.pyc"], include_defaults=False)
+
+        # Populate cache
+        f(Path("/project/foo.pyc"))
+        f(Path("/project/bar.py"))
+        assert len(f._path_cache) == 2
+
+        # Clear cache
+        f.clear_cache()
+        assert len(f._path_cache) == 0
+
+    def test_precompiled_glob_patterns(self) -> None:
+        """Test that glob patterns are pre-compiled to regex."""
+        f = IgnoreFilter(glob_patterns=["*.pyc", "*.pyo"], include_defaults=False)
+
+        # Should have compiled patterns
+        assert len(f._compiled_globs) == 2
+
+        # Should still match correctly
+        assert f(Path("/project/foo.pyc")) is True
+        assert f(Path("/project/bar.pyo")) is True
+        assert f(Path("/project/baz.py")) is False
+
+    def test_cache_custom_max_size(self) -> None:
+        """Test that cache_max_size is configurable."""
+        f = IgnoreFilter(glob_patterns=["*.pyc"], include_defaults=False, cache_max_size=50)
+
+        assert f._cache_max_size == 50

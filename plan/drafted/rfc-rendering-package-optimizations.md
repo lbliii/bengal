@@ -53,6 +53,7 @@ Comprehensive Big O analysis of the `bengal.rendering` package (91+ files) revea
 | **Navigation tree** | Tree access | **O(1)** ✅ | NavTreeCache - `template_functions/navigation/tree.py:70` |
 | **Parser caching** | Thread-local | **O(1)** ✅ | `pipeline/thread_local.py` |
 | **Template wrappers** | Site pages | **O(p) cached** ✅ | `template_context.py:266-273` |
+| **Page path map** | Source→Page lookup | **O(1)** ✅ | `site.get_page_path_map()` - `renderer.py:374` |
 | **Top-level content** | Set filtering | **O(n)** ✅ | `renderer.py:94-106` |
 
 ### Design Patterns Employed
@@ -238,7 +239,7 @@ def _substitute_xrefs(self, html: str) -> str:
 
 ---
 
-### Bottleneck 5: API Doc Enhancer — Multiple Regex Passes
+### Bottleneck 5: API Doc Enhancer — 5× O(n) for API Pages Only
 
 **Location**: `bengal/rendering/api_doc_enhancer.py:105-145`
 
@@ -246,11 +247,11 @@ def _substitute_xrefs(self, html: str) -> str:
 
 ```python
 def enhance(self, html: str, page_type: str | None = None) -> str:
-    # Only enhance API documentation pages
+    # Gate: Only API documentation pages (lines 126-127)
     if not self.should_enhance(page_type):
-        return html
+        return html  # Most pages exit here ✅
 
-    # Apply all badge patterns
+    # Apply 5 badge patterns sequentially (lines 132-136)
     enhanced = html
     for pattern, replacement in self._compiled_patterns:  # 5 patterns
         enhanced = pattern.sub(replacement, enhanced)      # O(n) each
@@ -258,72 +259,83 @@ def enhance(self, html: str, page_type: str | None = None) -> str:
     return enhanced
 ```
 
-**Problem**:
-- 5 compiled patterns, each requiring O(n) scan
-- Total: 5 × O(n) = O(5n) for API doc pages
-- Patterns could be combined into single pass
+**Badge Patterns** (`api_doc_enhancer.py:49-75`):
+1. `@async` for h3/h4 headings
+2. `@property` for h4 headings  
+3. `@classmethod` for h4 headings
+4. `@staticmethod` for h4 headings
+5. `@deprecated` for h2-h6 headings
+
+**Realistic Assessment**:
+- ✅ Gated by `should_enhance()` — only `python-module`, `autodoc/python`, `cli-command`, `autodoc-cli` page types
+- ✅ Patterns are pre-compiled (line 88-91)
+- ⚠️ For API doc pages: 5 × O(n) passes
+
+**Impact**:
+- Non-API pages: O(1) — immediate return
+- API pages: 5 × O(n), but API docs are typically < 20KB
+- Typical site: ~50-100 API pages out of 1000+ total pages
+
+**Priority**: Low — affects small subset of pages, and patterns are complex enough that combining may not improve performance
 
 ---
 
 ## Proposed Solutions
 
-### Solution 1: Unified HTML Transform Pass (P1)
+### Solution 1: Unified HTML Transform Pass (P2)
 
 **Approach**: Combine multiple O(n) transformations into a single streaming pass.
 
-**Implementation**:
+> ⚠️ **Important Trade-off**: The current `escape_jinja_blocks` uses `str.replace()` which is C-optimized and extremely fast. A regex-based unified approach may not be faster. **Benchmark before committing.**
+
+**Implementation Option A: Hybrid Approach (Recommended)**
+
+Keep fast `str.replace()` for Jinja escaping, combine only regex transforms:
 
 ```python
 # In bengal/rendering/pipeline/unified_transform.py
 
 import re
-from typing import Callable
 
-class UnifiedHTMLTransformer:
+class HybridHTMLTransformer:
     """
-    Single-pass HTML transformation combining:
-    - Jinja block escaping
-    - Markdown link normalization (.md -> /)
-    - Internal link transformation (baseurl)
-    - Optional: API badge injection
+    Hybrid transformation:
+    - Jinja escaping: str.replace() (fastest)
+    - Link transforms: combined regex (single pass)
     """
 
-    def __init__(self, config: dict, baseurl: str = ""):
-        self.baseurl = baseurl.rstrip("/")
-        self.should_transform_links = bool(baseurl)
+    def __init__(self, baseurl: str = ""):
+        self.baseurl = baseurl.rstrip("/") if baseurl else ""
+        self.should_transform_links = bool(self.baseurl)
 
-        # Combined pattern for all transformations
-        self._pattern = re.compile(
-            r"(?P<jinja_open>\{\{)|"
-            r"(?P<jinja_close>\}\})|"
-            r"(?P<jinja_block_open>\{%)|"
-            r"(?P<jinja_block_close>%\})|"
+        # Combined pattern for link transformations only
+        self._link_pattern = re.compile(
             r'(?P<md_link>href=["\'](?P<md_path>[^"\']*\.md)["\'])|'
             r'(?P<internal_link>(?:href|src)=["\'](?P<int_path>/[^"\']*)["\'])',
             re.MULTILINE
         )
 
     def transform(self, html: str) -> str:
-        """Single-pass transformation - O(n) instead of O(4n)."""
+        """Transform HTML: O(n) for Jinja + O(n) for links = O(2n)."""
         if not html:
             return html
 
-        def replacer(match: re.Match) -> str:
-            if match.group("jinja_open"):
-                return "&#123;&#123;"
-            elif match.group("jinja_close"):
-                return "&#125;&#125;"
-            elif match.group("jinja_block_open"):
-                return "&#123;%"
-            elif match.group("jinja_block_close"):
-                return "%&#125;"
-            elif match.group("md_link"):
-                return self._transform_md_link(match)
-            elif match.group("internal_link") and self.should_transform_links:
-                return self._transform_internal_link(match)
-            return match.group(0)
+        # Step 1: Jinja escaping - str.replace() is C-optimized, very fast
+        result = html.replace("{%", "&#123;%").replace("%}", "%&#125;")
 
-        return self._pattern.sub(replacer, html)
+        # Step 2: Combined link transforms - single regex pass
+        if ".md" in result or (self.should_transform_links and '="/' in result):
+            result = self._link_pattern.sub(self._link_replacer, result)
+
+        return result
+
+    def _link_replacer(self, match: re.Match) -> str:
+        """Handle both .md and internal link transforms."""
+        if match.group("md_link"):
+            return self._transform_md_link(match)
+        elif match.group("internal_link") and self.should_transform_links:
+            return self._transform_internal_link(match)
+        return match.group(0)
 
     def _transform_md_link(self, match: re.Match) -> str:
         """Transform .md link to clean URL."""
@@ -356,140 +368,107 @@ class UnifiedHTMLTransformer:
 def _parse_content(self, page: Page) -> None:
     # ... parsing ...
 
-    # Single-pass transformation (replaces 3-4 separate passes)
+    # Hybrid transformation (replaces 3 separate passes with 2)
     if not hasattr(self, '_transformer'):
         baseurl = self.site.config.get("baseurl", "")
-        self._transformer = UnifiedHTMLTransformer(self.site.config, baseurl)
+        self._transformer = HybridHTMLTransformer(baseurl)
 
     page.parsed_ast = self._transformer.transform(page.parsed_ast or "")
 ```
 
-**Complexity Improvement**: O(4n) → O(n)
+**Complexity Improvement**: O(3n) → O(2n)
 
 **Files to Modify**:
 - Create `bengal/rendering/pipeline/unified_transform.py`
 - Update `bengal/rendering/pipeline/core.py`
-- Deprecate individual transform functions (keep for backward compat)
+- Keep individual transform functions for backward compatibility
 
 **Trade-offs**:
-- ✅ 3-4× reduction in HTML processing passes
-- ✅ Reduced memory allocations (single result string)
+- ✅ Combines 2 regex passes into 1 (link transforms)
+- ✅ Keeps fast `str.replace()` for Jinja escaping
+- ✅ Quick rejection via substring checks before regex
 - ⚠️ More complex regex pattern (but compiled once)
 - ⚠️ Requires thorough testing of edge cases
 
+**Benchmark Required**:
+Before implementing, compare:
+1. Current: 2× `str.replace()` + 2× `re.sub()`
+2. Proposed: 2× `str.replace()` + 1× complex `re.sub()`
+
 ---
 
-### Solution 2: Optimized Heading Anchor Injection (P2)
+### Solution 2: Heading Anchor Slow Path Optimization (P3 — Low Priority)
 
-**Approach**: Use single-pass processing with state machine instead of splitting.
+**Approach**: Optimize the blockquote-aware slow path.
 
-**Implementation**:
+> ℹ️ **Assessment**: The current implementation is already efficient for real-world content. The slow path complexity is O(n + m×r) which is effectively O(n) for typical pages. This optimization is **low priority**.
+
+**Current State**: The existing implementation already has:
+- ✅ Fast path for pages without blockquotes (most pages)
+- ✅ Compiled regex patterns
+- ✅ Quick rejection for pages without headings
+
+**If Optimization is Needed**:
+
+The current slow path can be improved by avoiding repeated string slicing:
 
 ```python
 # In bengal/rendering/parsers/mistune/toc.py
 
 def inject_heading_anchors_optimized(html: str, slugify_func: Any) -> str:
     """
-    Single-pass heading anchor injection with blockquote awareness.
+    Optimized heading anchor injection.
 
-    Uses character-level scanning instead of regex splitting.
-    O(n) regardless of blockquote count.
+    Key improvement: Use list-based accumulation instead of repeated slicing.
     """
     if not html or not ("<h2" in html or "<h3" in html or "<h4" in html):
         return html
 
-    # Fast path: no blockquotes
+    # Fast path: no blockquotes (already optimal)
     if "<blockquote" not in html:
         return HEADING_PATTERN.sub(_make_heading_replacer(slugify_func), html)
 
-    # Optimized slow path: single-pass state machine
-    result = []
-    blockquote_depth = 0
-    i = 0
-    n = len(html)
-    last_copy = 0
+    # Improved slow path: accumulate parts without repeated slicing
+    parts = []
+    in_blockquote = 0
+    last_pos = 0
 
-    while i < n:
-        # Check for blockquote open
-        if html[i:i+11].lower() == "<blockquote":
-            blockquote_depth += 1
-            i += 11
-            continue
+    # Single pass: find all blockquote boundaries
+    for match in re.finditer(r"<(/?)blockquote[^>]*>", html, re.IGNORECASE):
+        segment = html[last_pos:match.start()]
 
-        # Check for blockquote close
-        if html[i:i+13].lower() == "</blockquote>":
-            blockquote_depth = max(0, blockquote_depth - 1)
-            i += 13
-            continue
-
-        # Check for heading (only process if not in blockquote)
-        if blockquote_depth == 0 and html[i:i+3] in ("<h2", "<h3", "<h4"):
-            # Find heading end
-            heading_end = html.find("</h", i)
-            if heading_end != -1:
-                heading_end = html.find(">", heading_end) + 1
-                heading_html = html[i:heading_end]
-
-                # Copy content before heading
-                result.append(html[last_copy:i])
-
-                # Process heading
-                processed = HEADING_PATTERN.sub(
-                    _make_heading_replacer(slugify_func),
-                    heading_html
-                )
-                result.append(processed)
-                last_copy = heading_end
-                i = heading_end
-                continue
-
-        i += 1
-
-    # Copy remaining content
-    result.append(html[last_copy:])
-    return "".join(result)
-
-
-def _make_heading_replacer(slugify_func):
-    """Create heading replacer function."""
-    def replace_heading(match: re.Match) -> str:
-        tag = match.group(1)
-        attrs = match.group(2)
-        content = match.group(3)
-
-        if "id=" in attrs:
-            return match.group(0)
-
-        # Check for explicit {#custom-id}
-        id_match = EXPLICIT_ID_PATTERN.search(content)
-        if id_match:
-            slug = id_match.group(1)
-            content = EXPLICIT_ID_PATTERN.sub("", content)
+        if in_blockquote == 0 and segment:
+            # Process headings outside blockquotes
+            parts.append(HEADING_PATTERN.sub(_make_heading_replacer(slugify_func), segment))
         else:
-            text = HTML_TAG_PATTERN.sub("", content).strip()
-            if not text:
-                return match.group(0)
-            slug = slugify_func(text)
+            parts.append(segment)
 
-        return f'<{tag} id="{slug}"{attrs}>{content}</{tag}>'
+        parts.append(match.group(0))
+        last_pos = match.end()
 
-    return replace_heading
+        # Track nesting
+        if match.group(1) == "/":
+            in_blockquote = max(0, in_blockquote - 1)
+        else:
+            in_blockquote += 1
+
+    # Handle remaining content
+    remaining = html[last_pos:]
+    if in_blockquote == 0 and remaining:
+        parts.append(HEADING_PATTERN.sub(_make_heading_replacer(slugify_func), remaining))
+    else:
+        parts.append(remaining)
+
+    return "".join(parts)
 ```
 
-**Complexity Improvement**: O(n × blockquote_count) → O(n)
+**Complexity**: O(n) single pass with regex finditer
 
-**Files to Modify**:
-- Update `bengal/rendering/parsers/mistune/toc.py`
-
-**Trade-offs**:
-- ✅ O(n) regardless of blockquote count
-- ✅ No string slicing for each blockquote boundary
-- ⚠️ More complex character-level logic
-- ⚠️ Requires careful testing of edge cases
+**Recommendation**: **Defer** — Current implementation is adequate. Only implement if profiling shows this is a bottleneck on specific content.
 
 ---
 
-### Solution 3: Tag Page Context Caching (P2)
+### Solution 3: Tag Page Context Caching (P1 — Recommended)
 
 **Approach**: Cache resolved tag pages per tag slug, invalidate on taxonomy change.
 
@@ -632,81 +611,89 @@ class APIDocEnhancer:
 
 ## Implementation Plan
 
-### Phase 1: Unified HTML Transform (High Impact) — 1 day
+### Phase 1: Tag Page Context Caching (Low Risk, Clear Value) — 0.5 days
 
-**Priority**: P1  
-**Effort**: 1 day  
-**Risk**: Medium
-
-**Steps**:
-1. Create `unified_transform.py` with combined transformer
-2. Add comprehensive unit tests for all transform cases
-3. Update `pipeline/core.py` to use unified transformer
-4. Benchmark before/after on test sites
-5. Keep individual functions for backward compatibility
-
-**Success Criteria**:
-- ✅ 20-40% reduction in HTML processing time
-- ✅ All existing tests pass
-- ✅ Output identical to current implementation
-- ✅ No memory regression
-
----
-
-### Phase 2: Tag Page Context Caching — 0.5 days
-
-**Priority**: P2  
+**Priority**: P1 ⭐  
 **Effort**: 0.5 days  
 **Risk**: Low
 
+**Why First**: Additive change, no API modifications, clear benefit for tag-heavy sites.
+
 **Steps**:
-1. Add `_tag_pages_cache` to Renderer
-2. Implement `_build_all_tag_pages_cache()`
+1. Add `_tag_pages_cache: dict[str, list[Page]] | None = None` to Renderer
+2. Implement `_build_all_tag_pages_cache()` method
 3. Update `_add_tag_generated_page_context()` to use cache
 4. Test with multi-page tag pagination
 
 **Success Criteria**:
-- ✅ O(1) tag page lookups after initial build
-- ✅ Correct pagination behavior
+- ✅ Filtering done once per build instead of per-render
+- ✅ Correct pagination behavior preserved
 - ✅ No stale data issues
 
 ---
 
-### Phase 3: Heading Anchor Optimization — 0.5 days
+### Phase 2: Hybrid HTML Transform (Requires Benchmarking) — 1 day
 
 **Priority**: P2  
-**Effort**: 0.5 days  
+**Effort**: 1 day  
 **Risk**: Medium
 
+**Why Second**: Needs benchmarking to verify benefit. Current `str.replace()` is already fast.
+
 **Steps**:
-1. Implement state machine approach in `toc.py`
-2. Add tests for blockquote edge cases
-3. Benchmark on blockquote-heavy content
-4. Feature flag for gradual rollout
+1. **First**: Create benchmark script comparing approaches
+2. Only proceed if benchmarks show > 15% improvement
+3. Create `unified_transform.py` with hybrid transformer
+4. Add comprehensive unit tests for all transform cases
+5. Update `pipeline/core.py` to use hybrid transformer
+6. Keep individual functions for backward compatibility
+
+**Benchmark First**:
+```python
+# scripts/benchmark_transforms.py
+# Compare: Current 3-pass vs Hybrid 2-pass
+# Target: > 15% improvement to justify complexity
+```
 
 **Success Criteria**:
-- ✅ O(n) regardless of blockquote count
-- ✅ All heading anchor tests pass
-- ✅ 2-5× faster on API documentation
+- ✅ Verified improvement via benchmarks
+- ✅ 10-25% reduction in HTML processing time
+- ✅ All existing tests pass
+- ✅ Output identical to current implementation
 
 ---
 
-### Phase 4: Combined API Badge Pattern — 0.5 days
+### Phase 3: Heading Anchor Optimization (Defer) — 0.5 days
 
-**Priority**: P3  
+**Priority**: P3 (Defer)  
+**Effort**: 0.5 days  
+**Risk**: Medium
+
+**Why Deferred**: Current implementation is already efficient. Only implement if profiling shows bottleneck.
+
+**Trigger Condition**: Profile data showing > 5% of build time in `inject_heading_anchors` slow path.
+
+**Steps** (if triggered):
+1. Profile real builds to identify if slow path is hit frequently
+2. If yes, implement optimized version
+3. Add tests for blockquote edge cases
+4. Feature flag for gradual rollout
+
+---
+
+### Phase 4: Combined API Badge Pattern (Skip) — N/A
+
+**Priority**: P4 (Skip)  
 **Effort**: 0.5 days  
 **Risk**: Low
 
-**Steps**:
-1. Create combined regex pattern
-2. Update `APIDocEnhancer.enhance()`
-3. Test all badge types
-4. Verify badge appearance unchanged
+**Why Skip**:
+- Only affects API doc pages (< 10% of typical site)
+- 5 patterns are simple and compile to efficient DFA
+- Combining may not improve performance due to pattern complexity
+- Current gating (`should_enhance`) makes this a non-issue
 
-**Success Criteria**:
-- ✅ Single regex pass for all badges
-- ✅ Visual output unchanged
-- ✅ 5× fewer regex operations
+**Action**: No implementation needed. Revisit only if API doc rendering becomes a bottleneck.
 
 ---
 
@@ -787,12 +774,12 @@ def benchmark_html_transforms(html_samples: list[str], iterations: int = 100):
 
 ## Risk Assessment
 
-| Optimization | Risk Level | Mitigation |
-|--------------|------------|------------|
-| **Unified transform** | Medium | Comprehensive test suite, feature flag |
-| **Tag page caching** | Low | Additive change, no API changes |
-| **Heading anchor optimization** | Medium | Keep fallback to current impl |
-| **API badge combining** | Low | Visual regression tests |
+| Optimization | Risk Level | Mitigation | Recommendation |
+|--------------|------------|------------|----------------|
+| **Tag page caching** | Low | Additive change, no API modifications | ✅ Proceed |
+| **Hybrid transform** | Medium | Benchmark first, keep fallback, feature flag | ⚠️ Validate first |
+| **Heading anchor optimization** | Medium | Current impl is adequate | ❌ Defer |
+| **API badge combining** | Low | Negligible benefit | ❌ Skip |
 
 ---
 
@@ -829,14 +816,23 @@ def benchmark_html_transforms(html_samples: list[str], iterations: int = 100):
 
 ## Success Metrics
 
-### Performance Targets
+### Performance Targets (Realistic)
 
-| Metric | Current | Target | Improvement |
-|--------|---------|--------|-------------|
-| **HTML transform time** | O(4n) | O(n) | 3-4× |
-| **Heading anchor (blockquotes)** | O(n×depth) | O(n) | 2-5× |
-| **Tag page context** | O(renders × pages) | O(1) lookup | 10-50× |
-| **API badge injection** | O(5n) | O(n) | 5× |
+| Metric | Current | Target | Realistic Improvement |
+|--------|---------|--------|----------------------|
+| **HTML transform time** | O(3n) | O(2n) | 1.3-1.5× (if benchmarks confirm) |
+| **Tag page filtering** | O(P × R) | O(P) once | 2-3× for tag-heavy sites |
+| **Heading anchor (slow path)** | O(n + m×r) | O(n) | Marginal (defer) |
+| **API badge injection** | O(5n) gated | — | Skip (not a bottleneck) |
+
+Where: P = pages per tag, R = renders per tag, m = blockquote count, r = avg content between
+
+### Estimated Wall-Clock Impact
+
+For a 1000-page site with 50 tags:
+- **Tag caching**: Saves ~100-200ms per full build
+- **Hybrid transform**: Saves ~50-150ms per full build (if implemented)
+- **Total potential**: ~150-350ms faster builds
 
 ### Quality Targets
 
@@ -844,18 +840,21 @@ def benchmark_html_transforms(html_samples: list[str], iterations: int = 100):
 - ✅ Output HTML identical to current
 - ✅ No memory regressions
 - ✅ No performance regressions on any path
+- ✅ Benchmarks validate improvements before merge
 
 ---
 
 ## References
 
 - **Big O Analysis**: This RFC's problem statement section
-- **Source Code**:
-  - `bengal/rendering/pipeline/core.py:298-314` — Transform chain
-  - `bengal/rendering/parsers/mistune/toc.py:92-172` — Heading anchors
+- **Source Code** (verified 2025-01-XX):
+  - `bengal/rendering/pipeline/core.py:307-314` — Transform chain (3 passes)
+  - `bengal/rendering/pipeline/transforms.py:71-152` — Transform implementations
+  - `bengal/rendering/link_transformer.py:30-203` — Link transformation functions
+  - `bengal/rendering/parsers/mistune/toc.py:44-172` — Heading anchors (fast + slow path)
   - `bengal/rendering/renderer.py:366-518` — Tag page context
   - `bengal/rendering/plugins/cross_references.py:116-141` — Xref splitting
-  - `bengal/rendering/api_doc_enhancer.py:105-145` — Badge injection
+  - `bengal/rendering/api_doc_enhancer.py:49-145` — Badge patterns and injection
 
 ---
 
@@ -865,40 +864,52 @@ def benchmark_html_transforms(html_samples: list[str], iterations: int = 100):
 
 | Approach | Time | Space | Notes |
 |----------|------|-------|-------|
-| **Current** | O(4n) | O(4n) | 4 strings created |
-| **Proposed** | O(n) | O(n) | Single result string |
+| **Current** | O(3n) | O(3n) | 3 strings created (2 replace + 2 regex) |
+| **Proposed (Hybrid)** | O(2n) | O(2n) | Keep fast replace, combine regex |
 
 ### Heading Anchors
 
 | Approach | Time | Space | Notes |
 |----------|------|-------|-------|
-| **Current (fast path)** | O(n) | O(n) | No blockquotes |
-| **Current (slow path)** | O(n × depth) | O(parts) | With blockquotes |
-| **Proposed** | O(n) | O(n) | Always linear |
+| **Current (fast path)** | O(n) | O(n) | No blockquotes — already optimal ✅ |
+| **Current (slow path)** | O(n + m×r) | O(parts) | m=blockquotes, r=avg segment |
+| **Note** | — | — | Slow path is ~O(n) for typical content |
 
 ### Tag Page Context
 
 | Approach | Time | Space | Notes |
 |----------|------|-------|-------|
-| **Current** | O(T × P × R) | O(1) | R = renders per tag |
-| **Proposed** | O(T × P) + O(1) | O(T × P_avg) | One-time build + lookup |
+| **Current** | O(T × P × R) | O(1) | R = pagination pages per tag |
+| **Proposed** | O(T × P) + O(1) | O(T × P_avg) | One-time filtering + O(1) lookup |
+
+Where:
+- T = number of tags
+- P = average pages per tag  
+- R = pagination pages per tag (typically 1-5)
+- m = blockquote count per page
+- r = average content length between blockquotes
 
 ---
 
 ## Conclusion
 
-The rendering package has excellent algorithmic foundations with sophisticated caching. These optimizations provide **incremental improvements** for large sites while maintaining full backward compatibility.
+The rendering package has excellent algorithmic foundations with sophisticated caching. The identified bottlenecks are **polish opportunities**, not fundamental issues. The code is already well-optimized.
 
-**Recommended Priority**:
+**Recommended Priority** (revised based on risk/value analysis):
 
-| Priority | Optimization | Effort | Value | Risk |
-|----------|--------------|--------|-------|------|
-| P1 | Unified HTML transform | 1 day | High | Medium |
-| P2 | Tag page context caching | 0.5 days | Medium | Low |
-| P2 | Heading anchor optimization | 0.5 days | Medium | Medium |
-| P3 | Combined API badge pattern | 0.5 days | Low | Low |
+| Priority | Optimization | Effort | Value | Risk | Action |
+|----------|--------------|--------|-------|------|--------|
+| **P1** ⭐ | Tag page context caching | 0.5 days | Medium | Low | **Implement** |
+| P2 | Hybrid HTML transform | 1 day | Low-Medium | Medium | Benchmark first |
+| P3 | Heading anchor optimization | 0.5 days | Low | Medium | Defer |
+| P4 | Combined API badge pattern | 0.5 days | Negligible | Low | Skip |
 
-**Bottom Line**: Focus on Phase 1 (unified transform) for the biggest wins. Phases 2-4 can be implemented opportunistically when working in related areas.
+**Bottom Line**:
+1. **Implement Phase 1** (tag caching) — safe, additive, clear benefit
+2. **Benchmark before Phase 2** — verify `str.replace()` vs regex trade-off
+3. **Skip Phases 3-4** — current implementations are adequate
+
+**Key Insight**: The rendering package is already mature. These are diminishing-returns optimizations for edge cases (very large sites, many tags). For typical sites (100-1000 pages), current performance is excellent.
 
 ---
 
@@ -906,7 +917,7 @@ The rendering package has excellent algorithmic foundations with sophisticated c
 
 These changes can be made immediately with minimal risk:
 
-### Add Tag Pages Cache (< 30 minutes)
+### Quick Win 1: Add Tag Pages Cache (< 30 minutes) ⭐
 
 ```python
 # In bengal/rendering/renderer.py
@@ -915,29 +926,61 @@ class Renderer:
     def __init__(self, ...):
         # ... existing ...
         self._tag_pages_cache: dict[str, list[Page]] | None = None
+
+    def _get_resolved_tag_pages(self, tag_slug: str) -> list[Page]:
+        """Get filtered pages for tag (cached)."""
+        if self._tag_pages_cache is None:
+            self._tag_pages_cache = self._build_all_tag_pages_cache()
+        return self._tag_pages_cache.get(tag_slug, [])
 ```
 
-### Pre-compile All Regex Patterns (< 15 minutes)
+### Quick Win 2: Add Benchmark Script (< 30 minutes)
 
-Ensure all regex patterns in transform functions are module-level compiled:
+Create a benchmark to validate transform optimization value:
 
 ```python
-# At module level (not inside functions)
-_JINJA_PATTERN = re.compile(r"\{\{|\}\}|\{%|%\}")
-_MD_LINK_PATTERN = re.compile(r'href=["\']([^"\']*\.md)["\']')
-_INTERNAL_LINK_PATTERN = re.compile(r'(href|src)=["\'](/[^"\']*)["\']')
+# scripts/benchmark_transforms.py
+
+import time
+from bengal.rendering.pipeline.transforms import (
+    escape_jinja_blocks, normalize_markdown_links, transform_internal_links
+)
+
+def benchmark(html_samples: list[str], iterations: int = 1000):
+    """Measure current transform chain performance."""
+    config = {"baseurl": "/bengal"}
+
+    start = time.perf_counter()
+    for _ in range(iterations):
+        for html in html_samples:
+            result = escape_jinja_blocks(html)
+            result = normalize_markdown_links(result)
+            result = transform_internal_links(result, config)
+    elapsed = time.perf_counter() - start
+
+    print(f"Current: {elapsed*1000:.2f}ms for {iterations} iterations")
+    print(f"Per-page: {elapsed*1000/iterations:.3f}ms")
+
+if __name__ == "__main__":
+    # Load sample HTML from real pages
+    samples = [open(f).read() for f in glob("tests/fixtures/*.html")]
+    benchmark(samples)
 ```
 
 ---
 
 ## Code Verification
 
-This RFC was verified against actual source code:
+This RFC was verified against actual source code (2025-01-XX):
 
 **Verified Implementations**:
-- ✅ **Transform chain**: Confirmed 3-4 sequential O(n) passes in `core.py:298-314`
-- ✅ **Heading anchor slow path**: Confirmed O(n×depth) in `toc.py:92-172`
-- ✅ **Tag page context**: Confirmed repeated O(pages) resolution in `renderer.py:366-518`
-- ✅ **API badge patterns**: Confirmed 5 sequential pattern matches in `api_doc_enhancer.py`
+- ✅ **Transform chain**: 3 sequential O(n) passes in `core.py:307-314`
+  - `escape_jinja_blocks`: 2× `str.replace()` (C-optimized, fast)
+  - `normalize_markdown_links`: 1× `re.sub()`
+  - `transform_internal_links`: 1× `re.sub()` (conditional on baseurl)
+- ✅ **Tag page resolution**: O(1) via cached `str_page_map` in `renderer.py:391-392`
+- ✅ **Tag page filtering**: O(P) per render in `renderer.py:396-401` (repeated)
+- ✅ **Heading anchor slow path**: O(n + m×r) in `toc.py:91-172` (not O(n×depth))
+- ✅ **API badge patterns**: 5 patterns gated by page type in `api_doc_enhancer.py:126-127`
 
-**Key Finding**: The rendering package has mature, well-optimized code. These are polish optimizations, not fundamental fixes.
+**Key Finding**: The rendering package is already well-optimized. Tag caching is the safest high-value change. Transform unification requires benchmarking to validate benefit.

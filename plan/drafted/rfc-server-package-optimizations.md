@@ -874,21 +874,28 @@ def __getattr__(name: str) -> Any:
 
 ## Conclusion
 
-The server package is well-designed with **O(1) to O(n) scaling** and sophisticated optimizations already in place. The proposed improvements are **polish optimizations** for edge cases:
+The server package is well-designed with **O(1) to O(n) scaling** and sophisticated optimizations already in place:
+
+**Already Optimized** (no action needed):
+- Source-gated reload decision (bypasses output processing for CSS-only)
+- Typed output records via `decide_from_outputs()` (bypasses O(F) snapshot)
+- LRU HTML cache, debouncing, hash caching, throttling, lazy imports
+
+**Proposed polish optimizations** for edge cases:
 
 | Priority | Optimization | Effort | Value | Risk |
 |----------|--------------|--------|-------|------|
-| P2 | Verify incremental outputs path | 0.5 days | High (bypass O(F) walk) | Very Low |
+| P2 | Verify incremental outputs path | 0.5 days | High (confirm O(F) bypassed) | Very Low |
 | P3 | Pattern filter caching | 1 day | Medium (rapid changes) | Low |
 | P3 | Frontmatter caching | 0.5 days | Low-Medium | Low |
 | P4 | Template dir caching | 0.5 days | Low | Very Low |
 
 **Recommendation**:
-1. Audit and verify incremental outputs path (P2) — highest ROI
-2. Add pattern filter caching (P3) if rapid file change performance is reported
-3. Other optimizations are nice-to-haves
+1. **Add logging** to confirm source-gated and typed outputs paths are taken (P2)
+2. **Add pattern filter caching** (P3) only if rapid file change performance is reported
+3. **Skip other optimizations** unless specific performance issues arise
 
-**Bottom Line**: The package handles typical dev workflows well. Focus efforts on verifying the incremental outputs path is always taken.
+**Bottom Line**: The package already handles typical dev workflows efficiently. The three-tier reload decision flow (source-gated → typed outputs → fallback) is more sophisticated than initially analyzed. Focus efforts on adding observability to confirm these paths are taken.
 
 ---
 

@@ -90,6 +90,7 @@ class IgnoreFilter:
         directories: list[Path] | None = None,
         *,
         include_defaults: bool = True,
+        cache_max_size: int = 1000,
     ) -> None:
         r"""
         Initialize ignore filter.
@@ -99,6 +100,7 @@ class IgnoreFilter:
             regex_patterns: Regex patterns (e.g., r".*\.min\.(js|css)$")
             directories: Directories to always ignore (resolved to absolute paths)
             include_defaults: Whether to include default ignored directories
+            cache_max_size: Maximum entries in path result cache (default 1000)
 
         Raises:
             re.error: If a regex pattern is invalid
@@ -108,9 +110,26 @@ class IgnoreFilter:
         self.directories = [p.resolve() for p in (directories or [])]
         self.include_defaults = include_defaults
 
+        # Pre-compile glob patterns to regex for faster matching
+        # fnmatch.translate() converts glob to regex pattern
+        self._compiled_globs: list[re.Pattern[str]] = []
+        for pattern in self.glob_patterns:
+            try:
+                regex = fnmatch.translate(pattern)
+                self._compiled_globs.append(re.compile(regex))
+            except re.error:
+                # If pattern fails to compile, keep using fnmatch fallback
+                pass
+
+        # LRU-style cache for path results: path_str -> is_ignored
+        self._path_cache: dict[str, bool] = {}
+        self._cache_max_size = cache_max_size
+
     def __call__(self, path: Path) -> bool:
         """
         Return True if path should be ignored.
+
+        Uses LRU cache for repeated path checks. Cache hit is O(1).
 
         Args:
             path: Path to check (resolved to absolute)
@@ -118,34 +137,79 @@ class IgnoreFilter:
         Returns:
             True if the path matches any ignore pattern, False otherwise
         """
-        path = path.resolve()
-        path_str = path.as_posix()
+        # Check cache first (O(1) for repeated paths)
+        path_str = str(path)
+        cached = self._path_cache.get(path_str)
+        if cached is not None:
+            return cached
+
+        # Compute result
+        result = self._check_path(path)
+
+        # Update cache with LRU eviction
+        if len(self._path_cache) >= self._cache_max_size:
+            # Remove oldest entry (first key in ordered dict)
+            first_key = next(iter(self._path_cache))
+            del self._path_cache[first_key]
+        self._path_cache[path_str] = result
+
+        return result
+
+    def _check_path(self, path: Path) -> bool:
+        """
+        Internal path check without caching.
+
+        Args:
+            path: Path to check
+
+        Returns:
+            True if the path matches any ignore pattern
+        """
+        resolved = path.resolve()
+        path_posix = resolved.as_posix()
 
         # Check default directory names in path parts
         if self.include_defaults:
-            for part in path.parts:
+            for part in resolved.parts:
                 if part in self.DEFAULT_IGNORED_DIRS:
                     return True
 
         # Check explicit directories
         for ignored_dir in self.directories:
             try:
-                path.relative_to(ignored_dir)
+                resolved.relative_to(ignored_dir)
                 return True
             except ValueError:
                 pass
 
-        # Check glob patterns
-        for pattern in self.glob_patterns:
-            # Match against full path
-            if fnmatch.fnmatch(path_str, pattern):
-                return True
-            # Also match against filename only
-            if fnmatch.fnmatch(path.name, pattern):
-                return True
+        # Use pre-compiled patterns if available (faster than fnmatch)
+        if self._compiled_globs:
+            name = path.name
+            for compiled in self._compiled_globs:
+                # Match against full path
+                if compiled.match(path_posix):
+                    return True
+                # Also match against filename only
+                if compiled.match(name):
+                    return True
+        else:
+            # Fallback to fnmatch if compilation failed
+            for pattern in self.glob_patterns:
+                if fnmatch.fnmatch(path_posix, pattern):
+                    return True
+                if fnmatch.fnmatch(path.name, pattern):
+                    return True
 
-        # Check regex patterns
-        return any(regex.search(path_str) for regex in self.regex_patterns)
+        # Check regex patterns (already compiled at init)
+        return any(regex.search(path_posix) for regex in self.regex_patterns)
+
+    def clear_cache(self) -> None:
+        """
+        Clear the path result cache.
+
+        Call this after configuration changes to ensure fresh results.
+        """
+        self._path_cache.clear()
 
     @classmethod
     def from_config(
