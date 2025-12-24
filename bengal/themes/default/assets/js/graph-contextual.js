@@ -50,8 +50,8 @@
                 currentPageUrl: options.currentPageUrl || window.location.pathname,
                 maxConnections: options.maxConnections || 15,
                 usePageJson: options.usePageJson !== false,
-                // Use force simulation for organic feel (static layout available as fallback)
-                staticLayout: options.staticLayout || false,
+                // Use static layout by default for instant render (no animation jitter)
+                staticLayout: options.staticLayout !== false,
                 ...options
             };
 
@@ -318,12 +318,8 @@
             // v2: Resolve colors once before rendering (not on every tick)
             this._resolveNodeColorsOnce();
 
-            // v2: Use static layout or very fast simulation
-            if (this.options.staticLayout) {
-                this._computeStaticLayout(width, height);
-            } else {
-                this._createSimulation(preparedEdges, width, height);
-            }
+            // Use snap simulation - pre-computes most layout, brief animated finish
+            this._createSimulation(preparedEdges, width, height);
 
             // Render links
             this.links = this.g.append('g')
@@ -392,56 +388,54 @@
         }
 
         /**
-         * v2: Compute static layout (radial around center node)
-         * No animation = no DevTools performance issues
-         */
-        _computeStaticLayout(width, height) {
-            const centerX = width / 2;
-            const centerY = height / 2;
-            const radius = Math.min(width, height) * 0.38;
-
-            // Find current node and place at center
-            const currentNode = this.filteredData.nodes.find(n => n.isCurrent);
-            const otherNodes = this.filteredData.nodes.filter(n => !n.isCurrent);
-
-            if (currentNode) {
-                currentNode.x = centerX;
-                currentNode.y = centerY;
-            }
-
-            // Distribute other nodes in a circle
-            const angleStep = (2 * Math.PI) / Math.max(otherNodes.length, 1);
-            otherNodes.forEach((node, i) => {
-                const angle = i * angleStep - Math.PI / 2; // Start from top
-                node.x = centerX + radius * Math.cos(angle);
-                node.y = centerY + radius * Math.sin(angle);
-            });
-        }
-
-        /**
-         * Create animated force simulation for organic feel
+         * Create force simulation with quick "snap" feel
+         * Pre-runs most iterations, then animates the final settle
          */
         _createSimulation(preparedEdges, width, height) {
-            const padding = 5;
+            const padding = 8;
+            const centerX = width / 2;
+            const centerY = height / 2;
+
+            // IMPORTANT: Reset node positions to ensure animation happens
+            // (nodes may have cached x/y from previous load or JSON)
+            this.filteredData.nodes.forEach(node => {
+                delete node.x;
+                delete node.y;
+                delete node.vx;
+                delete node.vy;
+                // Initialize with slight scatter around center
+                node.x = centerX + (Math.random() - 0.5) * 30;
+                node.y = centerY + (Math.random() - 0.5) * 30;
+            });
 
             this.simulation = d3.forceSimulation(this.filteredData.nodes)
-                .alphaDecay(0.05)       // Gentle decay for smooth animation
-                .alphaMin(0.01)         // Stop when stable
-                .velocityDecay(0.4)     // Some friction
-                .force('link', d3.forceLink(preparedEdges).id(d => d.id).distance(40))
-                .force('charge', d3.forceManyBody().strength(-80))
-                .force('center', d3.forceCenter(width / 2, height / 2))
-                .force('collision', d3.forceCollide().radius(8));
+                .alphaDecay(0.15)        // Fast decay
+                .alphaMin(0.01)
+                .velocityDecay(0.5)      // Good damping
+                .force('link', d3.forceLink(preparedEdges).id(d => d.id).distance(35))
+                .force('charge', d3.forceManyBody().strength(-60))
+                .force('center', d3.forceCenter(centerX, centerY))
+                .force('collision', d3.forceCollide().radius(8))
+                .stop(); // Don't auto-run yet
 
-            // Animate positions on each tick
+            // Pre-run most of the simulation (get ~80% settled, leave room for snap)
+            for (let i = 0; i < 25; i++) {
+                this.simulation.tick();
+            }
+
+            // Constrain to bounds after pre-run
+            this.filteredData.nodes.forEach(node => {
+                node.x = Math.max(padding, Math.min(width - padding, node.x));
+                node.y = Math.max(padding, Math.min(height - padding, node.y));
+            });
+
+            // Now set up tick handler for the brief animated finish
             this.simulation.on('tick', () => {
-                // Constrain to bounds
                 this.filteredData.nodes.forEach(node => {
                     node.x = Math.max(padding, Math.min(width - padding, node.x));
                     node.y = Math.max(padding, Math.min(height - padding, node.y));
                 });
 
-                // Update link positions
                 if (this.links) {
                     this.links
                         .attr('x1', d => d.source.x)
@@ -450,7 +444,6 @@
                         .attr('y2', d => d.target.y);
                 }
 
-                // Update node positions
                 if (this.nodes) {
                     this.nodes
                         .attr('cx', d => d.x)
@@ -458,13 +451,16 @@
                 }
             });
 
-            // Stop after reasonable time to save CPU
+            // Restart with moderate alpha for satisfying snap (~250ms of animation)
+            this.simulation.alpha(0.25).restart();
+
+            // Stop after brief animation
             this._simulationTimeout = setTimeout(() => {
                 if (this.simulation) {
                     this.simulation.stop();
                 }
                 this._simulationTimeout = null;
-            }, 2000);
+            }, 300);
         }
 
         /**
@@ -689,6 +685,17 @@
     window.addEventListener('d3:ready', initContextualGraph);
     window.addEventListener('beforeunload', cleanup);
     window.addEventListener('pagehide', cleanup);
+
+    // Re-initialize on SPA-like navigation (Turbo, PJAX, etc.)
+    document.addEventListener('turbo:load', () => {
+        cleanup();
+        initContextualGraph();
+    });
+    document.addEventListener('turbo:before-visit', cleanup);
+    document.addEventListener('pjax:end', () => {
+        cleanup();
+        initContextualGraph();
+    });
 
     // Export
     if (typeof window !== 'undefined') {

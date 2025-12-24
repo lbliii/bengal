@@ -429,7 +429,7 @@ class GraphVisualizer:
 <body class="graph-body">
     <div id="container" class="graph-container">
         <div class="graph-controls">
-            <h2>🗺️ Knowledge Graph</h2>
+            <h2>Knowledge Graph</h2>
             <input
                 type="text"
                 id="search"
@@ -501,83 +501,78 @@ class GraphVisualizer:
             }})
         );
 
-        // Create force simulation with link force
-        // D3's forceLink will convert edge source/target IDs to node references
-        const linkForce = d3.forceLink(graphData.edges)
-            .id(d => d.id)
-            .distance(50);
+        // Helper function to resolve CSS variables to actual colors
+        function resolveCSSVariable(varName) {{
+            const cleanVar = varName.replace(/var\\(|\\s|\\)/g, '');
+            const root = document.documentElement;
+            const value = getComputedStyle(root).getPropertyValue(cleanVar).trim();
+            return value || '#9e9e9e';
+        }}
+
+        // Map node types to graph-specific CSS variables
+        const nodeTypeColorMap = {{
+            'hub': '--graph-node-hub',
+            'regular': '--graph-node-regular',
+            'orphan': '--graph-node-orphan',
+            'generated': '--graph-node-generated'
+        }};
+
+        // Resolve colors before rendering
+        graphData.nodes.forEach(node => {{
+            const cssVar = nodeTypeColorMap[node.type] || '--graph-node-regular';
+            node.color = resolveCSSVariable(cssVar);
+        }});
+
+        // Resolve link color
+        const linkColor = resolveCSSVariable('--graph-link-color') || 'rgba(100, 100, 100, 0.2)';
+        const linkHighlightColor = resolveCSSVariable('--graph-link-highlight') || 'rgba(255, 180, 100, 0.7)';
+
+        // Create force simulation and PRE-COMPUTE positions before rendering
+        const nodeCount = graphData.nodes.length;
+        const scaleFactor = Math.max(1, Math.sqrt(nodeCount / 50));
 
         const simulation = d3.forceSimulation(graphData.nodes)
-            .force("link", linkForce)
-            .force("charge", d3.forceManyBody()
-                .strength(-200))
+            .force("link", d3.forceLink(graphData.edges).id(d => d.id).distance(70 * scaleFactor))
+            .force("charge", d3.forceManyBody().strength(-300 * scaleFactor).distanceMax(400))
             .force("center", d3.forceCenter(width / 2, height / 2))
-            .force("collision", d3.forceCollide()
-                .radius(d => d.size + 5));
+            .force("collision", d3.forceCollide().radius(d => d.size + 8).strength(0.7))
+            .force("x", d3.forceX(width / 2).strength(0.04))
+            .force("y", d3.forceY(height / 2).strength(0.04))
+            .stop(); // Don't auto-run
 
-        // Render links - use the same edges array, D3 will convert IDs to node refs
+        // Pre-compute layout (run simulation synchronously)
+        const iterations = Math.ceil(Math.log(simulation.alphaMin()) / Math.log(1 - simulation.alphaDecay()));
+        for (let i = 0; i < iterations; i++) {{
+            simulation.tick();
+        }}
+
+        // NOW render with computed positions - links first (behind nodes)
         const link = g.append("g")
             .attr("class", "graph-links")
             .selectAll("line")
             .data(graphData.edges)
             .enter().append("line")
             .attr("class", "graph-link")
-            .attr("stroke", "var(--color-border-light, rgba(0, 0, 0, 0.1))")
-            .attr("stroke-width", 1);
+            .attr("stroke", linkColor)
+            .attr("stroke-width", 1)
+            .attr("stroke-linecap", "round")
+            .style("opacity", 0.6)
+            .attr("x1", d => d.source.x)
+            .attr("y1", d => d.source.y)
+            .attr("x2", d => d.target.x)
+            .attr("y2", d => d.target.y);
 
-        // Helper function to resolve CSS variables to actual colors
-        function resolveCSSVariable(varName) {{
-            // Remove 'var(' and ')' if present
-            const cleanVar = varName.replace(/var\\(|\\s|\\)/g, '');
-            // Get computed value from root element
-            const root = document.documentElement;
-            const value = getComputedStyle(root).getPropertyValue(cleanVar).trim();
-            return value || '#9e9e9e'; // Fallback color
-        }}
-
-        // Resolve CSS variables in node colors
-        graphData.nodes.forEach(node => {{
-            if (node.color && node.color.startsWith('var(')) {{
-                // Extract variable name and resolve
-                const varMatch = node.color.match(/var\\(([^)]+)\\)/);
-                if (varMatch) {{
-                    const varName = varMatch[1].trim();
-                    node.color = resolveCSSVariable(varName);
-                }}
-            }}
-        }});
-
-        // Helper function to resolve CSS variables to actual colors
-        function resolveCSSVariable(varName) {{
-            // Remove 'var(' and ')' if present
-            const cleanVar = varName.replace(/var\\(|\\s|\\)/g, '');
-            // Get computed value from root element
-            const root = document.documentElement;
-            const value = getComputedStyle(root).getPropertyValue(cleanVar).trim();
-            return value || '#9e9e9e'; // Fallback color
-        }}
-
-        // Resolve CSS variables in node colors
-        graphData.nodes.forEach(node => {{
-            if (node.color && node.color.startsWith('var(')) {{
-                // Extract variable name and resolve
-                const varMatch = node.color.match(/var\\(([^)]+)\\)/);
-                if (varMatch) {{
-                    const varName = varMatch[1].trim();
-                    node.color = resolveCSSVariable(varName);
-                }}
-            }}
-        }});
-
-        // Render nodes
+        // Render nodes (on top of links)
         const node = g.append("g")
             .attr("class", "graph-nodes")
             .selectAll("circle")
             .data(graphData.nodes)
             .enter().append("circle")
-            .attr("class", "graph-node")
+            .attr("class", d => `graph-node graph-node-${{d.type}}`)
             .attr("r", d => d.size)
             .attr("fill", d => d.color)
+            .attr("cx", d => d.x)
+            .attr("cy", d => d.y)
             .call(d3.drag()
                 .on("start", dragstarted)
                 .on("drag", dragged)
@@ -594,14 +589,13 @@ class GraphVisualizer:
                 clearHighlights();
             }});
 
-        // Update positions on simulation tick
+        // Setup tick handler for interactive dragging
         simulation.on("tick", () => {{
             link
                 .attr("x1", d => d.source.x)
                 .attr("y1", d => d.source.y)
                 .attr("x2", d => d.target.x)
                 .attr("y2", d => d.target.y);
-
             node
                 .attr("cx", d => d.x)
                 .attr("cy", d => d.y);
@@ -649,24 +643,9 @@ class GraphVisualizer:
             tooltip.style("display", "none");
         }}
 
-        // Highlight connections
+        // Highlight connections - instant, no transitions (prevents flicker on mouse sweep)
         function highlightConnections(d) {{
-            // Highlight connected nodes
-            const connectedNodeIds = new Set();
-            connectedNodeIds.add(d.id);
-
-            graphData.edges.forEach(e => {{
-                if (e.source.id === d.id || e.source === d.id) {{
-                    connectedNodeIds.add(typeof e.target === 'object' ? e.target.id : e.target);
-                }}
-                if (e.target.id === d.id || e.target === d.id) {{
-                    connectedNodeIds.add(typeof e.source === 'object' ? e.source.id : e.source);
-                }}
-            }});
-
-            node.classed("highlighted", n => connectedNodeIds.has(n.id));
-
-            // Highlight connected links
+            // Just add CSS class for connected links - let CSS handle styling
             link.classed("highlighted", e => {{
                 const sourceId = typeof e.source === 'object' ? e.source.id : e.source;
                 const targetId = typeof e.target === 'object' ? e.target.id : e.target;
@@ -675,7 +654,6 @@ class GraphVisualizer:
         }}
 
         function clearHighlights() {{
-            node.classed("highlighted", false);
             link.classed("highlighted", false);
         }}
 
