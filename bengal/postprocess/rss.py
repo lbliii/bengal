@@ -7,7 +7,7 @@ site updates via RSS readers. Creates rss.xml with recent pages sorted by date.
 Key Concepts:
     - RSS format: Standard RSS 2.0 format for content syndication
     - Recent pages: Limited to 20 most recent pages with dates
-    - Date sorting: Pages sorted by date (newest first)
+    - Heap selection: O(n log 20) instead of O(n log n) for top-20
     - RFC 822 dates: Standard date formatting for RSS feeds
 
 Related Modules:
