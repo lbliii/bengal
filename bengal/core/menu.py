@@ -37,9 +37,13 @@ Related Packages:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
+from bengal.core.diagnostics import DiagnosticsSink
 from bengal.core.diagnostics import emit as emit_diagnostic
+
+if TYPE_CHECKING:
+    from bengal.core.page import Page
 from bengal.errors import BengalContentError, ErrorCode
 
 
@@ -314,9 +318,9 @@ class MenuBuilder:
         menu_items = builder.build_hierarchy()
     """
 
-    def __init__(self, diagnostics: Any | None = None) -> None:
+    def __init__(self, diagnostics: DiagnosticsSink | None = None) -> None:
         self.items: list[MenuItem] = []
-        self._diagnostics: Any | None = diagnostics
+        self._diagnostics: DiagnosticsSink | None = diagnostics
         # Track items to prevent duplicates across all add methods
         self._seen_identifiers: set[str] = set()
         self._seen_urls: set[str] = set()
@@ -421,7 +425,7 @@ class MenuBuilder:
             self.items.append(item)
             self._track_item(item)
 
-    def add_from_page(self, page: Any, menu_name: str, menu_config: dict[str, Any]) -> None:
+    def add_from_page(self, page: Page, menu_name: str, menu_config: dict[str, Any]) -> None:
         """
         Add a page to menu based on frontmatter metadata.
 

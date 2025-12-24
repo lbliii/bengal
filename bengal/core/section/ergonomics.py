@@ -35,6 +35,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from bengal.core.page import Page
     from bengal.core.section import Section
+    from bengal.rendering.template_engine import TemplateEngine
 
 
 class SectionErgonomicsMixin:
@@ -269,7 +270,7 @@ class SectionErgonomicsMixin:
 
         return result
 
-    def apply_section_template(self, template_engine: Any) -> str:
+    def apply_section_template(self, template_engine: TemplateEngine) -> str:
         """
         Apply a section template to generate a section index page.
 

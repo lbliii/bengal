@@ -48,7 +48,7 @@ from __future__ import annotations
 
 import contextlib
 from dataclasses import dataclass, field
-from typing import Any, Literal, Protocol
+from typing import Literal, Protocol
 
 type DiagnosticLevel = Literal["debug", "info", "warning", "error"]
 
@@ -59,7 +59,7 @@ class DiagnosticEvent:
 
     level: DiagnosticLevel
     code: str
-    data: dict[str, Any] = field(default_factory=dict)
+    data: dict[str, object] = field(default_factory=dict)
 
 
 class DiagnosticsSink(Protocol):
@@ -83,7 +83,7 @@ class DiagnosticsCollector:
         return events
 
 
-def emit_best_effort(obj: Any | None, event: DiagnosticEvent) -> None:
+def emit_best_effort(obj: object | None, event: DiagnosticEvent) -> None:
     """
     Emit a diagnostic event if a sink is available.
 
@@ -97,7 +97,7 @@ def emit_best_effort(obj: Any | None, event: DiagnosticEvent) -> None:
     if obj is None:
         return
 
-    sink: Any | None = getattr(obj, "_diagnostics", None)
+    sink: DiagnosticsSink | None = getattr(obj, "_diagnostics", None)
     if sink is None:
         sink = getattr(obj, "diagnostics", None)
     if sink is None:
@@ -111,6 +111,6 @@ def emit_best_effort(obj: Any | None, event: DiagnosticEvent) -> None:
         sink.emit(event)
 
 
-def emit(obj: Any | None, level: DiagnosticLevel, code: str, **data: Any) -> None:
+def emit(obj: object | None, level: DiagnosticLevel, code: str, **data: object) -> None:
     """Convenience wrapper to emit a DiagnosticEvent."""
     emit_best_effort(obj, DiagnosticEvent(level=level, code=code, data=data))
