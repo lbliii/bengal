@@ -1,6 +1,6 @@
 # RFC: Free-Threading Expansion for CPU-Bound Build Phases
 
-**Status**: Draft  
+**Status**: Implemented  
 **Created**: 2025-12-23  
 **Updated**: 2025-12-23  
 **Author**: AI Assistant + Lawrence Lane  
@@ -612,35 +612,34 @@ def test_memory_overhead_acceptable():
 
 ## Implementation Checklist
 
-### Phase 1: Parallel Knowledge Graph
+### Phase 1: Parallel Knowledge Graph ✅
 
-- [ ] Add `parallel` parameter to `GraphBuilder.__init__`
-- [ ] Implement `_build_parallel()` method
-- [ ] Use thread-local accumulators for refs/link_types
-- [ ] Implement merge phase with minimal locking
-- [ ] Add threshold check (skip parallel for <100 pages)
-- [ ] Add `parallel_graph` config option
-- [ ] Update caller to use parallel mode
-- [ ] Add unit tests for thread safety
-- [ ] Add unit tests for merge correctness
+- [x] Add `parallel` parameter to `GraphBuilder.__init__`
+- [x] Implement `_build_parallel()` method
+- [x] Use per-page accumulators (not thread-local, to avoid accumulation bugs)
+- [x] Implement merge phase with minimal locking
+- [x] Add threshold check (skip parallel for <100 pages)
+- [x] Add `parallel_graph` config option
+- [x] Add `BENGAL_NO_PARALLEL` env var support
+- [x] Add unit tests for thread safety
+- [x] Add unit tests for merge correctness
 - [ ] Add performance benchmarks
-- [ ] Update documentation
+- [x] Update documentation
 
-### Phase 2: Parallel Autodoc
+### Phase 2: Parallel Autodoc ✅
 
-- [ ] Create `extract_python_parallel()` function or modify existing
-- [ ] Parallelize file-level AST parsing within source directories
-- [ ] Collect `DocElement` lists from workers
-- [ ] Add `parallel_autodoc` config option
-- [ ] Add threshold check (skip parallel for <10 modules)
-- [ ] Update `VirtualAutodocOrchestrator` to use parallel extraction
-- [ ] Add tests for correctness and error isolation
+- [x] Modify `_extract_directory()` in PythonExtractor
+- [x] Add `_extract_files_parallel()` method
+- [x] Collect `DocElement` lists from workers
+- [x] Add `parallel_autodoc` config option
+- [x] Add threshold check (skip parallel for <10 modules)
+- [x] Add tests for correctness and error isolation
 
-### Phase 3: Documentation & Polish
+### Phase 3: Documentation & Polish ✅
 
-- [ ] Update `UV_QUICK_REFERENCE.md` with parallel config
-- [ ] Add "Parallel Builds" section explaining behavior
-- [ ] Document `BENGAL_NO_PARALLEL` debugging flag
+- [x] Update `UV_QUICK_REFERENCE.md` with parallel config
+- [x] Add "Parallel Builds" section explaining behavior
+- [x] Document `BENGAL_NO_PARALLEL` debugging flag
 - [ ] Run benchmarks and update performance tables with real data
 - [ ] Add performance comparison table to docs
 

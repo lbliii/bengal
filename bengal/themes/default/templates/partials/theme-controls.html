@@ -1,7 +1,9 @@
 {# Appearance Dropdown (mode + brand) #}
 {# Native popover API - browser handles open/close, focus, escape key #}
+{# Use theme_menu_id variable to allow unique IDs for desktop/mobile #}
+{% set _theme_menu_id = theme_menu_id | default('theme-menu') %}
 <div class="theme-controls">
-    <button class="theme-dropdown__button" popovertarget="theme-menu" popovertargetaction="toggle"
+    <button class="theme-dropdown__button" popovertarget="{{ _theme_menu_id }}" popovertargetaction="toggle"
         title="{{ t('theme.presets', default='Theme presets') }}"
         aria-label="{{ t('theme.open_menu', default='Open theme menu') }}">
         <span class="theme-dropdown__icon" aria-hidden="true">
@@ -10,7 +12,7 @@
         <span class="theme-dropdown__label">{{ t('theme.appearance', default='Appearance') }}</span>
         {{ icon("chevron-down", size=20) }}
     </button>
-    <div id="theme-menu" popover class="theme-dropdown__menu--popover">
+    <div id="{{ _theme_menu_id }}" popover class="theme-dropdown__menu--popover">
         <fieldset class="theme-menu-section">
             <legend class="separator">{{ t('theme.mode', default='Mode') }}</legend>
             <button type="button" data-appearance="system" class="theme-option">

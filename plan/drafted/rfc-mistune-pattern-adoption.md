@@ -6,19 +6,22 @@
 **Author**: AI Assistant + Lawrence Lane  
 **Priority**: P2 (Medium)  
 **Related**: `bengal/directives/`, `bengal/rendering/parsers/mistune/`, `tests/unit/rendering/`  
-**Confidence**: 82% 🟢
+**Confidence**: 78% 🟢
 
 ---
 
 ## Executive Summary
 
-After analyzing the mistune codebase (now in the workspace), several architectural patterns emerge that Bengal can adopt to improve testing ergonomics, performance, and extensibility. This RFC proposes three key adoptions:
+After analyzing the mistune codebase (now in the workspace), several architectural patterns emerge that Bengal can adopt to improve testing ergonomics and extensibility. This RFC proposes two proven adoptions:
 
 1. **Text-Based Test Fixtures** — Markdown→HTML fixture files with auto-generated test cases
-2. **Pipeline Hook System** — Explicit before/after hooks for extensibility without subclassing  
-3. **Speedup Plugin Pattern** — Optimized fast-paths for common content patterns
+2. **Pipeline Hook System** — Explicit before/after hooks aligned with mistune's design
+
+Additionally, we propose investigating a **Speedup Plugin Pattern** pending benchmark validation.
 
 **Key Insight**: Bengal already uses mistune as its markdown parser, making these patterns directly compatible. The adoption focuses on *infrastructure around* mistune, not replacing it.
+
+**Note**: An earlier draft included "Global Parser Cache" as Proposal 4. This was removed after analysis showed Bengal's existing `ThreadLocalCache` in `bengal/rendering/pipeline/thread_local.py` already solves this problem — thread-local caching works for single-threaded CLI commands too (the main thread is still a thread).
 
 ---
 
@@ -39,8 +42,7 @@ After analyzing the mistune codebase (now in the workspace), several architectur
 |------|---------------|-------------|
 | **Directive Testing** | Inline Python strings | Text fixtures would improve clarity |
 | **Rendering Hooks** | Implicit via parser plugins | Explicit hook API would improve extensibility |
-| **Common Case Optimization** | Standard mistune parsing | Speedup patterns for prose-heavy sites |
-| **Parser Caching** | Per-thread only | Global config-keyed cache for CLI commands |
+| **Common Case Optimization** | Standard mistune parsing | Speedup patterns for prose-heavy sites (needs validation) |
 
 ---
 
@@ -209,6 +211,7 @@ Inspired by mistune's fixture format. Supports:
 - Markdown input → HTML output pairs
 - Section headers for organization
 - Comments for documentation
+- Dynamic content placeholders (IDs, timestamps)
 
 Format:
     ## section_name
@@ -218,6 +221,12 @@ Format:
     .
     expected HTML output here
     ````````````````````````````````
+
+Dynamic Content:
+    Use placeholders for content that varies between runs:
+    - {{ID}} matches any id="..." attribute value
+    - {{TIMESTAMP}} matches ISO timestamps
+    - {{UUID}} matches UUID patterns
 """
 
 from __future__ import annotations
@@ -234,6 +243,13 @@ EXAMPLE_PATTERN = re.compile(
     r"^`{32}$|^#{1,6} *(.*)$",
     flags=re.M,
 )
+
+# Patterns for dynamic content normalization
+DYNAMIC_PATTERNS = {
+    "{{ID}}": r'id="[^"]*"',
+    "{{TIMESTAMP}}": r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}",
+    "{{UUID}}": r"[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}",
+}
 
 
 def load_directive_fixtures(filename: str) -> Iterable[tuple[str, str, str]]:
@@ -279,6 +295,33 @@ def parse_examples(text: str) -> Iterable[tuple[str, str, str]]:
             md = md.strip()
             html = html.strip()
             yield name, md, html
+
+
+def normalize_for_comparison(expected: str, actual: str) -> tuple[str, str]:
+    """
+    Normalize expected and actual HTML for comparison.
+
+    Handles dynamic content placeholders in expected HTML by converting
+    them to regex patterns and replacing matches in actual HTML.
+
+    Args:
+        expected: Expected HTML (may contain {{PLACEHOLDER}} markers)
+        actual: Actual rendered HTML
+
+    Returns:
+        Tuple of (normalized_expected, normalized_actual) for comparison
+    """
+    normalized_expected = expected
+    normalized_actual = actual
+
+    for placeholder, pattern in DYNAMIC_PATTERNS.items():
+        if placeholder in expected:
+            # Replace placeholder with a stable marker in expected
+            normalized_expected = normalized_expected.replace(placeholder, f"__DYNAMIC_{placeholder}__")
+            # Replace all matches in actual with the same stable marker
+            normalized_actual = re.sub(pattern, f"__DYNAMIC_{placeholder}__", normalized_actual)
+
+    return normalized_expected, normalized_actual
 ```
 
 #### Base Test Class
@@ -341,9 +384,12 @@ class DirectiveTestCase(TestCase):
         """Assert that parsed markdown matches expected HTML."""
         result = self.parse(markdown)
 
-        # Normalize for comparison (ignore whitespace differences)
-        result_normalized = self._normalize_html(result)
-        expected_normalized = self._normalize_html(expected)
+        # Normalize for comparison (handle dynamic content + whitespace)
+        from tests._testing.fixtures import normalize_for_comparison
+        expected_norm, result_norm = normalize_for_comparison(expected, result)
+
+        result_normalized = self._normalize_html(result_norm)
+        expected_normalized = self._normalize_html(expected_norm)
 
         self.assertEqual(
             result_normalized,
@@ -358,9 +404,10 @@ class DirectiveTestCase(TestCase):
     def _normalize_html(html: str) -> str:
         """Normalize HTML for comparison."""
         import re
-        # Collapse whitespace
+        # Collapse whitespace between tags only (preserve text whitespace)
         html = re.sub(r">\s+<", "><", html)
-        html = re.sub(r"\s+", " ", html)
+        # Normalize multiple spaces to single space
+        html = re.sub(r" +", " ", html)
         return html.strip()
 ```
 
@@ -402,10 +449,11 @@ TestDropdownDirective.load_fixtures("dropdown.txt")
 
 ### Estimated Effort
 
-- Fixture loader: 1 day
+- Fixture loader with dynamic content support: 1 day
 - Base test class: 1 day  
-- Migrate 5 directives: 3 days
-- Total: **5 days**
+- Pilot migration (steps directive): 1 day
+- Wave 1-3 migrations: 4 days (can be done incrementally)
+- Total: **7 days** (spread across 4 weeks for incremental rollout)
 
 ---
 
@@ -415,15 +463,14 @@ TestDropdownDirective.load_fixtures("dropdown.txt")
 
 Bengal's rendering pipeline has implicit extension points through parser plugins, but no explicit hooks for:
 - Pre-processing raw content before parsing
-- Post-processing AST before rendering
 - Post-processing HTML after rendering
 - Injecting context before template rendering
 
-Users wanting to customize must subclass or patch, which is fragile.
+Users wanting to customize must subclass or patch, which is fragile. The existing transforms in `bengal/rendering/pipeline/transforms.py` are called directly in the pipeline — there's no way to add custom transforms without modifying Bengal's code.
 
 ### Mistune's Approach
 
-Mistune provides three simple hook lists:
+Mistune provides three simple hook lists with a consistent signature pattern:
 
 ```python
 # mistune/markdown.py:40-44
@@ -447,24 +494,65 @@ md.before_render_hooks.append(toc_hook)
 
 ### Proposed Implementation
 
-Add explicit hooks to `RenderingPipeline`:
+Add explicit hooks to `RenderingPipeline`, aligned with mistune's signature pattern:
+
+```python
+# bengal/rendering/pipeline/hooks.py
+
+"""
+Hook system for rendering pipeline extensibility.
+
+Aligns with mistune's hook pattern for consistency. Hooks receive
+the pipeline instance for access to parser, site, and config.
+"""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Callable, Protocol
+
+if TYPE_CHECKING:
+    from bengal.core.page import Page
+    from bengal.rendering.pipeline.core import RenderingPipeline
+
+
+class BeforeParseHook(Protocol):
+    """
+    Hook called before markdown parsing.
+
+    Receives raw content and can modify it before parsing.
+    Similar to mistune's before_parse_hooks.
+    """
+    def __call__(
+        self,
+        pipeline: "RenderingPipeline",
+        content: str,
+        page: "Page",
+    ) -> str:
+        """Return modified content."""
+        ...
+
+
+class AfterRenderHook(Protocol):
+    """
+    Hook called after HTML rendering.
+
+    Receives rendered HTML and can modify it before template rendering.
+    Similar to mistune's after_render_hooks.
+    """
+    def __call__(
+        self,
+        pipeline: "RenderingPipeline",
+        html: str,
+        page: "Page",
+    ) -> str:
+        """Return modified HTML."""
+        ...
+```
 
 ```python
 # bengal/rendering/pipeline/core.py (additions)
 
-from typing import Callable, Protocol
-
-class ContentHook(Protocol):
-    """Hook called with raw content before parsing."""
-    def __call__(self, content: str, page: Page, context: dict) -> str: ...
-
-class ASTHook(Protocol):
-    """Hook called with AST tokens after parsing."""
-    def __call__(self, ast: list[dict], page: Page, context: dict) -> list[dict]: ...
-
-class HTMLHook(Protocol):
-    """Hook called with HTML after rendering."""
-    def __call__(self, html: str, page: Page, context: dict) -> str: ...
+from bengal.rendering.pipeline.hooks import AfterRenderHook, BeforeParseHook
 
 
 class RenderingPipeline:
@@ -473,55 +561,61 @@ class RenderingPipeline:
     def __init__(self, site, ...):
         # ... existing init ...
 
-        # Hook lists for extensibility
-        self.before_parse_hooks: list[ContentHook] = []
-        self.after_parse_hooks: list[ASTHook] = []
-        self.after_render_hooks: list[HTMLHook] = []
+        # Hook lists for extensibility (aligned with mistune pattern)
+        self.before_parse_hooks: list[BeforeParseHook] = []
+        self.after_render_hooks: list[AfterRenderHook] = []
 
-        # Register default hooks
+        # Register built-in transforms as hooks
         self._register_default_hooks()
 
     def _register_default_hooks(self) -> None:
-        """Register built-in hooks."""
-        # Example: Variable substitution as a hook
-        # self.before_parse_hooks.append(self._substitute_variables)
-        pass
+        """Register built-in transforms as hooks."""
+        # Migrate existing transforms to hook pattern
+        from bengal.rendering.pipeline.transforms import (
+            escape_jinja_blocks,
+            escape_template_syntax_in_html,
+        )
 
-    def add_before_parse_hook(self, hook: ContentHook) -> None:
+        # Wrap existing transforms as hooks
+        self.after_render_hooks.append(
+            lambda pipeline, html, page: escape_template_syntax_in_html(html)
+        )
+        self.after_render_hooks.append(
+            lambda pipeline, html, page: escape_jinja_blocks(html)
+        )
+
+    def add_before_parse_hook(self, hook: BeforeParseHook) -> None:
         """Add a hook to run before markdown parsing."""
         self.before_parse_hooks.append(hook)
 
-    def add_after_parse_hook(self, hook: ASTHook) -> None:
-        """Add a hook to run after AST generation."""
-        self.after_parse_hooks.append(hook)
-
-    def add_after_render_hook(self, hook: HTMLHook) -> None:
+    def add_after_render_hook(self, hook: AfterRenderHook) -> None:
         """Add a hook to run after HTML generation."""
         self.after_render_hooks.append(hook)
 
     def _parse_content(self, page: Page) -> None:
         """Parse page content through markdown parser."""
         content = page.content or ""
-        context = self._build_context(page)
 
-        # HOOK: Before parse
+        # HOOK: Before parse (content preprocessing)
         for hook in self.before_parse_hooks:
-            content = hook(content, page, context)
+            content = hook(self, content, page)
 
         # Parse markdown
         if hasattr(self.parser, "parse_with_toc_and_context"):
-            html, toc = self.parser.parse_with_toc_and_context(content, page.metadata, context)
+            html, toc = self.parser.parse_with_toc_and_context(content, page.metadata, {})
         else:
             html = self.parser.parse(content, page.metadata)
             toc = ""
 
         # HOOK: After render (HTML post-processing)
         for hook in self.after_render_hooks:
-            html = hook(html, page, context)
+            html = hook(self, html, page)
 
         page.parsed_ast = html
         page.toc = toc
 ```
+
+**Design Note**: We intentionally omit `after_parse_hooks` (AST manipulation) because Bengal's current architecture doesn't expose the raw AST — mistune renders directly to HTML. Adding AST hooks would require significant architectural changes that are out of scope for this RFC.
 
 ### Usage Example
 
@@ -555,7 +649,10 @@ pipeline.add_after_render_hook(add_reading_time)
 
 ---
 
-## Proposal 3: Speedup Plugin Pattern
+## Proposal 3: Speedup Plugin Pattern (Conditional)
+
+> ⚠️ **This proposal requires benchmark validation before implementation.**
+> The value of this optimization depends on proving that parsing is a bottleneck.
 
 ### Problem
 
@@ -581,6 +678,23 @@ def speedup(md: "Markdown") -> None:
 
 This lets plain text bypass the full regex scanner.
 
+### Prerequisite: Benchmark Validation
+
+**Before implementing this proposal**, run benchmarks to validate:
+
+1. **Is parsing a bottleneck?** Profile a 500+ page Bengal site to identify where time is spent.
+2. **What's the directive density?** Bengal sites often have high directive usage (cards, steps, tabs). The speedup may be minimal.
+3. **Baseline metrics**: Establish current parsing time per page.
+
+```bash
+# Run existing benchmark suite
+cd benchmarks
+uv run pytest test_build.py -v --benchmark-only
+
+# Profile a real site
+uv run python -m cProfile -s cumulative -m bengal build site/
+```
+
 ### Proposed Implementation
 
 ```python
@@ -591,6 +705,9 @@ Speedup plugin for prose-heavy documentation sites.
 
 Optimizes parsing for pages with mostly plain text and few directives.
 Provides measurable speedup for large documentation sites.
+
+IMPORTANT: Bengal uses MyST-style ::: directive syntax, not {} syntax.
+The patterns below are calibrated for Bengal's directive format.
 
 Usage:
     # In config
@@ -607,6 +724,7 @@ Usage:
 from __future__ import annotations
 
 import re
+import string
 from typing import TYPE_CHECKING, Match
 
 if TYPE_CHECKING:
@@ -615,14 +733,24 @@ if TYPE_CHECKING:
     from mistune.inline_parser import InlineParser
     from mistune.markdown import Markdown
 
+HARD_LINEBREAK_RE = re.compile(r" *\n\s*")
+
 # Pattern for paragraphs that definitely don't contain directives
-# Starts with letter/number, doesn't contain directive markers
+# Bengal uses ::: for directives (MyST syntax), NOT {} like Sphinx
+# Excludes lines starting with:
+#   - ::: (directive open/close)
+#   - ``` or ~~~ (code fences, may contain directives in MyST)
+#   - # (headings)
+#   - >, -, *, + (blockquotes, lists)
+#   - digits (ordered lists)
+#   - whitespace (indented content)
 PLAIN_PARAGRAPH = (
-    r"(?:^(?![:\s]*{|```|~~~)[^\s#\-*>+\d][^\n]*\n)+"
+    r"(?:^(?!:{3,}|```|~~~)[^\s#\->*+\d][^\n]*\n)+"
 )
 
 # Pattern for text runs without special inline markers
-PLAIN_TEXT = r"[\s\S]+?(?=[\\<>!\[_*`~\^\$:{}]|https?:|$)"
+# Includes : for inline roles like {role}`text`
+PLAIN_TEXT_PUNCTUATION = r"\\><!\[_*`~\^\$:{}"
 
 
 def parse_plain_paragraph(
@@ -640,7 +768,7 @@ def parse_plain_text(
     """Fast-path parser for plain text runs."""
     text = m.group(0)
     # Handle hard wraps
-    text = re.sub(r" *\n\s*", "\n", text)
+    text = HARD_LINEBREAK_RE.sub("\n", text)
     inline.process_text(text, state)
     return m.end()
 
@@ -653,9 +781,13 @@ def speedup(md: "Markdown") -> None:
     - Plain paragraphs (no directive markers)
     - Plain text runs (no inline markers)
 
-    Performance:
-        Typical speedup: 10-20% for prose-heavy pages
-        Minimal impact on directive-heavy pages
+    Performance (requires validation):
+        Target speedup: 10-20% for prose-heavy pages
+        Expected impact on directive-heavy pages: minimal
+
+    Note:
+        This plugin is disabled by default. Enable only after
+        benchmarking confirms parsing is a bottleneck for your site.
     """
     # Register optimized paragraph parser (runs before directive check)
     md.block.register(
@@ -665,10 +797,23 @@ def speedup(md: "Markdown") -> None:
         before="paragraph",  # Try before general paragraph
     )
 
+    # Build text pattern dynamically based on parser configuration
+    text_pattern = r"[\s\S]+?(?=[" + PLAIN_TEXT_PUNCTUATION + r"]|"
+
+    if "url_link" in md.inline.rules:
+        text_pattern += "https?:|"
+
+    if md.inline.hard_wrap:
+        text_pattern += r" *\n|"
+    else:
+        text_pattern += r" {2,}\n|"
+
+    text_pattern += r"$)"
+
     # Register optimized text parser
     md.inline.register(
         "plain_text",
-        PLAIN_TEXT,
+        text_pattern,
         parse_plain_text,
         before="text",  # Try before general text
     )
@@ -719,110 +864,98 @@ speedup = true  # Enable speedup optimizations
 
 ---
 
-## Proposal 4: Global Parser Cache (Bonus)
-
-### Problem
-
-Bengal's parser cache is per-thread, but CLI commands like `bengal validate` that don't use threading still recreate parsers repeatedly.
-
-### Mistune's Approach
-
-```python
-# mistune/__init__.py:61-80
-__cached_parsers: Dict[Tuple[...], Markdown] = {}
-
-def markdown(text: str, ...):
-    key = (escape, renderer, plugins)
-    if key in __cached_parsers:
-        return __cached_parsers[key](text)
-
-    md = create_markdown(...)
-    __cached_parsers[key] = md
-    return md(text)
-```
-
-### Proposed Implementation
-
-```python
-# bengal/rendering/parsers/__init__.py
-
-import threading
-from functools import lru_cache
-
-_parser_lock = threading.Lock()
-_parser_cache: dict[tuple, BaseMarkdownParser] = {}
-
-@lru_cache(maxsize=4)
-def get_cached_parser(
-    engine: str = "mistune",
-    enable_highlighting: bool = True,
-    enable_speedup: bool = False,
-) -> BaseMarkdownParser:
-    """
-    Get a cached parser by configuration.
-
-    Unlike thread-local caching, this provides a global cache keyed by
-    configuration. Useful for CLI commands that don't use threading.
-
-    Thread-safe via LRU cache's internal locking.
-    """
-    return create_markdown_parser(
-        engine=engine,
-        enable_highlighting=enable_highlighting,
-        enable_speedup=enable_speedup,
-    )
-```
-
-### Benefits
-
-1. **CLI Performance** — Single-threaded commands don't recreate parsers
-2. **Config-Aware** — Different configs get different cached instances
-3. **Memory Bounded** — LRU cache limits memory usage
-
-### Estimated Effort
-
-- Implementation: 1 day
-- Testing: 1 day
-- Total: **2 days**
-
----
-
 ## Implementation Plan
+
+### Phase 0: Benchmark Baseline (Day 1)
+
+Before implementing optimizations, establish baseline metrics:
+
+- [ ] Run `benchmarks/test_build.py` on small_site and large_site scenarios
+- [ ] Profile Bengal documentation site build (`site/`)
+- [ ] Identify actual bottlenecks (parsing vs. template rendering vs. I/O)
+- [ ] Document baseline metrics in `benchmarks/BASELINE.md`
 
 ### Phase 1: Text Fixtures (Week 1)
 
 - [ ] Create `tests/fixtures/directives/` directory
-- [ ] Implement `tests/_testing/fixtures.py` loader
+- [ ] Implement `tests/_testing/fixtures.py` loader with dynamic content support
 - [ ] Implement `tests/_testing/directive_test_base.py`
-- [ ] Migrate `dropdown` directive tests to fixtures
-- [ ] Migrate `tabs` directive tests to fixtures
-- [ ] Migrate `admonitions` directive tests to fixtures
-- [ ] Update test documentation
+- [ ] **Pilot Migration**: Convert `test_steps_directive.py` to fixtures
+- [ ] Validate pytest discovers fixture-generated tests correctly
+- [ ] Migrate remaining directives incrementally (see Migration Strategy below)
+- [ ] Update `CONTRIBUTING.md` with fixture format documentation
 
 ### Phase 2: Pipeline Hooks (Week 2)
 
-- [ ] Add hook type protocols to `bengal/rendering/pipeline/hooks.py`
+- [ ] Add `bengal/rendering/pipeline/hooks.py` with Protocol definitions
 - [ ] Add hook lists to `RenderingPipeline.__init__`
-- [ ] Add `add_*_hook()` methods
+- [ ] Add `add_before_parse_hook()` and `add_after_render_hook()` methods
 - [ ] Integrate hooks into `_parse_content()`
-- [ ] Migrate `escape_jinja_blocks` to hook
-- [ ] Migrate `normalize_markdown_links` to hook
-- [ ] Add hook documentation
+- [ ] Wrap existing transforms (`escape_jinja_blocks`, `escape_template_syntax_in_html`) as hooks
+- [ ] Keep `normalize_markdown_links` and `transform_internal_links` as direct calls (they need config)
+- [ ] Add hook documentation to docstrings
+- [ ] Add example custom hook in docs
 
-### Phase 3: Speedup Plugin (Week 3)
+### Phase 3: Speedup Plugin (Week 3 — Conditional)
+
+**Only proceed if Phase 0 benchmarks show parsing is ≥20% of build time.**
 
 - [ ] Create `bengal/rendering/plugins/speedup.py`
-- [ ] Add `enable_speedup` to `MistuneParser`
-- [ ] Add `speedup` config option
-- [ ] Benchmark on 500+ page site
-- [ ] Document configuration
+- [ ] Add `enable_speedup` parameter to `MistuneParser`
+- [ ] Add `speedup` config option to `[markdown]` section
+- [ ] Run benchmarks with speedup enabled
+- [ ] Verify no regressions on directive-heavy content
+- [ ] Document configuration and expected gains
 
-### Phase 4: Global Cache (Week 3)
+---
 
-- [ ] Add `get_cached_parser()` function
-- [ ] Update CLI commands to use global cache
-- [ ] Verify thread safety
-- [ ] Document usage patterns
+## Migration Strategy
+
+### Fixture Migration Approach
+
+Migrate directive tests **incrementally** rather than all at once:
+
+1. **Pilot** (Week 1): `test_steps_directive.py` — complex directive with nesting
+2. **Wave 1** (Week 2): Simple directives — `dropdown`, `admonitions`
+3. **Wave 2** (Week 3): Complex directives — `cards`, `tabs`, `code_tabs`
+4. **Wave 3** (Week 4): Remaining — `navigation`, `data_table`, etc.
+
+### Coexistence Strategy
+
+During migration, both test styles can coexist:
+
+```python
+# tests/unit/rendering/test_steps_directive.py
+
+# Original tests (keep for edge cases that need Python logic)
+class TestStepsEdgeCases:
+    def test_step_with_dynamic_id(self, parser):
+        """Test that requires programmatic ID verification."""
+        ...
+
+# Fixture-based tests (new)
+class TestStepsDirective(DirectiveTestCase):
+    @staticmethod
+    def parse(text: str) -> str:
+        return MistuneParser().parse(text, {})
+
+TestStepsDirective.load_fixtures("steps.txt")
+```
+
+### Test Discovery Verification
+
+Pytest should discover fixture-generated tests automatically. Verify with:
+
+```bash
+# Should show test_steps_basic_001, test_steps_nested_002, etc.
+uv run pytest tests/unit/rendering/test_steps_fixtures.py --collect-only
+```
+
+### CI Considerations
+
+- Fixture tests will show individual test names in CI output
+- Failures will show the fixture name, input, expected, and actual output
+- Consider adding `pytest-sugar` for better diff visualization
 
 ---
 
@@ -869,8 +1002,11 @@ def test_speedup_no_behavior_change():
 **Problem**: Complex directive output may be hard to represent in fixtures.
 
 **Mitigation**:
-- Support fuzzy matching for dynamic content (IDs, etc.)
-- Allow `<!-- ignore: ... -->` markers for volatile sections
+- Dynamic content placeholders (`{{ID}}`, `{{TIMESTAMP}}`, `{{UUID}}`) for volatile content
+- Whitespace normalization for formatting differences
+- Keep complex programmatic tests alongside fixtures for edge cases
+
+**Residual Risk**: Low — fixtures can coexist with traditional tests.
 
 ### Risk 2: Hook Performance Overhead
 
@@ -878,28 +1014,45 @@ def test_speedup_no_behavior_change():
 
 **Mitigation**:
 - Hooks are simple list iteration (negligible overhead)
-- Empty hook lists short-circuit immediately
+- Empty hook lists are O(0) — just a length check
+- Profile before/after to validate no measurable impact
+
+**Residual Risk**: Very Low — function call overhead is nanoseconds.
 
 ### Risk 3: Speedup Regex Edge Cases
 
-**Problem**: Optimized patterns may misparse edge cases.
+**Problem**: Optimized patterns may misparse edge cases with Bengal's `:::` syntax.
 
 **Mitigation**:
-- Conservative patterns that fall through to standard parser
-- Extensive fixture testing for edge cases
-- Disabled by default
+- Conservative patterns that fall through to standard parser on any uncertainty
+- Extensive fixture testing for edge cases (admonitions, nested directives)
+- Disabled by default — opt-in only after validation
+- **Prerequisite benchmarking** ensures we only implement if there's proven value
+
+**Residual Risk**: Medium — regex fast-paths are inherently tricky. The conservative design (fall through on doubt) limits blast radius.
+
+### Risk 4: Test Discovery Issues
+
+**Problem**: Dynamically generated tests via `load_fixtures()` may not be discovered by pytest.
+
+**Mitigation**:
+- Call `load_fixtures()` at module import time (after class definition)
+- Verify with `pytest --collect-only` before merging
+- Document the pattern clearly in CONTRIBUTING.md
+
+**Residual Risk**: Low — pattern is proven in mistune.
 
 ---
 
 ## Success Metrics
 
-| Metric | Target |
-|--------|--------|
-| Directive test count | +50 fixture-based tests |
-| Test file readability | Fixtures are primary documentation |
-| Hook adoption | 3+ built-in transforms migrated to hooks |
-| Speedup performance | 10%+ improvement on prose-heavy sites |
-| Parser cache hits | 90%+ for CLI commands |
+| Metric | Target | Validation |
+|--------|--------|------------|
+| Directive test count | +50 fixture-based tests | `pytest --collect-only \| grep fixture` |
+| Test file readability | Fixtures are primary documentation | Code review feedback |
+| Hook adoption | 2+ built-in transforms migrated to hooks | Code inspection |
+| Speedup performance | 10%+ improvement (if implemented) | Benchmark comparison to baseline |
+| Zero regressions | All existing tests pass | CI green |
 
 ---
 
@@ -907,13 +1060,27 @@ def test_speedup_no_behavior_change():
 
 - **Mistune codebase**: `/Users/llane/Documents/github/python/mistune/`
 - **Mistune test fixtures**: `/Users/llane/Documents/github/python/mistune/tests/fixtures/`
+- **Mistune fixture loader**: `/Users/llane/Documents/github/python/mistune/tests/fixtures/__init__.py`
+- **Mistune hook implementation**: `/Users/llane/Documents/github/python/mistune/src/mistune/markdown.py` (lines 40-44)
+- **Mistune speedup plugin**: `/Users/llane/Documents/github/python/mistune/src/mistune/plugins/speedup.py`
 - **Bengal directives**: `/Users/llane/Documents/github/python/bengal/bengal/directives/`
-- **Bengal tests**: `/Users/llane/Documents/github/python/bengal/tests/unit/rendering/`
-- **Thread-local caching**: `/Users/llane/Documents/github/python/bengal/bengal/rendering/pipeline/thread_local.py`
+- **Bengal directive tests**: `/Users/llane/Documents/github/python/bengal/tests/unit/rendering/`
+- **Bengal transforms**: `/Users/llane/Documents/github/python/bengal/bengal/rendering/pipeline/transforms.py`
+- **Bengal parser caching**: `/Users/llane/Documents/github/python/bengal/bengal/rendering/pipeline/thread_local.py`
+- **Bengal benchmarks**: `/Users/llane/Documents/github/python/bengal/benchmarks/`
 
 ---
 
 ## Changelog
+
+- 2025-12-23: Revision 2
+  - **Removed Proposal 4** (Global Parser Cache) — Bengal's ThreadLocalCache already solves this
+  - **Revised Proposal 2** (Pipeline Hooks) — aligned signatures with mistune, removed AST hooks
+  - **Revised Proposal 3** (Speedup) — added benchmark prerequisite, fixed regex for ::: syntax
+  - Added dynamic content handling to fixture loader ({{ID}}, {{TIMESTAMP}})
+  - Added Migration Strategy section with incremental approach
+  - Added Phase 0 (benchmark baseline) to implementation plan
+  - Updated success metrics with validation methods
 
 - 2025-12-23: Initial draft
   - Analyzed mistune codebase patterns

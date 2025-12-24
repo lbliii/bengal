@@ -355,8 +355,10 @@ _path, kind, tags are always defined - no defensive checks needed.
                     </a>
                     {% endif %}
 
-                    {# Theme Controls #}
+                    {# Theme Controls - Desktop #}
+                    {% with theme_menu_id='theme-menu-desktop' %}
                     {% include 'partials/theme-controls.html' %}
+                    {% endwith %}
                 </div>
 
                 {# Mobile Menu Toggle - opens native dialog #}
@@ -462,7 +464,9 @@ _path, kind, tags are always defined - no defensive checks needed.
 
             {# Theme Controls - Mobile Only #}
             <div class="mobile-nav-footer">
+                {% with theme_menu_id='theme-menu-mobile' %}
                 {% include 'partials/theme-controls.html' %}
+                {% endwith %}
             </div>
         </dialog>
 

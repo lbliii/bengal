@@ -16,8 +16,8 @@
 (function() {
     'use strict';
 
-    // Debounce utility (avoid importing utils.js dependency)
-    function debounce(fn, delay) {
+    // Use shared debounce from utils.js, with fallback for standalone usage
+    const debounce = (window.BengalUtils && window.BengalUtils.debounce) || function(fn, delay) {
         let timer = null;
         return function(...args) {
             if (timer) clearTimeout(timer);
@@ -26,7 +26,7 @@
                 fn.apply(this, args);
             }, delay);
         };
-    }
+    };
 
     /**
      * Contextual Graph Minimap Component

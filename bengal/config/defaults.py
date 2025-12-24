@@ -108,6 +108,8 @@ DEFAULTS: dict[str, Any] = {
     "parallel": True,
     "incremental": True,
     "max_workers": None,  # None = auto-detect via get_max_workers()
+    "parallel_graph": True,  # Parallel knowledge graph building (auto for 100+ pages)
+    "parallel_autodoc": True,  # Parallel autodoc extraction (auto for 10+ modules)
     "pretty_urls": True,
     "minify_html": True,
     "strict_mode": False,

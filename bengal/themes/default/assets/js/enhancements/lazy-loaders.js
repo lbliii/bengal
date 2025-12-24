@@ -20,17 +20,17 @@
     'use strict';
 
     // Get asset URLs from template-injected config
-    var assets = window.BENGAL_LAZY_ASSETS || {};
+    const assets = window.BENGAL_LAZY_ASSETS || {};
 
     // Track loaded libraries to prevent duplicate loads
-    var loaded = {
+    const loaded = {
         mermaid: false,
         d3: false,
         tabulator: false
     };
 
     // Track pending loads to prevent race conditions
-    var pending = {
+    const pending = {
         mermaid: false,
         d3: false
     };
@@ -41,13 +41,12 @@
      * @param {function} [onload] - Callback after load
      * @param {object} [options] - Script options (async, defer, etc.)
      */
-    function loadScript(src, onload, options) {
-        options = options || {};
-        var script = document.createElement('script');
+    function loadScript(src, onload, options = {}) {
+        const script = document.createElement('script');
         script.src = src;
         if (options.async !== false) script.async = true;
         if (onload) script.onload = onload;
-        script.onerror = function() {
+        script.onerror = () => {
             console.warn('[Bengal] Failed to load script:', src);
         };
         document.head.appendChild(script);
@@ -59,7 +58,7 @@
      */
     function preloadScript(src) {
         if (!src) return;
-        var link = document.createElement('link');
+        const link = document.createElement('link');
         link.rel = 'preload';
         link.as = 'script';
         link.href = src;
@@ -147,11 +146,11 @@
 
         // Single shared observer for all lazy-loaded elements
         // rootMargin: Load when within 200px of viewport (anticipate scroll)
-        var observer = new IntersectionObserver(function(entries) {
-            entries.forEach(function(entry) {
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
                 if (!entry.isIntersecting) return;
 
-                var el = entry.target;
+                const el = entry.target;
 
                 // Determine which library to load based on element class
                 if (el.classList.contains('mermaid')) {
@@ -171,12 +170,12 @@
         });
 
         // Observe all mermaid diagrams
-        document.querySelectorAll('.mermaid').forEach(function(el) {
+        document.querySelectorAll('.mermaid').forEach((el) => {
             observer.observe(el);
         });
 
         // Observe all graph elements
-        document.querySelectorAll('.graph-minimap, .graph-contextual, [data-graph]').forEach(function(el) {
+        document.querySelectorAll('.graph-minimap, .graph-contextual, [data-graph]').forEach((el) => {
             observer.observe(el);
         });
 
@@ -191,11 +190,9 @@
      */
     function schedulePreloads() {
         // Use requestIdleCallback if available, otherwise setTimeout
-        var scheduleIdle = window.requestIdleCallback || function(cb) {
-            return setTimeout(cb, 2000);
-        };
+        const scheduleIdle = window.requestIdleCallback || ((cb) => setTimeout(cb, 2000));
 
-        scheduleIdle(function() {
+        scheduleIdle(() => {
             // Only preload if elements exist on page (will be needed eventually)
             if (document.querySelector('.mermaid') && !loaded.mermaid) {
                 preloadScript('https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js');

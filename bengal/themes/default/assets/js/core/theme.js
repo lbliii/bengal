@@ -127,9 +127,10 @@
    * Setup native popover-based theme menus
    * Browser handles open/close via popover API
    * JS handles: theme persistence, active states, positioning
+   * Note: Multiple menus may exist (desktop/mobile) with unique IDs
    */
   function setupPopoverMenus() {
-    const popoverMenus = document.querySelectorAll('.theme-dropdown__menu--popover, #theme-menu[popover]');
+    const popoverMenus = document.querySelectorAll('.theme-dropdown__menu--popover[popover]');
 
     popoverMenus.forEach(function (menu) {
       // Find the trigger button for this popover
