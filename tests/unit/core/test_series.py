@@ -141,5 +141,3 @@ class TestSeriesEdgeCases:
         """Non-dict/string value returns None."""
         series = Series.from_frontmatter(123)
         assert series is None
-
-

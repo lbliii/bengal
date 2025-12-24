@@ -102,5 +102,3 @@ class OutputRecord:
     def __str__(self) -> str:
         """Return string representation for debugging."""
         return f"{self.output_type.value}:{self.path}"
-
-

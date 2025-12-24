@@ -92,5 +92,3 @@ store:
       - "credit_card"
       - "paypal"
       - "stripe"
-
-

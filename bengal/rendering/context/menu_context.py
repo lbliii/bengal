@@ -77,5 +77,3 @@ class MenusContext:
         Call this when menus are rebuilt (e.g., during dev server reload).
         """
         self._cache.clear()
-
-

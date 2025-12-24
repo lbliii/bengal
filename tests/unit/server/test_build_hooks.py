@@ -272,5 +272,3 @@ class TestHookEdgeCases:
         )
 
         assert result is True
-
-

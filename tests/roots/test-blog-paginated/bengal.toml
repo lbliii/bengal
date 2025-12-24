@@ -26,5 +26,3 @@ categories = "categories"
 [rss]
 enabled = true
 limit = 20
-
-

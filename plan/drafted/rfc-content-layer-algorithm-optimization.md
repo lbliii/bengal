@@ -211,7 +211,7 @@ for path in self.directory.glob(self.glob_pattern):
     ...
 ```
 
-**Trade-off**: Entries may be yielded in filesystem-dependent order. 
+**Trade-off**: Entries may be yielded in filesystem-dependent order.
 
 **Behavior change**: Code that depends on alphabetical ordering will break. Mitigations:
 1. Add `sort: bool = False` config option (default False for performance)
@@ -310,7 +310,7 @@ class GitHubSource(ContentSource):
 
             # Fetch files in parallel with concurrency limit
             semaphore = asyncio.Semaphore(self.MAX_CONCURRENT_REQUESTS)
-            
+
             async def fetch_with_retry(item: dict[str, Any]) -> ContentEntry | None:
                 """Fetch file with exponential backoff on rate limit."""
                 async with semaphore:
@@ -333,10 +333,10 @@ class GitHubSource(ContentSource):
                     return None  # All retries exhausted
 
             tasks = [fetch_with_retry(item) for item in matching_files]
-            
+
             # Track failed files for error reporting
             failed_count = 0
-            
+
             # Stream results as they complete (order not guaranteed)
             for coro in asyncio.as_completed(tasks):
                 try:
@@ -346,7 +346,7 @@ class GitHubSource(ContentSource):
                 except Exception as e:
                     failed_count += 1
                     logger.error(f"Failed to fetch file: {e}")
-            
+
             if failed_count > 0:
                 logger.warning(f"Failed to fetch {failed_count}/{len(matching_files)} files")
 ```
@@ -394,7 +394,7 @@ class NotionSource(ContentSource):
         """Fetch all pages with parallel block fetching."""
         async with aiohttp.ClientSession(headers=self._headers) as session:
             url = f"{self.api_base}/databases/{self.database_id}/query"
-            
+
             # Collect all pages first (paginated)
             all_pages: list[dict[str, Any]] = []
             has_more = True
@@ -453,7 +453,7 @@ class NotionSource(ContentSource):
     def __init__(self, name: str, config: dict[str, Any]) -> None:
         super().__init__(name, config)
         # ... existing init ...
-        
+
         # Instance-level cache (not class-level!) with TTL and size limit
         if TTLCache is not None:
             self._block_cache: TTLCache[str, str] = TTLCache(
@@ -476,11 +476,11 @@ class NotionSource(ContentSource):
 
         # Fetch blocks (existing logic)
         content = await self._fetch_blocks(session, page_id)
-        
+
         # Cache result (TTLCache handles eviction automatically)
         if self._block_cache is not None:
             self._block_cache[page_id] = content
-        
+
         return content
 ```
 
@@ -561,16 +561,16 @@ def test_local_source_2k_files_10_patterns(benchmark, tmp_path):
     # Create 2K test files
     for i in range(2000):
         (tmp_path / f"file_{i}.md").write_text(f"# File {i}\n\nContent")
-    
+
     source = LocalSource("test", {
         "directory": str(tmp_path),
         "glob": "**/*.md",
         "exclude": [f"**/pattern_{j}*" for j in range(10)],
     })
-    
+
     async def fetch():
         return [e async for e in source.fetch_all()]
-    
+
     result = benchmark(lambda: asyncio.run(fetch()))
     assert len(result) == 2000
 
@@ -582,10 +582,10 @@ def test_github_source_500_files(benchmark, mock_github_api):
         "repo": "test/repo",
         "branch": "main",
     })
-    
+
     async def fetch():
         return [e async for e in source.fetch_all()]
-    
+
     result = benchmark(lambda: asyncio.run(fetch()))
     assert len(result) == 500
 ```
@@ -640,6 +640,246 @@ def test_github_source_500_files(benchmark, mock_github_api):
 2. Or use internal `_cache_key` attribute pattern
 3. Add tests for cache key stability
 4. Verify no behavior change
+
+---
+
+## Project Plan
+
+### Timeline Overview
+
+| Phase | Duration | Start | Depends On | Deliverables |
+|-------|----------|-------|------------|--------------|
+| **Step 0: Baseline** | 2 hours | Day 1 | — | Benchmark suite, baseline metrics |
+| **Phase 1: Quick Wins** | 2 hours | Day 1 | Step 0 | Optimized LocalSource |
+| **Phase 2: GitHub** | 4 hours | Day 1-2 | Step 0 | Parallel GitHubSource |
+| **Phase 3: Notion** | 4 hours | Day 2 | Step 0 | Parallel NotionSource + caching |
+| **Phase 4: Cache Keys** | 30 min | Day 2 | — | Memoized cache keys |
+| **Validation** | 2 hours | Day 2 | All phases | Benchmark comparison, docs |
+
+**Total estimated time**: 1-2 days
+
+---
+
+### Milestone 1: Baseline Benchmarks (Day 1, 2h)
+
+**Goal**: Establish measurable performance baseline before any changes.
+
+**Tasks**:
+- [ ] Create `benchmarks/test_content_layer_performance.py`
+- [ ] Generate synthetic test fixtures (50, 200, 1K, 5K files)
+- [ ] Create mock GitHub API responses for 50, 200, 500 files
+- [ ] Create mock Notion API responses for 20, 50, 100 pages
+- [ ] Implement LocalSource benchmarks with varying exclude patterns
+- [ ] Implement GitHubSource benchmarks (mocked)
+- [ ] Implement NotionSource benchmarks (mocked)
+- [ ] Record baseline in `benchmarks/baseline_content_layer.json`
+- [ ] Verify benchmarks run in CI
+
+**Acceptance criteria**:
+- Benchmark suite runs in <5 minutes
+- Baseline recorded for all 3 source types
+- CI integration confirmed
+
+---
+
+### Milestone 2: LocalSource Optimization (Day 1, 2h)
+
+**Goal**: Remove O(n log n) sort and O(n × p) pattern matching overhead.
+
+**Tasks**:
+- [ ] **2.1**: Remove `sorted()` from `fetch_all()` glob iteration
+  - File: `bengal/content_layer/sources/local.py:117`
+  - Add `sort: bool = False` config option for backward compatibility
+- [ ] **2.2**: Add `@cached_property _exclude_regex`
+  - Convert fnmatch patterns to combined regex
+  - Add fallback for regex compilation failure
+- [ ] **2.3**: Update `_should_exclude()` to use compiled regex
+- [ ] **2.4**: Add unit tests
+  - Test exclusion with 0, 1, 10, 50 patterns
+  - Test pattern matching correctness (glob edge cases)
+  - Test empty directory handling
+  - Test `sort: true` config option
+- [ ] **2.5**: Run benchmarks, document improvement
+
+**Acceptance criteria**:
+- LocalSource 2K files + 10 patterns: <200ms (baseline ~500ms)
+- All existing tests pass
+- New tests cover edge cases
+
+**Dependencies**: Milestone 1 (baseline)
+
+---
+
+### Milestone 3: GitHubSource Parallel Fetching (Day 1-2, 4h)
+
+**Goal**: Reduce GitHub API latency by 80%+ via concurrent file fetching.
+
+**Tasks**:
+- [ ] **3.1**: Add class constants
+  - `MAX_CONCURRENT_REQUESTS = 10`
+  - `MAX_RETRIES = 3`
+  - `RETRY_BACKOFF_BASE = 1.0`
+- [ ] **3.2**: Refactor `fetch_all()` to collect files first
+  - Get tree in single API call (existing)
+  - Filter matching files into list
+- [ ] **3.3**: Implement parallel fetch with semaphore
+  - Add `fetch_with_retry()` inner function
+  - Handle 429 rate limit with exponential backoff
+  - Handle 403 secondary rate limit
+- [ ] **3.4**: Use `asyncio.as_completed()` for streaming results
+- [ ] **3.5**: Add error tracking and summary logging
+- [ ] **3.6**: Add unit tests
+  - Test parallel fetch correctness (set comparison)
+  - Test rate limit handling (mock 429 responses)
+  - Test individual file failure handling
+  - Test empty repo handling
+  - Test semaphore limit is respected
+- [ ] **3.7**: Run benchmarks, document improvement
+
+**Acceptance criteria**:
+- GitHubSource 500 files: <15s (baseline ~100s) with mocked API
+- Rate limit (429) triggers backoff
+- Individual failures don't abort fetch
+- All existing tests pass
+
+**Dependencies**: Milestone 1 (baseline)
+
+---
+
+### Milestone 4: NotionSource Parallel Fetching + Caching (Day 2, 4h)
+
+**Goal**: Reduce Notion API latency by 50%+ via parallel pages and block caching.
+
+**Tasks**:
+- [ ] **4.1**: Add class constants
+  - `MAX_CONCURRENT_PAGES = 5`
+  - `BLOCK_CACHE_TTL = 300`
+  - `BLOCK_CACHE_MAXSIZE = 500`
+- [ ] **4.2**: Add optional `cachetools` dependency
+  - Add to `pyproject.toml` extras: `notion = ["cachetools>=5.0"]`
+  - Add graceful import fallback
+- [ ] **4.3**: Add instance-level `_block_cache: TTLCache`
+  - Initialize in `__init__`
+  - Set to `None` if cachetools unavailable
+- [ ] **4.4**: Refactor `fetch_all()` for parallel page processing
+  - Collect all pages first (paginated query)
+  - Process pages with semaphore-limited concurrency
+  - Use `asyncio.as_completed()` for streaming
+- [ ] **4.5**: Update `_get_page_content()` to use cache
+  - Check cache before fetch
+  - Store in cache after fetch
+  - Log cache hits for debugging
+- [ ] **4.6**: Add unit tests
+  - Test parallel page processing correctness
+  - Test cache hit/miss behavior
+  - Test cache expiration (TTL)
+  - Test graceful degradation without cachetools
+  - Test individual page failure handling
+- [ ] **4.7**: Run benchmarks, document improvement
+
+**Acceptance criteria**:
+- NotionSource 100 pages: <40s (baseline ~100s) with mocked API
+- Block cache reduces repeated fetches
+- Works without cachetools (no caching, no crash)
+- All existing tests pass
+
+**Dependencies**: Milestone 1 (baseline)
+
+---
+
+### Milestone 5: Cache Key Memoization (Day 2, 30min)
+
+**Goal**: Eliminate repeated O(c log c) cache key computation.
+
+**Tasks**:
+- [ ] **5.1**: Add `@cached_property cache_key` to `ContentSource`
+  - File: `bengal/content_layer/source.py`
+- [ ] **5.2**: Update `get_cache_key()` to return cached property
+- [ ] **5.3**: Add unit tests
+  - Test cache key stability across calls
+  - Test cache key uniqueness for different configs
+- [ ] **5.4**: Verify no behavior change in existing tests
+
+**Acceptance criteria**:
+- `get_cache_key()` O(1) after first call
+- All existing tests pass
+
+**Dependencies**: None (can run in parallel with other milestones)
+
+---
+
+### Milestone 6: Validation & Documentation (Day 2, 2h)
+
+**Goal**: Confirm improvements and document changes.
+
+**Tasks**:
+- [ ] **6.1**: Run full benchmark suite with optimizations
+- [ ] **6.2**: Compare against baseline, document speedup
+  - Update `benchmarks/baseline_content_layer.json` with "after" metrics
+  - Create comparison table
+- [ ] **6.3**: Verify all unit tests pass
+- [ ] **6.4**: Verify integration tests pass
+- [ ] **6.5**: Update CHANGELOG.md with behavior changes
+- [ ] **6.6**: Update docstrings with new parameters
+- [ ] **6.7**: Mark RFC status as "Implemented"
+
+**Acceptance criteria**:
+- Benchmark improvements documented
+- CHANGELOG updated
+- All tests green
+- RFC status updated
+
+**Dependencies**: Milestones 2, 3, 4, 5
+
+---
+
+### Parallel Execution Opportunities
+
+```
+Day 1:
+  ├── Step 0: Baseline (2h) ─────────────────────┐
+  │                                              │
+  │   (after baseline complete)                  │
+  │                                              ▼
+  ├── Phase 1: LocalSource (2h) ───────┐   Phase 4: Cache Keys (30min)
+  │                                    │         │
+  ├── Phase 2: GitHub (4h) ────────────┤         │
+  │                                    │         │
+Day 2:                                 │         │
+  ├── Phase 3: Notion (4h) ────────────┤         │
+  │                                    │         │
+  │                                    ▼         ▼
+  └── Milestone 6: Validation ◄────────┴─────────┘
+```
+
+**Parallelizable**:
+- Phases 1, 2, 3 can run in parallel after Step 0
+- Phase 4 can run independently at any time
+
+---
+
+### Risk Checkpoints
+
+| After | Check | Action if Failed |
+|-------|-------|------------------|
+| Step 0 | Benchmarks run, baseline recorded | Fix benchmark setup before proceeding |
+| Phase 1 | LocalSource <200ms @ 2K files | Investigate regex compilation; may need different approach |
+| Phase 2 | GitHubSource <15s @ 500 files (mocked) | Reduce concurrency; check for blocking I/O |
+| Phase 3 | NotionSource <40s @ 100 pages (mocked) | Reduce concurrency; verify cache is working |
+| Phase 4 | Tests pass, no behavior change | Revert if causing issues |
+| Milestone 6 | All improvements measured | Document partial success; create follow-up issues |
+
+---
+
+### Post-Implementation Checklist
+
+- [ ] All benchmarks pass with target improvements
+- [ ] All unit tests pass (existing + new)
+- [ ] CHANGELOG updated with behavior changes
+- [ ] `pyproject.toml` updated with `notion` extras
+- [ ] RFC status changed from "Draft" to "Implemented"
+- [ ] Performance regression test added to CI
+- [ ] Follow-up issues created for Future Work items
 
 ---
 
@@ -908,4 +1148,3 @@ These optimizations introduce observable behavior changes:
 | In-flight parallel requests | O(k × e) | k=concurrency, e=entry size |
 
 **Total additional space**: Block cache is bounded at 500 entries (~5MB). In-flight requests are bounded by semaphore (10 for GitHub, 5 for Notion). Peak memory usage is predictable and acceptable for dev server.
-

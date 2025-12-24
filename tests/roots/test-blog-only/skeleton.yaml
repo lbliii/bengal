@@ -59,5 +59,3 @@ structure:
       ## CSS Optimization
 
       We're testing CSS tree shaking.
-
-

@@ -181,5 +181,3 @@ class SiteData:
 
     def __repr__(self) -> str:
         return f"SiteData(root={self.root_path.name!r}, theme={self.theme_name!r})"
-
-

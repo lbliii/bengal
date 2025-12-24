@@ -350,5 +350,3 @@ class TestExtractPlainText:
         text = extract_plain_text(ast)
         assert "Hello" in text
         assert "world" in text
-
-

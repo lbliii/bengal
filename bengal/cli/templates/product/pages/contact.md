@@ -28,5 +28,3 @@ Example Company
 Suite 100
 New York, NY 10001
 USA
-
-

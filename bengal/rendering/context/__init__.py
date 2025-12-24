@@ -299,5 +299,3 @@ def build_special_page_context(
     )
 
     return build_page_context(page, site, content="", extra=extra)
-
-

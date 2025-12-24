@@ -73,5 +73,3 @@ class CSSOptimizationReport(TypedDict):
     features_detected: list[str]
     included_files: list[str]
     excluded_files: list[str]
-
-

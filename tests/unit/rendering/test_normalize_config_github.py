@@ -149,5 +149,3 @@ class TestNormalizeConfigGithubRepo:
         # Templates use config.github_repo syntax
         assert result.github_repo == "https://github.com/owner/repo"
         assert result.github_branch == "main"
-
-

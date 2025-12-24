@@ -459,5 +459,3 @@ class TestClassAttr:
     def test_empty_classes(self) -> None:
         """Test with all empty classes."""
         assert class_attr("", "") == ""
-
-

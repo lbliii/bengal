@@ -162,5 +162,3 @@ class TestArchiveYears:
         assert len(result) == 1
         assert result[0]["year"] == 2024
         assert result[0]["count"] == 1
-
-

@@ -294,5 +294,3 @@ class SectionHierarchyMixin:
                 other._relative_url_override,
             )
         return self.path == other.path
-
-

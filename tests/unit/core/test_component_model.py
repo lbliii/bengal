@@ -4,6 +4,8 @@ Tests for the Component Model (Identity/Mode/Data).
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from bengal.core.page import Page, PageCore
 
 
@@ -78,5 +80,3 @@ class TestPageMetadataComponentModel:
         """Test that metadata is accessible via props."""
         page = Page(source_path=tmp_path / "test.md", metadata={"title": "Test", "custom": "value"})
         assert page.props["custom"] == "value"
-
-

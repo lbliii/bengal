@@ -265,5 +265,3 @@ class AsciinemaDirective(BengalDirective):
             f"  </noscript>\n"
             f"</figure>\n"
         )
-
-

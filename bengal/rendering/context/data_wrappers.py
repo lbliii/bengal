@@ -339,5 +339,3 @@ class CascadingParamsContext:
         section = object.__getattribute__(self, "_section")
         site = object.__getattribute__(self, "_site")
         return f"CascadingParamsContext(page={page!r}, section={section!r}, site={site!r})"
-
-

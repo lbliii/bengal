@@ -315,5 +315,3 @@ class TestData:
 
         # Data should still be present (typically reloaded from disk)
         assert content.data.get("key") == "value"
-
-

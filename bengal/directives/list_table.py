@@ -295,5 +295,3 @@ def render_list_table(renderer: Any, text: str, **attrs: Any) -> str:
     html_parts.append("</table>")
 
     return "\n".join(html_parts)
-
-

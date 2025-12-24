@@ -96,9 +96,10 @@ class TestIndexGeneratorVisibilityFiltering:
         metadata = {"visibility": {"search": False}}
 
         search_exclude = False
-        if isinstance(metadata.get("visibility"), dict):
-            if not metadata["visibility"].get("search", True):
-                search_exclude = True
+        if isinstance(metadata.get("visibility"), dict) and not metadata["visibility"].get(
+            "search", True
+        ):
+            search_exclude = True
 
         assert search_exclude is True
 
@@ -107,11 +108,12 @@ class TestIndexGeneratorVisibilityFiltering:
         metadata = {"title": "Regular Page"}
 
         search_exclude = False
-        if metadata.get("hidden", False):
+        if (
+            metadata.get("hidden", False)
+            or isinstance(metadata.get("visibility"), dict)
+            and not metadata["visibility"].get("search", True)
+        ):
             search_exclude = True
-        elif isinstance(metadata.get("visibility"), dict):
-            if not metadata["visibility"].get("search", True):
-                search_exclude = True
 
         assert search_exclude is False
 
@@ -126,11 +128,12 @@ class TestIndexGeneratorVisibilityFiltering:
         }
 
         search_exclude = False
-        if metadata.get("hidden", False):
+        if (
+            metadata.get("hidden", False)
+            or isinstance(metadata.get("visibility"), dict)
+            and not metadata["visibility"].get("search", True)
+        ):
             search_exclude = True
-        elif isinstance(metadata.get("visibility"), dict):
-            if not metadata["visibility"].get("search", True):
-                search_exclude = True
 
         assert search_exclude is False
 
@@ -167,5 +170,3 @@ class TestNavigationVisibilityFiltering:
         in_menu_pages = [p for p in pages if p.visibility.get("menu", True)]
 
         assert len(in_menu_pages) == 1
-
-

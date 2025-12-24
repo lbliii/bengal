@@ -619,5 +619,3 @@ Bengal auto-generates navigation from your directory structure. Use `weight` fro
 - [Directives Reference](/docs/reference/directives/) - All available directives
 - [Configuration Reference](/docs/building/configuration/) - Full config options
 - [Cheatsheet](/docs/reference/cheatsheet/) - Quick syntax reference
-
-

@@ -8,5 +8,3 @@ Provides a product-focused site template with:
 """
 
 from __future__ import annotations
-
-

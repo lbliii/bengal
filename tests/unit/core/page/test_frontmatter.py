@@ -116,5 +116,3 @@ class TestFrontmatterIteration:
 
         assert items["title"] == "Test"
         assert items["tags"] == ["a"]
-
-

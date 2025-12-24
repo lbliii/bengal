@@ -1652,5 +1652,3 @@ If you encounter a health check issue:
 4. Check the [troubleshooting guide](/docs/guides/troubleshooting/)
 
 For bugs or unclear errors, please [open an issue](https://github.com/bengal-ssg/bengal/issues).
-
-

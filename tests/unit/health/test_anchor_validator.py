@@ -324,5 +324,3 @@ class TestAnchorValidatorSimilarSuggestions:
         # Should suggest anchors containing "install"
         similar = results[0].metadata["similar_anchors"]
         assert any("install" in s for s in similar)
-
-

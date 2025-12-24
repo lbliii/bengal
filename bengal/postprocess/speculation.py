@@ -284,5 +284,3 @@ def generate_speculation_rules(site: Site) -> str:
     """
     generator = SpeculationRulesGenerator(site)
     return generator.to_json()
-
-

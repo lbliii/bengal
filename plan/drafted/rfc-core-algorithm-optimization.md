@@ -172,7 +172,7 @@ import warnings
 def find(self, url: str) -> NavNode | None:
     """
     Find a node by URL in this subtree.
-    
+
     .. deprecated:: 0.x
         Use NavTree.find() for O(1) lookup instead.
         This method performs O(n) recursive search.
@@ -195,25 +195,25 @@ def _has_cycle(self, item: MenuItem, visited: set[str], path: set[str]) -> bool:
     """Detect cycles using DFS with backtracking (O(d) space instead of O(n×d))."""
     if item.identifier is None:
         return False
-    
+
     if item.identifier in path:
         return True
-    
+
     path.add(item.identifier)
     visited.add(item.identifier)
-    
+
     # Check each child; short-circuit on first cycle found
     for child in item.children:
         if self._has_cycle(child, visited, path):
             path.discard(item.identifier)  # Clean up before returning
             return True
-    
+
     # Backtrack: remove from path after checking subtree
     path.discard(item.identifier)
     return False
 ```
 
-**Optimization**: 
+**Optimization**:
 - **Space**: O(n × d) allocations → O(d) single set (major improvement)
 - **Time**: Eliminates `set.copy()` overhead per call (minor improvement)
 
@@ -234,18 +234,18 @@ def _has_cycle(self, item: MenuItem, visited: set[str], path: set[str]) -> bool:
 class MenuItem:
     # ... existing fields ...
     _children_dirty: bool = field(default=False, repr=False)
-    
+
     def add_child(self, child: MenuItem) -> None:
         """Add a child (O(1)). Call sort_children() when done adding."""
         self.children.append(child)
         self._children_dirty = True
-    
+
     def sort_children(self) -> None:
         """Sort children by weight. O(k log k) where k = number of children."""
         if self._children_dirty:
             self.children.sort(key=lambda x: x.weight)
             self._children_dirty = False
-    
+
     def get_sorted_children(self) -> list[MenuItem]:
         """Get children, sorting if needed."""
         self.sort_children()
@@ -258,16 +258,16 @@ class MenuItem:
 # menu.py - Sort once after hierarchy built
 def build_hierarchy(self) -> list[MenuItem]:
     # ... existing tree building ...
-    
+
     # Sort all nodes once (DFS)
     def sort_recursive(item: MenuItem) -> None:
         item.sort_children()
         for child in item.children:
             sort_recursive(child)
-    
+
     for root in roots:
         sort_recursive(root)
-    
+
     roots.sort(key=lambda x: x.weight)
     return roots
 ```
@@ -292,19 +292,19 @@ from collections import OrderedDict
 class NavTreeCache:
     _trees: OrderedDict[str | None, NavTree] = OrderedDict()
     # ... existing code ...
-    
+
     @classmethod
     def get(cls, site: Site, version_id: str | None = None) -> NavTree:
         # ... existing cache check ...
-        
+
         with cls._lock:
             if version_id in cls._trees:
                 # LRU: Move to end on access
                 cls._trees.move_to_end(version_id)
                 return cls._trees[version_id]
-        
+
         # ... build tree ...
-        
+
         with cls._lock:
             if len(cls._trees) >= cls._MAX_CACHE_SIZE:
                 # LRU: Evict oldest (first)
@@ -468,6 +468,136 @@ class NavTreeCache:
 
 ---
 
+## Execution Plan
+
+### Overview
+
+| Phase | Tasks | Effort | Status |
+|-------|-------|--------|--------|
+| Phase 0: Baseline | Create benchmark suite | 2h | ⬜ Pending |
+| Phase 1: Code Hygiene | Deprecate + backtracking | 1h | ⬜ Pending |
+| Phase 2: Menu Optimization | Deferred sort | 1h | ⬜ Pending |
+| Phase 3: LRU Cache | OrderedDict migration | 30m | ⬜ Conditional |
+| Verification | Regression testing | 1h | ⬜ Pending |
+
+**Total**: 4-5.5 hours (0.5-1 day)
+
+---
+
+### Phase 0: Establish Baseline
+
+**Goal**: Capture current performance to validate improvements and detect regressions.
+
+| # | Task | File | Acceptance Criteria |
+|---|------|------|---------------------|
+| 0.1 | Create benchmark test file | `benchmarks/test_core_performance.py` | File exists, imports pass |
+| 0.2 | Implement synthetic site fixture (10K pages, 100 sections) | `benchmarks/conftest.py` | Fixture generates site in <30s |
+| 0.3 | Add NavTree.build() benchmark | `test_core_performance.py` | Measures tree construction time |
+| 0.4 | Add NavTree.find() benchmark | `test_core_performance.py` | Measures URL lookup (1K lookups) |
+| 0.5 | Add MenuBuilder.build_hierarchy() benchmark | `test_core_performance.py` | Measures menu build with 100 items |
+| 0.6 | Add ContentRegistry lookup benchmark | `test_core_performance.py` | Measures page/section resolution |
+| 0.7 | Record baseline results | `benchmarks/baseline_core.json` | JSON with timing data |
+| 0.8 | Add regression threshold check | `test_core_performance.py` | Fails if >10% slower than baseline |
+
+**Gate**: All benchmarks run successfully; baseline captured.
+
+---
+
+### Phase 1: Code Hygiene
+
+**Goal**: Deprecate O(n) method, optimize cycle detection.
+
+| # | Task | File | Acceptance Criteria |
+|---|------|------|---------------------|
+| 1.1 | Add deprecation warning to `NavNode.find()` | `bengal/core/nav_tree.py` | Warning emitted when called |
+| 1.2 | Update test to avoid deprecated method | `tests/unit/test_nav_tree.py` | Test uses `NavTree.find()` or suppresses warning |
+| 1.3 | Refactor `_has_cycle()` to backtracking | `bengal/core/menu.py` | No `path.copy()` calls |
+| 1.4 | Add explicit loop (not `any()`) for cleanup | `bengal/core/menu.py` | `path.discard()` runs before all returns |
+| 1.5 | Add docstring documenting O(1) vs O(n) distinction | `bengal/core/nav_tree.py` | Docstring updated on both methods |
+| 1.6 | Add edge case tests for cycle detection | `tests/unit/test_menu.py` | Tests: self-ref, indirect, deep nesting |
+| 1.7 | Run full test suite | — | All tests pass |
+
+**Gate**: Tests pass; deprecation warning works; cycle detection correct.
+
+---
+
+### Phase 2: Menu Optimization
+
+**Goal**: Reduce menu building from O(n × k log k) to O(n + k log k).
+
+| # | Task | File | Acceptance Criteria |
+|---|------|------|---------------------|
+| 2.1 | Add `_children_dirty` field to `MenuItem` | `bengal/core/menu.py` | Field exists, default `False` |
+| 2.2 | Make `add_child()` O(1) (remove sort) | `bengal/core/menu.py` | No `sort()` call in method |
+| 2.3 | Add `sort_children()` method | `bengal/core/menu.py` | Sorts only if dirty, clears flag |
+| 2.4 | Add `get_sorted_children()` accessor | `bengal/core/menu.py` | Calls `sort_children()` first |
+| 2.5 | Update `build_hierarchy()` with recursive sort | `bengal/core/menu.py` | Single sort pass after tree built |
+| 2.6 | Update tests accessing `.children` directly | `tests/unit/test_menu.py` | Tests call `sort_children()` or use accessor |
+| 2.7 | Run benchmark comparison | — | Menu build ≥2x faster for 100 items |
+| 2.8 | Run full test suite | — | All tests pass |
+
+**Gate**: Benchmark shows improvement; menu order unchanged; tests pass.
+
+---
+
+### Phase 3: LRU Cache (Conditional)
+
+**Trigger**: Only implement if benchmarks show cache churn with 20+ versions.
+
+| # | Task | File | Acceptance Criteria |
+|---|------|------|---------------------|
+| 3.1 | Replace `dict` with `OrderedDict` | `bengal/core/nav_tree.py` | `_trees` is `OrderedDict` |
+| 3.2 | Add `move_to_end()` on cache hits | `bengal/core/nav_tree.py` | Accessed entries move to end |
+| 3.3 | Update eviction to `popitem(last=False)` | `bengal/core/nav_tree.py` | LRU eviction instead of FIFO |
+| 3.4 | Add LRU behavior test | `tests/unit/test_nav_tree_cache.py` | Test verifies oldest accessed evicted last |
+| 3.5 | Run cache benchmark | — | Hit rate improved for hot versions |
+
+**Gate**: LRU behavior verified; no performance regression.
+
+---
+
+### Verification Phase
+
+| # | Task | Acceptance Criteria |
+|---|------|---------------------|
+| V.1 | Run full test suite | All tests pass |
+| V.2 | Run benchmark suite vs baseline | No >10% regressions |
+| V.3 | Verify menu structure unchanged | Same output as before optimization |
+| V.4 | Verify deprecation warning emitted | `NavNode.find()` warns |
+| V.5 | Document changes in changelog | Entry added |
+| V.6 | Code review | PR approved |
+
+---
+
+### Dependencies
+
+```
+Phase 0 ────► Phase 1 ────► Phase 2 ────► Verification
+                │
+                └──────────► Phase 3 (conditional) ───► Verification
+```
+
+- **Phase 0** is prerequisite for all other phases (baseline required)
+- **Phase 1** and **Phase 2** can run in parallel after Phase 0
+- **Phase 3** is independent but requires Phase 0 baseline
+- **Verification** runs after all active phases complete
+
+---
+
+### Rollback Plan
+
+If issues arise post-deployment:
+
+1. **Immediate**: Revert commit via `git revert <sha>`
+2. **Partial rollback**:
+   - Phase 1: Remove deprecation warning (no functional change)
+   - Phase 2: Re-add sort to `add_child()`, remove dirty flag
+   - Phase 3: Replace `OrderedDict` with `dict`
+
+All changes are isolated and independently revertible.
+
+---
+
 ## Future Work
 
 1. **Parallel NavTree builds**: Build trees for multiple versions concurrently
@@ -548,4 +678,3 @@ URL claim check:
 ```
 
 All critical runtime paths are verified O(1). ✅
-

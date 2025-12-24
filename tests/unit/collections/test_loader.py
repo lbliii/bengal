@@ -277,5 +277,3 @@ class TestGetCollectionForPathWithTrie:
 
         assert name is None
         assert config is None
-
-

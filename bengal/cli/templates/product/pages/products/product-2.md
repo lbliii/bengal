@@ -40,5 +40,3 @@ An advanced product with cutting-edge technology and sleek design. Ideal for tec
 ## Customer Reviews
 
 > "The best purchase I've made this year!" - Satisfied Customer
-
-

@@ -294,5 +294,3 @@ class TestPerKeyLockManagerEdgeCases:
 
         # No errors should have occurred
         assert len(errors) == 0, f"Got errors: {errors}"
-
-

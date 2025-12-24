@@ -161,5 +161,3 @@ class TestTabSetSlugify:
 
         assert directive._slugify("") == "tab"
         assert directive._slugify("   ") == "tab"
-
-

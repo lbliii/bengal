@@ -387,5 +387,3 @@ def _git_show_file(repo_path: Path, ref: str, path: str) -> str | None:
         return result.stdout
     except subprocess.CalledProcessError:
         return None
-
-

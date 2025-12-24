@@ -213,5 +213,3 @@ class TestConvenienceFunction:
         report = analyze_content_intelligence(site)
 
         assert report.pages_analyzed == 1
-
-

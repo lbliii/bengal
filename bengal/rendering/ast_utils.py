@@ -272,5 +272,3 @@ def extract_plain_text(ast: list[ASTNode]) -> str:
     # Collapse multiple newlines
     text = re.sub(r"\n{3,}", "\n\n", text)
     return text.strip()
-
-

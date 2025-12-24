@@ -126,5 +126,3 @@ class BaseOutputGenerator(ABC):
     def output_dir(self) -> Path:
         """Get the site's output directory."""
         return self.site.output_dir
-
-

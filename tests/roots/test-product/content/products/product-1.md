@@ -22,5 +22,3 @@ A test product for integration testing.
 
 - Feature A
 - Feature B
-
-

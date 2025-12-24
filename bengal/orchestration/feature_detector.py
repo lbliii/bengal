@@ -154,5 +154,3 @@ def detect_site_features(site: Site) -> set[str]:
         all_features.update(features)
 
     return all_features
-
-

@@ -192,24 +192,24 @@ def sort_pages(self, pages: list[Page]) -> list[Page]:
 def sort_pages(self, pages: list[Page]) -> list[Page]:
     """
     Sort pages for display in list views.
-    
+
     Uses decorate-sort-undecorate pattern to avoid repeated
     key computation during Timsort comparisons.
     """
     if len(pages) <= 100:
         # Small sections: lambda is fine, avoid overhead
         return sorted(pages, key=lambda p: (p.metadata.get("weight", 999999), p.title.lower()))
-    
+
     # Large sections: pre-compute keys
     # Decorate: [(sort_key, original_index, page), ...]
     decorated = [
         ((p.metadata.get("weight", 999999), p.title.lower()), i, p)
         for i, p in enumerate(pages)
     ]
-    
+
     # Sort: compare tuples (weight, title_lower)
     decorated.sort(key=lambda x: x[0])
-    
+
     # Undecorate: extract pages
     return [p for _, _, p in decorated]
 ```
@@ -226,7 +226,7 @@ def sort_pages(self, pages: list[Page]) -> list[Page]:
     """Sort by date, newest first, with pre-computed keys."""
     if len(pages) <= 100:
         return sorted(pages, key=lambda p: p.date if p.date else datetime.min, reverse=True)
-    
+
     # Pre-compute dates once
     dated = [(p.date if p.date else datetime.min, i, p) for i, p in enumerate(pages)]
     dated.sort(key=lambda x: x[0], reverse=True)
@@ -254,7 +254,7 @@ def sort_pages(self, pages: list[Page]) -> list[Page]:
     Returns:
         New sorted list of pages. The caller MUST NOT mutate the
         returned list if it may be the same object as the input.
-        
+
     Note:
         Implementations that preserve original order MAY return the
         input list directly. Callers should treat the return value
@@ -269,7 +269,7 @@ def sort_pages(self, pages: list[Page]) -> list[Page]:
 def sort_pages(self, pages: list[Page]) -> list[Page]:
     """
     Preserve original discovery order (typically alphabetical).
-    
+
     Returns the input list directly since no reordering is needed.
     Caller must not mutate the returned list.
     """
@@ -310,31 +310,31 @@ class ContentTypeStrategy:
     # Class-level cache (shared across instances)
     _template_cache: dict[str, bool] = {}
     _template_engine_id: int | None = None  # Invalidate on engine change
-    
+
     def get_template(self, page: Page | None = None, template_engine: Any | None = None) -> str:
         # ... existing logic ...
-        
+
         def template_exists(name: str) -> bool:
             if template_engine is None:
                 return False
-            
+
             # Invalidate cache if engine changed
             engine_id = id(template_engine)
             if ContentTypeStrategy._template_engine_id != engine_id:
                 ContentTypeStrategy._template_cache.clear()
                 ContentTypeStrategy._template_engine_id = engine_id
-            
+
             # Check cache first
             if name in ContentTypeStrategy._template_cache:
                 return ContentTypeStrategy._template_cache[name]
-            
+
             # Query engine and cache result
             try:
                 template_engine.env.get_template(name)
                 exists = True
             except Exception:
                 exists = False
-            
+
             ContentTypeStrategy._template_cache[name] = exists
             return exists
 ```
@@ -355,7 +355,7 @@ class ContentTypeStrategy:
    - Small: 100 pages, mixed content types
    - Medium: 1K pages per section
    - Large: 10K pages per section
-   
+
 2. Measure operations:
    - `sort_pages()` for each strategy
    - `filter_display_pages()` with various index page scenarios
@@ -580,4 +580,3 @@ The `content_types` module is **not a performance bottleneck**. The optimization
 | 10,000 | ~5ms | <1μs |
 
 > **Note**: Estimates based on typical Python performance. Actual measurements required via Step 0 benchmarks.
-

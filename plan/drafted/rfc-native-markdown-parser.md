@@ -739,5 +739,3 @@ These are architectural changes that would fork mistune significantly, making a 
   - Identified Bengal-specific optimization opportunities
   - Proposed three implementation options
   - Recommended phased approach starting with pyromark
-
-

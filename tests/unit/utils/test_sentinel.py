@@ -47,5 +47,3 @@ def test_missing_pickle():
     pickled = pickle.dumps(MISSING)
     unpickled = pickle.loads(pickled)
     assert unpickled is MISSING
-
-

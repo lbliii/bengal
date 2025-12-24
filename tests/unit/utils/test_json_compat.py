@@ -190,5 +190,3 @@ class TestJsonCompatRoundtrip:
         result = load(file_path)
 
         assert result == data
-
-

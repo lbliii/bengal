@@ -111,5 +111,3 @@ class Frontmatter:
                 extra[key] = value
 
         return cls(**known, extra=extra)
-
-

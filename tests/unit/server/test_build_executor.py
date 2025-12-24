@@ -231,5 +231,3 @@ class TestBuildResultSerialization:
         restored = pickle.loads(data)
 
         assert restored == result
-
-

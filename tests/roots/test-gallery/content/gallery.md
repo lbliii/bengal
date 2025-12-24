@@ -43,5 +43,3 @@ This page demonstrates the gallery directive with sample images.
 ![Wide Image 2](/images/wide2.jpg)
 
 :::
-
-

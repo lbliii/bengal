@@ -9,5 +9,3 @@ translation_key: about
 This is the English about page for testing i18n integration.
 
 We provide comprehensive testing for internationalization features.
-
-

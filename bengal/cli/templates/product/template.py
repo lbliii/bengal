@@ -119,5 +119,3 @@ def _create_product_template() -> SiteTemplate:
 
 # Export the template
 TEMPLATE = _create_product_template()
-
-

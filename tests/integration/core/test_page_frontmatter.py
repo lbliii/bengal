@@ -50,5 +50,3 @@ def test_frontmatter_cached(tmp_path: Path) -> None:
     fm2 = page.frontmatter
 
     assert fm1 is fm2  # Same instance
-
-

@@ -200,5 +200,3 @@ class DirectoryWalker:
                 yield item, True
             elif item.is_dir():
                 yield item, False
-
-

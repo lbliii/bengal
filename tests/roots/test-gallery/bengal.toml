@@ -7,5 +7,3 @@ description = "Test site for gallery directive integration tests"
 content_dir = "content"
 output_dir = "public"
 theme = "default"
-
-

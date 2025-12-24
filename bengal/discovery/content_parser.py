@@ -312,5 +312,3 @@ class ContentParser:
                 continue
 
         return None, None
-
-

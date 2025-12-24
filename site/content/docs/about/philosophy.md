@@ -132,5 +132,3 @@ Bengal is for users who value a **clean, evolving system** over frozen behavior.
 * - Evolution over preservation
   - The project moves forward
 :::
-
-

@@ -635,5 +635,3 @@ pytest tests/dashboard/ -m "not slow"
 - `tests/dashboard/conftest.py` — Test fixtures
 - [Textual Testing Guide](https://textual.textualize.io/guide/testing/)
 - [pytest-textual-snapshot](https://github.com/Textualize/pytest-textual-snapshot)
-
-

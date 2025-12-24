@@ -186,5 +186,3 @@ class TestHydrator:
 
         assert not (tmp_path / "test.md").exists()
         assert len(hydrator.created_files) > 0  # It tracks paths that WOULD be created
-
-
