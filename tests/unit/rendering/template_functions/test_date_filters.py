@@ -154,3 +154,5 @@ class TestHumanizeDays:
     def test_humanize_non_int(self):
         """humanize_days handles non-int input."""
         assert humanize_days("not an int") == ""  # type: ignore
+
+

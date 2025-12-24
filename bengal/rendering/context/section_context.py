@@ -112,3 +112,5 @@ class SectionContext:
         if self._section:
             return f"SectionContext({self._section.name!r})"
         return "SectionContext(None)"
+
+

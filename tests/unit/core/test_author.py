@@ -120,3 +120,5 @@ class TestAuthorEdgeCases:
             }
         )
         assert author.social == {}
+
+

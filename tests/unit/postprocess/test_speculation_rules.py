@@ -242,3 +242,5 @@ class TestSpeculationRulesJSONSchema:
                 assert "where" in rule
                 assert "eagerness" in rule
                 assert rule["eagerness"] in ["immediate", "eager", "moderate", "conservative"]
+
+

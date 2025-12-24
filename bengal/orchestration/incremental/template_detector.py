@@ -178,3 +178,5 @@ class TemplateChangeDetector:
             return bundled_theme_dir
 
         return None
+
+

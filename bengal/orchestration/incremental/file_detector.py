@@ -235,3 +235,5 @@ class FileChangeDetector:
                         asset=str(asset.source_path),
                         error=str(e),
                     )
+
+

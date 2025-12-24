@@ -438,3 +438,5 @@ class TestCacheInvalidation:
         # Should work normally after
         result = ctx.get("main")
         assert result == []
+
+

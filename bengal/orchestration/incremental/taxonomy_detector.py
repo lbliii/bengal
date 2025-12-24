@@ -147,3 +147,5 @@ class TaxonomyChangeDetector:
             pass
 
         return autodoc_pages_to_rebuild
+
+

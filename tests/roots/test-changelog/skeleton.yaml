@@ -7,3 +7,5 @@ structure:
     props:
       title: Changelog
       layout: changelog/single
+
+

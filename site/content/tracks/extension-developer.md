@@ -9,3 +9,5 @@ Extend Bengal beyond its defaults. Build custom MyST directives, fetch content f
 :::{tip}
 **Duration**: ~90 min | **Prerequisite**: Python familiarity, basic Jinja2
 :::
+
+

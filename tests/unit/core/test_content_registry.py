@@ -309,3 +309,5 @@ class TestURLOwnership:
 
         claim = registry.url_ownership.get_claim("/about/")
         assert claim is None
+
+

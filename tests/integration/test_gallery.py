@@ -176,3 +176,5 @@ class TestGalleryCSS:
         assert ".gallery__image" in content, "Should have .gallery__image selector"
         assert ".gallery__caption" in content, "Should have .gallery__caption selector"
         assert "--gallery-columns" in content, "Should use CSS custom properties"
+
+

@@ -248,3 +248,5 @@ def test_discovery_scaling(tmp_path: Path) -> None:
         assert last_rate > first_rate / 5, (
             f"Scaling appears non-linear: first rate={first_rate:.0f}, last rate={last_rate:.0f}"
         )
+
+

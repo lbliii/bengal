@@ -4,3 +4,5 @@ baseurl = "/"
 
 [build]
 output_dir = "public"
+
+

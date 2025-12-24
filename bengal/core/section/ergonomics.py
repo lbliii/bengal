@@ -293,3 +293,5 @@ class SectionErgonomicsMixin:
 
         # Template rendering will be handled by the template engine
         return ""
+
+

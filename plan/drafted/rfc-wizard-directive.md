@@ -778,3 +778,5 @@ class TestWizardStepDirective:
 - Contract system: `bengal/directives/contracts.py:37-79`
 - Base directive: `bengal/directives/base.py:58-437`
 - Tabs JS: `bengal/themes/default/assets/js/enhancements/tabs.js:1-94`
+
+

@@ -204,3 +204,5 @@ class TestTransformASTForOutput:
         ast: list[ASTNode] = [{"type": "link", "url": "./guide.md", "children": []}]
         result = transform_ast_for_output(ast, baseurl=None)
         assert result[0]["url"] == "./guide/"
+
+

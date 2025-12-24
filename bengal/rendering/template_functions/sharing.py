@@ -286,3 +286,5 @@ def mastodon_share_text(url: str, text: str = "") -> str:
     if text:
         return f"{text} {url}"
     return url
+
+

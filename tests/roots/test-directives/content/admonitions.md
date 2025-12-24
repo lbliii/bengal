@@ -46,3 +46,5 @@ def example():
     return "code inside admonition"
 ```
 :::
+
+

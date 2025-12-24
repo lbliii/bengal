@@ -126,3 +126,5 @@ class TestDirectiveToken:
         assert original.children == [1, 2, 3]
         # New token has new children
         assert updated.children == [4, 5]
+
+

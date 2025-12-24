@@ -228,3 +228,5 @@ class SiteContent:
             f"sections={len(self.sections)}, "
             f"assets={len(self.assets)}{frozen_str})"
         )
+
+

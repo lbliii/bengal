@@ -14,3 +14,5 @@ These templates are intentionally minimal (no styling, basic structure) and serv
 **For site developers**: Override these by creating templates in your site at:
 - `templates/autodoc/python/module.html`
 - `templates/autodoc/python/section-index.html`
+
+

@@ -115,3 +115,5 @@ class TestTypeNarrowing:
                 assert node["level"] == 2  # Type narrowed
             case _:
                 pytest.fail("Should match heading")
+
+

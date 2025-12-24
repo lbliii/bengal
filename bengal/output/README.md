@@ -198,3 +198,5 @@ cli.path("/public", label="Output")  # "Output:\n   ↪ /public"
 - `bengal/output/icons.py` - Icon set definitions
 - `bengal/output/core.py` - CLIOutput implementation
 - `bengal/utils/rich_console.py` - Rich console and theme configuration
+
+

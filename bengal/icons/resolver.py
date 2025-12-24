@@ -212,3 +212,5 @@ def _preload_all_icons() -> None:
 def is_initialized() -> bool:
     """Check if resolver has been initialized with a Site."""
     return _initialized
+
+

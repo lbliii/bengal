@@ -184,3 +184,5 @@ class TestConfigHashIntegration:
         site2 = Site(root_path=tmp_path, config={"title": "Test2"})
 
         assert site1.config_hash != site2.config_hash
+
+

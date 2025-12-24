@@ -241,3 +241,5 @@ class TestDocumentApplicationDefaults:
 
         html = site.read_output("index.html")
         assert '"eagerness": "conservative"' in html
+
+

@@ -7,3 +7,5 @@ Verify installation:
 ```bash
 bengal --version
 ```
+
+

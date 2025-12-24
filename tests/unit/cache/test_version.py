@@ -72,3 +72,5 @@ def test_old_version_header_rejected():
 
     is_valid, _ = validate_cache_header(old_cache)
     assert is_valid is False
+
+

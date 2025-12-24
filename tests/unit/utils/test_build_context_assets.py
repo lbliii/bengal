@@ -111,3 +111,5 @@ class TestBuildContextAssetAccumulation:
         assert ctx.accumulated_asset_count == 1
         accumulated = ctx.get_accumulated_assets()
         assert len(accumulated[0][1]) == 1000
+
+

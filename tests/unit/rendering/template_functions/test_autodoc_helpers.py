@@ -221,3 +221,5 @@ class TestHelperChaining:
         names = [m.name for m in private_methods]
         assert "_private_method" in names
         assert "__init__" in names
+
+

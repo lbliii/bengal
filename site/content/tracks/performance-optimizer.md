@@ -9,3 +9,5 @@ Scale your documentation to thousands of pages without slowing down. Learn incre
 :::{tip}
 **Duration**: ~30 min | **Prerequisite**: A Bengal site with 100+ pages
 :::
+
+

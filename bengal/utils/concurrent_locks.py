@@ -140,3 +140,5 @@ class PerKeyLockManager:
     def __repr__(self) -> str:
         """Return string representation showing lock count."""
         return f"PerKeyLockManager(locks={len(self)})"
+
+

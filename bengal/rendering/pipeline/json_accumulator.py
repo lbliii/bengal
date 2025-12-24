@@ -315,3 +315,5 @@ class JsonAccumulator:
         return self._page_json_generator.page_to_json(
             page, include_html=include_html, include_text=include_text
         )
+
+

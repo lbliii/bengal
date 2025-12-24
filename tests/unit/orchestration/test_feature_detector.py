@@ -257,3 +257,5 @@ class TestDetectSiteFeatures:
         features = detect_site_features(site)
 
         assert len(features) == 0
+
+

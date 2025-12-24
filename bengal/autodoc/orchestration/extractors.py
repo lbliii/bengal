@@ -114,3 +114,5 @@ def extract_openapi(
 
     logger.debug("autodoc_openapi_extracted", count=len(elements))
     return elements
+
+

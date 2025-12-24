@@ -59,3 +59,5 @@ def resolve_page_section_path(page: Any) -> str | None:
 
     # Already a string or stringable value
     return str(section_value)
+
+

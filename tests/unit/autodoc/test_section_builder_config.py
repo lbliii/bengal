@@ -209,3 +209,5 @@ class TestDisplayNameConfig:
         root_section = sections.get("api/rest")
         assert root_section is not None
         assert root_section.title == "REST API Reference"
+
+

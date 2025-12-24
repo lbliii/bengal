@@ -43,3 +43,5 @@ class WeightedPage:
         if self.weight != other.weight:
             return self.weight < other.weight
         return self.title_lower < other.title_lower
+
+

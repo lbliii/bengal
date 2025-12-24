@@ -9,3 +9,5 @@ translation_key: home
 This is the English home page for testing i18n integration.
 
 The site supports multiple languages and provides translations via YAML files.
+
+

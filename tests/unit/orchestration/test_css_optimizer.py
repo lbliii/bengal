@@ -416,3 +416,5 @@ class TestOptimizeCSSForSite:
 
         assert isinstance(css, str)
         assert len(css) > 0
+
+

@@ -19,3 +19,5 @@ Example:
 from bengal.icons import resolver
 
 __all__ = ["resolver"]
+
+

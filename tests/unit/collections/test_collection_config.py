@@ -325,3 +325,5 @@ class TestGenericTypeParameter:
 
         assert blog.schema is BlogPost
         assert docs.schema is DocPage
+
+

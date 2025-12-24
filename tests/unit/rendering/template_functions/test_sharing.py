@@ -176,3 +176,5 @@ class TestShareUrlDispatcher:
 
         url = share_url("twitter", MockPage())
         assert "example.com" in url
+
+

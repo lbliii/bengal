@@ -475,3 +475,5 @@ CheckResult.error(
 - `bengal/health/report.py` - Current CheckResult implementation
 - `rfc-health-report-clarity.md` - Related data model improvements
 - `bengal/health/validators/` - 18+ validators to update
+
+

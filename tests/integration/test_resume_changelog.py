@@ -158,3 +158,5 @@ class TestChangelogTemplate:
 
             # First version should be the latest (1.0.0 > 0.9.0)
             assert versions[0] >= versions[-1], "Releases should be ordered newest first"
+
+

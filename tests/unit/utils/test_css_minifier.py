@@ -485,3 +485,5 @@ class TestMinifyCssEdgeCases:
 
         # Should convert to string or return empty
         assert isinstance(result, str)
+
+

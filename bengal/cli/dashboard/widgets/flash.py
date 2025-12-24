@@ -126,3 +126,5 @@ class BuildFlash(Static):
         if self.flash_timer is not None:
             self.flash_timer.stop()
             self.flash_timer = None
+
+

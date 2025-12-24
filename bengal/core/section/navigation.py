@@ -382,3 +382,5 @@ class SectionNavigationMixin:
                 return f"/{section_name}/{version_id}/" + "/".join(rest) + "/"
             else:
                 return f"/{section_name}/{version_id}/"
+
+

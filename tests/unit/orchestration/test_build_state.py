@@ -252,3 +252,5 @@ class TestAssetManifestState:
         state.reset_caches()
 
         assert len(state.asset_manifest_fallbacks) == 0
+
+

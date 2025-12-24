@@ -233,3 +233,5 @@ class TestChecklistWithNamedClosers:
         assert "checklist-numbered" in result
         assert "checklist-progress" in result
         assert "1/2 complete" in result
+
+

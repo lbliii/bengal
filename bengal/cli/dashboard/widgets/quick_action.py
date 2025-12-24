@@ -133,3 +133,5 @@ class QuickAction(Static, can_focus=True):
     def on_click(self) -> None:
         """Handle click event."""
         self.post_message(self.Selected(self))
+
+

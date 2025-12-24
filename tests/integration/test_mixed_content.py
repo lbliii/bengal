@@ -154,3 +154,5 @@ class TestMixedContentNavigation:
         assert "docs" in landing_html.lower() or "blog" in landing_html.lower(), (
             "Landing page should reference other sections"
         )
+
+

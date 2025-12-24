@@ -326,3 +326,5 @@ class TestAutodocGenerationConsistency:
         assert not orphan_txt, "TXT files without corresponding HTML:\n" + "\n".join(
             f"  - {p}" for p in orphan_txt[:10]
         )
+
+

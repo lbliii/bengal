@@ -330,3 +330,5 @@ class TestInitializeWithSite:
         # Default path should be included
         path_strs = [str(p) for p in paths]
         assert any("default" in p for p in path_strs)
+
+

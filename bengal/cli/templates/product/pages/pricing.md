@@ -27,3 +27,5 @@ We accept the following payment methods:
 - 30-day money-back guarantee
 - Free returns on defective items
 - Easy return process
+
+

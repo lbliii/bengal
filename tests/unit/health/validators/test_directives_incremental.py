@@ -42,3 +42,5 @@ def test_directive_analyzer_skips_unchanged_pages_in_incremental_mode(tmp_path: 
     assert stats.get("pages_processed") == 0
     skipped = (stats.get("pages_skipped") or {}).get("no_changes")
     assert skipped == 2
+
+

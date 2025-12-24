@@ -153,3 +153,5 @@ All animations respect `prefers-reduced-motion: reduce`:
 3. **Use translate3d()** - Forces GPU layer
 4. **Avoid animating during scroll** - Use passive listeners
 5. **Keep durations short** - <300ms for most interactions
+
+
