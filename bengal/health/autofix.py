@@ -592,6 +592,10 @@ class AutoFixer:
                 # Step 1: Build directive hierarchy
                 directives = self._parse_directive_hierarchy(lines)
 
+                # Build O(1) lookup index for parent traversal
+                # Optimization: O(D) build + O(1) lookups vs O(D) per lookup
+                directive_by_line: dict[int, dict[str, Any]] = {d["line"]: d for d in directives}
+
                 # Step 2: Find the directive at line_number and its ancestors
                 # Handle case where line_number might be a closing fence instead of opening fence
                 target_directive = None
@@ -631,11 +635,12 @@ class AutoFixer:
 
                 # Step 3: Build ancestor chain (parent -> grandparent -> ...)
                 # Build from child to root (deepest first)
+                # Uses O(1) dict lookup instead of O(D) linear search
                 ancestors = []
                 current = target_directive
                 while current.get("parent"):
                     parent_line = current["parent"]
-                    parent = next((d for d in directives if d["line"] == parent_line), None)
+                    parent = directive_by_line.get(parent_line)
                     if parent:
                         ancestors.append(parent)
                         current = parent
@@ -665,13 +670,14 @@ class AutoFixer:
                     found_target = False
 
                     # Walk up the parent chain to see if target_directive is an ancestor
+                    # Uses O(1) dict lookup instead of O(D) linear search
                     while current.get("parent"):
                         parent_line = current["parent"]
                         if parent_line == target_directive["line"]:
                             # This directive is a direct child of target_directive
                             found_target = True
                             break
-                        parent = next((d for d in directives if d["line"] == parent_line), None)
+                        parent = directive_by_line.get(parent_line)
                         if parent:
                             depth_from_target += 1
                             current = parent
