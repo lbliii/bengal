@@ -4,12 +4,26 @@ Code tabs directive for Mistune.
 Provides multi-language code examples with tabbed interface for easy
 comparison across programming languages.
 
-Enhanced features (RFC: Enhanced Code Tabs):
-- Auto language sync: All code-tabs on a page sync when user picks a language
-- Language icons: Automatic icons from language category
-- Pygments integration: Line numbers, highlighting, proper syntax coloring
-- Copy button: One-click copy per tab
-- Filename display: `### Python (main.py)` shows filename badge
+Simplified syntax (RFC: Simplified Code Tabs Syntax v2):
+- Tab labels derived from code fence language (no ### markers needed)
+- Filename in info string: ```python app.py {3-4}
+- Title override: ```python title="Flask" for custom labels
+- Auto sync by language across page
+- Language icons, Pygments highlighting, copy button
+
+Syntax:
+    :::{code-tabs}
+
+    ```python app.py {3-4}
+    def hello():
+        print("Hello!")
+    ```
+
+    ```javascript index.js
+    console.log("Hello!");
+    ```
+
+    :::
 
 """
 
@@ -30,7 +44,14 @@ from bengal.rendering.pygments_cache import get_lexer_cached
 from bengal.utils.hashing import hash_str
 from bengal.utils.logger import get_logger
 
-__all__ = ["CodeTabsDirective", "CodeTabsOptions", "render_code_tab_item"]
+__all__ = [
+    "CodeTabsDirective",
+    "CodeTabsOptions",
+    "render_code_tab_item",
+    "get_display_name",
+    "parse_info_string",
+    "LANGUAGE_DISPLAY_NAMES",
+]
 
 logger = get_logger(__name__)
 
@@ -38,29 +59,36 @@ logger = get_logger(__name__)
 # Pre-compiled regex patterns
 # ============================================================================
 
-# Tab marker: ### Python or ### Tab: Python or ### Python (main.py)
-# Filename pattern only matches: word chars, dots, hyphens ending with .ext
-_TAB_MARKER_PATTERN = re.compile(
-    r"^### (?:Tab: )?(.+?)(?:\s+\((\w[\w.-]*\.[a-z]+)\))?$",
-    re.MULTILINE,
-)
-
-# Simple split pattern for backward compatibility
-_CODE_TAB_SPLIT_PATTERN = re.compile(r"^### (?:Tab: )?(.+)$", re.MULTILINE)
-
-# Enhanced code block pattern: captures language, info string, and code
-# Matches: ```python, ```python {1,3-5}, ```python title="file.py" {1,3}
-# Uses [ \t] for horizontal whitespace and [^\n]* for info to avoid DOTALL issues
+# Code block pattern: captures language, info string, and code
+# Matches: ```python, ```python app.py {1,3-5}, ```python title="Flask" {1,3}
 _CODE_BLOCK_PATTERN = re.compile(
     r"```(\w+)?(?:[ \t]+([^\n]*))?\n(.*?)```",
     re.DOTALL,
 )
 
-# Legacy pattern for backward compatibility
-_CODE_BLOCK_EXTRACT_PATTERN = re.compile(r"```\w*\n(.*?)```", re.DOTALL)
+# Info string pattern for v2 simplified syntax
+# Strict ordering: filename → title → highlights
+# Examples:
+#   ""                           → filename=None, title=None, hl=None
+#   "app.py"                     → filename="app.py", title=None, hl=None
+#   "{3-4}"                      → filename=None, title=None, hl="3-4"
+#   "app.py {3-4}"               → filename="app.py", title=None, hl="3-4"
+#   'title="Flask"'              → filename=None, title="Flask", hl=None
+#   'app.py title="Flask" {5-7}' → filename="app.py", title="Flask", hl="5-7"
+_INFO_STRING_PATTERN = re.compile(
+    r"^"
+    r"(?:(?P<filename>[\w][\w.-]*\.\w+)\s*)?"  # Optional filename (basename.ext)
+    r'(?:title="(?P<title>[^"]*)"\s*)?'  # Optional title override
+    r"(?:\{(?P<hl>[0-9,\s-]+)\})?"  # Optional highlights
+    r"$"
+)
 
 # Line highlight extraction from info string: {1,3-5}
 _HL_LINES_PATTERN = re.compile(r"\{([0-9,\s-]+)\}")
+
+# Legacy patterns for backward compatibility with ### marker syntax
+_LEGACY_TAB_SPLIT_PATTERN = re.compile(r"^### (?:Tab: )?(.+)$", re.MULTILINE)
+_LEGACY_CODE_BLOCK_PATTERN = re.compile(r"```\w*\n(.*?)```", re.DOTALL)
 
 # Internal marker pattern for render phase
 _CODE_TAB_ITEM_PATTERN = re.compile(
@@ -79,6 +107,63 @@ _LEGACY_CODE_TAB_ITEM_PATTERN = re.compile(
     r'<div class="code-tab-item" data-lang="(.*?)" data-code="(.*?)"></div>',
     re.DOTALL,
 )
+
+# ============================================================================
+# Language display names (proper capitalization/formatting)
+# ============================================================================
+
+# Map language identifiers to human-readable display names
+# Used for tab labels when no title= override is provided
+LANGUAGE_DISPLAY_NAMES: dict[str, str] = {
+    # JavaScript ecosystem
+    "javascript": "JavaScript",
+    "js": "JavaScript",
+    "typescript": "TypeScript",
+    "ts": "TypeScript",
+    "nodejs": "Node.js",
+    "jsx": "JSX",
+    "tsx": "TSX",
+    # C family
+    "cpp": "C++",
+    "cxx": "C++",
+    "csharp": "C#",
+    "cs": "C#",
+    "objectivec": "Objective-C",
+    "objc": "Objective-C",
+    # Functional
+    "fsharp": "F#",
+    "haskell": "Haskell",
+    "ocaml": "OCaml",
+    # Query languages
+    "graphql": "GraphQL",
+    "postgresql": "PostgreSQL",
+    "mysql": "MySQL",
+    "mongodb": "MongoDB",
+    "sqlite": "SQLite",
+    # Config/Data
+    "dockerfile": "Dockerfile",
+    "makefile": "Makefile",
+    "cmake": "CMake",
+    # Shell
+    "powershell": "PowerShell",
+    "zsh": "Zsh",
+    # Web
+    "html": "HTML",
+    "css": "CSS",
+    "scss": "SCSS",
+    "sass": "Sass",
+    "less": "Less",
+    # Other
+    "golang": "Go",
+    "yaml": "YAML",
+    "yml": "YAML",
+    "json": "JSON",
+    "toml": "TOML",
+    "ini": "INI",
+    "xml": "XML",
+    "php": "PHP",
+    "sql": "SQL",
+}
 
 # ============================================================================
 # Language icon mapping
@@ -135,6 +220,34 @@ def get_language_icon(lang: str, size: int = 16) -> str:
         return ""
 
     return render_svg_icon(icon_name, size=size, css_class="tab-icon")
+
+
+def get_display_name(lang: str) -> str:
+    """
+    Get human-readable display name for a programming language.
+
+    Uses LANGUAGE_DISPLAY_NAMES for special cases (JavaScript, C++, etc.),
+    falls back to simple capitalization for unknown languages.
+
+    Args:
+        lang: Language identifier (e.g., "python", "javascript", "cpp")
+
+    Returns:
+        Display name (e.g., "Python", "JavaScript", "C++")
+
+    Examples:
+        >>> get_display_name("javascript")
+        "JavaScript"
+        >>> get_display_name("cpp")
+        "C++"
+        >>> get_display_name("rust")
+        "Rust"
+    """
+    normalized = lang.lower().strip()
+    if normalized in LANGUAGE_DISPLAY_NAMES:
+        return LANGUAGE_DISPLAY_NAMES[normalized]
+    # Fallback: capitalize first letter
+    return lang.capitalize() if lang else "Text"
 
 
 # ============================================================================
@@ -237,83 +350,104 @@ class CodeTabsOptions(DirectiveOptions):
     """
     Options for code-tabs directive.
 
+    v2 simplified syntax requires minimal options - most behavior is automatic:
+    - Sync: enabled by default (syncs by language across page)
+    - Line numbers: auto for 3+ lines
+    - Icons: always shown
+
     Attributes:
         sync: Sync key for tab synchronization (default: "language").
-              Use "none" to disable sync.
-        line_numbers: Force line numbers on/off (None = auto for 3+ lines)
-        highlight: Global line highlights for all tabs (e.g., "1,3-5")
-        icons: Show language icons in tab labels (default: True)
+              Use "none" to disable sync for this specific block.
+        linenos: Force line numbers on/off (None = auto for 3+ lines)
     """
 
     sync: str = "language"
-    line_numbers: bool | None = None
-    highlight: str = ""
-    icons: bool = True
+    linenos: bool | None = None
 
     _field_aliases: ClassVar[dict[str, str]] = {
-        "linenos": "line_numbers",
-        "line-numbers": "line_numbers",
-        "hl": "highlight",
-        "hl-lines": "highlight",
+        "line-numbers": "linenos",
+        "line_numbers": "linenos",
     }
 
 
 # ============================================================================
-# Tab parsing helpers
+# Info string parsing (v2 simplified syntax)
 # ============================================================================
 
 
+def parse_info_string(info_string: str) -> tuple[str | None, str | None, list[int]]:
+    """
+    Parse code fence info string to extract filename, title, and highlights.
+
+    Strict ordering: filename → title → highlights
+
+    Args:
+        info_string: Info string after language
+            (e.g., "app.py", "{3-4}", 'app.py title="Flask" {5-7}')
+
+    Returns:
+        Tuple of (filename or None, title or None, list of highlight line numbers)
+
+    Examples:
+        >>> parse_info_string("")
+        (None, None, [])
+        >>> parse_info_string("app.py")
+        ("app.py", None, [])
+        >>> parse_info_string("{3-4}")
+        (None, None, [3, 4])
+        >>> parse_info_string("app.py {3-4}")
+        ("app.py", None, [3, 4])
+        >>> parse_info_string('title="Flask"')
+        (None, "Flask", [])
+        >>> parse_info_string('app.py title="Flask" {5-7}')
+        ("app.py", "Flask", [5, 6, 7])
+    """
+    if not info_string:
+        return None, None, []
+
+    info_string = info_string.strip()
+    match = _INFO_STRING_PATTERN.match(info_string)
+
+    if match:
+        filename = match.group("filename")
+        title = match.group("title")
+        hl_spec = match.group("hl")
+        hl_lines = parse_hl_lines(hl_spec) if hl_spec else []
+        return filename, title, hl_lines
+
+    # Fallback: try to extract just highlights if pattern doesn't match
+    hl_match = _HL_LINES_PATTERN.search(info_string)
+    if hl_match:
+        return None, None, parse_hl_lines(hl_match.group(1))
+
+    # Pattern didn't match - log warning and continue gracefully
+    logger.debug(
+        "code_tabs_info_parse_fallback",
+        info=info_string,
+        hint='Expected: [filename] [title="..."] [{lines}]',
+    )
+    return None, None, []
+
+
+# Legacy helper for backward compatibility
 def parse_tab_marker(marker: str) -> tuple[str, str | None]:
     """
-    Parse a tab marker to extract language and optional filename.
+    Parse a legacy ### tab marker to extract language and optional filename.
+
+    DEPRECATED: Use parse_info_string() for v2 syntax.
 
     Args:
         marker: Tab marker text (e.g., "Python", "Python (main.py)")
 
     Returns:
         Tuple of (language, filename or None)
-
-    Examples:
-        >>> parse_tab_marker("Python")
-        ("Python", None)
-        >>> parse_tab_marker("Python (main.py)")
-        ("Python", "main.py")
-        >>> parse_tab_marker("Python (v3.12+)")  # Not a filename
-        ("Python (v3.12+)", None)
     """
     # Strict filename pattern: must end with .ext (lowercase extension)
-    # This avoids false positives on version annotations like (v3.12+)
     filename_pattern = re.compile(r"^(.+?)\s+\((\w[\w.-]*\.[a-z]+)\)$")
     match = filename_pattern.match(marker.strip())
     if match:
         return match.group(1).strip(), match.group(2)
     return marker.strip(), None
-
-
-def parse_code_block_info(info_string: str) -> tuple[str | None, list[int]]:
-    """
-    Parse code block info string to extract highlights.
-
-    Args:
-        info_string: Info string after language (e.g., "{1,3-5}", "title='x' {1,3}")
-
-    Returns:
-        Tuple of (title or None, list of highlight line numbers)
-    """
-    if not info_string:
-        return None, []
-
-    hl_lines: list[int] = []
-
-    # Extract highlight lines from {1,3-5} syntax
-    hl_match = _HL_LINES_PATTERN.search(info_string)
-    if hl_match:
-        hl_lines = parse_hl_lines(hl_match.group(1))
-
-    # Title extraction could be added here if needed
-    # For now, we don't support title= in code-tabs (use tab marker instead)
-
-    return None, hl_lines
 
 
 # ============================================================================
@@ -327,23 +461,27 @@ class CodeTabsDirective(BengalDirective):
 
     Enhanced with Pygments highlighting, auto-sync, and language icons.
 
-    Syntax:
+    v2 Simplified Syntax (preferred):
         ````{code-tabs}
-        :sync: language
-        :line-numbers: true
-        :highlight: 3-5
 
-        ### Python (main.py)
-        ```python
+        ```python app.py {3-4}
         def greet(name):
             print(f"Hello, {name}!")
         ```
 
-        ### JavaScript (index.js)
-        ```javascript {2-3}
+        ```javascript index.js {2-3}
         function greet(name) {
             console.log(`Hello, ${name}!`);
         }
+        ```
+        ````
+
+    Legacy Syntax (still supported):
+        ````{code-tabs}
+        ### Python (main.py)
+        ```python
+        def greet(name):
+            print(f"Hello, {name}!")
         ```
         ````
 
@@ -374,23 +512,89 @@ class CodeTabsDirective(BengalDirective):
         state: Any,
     ) -> dict[str, Any]:
         """
-        Build code tabs token by parsing tab markers in content.
+        Build code tabs token by parsing code fences in content.
 
-        Enhanced to extract:
-        - Language and filename from tab markers
-        - Code block language and info string
-        - Per-tab line highlights
+        v2 syntax: Directly parses code fences, deriving tab labels from language.
+        Legacy syntax: Falls back to ### marker parsing if no direct fences found.
 
         Returns dict instead of DirectiveToken because children
         are custom code_tab_item tokens, not parsed markdown.
         """
-        # Parse global options
-        global_hl_lines = parse_hl_lines(options.highlight) if options.highlight else []
+        # Try v2 syntax first: direct code fence parsing
+        tabs = self._parse_v2_syntax(content)
 
-        # Split by tab markers
-        parts = _CODE_TAB_SPLIT_PATTERN.split(content)
+        # Fall back to legacy ### marker syntax if no tabs found
+        if not tabs:
+            tabs = self._parse_legacy_syntax(content)
+
+        # Store options for render phase
+        return {
+            "type": "code_tabs",
+            "children": tabs,
+            "attrs": {
+                "sync": options.sync,
+                "line_numbers": options.linenos,
+            },
+        }
+
+    def _parse_v2_syntax(self, content: str) -> list[dict[str, Any]]:
+        """
+        Parse v2 simplified syntax: code fences without ### markers.
+
+        Tab labels are derived from code fence language.
+        Filename, title, and highlights are extracted from info string.
+
+        Args:
+            content: Directive content
+
+        Returns:
+            List of code_tab_item tokens, or empty list if not v2 syntax
+        """
+        # Check if this uses legacy ### markers
+        if _LEGACY_TAB_SPLIT_PATTERN.search(content):
+            return []  # Fall back to legacy parsing
 
         tabs: list[dict[str, Any]] = []
+
+        for match in _CODE_BLOCK_PATTERN.finditer(content):
+            lang = match.group(1) or "text"
+            info_string = match.group(2) or ""
+            code = match.group(3).strip()
+
+            # Parse info string for filename, title, highlights
+            filename, custom_title, hl_lines = parse_info_string(info_string)
+
+            # Derive tab label: title override > display name
+            label = custom_title or get_display_name(lang)
+
+            tabs.append(
+                {
+                    "type": "code_tab_item",
+                    "attrs": {
+                        "lang": label,  # Display label for tab
+                        "code": code,
+                        "filename": filename or "",
+                        "hl_lines": hl_lines,
+                        "code_lang": lang,  # Actual language for highlighting
+                    },
+                }
+            )
+
+        return tabs
+
+    def _parse_legacy_syntax(self, content: str) -> list[dict[str, Any]]:
+        """
+        Parse legacy ### marker syntax for backward compatibility.
+
+        Args:
+            content: Directive content with ### Language markers
+
+        Returns:
+            List of code_tab_item tokens
+        """
+        parts = _LEGACY_TAB_SPLIT_PATTERN.split(content)
+        tabs: list[dict[str, Any]] = []
+
         if len(parts) > 1:
             start_idx = 1 if not parts[0].strip() else 0
 
@@ -402,24 +606,21 @@ class CodeTabsDirective(BengalDirective):
                     # Parse tab marker for language and filename
                     lang, filename = parse_tab_marker(raw_marker)
 
-                    # Extract code block with enhanced pattern
+                    # Extract code block
                     code_match = _CODE_BLOCK_PATTERN.search(code_content)
                     if code_match:
                         code_lang = code_match.group(1) or lang.lower()
                         info_string = code_match.group(2) or ""
                         code = code_match.group(3).strip()
 
-                        # Parse info string for highlights
-                        _, tab_hl_lines = parse_code_block_info(info_string)
+                        # Parse info string for highlights only
+                        _, _, tab_hl_lines = parse_info_string(info_string)
                     else:
-                        # Fallback to legacy extraction
-                        legacy_match = _CODE_BLOCK_EXTRACT_PATTERN.search(code_content)
+                        # Fallback to simple extraction
+                        legacy_match = _LEGACY_CODE_BLOCK_PATTERN.search(code_content)
                         code = legacy_match.group(1).strip() if legacy_match else code_content
                         code_lang = lang.lower()
                         tab_hl_lines = []
-
-                    # Merge global and per-tab highlights
-                    combined_hl = sorted(set(global_hl_lines + tab_hl_lines))
 
                     tabs.append(
                         {
@@ -428,22 +629,13 @@ class CodeTabsDirective(BengalDirective):
                                 "lang": lang,
                                 "code": code,
                                 "filename": filename or "",
-                                "hl_lines": combined_hl,
+                                "hl_lines": tab_hl_lines,
                                 "code_lang": code_lang,
                             },
                         }
                     )
 
-        # Store options for render phase
-        return {
-            "type": "code_tabs",
-            "children": tabs,
-            "attrs": {
-                "sync": options.sync,
-                "line_numbers": options.line_numbers,
-                "icons": options.icons,
-            },
-        }
+        return tabs
 
     def render(self, renderer: Any, text: str, **attrs: Any) -> str:
         """
@@ -451,7 +643,7 @@ class CodeTabsDirective(BengalDirective):
 
         Enhanced output includes:
         - data-sync for auto-sync across tabs
-        - Language icons in tab navigation
+        - Language icons in tab navigation (always enabled)
         - Filename badges
         - Copy button per pane
         - Pygments-highlighted code
@@ -459,7 +651,8 @@ class CodeTabsDirective(BengalDirective):
         # Extract options from attrs
         sync_key = attrs.get("sync", "language")
         line_numbers = attrs.get("line_numbers")
-        show_icons = attrs.get("icons", True)
+        # Icons are always shown in v2 (removed from options)
+        show_icons = True
 
         # Stable IDs are critical for deterministic builds
         tab_id = f"code-tabs-{hash_str(text or '', truncate=12)}"

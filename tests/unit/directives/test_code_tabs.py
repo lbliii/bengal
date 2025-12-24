@@ -1,32 +1,435 @@
 """
-Unit tests for Enhanced Code Tabs (RFC: Enhanced Code Tabs).
+Unit tests for Code Tabs (RFC: Simplified Code Tabs Syntax v2).
 
 Tests:
-- Tab marker parsing (language, filename)
-- Code block info parsing (highlights)
+- v2 simplified syntax (info string parsing)
+- Language display names
 - Pygments integration
 - Sync attributes
 - Language icons
-- Backward compatibility
+- Legacy ### marker syntax (backward compatibility)
 """
 
 from __future__ import annotations
 
 from bengal.directives.code_tabs import (
+    LANGUAGE_DISPLAY_NAMES,
     LANGUAGE_ICONS,
     CodeTabsDirective,
     CodeTabsOptions,
+    get_display_name,
     get_language_icon,
-    parse_code_block_info,
     parse_hl_lines,
+    parse_info_string,
     parse_tab_marker,
     render_code_tab_item,
     render_code_with_pygments,
 )
 
+# ============================================================================
+# v2 Simplified Syntax Tests
+# ============================================================================
+
+
+class TestParseInfoString:
+    """Tests for v2 info string parsing."""
+
+    def test_empty_string(self):
+        """Empty info string returns all None/empty."""
+        filename, title, hl_lines = parse_info_string("")
+        assert filename is None
+        assert title is None
+        assert hl_lines == []
+
+    def test_filename_only(self):
+        """Just a filename is parsed."""
+        filename, title, hl_lines = parse_info_string("app.py")
+        assert filename == "app.py"
+        assert title is None
+        assert hl_lines == []
+
+    def test_filename_with_dots(self):
+        """Filenames with multiple dots work."""
+        filename, title, hl_lines = parse_info_string("config.local.py")
+        assert filename == "config.local.py"
+        assert title is None
+        assert hl_lines == []
+
+    def test_filename_with_hyphen(self):
+        """Filenames with hyphens work."""
+        filename, title, hl_lines = parse_info_string("my-app.config.ts")
+        assert filename == "my-app.config.ts"
+        assert title is None
+        assert hl_lines == []
+
+    def test_highlights_only(self):
+        """Just highlights are parsed."""
+        filename, title, hl_lines = parse_info_string("{3-4}")
+        assert filename is None
+        assert title is None
+        assert hl_lines == [3, 4]
+
+    def test_title_only(self):
+        """Just a title override is parsed."""
+        filename, title, hl_lines = parse_info_string('title="Flask App"')
+        assert filename is None
+        assert title == "Flask App"
+        assert hl_lines == []
+
+    def test_filename_and_highlights(self):
+        """Filename with highlights works."""
+        filename, title, hl_lines = parse_info_string("app.py {3-4}")
+        assert filename == "app.py"
+        assert title is None
+        assert hl_lines == [3, 4]
+
+    def test_title_and_highlights(self):
+        """Title with highlights works."""
+        filename, title, hl_lines = parse_info_string('title="Flask" {5-7}')
+        assert filename is None
+        assert title == "Flask"
+        assert hl_lines == [5, 6, 7]
+
+    def test_full_combo(self):
+        """Filename, title, and highlights together."""
+        filename, title, hl_lines = parse_info_string('app.py title="Flask App" {5-7}')
+        assert filename == "app.py"
+        assert title == "Flask App"
+        assert hl_lines == [5, 6, 7]
+
+    def test_filename_underscore(self):
+        """Filenames with underscores work."""
+        filename, title, hl_lines = parse_info_string("test_utils.py")
+        assert filename == "test_utils.py"
+
+    def test_invalid_filename_no_extension(self):
+        """Files without extension don't match as filename."""
+        # Dockerfile has no extension, so it won't match the filename pattern
+        filename, title, hl_lines = parse_info_string("Dockerfile")
+        # This won't match the strict filename pattern, falls through
+        assert filename is None
+
+    def test_complex_highlights(self):
+        """Complex highlight specs are parsed."""
+        filename, title, hl_lines = parse_info_string("{1,3-5,7}")
+        assert hl_lines == [1, 3, 4, 5, 7]
+
+
+class TestGetDisplayName:
+    """Tests for language display name resolution."""
+
+    def test_javascript(self):
+        """JavaScript has proper casing."""
+        assert get_display_name("javascript") == "JavaScript"
+        assert get_display_name("js") == "JavaScript"
+
+    def test_typescript(self):
+        """TypeScript has proper casing."""
+        assert get_display_name("typescript") == "TypeScript"
+        assert get_display_name("ts") == "TypeScript"
+
+    def test_cpp(self):
+        """C++ has proper symbol."""
+        assert get_display_name("cpp") == "C++"
+        assert get_display_name("cxx") == "C++"
+
+    def test_csharp(self):
+        """C# has proper symbol."""
+        assert get_display_name("csharp") == "C#"
+        assert get_display_name("cs") == "C#"
+
+    def test_golang(self):
+        """Go language display name."""
+        assert get_display_name("golang") == "Go"
+
+    def test_unknown_fallback(self):
+        """Unknown languages get capitalized."""
+        assert get_display_name("rust") == "Rust"
+        assert get_display_name("python") == "Python"
+        assert get_display_name("ruby") == "Ruby"
+
+    def test_case_insensitive(self):
+        """Display name lookup is case-insensitive."""
+        assert get_display_name("JAVASCRIPT") == "JavaScript"
+        assert get_display_name("JavaScript") == "JavaScript"
+
+    def test_empty_string(self):
+        """Empty string returns 'Text'."""
+        assert get_display_name("") == "Text"
+
+
+class TestLanguageDisplayNames:
+    """Tests for LANGUAGE_DISPLAY_NAMES constant."""
+
+    def test_common_languages_present(self):
+        """Common languages with special formatting are present."""
+        assert "javascript" in LANGUAGE_DISPLAY_NAMES
+        assert "typescript" in LANGUAGE_DISPLAY_NAMES
+        assert "cpp" in LANGUAGE_DISPLAY_NAMES
+        assert "csharp" in LANGUAGE_DISPLAY_NAMES
+
+    def test_aliases_present(self):
+        """Common aliases are present."""
+        assert "js" in LANGUAGE_DISPLAY_NAMES
+        assert "ts" in LANGUAGE_DISPLAY_NAMES
+        assert "cs" in LANGUAGE_DISPLAY_NAMES
+
+
+# ============================================================================
+# v2 Syntax Parsing Tests
+# ============================================================================
+
+
+class TestV2SyntaxParsing:
+    """Tests for v2 simplified syntax in parse_directive."""
+
+    def setup_method(self):
+        """Set up test fixture."""
+        self.directive = CodeTabsDirective()
+
+    def test_simple_two_tabs(self):
+        """Simple v2 syntax with two code fences."""
+        content = """
+```python
+print("hello")
+```
+
+```javascript
+console.log("hello");
+```
+"""
+        result = self.directive.parse_directive(
+            title="",
+            options=CodeTabsOptions(),
+            content=content,
+            children=[],
+            state=None,
+        )
+
+        assert result["type"] == "code_tabs"
+        assert len(result["children"]) == 2
+        # v2 derives label from language
+        assert result["children"][0]["attrs"]["lang"] == "Python"
+        assert result["children"][1]["attrs"]["lang"] == "JavaScript"
+        assert result["children"][0]["attrs"]["code_lang"] == "python"
+        assert result["children"][1]["attrs"]["code_lang"] == "javascript"
+
+    def test_with_filenames(self):
+        """v2 syntax with filenames in info string."""
+        content = """
+```python main.py
+print("hello")
+```
+
+```javascript index.js
+console.log("hello");
+```
+"""
+        result = self.directive.parse_directive(
+            title="",
+            options=CodeTabsOptions(),
+            content=content,
+            children=[],
+            state=None,
+        )
+
+        assert result["children"][0]["attrs"]["filename"] == "main.py"
+        assert result["children"][1]["attrs"]["filename"] == "index.js"
+
+    def test_with_title_override(self):
+        """v2 syntax with title= overrides tab label."""
+        content = """
+```javascript title="React"
+const [count, setCount] = useState(0);
+```
+
+```javascript title="Vue"
+const count = ref(0);
+```
+"""
+        result = self.directive.parse_directive(
+            title="",
+            options=CodeTabsOptions(),
+            content=content,
+            children=[],
+            state=None,
+        )
+
+        # title= overrides the language-derived label
+        assert result["children"][0]["attrs"]["lang"] == "React"
+        assert result["children"][1]["attrs"]["lang"] == "Vue"
+        # But code_lang is still javascript for highlighting
+        assert result["children"][0]["attrs"]["code_lang"] == "javascript"
+        assert result["children"][1]["attrs"]["code_lang"] == "javascript"
+
+    def test_with_highlights(self):
+        """v2 syntax with line highlights."""
+        content = """
+```python {2-3}
+def hello():
+    print("hello")
+    return True
+```
+"""
+        result = self.directive.parse_directive(
+            title="",
+            options=CodeTabsOptions(),
+            content=content,
+            children=[],
+            state=None,
+        )
+
+        assert result["children"][0]["attrs"]["hl_lines"] == [2, 3]
+
+    def test_full_featured(self):
+        """v2 syntax with filename, title, and highlights."""
+        content = """
+```python app.py title="Flask App" {5-7}
+from flask import Flask
+
+app = Flask(__name__)
+
+@app.route("/")
+def hello():
+    return "Hello!"
+```
+"""
+        result = self.directive.parse_directive(
+            title="",
+            options=CodeTabsOptions(),
+            content=content,
+            children=[],
+            state=None,
+        )
+
+        tab = result["children"][0]["attrs"]
+        assert tab["lang"] == "Flask App"  # title override
+        assert tab["filename"] == "app.py"
+        assert tab["code_lang"] == "python"
+        assert tab["hl_lines"] == [5, 6, 7]
+
+    def test_cpp_display_name(self):
+        """C++ gets proper display name in v2 syntax."""
+        content = """
+```cpp
+int main() { return 0; }
+```
+"""
+        result = self.directive.parse_directive(
+            title="",
+            options=CodeTabsOptions(),
+            content=content,
+            children=[],
+            state=None,
+        )
+
+        assert result["children"][0]["attrs"]["lang"] == "C++"
+
+
+# ============================================================================
+# Legacy Syntax Tests (Backward Compatibility)
+# ============================================================================
+
+
+class TestLegacySyntaxParsing:
+    """Tests for legacy ### marker syntax (backward compatibility)."""
+
+    def setup_method(self):
+        """Set up test fixture."""
+        self.directive = CodeTabsDirective()
+
+    def test_parses_simple_tabs(self):
+        """Legacy ### markers are still parsed."""
+        content = """
+### Python
+```python
+print("hello")
+```
+
+### JavaScript
+```javascript
+console.log("hello");
+```
+"""
+        result = self.directive.parse_directive(
+            title="",
+            options=CodeTabsOptions(),
+            content=content,
+            children=[],
+            state=None,
+        )
+
+        assert result["type"] == "code_tabs"
+        assert len(result["children"]) == 2
+        assert result["children"][0]["attrs"]["lang"] == "Python"
+        assert result["children"][1]["attrs"]["lang"] == "JavaScript"
+
+    def test_extracts_code(self):
+        """Code is extracted from legacy fenced blocks."""
+        content = """
+### Python
+```python
+def hello():
+    print("hello")
+```
+"""
+        result = self.directive.parse_directive(
+            title="",
+            options=CodeTabsOptions(),
+            content=content,
+            children=[],
+            state=None,
+        )
+
+        code = result["children"][0]["attrs"]["code"]
+        assert 'print("hello")' in code
+
+    def test_filename_extraction(self):
+        """Filenames are extracted from legacy tab markers."""
+        content = """
+### Python (main.py)
+```python
+pass
+```
+"""
+        result = self.directive.parse_directive(
+            title="",
+            options=CodeTabsOptions(),
+            content=content,
+            children=[],
+            state=None,
+        )
+
+        assert result["children"][0]["attrs"]["filename"] == "main.py"
+
+    def test_per_tab_highlights(self):
+        """Per-tab highlights work in legacy syntax."""
+        content = """
+### Python
+```python {2-3}
+line1
+line2
+line3
+```
+"""
+        result = self.directive.parse_directive(
+            title="",
+            options=CodeTabsOptions(),
+            content=content,
+            children=[],
+            state=None,
+        )
+
+        assert result["children"][0]["attrs"]["hl_lines"] == [2, 3]
+
+
+# ============================================================================
+# Legacy Helper Tests (parse_tab_marker)
+# ============================================================================
+
 
 class TestParseTabMarker:
-    """Tests for tab marker parsing."""
+    """Tests for legacy tab marker parsing."""
 
     def test_simple_language(self):
         """Tab markers parse simple language names."""
@@ -39,13 +442,6 @@ class TestParseTabMarker:
         lang, filename = parse_tab_marker("Python (main.py)")
         assert lang == "Python"
         assert filename == "main.py"
-
-    def test_tab_prefix(self):
-        """Tab markers work with Tab: prefix."""
-        lang, filename = parse_tab_marker("Tab: Go")
-        # Note: The split pattern handles this, but parse_tab_marker gets the cleaned string
-        assert lang == "Tab: Go"  # The Tab: prefix would be stripped by the regex split
-        assert filename is None
 
     def test_filename_with_dots(self):
         """Filenames with dots in the name are parsed correctly."""
@@ -65,17 +461,16 @@ class TestParseTabMarker:
         assert lang == "Python (v3.12+)"
         assert filename is None
 
-    def test_node_version_not_filename(self):
-        """Node.js version annotations are NOT parsed as filenames."""
-        lang, filename = parse_tab_marker("Node.js (v18)")
-        assert lang == "Node.js (v18)"
-        assert filename is None
-
     def test_whitespace_handling(self):
         """Whitespace is handled correctly."""
         lang, filename = parse_tab_marker("  Python  ")
         assert lang == "Python"
         assert filename is None
+
+
+# ============================================================================
+# Line Highlight Parsing Tests
+# ============================================================================
 
 
 class TestParseHlLines:
@@ -114,31 +509,9 @@ class TestParseHlLines:
         assert parse_hl_lines("1,1,2,2-3") == [1, 2, 3]
 
 
-class TestParseCodeBlockInfo:
-    """Tests for code block info string parsing."""
-
-    def test_highlight_braces(self):
-        """Highlights in braces are parsed."""
-        title, hl_lines = parse_code_block_info("{1,3-5}")
-        assert title is None
-        assert hl_lines == [1, 3, 4, 5]
-
-    def test_single_line_highlight(self):
-        """Single line highlight works."""
-        title, hl_lines = parse_code_block_info("{5}")
-        assert hl_lines == [5]
-
-    def test_empty_info(self):
-        """Empty info string returns empty results."""
-        title, hl_lines = parse_code_block_info("")
-        assert title is None
-        assert hl_lines == []
-
-    def test_none_info(self):
-        """None info string returns empty results."""
-        title, hl_lines = parse_code_block_info(None)
-        assert title is None
-        assert hl_lines == []
+# ============================================================================
+# Pygments Rendering Tests
+# ============================================================================
 
 
 class TestRenderCodeWithPygments:
@@ -196,6 +569,11 @@ class TestRenderCodeWithPygments:
         assert 'class="highlight"' in html
 
 
+# ============================================================================
+# Language Icon Tests
+# ============================================================================
+
+
 class TestLanguageIcons:
     """Tests for language icon mapping."""
 
@@ -223,16 +601,18 @@ class TestLanguageIcons:
 
     def test_get_language_icon_known(self):
         """get_language_icon returns icon for known languages."""
-        # Note: This may return empty string if icon doesn't exist
         icon = get_language_icon("bash")
-        # Just verify it doesn't error; actual content depends on icon library
         assert isinstance(icon, str)
 
     def test_get_language_icon_unknown(self):
         """get_language_icon handles unknown languages gracefully."""
         icon = get_language_icon("unknownlang123")
-        # Should return default icon or empty string
         assert isinstance(icon, str)
+
+
+# ============================================================================
+# Options Tests
+# ============================================================================
 
 
 class TestCodeTabsOptions:
@@ -242,24 +622,22 @@ class TestCodeTabsOptions:
         """Default options have expected values."""
         opts = CodeTabsOptions()
         assert opts.sync == "language"
-        assert opts.line_numbers is None
-        assert opts.highlight == ""
-        assert opts.icons is True
+        assert opts.linenos is None
 
     def test_sync_none(self):
         """Sync can be set to 'none' to disable."""
         opts = CodeTabsOptions(sync="none")
         assert opts.sync == "none"
 
-    def test_line_numbers_explicit(self):
+    def test_linenos_explicit(self):
         """Line numbers can be explicitly set."""
-        opts = CodeTabsOptions(line_numbers=True)
-        assert opts.line_numbers is True
+        opts = CodeTabsOptions(linenos=True)
+        assert opts.linenos is True
 
-    def test_highlight_lines(self):
-        """Global highlight lines can be set."""
-        opts = CodeTabsOptions(highlight="1,3-5")
-        assert opts.highlight == "1,3-5"
+
+# ============================================================================
+# Render Tests
+# ============================================================================
 
 
 class TestRenderCodeTabItem:
@@ -296,7 +674,6 @@ class TestCodeTabsDirectiveRender:
 
     def test_sync_attributes_present(self):
         """Sync attributes are added to output."""
-        # Create internal tab item markers
         text = (
             '<div class="code-tab-item" '
             'data-lang="Python" '
@@ -373,10 +750,8 @@ class TestCodeTabsDirectiveRender:
 
     def test_backward_compat_legacy_format(self):
         """Legacy tab item format still works."""
-        # Old format without enhanced attributes
         text = '<div class="code-tab-item" data-lang="Python" data-code="pass"></div>'
         html = self.directive.render(None, text, sync="language")
-        # Should still render, even if with defaults
         assert 'class="code-tabs"' in html
         assert "Python" in html
 
@@ -394,122 +769,6 @@ class TestCodeTabsDirectiveRender:
         html = self.directive.render(None, text, sync="language")
         assert 'data-bengal="tabs"' in html
 
-
-class TestCodeTabsDirectiveParse:
-    """Tests for CodeTabsDirective.parse_directive() method."""
-
-    def setup_method(self):
-        """Set up test fixture."""
-        self.directive = CodeTabsDirective()
-
-    def test_parses_simple_tabs(self):
-        """Simple tab structure is parsed."""
-        content = """
-### Python
-```python
-print("hello")
-```
-
-### JavaScript
-```javascript
-console.log("hello");
-```
-"""
-        result = self.directive.parse_directive(
-            title="",
-            options=CodeTabsOptions(),
-            content=content,
-            children=[],
-            state=None,
-        )
-
-        assert result["type"] == "code_tabs"
-        assert len(result["children"]) == 2
-        assert result["children"][0]["attrs"]["lang"] == "Python"
-        assert result["children"][1]["attrs"]["lang"] == "JavaScript"
-
-    def test_extracts_code(self):
-        """Code is extracted from fenced blocks."""
-        content = """
-### Python
-```python
-def hello():
-    print("hello")
-```
-"""
-        result = self.directive.parse_directive(
-            title="",
-            options=CodeTabsOptions(),
-            content=content,
-            children=[],
-            state=None,
-        )
-
-        code = result["children"][0]["attrs"]["code"]
-        # Code should contain the function definition
-        assert 'print("hello")' in code
-
-    def test_filename_extraction(self):
-        """Filenames are extracted from tab markers."""
-        content = """
-### Python (main.py)
-```python
-pass
-```
-"""
-        result = self.directive.parse_directive(
-            title="",
-            options=CodeTabsOptions(),
-            content=content,
-            children=[],
-            state=None,
-        )
-
-        assert result["children"][0]["attrs"]["filename"] == "main.py"
-
-    def test_per_tab_highlights(self):
-        """Per-tab highlights are extracted from info string."""
-        content = """
-### Python
-```python {2-3}
-line1
-line2
-line3
-```
-"""
-        result = self.directive.parse_directive(
-            title="",
-            options=CodeTabsOptions(),
-            content=content,
-            children=[],
-            state=None,
-        )
-
-        assert result["children"][0]["attrs"]["hl_lines"] == [2, 3]
-
-    def test_global_highlights_merged(self):
-        """Global highlights are merged with per-tab highlights."""
-        content = """
-### Python
-```python {3}
-line1
-line2
-line3
-```
-"""
-        opts = CodeTabsOptions(highlight="1")
-        result = self.directive.parse_directive(
-            title="",
-            options=opts,
-            content=content,
-            children=[],
-            state=None,
-        )
-
-        # Should have both line 1 (global) and line 3 (per-tab)
-        assert 1 in result["children"][0]["attrs"]["hl_lines"]
-        assert 3 in result["children"][0]["attrs"]["hl_lines"]
-
     def test_options_stored_in_attrs(self):
         """Options are stored in attrs for render phase."""
         content = """
@@ -518,8 +777,9 @@ line3
 pass
 ```
 """
-        opts = CodeTabsOptions(sync="api-examples", icons=False)
-        result = self.directive.parse_directive(
+        directive = CodeTabsDirective()
+        opts = CodeTabsOptions(sync="api-examples")
+        result = directive.parse_directive(
             title="",
             options=opts,
             content=content,
@@ -528,4 +788,3 @@ pass
         )
 
         assert result["attrs"]["sync"] == "api-examples"
-        assert result["attrs"]["icons"] is False

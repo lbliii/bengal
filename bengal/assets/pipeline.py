@@ -55,6 +55,7 @@ from __future__ import annotations
 import shutil
 import subprocess
 from dataclasses import dataclass
+from functools import cached_property
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -315,9 +316,9 @@ class NodePipeline:
             if not base.exists():
                 continue
             checked_dirs.append(base)
-            for p in base.rglob("*"):
-                if p.is_file() and p.suffix.lower() in exts:
-                    files.append(p)
+            # Use targeted glob patterns instead of globbing all files and filtering
+            for ext in exts:
+                files.extend(p for p in base.rglob(f"*{ext}") if p.is_file())
         logger.debug(
             "pipeline_sources_found",
             count=len(files),
@@ -337,7 +338,7 @@ class NodePipeline:
             List of JS/TS entry point paths.
         """
         entries: list[Path] = []
-        theme_assets = self._theme_assets_dir()
+        theme_assets = self._theme_assets_dir
         bases = [self.config.root_path / "assets" / "js"]
         if theme_assets:
             bases.append(theme_assets / "js")
@@ -382,11 +383,12 @@ class NodePipeline:
             List containing site assets dir and theme assets dir (if present).
         """
         dirs: list[Path] = [self.config.root_path / "assets"]
-        theme_dir = self._theme_assets_dir()
+        theme_dir = self._theme_assets_dir
         if theme_dir:
             dirs.append(theme_dir)
         return dirs
 
+    @cached_property
     def _theme_assets_dir(self) -> Path | None:
         """
         Resolve the theme's assets directory.
@@ -396,6 +398,11 @@ class NodePipeline:
 
         Returns:
             Path to theme assets directory, or None if not found.
+
+        Note:
+            Cached on first access to avoid redundant filesystem checks
+            during build (called from _find_sources, _find_js_entries,
+            _candidate_asset_dirs).
         """
         if not self.config.theme_name:
             return None
@@ -425,7 +432,7 @@ class NodePipeline:
         Returns:
             Relative path string (e.g. 'themes/default/assets'), or None.
         """
-        d = self._theme_assets_dir()
+        d = self._theme_assets_dir
         return (
             str(d.relative_to(self.config.root_path))
             if d and str(d).startswith(str(self.config.root_path))

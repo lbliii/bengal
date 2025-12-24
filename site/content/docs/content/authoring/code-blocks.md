@@ -142,20 +142,19 @@ Show the same concept in multiple languages with code tabs. Use `code-tabs` for 
 
 ### Syntax
 
+Tab labels are automatically derived from the code fence language—no extra markers needed:
+
 ````markdown
 :::{code-tabs}
 
-### Python
 ```python
 print("Hello")
 ```
 
-### JavaScript
 ```javascript
 console.log("Hello");
 ```
 
-### Bash
 ```bash
 echo "Hello"
 ```
@@ -167,7 +166,6 @@ echo "Hello"
 
 :::{code-tabs}
 
-### Python
 ```python
 def greet(name):
     """Say hello to someone."""
@@ -176,7 +174,6 @@ def greet(name):
 greet("World")
 ```
 
-### JavaScript
 ```javascript
 function greet(name) {
     // Say hello to someone
@@ -186,7 +183,6 @@ function greet(name) {
 greet("World");
 ```
 
-### Bash
 ```bash
 # Say hello
 greet() {
@@ -200,13 +196,11 @@ greet "World"
 
 ### With Filenames and Highlights
 
-Add filenames to tabs and highlight important lines:
+Add filenames and line highlights directly in the code fence info string:
 
 :::{code-tabs}
-:line-numbers: true
 
-### Python (client.py)
-```python {3-4}
+```python client.py {3-4}
 import requests
 
 def get_users():
@@ -214,8 +208,7 @@ def get_users():
     return response.json()
 ```
 
-### JavaScript (client.js)
-```javascript {3-4}
+```javascript client.js {3-4}
 import fetch from 'node-fetch';
 
 async function getUsers() {
@@ -224,7 +217,6 @@ async function getUsers() {
 }
 ```
 
-### cURL
 ```bash {2}
 # Get all users
 curl -X GET "https://api.example.com/users" \
@@ -233,11 +225,49 @@ curl -X GET "https://api.example.com/users" \
 
 :::
 
+### Custom Tab Labels
+
+Use `title="..."` to override the default language-derived label:
+
+````markdown
+:::{code-tabs}
+
+```javascript title="React"
+const [count, setCount] = useState(0);
+```
+
+```javascript title="Vue"
+const count = ref(0);
+```
+
+:::
+````
+
+### Files Without Extensions
+
+For files like `Dockerfile` that have no extension, use `title=`:
+
+````markdown
+:::{code-tabs}
+
+```dockerfile title="Dockerfile"
+FROM python:3.12-slim
+```
+
+```yaml docker-compose.yml
+services:
+  web:
+    build: .
+```
+
+:::
+````
+
 ### Code Tabs vs Tab-Set
 
 | Feature | `code-tabs` | `tab-set` |
 |---------|-------------|-----------|
-| **Syntax** | `### Language` markers | Nested `:::{tab-item}` |
+| **Syntax** | Just code fences | Nested `:::{tab-item}` |
 | **Auto sync** | ✅ All code-tabs sync by language | Manual with `:sync:` |
 | **Language icons** | ✅ Automatic | Manual with `:icon:` |
 | **Copy button** | ✅ Built-in | ❌ None |

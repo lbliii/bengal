@@ -65,11 +65,10 @@ Tabs remember the user's selection across pages. If someone picks "macOS", they'
 
 ## Code Tabs
 
-For multi-language code examples, use `code-tabs` — a streamlined syntax with auto-sync, language icons, and copy buttons:
+For multi-language code examples, use `code-tabs` — tab labels are derived directly from code fence languages:
 
 :::{code-tabs}
 
-### Python
 ```python
 import requests
 
@@ -77,13 +76,11 @@ response = requests.get("https://api.example.com/users")
 users = response.json()
 ```
 
-### JavaScript
 ```javascript
 const response = await fetch("https://api.example.com/users");
 const users = await response.json();
 ```
 
-### cURL
 ```bash
 curl -X GET "https://api.example.com/users" \
   -H "Authorization: Bearer $TOKEN"
@@ -93,12 +90,12 @@ curl -X GET "https://api.example.com/users" \
 
 **Key differences from `tab-set`**:
 
-- Simpler syntax: Just `### Language` markers, no nested directives
+- Simpler syntax: Just code fences, no markers or nested directives
 - Auto language sync: All code-tabs on the page switch together
 - Built-in features: Language icons, copy button, line numbers
 - Zero config: Smart defaults for code-first documentation
 
-See [Code Blocks](/docs/content/authoring/code-blocks/) for more options like filenames and line highlighting.
+See [Code Blocks](/docs/content/authoring/code-blocks/) for more options like filenames, custom labels, and line highlighting.
 
 ## Dropdowns
 

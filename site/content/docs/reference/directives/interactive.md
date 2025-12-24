@@ -35,10 +35,9 @@ Create tabbed interfaces for multi-language code examples with automatic languag
 
 **Aliases**: `{code_tabs}`
 
-### Enhanced Features
+### Features
 
-Code tabs include several developer-experience enhancements:
-
+- **Simplified syntax** — Tab labels derived from code fence language (no markers needed)
 - **Auto language sync** — All code-tabs on a page sync when user picks a language
 - **Language icons** — Automatic icons for common language categories
 - **Pygments highlighting** — Proper syntax coloring with line numbers and line emphasis
@@ -47,14 +46,12 @@ Code tabs include several developer-experience enhancements:
 
 ### Syntax
 
+Tab labels are derived automatically from the code fence language:
+
 ````markdown
 :::{code-tabs}
-:sync: language
-:line-numbers: true
-:highlight: 3-5
 
-### Python (main.py)
-```python
+```python main.py {3-4}
 def greet(name):
     """Say hello."""
     print(f"Hello, {name}!")
@@ -62,8 +59,7 @@ def greet(name):
 greet("World")
 ```
 
-### JavaScript (index.js)
-```javascript {2-3}
+```javascript index.js {2-3}
 function greet(name) {
     // Say hello
     console.log(`Hello, ${name}!`);
@@ -72,46 +68,86 @@ function greet(name) {
 greet("World");
 ```
 
-:::{/code-tabs}
+:::
 ````
 
-**Note**: You can also use `### Language Name` (without "Tab:" prefix) for simpler headings.
+### Info String Format
+
+The code fence info string supports filename, title override, and highlights:
+
+```
+language [filename] [title="Label"] [{line-highlights}]
+```
+
+| Example | Tab Label | Filename Badge | Highlights |
+|---------|-----------|----------------|------------|
+| `python` | Python | — | — |
+| `python client.py` | Python | client.py | — |
+| `python {3-4}` | Python | — | Lines 3-4 |
+| `python client.py {3-4}` | Python | client.py | Lines 3-4 |
+| `python title="Flask"` | Flask | — | — |
+| `python app.py title="Flask" {5-7}` | Flask | app.py | Lines 5-7 |
 
 ### Options
 
 | Option | Default | Description |
 |--------|---------|-------------|
 | `:sync:` | `"language"` | Sync key for cross-tab synchronization. Use `"none"` to disable. |
-| `:line-numbers:` | auto | Force line numbers on/off. Auto-enabled for 3+ lines. |
-| `:highlight:` | — | Global line highlights for all tabs (e.g., `"1,3-5"`) |
-| `:icons:` | `true` | Show language icons in tab labels |
+| `:linenos:` | auto | Force line numbers on/off. Auto-enabled for 3+ lines. |
 
-**Option aliases**: `:linenos:` = `:line-numbers:`, `:hl:` = `:highlight:`, `:hl-lines:` = `:highlight:`
+**Option aliases**: `:line-numbers:` = `:linenos:`
 
-### Filename Display
+### Custom Tab Labels
 
-Add filenames to tab labels using parentheses:
-
-```markdown
-### Python (main.py)
-### JavaScript (app.js)
-### Config (settings.yaml)
-```
-
-Filenames must end with a file extension (e.g., `.py`, `.js`). Version annotations like `(v3.12+)` are treated as part of the language name, not filenames.
-
-### Per-Tab Line Highlights
-
-Add line highlights to individual tabs using the standard fence syntax:
+Use `title="..."` to override the default language-derived label:
 
 ````markdown
-### Python
-```python {2-3}
-def hello():
-    # These lines are highlighted
-    print("Hello!")
+:::{code-tabs}
+
+```javascript title="React"
+const [count, setCount] = useState(0);
 ```
+
+```javascript title="Vue"
+const count = ref(0);
+```
+
+:::
 ````
+
+### Files Without Extensions
+
+For files like `Dockerfile` that have no extension, use `title=`:
+
+````markdown
+:::{code-tabs}
+
+```dockerfile title="Dockerfile"
+FROM python:3.12-slim
+```
+
+```yaml docker-compose.yml
+services:
+  web:
+    build: .
+```
+
+:::
+````
+
+### Language Display Names
+
+Languages are automatically formatted with proper casing:
+
+| Language | Display Name |
+|----------|-------------|
+| `javascript`, `js` | JavaScript |
+| `typescript`, `ts` | TypeScript |
+| `cpp`, `cxx` | C++ |
+| `csharp`, `cs` | C# |
+| `golang` | Go |
+| `python` | Python |
+| Others | Capitalized |
 
 ### Language Sync
 
@@ -121,35 +157,42 @@ By default, all code-tabs on a page with the same sync key synchronize. When a u
 
 **Disable sync** for a specific block:
 
-```markdown
+````markdown
 :::{code-tabs}
 :sync: none
 
-### Before
-...
-
-### After
-...
-:::
+```python
+# Before
 ```
+
+```python
+# After
+```
+
+:::
+````
 
 **Custom sync groups**:
 
-```markdown
+````markdown
 :::{code-tabs}
 :sync: api-examples
 
-### Python
+```python
 ...
+```
+
 :::
 
 :::{code-tabs}
 :sync: config-examples
 
-### YAML
+```yaml
 ...
-:::
 ```
+
+:::
+````
 
 ### Examples
 
@@ -159,20 +202,18 @@ By default, all code-tabs on a page with the same sync key synchronize. When a u
 ````markdown
 :::{code-tabs}
 
-### Python
 ```python
 def hello():
     print("Hello, World!")
 ```
 
-### JavaScript
 ```javascript
 function hello() {
     console.log("Hello, World!");
 }
 ```
 
-:::{/code-tabs}
+:::
 ````
 
 :::{example-label} With Filenames and Highlights
@@ -180,10 +221,8 @@ function hello() {
 
 ````markdown
 :::{code-tabs}
-:line-numbers: true
 
-### Python (api_client.py)
-```python {3-4}
+```python api_client.py {3-4}
 import requests
 
 def get_users():
@@ -191,8 +230,7 @@ def get_users():
     return response.json()
 ```
 
-### JavaScript (client.js)
-```javascript {3-4}
+```javascript client.js {3-4}
 import fetch from 'node-fetch';
 
 async function getUsers() {
@@ -201,7 +239,7 @@ async function getUsers() {
 }
 ```
 
-:::{/code-tabs}
+:::
 ````
 
 :::{example-label} Multiple Languages
@@ -210,27 +248,23 @@ async function getUsers() {
 ````markdown
 :::{code-tabs}
 
-### Python
 ```python
 print("Hello")
 ```
 
-### JavaScript
 ```javascript
 console.log("Hello");
 ```
 
-### Go
 ```go
 fmt.Println("Hello")
 ```
 
-### Bash
 ```bash
 echo "Hello"
 ```
 
-:::{/code-tabs}
+:::
 ````
 
 ### Rendering
@@ -256,6 +290,28 @@ Icons are automatically assigned based on language category:
 | sql, mysql, postgresql, sqlite | Database |
 | json, yaml, toml, xml, ini | File/Code |
 | All others | Code |
+
+### Legacy Syntax
+
+The older `### Language` marker syntax is still supported for backward compatibility:
+
+````markdown
+:::{code-tabs}
+
+### Python (main.py)
+```python
+print("hello")
+```
+
+### JavaScript
+```javascript
+console.log("hello");
+```
+
+:::
+````
+
+This legacy syntax is not recommended for new content.
 
 ## Data Table
 

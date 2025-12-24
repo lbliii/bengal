@@ -1,8 +1,9 @@
 # RFC: Simplified Code Tabs Syntax (v2)
 
-**Status**: Draft  
+**Status**: Implemented ✅  
 **Created**: 2025-12-24  
 **Updated**: 2025-12-24  
+**Implemented**: 2025-12-24  
 **Author**: AI Assistant  
 **Subsystem**: Directives  
 **Supersedes**: Partially amends `rfc-enhanced-code-tabs.md` (syntax only)  
