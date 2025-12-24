@@ -104,10 +104,37 @@ def _merge_into(target: dict[str, Any], source: dict[str, Any]) -> None:
     for key, value in source.items():
         if key in target and isinstance(target[key], dict) and isinstance(value, dict):
             # Both are dicts: recursively merge in place
+            # Note: target[key] is already owned by target, so safe to mutate
             _merge_into(target[key], value)
+        elif isinstance(value, dict):
+            # Source value is a dict not in target: copy to avoid mutating source
+            target[key] = _deep_copy_dict(value)
         else:
             # Override wins: lists, primitives, or type mismatch
+            # Lists and primitives are safe to assign (immutable or we don't mutate)
             target[key] = value
+
+
+def _deep_copy_dict(d: dict[str, Any]) -> dict[str, Any]:
+    """
+    Recursively copy a dictionary.
+
+    Optimized for config dicts: only copies nested dicts, leaves
+    primitives and lists as-is (they're not mutated by merge).
+
+    Args:
+        d: Dictionary to copy.
+
+    Returns:
+        Deep copy of the dictionary.
+    """
+    result: dict[str, Any] = {}
+    for key, value in d.items():
+        if isinstance(value, dict):
+            result[key] = _deep_copy_dict(value)
+        else:
+            result[key] = value
+    return result
 
 
 def batch_deep_merge(configs: list[dict[str, Any]]) -> dict[str, Any]:

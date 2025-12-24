@@ -251,19 +251,13 @@ class BuildCache(
             if "dependencies" in data:
                 data["dependencies"] = {k: set(v) for k, v in data["dependencies"].items()}
 
-            # Convert lists back to sets in reverse_dependencies (RFC: Cache Algorithm Optimization)
+            # Convert lists back to sets in reverse_dependencies
             if "reverse_dependencies" in data:
                 data["reverse_dependencies"] = {
                     k: set(v) for k, v in data["reverse_dependencies"].items()
                 }
             else:
-                # Rebuild from forward graph if missing (migration path)
                 data["reverse_dependencies"] = {}
-                for source, deps in data.get("dependencies", {}).items():
-                    for dep in deps:
-                        if dep not in data["reverse_dependencies"]:
-                            data["reverse_dependencies"][dep] = set()
-                        data["reverse_dependencies"][dep].add(source)
 
             # Convert lists back to sets in tag_to_pages
             if "tag_to_pages" in data:

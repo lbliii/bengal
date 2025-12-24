@@ -50,13 +50,11 @@ class IndexEntry(Cacheable):
 
     Implements the Cacheable protocol for type-safe serialization.
 
-    Performance Optimization (RFC: Cache Algorithm Optimization):
-    - Internal storage uses set for O(1) add/remove/contains
-    - External API returns list for backward compatibility
+    Uses set for O(1) add/remove/contains operations.
 
     Attributes:
         key: Index key (e.g., 'blog', 'Jane Smith', '2024')
-        _page_paths_set: Internal set storage for O(1) operations
+        page_paths: Set of page source paths for O(1) operations
         metadata: Extra data for display (e.g., section title, author email)
         updated_at: ISO timestamp of last update
         content_hash: Hash of page_paths for change detection
@@ -65,62 +63,51 @@ class IndexEntry(Cacheable):
     def __init__(
         self,
         key: str,
-        page_paths: list[str] | None = None,
+        page_paths: set[str] | None = None,
         metadata: dict[str, Any] | None = None,
         updated_at: str | None = None,
         content_hash: str = "",
     ) -> None:
-        """Initialize IndexEntry with backward-compatible signature."""
+        """Initialize IndexEntry."""
         self.key = key
-        # Store as set internally for O(1) operations
-        self._page_paths_set: set[str] = set(page_paths) if page_paths else set()
+        self.page_paths: set[str] = page_paths if page_paths is not None else set()
         self.metadata = metadata if metadata is not None else {}
         self.updated_at = updated_at if updated_at else datetime.now().isoformat()
         self.content_hash = content_hash if content_hash else self._compute_hash()
 
-    @property
-    def page_paths(self) -> list[str]:
-        """Return page paths as sorted list for API compatibility and consistent ordering."""
-        return sorted(self._page_paths_set)
-
-    @page_paths.setter
-    def page_paths(self, value: list[str]) -> None:
-        """Accept list, store as set."""
-        self._page_paths_set = set(value)
-
     def add_page(self, page_path: str) -> bool:
         """Add page to entry (O(1)). Returns True if page was added."""
-        if page_path not in self._page_paths_set:
-            self._page_paths_set.add(page_path)
+        if page_path not in self.page_paths:
+            self.page_paths.add(page_path)
             return True
         return False
 
     def remove_page(self, page_path: str) -> bool:
         """Remove page from entry (O(1)). Returns True if page was removed."""
-        if page_path in self._page_paths_set:
-            self._page_paths_set.discard(page_path)
+        if page_path in self.page_paths:
+            self.page_paths.discard(page_path)
             return True
         return False
 
     def __contains__(self, page_path: str) -> bool:
         """O(1) membership check."""
-        return page_path in self._page_paths_set
+        return page_path in self.page_paths
 
     def __len__(self) -> int:
         """Return number of pages."""
-        return len(self._page_paths_set)
+        return len(self.page_paths)
 
     def _compute_hash(self) -> str:
         """Compute hash of page_paths for change detection."""
         # Sort for stable hash
-        paths_str = json.dumps(sorted(self._page_paths_set), sort_keys=True)
+        paths_str = json.dumps(sorted(self.page_paths), sort_keys=True)
         return hash_str(paths_str, truncate=16)
 
     def to_cache_dict(self) -> dict[str, Any]:
         """Serialize to cache-friendly dictionary (Cacheable protocol)."""
         return {
             "key": self.key,
-            "page_paths": list(self._page_paths_set),  # Convert to list for JSON
+            "page_paths": sorted(self.page_paths),  # Convert to sorted list for JSON
             "metadata": self.metadata,
             "updated_at": self.updated_at,
             "content_hash": self.content_hash,
@@ -129,25 +116,13 @@ class IndexEntry(Cacheable):
     @classmethod
     def from_cache_dict(cls, data: dict[str, Any]) -> IndexEntry:
         """Deserialize from cache dictionary (Cacheable protocol)."""
-        entry = cls(
+        return cls(
             key=data["key"],
+            page_paths=set(data.get("page_paths", [])),
             metadata=data.get("metadata", {}),
             updated_at=data.get("updated_at", datetime.now().isoformat()),
             content_hash=data.get("content_hash", ""),
         )
-        # Set page_paths via property to convert list to set
-        entry._page_paths_set = set(data.get("page_paths", []))
-        return entry
-
-    # Aliases for backward compatibility
-    def to_dict(self) -> dict[str, Any]:
-        """Alias for to_cache_dict (backward compatibility)."""
-        return self.to_cache_dict()
-
-    @staticmethod
-    def from_dict(data: dict[str, Any]) -> IndexEntry:
-        """Alias for from_cache_dict (backward compatibility)."""
-        return IndexEntry.from_cache_dict(data)
 
 
 class QueryIndex(ABC):
@@ -292,7 +267,7 @@ class QueryIndex(ABC):
 
         return old_keys
 
-    def get(self, key: str) -> list[str]:
+    def get(self, key: str) -> set[str]:
         """
         Get page paths for index key (O(1) lookup).
 
@@ -300,24 +275,22 @@ class QueryIndex(ABC):
             key: Index key
 
         Returns:
-            List of page paths (copy, safe to modify)
+            Set of page paths (copy, safe to modify)
         """
         entry = self.entries.get(key)
-        return entry.page_paths.copy() if entry else []
+        return entry.page_paths.copy() if entry else set()
 
     def keys(self) -> list[str]:
         """Get all index keys."""
         return list(self.entries.keys())
 
-    def has_changed(self, key: str, page_paths: list[str]) -> bool:
+    def has_changed(self, key: str, page_paths: set[str]) -> bool:
         """
         Check if index entry changed (for skip optimization).
 
-        Compares page_paths as sets (order doesn't matter for most use cases).
-
         Args:
             key: Index key
-            page_paths: New list of page paths
+            page_paths: New set of page paths
 
         Returns:
             True if entry changed and needs regeneration
@@ -326,8 +299,7 @@ class QueryIndex(ABC):
         if not entry:
             return True  # New key
 
-        # Compare as sets
-        return set(entry.page_paths) != set(page_paths)
+        return entry.page_paths != page_paths
 
     def get_metadata(self, key: str) -> dict[str, Any]:
         """

@@ -78,44 +78,116 @@ def generate_file_paths(
     return paths
 
 
-def generate_nested_schema(depth: int) -> type:
+# Pre-defined nested schemas for depth testing
+# (avoids get_type_hints issues with dynamically generated schemas)
+
+
+@dataclass
+class BenchDepth1:
+    """Flat schema (depth 1)."""
+
+    value: str
+
+
+@dataclass
+class BenchDepth2:
+    """Schema with 1 level of nesting."""
+
+    nested: BenchDepth1
+    name: str = ""
+
+
+@dataclass
+class BenchDepth3:
+    """Schema with 2 levels of nesting."""
+
+    nested: BenchDepth2
+    name: str = ""
+
+
+@dataclass
+class BenchDepth4:
+    """Schema with 3 levels of nesting."""
+
+    nested: BenchDepth3
+    name: str = ""
+
+
+@dataclass
+class BenchDepth5:
+    """Schema with 4 levels of nesting."""
+
+    nested: BenchDepth4
+    name: str = ""
+
+
+@dataclass
+class BenchDepth6:
+    """Schema with 5 levels of nesting."""
+
+    nested: BenchDepth5
+    name: str = ""
+
+
+@dataclass
+class BenchDepth7:
+    """Schema with 6 levels of nesting."""
+
+    nested: BenchDepth6
+    name: str = ""
+
+
+@dataclass
+class BenchDepth8:
+    """Schema with 7 levels of nesting."""
+
+    nested: BenchDepth7
+    name: str = ""
+
+
+@dataclass
+class BenchDepth9:
+    """Schema with 8 levels of nesting."""
+
+    nested: BenchDepth8
+    name: str = ""
+
+
+@dataclass
+class BenchDepth10:
+    """Schema with 9 levels of nesting."""
+
+    nested: BenchDepth9
+    name: str = ""
+
+
+DEPTH_SCHEMAS = {
+    1: BenchDepth1,
+    2: BenchDepth2,
+    3: BenchDepth3,
+    4: BenchDepth4,
+    5: BenchDepth5,
+    6: BenchDepth6,
+    7: BenchDepth7,
+    8: BenchDepth8,
+    9: BenchDepth9,
+    10: BenchDepth10,
+}
+
+
+def get_nested_schema(depth: int) -> type:
     """
-    Generate a dataclass schema with N levels of nesting.
+    Get a predefined schema with N levels of nesting.
 
     Args:
-        depth: Number of nesting levels (1 = flat, 10 = deeply nested)
+        depth: Number of nesting levels (1-10)
 
     Returns:
-        The outermost dataclass type
+        The dataclass type for that depth
     """
-    # Build from innermost to outermost
-    current_class = None
-
-    for level in range(depth, 0, -1):
-        if current_class is None:
-            # Innermost level - no nesting
-
-            @dataclass
-            class InnerSchema:
-                value: str
-
-            current_class = InnerSchema
-            current_class.__name__ = f"Level{level}"
-            current_class.__qualname__ = f"Level{level}"
-        else:
-            # Create wrapper that contains the previous level
-            inner = current_class
-
-            @dataclass
-            class WrapperSchema:
-                nested: inner  # type: ignore[valid-type]
-                name: str = ""
-
-            WrapperSchema.__name__ = f"Level{level}"
-            WrapperSchema.__qualname__ = f"Level{level}"
-            current_class = WrapperSchema
-
-    return current_class
+    if depth not in DEPTH_SCHEMAS:
+        raise ValueError(f"Only depths 1-10 supported, got {depth}")
+    return DEPTH_SCHEMAS[depth]
 
 
 def generate_nested_data(depth: int) -> dict[str, Any]:
@@ -331,7 +403,7 @@ class TestSchemaValidationPerformance:
 
     def test_validation_nested_3_levels(self) -> None:
         """Validation with 3 levels of nesting."""
-        schema = generate_nested_schema(3)
+        schema = get_nested_schema(3)
         validator = SchemaValidator(schema)
         data = generate_nested_data(3)
 
@@ -351,7 +423,7 @@ class TestSchemaValidationPerformance:
 
     def test_validation_nested_5_levels(self) -> None:
         """Validation with 5 levels of nesting."""
-        schema = generate_nested_schema(5)
+        schema = get_nested_schema(5)
         validator = SchemaValidator(schema)
         data = generate_nested_data(5)
 
@@ -371,7 +443,7 @@ class TestSchemaValidationPerformance:
 
     def test_validation_nested_10_levels(self) -> None:
         """Validation with 10 levels of nesting (at default depth limit)."""
-        schema = generate_nested_schema(10)
+        schema = get_nested_schema(10)
         validator = SchemaValidator(schema)
         data = generate_nested_data(10)
 
@@ -391,9 +463,10 @@ class TestSchemaValidationPerformance:
 
     def test_validation_depth_limit_exceeded(self) -> None:
         """Test that depth limit is enforced and returns clean error."""
-        schema = generate_nested_schema(15)
-        validator = SchemaValidator(schema, max_depth=10)
-        data = generate_nested_data(15)
+        # Use depth 10 schema with max_depth=5 to trigger depth limit
+        schema = get_nested_schema(10)
+        validator = SchemaValidator(schema, max_depth=5)
+        data = generate_nested_data(10)
 
         result = validator.validate(data)
 
@@ -403,7 +476,7 @@ class TestSchemaValidationPerformance:
 
     def test_validation_custom_depth_limit(self) -> None:
         """Test custom depth limit is respected."""
-        schema = generate_nested_schema(5)
+        schema = get_nested_schema(5)
         validator = SchemaValidator(schema, max_depth=3)
         data = generate_nested_data(5)
 
@@ -419,7 +492,7 @@ class TestSchemaValidationPerformance:
         results = []
 
         for depth in [1, 3, 5, 8, 10]:
-            schema = generate_nested_schema(depth)
+            schema = get_nested_schema(depth)
             validator = SchemaValidator(schema)
             data = generate_nested_data(depth)
 

@@ -139,32 +139,14 @@ class TaxonomyIndex:
             with open(self.cache_path) as f:
                 data = json.load(f)
 
-            found_version = data.get("version")
-
-            # Handle version mismatch with migration
-            if found_version != self.VERSION:
+            # Version check - clear on mismatch
+            if data.get("version") != self.VERSION:
                 logger.warning(
                     "taxonomy_index_version_mismatch",
                     expected=self.VERSION,
-                    found=found_version,
-                    action="rebuilding_reverse_index" if found_version == 1 else "clearing_cache",
+                    found=data.get("version"),
+                    action="clearing_cache",
                 )
-                # For v1 → v2 migration, we can rebuild the reverse index
-                if found_version == 1:
-                    # Load tags first
-                    for tag_slug, entry_data in data.get("tags", {}).items():
-                        self.tags[tag_slug] = TagEntry.from_cache_dict(entry_data)
-                    # Rebuild reverse index from forward index
-                    self._rebuild_reverse_index()
-                    logger.info(
-                        "taxonomy_index_migrated",
-                        from_version=found_version,
-                        to_version=self.VERSION,
-                        tags=len(self.tags),
-                        pages_indexed=len(self._page_to_tags),
-                    )
-                    return
-                # Unknown version - clear and start fresh
                 self.tags = {}
                 self._page_to_tags = {}
                 return
@@ -173,13 +155,9 @@ class TaxonomyIndex:
             for tag_slug, entry_data in data.get("tags", {}).items():
                 self.tags[tag_slug] = TagEntry.from_cache_dict(entry_data)
 
-            # Load reverse index (or rebuild if missing)
-            if "page_to_tags" in data:
-                for page, tags in data["page_to_tags"].items():
-                    self._page_to_tags[page] = set(tags)
-            else:
-                # Rebuild from forward index (migration path)
-                self._rebuild_reverse_index()
+            # Load reverse index
+            for page, tags in data.get("page_to_tags", {}).items():
+                self._page_to_tags[page] = set(tags)
 
             logger.info(
                 "taxonomy_index_loaded",
@@ -195,16 +173,6 @@ class TaxonomyIndex:
             )
             self.tags = {}
             self._page_to_tags = {}
-
-    def _rebuild_reverse_index(self) -> None:
-        """Rebuild reverse index from forward index (one-time migration)."""
-        self._page_to_tags.clear()
-        for tag_slug, entry in self.tags.items():
-            if entry.is_valid:
-                for page_path in entry.page_paths:
-                    if page_path not in self._page_to_tags:
-                        self._page_to_tags[page_path] = set()
-                    self._page_to_tags[page_path].add(tag_slug)
 
     def save_to_disk(self) -> None:
         """Save taxonomy index to disk (including reverse index)."""

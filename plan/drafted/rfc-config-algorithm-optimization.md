@@ -1,7 +1,8 @@
 # RFC: Configuration Algorithm Optimization
 
-**Status**: Draft  
+**Status**: ✅ Implemented  
 **Created**: 2025-12-24  
+**Implemented**: 2025-12-24  
 **Author**: AI Assistant  
 **Subsystem**: Config (ConfigLoader, DirectoryLoader, Merge, Hash, Validators)  
 **Confidence**: 94% 🟢 (verified against source code and site/config/)  
@@ -19,9 +20,9 @@ The `bengal/config` package provides configuration loading, validation, and mana
 1. **Cumulative deep merge** — O(F × K × D) when loading F directory config files
 2. **Typo detection** — O(K × S) `difflib.get_close_matches()` for every unknown section
 
-**Current status**: ✅ **No immediate action required**
+**Implementation status**: ✅ **Batch deep merge optimization implemented**
 
-The configuration package performs well for typical Bengal sites (< 200 config keys, < 15 config files). These optimizations are **preventive** and should only be implemented if profiling reveals config loading as a bottleneck.
+The batch merge optimization has been implemented proactively. The configuration package now uses `batch_deep_merge()` in `directory_loader.py` for O(K × D) complexity instead of O(F × K × D).
 
 ---
 
