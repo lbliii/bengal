@@ -548,6 +548,7 @@ class PythonExtractor(Extractor):
         methods = []
         properties = []
         class_vars = []
+        instance_attrs: dict[str, tuple[str | None, int]] = {}  # name -> (annotation, lineno)
 
         for item in node.body:
             if isinstance(item, ast.FunctionDef | ast.AsyncFunctionDef):
@@ -558,6 +559,35 @@ class PythonExtractor(Extractor):
                         properties.append(method)
                     else:
                         methods.append(method)
+
+                # Extract instance attributes from __init__ method
+                if item.name == "__init__":
+                    for stmt in ast.walk(item):
+                        # Look for: self.x: Type = value (annotated assignment)
+                        if isinstance(stmt, ast.AnnAssign):
+                            target = stmt.target
+                            if (
+                                isinstance(target, ast.Attribute)
+                                and isinstance(target.value, ast.Name)
+                                and target.value.id == "self"
+                            ):
+                                attr_name = target.attr
+                                annotation_str = annotation_to_string(stmt.annotation)
+                                instance_attrs[attr_name] = (annotation_str, stmt.lineno)
+                        # Also look for: self.x = value with type comment (less common)
+                        # But more importantly, handle self.x: Type without assignment
+                        elif isinstance(stmt, ast.Assign):
+                            # Check for self.x = value patterns (no annotation)
+                            for target in stmt.targets:
+                                if (
+                                    isinstance(target, ast.Attribute)
+                                    and isinstance(target.value, ast.Name)
+                                    and target.value.id == "self"
+                                ):
+                                    attr_name = target.attr
+                                    # Only add if we don't already have an annotated version
+                                    if attr_name not in instance_attrs:
+                                        instance_attrs[attr_name] = (None, stmt.lineno)
 
             elif isinstance(item, ast.AnnAssign) and isinstance(item.target, ast.Name):
                 # Class variable with type annotation
@@ -582,17 +612,37 @@ class PythonExtractor(Extractor):
                 class_vars.append(var_elem)
 
         # Merge docstring attributes with code-discovered attributes
-        if parsed_doc and parsed_doc.attributes:
-            # Create a dict of code attributes by name for easy lookup
-            code_attrs_by_name = {attr.name: attr for attr in class_vars}
+        # Include both class-level and instance attributes from __init__
+        code_attrs_by_name = {attr.name: attr for attr in class_vars}
 
+        if parsed_doc and parsed_doc.attributes:
             # For each docstring attribute, either enrich existing or create new
             for attr_name, attr_desc in parsed_doc.attributes.items():
                 if attr_name in code_attrs_by_name:
                     # Enrich existing code attribute with docstring description
                     code_attrs_by_name[attr_name].description = attr_desc
+                elif attr_name in instance_attrs:
+                    # Create attribute from instance attr discovered in __init__
+                    annotation_str, lineno = instance_attrs[attr_name]
+                    typed_attr_meta = PythonAttributeMetadata(
+                        annotation=annotation_str,
+                        is_class_var=False,  # Instance attribute
+                    )
+                    var_elem = DocElement(
+                        name=attr_name,
+                        qualified_name=f"{qualified_name}.{attr_name}",
+                        description=attr_desc,
+                        element_type="attribute",
+                        source_file=get_relative_source_path(file_path, self._source_root),
+                        line_number=lineno,
+                        metadata={
+                            "annotation": annotation_str,
+                        },
+                        typed_metadata=typed_attr_meta,
+                    )
+                    class_vars.append(var_elem)
                 else:
-                    # Create attribute element from docstring only
+                    # Create attribute element from docstring only (no code discovered)
                     typed_attr_meta = PythonAttributeMetadata(
                         annotation=None,
                         is_class_var=False,  # Unknown from docstring only
