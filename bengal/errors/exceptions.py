@@ -283,6 +283,7 @@ class BengalError(Exception):
             ],
             BengalDiscoveryError: [
                 "tests/unit/discovery/",
+                "tests/unit/content_layer/",
                 "tests/integration/test_discovery.py",
             ],
             BengalCacheError: [

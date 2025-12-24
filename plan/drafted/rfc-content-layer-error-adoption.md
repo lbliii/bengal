@@ -2,11 +2,12 @@
 
 **Status**: Drafted  
 **Created**: 2025-12-24  
+**Last Verified**: 2025-12-24  
 **Author**: AI Assistant  
 **Subsystem**: `bengal/content_layer/`, `bengal/errors/`  
-**Confidence**: 94% 🟢 (all claims verified via file reads against source files)  
+**Confidence**: 95% 🟢 (all claims verified against source; N011-N015 conflict resolved)  
 **Priority**: P2 (Medium) — Remote content fetching is user-facing; errors need actionable context  
-**Estimated Effort**: 2.5 hours (single dev)
+**Estimated Effort**: 2.25 hours (single dev)
 
 ---
 
@@ -316,22 +317,24 @@ for coro in asyncio.as_completed(tasks):
         logger.error(f"Failed to process page: {e}")
 ```
 
-### Error Codes Currently Unused for Content Layer
+### Existing Error Codes Applicable to Content Layer
 
-**Discovery codes (D-series)** that could apply:
+**Discovery codes (D-series)** that could be reused:
 
 | Code | Value | Potential Use |
 |------|-------|---------------|
 | D001 | `content_dir_not_found` | Local source directory missing |
 | D007 | `permission_denied` | File permission errors |
 
-**Content codes (N-series)** that could apply:
+**Content codes (N-series)** that could be reused:
 
 | Code | Value | Potential Use |
 |------|-------|---------------|
 | N001 | `frontmatter_invalid` | Parse failures in local source |
 | N003 | `content_file_encoding` | UTF-8 encoding errors |
 | N004 | `content_file_not_found` | Missing content files |
+
+**Note**: N011-N015 already exist for collections (added via `rfc-collections-error-adoption.md`).
 
 ---
 
@@ -345,18 +348,19 @@ for coro in asyncio.as_completed(tasks):
 **Proposed new codes** (add to `bengal/errors/codes.py`):
 
 ```python
-# ============================================================
 # Discovery errors (D001-D099) - continued: Content Layer
-# ============================================================
+# Add after D007:
 D008 = "content_source_fetch_failed"     # Remote source fetch failure
 D009 = "content_source_offline"          # Offline mode with no cache
 D010 = "content_source_auth_failed"      # 401/403 authentication error
 D011 = "content_source_not_found"        # 404 source/repo/database not found
 
-# ============================================================
 # Content errors (N001-N099) - continued: Content Layer
-# ============================================================
-N016 = "content_entry_parse_failed"      # Entry parse/conversion error
+# Add after N015 (N011-N015 already exist for collections):
+N016 = "content_entry_parse_failed"      # Remote entry parse/conversion error
+
+# Note: Use N001 for local frontmatter errors, N016 for remote content parsing
+# (e.g., Notion block conversion, REST API response parsing)
 ```
 
 ### Gap 2: ImportError Not Wrapped in Bengal Exception
@@ -492,31 +496,23 @@ except Exception as e:
 
 ## Proposed Changes
 
-### Phase 1: Add Error Codes (15 min)
+### Phase 1: Add Error Codes (10 min)
 
 **File**: `bengal/errors/codes.py`
 
-Add after D007:
+Add after D007 (line ~163):
 
 ```python
-# ============================================================
-# Discovery errors (D001-D099) - continued: Content Layer
-# ============================================================
+# Discovery errors - Content Layer
 D008 = "content_source_fetch_failed"     # Remote source fetch failure
 D009 = "content_source_offline"          # Offline mode with no cache
 D010 = "content_source_auth_failed"      # 401/403 authentication error
 D011 = "content_source_not_found"        # 404 source/repo/database not found
 ```
 
-Add after N010:
+Add after N015 (line ~138) — N011-N015 already exist for collections:
 
 ```python
-# Content errors (N001-N099) - continued: Collections and Content Layer
-N011 = "collection_validation_failed"    # Schema validation failure
-N012 = "collection_not_found"            # Unknown collection referenced
-N013 = "collection_schema_invalid"       # Schema class definition error
-N014 = "collection_load_failed"          # collections.py import error
-N015 = "collection_directory_missing"    # Collection directory doesn't exist
 N016 = "content_entry_parse_failed"      # Entry parse/conversion error
 ```
 
@@ -647,7 +643,7 @@ except Exception as e:
     # Record but continue - graceful degradation
     error = BengalContentError(
         f"Failed to parse frontmatter in content",
-        code=ErrorCode.N016,
+        code=ErrorCode.N001,  # frontmatter_invalid (existing code)
         suggestion="Check YAML syntax in frontmatter block",
         original_error=e,
     )
@@ -697,7 +693,7 @@ test_mapping: dict[type, list[str]] = {
 
 | Phase | Task | Time | Priority |
 |-------|------|------|----------|
-| 1 | Add error codes D008-D011, N016 | 15 min | P1 |
+| 1 | Add error codes D008-D011, N016 | 10 min | P1 |
 | 2 | Update `loaders.py` factory ImportErrors | 15 min | P1 |
 | 3 | Update `manager.py` fetch error handling | 30 min | P1 |
 | 4 | Update `github.py` error handling | 30 min | P1 |
@@ -706,7 +702,7 @@ test_mapping: dict[type, list[str]] = {
 | 7 | Update `local.py` file read/parse errors | 15 min | P2 |
 | 8 | Add test mapping | 5 min | P2 |
 
-**Total**: ~2.5 hours
+**Total**: ~2.25 hours
 
 ---
 
@@ -750,7 +746,7 @@ test_mapping: dict[type, list[str]] = {
 
 | File | Change Type | Lines |
 |------|-------------|-------|
-| `bengal/errors/codes.py` | Add error codes | +6 |
+| `bengal/errors/codes.py` | Add error codes D008-D011, N016 | +5 |
 | `bengal/content_layer/loaders.py` | Update ImportError handling | +20 |
 | `bengal/content_layer/manager.py` | Wrap fetch errors, add recording | +30 |
 | `bengal/content_layer/sources/github.py` | Wrap HTTP errors, add recording | +25 |
@@ -758,7 +754,7 @@ test_mapping: dict[type, list[str]] = {
 | `bengal/content_layer/sources/notion.py` | Wrap HTTP errors, add recording | +25 |
 | `bengal/content_layer/sources/local.py` | Wrap file errors, add recording | +15 |
 | `bengal/errors/exceptions.py` | Add test mapping | +1 |
-| **Total** | — | ~142 |
+| **Total** | — | ~141 |
 
 ---
 
@@ -778,10 +774,9 @@ test_mapping: dict[type, list[str]] = {
 
 ## References
 
-- `bengal/errors/codes.py:150-157` — D-series discovery codes
-- `bengal/errors/codes.py:121-131` — N-series content codes
-- `bengal/errors/exceptions.py:473-502` — BengalDiscoveryError definition
-- `bengal/errors/exceptions.py:398-433` — BengalContentError definition
+- `bengal/errors/codes.py:155-163` — D-series discovery codes (D001-D007)
+- `bengal/errors/codes.py:121-138` — N-series content codes (N001-N015)
+- `bengal/errors/exceptions.py` — BengalDiscoveryError, BengalContentError definitions
 - `bengal/content_layer/manager.py:199-217` — Current fetch error handling
 - `bengal/content_layer/sources/github.py:126-131` — Current 404/403 handling
-- `plan/drafted/rfc-collections-error-adoption.md` — Related RFC for collections
+- `plan/drafted/rfc-collections-error-adoption.md` — Related RFC for collections (N011-N015 already implemented)

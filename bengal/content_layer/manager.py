@@ -13,7 +13,12 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from bengal.errors import BengalConfigError, BengalError
+from bengal.errors import (
+    BengalConfigError,
+    BengalDiscoveryError,
+    ErrorCode,
+    record_error,
+)
 from bengal.utils.async_compat import run_async
 from bengal.utils.atomic_write import atomic_write_text
 from bengal.utils.logger import get_logger
@@ -149,6 +154,14 @@ class ContentLayerManager:
         entries: list[ContentEntry] = []
         for name, result in zip(self.sources.keys(), results, strict=True):
             if isinstance(result, Exception):
+                # Wrap in Bengal error for tracking
+                error = BengalDiscoveryError(
+                    f"Failed to fetch from source '{name}': {result}",
+                    code=ErrorCode.D008,
+                    original_error=result if isinstance(result, Exception) else None,
+                    suggestion=f"Check network connectivity and source configuration for '{name}'",
+                )
+                record_error(error)
                 logger.error(f"Failed to fetch from source '{name}': {result}")
                 if self.offline:
                     # Try to use stale cache in offline mode
@@ -196,10 +209,13 @@ class ContentLayerManager:
             if cached:
                 logger.warning(f"Using stale cache for '{name}' (offline mode)")
                 return cached
-            raise BengalError(
+            error = BengalDiscoveryError(
                 f"Cannot fetch from '{name}' in offline mode (no cache available)",
-                suggestion="Run with online mode or ensure cache is available",
+                code=ErrorCode.D009,
+                suggestion="Run with online mode first to populate cache, or check cache directory",
             )
+            record_error(error)
+            raise error
 
         # Fetch fresh content
         logger.info(f"Fetching content from '{name}' ({source.source_type})...")
@@ -212,9 +228,26 @@ class ContentLayerManager:
             # Try to fall back to cache on error
             cached = self._load_cache(name)
             if cached:
+                # Record warning but continue with cache
+                warning = BengalDiscoveryError(
+                    f"Fetch failed for '{name}', using cached content",
+                    code=ErrorCode.D008,
+                    suggestion=f"Check network connectivity and source configuration for '{name}'",
+                    original_error=e,
+                )
+                record_error(warning, file_path=str(self.cache_dir / f"{name}.json"))
                 logger.warning(f"Fetch failed for '{name}', using cached content: {e}")
                 return cached
-            raise
+
+            # No cache fallback - raise proper exception
+            error = BengalDiscoveryError(
+                f"Failed to fetch content from '{name}': {e}",
+                code=ErrorCode.D008,
+                suggestion=f"Check network connectivity and source configuration for '{name}'",
+                original_error=e,
+            )
+            record_error(error)
+            raise error from e
 
         # Save to cache
         self._save_cache(name, entries, cache_key)

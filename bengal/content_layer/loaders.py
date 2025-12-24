@@ -94,8 +94,13 @@ def github_loader(
     try:
         from bengal.content_layer.sources.github import GitHubSource
     except ImportError as e:
-        raise ImportError(
-            "github_loader requires aiohttp.\nInstall with: pip install bengal[github]"
+        from bengal.errors import BengalConfigError, ErrorCode
+
+        raise BengalConfigError(
+            "github_loader requires aiohttp",
+            code=ErrorCode.C002,
+            suggestion="Install with: pip install bengal[github]",
+            original_error=e,
         ) from e
 
     config = {
@@ -158,8 +163,13 @@ def rest_loader(
     try:
         from bengal.content_layer.sources.rest import RESTSource
     except ImportError as e:
-        raise ImportError(
-            "rest_loader requires aiohttp.\nInstall with: pip install bengal[rest]"
+        from bengal.errors import BengalConfigError, ErrorCode
+
+        raise BengalConfigError(
+            "rest_loader requires aiohttp",
+            code=ErrorCode.C002,
+            suggestion="Install with: pip install bengal[rest]",
+            original_error=e,
         ) from e
 
     config: dict[str, Any] = {
@@ -226,8 +236,13 @@ def notion_loader(
     try:
         from bengal.content_layer.sources.notion import NotionSource
     except ImportError as e:
-        raise ImportError(
-            "notion_loader requires aiohttp.\nInstall with: pip install bengal[notion]"
+        from bengal.errors import BengalConfigError, ErrorCode
+
+        raise BengalConfigError(
+            "notion_loader requires aiohttp",
+            code=ErrorCode.C002,
+            suggestion="Install with: pip install bengal[notion]",
+            original_error=e,
         ) from e
 
     config: dict[str, Any] = {

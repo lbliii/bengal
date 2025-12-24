@@ -24,8 +24,13 @@ from typing import Any
 try:
     import aiohttp
 except ImportError as e:
-    raise ImportError(
-        "GitHubSource requires aiohttp.\nInstall with: pip install bengal[github]"
+    from bengal.errors import BengalConfigError, ErrorCode
+
+    raise BengalConfigError(
+        "GitHubSource requires aiohttp",
+        code=ErrorCode.C002,
+        suggestion="Install with: pip install bengal[github]",
+        original_error=e,
     ) from e
 
 from bengal.content_layer.entry import ContentEntry
@@ -124,11 +129,35 @@ class GitHubSource(ContentSource):
 
             async with session.get(tree_url) as resp:
                 if resp.status == 404:
-                    logger.error(f"Repository not found: {self.repo}")
-                    return
+                    from bengal.errors import BengalDiscoveryError, ErrorCode, record_error
+
+                    error = BengalDiscoveryError(
+                        f"GitHub repository not found: {self.repo}",
+                        code=ErrorCode.D011,
+                        suggestion=f"Verify repository exists and is accessible: https://github.com/{self.repo}",
+                    )
+                    record_error(error)
+                    raise error
                 if resp.status == 403:
-                    logger.error(f"Rate limit exceeded or access denied for {self.repo}")
-                    return
+                    from bengal.errors import BengalDiscoveryError, ErrorCode, record_error
+
+                    error = BengalDiscoveryError(
+                        f"Access denied to GitHub repository: {self.repo}",
+                        code=ErrorCode.D010,
+                        suggestion="Check GITHUB_TOKEN is set and has read access to the repository",
+                    )
+                    record_error(error)
+                    raise error
+                if resp.status == 401:
+                    from bengal.errors import BengalDiscoveryError, ErrorCode, record_error
+
+                    error = BengalDiscoveryError(
+                        f"Authentication failed for GitHub repository: {self.repo}",
+                        code=ErrorCode.D010,
+                        suggestion="Check GITHUB_TOKEN is valid and not expired",
+                    )
+                    record_error(error)
+                    raise error
                 resp.raise_for_status()
                 data = await resp.json()
 
@@ -179,7 +208,16 @@ class GitHubSource(ContentSource):
                     if entry:
                         yield entry
                 except Exception as e:
+                    from bengal.errors import BengalContentError, ErrorCode, record_error
+
                     failed_count += 1
+                    error = BengalContentError(
+                        f"Failed to fetch file from GitHub: {e}",
+                        code=ErrorCode.N016,
+                        suggestion="Check file exists and is accessible in the repository",
+                        original_error=e,
+                    )
+                    record_error(error)
                     logger.error(f"Failed to fetch file: {e}")
 
             if failed_count > 0:

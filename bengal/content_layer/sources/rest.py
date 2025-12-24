@@ -16,7 +16,14 @@ from typing import Any
 try:
     import aiohttp
 except ImportError as e:
-    raise ImportError("RESTSource requires aiohttp.\nInstall with: pip install bengal[rest]") from e
+    from bengal.errors import BengalConfigError, ErrorCode
+
+    raise BengalConfigError(
+        "RESTSource requires aiohttp",
+        code=ErrorCode.C002,
+        suggestion="Install with: pip install bengal[rest]",
+        original_error=e,
+    ) from e
 
 from bengal.content_layer.entry import ContentEntry
 from bengal.content_layer.source import ContentSource
@@ -104,6 +111,36 @@ class RESTSource(ContentSource):
 
             while url:
                 async with session.get(url) as resp:
+                    if resp.status == 404:
+                        from bengal.errors import BengalDiscoveryError, ErrorCode, record_error
+
+                        error = BengalDiscoveryError(
+                            f"REST API endpoint not found: {url}",
+                            code=ErrorCode.D011,
+                            suggestion="Verify the API URL is correct and the endpoint exists",
+                        )
+                        record_error(error)
+                        raise error
+                    if resp.status == 401:
+                        from bengal.errors import BengalDiscoveryError, ErrorCode, record_error
+
+                        error = BengalDiscoveryError(
+                            f"Authentication failed for REST API: {url}",
+                            code=ErrorCode.D010,
+                            suggestion="Check API credentials and authentication headers",
+                        )
+                        record_error(error)
+                        raise error
+                    if resp.status == 403:
+                        from bengal.errors import BengalDiscoveryError, ErrorCode, record_error
+
+                        error = BengalDiscoveryError(
+                            f"Access denied to REST API: {url}",
+                            code=ErrorCode.D010,
+                            suggestion="Check API permissions and access rights",
+                        )
+                        record_error(error)
+                        raise error
                     resp.raise_for_status()
                     data = await resp.json()
 

@@ -137,6 +137,9 @@ class ErrorCode(Enum):
     N014 = "collection_load_failed"  # collections.py import error
     N015 = "collection_directory_missing"  # Collection directory doesn't exist
 
+    # Content Layer (N016-N020)
+    N016 = "content_entry_parse_failed"  # Remote entry parse/conversion error
+
     # ============================================================
     # Rendering errors (R001-R099)
     # ============================================================
@@ -161,6 +164,12 @@ class ErrorCode(Enum):
     D005 = "duplicate_page_path"
     D006 = "invalid_file_pattern"
     D007 = "permission_denied"
+
+    # Content Layer (D008-D015)
+    D008 = "content_source_fetch_failed"  # Remote source fetch failure
+    D009 = "content_source_offline"  # Offline mode with no cache
+    D010 = "content_source_auth_failed"  # 401/403 authentication error
+    D011 = "content_source_not_found"  # 404 source/repo/database not found
 
     # ============================================================
     # Cache errors (A001-A099)
