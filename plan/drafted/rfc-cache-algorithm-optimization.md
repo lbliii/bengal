@@ -151,9 +151,11 @@ def get_affected_pages(self, changed_file: Path) -> set[str]:
 | TaxonomyIndex | `get_tags_for_page()` | O(t×p) | O(1) | High |
 | TaxonomyIndex | `remove_page_from_all_tags()` | O(t×p) | O(t') | High |
 | QueryIndex | `_remove_page_from_key()` | O(p) | O(1) | Medium |
-| FileTrackingMixin | `get_affected_pages()` | O(n×d) | O(1) | High |
+| FileTrackingMixin | `get_affected_pages()` | O(n) | O(1) | Medium |
 
-**Variables**: n=pages, t=tags, p=pages/tag, k=keys/page, d=deps/page, t'=tags for specific page
+**Variables**: n=pages, t=tags, p=pages/tag, k=keys/page, t'=tags for specific page
+
+> **Note**: QueryIndex already has `_page_to_keys` reverse index (line 147) for efficient page-to-key lookups. The remaining bottleneck is `list.remove()` in `_remove_page_from_key()`.
 
 ---
 
@@ -541,7 +543,7 @@ def test_get_tags_for_page_10k(benchmark, taxonomy_index_10k):
 | `TaxonomyIndex.get_tags_for_page()` | O(t×p) | ~200ms |
 | `TaxonomyIndex.remove_page_from_all_tags()` | O(t×p) | ~400ms |
 | `QueryIndex._remove_page_from_key()` | O(p) | ~10ms |
-| `FileTrackingMixin.get_affected_pages()` | O(n×d) | ~200ms |
+| `FileTrackingMixin.get_affected_pages()` | O(n) | ~50ms |
 
 ### After Optimization
 
@@ -550,9 +552,11 @@ def test_get_tags_for_page_10k(benchmark, taxonomy_index_10k):
 | `TaxonomyIndex.get_tags_for_page()` | **O(1)** | <1ms | **200x** |
 | `TaxonomyIndex.remove_page_from_all_tags()` | O(t') | ~5ms | **80x** |
 | `QueryIndex._remove_page_from_key()` | **O(1)** | <1ms | **10x** |
-| `FileTrackingMixin.get_affected_pages()` | **O(1)** | <1ms | **200x** |
+| `FileTrackingMixin.get_affected_pages()` | **O(1)** | <1ms | **50x** |
 
 **t'** = tags for the specific page (typically 3-10, not 500)
+
+> **Note**: Estimated timings are theoretical. Step 0 benchmarks will establish actual baseline measurements.
 
 ---
 
