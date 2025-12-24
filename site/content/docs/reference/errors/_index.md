@@ -1,6 +1,10 @@
 ---
 title: Error Code Reference
+nav_title: Error Codes
 description: Complete reference for all Bengal error codes
+weight: 50
+icon: alert-triangle
+tags: [reference, errors, troubleshooting]
 ---
 
 # Error Code Reference
