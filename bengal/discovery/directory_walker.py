@@ -128,22 +128,43 @@ class DirectoryWalker:
             inode_key = (stat.st_dev, stat.st_ino)
 
             if inode_key in self.visited_inodes:
+                from bengal.errors import BengalDiscoveryError, ErrorCode, record_error
+
+                error = BengalDiscoveryError(
+                    f"Symlink loop detected at {directory}",
+                    code=ErrorCode.D012,
+                    file_path=directory,
+                    suggestion="Remove circular symlink or exclude directory from discovery",
+                )
+                record_error(error, file_path=str(directory))
                 logger.warning(
                     "symlink_loop_detected",
                     path=str(directory),
                     action="skipping_to_prevent_infinite_recursion",
+                    code="D012",
                 )
                 return True
 
             self.visited_inodes.add(inode_key)
             return False
         except (OSError, PermissionError) as e:
+            from bengal.errors import BengalDiscoveryError, ErrorCode, record_error
+
+            error = BengalDiscoveryError(
+                f"Failed to stat directory: {directory}",
+                code=ErrorCode.D007,
+                file_path=directory,
+                suggestion="Check directory permissions or exclude from discovery",
+                original_error=e,
+            )
+            record_error(error, file_path=str(directory))
             logger.warning(
                 "directory_stat_failed",
                 path=str(directory),
                 error=str(e),
                 error_type=type(e).__name__,
                 action="skipping",
+                code="D007",
             )
             return True
 
@@ -160,11 +181,22 @@ class DirectoryWalker:
         try:
             return sorted(directory.iterdir())
         except PermissionError as e:
+            from bengal.errors import BengalDiscoveryError, ErrorCode, record_error
+
+            error = BengalDiscoveryError(
+                f"Permission denied reading directory: {directory}",
+                code=ErrorCode.D007,
+                file_path=directory,
+                suggestion="Check directory permissions or exclude from discovery",
+                original_error=e,
+            )
+            record_error(error, file_path=str(directory))
             logger.warning(
                 "directory_permission_denied",
                 path=str(directory),
                 error=str(e),
                 action="skipping",
+                code="D007",
             )
             return []
 

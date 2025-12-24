@@ -173,11 +173,12 @@ class GoogleFontsDownloader:
             output_dir must be explicit - no fallback to Path.cwd() to ensure
             consistent behavior. See: plan/implemented/rfc-path-resolution-architecture.md
         """
-        from bengal.errors import BengalError
+        from bengal.errors import BengalAssetError, ErrorCode, record_error
 
         if output_dir is None:
-            raise BengalError(
+            raise BengalAssetError(
                 "output_dir is required for download_font",
+                code=ErrorCode.X007,
                 suggestion="Provide an absolute output directory path",
             )
         styles = styles or ["normal"]
@@ -191,7 +192,13 @@ class GoogleFontsDownloader:
             font_urls = self._extract_font_urls(css_url)
 
             if not font_urls:
-                logger.warning("no_fonts_found_for_family", family=family)
+                error = BengalAssetError(
+                    f"Font '{family}' not found in Google Fonts",
+                    code=ErrorCode.X009,
+                    suggestion=f"Verify '{family}' is a valid Google Font name at fonts.google.com",
+                )
+                record_error(error, file_path=None)
+                logger.warning("no_fonts_found_for_family", family=family, code="X009")
                 return []
 
             # Download each font file
@@ -226,8 +233,19 @@ class GoogleFontsDownloader:
             return variants
 
         except Exception as e:
+            error = BengalAssetError(
+                f"Failed to download font '{family}'",
+                code=ErrorCode.X008,
+                suggestion=f"Check network connectivity and that '{family}' is a valid Google Font",
+                original_error=e,
+            )
+            record_error(error, file_path=None)
             logger.error(
-                "font_download_failed", family=family, error=str(e), error_type=type(e).__name__
+                "font_download_failed",
+                family=family,
+                error=str(e),
+                error_type=type(e).__name__,
+                code="X008",
             )
             return []
 
@@ -263,11 +281,12 @@ class GoogleFontsDownloader:
             >>> variants[0].filename
             'outfit-400.ttf'
         """
-        from bengal.errors import BengalError
+        from bengal.errors import BengalAssetError, ErrorCode, record_error
 
         if output_dir is None:
-            raise BengalError(
+            raise BengalAssetError(
                 "output_dir is required for download_ttf_font",
+                code=ErrorCode.X007,
                 suggestion="Provide an absolute output directory path",
             )
         styles = styles or ["normal"]
@@ -281,7 +300,13 @@ class GoogleFontsDownloader:
             font_urls = self._extract_font_urls(css_url, user_agent=self.USER_AGENT_TTF)
 
             if not font_urls:
-                logger.warning("no_ttf_fonts_found_for_family", family=family)
+                error = BengalAssetError(
+                    f"TTF font '{family}' not found in Google Fonts",
+                    code=ErrorCode.X009,
+                    suggestion=f"Verify '{family}' is a valid Google Font name at fonts.google.com",
+                )
+                record_error(error, file_path=None)
+                logger.warning("no_ttf_fonts_found_for_family", family=family, code="X009")
                 return []
 
             # Download each font file
@@ -316,8 +341,19 @@ class GoogleFontsDownloader:
             return variants
 
         except Exception as e:
+            error = BengalAssetError(
+                f"Failed to download TTF font '{family}'",
+                code=ErrorCode.X008,
+                suggestion=f"Check network connectivity and that '{family}' is a valid Google Font",
+                original_error=e,
+            )
+            record_error(error, file_path=None)
             logger.error(
-                "ttf_font_download_failed", family=family, error=str(e), error_type=type(e).__name__
+                "ttf_font_download_failed",
+                family=family,
+                error=str(e),
+                error_type=type(e).__name__,
+                code="X008",
             )
             return []
 

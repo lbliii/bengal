@@ -366,7 +366,17 @@ class GitVersionAdapter:
                         )
                     )
         except subprocess.CalledProcessError as e:
-            logger.warning("git_branches_failed", error=e.stderr)
+            from bengal.errors import BengalDiscoveryError, ErrorCode, record_error
+
+            error = BengalDiscoveryError(
+                f"Failed to list git branches: {e.stderr}",
+                code=ErrorCode.D014,
+                file_path=self.repo_path,
+                suggestion="Check git repository state and permissions",
+                original_error=e,
+            )
+            record_error(error, file_path=str(self.repo_path))
+            logger.warning("git_branches_failed", error=e.stderr, code="D014")
 
         # Get tags
         try:
@@ -393,7 +403,17 @@ class GitVersionAdapter:
                         )
                     )
         except subprocess.CalledProcessError as e:
-            logger.warning("git_tags_failed", error=e.stderr)
+            from bengal.errors import BengalDiscoveryError, ErrorCode, record_error
+
+            error = BengalDiscoveryError(
+                f"Failed to list git tags: {e.stderr}",
+                code=ErrorCode.D014,
+                file_path=self.repo_path,
+                suggestion="Check git repository state and permissions",
+                original_error=e,
+            )
+            record_error(error, file_path=str(self.repo_path))
+            logger.warning("git_tags_failed", error=e.stderr, code="D014")
 
         self._refs_cache = refs
         return refs

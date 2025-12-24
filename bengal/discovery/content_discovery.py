@@ -187,8 +187,20 @@ class ContentDiscovery:
         self._check_yaml_extensions()
 
         if not self.content_dir.exists():
+            from bengal.errors import BengalDiscoveryError, ErrorCode, record_error
+
+            error = BengalDiscoveryError(
+                f"Content directory not found: {self.content_dir}",
+                code=ErrorCode.D001,
+                file_path=self.content_dir,
+                suggestion="Create content directory or check bengal.yaml config",
+            )
+            record_error(error, file_path=str(self.content_dir))
             logger.warning(
-                "content_dir_missing", content_dir=str(self.content_dir), action="returning_empty"
+                "content_dir_missing",
+                content_dir=str(self.content_dir),
+                action="returning_empty",
+                code="D001",
             )
             return self.sections, self.pages
 
@@ -425,11 +437,22 @@ class ContentDiscovery:
 
             return page
         except Exception as e:
+            from bengal.errors import BengalDiscoveryError, ErrorCode, record_error
+
+            error = BengalDiscoveryError(
+                f"Failed to create page from {file_path}",
+                code=ErrorCode.D002,
+                file_path=file_path,
+                original_error=e,
+                suggestion="Check file encoding and frontmatter syntax",
+            )
+            record_error(error, file_path=str(file_path))
             logger.error(
                 "page_creation_failed",
                 file_path=str(file_path),
                 error=str(e),
                 error_type=type(e).__name__,
+                code="D002",
             )
             raise
 

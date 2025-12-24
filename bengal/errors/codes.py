@@ -165,11 +165,16 @@ class ErrorCode(Enum):
     D006 = "invalid_file_pattern"
     D007 = "permission_denied"
 
-    # Content Layer (D008-D015)
+    # Content Layer (D008-D011)
     D008 = "content_source_fetch_failed"  # Remote source fetch failure
     D009 = "content_source_offline"  # Offline mode with no cache
     D010 = "content_source_auth_failed"  # 401/403 authentication error
     D011 = "content_source_not_found"  # 404 source/repo/database not found
+
+    # Directory Discovery (D012-D014)
+    D012 = "symlink_loop_detected"  # Circular symlink in content directory
+    D013 = "asset_stat_failed"  # Asset file stat failed
+    D014 = "git_ref_fetch_failed"  # Git branch/tag list failed
 
     # ============================================================
     # Cache errors (A001-A099)
@@ -223,6 +228,11 @@ class ErrorCode(Enum):
     X004 = "asset_copy_error"
     X005 = "asset_fingerprint_error"
     X006 = "asset_minify_error"
+
+    # Fonts (X007-X010)
+    X007 = "font_download_config_error"  # Missing output_dir or invalid config
+    X008 = "font_download_failed"  # Network/API failure downloading font
+    X009 = "font_not_found"  # Font family not available from Google Fonts
 
     # ============================================================
     # Graph/Analysis errors (G001-G099)

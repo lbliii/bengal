@@ -292,6 +292,7 @@ class BengalError(Exception):
             ],
             BengalAssetError: [
                 "tests/unit/assets/",
+                "tests/unit/health/validators/test_fonts.py",
                 "tests/integration/test_assets.py",
             ],
             BengalGraphError: [

@@ -126,7 +126,16 @@ class AssetDiscovery:
                         logger.debug(
                             "small_asset_discovered", path=str(asset.source_path), size_bytes=size
                         )
-                except (AttributeError, FileNotFoundError):
+                except (AttributeError, FileNotFoundError) as e:
                     # This indicates a bug in asset creation - log as warning
-                    logger.warning("asset_missing_path", asset=str(asset))
+                    from bengal.errors import BengalDiscoveryError, ErrorCode, record_error
+
+                    error = BengalDiscoveryError(
+                        f"Asset path missing or invalid: {asset}",
+                        code=ErrorCode.D013,
+                        suggestion="Check asset source path configuration",
+                        original_error=e if isinstance(e, Exception) else None,
+                    )
+                    record_error(error)
+                    logger.warning("asset_missing_path", asset=str(asset), code="D013")
         return self.assets
