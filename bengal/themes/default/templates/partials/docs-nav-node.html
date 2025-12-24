@@ -9,10 +9,10 @@ Variables:
 - show_nav_icons: Whether to show section icons (default: true)
 
 Features:
-- Collapsible sections with toggle button
+- Collapsible sections using native <details>/<summary> (no JS required)
 - Simple link rendering for leaf nodes
 - Active page highlighting via item.is_current
-- Active trail via item.is_in_trail
+- Active trail via item.is_in_trail (auto-expands parent sections)
 - Recursive rendering of children
 
 Usage:
@@ -49,7 +49,7 @@ Usage:
     {% endif %}
   </div>
 
-  <div class="docs-nav-group-items is-expanded expanded">
+  <div class="docs-nav-group-items">
     {% for child in item.children %}
       {% set item = child %}
       {% set depth = depth + 1 %}
@@ -59,14 +59,14 @@ Usage:
 </div>
 
 {% else %}
-{# ===== EXPANDABLE NODE (has children, depth > 0) ===== #}
-<div class="docs-nav-group{% if item.is_in_trail %} is-in-trail{% endif %}" data-depth="{{ depth }}">
-  <div class="docs-nav-group-toggle-wrapper">
-    <button class="docs-nav-group-toggle"
-            aria-expanded="{{ 'true' if item.is_in_trail else 'false' }}"
-            aria-controls="nav-node-{{ item.id }}">
+{# ===== EXPANDABLE NODE (has children, depth > 0) - Native <details>/<summary> ===== #}
+<details class="docs-nav-group{% if item.is_in_trail %} is-in-trail{% endif %}"
+         data-depth="{{ depth }}"
+         {% if item.is_in_trail %}open{% endif %}>
+  <summary class="docs-nav-group-summary">
+    <span class="docs-nav-caret">
       {{ icon('caret-right', size=14) }}
-    </button>
+    </span>
 
     {% if show_nav_icons %}
     <span class="docs-nav-icon" {% if not item_icon %}data-default="true"{% endif %}>
@@ -83,10 +83,9 @@ Usage:
     {% else %}
     <span class="docs-nav-group-link">{{ item_title }}</span>
     {% endif %}
-  </div>
+  </summary>
 
-  <div class="docs-nav-group-items{% if item.is_in_trail %} is-expanded{% endif %}"
-       id="nav-node-{{ item.id }}">
+  <div class="docs-nav-group-items">
     {% if should_render_children %}
       {% for child in item.children %}
         {% set item = child %}
@@ -95,7 +94,7 @@ Usage:
       {% endfor %}
     {% endif %}
   </div>
-</div>
+</details>
 {% endif %}
 
 {% else %}

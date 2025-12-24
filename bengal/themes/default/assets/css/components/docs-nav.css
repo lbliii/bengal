@@ -89,6 +89,8 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
 /* Root group children - always expanded, no animation needed */
 .docs-nav-group--root > .docs-nav-group-items {
   display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
   opacity: 1;
   transform: none;
   padding-left: 0;
@@ -129,8 +131,19 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
   filter: drop-shadow(0 0 8px color-mix(in srgb, var(--color-primary) 50%, transparent));
 }
 
-/* Wrapper containing toggle button + link */
-.docs-nav-group-toggle-wrapper {
+/* ============================================================================
+   NATIVE <details>/<summary> DISCLOSURE WIDGET
+   Uses native HTML disclosure for expand/collapse (no JS required)
+   ============================================================================ */
+
+/* Reset details default styling */
+details.docs-nav-group {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Summary acts as the toggle trigger */
+summary.docs-nav-group-summary {
   display: flex;
   align-items: center;
   gap: 0.25rem;
@@ -139,9 +152,23 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
   transition: all var(--transition-fast), box-shadow 0.2s ease;
   padding: 0.125rem;
   position: relative;
+  cursor: pointer;
+  list-style: none; /* Remove default disclosure marker */
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.docs-nav-group-toggle-wrapper::before {
+/* Remove default marker in all browsers */
+summary.docs-nav-group-summary::-webkit-details-marker {
+  display: none;
+}
+
+summary.docs-nav-group-summary::marker {
+  display: none;
+}
+
+/* Gradient border pseudo-element */
+summary.docs-nav-group-summary::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -159,7 +186,7 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
 }
 
 /* Left accent bar for parent items with active children */
-.docs-nav-group-toggle-wrapper::after {
+summary.docs-nav-group-summary::after {
   content: '';
   position: absolute;
   inset-inline-start: 0;
@@ -173,7 +200,7 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
   z-index: 1;
 }
 
-.docs-nav-group-toggle-wrapper:hover {
+summary.docs-nav-group-summary:hover {
   background: var(--color-bg-hover);
   /* Light mode: Neumorphic hover */
   box-shadow:
@@ -183,12 +210,12 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
     -0.3px -0.3px 1px rgba(255, 255, 255, 0.3);
 }
 
-.docs-nav-group-toggle-wrapper:hover::before {
+summary.docs-nav-group-summary:hover::before {
   opacity: 0;
   /* Hidden in light mode, shown in dark mode */
 }
 
-.docs-nav-group-toggle-wrapper:active {
+summary.docs-nav-group-summary:active {
   /* Light mode: Neumorphic pressed */
   box-shadow:
     inset 0.5px 0.5px 1px rgba(0, 0, 0, 0.1),
@@ -197,36 +224,32 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
   background: var(--color-bg-tertiary);
 }
 
-.docs-nav-group-toggle-wrapper:active::before {
+summary.docs-nav-group-summary:active::before {
   opacity: 0;
 }
 
-/* Toggle button (just the arrow icon) */
-.docs-nav-group-toggle {
+/* Focus visible for keyboard users */
+summary.docs-nav-group-summary:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Caret icon container (replaces toggle button) */
+.docs-nav-caret {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 1.875rem;
-  /* 30px - 14px icon + 16px padding */
   min-width: 1.875rem;
   max-width: 1.875rem;
   height: 1.875rem;
   min-height: 1.875rem;
   padding: 0.5rem;
-  background: none;
-  border: none;
-  border-radius: var(--border-radius-medium);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  touch-action: manipulation;
-  user-select: none;
-  -webkit-tap-highlight-color: transparent;
   flex-shrink: 0;
   overflow: hidden;
-  /* No shadow - wrapper handles it */
 }
 
-.docs-nav-group-toggle svg {
+.docs-nav-caret svg {
   width: 14px;
   height: 14px;
   color: var(--color-text-secondary);
@@ -235,15 +258,12 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
   will-change: transform;
 }
 
-.docs-nav-group-toggle:hover svg {
+summary.docs-nav-group-summary:hover .docs-nav-caret svg {
   color: var(--color-text-primary);
 }
 
-.docs-nav-group-toggle-wrapper:active {
-  background: var(--color-bg-tertiary);
-}
-
-.docs-nav-group-toggle[aria-expanded="true"] svg {
+/* Rotate caret when open (native [open] attribute) */
+details.docs-nav-group[open] > summary .docs-nav-caret svg {
   transform: rotate(90deg);
 }
 
@@ -277,35 +297,22 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
 }
 
 /* Subtle indicator for parent groups containing active child - accent bar only */
-/* Only show subtle accent bar, don't highlight the entire wrapper/link */
-.docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-toggle-wrapper::after,
-.docs-nav-group:has(.docs-nav-link[aria-current="page"]) .docs-nav-group-toggle-wrapper::after {
+/* Only show subtle accent bar, don't highlight the entire summary */
+details.docs-nav-group:has(.docs-nav-link.active) > summary.docs-nav-group-summary::after,
+details.docs-nav-group:has(.docs-nav-link[aria-current="page"]) > summary.docs-nav-group-summary::after {
   opacity: 0.7;
   /* Subtle accent bar to indicate parent contains active child */
   background: var(--gradient-border);
 }
 
-/* Keep parent groups expanded when they contain active children */
-.docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-items,
-.docs-nav-group:has(.docs-nav-link[aria-current="page"]) .docs-nav-group-items {
-  display: flex;
-  opacity: 1;
-  transform: translate3d(0, 0, 0);
-}
-
-.docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-toggle[aria-expanded],
-.docs-nav-group:has(.docs-nav-link[aria-current="page"]) .docs-nav-group-toggle[aria-expanded] {
-  /* JavaScript will set aria-expanded="true" */
-}
-
 /* Also handle when the group link itself is active - accent bar only */
-.docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active),
-.docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"]) {
+summary.docs-nav-group-summary:has(.docs-nav-group-link.active),
+summary.docs-nav-group-summary:has(.docs-nav-group-link[aria-current="page"]) {
   /* No background highlight - accent bar provides indication */
 }
 
-.docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active)::after,
-.docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"])::after {
+summary.docs-nav-group-summary:has(.docs-nav-group-link.active)::after,
+summary.docs-nav-group-summary:has(.docs-nav-group-link[aria-current="page"])::after {
   opacity: 1;
   background: var(--gradient-border);
 }
@@ -315,6 +322,7 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
   /* No background highlight - accent bar provides indication */
 }
 
+/* Children container - hidden by default, shown when [open] */
 .docs-nav-group-items {
   display: none;
   flex-direction: column;
@@ -327,8 +335,8 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
   will-change: transform, opacity;
 }
 
-/* Show items when expanded (controlled by JavaScript) */
-.docs-nav-group-items.expanded {
+/* Show items when details is open (native HTML disclosure) */
+details.docs-nav-group[open] > .docs-nav-group-items {
   display: flex;
   opacity: 1;
   transform: translate3d(0, 0, 0);
@@ -505,60 +513,52 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
    Dark Mode: Use gradient borders instead of neumorphic shadows
    ============================================================================ */
 
-[data-theme="dark"] .docs-nav-group-toggle-wrapper {
+[data-theme="dark"] summary.docs-nav-group-summary {
   /* Remove neumorphic shadow in dark mode */
   box-shadow: none;
 }
 
-[data-theme="dark"] .docs-nav-group-toggle-wrapper::before {
+[data-theme="dark"] summary.docs-nav-group-summary::before {
   opacity: 0;
   /* Start hidden */
 }
 
-[data-theme="dark"] .docs-nav-group-toggle-wrapper:hover {
+[data-theme="dark"] summary.docs-nav-group-summary:hover {
   /* Remove neumorphic hover in dark mode */
   box-shadow: none;
 }
 
-[data-theme="dark"] .docs-nav-group-toggle-wrapper:hover::before {
+[data-theme="dark"] summary.docs-nav-group-summary:hover::before {
   opacity: 0.4;
   /* Show gradient border in dark mode */
 }
 
-[data-theme="dark"] .docs-nav-group-toggle-wrapper:active {
+[data-theme="dark"] summary.docs-nav-group-summary:active {
   /* Remove neumorphic pressed in dark mode */
   box-shadow: none;
 }
 
-[data-theme="dark"] .docs-nav-group-toggle-wrapper::after {
+[data-theme="dark"] summary.docs-nav-group-summary::after {
   opacity: 0;
   /* Start hidden */
 }
 
 /* Dark mode: Subtle indicator for parent groups containing active child */
-[data-theme="dark"] .docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-toggle-wrapper::after,
-[data-theme="dark"] .docs-nav-group:has(.docs-nav-link[aria-current="page"]) .docs-nav-group-toggle-wrapper::after {
+[data-theme="dark"] details.docs-nav-group:has(.docs-nav-link.active) > summary.docs-nav-group-summary::after,
+[data-theme="dark"] details.docs-nav-group:has(.docs-nav-link[aria-current="page"]) > summary.docs-nav-group-summary::after {
   opacity: 0.7;
   /* Subtle accent bar in dark mode */
   background: var(--gradient-border);
 }
 
-/* Keep parent groups expanded when they contain active children (dark mode) */
-[data-theme="dark"] .docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-items,
-[data-theme="dark"] .docs-nav-group:has(.docs-nav-link[aria-current="page"]) .docs-nav-group-items {
-  display: flex;
-  opacity: 1;
-  transform: translate3d(0, 0, 0);
-}
-
 /* Also handle when the group link itself is active */
-[data-theme="dark"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active),
-[data-theme="dark"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"]) {
+[data-theme="dark"] summary.docs-nav-group-summary:has(.docs-nav-group-link.active),
+[data-theme="dark"] summary.docs-nav-group-summary:has(.docs-nav-group-link[aria-current="page"]) {
   /* No background highlight - accent bar provides indication */
 }
 
-[data-theme="dark"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active)::after,
-[data-theme="dark"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"])::after {
+[data-theme="dark"] summary.docs-nav-group-summary:has(.docs-nav-group-link.active)::after,
+[data-theme="dark"] summary.docs-nav-group-summary:has(.docs-nav-group-link[aria-current="page"])::after {
   opacity: 0.9;
   background: var(--gradient-border);
 }
@@ -668,14 +668,14 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
 }
 
 /* Apply glow to active directory accent bars */
-.docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active)::after,
-.docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"])::after {
+summary.docs-nav-group-summary:has(.docs-nav-group-link.active)::after,
+summary.docs-nav-group-summary:has(.docs-nav-group-link[aria-current="page"])::after {
   animation: nav-accent-glow 8s ease-in-out infinite;
 }
 
 /* Apply glow to parent directory accent bars (containing active child) */
-.docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-toggle-wrapper::after,
-.docs-nav-group:has(.docs-nav-link[aria-current="page"]) .docs-nav-group-toggle-wrapper::after {
+details.docs-nav-group:has(.docs-nav-link.active) > summary.docs-nav-group-summary::after,
+details.docs-nav-group:has(.docs-nav-link[aria-current="page"]) > summary.docs-nav-group-summary::after {
   animation: nav-accent-glow 8s ease-in-out infinite;
 }
 
@@ -685,13 +685,13 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
   animation: nav-accent-glow-dark 8s ease-in-out infinite;
 }
 
-[data-theme="dark"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active)::after,
-[data-theme="dark"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"])::after {
+[data-theme="dark"] summary.docs-nav-group-summary:has(.docs-nav-group-link.active)::after,
+[data-theme="dark"] summary.docs-nav-group-summary:has(.docs-nav-group-link[aria-current="page"])::after {
   animation: nav-accent-glow-dark 8s ease-in-out infinite;
 }
 
-[data-theme="dark"] .docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-toggle-wrapper::after,
-[data-theme="dark"] .docs-nav-group:has(.docs-nav-link[aria-current="page"]) .docs-nav-group-toggle-wrapper::after {
+[data-theme="dark"] details.docs-nav-group:has(.docs-nav-link.active) > summary.docs-nav-group-summary::after,
+[data-theme="dark"] details.docs-nav-group:has(.docs-nav-link[aria-current="page"]) > summary.docs-nav-group-summary::after {
   animation: nav-accent-glow-dark 8s ease-in-out infinite;
 }
 
@@ -700,10 +700,10 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
 
   .docs-nav-link.active::before,
   .docs-nav-link[aria-current="page"]::before,
-  .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active)::after,
-  .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"])::after,
-  .docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-toggle-wrapper::after,
-  .docs-nav-group:has(.docs-nav-link[aria-current="page"]) .docs-nav-group-toggle-wrapper::after {
+  summary.docs-nav-group-summary:has(.docs-nav-group-link.active)::after,
+  summary.docs-nav-group-summary:has(.docs-nav-group-link[aria-current="page"])::after,
+  details.docs-nav-group:has(.docs-nav-link.active) > summary.docs-nav-group-summary::after,
+  details.docs-nav-group:has(.docs-nav-link[aria-current="page"]) > summary.docs-nav-group-summary::after {
     animation: none;
     box-shadow: 2px 0 6px 0 color-mix(in srgb, var(--color-primary) 10%, transparent);
   }
@@ -750,7 +750,7 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
 }
 
 /* Icon color on hover - all contexts */
-.docs-nav-group-toggle-wrapper:hover .docs-nav-icon,
+summary.docs-nav-group-summary:hover .docs-nav-icon,
 .docs-nav-link:hover .docs-nav-icon {
   color: var(--color-primary);
   opacity: 1;
@@ -760,9 +760,9 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
    ACTIVE ICON STYLING - Premium Glow Effect
    ============================================================================ */
 
-/* Active section icons (in group headers) */
-.docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active) .docs-nav-icon,
-.docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"]) .docs-nav-icon {
+/* Active section icons (in group summaries) */
+summary.docs-nav-group-summary:has(.docs-nav-group-link.active) .docs-nav-icon,
+summary.docs-nav-group-summary:has(.docs-nav-group-link[aria-current="page"]) .docs-nav-icon {
   color: var(--color-primary);
   opacity: 1;
   filter: drop-shadow(0 0 6px color-mix(in srgb, var(--color-primary) 40%, transparent));
@@ -777,8 +777,8 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
 }
 
 /* Parent section icons when containing active child - subtle glow */
-.docs-nav-group:has(.docs-nav-link.active) > .docs-nav-group-toggle-wrapper .docs-nav-icon,
-.docs-nav-group:has(.docs-nav-link[aria-current="page"]) > .docs-nav-group-toggle-wrapper .docs-nav-icon {
+details.docs-nav-group:has(.docs-nav-link.active) > summary.docs-nav-group-summary .docs-nav-icon,
+details.docs-nav-group:has(.docs-nav-link[aria-current="page"]) > summary.docs-nav-group-summary .docs-nav-icon {
   color: var(--color-primary);
   opacity: 0.8;
   filter: drop-shadow(0 0 4px color-mix(in srgb, var(--color-primary) 25%, transparent));
@@ -835,22 +835,22 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
   opacity: 0.4;
 }
 
-[data-theme="dark"] .docs-nav-group-toggle-wrapper:hover .docs-nav-icon,
+[data-theme="dark"] summary.docs-nav-group-summary:hover .docs-nav-icon,
 [data-theme="dark"] .docs-nav-link:hover .docs-nav-icon {
   color: var(--color-primary);
   opacity: 1;
 }
 
 /* Brighter glow in dark mode */
-[data-theme="dark"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active) .docs-nav-icon,
-[data-theme="dark"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"]) .docs-nav-icon,
+[data-theme="dark"] summary.docs-nav-group-summary:has(.docs-nav-group-link.active) .docs-nav-icon,
+[data-theme="dark"] summary.docs-nav-group-summary:has(.docs-nav-group-link[aria-current="page"]) .docs-nav-icon,
 [data-theme="dark"] .docs-nav-link--section.active .docs-nav-icon,
 [data-theme="dark"] .docs-nav-link--section[aria-current="page"] .docs-nav-icon {
   filter: drop-shadow(0 0 8px color-mix(in srgb, var(--color-primary) 50%, transparent));
 }
 
-[data-theme="dark"] .docs-nav-group:has(.docs-nav-link.active) > .docs-nav-group-toggle-wrapper .docs-nav-icon,
-[data-theme="dark"] .docs-nav-group:has(.docs-nav-link[aria-current="page"]) > .docs-nav-group-toggle-wrapper .docs-nav-icon {
+[data-theme="dark"] details.docs-nav-group:has(.docs-nav-link.active) > summary.docs-nav-group-summary .docs-nav-icon,
+[data-theme="dark"] details.docs-nav-group:has(.docs-nav-link[aria-current="page"]) > summary.docs-nav-group-summary .docs-nav-icon {
   filter: drop-shadow(0 0 6px color-mix(in srgb, var(--color-primary) 35%, transparent));
 }
 

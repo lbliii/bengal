@@ -299,73 +299,46 @@
   }
 
   /**
-   * Documentation Navigation Toggles
-   * Handles expand/collapse of navigation sections
+   * Documentation Navigation Enhancement
+   *
+   * Uses native <details>/<summary> elements for expand/collapse (no JS needed).
+   * This function only handles enhancement: ensuring parent details elements
+   * are opened when they contain the active page (for deep links/bookmarks).
+   *
+   * The template already sets `open` attribute on active trail items via Jinja,
+   * but this provides a JS fallback for dynamic scenarios.
    */
   function setupDocsNavigation() {
-    const toggleButtons = document.querySelectorAll('.docs-nav-group-toggle');
-
-    if (toggleButtons.length === 0) return;
-
-    toggleButtons.forEach(button => {
-      button.addEventListener('click', (e) => {
-        e.preventDefault();
-
-        // Toggle aria-expanded state
-        const isExpanded = button.getAttribute('aria-expanded') === 'true';
-        button.setAttribute('aria-expanded', !isExpanded);
-
-        // Get the associated content
-        const controlsId = button.getAttribute('aria-controls');
-        if (controlsId) {
-          const content = document.getElementById(controlsId);
-          if (content) {
-            // Toggle display (CSS handles this via aria-expanded selector)
-            // But we can add/remove a class for additional styling if needed
-            content.classList.toggle('expanded', !isExpanded);
-          }
-        }
-      });
-    });
-
-    // Auto-expand sections that contain the active page
-    // Check for both .active class and aria-current="page" attribute
+    // Find the active navigation link
     const activeLink = document.querySelector(
       '.docs-nav-link.active, .docs-nav-link[aria-current="page"], ' +
       '.docs-nav-group-link.active, .docs-nav-group-link[aria-current="page"]'
     );
 
-    if (activeLink) {
-      // If the active link is a section group link (section index page), expand that section
-      if (activeLink.classList.contains('docs-nav-group-link')) {
-        const wrapper = activeLink.parentElement;
-        if (wrapper && wrapper.classList.contains('docs-nav-group-toggle-wrapper')) {
-          const toggle = wrapper.querySelector('.docs-nav-group-toggle');
-          const items = wrapper.nextElementSibling;
-          if (toggle && items && items.classList.contains('docs-nav-group-items')) {
-            toggle.setAttribute('aria-expanded', 'true');
-            items.classList.add('expanded');
-          }
-        }
-      }
+    if (!activeLink) {
+      log('Documentation navigation initialized (no active link)');
+      return;
+    }
 
-      // Find all parent nav groups and expand them (walk up the DOM tree)
-      let parent = activeLink.parentElement;
-      while (parent) {
-        if (parent.classList.contains('docs-nav-group-items')) {
-          // Find the toggle button for this group
-          // It's now inside a wrapper that's the previous sibling
-          const wrapper = parent.previousElementSibling;
-          if (wrapper && wrapper.classList.contains('docs-nav-group-toggle-wrapper')) {
-            const toggle = wrapper.querySelector('.docs-nav-group-toggle');
-            if (toggle) {
-              toggle.setAttribute('aria-expanded', 'true');
-              parent.classList.add('expanded');
-            }
-          }
+    // If the active link is a section group link (section index page),
+    // ensure its parent details is open
+    if (activeLink.classList.contains('docs-nav-group-link')) {
+      const summary = activeLink.closest('summary.docs-nav-group-summary');
+      if (summary) {
+        const details = summary.parentElement;
+        if (details && details.tagName === 'DETAILS') {
+          details.setAttribute('open', '');
         }
-        parent = parent.parentElement;
       }
+    }
+
+    // Walk up the DOM and ensure all parent <details> elements are open
+    let parent = activeLink.parentElement;
+    while (parent) {
+      if (parent.tagName === 'DETAILS' && parent.classList.contains('docs-nav-group')) {
+        parent.setAttribute('open', '');
+      }
+      parent = parent.parentElement;
     }
 
     log('Documentation navigation initialized');
