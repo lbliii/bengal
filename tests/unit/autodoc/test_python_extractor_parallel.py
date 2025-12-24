@@ -12,10 +12,7 @@ from unittest.mock import patch
 
 import pytest
 
-from bengal.autodoc.extractors.python.extractor import (
-    MIN_MODULES_FOR_PARALLEL,
-    PythonExtractor,
-)
+from bengal.autodoc.extractors.python.extractor import PythonExtractor
 
 
 @pytest.fixture
@@ -86,9 +83,9 @@ class TestParallelModeDetection:
         """Test that small packages use sequential extraction."""
         extractor = PythonExtractor(config={})
 
-        # Collect files
+        # Collect files - small package should use sequential
         py_files = list(small_package.rglob("*.py"))
-        assert len(py_files) < MIN_MODULES_FOR_PARALLEL
+        assert not extractor._should_use_parallel(len(py_files))
 
         # Should complete without error
         elements = extractor.extract(small_package)
@@ -98,9 +95,9 @@ class TestParallelModeDetection:
         """Test that large packages use parallel extraction."""
         extractor = PythonExtractor(config={})
 
-        # Collect files
+        # Collect files - large package should use parallel
         py_files = list(large_package.rglob("*.py"))
-        assert len(py_files) >= MIN_MODULES_FOR_PARALLEL
+        assert extractor._should_use_parallel(len(py_files))
 
         # Should complete without error
         elements = extractor.extract(large_package)
@@ -110,18 +107,33 @@ class TestParallelModeDetection:
         """Test BENGAL_NO_PARALLEL environment variable."""
         with patch.dict(os.environ, {"BENGAL_NO_PARALLEL": "1"}):
             extractor = PythonExtractor(config={})
+            # Should not use parallel even for many files
+            assert not extractor._should_use_parallel(100)
             elements = extractor.extract(large_package)
             assert len(elements) > 0
 
     def test_config_disables_parallel(self, large_package):
         """Test parallel_autodoc config option."""
         extractor = PythonExtractor(config={"parallel_autodoc": False})
+        # Should not use parallel even for many files
+        assert not extractor._should_use_parallel(100)
         elements = extractor.extract(large_package)
         assert len(elements) > 0
 
-    def test_threshold_constant(self):
-        """Test that MIN_MODULES_FOR_PARALLEL is 10."""
-        assert MIN_MODULES_FOR_PARALLEL == 10
+    def test_hardware_aware_threshold(self):
+        """Test that threshold is hardware-aware based on core count."""
+        import multiprocessing
+
+        extractor = PythonExtractor(config={})
+        core_count = multiprocessing.cpu_count()
+
+        # Threshold formula: max(5, 15 - core_count)
+        expected_threshold = max(5, 15 - core_count)
+
+        # Just below threshold: sequential
+        assert not extractor._should_use_parallel(expected_threshold - 1)
+        # At threshold: parallel
+        assert extractor._should_use_parallel(expected_threshold)
 
 
 class TestParallelMatchesSequential:

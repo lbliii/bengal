@@ -19,13 +19,15 @@ The `bengal/cache` package provides caching infrastructure for incremental build
 1. **TaxonomyIndex.get_tags_for_page()** — O(t×p) linear scan instead of O(1)
 2. **TaxonomyIndex.remove_page_from_all_tags()** — O(t×p) linear scan
 3. **QueryIndex._remove_page_from_key()** — O(p) `list.remove()` instead of O(1)
-4. **FileTrackingMixin.get_affected_pages()** — O(n×d) nested iteration instead of O(1)
+4. **FileTrackingMixin.get_affected_pages()** — O(n) linear scan instead of O(1)
 
 **Proposed optimizations**:
 
 1. Add reverse index `_page_to_tags` in TaxonomyIndex → O(1) lookup
 2. Use `set` instead of `list` for `page_paths` in QueryIndex → O(1) removal
 3. Add reverse dependency graph in FileTrackingMixin → O(1) affected page lookup
+
+**Existing partial optimization**: QueryIndex already has `_page_to_keys` reverse index for page updates; Phase 2 addresses the remaining `list→set` conversion for `page_paths`.
 
 **Impact**: Maintain O(1) guarantees at scale (target: <10ms for any cache operation at 10K pages)
 
@@ -42,7 +44,7 @@ The `bengal/cache` package provides caching infrastructure for incremental build
 | 100 pages | <1ms | <1ms | <1ms | <1ms | <1ms |
 | 1K pages | <1ms | <1ms | ~5ms | ~10ms | ~5ms |
 | 5K pages | <1ms | <1ms | ~50ms | ~100ms | ~50ms |
-| 10K pages | <1ms | <1ms | **~200ms** ⚠️ | **~400ms** ⚠️ | **~200ms** ⚠️ |
+| 10K pages | <1ms | <1ms | **~200ms** ⚠️ | **~400ms** ⚠️ | **~50ms** ⚠️ |
 
 For sites approaching 10K pages with 500+ tags, reverse lookups and bulk removals become significant bottlenecks during incremental builds.
 
@@ -101,25 +103,25 @@ def _remove_page_from_key(self, key: str, page_path: str) -> None:
 
 **Optimal approach**: Store as `set[str]` internally, convert to list only for serialization.
 
-### Bottleneck 4: FileTrackingMixin.get_affected_pages() — O(n×d)
+### Bottleneck 4: FileTrackingMixin.get_affected_pages() — O(n)
 
 **Location**: `build_cache/file_tracking.py:233-255`
 
 ```python
-# Current: Iterates ALL pages and ALL dependencies
+# Current: Iterates ALL pages
 def get_affected_pages(self, changed_file: Path) -> set[str]:
     changed_key = str(changed_file)
     affected = set()
 
     # Check direct dependencies
     for source, deps in self.dependencies.items():  # O(n) - all pages
-        if changed_key in deps:                      # O(d) - avg deps per page
+        if changed_key in deps:                      # O(1) - deps is set[str]
             affected.add(source)
 
     return affected
 ```
 
-**Problem**: For each changed file, we scan all pages and their dependencies. For a site with 10K pages and 20 dependencies each, that's 200K checks per template change.
+**Problem**: For each changed file, we scan all pages. While the membership check is O(1) (since `deps` is `set[str]`), the iteration over all pages is still O(n). For a site with 10K pages, that's 10K iterations per template change.
 
 **Optimal approach**: Maintain reverse dependency graph `{dep_path: set[source_pages]}` built during `add_dependency()`.
 
@@ -257,7 +259,11 @@ def remove_page_from_all_tags(self, page_path: Path) -> set[str]:
 
 #### 1.5 Persist Reverse Index
 
+> **Important**: Bump `VERSION = 2` to trigger cache rebuild on format change.
+
 ```python
+VERSION = 2  # Bumped: added page_to_tags reverse index
+
 def save_to_disk(self) -> None:
     """Save taxonomy index to disk (including reverse index)."""
     data = {
@@ -295,6 +301,8 @@ def _rebuild_reverse_index(self) -> None:
 
 **Estimated effort**: 1.5 hours  
 **Expected speedup**: 10-100x for page removal
+
+> **Existing optimization**: QueryIndex already has `_page_to_keys: dict[str, set[str]]` reverse index (line 147) for efficient page updates. This phase addresses the remaining bottleneck: `page_paths` stored as `list[str]` causing O(p) removal.
 
 #### 2.1 Change IndexEntry Internal Storage
 
@@ -368,7 +376,9 @@ def _remove_page_from_key(self, key: str, page_path: str) -> None:
 ### Phase 3: Reverse Dependency Graph
 
 **Estimated effort**: 2 hours  
-**Expected speedup**: 100x+ for dependency queries
+**Expected speedup**: 10-100x for dependency queries (O(n) → O(1))
+
+> **Note**: Current implementation is O(n), not O(n×d), because `deps` is `set[str]` making membership check O(1). The optimization eliminates the O(n) iteration entirely.
 
 #### 3.1 Add Reverse Graph to FileTrackingMixin
 
@@ -442,7 +452,7 @@ def invalidate_file(self, file_path: Path) -> None:
     self.reverse_dependencies.pop(file_key, None)
 ```
 
-**Complexity change**: O(n×d) → O(1) for get_affected_pages()
+**Complexity change**: O(n) → O(1) for get_affected_pages()
 
 ---
 
@@ -462,12 +472,17 @@ def invalidate_file(self, file_path: Path) -> None:
    - `QueryIndex._remove_page_from_key()` — Single removal
    - `FileTrackingMixin.get_affected_pages()` — Dependency query
 4. Record baseline metrics in `benchmarks/baseline_cache.json`
+5. **Run multiple iterations** (min 100) and record mean, median, std deviation
 
 ```python
 # Example benchmark structure
 @pytest.mark.benchmark
 def test_get_tags_for_page_10k(benchmark, taxonomy_index_10k):
-    """Baseline: get_tags_for_page on 10K pages, 500 tags."""
+    """Baseline: get_tags_for_page on 10K pages, 500 tags.
+
+    Runs multiple iterations automatically via pytest-benchmark.
+    Reports: min, max, mean, stddev, median, IQR, outliers.
+    """
     page_path = Path("content/blog/post-5000.md")
     result = benchmark(taxonomy_index_10k.get_tags_for_page, page_path)
     assert isinstance(result, set)
@@ -477,12 +492,13 @@ def test_get_tags_for_page_10k(benchmark, taxonomy_index_10k):
 
 **Files**: `cache/taxonomy_index.py`
 
-1. Add `_page_to_tags: dict[str, set[str]]` to `__init__`
-2. Maintain during `update_tag()`, `invalidate_tag()`, `clear()`
-3. Optimize `get_tags_for_page()` to use reverse index
-4. Optimize `remove_page_from_all_tags()` to use reverse index
-5. Add persistence in `save_to_disk()` / `_load_from_disk()`
-6. Add migration path for existing caches (rebuild on load if missing)
+1. **Bump `VERSION` to 2** (cache format change)
+2. Add `_page_to_tags: dict[str, set[str]]` to `__init__`
+3. Maintain during `update_tag()`, `invalidate_tag()`, `clear()`
+4. Optimize `get_tags_for_page()` to use reverse index
+5. Optimize `remove_page_from_all_tags()` to use reverse index
+6. Add persistence in `save_to_disk()` / `_load_from_disk()`
+7. Add migration path for existing caches (rebuild on load if missing or version mismatch)
 
 ### Step 2: QueryIndex Set-Based Storage
 
@@ -612,10 +628,11 @@ def test_get_tags_for_page_10k(benchmark, taxonomy_index_10k):
 
 1. **get_tags_for_page() for 10K pages**: <5ms (currently ~200ms)
 2. **remove_page_from_all_tags() for 10K pages**: <20ms (currently ~400ms)
-3. **get_affected_pages() for 10K pages**: <5ms (currently ~200ms)
+3. **get_affected_pages() for 10K pages**: <5ms (currently ~50ms)
 4. **No API changes**: Existing code continues working
-5. **Backward compatible**: Old caches load correctly (rebuild reverse index)
-6. **Regression tests**: CI fails if performance degrades >10%
+5. **Backward compatible**: Old caches load correctly (version check + rebuild reverse index)
+6. **Cache version bumped**: TaxonomyIndex VERSION → 2
+7. **Regression tests**: CI fails if performance degrades >10%
 
 ---
 

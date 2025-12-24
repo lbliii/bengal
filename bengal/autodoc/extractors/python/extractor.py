@@ -64,10 +64,6 @@ from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-# Threshold for parallel processing - below this we use sequential processing
-# to avoid thread pool overhead for small workloads
-MIN_MODULES_FOR_PARALLEL = 10
-
 
 class PythonExtractor(Extractor):
     """

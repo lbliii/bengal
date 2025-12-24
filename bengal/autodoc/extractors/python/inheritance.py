@@ -37,7 +37,7 @@ def synthesize_inherited_members(
     class_elem: DocElement,
     class_index: dict[str, DocElement],
     config: dict[str, Any],
-    simple_name_index: dict[str, list[str]] | None = None,
+    simple_name_index: dict[str, list[str]],
 ) -> None:
     """
     Add inherited members to a class element.
@@ -45,15 +45,14 @@ def synthesize_inherited_members(
     Modifies class_elem in place by appending inherited members
     from base classes found in class_index.
 
-    Uses reverse index for O(1) simple name lookup when available,
-    falling back to O(N) linear scan if index not provided.
+    Uses reverse index for O(1) simple name lookup.
 
     Args:
         class_elem: Class DocElement to augment with inherited members
         class_index: Index mapping qualified class names to DocElements
         config: Extractor configuration
-        simple_name_index: Optional reverse index mapping simple names to
-            qualified names for O(1) lookup (e.g., "Config" -> ["pkg1.Config"])
+        simple_name_index: Reverse index mapping simple names to qualified
+            names for O(1) lookup (e.g., "Config" -> ["pkg1.Config"])
     """
     # Get base classes using typed accessor
     bases = get_python_class_bases(class_elem)
@@ -73,20 +72,12 @@ def synthesize_inherited_members(
         if base_name in class_index:
             base_elem = class_index[base_name]
         else:
-            # Try simple name lookup via reverse index (O(1)) if available
+            # O(1) simple name lookup via reverse index
             simple_base = base_name.rsplit(".", 1)[-1]
-            if simple_name_index is not None:
-                # O(1) lookup via reverse index
-                candidates = simple_name_index.get(simple_base, [])
-                if candidates:
-                    # Take first match; for disambiguation could check module proximity
-                    base_elem = class_index.get(candidates[0])
-            else:
-                # Fallback: O(N) linear scan (legacy behavior)
-                for qualified, elem in class_index.items():
-                    if qualified.endswith(f".{simple_base}"):
-                        base_elem = elem
-                        break
+            candidates = simple_name_index.get(simple_base, [])
+            if candidates:
+                # Take first match; for disambiguation could check module proximity
+                base_elem = class_index.get(candidates[0])
 
         if not base_elem:
             continue
