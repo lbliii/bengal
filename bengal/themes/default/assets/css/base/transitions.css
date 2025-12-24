@@ -27,11 +27,12 @@ main[role="main"],
  * They naturally stay in place as part of the document flow.
  */
 
-/* Page hero sections - can morph between pages */
-.page-hero,
-.hero {
-  view-transition-name: hero;
-}
+/*
+ * Hero sections intentionally excluded from view transitions.
+ * The .page-hero (doc pages) and .hero (landing pages) have dramatically
+ * different sizes and layouts, causing jarring morph effects during navigation.
+ * They transition naturally as part of main-content.
+ */
 
 /* Header - exclude from transitions to prevent overlay issues */
 /* The header stays stable because it's outside the main-content transition */
@@ -105,25 +106,6 @@ main[role="main"],
    They're not captured in the transition layer, avoiding ghost overlays.
    ============================================== */
 
-/* ==============================================
-   HERO TRANSITIONS
-   Crossfade effect for hero sections (no size morphing)
-   ============================================== */
-
-/* Prevent the default morph sizing that causes zoom effects */
-::view-transition-group(hero) {
-  animation: none;
-}
-
-::view-transition-old(hero) {
-  animation: fade-out 150ms ease-out forwards;
-  mix-blend-mode: normal;
-}
-
-::view-transition-new(hero) {
-  animation: fade-in 150ms ease-in forwards;
-  mix-blend-mode: normal;
-}
 
 /* ==============================================
    CROSS-DOCUMENT VIEW TRANSITIONS

@@ -15,6 +15,10 @@
  *   - baseurl deployments (site hosted under a subpath)
  *   - i18n prefix strategy (artifacts mirrored under language subdirs)
  *   - file:// browsing of built output (relative paths)
+ *
+ * Features:
+ * - Hover card showing full build stats (like link previews)
+ * - Links to build.json for detailed inspection
  */
 (function () {
   'use strict';
@@ -22,6 +26,13 @@
   const log = window.BengalUtils?.log || (() => {});
 
   const MAX_PARENT_SEARCH_DEPTH = 12;
+  const HOVER_DELAY = 150;
+  const HIDE_DELAY = 100;
+
+  // State for hover card
+  let activeCard = null;
+  let hoverTimeout = null;
+  let hideTimeout = null;
 
   function normalizeDirName(dirName) {
     const s = String(dirName || 'bengal').trim();
@@ -81,14 +92,181 @@
     return null;
   }
 
-  function formatTitle(payload) {
-    const parts = [];
-    if (payload.build_time_human) parts.push(`Build: ${payload.build_time_human}`);
-    if (typeof payload.total_pages === 'number') parts.push(`Pages: ${payload.total_pages}`);
-    if (typeof payload.total_assets === 'number') parts.push(`Assets: ${payload.total_assets}`);
-    if (payload.timestamp) parts.push(`Timestamp: ${payload.timestamp}`);
-    return parts.join(' • ');
+  // ============================================================
+  // Hover Card (Build Stats Preview)
+  // ============================================================
+
+  function formatTimestamp(timestamp) {
+    if (!timestamp) return null;
+    try {
+      const date = new Date(timestamp);
+      return date.toLocaleString(undefined, {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      });
+    } catch {
+      return timestamp;
+    }
   }
+
+  function createStatItem(icon, label, value) {
+    if (value === undefined || value === null) return '';
+    return `
+      <div class="build-stats-card__stat">
+        <span class="build-stats-card__icon">${icon}</span>
+        <span class="build-stats-card__label">${label}</span>
+        <span class="build-stats-card__value">${value}</span>
+      </div>
+    `;
+  }
+
+  function createCard(payload, jsonUrl) {
+    const card = document.createElement('div');
+    card.className = 'build-stats-card';
+    card.setAttribute('role', 'tooltip');
+
+    const stats = [];
+
+    // Build time (primary stat)
+    if (payload.build_time_human) {
+      stats.push(createStatItem('⚡', 'Build time', payload.build_time_human));
+    }
+
+    // Pages rendered
+    if (typeof payload.total_pages === 'number') {
+      stats.push(createStatItem('📄', 'Pages', payload.total_pages.toLocaleString()));
+    }
+
+    // Assets copied
+    if (typeof payload.total_assets === 'number') {
+      stats.push(createStatItem('📦', 'Assets', payload.total_assets.toLocaleString()));
+    }
+
+    // Timestamp
+    const formattedTime = formatTimestamp(payload.timestamp);
+    if (formattedTime) {
+      stats.push(createStatItem('🕐', 'Built', formattedTime));
+    }
+
+    card.innerHTML = `
+      <div class="build-stats-card__header">
+        <span class="build-stats-card__title">Build Stats</span>
+        <a href="${jsonUrl}" class="build-stats-card__link" rel="noopener" aria-label="View raw JSON">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
+            <polyline points="15 3 21 3 21 9"/>
+            <line x1="10" y1="14" x2="21" y2="3"/>
+          </svg>
+        </a>
+      </div>
+      <div class="build-stats-card__stats">
+        ${stats.join('')}
+      </div>
+    `;
+
+    return card;
+  }
+
+  function positionCard(card, badgeEl) {
+    document.body.appendChild(card);
+
+    const badgeRect = badgeEl.getBoundingClientRect();
+    const cardRect = card.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    const viewportWidth = window.innerWidth;
+    const gap = 8;
+
+    // Default: position above the badge
+    let top = badgeRect.top - cardRect.height - gap;
+    let positionClass = 'build-stats-card--above';
+
+    // If not enough space above, show below
+    if (top < gap) {
+      top = badgeRect.bottom + gap;
+      positionClass = 'build-stats-card--below';
+    }
+
+    // Center horizontally on badge
+    let left = badgeRect.left + (badgeRect.width / 2) - (cardRect.width / 2);
+
+    // Keep within viewport bounds
+    if (left < gap) {
+      left = gap;
+    } else if (left + cardRect.width > viewportWidth - gap) {
+      left = viewportWidth - cardRect.width - gap;
+    }
+
+    card.style.top = `${top + window.scrollY}px`;
+    card.style.left = `${left}px`;
+    card.classList.add(positionClass);
+  }
+
+  function showCard(badgeEl) {
+    clearTimeout(hideTimeout);
+
+    // Already showing for this badge?
+    if (activeCard && activeCard._badgeEl === badgeEl) return;
+
+    // Hide any existing card
+    hideCard();
+
+    const payload = badgeEl._buildPayload;
+    const jsonUrl = badgeEl._buildJsonUrl;
+    if (!payload) return;
+
+    const card = createCard(payload, jsonUrl);
+    card._badgeEl = badgeEl;
+
+    // Add hover handlers to card itself
+    card.addEventListener('mouseenter', () => {
+      clearTimeout(hideTimeout);
+    });
+    card.addEventListener('mouseleave', scheduleHide);
+
+    positionCard(card, badgeEl);
+    activeCard = card;
+  }
+
+  function hideCard() {
+    if (activeCard) {
+      activeCard.remove();
+      activeCard = null;
+    }
+  }
+
+  function scheduleShow(badgeEl) {
+    clearTimeout(hoverTimeout);
+    clearTimeout(hideTimeout);
+    hoverTimeout = setTimeout(() => showCard(badgeEl), HOVER_DELAY);
+  }
+
+  function scheduleHide() {
+    clearTimeout(hoverTimeout);
+    clearTimeout(hideTimeout);
+    hideTimeout = setTimeout(hideCard, HIDE_DELAY);
+  }
+
+  function attachHoverListeners(badgeEl) {
+    // Remove title to prevent native tooltip competing with card
+    badgeEl.removeAttribute('title');
+
+    badgeEl.addEventListener('mouseenter', () => scheduleShow(badgeEl));
+    badgeEl.addEventListener('mouseleave', scheduleHide);
+    badgeEl.addEventListener('focus', () => scheduleShow(badgeEl));
+    badgeEl.addEventListener('blur', scheduleHide);
+
+    // Close on Escape
+    badgeEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        hideCard();
+        badgeEl.blur();
+      }
+    });
+  }
+
+  // ============================================================
+  // Initialization
+  // ============================================================
 
   async function initOne(badgeEl) {
     const dirName = badgeEl.getAttribute('data-bengal-build-badge-dir') || 'bengal';
@@ -107,13 +285,19 @@
     const valueEl = getValueEl(badgeEl);
     valueEl.textContent = human;
 
+    // Store payload for hover card
+    badgeEl._buildPayload = payload;
+    badgeEl._buildJsonUrl = resolved.url.toString();
+
     badgeEl.classList.add('bengal-build-time--ready');
-    badgeEl.setAttribute('href', resolved.href.toString());
+    badgeEl.setAttribute('href', resolved.url.toString());
     badgeEl.setAttribute('rel', 'noopener');
     badgeEl.setAttribute('aria-label', `${label} ${human}`);
-    badgeEl.setAttribute('title', formatTitle(payload) || `${label} ${human}`);
 
     setBadgeHidden(badgeEl, false);
+
+    // Attach hover card listeners
+    attachHoverListeners(badgeEl);
   }
 
   async function initAll() {

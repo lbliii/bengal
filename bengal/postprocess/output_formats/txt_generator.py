@@ -164,9 +164,16 @@ class PageTxtGenerator:
 
         # Use thread pool for I/O-bound writes
         count = 0
-        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
-            results = executor.map(write_txt, page_items)
-            count = sum(1 for r in results if r)
+        try:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+                results = executor.map(write_txt, page_items)
+                count = sum(1 for r in results if r)
+        except RuntimeError as e:
+            # Handle graceful shutdown - "cannot schedule new futures after interpreter shutdown"
+            if "interpreter shutdown" in str(e):
+                logger.debug("page_txt_shutdown", reason="interpreter_shutting_down")
+                return count
+            raise
 
         logger.info("page_txt_generated", count=count)
         return count
