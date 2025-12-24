@@ -27,8 +27,11 @@ except Exception:  # pragma: no cover - fallback, tests ensure availability
 
 
 if TYPE_CHECKING:
+    from datetime import date, datetime
+
     from jinja2 import Environment
 
+    from bengal.core.page import Page
     from bengal.core.site import Site
 
 logger = get_logger(__name__)
@@ -122,10 +125,12 @@ def register(env: Environment, site: Site) -> None:
     def languages() -> list[LanguageInfo]:
         return _languages(site)
 
-    def alternate_links(page: Any = None) -> list[dict[str, str]]:
+    def alternate_links(page: Page | None = None) -> list[dict[str, str]]:
         return _alternate_links(site, page)
 
-    def locale_date(date: Any, format: str = "medium", lang: str | None = None) -> str:
+    def locale_date(
+        date: date | datetime | None, format: str = "medium", lang: str | None = None
+    ) -> str:
         return _locale_date(date, format, lang)
 
     env.globals.update(
@@ -139,7 +144,7 @@ def register(env: Environment, site: Site) -> None:
     )
 
 
-def _current_lang(site: Site, page: Any | None = None) -> str | None:
+def _current_lang(site: Site, page: Page | None = None) -> str | None:
     i18n = site.config.get("i18n", {}) or {}
     default = i18n.get("default_language", "en")
     if page is not None and getattr(page, "lang", None):
@@ -290,7 +295,7 @@ def _get_translation_key_index(site: Site) -> dict[str, list[Any]]:
     return index
 
 
-def _alternate_links(site: Site, page: Any | None) -> list[dict[str, str]]:
+def _alternate_links(site: Site, page: Page | None) -> list[dict[str, str]]:
     if page is None:
         return []
     # Build alternates via translation_key
@@ -327,7 +332,9 @@ def _alternate_links(site: Site, page: Any | None) -> list[dict[str, str]]:
     return alternates
 
 
-def _locale_date(date: Any, format: str = "medium", lang: str | None = None) -> str:
+def _locale_date(
+    date: date | datetime | None, format: str = "medium", lang: str | None = None
+) -> str:
     if date is None:
         return ""
     # Try Babel for formatting
