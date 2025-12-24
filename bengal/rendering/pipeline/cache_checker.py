@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Any
 from bengal.rendering.pipeline.output import format_html, write_output
 from bengal.rendering.pipeline.toc import extract_toc_structure
 from bengal.utils.logger import get_logger
+from bengal.utils.sentinel import is_missing
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
@@ -95,7 +96,7 @@ class CacheChecker:
             return False
 
         rendered_html = cache.get_rendered_output(page.source_path, template, page.metadata)
-        if not rendered_html:
+        if not rendered_html or is_missing(rendered_html):
             return False
 
         page.rendered_html = rendered_html
@@ -135,7 +136,7 @@ class CacheChecker:
             return False
 
         cached = cache.get_parsed_content(page.source_path, page.metadata, template, parser_version)
-        if not cached:
+        if not cached or is_missing(cached):
             return False
 
         page.parsed_ast = cached["html"]

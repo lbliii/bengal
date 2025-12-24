@@ -22,6 +22,11 @@ import json
 from pathlib import Path
 from typing import Any, cast
 
+from bengal.cache.version import (
+    CacheVersionError,
+    prepend_cache_header,
+    validate_cache_header,
+)
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -95,11 +100,14 @@ def save_compressed(data: dict[str, Any], path: Path, level: int = COMPRESSION_L
 
     # Compress with Zstandard
     compressed = zstd.compress(json_bytes, level=level)
-    compressed_size = len(compressed)
+
+    # Prepend magic header for version validation
+    versioned = prepend_cache_header(compressed)
+    compressed_size = len(versioned)
 
     # Write atomically
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(compressed)
+    path.write_bytes(versioned)
 
     ratio = original_size / compressed_size if compressed_size > 0 else 0
     logger.debug(
@@ -125,11 +133,18 @@ def load_compressed(path: Path) -> dict[str, Any]:
 
     Raises:
         FileNotFoundError: If path doesn't exist
+        CacheVersionError: If cache version is incompatible
         zstd.ZstdError: If decompression fails
         json.JSONDecodeError: If JSON is invalid
     """
     compressed = path.read_bytes()
-    json_bytes = zstd.decompress(compressed)
+
+    # Validate magic header before decompression
+    is_valid, remaining = validate_cache_header(compressed)
+    if not is_valid:
+        raise CacheVersionError(f"Incompatible cache version or magic header: {path}")
+
+    json_bytes = zstd.decompress(remaining)
     data = json.loads(json_bytes)
 
     logger.debug(

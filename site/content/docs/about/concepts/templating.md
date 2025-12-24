@@ -17,6 +17,10 @@ keywords:
 - templates
 - variables
 - context
+- visibility
+- frontmatter
+- author
+- series
 category: documentation
 ---
 
@@ -74,6 +78,40 @@ The `page` object represents the current markdown file being rendered. It gives 
 | `page.draft` | True if page is a draft |
 | `page.hidden` | True if page is hidden |
 
+**Additional Properties**:
+
+| Attribute | Description | Example |
+| :--- | :--- | :--- |
+| `page.params` | Alias for metadata (ergonomic access). | `{{ page.params.author }}` |
+| `page.keywords` | List of SEO keywords from frontmatter. | `{{ page.keywords \| join(', ') }}` |
+| `page.description` | Page description (from frontmatter). | `{{ page.description }}` |
+| `page.absolute_href` | Full URL for meta tags/sitemaps. | `{{ page.absolute_href }}` |
+| `page.version` | Version ID for versioned content. | `{{ page.version }}` |
+| `page.aliases` | Redirect aliases for this page. | `{{ page.aliases }}` |
+
+**Navigation Properties**:
+
+| Attribute | Description | Example |
+| :--- | :--- | :--- |
+| `page.next` | Next page in site collection. | `{{ page.next.title }}` |
+| `page.prev` | Previous page in site collection. | `{{ page.prev.title }}` |
+| `page.next_in_section` | Next page in same section. | `{{ page.next_in_section.href }}` |
+| `page.prev_in_section` | Previous page in same section. | `{{ page.prev_in_section.href }}` |
+| `page.parent` | Parent section of the page. | `{{ page.parent.title }}` |
+| `page.ancestors` | List of ancestor sections to root. | `{% for a in page.ancestors %}` |
+
+**Computed Properties** (cached after first access):
+
+| Attribute | Description | Example |
+| :--- | :--- | :--- |
+| `page.age_days` | Days since publication. | `{% if page.age_days < 7 %}New{% endif %}` |
+| `page.age_months` | Months since publication. | `{{ page.age_months }} months old` |
+| `page.author` | Primary Author object. | `{{ page.author.name }}` |
+| `page.authors` | List of all Author objects. | `{% for a in page.authors %}` |
+| `page.series` | Series object for multi-part content. | `{{ page.series.name }}` |
+| `page.prev_in_series` | Previous page in series. | `{{ page.prev_in_series.href }}` |
+| `page.next_in_series` | Next page in series. | `{{ page.next_in_series.href }}` |
+
 #### Accessing Custom Frontmatter
 
 Any custom key you add to your YAML frontmatter is available in `page.metadata`:
@@ -90,6 +128,64 @@ banner_image: "images/banner.jpg"
 <div class="author">By {{ page.metadata.author }}</div>
 <img src="{{ page.metadata.banner_image }}" />
 ```
+
+#### Typed Frontmatter Access
+
+For type-safe access to frontmatter, use `page.frontmatter`:
+
+```jinja2
+{# Typed access - IDE autocomplete works #}
+{{ page.frontmatter.title }}
+{{ page.frontmatter.date }}
+
+{# Dict syntax for templates #}
+{{ page.frontmatter["custom_field"] }}
+```
+
+#### Visibility System
+
+Bengal provides granular control over page visibility in different contexts:
+
+**Quick visibility flags**:
+
+| Attribute | Description |
+| :--- | :--- |
+| `page.hidden` | True if page is hidden (unlisted everywhere) |
+| `page.draft` | True if page is a draft (excluded from production) |
+| `page.in_listings` | True if page appears in `site.pages` queries |
+| `page.in_sitemap` | True if page appears in sitemap.xml |
+| `page.in_search` | True if page appears in search index |
+| `page.in_rss` | True if page appears in RSS feeds |
+| `page.robots_meta` | Robots directive (e.g., "index, follow") |
+
+**Using visibility in templates**:
+
+```jinja2
+{# Conditional rendering based on visibility #}
+{% if page.in_listings %}
+  <li><a href="{{ page.href }}">{{ page.title }}</a></li>
+{% endif %}
+
+{# SEO meta tag #}
+<meta name="robots" content="{{ page.robots_meta }}">
+```
+
+**Visibility frontmatter** (granular control):
+
+```yaml
+---
+title: Partially Hidden Page
+visibility:
+  menu: false      # Exclude from navigation menus
+  listings: true   # Include in site.pages queries
+  sitemap: true    # Include in sitemap.xml
+  search: false    # Exclude from search index
+  rss: false       # Exclude from RSS feeds
+  robots: "noindex, follow"
+---
+```
+
+The `hidden: true` shorthand sets all visibility options to restrictive defaults.
 
 ### 2. The `site` Object
 
@@ -267,6 +363,81 @@ Bengal provides 80+ template functions organized into categories:
 
 - **`| safe`**: Marks HTML as safe to render (prevents escaping).
 
+## Author and Series
+
+Bengal provides structured author and series support for blogs and tutorials.
+
+### Author Properties
+
+Define authors in frontmatter:
+
+```yaml
+---
+title: My Blog Post
+author: Jane Smith
+# Or with details:
+author:
+  name: Jane Smith
+  email: jane@example.com
+  avatar: /images/jane.jpg
+  twitter: janesmith
+---
+```
+
+Access in templates:
+
+```jinja2
+{% if page.author %}
+<div class="author-card">
+  {% if page.author.avatar %}
+    <img src="{{ page.author.avatar }}" alt="{{ page.author.name }}">
+  {% endif %}
+  <span>{{ page.author.name }}</span>
+  {% if page.author.twitter %}
+    <a href="https://twitter.com/{{ page.author.twitter }}">@{{ page.author.twitter }}</a>
+  {% endif %}
+</div>
+{% endif %}
+
+{# Multiple authors #}
+{% for author in page.authors %}
+  <span class="author">{{ author.name }}</span>
+{% endfor %}
+```
+
+### Series Properties
+
+For multi-part tutorials or article series:
+
+```yaml
+---
+title: Building a Blog - Part 2
+series:
+  name: "Building a Blog with Bengal"
+  part: 2
+  total: 5
+---
+```
+
+Access in templates:
+
+```jinja2
+{% if page.series %}
+<nav class="series-nav">
+  <h4>{{ page.series.name }}</h4>
+  <p>Part {{ page.series.part }} of {{ page.series.total }}</p>
+
+  {% if page.prev_in_series %}
+    <a href="{{ page.prev_in_series.href }}">← {{ page.prev_in_series.title }}</a>
+  {% endif %}
+
+  {% if page.next_in_series %}
+    <a href="{{ page.next_in_series.href }}">{{ page.next_in_series.title }} →</a>
+  {% endif %}
+</nav>
+{% endif %}
+```
+
 ## Debugging
 
 If you are unsure what data is available, you can print objects to the console during build (using Python's `print` inside a template extension is not standard, but you can inspect variables).
@@ -277,3 +448,9 @@ A common trick is to dump data:
 <!-- Dump variables to HTML comments for inspection -->
 <!-- {{ page.metadata }} -->
 ```
+
+## See Also
+
+- [Template Functions Reference](/docs/reference/template-functions/) — Complete list of 80+ functions
+- [Theme Variables](/docs/theming/variables/) — Theme configuration access
+- [Templating Guide](/docs/theming/templating/) — Template inheritance and layouts

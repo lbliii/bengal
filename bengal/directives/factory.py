@@ -239,6 +239,9 @@ def create_documentation_directives() -> Callable[[Any], None]:
                     info="Marimo not available - {marimo} directive disabled",
                 )
 
+            # Sort directives by priority (lower = earlier)
+            directives_list.sort(key=lambda d: getattr(d, "PRIORITY", 100))
+
             # Create fenced directive with all our custom directives
             # STRICT: Only colon (:) fences allowed - backticks reserved for code blocks
             # This avoids conflicts when directives appear in code examples

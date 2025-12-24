@@ -325,10 +325,11 @@ class BuildCache(
         if compressed_path.exists():
             try:
                 from bengal.cache.compression import ZstdError, load_compressed
+                from bengal.cache.version import CacheVersionError
 
                 logger.debug("cache_loading_compressed", path=str(compressed_path))
                 return load_compressed(compressed_path)
-            except (ZstdError, json.JSONDecodeError, OSError) as e:
+            except (ZstdError, json.JSONDecodeError, OSError, CacheVersionError) as e:
                 logger.warning(
                     "cache_compressed_load_failed",
                     path=str(compressed_path),

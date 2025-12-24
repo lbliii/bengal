@@ -32,11 +32,6 @@ from typing import TYPE_CHECKING, Any
 
 from bengal.config.defaults import get_max_workers
 from bengal.errors import ErrorAggregator, extract_error_context
-from bengal.orchestration.render_hooks import (
-    HookContext,
-    run_post_render_hooks,
-    run_pre_render_hooks,
-)
 from bengal.utils.logger import get_logger
 from bengal.utils.url_strategy import URLStrategy
 
@@ -206,20 +201,6 @@ class RenderOrchestrator:
         # Other pages should already have paths from previous builds or will get them when needed.
         self._set_output_paths_for_pages(pages)
 
-        # PRE-RENDER HOOKS: Run hooks before rendering begins
-        # Hooks can prepare cached resources (e.g., nav scaffold HTML)
-        hook_context = HookContext(
-            site=self.site,
-            pages=pages,
-            parallel=parallel,
-            build_context=build_context,
-        )
-        run_pre_render_hooks(hook_context)
-
-        # Store hook cache in build_context for template access
-        if build_context is not None:
-            build_context.render_hook_cache = hook_context.cache
-
         # Use parallel rendering only for 5+ pages (avoid thread overhead for small batches)
         PARALLEL_THRESHOLD = 5
         if parallel and len(pages) >= PARALLEL_THRESHOLD:
@@ -230,9 +211,6 @@ class RenderOrchestrator:
             self._render_sequential(
                 pages, tracker, quiet, stats, progress_manager, build_context, changed_sources
             )
-
-        # POST-RENDER HOOKS: Run hooks after rendering completes
-        run_post_render_hooks(hook_context)
 
     def _render_sequential(
         self,

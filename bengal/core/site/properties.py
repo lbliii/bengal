@@ -510,6 +510,60 @@ class SitePropertiesMixin:
             "features": value.get("features", {}),
         }
 
+    @property
+    def link_previews(self) -> dict[str, Any]:
+        """
+        Get normalized link previews configuration.
+
+        Link Previews provide Wikipedia-style hover cards for internal links,
+        showing page title, excerpt, reading time, and tags. Requires per-page
+        JSON generation to be enabled.
+
+        Returns:
+            Normalized dict with enabled flag and all display options
+
+        Example:
+            {% if site.link_previews.enabled %}
+                {# Include link preview script and config bridge #}
+            {% endif %}
+        """
+        from bengal.config.defaults import DEFAULTS
+
+        defaults = DEFAULTS["link_previews"]
+        value = self.config.get("link_previews", {})
+
+        if not isinstance(value, dict):
+            # If not a dict (e.g., False), return defaults with enabled=False
+            if value is False:
+                return {
+                    "enabled": False,
+                    "hover_delay": defaults["hover_delay"],
+                    "hide_delay": defaults["hide_delay"],
+                    "show_section": defaults["show_section"],
+                    "show_reading_time": defaults["show_reading_time"],
+                    "show_word_count": defaults["show_word_count"],
+                    "show_date": defaults["show_date"],
+                    "show_tags": defaults["show_tags"],
+                    "max_tags": defaults["max_tags"],
+                    "exclude_selectors": defaults["exclude_selectors"],
+                }
+            # True or None: use defaults with enabled=True
+            return dict(defaults)
+
+        # Merge with defaults
+        return {
+            "enabled": bool(value.get("enabled", defaults["enabled"])),
+            "hover_delay": value.get("hover_delay", defaults["hover_delay"]),
+            "hide_delay": value.get("hide_delay", defaults["hide_delay"]),
+            "show_section": value.get("show_section", defaults["show_section"]),
+            "show_reading_time": value.get("show_reading_time", defaults["show_reading_time"]),
+            "show_word_count": value.get("show_word_count", defaults["show_word_count"]),
+            "show_date": value.get("show_date", defaults["show_date"]),
+            "show_tags": value.get("show_tags", defaults["show_tags"]),
+            "max_tags": value.get("max_tags", defaults["max_tags"]),
+            "exclude_selectors": value.get("exclude_selectors", defaults["exclude_selectors"]),
+        }
+
     # =========================================================================
     # VERSIONING PROPERTIES
     # =========================================================================

@@ -79,6 +79,7 @@ class BreadcrumbsDirective(BengalDirective):
     NAMES: ClassVar[list[str]] = ["breadcrumbs"]
     TOKEN_TYPE: ClassVar[str] = "breadcrumbs"
     OPTIONS_CLASS: ClassVar[type[DirectiveOptions]] = BreadcrumbsOptions
+    PRIORITY: ClassVar[int] = BengalDirective.PRIORITY_LATE
 
     DIRECTIVE_NAMES: ClassVar[list[str]] = ["breadcrumbs"]
 
@@ -185,6 +186,7 @@ class SiblingsDirective(BengalDirective):
     NAMES: ClassVar[list[str]] = ["siblings"]
     TOKEN_TYPE: ClassVar[str] = "siblings"
     OPTIONS_CLASS: ClassVar[type[DirectiveOptions]] = SiblingsOptions
+    PRIORITY: ClassVar[int] = BengalDirective.PRIORITY_LATE
 
     DIRECTIVE_NAMES: ClassVar[list[str]] = ["siblings"]
 
@@ -304,6 +306,7 @@ class PrevNextDirective(BengalDirective):
     NAMES: ClassVar[list[str]] = ["prev-next"]
     TOKEN_TYPE: ClassVar[str] = "prev_next"
     OPTIONS_CLASS: ClassVar[type[DirectiveOptions]] = PrevNextOptions
+    PRIORITY: ClassVar[int] = BengalDirective.PRIORITY_LATE
 
     DIRECTIVE_NAMES: ClassVar[list[str]] = ["prev-next"]
 
@@ -417,6 +420,7 @@ class RelatedDirective(BengalDirective):
     NAMES: ClassVar[list[str]] = ["related"]
     TOKEN_TYPE: ClassVar[str] = "related"
     OPTIONS_CLASS: ClassVar[type[DirectiveOptions]] = RelatedOptions
+    PRIORITY: ClassVar[int] = BengalDirective.PRIORITY_LATE
 
     DIRECTIVE_NAMES: ClassVar[list[str]] = ["related"]
 

@@ -323,6 +323,29 @@ DEFAULTS: dict[str, Any] = {
         },
     },
     # -------------------------------------------------------------------------
+    # Link Previews (RFC: Link Previews)
+    # -------------------------------------------------------------------------
+    # Wikipedia-style hover cards for internal links.
+    # Shows page title, excerpt, reading time, and tags.
+    # Requires per_page JSON to be enabled.
+    "link_previews": {
+        "enabled": True,  # Auto-enabled when per_page JSON is configured
+        "hover_delay": 200,  # ms before showing preview
+        "hide_delay": 150,  # ms grace period for moving to preview
+        "show_section": True,  # Show section badge
+        "show_reading_time": True,  # Show reading time
+        "show_word_count": True,  # Show word count
+        "show_date": True,  # Show date (if available)
+        "show_tags": True,  # Show tags
+        "max_tags": 3,  # Maximum tags to display
+        "exclude_selectors": [  # Links inside these won't show previews
+            "nav",
+            ".toc",
+            ".breadcrumb",
+            ".pagination",
+        ],
+    },
+    # -------------------------------------------------------------------------
     # Document Application (RFC: Document Applications)
     # -------------------------------------------------------------------------
     # Document Application: Modern browser-native interactivity
@@ -440,6 +463,7 @@ BOOL_OR_DICT_KEYS = frozenset(
         "search",
         "graph",
         "output_formats",
+        "link_previews",
     }
 )
 

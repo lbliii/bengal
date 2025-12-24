@@ -182,12 +182,14 @@ class TestPathAnalysisIntegration:
 
     def test_path_analysis_without_build(self, connected_site):
         """Test that path analysis requires graph to be built first."""
+        from bengal.errors import BengalError
+
         site, graph, hub, bridge, cluster_a, cluster_b = connected_site
 
         # Create new graph without building
         new_graph = KnowledgeGraph(site)
 
-        with pytest.raises(RuntimeError, match="Must call build"):
+        with pytest.raises(BengalError, match="not built"):
             new_graph.analyze_paths()
 
     def test_top_bridges(self, connected_site):

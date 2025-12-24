@@ -309,6 +309,10 @@
   @import url('components/graph-contextual.css');
 }
 
+@layer components {
+  @import url('components/link-preview.css');
+}
+
 /* Third-party libraries */
 @layer components {
   @import url('tabulator.min.css');

@@ -159,9 +159,11 @@ class TestPageRankIntegration:
 
     def test_personalized_pagerank_empty_seeds(self, sample_site):
         """Test that personalized PageRank requires seed pages."""
+        from bengal.errors import BengalError
+
         site, graph, hub_page, spoke_pages, orphan_page = sample_site
 
-        with pytest.raises(ValueError, match="requires at least one seed page"):
+        with pytest.raises(BengalError, match="requires at least one seed page"):
             graph.compute_personalized_pagerank(seed_pages=set())
 
     def test_pagerank_without_build(self, sample_site):

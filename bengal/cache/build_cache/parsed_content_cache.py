@@ -24,6 +24,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.utils.hashing import hash_str
+from bengal.utils.sentinel import MISSING
 
 if TYPE_CHECKING:
     pass
@@ -121,7 +122,7 @@ class ParsedContentCacheMixin:
 
     def get_parsed_content(
         self, file_path: Path, metadata: dict[str, Any], template: str, parser_version: str
-    ) -> dict[str, Any] | None:
+    ) -> dict[str, Any] | Any:
         """
         Get cached parsed content if valid (Optimization #2).
 
@@ -139,33 +140,32 @@ class ParsedContentCacheMixin:
             parser_version: Current parser version
 
         Returns:
-            Cached data dict if valid, None if invalid or not found
+            Cached data dict if valid, MISSING if invalid or not found
         """
         key = str(file_path)
 
         # Check if cached
-        if key not in self.parsed_content:
-            return None
-
-        cached = self.parsed_content[key]
+        cached = self.parsed_content.get(key, MISSING)
+        if cached is MISSING:
+            return MISSING
 
         # Validate file hasn't changed
         if self.is_changed(file_path):
-            return None
+            return MISSING
 
         # Validate metadata hasn't changed
         metadata_str = json.dumps(metadata, sort_keys=True, default=str)
         metadata_hash = hash_str(metadata_str)
         if cached.get("metadata_hash") != metadata_hash:
-            return None
+            return MISSING
 
         # Validate template hasn't changed (name)
         if cached.get("template") != template:
-            return None
+            return MISSING
 
         # Validate parser version (invalidate on upgrades)
         if cached.get("parser_version") != parser_version:
-            return None
+            return MISSING
 
         # Validate template file hasn't changed (via dependencies)
         # Check if any of the page's dependencies (templates) have changed
@@ -174,7 +174,7 @@ class ParsedContentCacheMixin:
                 dep = Path(dep_path)
                 if dep.exists() and self.is_changed(dep):
                     # Template file changed - invalidate cache
-                    return None
+                    return MISSING
 
         return cached
 
