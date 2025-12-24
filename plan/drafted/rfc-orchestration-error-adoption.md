@@ -6,7 +6,7 @@
 **Subsystem**: `bengal/orchestration/`, `bengal/errors/`  
 **Confidence**: 95% 🟢 (all claims verified via grep against source files)  
 **Priority**: P2 (Medium) — Orchestration is critical build infrastructure with mixed adoption  
-**Estimated Effort**: 2.5 hours (single dev)
+**Estimated Effort**: 2.75 hours (single dev)
 
 ---
 
@@ -28,7 +28,7 @@ The `bengal/orchestration/` package has **partial adoption** (~50%) of the Benga
 |------|---------|----------|
 | `render.py` | `ErrorAggregator`, `extract_error_context` | Full aggregation for parallel rendering |
 | `asset.py` | `BengalError`, `ErrorContext`, `enrich_error` | Rich context in parallel/sequential processing |
-| `incremental/orchestrator.py` | `BengalError` with suggestions | Structured errors for initialization failures |
+| `incremental/orchestrator.py` | `BengalError` with suggestions | Lines 165, 222, 254 — missing error codes |
 
 **Adoption Score**: 5/10 → Target: 8/10
 
@@ -167,7 +167,9 @@ except Exception as e:
 
 **Excellent pattern** for enriching exceptions with context.
 
-### Logger.error/warning Calls (47 total)
+### Logger.error/warning Calls (47 total across 20 files)
+
+**Note**: `menu.py` has **0** logger.error/warning calls — errors may propagate silently.
 
 | File | Count | Has error_code | Has suggestion |
 |------|-------|----------------|----------------|
@@ -175,7 +177,7 @@ except Exception as e:
 | `streaming.py` | 1 | ❌ | ❌ |
 | `render.py` | 4 | ❌ | ❌ |
 | `related_posts.py` | 1 | ❌ | ❌ |
-| `postprocess.py` | 2 | ❌ | ❌ |
+| `postprocess.py` | 3 | ❌ | ❌ |
 | `content.py` | 5 | ❌ | ❌ |
 | `static.py` | 5 | ❌ | ❌ |
 | `asset.py` | 5 | ❌ | ✅ (partial) |
@@ -183,8 +185,9 @@ except Exception as e:
 | `build/initialization.py` | 4 | ❌ | ❌ |
 | `build/content.py` | 2 | ❌ | ❌ |
 | `build/rendering.py` | 3 | ❌ | ❌ |
+| `build/__init__.py` | 1 | ❌ | ❌ |
 | `build/finalization.py` | 2 | ❌ | ❌ |
-| `incremental/*.py` | 9 | ❌ | ❌ |
+| `incremental/*.py` | 8 | ❌ | ❌ |
 
 ### Session Tracking
 
