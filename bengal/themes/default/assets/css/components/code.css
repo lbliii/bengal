@@ -568,6 +568,16 @@ pre code {
   }
 }
 
+/* Reduced motion: disable burst animations */
+@media (prefers-reduced-motion: reduce) {
+  .code-copy-button.copied {
+    animation: none;
+  }
+  .code-copy-button.copied::before {
+    animation: none;
+  }
+}
+
 /* Update tooltip text when copied */
 .code-copy-button.copied::after {
   content: 'Copied!';
@@ -759,7 +769,8 @@ pre code {
 /* Absolute positioned copy button (for table layout) */
 .code-copy-button--absolute {
   position: absolute;
-  top: var(--space-2);
+  /* Offset by table's margin-block-start (1.5rem) plus padding inside */
+  top: calc(1.5rem + var(--space-2));
   right: var(--space-2);
   z-index: 10;
 }

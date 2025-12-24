@@ -556,6 +556,15 @@
       transform: none;
     }
   }
+
+  /* Disable micro-interaction animations */
+  .action-bar-share-trigger:active,
+  .action-bar-share-trigger:not(:active),
+  .action-bar-share-item.success,
+  .action-bar-share-item.success svg {
+    animation: none !important;
+    transition: none !important;
+  }
 }
 
 .action-bar-share-content {

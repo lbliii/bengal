@@ -265,3 +265,18 @@
 .docs-nav-link:hover .tag-nav-count {
   color: var(--color-text-secondary);
 }
+
+/* ============================================
+   REDUCED MOTION
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .tag,
+  .tag:active,
+  .tag-link,
+  .tag-link:hover {
+    animation: none !important;
+    transition: color 0s, background-color 0s, border-color 0s !important;
+    transform: none !important;
+  }
+}

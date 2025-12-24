@@ -508,7 +508,7 @@ def shutdown_sse_clients() -> None:
     with _reload_condition:
         _shutdown_requested = True
         _reload_condition.notify_all()
-    logger.info("sse_shutdown_requested", message="All SSE handlers signaled to exit")
+    logger.info("sse_shutdown_requested")
 
 
 def reset_sse_shutdown() -> None:

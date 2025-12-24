@@ -40,7 +40,32 @@ button {
 
   background: var(--button-primary-gradient, var(--button-primary-base));
   color: var(--color-text-inverse);
+  /* Enable shine sweep effect */
+  position: relative;
+  overflow: hidden;
+}
 
+/* Shine sweep on hover for primary buttons */
+.button-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.25) 50%,
+    transparent 100%
+  );
+  transform: skewX(-20deg);
+  transition: left 0.6s ease;
+  pointer-events: none;
+}
+
+.button-primary:hover::before {
+  left: 150%;
 }
 
 /* Modern color mixing for hover state */
@@ -69,14 +94,23 @@ button {
   box-shadow: var(--elevation-medium);
 }
 
-/* Skeuomorphic pressed state - like a key being pressed down */
+/* Skeuomorphic pressed state - satisfying squeeze with haptic feel */
 .button:active {
-  transform: translate3d(0, 1px, 0) scale(0.98);
+  transform: translate3d(0, 1px, 0) scale(0.94);
   box-shadow:
     inset 1px 1px 2px rgba(0, 0, 0, 0.2),
     inset -0.5px -0.5px 1px rgba(255, 255, 255, 0.1),
     0 1px 1px rgba(0, 0, 0, 0.1);
-  transition: transform 0.05s ease-out, box-shadow 0.05s ease-out;
+  transition: transform 0.08s ease-out, box-shadow 0.08s ease-out;
+}
+
+/* Spring-back effect on release */
+.button:not(:active) {
+  transition: color var(--motion-medium),
+              background-color var(--motion-medium),
+              border-color var(--motion-medium),
+              box-shadow var(--motion-medium),
+              transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .button:focus-visible {
@@ -405,5 +439,26 @@ a.button {
 
   .button-group .button {
     width: 100%;
+  }
+}
+
+/* ============================================
+   REDUCED MOTION
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .button,
+  .button:active,
+  .button:not(:active),
+  .button-primary::before {
+    animation: none !important;
+    transition: color 0s, background-color 0s, border-color 0s !important;
+    transform: none !important;
+  }
+
+  /* Still allow shine sweep on hover, just instant */
+  .button-primary:hover::before {
+    left: 150%;
+    transition: none;
   }
 }
