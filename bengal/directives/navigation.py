@@ -14,12 +14,16 @@ Architecture:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
 from bengal.directives.base import BengalDirective
 from bengal.directives.options import DirectiveOptions
 from bengal.directives.tokens import DirectiveToken
 from bengal.utils.logger import get_logger
+
+if TYPE_CHECKING:
+    from bengal.core.section import Section
+    from bengal.directives.types import DirectiveRenderer, MistuneBlockState
 
 logger = get_logger(__name__)
 
@@ -88,8 +92,8 @@ class BreadcrumbsDirective(BengalDirective):
         title: str,
         options: BreadcrumbsOptions,  # type: ignore[override]
         content: str,
-        children: list[Any],
-        state: Any,
+        children: list[dict[str, object]],
+        state: MistuneBlockState,
     ) -> DirectiveToken:
         """Build breadcrumbs token."""
         return DirectiveToken(
@@ -103,7 +107,7 @@ class BreadcrumbsDirective(BengalDirective):
             children=[],
         )
 
-    def render(self, renderer: Any, text: str, **attrs: Any) -> str:
+    def render(self, renderer: DirectiveRenderer, text: str, **attrs: object) -> str:
         """Render breadcrumb navigation from page ancestors."""
         separator = attrs.get("separator", "›")
         show_home = attrs.get("show_home", True)
@@ -195,8 +199,8 @@ class SiblingsDirective(BengalDirective):
         title: str,
         options: SiblingsOptions,  # type: ignore[override]
         content: str,
-        children: list[Any],
-        state: Any,
+        children: list[dict[str, object]],
+        state: MistuneBlockState,
     ) -> DirectiveToken:
         """Build siblings token."""
         return DirectiveToken(
@@ -209,7 +213,7 @@ class SiblingsDirective(BengalDirective):
             children=[],
         )
 
-    def render(self, renderer: Any, text: str, **attrs: Any) -> str:
+    def render(self, renderer: DirectiveRenderer, text: str, **attrs: object) -> str:
         """Render sibling pages in the same section."""
         limit = attrs.get("limit", 0)
         exclude_current = attrs.get("exclude_current", True)
@@ -315,8 +319,8 @@ class PrevNextDirective(BengalDirective):
         title: str,
         options: PrevNextOptions,  # type: ignore[override]
         content: str,
-        children: list[Any],
-        state: Any,
+        children: list[dict[str, object]],
+        state: MistuneBlockState,
     ) -> DirectiveToken:
         """Build prev-next token."""
         return DirectiveToken(
@@ -328,7 +332,7 @@ class PrevNextDirective(BengalDirective):
             children=[],
         )
 
-    def render(self, renderer: Any, text: str, **attrs: Any) -> str:
+    def render(self, renderer: DirectiveRenderer, text: str, **attrs: object) -> str:
         """Render previous/next navigation links."""
         show_title = attrs.get("show_title", True)
         _ = attrs.get("show_section", False)  # Reserved for future use
@@ -429,8 +433,8 @@ class RelatedDirective(BengalDirective):
         title: str,
         options: RelatedOptions,  # type: ignore[override]
         content: str,
-        children: list[Any],
-        state: Any,
+        children: list[dict[str, object]],
+        state: MistuneBlockState,
     ) -> DirectiveToken:
         """Build related token."""
         return DirectiveToken(
@@ -443,7 +447,7 @@ class RelatedDirective(BengalDirective):
             children=[],
         )
 
-    def render(self, renderer: Any, text: str, **attrs: Any) -> str:
+    def render(self, renderer: DirectiveRenderer, text: str, **attrs: object) -> str:
         """Render related content based on tags."""
         limit = attrs.get("limit", 5)
         title = attrs.get("title", "Related Articles")
@@ -493,7 +497,7 @@ class RelatedDirective(BengalDirective):
 # =============================================================================
 
 
-def _get_section_url(section: Any) -> str:
+def _get_section_url(section: Section) -> str:
     """Get URL for a section (includes baseurl)."""
     # Section.href includes baseurl - use it directly
     if hasattr(section, "href"):

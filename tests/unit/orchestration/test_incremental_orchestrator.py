@@ -310,16 +310,12 @@ class TestIncrementalOrchestrator:
             _section_path=section.path,
         )
 
-        # Mock prev/next to prevent adjacent navigation cascade (testing section filter bypass only)
-        nav_page._prev = None
-        nav_page._next = None
-        child_page._prev = None
-        child_page._next = None
-
         # Setup section pages after creating pages
         section.pages = [nav_page, child_page]
         section.regular_pages_recursive = [nav_page, child_page]
-        site.pages = [nav_page, child_page]
+        # Put child_page first in site.pages to avoid prev/next cascade
+        # (prev property computes from site.pages index, so child at index 0 has no prev)
+        site.pages = [child_page, nav_page]
         site.assets = []
         # Update page_by_source_path cache (mirrors PageCachesMixin behavior)
         site.page_by_source_path = {p.source_path: p for p in site.pages}

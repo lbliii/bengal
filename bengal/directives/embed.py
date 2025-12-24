@@ -29,11 +29,14 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
 from bengal.directives.base import BengalDirective
 from bengal.directives.options import DirectiveOptions
 from bengal.directives.tokens import DirectiveToken
+
+if TYPE_CHECKING:
+    from bengal.directives.types import DirectiveRenderer, MistuneBlockState
 
 __all__ = [
     "GistDirective",
@@ -125,8 +128,8 @@ class GistDirective(BengalDirective):
         title: str,
         options: GistOptions,  # type: ignore[override]
         content: str,
-        children: list[Any],
-        state: Any,
+        children: list[dict[str, object]],
+        state: MistuneBlockState,
     ) -> DirectiveToken:
         """Build gist embed token."""
         gist_ref = title.strip()
@@ -148,7 +151,7 @@ class GistDirective(BengalDirective):
             },
         )
 
-    def render(self, renderer: Any, text: str, **attrs: Any) -> str:
+    def render(self, renderer: DirectiveRenderer, text: str, **attrs: object) -> str:
         """Render gist embed to HTML."""
         error = attrs.get("error")
         if error:
@@ -286,8 +289,8 @@ class CodePenDirective(BengalDirective):
         title: str,
         options: CodePenOptions,  # type: ignore[override]
         content: str,
-        children: list[Any],
-        state: Any,
+        children: list[dict[str, object]],
+        state: MistuneBlockState,
     ) -> DirectiveToken:
         """Build CodePen embed token."""
         pen_ref = title.strip()
@@ -327,7 +330,7 @@ class CodePenDirective(BengalDirective):
             },
         )
 
-    def render(self, renderer: Any, text: str, **attrs: Any) -> str:
+    def render(self, renderer: DirectiveRenderer, text: str, **attrs: object) -> str:
         """Render CodePen embed to HTML."""
         error = attrs.get("error")
         if error:
@@ -472,8 +475,8 @@ class CodeSandboxDirective(BengalDirective):
         title: str,
         options: CodeSandboxOptions,  # type: ignore[override]
         content: str,
-        children: list[Any],
-        state: Any,
+        children: list[dict[str, object]],
+        state: MistuneBlockState,
     ) -> DirectiveToken:
         """Build CodeSandbox embed token."""
         sandbox_id = title.strip()
@@ -511,7 +514,7 @@ class CodeSandboxDirective(BengalDirective):
             },
         )
 
-    def render(self, renderer: Any, text: str, **attrs: Any) -> str:
+    def render(self, renderer: DirectiveRenderer, text: str, **attrs: object) -> str:
         """Render CodeSandbox embed to HTML."""
         error = attrs.get("error")
         if error:
@@ -652,8 +655,8 @@ class StackBlitzDirective(BengalDirective):
         title: str,
         options: StackBlitzOptions,  # type: ignore[override]
         content: str,
-        children: list[Any],
-        state: Any,
+        children: list[dict[str, object]],
+        state: MistuneBlockState,
     ) -> DirectiveToken:
         """Build StackBlitz embed token."""
         project_id = title.strip()
@@ -690,7 +693,7 @@ class StackBlitzDirective(BengalDirective):
             },
         )
 
-    def render(self, renderer: Any, text: str, **attrs: Any) -> str:
+    def render(self, renderer: DirectiveRenderer, text: str, **attrs: object) -> str:
         """Render StackBlitz embed to HTML."""
         error = attrs.get("error")
         if error:
@@ -844,8 +847,8 @@ class SpotifyDirective(BengalDirective):
         title: str,
         options: SpotifyOptions,  # type: ignore[override]
         content: str,
-        children: list[Any],
-        state: Any,
+        children: list[dict[str, object]],
+        state: MistuneBlockState,
     ) -> DirectiveToken:
         """Build Spotify embed token."""
         spotify_id = title.strip()
@@ -885,7 +888,7 @@ class SpotifyDirective(BengalDirective):
             },
         )
 
-    def render(self, renderer: Any, text: str, **attrs: Any) -> str:
+    def render(self, renderer: DirectiveRenderer, text: str, **attrs: object) -> str:
         """Render Spotify embed to HTML."""
         error = attrs.get("error")
         if error:
@@ -1071,8 +1074,8 @@ class SoundCloudDirective(BengalDirective):
         title: str,
         options: SoundCloudOptions,  # type: ignore[override]
         content: str,
-        children: list[Any],
-        state: Any,
+        children: list[dict[str, object]],
+        state: MistuneBlockState,
     ) -> DirectiveToken:
         """Build SoundCloud embed token."""
         url_path = title.strip()
@@ -1124,7 +1127,7 @@ class SoundCloudDirective(BengalDirective):
             },
         )
 
-    def render(self, renderer: Any, text: str, **attrs: Any) -> str:
+    def render(self, renderer: DirectiveRenderer, text: str, **attrs: object) -> str:
         """Render SoundCloud embed to HTML."""
         error = attrs.get("error")
         if error:
