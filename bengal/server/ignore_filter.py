@@ -114,12 +114,8 @@ class IgnoreFilter:
         # fnmatch.translate() converts glob to regex pattern
         self._compiled_globs: list[re.Pattern[str]] = []
         for pattern in self.glob_patterns:
-            try:
-                regex = fnmatch.translate(pattern)
-                self._compiled_globs.append(re.compile(regex))
-            except re.error:
-                # If pattern fails to compile, keep using fnmatch fallback
-                pass
+            regex = fnmatch.translate(pattern)
+            self._compiled_globs.append(re.compile(regex))
 
         # LRU-style cache for path results: path_str -> is_ignored
         self._path_cache: dict[str, bool] = {}
@@ -182,23 +178,15 @@ class IgnoreFilter:
             except ValueError:
                 pass
 
-        # Use pre-compiled patterns if available (faster than fnmatch)
-        if self._compiled_globs:
-            name = path.name
-            for compiled in self._compiled_globs:
-                # Match against full path
-                if compiled.match(path_posix):
-                    return True
-                # Also match against filename only
-                if compiled.match(name):
-                    return True
-        else:
-            # Fallback to fnmatch if compilation failed
-            for pattern in self.glob_patterns:
-                if fnmatch.fnmatch(path_posix, pattern):
-                    return True
-                if fnmatch.fnmatch(path.name, pattern):
-                    return True
+        # Check pre-compiled glob patterns
+        name = path.name
+        for compiled in self._compiled_globs:
+            # Match against full path
+            if compiled.match(path_posix):
+                return True
+            # Also match against filename only
+            if compiled.match(name):
+                return True
 
         # Check regex patterns (already compiled at init)
         return any(regex.search(path_posix) for regex in self.regex_patterns)

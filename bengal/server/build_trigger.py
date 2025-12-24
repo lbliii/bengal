@@ -668,9 +668,6 @@ class BuildTrigger:
 
         # TIER 2: Typed builder outputs - preferred path (O(o) not O(F))
         if decision is None and changed_outputs:
-            # Reconstruct OutputRecord objects for decide_from_outputs
-            from pathlib import Path
-
             from bengal.core.output import OutputRecord, OutputType
 
             records = []
