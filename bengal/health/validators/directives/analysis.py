@@ -462,66 +462,6 @@ class DirectiveAnalyzer:
         """
         return any(r.start_line < line_number < r.end_line for r in ranges)
 
-    def _is_inside_code_block(self, content: str, position: int) -> bool:
-        """
-        Check if a position in content is inside a markdown code block.
-
-        Args:
-            content: Full markdown content
-            position: Character position to check
-
-        Returns:
-            True if position is inside a code block (```...```, ~~~...~~~, or indented 4+ spaces)
-        """
-        # Find all code block boundaries
-        code_block_pattern = r"^(`{3,}|~{3,})[^\n]*$"
-        lines = content[:position].split("\n")
-
-        # Track if we're inside a fenced code block
-        in_fenced_block = False
-        code_block_marker = None
-
-        # Track if we're in an indented code block (4+ spaces)
-        in_indented_block = False
-
-        for i, line in enumerate(lines):
-            # Check if this line is a code block fence
-            match = re.match(code_block_pattern, line)
-            if match:
-                marker = match.group(1)
-                # If we're in a code block and this matches the opening marker, close it
-                if in_fenced_block and marker == code_block_marker:
-                    in_fenced_block = False
-                    code_block_marker = None
-                # Otherwise, open a new code block
-                else:
-                    in_fenced_block = True
-                    code_block_marker = marker
-                in_indented_block = False  # Fenced blocks override indented
-            else:
-                # Check for indented code blocks (4+ spaces, not a list item)
-                stripped = line.lstrip()
-                indent = len(line) - len(stripped)
-                if indent >= 4 and stripped:
-                    if (
-                        i == 0
-                        or (
-                            lines[i - 1].strip()
-                            and len(lines[i - 1]) - len(lines[i - 1].lstrip()) >= 4
-                        )
-                        or in_indented_block
-                    ):
-                        in_indented_block = True
-                    else:
-                        in_indented_block = False
-                else:
-                    if in_indented_block and not stripped:
-                        continue
-                    else:
-                        in_indented_block = False
-
-        return in_fenced_block or in_indented_block
-
     def _check_code_block_nesting(self, content: str, file_path: Path) -> list[dict[str, Any]]:
         """
         Check for markdown code blocks that contain nested code blocks with the same fence length.
@@ -564,7 +504,7 @@ class DirectiveAnalyzer:
                 if indent >= 4:
                     continue
 
-                # O(R) lookup instead of O(L) _is_inside_colon_directive()
+                # O(R) lookup via pre-computed ranges
                 if self._is_line_inside_ranges(i, colon_ranges):
                     continue
 
@@ -601,41 +541,6 @@ class DirectiveAnalyzer:
                     stack.append((i, fence_length, language))
 
         return warnings
-
-    def _is_inside_colon_directive(self, content: str, position: int) -> bool:
-        """Check if a position is inside a colon directive (:::{name})."""
-        lines = content[:position].split("\n")
-        colon_pattern = re.compile(r"^(\s*)(:{3,})\{([^}]+)\}")
-        closing_pattern = re.compile(r"^(\s*)(:{3,})\s*$")
-
-        in_directive = False
-        directive_depth = 0
-
-        for line in lines:
-            if colon_pattern.match(line):
-                directive_depth += 1
-                in_directive = True
-            elif closing_pattern.match(line):
-                directive_depth -= 1
-                if directive_depth == 0:
-                    in_directive = False
-
-        return in_directive and directive_depth > 0
-
-    def _is_inside_inline_code(self, content: str, position: int) -> bool:
-        """Check if a position in content is inside inline code (single backticks)."""
-        lines_before = content[:position].split("\n")
-        if not lines_before:
-            return False
-
-        current_line = lines_before[-1]
-        char_pos_in_line = len(current_line)
-        backticks_before = current_line[:char_pos_in_line].count("`")
-
-        if self._is_inside_code_block(content, position):
-            return True
-
-        return backticks_before % 2 == 1
 
     def _is_inside_inline_code_fast(self, line: str) -> bool:
         """
@@ -695,7 +600,7 @@ class DirectiveAnalyzer:
                     continue
 
                 line_num = i + 1  # 1-indexed
-                # O(R) lookup instead of O(L) _is_inside_code_block()
+                # O(R) lookup via pre-computed ranges
                 if self._is_line_inside_ranges(line_num, code_block_ranges):
                     i += 1
                     continue
