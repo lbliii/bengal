@@ -136,30 +136,8 @@ class TestPageRankOptimization:
         assert results.scores[page_c] > results.scores[page_b]
         assert results.scores[page_b] > results.scores[page_a]
 
-    def test_pagerank_fallback_without_incoming_edges(self):
-        """Test that PageRank builds incoming_edges if not available."""
-        from bengal.analysis.page_rank import PageRankCalculator
-
-        # Create mock graph WITHOUT incoming_edges attribute
-        graph = Mock(spec=["get_analysis_pages", "outgoing_refs"])
-        page_a = Mock()
-        page_a.metadata = {}
-        page_b = Mock()
-        page_b.metadata = {}
-
-        graph.get_analysis_pages.return_value = [page_a, page_b]
-        graph.outgoing_refs = defaultdict(set)
-        graph.outgoing_refs[page_a] = {page_b}
-
-        calc = PageRankCalculator(graph, damping=0.85, max_iterations=50)
-        results = calc.compute()
-
-        # Should still work (fallback builds incoming_edges internally)
-        assert results.converged is True
-        assert len(results.scores) == 2
-
-    def test_pagerank_scores_identical_with_and_without_optimization(self):
-        """Test that optimized PageRank produces identical scores."""
+    def test_pagerank_complex_graph(self):
+        """Test PageRank on a complex graph structure."""
         from bengal.analysis.page_rank import PageRankCalculator
 
         # Create a more complex graph
@@ -182,35 +160,27 @@ class TestPageRankOptimization:
         outgoing[pages[8]] = {pages[0]}  # Back link
         outgoing[pages[9]] = {pages[1]}  # Back link
 
-        # Build incoming_edges (what the optimization does)
+        # Build incoming_edges
         incoming_edges = defaultdict(list)
         for source, targets in outgoing.items():
             for target in targets:
                 incoming_edges[target].append(source)
 
-        # Graph WITH incoming_edges (optimized)
-        graph_optimized = Mock()
-        graph_optimized.get_analysis_pages.return_value = pages
-        graph_optimized.outgoing_refs = outgoing
-        graph_optimized.incoming_edges = dict(incoming_edges)
+        graph = Mock()
+        graph.get_analysis_pages.return_value = pages
+        graph.outgoing_refs = outgoing
+        graph.incoming_edges = dict(incoming_edges)
 
-        # Graph WITHOUT incoming_edges (will build internally)
-        graph_fallback = Mock(spec=["get_analysis_pages", "outgoing_refs"])
-        graph_fallback.get_analysis_pages.return_value = pages
-        graph_fallback.outgoing_refs = outgoing
+        calc = PageRankCalculator(graph, damping=0.85, max_iterations=100)
+        results = calc.compute()
 
-        # Compute PageRank with both
-        calc_opt = PageRankCalculator(graph_optimized, damping=0.85, max_iterations=100)
-        calc_fall = PageRankCalculator(graph_fallback, damping=0.85, max_iterations=100)
-
-        results_opt = calc_opt.compute()
-        results_fall = calc_fall.compute()
-
-        # Scores should be identical within floating-point tolerance
-        for page in pages:
-            assert results_opt.scores[page] == pytest.approx(results_fall.scores[page], rel=1e-6), (
-                f"Score mismatch for {page.source_path.stem}"
-            )
+        # Verify convergence and basic properties
+        assert results.converged is True
+        assert len(results.scores) == 10
+        # All scores should be positive
+        assert all(score > 0 for score in results.scores.values())
+        # Scores should sum to approximately 1
+        assert sum(results.scores.values()) == pytest.approx(1.0, rel=1e-5)
 
     def test_pagerank_with_empty_incoming_edges(self):
         """Test PageRank handles pages with no incoming edges."""

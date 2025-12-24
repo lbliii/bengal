@@ -217,26 +217,9 @@ class PageRankCalculator:
         iterations_run = 0
         converged = False
 
-        # Build or use pre-computed incoming edges index for O(E) iteration
+        # Use pre-computed incoming edges index for O(E) iteration
         # RFC: rfc-analysis-algorithm-optimization
-        graph_incoming_edges = getattr(self.graph, "incoming_edges", None)
-
-        # Validate that incoming_edges is a proper dict, not a Mock or None
-        if (
-            graph_incoming_edges is None
-            or not isinstance(graph_incoming_edges, dict)
-            or not graph_incoming_edges
-        ):
-            # Fallback: build incoming edges from outgoing_refs if not available
-            from collections import defaultdict
-
-            incoming_edges: dict[Page, list[Page]] = defaultdict(list)
-            for source_page in pages:
-                for target in self.graph.outgoing_refs.get(source_page, set()):
-                    if target in pages:
-                        incoming_edges[target].append(source_page)
-        else:
-            incoming_edges = graph_incoming_edges
+        incoming_edges: dict[Page, list[Page]] = self.graph.incoming_edges
 
         # Pre-compute outgoing link counts for efficiency
         outgoing_counts: dict[Page, int] = {
