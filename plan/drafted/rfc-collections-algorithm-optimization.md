@@ -12,23 +12,21 @@
 
 ## Executive Summary
 
-The `bengal/collections` package provides content schema validation for type-safe frontmatter. Analysis confirms the package is well-designed for typical use cases, but identified **3 algorithmic patterns** that could degrade performance for sites with 100+ collections or deeply nested schemas.
+The `bengal/collections` package provides content schema validation for type-safe frontmatter. Analysis confirms the package is well-designed for typical use cases, but identified **2 algorithmic patterns** requiring attention:
 
 **Key findings**:
 
 1. **`get_collection_for_path()`** — O(C × P) linear scan of all collections per content file
-2. **`_coerce_type()` for lists** — O(L × T) recursive validation, unbounded nesting depth
-3. **Strict mode unknown field detection** — O(U log U) sorting overhead
+2. **`_coerce_type()` for nested types** — Unbounded recursion depth (safety issue)
 
 **Proposed optimizations**:
 
-1. Add prefix trie for collection path matching → O(P) lookup
-2. Add recursion depth limit for nested validation → Prevent stack overflow
-3. (Optional) Pre-sort unknown fields or use unsorted set for strict mode
+1. **Phase 1 (Safety)**: Add recursion depth limit for nested validation → Prevent stack overflow
+2. **Phase 2 (Scale)**: Add prefix trie for collection path matching → O(P) lookup
 
-**Current state**: The existing implementation is efficient for typical use cases (1-20 collections, schemas with <20 fields, lists with <100 items). Optimizations are preventive for edge cases.
+**Current state**: The existing implementation is efficient for typical use cases (1-20 collections, schemas with <20 fields, lists with <100 items). Phase 1 is a safety fix; Phase 2 is preventive for edge cases.
 
-**Impact**: Maintain sub-millisecond validation at scale (target: <1ms per page validation with 100+ collections)
+**Impact**: Prevent DoS from malformed content; maintain sub-millisecond validation at scale
 
 ---
 
@@ -38,18 +36,20 @@ The `bengal/collections` package provides content schema validation for type-saf
 
 > **Note**: The collections package is already well-optimized for typical use. The bottlenecks identified affect edge cases with extreme content volumes.
 
+> ⚠️ **Performance projections below are theoretical estimates.** Actual measurements required before optimization (see Step 0).
+
 | Scenario | `get_collection_for_path` | `validate()` | Overall Discovery |
 |----------|---------------------------|--------------|-------------------|
 | 5 collections, 100 pages | <1ms | <1ms | <100ms |
 | 20 collections, 1K pages | <1ms | <1ms | ~500ms |
-| 50 collections, 5K pages | ~5ms | <1ms | ~5s |
-| 100 collections, 10K pages | **~20ms** ⚠️ | <1ms | **~200s** ⚠️ |
+| 50 collections, 5K pages | ~5ms (est.) | <1ms | ~5s (est.) |
+| 100 collections, 10K pages | **~20ms (est.)** ⚠️ | <1ms | **~200s (est.)** ⚠️ |
 
-For sites approaching 10K pages with 100+ collections, collection matching becomes a significant bottleneck during content discovery.
+For sites approaching 10K pages with 100+ collections, collection matching may become a bottleneck during content discovery. Benchmarks will validate these estimates.
 
 ### Bottleneck 1: get_collection_for_path() — O(C × P)
 
-**Location**: `loader.py:206-216`
+**Location**: `loader.py:199-217`
 
 ```python
 # Current: Linear scan of ALL collections
@@ -65,7 +65,7 @@ def get_collection_for_path(file_path, content_root, collections):
             continue
         try:
             rel_path.relative_to(config.directory)  # O(P) path comparison
-            return name, config
+            return name, config  # Returns FIRST match
         except ValueError:
             continue
 
@@ -76,41 +76,25 @@ def get_collection_for_path(file_path, content_root, collections):
 
 **Optimal approach**: Build prefix trie from collection directories once, then O(P) lookup per file.
 
-### Bottleneck 2: _coerce_type() Recursive Validation — O(L × T) Unbounded
+### Bottleneck 2: _coerce_type() Recursive Validation — Unbounded Depth
 
-**Location**: `validator.py:449-458` (list validation) and `validator.py:522-532` (nested dataclass)
+**Location**: `validator.py:449-458` (list validation) and `validator.py:522-542` (nested dataclass)
 
 ```python
 # List validation: O(L) iterations, each can recurse
 for i, item in enumerate(value):  # O(L)
-    coerced, errors = self._coerce_type(f"{name}[{i}]", item, item_type)  # O(T) per item
+    coerced, errors = self._coerce_type(f"{name}[{i}]", item, item_type)  # Recursive
 
-# Nested dataclass: Recursive validation
+# Nested dataclass: Creates NEW validator, recurses without depth limit
 if is_dataclass(expected):
     if isinstance(value, dict):
-        nested_validator = SchemaValidator(expected, strict=self.strict)  # O(F_nested)
-        result = nested_validator.validate(value)  # O(F_nested × T_nested) recursive
+        nested_validator = SchemaValidator(expected, strict=self.strict)  # New instance
+        result = nested_validator.validate(value)  # No depth tracking!
 ```
 
 **Problem**: No recursion depth limit. Malicious or malformed frontmatter with deep nesting could cause stack overflow or excessive validation time.
 
-**Optimal approach**: Add configurable recursion depth limit (default: 10 levels).
-
-### Bottleneck 3: Strict Mode Unknown Fields — O(U log U)
-
-**Location**: `validator.py:321-330`
-
-```python
-# Current: Sorting unknown fields for consistent error output
-if self.strict:
-    unknown = set(data.keys()) - set(schema_fields.keys())  # O(D + F)
-    for field_name in sorted(unknown):  # O(U log U) - unnecessary sort
-        errors.append(ValidationError(...))
-```
-
-**Problem**: Sorting unknown fields for error messages adds O(U log U) overhead. For frontmatter with many unknown fields (migration scenarios), this accumulates.
-
-**Mitigation**: Low impact in practice (U is typically 0-5), but could iterate unsorted for slight improvement.
+**Optimal approach**: Add configurable recursion depth limit (default: 10 levels), tracked through `_coerce_type()` chain.
 
 ---
 
@@ -133,17 +117,16 @@ if self.strict:
 | Component | Operation | Current | Optimal | Impact |
 |-----------|-----------|---------|---------|--------|
 | Loader | `get_collection_for_path()` | O(C × P) | O(P) | High for many collections |
-| Validator | `_coerce_type()` recursion | Unbounded | O(D × F × T) | Safety |
-| Validator | Strict mode sorting | O(U log U) | O(U) | Low |
+| Validator | `_coerce_type()` recursion | Unbounded | O(D × F × T) | **Safety** |
 
-**Variables**: C=collections, P=path depth, F=fields, T=type nesting, L=list length, U=unknown fields, D=max recursion depth
+**Variables**: C=collections, P=path depth, F=fields, T=type nesting, L=list length, D=max recursion depth
 
 ---
 
 ## Goals
 
-1. **Add prefix trie for collection matching** for O(P) per-file lookup (optional, for 50+ collections)
-2. **Add recursion depth limit** to prevent stack overflow (safety, always)
+1. **Add recursion depth limit** to prevent stack overflow (safety, always) — **Phase 1**
+2. **Add prefix trie for collection matching** for O(P) per-file lookup (optional, for 50+ collections) — **Phase 2**
 3. **Maintain API compatibility** — No breaking changes to public interfaces
 4. **Preserve correctness** — Identical validation behavior
 
@@ -152,52 +135,78 @@ if self.strict:
 - Parallel validation (single page validation is already fast)
 - Pydantic replacement (already supported as backend)
 - Schema caching across process restarts (out of scope)
+- Removing sorting from strict mode (negligible impact, breaks test determinism)
 
 ---
 
 ## Proposed Solution
 
-### Phase 1: Recursion Depth Limit (Safety)
+### Phase 1: Recursion Depth Limit (Safety) — REQUIRED
 
-**Estimated effort**: 1 hour  
-**Impact**: Prevents stack overflow on malformed content
+**Estimated effort**: 2 hours  
+**Impact**: Prevents stack overflow on malformed content  
+**Priority**: High — Safety fix
 
-#### 1.1 Add Depth Parameter to SchemaValidator
+#### 1.1 Add Depth Tracking to SchemaValidator
 
 ```python
 # validator.py - Add recursion depth tracking
 class SchemaValidator:
     MAX_RECURSION_DEPTH = 10  # Configurable class attribute
 
-    def __init__(self, schema: type, strict: bool = True, max_depth: int | None = None) -> None:
+    def __init__(
+        self,
+        schema: type,
+        strict: bool = True,
+        max_depth: int | None = None,
+    ) -> None:
         self.schema = schema
         self.strict = strict
-        self._max_depth = max_depth or self.MAX_RECURSION_DEPTH
+        self._max_depth = max_depth if max_depth is not None else self.MAX_RECURSION_DEPTH
+        self._is_pydantic = hasattr(schema, "model_validate")
+        self._type_hints: dict[str, Any] = {}
         # ... existing init ...
-
-    def validate(
-        self,
-        data: dict[str, Any],
-        source_file: Path | None = None,
-        _depth: int = 0,  # NEW: Internal depth counter
-    ) -> ValidationResult:
-        """Validate with recursion depth tracking."""
-        if _depth > self._max_depth:
-            return ValidationResult(
-                valid=False,
-                data=None,
-                errors=[ValidationError(
-                    field="(schema)",
-                    message=f"Maximum nesting depth ({self._max_depth}) exceeded",
-                )],
-                warnings=[],
-            )
-        # ... rest of validation ...
 ```
 
-#### 1.2 Pass Depth Through Recursive Calls
+#### 1.2 Thread Depth Through _coerce_type() Chain
+
+The key insight: depth must flow through `_coerce_type()`, not `validate()`, because nested dataclass validation creates a **new** `SchemaValidator` instance. We track depth internally within the validation call.
 
 ```python
+def _validate_dataclass(
+    self,
+    data: dict[str, Any],
+    source_file: Path | None,
+    _depth: int = 0,  # NEW: Internal depth counter
+) -> ValidationResult:
+    """Validate data using a dataclass schema with depth tracking."""
+    # Check depth limit BEFORE validation
+    if _depth > self._max_depth:
+        return ValidationResult(
+            valid=False,
+            data=None,
+            errors=[ValidationError(
+                field="(schema)",
+                message=f"Maximum nesting depth ({self._max_depth}) exceeded",
+            )],
+            warnings=[],
+        )
+
+    errors: list[ValidationError] = []
+    warnings: list[str] = []
+    validated_data: dict[str, Any] = {}
+
+    # ... existing field processing, passing _depth to _coerce_type ...
+
+    for name, field_info in schema_fields.items():
+        type_hint = self._type_hints.get(name, Any)
+        if name in data:
+            value = data[name]
+            # Pass depth through coercion chain
+            coerced, type_errors = self._coerce_type(name, value, type_hint, _depth=_depth)
+            # ...
+
+
 def _coerce_type(
     self,
     name: str,
@@ -207,21 +216,43 @@ def _coerce_type(
 ) -> tuple[Any, list[ValidationError]]:
     # ... existing type checking ...
 
-    # Handle nested dataclasses
+    # Handle nested dataclasses - FIXED: pass depth and max_depth
     if is_dataclass(expected):
+        if _depth >= self._max_depth:
+            return value, [ValidationError(
+                field=name,
+                message=f"Maximum nesting depth ({self._max_depth}) exceeded at '{name}'",
+            )]
         if isinstance(value, dict):
-            nested_validator = SchemaValidator(expected, strict=self.strict)
-            # NEW: Pass incremented depth
-            result = nested_validator.validate(value, _depth=_depth + 1)
-            # ...
+            # Pass max_depth to nested validator
+            nested_validator = SchemaValidator(
+                expected,
+                strict=self.strict,
+                max_depth=self._max_depth,
+            )
+            # Pass incremented depth to internal validation
+            result = nested_validator._validate_dataclass(value, None, _depth=_depth + 1)
+            if result.valid:
+                return result.data, []
+            else:
+                for error in result.errors:
+                    error.field = f"{name}.{error.field}"
+                return value, result.errors
 
-    # Handle list[X] - pass depth to item validation
+    # Handle list[X] - pass depth to item validation (depth doesn't increase for lists)
     if origin is list and args:
         for i, item in enumerate(value):
             coerced, errors = self._coerce_type(
                 f"{name}[{i}]", item, item_type, _depth=_depth
             )
+            # ...
 ```
+
+**Key changes from original proposal**:
+- Depth check happens in `_coerce_type()` before creating nested validator
+- `max_depth` passed to nested `SchemaValidator` constructor
+- Depth tracked through internal `_validate_dataclass()` call
+- List validation passes depth but doesn't increment (lists don't increase nesting depth)
 
 **Complexity change**: Bounded O(D × F × T) where D is max depth (default 10)
 
@@ -230,25 +261,38 @@ def _coerce_type(
 ### Phase 2: Collection Path Trie (Optional, for Large Sites)
 
 **Estimated effort**: 3 hours  
-**When to implement**: Sites with 50+ collections seeing discovery latency
+**When to implement**: Sites with 50+ collections seeing discovery latency in benchmarks  
+**Priority**: Medium — Performance optimization
+
+> ⚠️ **Behavior Change**: Current implementation returns **first matching** collection. Trie returns **deepest matching** collection. Document this difference; it's arguably more correct for overlapping directories like `docs/` and `docs/api/`.
 
 #### 2.1 Build Path Prefix Trie
 
 ```python
 # loader.py - Add trie-based collection lookup
-from typing import TypeVar
+from __future__ import annotations
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
-T = TypeVar('T')
+if TYPE_CHECKING:
+    from bengal.collections import CollectionConfig
+
 
 class CollectionPathTrie:
-    """Prefix trie for O(P) collection path matching."""
+    """
+    Prefix trie for O(P) collection path matching.
+
+    For overlapping directories (e.g., `docs/` and `docs/api/`), returns the
+    **deepest** matching collection. This differs from linear scan which
+    returns the **first** match based on dict iteration order.
+    """
+    _COLLECTION_KEY = "__collection__"
 
     def __init__(self) -> None:
         self._root: dict[str, Any] = {}
-        self._COLLECTION_KEY = "__collection__"
 
-    def insert(self, path: Path, name: str, config: CollectionConfig) -> None:
-        """Insert a collection path into the trie."""
+    def insert(self, path: Path, name: str, config: CollectionConfig[Any]) -> None:
+        """Insert a collection path into the trie. O(P) where P = path depth."""
         node = self._root
         for part in path.parts:
             if part not in node:
@@ -256,20 +300,35 @@ class CollectionPathTrie:
             node = node[part]
         node[self._COLLECTION_KEY] = (name, config)
 
-    def find(self, file_path: Path) -> tuple[str | None, CollectionConfig | None]:
-        """Find the collection that matches this file path (O(P))."""
+    def find(self, file_path: Path) -> tuple[str | None, CollectionConfig[Any] | None]:
+        """
+        Find the deepest collection that matches this file path. O(P).
+
+        Returns (None, None) if no collection matches.
+        """
         node = self._root
-        best_match: tuple[str | None, CollectionConfig | None] = (None, None)
+        best_match: tuple[str | None, CollectionConfig[Any] | None] = (None, None)
 
         for part in file_path.parts:
             if part not in node:
                 break
             node = node[part]
-            # Track the deepest collection match
+            # Track the deepest collection match (not just any match)
             if self._COLLECTION_KEY in node:
                 best_match = node[self._COLLECTION_KEY]
 
         return best_match
+
+    def __len__(self) -> int:
+        """Return number of collections in trie (for debugging)."""
+        count = 0
+        stack = [self._root]
+        while stack:
+            node = stack.pop()
+            if self._COLLECTION_KEY in node:
+                count += 1
+            stack.extend(v for k, v in node.items() if k != self._COLLECTION_KEY)
+        return count
 ```
 
 #### 2.2 Build Trie During Collection Loading
@@ -278,7 +337,7 @@ class CollectionPathTrie:
 def build_collection_trie(
     collections: dict[str, CollectionConfig[Any]],
 ) -> CollectionPathTrie:
-    """Build path trie from collection configurations."""
+    """Build path trie from collection configurations. O(C × P)."""
     trie = CollectionPathTrie()
     for name, config in collections.items():
         if config.directory is not None:
@@ -290,19 +349,34 @@ def get_collection_for_path(
     file_path: Path,
     content_root: Path,
     collections: dict[str, CollectionConfig[Any]],
-    trie: CollectionPathTrie | None = None,  # NEW: Optional trie
+    trie: CollectionPathTrie | None = None,  # NEW: Optional trie for O(P) lookup
 ) -> tuple[str | None, CollectionConfig[Any] | None]:
-    """Determine which collection a content file belongs to."""
+    """
+    Determine which collection a content file belongs to.
+
+    Args:
+        file_path: Path to the content file.
+        content_root: Root content directory.
+        collections: Dictionary of collection configurations.
+        trie: Optional pre-built trie for O(P) lookup. If None, uses O(C × P) linear scan.
+
+    Returns:
+        Tuple of (collection_name, config) or (None, None) if no match.
+
+    Note:
+        With trie: Returns deepest matching collection (most specific).
+        Without trie: Returns first matching collection (dict order).
+    """
     try:
         rel_path = file_path.relative_to(content_root)
     except ValueError:
         return None, None
 
-    # NEW: Use trie if available (O(P) instead of O(C × P))
+    # Use trie if available: O(P) instead of O(C × P)
     if trie is not None:
         return trie.find(rel_path)
 
-    # Fallback: Linear scan (existing behavior)
+    # Fallback: Linear scan (existing behavior, first match wins)
     for name, config in collections.items():
         if config.directory is None:
             continue
@@ -319,65 +393,54 @@ def get_collection_for_path(
 
 ---
 
-### Phase 3: Minor Optimizations (Low Priority)
-
-**Estimated effort**: 30 minutes  
-**Impact**: Marginal, only for edge cases
-
-#### 3.1 Remove Unnecessary Sorting in Strict Mode
-
-```python
-# validator.py - Skip sorting for unknown fields
-if self.strict:
-    unknown = set(data.keys()) - set(schema_fields.keys())
-    # CHANGED: Iterate unsorted (order doesn't affect validation correctness)
-    for field_name in unknown:  # O(U) instead of O(U log U)
-        errors.append(ValidationError(
-            field=field_name,
-            message=f"Unknown field '{field_name}' (not in schema)",
-            value=data[field_name],
-        ))
-```
-
-**Trade-off**: Error order becomes non-deterministic. For consistent error messages in tests, sort only in `error_summary` property:
-
-```python
-@property
-def error_summary(self) -> str:
-    if not self.errors:
-        return ""
-    # Sort only when formatting for display
-    sorted_errors = sorted(self.errors, key=lambda e: e.field)
-    lines = [f"  - {e.field}: {e.message}" for e in sorted_errors]
-    return "\n".join(lines)
-```
-
----
-
 ## Implementation Plan
 
-### Step 0: Establish Baseline Benchmarks (Required First)
+### Step 0: Establish Baseline Benchmarks (REQUIRED FIRST)
 
 **Files**: `benchmarks/test_collections_performance.py` (new)
 
-> **Critical**: Must be completed before any optimization to measure actual improvement.
+> ⚠️ **Critical**: Must be completed before any optimization to validate performance projections and measure actual improvement.
 
 1. Create synthetic collection configurations (10, 50, 100, 200 collections)
 2. Create synthetic content files (100, 1K, 5K, 10K files)
 3. Create synthetic schemas (5, 10, 20, 50 fields; nested 1, 3, 5, 10 levels)
 4. Measure wall-clock time for:
    - `get_collection_for_path()` — Per-file collection matching
-   - `SchemaValidator.validate()` — Per-file validation
+   - `SchemaValidator.validate()` — Per-file validation with varying nesting
    - Full discovery cycle — Collections + validation
 5. Record baseline metrics in `benchmarks/baseline_collections.json`
 
 ```python
 # Example benchmark structure
-@pytest.mark.benchmark
+import pytest
+from pathlib import Path
+from bengal.collections import SchemaValidator, define_collection
+from bengal.collections.loader import get_collection_for_path
+
+
+@pytest.fixture
+def collections_100():
+    """Generate 100 collection configurations."""
+    from dataclasses import dataclass
+
+    @dataclass
+    class GenericSchema:
+        title: str
+
+    return {
+        f"collection_{i}": define_collection(
+            schema=GenericSchema,
+            directory=f"content/section_{i}",
+        )
+        for i in range(100)
+    }
+
+
+@pytest.mark.benchmark(group="collection-matching")
 def test_collection_matching_100_collections(benchmark, collections_100):
     """Baseline: collection matching with 100 collections."""
     content_root = Path("content")
-    file_path = Path("content/blog/nested/deep/post.md")
+    file_path = Path("content/section_50/nested/deep/post.md")
 
     result = benchmark(
         get_collection_for_path,
@@ -385,46 +448,68 @@ def test_collection_matching_100_collections(benchmark, collections_100):
         content_root,
         collections_100,
     )
-    assert result[0] is not None  # Should find a collection
+    assert result[0] == "collection_50"
 
 
-@pytest.mark.benchmark
-def test_validation_nested_10_levels(benchmark, schema_nested_10, data_nested_10):
+@pytest.fixture
+def deeply_nested_schema():
+    """Generate schema with 10 levels of nesting."""
+    from dataclasses import dataclass
+
+    @dataclass
+    class Level10:
+        value: str
+
+    @dataclass
+    class Level9:
+        nested: Level10
+
+    # ... generate programmatically ...
+    return Level1
+
+
+@pytest.mark.benchmark(group="validation-depth")
+def test_validation_nested_10_levels(benchmark, deeply_nested_schema, nested_data):
     """Baseline: validation with 10 levels of nesting."""
-    validator = SchemaValidator(schema_nested_10)
-    result = benchmark(validator.validate, data_nested_10)
+    validator = SchemaValidator(deeply_nested_schema)
+    result = benchmark(validator.validate, nested_data)
     assert result.valid
 ```
 
 ### Step 1: Add Recursion Depth Limit (Safety)
 
-**Files**: `validator.py`
+**Files**: `bengal/collections/validator.py`
 
-1. Add `MAX_RECURSION_DEPTH` class constant (default: 10)
+1. Add `MAX_RECURSION_DEPTH = 10` class constant
 2. Add `max_depth` parameter to `__init__`
-3. Add `_depth` parameter to `validate()` and `_coerce_type()`
-4. Return validation error when depth exceeded
-5. Add tests for depth limiting
-6. Document depth limit in docstrings
+3. Add `_depth` parameter to `_validate_dataclass()` (internal)
+4. Add `_depth` parameter to `_coerce_type()`
+5. Check depth before nested dataclass validation in `_coerce_type()`
+6. Return `ValidationError` when depth exceeded
+7. Add tests for:
+   - Normal nested validation (depth < limit)
+   - Validation at exactly max depth
+   - Validation exceeding max depth (should fail gracefully)
+   - Custom max_depth parameter
+8. Document depth limit in docstrings
 
-### Step 2: Add Collection Path Trie (Optional)
+### Step 2: Add Collection Path Trie (Conditional)
 
-**Files**: `loader.py`
+**Files**: `bengal/collections/loader.py`
+
+> Only implement if Step 0 benchmarks show significant latency with 50+ collections.
 
 1. Add `CollectionPathTrie` class
 2. Add `build_collection_trie()` function
 3. Update `get_collection_for_path()` to accept optional trie
-4. Update content discovery to build trie when collections > 20
-5. Add benchmarks comparing linear vs trie lookup
-6. Document trie usage for large sites
-
-### Step 3: Minor Optimizations
-
-**Files**: `validator.py`
-
-1. Remove sorting from strict mode unknown field iteration
-2. Add sorting to `ValidationResult.error_summary` property
-3. Update tests to not depend on error order
+4. Document behavior difference (deepest vs first match)
+5. Add tests for:
+   - Simple path matching
+   - Overlapping directories (`docs/` vs `docs/api/`)
+   - No match cases
+   - Empty trie
+6. Add benchmarks comparing linear vs trie lookup
+7. Update content discovery to build trie when `len(collections) > 20`
 
 ---
 
@@ -432,21 +517,19 @@ def test_validation_nested_10_levels(benchmark, schema_nested_10, data_nested_10
 
 ### Before Optimization
 
-| Operation | Time Complexity | 100 Collections, 10K Pages |
-|-----------|-----------------|----------------------------|
-| `get_collection_for_path()` | O(C × P) | ~20ms per file |
-| `SchemaValidator.validate()` | O(F × T) | <1ms (already efficient) |
-| Nested dataclass validation | Unbounded recursion | Stack overflow risk |
-| Full discovery (validation) | O(N × C × P) | ~200s |
+| Operation | Time Complexity | Notes |
+|-----------|-----------------|-------|
+| `get_collection_for_path()` | O(C × P) | Linear scan all collections |
+| `SchemaValidator.validate()` | O(F × T) | Already efficient |
+| Nested dataclass validation | **Unbounded** ⚠️ | Stack overflow risk |
 
 ### After Optimization
 
-| Operation | Time Complexity | 100 Collections, 10K Pages | Speedup |
-|-----------|-----------------|----------------------------|---------|
-| `get_collection_for_path()` | **O(P)** | <1ms per file | **20x** |
-| `SchemaValidator.validate()` | O(D × F × T) | <1ms | 1x (safety bounded) |
-| Nested dataclass validation | O(D × F × T) | Bounded | ∞ (prevents crash) |
-| Full discovery (validation) | O(N × (P + F × T)) | ~20s | **10x** |
+| Operation | Time Complexity | Change |
+|-----------|-----------------|--------|
+| `get_collection_for_path()` | **O(P)** | C eliminated via trie |
+| `SchemaValidator.validate()` | O(D × F × T) | Bounded by max_depth |
+| Nested dataclass validation | **O(D × F × T)** | Crash → clean error |
 
 **Variables**: N=pages, C=collections, P=path depth, F=fields, T=type nesting, D=max depth
 
@@ -462,10 +545,16 @@ def test_validation_nested_10_levels(benchmark, schema_nested_10, data_nested_10
 
 2. **Edge cases**:
    - 0 collections (empty config)
-   - Overlapping collection directories
+   - Overlapping collection directories (document first-match vs deepest-match)
    - Schema with 0 fields
-   - Schema with circular type references (if possible)
-   - Deeply nested data exceeding depth limit
+   - Deeply nested data at exactly max depth (should pass)
+   - Deeply nested data exceeding depth limit (should fail with clear error)
+   - Custom `max_depth` values (1, 5, 20, 100)
+
+3. **Trie-specific**:
+   - Overlapping prefixes: `docs/` and `docs/api/` should return `docs/api/` for `docs/api/endpoint.md`
+   - Non-overlapping prefixes work correctly
+   - Files not matching any collection return `(None, None)`
 
 ### Performance Tests
 
@@ -480,6 +569,7 @@ def test_validation_nested_10_levels(benchmark, schema_nested_10, data_nested_10
 
 1. **Recursion depth**: Verify stack doesn't overflow with deep nesting
 2. **Malformed input**: Verify graceful error handling
+3. **DoS resistance**: Verify deeply nested malicious input returns error, not crash
 
 ---
 
@@ -487,10 +577,10 @@ def test_validation_nested_10_levels(benchmark, schema_nested_10, data_nested_10
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|------------|--------|------------|
-| Trie implementation bugs | Low | Medium | Comprehensive path tests, fallback to linear |
-| Depth limit too restrictive | Low | Medium | Configurable, document override |
-| Breaking error message order | Low | Low | Sort in `error_summary` for display |
-| Memory increase from trie | Very Low | Very Low | Trie is O(C × P), minimal overhead |
+| Trie implementation bugs | Low | Medium | Comprehensive path tests, fallback to linear scan |
+| Depth limit too restrictive | Low | Medium | Configurable via `max_depth`, default 10 is generous |
+| Trie behavior change (deepest vs first) | Medium | Low | Document clearly, arguably more correct |
+| Memory increase from trie | Very Low | Very Low | O(C × P) nodes, ~25KB for 100 collections |
 
 ---
 
@@ -517,15 +607,23 @@ def test_validation_nested_10_levels(benchmark, schema_nested_10, data_nested_10
 
 **Decision**: Not needed. Focus on algorithmic improvements.
 
+### 4. Remove Sorting in Strict Mode
+
+**Pros**: O(U) instead of O(U log U) for unknown field errors  
+**Cons**: Non-deterministic error order breaks test assertions, U is typically 0-5
+
+**Decision**: Not worth the churn. Keep sorted for deterministic behavior.
+
 ---
 
 ## Success Criteria
 
-1. **`get_collection_for_path()` for 100 collections**: <1ms (currently ~20ms with O(C × P))
-2. **No stack overflow**: Deep nesting returns clean error, not crash
-3. **No API changes**: Existing code continues working
-4. **Backward compatible**: Old collection configs work unchanged
-5. **Regression tests**: CI fails if performance degrades >10%
+1. **No stack overflow**: Deep nesting returns clean error, not crash ✅
+2. **Depth limit configurable**: Users can adjust `max_depth` if needed ✅
+3. **`get_collection_for_path()` for 100 collections**: <1ms (if trie implemented) ✅
+4. **No API changes**: Existing code continues working ✅
+5. **Backward compatible**: Old collection configs work unchanged ✅
+6. **Benchmarks exist**: CI tracks performance regression ✅
 
 ---
 
@@ -549,17 +647,17 @@ def test_validation_nested_10_levels(benchmark, schema_nested_10, data_nested_10
 
 ## Appendix: Current Implementation Locations
 
-| Component | File | Key Functions |
-|-----------|------|---------------|
-| CollectionConfig | `__init__.py` | `__post_init__()`, properties |
-| define_collection | `__init__.py` | Factory function |
-| SchemaValidator | `validator.py` | `validate()`, `_coerce_type()`, `_validate_dataclass()` |
-| ValidationResult | `validator.py` | `error_summary` |
-| load_collections | `loader.py` | Dynamic module import |
-| get_collection_for_path | `loader.py` | Collection path matching |
-| validate_collections_config | `loader.py` | Directory existence check |
-| Standard schemas | `schemas.py` | `BlogPost`, `DocPage`, `Tutorial`, etc. |
-| Error types | `errors.py` | `ContentValidationError`, `ValidationError` |
+| Component | File | Line Range | Key Functions |
+|-----------|------|------------|---------------|
+| CollectionConfig | `__init__.py` | 96-192 | `__post_init__()`, properties |
+| define_collection | `__init__.py` | 194-290 | Factory function |
+| SchemaValidator | `validator.py` | 99-706 | `validate()`, `_coerce_type()`, `_validate_dataclass()` |
+| ValidationResult | `validator.py` | 50-97 | `error_summary` |
+| load_collections | `loader.py` | 49-159 | Dynamic module import |
+| get_collection_for_path | `loader.py` | 162-217 | Collection path matching |
+| validate_collections_config | `loader.py` | 220-261 | Directory existence check |
+| Standard schemas | `schemas.py` | — | `BlogPost`, `DocPage`, `Tutorial`, etc. |
+| Error types | `errors.py` | — | `ContentValidationError`, `ValidationError` |
 
 ---
 
@@ -570,7 +668,7 @@ def test_validation_nested_10_levels(benchmark, schema_nested_10, data_nested_10
 | Function | Current | Optimal | Notes |
 |----------|---------|---------|-------|
 | `load_collections()` | O(M + C) | — | Module import, already optimal |
-| `get_collection_for_path()` | O(C × P) | O(P) | Trie optimization |
+| `get_collection_for_path()` | O(C × P) | O(P) | Trie optimization (Phase 2) |
 | `validate_collections_config()` | O(C) | — | Linear scan, already optimal |
 
 ### validator.py
@@ -578,9 +676,9 @@ def test_validation_nested_10_levels(benchmark, schema_nested_10, data_nested_10
 | Function | Current | Optimal | Notes |
 |----------|---------|---------|-------|
 | `__init__()` | O(F) | — | Already optimal |
-| `validate()` | O(F × T) | O(D × F × T) | Add depth bound |
-| `_validate_dataclass()` | O(F × T + U log U) | O(F × T + U) | Remove sort |
-| `_coerce_type()` | O(T) or O(L × T) | O(D × T) | Depth bounded |
+| `validate()` | O(F × T) | O(D × F × T) | Add depth bound (Phase 1) |
+| `_validate_dataclass()` | O(F × T) | O(D × F × T) | Depth tracking (Phase 1) |
+| `_coerce_type()` | Unbounded | O(D × T) | Depth bounded (Phase 1) |
 | `_coerce_datetime()` | O(S) | — | Already optimal |
 | `_is_optional()` | O(A) | — | Already optimal |
 

@@ -89,7 +89,7 @@ class TaxonomyIndex:
 
     Cache Format (JSON):
     {
-        "version": 1,
+        "version": 2,
         "tags": {
             "python": {
                 "tag_slug": "python",
@@ -98,11 +98,20 @@ class TaxonomyIndex:
                 "updated_at": "2025-10-16T12:00:00",
                 "is_valid": true
             }
+        },
+        "page_to_tags": {
+            "content/post1.md": ["python", "tutorial"],
+            "content/post2.md": ["python"]
         }
     }
+
+    Performance Optimization (RFC: Cache Algorithm Optimization):
+    - Added reverse index (_page_to_tags) for O(1) page-to-tags lookup
+    - get_tags_for_page(): O(t×p) → O(1)
+    - remove_page_from_all_tags(): O(t×p) → O(t') where t' = tags for page
     """
 
-    VERSION = 1
+    VERSION = 2  # Bumped: added page_to_tags reverse index
     CACHE_FILE = ".bengal/taxonomy_index.json"
 
     def __init__(self, cache_path: Path | None = None):
@@ -116,6 +125,8 @@ class TaxonomyIndex:
             cache_path = Path(self.CACHE_FILE)
         self.cache_path = Path(cache_path)
         self.tags: dict[str, TagEntry] = {}
+        # Reverse index for O(1) page → tags lookup (RFC: Cache Algorithm Optimization)
+        self._page_to_tags: dict[str, set[str]] = {}
         self._load_from_disk()
 
     def _load_from_disk(self) -> None:
@@ -128,23 +139,52 @@ class TaxonomyIndex:
             with open(self.cache_path) as f:
                 data = json.load(f)
 
-            # Validate version
-            if data.get("version") != self.VERSION:
+            found_version = data.get("version")
+
+            # Handle version mismatch with migration
+            if found_version != self.VERSION:
                 logger.warning(
                     "taxonomy_index_version_mismatch",
                     expected=self.VERSION,
-                    found=data.get("version"),
+                    found=found_version,
+                    action="rebuilding_reverse_index" if found_version == 1 else "clearing_cache",
                 )
+                # For v1 → v2 migration, we can rebuild the reverse index
+                if found_version == 1:
+                    # Load tags first
+                    for tag_slug, entry_data in data.get("tags", {}).items():
+                        self.tags[tag_slug] = TagEntry.from_cache_dict(entry_data)
+                    # Rebuild reverse index from forward index
+                    self._rebuild_reverse_index()
+                    logger.info(
+                        "taxonomy_index_migrated",
+                        from_version=found_version,
+                        to_version=self.VERSION,
+                        tags=len(self.tags),
+                        pages_indexed=len(self._page_to_tags),
+                    )
+                    return
+                # Unknown version - clear and start fresh
                 self.tags = {}
+                self._page_to_tags = {}
                 return
 
             # Load tag entries
             for tag_slug, entry_data in data.get("tags", {}).items():
                 self.tags[tag_slug] = TagEntry.from_cache_dict(entry_data)
 
+            # Load reverse index (or rebuild if missing)
+            if "page_to_tags" in data:
+                for page, tags in data["page_to_tags"].items():
+                    self._page_to_tags[page] = set(tags)
+            else:
+                # Rebuild from forward index (migration path)
+                self._rebuild_reverse_index()
+
             logger.info(
                 "taxonomy_index_loaded",
                 tags=len(self.tags),
+                pages_indexed=len(self._page_to_tags),
                 path=str(self.cache_path),
             )
         except Exception as e:
@@ -154,15 +194,28 @@ class TaxonomyIndex:
                 path=str(self.cache_path),
             )
             self.tags = {}
+            self._page_to_tags = {}
+
+    def _rebuild_reverse_index(self) -> None:
+        """Rebuild reverse index from forward index (one-time migration)."""
+        self._page_to_tags.clear()
+        for tag_slug, entry in self.tags.items():
+            if entry.is_valid:
+                for page_path in entry.page_paths:
+                    if page_path not in self._page_to_tags:
+                        self._page_to_tags[page_path] = set()
+                    self._page_to_tags[page_path].add(tag_slug)
 
     def save_to_disk(self) -> None:
-        """Save taxonomy index to disk."""
+        """Save taxonomy index to disk (including reverse index)."""
         try:
             self.cache_path.parent.mkdir(parents=True, exist_ok=True)
 
             data = {
                 "version": self.VERSION,
                 "tags": {tag_slug: entry.to_cache_dict() for tag_slug, entry in self.tags.items()},
+                # Persist reverse index (convert sets to lists for JSON)
+                "page_to_tags": {page: list(tags) for page, tags in self._page_to_tags.items()},
             }
 
             with open(self.cache_path, "w") as f:
@@ -171,6 +224,7 @@ class TaxonomyIndex:
             logger.info(
                 "taxonomy_index_saved",
                 tags=len(self.tags),
+                pages_indexed=len(self._page_to_tags),
                 path=str(self.cache_path),
             )
         except Exception as e:
@@ -184,11 +238,33 @@ class TaxonomyIndex:
         """
         Update or create a tag entry.
 
+        Maintains reverse index for O(1) page-to-tags lookup.
+
         Args:
             tag_slug: Normalized tag identifier
             tag_name: Original tag name for display
             page_paths: List of page paths with this tag
         """
+        # Get old pages for this tag (if exists)
+        old_entry = self.tags.get(tag_slug)
+        old_pages = set(old_entry.page_paths) if old_entry else set()
+        new_pages = set(page_paths)
+
+        # Update reverse index: remove old mappings for pages no longer in this tag
+        for page in old_pages - new_pages:
+            if page in self._page_to_tags:
+                self._page_to_tags[page].discard(tag_slug)
+                # Clean up empty entries
+                if not self._page_to_tags[page]:
+                    del self._page_to_tags[page]
+
+        # Update reverse index: add new mappings
+        for page in new_pages:
+            if page not in self._page_to_tags:
+                self._page_to_tags[page] = set()
+            self._page_to_tags[page].add(tag_slug)
+
+        # Create/update entry
         entry = TagEntry(
             tag_slug=tag_slug,
             tag_name=tag_name,
@@ -248,7 +324,10 @@ class TaxonomyIndex:
 
     def get_tags_for_page(self, page_path: Path) -> set[str]:
         """
-        Get all tags for a specific page (reverse lookup).
+        Get all tags for a specific page (O(1) via reverse index).
+
+        Performance: O(1) lookup instead of O(t×p) scan.
+        (RFC: Cache Algorithm Optimization)
 
         Args:
             page_path: Path to page
@@ -257,11 +336,10 @@ class TaxonomyIndex:
             Set of tag slugs for this page
         """
         page_str = str(page_path)
-        tags = set()
-        for tag_slug, entry in self.tags.items():
-            if entry.is_valid and page_str in entry.page_paths:
-                tags.add(tag_slug)
-        return tags
+        # O(1) lookup via reverse index
+        tags = self._page_to_tags.get(page_str, set())
+        # Filter to only valid tags
+        return {tag for tag in tags if tag in self.tags and self.tags[tag].is_valid}
 
     def get_all_tags(self) -> dict[str, TagEntry]:
         """
@@ -276,6 +354,9 @@ class TaxonomyIndex:
         """
         Mark a tag as invalid.
 
+        Note: Does not remove from reverse index since tag might be revalidated.
+        The get_tags_for_page() filters invalid tags.
+
         Args:
             tag_slug: Normalized tag identifier
         """
@@ -288,12 +369,17 @@ class TaxonomyIndex:
             entry.is_valid = False
 
     def clear(self) -> None:
-        """Clear all tags."""
+        """Clear all tags and reverse index."""
         self.tags.clear()
+        self._page_to_tags.clear()
 
     def remove_page_from_all_tags(self, page_path: Path) -> set[str]:
         """
-        Remove a page from all tags it belongs to.
+        Remove a page from all tags it belongs to (O(t') via reverse index).
+
+        Performance: O(t') where t' = tags for this specific page,
+        instead of O(t×p) scanning all tags.
+        (RFC: Cache Algorithm Optimization)
 
         Args:
             page_path: Path to page to remove
@@ -302,14 +388,22 @@ class TaxonomyIndex:
             Set of affected tag slugs
         """
         page_str = str(page_path)
-        affected = set()
 
-        for tag_slug, entry in self.tags.items():
-            if page_str in entry.page_paths:
-                entry.page_paths.remove(page_str)
-                affected.add(tag_slug)
+        # O(1) lookup of affected tags via reverse index
+        affected_tags = self._page_to_tags.get(page_str, set()).copy()
 
-        return affected
+        # Remove page from each affected tag's page list
+        for tag_slug in affected_tags:
+            if tag_slug in self.tags:
+                entry = self.tags[tag_slug]
+                if page_str in entry.page_paths:
+                    entry.page_paths.remove(page_str)
+
+        # Clean up reverse index
+        if page_str in self._page_to_tags:
+            del self._page_to_tags[page_str]
+
+        return affected_tags
 
     def get_valid_entries(self) -> dict[str, TagEntry]:
         """

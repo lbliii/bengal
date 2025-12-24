@@ -129,19 +129,17 @@ def generate_dependency_data(
 # ---------------------------------------------------------------------------
 
 
-@pytest.fixture
-def taxonomy_index_100():
-    """TaxonomyIndex-like data: 100 pages, 20 tags."""
+def create_taxonomy_index(tag_to_pages: dict[str, list[str]]) -> Any:
+    """Create TaxonomyIndex from tag_to_pages mapping."""
     from bengal.cache.taxonomy_index import TagEntry, TaxonomyIndex
 
-    tag_to_pages, _ = generate_taxonomy_data(num_pages=100, num_tags=20, tags_per_page=3)
-
-    # Create TaxonomyIndex without disk persistence
     index = TaxonomyIndex.__new__(TaxonomyIndex)
     index.cache_path = Path("/dev/null")
     index.tags = {}
+    index._page_to_tags = {}  # Initialize reverse index
 
     for tag_slug, page_paths in tag_to_pages.items():
+        # Use update_tag to properly maintain reverse index
         index.tags[tag_slug] = TagEntry(
             tag_slug=tag_slug,
             tag_name=tag_slug.replace("-", " ").title(),
@@ -149,77 +147,41 @@ def taxonomy_index_100():
             updated_at=datetime.now().isoformat(),
             is_valid=True,
         )
+        # Manually build reverse index (since we bypassed update_tag)
+        for page in page_paths:
+            if page not in index._page_to_tags:
+                index._page_to_tags[page] = set()
+            index._page_to_tags[page].add(tag_slug)
 
     return index
+
+
+@pytest.fixture
+def taxonomy_index_100():
+    """TaxonomyIndex-like data: 100 pages, 20 tags."""
+    tag_to_pages, _ = generate_taxonomy_data(num_pages=100, num_tags=20, tags_per_page=3)
+    return create_taxonomy_index(tag_to_pages)
 
 
 @pytest.fixture
 def taxonomy_index_1k():
     """TaxonomyIndex-like data: 1K pages, 100 tags."""
-    from bengal.cache.taxonomy_index import TagEntry, TaxonomyIndex
-
     tag_to_pages, _ = generate_taxonomy_data(num_pages=1000, num_tags=100, tags_per_page=5)
-
-    index = TaxonomyIndex.__new__(TaxonomyIndex)
-    index.cache_path = Path("/dev/null")
-    index.tags = {}
-
-    for tag_slug, page_paths in tag_to_pages.items():
-        index.tags[tag_slug] = TagEntry(
-            tag_slug=tag_slug,
-            tag_name=tag_slug.replace("-", " ").title(),
-            page_paths=page_paths,
-            updated_at=datetime.now().isoformat(),
-            is_valid=True,
-        )
-
-    return index
+    return create_taxonomy_index(tag_to_pages)
 
 
 @pytest.fixture
 def taxonomy_index_5k():
     """TaxonomyIndex-like data: 5K pages, 300 tags."""
-    from bengal.cache.taxonomy_index import TagEntry, TaxonomyIndex
-
     tag_to_pages, _ = generate_taxonomy_data(num_pages=5000, num_tags=300, tags_per_page=10)
-
-    index = TaxonomyIndex.__new__(TaxonomyIndex)
-    index.cache_path = Path("/dev/null")
-    index.tags = {}
-
-    for tag_slug, page_paths in tag_to_pages.items():
-        index.tags[tag_slug] = TagEntry(
-            tag_slug=tag_slug,
-            tag_name=tag_slug.replace("-", " ").title(),
-            page_paths=page_paths,
-            updated_at=datetime.now().isoformat(),
-            is_valid=True,
-        )
-
-    return index
+    return create_taxonomy_index(tag_to_pages)
 
 
 @pytest.fixture
 def taxonomy_index_10k():
     """TaxonomyIndex-like data: 10K pages, 500 tags."""
-    from bengal.cache.taxonomy_index import TagEntry, TaxonomyIndex
-
     tag_to_pages, _ = generate_taxonomy_data(num_pages=10000, num_tags=500, tags_per_page=15)
-
-    index = TaxonomyIndex.__new__(TaxonomyIndex)
-    index.cache_path = Path("/dev/null")
-    index.tags = {}
-
-    for tag_slug, page_paths in tag_to_pages.items():
-        index.tags[tag_slug] = TagEntry(
-            tag_slug=tag_slug,
-            tag_name=tag_slug.replace("-", " ").title(),
-            page_paths=page_paths,
-            updated_at=datetime.now().isoformat(),
-            is_valid=True,
-        )
-
-    return index
+    return create_taxonomy_index(tag_to_pages)
 
 
 # ---------------------------------------------------------------------------
@@ -367,8 +329,7 @@ class TestTaxonomyRemovePageFromAllTags:
     """Benchmark remove_page_from_all_tags() - remove page from all its tags."""
 
     def test_1k_pages(self, taxonomy_index_1k):
-        """Baseline: 1K pages, 100 tags."""
-        # Pick a page in the middle
+        """Optimized: 1K pages, 100 tags with reverse index."""
         page_path = Path("content/blog/post-00500.md")
 
         iterations = 50
@@ -376,20 +337,8 @@ class TestTaxonomyRemovePageFromAllTags:
 
         for _i in range(iterations):
             # Create fresh copy for each iteration (since removal modifies state)
-            from bengal.cache.taxonomy_index import TagEntry, TaxonomyIndex
-
             tag_to_pages, _ = generate_taxonomy_data(num_pages=1000, num_tags=100, tags_per_page=5)
-            index = TaxonomyIndex.__new__(TaxonomyIndex)
-            index.cache_path = Path("/dev/null")
-            index.tags = {}
-            for tag_slug, page_paths in tag_to_pages.items():
-                index.tags[tag_slug] = TagEntry(
-                    tag_slug=tag_slug,
-                    tag_name=tag_slug.replace("-", " ").title(),
-                    page_paths=page_paths.copy(),
-                    updated_at=datetime.now().isoformat(),
-                    is_valid=True,
-                )
+            index = create_taxonomy_index(tag_to_pages)
 
             start = time.perf_counter()
             result = index.remove_page_from_all_tags(page_path)
@@ -401,9 +350,7 @@ class TestTaxonomyRemovePageFromAllTags:
 
     @pytest.mark.slow
     def test_10k_pages(self):
-        """Baseline: 10K pages, 500 tags. Expected major bottleneck."""
-        from bengal.cache.taxonomy_index import TagEntry, TaxonomyIndex
-
+        """Optimized: 10K pages, 500 tags with reverse index."""
         page_path = Path("content/blog/post-05000.md")
         iterations = 5
         timings = []
@@ -412,17 +359,7 @@ class TestTaxonomyRemovePageFromAllTags:
             tag_to_pages, _ = generate_taxonomy_data(
                 num_pages=10000, num_tags=500, tags_per_page=15
             )
-            index = TaxonomyIndex.__new__(TaxonomyIndex)
-            index.cache_path = Path("/dev/null")
-            index.tags = {}
-            for tag_slug, page_paths in tag_to_pages.items():
-                index.tags[tag_slug] = TagEntry(
-                    tag_slug=tag_slug,
-                    tag_name=tag_slug.replace("-", " ").title(),
-                    page_paths=page_paths.copy(),
-                    updated_at=datetime.now().isoformat(),
-                    is_valid=True,
-                )
+            index = create_taxonomy_index(tag_to_pages)
 
             start = time.perf_counter()
             result = index.remove_page_from_all_tags(page_path)
@@ -430,7 +367,7 @@ class TestTaxonomyRemovePageFromAllTags:
 
         avg_ms = (sum(timings) / len(timings)) * 1000
         print(f"\n📊 remove_page_from_all_tags (10K pages, 500 tags): {avg_ms:.4f}ms avg")
-        print("   ⚠️ Target after optimization: <20ms")
+        print("   ✅ Target after optimization: <20ms")
         assert isinstance(result, set)
 
 
