@@ -263,6 +263,9 @@ Table of Contents Sidebar Component
 
 Interactive table of contents with progress tracking, collapsible sections, and page metadata.
 
+Uses native <details>/<summary> for collapsible groups (no JS required for toggle).
+JS enhances with: active item tracking, auto-expand on scroll, progress indicator.
+
 Args:
 toc_items: List of TOC items with id, title, level (optional, defaults to None)
 toc: HTML TOC fallback (optional, defaults to None)
@@ -291,27 +294,27 @@ Example:
         #}
         {% for group in get_toc_grouped(toc_items) %}
         {% if group.is_group %}
-        {# Group with children (collapsible section) #}
-        <li class="toc-item toc-group" role="treeitem" data-level="1" data-collapsed="true">
-          <div class="toc-group-header">
-            <a href="#{{ group.header.id }}" class="toc-link toc-link-h2" data-toc-item="#{{ group.header.id }}">
-              {{ group.header.title }}
-            </a>
-            <button class="toc-group-toggle toc-count-toggle" aria-expanded="false"
-              aria-label="Toggle {{ group.children|length }} subsections"
-              title="Click to expand {{ group.children|length }} subsections">
-              <span class="toc-count">{{ group.children|length }}</span>
-            </button>
-          </div>
-          <ul class="toc-subitems" role="group">
-            {% for child in group.children %}
-            <li class="toc-item toc-level-{{ child.level }}" role="treeitem" data-level="{{ child.level }}">
-              <a href="#{{ child.id }}" class="toc-link" data-toc-item="#{{ child.id }}">
-                {{ child.title }}
+        {# Group with children - uses native <details>/<summary> for collapse #}
+        <li class="toc-item" role="treeitem" data-level="1">
+          <details class="toc-group">
+            <summary class="toc-group-header">
+              <a href="#{{ group.header.id }}" class="toc-link toc-link-h2" data-toc-item="#{{ group.header.id }}">
+                {{ group.header.title }}
               </a>
-            </li>
-            {% endfor %}
-          </ul>
+              <span class="toc-count-badge" title="{{ group.children|length }} subsections">
+                <span class="toc-count">{{ group.children|length }}</span>
+              </span>
+            </summary>
+            <ul class="toc-subitems" role="group">
+              {% for child in group.children %}
+              <li class="toc-item toc-level-{{ child.level }}" role="treeitem" data-level="{{ child.level }}">
+                <a href="#{{ child.id }}" class="toc-link" data-toc-item="#{{ child.id }}">
+                  {{ child.title }}
+                </a>
+              </li>
+              {% endfor %}
+            </ul>
+          </details>
         </li>
         {% else %}
         {# Standalone item (no children) #}

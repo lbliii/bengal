@@ -1,11 +1,11 @@
 /**
  * Enhanced Table of Contents (TOC) JavaScript
  *
- * Features:
- * - Intelligent grouping with collapsible H2 sections
+ * Uses native <details>/<summary> for collapsible groups (no JS required for toggle).
+ * This script enhances with:
  * - Active item tracking with auto-scroll
  * - Scroll progress indicator
- * - Quick navigation (top/bottom)
+ * - Auto-expand active section on scroll
  * - Compact mode toggle
  * - Full keyboard navigation
  * - State persistence in localStorage
@@ -148,7 +148,7 @@
     // Collect class changes to apply
     const activeHeading = headings[activeIndex];
     const activeLink = activeHeading ? activeHeading.link : null;
-    const activeParentGroup = activeLink ? activeLink.closest('.toc-group') : null;
+    const activeParentGroup = activeLink ? activeLink.closest('details.toc-group') : null;
 
     // Remove active class from all links
     headings.forEach((heading, index) => {
@@ -159,13 +159,13 @@
       }
     });
 
-    // Handle group expand/collapse
+    // Handle group expand/collapse (using native [open] attribute)
     if (activeParentGroup) {
       // Active link is inside a collapsible group
       const groupId = getGroupId(activeParentGroup);
 
       // Expand the active group
-      if (activeParentGroup.hasAttribute('data-collapsed')) {
+      if (!activeParentGroup.open) {
         expandGroup(activeParentGroup, groupId);
       }
 
@@ -173,7 +173,7 @@
       tocGroups.forEach(group => {
         if (group !== activeParentGroup) {
           const otherGroupId = getGroupId(group);
-          if (!group.hasAttribute('data-collapsed')) {
+          if (group.open) {
             collapseGroup(group, otherGroupId);
           }
         }
@@ -183,7 +183,7 @@
       // Collapse ALL groups to keep the minimal view
       tocGroups.forEach(group => {
         const groupId = getGroupId(group);
-        if (!group.hasAttribute('data-collapsed')) {
+        if (group.open) {
           collapseGroup(group, groupId);
         }
       });
@@ -207,11 +207,13 @@
   }
 
   // ============================================================================
-  // Collapsible Groups
+  // Collapsible Groups (Native <details>/<summary>)
+  // The browser handles expand/collapse natively. These functions are for
+  // programmatic control during scroll spy (auto-expand active group).
   // ============================================================================
 
   /**
-   * Get unique group ID
+   * Get unique group ID from the details element
    */
   function getGroupId(group) {
     const link = group.querySelector('[data-toc-item]');
@@ -219,14 +221,10 @@
   }
 
   /**
-   * Collapse a TOC group
+   * Collapse a TOC group (programmatic - for scroll spy)
    */
   function collapseGroup(group, groupId) {
-    const toggle = group.querySelector('.toc-group-toggle');
-    if (toggle) {
-      toggle.setAttribute('aria-expanded', 'false');
-    }
-    group.setAttribute('data-collapsed', 'true');
+    group.removeAttribute('open');
     if (groupId) {
       collapsedGroups.add(groupId);
     }
@@ -234,14 +232,10 @@
   }
 
   /**
-   * Expand a TOC group
+   * Expand a TOC group (programmatic - for scroll spy)
    */
   function expandGroup(group, groupId) {
-    const toggle = group.querySelector('.toc-group-toggle');
-    if (toggle) {
-      toggle.setAttribute('aria-expanded', 'true');
-    }
-    group.removeAttribute('data-collapsed');
+    group.setAttribute('open', '');
     if (groupId) {
       collapsedGroups.delete(groupId);
     }
@@ -249,37 +243,23 @@
   }
 
   /**
-   * Toggle a TOC group
-   */
-  function toggleGroup(group) {
-    const groupId = getGroupId(group);
-    const isCollapsed = group.hasAttribute('data-collapsed');
-
-    if (isCollapsed) {
-      expandGroup(group, groupId);
-    } else {
-      collapseGroup(group, groupId);
-    }
-  }
-
-  /**
    * Initialize group toggle handlers
+   * With native <details>/<summary>, the browser handles click toggling.
+   * We just need to track state changes for persistence.
    */
   function initGroupToggles() {
     tocGroups.forEach(group => {
-      const toggle = group.querySelector('.toc-group-toggle');
       const groupId = getGroupId(group);
 
-      // All groups start collapsed by default
-      // They are already collapsed via data-collapsed="true" in HTML
-
-      if (toggle) {
-        toggle.addEventListener('click', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          toggleGroup(group);
-        });
-      }
+      // Listen for native toggle events (for state persistence)
+      group.addEventListener('toggle', () => {
+        if (group.open) {
+          if (groupId) collapsedGroups.delete(groupId);
+        } else {
+          if (groupId) collapsedGroups.add(groupId);
+        }
+        saveState();
+      });
     });
   }
 
@@ -296,9 +276,10 @@
     if (toggleAllBtn) {
       toggleAllBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        const isExpanded = toggleAllBtn.getAttribute('aria-expanded') === 'true';
+        // Check if any group is expanded
+        const anyExpanded = tocGroups.some(group => group.open);
 
-        if (isExpanded) {
+        if (anyExpanded) {
           // Collapse all
           tocGroups.forEach(group => {
             const groupId = getGroupId(group);
@@ -472,7 +453,7 @@
     progressBar = document.querySelector('.toc-progress-bar');
     progressPosition = document.querySelector('.toc-progress-position');
     tocNav = document.querySelector('.toc-nav');
-    tocGroups = Array.from(document.querySelectorAll('.toc-group'));
+    tocGroups = Array.from(document.querySelectorAll('details.toc-group'));
     tocScrollContainer = document.querySelector('.toc-scroll-container');
 
     if (!tocItems.length) return;

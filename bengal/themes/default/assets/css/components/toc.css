@@ -268,10 +268,11 @@
 }
 
 /* ============================================================================
-   TOC Group (H2 Sections) - Minimal Design
+   TOC Group (H2 Sections) - Native <details>/<summary>
+   Uses native HTML disclosure widget for expand/collapse (no JS required)
    ============================================================================ */
 
-.toc-group {
+details.toc-group {
     border-radius: var(--border-radius-small);
     overflow: hidden;
     background: transparent;
@@ -279,7 +280,8 @@
     transition: all var(--transition-fast);
 }
 
-.toc-group-header {
+/* Summary acts as the toggle trigger */
+summary.toc-group-header {
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -287,33 +289,46 @@
     padding-inline-end: 0.25rem; /* Add small padding to prevent shadow clipping */
     background: transparent;
     min-width: 0;
+    cursor: pointer;
+    list-style: none; /* Remove default disclosure marker */
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
-/* Count badge as toggle button - no chevron needed */
-.toc-count-toggle {
+/* Remove default marker in all browsers */
+summary.toc-group-header::-webkit-details-marker {
+    display: none;
+}
+
+summary.toc-group-header::marker {
+    display: none;
+}
+
+/* Focus visible for keyboard users */
+summary.toc-group-header:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+    border-radius: var(--border-radius-small);
+}
+
+/* Count badge (was button, now just a span) */
+.toc-count-badge {
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 0;
     padding-inline-end: 0.125rem; /* Small padding to prevent shadow clipping */
-    background: transparent;
-    border: none;
-    cursor: pointer;
     transition: transform var(--transition-smooth);
     flex-shrink: 0;
-    touch-action: manipulation;
-    user-select: none;
-    -webkit-tap-highlight-color: transparent;
-    will-change: transform;
     /* Ensure shadows aren't clipped */
     margin-inline-end: 0.125rem;
 }
 
-.toc-count-toggle:hover {
+summary.toc-group-header:hover .toc-count-badge {
     transform: translate3d(0, 0, 0) scale(1.1);
 }
 
-.toc-count-toggle:hover .toc-count {
+summary.toc-group-header:hover .toc-count {
     opacity: 1;
     background: var(--color-primary-light);
     color: var(--color-primary);
@@ -322,14 +337,14 @@
     box-shadow: var(--neumorphic-subtle);
 }
 
-.toc-count-toggle:active .toc-count {
+summary.toc-group-header:active .toc-count {
     /* Subtle neumorphic pressed state - standardized */
     box-shadow: var(--neumorphic-subtle-pressed);
     transform: translate3d(0, 0, 0) scale(0.95);
 }
 
-/* Visual feedback for expanded state */
-.toc-count-toggle[aria-expanded="true"] .toc-count {
+/* Visual feedback for expanded state (native [open] attribute) */
+details.toc-group[open] .toc-count {
     opacity: 1;
     background: var(--color-primary-light);
     color: var(--color-primary);
@@ -392,7 +407,8 @@
     will-change: max-height, padding, opacity;
 }
 
-.toc-group[data-collapsed="true"] .toc-subitems {
+/* Collapsed state (native [open] attribute) */
+details.toc-group:not([open]) .toc-subitems {
     max-height: 0;
     padding-top: 0;
     padding-bottom: 0;
@@ -511,13 +527,13 @@
    Compact Mode
    ============================================================================ */
 
-[data-toc-mode="compact"] .toc-group {
+[data-toc-mode="compact"] details.toc-group {
     background: transparent;
     border: none;
     box-shadow: none;
 }
 
-[data-toc-mode="compact"] .toc-group-header {
+[data-toc-mode="compact"] summary.toc-group-header {
     padding: 0;
     background: transparent;
 }
@@ -731,7 +747,7 @@
         0.5px 0.5px 1px rgba(0, 0, 0, 0.2);
 }
 
-[data-theme="dark"] .toc-count-toggle:hover .toc-count {
+[data-theme="dark"] summary.toc-group-header:hover .toc-count {
     /* Subtle neumorphic hover for dark mode */
     box-shadow:
         inset 0.3px 0.3px 0.8px rgba(255, 255, 255, 0.15),
@@ -740,7 +756,7 @@
         -0.3px -0.3px 1px rgba(255, 255, 255, 0.08);
 }
 
-[data-theme="dark"] .toc-count-toggle:active .toc-count {
+[data-theme="dark"] summary.toc-group-header:active .toc-count {
     /* Subtle neumorphic pressed state for dark mode */
     box-shadow:
         inset 0.5px 0.5px 1px rgba(0, 0, 0, 0.4),
@@ -748,7 +764,7 @@
         0.3px 0.3px 0.5px rgba(0, 0, 0, 0.15);
 }
 
-[data-theme="dark"] .toc-count-toggle[aria-expanded="true"] .toc-count {
+[data-theme="dark"] details.toc-group[open] .toc-count {
     /* Subtle neumorphic shadow when expanded - dark mode */
     box-shadow:
         inset 0.3px 0.3px 0.8px rgba(255, 255, 255, 0.15),
