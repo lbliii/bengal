@@ -61,6 +61,7 @@ from bengal.directives.embed import (
     CodePenDirective,
     CodeSandboxDirective,
     GistDirective,
+    SoundCloudDirective,
     SpotifyDirective,
     StackBlitzDirective,
 )
@@ -219,7 +220,7 @@ def create_documentation_directives() -> Callable[[Any], None]:
                 StackBlitzDirective(),  # StackBlitz projects
                 # Audio streaming embeds
                 SpotifyDirective(),  # Spotify tracks, albums, playlists, podcasts
-                # TODO: Add SoundCloudDirective when implemented
+                SoundCloudDirective(),  # SoundCloud tracks, playlists
                 # Terminal recording embeds
                 AsciinemaDirective(),  # Terminal recordings from asciinema.org
                 # Figure and audio

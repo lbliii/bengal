@@ -951,8 +951,13 @@ class SoundCloudOptions(DirectiveOptions):
         css_class: Additional CSS classes
 
     Example:
-        :::{soundcloud} 293
-        :title: Roygbiv by Boards of Canada
+        :::{soundcloud} artistname/track-title
+        :title: Track Title by Artist
+        :::
+
+        # Also accepts full URLs:
+        :::{soundcloud} https://soundcloud.com/artistname/track-title
+        :title: Track Title by Artist
         :::
     """
 
@@ -979,11 +984,11 @@ class SoundCloudDirective(BengalDirective):
     SoundCloud embed directive.
 
     Embeds SoundCloud tracks and playlists using iframe.
-    Accepts numeric track/playlist IDs.
+    Accepts SoundCloud URLs (username/track-slug format).
 
     Syntax:
-        :::{soundcloud} 293
-        :title: Roygbiv by Boards of Canada
+        :::{soundcloud} username/track-name
+        :title: Track Title
         :::
 
     Options:
@@ -1011,8 +1016,8 @@ class SoundCloudDirective(BengalDirective):
         </div>
 
     Security:
-        - Track/playlist ID validated via regex (numeric)
-        - XSS prevention via strict ID validation
+        - URL path validated via regex (username/track-name format)
+        - XSS prevention via strict URL validation
     """
 
     NAMES: ClassVar[list[str]] = ["soundcloud"]
@@ -1020,8 +1025,11 @@ class SoundCloudDirective(BengalDirective):
     OPTIONS_CLASS: ClassVar[type[DirectiveOptions]] = SoundCloudOptions
     DIRECTIVE_NAMES: ClassVar[list[str]] = ["soundcloud"]
 
-    # SoundCloud IDs are numeric
-    ID_PATTERN: ClassVar[re.Pattern[str]] = re.compile(r"^\d+$")
+    # SoundCloud URL path: username/track-name (alphanumeric, hyphens, underscores)
+    # Matches: user-604227447/some-track-name or artistname/track-title
+    URL_PATH_PATTERN: ClassVar[re.Pattern[str]] = re.compile(
+        r"^[a-zA-Z0-9_-]+/[a-zA-Z0-9_-]+(?:/[a-zA-Z0-9_-]+)?$"
+    )
 
     # Default heights by content type
     DEFAULT_HEIGHTS: ClassVar[dict[str, int]] = {
@@ -1030,11 +1038,33 @@ class SoundCloudDirective(BengalDirective):
         "playlist": 450,
     }
 
-    def validate_source(self, soundcloud_id: str) -> str | None:
-        """Validate SoundCloud ID (numeric)."""
-        if not self.ID_PATTERN.match(soundcloud_id):
-            return f"Invalid SoundCloud ID: {soundcloud_id!r}. Expected numeric ID."
+    def validate_source(self, url_path: str) -> str | None:
+        """Validate SoundCloud URL path (username/track-name format)."""
+        # Strip any leading https://soundcloud.com/ if present
+        cleaned = url_path
+        if cleaned.startswith("https://soundcloud.com/"):
+            cleaned = cleaned[23:]  # Remove the prefix
+        elif cleaned.startswith("soundcloud.com/"):
+            cleaned = cleaned[15:]
+
+        # Remove query params if present
+        if "?" in cleaned:
+            cleaned = cleaned.split("?")[0]
+
+        if not self.URL_PATH_PATTERN.match(cleaned):
+            return f"Invalid SoundCloud path: {url_path!r}. Expected format: username/track-name"
         return None
+
+    def _clean_path(self, url_path: str) -> str:
+        """Clean and normalize a SoundCloud URL path."""
+        cleaned = url_path
+        if cleaned.startswith("https://soundcloud.com/"):
+            cleaned = cleaned[23:]
+        elif cleaned.startswith("soundcloud.com/"):
+            cleaned = cleaned[15:]
+        if "?" in cleaned:
+            cleaned = cleaned.split("?")[0]
+        return cleaned
 
     def parse_directive(
         self,
@@ -1045,23 +1075,26 @@ class SoundCloudDirective(BengalDirective):
         state: Any,
     ) -> DirectiveToken:
         """Build SoundCloud embed token."""
-        soundcloud_id = title.strip()
+        url_path = title.strip()
 
-        # Validate SoundCloud ID
-        error = self.validate_source(soundcloud_id)
+        # Validate SoundCloud URL path
+        error = self.validate_source(url_path)
         if error:
             return DirectiveToken(
                 type=self.TOKEN_TYPE,
-                attrs={"error": error, "soundcloud_id": soundcloud_id},
+                attrs={"error": error, "url_path": url_path},
             )
+
+        # Clean the path
+        cleaned_path = self._clean_path(url_path)
 
         # Validate title (accessibility requirement)
         if not options.title:
             return DirectiveToken(
                 type=self.TOKEN_TYPE,
                 attrs={
-                    "error": f"Missing required :title: option for SoundCloud embed. ID: {soundcloud_id}",
-                    "soundcloud_id": soundcloud_id,
+                    "error": f"Missing required :title: option for SoundCloud embed. Path: {cleaned_path}",
+                    "url_path": cleaned_path,
                 },
             )
 
@@ -1076,7 +1109,7 @@ class SoundCloudDirective(BengalDirective):
         return DirectiveToken(
             type=self.TOKEN_TYPE,
             attrs={
-                "soundcloud_id": soundcloud_id,
+                "url_path": cleaned_path,
                 "title": options.title,
                 "content_type": options.type,
                 "height": height,
@@ -1095,17 +1128,16 @@ class SoundCloudDirective(BengalDirective):
         """Render SoundCloud embed to HTML."""
         error = attrs.get("error")
         if error:
-            soundcloud_id = attrs.get("soundcloud_id", "unknown")
+            url_path = attrs.get("url_path", "unknown")
             return (
                 f'<div class="audio-embed soundcloud audio-error">\n'
                 f'  <p class="error">SoundCloud Error: {self.escape_html(error)}</p>\n'
-                f"  <p>ID: <code>{self.escape_html(soundcloud_id)}</code></p>\n"
+                f"  <p>Path: <code>{self.escape_html(url_path)}</code></p>\n"
                 f"</div>\n"
             )
 
-        soundcloud_id = attrs.get("soundcloud_id", "")
+        url_path = attrs.get("url_path", "")
         title = attrs.get("title", "SoundCloud Embed")
-        content_type = attrs.get("content_type", "track")
         height = attrs.get("height", 166)
         color = attrs.get("color", "ff5500")
         autoplay = attrs.get("autoplay", False)
@@ -1120,10 +1152,13 @@ class SoundCloudDirective(BengalDirective):
         safe_title = self.escape_html(title)
 
         # Build embed URL with parameters
-        # SoundCloud uses URL-encoded API URLs
-        api_url = f"https%3A//api.soundcloud.com/{content_type}s/{soundcloud_id}"
+        # SoundCloud widget accepts full URLs
+        from urllib.parse import quote
+
+        soundcloud_url = f"https://soundcloud.com/{url_path}"
+        encoded_url = quote(soundcloud_url, safe="")
         params = [
-            f"url={api_url}",
+            f"url={encoded_url}",
             f"color=%23{color}",
             f"auto_play={'true' if autoplay else 'false'}",
             f"hide_related={'true' if hide_related else 'false'}",
@@ -1133,7 +1168,6 @@ class SoundCloudDirective(BengalDirective):
             f"visual={'true' if visual else 'false'}",
         ]
         embed_url = f"https://w.soundcloud.com/player/?{'&'.join(params)}"
-        soundcloud_url = "https://soundcloud.com"
 
         return (
             f'<div class="{class_str}" style="height: {height}px">\n'

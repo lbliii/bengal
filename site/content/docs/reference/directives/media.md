@@ -448,14 +448,14 @@ The `SPOTIFY_ID` is the 22-character alphanumeric ID from the Spotify URL. For e
 **Track embed**:
 
 ```markdown
-:::{spotify} 4iV5W9uYEdYUVa79Axb7Rh
-:title: Bohemian Rhapsody by Queen
+:::{spotify} 13JAl3SvRcko5HgfwMU5q5
+:title: CCTV by Phantoms & JEV
 :type: track
 :::
 ```
 
-:::{spotify} 4iV5W9uYEdYUVa79Axb7Rh
-:title: Bohemian Rhapsody by Queen
+:::{spotify} 13JAl3SvRcko5HgfwMU5q5
+:title: CCTV by Phantoms & JEV
 :type: track
 :::
 
@@ -504,17 +504,98 @@ The `SPOTIFY_ID` is the 22-character alphanumeric ID from the Spotify URL. For e
 **Light theme**:
 
 ```markdown
-:::{spotify} 4iV5W9uYEdYUVa79Axb7Rh
-:title: Bohemian Rhapsody by Queen
+:::{spotify} 13JAl3SvRcko5HgfwMU5q5
+:title: CCTV by Phantoms & JEV
 :type: track
 :theme: 1
 :::
 ```
 
-:::{spotify} 4iV5W9uYEdYUVa79Axb7Rh
-:title: Bohemian Rhapsody by Queen
+:::{spotify} 13JAl3SvRcko5HgfwMU5q5
+:title: CCTV by Phantoms & JEV
 :type: track
 :theme: 1
+:::
+
+### SoundCloud
+
+Embed SoundCloud tracks and playlists.
+
+**Syntax**:
+
+```markdown
+:::{soundcloud} username/track-name
+:title: Track title
+:::
+```
+
+Use the path from the SoundCloud URL (everything after `soundcloud.com/`). You can also paste the full URL — the directive will extract the path automatically.
+
+**Options**:
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `:title:` | (required) | Accessible title for iframe |
+| `:type:` | `track` | Content type: `track` or `playlist` |
+| `:height:` | (auto) | Embed height in pixels (auto-detected by type) |
+| `:color:` | `ff5500` | Accent color hex without # |
+| `:autoplay:` | `false` | Auto-start playback |
+| `:hide_related:` | `false` | Hide related tracks |
+| `:show_comments:` | `true` | Show comments |
+| `:show_user:` | `true` | Show uploader info |
+| `:show_reposts:` | `false` | Show reposts |
+| `:visual:` | `false` | Use visual player (larger artwork) |
+| `:class:` | — | Additional CSS classes |
+
+**Default heights by type**:
+
+| Type | Height |
+|------|--------|
+| `track` | 166px |
+| `track` (visual) | 300px |
+| `playlist` | 450px |
+
+:::{example-label} Examples
+:::
+
+**Track embed** (from URL path):
+
+```markdown
+:::{soundcloud} user-604227447/celine-dion-the-whispers-im-alive-x-and-the-beat-goes-on-the-jammin-kid-mashup
+:title: I'm Alive x And The Beat Goes On (Mashup)
+:::
+```
+
+:::{soundcloud} user-604227447/celine-dion-the-whispers-im-alive-x-and-the-beat-goes-on-the-jammin-kid-mashup
+:title: I'm Alive x And The Beat Goes On (Mashup)
+:::
+
+**Visual player**:
+
+```markdown
+:::{soundcloud} user-604227447/celine-dion-the-whispers-im-alive-x-and-the-beat-goes-on-the-jammin-kid-mashup
+:title: I'm Alive x And The Beat Goes On (Mashup)
+:visual: true
+:::
+```
+
+:::{soundcloud} user-604227447/celine-dion-the-whispers-im-alive-x-and-the-beat-goes-on-the-jammin-kid-mashup
+:title: I'm Alive x And The Beat Goes On (Mashup)
+:visual: true
+:::
+
+**Custom accent color**:
+
+```markdown
+:::{soundcloud} user-604227447/celine-dion-the-whispers-im-alive-x-and-the-beat-goes-on-the-jammin-kid-mashup
+:title: I'm Alive x And The Beat Goes On (Mashup)
+:color: 8b5cf6
+:::
+```
+
+:::{soundcloud} user-604227447/celine-dion-the-whispers-im-alive-x-and-the-beat-goes-on-the-jammin-kid-mashup
+:title: I'm Alive x And The Beat Goes On (Mashup)
+:color: 8b5cf6
 :::
 
 ## Code Playground Embeds

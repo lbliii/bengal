@@ -87,7 +87,11 @@ def _normalize_language(language: str) -> str:
     return _LANGUAGE_ALIASES.get(lang_lower, lang_lower)
 
 
-def get_lexer_cached(language: str | None = None, code: str = "") -> Any:
+def get_lexer_cached(
+    language: str | None = None,
+    code: str = "",
+    suppress_warnings: bool = False,
+) -> Any:
     """
     Get a Pygments lexer with aggressive caching.
 
@@ -99,6 +103,8 @@ def get_lexer_cached(language: str | None = None, code: str = "") -> Any:
     Args:
         language: Optional language name (e.g., 'python', 'javascript')
         code: Code content (used for guessing if language not specified)
+        suppress_warnings: If True, don't log warnings for unknown languages.
+            Use for example code blocks showing other systems' syntax.
 
     Returns:
         Pygments lexer instance
@@ -169,17 +175,18 @@ def get_lexer_cached(language: str | None = None, code: str = "") -> Any:
             return lexer
         except ClassNotFound:
             # Language not recognized by Pygments
-            logger.warning(
-                "unknown_lexer",
-                language=language,
-                normalized=normalized,
-                fallback="text",
-                hint=(
-                    f"Language '{language}' not recognized by Pygments. "
-                    "Rendering as plain text. "
-                    "Check language name spelling or see Pygments docs for supported languages."
-                ),
-            )
+            if not suppress_warnings:
+                logger.warning(
+                    "unknown_lexer",
+                    language=language,
+                    normalized=normalized,
+                    fallback="text",
+                    hint=(
+                        f"Language '{language}' not recognized by Pygments. "
+                        "Rendering as plain text. "
+                        "Check language name spelling or see Pygments docs for supported languages."
+                    ),
+                )
             # Cache the fallback too
             lexer = get_lexer_by_name("text")
             with _cache_lock:
