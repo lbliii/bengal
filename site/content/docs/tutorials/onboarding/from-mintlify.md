@@ -209,7 +209,7 @@ curl https://api.example.com/users
 :::{tab-set}
 
 :::{tab} Mintlify (MDX)
-```jsx
+````jsx
 <CodeGroup>
   ```python Python
   print("Hello, World!")
@@ -223,7 +223,7 @@ curl https://api.example.com/users
   fmt.Println("Hello, World!")
   ```
 </CodeGroup>
-```
+````
 :::{/tab}
 
 :::{tab} Bengal

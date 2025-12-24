@@ -46,9 +46,46 @@ class TestMenuItem:
         parent.add_child(child2)
 
         assert len(parent.children) == 2
+        # Children need to be sorted (deferred sorting for O(1) add_child)
+        parent.sort_children()
         # Children should be sorted by weight
         assert parent.children[0].name == "Intro"
         assert parent.children[1].name == "Guide"
+
+    def test_menu_item_get_sorted_children(self):
+        """Test get_sorted_children() returns sorted children."""
+        parent = MenuItem(name="Docs", url="/docs/", identifier="docs")
+        child1 = MenuItem(name="C", url="/c/", weight=3)
+        child2 = MenuItem(name="A", url="/a/", weight=1)
+        child3 = MenuItem(name="B", url="/b/", weight=2)
+
+        parent.add_child(child1)
+        parent.add_child(child2)
+        parent.add_child(child3)
+
+        # get_sorted_children() should sort and return
+        sorted_children = parent.get_sorted_children()
+        assert sorted_children[0].name == "A"
+        assert sorted_children[1].name == "B"
+        assert sorted_children[2].name == "C"
+
+    def test_sort_children_idempotent(self):
+        """Test that sort_children() is idempotent."""
+        parent = MenuItem(name="Docs", url="/docs/")
+        child1 = MenuItem(name="B", url="/b/", weight=2)
+        child2 = MenuItem(name="A", url="/a/", weight=1)
+
+        parent.add_child(child1)
+        parent.add_child(child2)
+
+        # Sort multiple times
+        parent.sort_children()
+        parent.sort_children()
+        parent.sort_children()
+
+        # Should still be correctly sorted
+        assert parent.children[0].name == "A"
+        assert parent.children[1].name == "B"
 
     def test_mark_active(self):
         """Test marking menu items as active."""

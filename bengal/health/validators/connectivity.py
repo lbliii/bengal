@@ -189,7 +189,6 @@ class ConnectivityValidator(BaseValidator):
             try:
                 connectivity_report = graph.get_connectivity_report()
                 dist = connectivity_report.get_distribution()
-                pct = connectivity_report.get_percentages()
                 isolated_pages = connectivity_report.isolated
                 lightly_linked_pages = connectivity_report.lightly_linked
             except Exception as e:
@@ -211,12 +210,6 @@ class ConnectivityValidator(BaseValidator):
                     "adequately_linked": 0,
                     "well_connected": 0,
                 }
-                pct = {
-                    "isolated": 0.0,
-                    "lightly_linked": 0.0,
-                    "adequately_linked": 0.0,
-                    "well_connected": 0.0,
-                }
                 connectivity_report = None
 
             # Get config thresholds
@@ -233,6 +226,7 @@ class ConnectivityValidator(BaseValidator):
                     results.append(
                         CheckResult.error(
                             f"{len(isolated_pages)} isolated pages (score < 0.25)",
+                            code="H701",
                             recommendation=(
                                 "Add explicit cross-references or internal links to connect isolated pages. "
                                 "Isolated pages have no meaningful connections and are hard to discover."
@@ -248,6 +242,7 @@ class ConnectivityValidator(BaseValidator):
                     results.append(
                         CheckResult.warning(
                             f"{len(isolated_pages)} isolated page(s) found",
+                            code="H701",
                             recommendation="Consider adding navigation or cross-references to these pages",
                             details=[
                                 f"  🔴 {getattr(p.source_path, 'name', str(p))}"
@@ -267,6 +262,7 @@ class ConnectivityValidator(BaseValidator):
                     results.append(
                         CheckResult.warning(
                             f"{len(lightly_linked_pages)} lightly-linked pages (score 0.25-1.0)",
+                            code="H702",
                             recommendation=(
                                 "These pages rely on structural links only. "
                                 "Add explicit cross-references to improve discoverability."
@@ -295,6 +291,7 @@ class ConnectivityValidator(BaseValidator):
                     results.append(
                         CheckResult.warning(
                             f"{len(hubs)} hub page(s) detected (>{super_hub_threshold} refs)",
+                            code="H703",
                             recommendation=(
                                 "Consider splitting these pages into sub-topics for better navigation. "
                                 "Very popular pages might benefit from multiple entry points."
@@ -320,6 +317,7 @@ class ConnectivityValidator(BaseValidator):
                     results.append(
                         CheckResult.warning(
                             f"Low average connectivity score ({avg_score:.2f})",
+                            code="H704",
                             recommendation=(
                                 "Consider adding more internal links, cross-references, or tags. "
                                 "Aim for an average score >= 1.0 for good discoverability."
@@ -340,6 +338,7 @@ class ConnectivityValidator(BaseValidator):
                     results.append(
                         CheckResult.warning(
                             f"Low average connectivity ({avg_connectivity:.1f} links per page)",
+                            code="H704",
                             recommendation=(
                                 "Consider adding more internal links, cross-references, or tags. "
                                 "Well-connected content is easier to discover and better for SEO."

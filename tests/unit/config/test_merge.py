@@ -1,6 +1,118 @@
 """Tests for deep merge utilities."""
 
-from bengal.config.merge import deep_merge, get_nested_key, set_nested_key
+from bengal.config.merge import (
+    batch_deep_merge,
+    deep_merge,
+    get_nested_key,
+    set_nested_key,
+)
+
+
+class TestBatchDeepMerge:
+    """Test batch_deep_merge function."""
+
+    def test_batch_merge_empty_list(self):
+        """Test batch merge with empty list."""
+        result = batch_deep_merge([])
+        assert result == {}
+
+    def test_batch_merge_single_config(self):
+        """Test batch merge with single config."""
+        config = {"site": {"title": "Test"}}
+        result = batch_deep_merge([config])
+        assert result == config
+
+    def test_batch_merge_two_configs(self):
+        """Test batch merge with two configs."""
+        config1 = {"site": {"title": "Base"}}
+        config2 = {"site": {"baseurl": "/"}}
+
+        result = batch_deep_merge([config1, config2])
+
+        assert result == {"site": {"title": "Base", "baseurl": "/"}}
+
+    def test_batch_merge_multiple_configs(self):
+        """Test batch merge with multiple overlapping configs."""
+        configs = [
+            {"site": {"title": "First"}},
+            {"build": {"parallel": True}},
+            {"site": {"title": "Second", "baseurl": "/"}},
+            {"build": {"incremental": True}},
+        ]
+
+        result = batch_deep_merge(configs)
+
+        assert result == {
+            "site": {"title": "Second", "baseurl": "/"},
+            "build": {"parallel": True, "incremental": True},
+        }
+
+    def test_batch_merge_deeply_nested(self):
+        """Test batch merge with deeply nested dicts."""
+        configs = [
+            {"level1": {"level2": {"level3": {"a": 1}}}},
+            {"level1": {"level2": {"level3": {"b": 2}}}},
+            {"level1": {"level2": {"level3": {"c": 3}}}},
+        ]
+
+        result = batch_deep_merge(configs)
+
+        assert result["level1"]["level2"]["level3"] == {"a": 1, "b": 2, "c": 3}
+
+    def test_batch_merge_identical_to_sequential(self):
+        """Test that batch merge produces same result as sequential deep_merge."""
+        configs = [
+            {"site": {"title": "Base", "nested": {"a": 1}}},
+            {"site": {"baseurl": "/", "nested": {"b": 2}}},
+            {"build": {"parallel": True}},
+            {"site": {"nested": {"c": 3}}, "build": {"incremental": True}},
+        ]
+
+        # Sequential merge
+        sequential_result = {}
+        for config in configs:
+            sequential_result = deep_merge(sequential_result, config)
+
+        # Batch merge
+        batch_result = batch_deep_merge(configs)
+
+        assert batch_result == sequential_result
+
+    def test_batch_merge_does_not_mutate_inputs(self):
+        """Test that batch merge does not mutate input configs."""
+        import copy
+
+        configs = [
+            {"site": {"title": "Base"}},
+            {"site": {"baseurl": "/"}},
+        ]
+        original = copy.deepcopy(configs)
+
+        batch_deep_merge(configs)
+
+        assert configs == original
+
+    def test_batch_merge_replaces_lists(self):
+        """Test that lists are replaced, not merged."""
+        configs = [
+            {"tags": ["python", "django"]},
+            {"tags": ["rust", "go"]},
+        ]
+
+        result = batch_deep_merge(configs)
+
+        assert result == {"tags": ["rust", "go"]}
+
+    def test_batch_merge_type_mismatch(self):
+        """Test merging with type mismatches (later config wins)."""
+        configs = [
+            {"config": {"value": "string"}},
+            {"config": ["list", "of", "values"]},
+        ]
+
+        result = batch_deep_merge(configs)
+
+        assert result == {"config": ["list", "of", "values"]}
 
 
 class TestDeepMerge:

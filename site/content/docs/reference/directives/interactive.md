@@ -15,6 +15,8 @@ keywords:
 - interactive
 - tabs
 - tables
+- language sync
+- copy button
 ---
 
 # Interactive Directives
@@ -29,52 +31,215 @@ Interactive directives provide JavaScript-enhanced components for code examples 
 
 ## Code Tabs
 
-Create tabbed interfaces for multi-language code examples.
+Create tabbed interfaces for multi-language code examples with automatic language sync, syntax highlighting, and copy buttons.
 
 **Aliases**: `{code_tabs}`
 
-**Syntax**:
+### Features
+
+- **Simplified syntax** — Tab labels derived from code fence language (no markers needed)
+- **Auto language sync** — All code-tabs on a page sync when user picks a language
+- **Language icons** — Automatic icons for common language categories
+- **Pygments highlighting** — Proper syntax coloring with line numbers and line emphasis
+- **Copy button** — One-click copy per tab
+- **Filename display** — Show filename badges in tab labels
+
+### Syntax
+
+Tab labels are derived automatically from the code fence language:
 
 ````markdown
 :::{code-tabs}
 
-### Tab: Language Name
-```language
-code here
+```python main.py {3-4}
+def greet(name):
+    """Say hello."""
+    print(f"Hello, {name}!")
+
+greet("World")
 ```
 
-### Tab: Another Language
-```language
-more code
+```javascript index.js {2-3}
+function greet(name) {
+    // Say hello
+    console.log(`Hello, ${name}!`);
+}
+
+greet("World");
 ```
 
-:::{/code-tabs}
+:::
 ````
 
-**Note**: You can also use `### Language Name` (without "Tab:" prefix) for simpler headings.
+### Info String Format
+
+The code fence info string supports filename, title override, and highlights:
+
+```
+language [filename] [title="Label"] [{line-highlights}]
+```
+
+| Example | Tab Label | Filename Badge | Highlights |
+|---------|-----------|----------------|------------|
+| `python` | Python | — | — |
+| `python client.py` | Python | client.py | — |
+| `python {3-4}` | Python | — | Lines 3-4 |
+| `python client.py {3-4}` | Python | client.py | Lines 3-4 |
+| `python title="Flask"` | Flask | — | — |
+| `python app.py title="Flask" {5-7}` | Flask | app.py | Lines 5-7 |
+
+### Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `:sync:` | `"language"` | Sync key for cross-tab synchronization. Use `"none"` to disable. |
+| `:linenos:` | auto | Force line numbers on/off. Auto-enabled for 3+ lines. |
+
+**Option aliases**: `:line-numbers:` = `:linenos:`
+
+### Custom Tab Labels
+
+Use `title="..."` to override the default language-derived label:
+
+````markdown
+:::{code-tabs}
+
+```javascript title="React"
+const [count, setCount] = useState(0);
+```
+
+```javascript title="Vue"
+const count = ref(0);
+```
+
+:::
+````
+
+### Files Without Extensions
+
+For files like `Dockerfile` that have no extension, use `title=`:
+
+````markdown
+:::{code-tabs}
+
+```dockerfile title="Dockerfile"
+FROM python:3.12-slim
+```
+
+```yaml docker-compose.yml
+services:
+  web:
+    build: .
+```
+
+:::
+````
+
+### Language Display Names
+
+Languages are automatically formatted with proper casing:
+
+| Language | Display Name |
+|----------|-------------|
+| `javascript`, `js` | JavaScript |
+| `typescript`, `ts` | TypeScript |
+| `cpp`, `cxx` | C++ |
+| `csharp`, `cs` | C# |
+| `golang` | Go |
+| `python` | Python |
+| Others | Capitalized |
+
+### Language Sync
+
+By default, all code-tabs on a page with the same sync key synchronize. When a user selects Python in one code-tabs block, all other blocks switch to Python.
+
+**Sync is persistent**: User preferences are saved to localStorage and restored on page load.
+
+**Disable sync** for a specific block:
+
+````markdown
+:::{code-tabs}
+:sync: none
+
+```python
+# Before
+```
+
+```python
+# After
+```
+
+:::
+````
+
+**Custom sync groups**:
+
+````markdown
+:::{code-tabs}
+:sync: api-examples
+
+```python
+...
+```
+
+:::
+
+:::{code-tabs}
+:sync: config-examples
+
+```yaml
+...
+```
+
+:::
+````
 
 ### Examples
 
-:::{example-label} Python and JavaScript
+:::{example-label} Basic Usage
 :::
 
 ````markdown
 :::{code-tabs}
 
-### Tab: Python
 ```python
 def hello():
     print("Hello, World!")
 ```
 
-### Tab: JavaScript
 ```javascript
 function hello() {
     console.log("Hello, World!");
 }
 ```
 
-:::{/code-tabs}
+:::
+````
+
+:::{example-label} With Filenames and Highlights
+:::
+
+````markdown
+:::{code-tabs}
+
+```python api_client.py {3-4}
+import requests
+
+def get_users():
+    response = requests.get("/api/users")
+    return response.json()
+```
+
+```javascript client.js {3-4}
+import fetch from 'node-fetch';
+
+async function getUsers() {
+    const response = await fetch('/api/users');
+    return response.json();
+}
+```
+
+:::
 ````
 
 :::{example-label} Multiple Languages
@@ -83,30 +248,70 @@ function hello() {
 ````markdown
 :::{code-tabs}
 
-### Python
 ```python
 print("Hello")
 ```
 
-### JavaScript
 ```javascript
 console.log("Hello");
 ```
 
-### Go
 ```go
 fmt.Println("Hello")
 ```
 
-:::{/code-tabs}
+```bash
+echo "Hello"
+```
+
+:::
 ````
 
 ### Rendering
 
-Code tabs render as interactive tabbed interface with:
+Code tabs render as an interactive tabbed interface with:
+
 - Tab navigation for switching languages
-- Syntax highlighting for each language
+- Language icons (terminal for bash/shell, database for SQL, code for others)
+- Filename badges in tab labels
+- Pygments syntax highlighting with line numbers
+- Line emphasis for highlighted lines
+- Copy button on hover
 - First tab selected by default
+- Synced tab selection across the page
+
+### Language Icons
+
+Icons are automatically assigned based on language category:
+
+| Languages | Icon |
+|-----------|------|
+| bash, shell, sh, zsh, powershell, cmd | Terminal |
+| sql, mysql, postgresql, sqlite | Database |
+| json, yaml, toml, xml, ini | File/Code |
+| All others | Code |
+
+### Legacy Syntax
+
+The older `### Language` marker syntax is still supported for backward compatibility:
+
+````markdown
+:::{code-tabs}
+
+### Python (main.py)
+```python
+print("hello")
+```
+
+### JavaScript
+```javascript
+console.log("hello");
+```
+
+:::
+````
+
+This legacy syntax is not recommended for new content.
 
 ## Data Table
 
@@ -181,11 +386,15 @@ Data tables render as interactive tables with:
 ## Best Practices
 
 1. **Code Tabs**: Use for comparing code across languages or showing multiple approaches
-2. **Data Tables**: Use for large datasets that benefit from sorting/filtering
-3. **Performance**: Consider pagination for very large tables
-4. **Accessibility**: Ensure JavaScript is enabled for interactive features
+2. **Language Sync**: Keep sync enabled (default) for API docs with consistent language examples
+3. **Filenames**: Add filenames when showing complete file contents
+4. **Line Highlights**: Use sparingly to draw attention to key lines
+5. **Data Tables**: Use for large datasets that benefit from sorting/filtering
+6. **Performance**: Consider pagination for very large tables
+7. **Accessibility**: Keyboard navigation is supported for both directives
 
 ## Related
 
-- [Layout Directives](/docs/reference/directives/layout/) - Static tabs and cards
+- [Layout Directives](/docs/reference/directives/layout/) - Static tabs (`tab-set`) and cards
 - [Formatting Directives](/docs/reference/directives/formatting/) - List tables (static)
+- [Code Blocks](/docs/content/authoring/code-blocks/) - Standard code block syntax

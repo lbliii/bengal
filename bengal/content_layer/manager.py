@@ -96,11 +96,14 @@ class ContentLayerManager:
 
         if source_type not in SOURCE_REGISTRY:
             available = ", ".join(sorted(SOURCE_REGISTRY.keys()))
+            from bengal.errors import ErrorCode
+
             raise BengalConfigError(
                 f"Unknown source type: {source_type!r}\n"
                 f"Available types: {available}\n"
                 f"For remote sources, install extras: pip install bengal[{source_type}]",
                 suggestion=f"Use one of the available source types: {available}",
+                code=ErrorCode.C003,
             )
 
         source_class = SOURCE_REGISTRY[source_type]

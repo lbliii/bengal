@@ -26,7 +26,6 @@ from __future__ import annotations
 
 import json
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -42,7 +41,6 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-@dataclass
 class IndexEntry(Cacheable):
     """
     A single entry in a query index.
@@ -52,24 +50,52 @@ class IndexEntry(Cacheable):
 
     Implements the Cacheable protocol for type-safe serialization.
 
+    Uses set for O(1) add/remove/contains operations.
+
     Attributes:
         key: Index key (e.g., 'blog', 'Jane Smith', '2024')
-        page_paths: List of page source paths (strings, not Page objects)
+        page_paths: Set of page source paths for O(1) operations
         metadata: Extra data for display (e.g., section title, author email)
         updated_at: ISO timestamp of last update
         content_hash: Hash of page_paths for change detection
     """
 
-    key: str
-    page_paths: list[str] = field(default_factory=list)
-    metadata: dict[str, Any] = field(default_factory=dict)
-    updated_at: str = field(default_factory=lambda: datetime.now().isoformat())
-    content_hash: str = ""
+    def __init__(
+        self,
+        key: str,
+        page_paths: set[str] | None = None,
+        metadata: dict[str, Any] | None = None,
+        updated_at: str | None = None,
+        content_hash: str = "",
+    ) -> None:
+        """Initialize IndexEntry."""
+        self.key = key
+        self.page_paths: set[str] = page_paths if page_paths is not None else set()
+        self.metadata = metadata if metadata is not None else {}
+        self.updated_at = updated_at if updated_at else datetime.now().isoformat()
+        self.content_hash = content_hash if content_hash else self._compute_hash()
 
-    def __post_init__(self) -> None:
-        """Compute content hash if not provided."""
-        if not self.content_hash:
-            self.content_hash = self._compute_hash()
+    def add_page(self, page_path: str) -> bool:
+        """Add page to entry (O(1)). Returns True if page was added."""
+        if page_path not in self.page_paths:
+            self.page_paths.add(page_path)
+            return True
+        return False
+
+    def remove_page(self, page_path: str) -> bool:
+        """Remove page from entry (O(1)). Returns True if page was removed."""
+        if page_path in self.page_paths:
+            self.page_paths.discard(page_path)
+            return True
+        return False
+
+    def __contains__(self, page_path: str) -> bool:
+        """O(1) membership check."""
+        return page_path in self.page_paths
+
+    def __len__(self) -> int:
+        """Return number of pages."""
+        return len(self.page_paths)
 
     def _compute_hash(self) -> str:
         """Compute hash of page_paths for change detection."""
@@ -81,7 +107,7 @@ class IndexEntry(Cacheable):
         """Serialize to cache-friendly dictionary (Cacheable protocol)."""
         return {
             "key": self.key,
-            "page_paths": self.page_paths,
+            "page_paths": sorted(self.page_paths),  # Convert to sorted list for JSON
             "metadata": self.metadata,
             "updated_at": self.updated_at,
             "content_hash": self.content_hash,
@@ -92,21 +118,11 @@ class IndexEntry(Cacheable):
         """Deserialize from cache dictionary (Cacheable protocol)."""
         return cls(
             key=data["key"],
-            page_paths=data.get("page_paths", []),
+            page_paths=set(data.get("page_paths", [])),
             metadata=data.get("metadata", {}),
             updated_at=data.get("updated_at", datetime.now().isoformat()),
             content_hash=data.get("content_hash", ""),
         )
-
-    # Aliases for backward compatibility
-    def to_dict(self) -> dict[str, Any]:
-        """Alias for to_cache_dict (backward compatibility)."""
-        return self.to_cache_dict()
-
-    @staticmethod
-    def from_dict(data: dict[str, Any]) -> IndexEntry:
-        """Alias for from_cache_dict (backward compatibility)."""
-        return IndexEntry.from_cache_dict(data)
 
 
 class QueryIndex(ABC):
@@ -251,7 +267,7 @@ class QueryIndex(ABC):
 
         return old_keys
 
-    def get(self, key: str) -> list[str]:
+    def get(self, key: str) -> set[str]:
         """
         Get page paths for index key (O(1) lookup).
 
@@ -259,24 +275,22 @@ class QueryIndex(ABC):
             key: Index key
 
         Returns:
-            List of page paths (copy, safe to modify)
+            Set of page paths (copy, safe to modify)
         """
         entry = self.entries.get(key)
-        return entry.page_paths.copy() if entry else []
+        return entry.page_paths.copy() if entry else set()
 
     def keys(self) -> list[str]:
         """Get all index keys."""
         return list(self.entries.keys())
 
-    def has_changed(self, key: str, page_paths: list[str]) -> bool:
+    def has_changed(self, key: str, page_paths: set[str]) -> bool:
         """
         Check if index entry changed (for skip optimization).
 
-        Compares page_paths as sets (order doesn't matter for most use cases).
-
         Args:
             key: Index key
-            page_paths: New list of page paths
+            page_paths: New set of page paths
 
         Returns:
             True if entry changed and needs regeneration
@@ -285,8 +299,7 @@ class QueryIndex(ABC):
         if not entry:
             return True  # New key
 
-        # Compare as sets
-        return set(entry.page_paths) != set(page_paths)
+        return entry.page_paths != page_paths
 
     def get_metadata(self, key: str) -> dict[str, Any]:
         """
@@ -382,7 +395,7 @@ class QueryIndex(ABC):
 
     def _add_page_to_key(self, key: str, page_path: str, metadata: dict[str, Any]) -> None:
         """
-        Add page to index key.
+        Add page to index key (O(1) via set).
 
         Args:
             key: Index key
@@ -392,30 +405,35 @@ class QueryIndex(ABC):
         if key not in self.entries:
             self.entries[key] = IndexEntry(
                 key=key,
-                page_paths=[],
                 metadata=metadata,
             )
 
-        if page_path not in self.entries[key].page_paths:
-            self.entries[key].page_paths.append(page_path)
+        # O(1) set add
+        if self.entries[key].add_page(page_path):
             self.entries[key].updated_at = datetime.now().isoformat()
             self.entries[key].content_hash = self.entries[key]._compute_hash()
 
     def _remove_page_from_key(self, key: str, page_path: str) -> None:
         """
-        Remove page from index key.
+        Remove page from index key (O(1) via set).
+
+        Performance: O(1) instead of O(p) list.remove().
+        (RFC: Cache Algorithm Optimization)
 
         Args:
             key: Index key
             page_path: Path to page source file
         """
-        if key in self.entries and page_path in self.entries[key].page_paths:
-            self.entries[key].page_paths.remove(page_path)
+        if key not in self.entries or page_path not in self.entries[key]:
+            return
+
+        # O(1) set discard
+        if self.entries[key].remove_page(page_path):
             self.entries[key].updated_at = datetime.now().isoformat()
             self.entries[key].content_hash = self.entries[key]._compute_hash()
 
             # Remove empty entries
-            if not self.entries[key].page_paths:
+            if len(self.entries[key]) == 0:
                 del self.entries[key]
                 logger.debug("index_key_removed", index=self.name, key=key, reason="empty")
 

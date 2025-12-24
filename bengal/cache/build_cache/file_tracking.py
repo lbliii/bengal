@@ -37,12 +37,18 @@ class FileTrackingMixin:
         - file_fingerprints: dict[str, dict[str, Any]]
         - dependencies: dict[str, set[str]]
         - output_sources: dict[str, str]
+
+    Performance Optimization (RFC: Cache Algorithm Optimization):
+    - Added reverse_dependencies for O(1) affected pages lookup
+    - get_affected_pages(): O(n) → O(1)
     """
 
     # Type hints for mixin attributes (provided by host class)
     file_fingerprints: dict[str, dict[str, Any]]
     dependencies: dict[str, set[str]]
     output_sources: dict[str, str]
+    # Reverse dependency graph: dependency → set of source pages that depend on it
+    reverse_dependencies: dict[str, set[str]]
 
     def hash_file(self, file_path: Path) -> str:
         """
@@ -216,7 +222,9 @@ class FileTrackingMixin:
 
     def add_dependency(self, source: Path, dependency: Path) -> None:
         """
-        Record that a source file depends on another file.
+        Record that a source file depends on another file (O(1)).
+
+        Maintains both forward and reverse dependency graphs for efficient lookups.
 
         Args:
             source: Source file (e.g., content page)
@@ -225,14 +233,22 @@ class FileTrackingMixin:
         source_key = str(source)
         dep_key = str(dependency)
 
+        # Forward graph: source → dependencies
         if source_key not in self.dependencies:
             self.dependencies[source_key] = set()
-
         self.dependencies[source_key].add(dep_key)
+
+        # Reverse graph: dependency → sources (RFC: Cache Algorithm Optimization)
+        if dep_key not in self.reverse_dependencies:
+            self.reverse_dependencies[dep_key] = set()
+        self.reverse_dependencies[dep_key].add(source_key)
 
     def get_affected_pages(self, changed_file: Path) -> set[str]:
         """
-        Find all pages that depend on a changed file.
+        Find all pages that depend on a changed file (O(1) via reverse graph).
+
+        Performance: O(1) lookup instead of O(n) iteration.
+        (RFC: Cache Algorithm Optimization)
 
         Args:
             changed_file: File that changed
@@ -243,10 +259,8 @@ class FileTrackingMixin:
         changed_key = str(changed_file)
         affected = set()
 
-        # Check direct dependencies
-        for source, deps in self.dependencies.items():
-            if changed_key in deps:
-                affected.add(source)
+        # O(1) lookup via reverse dependency graph
+        affected.update(self.reverse_dependencies.get(changed_key, set()))
 
         # If the changed file itself is a source, rebuild it
         if changed_key in self.dependencies:
@@ -258,6 +272,8 @@ class FileTrackingMixin:
         """
         Remove a file from the cache (useful when file is deleted).
 
+        Cleans up both forward and reverse dependency graphs.
+
         Note: This is a partial invalidation. Full invalidation of related
         caches (parsed_content, rendered_output, etc.) should be handled
         by the main BuildCache class.
@@ -267,8 +283,21 @@ class FileTrackingMixin:
         """
         file_key = str(file_path)
         self.file_fingerprints.pop(file_key, None)
-        self.dependencies.pop(file_key, None)
 
-        # Remove as a dependency from other files
-        for deps in self.dependencies.values():
-            deps.discard(file_key)
+        # Remove from forward graph and update reverse graph
+        deps = self.dependencies.pop(file_key, set())
+        for dep in deps:
+            if dep in self.reverse_dependencies:
+                self.reverse_dependencies[dep].discard(file_key)
+                # Clean up empty entries
+                if not self.reverse_dependencies[dep]:
+                    del self.reverse_dependencies[dep]
+
+        # Remove as a dependency from other files (forward graph)
+        for source_deps in self.dependencies.values():
+            source_deps.discard(file_key)
+
+        # Remove from reverse graph (as a dependency)
+        self.reverse_dependencies.pop(file_key, None)
+        # Note: sources that depended on this file still have it in their forward deps
+        # This is intentional - they'll rebuild when they next run

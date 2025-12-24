@@ -93,6 +93,7 @@ class RenderingValidator(BaseValidator):
             results.append(
                 CheckResult.warning(
                     f"{len(issues)} page(s) have HTML structure issues",
+                    code="H030",
                     recommendation="Check template files for proper HTML5 structure.",
                     details=issues[:5],
                 )
@@ -138,6 +139,7 @@ class RenderingValidator(BaseValidator):
             results.append(
                 CheckResult.warning(
                     f"{len(issues)} page(s) may have unrendered Jinja2 syntax",
+                    code="H031",
                     recommendation="Check for template rendering errors. May be documentation examples (which is OK).",
                     details=issues[:5],
                 )
@@ -213,6 +215,7 @@ class RenderingValidator(BaseValidator):
                 results.append(
                     CheckResult.error(
                         f"{len(missing)} essential template function(s) not registered",
+                        code="H032",
                         recommendation="Check template function registration in TemplateEngine.__init__()",
                         details=missing,
                     )
@@ -281,6 +284,7 @@ class RenderingValidator(BaseValidator):
             results.append(
                 CheckResult.warning(
                     f"{len(issues)} page(s) missing basic SEO metadata",
+                    code="H033",
                     recommendation="Add <title> and meta description tags to improve SEO.",
                     details=issues[:5],
                 )

@@ -37,6 +37,7 @@ def synthesize_inherited_members(
     class_elem: DocElement,
     class_index: dict[str, DocElement],
     config: dict[str, Any],
+    simple_name_index: dict[str, list[str]],
 ) -> None:
     """
     Add inherited members to a class element.
@@ -44,10 +45,14 @@ def synthesize_inherited_members(
     Modifies class_elem in place by appending inherited members
     from base classes found in class_index.
 
+    Uses reverse index for O(1) simple name lookup.
+
     Args:
         class_elem: Class DocElement to augment with inherited members
         class_index: Index mapping qualified class names to DocElements
         config: Extractor configuration
+        simple_name_index: Reverse index mapping simple names to qualified
+            names for O(1) lookup (e.g., "Config" -> ["pkg1.Config"])
     """
     # Get base classes using typed accessor
     bases = get_python_class_bases(class_elem)
@@ -63,16 +68,16 @@ def synthesize_inherited_members(
         # Handle both simple names and qualified names
         base_elem = None
 
-        # Try as-is first
+        # Try qualified name first (O(1))
         if base_name in class_index:
             base_elem = class_index[base_name]
         else:
-            # Try to find by simple name match
-            simple_base = base_name.split(".")[-1]
-            for qualified, elem in class_index.items():
-                if qualified.endswith(f".{simple_base}"):
-                    base_elem = elem
-                    break
+            # O(1) simple name lookup via reverse index
+            simple_base = base_name.rsplit(".", 1)[-1]
+            candidates = simple_name_index.get(simple_base, [])
+            if candidates:
+                # Take first match; for disambiguation could check module proximity
+                base_elem = class_index.get(candidates[0])
 
         if not base_elem:
             continue

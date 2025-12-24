@@ -1,6 +1,21 @@
 ## [Unreleased]
 
-_Nothing yet._
+### Content Layer Algorithm Optimization ✅
+- **content_layer(local)**: remove O(n log n) sort from `fetch_all()` (now O(n) by default)
+- **content_layer(local)**: add `sort: bool` config option for deterministic ordering when needed
+- **content_layer(local)**: pre-compile exclude patterns to regex for O(1) matching per file (was O(p))
+- **content_layer(local)**: add `@cached_property _exclude_regex` with fnmatch fallback on regex failure
+- **content_layer(github)**: add parallel file fetching with semaphore-based concurrency (10 concurrent)
+- **content_layer(github)**: add automatic retry with exponential backoff on rate limit (429/403)
+- **content_layer(github)**: stream results via `asyncio.as_completed()` as files complete
+- **content_layer(notion)**: add parallel page processing with semaphore-based concurrency (5 concurrent)
+- **content_layer(notion)**: add in-memory block caching with TTL (5 min) and size limit (500 pages)
+- **content_layer(notion)**: graceful degradation when cachetools unavailable (no caching, no crash)
+- **content_layer(source)**: add `@cached_property cache_key` for O(1) repeated lookups (was O(c log c))
+- **pyproject.toml**: add `cachetools>=5.0.0` to `notion` and `all-sources` optional dependencies
+- **perf**: LocalSource 2K files ~2.5x faster; GitHubSource ~10x faster; NotionSource ~3x faster
+- **behavior**: Entry order is now non-deterministic (use `sort: true` for alphabetical)
+- **plan**: RFC moved to implemented
 
 ## 0.1.6 - 2025-12-23
 

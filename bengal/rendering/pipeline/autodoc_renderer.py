@@ -200,11 +200,14 @@ class AutodocRenderer:
         section = getattr(page, "_section", None) or getattr(page, "section", None)
 
         try:
+            # NOTE: We intentionally do NOT pass site= here. The template environment
+            # already has site=SiteContext(site) as a global (set in environment.py).
+            # Passing site= would shadow the global with a raw Site object, breaking
+            # template access to site.logo_text, site.params, etc.
             html_content = template.render(
                 element=element,
                 page=page,
                 section=section,  # Pass section explicitly for section index pages
-                site=self.site,
                 config=self._normalize_config(self.site.config),
                 toc_items=getattr(page, "toc_items", []) or [],
                 toc=getattr(page, "toc", "") or "",

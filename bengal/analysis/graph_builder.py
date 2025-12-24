@@ -103,6 +103,11 @@ class GraphBuilder:
         self.link_types: dict[tuple[Page | None, Page], LinkType] = {}
         self.link_metrics: dict[Page, LinkMetrics] = {}
 
+        # Reverse adjacency list for O(E) PageRank iteration
+        # Maps each page to the list of pages that link TO it
+        # RFC: rfc-analysis-algorithm-optimization
+        self.incoming_edges: dict[Page, list[Page]] = defaultdict(list)
+
         # Thread-safe lock for merge phase
         self._lock = threading.Lock()
 
@@ -191,12 +196,13 @@ class GraphBuilder:
             """
             Analyze a single page's connections.
 
-            Returns dict with incoming_refs, outgoing_refs, and link_types
+            Returns dict with incoming_refs, outgoing_refs, incoming_edges, and link_types
             for this specific page to be merged after all workers complete.
             """
             # Per-page accumulators (not thread-local - each call gets fresh dicts)
             incoming: dict[Page, float] = defaultdict(float)
             outgoing: dict[Page, set[Page]] = defaultdict(set)
+            incoming_edges: dict[Page, list[Page]] = defaultdict(list)
             link_types: dict[tuple[Page, Page], LinkType] = {}
 
             # Cross-references: analyze links from this page
@@ -206,6 +212,8 @@ class GraphBuilder:
                     incoming[target] += 1
                     outgoing[page].add(target)
                     link_types[(page, target)] = LinkType.EXPLICIT
+                    # Build reverse index for O(E) PageRank
+                    incoming_edges[target].append(page)
 
             # Related posts: per-page iteration
             for related in getattr(page, "related_posts", []):
@@ -213,6 +221,8 @@ class GraphBuilder:
                     incoming[related] += 1
                     outgoing[page].add(related)
                     link_types[(page, related)] = LinkType.RELATED
+                    # Build reverse index for O(E) PageRank
+                    incoming_edges[related].append(page)
 
             # Section hierarchy: check if this is an index page
             is_index = hasattr(page, "source_path") and page.source_path.stem in (
@@ -228,6 +238,8 @@ class GraphBuilder:
                             incoming[child] += 0.5
                             outgoing[page].add(child)
                             link_types[(page, child)] = LinkType.TOPICAL
+                            # Build reverse index for O(E) PageRank
+                            incoming_edges[child].append(page)
 
             # Navigation links: next/prev
             next_page = getattr(page, "next_in_section", None)
@@ -235,17 +247,22 @@ class GraphBuilder:
                 incoming[next_page] += 0.25
                 outgoing[page].add(next_page)
                 link_types[(page, next_page)] = LinkType.SEQUENTIAL
+                # Build reverse index for O(E) PageRank
+                incoming_edges[next_page].append(page)
 
             prev_page = getattr(page, "prev_in_section", None)
             if prev_page and prev_page in analysis_pages_set:
                 incoming[prev_page] += 0.25
                 outgoing[page].add(prev_page)
                 link_types[(page, prev_page)] = LinkType.SEQUENTIAL
+                # Build reverse index for O(E) PageRank
+                incoming_edges[prev_page].append(page)
 
             # Return this page's results
             return {
                 "incoming": dict(incoming),
                 "outgoing": {k: set(v) for k, v in outgoing.items()},
+                "incoming_edges": {k: list(v) for k, v in incoming_edges.items()},
                 "link_types": dict(link_types),
             }
 
@@ -272,6 +289,9 @@ class GraphBuilder:
                 self.incoming_refs[page] += count
             for page, targets in result["outgoing"].items():
                 self.outgoing_refs[page].update(targets)
+            # Merge incoming_edges for O(E) PageRank
+            for page, sources in result["incoming_edges"].items():
+                self.incoming_edges[page].extend(sources)
             self.link_types.update(result["link_types"])
 
         # Taxonomy and menu analysis (iterates global data, keep sequential)
@@ -332,6 +352,8 @@ class GraphBuilder:
                     self.incoming_refs[target] += 1
                     self.outgoing_refs[page].add(target)
                     self.link_types[(page, target)] = LinkType.EXPLICIT
+                    # Build reverse index for O(E) PageRank
+                    self.incoming_edges[target].append(page)
 
     def _resolve_link(self, link: str) -> Page | None:
         """
@@ -403,6 +425,8 @@ class GraphBuilder:
                     self.incoming_refs[related] += 1
                     self.outgoing_refs[page].add(related)
                     self.link_types[(page, related)] = LinkType.RELATED
+                    # Build reverse index for O(E) PageRank
+                    self.incoming_edges[related].append(page)
 
     def _analyze_menus(self) -> None:
         """
@@ -454,6 +478,8 @@ class GraphBuilder:
                     self.incoming_refs[child] += 0.5
                     self.outgoing_refs[page].add(child)
                     self.link_types[(page, child)] = LinkType.TOPICAL
+                    # Build reverse index for O(E) PageRank
+                    self.incoming_edges[child].append(page)
 
         logger.debug(
             "knowledge_graph_section_hierarchy_complete",
@@ -478,12 +504,16 @@ class GraphBuilder:
                 self.incoming_refs[next_page] += 0.25
                 self.outgoing_refs[page].add(next_page)
                 self.link_types[(page, next_page)] = LinkType.SEQUENTIAL
+                # Build reverse index for O(E) PageRank
+                self.incoming_edges[next_page].append(page)
 
             prev_page = getattr(page, "prev_in_section", None)
             if prev_page and prev_page in analysis_pages_set:
                 self.incoming_refs[prev_page] += 0.25
                 self.outgoing_refs[page].add(prev_page)
                 self.link_types[(page, prev_page)] = LinkType.SEQUENTIAL
+                # Build reverse index for O(E) PageRank
+                self.incoming_edges[prev_page].append(page)
 
         logger.debug(
             "knowledge_graph_navigation_links_complete",

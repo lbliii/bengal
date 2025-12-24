@@ -167,12 +167,13 @@ class AnchorValidator(BaseValidator):
                 results.append(
                     CheckResult(
                         status=status,
-                        validator=self.name,
                         message=f"Duplicate anchor ID '{anchor}' ({count} occurrences)",
+                        code="H720",
                         recommendation=(
                             f"Each anchor ID must be unique within a page. "
                             f"Rename one of the '{anchor}' anchors to avoid conflicts."
                         ),
+                        validator=self.name,
                         metadata={
                             "anchor": anchor,
                             "count": count,
@@ -216,13 +217,14 @@ class AnchorValidator(BaseValidator):
                 results.append(
                     CheckResult(
                         status=CheckStatus.WARNING,
-                        validator=self.name,
                         message=f"Broken anchor reference '[[#{anchor}]]'",
+                        code="H721",
                         recommendation=(
                             f"The anchor '#{anchor}' does not exist. "
                             f"Check that the target heading or {{{{target}}}} directive exists, "
                             f"or use {{#id}} syntax to create an explicit anchor."
                         ),
+                        validator=self.name,
                         metadata={
                             "anchor": anchor,
                             "file_path": page_path,

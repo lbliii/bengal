@@ -13,6 +13,7 @@ Override Semantics:
 
 Key Functions:
     deep_merge: Recursively merge two dictionaries.
+    batch_deep_merge: Merge multiple dictionaries in a single pass (optimized).
     set_nested_key: Set a value at a dot-separated path.
     get_nested_key: Get a value from a dot-separated path.
 
@@ -27,10 +28,11 @@ Example:
 
 Note:
     All functions in this module create new dictionaries rather than
-    mutating inputs, except where explicitly documented (e.g., ``set_nested_key``).
+    mutating inputs, except where explicitly documented (e.g., ``set_nested_key``,
+    ``_merge_into``).
 
 See Also:
-    - :mod:`bengal.config.directory_loader`: Uses deep_merge for config layering.
+    - :mod:`bengal.config.directory_loader`: Uses batch_deep_merge for config layering.
     - :mod:`bengal.config.deprecation`: Uses nested key functions for migration.
 """
 
@@ -73,6 +75,38 @@ def deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]
             # Override wins: lists, primitives, or type mismatch
             result[key] = value
 
+    return result
+
+
+def _merge_into(target: dict[str, Any], source: dict[str, Any]) -> None:
+    """Merge source into target in place. Copies source dicts to avoid mutation."""
+    for key, value in source.items():
+        if key in target and isinstance(target[key], dict) and isinstance(value, dict):
+            _merge_into(target[key], value)
+        elif isinstance(value, dict):
+            target[key] = _copy_dict(value)
+        else:
+            target[key] = value
+
+
+def _copy_dict(d: dict[str, Any]) -> dict[str, Any]:
+    """Recursively copy dict. Leaves primitives/lists as-is (not mutated by merge)."""
+    return {k: _copy_dict(v) if isinstance(v, dict) else v for k, v in d.items()}
+
+
+def batch_deep_merge(configs: list[dict[str, Any]]) -> dict[str, Any]:
+    """
+    Merge multiple config dicts in a single pass. O(K×D) vs O(F×K×D) sequential.
+
+    Args:
+        configs: Dicts to merge in precedence order (later overrides earlier).
+
+    Returns:
+        New merged dictionary. Input dicts are not mutated.
+    """
+    result: dict[str, Any] = {}
+    for config in configs:
+        _merge_into(result, config)
     return result
 
 

@@ -108,12 +108,13 @@ def get_nav_context(page: Page, root_section: Section | None = None) -> NavTreeC
     """
     site = getattr(page, "_site", None)
     if site is None:
-        from bengal.errors import BengalRenderingError
+        from bengal.errors import BengalRenderingError, ErrorCode
 
         msg = "Page has no site reference. Ensure content discovery has run."
         raise BengalRenderingError(
             msg,
             suggestion="Ensure content discovery has run before accessing navigation tree",
+            code=ErrorCode.R008,
         )
 
     version_id = None

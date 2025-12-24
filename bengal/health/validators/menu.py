@@ -62,6 +62,7 @@ class MenuValidator(BaseValidator):
             results.append(
                 CheckResult.warning(
                     f"Menu '{menu_name}' is empty",
+                    code="H120",
                     recommendation=f"Add items to the '{menu_name}' menu in your config or page frontmatter.",
                 )
             )
@@ -86,6 +87,7 @@ class MenuValidator(BaseValidator):
                 results.append(
                     CheckResult.warning(
                         f"Menu '{menu_name}' has {len(broken_links)} item(s) with potentially broken links",
+                        code="H121",
                         details=broken_links[:3],
                     )
                 )

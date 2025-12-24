@@ -465,6 +465,36 @@ class TestTemplateContext:
         """Template context should include the site object."""
         assert autodoc_page._site is mock_site
 
+    def test_autodoc_render_does_not_pass_site_kwarg(
+        self, autodoc_page: Page, mock_site: MagicMock
+    ) -> None:
+        """Autodoc render should NOT pass site= kwarg, using env global instead.
+
+        The template environment sets site=SiteContext(site) as a global.
+        If we pass site=raw_site in render(), it shadows the global and breaks
+        template access to site.logo_text, site.params, etc.
+        """
+        build_context = MagicMock()
+        fake_template = MagicMock()
+        fake_template.render.return_value = "<div>ok</div>"
+        fake_env = MagicMock()
+        fake_env.get_template.return_value = fake_template
+        build_context.template_engine = MagicMock(env=fake_env)
+
+        pipeline = RenderingPipeline(mock_site, build_context=build_context)
+        pipeline._autodoc_renderer._render_autodoc_page(autodoc_page)
+
+        # Verify render was called
+        fake_template.render.assert_called_once()
+
+        # Verify 'site' was NOT passed as a keyword argument
+        # (templates should use the global SiteContext from env.globals)
+        kwargs = fake_template.render.call_args.kwargs
+        assert "site" not in kwargs, (
+            "autodoc render should not pass site= kwarg; "
+            "templates should use env.globals['site'] (SiteContext)"
+        )
+
 
 class TestEdgeCases:
     """Test edge cases for autodoc virtual pages."""

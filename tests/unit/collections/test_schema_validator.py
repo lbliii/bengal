@@ -529,3 +529,227 @@ class TestBlogPostSchema:
         assert result.valid is True
         assert result.data.title == "Getting Started with Bengal"
         assert result.data.date.year == 2025
+
+
+# Recursion depth limit tests
+
+
+# Pre-defined nested schemas for depth testing (avoids get_type_hints issues)
+
+
+@dataclass
+class Depth1:
+    """Flat schema (depth 1)."""
+
+    value: str
+
+
+@dataclass
+class Depth2:
+    """Schema with 1 level of nesting (depth 2)."""
+
+    nested: Depth1
+    name: str = ""
+
+
+@dataclass
+class Depth3:
+    """Schema with 2 levels of nesting (depth 3)."""
+
+    nested: Depth2
+    name: str = ""
+
+
+@dataclass
+class Depth4:
+    """Schema with 3 levels of nesting (depth 4)."""
+
+    nested: Depth3
+    name: str = ""
+
+
+@dataclass
+class Depth5:
+    """Schema with 4 levels of nesting (depth 5)."""
+
+    nested: Depth4
+    name: str = ""
+
+
+# Schemas for list nesting tests
+
+
+@dataclass
+class ListItem:
+    """Simple item for list tests."""
+
+    value: str
+
+
+@dataclass
+class ListOfNested:
+    """Schema with list of nested items."""
+
+    items: list[ListItem]
+
+
+@dataclass
+class InnerMost:
+    """Innermost level for list nesting test."""
+
+    value: str
+
+
+@dataclass
+class NestedInList:
+    """Middle level for list nesting test."""
+
+    nested: InnerMost
+
+
+@dataclass
+class ListWithNestedLevel:
+    """Schema with list containing nested items."""
+
+    items: list[NestedInList]
+
+
+def _get_schema_for_depth(depth: int) -> type:
+    """Get predefined schema for given depth."""
+    schemas = {
+        1: Depth1,
+        2: Depth2,
+        3: Depth3,
+        4: Depth4,
+        5: Depth5,
+    }
+    if depth not in schemas:
+        raise ValueError(f"Only depths 1-5 supported, got {depth}")
+    return schemas[depth]
+
+
+def _generate_nested_data(depth: int) -> dict[str, Any]:
+    """Generate nested dictionary data matching the schema depth."""
+    if depth <= 1:
+        return {"value": "leaf"}
+
+    result: dict[str, Any] = {"name": "level_1"}
+    current = result
+
+    for level in range(2, depth):
+        current["nested"] = {"name": f"level_{level}"}
+        current = current["nested"]
+
+    current["nested"] = {"value": "leaf"}
+    return result
+
+
+class TestRecursionDepthLimit:
+    """Tests for max_depth recursion limiting."""
+
+    def test_default_max_depth(self) -> None:
+        """Test default max_depth is 10."""
+        validator = SchemaValidator(SimpleSchema)
+        assert validator.max_depth == 10
+
+    def test_custom_max_depth(self) -> None:
+        """Test custom max_depth is respected."""
+        validator = SchemaValidator(SimpleSchema, max_depth=5)
+        assert validator.max_depth == 5
+
+    def test_nested_within_limit(self) -> None:
+        """Test validation passes when nesting is within limit."""
+        validator = SchemaValidator(Depth5, max_depth=10)
+        data = _generate_nested_data(5)
+
+        result = validator.validate(data)
+
+        assert result.valid is True
+
+    def test_nested_at_exact_limit(self) -> None:
+        """Test validation passes when nesting equals limit."""
+        # Depth5 has 5 levels, so max_depth=5 should just pass
+        validator = SchemaValidator(Depth5, max_depth=5)
+        data = _generate_nested_data(5)
+
+        result = validator.validate(data)
+
+        assert result.valid is True
+
+    def test_nested_exceeds_limit(self) -> None:
+        """Test validation fails when nesting exceeds limit."""
+        # Depth5 has 5 levels, max_depth=3 should fail
+        validator = SchemaValidator(Depth5, max_depth=3)
+        data = _generate_nested_data(5)
+
+        result = validator.validate(data)
+
+        assert result.valid is False
+        assert len(result.errors) >= 1
+        assert any("depth" in e.message.lower() for e in result.errors)
+
+    def test_deeply_nested_fails_gracefully(self) -> None:
+        """Test deeply nested data returns error, not stack overflow."""
+        # Depth5 with max_depth=2 should fail gracefully
+        validator = SchemaValidator(Depth5, max_depth=2)
+        data = _generate_nested_data(5)
+
+        # Should not raise, should return validation error
+        result = validator.validate(data)
+
+        assert result.valid is False
+        assert any("depth" in e.message.lower() for e in result.errors)
+
+    def test_max_depth_1_allows_flat(self) -> None:
+        """Test max_depth=1 allows flat schemas."""
+        validator = SchemaValidator(SimpleSchema, max_depth=1)
+        result = validator.validate({"title": "Hello", "count": 42})
+
+        assert result.valid is True
+
+    def test_max_depth_0_rejects_nested(self) -> None:
+        """Test max_depth=0 rejects any nesting."""
+        # max_depth=0 means no nested dataclasses allowed at all
+        validator = SchemaValidator(NestedSchema, max_depth=0)
+        result = validator.validate({"name": "Parent", "metadata": {"title": "Child"}})
+
+        assert result.valid is False
+        assert any("depth" in e.message.lower() for e in result.errors)
+
+    def test_max_depth_1_allows_one_level_nesting(self) -> None:
+        """Test max_depth=1 allows exactly one level of nesting."""
+        # NestedSchema has SimpleSchema as a nested field (1 level of nesting)
+        validator = SchemaValidator(NestedSchema, max_depth=1)
+        result = validator.validate({"name": "Parent", "metadata": {"title": "Child"}})
+
+        assert result.valid is True
+
+    def test_max_depth_1_rejects_two_levels(self) -> None:
+        """Test max_depth=1 rejects two levels of nesting."""
+        # Depth3 has 3 levels of nesting
+        validator = SchemaValidator(Depth3, max_depth=1)
+        data = _generate_nested_data(3)
+
+        result = validator.validate(data)
+
+        assert result.valid is False
+        assert any("depth" in e.message.lower() for e in result.errors)
+
+    def test_list_of_nested_respects_depth(self) -> None:
+        """Test list of nested dataclasses respects depth limit."""
+        # Define schemas at module level to avoid get_type_hints issues
+        validator = SchemaValidator(ListOfNested, max_depth=2)
+        result = validator.validate({"items": [{"value": "a"}, {"value": "b"}]})
+
+        assert result.valid is True
+
+    def test_list_does_not_increment_depth(self) -> None:
+        """Test that lists themselves don't count toward depth."""
+        # ListWithNestedLevel has list[NestedInList] where NestedInList has InnerMost
+        # That's 3 dataclass levels (ListWithNestedLevel -> NestedInList -> InnerMost)
+        validator = SchemaValidator(ListWithNestedLevel, max_depth=3)
+        data = {"items": [{"nested": {"value": "leaf"}}]}
+
+        result = validator.validate(data)
+
+        assert result.valid is True

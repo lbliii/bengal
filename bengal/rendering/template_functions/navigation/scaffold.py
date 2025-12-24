@@ -337,10 +337,10 @@ def get_nav_scaffold_context(
     """
     site = getattr(page, "_site", None)
     if site is None:
-        from bengal.errors import BengalRenderingError
+        from bengal.errors import BengalRenderingError, ErrorCode
 
         msg = "Page has no site reference for scaffold generation."
-        raise BengalRenderingError(msg)
+        raise BengalRenderingError(msg, code=ErrorCode.R008)
 
     version_id = None
     if getattr(site, "versioning_enabled", False):

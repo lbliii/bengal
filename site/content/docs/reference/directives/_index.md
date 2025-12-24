@@ -5,7 +5,7 @@ description: Complete reference for all available markdown directives in Bengal
 weight: 10
 icon: code
 tags: [reference, directives, markdown, syntax]
-keywords: [directives, markdown, syntax, reference, admonitions, tabs, cards, youtube, vimeo, video, audio, figure, media, embed]
+keywords: [directives, markdown, syntax, reference, admonitions, tabs, cards, youtube, vimeo, tiktok, spotify, video, audio, figure, media, embed]
 ---
 
 # Directives Reference
@@ -81,6 +81,9 @@ Bengal extends Markdown with powerful directives using `:::{name}` or ` ```{name
 |-----------|---------|
 | `{youtube}` | YouTube embed (privacy-enhanced by default) |
 | `{vimeo}` | Vimeo embed (DNT by default) |
+| `{tiktok}` | TikTok short-form video embed |
+| `{spotify}` | Spotify tracks, albums, playlists, podcasts |
+| `{soundcloud}` | SoundCloud tracks, playlists |
 | `{video}` | Self-hosted HTML5 video |
 | `{audio}` | Self-hosted HTML5 audio |
 | `{figure}` | Image with caption |

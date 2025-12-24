@@ -243,13 +243,14 @@ class VariableSubstitutionPlugin:
         parts = expr.split(".")
 
         # SECURITY: Block access to private/dunder attributes
-        from bengal.errors import BengalRenderingError
+        from bengal.errors import BengalRenderingError, ErrorCode
 
         for part in parts:
             if part.startswith("_"):
                 raise BengalRenderingError(
                     f"Access to private/protected attributes denied: '{part}' in '{expr}'",
                     suggestion="Use public attributes only in template expressions",
+                    code=ErrorCode.R003,
                 )
 
         result: Any = self.context
@@ -260,6 +261,7 @@ class VariableSubstitutionPlugin:
                 raise BengalRenderingError(
                     f"Access to private/protected attributes denied: '{part}'",
                     suggestion="Use public attributes only in template expressions",
+                    code=ErrorCode.R003,
                 )
 
             if hasattr(result, part):
@@ -270,11 +272,13 @@ class VariableSubstitutionPlugin:
                     raise BengalRenderingError(
                         f"Key '{part}' not found in expression '{expr}'",
                         suggestion=f"Check that '{part}' exists in the context dictionary",
+                        code=ErrorCode.R003,
                     )
             else:
                 raise BengalRenderingError(
                     f"Cannot access '{part}' in expression '{expr}'",
                     suggestion=f"'{part}' is not a valid attribute or key for this object",
+                    code=ErrorCode.R003,
                 )
 
         return result

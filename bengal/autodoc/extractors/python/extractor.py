@@ -17,7 +17,9 @@ from __future__ import annotations
 
 import ast
 import concurrent.futures
+import multiprocessing
 import os
+import time
 from pathlib import Path
 from typing import Any, override
 
@@ -61,10 +63,6 @@ from bengal.config.defaults import get_max_workers
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
-
-# Threshold for parallel processing - below this we use sequential processing
-# to avoid thread pool overhead for small workloads
-MIN_MODULES_FOR_PARALLEL = 10
 
 
 class PythonExtractor(Extractor):
@@ -111,6 +109,9 @@ class PythonExtractor(Extractor):
             ]
 
         self.class_index: dict[str, DocElement] = {}
+        # Reverse index for O(1) simple name lookup during inheritance resolution
+        # Maps simple class name -> list of qualified names (e.g., "Config" -> ["pkg1.Config", "pkg2.Config"])
+        self.simple_name_index: dict[str, list[str]] = {}
         self._source_root: Path | None = None  # Track source root for module name resolution
 
         # Initialize grouping configuration
@@ -146,6 +147,45 @@ class PythonExtractor(Extractor):
         print(f"⚠️  Warning: Unknown grouping mode: {mode}, using 'off'")
         return {"mode": "off", "prefix_map": {}}
 
+    def _should_use_parallel(self, file_count: int) -> bool:
+        """
+        Determine if parallel extraction should be used.
+
+        Uses hardware-aware threshold: more cores = lower threshold.
+        Can be overridden via environment variable or config.
+
+        Args:
+            file_count: Number of Python files to extract
+
+        Returns:
+            True if parallel extraction should be used
+        """
+        # Environment override: disable parallel entirely
+        if os.environ.get("BENGAL_NO_PARALLEL", "").lower() in ("1", "true", "yes"):
+            return False
+
+        # Config override
+        if self.config.get("parallel_autodoc") is False:
+            return False
+
+        # Environment threshold override (for testing/tuning)
+        env_threshold = os.environ.get("BENGAL_PARALLEL_THRESHOLD")
+        if env_threshold:
+            try:
+                threshold = int(env_threshold)
+                return file_count >= threshold
+            except ValueError:
+                pass
+
+        # Hardware-aware threshold calculation
+        # More cores = lower threshold for parallelism benefit
+        # Formula: threshold = max(5, 15 - core_count)
+        # 4 cores -> 11 files, 8 cores -> 7 files, 16+ cores -> 5 files
+        core_count = multiprocessing.cpu_count()
+        threshold = max(5, 15 - core_count)
+
+        return file_count >= threshold
+
     @override
     def extract(self, source: Path) -> list[DocElement]:
         """
@@ -169,12 +209,13 @@ class PythonExtractor(Extractor):
         elif source.is_dir():
             return self._extract_directory(source)
         else:
-            from bengal.errors import BengalDiscoveryError
+            from bengal.errors import BengalDiscoveryError, ErrorCode
 
             raise BengalDiscoveryError(
                 f"Source must be a file or directory: {source}",
                 file_path=source if isinstance(source, Path) else None,
                 suggestion="Provide a valid file or directory path for autodoc extraction",
+                code=ErrorCode.D002,
             )
 
     def _extract_directory(self, directory: Path) -> list[DocElement]:
@@ -193,18 +234,8 @@ class PythonExtractor(Extractor):
                 continue
             py_files.append(py_file)
 
-        # Determine if we should use parallel extraction
-        no_parallel_env = os.environ.get("BENGAL_NO_PARALLEL", "").lower() in (
-            "1",
-            "true",
-            "yes",
-        )
-        parallel_config = self.config.get("parallel_autodoc", True)
-        use_parallel = (
-            not no_parallel_env
-            and parallel_config is not False
-            and len(py_files) >= MIN_MODULES_FOR_PARALLEL
-        )
+        # Determine if we should use parallel extraction (hardware-aware threshold)
+        use_parallel = self._should_use_parallel(len(py_files))
 
         # First pass: extract all elements (parallel or sequential)
         if use_parallel:
@@ -217,7 +248,13 @@ class PythonExtractor(Extractor):
             if element.element_type == "module":
                 for child in element.children:
                     if child.element_type == "class":
-                        self.class_index[child.qualified_name] = child
+                        qualified = child.qualified_name
+                        self.class_index[qualified] = child
+                        # Also index by simple name for O(1) inheritance lookup
+                        simple_name = qualified.rsplit(".", 1)[-1]
+                        if simple_name not in self.simple_name_index:
+                            self.simple_name_index[simple_name] = []
+                        self.simple_name_index[simple_name].append(qualified)
 
         # Third pass: synthesize inherited members if enabled (sequential)
         if should_include_inherited(self.config):
@@ -225,7 +262,12 @@ class PythonExtractor(Extractor):
                 if element.element_type == "module":
                     for child in element.children:
                         if child.element_type == "class":
-                            synthesize_inherited_members(child, self.class_index, self.config)
+                            synthesize_inherited_members(
+                                child,
+                                self.class_index,
+                                self.config,
+                                self.simple_name_index,
+                            )
 
         return elements
 
@@ -277,11 +319,13 @@ class PythonExtractor(Extractor):
         """
         max_workers = get_max_workers(self.config.get("max_workers"))
         elements: list[DocElement] = []
+        start_time = time.perf_counter()
 
         logger.debug(
             "autodoc_parallel_extraction_start",
             files=len(py_files),
             workers=max_workers,
+            core_count=multiprocessing.cpu_count(),
         )
 
         def extract_single_file(py_file: Path) -> list[DocElement]:
@@ -323,10 +367,16 @@ class PythonExtractor(Extractor):
                 file_elements = future.result()
                 elements.extend(file_elements)
 
-        logger.debug(
+        elapsed = time.perf_counter() - start_time
+        files_per_second = len(py_files) / elapsed if elapsed > 0 else 0
+
+        logger.info(
             "autodoc_parallel_extraction_complete",
             files=len(py_files),
             elements=len(elements),
+            workers=max_workers,
+            elapsed_ms=int(elapsed * 1000),
+            files_per_second=round(files_per_second, 1),
         )
 
         return elements
@@ -349,13 +399,24 @@ class PythonExtractor(Extractor):
         # Build class index from this module
         for child in module_element.children:
             if child.element_type == "class":
-                self.class_index[child.qualified_name] = child
+                qualified = child.qualified_name
+                self.class_index[qualified] = child
+                # Also index by simple name for O(1) inheritance lookup
+                simple_name = qualified.rsplit(".", 1)[-1]
+                if simple_name not in self.simple_name_index:
+                    self.simple_name_index[simple_name] = []
+                self.simple_name_index[simple_name].append(qualified)
 
         # Synthesize inherited members if enabled
         if should_include_inherited(self.config):
             for child in module_element.children:
                 if child.element_type == "class":
-                    synthesize_inherited_members(child, self.class_index, self.config)
+                    synthesize_inherited_members(
+                        child,
+                        self.class_index,
+                        self.config,
+                        self.simple_name_index,
+                    )
 
         return [module_element]
 

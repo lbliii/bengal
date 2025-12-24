@@ -426,6 +426,15 @@
 
   window.addEventListener('contentLoaded', initTracks);
 
+  // Register with Bengal enhancement system to prevent 404 from lazy-loader
+  // trying to load 'track-nav.js' when it sees data-bengal="track-nav"
+  if (window.Bengal && window.Bengal.enhance) {
+    window.Bengal.enhance.register('track-nav', function(el) {
+      // Enhancement handled by initTracks() - just mark as enhanced
+      // The element is already processed since tracks.js runs on DOMContentLoaded
+    });
+  }
+
   // Export for debugging and testing
   window.BengalTracks = {
     init: initTracks,

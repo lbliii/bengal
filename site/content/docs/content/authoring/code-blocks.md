@@ -138,30 +138,145 @@ Use `literalinclude` to keep documentation in sync with actual source code. When
 
 ## Multi-Language Examples
 
-Show the same concept in multiple languages with code tabs:
+Show the same concept in multiple languages with code tabs. Use `code-tabs` for a streamlined, code-first experience with auto-sync, language icons, and copy buttons.
 
-```markdown
+### Syntax
+
+Tab labels are automatically derived from the code fence language—no extra markers needed:
+
+````markdown
 :::{code-tabs}
 
 ```python
-# Python
 print("Hello")
 ```
 
 ```javascript
-// JavaScript
 console.log("Hello");
 ```
 
 ```bash
-# Bash
 echo "Hello"
 ```
 
-:::{/code-tabs}
+:::
+````
+
+### Result
+
+:::{code-tabs}
+
+```python
+def greet(name):
+    """Say hello to someone."""
+    print(f"Hello, {name}!")
+
+greet("World")
 ```
 
-**Result**: Readers can switch between languages with tabs.
+```javascript
+function greet(name) {
+    // Say hello to someone
+    console.log(`Hello, ${name}!`);
+}
+
+greet("World");
+```
+
+```bash
+# Say hello
+greet() {
+    echo "Hello, $1!"
+}
+
+greet "World"
+```
+
+:::
+
+### With Filenames and Highlights
+
+Add filenames and line highlights directly in the code fence info string:
+
+:::{code-tabs}
+
+```python client.py {3-4}
+import requests
+
+def get_users():
+    response = requests.get("/api/users")
+    return response.json()
+```
+
+```javascript client.js {3-4}
+import fetch from 'node-fetch';
+
+async function getUsers() {
+    const response = await fetch('/api/users');
+    return response.json();
+}
+```
+
+```bash {2}
+# Get all users
+curl -X GET "https://api.example.com/users" \
+  -H "Authorization: Bearer $API_KEY"
+```
+
+:::
+
+### Custom Tab Labels
+
+Use `title="..."` to override the default language-derived label:
+
+````markdown
+:::{code-tabs}
+
+```javascript title="React"
+const [count, setCount] = useState(0);
+```
+
+```javascript title="Vue"
+const count = ref(0);
+```
+
+:::
+````
+
+### Files Without Extensions
+
+For files like `Dockerfile` that have no extension, use `title=`:
+
+````markdown
+:::{code-tabs}
+
+```dockerfile title="Dockerfile"
+FROM python:3.12-slim
+```
+
+```yaml docker-compose.yml
+services:
+  web:
+    build: .
+```
+
+:::
+````
+
+### Code Tabs vs Tab-Set
+
+| Feature | `code-tabs` | `tab-set` |
+|---------|-------------|-----------|
+| **Syntax** | Just code fences | Nested `:::{tab-item}` |
+| **Auto sync** | ✅ All code-tabs sync by language | Manual with `:sync:` |
+| **Language icons** | ✅ Automatic | Manual with `:icon:` |
+| **Copy button** | ✅ Built-in | ❌ None |
+| **Line numbers** | ✅ Auto for 3+ lines | ❌ None |
+| **Best for** | Code examples | Mixed content |
+
+:::{tip}
+Use `code-tabs` when you're showing the same concept in multiple programming languages. Use `tab-set` when tabs contain mixed content (text, images, etc.) or aren't code-focused.
+:::
 
 ## Inline Code
 

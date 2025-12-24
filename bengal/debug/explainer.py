@@ -138,13 +138,14 @@ class PageExplainer:
         """
         page = self._find_page(page_path)
         if page is None:
-            from bengal.errors import BengalContentError
+            from bengal.errors import BengalContentError, ErrorCode
 
             raise BengalContentError(
                 f"Page not found: {page_path}\n"
                 f"Searched in {len(self.site.pages)} pages\n"
                 f"Tip: Run 'bengal site build' first to discover content",
                 suggestion="Run 'bengal site build' first to discover content, or check the page path",
+                code=ErrorCode.N004,
             )
 
         explanation = PageExplanation(

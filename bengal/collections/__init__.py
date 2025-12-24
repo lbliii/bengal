@@ -73,6 +73,8 @@ from typing import TYPE_CHECKING, Any
 # Re-export commonly used items (placed here to satisfy E402)
 from bengal.collections.errors import ContentValidationError, ValidationError
 from bengal.collections.loader import (
+    CollectionPathTrie,
+    build_collection_trie,
     get_collection_for_path,
     load_collections,
     validate_collections_config,
@@ -158,13 +160,14 @@ class CollectionConfig[T]:
             self.directory = Path(self.directory)
 
         # Validate: must have either directory or loader
-        from bengal.errors import BengalConfigError
+        from bengal.errors import BengalConfigError, ErrorCode
 
         if self.directory is None and self.loader is None:
             raise BengalConfigError(
                 "CollectionConfig requires either 'directory' (for local content) "
                 "or 'loader' (for remote content)",
                 suggestion="Set either 'directory' for local content or 'loader' for remote content",
+                code=ErrorCode.C002,
             )
 
     @property
@@ -300,6 +303,8 @@ __all__ = [
     "ValidationError",
     "ValidationResult",
     # --- Loader Utilities ---
+    "CollectionPathTrie",
+    "build_collection_trie",
     "get_collection_for_path",
     "load_collections",
     "validate_collections_config",

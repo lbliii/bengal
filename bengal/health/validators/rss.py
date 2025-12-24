@@ -63,6 +63,7 @@ class RSSValidator(BaseValidator):
             results.append(
                 CheckResult.warning(
                     "RSS feed not generated despite having dated content",
+                    code="H520",
                     recommendation="RSS generation may be disabled. Check if RSSGenerator is called in build process.",
                 )
             )
@@ -76,6 +77,7 @@ class RSSValidator(BaseValidator):
             results.append(
                 CheckResult.error(
                     f"RSS XML is malformed: {e}",
+                    code="H521",
                     recommendation="Check RSS generation logic. XML parsing failed.",
                 )
             )
@@ -101,6 +103,7 @@ class RSSValidator(BaseValidator):
             results.append(
                 CheckResult.error(
                     f"Root element is '{root.tag}', expected 'rss'",
+                    code="H522",
                     recommendation="RSS feed must have <rss> as root element.",
                 )
             )
@@ -112,6 +115,7 @@ class RSSValidator(BaseValidator):
             results.append(
                 CheckResult.warning(
                     f"RSS version is '{version}', expected '2.0'",
+                    code="H523",
                     recommendation="Use RSS 2.0 for maximum compatibility.",
                 )
             )
@@ -122,6 +126,7 @@ class RSSValidator(BaseValidator):
             results.append(
                 CheckResult.error(
                     "No <channel> element found in RSS feed",
+                    code="H524",
                     recommendation="RSS 2.0 requires a <channel> element.",
                 )
             )
@@ -139,6 +144,7 @@ class RSSValidator(BaseValidator):
             results.append(
                 CheckResult.error(
                     f"Missing required channel elements: {', '.join(missing)}",
+                    code="H525",
                     recommendation="RSS 2.0 requires <title>, <link>, and <description> in <channel>.",
                 )
             )
@@ -161,6 +167,7 @@ class RSSValidator(BaseValidator):
             results.append(
                 CheckResult.warning(
                     "RSS feed has no items",
+                    code="H526",
                     recommendation="Feed should contain recent dated pages. Check RSS generation logic.",
                 )
             )
@@ -194,6 +201,7 @@ class RSSValidator(BaseValidator):
             results.append(
                 CheckResult.error(
                     f"{len(invalid_items)} RSS item(s) missing required elements",
+                    code="H527",
                     recommendation="Each <item> must have <title> and <link>.",
                     details=invalid_items,
                 )
@@ -219,6 +227,7 @@ class RSSValidator(BaseValidator):
                 results.append(
                     CheckResult.warning(
                         f"Channel link is relative: {link}",
+                        code="H528",
                         recommendation="RSS channel link should be absolute URL starting with http:// or https://",
                     )
                 )
@@ -240,6 +249,7 @@ class RSSValidator(BaseValidator):
             results.append(
                 CheckResult.error(
                     f"{len(relative_links)} item(s) have relative URLs",
+                    code="H529",
                     recommendation="All RSS item links must be absolute URLs. Check baseurl configuration.",
                     details=relative_links[:3],
                 )

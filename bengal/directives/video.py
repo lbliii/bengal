@@ -1,13 +1,14 @@
 """
 Video embed directives for Bengal.
 
-Provides directives for embedding videos from YouTube, Vimeo, and self-hosted sources
-with privacy-by-default, accessibility requirements, and responsive design.
+Provides directives for embedding videos from YouTube, Vimeo, TikTok, and self-hosted
+sources with privacy-by-default, accessibility requirements, and responsive design.
 
 Architecture:
     - VideoDirective: Abstract base class for video embeds
     - YouTubeDirective: YouTube with privacy-enhanced mode (youtube-nocookie.com)
     - VimeoDirective: Vimeo with Do Not Track mode
+    - TikTokDirective: TikTok short-form video embeds
     - SelfHostedVideoDirective: Native HTML5 video for local files
 
 Security:
@@ -41,6 +42,8 @@ __all__ = [
     "YouTubeOptions",
     "VimeoDirective",
     "VimeoOptions",
+    "TikTokDirective",
+    "TikTokOptions",
     "SelfHostedVideoDirective",
     "SelfHostedVideoOptions",
 ]
@@ -58,6 +61,7 @@ class VideoOptions(DirectiveOptions):
 
     Attributes:
         title: Required - Accessible title for iframe/video (WCAG requirement)
+        width: Container width (e.g., "100%", "800px", "80%"). Default: "100%"
         aspect: Aspect ratio for responsive container (default: 16/9)
         css_class: Additional CSS classes
         autoplay: Auto-start video (not recommended for accessibility)
@@ -67,12 +71,14 @@ class VideoOptions(DirectiveOptions):
     Example:
         :::{youtube} dQw4w9WgXcQ
         :title: Never Gonna Give You Up
+        :width: 80%
         :aspect: 16/9
         :autoplay: false
         :::
     """
 
     title: str = ""
+    width: str = ""  # Empty means 100% (CSS default)
     aspect: str = "16/9"
     css_class: str = ""
     autoplay: bool = False
@@ -278,6 +284,7 @@ class YouTubeDirective(VideoDirective):
                 "video_id": video_id,
                 "embed_url": embed_url,
                 "title": options.title,
+                "width": options.width,
                 "aspect": options.aspect,
                 "css_class": options.css_class,
                 "privacy": options.privacy,
@@ -298,6 +305,7 @@ class YouTubeDirective(VideoDirective):
 
         embed_url = attrs.get("embed_url", "")
         title = attrs.get("title", "YouTube Video")
+        width = attrs.get("width", "")
         aspect = attrs.get("aspect", "16/9")
         css_class = attrs.get("css_class", "")
         video_id = attrs.get("video_id", "")
@@ -305,8 +313,11 @@ class YouTubeDirective(VideoDirective):
         class_str = self.build_class_string("video-embed", "youtube", css_class)
         safe_title = self.escape_html(title)
 
+        # Build inline style for width if specified
+        style_attr = f' style="width: {width}"' if width else ""
+
         return (
-            f'<div class="{class_str}" data-aspect="{aspect}">\n'
+            f'<div class="{class_str}" data-aspect="{aspect}"{style_attr}>\n'
             f"  <iframe\n"
             f'    src="{embed_url}"\n'
             f'    title="{safe_title}"\n'
@@ -457,6 +468,7 @@ class VimeoDirective(VideoDirective):
                 "video_id": video_id,
                 "embed_url": embed_url,
                 "title": options.title,
+                "width": options.width,
                 "aspect": options.aspect,
                 "css_class": options.css_class,
             },
@@ -476,6 +488,7 @@ class VimeoDirective(VideoDirective):
 
         embed_url = attrs.get("embed_url", "")
         title = attrs.get("title", "Vimeo Video")
+        width = attrs.get("width", "")
         aspect = attrs.get("aspect", "16/9")
         css_class = attrs.get("css_class", "")
         video_id = attrs.get("video_id", "")
@@ -483,8 +496,11 @@ class VimeoDirective(VideoDirective):
         class_str = self.build_class_string("video-embed", "vimeo", css_class)
         safe_title = self.escape_html(title)
 
+        # Build inline style for width if specified
+        style_attr = f' style="width: {width}"' if width else ""
+
         return (
-            f'<div class="{class_str}" data-aspect="{aspect}">\n'
+            f'<div class="{class_str}" data-aspect="{aspect}"{style_attr}>\n'
             f"  <iframe\n"
             f'    src="{embed_url}"\n'
             f'    title="{safe_title}"\n'
@@ -715,4 +731,175 @@ class SelfHostedVideoDirective(VideoDirective):
             f'<a href="{self.escape_html(video_path)}">Download the video</a>.</p>\n'
             f"  </video>\n"
             f"</figure>\n"
+        )
+
+
+# =============================================================================
+# TikTok Directive
+# =============================================================================
+
+
+@dataclass
+class TikTokOptions(VideoOptions):
+    """
+    Options for TikTok video embed.
+
+    Attributes:
+        title: Required - Accessible title for iframe
+        width: Container width (default: 100%)
+        aspect: Aspect ratio (default: 9/16 for vertical TikTok videos)
+
+    Example:
+        :::{tiktok} 7123456789012345678
+        :title: Funny cat video
+        :::
+    """
+
+    # TikTok videos are typically vertical, so default to 9:16
+    aspect: str = "9/16"
+
+    _field_aliases: ClassVar[dict[str, str]] = {"class": "css_class"}
+
+
+class TikTokDirective(VideoDirective):
+    """
+    TikTok video embed directive.
+
+    Embeds TikTok videos using their iframe embed API.
+    Validates TikTok video IDs (19 digits).
+
+    Syntax:
+        :::{tiktok} 7123456789012345678
+        :title: My TikTok Video
+        :::
+
+    Options:
+        :title: (required) Accessible title for iframe
+        :width: Container width (default: 100%)
+        :autoplay: Auto-start video (default: false)
+        :muted: Start muted (default: false)
+        :loop: Loop video (default: false)
+        :aspect: Aspect ratio (default: 9/16 for vertical videos)
+        :class: Additional CSS classes
+
+    Output:
+        <div class="video-embed tiktok" data-aspect="9/16">
+          <iframe src="https://www.tiktok.com/embed/v2/..."
+                  title="..." loading="lazy" allowfullscreen></iframe>
+        </div>
+
+    Security:
+        - Video ID validated via regex (19 digits)
+        - XSS prevention via strict ID validation
+    """
+
+    NAMES: ClassVar[list[str]] = ["tiktok"]
+    TOKEN_TYPE: ClassVar[str] = "tiktok_video"
+    OPTIONS_CLASS: ClassVar[type[DirectiveOptions]] = TikTokOptions
+    DIRECTIVE_NAMES: ClassVar[list[str]] = ["tiktok"]
+
+    # TikTok video ID: 19 digits
+    ID_PATTERN: ClassVar[re.Pattern[str]] = re.compile(r"^\d{19}$")
+
+    def validate_source(self, video_id: str) -> str | None:
+        """Validate TikTok video ID (19 digits)."""
+        if not self.ID_PATTERN.match(video_id):
+            return f"Invalid TikTok video ID: {video_id!r}. Expected 19 digits."
+        return None
+
+    def build_embed_url(self, video_id: str, options: TikTokOptions) -> str:
+        """Build TikTok embed URL."""
+        # TikTok embed URL format
+        base_url = f"https://www.tiktok.com/embed/v2/{video_id}"
+
+        params: list[str] = []
+        if options.autoplay:
+            params.append("autoplay=1")
+        if options.muted:
+            params.append("muted=1")
+        if options.loop:
+            params.append("loop=1")
+
+        query = "&".join(params)
+        return f"{base_url}?{query}" if query else base_url
+
+    def parse_directive(
+        self,
+        title: str,
+        options: TikTokOptions,  # type: ignore[override]
+        content: str,
+        children: list[Any],
+        state: Any,
+    ) -> DirectiveToken:
+        """Build TikTok embed token."""
+        video_id = title.strip()
+
+        # Validate video ID
+        error = self.validate_source(video_id)
+        if error:
+            return DirectiveToken(
+                type=self.TOKEN_TYPE,
+                attrs={"error": error, "video_id": video_id},
+            )
+
+        # Validate title (accessibility requirement)
+        title_error = self._validate_title(options.title, video_id)
+        if title_error:
+            return DirectiveToken(
+                type=self.TOKEN_TYPE,
+                attrs={"error": title_error, "video_id": video_id},
+            )
+
+        embed_url = self.build_embed_url(video_id, options)
+
+        return DirectiveToken(
+            type=self.TOKEN_TYPE,
+            attrs={
+                "video_id": video_id,
+                "embed_url": embed_url,
+                "title": options.title,
+                "width": options.width,
+                "aspect": options.aspect,
+                "css_class": options.css_class,
+            },
+        )
+
+    def render(self, renderer: Any, text: str, **attrs: Any) -> str:
+        """Render TikTok embed to HTML."""
+        error = attrs.get("error")
+        if error:
+            video_id = attrs.get("video_id", "unknown")
+            return (
+                f'<div class="video-embed tiktok video-error">\n'
+                f'  <p class="error">TikTok Error: {self.escape_html(error)}</p>\n'
+                f"  <p>Video ID: <code>{self.escape_html(video_id)}</code></p>\n"
+                f"</div>\n"
+            )
+
+        embed_url = attrs.get("embed_url", "")
+        title = attrs.get("title", "TikTok Video")
+        width = attrs.get("width", "")
+        aspect = attrs.get("aspect", "9/16")
+        css_class = attrs.get("css_class", "")
+        video_id = attrs.get("video_id", "")
+
+        class_str = self.build_class_string("video-embed", "tiktok", css_class)
+        safe_title = self.escape_html(title)
+
+        # Build inline style for width if specified
+        style_attr = f' style="width: {width}"' if width else ""
+
+        return (
+            f'<div class="{class_str}" data-aspect="{aspect}"{style_attr}>\n'
+            f"  <iframe\n"
+            f'    src="{embed_url}"\n'
+            f'    title="{safe_title}"\n'
+            f'    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"\n'
+            f"    allowfullscreen\n"
+            f'    loading="lazy"\n'
+            f"  ></iframe>\n"
+            f"  <noscript>\n"
+            f'    <p>Watch on TikTok: <a href="https://www.tiktok.com/video/{video_id}">{safe_title}</a></p>\n'
+            f"  </noscript>\n"
+            f"</div>\n"
         )

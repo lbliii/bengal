@@ -4,6 +4,8 @@ Tests for the Component Model (Identity/Mode/Data).
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from bengal.core.page import Page, PageCore
 
 

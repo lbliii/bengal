@@ -127,6 +127,10 @@ class KnowledgeGraph:
         self.outgoing_refs: dict[Page, set[Page]] = {}
         self.link_metrics: dict[Page, LinkMetrics] = {}
         self.link_types: dict[tuple[Page | None, Page], LinkType] = {}
+        # Reverse adjacency list for O(E) PageRank iteration
+        # Maps each page to the list of pages that link TO it
+        # RFC: rfc-analysis-algorithm-optimization
+        self.incoming_edges: dict[Page, list[Page]] = {}
 
         # Analysis results
         self.metrics: GraphMetrics | None = None
@@ -182,6 +186,8 @@ class KnowledgeGraph:
         self.outgoing_refs = dict(self._builder.outgoing_refs)
         self.link_metrics = dict(self._builder.link_metrics)
         self.link_types = dict(self._builder.link_types)
+        # Copy reverse adjacency list for O(E) PageRank
+        self.incoming_edges = dict(self._builder.incoming_edges)
 
         # Initialize metrics calculator
         self._metrics_calculator = MetricsCalculator(

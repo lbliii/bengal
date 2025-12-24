@@ -542,6 +542,7 @@ class LinkValidatorWrapper(BaseValidator):
                 results.append(
                     CheckResult.error(
                         f"{len(internal_broken)} broken internal link(s)",
+                        code="H101",
                         recommendation="Fix broken internal links. They point to pages that don't exist.",
                         details=details,
                     )
@@ -552,6 +553,7 @@ class LinkValidatorWrapper(BaseValidator):
                 results.append(
                     CheckResult.warning(
                         f"{len(external_broken)} broken external link(s)",
+                        code="H102",
                         recommendation="External links may be temporarily unavailable or incorrect.",
                         details=details,
                     )

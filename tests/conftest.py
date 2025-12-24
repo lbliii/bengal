@@ -1,13 +1,21 @@
+from __future__ import annotations
+
 import logging
 import os
 import shutil
 from datetime import datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
 from bengal.core.site import Site
+from bengal.errors import BengalError
 from bengal.utils.file_io import write_text_file
+
+if TYPE_CHECKING:
+    from _pytest.reports import TestReport
+    from _pytest.terminal import TerminalReporter
 
 logger = logging.getLogger(__name__)
 
@@ -147,20 +155,42 @@ def pytest_collection_modifyitems(config, items):
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item, call):
     """
-    Save detailed failure information automatically.
+    Save detailed failure information and extract Bengal error codes.
 
-    This hook captures test failures and saves them to .pytest_cache/
-    so AI assistants can read full details without re-running tests.
+    This hook captures test failures and:
+    1. Saves them to .pytest_cache/ for AI debugging
+    2. Extracts Bengal error codes for the terminal summary
     """
     outcome = yield
     report = outcome.get_result()
 
-    # Only save on failure
+    # Only process on failure during call phase
     if report.when == "call" and report.failed:
+        # Extract Bengal error code if present
+        if call.excinfo is not None:
+            exc = call.excinfo.value
+            if isinstance(exc, BengalError):
+                # Store error code and suggestion on report for terminal summary
+                code = getattr(exc, "code", None)
+                if code is not None:
+                    report.bengal_error_code = code.name
+                    report.bengal_error_category = code.category
+                else:
+                    report.bengal_error_code = None
+                    report.bengal_error_category = None
+                report.bengal_suggestion = getattr(exc, "suggestion", None)
+                report.bengal_error_type = type(exc).__name__
+            else:
+                # Non-Bengal exception
+                report.bengal_error_code = None
+                report.bengal_error_category = None
+                report.bengal_suggestion = None
+                report.bengal_error_type = type(exc).__name__
+
+        # Save detailed failure report to cache
         cache_dir = Path(".pytest_cache")
         cache_dir.mkdir(exist_ok=True)
 
-        # Create detailed failure report
         failure_file = cache_dir / "last_failure.txt"
 
         with open(failure_file, "w") as f:
@@ -170,6 +200,14 @@ def pytest_runtest_makereport(item, call):
             f.write(f"Timestamp: {datetime.now().isoformat()}\n")
             f.write(f"Test: {item.nodeid}\n")
             f.write(f"Location: {item.location}\n")
+
+            # Include Bengal error code if present
+            if hasattr(report, "bengal_error_code") and report.bengal_error_code:
+                f.write(f"Error Code: [{report.bengal_error_code}]\n")
+                f.write(f"Category: {report.bengal_error_category}\n")
+            if hasattr(report, "bengal_suggestion") and report.bengal_suggestion:
+                f.write(f"Fix Hint: {report.bengal_suggestion}\n")
+
             f.write("\n")
 
             # Full error details
@@ -191,6 +229,76 @@ def pytest_runtest_makereport(item, call):
                 f.write("-" * 80 + "\n")
                 f.write(report.capstderr)
                 f.write("\n\n")
+
+
+def pytest_terminal_summary(
+    terminalreporter: TerminalReporter, exitstatus: int, config: pytest.Config
+) -> None:
+    """
+    Display Bengal error code summary for failed tests.
+
+    Groups failures by error category and shows actionable fix hints.
+    This makes CI output more parseable for debugging.
+    """
+    failed_reports: list[TestReport] = terminalreporter.stats.get("failed", [])
+    if not failed_reports:
+        return
+
+    # Collect failures with Bengal error codes
+    bengal_failures: list[tuple[str, str, str | None, str | None]] = []
+    other_failures: list[tuple[str, str]] = []
+
+    for report in failed_reports:
+        code = getattr(report, "bengal_error_code", None)
+        category = getattr(report, "bengal_error_category", None)
+        suggestion = getattr(report, "bengal_suggestion", None)
+        error_type = getattr(report, "bengal_error_type", "Exception")
+
+        if code:
+            bengal_failures.append((report.nodeid, code, category, suggestion))
+        else:
+            other_failures.append((report.nodeid, error_type))
+
+    # Only show summary if there are failures
+    if not bengal_failures and not other_failures:
+        return
+
+    terminalreporter.write_sep("=", "BENGAL ERROR SUMMARY", bold=True, yellow=True)
+
+    # Group Bengal failures by category
+    if bengal_failures:
+        # Sort by category then code
+        bengal_failures.sort(key=lambda x: (x[2] or "", x[1]))
+
+        current_category = None
+        for nodeid, code, category, suggestion in bengal_failures:
+            if category != current_category:
+                current_category = category
+                terminalreporter.write_line("")
+                terminalreporter.write_line(
+                    f"  {category.upper() if category else 'UNKNOWN'} ERRORS:",
+                    bold=True,
+                )
+
+            # Format: [R001] tests/unit/rendering/test_template.py::test_missing
+            terminalreporter.write_line(f"  [{code}] {nodeid}", red=True)
+            if suggestion:
+                terminalreporter.write_line(f"         Fix: {suggestion}", cyan=True)
+
+    # Show other (non-Bengal) failures
+    if other_failures:
+        terminalreporter.write_line("")
+        terminalreporter.write_line("  OTHER ERRORS:", bold=True)
+        for nodeid, error_type in other_failures:
+            terminalreporter.write_line(f"  [----] {nodeid} ({error_type})", red=True)
+
+    # Summary counts
+    terminalreporter.write_line("")
+    terminalreporter.write_line(
+        f"  Total: {len(bengal_failures)} Bengal errors, {len(other_failures)} other errors",
+        bold=True,
+    )
+    terminalreporter.write_sep("=", "", bold=True, yellow=True)
 
 
 # ============================================================================

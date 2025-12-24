@@ -70,12 +70,13 @@ class RESTSource(ContentSource):
         """
         super().__init__(name, config)
 
-        from bengal.errors import BengalConfigError
+        from bengal.errors import BengalConfigError, ErrorCode
 
         if "url" not in config:
             raise BengalConfigError(
                 f"RESTSource '{name}' requires 'url' in config",
                 suggestion="Add 'url' to RESTSource configuration",
+                code=ErrorCode.C002,
             )
 
         self.url = config["url"]

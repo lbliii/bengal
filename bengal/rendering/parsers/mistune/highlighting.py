@@ -7,10 +7,12 @@ Provides Pygments-based syntax highlighting for code blocks with support for:
 - Code block titles (title="filename.py")
 - Line numbers (for blocks with 3+ lines)
 - Special handling for Mermaid diagrams
+- Example flag ({example}) to suppress unknown language warnings
 """
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable
 from typing import Any
 
@@ -21,6 +23,10 @@ from bengal.rendering.parsers.mistune.patterns import (
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
+
+# Pattern to detect {example} flag in info string
+# Can appear anywhere: "python {example}", "jsx {example} {1,3}", etc.
+EXAMPLE_FLAG_PATTERN = re.compile(r"\{example\}", re.IGNORECASE)
 
 
 def parse_hl_lines(hl_spec: str) -> list[int]:
@@ -87,6 +93,12 @@ def create_syntax_highlighting_plugin() -> Callable[[Any], None]:
             if info_stripped.startswith("{") and "}" in info_stripped:
                 return original_block_code(code, info)
 
+            # Check for {example} flag - suppresses warnings for intentional foreign syntax
+            is_example = bool(EXAMPLE_FLAG_PATTERN.search(info_stripped))
+            if is_example:
+                # Remove the {example} flag from the info string for further parsing
+                info_stripped = EXAMPLE_FLAG_PATTERN.sub("", info_stripped).strip()
+
             # Parse language, optional title, and line highlights
             # Supports: python, python title="file.py", python {1,3}, python title="file.py" {1,3}
             language = info_stripped
@@ -122,7 +134,8 @@ def create_syntax_highlighting_plugin() -> Callable[[Any], None]:
 
             try:
                 # Get cached lexer for the language
-                lexer = get_lexer_cached(language=language)
+                # suppress_warnings=True for {example} blocks showing foreign syntax
+                lexer = get_lexer_cached(language=language, suppress_warnings=is_example)
 
                 # Count lines to decide on line numbers
                 line_count = code.count("\n") + 1

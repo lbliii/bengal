@@ -102,6 +102,8 @@ class BuildCache(
     file_fingerprints: dict[str, dict[str, Any]] = field(default_factory=dict)
     dependencies: dict[str, set[str]] = field(default_factory=dict)
     output_sources: dict[str, str] = field(default_factory=dict)
+    # Reverse dependency graph: dependency → sources (RFC: Cache Algorithm Optimization)
+    reverse_dependencies: dict[str, set[str]] = field(default_factory=dict)
     taxonomy_deps: dict[str, set[str]] = field(default_factory=dict)
     page_tags: dict[str, set[str]] = field(default_factory=dict)
 
@@ -143,6 +145,10 @@ class BuildCache(
         # Convert dependency lists back to sets
         self.dependencies = {
             k: set(v) if isinstance(v, list) else v for k, v in self.dependencies.items()
+        }
+        # Convert reverse_dependencies lists back to sets (RFC: Cache Algorithm Optimization)
+        self.reverse_dependencies = {
+            k: set(v) if isinstance(v, list) else v for k, v in self.reverse_dependencies.items()
         }
         # Convert taxonomy dependency lists back to sets
         self.taxonomy_deps = {
@@ -244,6 +250,14 @@ class BuildCache(
             # Convert lists back to sets in dependencies
             if "dependencies" in data:
                 data["dependencies"] = {k: set(v) for k, v in data["dependencies"].items()}
+
+            # Convert lists back to sets in reverse_dependencies
+            if "reverse_dependencies" in data:
+                data["reverse_dependencies"] = {
+                    k: set(v) for k, v in data["reverse_dependencies"].items()
+                }
+            else:
+                data["reverse_dependencies"] = {}
 
             # Convert lists back to sets in tag_to_pages
             if "tag_to_pages" in data:
@@ -411,6 +425,9 @@ class BuildCache(
             "version": self.VERSION,
             "file_fingerprints": self.file_fingerprints,
             "dependencies": {k: list(v) for k, v in self.dependencies.items()},
+            "reverse_dependencies": {
+                k: list(v) for k, v in self.reverse_dependencies.items()
+            },  # Reverse dep graph (RFC: Cache Algorithm Optimization)
             "output_sources": self.output_sources,
             "taxonomy_deps": {k: list(v) for k, v in self.taxonomy_deps.items()},
             "page_tags": {k: list(v) for k, v in self.page_tags.items()},
@@ -462,6 +479,7 @@ class BuildCache(
         """Clear all cache data."""
         self.file_fingerprints.clear()
         self.dependencies.clear()
+        self.reverse_dependencies.clear()
         self.output_sources.clear()
         self.taxonomy_deps.clear()
         self.page_tags.clear()

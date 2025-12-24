@@ -63,6 +63,7 @@ def load_autodoc_config(config_path: Path | None = None) -> dict[str, Any]:
         "python": {
             "enabled": False,  # Disabled by default - enable in config
             "output_prefix": "",  # Auto-derived from source_dirs (e.g., "api/bengal")
+            "display_name": "",  # Custom display name for nav/h1 (default: "Python API Reference")
             "source_dirs": ["."],
             # output_dir removed - virtual pages always output to site.output_dir (public/)
             "exclude": [
@@ -113,12 +114,14 @@ def load_autodoc_config(config_path: Path | None = None) -> dict[str, Any]:
         "openapi": {
             "enabled": False,
             "output_prefix": "",  # Empty = auto-derive from spec title (e.g., "api/commerce")
+            "display_name": "",  # Custom display name for nav/h1 (default: "REST API Reference")
             "spec_file": "api/openapi.yaml",  # Default spec file location
             # output_dir removed - virtual pages always output to site.output_dir (public/)
         },
         "cli": {
             "enabled": False,  # Disabled by default - enable in config
             "output_prefix": "cli",  # URL prefix for CLI docs
+            "display_name": "",  # Custom display name for nav/h1 (default: "CLI Reference")
             "app_module": None,  # e.g., 'bengal.cli:main'
             "framework": "click",  # 'click', 'argparse', 'typer'
             # output_dir removed - virtual pages always output to site.output_dir (public/)

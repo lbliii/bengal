@@ -28,11 +28,54 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass, field, is_dataclass
+from functools import lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from bengal.autodoc.models import DocMetadata
+
+
+@lru_cache(maxsize=1024)
+def _cached_param_info(
+    name: str,
+    type_hint: str | None,
+    default: str | None,
+    description: str | None,
+) -> Any:
+    """
+    Cache common parameter patterns for deserialization.
+
+    Memoizes ParameterInfo construction to avoid repeated object creation
+    for common signatures (e.g., "self", "cls", common type hints).
+
+    Args:
+        name: Parameter name
+        type_hint: Type annotation string
+        default: Default value string
+        description: Docstring description
+
+    Returns:
+        ParameterInfo dataclass instance
+    """
+    # Import here to avoid circular imports
+    from bengal.autodoc.models.python import ParameterInfo
+
+    return ParameterInfo(
+        name=name,
+        type_hint=type_hint,
+        default=default,
+        description=description,
+    )
+
+
+def clear_autodoc_caches() -> None:
+    """
+    Clear autodoc-related caches.
+
+    Call between builds or when cache invalidation is needed.
+    """
+    _cached_param_info.cache_clear()
 
 
 @dataclass
@@ -213,10 +256,17 @@ class DocElement:
         metadata_class = type_map[type_name]
 
         # Helper to safely convert parameter data to ParameterInfo with clear error on mismatch
+        # Uses LRU cache for common parameter patterns (e.g., "self", common types)
         def _to_param_info(p: Any, context: str) -> ParameterInfo:
             """Convert param data to ParameterInfo, failing loudly on format mismatch."""
             if isinstance(p, dict):
-                return ParameterInfo(**p)
+                # Use cached version for common patterns
+                return _cached_param_info(
+                    p.get("name", ""),
+                    p.get("type_hint"),
+                    p.get("default"),
+                    p.get("description"),
+                )
             raise TypeError(
                 f"Autodoc cache format mismatch in {context}: expected dict, got {type(p).__name__}. "
                 f"Value: {p!r}. This usually means the cache was created with an older version. "

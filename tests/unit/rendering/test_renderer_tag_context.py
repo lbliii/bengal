@@ -1,8 +1,15 @@
+"""
+Tests for renderer tag context handling.
+
+Verifies proper resolution of tag pages, fallback behavior, and pagination context.
+"""
+
 from __future__ import annotations
 
-import unittest
 from pathlib import Path
 from unittest.mock import MagicMock
+
+import pytest
 
 from bengal.core.page import Page
 from bengal.core.site import Site
@@ -10,25 +17,34 @@ from bengal.rendering.renderer import Renderer
 from bengal.utils.pagination import Paginator
 
 
-class TestRendererTagContext(unittest.TestCase):
-    def setUp(self):
-        self.site = Site(Path("."))
-        self.site.config = {"pagination": {"per_page": 10}}
+@pytest.fixture
+def site():
+    """Create a basic site."""
+    s = Site(Path("."))
+    s.config = {"pagination": {"per_page": 10}}
+    return s
 
-        self.mock_env = MagicMock()
-        self.mock_template_engine = MagicMock()
-        self.mock_template_engine.env = self.mock_env
-        self.mock_template_engine.site = self.site
 
-        self.renderer = Renderer(self.mock_template_engine)
+@pytest.fixture
+def renderer(site):
+    """Create a renderer with mocked template engine."""
+    mock_env = MagicMock()
+    mock_template_engine = MagicMock()
+    mock_template_engine.env = mock_env
+    mock_template_engine.site = site
 
-    def test_add_generated_page_context_tag_robustness(self):
-        # Setup pages
+    return Renderer(mock_template_engine)
+
+
+class TestTagContextRobustness:
+    """Tests for tag page context robustness and fallback behavior."""
+
+    def test_tag_context_with_empty_taxonomies(self, renderer, site):
+        """When taxonomies are empty, should fallback to _posts metadata."""
         page1 = Page(Path("content/p1.md"), "", metadata={"title": "P1", "tags": ["t1"]})
         page2 = Page(Path("content/p2.md"), "", metadata={"title": "P2", "tags": ["t1"]})
-        self.site.pages = [page1, page2]
+        site.pages = [page1, page2]
 
-        # Setup tag page with _posts
         tag_page = Page(
             Path("tags/t1/index.html"),
             "",
@@ -41,43 +57,59 @@ class TestRendererTagContext(unittest.TestCase):
             },
         )
 
-        # SCENARIO 1: Taxonomies empty (should fallback to _posts)
-        self.site.taxonomies = {}
+        # Empty taxonomies - should fallback to _posts
+        site.taxonomies = {}
         context = {}
-        self.renderer._add_generated_page_context(tag_page, context)
+        renderer._add_generated_page_context(tag_page, context)
 
-        self.assertIn("posts", context)
-        self.assertEqual(len(context["posts"]), 2)
-        self.assertEqual(context["posts"][0].title, "P1")
+        assert "posts" in context
+        assert len(context["posts"]) == 2
+        assert context["posts"][0].title == "P1"
 
-        # SCENARIO 2: Taxonomies present but resolution fails (should fallback to original items)
-        # We simulate this by having tax objects that are NOT in site.pages
-        # But since we are testing resolution failure, we need site.pages to NOT contain them
+    def test_tag_context_with_stale_taxonomy_pages(self, renderer, site):
+        """When resolution fails, should fallback to original taxonomy items."""
+        page1 = Page(Path("content/p1.md"), "", metadata={"title": "P1", "tags": ["t1"]})
+        page2 = Page(Path("content/p2.md"), "", metadata={"title": "P2", "tags": ["t1"]})
 
-        # Create "stale" page objects for taxonomy
+        tag_page = Page(
+            Path("tags/t1/index.html"),
+            "",
+            metadata={
+                "type": "tag",
+                "_tag": "t1",
+                "_tag_slug": "t1",
+                "_generated": True,
+                "_posts": [page1, page2],
+            },
+        )
+
+        # Stale page object in taxonomy
         stale_page1 = Page(Path("content/p1.md"), "", metadata={"title": "P1 Stale"})
+        site.taxonomies = {"tags": {"t1": {"name": "t1", "pages": [stale_page1]}}}
 
-        self.site.taxonomies = {"tags": {"t1": {"name": "t1", "pages": [stale_page1]}}}
-        # site.pages is empty (so resolution fails)
-        self.site.pages = []
+        # Empty site.pages means resolution fails
+        site.pages = []
 
         context = {}
-        self.renderer._add_generated_page_context(tag_page, context)
+        renderer._add_generated_page_context(tag_page, context)
 
-        self.assertIn("posts", context)
-        self.assertEqual(len(context["posts"]), 1)
+        assert "posts" in context
+        assert len(context["posts"]) == 1
         # Should have fallen back to the taxonomy page object
-        self.assertEqual(context["posts"][0].title, "P1 Stale")
+        assert context["posts"][0].title == "P1 Stale"
 
-    def test_add_generated_page_context_resolution_success(self):
-        # Setup pages
-        page1 = Page(Path("content/p1.md"), "", metadata={"title": "P1 Fresh", "tags": ["t1"]})
-        self.site.pages = [page1]
+
+class TestTagContextResolution:
+    """Tests for successful tag page resolution."""
+
+    def test_resolution_returns_fresh_pages(self, renderer, site):
+        """When resolution succeeds, should return fresh page objects."""
+        fresh_page = Page(Path("content/p1.md"), "", metadata={"title": "P1 Fresh", "tags": ["t1"]})
+        site.pages = [fresh_page]
 
         # Stale page in taxonomy
-        stale_page1 = Page(Path("content/p1.md"), "", metadata={"title": "P1 Stale"})
-
-        self.site.taxonomies = {"tags": {"t1": {"name": "t1", "pages": [stale_page1]}}}
+        stale_page = Page(Path("content/p1.md"), "", metadata={"title": "P1 Stale"})
+        site.taxonomies = {"tags": {"t1": {"name": "t1", "pages": [stale_page]}}}
 
         tag_page = Page(
             Path("tags/t1/index.html"),
@@ -86,26 +118,24 @@ class TestRendererTagContext(unittest.TestCase):
         )
 
         context = {}
-        self.renderer._add_generated_page_context(tag_page, context)
+        renderer._add_generated_page_context(tag_page, context)
 
-        self.assertIn("posts", context)
-        self.assertEqual(len(context["posts"]), 1)
+        assert "posts" in context
+        assert len(context["posts"]) == 1
         # Should have resolved to FRESH page
-        self.assertEqual(context["posts"][0].title, "P1 Fresh")
+        assert context["posts"][0].title == "P1 Fresh"
 
-    def test_add_generated_page_context_tag_pagination_uses_paginator_context(self):
+
+class TestTagContextPagination:
+    """Tests for tag page pagination context."""
+
+    def test_pagination_context_from_paginator(self, renderer, site):
+        """Pagination context should come from the paginator."""
         page1 = Page(Path("content/p1.md"), "", metadata={"title": "P1 Fresh", "tags": ["t1"]})
         page2 = Page(Path("content/p2.md"), "", metadata={"title": "P2 Fresh", "tags": ["t1"]})
-        self.site.pages = [page1, page2]
+        site.pages = [page1, page2]
 
-        self.site.taxonomies = {
-            "tags": {
-                "t1": {
-                    "name": "t1",
-                    "pages": [page1, page2],
-                }
-            }
-        }
+        site.taxonomies = {"tags": {"t1": {"name": "t1", "pages": [page1, page2]}}}
 
         tag_page = Page(
             Path("tags/t1/index.html"),
@@ -121,16 +151,12 @@ class TestRendererTagContext(unittest.TestCase):
         )
 
         context = {}
-        self.renderer._add_generated_page_context(tag_page, context)
+        renderer._add_generated_page_context(tag_page, context)
 
-        self.assertIn("posts", context)
-        self.assertEqual([p.title for p in context["posts"]], ["P2 Fresh"])
-        self.assertEqual(context["current_page"], 2)
-        self.assertEqual(context["total_pages"], 2)
-        self.assertTrue(context["has_prev"])
-        self.assertFalse(context["has_next"])
-        self.assertEqual(context["base_url"], "/tags/t1/")
-
-
-if __name__ == "__main__":
-    unittest.main()
+        assert "posts" in context
+        assert [p.title for p in context["posts"]] == ["P2 Fresh"]
+        assert context["current_page"] == 2
+        assert context["total_pages"] == 2
+        assert context["has_prev"] is True
+        assert context["has_next"] is False
+        assert context["base_url"] == "/tags/t1/"

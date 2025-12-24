@@ -3,13 +3,19 @@ LocalSource - Content source for local filesystem.
 
 This is the default source, reading markdown files from a directory.
 No external dependencies required.
+
+Performance Optimizations:
+- Configurable sorting (disabled by default for O(n) instead of O(n log n))
+- Pre-compiled exclude patterns using regex for O(1) matching per file
 """
 
 from __future__ import annotations
 
 import fnmatch
+import re
 from collections.abc import AsyncIterator
 from datetime import datetime
+from functools import cached_property
 from pathlib import Path
 from typing import Any
 
@@ -65,12 +71,14 @@ class LocalSource(ContentSource):
         directory: str - Directory path (relative to site root)
         glob: str - Glob pattern for matching files (default: "**/*.md")
         exclude: list[str] - Patterns to exclude (default: [])
+        sort: bool - Sort entries alphabetically (default: False for performance)
 
     Example:
         >>> source = LocalSource("docs", {
         ...     "directory": "content/docs",
         ...     "glob": "**/*.md",
         ...     "exclude": ["_drafts/*"],
+        ...     "sort": True,  # Enable alphabetical ordering
         ... })
         >>> async for entry in source.fetch_all():
         ...     print(entry.title)
@@ -91,21 +99,49 @@ class LocalSource(ContentSource):
         """
         super().__init__(name, config)
 
-        from bengal.errors import BengalConfigError
+        from bengal.errors import BengalConfigError, ErrorCode
 
         if "directory" not in config:
             raise BengalConfigError(
                 f"LocalSource '{name}' requires 'directory' in config",
                 suggestion="Add 'directory' to LocalSource configuration",
+                code=ErrorCode.C002,
             )
 
         self.directory = Path(config["directory"])
         self.glob_pattern = config.get("glob", "**/*.md")
         self.exclude_patterns: list[str] = config.get("exclude", [])
+        self.sort_entries = config.get("sort", False)
+
+    @cached_property
+    def _exclude_regex(self) -> re.Pattern[str] | None:
+        """
+        Pre-compile exclude patterns to single regex.
+
+        Converts fnmatch glob patterns to a combined regex for O(1) matching
+        per file instead of O(p) where p = number of patterns.
+
+        Returns:
+            Compiled regex pattern or None if no patterns
+        """
+        if not self.exclude_patterns:
+            return None
+
+        try:
+            # Convert fnmatch patterns to regex and combine
+            regex_parts = [fnmatch.translate(p) for p in self.exclude_patterns]
+            combined = "|".join(f"(?:{p})" for p in regex_parts)
+            return re.compile(combined)
+        except re.error as e:
+            logger.warning(f"Failed to compile exclude patterns: {e}. Using fnmatch fallback.")
+            return None
 
     async def fetch_all(self) -> AsyncIterator[ContentEntry]:
         """
         Fetch all content entries from this directory.
+
+        Entries are yielded in filesystem order by default for O(n) performance.
+        Set `sort: true` in config for alphabetical ordering (O(n log n)).
 
         Yields:
             ContentEntry for each matching file
@@ -114,7 +150,12 @@ class LocalSource(ContentSource):
             logger.warning(f"Source directory does not exist: {self.directory}")
             return
 
-        for path in sorted(self.directory.glob(self.glob_pattern)):
+        # Get paths - optionally sort for deterministic ordering
+        paths = self.directory.glob(self.glob_pattern)
+        if self.sort_entries:
+            paths = sorted(paths)
+
+        for path in paths:
             if not path.is_file():
                 continue
 
@@ -192,6 +233,9 @@ class LocalSource(ContentSource):
         """
         Check if path should be excluded.
 
+        Uses pre-compiled regex for O(1) matching when available,
+        falls back to fnmatch loop if regex compilation failed.
+
         Args:
             path: Full path to check
 
@@ -203,6 +247,11 @@ class LocalSource(ContentSource):
 
         rel_path = str(path.relative_to(self.directory))
 
+        # Use pre-compiled regex if available (O(1) per file)
+        if self._exclude_regex is not None:
+            return bool(self._exclude_regex.fullmatch(rel_path))
+
+        # Fallback to original fnmatch loop (O(p) per file)
         return any(fnmatch.fnmatch(rel_path, pattern) for pattern in self.exclude_patterns)
 
     def _path_to_slug(self, rel_path: Path) -> str:

@@ -159,7 +159,7 @@ class TestMinifyCssWhitespaceCollapsing:
         css = "body { color: red;   }   "
         result = minify_css(css)
 
-        assert not result.rstrip() != result.strip().rstrip()
+        assert result.rstrip() == result.strip().rstrip()
 
 
 class TestMinifyCssSelectorHandling:

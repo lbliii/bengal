@@ -47,7 +47,7 @@ Related:
 
 from __future__ import annotations
 
-from bengal.autodoc.base import DocElement, Extractor
+from bengal.autodoc.base import DocElement, Extractor, clear_autodoc_caches
 from bengal.autodoc.extractors.cli import CLIExtractor
 from bengal.autodoc.extractors.openapi import OpenAPIExtractor
 from bengal.autodoc.extractors.python import PythonExtractor
@@ -61,4 +61,5 @@ __all__ = [
     "OpenAPIExtractor",
     "PythonExtractor",
     "VirtualAutodocOrchestrator",
+    "clear_autodoc_caches",
 ]

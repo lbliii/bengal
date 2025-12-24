@@ -729,3 +729,236 @@ def test_get_output_path_longest_prefix_wins(tmp_path):
 
     # Should match longer prefix: templates/_index.md (not cli/templates/_index.md)
     assert output_path == Path("templates/_index.md")
+
+
+# ===== Inheritance Optimization Tests =====
+
+
+def test_simple_name_index_is_populated(tmp_path):
+    """Test that simple_name_index is populated during extraction."""
+    source = tmp_path / "test.py"
+    source.write_text(
+        dedent("""
+        class MyClass:
+            '''A class.'''
+            pass
+
+        class AnotherClass:
+            '''Another class.'''
+            pass
+    """)
+    )
+
+    extractor = PythonExtractor()
+    extractor.extract(source)
+
+    # simple_name_index should map simple names to qualified names
+    assert "MyClass" in extractor.simple_name_index
+    assert "AnotherClass" in extractor.simple_name_index
+    assert len(extractor.simple_name_index["MyClass"]) == 1
+    assert len(extractor.simple_name_index["AnotherClass"]) == 1
+
+
+def test_simple_name_collision(tmp_path):
+    """Test handling of two classes with the same simple name in different packages."""
+    # Create two packages with same-named classes
+    pkg1 = tmp_path / "pkg1"
+    pkg1.mkdir()
+    (pkg1 / "__init__.py").touch()
+    (pkg1 / "config.py").write_text(
+        dedent("""
+        class Config:
+            '''Config from pkg1.'''
+            def get_value(self):
+                '''Get value.'''
+                pass
+    """)
+    )
+
+    pkg2 = tmp_path / "pkg2"
+    pkg2.mkdir()
+    (pkg2 / "__init__.py").touch()
+    (pkg2 / "config.py").write_text(
+        dedent("""
+        class Config:
+            '''Config from pkg2.'''
+            def get_setting(self):
+                '''Get setting.'''
+                pass
+    """)
+    )
+
+    # Create a class that inherits from Config (simple name)
+    (tmp_path / "consumer.py").write_text(
+        dedent("""
+        class Consumer(Config):
+            '''Consumer class.'''
+            def consume(self):
+                '''Consume.'''
+                pass
+    """)
+    )
+
+    config = {"include_inherited": True}
+    extractor = PythonExtractor(config=config)
+
+    # Extract all files
+    extractor.extract(pkg1 / "config.py")
+    extractor.extract(pkg2 / "config.py")
+    elements = extractor.extract(tmp_path / "consumer.py")
+
+    # simple_name_index should have both Config classes
+    assert "Config" in extractor.simple_name_index
+    assert len(extractor.simple_name_index["Config"]) == 2
+
+    # Consumer should inherit from one of them (first match)
+    consumer_cls = elements[0].children[0]
+    method_names = [m.name for m in consumer_cls.children]
+    assert "consume" in method_names
+    # Should have inherited method from first-matched Config
+    assert "get_value" in method_names or "get_setting" in method_names
+
+
+def test_diamond_inheritance(tmp_path):
+    """Test diamond inheritance pattern (A -> B, C -> D where B, C inherit from A)."""
+    source = tmp_path / "test.py"
+    source.write_text(
+        dedent("""
+        class Base:
+            '''Base class.'''
+            def base_method(self):
+                '''Base method.'''
+                pass
+
+        class Left(Base):
+            '''Left mixin.'''
+            def left_method(self):
+                '''Left method.'''
+                pass
+
+        class Right(Base):
+            '''Right mixin.'''
+            def right_method(self):
+                '''Right method.'''
+                pass
+
+        class Diamond(Left, Right):
+            '''Diamond class inheriting from both Left and Right.'''
+            def diamond_method(self):
+                '''Diamond method.'''
+                pass
+    """)
+    )
+
+    config = {"include_inherited": True}
+    extractor = PythonExtractor(config=config)
+    elements = extractor.extract(source)
+
+    module = elements[0]
+    diamond_cls = [c for c in module.children if c.name == "Diamond"][0]
+
+    # Diamond should have its own method plus inherited methods
+    method_names = [m.name for m in diamond_cls.children]
+    assert "diamond_method" in method_names
+    assert "left_method" in method_names
+    assert "right_method" in method_names
+    # base_method may be inherited through Left or Right (both have it)
+    assert "base_method" in method_names
+
+
+def test_inheritance_external_base_class(tmp_path):
+    """Test inheritance from external base class not in index."""
+    source = tmp_path / "test.py"
+    source.write_text(
+        dedent("""
+        from collections import UserDict
+
+        class MyDict(UserDict):
+            '''Custom dict.'''
+            def custom_method(self):
+                '''Custom method.'''
+                pass
+    """)
+    )
+
+    config = {"include_inherited": True}
+    extractor = PythonExtractor(config=config)
+    elements = extractor.extract(source)
+
+    module = elements[0]
+    my_dict_cls = [c for c in module.children if c.name == "MyDict"][0]
+
+    # Should have own method, but no inherited from UserDict (not in index)
+    method_names = [m.name for m in my_dict_cls.children]
+    assert "custom_method" in method_names
+    # No inherited methods from UserDict (external)
+    assert len(method_names) == 1
+
+
+def test_inheritance_multi_level(tmp_path):
+    """Test multi-level inheritance (A -> B -> C)."""
+    source = tmp_path / "test.py"
+    source.write_text(
+        dedent("""
+        class GrandParent:
+            '''Grandparent class.'''
+            def grandparent_method(self):
+                '''Grandparent method.'''
+                pass
+
+        class Parent(GrandParent):
+            '''Parent class.'''
+            def parent_method(self):
+                '''Parent method.'''
+                pass
+
+        class Child(Parent):
+            '''Child class.'''
+            def child_method(self):
+                '''Child method.'''
+                pass
+    """)
+    )
+
+    config = {"include_inherited": True}
+    extractor = PythonExtractor(config=config)
+    elements = extractor.extract(source)
+
+    module = elements[0]
+    child_cls = [c for c in module.children if c.name == "Child"][0]
+
+    # Child should have parent_method inherited
+    method_names = [m.name for m in child_cls.children]
+    assert "child_method" in method_names
+    assert "parent_method" in method_names
+    # Note: grandparent_method is inherited by Parent, but Child only directly
+    # inherits from Parent, so it gets parent_method which was inherited into Parent
+
+
+def test_should_use_parallel_threshold(tmp_path):
+    """Test _should_use_parallel() method with hardware-aware threshold."""
+    import multiprocessing
+
+    extractor = PythonExtractor()
+    core_count = multiprocessing.cpu_count()
+
+    # Calculate expected threshold: max(5, 15 - core_count)
+    expected_threshold = max(5, 15 - core_count)
+
+    # Below threshold: should not use parallel
+    assert extractor._should_use_parallel(expected_threshold - 1) is False
+
+    # At threshold: should use parallel
+    assert extractor._should_use_parallel(expected_threshold) is True
+
+    # Above threshold: should use parallel
+    assert extractor._should_use_parallel(expected_threshold + 10) is True
+
+
+def test_should_use_parallel_config_override(tmp_path):
+    """Test parallel_autodoc=False disables parallel."""
+    config = {"parallel_autodoc": False}
+    extractor = PythonExtractor(config=config)
+
+    # Even with many files, should not use parallel if config disables it
+    assert extractor._should_use_parallel(100) is False

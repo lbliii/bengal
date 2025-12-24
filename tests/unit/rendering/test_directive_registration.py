@@ -77,7 +77,7 @@ class TestDirectiveRegistration:
             ("note", ":::{note}\nTest note\n:::", "admonition"),
             ("tip", ":::{tip}\nTest tip\n:::", "admonition"),
             ("warning", ":::{warning}\nTest warning\n:::", "admonition"),
-            ("tabs", ":::{tabs}\n### Tab: One\nContent\n:::", "tabs"),
+            ("tabs", ":::{tabs}\n:::{tab-item} One\nContent\n:::\n:::", "tabs"),
             ("dropdown", ":::{dropdown} Title\nContent\n:::", "dropdown"),
             ("rubric", ":::{rubric} Heading\n:::", "rubric"),
             ("button", ":::{button} https://example.com\nClick me\n:::", "button button-primary"),

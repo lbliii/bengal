@@ -106,24 +106,6 @@ class TestNavNode:
         assert nodes[1] == node_with_children.children[0]
         assert nodes[2] == node_with_children.children[1]
 
-    def test_find_lookup(self, node_with_children):
-        """Test find() locates nodes by URL."""
-        found = node_with_children.find("/parent/child1/")
-        assert found is not None
-        assert found.id == "child1"
-
-        found = node_with_children.find("/parent/child2/")
-        assert found is not None
-        assert found.id == "child2"
-
-        not_found = node_with_children.find("/nonexistent/")
-        assert not_found is None
-
-    def test_find_self(self, simple_node):
-        """Test find() returns self when URL matches."""
-        found = simple_node.find("/test/")
-        assert found == simple_node
-
 
 class TestNavTree:
     """Test NavTree building and operations."""

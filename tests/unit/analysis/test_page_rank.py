@@ -11,6 +11,16 @@ from bengal.analysis.page_rank import PageRankCalculator, PageRankResults, analy
 from bengal.errors import BengalError
 
 
+def build_incoming_edges(outgoing_refs: dict, pages: list) -> dict:
+    """Build incoming_edges from outgoing_refs for test mock graphs."""
+    incoming_edges = defaultdict(list)
+    for source_page in pages:
+        for target in outgoing_refs.get(source_page, set()):
+            if target in pages:
+                incoming_edges[target].append(source_page)
+    return dict(incoming_edges)
+
+
 class TestPageRankResults:
     """Tests for PageRankResults dataclass."""
 
@@ -133,6 +143,7 @@ class TestPageRankCalculator:
         graph = Mock()
         graph.get_analysis_pages.return_value = []
         graph.outgoing_refs = defaultdict(set)
+        graph.incoming_edges = {}
 
         calc = PageRankCalculator(graph, damping=0.85)
         results = calc.compute()
@@ -148,9 +159,11 @@ class TestPageRankCalculator:
         page = Mock()
         page.metadata = {}
 
+        pages = [page]
         graph = Mock()
-        graph.get_analysis_pages.return_value = [page]
+        graph.get_analysis_pages.return_value = pages
         graph.outgoing_refs = defaultdict(set)
+        graph.incoming_edges = build_incoming_edges(graph.outgoing_refs, pages)
 
         calc = PageRankCalculator(graph, damping=0.85)
         results = calc.compute()
@@ -173,11 +186,13 @@ class TestPageRankCalculator:
         page_c.metadata = {}
 
         # A -> B -> C
+        pages = [page_a, page_b, page_c]
         graph = Mock()
-        graph.get_analysis_pages.return_value = [page_a, page_b, page_c]
+        graph.get_analysis_pages.return_value = pages
         graph.outgoing_refs = defaultdict(set)
         graph.outgoing_refs[page_a] = {page_b}
         graph.outgoing_refs[page_b] = {page_c}
+        graph.incoming_edges = build_incoming_edges(graph.outgoing_refs, pages)
 
         calc = PageRankCalculator(graph, damping=0.85, max_iterations=100)
         results = calc.compute()
@@ -202,10 +217,12 @@ class TestPageRankCalculator:
         page_d.metadata = {}
 
         # A links to all others, no one links back
+        pages = [page_a, page_b, page_c, page_d]
         graph = Mock()
-        graph.get_analysis_pages.return_value = [page_a, page_b, page_c, page_d]
+        graph.get_analysis_pages.return_value = pages
         graph.outgoing_refs = defaultdict(set)
         graph.outgoing_refs[page_a] = {page_b, page_c, page_d}
+        graph.incoming_edges = build_incoming_edges(graph.outgoing_refs, pages)
 
         calc = PageRankCalculator(graph, damping=0.85, max_iterations=100)
         results = calc.compute()
@@ -228,12 +245,14 @@ class TestPageRankCalculator:
         page_c.metadata = {}
 
         # Circular: A -> B -> C -> A
+        pages = [page_a, page_b, page_c]
         graph = Mock()
-        graph.get_analysis_pages.return_value = [page_a, page_b, page_c]
+        graph.get_analysis_pages.return_value = pages
         graph.outgoing_refs = defaultdict(set)
         graph.outgoing_refs[page_a] = {page_b}
         graph.outgoing_refs[page_b] = {page_c}
         graph.outgoing_refs[page_c] = {page_a}
+        graph.incoming_edges = build_incoming_edges(graph.outgoing_refs, pages)
 
         calc = PageRankCalculator(graph, damping=0.85, max_iterations=100)
         results = calc.compute()
@@ -251,10 +270,12 @@ class TestPageRankCalculator:
         page_b = Mock(source_path="b.md")
         page_b.metadata = {}
 
+        pages = [page_a, page_b]
         graph = Mock()
-        graph.get_analysis_pages.return_value = [page_a, page_b]
+        graph.get_analysis_pages.return_value = pages
         graph.outgoing_refs = defaultdict(set)
         graph.outgoing_refs[page_a] = {page_b}
+        graph.incoming_edges = build_incoming_edges(graph.outgoing_refs, pages)
 
         # Use very tight threshold
         calc = PageRankCalculator(
@@ -277,11 +298,13 @@ class TestPageRankCalculator:
         page_c.metadata = {}
 
         # A -> B, B -> C
+        pages = [page_a, page_b, page_c]
         graph = Mock()
-        graph.get_analysis_pages.return_value = [page_a, page_b, page_c]
+        graph.get_analysis_pages.return_value = pages
         graph.outgoing_refs = defaultdict(set)
         graph.outgoing_refs[page_a] = {page_b}
         graph.outgoing_refs[page_b] = {page_c}
+        graph.incoming_edges = build_incoming_edges(graph.outgoing_refs, pages)
 
         calc = PageRankCalculator(graph, damping=0.85)
 
@@ -312,9 +335,11 @@ class TestPageRankCalculator:
         page_generated = Mock(source_path="tag/python.md")
         page_generated.metadata = {"_generated": True}
 
+        pages = [page_real, page_generated]
         graph = Mock()
-        graph.get_analysis_pages.return_value = [page_real, page_generated]
+        graph.get_analysis_pages.return_value = pages
         graph.outgoing_refs = defaultdict(set)
+        graph.incoming_edges = build_incoming_edges(graph.outgoing_refs, pages)
 
         calc = PageRankCalculator(graph, damping=0.85)
         results = calc.compute()
@@ -339,11 +364,13 @@ class TestAnalyzePageImportance:
         page_c.metadata = {}
 
         # B and C point to A (A is important)
+        pages = [page_a, page_b, page_c]
         graph = Mock()
-        graph.get_analysis_pages.return_value = [page_a, page_b, page_c]
+        graph.get_analysis_pages.return_value = pages
         graph.outgoing_refs = defaultdict(set)
         graph.outgoing_refs[page_b] = {page_a}
         graph.outgoing_refs[page_c] = {page_a}
+        graph.incoming_edges = build_incoming_edges(graph.outgoing_refs, pages)
 
         # Analyze
         top_pages = analyze_page_importance(graph, damping=0.85, top_n=2)

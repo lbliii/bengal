@@ -93,6 +93,7 @@ class URLCollisionValidator(BaseValidator):
             results.append(
                 CheckResult.error(
                     f"{len(collisions)} URL collision(s) detected - pages will overwrite each other",
+                    code="H020",
                     recommendation=(
                         "Each page must have a unique URL. Common causes:\n"
                         "  1. Duplicate slugs in frontmatter\n"
@@ -137,6 +138,7 @@ class URLCollisionValidator(BaseValidator):
             results.append(
                 CheckResult.warning(
                     f"{len(conflicts)} page(s) have same URL as a section",
+                    code="H021",
                     recommendation=(
                         "Pages sharing a URL with a section may cause navigation issues. "
                         "Consider moving the page inside the section or using a different slug."

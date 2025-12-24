@@ -55,7 +55,7 @@ import yaml
 
 from bengal.config.environment import detect_environment, get_environment_file_candidates
 from bengal.config.feature_mappings import expand_features
-from bengal.config.merge import deep_merge
+from bengal.config.merge import batch_deep_merge, deep_merge
 from bengal.config.origin_tracker import ConfigWithOrigin
 from bengal.errors import BengalConfigError, format_suggestion
 from bengal.utils.logger import get_logger
@@ -247,8 +247,8 @@ class ConfigDirectoryLoader:
         Load and merge all YAML files in a directory.
 
         Files are loaded in sorted order (alphabetically) for deterministic
-        behavior. Each file's contents are deep-merged with previous files,
-        with later files taking precedence for conflicting keys.
+        behavior. All files are collected first, then merged in a single batch
+        operation for O(K × D) complexity instead of O(F × K × D).
 
         Args:
             directory: Directory containing YAML files to load.
@@ -261,18 +261,20 @@ class ConfigDirectoryLoader:
             ConfigLoadError: If any YAML file fails to load or parse.
                 The error includes context about which file failed.
         """
-        config: dict[str, Any] = {}
-        errors = []
+        errors: list[tuple[Path, Exception]] = []
 
         # Load .yaml and .yml files in sorted order (deterministic)
         yaml_files = sorted(directory.glob("*.yaml")) + sorted(directory.glob("*.yml"))
 
         from bengal.errors import BengalConfigError, ErrorContext, enrich_error
 
+        # Collect all configs first, then batch merge (O(K×D) vs O(F×K×D))
+        configs: list[dict[str, Any]] = []
+
         for yaml_file in yaml_files:
             try:
                 file_config = self._load_yaml(yaml_file)
-                config = deep_merge(config, file_config)
+                configs.append(file_config)
 
                 logger.debug(
                     "config_file_loaded",
@@ -311,7 +313,8 @@ class ConfigDirectoryLoader:
                 original_error=first_error if isinstance(first_error, Exception) else None,
             )
 
-        return config
+        # Batch merge all configs in single pass - O(K×D) instead of O(F×K×D)
+        return batch_deep_merge(configs)
 
     def _load_environment(self, config_dir: Path, environment: str) -> dict[str, Any] | None:
         """

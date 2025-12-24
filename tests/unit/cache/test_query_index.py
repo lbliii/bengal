@@ -60,12 +60,13 @@ class TestIndexEntry:
         """Test creating an index entry."""
         entry = IndexEntry(
             key="blog",
-            page_paths=["content/post1.md", "content/post2.md"],
+            page_paths={"content/post1.md", "content/post2.md"},
             metadata={"title": "Blog"},
         )
 
         assert entry.key == "blog"
         assert len(entry.page_paths) == 2
+        assert "content/post1.md" in entry.page_paths
         assert entry.metadata["title"] == "Blog"
         assert entry.content_hash  # Auto-computed
 
@@ -73,15 +74,15 @@ class TestIndexEntry:
         """Test entry to/from dict."""
         entry = IndexEntry(
             key="tutorial",
-            page_paths=["page1.md", "page2.md"],
+            page_paths={"page1.md", "page2.md"},
             metadata={"count": 2},
         )
 
-        data = entry.to_dict()
+        data = entry.to_cache_dict()
         assert data["key"] == "tutorial"
-        assert data["page_paths"] == ["page1.md", "page2.md"]
+        assert set(data["page_paths"]) == {"page1.md", "page2.md"}
 
-        restored = IndexEntry.from_dict(data)
+        restored = IndexEntry.from_cache_dict(data)
         assert restored.key == entry.key
         assert restored.page_paths == entry.page_paths
 
@@ -230,7 +231,7 @@ class TestQueryIndexOperations:
         index = SectionIndex(temp_cache_path)
         result = index.get("nonexistent")
 
-        assert result == []
+        assert result == set()
 
     def test_keys_list(self, sample_page, build_cache, temp_cache_path):
         """Test getting all keys."""
@@ -246,10 +247,10 @@ class TestQueryIndexOperations:
         index.update_page(sample_page, build_cache)
 
         # Same pages - no change
-        assert not index.has_changed("blog", [str(sample_page.source_path)])
+        assert not index.has_changed("blog", {str(sample_page.source_path)})
 
         # Different pages - has changed
-        assert index.has_changed("blog", ["other.md"])
+        assert index.has_changed("blog", {"other.md"})
 
     def test_remove_page(self, sample_page, build_cache, temp_cache_path):
         """Test removing page from index."""

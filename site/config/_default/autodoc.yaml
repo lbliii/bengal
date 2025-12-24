@@ -24,6 +24,10 @@ autodoc:
     # Explicit value like "api/python" overrides auto-derivation
     output_prefix: ""  # Auto-derive from package name
 
+    # Display name for sidebar and page headings
+    # Overrides default "Python API Reference"
+    display_name: "Bengal API Reference"
+
     # Exclude test, cache, build artifacts, and virtual environment files
     exclude:
       # Tests
@@ -61,6 +65,10 @@ autodoc:
     # Output prefix for CLI docs
     # This creates the section at /cli/...
     output_prefix: "cli"
+
+    # Display name for sidebar and page headings
+    # Overrides default "CLI Reference"
+    display_name: "Bengal CLI Reference"
 
   # OpenAPI Documentation
   openapi:

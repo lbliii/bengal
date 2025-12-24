@@ -52,6 +52,7 @@ class SitemapValidator(BaseValidator):
             results.append(
                 CheckResult.warning(
                     "Sitemap not generated",
+                    code="H501",
                     recommendation="Sitemap.xml is important for SEO. Check if SitemapGenerator is called in build process.",
                 )
             )
@@ -65,6 +66,7 @@ class SitemapValidator(BaseValidator):
             results.append(
                 CheckResult.error(
                     f"Sitemap XML is malformed: {e}",
+                    code="H502",
                     recommendation="Check sitemap generation logic. XML parsing failed.",
                 )
             )
@@ -96,6 +98,7 @@ class SitemapValidator(BaseValidator):
             results.append(
                 CheckResult.error(
                     f"Root element is '{tag}', expected 'urlset'",
+                    code="H503",
                     recommendation="Sitemap must have <urlset> as root element.",
                 )
             )
@@ -107,6 +110,7 @@ class SitemapValidator(BaseValidator):
             results.append(
                 CheckResult.warning(
                     f"Sitemap xmlns is '{xmlns}', expected 'http://www.sitemaps.org/schemas/sitemap/0.9'",
+                    code="H504",
                     recommendation="Use standard sitemap namespace for maximum compatibility.",
                 )
             )
@@ -129,6 +133,7 @@ class SitemapValidator(BaseValidator):
             results.append(
                 CheckResult.warning(
                     "Sitemap has no <url> elements",
+                    code="H505",
                     recommendation="Sitemap should contain URLs for all pages.",
                 )
             )
@@ -157,6 +162,7 @@ class SitemapValidator(BaseValidator):
             results.append(
                 CheckResult.error(
                     f"{len(invalid_urls)} URL(s) missing <loc> element",
+                    code="H506",
                     recommendation="Each <url> must have a <loc> element with the page URL.",
                     details=invalid_urls[:3],
                 )
@@ -166,6 +172,7 @@ class SitemapValidator(BaseValidator):
             results.append(
                 CheckResult.error(
                     f"{len(relative_urls)} URL(s) are relative",
+                    code="H507",
                     recommendation="All sitemap URLs must be absolute. Check baseurl configuration.",
                     details=relative_urls[:3],
                 )
@@ -206,6 +213,7 @@ class SitemapValidator(BaseValidator):
             results.append(
                 CheckResult.error(
                     f"{len(duplicates)} duplicate URL(s) in sitemap",
+                    code="H508",
                     recommendation="Each URL should appear only once. Check sitemap generation logic.",
                     details=list(set(duplicates))[:5],
                 )
@@ -238,6 +246,7 @@ class SitemapValidator(BaseValidator):
                 results.append(
                     CheckResult.warning(
                         f"Sitemap has {sitemap_count} URLs but site has {total_pages} publishable pages ({missing} missing)",
+                        code="H509",
                         recommendation="Ensure all pages are included in sitemap. Check if some pages have output_path issues.",
                     )
                 )

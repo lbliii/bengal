@@ -98,6 +98,7 @@ class TaxonomyValidator(BaseValidator):
             results.append(
                 CheckResult.error(
                     f"{len(missing_tags)} tag(s) have no generated pages",
+                    code="H301",
                     recommendation="Check dynamic page generation in Site.generate_dynamic_pages()",
                     details=missing_tags[:5],
                 )
@@ -107,6 +108,7 @@ class TaxonomyValidator(BaseValidator):
             results.append(
                 CheckResult.error(
                     f"{len(orphaned_pages)} orphaned tag page(s) found",
+                    code="H302",
                     recommendation="These tag pages exist but their tags are not in the taxonomy.",
                     details=orphaned_pages[:5],
                 )
@@ -125,6 +127,7 @@ class TaxonomyValidator(BaseValidator):
             results.append(
                 CheckResult.warning(
                     "No tag index page found",
+                    code="H303",
                     recommendation="Site has tags but no /tags/ index page. Check Site._create_tag_index_page()",
                 )
             )
@@ -164,6 +167,7 @@ class TaxonomyValidator(BaseValidator):
             results.append(
                 CheckResult.warning(
                     f"{len(issues)} section(s) have content but no archive/index page",
+                    code="H304",
                     recommendation="Sections should have _index.md or auto-generated archive pages.",
                     details=issues[:5],
                 )
@@ -214,6 +218,7 @@ class TaxonomyValidator(BaseValidator):
             results.append(
                 CheckResult.error(
                     f"{len(issues)} taxonomy consistency issue(s)",
+                    code="H305",
                     recommendation="This indicates a bug in taxonomy collection. Check Site.collect_taxonomies()",
                     details=issues[:5],
                 )
@@ -262,6 +267,7 @@ class TaxonomyValidator(BaseValidator):
             results.append(
                 CheckResult.error(
                     f"{len(issues)} pagination issue(s)",
+                    code="H306",
                     recommendation="Check pagination generation in Site.generate_dynamic_pages()",
                     details=issues[:5],
                 )

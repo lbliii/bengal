@@ -1,0 +1,145 @@
+/**
+ * Audio Embed Styles
+ *
+ * Styles for embedded audio content like Spotify.
+ *
+ * Classes:
+ *   .audio-embed - Base container for all audio embeds
+ *   .audio-embed.spotify - Spotify-specific styling
+ *   .audio-embed.audio-error - Error state styling
+ *
+ * Usage:
+ *   :::{spotify} 4iV5W9uYEdYUVa79Axb7Rh
+ *   :title: Bohemian Rhapsody
+ *   :type: track
+ *   :::
+ */
+
+/* =============================================================================
+   Base Audio Container
+   ============================================================================= */
+
+.audio-embed {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  margin-block: var(--spacing-4, 1rem);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.audio-embed iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 12px;
+}
+
+/* =============================================================================
+   Spotify Styles
+   ============================================================================= */
+
+.audio-embed.spotify {
+  --audio-brand-color: #1db954;
+}
+
+.audio-embed.spotify iframe {
+  background: linear-gradient(
+    135deg,
+    #191414 0%,
+    #121212 100%
+  );
+}
+
+/* =============================================================================
+   SoundCloud Styles
+   ============================================================================= */
+
+.audio-embed.soundcloud {
+  --audio-brand-color: #ff5500;
+}
+
+.audio-embed.soundcloud iframe {
+  background: linear-gradient(
+    135deg,
+    #1a1a1a 0%,
+    #0d0d0d 100%
+  );
+}
+
+/* =============================================================================
+   Error States
+   ============================================================================= */
+
+.audio-embed.audio-error {
+  padding: var(--spacing-4, 1rem);
+  background-color: var(--color-error-bg, rgba(220, 53, 69, 0.1));
+  border: 1px solid var(--color-error-border, rgba(220, 53, 69, 0.3));
+  border-radius: 12px;
+}
+
+.audio-embed.audio-error .error {
+  margin: 0 0 var(--spacing-2, 0.5rem);
+  color: var(--color-error, #dc3545);
+  font-weight: 600;
+}
+
+.audio-embed.audio-error code {
+  padding: var(--spacing-1, 0.25rem) var(--spacing-2, 0.5rem);
+  font-size: var(--font-size-sm, 0.875rem);
+  background-color: var(--color-surface-secondary, rgba(0, 0, 0, 0.2));
+  border-radius: var(--radius-sm, 4px);
+}
+
+/* =============================================================================
+   Noscript Fallback
+   ============================================================================= */
+
+.audio-embed noscript {
+  display: block;
+  padding: var(--spacing-4, 1rem);
+  text-align: center;
+  background-color: var(--color-surface-secondary, #1a1a2e);
+  border-radius: 12px;
+}
+
+.audio-embed noscript p {
+  margin: 0;
+}
+
+.audio-embed noscript a {
+  color: var(--color-link, #1db954);
+  text-decoration: underline;
+}
+
+.audio-embed noscript a:hover {
+  color: var(--color-link-hover, #1ed760);
+}
+
+/* =============================================================================
+   Loading State
+   ============================================================================= */
+
+.audio-embed iframe[loading="lazy"] {
+  background: #121212
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cg fill='none' stroke='%231db954' stroke-width='2'%3E%3Ccircle cx='20' cy='20' r='18'/%3E%3Cpath d='M20 10v10l8 4'/%3E%3C/g%3E%3C/svg%3E")
+    center center no-repeat;
+}
+
+/* =============================================================================
+   Print Styles
+   ============================================================================= */
+
+@media print {
+  .audio-embed {
+    page-break-inside: avoid;
+  }
+
+  .audio-embed iframe {
+    display: none;
+  }
+
+  .audio-embed noscript {
+    display: block !important;
+  }
+}

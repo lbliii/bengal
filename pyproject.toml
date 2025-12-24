@@ -52,9 +52,9 @@ search = ["lunr>=0.7.0"]
 # Content Layer - Remote content sources
 # These provide async HTTP for fetching from GitHub, REST APIs, Notion, etc.
 github = ["aiohttp>=3.9.0"]
-notion = ["aiohttp>=3.9.0"]
+notion = ["aiohttp>=3.9.0", "cachetools>=5.0.0"]  # cachetools for block caching
 rest = ["aiohttp>=3.9.0"]
-all-sources = ["aiohttp>=3.9.0"] # All remote sources
+all-sources = ["aiohttp>=3.9.0", "cachetools>=5.0.0"]  # All remote sources
 
 # Note: Dev dependencies use [dependency-groups] (PEP 735) - install with: uv sync --group dev
 
@@ -118,7 +118,7 @@ dev = [
     "pytest-xdist>=3.3.0",
     "pytest-timeout>=2.2.0",
     "pytest-asyncio>=0.23.0",
-    "pytest-forked>=1.6.0",           # Isolated test execution for stateful tests
+    "pytest-forked>=1.6.0", # Isolated test execution for stateful tests
     "pytest-textual-snapshot>=0.4.0", # Textual dashboard snapshot testing
     "hypothesis>=6.92.0",
     # Linting & Type Checking
@@ -126,12 +126,13 @@ dev = [
     "ruff>=0.14.0", # 0.14+ required for Python 3.14 support
     # Test Utilities
     "beautifulsoup4>=4.12.0", # HTML validation in integration tests
-    "markdown>=3.5.0",        # Optional python-markdown parser for tests
-    "tomli-w>=1.0.0",         # TOML writing (pairs with stdlib tomllib)
+    "markdown>=3.5.0", # Optional python-markdown parser for tests
+    "tomli-w>=1.0.0", # TOML writing (pairs with stdlib tomllib)
     # Type Stubs
     "types-pyyaml>=6.0.12",
     "types-psutil>=5.9.0",
     "types-pygments>=2.18.0",
     "types-python-dateutil>=2.9.0",
     "types-markdown>=3.5.0",
+    "pytest-benchmark>=5.2.3",
 ]

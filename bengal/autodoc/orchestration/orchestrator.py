@@ -495,12 +495,13 @@ class VirtualAutodocOrchestrator:
                     error_type=type(e).__name__,
                 )
                 if strict_mode:
-                    from bengal.errors import BengalDiscoveryError
+                    from bengal.errors import BengalDiscoveryError, ErrorCode
 
                     raise BengalDiscoveryError(
                         f"Python extraction failed in strict mode: {e}",
                         suggestion="Fix Python source code issues or disable strict mode",
                         original_error=e,
+                        code=ErrorCode.D001,
                     ) from e
 
         # 2. Extract CLI documentation
@@ -538,12 +539,13 @@ class VirtualAutodocOrchestrator:
                     error_type=type(e).__name__,
                 )
                 if strict_mode:
-                    from bengal.errors import BengalDiscoveryError
+                    from bengal.errors import BengalDiscoveryError, ErrorCode
 
                     raise BengalDiscoveryError(
                         f"CLI extraction failed in strict mode: {e}",
                         suggestion="Fix CLI source code issues or disable strict mode",
                         original_error=e,
+                        code=ErrorCode.D001,
                     ) from e
 
         # 3. Extract OpenAPI documentation
@@ -584,23 +586,25 @@ class VirtualAutodocOrchestrator:
                     error_type=type(e).__name__,
                 )
                 if strict_mode:
-                    from bengal.errors import BengalDiscoveryError
+                    from bengal.errors import BengalDiscoveryError, ErrorCode
 
                     raise BengalDiscoveryError(
                         f"OpenAPI extraction failed in strict mode: {e}",
                         suggestion="Fix OpenAPI specification issues or disable strict mode",
                         original_error=e,
+                        code=ErrorCode.D001,
                     ) from e
 
         if not all_elements:
             logger.info("autodoc_no_elements_found")
             if strict_mode and result.failed_extract > 0:
-                from bengal.errors import BengalDiscoveryError
+                from bengal.errors import BengalDiscoveryError, ErrorCode
 
                 raise BengalDiscoveryError(
                     f"Autodoc strict mode: {result.failed_extract} extraction failures, "
                     f"no elements produced",
                     suggestion="Fix extraction errors above or disable strict mode",
+                    code=ErrorCode.D001,
                 )
             return [], [], result
 
@@ -615,12 +619,13 @@ class VirtualAutodocOrchestrator:
 
         # Check strict mode after all processing
         if strict_mode and result.has_failures():
-            from bengal.errors import BengalDiscoveryError
+            from bengal.errors import BengalDiscoveryError, ErrorCode
 
             raise BengalDiscoveryError(
                 f"Autodoc strict mode: {result.failed_extract} extraction failures, "
                 f"{result.failed_render} rendering failures",
                 suggestion="Fix extraction/rendering errors above or disable strict mode",
+                code=ErrorCode.D001,
             )
 
         logger.info(

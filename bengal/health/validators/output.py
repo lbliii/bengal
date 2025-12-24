@@ -114,6 +114,7 @@ class OutputValidator(BaseValidator):
             results.append(
                 CheckResult.warning(
                     f"{len(small_pages)} page(s) are suspiciously small (< {min_size} bytes)",
+                    code="H005",
                     recommendation="Small pages may indicate fallback HTML from rendering errors. Review these pages.",
                     details=small_pages[:5],  # Show first 5
                 )
@@ -131,6 +132,7 @@ class OutputValidator(BaseValidator):
             results.append(
                 CheckResult.error(
                     "No assets directory found in output",
+                    code="H002",
                     recommendation="Check that theme assets are being discovered and copied. Theme may not be properly configured.",
                 )
             )
@@ -142,6 +144,7 @@ class OutputValidator(BaseValidator):
             results.append(
                 CheckResult.warning(
                     "No CSS files found in output",
+                    code="H003",
                     recommendation="Theme may not be applied. Check theme configuration and asset discovery.",
                 )
             )
@@ -153,6 +156,7 @@ class OutputValidator(BaseValidator):
             results.append(
                 CheckResult.warning(
                     "No JS files found in output",
+                    code="H004",
                     recommendation="Default theme expects JavaScript files. Check asset discovery.",
                 )
             )
@@ -168,6 +172,7 @@ class OutputValidator(BaseValidator):
             results.append(
                 CheckResult.error(
                     f"Output directory does not exist: {site.output_dir}",
+                    code="H001",
                     recommendation="This should not happen after a build. Check build process.",
                 )
             )

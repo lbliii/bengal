@@ -61,6 +61,8 @@ from bengal.directives.embed import (
     CodePenDirective,
     CodeSandboxDirective,
     GistDirective,
+    SoundCloudDirective,
+    SpotifyDirective,
     StackBlitzDirective,
 )
 from bengal.directives.example_label import ExampleLabelDirective
@@ -91,6 +93,7 @@ from bengal.directives.versioning import (
 )
 from bengal.directives.video import (
     SelfHostedVideoDirective,
+    TikTokDirective,
     VimeoDirective,
     YouTubeDirective,
 )
@@ -208,12 +211,16 @@ def create_documentation_directives() -> Callable[[Any], None]:
                 # Video embeds
                 YouTubeDirective(),  # YouTube with privacy mode (youtube-nocookie.com)
                 VimeoDirective(),  # Vimeo with Do Not Track mode
+                TikTokDirective(),  # TikTok short-form video embeds
                 SelfHostedVideoDirective(),  # Native HTML5 video for local files
                 # Developer tool embeds
                 GistDirective(),  # GitHub Gists
                 CodePenDirective(),  # CodePen pens
                 CodeSandboxDirective(),  # CodeSandbox projects
                 StackBlitzDirective(),  # StackBlitz projects
+                # Audio streaming embeds
+                SpotifyDirective(),  # Spotify tracks, albums, playlists, podcasts
+                SoundCloudDirective(),  # SoundCloud tracks, playlists
                 # Terminal recording embeds
                 AsciinemaDirective(),  # Terminal recordings from asciinema.org
                 # Figure and audio

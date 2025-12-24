@@ -4,11 +4,17 @@ GitHubSource - Content source for GitHub repositories.
 Fetches markdown files from GitHub repos, supporting both public
 and private repositories with token authentication.
 
+Performance Optimizations:
+- Parallel file fetching with configurable concurrency (default: 10 concurrent)
+- Automatic retry with exponential backoff on rate limits (429/403)
+- Streaming results as they complete via asyncio.as_completed()
+
 Requires: pip install bengal[github] (installs aiohttp)
 """
 
 from __future__ import annotations
 
+import asyncio
 import os
 from base64 import b64decode
 from collections.abc import AsyncIterator
@@ -44,6 +50,11 @@ class GitHubSource(ContentSource):
         token: str - GitHub token (optional, uses GITHUB_TOKEN env var)
         glob: str - File pattern to match (default: "*.md")
 
+    Performance:
+        Files are fetched in parallel with a configurable concurrency limit.
+        Rate limit responses (429/403) trigger automatic retry with exponential backoff.
+        Results are streamed as they complete (order is non-deterministic).
+
     Example:
         >>> source = GitHubSource("api-docs", {
         ...     "repo": "myorg/api-docs",
@@ -55,6 +66,11 @@ class GitHubSource(ContentSource):
     """
 
     source_type = "github"
+
+    # Concurrency and retry configuration
+    MAX_CONCURRENT_REQUESTS = 10  # GitHub rate limit friendly
+    MAX_RETRIES = 3
+    RETRY_BACKOFF_BASE = 1.0  # seconds
 
     def __init__(self, name: str, config: dict[str, Any]) -> None:
         """
@@ -69,12 +85,13 @@ class GitHubSource(ContentSource):
         """
         super().__init__(name, config)
 
-        from bengal.errors import BengalConfigError
+        from bengal.errors import BengalConfigError, ErrorCode
 
         if "repo" not in config:
             raise BengalConfigError(
                 f"GitHubSource '{name}' requires 'repo' in config",
                 suggestion="Add 'repo' to GitHubSource configuration",
+                code=ErrorCode.C002,
             )
 
         self.repo = config["repo"]
@@ -95,11 +112,14 @@ class GitHubSource(ContentSource):
         """
         Fetch all markdown files from the repository.
 
+        Files are fetched in parallel with a concurrency limit for performance.
+        Results are yielded as they complete (order is non-deterministic).
+
         Yields:
             ContentEntry for each matching file
         """
         async with aiohttp.ClientSession(headers=self._headers) as session:
-            # Get tree recursively
+            # Get tree recursively in one API call
             tree_url = f"{self.api_base}/repos/{self.repo}/git/trees/{self.branch}?recursive=1"
 
             async with session.get(tree_url) as resp:
@@ -113,24 +133,57 @@ class GitHubSource(ContentSource):
                 data = await resp.json()
 
             # Filter to matching files in path
-            for item in data.get("tree", []):
-                if item["type"] != "blob":
-                    continue
+            matching_files = [
+                item
+                for item in data.get("tree", [])
+                if item["type"] == "blob"
+                and item["path"].endswith(".md")
+                and (not self.path or item["path"].startswith(self.path + "/"))
+            ]
 
-                file_path = item["path"]
+            if not matching_files:
+                return
 
-                # Filter by path prefix
-                if self.path and not file_path.startswith(self.path + "/"):
-                    continue
+            # Fetch files in parallel with concurrency limit
+            semaphore = asyncio.Semaphore(self.MAX_CONCURRENT_REQUESTS)
 
-                # Filter by file extension
-                if not file_path.endswith(".md"):
-                    continue
+            async def fetch_with_retry(item: dict[str, Any]) -> ContentEntry | None:
+                """Fetch file with exponential backoff on rate limit."""
+                async with semaphore:
+                    for attempt in range(self.MAX_RETRIES):
+                        try:
+                            return await self._fetch_file(session, item["path"], item["sha"])
+                        except aiohttp.ClientResponseError as e:
+                            if e.status in (429, 403) and attempt < self.MAX_RETRIES - 1:
+                                # Rate limited: exponential backoff
+                                delay = self.RETRY_BACKOFF_BASE * (2**attempt)
+                                logger.warning(
+                                    f"Rate limited (HTTP {e.status}), "
+                                    f"retrying in {delay}s: {item['path']}"
+                                )
+                                await asyncio.sleep(delay)
+                                continue
+                            raise
+                    return None  # All retries exhausted
 
-                # Fetch file content
-                entry = await self._fetch_file(session, file_path, item["sha"])
-                if entry:
-                    yield entry
+            # Create tasks for parallel fetching
+            tasks = [fetch_with_retry(item) for item in matching_files]
+
+            # Track failed files for error reporting
+            failed_count = 0
+
+            # Stream results as they complete (order not guaranteed)
+            for coro in asyncio.as_completed(tasks):
+                try:
+                    entry = await coro
+                    if entry:
+                        yield entry
+                except Exception as e:
+                    failed_count += 1
+                    logger.error(f"Failed to fetch file: {e}")
+
+            if failed_count > 0:
+                logger.warning(f"Failed to fetch {failed_count}/{len(matching_files)} files")
 
     async def fetch_one(self, id: str) -> ContentEntry | None:
         """

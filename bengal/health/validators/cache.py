@@ -71,6 +71,7 @@ class CacheValidator(BaseValidator):
             results.append(
                 CheckResult.warning(
                     "Cache at legacy location (public/.bengal-cache.json)",
+                    code="H401",
                     recommendation="Run 'bengal build' to migrate cache to .bengal/cache.json automatically.",
                 )
             )
@@ -92,6 +93,7 @@ class CacheValidator(BaseValidator):
             results.append(
                 CheckResult.error(
                     f"Cache file exists but cannot be read: {cache_path}",
+                    code="H402",
                     recommendation="Delete cache and rebuild: 'bengal clean --cache && bengal build'",
                 )
             )
@@ -107,6 +109,7 @@ class CacheValidator(BaseValidator):
             results.append(
                 CheckResult.error(
                     f"Cache structure invalid: {', '.join(structure_issues)}",
+                    code="H403",
                     recommendation="Cache may be corrupted: 'bengal clean --cache && bengal build'",
                 )
             )
@@ -240,6 +243,7 @@ class CacheValidator(BaseValidator):
             results.append(
                 CheckResult.warning(
                     f"Found {len(orphaned)} dependency reference(s) to missing files",
+                    code="H404",
                     recommendation="Normal if files were deleted. Cache will clean up on next build.",
                     details=[str(Path(f).name) for f in orphaned[:3]],
                 )
