@@ -1,20 +1,22 @@
 {#
-Page Hero - Classic Variant
+================================================================================
+DEPRECATED: Classic Hero Component
+================================================================================
 
-Traditional layout with separate action bar and page header.
-This preserves the original Bengal documentation layout.
+This template is now inlined as a macro in page-hero.html for faster rendering.
 
-Usage: Included via page-hero.html dispatcher
+MIGRATION:
+  Old: {% include 'partials/page-hero-classic.html' %}
+  New: {% include 'partials/page-hero.html' %}  (auto-routes to classic)
+
+  Or call macro directly:
+    {% from 'partials/page-hero.html' import hero_classic %}
+    {{ hero_classic(page, params) }}
+
+See: plan/drafted/rfc-page-hero-template-flattening.md
+================================================================================
 #}
 
-{# Action Bar: Breadcrumbs + Share #}
-{% include 'partials/action-bar.html' %}
-
-{# Page Header #}
-<header class="page-header page-header--classic">
-    <h1>{{ page.title }}</h1>
-
-    {% if params.description %}
-    <p class="lead">{{ params.description }}</p>
-    {% endif %}
-</header>
+{# Shim: Forward to macro for backwards compatibility #}
+{% from 'partials/page-hero.html' import hero_classic %}
+{{ hero_classic(page, params) }}
