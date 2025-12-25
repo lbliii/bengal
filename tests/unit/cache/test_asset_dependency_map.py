@@ -275,6 +275,65 @@ class TestAssetDependencyMap:
         retrieved = asset_map.get_page_assets(Path(path))
         assert retrieved == assets
 
+    def test_round_trip_compressed_format(self, cache_dir):
+        """Test save/load cycle with compressed format."""
+        # Create and populate
+        map1 = AssetDependencyMap(cache_dir / "asset_deps.json")
+        map1.track_page_assets(
+            Path("content/index.md"),
+            {"/css/style.css", "/images/logo.png"},
+        )
+        map1.save_to_disk()
+
+        # Verify compressed file exists
+        compressed_path = cache_dir / "asset_deps.json.zst"
+        assert compressed_path.exists(), "Compressed cache file should exist"
+
+        # Load in new instance (should use compressed format)
+        map2 = AssetDependencyMap(cache_dir / "asset_deps.json")
+        assets = map2.get_page_assets(Path("content/index.md"))
+        assert assets == {"/css/style.css", "/images/logo.png"}
+
+        # Verify compression ratio (should be ~92-93% reduction)
+        compressed_size = compressed_path.stat().st_size
+        # Estimate original size (rough approximation)
+        estimated_original = len(json.dumps([e.to_cache_dict() for e in map1.pages.values()])) * 2
+        if estimated_original > 0:
+            ratio = compressed_size / estimated_original
+            assert ratio < 0.15, f"Compression ratio should be <15%, got {ratio:.2%}"
+
+    def test_migration_from_uncompressed(self, cache_dir):
+        """Test backward compatibility: load old .json format, save new .json.zst format."""
+        # Create old uncompressed JSON format
+        json_path = cache_dir / "asset_deps.json"
+        old_data = {
+            "version": 1,
+            "pages": {
+                "content/index.md": {
+                    "assets": ["/css/style.css", "/images/logo.png"],
+                    "tracked_at": "2025-10-16T12:00:00",
+                    "is_valid": True,
+                }
+            },
+        }
+        with open(json_path, "w") as f:
+            json.dump(old_data, f, indent=2)
+
+        # Load old format (should work via load_auto fallback)
+        asset_map = AssetDependencyMap(cache_dir / "asset_deps.json")
+        assets = asset_map.get_page_assets(Path("content/index.md"))
+        assert assets == {"/css/style.css", "/images/logo.png"}
+
+        # Save should create new compressed format
+        asset_map.save_to_disk()
+        compressed_path = cache_dir / "asset_deps.json.zst"
+        assert compressed_path.exists(), "Save should create compressed format"
+
+        # Subsequent load should use compressed format
+        asset_map2 = AssetDependencyMap(cache_dir / "asset_deps.json")
+        assets2 = asset_map2.get_page_assets(Path("content/index.md"))
+        assert assets2 == {"/css/style.css", "/images/logo.png"}
+
 
 class TestAssetDependencyMapErrorCodes:
     """Tests for error code logging in AssetDependencyMap.

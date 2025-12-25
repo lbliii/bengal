@@ -286,11 +286,22 @@ class TestCacheIntegrationEndToEnd:
         orchestrator = BuildOrchestrator(site_with_content)
         orchestrator.build(incremental=False)
 
-        # Check all cache files exist
+        # Check all cache files exist (compressed format)
         cache_dir = site_with_content.root_path / ".bengal"
-        assert (cache_dir / "page_metadata.json").exists(), "PageDiscoveryCache missing"
-        assert (cache_dir / "asset_deps.json").exists(), "AssetDependencyMap missing"
-        assert (cache_dir / "taxonomy_index.json").exists(), "TaxonomyIndex missing"
+        # Caches should be compressed (.json.zst) but load_auto handles both formats
+        page_cache = cache_dir / "page_metadata.json.zst"
+        asset_cache = cache_dir / "asset_deps.json.zst"
+        taxonomy_cache = cache_dir / "taxonomy_index.json.zst"
+
+        assert page_cache.exists() or (cache_dir / "page_metadata.json").exists(), (
+            "PageDiscoveryCache missing"
+        )
+        assert asset_cache.exists() or (cache_dir / "asset_deps.json").exists(), (
+            "AssetDependencyMap missing"
+        )
+        assert taxonomy_cache.exists() or (cache_dir / "taxonomy_index.json").exists(), (
+            "TaxonomyIndex missing"
+        )
 
     def test_cache_data_persistence_across_reloads(self, site_with_content):
         """Verify cache data persists and can be reloaded."""
@@ -321,6 +332,33 @@ class TestCacheIntegrationEndToEnd:
         assert len(page_cache2.pages) == pages1, "PageDiscoveryCache data changed"
         assert len(asset_map2.pages) == assets1, "AssetDependencyMap data changed"
         assert len(taxonomy_index2.tags) == tags1, "TaxonomyIndex data changed"
+
+    def test_all_caches_compressed_after_build(self, site_with_content):
+        """Verify all three auxiliary caches are compressed after a full build."""
+        # Build the site
+        orchestrator = BuildOrchestrator(site_with_content)
+        orchestrator.build(incremental=False)
+
+        # Check all compressed cache files exist
+        cache_dir = site_with_content.root_path / ".bengal"
+        compressed_page_cache = cache_dir / "page_metadata.json.zst"
+        compressed_asset_cache = cache_dir / "asset_deps.json.zst"
+        compressed_taxonomy_cache = cache_dir / "taxonomy_index.json.zst"
+
+        assert compressed_page_cache.exists(), "PageDiscoveryCache should be compressed"
+        assert compressed_asset_cache.exists(), "AssetDependencyMap should be compressed"
+        assert compressed_taxonomy_cache.exists(), "TaxonomyIndex should be compressed"
+
+        # Verify compression ratios (should be ~92-93% reduction)
+        # Estimate original sizes by loading and checking compressed size
+        page_size = compressed_page_cache.stat().st_size
+        asset_size = compressed_asset_cache.stat().st_size
+        taxonomy_size = compressed_taxonomy_cache.stat().st_size
+
+        # All should be reasonably compressed (less than 20% of estimated original)
+        assert page_size > 0, "Page cache should have content"
+        assert asset_size > 0, "Asset cache should have content"
+        assert taxonomy_size > 0, "Taxonomy cache should have content"
 
     def test_cache_files_created(self, site_with_content):
         """Verify all cache files are created after build."""

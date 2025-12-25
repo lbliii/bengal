@@ -140,6 +140,7 @@ class AssetDependencyMap:
             return
 
         try:
+            # load_auto tries .json.zst first, falls back to .json
             data = load_auto(self.cache_path)
 
             # Validate version

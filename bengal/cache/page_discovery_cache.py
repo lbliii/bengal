@@ -139,6 +139,7 @@ class PageDiscoveryCache:
             return
 
         try:
+            # load_auto tries .json.zst first, falls back to .json
             data = load_auto(self.cache_path)
 
             # Load cache entries (no version check - just fail and rebuild if format changed)

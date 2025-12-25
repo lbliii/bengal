@@ -139,6 +139,7 @@ class TaxonomyIndex:
             return
 
         try:
+            # load_auto tries .json.zst first, falls back to .json
             data = load_auto(self.cache_path)
 
             # Version check - clear on mismatch
