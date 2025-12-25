@@ -305,8 +305,13 @@ class TestTaxonomyIndex:
 
         # Verify compression ratio (should be ~92-93% reduction)
         compressed_size = compressed_path.stat().st_size
-        # Estimate original size (rough approximation)
-        estimated_original = len(json.dumps(idx1.tags)) * 2  # Rough estimate
+        # Estimate original size using the actual data structure being saved
+        data = {
+            "version": idx1.VERSION,
+            "tags": {tag_slug: entry.to_cache_dict() for tag_slug, entry in idx1.tags.items()},
+            "page_to_tags": {page: list(tags) for page, tags in idx1._page_to_tags.items()},
+        }
+        estimated_original = len(json.dumps(data, separators=(",", ":")))
         if estimated_original > 0:
             ratio = compressed_size / estimated_original
             assert ratio < 0.15, f"Compression ratio should be <15%, got {ratio:.2%}"

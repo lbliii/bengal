@@ -36,9 +36,9 @@ Performance Impact:
 Directory Structure:
     .bengal/
     ├── cache.json.zst         # Main build cache (compressed)
-    ├── page_metadata.json     # Page discovery cache
-    ├── asset_deps.json        # Asset dependency map
-    ├── taxonomy_index.json    # Tag/category index
+    ├── page_metadata.json.zst # Page discovery cache (compressed)
+    ├── asset_deps.json.zst    # Asset dependency map (compressed)
+    ├── taxonomy_index.json.zst # Tag/category index (compressed)
     └── indexes/               # Query indexes (section, author, etc.)
 
 Related Modules:

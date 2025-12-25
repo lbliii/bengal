@@ -275,10 +275,14 @@ class TestIgnoreFilterBengalCache:
         """Test that .bengal cache directory is in default ignores."""
         f = IgnoreFilter(include_defaults=True)
 
-        # Files inside .bengal should be ignored
+        # Files inside .bengal should be ignored (both compressed and uncompressed formats)
         assert f(Path("/project/.bengal/cache.json")) is True
         assert f(Path("/project/.bengal/page_metadata.json")) is True
+        assert f(Path("/project/.bengal/page_metadata.json.zst")) is True
         assert f(Path("/project/.bengal/taxonomy_index.json")) is True
+        assert f(Path("/project/.bengal/taxonomy_index.json.zst")) is True
+        assert f(Path("/project/.bengal/asset_deps.json")) is True
+        assert f(Path("/project/.bengal/asset_deps.json.zst")) is True
 
     def test_bengal_cache_files_ignored_in_nested_paths(self) -> None:
         """Test that .bengal is ignored regardless of project location."""

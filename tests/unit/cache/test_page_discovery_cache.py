@@ -246,8 +246,10 @@ class TestPageDiscoveryCache:
         cache.add_metadata(PageMetadata(source_path="test.md", title="Test"))
         cache.save_to_disk()
 
-        assert cache_path.exists()
-        assert cache_path.parent == tmp_path / "nested" / "deep"
+        # Check compressed path (actual file saved)
+        compressed_path = cache_path.with_suffix(".json.zst")
+        assert compressed_path.exists()
+        assert compressed_path.parent == tmp_path / "nested" / "deep"
 
     def test_load_corrupted_cache(self, cache_dir):
         """Test loading corrupted cache file."""
@@ -392,8 +394,13 @@ class TestPageDiscoveryCache:
 
         # Verify compression ratio (should be ~92-93% reduction)
         compressed_size = compressed_path.stat().st_size
-        # Estimate original size (rough approximation)
-        estimated_original = len(json.dumps([e.to_dict() for e in cache1.pages.values()])) * 2
+        # Estimate original size using the actual data structure being saved
+
+        data = {
+            "pages": {path: entry.to_dict() for path, entry in cache1.pages.items()},
+        }
+        # Use default=str to handle datetime objects like save_compressed does
+        estimated_original = len(json.dumps(data, separators=(",", ":"), default=str))
         if estimated_original > 0:
             ratio = compressed_size / estimated_original
             assert ratio < 0.15, f"Compression ratio should be <15%, got {ratio:.2%}"

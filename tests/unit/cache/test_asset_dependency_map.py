@@ -296,8 +296,12 @@ class TestAssetDependencyMap:
 
         # Verify compression ratio (should be ~92-93% reduction)
         compressed_size = compressed_path.stat().st_size
-        # Estimate original size (rough approximation)
-        estimated_original = len(json.dumps([e.to_cache_dict() for e in map1.pages.values()])) * 2
+        # Estimate original size using the actual data structure being saved
+        data = {
+            "version": map1.VERSION,
+            "pages": {path: entry.to_cache_dict() for path, entry in map1.pages.items()},
+        }
+        estimated_original = len(json.dumps(data, separators=(",", ":")))
         if estimated_original > 0:
             ratio = compressed_size / estimated_original
             assert ratio < 0.15, f"Compression ratio should be <15%, got {ratio:.2%}"
@@ -382,13 +386,13 @@ class TestAssetDependencyMapErrorCodes:
         # Clear any previous output
         capsys.readouterr()
 
-        # Mock the file write to fail
-        def mock_dump(*args, **kwargs):
+        # Mock save_compressed to fail
+        def mock_save_compressed(*args, **kwargs):
             raise PermissionError("Mocked permission denied")
 
-        import json as json_module
-
-        monkeypatch.setattr(json_module, "dump", mock_dump)
+        monkeypatch.setattr(
+            "bengal.cache.asset_dependency_map.save_compressed", mock_save_compressed
+        )
 
         _map.save_to_disk()
 

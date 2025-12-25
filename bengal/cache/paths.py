@@ -14,9 +14,9 @@ Classes:
 Directory Structure:
     .bengal/
     ├── cache.json.zst       # Main build cache (compressed)
-    ├── page_metadata.json   # Page discovery cache
-    ├── asset_deps.json      # Asset dependency map
-    ├── taxonomy_index.json  # Taxonomy index
+    ├── page_metadata.json.zst # Page discovery cache (compressed)
+    ├── asset_deps.json.zst  # Asset dependency map (compressed)
+    ├── taxonomy_index.json.zst # Taxonomy index (compressed)
     ├── build_history.json   # Build history for delta analysis
     ├── server.pid           # Dev server PID
     ├── asset-manifest.json  # Asset manifest

@@ -23,10 +23,11 @@ from pathlib import Path
 from typing import Any, cast
 
 from bengal.cache.version import (
-    CacheVersionError,
     prepend_cache_header,
     validate_cache_header,
 )
+from bengal.errors.codes import ErrorCode
+from bengal.errors.exceptions import BengalCacheError
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -133,7 +134,7 @@ def load_compressed(path: Path) -> dict[str, Any]:
 
     Raises:
         FileNotFoundError: If path doesn't exist
-        CacheVersionError: If cache version is incompatible
+        BengalCacheError: If cache version is incompatible (code A002)
         zstd.ZstdError: If decompression fails
         json.JSONDecodeError: If JSON is invalid
     """
@@ -142,10 +143,11 @@ def load_compressed(path: Path) -> dict[str, Any]:
     # Validate magic header before decompression
     is_valid, remaining = validate_cache_header(compressed)
     if not is_valid:
-        # Raise CacheVersionError so load_auto() can catch it and fall back to JSON
-        raise CacheVersionError(
+        # Raise BengalCacheError with A002 so load_auto() can catch it and fall back to JSON
+        raise BengalCacheError(
             f"Incompatible cache version or magic header: {path}. "
-            "Delete .bengal/ directory to rebuild cache with current version."
+            "Delete .bengal/ directory to rebuild cache with current version.",
+            code=ErrorCode.A002,
         )
 
     json_bytes = zstd.decompress(remaining)
@@ -231,9 +233,14 @@ def load_auto(path: Path) -> dict[str, Any]:
     if compressed_path.exists():
         try:
             return load_compressed(compressed_path)
-        except CacheVersionError:
-            # Incompatible version - fallback to JSON or re-raise if no JSON
-            logger.debug("compressed_cache_incompatible", path=str(compressed_path))
+        except BengalCacheError as e:
+            # Check if it's a version error (code A002) - fallback to JSON
+            if e.code == ErrorCode.A002:
+                # Incompatible version - fallback to JSON or re-raise if no JSON
+                logger.debug("compressed_cache_incompatible", path=str(compressed_path))
+            else:
+                # Other cache errors - re-raise
+                raise
 
     # Fall back to uncompressed JSON
     json_path = path if path.suffix == ".json" else path.with_suffix(".json")
