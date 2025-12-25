@@ -2,16 +2,40 @@
 Tests for the TreeSitterBackend implementation.
 
 These tests skip gracefully if tree-sitter or the required
-language grammars are not available.
+language grammars are not available, or if running on free-threaded
+Python (where tree-sitter would re-enable the GIL).
 """
 
 from __future__ import annotations
 
+import sysconfig
+
 import pytest
 
 
+def _is_free_threaded_python() -> bool:
+    """Check if running on Python 3.13+ free-threaded build."""
+    import sys
+
+    # Check if this is a free-threaded build (Py_GIL_DISABLED=1)
+    gil_disabled = sysconfig.get_config_var("Py_GIL_DISABLED")
+    if not gil_disabled:
+        return False
+
+    # Check if GIL is currently disabled (Python 3.13+)
+    if hasattr(sys, "_is_gil_enabled"):
+        return not sys._is_gil_enabled()
+
+    # Free-threaded build but no runtime check available
+    return True
+
+
 def _tree_sitter_core_available() -> bool:
-    """Check if tree-sitter core is installed."""
+    """Check if tree-sitter core is installed and safe to import."""
+    # Skip on free-threaded Python to avoid GIL re-enablement warning
+    if _is_free_threaded_python():
+        return False
+
     try:
         import tree_sitter  # noqa: F401
 
