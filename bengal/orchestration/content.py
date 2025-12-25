@@ -414,7 +414,7 @@ class ContentOrchestrator:
                         payload = orchestrator.get_cache_payload()
                         if (
                             isinstance(payload, dict)
-                            and payload.get("version") == 1
+                            and payload.get("version") == 2
                             and payload.get("autodoc_config_hash") == current_cfg_hash
                         ):
                             cache.set_page_cache(cache_key, payload)
