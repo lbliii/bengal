@@ -412,6 +412,12 @@ _LEXER_SPECS: dict[str, LexerSpec] = {
         "MermaidLexer",
         aliases=("mmd",),
     ),
+    # Directory/file trees
+    "tree": LexerSpec(
+        "rosettes.lexers.tree",
+        "TreeLexer",
+        aliases=("directory", "filetree", "dirtree", "files"),
+    ),
 }
 
 # Build alias lookup table (case-insensitive)
