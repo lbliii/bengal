@@ -281,6 +281,8 @@ class TestErrorCodeIntegration:
             "asset",
             "graph",
             "autodoc",
+            "validator",
+            "build",
         }
 
         for code in ErrorCode:
