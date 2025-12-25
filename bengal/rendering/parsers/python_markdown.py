@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import Any, override
 
 from bengal.rendering.parsers.base import BaseMarkdownParser
-from bengal.rendering.parsers.pygments_patch import PygmentsPatch
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -16,19 +15,15 @@ class PythonMarkdownParser(BaseMarkdownParser):
     Parser using python-markdown library.
     Full-featured with all extensions.
 
-    Performance Note:
-        Uses cached Pygments lexers to avoid expensive plugin discovery
-        on every code block. This provides 3-10× speedup on sites with
-        many code blocks.
+    Note:
+        This parser uses python-markdown's codehilite extension which
+        requires Pygments. For syntax highlighting without Pygments,
+        use MistuneParser instead (which uses Bengal's Rosettes backend).
     """
 
     def __init__(self) -> None:
         """Initialize the python-markdown parser with extensions."""
         import markdown
-
-        # Apply performance patch for Pygments lexer caching
-        # This is a process-wide optimization that improves code highlighting speed
-        PygmentsPatch.apply()
 
         self.md = markdown.Markdown(
             extensions=[

@@ -1,39 +1,28 @@
 """
 Rosettes-based syntax highlighting backend.
 
-This backend uses Rosettes, Bengal's built-in lock-free syntax highlighter
-designed for Python 3.14t free-threading.
+This is Bengal's built-in syntax highlighter, designed for Python 3.14t
+free-threading with zero global mutable state.
 
-Advantages:
-    - Zero global mutable state (GIL-free)
-    - Immutable configuration (thread-safe by design)
-    - Lazy loading (fast cold start)
+Features:
+    - 50 languages supported
+    - 3.4x faster than Pygments (parallel builds)
+    - Lock-free, thread-safe by design
     - Pygments CSS compatible (drop-in themes)
-    - 50 languages supported, 3.4x faster than Pygments (parallel)
 
-Fallback Strategy:
-    For unsupported languages, this backend falls back to Pygments
-    to ensure broad language coverage while maintaining thread-safety
-    for common languages.
+Unsupported Languages:
+    For languages not in the 50 supported, code is rendered as plain
+    preformatted text with proper HTML escaping.
 
 Usage:
-    Configure in bengal.yaml:
-
-    .. code-block:: yaml
-
-        rendering:
-          syntax_highlighting:
-            backend: rosettes
-
-    Or use directly:
-
     >>> from bengal.rendering.highlighting import get_highlighter
-    >>> backend = get_highlighter("rosettes")
+    >>> backend = get_highlighter()
     >>> html = backend.highlight("def foo(): pass", "python")
 """
 
 from __future__ import annotations
 
+import html
 import logging
 from typing import TYPE_CHECKING
 
@@ -53,8 +42,6 @@ class RosettesBackend:
 
     Thread-safe by design: Rosettes uses immutable state and
     functools.cache for memoization.
-
-    Falls back to Pygments for unsupported languages.
     """
 
     @property
@@ -85,8 +72,6 @@ class RosettesBackend:
     ) -> str:
         """Render code with syntax highlighting.
 
-        Uses Rosettes for supported languages, falls back to Pygments otherwise.
-
         Args:
             code: Source code to highlight.
             language: Programming language identifier.
@@ -99,10 +84,10 @@ class RosettesBackend:
         # Check if Rosettes supports this language
         if not rosettes.supports_language(language):
             _logger.debug(
-                "Rosettes doesn't support language %r, using Pygments fallback",
+                "Rosettes doesn't support language %r, using plain text",
                 language,
             )
-            return self._pygments_fallback(code, language, hl_lines, show_linenos)
+            return self._plain_text_fallback(code, language)
 
         try:
             # Convert hl_lines to set for Rosettes API
@@ -115,27 +100,20 @@ class RosettesBackend:
                 show_linenos=show_linenos,
             )
         except Exception as e:
-            _logger.warning("Rosettes highlighting failed: %s, using fallback", e)
-            return self._pygments_fallback(code, language, hl_lines, show_linenos)
+            _logger.warning("Rosettes highlighting failed: %s, using plain text", e)
+            return self._plain_text_fallback(code, language)
 
-    def _pygments_fallback(
-        self,
-        code: str,
-        language: str,
-        hl_lines: list[int] | None = None,
-        show_linenos: bool = False,
-    ) -> str:
-        """Fall back to Pygments for unsupported languages.
+    def _plain_text_fallback(self, code: str, language: str) -> str:
+        """Render code as plain preformatted text.
+
+        Used for unsupported languages. Properly escapes HTML.
 
         Args:
-            code: Source code to highlight.
-            language: Programming language identifier.
-            hl_lines: Line numbers to highlight.
-            show_linenos: Whether to include line numbers.
+            code: Source code to render.
+            language: Language identifier (for data attribute).
 
         Returns:
-            HTML string with highlighted code.
+            HTML string with escaped code.
         """
-        from bengal.rendering.highlighting.pygments import PygmentsBackend
-
-        return PygmentsBackend().highlight(code, language, hl_lines, show_linenos)
+        escaped = html.escape(code)
+        return f'<div class="highlight" data-language="{language}"><pre><code>{escaped}</code></pre></div>'

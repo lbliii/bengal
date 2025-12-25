@@ -10,31 +10,18 @@ Public API:
     - register_backend(): Register a custom backend
     - list_backends(): List available backends
 
-Default Backends:
-    - rosettes: Default on Python 3.14t, lock-free and fast (50 languages)
-    - pygments: Fallback, wide language support (always available)
+Default Backend:
+    - rosettes: Built-in, lock-free, 50 languages, 3.4x faster than Pygments
+
+Optional Backends:
     - tree-sitter: Fast, semantic highlighting (optional dependency)
-
-Configuration:
-    The default backend auto-selects based on environment:
-    - Python 3.14t (free-threaded): Uses Rosettes for GIL-free performance
-    - Other Python versions: Uses Pygments
-
-    To override:
-
-    .. code-block:: yaml
-
-        # bengal.yaml
-        rendering:
-          syntax_highlighting:
-            backend: pygments  # or "rosettes", "tree-sitter", "auto"
 
 Usage:
     >>> from bengal.rendering.highlighting import highlight
     >>> html = highlight("print('hello')", "python")
 
     >>> from bengal.rendering.highlighting import get_highlighter
-    >>> backend = get_highlighter()  # Auto-selects best backend
+    >>> backend = get_highlighter()
     >>> html = backend.highlight("fn main() {}", "rust")
 """
 
@@ -91,11 +78,8 @@ def get_highlighter(name: str | None = None) -> HighlightBackend:
 
     Args:
         name: Backend name. Options:
-            - None or 'auto': Smart selection based on environment
-              - Python 3.14t (free-threaded): Rosettes (15x faster parallel)
-              - Other Python: Pygments (wide language support)
-            - 'rosettes': Lock-free highlighter (50 languages, falls back to Pygments)
-            - 'pygments': Regex-based, wide language support
+            - None or 'auto': Uses Rosettes (default)
+            - 'rosettes': Built-in, lock-free, 50 languages
             - 'tree-sitter': Fast, semantic highlighting (requires optional dep)
 
     Returns:
@@ -123,31 +107,26 @@ def get_highlighter(name: str | None = None) -> HighlightBackend:
 
 
 def _select_best_backend() -> str:
-    """Select the best available backend based on environment.
+    """Select the best available backend.
 
     Priority:
-        1. Rosettes on free-threaded Python (GIL disabled) - 15x faster parallel
-        2. Rosettes if available (1.8x faster sequential)
-        3. tree-sitter if available
-        4. Pygments (always available)
+        1. Rosettes (default, always available)
+        2. tree-sitter if available
 
     Returns:
         Backend name to use.
     """
-    # On free-threaded Python, strongly prefer Rosettes for parallel performance
-    if _is_free_threaded_python() and "rosettes" in _HIGHLIGHT_BACKENDS:
-        return "rosettes"
-
-    # Even on regular Python, Rosettes is faster (1.8x sequential)
+    # Rosettes is the default (bundled with Bengal)
     if "rosettes" in _HIGHLIGHT_BACKENDS:
         return "rosettes"
 
-    # tree-sitter is fast but not GIL-free
+    # tree-sitter as fallback if available
     if "tree-sitter" in _HIGHLIGHT_BACKENDS:
         return "tree-sitter"
 
-    # Pygments is always available
-    return "pygments"
+    # Should never reach here - rosettes is always available
+    msg = "No highlighting backend available"
+    raise RuntimeError(msg)
 
 
 def list_backends() -> list[str]:
@@ -214,13 +193,6 @@ def highlight(
 # =============================================================================
 
 
-def _register_pygments_backend() -> None:
-    """Register Pygments backend (always available)."""
-    from bengal.rendering.highlighting.pygments import PygmentsBackend
-
-    _HIGHLIGHT_BACKENDS["pygments"] = PygmentsBackend
-
-
 def _is_free_threaded_python() -> bool:
     """Check if running on Python 3.13+ free-threaded build."""
     import sys
@@ -261,13 +233,10 @@ def _register_tree_sitter_backend() -> None:
 def _register_rosettes_backend() -> None:
     """Register Rosettes backend (always available, bundled with Bengal).
 
-    Rosettes is designed for free-threaded Python and is preferred
-    on Python 3.14t builds for lock-free syntax highlighting.
-
     Features:
         - 50 languages supported
         - 3.4x faster than Pygments (parallel builds)
-        - Falls back to Pygments for unsupported languages
+        - Lock-free, designed for free-threaded Python
     """
     from bengal.rendering.highlighting.rosettes import RosettesBackend
 
@@ -275,6 +244,5 @@ def _register_rosettes_backend() -> None:
 
 
 # Register built-in backends on module import
-_register_pygments_backend()
-_register_tree_sitter_backend()
 _register_rosettes_backend()
+_register_tree_sitter_backend()

@@ -47,7 +47,7 @@ Implementing Custom Backends:
 
 Related Modules:
     - bengal.rendering.highlighting: Backend factory and registration
-    - bengal.rendering.highlighting.pygments: Default Pygments backend
+    - bengal.rendering.highlighting.rosettes: Default Rosettes backend (bundled)
     - bengal.rendering.highlighting.tree_sitter: Optional tree-sitter backend
 """
 
@@ -67,7 +67,7 @@ class HighlightBackend(Protocol):
     - ContentSource (content sources)
 
     REQUIRED PROPERTIES:
-        name: Backend identifier (used in config, e.g., "pygments", "tree-sitter")
+        name: Backend identifier (used in config, e.g., "rosettes", "tree-sitter")
 
     REQUIRED METHODS:
         highlight(): Render code with syntax highlighting to HTML
@@ -85,7 +85,7 @@ class HighlightBackend(Protocol):
         Backend identifier for configuration.
 
         Returns:
-            Unique backend name (e.g., "pygments", "tree-sitter")
+            Unique backend name (e.g., "rosettes", "tree-sitter")
 
         Contract:
             - MUST be lowercase, hyphen-separated
