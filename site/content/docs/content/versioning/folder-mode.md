@@ -10,7 +10,7 @@ Folder mode is the simplest way to version your documentation. Each version live
 
 ## Directory Structure
 
-```text
+```tree
 your-site/
 ├── bengal.yaml
 ├── content/
@@ -137,7 +137,7 @@ versioning:
 
 Content that should appear in **all versions** goes in `_shared/`:
 
-```text
+```tree
 content/
 ├── docs/
 ├── _versions/

@@ -97,7 +97,7 @@ Bengal uses more memory than Hugo but significantly less than Node or Ruby alter
 
 How build time grows with site size.
 
-```text
+```tree
 Build Time
     │
     │                                    ╱ Jekyll (exponential)

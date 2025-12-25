@@ -296,7 +296,7 @@ Icons are resolved in priority order (first match wins):
 
 Create an icons directory in your theme:
 
-```text
+```tree
 your-project/
 └── themes/
     └── my-theme/
@@ -318,7 +318,7 @@ Then use with the standard syntax:
 
 To replace a default icon, add a file with the same name:
 
-```text
+```tree
 themes/my-theme/assets/icons/
 └── warning.svg    # Your custom warning icon
 ```

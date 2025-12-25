@@ -111,7 +111,7 @@ flowchart LR
 
 Cache files are stored as JSON and transparently compressed/decompressed:
 
-```text
+```tree
 .bengal/
 ├── cache.json.zst           # Main build cache (compressed)
 ├── page_metadata.json       # Page discovery cache

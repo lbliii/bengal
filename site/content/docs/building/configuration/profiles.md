@@ -241,7 +241,7 @@ The dev profile gives you:
 
 When metrics collection is enabled (theme-dev and dev profiles):
 
-```text
+```tree
 .bengal/
 └── metrics/
     ├── build-2024-01-15-10-30-00.json

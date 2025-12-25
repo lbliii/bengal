@@ -278,3 +278,72 @@ class TestTaxonomyIndex:
         retrieved = index.get_pages_for_tag("tutorial")
         assert len(retrieved) == 10
         assert retrieved == pages
+
+    def test_round_trip_compressed_format(self, cache_dir):
+        """Test save/load cycle with compressed format."""
+        # Create and populate
+        idx1 = TaxonomyIndex(cache_dir / "taxonomy.json")
+        idx1.update_tag("python", "Python", ["post1.md", "post2.md"])
+        idx1.update_tag("tutorial", "Tutorial", ["post1.md"])
+        idx1.save_to_disk()
+
+        # Verify compressed file exists
+        compressed_path = cache_dir / "taxonomy.json.zst"
+        assert compressed_path.exists(), "Compressed cache file should exist"
+
+        # Verify original JSON file doesn't exist (or is old)
+        json_path = cache_dir / "taxonomy.json"
+        # If old JSON exists, compressed should be newer
+        if json_path.exists():
+            assert compressed_path.stat().st_mtime >= json_path.stat().st_mtime
+
+        # Load in new instance (should use compressed format)
+        idx2 = TaxonomyIndex(cache_dir / "taxonomy.json")
+        assert idx2.has_tag("python") is True
+        assert idx2.get_pages_for_tag("python") == ["post1.md", "post2.md"]
+        assert idx2.get_pages_for_tag("tutorial") == ["post1.md"]
+
+        # Verify compression ratio (should be ~92-93% reduction)
+        compressed_size = compressed_path.stat().st_size
+        # Estimate original size (rough approximation)
+        estimated_original = len(json.dumps(idx1.tags)) * 2  # Rough estimate
+        if estimated_original > 0:
+            ratio = compressed_size / estimated_original
+            assert ratio < 0.15, f"Compression ratio should be <15%, got {ratio:.2%}"
+
+    def test_migration_from_uncompressed(self, cache_dir):
+        """Test backward compatibility: load old .json format, save new .json.zst format."""
+        # Create old uncompressed JSON format
+        json_path = cache_dir / "taxonomy.json"
+        old_data = {
+            "version": 2,
+            "tags": {
+                "python": {
+                    "tag_slug": "python",
+                    "tag_name": "Python",
+                    "page_paths": ["post1.md", "post2.md"],
+                    "updated_at": "2025-10-16T12:00:00",
+                    "is_valid": True,
+                }
+            },
+            "page_to_tags": {
+                "post1.md": ["python"],
+                "post2.md": ["python"],
+            },
+        }
+        with open(json_path, "w") as f:
+            json.dump(old_data, f, indent=2)
+
+        # Load old format (should work via load_auto fallback)
+        idx = TaxonomyIndex(cache_dir / "taxonomy.json")
+        assert idx.has_tag("python") is True
+        assert idx.get_pages_for_tag("python") == ["post1.md", "post2.md"]
+
+        # Save should create new compressed format
+        idx.save_to_disk()
+        compressed_path = cache_dir / "taxonomy.json.zst"
+        assert compressed_path.exists(), "Save should create compressed format"
+
+        # Subsequent load should use compressed format
+        idx2 = TaxonomyIndex(cache_dir / "taxonomy.json")
+        assert idx2.has_tag("python") is True

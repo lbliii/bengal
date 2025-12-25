@@ -103,17 +103,17 @@ class BengalPaths:
 
     @property
     def page_cache(self) -> Path:
-        """Page discovery cache file (.bengal/page_metadata.json)."""
+        """Page discovery cache file (.bengal/page_metadata.json or .json.zst)."""
         return self.state_dir / "page_metadata.json"
 
     @property
     def asset_cache(self) -> Path:
-        """Asset dependency map file (.bengal/asset_deps.json)."""
+        """Asset dependency map file (.bengal/asset_deps.json or .json.zst)."""
         return self.state_dir / "asset_deps.json"
 
     @property
     def taxonomy_cache(self) -> Path:
-        """Taxonomy index cache file (.bengal/taxonomy_index.json)."""
+        """Taxonomy index cache file (.bengal/taxonomy_index.json or .json.zst)."""
         return self.state_dir / "taxonomy_index.json"
 
     # =========================================================================

@@ -1204,7 +1204,7 @@ Bengal searches these directories in order:
 
 Create an icons directory in your theme:
 
-```text
+```tree
 themes/my-theme/assets/icons/
 ├── my-custom-icon.svg   # New icon
 └── warning.svg          # Overrides default

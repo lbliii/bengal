@@ -53,7 +53,7 @@ Bengal looks for configuration in the following order:
 
 For larger sites, you can split configuration into multiple files:
 
-```text
+```tree
 config/
 ├── _default/
 │   ├── site.yaml      # Identity: title, author, menus

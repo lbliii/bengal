@@ -26,6 +26,7 @@ from pathlib import Path
 from typing import Any
 
 from bengal.cache.cacheable import Cacheable
+from bengal.cache.compression import load_auto, save_compressed
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -131,13 +132,14 @@ class TaxonomyIndex:
 
     def _load_from_disk(self) -> None:
         """Load taxonomy index from disk if file exists."""
-        if not self.cache_path.exists():
+        # load_auto handles both .json.zst and .json formats
+        compressed_path = self.cache_path.with_suffix(".json.zst")
+        if not compressed_path.exists() and not self.cache_path.exists():
             logger.debug("taxonomy_index_not_found", path=str(self.cache_path))
             return
 
         try:
-            with open(self.cache_path) as f:
-                data = json.load(f)
+            data = load_auto(self.cache_path)
 
             # Version check - clear on mismatch
             from bengal.errors import ErrorCode
@@ -194,8 +196,9 @@ class TaxonomyIndex:
                 "page_to_tags": {page: list(tags) for page, tags in self._page_to_tags.items()},
             }
 
-            with open(self.cache_path, "w") as f:
-                json.dump(data, f, indent=2)
+            # Save as compressed .json.zst format
+            compressed_path = self.cache_path.with_suffix(".json.zst")
+            save_compressed(data, compressed_path)
 
             logger.info(
                 "taxonomy_index_saved",

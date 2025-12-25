@@ -285,7 +285,7 @@ build-docs:
 
 Bengal uses Git worktrees to check out multiple branches simultaneously:
 
-```text
+```tree
 .bengal/
 └── worktrees/
     ├── 2.0/          # Checked out from release/2.0

@@ -86,7 +86,7 @@ cd mydocs
 
 Structure your docs in `content/`:
 
-```text
+```tree
 content/
 ├── _index.md           # Docs landing page
 ├── getting-started/
@@ -189,7 +189,7 @@ cd mysite
 
 Create sections with cascade for content types:
 
-```text
+```tree
 content/
 ├── _index.md           # Landing page
 ├── docs/
@@ -252,7 +252,7 @@ Create content in multiple languages using directory-based structure.
 
 Bengal supports directory-based i18n for content organization:
 
-```text
+```tree
 content/
 ├── en/
 │   ├── _index.md       # lang: en

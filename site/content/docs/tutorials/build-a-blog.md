@@ -61,7 +61,7 @@ cd my-blog
 
 You will see a structure like this:
 
-```text
+```tree
 my-blog/
 ├── config/           # Configuration files
 │   ├── _default/     # Default settings
@@ -263,7 +263,7 @@ This creates a `public/` directory containing your complete website: HTML, CSS, 
 
 **Review Build Output**
 
-```text
+```tree
 public/
 ├── index.html
 ├── blog/

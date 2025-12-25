@@ -144,7 +144,7 @@ Or a range:
 
 Create a dedicated directory for reusable content:
 
-```text
+```tree
 content/
 ├── _snippets/
 │   ├── warnings/

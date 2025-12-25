@@ -69,7 +69,7 @@ uv run pytest -n auto
 
 ## Project Structure
 
-```text
+```tree
 bengal/
 ├── bengal/
 │   ├── core/           # Passive data models (no I/O)

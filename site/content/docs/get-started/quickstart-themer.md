@@ -53,7 +53,7 @@ bengal new theme my-theme
 
 This creates:
 
-```text
+```tree
 themes/my-theme/
 ├── templates/
 │   ├── base.html

@@ -55,7 +55,7 @@ Open `http://localhost:5173` to see your scaffolded site.
 
 When you run `bengal new site my-docs --template docs`, Bengal creates:
 
-```text
+```tree
 my-docs/
 ├── config/
 │   ├── _default/

@@ -36,7 +36,7 @@ flowchart TB
 :::{tab-item} 📄 Page
 A single `.md` file → a single HTML page.
 
-```text
+```tree
 content/
 └── about.md  →  /about/
 ```
@@ -47,7 +47,7 @@ Use for: standalone pages like About, Contact, Privacy Policy.
 :::{tab-item} 📁 Section
 A folder with `_index.md` → a list page with children.
 
-```text
+```tree
 content/
 └── blog/
     ├── _index.md     →  /blog/ (list page)
@@ -61,7 +61,7 @@ Use for: blog posts, documentation chapters, any collection.
 :::{tab-item} 📦 Bundle
 A folder with `index.md` → a page with co-located assets.
 
-```text
+```tree
 content/
 └── gallery/
     ├── index.md      →  /gallery/

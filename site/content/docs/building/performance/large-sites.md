@@ -190,7 +190,7 @@ bengal build --no-incremental
 
 ### Cache Location
 
-```text
+```tree
 .bengal/
 ├── cache/
 │   ├── content/        # Parsed markdown cache
@@ -263,7 +263,7 @@ Template Rendering Times:
 
 If one section has 5K+ pages, consider splitting:
 
-```text
+```tree
 content/
 ├── blog/
 │   ├── 2024/     # 500 pages
