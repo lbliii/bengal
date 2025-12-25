@@ -160,7 +160,6 @@ class HealthCheck:
             LinkValidatorWrapper,
             MenuValidator,
             NavigationValidator,
-            OutputValidator,
             OwnershipPolicyValidator,
             PerformanceValidator,
             RenderingValidator,
@@ -174,7 +173,8 @@ class HealthCheck:
         # Register in logical order (fast validators first)
         # Phase 1: Basic validation
         self.register(ConfigValidatorWrapper())
-        self.register(OutputValidator())
+        # Note: OutputValidator removed - redundant with build success
+        # (empty pages, missing assets, no output dir all cause build errors)
         self.register(URLCollisionValidator())  # Catch URL collisions early
         self.register(OwnershipPolicyValidator())  # Validate namespace ownership policy
 
