@@ -142,16 +142,11 @@ def load_compressed(path: Path) -> dict[str, Any]:
     # Validate magic header before decompression
     is_valid, remaining = validate_cache_header(compressed)
     if not is_valid:
-        from bengal.errors import BengalCacheError, ErrorCode, record_error
-
-        error = BengalCacheError(
-            f"Incompatible cache version or magic header: {path}",
-            code=ErrorCode.A002,  # cache_version_mismatch
-            file_path=path,
-            suggestion="Delete .bengal/ directory to rebuild cache with current version.",
+        # Raise CacheVersionError so load_auto() can catch it and fall back to JSON
+        raise CacheVersionError(
+            f"Incompatible cache version or magic header: {path}. "
+            "Delete .bengal/ directory to rebuild cache with current version."
         )
-        record_error(error, file_path=str(path))
-        raise error
 
     json_bytes = zstd.decompress(remaining)
     data = json.loads(json_bytes)
@@ -244,7 +239,13 @@ def load_auto(path: Path) -> dict[str, Any]:
     json_path = path if path.suffix == ".json" else path.with_suffix(".json")
     if json_path.exists():
         with open(json_path, encoding="utf-8") as f:
-            return cast(dict[str, Any], json.load(f))
+            data = json.load(f)
+            if not isinstance(data, dict):
+                raise ValueError(
+                    f"Cache file {json_path} contains invalid data type: {type(data).__name__}. "
+                    "Expected dict."
+                )
+            return cast(dict[str, Any], data)
 
     raise FileNotFoundError(f"Cache file not found: {path} (tried .json.zst and .json)")
 
