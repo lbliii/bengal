@@ -27,6 +27,14 @@ jobs:
       with:
         python-version: "3.14t"
 
+    - name: Cache uv dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/uv
+        key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+        restore-keys: |
+          uv-${{ runner.os }}-
+
     - name: Install dependencies
       run: uv sync --group dev
 
@@ -57,6 +65,14 @@ jobs:
       uses: astral-sh/setup-uv@v4
       with:
         python-version: ${{ matrix.python-version }}
+
+    - name: Cache uv dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/uv
+        key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+        restore-keys: |
+          uv-${{ runner.os }}-
 
     - name: Install dependencies
       run: uv sync --group dev
@@ -93,6 +109,14 @@ jobs:
       with:
         python-version: "3.14t"
 
+    - name: Cache uv dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/uv
+        key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+        restore-keys: |
+          uv-${{ runner.os }}-
+
     - name: Install dependencies
       run: uv sync --group dev
 
@@ -116,6 +140,14 @@ jobs:
       with:
         python-version: "3.14t"
 
+    - name: Cache uv dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/uv
+        key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+        restore-keys: |
+          uv-${{ runner.os }}-
+
     - name: Install dependencies
       run: uv sync --group dev
 
@@ -138,6 +170,14 @@ jobs:
       uses: astral-sh/setup-uv@v4
       with:
         python-version: "3.14t"
+
+    - name: Cache uv dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/uv
+        key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+        restore-keys: |
+          uv-${{ runner.os }}-
 
     - name: Install dependencies
       run: uv sync --group dev
