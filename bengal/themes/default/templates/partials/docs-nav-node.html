@@ -1,125 +1,19 @@
 {#
-Navigation Node Component (Recursive)
+DEPRECATED: Navigation Node Component
 
-Renders a single NavNodeProxy with its children.
+This template is no longer used. The nav_node macro is now inlined
+in docs-nav.html for ~3x faster rendering.
 
-Variables:
-- item: NavNodeProxy to render (required)
-- depth: Current nesting depth for styling (required)
-- show_nav_icons: Whether to show section icons (default: true)
+Reason: Recursive {% include %} was causing 11,000+ template instantiations
+per page render. Converting to a macro eliminates this overhead.
 
-Features:
-- Collapsible sections using native <details>/<summary> (no JS required)
-- Simple link rendering for leaf nodes
-- Active page highlighting via item.is_current
-- Active trail via item.is_in_trail (auto-expands parent sections)
-- Recursive rendering of children
+See: plan/drafted/rfc-benchmark-refresh-and-worker-optimization.md
 
-Usage:
-{% set depth = 0 %}
-{% include 'partials/docs-nav-node.html' %}
+If you're including this template directly, update to use docs-nav.html instead.
 #}
 
-{% set show_nav_icons = show_nav_icons if show_nav_icons is defined else true %}
-{% set item_title = item.title %}
-{% set item_icon = item.icon %}
-
-{# Always render full tree - simpler and more reliable #}
-{% set should_render_children = true %}
-
-{% if item.has_children %}
-{# ===== ROOT NODE (depth 0) - Static header, no toggle ===== #}
-{% if depth == 0 %}
-<div class="docs-nav-group docs-nav-group--root{% if item.is_in_trail %} is-in-trail{% endif %}" data-depth="{{ depth }}">
-  <div class="docs-nav-group-header">
-    {% if show_nav_icons %}
-    <span class="docs-nav-icon" {% if not item_icon %}data-default="true"{% endif %}>
-      {{ icon(item_icon or 'folder', size=16) }}
-    </span>
-    {% endif %}
-
-    {% if item.href %}
-    <a href="{{ item.href }}"
-       class="docs-nav-group-title{% if item.is_current %} active{% endif %}"
-       {% if item.is_current %}aria-current="page"{% endif %}>
-      {{ item_title }}
-    </a>
-    {% else %}
-    <span class="docs-nav-group-title">{{ item_title }}</span>
-    {% endif %}
-  </div>
-
-  <div class="docs-nav-group-items">
-    {% for child in item.children %}
-      {% set item = child %}
-      {% set depth = depth + 1 %}
-      {% include 'partials/docs-nav-node.html' %}
-    {% endfor %}
-  </div>
+{# Emit a visible warning if someone tries to use this #}
+<div style="background: #ff0; color: #000; padding: 1em; border: 2px solid red;">
+  ⚠️ DEPRECATED: docs-nav-node.html is no longer used.
+  Use {% include 'partials/docs-nav.html' %} instead.
 </div>
-
-{% else %}
-{# ===== EXPANDABLE NODE (has children, depth > 0) - Native <details>/<summary> ===== #}
-<details class="docs-nav-group{% if item.is_in_trail %} is-in-trail{% endif %}"
-         data-depth="{{ depth }}"
-         {% if item.is_in_trail %}open{% endif %}>
-  <summary class="docs-nav-group-summary">
-    <span class="docs-nav-caret">
-      {{ icon('caret-right', size=14) }}
-    </span>
-
-    {% if show_nav_icons %}
-    <span class="docs-nav-icon" {% if not item_icon %}data-default="true"{% endif %}>
-      {{ icon(item_icon or 'folder', size=16) }}
-    </span>
-    {% endif %}
-
-    {% if item.href %}
-    <a href="{{ item.href }}"
-       class="docs-nav-group-link{% if item.is_current %} active{% endif %}"
-       {% if item.is_current %}aria-current="page"{% endif %}>
-      {{ item_title }}
-    </a>
-    {% else %}
-    <span class="docs-nav-group-link">{{ item_title }}</span>
-    {% endif %}
-  </summary>
-
-  <div class="docs-nav-group-items">
-    {% if should_render_children %}
-      {% for child in item.children %}
-        {% set item = child %}
-        {% set depth = depth + 1 %}
-        {% include 'partials/docs-nav-node.html' %}
-      {% endfor %}
-    {% endif %}
-  </div>
-</details>
-{% endif %}
-
-{% else %}
-{# ===== LEAF NODE (no children) ===== #}
-<div class="docs-nav-group docs-nav-group--leaf" data-depth="{{ depth }}">
-  {% if item.href %}
-  <a href="{{ item.href }}"
-     class="docs-nav-link{% if item.is_section %} docs-nav-link--section{% endif %}{% if item.is_current %} active{% endif %}"
-     {% if item.is_current %}aria-current="page"{% endif %}>
-    {% if show_nav_icons and item.is_section %}
-    <span class="docs-nav-icon docs-nav-icon--section" {% if not item_icon %}data-default="true"{% endif %}>
-      {{ icon(item_icon or 'folder', size=14) }}
-    </span>
-    {% endif %}
-    <span class="docs-nav-link-text">{{ item_title }}</span>
-  </a>
-  {% else %}
-  <span class="docs-nav-link{% if item.is_section %} docs-nav-link--section{% endif %}">
-    {% if show_nav_icons and item.is_section %}
-    <span class="docs-nav-icon docs-nav-icon--section" {% if not item_icon %}data-default="true"{% endif %}>
-      {{ icon(item_icon or 'folder', size=14) }}
-    </span>
-    {% endif %}
-    <span class="docs-nav-link-text">{{ item_title }}</span>
-  </span>
-  {% endif %}
-</div>
-{% endif %}

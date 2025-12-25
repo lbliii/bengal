@@ -1,1 +1,0 @@
-"""Rosettes test suite."""

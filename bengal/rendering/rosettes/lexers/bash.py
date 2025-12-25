@@ -5,8 +5,8 @@ Thread-safe regex-based tokenizer for shell scripts.
 
 import re
 
-from rosettes._types import TokenType
-from rosettes.lexers._base import PatternLexer, Rule
+from bengal.rendering.rosettes._types import TokenType
+from bengal.rendering.rosettes.lexers._base import PatternLexer, Rule
 
 __all__ = ["BashLexer"]
 

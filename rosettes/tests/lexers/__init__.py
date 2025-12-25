@@ -1,1 +1,0 @@
-"""Lexer test package."""

@@ -6,8 +6,8 @@ Highlights directories, files, extensions, and tree structure characters.
 
 import re
 
-from rosettes._types import TokenType
-from rosettes.lexers._base import PatternLexer, Rule
+from bengal.rendering.rosettes._types import TokenType
+from bengal.rendering.rosettes.lexers._base import PatternLexer, Rule
 
 __all__ = ["TreeLexer"]
 
