@@ -342,7 +342,7 @@ class LiveReloadMixin:
                     # Client disconnected
                     logger.debug(
                         "sse_client_disconnected_error",
-                        error_code=ErrorCode.S004.name,
+                        error_code=ErrorCode.S004.value,
                         client_address=client_addr,
                         error_type=type(e).__name__,
                         messages_sent=message_count,
@@ -595,7 +595,7 @@ def send_reload_payload(action: str, reason: str, changed_paths: list[str]) -> N
     except Exception as e:
         logger.warning(
             "reload_payload_serialization_failed",
-            error_code=ErrorCode.S003.name,
+            error_code=ErrorCode.S003.value,
             action=action,
             reason=reason,
             error=str(e),
