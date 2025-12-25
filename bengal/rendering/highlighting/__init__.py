@@ -168,8 +168,35 @@ def _register_pygments_backend() -> None:
     _HIGHLIGHT_BACKENDS["pygments"] = PygmentsBackend
 
 
+def _is_free_threaded_python() -> bool:
+    """Check if running on Python 3.13+ free-threaded build."""
+    import sys
+    import sysconfig
+
+    # Check if this is a free-threaded build (Py_GIL_DISABLED=1)
+    gil_disabled = sysconfig.get_config_var("Py_GIL_DISABLED")
+    if not gil_disabled:
+        return False
+
+    # Check if GIL is currently disabled (Python 3.13+)
+    # If GIL is already enabled, no harm in importing tree-sitter
+    if hasattr(sys, "_is_gil_enabled"):
+        return not sys._is_gil_enabled()
+
+    # Free-threaded build but no runtime check available
+    return True
+
+
 def _register_tree_sitter_backend() -> None:
-    """Register tree-sitter backend if available."""
+    """Register tree-sitter backend if available and safe.
+
+    Skips registration on Python 3.13+ free-threaded builds because
+    tree-sitter's C bindings re-enable the GIL, defeating free-threading.
+    """
+    # Skip on free-threaded Python to avoid GIL re-enablement
+    if _is_free_threaded_python():
+        return
+
     try:
         from bengal.rendering.highlighting.tree_sitter import TreeSitterBackend
 
