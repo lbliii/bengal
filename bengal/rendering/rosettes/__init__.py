@@ -59,7 +59,8 @@ def highlight(
     *,
     hl_lines: set[int] | frozenset[int] | None = None,
     show_linenos: bool = False,
-    css_class: str = "highlight",
+    css_class: str | None = None,
+    css_class_style: str = "semantic",
 ) -> str:
     """Highlight source code and return HTML.
 
@@ -72,6 +73,10 @@ def highlight(
         hl_lines: Optional set of 1-based line numbers to highlight.
         show_linenos: If True, include line numbers in output.
         css_class: Base CSS class for the code container.
+            Defaults to "rosettes" for semantic style, "highlight" for pygments.
+        css_class_style: Class naming style:
+            - "semantic" (default): Uses readable classes like .syntax-function
+            - "pygments": Uses Pygments-compatible classes like .nf
 
     Returns:
         HTML string with syntax-highlighted code.
@@ -81,15 +86,25 @@ def highlight(
 
     Example:
         >>> html = highlight("print('hello')", "python")
+        >>> "rosettes" in html
+        True
+
+        >>> # Use Pygments-compatible classes
+        >>> html = highlight("def foo(): pass", "python", css_class_style="pygments")
         >>> "highlight" in html
         True
     """
     lexer = get_lexer(language)
+
+    # Determine container class based on style
+    if css_class is None:
+        css_class = "rosettes" if css_class_style == "semantic" else "highlight"
+
     format_config = FormatConfig(css_class=css_class)
 
     # Fast path: no line highlighting needed
     if not hl_lines and not show_linenos:
-        formatter = HtmlFormatter()
+        formatter = HtmlFormatter(css_class_style=css_class_style)
         return formatter.format_string_fast(lexer.tokenize_fast(code), format_config)
 
     # Slow path: line highlighting or line numbers
@@ -98,7 +113,7 @@ def highlight(
         show_linenos=show_linenos,
         css_class=css_class,
     )
-    formatter = HtmlFormatter(config=hl_config)
+    formatter = HtmlFormatter(config=hl_config, css_class_style=css_class_style)
     return formatter.format_string(lexer.tokenize(code), format_config)
 
 

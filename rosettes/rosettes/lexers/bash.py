@@ -137,10 +137,12 @@ class BashLexer(PatternLexer):
         # Command substitution
         Rule(re.compile(r"\$\([^)]*\)"), TokenType.STRING_INTERPOL),
         Rule(re.compile(r"`[^`]*`"), TokenType.STRING_BACKTICK),
+        # Options: -o, --option (must come before operators)
+        Rule(re.compile(r"--?[a-zA-Z][a-zA-Z0-9_-]*"), TokenType.NAME_ATTRIBUTE),
         # Numbers
         Rule(re.compile(r"\b\d+\b"), TokenType.NUMBER_INTEGER),
-        # Keywords and builtins
-        Rule(re.compile(r"\b[a-zA-Z_][a-zA-Z0-9_]*\b"), _classify_word),
+        # Keywords and builtins (includes hyphenated commands like my-script)
+        Rule(re.compile(r"\b[a-zA-Z_][a-zA-Z0-9_-]*\b"), _classify_word),
         # Operators
         Rule(re.compile(r"&&|\|\|"), TokenType.OPERATOR),
         Rule(re.compile(r"\|&|&>|>>|>|<|2>&1|&"), TokenType.OPERATOR),
@@ -152,4 +154,6 @@ class BashLexer(PatternLexer):
         Rule(re.compile(r"[()[\]{};<>=]"), TokenType.PUNCTUATION),
         # Whitespace
         Rule(re.compile(r"\s+"), TokenType.WHITESPACE),
+        # Catch-all for any remaining text (paths, filenames, etc.)
+        Rule(re.compile(r"[^\s\[\](){}|&;$\"'#<>=]+"), TokenType.TEXT),
     )
