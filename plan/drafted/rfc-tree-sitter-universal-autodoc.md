@@ -4,7 +4,7 @@
 |-------|-------|
 | **RFC ID** | RFC-0001 |
 | **Title** | Tree-sitter as Bengal's Universal Parsing Backbone |
-| **Status** | Draft (Final Review) |
+| **Status** | In Progress (Phase 0-1 Complete, Blocked on Py3.14t Compatibility) |
 | **Created** | 2025-12-24 |
 | **Revised** | 2025-12-24 |
 | **Author** | Bengal Core Team |
@@ -25,8 +25,48 @@
 **Key Decision Points:**
 1. ✅ Follows Bengal's "bring your own X" pattern (HighlightBackend protocol)
 2. ✅ Backward compatible (Pygments remains default, tree-sitter opt-in)
-3. ✅ Performance claims validated in Phase 1 (benchmark gate)
+3. ⏸️ Performance claims pending validation (blocked on Py3.14t compatibility)
 4. ⚠️ Bundle size decision pending (grammar packages as optional deps)
+
+---
+
+## Current Implementation Status
+
+> **Status: Pygments remains the default.** Tree-sitter backend is implemented but blocked on upstream compatibility.
+
+### Completed (Phase 0-1)
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| `HighlightBackend` protocol | ✅ | `bengal/rendering/highlighting/protocol.py` |
+| Backend registry | ✅ | `register_backend()`, `get_highlighter()`, `highlight()` |
+| `PygmentsBackend` | ✅ | Extracted, fully functional |
+| `TreeSitterBackend` | ✅ | Implemented with CSS mapping, thread safety, Pygments fallback |
+| Benchmark suite | ✅ | `benchmarks/test_highlighting_performance.py` |
+| Tests | ✅ | 51 tests (46 pass, 5 skip gracefully) |
+
+### Blocked
+
+| Item | Blocker | Workaround |
+|------|---------|------------|
+| Benchmark validation (≥5x speedup) | tree-sitter-python incompatible with Python 3.14 free-threading | Automatic Pygments fallback |
+| Grammar testing (15+ languages) | Grammar packages have binary incompatibility with Py3.14t | Deferred until upstream fix |
+
+### Why Blocked?
+
+Tree-sitter grammar packages (e.g., `tree-sitter-python`) have C bindings that fail on Python 3.14's free-threaded build:
+
+```
+ImportError: symbol not found in flat namespace '_tree_sitter_python_external_scanner_create'
+```
+
+This is an **upstream issue** requiring grammar maintainers to rebuild with Python 3.14t support.
+
+### Current Behavior
+
+- **Default backend**: Pygments (unchanged)
+- **Tree-sitter backend**: Falls back to Pygments automatically when grammars unavailable
+- **User impact**: None — existing functionality preserved
 
 ---
 
