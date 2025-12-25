@@ -20,6 +20,9 @@ S     Server            Development server
 T     Template          Template functions, shortcodes, directives
 P     Parsing           YAML, JSON, TOML, markdown parsing
 X     Asset             Static asset processing
+G     Graph             Graph analysis and algorithms
+O     Autodoc           Autodoc extraction and generation
+V     Validator         Health check and validation operations
 ====  ================  =================================
 
 Usage
@@ -80,6 +83,10 @@ class ErrorCode(Enum):
     - ``T001-T099``: Template function errors (shortcodes, directives)
     - ``P001-P099``: Parsing errors (YAML, JSON, markdown)
     - ``X001-X099``: Asset errors (static files, processing)
+    - ``G001-G099``: Graph/analysis errors
+    - ``O001-O099``: Autodoc extraction/generation errors
+    - ``V001-V099``: Validator/health check errors
+    - ``B001-B099``: Build/orchestration errors
 
     Each code maps to documentation at ``/docs/reference/errors/#{code}``.
 
@@ -126,6 +133,16 @@ class ErrorCode(Enum):
     N009 = "content_weight_invalid"
     N010 = "content_slug_invalid"
 
+    # Collections (N011-N020)
+    N011 = "collection_validation_failed"  # Schema validation failure
+    N012 = "collection_not_found"  # Unknown collection referenced
+    N013 = "collection_schema_invalid"  # Schema class definition error
+    N014 = "collection_load_failed"  # collections.py import error
+    N015 = "collection_directory_missing"  # Collection directory doesn't exist
+
+    # Content Layer (N016-N020)
+    N016 = "content_entry_parse_failed"  # Remote entry parse/conversion error
+
     # ============================================================
     # Rendering errors (R001-R099)
     # ============================================================
@@ -150,6 +167,17 @@ class ErrorCode(Enum):
     D005 = "duplicate_page_path"
     D006 = "invalid_file_pattern"
     D007 = "permission_denied"
+
+    # Content Layer (D008-D011)
+    D008 = "content_source_fetch_failed"  # Remote source fetch failure
+    D009 = "content_source_offline"  # Offline mode with no cache
+    D010 = "content_source_auth_failed"  # 401/403 authentication error
+    D011 = "content_source_not_found"  # 404 source/repo/database not found
+
+    # Directory Discovery (D012-D014)
+    D012 = "symlink_loop_detected"  # Circular symlink in content directory
+    D013 = "asset_stat_failed"  # Asset file stat failed
+    D014 = "git_ref_fetch_failed"  # Git branch/tag list failed
 
     # ============================================================
     # Cache errors (A001-A099)
@@ -204,6 +232,11 @@ class ErrorCode(Enum):
     X005 = "asset_fingerprint_error"
     X006 = "asset_minify_error"
 
+    # Fonts (X007-X010)
+    X007 = "font_download_config_error"  # Missing output_dir or invalid config
+    X008 = "font_download_failed"  # Network/API failure downloading font
+    X009 = "font_not_found"  # Font family not available from Google Fonts
+
     # ============================================================
     # Graph/Analysis errors (G001-G099)
     # ============================================================
@@ -212,6 +245,40 @@ class ErrorCode(Enum):
     G003 = "graph_cycle_detected"
     G004 = "graph_disconnected_component"
     G005 = "graph_analysis_failed"
+
+    # ============================================================
+    # Autodoc errors (O001-O099)
+    # ============================================================
+    O001 = "autodoc_extraction_failed"  # General extraction failure (strict mode)
+    O002 = "autodoc_syntax_error"  # Python syntax error in source
+    O003 = "autodoc_openapi_parse_failed"  # OpenAPI YAML/JSON parse failure
+    O004 = "autodoc_cli_load_failed"  # CLI app import/load failure
+    O005 = "autodoc_invalid_source"  # Invalid source path/location
+    O006 = "autodoc_no_elements_produced"  # Extraction produced no elements
+
+    # ============================================================
+    # Validator/Health errors (V001-V099)
+    # ============================================================
+    V001 = "validator_crashed"  # Validator raised unhandled exception
+    V002 = "health_check_failed"  # HealthCheck.run() failed
+    V003 = "autofix_failed"  # AutoFixer operation failed
+    V004 = "linkcheck_timeout"  # External link check timed out
+    V005 = "linkcheck_network_error"  # Network error during link check
+    V006 = "graph_analysis_failed"  # Connectivity/graph analysis failed in health
+
+    # ============================================================
+    # Build/Orchestration errors (B001-B099)
+    # ============================================================
+    B001 = "build_phase_failed"  # Generic build phase failure
+    B002 = "build_parallel_error"  # Parallel processing failure
+    B003 = "build_incremental_failed"  # Incremental build detection/cache failure
+    B004 = "menu_build_failed"  # Menu building failure
+    B005 = "taxonomy_collection_failed"  # Taxonomy collection failure
+    B006 = "taxonomy_page_generation_failed"  # Taxonomy page generation failure
+    B007 = "asset_processing_failed"  # Asset processing failure
+    B008 = "postprocess_task_failed"  # Post-processing task failure
+    B009 = "section_finalization_failed"  # Section finalization failure
+    B010 = "cache_initialization_failed"  # Cache/tracker initialization failure
 
     @property
     def docs_url(self) -> str:
@@ -246,6 +313,9 @@ class ErrorCode(Enum):
             "P": "parsing",
             "X": "asset",
             "G": "graph",
+            "O": "autodoc",
+            "V": "validator",
+            "B": "build",
         }
         prefix = self.name[0]
         return categories.get(prefix, "unknown")
@@ -272,6 +342,9 @@ class ErrorCode(Enum):
             "P": "core",
             "X": "assets",
             "G": "analysis",
+            "O": "autodoc",
+            "V": "health",
+            "B": "orchestration",
         }
         prefix = self.name[0]
         return subsystem_map.get(prefix, "unknown")

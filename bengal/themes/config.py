@@ -38,7 +38,7 @@ from typing import Any
 
 import yaml
 
-from bengal.errors import BengalConfigError, ErrorCode
+from bengal.errors import BengalConfigError, ErrorCode, record_error
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -159,12 +159,14 @@ class AppearanceConfig:
         """Validate appearance configuration."""
         valid_modes = {"light", "dark", "system"}
         if self.default_mode not in valid_modes:
-            raise BengalConfigError(
+            error = BengalConfigError(
                 f"Invalid default_mode '{self.default_mode}'. "
                 f"Must be one of: {', '.join(valid_modes)}",
                 code=ErrorCode.C003,
                 suggestion=f"Set default_mode to one of: {', '.join(valid_modes)}",
             )
+            record_error(error)
+            raise error
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> AppearanceConfig:
@@ -293,25 +295,34 @@ class ThemeConfig:
             ThemeConfig instance loaded from YAML
 
         Raises:
-            FileNotFoundError: If theme.yaml doesn't exist
-            yaml.YAMLError: If YAML is invalid
-            ValueError: If configuration is invalid
+            BengalConfigError: If theme.yaml doesn't exist (code=C005) or
+                if YAML is invalid (code=C001)
         """
         yaml_path = theme_path / "theme.yaml"
         if not yaml_path.exists():
-            raise FileNotFoundError(f"Theme config not found: {yaml_path}")
+            error = BengalConfigError(
+                f"Theme config not found: {yaml_path}",
+                code=ErrorCode.C005,
+                file_path=yaml_path,
+                suggestion="Ensure theme directory contains theme.yaml. "
+                "Run 'bengal theme new <name>' to create a new theme.",
+            )
+            record_error(error, file_path=str(yaml_path))
+            raise error
 
         try:
             with yaml_path.open(encoding="utf-8") as f:
                 data = yaml.safe_load(f) or {}
         except yaml.YAMLError as e:
-            raise BengalConfigError(
+            error = BengalConfigError(
                 f"Invalid YAML in {yaml_path}: {e}",
                 code=ErrorCode.C001,
                 file_path=yaml_path,
                 suggestion="Check YAML syntax and indentation",
                 original_error=e,
-            ) from e
+            )
+            record_error(error, file_path=str(yaml_path))
+            raise error from e
 
         # Extract top-level fields
         name = data.get("name", "default")

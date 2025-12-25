@@ -22,8 +22,13 @@ from typing import Any
 try:
     import aiohttp
 except ImportError as e:
-    raise ImportError(
-        "NotionSource requires aiohttp.\nInstall with: pip install bengal[notion]"
+    from bengal.errors import BengalConfigError, ErrorCode
+
+    raise BengalConfigError(
+        "NotionSource requires aiohttp",
+        code=ErrorCode.C002,
+        suggestion="Install with: pip install bengal[notion]",
+        original_error=e,
     ) from e
 
 # Optional cachetools for block caching (graceful degradation if unavailable)
@@ -177,11 +182,35 @@ class NotionSource(ContentSource):
 
                 async with session.post(url, json=body) as resp:
                     if resp.status == 404:
-                        logger.error(f"Database not found: {self.database_id}")
-                        return
+                        from bengal.errors import BengalDiscoveryError, ErrorCode, record_error
+
+                        error = BengalDiscoveryError(
+                            f"Notion database not found: {self.database_id}",
+                            code=ErrorCode.D011,
+                            suggestion="Verify database ID is correct and database is shared with the integration",
+                        )
+                        record_error(error)
+                        raise error
                     if resp.status == 401:
-                        logger.error("Invalid Notion token or database not shared with integration")
-                        return
+                        from bengal.errors import BengalDiscoveryError, ErrorCode, record_error
+
+                        error = BengalDiscoveryError(
+                            "Invalid Notion token or database not shared with integration",
+                            code=ErrorCode.D010,
+                            suggestion="Check NOTION_TOKEN is valid and database is shared with the integration at https://www.notion.so/my-integrations",
+                        )
+                        record_error(error)
+                        raise error
+                    if resp.status == 403:
+                        from bengal.errors import BengalDiscoveryError, ErrorCode, record_error
+
+                        error = BengalDiscoveryError(
+                            f"Access denied to Notion database: {self.database_id}",
+                            code=ErrorCode.D010,
+                            suggestion="Ensure the integration has been added to the database with 'Add connections'",
+                        )
+                        record_error(error)
+                        raise error
                     resp.raise_for_status()
                     data = await resp.json()
 
@@ -212,7 +241,16 @@ class NotionSource(ContentSource):
                     if entry:
                         yield entry
                 except Exception as e:
+                    from bengal.errors import BengalContentError, ErrorCode, record_error
+
                     failed_count += 1
+                    error = BengalContentError(
+                        f"Failed to process Notion page: {e}",
+                        code=ErrorCode.N016,
+                        suggestion="Check page content and block structure",
+                        original_error=e,
+                    )
+                    record_error(error)
                     logger.error(f"Failed to process page: {e}")
 
             if failed_count > 0:

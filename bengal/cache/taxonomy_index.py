@@ -140,12 +140,16 @@ class TaxonomyIndex:
                 data = json.load(f)
 
             # Version check - clear on mismatch
+            from bengal.errors import ErrorCode
+
             if data.get("version") != self.VERSION:
                 logger.warning(
                     "taxonomy_index_version_mismatch",
                     expected=self.VERSION,
                     found=data.get("version"),
                     action="clearing_cache",
+                    error_code=ErrorCode.A002.value,  # cache_version_mismatch
+                    suggestion="Cache version incompatible. Taxonomy index will be rebuilt.",
                 )
                 self.tags = {}
                 self._page_to_tags = {}
@@ -166,10 +170,14 @@ class TaxonomyIndex:
                 path=str(self.cache_path),
             )
         except Exception as e:
+            from bengal.errors import ErrorCode
+
             logger.warning(
                 "taxonomy_index_load_failed",
                 error=str(e),
                 path=str(self.cache_path),
+                error_code=ErrorCode.A003.value,  # cache_read_error
+                suggestion="Taxonomy cache will be rebuilt automatically.",
             )
             self.tags = {}
             self._page_to_tags = {}
@@ -196,10 +204,14 @@ class TaxonomyIndex:
                 path=str(self.cache_path),
             )
         except Exception as e:
+            from bengal.errors import ErrorCode
+
             logger.error(
                 "taxonomy_index_save_failed",
                 error=str(e),
                 path=str(self.cache_path),
+                error_code=ErrorCode.A004.value,  # cache_write_error
+                suggestion="Check disk space and permissions. Taxonomy index may be incomplete.",
             )
 
     def update_tag(self, tag_slug: str, tag_name: str, page_paths: list[str]) -> None:

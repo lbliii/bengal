@@ -33,6 +33,7 @@ from __future__ import annotations
 from types import ModuleType
 from typing import Any
 
+from bengal.errors import ErrorCode
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -129,7 +130,13 @@ class PygmentsPatch:
             logger.debug("pygments_patch_skipped", reason="codehilite_unavailable", error=str(e))
             return False
         except Exception as e:
-            logger.warning("pygments_patch_failed", error=str(e), error_type=type(e).__name__)
+            logger.warning(
+                "pygments_patch_failed",
+                error=str(e),
+                error_type=type(e).__name__,
+                error_code=ErrorCode.R004.value,
+                suggestion="Upgrade Pygments or report bug",
+            )
             return False
 
     @classmethod
@@ -170,6 +177,8 @@ class PygmentsPatch:
                 "pygments_patch_restore_error",
                 error=str(e),
                 error_type=type(e).__name__,
+                error_code=ErrorCode.R004.value,
+                suggestion="Restart the build process to recover",
             )
             return False
 

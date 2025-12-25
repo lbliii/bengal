@@ -296,7 +296,12 @@ class AssetManifest:
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
         except Exception as exc:  # pragma: no cover - defensive logging path
-            logger.warning("asset_manifest_load_failed", path=str(path), error=str(exc))
+            logger.warning(
+                "asset_manifest_load_failed",
+                path=str(path),
+                error=str(exc),
+                error_code="X001",
+            )
             return None
 
         manifest = cls()

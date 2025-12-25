@@ -43,7 +43,7 @@ import json
 from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING, Any
 
-from bengal.errors import BengalError, ErrorCode
+from bengal.errors import BengalGraphError, ErrorCode
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
@@ -130,7 +130,7 @@ class GraphVisualizer:
         self.graph = graph
 
         if not graph._built:
-            raise BengalError(
+            raise BengalGraphError(
                 "KnowledgeGraph must be built before visualization",
                 code=ErrorCode.G001,
                 suggestion="Call graph.build() before creating a visualizer",

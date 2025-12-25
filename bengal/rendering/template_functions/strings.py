@@ -12,6 +12,7 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING, Any
 
+from bengal.errors import ErrorCode
 from bengal.utils import text as text_utils
 from bengal.utils.logger import get_logger
 
@@ -368,6 +369,8 @@ def replace_regex(text: str, pattern: str, replacement: str) -> str:
             pattern=pattern,
             error=str(e),
             caller="template",
+            error_code=ErrorCode.R003.value,
+            suggestion="Check regex syntax; escape special characters",
         )
         return text
 

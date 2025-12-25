@@ -26,6 +26,7 @@ from jinja2.bccache import FileSystemBytecodeCache
 from jinja2.runtime import Context
 
 from bengal.core.theme import get_theme_package
+from bengal.errors import ErrorCode
 from bengal.rendering.context import ConfigContext, ParamsContext, SiteContext, ThemeContext
 from bengal.rendering.template_functions import register_all
 from bengal.utils.logger import get_logger
@@ -274,6 +275,8 @@ def create_jinja_environment(
                     theme=theme_name,
                     checked_site=str(site_theme_templates),
                     checked_bundled=str(bundled_theme_templates),
+                    error_code=ErrorCode.C003.value,
+                    suggestion="Check theme name spelling or install theme",
                     hint="Theme may be missing or incorrectly configured",
                 )
                 print(

@@ -39,7 +39,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from bengal.errors import BengalConfigError
+from bengal.errors import BengalConfigError, ErrorCode, record_error
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -165,7 +165,12 @@ class ConfigValidator:
 
         if errors:
             self._print_errors(errors, source_file)
-            raise ConfigValidationError(f"{len(errors)} validation error(s)")
+            error = ConfigValidationError(
+                f"{len(errors)} validation error(s)",
+                code=ErrorCode.C004,  # config_type_mismatch
+            )
+            record_error(error, file_path=str(source_file) if source_file else None)
+            raise error
 
         return flat_config
 

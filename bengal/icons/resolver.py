@@ -23,8 +23,12 @@ import threading
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from bengal.utils.logger import get_logger
+
 if TYPE_CHECKING:
     from bengal.core.site import Site
+
+logger = get_logger(__name__)
 
 __all__ = [
     "initialize",
@@ -148,9 +152,20 @@ def load_icon(name: str) -> str | None:
                 with _icon_lock:
                     _icon_cache[name] = content
                 return content
-            except OSError:
+            except OSError as e:
+                logger.debug(
+                    "icon_read_error",
+                    icon=name,
+                    path=str(icon_path),
+                    error=str(e),
+                )
                 continue
 
+    logger.debug(
+        "icon_not_found_in_resolver",
+        icon=name,
+        search_paths=[str(p) for p in search_paths],
+    )
     with _icon_lock:
         _not_found_cache.add(name)
     return None
@@ -241,8 +256,13 @@ def _preload_all_icons() -> None:
                 try:
                     loaded[name] = icon_path.read_text(encoding="utf-8")
                     seen.add(name)
-                except OSError:
-                    pass
+                except OSError as e:
+                    logger.debug(
+                        "icon_preload_error",
+                        icon=name,
+                        path=str(icon_path),
+                        error=str(e),
+                    )
 
     # Batch update cache under lock
     with _icon_lock:

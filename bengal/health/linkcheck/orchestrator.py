@@ -202,7 +202,7 @@ class LinkCheckOrchestrator:
             logger.warning(
                 "output_dir_not_found",
                 path=str(output_dir),
-                suggestion="build the site first with 'bengal site build'",
+                suggestion="Build the site first with 'bengal build' before running link checks.",
             )
             return internal_links, external_links
 
@@ -261,10 +261,14 @@ class LinkCheckOrchestrator:
                         internal_links.append((link, page_ref))
 
             except Exception as e:
+                from bengal.errors import ErrorCode
+
                 logger.warning(
                     "failed_to_parse_html",
                     file=str(html_file),
                     error=str(e),
+                    error_code=ErrorCode.V005.value,
+                    suggestion="Check HTML file for malformed content. Link check will skip this file.",
                 )
                 continue
 

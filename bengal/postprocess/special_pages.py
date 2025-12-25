@@ -52,6 +52,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from bengal.core.page.utils import create_synthetic_page
+from bengal.errors import ErrorCode
 from bengal.utils.atomic_write import atomic_write_text
 from bengal.utils.json_compat import dump as json_dump
 from bengal.utils.logger import get_logger
@@ -146,6 +147,7 @@ class SpecialPagesGenerator:
             logger.warning(
                 "no_special_pages_generated",
                 reason="all_pages_disabled_or_failed",
+                suggestion="Check theme templates (404.html, search.html) and feature configuration.",
             )
 
     def _generate_404(self) -> bool:
@@ -260,7 +262,13 @@ class SpecialPagesGenerator:
             return True
 
         except Exception as e:
-            logger.error("404_page_generation_failed", error=str(e), error_type=type(e).__name__)
+            logger.error(
+                "404_page_generation_failed",
+                error=str(e),
+                error_type=type(e).__name__,
+                error_code=ErrorCode.B008.value,
+                suggestion="Ensure 404.html template exists in theme. Check template syntax.",
+            )
             return False
 
     def _generate_search(self) -> bool:
@@ -375,6 +383,8 @@ class SpecialPagesGenerator:
                 "search_page_generation_failed",
                 error=str(e),
                 error_type=type(e).__name__,
+                error_code=ErrorCode.B008.value,
+                suggestion="Check [search] configuration and search.html template.",
             )
             return False
 
@@ -474,5 +484,7 @@ class SpecialPagesGenerator:
                 "graph_generation_failed",
                 error=str(e),
                 error_type=type(e).__name__,
+                error_code=ErrorCode.B008.value,
+                suggestion="Verify knowledge graph is enabled and build succeeded.",
             )
             return False

@@ -22,7 +22,7 @@ Lifecycle:
 Thread Safety:
     - Writes (register_*) must happen single-threaded during discovery
     - Reads (get_*) are safe after freeze() for concurrent rendering
-    - Frozen registry raises RuntimeError on mutation attempts
+    - Frozen registry raises BengalError on mutation attempts
 
 Related Packages:
     bengal.core.site.core: Site dataclass using this registry
@@ -38,6 +38,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from bengal.core.url_ownership import URLRegistry
+from bengal.errors import BengalError
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
@@ -60,7 +61,7 @@ class ContentRegistry:
     Thread Safety:
         - Writes (register_*) must happen single-threaded during discovery
         - Reads (get_*) are safe after freeze() for concurrent rendering
-        - Frozen registry raises RuntimeError on mutation attempts
+        - Frozen registry raises BengalError on mutation attempts
 
     Attributes:
         url_ownership: URLRegistry for collision detection and ownership tracking
@@ -163,10 +164,13 @@ class ContentRegistry:
             page: Page to register (must have source_path set)
 
         Raises:
-            RuntimeError: If registry is frozen
+            BengalError: If registry is frozen
         """
         if self._frozen:
-            raise RuntimeError("Cannot modify frozen registry")
+            raise BengalError(
+                "Cannot modify frozen registry after freeze()",
+                suggestion="Ensure registration happens during discovery phase, before freeze() is called",
+            )
 
         # Register by source path
         if page.source_path:
@@ -185,10 +189,13 @@ class ContentRegistry:
             section: Section to register
 
         Raises:
-            RuntimeError: If registry is frozen
+            BengalError: If registry is frozen
         """
         if self._frozen:
-            raise RuntimeError("Cannot modify frozen registry")
+            raise BengalError(
+                "Cannot modify frozen registry after freeze()",
+                suggestion="Ensure registration happens during discovery phase, before freeze() is called",
+            )
 
         # Handle virtual sections (path is None)
         if section.path is None:
@@ -212,7 +219,7 @@ class ContentRegistry:
             section: Root section to register (along with all subsections)
 
         Raises:
-            RuntimeError: If registry is frozen
+            BengalError: If registry is frozen
         """
         self.register_section(section)
         for subsection in section.subsections:
@@ -223,7 +230,7 @@ class ContentRegistry:
         Freeze registry after discovery. Enables concurrent reads.
 
         Called at the end of discovery phase, before rendering begins.
-        After freezing, any mutation attempt raises RuntimeError.
+        After freezing, any mutation attempt raises BengalError.
         """
         self._frozen = True
 

@@ -159,7 +159,13 @@ class PageTxtGenerator:
                     f.write(text)
                 return True
             except Exception as e:
-                logger.warning("page_txt_write_failed", path=str(txt_path), error=str(e))
+                logger.warning(
+                    "page_txt_write_failed",
+                    path=str(txt_path),
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    suggestion="Check output directory permissions and available disk space.",
+                )
                 return False
 
         # Use thread pool for I/O-bound writes

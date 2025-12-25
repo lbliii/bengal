@@ -556,6 +556,9 @@ class BuildOrchestrator:
         # Phase 19: Collect Final Stats
         finalization.phase_collect_stats(self, build_start, cli=cli)
 
+        # Phase 19.5: Finalize Error Session (track build errors for pattern detection)
+        self._finalize_error_session()
+
         # Populate changed_outputs from collector for hot reload decisions
         self.stats.changed_outputs = output_collector.get_outputs()
 
@@ -793,3 +796,50 @@ class BuildOrchestrator:
     def _phase_finalize(self, verbose: bool, collector: PerformanceCollector | None) -> None:
         """Phase 21: Finalize Build."""
         finalization.phase_finalize(self, verbose, collector)
+
+    def _finalize_error_session(self) -> None:
+        """
+        Record build errors in session for pattern detection and summary.
+
+        Tracks orchestration errors in the error session to enable:
+        - Build summaries including orchestration failures
+        - Pattern detection for recurring build issues
+        - Error aggregation across build phases
+        """
+        try:
+            from bengal.errors import get_session, record_error
+
+            session = get_session()
+
+            # Record any errors collected during build phases
+            if hasattr(self.stats, "errors") and self.stats.errors:
+                for error in self.stats.errors:
+                    if hasattr(error, "phase"):
+                        record_error(
+                            error,
+                            file_path=f"build:{error.phase}",
+                            build_phase=error.phase,
+                        )
+                    else:
+                        record_error(error, file_path="build:unknown")
+
+            # Log session summary if errors occurred
+            if session.has_errors():
+                by_category: dict[str, int] = {}
+                for err in session.errors:
+                    cat = getattr(err, "category", "unknown")
+                    by_category[cat] = by_category.get(cat, 0) + 1
+
+                logger.info(
+                    "build_error_session_summary",
+                    total_errors=session.error_count,
+                    by_category=by_category,
+                    recurring_patterns=len(session.get_recurring_patterns()),
+                )
+        except Exception as e:
+            # Don't fail build on session tracking errors
+            logger.debug(
+                "error_session_finalize_failed",
+                error=str(e),
+                error_type=type(e).__name__,
+            )

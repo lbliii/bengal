@@ -260,8 +260,9 @@ class SocialCardGenerator:
                 "social_cards_fonts_unavailable",
                 requested_font=self.config.title_font,
                 error=str(e),
+                error_type=type(e).__name__,
                 action="skipping_social_cards",
-                hint="Configure [fonts] in your site config to enable social cards",
+                suggestion="Configure [fonts] section in bengal.toml with Google Font families, or install Inter font locally.",
             )
             self._fonts_available = False
             return False
@@ -818,6 +819,8 @@ class SocialCardGenerator:
                     "social_card_generation_failed",
                     page=str(page.source_path),
                     error=str(e),
+                    error_type=type(e).__name__,
+                    suggestion="Check page frontmatter for invalid social_card options or font configuration.",
                 )
 
         if errors:
@@ -826,6 +829,7 @@ class SocialCardGenerator:
                 generated=generated_count,
                 cached=cached_count,
                 errors=len(errors),
+                suggestion="Review failed pages for invalid metadata or missing fonts.",
             )
         else:
             logger.info(

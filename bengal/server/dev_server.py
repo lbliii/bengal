@@ -53,6 +53,7 @@ from pathlib import Path
 from typing import Any
 
 from bengal.cache import clear_build_cache, clear_output_directory, clear_template_cache
+from bengal.errors import BengalServerError, ErrorCode, reset_dev_server_state
 from bengal.orchestration.stats import display_build_stats, show_building_indicator
 from bengal.output.icons import get_icon_set
 from bengal.server.build_trigger import BuildTrigger
@@ -168,6 +169,9 @@ class DevServer:
 
         # 1. Check for and handle stale processes
         self._check_stale_processes()
+
+        # Reset error session for fresh server start
+        reset_dev_server_state()
 
         # Use ResourceManager for comprehensive cleanup handling
         with ResourceManager() as rm:
@@ -541,9 +545,11 @@ class DevServer:
         for port in range(start_port, start_port + max_attempts):
             if self._is_port_available(port):
                 return port
-        raise OSError(
+        raise BengalServerError(
             f"Could not find an available port in range "
-            f"{start_port}-{start_port + max_attempts - 1}"
+            f"{start_port}-{start_port + max_attempts - 1}",
+            code=ErrorCode.S001,
+            suggestion=f"Kill processes using these ports: lsof -ti:{start_port}-{start_port + max_attempts - 1} | xargs kill",
         )
 
     def _check_stale_processes(self) -> None:
@@ -599,9 +605,16 @@ class DevServer:
                     print("  ❌ Failed to kill process")
                     print(f"     Try manually: kill {stale_pid}")
                     logger.error(
-                        "stale_process_kill_failed", pid=stale_pid, user_action="kill_manually"
+                        "stale_process_kill_failed",
+                        error_code=ErrorCode.S002.name,
+                        pid=stale_pid,
+                        user_action="kill_manually",
                     )
-                    raise OSError(f"Cannot start: stale process {stale_pid} is still running")
+                    raise BengalServerError(
+                        f"Cannot start: stale process {stale_pid} is still running",
+                        code=ErrorCode.S002,
+                        suggestion=f"Kill the stale process manually: kill {stale_pid}",
+                    )
             else:
                 print("  Continuing anyway (may encounter port conflicts)...")
                 logger.warning(
@@ -642,7 +655,7 @@ class DevServer:
                     print(f"{icons.warning} Port {self.port} is already in use")
                     print(f"{icons.arrow} Using port {actual_port} instead")
                     logger.info("port_fallback", requested_port=self.port, actual_port=actual_port)
-                except OSError as e:
+                except (OSError, BengalServerError) as e:
                     print(
                         f"{icons.error} Port {self.port} is already in use and no alternative "
                         f"ports are available."
@@ -653,11 +666,16 @@ class DevServer:
                     print(f"  3. Find the blocking process with: lsof -ti:{self.port}")
                     logger.error(
                         "no_ports_available",
+                        error_code=ErrorCode.S001.name,
                         requested_port=self.port,
                         search_range=(self.port + 1, self.port + 10),
                         user_action="check_running_processes",
                     )
-                    raise OSError(f"Port {self.port} is already in use") from e
+                    raise BengalServerError(
+                        f"Port {self.port} is already in use",
+                        code=ErrorCode.S001,
+                        suggestion=f"Use --port {self.port + 100} or kill the process: lsof -ti:{self.port} | xargs kill",
+                    ) from e
             else:
                 print(f"❌ Port {self.port} is already in use.")
                 print("\nTo fix this issue:")
@@ -666,10 +684,15 @@ class DevServer:
                 print(f"  3. Find the blocking process with: lsof -ti:{self.port}")
                 logger.error(
                     "port_unavailable_no_fallback",
+                    error_code=ErrorCode.S001.name,
                     port=self.port,
                     user_action="specify_different_port",
                 )
-                raise OSError(f"Port {self.port} is already in use")
+                raise BengalServerError(
+                    f"Port {self.port} is already in use",
+                    code=ErrorCode.S001,
+                    suggestion=f"Use --port {self.port + 100} or kill the process: lsof -ti:{self.port} | xargs kill",
+                )
 
         # Allow address reuse to prevent "address already in use" errors on restart
         socketserver.TCPServer.allow_reuse_address = True

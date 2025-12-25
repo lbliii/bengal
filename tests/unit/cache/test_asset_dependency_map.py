@@ -274,3 +274,67 @@ class TestAssetDependencyMap:
 
         retrieved = asset_map.get_page_assets(Path(path))
         assert retrieved == assets
+
+
+class TestAssetDependencyMapErrorCodes:
+    """Tests for error code logging in AssetDependencyMap.
+
+    Note: Bengal uses structlog which outputs to stdout, not standard logging.
+    We use capsys to capture stdout output for verification.
+    """
+
+    def test_load_failure_logs_error_code(self, tmp_path, capsys):
+        """Verify load failure logs include A003 error code."""
+        cache_path = tmp_path / "asset_deps.json"
+        cache_path.write_text("invalid json {{{")
+
+        _map = AssetDependencyMap(cache_path=cache_path)
+
+        # Map should be empty after failed load
+        assert len(_map.pages) == 0
+
+        # Verify error code is logged - structlog outputs to stdout
+        captured = capsys.readouterr()
+        assert "cache_read_error" in captured.out or "A003" in captured.out, (
+            f"Expected A003/cache_read_error in log output: {captured.out}"
+        )
+
+    def test_load_failure_logs_suggestion(self, tmp_path, capsys):
+        """Verify load failure logs include actionable suggestion."""
+        cache_path = tmp_path / "asset_deps.json"
+        cache_path.write_text("invalid json {{{")
+
+        AssetDependencyMap(cache_path=cache_path)
+
+        # Check for suggestion in stdout (structlog output)
+        captured = capsys.readouterr()
+        log_text = captured.out.lower()
+        assert "rebuilt" in log_text or "rebuild" in log_text, (
+            f"Expected suggestion about rebuild in log output: {captured.out}"
+        )
+
+    def test_save_failure_logs_error_code(self, tmp_path, capsys, monkeypatch):
+        """Verify save failure logs include A004 error code."""
+        cache_path = tmp_path / "asset_deps.json"
+
+        _map = AssetDependencyMap(cache_path=cache_path)
+        _map.track_page_assets(Path("test.md"), {"image.png"})
+
+        # Clear any previous output
+        capsys.readouterr()
+
+        # Mock the file write to fail
+        def mock_dump(*args, **kwargs):
+            raise PermissionError("Mocked permission denied")
+
+        import json as json_module
+
+        monkeypatch.setattr(json_module, "dump", mock_dump)
+
+        _map.save_to_disk()
+
+        # Verify error code is logged in stdout
+        captured = capsys.readouterr()
+        assert "cache_write_error" in captured.out or "A004" in captured.out, (
+            f"Expected A004/cache_write_error in log output: {captured.out}"
+        )

@@ -14,6 +14,7 @@ from unittest.mock import patch
 import pytest
 
 from bengal.config.validators import ConfigValidationError, ConfigValidator
+from bengal.errors import ErrorCode
 
 
 class TestConfigValidationError:
@@ -333,3 +334,31 @@ class TestConfigValidatorCaseSensitivity:
         result = validator.validate(config)
         assert result["parallel"] is True
         assert result["debug"] is False
+
+
+class TestConfigValidationErrorCode:
+    """Test that ConfigValidationError includes appropriate error codes."""
+
+    def test_validation_error_has_error_code(self):
+        """Verify ConfigValidationError includes C004 for type mismatches."""
+        validator = ConfigValidator()
+
+        # parallel should be bool, not an invalid string
+        config = {"parallel": "not-a-bool"}
+
+        with pytest.raises(ConfigValidationError) as exc_info:
+            validator.validate(config)
+
+        assert exc_info.value.code == ErrorCode.C004
+
+    def test_range_validation_error_has_error_code(self):
+        """Verify ConfigValidationError includes C004 for range errors."""
+        validator = ConfigValidator()
+
+        # negative max_workers should fail
+        config = {"max_workers": -1}
+
+        with pytest.raises(ConfigValidationError) as exc_info:
+            validator.validate(config)
+
+        assert exc_info.value.code == ErrorCode.C004

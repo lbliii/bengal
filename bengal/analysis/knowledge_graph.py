@@ -59,7 +59,7 @@ from bengal.analysis.link_types import (
     LinkMetrics,
     LinkType,
 )
-from bengal.errors import BengalError, ErrorCode
+from bengal.errors import BengalGraphError, ErrorCode
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
@@ -244,10 +244,10 @@ class KnowledgeGraph:
             PageConnectivity with detailed metrics
 
         Raises:
-            BengalError: If graph hasn't been built yet
+            BengalGraphError: If graph hasn't been built yet (G001)
         """
         if not self._built or self._analyzer is None:
-            raise BengalError(
+            raise BengalGraphError(
                 "KnowledgeGraph is not built",
                 code=ErrorCode.G001,
                 suggestion="Call graph.build() before accessing connectivity data",
@@ -270,10 +270,10 @@ class KnowledgeGraph:
             List of hub pages sorted by incoming references (descending)
 
         Raises:
-            BengalError: If graph hasn't been built yet
+            BengalGraphError: If graph hasn't been built yet (G001)
         """
         if not self._built or self._analyzer is None:
-            raise BengalError(
+            raise BengalGraphError(
                 "KnowledgeGraph is not built",
                 code=ErrorCode.G001,
                 suggestion="Call graph.build() before getting hub pages",
@@ -296,10 +296,10 @@ class KnowledgeGraph:
             List of leaf pages sorted by connectivity (ascending)
 
         Raises:
-            BengalError: If graph hasn't been built yet
+            BengalGraphError: If graph hasn't been built yet (G001)
         """
         if not self._built or self._analyzer is None:
-            raise BengalError(
+            raise BengalGraphError(
                 "KnowledgeGraph is not built",
                 code=ErrorCode.G001,
                 suggestion="Call graph.build() before getting leaf pages",
@@ -319,10 +319,10 @@ class KnowledgeGraph:
             List of orphaned pages sorted by slug
 
         Raises:
-            BengalError: If graph hasn't been built yet
+            BengalGraphError: If graph hasn't been built yet (G001)
         """
         if not self._built or self._analyzer is None:
-            raise BengalError(
+            raise BengalGraphError(
                 "KnowledgeGraph is not built",
                 code=ErrorCode.G001,
                 suggestion="Call graph.build() before getting orphan pages",
@@ -350,7 +350,7 @@ class KnowledgeGraph:
             ConnectivityReport with pages grouped by level and statistics.
 
         Raises:
-            BengalError: If graph hasn't been built yet
+            BengalGraphError: If graph hasn't been built yet (G001)
 
         Example:
             >>> graph.build()
@@ -359,7 +359,7 @@ class KnowledgeGraph:
             >>> print(f"Distribution: {report.get_distribution()}")
         """
         if not self._built:
-            raise BengalError(
+            raise BengalGraphError(
                 "KnowledgeGraph is not built",
                 code=ErrorCode.G001,
                 suggestion="Call graph.build() before getting connectivity report",
@@ -413,10 +413,10 @@ class KnowledgeGraph:
             LinkMetrics with breakdown by link type
 
         Raises:
-            BengalError: If graph hasn't been built yet
+            BengalGraphError: If graph hasn't been built yet (G001)
         """
         if not self._built:
-            raise BengalError(
+            raise BengalGraphError(
                 "KnowledgeGraph is not built",
                 code=ErrorCode.G001,
                 suggestion="Call graph.build() before getting link metrics",
@@ -436,10 +436,10 @@ class KnowledgeGraph:
             Connectivity score (higher = more connected)
 
         Raises:
-            BengalError: If graph hasn't been built yet
+            BengalGraphError: If graph hasn't been built yet (G001)
         """
         if not self._built or self._analyzer is None:
-            raise BengalError(
+            raise BengalGraphError(
                 "KnowledgeGraph is not built",
                 code=ErrorCode.G001,
                 suggestion="Call graph.build() before getting connectivity score",
@@ -460,10 +460,10 @@ class KnowledgeGraph:
             (supports tuple unpacking for backward compatibility)
 
         Raises:
-            BengalError: If graph hasn't been built yet
+            BengalGraphError: If graph hasn't been built yet (G001)
         """
         if not self._built or self._analyzer is None:
-            raise BengalError(
+            raise BengalGraphError(
                 "KnowledgeGraph is not built",
                 code=ErrorCode.G001,
                 suggestion="Call graph.build() before getting page layers",
@@ -478,10 +478,10 @@ class KnowledgeGraph:
             GraphMetrics with summary statistics
 
         Raises:
-            BengalError: If graph hasn't been built yet
+            BengalGraphError: If graph hasn't been built yet (G001)
         """
         if not self._built:
-            raise BengalError(
+            raise BengalGraphError(
                 "KnowledgeGraph is not built",
                 code=ErrorCode.G001,
                 suggestion="Call graph.build() before getting metrics",
@@ -499,10 +499,10 @@ class KnowledgeGraph:
             Formatted statistics string
 
         Raises:
-            BengalError: If graph hasn't been built yet
+            BengalGraphError: If graph hasn't been built yet (G001)
         """
         if not self._built or self._reporter is None:
-            raise BengalError(
+            raise BengalGraphError(
                 "KnowledgeGraph is not built",
                 code=ErrorCode.G001,
                 suggestion="Call graph.build() before formatting stats",
@@ -517,10 +517,10 @@ class KnowledgeGraph:
             List of recommendation strings with emoji prefixes
 
         Raises:
-            BengalError: If graph hasn't been built yet
+            BengalGraphError: If graph hasn't been built yet (G001)
         """
         if not self._built or self._reporter is None:
-            raise BengalError(
+            raise BengalGraphError(
                 "KnowledgeGraph is not built",
                 code=ErrorCode.G001,
                 suggestion="Call graph.build() before getting recommendations",
@@ -535,10 +535,10 @@ class KnowledgeGraph:
             List of SEO insight strings with emoji prefixes
 
         Raises:
-            BengalError: If graph hasn't been built yet
+            BengalGraphError: If graph hasn't been built yet (G001)
         """
         if not self._built or self._reporter is None:
-            raise BengalError(
+            raise BengalGraphError(
                 "KnowledgeGraph is not built",
                 code=ErrorCode.G001,
                 suggestion="Call graph.build() before getting SEO insights",
@@ -553,10 +553,10 @@ class KnowledgeGraph:
             List of content gap descriptions
 
         Raises:
-            BengalError: If graph hasn't been built yet
+            BengalGraphError: If graph hasn't been built yet (G001)
         """
         if not self._built or self._reporter is None:
-            raise BengalError(
+            raise BengalGraphError(
                 "KnowledgeGraph is not built",
                 code=ErrorCode.G001,
                 suggestion="Call graph.build() before getting content gaps",
@@ -581,7 +581,7 @@ class KnowledgeGraph:
             PageRankResults with scores and metadata
 
         Raises:
-            BengalError: If graph hasn't been built yet
+            BengalGraphError: If graph hasn't been built yet (G001)
 
         Example:
             >>> graph = KnowledgeGraph(site)
@@ -590,7 +590,7 @@ class KnowledgeGraph:
             >>> top_pages = results.get_top_pages(10)
         """
         if not self._built:
-            raise BengalError(
+            raise BengalGraphError(
                 "KnowledgeGraph is not built",
                 code=ErrorCode.G001,
                 suggestion="Call graph.build() before computing PageRank",
@@ -627,7 +627,7 @@ class KnowledgeGraph:
             PageRankResults with personalized scores
 
         Raises:
-            BengalError: If graph hasn't been built yet or seed_pages is empty
+            BengalGraphError: If graph hasn't been built yet (G001) or seed_pages is empty (G002)
 
         Example:
             >>> graph = KnowledgeGraph(site)
@@ -638,14 +638,14 @@ class KnowledgeGraph:
             >>> related = results.get_top_pages(10)
         """
         if not self._built:
-            raise BengalError(
+            raise BengalGraphError(
                 "KnowledgeGraph is not built",
                 code=ErrorCode.G001,
                 suggestion="Call graph.build() before computing PageRank",
             )
 
         if not seed_pages:
-            raise BengalError(
+            raise BengalGraphError(
                 "Personalized PageRank requires at least one seed page",
                 code=ErrorCode.G002,
                 suggestion="Provide at least one seed page to bias the ranking",
@@ -733,7 +733,7 @@ class KnowledgeGraph:
             ...     print(f"Community {community.id}: {community.size} pages")
         """
         if not self._built:
-            raise BengalError(
+            raise BengalGraphError(
                 "KnowledgeGraph is not built",
                 code=ErrorCode.G001,
                 suggestion="Call graph.build() before detecting communities",
@@ -815,7 +815,7 @@ class KnowledgeGraph:
             >>> print(f"Approximate: {results.is_approximate}")
         """
         if not self._built:
-            raise BengalError(
+            raise BengalGraphError(
                 "KnowledgeGraph is not built",
                 code=ErrorCode.G001,
                 suggestion="Call graph.build() before analyzing paths",
@@ -907,7 +907,7 @@ class KnowledgeGraph:
             ...     print(f"{suggestion.source.title} -> {suggestion.target.title}")
         """
         if not self._built:
-            raise BengalError(
+            raise BengalGraphError(
                 "KnowledgeGraph is not built",
                 code=ErrorCode.G001,
                 suggestion="Call graph.build() before generating link suggestions",

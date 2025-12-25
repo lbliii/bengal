@@ -255,16 +255,24 @@ class ContentParser:
         result = validator.validate(metadata, source_file=file_path)
 
         if not result.valid:
+            from bengal.errors import ErrorCode, record_error
+
             error_summary = result.error_summary
             self._validation_errors.append((file_path, collection_name or "", result.errors))
 
+            error = ContentValidationError(
+                message=f"Validation failed for {file_path}",
+                path=file_path,
+                errors=result.errors,
+                collection_name=collection_name,
+                code=ErrorCode.N011,
+            )
+
+            # Record for session aggregation
+            record_error(error, file_path=str(file_path))
+
             if self._strict_validation:
-                raise ContentValidationError(
-                    message=f"Validation failed for {file_path}",
-                    path=file_path,
-                    errors=result.errors,
-                    collection_name=collection_name,
-                )
+                raise error
             else:
                 logger.warning(
                     "collection_validation_failed",
@@ -272,6 +280,7 @@ class ContentParser:
                     collection=collection_name,
                     errors=error_summary,
                     action="continuing_with_original_metadata",
+                    code="N011",
                 )
                 return metadata
 

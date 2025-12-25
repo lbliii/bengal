@@ -265,23 +265,42 @@ class CacheStore:
             return []
 
         # Validate structure
+        from bengal.errors import ErrorCode
+
         if not isinstance(data, dict):
-            logger.error(f"Malformed cache file {self.cache_path}: expected dict, got {type(data)}")
+            logger.error(
+                "cache_malformed",
+                cache_path=str(self.cache_path),
+                expected="dict",
+                got=type(data).__name__,
+                error_code=ErrorCode.A001.value,  # cache_corruption
+            )
             return []
 
         # Check version
         file_version = data.get("version")
         if file_version != expected_version:
             logger.warning(
-                f"Cache version mismatch: {self.cache_path} has version "
-                f"{file_version}, expected {expected_version}. Rebuilding cache."
+                "cache_version_mismatch",
+                cache_path=str(self.cache_path),
+                file_version=file_version,
+                expected_version=expected_version,
+                action="rebuilding_cache",
+                error_code=ErrorCode.A002.value,  # cache_version_mismatch
             )
             return []
 
         # Deserialize entries
         entries_data = data.get("entries", [])
         if not isinstance(entries_data, list):
-            logger.error(f"Malformed cache file {self.cache_path}: 'entries' is not a list")
+            logger.error(
+                "cache_malformed",
+                cache_path=str(self.cache_path),
+                field="entries",
+                expected="list",
+                got=type(entries_data).__name__,
+                error_code=ErrorCode.A001.value,  # cache_corruption
+            )
             return []
 
         # Deserialize each entry using protocol method
@@ -291,7 +310,12 @@ class CacheStore:
                 entry = entry_type.from_cache_dict(entry_data)
                 entries.append(entry)
             except (KeyError, TypeError, ValueError) as e:
-                logger.error(f"Failed to deserialize entry from {self.cache_path}: {e}")
+                logger.error(
+                    "cache_deserialize_failed",
+                    cache_path=str(self.cache_path),
+                    error=str(e),
+                    error_code=ErrorCode.A003.value,  # cache_read_error
+                )
                 # Continue loading other entries (tolerant)
                 continue
 

@@ -56,6 +56,16 @@ def _parse_frontmatter(content: str) -> tuple[dict[str, Any], str]:
         return frontmatter, body
 
     except Exception as e:
+        from bengal.errors import BengalContentError, ErrorCode, record_error
+
+        # Record but continue - graceful degradation
+        error = BengalContentError(
+            "Failed to parse frontmatter in content",
+            code=ErrorCode.N001,
+            suggestion="Check YAML syntax in frontmatter block",
+            original_error=e,
+        )
+        record_error(error)
         logger.warning(f"Failed to parse frontmatter: {e}")
         return {}, content
 
@@ -199,7 +209,56 @@ class LocalSource(ContentSource):
         """
         try:
             content = path.read_text(encoding="utf-8")
+        except FileNotFoundError as e:
+            from bengal.errors import BengalContentError, ErrorCode, record_error
+
+            error = BengalContentError(
+                f"Content file not found: {path}",
+                code=ErrorCode.N004,
+                file_path=path,
+                suggestion="Verify the file exists and path is correct",
+                original_error=e,
+            )
+            record_error(error, file_path=str(path))
+            logger.warning(f"Failed to read {path}: {e}")
+            return None
+        except UnicodeDecodeError as e:
+            from bengal.errors import BengalContentError, ErrorCode, record_error
+
+            error = BengalContentError(
+                f"Failed to read content file (encoding error): {path}",
+                code=ErrorCode.N003,
+                file_path=path,
+                suggestion="Check file encoding (UTF-8 expected)",
+                original_error=e,
+            )
+            record_error(error, file_path=str(path))
+            logger.warning(f"Failed to read {path}: {e}")
+            return None
+        except PermissionError as e:
+            from bengal.errors import BengalDiscoveryError, ErrorCode, record_error
+
+            error = BengalDiscoveryError(
+                f"Permission denied reading file: {path}",
+                code=ErrorCode.D007,
+                file_path=path,
+                suggestion="Check file permissions",
+                original_error=e,
+            )
+            record_error(error, file_path=str(path))
+            logger.warning(f"Failed to read {path}: {e}")
+            return None
         except Exception as e:
+            from bengal.errors import BengalContentError, ErrorCode, record_error
+
+            error = BengalContentError(
+                f"Failed to read content file: {path}",
+                code=ErrorCode.N003,
+                file_path=path,
+                suggestion="Check file encoding (UTF-8 expected) and permissions",
+                original_error=e,
+            )
+            record_error(error, file_path=str(path))
             logger.warning(f"Failed to read {path}: {e}")
             return None
 

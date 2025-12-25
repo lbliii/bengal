@@ -117,7 +117,7 @@ class LunrIndexGenerator:
         if not LUNR_AVAILABLE:
             logger.warning(
                 "lunr_dependency_not_available",
-                hint="pip install lunr",
+                suggestion="Install the lunr package: pip install lunr",
             )
             return None
 
@@ -129,6 +129,7 @@ class LunrIndexGenerator:
             logger.warning(
                 "index_json_not_found",
                 path=str(index_json_path),
+                suggestion="Ensure site-wide index is enabled in [output_formats] config.",
             )
             return None
 
@@ -138,7 +139,11 @@ class LunrIndexGenerator:
             pages = data.get("pages", [])
 
             if not pages:
-                logger.warning("no_pages_for_lunr_index", reason="index.json has no pages")
+                logger.warning(
+                    "no_pages_for_lunr_index",
+                    reason="index.json has no pages",
+                    suggestion="Ensure site has pages and index.json was generated correctly.",
+                )
                 return None
 
             # Build documents for Lunr
@@ -148,6 +153,7 @@ class LunrIndexGenerator:
                 logger.warning(
                     "no_searchable_documents",
                     reason="all pages excluded from search",
+                    suggestion="Check pages for 'search_exclude: true' or 'draft: true' in frontmatter.",
                 )
                 return None
 
@@ -187,6 +193,7 @@ class LunrIndexGenerator:
                 error=str(e),
                 error_type=type(e).__name__,
                 fallback="runtime index building",
+                suggestion="Check index.json for invalid data. Client-side search will use runtime index.",
             )
             return None
 

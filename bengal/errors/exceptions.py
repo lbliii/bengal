@@ -17,7 +17,8 @@ Exception Hierarchy
     ├── BengalDiscoveryError   # D001-D007: Content discovery errors
     ├── BengalCacheError       # A001-A006: Cache errors
     ├── BengalServerError      # S001-S005: Dev server errors
-    └── BengalAssetError       # X001-X006: Asset processing errors
+    ├── BengalAssetError       # X001-X006: Asset processing errors
+    └── BengalGraphError       # G001-G005: Graph analysis errors
 
 Key Features
 ============
@@ -272,6 +273,7 @@ class BengalError(Exception):
                 "tests/integration/test_config.py",
             ],
             BengalContentError: [
+                "tests/unit/collections/",
                 "tests/unit/core/test_page.py",
                 "tests/integration/test_content.py",
             ],
@@ -281,11 +283,20 @@ class BengalError(Exception):
             ],
             BengalDiscoveryError: [
                 "tests/unit/discovery/",
+                "tests/unit/content_layer/",
                 "tests/integration/test_discovery.py",
             ],
             BengalCacheError: [
                 "tests/unit/cache/",
                 "tests/integration/test_cache.py",
+            ],
+            BengalAssetError: [
+                "tests/unit/assets/",
+                "tests/unit/health/validators/test_fonts.py",
+                "tests/integration/test_assets.py",
+            ],
+            BengalGraphError: [
+                "tests/unit/analysis/",
             ],
         }
 
@@ -586,4 +597,35 @@ class BengalAssetError(BengalError):
             from bengal.errors.context import BuildPhase
 
             kwargs["build_phase"] = BuildPhase.ASSET_PROCESSING
+        super().__init__(message, **kwargs)
+
+
+class BengalGraphError(BengalError):
+    """
+    Graph analysis errors.
+
+    Raised for issues with knowledge graph construction and analysis
+    including unbuilt graphs, invalid parameters, and analysis failures.
+    Automatically sets build phase to ANALYSIS.
+
+    Common Error Codes:
+        - G001: Graph not built yet
+        - G002: Invalid parameter for analysis
+        - G003: Cycle detected in graph
+        - G004: Disconnected component found
+        - G005: Analysis operation failed
+
+    Example:
+        >>> raise BengalGraphError(
+        ...     "Graph not built. Call build() first.",
+        ...     code=ErrorCode.G001,
+        ...     suggestion="Call build() before accessing graph data",
+        ... )
+    """
+
+    def __init__(self, message: str, **kwargs: Any) -> None:
+        if "build_phase" not in kwargs:
+            from bengal.errors.context import BuildPhase
+
+            kwargs["build_phase"] = BuildPhase.ANALYSIS
         super().__init__(message, **kwargs)

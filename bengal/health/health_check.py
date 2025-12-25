@@ -535,10 +535,21 @@ class HealthCheck:
                 results = [r for r in results if not (r.code and r.code in ignore_codes)]
 
         except Exception as e:
-            # If validator crashes, record as error
+            # If validator crashes, record as error and track in session
+            from bengal.errors import BengalError, ErrorCode, record_error
+
+            error = BengalError(
+                f"Validator '{validator.name}' crashed: {e}",
+                code=ErrorCode.V001,
+                suggestion="This is a bug in the health check system. Please report it.",
+                original_error=e,
+            )
+            record_error(error, file_path=f"validator:{validator.name}")
+
             results = [
                 CheckResult.error(
                     f"Validator crashed: {e}",
+                    code="V001",
                     recommendation="This is a bug in the health check system. Please report it.",
                     validator=validator.name,
                 )

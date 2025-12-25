@@ -21,6 +21,7 @@ from typing import TYPE_CHECKING, Any
 from jinja2 import TemplateSyntaxError
 
 from bengal.assets.manifest import AssetManifestEntry
+from bengal.errors import ErrorCode, record_error
 from bengal.rendering.engines.errors import TemplateError
 from bengal.rendering.template_engine.asset_url import AssetURLMixin
 from bengal.rendering.template_engine.environment import (
@@ -178,12 +179,15 @@ class JinjaTemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin)
             return result
 
         except Exception as e:
+            record_error(e, file_path=name, build_phase="rendering")
             logger.error(
                 "template_render_failed",
                 template=name,
                 error_type=type(e).__name__,
                 error=truncate_error(e, 500),
                 context_keys=list(context.keys()),
+                error_code=ErrorCode.R001.value,
+                suggestion="Check template syntax and ensure all context variables are defined",
             )
             raise
 
@@ -311,6 +315,8 @@ class JinjaTemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin)
                         template=rel_name,
                         error=str(e),
                         line=getattr(e, "lineno", None),
+                        error_code=ErrorCode.R002.value,
+                        suggestion="Fix Jinja2 syntax error before building",
                     )
                     errors.append(
                         TemplateError(

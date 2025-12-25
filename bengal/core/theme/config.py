@@ -211,9 +211,19 @@ class Theme:
                             theme=theme_name,
                             path=str(theme_path),
                         )
-                    except FileNotFoundError:
-                        # theme.yaml doesn't exist, fall back to config
-                        pass
+                    except BengalConfigError as e:
+                        if e.code == ErrorCode.C005:
+                            # theme.yaml doesn't exist, fall back to config
+                            pass
+                        else:
+                            # Other config errors should be reported
+                            emit_diagnostic(
+                                diagnostics_site,
+                                "warning",
+                                "theme_yaml_load_failed",
+                                theme=theme_name,
+                                error=str(e),
+                            )
                     except Exception as e:
                         emit_diagnostic(
                             diagnostics_site,

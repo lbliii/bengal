@@ -26,6 +26,7 @@ from __future__ import annotations
 import xml.etree.ElementTree as ET
 from typing import TYPE_CHECKING, Any
 
+from bengal.errors import BengalRenderingError, ErrorCode, record_error
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
@@ -231,13 +232,25 @@ class SitemapGenerator:
             # Detailed output removed - postprocess phase summary is sufficient
             # Individual task output clutters the build log
         except Exception as e:
+            # Create structured error for session tracking
+            error = BengalRenderingError(
+                f"Sitemap generation failed: {e}",
+                code=ErrorCode.B008,
+                file_path=sitemap_path,
+                suggestion="Check output directory permissions and available disk space.",
+                original_error=e,
+            )
+            record_error(error, context="postprocess:sitemap")
+
             self.logger.error(
                 "sitemap_generation_failed",
                 sitemap_path=str(sitemap_path),
                 error=str(e),
                 error_type=type(e).__name__,
+                error_code=ErrorCode.B008.value,
+                suggestion="Check output directory permissions and available disk space.",
             )
-            raise
+            raise error from e
 
     def _get_version_priority(self, page: Any) -> str:
         """

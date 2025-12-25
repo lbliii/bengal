@@ -138,11 +138,15 @@ class AsyncLinkChecker:
         result_dict: dict[str, LinkCheckResult] = {}
         for url, result in zip(url_refs.keys(), results, strict=True):
             if isinstance(result, Exception):
+                from bengal.errors import ErrorCode
+
                 logger.error(
                     "link_check_exception",
                     url=url,
                     error=str(result),
                     error_type=type(result).__name__,
+                    error_code=ErrorCode.V005.value,
+                    suggestion="Check network connectivity. External links may be temporarily unavailable.",
                 )
                 result_dict[url] = LinkCheckResult(
                     url=url,
@@ -198,7 +202,15 @@ class AsyncLinkChecker:
                 self._host_semaphores[host] = asyncio.Semaphore(self.per_host_limit)
             host_semaphore = self._host_semaphores[host]
         except Exception as e:
-            logger.warning("failed_to_parse_url", url=url, error=str(e))
+            from bengal.errors import ErrorCode
+
+            logger.warning(
+                "failed_to_parse_url",
+                url=url,
+                error=str(e),
+                error_code=ErrorCode.V005.value,
+                suggestion="Check URL format. Malformed URLs cannot be validated.",
+            )
             return LinkCheckResult(
                 url=url,
                 kind=LinkKind.EXTERNAL,
@@ -304,7 +316,15 @@ class AsyncLinkChecker:
                     )
                     await asyncio.sleep(backoff)
                 else:
-                    logger.warning("timeout_final", url=url, attempts=attempt + 1)
+                    from bengal.errors import ErrorCode
+
+                    logger.warning(
+                        "timeout_final",
+                        url=url,
+                        attempts=attempt + 1,
+                        error_code=ErrorCode.V004.value,
+                        suggestion="Increase timeout or add URL to ignore list if consistently slow.",
+                    )
 
             except httpx.RequestError as e:
                 last_error = e
@@ -319,13 +339,28 @@ class AsyncLinkChecker:
                     )
                     await asyncio.sleep(backoff)
                 else:
+                    from bengal.errors import ErrorCode
+
                     logger.warning(
-                        "request_error_final", url=url, error=str(e), attempts=attempt + 1
+                        "request_error_final",
+                        url=url,
+                        error=str(e),
+                        attempts=attempt + 1,
+                        error_code=ErrorCode.V005.value,
+                        suggestion="Check network connectivity. External links may be temporarily unavailable.",
                     )
 
             except Exception as e:
                 last_error = e
-                logger.error("unexpected_error", url=url, error=str(e))
+                from bengal.errors import ErrorCode
+
+                logger.error(
+                    "unexpected_error",
+                    url=url,
+                    error=str(e),
+                    error_code=ErrorCode.V005.value,
+                    suggestion="Unexpected error during link check. Check logs for details.",
+                )
                 break
 
         # All retries failed

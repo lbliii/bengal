@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from bengal.assets.manifest import AssetManifest, AssetManifestEntry
+from bengal.errors import ErrorCode
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -161,6 +162,8 @@ class ManifestHelpersMixin:
             "asset_manifest_miss",
             logical_path=logical_path,
             manifest=str(self._asset_manifest_path),
+            error_code=ErrorCode.X001.value,
+            suggestion="Run 'bengal build' to generate asset manifest",
         )
 
         logger.debug(

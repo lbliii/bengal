@@ -31,7 +31,7 @@ from typing import Any, override
 
 from mistune.renderers.html import HTMLRenderer
 
-from bengal.errors import format_suggestion
+from bengal.errors import ErrorCode, format_suggestion, record_error
 from bengal.rendering.parsers.base import BaseMarkdownParser
 from bengal.rendering.parsers.mistune.ast import (
     create_ast_parser,
@@ -231,12 +231,14 @@ class MistuneParser(BaseMarkdownParser):
             return html
         except Exception as e:
             # Log error but don't fail the entire build
+            record_error(e, file_path="mistune_parser", build_phase="parsing")
             suggestion = format_suggestion("parsing", "markdown_error")
             logger.warning(
                 "mistune_parsing_error",
                 error=str(e),
                 error_type=type(e).__name__,
                 suggestion=suggestion,
+                error_code=ErrorCode.P004.value,
             )
             # Return content wrapped in error message
             return f'<div class="markdown-error"><p><strong>Markdown parsing error:</strong> {e}</p><pre>{content}</pre></div>'
@@ -424,8 +426,13 @@ class MistuneParser(BaseMarkdownParser):
                 html = self._xref_plugin._substitute_xrefs(html)
             return html
         except Exception as e:
+            record_error(e, file_path="mistune_parser", build_phase="parsing")
             logger.warning(
-                "mistune_parsing_error_with_toc", error=str(e), error_type=type(e).__name__
+                "mistune_parsing_error_with_toc",
+                error=str(e),
+                error_type=type(e).__name__,
+                error_code=ErrorCode.P004.value,
+                suggestion="Check markdown syntax and variable substitution expressions",
             )
             return f'<div class="markdown-error"><p><strong>Markdown parsing error:</strong> {e}</p><pre>{content}</pre></div>'
 

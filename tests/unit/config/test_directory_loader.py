@@ -4,7 +4,7 @@ import pytest
 import yaml
 
 from bengal.config.directory_loader import ConfigDirectoryLoader, ConfigLoadError
-from bengal.errors import BengalConfigError
+from bengal.errors import BengalConfigError, ErrorCode
 
 
 @pytest.fixture
@@ -342,3 +342,46 @@ class TestConfigDirectoryLoader:
         # Check flattened keys exist (for backward compatibility)
         assert config["cache_templates"] is False
         assert config["watch_backend"] == "auto"
+
+
+class TestConfigLoadErrorCodes:
+    """Test that ConfigLoadError includes appropriate error codes."""
+
+    def test_missing_directory_has_error_code(self, tmp_path):
+        """Verify ConfigLoadError includes C005 for missing directory."""
+        loader = ConfigDirectoryLoader()
+        missing_dir = tmp_path / "nonexistent"
+
+        with pytest.raises(ConfigLoadError) as exc_info:
+            loader.load(missing_dir)
+
+        assert exc_info.value.code == ErrorCode.C005
+        assert "not found" in str(exc_info.value).lower()
+
+    def test_not_a_directory_has_error_code(self, tmp_path):
+        """Verify ConfigLoadError includes C003 for path that is not a directory."""
+        loader = ConfigDirectoryLoader()
+        config_file = tmp_path / "config.yaml"
+        config_file.write_text("test: value")
+
+        with pytest.raises(ConfigLoadError) as exc_info:
+            loader.load(config_file)
+
+        assert exc_info.value.code == ErrorCode.C003
+        assert "not a directory" in str(exc_info.value).lower()
+
+    def test_yaml_parse_error_has_error_code(self, tmp_path):
+        """Verify ConfigLoadError includes C001 for YAML parse errors."""
+        loader = ConfigDirectoryLoader()
+        config_dir = tmp_path / "config"
+        defaults = config_dir / "_default"
+        defaults.mkdir(parents=True)
+
+        # Create invalid YAML
+        (defaults / "bad.yaml").write_text("invalid: yaml: content: [")
+
+        with pytest.raises(ConfigLoadError) as exc_info:
+            loader.load(config_dir, environment="local")
+
+        assert exc_info.value.code == ErrorCode.C001
+        assert "invalid yaml" in str(exc_info.value).lower()

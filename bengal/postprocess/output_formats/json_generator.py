@@ -189,7 +189,13 @@ class PageJSONGenerator:
                     json.dump(page_data, f, ensure_ascii=False, separators=(",", ":"))
                 return True
             except Exception as e:
-                logger.warning("page_json_write_failed", path=str(json_path), error=str(e))
+                logger.warning(
+                    "page_json_write_failed",
+                    path=str(json_path),
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    suggestion="Check output directory permissions or page content for serialization errors.",
+                )
                 return False
 
         # Use thread pool for I/O-bound writes

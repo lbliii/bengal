@@ -37,6 +37,7 @@ if TYPE_CHECKING:
     from bengal.core.site import Site
     from bengal.orchestration.stats import BuildStats
     from bengal.utils.build_context import BuildContext
+from bengal.errors import ErrorCode
 from bengal.rendering.engines import create_engine
 from bengal.rendering.pipeline.autodoc_renderer import AutodocRenderer
 from bengal.rendering.pipeline.cache_checker import CacheChecker
@@ -544,6 +545,8 @@ class RenderingPipeline:
                     "jinja2_syntax_error",
                     source_path=str(page.source_path),
                     error=truncate_error(e),
+                    error_code=ErrorCode.R002.value,
+                    suggestion="Check Jinja2 syntax in page frontmatter or content",
                 )
             return page.content
         except Exception as e:
@@ -556,5 +559,7 @@ class RenderingPipeline:
                     "preprocessing_error",
                     source_path=str(page.source_path),
                     error=truncate_error(e),
+                    error_code=ErrorCode.R003.value,
+                    suggestion="Check page content for template syntax errors",
                 )
             return page.content

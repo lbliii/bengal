@@ -207,12 +207,15 @@ class BuildCache(
                 return cls._load_from_file(cache_path)
 
         except Exception as e:
+            from bengal.errors import ErrorCode
+
             logger.warning(
                 "cache_load_failed",
                 cache_path=str(cache_path),
                 error=str(e),
                 error_type=type(e).__name__,
                 action="using_fresh_cache",
+                error_code=ErrorCode.A003.value,  # cache_read_error
             )
             return cls()
 
@@ -237,6 +240,8 @@ class BuildCache(
                 return cls()
 
             # Tolerant versioning: accept missing version (pre-versioned files)
+            from bengal.errors import ErrorCode
+
             found_version = data.get("version")
             if found_version is not None and found_version != cls.VERSION:
                 logger.warning(
@@ -244,6 +249,7 @@ class BuildCache(
                     expected=cls.VERSION,
                     found=found_version,
                     action="loading_with_best_effort",
+                    error_code=ErrorCode.A002.value,  # cache_version_mismatch
                 )
                 # Keep loading with best effort; fields below normalized
 
@@ -312,12 +318,15 @@ class BuildCache(
 
             return cls(**data)
         except (json.JSONDecodeError, KeyError, TypeError) as e:
+            from bengal.errors import ErrorCode
+
             logger.warning(
                 "cache_load_parse_failed",
                 cache_path=str(cache_path),
                 error=str(e),
                 error_type=type(e).__name__,
                 action="using_fresh_cache",
+                error_code=ErrorCode.A001.value,  # cache_corruption
             )
             return cls()
 
@@ -344,11 +353,14 @@ class BuildCache(
                 logger.debug("cache_loading_compressed", path=str(compressed_path))
                 return load_compressed(compressed_path)
             except (ZstdError, json.JSONDecodeError, OSError, CacheVersionError) as e:
+                from bengal.errors import ErrorCode
+
                 logger.warning(
                     "cache_compressed_load_failed",
                     path=str(compressed_path),
                     error=str(e),
                     action="trying_uncompressed",
+                    error_code=ErrorCode.A003.value,  # cache_read_error
                 )
 
         # Fall back to uncompressed
@@ -392,7 +404,13 @@ class BuildCache(
                 self._save_to_file(cache_path)
 
         except Exception as e:
-            from bengal.errors import BengalCacheError, ErrorContext, enrich_error
+            from bengal.errors import (
+                BengalCacheError,
+                ErrorCode,
+                ErrorContext,
+                enrich_error,
+                record_error,
+            )
 
             # Enrich error with context
             context = ErrorContext(
@@ -400,13 +418,16 @@ class BuildCache(
                 operation="saving build cache",
                 suggestion="Check disk space and permissions. Cache will be rebuilt on next build.",
                 original_error=e,
+                error_code=ErrorCode.A004,  # cache_write_error
             )
             enriched = enrich_error(e, context, BengalCacheError)
+            record_error(enriched, file_path=str(cache_path))
             logger.error(
                 "cache_save_failed",
                 cache_path=str(cache_path),
                 error=str(enriched),
                 error_type=type(e).__name__,
+                error_code=ErrorCode.A004.value,
                 impact="incremental_builds_disabled",
             )
 

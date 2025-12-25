@@ -39,6 +39,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from bengal.errors import BengalAssetError, ErrorCode
 from bengal.themes.tokens import BENGAL_PALETTE, PALETTE_VARIANTS
 
 
@@ -162,6 +163,9 @@ def write_generated_css(output_dir: Path | None = None) -> Path:
     Returns:
         Absolute path to the written generated.css file
 
+    Raises:
+        BengalAssetError: If directory creation or file write fails
+
     Example:
         >>> path = write_generated_css()
         >>> path.name
@@ -170,11 +174,30 @@ def write_generated_css(output_dir: Path | None = None) -> Path:
     if output_dir is None:
         output_dir = Path(__file__).parent / "default" / "assets" / "css" / "tokens"
 
-    output_dir.mkdir(parents=True, exist_ok=True)
-    output_file = output_dir / "generated.css"
+    try:
+        output_dir.mkdir(parents=True, exist_ok=True)
+    except OSError as e:
+        raise BengalAssetError(
+            f"Failed to create CSS output directory: {output_dir}",
+            code=ErrorCode.X004,
+            file_path=output_dir,
+            suggestion="Check directory permissions and disk space",
+            original_error=e,
+        ) from e
 
+    output_file = output_dir / "generated.css"
     css_content = generate_web_css()
-    output_file.write_text(css_content)
+
+    try:
+        output_file.write_text(css_content)
+    except OSError as e:
+        raise BengalAssetError(
+            f"Failed to write generated CSS: {output_file}",
+            code=ErrorCode.X004,
+            file_path=output_file,
+            suggestion="Check file permissions and disk space",
+            original_error=e,
+        ) from e
 
     return output_file
 
@@ -222,15 +245,24 @@ def main() -> None:
 
     Generates web CSS from tokens and validates TCSS files. Exits with
     code 1 if validation fails, code 0 on success.
+
+    Raises:
+        BengalAssetError: If CSS generation fails
     """
     import sys
 
     print("Bengal Token Generator")
     print("=" * 40)
 
-    # Generate web CSS
-    output_path = write_generated_css()
-    print(f"✓ Generated web CSS: {output_path}")
+    # Generate web CSS (may raise BengalAssetError)
+    try:
+        output_path = write_generated_css()
+        print(f"✓ Generated web CSS: {output_path}")
+    except BengalAssetError as e:
+        print(f"\n✗ CSS generation failed: {e.message}")
+        if e.suggestion:
+            print(f"  Tip: {e.suggestion}")
+        sys.exit(1)
 
     # Validate TCSS
     errors = validate_tcss_tokens()

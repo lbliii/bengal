@@ -20,6 +20,7 @@ from typing import Any
 from pygments.lexers import get_lexer_by_name, guess_lexer
 from pygments.util import ClassNotFound
 
+from bengal.errors import ErrorCode
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -181,6 +182,8 @@ def get_lexer_cached(
                     language=language,
                     normalized=normalized,
                     fallback="text",
+                    error_code=ErrorCode.R004.value,
+                    suggestion="Check language name spelling or use 'text' for plain text",
                     hint=(
                         f"Language '{language}' not recognized by Pygments. "
                         "Rendering as plain text. "
@@ -217,7 +220,13 @@ def get_lexer_cached(
         logger.debug("lexer_guessed", guessed_language=lexer.name, cache_key=cache_key[:20])
         return lexer
     except Exception as e:
-        logger.warning("lexer_guess_failed", error=str(e), fallback="text")
+        logger.warning(
+            "lexer_guess_failed",
+            error=str(e),
+            fallback="text",
+            error_code=ErrorCode.R004.value,
+            suggestion="Specify language explicitly in code block",
+        )
         lexer = get_lexer_by_name("text")
         with _cache_lock:
             _evict_lexer_cache_if_needed()

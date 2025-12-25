@@ -26,6 +26,7 @@ from typing import TYPE_CHECKING, Any
 
 from bengal.analysis.link_types import LinkMetrics, LinkType
 from bengal.config.defaults import get_max_workers
+from bengal.errors import BengalGraphError, ErrorCode, record_error
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
@@ -276,10 +277,21 @@ class GraphBuilder:
                     result = future.result()
                     results.append(result)
                 except Exception as e:
+                    # Track error for session aggregation and debugging
+                    page_path = getattr(page, "source_path", None)
+                    error = BengalGraphError(
+                        f"Page analysis failed: {page_path}",
+                        code=ErrorCode.G005,
+                        file_path=page_path,
+                        original_error=e,
+                        suggestion="Check page content and link structure",
+                    )
+                    record_error(error, file_path=str(page_path) if page_path else None)
                     logger.warning(
                         "graph_page_analysis_failed",
                         page=str(getattr(page, "source_path", page)),
                         error=str(e),
+                        code="G005",
                     )
 
         # Merge phase: combine all thread-local results
@@ -324,10 +336,20 @@ class GraphBuilder:
                         type=type(e).__name__,
                     )
                 except Exception as e:
+                    # Track error for session aggregation and debugging
+                    error = BengalGraphError(
+                        f"Link extraction failed: {page.source_path}",
+                        code=ErrorCode.G005,
+                        file_path=page.source_path,
+                        original_error=e,
+                        suggestion="Check link syntax in page content",
+                    )
+                    record_error(error, file_path=str(page.source_path))
                     logger.debug(
                         "knowledge_graph_link_extraction_failed",
                         page=str(page.source_path),
                         error=str(e),
+                        code="G005",
                         exc_info=True,
                     )
 
