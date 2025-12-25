@@ -4,8 +4,10 @@ Rendering validator - checks output HTML quality.
 Validates:
 - HTML structure is valid
 - No unrendered Jinja2 variables (outside code blocks)
-- Template functions are available
 - SEO metadata present
+
+Note: Template function validation was removed as redundant - missing filters
+cause immediate template errors during build.
 """
 
 from __future__ import annotations
@@ -31,8 +33,10 @@ class RenderingValidator(BaseValidator):
     Checks:
     - Basic HTML structure (<html>, <head>, <body>)
     - No unrendered Jinja2 variables in output
-    - Template functions registered and working
     - Basic SEO metadata present
+
+    Note: Template function validation was removed as redundant - missing filters
+    cause immediate template errors during build.
     """
 
     name = "Rendering"
