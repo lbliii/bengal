@@ -120,8 +120,13 @@ print("hello")
         result = parser.parse(content, {})
         assert "<pre>" in result
         assert "<code" in result
-        # Check for Pygments highlighting (language class may not be present)
-        assert '<div class="highlight">' in result or '<span class="nb">print</span>' in result
+        # Check for syntax highlighting (rosettes or Pygments)
+        assert (
+            '<div class="rosettes">' in result
+            or '<div class="highlight">' in result
+            or '<span class="syntax-function">print</span>' in result
+            or '<span class="nb">print</span>' in result
+        )
 
     def test_parse_with_toc(self, parser):
         """Test TOC generation."""

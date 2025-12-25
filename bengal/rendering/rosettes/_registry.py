@@ -289,6 +289,12 @@ _LEXER_SPECS: dict[str, LexerSpec] = {
         "TritonLexer",
         aliases=(),
     ),
+    # Directory/file trees
+    "tree": LexerSpec(
+        "bengal.rendering.rosettes.lexers.tree",
+        "TreeLexer",
+        aliases=("directory", "filetree", "dirtree", "files"),
+    ),
 }
 
 # Build alias lookup table (case-insensitive)
