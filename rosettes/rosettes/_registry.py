@@ -301,6 +301,60 @@ _LEXER_SPECS: dict[str, LexerSpec] = {
         "Jinja2Lexer",
         aliases=("jinja", "j2", "jinja2-html", "html+jinja", "htmldjango"),
     ),
+    "liquid": LexerSpec(
+        "rosettes.lexers.liquid",
+        "LiquidLexer",
+        aliases=("jekyll", "shopify-liquid"),
+    ),
+    "svelte": LexerSpec(
+        "rosettes.lexers.svelte",
+        "SvelteLexer",
+        aliases=("svelte-html",),
+    ),
+    # CSS preprocessors
+    "scss": LexerSpec(
+        "rosettes.lexers.scss",
+        "ScssLexer",
+        aliases=("sass", "css-sass", "css-scss"),
+    ),
+    # Markup languages
+    "rst": LexerSpec(
+        "rosettes.lexers.rst",
+        "RstLexer",
+        aliases=("restructuredtext", "rest", "restx"),
+    ),
+    "asciidoc": LexerSpec(
+        "rosettes.lexers.asciidoc",
+        "AsciidocLexer",
+        aliases=("adoc", "asc"),
+    ),
+    "latex": LexerSpec(
+        "rosettes.lexers.latex",
+        "LatexLexer",
+        aliases=("tex", "context"),
+    ),
+    # Protocol/data formats
+    "http": LexerSpec(
+        "rosettes.lexers.http",
+        "HttpLexer",
+        aliases=("https",),
+    ),
+    "regex": LexerSpec(
+        "rosettes.lexers.regex",
+        "RegexLexer",
+        aliases=("regexp", "re"),
+    ),
+    # Functional/scripting
+    "ocaml": LexerSpec(
+        "rosettes.lexers.ocaml",
+        "OcamlLexer",
+        aliases=("ml", "reasonml", "reason", "rescript"),
+    ),
+    "awk": LexerSpec(
+        "rosettes.lexers.awk",
+        "AwkLexer",
+        aliases=("gawk", "mawk", "nawk"),
+    ),
 }
 
 # Build alias lookup table (case-insensitive)

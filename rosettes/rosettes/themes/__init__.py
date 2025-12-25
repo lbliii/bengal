@@ -3,6 +3,8 @@
 Semantic token system for syntax highlighting with modern CSS support.
 Provides palettes, CSS generation, and accessibility validation.
 
+All palettes are lazy-loaded on first access for fast import times.
+
 Quick Start:
     >>> from rosettes.themes import MONOKAI, generate_css
     >>> css = generate_css(MONOKAI)
@@ -31,17 +33,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from rosettes.themes._css import (
-    PYGMENTS_CLASS_MAP,
-    SEMANTIC_CLASS_MAP,
-    generate_css,
-    generate_css_vars,
-    get_css_class,
-)
-from rosettes.themes._mapping import ROLE_MAPPING, get_role
+# Core types - these are lightweight, OK to import eagerly
 from rosettes.themes._palette import AdaptivePalette, SyntaxPalette
 from rosettes.themes._roles import SyntaxRole
 from rosettes.themes._terminal import TerminalPalette
+
+# Validation utilities
 from rosettes.themes._validation import (
     WCAG_AA_LARGE,
     WCAG_AA_NORMAL,
@@ -50,20 +47,6 @@ from rosettes.themes._validation import (
     contrast_ratio,
     is_dark_palette,
     validate_palette,
-)
-
-# Built-in palettes
-from rosettes.themes.palettes import (
-    BENGAL_CHARCOAL,
-    BENGAL_SNOW_LYNX,
-    BENGAL_TIGER,
-    CATPPUCCIN,
-    DRACULA,
-    GITHUB,
-    MONOKAI,
-    NORD,
-    ONE_DARK,
-    TERMINAL_MONOKAI,
 )
 
 if TYPE_CHECKING:
@@ -77,13 +60,13 @@ __all__ = [
     "SyntaxPalette",
     "AdaptivePalette",
     "TerminalPalette",
-    # Mappings
+    # Mappings (lazy)
     "ROLE_MAPPING",
     "PYGMENTS_CLASS_MAP",
     "SEMANTIC_CLASS_MAP",
     "get_role",
     "get_css_class",
-    # CSS generation
+    # CSS generation (lazy)
     "generate_css",
     "generate_css_vars",
     # Validation
@@ -94,19 +77,19 @@ __all__ = [
     "WCAG_AA_NORMAL",
     "WCAG_AA_LARGE",
     "WCAG_AAA_NORMAL",
-    # Dark palettes
+    # Dark palettes (lazy)
     "MONOKAI",
     "DRACULA",
     "ONE_DARK",
-    # Adaptive palettes
+    # Adaptive palettes (lazy)
     "GITHUB",
     "CATPPUCCIN",
     "NORD",
-    # Bengal palettes
+    # Bengal palettes (lazy)
     "BENGAL_TIGER",
     "BENGAL_SNOW_LYNX",
     "BENGAL_CHARCOAL",
-    # Terminal palettes
+    # Terminal palettes (lazy)
     "TERMINAL_MONOKAI",
     # Registry
     "register_palette",
@@ -120,8 +103,92 @@ __all__ = [
 # Type alias for any palette type
 Palette = SyntaxPalette | AdaptivePalette
 
+# Palette names that are lazy-loaded
+_PALETTE_NAMES = frozenset(
+    {
+        "MONOKAI",
+        "DRACULA",
+        "ONE_DARK",
+        "GITHUB",
+        "CATPPUCCIN",
+        "NORD",
+        "BENGAL_TIGER",
+        "BENGAL_SNOW_LYNX",
+        "BENGAL_CHARCOAL",
+        "TERMINAL_MONOKAI",
+    }
+)
 
-# Palette registry (populated with built-ins)
+# Mapping names that are lazy-loaded
+_MAPPING_NAMES = frozenset(
+    {
+        "ROLE_MAPPING",
+        "PYGMENTS_CLASS_MAP",
+        "SEMANTIC_CLASS_MAP",
+        "get_role",
+        "get_css_class",
+        "generate_css",
+        "generate_css_vars",
+    }
+)
+
+# Cache for lazy-loaded items
+_lazy_cache: dict[str, object] = {}
+
+
+def __getattr__(name: str) -> object:
+    """Lazy-load palettes and mappings on first access."""
+    if name in _lazy_cache:
+        return _lazy_cache[name]
+
+    # Lazy-load palettes from palettes subpackage
+    if name in _PALETTE_NAMES:
+        from rosettes.themes import palettes
+
+        result = getattr(palettes, name)
+        _lazy_cache[name] = result
+        return result
+
+    # Lazy-load mappings from _mapping module
+    if name in {"ROLE_MAPPING", "get_role"}:
+        from rosettes.themes._mapping import ROLE_MAPPING, get_role
+
+        _lazy_cache["ROLE_MAPPING"] = ROLE_MAPPING
+        _lazy_cache["get_role"] = get_role
+        return _lazy_cache[name]
+
+    # Lazy-load CSS utilities from _css module
+    if name in {
+        "PYGMENTS_CLASS_MAP",
+        "SEMANTIC_CLASS_MAP",
+        "get_css_class",
+        "generate_css",
+        "generate_css_vars",
+    }:
+        from rosettes.themes._css import (
+            PYGMENTS_CLASS_MAP,
+            SEMANTIC_CLASS_MAP,
+            generate_css,
+            generate_css_vars,
+            get_css_class,
+        )
+
+        _lazy_cache["PYGMENTS_CLASS_MAP"] = PYGMENTS_CLASS_MAP
+        _lazy_cache["SEMANTIC_CLASS_MAP"] = SEMANTIC_CLASS_MAP
+        _lazy_cache["get_css_class"] = get_css_class
+        _lazy_cache["generate_css"] = generate_css
+        _lazy_cache["generate_css_vars"] = generate_css_vars
+        return _lazy_cache[name]
+
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+def __dir__() -> list[str]:
+    """List available attributes for tab completion."""
+    return list(__all__)
+
+
+# Palette registry (populated lazily)
 _PALETTES: dict[str, Palette] = {}
 
 
@@ -129,26 +196,29 @@ def _init_registry() -> None:
     """Initialize the palette registry with built-in palettes."""
     global _PALETTES
 
+    # Import palettes lazily
+    from rosettes.themes import palettes
+
     # Dark themes
-    _PALETTES["monokai"] = MONOKAI
-    _PALETTES["dracula"] = DRACULA
-    _PALETTES["one-dark"] = ONE_DARK
+    _PALETTES["monokai"] = palettes.MONOKAI
+    _PALETTES["dracula"] = palettes.DRACULA
+    _PALETTES["one-dark"] = palettes.ONE_DARK
 
     # Adaptive themes
-    _PALETTES["github"] = GITHUB
-    _PALETTES["github-light"] = GITHUB.light
-    _PALETTES["github-dark"] = GITHUB.dark
-    _PALETTES["catppuccin"] = CATPPUCCIN
-    _PALETTES["catppuccin-latte"] = CATPPUCCIN.light
-    _PALETTES["catppuccin-mocha"] = CATPPUCCIN.dark
-    _PALETTES["nord"] = NORD
-    _PALETTES["nord-light"] = NORD.light
-    _PALETTES["nord-dark"] = NORD.dark
+    _PALETTES["github"] = palettes.GITHUB
+    _PALETTES["github-light"] = palettes.GITHUB.light
+    _PALETTES["github-dark"] = palettes.GITHUB.dark
+    _PALETTES["catppuccin"] = palettes.CATPPUCCIN
+    _PALETTES["catppuccin-latte"] = palettes.CATPPUCCIN.light
+    _PALETTES["catppuccin-mocha"] = palettes.CATPPUCCIN.dark
+    _PALETTES["nord"] = palettes.NORD
+    _PALETTES["nord-light"] = palettes.NORD.light
+    _PALETTES["nord-dark"] = palettes.NORD.dark
 
     # Bengal themes
-    _PALETTES["bengal-tiger"] = BENGAL_TIGER
-    _PALETTES["bengal-snow-lynx"] = BENGAL_SNOW_LYNX
-    _PALETTES["bengal-charcoal"] = BENGAL_CHARCOAL
+    _PALETTES["bengal-tiger"] = palettes.BENGAL_TIGER
+    _PALETTES["bengal-snow-lynx"] = palettes.BENGAL_SNOW_LYNX
+    _PALETTES["bengal-charcoal"] = palettes.BENGAL_CHARCOAL
 
 
 def register_palette(palette: Palette) -> None:

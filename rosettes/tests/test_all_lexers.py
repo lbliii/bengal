@@ -38,6 +38,17 @@ class TestAllLanguages:
             ("myst", ":::{note}\nContent\n:::", "k"),  # keyword (directive)
             # Jinja2 templates
             ("jinja2", "{% if x %}{{ y }}{% endif %}", "k"),  # keyword
+            # New languages
+            ("scss", "$color: #fff; .class { }", "nv"),  # name variable
+            ("rst", ".. note::\n   Content", "k"),  # keyword (directive)
+            ("latex", "\\section{Title}", "k"),  # keyword (command)
+            ("liquid", "{% for x in items %}", "k"),  # keyword
+            ("http", "GET /api HTTP/1.1", "k"),  # keyword (method)
+            ("regex", "^\\d+$", "k"),  # keyword (anchor)
+            ("asciidoc", "= Title\n\nNOTE: text", "k"),  # keyword (admonition)
+            ("svelte", "{#if condition}", "k"),  # keyword
+            ("ocaml", "let x = 1", "k"),  # keyword
+            ("awk", "BEGIN { print }", "k"),  # keyword
         ],
     )
     def test_language_tokenizes(self, language: str, code: str, expected_token_type: str) -> None:
@@ -90,6 +101,17 @@ class TestAllLanguages:
             ("jinja", "jinja2"),
             ("j2", "jinja2"),
             ("html+jinja", "jinja2"),
+            # New language aliases
+            ("sass", "scss"),
+            ("restructuredtext", "rst"),
+            ("tex", "latex"),
+            ("jekyll", "liquid"),
+            ("https", "http"),
+            ("regexp", "regex"),
+            ("adoc", "asciidoc"),
+            ("ml", "ocaml"),
+            ("reasonml", "ocaml"),
+            ("gawk", "awk"),
         ],
     )
     def test_language_aliases(self, alias: str, canonical: str) -> None:
