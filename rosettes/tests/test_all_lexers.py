@@ -34,6 +34,8 @@ class TestAllLanguages:
             ("java", "public class Main {}", "kd"),
             ("ruby", "def foo; end", "kd"),
             ("php", "<?php echo $x; ?>", "nv"),  # name variable
+            # MyST Markdown
+            ("myst", ":::{note}\nContent\n:::", "k"),  # keyword (directive)
         ],
     )
     def test_language_tokenizes(self, language: str, code: str, expected_token_type: str) -> None:
@@ -79,6 +81,9 @@ class TestAllLanguages:
             ("cxx", "cpp"),
             ("rb", "ruby"),
             ("php7", "php"),
+            # MyST aliases
+            ("mystmd", "myst"),
+            ("myst-markdown", "myst"),
         ],
     )
     def test_language_aliases(self, alias: str, canonical: str) -> None:
@@ -641,3 +646,77 @@ class TestPhpLexer:
         ns_keywords = [t for t in tokens if t.type.value == "kn"]
         assert any(t.value == "namespace" for t in ns_keywords)
         assert any(t.value == "use" for t in ns_keywords)
+
+
+class TestMystLexer:
+    """MyST Markdown-specific tests."""
+
+    def test_directive_colon_fence(self) -> None:
+        """Tokenizes colon-fence directives."""
+        code = ":::{note}\nContent\n:::"
+        tokens = tokenize(code, "myst")
+        # Known directive should be keyword
+        directive_tokens = [t for t in tokens if t.type.value == "k"]
+        assert any("note" in t.value for t in directive_tokens)
+
+    def test_directive_backtick_fence(self) -> None:
+        """Tokenizes backtick-fence directives."""
+        code = "```{warning}\nContent\n```"
+        tokens = tokenize(code, "myst")
+        directive_tokens = [t for t in tokens if t.type.value == "k"]
+        assert any("warning" in t.value for t in directive_tokens)
+
+    def test_container_directive(self) -> None:
+        """Container directives are keyword declarations."""
+        code = ":::{cards}\n:::{card}\n:::\n:::"
+        tokens = tokenize(code, "myst")
+        # Container directive (cards) should be keyword declaration
+        decl_tokens = [t for t in tokens if t.type.value == "kd"]
+        assert any("cards" in t.value for t in decl_tokens)
+
+    def test_option_lines(self) -> None:
+        """Option lines are name attributes."""
+        code = ":::{note}\n:class: fancy\n:width: 100%\n:::"
+        tokens = tokenize(code, "myst")
+        attr_tokens = [t for t in tokens if t.type.value == "na"]
+        assert len(attr_tokens) >= 2  # :class: and :width:
+
+    def test_nested_fences(self) -> None:
+        """Nested fences with more colons."""
+        code = "::::{cards}\n:::{card}\nContent\n:::\n::::"
+        tokens = tokenize(code, "myst")
+        # Both outer (cards) and inner (card) should be highlighted
+        assert len(tokens) > 0
+        # Check fence closers are punctuation
+        punct_tokens = [t for t in tokens if t.type.value == "p"]
+        assert len(punct_tokens) >= 2
+
+    def test_unknown_directive(self) -> None:
+        """Unknown directives are name functions."""
+        code = ":::{my-custom-directive}\nContent\n:::"
+        tokens = tokenize(code, "myst")
+        # Unknown directive should be name function
+        func_tokens = [t for t in tokens if t.type.value == "nf"]
+        assert any("my-custom-directive" in t.value for t in func_tokens)
+
+    def test_inline_code(self) -> None:
+        """Inline code is string backtick."""
+        code = "Use `highlight()` to format code."
+        tokens = tokenize(code, "myst")
+        backtick_tokens = [t for t in tokens if t.type.value == "sb"]
+        assert len(backtick_tokens) >= 1
+
+    def test_headings(self) -> None:
+        """Headings are generic heading."""
+        code = "# Main Title\n\n## Subtitle"
+        tokens = tokenize(code, "myst")
+        heading_tokens = [t for t in tokens if t.type.value == "gh"]
+        assert len(heading_tokens) == 2
+
+    def test_role_syntax(self) -> None:
+        """Role syntax is name decorator."""
+        code = "See {ref}`my-target` for details."
+        tokens = tokenize(code, "myst")
+        # Role syntax should be name decorator
+        decorator_tokens = [t for t in tokens if t.type.value == "nd"]
+        assert any("ref" in t.value for t in decorator_tokens)

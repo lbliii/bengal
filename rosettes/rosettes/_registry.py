@@ -289,6 +289,12 @@ _LEXER_SPECS: dict[str, LexerSpec] = {
         "TritonLexer",
         aliases=(),
     ),
+    # Documentation markup
+    "myst": LexerSpec(
+        "rosettes.lexers.myst",
+        "MystLexer",
+        aliases=("myst-markdown", "mystmd"),
+    ),
 }
 
 # Build alias lookup table (case-insensitive)
