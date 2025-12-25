@@ -150,6 +150,141 @@ class TestAllLanguages:
         assert '<div class="highlight">' in html2
 
 
+class TestPythonLexer:
+    """Python-specific tests."""
+
+    def test_function_definition(self) -> None:
+        """Tokenizes function definitions."""
+        code = "def hello(name: str) -> str:\n    return f'Hello {name}'"
+        tokens = tokenize(code, "python")
+        keywords = [t for t in tokens if t.type.value == "kd"]
+        assert any(t.value == "def" for t in keywords)
+
+    def test_class_definition(self) -> None:
+        """Tokenizes class definitions."""
+        code = "class MyClass(BaseClass):\n    pass"
+        tokens = tokenize(code, "python")
+        keywords = [t for t in tokens if t.type.value == "kd"]
+        assert any(t.value == "class" for t in keywords)
+
+    def test_decorators(self) -> None:
+        """Tokenizes decorators."""
+        code = "@property\n@staticmethod\ndef method(self): pass"
+        tokens = tokenize(code, "python")
+        decorators = [t for t in tokens if t.type.value == "nd"]
+        assert any("@property" in t.value for t in decorators)
+        assert any("@staticmethod" in t.value for t in decorators)
+
+    def test_f_strings(self) -> None:
+        """Tokenizes f-strings."""
+        code = "name = 'World'\nmsg = f'Hello {name}!'"
+        tokens = tokenize(code, "python")
+        strings = [t for t in tokens if t.type.value == "s"]
+        assert any("f'" in t.value or 'f"' in t.value for t in strings)
+
+    def test_docstrings(self) -> None:
+        """Tokenizes docstrings."""
+        code = '"""This is a docstring."""'
+        tokens = tokenize(code, "python")
+        docs = [t for t in tokens if t.type.value == "sd"]
+        assert len(docs) == 1
+
+    def test_builtin_functions(self) -> None:
+        """Tokenizes builtin functions."""
+        code = "result = len(list(range(10)))"
+        tokens = tokenize(code, "python")
+        builtins = [t for t in tokens if t.type.value == "nb"]
+        builtin_names = {t.value for t in builtins}
+        assert "len" in builtin_names
+        assert "list" in builtin_names
+        assert "range" in builtin_names
+
+    def test_keyword_constants(self) -> None:
+        """Tokenizes True, False, None."""
+        code = "x = True\ny = False\nz = None"
+        tokens = tokenize(code, "python")
+        consts = [t for t in tokens if t.type.value == "kc"]
+        const_values = {t.value for t in consts}
+        assert "True" in const_values
+        assert "False" in const_values
+        assert "None" in const_values
+
+    def test_import_statements(self) -> None:
+        """Tokenizes import statements."""
+        code = "from typing import List, Dict\nimport os"
+        tokens = tokenize(code, "python")
+        keywords = [t for t in tokens if t.type.value == "kn"]
+        keyword_values = {t.value for t in keywords}
+        assert "from" in keyword_values
+        assert "import" in keyword_values
+
+    def test_walrus_operator(self) -> None:
+        """Tokenizes walrus operator."""
+        code = "if (n := len(data)) > 10: pass"
+        tokens = tokenize(code, "python")
+        values = [t.value for t in tokens]
+        assert ":=" in values
+
+    def test_type_hints(self) -> None:
+        """Tokenizes type hints with arrow."""
+        code = "def process(data: list[int]) -> dict[str, int]: ..."
+        tokens = tokenize(code, "python")
+        values = [t.value for t in tokens]
+        assert "->" in values
+
+    def test_exception_names(self) -> None:
+        """Tokenizes exception names."""
+        code = "raise ValueError('invalid')"
+        tokens = tokenize(code, "python")
+        exceptions = [t for t in tokens if t.type.value == "ne"]
+        assert any(t.value == "ValueError" for t in exceptions)
+
+    def test_self_and_cls(self) -> None:
+        """Tokenizes self and cls as pseudo-builtins."""
+        code = "def method(self): return self.value"
+        tokens = tokenize(code, "python")
+        pseudo = [t for t in tokens if t.type.value == "bp"]
+        assert any(t.value == "self" for t in pseudo)
+
+    def test_numbers(self) -> None:
+        """Tokenizes various number formats."""
+        code = "a = 42\nb = 3.14\nc = 0xFF\nd = 0b1010\ne = 0o777"
+        tokens = tokenize(code, "python")
+        integers = [t for t in tokens if t.type.value == "mi"]
+        floats = [t for t in tokens if t.type.value == "mf"]
+        hex_nums = [t for t in tokens if t.type.value == "mh"]
+        bin_nums = [t for t in tokens if t.type.value == "mb"]
+        oct_nums = [t for t in tokens if t.type.value == "mo"]
+        assert len(integers) >= 1
+        assert len(floats) >= 1
+        assert len(hex_nums) >= 1
+        assert len(bin_nums) >= 1
+        assert len(oct_nums) >= 1
+
+    def test_comments(self) -> None:
+        """Tokenizes comments."""
+        code = "x = 1  # This is a comment\ny = 2"
+        tokens = tokenize(code, "python")
+        comments = [t for t in tokens if t.type.value == "c1"]
+        assert len(comments) == 1
+
+    def test_lambda(self) -> None:
+        """Tokenizes lambda expressions."""
+        code = "fn = lambda x, y: x + y"
+        tokens = tokenize(code, "python")
+        keywords = [t for t in tokens if t.type.value == "kd"]
+        assert any(t.value == "lambda" for t in keywords)
+
+    def test_async_await(self) -> None:
+        """Tokenizes async/await."""
+        code = "async def fetch():\n    result = await get_data()"
+        tokens = tokenize(code, "python")
+        keywords = [t for t in tokens if t.type.value == "k"]
+        keyword_values = {t.value for t in keywords}
+        assert "async" in keyword_values
+        assert "await" in keyword_values
+
+
 class TestJavaScriptLexer:
     """JavaScript-specific tests."""
 
@@ -174,6 +309,85 @@ class TestJavaScriptLexer:
         tokens = tokenize("const x = a ?? b;", "javascript")
         values = [t.value for t in tokens]
         assert "??" in values
+
+    def test_const_let_var(self) -> None:
+        """Tokenizes variable declarations."""
+        code = "const a = 1;\nlet b = 2;\nvar c = 3;"
+        tokens = tokenize(code, "javascript")
+        keywords = [t for t in tokens if t.type.value == "kd"]
+        keyword_values = {t.value for t in keywords}
+        assert "const" in keyword_values
+        assert "let" in keyword_values
+        assert "var" in keyword_values
+
+    def test_function_declaration(self) -> None:
+        """Tokenizes function declarations."""
+        code = "function greet(name) { return 'Hello ' + name; }"
+        tokens = tokenize(code, "javascript")
+        keywords = [t for t in tokens if t.type.value == "kd"]
+        assert any(t.value == "function" for t in keywords)
+
+    def test_class_syntax(self) -> None:
+        """Tokenizes class syntax."""
+        code = "class MyClass extends Base { constructor() { super(); } }"
+        tokens = tokenize(code, "javascript")
+        keywords = [t for t in tokens if t.type.value in ("k", "kd")]
+        keyword_values = {t.value for t in keywords}
+        assert "class" in keyword_values
+        assert "extends" in keyword_values
+
+    def test_async_await(self) -> None:
+        """Tokenizes async/await."""
+        code = "async function fetch() { const data = await getData(); }"
+        tokens = tokenize(code, "javascript")
+        keywords = [t for t in tokens if t.type.value == "k"]
+        keyword_values = {t.value for t in keywords}
+        assert "async" in keyword_values
+        assert "await" in keyword_values
+
+    def test_destructuring(self) -> None:
+        """Tokenizes destructuring syntax."""
+        code = "const { a, b } = obj;\nconst [x, y] = arr;"
+        tokens = tokenize(code, "javascript")
+        # Should have punctuation for braces and brackets
+        punct = [t for t in tokens if t.type.value == "p"]
+        assert len(punct) >= 4
+
+    def test_spread_operator(self) -> None:
+        """Tokenizes spread operator."""
+        code = "const arr = [...items, newItem];"
+        tokens = tokenize(code, "javascript")
+        values = [t.value for t in tokens]
+        assert "..." in values
+
+    def test_optional_chaining(self) -> None:
+        """Tokenizes optional chaining."""
+        code = "const value = obj?.prop?.nested;"
+        tokens = tokenize(code, "javascript")
+        values = [t.value for t in tokens]
+        # Optional chaining may be tokenized as ? and . separately
+        assert "?" in values and "." in values
+
+    def test_regex_literal(self) -> None:
+        """Tokenizes regex literals."""
+        code = "const pattern = /^hello.*$/gi;"
+        tokens = tokenize(code, "javascript")
+        strings = [t for t in tokens if t.type.value == "sr"]
+        assert len(strings) >= 1
+
+    def test_single_line_comments(self) -> None:
+        """Tokenizes single-line comments."""
+        code = "const x = 1; // comment"
+        tokens = tokenize(code, "javascript")
+        comments = [t for t in tokens if t.type.value == "c1"]
+        assert len(comments) == 1
+
+    def test_multi_line_comments(self) -> None:
+        """Tokenizes multi-line comments."""
+        code = "/* multi\nline\ncomment */\nconst x = 1;"
+        tokens = tokenize(code, "javascript")
+        comments = [t for t in tokens if t.type.value == "cm"]
+        assert len(comments) == 1
 
 
 class TestTypeScriptLexer:
@@ -222,6 +436,66 @@ class TestJsonLexer:
         assert "kc" in types  # keyword constants (true, false, null)
         assert "p" in types  # punctuation
 
+    def test_arrays(self) -> None:
+        """Tokenizes JSON arrays."""
+        code = '["one", "two", "three"]'
+        tokens = tokenize(code, "json")
+        strings = [t for t in tokens if t.type.value == "s"]
+        assert len(strings) >= 3
+
+    def test_object_keys(self) -> None:
+        """Tokenizes object keys correctly."""
+        code = '{"name": "value", "count": 42}'
+        tokens = tokenize(code, "json")
+        strings = [t for t in tokens if t.type.value == "s"]
+        # Both keys and string values should be strings
+        assert len(strings) >= 3
+
+    def test_float_numbers(self) -> None:
+        """Tokenizes float numbers."""
+        code = '{"price": 19.99, "rate": 0.05}'
+        tokens = tokenize(code, "json")
+        numbers = [t for t in tokens if t.type.value in ("m", "mf")]
+        assert len(numbers) >= 2
+
+    def test_scientific_notation(self) -> None:
+        """Tokenizes scientific notation."""
+        code = '{"big": 1.5e10, "small": 2.5e-5}'
+        tokens = tokenize(code, "json")
+        numbers = [t for t in tokens if t.type.value in ("m", "mf")]
+        assert len(numbers) >= 2
+
+    def test_negative_numbers(self) -> None:
+        """Tokenizes negative numbers."""
+        code = '{"temp": -20, "diff": -3.5}'
+        tokens = tokenize(code, "json")
+        # Negative sign might be separate or part of number
+        values = [t.value for t in tokens]
+        assert "-20" in values or ("-" in values and "20" in values)
+
+    def test_escape_sequences(self) -> None:
+        """Tokenizes escape sequences in strings."""
+        code = '{"path": "C:\\\\Users\\\\name", "msg": "line1\\nline2"}'
+        tokens = tokenize(code, "json")
+        strings = [t for t in tokens if t.type.value == "s"]
+        # Should have strings with escapes
+        assert len(strings) >= 2
+
+    def test_unicode_strings(self) -> None:
+        """Tokenizes Unicode strings."""
+        code = '{"emoji": "Hello 👋", "chinese": "你好"}'
+        tokens = tokenize(code, "json")
+        strings = [t for t in tokens if t.type.value == "s"]
+        assert len(strings) >= 2
+
+    def test_empty_structures(self) -> None:
+        """Tokenizes empty objects and arrays."""
+        code = '{"empty_obj": {}, "empty_arr": []}'
+        tokens = tokenize(code, "json")
+        punct = [t for t in tokens if t.type.value == "p"]
+        # Should have {, }, [, ], :, and commas
+        assert len(punct) >= 6
+
 
 class TestYamlLexer:
     """YAML-specific tests."""
@@ -240,6 +514,68 @@ class TestYamlLexer:
         heredocs = [t for t in tokens if t.type.value == "sh"]
         assert len(heredocs) >= 1
 
+    def test_key_value_pairs(self) -> None:
+        """Tokenizes key-value pairs."""
+        code = "name: John\nage: 30\nactive: true"
+        tokens = tokenize(code, "yaml")
+        attrs = [t for t in tokens if t.type.value == "na"]
+        attr_values = {t.value for t in attrs}
+        assert "name" in attr_values
+        assert "age" in attr_values
+        assert "active" in attr_values
+
+    def test_nested_structure(self) -> None:
+        """Tokenizes nested YAML."""
+        code = "server:\n  host: localhost\n  port: 8080"
+        tokens = tokenize(code, "yaml")
+        attrs = [t for t in tokens if t.type.value == "na"]
+        assert len(attrs) >= 3
+
+    def test_list_items(self) -> None:
+        """Tokenizes list items."""
+        code = "items:\n  - first\n  - second\n  - third"
+        tokens = tokenize(code, "yaml")
+        values = [t.value for t in tokens]
+        assert "-" in values
+
+    def test_boolean_values(self) -> None:
+        """Tokenizes boolean values."""
+        code = "enabled: true\ndisabled: false\nyes_val: yes\nno_val: no"
+        tokens = tokenize(code, "yaml")
+        consts = [t for t in tokens if t.type.value == "kc"]
+        assert len(consts) >= 2
+
+    def test_null_values(self) -> None:
+        """Tokenizes null values."""
+        code = "empty: null\nalso_empty: ~"
+        tokens = tokenize(code, "yaml")
+        consts = [t for t in tokens if t.type.value == "kc"]
+        assert len(consts) >= 1
+
+    def test_quoted_strings(self) -> None:
+        """Tokenizes quoted strings."""
+        code = "message: 'Hello World'\npath: \"/usr/local/bin\""
+        tokens = tokenize(code, "yaml")
+        # YAML strings may be tokenized as generic string type
+        strings = [t for t in tokens if t.type.value in ("s", "s1", "s2")]
+        assert len(strings) >= 2
+
+    def test_comments(self) -> None:
+        """Tokenizes comments."""
+        code = "# Configuration file\nname: app  # inline comment"
+        tokens = tokenize(code, "yaml")
+        comments = [t for t in tokens if t.type.value == "c1"]
+        assert len(comments) >= 1
+
+    def test_numbers(self) -> None:
+        """Tokenizes numbers."""
+        code = "port: 8080\nversion: 1.5\nhex: 0xFF"
+        tokens = tokenize(code, "yaml")
+        integers = [t for t in tokens if t.type.value == "mi"]
+        floats = [t for t in tokens if t.type.value == "mf"]
+        assert len(integers) >= 1
+        assert len(floats) >= 1
+
 
 class TestTomlLexer:
     """TOML-specific tests."""
@@ -257,6 +593,66 @@ class TestTomlLexer:
         tokens = tokenize(code, "toml")
         dates = [t for t in tokens if t.type.value == "ld"]
         assert len(dates) >= 1
+
+    def test_table_headers(self) -> None:
+        """Tokenizes table headers."""
+        code = "[package]\nname = 'my-app'\nversion = '1.0.0'"
+        tokens = tokenize(code, "toml")
+        classes = [t for t in tokens if t.type.value == "nc"]
+        assert any("package" in t.value for t in classes)
+
+    def test_dotted_keys(self) -> None:
+        """Tokenizes dotted keys."""
+        code = "server.host = 'localhost'\nserver.port = 8080"
+        tokens = tokenize(code, "toml")
+        attrs = [t for t in tokens if t.type.value == "na"]
+        assert len(attrs) >= 2
+
+    def test_multiline_strings(self) -> None:
+        """Tokenizes multiline strings."""
+        code = 'text = """\nmulti\nline\n"""'
+        tokens = tokenize(code, "toml")
+        # TOML multiline strings are tokenized as doc strings (sd)
+        strings = [t for t in tokens if t.type.value in ("s", "s2", "sd")]
+        assert len(strings) >= 1
+
+    def test_arrays(self) -> None:
+        """Tokenizes arrays."""
+        code = "colors = ['red', 'green', 'blue']"
+        tokens = tokenize(code, "toml")
+        strings = [t for t in tokens if t.type.value == "s1"]
+        assert len(strings) >= 3
+
+    def test_inline_tables(self) -> None:
+        """Tokenizes inline tables."""
+        code = "point = { x = 1, y = 2 }"
+        tokens = tokenize(code, "toml")
+        values = [t.value for t in tokens]
+        assert "{" in values
+        assert "}" in values
+
+    def test_boolean_values(self) -> None:
+        """Tokenizes boolean values."""
+        code = "enabled = true\ndisabled = false"
+        tokens = tokenize(code, "toml")
+        consts = [t for t in tokens if t.type.value == "kc"]
+        assert len(consts) == 2
+
+    def test_numbers(self) -> None:
+        """Tokenizes various number formats."""
+        code = "int = 42\nfloat = 3.14\nhex = 0xDEAD\nbin = 0b1010"
+        tokens = tokenize(code, "toml")
+        integers = [t for t in tokens if t.type.value == "mi"]
+        floats = [t for t in tokens if t.type.value == "mf"]
+        assert len(integers) >= 1
+        assert len(floats) >= 1
+
+    def test_comments(self) -> None:
+        """Tokenizes comments."""
+        code = "# Configuration\nname = 'app'  # inline"
+        tokens = tokenize(code, "toml")
+        comments = [t for t in tokens if t.type.value == "c1"]
+        assert len(comments) >= 1
 
 
 class TestBashLexer:
@@ -451,6 +847,61 @@ class TestCssLexer:
         tokens = tokenize(code, "css")
         pseudos = [t for t in tokens if t.type.value == "kp"]
         assert any(":hover" in t.value for t in pseudos)
+
+    def test_class_selector(self) -> None:
+        """Tokenizes class selectors."""
+        code = ".container { margin: 0 auto; }"
+        tokens = tokenize(code, "css")
+        classes = [t for t in tokens if t.type.value == "nc"]
+        assert any(".container" in t.value for t in classes)
+
+    def test_property_values(self) -> None:
+        """Tokenizes property names and values."""
+        code = "body { font-size: 16px; color: #333; }"
+        tokens = tokenize(code, "css")
+        # CSS property names are tokenized as name_tag (nt)
+        names = [t for t in tokens if t.type.value == "nt"]
+        name_values = {t.value for t in names}
+        assert "font-size" in name_values
+        assert "color" in name_values
+
+    def test_color_values(self) -> None:
+        """Tokenizes color values."""
+        code = ".box { background: #ff0000; border-color: rgb(0, 128, 255); }"
+        tokens = tokenize(code, "css")
+        # Hex colors and rgb values
+        values = [t.value for t in tokens]
+        assert any("#ff0000" in v for v in values)
+
+    def test_css_variables(self) -> None:
+        """Tokenizes CSS custom properties."""
+        code = ":root { --primary-color: blue; }\n.btn { color: var(--primary-color); }"
+        tokens = tokenize(code, "css")
+        # Custom properties
+        values = [t.value for t in tokens]
+        assert any("--primary-color" in v for v in values)
+
+    def test_keyframes(self) -> None:
+        """Tokenizes keyframes."""
+        code = "@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }"
+        tokens = tokenize(code, "css")
+        keywords = [t for t in tokens if t.type.value == "k"]
+        assert any("@keyframes" in t.value for t in keywords)
+
+    def test_combinators(self) -> None:
+        """Tokenizes combinators."""
+        code = "div > p { margin: 0; }\ndiv + p { padding: 0; }"
+        tokens = tokenize(code, "css")
+        values = [t.value for t in tokens]
+        assert ">" in values
+        assert "+" in values
+
+    def test_important(self) -> None:
+        """Tokenizes !important."""
+        code = ".override { color: red !important; }"
+        tokens = tokenize(code, "css")
+        values = [t.value for t in tokens]
+        assert any("!important" in v for v in values)
 
 
 class TestDiffLexer:
