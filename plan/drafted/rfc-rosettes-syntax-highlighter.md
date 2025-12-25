@@ -4,9 +4,10 @@
 |-------|-------|
 | **RFC ID** | RFC-0002 |
 | **Title** | Rosettes: Pure Python 3.14t Syntax Highlighter |
-| **Status** | Draft |
+| **Status** | Draft (Revised) |
 | **Created** | 2025-12-24 |
 | **Revised** | 2025-12-24 |
+| **Revision** | v2 — Added complexity guards, known limitations, risk assessment |
 | **Author** | Bengal Core Team |
 | **Depends On** | RFC-0001 (HighlightBackend Protocol) |
 | **Package Name** | `rosettes` (decided: short, memorable, unique on PyPI) |
@@ -674,19 +675,46 @@ rendering:
 
 ### Auto Mode Logic
 
+The auto mode prefers Rosettes on free-threaded Python, falling back to Pygments otherwise:
+
 ```python
 def get_highlighter(name: str | None = None) -> HighlightBackend:
+    """Get a highlighting backend instance.
+
+    Args:
+        name: Backend name ('pygments', 'rosettes', 'auto', or None).
+              None defaults to 'auto'.
+
+    Returns:
+        Backend instance implementing HighlightBackend.
+    """
+    from bengal.utils.gil import is_gil_disabled
+
     name = (name or "auto").lower()
 
     if name == "auto":
-        # Prefer Rosettes on free-threaded Python
-        if _is_free_threaded_python() and "rosettes" in _HIGHLIGHT_BACKENDS:
+        # Prefer Rosettes on free-threaded Python (avoids GIL re-enablement)
+        if is_gil_disabled() and "rosettes" in _HIGHLIGHT_BACKENDS:
             name = "rosettes"
         else:
             name = "pygments"
 
+    if name not in _HIGHLIGHT_BACKENDS:
+        from bengal.errors import BengalConfigError, ErrorCode
+        raise BengalConfigError(
+            f"Unknown highlighting backend: {name!r}. "
+            f"Available: {list(_HIGHLIGHT_BACKENDS.keys())}",
+            code=ErrorCode.C003,
+        )
+
     return _HIGHLIGHT_BACKENDS[name]()
 ```
+
+**Behavior**:
+- `auto` on Python 3.14t with `PYTHON_GIL=0`: Uses Rosettes
+- `auto` on regular Python: Uses Pygments
+- `rosettes` explicitly: Uses Rosettes (falls back per-language)
+- `pygments` explicitly: Uses Pygments
 
 ---
 
@@ -1040,3 +1068,56 @@ Rosettes uses identical CSS class names to Pygments for theme compatibility:
 | Punctuation | `.p` | `(`, `)`, `:` |
 
 This ensures existing Pygments CSS themes work with Rosettes out of the box.
+
+---
+
+## Quick Reference
+
+### Key Decisions
+
+| Decision | Value |
+|----------|-------|
+| Package name | `rosettes` |
+| Min Python | 3.12+ |
+| MVP languages | 10 (Python, JS, TS, JSON, YAML, TOML, Bash, HTML, CSS, Diff) |
+| Architecture | Regex-based PatternLexer with immutable rules |
+| Thread safety | Immutable state, `functools.cache`, no locks |
+| Fallback | Pygments via registry lookup |
+
+### Implementation Checklist
+
+**Before Starting**:
+- [ ] Capture Pygments baseline performance
+- [ ] Set up CI with `PYTHON_GIL=0` test job
+
+**MVP Validation**:
+- [ ] No GIL warnings in CI
+- [ ] 10 lexers with unit tests
+- [ ] Benchmark results documented
+- [ ] Bengal integration works
+
+### Files to Create
+
+```
+rosettes/
+├── pyproject.toml
+├── rosettes/
+│   ├── __init__.py        # Public API + free-threading declaration
+│   ├── _types.py          # Token, TokenType
+│   ├── _config.py         # Frozen configs
+│   ├── _protocol.py       # Lexer, Formatter protocols
+│   ├── _registry.py       # Lazy registry
+│   └── lexers/_base.py    # PatternLexer with complexity guards
+└── tests/
+    └── test_no_gil.py     # GIL validation test
+```
+
+### Next Steps
+
+1. **Approve RFC** → Move to `plan/ready/`
+2. **Phase 0** → Set up package, CI, baseline
+3. **Phase 1** → Core infrastructure
+4. **Phase 2** → 10 lexers
+5. **Phase 3** → Bengal integration
+6. **Phase 4** → Benchmarks, validation
+7. **Phase 5** → Polish, docs

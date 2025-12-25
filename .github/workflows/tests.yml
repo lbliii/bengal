@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Fast check: quick signal (unit + most integration)
+  # Fast check: unit tests only for quick PR feedback
   fast-check:
     if: github.event_name == 'pull_request' || github.event_name == 'push'
     runs-on: ubuntu-latest
@@ -38,15 +38,15 @@ jobs:
     - name: Install dependencies
       run: uv sync --group dev
 
-    - name: Fast test suite (exclude performance/stateful/slow)
+    - name: Fast test suite (unit tests only)
       env:
         CI: true
         BENGAL_CI_FAST: "1"
         OMP_NUM_THREADS: "1"
         PYTHON_GIL: "0"
       run: |
-        echo "Running fast test suite (excluding performance/stateful/slow)..."
-        uv run pytest -n auto -q --tb=short --dist worksteal --max-worker-restart=3 -m "not performance and not stateful and not slow"
+        echo "Running fast test suite (unit tests only, excluding slow)..."
+        uv run pytest -n auto -q --tb=short --dist worksteal --max-worker-restart=3 tests/unit -m "not slow"
 
   # Baseurl spot-checks + Coverage (single-process)
   full-suite:
@@ -88,14 +88,25 @@ jobs:
         echo "Running with BENGAL_BASEURL='${BENGAL_BASEURL}'"
         uv run pytest -q --tb=short -n auto tests/unit/config/test_config_loader_baseurl_env.py tests/unit/rendering/test_asset_url_baseurl.py tests/unit/rendering/test_template_links_baseurl.py tests/integration/test_baseurl_builds.py
 
-    - name: Coverage (single-process, exclude performance/stateful/slow)
+    - name: Integration tests (parallel)
+      if: matrix.baseurl == ''
+      env:
+        CI: true
+        BENGAL_CI_FAST: "1"
+        OMP_NUM_THREADS: "1"
+        PYTHON_GIL: "0"
+      run: |
+        echo "Running integration tests..."
+        uv run pytest -n auto -q --tb=short --dist worksteal tests/integration -m "not slow and not performance and not stateful"
+
+    - name: Coverage (unit tests, single-process)
       if: matrix.baseurl == ''
       env:
         CI: true
         BENGAL_CI_FAST: "1"
         PYTHON_GIL: "0"
       run: |
-        uv run pytest -n 0 -q --tb=short --cov=bengal --cov-report=xml -m "not performance and not stateful and not slow"
+        uv run pytest -n 0 -q --tb=short --cov=bengal --cov-report=xml tests/unit -m "not slow"
 
   # Slow tests (memory profiling, bytecode cache, etc.)
   slow-tests:
