@@ -66,7 +66,7 @@ def _get_highlighter_version() -> str | None:
     try:
         from bengal.rendering import rosettes
 
-        return getattr(rosettes, "__version__", "0.1.0")
+        return getattr(rosettes, "__version__", None)
     except Exception as e:
         logger.debug("rosettes_version_detect_failed", error=str(e))
         return None
