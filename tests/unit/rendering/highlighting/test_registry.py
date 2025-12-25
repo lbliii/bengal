@@ -67,7 +67,7 @@ class TestRegistryFunctions:
         assert isinstance(result, str)
         assert "hello" in result
         # Should have highlighting classes
-        assert "highlight" in result.lower()
+        assert "rosettes" in result.lower()
 
     def test_highlight_with_explicit_backend(self) -> None:
         """highlight() should accept backend parameter."""

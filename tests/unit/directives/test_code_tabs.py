@@ -525,7 +525,7 @@ class TestRenderCodeWithPygments:
     def test_basic_highlighting(self):
         """Code is highlighted with syntax spans."""
         html, plain = render_code_with_pygments("print('hello')", "python")
-        assert 'class="highlight"' in html
+        assert 'class="rosettes"' in html
         assert "hello" in html
         assert plain == "print('hello')"
 
@@ -547,15 +547,15 @@ class TestRenderCodeWithPygments:
         # Note: Rosettes doesn't use table-based line numbers
         assert "linenos" not in short_html
 
-        # Long code should have highlight wrapper
-        assert 'class="highlight"' in long_html
+        # Long code should have rosettes wrapper
+        assert 'class="rosettes"' in long_html
 
     def test_line_numbers_forced(self):
         """Line numbers can be requested (behavior depends on backend)."""
         code = "x = 1"
         html, _ = render_code_with_pygments(code, "python", line_numbers=True)
-        # Rosettes wraps in highlight div regardless
-        assert 'class="highlight"' in html
+        # Rosettes wraps in rosettes div regardless
+        assert 'class="rosettes"' in html
 
     def test_line_numbers_disabled(self):
         """Line numbers can be disabled."""
@@ -575,7 +575,7 @@ class TestRenderCodeWithPygments:
         """Unknown languages fall back to text."""
         html, plain = render_code_with_pygments("hello", "unknownlang123")
         assert plain == "hello"
-        assert 'class="highlight"' in html
+        assert 'class="rosettes"' in html
 
 
 # ============================================================================

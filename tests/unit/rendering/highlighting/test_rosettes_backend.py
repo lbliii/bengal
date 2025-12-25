@@ -45,7 +45,7 @@ class TestRosettesBackendBasics:
         assert isinstance(result, str)
         assert "<" in result  # Has HTML tags
         assert "class=" in result  # Has CSS classes
-        assert "highlight" in result
+        assert "rosettes" in result
 
     def test_highlight_escapes_html(self) -> None:
         """HTML in code should be escaped."""
@@ -104,8 +104,8 @@ class TestRosettesBackendLanguages:
 
         # Should have token classes
         assert "class=" in result
-        # Should have highlight wrapper
-        assert "highlight" in result
+        # Should have rosettes wrapper
+        assert "rosettes" in result
 
     def test_unknown_language_fallback(self) -> None:
         """Unknown languages should fall back to plain text."""

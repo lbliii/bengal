@@ -3,6 +3,8 @@
 A pure-Python syntax highlighter designed for free-threaded Python.
 Zero global mutable state, immutable configuration, lazy loading.
 
+All formatters and themes are lazy-loaded for sub-millisecond import times.
+
 Example:
     >>> from rosettes import highlight
     >>> html = highlight("def foo(): pass", "python")
@@ -37,11 +39,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+# Core types - lightweight, OK to import eagerly
 from rosettes._config import FormatConfig, HighlightConfig, LexerConfig
 from rosettes._protocol import Formatter, Lexer
 from rosettes._registry import get_lexer, list_languages, supports_language
 from rosettes._types import Token, TokenType
-from rosettes.formatters import HtmlFormatter, TerminalFormatter
 
 if TYPE_CHECKING:
     from typing import Literal
@@ -67,7 +69,7 @@ __all__ = [
     "get_lexer",
     "list_languages",
     "supports_language",
-    # Formatters
+    # Formatters (lazy)
     "HtmlFormatter",
     "TerminalFormatter",
     # High-level API
@@ -75,6 +77,40 @@ __all__ = [
     "highlight_terminal",
     "tokenize",
 ]
+
+# Lazy-loaded formatters cache
+_formatter_cache: dict[str, type] = {}
+
+
+def __getattr__(name: str) -> object:
+    """Lazy-load formatters and handle free-threading declaration."""
+    # Free-threading declaration (PEP 703)
+    if name == "_Py_mod_gil":
+        # Signal: this module is safe for free-threading
+        # 0 = Py_MOD_GIL_NOT_USED
+        return 0
+
+    # Lazy-load formatters
+    if name == "HtmlFormatter":
+        if "HtmlFormatter" not in _formatter_cache:
+            from rosettes.formatters.html import HtmlFormatter
+
+            _formatter_cache["HtmlFormatter"] = HtmlFormatter
+        return _formatter_cache["HtmlFormatter"]
+
+    if name == "TerminalFormatter":
+        if "TerminalFormatter" not in _formatter_cache:
+            from rosettes.formatters.terminal import TerminalFormatter
+
+            _formatter_cache["TerminalFormatter"] = TerminalFormatter
+        return _formatter_cache["TerminalFormatter"]
+
+    raise AttributeError(f"module 'rosettes' has no attribute {name!r}")
+
+
+def __dir__() -> list[str]:
+    """List available attributes for tab completion."""
+    return list(__all__)
 
 
 def highlight(
@@ -120,6 +156,9 @@ def highlight(
         >>> "highlight" in html
         True
     """
+    # Lazy import formatter
+    from rosettes.formatters.html import HtmlFormatter
+
     lexer = get_lexer(language)
 
     # Determine container class
@@ -177,6 +216,9 @@ def highlight_terminal(
         >>> output = highlight_terminal("print('hello')", "python")
         >>> print(output)  # Colorized in terminal
     """
+    # Lazy import formatter
+    from rosettes.formatters.terminal import TerminalFormatter
+
     lexer = get_lexer(language)
 
     # Get terminal palette if specified
@@ -223,17 +265,3 @@ def tokenize(code: str, language: str) -> list[Token]:
     """
     lexer = get_lexer(language)
     return list(lexer.tokenize(code))
-
-
-# Free-threading declaration (PEP 703)
-def __getattr__(name: str) -> object:
-    """Module-level getattr for free-threading declaration.
-
-    This allows Python to query whether this module is safe for
-    free-threaded execution without enabling the GIL.
-    """
-    if name == "_Py_mod_gil":
-        # Signal: this module is safe for free-threading
-        # 0 = Py_MOD_GIL_NOT_USED
-        return 0
-    raise AttributeError(f"module 'rosettes' has no attribute {name!r}")

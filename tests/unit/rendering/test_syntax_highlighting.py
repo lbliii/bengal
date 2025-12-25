@@ -38,7 +38,7 @@ def hello():
 """
         html = self.parser.parse(content, {})
         # Rosettes should highlight Python with span classes
-        assert '<div class="highlight">' in html
+        assert '<div class="rosettes">' in html
         # Should have some token spans (k=keyword, n=name, s=string, etc.)
         assert "<span class=" in html
 
@@ -52,7 +52,7 @@ function hello() {
 ```
 """
         html = self.parser.parse(content, {})
-        assert '<div class="highlight">' in html
+        assert '<div class="rosettes">' in html
         assert "<span class=" in html
 
     def test_unsupported_language_falls_back_to_plain(self):
@@ -63,8 +63,8 @@ function hello() {
 ```
 """
         html = self.parser.parse(content, {})
-        # Should still wrap in highlight div (with fallback)
-        assert '<div class="highlight"' in html
+        # Should still wrap in rosettes div (with fallback)
+        assert '<div class="rosettes"' in html
         # Content should be escaped
         assert "&lt;h1&gt;" in html or "<h1>" in html
 
