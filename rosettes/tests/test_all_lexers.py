@@ -284,6 +284,64 @@ class TestBashLexer:
         subs = [t for t in tokens if t.type.value == "si"]
         assert len(subs) >= 1
 
+    def test_hyphenated_commands(self) -> None:
+        """Tokenizes hyphenated command/argument names as single tokens."""
+        code = "my-custom-script --option my-arg"
+        tokens = tokenize(code, "bash")
+        values = [t.value for t in tokens]
+        # Hyphenated name should be a single token, not split
+        assert "my-custom-script" in values
+        assert "my-arg" in values
+
+    def test_options_short_and_long(self) -> None:
+        """Tokenizes short and long options."""
+        code = "ls -la --color=auto"
+        tokens = tokenize(code, "bash")
+        attrs = [t for t in tokens if t.type.value == "na"]
+        attr_values = [t.value for t in attrs]
+        assert "-la" in attr_values
+        assert "--color" in attr_values
+
+    def test_builtin_commands(self) -> None:
+        """Tokenizes builtin commands correctly."""
+        code = "cd /path && echo hello && exit 0"
+        tokens = tokenize(code, "bash")
+        builtins = [t for t in tokens if t.type.value == "nb"]
+        builtin_values = {t.value for t in builtins}
+        assert "cd" in builtin_values
+        assert "echo" in builtin_values
+        assert "exit" in builtin_values
+
+    def test_double_quoted_strings(self) -> None:
+        """Tokenizes double-quoted strings."""
+        code = 'echo "hello world"'
+        tokens = tokenize(code, "bash")
+        strings = [t for t in tokens if t.type.value == "s2"]
+        assert len(strings) == 1
+        assert '"hello world"' in strings[0].value
+
+    def test_single_quoted_strings(self) -> None:
+        """Tokenizes single-quoted strings."""
+        code = "echo 'literal $VAR'"
+        tokens = tokenize(code, "bash")
+        strings = [t for t in tokens if t.type.value == "s1"]
+        assert len(strings) == 1
+
+    def test_comments(self) -> None:
+        """Tokenizes comments."""
+        code = "# This is a comment\necho hello"
+        tokens = tokenize(code, "bash")
+        comments = [t for t in tokens if t.type.value == "c1"]
+        assert len(comments) == 1
+
+    def test_pipes_and_redirects(self) -> None:
+        """Tokenizes pipes and redirects."""
+        code = "cat file.txt | grep pattern > output.txt"
+        tokens = tokenize(code, "bash")
+        values = [t.value for t in tokens]
+        assert "|" in values
+        assert ">" in values
+
 
 class TestHtmlLexer:
     """HTML-specific tests."""
@@ -308,6 +366,66 @@ class TestHtmlLexer:
         tokens = tokenize(code, "html")
         entities = [t for t in tokens if t.type.value == "ni"]
         assert len(entities) >= 2
+
+    def test_attribute_names(self) -> None:
+        """Tokenizes attribute names correctly."""
+        code = '<div class="container" id="main">'
+        tokens = tokenize(code, "html")
+        attrs = [t for t in tokens if t.type.value == "na"]
+        attr_values = {t.value for t in attrs}
+        assert "class" in attr_values
+        assert "id" in attr_values
+
+    def test_attribute_values_double_quoted(self) -> None:
+        """Tokenizes double-quoted attribute values."""
+        code = '<a href="/path/to/page">'
+        tokens = tokenize(code, "html")
+        strings = [t for t in tokens if t.type.value == "s2"]
+        assert len(strings) == 1
+        assert '"/path/to/page"' in strings[0].value
+
+    def test_attribute_values_single_quoted(self) -> None:
+        """Tokenizes single-quoted attribute values."""
+        code = "<a href='/path'>"
+        tokens = tokenize(code, "html")
+        strings = [t for t in tokens if t.type.value == "s1"]
+        assert len(strings) == 1
+
+    def test_self_closing_tags(self) -> None:
+        """Tokenizes self-closing tags."""
+        code = '<img src="photo.jpg" alt="Photo"/>'
+        tokens = tokenize(code, "html")
+        tags = [t for t in tokens if t.type.value == "nt"]
+        # Should have opening tag and closing />
+        assert any("<img" in t.value for t in tags)
+        assert any("/>" in t.value for t in tags)
+
+    def test_multiple_attributes(self) -> None:
+        """Tokenizes multiple attributes on a tag."""
+        code = '<input type="text" name="email" placeholder="Enter email" required>'
+        tokens = tokenize(code, "html")
+        attrs = [t for t in tokens if t.type.value == "na"]
+        strings = [t for t in tokens if t.type.value == "s2"]
+        # Should have 4 attribute names and 3 quoted values
+        assert len(attrs) >= 4  # type, name, placeholder, required
+        assert len(strings) >= 3  # "text", "email", "Enter email"
+
+    def test_nested_tags(self) -> None:
+        """Tokenizes nested HTML structure."""
+        code = '<div><span class="inner">Text</span></div>'
+        tokens = tokenize(code, "html")
+        tags = [t for t in tokens if t.type.value == "nt"]
+        # Should have: <div, >, <span, >, </span>, </div>
+        assert len(tags) >= 4
+
+    def test_data_attributes(self) -> None:
+        """Tokenizes data-* attributes."""
+        code = '<div data-id="123" data-name="test">'
+        tokens = tokenize(code, "html")
+        attrs = [t for t in tokens if t.type.value == "na"]
+        attr_values = {t.value for t in attrs}
+        assert "data-id" in attr_values
+        assert "data-name" in attr_values
 
 
 class TestCssLexer:
