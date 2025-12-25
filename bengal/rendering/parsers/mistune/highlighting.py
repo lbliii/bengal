@@ -1,21 +1,38 @@
 """
 Syntax highlighting plugin for Mistune parser.
 
-Provides Pygments-based syntax highlighting for code blocks with support for:
+Provides syntax highlighting for code blocks with support for:
 - Language detection
 - Line highlighting ({1,3-5} syntax)
 - Code block titles (title="filename.py")
 - Line numbers (for blocks with 3+ lines)
 - Special handling for Mermaid diagrams
 - Example flag ({example}) to suppress unknown language warnings
+- Pluggable backends via bengal.rendering.highlighting
+
+Backend Selection:
+    By default, uses the Pygments backend. To use tree-sitter:
+
+    >>> from bengal.rendering.highlighting import get_highlighter
+    >>> backend = get_highlighter("tree-sitter")
+
+    Or configure in bengal.yaml:
+
+    .. code-block:: yaml
+
+        rendering:
+          syntax_highlighting:
+            backend: tree-sitter
 """
 
 from __future__ import annotations
 
+import html as html_mod
 import re
 from collections.abc import Callable
 from typing import Any
 
+from bengal.rendering.highlighting import highlight
 from bengal.rendering.parsers.mistune.patterns import (
     CODE_INFO_PATTERN,
     HL_LINES_PATTERN,
@@ -66,15 +83,15 @@ def parse_hl_lines(hl_spec: str) -> list[int]:
 
 def create_syntax_highlighting_plugin() -> Callable[[Any], None]:
     """
-    Create a Mistune plugin that adds Pygments syntax highlighting to code blocks.
+    Create a Mistune plugin that adds syntax highlighting to code blocks.
+
+    Uses the highlighting backend registry (bengal.rendering.highlighting)
+    which defaults to Pygments but can be configured to use tree-sitter
+    or other backends.
 
     Returns:
         Plugin function that modifies the renderer to add syntax highlighting
     """
-    from pygments import highlight
-    from pygments.formatters.html import HtmlFormatter
-
-    from bengal.rendering.pygments_cache import get_lexer_cached
 
     def plugin_syntax_highlighting(md: Any) -> None:
         """Plugin function to add syntax highlighting to Mistune renderer."""
@@ -133,42 +150,21 @@ def create_syntax_highlighting_plugin() -> Callable[[Any], None]:
                 return f'<div class="mermaid">{escaped_code}</div>\n'
 
             try:
-                # Get cached lexer for the language
-                # suppress_warnings=True for {example} blocks showing foreign syntax
-                lexer = get_lexer_cached(language=language, suppress_warnings=is_example)
-
                 # Count lines to decide on line numbers
                 line_count = code.count("\n") + 1
+                show_linenos = line_count >= 3
 
-                # Format with Pygments using 'highlight' CSS class (matches python-markdown)
-                # Add line numbers for code blocks with 3+ lines (Supabase-style)
-                formatter = HtmlFormatter(
-                    cssclass="highlight",
-                    wrapcode=True,
-                    noclasses=False,  # Use CSS classes instead of inline styles
-                    linenos="table" if line_count >= 3 else False,
-                    linenostart=1,
-                    hl_lines=hl_lines,  # Line highlighting (empty list is valid)
+                # Highlight using the configured backend (via registry)
+                # The highlight() function handles backend selection and fallback
+                highlighted = highlight(
+                    code=code,
+                    language=language,
+                    hl_lines=hl_lines if hl_lines else None,
+                    show_linenos=show_linenos,
                 )
-
-                # Highlight the code
-                highlighted = highlight(code, lexer, formatter)
-
-                # Fix Pygments .hll output: remove newlines from inside the span
-                # Pygments outputs: <span class="hll">content\n</span>
-                # We need: <span class="hll">content</span>
-                # Since .hll uses display:block (for full-width background), the
-                # block element already creates a line break. Keeping the newline
-                # after </span> would create double spacing in <pre> elements.
-                # The \n</span> pattern only appears inside .hll spans (token spans
-                # don't have newlines inside them), so we can safely replace all.
-                if hl_lines:
-                    highlighted = highlighted.replace("\n</span>", "</span>")
 
                 # Wrap with title if present
                 if title:
-                    import html as html_mod
-
                     safe_title = html_mod.escape(title)
                     return (
                         f'<div class="code-block-titled">\n'
@@ -181,7 +177,7 @@ def create_syntax_highlighting_plugin() -> Callable[[Any], None]:
 
             except Exception as e:
                 # If highlighting fails, return plain code block
-                logger.warning("pygments_highlight_failed", language=language, error=str(e))
+                logger.warning("highlight_failed", language=language, error=str(e))
                 # Escape HTML and return plain code block
                 escaped_code = (
                     code.replace("&", "&amp;")
@@ -195,8 +191,6 @@ def create_syntax_highlighting_plugin() -> Callable[[Any], None]:
 
                 # Wrap with title if present
                 if title:
-                    import html as html_mod
-
                     safe_title = html_mod.escape(title)
                     return (
                         f'<div class="code-block-titled">\n'

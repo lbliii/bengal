@@ -34,13 +34,10 @@ import re
 from dataclasses import dataclass
 from typing import Any, ClassVar
 
-from pygments import highlight
-from pygments.formatters.html import HtmlFormatter
-
 from bengal.directives._icons import icon_exists, render_svg_icon
 from bengal.directives.base import BengalDirective
 from bengal.directives.options import DirectiveOptions
-from bengal.rendering.pygments_cache import get_lexer_cached
+from bengal.rendering.highlighting import highlight as highlight_code
 from bengal.utils.hashing import hash_str
 from bengal.utils.logger import get_logger
 
@@ -293,14 +290,18 @@ def parse_hl_lines(hl_spec: str) -> list[int]:
 # ============================================================================
 
 
-def render_code_with_pygments(
+def render_code_with_highlighting(
     code: str,
     language: str,
     hl_lines: list[int] | None = None,
     line_numbers: bool | None = None,
 ) -> tuple[str, str]:
     """
-    Render code with Pygments highlighting.
+    Render code with syntax highlighting using the configured backend.
+
+    Uses the highlighting backend registry (bengal.rendering.highlighting)
+    which defaults to Pygments but can be configured to use tree-sitter
+    or other backends.
 
     Args:
         code: Source code to highlight
@@ -311,33 +312,24 @@ def render_code_with_pygments(
     Returns:
         Tuple of (highlighted_html, plain_code_for_copy)
     """
-    # Get cached lexer (fast path for known languages)
-    try:
-        lexer = get_lexer_cached(language=language)
-    except Exception:
-        lexer = get_lexer_cached(language="text")
-
     line_count = code.count("\n") + 1
 
     # Auto line numbers for 3+ lines unless explicitly disabled
     show_linenos = line_numbers if line_numbers is not None else (line_count >= 3)
 
-    formatter = HtmlFormatter(
-        cssclass="highlight",
-        wrapcode=True,
-        noclasses=False,
-        linenos="table" if show_linenos else False,
-        linenostart=1,
-        hl_lines=hl_lines or [],
+    # Use the unified highlighting API
+    highlighted = highlight_code(
+        code=code,
+        language=language,
+        hl_lines=hl_lines,
+        show_linenos=show_linenos,
     )
 
-    highlighted = highlight(code, lexer, formatter)
-
-    # Fix Pygments .hll newline issue (same as highlighting.py)
-    if hl_lines:
-        highlighted = highlighted.replace("\n</span>", "</span>")
-
     return highlighted, code
+
+
+# Backward compatibility alias
+render_code_with_pygments = render_code_with_highlighting
 
 
 # ============================================================================
