@@ -47,6 +47,10 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
+# Cache format version. Bump when payload structure changes to invalidate old caches.
+# Single source of truth - imported by content.py for validation.
+AUTODOC_CACHE_VERSION = 2
+
 
 class VirtualAutodocOrchestrator:
     """
@@ -113,7 +117,7 @@ class VirtualAutodocOrchestrator:
         autodoc_cfg = self.site.config.get("autodoc", {})
         cfg_hash = hash_dict(autodoc_cfg) if isinstance(autodoc_cfg, dict) else ""
         return {
-            "version": 2,  # Bumped: v2 uses dict format for ParameterInfo/RaisesInfo
+            "version": AUTODOC_CACHE_VERSION,
             "autodoc_config_hash": cfg_hash,
             "elements": {
                 k: [e.to_dict() for e in v]

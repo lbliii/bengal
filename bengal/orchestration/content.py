@@ -301,6 +301,7 @@ class ContentOrchestrator:
 
         try:
             from bengal.autodoc.orchestration import VirtualAutodocOrchestrator
+            from bengal.autodoc.orchestration.orchestrator import AUTODOC_CACHE_VERSION
             from bengal.utils.hashing import hash_dict
 
             orchestrator = VirtualAutodocOrchestrator(self.site)
@@ -333,8 +334,7 @@ class ContentOrchestrator:
                 cached_payload = cache.get_page_cache(cache_key)
                 if (
                     isinstance(cached_payload, dict)
-                    and cached_payload.get("version")
-                    == 2  # v2: dict format for ParameterInfo/RaisesInfo
+                    and cached_payload.get("version") == AUTODOC_CACHE_VERSION
                     and cached_payload.get("autodoc_config_hash") == current_cfg_hash
                 ):
                     changed = False
@@ -414,7 +414,7 @@ class ContentOrchestrator:
                         payload = orchestrator.get_cache_payload()
                         if (
                             isinstance(payload, dict)
-                            and payload.get("version") == 2
+                            and payload.get("version") == AUTODOC_CACHE_VERSION
                             and payload.get("autodoc_config_hash") == current_cfg_hash
                         ):
                             cache.set_page_cache(cache_key, payload)
