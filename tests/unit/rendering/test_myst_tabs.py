@@ -67,10 +67,11 @@ console.log("hello");
 """
         result = parser.parse(content, {})
 
-        # Check for Pygments syntax highlighting
-        assert '<span class="k">def</span>' in result or "def" in result
-        assert '<span class="nf">hello</span>' in result or "hello" in result
-        assert '<span class="nx">console</span>' in result or "console.log" in result
+        # Check for code block rendering (Rosettes uses different span classes than Pygments)
+        # Rosettes: k=keyword, kd=keyword declaration, n=name, nf=function name, etc.
+        # Content should be present in some form
+        assert "def" in result and "hello" in result
+        assert "console" in result or "log" in result
 
     def test_tab_with_selected_option(self, parser):
         """Test tab with :selected: option."""

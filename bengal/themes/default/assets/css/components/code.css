@@ -653,7 +653,182 @@ pre code {
 }
 
 /* ============================================
-   SYNTAX HIGHLIGHTING (Pygments-compatible)
+   ROSETTES SYNTAX HIGHLIGHTING VARIABLES
+   RFC-0003: Semantic Token System
+   ============================================ */
+
+/* Rosettes syntax theme variables - inherits from Bengal design tokens */
+:root {
+  /* Syntax highlighting semantic tokens */
+  --syntax-bg: var(--color-bg-code);
+  --syntax-bg-highlight: color-mix(in srgb, var(--color-primary) 12%, var(--color-bg-code));
+  --syntax-control: var(--color-code-keyword, #e74c3c);
+  --syntax-declaration: var(--color-code-keyword, #e74c3c);
+  --syntax-import: var(--color-code-keyword, #e74c3c);
+  --syntax-string: var(--color-code-string, #2ecc71);
+  --syntax-number: var(--color-code-number, #e67e22);
+  --syntax-boolean: var(--color-code-number, #e67e22);
+  --syntax-type: var(--color-code-type, #9b59b6);
+  --syntax-function: var(--color-secondary, #3498db);
+  --syntax-variable: var(--color-code-text, var(--color-text-primary));
+  --syntax-constant: var(--color-code-number, #e67e22);
+  --syntax-comment: var(--color-text-muted, #6c757d);
+  --syntax-docstring: var(--color-text-muted, #6c757d);
+  --syntax-error: var(--color-error, #e74c3c);
+  --syntax-warning: var(--color-warning, #f39c12);
+  --syntax-added: var(--color-success, #2ecc71);
+  --syntax-removed: var(--color-error, #e74c3c);
+  --syntax-text: var(--color-text-primary);
+  --syntax-muted: var(--color-text-muted, #6c757d);
+  --syntax-punctuation: var(--color-text-secondary);
+  --syntax-operator: var(--color-code-keyword, #e74c3c);
+  --syntax-attribute: var(--color-code-type, #9b59b6);
+  --syntax-namespace: var(--color-code-type, #9b59b6);
+  --syntax-tag: var(--color-code-keyword, #e74c3c);
+  --syntax-regex: var(--color-code-string, #2ecc71);
+  --syntax-escape: var(--color-code-number, #e67e22);
+}
+
+/* Dark mode overrides for syntax highlighting */
+[data-theme="dark"] {
+  --syntax-comment: var(--color-text-muted, #adb5bd);
+  --syntax-docstring: var(--color-text-secondary, #9e9e9e);
+}
+
+/* ============================================
+   ROSETTES SEMANTIC CLASSES (NEW - RFC-0003)
+   Self-documenting class names for modern output
+   ============================================ */
+
+/* Base container for Rosettes semantic output */
+.rosettes {
+  background: var(--syntax-bg);
+  color: var(--syntax-text);
+}
+
+/* Control & Structure */
+.rosettes .syntax-control {
+  color: var(--syntax-control);
+  font-weight: 600;
+}
+
+.rosettes .syntax-declaration {
+  color: var(--syntax-declaration);
+  font-weight: 600;
+}
+
+.rosettes .syntax-import {
+  color: var(--syntax-import);
+}
+
+/* Data & Literals */
+.rosettes .syntax-string {
+  color: var(--syntax-string);
+}
+
+.rosettes .syntax-docstring {
+  color: var(--syntax-docstring);
+  font-style: italic;
+}
+
+.rosettes .syntax-number {
+  color: var(--syntax-number);
+}
+
+.rosettes .syntax-boolean {
+  color: var(--syntax-boolean);
+}
+
+/* Identifiers */
+.rosettes .syntax-type {
+  color: var(--syntax-type);
+}
+
+.rosettes .syntax-function {
+  color: var(--syntax-function);
+  font-weight: 600;
+}
+
+.rosettes .syntax-variable {
+  color: var(--syntax-variable);
+}
+
+.rosettes .syntax-constant {
+  color: var(--syntax-constant);
+}
+
+/* Documentation */
+.rosettes .syntax-comment {
+  color: var(--syntax-comment);
+  font-style: italic;
+}
+
+/* Feedback */
+.rosettes .syntax-error {
+  color: var(--syntax-error);
+  text-decoration: wavy underline var(--syntax-error);
+}
+
+.rosettes .syntax-warning {
+  color: var(--syntax-warning);
+}
+
+.rosettes .syntax-added {
+  color: var(--syntax-added);
+}
+
+.rosettes .syntax-removed {
+  color: var(--syntax-removed);
+}
+
+/* Additional */
+.rosettes .syntax-punctuation {
+  color: var(--syntax-punctuation);
+}
+
+.rosettes .syntax-operator {
+  color: var(--syntax-operator);
+}
+
+.rosettes .syntax-attribute {
+  color: var(--syntax-attribute);
+}
+
+.rosettes .syntax-namespace {
+  color: var(--syntax-namespace);
+}
+
+.rosettes .syntax-tag {
+  color: var(--syntax-tag);
+}
+
+.rosettes .syntax-regex {
+  color: var(--syntax-regex);
+}
+
+.rosettes .syntax-escape {
+  color: var(--syntax-escape);
+}
+
+.rosettes .syntax-muted {
+  color: var(--syntax-muted);
+}
+
+/* Line highlight for Rosettes output */
+.rosettes .line-highlight,
+.rosettes .hll {
+  display: block;
+  background: var(--syntax-bg-highlight);
+  margin-left: calc(-1 * var(--space-4));
+  margin-right: calc(-1 * var(--space-6));
+  padding-left: calc(var(--space-4) - 3px);
+  padding-right: var(--space-6);
+  border-left: 3px solid var(--color-primary);
+}
+
+/* ============================================
+   PYGMENTS-COMPATIBLE CLASSES (LEGACY FALLBACK)
+   Uses CSS variables for consistent theming
    ============================================ */
 
 /* Comments */
@@ -661,20 +836,30 @@ pre code {
 .highlight .cm,
 .highlight .c1,
 .highlight .cs {
-  color: #6c757d;
+  color: var(--syntax-comment);
   font-style: italic;
 }
 
 /* Keywords */
 .highlight .k,
-.highlight .kc,
-.highlight .kd,
-.highlight .kn,
 .highlight .kp,
 .highlight .kr,
 .highlight .kt {
-  color: #e74c3c;
+  color: var(--syntax-control);
   font-weight: bold;
+}
+
+.highlight .kd {
+  color: var(--syntax-declaration);
+  font-weight: bold;
+}
+
+.highlight .kn {
+  color: var(--syntax-import);
+}
+
+.highlight .kc {
+  color: var(--syntax-boolean);
 }
 
 /* Strings */
@@ -683,12 +868,19 @@ pre code {
 .highlight .s2,
 .highlight .sb,
 .highlight .sc,
-.highlight .sd,
-.highlight .se,
 .highlight .sh,
-.highlight .si,
 .highlight .sx {
-  color: #2ecc71;
+  color: var(--syntax-string);
+}
+
+.highlight .sd {
+  color: var(--syntax-docstring);
+  font-style: italic;
+}
+
+.highlight .se,
+.highlight .si {
+  color: var(--syntax-escape);
 }
 
 /* Numbers */
@@ -697,20 +889,26 @@ pre code {
 .highlight .mh,
 .highlight .mi,
 .highlight .mo {
-  color: #e67e22;
+  color: var(--syntax-number);
 }
 
 /* Functions */
 .highlight .nf,
 .highlight .fm {
-  color: #3498db;
+  color: var(--syntax-function);
   font-weight: bold;
 }
 
-/* Classes */
+/* Classes/Types */
 .highlight .nc,
+.highlight .ne {
+  color: var(--syntax-type);
+  font-weight: bold;
+}
+
+/* Namespaces */
 .highlight .nn {
-  color: #9b59b6;
+  color: var(--syntax-namespace);
   font-weight: bold;
 }
 
@@ -719,36 +917,59 @@ pre code {
 .highlight .vc,
 .highlight .vg,
 .highlight .vi {
-  color: #e67e22;
+  color: var(--syntax-variable);
 }
 
 /* Operators */
 .highlight .o,
 .highlight .ow {
-  color: #e74c3c;
+  color: var(--syntax-operator);
 }
 
 /* Punctuation */
 .highlight .p {
-  color: var(--color-text-primary);
+  color: var(--syntax-punctuation);
 }
 
 /* Built-ins */
 .highlight .nb,
 .highlight .bp {
-  color: #3498db;
+  color: var(--syntax-function);
 }
 
 /* Constants */
-.highlight .no,
-.highlight .kc {
-  color: #e67e22;
+.highlight .no {
+  color: var(--syntax-constant);
+}
+
+/* Decorators/Attributes */
+.highlight .nd {
+  color: var(--syntax-attribute);
+}
+
+/* Tags */
+.highlight .nt {
+  color: var(--syntax-tag);
+}
+
+/* Regex */
+.highlight .sr {
+  color: var(--syntax-regex);
 }
 
 /* Errors */
 .highlight .err {
-  color: #e74c3c;
-  background-color: #fadbd8;
+  color: var(--syntax-error);
+  background-color: color-mix(in srgb, var(--syntax-error) 15%, transparent);
+}
+
+/* Generic insertions/deletions (diff) */
+.highlight .gi {
+  color: var(--syntax-added);
+}
+
+.highlight .gd {
+  color: var(--syntax-removed);
 }
 
 /* ============================================
@@ -952,15 +1173,9 @@ div.highlight>pre {
    DARK MODE ADJUSTMENTS
    ============================================ */
 
-[data-theme="dark"] .highlight .c,
-[data-theme="dark"] .highlight .cm,
-[data-theme="dark"] .highlight .c1,
-[data-theme="dark"] .highlight .cs {
-  color: #adb5bd;
-}
-
+/* Dark mode error background uses CSS variable for consistency */
 [data-theme="dark"] .highlight .err {
-  background-color: rgba(231, 76, 60, 0.2);
+  background-color: color-mix(in srgb, var(--syntax-error) 20%, transparent);
 }
 
 /* ============================================

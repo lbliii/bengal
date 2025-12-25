@@ -25,17 +25,3 @@ content:
   # Content Organization
   sort_pages_by: "weight"    # Options: "weight", "date", "title", "modified"
   sort_order: "asc"          # Options: "asc", "desc"
-
-# Note: Always-Computed Properties
-# =================================
-# Bengal ALWAYS computes these properties (they can't be toggled off):
-#   - page.reading_time (controlled by reading_speed above)
-#   - page.excerpt (controlled by excerpt_length above)
-#   - page.toc (controlled by toc_depth above)
-#   - page.meta_description (controlled by summary_length above)
-#   - page.related_posts (controlled by related_count above)
-#
-# To control WHETHER these are displayed, use theme.yaml settings:
-#   - theme.show_reading_time, theme.show_excerpts_default, etc.
-
-# See config.example/_default/content.yaml for all available options

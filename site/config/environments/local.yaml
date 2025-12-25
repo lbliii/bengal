@@ -7,7 +7,7 @@ site:
 
 build:
   # Disable parallelization for easier debugging
-  parallel: false
+  parallel: true
 
   # Enable incremental builds for fast development
   incremental: true

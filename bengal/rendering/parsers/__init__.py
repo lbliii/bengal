@@ -64,14 +64,6 @@ from bengal.rendering.parsers.base import BaseMarkdownParser
 from bengal.rendering.parsers.mistune import MistuneParser
 from bengal.rendering.parsers.python_markdown import PythonMarkdownParser
 
-try:
-    # Auto-apply Pygments performance patch for tests and default behavior
-    from bengal.rendering.parsers.pygments_patch import PygmentsPatch
-
-    PygmentsPatch.apply()
-except Exception:
-    pass
-
 # Alias for convenience
 MarkdownParser = PythonMarkdownParser
 

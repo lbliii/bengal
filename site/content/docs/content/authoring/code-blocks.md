@@ -1,7 +1,7 @@
 ---
 title: Code Blocks
 nav_title: Code
-description: Add syntax-highlighted code, include files, and create multi-language examples
+description: Add syntax-highlighted code with Rosettes, include files, configure themes, and create multi-language examples
 weight: 30
 category: how-to
 icon: code
@@ -30,25 +30,124 @@ def hello():
 
 ### Supported Languages
 
-Bengal uses Pygments for syntax highlighting. Common languages:
+Bengal uses **Rosettes** for syntax highlighting—a modern, lock-free highlighter designed for Python 3.14t free-threading. Rosettes supports 60+ languages:
 
+::::{tab-set}
+
+:::{tab-item} Common
 | Language | Identifier |
 |----------|------------|
 | Python | `python`, `py` |
 | JavaScript | `javascript`, `js` |
 | TypeScript | `typescript`, `ts` |
-| Bash/Shell | `bash`, `sh`, `shell` |
+| Bash/Shell | `bash`, `sh`, `shell`, `zsh` |
 | YAML | `yaml`, `yml` |
 | JSON | `json` |
+| TOML | `toml` |
 | HTML | `html` |
 | CSS | `css` |
 | Markdown | `markdown`, `md` |
-| SQL | `sql` |
-| Rust | `rust` |
-| Go | `go` |
+:::
+
+:::{tab-item} Systems
+| Language | Identifier |
+|----------|------------|
+| Rust | `rust`, `rs` |
+| Go | `go`, `golang` |
+| C | `c`, `h` |
+| C++ | `cpp`, `c++`, `cxx` |
+| Zig | `zig` |
+| Nim | `nim` |
+| V | `v`, `vlang` |
+| Mojo | `mojo`, `🔥` |
+:::
+
+:::{tab-item} JVM & .NET
+| Language | Identifier |
+|----------|------------|
+| Java | `java` |
+| Kotlin | `kotlin`, `kt` |
+| Scala | `scala`, `sc` |
+| Groovy | `groovy`, `gradle` |
+| Clojure | `clojure`, `clj` |
+:::
+
+:::{tab-item} Data & Config
+| Language | Identifier |
+|----------|------------|
+| SQL | `sql`, `mysql`, `postgresql` |
+| GraphQL | `graphql`, `gql` |
+| HCL/Terraform | `hcl`, `terraform`, `tf` |
+| Dockerfile | `dockerfile`, `docker` |
+| Nginx | `nginx` |
+| INI | `ini`, `cfg`, `conf` |
+| Protobuf | `protobuf`, `proto` |
+| Prisma | `prisma` |
+| CUE | `cue` |
+| Pkl | `pkl` |
+:::
+
+:::{tab-item} Scripting
+| Language | Identifier |
+|----------|------------|
+| Ruby | `ruby`, `rb` |
+| PHP | `php` |
+| Perl | `perl`, `pl` |
+| Lua | `lua` |
+| R | `r`, `rlang` |
+| Julia | `julia`, `jl` |
+| Elixir | `elixir`, `ex` |
+| PowerShell | `powershell`, `ps1`, `pwsh` |
+| Fish | `fish` |
+| AWK | `awk`, `gawk` |
+:::
+
+:::{tab-item} Web & Templates
+| Language | Identifier |
+|----------|------------|
+| SCSS/Sass | `scss`, `sass` |
+| Vue | `vue` |
+| Svelte | `svelte` |
+| Jinja2 | `jinja2`, `jinja`, `j2` |
+| Liquid | `liquid`, `jekyll` |
+| Handlebars | `handlebars`, `hbs` |
+| Nunjucks | `nunjucks`, `njk` |
+| Twig | `twig` |
+:::
+
+:::{tab-item} Markup & Docs
+| Language | Identifier |
+|----------|------------|
+| Diff | `diff`, `patch` |
+| reStructuredText | `rst`, `restructuredtext` |
+| AsciiDoc | `asciidoc`, `adoc` |
+| LaTeX | `latex`, `tex` |
+| MyST | `myst`, `mystmd` |
+| Mermaid | `mermaid`, `mmd` |
+| XML | `xml`, `xsl`, `svg` |
+| HTTP | `http`, `https` |
+| Regex | `regex`, `regexp` |
+:::
+
+:::{tab-item} Functional
+| Language | Identifier |
+|----------|------------|
+| Haskell | `haskell`, `hs` |
+| OCaml | `ocaml`, `ml`, `reasonml` |
+| Dart | `dart` |
+| Swift | `swift` |
+| WebAssembly | `wasm`, `wat` |
+| CUDA | `cuda`, `cu` |
+| Triton | `triton` |
+| Stan | `stan` |
+| Gleam | `gleam` |
+| Cypher | `cypher`, `neo4j` |
+:::
+
+::::
 
 :::{tip}
-For a complete list, see [Pygments lexers](https://pygments.org/docs/lexers/).
+Languages not in the list are rendered as plain preformatted text with proper HTML escaping.
 :::
 
 ## Line Highlighting
@@ -335,7 +434,99 @@ Building site...
 - Add line numbers when referencing specific lines in text
 :::
 
+## Syntax Themes
+
+Bengal's syntax highlighting uses **Rosettes**, which provides configurable themes that adapt to light/dark mode.
+
+### Available Themes
+
+| Theme | Description | Mode |
+|-------|-------------|------|
+| `bengal-tiger` | Bengal brand theme with orange accents | Dark |
+| `bengal-snow-lynx` | Light variant with warm teal | Adaptive |
+| `bengal-charcoal` | Minimal dark variant | Dark |
+| `bengal-blue` | Blue accent variant | Dark |
+| `monokai` | Classic warm, vibrant theme | Dark |
+| `dracula` | Purple accent theme | Dark |
+| `one-dark` | Atom One Dark (balanced) | Dark |
+| `github` | GitHub's syntax theme | Adaptive |
+| `github-light` | GitHub light mode only | Light |
+| `github-dark` | GitHub dark mode only | Dark |
+| `catppuccin` | Catppuccin Latte/Mocha | Adaptive |
+| `nord` | Nord frost colors | Adaptive |
+
+### Configuration
+
+Configure syntax highlighting in `config/_default/theme.yaml`:
+
+```yaml
+theme:
+  # Site palette (syntax inherits from this when theme is "auto")
+  default_palette: "snow-lynx"
+
+  syntax_highlighting:
+    # Theme selection:
+    # - "auto": Inherit from default_palette (recommended)
+    # - Specific theme name: "monokai", "dracula", etc.
+    theme: "auto"
+
+    # CSS class output style:
+    # - "semantic": Human-readable classes (.syntax-function, .syntax-string)
+    # - "pygments": Pygments-compatible short classes (.nf, .s)
+    css_class_style: "semantic"
+```
+
+### Palette Inheritance
+
+When `theme: "auto"` is set, the syntax theme automatically inherits from your site's `default_palette`:
+
+| Site Palette | Syntax Theme |
+|--------------|--------------|
+| `default` / empty | `bengal-tiger` |
+| `snow-lynx` | `bengal-snow-lynx` |
+| `brown-bengal` | `bengal-tiger` |
+| `silver-bengal` | `bengal-charcoal` |
+| `charcoal-bengal` | `bengal-charcoal` |
+| `blue-bengal` | `bengal-blue` |
+
+### CSS Class Styles
+
+Rosettes supports two CSS class naming conventions:
+
+::::{tab-set}
+
+:::{tab-item} Semantic (Default)
+Human-readable class names that describe the code element's purpose:
+
+```html
+<span class="syntax-function">greet</span>
+<span class="syntax-string">"Hello"</span>
+<span class="syntax-keyword">def</span>
+```
+
+**Best for**: New projects, custom themes, semantic CSS.
+:::
+
+:::{tab-item} Pygments
+Short class names compatible with existing Pygments themes:
+
+```html
+<span class="nf">greet</span>
+<span class="s">"Hello"</span>
+<span class="k">def</span>
+```
+
+**Best for**: Migrating from Pygments, using existing Pygments CSS themes.
+:::
+
+::::
+
+:::{note}
+Rosettes is designed for Python 3.14t free-threading with zero global mutable state. It provides lock-free, thread-safe syntax highlighting that's 3.4× faster than Pygments in parallel builds.
+:::
+
 ::::{seealso}
 - [[docs/reference/directives/formatting|Formatting Directives Reference]] — Complete `literalinclude` options
 - [[docs/content/authoring|Authoring Overview]] — Other authoring features
+- [[docs/theming|Theming Guide]] — Customize your site's appearance including syntax themes
 ::::

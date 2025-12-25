@@ -9,6 +9,14 @@ theme:
   default_appearance: "dark"     # Options: "light", "dark", "system"
   default_palette: "snow-lynx"   # Warm teal + cream (light), ice blue (dark)
 
+  # Syntax Highlighting
+  # ===================
+  # Controls how code blocks are styled.
+  # See: rosettes/rosettes/themes/ for available palettes.
+  syntax_highlighting:
+    theme: "auto"                 # "auto" inherits from default_palette
+    css_class_style: "semantic"   # "semantic" (.syntax-function) or "pygments" (.nf)
+
   # Feature Flags
   # =============
   # Declaratively enable/disable theme UI components.

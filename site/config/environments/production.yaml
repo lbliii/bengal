@@ -8,7 +8,9 @@ site:
 build:
   # Enable parallelization for fast production builds
   parallel: true
-  max_workers: null  # Auto-detect
+
+  # Enable incremental builds for fast development
+  incremental: true
 
   # Strict mode for production
   strict_mode: true

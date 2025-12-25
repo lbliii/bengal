@@ -164,6 +164,12 @@ DEFAULTS: dict[str, Any] = {
         "show_excerpts_default": True,
         "max_tags_display": 10,
         "popular_tags_count": 20,
+        # Syntax highlighting configuration (Rosettes theming)
+        # See: RFC-0003 Rosettes Theming Architecture
+        "syntax_highlighting": {
+            "theme": "auto",  # "auto" inherits from default_palette
+            "css_class_style": "semantic",  # "semantic" | "pygments"
+        },
     },
     # -------------------------------------------------------------------------
     # Content Processing

@@ -172,8 +172,12 @@ console.log("Hello");
 
         assert "Python" in result
         assert "JavaScript" in result
-        # Check for Pygments highlighting or escaped HTML
-        assert '<span class="nb">print</span>' in result or "print(&quot;Hello&quot;)" in result
+        # Check for syntax highlighting (rosettes or Pygments) or escaped HTML
+        assert (
+            '<span class="syntax-function">print</span>' in result
+            or '<span class="nb">print</span>' in result
+            or "print(&quot;Hello&quot;)" in result
+        )
 
     def test_directive_with_options_colon_style(self, parser):
         """Test MyST-style directive with options."""

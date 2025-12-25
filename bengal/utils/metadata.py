@@ -64,11 +64,11 @@ def _get_markdown_engine_and_version(config: dict[str, Any]) -> tuple[str, str |
 
 def _get_highlighter_version() -> str | None:
     try:
-        import pygments  # type: ignore
+        from bengal.rendering import rosettes
 
-        return getattr(pygments, "__version__", None)
+        return getattr(rosettes, "__version__", None)
     except Exception as e:
-        logger.debug("pygments_version_detect_failed", error=str(e))
+        logger.debug("rosettes_version_detect_failed", error=str(e))
         return None
 
 
@@ -152,7 +152,7 @@ def build_template_metadata(site: Site) -> dict[str, Any]:
     # Optimization: cache computed metadata on the Site for the duration of a build.
     # This function is called when creating Jinja environments; in parallel builds
     # each worker thread constructs its own Environment, so caching avoids repeating
-    # imports/version detection work (mistune/markdown/pygments/theme package).
+    # imports/version detection work (mistune/markdown/rosettes/theme package).
     #
     # Cache is disabled in dev server mode to reflect config/theme changes quickly.
     if not getattr(site, "dev_mode", False):
@@ -206,7 +206,7 @@ def build_template_metadata(site: Site) -> dict[str, Any]:
     rendering = {
         "markdown": md_engine,
         "markdownVersion": md_version,
-        "highlighter": "pygments",
+        "highlighter": "rosettes",
         "highlighterVersion": _get_highlighter_version(),
     }
 

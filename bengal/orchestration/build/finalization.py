@@ -502,14 +502,6 @@ def phase_finalize(
 
         set_console_quiet(False)
 
-    # Log Pygments cache statistics (performance monitoring)
-    try:
-        from bengal.rendering.pygments_cache import log_cache_stats
-
-        log_cache_stats()
-    except ImportError:
-        pass  # Cache not used
-
     # Clear per-key locks from caches to prevent unbounded growth across build sessions
     try:
         from bengal.core.nav_tree import NavTreeCache

@@ -15,11 +15,6 @@ features:
   # Note: Currently always enabled - wiring to parser is a future enhancement
   syntax_highlighting: true  # Code block highlighting with Pygments
 
-  # Note: Some content properties like reading_time, excerpt, toc are
-  # ALWAYS computed by Bengal. They're controlled by:
-  #   - content.yaml: HOW to compute (reading_speed, excerpt_length, etc.)
-  #   - theme.yaml: WHETHER to display (show_reading_time, etc.)
-
 # Social Cards Configuration
 # ==========================
 # Auto-generates Open Graph images for social media sharing.
