@@ -1,0 +1,211 @@
+{
+  "timestamp": "2025-12-25 12:15:57",
+  "site_path": "/Users/llane/Documents/github/python/bengal/site/site",
+  "page_count": 192,
+  "runs": 2,
+  "health_total_ms": 605.2850219857646,
+  "health_validators": [
+    {
+      "name": "Output",
+      "avg_ms": 240.48660449989256,
+      "min_ms": 225.223042005382,
+      "max_ms": 255.75016699440312,
+      "std_ms": 21.585937089866132,
+      "issues_found": 0,
+      "runs": 2
+    },
+    {
+      "name": "Rendering",
+      "avg_ms": 154.8463540020748,
+      "min_ms": 79.2273330007447,
+      "max_ms": 230.46537500340492,
+      "std_ms": 106.94144507345695,
+      "issues_found": 4,
+      "runs": 2
+    },
+    {
+      "name": "Directives",
+      "avg_ms": 109.89420800251537,
+      "min_ms": 105.2691250006319,
+      "max_ms": 114.51929100439884,
+      "std_ms": 6.540855108364867,
+      "issues_found": 3,
+      "runs": 2
+    },
+    {
+      "name": "Navigation",
+      "avg_ms": 37.86329200011096,
+      "min_ms": 35.99437500088243,
+      "max_ms": 39.73220899933949,
+      "std_ms": 2.6430477672586163,
+      "issues_found": 6,
+      "runs": 2
+    },
+    {
+      "name": "Connectivity",
+      "avg_ms": 30.854145999910543,
+      "min_ms": 23.158916999818757,
+      "max_ms": 38.54937500000233,
+      "std_ms": 10.882697217496554,
+      "issues_found": 5,
+      "runs": 2
+    },
+    {
+      "name": "Asset Processing",
+      "avg_ms": 20.09635449940106,
+      "min_ms": 17.91387499542907,
+      "max_ms": 22.27883400337305,
+      "std_ms": 3.0864921141184936,
+      "issues_found": 1,
+      "runs": 2
+    },
+    {
+      "name": "Sitemap",
+      "avg_ms": 3.965479500038782,
+      "min_ms": 3.3709589988575317,
+      "max_ms": 4.560000001220033,
+      "std_ms": 0.840778955879374,
+      "issues_found": 2,
+      "runs": 2
+    },
+    {
+      "name": "Links",
+      "avg_ms": 3.398895998543594,
+      "min_ms": 2.2130419965833426,
+      "max_ms": 4.5847500005038455,
+      "std_ms": 1.6770508125665984,
+      "issues_found": 1,
+      "runs": 2
+    },
+    {
+      "name": "Fonts",
+      "avg_ms": 1.1530204974405933,
+      "min_ms": 0.8336659957421944,
+      "max_ms": 1.4723749991389923,
+      "std_ms": 0.4516354675067774,
+      "issues_found": 0,
+      "runs": 2
+    },
+    {
+      "name": "URL Collisions",
+      "avg_ms": 0.978208496235311,
+      "min_ms": 0.1664589944994077,
+      "max_ms": 1.7899579979712144,
+      "std_ms": 1.1479871546045168,
+      "issues_found": 0,
+      "runs": 2
+    },
+    {
+      "name": "RSS Feed",
+      "avg_ms": 0.7164789967646357,
+      "min_ms": 0.6084579945309088,
+      "max_ms": 0.8244999989983626,
+      "std_ms": 0.15276476638007097,
+      "issues_found": 2,
+      "runs": 2
+    },
+    {
+      "name": "anchors",
+      "avg_ms": 0.5329169980541337,
+      "min_ms": 0.5286250016069971,
+      "max_ms": 0.5372089945012704,
+      "std_ms": 0.006069799585197755,
+      "issues_found": 10,
+      "runs": 2
+    },
+    {
+      "name": "Ownership Policy",
+      "avg_ms": 0.29424999593175016,
+      "min_ms": 0.2830829980666749,
+      "max_ms": 0.3054169937968254,
+      "std_ms": 0.01579251983178081,
+      "issues_found": 0,
+      "runs": 2
+    },
+    {
+      "name": "Taxonomies",
+      "avg_ms": 0.11249999806750566,
+      "min_ms": 0.09670799772720784,
+      "max_ms": 0.12829199840780348,
+      "std_ms": 0.022333261058249707,
+      "issues_found": 4,
+      "runs": 2
+    },
+    {
+      "name": "Tracks",
+      "avg_ms": 0.037687499570893124,
+      "min_ms": 0.03641700459411368,
+      "max_ms": 0.03895799454767257,
+      "std_ms": 0.0017967512270883831,
+      "issues_found": 9,
+      "runs": 2
+    },
+    {
+      "name": "Cache Integrity",
+      "avg_ms": 0.03649999780463986,
+      "min_ms": 0.030707997211720794,
+      "max_ms": 0.04229199839755893,
+      "std_ms": 0.008191125791779151,
+      "issues_found": 1,
+      "runs": 2
+    },
+    {
+      "name": "Configuration",
+      "avg_ms": 0.011521002306835726,
+      "min_ms": 0.006583999493159354,
+      "max_ms": 0.016458005120512098,
+      "std_ms": 0.0069819763365752555,
+      "issues_found": 1,
+      "runs": 2
+    },
+    {
+      "name": "Navigation Menus",
+      "avg_ms": 0.004500001523410901,
+      "min_ms": 0.003749999450519681,
+      "max_ms": 0.005250003596302122,
+      "std_ms": 0.0010606631032906986,
+      "issues_found": 1,
+      "runs": 2
+    },
+    {
+      "name": "Performance",
+      "avg_ms": 0.0021039995772298425,
+      "min_ms": 0.0018749997252598405,
+      "max_ms": 0.0023329994291998446,
+      "std_ms": 0.000323854696437408,
+      "issues_found": 1,
+      "runs": 2
+    }
+  ],
+  "phases": [
+    {
+      "name": "TemplateEngine creation",
+      "avg_ms": 0.13364599726628512,
+      "min_ms": 0.07354199624387547,
+      "max_ms": 0.19374999828869477,
+      "description": "Created per-worker in parallel builds"
+    },
+    {
+      "name": "Content discovery",
+      "avg_ms": 116.70683350166655,
+      "min_ms": 114.8215830035042,
+      "max_ms": 118.5920839998289,
+      "description": "Parse 192 pages from disk"
+    },
+    {
+      "name": "Asset discovery",
+      "avg_ms": 1.3502500041795429,
+      "min_ms": 0.9837500037974678,
+      "max_ms": 1.716750004561618,
+      "description": "Find and catalog static assets"
+    },
+    {
+      "name": "RenderingPipeline creation",
+      "avg_ms": 15.838749997783452,
+      "min_ms": 0.09962500189431012,
+      "max_ms": 31.577874993672594,
+      "description": "Created per-worker in parallel builds"
+    }
+  ],
+  "total_overhead_ms": 739.3145014866604
+}
