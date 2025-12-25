@@ -14,6 +14,7 @@ Features:
 Performance:
     - Cached lexer lookup: ~0.001ms
     - Uncached lookup: ~30ms (plugin discovery)
+    - Cached formatter: avoids stylesheet rebuild on every code block
     - Cache hit rate: >95% after first few pages
 
 See Also:
@@ -23,11 +24,61 @@ See Also:
 
 from __future__ import annotations
 
+import threading
+from typing import TYPE_CHECKING, Any
+
 from bengal.rendering.highlighting.protocol import HighlightBackend
 from bengal.rendering.pygments_cache import get_lexer_cached
 from bengal.utils.logger import get_logger
 
+if TYPE_CHECKING:
+    from pygments.formatters.html import HtmlFormatter
+
 logger = get_logger(__name__)
+
+# Formatter cache: keyed by (linenos,) tuple
+# HtmlFormatter.__init__ calls _create_stylesheet() which iterates over
+# all style token types. Caching formatters avoids this work per code block.
+_formatter_cache: dict[tuple[bool], Any] = {}
+_formatter_lock = threading.Lock()
+
+
+def _get_cached_formatter(show_linenos: bool) -> HtmlFormatter:
+    """
+    Get a cached HtmlFormatter instance.
+
+    Formatters are cached by their linenos setting. The hl_lines attribute
+    is updated before each use (it's mutable and checked during format()).
+
+    Args:
+        show_linenos: Whether to include line numbers
+
+    Returns:
+        Cached HtmlFormatter instance
+    """
+    cache_key = (show_linenos,)
+
+    with _formatter_lock:
+        if cache_key in _formatter_cache:
+            return _formatter_cache[cache_key]
+
+    # Create outside lock to avoid holding lock during init
+    from pygments.formatters.html import HtmlFormatter
+
+    formatter = HtmlFormatter(
+        cssclass="highlight",
+        wrapcode=True,
+        noclasses=False,  # Use CSS classes instead of inline styles
+        linenos="table" if show_linenos else False,
+        linenostart=1,
+        hl_lines=[],  # Will be updated per-call
+    )
+
+    with _formatter_lock:
+        # Double-check pattern
+        if cache_key not in _formatter_cache:
+            _formatter_cache[cache_key] = formatter
+        return _formatter_cache[cache_key]
 
 
 class PygmentsBackend(HighlightBackend):
@@ -37,9 +88,9 @@ class PygmentsBackend(HighlightBackend):
     This is the default backend, providing wide language support
     via Pygments' extensive lexer library (~500 languages).
 
-    The implementation uses cached lexer lookup to avoid the
-    expensive plugin discovery that Pygments performs on each
-    lexer request.
+    The implementation uses:
+    - Cached lexer lookup to avoid expensive plugin discovery
+    - Cached formatters to avoid stylesheet rebuild per code block
     """
 
     @property
@@ -78,21 +129,17 @@ class PygmentsBackend(HighlightBackend):
             HTML string with highlighted code
         """
         from pygments import highlight
-        from pygments.formatters.html import HtmlFormatter
 
         try:
             # Get cached lexer (fast path for known languages)
             lexer = get_lexer_cached(language=language)
 
-            # Format with Pygments using 'highlight' CSS class
-            formatter = HtmlFormatter(
-                cssclass="highlight",
-                wrapcode=True,
-                noclasses=False,  # Use CSS classes instead of inline styles
-                linenos="table" if show_linenos else False,
-                linenostart=1,
-                hl_lines=hl_lines or [],
-            )
+            # Get cached formatter (avoids stylesheet rebuild)
+            formatter = _get_cached_formatter(show_linenos)
+
+            # Update hl_lines for this specific code block
+            # hl_lines is checked in _highlight_lines() during format()
+            formatter.hl_lines = set(hl_lines) if hl_lines else set()
 
             highlighted = highlight(code, lexer, formatter)
 
