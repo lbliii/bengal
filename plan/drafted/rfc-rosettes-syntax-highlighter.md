@@ -9,6 +9,7 @@
 | **Revised** | 2025-12-24 |
 | **Author** | Bengal Core Team |
 | **Depends On** | RFC-0001 (HighlightBackend Protocol) |
+| **Package Name** | `rosettes` (decided: short, memorable, unique on PyPI) |
 
 ---
 
@@ -17,10 +18,11 @@
 | Aspect | Details |
 |--------|---------|
 | **What** | Build a new syntax highlighter from scratch, optimized for Python 3.14t |
-| **Why** | Pygments re-enables GIL; we need a free-threading-native solution |
+| **Why** | Modern, lock-free alternative to Pygments for free-threaded Python |
 | **Effort** | 2-3 weeks for MVP (10 languages, HTML formatter) |
 | **Risk** | Low — Pygments fallback via existing HighlightBackend protocol |
 | **Dependencies** | None (pure Python 3.12+) |
+| **Min Python** | 3.12+ (StrEnum, slots, modern typing; works on 3.13t/3.14t) |
 
 **Key Design Goals:**
 1. ✅ Zero global mutable state (free-threading native)
@@ -33,30 +35,42 @@
 
 ## Motivation
 
-### Problem: Pygments Re-enables the GIL
+### Problem: Pygments Wasn't Designed for Modern Python
 
-When running Bengal on Python 3.14t (free-threaded), Pygments triggers:
+Pygments was created in 2006 (Python 2.4 era). While it works, it has architectural patterns that don't align with modern Python:
 
-```
-RuntimeWarning: The global interpreter lock (GIL) has been enabled to load
-module 'pygments'... which has not declared that it can run safely without the GIL.
-```
+| Pygments Pattern | Modern Alternative |
+|------------------|-------------------|
+| Mutable global state | Immutable + `@cache` |
+| `**options` dicts | Frozen dataclasses |
+| No type hints | Full typing |
+| Eager plugin discovery | Lazy loading |
+| In-memory string building | Generator streaming |
+| Lock-based thread safety | Lock-free immutability |
 
-**Root causes in Pygments:**
-1. Mutable global state (`_lexer_cache`, `_formatter_cache`)
-2. Non-thread-safe plugin discovery
-3. Mutable formatter instances shared across calls
-4. No `Py_mod_gil` slot declaring free-threading safety
+**Pygments doesn't trigger GIL warnings** (it's pure Python), but its mutable shared state requires locking for thread safety, which limits parallelism.
 
-### Why Not Fix Pygments?
+### Why Build Rosettes?
 
-| Approach | Effort | Outcome |
-|----------|--------|---------|
-| Contribute to Pygments | High (15-year codebase) | Months/years to merge |
-| Fork Pygments | Medium | Maintenance burden |
-| Build new (Rosettes) | Medium | Clean slate, modern Python |
+| Reason | Details |
+|--------|---------|
+| **Modern API** | Type hints, protocols, dataclasses |
+| **Free-threading optimized** | Immutable by default, no locks needed |
+| **Performance** | Lazy loading, streaming, less overhead |
+| **Clean codebase** | Easy to understand and contribute |
+| **Learning project** | Fun to build modern Python! |
 
-**Decision**: Build Rosettes as a modern alternative, keep Pygments as fallback.
+### Why Not Just Use Pygments?
+
+| Aspect | Pygments | Rosettes |
+|--------|----------|----------|
+| API style | 2006 Python | 2024 Python |
+| Thread model | Locks required | Lock-free |
+| Cold start | ~50ms (plugin scan) | <5ms (lazy) |
+| Memory per block | ~2KB | <200 bytes |
+| Languages | 500+ | 10-20 (quality > quantity) |
+
+**Decision**: Build Rosettes for fun, benchmark it, keep Pygments as fallback for unsupported languages.
 
 ---
 
@@ -141,6 +155,37 @@ _CSS_CLASSES = {
     # ... matches Pygments exactly
 }
 ```
+
+### 6. Free-Threading Declaration
+
+```python
+# rosettes/__init__.py
+
+# Declare free-threading safety (PEP 703)
+# This prevents Python from re-enabling the GIL when importing this module.
+def __getattr__(name: str):
+    """Module-level getattr for lazy loading and free-threading declaration."""
+    if name == "_Py_mod_gil":
+        # Signal: this module is safe for free-threading
+        return 0  # Py_MOD_GIL_NOT_USED
+    raise AttributeError(f"module 'rosettes' has no attribute {name!r}")
+```
+
+---
+
+## Known Limitations (MVP)
+
+The MVP prioritizes correctness and thread-safety over completeness. These limitations are acceptable because Pygments fallback handles edge cases.
+
+| Limitation | Description | Mitigation |
+|------------|-------------|------------|
+| **No nested languages** | Can't highlight JS inside HTML, SQL inside Python strings | Falls back to Pygments |
+| **No heredoc interpolation** | Basic heredoc support, no variable highlighting inside | Outer syntax correct |
+| **Complex escape sequences** | Triple-quoted strings with mixed escapes may mis-tokenize | Rare in practice |
+| **No lexer plugins** | Static lexer registry, no runtime extension | Add lexers to codebase |
+| **No custom themes** | CSS generation matches Pygments only | Use Pygments themes |
+
+**Trade-off**: Simplicity and thread-safety over Pygments feature parity. The fallback strategy makes this low-risk.
 
 ---
 
@@ -372,6 +417,11 @@ class PatternLexer:
 
     Thread-safe: all instance state is immutable.
     Tokenize uses only local variables.
+
+    Complexity Guards:
+        - MAX_RULES: Prevents regex explosion from too many alternations
+        - MAX_PATTERN_LENGTH: Caps combined pattern size
+        - These are validated at class definition time (fail-fast)
     """
 
     name: str = "base"
@@ -383,10 +433,21 @@ class PatternLexer:
     # Combined pattern for fast matching (built once at class definition)
     _combined_pattern: re.Pattern[str] | None = None
 
+    # Complexity guards to prevent regex pathology
+    MAX_RULES = 50  # Prevent alternation explosion
+    MAX_PATTERN_LENGTH = 8000  # Cap combined pattern size
+
     def __init_subclass__(cls, **kwargs):
         """Pre-compile combined regex pattern for the lexer."""
         super().__init_subclass__(**kwargs)
         if cls.rules:
+            # Validate complexity bounds
+            if len(cls.rules) > cls.MAX_RULES:
+                raise ValueError(
+                    f"Lexer {cls.name!r} has {len(cls.rules)} rules, "
+                    f"exceeds MAX_RULES={cls.MAX_RULES}. Split into sublexers."
+                )
+
             # Build combined pattern with named groups
             parts = []
             cls._rule_map = {}
@@ -394,7 +455,17 @@ class PatternLexer:
                 group_name = f"r{i}"
                 parts.append(f"(?P<{group_name}>{rule.pattern.pattern})")
                 cls._rule_map[group_name] = rule
-            cls._combined_pattern = re.compile("|".join(parts), re.MULTILINE)
+
+            combined = "|".join(parts)
+
+            # Validate pattern length
+            if len(combined) > cls.MAX_PATTERN_LENGTH:
+                raise ValueError(
+                    f"Lexer {cls.name!r} combined pattern is {len(combined)} chars, "
+                    f"exceeds MAX_PATTERN_LENGTH={cls.MAX_PATTERN_LENGTH}."
+                )
+
+            cls._combined_pattern = re.compile(combined, re.MULTILINE)
 
     def tokenize(
         self,
@@ -441,34 +512,43 @@ class PatternLexer:
 
 ---
 
-## Performance Expectations
+## Performance Targets
 
-### Benchmarks to Validate
+> **Note**: These are **targets**, not validated claims. All will be benchmarked in Phase 4 before MVP release.
 
-| Metric | Pygments | Rosettes Target | Validation |
-|--------|----------|-----------------|------------|
-| Import time | ~50ms | <5ms | `python -c "import rosettes"` |
-| Cold lexer | ~30ms | <5ms | First `get_lexer("python")` |
-| Tokenization | 0.05ms/100 chars | <0.02ms | Benchmark suite |
-| Formatting | 0.05ms/100 chars | <0.02ms | Benchmark suite |
-| Memory/block | ~2KB | <200 bytes | `tracemalloc` |
-| GIL re-enable | Yes | No | `PYTHON_GIL=0` test |
+### Target Metrics
 
-### Expected Site-Wide Impact
+| Metric | Pygments Baseline | Rosettes Target | Acceptable | Validation Method |
+|--------|-------------------|-----------------|------------|-------------------|
+| Import time | ~50ms | <5ms | <15ms | `python -c "import rosettes"` |
+| Cold lexer | ~30ms | <5ms | <10ms | First `get_lexer("python")` |
+| Tokenization | 0.05ms/100 chars | <0.02ms | <0.05ms | Benchmark suite |
+| Formatting | 0.05ms/100 chars | <0.02ms | <0.05ms | Benchmark suite |
+| Memory/block | ~2KB | <200 bytes | <1KB | `tracemalloc` |
+| GIL re-enable | Yes | **No** | **No** | `PYTHON_GIL=0` CI test |
 
-| Site Size | Pygments | Rosettes | Speedup |
-|-----------|----------|----------|---------|
-| 100 blocks | 60ms | 10ms | 6x |
-| 500 blocks | 100ms | 30ms | 3.3x |
-| 1000 blocks | 150ms | 50ms | 3x |
+**Acceptance Criteria**:
+- 🔴 **Hard requirement**: No GIL re-enablement (blocks MVP if failed)
+- 🟡 **Soft target**: Performance within "Acceptable" column (document if missed)
+- 🟢 **Stretch goal**: Hit "Target" column
 
-### Free-Threading Scaling
+### Projected Site-Wide Impact
 
-| Cores | Pygments (lock contention) | Rosettes (lock-free) |
-|-------|---------------------------|----------------------|
+| Site Size | Pygments (est.) | Rosettes Target | Minimum Speedup |
+|-----------|-----------------|-----------------|-----------------|
+| 100 blocks | 60ms | 10ms | 2x |
+| 500 blocks | 100ms | 30ms | 2x |
+| 1000 blocks | 150ms | 50ms | 2x |
+
+### Free-Threading Scaling (Projected)
+
+| Cores | Pygments (lock contention) | Rosettes Target (lock-free) |
+|-------|---------------------------|----------------------------|
 | 1 | 1.0x | 1.0x |
-| 4 | 2.5x | 3.8x |
-| 8 | 4.0x | 7.2x |
+| 4 | 2.5x (estimated) | 3.5x+ |
+| 8 | 4.0x (estimated) | 6.0x+ |
+
+**Validation**: Run `bench_vs_pygments.py` on 8-core machine with `PYTHON_GIL=0`.
 
 ---
 
@@ -481,7 +561,10 @@ class PatternLexer:
 - [ ] Define core types (`Token`, `TokenType`)
 - [ ] Define protocols (`Lexer`, `Formatter`)
 - [ ] Create frozen config dataclasses
+- [ ] Add free-threading declaration (`__getattr__` for `_Py_mod_gil`)
 - [ ] Add to Bengal workspace
+- [ ] **Set up CI**: Add `PYTHON_GIL=0` test job (GitHub Actions)
+- [ ] **Baseline**: Record Pygments performance before starting
 
 ### Phase 1: Core Infrastructure (Days 2-3)
 
@@ -566,9 +649,11 @@ class RosettesBackend(HighlightBackend):
     ) -> str:
         # Check if Rosettes supports this language
         if not self.supports_language(language):
-            # Fall back to Pygments for unsupported languages
-            from bengal.rendering.highlighting.pygments import PygmentsBackend
-            return PygmentsBackend().highlight(code, language, hl_lines, show_linenos)
+            # Fall back to Pygments via registry (avoids import cycle)
+            from bengal.rendering.highlighting import get_highlighter
+            return get_highlighter("pygments").highlight(
+                code, language, hl_lines, show_linenos
+            )
 
         return rosettes_highlight(
             code,
@@ -647,17 +732,73 @@ class TestPythonLexer:
 
 import subprocess
 import sys
+import os
 
 
 def test_no_gil_warning():
     """Verify Rosettes doesn't re-enable GIL."""
+    env = os.environ.copy()
+    env["PYTHON_GIL"] = "0"
+
     result = subprocess.run(
         [sys.executable, "-c", "import rosettes; rosettes.highlight('x=1', 'python')"],
-        env={"PYTHON_GIL": "0"},
+        env=env,
         capture_output=True,
         text=True,
     )
-    assert "GIL has been enabled" not in result.stderr
+    assert "GIL has been enabled" not in result.stderr, (
+        f"GIL was re-enabled! stderr: {result.stderr}"
+    )
+
+
+def test_concurrent_highlighting():
+    """Verify concurrent highlighting doesn't corrupt state."""
+    import concurrent.futures
+    from rosettes import highlight
+
+    def highlight_task(i: int) -> str:
+        return highlight(f"x = {i}", "python")
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+        results = list(executor.map(highlight_task, range(100)))
+
+    # All results should be valid HTML
+    assert all("<span" in r for r in results)
+    assert len(results) == 100
+```
+
+### CI Configuration
+
+```yaml
+# .github/workflows/test.yml (excerpt)
+
+jobs:
+  test-free-threading:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Python 3.14t (free-threaded)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14t"
+
+      - name: Install dependencies
+        run: pip install -e ".[test]"
+
+      - name: Run tests with GIL disabled
+        env:
+          PYTHON_GIL: "0"
+        run: |
+          python -c "import sys; print(f'GIL enabled: {sys._is_gil_enabled()}')"
+          pytest tests/ -v --tb=short
+
+      - name: Verify no GIL warnings
+        env:
+          PYTHON_GIL: "0"
+        run: |
+          python -W error -c "import rosettes; rosettes.highlight('x=1', 'python')" 2>&1 | tee output.txt
+          ! grep -q "GIL has been enabled" output.txt
 ```
 
 ### Benchmark Suite
@@ -708,44 +849,120 @@ def bench_pygments(iterations=1000):
 
 
 if __name__ == "__main__":
+    import json
+    from datetime import datetime
+
     print("Warming up...")
     bench_rosettes(10)
     bench_pygments(10)
 
-    print("\nBenchmarking...")
+    print("\nBenchmarking (1000 iterations)...")
     r_time = bench_rosettes()
     p_time = bench_pygments()
 
-    print(f"Rosettes: {r_time*1000:.1f}ms ({r_time/1000*1000:.3f}ms/call)")
-    print(f"Pygments: {p_time*1000:.1f}ms ({p_time/1000*1000:.3f}ms/call)")
-    print(f"Speedup: {p_time/r_time:.2f}x")
+    results = {
+        "timestamp": datetime.now().isoformat(),
+        "iterations": 1000,
+        "code_chars": len(CODE),
+        "rosettes_ms": r_time * 1000,
+        "pygments_ms": p_time * 1000,
+        "speedup": p_time / r_time,
+        "rosettes_per_call_ms": r_time,
+        "pygments_per_call_ms": p_time,
+    }
+
+    print(f"\nResults:")
+    print(f"  Rosettes: {r_time*1000:.1f}ms total ({r_time:.3f}ms/call)")
+    print(f"  Pygments: {p_time*1000:.1f}ms total ({p_time:.3f}ms/call)")
+    print(f"  Speedup:  {p_time/r_time:.2f}x")
+
+    # Save baseline for comparison
+    with open("benchmark_results.json", "w") as f:
+        json.dump(results, f, indent=2)
+    print(f"\nResults saved to benchmark_results.json")
+```
+
+### Baseline Capture (Phase 0)
+
+Run this before starting implementation to establish Pygments baseline:
+
+```bash
+# Capture Pygments-only baseline
+python -c "
+import time
+from pygments import highlight
+from pygments.lexers import PythonLexer
+from pygments.formatters import HtmlFormatter
+
+CODE = '''
+def example():
+    x = 42
+    return x * 2
+'''
+
+lexer = PythonLexer()
+formatter = HtmlFormatter()
+
+# Cold start
+start = time.perf_counter()
+highlight(CODE, lexer, formatter)
+cold_start = time.perf_counter() - start
+
+# Warm (1000 iterations)
+start = time.perf_counter()
+for _ in range(1000):
+    highlight(CODE, lexer, formatter)
+warm_total = time.perf_counter() - start
+
+print(f'Pygments cold start: {cold_start*1000:.1f}ms')
+print(f'Pygments warm (1000x): {warm_total*1000:.1f}ms ({warm_total:.3f}ms/call)')
+"
 ```
 
 ---
 
 ## Success Criteria
 
-### Must Have (MVP)
+### Must Have (MVP) — Blocks Release
 
-- [ ] No GIL re-enablement on Python 3.14t
-- [ ] 10 languages supported (Python, JS, JSON, YAML, etc.)
-- [ ] HTML formatter with Pygments CSS compatibility
-- [ ] 2x faster than Pygments per-block
-- [ ] Works as Bengal `HighlightBackend`
+| Criterion | Validation | Owner |
+|-----------|------------|-------|
+| No GIL re-enablement on Python 3.14t | CI job with `PYTHON_GIL=0` | Automated |
+| 10 languages supported | Unit tests for each lexer | Dev |
+| HTML formatter with Pygments CSS compatibility | Visual diff test | Dev |
+| At least 1x Pygments speed (not slower) | Benchmark suite | Automated |
+| Works as Bengal `HighlightBackend` | Integration test | Dev |
+| Thread-safe under concurrent load | 8-thread stress test | Automated |
 
-### Should Have
+### Should Have — Documented if Missed
 
-- [ ] 5x faster cold start than Pygments
-- [ ] Linear thread scaling (vs Pygments sublinear)
-- [ ] <200 bytes memory per code block
-- [ ] All Bengal site examples render correctly
+| Criterion | Target | Acceptable |
+|-----------|--------|------------|
+| Cold start improvement | 5x faster | 2x faster |
+| Thread scaling (8 cores) | 6x+ | 4x+ |
+| Memory per block | <200 bytes | <1KB |
+| Bengal site renders correctly | 100% | 95%+ |
 
-### Nice to Have
+### Nice to Have — Post-MVP
 
 - [ ] Terminal formatter (ANSI colors)
 - [ ] 20+ languages
 - [ ] PyPI publication
 - [ ] MkDocs plugin
+
+---
+
+## Risk Assessment
+
+| Risk | Likelihood | Impact | Mitigation |
+|------|------------|--------|------------|
+| Performance misses targets | Medium | Low | Pygments fallback exists; document trade-offs |
+| Regex backtracking on edge cases | Low | Medium | Complexity guards, timeout limits, fallback |
+| Language coverage gaps | Low | Low | Pygments fallback handles unsupported languages |
+| Thread-safety bugs | Low | High | CI with `PYTHON_GIL=0`, stress tests, immutable design |
+| Pygments theme incompatibility | Low | Low | Use identical CSS class names |
+
+**Overall Risk**: **Low** — The fallback strategy and immutable design minimize risk.
 
 ---
 
@@ -769,12 +986,29 @@ if __name__ == "__main__":
 
 ---
 
-## Open Questions
+## Decisions (Resolved)
 
-1. **Package name**: `rosettes` or `rosettes-highlight` or `lumina`?
-2. **PyPI publication**: Keep internal or open-source from start?
-3. **Minimum Python version**: 3.12+ or 3.13+ or 3.14+?
-4. **Language priority**: Which 10 languages for MVP?
+| Question | Decision | Rationale |
+|----------|----------|-----------|
+| **Package name** | `rosettes` | Short, memorable, unique on PyPI, no conflicts |
+| **PyPI publication** | Internal first, open-source after MVP | Validate design before public commitment |
+| **Minimum Python** | 3.12+ | StrEnum, slots, modern typing; works on 3.13t/3.14t |
+| **MVP languages** | See priority list below | Based on Bengal docs usage frequency |
+
+### MVP Language Priority (10 languages)
+
+1. **Python** — Most common in Bengal docs
+2. **JavaScript** — Web integration examples
+3. **TypeScript** — Growing usage
+4. **JSON** — Config files, API examples
+5. **YAML** — Bengal config, frontmatter
+6. **TOML** — pyproject.toml, config
+7. **Bash/Shell** — Installation, CLI examples
+8. **HTML** — Template examples
+9. **CSS** — Styling examples
+10. **Diff/Patch** — Changelog, migration guides
+
+**Post-MVP**: Rust, Go, SQL, Markdown, XML
 
 ---
 
