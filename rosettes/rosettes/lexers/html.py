@@ -39,27 +39,23 @@ class HtmlLexer(PatternLexer):
         ),
         # End tags
         Rule(re.compile(r"</[a-zA-Z][a-zA-Z0-9-]*\s*>"), TokenType.NAME_TAG),
-        # Self-closing tags
-        Rule(re.compile(r"<[a-zA-Z][a-zA-Z0-9-]*(?:\s+[^>]*)?/>"), TokenType.NAME_TAG),
-        # Opening tags with attributes
+        # Opening tag start (just the < and tag name)
         Rule(re.compile(r"<[a-zA-Z][a-zA-Z0-9-]*"), TokenType.NAME_TAG),
-        Rule(re.compile(r">"), TokenType.NAME_TAG),
+        # Tag close (including self-closing)
+        Rule(re.compile(r"/?>"), TokenType.NAME_TAG),
+        # Attribute values (quoted) - these can appear anywhere after tag open
+        Rule(re.compile(r'"[^"]*"'), TokenType.STRING_DOUBLE),
+        Rule(re.compile(r"'[^']*'"), TokenType.STRING_SINGLE),
         # Attribute names
-        Rule(re.compile(r"[a-zA-Z_:][a-zA-Z0-9_:.-]*(?=\s*=)"), TokenType.NAME_ATTRIBUTE),
-        Rule(re.compile(r"[a-zA-Z_:][a-zA-Z0-9_:.-]*(?=[\s/>])"), TokenType.NAME_ATTRIBUTE),
-        # Attribute values
-        Rule(re.compile(r'"[^"]*"'), TokenType.STRING),
-        Rule(re.compile(r"'[^']*'"), TokenType.STRING),
-        # Unquoted attribute values
-        Rule(re.compile(r"=[^\s/>]+"), TokenType.STRING),
+        Rule(re.compile(r"[a-zA-Z_:][a-zA-Z0-9_:.-]*"), TokenType.NAME_ATTRIBUTE),
+        # Equals sign
+        Rule(re.compile(r"="), TokenType.PUNCTUATION),
         # Entity references
         Rule(re.compile(r"&[a-zA-Z]+;"), TokenType.NAME_ENTITY),
         Rule(re.compile(r"&#[0-9]+;"), TokenType.NAME_ENTITY),
         Rule(re.compile(r"&#x[0-9a-fA-F]+;"), TokenType.NAME_ENTITY),
-        # Text content
-        Rule(re.compile(r"[^<>&]+"), TokenType.TEXT),
-        # Punctuation
-        Rule(re.compile(r"[=]"), TokenType.PUNCTUATION),
-        # Whitespace
+        # Whitespace (must come before text to be more specific)
         Rule(re.compile(r"\s+"), TokenType.WHITESPACE),
+        # Text content (between tags) - less greedy, stops at special chars
+        Rule(re.compile(r"[^<>&\s\"'=/]+"), TokenType.TEXT),
     )
