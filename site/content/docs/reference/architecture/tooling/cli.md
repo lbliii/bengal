@@ -138,7 +138,7 @@ bengal analyze                       # Top-level alias for graph analyze
 :::{example-label} bengal graph report Output
 :::
 
-```
+```text
 📊 Site Analysis Report
 ================================================================================
 📈 Overview

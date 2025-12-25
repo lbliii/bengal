@@ -65,7 +65,7 @@ uv run pytest --cov=bengal
 
 ## Project Structure
 
-```
+```text
 bengal/
 ├── bengal/
 │   ├── core/           # Passive data models (no I/O)

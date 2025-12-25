@@ -23,7 +23,7 @@ Bengal supports two versioning modes:
 
 Store versions in `_versions/` directories:
 
-```
+```text
 content/
 ├── docs/              # Latest version (v3)
 │   └── guide.md

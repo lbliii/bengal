@@ -855,7 +855,7 @@ Static documentation with links to testing tools is often clearer than embedded 
 
 Bengal supports documentation versioning:
 
-```
+```text
 content/
 ├── docs/              # Current version
 ├── _versions/

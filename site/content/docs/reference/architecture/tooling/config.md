@@ -137,7 +137,7 @@ weight = 1
 
 ### Configuration Structure (Directory - Recommended)
 
-```
+```text
 config/
 ├── _default/
 │   ├── site.yaml      # Identity: title, author, menus, taxonomies

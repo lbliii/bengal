@@ -54,7 +54,7 @@ bengal graph report
 :::{example-label} Output
 :::
 
-```
+```text
 ================================================================================
 📊 Site Analysis Report
 ================================================================================
@@ -125,7 +125,7 @@ bengal graph orphans --level isolated
 :::{example-label} Output
 :::
 
-```
+```text
 📊 Connectivity Distribution
 ==========================================================================================
   🟢 Well-Connected (≥2.0):      39 pages (31.5%)
@@ -172,7 +172,7 @@ bengal graph orphans --level lightly
 :::{example-label} Output
 :::
 
-```
+```text
 🟠 Lightly Linked Pages (26 total)
 ==========================================================================================
 #    Score    Path                                          Title
@@ -248,7 +248,7 @@ bengal graph pagerank --top-n 10
 :::{example-label} Output
 :::
 
-```
+```text
 🏆 Top 10 Pages by PageRank
 ====================================================================================================
 Rank   Title                                         Score        In    Out
@@ -338,7 +338,7 @@ bengal graph report --brief --ci --threshold-isolated 25
 :::{example-label} CI Output (passing)
 :::
 
-```
+```text
 📊 Site Analysis: 124 pages
    Isolated: 21 (16.9%) ✅
    Lightly linked: 26 (21.0%)
@@ -349,7 +349,7 @@ bengal graph report --brief --ci --threshold-isolated 25
 :::{example-label} CI Output (failing)
 :::
 
-```
+```text
 📊 Site Analysis: 124 pages
    Isolated: 30 (24.2%) ⚠️
 ❌ CI FAILED: 30 isolated pages exceeds threshold (25)

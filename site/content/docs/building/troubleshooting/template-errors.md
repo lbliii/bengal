@@ -48,7 +48,7 @@ This validates all templates during build, even those not used by every page. Co
 :::{example-label} Error Message
 :::
 
-```
+```text
 ⚠️  Template Syntax Error in partials/nav.html:15
 
     14 | {% for item in menu.items %}
@@ -79,7 +79,7 @@ Error: unexpected end of template, expected 'end of print statement'
 :::{example-label} Error Message
 :::
 
-```
+```text
 ⚠️  Undefined Variable in page.html:8
 
 Error: 'titel' is undefined
@@ -110,7 +110,7 @@ Error: 'titel' is undefined
 :::{example-label} Error Message
 :::
 
-```
+```text
 ⚠️  Unknown Filter in page.html:12
 
 Error: No filter named 'in_section'
@@ -148,7 +148,7 @@ Did you mean:
 :::{example-label} Error Message
 :::
 
-```
+```text
 ⚠️  Template Error
 
 Error: TemplateNotFound: partials/sidebar.html

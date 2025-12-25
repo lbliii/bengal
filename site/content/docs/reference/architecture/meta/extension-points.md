@@ -186,7 +186,7 @@ custom = true
 **Purpose**: Package templates, styles, and scripts for reuse
 
 **Structure**:
-```
+```text
 my-theme/
 ├── templates/
 │   ├── base.html

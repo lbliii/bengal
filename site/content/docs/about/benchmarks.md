@@ -131,7 +131,7 @@ Real-world sites build slower than benchmarks. Common factors:
 
 The Bengal documentation site itself (the site you're reading) provides a realistic benchmark:
 
-```
+```text
 ✓ Built 803 pages in 3.19 s (incremental+parallel) | 252.0 pages/sec  # warm caches
 ✓ Built 803 pages in 6.49 s (incremental+parallel) | 123.6 pages/sec  # cold caches
 ```

@@ -86,7 +86,7 @@ custom_css = ["css/custom.css"]
 :::
 
 :::{tab-item} Override Template
-```
+```text
 your-project/
 └── templates/
     └── partials/

@@ -12,7 +12,7 @@ Override any theme template by placing a file with the same name in your project
 
 ### Project Structure
 
-```
+```text
 your-project/
 ├── templates/
 │   ├── page.html          # Overrides theme's page.html
@@ -212,7 +212,7 @@ For extensive customization, create your own theme:
 
 ### Theme Structure
 
-```
+```text
 themes/my-theme/
 ├── theme.yaml           # Theme configuration
 ├── templates/
@@ -345,7 +345,7 @@ Bengal provides 80+ template functions:
 
 Override only what you need:
 
-```
+```text
 templates/
 └── partials/
     └── header.html  # Just the header
@@ -399,7 +399,7 @@ Ensure customizations work in both modes:
 
 Add custom icons or override defaults by placing SVG files in your theme's `assets/icons/` directory:
 
-```
+```text
 themes/my-theme/assets/icons/
 ├── company-logo.svg   # New icon
 └── warning.svg        # Overrides default

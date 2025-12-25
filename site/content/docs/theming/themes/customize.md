@@ -52,7 +52,7 @@ bengal new theme my-custom-theme
 ```
 
 This creates:
-```
+```text
 themes/my-custom-theme/
 ├── theme.yaml
 ├── templates/
@@ -126,7 +126,7 @@ The page hero templates display the header section of content pages including ti
 
 The `page-hero/` directory contains separated hero templates:
 
-```
+```text
 templates/partials/
 ├── page-hero.html           # Dispatcher (routes by hero_style)
 ├── page-hero-api.html       # Legacy API hero (deprecated)

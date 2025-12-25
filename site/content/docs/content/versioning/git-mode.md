@@ -158,7 +158,7 @@ bengal build --all-versions
 ```
 
 Output:
-```
+```text
 🔍 Discovering versions from git...
 Found 3 versions to build
   • main
@@ -204,7 +204,7 @@ bengal version diff main release/2.0 --git --output markdown
 ```
 
 Example output:
-```
+```text
 📊 Version Diff: release/2.0 → main
 
 Version diff: release/2.0 → main
@@ -285,7 +285,7 @@ build-docs:
 
 Bengal uses Git worktrees to check out multiple branches simultaneously:
 
-```
+```text
 .bengal/
 └── worktrees/
     ├── 2.0/          # Checked out from release/2.0

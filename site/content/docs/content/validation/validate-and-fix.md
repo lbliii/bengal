@@ -100,7 +100,7 @@ Bengal includes validators for:
 
 ### Validation Output
 
-```
+```bash
 $ bengal validate
 
 🔍 Running health checks...

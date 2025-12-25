@@ -224,7 +224,7 @@ If an include exceeds these limits, an error message is rendered inline with con
 
 Create a dedicated directory structure:
 
-```
+```text
 content/
 ├── snippets/
 │   ├── warnings/

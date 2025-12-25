@@ -73,7 +73,7 @@ name = "default"
 :::{tab-item} Directory-Based
 Best for larger sites:
 
-```
+```text
 config/
 ├── _default/
 │   ├── site.yaml
