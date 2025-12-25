@@ -85,12 +85,19 @@ def highlight(
         True
     """
     lexer = get_lexer(language)
+    format_config = FormatConfig(css_class=css_class)
+
+    # Fast path: no line highlighting needed
+    if not hl_lines and not show_linenos:
+        formatter = HtmlFormatter()
+        return formatter.format_string_fast(lexer.tokenize_fast(code), format_config)
+
+    # Slow path: line highlighting or line numbers
     hl_config = HighlightConfig(
         hl_lines=frozenset(hl_lines) if hl_lines else frozenset(),
         show_linenos=show_linenos,
         css_class=css_class,
     )
-    format_config = FormatConfig(css_class=css_class)
     formatter = HtmlFormatter(config=hl_config)
     return formatter.format_string(lexer.tokenize(code), format_config)
 

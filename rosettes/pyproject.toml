@@ -4,12 +4,13 @@ version = "0.1.0"
 description = "Modern, lock-free syntax highlighter for Python 3.14t free-threading"
 readme = "README.md"
 license = { text = "MIT" }
-requires-python = ">=3.12"
+requires-python = ">=3.14"
 authors = [{ name = "Bengal Core Team" }]
 keywords = [
     "syntax-highlighting",
     "code-highlighting",
     "free-threading",
+    "nogil",
     "pygments-alternative",
 ]
 classifiers = [
@@ -18,8 +19,6 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
     "Topic :: Text Processing :: Markup :: HTML",
     "Topic :: Software Development :: Libraries :: Python Modules",
@@ -44,7 +43,7 @@ build-backend = "hatchling.build"
 packages = ["rosettes"]
 
 [tool.ruff]
-target-version = "py312"
+target-version = "py314"
 line-length = 100
 
 [tool.ruff.lint]
@@ -52,7 +51,7 @@ select = ["E", "F", "I", "UP", "B", "SIM", "TCH"]
 ignore = []
 
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.14"
 strict = true
 warn_return_any = true
 warn_unused_ignores = true

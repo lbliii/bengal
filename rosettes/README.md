@@ -18,7 +18,7 @@ Rosettes is a pure-Python syntax highlighter designed from the ground up for fre
 pip install rosettes
 ```
 
-Requires Python 3.12+. Optimized for Python 3.14t (free-threaded).
+**Requires Python 3.14t** (free-threaded build). Run with `PYTHON_GIL=0` for lock-free operation.
 
 ## Quick Start
 

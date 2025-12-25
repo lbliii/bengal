@@ -28,18 +28,28 @@ See Also:
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Coroutine
 from typing import Any
 
-import uvloop
+# uvloop is optional - not available on Windows or Python 3.14t (yet)
+try:
+    import uvloop
+
+    _HAS_UVLOOP = True
+except ImportError:
+    _HAS_UVLOOP = False
 
 
 def run_async[T](coro: Coroutine[Any, Any, T]) -> T:
     """
-    Run async coroutine with uvloop.
+    Run async coroutine with uvloop (if available).
 
     This is the recommended way to run async code in Bengal. It uses uvloop
-    for 20-30% better performance on Linux/macOS.
+    for 20-30% better performance on Linux/macOS when available.
+
+    Falls back to standard asyncio on Windows or when uvloop is unavailable
+    (e.g., Python 3.14t where uvloop is not yet compatible).
 
     Args:
         coro: Coroutine to run
@@ -54,7 +64,9 @@ def run_async[T](coro: Coroutine[Any, Any, T]) -> T:
         >>>
         >>> response = run_async(fetch_links())
     """
-    return uvloop.run(coro)
+    if _HAS_UVLOOP:
+        return uvloop.run(coro)
+    return asyncio.run(coro)
 
 
 def install_uvloop() -> None:
@@ -64,12 +76,16 @@ def install_uvloop() -> None:
     Call this once at application startup to make all subsequent
     asyncio.run() calls use uvloop automatically.
 
+    Does nothing on Windows or when uvloop is unavailable
+    (e.g., Python 3.14t where uvloop is not yet compatible).
+
     Example:
         >>> from bengal.utils.async_compat import install_uvloop
         >>> install_uvloop()
-        >>> # Now all asyncio.run() calls use uvloop
+        >>> # Now all asyncio.run() calls use uvloop (if available)
     """
-    uvloop.install()
+    if _HAS_UVLOOP:
+        uvloop.install()
 
 
 __all__ = [

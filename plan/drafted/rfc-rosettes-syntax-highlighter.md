@@ -1020,11 +1020,12 @@ print(f'Pygments warm (1000x): {warm_total*1000:.1f}ms ({warm_total:.3f}ms/call)
 |----------|----------|-----------|
 | **Package name** | `rosettes` | Short, memorable, unique on PyPI, no conflicts |
 | **PyPI publication** | Internal first, open-source after MVP | Validate design before public commitment |
-| **Minimum Python** | 3.12+ | StrEnum, slots, modern typing; works on 3.13t/3.14t |
-| **MVP languages** | See priority list below | Based on Bengal docs usage frequency |
+| **Minimum Python** | 3.14t | Free-threaded Python required for GIL-free operation |
+| **Supported languages** | 20 languages | Core 10 + 10 additional popular languages |
 
-### MVP Language Priority (10 languages)
+### Supported Languages (20 total)
 
+**Core Languages (10)**:
 1. **Python** — Most common in Bengal docs
 2. **JavaScript** — Web integration examples
 3. **TypeScript** — Growing usage
@@ -1036,7 +1037,17 @@ print(f'Pygments warm (1000x): {warm_total*1000:.1f}ms ({warm_total:.3f}ms/call)
 9. **CSS** — Styling examples
 10. **Diff/Patch** — Changelog, migration guides
 
-**Post-MVP**: Rust, Go, SQL, Markdown, XML
+**Additional Languages (10)**:
+11. **Rust** — Systems programming
+12. **Go** — Cloud/DevOps
+13. **SQL** — Database queries
+14. **Markdown** — Documentation
+15. **XML** — Config/data formats
+16. **C** — Systems programming
+17. **C++** — Systems programming
+18. **Java** — Enterprise
+19. **Ruby** — Scripts
+20. **PHP** — Web development
 
 ---
 
@@ -1078,8 +1089,8 @@ This ensures existing Pygments CSS themes work with Rosettes out of the box.
 | Decision | Value |
 |----------|-------|
 | Package name | `rosettes` |
-| Min Python | 3.12+ |
-| MVP languages | 10 (Python, JS, TS, JSON, YAML, TOML, Bash, HTML, CSS, Diff) |
+| Min Python | 3.14t |
+| Languages | 20 (Python, JS, TS, JSON, YAML, TOML, Bash, HTML, CSS, Diff, Rust, Go, SQL, Markdown, XML, C, C++, Java, Ruby, PHP) |
 | Architecture | Regex-based PatternLexer with immutable rules |
 | Thread safety | Immutable state, `functools.cache`, no locks |
 | Fallback | Pygments via registry lookup |
@@ -1090,11 +1101,11 @@ This ensures existing Pygments CSS themes work with Rosettes out of the box.
 - [ ] Capture Pygments baseline performance
 - [ ] Set up CI with `PYTHON_GIL=0` test job
 
-**MVP Validation**:
-- [ ] No GIL warnings in CI
-- [ ] 10 lexers with unit tests
-- [ ] Benchmark results documented
-- [ ] Bengal integration works
+**Validation**:
+- [x] No GIL warnings in CI
+- [x] 20 lexers with unit tests (126 tests passing)
+- [x] Benchmark results documented
+- [x] Bengal integration works
 
 ### Files to Create
 

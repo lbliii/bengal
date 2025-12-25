@@ -34,10 +34,6 @@ class TestNoGilReenablement:
         that importing and using rosettes doesn't cause the GIL to
         be re-enabled.
         """
-        # Skip if not on Python 3.14+
-        if sys.version_info < (3, 14):
-            pytest.skip("Requires Python 3.14+ for PYTHON_GIL env var")
-
         import os
 
         env = os.environ.copy()
@@ -72,7 +68,7 @@ class TestConcurrentHighlighting:
         """Concurrent highlighting of different languages."""
         codes = {
             "python": "def foo(): pass",
-            "python": "x = 1 + 2",
+            "javascript": "const x = 1 + 2;",
         }
 
         def highlight_code(lang: str, code: str) -> str:

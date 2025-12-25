@@ -4,11 +4,15 @@ Defines the contracts that lexers and formatters must implement.
 All implementations must be thread-safe.
 """
 
-from collections.abc import Iterator
-from typing import Protocol, runtime_checkable
+from __future__ import annotations
 
-from ._config import FormatConfig, LexerConfig
-from ._types import Token
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+
+    from ._config import FormatConfig, LexerConfig
+    from ._types import Token, TokenType
 
 __all__ = ["Lexer", "Formatter"]
 
@@ -54,6 +58,23 @@ class Lexer(Protocol):
 
         Yields:
             Token objects in order of appearance.
+        """
+        ...
+
+    def tokenize_fast(
+        self,
+        code: str,
+    ) -> Iterator[tuple[TokenType, str]]:
+        """Fast tokenization without position tracking.
+
+        Yields minimal (type, value) tuples for maximum speed.
+        Use when line/column info is not needed.
+
+        Args:
+            code: The source code to tokenize.
+
+        Yields:
+            (TokenType, value) tuples.
         """
         ...
 
