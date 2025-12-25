@@ -49,6 +49,17 @@ class TestAllLanguages:
             ("svelte", "{#if condition}", "k"),  # keyword
             ("ocaml", "let x = 1", "k"),  # keyword
             ("awk", "BEGIN { print }", "k"),  # keyword
+            # Next 10 languages
+            ("wasm", "(module (func))", "k"),  # keyword
+            ("handlebars", "{{#if x}}{{/if}}", "k"),  # keyword
+            ("nunjucks", "{% for x in items %}", "k"),  # keyword
+            ("fish", "function greet; echo hi; end", "k"),  # keyword
+            ("prisma", "model User { id Int @id }", "k"),  # keyword
+            ("cypher", "MATCH (n) RETURN n", "k"),  # keyword
+            ("jsonnet", "local x = 1;", "k"),  # keyword
+            ("vue", "<template>{{ msg }}</template>", "nt"),  # name tag
+            ("twig", "{% for x in items %}", "k"),  # keyword
+            ("mermaid", "graph TD\n  A --> B", "kd"),  # keyword declaration
         ],
     )
     def test_language_tokenizes(self, language: str, code: str, expected_token_type: str) -> None:
@@ -112,6 +123,19 @@ class TestAllLanguages:
             ("ml", "ocaml"),
             ("reasonml", "ocaml"),
             ("gawk", "awk"),
+            # Next 10 language aliases
+            ("wat", "wasm"),
+            ("webassembly", "wasm"),
+            ("hbs", "handlebars"),
+            ("mustache", "handlebars"),
+            ("njk", "nunjucks"),
+            ("eleventy", "nunjucks"),
+            ("fishshell", "fish"),
+            ("neo4j", "cypher"),
+            ("libsonnet", "jsonnet"),
+            ("vuejs", "vue"),
+            ("symfony", "twig"),
+            ("mmd", "mermaid"),
         ],
     )
     def test_language_aliases(self, alias: str, canonical: str) -> None:

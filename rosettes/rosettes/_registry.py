@@ -355,6 +355,63 @@ _LEXER_SPECS: dict[str, LexerSpec] = {
         "AwkLexer",
         aliases=("gawk", "mawk", "nawk"),
     ),
+    # WebAssembly
+    "wasm": LexerSpec(
+        "rosettes.lexers.wasm",
+        "WasmLexer",
+        aliases=("wat", "wast", "webassembly"),
+    ),
+    # More template languages
+    "handlebars": LexerSpec(
+        "rosettes.lexers.handlebars",
+        "HandlebarsLexer",
+        aliases=("hbs", "mustache", "htmlbars"),
+    ),
+    "nunjucks": LexerSpec(
+        "rosettes.lexers.nunjucks",
+        "NunjucksLexer",
+        aliases=("njk", "11ty", "eleventy"),
+    ),
+    "twig": LexerSpec(
+        "rosettes.lexers.twig",
+        "TwigLexer",
+        aliases=("symfony", "drupal-twig"),
+    ),
+    # Frontend frameworks
+    "vue": LexerSpec(
+        "rosettes.lexers.vue",
+        "VueLexer",
+        aliases=("vuejs", "vue-html", "vue-template"),
+    ),
+    # Shells
+    "fish": LexerSpec(
+        "rosettes.lexers.fish",
+        "FishLexer",
+        aliases=("fishshell",),
+    ),
+    # Config/schema languages
+    "prisma": LexerSpec(
+        "rosettes.lexers.prisma",
+        "PrismaLexer",
+        aliases=(),
+    ),
+    "jsonnet": LexerSpec(
+        "rosettes.lexers.jsonnet",
+        "JsonnetLexer",
+        aliases=("libsonnet",),
+    ),
+    # Query languages
+    "cypher": LexerSpec(
+        "rosettes.lexers.cypher",
+        "CypherLexer",
+        aliases=("neo4j", "cql"),
+    ),
+    # Diagram as code
+    "mermaid": LexerSpec(
+        "rosettes.lexers.mermaid",
+        "MermaidLexer",
+        aliases=("mmd",),
+    ),
 }
 
 # Build alias lookup table (case-insensitive)
