@@ -435,40 +435,10 @@ This one is valid.
         assert len(warning_results) > 0
         assert any("heavy directive usage" in r.message.lower() for r in warning_results)
 
-    def test_validate_unrendered_directive(self, tmp_path):
-        """Test validation catches unrendered directives in output."""
-        # Use colon fences (:::) - backtick fences are no longer supported for directives
-        content = """
-:::{note} Test
-Content
-:::
-"""
-        source_file = tmp_path / "unrendered.md"
-        source_file.write_text(content)
-
-        # Output still has directive syntax (not rendered)
-        output_file = tmp_path / "output" / "unrendered.html"
-        output_file.parent.mkdir(parents=True, exist_ok=True)
-        output_file.write_text("""
-        <html>
-        <body>
-            :::{note} Test
-            Content
-            :::
-        </body>
-        </html>
-        """)
-
-        page = MockPage(title="Test", source_path=source_file, output_path=output_file)
-        site = MockSite(pages=[page])
-
-        validator = DirectiveValidator()
-        results = validator.validate(site)
-
-        # Should have error about unrendered directive
-        error_results = [r for r in results if r.status == CheckStatus.ERROR]
-        assert len(error_results) > 0
-        assert any("rendering" in r.message.lower() for r in error_results)
+    # Note: test_validate_unrendered_directive was removed.
+    # The rendering validation (H207) was intentionally removed from DirectiveValidator
+    # because it parsed all HTML output files (~1.2s) and never caught issues.
+    # Syntax validation (H201) catches directive problems at source level.
 
     def test_validate_skips_generated_pages(self, tmp_path):
         """Test that generated pages are skipped in validation."""

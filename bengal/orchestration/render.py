@@ -386,6 +386,51 @@ class RenderOrchestrator:
                 pages, tracker, quiet, stats, build_context, changed_sources
             )
 
+    def _should_use_complexity_ordering(self) -> bool:
+        """Check if complexity-based ordering is enabled."""
+        return self.site.config.get("build", {}).get("complexity_ordering", True)
+
+    def _maybe_sort_by_complexity(self, pages: list[Page], max_workers: int) -> list[Page]:
+        """Sort pages by complexity if enabled and beneficial.
+
+        Only sorts if:
+        1. Complexity ordering is enabled in config (default: True)
+        2. We have more pages than workers (otherwise no benefit)
+
+        Heavy pages are sorted first to minimize straggler workers.
+        """
+        if not self._should_use_complexity_ordering():
+            return pages
+
+        if len(pages) <= max_workers:
+            # No benefit from sorting if we have fewer pages than workers
+            return pages
+
+        from bengal.orchestration.complexity import get_complexity_stats, sort_by_complexity
+
+        sorted_pages = sort_by_complexity(pages, descending=True)
+
+        # Log complexity distribution at debug level
+        complexity_stats = get_complexity_stats(sorted_pages)
+        logger.debug(
+            "complexity_distribution",
+            page_count=complexity_stats["count"],
+            min_score=complexity_stats["min"],
+            max_score=complexity_stats["max"],
+            mean_score=round(complexity_stats["mean"], 1),
+            variance_ratio=round(complexity_stats["variance_ratio"], 1),
+        )
+        # Log ordering effectiveness (high variance = big benefit)
+        if complexity_stats["variance_ratio"] > 10:
+            logger.debug(
+                "complexity_ordering_beneficial",
+                reason="high variance detected",
+                top_5=complexity_stats["top_5_scores"],
+                bottom_5=complexity_stats["bottom_5_scores"],
+            )
+
+        return sorted_pages
+
     def _render_parallel_simple(
         self,
         pages: list[Page],
@@ -399,6 +444,9 @@ class RenderOrchestrator:
         from bengal.rendering.pipeline import RenderingPipeline
 
         max_workers = get_max_workers(self.site.config.get("max_workers"))
+
+        # Sort heavy pages first to avoid straggler workers (LPT scheduling)
+        sorted_pages = self._maybe_sort_by_complexity(pages, max_workers)
 
         # Capture current generation for staleness check
         current_gen = _get_current_generation()
@@ -427,12 +475,13 @@ class RenderOrchestrator:
         try:
             with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
                 # Map futures to pages for error reporting
+                # Uses sorted_pages (heavy first) for optimal parallel scheduling
                 future_to_page = {
-                    executor.submit(process_page_with_pipeline, page): page for page in pages
+                    executor.submit(process_page_with_pipeline, page): page for page in sorted_pages
                 }
 
                 # Track errors for aggregation
-                aggregator = ErrorAggregator(total_items=len(pages))
+                aggregator = ErrorAggregator(total_items=len(sorted_pages))
                 threshold = 5
 
                 # Wait for all to complete
@@ -548,6 +597,10 @@ class RenderOrchestrator:
         from bengal.rendering.pipeline import RenderingPipeline
 
         max_workers = get_max_workers(self.site.config.get("max_workers"))
+
+        # Sort heavy pages first to avoid straggler workers (LPT scheduling)
+        sorted_pages = self._maybe_sort_by_complexity(pages, max_workers)
+
         completed_count = 0
         lock = threading.Lock()
         last_update_time = time.time()
@@ -609,12 +662,13 @@ class RenderOrchestrator:
         try:
             with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
                 # Map futures to pages for error reporting
+                # Uses sorted_pages (heavy first) for optimal parallel scheduling
                 future_to_page = {
-                    executor.submit(process_page_with_pipeline, page): page for page in pages
+                    executor.submit(process_page_with_pipeline, page): page for page in sorted_pages
                 }
 
                 # Track errors for aggregation
-                aggregator = ErrorAggregator(total_items=len(pages))
+                aggregator = ErrorAggregator(total_items=len(sorted_pages))
                 threshold = 5
 
                 # Wait for all to complete
@@ -644,7 +698,7 @@ class RenderOrchestrator:
                 if progress_manager:
                     progress_manager.update_phase(
                         "rendering",
-                        current=len(pages),
+                        current=len(sorted_pages),
                         current_item="",
                         threads=max_workers,
                     )
@@ -680,6 +734,9 @@ class RenderOrchestrator:
         console = get_console()
         max_workers = get_max_workers(self.site.config.get("max_workers"))
 
+        # Sort heavy pages first to avoid straggler workers (LPT scheduling)
+        sorted_pages = self._maybe_sort_by_complexity(pages, max_workers)
+
         # Capture current generation for staleness check
         current_gen = _get_current_generation()
 
@@ -714,14 +771,17 @@ class RenderOrchestrator:
             console=console,
             transient=False,
         ) as progress:
-            task = progress.add_task("[cyan]Rendering pages...", total=len(pages))
+            task = progress.add_task("[cyan]Rendering pages...", total=len(sorted_pages))
 
             try:
                 with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-                    futures = [executor.submit(process_page_with_pipeline, page) for page in pages]
+                    # Uses sorted_pages (heavy first) for optimal parallel scheduling
+                    futures = [
+                        executor.submit(process_page_with_pipeline, page) for page in sorted_pages
+                    ]
 
                     # Track errors for aggregation
-                    aggregator = ErrorAggregator(total_items=len(pages))
+                    aggregator = ErrorAggregator(total_items=len(sorted_pages))
 
                     # Wait for all to complete and update progress
                     threshold = 5
