@@ -7,7 +7,7 @@
 | **Status** | Draft |
 | **Created** | 2025-12-24 |
 | **Revised** | 2025-12-24 |
-| **Revision** | v2 — Added dual class output, terminal palettes, browser fallbacks, updated timeline |
+| **Revision** | v4 — Added code.css migration plan, semantic classes as default, CSS variable strategy |
 | **Author** | Bengal Core Team |
 | **Depends On** | RFC-0002 (Rosettes Syntax Highlighter) |
 
@@ -19,7 +19,7 @@
 |--------|---------|
 | **What** | Modern theming architecture for Rosettes with semantic color roles |
 | **Why** | Clean-slate design for the future—no legacy baggage |
-| **Effort** | 2-3 weeks for core palette system + 8 built-in themes |
+| **Effort** | 3-4 weeks for core palette system + 8 built-in themes + Bengal integration + CSS migration |
 | **Risk** | Low — standalone system, Bengal design token integration |
 | **Dependencies** | Rosettes core (RFC-0002), optionally Bengal design tokens |
 
@@ -33,6 +33,7 @@
 7. ✅ Modern CSS: `@layer`, `color-mix()`, `light-dark()`, container queries
 8. ✅ Bengal design system integration
 9. ✅ Terminal (ANSI) palette support
+10. ✅ **Zero-config experience**: Syntax theme auto-inherits from site palette
 
 ---
 
@@ -1183,6 +1184,214 @@ When used in Bengal, Rosettes can inherit design tokens directly:
 - Clean, inspectable DOM structure
 - Pygments-compatible mode for existing themes
 
+### Bengal Configuration
+
+Bengal needs to know which syntax theme to use. This is configured in `theme.yaml`:
+
+#### Why Bengal Uses Semantic Output by Default
+
+Bengal defaults to `css_class_style: "semantic"` for modern, self-documenting output:
+
+| Pygments (legacy) | Semantic (Bengal default) |
+|-------------------|---------------------------|
+| `<span class="k">def</span>` | `<span class="syntax-declaration">def</span>` |
+| `<span class="nf">hello</span>` | `<span class="syntax-function">hello</span>` |
+| `<span class="s">"world"</span>` | `<span class="syntax-string">"world"</span>` |
+
+**Benefits for Bengal:**
+- CSS is self-documenting (no guessing what `.nf` means)
+- CSS variables enable runtime theme switching
+- Integrates with Bengal's design token system
+- Container class `.rosettes` avoids conflicts with other `.highlight` uses
+
+**Pygments mode** is available for users migrating from existing Pygments themes.
+
+#### Config Schema
+
+```yaml
+# site/config/_default/theme.yaml
+
+theme:
+  name: "default"
+  default_palette: "snow-lynx"    # Site-wide color palette
+
+  # Syntax highlighting configuration (NEW)
+  syntax_highlighting:
+    theme: "auto"                 # Which syntax palette to use
+    css_class_style: "semantic"   # "semantic" (default) or "pygments"
+
+# Available syntax themes:
+#   "auto"           - Inherit from default_palette (recommended)
+#   "bengal-tiger"   - Bengal brand (orange accent, dark)
+#   "bengal-snow-lynx" - Bengal brand (teal accent, light)
+#   "monokai"        - Classic dark theme
+#   "github"         - GitHub adaptive (light/dark)
+#   "dracula"        - Popular dark theme
+#   "one-dark"       - Atom One Dark
+#   "catppuccin"     - Warm adaptive theme
+#   "nord"           - Arctic color system
+```
+
+#### Theme Inheritance Logic
+
+When `theme: "auto"` (the default), syntax highlighting inherits from the site palette:
+
+```python
+# bengal/rendering/highlighting/_theme_resolver.py
+
+from rosettes.themes import get_palette, create_bengal_palette
+
+# Mapping from site palette to syntax palette
+PALETTE_INHERITANCE = {
+    "default": "bengal-tiger",
+    "snow-lynx": "bengal-snow-lynx",
+    "brown-bengal": "bengal-tiger",
+    "silver-bengal": "bengal-charcoal",
+    "charcoal-bengal": "bengal-charcoal",
+    "blue-bengal": "bengal-blue",
+}
+
+def resolve_syntax_theme(config: dict) -> SyntaxPalette:
+    """Resolve which syntax palette to use based on config."""
+    theme_config = config.get("theme", {})
+    syntax_config = theme_config.get("syntax_highlighting", {})
+
+    theme_name = syntax_config.get("theme", "auto")
+
+    if theme_name == "auto":
+        # Inherit from site palette
+        site_palette = theme_config.get("default_palette", "default")
+        theme_name = PALETTE_INHERITANCE.get(site_palette, "bengal-tiger")
+
+    return get_palette(theme_name)
+```
+
+#### Defaults
+
+```python
+# bengal/config/defaults.py (additions)
+
+DEFAULTS = {
+    # ... existing defaults ...
+
+    "theme": {
+        # ... existing theme defaults ...
+
+        "syntax_highlighting": {
+            "theme": "auto",              # Inherit from default_palette
+            "css_class_style": "semantic", # "semantic" or "pygments"
+        },
+    },
+}
+```
+
+#### Integration with RosettesBackend
+
+```python
+# bengal/rendering/highlighting/rosettes.py
+
+from rosettes.themes import get_palette, generate_css
+
+class RosettesBackend(HighlightBackend):
+    def __init__(self, config: dict | None = None):
+        self._config = config or {}
+        self._palette = resolve_syntax_theme(self._config)
+        self._css_class_style = (
+            self._config
+            .get("theme", {})
+            .get("syntax_highlighting", {})
+            .get("css_class_style", "semantic")
+        )
+
+    def highlight(
+        self,
+        code: str,
+        language: str,
+        hl_lines: list[int] | None = None,
+        show_linenos: bool = False,
+    ) -> str:
+        formatter = HtmlFormatter(
+            palette=self._palette,
+            css_class_style=self._css_class_style,
+        )
+        # ... formatting logic
+
+    def get_stylesheet(self) -> str:
+        """Generate CSS for the configured theme."""
+        return generate_css(
+            self._palette,
+            css_class_style=self._css_class_style
+        )
+```
+
+#### code.css Migration
+
+Bengal's `code.css` will be updated to use semantic classes with CSS variables:
+
+**Before** (Pygments classes, hardcoded colors):
+```css
+.highlight .k { color: #e74c3c; }
+.highlight .nf { color: #3498db; }
+.highlight .s { color: #2ecc71; }
+
+[data-theme="dark"] .highlight .k { color: #ff6b6b; }
+```
+
+**After** (Semantic classes, CSS variables):
+```css
+/* Rosettes semantic classes - self-documenting */
+.rosettes {
+  /* Inherit from palette or Bengal tokens */
+  --syntax-control: var(--color-primary, #e74c3c);
+  --syntax-function: var(--color-secondary, #3498db);
+  --syntax-string: var(--color-success, #2ecc71);
+  --syntax-comment: var(--color-text-muted, #6c757d);
+  /* ... all 18 semantic tokens ... */
+}
+
+.rosettes .syntax-control { color: var(--syntax-control); font-weight: 600; }
+.rosettes .syntax-function { color: var(--syntax-function); }
+.rosettes .syntax-string { color: var(--syntax-string); }
+.rosettes .syntax-comment { color: var(--syntax-comment); font-style: italic; }
+
+/* Dark mode: just update the variables */
+[data-theme="dark"] .rosettes {
+  --syntax-control: #ff7b72;
+  --syntax-function: #d2a8ff;
+  --syntax-string: #a5d6ff;
+}
+
+/* Legacy Pygments support (migration period) */
+.highlight .k { color: var(--syntax-control, #e74c3c); }
+.highlight .nf { color: var(--syntax-function, #3498db); }
+```
+
+**Benefits**:
+- Theme switching = update CSS variables (no class changes)
+- Dark mode = one block of variable overrides
+- Self-documenting (`.syntax-function` vs `.nf`)
+- Integrates with Bengal's `--color-*` design tokens
+
+#### Zero-Config Experience
+
+With these defaults, Bengal "just works":
+
+| Site Palette | Syntax Theme | Result |
+|--------------|--------------|--------|
+| `snow-lynx` | `bengal-snow-lynx` | Light theme with teal accents |
+| `charcoal-bengal` | `bengal-charcoal` | Dark minimal theme |
+| `blue-bengal` | `bengal-blue` | Dark theme with blue accents |
+| (not set) | `bengal-tiger` | Default dark theme with orange |
+
+Users who want a specific syntax theme (e.g., Monokai regardless of site palette) can override:
+
+```yaml
+theme:
+  default_palette: "snow-lynx"  # Light site
+  syntax_highlighting:
+    theme: "monokai"            # But dark code blocks
+```
+
 ---
 
 ## Implementation Plan
@@ -1247,12 +1456,24 @@ When used in Bengal, Rosettes can inherit design tokens directly:
 - [ ] Write integration tests
 - [ ] Update RFC-0002 to reference theming
 
-### Phase 7: Bengal Integration (Days 17-18)
+### Phase 7: Bengal Integration (Days 17-22)
 
 - [ ] Create `create_bengal_palette()` function
 - [ ] Generate Bengal variant palettes from design tokens
+- [ ] Implement `resolve_syntax_theme()` for config-based theme selection
+- [ ] Add `syntax_highlighting` to Bengal config schema
+- [ ] Update `bengal/config/defaults.py` with syntax highlighting defaults
+- [ ] Update `RosettesBackend` to use config-based palette selection
+- [ ] Add `PALETTE_INHERITANCE` mapping (site palette → syntax palette)
+- [ ] **Migrate `code.css` to semantic classes**:
+  - Replace `.highlight` with `.rosettes` container
+  - Replace `.k`, `.nf`, `.s` with `.syntax-control`, `.syntax-function`, `.syntax-string`
+  - Use CSS variables (`--syntax-*`) for all colors
+  - Keep Pygments selectors with fallback for migration period
 - [ ] Document CSS variable mapping for Bengal themes
 - [ ] Test with Bengal site build
+- [ ] Verify "auto" theme inheritance works correctly
+- [ ] Visual regression test all 8 syntax palettes
 
 ---
 
@@ -1389,6 +1610,8 @@ charcoal = create_bengal_palette("charcoal-bengal")  # Minimal
 | Modern CSS architecture | `@layer`, `color-mix()`, fallbacks work |
 | WCAG AA contrast validation | All built-in palettes pass |
 | Bengal design token integration | `--syntax-*` maps to `--color-*` |
+| **Bengal config integration** | `theme.syntax_highlighting` works |
+| **Theme auto-inheritance** | `theme: "auto"` inherits from site palette |
 
 ### Should Have
 

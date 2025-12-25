@@ -202,9 +202,9 @@ class TreeSitterBackend(HighlightBackend):
         """Highlight code using tree-sitter."""
         language = self._normalize_language(language)
 
-        # Fallback to Pygments if not supported
+        # Fallback to Rosettes if not supported
         if not self.supports_language(language):
-            return self._pygments_fallback(code, language, hl_lines, show_linenos)
+            return self._rosettes_fallback(code, language, hl_lines, show_linenos)
 
         source = code.encode("utf-8")
         parser = self._get_parser(language)
@@ -212,7 +212,7 @@ class TreeSitterBackend(HighlightBackend):
 
         queries = self._get_queries(language)
         if queries is None:
-            return self._pygments_fallback(code, language, hl_lines, show_linenos)
+            return self._rosettes_fallback(code, language, hl_lines, show_linenos)
 
         highlighted_body = self._render_highlights(tree, source, queries, hl_lines)
 
@@ -547,14 +547,14 @@ class TreeSitterBackend(HighlightBackend):
             "</div>"
         )
 
-    def _pygments_fallback(
+    def _rosettes_fallback(
         self,
         code: str,
         language: str,
         hl_lines: list[int] | None,
         show_linenos: bool,
     ) -> str:
-        """Fall back to Pygments for unsupported languages."""
-        from bengal.rendering.highlighting.pygments import PygmentsBackend
+        """Fall back to Rosettes for unsupported languages."""
+        from bengal.rendering.highlighting.rosettes import RosettesBackend
 
-        return PygmentsBackend().highlight(code, language, hl_lines, show_linenos)
+        return RosettesBackend().highlight(code, language, hl_lines, show_linenos)

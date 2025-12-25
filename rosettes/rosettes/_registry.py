@@ -295,6 +295,12 @@ _LEXER_SPECS: dict[str, LexerSpec] = {
         "MystLexer",
         aliases=("myst-markdown", "mystmd"),
     ),
+    # Template languages
+    "jinja2": LexerSpec(
+        "rosettes.lexers.jinja2",
+        "Jinja2Lexer",
+        aliases=("jinja", "j2", "jinja2-html", "html+jinja", "htmldjango"),
+    ),
 }
 
 # Build alias lookup table (case-insensitive)

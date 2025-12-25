@@ -30,6 +30,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from bengal.rendering.highlighting.protocol import HighlightBackend
+from bengal.rendering.highlighting.theme_resolver import (
+    PALETTE_INHERITANCE,
+    resolve_css_class_style,
+    resolve_syntax_theme,
+)
 
 if TYPE_CHECKING:
     pass
@@ -41,6 +46,10 @@ __all__ = [
     "get_default_backend",
     "register_backend",
     "list_backends",
+    # Theme resolution (RFC-0003)
+    "resolve_syntax_theme",
+    "resolve_css_class_style",
+    "PALETTE_INHERITANCE",
 ]
 
 

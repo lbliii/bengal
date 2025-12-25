@@ -36,6 +36,8 @@ class TestAllLanguages:
             ("php", "<?php echo $x; ?>", "nv"),  # name variable
             # MyST Markdown
             ("myst", ":::{note}\nContent\n:::", "k"),  # keyword (directive)
+            # Jinja2 templates
+            ("jinja2", "{% if x %}{{ y }}{% endif %}", "k"),  # keyword
         ],
     )
     def test_language_tokenizes(self, language: str, code: str, expected_token_type: str) -> None:
@@ -84,6 +86,10 @@ class TestAllLanguages:
             # MyST aliases
             ("mystmd", "myst"),
             ("myst-markdown", "myst"),
+            # Jinja2 aliases
+            ("jinja", "jinja2"),
+            ("j2", "jinja2"),
+            ("html+jinja", "jinja2"),
         ],
     )
     def test_language_aliases(self, alias: str, canonical: str) -> None:
@@ -720,3 +726,79 @@ class TestMystLexer:
         # Role syntax should be name decorator
         decorator_tokens = [t for t in tokens if t.type.value == "nd"]
         assert any("ref" in t.value for t in decorator_tokens)
+
+
+class TestJinja2Lexer:
+    """Jinja2 template-specific tests."""
+
+    def test_comment(self) -> None:
+        """Tokenizes comments."""
+        code = "{# This is a comment #}"
+        tokens = tokenize(code, "jinja2")
+        comment_tokens = [t for t in tokens if t.type.value == "cm"]
+        assert len(comment_tokens) == 1
+
+    def test_expression(self) -> None:
+        """Tokenizes expressions."""
+        code = "{{ variable }}"
+        tokens = tokenize(code, "jinja2")
+        # Should have punctuation for {{ and }}
+        punct_tokens = [t for t in tokens if t.type.value == "p"]
+        assert len(punct_tokens) >= 2
+
+    def test_statement(self) -> None:
+        """Tokenizes statement tags."""
+        code = "{% if condition %}{% endif %}"
+        tokens = tokenize(code, "jinja2")
+        # Keywords should be present
+        keyword_tokens = [t for t in tokens if t.type.value == "k"]
+        assert any("if" in t.value for t in keyword_tokens)
+        assert any("endif" in t.value for t in keyword_tokens)
+
+    def test_filter(self) -> None:
+        """Tokenizes filters."""
+        code = "{{ name | upper | escape }}"
+        tokens = tokenize(code, "jinja2")
+        # Filters should be builtins
+        builtin_tokens = [t for t in tokens if t.type.value == "nb"]
+        assert any("upper" in t.value for t in builtin_tokens)
+        assert any("escape" in t.value for t in builtin_tokens)
+
+    def test_for_loop(self) -> None:
+        """Tokenizes for loops."""
+        code = "{% for item in items %}{{ item }}{% endfor %}"
+        tokens = tokenize(code, "jinja2")
+        keyword_tokens = [t for t in tokens if t.type.value == "k"]
+        assert any("for" in t.value for t in keyword_tokens)
+        assert any("endfor" in t.value for t in keyword_tokens)
+
+    def test_string(self) -> None:
+        """Tokenizes strings."""
+        code = '{% extends "base.html" %}'
+        tokens = tokenize(code, "jinja2")
+        string_tokens = [t for t in tokens if t.type.value == "s2"]
+        assert len(string_tokens) >= 1
+
+    def test_boolean_constants(self) -> None:
+        """Tokenizes boolean constants."""
+        code = "{{ true }} {{ false }} {{ none }}"
+        tokens = tokenize(code, "jinja2")
+        const_tokens = [t for t in tokens if t.type.value == "kc"]
+        assert len(const_tokens) == 3
+
+    def test_number(self) -> None:
+        """Tokenizes numbers."""
+        code = "{{ 42 }} {{ 3.14 }}"
+        tokens = tokenize(code, "jinja2")
+        int_tokens = [t for t in tokens if t.type.value == "mi"]
+        float_tokens = [t for t in tokens if t.type.value == "mf"]
+        assert len(int_tokens) >= 1
+        assert len(float_tokens) >= 1
+
+    def test_operators(self) -> None:
+        """Tokenizes operators."""
+        code = "{% if x == 1 and y != 2 %}"
+        tokens = tokenize(code, "jinja2")
+        # 'and' is operator word
+        op_word_tokens = [t for t in tokens if t.type.value == "ow"]
+        assert any("and" in t.value for t in op_word_tokens)

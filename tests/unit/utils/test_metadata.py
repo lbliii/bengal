@@ -353,7 +353,7 @@ class TestBuildTemplateMetadata:
         with patch("bengal.utils.metadata.get_theme_package", return_value=None):
             metadata = build_template_metadata(mock_site)
 
-        assert metadata["rendering"]["highlighter"] == "pygments"
+        assert metadata["rendering"]["highlighter"] == "rosettes"
         assert "highlighterVersion" in metadata["rendering"]
 
     def test_site_includes_baseurl(self, mock_site):

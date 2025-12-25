@@ -16,33 +16,33 @@ from bengal.rendering.highlighting import (
     list_backends,
     register_backend,
 )
-from bengal.rendering.highlighting.pygments import PygmentsBackend
+from bengal.rendering.highlighting.rosettes import RosettesBackend
 
 
 class TestRegistryFunctions:
     """Test the registry public API."""
 
-    def test_pygments_backend_registered_by_default(self) -> None:
-        """Pygments backend should be registered automatically."""
+    def test_rosettes_backend_registered_by_default(self) -> None:
+        """Rosettes backend should be registered automatically."""
         backends = list_backends()
-        assert "pygments" in backends
+        assert "rosettes" in backends
 
-    def test_get_highlighter_default_is_pygments(self) -> None:
-        """Default highlighter should be Pygments."""
+    def test_get_highlighter_default_is_rosettes(self) -> None:
+        """Default highlighter should be Rosettes."""
         backend = get_highlighter()
-        assert backend.name == "pygments"
-        assert isinstance(backend, PygmentsBackend)
+        assert backend.name == "rosettes"
+        assert isinstance(backend, RosettesBackend)
 
     def test_get_highlighter_by_name(self) -> None:
         """Should get backend by explicit name."""
-        backend = get_highlighter("pygments")
-        assert backend.name == "pygments"
+        backend = get_highlighter("rosettes")
+        assert backend.name == "rosettes"
 
     def test_get_highlighter_case_insensitive(self) -> None:
         """Backend names should be case-insensitive."""
-        backend1 = get_highlighter("pygments")
-        backend2 = get_highlighter("PYGMENTS")
-        backend3 = get_highlighter("Pygments")
+        backend1 = get_highlighter("rosettes")
+        backend2 = get_highlighter("ROSETTES")
+        backend3 = get_highlighter("Rosettes")
 
         assert backend1.name == backend2.name == backend3.name
 
@@ -71,7 +71,7 @@ class TestRegistryFunctions:
 
     def test_highlight_with_explicit_backend(self) -> None:
         """highlight() should accept backend parameter."""
-        result = highlight("print('hello')", "python", backend="pygments")
+        result = highlight("print('hello')", "python", backend="rosettes")
 
         assert isinstance(result, str)
         assert "hello" in result
@@ -139,13 +139,12 @@ class TestRegisterBackend:
 class TestAutoMode:
     """Test the 'auto' backend selection mode."""
 
-    def test_auto_mode_falls_back_to_pygments(self) -> None:
-        """'auto' mode should use pygments when tree-sitter unavailable."""
+    def test_auto_mode_uses_rosettes(self) -> None:
+        """'auto' mode should use rosettes as the default backend."""
         backend = get_highlighter("auto")
 
-        # Since tree-sitter is not installed, should fall back to pygments
-        # (or use tree-sitter if it is installed)
-        assert backend.name in ("pygments", "tree-sitter")
+        # Rosettes is the default; tree-sitter is optional
+        assert backend.name in ("rosettes", "tree-sitter")
 
     def test_auto_mode_produces_valid_output(self) -> None:
         """'auto' mode should produce valid highlighted output."""

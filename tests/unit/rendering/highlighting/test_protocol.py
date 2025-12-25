@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from bengal.rendering.highlighting import HighlightBackend
-from bengal.rendering.highlighting.pygments import PygmentsBackend
+from bengal.rendering.highlighting.rosettes import RosettesBackend
 
 if TYPE_CHECKING:
     pass
@@ -21,16 +21,16 @@ class TestHighlightBackendProtocol:
 
     def test_protocol_is_runtime_checkable(self) -> None:
         """Protocol should be usable with isinstance()."""
-        backend = PygmentsBackend()
+        backend = RosettesBackend()
         assert isinstance(backend, HighlightBackend)
 
-    def test_pygments_backend_implements_protocol(self) -> None:
-        """PygmentsBackend should implement all protocol methods."""
-        backend = PygmentsBackend()
+    def test_rosettes_backend_implements_protocol(self) -> None:
+        """RosettesBackend should implement all protocol methods."""
+        backend = RosettesBackend()
 
         # Check required property
         assert hasattr(backend, "name")
-        assert backend.name == "pygments"
+        assert backend.name == "rosettes"
 
         # Check required methods
         assert hasattr(backend, "highlight")
@@ -41,7 +41,7 @@ class TestHighlightBackendProtocol:
 
     def test_protocol_method_signatures(self) -> None:
         """Protocol methods should accept the documented arguments."""
-        backend = PygmentsBackend()
+        backend = RosettesBackend()
 
         # highlight() should accept these arguments
         result = backend.highlight(

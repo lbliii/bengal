@@ -232,10 +232,10 @@ def greet(name):
     reason="tree-sitter not installed",
 )
 class TestTreeSitterBackendFallback:
-    """Test Pygments fallback behavior."""
+    """Test Rosettes fallback behavior."""
 
     def test_unsupported_language_falls_back(self) -> None:
-        """Unsupported languages should fall back to Pygments."""
+        """Unsupported languages should fall back to Rosettes."""
         from bengal.rendering.highlighting.tree_sitter import TreeSitterBackend
 
         backend = TreeSitterBackend()
@@ -243,7 +243,7 @@ class TestTreeSitterBackendFallback:
         # Use a language that definitely doesn't have a tree-sitter grammar
         result = backend.highlight("some code", "obscure-lang-xyz")
 
-        # Should still produce output (via Pygments fallback)
+        # Should still produce output (via Rosettes fallback)
         assert isinstance(result, str)
         assert "some code" in result or "some" in result
 

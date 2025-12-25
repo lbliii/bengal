@@ -8,7 +8,8 @@ Features:
     - 50 languages supported
     - 3.4x faster than Pygments (parallel builds)
     - Lock-free, thread-safe by design
-    - Pygments CSS compatible (drop-in themes)
+    - Semantic class output (default) or Pygments-compatible
+    - Config-based theme selection (RFC-0003)
 
 Unsupported Languages:
     For languages not in the 50 supported, code is rendered as plain
@@ -28,9 +29,15 @@ from typing import TYPE_CHECKING
 
 # Import bundled rosettes
 from bengal.rendering import rosettes
+from bengal.rendering.highlighting.theme_resolver import (
+    CssClassStyle,
+    resolve_css_class_style,
+    resolve_syntax_theme,
+)
+from bengal.rendering.rosettes.themes import get_palette
 
 if TYPE_CHECKING:
-    pass
+    from typing import Any
 
 __all__ = ["RosettesBackend"]
 
@@ -42,12 +49,49 @@ class RosettesBackend:
 
     Thread-safe by design: Rosettes uses immutable state and
     functools.cache for memoization.
+
+    Supports theming via site configuration (RFC-0003):
+        - css_class_style: "semantic" (default) or "pygments"
+        - theme: auto-inherited from site palette
     """
+
+    def __init__(self, config: dict[str, Any] | None = None) -> None:
+        """Initialize the backend with optional site configuration.
+
+        Args:
+            config: Site configuration dictionary. If provided, theming
+                   will be resolved from theme.syntax_highlighting.
+        """
+        self._config = config or {}
+
+        # Resolve theming from config
+        self._css_class_style: CssClassStyle = resolve_css_class_style(self._config)
+        self._theme_name = resolve_syntax_theme(self._config)
+
+        # Load palette (lazy, cached)
+        try:
+            self._palette = get_palette(self._theme_name)
+        except KeyError:
+            _logger.warning(
+                "Unknown syntax theme %r, falling back to bengal-tiger",
+                self._theme_name,
+            )
+            self._palette = get_palette("bengal-tiger")
 
     @property
     def name(self) -> str:
         """Backend identifier."""
         return "rosettes"
+
+    @property
+    def css_class_style(self) -> CssClassStyle:
+        """CSS class output style: 'semantic' or 'pygments'."""
+        return self._css_class_style
+
+    @property
+    def theme_name(self) -> str:
+        """Name of the active syntax theme."""
+        return self._theme_name
 
     def supports_language(self, language: str) -> bool:
         """Check if Rosettes supports the given language.
@@ -93,11 +137,15 @@ class RosettesBackend:
             # Convert hl_lines to set for Rosettes API
             hl_set = set(hl_lines) if hl_lines else None
 
+            # Determine container class based on style
+            css_class = "rosettes" if self._css_class_style == "semantic" else "highlight"
+
             return rosettes.highlight(
                 code,
                 language,
                 hl_lines=hl_set,
                 show_linenos=show_linenos,
+                css_class=css_class,
             )
         except Exception as e:
             _logger.warning("Rosettes highlighting failed: %s, using plain text", e)
@@ -116,4 +164,5 @@ class RosettesBackend:
             HTML string with escaped code.
         """
         escaped = html.escape(code)
-        return f'<div class="highlight" data-language="{language}"><pre><code>{escaped}</code></pre></div>'
+        container_class = "rosettes" if self._css_class_style == "semantic" else "highlight"
+        return f'<div class="{container_class}" data-language="{language}"><pre><code>{escaped}</code></pre></div>'
