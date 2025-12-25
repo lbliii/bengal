@@ -10,7 +10,7 @@ class TestHtmlFormatter:
 
     def test_basic_output(self) -> None:
         """Generates basic HTML structure."""
-        html = highlight("x = 1", "python")
+        html = highlight("x = 1", "python", css_class_style="pygments")
         assert '<div class="highlight">' in html
         assert "<pre>" in html
         assert "<code>" in html
@@ -20,7 +20,7 @@ class TestHtmlFormatter:
 
     def test_token_spans(self) -> None:
         """Generates spans for tokens with correct classes."""
-        html = highlight("def foo():", "python")
+        html = highlight("def foo():", "python", css_class_style="pygments")
         # 'def' should be keyword declaration
         assert '<span class="kd">def</span>' in html
         # 'foo' should be a name
@@ -65,7 +65,7 @@ class TestHtmlFormatter:
     def test_class_prefix(self) -> None:
         """Supports class prefix."""
         tokens = iter(tokenize("def foo():", "python"))
-        formatter = HtmlFormatter()
+        formatter = HtmlFormatter(css_class_style="pygments")
         config = FormatConfig(class_prefix="hl-")
         html = "".join(formatter.format(tokens, config))
         assert '<span class="hl-kd">' in html
@@ -85,7 +85,7 @@ class TestHighlightFunction:
 
     def test_simple_code(self) -> None:
         """Highlights simple Python code."""
-        html = highlight("print('hello')", "python")
+        html = highlight("print('hello')", "python", css_class_style="pygments")
         assert "highlight" in html
         assert "print" in html
 

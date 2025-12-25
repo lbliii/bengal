@@ -4,6 +4,8 @@ Lexers are loaded on-demand to minimize import time.
 The registry uses functools.cache for thread-safe caching.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from functools import cache
 from importlib import import_module

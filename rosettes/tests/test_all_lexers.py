@@ -50,7 +50,7 @@ class TestAllLanguages:
     def test_language_highlights(self, language: str) -> None:
         """Each language produces HTML output."""
         code = "test code"
-        html = highlight(code, language)
+        html = highlight(code, language, css_class_style="pygments")
         assert '<div class="highlight">' in html
         assert "test" in html or "code" in html
 
@@ -86,8 +86,8 @@ class TestAllLanguages:
         assert supports_language(alias)
         code = "test"
         # Both should produce output without error
-        html1 = highlight(code, alias)
-        html2 = highlight(code, canonical)
+        html1 = highlight(code, alias, css_class_style="pygments")
+        html2 = highlight(code, canonical, css_class_style="pygments")
         # Both should be valid HTML
         assert '<div class="highlight">' in html1
         assert '<div class="highlight">' in html2
