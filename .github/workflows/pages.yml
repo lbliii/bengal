@@ -34,7 +34,7 @@ jobs:
             uv-${{ runner.os }}-
 
       - name: Install bengal
-        run: uv sync --group search
+        run: uv sync --extra search
         env:
           PYTHON_GIL: "0"
 
