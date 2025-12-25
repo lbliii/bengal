@@ -27,7 +27,6 @@ from .analysis import DirectiveAnalyzer
 from .checkers import (
     check_directive_completeness,
     check_directive_performance,
-    check_directive_rendering,
     check_directive_syntax,
 )
 from .constants import (
@@ -133,10 +132,9 @@ class DirectiveValidator(BaseValidator):
         results.extend(check_directive_performance(directive_data))
         sub_timings["performance"] = (time.time() - t3) * 1000
 
-        # Check 4: Rendering validation (check output HTML)
-        t4 = time.time()
-        results.extend(check_directive_rendering(site, directive_data))
-        sub_timings["rendering"] = (time.time() - t4) * 1000
+        # Note: Rendering validation (H207) was removed - it parsed all HTML output
+        # files which took ~1.2s and never caught any issues. Syntax validation (H201)
+        # catches directive problems at source level, making H207 redundant.
 
         # Build and store stats for observability
         analyzer_stats = directive_data.get("_stats", {})
@@ -158,7 +156,6 @@ class DirectiveValidator(BaseValidator):
                 "cache_hits": self.last_stats.cache_hits,
                 "cache_misses": self.last_stats.cache_misses,
                 "analyze_ms": sub_timings.get("analyze", 0),
-                "rendering_ms": sub_timings.get("rendering", 0),
             },
         )
 

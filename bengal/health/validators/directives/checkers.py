@@ -1,25 +1,20 @@
 """
 Directive validation checkers.
 
-Provides validation methods for syntax, completeness, performance, and rendering.
+Provides validation methods for syntax, completeness, and performance.
 """
 
 from __future__ import annotations
 
-import re
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from bengal.health.report import CheckResult
-from bengal.rendering.parsers.factory import ParserFactory
 from bengal.utils.logger import get_logger
 
 from .constants import MAX_DIRECTIVES_PER_PAGE, MAX_TABS_PER_BLOCK
 
 logger = get_logger(__name__)
-
-if TYPE_CHECKING:
-    from bengal.core.site import Site
 
 
 def get_line_with_context(file_path: Path, line_number: int, context_lines: int = 2) -> str:
@@ -283,138 +278,6 @@ def check_directive_performance(data: dict[str, Any]) -> list[CheckResult]:
     return results
 
 
-def check_directive_rendering(site: Site, data: dict[str, Any]) -> list[CheckResult]:
-    """Check that directives rendered properly in output HTML."""
-    results = []
-    issues: list[dict[str, Any]] = []
-
-    # Only check pages that have directives (optimization: skip pages without directives)
-    # This uses the directive_data from analysis to avoid reading HTML files unnecessarily
-    pages_with_directives = set(data.get("by_page", {}).keys())
-
-    pages_to_check = [
-        p
-        for p in site.pages
-        if p.output_path
-        and p.output_path.exists()
-        and not p.metadata.get("_generated")
-        and (str(p.source_path) in pages_with_directives if p.source_path else False)
-    ]
-
-    for page in pages_to_check:
-        if page.output_path is None:
-            continue
-        try:
-            content = page.output_path.read_text(encoding="utf-8")
-
-            if _has_unrendered_directives(content):
-                issues.append(
-                    {
-                        "file": page.output_path.name,
-                        "source": str(page.source_path),
-                        "type": "unrendered",
-                        "message": "Directive not rendered (unclosed fence or invalid syntax)",
-                    }
-                )
-
-            if 'class="markdown-error"' in content:
-                issues.append(
-                    {
-                        "file": page.output_path.name,
-                        "source": str(page.source_path),
-                        "type": "parse_error",
-                        "message": "Markdown parsing error in output",
-                    }
-                )
-
-        except Exception as e:
-            # Gracefully skip pages that can't be read (permissions, encoding issues)
-            # This is non-critical validation - we don't want to fail the health check
-            logger.debug(
-                "directive_checker_page_read_failed",
-                page_path=str(page.source_path) if page.source_path else "unknown",
-                error=str(e),
-                error_type=type(e).__name__,
-                action="skipping_page",
-            )
-            pass
-
-    if issues:
-        # Group by file and issue type for clearer reporting
-        file_issues: dict[str, list[dict[str, Any]]] = {}
-        for issue in issues:
-            file_name = issue["file"]
-            if file_name not in file_issues:
-                file_issues[file_name] = []
-            file_issues[file_name].append(issue)
-
-        details = []
-        for file_name, file_issue_list in list(file_issues.items())[:5]:
-            # Count by type
-            type_counts: dict[str, int] = {}
-            for issue in file_issue_list:
-                issue_type = issue["type"]
-                type_counts[issue_type] = type_counts.get(issue_type, 0) + 1
-
-            # Build detailed message
-            type_desc = ", ".join(
-                f"{count} {_issue_type_label(itype)}" for itype, count in type_counts.items()
-            )
-            source_hint = file_issue_list[0].get("source", "")
-            source_suffix = f" (source: {Path(source_hint).name})" if source_hint else ""
-
-            details.append(f"{file_name}: {type_desc}{source_suffix}")
-
-        remaining_files = len(file_issues) - 5
-        if remaining_files > 0:
-            details.append(f"... and {remaining_files} more file(s)")
-
-        results.append(
-            CheckResult.error(
-                f"{len(file_issues)} page(s) have directive rendering errors",
-                code="H207",
-                recommendation=(
-                    "Directives failed to render. Common causes: "
-                    "missing closing fence, invalid syntax, or unknown directive type. "
-                    "Check the directive syntax in the source markdown files."
-                ),
-                details=details,
-            )
-        )
-    # No success message - if rendering worked, silence is golden
-
-    return results
-
-
-def _issue_type_label(issue_type: str) -> str:
-    """Convert issue type to human-readable label."""
-    labels = {
-        "unrendered": "unrendered directive(s)",
-        "parse_error": "parsing error(s)",
-    }
-    return labels.get(issue_type, f"{issue_type} issue(s)")
-
-
-def _has_unrendered_directives(html_content: str) -> bool:
-    """
-    Check if HTML has unrendered directive blocks (outside code blocks).
-
-    Args:
-        html_content: HTML content to check
-
-    Returns:
-        True if unrendered directives found (not in code blocks)
-    """
-    try:
-        parser = ParserFactory.get_html_parser("native")
-        soup = parser(html_content)
-        remaining_text = soup.get_text()
-        return bool(re.search(r":{3,}\{(\w+)", remaining_text))
-    except Exception as e:
-        logger.debug(
-            "directive_checker_unrendered_check_failed",
-            error=str(e),
-            error_type=type(e).__name__,
-            action="using_regex_fallback",
-        )
-        return re.search(r":{3,}\{(\w+)", html_content) is not None
+# Note: check_directive_rendering (H207) was removed.
+# It parsed all HTML output files (~1.2s) and never caught any issues.
+# Syntax validation (H201) catches directive problems at source level.
