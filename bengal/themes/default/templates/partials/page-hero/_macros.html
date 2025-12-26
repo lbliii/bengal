@@ -463,8 +463,8 @@ Shows subsection and page counts.
   {# Footer: Stats from section children #}
   {% if section %}
   <div class="page-hero__footer">
-    {% set section_subsections = section.sorted_subsections ?? [] | list %}
-    {% set section_pages = section.sorted_pages ?? [] | rejectattr('source_path', 'match', '.*_index.*') | list %}
+    {% set section_subsections = (section.sorted_subsections ?? []) | list %}
+    {% set section_pages = (section.sorted_pages ?? []) | rejectattr('source_path', 'match', '.*_index.*') | list %}
 
     {% if section_subsections | length > 0 or section_pages | length > 0 %}
     <div class="page-hero__stats">

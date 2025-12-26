@@ -253,54 +253,91 @@ def create_cache_stats_panel(stats: BuildStats) -> Panel | None:
     """
     Create cache statistics panel (if available).
 
+    Shows both page-level cache stats (incremental builds) and
+    block-level cache stats (Kida template introspection).
+
     Args:
         stats: Build statistics
 
     Returns:
         Rich Panel with cache stats, or None if not applicable
     """
-    # Check if we have cache data
-    if not hasattr(stats, "cache_hits") or not stats.incremental:
-        return None
+    lines = []
 
+    # Page-level cache stats (incremental builds)
     cache_hits = getattr(stats, "cache_hits", 0)
     cache_misses = getattr(stats, "cache_misses", 0)
     cache_total = cache_hits + cache_misses
 
-    if cache_total == 0:
+    has_page_cache = stats.incremental and cache_total > 0
+
+    if has_page_cache:
+        hit_rate = (cache_hits / cache_total) * 100 if cache_total > 0 else 0
+
+        # Determine color based on hit rate
+        if hit_rate >= 80:
+            rate_color = "bright_green"
+            emoji = "✨"
+        elif hit_rate >= 60:
+            rate_color = "green"
+            emoji = "👍"
+        elif hit_rate >= 40:
+            rate_color = "yellow"
+            emoji = "📊"
+        else:
+            rate_color = "red"
+            emoji = "⚠️"
+
+        lines.append(Text("📄 Page Cache", style="bold cyan"))
+        lines.append(
+            Text(f"   {emoji} Hit Rate: ", style="cyan")
+            + Text(f"{hit_rate:.1f}%", style=f"bold {rate_color}")
+        )
+        lines.append(Text(f"   Hits:   {cache_hits:>4}", style="green"))
+        lines.append(Text(f"   Misses: {cache_misses:>4}", style="red"))
+
+        # Time savings estimate
+        if hasattr(stats, "time_saved_ms") and stats.time_saved_ms > 0:
+            time_saved = stats.time_saved_ms / 1000
+            lines.append(Text(f"   ⚡ Time Saved: {time_saved:.2f}s", style="cyan"))
+
+    # Block-level cache stats (Kida template introspection)
+    block_hits = getattr(stats, "block_cache_hits", 0)
+    block_misses = getattr(stats, "block_cache_misses", 0)
+    block_cached = getattr(stats, "block_cache_site_blocks", 0)
+    block_total = block_hits + block_misses
+
+    has_block_cache = block_cached > 0 or block_total > 0
+
+    if has_block_cache:
+        if lines:
+            lines.append(Text())  # Separator
+
+        block_hit_rate = (block_hits / block_total) * 100 if block_total > 0 else 0
+
+        # Color based on block hit rate
+        if block_hit_rate >= 90:
+            block_color = "bright_green"
+            block_emoji = "🚀"
+        elif block_hit_rate >= 70:
+            block_color = "green"
+            block_emoji = "✨"
+        else:
+            block_color = "yellow"
+            block_emoji = "📊"
+
+        lines.append(Text("🧩 Block Cache (Kida)", style="bold magenta"))
+        lines.append(Text(f"   Blocks Cached: {block_cached}", style="magenta"))
+        if block_total > 0:
+            lines.append(
+                Text(f"   {block_emoji} Reuse Rate: ", style="magenta")
+                + Text(f"{block_hit_rate:.1f}%", style=f"bold {block_color}")
+            )
+            lines.append(Text(f"   Reused: {block_hits:>4}x", style="green"))
+
+    # Return None if no cache data at all
+    if not lines:
         return None
-
-    hit_rate = (cache_hits / cache_total) * 100 if cache_total > 0 else 0
-
-    # Determine color based on hit rate
-    if hit_rate >= 80:
-        rate_color = "bright_green"
-        emoji = "✨"
-    elif hit_rate >= 60:
-        rate_color = "green"
-        emoji = "👍"
-    elif hit_rate >= 40:
-        rate_color = "yellow"
-        emoji = "📊"
-    else:
-        rate_color = "red"
-        emoji = "⚠️"
-
-    lines = []
-    lines.append(
-        Text(f"{emoji} Cache Hit Rate: ", style="cyan")
-        + Text(f"{hit_rate:.1f}%", style=f"bold {rate_color}")
-    )
-    lines.append(Text())
-    lines.append(Text(f"   Hits:   {cache_hits:>4}", style="green"))
-    lines.append(Text(f"   Misses: {cache_misses:>4}", style="red"))
-    lines.append(Text(f"   Total:  {cache_total:>4}", style="white"))
-
-    # Time savings estimate
-    if hasattr(stats, "time_saved_ms"):
-        time_saved = stats.time_saved_ms / 1000
-        lines.append(Text())
-        lines.append(Text(f"⚡ Time Saved: {time_saved:.2f}s", style="cyan"))
 
     content = Group(*lines)
 

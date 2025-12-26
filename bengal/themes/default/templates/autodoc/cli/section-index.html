@@ -62,8 +62,8 @@ KIDA FEATURES USED:
           {% for subsection in section_subsections %}
           {% set subsection_name = subsection?.name ?? '' %}
           {% if subsection_name %}
-          {% set desc = subsection?.metadata?.description ?? '' | first_sentence %}
-          {% set child_count = (subsection?.subsections ?? [] | length) + (subsection?.pages ?? [] | length) %}
+          {% set desc = (subsection?.metadata?.description ?? '') | first_sentence %}
+          {% set child_count = ((subsection?.subsections ?? []) | length) + ((subsection?.pages ?? []) | length) %}
           <a href="{{ subsection.href }}" class="autodoc-card" data-card="group">
             <div class="autodoc-card-header">
               <span class="autodoc-card-icon">{{ icon("terminal", size=20, css_class="icon-muted") }}</span>
@@ -91,7 +91,7 @@ KIDA FEATURES USED:
 
         <div class="autodoc-cards">
           {% for cmd_page in command_pages %}
-          {% set desc = cmd_page?.metadata?.description ?? '' | first_sentence %}
+          {% set desc = (cmd_page?.metadata?.description ?? '') | first_sentence %}
           {% set elem_type = cmd_page?.metadata?.element_type ?? 'command' %}
           <a href="{{ cmd_page.href }}" class="autodoc-card" data-card="{{ elem_type }}">
             <div class="autodoc-card-header">

@@ -100,7 +100,7 @@ This template receives:
               <td class="autodoc-cell-type">
                 {% match scheme.type %}
                   {% case 'http' %}
-                    {{ scheme.scheme ?? 'bearer' | title }} ({{ scheme.bearerFormat ?? 'Token' }})
+                    {{ (scheme.scheme ?? 'bearer') | title }} ({{ scheme.bearerFormat ?? 'Token' }})
                   {% case 'apiKey' %}
                     API Key ({{ scheme.in }}: {{ scheme.name }})
                   {% case 'oauth2' %}

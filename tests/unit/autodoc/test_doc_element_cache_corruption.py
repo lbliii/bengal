@@ -194,3 +194,32 @@ class TestMalformedCacheData:
 
         # Invalid child should be filtered out
         assert len(data["children"]) == 0
+
+    def test_to_jsonable_with_doc_element_in_metadata_converts_properly(self) -> None:
+        """Test that DocElement objects in metadata are converted via to_dict(), not str()."""
+        # Create a child element
+        child = DocElement(
+            name="child",
+            qualified_name="module.parent.child",
+            description="Child element",
+            element_type="function",
+        )
+
+        # Create parent with child in metadata (simulating a bug scenario)
+        parent = DocElement(
+            name="parent",
+            qualified_name="module.parent",
+            description="Parent element",
+            element_type="class",
+            metadata={"nested_element": child},  # DocElement in metadata
+        )
+
+        # Should convert child via to_dict(), not str()
+        data = parent.to_dict()
+
+        assert data["name"] == "parent"
+        # Metadata should contain the child as a dict, not a string
+        nested = data["metadata"].get("nested_element")
+        assert isinstance(nested, dict), "DocElement in metadata should be converted to dict"
+        assert nested["name"] == "child"
+        assert nested["qualified_name"] == "module.parent.child"

@@ -43,7 +43,7 @@ Styled panel/callout for alerts, notes, tips, warnings.
 {% let icons = {'info': 'info', 'warning': 'warning', 'danger': 'x-circle', 'success': 'check-circle', 'tip':
 'lightbulb'} %}
 {% let panel_icon = icon_name ?? icons[variant] ?? 'info' %}
-{% let panel_title = title ?? variant | title %}
+{% let panel_title = (title ?? variant) | title %}
 
 {% if collapsible %}
 <details class="panel panel--{{ variant }}">

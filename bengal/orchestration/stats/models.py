@@ -89,6 +89,12 @@ class BuildStats:
     cache_bypass_hits: int = 0  # Pages that bypassed cache (in changed_sources or is_changed)
     cache_bypass_misses: int = 0  # Pages that used cache (not changed)
 
+    # Block cache statistics (RFC: kida-template-introspection)
+    # Tracks site-wide template block caching (nav, footer, etc.)
+    block_cache_hits: int = 0  # Times cached block was reused
+    block_cache_misses: int = 0  # Times block wasn't in cache
+    block_cache_site_blocks: int = 0  # Number of site-scoped blocks cached
+
     # Additional phase timings (Phase 2)
     menu_time_ms: float = 0
     related_posts_time_ms: float = 0

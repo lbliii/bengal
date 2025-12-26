@@ -108,6 +108,58 @@ class TestNullCoalescing:
         assert tmpl_nc.render(count=0) == "0"
         assert tmpl_or.render(count=0) == "100"
 
+    def test_pipe_has_higher_precedence_than_null_coalesce(self, env):
+        """Pipe (|) binds tighter than null coalesce (??).
+
+        IMPORTANT: This test documents a common gotcha!
+
+        Without parentheses:
+            x ?? [] | length  →  x ?? ([] | length)  →  x ?? 0
+
+        This means when x is a non-empty list, you get the list itself,
+        not its length! The filter only applies to the fallback.
+
+        With parentheses:
+            (x ?? []) | length  →  length of (x or empty list)
+
+        This applies the filter to the result of the null coalescing.
+        """
+        # WITHOUT parentheses: filter applies only to fallback
+        tmpl_wrong = env.from_string("{{ x ?? [] | length }}")
+        # When x is None, we get len([]) = 0
+        assert tmpl_wrong.render(x=None) == "0"
+        # When x is a list, we get the LIST ITSELF (not its length!)
+        # because x ?? ([] | length) = x ?? 0 = x (since x is not None)
+        assert tmpl_wrong.render(x=[1, 2, 3]) == "[1, 2, 3]"
+
+        # WITH parentheses: filter applies to the result
+        tmpl_correct = env.from_string("{{ (x ?? []) | length }}")
+        assert tmpl_correct.render(x=None) == "0"
+        assert tmpl_correct.render(x=[1, 2, 3]) == "3"  # Correctly returns length
+
+    def test_null_coalesce_with_filter_requires_parens(self, env):
+        """Filters must use parentheses to apply after null coalescing.
+
+        Common patterns that need parentheses:
+        - (value ?? '') | upper
+        - (value ?? []) | length
+        - (value ?? 0) | string
+        """
+        # String filter
+        tmpl = env.from_string("{{ (name ?? 'default') | upper }}")
+        assert tmpl.render(name=None) == "DEFAULT"
+        assert tmpl.render(name="alice") == "ALICE"
+
+        # Length filter
+        tmpl = env.from_string("{{ (items ?? []) | length }}")
+        assert tmpl.render(items=None) == "0"
+        assert tmpl.render(items=[1, 2]) == "2"
+
+        # Multiple filters in chain
+        tmpl = env.from_string("{{ (text ?? 'fallback') | upper | replace('A', 'X') }}")
+        assert tmpl.render(text=None) == "FXLLBXCK"
+        assert tmpl.render(text="banana") == "BXNXNX"
+
 
 class TestBreakContinue:
     """Test break and continue loop control."""

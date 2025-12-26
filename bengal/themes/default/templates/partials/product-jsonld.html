@@ -71,8 +71,8 @@ Usage in base.html or product layout:
   ,
   "aggregateRating": {
     "@type": "AggregateRating",
-    "ratingValue": {{ page.aggregate_rating.value ?? 4.5 | string | tojson }},
-    "reviewCount": {{ page.aggregate_rating.count ?? 1 | string | tojson }}
+    "ratingValue": {{ (page.aggregate_rating.value ?? 4.5) | string | tojson }},
+    "reviewCount": {{ (page.aggregate_rating.count ?? 1) | string | tojson }}
   }
   {% end %}
 }

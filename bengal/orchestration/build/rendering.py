@@ -491,6 +491,15 @@ def phase_render(
 
         orchestrator.stats.rendering_time_ms = (time.time() - rendering_start) * 1000
 
+        # Collect block cache stats (RFC: kida-template-introspection)
+        block_cache_stats = orchestrator.render.get_block_cache_stats()
+        if block_cache_stats:
+            orchestrator.stats.block_cache_hits = block_cache_stats.get("hits", 0)
+            orchestrator.stats.block_cache_misses = block_cache_stats.get("misses", 0)
+            orchestrator.stats.block_cache_site_blocks = block_cache_stats.get(
+                "site_blocks_cached", 0
+            )
+
         # Show phase completion with page count, throughput, and top bottleneck
         page_count = len(pages_to_build)
         rendering_ms = orchestrator.stats.rendering_time_ms

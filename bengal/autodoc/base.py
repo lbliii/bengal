@@ -129,6 +129,10 @@ class DocElement:
 
             Used to ensure autodoc cache payloads can be persisted in BuildCache
             without failing serialization on domain objects (e.g., ParameterInfo).
+
+            IMPORTANT: DocElement objects should NEVER be passed to this function.
+            They must go through to_dict() first. If a DocElement is detected here,
+            it indicates a bug that could corrupt cache data.
             """
             if value is None:
                 return None
@@ -136,6 +140,23 @@ class DocElement:
                 return value
             if isinstance(value, Path):
                 return str(value)
+            # CRITICAL: Check for DocElement BEFORE is_dataclass to prevent corruption
+            # If a DocElement somehow gets here, it means it bypassed to_dict()
+            # This would cause children to be converted to strings via asdict() -> str()
+            if isinstance(value, DocElement):
+                from bengal.utils.logger import get_logger
+
+                logger = get_logger(__name__)
+                logger.warning(
+                    "autodoc_serialization_bug",
+                    error="DocElement passed to _to_jsonable() instead of to_dict()",
+                    element_name=getattr(value, "name", "unknown"),
+                    element_type=getattr(value, "element_type", "unknown"),
+                    action="converting_to_dict_to_prevent_corruption",
+                    error_code="A001",  # cache_corruption - preventing cache corruption
+                )
+                # Convert to dict properly instead of letting it fall through
+                return value.to_dict()
             if is_dataclass(value):
                 return _to_jsonable(asdict(value))
             if isinstance(value, dict):
@@ -156,13 +177,14 @@ class DocElement:
             from bengal.utils.logger import get_logger
 
             logger = get_logger(__name__)
-            logger.error(
+            logger.warning(
                 "autodoc_children_validation_failed",
                 invalid_indices=[idx for idx, _ in invalid_children],
                 invalid_types=[typ for _, typ in invalid_children],
                 element_name=self.name,
                 element_type=self.element_type,
                 action="skipping_invalid_children",
+                error_code="A001",  # cache_corruption - preventing cache corruption
             )
             # Filter out invalid children to prevent cache corruption
             valid_children = [child for child in self.children if isinstance(child, DocElement)]
@@ -207,6 +229,7 @@ class DocElement:
                 actual_type=type(data).__name__,
                 data_preview=str(data)[:100] if isinstance(data, str) else repr(data)[:100],
                 action="skipping_entry",
+                error_code="A001",  # cache_corruption - malformed cache entry
             )
             # Return a minimal valid element to prevent crashes
             # This allows the build to continue even with corrupted cache entries
