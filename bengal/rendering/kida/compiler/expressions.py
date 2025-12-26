@@ -345,5 +345,48 @@ class ExpressionCompilationMixin:
                 orelse=self._compile_expr(node.if_false),
             )
 
+        if node_type == "Pipeline":
+            return self._compile_pipeline(node)
+
         # Fallback
         return ast.Constant(value=None)
+
+    def _compile_pipeline(self, node: Any) -> ast.expr:
+        """Compile pipeline: expr |> filter1 |> filter2.
+
+        Pipelines compile to nested filter calls using the _filters dict,
+        exactly like regular filter chains. The difference is purely syntactic.
+
+        expr |> a |> b(x)  →  _filters['b'](_filters['a'](expr), x)
+
+        Validates filter existence at compile time (same as Filter nodes).
+        """
+        result = self._compile_expr(node.value)
+
+        for filter_name, args, kwargs in node.steps:
+            # Validate filter exists at compile time
+            if filter_name not in self._env._filters:
+                suggestion = self._get_filter_suggestion(filter_name)
+                msg = f"Unknown filter '{filter_name}'"
+                if suggestion:
+                    msg += f". Did you mean '{suggestion}'?"
+                raise TemplateSyntaxError(msg, lineno=getattr(node, "lineno", None))
+
+            # Compile filter arguments
+            compiled_args = [self._compile_expr(arg) for arg in args]
+            compiled_kwargs = [
+                ast.keyword(arg=k, value=self._compile_expr(v)) for k, v in kwargs.items()
+            ]
+
+            # Call: _filters['filter_name'](prev_result, *args, **kwargs)
+            result = ast.Call(
+                func=ast.Subscript(
+                    value=ast.Name(id="_filters", ctx=ast.Load()),
+                    slice=ast.Constant(value=filter_name),
+                    ctx=ast.Load(),
+                ),
+                args=[result] + compiled_args,
+                keywords=compiled_kwargs,
+            )
+
+        return result

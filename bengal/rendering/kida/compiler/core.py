@@ -434,6 +434,7 @@ class Compiler(
             "Output",  # Expression evaluation
             "For",  # Iterator access, filter application
             "If",  # Boolean coercion, attribute access
+            "Match",  # Pattern matching
             "Set",  # Expression evaluation
             "Let",  # Expression evaluation
             "CallBlock",  # Function calls
@@ -486,6 +487,7 @@ class Compiler(
                 "Output": self._compile_output,
                 "If": self._compile_if,
                 "For": self._compile_for,
+                "Match": self._compile_match,
                 "Set": self._compile_set,
                 "Let": self._compile_let,
                 "Export": self._compile_export,

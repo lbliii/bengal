@@ -102,6 +102,7 @@ class TokenType(Enum):
     COMMA = "comma"  # ,
     COLON = "colon"  # :
     PIPE = "pipe"  # |
+    PIPELINE = "pipeline"  # |> (Kida-native)
     TILDE = "tilde"  # ~
     LPAREN = "lparen"  # (
     RPAREN = "rparen"  # )
@@ -196,6 +197,10 @@ KEYWORDS = frozenset(
         "autoescape",
         "endautoescape",
         "do",  # Statement expression
+        # Pattern matching (Kida-native)
+        "match",
+        "case",
+        "endmatch",
         # Special
         "as",
         "recursive",
@@ -223,6 +228,7 @@ PRECEDENCE = {
     TokenType.GT: 5,
     TokenType.GE: 5,
     TokenType.PIPE: 6,
+    TokenType.PIPELINE: 6,  # Same precedence as PIPE
     TokenType.TILDE: 7,
     TokenType.ADD: 8,
     TokenType.SUB: 8,

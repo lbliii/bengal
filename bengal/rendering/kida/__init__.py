@@ -55,6 +55,8 @@ Key Differences from Jinja2:
     - **Syntax**: Unified `{% end %}` for all blocks (like Go templates)
     - **Filters**: Protocol-based dispatch with compile-time binding
     - **Caching**: Built-in `{% cache key %}...{% end %}` directive
+    - **Pipeline**: `|>` operator for readable filter chains
+    - **Pattern Matching**: `{% match %}...{% case %}` for cleaner branching
 
 Strict Mode (default):
     Undefined variables raise `UndefinedError` instead of silently returning

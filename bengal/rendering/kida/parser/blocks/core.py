@@ -40,6 +40,7 @@ class BlockStackMixin:
             "endcache",
             "endfilter",
             "endraw",
+            "endmatch",
         }
     )
 
@@ -49,6 +50,7 @@ class BlockStackMixin:
             "else",
             "elif",
             "empty",
+            "case",
         }
     )
 

@@ -154,7 +154,9 @@ class StatementParsingMixin:
             return self._parse_filter_block()
         elif keyword == "slot":
             return self._parse_slot()
-        elif keyword in ("elif", "else", "empty"):
+        elif keyword == "match":
+            return self._parse_match()
+        elif keyword in ("elif", "else", "empty", "case"):
             # Continuation tags outside of their block context
             raise self._error(
                 f"Unexpected '{keyword}' - not inside a matching block",
@@ -173,6 +175,7 @@ class StatementParsingMixin:
             "endcapture",
             "endcache",
             "endfilter",
+            "endmatch",
         ):
             # End tags without matching opening block
             if not self._block_stack:
@@ -199,7 +202,7 @@ class StatementParsingMixin:
         else:
             raise self._error(
                 f"Unknown block keyword: {keyword}",
-                suggestion="Valid keywords: if, for, set, let, block, extends, include, macro, from, with, do, raw, def, call, capture, cache, filter, slot",
+                suggestion="Valid keywords: if, for, set, let, block, extends, include, macro, from, with, do, raw, def, call, capture, cache, filter, slot, match",
             )
 
     def _skip_comment(self) -> None:

@@ -21,6 +21,7 @@ from bengal.rendering.kida.nodes import (
     Getitem,
     List,
     Name,
+    Pipeline,
     Slice,
     Test,
     Tuple,
@@ -333,11 +334,29 @@ class ExpressionParsingMixin:
     def _parse_filter_chain(self, expr: Expr) -> Expr:
         """Parse filter chain: expr | filter1 | filter2(arg).
 
+        Also handles pipeline operator: expr |> filter1 |> filter2(arg).
+
+        Design: Mixing | and |> in the same expression is not allowed.
+        The first operator encountered determines the style for the expression.
+
         Filters are parsed after unary operators:
         -42|abs  parses as  (-42)|abs  → 42
         """
+        # Check for pipeline operator first
+        if self._match(TokenType.PIPELINE):
+            return self._parse_pipeline(expr)
+
+        # Standard filter chain with |
         while self._match(TokenType.PIPE):
             self._advance()
+
+            # Error if switching from | to |> mid-expression
+            if self._match(TokenType.PIPELINE):
+                raise self._error(
+                    "Cannot mix '|' and '|>' operators in the same expression",
+                    suggestion="Use either '|' or '|>' consistently: {{ x | a | b }} or {{ x |> a |> b }}",
+                )
+
             if self._current.type != TokenType.NAME:
                 raise self._error("Expected filter name")
             filter_name = self._advance().value
@@ -360,7 +379,67 @@ class ExpressionParsingMixin:
                 kwargs=kwargs,
             )
 
+        # Error if switching from | to |> after the filter chain
+        if self._match(TokenType.PIPELINE):
+            raise self._error(
+                "Cannot mix '|' and '|>' operators in the same expression",
+                suggestion="Use either '|' or '|>' consistently: {{ x | a | b }} or {{ x |> a |> b }}",
+            )
+
         return expr
+
+    def _parse_pipeline(self, expr: Expr) -> Expr:
+        """Parse pipeline chain: expr |> filter1 |> filter2(arg).
+
+        Pipelines are left-associative: a |> b |> c == (a |> b) |> c
+
+        Each step is a filter application. The pipeline collects all
+        steps into a single Pipeline node for potential optimization.
+
+        Design: Mixing | and |> is not allowed. Error on | after |>.
+        """
+        from collections.abc import Sequence
+
+        steps: list[tuple[str, Sequence[Expr], dict[str, Expr]]] = []
+
+        while self._match(TokenType.PIPELINE):
+            self._advance()  # consume |>
+
+            if self._current.type != TokenType.NAME:
+                raise self._error(
+                    "Expected filter name after |>",
+                    suggestion="Pipeline syntax: expr |> filter_name or expr |> filter_name(args)",
+                )
+
+            filter_name = self._advance().value
+
+            args: list[Expr] = []
+            kwargs: dict[str, Expr] = {}
+
+            # Optional arguments
+            if self._match(TokenType.LPAREN):
+                self._advance()
+                args, kwargs = self._parse_call_args()
+                self._expect(TokenType.RPAREN)
+
+            steps.append((filter_name, tuple(args), kwargs))
+
+        # Error if switching from |> to | mid-expression
+        if self._match(TokenType.PIPE):
+            raise self._error(
+                "Cannot mix '|>' and '|' operators in the same expression",
+                suggestion="Use either '|>' or '|' consistently: {{ x |> a |> b }} or {{ x | a | b }}",
+            )
+
+        if not steps:
+            return expr
+
+        return Pipeline(
+            lineno=expr.lineno,
+            col_offset=expr.col_offset,
+            value=expr,
+            steps=tuple(steps),
+        )
 
     def _parse_subscript(self) -> Expr:
         """Parse subscript: key or slice [start:stop:step]."""

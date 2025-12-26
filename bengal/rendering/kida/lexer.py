@@ -217,6 +217,7 @@ class Lexer:
         "!=": TokenType.NE,
         "<=": TokenType.LE,
         ">=": TokenType.GE,
+        "|>": TokenType.PIPELINE,  # Kida-native pipeline operator
     }
     _OPERATORS_1CHAR: dict[str, TokenType] = {
         "<": TokenType.LT,

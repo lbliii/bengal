@@ -9,7 +9,7 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 from bengal.rendering.kida._types import TokenType
-from bengal.rendering.kida.nodes import For, If
+from bengal.rendering.kida.nodes import For, If, Match
 
 if TYPE_CHECKING:
     from bengal.rendering.kida.nodes import Expr, Node
@@ -147,4 +147,86 @@ class ControlFlowBlockParsingMixin(BlockStackMixin):
             iter=iter_expr,
             body=tuple(body),
             empty=tuple(empty),
+        )
+
+    def _parse_match(self) -> Match:
+        """Parse {% match expr %}{% case pattern %}...{% end %}.
+
+        Pattern matching for cleaner branching than if/elif chains.
+        Reuses the existing _parse_body infrastructure for case bodies.
+
+        Syntax:
+            {% match page.type %}
+                {% case "post" %}...
+                {% case "gallery" %}...
+                {% case _ %}...
+            {% end %}
+
+        The underscore (_) is the wildcard/default case.
+        """
+        start = self._advance()  # consume 'match'
+        self._push_block("match", start)
+
+        # Parse subject expression
+        subject = self._parse_expression()
+        self._expect(TokenType.BLOCK_END)
+
+        cases: list[tuple[Expr, Sequence[Node]]] = []
+
+        # Parse case clauses
+        # Skip DATA tokens (whitespace between {% match %} and {% case %})
+        while self._current.type != TokenType.EOF:
+            # Skip DATA tokens (whitespace/text between blocks)
+            if self._current.type == TokenType.DATA:
+                self._advance()
+                continue
+
+            # Skip comments
+            if self._current.type == TokenType.COMMENT_BEGIN:
+                self._skip_comment()
+                continue
+
+            if self._current.type != TokenType.BLOCK_BEGIN:
+                break
+
+            next_tok = self._peek(1)
+            if next_tok.type != TokenType.NAME:
+                break
+
+            keyword = next_tok.value
+
+            if keyword == "case":
+                self._advance()  # consume {%
+                self._advance()  # consume 'case'
+
+                # Parse pattern expression
+                pattern = self._parse_expression()
+                self._expect(TokenType.BLOCK_END)
+
+                # Parse case body - reuse existing _parse_body
+                # stop_on_continuation=True stops at next "case" or end keywords
+                body = self._parse_body(stop_on_continuation=True)
+                cases.append((pattern, tuple(body)))
+
+            elif keyword in ("end", "endmatch"):
+                self._consume_end_tag("match")
+                break
+            else:
+                # Unknown keyword - error
+                raise self._error(
+                    f"Expected 'case' or 'end' in match block, got '{keyword}'",
+                    suggestion="Match blocks contain {% case pattern %} clauses",
+                )
+
+        if not cases:
+            raise self._error(
+                "Match block must have at least one {% case %} clause",
+                suggestion="Add {% case value %}...{% end %} inside the match block",
+            )
+
+        return Match(
+            lineno=start.lineno,
+            col_offset=start.col_offset,
+            subject=subject,
+            cases=tuple(cases),
         )

@@ -193,3 +193,78 @@ class ControlFlowMixin:
                 names.extend(self._extract_names(item))
             return names
         return []
+
+    def _compile_match(self, node: Any) -> list[ast.stmt]:
+        """Compile {% match expr %}{% case pattern %}...{% end %}.
+
+        Generates chained if/elif comparisons:
+            _match_subject = expr
+            if _match_subject == pattern1:
+                ...body1...
+            elif _match_subject == pattern2:
+                ...body2...
+            elif True:  # Wildcard case (_)
+                ...default...
+
+        The wildcard pattern (_) compiles to `True` (always matches).
+
+        Uses unique variable name with block counter to support nested match blocks.
+        """
+        from bengal.rendering.kida.nodes import Name as KidaName
+
+        stmts: list[ast.stmt] = []
+
+        # Use unique variable name to support nested match blocks
+        self._block_counter += 1
+        subject_var = f"_match_subject_{self._block_counter}"
+
+        # _match_subject_N = expr
+        stmts.append(
+            ast.Assign(
+                targets=[ast.Name(id=subject_var, ctx=ast.Store())],
+                value=self._compile_expr(node.subject),
+            )
+        )
+
+        if not node.cases:
+            return stmts
+
+        # Build if/elif chain from cases
+        # Process cases in reverse to build the orelse chain
+        orelse: list[ast.stmt] = []
+
+        for pattern_expr, case_body in reversed(node.cases):
+            # Compile case body
+            body_stmts: list[ast.stmt] = []
+            for child in case_body:
+                body_stmts.extend(self._compile_node(child))
+            if not body_stmts:
+                body_stmts = [ast.Pass()]
+
+            # Check for wildcard pattern (_)
+            is_wildcard = isinstance(pattern_expr, KidaName) and pattern_expr.name == "_"
+
+            if is_wildcard:
+                # Wildcard: always True (becomes else clause effectively)
+                test = ast.Constant(value=True)
+            else:
+                # Equality comparison: _match_subject_N == pattern
+                test = ast.Compare(
+                    left=ast.Name(id=subject_var, ctx=ast.Load()),
+                    ops=[ast.Eq()],
+                    comparators=[self._compile_expr(pattern_expr)],
+                )
+
+            # Build if node
+            if_node = ast.If(
+                test=test,
+                body=body_stmts,
+                orelse=orelse,
+            )
+            orelse = [if_node]
+
+        # The first case becomes the outermost if
+        if orelse:
+            stmts.extend(orelse)
+
+        return stmts

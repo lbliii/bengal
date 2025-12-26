@@ -3,7 +3,8 @@
 **Status**: Draft  
 **Created**: 2025-12-26  
 **Priority**: Medium  
-**Scope**: `bengal/themes/default/templates/`
+**Scope**: `bengal/themes/default/templates/`  
+**Depends On**: [RFC: Kida Match and Pipeline Implementation](rfc-kida-match-pipeline-implementation.md)
 
 ---
 
@@ -38,36 +39,58 @@ The default theme templates exhibit several anti-patterns:
 ### Kida Features Not Leveraged
 
 ```yaml
-match:
-  status: Not used
-  benefit: Cleaner branching than if/elif chains
-  example: "page.type → different hero styles"
+# ─────────────────────────────────────────────────────────────────
+# IMPLEMENTED (Ready to use today)
+# ─────────────────────────────────────────────────────────────────
 
 let_vs_set:
-  status: All use {% set %}
+  status: "✅ Implemented"
   benefit: Explicit template-wide vs block-scoped variables
   example: "{% let _cached_menu = get_menu() %} at top"
 
+export:
+  status: "✅ Implemented"
+  benefit: Explicit scope escape from inner blocks
+  example: "{% for x in items %}{% export last = x %}{% end %}{{ last }}"
+
 slot:
-  status: Not used
+  status: "✅ Implemented"
   benefit: Component content injection (like React children)
   example: "{% def card() %}...{% slot %}...{% end %}"
 
 cache:
-  status: Not used
+  status: "✅ Implemented"
   benefit: Fragment caching for expensive operations
   example: "{% cache 'nav-' ~ page.version %}...{% end %}"
 
 capture:
-  status: Not used (uses {% set x %}...{% endset %})
+  status: "✅ Implemented"
   benefit: Clearer intent for block capture
   example: "{% capture meta_description %}...{% end %}"
 
+def:
+  status: "✅ Implemented"
+  benefit: True functions with lexical scoping (not macros)
+  example: "{% def card(item) %}{{ site.title }} - {{ item.name }}{% end %}"
+
+# ─────────────────────────────────────────────────────────────────
+# NOT YET IMPLEMENTED (Requires RFC: Kida Match and Pipeline)
+# ─────────────────────────────────────────────────────────────────
+
+match:
+  status: "❌ Not implemented (AST only)"
+  benefit: Cleaner branching than if/elif chains
+  example: "{% match page.type %}{% case 'post' %}...{% end %}"
+  blocker: "Needs parser + compiler support"
+
 pipeline:
-  status: Not used
+  status: "❌ Not implemented (AST only)"
   benefit: Readable filter chains
   example: "items |> where(published=true) |> sort_by('date') |> take(5)"
+  blocker: "Needs lexer + parser + compiler support"
 ```
+
+> **Note**: `{% match %}` and `|>` pipeline require implementation before this RFC can fully proceed. See [RFC: Kida Match and Pipeline Implementation](rfc-kida-match-pipeline-implementation.md).
 
 ---
 
