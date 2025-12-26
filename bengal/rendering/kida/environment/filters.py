@@ -22,10 +22,15 @@ def _filter_capitalize(value: str) -> str:
 
 
 def _filter_default(value: Any, default: Any = "", boolean: bool = False) -> Any:
-    """Return default if value is undefined or falsy."""
+    """Return default if value is undefined or falsy.
+
+    With None-resilient handling, empty string is treated as missing (like None).
+    This matches Hugo behavior where nil access returns empty string.
+    """
     if boolean:
         return value or default
-    return default if value is None else value
+    # Treat both None and "" as missing (None-resilient compatibility)
+    return default if value is None or value == "" else value
 
 
 def _filter_escape(value: Any) -> Markup:
@@ -150,13 +155,15 @@ def _filter_sort(
 
         Strategy: Use (is_none, sort_value) tuples where:
         - is_none=0 for real values (sort first)
-        - is_none=1 for None values (sort last)
+        - is_none=1 for None/empty values (sort last)
         - sort_value is normalized for consistent comparison
+
+        With None-resilient handling, both None and "" are treated as missing.
         """
         if not attributes:
             val = item
-            if val is None:
-                return (1, 0, "")  # None sorts last
+            if val is None or val == "":
+                return (1, 0, "")  # None/empty sorts last
             if isinstance(val, (int, float)):
                 return (0, 0, val)  # Numbers
             val_str = str(val)
@@ -170,9 +177,9 @@ def _filter_sort(
             attr = attr.strip()
             val = _filter_attr(item, attr)
 
-            # Defensive: Handle None explicitly first, before any type checks
-            if val is None:
-                # None always sorts last: (1, 0, 0)
+            # Defensive: Handle None and "" (None-resilient) first
+            if val is None or val == "":
+                # None/empty always sorts last: (1, 0, 0)
                 values.append((1, 0, 0))
             elif isinstance(val, (int, float)):
                 # Numbers: (0, 0, number) - type 0 means numeric
@@ -194,32 +201,33 @@ def _filter_sort(
     try:
         return sorted(items, reverse=reverse, key=key_func)
     except TypeError as e:
-        # Provide detailed error about which items have None values
-        if "not supported between instances of 'NoneType'" in str(e):
-            # Find items with None values for the attribute(s)
+        # Provide detailed error about which items have None/empty values
+        error_str = str(e)
+        if "NoneType" in error_str or "not supported between" in error_str:
+            # Find items with None/empty values for the attribute(s)
             none_items = []
             for idx, item in enumerate(items):
                 if attributes:
                     for attr in attributes:
                         attr = attr.strip()
                         val = _filter_attr(item, attr)
-                        if val is None:
+                        if val is None or val == "":
                             # Get a representative label for the item
                             item_label = (
                                 getattr(item, "title", None)
                                 or getattr(item, "name", None)
                                 or f"item[{idx}]"
                             )
-                            none_items.append(f"  - {item_label}: {attr} = None")
+                            none_items.append(f"  - {item_label}: {attr} = None/empty")
                             break
                 else:
-                    if item is None:
-                        none_items.append(f"  - item[{idx}] = None")
+                    if item is None or item == "":
+                        none_items.append(f"  - item[{idx}] = None/empty")
 
             attr_str = attribute or "value"
             error_msg = f"Sort failed: cannot compare None values when sorting by '{attr_str}'"
             if none_items:
-                error_msg += "\n\nItems with None values:\n" + "\n".join(none_items[:10])
+                error_msg += "\n\nItems with None/empty values:\n" + "\n".join(none_items[:10])
                 if len(none_items) > 10:
                     error_msg += f"\n  ... and {len(none_items) - 10} more"
             error_msg += "\n\nSuggestion: Use | default(fallback) on the attribute, or filter out None values first"
@@ -499,17 +507,22 @@ def _filter_sum(value: Any, attribute: str | None = None, start: int = 0) -> Any
 
 
 def _filter_attr(value: Any, name: str) -> Any:
-    """Get attribute from object or dictionary key."""
+    """Get attribute from object or dictionary key.
+
+    Returns "" for None/missing values (None-resilient, like Hugo).
+    """
     if value is None:
-        return None
+        return ""
     # Try dictionary access first (for dict items)
     if isinstance(value, dict):
-        return value.get(name, None)
+        val = value.get(name)
+        return "" if val is None else val
     # Then try attribute access (for objects)
     try:
-        return getattr(value, name, None)
+        val = getattr(value, name, None)
+        return "" if val is None else val
     except (AttributeError, TypeError):
-        return None
+        return ""
 
 
 def _filter_format(value: str, *args: Any, **kwargs: Any) -> str:
