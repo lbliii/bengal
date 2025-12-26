@@ -351,6 +351,11 @@ def phase_render(
     """
     quiet_mode = quiet and not verbose
 
+    # Reset error deduplicator for this render phase (on build stats)
+    if orchestrator.stats is not None:
+        dedup = orchestrator.stats.get_error_deduplicator()
+        dedup.reset()
+
     with orchestrator.logger.phase(
         "rendering",
         page_count=len(pages_to_build),
@@ -465,6 +470,10 @@ def phase_render(
     if quiet_mode:
         # Call helper method on orchestrator
         orchestrator._print_rendering_summary()
+
+    # Show summary of suppressed duplicate errors (from build stats)
+    if orchestrator.stats is not None:
+        orchestrator.stats.get_error_deduplicator().display_summary()
 
     return ctx
 

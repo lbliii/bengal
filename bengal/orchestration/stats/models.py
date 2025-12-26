@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from bengal.core.output import OutputRecord
     from bengal.health.report import HealthReport
+    from bengal.rendering.errors import ErrorDeduplicator
 
 
 @dataclass
@@ -113,8 +114,27 @@ class BuildStats:
         default_factory=list
     )  # Rich template errors (TemplateRenderError instances)
 
+    # Error deduplication for template errors (reduces noise during rendering)
+    # Lazily initialized via get_error_deduplicator() to avoid circular imports
+    _error_deduplicator: ErrorDeduplicator | None = field(default=None, repr=False)
+
     # Enhanced error collection by category
     errors_by_category: dict[str, ErrorCategory] = field(default_factory=dict)
+
+    def get_error_deduplicator(self) -> ErrorDeduplicator:
+        """
+        Get the error deduplicator for this build.
+
+        Lazily initialized to avoid circular imports.
+
+        Returns:
+            ErrorDeduplicator instance for this build
+        """
+        if self._error_deduplicator is None:
+            from bengal.rendering.errors import ErrorDeduplicator
+
+            self._error_deduplicator = ErrorDeduplicator()
+        return self._error_deduplicator
 
     def add_warning(self, file_path: str, message: str, warning_type: str = "other") -> None:
         """Add a warning to the build."""

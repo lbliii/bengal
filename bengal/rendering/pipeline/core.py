@@ -204,6 +204,7 @@ class RenderingPipeline:
             renderer=self.renderer,
             dependency_tracker=dependency_tracker,
             output_collector=self._output_collector,
+            build_stats=build_stats,
         )
 
         # PERF: Unified HTML transformer (RFC: rfc-rendering-package-optimizations)

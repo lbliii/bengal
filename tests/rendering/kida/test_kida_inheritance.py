@@ -289,3 +289,80 @@ class TestInheritanceFromString:
         tmpl = env.from_string('{% extends "base.html" %}{% block content %}Hello{% endblock %}')
         result = tmpl.render()
         assert "<html>Hello</html>" in result
+
+
+class TestInheritanceWithFromImport:
+    """Inheritance combined with {% from %} imports."""
+
+    def test_from_import_in_child_block(self):
+        """{% from %} import in child template available in block."""
+        loader = DictLoader(
+            {
+                "macros.html": "{% macro greet(name) %}Hello, {{ name }}!{% endmacro %}",
+                "base.html": "<html>{% block content %}{% endblock %}</html>",
+                "child.html": (
+                    '{% extends "base.html" %}'
+                    '{% from "macros.html" import greet %}'
+                    "{% block content %}{{ greet('World') }}{% endblock %}"
+                ),
+            }
+        )
+        env = Environment(loader=loader)
+        tmpl = env.get_template("child.html")
+        result = tmpl.render()
+        assert "Hello, World!" in result
+
+    def test_from_import_with_alias_in_child(self):
+        """{% from %} import with alias works in child block."""
+        loader = DictLoader(
+            {
+                "macros.html": "{% macro greet(name) %}Hi, {{ name }}!{% endmacro %}",
+                "base.html": "{% block content %}{% endblock %}",
+                "child.html": (
+                    '{% extends "base.html" %}'
+                    '{% from "macros.html" import greet as say_hi %}'
+                    "{% block content %}{{ say_hi('Test') }}{% endblock %}"
+                ),
+            }
+        )
+        env = Environment(loader=loader)
+        result = env.get_template("child.html").render()
+        assert "Hi, Test!" in result
+
+    def test_multiple_from_imports_in_child(self):
+        """Multiple {% from %} imports in child template."""
+        loader = DictLoader(
+            {
+                "utils.html": (
+                    "{% macro bold(text) %}<b>{{ text }}</b>{% endmacro %}"
+                    "{% macro italic(text) %}<i>{{ text }}</i>{% endmacro %}"
+                ),
+                "base.html": "{% block content %}{% endblock %}",
+                "child.html": (
+                    '{% extends "base.html" %}'
+                    '{% from "utils.html" import bold, italic %}'
+                    "{% block content %}{{ bold('A') }} {{ italic('B') }}{% endblock %}"
+                ),
+            }
+        )
+        env = Environment(loader=loader)
+        result = env.get_template("child.html").render()
+        assert "<b>A</b>" in result
+        assert "<i>B</i>" in result
+
+    def test_from_import_with_context_in_child(self):
+        """{% from %} import with context passes context to macro."""
+        loader = DictLoader(
+            {
+                "macros.html": "{% macro show_name() %}Name: {{ name }}{% endmacro %}",
+                "base.html": "{% block content %}{% endblock %}",
+                "child.html": (
+                    '{% extends "base.html" %}'
+                    '{% from "macros.html" import show_name with context %}'
+                    "{% block content %}{{ show_name() }}{% endblock %}"
+                ),
+            }
+        )
+        env = Environment(loader=loader)
+        result = env.get_template("child.html").render(name="Alice")
+        assert "Name: Alice" in result

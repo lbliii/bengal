@@ -264,6 +264,39 @@ class KidaTemplateEngine:
                 message=f"Template syntax error in '{name}': {e}",
                 original_error=e,
             ) from e
+        except TypeError as e:
+            # Enhanced error message for "NoneType is not callable"
+            error_str = str(e).lower()
+            if (
+                "'nonetype' object is not callable" in error_str
+                or "nonetype object is not callable" in error_str
+            ):
+                # Try to identify what was being called
+                import traceback
+
+                tb = traceback.extract_tb(e.__traceback__)
+                context_info = []
+                for frame in reversed(tb):
+                    if frame.line:
+                        context_info.append(f"  at {frame.filename}:{frame.lineno}: {frame.line}")
+                        if len(context_info) >= 3:
+                            break
+
+                context_str = (
+                    "\n".join(context_info) if context_info else "  (no context available)"
+                )
+                raise BengalRenderingError(
+                    message=(
+                        f"Template '{name}': A function or filter is None (not callable).\n"
+                        f"Call stack:\n{context_str}\n"
+                        f"Check that all filters and template functions are properly registered."
+                    ),
+                    original_error=e,
+                ) from e
+            raise BengalRenderingError(
+                message=f"Template render error in '{name}': {e}",
+                original_error=e,
+            ) from e
         except Exception as e:
             raise BengalRenderingError(
                 message=f"Template render error in '{name}': {e}",

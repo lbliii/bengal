@@ -35,7 +35,15 @@ class Compiler:
         >>> exec(code, namespace)
     """
 
-    __slots__ = ("_env", "_name", "_filename", "_node_dispatch", "_locals", "_blocks")
+    __slots__ = (
+        "_env",
+        "_name",
+        "_filename",
+        "_node_dispatch",
+        "_locals",
+        "_blocks",
+        "_block_counter",
+    )
 
     def __init__(self, env: Environment):
         self._env = env
@@ -45,6 +53,8 @@ class Compiler:
         self._locals: set[str] = set()
         # Track blocks for inheritance
         self._blocks: dict[str, Any] = {}
+        # Counter for unique variable names in nested structures
+        self._block_counter: int = 0
 
     def _collect_blocks(self, nodes: Any) -> None:
         """Recursively collect all Block nodes from the AST.
@@ -90,6 +100,7 @@ class Compiler:
         self._name = name
         self._filename = filename
         self._locals = set()  # Reset locals for each compilation
+        self._block_counter = 0  # Reset counter for each compilation
 
         # Generate Python AST
         module = self._compile_template(node)
@@ -236,6 +247,14 @@ class Compiler:
         if extends_node:
             # Template with inheritance - collect blocks and delegate to parent
 
+            # First, execute top-level statements that modify context (imports, sets, etc.)
+            # These need to run before blocks are called so imported macros are available.
+            # We compile FromImport, Import, Set, Macro, and Def nodes at the top level.
+            for child in node.body:
+                child_type = type(child).__name__
+                if child_type in ("FromImport", "Set", "Macro", "Def"):
+                    body.extend(self._compile_node(child))
+
             # For each block: _blocks.setdefault('name', block_func)
             # Block functions are added to module namespace during compilation
             for block_name in self._blocks:
@@ -362,16 +381,21 @@ class Compiler:
                 "If": self._compile_if,
                 "For": self._compile_for,
                 "Set": self._compile_set,
-                "Let": self._compile_set,
+                "Let": self._compile_let,
                 "Export": self._compile_export,
                 "Include": self._compile_include,
                 "Block": self._compile_block,
                 "Macro": self._compile_macro,
+                "Def": self._compile_def,
+                "CallBlock": self._compile_call_block,
+                "Slot": self._compile_slot,
                 "FromImport": self._compile_from_import,
                 "With": self._compile_with,
                 "Do": self._compile_do,
                 "Raw": self._compile_raw,
                 "Capture": self._compile_capture,
+                "Cache": self._compile_cache,
+                "FilterBlock": self._compile_filter_block,
             }
         return self._node_dispatch
 
@@ -593,7 +617,7 @@ class Compiler:
         return []
 
     def _compile_set(self, node: Any) -> list[ast.stmt]:
-        """Compile {% set %} or {% let %}.
+        """Compile {% set %}.
 
         Handles both single names and tuple unpacking:
             {% set x = value %}
@@ -660,10 +684,44 @@ class Compiler:
                 )
             ]
 
+    def _compile_let(self, node: Any) -> list[ast.stmt]:
+        """Compile {% let name = value %}.
+
+        Let is like set but semantically represents a template-scoped variable.
+        """
+        value = self._compile_expr(node.value)
+        return [
+            ast.Assign(
+                targets=[
+                    ast.Subscript(
+                        value=ast.Name(id="ctx", ctx=ast.Load()),
+                        slice=ast.Constant(value=node.name),
+                        ctx=ast.Store(),
+                    )
+                ],
+                value=value,
+            )
+        ]
+
     def _compile_export(self, node: Any) -> list[ast.stmt]:
-        """Compile {% export %}."""
-        # For now, same as set - proper scoping in later version
-        return self._compile_set(node)
+        """Compile {% export name = value %}.
+
+        Export makes a variable available in outer scope.
+        Currently same semantics as let - proper scoping in later version.
+        """
+        value = self._compile_expr(node.value)
+        return [
+            ast.Assign(
+                targets=[
+                    ast.Subscript(
+                        value=ast.Name(id="ctx", ctx=ast.Load()),
+                        slice=ast.Constant(value=node.name),
+                        ctx=ast.Store(),
+                    )
+                ],
+                value=value,
+            )
+        ]
 
     def _compile_include(self, node: Any) -> list[ast.stmt]:
         """Compile {% include "template.html" [with context] %}.
@@ -874,6 +932,14 @@ class Compiler:
         )
 
         return [func_def, assign]
+
+    def _compile_def(self, node: Any) -> list[ast.stmt]:
+        """Compile {% def name(args) %}...{% end %}.
+
+        Def is Kida's native function definition syntax, structurally
+        identical to Macro. Both create callable template functions.
+        """
+        return self._compile_macro(node)
 
     def _compile_from_import(self, node: Any) -> list[ast.stmt]:
         """Compile {% from "template.html" import name1, name2 as alias %}.
@@ -1104,6 +1170,577 @@ class Compiler:
                     ),
                 ),
             ]
+        )
+
+        return stmts
+
+    def _compile_def(self, node: Any) -> list[ast.stmt]:
+        """Compile {% def name(args) %}...{% enddef %}.
+
+        Kida functions have true lexical scoping - they can access variables
+        from their enclosing scope, unlike Jinja2 macros.
+
+        Generates:
+            def _def_name(arg1, arg2=default, *, _caller=None, _outer_ctx=ctx):
+                buf = []
+                ctx = {**_outer_ctx, 'arg1': arg1, 'arg2': arg2}
+                if _caller:
+                    ctx['caller'] = _caller
+                ... body ...
+                return Markup(''.join(buf))
+            ctx['name'] = _def_name
+        """
+        def_name = node.name
+        func_name = f"_def_{def_name}"
+
+        # Build function arguments
+        args_list = [ast.arg(arg=name) for name in node.args]
+        defaults = [self._compile_expr(d) for d in node.defaults]
+
+        # Build function body
+        func_body: list[ast.stmt] = [
+            # _e = _escape
+            ast.Assign(
+                targets=[ast.Name(id="_e", ctx=ast.Store())],
+                value=ast.Name(id="_escape", ctx=ast.Load()),
+            ),
+            # _s = _str
+            ast.Assign(
+                targets=[ast.Name(id="_s", ctx=ast.Store())],
+                value=ast.Name(id="_str", ctx=ast.Load()),
+            ),
+            # buf = []
+            ast.Assign(
+                targets=[ast.Name(id="buf", ctx=ast.Store())],
+                value=ast.List(elts=[], ctx=ast.Load()),
+            ),
+            # _append = buf.append
+            ast.Assign(
+                targets=[ast.Name(id="_append", ctx=ast.Store())],
+                value=ast.Attribute(
+                    value=ast.Name(id="buf", ctx=ast.Load()),
+                    attr="append",
+                    ctx=ast.Load(),
+                ),
+            ),
+            # Create local context: ctx = {**_outer_ctx, 'arg1': arg1, ...}
+            ast.Assign(
+                targets=[ast.Name(id="ctx", ctx=ast.Store())],
+                value=ast.Dict(
+                    keys=[None, None],  # Spread operators
+                    values=[
+                        ast.Name(id="_outer_ctx", ctx=ast.Load()),
+                        ast.Dict(
+                            keys=[ast.Constant(value=name) for name in node.args],
+                            values=[ast.Name(id=name, ctx=ast.Load()) for name in node.args],
+                        ),
+                    ],
+                ),
+            ),
+            # if _caller: ctx['caller'] = _caller
+            ast.If(
+                test=ast.Name(id="_caller", ctx=ast.Load()),
+                body=[
+                    ast.Assign(
+                        targets=[
+                            ast.Subscript(
+                                value=ast.Name(id="ctx", ctx=ast.Load()),
+                                slice=ast.Constant(value="caller"),
+                                ctx=ast.Store(),
+                            )
+                        ],
+                        value=ast.Name(id="_caller", ctx=ast.Load()),
+                    )
+                ],
+                orelse=[],
+            ),
+        ]
+
+        # Add args to locals for direct access
+        for arg_name in node.args:
+            self._locals.add(arg_name)
+
+        # Compile function body
+        for child in node.body:
+            func_body.extend(self._compile_node(child))
+
+        # Remove args from locals
+        for arg_name in node.args:
+            self._locals.discard(arg_name)
+
+        # return _Markup(''.join(buf))
+        func_body.append(
+            ast.Return(
+                value=ast.Call(
+                    func=ast.Name(id="_Markup", ctx=ast.Load()),
+                    args=[
+                        ast.Call(
+                            func=ast.Attribute(
+                                value=ast.Constant(value=""),
+                                attr="join",
+                                ctx=ast.Load(),
+                            ),
+                            args=[ast.Name(id="buf", ctx=ast.Load())],
+                            keywords=[],
+                        ),
+                    ],
+                    keywords=[],
+                ),
+            )
+        )
+
+        # Create function with _caller and _outer_ctx as keyword-only args
+        func_def = ast.FunctionDef(
+            name=func_name,
+            args=ast.arguments(
+                posonlyargs=[],
+                args=args_list,
+                vararg=None,
+                kwonlyargs=[
+                    ast.arg(arg="_caller"),
+                    ast.arg(arg="_outer_ctx"),
+                ],
+                kw_defaults=[
+                    ast.Constant(value=None),  # _caller=None
+                    ast.Name(id="ctx", ctx=ast.Load()),  # _outer_ctx=ctx
+                ],
+                kwarg=None,
+                defaults=defaults,
+            ),
+            body=func_body,
+            decorator_list=[],
+            returns=None,
+        )
+
+        # Assign to context: ctx['name'] = _def_name
+        assign = ast.Assign(
+            targets=[
+                ast.Subscript(
+                    value=ast.Name(id="ctx", ctx=ast.Load()),
+                    slice=ast.Constant(value=def_name),
+                    ctx=ast.Store(),
+                )
+            ],
+            value=ast.Name(id=func_name, ctx=ast.Load()),
+        )
+
+        return [func_def, assign]
+
+    def _compile_call_block(self, node: Any) -> list[ast.stmt]:
+        """Compile {% call func(args) %}body{% endcall %}.
+
+        Calls a function with the body content as the caller.
+
+        Generates:
+            def _caller():
+                buf = []
+                ... body ...
+                return Markup(''.join(buf))
+            _append(func(args, _caller=_caller))
+        """
+        stmts: list[ast.stmt] = []
+
+        # Create caller function
+        caller_body: list[ast.stmt] = [
+            # _e = _escape
+            ast.Assign(
+                targets=[ast.Name(id="_e", ctx=ast.Store())],
+                value=ast.Name(id="_escape", ctx=ast.Load()),
+            ),
+            # _s = _str
+            ast.Assign(
+                targets=[ast.Name(id="_s", ctx=ast.Store())],
+                value=ast.Name(id="_str", ctx=ast.Load()),
+            ),
+            # buf = []
+            ast.Assign(
+                targets=[ast.Name(id="buf", ctx=ast.Store())],
+                value=ast.List(elts=[], ctx=ast.Load()),
+            ),
+            # _append = buf.append
+            ast.Assign(
+                targets=[ast.Name(id="_append", ctx=ast.Store())],
+                value=ast.Attribute(
+                    value=ast.Name(id="buf", ctx=ast.Load()),
+                    attr="append",
+                    ctx=ast.Load(),
+                ),
+            ),
+        ]
+
+        # Compile body
+        for child in node.body:
+            caller_body.extend(self._compile_node(child))
+
+        # return Markup(''.join(buf))
+        caller_body.append(
+            ast.Return(
+                value=ast.Call(
+                    func=ast.Name(id="_Markup", ctx=ast.Load()),
+                    args=[
+                        ast.Call(
+                            func=ast.Attribute(
+                                value=ast.Constant(value=""),
+                                attr="join",
+                                ctx=ast.Load(),
+                            ),
+                            args=[ast.Name(id="buf", ctx=ast.Load())],
+                            keywords=[],
+                        ),
+                    ],
+                    keywords=[],
+                ),
+            )
+        )
+
+        # def _caller():
+        caller_func = ast.FunctionDef(
+            name="_caller",
+            args=ast.arguments(
+                posonlyargs=[],
+                args=[],
+                vararg=None,
+                kwonlyargs=[],
+                kw_defaults=[],
+                kwarg=None,
+                defaults=[],
+            ),
+            body=caller_body,
+            decorator_list=[],
+            returns=None,
+        )
+        stmts.append(caller_func)
+
+        # Compile the call expression and add _caller keyword argument
+        call_expr = self._compile_expr(node.call)
+
+        # If it's a function call, add _caller keyword
+        if isinstance(call_expr, ast.Call):
+            call_expr.keywords.append(
+                ast.keyword(arg="_caller", value=ast.Name(id="_caller", ctx=ast.Load()))
+            )
+        else:
+            # Wrap in a call with _caller
+            call_expr = ast.Call(
+                func=call_expr,
+                args=[],
+                keywords=[ast.keyword(arg="_caller", value=ast.Name(id="_caller", ctx=ast.Load()))],
+            )
+
+        # _append(result)
+        stmts.append(
+            ast.Expr(
+                value=ast.Call(
+                    func=ast.Name(id="_append", ctx=ast.Load()),
+                    args=[call_expr],
+                    keywords=[],
+                ),
+            )
+        )
+
+        return stmts
+
+    def _compile_slot(self, node: Any) -> list[ast.stmt]:
+        """Compile {% slot %}.
+
+        Renders the caller content inside a {% def %}.
+
+        Generates:
+            if ctx.get('caller'):
+                _append(ctx['caller']())
+        """
+        return [
+            ast.If(
+                test=ast.Call(
+                    func=ast.Attribute(
+                        value=ast.Name(id="ctx", ctx=ast.Load()),
+                        attr="get",
+                        ctx=ast.Load(),
+                    ),
+                    args=[ast.Constant(value="caller")],
+                    keywords=[],
+                ),
+                body=[
+                    ast.Expr(
+                        value=ast.Call(
+                            func=ast.Name(id="_append", ctx=ast.Load()),
+                            args=[
+                                ast.Call(
+                                    func=ast.Subscript(
+                                        value=ast.Name(id="ctx", ctx=ast.Load()),
+                                        slice=ast.Constant(value="caller"),
+                                        ctx=ast.Load(),
+                                    ),
+                                    args=[],
+                                    keywords=[],
+                                ),
+                            ],
+                            keywords=[],
+                        ),
+                    )
+                ],
+                orelse=[],
+            )
+        ]
+
+    def _compile_cache(self, node: Any) -> list[ast.stmt]:
+        """Compile {% cache key %}...{% endcache %}.
+
+        Fragment caching for expensive template sections.
+
+        Generates:
+            _cache_key = str(key)
+            _cached = _cache_get(_cache_key)
+            if _cached is not None:
+                _append(_cached)
+            else:
+                _cache_buf = []
+                _cache_append = _cache_buf.append
+                _save_append = _append
+                _append = _cache_append
+                ... body ...
+                _append = _save_append
+                _cached = ''.join(_cache_buf)
+                _cache_set(_cache_key, _cached, ttl)
+                _append(_cached)
+        """
+        stmts: list[ast.stmt] = []
+
+        # _cache_key = str(key)
+        stmts.append(
+            ast.Assign(
+                targets=[ast.Name(id="_cache_key", ctx=ast.Store())],
+                value=ast.Call(
+                    func=ast.Name(id="_str", ctx=ast.Load()),
+                    args=[self._compile_expr(node.key)],
+                    keywords=[],
+                ),
+            )
+        )
+
+        # _cached = _cache_get(_cache_key)
+        stmts.append(
+            ast.Assign(
+                targets=[ast.Name(id="_cached", ctx=ast.Store())],
+                value=ast.Call(
+                    func=ast.Name(id="_cache_get", ctx=ast.Load()),
+                    args=[ast.Name(id="_cache_key", ctx=ast.Load())],
+                    keywords=[],
+                ),
+            )
+        )
+
+        # Build the else block (cache miss)
+        else_body: list[ast.stmt] = [
+            # _cache_buf = []
+            ast.Assign(
+                targets=[ast.Name(id="_cache_buf", ctx=ast.Store())],
+                value=ast.List(elts=[], ctx=ast.Load()),
+            ),
+            # _cache_append = _cache_buf.append
+            ast.Assign(
+                targets=[ast.Name(id="_cache_append", ctx=ast.Store())],
+                value=ast.Attribute(
+                    value=ast.Name(id="_cache_buf", ctx=ast.Load()),
+                    attr="append",
+                    ctx=ast.Load(),
+                ),
+            ),
+            # _save_append = _append
+            ast.Assign(
+                targets=[ast.Name(id="_save_append", ctx=ast.Store())],
+                value=ast.Name(id="_append", ctx=ast.Load()),
+            ),
+            # _append = _cache_append
+            ast.Assign(
+                targets=[ast.Name(id="_append", ctx=ast.Store())],
+                value=ast.Name(id="_cache_append", ctx=ast.Load()),
+            ),
+        ]
+
+        # Compile body
+        for child in node.body:
+            else_body.extend(self._compile_node(child))
+
+        # _append = _save_append
+        else_body.append(
+            ast.Assign(
+                targets=[ast.Name(id="_append", ctx=ast.Store())],
+                value=ast.Name(id="_save_append", ctx=ast.Load()),
+            )
+        )
+
+        # _cached = ''.join(_cache_buf)
+        else_body.append(
+            ast.Assign(
+                targets=[ast.Name(id="_cached", ctx=ast.Store())],
+                value=ast.Call(
+                    func=ast.Attribute(
+                        value=ast.Constant(value=""),
+                        attr="join",
+                        ctx=ast.Load(),
+                    ),
+                    args=[ast.Name(id="_cache_buf", ctx=ast.Load())],
+                    keywords=[],
+                ),
+            )
+        )
+
+        # _cache_set(_cache_key, _cached, ttl)
+        cache_set_args = [
+            ast.Name(id="_cache_key", ctx=ast.Load()),
+            ast.Name(id="_cached", ctx=ast.Load()),
+        ]
+        if node.ttl:
+            cache_set_args.append(self._compile_expr(node.ttl))
+        else:
+            cache_set_args.append(ast.Constant(value=None))
+
+        else_body.append(
+            ast.Expr(
+                value=ast.Call(
+                    func=ast.Name(id="_cache_set", ctx=ast.Load()),
+                    args=cache_set_args,
+                    keywords=[],
+                ),
+            )
+        )
+
+        # _append(_cached)
+        else_body.append(
+            ast.Expr(
+                value=ast.Call(
+                    func=ast.Name(id="_append", ctx=ast.Load()),
+                    args=[ast.Name(id="_cached", ctx=ast.Load())],
+                    keywords=[],
+                ),
+            )
+        )
+
+        # if _cached is not None: _append(_cached) else: ...
+        stmts.append(
+            ast.If(
+                test=ast.Compare(
+                    left=ast.Name(id="_cached", ctx=ast.Load()),
+                    ops=[ast.IsNot()],
+                    comparators=[ast.Constant(value=None)],
+                ),
+                body=[
+                    ast.Expr(
+                        value=ast.Call(
+                            func=ast.Name(id="_append", ctx=ast.Load()),
+                            args=[ast.Name(id="_cached", ctx=ast.Load())],
+                            keywords=[],
+                        ),
+                    )
+                ],
+                orelse=else_body,
+            )
+        )
+
+        return stmts
+
+    def _compile_filter_block(self, node: Any) -> list[ast.stmt]:
+        """Compile {% filter name %}...{% endfilter %}.
+
+        Apply a filter to an entire block of content.
+
+        Uses unique variable names to support nesting.
+
+        Generates:
+            _filter_buf_N = []
+            _filter_append_N = _filter_buf_N.append
+            _save_append_N = _append
+            _append = _filter_append_N
+            ... body ...
+            _append = _save_append_N
+            _append(_filters['name'](''.join(_filter_buf_N), *args, **kwargs))
+        """
+        # Get unique suffix for this filter block
+        self._block_counter += 1
+        suffix = str(self._block_counter)
+        buf_name = f"_filter_buf_{suffix}"
+        append_name = f"_filter_append_{suffix}"
+        save_name = f"_save_append_{suffix}"
+
+        stmts: list[ast.stmt] = [
+            # _filter_buf_N = []
+            ast.Assign(
+                targets=[ast.Name(id=buf_name, ctx=ast.Store())],
+                value=ast.List(elts=[], ctx=ast.Load()),
+            ),
+            # _filter_append_N = _filter_buf_N.append
+            ast.Assign(
+                targets=[ast.Name(id=append_name, ctx=ast.Store())],
+                value=ast.Attribute(
+                    value=ast.Name(id=buf_name, ctx=ast.Load()),
+                    attr="append",
+                    ctx=ast.Load(),
+                ),
+            ),
+            # _save_append_N = _append
+            ast.Assign(
+                targets=[ast.Name(id=save_name, ctx=ast.Store())],
+                value=ast.Name(id="_append", ctx=ast.Load()),
+            ),
+            # _append = _filter_append_N
+            ast.Assign(
+                targets=[ast.Name(id="_append", ctx=ast.Store())],
+                value=ast.Name(id=append_name, ctx=ast.Load()),
+            ),
+        ]
+
+        # Compile body
+        for child in node.body:
+            stmts.extend(self._compile_node(child))
+
+        # _append = _save_append_N
+        stmts.append(
+            ast.Assign(
+                targets=[ast.Name(id="_append", ctx=ast.Store())],
+                value=ast.Name(id=save_name, ctx=ast.Load()),
+            )
+        )
+
+        # Build filter call: _filters['name'](''.join(_filter_buf_N), *args, **kwargs)
+        filter_args = [
+            ast.Call(
+                func=ast.Attribute(
+                    value=ast.Constant(value=""),
+                    attr="join",
+                    ctx=ast.Load(),
+                ),
+                args=[ast.Name(id=buf_name, ctx=ast.Load())],
+                keywords=[],
+            )
+        ]
+
+        # Add filter arguments from the Filter node
+        filter_node = node.filter
+        filter_args.extend([self._compile_expr(a) for a in filter_node.args])
+        filter_kwargs = [
+            ast.keyword(arg=k, value=self._compile_expr(v)) for k, v in filter_node.kwargs.items()
+        ]
+
+        # _append(_filters['name'](content, *args, **kwargs))
+        stmts.append(
+            ast.Expr(
+                value=ast.Call(
+                    func=ast.Name(id="_append", ctx=ast.Load()),
+                    args=[
+                        ast.Call(
+                            func=ast.Subscript(
+                                value=ast.Name(id="_filters", ctx=ast.Load()),
+                                slice=ast.Constant(value=filter_node.name),
+                                ctx=ast.Load(),
+                            ),
+                            args=filter_args,
+                            keywords=filter_kwargs,
+                        ),
+                    ],
+                    keywords=[],
+                ),
+            )
         )
 
         return stmts

@@ -65,6 +65,7 @@ class AutodocRenderer:
         renderer: Renderer,
         dependency_tracker: Any = None,
         output_collector: Any = None,
+        build_stats: Any = None,
     ):
         """
         Initialize the autodoc renderer.
@@ -75,12 +76,14 @@ class AutodocRenderer:
             renderer: Renderer for fallback rendering
             dependency_tracker: Optional DependencyTracker for dependency tracking
             output_collector: Optional output collector for hot reload tracking
+            build_stats: Optional BuildStats for error tracking and deduplication
         """
         self.site = site
         self.template_engine = template_engine
         self.renderer = renderer
         self.dependency_tracker = dependency_tracker
         self.output_collector = output_collector
+        self.build_stats = build_stats
 
     def process_virtual_page(self, page: Page) -> None:
         """
@@ -223,6 +226,26 @@ class AutodocRenderer:
                 excerpt=getattr(page, "excerpt", "") or "",
             )
         except Exception as e:  # Capture template errors with context
+            # Create rich error object for better debugging
+            from bengal.rendering.errors import (
+                TemplateRenderError,
+                display_template_error,
+            )
+
+            rich_error = TemplateRenderError.from_jinja2_error(
+                e, template_name, page.source_path, self.template_engine
+            )
+
+            # Display the rich error (with deduplication to reduce noise if stats available)
+            should_display = True
+            if self.build_stats is not None:
+                dedup = self.build_stats.get_error_deduplicator()
+                should_display = dedup.should_display(rich_error)
+
+            if should_display:
+                display_template_error(rich_error)
+
+            # Also log with structured data for machine parsing
             logger.error(
                 "autodoc_template_render_failed",
                 template=template_name,
@@ -231,6 +254,9 @@ class AutodocRenderer:
                 element_type=getattr(element, "element_type", None),
                 metadata=_safe_metadata_summary(getattr(element, "metadata", None)),
                 error=str(e),
+                error_type=rich_error.error_type,
+                template_line=rich_error.template_context.line_number,
+                source_line=rich_error.template_context.source_line,
             )
             # Fallback minimal HTML to keep build moving
             fallback_desc = getattr(element, "description", "") if element else ""

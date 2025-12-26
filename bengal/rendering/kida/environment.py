@@ -388,13 +388,42 @@ def _filter_trim(value: str) -> str:
 def _filter_truncate(
     value: str,
     length: int = 255,
+    killwords: bool = False,
     end: str = "...",
+    leeway: int | None = None,
 ) -> str:
-    """Truncate string."""
+    """Truncate string to specified length.
+
+    Args:
+        value: String to truncate
+        length: Maximum length including end marker
+        killwords: If False (default), truncate at word boundary; if True, cut mid-word
+        end: String to append when truncated (default: "...")
+        leeway: Allow slightly longer strings before truncating (Jinja2 compat, ignored)
+
+    Returns:
+        Truncated string with end marker if truncated
+    """
     value = str(value)
     if len(value) <= length:
         return value
-    return value[: length - len(end)] + end
+
+    # Calculate available space for content
+    available = length - len(end)
+    if available <= 0:
+        return end[:length] if length > 0 else ""
+
+    if killwords:
+        # Cut mid-word
+        return value[:available] + end
+    else:
+        # Try to break at word boundary
+        truncated = value[:available]
+        # Find last space
+        last_space = truncated.rfind(" ")
+        if last_space > 0:
+            truncated = truncated[:last_space]
+        return truncated.rstrip() + end
 
 
 def _filter_upper(value: str) -> str:

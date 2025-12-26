@@ -17,14 +17,19 @@ from typing import TYPE_CHECKING
 from bengal.rendering.kida._types import Token, TokenType
 from bengal.rendering.kida.nodes import (
     Block,
+    Cache,
+    CallBlock,
+    Capture,
     CondExpr,
     Const,
     Data,
+    Def,
     Dict,
     Do,
     Export,
     Extends,
     Filter,
+    FilterBlock,
     For,
     FromImport,
     Getattr,
@@ -39,6 +44,7 @@ from bengal.rendering.kida.nodes import (
     Raw,
     Set,
     Slice,
+    Slot,
     Template,
     Test,
     Tuple,
@@ -290,6 +296,18 @@ class Parser:
             return self._parse_do()
         elif keyword == "raw":
             return self._parse_raw()
+        elif keyword == "def":
+            return self._parse_def()
+        elif keyword == "call":
+            return self._parse_call()
+        elif keyword == "capture":
+            return self._parse_capture()
+        elif keyword == "cache":
+            return self._parse_cache()
+        elif keyword == "filter":
+            return self._parse_filter_block()
+        elif keyword == "slot":
+            return self._parse_slot()
         elif keyword in (
             "endif",
             "endfor",
@@ -299,13 +317,19 @@ class Parser:
             "else",
             "elif",
             "endraw",
+            "end",
+            "enddef",
+            "endcall",
+            "endcapture",
+            "endcache",
+            "endfilter",
         ):
             # End/continuation tags handled by parent
             return None
         else:
             raise self._error(
                 f"Unknown block keyword: {keyword}",
-                suggestion="Valid keywords: if, for, set, let, block, extends, include, macro, from, with, do, raw",
+                suggestion="Valid keywords: if, for, set, let, block, extends, include, macro, from, with, do, raw, def, call, capture, cache, filter, slot",
             )
 
     def _parse_if(self) -> If:
@@ -890,6 +914,416 @@ class Parser:
             lineno=start.lineno,
             col_offset=start.col_offset,
             value="".join(content_parts),
+        )
+
+    def _parse_def(self) -> Def:
+        """Parse {% def name(args) %}...{% enddef %} or {% end %}.
+
+        Kida functions with true lexical scoping (can access outer scope).
+
+        Example:
+            {% def card(item, show_date=true) %}
+                <div>{{ item.title }}</div>
+                {% if show_date %}{{ item.date }}{% endif %}
+                <span>From: {{ site.title }}</span>  {# outer scope access #}
+            {% enddef %}
+
+            {{ card(page) }}
+        """
+        start = self._advance()  # consume 'def'
+
+        # Get function name
+        if self._current.type != TokenType.NAME:
+            raise self._error(
+                "Expected function name",
+                suggestion="Function syntax: {% def name(args) %}...{% enddef %}",
+            )
+        name = self._advance().value
+
+        # Parse arguments
+        args: list[str] = []
+        defaults: list[Expr] = []
+
+        self._expect(TokenType.LPAREN)
+        while not self._match(TokenType.RPAREN):
+            if args:
+                self._expect(TokenType.COMMA)
+            if self._current.type != TokenType.NAME:
+                raise self._error("Expected argument name")
+            arg_name = self._advance().value
+            args.append(arg_name)
+
+            # Check for default value
+            if self._match(TokenType.ASSIGN):
+                self._advance()
+                defaults.append(self._parse_expression())
+
+        self._expect(TokenType.RPAREN)
+        self._expect(TokenType.BLOCK_END)
+
+        # Parse body until {% enddef %} or {% end %}
+        body: list[Node] = []
+        while True:
+            if self._match(TokenType.BLOCK_BEGIN):
+                self._advance()
+                if self._current.type == TokenType.NAME and self._current.value in (
+                    "enddef",
+                    "end",
+                ):
+                    self._advance()  # consume 'enddef' or 'end'
+                    self._expect(TokenType.BLOCK_END)
+                    break
+                else:
+                    block_node = self._parse_block_content()
+                    if block_node:
+                        body.append(block_node)
+            elif self._match(TokenType.VARIABLE_BEGIN):
+                body.append(self._parse_output())
+            elif self._match(TokenType.DATA):
+                body.append(self._parse_data())
+            elif self._match(TokenType.COMMENT_BEGIN):
+                self._skip_comment()
+            elif self._match(TokenType.EOF):
+                raise self._error(
+                    "Unexpected end of template in def",
+                    suggestion="Add {% enddef %} or {% end %}",
+                )
+            else:
+                self._advance()
+
+        return Def(
+            lineno=start.lineno,
+            col_offset=start.col_offset,
+            name=name,
+            args=tuple(args),
+            body=tuple(body),
+            defaults=tuple(defaults),
+        )
+
+    def _parse_call(self) -> CallBlock:
+        """Parse {% call name(args) %}body{% endcall %} or {% end %}.
+
+        Call a function/def with body content that fills {% slot %}.
+
+        Example:
+            {% call card("My Title") %}
+                <p>This content goes in the slot!</p>
+            {% endcall %}
+        """
+        start = self._advance()  # consume 'call'
+
+        # Parse the call expression
+        call_expr = self._parse_expression()
+        self._expect(TokenType.BLOCK_END)
+
+        # Parse body until {% endcall %} or {% end %}
+        body: list[Node] = []
+        while True:
+            if self._match(TokenType.BLOCK_BEGIN):
+                self._advance()
+                if self._current.type == TokenType.NAME and self._current.value in (
+                    "endcall",
+                    "end",
+                ):
+                    self._advance()
+                    self._expect(TokenType.BLOCK_END)
+                    break
+                else:
+                    block_node = self._parse_block_content()
+                    if block_node:
+                        body.append(block_node)
+            elif self._match(TokenType.VARIABLE_BEGIN):
+                body.append(self._parse_output())
+            elif self._match(TokenType.DATA):
+                body.append(self._parse_data())
+            elif self._match(TokenType.COMMENT_BEGIN):
+                self._skip_comment()
+            elif self._match(TokenType.EOF):
+                raise self._error(
+                    "Unexpected end of template in call",
+                    suggestion="Add {% endcall %} or {% end %}",
+                )
+            else:
+                self._advance()
+
+        return CallBlock(
+            lineno=start.lineno,
+            col_offset=start.col_offset,
+            call=call_expr,
+            body=tuple(body),
+        )
+
+    def _parse_slot(self) -> Slot:
+        """Parse {% slot %} or {% slot name %}.
+
+        Placeholder inside {% def %} where caller content goes.
+
+        Example:
+            {% def card(title) %}
+                <div class="card">
+                    <h3>{{ title }}</h3>
+                    <div class="body">{% slot %}</div>
+                </div>
+            {% enddef %}
+        """
+        start = self._advance()  # consume 'slot'
+
+        # Optional slot name (default is "default")
+        name = "default"
+        if self._current.type == TokenType.NAME:
+            name = self._advance().value
+
+        self._expect(TokenType.BLOCK_END)
+
+        return Slot(
+            lineno=start.lineno,
+            col_offset=start.col_offset,
+            name=name,
+        )
+
+    def _parse_capture(self) -> Capture:
+        """Parse {% capture name %}...{% endcapture %} or {% end %}.
+
+        Capture rendered content into a variable.
+
+        Example:
+            {% capture sidebar %}
+                <nav>{{ build_nav() }}</nav>
+            {% endcapture %}
+
+            {{ sidebar }}
+        """
+        start = self._advance()  # consume 'capture'
+
+        # Get variable name
+        if self._current.type != TokenType.NAME:
+            raise self._error(
+                "Expected variable name",
+                suggestion="Capture syntax: {% capture varname %}...{% endcapture %}",
+            )
+        name = self._advance().value
+
+        # Optional filter
+        filter_node: Filter | None = None
+        if self._match(TokenType.PIPE):
+            self._advance()
+            if self._current.type != TokenType.NAME:
+                raise self._error("Expected filter name")
+            filter_name = self._advance().value
+
+            # Optional filter arguments
+            filter_args: list[Expr] = []
+            filter_kwargs: dict[str, Expr] = {}
+            if self._match(TokenType.LPAREN):
+                self._advance()
+                filter_args, filter_kwargs = self._parse_call_args()
+                self._expect(TokenType.RPAREN)
+
+            # Create a placeholder Filter node (value will be the captured content)
+            filter_node = Filter(
+                lineno=start.lineno,
+                col_offset=start.col_offset,
+                value=Const(lineno=start.lineno, col_offset=start.col_offset, value=""),
+                name=filter_name,
+                args=tuple(filter_args),
+                kwargs=filter_kwargs,
+            )
+
+        self._expect(TokenType.BLOCK_END)
+
+        # Parse body until {% endcapture %} or {% end %}
+        body: list[Node] = []
+        while True:
+            if self._match(TokenType.BLOCK_BEGIN):
+                self._advance()
+                if self._current.type == TokenType.NAME and self._current.value in (
+                    "endcapture",
+                    "end",
+                ):
+                    self._advance()
+                    self._expect(TokenType.BLOCK_END)
+                    break
+                else:
+                    block_node = self._parse_block_content()
+                    if block_node:
+                        body.append(block_node)
+            elif self._match(TokenType.VARIABLE_BEGIN):
+                body.append(self._parse_output())
+            elif self._match(TokenType.DATA):
+                body.append(self._parse_data())
+            elif self._match(TokenType.COMMENT_BEGIN):
+                self._skip_comment()
+            elif self._match(TokenType.EOF):
+                raise self._error(
+                    "Unexpected end of template in capture",
+                    suggestion="Add {% endcapture %} or {% end %}",
+                )
+            else:
+                self._advance()
+
+        return Capture(
+            lineno=start.lineno,
+            col_offset=start.col_offset,
+            name=name,
+            body=tuple(body),
+            filter=filter_node,
+        )
+
+    def _parse_cache(self) -> Cache:
+        """Parse {% cache key %}...{% endcache %} or {% end %}.
+
+        Fragment caching with optional TTL.
+
+        Example:
+            {% cache "sidebar-" ~ site.nav_version %}
+                {{ build_nav_tree(site.pages) }}
+            {% endcache %}
+
+            {% cache "weather", ttl="5m" %}
+                {{ fetch_weather() }}
+            {% endcache %}
+        """
+        start = self._advance()  # consume 'cache'
+
+        # Parse cache key expression
+        key = self._parse_expression()
+
+        # Optional TTL and depends
+        ttl: Expr | None = None
+        depends: list[Expr] = []
+
+        while self._match(TokenType.COMMA):
+            self._advance()
+            if self._current.type == TokenType.NAME:
+                if self._current.value == "ttl" and self._peek(1).type == TokenType.ASSIGN:
+                    self._advance()  # consume 'ttl'
+                    self._advance()  # consume '='
+                    ttl = self._parse_expression()
+                elif self._current.value == "depends" and self._peek(1).type == TokenType.ASSIGN:
+                    self._advance()  # consume 'depends'
+                    self._advance()  # consume '='
+                    depends.append(self._parse_expression())
+                else:
+                    break
+            else:
+                break
+
+        self._expect(TokenType.BLOCK_END)
+
+        # Parse body until {% endcache %} or {% end %}
+        body: list[Node] = []
+        while True:
+            if self._match(TokenType.BLOCK_BEGIN):
+                self._advance()
+                if self._current.type == TokenType.NAME and self._current.value in (
+                    "endcache",
+                    "end",
+                ):
+                    self._advance()
+                    self._expect(TokenType.BLOCK_END)
+                    break
+                else:
+                    block_node = self._parse_block_content()
+                    if block_node:
+                        body.append(block_node)
+            elif self._match(TokenType.VARIABLE_BEGIN):
+                body.append(self._parse_output())
+            elif self._match(TokenType.DATA):
+                body.append(self._parse_data())
+            elif self._match(TokenType.COMMENT_BEGIN):
+                self._skip_comment()
+            elif self._match(TokenType.EOF):
+                raise self._error(
+                    "Unexpected end of template in cache",
+                    suggestion="Add {% endcache %} or {% end %}",
+                )
+            else:
+                self._advance()
+
+        return Cache(
+            lineno=start.lineno,
+            col_offset=start.col_offset,
+            key=key,
+            body=tuple(body),
+            ttl=ttl,
+            depends=tuple(depends),
+        )
+
+    def _parse_filter_block(self) -> FilterBlock:
+        """Parse {% filter name %}...{% endfilter %} or {% end %}.
+
+        Apply a filter to an entire block of content.
+
+        Example:
+            {% filter upper %}
+                This will be UPPERCASE
+            {% endfilter %}
+        """
+        start = self._advance()  # consume 'filter'
+
+        # Get filter name
+        if self._current.type != TokenType.NAME:
+            raise self._error(
+                "Expected filter name",
+                suggestion="Filter block syntax: {% filter name %}...{% endfilter %}",
+            )
+        filter_name = self._advance().value
+
+        # Optional filter arguments
+        filter_args: list[Expr] = []
+        filter_kwargs: dict[str, Expr] = {}
+        if self._match(TokenType.LPAREN):
+            self._advance()
+            filter_args, filter_kwargs = self._parse_call_args()
+            self._expect(TokenType.RPAREN)
+
+        self._expect(TokenType.BLOCK_END)
+
+        # Parse body until {% endfilter %} or {% end %}
+        body: list[Node] = []
+        while True:
+            if self._match(TokenType.BLOCK_BEGIN):
+                self._advance()
+                if self._current.type == TokenType.NAME and self._current.value in (
+                    "endfilter",
+                    "end",
+                ):
+                    self._advance()
+                    self._expect(TokenType.BLOCK_END)
+                    break
+                else:
+                    block_node = self._parse_block_content()
+                    if block_node:
+                        body.append(block_node)
+            elif self._match(TokenType.VARIABLE_BEGIN):
+                body.append(self._parse_output())
+            elif self._match(TokenType.DATA):
+                body.append(self._parse_data())
+            elif self._match(TokenType.COMMENT_BEGIN):
+                self._skip_comment()
+            elif self._match(TokenType.EOF):
+                raise self._error(
+                    "Unexpected end of template in filter block",
+                    suggestion="Add {% endfilter %} or {% end %}",
+                )
+            else:
+                self._advance()
+
+        # Create Filter node for the block
+        filter_node = Filter(
+            lineno=start.lineno,
+            col_offset=start.col_offset,
+            value=Const(lineno=start.lineno, col_offset=start.col_offset, value=""),
+            name=filter_name,
+            args=tuple(filter_args),
+            kwargs=filter_kwargs,
+        )
+
+        return FilterBlock(
+            lineno=start.lineno,
+            col_offset=start.col_offset,
+            filter=filter_node,
+            body=tuple(body),
         )
 
     def _skip_comment(self) -> None:

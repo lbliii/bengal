@@ -201,18 +201,48 @@ class Template:
         # Extends helper - renders parent template with child's blocks
         def _extends(template_name: str, context: dict, blocks: dict) -> str:
             parent = env.get_template(template_name)
+            # Guard against templates that failed to compile properly
+            if parent._render_func is None:
+                raise RuntimeError(
+                    f"Template '{template_name}' not properly compiled: "
+                    f"_render_func is None. Check for syntax errors in the template."
+                )
             # Call parent's render function with blocks dict
             return parent._render_func(context, blocks)
 
         # Import macros from another template
         def _import_macros(template_name: str, with_context: bool, context: dict) -> dict:
             imported = env.get_template(template_name)
+            # Guard against templates that failed to compile properly
+            if imported._render_func is None:
+                raise RuntimeError(
+                    f"Template '{template_name}' not properly compiled: "
+                    f"_render_func is None. Check for syntax errors in the template."
+                )
             # Create a context for the imported template
             import_ctx = dict(context) if with_context else {}
             # Execute the template to define macros in its context
             imported._render_func(import_ctx, None)
             # Return the context (which now contains the macros)
             return import_ctx
+
+        # Cache helpers - use environment's cache if available
+        def _cache_get(key: str) -> str | None:
+            """Get cached fragment by key."""
+            cache = getattr(env, "_fragment_cache", None)
+            if cache is not None:
+                return cache.get(key)
+            return None
+
+        def _cache_set(key: str, value: str, ttl: str | None = None) -> None:
+            """Set cached fragment."""
+            cache = getattr(env, "_fragment_cache", None)
+            if cache is None:
+                # Create a simple dict cache if not provided
+                env._fragment_cache = {}  # type: ignore[attr-defined]
+                cache = env._fragment_cache
+            cache[key] = value
+            # Note: TTL handling would require a more sophisticated cache
 
         # Execute the code to get the render function
         namespace: dict[str, Any] = {
@@ -225,6 +255,8 @@ class Template:
             "_include": _include,
             "_extends": _extends,
             "_import_macros": _import_macros,
+            "_cache_get": _cache_get,
+            "_cache_set": _cache_set,
             "_Markup": Markup,
             "_LoopContext": LoopContext,
             "_str": str,

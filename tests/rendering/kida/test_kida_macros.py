@@ -222,6 +222,184 @@ class TestMacroImport:
         assert tmpl.render() == "Hi World"
 
 
+class TestMacroCallsMacro:
+    """Test macros that call other macros defined in the same file.
+
+    This is the critical pattern used in page-hero.html where helper macros
+    like _get_page_url are called by public macros like hero_element.
+    """
+
+    def test_macro_calls_helper_macro_same_file(self):
+        """Macro calling another macro defined in the same file.
+
+        Pattern: page-hero.html has _get_page_url called by hero_element.
+        This tests the fundamental case without imports.
+        """
+        env = Environment()
+        tmpl = env.from_string(
+            "{% macro _helper() %}HELPER{% endmacro %}"
+            "{% macro public() %}[{{ _helper() }}]{% endmacro %}"
+            "{{ public() }}"
+        )
+        result = tmpl.render()
+        assert result == "[HELPER]"
+
+    def test_macro_calls_helper_with_args(self):
+        """Macro calling helper with arguments."""
+        env = Environment()
+        tmpl = env.from_string(
+            "{% macro _format(val) %}|{{ val }}|{% endmacro %}"
+            "{% macro show(item) %}Result: {{ _format(item) }}{% endmacro %}"
+            "{{ show('test') }}"
+        )
+        result = tmpl.render()
+        assert result == "Result: |test|"
+
+    def test_imported_macro_calls_helper(self):
+        """Import a macro that calls a helper macro from the same file.
+
+        This is the CRITICAL test for the page-hero.html bug.
+        """
+        loader = DictLoader(
+            {
+                "helpers.html": (
+                    "{% macro _helper() %}HELPER{% endmacro %}"
+                    "{% macro public() %}[{{ _helper() }}]{% endmacro %}"
+                ),
+                "main.html": '{% from "helpers.html" import public %}{{ public() }}',
+            }
+        )
+        env = Environment(loader=loader)
+        tmpl = env.get_template("main.html")
+        result = tmpl.render()
+        assert result == "[HELPER]"
+
+    def test_imported_macro_calls_helper_with_args(self):
+        """Import macro that calls helper with arguments.
+
+        Mirrors: hero_element calls _get_page_url(page).
+        """
+        loader = DictLoader(
+            {
+                "macros.html": (
+                    "{% macro _get_url(page) %}{{ page.href or '/' }}{% endmacro %}"
+                    "{% macro public_macro(page) %}URL: {{ _get_url(page) }}{% endmacro %}"
+                ),
+                "main.html": '{% from "macros.html" import public_macro %}{{ public_macro(page) }}',
+            }
+        )
+        env = Environment(loader=loader)
+        tmpl = env.get_template("main.html")
+        result = tmpl.render(page={"href": "/test"})
+        assert "URL: /test" in result
+
+    def test_imported_macro_calls_multiple_helpers(self):
+        """Import macro that calls multiple helper macros.
+
+        Mirrors: hero_element calls _breadcrumb_eyebrow, _share_dropdown, etc.
+        """
+        loader = DictLoader(
+            {
+                "components.html": (
+                    "{% macro _header() %}HEADER{% endmacro %}"
+                    "{% macro _body(content) %}BODY:{{ content }}{% endmacro %}"
+                    "{% macro _footer() %}FOOTER{% endmacro %}"
+                    "{% macro card(text) %}{{ _header() }}|{{ _body(text) }}|{{ _footer() }}{% endmacro %}"
+                ),
+                "main.html": '{% from "components.html" import card %}{{ card("test") }}',
+            }
+        )
+        env = Environment(loader=loader)
+        tmpl = env.get_template("main.html")
+        result = tmpl.render()
+        assert result == "HEADER|BODY:test|FOOTER"
+
+    def test_imported_macro_with_nested_helper_calls(self):
+        """Imported macro where helpers call other helpers.
+
+        Tests deep nesting: hero_element -> _share_dropdown -> icon.
+        """
+        loader = DictLoader(
+            {
+                "nested.html": (
+                    "{% macro _level3() %}L3{% endmacro %}"
+                    "{% macro _level2() %}[{{ _level3() }}]{% endmacro %}"
+                    "{% macro _level1() %}{{{ _level2() }}}{% endmacro %}"
+                    "{% macro top() %}TOP:{{ _level1() }}{% endmacro %}"
+                ),
+                "main.html": '{% from "nested.html" import top %}{{ top() }}',
+            }
+        )
+        env = Environment(loader=loader)
+        tmpl = env.get_template("main.html")
+        result = tmpl.render()
+        assert result == "TOP:{[L3]}"
+
+    def test_imported_macro_with_context_and_helper(self):
+        """Import macro with context that calls helper."""
+        loader = DictLoader(
+            {
+                "macros.html": (
+                    "{% macro _helper() %}{{ site_name }}{% endmacro %}"
+                    "{% macro show() %}Site: {{ _helper() }}{% endmacro %}"
+                ),
+                "main.html": '{% from "macros.html" import show with context %}{{ show() }}',
+            }
+        )
+        env = Environment(loader=loader)
+        tmpl = env.get_template("main.html")
+        result = tmpl.render(site_name="Bengal")
+        assert result == "Site: Bengal"
+
+    def test_chain_of_template_imports(self):
+        """Chain: A imports from B which uses helper from B.
+
+        Tests the pattern: module.html -> element.html -> page-hero.html.
+        """
+        loader = DictLoader(
+            {
+                "helpers.html": (
+                    "{% macro _util() %}UTIL{% endmacro %}"
+                    "{% macro component() %}[{{ _util() }}]{% endmacro %}"
+                ),
+                "middle.html": (
+                    '{% from "helpers.html" import component %}'
+                    "{% macro wrapper() %}W:{{ component() }}:W{% endmacro %}"
+                ),
+                "main.html": '{% from "middle.html" import wrapper %}{{ wrapper() }}',
+            }
+        )
+        env = Environment(loader=loader)
+        tmpl = env.get_template("main.html")
+        result = tmpl.render()
+        assert result == "W:[UTIL]:W"
+
+    def test_extends_with_imported_macro_calling_helper(self):
+        """Template extends base and uses imported macro with helper.
+
+        Mirrors: module.html extends base.html and includes element.html
+        which imports from page-hero.html.
+        """
+        loader = DictLoader(
+            {
+                "macros.html": (
+                    "{% macro _helper() %}HELPER{% endmacro %}"
+                    "{% macro public() %}[{{ _helper() }}]{% endmacro %}"
+                ),
+                "base.html": "<html>{% block content %}{% endblock %}</html>",
+                "child.html": (
+                    '{% extends "base.html" %}'
+                    '{% from "macros.html" import public %}'
+                    "{% block content %}{{ public() }}{% endblock %}"
+                ),
+            }
+        )
+        env = Environment(loader=loader)
+        tmpl = env.get_template("child.html")
+        result = tmpl.render()
+        assert "[HELPER]" in result
+
+
 class TestMacroWithContext:
     """Macro context access."""
 
