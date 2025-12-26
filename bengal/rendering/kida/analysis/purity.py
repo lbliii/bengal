@@ -466,8 +466,10 @@ class PurityAnalyzer:
     def _visit_match(self, node: Any) -> PurityLevel:
         """Match statements are pure if all branches are pure."""
         result = self._visit(node.subject)
-        for pattern, body in node.cases:
+        for pattern, guard, body in node.cases:
             result = _combine_purity(result, self._visit(pattern))
+            if guard:
+                result = _combine_purity(result, self._visit(guard))
             for child in body:
                 result = _combine_purity(result, self._visit(child))
         return result

@@ -322,15 +322,21 @@ def build_page_context(
             else metadata.get("_posts", getattr(resolved_section, "pages", []))
         )
         context["pages"] = context["posts"]  # Alias
-        context["subsections"] = (
+        raw_subsections = (
             subsections
             if subsections is not None
             else metadata.get("_subsections", getattr(resolved_section, "subsections", []))
         )
+        # Wrap subsections in SectionContext so subsection.params works correctly
+        # This prevents 'str' object has no attribute 'get' errors when accessing
+        # subsection?.params?.type in templates
+        context["subsections"] = [SectionContext(sub) for sub in raw_subsections if sub is not None]
     else:
         context["posts"] = posts or []
         context["pages"] = context["posts"]
-        context["subsections"] = subsections or []
+        # Wrap subsections even when no section exists
+        raw_subsections = subsections or []
+        context["subsections"] = [SectionContext(sub) for sub in raw_subsections if sub is not None]
 
     # Add autodoc element if provided
     if element:

@@ -294,11 +294,16 @@ class Renderer:
             # PERF: Use cached sets for O(n) instead of O(n²) filtering
             top_level_pages, top_level_subsections = self._get_top_level_content()
 
+            # Wrap subsections in SectionContext so subsection.params works correctly
+            # This prevents 'str' object has no attribute 'get' errors when accessing
+            # subsection?.params?.type in templates
+            from bengal.rendering.context import SectionContext
+
             context.update(
                 {
                     "posts": top_level_pages,
                     "pages": top_level_pages,  # Alias
-                    "subsections": top_level_subsections,
+                    "subsections": [SectionContext(sub) for sub in top_level_subsections if sub is not None],
                 }
             )
 

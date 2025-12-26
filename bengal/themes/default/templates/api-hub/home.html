@@ -1,62 +1,190 @@
 {#
-API Hub Landing Page Template
+================================================================================
+API Hub Landing Page Template (Kida-Native)
+================================================================================
 
 Premium landing page for API documentation, displaying all available API types
 (Python, REST, CLI) in a beautiful tile layout with a hero banner.
 
-Mirrors the design language of home.html and tracks/list.html:
-- Hero section with badge, title, description
-- Stats bar showing API counts
-- Tile grid with type-specific icons and badges
-- Staggered animation on load
+KIDA FEATURES USED:
+- {% let %} for template-scoped variables
+- Optional chaining (?.) for null-safe access
+- Null coalescing (??) for smart defaults
+- {% def %} for reusable tile component
+- {% match %} for type-based rendering
 
-Usage: Auto-selected for api-hub sections or set template: api-hub/home.html
+USAGE:
+Auto-selected for api-hub sections or set template: api-hub/home.html
+================================================================================
 #}
 
 {% extends "base.html" %}
 
+{# =============================================================================
+API TILE COMPONENT
+============================================================================= #}
+{% def api_tile(subsection) %}
+{% let sub_type = subsection?.params?.type ?? 'python-reference' %}
+{% let sub_title = subsection?.title ?? 'API' %}
+{% let sub_href = subsection?.href ?? '#' %}
+{% let sub_desc = (subsection?.params?.description ?? '') | first_sentence %}
+{% let sub_subsections = subsection?.subsections ?? [] %}
+{% let sub_pages = subsection?.pages ?? [] %}
+{% let subsections_len = sub_subsections | length | int %}
+{% let pages_len = sub_pages | length | int %}
+{% let child_count = subsections_len + pages_len %}
+{% let preview_limit = 4 %}
+
+{# Determine preview items #}
+{% let sorted_subsections = subsection?.sorted_subsections ?? [] %}
+{% let sorted_pages = subsection?.sorted_pages ?? [] %}
+{% let preview_items = sorted_subsections[:preview_limit] if sorted_subsections | length > 0 else
+sorted_pages[:preview_limit] %}
+
+<article class="api-hub-tile api-hub-tile--{{ sub_type }} gradient-border fluid-combined">
+  {# Type Badge #}
+  <div class="api-hub-tile__badge-row">
+    <span class="api-hub-tile__type-badge api-hub-tile__type-badge--{{ sub_type }}">
+      {% match sub_type %}
+      {% case _ if 'python' in sub_type %}
+      {{ icon("code", size=12) }} Python
+      {% case _ if 'openapi' in sub_type %}
+      {{ icon("globe", size=12) }} REST
+      {% case _ if 'cli' in sub_type %}
+      {{ icon("terminal", size=12) }} CLI
+      {% case _ %}
+      {{ icon("book", size=12) }} API
+      {% end %}
+    </span>
+  </div>
+
+  {# Tile Header with Icon #}
+  <div class="api-hub-tile__header">
+    <div class="api-hub-tile__icon">
+      {% match sub_type %}
+      {% case _ if 'python' in sub_type %}
+      {{ icon("code", size=32, css_class="icon-python") }}
+      {% case _ if 'openapi' in sub_type %}
+      {{ icon("globe", size=32, css_class="icon-openapi") }}
+      {% case _ if 'cli' in sub_type %}
+      {{ icon("terminal", size=32, css_class="icon-cli") }}
+      {% case _ %}
+      {{ icon("book", size=32, css_class="icon-default") }}
+      {% end %}
+    </div>
+    <h2 class="api-hub-tile__title">
+      <a href="{{ sub_href }}">{{ sub_title }}</a>
+    </h2>
+  </div>
+
+  {# Tile Content #}
+  <div class="api-hub-tile__content">
+    <p class="api-hub-tile__description">
+      {% if sub_desc %}
+      {{ sub_desc }}
+      {% else %}
+      {% match sub_type %}
+      {% case _ if 'python' in sub_type %}
+      Browse Python packages, modules, classes, and functions.
+      {% case _ if 'openapi' in sub_type %}
+      Explore REST API endpoints, parameters, and response schemas.
+      {% case _ if 'cli' in sub_type %}
+      Command-line interface documentation with options and examples.
+      {% case _ %}
+      API documentation and reference material.
+      {% end %}
+      {% end %}
+    </p>
+
+    {# Preview Items #}
+    {% if preview_items | length > 0 %}
+    <div class="api-hub-tile__preview">
+      <div class="api-hub-tile__preview-label">Includes:</div>
+      <ul class="api-hub-tile__preview-list">
+        {% for item in preview_items %}
+        {% let item_title = item?.title ?? item?.name ?? 'Item' %}
+        <li class="api-hub-tile__preview-item">
+          <span class="api-hub-tile__preview-bullet"></span>
+          <span class="api-hub-tile__preview-title">{{ item_title }}</span>
+        </li>
+        {% end %}
+        {% let remaining = child_count - preview_limit %}
+        {% if remaining > 0 %}
+        <li class="api-hub-tile__preview-item api-hub-tile__preview-more">
+          <span class="api-hub-tile__preview-more-text">+{{ remaining }} more</span>
+        </li>
+        {% end %}
+      </ul>
+    </div>
+    {% end %}
+  </div>
+
+  {# Tile Footer #}
+  <div class="api-hub-tile__footer">
+    <span class="api-hub-tile__meta">
+      {% match sub_type %}
+      {% case _ if 'python' in sub_type %}
+      {{ child_count }} {{ 'module' if child_count == 1 else 'modules' }}
+      {% case _ if 'openapi' in sub_type %}
+      {{ child_count }} {{ 'endpoint' if child_count == 1 else 'endpoints' }}
+      {% case _ if 'cli' in sub_type %}
+      {{ child_count }} {{ 'command' if child_count == 1 else 'commands' }}
+      {% case _ %}
+      {{ child_count }} {{ 'item' if child_count == 1 else 'items' }}
+      {% end %}
+    </span>
+    <a href="{{ sub_href }}" class="api-hub-tile__button">
+      Explore {{ icon('arrow-right', size=16) }}
+    </a>
+  </div>
+</article>
+{% enddef %}
+
+{# =============================================================================
+MAIN TEMPLATE
+============================================================================= #}
+
 {% block content %}
+{# Template-scoped variables #}
+{% let hub_section = section %}
+{% let hub_title = section?.title ?? page?.title ?? 'API Documentation' %}
+{% let hub_desc = section?.params?.description ?? params?.description ?? '' %}
+{% let subsections = section?.sorted_subsections ?? [] %}
+
+{# Count API types #}
+{% let python_count = 0 %}
+{% let rest_count = 0 %}
+{% let cli_count = 0 %}
+{% for sub in subsections %}
+{% let sub_type = sub?.params?.type ?? '' %}
+{% if 'python' in sub_type %}{% let python_count = python_count + 1 %}{% end %}
+{% if 'openapi' in sub_type %}{% let rest_count = rest_count + 1 %}{% end %}
+{% if 'cli' in sub_type %}{% let cli_count = cli_count + 1 %}{% end %}
+{% end %}
+
 <div class="api-hub-home">
   {# Hero Section #}
   <header class="api-hub-hero">
     <div class="api-hub-hero__container">
-      {# Badge #}
       <span class="api-hub-hero__badge">API Reference</span>
 
-      {# Title #}
       <h1 class="api-hub-hero__title">
-        <span class="fluid-text">{{ (section.title if section else page.title) ?? 'API Documentation' }}</span>
+        <span class="fluid-text">{{ hub_title }}</span>
       </h1>
 
-      {# Description #}
-      {% set desc = (section.params.description if section else '') or params.description %}
-      {% if desc %}
-      <p class="api-hub-hero__subtitle">{{ desc }}</p>
+      {% if hub_desc %}
+      <p class="api-hub-hero__subtitle">{{ hub_desc }}</p>
       {% else %}
       <p class="api-hub-hero__subtitle">Explore comprehensive API documentation for Python modules, REST endpoints, and
         CLI commands.</p>
       {% end %}
 
       {# Stats Bar #}
-      {% if section and section.sorted_subsections %}
+      {% if subsections | length > 0 %}
       <div class="api-hub-hero__stats">
-        {% set python_count = 0 %}
-        {% set rest_count = 0 %}
-        {% set cli_count = 0 %}
-        {% for sub in section.sorted_subsections %}
-        {% set sub_type = sub.params.type or '' %}
-        {% if 'python' in sub_type %}
-        {% set python_count = python_count + 1 %}
-        {% elif 'openapi' in sub_type %}
-        {% set rest_count = rest_count + 1 %}
-        {% elif 'cli' in sub_type %}
-        {% set cli_count = cli_count + 1 %}
-        {% end %}
-        {% end %}
-
         <div class="api-hub-stat">
-          <span class="api-hub-stat__value">{{ section.sorted_subsections | length }}</span>
-          <span class="api-hub-stat__label">API{{ 's' if section.sorted_subsections | length != 1 else '' }}</span>
+          <span class="api-hub-stat__value">{{ subsections | length }}</span>
+          <span class="api-hub-stat__label">API{{ 's' if subsections | length != 1 else '' }}</span>
         </div>
 
         {% if python_count > 0 %}
@@ -95,111 +223,11 @@ Usage: Auto-selected for api-hub sections or set template: api-hub/home.html
   {% end %}
 
   {# API Tiles Grid #}
-  {% if section and section.sorted_subsections %}
+  {% if subsections | length > 0 %}
   <section class="api-hub-apis" aria-label="Available APIs">
     <div class="api-hub-grid">
-      {% for subsection in section.sorted_subsections %}
-      {% set sub_type = subsection.params.type or 'python-reference' %}
-      {% set desc = subsection.params.description | first_sentence %}
-      {% set child_count = (subsection.subsections | length) + (subsection.pages | length) %}
-
-      <article class="api-hub-tile api-hub-tile--{{ sub_type }} gradient-border fluid-combined">
-        {# Type Badge #}
-        <div class="api-hub-tile__badge-row">
-          <span class="api-hub-tile__type-badge api-hub-tile__type-badge--{{ sub_type }}">
-            {%- if 'python' in sub_type -%}
-            {{ icon("code", size=12) }} Python
-            {%- elif 'openapi' in sub_type -%}
-            {{ icon("globe", size=12) }} REST
-            {%- elif 'cli' in sub_type -%}
-            {{ icon("terminal", size=12) }} CLI
-            {%- else -%}
-            {{ icon("book", size=12) }} API
-            {% end %}
-          </span>
-        </div>
-
-        {# Tile Header with Icon #}
-        <div class="api-hub-tile__header">
-          <div class="api-hub-tile__icon">
-            {%- if 'python' in sub_type -%}
-            {{ icon("code", size=32, css_class="icon-python") }}
-            {%- elif 'openapi' in sub_type -%}
-            {{ icon("globe", size=32, css_class="icon-openapi") }}
-            {%- elif 'cli' in sub_type -%}
-            {{ icon("terminal", size=32, css_class="icon-cli") }}
-            {%- else -%}
-            {{ icon("book", size=32, css_class="icon-default") }}
-            {% end %}
-          </div>
-          <h2 class="api-hub-tile__title">
-            <a href="{{ subsection.href }}">{{ subsection.title }}</a>
-          </h2>
-        </div>
-
-        {# Tile Content #}
-        <div class="api-hub-tile__content">
-          <p class="api-hub-tile__description">
-            {% if desc %}
-            {{ desc }}
-            {% else %}
-            {# Default descriptions based on type #}
-            {%- if 'python' in sub_type -%}
-            Browse Python packages, modules, classes, and functions.
-            {%- elif 'openapi' in sub_type -%}
-            Explore REST API endpoints, parameters, and response schemas.
-            {%- elif 'cli' in sub_type -%}
-            Command-line interface documentation with options and examples.
-            {%- else -%}
-            API documentation and reference material.
-            {% end %}
-            {% end %}
-          </p>
-
-          {# Preview Items #}
-          {% if subsection.sorted_subsections or subsection.sorted_pages %}
-          <div class="api-hub-tile__preview">
-            <div class="api-hub-tile__preview-label">Includes:</div>
-            <ul class="api-hub-tile__preview-list">
-              {% set preview_limit = 4 %}
-              {% set preview_items = subsection.sorted_subsections[:preview_limit] if subsection.sorted_subsections else
-              subsection.sorted_pages[:preview_limit] %}
-              {% for item in preview_items %}
-              <li class="api-hub-tile__preview-item">
-                <span class="api-hub-tile__preview-bullet"></span>
-                <span class="api-hub-tile__preview-title">{{ item.title | default(item.name) }}</span>
-              </li>
-              {% end %}
-              {% set remaining = child_count - preview_limit %}
-              {% if remaining > 0 %}
-              <li class="api-hub-tile__preview-item api-hub-tile__preview-more">
-                <span class="api-hub-tile__preview-more-text">+{{ remaining }} more</span>
-              </li>
-              {% end %}
-            </ul>
-          </div>
-          {% end %}
-        </div>
-
-        {# Tile Footer #}
-        <div class="api-hub-tile__footer">
-          <span class="api-hub-tile__meta">
-            {%- if 'python' in sub_type -%}
-            {{ child_count }} {{ 'module' if child_count == 1 else 'modules' }}
-            {%- elif 'openapi' in sub_type -%}
-            {{ child_count }} {{ 'endpoint' if child_count == 1 else 'endpoints' }}
-            {%- elif 'cli' in sub_type -%}
-            {{ child_count }} {{ 'command' if child_count == 1 else 'commands' }}
-            {%- else -%}
-            {{ child_count }} {{ 'item' if child_count == 1 else 'items' }}
-            {% end %}
-          </span>
-          <a href="{{ subsection.href }}" class="api-hub-tile__button">
-            Explore
-            {{ icon('arrow-right', size=16) }}
-          </a>
-        </div>
-      </article>
+      {% for subsection in subsections %}
+      {{ api_tile(subsection) }}
       {% end %}
     </div>
   </section>

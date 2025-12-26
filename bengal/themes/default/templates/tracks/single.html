@@ -1,149 +1,170 @@
 {#
-Track Single Page Template
+================================================================================
+Track Single Page Template (Kida-Native)
+================================================================================
 
 Pillar page-style layout for learning tracks with:
 - Left sidebar: Other tracks + progress
 - Center: Track content (pillar page style)
 - Right sidebar: TOC from all track sections
 
-Usage: Set `template: tracks/single.html` in frontmatter
+KIDA FEATURES USED:
+- {% let %} for template-scoped variables
+- Optional chaining (?.) for null-safe access
+- Null coalescing (??) for smart defaults
+- {% def %} for reusable section components
+
+USAGE:
+Set `template: tracks/single.html` in frontmatter
 Or set `type: track` to auto-select this template
+================================================================================
 #}
 
 {% extends "base.html" %}
 {% from 'partials/navigation-components.html' import toc %}
 
+{# =============================================================================
+   TRACK SECTION COMPONENT
+   ============================================================================= #}
+{% def track_section_block(item_page, index, is_last) %}
+{% let section_prefix = "s" ~ index ~ "-" %}
+{% let item_title = item_page?.title ?? 'Section' %}
+{% let item_desc = item_page?.description ?? '' %}
+{% let item_ast = item_page?.parsed_ast %}
+{% let item_content = item_page?.content ?? '' %}
+{% let item_href = item_page?.href ?? '#' %}
+
+<section id="track-section-{{ index }}" class="track-section">
+  {# Section Header #}
+  <div class="track-section-header">
+    <span class="track-section-number">{{ index }}</span>
+    <div class="track-section-title-group">
+      <h2 class="track-section-title">{{ item_title }}</h2>
+      {% if item_desc %}
+      <p class="track-section-description">{{ item_desc }}</p>
+      {% end %}
+    </div>
+  </div>
+
+  {# Section Content (headings demoted + IDs prefixed for uniqueness) #}
+  <div class="track-section-content">
+    {% if item_ast %}
+    {{ item_ast | demote_headings | prefix_heading_ids(section_prefix) | safe }}
+    {% elif item_content %}
+    {{ item_content | demote_headings | prefix_heading_ids(section_prefix) | safe }}
+    {% else %}
+    <div class="alert alert-warning">
+      <p><strong>Content Unavailable</strong></p>
+      <p>This page has no content available.</p>
+      <p class="mb-0">
+        <a href="{{ item_href }}" class="btn btn-sm btn-primary">
+          View Full Page: {{ item_title }} →
+        </a>
+      </p>
+    </div>
+    {% end %}
+  </div>
+
+  {# Track Complete Badge (only after final section) #}
+  {% if is_last %}
+  <div class="track-complete">
+    <span class="badge bg-success fs-6 px-3 py-2">✓ Track Complete</span>
+  </div>
+  {% end %}
+</section>
+{% end %}
+
+{# =============================================================================
+   MAIN TEMPLATE
+   ============================================================================= #}
+
 {% block content %}
-{% set
-    track_id = params.track_id or page.slug,
-    track = site.data.tracks[track_id] if (track_id and site.data.tracks and track_id in site.data.tracks) else none
-%}
+{# Template-scoped variables #}
+{% let track_id = params?.track_id ?? page?.slug ?? '' %}
+{% let tracks_data = site?.data?.tracks ?? {} %}
+{% let track = tracks_data[track_id] if track_id and track_id in tracks_data else none %}
+{% let track_items = track?.items ?? [] %}
+{% let track_title = track?.title ?? page?.title ?? 'Track' %}
+{% let track_desc = track?.description ?? page?.description ?? '' %}
+{% let page_toc_items = page?.toc_items ?? [] %}
 
 {# Three-column pillar page layout #}
 <div class="docs-layout track-layout">
-    {# Left Sidebar: Track Navigation + Progress #}
-    <aside class="docs-sidebar track-sidebar-container" id="track-sidebar" role="navigation"
-        aria-label="Track navigation">
-        {% include 'partials/track-sidebar.html' %}
-    </aside>
+  {# Left Sidebar: Track Navigation + Progress #}
+  <aside class="docs-sidebar track-sidebar-container" id="track-sidebar" role="navigation"
+         aria-label="Track navigation">
+    {% include 'partials/track-sidebar.html' %}
+  </aside>
 
-    {# Main Content: Pillar Page Style #}
-    <div class="docs-main track-main">
-        {# Track Header #}
-        <article class="prose track-article">
-            <header class="page-header track-header">
-                <span class="badge bg-primary mb-3">Learning Track</span>
-                <h1>{{ page.title or (track.title if track else 'Track') }}</h1>
-
-                {% if page.description or (track.description if track else None) %}
-                <p class="lead text-muted mt-3">
-                    {{ page.description or (track.description if track else '') }}
-                </p>
-                {% end %}
-            </header>
-
-            {# Main Page Content (Introduction) #}
-            {% if content %}
-            <div class="track-intro mb-5">
-                {{ content | safe }}
-            </div>
-            {% end %}
-
-            {# Render All Track Pages Sequentially (Pillar Page Content) #}
-            {% if track and track.items %}
-            <div class="track-content">
-                {% for item_slug in track.items %}
-                {% set item_page = get_page(item_slug) %}
-
-                {% if item_page %}
-
-                <section id="track-section-{{ loop.index }}" class="track-section">
-                    {# Section Header #}
-                    <div class="track-section-header">
-                        <span class="track-section-number">{{ loop.index }}</span>
-                        <div class="track-section-title-group">
-                            <h2 class="track-section-title">{{ item_page.title }}</h2>
-                            {% if item_page.description %}
-                            <p class="track-section-description">{{ item_page.description }}</p>
-                            {% end %}
-                        </div>
-                    </div>
-
-                    {# Section Content (headings demoted + IDs prefixed for uniqueness) #}
-                    {% set section_prefix = "s" ~ loop.index ~ "-" %}
-                    <div class="track-section-content">
-                        {% if item_page.parsed_ast %}
-                        {{ item_page.parsed_ast | demote_headings | prefix_heading_ids(section_prefix) | safe }}
-                        {% elif item_page.content %}
-                        {{ item_page.content | demote_headings | prefix_heading_ids(section_prefix) | safe }}
-                        {% else %}
-                        <div class="alert alert-warning">
-                            <p><strong>Content Unavailable</strong></p>
-                            <p>This page has no content available.</p>
-                            <p class="mb-0">
-                                <a href="{{ item_page.href }}" class="btn btn-sm btn-primary">
-                                    View Full Page: {{ item_page.title }} →
-                                </a>
-                            </p>
-                        </div>
-                        {% end %}
-                    </div>
-
-                    {# Track Complete Badge (only after final section) #}
-                    {% if loop.last %}
-                    <div class="track-complete">
-                        <span class="badge bg-success fs-6 px-3 py-2">
-                            ✓ Track Complete
-                        </span>
-                    </div>
-                    {% end %}
-                </section>
-                {% else %}
-                {# Missing Page Warning #}
-                <section id="track-section-{{ loop.index }}" class="track-section">
-                    <div class="alert alert-warning">
-                        <h3 class="h5">Section {{ loop.index }}: Page Not Found</h3>
-                        <p class="mb-0">Could not find page: <code>{{ item_slug }}</code></p>
-                    </div>
-                </section>
-                {% end %}
-                {% end %}
-            </div>
-            {% elif not track %}
-            <div class="alert alert-warning">
-                <h4 class="alert-heading">Track Not Found</h4>
-                <p>Could not find a track definition with ID <code>{{ track_id }}</code> in
-                    <code>site/data/tracks.yaml</code>.
-                </p>
-                <hr>
-                <p class="mb-0">Please ensure the page slug matches the track key, or set <code>track_id</code> in
-                    frontmatter.</p>
-            </div>
-            {% end %}
-        </article>
-    </div>
-
-    {# Right Sidebar: TOC from all track sections #}
-    {# Combine TOC items from all track section pages #}
-    {% if track and track.items %}
-        {% set combined_toc_items = combine_track_toc(track.items) %}
-        {% if combined_toc_items %}
-        <aside class="docs-toc" role="complementary" aria-label="Table of contents">
-            {{ toc(toc_items=combined_toc_items, page=page) }}
-        </aside>
+  {# Main Content: Pillar Page Style #}
+  <div class="docs-main track-main">
+    <article class="prose track-article">
+      {# Track Header #}
+      <header class="page-header track-header">
+        <span class="badge bg-primary mb-3">Learning Track</span>
+        <h1>{{ track_title }}</h1>
+        {% if track_desc %}
+        <p class="lead text-muted mt-3">{{ track_desc }}</p>
         {% end %}
-    {% elif page.toc_items %}
-    {# Fallback to page TOC if no track sections #}
-    <aside class="docs-toc" role="complementary" aria-label="Table of contents">
-        {{ toc(toc_items=page.toc_items, page=page) }}
-    </aside>
-    {% end %}
+      </header>
+
+      {# Main Page Content (Introduction) #}
+      {% if content %}
+      <div class="track-intro mb-5">
+        {{ content | safe }}
+      </div>
+      {% end %}
+
+      {# Render All Track Pages Sequentially (Pillar Page Content) #}
+      {% if track and track_items | length > 0 %}
+      <div class="track-content">
+        {% for item_slug in track_items %}
+        {% let item_page = get_page(item_slug) %}
+        {% if item_page %}
+        {{ track_section_block(item_page, loop.index, loop.last) }}
+        {% else %}
+        {# Missing Page Warning #}
+        <section id="track-section-{{ loop.index }}" class="track-section">
+          <div class="alert alert-warning">
+            <h3 class="h5">Section {{ loop.index }}: Page Not Found</h3>
+            <p class="mb-0">Could not find page: <code>{{ item_slug }}</code></p>
+          </div>
+        </section>
+        {% end %}
+        {% end %}
+      </div>
+      {% elif not track %}
+      <div class="alert alert-warning">
+        <h4 class="alert-heading">Track Not Found</h4>
+        <p>Could not find a track definition with ID <code>{{ track_id }}</code> in
+          <code>site/data/tracks.yaml</code>.</p>
+        <hr>
+        <p class="mb-0">Please ensure the page slug matches the track key, or set <code>track_id</code> in frontmatter.</p>
+      </div>
+      {% end %}
+    </article>
+  </div>
+
+  {# Right Sidebar: TOC from all track sections #}
+  {% if track and track_items | length > 0 %}
+  {% let combined_toc_items = combine_track_toc(track_items) %}
+  {% if combined_toc_items %}
+  <aside class="docs-toc" role="complementary" aria-label="Table of contents">
+    {{ toc(toc_items=combined_toc_items, page=page) }}
+  </aside>
+  {% end %}
+  {% elif page_toc_items | length > 0 %}
+  {# Fallback to page TOC if no track sections #}
+  <aside class="docs-toc" role="complementary" aria-label="Table of contents">
+    {{ toc(toc_items=page_toc_items, page=page) }}
+  </aside>
+  {% end %}
 </div>
 
 {# Mobile sidebar toggle button #}
 <button class="docs-sidebar-toggle" aria-label="Toggle navigation sidebar" aria-expanded="false"
-    aria-controls="track-sidebar">
-    {{ icon('list', size=20) }}
+        aria-controls="track-sidebar">
+  {{ icon('list', size=20) }}
 </button>
 
 {# Mobile sidebar overlay #}

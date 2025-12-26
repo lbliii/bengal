@@ -1,0 +1,41 @@
+{#
+================================================================================
+Widget Components (Kida-Native)
+================================================================================
+
+Sidebar and discovery widgets.
+
+Components:
+- random_posts(count): Random post discovery widget
+================================================================================
+#}
+
+{# =============================================================================
+RANDOM POSTS WIDGET
+
+Displays randomly selected posts for discovery.
+============================================================================= #}
+{% def random_posts(count=3) %}
+{% let site_pages = site?.regular_pages ?? [] %}
+{% let random_selection = site_pages | sample(count) %}
+
+{% if random_selection | length > 0 %}
+<aside class="random-posts-widget">
+  <h3>{{ t('posts.you_might_like', default='You Might Also Like') }}</h3>
+  <div class="random-posts-list">
+    {% for post in random_selection %}
+    <article class="random-post-item">
+      <h4>
+        <a href="{{ post.href }}">{{ post.title }}</a>
+      </h4>
+      {% if post?.date %}
+      <time datetime="{{ post.date | date_iso }}">
+        {{ post.date | time_ago }}
+      </time>
+      {% end %}
+    </article>
+    {% end %}
+  </div>
+</aside>
+{% end %}
+{% end %}

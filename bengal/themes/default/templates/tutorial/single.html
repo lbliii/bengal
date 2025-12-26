@@ -1,190 +1,222 @@
 {% extends "base.html" %}
 
 {#
-Tutorial Single Page Template
+================================================================================
+Tutorial Single Page Template (Kida-Native)
+================================================================================
 
-Used for individual tutorial pages. Optimized for step-by-step learning
-with clear navigation, progress indicators, and helpful metadata.
+Individual tutorial page optimized for step-by-step learning.
 
-Usage: Set `type: tutorial` in frontmatter or use cascade from section
+KIDA FEATURES USED:
+- {% let %} for template-scoped variables
+- Optional chaining (?.) for null-safe access
+- Null coalescing (??) for smart defaults
+- {% def %} for reusable card components
 
-Context variables:
-- page: Tutorial page object
-- content: Rendered tutorial content
-- toc: Table of contents
+USAGE:
+Set `type: tutorial` in frontmatter or use cascade from section
+================================================================================
 #}
 
 {% from 'partials/navigation-components.html' import breadcrumbs, page_navigation %}
 
+{# =============================================================================
+   RELATED TUTORIAL CARD
+   ============================================================================= #}
+{% def related_tutorial_card(tutorial) %}
+{% let tut_meta = tutorial?.metadata ?? {} %}
+{% let tut_title = tutorial?.title ?? 'Tutorial' %}
+{% let tut_href = tutorial?.href ?? '#' %}
+{% let tut_icon = tut_meta?.icon ?? '📖' %}
+{% let tut_desc = tut_meta?.description ?? '' %}
+{% let tut_difficulty = tut_meta?.difficulty ?? '' %}
+
+<article class="tutorial-card gradient-border fluid-combined">
+  <div class="tutorial-card-header">
+    <span class="tutorial-icon">{{ tut_icon }}</span>
+    <h3 class="tutorial-title">
+      <a href="{{ tut_href }}">{{ tut_title }}</a>
+    </h3>
+  </div>
+  <div class="tutorial-card-content">
+    {% if tut_desc %}
+    <p class="tutorial-description">{{ tut_desc | truncate(100) }}</p>
+    {% end %}
+    {% if tut_difficulty %}
+    <span class="tutorial-badge tutorial-badge-{{ tut_difficulty }}">
+      {{ tut_difficulty | capitalize }}
+    </span>
+    {% end %}
+  </div>
+</article>
+{% end %}
+
+{# =============================================================================
+   MAIN TEMPLATE
+   ============================================================================= #}
+
 {% block content %}
+{# Template-scoped variables #}
+{% let page_title = page?.title ?? 'Tutorial' %}
+{% let page_date = page?.date %}
+{% let page_tags = page?.tags ?? [] %}
+{% let css_class = params?.css_class ?? '' %}
+
+{# Tutorial metadata #}
+{% let tut_icon = params?.icon ?? '' %}
+{% let tut_desc = params?.description ?? '' %}
+{% let tut_difficulty = params?.difficulty ?? '' %}
+{% let tut_time = params?.time ?? params?.duration ?? '' %}
+{% let tut_prereqs = params?.prerequisites ?? [] %}
+{% let tut_objectives = params?.learning_objectives ?? params?.objectives ?? [] %}
+{% let tut_next_steps = params?.next_steps ?? [] %}
+{% let tut_further_reading = params?.further_reading ?? [] %}
+
 <div class="container">
-    {# Action Bar: Breadcrumbs + Share #}
-    {% include 'partials/action-bar.html' %}
+  {# Action Bar: Breadcrumbs + Share #}
+  {% include 'partials/action-bar.html' %}
 
-    <div class="tutorial-page-layout {% if toc %}tutorial-with-toc{% end %}">
-        <article class="tutorial-page prose {% if params.css_class %}{{ params.css_class }}{% end %}">
-            <header class="page-header">
-                {# Tutorial Icon #}
-                {% if params.icon %}
-                <div class="tutorial-page-icon">{{ params.icon }}</div>
-                {% end %}
-
-                <h1>{{ page.title }}</h1>
-
-                {% if params.description %}
-                <p class="lead">{{ params.description }}</p>
-                {% end %}
-
-                {# Tutorial Metadata Bar #}
-                <div class="tutorial-page-meta">
-                    {# Difficulty #}
-                    {% if params.difficulty %}
-                    <span class="tutorial-badge tutorial-badge-{{ params.difficulty }}">
-                        {{ params.difficulty | capitalize }}
-                    </span>
-                    {% end %}
-
-                    {# Time Estimate #}
-                    {% if params.time or params.duration %}
-                    <span class="tutorial-meta-item">
-                        {{ icon('clock', size=16) }}
-                        {{ params.time | default(params.duration) }}
-                    </span>
-                    {% end %}
-
-                    {# Last Updated #}
-                    {% if page.date %}
-                    <span class="tutorial-meta-item">
-                        {{ icon('calendar', size=16) }}
-                        Updated {{ page.date | time_ago }}
-                    </span>
-                    {% end %}
-                </div>
-
-                {# Prerequisites #}
-                {% if params.prerequisites %}
-                <div class="tutorial-prerequisites">
-                    <h4>{{ t('tutorial.prerequisites', default='Prerequisites') }}</h4>
-                    <ul>
-                        {% for prereq in params.prerequisites %}
-                        <li>
-                            {# Try to resolve as page reference (supports path, slug, or id:xxx) #}
-                            {% if prereq is string %}
-                            {% set prereq_page = doc(prereq, site.indexes.crossref) if site.indexes.crossref else none
-                            %}
-                            {% if prereq_page %}
-                            <a href="{{ prereq_page.href }}" class="tutorial-prereq-link">{{ prereq_page.title }}</a>
-                            {% else %}
-                            {# Fallback: if it looks like a path/slug, try ref() for link generation #}
-                            {% set prereq_ref = ref(prereq, site.indexes.crossref) if site.indexes.crossref else none %}
-                            {% if prereq_ref and '<a' in prereq_ref %} {{ prereq_ref | safe }} {% else %} {{ prereq }}
-                                {% end %} {% end %} {% else %} {{ prereq }} {% end %} </li>
-                                {% end %}
-                    </ul>
-                </div>
-                {% end %}
-
-                {# What You'll Learn #}
-                {% if params.learning_objectives or params.objectives %}
-                <div class="tutorial-objectives">
-                    <h4>{{ t('tutorial.what_you_will_learn', default="What you'll learn") }}</h4>
-                    <ul>
-                        {% for objective in (params.learning_objectives |
-                        default(params.objectives)) %}
-                        <li>{{ objective }}</li>
-                        {% end %}
-                    </ul>
-                </div>
-                {% end %}
-            </header>
-
-            {# Main Tutorial Content #}
-            <div class="tutorial-content">
-                {{ content | safe }}
-            </div>
-
-            {# What's Next / Further Reading #}
-            {% if params.next_steps or params.further_reading %}
-            <footer class="tutorial-footer">
-                {% if params.next_steps %}
-                <div class="tutorial-next-steps">
-                    <h3>{{ t('tutorial.whats_next', default="What's Next?") }}</h3>
-                    <ul>
-                        {% for step in params.next_steps %}
-                        <li>{{ step }}</li>
-                        {% end %}
-                    </ul>
-                </div>
-                {% end %}
-
-                {% if params.further_reading %}
-                <div class="tutorial-further-reading">
-                    <h3>{{ t('tutorial.further_reading', default='Further Reading') }}</h3>
-                    <ul>
-                        {% for resource in params.further_reading %}
-                        <li>{{ resource }}</li>
-                        {% end %}
-                    </ul>
-                </div>
-                {% end %}
-            </footer>
-            {% end %}
-        </article>
-
-        {# Right Sidebar: TOC #}
-        {% if toc %}
-        <aside class="tutorial-sidebar">
-            <nav class="toc" aria-label="Table of contents">
-                <h2 class="toc-title">Tutorial Steps</h2>
-                <div class="toc-content">
-                    {{ toc | safe }}
-                </div>
-            </nav>
-        </aside>
+  <div class="tutorial-page-layout{{ ' tutorial-with-toc' if toc else '' }}">
+    <article class="tutorial-page prose {{ css_class }}">
+      <header class="page-header">
+        {# Tutorial Icon #}
+        {% if tut_icon %}
+        <div class="tutorial-page-icon">{{ tut_icon }}</div>
         {% end %}
-    </div>
 
+        <h1>{{ page_title }}</h1>
+
+        {% if tut_desc %}
+        <p class="lead">{{ tut_desc }}</p>
+        {% end %}
+
+        {# Tutorial Metadata Bar #}
+        <div class="tutorial-page-meta">
+          {# Difficulty #}
+          {% if tut_difficulty %}
+          <span class="tutorial-badge tutorial-badge-{{ tut_difficulty }}">
+            {{ tut_difficulty | capitalize }}
+          </span>
+          {% end %}
+
+          {# Time Estimate #}
+          {% if tut_time %}
+          <span class="tutorial-meta-item">
+            {{ icon('clock', size=16) }} {{ tut_time }}
+          </span>
+          {% end %}
+
+          {# Last Updated #}
+          {% if page_date %}
+          <span class="tutorial-meta-item">
+            {{ icon('calendar', size=16) }} Updated {{ page_date | time_ago }}
+          </span>
+          {% end %}
+        </div>
+
+        {# Prerequisites #}
+        {% if tut_prereqs | length > 0 %}
+        <div class="tutorial-prerequisites">
+          <h4>{{ t('tutorial.prerequisites', default='Prerequisites') }}</h4>
+          <ul>
+            {% for prereq in tut_prereqs %}
+            <li>
+              {% if prereq is string %}
+              {% let prereq_page = doc(prereq, site?.indexes?.crossref) if site?.indexes?.crossref else none %}
+              {% if prereq_page %}
+              <a href="{{ prereq_page.href }}" class="tutorial-prereq-link">{{ prereq_page.title }}</a>
+              {% else %}
+              {% let prereq_ref = ref(prereq, site?.indexes?.crossref) if site?.indexes?.crossref else none %}
+              {% if prereq_ref and '<a' in prereq_ref %}{{ prereq_ref | safe }}{% else %}{{ prereq }}{% end %}
+              {% end %}
+              {% else %}
+              {{ prereq }}
+              {% end %}
+            </li>
+            {% end %}
+          </ul>
+        </div>
+        {% end %}
+
+        {# What You'll Learn #}
+        {% if tut_objectives | length > 0 %}
+        <div class="tutorial-objectives">
+          <h4>{{ t('tutorial.what_you_will_learn', default="What you'll learn") }}</h4>
+          <ul>
+            {% for objective in tut_objectives %}
+            <li>{{ objective }}</li>
+            {% end %}
+          </ul>
+        </div>
+        {% end %}
+      </header>
+
+      {# Main Tutorial Content #}
+      <div class="tutorial-content">
+        {{ content | safe }}
+      </div>
+
+      {# What's Next / Further Reading #}
+      {% if tut_next_steps | length > 0 or tut_further_reading | length > 0 %}
+      <footer class="tutorial-footer">
+        {% if tut_next_steps | length > 0 %}
+        <div class="tutorial-next-steps">
+          <h3>{{ t('tutorial.whats_next', default="What's Next?") }}</h3>
+          <ul>
+            {% for step in tut_next_steps %}
+            <li>{{ step }}</li>
+            {% end %}
+          </ul>
+        </div>
+        {% end %}
+
+        {% if tut_further_reading | length > 0 %}
+        <div class="tutorial-further-reading">
+          <h3>{{ t('tutorial.further_reading', default='Further Reading') }}</h3>
+          <ul>
+            {% for resource in tut_further_reading %}
+            <li>{{ resource }}</li>
+            {% end %}
+          </ul>
+        </div>
+        {% end %}
+      </footer>
+      {% end %}
+    </article>
+
+    {# Right Sidebar: TOC #}
+    {% if toc %}
+    <aside class="tutorial-sidebar">
+      <nav class="toc" aria-label="Table of contents">
+        <h2 class="toc-title">Tutorial Steps</h2>
+        <div class="toc-content">
+          {{ toc | safe }}
+        </div>
+      </nav>
+    </aside>
+    {% end %}
+  </div>
 </div>
 
 {# Prominent Prev/Next Navigation #}
 <div class="tutorial-navigation">
-    {{ page_navigation(page) }}
+  {{ page_navigation(page) }}
 </div>
 
 {# Related Tutorials #}
-{% if page.tags %}
-{% set related = page.related_posts[:3] %}
-{% if related %}
+{% if page_tags | length > 0 %}
+{% let related = page?.related_posts ?? [] %}
+{% let related_tutorials = related[:3] %}
+{% if related_tutorials | length > 0 %}
 <aside class="related-tutorials">
-    <div class="container">
-        <h2>{{ t('tutorial.related', default='Related Tutorials') }}</h2>
-        <div class="tutorial-grid">
-            {% for tutorial in related %}
-            <article class="tutorial-card gradient-border fluid-combined">
-                <div class="tutorial-card-header">
-                    {% if tutorial.metadata.icon %}
-                    <span class="tutorial-icon">{{ tutorial.metadata.icon }}</span>
-                    {% else %}
-                    <span class="tutorial-icon">📖</span>
-                    {% end %}
-                    <h3 class="tutorial-title">
-                        <a href="{{ tutorial.href }}">{{ tutorial.title }}</a>
-                    </h3>
-                </div>
-                <div class="tutorial-card-content">
-                    {% if tutorial.metadata.description %}
-                    <p class="tutorial-description">{{ tutorial.metadata.description | truncate(100) }}</p>
-                    {% end %}
-                    {% if tutorial.metadata.difficulty %}
-                    <span class="tutorial-badge tutorial-badge-{{ tutorial.metadata.difficulty }}">
-                        {{ tutorial.metadata.difficulty | capitalize }}
-                    </span>
-                    {% end %}
-                </div>
-            </article>
-            {% end %}
-        </div>
+  <div class="container">
+    <h2>{{ t('tutorial.related', default='Related Tutorials') }}</h2>
+    <div class="tutorial-grid">
+      {% for tutorial in related_tutorials %}
+      {{ related_tutorial_card(tutorial) }}
+      {% end %}
     </div>
+  </div>
 </aside>
 {% end %}
 {% end %}

@@ -1,111 +1,153 @@
 {% extends "base.html" %}
 
 {#
-Blog Home Template
+================================================================================
+Blog Home Template (Kida-Native)
+================================================================================
 
-Optimized home page template for blog sites. Features:
-- No action bar (cleaner for home page)
-- Prominent recent posts section
+Optimized home page template for blog sites.
+
+FEATURES:
 - Simplified hero section
-- Blog-optimized layout
+- Prominent recent posts grid
+- Auto-discovered blog section
+- Clean, reading-focused layout
 
-Usage: Set `template: blog/home.html` in home page frontmatter
+KIDA FEATURES USED:
+- {% let %} for template-scoped variables
+- Optional chaining (?.) for null-safe access
+- Null coalescing (??) for smart defaults
+- Pipeline operator (|>) for filter chains
+- {% def %} for reusable post card component
+- {% cache %} for recent posts computation
+
+USAGE:
+Set `template: blog/home.html` in home page frontmatter
 Or set `type: blog` on home page to auto-select
+================================================================================
 #}
 
-{% from 'partials/content-components.html' import tag_list %}
+{% from 'partials/components/tags.html' import tag_list %}
 
-{% block content %}
-<div class="blog-home">
-    {# Simplified Hero Section #}
-    <header class="blog-home-hero">
-        <div class="blog-home-hero-content">
-            <h1 class="blog-home-title">{{ page.title | default(config.title) }}</h1>
-            {% if params.description %}
-            <p class="blog-home-subtitle">{{ params.description }}</p>
-            {% end %}
-        </div>
-    </header>
+{# =============================================================================
+   POST CARD COMPONENT
+   ============================================================================= #}
+{% def post_card(post) %}
+{% let post_meta = post?.metadata ?? {} %}
+{% let post_image = post_meta?.image ?? post_meta?.cover ?? '' %}
+{% let post_title = post?.title ?? 'Untitled' %}
+{% let post_href = post?.href ?? '#' %}
+{% let post_date = post?.date %}
+{% let post_desc = post_meta?.description ?? post?.excerpt ?? '' %}
+{% let post_tags = post?.tags ?? [] %}
 
-    {# Main Content #}
-    {% if content and content.strip() %}
-    <div class="blog-home-content prose">
-        {{ content | safe }}
+<article class="blog-home-post-card gradient-border fluid-combined">
+  {% if post_image %}
+  <div class="blog-home-post-image">
+    <a href="{{ post_href }}">
+      <img src="{{ post_image }}" alt="{{ post_title }}" loading="lazy">
+    </a>
+  </div>
+  {% end %}
+  <div class="blog-home-post-content">
+    <h3 class="blog-home-post-title">
+      <a href="{{ post_href }}">{{ post_title }}</a>
+    </h3>
+    {% if post_date %}
+    <time datetime="{{ post_date | date_iso }}" class="blog-home-post-date">
+      {{ post_date | dateformat('%B %d, %Y') }}
+    </time>
+    {% end %}
+    {% if post_desc %}
+    <p class="blog-home-post-excerpt">{{ post_desc | truncate(150) }}</p>
+    {% end %}
+    {% if post_tags | length > 0 %}
+    <div class="blog-home-post-tags">
+      {{ tag_list(post_tags[:3]) }}
     </div>
     {% end %}
+    <a href="{{ post_href }}" class="blog-home-post-link">Read more →</a>
+  </div>
+</article>
+{% end %}
 
-    {# Recent Posts - Prominent Section #}
-    {# Show recent posts by default for blog sites #}
-    {% set
-        show_recent = params.show_recent_posts ?? true,
-        blog_section_name = params.blog_section ?? 'posts'
-    %}
-    {% if show_recent %}
-    {# Find blog section and get recent posts #}
-    {% set
-        blog_section_candidates = site.sections |> selectattr('name', 'equalto', blog_section_name) |> list if site.sections else [],
-        blog_section = blog_section_candidates[0] if blog_section_candidates else None
-    %}
-    {% if blog_section and blog_section.pages %}
-    {% set recent = blog_section.pages |> selectattr('date') |> sort_by('date', reverse=true) |> limit(6) %}
-    {% elif site.pages %}
-    {# Fallback: find blog posts by URL path or metadata type #}
-    {% set blog_posts = [] %}
-    {% for p in site.pages %}
-    {% if p.metadata.type == 'blog' or '/blog/' in p._path or '/posts/' in p._path %}
-    {% do blog_posts.append(p) %}
-    {% end %}
-    {% end %}
-    {% set recent = blog_posts |> selectattr('date') |> sort_by('date', reverse=true) |> limit(6) %}
-    {% else %}
-    {% set recent = [] %}
-    {% end %}
+{# =============================================================================
+   MAIN TEMPLATE
+   ============================================================================= #}
 
-    {% if recent %}
-    <section class="blog-home-recent">
-        <div class="blog-home-recent-header">
-            <h2 class="blog-home-recent-title">Recent Posts</h2>
-            {% if blog_section %}
-            <a href="{{ blog_section.href }}" class="blog-home-view-all">View all posts →</a>
-            {% end %}
-        </div>
-        <div class="blog-home-posts-grid">
-            {% for post in recent %}
-            <article class="blog-home-post-card gradient-border fluid-combined">
-                {% if post.metadata.image or post.metadata.cover %}
-                <div class="blog-home-post-image">
-                    <a href="{{ post.href }}">
-                        <img src="{{ post.metadata.image | default(post.metadata.cover) }}"
-                            alt="{{ post.title }}">
-                    </a>
-                </div>
-                {% end %}
-                <div class="blog-home-post-content">
-                    <h3 class="blog-home-post-title">
-                        <a href="{{ post.href }}">{{ post.title }}</a>
-                    </h3>
-                    {% if post.date %}
-                    <time datetime="{{ post.date | date_iso }}" class="blog-home-post-date">
-                        {{ post.date | dateformat('%B %d, %Y') }}
-                    </time>
-                    {% end %}
-                    {% if post.metadata.description or post.excerpt %}
-                    <p class="blog-home-post-excerpt">
-                        {{ post.metadata.description | default(post.excerpt) | truncate(150) }}
-                    </p>
-                    {% end %}
-                    {% if post.tags %}
-                    <div class="blog-home-post-tags">
-                        {{ tag_list(post.tags | limit(3)) }}
-                    </div>
-                    {% end %}
-                    <a href="{{ post.href }}" class="blog-home-post-link">Read more →</a>
-                </div>
-            </article>
-            {% end %}
-        </div>
-    </section>
-    {% end %}
-    {% end %}
+{% block content %}
+{# Template-scoped configuration #}
+{% let page_title = page?.title ?? config?.title ?? 'Blog' %}
+{% let page_desc = params?.description ?? '' %}
+{% let show_recent = params?.show_recent_posts ?? true %}
+{% let blog_section_name = params?.blog_section ?? 'posts' %}
+
+<div class="blog-home">
+  {# Hero Section #}
+  <header class="blog-home-hero">
+    <div class="blog-home-hero-content">
+      <h1 class="blog-home-title">{{ page_title }}</h1>
+      {% if page_desc %}
+      <p class="blog-home-subtitle">{{ page_desc }}</p>
+      {% end %}
+    </div>
+  </header>
+
+  {# Main Content (if any) #}
+  {% if content and content.strip() %}
+  <div class="blog-home-content prose">
+    {{ content | safe }}
+  </div>
+  {% end %}
+
+  {# Recent Posts Section - cached for performance #}
+  {% if show_recent %}
+  {% cache 'blog-home-recent-' ~ (site.nav_version ?? '') %}
+  {# Find blog section #}
+  {% let site_sections = site?.sections ?? [] %}
+  {% let blog_section_candidates = site_sections |> selectattr('name', 'eq', blog_section_name) |> list %}
+  {% let blog_section = blog_section_candidates[0] if blog_section_candidates | length > 0 else none %}
+
+  {# Get recent posts from blog section or fallback to site-wide search #}
+  {% let recent = [] %}
+  {% if blog_section and blog_section?.pages %}
+  {% let section_pages = blog_section.pages ?? [] %}
+  {% let recent = section_pages
+      |> selectattr('date')
+      |> sort(attribute='date', reverse=true)
+      |> take(6) %}
+  {% elif site?.pages %}
+  {# Fallback: find blog posts by URL path or metadata type #}
+  {% let blog_posts = [] %}
+  {% for p in site.pages %}
+  {% let p_type = p?.metadata?.type ?? '' %}
+  {% let p_path = p?._path ?? '' %}
+  {% if p_type == 'blog' or '/blog/' in p_path or '/posts/' in p_path %}
+  {% do blog_posts.append(p) %}
+  {% end %}
+  {% end %}
+  {% let recent = blog_posts
+      |> selectattr('date')
+      |> sort(attribute='date', reverse=true)
+      |> take(6) %}
+  {% end %}
+
+  {% if recent | length > 0 %}
+  <section class="blog-home-recent">
+    <div class="blog-home-recent-header">
+      <h2 class="blog-home-recent-title">Recent Posts</h2>
+      {% if blog_section %}
+      <a href="{{ blog_section.href }}" class="blog-home-view-all">View all posts →</a>
+      {% end %}
+    </div>
+    <div class="blog-home-posts-grid">
+      {% for post in recent %}
+      {{ post_card(post) }}
+      {% end %}
+    </div>
+  </section>
+  {% end %}
+  {% end %}
+  {% end %}
 </div>
 {% end %}

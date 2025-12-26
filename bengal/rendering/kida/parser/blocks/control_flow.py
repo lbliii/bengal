@@ -195,11 +195,12 @@ class ControlFlowBlockParsingMixin(BlockStackMixin):
             )
         self._advance()
 
-        # Parse iterable - use _parse_or() to avoid parsing 'if' as ternary
-        # This allows: {% for x in items if x.visible %}
-        # without the 'if' being parsed as part of 'items if x.visible else ""'
+        # Parse iterable - use _parse_null_coalesce_no_ternary() to support ??
+        # but avoid parsing 'if' as ternary. This allows both:
+        #   {% for x in items ?? [] %}           ← null coalescing
+        #   {% for x in items if x.visible %}    ← inline filter
         # Part of RFC: kida-modern-syntax-features
-        iter_expr = self._parse_or()
+        iter_expr = self._parse_null_coalesce_no_ternary()
 
         # Check for inline filter: {% for x in items if condition %}
         # Part of RFC: kida-modern-syntax-features
@@ -297,14 +298,24 @@ class ControlFlowBlockParsingMixin(BlockStackMixin):
                 self._advance()  # consume {%
                 self._advance()  # consume 'case'
 
-                # Parse pattern expression
-                pattern = self._parse_expression()
+                # Parse pattern expression - use _parse_null_coalesce_no_ternary
+                # to avoid consuming 'if' as a ternary conditional
+                # This allows: {% case _ if guard %} without the 'if' being parsed
+                # as part of a conditional expression
+                pattern = self._parse_null_coalesce_no_ternary()
+
+                # Check for optional guard clause: {% case pattern if guard %}
+                guard: Expr | None = None
+                if self._current.type == TokenType.NAME and self._current.value == "if":
+                    self._advance()  # consume 'if'
+                    guard = self._parse_expression()
+
                 self._expect(TokenType.BLOCK_END)
 
                 # Parse case body - reuse existing _parse_body
                 # stop_on_continuation=True stops at next "case" or end keywords
                 body = self._parse_body(stop_on_continuation=True)
-                cases.append((pattern, tuple(body)))
+                cases.append((pattern, guard, tuple(body)))
 
             elif keyword in ("end", "endmatch"):
                 self._consume_end_tag("match")

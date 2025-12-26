@@ -259,9 +259,10 @@ class While(Node):
 
 @dataclass(frozen=True, slots=True)
 class Match(Node):
-    """Pattern matching: {% match expr %}{% case pattern %}...{% end %}
+    """Pattern matching: {% match expr %}{% case pattern [if guard] %}...{% end %}
 
     Kida-native feature for cleaner branching than if/elif chains.
+    Supports optional guard clauses for conditional matching.
 
     Example:
         {% match page.type %}
@@ -269,10 +270,17 @@ class Match(Node):
             {% case "gallery" %}<i class="icon-image"></i>
             {% case _ %}<i class="icon-file"></i>
         {% end %}
+
+    With guards:
+        {% match api_type %}
+            {% case _ if 'python' in api_type %}Python API
+            {% case _ if 'rest' in api_type %}REST API
+            {% case _ %}Other
+        {% end %}
     """
 
     subject: Expr
-    cases: Sequence[tuple[Expr, Sequence[Node]]]  # (pattern, body)
+    cases: Sequence[tuple[Expr, Expr | None, Sequence[Node]]]  # (pattern, guard, body)
 
 
 # =============================================================================

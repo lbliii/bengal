@@ -431,6 +431,34 @@ class Template:
             except UndefinedError:
                 return False
 
+        # Null coalescing helper for strict mode
+        def _null_coalesce(left_fn: Any, right_fn: Any) -> Any:
+            """Safe null coalescing that handles undefined variables.
+
+            In strict mode, the left expression might raise UndefinedError.
+            This helper catches that and returns the right value.
+
+            Unlike the default filter:
+            - Returns right ONLY if left is None or undefined
+            - Does NOT treat falsy values (0, '', False, []) as needing replacement
+
+            Args:
+                left_fn: A lambda that evaluates the left expression
+                right_fn: A lambda that evaluates the right expression (lazy)
+
+            Returns:
+                The left value if defined and not None, otherwise the right value
+            """
+            from bengal.rendering.kida.environment.exceptions import UndefinedError
+
+            try:
+                value = left_fn()
+            except UndefinedError:
+                return right_fn()
+
+            # Return right only if left is None
+            return value if value is not None else right_fn()
+
         # Spaceless helper - removes whitespace between HTML tags
         # RFC: kida-modern-syntax-features
         def _spaceless(html: str) -> str:
@@ -505,6 +533,7 @@ class Template:
             "_lookup": _lookup,  # Strict mode variable lookup
             "_default_safe": _default_safe,  # Default filter for strict mode
             "_is_defined": _is_defined,  # Is defined test for strict mode
+            "_null_coalesce": _null_coalesce,  # Null coalesce with undefined handling
             "_coerce_numeric": _coerce_numeric,  # Numeric coercion for macro arithmetic
             "_spaceless": _spaceless,  # RFC: kida-modern-syntax-features
             "_str_safe": _str_safe,  # RFC: kida-modern-syntax-features - None to empty string

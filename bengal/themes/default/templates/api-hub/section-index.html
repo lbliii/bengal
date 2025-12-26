@@ -1,25 +1,112 @@
 {% extends "base.html" %}
 
 {#
-API Hub Section Index Template
+================================================================================
+API Hub Section Index Template (Kida-Native)
+================================================================================
 
-Renders an aggregating section that shows all API documentation types (Python, REST, CLI)
-using a card-based layout. This template is used for sections with type="api-hub"
-which aggregate multiple autodoc outputs under a shared prefix (e.g., /api/).
-Uses autodoc.css for all styling.
+Renders an aggregating section showing all API documentation types.
 
-This template receives:
-- section: Section object for the aggregating section
-- page: Page object (section index page)
-- config: Autodoc configuration
-- site: Site instance
+KIDA FEATURES USED:
+- {% let %} for template-scoped variables
+- Optional chaining (?.) for null-safe access
+- Null coalescing (??) for smart defaults
+- {% match %} for type-based rendering
 
-The template can be overridden by creating content/<section>/_index.md with custom content.
+USAGE:
+Used for sections with type="api-hub"
+================================================================================
 #}
 
 {% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc %}
 
+{# =============================================================================
+   API CARD COMPONENT
+   ============================================================================= #}
+{% def api_card(subsection) %}
+{% let sub_type = subsection?.params?.type ?? 'python-reference' %}
+{% let sub_title = subsection?.title ?? 'API' %}
+{% let sub_href = subsection?.href ?? '#' %}
+{% let sub_desc = (subsection?.params?.description ?? '') | first_sentence %}
+{% let sub_subsections = subsection?.subsections ?? [] %}
+{% let sub_pages = subsection?.pages ?? [] %}
+{% let subsections_len = sub_subsections | length | int %}
+{% let pages_len = sub_pages | length | int %}
+{% let child_count = subsections_len + pages_len %}
+
+<a href="{{ sub_href }}" class="autodoc-card autodoc-card--hub" data-card="{{ sub_type }}">
+  <div class="autodoc-card-header">
+    <span class="autodoc-card-icon">
+      {% match sub_type %}
+      {% case _ if 'python' in sub_type %}
+      {{ icon("code", size=32, css_class="icon-python") }}
+      {% case _ if 'openapi' in sub_type %}
+      {{ icon("globe", size=32, css_class="icon-openapi") }}
+      {% case _ if 'cli' in sub_type %}
+      {{ icon("terminal", size=32, css_class="icon-cli") }}
+      {% case _ %}
+      {{ icon("book", size=32, css_class="icon-default") }}
+      {% end %}
+    </span>
+  </div>
+
+  <div class="autodoc-card-body">
+    <h3 class="autodoc-card-name">{{ sub_title }}</h3>
+    <p class="autodoc-card-desc">
+      {% if sub_desc %}
+      {{ sub_desc }}
+      {% else %}
+      {% match sub_type %}
+      {% case _ if 'python' in sub_type %}
+      Browse Python packages, modules, and classes.
+      {% case _ if 'openapi' in sub_type %}
+      Explore REST API endpoints and schemas.
+      {% case _ if 'cli' in sub_type %}
+      Command-line tools and options.
+      {% case _ %}
+      API documentation.
+      {% end %}
+      {% end %}
+    </p>
+  </div>
+
+  <div class="autodoc-card-footer">
+    <span class="autodoc-card-meta">
+      {% match sub_type %}
+      {% case _ if 'python' in sub_type %}
+      {{ child_count }} {{ 'module' if child_count == 1 else 'modules' }}
+      {% case _ if 'openapi' in sub_type %}
+      {{ child_count }} {{ 'endpoint' if child_count == 1 else 'endpoints' }}
+      {% case _ if 'cli' in sub_type %}
+      {{ child_count }} {{ 'command' if child_count == 1 else 'commands' }}
+      {% case _ %}
+      {{ child_count }} {{ 'item' if child_count == 1 else 'items' }}
+      {% end %}
+    </span>
+    <span class="autodoc-badge" data-badge="{{ sub_type }}">
+      {% match sub_type %}
+      {% case _ if 'python' in sub_type %}Python
+      {% case _ if 'openapi' in sub_type %}REST
+      {% case _ if 'cli' in sub_type %}CLI
+      {% case _ %}API
+      {% end %}
+    </span>
+  </div>
+</a>
+{% enddef %}
+
+{# =============================================================================
+   MAIN TEMPLATE
+   ============================================================================= #}
+
 {% block content %}
+{# Template-scoped variables #}
+{% let hub_section = section %}
+{% let hub_title = section?.title ?? 'API Documentation' %}
+{% let hub_desc = section?.params?.description ?? '' %}
+{% let subsections = section?.sorted_subsections ?? [] %}
+{% let page_href = page?.href ?? '/' %}
+
 {# Three-column documentation layout #}
 <div class="docs-layout">
   {# Left Sidebar: Navigation #}
@@ -29,45 +116,38 @@ The template can be overridden by creating content/<section>/_index.md with cust
 
   {# Main Content #}
   <div class="docs-main">
-    {# Page Hero: Breadcrumbs + Title + Description #}
+    {# Page Hero #}
     <div class="page-hero">
-      {# Breadcrumbs #}
-      {% if page.href != '/' %}
+      {% if page_href != '/' %}
       <nav class="page-hero__breadcrumbs" aria-label="Breadcrumb">
         {{ breadcrumbs(page) }}
       </nav>
       {% end %}
 
-      {# Title #}
-      <h1 class="page-hero__title">{{ section.title if section else 'API Documentation' }}</h1>
+      <h1 class="page-hero__title">{{ hub_title }}</h1>
 
-      {# Description #}
-      {% set desc = section.params.description if section else '' %}
-      {% if desc %}
+      {% if hub_desc %}
       <div class="page-hero__description page-hero__description--prose">
-        {{ desc | markdownify | safe }}
+        {{ hub_desc | markdownify | safe }}
       </div>
       {% else %}
       <p class="page-hero__description">Browse all API documentation for this project.</p>
       {% end %}
 
-      {# Stats showing child count #}
-      {% if section and section.sorted_subsections | length > 0 %}
+      {% if subsections | length > 0 %}
       <div class="page-hero__footer">
         <div class="page-hero__stats">
           <span class="page-hero__stat">
-            <span class="page-hero__stat-value">{{ section.sorted_subsections | length }}</span>
-            <span class="page-hero__stat-label">{{ 'API' if section.sorted_subsections | length == 1 else 'APIs' }}</span>
+            <span class="page-hero__stat-value">{{ subsections | length }}</span>
+            <span class="page-hero__stat-label">{{ 'API' if subsections | length == 1 else 'APIs' }}</span>
           </span>
         </div>
       </div>
       {% end %}
     </div>
 
-    {# Article Content - autodoc skeleton #}
+    {# Article Content #}
     <article data-autodoc data-type="hub" data-element="section-index" class="autodoc docs-content">
-
-      {# Check if there's custom content from _index.md #}
       {% if content and content.strip() %}
       <div class="autodoc-custom-content">
         {{ content | safe }}
@@ -75,94 +155,33 @@ The template can be overridden by creating content/<section>/_index.md with cust
       {% end %}
 
       {# API Hub Card Grid #}
-      {% if section and section.sorted_subsections %}
+      {% if subsections | length > 0 %}
       <div class="autodoc-cards autodoc-cards--hub">
-        {% for subsection in section.sorted_subsections %}
-        {% set sub_type = subsection.params.type ?? 'python-reference' %}
-        {% set desc = subsection.params.description | first_sentence %}
-        {% set child_count = (subsection.subsections | length) + (subsection.pages | length) %}
-
-        <a href="{{ subsection.href }}" class="autodoc-card autodoc-card--hub" data-card="{{ sub_type }}">
-          <div class="autodoc-card-header">
-            <span class="autodoc-card-icon">
-              {# Icon based on autodoc type #}
-              {%- if 'python' in sub_type -%}
-              {{ icon("code", size=32, css_class="icon-python") }}
-              {%- elif 'openapi' in sub_type -%}
-              {{ icon("globe", size=32, css_class="icon-openapi") }}
-              {%- elif 'cli' in sub_type -%}
-              {{ icon("terminal", size=32, css_class="icon-cli") }}
-              {%- else -%}
-              {{ icon("book", size=32, css_class="icon-default") }}
-              {% end %}
-            </span>
-          </div>
-
-          <div class="autodoc-card-body">
-            <h3 class="autodoc-card-name">{{ subsection.title }}</h3>
-            <p class="autodoc-card-desc">
-              {% if desc %}
-              {{ desc }}
-              {% else %}
-              {# Default descriptions based on type #}
-              {%- if 'python' in sub_type -%}
-              Browse Python packages, modules, and classes.
-              {%- elif 'openapi' in sub_type -%}
-              Explore REST API endpoints and schemas.
-              {%- elif 'cli' in sub_type -%}
-              Command-line tools and options.
-              {%- else -%}
-              API documentation.
-              {% end %}
-              {% end %}
-            </p>
-          </div>
-
-          <div class="autodoc-card-footer">
-            <span class="autodoc-card-meta">
-              {%- if 'python' in sub_type -%}
-              {{ child_count }} {{ 'module' if child_count == 1 else 'modules' }}
-              {%- elif 'openapi' in sub_type -%}
-              {{ child_count }} {{ 'endpoint' if child_count == 1 else 'endpoints' }}
-              {%- elif 'cli' in sub_type -%}
-              {{ child_count }} {{ 'command' if child_count == 1 else 'commands' }}
-              {%- else -%}
-              {{ child_count }} {{ 'item' if child_count == 1 else 'items' }}
-              {% end %}</span>
-            <span class="autodoc-badge" data-badge="{{ sub_type }}">
-              {%- if 'python' in sub_type -%}Python
-              {%- elif 'openapi' in sub_type -%}REST
-              {%- elif 'cli' in sub_type -%}CLI
-              {%- else -%}API{% end %}</span>
-          </div>
-        </a>
+        {% for subsection in subsections %}
+        {{ api_card(subsection) }}
         {% end %}
       </div>
       {% else %}
-      {# Empty State #}
       <div class="autodoc-empty-state">
         <div class="autodoc-empty-state-icon">{{ icon("book-open", size=48, css_class="icon-muted") }}</div>
         <p class="autodoc-empty-state-text">No API documentation available yet.</p>
         <p class="autodoc-empty-state-hint">Enable Python, OpenAPI, or CLI autodoc in your configuration.</p>
       </div>
       {% end %}
-
     </article>
 
-    {# Page navigation (prev/next) at bottom #}
     {{ page_navigation(page) }}
   </div>
 
-  {# Right Sidebar: Contextual Graph + TOC + Metadata #}
+  {# Right Sidebar #}
   {% include 'partials/docs-toc-sidebar.html' %}
 </div>
 
-{# Mobile sidebar toggle button #}
+{# Mobile sidebar toggle #}
 <button class="docs-sidebar-toggle" aria-label="Toggle navigation sidebar" aria-expanded="false"
-  aria-controls="docs-sidebar">
+        aria-controls="docs-sidebar">
   {{ icon('list', size=20) }}
 </button>
 
-{# Sidebar overlay for mobile #}
 <div class="docs-sidebar-overlay" aria-hidden="true"></div>
 {% end %}

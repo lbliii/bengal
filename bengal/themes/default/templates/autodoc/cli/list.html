@@ -17,7 +17,8 @@ Features:
 #}
 
 {% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc %}
-{% from 'partials/content-components.html' import tag_list, content_tiles %}
+{% from 'partials/components/tags.html' import tag_list %}
+{% from 'partials/components/tiles.html' import content_tiles %}
 
 {% block content %}
 {# Ensure page is set - use section.index_page if page not defined #}

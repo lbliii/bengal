@@ -11,7 +11,7 @@ MIGRATION:
   New: {% include 'partials/page-hero.html' %}  (auto-routes to element)
 
   Or call macro directly:
-    {% from 'partials/page-hero.html' import hero_element %}
+    {% from 'partials/page-hero/_macros.html' import hero_element %}
     {{ hero_element(element, page, config) }}
 
 See: plan/drafted/rfc-page-hero-template-flattening.md
@@ -19,5 +19,5 @@ See: plan/drafted/rfc-page-hero-template-flattening.md
 #}
 
 {# Shim: Forward to macro for backwards compatibility #}
-{% from 'partials/page-hero.html' import hero_element %}
+{% from 'partials/page-hero/_macros.html' import hero_element %}
 {{ hero_element(element, page, config) }}

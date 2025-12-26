@@ -1,14 +1,20 @@
 {#
-Documentation Navigation Component
+================================================================================
+Documentation Navigation Component (Kida-Native)
+================================================================================
 
-Displays full hierarchical sidebar navigation for documentation sites.
+Hierarchical sidebar navigation for documentation sites.
 Uses pre-computed NavTree for optimal performance.
 
-Variables:
-- page: Current page object (required)
-- show_nav_icons: Whether to show section icons (default: true)
+KIDA FEATURES USED:
+- {% def %} for recursive macro (3x faster than {% include %})
+- {% let %} for template-scoped variables
+- Optional chaining (?.) for null-safe access
+- Null coalescing (??) for smart defaults
+- {% match %} for node type dispatch
+- {% spaceless %} for clean HTML output
 
-Features:
+FEATURES:
 - Hierarchical tree structure via NavTree API
 - Active page highlighting (automatic via NavNodeProxy)
 - Active trail marking (automatic via NavTreeContext)
@@ -16,49 +22,53 @@ Features:
 - Keyboard accessible
 - Section icons from frontmatter
 
-Usage:
+USAGE:
 {% include 'partials/docs-nav.html' %}
-
-Performance Note:
-Uses recursive macro instead of {% include %} for ~3x faster rendering.
-See: plan/drafted/rfc-benchmark-refresh-and-worker-optimization.md
+================================================================================
 #}
 
-{# Control icon visibility - defaults to true #}
-{% set show_nav_icons = show_nav_icons if show_nav_icons is defined else true %}
+{# Control icon visibility - defaults to true if not passed in context #}
+{% let show_nav_icons = show_nav_icons ?? true %}
 
-{#
-=============================================================================
+{# =============================================================================
 NAV NODE MACRO - Recursive navigation node renderer
 
 Replaces the previous docs-nav-node.html include pattern.
 Macros are compiled once and called as functions, eliminating the
 per-call overhead of {% include %} (context copy, template lookup).
+============================================================================= #}
 
-Args:
-  item: NavNodeProxy to render
-  depth: Current nesting depth for styling (default: 0)
-=============================================================================
-#}
 {% def nav_node(item, depth=0) %}
-{%- set item_title = item.title -%}
-{%- set item_icon = item.icon -%}
+{# Extract values once with null-safe access #}
+{% let item_title = item?.title ?? 'Untitled' %}
+{% let item_icon = item?.icon ?? '' %}
+{% let item_href = item?.href ?? '' %}
+{% let item_children = item?.children ?? [] %}
+{% let is_current = item?.is_current ?? false %}
+{% let is_in_trail = item?.is_in_trail ?? false %}
+{% let is_section = item?.is_section ?? false %}
+{% let has_children = item_children | length > 0 %}
 
-{% if item.has_children %}
+{% match true %}
+{# ===== HAS CHILDREN ===== #}
+{% case has_children %}
+
+{% match depth %}
 {# ===== ROOT NODE (depth 0) - Static header, no toggle ===== #}
-{% if depth == 0 %}
-<div class="docs-nav-group docs-nav-group--root{% if item.is_in_trail %} is-in-trail{% end %}" data-depth="{{ depth }}">
+{% case 0 %}
+<div class="docs-nav-group docs-nav-group--root{{ ' is-in-trail' if is_in_trail else '' }}" data-depth="{{ depth }}">
   <div class="docs-nav-group-header">
     {% if show_nav_icons %}
-    <span class="docs-nav-icon" {% if not item_icon %}data-default="true"{% end %}>
-      {{ icon(item_icon or 'folder', size=16) }}
+    {% spaceless %}
+    <span class="docs-nav-icon" {{ ' data-default="true"' | safe if not item_icon else '' }}>
+      {{ icon(item_icon ?? 'folder', size=16) }}
     </span>
     {% end %}
+    {% end %}
 
-    {% if item.href %}
-    <a href="{{ item.href }}"
-       class="docs-nav-group-title{% if item.is_current %} active{% end %}"
-       {% if item.is_current %}aria-current="page"{% end %}>
+    {% if item_href %}
+    <a href="{{ item_href }}" class="docs-nav-group-title{{ ' active' if is_current else '' }}" {{ 'aria-current="page"'
+      | safe if is_current else '' }}>
       {{ item_title }}
     </a>
     {% else %}
@@ -67,138 +77,150 @@ Args:
   </div>
 
   <div class="docs-nav-group-items">
-    {% for child in item.children %}
-      {{ nav_node(child, depth + 1) }}
+    {% for child in item_children %}
+    {{ nav_node(child, depth + 1) }}
     {% end %}
   </div>
 </div>
 
-{% else %}
-{# ===== EXPANDABLE NODE (has children, depth > 0) - Native <details>/<summary> ===== #}
-<details class="docs-nav-group{% if item.is_in_trail %} is-in-trail{% end %}"
-         data-depth="{{ depth }}"
-         {% if item.is_in_trail %}open{% end %}>
-  <summary class="docs-nav-group-summary">
-    <span class="docs-nav-caret">
-      {{ icon('caret-right', size=14) }}
-    </span>
+{# ===== EXPANDABLE NODE (depth > 0) - Native <details>/<summary> ===== #}
+    {% case _ %}
+    <details class="docs-nav-group{{ ' is-in-trail' if is_in_trail else '' }}" data-depth="{{ depth }}" {{ 'open' | safe
+      if is_in_trail else '' }}>
+      <summary class="docs-nav-group-summary">
+        <span class="docs-nav-caret">
+          {{ icon('caret-right', size=14) }}
+        </span>
 
-    {% if show_nav_icons %}
-    <span class="docs-nav-icon" {% if not item_icon %}data-default="true"{% end %}>
-      {{ icon(item_icon or 'folder', size=16) }}
-    </span>
-    {% end %}
-
-    {% if item.href %}
-    <a href="{{ item.href }}"
-       class="docs-nav-group-link{% if item.is_current %} active{% end %}"
-       {% if item.is_current %}aria-current="page"{% end %}>
-      {{ item_title }}
-    </a>
-    {% else %}
-    <span class="docs-nav-group-link">{{ item_title }}</span>
-    {% end %}
-  </summary>
-
-  <div class="docs-nav-group-items">
-    {% for child in item.children %}
-      {{ nav_node(child, depth + 1) }}
-    {% end %}
-  </div>
-</details>
-{% end %}
-
-{% else %}
-{# ===== LEAF NODE (no children) ===== #}
-<div class="docs-nav-group docs-nav-group--leaf" data-depth="{{ depth }}">
-  {% if item.href %}
-  <a href="{{ item.href }}"
-     class="docs-nav-link{% if item.is_section %} docs-nav-link--section{% end %}{% if item.is_current %} active{% end %}"
-     {% if item.is_current %}aria-current="page"{% end %}>
-    {% if show_nav_icons and item.is_section %}
-    <span class="docs-nav-icon docs-nav-icon--section" {% if not item_icon %}data-default="true"{% end %}>
-      {{ icon(item_icon or 'folder', size=14) }}
-    </span>
-    {% end %}
-    <span class="docs-nav-link-text">{{ item_title }}</span>
-  </a>
-  {% else %}
-  <span class="docs-nav-link{% if item.is_section %} docs-nav-link--section{% end %}">
-    {% if show_nav_icons and item.is_section %}
-    <span class="docs-nav-icon docs-nav-icon--section" {% if not item_icon %}data-default="true"{% end %}>
-      {{ icon(item_icon or 'folder', size=14) }}
-    </span>
-    {% end %}
-    <span class="docs-nav-link-text">{{ item_title }}</span>
-  </span>
-  {% end %}
-</div>
-{% end %}
-{% enddef %}
-
-{# =============================================================================
-   MAIN NAVIGATION COMPONENT
-   ============================================================================= #}
-
-{# Check if page is autodoc - autodoc pages should use scoped navigation #}
-{% set is_autodoc = is_autodoc_page(page) if is_autodoc_page is defined else false %}
-
-{# Always scope docs navigation to the page's section root.
-The docs-nav template is only used by doc-type pages, so scoped navigation
-is the expected behavior - docs sidebar should show docs content only,
-not sibling top-level sections like releases or tracks.
-
-nav_root: true metadata can still be used to create navigation boundaries
-within a section (e.g., /api/python/ stops at itself, not /api/).
-#}
-{% set root_section = page._section.root if page._section else none %}
-
-<nav class="docs-nav" aria-label="Documentation pages" data-bengal="docs-nav">
-  {# Version Selector - only show if page is versioned (not autodoc) #}
-  {% unless is_autodoc %}
-  {% include 'partials/version-selector.html' %}
-  {% end %}
-
-  {# Navigation Tree - uses cached NavTree infrastructure #}
-  <div class="docs-nav-tree">
-    {% if root_section %}
-    {# Scoped navigation (autodoc, nav_root sections): include root section as header #}
-    {% set nav_context = get_nav_context(page, root_section=root_section) %}
-    {% set root_item = nav_context['root'] %}
-
-    {# Render root section as static header with its children #}
-    <div class="docs-nav-group docs-nav-group--root{% if root_item.is_in_trail %} is-in-trail{% end %}"
-      data-depth="0">
-      <div class="docs-nav-group-header">
         {% if show_nav_icons %}
-        <span class="docs-nav-icon" {% if not root_item.icon %}data-default="true" {% end %}>
-          {{ icon(root_item.icon or 'folder', size=16) }}
+        {% spaceless %}
+        <span class="docs-nav-icon" {{ ' data-default="true"' | safe if not item_icon else '' }}>
+          {{ icon(item_icon ?? 'folder', size=16) }}
         </span>
         {% end %}
+        {% end %}
 
-        {% if root_item.href %}
-        <a href="{{ root_item.href }}" class="docs-nav-group-title{% if root_item.is_current %} active{% end %}" {% if
-          root_item.is_current %}aria-current="page" {% end %}>
-          {{ root_item.title }}
+        {% if item_href %}
+        <a href="{{ item_href }}" class="docs-nav-group-link{{ ' active' if is_current else '' }}"
+          {{ 'aria-current="page"' | safe if is_current else '' }}>
+          {{ item_title }}
         </a>
         {% else %}
-        <span class="docs-nav-group-title">{{ root_item.title }}</span>
+        <span class="docs-nav-group-link">{{ item_title }}</span>
         {% end %}
-      </div>
+      </summary>
 
-      <div class="docs-nav-group-items is-expanded expanded">
-        {% for item in root_item.children %}
-          {{ nav_node(item, 1) }}
+      <div class="docs-nav-group-items">
+        {% for child in item_children %}
+        {{ nav_node(child, depth + 1) }}
         {% end %}
       </div>
+    </details>
+    {% end %}
+
+    {# ===== LEAF NODE (no children) ===== #}
+    {% case _ %}
+    <div class="docs-nav-group docs-nav-group--leaf" data-depth="{{ depth }}">
+      {% if item_href %}
+      <a href="{{ item_href }}"
+        class="docs-nav-link{{ ' docs-nav-link--section' if is_section else '' }}{{ ' active' if is_current else '' }}"
+        {{ 'aria-current="page"' | safe if is_current else '' }}>
+        {% if show_nav_icons and is_section %}
+        {% spaceless %}
+        <span class="docs-nav-icon docs-nav-icon--section" {{ ' data-default="true"' | safe if not item_icon else '' }}>
+          {{ icon(item_icon ?? 'folder', size=14) }}
+        </span>
+        {% end %}
+        {% end %}
+        <span class="docs-nav-link-text">{{ item_title }}</span>
+      </a>
+      {% else %}
+      <span class="docs-nav-link{{ ' docs-nav-link--section' if is_section else '' }}">
+        {% if show_nav_icons and is_section %}
+        {% spaceless %}
+        <span class="docs-nav-icon docs-nav-icon--section" {{ ' data-default="true"' | safe if not item_icon else '' }}>
+          {{ icon(item_icon ?? 'folder', size=14) }}
+        </span>
+        {% end %}
+        {% end %}
+        <span class="docs-nav-link-text">{{ item_title }}</span>
+      </span>
+      {% end %}
     </div>
-    {% else %}
-    {# Regular navigation: render all top-level items #}
-    {% set nav_items = get_nav_tree(page) %}
+    {% end %}
+    {% end %}
 
-    {% for item in nav_items %}
-      {{ nav_node(item, 0) }}
-    {% end %}
-    {% end %}
-  </div>
-</nav>
+    {# =============================================================================
+    MAIN NAVIGATION COMPONENT
+    ============================================================================= #}
+
+    {# Check if page is autodoc - autodoc pages should use scoped navigation #}
+    {% let is_autodoc = is_autodoc_page(page) if is_autodoc_page is defined else false %}
+
+    {#
+    Always scope docs navigation to the page's section root.
+    The docs-nav template is only used by doc-type pages, so scoped navigation
+    is the expected behavior - docs sidebar should show docs content only,
+    not sibling top-level sections like releases or tracks.
+
+    nav_root: true metadata can still be used to create navigation boundaries
+    within a section (e.g., /api/python/ stops at itself, not /api/).
+    #}
+    {% let page_section = page?._section %}
+    {% let root_section = page_section?.root ?? none %}
+
+    <nav class="docs-nav" aria-label="Documentation pages" data-bengal="docs-nav">
+      {# Version Selector - only show if page is versioned (not autodoc) #}
+      {% unless is_autodoc %}
+      {% include 'partials/version-selector.html' %}
+      {% end %}
+
+      {# Navigation Tree - uses cached NavTree infrastructure #}
+      <div class="docs-nav-tree">
+        {% if root_section %}
+        {# Scoped navigation: include root section as header #}
+        {% let nav_context = get_nav_context(page, root_section=root_section) %}
+        {% let root_item = nav_context?.root ?? {} %}
+        {% let root_children = root_item?.children ?? [] %}
+        {% let root_title = root_item?.title ?? 'Documentation' %}
+        {% let root_href = root_item?.href ?? '' %}
+        {% let root_icon = root_item?.icon ?? '' %}
+        {% let root_is_current = root_item?.is_current ?? false %}
+        {% let root_is_in_trail = root_item?.is_in_trail ?? false %}
+
+        {# Render root section as static header with its children #}
+        <div class="docs-nav-group docs-nav-group--root{{ ' is-in-trail' if root_is_in_trail else '' }}" data-depth="0">
+          <div class="docs-nav-group-header">
+            {% if show_nav_icons %}
+            {% spaceless %}
+            <span class="docs-nav-icon" {{ ' data-default="true"' | safe if not root_icon else '' }}>
+              {{ icon(root_icon ?? 'folder', size=16) }}
+            </span>
+            {% end %}
+            {% end %}
+
+            {% if root_href %}
+            <a href="{{ root_href }}" class="docs-nav-group-title{{ ' active' if root_is_current else '' }}"
+              {{ 'aria-current="page"' | safe if root_is_current else '' }}>
+              {{ root_title }}
+            </a>
+            {% else %}
+            <span class="docs-nav-group-title">{{ root_title }}</span>
+            {% end %}
+          </div>
+
+          <div class="docs-nav-group-items is-expanded expanded">
+            {% for item in root_children %}
+            {{ nav_node(item, 1) }}
+            {% end %}
+          </div>
+        </div>
+        {% else %}
+        {# Regular navigation: render all top-level items #}
+        {% let nav_items = get_nav_tree(page) ?? [] %}
+        {% for item in nav_items %}
+        {{ nav_node(item, 0) }}
+        {% end %}
+        {% end %}
+      </div>
+    </nav>

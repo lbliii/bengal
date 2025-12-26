@@ -54,9 +54,10 @@ class OptimizationConfig:
     constant_folding: bool = True
     dead_code_elimination: bool = True
     data_coalescing: bool = True
-    # Filter inlining is disabled by default because it bypasses the
-    # filter registry, preventing user overrides of built-in filters
-    filter_inlining: bool = False
+    # Filter inlining converts common pure filters to direct method calls.
+    # Safe for built-in filters. If you override built-in filters (rare),
+    # set filter_inlining=False in Environment to use your custom implementation.
+    filter_inlining: bool = True
     estimate_buffer: bool = True
 
 

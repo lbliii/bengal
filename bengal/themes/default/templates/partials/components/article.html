@@ -1,0 +1,91 @@
+{#
+================================================================================
+Article Card Component (Kida-Native)
+================================================================================
+
+Rich article preview card with metadata, tags, and optional image.
+
+Usage:
+  {{ article_card(post, show_excerpt=true, show_image=false) }}
+================================================================================
+#}
+
+{% from 'partials/components/tags.html' import tag_list %}
+
+{# =============================================================================
+ARTICLE CARD COMPONENT
+
+Displays a rich card preview of an article with metadata, tags, and image.
+============================================================================= #}
+{% def article_card(article, show_excerpt=true, show_image=false) %}
+{% let article_meta = article?.metadata ?? {} %}
+{% let article_tags = article?.tags ?? [] %}
+{% let article_content = article?.content ?? '' %}
+{% let article_date = article?.date %}
+{% let article_image = article_meta?.image ?? '' %}
+{% let article_desc = article_meta?.description ?? '' %}
+{% let article_author = article_meta?.author ?? '' %}
+{% let is_featured = article is featured %}
+{% let theme_features = theme?.features ?? [] %}
+
+<article class="article-card gradient-border fluid-combined{{ ' featured-card' if is_featured else '' }}">
+  {% if show_image and article_image %}
+  <img src="{{ image_url(article_image, width=800) }}" srcset="{{ article_image | image_srcset([400, 800, 1200]) }}"
+    sizes="(max-width: 640px) 400px, (max-width: 1024px) 800px, 1200px" alt="{{ article_image | image_alt }}"
+    class="article-card-image" loading="lazy">
+  {% end %}
+
+  <div class="article-card-content">
+    {# Badges #}
+    <div class="article-card-badges">
+      {% if is_featured %}
+      <span class="badge badge-featured">⭐ Featured</span>
+      {% end %}
+      {% if article | has_tag('tutorial') %}
+      <span class="badge badge-tutorial">📚 Tutorial</span>
+      {% end %}
+      {% if article | has_tag('new') %}
+      <span class="badge badge-new">✨ New</span>
+      {% end %}
+    </div>
+
+    <h2 class="article-card-title">
+      <a href="{{ article.href }}">{{ article.title }}</a>
+    </h2>
+
+    <div class="article-card-meta">
+      {% if article_date %}
+      <time datetime="{{ article_date | date_iso }}" title="{{ article_date | dateformat('%B %d, %Y') }}">
+        {{ article_date | time_ago }}
+      </time>
+      {% end %}
+
+      {% if article_author and 'content.author' in theme_features %}
+      <span class="author">{{ article_author }}</span>
+      {% end %}
+
+      {% if article_content and 'content.reading_time' in theme_features %}
+      <span class="reading-time">
+        {{ article_content | reading_time }} min read
+      </span>
+      {% end %}
+    </div>
+
+    {% if show_excerpt and 'content.excerpts' in theme_features %}
+    <p class="article-card-excerpt">
+      {% if article_desc %}
+      {{ article_desc }}
+      {% elif article_content %}
+      {{ article_content | strip_html | excerpt(150) }}
+      {% end %}
+    </p>
+    {% end %}
+
+    {% if article_tags | length > 0 %}
+    <div class="article-card-footer">
+      {{ tag_list(article_tags, small=true) }}
+    </div>
+    {% end %}
+  </div>
+</article>
+{% end %}

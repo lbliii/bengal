@@ -93,7 +93,7 @@ class LandmarkDetector:
 
         # Handle match cases
         if hasattr(node, "cases") and node.cases:
-            for _pattern, body in node.cases:
+            for _pattern, _guard, body in node.cases:
                 for child in body:
                     if hasattr(child, "lineno"):
                         self._visit(child, landmarks)

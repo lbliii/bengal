@@ -157,7 +157,7 @@ class BlockAnalyzer:
 
             # Handle match cases
             if hasattr(node, "cases") and node.cases:
-                for _pattern, body in node.cases:
+                for _pattern, _guard, body in node.cases:
                     self._collect_blocks_recursive(body, blocks)
 
     def _analyze_top_level(

@@ -118,9 +118,15 @@ templates/
 ├── README.md                    # This file
 │
 ├── partials/                    # Shared components
+│   ├── components/              # Modular component macros
+│   │   ├── article.html         # Article card component
+│   │   ├── helpers.html         # Utility functions
+│   │   ├── tags.html            # Tag list and tag cloud
+│   │   ├── tiles.html           # Content tiles component
+│   │   ├── widgets.html         # Discovery widgets
+│   │   └── wrappers.html        # Slot-based wrapper components
 │   ├── _macros/                 # Pure macro files (safe to import)
 │   ├── navigation-components.html  # Pure macros
-│   ├── content-components.html     # Pure macros
 │   └── page-hero-*.html            # Include-only (have body code)
 │
 ├── autodoc/                     # Autodoc-specific templates

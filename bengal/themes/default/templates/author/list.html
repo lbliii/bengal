@@ -1,29 +1,98 @@
 {% extends "base.html" %}
 
 {#
-Author List Template
+================================================================================
+Author List Template (Kida-Native)
+================================================================================
 
 Displays all authors with their profiles and post counts.
-Pulls from data/authors.yaml registry and/or content/authors/ pages.
+
+KIDA FEATURES USED:
+- {% let %} for template-scoped variables
+- Optional chaining (?.) for null-safe access
+- Null coalescing (??) for smart defaults
+- {% def %} for reusable card component
+- Pipeline operator (|>) for filter chains
 
 URL Pattern: /authors/
 
 Context variables:
-  - page: Current list page (_index.md)
-  - site.data.authors: Author registry (from data/authors.yaml)
-  - site.indexes.author: Author index for post counts
+- page: Current list page (_index.md)
+- site.data.authors: Author registry (from data/authors.yaml)
+- site.indexes.author: Author index for post counts
+================================================================================
 #}
 
 {% from 'partials/navigation-components.html' import breadcrumbs %}
 
+{# =============================================================================
+AUTHOR CARD COMPONENT
+============================================================================= #}
+{% def author_card(author) %}
+{% let author_name = author?.name ?? 'Unknown Author' %}
+{% let author_href = author?.href ?? '#' %}
+{% let author_avatar = author?.avatar ?? '' %}
+{% let author_company = author?.company ?? '' %}
+{% let author_location = author?.location ?? '' %}
+{% let author_bio = author?.bio ?? '' %}
+{% let author_github = author?.github ?? '' %}
+{% let post_count = author?.post_count ?? 0 %}
+
+<article class="author-card">
+  <a href="{{ author_href }}" class="author-card-link">
+    {% if author_avatar %}
+    <img src="{{ author_avatar }}" alt="{{ author_name }}" class="author-card-avatar">
+    {% else %}
+    <div class="author-card-avatar-placeholder">
+      {{ author_name[0] | upper }}
+    </div>
+    {% end %}
+
+    <div class="author-card-content">
+      <h2 class="author-card-name">{{ author_name }}</h2>
+
+      {% if author_company or author_location %}
+      <p class="author-card-meta">
+        {% if author_company %}{{ author_company }}{% end %}
+        {% if author_company and author_location %} · {% end %}
+        {% if author_location %}{{ author_location }}{% end %}
+      </p>
+      {% end %}
+
+      {% if author_bio %}
+      <p class="author-card-bio">{{ author_bio | truncate(120) }}</p>
+      {% end %}
+
+      <div class="author-card-stats">
+        <span class="stat">📝 {{ post_count }} post{{ 's' if post_count != 1 else '' }}</span>
+        {% if author_github %}
+        <span class="stat">💻 {{ author_github }}</span>
+        {% end %}
+      </div>
+    </div>
+  </a>
+</article>
+{% end %}
+
+{# =============================================================================
+MAIN TEMPLATE
+============================================================================= #}
+
 {% block content %}
+{# Template-scoped variables #}
+{% let page_title = page?.title ?? 'Authors' %}
+{% let page_desc = page?.description ?? '' %}
+{% let authors_data = site?.data?.authors ?? {} %}
+{% let author_index = site?.indexes?.author ?? {} %}
+{% let page_children = page?.children ?? [] %}
+
 {{ breadcrumbs(page) }}
 
 <div class="authors-page">
   <header class="page-header">
-    <h1>{{ page.title ?? 'Authors' }}</h1>
-    {% if page.description %}
-    <p class="page-description">{{ page.description }}</p>
+    <h1>{{ page_title }}</h1>
+    {% if page_desc %}
+    <p class="page-description">{{ page_desc }}</p>
     {% end %}
   </header>
 
@@ -35,91 +104,54 @@ Context variables:
   {% end %}
 
   {# Build author list from data registry and/or child pages #}
-  {% set authors_list = [] %}
+  {% let authors_list = [] %}
 
   {# Add authors from data/authors.yaml #}
-  {% if site.data.authors %}
-    {% for author_key, author_data in site.data.authors.items() %}
-      {% set post_count = (site.indexes.author.get(author_key) ?? []) | length %}
-      {% set _name = author_data.name %}
-      {% do authors_list.append({
-        'key': author_key,
-        'name': _name if _name != none else author_key,
-        'bio': author_data.bio | default(''),
-        'avatar': author_data.avatar,
-        'company': author_data.company,
-        'location': author_data.location,
-        'github': author_data.github,
-        'post_count': post_count,
-        'href': '/authors/' ~ author_key ~ '/'
-      }) %}
-    {% end %}
+  {% for author_key, author_data in authors_data | items %}
+  {% let author_posts = author_index[author_key] ?? [] %}
+  {% let post_count = author_posts | length %}
+  {% let _name = author_data?.name ?? author_key %}
+  {% do authors_list.append({
+  'key': author_key,
+  'name': _name,
+  'bio': author_data?.bio ?? '',
+  'avatar': author_data?.avatar ?? '',
+  'company': author_data?.company ?? '',
+  'location': author_data?.location ?? '',
+  'github': author_data?.github ?? '',
+  'post_count': post_count,
+  'href': '/authors/' ~ author_key ~ '/'
+  }) %}
   {% end %}
 
   {# Add authors from child pages (if not already in registry) #}
-  {% for child in page.children ?? [] %}
-    {% set _child_title = child.title %}
-    {% set author_key = child.params.author_name | default(_child_title if _child_title != none else 'unknown') %}
-    {% set existing = authors_list | selectattr('key', 'equalto', author_key) | list %}
-    {% if not existing %}
-      {% set post_count = (site.indexes.author.get(author_key) ?? []) | length %}
-      {% do authors_list.append({
-        'key': author_key,
-        'name': _child_title if _child_title != none else 'Unknown Author',
-        'bio': child.params.bio,
-        'avatar': child.params.avatar,
-        'company': child.params.company,
-        'location': child.params.location,
-        'github': child.params.social.github,
-        'post_count': post_count,
-        'href': child.href
-      }) %}
-    {% end %}
+  {% for child in page_children %}
+  {% let child_title = child?.title ?? 'unknown' %}
+  {% let author_key = child?.params?.author_name ?? child_title %}
+  {% let existing = authors_list |> selectattr('key', 'eq', author_key) |> list %}
+  {% if existing | length == 0 %}
+  {% let author_posts = author_index[author_key] ?? [] %}
+  {% let post_count = author_posts | length %}
+  {% let child_params = child?.params ?? {} %}
+  {% let child_social = child_params?.social ?? {} %}
+  {% do authors_list.append({
+  'key': author_key,
+  'name': child_title,
+  'bio': child_params?.bio ?? '',
+  'avatar': child_params?.avatar ?? '',
+  'company': child_params?.company ?? '',
+  'location': child_params?.location ?? '',
+  'github': child_social?.github ?? '',
+  'post_count': post_count,
+  'href': child?.href ?? '#'
+  }) %}
+  {% end %}
   {% end %}
 
-  {% if authors_list %}
+  {% if authors_list | length > 0 %}
   <div class="authors-grid">
     {% for author in authors_list | sort(attribute='name') %}
-    <article class="author-card">
-      <a href="{{ author.href }}" class="author-card-link">
-        {% if author.avatar %}
-        <img src="{{ author.avatar }}"
-             alt="{{ author.name }}"
-             class="author-card-avatar">
-        {% else %}
-        <div class="author-card-avatar-placeholder">
-          {{ author.name[0] | upper }}
-        </div>
-        {% end %}
-
-        <div class="author-card-content">
-          <h2 class="author-card-name">{{ author.name }}</h2>
-
-          {% if author.company or author.location %}
-          <p class="author-card-meta">
-            {% if author.company %}{{ author.company }}{% end %}
-            {% if author.company and author.location %} · {% end %}
-            {% if author.location %}{{ author.location }}{% end %}
-          </p>
-          {% end %}
-
-          {% if author.bio %}
-          <p class="author-card-bio">{{ author.bio | truncate(120) }}</p>
-          {% end %}
-
-          <div class="author-card-stats">
-            <span class="stat">
-              📝 {{ author.post_count }} post{{ 's' if author.post_count != 1 }}
-            </span>
-            {% if author.github %}
-            <span class="stat">
-              💻 {{ author.github }}
-            </span>
-            {% end %}
-          </div>
-        </div>
-      </a>
-    </article>
+    {{ author_card(author) }}
     {% end %}
   </div>
   {% else %}
@@ -131,112 +163,112 @@ Context variables:
 </div>
 
 <style>
-.authors-page {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem;
-}
+  .authors-page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
 
-.authors-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 1.5rem;
-  margin-top: 2rem;
-}
+  .authors-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
+  }
 
-.author-card {
-  background: var(--surface-1, #fff);
-  border: 1px solid var(--border-color, #e5e7eb);
-  border-radius: 12px;
-  overflow: hidden;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
+  .author-card {
+    background: var(--surface-1, #fff);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
 
-.author-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-}
+  .author-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  }
 
-.author-card-link {
-  display: flex;
-  align-items: flex-start;
-  gap: 1rem;
-  padding: 1.5rem;
-  text-decoration: none;
-  color: inherit;
-}
+  .author-card-link {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1.5rem;
+    text-decoration: none;
+    color: inherit;
+  }
 
-.author-card-avatar,
-.author-card-avatar-placeholder {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
+  .author-card-avatar,
+  .author-card-avatar-placeholder {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
 
-.author-card-avatar {
-  object-fit: cover;
-}
+  .author-card-avatar {
+    object-fit: cover;
+  }
 
-.author-card-avatar-placeholder {
-  background: var(--accent-color, #6366f1);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.5rem;
-  font-weight: 600;
-}
+  .author-card-avatar-placeholder {
+    background: var(--accent-color, #6366f1);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
 
-.author-card-content {
-  flex: 1;
-  min-width: 0;
-}
+  .author-card-content {
+    flex: 1;
+    min-width: 0;
+  }
 
-.author-card-name {
-  font-size: 1.125rem;
-  font-weight: 600;
-  margin: 0 0 0.25rem;
-  color: var(--text-1, #111);
-}
+  .author-card-name {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin: 0 0 0.25rem;
+    color: var(--text-1, #111);
+  }
 
-.author-card-meta {
-  font-size: 0.875rem;
-  color: var(--text-2, #6b7280);
-  margin: 0 0 0.5rem;
-}
+  .author-card-meta {
+    font-size: 0.875rem;
+    color: var(--text-2, #6b7280);
+    margin: 0 0 0.5rem;
+  }
 
-.author-card-bio {
-  font-size: 0.875rem;
-  color: var(--text-2, #6b7280);
-  margin: 0 0 0.75rem;
-  line-height: 1.5;
-}
+  .author-card-bio {
+    font-size: 0.875rem;
+    color: var(--text-2, #6b7280);
+    margin: 0 0 0.75rem;
+    line-height: 1.5;
+  }
 
-.author-card-stats {
-  display: flex;
-  gap: 1rem;
-  font-size: 0.75rem;
-  color: var(--text-3, #9ca3af);
-}
+  .author-card-stats {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.75rem;
+    color: var(--text-3, #9ca3af);
+  }
 
-.author-card-stats .stat {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-}
+  .author-card-stats .stat {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
 
-.empty-state {
-  text-align: center;
-  padding: 3rem;
-  color: var(--text-2, #6b7280);
-}
+  .empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-2, #6b7280);
+  }
 
-.empty-state code {
-  background: var(--surface-2, #f3f4f6);
-  padding: 0.125rem 0.375rem;
-  border-radius: 4px;
-  font-size: 0.875rem;
-}
+  .empty-state code {
+    background: var(--surface-2, #f3f4f6);
+    padding: 0.125rem 0.375rem;
+    border-radius: 4px;
+    font-size: 0.875rem;
+  }
 </style>
 {% end %}

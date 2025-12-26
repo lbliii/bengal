@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 
 {#
-Single Release Template
+================================================================================
+Single Release Template (Kida-Native)
+================================================================================
 
-Used for individual release/changelog pages.
+Individual release/changelog page.
 
-Usage: Create markdown files with `type: changelog`
-
-Frontmatter example:
+FRONTMATTER EXAMPLE:
 ---
 title: Version 1.2.0
 type: changelog
@@ -16,166 +16,129 @@ name: "Feature Release"
 status: stable
 summary: Major new features and improvements
 added:
-- New feature A
-- New feature B
+  - New feature A
+  - New feature B
 changed:
-- Updated feature C
+  - Updated feature C
 fixed:
-- Fixed bug D
+  - Fixed bug D
 ---
+
+KIDA FEATURES USED:
+- {% let %} for template-scoped variables
+- Optional chaining (?.) for null-safe access
+- Null coalescing (??) for smart defaults
+- {% def %} for reusable category component
+================================================================================
 #}
 
 {% from 'partials/navigation-components.html' import breadcrumbs %}
 
+{# =============================================================================
+   CHANGE CATEGORY COMPONENT
+   ============================================================================= #}
+{% def change_category(title, icon, items, is_breaking=false) %}
+{% if items and items is iterable and items is not string and items | length > 0 %}
+<section class="changelog-category{{ ' changelog-breaking' if is_breaking else '' }}">
+  <h2 class="category-title">{{ icon }} {{ title }}</h2>
+  <ul class="changelog-list">
+    {% for item in items %}
+    <li>{{ item }}</li>
+    {% end %}
+  </ul>
+</section>
+{% end %}
+{% end %}
+
+{# =============================================================================
+   MAIN TEMPLATE
+   ============================================================================= #}
+
 {% block content %}
+{# Template-scoped variables with null-safe access #}
+{% let page_title = page?.title ?? 'Release' %}
+{% let page_date = page?.date %}
+
+{# Params with null-safe access #}
+{% let release_name = params?.name ?? '' %}
+{% let release_status = params?.status ?? '' %}
+{% let release_desc = params?.description ?? params?.summary ?? '' %}
+{% let release_github = params?.github_release ?? '' %}
+{% let release_download = params?.download_url ?? '' %}
+
+{# Change categories #}
+{% let changes_added = params?.added ?? [] %}
+{% let changes_changed = params?.changed ?? [] %}
+{% let changes_fixed = params?.fixed ?? [] %}
+{% let changes_deprecated = params?.deprecated ?? [] %}
+{% let changes_removed = params?.removed ?? [] %}
+{% let changes_security = params?.security ?? [] %}
+{% let changes_breaking = params?.breaking ?? [] %}
+
 <article class="changelog-single">
-    {# Action Bar: Breadcrumbs + Share #}
-    {% include 'partials/action-bar.html' %}
+  {# Action Bar: Breadcrumbs + Share #}
+  {% include 'partials/action-bar.html' %}
 
-    <header class="release-header">
-        <h1>{{ page.title }}</h1>
+  <header class="release-header">
+    <h1>{{ page_title }}</h1>
 
-        {% if params.name %}
-        <p class="release-name">{{ params.name }}</p>
-        {% end %}
+    {% if release_name %}
+    <p class="release-name">{{ release_name }}</p>
+    {% end %}
 
-        <div class="release-meta">
-            {% if page.date %}
-            <time datetime="{{ page.date | date_iso }}" class="release-date">
-                Released {{ page.date | dateformat('%B %d, %Y') }}
-            </time>
-            {% end %}
+    <div class="release-meta">
+      {% if page_date %}
+      <time datetime="{{ page_date | date_iso }}" class="release-date">
+        Released {{ page_date | dateformat('%B %d, %Y') }}
+      </time>
+      {% end %}
 
-            {% if params.status %}
-            <span class="release-status status-{{ params.status | lower }}">
-                {{ params.status }}
-            </span>
-            {% end %}
-        </div>
-
-        {% if params.description %}
-        <p class="release-summary">{{ params.description }}</p>
-        {% elif params.summary %}
-        <p class="release-summary">{{ params.summary }}</p>
-        {% end %}
-    </header>
-
-    <div class="release-content">
-        {# Added Features #}
-        {% if params.added and params.added is iterable and params.added is
-        not string %}
-        <section class="changelog-category">
-            <h2 class="category-title">✨ Added</h2>
-            <ul class="changelog-list">
-                {% for item in params.added %}
-                <li>{{ item }}</li>
-                {% end %}
-            </ul>
-        </section>
-        {% end %}
-
-        {# Changed/Improved #}
-        {% if params.changed and params.changed is iterable and params.changed
-        is not string %}
-        <section class="changelog-category">
-            <h2 class="category-title">🔄 Changed</h2>
-            <ul class="changelog-list">
-                {% for item in params.changed %}
-                <li>{{ item }}</li>
-                {% end %}
-            </ul>
-        </section>
-        {% end %}
-
-        {# Fixed Bugs #}
-        {% if params.fixed and params.fixed is iterable and params.fixed is
-        not string %}
-        <section class="changelog-category">
-            <h2 class="category-title">🐛 Fixed</h2>
-            <ul class="changelog-list">
-                {% for item in params.fixed %}
-                <li>{{ item }}</li>
-                {% end %}
-            </ul>
-        </section>
-        {% end %}
-
-        {# Deprecated #}
-        {% if params.deprecated and params.deprecated is iterable and
-        params.deprecated is not string %}
-        <section class="changelog-category">
-            <h2 class="category-title">⚠️ Deprecated</h2>
-            <ul class="changelog-list">
-                {% for item in params.deprecated %}
-                <li>{{ item }}</li>
-                {% end %}
-            </ul>
-        </section>
-        {% end %}
-
-        {# Removed #}
-        {% if params.removed and params.removed is iterable and params.removed
-        is not string %}
-        <section class="changelog-category">
-            <h2 class="category-title">🗑️ Removed</h2>
-            <ul class="changelog-list">
-                {% for item in params.removed %}
-                <li>{{ item }}</li>
-                {% end %}
-            </ul>
-        </section>
-        {% end %}
-
-        {# Security #}
-        {% if params.security and params.security is iterable and
-        params.security is not string %}
-        <section class="changelog-category">
-            <h2 class="category-title">🔒 Security</h2>
-            <ul class="changelog-list">
-                {% for item in params.security %}
-                <li>{{ item }}</li>
-                {% end %}
-            </ul>
-        </section>
-        {% end %}
-
-        {# Breaking Changes #}
-        {% if params.breaking and params.breaking is iterable and
-        params.breaking is not string %}
-        <section class="changelog-category changelog-breaking">
-            <h2 class="category-title">⚡ Breaking Changes</h2>
-            <ul class="changelog-list">
-                {% for item in params.breaking %}
-                <li>{{ item }}</li>
-                {% end %}
-            </ul>
-        </section>
-        {% end %}
-
-        {# Main content (detailed release notes) #}
-        {% if content and content.strip() %}
-        <section class="release-details prose">
-            {{ content | safe }}
-        </section>
-        {% end %}
-
-        {# Links #}
-        {% if params.github_release or params.download_url %}
-        <footer class="release-footer">
-            <div class="release-links">
-                {% if params.github_release %}
-                <a href="{{ params.github_release }}" class="release-link" target="_blank">
-                    View on GitHub →
-                </a>
-                {% end %}
-                {% if params.download_url %}
-                <a href="{{ params.download_url }}" class="release-link release-download" target="_blank">
-                    Download Release ↓
-                </a>
-                {% end %}
-            </div>
-        </footer>
-        {% end %}
+      {% if release_status %}
+      <span class="release-status status-{{ release_status | lower }}">
+        {{ release_status }}
+      </span>
+      {% end %}
     </div>
+
+    {% if release_desc %}
+    <p class="release-summary">{{ release_desc }}</p>
+    {% end %}
+  </header>
+
+  <div class="release-content">
+    {# Change Categories #}
+    {{ change_category('Added', '✨', changes_added) }}
+    {{ change_category('Changed', '🔄', changes_changed) }}
+    {{ change_category('Fixed', '🐛', changes_fixed) }}
+    {{ change_category('Deprecated', '⚠️', changes_deprecated) }}
+    {{ change_category('Removed', '🗑️', changes_removed) }}
+    {{ change_category('Security', '🔒', changes_security) }}
+    {{ change_category('Breaking Changes', '⚡', changes_breaking, is_breaking=true) }}
+
+    {# Main content (detailed release notes) #}
+    {% if content and content.strip() %}
+    <section class="release-details prose">
+      {{ content | safe }}
+    </section>
+    {% end %}
+
+    {# Links #}
+    {% if release_github or release_download %}
+    <footer class="release-footer">
+      <div class="release-links">
+        {% if release_github %}
+        <a href="{{ release_github }}" class="release-link" target="_blank" rel="noopener noreferrer">
+          View on GitHub →
+        </a>
+        {% end %}
+        {% if release_download %}
+        <a href="{{ release_download }}" class="release-link release-download" target="_blank" rel="noopener noreferrer">
+          Download Release ↓
+        </a>
+        {% end %}
+      </div>
+    </footer>
+    {% end %}
+  </div>
 </article>
 {% end %}

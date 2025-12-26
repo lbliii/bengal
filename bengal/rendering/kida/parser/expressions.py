@@ -122,6 +122,30 @@ class ExpressionParsingMixin:
 
         return expr
 
+    def _parse_null_coalesce_no_ternary(self) -> Expr:
+        """Parse null coalescing without ternary support.
+
+        Used in for loops where we need ?? but not ternary (to preserve inline if):
+            {% for x in items ?? [] %}           ← works
+            {% for x in items if x.visible %}    ← still works
+
+        Part of RFC: kida-modern-syntax-features.
+        """
+        left = self._parse_or()
+
+        while self._match(TokenType.NULLISH_COALESCE):
+            self._advance()  # consume ??
+            # Right-associative: parse right side recursively
+            right = self._parse_null_coalesce_no_ternary()
+            left = NullCoalesce(
+                lineno=left.lineno,
+                col_offset=left.col_offset,
+                left=left,
+                right=right,
+            )
+
+        return left
+
     def _parse_or(self) -> Expr:
         """Parse 'or' expression."""
         return self._parse_binary(self._parse_and, TokenType.OR)

@@ -218,8 +218,11 @@ class TestEnvironmentFilters:
         assert tmpl.render() == "10-15"
 
     def test_override_builtin_filter(self):
-        """Override builtin filter."""
-        env = Environment()
+        """Override builtin filter works when optimization is disabled."""
+        # When filter inlining is enabled (default), built-in filters are inlined
+        # and bypass the filter registry. To use custom filter overrides,
+        # disable optimization.
+        env = Environment(optimized=False)
 
         def custom_upper(s):
             return s.upper() + "!"
@@ -227,6 +230,20 @@ class TestEnvironmentFilters:
         env.add_filter("upper", custom_upper)
         tmpl = env.from_string("{{ 'hello'|upper }}")
         assert tmpl.render() == "HELLO!"
+
+    def test_filter_inlining_enabled_by_default(self):
+        """Filter inlining is enabled by default for performance."""
+        from bengal.rendering.kida.optimizer import OptimizationConfig
+
+        # Verify default config has inlining enabled
+        config = OptimizationConfig()
+        assert config.filter_inlining is True
+
+        # With inlining enabled, built-in filters are inlined (bypass registry)
+        env = Environment()
+        tmpl = env.from_string("{{ 'hello'|upper }}")
+        # Should use inlined method call, not filter registry
+        assert tmpl.render() == "HELLO"
 
 
 class TestEnvironmentTests:

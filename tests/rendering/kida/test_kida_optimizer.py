@@ -355,6 +355,36 @@ class TestFilterInliner:
         output = for_node.body[0]
         assert isinstance(output.expr, InlinedFilter)
 
+    def test_inline_casefold_filter(self, inliner):
+        """Casefold filter is inlined as method call."""
+        ast = _parse("{{ name | casefold }}")
+        result, count = inliner.inline(ast)
+
+        output = result.body[0]
+        assert isinstance(output.expr, InlinedFilter)
+        assert output.expr.method == "casefold"
+        assert count == 1
+
+    def test_inline_isdigit_filter(self, inliner):
+        """Isdigit filter is inlined as method call."""
+        ast = _parse("{{ name | isdigit }}")
+        result, count = inliner.inline(ast)
+
+        output = result.body[0]
+        assert isinstance(output.expr, InlinedFilter)
+        assert output.expr.method == "isdigit"
+        assert count == 1
+
+    def test_inline_isalpha_filter(self, inliner):
+        """Isalpha filter is inlined as method call."""
+        ast = _parse("{{ name | isalpha }}")
+        result, count = inliner.inline(ast)
+
+        output = result.body[0]
+        assert isinstance(output.expr, InlinedFilter)
+        assert output.expr.method == "isalpha"
+        assert count == 1
+
 
 class TestBufferEstimator:
     """Tests for buffer size estimation."""

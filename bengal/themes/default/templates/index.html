@@ -25,7 +25,7 @@ related: false # disable related entirely
 #}
 
 {% from 'partials/navigation-components.html' import breadcrumbs %}
-{% from 'partials/content-components.html' import content_tiles %}
+{% from 'partials/components/tiles.html' import content_tiles %}
 
 {% block content %}
 {{ breadcrumbs(page if page else section) }}

@@ -1,13 +1,38 @@
 {% extends "base.html" %}
-{% from 'partials/content-components.html' import article_card %}
+
+{#
+================================================================================
+Single Tag Page Template (Kida-Native)
+================================================================================
+
+Displays all posts with a specific tag.
+
+KIDA FEATURES USED:
+- {% let %} for template-scoped variables
+- Optional chaining (?.) for null-safe access
+- Null coalescing (??) for smart defaults
+
+USAGE:
+Auto-generated for each tag in the site
+================================================================================
+#}
+
+{% from 'partials/components/article.html' import article_card %}
 {% from 'partials/navigation-components.html' import pagination %}
 
 {% block content %}
-{# Two-column layout similar to docs - tag navigation in sidebar #}
+{# Template-scoped variables #}
+{% let current_tag = tag ?? '' %}
+{% let tag_posts = posts ?? [] %}
+{% let total_posts = total_posts ?? (tag_posts | length) %}
+{% let total_pages = total_pages ?? 1 %}
+{% let current_page = current_page ?? 1 %}
+{% let base_url = base_url ?? tag_url(current_tag) %}
+
+{# Two-column layout similar to docs #}
 <div class="docs-layout">
   {# Left Sidebar: Tag Navigation #}
   <aside class="docs-sidebar" id="tag-sidebar" role="navigation" aria-label="Tag navigation">
-    {% set current_tag = tag %}
     {% include 'partials/tag-nav.html' %}
   </aside>
 
@@ -20,27 +45,27 @@
       <header class="page-header">
         <h1>
           <span class="tag-icon">#</span>
-          {{ tag }}
+          {{ current_tag }}
         </h1>
 
         <p class="page-description">
-          {{ total_posts }} post{% if total_posts != 1 %}s{% end %} tagged with "{{ tag }}"
+          {{ total_posts }} post{% if total_posts != 1 %}s{% end %} tagged with "{{ current_tag }}"
         </p>
       </header>
 
-      {% if posts %}
+      {% if tag_posts | length > 0 %}
       <div class="archive-list">
-        {% for post in posts %}
-        {# Defensive: Skip autodoc pages (they shouldn't have tags, but just in case) #}
-        {% set source_str = post.source_path | string %}
+        {% for post in tag_posts %}
+        {# Skip autodoc pages (defensive) #}
+        {% let source_str = (post?.source_path ?? '') | string %}
         {% if 'content/api' not in source_str and 'content/cli' not in source_str %}
-        {{ article_card(post, show_excerpt=True) }}
+        {{ article_card(post, show_excerpt=true) }}
         {% end %}
         {% end %}
       </div>
 
-      {# Pagination (if needed in future) #}
-      {% if total_pages and total_pages > 1 %}
+      {# Pagination #}
+      {% if total_pages > 1 %}
       {{ pagination(current_page, total_pages, base_url) }}
       {% end %}
       {% else %}
@@ -53,9 +78,7 @@
     </article>
   </div>
 
-  {# Right Sidebar: Empty for now (will be hidden by CSS, can add tag metadata later) #}
+  {# Right Sidebar: Empty (hidden by CSS) #}
   <aside class="docs-toc"></aside>
 </div>
-
-{# styles moved to components/tags.css #}
 {% end %}

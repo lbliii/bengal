@@ -1,33 +1,46 @@
 {#
-Element Card Macro
+================================================================================
+Element Card Macro (Kida-Native)
+================================================================================
 
 Renders a single autodoc element as a card (command, class, function, endpoint, etc.).
 
-Usage:
+USAGE:
 {% from 'autodoc/partials/_macros/element-card.html' import element_card %}
 {{ element_card(child) }}
 {{ element_card(child, card_type='command') }}
 
-Args:
+ARGS:
 child: DocElement to render (required)
 card_type: Override element type for styling (optional)
 
-Note: DocElement.href is pre-computed during page building with baseurl included.
+NOTE:
+DocElement.href is pre-computed during page building with baseurl included.
 Templates should use {{ child.href }} directly for links.
+
+KIDA FEATURES USED:
+- Optional chaining (?.) for safe attribute access
+- Null coalescing (??) for defaults
+
+================================================================================
 #}
 
 {% def element_card(child, card_type=none) %}
-{% set child_type = card_type or child.element_type %}
-{# Use pre-computed href (includes baseurl), fall back to anchor if not set #}
-{% set child_url = child.href or '#' %}
+{# Extract values with null-safety #}
+{% set child_type = card_type ?? child?.element_type ?? 'unknown' %}
+{% set child_url = child?.href ?? '#' %}
+{% set child_name = child?.name ?? 'Unknown' %}
+{% set child_desc = child?.description ?? '' %}
+{% set child_meta = child?.metadata ?? {} %}
+{% set http_method = child_meta?.method ?? '' %}
+
 <a href="{{ child_url }}" class="autodoc-card" data-card="{{ child_type }}">
-    {% if child_type == 'endpoint' and child.metadata.method %}
-    <span class="autodoc-method" data-method="{{ child.metadata.method | lower }}">{{ child.metadata.method | upper
-        }}</span>
+    {% if child_type == 'endpoint' and http_method %}
+    <span class="autodoc-method" data-method="{{ http_method | lower }}">{{ http_method | upper }}</span>
     {% end %}
-    <code class="autodoc-card-name">{{ child.name }}</code>
-    {% if child.description %}
-    <span class="autodoc-card-desc">{{ child.description | truncate(100) }}</span>
+    <code class="autodoc-card-name">{{ child_name }}</code>
+    {% if child_desc %}
+    <span class="autodoc-card-desc">{{ child_desc | truncate(100) }}</span>
     {% end %}
 </a>
-{% enddef %}
+{% end %}

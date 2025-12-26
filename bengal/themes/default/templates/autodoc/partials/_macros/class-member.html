@@ -23,7 +23,7 @@ KIDA FEATURES USED:
 #}
 
 {% def class_member(cls, is_first=false) %}
-{# Pre-compute all values with null-safety #}
+{# Pre-compute all values with null-safety (using multi-let) #}
 {% let
     cls_children = cls?.children ?? [],
     cls_methods = cls_children | selectattr('element_type', 'eq', 'method') | list,

@@ -234,18 +234,21 @@ class ControlFlowMixin:
         return []
 
     def _compile_match(self, node: Any) -> list[ast.stmt]:
-        """Compile {% match expr %}{% case pattern %}...{% end %}.
+        """Compile {% match expr %}{% case pattern [if guard] %}...{% end %}.
 
         Generates chained if/elif comparisons:
             _match_subject = expr
             if _match_subject == pattern1:
                 ...body1...
-            elif _match_subject == pattern2:
+            elif _match_subject == pattern2 and guard2:
                 ...body2...
-            elif True:  # Wildcard case (_)
+            elif guard3:  # Wildcard case (_) with guard
+                ...
+            elif True:  # Wildcard case (_) without guard
                 ...default...
 
         The wildcard pattern (_) compiles to `True` (always matches).
+        Guards are optional conditions added with `if`: {% case _ if condition %}
 
         Uses unique variable name with block counter to support nested match blocks.
         """
@@ -272,7 +275,7 @@ class ControlFlowMixin:
         # Process cases in reverse to build the orelse chain
         orelse: list[ast.stmt] = []
 
-        for pattern_expr, case_body in reversed(node.cases):
+        for pattern_expr, guard_expr, case_body in reversed(node.cases):
             # Compile case body
             body_stmts: list[ast.stmt] = []
             for child in case_body:
@@ -284,15 +287,27 @@ class ControlFlowMixin:
             is_wildcard = isinstance(pattern_expr, KidaName) and pattern_expr.name == "_"
 
             if is_wildcard:
-                # Wildcard: always True (becomes else clause effectively)
-                test = ast.Constant(value=True)
+                if guard_expr:
+                    # Wildcard with guard: just use the guard as the test
+                    test = self._compile_expr(guard_expr)
+                else:
+                    # Wildcard without guard: always True (becomes else clause)
+                    test = ast.Constant(value=True)
             else:
                 # Equality comparison: _match_subject_N == pattern
-                test = ast.Compare(
+                pattern_test = ast.Compare(
                     left=ast.Name(id=subject_var, ctx=ast.Load()),
                     ops=[ast.Eq()],
                     comparators=[self._compile_expr(pattern_expr)],
                 )
+                if guard_expr:
+                    # Pattern with guard: pattern_match AND guard
+                    test = ast.BoolOp(
+                        op=ast.And(),
+                        values=[pattern_test, self._compile_expr(guard_expr)],
+                    )
+                else:
+                    test = pattern_test
 
             # Build if node
             if_node = ast.If(

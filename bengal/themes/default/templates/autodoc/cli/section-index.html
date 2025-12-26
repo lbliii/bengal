@@ -47,7 +47,7 @@ KIDA FEATURES USED:
   {# Main Content #}
   <div class="docs-main">
     {# Page Hero: Use direct macro call with CLI context #}
-    {% from 'partials/page-hero.html' import hero_section %}
+    {% from 'partials/page-hero/_macros.html' import hero_section %}
     {{ hero_section(section, page, {'is_cli': true}) }}
 
     {# Article Content - autodoc skeleton #}

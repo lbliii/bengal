@@ -1,264 +1,301 @@
 {% extends "base.html" %}
 
 {#
-Blog Post Single Page Template
+================================================================================
+Blog Post Single Page Template (Kida-Native)
+================================================================================
 
-Used for individual blog post pages. Optimized for reading with
-author information, sharing options, and related posts.
+Individual blog post page optimized for reading.
 
-Usage: Set `type: blog` in frontmatter or use cascade from section
+FEATURES:
+- Featured image support
+- Author information and bio
+- Reading time estimation
+- Social sharing buttons
+- Related posts section
+- Comments integration point
+- Table of contents sidebar
 
-Context variables:
-- page: Blog post page object
-- content: Rendered post content
-- toc: Table of contents
+KIDA FEATURES USED:
+- {% let %} for template-scoped variables
+- Optional chaining (?.) for null-safe access
+- Null coalescing (??) for smart defaults
+- {% def %} for reusable components
+- {% match %} for conditional rendering
+
+USAGE:
+Set `type: blog` in frontmatter or use cascade from section
+================================================================================
 #}
 
 {% from 'partials/navigation-components.html' import breadcrumbs, page_navigation %}
-{% from 'partials/content-components.html' import tag_list %}
+{% from 'partials/components/tags.html' import tag_list %}
+
+{# =============================================================================
+   RELATED POST CARD COMPONENT
+   ============================================================================= #}
+{% def related_card(post) %}
+{% let post_meta = post?.metadata ?? {} %}
+{% let post_image = post_meta?.image ?? post_meta?.cover ?? '' %}
+{% let post_title = post?.title ?? 'Untitled' %}
+{% let post_href = post?.href ?? '#' %}
+{% let post_date = post?.date %}
+{% let post_desc = post_meta?.description ?? post?.excerpt ?? '' %}
+
+<article class="blog-post-card gradient-border fluid-combined">
+  {% if post_image %}
+  <div class="blog-card-image">
+    <a href="{{ post_href }}">
+      <img src="{{ post_image }}" alt="{{ post_title }}" loading="lazy">
+    </a>
+  </div>
+  {% end %}
+  <div class="blog-card-content">
+    <h3 class="blog-card-title">
+      <a href="{{ post_href }}">{{ post_title }}</a>
+    </h3>
+    {% if post_desc %}
+    <p class="blog-card-excerpt">{{ post_desc | truncate(120) }}</p>
+    {% end %}
+    {% if post_date %}
+    <time datetime="{{ post_date | date_iso }}">{{ post_date | time_ago }}</time>
+    {% end %}
+  </div>
+</article>
+{% end %}
+
+{# =============================================================================
+   MAIN TEMPLATE
+   ============================================================================= #}
 
 {% block content %}
+{# Template-scoped variables with null-safe access #}
+{% let page_title = page?.title ?? 'Blog Post' %}
+{% let page_date = page?.date %}
+{% let page_content = page?.content ?? '' %}
+{% let page_tags = page?.tags ?? [] %}
+{% let page_href = page?.href ?? '' %}
+{% let theme_features = theme?.features ?? [] %}
+
+{# Params with null-safe access #}
+{% let post_image = params?.image ?? params?.cover ?? '' %}
+{% let post_desc = params?.description ?? '' %}
+{% let post_author = params?.author ?? '' %}
+{% let post_author_avatar = params?.author_avatar ?? '' %}
+{% let post_author_title = params?.author_title ?? '' %}
+{% let post_author_bio = params?.author_bio ?? '' %}
+{% let post_author_links = params?.author_links ?? [] %}
+{% let post_updated = params?.updated %}
+{% let post_views = params?.views %}
+{% let css_class = params?.css_class ?? '' %}
+{% let show_newsletter = params?.show_newsletter ?? false %}
+{% let show_comments = params?.comments ?? true %}
+
+{# Reading time calculation #}
+{% let word_count = page_content | wordcount if page_content else 0 %}
+{% let read_time = page_content | reading_time if page_content else 0 %}
+
 <div class="container">
-{# Reading progress indicator is automatically added by interactive.js #}
+  {# Action Bar: Breadcrumbs + Share #}
+  {% include 'partials/action-bar.html' %}
 
-{# Action Bar: Breadcrumbs + Share #}
-{% include 'partials/action-bar.html' %}
+  <div class="blog-post-layout{{ ' blog-with-toc' if toc else '' }}">
+    <article class="blog-post prose {{ css_class }}">
+      <header class="blog-post-header">
+        {# Featured Image #}
+        {% if post_image %}
+        <div class="blog-post-image">
+          <img src="{{ post_image }}" alt="{{ page_title }}">
+        </div>
+        {% end %}
 
-<div class="blog-post-layout {% if toc %}blog-with-toc{% end %}">
-    <article
-        class="blog-post prose {% if params.css_class %}{{ params.css_class }}{% end %}">
-        <header class="blog-post-header">
-            {# Featured Image #}
-            {% if params.image or params.cover %}
-            <div class="blog-post-image">
-                <img src="{{ params.image | default(params.cover) }}"
-                    alt="{{ page.title }}">
+        <h1>{{ page_title }}</h1>
+
+        {% if post_desc %}
+        <p class="lead">{{ post_desc }}</p>
+        {% end %}
+
+        {# Post Metadata #}
+        <div class="blog-post-meta">
+          {# Author Info #}
+          {% if post_author and 'content.author' in theme_features %}
+          <div class="blog-post-author">
+            {% if post_author_avatar %}
+            <img src="{{ post_author_avatar }}" alt="{{ post_author }}" class="author-avatar">
+            {% end %}
+            <div class="author-info">
+              <strong>{{ post_author }}</strong>
+              {% if post_author_title %}
+              <span class="author-title">{{ post_author_title }}</span>
+              {% end %}
             </div>
+          </div>
+          {% end %}
+
+          <div class="blog-post-details">
+            {# Publication Date #}
+            {% if page_date %}
+            <time datetime="{{ page_date | date_iso }}"
+                  title="{{ page_date | dateformat('%B %d, %Y at %I:%M %p') }}">
+              {{ page_date | dateformat('%B %d, %Y') }}
+            </time>
             {% end %}
 
-            <h1>{{ page.title }}</h1>
-
-            {% if params.description %}
-            <p class="lead">{{ params.description }}</p>
+            {# Reading Time #}
+            {% if page_content and 'content.reading_time' in theme_features %}
+            <span class="reading-time">
+              {{ icon('clock', size=14) }}
+              {{ read_time }} min read
+            </span>
             {% end %}
 
-            {# Post Metadata #}
-            <div class="blog-post-meta">
-                {# Author Info - Feature: content.author #}
-                {% if params.author and 'content.author' in theme.features %}
-                <div class="blog-post-author">
-                    {% if params.author_avatar %}
-                    <img src="{{ params.author_avatar }}" alt="{{ params.author }}"
-                        class="author-avatar">
-                    {% end %}
-                    <div class="author-info">
-                        <strong>{{ params.author }}</strong>
-                        {% if params.author_title %}
-                        <span class="author-title">{{ params.author_title }}</span>
-                        {% end %}
-                    </div>
-                </div>
-                {% end %}
-
-                <div class="blog-post-details">
-                    {# Publication Date #}
-                    {% if page.date %}
-                    <time datetime="{{ page.date | date_iso }}"
-                        title="{{ page.date | dateformat('%B %d, %Y at %I:%M %p') }}">
-                        {{ page.date | dateformat('%B %d, %Y') }}
-                    </time>
-                    {% end %}
-
-                    {# Reading Time - Feature: content.reading_time #}
-                    {% if page.content and 'content.reading_time' in theme.features %}
-                    <span class="reading-time">
-                        {{ icon('clock', size=14) }}
-                        {{ page.content | reading_time }} min read
-                    </span>
-                    {% end %}
-
-                    {# View Count (if tracked) #}
-                    {% if params.views %}
-                    <span class="view-count">
-                        {{ icon('eye', size=14) }}
-                        {{ params.views ?? 0 }} views
-                    </span>
-                    {% end %}
-                </div>
-            </div>
-
-            {# Tags #}
-            {% if page.tags %}
-            <div class="blog-post-tags">
-                {{ tag_list(page.tags) }}
-            </div>
+            {# View Count #}
+            {% if post_views %}
+            <span class="view-count">
+              {{ icon('eye', size=14) }}
+              {{ post_views }} views
+            </span>
             {% end %}
-        </header>
-
-        {# Main Post Content #}
-        <div class="blog-post-content">
-            {{ content | safe }}
+          </div>
         </div>
 
-        {# Post Footer #}
-        <footer class="blog-post-footer">
-            {# Updated Date #}
-            {% if params.updated and params.updated != page.date %}
-            <p class="blog-updated">
-                <em>Last updated: {{ params.updated | dateformat('%B %d, %Y') }}</em>
-            </p>
-            {% end %}
+        {# Tags #}
+        {% if page_tags | length > 0 %}
+        <div class="blog-post-tags">
+          {{ tag_list(page_tags) }}
+        </div>
+        {% end %}
+      </header>
 
-            {# Author Bio - Feature: content.author #}
-            {% if params.author and params.author_bio and
-            'content.author' in theme.features %}
-            <div class="author-bio">
-                <div class="author-bio-header">
-                    {% if params.author_avatar %}
-                    <img src="{{ params.author_avatar }}" alt="{{ params.author }}"
-                        class="author-avatar-large">
-                    {% end %}
-                    <div>
-                        <h3>About {{ params.author }}</h3>
-                        {% if params.author_title %}
-                        <p class="author-title">{{ params.author_title }}</p>
-                        {% end %}
-                    </div>
-                </div>
-                <p class="author-bio-text">{{ params.author_bio }}</p>
-                {% if params.author_links %}
-                <div class="author-links">
-                    {% for link in params.author_links %}
-                    <a href="{{ link.href or link.url }}" target="_blank" rel="noopener noreferrer">{{ link.text }}</a>
-                    {% end %}
-                </div>
-                {% end %}
-            </div>
-            {% end %}
+      {# Main Post Content #}
+      <div class="blog-post-content">
+        {{ content | safe }}
+      </div>
 
-            {# Social Sharing - uses Bengal's share_url() helpers #}
-            <div class="blog-social-share">
-                <h4>{{ t('blog.share_post', default='Share this post') }}</h4>
-                <div class="share-buttons">
-                    <a href="{{ share_url('twitter', page) }}"
-                        target="_blank" rel="noopener noreferrer" class="share-button share-twitter"
-                        aria-label="Share on Twitter">
-                        {{ icon('twitter-logo', size=20) }}
-                        Twitter
-                    </a>
-                    <a href="{{ share_url('linkedin', page) }}"
-                        target="_blank" rel="noopener noreferrer" class="share-button share-linkedin"
-                        aria-label="Share on LinkedIn">
-                        {{ icon('linkedin-logo', size=20) }}
-                        LinkedIn
-                    </a>
-                    <a href="{{ share_url('facebook', page) }}"
-                        target="_blank" rel="noopener noreferrer" class="share-button share-facebook"
-                        aria-label="Share on Facebook">
-                        {{ icon('facebook-logo', size=20) }}
-                        Facebook
-                    </a>
-                    <a href="{{ share_url('reddit', page) }}"
-                        target="_blank" rel="noopener noreferrer" class="share-button share-reddit"
-                        aria-label="Share on Reddit">
-                        {{ icon('reddit-logo', size=20) }}
-                        Reddit
-                    </a>
-                    <a href="{{ share_url('email', page) }}"
-                        class="share-button share-email"
-                        aria-label="Share via Email">
-                        {{ icon('envelope-simple', size=20) }}
-                        Email
-                    </a>
-                    <button class="share-button share-copy"
-                        onclick="navigator.clipboard.writeText('{{ page.href }}'); this.innerHTML = '✓ Copied!'"
-                        aria-label="Copy link">
-                        {{ icon('link', size=20) }}
-                        Copy Link
-                    </button>
-                </div>
+      {# Post Footer #}
+      <footer class="blog-post-footer">
+        {# Updated Date #}
+        {% if post_updated and post_updated != page_date %}
+        <p class="blog-updated">
+          <em>Last updated: {{ post_updated | dateformat('%B %d, %Y') }}</em>
+        </p>
+        {% end %}
+
+        {# Author Bio #}
+        {% if post_author and post_author_bio and 'content.author' in theme_features %}
+        <div class="author-bio">
+          <div class="author-bio-header">
+            {% if post_author_avatar %}
+            <img src="{{ post_author_avatar }}" alt="{{ post_author }}" class="author-avatar-large">
+            {% end %}
+            <div>
+              <h3>About {{ post_author }}</h3>
+              {% if post_author_title %}
+              <p class="author-title">{{ post_author_title }}</p>
+              {% end %}
             </div>
-        </footer>
+          </div>
+          <p class="author-bio-text">{{ post_author_bio }}</p>
+          {% if post_author_links | length > 0 %}
+          <div class="author-links">
+            {% for link in post_author_links %}
+            {% let link_url = link?.href ?? link?.url ?? '#' %}
+            {% let link_text = link?.text ?? 'Link' %}
+            <a href="{{ link_url }}" target="_blank" rel="noopener noreferrer">{{ link_text }}</a>
+            {% end %}
+          </div>
+          {% end %}
+        </div>
+        {% end %}
+
+        {# Social Sharing #}
+        <div class="blog-social-share">
+          <h4>{{ t('blog.share_post', default='Share this post') }}</h4>
+          <div class="share-buttons">
+            <a href="{{ share_url('twitter', page) }}" target="_blank" rel="noopener noreferrer"
+               class="share-button share-twitter" aria-label="Share on Twitter">
+              {{ icon('twitter-logo', size=20) }} Twitter
+            </a>
+            <a href="{{ share_url('linkedin', page) }}" target="_blank" rel="noopener noreferrer"
+               class="share-button share-linkedin" aria-label="Share on LinkedIn">
+              {{ icon('linkedin-logo', size=20) }} LinkedIn
+            </a>
+            <a href="{{ share_url('facebook', page) }}" target="_blank" rel="noopener noreferrer"
+               class="share-button share-facebook" aria-label="Share on Facebook">
+              {{ icon('facebook-logo', size=20) }} Facebook
+            </a>
+            <a href="{{ share_url('reddit', page) }}" target="_blank" rel="noopener noreferrer"
+               class="share-button share-reddit" aria-label="Share on Reddit">
+              {{ icon('reddit-logo', size=20) }} Reddit
+            </a>
+            <a href="{{ share_url('email', page) }}" class="share-button share-email" aria-label="Share via Email">
+              {{ icon('envelope-simple', size=20) }} Email
+            </a>
+            <button class="share-button share-copy"
+                    onclick="navigator.clipboard.writeText('{{ page_href }}'); this.innerHTML = '✓ Copied!'"
+                    aria-label="Copy link">
+              {{ icon('link', size=20) }} Copy Link
+            </button>
+          </div>
+        </div>
+      </footer>
     </article>
 
     {# Right Sidebar: TOC #}
     {% if toc %}
     <aside class="blog-sidebar">
-        <nav class="toc" aria-label="Table of contents">
-            <h2 class="toc-title">In This Post</h2>
-            <div class="toc-content">
-                {{ toc | safe }}
-            </div>
-        </nav>
-
-        {# Newsletter CTA (Optional) #}
-        {% if params.show_newsletter %}
-        <div class="newsletter-cta">
-            <h3>Stay Updated</h3>
-            <p>Get notified when we publish new content.</p>
-            <form class="newsletter-form" data-newsletter-target>
-                <input type="email" id="newsletter-email" name="email" placeholder="Your email" required>
-                <button type="submit">Subscribe</button>
-            </form>
+      <nav class="toc" aria-label="Table of contents">
+        <h2 class="toc-title">In This Post</h2>
+        <div class="toc-content">
+          {{ toc | safe }}
         </div>
-        {% end %}
+      </nav>
+
+      {# Newsletter CTA (Optional) #}
+      {% if show_newsletter %}
+      <div class="newsletter-cta">
+        <h3>Stay Updated</h3>
+        <p>Get notified when we publish new content.</p>
+        <form class="newsletter-form" data-newsletter-target>
+          <input type="email" id="newsletter-email" name="email" placeholder="Your email" required>
+          <button type="submit">Subscribe</button>
+        </form>
+      </div>
+      {% end %}
     </aside>
     {% end %}
-</div>
-
+  </div>
 </div>
 
 {# Page Navigation (Prev/Next Posts) #}
 {{ page_navigation(page) }}
 
 {# Related Posts #}
-{% set related = page.related_posts[:3] %}
-{% if related %}
+{% let related = page?.related_posts ?? [] %}
+{% let related_posts = related[:3] %}
+{% if related_posts | length > 0 %}
 <aside class="related-posts">
-    <div class="container">
-        <h2>{{ t('blog.related_posts', default='Related Posts') }}</h2>
-        <div class="blog-featured-grid">
-            {% for post in related %}
-            <article class="blog-post-card gradient-border fluid-combined">
-                {% if post.metadata.image or post.metadata.cover %}
-                <div class="blog-card-image">
-                    <a href="{{ post.href }}">
-                        <img src="{{ post.metadata.image | default(post.metadata.cover) }}"
-                            alt="{{ post.title }}">
-                    </a>
-                </div>
-                {% end %}
-                <div class="blog-card-content">
-                    <h3 class="blog-card-title">
-                        <a href="{{ post.href }}">{{ post.title }}</a>
-                    </h3>
-                    {% if post.metadata.description or post.excerpt %}
-                    <p class="blog-card-excerpt">{{ post.metadata.description | default(post.excerpt) |
-                        truncate(120) }}
-                    </p>
-                    {% end %}
-                    {% if post.date %}
-                    <time datetime="{{ post.date | date_iso }}">{{ post.date | time_ago }}</time>
-                    {% end %}
-                </div>
-            </article>
-            {% end %}
-        </div>
+  <div class="container">
+    <h2>{{ t('blog.related_posts', default='Related Posts') }}</h2>
+    <div class="blog-featured-grid">
+      {% for post in related_posts %}
+      {{ related_card(post) }}
+      {% end %}
     </div>
+  </div>
 </aside>
 {% end %}
 
 {# Comments Section (Integration Point) #}
-{% if params.comments != false %}
+{% if show_comments %}
 <div class="comments-section">
-    <div class="container">
-        <h2>{{ t('blog.comments', default='Comments') }}</h2>
-        {# Integration point for comments systems (Disqus, utterances, etc) #}
-        <div id="comments" data-comments-target></div>
-        <p class="comments-placeholder">
-            <em>{{ t('blog.comments_placeholder', default='Comments are loaded dynamically. Configure your comments system in the theme.') }}</em>
-        </p>
-    </div>
+  <div class="container">
+    <h2>{{ t('blog.comments', default='Comments') }}</h2>
+    <div id="comments" data-comments-target></div>
+    <p class="comments-placeholder">
+      <em>{{ t('blog.comments_placeholder', default='Comments are loaded dynamically. Configure your comments system in the theme.') }}</em>
+    </p>
+  </div>
 </div>
 {% end %}
 {% end %}

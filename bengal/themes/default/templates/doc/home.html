@@ -1,103 +1,161 @@
 {% extends "base.html" %}
 
 {#
-Docs Home Template
+================================================================================
+Docs Home Template (Kida-Native)
+================================================================================
 
-Optimized home page template for documentation sites. Features:
-- No action bar (cleaner for home page)
+Optimized home page template for documentation sites.
+
+FEATURES:
 - Hero section with title and description
-- Main content area
-- Quick links to key documentation sections
-- No blog posts (docs sites don't need recent posts)
+- Auto-discovered documentation sections
+- Custom quick links support
+- Clean, focused layout (no action bar)
 
-Usage: Set `type: doc` on home page to auto-select
+KIDA FEATURES USED:
+- {% let %} for template-scoped variables
+- Optional chaining (?.) for null-safe attribute access
+- Null coalescing (??) for defaults
+- Pipeline operator (|>) for readable filter chains
+- {% def %} for reusable template functions
+- {% match %} for type dispatch
+- {% spaceless %} for clean HTML output
+
+USAGE:
+Set `type: doc` on home page to auto-select
 Or set `template: doc/home.html` in frontmatter
+================================================================================
 #}
 
+{# =============================================================================
+HELPER FUNCTIONS
+============================================================================= #}
+
+{# Render a section card with icon, title, description, and page count #}
+{% def section_card(section) %}
+{% let section_title = section?.title ?? 'Untitled' %}
+{% let section_desc = section?.metadata?.description ?? '' %}
+{% let section_pages = section?.pages ?? [] %}
+{% let page_count = section_pages | length %}
+<a href="{{ section.href }}" class="docs-home-section-card gradient-border fluid-combined">
+    <h3 class="docs-home-section-title">{{ section_title }}</h3>
+    {% if section_desc %}
+    <p class="docs-home-section-description">{{ section_desc }}</p>
+    {% end %}
+    {% if page_count > 0 %}
+    <span class="docs-home-section-count">
+        {{ page_count }} page{{ 's' if page_count != 1 else '' }}
+    </span>
+    {% end %}
+</a>
+{% end %}
+
+{# Render a quick link card #}
+{% def quick_link_card(link) %}
+{% let link_url = link?.href ?? link?.url ?? '#' %}
+{% let link_title = link?.title ?? 'Link' %}
+{% let link_desc = link?.description ?? '' %}
+{% let link_icon = link?.icon %}
+<a href="{{ link_url }}" class="docs-home-quick-link-card gradient-border">
+    {% if link_icon %}
+    <div class="docs-home-quick-link-icon">{{ link_icon }}</div>
+    {% end %}
+    <h3>{{ link_title }}</h3>
+    {% if link_desc %}
+    <p>{{ link_desc }}</p>
+    {% end %}
+</a>
+{% end %}
+
+{# =============================================================================
+MAIN TEMPLATE
+============================================================================= #}
+
 {% block content %}
+{# Template-scoped variables with safe defaults #}
+{% let page_title = page?.title ?? config?.title ?? 'Documentation' %}
+{% let page_desc = params?.description ?? '' %}
+{% let show_quick_links = params?.show_quick_links ?? true %}
+{% let custom_quick_links = params?.quick_links ?? [] %}
+
 <div class="docs-home">
     {# Hero Section #}
     <header class="docs-home-hero">
         <div class="docs-home-hero-content">
-            <h1 class="docs-home-title">{{ page.title | default(config.title) }}</h1>
-            {% if params.description %}
-            <p class="docs-home-subtitle">{{ params.description }}</p>
+            <h1 class="docs-home-title">{{ page_title }}</h1>
+            {% if page_desc %}
+            <p class="docs-home-subtitle">{{ page_desc }}</p>
             {% end %}
         </div>
     </header>
 
-    {# Main Content #}
+    {# Main Content (if any) #}
     {% if content and content.strip() %}
     <div class="docs-home-content prose">
         {{ content | safe }}
     </div>
     {% end %}
 
-    {# Quick Links to Key Sections #}
-    {% set show_quick_links = params.show_quick_links ?? true %}
+    {# Documentation Sections - Auto-discovered #}
     {% if show_quick_links %}
-    {# Find main documentation sections #}
-    {% set doc_sections = [] %}
-    {% for section in site.sections %}
-    {% if section.metadata.type == 'doc' or section.metadata.content_type == 'doc' %}
-    {% do doc_sections.append(section) %}
-    {% end %}
+    {% cache "doc-home-sections-" ~ (site?.build_id ?? '') %}
+    {#
+    Find documentation sections by type or common names.
+    Uses pipeline operator for readable left-to-right flow.
+    #}
+    {% let site_sections = site?.sections ?? [] %}
+
+    {# First try: sections explicitly marked as type: doc #}
+    {% let doc_sections = site_sections
+    |> selectattr('metadata.type', 'eq', 'doc')
+    |> list %}
+
+    {# Fallback: try content_type: doc #}
+    {% if doc_sections | length == 0 %}
+    {% let doc_sections = site_sections
+    |> selectattr('metadata.content_type', 'eq', 'doc')
+    |> list %}
     {% end %}
 
-    {# If no doc sections found, try common section names #}
-    {% if not doc_sections %}
-    {% set common_names = ['getting-started', 'guides', 'concepts', 'api', 'docs'] %}
+    {# Second fallback: common section names #}
+    {% if doc_sections | length == 0 %}
+    {% let common_names = ['getting-started', 'guides', 'concepts', 'api', 'docs', 'documentation'] %}
+    {% let doc_sections = [] %}
     {% for name in common_names %}
-    {% set candidates = site.sections | selectattr('name', 'equalto', name) | list %}
-    {% if candidates %}
+    {% let candidates = site_sections |> selectattr('name', 'eq', name) |> list %}
+    {% if candidates | length > 0 %}
     {% do doc_sections.append(candidates[0]) %}
     {% end %}
     {% end %}
     {% end %}
 
-    {% if doc_sections %}
-    {# Build sortable list with safe weight values #}
-    {% set sortable_sections = [] %}
-    {% for section in doc_sections %}
-    {% set _weight = section.metadata.weight %}
-    {% do sortable_sections.append({'section': section, 'weight': _weight or 999999}) %}
-    {% end %}
+    {# Render section cards if we found any #}
+    {% if doc_sections | length > 0 %}
+    {# Sort by weight, then take top 6 #}
+    {% let sorted_sections = doc_sections
+    |> sort(attribute='metadata.weight', default=999999)
+    |> take(6) %}
+
     <section class="docs-home-sections">
         <h2 class="docs-home-sections-title">Documentation Sections</h2>
         <div class="docs-home-sections-grid">
-            {% for item in sortable_sections | sort(attribute='weight') | limit(6) %}
-            {% set section = item.section %}
-            <a href="{{ section.href }}" class="docs-home-section-card gradient-border fluid-combined">
-                <h3 class="docs-home-section-title">{{ section.title }}</h3>
-                {% if section.metadata.description %}
-                <p class="docs-home-section-description">{{ section.metadata.description }}</p>
-                {% end %}
-                {% if section.pages %}
-                <span class="docs-home-section-count">{{ section.pages | length }} page{{ 's' if section.pages | length
-                    != 1 else '' }}</span>
-                {% end %}
-            </a>
+            {% for section in sorted_sections %}
+            {{ section_card(section) }}
             {% end %}
         </div>
     </section>
     {% end %}
+    {% endcache %}
     {% end %}
 
-    {# Custom Quick Links from metadata #}
-    {% if params.quick_links %}
+    {# Custom Quick Links from Frontmatter #}
+    {% if custom_quick_links | length > 0 %}
     <section class="docs-home-quick-links">
         <h2 class="docs-home-quick-links-title">Quick Links</h2>
         <div class="docs-home-quick-links-grid">
-            {% for link in params.quick_links %}
-            <a href="{{ link.href or link.url }}" class="docs-home-quick-link-card gradient-border">
-                {% if link.icon %}
-                <div class="docs-home-quick-link-icon">{{ link.icon }}</div>
-                {% end %}
-                <h3>{{ link.title }}</h3>
-                {% if link.description %}
-                <p>{{ link.description }}</p>
-                {% end %}
-            </a>
+            {% for link in custom_quick_links %}
+            {{ quick_link_card(link) }}
             {% end %}
         </div>
     </section>

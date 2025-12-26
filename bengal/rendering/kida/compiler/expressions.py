@@ -367,29 +367,54 @@ class ExpressionCompilationMixin:
         return ast.Constant(value=None)
 
     def _compile_null_coalesce(self, node: Any) -> ast.expr:
-        """Compile a ?? b to: (_nc := a) if _nc is not None else b.
+        """Compile a ?? b to handle both None and undefined variables.
 
-        Uses walrus operator to avoid double evaluation.
+        Uses _null_coalesce helper to catch UndefinedError for undefined variables.
         Part of RFC: kida-modern-syntax-features.
-        """
-        self._block_counter += 1
-        tmp_name = f"_nc_{self._block_counter}"
 
+        The helper is called as:
+            _null_coalesce(lambda: a, lambda: b)
+
+        This allows:
+        - a ?? b to return b if a is undefined (UndefinedError)
+        - a ?? b to return b if a is None
+        - a ?? b to return a if a is any other value (including falsy: 0, '', [])
+        """
         left = self._compile_expr(node.left)
         right = self._compile_expr(node.right)
 
-        # (_nc_N := a) if _nc_N is not None else b
-        return ast.IfExp(
-            test=ast.Compare(
-                left=ast.NamedExpr(
-                    target=ast.Name(id=tmp_name, ctx=ast.Store()),
-                    value=left,
+        # _null_coalesce(lambda: left, lambda: right)
+        return ast.Call(
+            func=ast.Name(id="_null_coalesce", ctx=ast.Load()),
+            args=[
+                # lambda: left
+                ast.Lambda(
+                    args=ast.arguments(
+                        posonlyargs=[],
+                        args=[],
+                        vararg=None,
+                        kwonlyargs=[],
+                        kw_defaults=[],
+                        kwarg=None,
+                        defaults=[],
+                    ),
+                    body=left,
                 ),
-                ops=[ast.IsNot()],
-                comparators=[ast.Constant(value=None)],
-            ),
-            body=ast.Name(id=tmp_name, ctx=ast.Load()),
-            orelse=right,
+                # lambda: right
+                ast.Lambda(
+                    args=ast.arguments(
+                        posonlyargs=[],
+                        args=[],
+                        vararg=None,
+                        kwonlyargs=[],
+                        kw_defaults=[],
+                        kwarg=None,
+                        defaults=[],
+                    ),
+                    body=right,
+                ),
+            ],
+            keywords=[],
         )
 
     def _compile_optional_getattr(self, node: Any) -> ast.expr:

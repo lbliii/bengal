@@ -1,0 +1,57 @@
+{#
+================================================================================
+Page Hero Router
+================================================================================
+
+Routes to appropriate hero macro based on hero_style configuration.
+Use this when you want automatic variant selection.
+
+USAGE:
+{% include 'partials/page-hero/index.html' %}
+
+For direct macro access (no routing overhead), import from _macros.html:
+{% from 'partials/page-hero/_macros.html' import hero_element %}
+{{ hero_element(element, page, config) }}
+================================================================================
+#}
+
+{% from 'partials/page-hero/_macros.html' import
+    hero_editorial,
+    hero_magazine,
+    hero_classic,
+    hero_overview,
+    hero_element,
+    hero_section
+%}
+
+{# Determine hero style: page variant > frontmatter > template default > theme config #}
+{% set _page_variant = page?.variant ?? none %}
+{% set _page_hero_style = params?.hero_style ?? none %}
+{% set _template_default = _list_hero_default ?? none %}
+{% set _theme_hero_style = theme?.config?.hero_style ?? 'editorial' %}
+
+{# Cascade: page variant → frontmatter → template default → theme config #}
+{% set hero_style = _page_variant ?? _page_hero_style ?? _template_default ?? _theme_hero_style %}
+
+{# Route to appropriate macro #}
+{% match hero_style %}
+{% case 'magazine' %}
+{{ hero_magazine(page, params, theme) }}
+{% case 'classic' %}
+{{ hero_classic(page, params) }}
+{% case 'overview' %}
+{{ hero_overview(page, params, posts, subsections) }}
+{% case 'api' %}
+{# API style routes to element or section based on available context #}
+{% if element %}
+{{ hero_element(element, page, config) }}
+{% elif section %}
+{{ hero_section(section, page, hero_context ?? {}) }}
+{% else %}
+{# Fallback: no element/section context, use editorial #}
+{{ hero_editorial(page, params, theme) }}
+{% end %}
+{% case _ %}
+{# Default to editorial #}
+{{ hero_editorial(page, params, theme) }}
+{% end %}

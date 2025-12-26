@@ -37,6 +37,9 @@ _INLINABLE_FILTERS: dict[str, tuple[str, bool]] = {
     "title": ("title", False),
     "capitalize": ("capitalize", False),
     "swapcase": ("swapcase", False),
+    "casefold": ("casefold", False),
+    "isdigit": ("isdigit", False),
+    "isalpha": ("isalpha", False),
 }
 
 

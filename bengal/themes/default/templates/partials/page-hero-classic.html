@@ -10,7 +10,7 @@ MIGRATION:
   New: {% include 'partials/page-hero.html' %}  (auto-routes to classic)
 
   Or call macro directly:
-    {% from 'partials/page-hero.html' import hero_classic %}
+    {% from 'partials/page-hero/_macros.html' import hero_classic %}
     {{ hero_classic(page, params) }}
 
 See: plan/drafted/rfc-page-hero-template-flattening.md
@@ -18,5 +18,5 @@ See: plan/drafted/rfc-page-hero-template-flattening.md
 #}
 
 {# Shim: Forward to macro for backwards compatibility #}
-{% from 'partials/page-hero.html' import hero_classic %}
+{% from 'partials/page-hero/_macros.html' import hero_classic %}
 {{ hero_classic(page, params) }}

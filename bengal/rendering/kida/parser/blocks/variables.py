@@ -134,24 +134,50 @@ class VariableBlockParsingMixin(BlockStackMixin):
         next_next_token = self._peek(2)
         return next_next_token.type == TokenType.ASSIGN
 
-    def _parse_let(self) -> Let:
-        """Parse {% let x = expr %}."""
+    def _parse_let(self) -> Let | list[Let]:
+        """Parse {% let x = expr %} or {% let x = 1, y = 2, z = 3 %}.
+
+        Multi-let syntax allows comma-separated independent assignments:
+            {% let a = 1, b = 2, c = 3 %}
+
+        Unlike set, let does not support tuple unpacking since let variables
+        are always single names (template-scoped).
+
+        Returns:
+            Single Let node or list of Let nodes for multi-let.
+        """
         start = self._advance()  # consume 'let'
+        lets: list[Let] = []
 
-        if self._current.type != TokenType.NAME:
-            raise self._error("Expected variable name")
-        name = self._advance().value
+        while True:
+            if self._current.type != TokenType.NAME:
+                raise self._error("Expected variable name")
+            name = self._advance().value
 
-        self._expect(TokenType.ASSIGN)
-        value = self._parse_expression()
+            self._expect(TokenType.ASSIGN)
+            value = self._parse_expression()
+
+            lets.append(
+                Let(
+                    lineno=start.lineno,
+                    col_offset=start.col_offset,
+                    name=name,
+                    value=value,
+                )
+            )
+
+            # Check for multi-let continuation: , name =
+            if self._current.type == TokenType.COMMA:
+                if self._is_multi_set_continuation():
+                    self._advance()  # consume comma
+                    continue
+                # Not multi-let, break (could be trailing comma)
+            break
+
         self._expect(TokenType.BLOCK_END)
 
-        return Let(
-            lineno=start.lineno,
-            col_offset=start.col_offset,
-            name=name,
-            value=value,
-        )
+        # Return single node or list
+        return lets[0] if len(lets) == 1 else lets
 
     def _parse_export(self) -> Export:
         """Parse {% export x = expr %}."""

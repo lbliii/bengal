@@ -25,11 +25,26 @@ _path, kind, tags are always defined - no defensive checks needed.
 {% let _per_page_json = 'json' in (config.output_formats.per_page ?? []) %}
 
 {# Derived values (depend on earlier lets) #}
-{% let _main_menu = get_menu_lang('main', _current_lang) %}
-{% let _footer_menu = get_menu_lang('footer', _current_lang) %}
+{# Cache navigation menus - expensive to compute, rarely changes #}
+{% cache 'menu-main-' ~ _current_lang ~ '-' ~ (site.nav_version ?? '') %}
+  {% let _main_menu = get_menu_lang('main', _current_lang) %}
+{% end %}
+
+{% cache 'menu-footer-' ~ _current_lang ~ '-' ~ (site.nav_version ?? '') %}
+  {% let _footer_menu = get_menu_lang('footer', _current_lang) %}
+{% end %}
+
 {% let _view_transitions = _doc_app.enabled and _doc_app.navigation.view_transitions %}
 {% let _transition_style = _doc_app.navigation.transition_style %}
-{% let _auto_nav = get_auto_nav() if _main_menu | length == 0 else [] %}
+
+{# Cache auto navigation if main menu is empty #}
+{% if _main_menu | length == 0 %}
+  {% cache 'auto-nav-' ~ (site.nav_version ?? '') %}
+    {% let _auto_nav = get_auto_nav() %}
+  {% end %}
+{% else %}
+  {% let _auto_nav = [] %}
+{% end %}
 
 <html lang="{{ _current_lang }}" {% if _view_transitions and _transition_style !='crossfade' %}
     data-transition-style="{{ _transition_style }}" {% end %}>
@@ -44,10 +59,11 @@ _path, kind, tags are always defined - no defensive checks needed.
     <meta name="view-transition" content="same-origin">
     {% end %}
 
-    {# Title - uses cached variables #}
-    <title>{% block title %}{{ _page_title if _page_title else _site_title }}{% if _page_title %} - {{ _site_title }}{%
-        end %}{% end %}
-    </title>
+    {# Title - captured for reuse in Open Graph and Twitter Card #}
+    {% capture page_title %}
+      {% block title %}{{ _page_title if _page_title else _site_title }}{% if _page_title %} - {{ _site_title }}{% end %}{% end %}
+    {% end %}
+    <title>{{ page_title }}</title>
 
     {# Meta description - automatically pre-computed by renderer (page.meta_description cached_property) #}
     {% set meta_desc = meta_desc | default(config.description) %}
@@ -69,7 +85,7 @@ _path, kind, tags are always defined - no defensive checks needed.
 
     {# Open Graph / Facebook #}
     <meta property="og:type" content="article">
-    <meta property="og:title" content="{{ _page_title or _site_title }}">
+    <meta property="og:title" content="{{ page_title }}">
     {% if meta_desc %}
     <meta property="og:description" content="{{ meta_desc }}">
     {% end %}
@@ -94,7 +110,7 @@ _path, kind, tags are always defined - no defensive checks needed.
 
     {# Twitter Card - uses same image as Open Graph #}
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="{{ _page_title if _page_title else _site_title }}">
+    <meta name="twitter:title" content="{{ page_title }}">
     {% if meta_desc %}
     <meta name="twitter:description" content="{{ meta_desc }}">
     {% end %}
@@ -134,8 +150,11 @@ _path, kind, tags are always defined - no defensive checks needed.
     {% end %}
     <link rel="alternate" type="application/rss+xml" title="{{ config.title }} RSS Feed" href="{{ _rss_href }}">
 
-    {# hreflang alternates for translated pages #}
-    {% for alt in alternate_links(page) %}
+    {# hreflang alternates for translated pages - cached per page #}
+    {% cache 'alternate-links-' ~ page._path ~ '-' ~ (site.nav_version ?? '') %}
+      {% let alt_links = alternate_links(page) %}
+    {% end %}
+    {% for alt in alt_links %}
     <link rel="alternate" hreflang="{{ alt.hreflang }}" href="{{ alt.href }}">
     {% end %}
 

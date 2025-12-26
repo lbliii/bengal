@@ -1,37 +1,94 @@
 {% extends "base.html" %}
 
 {#
-Documentation List Template
+================================================================================
+Documentation List Template (Kida-Native)
+================================================================================
 
-Three-column layout optimized for documentation section index pages:
+Three-column layout for documentation section index pages.
+
+LAYOUT:
 - Left sidebar: Navigation tree
 - Center: Content + Content tiles (children + related)
 - Right sidebar: Contextual Graph + TOC + metadata
 
-Usage: Set `template: doc/list.html` in frontmatter
-Or set `type: doc` to auto-select this template
+KIDA FEATURES USED:
+- {% let %} for template-scoped variables
+- Optional chaining (?.) for null-safe access
+- Null coalescing (??) for smart defaults
+- Pipeline operator (|>) for filter chains
+- {% def %} for reusable inline functions
+- {% match %} for variant dispatch
+- {% cache %} for computed content tiles
 
-Smart Defaults:
-- Children shown with "In This Section" header
-- Related pages shown with "Related Pages" header
-- Both enabled by default - use discover: frontmatter to customize
-
-Frontmatter (discover: structure):
+FRONTMATTER (discover: structure):
 discover:
-children:
-title: "Custom Title" # or false to hide
-variant: "cards" # compact | cards | minimal
-children: false # disable children entirely
-related:
-title: "Custom Title"
-limit: 5
-related: false # disable related entirely
+  children:
+    title: "Custom Title"    # or false to hide
+    variant: "cards"         # compact | cards | minimal
+  children: false            # disable children entirely
+  related:
+    title: "Custom Title"
+    limit: 5
+  related: false             # disable related entirely
+
+USAGE:
+Set `template: doc/list.html` in frontmatter
+Or set `type: doc` to auto-select this template
+================================================================================
 #}
 
 {% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc %}
-{% from 'partials/content-components.html' import tag_list, content_tiles %}
+{% from 'partials/components/tags.html' import tag_list %}
+{% from 'partials/components/tiles.html' import content_tiles %}
+
+{# =============================================================================
+   HELPER FUNCTIONS
+   ============================================================================= #}
+
+{# Parse discover config with smart defaults #}
+{% def parse_discover_config(discover_config, default_title, default_variant='compact', default_limit=5) %}
+{% match discover_config %}
+  {% case false %}
+    {# Explicitly disabled #}
+    {{ {'enabled': false, 'title': none, 'variant': none, 'limit': 0} }}
+  {% case _ if discover_config is mapping %}
+    {# Config object provided #}
+    {{ {
+      'enabled': true,
+      'title': discover_config.title ?? default_title if discover_config.title is not sameas false else none,
+      'variant': discover_config.variant ?? default_variant,
+      'limit': discover_config.limit ?? default_limit
+    } }}
+  {% case _ if discover_config is number %}
+    {# Just a limit number #}
+    {{ {'enabled': true, 'title': default_title, 'variant': default_variant, 'limit': discover_config} }}
+  {% case _ %}
+    {# Default: enabled with defaults #}
+    {{ {'enabled': true, 'title': default_title, 'variant': default_variant, 'limit': default_limit} }}
+{% end %}
+{% end %}
+
+{# =============================================================================
+   MAIN TEMPLATE
+   ============================================================================= #}
 
 {% block content %}
+{# Template-scoped configuration #}
+{% let discover = params?.discover ?? {} %}
+{% let children_config = parse_discover_config(discover?.children, 'In This Section', 'compact', 999) %}
+{% let related_config = parse_discover_config(discover?.related, 'Related Pages', 'compact', 5) %}
+
+{# Feature flag check #}
+{% let show_children_feature = 'content.children' in (theme?.features ?? []) %}
+{% let show_children = children_config.enabled and show_children_feature %}
+{% let show_related = related_config.enabled %}
+
+{# Content availability #}
+{% let has_children = (posts | length > 0) or (subsections | length > 0) %}
+{% let related_posts = page?.related_posts ?? [] %}
+{% let has_related = show_related and (related_posts | length > 0) %}
+
 {# Three-column documentation layout #}
 <div class="docs-layout">
   {# Left Sidebar: Navigation #}
@@ -41,80 +98,37 @@ related: false # disable related entirely
 
   {# Main Content #}
   <div class="docs-main">
-    {# Page Hero: Breadcrumbs + Title + Description + Section Stats #}
-    {# List pages default to 'overview' variant (shows page count instead of read time) #}
-    {% set _list_hero_default = 'overview' %}
+    {# Page Hero: List pages default to 'overview' variant #}
+    {% let _list_hero_default = 'overview' %}
     {% include 'partials/page-hero.html' %}
 
     {# Article Content #}
-    <article class="prose {% if params.css_class %}{{ params.css_class }}{% end %}">
-
+    <article class="prose {{ params?.css_class ?? '' }}">
       {# Main content #}
       <div class="docs-content">
         {{ content | safe }}
       </div>
 
       {# Content tiles - children and related pages #}
-      {#
-      Smart defaults: Both children and related enabled with default titles.
-      Use discover: frontmatter only to customize or disable.
-
-      discover:
-      children:
-      title: "Custom Title" # or false to hide title
-      variant: "cards" # compact | cards | minimal
-      children: false # disable children entirely
-      related:
-      title: "Custom Title"
-      limit: 5
-      related: false # disable related entirely
-      #}
-      {% set discover = params.discover if page else {} %}
-      {% set children_config = discover.children if discover else {} %}
-      {% set related_config = discover.related if discover else {} %}
-
-      {# Check if explicitly disabled #}
-      {% set children_disabled = children_config is sameas false %}
-      {% set related_disabled = related_config is sameas false %}
-
-      {# Feature flag fallback #}
-      {% set show_children_feature = 'content.children' in theme.features %}
-      {% set show_children = (not children_disabled) and show_children_feature %}
-      {% set show_related = not related_disabled %}
-
-      {# Get config values with smart defaults #}
-      {% set children_title = children_config.title ?? 'In This Section' if children_config is mapping else 'In
-      This Section' %}
-      {% set children_variant = children_config.variant ?? 'compact' if children_config is mapping else
-      'compact' %}
-      {% set related_title = related_config.title ?? 'Related Pages' if related_config is mapping else 'Related
-      Pages' %}
-      {% set related_limit = related_config.limit ?? 5 if related_config is mapping else (related_config if related_config is number else 5) %}
-
-      {# Handle title: false to hide title #}
-      {% set children_title = none if children_title is sameas false else children_title %}
-      {% set related_title = none if related_title is sameas false else related_title %}
-
-      {% set has_children = posts or subsections %}
-      {% set has_related = show_related and page and page.related_posts %}
-
       {% if show_children and (has_children or has_related) %}
+      {% cache "doc-list-tiles-" ~ (page?.href ?? '') ~ "-" ~ (site?.build_id ?? '') %}
       <div class="docs-children">
         {{ content_tiles(
-        title=children_title if has_children else none,
-        children=posts if show_children else none,
-        subsections=subsections if show_children else none,
-        related=page.related_posts[:related_limit] if has_related else none,
-        related_title=related_title,
-        variant=children_variant,
-        group_by='type' if has_children and has_related else none,
-        page=page
+          title=children_config.title if has_children else none,
+          children=posts if show_children else none,
+          subsections=subsections if show_children else none,
+          related=related_posts[:related_config.limit] if has_related else none,
+          related_title=related_config.title,
+          variant=children_config.variant,
+          group_by='type' if has_children and has_related else none,
+          page=page
         ) }}
       </div>
+      {% endcache %}
       {% end %}
 
       {# Tags #}
-      {% if page.tags %}
+      {% if page?.tags | length > 0 %}
       <footer class="docs-footer">
         {{ tag_list(page.tags) }}
       </footer>
@@ -128,12 +142,9 @@ related: false # disable related entirely
   {# Right Sidebar: Contextual Graph + TOC + Metadata #}
   {% if toc_items %}
   <aside class="docs-toc" role="complementary" aria-label="Table of contents">
-    {# Contextual Graph Minimap - shows connections to current page #}
-    <div class="graph-contextual" data-page-url="{{ page.href }}">
-      {# Placeholder - will be replaced by JavaScript #}
-      <div class="graph-contextual-container graph-loading"
-        style="min-height: 200px; opacity: 1 !important; visibility: visible !important;">
-      </div>
+    {# Contextual Graph Minimap #}
+    <div class="graph-contextual" data-page-url="{{ page?.href ?? '' }}">
+      <div class="graph-contextual-container graph-loading" style="min-height: 200px;"></div>
     </div>
 
     {# Table of Contents #}
@@ -142,14 +153,16 @@ related: false # disable related entirely
   {% end %}
 </div>
 
-{# Mobile sidebar toggle button #}
-<button class="docs-sidebar-toggle" aria-label="Toggle navigation sidebar" aria-expanded="false"
-  aria-controls="docs-sidebar">
+{# Mobile sidebar toggle #}
+{% spaceless %}
+<button class="docs-sidebar-toggle"
+        aria-label="Toggle navigation sidebar"
+        aria-expanded="false"
+        aria-controls="docs-sidebar">
   {{ icon('list', size=20) }}
 </button>
+{% end %}
 
 {# Sidebar overlay for mobile #}
 <div class="docs-sidebar-overlay" aria-hidden="true"></div>
 {% end %}
-
-{# Sidebar toggle functionality is handled by interactive.js #}

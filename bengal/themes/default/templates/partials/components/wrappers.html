@@ -1,0 +1,124 @@
+{#
+================================================================================
+Wrapper Components (Kida-Native)
+================================================================================
+
+Slot-based wrapper components using {% def %} with {% slot %}.
+Use with {% call %} to inject custom content.
+
+Components:
+- card_wrapper(css_class, href, show_border): Flexible card wrapper
+- panel(variant, title, icon_name, collapsible): Callouts/alerts
+- section_wrapper(title, icon_name, collapsible, open, id): Section with header
+- details_card(summary, css_class, open, data_attrs): Collapsible details card
+================================================================================
+#}
+
+{# =============================================================================
+CARD WRAPPER COMPONENT
+
+A flexible wrapper using Kida's {% slot %} pattern.
+============================================================================= #}
+{% def card_wrapper(css_class='', href=none, show_border=true) %}
+{% let border_class = 'gradient-border' if show_border else '' %}
+<div class="card-wrapper {{ border_class }} {{ css_class }}">
+    {% if href %}
+    <a href="{{ href | absolute_url }}" class="card-wrapper-link">
+        {% slot %}
+    </a>
+    {% else %}
+    <div class="card-wrapper-content">
+        {% slot %}
+    </div>
+    {% end %}
+</div>
+{% end %}
+
+{# =============================================================================
+PANEL COMPONENT
+
+Styled panel/callout for alerts, notes, tips, warnings.
+============================================================================= #}
+{% def panel(variant='info', title=none, icon_name=none, collapsible=false) %}
+{% let icons = {'info': 'info', 'warning': 'warning', 'danger': 'x-circle', 'success': 'check-circle', 'tip':
+'lightbulb'} %}
+{% let panel_icon = icon_name ?? icons[variant] ?? 'info' %}
+{% let panel_title = title ?? variant | title %}
+
+{% if collapsible %}
+<details class="panel panel--{{ variant }}">
+    <summary class="panel-header">
+        {{ icon(panel_icon, size=18, css_class='panel-icon') }}
+        <span class="panel-title">{{ panel_title }}</span>
+    </summary>
+    <div class="panel-body">
+        {% slot %}
+    </div>
+</details>
+{% else %}
+<aside class="panel panel--{{ variant }}" role="note">
+    <div class="panel-header">
+        {{ icon(panel_icon, size=18, css_class='panel-icon') }}
+        {% if title %}
+        <span class="panel-title">{{ title }}</span>
+        {% end %}
+    </div>
+    <div class="panel-body">
+        {% slot %}
+    </div>
+</aside>
+{% end %}
+{% end %}
+
+{# =============================================================================
+SECTION WRAPPER COMPONENT
+
+Wraps content in a section with optional header, icon, and collapsible behavior.
+============================================================================= #}
+{% def section_wrapper(title, icon_name=none, css_class='', collapsible=false, open=true, id=none) %}
+{% let id_attr = ' id="' ~ id ~ '"' if id else '' %}
+
+{% if collapsible %}
+<details class="section-wrapper section-wrapper--collapsible {{ css_class }}" {{ id_attr | safe }}{{ ' open' | safe if
+    open else '' }}>
+    <summary class="section-wrapper-header">
+        {% if icon_name %}{{ icon(icon_name, size=20, css_class='section-wrapper-icon') }}{% end %}
+        <span class="section-wrapper-title">{{ title }}</span>
+        <span class="section-wrapper-toggle">{{ icon('chevron-down', size=16) }}</span>
+    </summary>
+    <div class="section-wrapper-body">
+        {% slot %}
+    </div>
+</details>
+{% else %}
+<section class="section-wrapper {{ css_class }}" {{ id_attr | safe }}>
+    <header class="section-wrapper-header">
+        {% if icon_name %}{{ icon(icon_name, size=20, css_class='section-wrapper-icon') }}{% end %}
+        <h2 class="section-wrapper-title">{{ title }}</h2>
+    </header>
+    <div class="section-wrapper-body">
+        {% slot %}
+    </div>
+</section>
+{% end %}
+{% end %}
+
+{# =============================================================================
+DETAILS CARD COMPONENT
+
+Collapsible card with summary/details pattern.
+============================================================================= #}
+{% def details_card(summary, css_class='', open=false, data_attrs=none) %}
+{% let data_str = '' %}
+{% if data_attrs %}
+{% for k, v in data_attrs.items() %}
+{% let data_str = data_str ~ ' data-' ~ k ~ '="' ~ v ~ '"' %}
+{% end %}
+{% end %}
+<details class="details-card {{ css_class }}" {{ ' open' | safe if open else '' }}{{ data_str | safe }}>
+    <summary class="details-card-summary">{{ summary | safe }}</summary>
+    <div class="details-card-body">
+        {% slot %}
+    </div>
+</details>
+{% end %}

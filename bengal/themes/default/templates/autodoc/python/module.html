@@ -76,7 +76,7 @@ KIDA FEATURES USED:
       {% if page_tags | length > 0 %}
       <footer class="docs-footer">
         <span class="docs-footer-label">Tagged</span>
-        {% from 'partials/content-components.html' import tag_list %}
+        {% from 'partials/components/tags.html' import tag_list %}
         {{ tag_list(page_tags) }}
       </footer>
       {% end %}

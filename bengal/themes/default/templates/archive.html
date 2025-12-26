@@ -1,121 +1,141 @@
 {% extends "base.html" %}
-{% from 'partials/navigation-components.html' import breadcrumbs, section_navigation, pagination %}
-{% from 'partials/content-components.html' import article_card %}
 
 {#
-Chronological Archive Template
+================================================================================
+Chronological Archive Template (Kida-Native)
+================================================================================
 
-Used for blog-style sections with dated posts.
-Displays content in reverse chronological order with pagination.
+Blog-style sections with dated posts in reverse chronological order.
 
-When to use:
+KIDA FEATURES USED:
+- {% let %} for template-scoped variables
+- Optional chaining (?.) for null-safe access
+- Null coalescing (??) for smart defaults
+- Pipeline operator (|>) for filter chains
+
+USAGE:
 - Blog posts
 - News articles
 - Any time-ordered content
-
-Context variables:
-- section: Section object
-- posts: List of pages (may be paginated)
-- subsections: Child sections
-- total_pages: Total pagination pages (if paginated)
-- current_page: Current page number (if paginated)
+================================================================================
 #}
 
+{% from 'partials/navigation-components.html' import breadcrumbs, section_navigation, pagination %}
+{% from 'partials/components/article.html' import article_card %}
+
 {% block content %}
+{# Template-scoped variables #}
+{% let page_or_section = section ?? page %}
+{% let page_title = title ?? section?.title ?? 'Archive' %}
+{% let page_desc = description ?? section?.params?.description ?? '' %}
+{% let archive_posts = posts ?? [] %}
+{% let archive_subsections = subsections ?? [] %}
+{% let total_pages = total_pages ?? 1 %}
+{% let current_page = current_page ?? 1 %}
+{% let total_posts = total_posts ?? (archive_posts | length) %}
+{% let base_url = base_url ?? section?.href ?? '/archive/' %}
+
 <div class="container">
-{{ breadcrumbs(section or page) }}
+    {{ breadcrumbs(page_or_section) }}
 
-{# Section navigation for section pages - dogfooding section properties #}
-{% if section %}
-{{ section_navigation(section) }}
-{% end %}
+    {# Section navigation for section pages #}
+    {% if section %}
+    {{ section_navigation(section) }}
+    {% end %}
 
-<div class="archive">
-    <header class="page-header page-header--centered">
-        <h1>{{ title | default(section.title if section else 'Archive') }}</h1>
+    <div class="archive">
+        <header class="page-header page-header--centered">
+            <h1>{{ page_title }}</h1>
 
-        {% if description %}
-        <p class="archive-description">{{ description }}</p>
-        {% elif section and section.params.description %}
-        <p class="archive-description">{{ section.params.description }}</p>
-        {% end %}
-
-        {% if total_pages %}
-        <p class="archive-count">
-            Showing {{ posts | length }} of {{ total_posts }} posts
-            {% if current_page > 1 %}(Page {{ current_page }} of {{ total_pages }}){% end %}
-        </p>
-        {% end %}
-    </header>
-
-    {% if posts %}
-    {# Show featured posts first - dogfooding where() and where_not() #}
-    {% set featured_posts = posts | where('featured', true) %}
-    {% if featured_posts %}
-    <section class="featured-posts">
-        <h2 class="section-subtitle">Featured Posts</h2>
-        <div class="archive-list archive-list-featured">
-            {% for post in featured_posts %}
-            {{ article_card(post, show_excerpt=True, show_image=True) }}
+            {% if page_desc %}
+            <p class="archive-description">{{ page_desc }}</p>
             {% end %}
-        </div>
-    </section>
-    {% end %}
 
-    {# Regular posts - dogfooding where_not() #}
-    {% set regular_posts = posts | where_not('featured', true) %}
-    {% if regular_posts %}
-    <section class="regular-posts">
-        {% if featured_posts %}<h2 class="section-subtitle">All Posts</h2>{% end %}
-        <div class="archive-list">
-            {% for post in regular_posts %}
-            {{ article_card(post, show_excerpt=True) }}
+            {% if total_pages > 1 %}
+            <p class="archive-count">
+                Showing {{ archive_posts | length }} of {{ total_posts }} posts
+                {% if current_page > 1 %}(Page {{ current_page }} of {{ total_pages }}){% end %}
+            </p>
             {% end %}
-        </div>
-    </section>
-    {% end %}
+        </header>
 
-    {# Pagination #}
-    {% if total_pages and total_pages > 1 %}
-    {{ pagination(current_page, total_pages, base_url) }}
-    {% end %}
-    {% elif subsections %}
-    {# Show subsections if no direct posts #}
-    <section class="subsections">
-        <h2 class="section-subtitle">Sections</h2>
-        <div class="archive-list">
-            {% for subsection in subsections %}
-            <article class="archive-item">
-                <h3><a href="{{ subsection.href }}">{{ subsection.title }}</a></h3>
-                {% if subsection.params.description %}
-                <p>{{ subsection.params.description }}</p>
+        {% if archive_posts | length > 0 %}
+        {# Featured posts first #}
+        {% let featured_posts = archive_posts |> where('featured', true) |> list %}
+        {% if featured_posts | length > 0 %}
+        <section class="featured-posts">
+            <h2 class="section-subtitle">Featured Posts</h2>
+            <div class="archive-list archive-list-featured">
+                {% for post in featured_posts %}
+                {{ article_card(post, show_excerpt=true, show_image=true) }}
                 {% end %}
-                {% if subsection.pages %}
-                <p class="meta">{{ subsection.pages | length }} page(s)</p>
-                {% end %}
-            </article>
-            {% end %}
-        </div>
-    </section>
-    {% else %}
-    <div class="archive-empty">
-        <div class="empty-state">
-            <p class="empty-message">No posts in this archive yet.</p>
-            {% if section %}
-            <div class="empty-help">
-                <p><strong>To add posts:</strong></p>
-                <ul>
-                    <li>Create a post with a date:
-                        <code>content/{{ section.path.relative_to(site.content_dir) }}/my-post.md</code>
-                    </li>
-                    <li>Add frontmatter with <code>date: 2025-01-01</code></li>
-                </ul>
-                <p class="empty-hint">💡 Posts in this section will be displayed in reverse chronological order.</p>
             </div>
-            {% end %}
+        </section>
+        {% end %}
+
+        {# Regular posts #}
+        {% let regular_posts = archive_posts |> where_not('featured', true) |> list %}
+        {% if regular_posts | length > 0 %}
+        <section class="regular-posts">
+            {% if featured_posts | length > 0 %}<h2 class="section-subtitle">All Posts</h2>{% end %}
+            <div class="archive-list">
+                {% for post in regular_posts %}
+                {{ article_card(post, show_excerpt=true) }}
+                {% end %}
+            </div>
+        </section>
+        {% end %}
+
+        {# Pagination #}
+        {% if total_pages > 1 %}
+        {{ pagination(current_page, total_pages, base_url) }}
+        {% end %}
+
+        {% elif archive_subsections | length > 0 %}
+        {# Show subsections if no direct posts #}
+        <section class="subsections">
+            <h2 class="section-subtitle">Sections</h2>
+            <div class="archive-list">
+                {% for subsection in archive_subsections %}
+                {% let sub_title = subsection?.title ?? 'Section' %}
+                {% let sub_href = subsection?.href ?? '#' %}
+                {% let sub_desc = subsection?.params?.description ?? '' %}
+                {% let sub_pages = subsection?.pages ?? [] %}
+                <article class="archive-item">
+                    <h3><a href="{{ sub_href }}">{{ sub_title }}</a></h3>
+                    {% if sub_desc %}
+                    <p>{{ sub_desc }}</p>
+                    {% end %}
+                    {% if sub_pages | length > 0 %}
+                    <p class="meta">{{ sub_pages | length }} page(s)</p>
+                    {% end %}
+                </article>
+                {% end %}
+            </div>
+        </section>
+
+        {% else %}
+        {# Empty state #}
+        <div class="archive-empty">
+            <div class="empty-state">
+                <p class="empty-message">No posts in this archive yet.</p>
+                {% if section %}
+                {% let section_path = section?.path %}
+                {% let content_dir = site?.content_dir %}
+                <div class="empty-help">
+                    <p><strong>To add posts:</strong></p>
+                    <ul>
+                        <li>Create a post with a date:
+                            <code>content/{{ section_path.relative_to(content_dir) if section_path and content_dir else '' }}/my-post.md</code>
+                        </li>
+                        <li>Add frontmatter with <code>date: 2025-01-01</code></li>
+                    </ul>
+                    <p class="empty-hint">💡 Posts in this section will be displayed in reverse chronological order.</p>
+                </div>
+                {% end %}
+            </div>
         </div>
+        {% end %}
     </div>
-    {% end %}
-</div>
 </div>
 {% end %}

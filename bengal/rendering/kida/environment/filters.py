@@ -407,6 +407,54 @@ def _filter_slice(value: Any, slices: int, fill_with: Any = None) -> list:
     return result
 
 
+def _filter_take(value: Any, count: int) -> list:
+    """Take the first N items from a sequence.
+
+    Kida-native filter for readable pipeline operations.
+
+    Example:
+        {{ items |> take(5) }}
+        {{ posts |> sort(attribute='date', reverse=true) |> take(3) }}
+
+    Args:
+        value: Sequence to take from
+        count: Number of items to take
+
+    Returns:
+        List of first N items (or fewer if sequence is shorter)
+    """
+    if value is None:
+        return []
+    try:
+        return list(value)[:count]
+    except (TypeError, ValueError):
+        return []
+
+
+def _filter_skip(value: Any, count: int) -> list:
+    """Skip the first N items from a sequence.
+
+    Kida-native filter for readable pipeline operations.
+
+    Example:
+        {{ items |> skip(5) }}
+        {{ posts |> skip(10) |> take(10) }}  # pagination
+
+    Args:
+        value: Sequence to skip from
+        count: Number of items to skip
+
+    Returns:
+        List of remaining items after skipping N
+    """
+    if value is None:
+        return []
+    try:
+        return list(value)[count:]
+    except (TypeError, ValueError):
+        return []
+
+
 def _filter_map(
     value: Any,
     *args: Any,
@@ -858,8 +906,10 @@ DEFAULT_FILTERS: dict[str, Callable] = {
     "rejectattr": _filter_rejectattr,
     "select": _filter_select,
     "selectattr": _filter_selectattr,
+    "skip": _filter_skip,
     "slice": _filter_slice,
     "sum": _filter_sum,
+    "take": _filter_take,
     "unique": _filter_unique,
     # Additional filters
     "count": _filter_length,  # alias

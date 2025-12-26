@@ -201,8 +201,10 @@ class DependencyWalker:
         if hasattr(node, "cases"):
             cases = node.cases
             if cases:
-                for pattern, body in cases:
+                for pattern, guard, body in cases:
                     self._visit(pattern)
+                    if guard:
+                        self._visit(guard)
                     for child in body:
                         self._visit(child)
 
@@ -532,8 +534,10 @@ class DependencyWalker:
     def _visit_match(self, node: Any) -> None:
         """Handle match statement."""
         self._visit(node.subject)
-        for pattern, body in node.cases:
+        for pattern, guard, body in node.cases:
             self._visit(pattern)
+            if guard:
+                self._visit(guard)
             for child in body:
                 self._visit(child)
 

@@ -6,26 +6,26 @@ Autodoc Usage Partial (Kida-Native)
 Renders a usage block for CLI commands or import statements.
 
 TEMPLATE VARIABLES:
-  - element: DocElement (dict prepared by Python) - required
-  - language: str, default 'bash' for CLI, 'python' for modules
+- element: DocElement (dict prepared by Python) - required
+- language: str, default 'bash' for CLI, 'python' for modules
 
 KIDA FEATURES USED:
-  - Optional chaining (?.) for safe attribute access
-  - Null coalescing (??) for defaults
-  - {% let %} for template-scoped caching
+- Optional chaining (?.) for safe attribute access
+- Null coalescing (??) for defaults
+- {% let %} for template-scoped caching
 
 ================================================================================
 #}
 
 {% let
-    elem_type = element?.element_type ?? 'module',
-    is_cli = elem_type in ['command', 'command-group'],
-    lang = language ?? ('bash' if is_cli else 'python'),
-    children = element?.children ?? [],
-    option_children = children | selectattr('element_type', 'eq', 'option') | list,
-    has_options = option_children | length > 0,
-    qualified_name = element?.qualified_name ?? '',
-    elem_name = element?.name ?? ''
+elem_type = element?.element_type ?? 'module',
+is_cli = elem_type in ['command', 'command-group'],
+lang = language ?? ('bash' if is_cli else 'python'),
+children = element?.children ?? [],
+option_children = children | selectattr('element_type', 'eq', 'option') | list,
+has_options = option_children | length > 0,
+qualified_name = element?.qualified_name ?? '',
+elem_name = element?.name ?? ''
 %}
 
 {% if qualified_name %}

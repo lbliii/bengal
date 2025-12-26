@@ -1,11 +1,33 @@
 {% extends "base.html" %}
 
+{#
+================================================================================
+All Tags Page Template (Kida-Native)
+================================================================================
+
+Displays all tags in a cloud/grid layout.
+
+KIDA FEATURES USED:
+- {% let %} for template-scoped variables
+- Optional chaining (?.) for null-safe access
+- Null coalescing (??) for smart defaults
+
+USAGE:
+Auto-generated at /tags/
+================================================================================
+#}
+
 {% block content %}
-{# Two-column layout similar to docs - tag navigation in sidebar #}
+{# Template-scoped variables #}
+{% let page_title = page?.title ?? 'All Tags' %}
+{% let all_tags = tags ?? [] %}
+{% let total_tags = total_tags ?? (all_tags | length) %}
+
+{# Two-column layout similar to docs #}
 <div class="docs-layout">
   {# Left Sidebar: Tag Navigation #}
   <aside class="docs-sidebar" id="tag-sidebar" role="navigation" aria-label="Tag navigation">
-    {% set current_tag = none %}
+    {% let current_tag = none %}
     {% include 'partials/tag-nav.html' %}
   </aside>
 
@@ -16,7 +38,7 @@
 
     <article class="prose">
       <header class="page-header">
-        <h1>{{ page.title ?? 'All Tags' }}</h1>
+        <h1>{{ page_title }}</h1>
         <p class="page-description">
           Browse all {{ total_tags }} tags
         </p>
@@ -29,13 +51,15 @@
         </div>
       </header>
 
-      {% if tags %}
+      {% if all_tags | length > 0 %}
       <div class="tag-cloud">
-        {% for tag in tags %}
+        {% for tag in all_tags %}
+        {% let tag_name = tag?.name ?? '' %}
+        {% let tag_count = tag?.count ?? 0 %}
         <div class="tag-item">
-          <a href="{{ tag_url(tag.name) }}" class="tag-link">
-            <span class="tag-name">{{ tag.name }}</span>
-            <span class="tag-count">{{ tag.count }} post{% if tag.count != 1 %}s{% end %}</span>
+          <a href="{{ tag_url(tag_name) }}" class="tag-link">
+            <span class="tag-name">{{ tag_name }}</span>
+            <span class="tag-count">{{ tag_count }} post{% if tag_count != 1 %}s{% end %}</span>
           </a>
         </div>
         {% end %}
@@ -46,9 +70,7 @@
     </article>
   </div>
 
-  {# Right Sidebar: Empty for now (will be hidden by CSS, can add tag stats later) #}
+  {# Right Sidebar: Empty (hidden by CSS) #}
   <aside class="docs-toc"></aside>
 </div>
-
-{# styles moved to components/tags.css #}
 {% end %}

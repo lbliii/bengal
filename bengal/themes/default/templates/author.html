@@ -38,7 +38,7 @@ Context variables:
 #}
 
 {% from 'partials/navigation-components.html' import breadcrumbs %}
-{% from 'partials/content-components.html' import tag_list %}
+{% from 'partials/components/tags.html' import tag_list %}
 
 {% set author_name = params.author_name | default(page.title) %}
 {% set section_filter = params.section_filter %}

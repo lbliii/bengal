@@ -50,7 +50,7 @@ Use list comprehension style via filters for Kida
   {# Main Content #}
   <div class="docs-main">
     {# Page Hero: Use direct macro call with explicit context #}
-    {% from 'partials/page-hero.html' import hero_section %}
+    {% from 'partials/page-hero/_macros.html' import hero_section %}
     {{ hero_section(section, page, {}) }}
 
     {# Article Content - autodoc skeleton #}

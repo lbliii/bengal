@@ -1,81 +1,121 @@
 {% extends "base.html" %}
 
+{#
+================================================================================
+Generic Page Template (Kida-Native)
+================================================================================
+
+Default template for standalone pages.
+
+KIDA FEATURES USED:
+- {% let %} for template-scoped variables
+- Optional chaining (?.) for null-safe access
+- Null coalescing (??) for smart defaults
+- {% def %} for reusable components
+
+USAGE:
+Auto-selected for pages without a specific type
+================================================================================
+#}
+
 {% from 'partials/navigation-components.html' import breadcrumbs, page_navigation %}
-{% from 'partials/content-components.html' import tag_list, random_posts %}
+{% from 'partials/components/tags.html' import tag_list %}
+{% from 'partials/components/widgets.html' import random_posts %}
+
+{# =============================================================================
+   RELATED POST CARD COMPONENT
+   ============================================================================= #}
+{% def related_card(post) %}
+{% let post_title = post?.title ?? 'Untitled' %}
+{% let post_href = post?.href ?? '#' %}
+{% let post_date = post?.date %}
+{% let post_excerpt = post?.excerpt ?? '' %}
+
+<article class="related-post-card gradient-border fluid-combined">
+  <h3><a href="{{ post_href }}">{{ post_title }}</a></h3>
+  {% if post_date %}
+  <time datetime="{{ post_date | date_iso }}">{{ post_date | time_ago }}</time>
+  {% end %}
+  {% if post_excerpt %}
+  <p>{{ post_excerpt }}</p>
+  {% end %}
+</article>
+{% end %}
+
+{# =============================================================================
+   MAIN TEMPLATE
+   ============================================================================= #}
 
 {% block content %}
+{# Template-scoped variables #}
+{% let page_title = page?.title ?? 'Page' %}
+{% let page_tags = page?.tags ?? [] %}
+{% let page_href = page?.href ?? '' %}
+{% let css_class = params?.css_class ?? '' %}
+
 <div class="container">
-{# Action Bar: Breadcrumbs + Share #}
-{% include 'partials/action-bar.html' %}
+  {# Action Bar: Breadcrumbs + Share #}
+  {% include 'partials/action-bar.html' %}
 
-<div class="page-layout {% if toc %}page-with-toc{% end %}">
-    <article class="page prose {% if params.css_class %}{{ params.css_class }}{% end %}">
-        <header class="page-header">
-            <h1>{{ page.title }}</h1>
-        </header>
+  <div class="page-layout{{ ' page-with-toc' if toc else '' }}">
+    <article class="page prose {{ css_class }}">
+      <header class="page-header">
+        <h1>{{ page_title }}</h1>
+      </header>
 
-        <div class="page-content">
-            {{ content | safe }}
+      <div class="page-content">
+        {{ content | safe }}
+      </div>
+
+      {% if page_tags | length > 0 %}
+      <footer class="page-footer">
+        <div class="tags">
+          <strong>Tags:</strong>
+          {{ tag_list(page_tags) }}
         </div>
-
-        {% if page.tags %}
-        <footer class="page-footer">
-            <div class="tags">
-                <strong>Tags:</strong>
-                {{ tag_list(page.tags) }}
-            </div>
-        </footer>
-        {% end %}
+      </footer>
+      {% end %}
     </article>
 
     {% if toc %}
     <aside class="page-sidebar">
-        {# Contextual Graph Minimap - shows connections to current page #}
-        <div class="graph-contextual" data-page-url="{{ page.href }}">
-          {# Placeholder - will be replaced by JavaScript #}
-          <div class="graph-contextual-container graph-loading"
-            style="min-height: 200px; opacity: 1 !important; visibility: visible !important;">
-          </div>
+      {# Contextual Graph Minimap #}
+      <div class="graph-contextual" data-page-url="{{ page_href }}">
+        <div class="graph-contextual-container graph-loading"
+             style="min-height: 200px; opacity: 1 !important; visibility: visible !important;">
         </div>
+      </div>
 
-        <nav class="toc" aria-label="Table of contents">
-            <h2 class="toc-title">On This Page</h2>
-            <div class="toc-content">
-                {{ toc | safe }}
-            </div>
-        </nav>
+      <nav class="toc" aria-label="Table of contents">
+        <h2 class="toc-title">On This Page</h2>
+        <div class="toc-content">
+          {{ toc | safe }}
+        </div>
+      </nav>
 
-        {# Random posts - dogfooding sample() #}
-        {{ random_posts(count=3) }}
+      {# Random posts #}
+      {{ random_posts(count=3) }}
     </aside>
     {% end %}
-</div>
+  </div>
 
-{# Page Navigation (prev/next) #}
-{{ page_navigation(page) }}
+  {# Page Navigation (prev/next) #}
+  {{ page_navigation(page) }}
 
-{# Related Posts Section (for pages with tags) - Pre-computed during build #}
-{% set related = page.related_posts[:3] %}
-{% if related %}
-<aside class="related-posts">
+  {# Related Posts Section #}
+  {% let related = page?.related_posts ?? [] %}
+  {% let related_posts = related[:3] %}
+  {% if related_posts | length > 0 %}
+  <aside class="related-posts">
     <div class="container">
-        <h2>Related Posts</h2>
-        <div class="related-posts-grid">
-            {% for post in related %}
-            <article class="related-post-card gradient-border fluid-combined">
-                <h3><a href="{{ post.href }}">{{ post.title }}</a></h3>
-                {% if post.date %}
-                <time datetime="{{ post.date | date_iso }}">{{ post.date | time_ago }}</time>
-                {% end %}
-                {% if post.content %}
-                <p>{{ post.excerpt }}</p>
-                {% end %}
-            </article>
-            {% end %}
-        </div>
+      <h2>Related Posts</h2>
+      <div class="related-posts-grid">
+        {% for post in related_posts %}
+        {{ related_card(post) }}
+        {% end %}
+      </div>
     </div>
-</aside>
-{% end %}
-{# Graph scripts loaded in base.html #}
+  </aside>
+  {% end %}
 </div>
 {% end %}
