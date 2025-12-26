@@ -335,14 +335,14 @@ def _log_template_introspection(orchestrator: BuildOrchestrator, verbose: bool) 
         for template_name in templates_to_check:
             cacheable = engine.get_cacheable_blocks(template_name)
             if cacheable:
-                for block_name, scope in cacheable.items():
+                for _block_name, scope in cacheable.items():
                     if scope == "site":
                         site_cacheable += 1
                     elif scope == "page":
                         page_cacheable += 1
 
         if site_cacheable > 0 or page_cacheable > 0:
-            logger.info(
+            orchestrator.logger.info(
                 "template_introspection",
                 site_cacheable_blocks=site_cacheable,
                 page_cacheable_blocks=page_cacheable,
@@ -351,7 +351,7 @@ def _log_template_introspection(orchestrator: BuildOrchestrator, verbose: bool) 
 
     except Exception as e:
         # Don't fail build if introspection fails
-        logger.debug("template_introspection_failed", error=str(e))
+        orchestrator.logger.debug("template_introspection_failed", error=str(e))
 
 
 def phase_render(
