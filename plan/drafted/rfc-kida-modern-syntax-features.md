@@ -3,7 +3,7 @@
 **Status**: Draft  
 **Created**: 2025-12-26  
 **Priority**: Medium-High  
-**Effort**: ~3-4 days total  
+**Effort**: ~33 hours (~4 days)  
 **Impact**: High - Developer experience, modern feel, reduced boilerplate  
 **Category**: Parser / Syntax / DX  
 **Scope**: `bengal/rendering/kida/`
@@ -19,15 +19,15 @@ This RFC proposes a collection of modern syntax features inspired by JavaScript,
 | Feature | Syntax | Effort | Impact |
 |---------|--------|--------|--------|
 | Optional Chaining | `user?.profile?.avatar` | 4h | ⭐⭐⭐ |
-| Null Coalescing | `value ?? 'default'` | 2h | ⭐⭐⭐ |
-| Break/Continue | `{% break %}`, `{% continue %}` | 4h | ⭐⭐⭐ |
-| Inline If in For | `{% for x in items if x.visible %}` | 4h | ⭐⭐⭐ |
+| Null Coalescing | `value ?? 'default'` | 3h | ⭐⭐⭐ |
+| Break/Continue | `{% break %}`, `{% continue %}` | 5h | ⭐⭐⭐ |
+| Inline If in For | `{% for x in items if x.visible %}` | 2h | ⭐⭐⭐ |
 | Unless Block | `{% unless condition %}` | 2h | ⭐⭐ |
-| Range Literals | `1..10`, `1...11` | 3h | ⭐⭐ |
-| Spaceless Block | `{% spaceless %}...{% end %}` | 3h | ⭐⭐ |
+| Range Literals | `1..10`, `1...11` | 5h | ⭐⭐ |
+| Spaceless Block | `{% spaceless %}...{% end %}` | 4h | ⭐⭐ |
 | Embed Block | `{% embed 'card.html' %}...{% end %}` | 8h | ⭐⭐ |
 
-**Total Effort**: ~30 hours (~3-4 days)
+**Total Effort**: ~33 hours (~4 days)
 
 ---
 
@@ -123,19 +123,26 @@ class OptionalGetitem(Expr):
 
 ```python
 def _compile_optional_getattr(self, node: OptionalGetattr) -> ast.expr:
-    """Compile obj?.attr to: (obj.attr if obj is not None else None)"""
-    obj = self._compile_expr(node.obj)
+    """Compile obj?.attr using walrus operator to avoid double evaluation.
 
-    # Generate: (_tmp := obj) and _tmp.attr
-    # Or: obj.attr if obj is not None else None
+    obj?.attr compiles to:
+        (_tmp := obj).attr if _tmp is not None else None
+    """
+    obj = self._compile_expr(node.obj)
+    tmp_name = self._gensym("_oc")  # Generate unique temp name
+
+    # Use walrus operator to cache obj and avoid double evaluation
     return ast.IfExp(
         test=ast.Compare(
-            left=obj,
+            left=ast.NamedExpr(
+                target=ast.Name(id=tmp_name, ctx=ast.Store()),
+                value=obj,
+            ),
             ops=[ast.IsNot()],
             comparators=[ast.Constant(value=None)],
         ),
         body=ast.Attribute(
-            value=obj,  # Note: need to cache obj to avoid double evaluation
+            value=ast.Name(id=tmp_name, ctx=ast.Load()),
             attr=node.attr,
             ctx=ast.Load(),
         ),
@@ -143,11 +150,13 @@ def _compile_optional_getattr(self, node: OptionalGetattr) -> ast.expr:
     )
 ```
 
-**Optimization**: For chained `?.` expressions, use walrus operator to cache intermediate values:
+**Chained Expressions**: For `user?.profile?.name`, each level uses its own temp:
 
 ```python
 # user?.profile?.name compiles to:
-# (_t1 := user) is not None and (_t2 := _t1.profile) is not None and _t2.name
+# ((_t1 := user) is not None and
+#  (_t2 := _t1.profile) is not None and
+#  _t2.name) or None
 ```
 
 ### Tests
@@ -212,6 +221,32 @@ JavaScript/PHP-style null coalescing operator:
 - Unlike `or`, doesn't treat falsy values (0, '', False, []) as missing
 - Right-associative: `a ?? b ?? c` = `a ?? (b ?? c)`
 
+### Undefined Behavior
+
+In Kida's strict mode, undefined variables raise `UndefinedError`. The `??` operator catches this:
+
+```jinja
+{# Strict mode: missing raises UndefinedError normally #}
+{{ missing }}  {# Raises UndefinedError #}
+
+{# But ?? catches undefined and uses fallback #}
+{{ missing ?? 'default' }}  {# → 'default' #}
+
+{# Chain with optional chaining #}
+{{ user?.profile?.theme ?? settings?.default_theme ?? 'light' }}
+```
+
+**Implementation Note**: The compiler wraps the left operand in a try/except for `UndefinedError`:
+
+```python
+# a ?? b compiles to:
+try:
+    _nc_tmp = a
+except UndefinedError:
+    _nc_tmp = None
+result = _nc_tmp if _nc_tmp is not None else b
+```
+
 ### Comparison with `or` and `default`
 
 ```jinja
@@ -236,13 +271,24 @@ TokenType.NULLISH_COALESCE: r'\?\?',
 **Parser**: Add to binary operator precedence (lower than `or`)
 
 ```python
-# Precedence: ?? < or < and < not < comparisons < ...
+# Precedence table update in _types.py:
+# Current: OR: 1 (lowest)
+# New:     NULLISH_COALESCE: 0, OR: 1, AND: 2, ...
+
+# In PRECEDENCE dict:
+TokenType.NULLISH_COALESCE: 0,  # Lowest precedence
+
 def _parse_nullish_coalesce(self) -> Expr:
     left = self._parse_or()
     while self._match(TokenType.NULLISH_COALESCE):
         right = self._parse_or()
         left = NullCoalesce(left=left, right=right, ...)
     return left
+```
+
+**Precedence Rationale**: `??` binds looser than `or` so that:
+```jinja
+{{ a or b ?? 'fallback' }}  {# Parsed as: (a or b) ?? 'fallback' #}
 ```
 
 **AST Node**:
@@ -311,6 +357,18 @@ class TestNullCoalescing:
         assert tmpl.render(user=None) == "Anonymous"
         assert tmpl.render(user={"name": None}) == "Anonymous"
         assert tmpl.render(user={"name": "Alice"}) == "Alice"
+
+    def test_undefined_fallback(self, env):
+        """Undefined (not just None) should trigger fallback in strict mode."""
+        tmpl = env.from_string("{{ missing ?? 'default' }}")
+        assert tmpl.render() == "default"  # missing is undefined
+
+    def test_undefined_vs_none(self, env):
+        """Distinguish between undefined and explicitly None."""
+        tmpl = env.from_string("{{ x ?? 'was undefined or none' }}")
+        assert tmpl.render() == "was undefined or none"  # undefined
+        assert tmpl.render(x=None) == "was undefined or none"  # None
+        assert tmpl.render(x="value") == "value"  # defined
 ```
 
 ---
@@ -406,17 +464,33 @@ def _compile_continue(self, node: Continue) -> list[ast.stmt]:
     return [ast.Continue()]
 ```
 
-**Validation**: Add compile-time check that break/continue are inside loops:
+**Validation**: Add compile-time check that break/continue are inside loops.
+
+The existing `BlockStackMixin` tracks nested blocks. Extend it to check for loop context:
 
 ```python
-def _validate_loop_control(self, node: Break | Continue) -> None:
-    """Ensure break/continue are inside a loop."""
-    if not self._in_loop:
-        raise TemplateSyntaxError(
-            f"'{type(node).__name__.lower()}' outside loop",
-            lineno=node.lineno,
+# In BlockStackMixin (parser/blocks/core.py):
+LOOP_BLOCKS = frozenset({"for", "while"})
+
+def _in_loop(self) -> bool:
+    """Check if currently inside a loop block."""
+    return any(block_type in self.LOOP_BLOCKS for block_type, _ in self._block_stack)
+
+# In parser when encountering break/continue:
+def _parse_break(self) -> Break:
+    start = self._advance()  # consume 'break'
+
+    if not self._in_loop():
+        raise self._error(
+            "'break' outside loop",
+            suggestion="Use 'break' only inside {% for %} or {% while %} loops",
         )
+
+    self._expect(TokenType.BLOCK_END)
+    return Break(lineno=start.lineno, col_offset=start.col_offset)
 ```
+
+**Note**: Validation happens at parse time, not compile time, for better error messages with source location.
 
 ### Tests
 
@@ -720,11 +794,35 @@ Ruby-style range literals:
 
 ### Implementation
 
-**Lexer**: Add range tokens
+**Lexer**: Add range tokens with disambiguation
 
 ```python
-TokenType.RANGE_INCLUSIVE: r'\.\.',   # ..
-TokenType.RANGE_EXCLUSIVE: r'\.\.\.',  # ...
+# In TokenType enum:
+RANGE_INCLUSIVE = "range_inclusive"  # ..
+RANGE_EXCLUSIVE = "range_exclusive"  # ...
+
+# In lexer operator lookup (check 3-char before 2-char):
+_OPERATORS_3CHAR: dict[str, TokenType] = {
+    "...": TokenType.RANGE_EXCLUSIVE,
+}
+_OPERATORS_2CHAR: dict[str, TokenType] = {
+    "..": TokenType.RANGE_INCLUSIVE,
+    # ... existing operators ...
+}
+```
+
+**Disambiguation**: The lexer checks longest match first (`...` before `..`). The parser validates that ranges have numeric/variable operands:
+
+```python
+def _parse_range(self, left: Expr) -> Expr:
+    # Range literals only valid after numeric literals or names
+    # This prevents confusion with attribute access typos
+    if not isinstance(left, (Const, Name)):
+        raise self._error(
+            "Range literal requires numeric or variable start",
+            suggestion="Use range(start, end) for complex expressions",
+        )
+    # ... rest of parsing
 ```
 
 **AST Node**:
@@ -821,6 +919,19 @@ class TestRangeLiterals:
     def test_in_expression(self, env):
         tmpl = env.from_string("{{ 1..5 | list }}")
         assert tmpl.render() == "[1, 2, 3, 4, 5]"
+
+    def test_negative_range(self, env):
+        tmpl = env.from_string("{% for i in -3..3 %}{{ i }}{% end %}")
+        assert tmpl.render() == "-3-2-10123"
+
+    def test_reverse_range(self, env):
+        """Reverse ranges produce empty results (like Python range)."""
+        tmpl = env.from_string("{% for i in 5..1 %}{{ i }}{% end %}")
+        assert tmpl.render() == ""  # Empty - use 5..1 by -1 for reverse
+
+    def test_negative_step(self, env):
+        tmpl = env.from_string("{% for i in 10..0 by -2 %}{{ i }}{% end %}")
+        assert tmpl.render() == "108642"
 ```
 
 ---
@@ -905,33 +1016,47 @@ def _parse_spaceless(self) -> Spaceless:
 
 **Compiler**:
 
+The key challenge is redirecting output to a temporary buffer. The compiler tracks the current buffer name:
+
 ```python
 import re
 
 def _compile_spaceless(self, node: Spaceless) -> list[ast.stmt]:
-    """Compile spaceless block.
+    """Compile spaceless block with buffer context switching.
 
-    Wraps body output in _spaceless() helper that removes
-    whitespace between HTML tags.
+    Steps:
+    1. Create temporary buffer
+    2. Switch compiler's buffer context
+    3. Compile body (writes to temp buffer)
+    4. Restore original buffer context
+    5. Apply _spaceless() and append to main buffer
     """
-    # Compile body to a capture
+    tmp_buf = self._gensym("_buf_spaceless")
+
+    # Save current buffer name and switch to temp
+    old_buf = self._buf_name
+    self._buf_name = tmp_buf
+
+    # Compile body - all appends now go to tmp_buf
     body_stmts = self._compile_body(node.body)
 
-    # Wrap in spaceless helper
-    # _spaceless(''.join(buf))
+    # Restore original buffer
+    self._buf_name = old_buf
+
     return [
-        # _buf_spaceless = []
+        # Create temp buffer: _buf_spaceless_0 = []
         ast.Assign(
-            targets=[ast.Name(id="_buf_spaceless", ctx=ast.Store())],
+            targets=[ast.Name(id=tmp_buf, ctx=ast.Store())],
             value=ast.List(elts=[], ctx=ast.Load()),
         ),
-        # ... compile body to _buf_spaceless ...
+        # Compiled body (appends to tmp_buf)
         *body_stmts,
-        # buf.append(_spaceless(''.join(_buf_spaceless)))
+        # Apply spaceless and append to main buffer:
+        # buf.append(_spaceless(''.join(_buf_spaceless_0)))
         ast.Expr(
             value=ast.Call(
                 func=ast.Attribute(
-                    value=ast.Name(id="buf", ctx=ast.Load()),
+                    value=ast.Name(id=old_buf, ctx=ast.Load()),
                     attr="append",
                     ctx=ast.Load(),
                 ),
@@ -945,7 +1070,7 @@ def _compile_spaceless(self, node: Spaceless) -> list[ast.stmt]:
                                     attr="join",
                                     ctx=ast.Load(),
                                 ),
-                                args=[ast.Name(id="_buf_spaceless", ctx=ast.Load())],
+                                args=[ast.Name(id=tmp_buf, ctx=ast.Load())],
                                 keywords=[],
                             )
                         ],
@@ -1052,9 +1177,35 @@ Twig-style embed (include + block override):
 ### Semantics
 
 - `embed` is like `include` but allows block overrides
-- Block overrides only affect the embedded template
+- Block overrides only affect the embedded template (scoped, not global)
 - Can pass variables like `include`
 - Can embed the same template multiple times with different overrides
+- Nested embeds are supported (embed within embed)
+- Circular embed detection: runtime error if A embeds B embeds A
+
+### Edge Cases
+
+```jinja
+{# Embed within embed #}
+{% embed 'outer.html' %}
+    {% block content %}
+        {% embed 'inner.html' %}
+            {% block title %}Nested{% end %}
+        {% end %}
+    {% end %}
+{% end %}
+
+{# Embed same template twice with different overrides #}
+{% embed 'card.html' %}{% block title %}Card A{% end %}{% end %}
+{% embed 'card.html' %}{% block title %}Card B{% end %}{% end %}
+
+{# Embed doesn't affect outer template's blocks #}
+{% block sidebar %}Original{% end %}
+{% embed 'partial.html' %}
+    {% block sidebar %}Override{% end %}  {# Only affects partial.html #}
+{% end %}
+{# sidebar block in current template still shows "Original" #}
+```
 
 ### Implementation
 
@@ -1236,31 +1387,213 @@ class TestEmbed:
         """)
         result = tmpl.render(custom_title="From Variable")
         assert "From Variable" in result
+
+    def test_embed_doesnt_affect_outer_blocks(self, env_with_card):
+        """Embed block overrides are scoped, not global."""
+        env_with_card.loader.mapping["partial.html"] = """
+            {% block sidebar %}Partial Sidebar{% end %}
+        """
+        tmpl = env_with_card.from_string("""
+            {% block sidebar %}Main Sidebar{% end %}
+            {% embed 'partial.html' %}
+                {% block sidebar %}Overridden{% end %}
+            {% end %}
+            {% block sidebar %}Still Main{% end %}
+        """)
+        result = tmpl.render()
+        assert "Main Sidebar" in result
+        assert "Overridden" in result
+        assert "Still Main" in result
+
+    def test_nested_embed(self, env_with_card):
+        """Embed within embed works correctly."""
+        env_with_card.loader.mapping["outer.html"] = """
+            <div class="outer">{% block content %}Default{% end %}</div>
+        """
+        env_with_card.loader.mapping["inner.html"] = """
+            <span class="inner">{% block label %}Label{% end %}</span>
+        """
+        tmpl = env_with_card.from_string("""
+            {% embed 'outer.html' %}
+                {% block content %}
+                    {% embed 'inner.html' %}
+                        {% block label %}Nested Label{% end %}
+                    {% end %}
+                {% end %}
+            {% end %}
+        """)
+        result = tmpl.render()
+        assert "Nested Label" in result
+        assert "outer" in result
+        assert "inner" in result
 ```
 
 ---
 
 ## Implementation Order
 
-### Phase 1: Quick Wins (~8 hours)
+Ordered by risk/dependencies, starting with lowest risk:
 
-1. **Break/Continue** (4h) - Universal expectation
-2. **Unless** (2h) - Simple parser alias
-3. **Inline if in for** (2h) - AST already exists
+### Phase 1: Quick Wins (~6 hours)
 
-### Phase 2: Modern Operators (~8 hours)
+1. **Inline If in For** (2h) - Lowest risk; AST already exists, parser-only change
+2. **Unless** (2h) - Simple desugaring to `If(not condition)`
+3. **Null Coalescing `??`** (2h lexer/parser) - High value, no dependencies
 
-4. **Null Coalescing `??`** (3h) - High impact, simple
-5. **Optional Chaining `?.`** (5h) - Requires more compiler work
+### Phase 2: Core Features (~9 hours)
 
-### Phase 3: Syntax Sugar (~8 hours)
+4. **Break/Continue** (5h) - Needs loop context tracking in `BlockStackMixin`
+5. **Optional Chaining `?.`** (4h) - Can reuse patterns from `??`
 
-6. **Range Literals** (4h) - Nice syntax improvement
-7. **Spaceless Block** (4h) - HTML optimization
+### Phase 3: Syntax Sugar (~9 hours)
+
+6. **Range Literals** (5h) - Lexer disambiguation + parser validation
+7. **Spaceless Block** (4h) - Buffer context switching pattern
 
 ### Phase 4: Advanced (~8 hours)
 
-8. **Embed Block** (8h) - Powerful but complex
+8. **Embed Block** (8h) - Most complex; block resolution + include integration
+
+### Dependency Graph
+
+```
+                    ┌─────────────┐
+                    │ Inline If   │  (no deps)
+                    └─────────────┘
+                    ┌─────────────┐
+                    │   Unless    │  (no deps)
+                    └─────────────┘
+┌─────────────┐     ┌─────────────┐
+│    ??       │────▶│     ?.      │  (reuse patterns)
+└─────────────┘     └─────────────┘
+┌─────────────┐
+│ Break/Cont  │  (needs BlockStackMixin)
+└─────────────┘
+┌─────────────┐
+│   Range     │  (needs lexer 3-char support)
+└─────────────┘
+┌─────────────┐     ┌─────────────┐
+│  Spaceless  │────▶│    Embed    │  (similar buffer patterns)
+└─────────────┘     └─────────────┘
+```
+
+---
+
+## Pre-Implementation Checklist
+
+Before starting implementation, complete these infrastructure changes:
+
+### 1. Update `_types.py` Keywords
+
+Add new keywords to `KEYWORDS` frozenset:
+
+```python
+KEYWORDS = frozenset({
+    # ... existing keywords ...
+
+    # New keywords (this RFC)
+    "unless",
+    "break",
+    "continue",
+    "spaceless",
+    "embed",
+    "by",  # For range step syntax
+})
+```
+
+### 2. Update `_types.py` TokenType
+
+Add new token types:
+
+```python
+class TokenType(Enum):
+    # ... existing tokens ...
+
+    # Optional chaining (Feature 1)
+    OPTIONAL_DOT = "optional_dot"     # ?.
+    OPTIONAL_BRACKET = "optional_bracket"  # ?[
+
+    # Null coalescing (Feature 2)
+    NULLISH_COALESCE = "nullish_coalesce"  # ??
+
+    # Range literals (Feature 6)
+    RANGE_INCLUSIVE = "range_inclusive"  # ..
+    RANGE_EXCLUSIVE = "range_exclusive"  # ...
+```
+
+### 3. Update `_types.py` Precedence
+
+Add precedence for new operators:
+
+```python
+PRECEDENCE = {
+    TokenType.NULLISH_COALESCE: 0,  # Lowest - below OR
+    TokenType.OR: 1,
+    # ... rest unchanged ...
+}
+```
+
+### 4. Update `lexer.py` Operator Lookup
+
+Add 3-char operator support (check longest first):
+
+```python
+_OPERATORS_3CHAR: dict[str, TokenType] = {
+    "...": TokenType.RANGE_EXCLUSIVE,
+}
+_OPERATORS_2CHAR: dict[str, TokenType] = {
+    "?.": TokenType.OPTIONAL_DOT,
+    "??": TokenType.NULLISH_COALESCE,
+    "..": TokenType.RANGE_INCLUSIVE,
+    # ... existing operators ...
+}
+```
+
+### 5. Add AST Nodes to `nodes.py`
+
+```python
+# Optional chaining
+@dataclass(frozen=True, slots=True)
+class OptionalGetattr(Expr): ...
+
+@dataclass(frozen=True, slots=True)
+class OptionalGetitem(Expr): ...
+
+# Null coalescing
+@dataclass(frozen=True, slots=True)
+class NullCoalesce(Expr): ...
+
+# Loop control
+@dataclass(frozen=True, slots=True)
+class Break(Node): ...
+
+@dataclass(frozen=True, slots=True)
+class Continue(Node): ...
+
+# Range
+@dataclass(frozen=True, slots=True)
+class Range(Expr): ...
+
+# Spaceless
+@dataclass(frozen=True, slots=True)
+class Spaceless(Node): ...
+
+# Embed
+@dataclass(frozen=True, slots=True)
+class Embed(Node): ...
+```
+
+### 6. Extend BlockStackMixin
+
+Add loop detection for break/continue validation:
+
+```python
+# In parser/blocks/core.py
+LOOP_BLOCKS = frozenset({"for", "while"})
+
+def _in_loop(self) -> bool:
+    return any(bt in self.LOOP_BLOCKS for bt, _ in self._block_stack)
+```
 
 ---
 
@@ -1278,12 +1611,79 @@ All features are **additive**:
 | Feature | Metric |
 |---------|--------|
 | All features | 100% test coverage |
+| All features | No new linter warnings |
 | Optional chaining | Chain depth ≤ 10 without stack overflow |
-| Null coalescing | Preserves all falsy values |
-| Break/Continue | Works in nested loops |
-| Range literals | Works with negative values |
-| Spaceless | Preserves content whitespace |
+| Optional chaining | Works with method calls and subscripts |
+| Null coalescing | Preserves all falsy values (0, '', False, []) |
+| Null coalescing | Catches `UndefinedError` in strict mode |
+| Null coalescing | Right-associative chaining works |
+| Break/Continue | Works in nested loops (exits innermost only) |
+| Break/Continue | Error at parse time if outside loop |
+| Inline If For | Empty clause triggers when all items filtered |
+| Range literals | Works with negative values and steps |
+| Range literals | Lexer correctly distinguishes `..` vs `...` |
+| Spaceless | Preserves content whitespace (inside tags) |
+| Spaceless | Works with nested loops and conditionals |
 | Embed | Works with nested embeds |
+| Embed | Block overrides don't affect outer template |
+
+---
+
+## Open Questions
+
+### 1. `??` and Method Calls
+
+Should `??` work with method calls that might raise exceptions?
+
+```jinja
+{{ obj.risky_method() ?? 'fallback' }}
+```
+
+**Options**:
+- A) Only catch `UndefinedError` and `None` (proposed)
+- B) Catch all exceptions (too broad, hides bugs)
+- C) Catch `UndefinedError`, `None`, and `AttributeError` (compromise)
+
+**Recommendation**: Option A - keep it simple, only handle null/undefined.
+
+### 2. `?.` with `?[]`
+
+The syntax `?[` for optional subscript requires lexer look-ahead or a separate token:
+
+```jinja
+{{ items?[0] }}   {# Optional subscript #}
+{{ items ? [0] }} {# Ternary with list literal? #}
+```
+
+**Options**:
+- A) `?[` as single token `OPTIONAL_BRACKET` (proposed)
+- B) Require whitespace for ternary: `items ? [0]` is ternary, `items?[0]` is optional
+- C) Don't support optional subscript initially
+
+**Recommendation**: Option A - `?[` is unambiguous.
+
+### 3. Range with Expressions
+
+Should range support complex expressions on either side?
+
+```jinja
+{{ (start + 1)..(end - 1) }}  {# Complex expressions #}
+{{ 1..items|length }}          {# Filter on end #}
+```
+
+**Current proposal**: Allow, but parser validates at parse time.
+
+### 4. Spaceless and Inline Content
+
+How should spaceless handle inline content mixed with tags?
+
+```jinja
+{% spaceless %}
+Text before<span>content</span>Text after
+{% end %}
+```
+
+**Current behavior**: Only removes whitespace between `>` and `<`, not around text.
 
 ---
 

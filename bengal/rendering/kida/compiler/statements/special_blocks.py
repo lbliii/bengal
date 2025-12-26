@@ -108,6 +108,126 @@ class SpecialBlockMixin:
 
         return stmts
 
+    def _compile_with_hugo(self, node: Any) -> list[ast.stmt]:
+        """Compile {% with expr as name %}...{% end %} (Hugo-style).
+
+        Renders body ONLY if expr is truthy. Binds expr to 'name'.
+        Provides nil-resilience: block is silently skipped when expr is None/falsy.
+
+        Part of RFC: hugo-inspired-features.
+
+        Generates:
+            _with_val_N = expr
+            if _with_val_N:
+                _with_save_name = ctx.get('name')
+                ctx['name'] = _with_val_N
+                ... body ...
+                # restore old value
+                if _with_save_name is None:
+                    del ctx['name']
+                else:
+                    ctx['name'] = _with_save_name
+        """
+        # Get unique suffix for this block
+        self._block_counter += 1
+        suffix = str(self._block_counter)
+        val_name = f"_with_val_{suffix}"
+        old_var_name = f"_with_save_{node.name}_{suffix}"
+
+        stmts: list[ast.stmt] = []
+
+        # _with_val_N = expr
+        stmts.append(
+            ast.Assign(
+                targets=[ast.Name(id=val_name, ctx=ast.Store())],
+                value=self._compile_expr(node.expr),
+            )
+        )
+
+        # Build the if body
+        if_body: list[ast.stmt] = []
+
+        # _with_save_name_N = ctx.get('name')
+        if_body.append(
+            ast.Assign(
+                targets=[ast.Name(id=old_var_name, ctx=ast.Store())],
+                value=ast.Call(
+                    func=ast.Attribute(
+                        value=ast.Name(id="ctx", ctx=ast.Load()),
+                        attr="get",
+                        ctx=ast.Load(),
+                    ),
+                    args=[ast.Constant(value=node.name)],
+                    keywords=[],
+                ),
+            )
+        )
+
+        # ctx['name'] = _with_val_N
+        if_body.append(
+            ast.Assign(
+                targets=[
+                    ast.Subscript(
+                        value=ast.Name(id="ctx", ctx=ast.Load()),
+                        slice=ast.Constant(value=node.name),
+                        ctx=ast.Store(),
+                    )
+                ],
+                value=ast.Name(id=val_name, ctx=ast.Load()),
+            )
+        )
+
+        # Compile body
+        for child in node.body:
+            if_body.extend(self._compile_node(child))
+
+        # Restore old value
+        # if _with_save_name_N is None: del ctx['name']
+        # else: ctx['name'] = _with_save_name_N
+        if_body.append(
+            ast.If(
+                test=ast.Compare(
+                    left=ast.Name(id=old_var_name, ctx=ast.Load()),
+                    ops=[ast.Is()],
+                    comparators=[ast.Constant(value=None)],
+                ),
+                body=[
+                    ast.Delete(
+                        targets=[
+                            ast.Subscript(
+                                value=ast.Name(id="ctx", ctx=ast.Load()),
+                                slice=ast.Constant(value=node.name),
+                                ctx=ast.Del(),
+                            )
+                        ]
+                    )
+                ],
+                orelse=[
+                    ast.Assign(
+                        targets=[
+                            ast.Subscript(
+                                value=ast.Name(id="ctx", ctx=ast.Load()),
+                                slice=ast.Constant(value=node.name),
+                                ctx=ast.Store(),
+                            )
+                        ],
+                        value=ast.Name(id=old_var_name, ctx=ast.Load()),
+                    )
+                ],
+            )
+        )
+
+        # if _with_val_N: ...
+        stmts.append(
+            ast.If(
+                test=ast.Name(id=val_name, ctx=ast.Load()),
+                body=if_body,
+                orelse=[],
+            )
+        )
+
+        return stmts
+
     def _compile_do(self, node: Any) -> list[ast.stmt]:
         """Compile {% do expr %.
 
@@ -461,6 +581,251 @@ class SpecialBlockMixin:
                     ],
                     keywords=[],
                 ),
+            )
+        )
+
+        return stmts
+
+    def _compile_spaceless(self, node: Any) -> list[ast.stmt]:
+        """Compile {% spaceless %}...{% end %}.
+
+        Removes whitespace between HTML tags.
+        Part of RFC: kida-modern-syntax-features.
+
+        Generates:
+            _spaceless_buf_N = []
+            _spaceless_append_N = _spaceless_buf_N.append
+            _save_append_N = _append
+            _append = _spaceless_append_N
+            ... body ...
+            _append = _save_append_N
+            _append(_spaceless(''.join(_spaceless_buf_N)))
+        """
+        # Get unique suffix for this spaceless block
+        self._block_counter += 1
+        suffix = str(self._block_counter)
+        buf_name = f"_spaceless_buf_{suffix}"
+        append_name = f"_spaceless_append_{suffix}"
+        save_name = f"_save_append_{suffix}"
+
+        stmts: list[ast.stmt] = [
+            # _spaceless_buf_N = []
+            ast.Assign(
+                targets=[ast.Name(id=buf_name, ctx=ast.Store())],
+                value=ast.List(elts=[], ctx=ast.Load()),
+            ),
+            # _spaceless_append_N = _spaceless_buf_N.append
+            ast.Assign(
+                targets=[ast.Name(id=append_name, ctx=ast.Store())],
+                value=ast.Attribute(
+                    value=ast.Name(id=buf_name, ctx=ast.Load()),
+                    attr="append",
+                    ctx=ast.Load(),
+                ),
+            ),
+            # _save_append_N = _append
+            ast.Assign(
+                targets=[ast.Name(id=save_name, ctx=ast.Store())],
+                value=ast.Name(id="_append", ctx=ast.Load()),
+            ),
+            # _append = _spaceless_append_N
+            ast.Assign(
+                targets=[ast.Name(id="_append", ctx=ast.Store())],
+                value=ast.Name(id=append_name, ctx=ast.Load()),
+            ),
+        ]
+
+        # Compile body
+        for child in node.body:
+            stmts.extend(self._compile_node(child))
+
+        # _append = _save_append_N
+        stmts.append(
+            ast.Assign(
+                targets=[ast.Name(id="_append", ctx=ast.Store())],
+                value=ast.Name(id=save_name, ctx=ast.Load()),
+            )
+        )
+
+        # _append(_spaceless(''.join(_spaceless_buf_N)))
+        stmts.append(
+            ast.Expr(
+                value=ast.Call(
+                    func=ast.Name(id="_append", ctx=ast.Load()),
+                    args=[
+                        ast.Call(
+                            func=ast.Name(id="_spaceless", ctx=ast.Load()),
+                            args=[
+                                ast.Call(
+                                    func=ast.Attribute(
+                                        value=ast.Constant(value=""),
+                                        attr="join",
+                                        ctx=ast.Load(),
+                                    ),
+                                    args=[ast.Name(id=buf_name, ctx=ast.Load())],
+                                    keywords=[],
+                                ),
+                            ],
+                            keywords=[],
+                        ),
+                    ],
+                    keywords=[],
+                ),
+            )
+        )
+
+        return stmts
+
+    def _compile_embed(self, node: Any) -> list[ast.stmt]:
+        """Compile {% embed 'template.html' %}...{% end %}.
+
+        Embed is like include but allows block overrides.
+        Part of RFC: kida-modern-syntax-features.
+
+        Generates:
+            _saved_blocks_N = _blocks.copy()
+            def _block_name(ctx, _blocks): ...  # For each override
+            _blocks['name'] = _block_name
+            _append(_include(template, ctx, _blocks))
+            _blocks = _saved_blocks_N
+        """
+        # Get unique suffix for this embed
+        self._block_counter += 1
+        suffix = str(self._block_counter)
+        saved_blocks_name = f"_saved_blocks_{suffix}"
+
+        stmts: list[ast.stmt] = []
+
+        # _saved_blocks_N = _blocks.copy()
+        stmts.append(
+            ast.Assign(
+                targets=[ast.Name(id=saved_blocks_name, ctx=ast.Store())],
+                value=ast.Call(
+                    func=ast.Attribute(
+                        value=ast.Name(id="_blocks", ctx=ast.Load()),
+                        attr="copy",
+                        ctx=ast.Load(),
+                    ),
+                    args=[],
+                    keywords=[],
+                ),
+            )
+        )
+
+        # Create block override functions
+        for name, block in node.blocks.items():
+            block_func_name = f"_block_{name}_{suffix}"
+
+            # Build block function body
+            block_body: list[ast.stmt] = [
+                # _e = _escape
+                ast.Assign(
+                    targets=[ast.Name(id="_e", ctx=ast.Store())],
+                    value=ast.Name(id="_escape", ctx=ast.Load()),
+                ),
+                # _s = _str
+                ast.Assign(
+                    targets=[ast.Name(id="_s", ctx=ast.Store())],
+                    value=ast.Name(id="_str", ctx=ast.Load()),
+                ),
+                # buf = []
+                ast.Assign(
+                    targets=[ast.Name(id="buf", ctx=ast.Store())],
+                    value=ast.List(elts=[], ctx=ast.Load()),
+                ),
+                # _append = buf.append
+                ast.Assign(
+                    targets=[ast.Name(id="_append", ctx=ast.Store())],
+                    value=ast.Attribute(
+                        value=ast.Name(id="buf", ctx=ast.Load()),
+                        attr="append",
+                        ctx=ast.Load(),
+                    ),
+                ),
+            ]
+
+            # Compile block body
+            for child in block.body:
+                block_body.extend(self._compile_node(child))
+
+            # return ''.join(buf)
+            block_body.append(
+                ast.Return(
+                    value=ast.Call(
+                        func=ast.Attribute(
+                            value=ast.Constant(value=""),
+                            attr="join",
+                            ctx=ast.Load(),
+                        ),
+                        args=[ast.Name(id="buf", ctx=ast.Load())],
+                        keywords=[],
+                    ),
+                )
+            )
+
+            # def _block_name_N(ctx, _blocks): ...
+            stmts.append(
+                ast.FunctionDef(
+                    name=block_func_name,
+                    args=ast.arguments(
+                        posonlyargs=[],
+                        args=[ast.arg(arg="ctx"), ast.arg(arg="_blocks")],
+                        vararg=None,
+                        kwonlyargs=[],
+                        kw_defaults=[],
+                        kwarg=None,
+                        defaults=[],
+                    ),
+                    body=block_body,
+                    decorator_list=[],
+                    returns=None,
+                )
+            )
+
+            # _blocks['name'] = _block_name_N
+            stmts.append(
+                ast.Assign(
+                    targets=[
+                        ast.Subscript(
+                            value=ast.Name(id="_blocks", ctx=ast.Load()),
+                            slice=ast.Constant(value=name),
+                            ctx=ast.Store(),
+                        )
+                    ],
+                    value=ast.Name(id=block_func_name, ctx=ast.Load()),
+                )
+            )
+
+        # Include the embedded template: _append(_include(template, ctx, blocks=_blocks))
+        stmts.append(
+            ast.Expr(
+                value=ast.Call(
+                    func=ast.Name(id="_append", ctx=ast.Load()),
+                    args=[
+                        ast.Call(
+                            func=ast.Name(id="_include", ctx=ast.Load()),
+                            args=[
+                                self._compile_expr(node.template),
+                                ast.Name(id="ctx", ctx=ast.Load()),
+                            ],
+                            keywords=[
+                                ast.keyword(
+                                    arg="blocks",
+                                    value=ast.Name(id="_blocks", ctx=ast.Load()),
+                                ),
+                            ],
+                        ),
+                    ],
+                    keywords=[],
+                ),
+            )
+        )
+
+        # _blocks = _saved_blocks_N
+        stmts.append(
+            ast.Assign(
+                targets=[ast.Name(id="_blocks", ctx=ast.Store())],
+                value=ast.Name(id=saved_blocks_name, ctx=ast.Load()),
             )
         )
 

@@ -41,6 +41,9 @@ class BlockStackMixin:
             "endfilter",
             "endraw",
             "endmatch",
+            "endspaceless",
+            "endembed",
+            "endunless",  # RFC: kida-modern-syntax-features
         }
     )
 
@@ -53,6 +56,9 @@ class BlockStackMixin:
             "case",
         }
     )
+
+    # Block types that are loops (for break/continue validation)
+    _LOOP_BLOCKS: frozenset[str] = frozenset({"for", "while"})
 
     def _push_block(self, block_type: str, token: Token | None = None) -> None:
         """Push a block onto the stack when opening it.
@@ -104,6 +110,14 @@ class BlockStackMixin:
         for block_type, lineno, _col in reversed(self._block_stack):
             blocks.append(f"  - {block_type} (opened at line {lineno})")
         return "Open blocks:\n" + "\n".join(blocks)
+
+    def _in_loop(self) -> bool:
+        """Check if currently inside a loop block.
+
+        Used by break/continue to validate they are inside a loop.
+        Part of RFC: kida-modern-syntax-features.
+        """
+        return any(block_type in self._LOOP_BLOCKS for block_type, _, _ in self._block_stack)
 
     def _consume_end_tag(self, block_type: str) -> None:
         """Consume an end tag ({% end %} or {% endXXX %}) and pop from stack.

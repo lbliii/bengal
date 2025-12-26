@@ -499,10 +499,16 @@ class Compiler(
                 "Slot": self._compile_slot,
                 "FromImport": self._compile_from_import,
                 "With": self._compile_with,
+                "WithHugo": self._compile_with_hugo,
                 "Do": self._compile_do,
                 "Raw": self._compile_raw,
                 "Capture": self._compile_capture,
                 "Cache": self._compile_cache,
                 "FilterBlock": self._compile_filter_block,
+                # RFC: kida-modern-syntax-features
+                "Break": self._compile_break,
+                "Continue": self._compile_continue,
+                "Spaceless": self._compile_spaceless,
+                "Embed": self._compile_embed,
             }
         return self._node_dispatch

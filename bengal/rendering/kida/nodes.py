@@ -470,9 +470,40 @@ class Cache(Node):
 
 @dataclass(frozen=True, slots=True)
 class With(Node):
-    """Context manager: {% with x = expr %}...{% end %}"""
+    """Jinja2-style context manager: {% with x = expr %}...{% end %}
+
+    Always renders body with variable bindings.
+    """
 
     targets: Sequence[tuple[str, Expr]]
+    body: Sequence[Node]
+
+
+@dataclass(frozen=True, slots=True)
+class WithHugo(Node):
+    """Hugo-style with block: {% with expr as name %}...{% end %}
+
+    Renders body ONLY if expr is truthy. Binds expr to name (or 'it' if no name).
+    This provides nil-resilience: block is silently skipped when expr is None/falsy.
+
+    Syntax:
+        {% with page.author as author %}
+            <span>{{ author.name }}</span>
+        {% end %}
+
+        {% with page.author %}
+            <span>{{ it.name }}</span>
+        {% end %}
+
+    Compared to Jinja2-style {% with %}:
+        - Hugo-style: Skips body if expr is falsy (nil-resilient)
+        - Jinja2-style: Always renders body (may error on None.attr)
+
+    Part of RFC: hugo-inspired-features.
+    """
+
+    expr: Expr
+    name: str  # Variable name to bind expr to (defaults to 'it')
     body: Sequence[Node]
 
 
@@ -518,6 +549,62 @@ class Trim(Node):
     """
 
     body: Sequence[Node]
+
+
+# =============================================================================
+# Modern Syntax Features (RFC: kida-modern-syntax-features)
+# =============================================================================
+
+
+@dataclass(frozen=True, slots=True)
+class Break(Node):
+    """Break out of loop: {% break %}
+
+    Exits the innermost for/while loop.
+    Part of RFC: kida-modern-syntax-features.
+    """
+
+    pass
+
+
+@dataclass(frozen=True, slots=True)
+class Continue(Node):
+    """Skip to next iteration: {% continue %}
+
+    Skips to the next iteration of the innermost for/while loop.
+    Part of RFC: kida-modern-syntax-features.
+    """
+
+    pass
+
+
+@dataclass(frozen=True, slots=True)
+class Spaceless(Node):
+    """Remove whitespace between HTML tags: {% spaceless %}...{% end %}
+
+    Removes whitespace between > and <, preserving content whitespace.
+    Part of RFC: kida-modern-syntax-features.
+    """
+
+    body: Sequence[Node]
+
+
+@dataclass(frozen=True, slots=True)
+class Embed(Node):
+    """Embed template with block overrides: {% embed 'card.html' %}...{% end %}
+
+    Like include, but allows overriding blocks in the embedded template.
+    Part of RFC: kida-modern-syntax-features.
+
+    Attributes:
+        template: Template path expression
+        blocks: Block overrides defined in embed body
+        with_context: Pass current context to embedded template
+    """
+
+    template: Expr
+    blocks: dict[str, Block]
+    with_context: bool = True
 
 
 # =============================================================================
@@ -579,8 +666,32 @@ class Getattr(Expr):
 
 
 @dataclass(frozen=True, slots=True)
+class OptionalGetattr(Expr):
+    """Optional attribute access: obj?.attr
+
+    Returns None if obj is None/undefined, otherwise obj.attr.
+    Part of RFC: kida-modern-syntax-features.
+    """
+
+    obj: Expr
+    attr: str
+
+
+@dataclass(frozen=True, slots=True)
 class Getitem(Expr):
     """Subscript access: obj[key]"""
+
+    obj: Expr
+    key: Expr
+
+
+@dataclass(frozen=True, slots=True)
+class OptionalGetitem(Expr):
+    """Optional subscript access: obj?[key]
+
+    Returns None if obj is None/undefined, otherwise obj[key].
+    Part of RFC: kida-modern-syntax-features.
+    """
 
     obj: Expr
     key: Expr
@@ -696,6 +807,38 @@ class CondExpr(Expr):
     if_false: Expr
 
 
+@dataclass(frozen=True, slots=True)
+class NullCoalesce(Expr):
+    """Null coalescing: a ?? b
+
+    Returns b if a is None/undefined, otherwise a.
+    Unlike 'or', doesn't treat falsy values (0, '', False, []) as missing.
+    Part of RFC: kida-modern-syntax-features.
+    """
+
+    left: Expr
+    right: Expr
+
+
+@dataclass(frozen=True, slots=True)
+class Range(Expr):
+    """Range literal: start..end or start...end
+
+    Part of RFC: kida-modern-syntax-features.
+
+    Attributes:
+        start: Start value (inclusive)
+        end: End value (inclusive if inclusive=True)
+        inclusive: True for .., False for ...
+        step: Optional step value (from 'by' keyword)
+    """
+
+    start: Expr
+    end: Expr
+    inclusive: bool = True
+    step: Expr | None = None
+
+
 # =============================================================================
 # Async Expressions (Kida native)
 # =============================================================================
@@ -755,7 +898,9 @@ AnyExpr = Union[
     List,
     Dict,
     Getattr,
+    OptionalGetattr,
     Getitem,
+    OptionalGetitem,
     Slice,
     FuncCall,
     Filter,
@@ -766,6 +911,8 @@ AnyExpr = Union[
     Compare,
     BoolOp,
     CondExpr,
+    NullCoalesce,
+    Range,
     Await,
     Concat,
     MarkSafe,

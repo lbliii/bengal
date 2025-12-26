@@ -209,7 +209,10 @@ class Lexer:
     _FLOAT_RE = re.compile(r"\d+\.\d*|\.\d+")
 
     # O(1) operator lookup tables (optimized from O(k) list iteration)
-    # Two-char operators checked first, then single-char
+    # Three-char operators checked first, then two-char, then single-char
+    _OPERATORS_3CHAR: dict[str, TokenType] = {
+        "...": TokenType.RANGE_EXCLUSIVE,  # Range exclusive: 1...11
+    }
     _OPERATORS_2CHAR: dict[str, TokenType] = {
         "**": TokenType.POW,
         "//": TokenType.FLOORDIV,
@@ -218,6 +221,11 @@ class Lexer:
         "<=": TokenType.LE,
         ">=": TokenType.GE,
         "|>": TokenType.PIPELINE,  # Kida-native pipeline operator
+        # Modern syntax features (RFC: kida-modern-syntax-features)
+        "?.": TokenType.OPTIONAL_DOT,  # Optional chaining: obj?.attr
+        "?[": TokenType.OPTIONAL_BRACKET,  # Optional subscript: obj?[key]
+        "??": TokenType.NULLISH_COALESCE,  # Null coalescing: a ?? b
+        "..": TokenType.RANGE_INCLUSIVE,  # Range inclusive: 1..10
     }
     _OPERATORS_1CHAR: dict[str, TokenType] = {
         "<": TokenType.LT,
@@ -491,7 +499,13 @@ class Lexer:
         if char.isalpha() or char == "_":
             return self._scan_name()
 
-        # Two-char operators (check first for longest match)
+        # Three-char operators (check first for longest match)
+        if self._pos + 2 < len(self._source):
+            three_char = self._source[self._pos : self._pos + 3]
+            if three_char in self._OPERATORS_3CHAR:
+                return self._emit_delimiter(three_char, self._OPERATORS_3CHAR[three_char])
+
+        # Two-char operators (check second for longest match)
         if self._pos + 1 < len(self._source):
             two_char = self._source[self._pos : self._pos + 2]
             if two_char in self._OPERATORS_2CHAR:
@@ -538,11 +552,33 @@ class Lexer:
         )
 
     def _scan_number(self) -> Token:
-        """Scan a number literal (integer or float)."""
+        """Scan a number literal (integer or float).
+
+        Note: Special handling for range literals (1..10, 1...11).
+        If we see digits followed by '..' or '...', treat the digits as
+        an integer, not a float, so the range operator can be parsed.
+        """
         start_lineno = self._lineno
         start_col = self._col_offset
 
-        # Try float first (longer match)
+        # Check for range literal: digits followed by .. or ...
+        # If so, parse just the integer part so the range operator is preserved
+        int_match = self._INTEGER_RE.match(self._source, self._pos)
+        if int_match:
+            # Check what follows the integer
+            end_pos = self._pos + len(int_match.group())
+            if end_pos < len(self._source):
+                next_char = self._source[end_pos]
+                # If followed by '.', check if it's '..' or '...'
+                if next_char == "." and end_pos + 1 < len(self._source):
+                    next_next = self._source[end_pos + 1]
+                    if next_next == ".":
+                        # This is 1..x or 1...x - return integer only
+                        value = int_match.group()
+                        self._advance(len(value))
+                        return Token(TokenType.INTEGER, value, start_lineno, start_col)
+
+        # Try float (longer match)
         match = self._FLOAT_RE.match(self._source, self._pos)
         if match and "." in match.group():
             value = match.group()
@@ -550,9 +586,8 @@ class Lexer:
             return Token(TokenType.FLOAT, value, start_lineno, start_col)
 
         # Integer
-        match = self._INTEGER_RE.match(self._source, self._pos)
-        if match:
-            value = match.group()
+        if int_match:
+            value = int_match.group()
             self._advance(len(value))
             return Token(TokenType.INTEGER, value, start_lineno, start_col)
 

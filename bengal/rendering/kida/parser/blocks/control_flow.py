@@ -9,7 +9,7 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 from bengal.rendering.kida._types import TokenType
-from bengal.rendering.kida.nodes import For, If, Match
+from bengal.rendering.kida.nodes import Break, Continue, For, If, Match, UnaryOp
 
 if TYPE_CHECKING:
     from bengal.rendering.kida.nodes import Expr, Node
@@ -31,6 +31,90 @@ class ControlFlowBlockParsingMixin(BlockStackMixin):
         - _expect: method
         - _error: method
     """
+
+    def _parse_unless(self) -> If:
+        """Parse {% unless cond %} as {% if not cond %}.
+
+        Part of RFC: kida-modern-syntax-features.
+        Supports {% end %}, {% endif %}, and {% endunless %}.
+        """
+        start = self._advance()  # consume 'unless'
+        self._push_block("unless", start)  # Track as 'unless' for endunless support
+
+        # Parse condition
+        condition = self._parse_expression()
+        self._expect(TokenType.BLOCK_END)
+
+        # Parse body, stopping on continuation (else) or end keywords
+        body = self._parse_body(stop_on_continuation=True)
+
+        else_: list[Node] = []
+
+        # Handle optional else clause
+        while self._current.type == TokenType.BLOCK_BEGIN:
+            next_tok = self._peek(1)
+            if next_tok.type != TokenType.NAME:
+                break
+
+            keyword = next_tok.value
+
+            if keyword == "else":
+                self._advance()  # consume {%
+                self._advance()  # consume 'else'
+                self._expect(TokenType.BLOCK_END)
+                else_ = self._parse_body(stop_on_continuation=False)
+            elif keyword in ("end", "endif", "endunless"):
+                self._consume_end_tag("unless")
+                break
+            else:
+                break
+
+        # Create If with negated condition: unless x == if not x
+        return If(
+            lineno=start.lineno,
+            col_offset=start.col_offset,
+            test=UnaryOp(
+                lineno=condition.lineno,
+                col_offset=condition.col_offset,
+                op="not",
+                operand=condition,
+            ),
+            body=tuple(body),
+            elif_=(),
+            else_=tuple(else_),
+        )
+
+    def _parse_break(self) -> Break:
+        """Parse {% break %} loop control.
+
+        Part of RFC: kida-modern-syntax-features.
+        """
+        start = self._advance()  # consume 'break'
+
+        if not self._in_loop():
+            raise self._error(
+                "'break' outside loop",
+                suggestion="Use 'break' only inside {% for %} or {% while %} loops",
+            )
+
+        self._expect(TokenType.BLOCK_END)
+        return Break(lineno=start.lineno, col_offset=start.col_offset)
+
+    def _parse_continue(self) -> Continue:
+        """Parse {% continue %} loop control.
+
+        Part of RFC: kida-modern-syntax-features.
+        """
+        start = self._advance()  # consume 'continue'
+
+        if not self._in_loop():
+            raise self._error(
+                "'continue' outside loop",
+                suggestion="Use 'continue' only inside {% for %} or {% while %} loops",
+            )
+
+        self._expect(TokenType.BLOCK_END)
+        return Continue(lineno=start.lineno, col_offset=start.col_offset)
 
     def _parse_if(self) -> If:
         """Parse {% if %} ... {% end %} or {% endif %}.
@@ -93,6 +177,8 @@ class ControlFlowBlockParsingMixin(BlockStackMixin):
 
         Supports unified {% end %} as well as explicit {% endfor %}.
         Also handles {% else %} and {% empty %} clauses.
+        Supports inline if filter: {% for x in items if x.visible %}
+        Part of RFC: kida-modern-syntax-features (inline if).
         """
         start = self._advance()  # consume 'for'
         self._push_block("for", start)
@@ -109,8 +195,19 @@ class ControlFlowBlockParsingMixin(BlockStackMixin):
             )
         self._advance()
 
-        # Parse iterable
-        iter_expr = self._parse_expression()
+        # Parse iterable - use _parse_or() to avoid parsing 'if' as ternary
+        # This allows: {% for x in items if x.visible %}
+        # without the 'if' being parsed as part of 'items if x.visible else ""'
+        # Part of RFC: kida-modern-syntax-features
+        iter_expr = self._parse_or()
+
+        # Check for inline filter: {% for x in items if condition %}
+        # Part of RFC: kida-modern-syntax-features
+        test = None
+        if self._current.type == TokenType.NAME and self._current.value == "if":
+            self._advance()  # consume 'if'
+            test = self._parse_or()  # Parse the condition (also without ternary)
+
         self._expect(TokenType.BLOCK_END)
 
         # Parse body - stop at continuation (else/empty) or end keywords
@@ -147,6 +244,7 @@ class ControlFlowBlockParsingMixin(BlockStackMixin):
             iter=iter_expr,
             body=tuple(body),
             empty=tuple(empty),
+            test=test,
         )
 
     def _parse_match(self) -> Match:

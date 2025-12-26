@@ -65,6 +65,10 @@ _ESCAPE_TABLE = str.maketrans(
 # Fast path: regex to check if escaping is needed at all
 _ESCAPE_CHECK = re.compile(r'[&<>"\']')
 
+# Spaceless: regex to remove whitespace between HTML tags
+# RFC: kida-modern-syntax-features
+_SPACELESS_RE = re.compile(r">\s+<")
+
 
 class LoopContext:
     """Loop iteration metadata accessible as `loop` inside `{% for %}` blocks.
@@ -257,12 +261,22 @@ class Template:
         env_ref = self._env_ref
 
         # Include helper - loads and renders included template
-        def _include(template_name: str, context: dict, ignore_missing: bool = False) -> str:
+        def _include(
+            template_name: str,
+            context: dict,
+            ignore_missing: bool = False,
+            *,  # Force remaining args to be keyword-only
+            blocks: dict | None = None,  # RFC: kida-modern-syntax-features (embed)
+        ) -> str:
             _env = env_ref()
             if _env is None:
                 raise RuntimeError("Environment has been garbage collected")
             try:
                 included = _env.get_template(template_name)
+                # If blocks are provided (for embed), call the render function directly
+                # with blocks parameter
+                if blocks is not None and included._render_func is not None:
+                    return included._render_func(context, blocks)
                 return included.render(**context)
             except Exception:
                 if ignore_missing:
@@ -403,6 +417,21 @@ class Template:
             except UndefinedError:
                 return False
 
+        # Spaceless helper - removes whitespace between HTML tags
+        # RFC: kida-modern-syntax-features
+        def _spaceless(html: str) -> str:
+            """Remove whitespace between HTML tags.
+
+            Example:
+                {% spaceless %}
+                <ul>
+                    <li>a</li>
+                </ul>
+                {% end %}
+                Output: <ul><li>a</li></ul>
+            """
+            return _SPACELESS_RE.sub("><", html).strip()
+
         # Numeric coercion helper for arithmetic operations
         def _coerce_numeric(value: Any) -> int | float:
             """Coerce value to numeric type for arithmetic operations.
@@ -437,6 +466,19 @@ class Template:
                     # Non-numeric string defaults to 0
                     return 0
 
+        # Str helper that converts None to empty string for template output
+        # RFC: kida-modern-syntax-features - needed for optional chaining
+        def _str_safe(value: Any) -> str:
+            """Convert value to string, treating None as empty string.
+
+            This is used for template output so that optional chaining
+            expressions that evaluate to None produce empty output rather
+            than the literal string 'None'.
+            """
+            if value is None:
+                return ""
+            return str(value)
+
         # Execute the code to get the render function
         namespace: dict[str, Any] = {
             "__builtins__": {},
@@ -445,10 +487,13 @@ class Template:
             "_tests": env._tests,
             "_escape": self._escape,
             "_getattr": self._safe_getattr,
+            "_getattr_none": self._getattr_preserve_none,  # RFC: kida-modern-syntax-features
             "_lookup": _lookup,  # Strict mode variable lookup
             "_default_safe": _default_safe,  # Default filter for strict mode
             "_is_defined": _is_defined,  # Is defined test for strict mode
             "_coerce_numeric": _coerce_numeric,  # Numeric coercion for macro arithmetic
+            "_spaceless": _spaceless,  # RFC: kida-modern-syntax-features
+            "_str_safe": _str_safe,  # RFC: kida-modern-syntax-features - None to empty string
             "_include": _include,
             "_extends": _extends,
             "_import_macros": _import_macros,
@@ -671,6 +716,30 @@ class Template:
                 return "" if val is None else val
             except (KeyError, TypeError):
                 return ""
+
+    @staticmethod
+    def _getattr_preserve_none(obj: Any, name: str) -> Any:
+        """Get attribute with dict fallback, preserving None values.
+
+        Like _safe_getattr but preserves None values instead of converting
+        to empty string. Used for optional chaining (?.) so that null
+        coalescing (??) can work correctly.
+
+        Part of RFC: kida-modern-syntax-features
+
+        Handles both:
+        - obj.attr for objects with attributes
+        - dict['key'] for dict-like objects
+
+        Complexity: O(1)
+        """
+        try:
+            return getattr(obj, name)
+        except AttributeError:
+            try:
+                return obj[name]
+            except (KeyError, TypeError):
+                return None
 
     def __repr__(self) -> str:
         return f"<Template {self._name or '(inline)'}>"

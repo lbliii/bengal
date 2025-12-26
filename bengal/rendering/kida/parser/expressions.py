@@ -21,7 +21,11 @@ from bengal.rendering.kida.nodes import (
     Getitem,
     List,
     Name,
+    NullCoalesce,
+    OptionalGetattr,
+    OptionalGetitem,
     Pipeline,
+    Range,
     Slice,
     Test,
     Tuple,
@@ -48,11 +52,34 @@ class ExpressionParsingMixin:
     """
 
     def _parse_expression(self) -> Expr:
-        """Parse expression with ternary.
+        """Parse expression with ternary and null coalescing.
 
         Filters are handled at higher precedence (in _parse_unary_postfix).
+        Null coalescing (??) has lowest precedence (below or).
         """
-        return self._parse_ternary()
+        return self._parse_null_coalesce()
+
+    def _parse_null_coalesce(self) -> Expr:
+        """Parse null coalescing: a ?? b.
+
+        Returns b if a is None/undefined, otherwise a.
+        Right-associative: a ?? b ?? c = a ?? (b ?? c)
+        Part of RFC: kida-modern-syntax-features.
+        """
+        left = self._parse_ternary()
+
+        while self._match(TokenType.NULLISH_COALESCE):
+            self._advance()  # consume ??
+            # Right-associative: parse right side as full null coalesce
+            right = self._parse_null_coalesce()
+            left = NullCoalesce(
+                lineno=left.lineno,
+                col_offset=left.col_offset,
+                left=left,
+                right=right,
+            )
+
+        return left
 
     def _parse_ternary(self) -> Expr:
         """Parse ternary conditional: a if b else c
@@ -286,10 +313,12 @@ class ExpressionParsingMixin:
         return left
 
     def _parse_primary_postfix(self) -> Expr:
-        """Parse primary expressions with postfix operators (., [], ()).
+        """Parse primary expressions with postfix operators (., [], (), ?., ?[).
 
         Does NOT include filter operator (|) - filters are parsed at a
         lower precedence level in _parse_filter_chain.
+
+        Supports optional chaining: ?. and ?[ (RFC: kida-modern-syntax-features).
         """
         expr = self._parse_primary()
 
@@ -305,11 +334,36 @@ class ExpressionParsingMixin:
                     obj=expr,
                     attr=attr,
                 )
+            elif self._match(TokenType.OPTIONAL_DOT):
+                # Optional chaining: obj?.attr
+                # Part of RFC: kida-modern-syntax-features
+                self._advance()
+                if self._current.type != TokenType.NAME:
+                    raise self._error("Expected attribute name after ?.")
+                attr = self._advance().value
+                expr = OptionalGetattr(
+                    lineno=expr.lineno,
+                    col_offset=expr.col_offset,
+                    obj=expr,
+                    attr=attr,
+                )
             elif self._match(TokenType.LBRACKET):
                 self._advance()
                 key = self._parse_subscript()
                 self._expect(TokenType.RBRACKET)
                 expr = Getitem(
+                    lineno=expr.lineno,
+                    col_offset=expr.col_offset,
+                    obj=expr,
+                    key=key,
+                )
+            elif self._match(TokenType.OPTIONAL_BRACKET):
+                # Optional subscript: obj?[key]
+                # Part of RFC: kida-modern-syntax-features
+                self._advance()
+                key = self._parse_subscript()
+                self._expect(TokenType.RBRACKET)
+                expr = OptionalGetitem(
                     lineno=expr.lineno,
                     col_offset=expr.col_offset,
                     obj=expr,
@@ -326,10 +380,45 @@ class ExpressionParsingMixin:
                     args=tuple(args),
                     kwargs=kwargs,
                 )
+            elif self._match(TokenType.RANGE_INCLUSIVE, TokenType.RANGE_EXCLUSIVE):
+                # Range literal: 1..10 or 1...11
+                # Part of RFC: kida-modern-syntax-features
+                expr = self._parse_range(expr)
             else:
                 break
 
         return expr
+
+    def _parse_range(self, start: Expr) -> Range:
+        """Parse range literal after seeing start value.
+
+        Syntax:
+            1..10    → inclusive range [1, 10]
+            1...11   → exclusive range [1, 11) (like Python range)
+            1..10 by 2  → range with step
+
+        Part of RFC: kida-modern-syntax-features.
+        """
+        inclusive = self._current.type == TokenType.RANGE_INCLUSIVE
+        self._advance()  # consume .. or ...
+
+        # Parse end value
+        end = self._parse_unary()  # Use unary for precedence
+
+        # Optional step: 'by' keyword
+        step: Expr | None = None
+        if self._current.type == TokenType.NAME and self._current.value == "by":
+            self._advance()  # consume 'by'
+            step = self._parse_unary()
+
+        return Range(
+            lineno=start.lineno,
+            col_offset=start.col_offset,
+            start=start,
+            end=end,
+            inclusive=inclusive,
+            step=step,
+        )
 
     def _parse_filter_chain(self, expr: Expr) -> Expr:
         """Parse filter chain: expr | filter1 | filter2(arg).

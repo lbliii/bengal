@@ -348,8 +348,151 @@ class ExpressionCompilationMixin:
         if node_type == "Pipeline":
             return self._compile_pipeline(node)
 
+        if node_type == "NullCoalesce":
+            return self._compile_null_coalesce(node)
+
+        if node_type == "OptionalGetattr":
+            return self._compile_optional_getattr(node)
+
+        if node_type == "OptionalGetitem":
+            return self._compile_optional_getitem(node)
+
+        if node_type == "Range":
+            return self._compile_range(node)
+
         # Fallback
         return ast.Constant(value=None)
+
+    def _compile_null_coalesce(self, node: Any) -> ast.expr:
+        """Compile a ?? b to: (_nc := a) if _nc is not None else b.
+
+        Uses walrus operator to avoid double evaluation.
+        Part of RFC: kida-modern-syntax-features.
+        """
+        self._block_counter += 1
+        tmp_name = f"_nc_{self._block_counter}"
+
+        left = self._compile_expr(node.left)
+        right = self._compile_expr(node.right)
+
+        # (_nc_N := a) if _nc_N is not None else b
+        return ast.IfExp(
+            test=ast.Compare(
+                left=ast.NamedExpr(
+                    target=ast.Name(id=tmp_name, ctx=ast.Store()),
+                    value=left,
+                ),
+                ops=[ast.IsNot()],
+                comparators=[ast.Constant(value=None)],
+            ),
+            body=ast.Name(id=tmp_name, ctx=ast.Load()),
+            orelse=right,
+        )
+
+    def _compile_optional_getattr(self, node: Any) -> ast.expr:
+        """Compile obj?.attr using walrus operator to avoid double evaluation.
+
+        obj?.attr compiles to:
+            '' if (_oc := obj) is None else (_oc_val := _getattr_none(_oc, 'attr')) if _oc_val is not None else ''
+
+        The double check ensures that:
+        1. If obj is None, return ''
+        2. If obj.attr is None, return '' (for output) but preserve None for ??
+
+        For null coalescing to work, we need a different approach: the optional
+        chain preserves None so ?? can check it, but for direct output, None becomes ''.
+
+        Actually, we return None but rely on the caller to handle None → '' conversion.
+        For output, the expression is wrapped differently.
+
+        Simplified: Return None when short-circuiting, let output handle conversion.
+
+        Part of RFC: kida-modern-syntax-features.
+        """
+        self._block_counter += 1
+        tmp_name = f"_oc_{self._block_counter}"
+
+        obj = self._compile_expr(node.obj)
+
+        # None if (_oc_N := obj) is None else _getattr_none(_oc_N, 'attr')
+        # Uses _getattr_none to preserve None values for null coalescing
+        return ast.IfExp(
+            test=ast.Compare(
+                left=ast.NamedExpr(
+                    target=ast.Name(id=tmp_name, ctx=ast.Store()),
+                    value=obj,
+                ),
+                ops=[ast.Is()],
+                comparators=[ast.Constant(value=None)],
+            ),
+            body=ast.Constant(value=None),
+            orelse=ast.Call(
+                func=ast.Name(id="_getattr_none", ctx=ast.Load()),
+                args=[
+                    ast.Name(id=tmp_name, ctx=ast.Load()),
+                    ast.Constant(value=node.attr),
+                ],
+                keywords=[],
+            ),
+        )
+
+    def _compile_optional_getitem(self, node: Any) -> ast.expr:
+        """Compile obj?[key] using walrus operator to avoid double evaluation.
+
+        obj?[key] compiles to:
+            None if (_oc := obj) is None else _oc[key]
+
+        Part of RFC: kida-modern-syntax-features.
+        """
+        self._block_counter += 1
+        tmp_name = f"_oc_{self._block_counter}"
+
+        obj = self._compile_expr(node.obj)
+        key = self._compile_expr(node.key)
+
+        # None if (_oc_N := obj) is None else _oc_N[key]
+        return ast.IfExp(
+            test=ast.Compare(
+                left=ast.NamedExpr(
+                    target=ast.Name(id=tmp_name, ctx=ast.Store()),
+                    value=obj,
+                ),
+                ops=[ast.Is()],
+                comparators=[ast.Constant(value=None)],
+            ),
+            body=ast.Constant(value=None),
+            orelse=ast.Subscript(
+                value=ast.Name(id=tmp_name, ctx=ast.Load()),
+                slice=key,
+                ctx=ast.Load(),
+            ),
+        )
+
+    def _compile_range(self, node: Any) -> ast.expr:
+        """Compile range literal to range() call.
+
+        1..10    → range(1, 11)      # inclusive
+        1...11   → range(1, 11)      # exclusive
+        1..10 by 2 → range(1, 11, 2)
+
+        Part of RFC: kida-modern-syntax-features.
+        """
+        start = self._compile_expr(node.start)
+        end = self._compile_expr(node.end)
+
+        if node.inclusive:
+            # Inclusive: 1..10 → range(1, 11)
+            end = ast.BinOp(left=end, op=ast.Add(), right=ast.Constant(value=1))
+
+        args = [start, end]
+        if node.step:
+            args.append(self._compile_expr(node.step))
+
+        return ast.Call(
+            func=ast.Name(id="_range", ctx=ast.Load()),
+            args=args,
+            keywords=[],
+        )
 
     def _compile_pipeline(self, node: Any) -> ast.expr:
         """Compile pipeline: expr |> filter1 |> filter2.

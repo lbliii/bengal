@@ -121,6 +121,8 @@ class BengalMascots:
     Attributes:
         cat: Bengal cat mascot for success/help headers (ᓚᘏᗢ)
         mouse: Mouse for error headers - cat catches bugs (ᘛ⁐̤ᕐᐷ)
+        rosettes: Rosettes syntax highlighter logo - spots pattern (⌾⌾⌾)
+        kida: Kida template engine logo - face + whiskers ()彡)
         success: Checkmark for success status (✓)
         warning: Exclamation for warnings (!)
         error: X mark for errors (x)
@@ -148,6 +150,8 @@ class BengalMascots:
     # Mascot characters
     cat: str = "ᓚᘏᗢ"  # Bengal cat for success/help
     mouse: str = "ᘛ⁐̤ᕐᐷ"  # Mouse for errors (cat catches bugs)
+    rosettes: str = "⌾⌾⌾"  # Rosettes syntax highlighter (spots)
+    kida: str = ")彡"  # Kida template engine (face + whiskers)
 
     # Status icons (ASCII-first, opt-in emoji via BENGAL_EMOJI=1)
     success: str = "✓"

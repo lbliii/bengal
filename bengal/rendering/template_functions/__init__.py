@@ -106,6 +106,7 @@ from . import (
     math_functions,
     navigation,
     pagination_helpers,
+    resources,
     seo,
     sharing,
     strings,
@@ -152,8 +153,9 @@ def register_all(env: Environment, site: Site, engine_type: str | None = None) -
     files.register(env, site)
     advanced_collections.register(env, site)
 
-    # Phase 3: Specialized functions (20 functions)
+    # Phase 3: Specialized functions (20+ functions)
     images.register(env, site)
+    resources.register(env, site)  # Hugo-style resources.get/match
     icons.register(env, site)
     seo.register(env, site)
     debug.register(env, site)
@@ -209,6 +211,7 @@ __all__ = [
     "navigation",
     "pagination_helpers",
     "register_all",
+    "resources",
     "seo",
     "sharing",
     "strings",

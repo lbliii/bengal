@@ -61,9 +61,13 @@ class StatementParsingMixin:
                     if stop_on_continuation and next_tok.value in self._CONTINUATION_KEYWORDS:
                         break
 
-                node = self._parse_block()
-                if node is not None:
-                    nodes.append(node)
+                result = self._parse_block()
+                if result is not None:
+                    # Flatten multi-set results (returns list[Node])
+                    if isinstance(result, list):
+                        nodes.extend(result)
+                    else:
+                        nodes.append(result)
             elif self._current.type == TokenType.DATA:
                 nodes.append(self._parse_data())
             elif self._current.type == TokenType.VARIABLE_BEGIN:
@@ -97,16 +101,27 @@ class StatementParsingMixin:
             escape=self._autoescape,
         )
 
-    def _parse_block(self) -> Node | None:
-        """Parse {% ... %} block tag."""
+    def _parse_block(self) -> Node | list[Node] | None:
+        """Parse {% ... %} block tag.
+
+        Returns:
+            - Single Node for most blocks
+            - list[Node] for multi-set ({% set a = 1, b = 2 %})
+            - None for end tags
+        """
         self._expect(TokenType.BLOCK_BEGIN)
         return self._parse_block_content()
 
-    def _parse_block_content(self) -> Node | None:
+    def _parse_block_content(self) -> Node | list[Node] | None:
         """Parse block content after BLOCK_BEGIN is consumed.
 
         This is split from _parse_block so it can be reused in contexts
         where BLOCK_BEGIN is already consumed (e.g., inside macro bodies).
+
+        Returns:
+            - Single Node for most blocks
+            - list[Node] for multi-set ({% set a = 1, b = 2 %})
+            - None for end tags
         """
         if self._current.type != TokenType.NAME:
             raise self._error(
@@ -118,8 +133,17 @@ class StatementParsingMixin:
 
         if keyword == "if":
             return self._parse_if()
+        elif keyword == "unless":
+            # RFC: kida-modern-syntax-features
+            return self._parse_unless()
         elif keyword == "for":
             return self._parse_for()
+        elif keyword == "break":
+            # RFC: kida-modern-syntax-features
+            return self._parse_break()
+        elif keyword == "continue":
+            # RFC: kida-modern-syntax-features
+            return self._parse_continue()
         elif keyword == "set":
             return self._parse_set()
         elif keyword == "let":
@@ -156,6 +180,12 @@ class StatementParsingMixin:
             return self._parse_slot()
         elif keyword == "match":
             return self._parse_match()
+        elif keyword == "spaceless":
+            # RFC: kida-modern-syntax-features
+            return self._parse_spaceless()
+        elif keyword == "embed":
+            # RFC: kida-modern-syntax-features
+            return self._parse_embed()
         elif keyword in ("elif", "else", "empty", "case"):
             # Continuation tags outside of their block context
             raise self._error(
@@ -176,6 +206,8 @@ class StatementParsingMixin:
             "endcache",
             "endfilter",
             "endmatch",
+            "endspaceless",
+            "endembed",
         ):
             # End tags without matching opening block
             if not self._block_stack:
@@ -202,7 +234,7 @@ class StatementParsingMixin:
         else:
             raise self._error(
                 f"Unknown block keyword: {keyword}",
-                suggestion="Valid keywords: if, for, set, let, block, extends, include, macro, from, with, do, raw, def, call, capture, cache, filter, slot, match",
+                suggestion="Valid keywords: if, unless, for, break, continue, set, let, block, extends, include, macro, from, with, do, raw, def, call, capture, cache, filter, slot, match, spaceless, embed",
             )
 
     def _skip_comment(self) -> None:

@@ -21,6 +21,20 @@ class ControlFlowMixin:
         - _compile_node: method (from core)
     """
 
+    def _compile_break(self, node: Any) -> list[ast.stmt]:
+        """Compile {% break %} loop control.
+
+        Part of RFC: kida-modern-syntax-features.
+        """
+        return [ast.Break()]
+
+    def _compile_continue(self, node: Any) -> list[ast.stmt]:
+        """Compile {% continue %} loop control.
+
+        Part of RFC: kida-modern-syntax-features.
+        """
+        return [ast.Continue()]
+
     def _compile_if(self, node: Any) -> list[ast.stmt]:
         """Compile {% if %} conditional."""
         test = self._compile_expr(node.test)
@@ -73,11 +87,13 @@ class ControlFlowMixin:
         """Compile {% for %} loop with loop variable support.
 
         Generates:
-            _loop_items = list(iterable)
+            _iter_source = iterable
+            _loop_items = list(_iter_source) if _iter_source is not None else []
             if _loop_items:
                 loop = _LoopContext(_loop_items)
                 for item in loop:
-                    ... body with loop.index, loop.first, etc. available ...
+                    [if test:]  # inline filter (RFC: kida-modern-syntax-features)
+                        ... body with loop.index, loop.first, etc. available ...
             else:
                 ... else block ...
 
@@ -97,19 +113,31 @@ class ControlFlowMixin:
 
         stmts: list[ast.stmt] = []
 
-        # _loop_items = list(iterable) if iterable is not None else []
+        # Use unique variable name to avoid conflicts with nested loops
+        self._block_counter += 1
+        iter_var = f"_iter_source_{self._block_counter}"
+
+        # _iter_source_N = iterable
+        stmts.append(
+            ast.Assign(
+                targets=[ast.Name(id=iter_var, ctx=ast.Store())],
+                value=iter_expr,
+            )
+        )
+
+        # _loop_items = list(_iter_source_N) if _iter_source_N is not None else []
         stmts.append(
             ast.Assign(
                 targets=[ast.Name(id="_loop_items", ctx=ast.Store())],
                 value=ast.IfExp(
                     test=ast.Compare(
-                        left=iter_expr,
+                        left=ast.Name(id=iter_var, ctx=ast.Load()),
                         ops=[ast.IsNot()],
                         comparators=[ast.Constant(value=None)],
                     ),
                     body=ast.Call(
                         func=ast.Name(id="_list", ctx=ast.Load()),
-                        args=[iter_expr],
+                        args=[ast.Name(id=iter_var, ctx=ast.Load())],
                         keywords=[],
                     ),
                     orelse=ast.List(elts=[], ctx=ast.Load()),
@@ -138,6 +166,17 @@ class ControlFlowMixin:
             body.extend(self._compile_node(child))
         if not body:
             body = [ast.Pass()]
+
+        # Handle inline test condition: {% for x in items if x.visible %}
+        # Part of RFC: kida-modern-syntax-features
+        if node.test:
+            body = [
+                ast.If(
+                    test=self._compile_expr(node.test),
+                    body=body,
+                    orelse=[],
+                )
+            ]
 
         # for item in loop:
         loop_body_stmts.append(

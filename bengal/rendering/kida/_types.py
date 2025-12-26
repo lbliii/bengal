@@ -111,6 +111,13 @@ class TokenType(Enum):
     LBRACE = "lbrace"  # {
     RBRACE = "rbrace"  # }
 
+    # Modern syntax features (RFC: kida-modern-syntax-features)
+    OPTIONAL_DOT = "optional_dot"  # ?.
+    OPTIONAL_BRACKET = "optional_bracket"  # ?[
+    NULLISH_COALESCE = "nullish_coalesce"  # ??
+    RANGE_INCLUSIVE = "range_inclusive"  # ..
+    RANGE_EXCLUSIVE = "range_exclusive"  # ...
+
     # Special
     EOF = "eof"
     NEWLINE = "newline"
@@ -158,6 +165,15 @@ KEYWORDS = frozenset(
         "endfor",
         "while",
         "endwhile",
+        # Modern syntax features (RFC: kida-modern-syntax-features)
+        "unless",
+        "break",
+        "continue",
+        "spaceless",
+        "endspaceless",
+        "embed",
+        "endembed",
+        "by",  # For range step syntax: 1..10 by 2
         # Template structure
         "block",
         "endblock",
@@ -213,7 +229,9 @@ KEYWORDS = frozenset(
 
 
 # Operator precedence (higher = binds tighter)
+# Nullish coalesce has lowest precedence so: a or b ?? 'fallback' parses as (a or b) ?? 'fallback'
 PRECEDENCE = {
+    TokenType.NULLISH_COALESCE: 0,  # Lowest - below OR
     TokenType.OR: 1,
     TokenType.AND: 2,
     TokenType.NOT: 3,
