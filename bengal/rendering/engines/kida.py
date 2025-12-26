@@ -48,7 +48,7 @@ class KidaTemplateEngine:
           template_engine: kida
     """
 
-    __slots__ = ("site", "template_dirs", "_env", "_dependency_tracker")
+    __slots__ = ("site", "template_dirs", "_env", "_dependency_tracker", "_menu_dict_cache")
 
     def __init__(self, site: Site, *, profile: bool = False):
         """Initialize Kida engine for site.
@@ -70,11 +70,9 @@ class KidaTemplateEngine:
             auto_reload=site.config.get("development", {}).get("auto_reload", True),
         )
 
-        # Register Bengal-specific globals
-        self._register_globals()
-
-        # Register Bengal-specific filters
-        self._register_filters()
+        # Register Bengal-specific globals and filters
+        # Uses register_all() which works because Kida has same interface as Jinja2
+        self._register_bengal_template_functions()
 
     def _build_template_dirs(self) -> list[Path]:
         """Build ordered list of template search directories.
@@ -135,213 +133,136 @@ class KidaTemplateEngine:
             return True
         return name.endswith((".html", ".htm", ".xml"))
 
-    def _register_globals(self) -> None:
-        """Register Bengal-specific template globals."""
+    def _register_bengal_template_functions(self) -> None:
+        """Register Bengal-specific template functions.
+
+        Strategy:
+        1. Use register_all() which adds ~100 filters and globals
+           (Works because Kida has same .filters/.globals interface as Jinja2)
+        2. Override the 3 functions that use @pass_context decorator
+        3. Add menu/asset functions from TemplateEngine mixins
+
+        This avoids duplicating the filter registration logic that register_all()
+        already handles correctly.
+        """
         self._env.globals["site"] = self.site
         self._env.globals["config"] = self.site.config
 
-        # Register global functions
+        # === Step 1: Register all template functions (same as Jinja engine) ===
+        # This provides: get_page, navigation, icons, seo, dates, strings, etc.
         try:
-            from bengal.rendering.template_functions import (
-                get_page,
-                i18n,
-                icons,
-                navigation,
-                seo,
-                theme,
-                urls,
+            from bengal.rendering.template_functions import register_all
+
+            register_all(self._env, self.site)
+        except ImportError:
+            pass
+
+        # === Step 2: Override @pass_context functions ===
+        # Kida doesn't support Jinja2's @pass_context decorator, so we provide
+        # context-free versions of the 3 functions that use it.
+        try:
+            from bengal.rendering.template_functions.i18n import _current_lang, _make_t
+
+            base_translate = _make_t(self.site)
+
+            def t_no_ctx(
+                key: str,
+                params: dict | None = None,
+                lang: str | None = None,
+                default: str | None = None,
+            ) -> str:
+                return base_translate(key, params=params, lang=lang, default=default)
+
+            self._env.globals["t"] = t_no_ctx
+            self._env.globals["current_lang"] = lambda: _current_lang(self.site, None)
+
+            from bengal.rendering.template_functions.taxonomies import tag_url
+
+            self._env.globals["tag_url"] = lambda tag: tag_url(tag, self.site)
+        except ImportError:
+            pass
+
+        # === Step 3: Add functions from TemplateEngine mixins ===
+        # These are added by Jinja's environment.py but not by register_all()
+        try:
+            from bengal.rendering.template_engine.url_helpers import (
+                filter_dateformat,
+                with_baseurl,
             )
 
-            # URL helpers
-            base_url = self.site.config.get("baseurl", "")
-            self._env.globals["url"] = lambda u: urls.url(u, base_url)
-            self._env.globals["absolute_url"] = lambda u: urls.absolute_url(u, base_url)
+            # asset_url (simplified - no manifest lookup)
+            def simple_asset_url(path: str) -> str:
+                if not path:
+                    return "/assets/"
+                clean_path = path.replace("\\", "/").strip().lstrip("/")
+                return with_baseurl(f"/assets/{clean_path}", self.site)
 
-            # Page lookup
-            self._env.globals["get_page"] = lambda path: get_page.get_page(path, self.site)
+            self._env.globals["asset_url"] = simple_asset_url
 
-            # Navigation
-            self._env.globals["breadcrumbs"] = lambda page: navigation.breadcrumbs.get_breadcrumbs(
+            # dateformat filter (from url_helpers, not dates module)
+            self._env.filters["dateformat"] = filter_dateformat
+            self._env.filters["date"] = filter_dateformat
+
+            # breadcrumbs
+            from bengal.rendering.template_functions.navigation import breadcrumbs
+
+            self._env.globals["breadcrumbs"] = lambda page: breadcrumbs.get_breadcrumbs(
                 page, self.site
             )
-
-            # Theme
-            self._env.globals["asset_url"] = lambda path: theme.asset_url(path, self.site)
-            self._env.globals["theme"] = self.site.theme_config
-
-            # Icons
-            self._env.globals["icon"] = lambda name, **kw: icons.icon(name, self.site, **kw)
-
-            # i18n
-            self._env.globals["t"] = lambda key, **kw: i18n._translate(key, self.site, **kw)
-            self._env.globals["current_lang"] = lambda: i18n._current_lang(self.site)
-
-            # SEO
-            self._env.globals["og_image"] = lambda img, page=None: seo.og_image(
-                img, page, self.site
-            )
-            self._env.globals["canonical_url"] = lambda path: seo.canonical_url(path, self.site)
-
         except ImportError:
-            # Template functions not available
-            pass
-        except AttributeError:
-            # Individual function not found
             pass
 
-    def _register_filters(self) -> None:
-        """Register Bengal-specific filters (Jinja2-compatible)."""
-        # Use Jinja2's filter registration pattern with Kida's environment
-        # The FilterRegistry class provides dict-like .update() support
+        # === Step 4: Menu functions (from MenuHelpersMixin) ===
         try:
-            from bengal.rendering.template_functions import (
-                advanced_collections,
-                advanced_strings,
-                collections,
-                data,
-                dates,
-                files,
-                math_functions,
-                strings,
-                urls,
-            )
-
-            # Phase 1: Essential string filters
-            self._env.filters.update(
-                {
-                    "truncatewords": strings.truncatewords,
-                    "truncatewords_html": strings.truncatewords_html,
-                    "slugify": strings.slugify,
-                    "markdownify": strings.markdownify,
-                    "strip_html": strings.strip_html,
-                    "truncate_chars": strings.truncate_chars,
-                    "replace_regex": strings.replace_regex,
-                    "pluralize": strings.pluralize,
-                    "reading_time": strings.reading_time,
-                    "word_count": strings.word_count,
-                    "wordcount": strings.word_count,
-                    "excerpt": strings.excerpt,
-                    "strip_whitespace": strings.strip_whitespace,
-                    "get": strings.dict_get,
-                    "first_sentence": strings.first_sentence,
-                    "filesize": strings.filesize,
-                }
-            )
-
-            # Phase 1: Collection filters
-            self._env.filters.update(
-                {
-                    "sort_by": collections.sort_by,
-                    "group_by": collections.group_by,
-                    "where": collections.where,
-                    "where_exp": collections.where_exp,
-                    "pluck": collections.pluck,
-                    "flatten": collections.flatten,
-                    "uniq": collections.uniq,
-                    "shuffle_list": collections.shuffle_list,
-                    "slice_list": collections.slice_list,
-                    "concat": collections.concat,
-                    "zip_lists": collections.zip_lists,
-                    "dict_merge": collections.dict_merge,
-                }
-            )
-
-            # Phase 1: Math filters
-            self._env.filters.update(
-                {
-                    "percentage": math_functions.percentage,
-                    "floor": math_functions.floor,
-                    "ceil": math_functions.ceil,
-                    "add": math_functions.add,
-                }
-            )
-
-            # Phase 1: Date filters
-            self._env.filters.update(
-                {
-                    "date": dates.format_date,
-                    "datetime": dates.format_datetime,
-                    "time": dates.format_time,
-                    "dateformat": dates.format_date,
-                    "time_ago": dates.time_ago,
-                    "iso_date": dates.iso_date,
-                }
-            )
-
-            # Phase 1: URL filters
-            base_url = self.site.config.get("baseurl", "")
-            self._env.filters.update(
-                {
-                    "url": lambda u: urls.url(u, base_url),
-                    "absolute_url": lambda u: urls.absolute_url(u, base_url),
-                    "relative_url": urls.relative_url,
-                }
-            )
-
-            # Phase 2: Data filters
-            self._env.filters.update(
-                {
-                    "jsonify": data.jsonify,
-                    "merge": data.merge,
-                    "has_key": data.has_key,
-                    "get_nested": data.get_nested,
-                    "keys": data.keys_filter,
-                    "values": data.values_filter,
-                    "items": data.items_filter,
-                }
-            )
-
-            # Phase 2: Advanced string filters
-            self._env.filters.update(
-                {
-                    "regex_replace": advanced_strings.regex_replace,
-                    "regex_match": advanced_strings.regex_match,
-                    "regex_findall": advanced_strings.regex_findall,
-                    "titleize": advanced_strings.titleize,
-                    "parameterize": advanced_strings.parameterize,
-                    "camelize": advanced_strings.camelize,
-                    "underscore": advanced_strings.underscore,
-                    "dasherize": advanced_strings.dasherize,
-                    "humanize": advanced_strings.humanize,
-                    "pluralize_word": advanced_strings.pluralize_word,
-                    "singularize": advanced_strings.singularize,
-                    "ordinalize": advanced_strings.ordinalize,
-                    "number_to_words": advanced_strings.number_to_words,
-                }
-            )
-
-            # Phase 2: Advanced collection filters
-            self._env.filters.update(
-                {
-                    "chunk": advanced_collections.chunk,
-                    "paginate": advanced_collections.paginate,
-                    "tree": advanced_collections.tree,
-                    "find": advanced_collections.find,
-                    "reject_where": advanced_collections.reject_where,
-                    "compact": advanced_collections.compact,
-                    "sample": advanced_collections.sample,
-                    "partition": advanced_collections.partition,
-                    "index_by": advanced_collections.index_by,
-                    "count_by": advanced_collections.count_by,
-                    "frequencies": advanced_collections.frequencies,
-                }
-            )
-
-            # Phase 2: File filters
-            self._env.filters.update(
-                {
-                    "extension": files.extension,
-                    "basename": files.basename,
-                    "dirname": files.dirname,
-                }
-            )
-
-        except ImportError:
-            # Template functions not available - use defaults only
-            pass
+            self._menu_dict_cache: dict[str, list[dict]] = {}
+            self._env.globals["get_menu"] = self._get_menu
+            self._env.globals["get_menu_lang"] = self._get_menu_lang
+            self._env.globals["url_for"] = self._url_for
+            self._env.globals["getattr"] = getattr
+            self._env.globals["theme"] = self.site.theme_config
         except Exception:
-            # Individual filter import failed - continue with what we have
             pass
+
+    def _get_menu(self, menu_name: str = "main") -> list[dict]:
+        """Get menu items as dicts (cached)."""
+        i18n = self.site.config.get("i18n", {}) or {}
+        lang = getattr(self.site, "current_language", None)
+        if lang and i18n.get("strategy") != "none":
+            localized = self.site.menu_localized.get(menu_name, {}).get(lang)
+            if localized is not None:
+                cache_key = f"{menu_name}:{lang}"
+                if cache_key not in self._menu_dict_cache:
+                    self._menu_dict_cache[cache_key] = [item.to_dict() for item in localized]
+                return self._menu_dict_cache[cache_key]
+
+        if menu_name not in self._menu_dict_cache:
+            menu = self.site.menu.get(menu_name, [])
+            self._menu_dict_cache[menu_name] = [item.to_dict() for item in menu]
+        return self._menu_dict_cache[menu_name]
+
+    def _get_menu_lang(self, menu_name: str = "main", lang: str = "") -> list[dict]:
+        """Get menu items for a specific language (cached)."""
+        if not lang:
+            return self._get_menu(menu_name)
+
+        cache_key = f"{menu_name}:{lang}"
+        if cache_key in self._menu_dict_cache:
+            return self._menu_dict_cache[cache_key]
+
+        localized = self.site.menu_localized.get(menu_name, {}).get(lang)
+        if localized is None:
+            return self._get_menu(menu_name)
+
+        self._menu_dict_cache[cache_key] = [item.to_dict() for item in localized]
+        return self._menu_dict_cache[cache_key]
+
+    def _url_for(self, page: Any) -> str:
+        """Generate URL for a page."""
+        if hasattr(page, "_path") and page._path:
+            from bengal.rendering.template_engine.url_helpers import with_baseurl
+
+            return with_baseurl(page._path, self.site.config.get("baseurl", ""))
+        return getattr(page, "href", str(page)) if page else ""
 
     def render_template(
         self,
