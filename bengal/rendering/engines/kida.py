@@ -155,8 +155,26 @@ class KidaTemplateEngine:
         This avoids duplicating the filter registration logic and uses the
         adapter layer for clean engine-agnostic function handling.
         """
-        self._env.globals["site"] = self.site
-        self._env.globals["config"] = self.site.config
+        # Use the same context wrappers as Jinja for safe template access
+        from bengal.rendering.context.site_wrappers import (
+            ConfigContext,
+            SiteContext,
+            ThemeContext,
+        )
+
+        self._env.globals["site"] = SiteContext(self.site)
+        self._env.globals["config"] = ConfigContext(self.site.config)
+        self._env.globals["_raw_site"] = self.site  # For internal template functions
+
+        # === Step 0: Register bengal metadata global ===
+        # This provides bengal.capabilities, bengal.engine, etc. to templates
+        try:
+            from bengal.utils.metadata import build_template_metadata
+
+            self._env.globals["bengal"] = build_template_metadata(self.site)
+        except Exception:
+            # Fallback if metadata building fails
+            self._env.globals["bengal"] = {"engine": {"name": "Bengal SSG", "version": "unknown"}}
 
         # === Step 1: Register all template functions with Kida adapter ===
         # This handles both non-context functions (icons, dates, strings, etc.)
@@ -190,7 +208,15 @@ class KidaTemplateEngine:
         self._env.globals["get_menu_lang"] = self._get_menu_lang
         self._env.globals["url_for"] = self._url_for
         self._env.globals["getattr"] = getattr
-        self._env.globals["theme"] = self.site.theme_config
+        self._env.globals["theme"] = (
+            ThemeContext(self.site.theme_config)
+            if self.site.theme_config
+            else ThemeContext._empty()
+        )
+
+        # === Step 4: Versioning globals ===
+        self._env.globals["versioning_enabled"] = self.site.versioning_enabled
+        self._env.globals["versions"] = self.site.versions
 
     def _get_menu(self, menu_name: str = "main") -> list[dict]:
         """Get menu items as dicts (cached)."""

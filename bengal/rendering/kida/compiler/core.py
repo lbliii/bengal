@@ -1,6 +1,36 @@
 """Kida Compiler Core — main Compiler class.
 
-Combines mixins to form the complete Kida Compiler.
+The Compiler transforms Kida AST into Python AST, then compiles to
+executable code objects. Uses a mixin-based design for maintainability.
+
+Design Principles:
+    1. **AST-to-AST**: Generate `ast.Module`, not source strings
+    2. **StringBuilder**: Output via `buf.append()`, join at end
+    3. **Local caching**: Cache `_escape`, `_str`, `buf.append` as locals
+    4. **O(1) dispatch**: Dict-based node type → handler lookup
+
+Performance Optimizations:
+    - `LOAD_FAST` for cached functions (vs `LOAD_GLOBAL` + hash)
+    - Method lookup cached once: `_append = buf.append`
+    - Single `''.join(buf)` at return (vs repeated concatenation)
+    - Line markers only for error-prone nodes (Output, For, If, etc.)
+
+Block Inheritance:
+    Templates with `{% extends %}` generate:
+    1. Block functions: `_block_header(ctx, _blocks)`
+    2. Render function: Registers blocks, delegates to parent
+
+    ```python
+    def _block_header(ctx, _blocks):
+        buf = []
+        # Block body...
+        return ''.join(buf)
+
+    def render(ctx, _blocks=None):
+        if _blocks is None: _blocks = {}
+        _blocks.setdefault('header', _block_header)
+        return _extends('base.html', ctx, _blocks)
+    ```
 """
 
 from __future__ import annotations
@@ -23,12 +53,54 @@ class Compiler(
     ExpressionCompilationMixin,
     StatementCompilationMixin,
 ):
-    """Compile Kida AST to Python code.
+    """Compile Kida AST to Python code objects.
+
+    The Compiler transforms a Kida Template AST into an `ast.Module`, then
+    compiles it to a code object ready for `exec()`. The generated code
+    defines a `render(ctx, _blocks=None)` function.
+
+    Attributes:
+        _env: Parent Environment (for filter/test access)
+        _name: Template name for error messages
+        _filename: Source file path for compile()
+        _locals: Set of local variable names (loop vars, macro args)
+        _blocks: Dict of block_name → Block node (for inheritance)
+        _block_counter: Counter for unique variable names
+
+    Node Dispatch:
+        Uses O(1) dict lookup for node type → handler:
+        ```python
+        dispatch = {
+            "Data": self._compile_data,
+            "Output": self._compile_output,
+            "If": self._compile_if,
+            ...
+        }
+        handler = dispatch[type(node).__name__]
+        ```
+
+    Line Tracking:
+        For nodes that can cause runtime errors (Output, For, If, etc.),
+        injects `ctx['_line'] = N` before the node's code. This enables
+        rich error messages with source line numbers.
 
     Example:
+        >>> from bengal.rendering.kida import Environment
+        >>> from bengal.rendering.kida.compiler import Compiler
+        >>> from bengal.rendering.kida.parser import Parser
+        >>> from bengal.rendering.kida.lexer import tokenize
+        >>>
+        >>> env = Environment()
+        >>> tokens = tokenize("Hello, {{ name }}!")
+        >>> parser = Parser(tokens)
+        >>> ast = parser.parse()
         >>> compiler = Compiler(env)
-        >>> code = compiler.compile(kida_ast, "template.html")
+        >>> code = compiler.compile(ast, name="greeting.html")
+        >>>
+        >>> namespace = {"_escape": str, "_str": str, ...}
         >>> exec(code, namespace)
+        >>> namespace["render"]({"name": "World"})
+        'Hello, World!'
     """
 
     __slots__ = (

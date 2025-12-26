@@ -1,17 +1,41 @@
-"""Kida Template — compiled template object.
+"""Kida Template — compiled template object ready for rendering.
 
-The Template class represents a compiled template ready for rendering.
-Templates are immutable and thread-safe.
+The Template class wraps a compiled code object and provides the `render()`
+API. Templates are immutable and thread-safe for concurrent rendering.
 
-Key Design:
-    - StringBuilder pattern instead of generator yields
-    - Context is a simple dict (no wrapper objects at runtime)
-    - Filters are bound at compile time for fast dispatch
-    - WeakRef to Environment prevents circular reference memory leaks
+Architecture:
+    ```
+    Template
+    ├── _env_ref: WeakRef[Environment]  # Prevents circular refs
+    ├── _code: code object              # Compiled Python bytecode
+    ├── _render_func: callable          # Extracted render() function
+    └── _name, _filename                # For error messages
+    ```
+
+StringBuilder Pattern:
+    Generated code uses `buf.append()` + `''.join(buf)`:
+    ```python
+    def render(ctx, _blocks=None):
+        buf = []
+        _append = buf.append
+        _append("Hello, ")
+        _append(_e(_s(ctx["name"])))
+        return ''.join(buf)
+    ```
+    This is O(n) vs O(n²) for string concatenation.
+
+Memory Safety:
+    Uses `weakref.ref(env)` to break potential cycles:
+    `Template → (weak) → Environment → cache → Template`
+
+Thread-Safety:
+    - Templates are immutable after construction
+    - `render()` creates only local state (buf list)
+    - Multiple threads can call `render()` concurrently
 
 Complexity:
-    - render(): O(n) where n = output size
-    - _escape(): O(n) single-pass using str.translate()
+    - `render()`: O(n) where n = output size
+    - `_escape()`: O(n) single-pass via `str.translate()`
 """
 
 from __future__ import annotations
@@ -43,25 +67,46 @@ _ESCAPE_CHECK = re.compile(r'[&<>"\']')
 
 
 class LoopContext:
-    """Loop variable providing iteration metadata.
+    """Loop iteration metadata accessible as `loop` inside `{% for %}` blocks.
 
-    Available as `loop` inside {% for %} blocks:
-        - loop.index: 1-based iteration count
-        - loop.index0: 0-based iteration count
-        - loop.first: True if first iteration
-        - loop.last: True if last iteration
-        - loop.length: Total number of items
-        - loop.revindex: Reverse 1-based index
-        - loop.revindex0: Reverse 0-based index
-        - loop.cycle(*values): Cycle through values
-        - loop.previtem: Previous item (None on first)
-        - loop.nextitem: Next item (None on last)
+    Provides index tracking, boundary detection, and utility methods for
+    common iteration patterns. All properties are computed on-access.
+
+    Properties:
+        index: 1-based iteration count (1, 2, 3, ...)
+        index0: 0-based iteration count (0, 1, 2, ...)
+        first: True on the first iteration
+        last: True on the final iteration
+        length: Total number of items in the sequence
+        revindex: Reverse 1-based index (counts down to 1)
+        revindex0: Reverse 0-based index (counts down to 0)
+        previtem: Previous item in sequence (None on first)
+        nextitem: Next item in sequence (None on last)
+
+    Methods:
+        cycle(*values): Return values[index % len(values)]
 
     Example:
-        >>> {% for item in items %}
-        ...     {{ loop.index }}: {{ item }}
-        ...     {% if loop.first %}(first!){% endif %}
-        ... {% endfor %}
+        ```jinja
+        <ul>
+        {% for item in items %}
+            <li class="{{ loop.cycle('odd', 'even') }}">
+                {{ loop.index }}/{{ loop.length }}: {{ item }}
+                {% if loop.first %}← First{% endif %}
+                {% if loop.last %}← Last{% endif %}
+            </li>
+        {% end %}
+        </ul>
+        ```
+
+    Output:
+        ```html
+        <ul>
+            <li class="odd">1/3: Apple ← First</li>
+            <li class="even">2/3: Banana</li>
+            <li class="odd">3/3: Cherry ← Last</li>
+        </ul>
+        ```
     """
 
     __slots__ = ("_items", "_index", "_length")
@@ -143,18 +188,46 @@ class LoopContext:
 class Template:
     """Compiled template ready for rendering.
 
-    Templates are immutable and thread-safe. Each render() call
-    creates its own local state (StringBuilder pattern).
+    Wraps a compiled code object containing a `render(ctx, _blocks)` function.
+    Templates are immutable and thread-safe for concurrent `render()` calls.
+
+    Thread-Safety:
+        - Template object is immutable after construction
+        - Each `render()` call creates local state only (buf list)
+        - Multiple threads can render the same template simultaneously
 
     Memory Safety:
-        Uses WeakRef to Environment to prevent circular reference leaks.
-        Template → (weak) → Environment → cache → Template
+        Uses `weakref.ref(env)` to prevent circular reference leaks:
+        `Template → (weak) → Environment → _cache → Template`
+
+    Attributes:
+        name: Template identifier (for error messages)
+        filename: Source file path (for error messages)
+
+    Methods:
+        render(**context): Render template with given variables
+        render_async(**context): Async render for templates with await
+
+    Error Enhancement:
+        Runtime errors are caught and enhanced with template context:
+        ```
+        TemplateRuntimeError: 'NoneType' has no attribute 'title'
+          Location: article.html:15
+          Expression: {{ post.title }}
+          Values:
+            post = None (NoneType)
+          Suggestion: Check if 'post' is defined before accessing .title
+        ```
 
     Example:
+        >>> from bengal.rendering.kida import Environment
         >>> env = Environment()
-        >>> t = env.from_string("Hello, {{ name }}!")
+        >>> t = env.from_string("Hello, {{ name | upper }}!")
         >>> t.render(name="World")
-        'Hello, World!'
+        'Hello, WORLD!'
+
+        >>> t.render({"name": "World"})  # Dict context also works
+        'Hello, WORLD!'
     """
 
     __slots__ = ("_env_ref", "_code", "_name", "_filename", "_render_func")
@@ -330,6 +403,40 @@ class Template:
             except UndefinedError:
                 return False
 
+        # Numeric coercion helper for arithmetic operations
+        def _coerce_numeric(value: Any) -> int | float:
+            """Coerce value to numeric type for arithmetic operations.
+
+            Handles Markup objects (from macros) and strings that represent numbers.
+            This prevents string multiplication when doing arithmetic with macro results.
+
+            Example:
+                macro returns Markup('  24  ')
+                _coerce_numeric(Markup('  24  ')) -> 24
+
+            Args:
+                value: Any value, typically Markup from macro or filter result
+
+            Returns:
+                int if value parses as integer, float if decimal, 0 for non-numeric
+            """
+            # Fast path: already numeric (but not bool, which is a subclass of int)
+            if isinstance(value, (int, float)) and not isinstance(value, bool):
+                return value
+
+            # Convert to string and strip whitespace
+            s = str(value).strip()
+
+            # Try int first (more common), then float
+            try:
+                return int(s)
+            except ValueError:
+                try:
+                    return float(s)
+                except ValueError:
+                    # Non-numeric string defaults to 0
+                    return 0
+
         # Execute the code to get the render function
         namespace: dict[str, Any] = {
             "__builtins__": {},
@@ -341,6 +448,7 @@ class Template:
             "_lookup": _lookup,  # Strict mode variable lookup
             "_default_safe": _default_safe,  # Default filter for strict mode
             "_is_defined": _is_defined,  # Is defined test for strict mode
+            "_coerce_numeric": _coerce_numeric,  # Numeric coercion for macro arithmetic
             "_include": _include,
             "_extends": _extends,
             "_import_macros": _import_macros,

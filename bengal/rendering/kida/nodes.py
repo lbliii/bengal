@@ -1,23 +1,57 @@
 """Kida AST node definitions.
 
-Kida is its own template engine, not a Jinja clone. These nodes represent
-Kida's native syntax, which emphasizes:
+Immutable, frozen dataclass nodes representing the Kida template AST.
+All nodes track source location (lineno, col_offset) for error reporting.
 
-- Unified block endings: {% end %} for everything
-- Functions with lexical scoping: {% def %} instead of macros
-- Pipeline operator: |> for readable filter chains
-- Pattern matching: {% match %}
-- Built-in caching: {% cache %}
-- Explicit scoping: {% let %}, {% export %}
-
-For Jinja compatibility during migration, use kida.compat.jinja which
-translates Jinja syntax to Kida AST.
+Kida-Native Features:
+    - **Unified endings**: `{% end %}` closes any block (like Go templates)
+    - **Functions**: `{% def %}` with true lexical scoping (not Jinja macros)
+    - **Pipeline**: `|>` for readable filter chains
+    - **Pattern matching**: `{% match %}...{% case %}...{% end %}`
+    - **Caching**: `{% cache key %}...{% end %}` with TTL support
+    - **Explicit scoping**: `{% let %}` (template), `{% set %}` (block), `{% export %}`
 
 Node Categories:
-    - Template: Root node and structural elements
-    - Statements: Control flow, assignments, blocks
-    - Expressions: Values, operations, filters, pipelines
-    - Helpers: Loop context, function calls
+    **Template Structure**:
+        - `Template`: Root node containing body
+        - `Extends`, `Block`, `Include`: Inheritance and composition
+        - `Import`, `FromImport`: Macro/function imports
+
+    **Control Flow**:
+        - `If`, `For`, `While`: Standard control flow
+        - `AsyncFor`: Native async iteration
+        - `Match`: Pattern matching
+
+    **Variables**:
+        - `Set`: Block-scoped assignment
+        - `Let`: Template-scoped assignment
+        - `Export`: Export from inner scope to enclosing scope
+        - `Capture`: Capture block output to variable
+
+    **Functions**:
+        - `Def`/`Macro`: Function definition
+        - `CallBlock`: Call function with body content
+        - `Slot`: Content placeholder in components
+
+    **Expressions**:
+        - `Const`, `Name`: Literals and identifiers
+        - `Getattr`, `Getitem`: Attribute and subscript access
+        - `FuncCall`, `Filter`, `Pipeline`: Function calls and filters
+        - `BinOp`, `UnaryOp`, `Compare`, `BoolOp`: Operators
+        - `CondExpr`: Ternary conditional
+        - `Test`: `is` test expressions
+
+    **Output**:
+        - `Output`: Expression output `{{ expr }}`
+        - `Data`: Raw text between template constructs
+
+Thread-Safety:
+    All nodes are frozen dataclasses, making the AST immutable and safe
+    for concurrent access. The Parser produces a new AST on each call.
+
+Jinja Compatibility:
+    For existing Jinja2 templates, use `kida.compat.jinja.JinjaParser` which
+    produces Kida AST from Jinja2 syntax (translates `{% endif %}` → `{% end %}`, etc.).
 """
 
 from __future__ import annotations

@@ -1,21 +1,41 @@
 """Kida Environment — central configuration and template management.
 
-The Environment is the central hub for:
-- Template configuration (delimiters, escaping, etc.)
-- Template loading and caching
-- Filter and test registration
-- Extension management
+The Environment is the central hub for all template operations:
+
+- **Configuration**: Delimiters, autoescape, strict mode
+- **Loading**: File system, dict, or custom loaders
+- **Caching**: LRU caches for templates and fragments
+- **Extensibility**: Custom filters, tests, and global variables
 
 Thread-Safety:
-    The Environment uses copy-on-write for mutable state (filters, tests)
-    and lock-free reads. Template caching uses atomic pointer swaps.
+    Environment is designed for concurrent access:
+    - Copy-on-write for `add_filter()`, `add_test()`, `add_global()`
+    - Lock-free LRU cache with atomic pointer swaps
+    - Immutable configuration after construction
+
+Public API:
+    - `Environment`: Central configuration class
+    - `FileSystemLoader`: Load templates from directories
+    - `DictLoader`: Load templates from memory (testing)
+    - `FilterRegistry`: Dict-like interface for filters/tests
+    - `Loader`, `Filter`, `Test`: Protocol definitions
+
+Exceptions:
+    - `TemplateError`: Base exception for all template errors
+    - `TemplateNotFoundError`: Template not found by loader
+    - `TemplateSyntaxError`: Parse-time syntax error
+    - `UndefinedError`: Undefined variable in strict mode
 
 Example:
-    >>> from kida import Environment
-    >>> env = Environment()
-    >>> template = env.from_string("Hello, {{ name }}!")
-    >>> template.render(name="World")
-    'Hello, World!'
+    >>> from bengal.rendering.kida import Environment, FileSystemLoader
+    >>> env = Environment(
+    ...     loader=FileSystemLoader("templates/"),
+    ...     autoescape=True,
+    ...     strict=True,
+    ... )
+    >>> env.add_filter("upper", str.upper)
+    >>> template = env.get_template("page.html")
+    >>> template.render(title="Hello")
 """
 
 from bengal.rendering.kida.environment.core import Environment

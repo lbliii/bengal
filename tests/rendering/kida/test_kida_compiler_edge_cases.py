@@ -93,16 +93,16 @@ class TestExpressionCompilation:
         assert result == "HELLO"
 
     def test_attribute_on_filter_result(self, env: Environment) -> None:
-        """Attribute access on filter result."""
-        tmpl = env.from_string("{{ data|first.name }}")
+        """Attribute access on filter result requires parentheses in Kida."""
+        # Kida requires explicit parentheses for chained access after filter
+        tmpl = env.from_string("{{ (data|first).name }}")
         result = tmpl.render(data=[{"name": "Alice"}])
-        # Depends on syntax: could be (first(data)).name or first.name(data)
-        # Should be (data|first).name
-        assert "Alice" in result or result == ""
+        assert "Alice" in result
 
     def test_subscript_on_filter_result(self, env: Environment) -> None:
-        """Subscript access on filter result."""
-        tmpl = env.from_string("{{ data|first[0] }}")
+        """Subscript access on filter result requires parentheses in Kida."""
+        # Kida requires explicit parentheses for chained access after filter
+        tmpl = env.from_string("{{ (data|first)[0] }}")
         result = tmpl.render(data=[[1, 2, 3]])
         assert "1" in result
 
@@ -195,9 +195,7 @@ class TestLoopCompilation:
 
     def test_loop_else_compilation(self, env: Environment) -> None:
         """Loop else compiles correctly."""
-        tmpl = env.from_string("""
-{% for x in items %}{{ x }}{% else %}empty{% endfor %}
-""")
+        tmpl = env.from_string("{% for x in items %}{{ x }}{% else %}empty{% endfor %}")
         assert tmpl.render(items=[]) == "empty"
         assert "1" in tmpl.render(items=[1, 2])
 
@@ -342,9 +340,10 @@ class TestCallSlotCompilation:
 
     def test_call_slot_basic(self, env: Environment) -> None:
         """Basic call/slot compiles correctly."""
+        # In Kida, {% slot %} is a standalone tag (no endslot needed)
         tmpl = env.from_string("""
 {% def box() %}
-<div>{% slot %}{% endslot %}</div>
+<div>{% slot %}</div>
 {% enddef %}
 {% call box() %}content{% endcall %}
 """)

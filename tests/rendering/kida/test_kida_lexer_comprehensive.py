@@ -57,11 +57,10 @@ class TestUnicodeHandling:
         assert "世界" in string_token.value
 
     def test_unicode_variable_names(self) -> None:
-        """Variable names can contain unicode (if Python allows)."""
-        # Python allows unicode identifiers
-        tokens = tokenize("{{ переменная }}")
-        name_token = next(t for t in tokens if t.type == TokenType.NAME)
-        assert name_token.value == "переменная"
+        """Kida doesn't support unicode variable names."""
+        # Kida requires ASCII identifiers
+        with pytest.raises(Exception):  # LexerError
+            list(tokenize("{{ переменная }}"))
 
     def test_emoji_in_strings(self) -> None:
         """Emoji in string literals."""
@@ -269,11 +268,12 @@ class TestBlockTags:
 
     def test_for_block(self) -> None:
         """For block."""
-        tokens = tokenize("{% for x in items %}{% endfor %}")
-        # Check for NAME tokens that include 'for', 'in'
+        tokens = list(tokenize("{% for x in items %}{% endfor %}"))
+        # Check for expected tokens: 'for' is NAME, 'in' is IN keyword
         name_values = [t.value for t in tokens if t.type == TokenType.NAME]
+        types = [t.type for t in tokens]
         assert "for" in name_values
-        assert "in" in name_values
+        assert TokenType.IN in types  # 'in' is a keyword token, not NAME
 
     def test_block_with_whitespace_control(self) -> None:
         """Block with whitespace control markers."""

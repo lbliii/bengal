@@ -1,6 +1,22 @@
 """Core Environment class for Kida template system.
 
-Central configuration and template management.
+The Environment is the central hub for template configuration, compilation,
+and caching. It manages loaders, filters, tests, and global variables.
+
+Thread-Safety:
+    - Immutable configuration after construction
+    - Copy-on-write for filters/tests/globals (no locking)
+    - LRU caches use atomic pointer swaps
+    - Safe for concurrent `get_template()` and `render()` calls
+
+Example:
+    >>> from bengal.rendering.kida import Environment, FileSystemLoader
+    >>> env = Environment(
+    ...     loader=FileSystemLoader("templates/"),
+    ...     autoescape=True,
+    ...     strict=True,
+    ... )
+    >>> env.get_template("page.html").render(page=page)
 """
 
 from __future__ import annotations
@@ -29,38 +45,63 @@ DEFAULT_FRAGMENT_TTL = 300.0  # Fragment TTL in seconds (5 minutes)
 
 @dataclass
 class Environment:
-    """Central configuration and template management.
+    """Central configuration and template management hub.
+
+    The Environment holds all template engine settings and provides the primary
+    API for loading and rendering templates. It manages three key concerns:
+
+    1. **Template Loading**: Via configurable loaders (filesystem, dict, etc.)
+    2. **Compilation Settings**: Autoescape, optimizations, strict mode
+    3. **Runtime Context**: Filters, tests, and global variables
 
     Attributes:
-        loader: Template loader (filesystem, dict, etc.)
-        autoescape: Auto-escape HTML (default: True for .html/.xml)
+        loader: Template source provider (FileSystemLoader, DictLoader, etc.)
+        autoescape: HTML auto-escaping. True, False, or callable(name) → bool
         auto_reload: Check template modification times (default: True)
         optimized: Enable compiler optimizations (default: True)
         strict: Raise UndefinedError for undefined variables (default: True)
         strict_none: Fail early on None comparisons during sorting (default: False)
-        cache_size: Maximum number of compiled templates to cache (default: 400)
-        fragment_cache_size: Maximum fragment cache entries (default: 1000)
-        fragment_ttl: Fragment cache TTL in seconds (default: 300)
+        cache_size: Maximum compiled templates to cache (default: 400)
+        fragment_cache_size: Maximum `{% cache %}` fragment entries (default: 1000)
+        fragment_ttl: Fragment cache TTL in seconds (default: 300.0)
+        globals: Variables available in all templates (includes Python builtins)
 
     Thread-Safety:
-        - Immutable configuration after construction
-        - Copy-on-write for filters/tests
-        - LRU cache with thread-safe operations
+        All operations are safe for concurrent use:
+        - Configuration is immutable after `__post_init__`
+        - `add_filter()`, `add_test()`, `add_global()` use copy-on-write
+        - `get_template()` uses lock-free LRU cache with atomic operations
+        - `render()` uses only local state (StringBuilder pattern)
 
-    Strict Mode:
-        When strict=True (default), accessing an undefined variable raises
-        UndefinedError instead of silently returning None. This catches typos
-        and missing variables early. Use strict=False for legacy behavior or
-        the | default filter for optional variables.
+    Strict Mode (Default):
+        Undefined variables raise `UndefinedError` instead of returning empty
+        string. Catches typos and missing context variables at render time.
 
-        Example:
-            >>> env = Environment()  # strict=True by default
-            >>> env.from_string("{{ typo_var }}").render()
-            UndefinedError: Undefined variable 'typo_var' in <template>:1
+        >>> env = Environment()  # strict=True by default
+        >>> env.from_string("{{ typo_var }}").render()
+        UndefinedError: Undefined variable 'typo_var' in <template>:1
 
-            >>> env = Environment(strict=False)  # Legacy behavior
-            >>> env.from_string("{{ typo_var }}").render()
-            ''  # Silent empty string
+        >>> env.from_string("{{ optional | default('N/A') }}").render()
+        'N/A'
+
+    Caching:
+        Two LRU caches with configurable sizes:
+        - **Template cache**: Compiled Template objects (keyed by name)
+        - **Fragment cache**: `{% cache key %}` block outputs (keyed by expression)
+
+        >>> env.cache_info()
+        {'template': {'size': 5, 'max_size': 400, 'hits': 100, 'misses': 5},
+         'fragment': {'size': 12, 'max_size': 1000, 'hits': 50, 'misses': 12}}
+
+    Example:
+        >>> from bengal.rendering.kida import Environment, FileSystemLoader
+        >>> env = Environment(
+        ...     loader=FileSystemLoader(["templates/", "shared/"]),
+        ...     autoescape=True,
+        ...     cache_size=100,
+        ... )
+        >>> env.add_filter("money", lambda x: f"${x:,.2f}")
+        >>> env.get_template("invoice.html").render(total=1234.56)
     """
 
     # Configuration

@@ -1,6 +1,61 @@
 """Built-in tests for Kida templates.
 
-Provides comprehensive set of tests matching Jinja2 functionality.
+Tests are boolean predicates used with `is` in conditionals:
+`{% if value is test %}` or `{% if value is test(arg) %}`
+
+Categories:
+    **Type Tests**:
+        - `defined`: Value is not None
+        - `undefined`: Value is None
+        - `none`: Value is None (alias)
+        - `string`: Value is a string
+        - `number`: Value is int or float (not bool)
+        - `sequence`: Value is list, tuple, or string
+        - `mapping`: Value is a dict
+        - `iterable`: Value supports iteration
+        - `callable`: Value is callable
+
+    **Boolean Tests**:
+        - `true`: Value is exactly True
+        - `false`: Value is exactly False
+
+    **Number Tests**:
+        - `odd`: Integer is odd
+        - `even`: Integer is even
+        - `divisibleby(n)`: Integer is divisible by n
+
+    **Comparison Tests**:
+        - `eq(other)` / `equalto(other)`: Equal to other
+        - `ne(other)`: Not equal to other
+        - `lt(other)` / `lessthan(other)`: Less than other
+        - `le(other)`: Less than or equal
+        - `gt(other)` / `greaterthan(other)`: Greater than other
+        - `ge(other)`: Greater than or equal
+        - `sameas(other)`: Identity comparison (is)
+        - `in(seq)`: Value is in sequence
+
+    **String Tests**:
+        - `lower`: String is all lowercase
+        - `upper`: String is all uppercase
+
+Negation:
+    Use `is not` for negated tests:
+    `{% if user is not defined %}` or `{% if count is not even %}`
+
+Example:
+    ```jinja
+    {% if posts is defined and posts is iterable %}
+        {% for post in posts %}
+            {% if loop.index is odd %}
+                <div class="odd">{{ post.title }}</div>
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+    ```
+
+Custom Tests:
+    >>> env.add_test('prime', lambda n: n > 1 and all(n % i for i in range(2, n)))
+    >>> # {% if 17 is prime %}Yes{% endif %}
 """
 
 from __future__ import annotations

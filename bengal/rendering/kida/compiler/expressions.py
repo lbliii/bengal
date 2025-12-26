@@ -6,10 +6,19 @@ Provides mixin for compiling Kida expression AST nodes to Python AST expressions
 from __future__ import annotations
 
 import ast
+from difflib import get_close_matches
 from typing import TYPE_CHECKING, Any
+
+from bengal.rendering.kida.environment.exceptions import TemplateSyntaxError
 
 if TYPE_CHECKING:
     pass
+
+# Arithmetic operators that require numeric operands
+_ARITHMETIC_OPS = frozenset({"*", "/", "-", "+", "**", "//", "%"})
+
+# Node types that may produce string values (like Markup from macros)
+_POTENTIALLY_STRING_NODES = frozenset({"FuncCall", "Filter"})
 
 
 class ExpressionCompilationMixin:
@@ -22,6 +31,43 @@ class ExpressionCompilationMixin:
         - _get_unaryop: method (from OperatorUtilsMixin)
         - _get_cmpop: method (from OperatorUtilsMixin)
     """
+
+    def _get_filter_suggestion(self, name: str) -> str | None:
+        """Find closest matching filter name for typo suggestions.
+
+        Uses difflib.get_close_matches with 0.6 cutoff for reasonable typo detection.
+        Returns None if no close match found.
+        """
+        matches = get_close_matches(name, self._env._filters.keys(), n=1, cutoff=0.6)
+        return matches[0] if matches else None
+
+    def _get_test_suggestion(self, name: str) -> str | None:
+        """Find closest matching test name for typo suggestions.
+
+        Uses difflib.get_close_matches with 0.6 cutoff for reasonable typo detection.
+        Returns None if no close match found.
+        """
+        matches = get_close_matches(name, self._env._tests.keys(), n=1, cutoff=0.6)
+        return matches[0] if matches else None
+
+    def _is_potentially_string(self, node: Any) -> bool:
+        """Check if node could produce a string value (macro call, filter chain).
+
+        Used to determine when numeric coercion is needed for arithmetic operations.
+        """
+        return type(node).__name__ in _POTENTIALLY_STRING_NODES
+
+    def _wrap_coerce_numeric(self, expr: ast.expr) -> ast.expr:
+        """Wrap expression in _coerce_numeric() call for arithmetic safety.
+
+        Ensures that Markup objects (from macros) are converted to numbers
+        before arithmetic operations, preventing string multiplication.
+        """
+        return ast.Call(
+            func=ast.Name(id="_coerce_numeric", ctx=ast.Load()),
+            args=[expr],
+            keywords=[],
+        )
 
     def _compile_expr(self, node: Any, store: bool = False) -> ast.expr:
         """Compile expression node to Python AST expression.
@@ -145,6 +191,14 @@ class ExpressionCompilationMixin:
                     return ast.UnaryOp(op=ast.Not(), operand=test_call)
                 return test_call
 
+            # Validate test exists at compile time
+            if node.name not in self._env._tests:
+                suggestion = self._get_test_suggestion(node.name)
+                msg = f"Unknown test '{node.name}'"
+                if suggestion:
+                    msg += f". Did you mean '{suggestion}'?"
+                raise TemplateSyntaxError(msg, lineno=getattr(node, "lineno", None))
+
             # Compile test: _tests['name'](value, *args, **kwargs)
             # If negated: not _tests['name'](value, *args, **kwargs)
             value = self._compile_expr(node.value)
@@ -173,6 +227,15 @@ class ExpressionCompilationMixin:
             )
 
         if node_type == "Filter":
+            # Validate filter exists at compile time
+            # Special case: 'default' and 'd' are handled specially below but still valid
+            if node.name not in self._env._filters:
+                suggestion = self._get_filter_suggestion(node.name)
+                msg = f"Unknown filter '{node.name}'"
+                if suggestion:
+                    msg += f". Did you mean '{suggestion}'?"
+                raise TemplateSyntaxError(msg, lineno=getattr(node, "lineno", None))
+
             # Special handling for 'default' filter in strict mode
             # The default filter needs to work even when the value is undefined
             if node.name in ("default", "d") and self._env.strict:
@@ -230,6 +293,25 @@ class ExpressionCompilationMixin:
                         keywords=[],
                     ),
                 )
+
+            # For arithmetic ops, coerce potential string operands (from macros) to numeric
+            # This prevents string multiplication when macro returns Markup('1')
+            if node.op in _ARITHMETIC_OPS:
+                left = self._compile_expr(node.left)
+                right = self._compile_expr(node.right)
+
+                # Wrap FuncCall/Filter results in numeric coercion
+                if self._is_potentially_string(node.left):
+                    left = self._wrap_coerce_numeric(left)
+                if self._is_potentially_string(node.right):
+                    right = self._wrap_coerce_numeric(right)
+
+                return ast.BinOp(
+                    left=left,
+                    op=self._get_binop(node.op),
+                    right=right,
+                )
+
             return ast.BinOp(
                 left=self._compile_expr(node.left),
                 op=self._get_binop(node.op),

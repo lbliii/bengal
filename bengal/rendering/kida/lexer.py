@@ -1,19 +1,48 @@
-"""Kida lexer — tokenizes template source code.
+"""Kida lexer — tokenizes template source code into a token stream.
 
-The lexer operates in two modes:
-1. DATA mode: Outside template constructs, collects raw text
-2. CODE mode: Inside {{ }}, {% %}, {# #}, tokenizes expressions/statements
+The lexer scans template source and produces Token objects that the Parser
+consumes. It operates in four modes based on current context:
 
-Design:
-    - Pure Python implementation (optional Rust extension for speed)
-    - Zero global mutable state for thread-safety
-    - Generator-based for memory efficiency with large templates
-    - Rich error messages with source location
+Modes:
+    - **DATA**: Outside template constructs; collects raw text
+    - **VARIABLE**: Inside `{{ }}`; tokenizes expression
+    - **BLOCK**: Inside `{% %}`; tokenizes statement
+    - **COMMENT**: Inside `{# #}`; skips to closing delimiter
+
+Token Types:
+    - **Delimiters**: BLOCK_BEGIN, BLOCK_END, VARIABLE_BEGIN, VARIABLE_END
+    - **Literals**: STRING, INTEGER, FLOAT
+    - **Identifiers**: NAME (includes keywords like 'if', 'for', 'and')
+    - **Operators**: ADD, SUB, MUL, DIV, EQ, NE, LT, GT, etc.
+    - **Punctuation**: DOT, COMMA, COLON, PIPE, LPAREN, RPAREN, etc.
+    - **Data**: DATA (raw text between template constructs)
+
+Whitespace Control:
+    Supports Jinja2-style whitespace trimming:
+    - `{{- expr }}`: Strip whitespace before
+    - `{{ expr -}}`: Strip whitespace after
+    - `{%- stmt %}` / `{% stmt -%}`: Same for blocks
 
 Performance:
-    - Compiled regex patterns (class-level, immutable)
-    - Single-pass scanning
-    - Minimal object allocation
+    - **Compiled regex**: Patterns are class-level, compiled once
+    - **O(1) operator lookup**: Dict-based, not list iteration
+    - **Single-pass scanning**: No backtracking
+    - **Generator-based**: Memory-efficient for large templates
+
+Thread-Safety:
+    Lexer instances are single-use. Create one per tokenization.
+    The resulting token list is immutable.
+
+Example:
+    >>> from bengal.rendering.kida.lexer import Lexer, tokenize
+    >>> lexer = Lexer("Hello, {{ name }}!")
+    >>> tokens = list(lexer.tokenize())
+    >>> [(t.type.name, t.value) for t in tokens]
+    [('DATA', 'Hello, '), ('VARIABLE_BEGIN', '{{'), ('NAME', 'name'),
+     ('VARIABLE_END', '}}'), ('DATA', '!'), ('EOF', '')]
+
+    # Convenience function:
+    >>> tokens = tokenize("{{ x | upper }}")
 """
 
 from __future__ import annotations
@@ -37,19 +66,34 @@ class LexerMode(Enum):
 
 @dataclass(frozen=True, slots=True)
 class LexerConfig:
-    """Lexer configuration.
+    """Lexer configuration for delimiter customization and whitespace control.
+
+    Allows customizing template delimiters and enabling automatic whitespace
+    trimming. Frozen for thread-safety (immutable after creation).
 
     Attributes:
-        block_start: Start of block tag (default: '{%')
-        block_end: End of block tag (default: '%}')
-        variable_start: Start of variable tag (default: '{{')
-        variable_end: End of variable tag (default: '}}')
-        comment_start: Start of comment (default: '{#')
-        comment_end: End of comment (default: '#}')
-        line_statement_prefix: Prefix for line statements (default: None)
-        line_comment_prefix: Prefix for line comments (default: None)
-        trim_blocks: Remove first newline after block (default: False)
-        lstrip_blocks: Strip leading whitespace from blocks (default: False)
+        block_start: Block tag opening delimiter (default: '{%')
+        block_end: Block tag closing delimiter (default: '%}')
+        variable_start: Variable tag opening delimiter (default: '{{')
+        variable_end: Variable tag closing delimiter (default: '}}')
+        comment_start: Comment opening delimiter (default: '{#')
+        comment_end: Comment closing delimiter (default: '#}')
+        line_statement_prefix: Line statement prefix, e.g., '#' (default: None)
+        line_comment_prefix: Line comment prefix, e.g., '##' (default: None)
+        trim_blocks: Remove first newline after block tags (default: False)
+        lstrip_blocks: Strip leading whitespace before block tags (default: False)
+
+    Example:
+        # Use Ruby-style ERB delimiters:
+        >>> config = LexerConfig(
+        ...     variable_start='<%=',
+        ...     variable_end='%>',
+        ...     block_start='<%',
+        ...     block_end='%>',
+        ... )
+
+        # Enable automatic whitespace control:
+        >>> config = LexerConfig(trim_blocks=True, lstrip_blocks=True)
     """
 
     block_start: str = "{%"
@@ -104,14 +148,54 @@ Lexer Error: {self.message}
 
 
 class Lexer:
-    """Template lexer.
+    """Template lexer that transforms source into a token stream.
 
-    Thread-safe: all instance state is immutable after construction.
+    The Lexer is the first stage of template compilation. It scans source text
+    and yields Token objects representing literals, operators, identifiers,
+    and template delimiters.
+
+    Thread-Safety:
+        Instance state is mutable during tokenization (position tracking).
+        Create one Lexer per source string; do not reuse across threads.
+
+    Operator Lookup:
+        Uses O(1) dict lookup instead of O(k) list iteration:
+        ```python
+        _OPERATORS_2CHAR = {"**": TokenType.POW, "//": TokenType.FLOORDIV, ...}
+        _OPERATORS_1CHAR = {"+": TokenType.ADD, "-": TokenType.SUB, ...}
+        ```
+
+    Whitespace Control:
+        Handles `{{-`, `-}}`, `{%-`, `-%}` modifiers:
+        - Left modifier (`{{-`, `{%-`): Strips trailing whitespace from preceding DATA
+        - Right modifier (`-}}`, `-%}`): Strips leading whitespace from following DATA
+
+    Error Handling:
+        `LexerError` includes source snippet with caret and suggestions:
+        ```
+        Lexer Error: Unterminated string literal
+          --> line 3:15
+           |
+         3 | {% set x = "hello %}
+           |               ^
+        Suggestion: Add closing " to end the string
+        ```
 
     Example:
-        >>> lexer = Lexer("Hello, {{ name }}!")
-        >>> list(lexer.tokenize())
-        [Token(DATA, 'Hello, ', 1, 0), Token(VARIABLE_BEGIN, '{{', 1, 7), ...]
+        >>> lexer = Lexer("{% if x %}{{ x }}{% end %}")
+        >>> for token in lexer.tokenize():
+        ...     print(f"{token.type.name:15} {token.value!r}")
+        BLOCK_BEGIN     '{%'
+        NAME            'if'
+        NAME            'x'
+        BLOCK_END       '%}'
+        VARIABLE_BEGIN  '{{'
+        NAME            'x'
+        VARIABLE_END    '}}'
+        BLOCK_BEGIN     '{%'
+        NAME            'end'
+        BLOCK_END       '%}'
+        EOF             ''
     """
 
     # Compiled patterns (class-level, immutable)

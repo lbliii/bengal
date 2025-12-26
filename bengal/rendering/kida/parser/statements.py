@@ -154,14 +154,18 @@ class StatementParsingMixin:
             return self._parse_filter_block()
         elif keyword == "slot":
             return self._parse_slot()
+        elif keyword in ("elif", "else", "empty"):
+            # Continuation tags outside of their block context
+            raise self._error(
+                f"Unexpected '{keyword}' - not inside a matching block",
+                suggestion=f"'{keyword}' can only appear inside an 'if' or 'for' block",
+            )
         elif keyword in (
             "endif",
             "endfor",
             "endblock",
             "endmacro",
             "endwith",
-            "else",
-            "elif",
             "endraw",
             "end",
             "enddef",
@@ -170,8 +174,28 @@ class StatementParsingMixin:
             "endcache",
             "endfilter",
         ):
-            # End/continuation tags handled by parent
-            return None
+            # End tags without matching opening block
+            if not self._block_stack:
+                raise self._error(
+                    f"Unexpected '{keyword}' - no open block to close",
+                    suggestion="Remove this tag or add a matching opening tag",
+                )
+            # If we have open blocks, this is likely a mismatch
+            # Check if it matches the innermost block
+            innermost_block = self._block_stack[-1][0]
+            expected_end = f"end{innermost_block}" if innermost_block != "block" else "endblock"
+            if keyword == "end":
+                # Unified {% end %} is always valid if there's an open block
+                return None
+            elif keyword == expected_end:
+                # Matching end tag - let parent handle it
+                return None
+            else:
+                # Mismatched end tag
+                raise self._error(
+                    f"Mismatched closing tag: expected '{{% {expected_end} %}}' or '{{% end %}}', got '{{% {keyword} %}}'",
+                    suggestion=f"The innermost open block is '{innermost_block}' (opened at line {self._block_stack[-1][1]})",
+                )
         else:
             raise self._error(
                 f"Unknown block keyword: {keyword}",

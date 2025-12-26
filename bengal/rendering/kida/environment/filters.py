@@ -1,6 +1,63 @@
 """Built-in filters for Kida templates.
 
-Provides comprehensive set of filters matching Jinja2 functionality.
+Filters transform values in template expressions using the pipe syntax:
+`{{ value | filter }}` or `{{ value | filter(arg1, arg2) }}`
+
+Categories:
+    **String Manipulation**:
+        - `capitalize`, `lower`, `upper`, `title`: Case conversion
+        - `trim`/`strip`: Remove whitespace
+        - `truncate`: Shorten with ellipsis
+        - `replace`, `striptags`: Text transformation
+        - `center`, `indent`, `wordwrap`: Formatting
+
+    **HTML/Security**:
+        - `escape`/`e`: HTML entity encoding (auto-applied with autoescape)
+        - `safe`: Mark content as trusted HTML (skip escaping)
+        - `striptags`: Remove HTML tags
+
+    **Collections**:
+        - `first`, `last`: Get endpoints
+        - `length`/`count`: Item count
+        - `sort`: Sort sequence (with `attribute=` for objects)
+        - `reverse`: Reverse order
+        - `unique`: Remove duplicates
+        - `batch`, `slice`: Group items
+        - `map`, `select`, `reject`: Functional operations
+        - `selectattr`, `rejectattr`: Filter by attribute
+        - `groupby`: Group by attribute
+        - `join`: Concatenate with separator
+
+    **Numbers**:
+        - `abs`, `round`, `int`, `float`: Math operations
+        - `filesizeformat`: Human-readable file sizes
+
+    **Type Conversion**:
+        - `string`, `int`, `float`, `list`: Type coercion
+        - `tojson`: JSON serialization (auto-escaped)
+
+    **Debugging**:
+        - `debug`: Print variable info to stderr
+        - `pprint`: Pretty-print value
+
+    **Validation**:
+        - `default`/`d`: Fallback for None/undefined
+        - `require`: Raise error if None
+
+None-Resilient Behavior:
+    Filters handle None gracefully (like Hugo):
+    - `{{ none | default('N/A') }}` → `'N/A'`
+    - `{{ none | length }}` → `0`
+    - `{{ none | first }}` → `None`
+
+Custom Filters:
+    >>> env.add_filter('double', lambda x: x * 2)
+    >>> env.add_filter('money', lambda x, currency='$': f'{currency}{x:,.2f}')
+
+    Or with decorator:
+    >>> @env.filter()
+    ... def reverse_words(s):
+    ...     return ' '.join(s.split()[::-1])
 """
 
 from __future__ import annotations

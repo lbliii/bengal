@@ -1,10 +1,34 @@
 """Core types for Kida template engine.
 
-This module defines the fundamental types used throughout Kida:
-- Token: Lexer output unit
-- TokenType: Token classification enum
+Defines the fundamental types used throughout the Kida pipeline:
 
-All types are designed for immutability and thread-safety.
+Types:
+    - `Token`: Single lexer output unit with type, value, and location
+    - `TokenType`: Enum classifying token types (operators, literals, etc.)
+
+Constants:
+    - `KEYWORDS`: Frozenset of reserved words recognized by parser
+    - `PRECEDENCE`: Dict mapping token types to operator precedence
+
+Thread-Safety:
+    All types are immutable (frozen dataclasses, enums) for safe
+    concurrent access during template compilation.
+
+Token Categories:
+    - **Delimiters**: `BLOCK_BEGIN`, `VARIABLE_BEGIN`, etc.
+    - **Literals**: `STRING`, `INTEGER`, `FLOAT`
+    - **Identifiers**: `NAME` (variables, keywords)
+    - **Operators**: `ADD`, `SUB`, `MUL`, `EQ`, `AND`, etc.
+    - **Punctuation**: `DOT`, `COMMA`, `PIPE`, `LPAREN`, etc.
+    - **Special**: `EOF`, `DATA` (raw text)
+
+Example:
+    >>> from bengal.rendering.kida._types import Token, TokenType
+    >>> token = Token(TokenType.NAME, "user", lineno=1, col_offset=5)
+    >>> token.type == TokenType.NAME
+    True
+    >>> token.value
+    'user'
 """
 
 from dataclasses import dataclass

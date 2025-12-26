@@ -135,10 +135,14 @@ class TestMacroRecursion:
     """Recursive macro calls."""
 
     def test_simple_recursion(self, env):
-        """Recursive macro call."""
+        """Recursive macro call with factorial.
+
+        Tests that macro results are correctly coerced to numeric values
+        for arithmetic operations (fixed by numeric coercion in Phase 3).
+        """
         tmpl = env.from_string(
             "{% macro factorial(n) %}"
-            "{% if n <= 1 %}1{% else %}{{ n * factorial(n - 1)|int }}{% endif %}"
+            "{% if n <= 1 %}1{% else %}{{ n * factorial(n - 1) }}{% endif %}"
             "{% endmacro %}"
             "{{ factorial(5) }}"
         )

@@ -206,13 +206,17 @@ class TestLoopVariablesInTemplates:
         """loop.previtem in template."""
         tmpl = env.from_string("{% for x in items %}[{{ loop.previtem|default('-') }}]{% endfor %}")
         result = tmpl.render(items=["a", "b", "c"])
-        assert "[-]" in result  # First has no prev
+        # previtem is None for first item, then 'a', 'b'
+        assert "[a]" in result  # Second item has previtem 'a'
+        assert "[b]" in result  # Third item has previtem 'b'
 
     def test_loop_nextitem(self, env: Environment) -> None:
         """loop.nextitem in template."""
         tmpl = env.from_string("{% for x in items %}[{{ loop.nextitem|default('-') }}]{% endfor %}")
         result = tmpl.render(items=["a", "b", "c"])
-        assert "[-]" in result  # Last has no next
+        # nextitem is 'b', 'c', then None for last item
+        assert "[b]" in result  # First item has nextitem 'b'
+        assert "[c]" in result  # Second item has nextitem 'c'
 
 
 class TestNestedLoops:

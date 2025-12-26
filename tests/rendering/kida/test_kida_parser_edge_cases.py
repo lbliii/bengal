@@ -35,17 +35,17 @@ class TestSyntaxErrors:
             env.from_string("{# this never ends")
 
     def test_mismatched_end_tag(self, env: Environment) -> None:
-        """Mismatched end tag raises error."""
+        """Mismatched end tag should raise error."""
         with pytest.raises((TemplateSyntaxError, ParseError, LexerError)):
             env.from_string("{% if true %}{% endfor %}")
 
     def test_missing_end_tag(self, env: Environment) -> None:
-        """Missing end tag raises error."""
+        """Missing end tag should raise error."""
         with pytest.raises((TemplateSyntaxError, ParseError, LexerError)):
             env.from_string("{% if true %}no end")
 
     def test_extra_end_tag(self, env: Environment) -> None:
-        """Extra end tag raises error."""
+        """Extra end tag should raise error."""
         with pytest.raises((TemplateSyntaxError, ParseError, LexerError)):
             env.from_string("{% endif %}")
 
@@ -59,10 +59,11 @@ class TestSyntaxErrors:
         with pytest.raises((TemplateSyntaxError, ParseError, LexerError)):
             env.from_string("{{ }}")
 
-    def test_invalid_operator(self, env: Environment) -> None:
-        """Invalid operator raises error."""
-        with pytest.raises((TemplateSyntaxError, ParseError, LexerError)):
-            env.from_string("{{ 1 ** 2 }}")  # Not supported
+    def test_power_operator(self, env: Environment) -> None:
+        """Power operator (**) is supported and works correctly."""
+        # Kida supports ** for exponentiation, matching Jinja2 behavior
+        tmpl = env.from_string("{{ 2 ** 3 }}")
+        assert tmpl.render() == "8"
 
     def test_unterminated_string(self, env: Environment) -> None:
         """Unterminated string raises error."""
