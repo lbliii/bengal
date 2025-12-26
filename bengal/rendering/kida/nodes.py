@@ -1,16 +1,23 @@
 """Kida AST node definitions.
 
-All nodes are immutable dataclasses with __slots__ for memory efficiency.
-This design enables:
-- Thread-safe AST traversal
-- Pattern matching with match/case
-- Easy serialization and debugging
+Kida is its own template engine, not a Jinja clone. These nodes represent
+Kida's native syntax, which emphasizes:
+
+- Unified block endings: {% end %} for everything
+- Functions with lexical scoping: {% def %} instead of macros
+- Pipeline operator: |> for readable filter chains
+- Pattern matching: {% match %}
+- Built-in caching: {% cache %}
+- Explicit scoping: {% let %}, {% export %}
+
+For Jinja compatibility during migration, use kida.compat.jinja which
+translates Jinja syntax to Kida AST.
 
 Node Categories:
     - Template: Root node and structural elements
     - Statements: Control flow, assignments, blocks
-    - Expressions: Values, operations, filters
-    - Helpers: Loop context, macro calls
+    - Expressions: Values, operations, filters, pipelines
+    - Helpers: Loop context, function calls
 """
 
 from __future__ import annotations
@@ -48,10 +55,22 @@ class Template(Node):
     Attributes:
         body: Sequence of top-level nodes
         extends: Optional parent template path
+        context_type: Optional type declaration from {% template %}
     """
 
     body: Sequence[Node]
     extends: Extends | None = None
+    context_type: TemplateContext | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class TemplateContext(Node):
+    """Type declaration: {% template page: Page, site: Site %}
+
+    Kida-native feature for type-aware validation.
+    """
+
+    declarations: Sequence[tuple[str, str]]  # (name, type_name)
 
 
 @dataclass(frozen=True, slots=True)
@@ -63,7 +82,9 @@ class Extends(Node):
 
 @dataclass(frozen=True, slots=True)
 class Block(Node):
-    """Named block for inheritance: {% block name %}...{% endblock %}
+    """Named block for inheritance: {% block name %}...{% end %}
+
+    Kida uses unified {% end %} for all block closings.
 
     Attributes:
         name: Block identifier
@@ -95,7 +116,7 @@ class Include(Node):
 
 @dataclass(frozen=True, slots=True)
 class Import(Node):
-    """Import macros from template: {% import "macros.html" as m %}"""
+    """Import functions from template: {% import "funcs.html" as f %}"""
 
     template: Expr
     target: str
@@ -104,7 +125,7 @@ class Import(Node):
 
 @dataclass(frozen=True, slots=True)
 class FromImport(Node):
-    """Import specific macros: {% from "macros.html" import button, card %}"""
+    """Import specific functions: {% from "funcs.html" import button, card %}"""
 
     template: Expr
     names: Sequence[tuple[str, str | None]]  # (name, alias)
@@ -138,7 +159,9 @@ class Data(Node):
 
 @dataclass(frozen=True, slots=True)
 class If(Node):
-    """Conditional: {% if cond %}...{% elif cond %}...{% else %}...{% endif %}
+    """Conditional: {% if cond %}...{% elif cond %}...{% else %}...{% end %}
+
+    Kida uses unified {% end %} instead of {% endif %}.
 
     Attributes:
         test: Condition expression
@@ -155,13 +178,15 @@ class If(Node):
 
 @dataclass(frozen=True, slots=True)
 class For(Node):
-    """For loop: {% for x in items %}...{% else %}...{% endfor %}
+    """For loop: {% for x in items %}...{% empty %}...{% end %}
+
+    Kida uses {% empty %} (not {% else %}) and {% end %} (not {% endfor %}).
 
     Attributes:
         target: Loop variable(s) - can be tuple for unpacking
         iter: Iterable expression
         body: Loop body
-        else_: Rendered if iterable is empty
+        empty: Rendered if iterable is empty (Kida uses 'empty' not 'else')
         recursive: Enable recursive loop calls
         test: Optional filter condition (like Python's if in comprehensions)
     """
@@ -169,14 +194,14 @@ class For(Node):
     target: Expr
     iter: Expr
     body: Sequence[Node]
-    else_: Sequence[Node] = ()
+    empty: Sequence[Node] = ()  # Kida: 'empty' not 'else_'
     recursive: bool = False
     test: Expr | None = None
 
 
 @dataclass(frozen=True, slots=True)
 class AsyncFor(Node):
-    """Async for loop: {% async for x in async_items %}...{% endfor %}
+    """Async for loop: {% async for x in async_items %}...{% end %}
 
     Native async iteration without wrapper adapters.
     """
@@ -184,22 +209,40 @@ class AsyncFor(Node):
     target: Expr
     iter: Expr
     body: Sequence[Node]
-    else_: Sequence[Node] = ()
+    empty: Sequence[Node] = ()
 
 
 @dataclass(frozen=True, slots=True)
 class While(Node):
-    """While loop: {% while cond %}...{% endwhile %}
+    """While loop: {% while cond %}...{% end %}
 
-    Kida addition - not in Jinja2.
+    Kida-native feature.
     """
 
     test: Expr
     body: Sequence[Node]
 
 
+@dataclass(frozen=True, slots=True)
+class Match(Node):
+    """Pattern matching: {% match expr %}{% case pattern %}...{% end %}
+
+    Kida-native feature for cleaner branching than if/elif chains.
+
+    Example:
+        {% match page.type %}
+            {% case "post" %}<i class="icon-pen"></i>
+            {% case "gallery" %}<i class="icon-image"></i>
+            {% case _ %}<i class="icon-file"></i>
+        {% end %}
+    """
+
+    subject: Expr
+    cases: Sequence[tuple[Expr, Sequence[Node]]]  # (pattern, body)
+
+
 # =============================================================================
-# Variable Statements (Kida's improved scoping)
+# Variable Statements (Kida's explicit scoping)
 # =============================================================================
 
 
@@ -210,7 +253,7 @@ class Let(Node):
     Variables declared with 'let' persist across the template
     and can be modified within inner scopes.
 
-    This replaces Jinja2's confusing namespace() workaround.
+    Kida-native replacement for Jinja's confusing namespace() workaround.
     """
 
     name: str
@@ -219,13 +262,17 @@ class Let(Node):
 
 @dataclass(frozen=True, slots=True)
 class Set(Node):
-    """Block-scoped variable: {% set x = expr %}
+    """Block-scoped variable: {% set x = expr %} or {% set a, b = 1, 2 %}
 
-    Traditional Jinja2 behavior - variable is scoped to current block.
-    Use 'let' if you need the variable to persist.
+    Variable is scoped to current block. Use 'let' for template-wide scope.
+    Supports tuple unpacking on the left-hand side.
+
+    Attributes:
+        target: Assignment target - can be a Name or Tuple of Names
+        value: Value expression to assign
     """
 
-    name: str
+    target: Expr  # Name or Tuple for unpacking
     value: Expr
 
 
@@ -239,8 +286,8 @@ class Export(Node):
     Example:
         {% for item in items %}
             {% export last = item %}
-        {% endfor %}
-        {{ last }}  {# Works! #}
+        {% end %}
+        {{ last }}
     """
 
     name: str
@@ -248,8 +295,11 @@ class Export(Node):
 
 
 @dataclass(frozen=True, slots=True)
-class SetBlock(Node):
-    """Capture block content: {% set x %}...{% endset %}"""
+class Capture(Node):
+    """Capture block content: {% capture x %}...{% end %}
+
+    Kida-native name (clearer than Jinja's {% set x %}...{% endset %}).
+    """
 
     name: str
     body: Sequence[Node]
@@ -257,18 +307,29 @@ class SetBlock(Node):
 
 
 # =============================================================================
-# Macros
+# Functions (Kida-native, replaces macros)
 # =============================================================================
 
 
 @dataclass(frozen=True, slots=True)
-class Macro(Node):
-    """Macro definition: {% macro name(args) %}...{% endmacro %}
+class Def(Node):
+    """Function definition: {% def name(args) %}...{% end %}
+
+    Kida uses functions with true lexical scoping instead of macros.
+    Functions can access variables from their enclosing scope.
+
+    Example:
+        {% def card(item) %}
+            <div>{{ item.title }}</div>
+            <span>From: {{ site.title }}</span>  {# Can access outer scope #}
+        {% end %}
+
+        {{ card(page) }}
 
     Attributes:
-        name: Macro identifier
-        args: Argument definitions
-        body: Macro body
+        name: Function name
+        args: Argument names
+        body: Function body
         defaults: Default argument values
     """
 
@@ -279,12 +340,93 @@ class Macro(Node):
 
 
 @dataclass(frozen=True, slots=True)
-class Call(Node):
-    """Macro call with body: {% call name(args) %}body{% endcall %}"""
+class Slot(Node):
+    """Slot for component content: {% slot %}
+
+    Used inside {% def %} to mark where caller content goes.
+
+    Example:
+        {% def card(title) %}
+            <div class="card">
+                <h3>{{ title }}</h3>
+                <div class="body">{% slot %}</div>
+            </div>
+        {% end %}
+
+        {% call card("My Title") %}
+            <p>This goes in the slot!</p>
+        {% end %}
+    """
+
+    name: str = "default"
+
+
+@dataclass(frozen=True, slots=True)
+class CallBlock(Node):
+    """Call function with body content: {% call name(args) %}body{% end %}
+
+    The body content fills the {% slot %} in the function.
+    """
 
     call: Expr
     body: Sequence[Node]
     args: Sequence[Expr] = ()
+
+
+# Legacy compatibility - kept for Jinja compat layer
+@dataclass(frozen=True, slots=True)
+class Macro(Node):
+    """Macro definition (Jinja compatibility).
+
+    Prefer {% def %} for new Kida templates.
+    """
+
+    name: str
+    args: Sequence[str]
+    body: Sequence[Node]
+    defaults: Sequence[Expr] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class Call(Node):
+    """Macro call with body (Jinja compatibility)."""
+
+    call: Expr
+    body: Sequence[Node]
+    args: Sequence[Expr] = ()
+
+
+# =============================================================================
+# Caching (Kida-native)
+# =============================================================================
+
+
+@dataclass(frozen=True, slots=True)
+class Cache(Node):
+    """Fragment caching: {% cache key %}...{% end %}
+
+    Kida-native built-in caching. No external dependencies required.
+
+    Example:
+        {% cache "sidebar-" + site.nav_version %}
+            {{ build_nav_tree(site.pages) }}
+        {% end %}
+
+        {% cache "weather", ttl="5m" %}
+            {{ fetch_weather() }}
+        {% end %}
+
+    Attributes:
+        key: Cache key expression
+        body: Content to cache
+        ttl: Optional time-to-live expression
+        depends: Optional dependency expressions for invalidation
+    """
+
+    key: Expr
+    body: Sequence[Node]
+    ttl: Expr | None = None
+    depends: Sequence[Expr] = ()
 
 
 # =============================================================================
@@ -294,7 +436,7 @@ class Call(Node):
 
 @dataclass(frozen=True, slots=True)
 class With(Node):
-    """Context manager: {% with x = expr %}...{% endwith %}"""
+    """Context manager: {% with x = expr %}...{% end %}"""
 
     targets: Sequence[tuple[str, Expr]]
     body: Sequence[Node]
@@ -302,7 +444,7 @@ class With(Node):
 
 @dataclass(frozen=True, slots=True)
 class FilterBlock(Node):
-    """Apply filter to block: {% filter upper %}...{% endfilter %}"""
+    """Apply filter to block: {% filter upper %}...{% end %}"""
 
     filter: Filter
     body: Sequence[Node]
@@ -310,7 +452,7 @@ class FilterBlock(Node):
 
 @dataclass(frozen=True, slots=True)
 class Autoescape(Node):
-    """Control autoescaping: {% autoescape true %}...{% endautoescape %}"""
+    """Control autoescaping: {% autoescape true %}...{% end %}"""
 
     enabled: bool
     body: Sequence[Node]
@@ -328,9 +470,20 @@ class Do(Node):
 
 @dataclass(frozen=True, slots=True)
 class Raw(Node):
-    """Raw block (no template processing): {% raw %}...{% endraw %}"""
+    """Raw block (no template processing): {% raw %}...{% end %}"""
 
     value: str
+
+
+@dataclass(frozen=True, slots=True)
+class Trim(Node):
+    """Whitespace control block: {% trim %}...{% end %}
+
+    Kida-native replacement for Jinja's {%- -%} modifiers.
+    Content inside is trimmed of leading/trailing whitespace.
+    """
+
+    body: Sequence[Node]
 
 
 # =============================================================================
@@ -409,7 +562,7 @@ class Slice(Expr):
 
 
 @dataclass(frozen=True, slots=True)
-class Call(Expr):
+class FuncCall(Expr):
     """Function call: func(args, **kwargs)"""
 
     func: Expr
@@ -427,6 +580,24 @@ class Filter(Expr):
     name: str
     args: Sequence[Expr] = ()
     kwargs: dict[str, Expr] = field(default_factory=dict)
+
+
+@dataclass(frozen=True, slots=True)
+class Pipeline(Expr):
+    """Pipeline operator: expr |> filter1 |> filter2
+
+    Kida-native syntax for readable filter chains.
+    More readable than deeply nested Jinja filters.
+
+    Example:
+        {{ items |> where(published=true) |> sort_by("date") |> take(5) }}
+
+    vs Jinja:
+        {{ items | selectattr("published") | sort(attribute="date") | first }}
+    """
+
+    value: Expr
+    steps: Sequence[tuple[str, Sequence[Expr], dict[str, Expr]]]  # (name, args, kwargs)
 
 
 @dataclass(frozen=True, slots=True)
@@ -530,21 +701,19 @@ class MarkSafe(Expr):
 
 
 @dataclass(frozen=True, slots=True)
-class EnvironmentAttribute(Expr):
-    """Access to environment: {{ loop.index }}"""
+class LoopVar(Expr):
+    """Loop variable access: {{ loop.index }}
 
-    name: str
+    Provides access to loop iteration state.
+    """
 
-
-@dataclass(frozen=True, slots=True)
-class ExtensionAttribute(Expr):
-    """Access to extension-defined value."""
-
-    name: str
-    identifier: str
+    attr: str  # 'index', 'index0', 'first', 'last', 'length', etc.
 
 
-# Type alias for any expression
+# =============================================================================
+# Type Aliases
+# =============================================================================
+
 AnyExpr = Union[
     Const,
     Name,
@@ -554,8 +723,9 @@ AnyExpr = Union[
     Getattr,
     Getitem,
     Slice,
-    Call,
+    FuncCall,
     Filter,
+    Pipeline,
     Test,
     BinOp,
     UnaryOp,
@@ -565,6 +735,5 @@ AnyExpr = Union[
     Await,
     Concat,
     MarkSafe,
-    EnvironmentAttribute,
-    ExtensionAttribute,
+    LoopVar,
 ]

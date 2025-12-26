@@ -345,6 +345,9 @@ class Compiler:
                 "Macro": self._compile_macro,
                 "FromImport": self._compile_from_import,
                 "With": self._compile_with,
+                "Do": self._compile_do,
+                "Raw": self._compile_raw,
+                "Capture": self._compile_capture,
             }
         return self._node_dispatch
 
@@ -449,46 +452,107 @@ class Compiler:
         ]
 
     def _compile_for(self, node: Any) -> list[ast.stmt]:
-        """Compile {% for %} loop.
+        """Compile {% for %} loop with loop variable support.
+
+        Generates:
+            _loop_items = list(iterable)
+            if _loop_items:
+                loop = _LoopContext(_loop_items)
+                for item in loop:
+                    ... body with loop.index, loop.first, etc. available ...
+            else:
+                ... else block ...
 
         Optimization: Loop variables are tracked as locals and accessed
         directly (O(1) LOAD_FAST) instead of through ctx dict lookup.
-        Context injection is skipped for pure local usage.
         """
         # Get the loop variable name(s) and register as locals
         var_names = self._extract_names(node.target)
         for var_name in var_names:
             self._locals.add(var_name)
 
+        # Also register 'loop' as a local variable
+        self._locals.add("loop")
+
         target = self._compile_expr(node.target, store=True)
         iter_expr = self._compile_expr(node.iter)
 
-        body = []
-        # NO context injection - use direct local access
-        # This eliminates O(n) dict updates per loop iteration
+        stmts: list[ast.stmt] = []
 
+        # _loop_items = list(iterable)
+        stmts.append(
+            ast.Assign(
+                targets=[ast.Name(id="_loop_items", ctx=ast.Store())],
+                value=ast.Call(
+                    func=ast.Name(id="_list", ctx=ast.Load()),
+                    args=[iter_expr],
+                    keywords=[],
+                ),
+            )
+        )
+
+        # Build the loop body
+        loop_body_stmts: list[ast.stmt] = []
+
+        # loop = _LoopContext(_loop_items)
+        loop_body_stmts.append(
+            ast.Assign(
+                targets=[ast.Name(id="loop", ctx=ast.Store())],
+                value=ast.Call(
+                    func=ast.Name(id="_LoopContext", ctx=ast.Load()),
+                    args=[ast.Name(id="_loop_items", ctx=ast.Load())],
+                    keywords=[],
+                ),
+            )
+        )
+
+        # Compile the inner body
+        body = []
         for child in node.body:
             body.extend(self._compile_node(child))
         if not body:
             body = [ast.Pass()]
 
-        orelse = []
-        for child in node.else_:
-            orelse.extend(self._compile_node(child))
-
-        # Remove loop variables from locals after the loop
-        # (they're no longer accessible outside)
-        for var_name in var_names:
-            self._locals.discard(var_name)
-
-        return [
+        # for item in loop:
+        loop_body_stmts.append(
             ast.For(
                 target=target,
-                iter=iter_expr,
+                iter=ast.Name(id="loop", ctx=ast.Load()),
                 body=body,
-                orelse=orelse,
+                orelse=[],  # No Python else - we handle it with if/else
             )
-        ]
+        )
+
+        # Compile the empty block (for empty iterable)
+        orelse = []
+        for child in node.empty:
+            orelse.extend(self._compile_node(child))
+
+        # if _loop_items: ... else: ...
+        if orelse:
+            stmts.append(
+                ast.If(
+                    test=ast.Name(id="_loop_items", ctx=ast.Load()),
+                    body=loop_body_stmts,
+                    orelse=orelse,
+                )
+            )
+        else:
+            # No else block - just check if items exist and run the loop
+            stmts.append(
+                ast.If(
+                    test=ast.Name(id="_loop_items", ctx=ast.Load()),
+                    body=loop_body_stmts,
+                    orelse=[],
+                )
+            )
+
+        # Remove loop variables from locals after the loop
+        for var_name in var_names:
+            self._locals.discard(var_name)
+        self._locals.discard("loop")
+
+        return stmts
 
     def _extract_names(self, node: Any) -> list[str]:
         """Extract variable names from a target expression."""
@@ -505,22 +569,72 @@ class Compiler:
         return []
 
     def _compile_set(self, node: Any) -> list[ast.stmt]:
-        """Compile {% set %} or {% let %}."""
-        value = self._compile_expr(node.value)
+        """Compile {% set %} or {% let %}.
 
-        # Assign to context: ctx['name'] = value
-        return [
-            ast.Assign(
-                targets=[
-                    ast.Subscript(
-                        value=ast.Name(id="ctx", ctx=ast.Load()),
-                        slice=ast.Constant(value=node.name),
-                        ctx=ast.Store(),
+        Handles both single names and tuple unpacking:
+            {% set x = value %}
+            {% set a, b = 1, 2 %}
+        """
+        value = self._compile_expr(node.value)
+        target_type = type(node.target).__name__
+
+        if target_type == "Name":
+            # Single variable: ctx['name'] = value
+            return [
+                ast.Assign(
+                    targets=[
+                        ast.Subscript(
+                            value=ast.Name(id="ctx", ctx=ast.Load()),
+                            slice=ast.Constant(value=node.target.name),
+                            ctx=ast.Store(),
+                        )
+                    ],
+                    value=value,
+                )
+            ]
+        elif target_type == "Tuple":
+            # Tuple unpacking: temp = value; ctx['a'] = temp[0]; ctx['b'] = temp[1]; ...
+            stmts: list[ast.stmt] = [
+                # _unpack_tmp = value
+                ast.Assign(
+                    targets=[ast.Name(id="_unpack_tmp", ctx=ast.Store())],
+                    value=value,
+                )
+            ]
+            for i, item in enumerate(node.target.items):
+                if type(item).__name__ == "Name":
+                    # ctx['name'] = _unpack_tmp[i]
+                    stmts.append(
+                        ast.Assign(
+                            targets=[
+                                ast.Subscript(
+                                    value=ast.Name(id="ctx", ctx=ast.Load()),
+                                    slice=ast.Constant(value=item.name),
+                                    ctx=ast.Store(),
+                                )
+                            ],
+                            value=ast.Subscript(
+                                value=ast.Name(id="_unpack_tmp", ctx=ast.Load()),
+                                slice=ast.Constant(value=i),
+                                ctx=ast.Load(),
+                            ),
+                        )
                     )
-                ],
-                value=value,
-            )
-        ]
+            return stmts
+        else:
+            # Fallback for compatibility - treat as single name string
+            return [
+                ast.Assign(
+                    targets=[
+                        ast.Subscript(
+                            value=ast.Name(id="ctx", ctx=ast.Load()),
+                            slice=ast.Constant(value=str(node.target)),
+                            ctx=ast.Store(),
+                        )
+                    ],
+                    value=value,
+                )
+            ]
 
     def _compile_export(self, node: Any) -> list[ast.stmt]:
         """Compile {% export %}."""
@@ -616,11 +730,14 @@ class Compiler:
                 ... body ...
                 return ''.join(buf)
             ctx['name'] = _macro_name
+
+        Macros have access to outer context variables but create a local scope
+        for their arguments. Local {% set %} inside macro shadows outer vars.
         """
         macro_name = node.name
         func_name = f"_macro_{macro_name}"
 
-        # Build function arguments
+        # Build function arguments - include _outer_ctx for closure access
         args_list = [ast.arg(arg=name) for name in node.args]
         defaults = [self._compile_expr(d) for d in node.defaults]
 
@@ -650,15 +767,18 @@ class Compiler:
                     ctx=ast.Load(),
                 ),
             ),
-            # Create local context with macro args
+            # Create local context by copying outer context + adding macro args
+            # ctx = {**_outer_ctx, **{arg1: arg1, arg2: arg2}}
             ast.Assign(
                 targets=[ast.Name(id="ctx", ctx=ast.Store())],
-                value=ast.Call(
-                    func=ast.Name(id="_dict", ctx=ast.Load()),
-                    args=[],
-                    keywords=[
-                        ast.keyword(arg=name, value=ast.Name(id=name, ctx=ast.Load()))
-                        for name in node.args
+                value=ast.Dict(
+                    keys=[None, None],  # Spread operators
+                    values=[
+                        ast.Name(id="_outer_ctx", ctx=ast.Load()),
+                        ast.Dict(
+                            keys=[ast.Constant(value=name) for name in node.args],
+                            values=[ast.Name(id=name, ctx=ast.Load()) for name in node.args],
+                        ),
                     ],
                 ),
             ),
@@ -698,15 +818,16 @@ class Compiler:
             )
         )
 
-        # Create function definition
+        # Create function definition with _outer_ctx as keyword-only arg with default
+        # This captures the current context at macro definition time for closure behavior
         func_def = ast.FunctionDef(
             name=func_name,
             args=ast.arguments(
                 posonlyargs=[],
                 args=args_list,
                 vararg=None,
-                kwonlyargs=[],
-                kw_defaults=[],
+                kwonlyargs=[ast.arg(arg="_outer_ctx")],
+                kw_defaults=[ast.Name(id="ctx", ctx=ast.Load())],  # Default to current ctx
                 kwarg=None,
                 defaults=defaults,
             ),
@@ -715,7 +836,8 @@ class Compiler:
             returns=None,
         )
 
-        # Assign to context: ctx['name'] = _macro_name
+        # Assign to context BEFORE the function is fully compiled
+        # This enables recursive calls: ctx['name'] = _macro_name
         assign = ast.Assign(
             targets=[
                 ast.Subscript(
@@ -866,6 +988,102 @@ class Compiler:
 
         return stmts
 
+    def _compile_do(self, node: Any) -> list[ast.stmt]:
+        """Compile {% do expr %}.
+
+        Expression statement for side effects - just evaluate the expression
+        and discard the result.
+        """
+        expr = self._compile_expr(node.expr)
+        return [ast.Expr(value=expr)]
+
+    def _compile_raw(self, node: Any) -> list[ast.stmt]:
+        """Compile {% raw %}...{% endraw %}.
+
+        Raw block content is output as literal text.
+        """
+        if not node.value:
+            return []
+
+        return [
+            ast.Expr(
+                value=ast.Call(
+                    func=ast.Name(id="_append", ctx=ast.Load()),
+                    args=[ast.Constant(value=node.value)],
+                    keywords=[],
+                ),
+            )
+        ]
+
+    def _compile_capture(self, node: Any) -> list[ast.stmt]:
+        """Compile {% capture x %}...{% end %} (Kida) or {% set x %}...{% endset %} (Jinja).
+
+        Captures rendered block content into a variable.
+        """
+        # Create a temporary buffer
+        stmts: list[ast.stmt] = [
+            # _capture_buf = []
+            ast.Assign(
+                targets=[ast.Name(id="_capture_buf", ctx=ast.Store())],
+                value=ast.List(elts=[], ctx=ast.Load()),
+            ),
+            # _capture_append = _capture_buf.append
+            ast.Assign(
+                targets=[ast.Name(id="_capture_append", ctx=ast.Store())],
+                value=ast.Attribute(
+                    value=ast.Name(id="_capture_buf", ctx=ast.Load()),
+                    attr="append",
+                    ctx=ast.Load(),
+                ),
+            ),
+            # _save_append = _append
+            ast.Assign(
+                targets=[ast.Name(id="_save_append", ctx=ast.Store())],
+                value=ast.Name(id="_append", ctx=ast.Load()),
+            ),
+            # _append = _capture_append
+            ast.Assign(
+                targets=[ast.Name(id="_append", ctx=ast.Store())],
+                value=ast.Name(id="_capture_append", ctx=ast.Load()),
+            ),
+        ]
+
+        # Compile body
+        for child in node.body:
+            stmts.extend(self._compile_node(child))
+
+        # Restore original append and assign result
+        stmts.extend(
+            [
+                # _append = _save_append
+                ast.Assign(
+                    targets=[ast.Name(id="_append", ctx=ast.Store())],
+                    value=ast.Name(id="_save_append", ctx=ast.Load()),
+                ),
+                # ctx['name'] = ''.join(_capture_buf)
+                ast.Assign(
+                    targets=[
+                        ast.Subscript(
+                            value=ast.Name(id="ctx", ctx=ast.Load()),
+                            slice=ast.Constant(value=node.name),
+                            ctx=ast.Store(),
+                        )
+                    ],
+                    value=ast.Call(
+                        func=ast.Attribute(
+                            value=ast.Constant(value=""),
+                            attr="join",
+                            ctx=ast.Load(),
+                        ),
+                        args=[ast.Name(id="_capture_buf", ctx=ast.Load())],
+                        keywords=[],
+                    ),
+                ),
+            ]
+        )
+
+        return stmts
+
     def _compile_expr(self, node: Any, store: bool = False) -> ast.expr:
         """Compile expression node to Python AST expression.
 
@@ -956,7 +1174,7 @@ class Compiler:
                 return ast.UnaryOp(op=ast.Not(), operand=test_call)
             return test_call
 
-        if node_type == "Call":
+        if node_type == "FuncCall":
             return ast.Call(
                 func=self._compile_expr(node.func),
                 args=[self._compile_expr(a) for a in node.args],

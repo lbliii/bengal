@@ -21,6 +21,7 @@ from bengal.rendering.kida.nodes import (
     Const,
     Data,
     Dict,
+    Do,
     Export,
     Extends,
     Filter,
@@ -35,6 +36,7 @@ from bengal.rendering.kida.nodes import (
     Macro,
     Name,
     Output,
+    Raw,
     Set,
     Slice,
     Template,
@@ -48,23 +50,58 @@ if TYPE_CHECKING:
 
 
 class ParseError(Exception):
-    """Parser error with location info."""
+    """Parser error with rich source context.
+
+    Displays errors with source code snippets and visual pointers,
+    matching the format used by the lexer for consistency.
+    """
 
     def __init__(
         self,
         message: str,
         token: Token,
+        source: str | None = None,
+        filename: str | None = None,
         suggestion: str | None = None,
     ):
         self.message = message
         self.token = token
+        self.source = source
+        self.filename = filename
         self.suggestion = suggestion
         super().__init__(self._format())
 
     def _format(self) -> str:
-        msg = f"Parse error at line {self.token.lineno}: {self.message}"
+        """Format error with source context like Rust/modern compilers."""
+        # Header with location
+        location = self.filename or "<template>"
+        header = f"Parse Error: {self.message}\n  --> {location}:{self.token.lineno}:{self.token.col_offset}"
+
+        # Source context (if available)
+        if self.source:
+            lines = self.source.splitlines()
+            if 0 < self.token.lineno <= len(lines):
+                error_line = lines[self.token.lineno - 1]
+                # Create pointer to error location
+                pointer = " " * self.token.col_offset + "^"
+
+                # Build the error display
+                line_num = self.token.lineno
+                msg = f"""
+{header}
+   |
+{line_num:>3} | {error_line}
+   | {pointer}"""
+            else:
+                msg = f"\n{header}"
+        else:
+            # Fallback without source
+            msg = f"\n{header}"
+
+        # Add suggestion if available
         if self.suggestion:
-            msg += f"\nSuggestion: {self.suggestion}"
+            msg += f"\n\nSuggestion: {self.suggestion}"
+
         return msg
 
 
@@ -77,18 +114,35 @@ class Parser:
         >>> ast = parser.parse()
     """
 
-    __slots__ = ("_tokens", "_pos", "_name", "_filename")
+    __slots__ = ("_tokens", "_pos", "_name", "_filename", "_source")
 
     def __init__(
         self,
         tokens: Sequence[Token],
         name: str | None = None,
         filename: str | None = None,
+        source: str | None = None,
     ):
         self._tokens = tokens
         self._pos = 0
         self._name = name
         self._filename = filename
+        self._source = source
+
+    def _error(
+        self,
+        message: str,
+        token: Token | None = None,
+        suggestion: str | None = None,
+    ) -> ParseError:
+        """Create a ParseError with source context."""
+        return ParseError(
+            message=message,
+            token=token or self._current,
+            source=self._source,
+            filename=self._filename,
+            suggestion=suggestion,
+        )
 
     @property
     def _current(self) -> Token:
@@ -113,9 +167,15 @@ class Parser:
     def _expect(self, token_type: TokenType) -> Token:
         """Expect current token to be of given type."""
         if self._current.type != token_type:
-            raise ParseError(
+            # Provide helpful suggestions for common mistakes
+            suggestion = None
+            if token_type == TokenType.BLOCK_END:
+                suggestion = "Add '%}' to close the block tag"
+            elif token_type == TokenType.VARIABLE_END:
+                suggestion = "Add '}}' to close the variable tag"
+            raise self._error(
                 f"Expected {token_type.value}, got {self._current.type.value}",
-                self._current,
+                suggestion=suggestion,
             )
         return self._advance()
 
@@ -186,11 +246,18 @@ class Parser:
     def _parse_block(self) -> Node | None:
         """Parse {% ... %} block tag."""
         self._expect(TokenType.BLOCK_BEGIN)
+        return self._parse_block_content()
 
+    def _parse_block_content(self) -> Node | None:
+        """Parse block content after BLOCK_BEGIN is consumed.
+
+        This is split from _parse_block so it can be reused in contexts
+        where BLOCK_BEGIN is already consumed (e.g., inside macro bodies).
+        """
         if self._current.type != TokenType.NAME:
-            raise ParseError(
-                "Expected block keyword",
-                self._current,
+            raise self._error(
+                "Expected block keyword (if, for, set, block, etc.)",
+                suggestion="Block tags should start with a keyword like {% if %}, {% for %}, {% set %}",
             )
 
         keyword = self._current.value
@@ -217,13 +284,26 @@ class Parser:
             return self._parse_from_import()
         elif keyword == "with":
             return self._parse_with()
-        elif keyword in ("endif", "endfor", "endblock", "endmacro", "endwith", "else", "elif"):
+        elif keyword == "do":
+            return self._parse_do()
+        elif keyword == "raw":
+            return self._parse_raw()
+        elif keyword in (
+            "endif",
+            "endfor",
+            "endblock",
+            "endmacro",
+            "endwith",
+            "else",
+            "elif",
+            "endraw",
+        ):
             # End/continuation tags handled by parent
             return None
         else:
-            raise ParseError(
+            raise self._error(
                 f"Unknown block keyword: {keyword}",
-                self._current,
+                suggestion="Valid keywords: if, for, set, let, block, extends, include, macro, from, with, do, raw",
             )
 
     def _parse_if(self) -> If:
@@ -268,18 +348,113 @@ class Parser:
             else_=tuple(else_),
         )
 
+    def _parse_tuple_or_name(self) -> Expr:
+        """Parse assignment target (variable or tuple for unpacking).
+
+        Used by set/let/export for patterns like:
+            - x (single variable)
+            - a, b (comma-separated before '=')
+            - (a, b) (parenthesized tuple)
+        """
+        # Check for parenthesized tuple
+        if self._match(TokenType.LPAREN):
+            return self._parse_primary()  # Will parse as tuple
+
+        # Parse first name
+        first = self._parse_primary()
+
+        # Check for comma (tuple unpacking without parens)
+        if self._match(TokenType.COMMA):
+            items = [first]
+            while self._match(TokenType.COMMA):
+                self._advance()
+                if self._current.type == TokenType.ASSIGN:
+                    break  # trailing comma before '='
+                items.append(self._parse_primary())
+
+            return Tuple(
+                lineno=first.lineno,
+                col_offset=first.col_offset,
+                items=tuple(items),
+                ctx="store",
+            )
+
+        return first
+
+    def _parse_tuple_or_expression(self) -> Expr:
+        """Parse expression that may be an implicit tuple.
+
+        Used for value side of set statements like:
+            {% set a, b = 1, 2 %}
+
+        The value `1, 2` is parsed as a tuple without parentheses.
+        """
+        first = self._parse_expression()
+
+        # Check for comma (implicit tuple like 1, 2, 3)
+        if self._match(TokenType.COMMA):
+            items = [first]
+            while self._match(TokenType.COMMA):
+                self._advance()
+                if self._match(TokenType.BLOCK_END):
+                    break  # trailing comma before %}
+                items.append(self._parse_expression())
+
+            return Tuple(
+                lineno=first.lineno,
+                col_offset=first.col_offset,
+                items=tuple(items),
+                ctx="load",
+            )
+
+        return first
+
+    def _parse_for_target(self) -> Expr:
+        """Parse for loop target (variable or tuple for unpacking).
+
+        Handles:
+            - item (single variable)
+            - (a, b) (parenthesized tuple)
+            - a, b, c (comma-separated names before 'in')
+        """
+        # Check for parenthesized tuple
+        if self._match(TokenType.LPAREN):
+            return self._parse_primary()  # Will parse as tuple
+
+        # Parse first name
+        first = self._parse_primary()
+
+        # Check for comma (tuple unpacking without parens)
+        if self._match(TokenType.COMMA):
+            items = [first]
+            while self._match(TokenType.COMMA):
+                self._advance()
+                if self._current.type == TokenType.IN:
+                    break  # trailing comma before 'in'
+                items.append(self._parse_primary())
+
+            return Tuple(
+                lineno=first.lineno,
+                col_offset=first.col_offset,
+                items=tuple(items),
+                ctx="store",
+            )
+
+        return first
+
     def _parse_for(self) -> For:
         """Parse {% for %} ... {% endfor %}."""
         start = self._advance()  # consume 'for'
 
-        # Parse target (loop variable)
-        target = self._parse_primary()
+        # Parse target (loop variable or tuple for unpacking)
+        # Can be: item, (a, b), or a, b, c
+        target = self._parse_for_target()
 
         # Expect 'in'
         if self._current.type != TokenType.IN:
-            raise ParseError(
+            raise self._error(
                 "Expected 'in' in for loop",
-                self._current,
+                suggestion="For loops use: {% for item in items %} or {% for a, b in items %}",
             )
         self._advance()
 
@@ -287,20 +462,20 @@ class Parser:
         iter_expr = self._parse_expression()
         self._expect(TokenType.BLOCK_END)
 
-        # Parse body
-        body = self._parse_body({"else", "endfor"})
+        # Parse body - stop at else/empty/endfor
+        body = self._parse_body({"else", "empty", "endfor"})
 
-        else_: list[Node] = []
+        empty: list[Node] = []
 
-        # Now at {% else or {% endfor
+        # Now at {% else, {% empty, or {% endfor
         if self._current.type == TokenType.BLOCK_BEGIN:
             self._advance()  # consume {%
             keyword = self._current.value
 
-            if keyword == "else":
-                self._advance()  # consume 'else'
+            if keyword in ("else", "empty"):
+                self._advance()  # consume 'else' or 'empty'
                 self._expect(TokenType.BLOCK_END)
-                else_ = self._parse_body({"endfor"})
+                empty = self._parse_body({"endfor"})
 
                 # Consume endfor
                 if self._current.type == TokenType.BLOCK_BEGIN:
@@ -318,25 +493,26 @@ class Parser:
             target=target,
             iter=iter_expr,
             body=tuple(body),
-            else_=tuple(else_),
+            empty=tuple(empty),
         )
 
     def _parse_set(self) -> Set:
-        """Parse {% set x = expr %}."""
+        """Parse {% set x = expr %} or {% set a, b = 1, 2 %}."""
         start = self._advance()  # consume 'set'
 
-        if self._current.type != TokenType.NAME:
-            raise ParseError("Expected variable name", self._current)
-        name = self._advance().value
+        # Parse target - can be single name or tuple for unpacking
+        target = self._parse_tuple_or_name()
 
         self._expect(TokenType.ASSIGN)
-        value = self._parse_expression()
+
+        # Parse value - may be an implicit tuple (e.g., 1, 2)
+        value = self._parse_tuple_or_expression()
         self._expect(TokenType.BLOCK_END)
 
         return Set(
             lineno=start.lineno,
             col_offset=start.col_offset,
-            name=name,
+            target=target,
             value=value,
         )
 
@@ -345,7 +521,7 @@ class Parser:
         start = self._advance()  # consume 'let'
 
         if self._current.type != TokenType.NAME:
-            raise ParseError("Expected variable name", self._current)
+            raise self._error("Expected variable name")
         name = self._advance().value
 
         self._expect(TokenType.ASSIGN)
@@ -364,7 +540,7 @@ class Parser:
         start = self._advance()  # consume 'export'
 
         if self._current.type != TokenType.NAME:
-            raise ParseError("Expected variable name", self._current)
+            raise self._error("Expected variable name")
         name = self._advance().value
 
         self._expect(TokenType.ASSIGN)
@@ -383,7 +559,7 @@ class Parser:
         start = self._advance()  # consume 'block'
 
         if self._current.type != TokenType.NAME:
-            raise ParseError("Expected block name", self._current)
+            raise self._error("Expected block name")
         name = self._advance().value
 
         self._expect(TokenType.BLOCK_END)
@@ -429,21 +605,21 @@ class Parser:
                     self._advance()  # consume 'context'
                     with_context = True
                 else:
-                    raise ParseError("Expected 'context' after 'with'", self._current)
+                    raise self._error("Expected 'context' after 'with'")
             elif keyword == "without":
                 self._advance()  # consume 'without'
                 if self._current.type == TokenType.NAME and self._current.value == "context":
                     self._advance()  # consume 'context'
                     with_context = False
                 else:
-                    raise ParseError("Expected 'context' after 'without'", self._current)
+                    raise self._error("Expected 'context' after 'without'")
             elif keyword == "ignore":
                 self._advance()  # consume 'ignore'
                 if self._current.type == TokenType.NAME and self._current.value == "missing":
                     self._advance()  # consume 'missing'
                     ignore_missing = True
                 else:
-                    raise ParseError("Expected 'missing' after 'ignore'", self._current)
+                    raise self._error("Expected 'missing' after 'ignore'")
             else:
                 break
 
@@ -463,7 +639,7 @@ class Parser:
 
         # Get macro name
         if self._current.type != TokenType.NAME:
-            raise ParseError("Expected macro name", self._current)
+            raise self._error("Expected macro name")
         name = self._advance().value
 
         # Parse arguments
@@ -475,7 +651,7 @@ class Parser:
             if args:
                 self._expect(TokenType.COMMA)
             if self._current.type != TokenType.NAME:
-                raise ParseError("Expected argument name", self._current)
+                raise self._error("Expected argument name")
             arg_name = self._advance().value
             args.append(arg_name)
 
@@ -507,7 +683,9 @@ class Parser:
             elif self._match(TokenType.COMMENT_BEGIN):
                 self._skip_comment()
             elif self._match(TokenType.EOF):
-                raise ParseError("Unexpected end of template in macro", self._current)
+                raise self._error(
+                    "Unexpected end of template in macro", suggestion="Add {% endmacro %}"
+                )
             else:
                 self._advance()
 
@@ -528,7 +706,7 @@ class Parser:
 
         # Expect 'import'
         if self._current.type != TokenType.NAME or self._current.value != "import":
-            raise ParseError("Expected 'import' after template name", self._current)
+            raise self._error("Expected 'import' after template name")
         self._advance()  # consume 'import'
 
         # Parse imported names
@@ -537,7 +715,7 @@ class Parser:
 
         while True:
             if self._current.type != TokenType.NAME:
-                raise ParseError("Expected name to import", self._current)
+                raise self._error("Expected name to import")
             name = self._advance().value
 
             # Check for alias
@@ -545,7 +723,7 @@ class Parser:
             if self._current.type == TokenType.NAME and self._current.value == "as":
                 self._advance()  # consume 'as'
                 if self._current.type != TokenType.NAME:
-                    raise ParseError("Expected alias name", self._current)
+                    raise self._error("Expected alias name")
                 alias = self._advance().value
 
             names.append((name, alias))
@@ -587,7 +765,7 @@ class Parser:
 
         while True:
             if self._current.type != TokenType.NAME:
-                raise ParseError("Expected variable name", self._current)
+                raise self._error("Expected variable name")
             name = self._advance().value
 
             self._expect(TokenType.ASSIGN)
@@ -616,6 +794,100 @@ class Parser:
             col_offset=start.col_offset,
             targets=tuple(assignments),
             body=tuple(body),
+        )
+
+    def _parse_do(self) -> Do:
+        """Parse {% do expr %}.
+
+        Expression statement for side effects (e.g., list.append).
+        The result is discarded.
+        """
+        start = self._advance()  # consume 'do'
+        expr = self._parse_expression()
+        self._expect(TokenType.BLOCK_END)
+
+        return Do(
+            lineno=start.lineno,
+            col_offset=start.col_offset,
+            expr=expr,
+        )
+
+    def _parse_raw(self) -> Raw:
+        """Parse {% raw %}...{% endraw %}.
+
+        Raw block that prevents template processing of its content.
+        """
+        start = self._advance()  # consume 'raw'
+        self._expect(TokenType.BLOCK_END)
+
+        # Collect all content until {% endraw %}
+        content_parts: list[str] = []
+
+        while True:
+            if self._current.type == TokenType.EOF:
+                raise self._error("Unclosed raw block", token=start)
+
+            if self._current.type == TokenType.BLOCK_BEGIN:
+                # Peek ahead to see if this is {% endraw %}
+                self._advance()  # consume {%
+                if self._current.type == TokenType.NAME and self._current.value == "endraw":
+                    self._advance()  # consume 'endraw'
+                    self._expect(TokenType.BLOCK_END)
+                    break
+                else:
+                    # Not endraw, include the block as literal text
+                    # We already consumed BLOCK_BEGIN and are at NAME token
+                    # Build: {% name %} or {% name args %}
+                    content_parts.append("{%")
+                    # Collect tokens until BLOCK_END
+                    while (
+                        self._current.type != TokenType.BLOCK_END
+                        and self._current.type != TokenType.EOF
+                    ):
+                        if self._current.value:
+                            content_parts.append(" ")
+                            content_parts.append(str(self._current.value))
+                        self._advance()
+                    if self._current.type == TokenType.BLOCK_END:
+                        content_parts.append(" %}")
+                        self._advance()
+            elif self._current.type == TokenType.DATA:
+                content_parts.append(self._current.value)
+                self._advance()
+            elif self._current.type == TokenType.VARIABLE_BEGIN:
+                content_parts.append("{{")
+                self._advance()
+                # Capture expression tokens until VARIABLE_END
+                while (
+                    self._current.type != TokenType.VARIABLE_END
+                    and self._current.type != TokenType.EOF
+                ):
+                    if self._current.value:
+                        content_parts.append(" ")
+                        content_parts.append(str(self._current.value))
+                    self._advance()
+                content_parts.append(" }}")
+                if self._current.type == TokenType.VARIABLE_END:
+                    self._advance()
+            elif self._current.type == TokenType.BLOCK_END:
+                content_parts.append("%}")
+                self._advance()
+            elif self._current.type == TokenType.COMMENT_BEGIN:
+                content_parts.append("{#")
+                self._advance()
+            elif self._current.type == TokenType.COMMENT_END:
+                content_parts.append(" #}")
+                self._advance()
+            else:
+                # Include token value as literal
+                if self._current.value:
+                    content_parts.append(str(self._current.value))
+                self._advance()
+
+        return Raw(
+            lineno=start.lineno,
+            col_offset=start.col_offset,
+            value="".join(content_parts),
         )
 
     def _skip_comment(self) -> None:
@@ -650,7 +922,10 @@ class Parser:
 
             # Expect "else"
             if self._current.type != TokenType.NAME or self._current.value != "else":
-                raise ParseError("Expected 'else' in ternary expression", self._current)
+                raise self._error(
+                    "Expected 'else' in ternary expression",
+                    suggestion="Ternary syntax: value_if_true if condition else value_if_false",
+                )
             self._advance()  # consume "else"
 
             # Parse the "false" value (right-associative)
@@ -824,7 +1099,7 @@ class Parser:
         Filters are parsed here (high precedence) so that:
         x | length == 0  parses as  (x | length) == 0
         """
-        from bengal.rendering.kida.nodes import Call as KidaCall
+        from bengal.rendering.kida.nodes import FuncCall
 
         expr = self._parse_primary()
 
@@ -832,7 +1107,7 @@ class Parser:
             if self._match(TokenType.DOT):
                 self._advance()
                 if self._current.type != TokenType.NAME:
-                    raise ParseError("Expected attribute name", self._current)
+                    raise self._error("Expected attribute name")
                 attr = self._advance().value
                 expr = Getattr(
                     lineno=expr.lineno,
@@ -854,7 +1129,7 @@ class Parser:
                 self._advance()
                 args, kwargs = self._parse_call_args()
                 self._expect(TokenType.RPAREN)
-                expr = KidaCall(
+                expr = FuncCall(
                     lineno=expr.lineno,
                     col_offset=expr.col_offset,
                     func=expr,
@@ -865,7 +1140,7 @@ class Parser:
                 # Filter: expr | filter_name(args)
                 self._advance()
                 if self._current.type != TokenType.NAME:
-                    raise ParseError("Expected filter name", self._current)
+                    raise self._error("Expected filter name")
                 filter_name = self._advance().value
 
                 args: list[Expr] = []
@@ -1037,9 +1312,10 @@ class Parser:
             self._expect(TokenType.RBRACE)
             return Dict(token.lineno, token.col_offset, tuple(keys), tuple(values))
 
-        raise ParseError(
+        raise self._error(
             f"Unexpected token: {token.type.value}",
-            token,
+            token=token,
+            suggestion="Expected a value (string, number, variable name, list, or dict)",
         )
 
     def _parse_binary(self, operand_parser, *op_types: TokenType) -> Expr:

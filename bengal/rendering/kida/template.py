@@ -55,6 +55,104 @@ class Markup(str):
         return Markup(str(other) + str(self))
 
 
+class LoopContext:
+    """Loop variable providing iteration metadata.
+
+    Available as `loop` inside {% for %} blocks:
+        - loop.index: 1-based iteration count
+        - loop.index0: 0-based iteration count
+        - loop.first: True if first iteration
+        - loop.last: True if last iteration
+        - loop.length: Total number of items
+        - loop.revindex: Reverse 1-based index
+        - loop.revindex0: Reverse 0-based index
+        - loop.cycle(*values): Cycle through values
+        - loop.previtem: Previous item (None on first)
+        - loop.nextitem: Next item (None on last)
+
+    Example:
+        >>> {% for item in items %}
+        ...     {{ loop.index }}: {{ item }}
+        ...     {% if loop.first %}(first!){% endif %}
+        ... {% endfor %}
+    """
+
+    __slots__ = ("_items", "_index", "_length")
+
+    def __init__(self, items: list) -> None:
+        self._items = items
+        self._length = len(items)
+        self._index = 0
+
+    def __iter__(self):
+        """Iterate through items, updating index for each."""
+        for i, item in enumerate(self._items):
+            self._index = i
+            yield item
+
+    @property
+    def index(self) -> int:
+        """1-based iteration count."""
+        return self._index + 1
+
+    @property
+    def index0(self) -> int:
+        """0-based iteration count."""
+        return self._index
+
+    @property
+    def first(self) -> bool:
+        """True if this is the first iteration."""
+        return self._index == 0
+
+    @property
+    def last(self) -> bool:
+        """True if this is the last iteration."""
+        return self._index == self._length - 1
+
+    @property
+    def length(self) -> int:
+        """Total number of items in the sequence."""
+        return self._length
+
+    @property
+    def revindex(self) -> int:
+        """Reverse 1-based index (counts down to 1)."""
+        return self._length - self._index
+
+    @property
+    def revindex0(self) -> int:
+        """Reverse 0-based index (counts down to 0)."""
+        return self._length - self._index - 1
+
+    @property
+    def previtem(self) -> Any:
+        """Previous item in the sequence, or None if first."""
+        if self._index == 0:
+            return None
+        return self._items[self._index - 1]
+
+    @property
+    def nextitem(self) -> Any:
+        """Next item in the sequence, or None if last."""
+        if self._index >= self._length - 1:
+            return None
+        return self._items[self._index + 1]
+
+    def cycle(self, *values: Any) -> Any:
+        """Cycle through the given values.
+
+        Example:
+            {{ loop.cycle('odd', 'even') }}
+        """
+        if not values:
+            return None
+        return values[self._index % len(values)]
+
+    def __repr__(self) -> str:
+        return f"<LoopContext {self.index}/{self.length}>"
+
+
 class Template:
     """Compiled template ready for rendering.
 
@@ -128,6 +226,7 @@ class Template:
             "_extends": _extends,
             "_import_macros": _import_macros,
             "_Markup": Markup,
+            "_LoopContext": LoopContext,
             "_str": str,
             "_len": len,
             "_range": range,

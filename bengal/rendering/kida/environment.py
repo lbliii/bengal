@@ -548,9 +548,9 @@ def _filter_indent(value: str, width: int = 4, first: bool = False) -> str:
 
 def _filter_urlencode(value: str) -> str:
     """URL-encode a string."""
-    from urllib.parse import quote_plus
+    from urllib.parse import quote
 
-    return quote_plus(str(value))
+    return quote(str(value), safe="")
 
 
 def _filter_pprint(value: Any) -> str:
@@ -626,6 +626,81 @@ def _filter_center(value: str, width: int = 80) -> str:
     return str(value).center(width)
 
 
+def _filter_round(value: Any, precision: int = 0, method: str = "common") -> float:
+    """Round a number to a given precision."""
+    if method == "ceil":
+        import math
+
+        return math.ceil(float(value) * (10**precision)) / (10**precision)
+    elif method == "floor":
+        import math
+
+        return math.floor(float(value) * (10**precision)) / (10**precision)
+    else:
+        return round(float(value), precision)
+
+
+def _filter_dictsort(
+    value: dict,
+    case_sensitive: bool = False,
+    by: str = "key",
+    reverse: bool = False,
+) -> list:
+    """Sort a dict and return list of (key, value) pairs."""
+    if by == "value":
+
+        def sort_key(item: tuple) -> Any:
+            val = item[1]
+            if not case_sensitive and isinstance(val, str):
+                return val.lower()
+            return val
+
+    else:
+
+        def sort_key(item: tuple) -> Any:
+            val = item[0]
+            if not case_sensitive and isinstance(val, str):
+                return val.lower()
+            return val
+
+    return sorted(value.items(), key=sort_key, reverse=reverse)
+
+
+def _filter_wordcount(value: str) -> int:
+    """Count words in a string."""
+    return len(str(value).split())
+
+
+def _filter_float(value: Any, default: float = 0.0) -> float:
+    """Convert value to float."""
+    try:
+        return float(value)
+    except (ValueError, TypeError):
+        return default
+
+
+def _filter_filesizeformat(value: int | float, binary: bool = False) -> str:
+    """Format a file size as human-readable."""
+    bytes_val = float(value)
+    base = 1024 if binary else 1000
+    prefixes = [
+        ("KiB" if binary else "kB", base),
+        ("MiB" if binary else "MB", base**2),
+        ("GiB" if binary else "GB", base**3),
+        ("TiB" if binary else "TB", base**4),
+    ]
+
+    if bytes_val < base:
+        return f"{int(bytes_val)} Bytes"
+
+    for prefix, divisor in prefixes:
+        if bytes_val < divisor * base:
+            return f"{bytes_val / divisor:.1f} {prefix}"
+
+    # Fallback to TB
+    return f"{bytes_val / (base**4):.1f} {'TiB' if binary else 'TB'}"
+
+
 # Default filters - comprehensive set matching Jinja2
 DEFAULT_FILTERS: dict[str, Callable] = {
     # Basic transformations
@@ -675,6 +750,14 @@ DEFAULT_FILTERS: dict[str, Callable] = {
     "slice": _filter_slice,
     "sum": _filter_sum,
     "unique": _filter_unique,
+    # Additional filters
+    "count": _filter_length,  # alias
+    "dictsort": _filter_dictsort,
+    "filesizeformat": _filter_filesizeformat,
+    "float": _filter_float,
+    "round": _filter_round,
+    "strip": _filter_trim,  # alias
+    "wordcount": _filter_wordcount,
 }
 
 
@@ -972,8 +1055,8 @@ class Environment:
         lexer = Lexer(source, self._lexer_config)
         tokens = list(lexer.tokenize())
 
-        # Parse
-        parser = Parser(tokens, name, filename)
+        # Parse (pass source for rich error messages)
+        parser = Parser(tokens, name, filename, source)
         ast = parser.parse()
 
         # Compile
@@ -981,6 +1064,92 @@ class Environment:
         code = compiler.compile(ast, name, filename)
 
         return Template(self, code, name, filename)
+
+    def render(self, template_name: str, *args: Any, **kwargs: Any) -> str:
+        """Render a template by name with context.
+
+        Convenience method combining get_template() and render().
+
+        Args:
+            template_name: Template identifier (e.g., "index.html")
+            *args: Single dict of context variables (optional)
+            **kwargs: Context variables as keyword arguments
+
+        Returns:
+            Rendered template as string
+
+        Example:
+            >>> env.render("email.html", user=user, items=items)
+            '...'
+        """
+        return self.get_template(template_name).render(*args, **kwargs)
+
+    def render_string(self, source: str, *args: Any, **kwargs: Any) -> str:
+        """Compile and render a template string.
+
+        Convenience method combining from_string() and render().
+
+        Args:
+            source: Template source code
+            *args: Single dict of context variables (optional)
+            **kwargs: Context variables as keyword arguments
+
+        Returns:
+            Rendered template as string
+
+        Example:
+            >>> env.render_string("Hello, {{ name }}!", name="World")
+            'Hello, World!'
+        """
+        return self.from_string(source).render(*args, **kwargs)
+
+    def filter(self, name: str | None = None) -> Callable:
+        """Decorator to register a filter function.
+
+        Args:
+            name: Filter name (defaults to function name)
+
+        Returns:
+            Decorator function
+
+        Example:
+            >>> @env.filter()
+            ... def double(value):
+            ...     return value * 2
+
+            >>> @env.filter("twice")
+            ... def my_double(value):
+            ...     return value * 2
+        """
+
+        def decorator(func: Callable) -> Callable:
+            filter_name = name if name is not None else func.__name__
+            self.add_filter(filter_name, func)
+            return func
+
+        return decorator
+
+    def test(self, name: str | None = None) -> Callable:
+        """Decorator to register a test function.
+
+        Args:
+            name: Test name (defaults to function name)
+
+        Returns:
+            Decorator function
+
+        Example:
+            >>> @env.test()
+            ... def is_prime(value):
+            ...     return value > 1 and all(value % i for i in range(2, value))
+        """
+
+        def decorator(func: Callable) -> Callable:
+            test_name = name if name is not None else func.__name__
+            self.add_test(test_name, func)
+            return func
+
+        return decorator
 
     def select_autoescape(self, name: str | None) -> bool:
         """Determine if autoescape should be enabled for a template.

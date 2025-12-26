@@ -12,6 +12,8 @@ from functools import cache
 from importlib import import_module
 from typing import TYPE_CHECKING
 
+from bengal.errors import BengalRenderingError, ErrorCode
+
 if TYPE_CHECKING:
     from .lexers._state_machine import StateMachineLexer
 
@@ -44,7 +46,7 @@ _LEXER_SPECS: dict[str, LexerSpec] = {
     "javascript": LexerSpec(
         "bengal.rendering.rosettes.lexers.javascript_sm",
         "JavaScriptStateMachineLexer",
-        aliases=("js", "ecmascript"),
+        aliases=("js", "ecmascript", "jsx"),
     ),
     "typescript": LexerSpec(
         "bengal.rendering.rosettes.lexers.typescript_sm",
@@ -201,7 +203,7 @@ _LEXER_SPECS: dict[str, LexerSpec] = {
     "markdown": LexerSpec(
         "bengal.rendering.rosettes.lexers.markdown_sm",
         "MarkdownStateMachineLexer",
-        aliases=("md", "mdown"),
+        aliases=("md", "mdown", "rst", "restructuredtext", "rest"),
     ),
     "xml": LexerSpec(
         "bengal.rendering.rosettes.lexers.xml_sm",
@@ -217,7 +219,7 @@ _LEXER_SPECS: dict[str, LexerSpec] = {
     "nginx": LexerSpec(
         "bengal.rendering.rosettes.lexers.nginx_sm",
         "NginxStateMachineLexer",
-        aliases=("nginxconf",),
+        aliases=("nginxconf", "apache", "apacheconf", "httpd"),
     ),
     "dockerfile": LexerSpec(
         "bengal.rendering.rosettes.lexers.dockerfile_sm",
@@ -304,6 +306,18 @@ _LEXER_SPECS: dict[str, LexerSpec] = {
         "TreeStateMachineLexer",
         aliases=("directory", "filetree", "dirtree", "files", "scm", "treesitter"),
     ),
+    # Template languages
+    "jinja": LexerSpec(
+        "bengal.rendering.rosettes.lexers.jinja_sm",
+        "JinjaStateMachineLexer",
+        aliases=("jinja2", "j2", "django", "go-html-template", "go-template", "gotpl"),
+    ),
+    # Plaintext (no highlighting)
+    "plaintext": LexerSpec(
+        "bengal.rendering.rosettes.lexers.plaintext_sm",
+        "PlaintextStateMachineLexer",
+        aliases=("text", "plain", "txt", "none", "raw"),
+    ),
 }
 
 # Build alias lookup table (case-insensitive)
@@ -329,7 +343,7 @@ def _normalize_name(name: str) -> str:
         Canonical language name.
 
     Raises:
-        LookupError: If the language is not supported.
+        BengalRenderingError: If the language is not supported (R011).
     """
     # Try direct lookup first (common case: already lowercase)
     if name in _ALIAS_TO_NAME:
@@ -338,7 +352,12 @@ def _normalize_name(name: str) -> str:
     lower = name.lower()
     if lower in _ALIAS_TO_NAME:
         return _ALIAS_TO_NAME[lower]
-    raise LookupError(f"Unknown language: {name!r}. Supported: {_SORTED_LANGUAGES}")
+    raise BengalRenderingError(
+        f"Unknown language: {name!r}. Supported: {_SORTED_LANGUAGES}",
+        code=ErrorCode.R011,
+        suggestion=f"Use one of the {len(_SORTED_LANGUAGES)} supported languages, "
+        f"or check for typos in '{name}'.",
+    )
 
 
 def get_lexer(name: str) -> StateMachineLexer:
@@ -357,7 +376,7 @@ def get_lexer(name: str) -> StateMachineLexer:
         StateMachineLexer instance.
 
     Raises:
-        LookupError: If the language is not supported.
+        BengalRenderingError: If the language is not supported (R011).
 
     Example:
         >>> lexer = get_lexer("python")
@@ -400,5 +419,5 @@ def supports_language(name: str) -> bool:
     try:
         _normalize_name(name)
         return True
-    except LookupError:
+    except BengalRenderingError:
         return False

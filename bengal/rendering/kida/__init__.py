@@ -38,8 +38,15 @@ Key Differences from Jinja2:
 """
 
 from bengal.rendering.kida._types import Token, TokenType
-from bengal.rendering.kida.environment import Environment
-from bengal.rendering.kida.template import Template
+from bengal.rendering.kida.environment import (
+    DictLoader,
+    Environment,
+    FileSystemLoader,
+    TemplateError,
+    TemplateNotFoundError,
+    TemplateSyntaxError,
+)
+from bengal.rendering.kida.template import LoopContext, Markup, Template
 
 __version__ = "0.1.0"
 
@@ -49,6 +56,16 @@ __all__ = [
     # Core
     "Environment",
     "Template",
+    # Loaders
+    "DictLoader",
+    "FileSystemLoader",
+    # Exceptions
+    "TemplateError",
+    "TemplateNotFoundError",
+    "TemplateSyntaxError",
+    # Utilities
+    "Markup",
+    "LoopContext",
     # Types
     "Token",
     "TokenType",

@@ -157,6 +157,11 @@ class ErrorCode(Enum):
     R009 = "template_inheritance_error"
     R010 = "render_output_error"
 
+    # Syntax highlighting (R011-R015)
+    R011 = "highlighting_language_unknown"  # Unknown/unsupported language
+    R012 = "highlighting_backend_error"  # Backend initialization or processing error
+    R013 = "highlighting_theme_unknown"  # Unknown syntax theme/palette
+
     # ============================================================
     # Discovery errors (D001-D099)
     # ============================================================

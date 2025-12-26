@@ -21,6 +21,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from bengal.errors import BengalRenderingError, ErrorCode
 from bengal.rendering.rosettes.themes._mapping import (
     PYGMENTS_CLASS_MAP,
     ROLE_MAPPING,
@@ -121,7 +122,7 @@ def get_palette(name: str) -> Palette:
         The requested palette.
 
     Raises:
-        KeyError: If the palette is not registered.
+        BengalRenderingError: If the palette is not registered (R013).
     """
     # Lazy init
     if not _PALETTES:
@@ -129,7 +130,11 @@ def get_palette(name: str) -> Palette:
 
     if name not in _PALETTES:
         available = ", ".join(sorted(_PALETTES.keys()))
-        raise KeyError(f"Unknown palette: {name!r}. Available: {available}")
+        raise BengalRenderingError(
+            f"Unknown syntax theme: {name!r}. Available: {available}",
+            code=ErrorCode.R013,
+            suggestion=f"Use one of the built-in themes: {available}",
+        )
 
     return _PALETTES[name]
 
