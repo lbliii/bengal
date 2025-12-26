@@ -404,14 +404,12 @@ class Environment:
 
         # Apply AST optimizations
         optimized_ast = None
-        estimated_output_count = 0
         if self.optimized:
             from bengal.rendering.kida.optimizer import ASTOptimizer
 
             optimizer = ASTOptimizer()
             result = optimizer.optimize(ast)
             ast = result.ast
-            estimated_output_count = result.stats.estimated_output_count
             # Preserve optimized AST for introspection if enabled
             if self.preserve_ast:
                 optimized_ast = ast
@@ -421,7 +419,7 @@ class Environment:
 
         # Compile
         compiler = Compiler(self)
-        code = compiler.compile(ast, name, filename, estimated_output_count=estimated_output_count)
+        code = compiler.compile(ast, name, filename)
 
         # Cache bytecode for future cold-starts
         if self._bytecode_cache is not None and name is not None and source_hash is not None:

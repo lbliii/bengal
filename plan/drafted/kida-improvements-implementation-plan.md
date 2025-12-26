@@ -451,42 +451,38 @@ This plan implements **17 actionable improvements** identified in the Kida evalu
 **Risk**: Medium  
 **Dependencies**: None (can parallelize)
 
-### Task 4.1: Pre-allocate StringBuilder Buffer ✅ COMPLETED
+### Task 4.1: Pre-allocate StringBuilder Buffer ❌ ABANDONED
 
 **Reference**: Evaluation Report §1.3  
-**Effort**: 8 hours (actual: ~8 hours)  
+**Effort**: 8 hours (actual: ~8 hours including investigation)  
 **Risk**: Medium (memory, dynamic content)  
-**Impact**: 5-10% rendering speedup
+**Expected Impact**: 5-10% rendering speedup
 
-**Status**: ✅ Completed 2024-12-26
+**Status**: ❌ Abandoned 2024-12-26 — Optimization proved counterproductive
 
-**Implementation Summary**:
-1. Added `PRE_ALLOC_THRESHOLD = 100` and `PRE_ALLOC_HEADROOM = 1.2` constants
-2. Added `_use_prealloc` and `_buffer_size` computed properties for strategy selection
-3. Created AST generation helpers: `_make_prealloc_buffer_init()`, `_make_prealloc_append_func()`,
-   `_make_prealloc_join()`, `_make_dynamic_buffer_init()`, `_make_dynamic_join()`
-4. Modified `_make_render_function()` to dispatch based on estimated output count
-5. The `_append` abstraction allows statement compilation to work unchanged with both strategies
-6. Block functions intentionally use dynamic buffers (smaller scope, less benefit)
+**Investigation Summary**:
 
-**Key Design Decisions**:
-- Pre-allocation uses indexed assignment (`buf[_idx] = val`) with overflow fallback
-- Overflow protection: If `_idx >= _buf_len`, falls back to `buf.append(val)`
-- Final join uses conditional slice: `''.join(buf[:_idx] if _idx < _buf_len else buf)`
-- 20% headroom (`PRE_ALLOC_HEADROOM = 1.2`) handles minor estimation variance
+Implemented buffer pre-allocation with closure-based `_append` function and indexed
+assignment. Benchmark testing revealed the optimization was **slower, not faster**:
 
-**Acceptance Criteria**:
-- [x] Buffer size estimation passed to compiler (`estimated_output_count` param)
-- [x] Pre-allocation generated for large templates (≥100 outputs)
-- [x] Fallback to dynamic growth for small/uncertain templates (<100 outputs)
-- [x] Test: Pre-allocation works correctly (24 tests in `test_buffer_preallocation.py`)
-- [x] Test: Fallback works for dynamic content (overflow tests pass)
-- [x] Benchmark: Baseline established (12 benchmarks in `test_kida_buffer_performance.py`)
+| Pattern | Time (500k iters) | vs Baseline |
+|---------|-------------------|-------------|
+| **`list.append` + `join`** | 172 ms | **1.00x (FASTEST)** |
+| Pre-alloc (closure) | 465 ms | 0.37x ❌ |
+| Pre-alloc (direct index) | 243 ms | 0.71x ❌ |
+| StringIO.write | 351 ms | 0.49x ❌ |
 
-**Files Modified/Created**:
-- `bengal/rendering/kida/compiler/core.py` — Added pre-allocation logic
-- `tests/rendering/kida/test_buffer_preallocation.py` — New (24 tests)
-- `benchmarks/test_kida_buffer_performance.py` — New (12 benchmarks)
+**Root Cause Analysis**:
+1. **Python's `list.append` is highly optimized** — Uses geometric growth (capacity doubling),
+   resizes are rare and amortized O(1)
+2. **Closure overhead is significant** — `nonlocal _idx` + function call overhead adds ~35% cost
+3. **Even direct indexing is slower** — `buf[i] = val; i += 1` is slower than `buf.append(val)`
+   because Python's list is specifically optimized for appending
+
+**Conclusion**: The theoretical benefit (avoiding list resizes) is outweighed by the overhead
+of any Python-level alternative. `list.append + join` is already optimal in CPython.
+
+**Files Reverted**: All pre-allocation code removed from `compiler/core.py`
 
 ---
 
