@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import json
 import time
+import traceback
 import tracemalloc
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field
@@ -191,8 +192,10 @@ class BengalLogger:
         try:
             yield
         except Exception as e:
+            # Enhance error message for common issues
+            enhanced_error = self._enhance_error_message(e, name, context)
             # Emit phase error
-            self.error("phase_error", phase_name=name, error=str(e), **context)
+            self.error("phase_error", phase_name=name, error=enhanced_error, **context)
             raise
         finally:
             # Pop phase and calculate metrics
@@ -215,6 +218,109 @@ class BengalLogger:
                 peak_memory_mb=peak_memory_mb,
                 **phase_context,
             )
+
+    def _enhance_error_message(
+        self, error: Exception, phase_name: str, context: dict[str, Any]
+    ) -> str:
+        """
+        Enhance error messages with helpful context for common issues.
+
+        Detects specific error patterns and adds context about what went wrong,
+        what was expected, and how to fix it.
+        """
+        error_msg = str(error)
+        error_type = type(error).__name__
+
+        # Detect AttributeError with 'get' attribute (common config access issue)
+        if error_type == "AttributeError" and "'str' object has no attribute 'get'" in error_msg:
+            # Try to extract context from traceback
+            tb_lines = traceback.format_exception(type(error), error, error.__traceback__)
+            tb_str = "".join(tb_lines)
+
+            # Try to find the failing line and extract variable info
+            failing_line = None
+            for line in tb_lines:
+                if ".get(" in line and ("site.config" in line or "self.site.config" in line):
+                    # Extract just the code line, not the full traceback line
+                    if "File" in line:
+                        parts = line.split("\n")
+                        if len(parts) > 1:
+                            failing_line = parts[1].strip()
+                    break
+
+            # Check if it's related to site.config
+            if "site.config" in tb_str or "self.site.config" in tb_str:
+                # Extract the actual value if possible from context
+                config_value_preview = None
+                config_type_name = "unknown"
+                if "site" in context:
+                    site = context.get("site")
+                    if hasattr(site, "config"):
+                        config_value = site.config
+                        config_type_name = type(config_value).__name__
+                        if isinstance(config_value, str):
+                            preview = (
+                                config_value[:100] + "..."
+                                if len(config_value) > 100
+                                else config_value
+                            )
+                            config_value_preview = f"'{preview}'"
+
+                enhanced = [
+                    error_msg,
+                    "",
+                    "Context:",
+                    "  Expected: dict (site configuration)",
+                    f"  Got: str (type: {config_type_name})",
+                ]
+
+                if failing_line:
+                    enhanced.append(f"  Failed at: {failing_line}")
+
+                if config_value_preview:
+                    enhanced.append(f"  Config value: {config_value_preview}")
+
+                enhanced.extend(
+                    [
+                        "",
+                        "Likely cause:",
+                        "  • Configuration file parsing failed or returned a string",
+                        "  • Config was set incorrectly during site initialization",
+                        "  • Hot reload may have corrupted config state",
+                        "",
+                        "How to fix:",
+                        "  1. Check bengal.yaml or config/ directory for syntax errors",
+                        "  2. Verify config loader is returning a dict, not a string",
+                        "  3. Restart dev server to clear corrupted state",
+                        "  4. Check for YAML parsing errors in config files",
+                    ]
+                )
+
+                return "\n".join(enhanced)
+
+            # Generic AttributeError with 'get' - might be other dict access
+            enhanced = [
+                error_msg,
+                "",
+                "Context:",
+                "  - Attempted to call .get() on a string instead of a dict",
+                "",
+                "How to fix:",
+                "  - Check the variable type before calling .get()",
+                "  - Ensure the value is a dict, not a string",
+            ]
+
+            # Try to find the variable name from traceback
+            for line in tb_lines:
+                if ".get(" in line:
+                    # Extract the line that failed
+                    enhanced.insert(2, f"  - Failed at: {line.strip()}")
+                    break
+
+            return "\n".join(enhanced)
+
+        # Return original error message if no enhancement applies
+        return error_msg
 
     def _emit(self, level: LogLevel, message: str, **context: Any) -> None:
         """
