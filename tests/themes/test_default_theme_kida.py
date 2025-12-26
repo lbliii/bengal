@@ -254,6 +254,60 @@ Found {{ count }} items
         result = tmpl.render(item={"id": 1, "name": "First"})
         assert "<div>First</div>" in result
 
+    def test_slot_with_conditional_wrapper(self, env: Environment):
+        """Test {% slot %} in conditional wrapper (collapsible vs static)."""
+        tmpl = env.from_string("""
+{%- def section(title, collapsible=false) -%}
+{% if collapsible %}
+<details>
+  <summary>{{ title }}</summary>
+  {% slot %}
+</details>
+{% else %}
+<section>
+  <h2>{{ title }}</h2>
+  {% slot %}
+</section>
+{% end %}
+{%- end -%}
+
+{%- call section("Static Section") -%}
+<p>Static content</p>
+{%- end -%}
+
+{%- call section("Collapsible Section", collapsible=true) -%}
+<p>Hidden content</p>
+{%- end -%}
+""")
+        result = tmpl.render()
+        # Static section
+        assert "<section>" in result
+        assert "<h2>Static Section</h2>" in result
+        assert "<p>Static content</p>" in result
+        # Collapsible section
+        assert "<details>" in result
+        assert "<summary>Collapsible Section</summary>" in result
+        assert "<p>Hidden content</p>" in result
+
+    def test_slot_with_nested_variables(self, env: Environment):
+        """Test {% slot %} content can access outer scope variables."""
+        tmpl = env.from_string("""
+{%- let site_name = "My Site" -%}
+{%- def wrapper(title) -%}
+<div class="wrapper">
+  <h1>{{ title }}</h1>
+  {% slot %}
+</div>
+{%- end -%}
+
+{%- call wrapper("Page Title") -%}
+<p>Welcome to {{ site_name }}!</p>
+{%- end -%}
+""")
+        result = tmpl.render()
+        assert "<h1>Page Title</h1>" in result
+        assert "<p>Welcome to My Site!</p>" in result
+
 
 class TestTemplateContext:
     """Test templates work with Bengal context objects."""

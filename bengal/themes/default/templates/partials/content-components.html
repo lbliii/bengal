@@ -1,34 +1,42 @@
 {#
 Content Components
 
-Reusable macro-based content display components for the Bengal default theme.
+Reusable content display components for the Bengal default theme.
+Includes both data-driven functions and slot-based wrappers.
 
-Components:
-- card_wrapper(css_class, href, show_border): Slot-based card wrapper for custom content
+=== Slot-based Components (Kida-native) ===
+Use with {% call %} to inject custom content into the {% slot %}:
+
+- card_wrapper(css_class, href, show_border): Flexible card wrapper
+- panel(variant, title, icon_name, collapsible): Callouts/alerts (info, warning, tip, etc.)
+- section_wrapper(title, icon_name, collapsible, open, id): Section with header
+- details_card(summary, css_class, open, data_attrs): Collapsible details/summary card
+
+Example:
+  {% call panel(variant='warning', title='Note') %}
+    <p>This is a warning message.</p>
+  {% end %}
+
+  {% call section_wrapper(title='Options', collapsible=true) %}
+    <ul><li>Option 1</li><li>Option 2</li></ul>
+  {% end %}
+
+=== Data-driven Components ===
+Pass data as arguments, component renders it:
+
 - content_tiles(...): Flexible content display with variants (recommended)
-- article_card(article, show_excerpt=True, show_image=False): Rich article preview card
-- child_page_tiles(posts, subsections): [DEPRECATED] Use content_tiles() instead
-- tag_list(tags, small=False, linkable=True): Styled tag badges
-- popular_tags(limit=10): Tag cloud widget with popular tags
-- random_posts(count=3): Random post discovery widget
+- article_card(article, show_excerpt, show_image): Rich article preview card
+- tag_list(tags, small, linkable): Styled tag badges
+- popular_tags(limit): Tag cloud widget
+- random_posts(count): Random post discovery widget
 
-Usage:
-from 'partials/content-components.html' import content_tiles, article_card, tag_list, card_wrapper
+Example:
+  {{ content_tiles(title="In This Section", children=posts, subsections=subsections) }}
+  {{ article_card(post, show_image=True) }}
 
-New recommended API:
-content_tiles(title="In This Section", children=posts, subsections=subsections)
-content_tiles(title="Related", related=page.related_posts[:3], variant='minimal')
-content_tiles(children=posts, related=True, group_by='type')
-
-Slot-based components (Kida-native):
-{% call card_wrapper(css_class='my-card', href='/path') %}
-<h3>Custom Card Content</h3>
-<p>This content fills the {% slot %} in the wrapper.</p>
-{% end %}
-
-Legacy (still works):
-article_card(post, show_image=True)
-tag_list(page.tags, small=True)
+=== When to use which? ===
+- {% def %} alone: Render data passed as arguments
+- {% def %} + {% slot %}: Wrapper that accepts custom CONTENT (not just data)
 #}
 
 {#
@@ -111,6 +119,86 @@ collapsible: Make panel collapsible with <details> (default: false)
     </div>
   </aside>
   {% end %}
+  {% end %}
+
+  {#
+  Section Wrapper Component (Slot-based)
+
+  Wraps content in a section with optional header, icon, and collapsible behavior.
+  Use with {% call %} to inject section content.
+
+  Args:
+  title: Section header text (required)
+  icon_name: Optional icon for the header
+  css_class: Additional CSS class(es)
+  collapsible: Make section collapsible (default: false)
+  open: If collapsible, whether to start open (default: true)
+  id: Optional ID for the section element
+
+  Example:
+  {% call section_wrapper(title='Configuration', icon_name='settings') %}
+  <p>Configuration content here...</p>
+  {% end %}
+
+  {% call section_wrapper(title='Advanced Options', collapsible=true, open=false) %}
+  <p>Hidden by default until expanded.</p>
+  {% end %}
+  #}
+  {% def section_wrapper(title, icon_name=None, css_class='', collapsible=false, open=true, id=None) %}
+  {% if collapsible %}
+  <details class="section-wrapper section-wrapper--collapsible {{ css_class }}" {% if id %} id="{{ id }}" {% end %}{% if
+    open %} open{% end %}>
+    <summary class="section-wrapper-header">
+      {% if icon_name %}{{ icon(icon_name, size=20, css_class='section-wrapper-icon') }}{% end %}
+      <span class="section-wrapper-title">{{ title }}</span>
+      <span class="section-wrapper-toggle">{{ icon('chevron-down', size=16) }}</span>
+    </summary>
+    <div class="section-wrapper-body">
+      {% slot %}
+    </div>
+  </details>
+  {% else %}
+  <section class="section-wrapper {{ css_class }}" {% if id %} id="{{ id }}" {% end %}>
+    <header class="section-wrapper-header">
+      {% if icon_name %}{{ icon(icon_name, size=20, css_class='section-wrapper-icon') }}{% end %}
+      <h2 class="section-wrapper-title">{{ title }}</h2>
+    </header>
+    <div class="section-wrapper-body">
+      {% slot %}
+    </div>
+  </section>
+  {% end %}
+  {% end %}
+
+  {#
+  Details Card Component (Slot-based)
+
+  Collapsible card with summary/details pattern. Ideal for member lists, FAQs, accordions.
+  Use with {% call %} to inject the expandable body content.
+
+  Args:
+  summary: Text/HTML for the summary line (required)
+  css_class: Additional CSS class(es)
+  open: Whether to start expanded (default: false)
+  data_attrs: Dict of data-* attributes to add
+
+  Example:
+  {% call details_card(summary='<code>my_method()</code> → str') %}
+  <p>Method documentation goes here.</p>
+  {% end %}
+
+  {% call details_card(summary='Click to expand', open=true) %}
+  <p>This content is visible by default.</p>
+  {% end %}
+  #}
+  {% def details_card(summary, css_class='', open=false, data_attrs=None) %}
+  <details class="details-card {{ css_class }}" {% if open %} open{% end %}{% if data_attrs %}{% for k, v in
+    data_attrs.items() %} data-{{ k }}="{{ v }}" {% end %}{% end %}>
+    <summary class="details-card-summary">{{ summary | safe }}</summary>
+    <div class="details-card-body">
+      {% slot %}
+    </div>
+  </details>
   {% end %}
 
   {#
