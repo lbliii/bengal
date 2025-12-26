@@ -1,7 +1,7 @@
-"""Hand-written Diff/Patch lexer using line-oriented approach.
+"""Hand-written Diff/Patch lexer optimized for speed.
 
 O(n) guaranteed, zero regex, thread-safe.
-Uses C-level splitlines() for maximum performance.
+Uses C-level str.find() for fast line scanning.
 """
 
 from __future__ import annotations
@@ -15,9 +15,9 @@ __all__ = ["DiffStateMachineLexer"]
 
 
 class DiffStateMachineLexer(StateMachineLexer):
-    """Diff/Patch lexer using line-oriented processing.
+    """Diff/Patch lexer optimized with C-level str.find().
 
-    Uses C-level splitlines() instead of character-by-character scanning.
+    Line-based format - uses find() to scan lines without allocating intermediate lists.
     """
 
     name = "diff"
@@ -26,32 +26,41 @@ class DiffStateMachineLexer(StateMachineLexer):
     mimetypes = ("text/x-diff", "text/x-patch")
 
     def tokenize(self, code: str) -> Iterator[Token]:
-        # Use C-level splitlines() for fast line extraction
-        line_num = 1
+        pos = 0
+        length = len(code)
+        line = 1
 
-        for line_content in code.splitlines(keepends=True):
-            # Strip newline for classification, keep for output
-            has_newline = line_content.endswith("\n")
-            content = line_content.rstrip("\n\r")
+        while pos < length:
+            # Use C-level find to get line end - much faster than char-by-char
+            line_end = code.find("\n", pos)
+            if line_end == -1:
+                line_end = length
+                has_newline = False
+            else:
+                has_newline = True
 
-            # Classify line by first character(s) - ordered by frequency
+            content = code[pos:line_end]
+
+            # Classify line by first character - most common cases first
             if content:
                 first_char = content[0]
 
-                if first_char == "+":
-                    if content.startswith("+++"):
-                        token_type = TokenType.GENERIC_HEADING
-                    else:
-                        token_type = TokenType.GENERIC_INSERTED
-                elif first_char == "-":
-                    if content.startswith("---"):
-                        token_type = TokenType.GENERIC_HEADING
-                    else:
-                        token_type = TokenType.GENERIC_DELETED
-                elif first_char == "@" and content.startswith("@@"):
-                    token_type = TokenType.GENERIC_SUBHEADING
-                elif first_char == " ":
+                if first_char == " ":
                     token_type = TokenType.TEXT
+                elif first_char == "+":
+                    token_type = (
+                        TokenType.GENERIC_HEADING
+                        if len(content) >= 3 and content[1:3] == "++"
+                        else TokenType.GENERIC_INSERTED
+                    )
+                elif first_char == "-":
+                    token_type = (
+                        TokenType.GENERIC_HEADING
+                        if len(content) >= 3 and content[1:3] == "--"
+                        else TokenType.GENERIC_DELETED
+                    )
+                elif first_char == "@" and len(content) >= 2 and content[1] == "@":
+                    token_type = TokenType.GENERIC_SUBHEADING
                 elif first_char == "d" and content.startswith("diff "):
                     token_type = TokenType.GENERIC_HEADING
                 elif first_char == "i" and content.startswith("index "):
@@ -59,10 +68,9 @@ class DiffStateMachineLexer(StateMachineLexer):
                 elif (
                     first_char == "I"
                     and content.startswith("Index: ")
-                    or first_char == "="
-                    and content.startswith("===")
-                    or first_char == "*"
-                    and content.startswith("***")
+                    or first_char in "=*"
+                    and len(content) >= 3
+                    and content[:3] in ("===", "***")
                 ):
                     token_type = TokenType.GENERIC_HEADING
                 elif first_char == "!":
@@ -70,13 +78,13 @@ class DiffStateMachineLexer(StateMachineLexer):
                 else:
                     token_type = TokenType.TEXT
 
-                yield Token(token_type, content, line_num, 1)
+                yield Token(token_type, content, line, 1)
 
-            # Emit newline as separate whitespace token
+            pos = line_end
+
+            # Handle newline
             if has_newline:
                 col = len(content) + 1 if content else 1
-                yield Token(TokenType.WHITESPACE, "\n", line_num, col)
-                line_num += 1
-            elif not content:
-                # Empty line without newline (shouldn't happen often)
-                pass
+                yield Token(TokenType.WHITESPACE, "\n", line, col)
+                pos += 1
+                line += 1

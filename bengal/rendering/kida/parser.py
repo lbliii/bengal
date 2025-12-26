@@ -20,6 +20,7 @@ from bengal.rendering.kida.nodes import (
     CondExpr,
     Const,
     Data,
+    Dict,
     Export,
     Extends,
     Filter,
@@ -1010,6 +1011,31 @@ class Parser:
                     items.append(self._parse_expression())
             self._expect(TokenType.RBRACKET)
             return List(token.lineno, token.col_offset, tuple(items))
+
+        # Dict literal: {} or {key: value, ...}
+        if token.type == TokenType.LBRACE:
+            self._advance()
+            keys = []
+            values = []
+            if not self._match(TokenType.RBRACE):
+                # Parse first key:value pair
+                key = self._parse_expression()
+                self._expect(TokenType.COLON)
+                value = self._parse_expression()
+                keys.append(key)
+                values.append(value)
+                # Parse remaining pairs
+                while self._match(TokenType.COMMA):
+                    self._advance()
+                    if self._match(TokenType.RBRACE):
+                        break
+                    key = self._parse_expression()
+                    self._expect(TokenType.COLON)
+                    value = self._parse_expression()
+                    keys.append(key)
+                    values.append(value)
+            self._expect(TokenType.RBRACE)
+            return Dict(token.lineno, token.col_offset, tuple(keys), tuple(values))
 
         raise ParseError(
             f"Unexpected token: {token.type.value}",

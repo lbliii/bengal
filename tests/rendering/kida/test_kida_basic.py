@@ -249,24 +249,67 @@ class TestPythonicScoping:
     def test_let_persists(self):
         """Variables declared with let persist across blocks."""
         env = Environment()
-        template = env.from_string(
+        # Note: In current implementation, let is same as set
+        # Full let semantics will be added in a later version
+        # For now, just verify the template compiles
+        env.from_string(
             """
 {% let counter = 0 %}
 {% for i in items %}{% set counter = counter + 1 %}{% endfor %}
 {{ counter }}
 """.strip()
         )
-        # Note: In current implementation, let is same as set
-        # Full let semantics will be added in a later version
 
     def test_export_from_loop(self):
         """Export makes inner variable available in outer scope."""
         env = Environment()
-        template = env.from_string(
+        # Note: In current implementation, export is same as set
+        # Full export semantics will be added in a later version
+        # For now, just verify the template compiles
+        env.from_string(
             """
 {% for item in items %}{% export last = item %}{% endfor %}
 {{ last }}
 """.strip()
         )
-        # Note: In current implementation, export is same as set
-        # Full export semantics will be added in a later version
+
+
+class TestDictLiterals:
+    """Test dict literal parsing and compilation."""
+
+    def test_empty_dict(self):
+        """Empty dict literal."""
+        env = Environment()
+        template = env.from_string("{% set x = {} %}{{ x }}")
+        result = template.render()
+        assert result == "{}"
+
+    def test_dict_with_values(self):
+        """Dict with key-value pairs."""
+        env = Environment()
+        template = env.from_string('{% set x = {"a": 1, "b": 2} %}{{ x["a"] }}')
+        result = template.render()
+        assert result == "1"
+
+    def test_dict_in_ternary(self):
+        """Dict literal in ternary expression."""
+        env = Environment()
+        template = env.from_string("{% set y = none %}{% set x = y.val if y else {} %}{{ x }}")
+        result = template.render()
+        assert result == "{}"
+
+    def test_dict_with_variable_key(self):
+        """Dict with variable as key."""
+        env = Environment()
+        template = env.from_string('{% set k = "key" %}{% set d = {k: "value"} %}{{ d["key"] }}')
+        result = template.render()
+        assert result == "value"
+
+    def test_nested_dict(self):
+        """Nested dict literals."""
+        env = Environment()
+        template = env.from_string(
+            '{% set x = {"outer": {"inner": 42}} %}{{ x["outer"]["inner"] }}'
+        )
+        result = template.render()
+        assert result == "42"
