@@ -183,6 +183,8 @@ class Environment:
     # Template cache (LRU with size limit)
     _cache: LRUCache = field(init=False)
     _fragment_cache: LRUCache = field(init=False)
+    # Source hashes for cache invalidation (template_name -> source_hash)
+    _template_hashes: dict[str, str] = field(init=False, default_factory=dict)
 
     def __post_init__(self) -> None:
         """Initialize derived configuration."""
@@ -327,9 +329,9 @@ class Environment:
             TemplateSyntaxError: If template has syntax errors
 
         Note:
-            With auto_reload=True (default), templates are still cached but
-            the cache is checked first. In the future, this may check file
-            modification times to invalidate stale entries.
+            With auto_reload=True (default), templates are checked for source changes
+            using hash comparison. If source changed, cache is invalidated and template
+            is reloaded. This ensures templates reflect filesystem changes.
         """
         if self.loader is None:
             raise RuntimeError("No loader configured")
@@ -337,16 +339,32 @@ class Environment:
         # Check cache (thread-safe LRU)
         cached = self._cache.get(name)
         if cached is not None:
-            # TODO: With auto_reload=True, could check file modification time
-            # For now, return cached regardless of auto_reload setting
-            return cached
+            # With auto_reload=True, verify source hasn't changed
+            if self.auto_reload:
+                if self._is_template_stale(name):
+                    # Source changed - invalidate cache and reload
+                    self._cache.delete(name)
+                    self._template_hashes.pop(name, None)
+                else:
+                    # Source unchanged - return cached template
+                    return cached
+            else:
+                # auto_reload=False - return cached without checking
+                return cached
 
         # Load and compile
         source, filename = self.loader.get_source(name)
+
+        # Compute source hash for cache invalidation
+        from bengal.rendering.kida.bytecode_cache import hash_source
+
+        source_hash = hash_source(source)
+
         template = self._compile(source, name, filename)
 
         # Update cache (LRU handles eviction)
         self._cache.set(name, template)
+        self._template_hashes[name] = source_hash
 
         return template
 
@@ -413,6 +431,60 @@ class Environment:
             self._bytecode_cache.set(name, source_hash, code)
 
         return Template(self, code, name, filename, optimized_ast=optimized_ast)
+
+    def _is_template_stale(self, name: str) -> bool:
+        """Check if a cached template is stale (source changed).
+
+        Compares current source hash with cached hash. Returns True if:
+        - No cached hash exists (first load)
+        - Current source hash differs from cached hash
+
+        Args:
+            name: Template identifier
+
+        Returns:
+            True if template source changed, False if unchanged
+        """
+        if name not in self._template_hashes:
+            # No cached hash - treat as stale to force reload
+            return True
+
+        try:
+            # Load current source and compute hash
+            source, _ = self.loader.get_source(name)
+            from bengal.rendering.kida.bytecode_cache import hash_source
+
+            current_hash = hash_source(source)
+            cached_hash = self._template_hashes[name]
+
+            # Stale if hashes differ
+            return current_hash != cached_hash
+        except Exception:
+            # If we can't load source (file deleted, etc.), treat as stale
+            return True
+
+    def clear_template_cache(self, names: list[str] | None = None) -> None:
+        """Clear template cache (optional, for external invalidation).
+
+        Useful when an external system (e.g., Bengal) detects template changes
+        and wants to force cache invalidation without waiting for hash check.
+
+        Args:
+            names: Specific template names to clear, or None to clear all
+
+        Example:
+            >>> env.clear_template_cache()  # Clear all
+            >>> env.clear_template_cache(["base.html", "page.html"])  # Clear specific
+        """
+        if names is None:
+            # Clear all templates
+            self._cache.clear()
+            self._template_hashes.clear()
+        else:
+            # Clear specific templates
+            for name in names:
+                self._cache.delete(name)
+                self._template_hashes.pop(name, None)
 
     def render(self, template_name: str, *args: Any, **kwargs: Any) -> str:
         """Render a template by name with context.
@@ -530,10 +602,6 @@ class Environment:
         self._fragment_cache.clear()
         if include_bytecode and self._bytecode_cache is not None:
             self._bytecode_cache.clear()
-
-    def clear_template_cache(self) -> None:
-        """Clear only the template cache (keep fragment cache)."""
-        self._cache.clear()
 
     def clear_fragment_cache(self) -> None:
         """Clear only the fragment cache (keep template cache)."""

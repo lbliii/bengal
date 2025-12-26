@@ -54,7 +54,7 @@ search = ["lunr>=0.7.0"]
 # Note: Pillow is already a core dependency for social cards
 # These extras add advanced image processing features
 images = ["Pillow>=10.0"]                                   # Already included, explicit for clarity
-smartcrop = ["Pillow>=10.0", "smartcrop-py>=0.3"]           # Smart face/feature detection cropping
+smartcrop = ["Pillow>=10.0", "smartcrop>=0.3"]           # Smart face/feature detection cropping
 avif = ["Pillow>=10.0", "pillow-avif-plugin>=1.3"]          # AVIF format output support
 fast-images = ["pyvips>=2.2"]                               # libvips acceleration (advanced users)
 

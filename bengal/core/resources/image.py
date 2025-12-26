@@ -29,7 +29,7 @@ Anchor Points:
 
 Dependencies:
     - Pillow: Required for image processing
-    - smartcrop-py: Optional for smart cropping
+    - smartcrop: Optional for smart cropping
     - pillow-avif-plugin: Optional for AVIF output
 """
 

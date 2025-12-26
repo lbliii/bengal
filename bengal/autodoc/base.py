@@ -145,6 +145,30 @@ class DocElement:
             # Last resort: represent unknown objects as strings (stable enough for caching)
             return str(value)
 
+        # Validate children are DocElement instances before serialization
+        # This catches bugs early and prevents corrupted cache data
+        invalid_children = [
+            (i, type(child).__name__)
+            for i, child in enumerate(self.children)
+            if not isinstance(child, DocElement)
+        ]
+        if invalid_children:
+            from bengal.utils.logger import get_logger
+
+            logger = get_logger(__name__)
+            logger.error(
+                "autodoc_children_validation_failed",
+                invalid_indices=[idx for idx, _ in invalid_children],
+                invalid_types=[typ for _, typ in invalid_children],
+                element_name=self.name,
+                element_type=self.element_type,
+                action="skipping_invalid_children",
+            )
+            # Filter out invalid children to prevent cache corruption
+            valid_children = [child for child in self.children if isinstance(child, DocElement)]
+        else:
+            valid_children = self.children
+
         result = {
             "name": self.name,
             "qualified_name": self.qualified_name,
@@ -154,7 +178,7 @@ class DocElement:
             "line_number": self.line_number,
             "metadata": _to_jsonable(self.metadata),
             "typed_metadata": None,
-            "children": [child.to_dict() for child in self.children],
+            "children": [child.to_dict() for child in valid_children],
             "examples": self.examples,
             "see_also": self.see_also,
             "deprecated": self.deprecated,
@@ -172,7 +196,44 @@ class DocElement:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> DocElement:
         """Create from dictionary (for cache loading)."""
-        children = [cls.from_dict(child) for child in data.get("children", [])]
+        # Guard against malformed cache data (e.g., strings instead of dicts)
+        if not isinstance(data, dict):
+            from bengal.utils.logger import get_logger
+
+            logger = get_logger(__name__)
+            logger.warning(
+                "autodoc_cache_malformed_entry",
+                expected_type="dict",
+                actual_type=type(data).__name__,
+                data_preview=str(data)[:100] if isinstance(data, str) else repr(data)[:100],
+                action="skipping_entry",
+            )
+            # Return a minimal valid element to prevent crashes
+            # This allows the build to continue even with corrupted cache entries
+            return cls(
+                name="<malformed>",
+                qualified_name="<malformed>",
+                description="Malformed cache entry (skipped)",
+                element_type="unknown",
+                children=[],
+            )
+
+        # Safely process children, skipping any that aren't dicts
+        children = []
+        for child in data.get("children", []):
+            if isinstance(child, dict):
+                try:
+                    children.append(cls.from_dict(child))
+                except Exception as e:
+                    from bengal.utils.logger import get_logger
+
+                    logger = get_logger(__name__)
+                    logger.debug(
+                        "autodoc_cache_child_deserialization_failed",
+                        error=str(e),
+                        child_preview=repr(child)[:100],
+                        action="skipping_child",
+                    )
         source_file = Path(data["source_file"]) if data.get("source_file") else None
 
         # Deserialize typed_metadata

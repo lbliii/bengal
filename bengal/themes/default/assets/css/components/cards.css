@@ -1041,6 +1041,63 @@ a.card:hover {
   animation-name: card-color-edge-glow-dark;
 }
 
+/* Teal - Custom color (matches snow-lynx palette) */
+.card-color-teal {
+  --card-accent-color: #4FA8A0;
+  border-left-width: 2px;
+  border-left-color: color-mix(in srgb, #4FA8A0 60%, transparent);
+  border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
+  animation: card-color-edge-glow 8s ease-in-out infinite;
+}
+
+.card-color-teal:hover {
+  border-left-color: color-mix(in srgb, #3D9287 70%, transparent);
+}
+
+[data-theme="dark"] .card-color-teal {
+  --card-accent-color: #6EC4BC;
+  border-left-color: color-mix(in srgb, #6EC4BC 50%, transparent);
+  animation-name: card-color-edge-glow-dark;
+}
+
+/* Cyan - Custom color (bright cyan accent) */
+.card-color-cyan {
+  --card-accent-color: #06b6d4;
+  border-left-width: 2px;
+  border-left-color: color-mix(in srgb, #06b6d4 60%, transparent);
+  border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
+  animation: card-color-edge-glow 8s ease-in-out infinite;
+}
+
+.card-color-cyan:hover {
+  border-left-color: color-mix(in srgb, #0891b2 70%, transparent);
+}
+
+[data-theme="dark"] .card-color-cyan {
+  --card-accent-color: #22d3ee;
+  border-left-color: color-mix(in srgb, #22d3ee 50%, transparent);
+  animation-name: card-color-edge-glow-dark;
+}
+
+/* Violet - Custom color (blue-purple, distinct from purple) */
+.card-color-violet {
+  --card-accent-color: var(--violet-500);
+  border-left-width: 2px;
+  border-left-color: color-mix(in srgb, var(--violet-500) 60%, transparent);
+  border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
+  animation: card-color-edge-glow 8s ease-in-out infinite;
+}
+
+.card-color-violet:hover {
+  border-left-color: color-mix(in srgb, var(--violet-600) 70%, transparent);
+}
+
+[data-theme="dark"] .card-color-violet {
+  --card-accent-color: var(--violet-400);
+  border-left-color: color-mix(in srgb, var(--violet-400) 50%, transparent);
+  animation-name: card-color-edge-glow-dark;
+}
+
 /* Fallback for browsers without color-mix support */
 @supports not (color: color-mix(in srgb, black, white)) {
   .card-color-blue,
@@ -1051,7 +1108,10 @@ a.card:hover {
   .card-color-purple,
   .card-color-pink,
   .card-color-indigo,
-  .card-color-gray {
+  .card-color-gray,
+  .card-color-teal,
+  .card-color-cyan,
+  .card-color-violet {
     /* Fallback to solid 2px border with no animation */
     animation: none;
     box-shadow: var(--elevation-card);
@@ -1066,6 +1126,9 @@ a.card:hover {
   .card-color-pink { border-left-color: var(--purple-400); }
   .card-color-indigo { border-left-color: var(--color-primary-dark); }
   .card-color-gray { border-left-color: var(--color-border-strong); }
+  .card-color-teal { border-left-color: #4FA8A0; }
+  .card-color-cyan { border-left-color: #06b6d4; }
+  .card-color-violet { border-left-color: var(--violet-500); }
 }
 
 /* Reduced motion - static subtle glow */
@@ -1078,7 +1141,10 @@ a.card:hover {
   .card-color-purple,
   .card-color-pink,
   .card-color-indigo,
-  .card-color-gray {
+  .card-color-gray,
+  .card-color-teal,
+  .card-color-cyan,
+  .card-color-violet {
     animation: none !important;
     box-shadow:
       var(--elevation-card),

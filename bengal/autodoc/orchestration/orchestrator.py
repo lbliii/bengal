@@ -139,21 +139,45 @@ class VirtualAutodocOrchestrator:
         if not isinstance(elements_section, dict):
             return [], [], result
 
-        python_elements = [
-            DocElement.from_dict(e)
-            for e in (elements_section.get("python") or [])
-            if isinstance(e, dict)
-        ]
-        cli_elements = [
-            DocElement.from_dict(e)
-            for e in (elements_section.get("cli") or [])
-            if isinstance(e, dict)
-        ]
-        openapi_elements = [
-            DocElement.from_dict(e)
-            for e in (elements_section.get("openapi") or [])
-            if isinstance(e, dict)
-        ]
+        # Safely deserialize elements, skipping any that fail
+        python_elements = []
+        for e in elements_section.get("python") or []:
+            if isinstance(e, dict):
+                try:
+                    python_elements.append(DocElement.from_dict(e))
+                except Exception as err:
+                    logger.warning(
+                        "autodoc_cache_element_deserialization_failed",
+                        element_type="python",
+                        error=str(err),
+                        action="skipping_element",
+                    )
+
+        cli_elements = []
+        for e in elements_section.get("cli") or []:
+            if isinstance(e, dict):
+                try:
+                    cli_elements.append(DocElement.from_dict(e))
+                except Exception as err:
+                    logger.warning(
+                        "autodoc_cache_element_deserialization_failed",
+                        element_type="cli",
+                        error=str(err),
+                        action="skipping_element",
+                    )
+
+        openapi_elements = []
+        for e in elements_section.get("openapi") or []:
+            if isinstance(e, dict):
+                try:
+                    openapi_elements.append(DocElement.from_dict(e))
+                except Exception as err:
+                    logger.warning(
+                        "autodoc_cache_element_deserialization_failed",
+                        element_type="openapi",
+                        error=str(err),
+                        action="skipping_element",
+                    )
 
         # Reuse the normal generation pipeline, but skip extraction.
         all_elements: list[DocElement] = []

@@ -467,7 +467,7 @@ class ImageProcessor:
     ) -> Image.Image:
         """Smart cropping with face/feature detection.
 
-        Falls back to center crop if smartcrop-py is not installed.
+        Falls back to center crop if smartcrop is not installed.
 
         Args:
             img: PIL Image

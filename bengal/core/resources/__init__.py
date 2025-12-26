@@ -15,7 +15,7 @@ Public API:
 
 Dependencies:
     Required: Pillow (pip install bengal[images])
-    Optional: smartcrop-py (pip install bengal[smartcrop])
+    Optional: smartcrop (pip install bengal[smartcrop])
     Optional: pillow-avif-plugin (pip install bengal[avif])
 
 Example:

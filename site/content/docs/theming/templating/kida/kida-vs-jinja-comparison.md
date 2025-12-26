@@ -22,6 +22,8 @@ category: reference
 
 # KIDA vs Jinja2 Comparison
 
+meow
+
 Side-by-side comparison of common template patterns in KIDA and Jinja2. Use this reference when migrating templates or learning KIDA syntax.
 
 :::{tip}
@@ -65,7 +67,7 @@ KIDA uses `{% end %}` for all block endings, eliminating the need to remember sp
   {{ page.content | safe }}
 {% endblock %}
 ```
-:::
+:::{/tab-item}
 
 :::{tab-item} Jinja2
 ```jinja2
@@ -81,9 +83,9 @@ KIDA uses `{% end %}` for all block endings, eliminating the need to remember sp
   {{ page.content | safe }}
 {% endblock %}
 ```
-:::
+:::{/tab-item}
 
-:::
+:::{/tab-set}
 
 :::{note}
 KIDA also accepts `{% endblock %}` for block endings (Jinja2 compatibility), but `{% end %}` works everywhere.
@@ -941,7 +943,7 @@ A common navigation template pattern.
 ```
 :::{/tab-item}
 
-:::
+:::{/tab-set}
 
 ---
 
