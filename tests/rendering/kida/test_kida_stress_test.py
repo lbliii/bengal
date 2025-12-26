@@ -11,7 +11,7 @@ from typing import Any
 
 import pytest
 
-from bengal.rendering.kida import Environment, DictLoader
+from bengal.rendering.kida import DictLoader, Environment
 
 
 class TestDeepNesting:
@@ -44,15 +44,15 @@ class TestDeepNesting:
                 template += "{% if true %}"
             else:
                 template += "{% for x in [1] %}"
-        
+
         template += "x"
-        
+
         for i in range(depth - 1, -1, -1):
             if i % 2 == 0:
                 template += "{% endif %}"
             else:
                 template += "{% endfor %}"
-        
+
         tmpl = env.from_string(template)
         assert "x" in tmpl.render()
 
@@ -63,10 +63,10 @@ class TestDeepNesting:
         data: dict[str, Any] = {"value": "found"}
         for _ in range(depth):
             data = {"child": data}
-        
+
         access = ".child" * depth + ".value"
         template = "{{ data" + access + " }}"
-        
+
         tmpl = env.from_string(template)
         assert tmpl.render(data=data) == "found"
 
@@ -75,7 +75,7 @@ class TestDeepNesting:
         depth = 30
         expr = "1" + " + 1" * depth
         template = "{{ " + expr + " }}"
-        
+
         tmpl = env.from_string(template)
         assert tmpl.render() == str(depth + 1)
 
@@ -92,23 +92,21 @@ class TestLargeTemplates:
         count = 1000
         template = " ".join(f"{{{{ v{i} }}}}" for i in range(count))
         context = {f"v{i}": str(i) for i in range(count)}
-        
+
         tmpl = env.from_string(template)
         result = tmpl.render(**context)
-        
+
         assert "0" in result
         assert "999" in result
 
     def test_many_blocks(self, env: Environment) -> None:
         """Template with many block statements."""
         count = 500
-        template = "".join(
-            f"{{% if true %}}x{i}{{% endif %}}" for i in range(count)
-        )
-        
+        template = "".join(f"{{% if true %}}x{i}{{% endif %}}" for i in range(count))
+
         tmpl = env.from_string(template)
         result = tmpl.render()
-        
+
         assert "x0" in result
         assert "x499" in result
 
@@ -117,7 +115,7 @@ class TestLargeTemplates:
         count = 100
         filters = "|upper|lower" * count
         template = "{{ 'hello'" + filters + " }}"
-        
+
         # May hit performance limits, but should work
         try:
             tmpl = env.from_string(template)
@@ -131,10 +129,10 @@ class TestLargeTemplates:
         count = 500
         items = ", ".join(str(i) for i in range(count))
         template = f"{{% for x in [{items}] %}}{{{{ x }}}},{{% endfor %}}"
-        
+
         tmpl = env.from_string(template)
         result = tmpl.render()
-        
+
         assert "0" in result
         assert "499" in result
 
@@ -142,11 +140,13 @@ class TestLargeTemplates:
         """Template with large literal dict."""
         count = 200
         items = ", ".join(f"'{i}': {i}" for i in range(count))
-        template = f"{{% set d = {{{items}}} %}}{{% for k, v in d.items() %}}{{{{ k }}}},{{% endfor %}}"
-        
+        template = (
+            f"{{% set d = {{{items}}} %}}{{% for k, v in d.items() %}}{{{{ k }}}},{{% endfor %}}"
+        )
+
         tmpl = env.from_string(template)
         result = tmpl.render()
-        
+
         assert "0" in result
         assert "199" in result
 
@@ -154,10 +154,10 @@ class TestLargeTemplates:
         """Template with long static content."""
         content = "x" * 100000  # 100KB of static content
         template = f"START{content}END"
-        
+
         tmpl = env.from_string(template)
         result = tmpl.render()
-        
+
         assert result.startswith("START")
         assert result.endswith("END")
         assert len(result) == len(content) + 8
@@ -204,14 +204,12 @@ class TestManyMacros:
     def test_many_macro_definitions(self, env: Environment) -> None:
         """Template with many macro definitions."""
         count = 100
-        macros = "\n".join(
-            f"{{% macro m{i}() %}}macro{i}{{% endmacro %}}" for i in range(count)
-        )
+        macros = "\n".join(f"{{% macro m{i}() %}}macro{i}{{% endmacro %}}" for i in range(count))
         template = macros + "\n{{ m0() }}{{ m99() }}"
-        
+
         tmpl = env.from_string(template)
         result = tmpl.render()
-        
+
         assert "macro0" in result
         assert "macro99" in result
 
@@ -219,10 +217,10 @@ class TestManyMacros:
         """Template with many macro calls."""
         count = 500
         template = "{% macro m() %}x{% endmacro %}" + "{{ m() }}" * count
-        
+
         tmpl = env.from_string(template)
         result = tmpl.render()
-        
+
         assert result == "x" * count
 
 
@@ -232,17 +230,13 @@ class TestManyIncludes:
     def test_many_includes(self) -> None:
         """Template with many includes."""
         count = 100
-        loader = DictLoader({
-            f"partial{i}.html": f"partial{i}" for i in range(count)
-        })
+        loader = DictLoader({f"partial{i}.html": f"partial{i}" for i in range(count)})
         env = Environment(loader=loader)
-        
-        includes = "\n".join(
-            f'{{% include "partial{i}.html" %}}' for i in range(count)
-        )
+
+        includes = "\n".join(f'{{% include "partial{i}.html" %}}' for i in range(count))
         tmpl = env.from_string(includes)
         result = tmpl.render()
-        
+
         assert "partial0" in result
         assert "partial99" in result
 
@@ -254,21 +248,21 @@ class TestDeepInheritance:
         """Deep template inheritance."""
         depth = 10
         templates = {}
-        
+
         templates["base.html"] = "{% block content %}base{% endblock %}"
-        
+
         for i in range(1, depth):
             templates[f"level{i}.html"] = (
-                f'{{% extends "{"base.html" if i == 1 else f"level{i-1}.html"}" %}}'
-                f'{{% block content %}}level{i}{{% endblock %}}'
+                f'{{% extends "{"base.html" if i == 1 else f"level{i - 1}.html"}" %}}'
+                f"{{% block content %}}level{i}{{% endblock %}}"
             )
-        
+
         loader = DictLoader(templates)
         env = Environment(loader=loader)
-        
-        tmpl = env.get_template(f"level{depth-1}.html")
+
+        tmpl = env.get_template(f"level{depth - 1}.html")
         result = tmpl.render()
-        assert f"level{depth-1}" in result
+        assert f"level{depth - 1}" in result
 
 
 class TestPerformanceBoundaries:
@@ -281,24 +275,24 @@ class TestPerformanceBoundaries:
     def test_render_time_basic(self, env: Environment) -> None:
         """Basic render completes in reasonable time."""
         tmpl = env.from_string("{{ name }}")
-        
+
         start = time.perf_counter()
         for _ in range(10000):
             tmpl.render(name="World")
         elapsed = time.perf_counter() - start
-        
+
         # Should complete in under 5 seconds
         assert elapsed < 5.0
 
     def test_compile_time_basic(self, env: Environment) -> None:
         """Basic compilation completes in reasonable time."""
         template = "{% if true %}{{ name }}{% endif %}"
-        
+
         start = time.perf_counter()
         for _ in range(1000):
             env.from_string(template)
         elapsed = time.perf_counter() - start
-        
+
         # Should complete in under 5 seconds
         assert elapsed < 5.0
 
@@ -314,12 +308,12 @@ class TestPerformanceBoundaries:
 {% endfor %}
 """
         tmpl = env.from_string(template)
-        
+
         start = time.perf_counter()
         for _ in range(100):
             tmpl.render()
         elapsed = time.perf_counter() - start
-        
+
         # Should complete in under 5 seconds
         assert elapsed < 5.0
 
@@ -342,7 +336,7 @@ class TestExtremeCases:
         chars = "".join(chr(i) for i in range(0x100, 0x200))
         chars += "こんにちは世界"
         chars += "🎉🚀💻🔥"
-        
+
         tmpl = env.from_string("{{ text }}")
         result = tmpl.render(text=chars)
         assert chars in result
@@ -350,7 +344,7 @@ class TestExtremeCases:
     def test_special_characters(self, env: Environment) -> None:
         """Template with special characters."""
         special = "<>&\"'\n\r\t\\/"
-        
+
         env_noauto = Environment(autoescape=False)
         tmpl = env_noauto.from_string("{{ text }}")
         result = tmpl.render(text=special)
@@ -360,7 +354,7 @@ class TestExtremeCases:
         """Very long variable names."""
         name = "x" * 1000
         template = "{{ " + name + " }}"
-        
+
         tmpl = env.from_string(template)
         result = tmpl.render(**{name: "value"})
         assert result == "value"
@@ -369,14 +363,14 @@ class TestExtremeCases:
         """Many unique variable names."""
         # Generate 26*26 = 676 unique variable names
         names = [a + b for a in string.ascii_lowercase for b in string.ascii_lowercase]
-        
+
         parts = [f"{{{{ {name} }}}}" for name in names[:100]]
         template = " ".join(parts)
         context = {name: name for name in names[:100]}
-        
+
         tmpl = env.from_string(template)
         result = tmpl.render(**context)
-        
+
         assert "aa" in result
         assert "zz" not in result  # Only first 100
 
@@ -387,33 +381,33 @@ class TestConcurrentCompilation:
     def test_concurrent_from_string(self) -> None:
         """Concurrent from_string calls."""
         import concurrent.futures
-        
+
         env = Environment()
-        
+
         def compile_template(i: int) -> str:
             tmpl = env.from_string(f"Template {{{{ n }}}}: {i}")
             return tmpl.render(n=i)
-        
+
         with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
             futures = [executor.submit(compile_template, i) for i in range(100)]
             results = [f.result() for f in concurrent.futures.as_completed(futures)]
-        
+
         assert len(results) == 100
 
     def test_concurrent_render(self) -> None:
         """Concurrent render calls."""
         import concurrent.futures
-        
+
         env = Environment()
         tmpl = env.from_string("{{ name }}: {{ value }}")
-        
+
         def render_template(i: int) -> str:
             return tmpl.render(name=f"Item{i}", value=i)
-        
+
         with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
             futures = [executor.submit(render_template, i) for i in range(100)]
             results = [f.result() for f in concurrent.futures.as_completed(futures)]
-        
+
         assert len(results) == 100
         for result in results:
             assert "Item" in result
@@ -438,8 +432,7 @@ class TestMemoryStress:
         for i in range(1000):
             tmpl = env.from_string(f"Template {i}: {{{{ x }}}}")
             templates.append(tmpl)
-        
+
         # All templates should work
         assert templates[0].render(x="test") == "Template 0: test"
         assert templates[999].render(x="test") == "Template 999: test"
-

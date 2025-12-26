@@ -2,8 +2,9 @@
 
 **Status**: Draft  
 **Created**: 2025-12-26  
+**Revised**: 2025-12-26 (v1.1)  
 **Priority**: Medium  
-**Effort**: ~24 hours (~3 days)  
+**Effort**: ~19 hours (~2.5 days)  
 **Impact**: High - 10-30% faster template rendering, zero cold-start on warm cache  
 **Category**: Compiler / Optimization / Performance  
 **Scope**: `bengal/rendering/kida/`  

@@ -34,7 +34,7 @@ from bengal.rendering.kida.template import Template
 from bengal.utils.lru_cache import LRUCache
 
 if TYPE_CHECKING:
-    pass
+    from bengal.rendering.kida.bytecode_cache import BytecodeCache
 
 
 # Default cache limits
@@ -116,6 +116,9 @@ class Environment:
     cache_size: int = DEFAULT_TEMPLATE_CACHE_SIZE
     fragment_cache_size: int = DEFAULT_FRAGMENT_CACHE_SIZE
     fragment_ttl: float = DEFAULT_FRAGMENT_TTL
+
+    # Bytecode cache (optional, for persistent template caching)
+    bytecode_cache: BytecodeCache | None = None
 
     # Lexer settings
     block_start: str = "{%"
@@ -313,9 +316,23 @@ class Environment:
         name: str | None,
         filename: str | None,
     ) -> Template:
-        """Compile template source to Template object."""
+        """Compile template source to Template object.
+
+        Applies AST optimizations when self.optimized=True (default).
+        Uses bytecode cache when configured for fast cold-start.
+        """
         from bengal.rendering.kida.compiler import Compiler
         from bengal.rendering.kida.parser import Parser
+
+        # Check bytecode cache first (for fast cold-start)
+        source_hash = None
+        if self.bytecode_cache is not None and name is not None:
+            from bengal.rendering.kida.bytecode_cache import hash_source
+
+            source_hash = hash_source(source)
+            cached_code = self.bytecode_cache.get(name, source_hash)
+            if cached_code is not None:
+                return Template(self, cached_code, name, filename)
 
         # Tokenize
         lexer = Lexer(source, self._lexer_config)
@@ -328,9 +345,21 @@ class Environment:
         parser = Parser(tokens, name, filename, source, autoescape=should_escape)
         ast = parser.parse()
 
+        # Apply AST optimizations
+        if self.optimized:
+            from bengal.rendering.kida.optimizer import ASTOptimizer
+
+            optimizer = ASTOptimizer()
+            result = optimizer.optimize(ast)
+            ast = result.ast
+
         # Compile
         compiler = Compiler(self)
         code = compiler.compile(ast, name, filename)
+
+        # Cache bytecode for future cold-starts
+        if self.bytecode_cache is not None and name is not None and source_hash is not None:
+            self.bytecode_cache.set(name, source_hash, code)
 
         return Template(self, code, name, filename)
 
