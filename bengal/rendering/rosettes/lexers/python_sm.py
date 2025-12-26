@@ -320,19 +320,40 @@ class PythonStateMachineLexer(StateMachineLexer):
             # -----------------------------------------------------------------
             # String literals (including prefixed)
             # -----------------------------------------------------------------
-            if char in _STRING_PREFIXES or char in "\"'":
+            if char in "\"'":
+                # Direct string (no prefix)
                 start = pos
                 start_line = line
                 token_type, pos, newlines = self._scan_string_literal(code, pos)
 
                 if newlines:
                     line += newlines
-                    # Find position after last newline
                     value = code[start:pos]
                     line_start = start + value.rfind("\n") + 1
 
                 yield Token(token_type, code[start:pos], start_line, col)
                 continue
+
+            if char in _STRING_PREFIXES:
+                # Check if this is actually a string prefix (followed by quote)
+                # Look ahead past any additional prefix chars to find a quote
+                lookahead = pos + 1
+                while lookahead < length and code[lookahead] in _STRING_PREFIXES:
+                    lookahead += 1
+                if lookahead < length and code[lookahead] in "\"'":
+                    # It's a prefixed string
+                    start = pos
+                    start_line = line
+                    token_type, pos, newlines = self._scan_string_literal(code, pos)
+
+                    if newlines:
+                        line += newlines
+                        value = code[start:pos]
+                        line_start = start + value.rfind("\n") + 1
+
+                    yield Token(token_type, code[start:pos], start_line, col)
+                    continue
+                # Otherwise, fall through to identifier handling
 
             # -----------------------------------------------------------------
             # Numbers

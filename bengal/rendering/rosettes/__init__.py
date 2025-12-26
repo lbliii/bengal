@@ -1,7 +1,8 @@
 """Rosettes — Modern syntax highlighting for Python 3.14t.
 
 A pure-Python syntax highlighter designed for free-threaded Python.
-Zero global mutable state, immutable configuration, lazy loading.
+All lexers are hand-written state machines with O(n) guaranteed performance
+and zero ReDoS vulnerability.
 
 Example:
     >>> from rosettes import highlight
@@ -23,15 +24,10 @@ Free-Threading Declaration:
 from bengal.rendering.rosettes._config import FormatConfig, HighlightConfig, LexerConfig
 from bengal.rendering.rosettes._protocol import Formatter, Lexer
 from bengal.rendering.rosettes._registry import get_lexer, list_languages, supports_language
-from bengal.rendering.rosettes._registry_sm import (
-    get_lexer_sm,
-    list_languages_sm,
-    supports_language_sm,
-)
 from bengal.rendering.rosettes._types import Token, TokenType
 from bengal.rendering.rosettes.formatters import HtmlFormatter
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = [
     # Version
@@ -46,21 +42,15 @@ __all__ = [
     "LexerConfig",
     "FormatConfig",
     "HighlightConfig",
-    # Registry (regex-based)
+    # Registry
     "get_lexer",
     "list_languages",
     "supports_language",
-    # Registry (state machine - O(n) guaranteed, zero ReDoS)
-    "get_lexer_sm",
-    "list_languages_sm",
-    "supports_language_sm",
     # Formatters
     "HtmlFormatter",
     # High-level API
     "highlight",
-    "highlight_fast",
     "tokenize",
-    "tokenize_fast",
 ]
 
 
@@ -77,6 +67,9 @@ def highlight(
 
     This is the primary high-level API for syntax highlighting.
     Thread-safe and suitable for concurrent use.
+
+    All lexers are hand-written state machines with O(n) guaranteed
+    performance and zero ReDoS vulnerability.
 
     Args:
         code: The source code to highlight.
@@ -134,6 +127,9 @@ def tokenize(code: str, language: str) -> list[Token]:
     Useful for analysis, custom formatting, or testing.
     Thread-safe.
 
+    All lexers are hand-written state machines with O(n) guaranteed
+    performance and zero ReDoS vulnerability.
+
     Args:
         code: The source code to tokenize.
         language: Language name or alias.
@@ -150,86 +146,6 @@ def tokenize(code: str, language: str) -> list[Token]:
         <TokenType.NAME: 'n'>
     """
     lexer = get_lexer(language)
-    return list(lexer.tokenize(code))
-
-
-def highlight_fast(
-    code: str,
-    language: str,
-    *,
-    hl_lines: set[int] | frozenset[int] | None = None,
-    show_linenos: bool = False,
-    css_class: str | None = None,
-    css_class_style: str = "semantic",
-) -> str:
-    """Highlight source code using O(n) state machine lexers.
-
-    This version uses hand-written state machine lexers that guarantee
-    O(n) performance with zero ReDoS vulnerability risk. Recommended
-    for untrusted input or security-critical applications.
-
-    Thread-safe and suitable for concurrent use.
-
-    Args:
-        code: The source code to highlight.
-        language: Language name or alias (e.g., 'python', 'py', 'js').
-        hl_lines: Optional set of 1-based line numbers to highlight.
-        show_linenos: If True, include line numbers in output.
-        css_class: Base CSS class for the code container.
-        css_class_style: Class naming style ("semantic" or "pygments").
-
-    Returns:
-        HTML string with syntax-highlighted code.
-
-    Raises:
-        LookupError: If the language is not supported.
-
-    Example:
-        >>> html = highlight_fast("print('hello')", "python")
-        >>> "rosettes" in html
-        True
-    """
-    lexer = get_lexer_sm(language)
-
-    if css_class is None:
-        css_class = "rosettes" if css_class_style == "semantic" else "highlight"
-
-    format_config = FormatConfig(css_class=css_class)
-
-    hl_config = HighlightConfig(
-        hl_lines=frozenset(hl_lines) if hl_lines else frozenset(),
-        show_linenos=show_linenos,
-        css_class=css_class,
-    )
-    formatter = HtmlFormatter(config=hl_config, css_class_style=css_class_style)
-    # State machine lexers return full Token objects (type, value, line, column)
-    return formatter.format_string(lexer.tokenize(code), format_config)
-
-
-def tokenize_fast(code: str, language: str) -> list[Token]:
-    """Tokenize source code using O(n) state machine lexers.
-
-    Uses hand-written state machine lexers that guarantee O(n) performance
-    with zero ReDoS vulnerability risk. Recommended for untrusted input.
-
-    Thread-safe.
-
-    Args:
-        code: The source code to tokenize.
-        language: Language name or alias.
-
-    Returns:
-        List of Token objects.
-
-    Raises:
-        LookupError: If the language is not supported.
-
-    Example:
-        >>> tokens = tokenize_fast("x = 1", "python")
-        >>> tokens[0].type
-        <TokenType.NAME: 'n'>
-    """
-    lexer = get_lexer_sm(language)
     return list(lexer.tokenize(code))
 
 

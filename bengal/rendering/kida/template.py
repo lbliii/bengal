@@ -24,16 +24,35 @@ if TYPE_CHECKING:
 
 # Pre-compiled escape table for O(n) single-pass HTML escaping
 # This replaces the O(5n) chained .replace() approach
-_ESCAPE_TABLE = str.maketrans({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;",
-})
+_ESCAPE_TABLE = str.maketrans(
+    {
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+    }
+)
 
 # Fast path: regex to check if escaping is needed at all
 _ESCAPE_CHECK = re.compile(r'[&<>"\']')
+
+
+class Markup(str):
+    """A string subclass that is considered safe and won't be escaped.
+
+    This is used for macro output and the |safe filter to prevent
+    double-escaping of HTML content.
+    """
+
+    def __new__(cls, value: str = "") -> Markup:
+        return super().__new__(cls, value)
+
+    def __add__(self, other: str) -> Markup:
+        return Markup(super().__add__(str(other)))
+
+    def __radd__(self, other: str) -> Markup:
+        return Markup(str(other) + str(self))
 
 
 class Template:
@@ -71,6 +90,32 @@ class Template:
         self._name = name
         self._filename = filename
 
+        # Include helper - loads and renders included template
+        def _include(template_name: str, context: dict, ignore_missing: bool = False) -> str:
+            try:
+                included = env.get_template(template_name)
+                return included.render(**context)
+            except Exception:
+                if ignore_missing:
+                    return ""
+                raise
+
+        # Extends helper - renders parent template with child's blocks
+        def _extends(template_name: str, context: dict, blocks: dict) -> str:
+            parent = env.get_template(template_name)
+            # Call parent's render function with blocks dict
+            return parent._render_func(context, blocks)
+
+        # Import macros from another template
+        def _import_macros(template_name: str, with_context: bool, context: dict) -> dict:
+            imported = env.get_template(template_name)
+            # Create a context for the imported template
+            import_ctx = dict(context) if with_context else {}
+            # Execute the template to define macros in its context
+            imported._render_func(import_ctx, None)
+            # Return the context (which now contains the macros)
+            return import_ctx
+
         # Execute the code to get the render function
         namespace: dict[str, Any] = {
             "__builtins__": {},
@@ -79,6 +124,10 @@ class Template:
             "_tests": env._tests,
             "_escape": self._escape,
             "_getattr": self._safe_getattr,
+            "_include": _include,
+            "_extends": _extends,
+            "_import_macros": _import_macros,
+            "_Markup": Markup,
             "_str": str,
             "_len": len,
             "_range": range,
@@ -175,27 +224,32 @@ class Template:
         """HTML-escape a value.
 
         Complexity: O(n) single-pass using str.translate().
-        
+
         Optimizations:
-        1. Fast path check - if no escapable chars, return as-is
-        2. Single-pass translation instead of 5 chained .replace()
-        
+        1. Skip Markup objects (already safe)
+        2. Fast path check - if no escapable chars, return as-is
+        3. Single-pass translation instead of 5 chained .replace()
+
         This is ~3-5x faster than the naive approach for escape-heavy content.
         """
+        # Skip Markup objects - they're already safe
+        # Must check before str() conversion since str(Markup) returns plain str
+        if isinstance(value, Markup):
+            return str(value)
         s = str(value)
         # Fast path: no escapable characters
         if not _ESCAPE_CHECK.search(s):
             return s
         return s.translate(_ESCAPE_TABLE)
-    
+
     @staticmethod
     def _safe_getattr(obj: Any, name: str) -> Any:
         """Get attribute with dict fallback.
-        
+
         Handles both:
         - obj.attr for objects with attributes
         - dict['key'] for dict-like objects
-        
+
         Complexity: O(1)
         """
         try:
