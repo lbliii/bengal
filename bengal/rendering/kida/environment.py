@@ -80,6 +80,69 @@ class Test(Protocol):
 
 
 # =============================================================================
+# Filter/Test Registry (Jinja2-compatible interface)
+# =============================================================================
+
+
+class FilterRegistry:
+    """Dict-like interface for filters/tests that matches Jinja2's API.
+
+    Supports:
+        - env.filters['name'] = func
+        - env.filters.update({'name': func})
+        - func = env.filters['name']
+        - 'name' in env.filters
+
+    All mutations use copy-on-write for thread-safety.
+    """
+
+    __slots__ = ("_env", "_attr")
+
+    def __init__(self, env: Environment, attr: str):
+        self._env = env
+        self._attr = attr
+
+    def _get_dict(self) -> dict[str, Callable]:
+        return getattr(self._env, self._attr)
+
+    def _set_dict(self, d: dict[str, Callable]) -> None:
+        setattr(self._env, self._attr, d)
+
+    def __getitem__(self, name: str) -> Callable:
+        return self._get_dict()[name]
+
+    def __setitem__(self, name: str, func: Callable) -> None:
+        new = self._get_dict().copy()
+        new[name] = func
+        self._set_dict(new)
+
+    def __contains__(self, name: object) -> bool:
+        return name in self._get_dict()
+
+    def get(self, name: str, default: Callable | None = None) -> Callable | None:
+        return self._get_dict().get(name, default)
+
+    def update(self, mapping: dict[str, Callable]) -> None:
+        """Batch update filters (Jinja2 compatibility)."""
+        new = self._get_dict().copy()
+        new.update(mapping)
+        self._set_dict(new)
+
+    def copy(self) -> dict[str, Callable]:
+        """Return a copy of the underlying dict."""
+        return self._get_dict().copy()
+
+    def keys(self):
+        return self._get_dict().keys()
+
+    def values(self):
+        return self._get_dict().values()
+
+    def items(self):
+        return self._get_dict().items()
+
+
+# =============================================================================
 # Loaders
 # =============================================================================
 
@@ -281,10 +344,11 @@ def _filter_reverse(value: Any) -> Any:
         return str(value)[::-1]
 
 
-def _filter_safe(value: Any) -> str:
+def _filter_safe(value: Any) -> Any:
     """Mark as safe (no escaping)."""
-    # In full implementation, this would return a Markup object
-    return str(value)
+    from bengal.rendering.kida.template import Markup
+
+    return Markup(str(value))
 
 
 def _filter_sort(
@@ -328,30 +392,289 @@ def _filter_upper(value: str) -> str:
     return str(value).upper()
 
 
-# Default filters
+def _filter_tojson(value: Any, indent: int | None = None) -> Any:
+    """Convert value to JSON string (marked safe to prevent escaping)."""
+    import json
+
+    from bengal.rendering.kida.template import Markup
+
+    return Markup(json.dumps(value, indent=indent, default=str))
+
+
+def _filter_batch(value: Any, linecount: int, fill_with: Any = None) -> list:
+    """Batch items into groups of linecount."""
+    result = []
+    batch: list = []
+    for item in value:
+        batch.append(item)
+        if len(batch) >= linecount:
+            result.append(batch)
+            batch = []
+    if batch:
+        if fill_with is not None:
+            while len(batch) < linecount:
+                batch.append(fill_with)
+        result.append(batch)
+    return result
+
+
+def _filter_slice(value: Any, slices: int, fill_with: Any = None) -> list:
+    """Slice items into number of groups."""
+    result: list[list] = [[] for _ in range(slices)]
+    for idx, item in enumerate(value):
+        result[idx % slices].append(item)
+    return result
+
+
+def _filter_map(value: Any, attribute: str | None = None) -> list:
+    """Map an attribute from a sequence."""
+    if attribute:
+        return [getattr(item, attribute, None) for item in value]
+    return list(value)
+
+
+def _filter_selectattr(value: Any, attr: str, *args: Any) -> list:
+    """Select items where attribute passes test."""
+    result = []
+    for item in value:
+        val = getattr(item, attr, None)
+        if args:
+            test_name = args[0]
+            test_args = args[1:] if len(args) > 1 else ()
+            # Simple test implementations
+            if (
+                test_name == "equalto"
+                and test_args
+                and val == test_args[0]
+                or test_name == "defined"
+                and val is not None
+            ):
+                result.append(item)
+        elif val:
+            result.append(item)
+    return result
+
+
+def _filter_rejectattr(value: Any, attr: str, *args: Any) -> list:
+    """Reject items where attribute passes test."""
+    result = []
+    for item in value:
+        val = getattr(item, attr, None)
+        if args:
+            test_name = args[0]
+            test_args = args[1:] if len(args) > 1 else ()
+            if (
+                test_name == "equalto"
+                and test_args
+                and val != test_args[0]
+                or test_name == "defined"
+                and val is None
+            ):
+                result.append(item)
+        elif not val:
+            result.append(item)
+    return result
+
+
+def _filter_select(value: Any, test_name: str | None = None, *args: Any) -> list:
+    """Select truthy items or items passing test."""
+    if test_name is None:
+        return [item for item in value if item]
+    result = []
+    for item in value:
+        if (
+            test_name == "defined"
+            and item is not None
+            or test_name == "equalto"
+            and args
+            and item == args[0]
+        ):
+            result.append(item)
+    return result
+
+
+def _filter_reject(value: Any, test_name: str | None = None, *args: Any) -> list:
+    """Reject truthy items or items passing test."""
+    if test_name is None:
+        return [item for item in value if not item]
+    result = []
+    for item in value:
+        if (
+            test_name == "defined"
+            and item is None
+            or test_name == "equalto"
+            and args
+            and item != args[0]
+        ):
+            result.append(item)
+    return result
+
+
+def _filter_groupby(value: Any, attribute: str) -> list:
+    """Group items by attribute."""
+    from itertools import groupby
+
+    def get_key(item: Any) -> Any:
+        return getattr(item, attribute, None)
+
+    sorted_items = sorted(value, key=get_key)
+    return [
+        {"grouper": key, "list": list(group)} for key, group in groupby(sorted_items, key=get_key)
+    ]
+
+
+def _filter_striptags(value: str) -> str:
+    """Strip HTML tags."""
+    import re
+
+    return re.sub(r"<[^>]*>", "", str(value))
+
+
+def _filter_wordwrap(value: str, width: int = 79, break_long_words: bool = True) -> str:
+    """Wrap text at width."""
+    import textwrap
+
+    return textwrap.fill(str(value), width=width, break_long_words=break_long_words)
+
+
+def _filter_indent(value: str, width: int = 4, first: bool = False) -> str:
+    """Indent text lines."""
+    lines = str(value).splitlines(True)
+    indent = " " * width
+    if not first:
+        return lines[0] + "".join(indent + line for line in lines[1:])
+    return "".join(indent + line for line in lines)
+
+
+def _filter_urlencode(value: str) -> str:
+    """URL-encode a string."""
+    from urllib.parse import quote_plus
+
+    return quote_plus(str(value))
+
+
+def _filter_pprint(value: Any) -> str:
+    """Pretty-print a value."""
+    from pprint import pformat
+
+    return pformat(value)
+
+
+def _filter_xmlattr(value: dict) -> str:
+    """Convert dict to XML attributes."""
+    parts = []
+    for key, val in value.items():
+        if val is not None:
+            escaped = (
+                str(val)
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace('"', "&quot;")
+            )
+            parts.append(f'{key}="{escaped}"')
+    return " ".join(parts)
+
+
+def _filter_unique(value: Any, case_sensitive: bool = False, attribute: str | None = None) -> list:
+    """Return unique items."""
+    seen: set = set()
+    result = []
+    for item in value:
+        val = getattr(item, attribute, None) if attribute else item
+        if not case_sensitive and isinstance(val, str):
+            val = val.lower()
+        if val not in seen:
+            seen.add(val)
+            result.append(item)
+    return result
+
+
+def _filter_min(value: Any, attribute: str | None = None) -> Any:
+    """Return minimum value."""
+    if attribute:
+        return min(value, key=lambda x: getattr(x, attribute, None))
+    return min(value)
+
+
+def _filter_max(value: Any, attribute: str | None = None) -> Any:
+    """Return maximum value."""
+    if attribute:
+        return max(value, key=lambda x: getattr(x, attribute, None))
+    return max(value)
+
+
+def _filter_sum(value: Any, attribute: str | None = None, start: int = 0) -> Any:
+    """Return sum of values."""
+    if attribute:
+        return sum((getattr(x, attribute, 0) for x in value), start)
+    return sum(value, start)
+
+
+def _filter_attr(value: Any, name: str) -> Any:
+    """Get attribute from object."""
+    return getattr(value, name, None)
+
+
+def _filter_format(value: str, *args: Any, **kwargs: Any) -> str:
+    """Format string with args/kwargs."""
+    return str(value).format(*args, **kwargs)
+
+
+def _filter_center(value: str, width: int = 80) -> str:
+    """Center string in width."""
+    return str(value).center(width)
+
+
+# Default filters - comprehensive set matching Jinja2
 DEFAULT_FILTERS: dict[str, Callable] = {
+    # Basic transformations
     "abs": _filter_abs,
     "capitalize": _filter_capitalize,
+    "center": _filter_center,
     "d": _filter_default,
     "default": _filter_default,
     "e": _filter_escape,
     "escape": _filter_escape,
     "first": _filter_first,
+    "format": _filter_format,
+    "indent": _filter_indent,
     "int": _filter_int,
     "join": _filter_join,
     "last": _filter_last,
     "length": _filter_length,
     "list": _filter_list,
     "lower": _filter_lower,
+    "pprint": _filter_pprint,
     "replace": _filter_replace,
     "reverse": _filter_reverse,
     "safe": _filter_safe,
     "sort": _filter_sort,
     "string": _filter_string,
+    "striptags": _filter_striptags,
     "title": _filter_title,
     "trim": _filter_trim,
     "truncate": _filter_truncate,
     "upper": _filter_upper,
+    "urlencode": _filter_urlencode,
+    "wordwrap": _filter_wordwrap,
+    "xmlattr": _filter_xmlattr,
+    # Serialization
+    "tojson": _filter_tojson,
+    # Collections
+    "attr": _filter_attr,
+    "batch": _filter_batch,
+    "groupby": _filter_groupby,
+    "map": _filter_map,
+    "max": _filter_max,
+    "min": _filter_min,
+    "reject": _filter_reject,
+    "rejectattr": _filter_rejectattr,
+    "select": _filter_select,
+    "selectattr": _filter_selectattr,
+    "slice": _filter_slice,
+    "sum": _filter_sum,
+    "unique": _filter_unique,
 }
 
 
@@ -556,14 +879,14 @@ class Environment:
         )
 
     @property
-    def filters(self) -> dict[str, Callable]:
-        """Get filters (read-only view)."""
-        return self._filters.copy()
+    def filters(self) -> FilterRegistry:
+        """Get filters (Jinja2-compatible interface)."""
+        return FilterRegistry(self, "_filters")
 
     @property
-    def tests(self) -> dict[str, Callable]:
-        """Get tests (read-only view)."""
-        return self._tests.copy()
+    def tests(self) -> FilterRegistry:
+        """Get tests (Jinja2-compatible interface)."""
+        return FilterRegistry(self, "_tests")
 
     def add_filter(self, name: str, func: Callable) -> None:
         """Add a filter (copy-on-write).

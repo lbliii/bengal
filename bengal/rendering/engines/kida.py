@@ -100,30 +100,207 @@ class KidaTemplateEngine:
         self._env.globals["site"] = self.site
         self._env.globals["config"] = self.site.config
 
-    def _register_filters(self) -> None:
-        """Register Bengal-specific filters."""
-        # Import Bengal's template functions
+        # Register global functions
         try:
             from bengal.rendering.template_functions import (
+                get_page,
+                i18n,
+                icons,
+                navigation,
+                seo,
+                theme,
+                urls,
+            )
+
+            # URL helpers
+            base_url = self.site.config.get("baseurl", "")
+            self._env.globals["url"] = lambda u: urls.url(u, base_url)
+            self._env.globals["absolute_url"] = lambda u: urls.absolute_url(u, base_url)
+
+            # Page lookup
+            self._env.globals["get_page"] = lambda path: get_page.get_page(path, self.site)
+
+            # Navigation
+            self._env.globals["breadcrumbs"] = lambda page: navigation.breadcrumbs.get_breadcrumbs(
+                page, self.site
+            )
+
+            # Theme
+            self._env.globals["asset_url"] = lambda path: theme.asset_url(path, self.site)
+            self._env.globals["theme"] = self.site.theme_config
+
+            # Icons
+            self._env.globals["icon"] = lambda name, **kw: icons.icon(name, self.site, **kw)
+
+            # i18n
+            self._env.globals["t"] = lambda key, **kw: i18n._translate(key, self.site, **kw)
+            self._env.globals["current_lang"] = lambda: i18n._current_language(self.site)
+
+            # SEO
+            self._env.globals["og_image"] = lambda img, page=None: seo.og_image(
+                img, page, self.site
+            )
+            self._env.globals["canonical_url"] = lambda path: seo.canonical_url(path, self.site)
+
+        except ImportError:
+            # Template functions not available
+            pass
+        except AttributeError:
+            # Individual function not found
+            pass
+
+    def _register_filters(self) -> None:
+        """Register Bengal-specific filters (Jinja2-compatible)."""
+        # Use Jinja2's filter registration pattern with Kida's environment
+        # The FilterRegistry class provides dict-like .update() support
+        try:
+            from bengal.rendering.template_functions import (
+                advanced_collections,
+                advanced_strings,
+                collections,
+                data,
                 dates,
+                files,
+                math_functions,
                 strings,
                 urls,
             )
 
-            # Date filters
-            self._env.add_filter("date", dates.format_date)
-            self._env.add_filter("datetime", dates.format_datetime)
-            self._env.add_filter("time", dates.format_time)
+            # Phase 1: Essential string filters
+            self._env.filters.update(
+                {
+                    "truncatewords": strings.truncatewords,
+                    "truncatewords_html": strings.truncatewords_html,
+                    "slugify": strings.slugify,
+                    "markdownify": strings.markdownify,
+                    "strip_html": strings.strip_html,
+                    "truncate_chars": strings.truncate_chars,
+                    "replace_regex": strings.replace_regex,
+                    "pluralize": strings.pluralize,
+                    "reading_time": strings.reading_time,
+                    "word_count": strings.word_count,
+                    "wordcount": strings.word_count,
+                    "excerpt": strings.excerpt,
+                    "strip_whitespace": strings.strip_whitespace,
+                    "get": strings.dict_get,
+                    "first_sentence": strings.first_sentence,
+                    "filesize": strings.filesize,
+                }
+            )
 
-            # String filters
-            self._env.add_filter("slugify", strings.slugify)
-            self._env.add_filter("truncate_words", strings.truncate_words)
+            # Phase 1: Collection filters
+            self._env.filters.update(
+                {
+                    "sort_by": collections.sort_by,
+                    "group_by": collections.group_by,
+                    "where": collections.where,
+                    "where_exp": collections.where_exp,
+                    "pluck": collections.pluck,
+                    "flatten": collections.flatten,
+                    "uniq": collections.uniq,
+                    "shuffle_list": collections.shuffle_list,
+                    "slice_list": collections.slice_list,
+                    "concat": collections.concat,
+                    "zip_lists": collections.zip_lists,
+                    "dict_merge": collections.dict_merge,
+                }
+            )
 
-            # URL filters
-            self._env.add_filter("url", urls.url)
-            self._env.add_filter("absolute_url", urls.absolute_url)
+            # Phase 1: Math filters
+            self._env.filters.update(
+                {
+                    "percentage": math_functions.percentage,
+                    "floor": math_functions.floor,
+                    "ceil": math_functions.ceil,
+                    "add": math_functions.add,
+                }
+            )
+
+            # Phase 1: Date filters
+            self._env.filters.update(
+                {
+                    "date": dates.format_date,
+                    "datetime": dates.format_datetime,
+                    "time": dates.format_time,
+                    "dateformat": dates.format_date,
+                    "time_ago": dates.time_ago,
+                    "iso_date": dates.iso_date,
+                }
+            )
+
+            # Phase 1: URL filters
+            base_url = self.site.config.get("baseurl", "")
+            self._env.filters.update(
+                {
+                    "url": lambda u: urls.url(u, base_url),
+                    "absolute_url": lambda u: urls.absolute_url(u, base_url),
+                    "relative_url": urls.relative_url,
+                }
+            )
+
+            # Phase 2: Data filters
+            self._env.filters.update(
+                {
+                    "jsonify": data.jsonify,
+                    "merge": data.merge,
+                    "has_key": data.has_key,
+                    "get_nested": data.get_nested,
+                    "keys": data.keys_filter,
+                    "values": data.values_filter,
+                    "items": data.items_filter,
+                }
+            )
+
+            # Phase 2: Advanced string filters
+            self._env.filters.update(
+                {
+                    "regex_replace": advanced_strings.regex_replace,
+                    "regex_match": advanced_strings.regex_match,
+                    "regex_findall": advanced_strings.regex_findall,
+                    "titleize": advanced_strings.titleize,
+                    "parameterize": advanced_strings.parameterize,
+                    "camelize": advanced_strings.camelize,
+                    "underscore": advanced_strings.underscore,
+                    "dasherize": advanced_strings.dasherize,
+                    "humanize": advanced_strings.humanize,
+                    "pluralize_word": advanced_strings.pluralize_word,
+                    "singularize": advanced_strings.singularize,
+                    "ordinalize": advanced_strings.ordinalize,
+                    "number_to_words": advanced_strings.number_to_words,
+                }
+            )
+
+            # Phase 2: Advanced collection filters
+            self._env.filters.update(
+                {
+                    "chunk": advanced_collections.chunk,
+                    "paginate": advanced_collections.paginate,
+                    "tree": advanced_collections.tree,
+                    "find": advanced_collections.find,
+                    "reject_where": advanced_collections.reject_where,
+                    "compact": advanced_collections.compact,
+                    "sample": advanced_collections.sample,
+                    "partition": advanced_collections.partition,
+                    "index_by": advanced_collections.index_by,
+                    "count_by": advanced_collections.count_by,
+                    "frequencies": advanced_collections.frequencies,
+                }
+            )
+
+            # Phase 2: File filters
+            self._env.filters.update(
+                {
+                    "extension": files.extension,
+                    "basename": files.basename,
+                    "dirname": files.dirname,
+                }
+            )
+
         except ImportError:
-            # Template functions not available
+            # Template functions not available - use defaults only
+            pass
+        except Exception:
+            # Individual filter import failed - continue with what we have
             pass
 
     def render_template(
