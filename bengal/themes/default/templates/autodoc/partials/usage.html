@@ -1,23 +1,36 @@
 {#
-Autodoc Usage Partial
+================================================================================
+Autodoc Usage Partial (Kida-Native)
+================================================================================
 
 Renders a usage block for CLI commands or import statements.
 
-Required: element (dict prepared by Python)
-Optional: language (str, default 'bash' for CLI, 'python' for modules)
+TEMPLATE VARIABLES:
+  - element: DocElement (dict prepared by Python) - required
+  - language: str, default 'bash' for CLI, 'python' for modules
+
+KIDA FEATURES USED:
+  - Optional chaining (?.) for safe attribute access
+  - Null coalescing (??) for defaults
+  - {% let %} for template-scoped caching
+
+================================================================================
 #}
 
-{% set
-is_cli = element.element_type in ['command', 'command-group'],
-language = language ?? ('bash' if is_cli else 'python'),
-children = getattr(element, 'children', []),
-option_children = children | selectattr('element_type', 'eq', 'option') | list,
-has_options = option_children | length > 0
+{% let
+    elem_type = element?.element_type ?? 'module',
+    is_cli = elem_type in ['command', 'command-group'],
+    lang = language ?? ('bash' if is_cli else 'python'),
+    children = element?.children ?? [],
+    option_children = children | selectattr('element_type', 'eq', 'option') | list,
+    has_options = option_children | length > 0,
+    qualified_name = element?.qualified_name ?? '',
+    elem_name = element?.name ?? ''
 %}
 
-{% if element.qualified_name %}
+{% if qualified_name %}
 <div class="autodoc-usage">
     <h2 class="autodoc-label">Usage</h2>
-    <pre><code class="language-{{ language }}">{% if is_cli %}{{ element.qualified_name }}{% if has_options %} [OPTIONS]{% end %}{% else %}from {{ element.qualified_name | replace('.' ~ element.name, '') }} import {{ element.name }}{% end %}</code></pre>
+    <pre><code class="language-{{ lang }}">{% if is_cli %}{{ qualified_name }}{% if has_options %} [OPTIONS]{% end %}{% else %}from {{ qualified_name | replace('.' ~ elem_name, '') }} import {{ elem_name }}{% end %}</code></pre>
 </div>
 {% end %}

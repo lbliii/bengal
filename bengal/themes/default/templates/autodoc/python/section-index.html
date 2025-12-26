@@ -1,21 +1,45 @@
 {% extends "base.html" %}
 
 {#
-API Reference Section Index Template
+================================================================================
+API Reference Section Index Template (Kida-Native)
+================================================================================
 
 Renders an API section index page showing subsections and modules
 using a card-based layout. Extends base.html to inherit theme navigation.
-Uses autodoc.css for all styling.
 
-This template receives:
-- section: Section object for the API section
-- config: Autodoc configuration
-- site: Site instance
+TEMPLATE VARIABLES:
+  - section: Section object for the API section (required)
+  - page: PageContext proxy with title, metadata, _path
+  - config: Autodoc configuration
+  - site: Site instance
+
+KIDA FEATURES USED:
+  - Optional chaining (?.) for safe attribute access on nullable objects
+  - Null coalescing (??) for providing defaults
+  - {% let %} for template-scoped computed values
+  - {% match %} for element type icon dispatch
+  - Pipeline-friendly filtering
+
+================================================================================
 #}
 
 {% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc %}
 
 {% block content %}
+{# Template-scoped caching of computed values #}
+{% let section_subsections = section?.sorted_subsections ?? [] %}
+{% let section_pages = section?.sorted_pages ?? [] %}
+
+{#
+Build module pages list (non-index pages only)
+Use list comprehension style via filters for Kida
+#}
+{% let module_pages = section_pages
+    | rejectattr('source_path', 'match', '.*_index.*')
+    | reject('eq', section?.index_page)
+    | list %}
+
 {# Three-column documentation layout #}
 <div class="docs-layout">
   {# Left Sidebar: Navigation #}
@@ -25,43 +49,31 @@ This template receives:
 
   {# Main Content #}
   <div class="docs-main">
-    {# Page Hero: Breadcrumbs + Title + Description + Stats #}
-    {% include 'partials/page-hero/section.html' %}
+    {# Page Hero: Use direct macro call with explicit context #}
+    {% from 'partials/page-hero.html' import hero_section %}
+    {{ hero_section(section, page, {}) }}
 
     {# Article Content - autodoc skeleton #}
     <article data-autodoc data-type="python" data-element="section-index" class="autodoc docs-content">
 
-      {# Build module list once for cards #}
-      {% set module_pages = [] %}
-      {% if section %}
-      {% for page in section.sorted_pages %}
-      {% if page != section.index_page and not (page.source_path is match('.*_index.*')) %}
-      {% do module_pages.append(page) %}
-      {% end %}
-      {% end %}
-      {% end %}
-
       {# Subsections (Packages) - Card Grid #}
-      {% if section and section.sorted_subsections %}
+      {% if section_subsections | length > 0 %}
       <section class="autodoc-section" data-section="packages">
         <h2 class="autodoc-section-title">Packages</h2>
 
         <div class="autodoc-cards">
-          {% for subsection in section.sorted_subsections %}
-          {% if subsection.name %}
-          {% set desc = subsection.metadata.description | default('') | first_sentence %}
-          {% set child_count = (subsection.subsections | length) + (subsection.pages | length) %}
+          {% for subsection in section_subsections %}
+          {% set subsection_name = subsection?.name ?? '' %}
+          {% if subsection_name %}
+          {% set desc = subsection?.metadata?.description ?? '' | first_sentence %}
+          {% set child_count = (subsection?.subsections ?? [] | length) + (subsection?.pages ?? [] | length) %}
           <a href="{{ subsection.href }}" class="autodoc-card" data-card="package">
             <div class="autodoc-card-header">
               <span class="autodoc-card-icon">{{ icon("folder", size=20, css_class="icon-muted") }}</span>
-              <span class="autodoc-card-name">{{ subsection.name | title }}</span>
+              <span class="autodoc-card-name">{{ subsection_name | title }}</span>
             </div>
             <div class="autodoc-card-body">
-              {% if desc %}
-              <p class="autodoc-card-desc">{{ desc }}</p>
-              {% else %}
-              <p class="autodoc-card-desc">{{ subsection.name | title }} package</p>
-              {% end %}
+              <p class="autodoc-card-desc">{{ desc if desc else subsection_name ~ ' package' | title }}</p>
             </div>
             <div class="autodoc-card-footer">
               <span class="autodoc-card-meta">
@@ -76,38 +88,33 @@ This template receives:
       {% end %}
 
       {# Module Pages - Card Grid #}
-      {% if module_pages %}
+      {% if module_pages | length > 0 %}
       <section class="autodoc-section" data-section="modules">
         <h2 class="autodoc-section-title">Modules</h2>
 
         <div class="autodoc-cards">
-          {% for page in module_pages %}
-          {# ChainableUndefined handles missing metadata gracefully #}
-          {% set desc = page.metadata.description | first_sentence %}
-          {% set elem_type = page.metadata.element_type ?? 'module' %}
-          <a href="{{ page.href }}" class="autodoc-card"
-            data-card="{{ elem_type }}">
+          {% for mod_page in module_pages %}
+          {% set desc = mod_page?.metadata?.description ?? '' | first_sentence %}
+          {% set elem_type = mod_page?.metadata?.element_type ?? 'module' %}
+          <a href="{{ mod_page.href }}" class="autodoc-card" data-card="{{ elem_type }}">
             <div class="autodoc-card-header">
               <span class="autodoc-card-icon">
-                {%- if elem_type == 'class' -%}
-                {{ icon("layers", size=16, css_class="icon-info") }}
-                {%- elif elem_type == 'function' -%}
-                {{ icon("zap", size=16, css_class="icon-success") }}
-                {%- else -%}
-                {{ icon("code", size=16, css_class="icon-muted") }}
+                {% match elem_type %}
+                  {% case 'class' %}
+                    {{ icon("layers", size=16, css_class="icon-info") }}
+                  {% case 'function' %}
+                    {{ icon("zap", size=16, css_class="icon-success") }}
+                  {% case _ %}
+                    {{ icon("code", size=16, css_class="icon-muted") }}
                 {% end %}
               </span>
-              <span class="autodoc-card-name">{{ page.title }}</span>
+              <span class="autodoc-card-name">{{ mod_page.title }}</span>
               {% if elem_type != 'module' %}
               <span class="autodoc-badge" data-badge="{{ elem_type }}">{{ elem_type }}</span>
               {% end %}
             </div>
             <div class="autodoc-card-body">
-              {% if desc %}
-              <p class="autodoc-card-desc">{{ desc }}</p>
-              {% else %}
-              <p class="autodoc-card-desc">No description available</p>
-              {% end %}
+              <p class="autodoc-card-desc">{{ desc if desc else 'No description available' }}</p>
             </div>
           </a>
           {% end %}
@@ -116,7 +123,7 @@ This template receives:
       {% end %}
 
       {# Empty State #}
-      {% if not section or (not section.subsections and not module_pages) %}
+      {% if section_subsections | length == 0 and module_pages | length == 0 %}
       <div class="autodoc-empty-state">
         <div class="autodoc-empty-state-icon">{{ icon("file-text", size=48, css_class="icon-muted") }}</div>
         <p class="autodoc-empty-state-text">No documentation available in this section yet.</p>
@@ -125,8 +132,10 @@ This template receives:
 
     </article>
 
-    {# Page navigation (prev/next) at bottom #}
+    {# Page navigation (prev/next) at bottom - null-safe #}
+    {% if page %}
     {{ page_navigation(page) }}
+    {% end %}
   </div>
 
   {# Right Sidebar: Contextual Graph + TOC + Metadata #}

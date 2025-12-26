@@ -1,21 +1,42 @@
 {% extends "base.html" %}
 
 {#
-CLI Reference Section Index Template
+================================================================================
+CLI Reference Section Index Template (Kida-Native)
+================================================================================
 
 Renders a CLI section index page showing command groups and commands
 using a card-based layout. Extends base.html to inherit theme navigation.
-Uses autodoc.css for all styling.
 
-This template receives:
-- section: Section object for the CLI section
+TEMPLATE VARIABLES:
+- section: Section object for the CLI section (required)
+- page: PageContext proxy with title, metadata, _path
 - config: Autodoc configuration
 - site: Site instance
+
+KIDA FEATURES USED:
+- Optional chaining (?.) for safe attribute access on nullable objects
+- Null coalescing (??) for providing defaults
+- {% let %} for template-scoped computed values
+- {% match %} for element type icon dispatch
+- Pipeline-friendly filtering
+
+================================================================================
 #}
 
 {% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc %}
 
 {% block content %}
+{# Template-scoped caching of computed values #}
+{% let section_subsections = section?.sorted_subsections ?? [] %}
+{% let section_pages = section?.sorted_pages ?? [] %}
+
+{# Build command pages list (non-index pages only) #}
+{% let command_pages = section_pages
+| rejectattr('source_path', 'match', '.*_index.*')
+| reject('eq', section?.index_page)
+| list %}
+
 {# Three-column documentation layout #}
 <div class="docs-layout">
   {# Left Sidebar: Navigation #}
@@ -25,34 +46,31 @@ This template receives:
 
   {# Main Content #}
   <div class="docs-main">
-    {# Page Hero: Breadcrumbs + Title + Description + Stats (with CLI labels) #}
-    {% set hero_context = {'is_cli': true} %}
-    {% include 'partials/page-hero/section.html' %}
+    {# Page Hero: Use direct macro call with CLI context #}
+    {% from 'partials/page-hero.html' import hero_section %}
+    {{ hero_section(section, page, {'is_cli': true}) }}
 
     {# Article Content - autodoc skeleton #}
     <article data-autodoc data-type="cli" data-element="section-index" class="autodoc docs-content">
 
       {# Subsections (Command Groups) - Card Grid #}
-      {% if section and section.sorted_subsections %}
+      {% if section_subsections | length > 0 %}
       <section class="autodoc-section" data-section="groups">
         <h2 class="autodoc-section-title">Command Groups</h2>
 
         <div class="autodoc-cards">
-          {% for subsection in section.sorted_subsections %}
-          {% if subsection.name %}
-          {% set desc = subsection.metadata.description | default('') | first_sentence %}
-          {% set child_count = (subsection.subsections | length) + (subsection.pages | length) %}
+          {% for subsection in section_subsections %}
+          {% set subsection_name = subsection?.name ?? '' %}
+          {% if subsection_name %}
+          {% set desc = subsection?.metadata?.description ?? '' | first_sentence %}
+          {% set child_count = (subsection?.subsections ?? [] | length) + (subsection?.pages ?? [] | length) %}
           <a href="{{ subsection.href }}" class="autodoc-card" data-card="group">
             <div class="autodoc-card-header">
               <span class="autodoc-card-icon">{{ icon("terminal", size=20, css_class="icon-muted") }}</span>
-              <span class="autodoc-card-name">{{ subsection.name }}</span>
+              <span class="autodoc-card-name">{{ subsection_name }}</span>
             </div>
             <div class="autodoc-card-body">
-              {% if desc %}
-              <p class="autodoc-card-desc">{{ desc }}</p>
-              {% else %}
-              <p class="autodoc-card-desc">{{ subsection.name }} commands</p>
-              {% end %}
+              <p class="autodoc-card-desc">{{ desc if desc else subsection_name ~ ' commands' }}</p>
             </div>
             <div class="autodoc-card-footer">
               <span class="autodoc-card-meta">
@@ -67,44 +85,31 @@ This template receives:
       {% end %}
 
       {# Command Pages - Card Grid #}
-      {% set command_pages = [] %}
-      {% if section %}
-      {% for page in section.sorted_pages %}
-        {% if page != section.index_page and not (page.source_path is match('.*_index.*')) %}
-          {% do command_pages.append(page) %}
-        {% end %}
-      {% end %}
-      {% end %}
-
-      {% if command_pages %}
+      {% if command_pages | length > 0 %}
       <section class="autodoc-section" data-section="commands">
         <h2 class="autodoc-section-title">Commands</h2>
 
         <div class="autodoc-cards">
-          {% for page in command_pages %}
-          {# ChainableUndefined handles missing metadata gracefully #}
-          {% set desc = page.metadata.description | first_sentence %}
-          {% set elem_type = page.metadata.element_type ?? 'command' %}
-          <a href="{{ page.href }}" class="autodoc-card" data-card="{{ elem_type }}">
+          {% for cmd_page in command_pages %}
+          {% set desc = cmd_page?.metadata?.description ?? '' | first_sentence %}
+          {% set elem_type = cmd_page?.metadata?.element_type ?? 'command' %}
+          <a href="{{ cmd_page.href }}" class="autodoc-card" data-card="{{ elem_type }}">
             <div class="autodoc-card-header">
               <span class="autodoc-card-icon">
-                {%- if elem_type == 'group' -%}
+                {% match elem_type %}
+                {% case 'group' %}
                 {{ icon("folder", size=16, css_class="icon-info") }}
-                {%- else -%}
+                {% case _ %}
                 {{ icon("terminal", size=16, css_class="icon-success") }}
                 {% end %}
               </span>
-              <span class="autodoc-card-name">{{ page.title }}</span>
+              <span class="autodoc-card-name">{{ cmd_page.title }}</span>
               {% if elem_type != 'command' %}
               <span class="autodoc-badge" data-badge="{{ elem_type }}">{{ elem_type }}</span>
               {% end %}
             </div>
             <div class="autodoc-card-body">
-              {% if desc %}
-              <p class="autodoc-card-desc">{{ desc }}</p>
-              {% else %}
-              <p class="autodoc-card-desc">No description available</p>
-              {% end %}
+              <p class="autodoc-card-desc">{{ desc if desc else 'No description available' }}</p>
             </div>
           </a>
           {% end %}
@@ -113,7 +118,7 @@ This template receives:
       {% end %}
 
       {# Empty State #}
-      {% if not section or (not section.subsections and not command_pages) %}
+      {% if section_subsections | length == 0 and command_pages | length == 0 %}
       <div class="autodoc-empty-state">
         <div class="autodoc-empty-state-icon">{{ icon("terminal", size=48, css_class="icon-muted") }}</div>
         <p class="autodoc-empty-state-text">No CLI documentation available in this section yet.</p>
@@ -122,8 +127,10 @@ This template receives:
 
     </article>
 
-    {# Page navigation (prev/next) at bottom #}
+    {# Page navigation (prev/next) at bottom - null-safe #}
+    {% if page %}
     {{ page_navigation(page) }}
+    {% end %}
   </div>
 
   {# Right Sidebar: Contextual Graph + TOC + Metadata #}

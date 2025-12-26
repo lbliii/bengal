@@ -1,27 +1,42 @@
 {#
-Class Member Macro
+================================================================================
+Class Member Macro (Kida-Native)
+================================================================================
 
 Renders a class as a collapsible card with status dot, count badge, and description.
 Uses the unified autodoc design system.
 
-Usage:
+USAGE:
   {% from 'autodoc/partials/_macros/class-member.html' import class_member %}
   {{ class_member(cls, is_first=loop.first) }}
 
-Args:
+ARGS:
   cls: Class DocElement to render (required)
   is_first: Whether this is the first item (to auto-open)
+
+KIDA FEATURES USED:
+  - Optional chaining (?.) for safe attribute access
+  - Null coalescing (??) for defaults
+  - {% let %} for template-scoped caching
+
+================================================================================
 #}
 
 {% def class_member(cls, is_first=false) %}
-{% set cls_methods = (cls.children or []) | selectattr('element_type', 'eq', 'method') | list %}
-{# Attributes are stored as children with element_type='attribute', or sometimes properties #}
-{% set cls_attrs = (cls.children or []) | selectattr('element_type', 'eq', 'attribute') | list %}
-{% set cls_props = (cls.children or []) | selectattr('element_type', 'eq', 'property') | list %}
-{% set all_attrs = cls_attrs + cls_props %}
-{% set total_members = (cls_methods | length) + (all_attrs | length) %}
-{% set is_dataclass = cls.metadata.is_dataclass ?? false %}
-{% set is_abstract = cls.metadata.is_abstract ?? false %}
+{# Pre-compute all values with null-safety #}
+{% let
+    cls_children = cls?.children ?? [],
+    cls_methods = cls_children | selectattr('element_type', 'eq', 'method') | list,
+    cls_attrs = cls_children | selectattr('element_type', 'eq', 'attribute') | list,
+    cls_props = cls_children | selectattr('element_type', 'eq', 'property') | list,
+    all_attrs = cls_attrs + cls_props,
+    total_members = (cls_methods | length) + (all_attrs | length),
+    cls_meta = cls?.metadata ?? {},
+    is_dataclass = cls_meta?.is_dataclass ?? false,
+    is_abstract = cls_meta?.is_abstract ?? false,
+    cls_name = cls?.name ?? 'Unknown',
+    cls_desc = cls?.description ?? ''
+%}
 
 <details class="autodoc-member" data-member="class" {% if is_first %}open{% end %}>
   <summary class="autodoc-member-header">
@@ -31,15 +46,15 @@ Args:
     {# Content wrapper #}
     <div class="autodoc-member-content">
       <div class="autodoc-member-name-row">
-        <code class="autodoc-member-name">{{ cls.name }}</code>
+        <code class="autodoc-member-name">{{ cls_name }}</code>
         {# Count badge #}
-        <span class="autodoc-member-count" title="{{ cls_methods | length }} method{% if cls_methods | length != 1 %}s{% end %}{% if all_attrs %}, {{ all_attrs | length }} attribute{% if all_attrs | length != 1 %}s{% end %}{% end %}">{{ total_members }}</span>
+        <span class="autodoc-member-count" title="{{ cls_methods | length }} method{% if cls_methods | length != 1 %}s{% end %}{% if all_attrs | length > 0 %}, {{ all_attrs | length }} attribute{% if all_attrs | length != 1 %}s{% end %}{% end %}">{{ total_members }}</span>
         {# Toggle indicator #}
         <span class="autodoc-member-toggle">▼</span>
       </div>
       {# Description preview #}
-      {% if cls.description %}
-      <span class="autodoc-member-desc-preview">{{ cls.description | truncate(100, True, '…') }}</span>
+      {% if cls_desc %}
+      <span class="autodoc-member-desc-preview">{{ cls_desc | truncate(100, True, '…') }}</span>
       {% end %}
     </div>
 
@@ -57,14 +72,14 @@ Args:
   </summary>
 
   <div class="autodoc-member-body">
-    {% if cls.description %}
+    {% if cls_desc %}
     <div class="autodoc-member-desc prose">
-      {{ cls.description | markdownify | safe }}
+      {{ cls_desc | markdownify | safe }}
     </div>
     {% end %}
 
     {# Class attributes (from children with element_type='attribute' or 'property') #}
-    {% if all_attrs %}
+    {% if all_attrs | length > 0 %}
     <div class="autodoc-section" data-section="attributes">
       <h4 class="autodoc-label">Attributes</h4>
       <table class="autodoc-table" data-table="attributes">
@@ -78,11 +93,14 @@ Args:
         <tbody>
           {% for attr in all_attrs %}
           {# Attributes are DocElements with name, description, and metadata.annotation #}
-          {% set attr_type = attr.metadata.annotation if attr.metadata and attr.metadata.annotation else none %}
+          {% set attr_meta = attr?.metadata ?? {} %}
+          {% set attr_type = attr_meta?.annotation %}
+          {% set attr_name = attr?.name ?? 'unknown' %}
+          {% set attr_desc = attr?.description ?? '' %}
           <tr>
-            <td class="autodoc-cell-name"><code>{{ attr.name }}</code></td>
+            <td class="autodoc-cell-name"><code>{{ attr_name }}</code></td>
             <td class="autodoc-cell-type">{% if attr_type %}<code>{{ attr_type }}</code>{% else %}—{% end %}</td>
-            <td class="autodoc-cell-desc">{{ attr.description | markdownify | safe }}</td>
+            <td class="autodoc-cell-desc">{{ attr_desc | markdownify | safe if attr_desc else '—' }}</td>
           </tr>
           {% end %}
         </tbody>
@@ -91,7 +109,7 @@ Args:
     {% end %}
 
     {# Class methods - use unified members partial #}
-    {% if cls_methods %}
+    {% if cls_methods | length > 0 %}
     <div class="autodoc-section" data-section="methods">
       <h4 class="autodoc-label">Methods</h4>
       {% set members = cls_methods %}
@@ -103,4 +121,4 @@ Args:
     {% end %}
   </div>
 </details>
-{% enddef %}
+{% end %}

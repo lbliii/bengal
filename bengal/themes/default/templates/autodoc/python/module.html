@@ -9,18 +9,18 @@ Renders a Python module's API documentation using the unified autodoc skeleton.
 Extends base.html to inherit theme navigation, sidebars, and styling.
 
 TEMPLATE VARIABLES:
-  - element: DocElement for the module (required)
-  - page: PageContext proxy with title, metadata, tags, _path
-  - config: Autodoc configuration
-  - site: Site instance
-  - section: Parent section (for navigation)
+- element: DocElement for the module (required)
+- page: PageContext proxy with title, metadata, tags, _path
+- config: Autodoc configuration
+- site: Site instance
+- section: Parent section (for navigation)
 
 KIDA FEATURES USED:
-  - Optional chaining (?.) for safe attribute access
-  - Null coalescing (??) for defaults
-  - {% def %} macros for DRY component reuse
-  - {% match %} for element type dispatch
-  - {% let %} for template-scoped caching
+- Optional chaining (?.) for safe attribute access
+- Null coalescing (??) for defaults
+- {% def %} macros for DRY component reuse
+- {% match %} for element type dispatch
+- {% let %} for template-scoped caching
 
 ================================================================================
 #}

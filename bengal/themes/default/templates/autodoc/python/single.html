@@ -1,7 +1,9 @@
 {% extends "base.html" %}
 
 {#
-API Reference Template
+================================================================================
+API Reference Template (Kida-Native)
+================================================================================
 
 Three-column layout optimized for API documentation sites:
 - Left sidebar: Navigation tree
@@ -11,18 +13,29 @@ Three-column layout optimized for API documentation sites:
 Usage: Set `template: autodoc/python/single.html` in frontmatter
 Or set `type: autodoc-python` to auto-select this template
 
-Features:
-- Page hero with breadcrumbs, title, description, and metadata
-- Contextual graph minimap (connections to current page)
-- Table of contents
-- Track navigation support (optional)
-- Tag list in footer
+TEMPLATE VARIABLES:
+- page: Page object with title, metadata, tags (required)
+- content: Rendered HTML content
+- params: Cascading parameters (page → section → site)
+- toc_items: Table of contents items
+- toc: Rendered TOC HTML
+
+KIDA FEATURES USED:
+- Optional chaining (?.) for safe attribute access
+- Null coalescing (??) for defaults
+- {% let %} for template-scoped caching
+
+================================================================================
 #}
 
 {% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc %}
 {% from 'partials/content-components.html' import tag_list %}
 
 {% block content %}
+{# Template-scoped caching #}
+{% let page_tags = page?.tags ?? [] %}
+{% let css_class = params?.css_class ?? '' %}
+
 {# Three-column documentation layout #}
 <div class="docs-layout">
   {# Left Sidebar: Navigation #}
@@ -37,7 +50,7 @@ Features:
     {% include 'partials/page-hero.html' %}
 
     {# Article Content - flattened structure #}
-    <article class="prose docs-content {% if params.css_class %}{{ params.css_class }}{% end %}">
+    <article class="prose docs-content{% if css_class %} {{ css_class }}{% end %}">
 
       {# Track Navigation (Top) #}
       {% include 'partials/track_nav.html' %}
@@ -45,10 +58,10 @@ Features:
       {{ content | safe }}
 
       {# Tags #}
-      {% if page.tags %}
+      {% if page_tags | length > 0 %}
       <footer class="docs-footer">
         <span class="docs-footer-label">{{ t('docs.tagged', default='Tagged') }}</span>
-        {{ tag_list(page.tags) }}
+        {{ tag_list(page_tags) }}
       </footer>
       {% end %}
     </article>
@@ -57,7 +70,9 @@ Features:
     {% include 'partials/track_nav.html' %}
 
     {# Page navigation (prev/next) at bottom #}
+    {% if page %}
     {{ page_navigation(page) }}
+    {% end %}
   </div>
 
   {# Right Sidebar: Contextual Graph + TOC + Metadata #}

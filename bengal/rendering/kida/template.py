@@ -373,7 +373,7 @@ class Template:
                 # Get template context for better error messages
                 template_name = ctx.get("_template")
                 lineno = ctx.get("_line")
-                raise UndefinedError(var_name, template_name, lineno)
+                raise UndefinedError(var_name, template_name, lineno) from None
 
         # Default filter helper for strict mode
         def _default_safe(
@@ -644,7 +644,7 @@ class Template:
             # Check if block exists in metadata
             available = [
                 k[7:]
-                for k in self._namespace.keys()
+                for k in self._namespace
                 if k.startswith("_block_") and callable(self._namespace[k])
             ]
             raise KeyError(
@@ -692,7 +692,7 @@ class Template:
         """
         return [
             k[7:]
-            for k in self._namespace.keys()
+            for k in self._namespace
             if k.startswith("_block_") and callable(self._namespace[k])
         ]
 
