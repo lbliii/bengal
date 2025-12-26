@@ -521,6 +521,7 @@ class GraphBuilder:
         """
         analysis_pages = self.get_analysis_pages()
         analysis_pages_set = set(analysis_pages)
+        sequential_count = 0
 
         for page in analysis_pages:
             next_page = getattr(page, "next_in_section", None)
@@ -530,6 +531,7 @@ class GraphBuilder:
                 self.link_types[(page, next_page)] = LinkType.SEQUENTIAL
                 # Build reverse index for O(E) PageRank
                 self.incoming_edges[next_page].append(page)
+                sequential_count += 1
 
             prev_page = getattr(page, "prev_in_section", None)
             if prev_page and prev_page in analysis_pages_set:
@@ -538,10 +540,11 @@ class GraphBuilder:
                 self.link_types[(page, prev_page)] = LinkType.SEQUENTIAL
                 # Build reverse index for O(E) PageRank
                 self.incoming_edges[prev_page].append(page)
+                sequential_count += 1
 
         logger.debug(
             "knowledge_graph_navigation_links_complete",
-            sequential_links=sum(1 for lt in self.link_types.values() if lt == LinkType.SEQUENTIAL),
+            sequential_links=sequential_count,
         )
 
     def _build_link_metrics(self) -> None:

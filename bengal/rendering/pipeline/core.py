@@ -336,6 +336,17 @@ class RenderingPipeline:
             # Flush deferred highlighting: batch process all code blocks in parallel
             # This replaces <!--code:XXX--> placeholders with highlighted HTML
             page.parsed_ast = flush_deferred_highlighting(page.parsed_ast)
+
+            # Restore any remaining escape placeholders in code block output
+            # This is needed because deferred highlighting captures code BEFORE
+            # restore_placeholders() runs, so {{/* */}} escapes appear as
+            # BENGALESCAPED*ENDESC in the final highlighted HTML
+            if (
+                hasattr(self.parser, "_var_plugin")
+                and self.parser._var_plugin
+                and self.parser._var_plugin.escaped_placeholders
+            ):
+                page.parsed_ast = self.parser._var_plugin.restore_placeholders(page.parsed_ast)
         finally:
             disable_deferred_highlighting()
 

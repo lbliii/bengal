@@ -276,16 +276,12 @@ class Lexer:
 
             # Check for left trim modifier ({%- or {{-)
             # If the next construct starts with -, strip trailing whitespace from data
+            # IMPORTANT: The - must be IMMEDIATELY after the delimiter (no space)
             delimiter_len = 2  # Length of {{ or {%
             after_delimiter_pos = construct_pos + delimiter_len
-            if after_delimiter_pos < len(self._source):
-                # Skip whitespace after delimiter to find -
-                peek_pos = after_delimiter_pos
-                while peek_pos < len(self._source) and self._source[peek_pos] in " \t":
-                    peek_pos += 1
-                if peek_pos < len(self._source) and self._source[peek_pos] == "-":
-                    # Left trim modifier found - strip trailing whitespace
-                    data = data.rstrip()
+            if after_delimiter_pos < len(self._source) and self._source[after_delimiter_pos] == "-":
+                # Left trim modifier found - strip trailing whitespace
+                data = data.rstrip()
 
             self._advance(construct_pos - self._pos)
             if data:
@@ -319,12 +315,15 @@ class Lexer:
         """Tokenize code inside {{ }} or {% %}."""
         # Handle whitespace trimming (- modifier)
         # e.g., {{- or {%- for left trim, -}} or -%} for right trim
+        #
+        # IMPORTANT: The - for whitespace control must be IMMEDIATELY after
+        # the delimiter (no space). If there's a space before -, it's a unary minus.
+        # - {{- expr }} -> left trim (- immediately after {{)
+        # - {{ -5 }}    -> unary minus (space before -)
 
-        # Check for leading - (left trim marker) at start of code
-        # This means we should strip trailing whitespace from previous DATA
-        self._skip_whitespace()
+        # Check for leading - (left trim marker) IMMEDIATELY at start of code (no whitespace)
         if self._pos < len(self._source) and self._source[self._pos] == "-":
-            # Skip the - and any following whitespace
+            # This is a whitespace control marker - skip it
             self._advance(1)
             # Note: The previous DATA token was already emitted, so we can't
             # modify it. This is handled in _tokenize_data by stripping trailing

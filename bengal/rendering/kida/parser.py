@@ -114,7 +114,7 @@ class Parser:
         >>> ast = parser.parse()
     """
 
-    __slots__ = ("_tokens", "_pos", "_name", "_filename", "_source")
+    __slots__ = ("_tokens", "_pos", "_name", "_filename", "_source", "_autoescape")
 
     def __init__(
         self,
@@ -122,12 +122,14 @@ class Parser:
         name: str | None = None,
         filename: str | None = None,
         source: str | None = None,
+        autoescape: bool = True,
     ):
         self._tokens = tokens
         self._pos = 0
         self._name = name
         self._filename = filename
         self._source = source
+        self._autoescape = autoescape
 
     def _error(
         self,
@@ -240,7 +242,7 @@ class Parser:
             lineno=start.lineno,
             col_offset=start.col_offset,
             expr=expr,
-            escape=True,
+            escape=self._autoescape,
         )
 
     def _parse_block(self) -> Node | None:
@@ -986,14 +988,21 @@ class Parser:
             TokenType.GE,
             TokenType.IN,
             TokenType.IS,
+            TokenType.NOT,  # For 'not in'
         ):
             op_token = self._advance()
             op = op_token.value
 
-            # Handle 'not in' and 'is not'
-            if op == "not" and self._match(TokenType.IN):
-                self._advance()
-                op = "not in"
+            # Handle 'not in': when we see 'not', expect 'in' to follow
+            if op == "not":
+                if self._match(TokenType.IN):
+                    self._advance()
+                    op = "not in"
+                else:
+                    raise self._error(
+                        "Expected 'in' after 'not' in comparison",
+                        suggestion="Use 'not in' for membership test: {% if item not in items %}",
+                    )
             elif op == "is" and self._match(TokenType.NOT):
                 self._advance()
                 op = "is not"
@@ -1403,5 +1412,6 @@ class Parser:
             TokenType.FLOORDIV: "//",
             TokenType.MOD: "%",
             TokenType.POW: "**",
+            TokenType.TILDE: "~",  # String concatenation
         }
         return mapping.get(token_type, "+")

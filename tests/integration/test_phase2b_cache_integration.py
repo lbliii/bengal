@@ -15,7 +15,6 @@ These tests verify that:
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -111,11 +110,15 @@ class TestPageDiscoveryCacheSaving:
         orchestrator = BuildOrchestrator(site_with_content)
         orchestrator.build(incremental=False)
 
-        # Check cache file exists
-        cache_file = site_with_content.root_path / ".bengal" / "page_metadata.json"
-        assert cache_file.exists(), "PageDiscoveryCache not saved to disk"
+        # Check cache file exists (saved as compressed .json.zst)
+        cache_dir = site_with_content.root_path / ".bengal"
+        cache_file = cache_dir / "page_metadata.json"
+        compressed_file = cache_dir / "page_metadata.json.zst"
+        assert compressed_file.exists() or cache_file.exists(), (
+            "PageDiscoveryCache not saved to disk"
+        )
 
-        # Load cache and verify content
+        # Load cache and verify content (PageDiscoveryCache handles both formats via load_auto)
         cache = PageDiscoveryCache(cache_file)
         assert len(cache.pages) > 0, "Cache has no entries"
 
@@ -162,11 +165,15 @@ class TestAssetDependencyMapTracking:
         orchestrator = BuildOrchestrator(site_with_content)
         orchestrator.build(incremental=False)
 
-        # Check cache file exists
-        asset_map_file = site_with_content.root_path / ".bengal" / "asset_deps.json"
-        assert asset_map_file.exists(), "AssetDependencyMap not saved to disk"
+        # Check cache file exists (saved as compressed .json.zst)
+        cache_dir = site_with_content.root_path / ".bengal"
+        asset_map_file = cache_dir / "asset_deps.json"
+        compressed_file = cache_dir / "asset_deps.json.zst"
+        assert compressed_file.exists() or asset_map_file.exists(), (
+            "AssetDependencyMap not saved to disk"
+        )
 
-        # Load map and verify content
+        # Load map and verify content (AssetDependencyMap handles both formats via load_auto)
         asset_map = AssetDependencyMap(asset_map_file)
         assert len(asset_map.pages) > 0, "Asset map has no entries"
 
@@ -230,11 +237,13 @@ class TestTaxonomyIndexPersistence:
         orchestrator = BuildOrchestrator(site_with_content)
         orchestrator.build(incremental=False)
 
-        # Check cache file exists
-        taxonomy_file = site_with_content.root_path / ".bengal" / "taxonomy_index.json"
-        assert taxonomy_file.exists(), "TaxonomyIndex not saved to disk"
+        # Check cache file exists (saved as compressed .json.zst)
+        cache_dir = site_with_content.root_path / ".bengal"
+        taxonomy_file = cache_dir / "taxonomy_index.json"
+        compressed_file = cache_dir / "taxonomy_index.json.zst"
+        assert compressed_file.exists() or taxonomy_file.exists(), "TaxonomyIndex not saved to disk"
 
-        # Load index and verify content
+        # Load index and verify content (TaxonomyIndex handles both formats via load_auto)
         index = TaxonomyIndex(taxonomy_file)
         assert len(index.tags) > 0, "Taxonomy index has no tags"
 
@@ -362,24 +371,36 @@ class TestCacheIntegrationEndToEnd:
 
     def test_cache_files_created(self, site_with_content):
         """Verify all cache files are created after build."""
+        from bengal.cache.compression import load_auto
+
         # Build the site
         orchestrator = BuildOrchestrator(site_with_content)
         orchestrator.build(incremental=False)
 
         cache_dir = site_with_content.root_path / ".bengal"
 
-        # Verify cache files exist and are valid JSON
-        assert (cache_dir / "page_metadata.json").exists(), "PageDiscoveryCache not created"
-        with open(cache_dir / "page_metadata.json") as f:
-            page_data = json.load(f)
+        # Verify cache files exist (as compressed .json.zst) and contain valid data
+        # Use load_auto which handles both .json and .json.zst formats
+        page_cache_path = cache_dir / "page_metadata.json"
+        compressed_page = cache_dir / "page_metadata.json.zst"
+        assert compressed_page.exists() or page_cache_path.exists(), (
+            "PageDiscoveryCache not created"
+        )
+        page_data = load_auto(page_cache_path)
         assert "pages" in page_data, "PageDiscoveryCache missing 'pages' key"
 
-        assert (cache_dir / "asset_deps.json").exists(), "AssetDependencyMap not created"
-        with open(cache_dir / "asset_deps.json") as f:
-            asset_data = json.load(f)
+        asset_cache_path = cache_dir / "asset_deps.json"
+        compressed_asset = cache_dir / "asset_deps.json.zst"
+        assert compressed_asset.exists() or asset_cache_path.exists(), (
+            "AssetDependencyMap not created"
+        )
+        asset_data = load_auto(asset_cache_path)
         assert "pages" in asset_data, "AssetDependencyMap missing 'pages' key"
 
-        assert (cache_dir / "taxonomy_index.json").exists(), "TaxonomyIndex not created"
-        with open(cache_dir / "taxonomy_index.json") as f:
-            taxonomy_data = json.load(f)
+        taxonomy_cache_path = cache_dir / "taxonomy_index.json"
+        compressed_taxonomy = cache_dir / "taxonomy_index.json.zst"
+        assert compressed_taxonomy.exists() or taxonomy_cache_path.exists(), (
+            "TaxonomyIndex not created"
+        )
+        taxonomy_data = load_auto(taxonomy_cache_path)
         assert "tags" in taxonomy_data, "TaxonomyIndex missing 'tags' key"

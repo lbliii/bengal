@@ -920,6 +920,7 @@ DEFAULT_TESTS: dict[str, Callable] = {
     "eq": _test_eq,
     "equalto": _test_eq,
     "even": _test_even,
+    "false": lambda v: v is False,  # is false test
     "ge": _test_ge,
     "gt": _test_gt,
     "greaterthan": _test_gt,
@@ -937,6 +938,7 @@ DEFAULT_TESTS: dict[str, Callable] = {
     "sameas": lambda v, o: v is o,
     "sequence": _test_sequence,
     "string": _test_string,
+    "true": lambda v: v is True,  # is true test
     "undefined": lambda v: v is None,
     "upper": _test_upper,
 }
@@ -980,7 +982,31 @@ class Environment:
     lstrip_blocks: bool = False
 
     # Globals (available in all templates)
-    globals: dict[str, Any] = field(default_factory=dict)
+    # Includes Python builtins commonly used in templates
+    globals: dict[str, Any] = field(
+        default_factory=lambda: {
+            "range": range,
+            "dict": dict,
+            "list": list,
+            "set": set,
+            "tuple": tuple,
+            "len": len,
+            "str": str,
+            "int": int,
+            "float": float,
+            "bool": bool,
+            "abs": abs,
+            "min": min,
+            "max": max,
+            "sum": sum,
+            "sorted": sorted,
+            "reversed": reversed,
+            "enumerate": enumerate,
+            "zip": zip,
+            "map": map,
+            "filter": filter,
+        }
+    )
 
     # Filters and tests (copy-on-write)
     _filters: dict[str, Callable] = field(default_factory=lambda: DEFAULT_FILTERS.copy())
@@ -1097,8 +1123,11 @@ class Environment:
         lexer = Lexer(source, self._lexer_config)
         tokens = list(lexer.tokenize())
 
+        # Determine autoescape setting for this template
+        should_escape = self.autoescape(name) if callable(self.autoescape) else self.autoescape
+
         # Parse (pass source for rich error messages)
-        parser = Parser(tokens, name, filename, source)
+        parser = Parser(tokens, name, filename, source, autoescape=should_escape)
         ast = parser.parse()
 
         # Compile
