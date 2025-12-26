@@ -123,6 +123,13 @@ Use investigation helpers::
         for path in e.get_related_test_files():
             print(f"  {path}")
 
+Performance Note
+================
+
+This module uses lazy imports to avoid loading heavy dependencies (Rich,
+output formatting, etc.) until they are actually needed. The core error
+types (ErrorCode, BengalError, exception subclasses) load instantly.
+
 See Also
 ========
 
@@ -133,44 +140,19 @@ See Also
 
 from __future__ import annotations
 
-# Error aggregation
-from bengal.errors.aggregation import (
-    ErrorAggregator,
-    extract_error_context,
-)
+from typing import TYPE_CHECKING, Any
 
-# Error codes
+# =============================================================================
+# EAGERLY LOADED - Core error types used everywhere (~2ms total)
+# =============================================================================
+# Error codes - lightweight enum, no dependencies
 from bengal.errors.codes import (
     ErrorCode,
     get_codes_by_category,
     get_error_code_by_name,
 )
 
-# Context enrichment
-from bengal.errors.context import (
-    BuildPhase,
-    ErrorContext,
-    ErrorDebugPayload,
-    ErrorSeverity,
-    RelatedFile,
-    create_config_context,
-    create_discovery_context,
-    create_rendering_context,
-    enrich_error,
-    get_context_from_exception,
-)
-
-# Dev server context
-from bengal.errors.dev_server import (
-    DevServerErrorContext,
-    DevServerState,
-    FileChange,
-    create_dev_error,
-    get_dev_server_state,
-    reset_dev_server_state,
-)
-
-# Exception classes
+# Exception classes - lightweight, only depends on codes
 from bengal.errors.exceptions import (
     BengalAssetError,
     BengalCacheError,
@@ -183,57 +165,92 @@ from bengal.errors.exceptions import (
     BengalServerError,
 )
 
-# Runtime handlers
-from bengal.errors.handlers import (
-    ContextAwareHelp,
-    get_context_aware_help,
-)
+# =============================================================================
+# TYPE_CHECKING - For static analysis without runtime cost
+# =============================================================================
 
-# Recovery patterns
-from bengal.errors.recovery import (
-    error_recovery_context,
-    recover_file_processing,
-    with_error_recovery,
-)
+if TYPE_CHECKING:
+    # Context enrichment
+    # Error aggregation
+    from bengal.errors.aggregation import (
+        ErrorAggregator,
+        extract_error_context,
+    )
+    from bengal.errors.context import (
+        BuildPhase,
+        ErrorContext,
+        ErrorDebugPayload,
+        ErrorSeverity,
+        RelatedFile,
+        create_config_context,
+        create_discovery_context,
+        create_rendering_context,
+        enrich_error,
+        get_context_from_exception,
+    )
 
-# Reporter
-from bengal.errors.reporter import (
-    format_error_report,
-    format_error_summary,
-)
+    # Dev server context
+    from bengal.errors.dev_server import (
+        DevServerErrorContext,
+        DevServerState,
+        FileChange,
+        create_dev_error,
+        get_dev_server_state,
+        reset_dev_server_state,
+    )
 
-# Session tracking
-from bengal.errors.session import (
-    ErrorOccurrence,
-    ErrorPattern,
-    ErrorSession,
-    get_session,
-    record_error,
-    reset_session,
-)
+    # Runtime handlers
+    from bengal.errors.handlers import (
+        ContextAwareHelp,
+        get_context_aware_help,
+    )
 
-# Actionable suggestions
-from bengal.errors.suggestions import (
-    ActionableSuggestion,
-    enhance_error_context,
-    format_suggestion,
-    format_suggestion_full,
-    get_all_suggestions_for_category,
-    get_attribute_error_suggestion,
-    get_suggestion,
-    get_suggestion_dict,
-    search_suggestions,
-)
+    # Recovery patterns
+    from bengal.errors.recovery import (
+        error_recovery_context,
+        recover_file_processing,
+        with_error_recovery,
+    )
+
+    # Reporter
+    from bengal.errors.reporter import (
+        format_error_report,
+        format_error_summary,
+    )
+
+    # Session tracking
+    from bengal.errors.session import (
+        ErrorOccurrence,
+        ErrorPattern,
+        ErrorSession,
+        get_session,
+        record_error,
+        reset_session,
+    )
+
+    # Actionable suggestions
+    from bengal.errors.suggestions import (
+        ActionableSuggestion,
+        enhance_error_context,
+        format_suggestion,
+        format_suggestion_full,
+        get_all_suggestions_for_category,
+        get_attribute_error_suggestion,
+        get_suggestion,
+        get_suggestion_dict,
+        search_suggestions,
+    )
+
 
 __all__ = [
     # ============================================================
-    # Error Codes
+    # Error Codes (eager)
     # ============================================================
     "ErrorCode",
     "get_error_code_by_name",
     "get_codes_by_category",
     # ============================================================
-    # Exceptions
+    # Exceptions (eager)
     # ============================================================
     "BengalError",
     "BengalConfigError",
@@ -245,7 +262,7 @@ __all__ = [
     "BengalAssetError",
     "BengalGraphError",
     # ============================================================
-    # Context
+    # Context (lazy)
     # ============================================================
     "BuildPhase",
     "ErrorSeverity",
@@ -258,7 +275,7 @@ __all__ = [
     "create_discovery_context",
     "create_config_context",
     # ============================================================
-    # Dev Server
+    # Dev Server (lazy)
     # ============================================================
     "DevServerErrorContext",
     "DevServerState",
@@ -267,7 +284,7 @@ __all__ = [
     "get_dev_server_state",
     "reset_dev_server_state",
     # ============================================================
-    # Session Tracking
+    # Session Tracking (lazy)
     # ============================================================
     "ErrorSession",
     "ErrorPattern",
@@ -276,7 +293,7 @@ __all__ = [
     "reset_session",
     "record_error",
     # ============================================================
-    # Suggestions
+    # Suggestions (lazy)
     # ============================================================
     "ActionableSuggestion",
     "get_suggestion",
@@ -288,24 +305,104 @@ __all__ = [
     "get_all_suggestions_for_category",
     "search_suggestions",
     # ============================================================
-    # Aggregation
+    # Aggregation (lazy)
     # ============================================================
     "ErrorAggregator",
     "extract_error_context",
     # ============================================================
-    # Handlers
+    # Handlers (lazy)
     # ============================================================
     "ContextAwareHelp",
     "get_context_aware_help",
     # ============================================================
-    # Recovery
+    # Recovery (lazy)
     # ============================================================
     "with_error_recovery",
     "error_recovery_context",
     "recover_file_processing",
     # ============================================================
-    # Reporter
+    # Reporter (lazy)
     # ============================================================
     "format_error_report",
     "format_error_summary",
 ]
+
+
+# =============================================================================
+# LAZY IMPORTS - Heavy modules loaded on first access
+# =============================================================================
+
+# Mapping of attribute name to (module_path, attribute_name)
+_LAZY_IMPORTS: dict[str, tuple[str, str]] = {
+    # Context
+    "BuildPhase": ("bengal.errors.context", "BuildPhase"),
+    "ErrorSeverity": ("bengal.errors.context", "ErrorSeverity"),
+    "ErrorContext": ("bengal.errors.context", "ErrorContext"),
+    "ErrorDebugPayload": ("bengal.errors.context", "ErrorDebugPayload"),
+    "RelatedFile": ("bengal.errors.context", "RelatedFile"),
+    "enrich_error": ("bengal.errors.context", "enrich_error"),
+    "get_context_from_exception": ("bengal.errors.context", "get_context_from_exception"),
+    "create_rendering_context": ("bengal.errors.context", "create_rendering_context"),
+    "create_discovery_context": ("bengal.errors.context", "create_discovery_context"),
+    "create_config_context": ("bengal.errors.context", "create_config_context"),
+    # Dev server
+    "DevServerErrorContext": ("bengal.errors.dev_server", "DevServerErrorContext"),
+    "DevServerState": ("bengal.errors.dev_server", "DevServerState"),
+    "FileChange": ("bengal.errors.dev_server", "FileChange"),
+    "create_dev_error": ("bengal.errors.dev_server", "create_dev_error"),
+    "get_dev_server_state": ("bengal.errors.dev_server", "get_dev_server_state"),
+    "reset_dev_server_state": ("bengal.errors.dev_server", "reset_dev_server_state"),
+    # Session
+    "ErrorSession": ("bengal.errors.session", "ErrorSession"),
+    "ErrorPattern": ("bengal.errors.session", "ErrorPattern"),
+    "ErrorOccurrence": ("bengal.errors.session", "ErrorOccurrence"),
+    "get_session": ("bengal.errors.session", "get_session"),
+    "reset_session": ("bengal.errors.session", "reset_session"),
+    "record_error": ("bengal.errors.session", "record_error"),
+    # Suggestions
+    "ActionableSuggestion": ("bengal.errors.suggestions", "ActionableSuggestion"),
+    "get_suggestion": ("bengal.errors.suggestions", "get_suggestion"),
+    "get_suggestion_dict": ("bengal.errors.suggestions", "get_suggestion_dict"),
+    "format_suggestion": ("bengal.errors.suggestions", "format_suggestion"),
+    "format_suggestion_full": ("bengal.errors.suggestions", "format_suggestion_full"),
+    "enhance_error_context": ("bengal.errors.suggestions", "enhance_error_context"),
+    "get_attribute_error_suggestion": (
+        "bengal.errors.suggestions",
+        "get_attribute_error_suggestion",
+    ),
+    "get_all_suggestions_for_category": (
+        "bengal.errors.suggestions",
+        "get_all_suggestions_for_category",
+    ),
+    "search_suggestions": ("bengal.errors.suggestions", "search_suggestions"),
+    # Aggregation
+    "ErrorAggregator": ("bengal.errors.aggregation", "ErrorAggregator"),
+    "extract_error_context": ("bengal.errors.aggregation", "extract_error_context"),
+    # Handlers
+    "ContextAwareHelp": ("bengal.errors.handlers", "ContextAwareHelp"),
+    "get_context_aware_help": ("bengal.errors.handlers", "get_context_aware_help"),
+    # Recovery
+    "with_error_recovery": ("bengal.errors.recovery", "with_error_recovery"),
+    "error_recovery_context": ("bengal.errors.recovery", "error_recovery_context"),
+    "recover_file_processing": ("bengal.errors.recovery", "recover_file_processing"),
+    # Reporter
+    "format_error_report": ("bengal.errors.reporter", "format_error_report"),
+    "format_error_summary": ("bengal.errors.reporter", "format_error_summary"),
+}
+
+
+def __getattr__(name: str) -> Any:
+    """
+    Lazy import for heavy error infrastructure.
+
+    This avoids loading context enrichment, session tracking, reporter,
+    and other heavy modules until they are actually needed. Most code
+    only needs ErrorCode and exception classes, which are loaded eagerly.
+    """
+    if name in _LAZY_IMPORTS:
+        module_path, attr_name = _LAZY_IMPORTS[name]
+        import importlib
+
+        module = importlib.import_module(module_path)
+        return getattr(module, attr_name)
+    raise AttributeError(f"module 'bengal.errors' has no attribute {name!r}")

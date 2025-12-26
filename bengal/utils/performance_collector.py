@@ -29,12 +29,23 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from bengal.utils.logger import get_logger
-
 if TYPE_CHECKING:
     from bengal.orchestration.stats import BuildStats
+    from bengal.utils.logger import Logger
 
-logger = get_logger(__name__)
+# Lazy logger - only loaded when actually logging (error paths)
+_logger: Logger | None = None
+
+
+def _get_logger():
+    """Get logger lazily to avoid import overhead."""
+    global _logger
+    if _logger is None:
+        from bengal.utils.logger import get_logger
+
+        _logger = get_logger(__name__)
+    return _logger
+
 
 try:
     import psutil
@@ -161,7 +172,7 @@ class PerformanceCollector:
 
         except Exception as e:
             # Fail gracefully - don't break the build if metrics can't be saved
-            logger.warning(
+            _get_logger().warning(
                 "performance_metrics_save_failed", error=str(e), error_type=type(e).__name__
             )
 

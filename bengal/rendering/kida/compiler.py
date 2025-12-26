@@ -46,6 +46,31 @@ class Compiler:
         # Track blocks for inheritance
         self._blocks: dict[str, Any] = {}
 
+    def _collect_blocks(self, nodes: Any) -> None:
+        """Recursively collect all Block nodes from the AST.
+
+        This ensures nested blocks (blocks inside blocks, blocks inside
+        conditionals, etc.) are all registered for compilation.
+        """
+        for node in nodes:
+            node_type = type(node).__name__
+
+            if node_type == "Block":
+                self._blocks[node.name] = node
+                # Recurse into block body to find nested blocks
+                self._collect_blocks(node.body)
+            elif hasattr(node, "body"):
+                # Node has a body (If, For, With, Macro, etc.)
+                self._collect_blocks(node.body)
+                # Check for else/elif bodies
+                if hasattr(node, "else_") and node.else_:
+                    self._collect_blocks(node.else_)
+                if hasattr(node, "empty") and node.empty:
+                    self._collect_blocks(node.empty)
+                if hasattr(node, "elif_") and node.elif_:
+                    for _, elif_body in node.elif_:
+                        self._collect_blocks(elif_body)
+
     def compile(
         self,
         node: TemplateNode,
@@ -180,14 +205,13 @@ class Compiler:
         # Reset blocks dict for this compilation
         self._blocks = {}
 
-        # First pass: collect blocks and find extends
+        # First pass: recursively collect ALL blocks (including nested) and find extends
         extends_node = None
+        self._collect_blocks(node.body)
         for child in node.body:
-            node_type = type(child).__name__
-            if node_type == "Block":
-                self._blocks[child.name] = child
-            elif node_type == "Extends":
+            if type(child).__name__ == "Extends":
                 extends_node = child
+                break
 
         body: list[ast.stmt] = []
 
@@ -1103,10 +1127,16 @@ class Compiler:
             # Locals use O(1) LOAD_FAST instead of O(1) dict lookup + hash
             if node.name in self._locals:
                 return ast.Name(id=node.name, ctx=ast.Load())
-            return ast.Subscript(
-                value=ast.Name(id="ctx", ctx=ast.Load()),
-                slice=ast.Constant(value=node.name),
-                ctx=ast.Load(),
+            # Use ctx.get(name) to handle missing variables gracefully
+            # This returns None for missing vars, which default() filter handles
+            return ast.Call(
+                func=ast.Attribute(
+                    value=ast.Name(id="ctx", ctx=ast.Load()),
+                    attr="get",
+                    ctx=ast.Load(),
+                ),
+                args=[ast.Constant(value=node.name)],
+                keywords=[],
             )
 
         if node_type == "Tuple":

@@ -156,7 +156,16 @@ class Lexer:
         "}": TokenType.RBRACE,
     }
 
-    __slots__ = ("_source", "_config", "_pos", "_lineno", "_col_offset", "_mode")
+    __slots__ = (
+        "_source",
+        "_config",
+        "_pos",
+        "_lineno",
+        "_col_offset",
+        "_mode",
+        "_trim_next_data",  # Strip leading whitespace from next DATA token
+        "_last_block_end",  # Position after last block end (for trim_blocks)
+    )
 
     def __init__(
         self,
@@ -175,6 +184,8 @@ class Lexer:
         self._lineno = 1
         self._col_offset = 0
         self._mode = LexerMode.DATA
+        self._trim_next_data = False  # Set when -}} or -%} is encountered
+        self._last_block_end = -1  # Track for trim_blocks
 
     def tokenize(self) -> Iterator[Token]:
         """Tokenize the source and yield tokens.
@@ -216,8 +227,19 @@ class Lexer:
             # Rest of source is data
             data = self._source[self._pos :]
             if data:
-                self._advance(len(data))
-                yield Token(TokenType.DATA, data, start_lineno, start_col)
+                # Apply trim_next_data if set (from previous -%} or -}})
+                if self._trim_next_data:
+                    data = data.lstrip()
+                    self._trim_next_data = False
+                # Apply trim_blocks if enabled (strip first newline after block)
+                elif self._last_block_end == self._pos and self._config.trim_blocks:
+                    if data.startswith("\n"):
+                        data = data[1:]
+                    elif data.startswith("\r\n"):
+                        data = data[2:]
+                self._advance(len(self._source[self._pos :]))
+                if data:
+                    yield Token(TokenType.DATA, data, start_lineno, start_col)
             return
 
         construct_type, construct_pos = next_construct
@@ -225,8 +247,49 @@ class Lexer:
         # Emit data before construct
         if construct_pos > self._pos:
             data = self._source[self._pos : construct_pos]
-            self._advance(len(data))
-            yield Token(TokenType.DATA, data, start_lineno, start_col)
+
+            # Apply trim_next_data if set (from previous -%} or -}})
+            if self._trim_next_data:
+                data = data.lstrip()
+                self._trim_next_data = False
+            # Apply trim_blocks if enabled (strip first newline after block)
+            elif self._last_block_end == self._pos and self._config.trim_blocks:
+                if data.startswith("\n"):
+                    data = data[1:]
+                elif data.startswith("\r\n"):
+                    data = data[2:]
+
+            # Apply lstrip_blocks: strip leading whitespace before block tags
+            # only if the whitespace is on the same line as the block
+            if construct_type == "block" and self._config.lstrip_blocks and data:
+                # Find if there's only whitespace on this line before the block
+                last_newline = data.rfind("\n")
+                if last_newline == -1:
+                    # No newline - check if entire data is just whitespace
+                    if data.strip() == "":
+                        data = ""
+                else:
+                    # Check if content after last newline is just whitespace
+                    line_content = data[last_newline + 1 :]
+                    if line_content.strip() == "":
+                        data = data[: last_newline + 1]
+
+            # Check for left trim modifier ({%- or {{-)
+            # If the next construct starts with -, strip trailing whitespace from data
+            delimiter_len = 2  # Length of {{ or {%
+            after_delimiter_pos = construct_pos + delimiter_len
+            if after_delimiter_pos < len(self._source):
+                # Skip whitespace after delimiter to find -
+                peek_pos = after_delimiter_pos
+                while peek_pos < len(self._source) and self._source[peek_pos] in " \t":
+                    peek_pos += 1
+                if peek_pos < len(self._source) and self._source[peek_pos] == "-":
+                    # Left trim modifier found - strip trailing whitespace
+                    data = data.rstrip()
+
+            self._advance(construct_pos - self._pos)
+            if data:
+                yield Token(TokenType.DATA, data, start_lineno, start_col)
 
         # Emit construct start token
         if construct_type == "variable":
@@ -258,10 +321,14 @@ class Lexer:
         # e.g., {{- or {%- for left trim, -}} or -%} for right trim
 
         # Check for leading - (left trim marker) at start of code
+        # This means we should strip trailing whitespace from previous DATA
         self._skip_whitespace()
         if self._pos < len(self._source) and self._source[self._pos] == "-":
             # Skip the - and any following whitespace
             self._advance(1)
+            # Note: The previous DATA token was already emitted, so we can't
+            # modify it. This is handled in _tokenize_data by stripping trailing
+            # whitespace when we detect {%- or {{-
 
         while self._pos < len(self._source):
             # Skip whitespace
@@ -278,14 +345,21 @@ class Lexer:
 
             # Check for end delimiter (with optional - modifier)
             if self._source[self._pos :].startswith("-" + end_delimiter):
-                # Trim right whitespace marker
+                # Trim right whitespace marker - strip leading whitespace from next DATA
                 self._advance(1)  # Skip -
+                self._trim_next_data = True
                 yield self._emit_delimiter(end_delimiter, end_token_type)
+                # Track block end position for trim_blocks
+                if end_token_type == TokenType.BLOCK_END:
+                    self._last_block_end = self._pos
                 self._mode = LexerMode.DATA
                 return
 
             if self._source[self._pos :].startswith(end_delimiter):
                 yield self._emit_delimiter(end_delimiter, end_token_type)
+                # Track block end position for trim_blocks
+                if end_token_type == TokenType.BLOCK_END:
+                    self._last_block_end = self._pos
                 self._mode = LexerMode.DATA
                 return
 

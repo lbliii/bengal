@@ -156,6 +156,16 @@ def load_compressed(path: Path) -> dict[str, Any]:
     json_bytes = zstd.decompress(remaining)
     data = json.loads(json_bytes)
 
+    # Validate type to prevent 'str' object has no attribute 'get' errors
+    if not isinstance(data, dict):
+        error = BengalCacheError(
+            f"Cache file {path} contains invalid data type: {type(data).__name__}. "
+            "Expected dict. Delete .bengal/ directory to rebuild cache.",
+            code=ErrorCode.A001,  # cache_corruption
+        )
+        record_error(error, file_path=str(path))
+        raise error
+
     logger.debug(
         "cache_decompressed",
         path=path.name,

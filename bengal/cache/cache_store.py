@@ -361,6 +361,13 @@ class CacheStore:
             try:
                 content = self.cache_path.read_text(encoding="utf-8")
                 data = json.loads(content)
+                # Validate type to prevent 'str' object has no attribute 'get' errors
+                if not isinstance(data, dict):
+                    logger.error(
+                        f"Cache file {self.cache_path} contains invalid data type: "
+                        f"{type(data).__name__}. Expected dict."
+                    )
+                    return None
                 return data
             except (json.JSONDecodeError, OSError) as e:
                 logger.error(f"Failed to load cache {self.cache_path}: {e}")

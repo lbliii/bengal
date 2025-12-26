@@ -34,6 +34,10 @@ Subpackages:
         30+ template functions organized by responsibility: strings,
         collections, dates, URLs, navigation, SEO, and more.
 
+    rosettes/
+        Built-in syntax highlighting engine. Lock-free, 50+ languages,
+        designed for Python 3.14t free-threading.
+
 Key Classes:
     - RenderingPipeline: Main pipeline class coordinating all rendering stages
     - Renderer: Individual page rendering with template integration
@@ -51,11 +55,40 @@ Related Modules:
 See Also:
     - architecture/rendering.md: Rendering architecture documentation
     - architecture/performance.md: Performance optimization patterns
+
+Performance Note:
+    This module uses lazy imports for RenderingPipeline and Renderer to
+    allow lightweight subpackages (like rosettes) to be imported without
+    pulling in the heavy rendering infrastructure.
 """
 
 from __future__ import annotations
 
-from bengal.rendering.pipeline import RenderingPipeline
-from bengal.rendering.renderer import Renderer
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from bengal.rendering.pipeline import RenderingPipeline
+    from bengal.rendering.renderer import Renderer
 
 __all__ = ["Renderer", "RenderingPipeline"]
+
+
+def __getattr__(name: str) -> Any:
+    """Lazily resolve top-level re-exports.
+
+    This keeps subpackage imports (like rosettes) lightweight while
+    preserving the existing `bengal.rendering.RenderingPipeline` API.
+    """
+    if name == "RenderingPipeline":
+        from bengal.rendering.pipeline import RenderingPipeline
+
+        return RenderingPipeline
+    if name == "Renderer":
+        from bengal.rendering.renderer import Renderer
+
+        return Renderer
+    raise AttributeError(f"module 'bengal.rendering' has no attribute {name!r}")
+
+
+def __dir__() -> list[str]:
+    return sorted([*globals().keys(), "RenderingPipeline", "Renderer"])

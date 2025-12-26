@@ -19,6 +19,7 @@ Usage:
 
 Note:
     uvloop is only available on Linux and macOS (not Windows).
+    Import is lazy - uvloop only loads when run_async() is actually called.
 
 See Also:
     - bengal/health/linkcheck/async_checker.py - Uses run_async for link checking
@@ -32,13 +33,24 @@ import asyncio
 from collections.abc import Coroutine
 from typing import Any
 
-# uvloop is optional - not available on Windows or Python 3.14t (yet)
-try:
-    import uvloop
+# Lazy uvloop detection - only check when first needed
+# This avoids ~200ms import overhead when uvloop is installed but not used
+_uvloop_checked = False
+_uvloop_module = None
 
-    _HAS_UVLOOP = True
-except ImportError:
-    _HAS_UVLOOP = False
+
+def _get_uvloop():
+    """Lazily import uvloop on first use."""
+    global _uvloop_checked, _uvloop_module
+    if not _uvloop_checked:
+        _uvloop_checked = True
+        try:
+            import uvloop
+
+            _uvloop_module = uvloop
+        except ImportError:
+            _uvloop_module = None
+    return _uvloop_module
 
 
 def run_async[T](coro: Coroutine[Any, Any, T]) -> T:
@@ -64,7 +76,8 @@ def run_async[T](coro: Coroutine[Any, Any, T]) -> T:
         >>>
         >>> response = run_async(fetch_links())
     """
-    if _HAS_UVLOOP:
+    uvloop = _get_uvloop()
+    if uvloop is not None:
         return uvloop.run(coro)
     return asyncio.run(coro)
 
@@ -84,7 +97,8 @@ def install_uvloop() -> None:
         >>> install_uvloop()
         >>> # Now all asyncio.run() calls use uvloop (if available)
     """
-    if _HAS_UVLOOP:
+    uvloop = _get_uvloop()
+    if uvloop is not None:
         uvloop.install()
 
 

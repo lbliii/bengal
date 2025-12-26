@@ -27,7 +27,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 from bengal.rendering.kida.lexer import Lexer, LexerConfig
-from bengal.rendering.kida.template import Template
+from bengal.rendering.kida.template import Markup, Template
 
 if TYPE_CHECKING:
     pass
@@ -278,9 +278,18 @@ def _filter_default(value: Any, default: Any = "", boolean: bool = False) -> Any
     return default if value is None else value
 
 
-def _filter_escape(value: str) -> str:
-    """HTML-escape the value."""
-    return (
+def _filter_escape(value: Any) -> Markup:
+    """HTML-escape the value.
+
+    Returns a Markup object so the result won't be escaped again by autoescape.
+    """
+    from bengal.rendering.kida.template import Markup
+
+    # Already safe - return as-is
+    if isinstance(value, Markup):
+        return value
+
+    escaped = (
         str(value)
         .replace("&", "&amp;")
         .replace("<", "&lt;")
@@ -288,6 +297,7 @@ def _filter_escape(value: str) -> str:
         .replace('"', "&quot;")
         .replace("'", "&#39;")
     )
+    return Markup(escaped)
 
 
 def _filter_first(value: Any) -> Any:
@@ -426,10 +436,24 @@ def _filter_slice(value: Any, slices: int, fill_with: Any = None) -> list:
     return result
 
 
-def _filter_map(value: Any, attribute: str | None = None) -> list:
-    """Map an attribute from a sequence."""
+def _filter_map(
+    value: Any,
+    *args: Any,
+    attribute: str | None = None,
+) -> list:
+    """Map an attribute or method from a sequence.
+
+    Supports:
+        - {{ items|map(attribute='name') }} - extract attribute
+        - {{ items|map('upper') }} - call method on each item
+    """
     if attribute:
+        # Extract attribute from each item
         return [getattr(item, attribute, None) for item in value]
+    if args:
+        # Call method on each item
+        method_name = args[0]
+        return [getattr(item, method_name)() for item in value]
     return list(value)
 
 
@@ -476,38 +500,56 @@ def _filter_rejectattr(value: Any, attr: str, *args: Any) -> list:
     return result
 
 
+def _apply_test(value: Any, test_name: str, *args: Any) -> bool:
+    """Apply a test to a value."""
+    if test_name == "defined":
+        return value is not None
+    if test_name == "undefined":
+        return value is None
+    if test_name == "none":
+        return value is None
+    if test_name == "equalto" or test_name == "eq" or test_name == "sameas":
+        return args and value == args[0]
+    if test_name == "odd":
+        return isinstance(value, int) and value % 2 == 1
+    if test_name == "even":
+        return isinstance(value, int) and value % 2 == 0
+    if test_name == "divisibleby":
+        return args and isinstance(value, int) and value % args[0] == 0
+    if test_name == "iterable":
+        try:
+            iter(value)
+            return True
+        except TypeError:
+            return False
+    if test_name == "mapping":
+        return isinstance(value, dict)
+    if test_name == "sequence":
+        return isinstance(value, (list, tuple, str))
+    if test_name == "number":
+        return isinstance(value, (int, float))
+    if test_name == "string":
+        return isinstance(value, str)
+    if test_name == "true":
+        return value is True
+    if test_name == "false":
+        return value is False
+    # Fallback: truthy check
+    return bool(value)
+
+
 def _filter_select(value: Any, test_name: str | None = None, *args: Any) -> list:
-    """Select truthy items or items passing test."""
+    """Select items that pass a test."""
     if test_name is None:
         return [item for item in value if item]
-    result = []
-    for item in value:
-        if (
-            test_name == "defined"
-            and item is not None
-            or test_name == "equalto"
-            and args
-            and item == args[0]
-        ):
-            result.append(item)
-    return result
+    return [item for item in value if _apply_test(item, test_name, *args)]
 
 
 def _filter_reject(value: Any, test_name: str | None = None, *args: Any) -> list:
-    """Reject truthy items or items passing test."""
+    """Reject items that pass a test."""
     if test_name is None:
         return [item for item in value if not item]
-    result = []
-    for item in value:
-        if (
-            test_name == "defined"
-            and item is None
-            or test_name == "equalto"
-            and args
-            and item != args[0]
-        ):
-            result.append(item)
-    return result
+    return [item for item in value if not _apply_test(item, test_name, *args)]
 
 
 def _filter_groupby(value: Any, attribute: str) -> list:

@@ -41,6 +41,11 @@ Directory Structure:
     ├── taxonomy_index.json.zst # Tag/category index (compressed)
     └── indexes/               # Query indexes (section, author, etc.)
 
+Performance Note:
+    This module uses lazy imports to avoid loading heavy cache infrastructure
+    until it's actually needed. The lightweight BengalPaths and STATE_DIR_NAME
+    are loaded eagerly.
+
 Related Modules:
     - bengal.orchestration.incremental: Build logic using this cache
     - bengal.rendering.pipeline: Rendering with dependency tracking
@@ -52,21 +57,34 @@ See Also:
 
 from __future__ import annotations
 
-from bengal.cache.build_cache import BuildCache
-from bengal.cache.cache_store import CacheStore
-from bengal.cache.cacheable import Cacheable
+from typing import TYPE_CHECKING, Any
 
-# Compression utilities (Python 3.14+ stdlib)
-from bengal.cache.compression import (
-    COMPRESSION_LEVEL,
-    load_compressed,
-    save_compressed,
-)
-from bengal.cache.dependency_tracker import DependencyTracker
+# =============================================================================
+# EAGERLY LOADED - Lightweight path utilities (no heavy deps)
+# =============================================================================
 from bengal.cache.paths import STATE_DIR_NAME, BengalPaths
-from bengal.cache.query_index import IndexEntry, QueryIndex
-from bengal.cache.query_index_registry import QueryIndexRegistry
-from bengal.cache.utils import clear_build_cache, clear_output_directory, clear_template_cache
+
+# =============================================================================
+# TYPE_CHECKING - For static analysis without runtime cost
+# =============================================================================
+
+if TYPE_CHECKING:
+    from bengal.cache.build_cache import BuildCache
+    from bengal.cache.cache_store import CacheStore
+    from bengal.cache.cacheable import Cacheable
+    from bengal.cache.compression import (
+        COMPRESSION_LEVEL,
+        load_compressed,
+        save_compressed,
+    )
+    from bengal.cache.dependency_tracker import DependencyTracker
+    from bengal.cache.query_index import IndexEntry, QueryIndex
+    from bengal.cache.query_index_registry import QueryIndexRegistry
+    from bengal.cache.utils import (
+        clear_build_cache,
+        clear_output_directory,
+        clear_template_cache,
+    )
 
 __all__ = [
     "BengalPaths",
@@ -85,3 +103,47 @@ __all__ = [
     "load_compressed",
     "save_compressed",
 ]
+
+
+# =============================================================================
+# LAZY IMPORTS - Heavy modules loaded on first access
+# =============================================================================
+
+_LAZY_IMPORTS: dict[str, tuple[str, str]] = {
+    # Build cache
+    "BuildCache": ("bengal.cache.build_cache", "BuildCache"),
+    # Cache store
+    "CacheStore": ("bengal.cache.cache_store", "CacheStore"),
+    "Cacheable": ("bengal.cache.cacheable", "Cacheable"),
+    # Compression
+    "COMPRESSION_LEVEL": ("bengal.cache.compression", "COMPRESSION_LEVEL"),
+    "load_compressed": ("bengal.cache.compression", "load_compressed"),
+    "save_compressed": ("bengal.cache.compression", "save_compressed"),
+    # Dependency tracker
+    "DependencyTracker": ("bengal.cache.dependency_tracker", "DependencyTracker"),
+    # Query index
+    "IndexEntry": ("bengal.cache.query_index", "IndexEntry"),
+    "QueryIndex": ("bengal.cache.query_index", "QueryIndex"),
+    "QueryIndexRegistry": ("bengal.cache.query_index_registry", "QueryIndexRegistry"),
+    # Utils
+    "clear_build_cache": ("bengal.cache.utils", "clear_build_cache"),
+    "clear_output_directory": ("bengal.cache.utils", "clear_output_directory"),
+    "clear_template_cache": ("bengal.cache.utils", "clear_template_cache"),
+}
+
+
+def __getattr__(name: str) -> Any:
+    """
+    Lazy import for heavy cache infrastructure.
+
+    This avoids loading BuildCache, compression, and other heavy modules
+    until they are actually needed. BengalPaths is lightweight and loaded
+    eagerly for path operations.
+    """
+    if name in _LAZY_IMPORTS:
+        module_path, attr_name = _LAZY_IMPORTS[name]
+        import importlib
+
+        module = importlib.import_module(module_path)
+        return getattr(module, attr_name)
+    raise AttributeError(f"module 'bengal.cache' has no attribute {name!r}")

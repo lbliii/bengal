@@ -197,3 +197,80 @@ For regular CI, use the 1k variant:
 - name: Run quick performance check
   run: pytest benchmarks/test_10k_site.py -k "1k_site" -v
 ```
+
+## Import Overhead Benchmarks
+
+The `test_import_overhead.py` suite measures module startup latency and "import pollution" - when lightweight modules accidentally pull in heavy dependencies.
+
+### Why Import Time Matters
+
+- **CLI responsiveness**: Users notice if `bengal --help` takes 500ms+ to start
+- **Dev server startup**: Fast restarts improve DX
+- **Incremental builds**: Re-importing unchanged modules wastes time
+- **Rosettes as library**: Users may import rosettes directly for highlighting
+
+### Running Import Benchmarks
+
+```bash
+# Quick diagnostic report (no pytest)
+python benchmarks/test_import_overhead.py
+
+# Full test suite
+pytest benchmarks/test_import_overhead.py -v
+
+# Test specific modules
+pytest benchmarks/test_import_overhead.py -k "rosettes" -v
+pytest benchmarks/test_import_overhead.py -k "lightweight" -v
+```
+
+### What It Tests
+
+| Category | Tests | Threshold |
+|----------|-------|-----------|
+| Lightweight modules | rosettes, kida, highlighting | <50ms, no heavy deps |
+| Optional dependencies | uvloop, psutil, aiohttp | Only loaded when used |
+| Error imports | bengal.errors | Only on error path |
+| Package inits | `__init__.py` lazy exports | No eager heavy loading |
+| Regression detection | Baselines from known good state | <1.5x baseline |
+
+### Key Concepts
+
+- **Heavy modules**: `bengal.errors`, `bengal.core.page`, `bengal.rendering.pipeline`
+- **Optional deps**: `uvloop`, `psutil`, `aiohttp`, `tree_sitter`, `zstd`
+- **Import pollution**: When importing module A accidentally loads unrelated module B
+
+### Example Output
+
+```
+======================================================================
+IMPORT OVERHEAD REPORT
+======================================================================
+
+✅ bengal.rendering.rosettes
+   Time: 11.3ms
+
+✅ bengal.rendering.kida
+   Time: 7.3ms
+
+❌ bengal.utils
+   Time: 143.6ms
+   Heavy deps: bengal.core.site, bengal.errors
+   Optional deps: uvloop, zstandard
+```
+
+### Design Patterns (from investigation)
+
+1. **Lazy exports in `__init__.py`**: Use `__getattr__` for heavy re-exports
+2. **Deferred error imports**: Import exceptions only in error-raising functions
+3. **Optional deps on-demand**: Import `uvloop`, `psutil` etc. only when feature is used
+4. **TYPE_CHECKING guards**: Keep type hints without runtime import cost
+
+### CI Integration
+
+```yaml
+# .github/workflows/ci.yml
+- name: Check import overhead
+  run: pytest benchmarks/test_import_overhead.py -v
+```
+
+Failing tests indicate a performance regression that should block the PR.
