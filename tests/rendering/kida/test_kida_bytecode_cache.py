@@ -217,3 +217,167 @@ class TestBytecodeCacheIntegration:
         # Both versions should be cached (different hashes)
         stats = cache.stats()
         assert stats["file_count"] == 2
+
+
+class TestBytecodeCacheAutoDetection:
+    """Tests for automatic bytecode cache detection."""
+
+    def test_auto_enabled_with_filesystem_loader(self, tmp_path):
+        """Bytecode cache is auto-enabled for FileSystemLoader."""
+        from bengal.rendering.kida import Environment
+        from bengal.rendering.kida.environment.loaders import FileSystemLoader
+
+        # Create a template directory with a template
+        template_dir = tmp_path / "templates"
+        template_dir.mkdir()
+        (template_dir / "test.html").write_text("Hello, {{ name }}!")
+
+        # Environment with FileSystemLoader
+        env = Environment(loader=FileSystemLoader(template_dir))
+
+        # Bytecode cache should be auto-created
+        assert env._bytecode_cache is not None
+
+        # Render template to populate cache
+        result = env.get_template("test.html").render(name="World")
+        assert result == "Hello, World!"
+
+        # Cache directory should be created in __pycache__/kida
+        cache_dir = template_dir / "__pycache__" / "kida"
+        assert cache_dir.exists()
+
+        # Stats should show cached file
+        stats = env._bytecode_cache.stats()
+        assert stats["file_count"] == 1
+
+    def test_auto_disabled_with_dict_loader(self):
+        """Bytecode cache is not auto-enabled for DictLoader."""
+        from bengal.rendering.kida import Environment
+        from bengal.rendering.kida.environment.loaders import DictLoader
+
+        loader = DictLoader({"test.html": "Hello!"})
+        env = Environment(loader=loader)
+
+        # No auto-detection possible for DictLoader
+        assert env._bytecode_cache is None
+
+    def test_auto_disabled_with_no_loader(self):
+        """Bytecode cache is not auto-enabled without a loader."""
+        from bengal.rendering.kida import Environment
+
+        env = Environment()
+        assert env._bytecode_cache is None
+
+    def test_explicit_disable(self, tmp_path):
+        """bytecode_cache=False explicitly disables auto-detection."""
+        from bengal.rendering.kida import Environment
+        from bengal.rendering.kida.environment.loaders import FileSystemLoader
+
+        template_dir = tmp_path / "templates"
+        template_dir.mkdir()
+        (template_dir / "test.html").write_text("Hello!")
+
+        # Explicitly disable
+        env = Environment(
+            loader=FileSystemLoader(template_dir),
+            bytecode_cache=False,
+        )
+
+        assert env._bytecode_cache is None
+
+    def test_explicit_cache_overrides_auto(self, tmp_path):
+        """User-provided BytecodeCache overrides auto-detection."""
+        from bengal.rendering.kida import Environment
+        from bengal.rendering.kida.environment.loaders import FileSystemLoader
+
+        template_dir = tmp_path / "templates"
+        template_dir.mkdir()
+        (template_dir / "test.html").write_text("Hello!")
+
+        custom_cache_dir = tmp_path / "my-custom-cache"
+        custom_cache = BytecodeCache(custom_cache_dir)
+
+        env = Environment(
+            loader=FileSystemLoader(template_dir),
+            bytecode_cache=custom_cache,
+        )
+
+        # Should use custom cache, not auto-detected one
+        assert env._bytecode_cache is custom_cache
+
+        # Render to populate
+        env.get_template("test.html").render()
+
+        # Cache should be in custom location
+        assert custom_cache_dir.exists()
+        assert not (template_dir / "__pycache__" / "kida").exists()
+
+    def test_cache_info_includes_bytecode(self, tmp_path):
+        """cache_info() includes bytecode stats when available."""
+        from bengal.rendering.kida import Environment
+        from bengal.rendering.kida.environment.loaders import FileSystemLoader
+
+        template_dir = tmp_path / "templates"
+        template_dir.mkdir()
+        (template_dir / "test.html").write_text("Hello!")
+
+        env = Environment(loader=FileSystemLoader(template_dir))
+        env.get_template("test.html").render()
+
+        info = env.cache_info()
+        assert "bytecode" in info
+        assert info["bytecode"] is not None
+        assert info["bytecode"]["file_count"] == 1
+
+    def test_cache_info_none_when_disabled(self):
+        """cache_info() shows None for bytecode when disabled."""
+        from bengal.rendering.kida import Environment
+
+        env = Environment(bytecode_cache=False)
+        info = env.cache_info()
+        assert info["bytecode"] is None
+
+    def test_clear_bytecode_cache(self, tmp_path):
+        """clear_bytecode_cache() removes cached files."""
+        from bengal.rendering.kida import Environment
+        from bengal.rendering.kida.environment.loaders import FileSystemLoader
+
+        template_dir = tmp_path / "templates"
+        template_dir.mkdir()
+        (template_dir / "test.html").write_text("Hello!")
+
+        env = Environment(loader=FileSystemLoader(template_dir))
+        env.get_template("test.html").render()
+
+        # Verify cache exists
+        assert env._bytecode_cache.stats()["file_count"] == 1
+
+        # Clear
+        removed = env.clear_bytecode_cache()
+        assert removed == 1
+
+        # Cache should be empty
+        assert env._bytecode_cache.stats()["file_count"] == 0
+
+    def test_clear_cache_with_bytecode_flag(self, tmp_path):
+        """clear_cache(include_bytecode=True) clears everything."""
+        from bengal.rendering.kida import Environment
+        from bengal.rendering.kida.environment.loaders import FileSystemLoader
+
+        template_dir = tmp_path / "templates"
+        template_dir.mkdir()
+        (template_dir / "test.html").write_text("Hello!")
+
+        env = Environment(loader=FileSystemLoader(template_dir))
+        env.get_template("test.html").render()
+
+        # Both memory and disk caches populated
+        assert env._cache.stats()["size"] == 1
+        assert env._bytecode_cache.stats()["file_count"] == 1
+
+        # Clear everything
+        env.clear_cache(include_bytecode=True)
+
+        # All caches cleared
+        assert env._cache.stats()["size"] == 0
+        assert env._bytecode_cache.stats()["file_count"] == 0
