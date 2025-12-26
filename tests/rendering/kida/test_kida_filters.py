@@ -227,10 +227,43 @@ class TestNumericFilters:
         tmpl = env.from_string("{{ 'abc'|int(0) }}")
         assert tmpl.render() == "0"
 
+    def test_int_strict_mode(self, env):
+        """int filter with strict mode raises error on conversion failure."""
+        from bengal.rendering.kida.environment.exceptions import TemplateRuntimeError
+
+        tmpl = env.from_string("{{ 'abc'|int(0, strict=True) }}")
+        with pytest.raises(TemplateRuntimeError) as exc_info:
+            tmpl.render()
+        
+        error_msg = str(exc_info.value)
+        assert "Cannot convert" in error_msg
+        assert "str to int" in error_msg
+        assert "'abc'" in error_msg
+        assert "suggestion" in error_msg.lower() or "Suggestion" in error_msg
+
     def test_float(self, env):
         """float filter."""
         tmpl = env.from_string("{{ '3.14'|float }}")
         assert tmpl.render() == "3.14"
+
+    def test_float_default(self, env):
+        """float filter with default on error."""
+        tmpl = env.from_string("{{ 'abc'|float(0.0) }}")
+        assert tmpl.render() == "0.0"
+
+    def test_float_strict_mode(self, env):
+        """float filter with strict mode raises error on conversion failure."""
+        from bengal.rendering.kida.environment.exceptions import TemplateRuntimeError
+
+        tmpl = env.from_string("{{ 'abc'|float(0.0, strict=True) }}")
+        with pytest.raises(TemplateRuntimeError) as exc_info:
+            tmpl.render()
+        
+        error_msg = str(exc_info.value)
+        assert "Cannot convert" in error_msg
+        assert "str to float" in error_msg
+        assert "'abc'" in error_msg
+        assert "suggestion" in error_msg.lower() or "Suggestion" in error_msg
 
     def test_abs(self, env):
         """abs filter."""

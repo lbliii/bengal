@@ -76,7 +76,32 @@ KIDA is Bengal's native template engine, optimized for performance and free-thre
 - **Pattern matching**: Clean `{% match %}...{% case %}` syntax
 - **Pipeline operator**: Left-to-right readable filter chains
 - **Fragment caching**: Built-in `{% cache %}` directive
+- **Automatic block caching**: Site-scoped blocks cached automatically for 10-100x faster builds
 - **Better performance**: 5.6x faster than Jinja2
+
+## Automatic Block Caching
+
+KIDA automatically caches site-scoped template blocks (like navigation, footer, sidebar) to dramatically improve build performance. This happens automatically—no template changes needed.
+
+**How it works**:
+- KIDA analyzes your templates to identify blocks that only depend on site-wide context
+- These blocks are pre-rendered once at build start
+- During page rendering, cached blocks are reused automatically
+- **Result**: 10-100x faster builds for navigation-heavy sites
+
+**Example**:
+```kida
+{# base.html - nav block depends only on site.pages #}
+{% block nav %}
+  <nav>
+    {% for page in site.pages %}
+      <a href="{{ page.url }}">{{ page.title }}</a>
+    {% end %}
+  </nav>
+{% end %}
+```
+
+The `nav` block is automatically detected as site-cacheable and cached once per build, then reused for all pages. No template syntax changes required!
 
 :::{seealso}
 

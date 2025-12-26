@@ -70,6 +70,7 @@ from pprint import pformat
 from typing import Any
 from urllib.parse import quote
 
+from bengal.rendering.kida.environment.exceptions import TemplateRuntimeError
 from bengal.rendering.kida.template import Markup
 from bengal.rendering.kida.utils.html import (
     html_escape_filter,
@@ -120,11 +121,37 @@ def _filter_first(value: Any) -> Any:
         return None
 
 
-def _filter_int(value: Any, default: int = 0) -> int:
-    """Convert to integer."""
+def _filter_int(value: Any, default: int = 0, strict: bool = False) -> int:
+    """Convert to integer.
+    
+    Args:
+        value: Value to convert to integer.
+        default: Default value to return if conversion fails (default: 0).
+        strict: If True, raise TemplateRuntimeError on conversion failure
+            instead of returning default (default: False).
+    
+    Returns:
+        Integer value, or default if conversion fails and strict=False.
+    
+    Raises:
+        TemplateRuntimeError: If strict=True and conversion fails.
+    
+    Examples:
+        >>> _filter_int("42")
+        42
+        >>> _filter_int("not a number")
+        0
+        >>> _filter_int("not a number", strict=True)
+        TemplateRuntimeError: Cannot convert str to int: 'not a number'
+    """
     try:
         return int(value)
-    except (ValueError, TypeError):
+    except (ValueError, TypeError) as e:
+        if strict:
+            raise TemplateRuntimeError(
+                f"Cannot convert {type(value).__name__} to int: {value!r}",
+                suggestion="Use | default(0) | int for optional conversion, or ensure value is numeric",
+            ) from e
         return default
 
 
@@ -681,11 +708,37 @@ def _filter_wordcount(value: str) -> int:
     return len(str(value).split())
 
 
-def _filter_float(value: Any, default: float = 0.0) -> float:
-    """Convert value to float."""
+def _filter_float(value: Any, default: float = 0.0, strict: bool = False) -> float:
+    """Convert value to float.
+    
+    Args:
+        value: Value to convert to float.
+        default: Default value to return if conversion fails (default: 0.0).
+        strict: If True, raise TemplateRuntimeError on conversion failure
+            instead of returning default (default: False).
+    
+    Returns:
+        Float value, or default if conversion fails and strict=False.
+    
+    Raises:
+        TemplateRuntimeError: If strict=True and conversion fails.
+    
+    Examples:
+        >>> _filter_float("3.14")
+        3.14
+        >>> _filter_float("not a number")
+        0.0
+        >>> _filter_float("not a number", strict=True)
+        TemplateRuntimeError: Cannot convert str to float: 'not a number'
+    """
     try:
         return float(value)
-    except (ValueError, TypeError):
+    except (ValueError, TypeError) as e:
+        if strict:
+            raise TemplateRuntimeError(
+                f"Cannot convert {type(value).__name__} to float: {value!r}",
+                suggestion="Use | default(0.0) | float for optional conversion, or ensure value is numeric",
+            ) from e
         return default
 
 

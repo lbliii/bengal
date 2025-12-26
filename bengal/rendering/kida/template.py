@@ -614,19 +614,15 @@ class Template:
         ctx["_line"] = 0
 
         # Automatic cached block optimization (RFC: kida-template-introspection)
-        # Wrap _blocks dict to intercept .get() calls and return cached HTML when available
+        # Wrap render function to inject cached blocks into _blocks parameter
         # This happens automatically - templates don't need any special syntax
         cached_blocks = ctx.get("_cached_blocks", {})
-        if cached_blocks:
+        original_render_func = self._render_func
+        
+        if cached_blocks and original_render_func:
             # Get template metadata to identify site-cacheable blocks
             meta = self.template_metadata()
             if meta:
-                # Initialize _blocks dict if not present (used for block inheritance)
-                original_blocks = ctx.get("_blocks")
-                if original_blocks is None:
-                    original_blocks = {}
-                    ctx["_blocks"] = original_blocks
-                
                 # Build set of cached block names for fast lookup
                 cached_block_names = {
                     block_name
@@ -635,13 +631,13 @@ class Template:
                 }
                 
                 if cached_block_names:
-                    # Wrap _blocks dict with a proxy that intercepts .get() calls
+                    # Create wrapper dict that intercepts .get() calls
                     # Templates call _blocks.get('name', _block_name), so we intercept here
                     class CachedBlocksDict:
                         """Dict wrapper that returns cached HTML for site-scoped blocks."""
                         
                         def __init__(self, original: dict, cached: dict[str, str], cached_names: set[str]):
-                            self._original = original
+                            self._original = original if original is not None else {}
                             self._cached = cached
                             self._cached_names = cached_names
                         
@@ -702,8 +698,18 @@ class Template:
                                 result[name] = make_wrapper(cached_html)
                             return result
                     
-                    # Replace _blocks with wrapped version
-                    ctx["_blocks"] = CachedBlocksDict(original_blocks, cached_blocks, cached_block_names)
+                    # Wrap render function to inject cached blocks wrapper into _blocks parameter
+                    # The template receives _blocks as a parameter: render(ctx, _blocks=None)
+                    # We intercept and inject our wrapper before the template uses it
+                    def wrapped_render(ctx_inner: dict, _blocks: dict | None = None) -> str:
+                        """Wrapper that injects cached blocks into _blocks parameter."""
+                        # Create wrapped _blocks dict
+                        wrapped_blocks = CachedBlocksDict(_blocks, cached_blocks, cached_block_names)
+                        # Call original render function with wrapped _blocks
+                        return original_render_func(ctx_inner, wrapped_blocks)
+                    
+                    # Use wrapped render function
+                    self._render_func = wrapped_render
 
         # Render with error enhancement
         if self._render_func is None:

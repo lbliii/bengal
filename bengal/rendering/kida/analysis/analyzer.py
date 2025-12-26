@@ -6,6 +6,7 @@ and role classification into a unified analysis pass.
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Any
 
 from bengal.rendering.kida.analysis.cache import infer_cache_scope
@@ -15,6 +16,8 @@ from bengal.rendering.kida.analysis.landmarks import LandmarkDetector
 from bengal.rendering.kida.analysis.metadata import BlockMetadata, TemplateMetadata
 from bengal.rendering.kida.analysis.purity import PurityAnalyzer
 from bengal.rendering.kida.analysis.roles import classify_role
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from bengal.rendering.kida.nodes import Block, Template
@@ -233,8 +236,15 @@ class BlockAnalyzer:
                 try:
                     node_deps = self._dep_walker.analyze(node)
                     deps.update(node_deps)
-                except Exception:
-                    pass  # Skip nodes we can't analyze
+                except (AttributeError, TypeError) as e:
+                    # Expected for some node types that don't support dependency analysis
+                    logger.debug(f"Skipping node analysis: {type(node).__name__}: {e}")
+                except Exception as e:
+                    # Unexpected - log for debugging but don't fail
+                    logger.warning(
+                        f"Unexpected error analyzing {type(node).__name__}: {e}",
+                        exc_info=False,  # Don't include full traceback for warnings
+                    )
 
     def _check_emits_html(self, node: Any) -> bool:
         """Check if a node produces any output."""

@@ -382,6 +382,49 @@ KIDA provides built-in fragment caching:
 - `ttl="1h"` - 1 hour
 - `ttl="30s"` - 30 seconds
 
+## Automatic Block Caching
+
+KIDA automatically caches site-scoped template blocks for optimal build performance. This happens automatically—no template syntax changes required.
+
+**How it works**:
+
+1. **Analysis**: KIDA analyzes your templates to identify blocks that only depend on site-wide context (not page-specific data)
+2. **Pre-rendering**: These blocks are rendered once at build start
+3. **Automatic reuse**: During page rendering, cached blocks are used automatically instead of re-rendering
+
+**Example**:
+
+```kida
+{# base.html #}
+{% block nav %}
+  <nav>
+    {% for page in site.pages %}
+      <a href="{{ page.url }}">{{ page.title }}</a>
+    {% end %}
+  </nav>
+{% end %}
+
+{% block content %}
+  {{ page.content | safe }}
+{% end %}
+```
+
+The `nav` block depends only on `site.pages` (site-wide), so it's automatically cached and reused for all pages. The `content` block depends on `page.content` (page-specific), so it renders per page.
+
+**Benefits**:
+- **10-100x faster builds** for navigation-heavy sites
+- **Zero template changes** — works automatically
+- **Transparent** — templates render normally, caching is invisible
+
+**Cache scope detection**:
+- **Site-scoped**: Blocks that only access `site.*`, `config.*`, or no page-specific variables
+- **Page-scoped**: Blocks that access `page.*` or other page-specific data
+- **Not cacheable**: Blocks with non-deterministic behavior (random, shuffle, etc.)
+
+:::{tip}
+**Performance tip**: Structure your templates so site-wide blocks (nav, footer, sidebar) are separate from page-specific blocks (content). KIDA will automatically optimize them.
+:::
+
 ## Modern Syntax Features
 
 ### Optional Chaining (`?.`)
