@@ -139,18 +139,18 @@ Context variables:
       </div>
 
       <div class="stat-card">
-        <span class="stat-value">{{ author_posts | map(attribute='content') | join('') | wordcount | format_number
+        <span class="stat-value">{{ author_posts |> map(attribute='content') |> join('') |> wordcount |> format_number
           }}</span>
         <span class="stat-label">Words</span>
       </div>
 
-      {% set all_tags = author_posts | map(attribute='tags') | flatten | unique | list %}
+      {% set all_tags = author_posts |> map(attribute='tags') |> flatten |> unique |> list %}
       <div class="stat-card">
         <span class="stat-value">{{ all_tags | length }}</span>
         <span class="stat-label">Topic{{ 's' if all_tags | length != 1 }}</span>
       </div>
 
-      {% set years = author_posts | map(attribute='date.year') | select('defined') | unique | sort %}
+      {% set years = author_posts |> map(attribute='date.year') |> select('defined') |> unique |> sort %}
       {% if years %}
       <div class="stat-card">
         <span class="stat-value">{{ years | first }}</span>

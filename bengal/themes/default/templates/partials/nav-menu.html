@@ -22,6 +22,7 @@ Args:
 #}
 {% def render_menu_items(menu, is_mobile=false) %}
 {% if menu %}
+{% spaceless %}
 {% for item in menu %}
 <li class="{{ 'has-submenu' if (is_mobile and item.children) else '' }} {{ 'active' if item.active else '' }} {{ 'active-trail' if (not is_mobile and item.active_trail) else '' }}">
     <a href="{{ item.href | absolute_url }}">{{ item.name }}</a>
@@ -35,6 +36,7 @@ Args:
     </ul>
     {% end %}
 </li>
+{% end %}
 {% end %}
 {% end %}
 {% enddef %}
