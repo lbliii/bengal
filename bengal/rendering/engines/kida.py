@@ -278,15 +278,7 @@ class KidaTemplateEngine:
             ctx = {"site": self.site, "config": self.site.config}
             ctx.update(context)
 
-            # Helper function for templates to get cached blocks
-            # Templates can use: {{ get_cached_block('nav') | default(render_block('nav')) }}
-            def get_cached_block(block_name: str) -> str | None:
-                """Get a cached block if available, None otherwise."""
-                cached_blocks = ctx.get("_cached_blocks", {})
-                return cached_blocks.get(block_name)
-
-            ctx["get_cached_block"] = get_cached_block
-
+            # Cached blocks are automatically used by Template.render() - no template changes needed
             return template.render(ctx)
 
         except KidaTemplateNotFoundError as e:

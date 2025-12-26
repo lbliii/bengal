@@ -111,6 +111,12 @@ class LexerConfig:
 # Default configuration (immutable singleton)
 DEFAULT_CONFIG = LexerConfig()
 
+# Maximum number of tokens allowed (DoS protection)
+# Typical template: 100-1000 tokens
+# Large template: 5k-10k tokens
+# 100k tokens = ~100x normal size (reasonable upper bound)
+MAX_TOKENS = 100_000
+
 
 class LexerError(Exception):
     """Lexer error with source location."""
@@ -287,25 +293,50 @@ class Lexer:
             Token objects in order of appearance
 
         Raises:
-            LexerError: If source contains invalid syntax
+            LexerError: If source contains invalid syntax or token limit exceeded
         """
+        token_count = 0
+        
+        def _counted_yield(token: Token) -> Token:
+            """Helper to count tokens as they're yielded."""
+            nonlocal token_count
+            token_count += 1
+            if token_count > MAX_TOKENS:
+                raise LexerError(
+                    f"Token limit exceeded ({MAX_TOKENS})",
+                    self._source,
+                    self._lineno,
+                    self._col_offset,
+                    suggestion="Template is too complex. Split into smaller templates.",
+                )
+            return token
+        
+        def _counted_yield_from(tokens: Iterator[Token]) -> Iterator[Token]:
+            """Helper to count tokens from a generator."""
+            for token in tokens:
+                yield _counted_yield(token)
+        
         while self._pos < len(self._source):
             if self._mode == LexerMode.DATA:
-                yield from self._tokenize_data()
+                yield from _counted_yield_from(self._tokenize_data())
             elif self._mode == LexerMode.VARIABLE:
-                yield from self._tokenize_code(
-                    self._config.variable_end,
-                    TokenType.VARIABLE_END,
+                yield from _counted_yield_from(
+                    self._tokenize_code(
+                        self._config.variable_end,
+                        TokenType.VARIABLE_END,
+                    )
                 )
             elif self._mode == LexerMode.BLOCK:
-                yield from self._tokenize_code(
-                    self._config.block_end,
-                    TokenType.BLOCK_END,
+                yield from _counted_yield_from(
+                    self._tokenize_code(
+                        self._config.block_end,
+                        TokenType.BLOCK_END,
+                    )
                 )
             elif self._mode == LexerMode.COMMENT:
-                yield from self._tokenize_comment()
+                yield from _counted_yield_from(self._tokenize_comment())
 
-        # Emit EOF token
+        # Emit EOF token (doesn't count toward limit)
         yield Token(TokenType.EOF, "", self._lineno, self._col_offset)
 
     def _tokenize_data(self) -> Iterator[Token]:

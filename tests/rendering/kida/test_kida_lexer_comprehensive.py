@@ -15,7 +15,13 @@ from __future__ import annotations
 import pytest
 
 from bengal.rendering.kida._types import TokenType
-from bengal.rendering.kida.lexer import Lexer, LexerConfig, LexerError, tokenize
+from bengal.rendering.kida.lexer import (
+    Lexer,
+    LexerConfig,
+    LexerError,
+    MAX_TOKENS,
+    tokenize,
+)
 
 
 class TestTokenizeBasic:
@@ -588,3 +594,33 @@ class TestPerformance:
         template = "{% if true %}" * depth + "content" + "{% endif %}" * depth
         tokens = tokenize(template)
         # Should complete without stack overflow
+
+
+class TestTokenLimit:
+    """Test token limit for DoS protection."""
+
+    def test_token_limit_enforced(self) -> None:
+        """Token limit prevents DoS from malformed templates."""
+        # Create a template that exceeds the token limit
+        # Each "{{ x }}" generates multiple tokens, so we need many of them
+        # MAX_TOKENS is 100,000, so create a template with >100k tokens
+        many_vars = "".join([f"{{{{ x{i} }}}}" for i in range(MAX_TOKENS // 3 + 1)])
+        
+        with pytest.raises(LexerError) as exc_info:
+            tokenize(many_vars)
+        
+        error_msg = str(exc_info.value)
+        assert "Token limit exceeded" in error_msg
+        assert str(MAX_TOKENS) in error_msg
+        assert "Split into smaller templates" in error_msg
+
+    def test_legitimate_large_template(self) -> None:
+        """Legitimate large templates work (under limit)."""
+        # Create a large but legitimate template (just under limit)
+        # Each "{{ x }}" generates ~4 tokens (VARIABLE_BEGIN, NAME, VARIABLE_END, DATA)
+        # So we can have about MAX_TOKENS // 4 variables
+        many_vars = "".join([f"{{{{ x{i} }}}}" for i in range(MAX_TOKENS // 4 - 1)])
+        tokens = tokenize(many_vars)
+        # Should complete successfully
+        assert len(tokens) > 0
+        assert tokens[-1].type == TokenType.EOF
