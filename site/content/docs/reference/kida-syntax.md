@@ -445,6 +445,30 @@ Fallback for None values:
 {{ user.name ?? 'Guest' }}
 ```
 
+:::{warning}
+**Precedence gotcha**: The `??` operator has lower precedence than `|` (pipe). This means filters bind to the fallback value, not the result:
+
+```kida
+{# ❌ Wrong: parses as items ?? ([] | length) #}
+{{ items ?? [] | length }}
+
+{# ✅ Correct: use default filter for filter chains #}
+{{ items | default([]) | length }}
+
+{# ✅ Also works: explicit parentheses #}
+{{ (items ?? []) | length }}
+```
+:::
+
+#### When to Use Each Pattern
+
+| Pattern | Use When | Example |
+|---------|----------|---------|
+| `??` | Simple fallback, no further filtering | `{{ user.name ?? 'Anonymous' }}` |
+| `\| default()` | Fallback followed by filters | `{{ items \| default([]) \| length }}` |
+
+**Rule of thumb**: If you need to apply filters after the fallback, use `| default()`. Otherwise, `??` is fine.
+
 ### Range Literals
 
 ```kida
@@ -653,4 +677,3 @@ KIDA can parse Jinja2 syntax via compatibility mode. Most Jinja2 templates work 
 - [Template Functions Reference](/docs/reference/template-functions/) — Available filters and functions
 - [Theming Guide](/docs/theming/templating/) — Template organization and inheritance
 - [KIDA How-Tos](/docs/theming/templating/kida/) — Common tasks and patterns
-

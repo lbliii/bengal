@@ -39,7 +39,7 @@ Side-by-side comparison of common template patterns in KIDA and Jinja2. Use this
 | Pattern matching | `{% match %}...{% case %}` | `{% if %}...{% elif %}` chains |
 | Pipeline operator | `\|>` (left-to-right) | `\|` (filter chain) |
 | Optional chaining | `?.` | Not available |
-| Null coalescing | `??` | `\| default()` |
+| Null coalescing | `??` (simple) or `\| default()` (filter chains) | `\| default()` |
 | Fragment caching | `{% cache %}` (built-in) | Requires extension |
 | Functions | `{% def %}` (lexical scope) | `{% macro %}` (no closure) |
 | Range literals | `1..10`, `1...11`, `1..10 by 2` | `range(1, 11)` |
@@ -326,10 +326,14 @@ KIDA provides modern JavaScript-like operators for null-safe access.
 {{ page?.metadata?.author?.avatar }}
 {{ config?.social?.twitter?.handle }}
 
-{# Null coalescing: Concise fallback values #}
+{# Null coalescing: Concise fallback for simple output #}
 {{ page.subtitle ?? page.title }}
 {{ user.nickname ?? user.name ?? 'Guest' }}
 {{ config.theme ?? 'default' }}
+
+{# Use | default() when applying filters after fallback #}
+{{ items | default([]) | length }}
+{{ description | default('') | truncate(100) }}
 
 {# Combined usage #}
 {{ page?.metadata?.image ?? site?.config?.default_image ?? '/images/placeholder.png' }}

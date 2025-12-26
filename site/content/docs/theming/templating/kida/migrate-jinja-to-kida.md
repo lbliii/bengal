@@ -143,6 +143,41 @@ Migrate templates incrementally, starting with:
 
 **Migration**: Replace `|` with `|>` and use KIDA filter names (`where` instead of `selectattr`, `sort_by` instead of `sort`).
 
+### Fallback Values
+
+**Jinja2**:
+```jinja
+{{ items | default([]) | length }}
+{{ name | default('Anonymous') | upper }}
+```
+
+**KIDA** (simple fallbacks):
+```kida
+{{ user.name ?? 'Anonymous' }}
+{{ config.timeout ?? 30 }}
+```
+
+**KIDA** (fallbacks with filter chains):
+```kida
+{# Use | default() when applying filters after the fallback #}
+{{ items | default([]) | length }}
+{{ name | default('') | upper }}
+```
+
+:::{warning}
+**Precedence gotcha**: The `??` operator has lower precedence than `|`, so filters bind to the fallback, not the result:
+
+```kida
+{# ❌ Parses as: items ?? ([] | length) — returns list, not length! #}
+{{ items ?? [] | length }}
+
+{# ✅ Correct: use | default() for filter chains #}
+{{ items | default([]) | length }}
+```
+:::
+
+**Migration**: Keep using `| default()` when you need to apply filters after the fallback. Use `??` for simple direct output.
+
 ### Fragment Caching
 
 **Jinja2** (requires extension):
