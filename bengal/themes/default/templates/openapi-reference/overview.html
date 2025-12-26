@@ -98,14 +98,15 @@ This template receives:
             <tr>
               <td class="autodoc-cell-name"><code>{{ scheme_name }}</code></td>
               <td class="autodoc-cell-type">
-                {% if scheme.type == 'http' %}
-                {{ scheme.scheme ?? 'bearer' | title }} ({{ scheme.bearerFormat ?? 'Token' }})
-                {% elif scheme.type == 'apiKey' %}
-                API Key ({{ scheme.in }}: {{ scheme.name }})
-                {% elif scheme.type == 'oauth2' %}
-                OAuth 2.0
-                {% else %}
-                {{ scheme.type }}
+                {% match scheme.type %}
+                  {% case 'http' %}
+                    {{ scheme.scheme ?? 'bearer' | title }} ({{ scheme.bearerFormat ?? 'Token' }})
+                  {% case 'apiKey' %}
+                    API Key ({{ scheme.in }}: {{ scheme.name }})
+                  {% case 'oauth2' %}
+                    OAuth 2.0
+                  {% case _ %}
+                    {{ scheme.type }}
                 {% end %}
               </td>
               <td class="autodoc-cell-desc">{{ scheme.description ?? '—' }}</td>

@@ -244,10 +244,15 @@ page=None
       {% if show_icons %}
       <div class="content-tile-card-icon">
         {% set rendered_icon = icon(item.icon, size=24) if item.icon else '' %}
-        {% if rendered_icon %}{{ rendered_icon }}
-        {% elif item.type == 'section' %}{{ icon('folder', size=24) }}
-        {% elif item.type == 'related' %}{{ icon('link', size=24) }}
-        {% else %}{{ icon('file-text', size=24) }}{% end %}
+        {% if rendered_icon %}
+        {{ rendered_icon }}
+        {% else %}
+        {% match item.type %}
+        {% case 'section' %}{{ icon('folder', size=24) }}
+        {% case 'related' %}{{ icon('link', size=24) }}
+        {% case _ %}{{ icon('file-text', size=24) }}
+        {% end %}
+        {% end %}
       </div>
       {% end %}
       <h3 class="content-tile-card-title">
@@ -257,12 +262,17 @@ page=None
       <p class="content-tile-card-description">{{ item.description | truncate(120) }}</p>
       {% end %}
       <div class="content-tile-card-meta">
-        {% if item.type == 'section' and item.page_count > 0 %}
+        {% match item.type %}
+        {% case 'section' %}
+        {% if item.page_count > 0 %}
         <span>{{ item.page_count }} page{{ 's' if item.page_count != 1 }}</span>
-        {% elif item.type == 'related' %}
+        {% end %}
+        {% case 'related' %}
         <span class="content-tile-badge">Related</span>
-        {% elif 'date' in item and item['date'] %}
+        {% case _ %}
+        {% if 'date' in item and item['date'] %}
         <span>{{ item['date'] | time_ago }}</span>
+        {% end %}
         {% end %}
       </div>
     </article>

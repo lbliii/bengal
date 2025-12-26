@@ -145,42 +145,48 @@ BACKWARDS COMPATIBILITY:
 {% def _element_badges(element) %}
 {% if element %}
 <div class="page-hero__badges">
-{% if element.element_type == 'module' %}
-<span class="autodoc-badge" data-badge="module">Module</span>
-{% if element.metadata.is_dataclass %}
-<span class="autodoc-badge" data-badge="dataclass">dataclass</span>
-{% end %}
-{% elif element.element_type == 'class' %}
-{% if element.metadata.is_mixin %}
-<span class="autodoc-badge" data-badge="mixin">Mixin</span>
-{% end %}
-{% if element.metadata.is_dataclass %}
-<span class="autodoc-badge" data-badge="dataclass">dataclass</span>
-{% end %}
-{% if element.metadata.is_abstract %}
-<span class="autodoc-badge" data-badge="abstract">abstract</span>
-{% end %}
-{% elif element.element_type == 'function' %}
-{% if element.metadata.is_async %}
-<span class="autodoc-badge" data-badge="async">async</span>
-{% end %}
-{% elif element.element_type == 'method' %}
-{% if element.metadata.is_async %}
-<span class="autodoc-badge" data-badge="async">async</span>
-{% end %}
-{% if element.metadata.is_classmethod %}
-<span class="autodoc-badge" data-badge="classmethod">classmethod</span>
-{% end %}
-{% if element.metadata.is_staticmethod %}
-<span class="autodoc-badge" data-badge="staticmethod">staticmethod</span>
-{% end %}
-{% if element.metadata.is_property %}
-<span class="autodoc-badge" data-badge="property">property</span>
-{% end %}
-{% elif element.element_type == 'command' %}
-<span class="autodoc-badge" data-badge="command">Command</span>
-{% elif element.element_type == 'command-group' %}
-<span class="autodoc-badge" data-badge="command-group">Command Group</span>
+{% match element.element_type %}
+  {% case 'module' %}
+    <span class="autodoc-badge" data-badge="module">Module</span>
+    {% if element.metadata.is_dataclass %}
+    <span class="autodoc-badge" data-badge="dataclass">dataclass</span>
+    {% end %}
+
+  {% case 'class' %}
+    {% if element.metadata.is_mixin %}
+    <span class="autodoc-badge" data-badge="mixin">Mixin</span>
+    {% end %}
+    {% if element.metadata.is_dataclass %}
+    <span class="autodoc-badge" data-badge="dataclass">dataclass</span>
+    {% end %}
+    {% if element.metadata.is_abstract %}
+    <span class="autodoc-badge" data-badge="abstract">abstract</span>
+    {% end %}
+
+  {% case 'function' %}
+    {% if element.metadata.is_async %}
+    <span class="autodoc-badge" data-badge="async">async</span>
+    {% end %}
+
+  {% case 'method' %}
+    {% if element.metadata.is_async %}
+    <span class="autodoc-badge" data-badge="async">async</span>
+    {% end %}
+    {% if element.metadata.is_classmethod %}
+    <span class="autodoc-badge" data-badge="classmethod">classmethod</span>
+    {% end %}
+    {% if element.metadata.is_staticmethod %}
+    <span class="autodoc-badge" data-badge="staticmethod">staticmethod</span>
+    {% end %}
+    {% if element.metadata.is_property %}
+    <span class="autodoc-badge" data-badge="property">property</span>
+    {% end %}
+
+  {% case 'command' %}
+    <span class="autodoc-badge" data-badge="command">Command</span>
+
+  {% case 'command-group' %}
+    <span class="autodoc-badge" data-badge="command-group">Command Group</span>
 {% end %}
 </div>
 {% end %}
@@ -432,14 +438,7 @@ BACKWARDS COMPATIBILITY:
    ----------------------------------------------------------------------------- #}
 {% def hero_section(section, page, hero_context) %}
 {# Determine section type from explicit context, page type, or URL (fallback) #}
-{% set is_cli = false %}
-{% if hero_context and hero_context.is_cli %}
-  {% set is_cli = hero_context.is_cli %}
-{% elif page.type == 'autodoc-cli' %}
-  {% set is_cli = true %}
-{% elif page.href and '/cli' in page.href %}
-  {% set is_cli = true %}
-{% end %}
+{% set is_cli = hero_context?.is_cli ?? (page.type == 'autodoc-cli') ?? (page.href and '/cli' in page.href) ?? false %}
 
 <div class="page-hero page-hero--api">
   {# Top row: Breadcrumbs (left) + Actions (right) #}
@@ -517,23 +516,24 @@ BACKWARDS COMPATIBILITY:
 {% set hero_style = _page_variant if _page_variant else (_page_hero_style if _page_hero_style else (_template_default if _template_default else _theme_hero_style)) %}
 
 {# Route to appropriate macro #}
-{% if hero_style == 'magazine' %}
-{{ hero_magazine(page, params, theme) }}
-{% elif hero_style == 'classic' %}
-{{ hero_classic(page, params) }}
-{% elif hero_style == 'overview' %}
-{{ hero_overview(page, params, posts, subsections) }}
-{% elif hero_style == 'api' %}
-  {# API style routes to element or section based on available context #}
-  {% if element %}
-  {{ hero_element(element, page, config) }}
-  {% elif section %}
-  {{ hero_section(section, page, hero_context) }}
-  {% else %}
-  {# Fallback: no element/section context, use editorial #}
-  {{ hero_editorial(page, params, theme) }}
-  {% end %}
-{% else %}
-{# Default to editorial #}
-{{ hero_editorial(page, params, theme) }}
+{% match hero_style %}
+  {% case 'magazine' %}
+    {{ hero_magazine(page, params, theme) }}
+  {% case 'classic' %}
+    {{ hero_classic(page, params) }}
+  {% case 'overview' %}
+    {{ hero_overview(page, params, posts, subsections) }}
+  {% case 'api' %}
+    {# API style routes to element or section based on available context #}
+    {% if element %}
+    {{ hero_element(element, page, config) }}
+    {% elif section %}
+    {{ hero_section(section, page, hero_context) }}
+    {% else %}
+    {# Fallback: no element/section context, use editorial #}
+    {{ hero_editorial(page, params, theme) }}
+    {% end %}
+  {% case _ %}
+    {# Default to editorial #}
+    {{ hero_editorial(page, params, theme) }}
 {% end %}
