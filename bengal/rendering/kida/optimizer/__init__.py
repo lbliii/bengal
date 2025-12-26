@@ -73,6 +73,7 @@ class OptimizationStats:
     data_nodes_coalesced: int = 0
     filters_inlined: int = 0
     estimated_buffer_size: int = 256
+    estimated_output_count: int = 0
     passes_applied: list[str] = field(default_factory=list)
 
     def summary(self) -> str:
@@ -161,6 +162,7 @@ class ASTOptimizer:
         # Pass 5: Buffer estimation
         if self._config.estimate_buffer:
             stats.estimated_buffer_size = self._buffer_estimator.estimate(ast)
+            stats.estimated_output_count = self._buffer_estimator.count_output_operations(ast)
             stats.passes_applied.append("buffer_estimation")
 
         return OptimizationResult(ast=ast, stats=stats)

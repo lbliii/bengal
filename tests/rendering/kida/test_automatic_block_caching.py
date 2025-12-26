@@ -124,10 +124,18 @@ class TestAutomaticCachedBlocks:
         
         env = Environment(loader=loader, preserve_ast=True)
         
+        # Get base template to check its nav block metadata
+        base_template = env.get_template("base.html")
+        base_meta = base_template.template_metadata()
+        assert base_meta is not None
+        nav_meta = base_meta.blocks.get("nav")
+        assert nav_meta is not None
+        assert nav_meta.cache_scope == "site"
+        
         # Get child template
         child_template = env.get_template("child.html")
         
-        # Cache nav block from base
+        # Cache nav block (defined in base, used by child)
         cached_nav = "<nav>Cached Base Nav</nav>"
         
         result = child_template.render(
@@ -135,7 +143,7 @@ class TestAutomaticCachedBlocks:
             _cached_blocks={"nav": cached_nav}
         )
         
-        # Cached nav should be used
+        # Cached nav should be used (from base template)
         assert cached_nav in result
         
         # Child content should render
@@ -196,20 +204,20 @@ class TestAutomaticCachedBlocks:
 
     def test_cached_blocks_with_copy(self):
         """Test that cached blocks work with dict.copy() for embed/include."""
-        env = Environment(preserve_ast=True)
+        from bengal.rendering.kida import DictLoader
         
-        template = env.from_string("""
+        loader = DictLoader({
+            "main.html": """
 {% block nav %}<nav>Nav</nav>{% end %}
 {% embed "partial.html" %}
 {% block nav %}<nav>Overridden</nav>{% end %}
 {% endembed %}
-""")
+""",
+            "partial.html": "{% block nav %}<nav>Partial Nav</nav>{% end %}"
+        })
         
-        # Create a partial template
-        partial = env.from_string("{% block nav %}<nav>Partial Nav</nav>{% end %}")
-        # Register using environment's cache mechanism
-        if hasattr(env, "_env"):
-            env._env._cache["partial.html"] = partial
+        env = Environment(loader=loader, preserve_ast=True)
+        template = env.get_template("main.html")
         
         cached_nav = "<nav>Cached Nav</nav>"
         

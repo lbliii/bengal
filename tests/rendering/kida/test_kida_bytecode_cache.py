@@ -3,6 +3,8 @@
 Tests persistent template caching for fast cold-start.
 """
 
+import time
+
 import pytest
 
 from bengal.rendering.kida.bytecode_cache import BytecodeCache, hash_source
@@ -103,6 +105,82 @@ class TestBytecodeCache:
         stats = cache.stats()
         assert stats["file_count"] == 1
         assert stats["total_bytes"] > 0
+
+    def test_cleanup_removes_old_files(self, cache, cache_dir):
+        """Cleanup removes files older than max_age_days."""
+        code = compile("x = 1", "<test>", "exec")
+
+        # Create an old file by manually writing and setting mtime
+        old_path = cache_dir / "__kida_py312_old_1234567890123456.pyc"
+        old_path.write_bytes(b"old")
+        # Set mtime to 35 days ago
+        old_mtime = time.time() - (35 * 86400)
+        import os
+
+        os.utime(old_path, (old_mtime, old_mtime))
+
+        # Create a recent file
+        cache.set("recent.html", hash_source("recent"), code)
+
+        # Verify both files exist
+        assert old_path.exists()
+        assert cache.stats()["file_count"] == 2
+
+        # Cleanup with 30 day threshold
+        removed = cache.cleanup(max_age_days=30)
+        assert removed == 1
+
+        # Old file should be gone, recent file should remain
+        assert not old_path.exists()
+        assert cache.stats()["file_count"] == 1
+
+    def test_cleanup_preserves_recent_files(self, cache):
+        """Cleanup preserves files newer than max_age_days."""
+        code = compile("x = 1", "<test>", "exec")
+
+        # Create recent files
+        cache.set("a.html", hash_source("a"), code)
+        cache.set("b.html", hash_source("b"), code)
+
+        assert cache.stats()["file_count"] == 2
+
+        # Cleanup with 30 day threshold (all files are recent)
+        removed = cache.cleanup(max_age_days=30)
+        assert removed == 0
+
+        # All files should remain
+        assert cache.stats()["file_count"] == 2
+
+    def test_cleanup_respects_max_age_days(self, cache, cache_dir):
+        """Cleanup respects the max_age_days parameter."""
+        code = compile("x = 1", "<test>", "exec")
+
+        # Create files with different ages
+        old_path = cache_dir / "__kida_py312_old_1234567890123456.pyc"
+        old_path.write_bytes(b"old")
+        # Set mtime to 15 days ago
+        old_mtime = time.time() - (15 * 86400)
+        import os
+
+        os.utime(old_path, (old_mtime, old_mtime))
+
+        # Create a recent file
+        cache.set("recent.html", hash_source("recent"), code)
+
+        # Cleanup with 7 day threshold (should remove 15-day-old file)
+        removed = cache.cleanup(max_age_days=7)
+        assert removed == 1
+        assert not old_path.exists()
+
+        # Reset: create another old file
+        old_path2 = cache_dir / "__kida_py312_old2_1234567890123456.pyc"
+        old_path2.write_bytes(b"old2")
+        os.utime(old_path2, (old_mtime, old_mtime))
+
+        # Cleanup with 20 day threshold (should preserve 15-day-old file)
+        removed2 = cache.cleanup(max_age_days=20)
+        assert removed2 == 0
+        assert old_path2.exists()
 
     def test_sanitize_filename(self, cache):
         """Template names with special chars are sanitized."""

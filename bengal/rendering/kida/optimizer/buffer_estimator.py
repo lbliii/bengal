@@ -11,7 +11,7 @@ Thread-Safety:
 
 from __future__ import annotations
 
-from bengal.rendering.kida.nodes import Data, Node, Template
+from bengal.rendering.kida.nodes import Data, Node, Output, Template
 
 
 class BufferEstimator:
@@ -60,3 +60,39 @@ class BufferEstimator:
                     total += self._count_static_bytes(child)
 
         return total
+
+    def count_output_operations(self, node: Template) -> int:
+        """Count output operations (Data + Output nodes).
+        
+        Returns the number of append operations that will be generated.
+        Used for pre-allocating the buffer list.
+        """
+        return self._count_outputs(node)
+
+    def _count_outputs(self, node: Node) -> int:
+        """Count Data and Output nodes recursively."""
+        count = 0
+
+        # Count this node if it's an output operation
+        if isinstance(node, (Data, Output)):
+            count += 1
+
+        # Recursively count children
+        if hasattr(node, "body"):
+            for child in node.body:
+                count += self._count_outputs(child)
+
+        if hasattr(node, "else_") and node.else_:
+            for child in node.else_:
+                count += self._count_outputs(child)
+
+        if hasattr(node, "empty") and node.empty:
+            for child in node.empty:
+                count += self._count_outputs(child)
+
+        if hasattr(node, "elif_") and node.elif_:
+            for _test, body in node.elif_:
+                for child in body:
+                    count += self._count_outputs(child)
+
+        return count

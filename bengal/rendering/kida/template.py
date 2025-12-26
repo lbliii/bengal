@@ -305,6 +305,62 @@ class Template:
                     f"Template '{template_name}' not properly compiled: "
                     f"_render_func is None. Check for syntax errors in the template."
                 )
+            # Apply cached blocks wrapper if available (RFC: kida-template-introspection)
+            # This ensures parent templates also use cached blocks automatically
+            cached_blocks = context.get("_cached_blocks", {})
+            if cached_blocks:
+                parent_meta = parent.template_metadata()
+                if parent_meta:
+                    cached_block_names = {
+                        block_name
+                        for block_name, block_meta in parent_meta.blocks.items()
+                        if block_name in cached_blocks and block_meta.cache_scope == "site"
+                    }
+                    if cached_block_names:
+                        # Create wrapper dict for parent template
+                        class CachedBlocksDict:
+                            def __init__(self, original: dict, cached: dict[str, str], cached_names: set[str]):
+                                self._original = original if original is not None else {}
+                                self._cached = cached
+                                self._cached_names = cached_names
+                            def get(self, key: str, default: Any = None) -> Any:
+                                if key in self._cached_names:
+                                    cached_html = self._cached[key]
+                                    def cached_block_func(_ctx: dict, _blocks: dict) -> str:
+                                        return cached_html
+                                    return cached_block_func
+                                return self._original.get(key, default)
+                            def setdefault(self, key: str, default: Any = None) -> Any:
+                                if key in self._cached_names:
+                                    cached_html = self._cached[key]
+                                    def cached_block_func(_ctx: dict, _blocks: dict) -> str:
+                                        return cached_html
+                                    return cached_block_func
+                                return self._original.setdefault(key, default)
+                            def __getitem__(self, key: str) -> Any:
+                                if key in self._cached_names:
+                                    cached_html = self._cached[key]
+                                    def cached_block_func(_ctx: dict, _blocks: dict) -> str:
+                                        return cached_html
+                                    return cached_block_func
+                                return self._original[key]
+                            def __setitem__(self, key: str, value: Any) -> None:
+                                self._original[key] = value
+                            def __contains__(self, key: str) -> bool:
+                                return key in self._original or key in self._cached_names
+                            def keys(self):
+                                return self._original.keys() | self._cached_names
+                            def copy(self) -> dict:
+                                result = self._original.copy()
+                                for name in self._cached_names:
+                                    cached_html = self._cached[name]
+                                    def make_wrapper(html: str):
+                                        def wrapper(_ctx: dict, _blocks: dict) -> str:
+                                            return html
+                                        return wrapper
+                                    result[name] = make_wrapper(cached_html)
+                                return result
+                        blocks = CachedBlocksDict(blocks, cached_blocks, cached_block_names)
             # Call parent's render function with blocks dict
             return parent._render_func(context, blocks)
 

@@ -111,6 +111,7 @@ class Compiler(
         "_locals",
         "_blocks",
         "_block_counter",
+        "_estimated_output_count",
     )
 
     def __init__(self, env: Environment):
@@ -154,6 +155,7 @@ class Compiler(
         node: TemplateNode,
         name: str | None = None,
         filename: str | None = None,
+        estimated_output_count: int = 0,
     ) -> Any:
         """Compile template AST to code object.
 
@@ -161,6 +163,7 @@ class Compiler(
             node: Root Template node
             name: Template name for error messages
             filename: Source filename for error messages
+            estimated_output_count: Estimated number of output operations for pre-allocation
 
         Returns:
             Compiled code object ready for exec()
@@ -169,6 +172,7 @@ class Compiler(
         self._filename = filename
         self._locals = set()  # Reset locals for each compilation
         self._block_counter = 0  # Reset counter for each compilation
+        self._estimated_output_count = estimated_output_count
 
         # Generate Python AST
         module = self._compile_template(node)
