@@ -18,12 +18,12 @@ Usage: Set `template: tracks/list.html` in frontmatter
     <p class="tracks-lead lead text-muted mt-3">
       {{ page.description }}
     </p>
-    {% endif %}
+    {% end %}
     {% if content %}
     <div class="tracks-intro mt-4">
       {{ content | safe }}
     </div>
-    {% endif %}
+    {% end %}
   </header>
 
   {# Tracks Grid #}
@@ -44,7 +44,7 @@ Usage: Set `template: tracks/list.html` in frontmatter
           <a href="{{ track_page.href }}">{{ track.title }}</a>
           {% else %}
           {{ track.title }}
-          {% endif %}
+          {% end %}
         </h2>
       </div>
 
@@ -54,7 +54,7 @@ Usage: Set `template: tracks/list.html` in frontmatter
         <p class="track-card-description">{{ track.description }}</p>
         {% else %}
         <p class="track-card-description">Start your learning journey with this comprehensive track.</p>
-        {% endif %}
+        {% end %}
 
         {# Track Meta #}
         <div class="track-card-meta">
@@ -76,15 +76,15 @@ Usage: Set `template: tracks/list.html` in frontmatter
               <span class="track-preview-number">{{ loop.index }}</span>
               <span class="track-preview-title">{{ item_page.title if item_page else item_slug }}</span>
             </li>
-            {% endfor %}
+            {% end %}
             {% if track.items|length > preview_limit %}
             <li class="track-preview-item track-preview-more">
               <span class="track-preview-more-text">+{{ track.items|length - preview_limit }} more</span>
             </li>
-            {% endif %}
+            {% end %}
           </ul>
         </div>
-        {% endif %}
+        {% end %}
       </div>
 
       {# Card Footer #}
@@ -106,15 +106,15 @@ Usage: Set `template: tracks/list.html` in frontmatter
         <span class="track-card-button track-card-button-disabled" title="Track page not found">
           Unavailable
         </span>
-        {% endif %}
+        {% end %}
         {% else %}
         <span class="track-card-button track-card-button-disabled" title="No track items">
           Unavailable
         </span>
-        {% endif %}
+        {% end %}
       </div>
     </article>
-    {% endfor %}
+    {% end %}
   </div>
   {% else %}
   {# Empty State #}
@@ -127,6 +127,6 @@ Usage: Set `template: tracks/list.html` in frontmatter
       Please define your learning tracks in <code>site/data/tracks.yaml</code>.
     </p>
   </div>
-  {% endif %}
+  {% end %}
 </div>
-{% endblock %}
+{% end %}

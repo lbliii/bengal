@@ -13,7 +13,7 @@ This template receives:
 - site: Site instance
 #}
 
-{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc with context %}
+{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc %}
 
 {% block content %}
 {# Three-column documentation layout #}
@@ -46,7 +46,7 @@ This template receives:
         <div class="autodoc-description">
           <p>Browse API resources and endpoints.</p>
         </div>
-        {% endif %}
+        {% end %}
       </header>
 
       {# Quick Stats #}
@@ -56,14 +56,14 @@ This template receives:
           <span class="autodoc-stat-value">{{ section.subsections | length }}</span>
           <span class="autodoc-stat-label">Resources</span>
         </span>
-        {% endif %}
+        {% end %}
         {% set endpoint_pages = (section.sorted_pages if section else []) | selectattr('metadata.element_type', 'defined') | list %}
         {% if endpoint_pages %}
         <span class="autodoc-stat">
           <span class="autodoc-stat-value">{{ endpoint_pages | length }}</span>
           <span class="autodoc-stat-label">Endpoints</span>
         </span>
-        {% endif %}
+        {% end %}
       </div>
 
       {# Subsections (Resource Groups) - Card Grid #}
@@ -85,7 +85,7 @@ This template receives:
               <p class="autodoc-card-desc">{{ desc }}</p>
               {% else %}
               <p class="autodoc-card-desc">{{ subsection.name | title }} resource</p>
-              {% endif %}
+              {% end %}
             </div>
             <div class="autodoc-card-footer">
               <span class="autodoc-card-meta">
@@ -93,20 +93,20 @@ This template receives:
               </span>
             </div>
           </a>
-          {% endfor %}
+          {% end %}
         </div>
       </section>
-      {% endif %}
+      {% end %}
 
       {# Endpoint Pages - Card Grid #}
       {% set endpoint_pages = [] %}
       {% if section %}
       {% for page in section.sorted_pages %}
         {% if page != section.index_page and not (page.source_path is match('.*_index.*')) %}
-          {% set _ = endpoint_pages.append(page) %}
-        {% endif %}
-      {% endfor %}
-      {% endif %}
+          {% do endpoint_pages.append(page) %}
+        {% end %}
+      {% end %}
+      {% end %}
 
       {% if endpoint_pages %}
       <section class="autodoc-section" data-section="endpoints">
@@ -124,27 +124,27 @@ This template receives:
                 {{ icon("layers", size=16, css_class="icon-info") }}
                 {%- else -%}
                 {{ icon("code", size=16, css_class="icon-muted") }}
-                {%- endif -%}
+                {% end %}
               </span>
               <span class="autodoc-card-name">{{ page.title }}</span>
               {% if params.http_method %}
               <span class="autodoc-badge" data-badge="{{ params.http_method|lower }}">{{ params.http_method }}</span>
               {% elif params.element_type %}
               <span class="autodoc-badge" data-badge="{{ params.element_type }}">{{ params.element_type }}</span>
-              {% endif %}
+              {% end %}
             </div>
             <div class="autodoc-card-body">
               {% if desc %}
               <p class="autodoc-card-desc">{{ desc }}</p>
               {% else %}
               <p class="autodoc-card-desc">No description available</p>
-              {% endif %}
+              {% end %}
             </div>
           </a>
-          {% endfor %}
+          {% end %}
         </div>
       </section>
-      {% endif %}
+      {% end %}
 
       {# Empty State #}
       {% if not section or (not section.subsections and not endpoint_pages) %}
@@ -152,7 +152,7 @@ This template receives:
         <div class="autodoc-empty-state-icon">{{ icon("file-text", size=48, css_class="icon-muted") }}</div>
         <p class="autodoc-empty-state-text">No documentation available in this section yet.</p>
       </div>
-      {% endif %}
+      {% end %}
 
     </article>
 
@@ -172,4 +172,4 @@ This template receives:
 
 {# Sidebar overlay for mobile #}
 <div class="docs-sidebar-overlay" aria-hidden="true"></div>
-{% endblock %}
+{% end %}

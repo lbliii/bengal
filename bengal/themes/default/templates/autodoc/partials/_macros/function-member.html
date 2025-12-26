@@ -13,14 +13,14 @@ Args:
   is_first: Whether this is the first item (to auto-open)
 #}
 
-{% macro function_member(func, is_first=false) %}
+{% def function_member(func, is_first=false) %}
 {# Parameters can be in metadata.args (from extractor) or metadata.parameters #}
 {% set func_params = func.metadata.args or func.metadata.parameters or [] %}
 {% set func_return = func.metadata.return_type or func.metadata.returns or '' %}
 {% set func_signature = func.metadata.signature or '' %}
 {% set is_async = func.metadata.is_async | default(false) %}
 
-<details class="autodoc-member" data-member="function" {% if is_first %}open{% endif %}>
+<details class="autodoc-member" data-member="function" {% if is_first %}open{% end %}>
   <summary class="autodoc-member-header">
     {# Status dot (green for functions) #}
     <span class="autodoc-member-dot"></span>
@@ -30,20 +30,20 @@ Args:
       <div class="autodoc-member-name-row">
         <code class="autodoc-member-name">{{ func.name }}</code>
         {# Parameter count badge #}
-        <span class="autodoc-member-count" title="{{ func_params | length }} parameter{% if func_params | length != 1 %}s{% endif %}">{{ func_params | length }}</span>
+        <span class="autodoc-member-count" title="{{ func_params | length }} parameter{% if func_params | length != 1 %}s{% end %}">{{ func_params | length }}</span>
         {# Return type with arrow #}
         {% if func_return %}
         <span class="autodoc-member-return" title="Returns {{ func_return }}">
           <code>{{ func_return | truncate(25, True, '…') }}</code>
         </span>
-        {% endif %}
+        {% end %}
         {# Toggle indicator #}
         <span class="autodoc-member-toggle">▼</span>
       </div>
       {# Description preview (for scanning) #}
       {% if func.description %}
       <span class="autodoc-member-desc-preview">{{ func.description | striptags | truncate(80, True, '…') }}</span>
-      {% endif %}
+      {% end %}
     </div>
 
     {# Badges #}
@@ -51,7 +51,7 @@ Args:
     <span class="autodoc-member-badges">
       <span class="autodoc-badge" data-badge="async">async</span>
     </span>
-    {% endif %}
+    {% end %}
   </summary>
 
   <div class="autodoc-member-body">
@@ -60,7 +60,7 @@ Args:
     <div class="autodoc-signature-section">
       <code class="autodoc-member-sig">{{ func_signature }}</code>
     </div>
-    {% endif %}
+    {% end %}
 
     {# Full description - only show if truncated in header #}
     {% set desc_stripped = func.description | striptags | trim if func.description else '' %}
@@ -68,7 +68,7 @@ Args:
     <div class="autodoc-member-desc prose">
       {{ func.description | markdownify | safe }}
     </div>
-    {% endif %}
+    {% end %}
 
     {# Function parameters - args is a list of dicts with name, type, docstring, default #}
     {% if func_params %}
@@ -96,14 +96,14 @@ Args:
               {{ param_desc | markdownify | safe }}
               {% if param_default is not none and param_default != '' %}
               <span class="autodoc-param-default">Default: <code>{{ param_default }}</code></span>
-              {% endif %}
+              {% end %}
             </td>
           </tr>
-          {% endfor %}
+          {% end %}
         </tbody>
       </table>
     </div>
-    {% endif %}
+    {% end %}
 
     {# Return type (detailed) - only show if has description OR non-trivial type #}
     {# Trivial types (None) are already visible in header badge + signature #}
@@ -115,9 +115,9 @@ Args:
       <code class="autodoc-returns-type">{{ func_return }}</code>
       {% if has_return_desc %}
       <span class="autodoc-returns-desc">{{ has_return_desc }}</span>
-      {% endif %}
+      {% end %}
     </div>
-    {% endif %}
+    {% end %}
 
     {# Raises #}
     {% if func.metadata.raises %}
@@ -127,9 +127,9 @@ Args:
         <dt><code>{{ exc.type }}</code></dt>
         <dd>{{ exc.description }}</dd>
       </div>
-      {% endfor %}
+      {% end %}
     </dl>
-    {% endif %}
+    {% end %}
   </div>
 </details>
-{% endmacro %}
+{% enddef %}

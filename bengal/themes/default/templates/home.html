@@ -7,8 +7,8 @@
     {# Hero Section #}
     {% set hero_classes = ['hero', 'hero--large'] %}
     {% if params.blob_background %}
-    {% set _ = hero_classes.append('hero--blob-background') %}
-    {% endif %}
+    {% do hero_classes.append('hero--blob-background') %}
+    {% end %}
     <header class="{{ hero_classes | join(' ') }}">
         {% if params.blob_background %}
         {# Organic blob background animation #}
@@ -18,7 +18,7 @@
             <div class="hero__blob hero__blob--3"></div>
             <div class="hero__blob hero__blob--4"></div>
         </div>
-        {% endif %}
+        {% end %}
         <div class="hero__container">
             <div class="hero__content">
                 <h1 class="hero__title">
@@ -26,18 +26,18 @@
                 </h1>
                 {% if params.description %}
                 <p class="hero__subtitle">{{ params.description }}</p>
-                {% endif %}
+                {% end %}
 
                 {% if params.cta_buttons %}
                 <div class="hero__actions">
                     {% for button in params.cta_buttons %}
                     <a href="{{ button.href or button.url | absolute_url }}"
-                        class="hero__button hero__button--{{ button.style | default('primary') }} {% if button.style != 'primary' %}gradient-border{% endif %}">
+                        class="hero__button hero__button--{{ button.style | default('primary') }} {% if button.style != 'primary' %}gradient-border{% end %}">
                         {{ button.text }}
                     </a>
-                    {% endfor %}
+                    {% end %}
                 </div>
-                {% endif %}
+                {% end %}
             </div>
         </div>
     </header>
@@ -50,7 +50,7 @@
             <article class="feature-card">
                 {% if feature.icon %}
                 <div class="feature-icon" aria-hidden="true">{{ feature.icon }}</div>
-                {% endif %}
+                {% end %}
                 <h3 class="feature-title">{{ feature.title }}</h3>
                 <p class="feature-description">{{ feature.description }}</p>
                 {% if feature.link %}
@@ -58,12 +58,12 @@
                     {{ feature.link.text | default('Learn more') }}
                     <span aria-hidden="true">→</span>
                 </a>
-                {% endif %}
+                {% end %}
             </article>
-            {% endfor %}
+            {% end %}
         </div>
     </section>
-    {% endif %}
+    {% end %}
 
     {# Main Content #}
     <div class="home-content prose">
@@ -79,16 +79,16 @@
             <a href="{{ link.href or link.url | absolute_url }}" class="quick-link-card">
                 {% if link.icon %}
                 <div class="quick-link-icon" aria-hidden="true">{{ link.icon }}</div>
-                {% endif %}
+                {% end %}
                 <h3>{{ link.title }}</h3>
                 {% if link.description %}
                 <p>{{ link.description }}</p>
-                {% endif %}
+                {% end %}
             </a>
-            {% endfor %}
+            {% end %}
         </div>
     </section>
-    {% endif %}
+    {% end %}
 
     {# Statistics/Metrics Section - Impressive Numbers #}
     {% if params.stats %}
@@ -99,10 +99,10 @@
                 <div class="stat-value">{{ stat.value }}</div>
                 <div class="stat-label">{{ stat.label }}</div>
             </div>
-            {% endfor %}
+            {% end %}
         </div>
     </section>
-    {% endif %}
+    {% end %}
 
     {# Recent Posts/Updates (if this is a blog-style home) #}
     {# Show recent posts by default for blog sites, or if explicitly enabled #}
@@ -121,13 +121,13 @@
     {% for p in site.pages %}
     {# Use relative_url for comparisons (without baseurl) #}
     {% if p.metadata.type == 'blog' or '/blog/' in p._path %}
-    {% set _ = blog_posts.append(p) %}
-    {% endif %}
-    {% endfor %}
+    {% do blog_posts.append(p) %}
+    {% end %}
+    {% end %}
     {% set recent = blog_posts | selectattr('date') | sort_by('date', reverse=true) | limit(3) %}
     {% else %}
     {% set recent = [] %}
-    {% endif %}
+    {% end %}
 
     {% if recent %}
     <section class="recent-posts">
@@ -142,28 +142,28 @@
                             alt="{{ post.title }}">
                     </a>
                 </div>
-                {% endif %}
+                {% end %}
                 <div class="post-card-content">
                     <h3 class="post-card-title"><a href="{{ post.href }}">{{ post.title }}</a></h3>
                     {% if post.date %}
                     <time datetime="{{ post.date | date_iso }}" class="post-card-date">
                         {{ post.date | dateformat('%B %d, %Y') }}
                     </time>
-                    {% endif %}
+                    {% end %}
                     {% if post.metadata.description or post.excerpt %}
                     <p class="post-card-excerpt">
                         {{ post.metadata.description | default(post.excerpt) | truncate(150) }}
                     </p>
-                    {% endif %}
+                    {% end %}
                     <a href="{{ post.href }}" class="read-more">Read more →</a>
                 </div>
             </article>
-            {% endfor %}
+            {% end %}
         </div>
     </section>
-    {% endif %}
-    {% endif %}
+    {% end %}
+    {% end %}
 </div>
 
 {# Styles moved to assets/css/pages/home.css #}
-{% endblock %}
+{% end %}

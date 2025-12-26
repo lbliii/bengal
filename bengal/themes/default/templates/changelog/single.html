@@ -37,27 +37,27 @@ fixed:
 
         {% if params.name %}
         <p class="release-name">{{ params.name }}</p>
-        {% endif %}
+        {% end %}
 
         <div class="release-meta">
             {% if page.date %}
             <time datetime="{{ page.date | date_iso }}" class="release-date">
                 Released {{ page.date | dateformat('%B %d, %Y') }}
             </time>
-            {% endif %}
+            {% end %}
 
             {% if params.status %}
             <span class="release-status status-{{ params.status | lower }}">
                 {{ params.status }}
             </span>
-            {% endif %}
+            {% end %}
         </div>
 
         {% if params.description %}
         <p class="release-summary">{{ params.description }}</p>
         {% elif params.summary %}
         <p class="release-summary">{{ params.summary }}</p>
-        {% endif %}
+        {% end %}
     </header>
 
     <div class="release-content">
@@ -69,10 +69,10 @@ fixed:
             <ul class="changelog-list">
                 {% for item in params.added %}
                 <li>{{ item }}</li>
-                {% endfor %}
+                {% end %}
             </ul>
         </section>
-        {% endif %}
+        {% end %}
 
         {# Changed/Improved #}
         {% if params.changed and params.changed is iterable and params.changed
@@ -82,10 +82,10 @@ fixed:
             <ul class="changelog-list">
                 {% for item in params.changed %}
                 <li>{{ item }}</li>
-                {% endfor %}
+                {% end %}
             </ul>
         </section>
-        {% endif %}
+        {% end %}
 
         {# Fixed Bugs #}
         {% if params.fixed and params.fixed is iterable and params.fixed is
@@ -95,10 +95,10 @@ fixed:
             <ul class="changelog-list">
                 {% for item in params.fixed %}
                 <li>{{ item }}</li>
-                {% endfor %}
+                {% end %}
             </ul>
         </section>
-        {% endif %}
+        {% end %}
 
         {# Deprecated #}
         {% if params.deprecated and params.deprecated is iterable and
@@ -108,10 +108,10 @@ fixed:
             <ul class="changelog-list">
                 {% for item in params.deprecated %}
                 <li>{{ item }}</li>
-                {% endfor %}
+                {% end %}
             </ul>
         </section>
-        {% endif %}
+        {% end %}
 
         {# Removed #}
         {% if params.removed and params.removed is iterable and params.removed
@@ -121,10 +121,10 @@ fixed:
             <ul class="changelog-list">
                 {% for item in params.removed %}
                 <li>{{ item }}</li>
-                {% endfor %}
+                {% end %}
             </ul>
         </section>
-        {% endif %}
+        {% end %}
 
         {# Security #}
         {% if params.security and params.security is iterable and
@@ -134,10 +134,10 @@ fixed:
             <ul class="changelog-list">
                 {% for item in params.security %}
                 <li>{{ item }}</li>
-                {% endfor %}
+                {% end %}
             </ul>
         </section>
-        {% endif %}
+        {% end %}
 
         {# Breaking Changes #}
         {% if params.breaking and params.breaking is iterable and
@@ -147,17 +147,17 @@ fixed:
             <ul class="changelog-list">
                 {% for item in params.breaking %}
                 <li>{{ item }}</li>
-                {% endfor %}
+                {% end %}
             </ul>
         </section>
-        {% endif %}
+        {% end %}
 
         {# Main content (detailed release notes) #}
         {% if content and content.strip() %}
         <section class="release-details prose">
             {{ content | safe }}
         </section>
-        {% endif %}
+        {% end %}
 
         {# Links #}
         {% if params.github_release or params.download_url %}
@@ -167,15 +167,15 @@ fixed:
                 <a href="{{ params.github_release }}" class="release-link" target="_blank">
                     View on GitHub →
                 </a>
-                {% endif %}
+                {% end %}
                 {% if params.download_url %}
                 <a href="{{ params.download_url }}" class="release-link release-download" target="_blank">
                     Download Release ↓
                 </a>
-                {% endif %}
+                {% end %}
             </div>
         </footer>
-        {% endif %}
+        {% end %}
     </div>
 </article>
-{% endblock %}
+{% end %}

@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 
-{% block title %}Page Not Found - {{ config.title }}{% endblock %}
+{% block title %}Page Not Found - {{ config.title }}{% end %}
 
 {% block meta %}
 <meta name="robots" content="noindex, nofollow">
-{% endblock %}
+{% end %}
 
 {% block content %}
 <div class="container">
@@ -33,7 +33,7 @@
     {% set auto_nav = [] %}
     {% if main_menu | length == 0 %}
     {% set auto_nav = get_auto_nav() %}
-    {% endif %}
+    {% end %}
     {% set nav_items = main_menu if main_menu else auto_nav %}
 
     {# Only show suggestions if we have navigation items #}
@@ -45,10 +45,10 @@
         <li>
           <a href="{{ item.href | absolute_url }}">{{ item.name }}</a>
         </li>
-        {% endfor %}
+        {% end %}
       </ul>
     </div>
-    {% endif %}
+    {% end %}
 
     {# Search hint - points to existing global search #}
     <p class="empty-state__search-hint">
@@ -56,4 +56,4 @@
     </p>
   </div>
 </div>
-{% endblock %}
+{% end %}

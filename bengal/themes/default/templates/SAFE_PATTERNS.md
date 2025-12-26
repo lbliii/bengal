@@ -96,36 +96,33 @@ When looping over lists of dicts from data files, use `| safe_access` to wrap ea
 
 ---
 
-## Pattern 3: Macro Imports with Context
+## Pattern 3: Function Imports (Kida)
 
-### The Problem
+### Kida Functions Have Lexical Scoping
 
-Macros imported without `with context` cannot access template variables like `site` and `page`:
+Kida functions (`{% def %}`) have true lexical scoping - they automatically access variables from their enclosing scope. **You do NOT need `with context`**:
 
 ```jinja2
-❌ UNSAFE
+✅ CORRECT (Kida)
 {% from 'partials/navigation-components.html' import breadcrumbs %}
 {{ breadcrumbs(page) }}
-<!-- Macro can't access 'site' inside, causes UndefinedError -->
+<!-- Function automatically has access to 'site', 'page', etc. via lexical scoping -->
 ```
 
-### The Solution
+### Why No `with context`?
 
-Add `with context` to macro imports:
+Kida functions use `_outer_ctx` for closure access, so they:
+- ✅ Automatically access globals (`site`, `theme`, filters, etc.)
+- ✅ Automatically access outer scope variables
+- ✅ Don't need `with context` (it's dead code from Jinja2)
+
+### Legacy Jinja2 Pattern (Don't Use)
 
 ```jinja2
-✅ SAFE
+❌ OLD PATTERN (Jinja2 - not needed in Kida)
 {% from 'partials/navigation-components.html' import breadcrumbs with context %}
-{{ breadcrumbs(page) }}
-<!-- Macro now has access to full template context -->
+<!-- 'with context' is unnecessary and can cause issues -->
 ```
-
-### When to Use
-
-Always use `with context` when importing macros that:
-- Access `site` for configuration or site-wide data
-- Use template functions like `url_for()`, `og_image()`, etc.
-- Need access to current page context
 
 ---
 
@@ -322,7 +319,7 @@ Use this checklist when creating new templates:
 - [ ] Use `params.x` instead of `page.metadata.get('x')`
 - [ ] Use `config.x` instead of `site.config.get('x')`
 - [ ] Use `| safe_access` for raw dicts from `site.data`
-- [ ] All macro imports have `with context`
+- [ ] All function imports do NOT use `with context` (Kida has lexical scoping)
 - [ ] All URLs use template functions
 - [ ] All blocks properly named in extends
 - [ ] Template tested with minimal frontmatter

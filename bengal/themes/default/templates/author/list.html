@@ -24,7 +24,7 @@ Context variables:
     <h1>{{ page.title | default('Authors') }}</h1>
     {% if page.description %}
     <p class="page-description">{{ page.description }}</p>
-    {% endif %}
+    {% end %}
   </header>
 
   {# Main content from markdown #}
@@ -32,7 +32,7 @@ Context variables:
   <div class="prose" style="margin-bottom: 2rem;">
     {{ content | safe }}
   </div>
-  {% endif %}
+  {% end %}
 
   {# Build author list from data registry and/or child pages #}
   {% set authors_list = [] %}
@@ -41,9 +41,10 @@ Context variables:
   {% if site.data.authors %}
     {% for author_key, author_data in site.data.authors.items() %}
       {% set post_count = (site.indexes.author.get(author_key) | default([])) | length %}
-      {% set _ = authors_list.append({
+      {% set _name = author_data.name %}
+      {% do authors_list.append({
         'key': author_key,
-        'name': author_data.name | default(author_key),
+        'name': _name if _name != none else author_key,
         'bio': author_data.bio | default(''),
         'avatar': author_data.avatar,
         'company': author_data.company,
@@ -52,18 +53,19 @@ Context variables:
         'post_count': post_count,
         'href': '/authors/' ~ author_key ~ '/'
       }) %}
-    {% endfor %}
-  {% endif %}
+    {% end %}
+  {% end %}
 
   {# Add authors from child pages (if not already in registry) #}
   {% for child in page.children | default([]) %}
-    {% set author_key = child.params.author_name | default(child.title) %}
+    {% set _child_title = child.title %}
+    {% set author_key = child.params.author_name | default(_child_title if _child_title != none else 'unknown') %}
     {% set existing = authors_list | selectattr('key', 'equalto', author_key) | list %}
     {% if not existing %}
       {% set post_count = (site.indexes.author.get(author_key) | default([])) | length %}
-      {% set _ = authors_list.append({
+      {% do authors_list.append({
         'key': author_key,
-        'name': child.title,
+        'name': _child_title if _child_title != none else 'Unknown Author',
         'bio': child.params.bio,
         'avatar': child.params.avatar,
         'company': child.params.company,
@@ -72,8 +74,8 @@ Context variables:
         'post_count': post_count,
         'href': child.href
       }) %}
-    {% endif %}
-  {% endfor %}
+    {% end %}
+  {% end %}
 
   {% if authors_list %}
   <div class="authors-grid">
@@ -88,22 +90,22 @@ Context variables:
         <div class="author-card-avatar-placeholder">
           {{ author.name[0] | upper }}
         </div>
-        {% endif %}
+        {% end %}
 
         <div class="author-card-content">
           <h2 class="author-card-name">{{ author.name }}</h2>
 
           {% if author.company or author.location %}
           <p class="author-card-meta">
-            {% if author.company %}{{ author.company }}{% endif %}
-            {% if author.company and author.location %} · {% endif %}
-            {% if author.location %}{{ author.location }}{% endif %}
+            {% if author.company %}{{ author.company }}{% end %}
+            {% if author.company and author.location %} · {% end %}
+            {% if author.location %}{{ author.location }}{% end %}
           </p>
-          {% endif %}
+          {% end %}
 
           {% if author.bio %}
           <p class="author-card-bio">{{ author.bio | truncate(120) }}</p>
-          {% endif %}
+          {% end %}
 
           <div class="author-card-stats">
             <span class="stat">
@@ -113,19 +115,19 @@ Context variables:
             <span class="stat">
               💻 {{ author.github }}
             </span>
-            {% endif %}
+            {% end %}
           </div>
         </div>
       </a>
     </article>
-    {% endfor %}
+    {% end %}
   </div>
   {% else %}
   <div class="empty-state">
     <p>No authors found.</p>
     <p>Add authors to <code>data/authors.yaml</code> or create pages in <code>content/authors/</code>.</p>
   </div>
-  {% endif %}
+  {% end %}
 </div>
 
 <style>
@@ -237,4 +239,4 @@ Context variables:
   font-size: 0.875rem;
 }
 </style>
-{% endblock %}
+{% end %}

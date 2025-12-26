@@ -18,7 +18,7 @@ See: plan/drafted/rfc-page-hero-template-flattening.md
 <!-- WARNING: page-hero/_wrapper.html is deprecated. Use page-hero.html instead. -->
 
 {# Fallback: render basic wrapper structure for backwards compatibility #}
-{% from 'partials/navigation-components.html' import breadcrumbs with context %}
+{% from 'partials/navigation-components.html' import breadcrumbs %}
 
 <div class="page-hero page-hero--api">
   <div class="page-hero__top">
@@ -30,9 +30,9 @@ See: plan/drafted/rfc-page-hero-template-flattening.md
         <li>
           <a href="{{ item.href | absolute_url }}" class="page-hero__breadcrumb-link">{{ item.title }}</a>
         </li>
-        {% endfor %}
+        {% end %}
       </ol>
-      {% endif %}
+      {% end %}
     </nav>
 
     {# Share dropdown - inline since we can't import macros in backwards compat mode #}

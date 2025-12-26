@@ -24,8 +24,8 @@ Optional: language (str, default based on element type)
     <pre><code class="language-{{ example.language | default(language) }}">{{ example.code }}</code></pre>
     {% else %}
     <pre><code class="language-{{ language }}">{{ example }}</code></pre>
-    {% endif %}
+    {% end %}
   </div>
-  {% endfor %}
+  {% end %}
 </section>
-{% endif %}
+{% end %}

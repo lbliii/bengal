@@ -38,7 +38,7 @@ Example:
       {# Filter by section if specified #}
       {% if section_filter %}
       {% set year_posts = year_posts | selectattr('_section.name', 'equalto', section_filter) | list %}
-      {% endif %}
+      {% end %}
 
       {% if year_posts %}
       <li class="archive-year-item">
@@ -58,7 +58,7 @@ Example:
             {# Filter by section if specified #}
             {% if section_filter %}
             {% set month_posts = month_posts | selectattr('_section.name', 'equalto', section_filter) | list %}
-            {% endif %}
+            {% end %}
 
             {% if month_posts %}
             <li class="archive-month-item">
@@ -72,8 +72,8 @@ Example:
                 <span class="month-count">({{ month_posts | length }})</span>
               </a>
             </li>
-            {% endif %}
-            {% endfor %}
+            {% end %}
+            {% end %}
           </ul>
         </details>
         {% else %}
@@ -82,10 +82,10 @@ Example:
           <span class="year-label">{{ year }}</span>
           <span class="year-count">({{ year_posts | length }})</span>
         </a>
-        {% endif %}
+        {% end %}
       </li>
-      {% endif %}
-      {% endfor %}
+      {% end %}
+      {% end %}
     </ul>
   </nav>
 
@@ -95,12 +95,12 @@ Example:
     {% set post_counts = [] %}
     {% for y in site.indexes.date_range.keys() | select('match', '^\\d{4}$') %}
     {% do post_counts.append(site.indexes.date_range.get(y) | length) %}
-    {% endfor %}
+    {% end %}
     <p class="total-text">
       <strong>{{ post_counts | sum }}</strong> total posts
     </p>
   </div>
   {% else %}
   <p class="no-archives">No archives available.</p>
-  {% endif %}
+  {% end %}
 </aside>

@@ -12,9 +12,9 @@ Requires: page object in context
 #}
 
 {# Macro: Get page URL with fallback chain for robustness #}
-{% macro get_page_url(page) -%}
+{% def get_page_url(page) -%}
     {{ page._path or page.href or '/' }}
-{%- endmacro %}
+{% end %}
 
 {% if page %}
 <div class="action-bar-container">
@@ -26,7 +26,7 @@ Requires: page object in context
             {% if breadcrumb_items %}
             <ol class="action-bar-breadcrumbs">
                 {% for item in breadcrumb_items %}
-                <li {% if item.is_current %}aria-current="page" {% endif %}>
+                <li {% if item.is_current %}aria-current="page" {% end %}>
                     {% if item.is_current %}
                     {% set has_metadata = params.author or page.date or page.content or
                     params.lastmod %}
@@ -38,16 +38,16 @@ Requires: page object in context
                             aria-label="Toggle page metadata" title="Show page details">
                             {{ icon('caret-down', size=14, css_class='action-bar-meta-toggle-icon') }}
                         </button>
-                        {% endif %}
+                        {% end %}
                     </span>
                     {% else %}
                     <a href="{{ item.href | absolute_url }}" class="action-bar-breadcrumb-link"
                         title="{{ item.title }}">{{ item.title | truncate(28, true, '…') }}</a>
-                    {% endif %}
+                    {% end %}
                 </li>
-                {% endfor %}
+                {% end %}
             </ol>
-            {% endif %}
+            {% end %}
         </nav>
 
             {# Right: Actions #}
@@ -131,30 +131,30 @@ Requires: page object in context
                 {{ icon("user", size=16) }}
                 <span>{{ params.author }}</span>
             </span>
-            {% endif %}
+            {% end %}
 
             {% if page.content and 'content.reading_time' in theme.features %}
             <span class="action-bar-meta-item">
                 {{ icon("clock", size=16) }}
                 <span>{{ t('meta.reading_time', {'time': page.content | reading_time}, default='{time} min read') }}</span>
             </span>
-            {% endif %}
+            {% end %}
 
             {% if page.content %}
             <span class="action-bar-meta-item">
                 {{ icon("file-text", size=16) }}
                 <span>{{ t('meta.word_count', {'count': page.content | wordcount}, default='{count} words') }}</span>
             </span>
-            {% endif %}
+            {% end %}
 
             {% if params.lastmod or page.date %}
             <span class="action-bar-meta-item">
                 {{ icon("arrow-clockwise", size=16) }}
                 <span>{{ t('meta.updated', {'time': (params.lastmod or page.date) | time_ago}, default='Updated {time}') }}</span>
             </span>
-            {% endif %}
+            {% end %}
         </div>
     </div>
-    {% endif %}
+    {% end %}
 </div>
-{% endif %}
+{% end %}

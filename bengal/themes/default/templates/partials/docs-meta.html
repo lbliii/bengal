@@ -32,7 +32,7 @@
     {{ icon("calendar", size=14) }}
     <span>{{ locale_date(page.date, 'long', current_lang()) }}</span>
   </time>
-  {% endif %}
+  {% end %}
 
   {% if page.content %}
   <span class="docs-meta-item">
@@ -43,6 +43,6 @@
     {{ icon("clock", size=14) }}
     <span>{{ t('meta.reading_time', {'time': page.content | reading_time}, default='{time} min read') }}</span>
   </span>
-  {% endif %}
+  {% end %}
 </div>
-{% endif %}
+{% end %}

@@ -13,7 +13,7 @@ This template receives:
 - site: Site instance
 #}
 
-{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc with context %}
+{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc %}
 
 {% block content %}
 {# Three-column documentation layout #}
@@ -37,7 +37,7 @@ This template receives:
         <h2 class="autodoc-label">Usage</h2>
         <pre><code class="language-bash">{{ element.qualified_name }} [COMMAND] [OPTIONS]</code></pre>
       </div>
-      {% endif %}
+      {% end %}
 
       {# Commands and Sub-groups - use getattr for safe access to children #}
       {% set element_children = getattr(element, 'children', []) %}
@@ -56,21 +56,21 @@ This template receives:
             <span class="autodoc-card-desc">{{ child_children | length }} {{ child_children | length | pluralize('command') }}</span>
             {% else %}
             <span class="autodoc-card-desc">No description available</span>
-            {% endif %}
+            {% end %}
           </a>
-          {% endfor %}
+          {% end %}
         </div>
       </section>
-      {% endif %}
+      {% end %}
 
       {# Tags #}
       {% if page.tags %}
       <footer class="docs-footer">
         <span class="docs-footer-label">Tagged</span>
-        {% from 'partials/content-components.html' import tag_list with context %}
+        {% from 'partials/content-components.html' import tag_list %}
         {{ tag_list(page.tags) }}
       </footer>
-      {% endif %}
+      {% end %}
     </article>
 
     {# Page navigation (prev/next) at bottom #}
@@ -89,4 +89,4 @@ This template receives:
 
 {# Sidebar overlay for mobile #}
 <div class="docs-sidebar-overlay" aria-hidden="true"></div>
-{% endblock %}
+{% end %}

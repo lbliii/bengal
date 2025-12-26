@@ -21,19 +21,19 @@ Context variables:
     {# Action Bar: Breadcrumbs + Share #}
     {% include 'partials/action-bar.html' %}
 
-    <div class="tutorial-page-layout {% if toc %}tutorial-with-toc{% endif %}">
-        <article class="tutorial-page prose {% if params.css_class %}{{ params.css_class }}{% endif %}">
+    <div class="tutorial-page-layout {% if toc %}tutorial-with-toc{% end %}">
+        <article class="tutorial-page prose {% if params.css_class %}{{ params.css_class }}{% end %}">
             <header class="page-header">
                 {# Tutorial Icon #}
                 {% if params.icon %}
                 <div class="tutorial-page-icon">{{ params.icon }}</div>
-                {% endif %}
+                {% end %}
 
                 <h1>{{ page.title }}</h1>
 
                 {% if params.description %}
                 <p class="lead">{{ params.description }}</p>
-                {% endif %}
+                {% end %}
 
                 {# Tutorial Metadata Bar #}
                 <div class="tutorial-page-meta">
@@ -42,7 +42,7 @@ Context variables:
                     <span class="tutorial-badge tutorial-badge-{{ params.difficulty }}">
                         {{ params.difficulty | capitalize }}
                     </span>
-                    {% endif %}
+                    {% end %}
 
                     {# Time Estimate #}
                     {% if params.time or params.duration %}
@@ -50,7 +50,7 @@ Context variables:
                         {{ icon('clock', size=16) }}
                         {{ params.time | default(params.duration) }}
                     </span>
-                    {% endif %}
+                    {% end %}
 
                     {# Last Updated #}
                     {% if page.date %}
@@ -58,7 +58,7 @@ Context variables:
                         {{ icon('calendar', size=16) }}
                         Updated {{ page.date | time_ago }}
                     </span>
-                    {% endif %}
+                    {% end %}
                 </div>
 
                 {# Prerequisites #}
@@ -78,11 +78,11 @@ Context variables:
                             {# Fallback: if it looks like a path/slug, try ref() for link generation #}
                             {% set prereq_ref = ref(prereq, site.indexes.crossref) if site.indexes.crossref else none %}
                             {% if prereq_ref and '<a' in prereq_ref %} {{ prereq_ref | safe }} {% else %} {{ prereq }}
-                                {% endif %} {% endif %} {% else %} {{ prereq }} {% endif %} </li>
-                                {% endfor %}
+                                {% end %} {% end %} {% else %} {{ prereq }} {% end %} </li>
+                                {% end %}
                     </ul>
                 </div>
-                {% endif %}
+                {% end %}
 
                 {# What You'll Learn #}
                 {% if params.learning_objectives or params.objectives %}
@@ -92,10 +92,10 @@ Context variables:
                         {% for objective in (params.learning_objectives |
                         default(params.objectives)) %}
                         <li>{{ objective }}</li>
-                        {% endfor %}
+                        {% end %}
                     </ul>
                 </div>
-                {% endif %}
+                {% end %}
             </header>
 
             {# Main Tutorial Content #}
@@ -112,10 +112,10 @@ Context variables:
                     <ul>
                         {% for step in params.next_steps %}
                         <li>{{ step }}</li>
-                        {% endfor %}
+                        {% end %}
                     </ul>
                 </div>
-                {% endif %}
+                {% end %}
 
                 {% if params.further_reading %}
                 <div class="tutorial-further-reading">
@@ -123,12 +123,12 @@ Context variables:
                     <ul>
                         {% for resource in params.further_reading %}
                         <li>{{ resource }}</li>
-                        {% endfor %}
+                        {% end %}
                     </ul>
                 </div>
-                {% endif %}
+                {% end %}
             </footer>
-            {% endif %}
+            {% end %}
         </article>
 
         {# Right Sidebar: TOC #}
@@ -141,7 +141,7 @@ Context variables:
                 </div>
             </nav>
         </aside>
-        {% endif %}
+        {% end %}
     </div>
 
 </div>
@@ -166,7 +166,7 @@ Context variables:
                     <span class="tutorial-icon">{{ tutorial.metadata.icon }}</span>
                     {% else %}
                     <span class="tutorial-icon">📖</span>
-                    {% endif %}
+                    {% end %}
                     <h3 class="tutorial-title">
                         <a href="{{ tutorial.href }}">{{ tutorial.title }}</a>
                     </h3>
@@ -174,18 +174,18 @@ Context variables:
                 <div class="tutorial-card-content">
                     {% if tutorial.metadata.description %}
                     <p class="tutorial-description">{{ tutorial.metadata.description | truncate(100) }}</p>
-                    {% endif %}
+                    {% end %}
                     {% if tutorial.metadata.difficulty %}
                     <span class="tutorial-badge tutorial-badge-{{ tutorial.metadata.difficulty }}">
                         {{ tutorial.metadata.difficulty | capitalize }}
                     </span>
-                    {% endif %}
+                    {% end %}
                 </div>
             </article>
-            {% endfor %}
+            {% end %}
         </div>
     </div>
 </aside>
-{% endif %}
-{% endif %}
-{% endblock %}
+{% end %}
+{% end %}
+{% end %}

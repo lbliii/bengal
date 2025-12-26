@@ -24,7 +24,7 @@
         </h1>
 
         <p class="page-description">
-          {{ total_posts }} post{% if total_posts != 1 %}s{% endif %} tagged with "{{ tag }}"
+          {{ total_posts }} post{% if total_posts != 1 %}s{% end %} tagged with "{{ tag }}"
         </p>
       </header>
 
@@ -35,17 +35,17 @@
         {% set source_str = post.source_path | string %}
         {% if 'content/api' not in source_str and 'content/cli' not in source_str %}
         {{ article_card(post, show_excerpt=True) }}
-        {% endif %}
-        {% endfor %}
+        {% end %}
+        {% end %}
       </div>
 
       {# Pagination (if needed in future) #}
       {% if total_pages and total_pages > 1 %}
       {{ pagination(current_page, total_pages, base_url) }}
-      {% endif %}
+      {% end %}
       {% else %}
       <p>No posts found with this tag.</p>
-      {% endif %}
+      {% end %}
 
       <div class="tag-nav">
         <a href="{{ '/tags/' | absolute_url }}" class="button button-outline">← View all tags</a>
@@ -58,4 +58,4 @@
 </div>
 
 {# styles moved to components/tags.css #}
-{% endblock %}
+{% end %}

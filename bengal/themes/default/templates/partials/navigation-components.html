@@ -35,24 +35,24 @@ See: plan/active/url-strategy-downstream-impact.md for the "identity vs display"
 Example:
 {{ breadcrumbs(page) }}
 #}
-{% macro breadcrumbs(page) %}
+{% def breadcrumbs(page) %}
 {% set breadcrumb_items = get_breadcrumbs(page) %}
 {% if breadcrumb_items %}
 <nav class="breadcrumbs" aria-label="Breadcrumb">
   <ol>
     {% for item in breadcrumb_items %}
-    <li{% if item.is_current %} aria-current="page" {% endif %}>
+    <li{% if item.is_current %} aria-current="page" {% end %}>
       {% if item.is_current %}
       {{ item.title }}
       {% else %}
       <a href="{{ item.href | absolute_url }}">{{ item.title }}</a>
-      {% endif %}
+      {% end %}
       </li>
-      {% endfor %}
+      {% end %}
   </ol>
 </nav>
-{% endif %}
-{% endmacro %}
+{% end %}
+{% enddef %}
 
 {#
 Pagination Component
@@ -67,7 +67,7 @@ base_url: Base URL for pagination (e.g., '/blog/', required)
 Example:
 {{ pagination(current_page=2, total_pages=10, base_url='/blog/') }}
 #}
-{% macro pagination(current_page, total_pages, base_url) %}
+{% def pagination(current_page, total_pages, base_url) %}
 {% if total_pages > 1 %}
 {% set p = get_pagination_items(current_page, total_pages, base_url) %}
 
@@ -85,7 +85,7 @@ Example:
         {{ icon('caret-left', size=20) }}
         Previous
       </span>
-      {% endif %}
+      {% end %}
     </li>
 
     {# Page Numbers #}
@@ -97,9 +97,9 @@ Example:
       <span class="active" aria-current="page">{{ item.num }}</span>
       {% else %}
       <a href="{{ item.href }}">{{ item.num }}</a>
-      {% endif %}
+      {% end %}
     </li>
-    {% endfor %}
+    {% end %}
 
     {# Next Button #}
     <li>
@@ -113,12 +113,12 @@ Example:
         Next
         {{ icon('caret-right', size=20) }}
       </span>
-      {% endif %}
+      {% end %}
     </li>
   </ul>
 </nav>
-{% endif %}
-{% endmacro %}
+{% end %}
+{% enddef %}
 
 {#
 Page Navigation Component
@@ -135,7 +135,7 @@ page: Current page object with prev and next attributes (required)
 Example:
 {{ page_navigation(page) }}
 #}
-{% macro page_navigation(page) %}
+{% def page_navigation(page) %}
 {# Check feature flag for prev/next navigation #}
 {% set show_nav = 'navigation.prev_next' in theme.features %}
 {% if show_nav %}
@@ -156,7 +156,7 @@ Example:
         <span class="nav-title">{{ page.prev_in_section.title }}</span>
       </a>
     </div>
-    {% endif %}
+    {% end %}
 
     {% if page.next_in_section %}
     <div class="nav-next">
@@ -165,10 +165,10 @@ Example:
         <span class="nav-title">{{ page.next_in_section.title }}</span>
       </a>
     </div>
-    {% endif %}
+    {% end %}
   </div>
 </nav>
-{% endif %}
+{% end %}
 {% else %}
 {# Global navigation (across entire site, chronological) #}
 {% if page.prev or page.next %}
@@ -181,7 +181,7 @@ Example:
         <span class="nav-title">{{ page.prev.title }}</span>
       </a>
     </div>
-    {% endif %}
+    {% end %}
 
     {% if page.next %}
     <div class="nav-next">
@@ -190,13 +190,13 @@ Example:
         <span class="nav-title">{{ page.next.title }}</span>
       </a>
     </div>
-    {% endif %}
+    {% end %}
   </div>
 </nav>
-{% endif %}
-{% endif %}
-{% endif %}
-{% endmacro %}
+{% end %}
+{% end %}
+{% end %}
+{% enddef %}
 
 {#
 Section Navigation Component
@@ -213,7 +213,7 @@ The variable name 'page' is maintained for backwards compatibility but should be
 Example:
 {{ section_navigation(page) }}
 #}
-{% macro section_navigation(page) %}
+{% def section_navigation(page) %}
 {% if page.regular_pages or page.sections %}
 <div class="section-navigation">
   {# Section stats - dogfooding regular_pages and sections properties #}
@@ -225,12 +225,12 @@ Example:
     <p class="stat">
       <strong>{{ page.sections | length }}</strong> subsections
     </p>
-    {% endif %}
+    {% end %}
     {% if page.regular_pages_recursive | length > page.regular_pages | length %}
     <p class="stat">
       <strong>{{ page.regular_pages_recursive | length }}</strong> total pages (including subsections)
     </p>
-    {% endif %}
+    {% end %}
   </div>
 
   {# Subsections - dogfooding page.sections #}
@@ -245,18 +245,18 @@ Example:
         </h3>
         {% if subsection.metadata.description %}
         <p>{{ subsection.metadata.description }}</p>
-        {% endif %}
+        {% end %}
         <p class="subsection-meta">
           {{ subsection.regular_pages | length }} pages
         </p>
       </div>
-      {% endfor %}
+      {% end %}
     </div>
   </div>
-  {% endif %}
+  {% end %}
 </div>
-{% endif %}
-{% endmacro %}
+{% end %}
+{% enddef %}
 
 {#
 Table of Contents Sidebar Component
@@ -264,113 +264,115 @@ Table of Contents Sidebar Component
 Interactive table of contents with progress tracking, collapsible sections, and page metadata.
 
 Uses native <details>/<summary> for collapsible groups (no JS required for toggle).
-JS enhances with: active item tracking, auto-expand on scroll, progress indicator.
+    JS enhances with: active item tracking, auto-expand on scroll, progress indicator.
 
-Args:
-toc_items: List of TOC items with id, title, level (optional, defaults to None)
-toc: HTML TOC fallback (optional, defaults to None)
-page: Current page object for metadata (optional, defaults to None)
+    Args:
+    toc_items: List of TOC items with id, title, level (optional, defaults to None)
+    toc: HTML TOC fallback (optional, defaults to None)
+    page: Current page object for metadata (optional, defaults to None)
 
-Example:
-{{ toc(toc_items=toc_items, page=page) }}
-#}
-{% macro toc(toc_items=None, toc=None, page=None) %}
-<div class="toc-sidebar" data-bengal="toc">
+    Example:
+    {{ toc(toc_items=toc_items, page=page) }}
+    #}
+    {% def toc(toc_items=None, toc=None, page=None) %}
+    <div class="toc-sidebar" data-bengal="toc">
 
-  {# Scroll Progress Indicator - Subtle #}
-  <div class="toc-progress" aria-hidden="true">
-    <div class="toc-progress-bar"></div>
-  </div>
+      {# Scroll Progress Indicator - Subtle #}
+      <div class="toc-progress" aria-hidden="true">
+        <div class="toc-progress-bar"></div>
+      </div>
 
-  {# Table of Contents #}
-  <nav class="toc-nav" aria-label="Table of contents" data-toc-mode="normal">
-    {% if toc_items %}
-    <div class="toc-scroll-container">
-      <ul class="toc-items" role="tree">
-        {#
-        Use get_toc_grouped() to handle all grouping logic in Python.
-        This replaces 80+ lines of complex template logic with a clean iteration.
-        See: bengal/rendering/template_functions/navigation.py
-        #}
-        {% for group in get_toc_grouped(toc_items) %}
-        {% if group.is_group %}
-        {# Group with children - uses native <details>/<summary> for collapse #}
-        <li class="toc-item" role="treeitem" data-level="1">
-          <details class="toc-group">
-            <summary class="toc-group-header">
-              <a href="#{{ group.header.id }}" class="toc-link toc-link-h2" data-toc-item="#{{ group.header.id }}">
-                {{ group.header.title }}
-              </a>
-              <span class="toc-count-badge" title="{{ group.children|length }} subsections">
-                <span class="toc-count">{{ group.children|length }}</span>
-              </span>
-            </summary>
-            <ul class="toc-subitems" role="group">
-              {% for child in group.children %}
-              <li class="toc-item toc-level-{{ child.level }}" role="treeitem" data-level="{{ child.level }}">
-                <a href="#{{ child.id }}" class="toc-link" data-toc-item="#{{ child.id }}">
-                  {{ child.title }}
-                </a>
-              </li>
-              {% endfor %}
-            </ul>
-          </details>
-        </li>
+      {# Table of Contents #}
+      <nav class="toc-nav" aria-label="Table of contents" data-toc-mode="normal">
+        {% if toc_items %}
+        <div class="toc-scroll-container">
+          <ul class="toc-items" role="tree">
+            {#
+            Use get_toc_grouped() to handle all grouping logic in Python.
+            This replaces 80+ lines of complex template logic with a clean iteration.
+            See: bengal/rendering/template_functions/navigation.py
+            #}
+            {% for group in get_toc_grouped(toc_items) %}
+            {% if group.is_group %}
+            {# Group with children - uses native <details>/<summary> for collapse #}
+                <li class="toc-item" role="treeitem" data-level="1">
+                  <details class="toc-group">
+                    <summary class="toc-group-header">
+                      <a href="#{{ group.header.id }}" class="toc-link toc-link-h2"
+                        data-toc-item="#{{ group.header.id }}">
+                        {{ group.header.title }}
+                      </a>
+                      <span class="toc-count-badge" title="{{ group.children|length }} subsections">
+                        <span class="toc-count">{{ group.children|length }}</span>
+                      </span>
+                    </summary>
+                    <ul class="toc-subitems" role="group">
+                      {% for child in group.children %}
+                      <li class="toc-item toc-level-{{ child.level }}" role="treeitem" data-level="{{ child.level }}">
+                        <a href="#{{ child.id }}" class="toc-link" data-toc-item="#{{ child.id }}">
+                          {{ child.title }}
+                        </a>
+                      </li>
+                      {% end %}
+                    </ul>
+                  </details>
+                </li>
+                {% else %}
+                {# Standalone item (no children) #}
+                <li class="toc-item toc-level-{{ group.header.level }}" role="treeitem"
+                  data-level="{{ group.header.level }}">
+                  <a href="#{{ group.header.id }}" class="toc-link" data-toc-item="#{{ group.header.id }}">
+                    {{ group.header.title }}
+                  </a>
+                </li>
+                {% end %}
+                {% end %}
+          </ul>
+        </div>
         {% else %}
-        {# Standalone item (no children) #}
-        <li class="toc-item toc-level-{{ group.header.level }}" role="treeitem" data-level="{{ group.header.level }}">
-          <a href="#{{ group.header.id }}" class="toc-link" data-toc-item="#{{ group.header.id }}">
-            {{ group.header.title }}
-          </a>
-        </li>
-        {% endif %}
-        {% endfor %}
-      </ul>
-    </div>
-    {% else %}
-    {# Fallback to HTML TOC #}
-    <div class="toc-content">
-      {{ toc | safe }}
-    </div>
-    {% endif %}
-  </nav>
+        {# Fallback to HTML TOC #}
+        <div class="toc-content">
+          {{ toc | safe }}
+        </div>
+        {% end %}
+      </nav>
 
-  {# Page Metadata Section #}
-  {% if page %}
-  <div class="toc-metadata">
-    {# Last Updated #}
-    {% if page.date %}
-    <div class="toc-meta-item">
-      {{ icon('clock', size=14) }}
-      <div>
-        <div class="toc-meta-label">{{ t('toc.last_updated', default='Last updated') }}</div>
-        <time datetime="{{ page.date | date_iso }}" class="toc-meta-value">
-          {{ page.date | time_ago }}
-        </time>
+      {# Page Metadata Section #}
+      {% if page %}
+      <div class="toc-metadata">
+        {# Last Updated #}
+        {% if page.date %}
+        <div class="toc-meta-item">
+          {{ icon('clock', size=14) }}
+          <div>
+            <div class="toc-meta-label">{{ t('toc.last_updated', default='Last updated') }}</div>
+            <time datetime="{{ page.date | date_iso }}" class="toc-meta-value">
+              {{ page.date | time_ago }}
+            </time>
+          </div>
+        </div>
+        {% end %}
+
+        {# Edit on GitHub (if configured) #}
+        {% if params.edit_url or config.github_edit_base %}
+        <a href="{% if params.edit_url %}{{ params.edit_url }}{% else %}{{ config.github_edit_base }}{{ page.source_path }}{% end %}"
+          class="toc-edit-link" target="_blank" rel="noopener noreferrer">
+          {{ icon('pencil', size=14) }}
+          <span>{{ t('toc.edit_page', default='Edit this page') }}</span>
+        </a>
+        {% end %}
+
+        {# Contributors (if configured) #}
+        {% if params.contributors %}
+        <div class="toc-meta-item">
+          {{ icon('users', size=14) }}
+          <div>
+            <div class="toc-meta-label">{{ t('toc.contributors', default='Contributors') }}</div>
+            <div class="toc-meta-value">{{ params.contributors | join(', ') }}</div>
+          </div>
+        </div>
+        {% end %}
       </div>
+      {% end %}
     </div>
-    {% endif %}
-
-    {# Edit on GitHub (if configured) #}
-    {% if params.edit_url or config.github_edit_base %}
-    <a href="{% if params.edit_url %}{{ params.edit_url }}{% else %}{{ config.github_edit_base }}{{ page.source_path }}{% endif %}"
-      class="toc-edit-link" target="_blank" rel="noopener noreferrer">
-      {{ icon('pencil', size=14) }}
-      <span>{{ t('toc.edit_page', default='Edit this page') }}</span>
-    </a>
-    {% endif %}
-
-    {# Contributors (if configured) #}
-    {% if params.contributors %}
-    <div class="toc-meta-item">
-      {{ icon('users', size=14) }}
-      <div>
-        <div class="toc-meta-label">{{ t('toc.contributors', default='Contributors') }}</div>
-        <div class="toc-meta-value">{{ params.contributors | join(', ') }}</div>
-      </div>
-    </div>
-    {% endif %}
-  </div>
-  {% endif %}
-</div>
-{% endmacro %}
+    {% enddef %}

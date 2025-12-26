@@ -16,8 +16,8 @@ Variables:
   <div class="docs-nav-tree">
     {# Link to all tags page #}
     <a href="{{ '/tags/' | absolute_url }}"
-       class="docs-nav-link {% if not current_tag %}active{% endif %}"
-       {% if not current_tag %}aria-current="page"{% endif %}>
+       class="docs-nav-link {% if not current_tag %}active{% end %}"
+       {% if not current_tag %}aria-current="page"{% end %}>
       All Tags
     </a>
 
@@ -33,16 +33,16 @@ Variables:
         {# Tuple from popular_tags() #}
         {% set tag_name = tag_item[0] %}
         {% set tag_count = tag_item[1] %}
-      {% endif %}
+      {% end %}
       {% set tag_name_normalized = tag_name | lower %}
 
       <a href="{{ tag_url(tag_name) }}"
-         class="docs-nav-link {% if current_tag_normalized == tag_name_normalized %}active{% endif %}"
-         {% if current_tag_normalized == tag_name_normalized %}aria-current="page"{% endif %}>
+         class="docs-nav-link {% if current_tag_normalized == tag_name_normalized %}active{% end %}"
+         {% if current_tag_normalized == tag_name_normalized %}aria-current="page"{% end %}>
         <span class="tag-nav-name">{{ tag_name }}</span>
         <span class="tag-nav-count">({{ tag_count }})</span>
       </a>
-    {% endfor %}
-    {% endif %}
+    {% end %}
+    {% end %}
   </div>
 </nav>

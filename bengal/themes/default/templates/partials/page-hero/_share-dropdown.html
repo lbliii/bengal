@@ -16,9 +16,9 @@ See: plan/drafted/rfc-page-hero-template-flattening.md
 #}
 
 {# Shim: Render share dropdown for backwards compatibility #}
-{% macro get_page_url(page) -%}
+{% def get_page_url(page) -%}
 {{ page._path or page.href or '/' }}
-{%- endmacro %}
+{% end %}
 
 <div class="page-hero__actions">
   {% set page_url = canonical_url(get_page_url(page)) %}

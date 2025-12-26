@@ -12,8 +12,8 @@ Usage: Set `template: doc.html` in frontmatter
 Or set `type: doc` to auto-select this template
 #}
 
-{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc with context %}
-{% from 'partials/content-components.html' import tag_list with context %}
+{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc %}
+{% from 'partials/content-components.html' import tag_list %}
 
 {% block content %}
 {# Three-column documentation layout #}
@@ -36,7 +36,7 @@ Or set `type: doc` to auto-select this template
     {% include 'partials/page-hero.html' %}
 
     {# Article Content #}
-    <article class="prose {% if params.css_class %}{{ params.css_class }}{% endif %}">
+    <article class="prose {% if params.css_class %}{{ params.css_class }}{% end %}">
 
       {# Track Navigation (Top) #}
       {% include 'partials/track_nav.html' %}
@@ -52,7 +52,7 @@ Or set `type: doc` to auto-select this template
         <span class="docs-footer-label">{{ t('docs.tagged', default='Tagged') }}</span>
         {{ tag_list(page.tags) }}
       </footer>
-      {% endif %}
+      {% end %}
     </article>
 
     {# Track Navigation (Bottom) #}
@@ -76,7 +76,7 @@ Or set `type: doc` to auto-select this template
     {# Table of Contents #}
     {{ toc(toc_items=toc_items, toc=toc, page=page) }}
   </aside>
-  {% endif %}
+  {% end %}
 </div>
 
 {# Mobile sidebar toggle button #}
@@ -87,7 +87,7 @@ Or set `type: doc` to auto-select this template
 
 {# Sidebar overlay for mobile #}
 <div class="docs-sidebar-overlay" aria-hidden="true"></div>
-{% endblock %}
+{% end %}
 
 {# Sidebar toggle functionality is handled by interactive.js #}
 {# Graph scripts loaded in base.html #}

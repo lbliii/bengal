@@ -56,14 +56,14 @@ Context variables:
     <div class="author-avatar-placeholder">
       {{ author_name[0] | upper }}
     </div>
-    {% endif %}
+    {% end %}
 
     <div class="author-header-content">
       <h1 class="author-name">{{ author_name }}</h1>
 
       {% if params.bio %}
       <p class="author-bio">{{ params.bio }}</p>
-      {% endif %}
+      {% end %}
 
       {# Social links #}
       {% if params.social %}
@@ -76,7 +76,7 @@ Context variables:
            aria-label="Twitter">
           🐦 Twitter
         </a>
-        {% endif %}
+        {% end %}
 
         {% if social.github %}
         <a href="https://github.com/{{ social.github }}"
@@ -84,7 +84,7 @@ Context variables:
            aria-label="GitHub">
           💻 GitHub
         </a>
-        {% endif %}
+        {% end %}
 
         {% if social.linkedin %}
         <a href="https://linkedin.com/in/{{ social.linkedin }}"
@@ -92,7 +92,7 @@ Context variables:
            aria-label="LinkedIn">
           💼 LinkedIn
         </a>
-        {% endif %}
+        {% end %}
 
         {% if social.website %}
         <a href="{{ social.website }}"
@@ -100,7 +100,7 @@ Context variables:
            aria-label="Website">
           🌐 Website
         </a>
-        {% endif %}
+        {% end %}
 
         {% if social.email %}
         <a href="mailto:{{ social.email }}"
@@ -108,9 +108,9 @@ Context variables:
            aria-label="Email">
           ✉️ Email
         </a>
-        {% endif %}
+        {% end %}
       </div>
-      {% endif %}
+      {% end %}
     </div>
   </header>
 
@@ -120,7 +120,7 @@ Context variables:
   {# Filter by section if specified #}
   {% if section_filter %}
     {% set author_posts = author_posts | selectattr('_section.name', 'equalto', section_filter) | list %}
-  {% endif %}
+  {% end %}
 
   {% if author_posts %}
     {# Statistics Section #}
@@ -149,7 +149,7 @@ Context variables:
           <span class="stat-value">{{ years | first }}</span>
           <span class="stat-label">Member Since</span>
         </div>
-        {% endif %}
+        {% end %}
       </div>
     </section>
 
@@ -158,7 +158,7 @@ Context variables:
     <div class="author-content prose">
       {{ content | safe }}
     </div>
-    {% endif %}
+    {% end %}
 
     {# Posts Section #}
     <section class="author-posts">
@@ -170,7 +170,7 @@ Context variables:
         <button class="view-btn" data-view="by-year">By Year</button>
         {% if all_tags %}
         <button class="view-btn" data-view="by-tag">By Topic</button>
-        {% endif %}
+        {% end %}
       </div>
 
       {# All Posts View (default) #}
@@ -185,34 +185,34 @@ Context variables:
 
                 {% if post.metadata.description %}
                 <p class="post-excerpt">{{ post.metadata.description }}</p>
-                {% endif %}
+                {% end %}
 
                 <div class="post-meta">
                   {% if post.date %}
                   <time datetime="{{ post.date | date_iso }}">
                     {{ post.date | dateformat('%B %d, %Y') }}
                   </time>
-                  {% endif %}
+                  {% end %}
 
                   {% if post._section %}
                   <span class="post-section">{{ post._section.name | title }}</span>
-                  {% endif %}
+                  {% end %}
 
                   {% if post.content %}
                   <span class="reading-time">
                     {{ (post.content | wordcount / 200) | round }} min read
                   </span>
-                  {% endif %}
+                  {% end %}
                 </div>
 
                 {% if post.tags %}
                 <div class="post-tags">
                   {{ tag_list(post.tags | limit(4)) }}
                 </div>
-                {% endif %}
+                {% end %}
               </div>
             </article>
-          {% endfor %}
+          {% end %}
         </div>
       </div>
 
@@ -228,12 +228,12 @@ Context variables:
                   <a href="{{ post.href }}">{{ post.title }}</a>
                   {% if post.date %}
                   <time>{{ post.date | dateformat('%b %d') }}</time>
-                  {% endif %}
+                  {% end %}
                 </li>
-              {% endfor %}
+              {% end %}
             </ul>
           </div>
-        {% endfor %}
+        {% end %}
       </div>
 
       {# By Topic View #}
@@ -243,9 +243,9 @@ Context variables:
           {% set tag_posts = [] %}
           {% for post in author_posts %}
             {% if post.tags and (tag in post.tags) %}
-              {% set _ = tag_posts.append(post) %}
-            {% endif %}
-          {% endfor %}
+              {% do tag_posts.append(post) %}
+            {% end %}
+          {% end %}
           <div class="tag-group">
             <h3>{{ tag }} ({{ tag_posts | length }})</h3>
             <ul class="post-list-compact">
@@ -254,14 +254,14 @@ Context variables:
                   <a href="{{ post.href }}">{{ post.title }}</a>
                   {% if post.date %}
                   <time>{{ post.date | dateformat('%b %d, %Y') }}</time>
-                  {% endif %}
+                  {% end %}
                 </li>
-              {% endfor %}
+              {% end %}
             </ul>
           </div>
-        {% endfor %}
+        {% end %}
       </div>
-      {% endif %}
+      {% end %}
     </section>
 
   {% else %}
@@ -269,7 +269,7 @@ Context variables:
     <div class="author-empty">
       <p>No posts found by {{ author_name }}.</p>
     </div>
-  {% endif %}
+  {% end %}
 </div>
 
 <script>
@@ -289,4 +289,4 @@ document.querySelectorAll('.view-btn').forEach(btn => {
   });
 });
 </script>
-{% endblock %}
+{% end %}

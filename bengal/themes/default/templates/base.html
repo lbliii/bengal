@@ -31,7 +31,7 @@ _path, kind, tags are always defined - no defensive checks needed.
 {% set _per_page_json = 'json' in (config.output_formats.per_page | default([])) %}
 
 <html lang="{{ _current_lang }}" {% if _view_transitions and _transition_style !='crossfade' %}
-    data-transition-style="{{ _transition_style }}" {% endif %}>
+    data-transition-style="{{ _transition_style }}" {% end %}>
 
 <head>
     <meta charset="UTF-8">
@@ -41,11 +41,10 @@ _path, kind, tags are always defined - no defensive checks needed.
     {# Document Application: View Transitions meta tag #}
     {% if _view_transitions %}
     <meta name="view-transition" content="same-origin">
-    {% endif %}
+    {% end %}
 
     {# Title - uses cached variables #}
-    <title>{% block title %}{{ _page_title if _page_title else _site_title }}{% if _page_title %} - {{ _site_title }}{%
-        endif %}{% endblock %}
+    <title>{% block title %}{{ _page_title if _page_title else _site_title }}{% if _page_title %} - {{ _site_title }}{% end %}{% end %}
     </title>
 
     {# Meta description - automatically pre-computed by renderer (page.meta_description cached_property) #}
@@ -59,23 +58,23 @@ _path, kind, tags are always defined - no defensive checks needed.
     <meta name="keywords" content="{{ page.keywords | join(', ') }}">
     {% elif page.tags %}
     <meta name="keywords" content="{{ page.tags | meta_keywords(10) }}">
-    {% endif %}
+    {% end %}
 
     {# Robots directive for hidden/unlisted pages #}
     {% if page.robots_meta and page.robots_meta != 'index, follow' %}
     <meta name="robots" content="{{ page.robots_meta }}">
-    {% endif %}
+    {% end %}
 
     {# Open Graph / Facebook #}
     <meta property="og:type" content="article">
     <meta property="og:title" content="{{ _page_title or _site_title }}">
     {% if meta_desc %}
     <meta property="og:description" content="{{ meta_desc }}">
-    {% endif %}
+    {% end %}
     {% if config.baseurl %}
     {# Use relative_url for canonical URLs (canonical_url adds baseurl) #}
     <meta property="og:url" content="{{ canonical_url(_page_url) }}">
-    {% endif %}
+    {% end %}
     {# Open Graph Image - supports manual override, auto-generated social cards, or site default #}
     {% set _og_image_path = '' %}
     {% if params.image %}
@@ -83,23 +82,23 @@ _path, kind, tags are always defined - no defensive checks needed.
     {% else %}
     {# Try auto-generated social card #}
     {% set _og_image_path = og_image('', page) %}
-    {% endif %}
+    {% end %}
     {% if not _og_image_path and config.og_image %}
     {% set _og_image_path = og_image(config.og_image) %}
-    {% endif %}
+    {% end %}
     {% if _og_image_path %}
     <meta property="og:image" content="{{ _og_image_path }}">
-    {% endif %}
+    {% end %}
 
     {# Twitter Card - uses same image as Open Graph #}
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="{{ _page_title if _page_title else _site_title }}">
     {% if meta_desc %}
     <meta name="twitter:description" content="{{ meta_desc }}">
-    {% endif %}
+    {% end %}
     {% if _og_image_path %}
     <meta name="twitter:image" content="{{ _og_image_path }}">
-    {% endif %}
+    {% end %}
 
     {# Bengal config meta for JS to read without template tags inside scripts #}
     <meta name="bengal:search_preload" content="{{ config.search_preload | default('smart') }}">
@@ -108,17 +107,17 @@ _path, kind, tags are always defined - no defensive checks needed.
     {# Pre-built Lunr index URL - only emit if lunr package is installed (pip install bengal[search]) #}
     {% if bengal.capabilities.prebuilt_search %}
     <meta name="bengal:search_index_url" content="{{ '/search-index.json' | absolute_url }}">
-    {% endif %}
+    {% end %}
     {# Version meta tag for version-scoped search #}
     {% if page.version %}
     <meta name="bengal:version" content="{{ page.version }}">
-    {% endif %}
+    {% end %}
 
     {# Canonical URL #}
     {% if config.baseurl %}
     {# Use relative_url for canonical URLs (canonical_url adds baseurl) #}
     <link rel="canonical" href="{{ canonical_url(_page_url) }}">
-    {% endif %}
+    {% end %}
 
     {# RSS Feed (locale-aware when i18n prefix strategy is enabled) #}
     {% set _lang = _current_lang %}
@@ -129,14 +128,14 @@ _path, kind, tags are always defined - no defensive checks needed.
     {% set _default_in_subdir = _i18n.default_in_subdir %}
     {% if _lang and (_default_in_subdir or _lang != _default_lang) %}
     {% set _rss_href = '/' ~ _lang ~ '/rss.xml' %}
-    {% endif %}
-    {% endif %}
+    {% end %}
+    {% end %}
     <link rel="alternate" type="application/rss+xml" title="{{ config.title }} RSS Feed" href="{{ _rss_href }}">
 
     {# hreflang alternates for translated pages #}
     {% for alt in alternate_links(page) %}
     <link rel="alternate" hreflang="{{ alt.hreflang }}" href="{{ alt.href }}">
-    {% endfor %}
+    {% end %}
 
     {# Favicon #}
     {% set favicon_path = config.site.favicon %}
@@ -148,7 +147,7 @@ _path, kind, tags are always defined - no defensive checks needed.
     <link rel="icon" type="image/png" sizes="32x32" href="{{ asset_url('favicon-32x32.png') }}">
     <link rel="apple-touch-icon" sizes="180x180" href="{{ asset_url('apple-touch-icon.png') }}">
     <link rel="manifest" href="{{ asset_url('site.webmanifest') }}">
-    {% endif %}
+    {% end %}
 
     {# Preconnect to CDN origins for faster resource loading #}
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -165,7 +164,7 @@ _path, kind, tags are always defined - no defensive checks needed.
     <noscript>
         <link rel="stylesheet" href="{{ asset_url('fonts.css') }}">
     </noscript>
-    {% endif %}
+    {% end %}
 
     {# Stylesheets - main CSS (render-blocking, but cached) #}
     <link rel="stylesheet" href="{{ asset_url('css/style.css') }}">
@@ -249,9 +248,9 @@ _path, kind, tags are always defined - no defensive checks needed.
   ]
 }
     </script>
-    {% endif %}
+    {% end %}
 
-    {% block extra_head %}{% endblock %}
+    {% block extra_head %}{% end %}
     {# Generator and build meta #}
     {% include 'partials/meta-generator.html' %}
 
@@ -264,15 +263,15 @@ _path, kind, tags are always defined - no defensive checks needed.
             if (el) { window.__BENGAL__ = JSON.parse(el.textContent || '{}'); }
         })();
     </script>
-    {% endif %}
+    {% end %}
 </head>
 
 <body data-type="{{ page.type }}" data-variant="{{ page.variant or '' }}"
-    class="page-kind-{{ page.kind or 'page' }}{% if page is draft %} draft-page{% endif %}{% if page.hidden %} hidden-page{% endif %}{% if page is featured %} featured-content{% endif %}">
+    class="page-kind-{{ page.kind or 'page' }}{% if page is draft %} draft-page{% end %}{% if page.hidden %} hidden-page{% end %}{% if page is featured %} featured-content{% end %}">
     {# Skip to main content for accessibility - Feature: accessibility.skip_link #}
     {% if 'accessibility.skip_link' in theme.features %}
     <a href="#main-content" class="skip-link">Skip to main content</a>
-    {% endif %}
+    {% end %}
 
     {# Search Modal (Cmd/Ctrl+K) #}
     {% include 'partials/search-modal.html' %}
@@ -291,7 +290,7 @@ _path, kind, tags are always defined - no defensive checks needed.
                     <span class="brand-text">{{ _logo_text }}</span>
                     {% else %}
                     <span class="brand-text">{{ _site_title }}</span>
-                    {% endif %}
+                    {% end %}
                 </a>
 
                 {# Desktop Navigation - uses cached _main_menu and _auto_nav from top of template #}
@@ -306,7 +305,7 @@ _path, kind, tags are always defined - no defensive checks needed.
                         <span class="nav-dropdown-trigger" tabindex="0" role="button" aria-haspopup="true">{{ item.name }}</span>
                         {% else %}
                         <a href="{{ item.href | absolute_url }}">{{ item.name }}</a>
-                        {% endif %}
+                        {% end %}
                         {% if item.children %}
                         <ul class="submenu">
                             {% for child in item.children %}
@@ -314,16 +313,16 @@ _path, kind, tags are always defined - no defensive checks needed.
                                 <a href="{{ child.href | absolute_url }}">
                                     {%- if child.icon -%}
                                     <span class="submenu-icon">{{ icon(child.icon, size=16) }}</span>
-                                    {%- endif -%}
+                                    {%- end -%}
                                     <span class="submenu-text">{{ child.name }}</span>
                                 </a>
                             </li>
-                            {% endfor %}
+                            {% end %}
                         </ul>
-                        {% endif %}
+                        {% end %}
                     </li>
-                    {% endfor %}
-                    {% endif %}
+                    {% end %}
+                    {% end %}
 
                     {# Auto-discovered nav items (if no manual config) #}
                     {% if _auto_nav %}
@@ -336,14 +335,14 @@ _path, kind, tags are always defined - no defensive checks needed.
                         class="{{ 'active' if (_page_url is string and item._path is string and _page_url.startswith(item._path) and item._path != '/') else '' }}">
                         <a href="{{ item.href | absolute_url }}">{{ item.name }}</a>
                     </li>
-                    {% endfor %}
-                    {% endif %}
+                    {% end %}
+                    {% end %}
 
                     {# GitHub link - only show if not bundled in Dev dropdown #}
                     {% set github_bundled = false %}
                     {% if site._dev_menu_metadata %}
                     {% set github_bundled = site._dev_menu_metadata.github_bundled | default(false) %}
-                    {% endif %}
+                    {% end %}
                     {% if site.params.repo_url and not github_bundled %}
                     <li>
                         <a href="{{ site.params.repo_url }}" target="_blank" rel="noopener" title="GitHub Repository"
@@ -352,10 +351,10 @@ _path, kind, tags are always defined - no defensive checks needed.
                             <span>GitHub</span>
                         </a>
                     </li>
-                    {% endif %}
-                    {% block nav_items %}{% endblock %}
+                    {% end %}
+                    {% block nav_items %}{% end %}
                 </ul>
-                {% endif %}
+                {% end %}
 
                 {# Header Actions - Desktop Only (Search + Theme) #}
                 <div class="header-actions hidden-mobile">
@@ -375,12 +374,12 @@ _path, kind, tags are always defined - no defensive checks needed.
                         {{ icon('magnifying-glass', size=16) }}
                         <span>Search</span>
                     </a>
-                    {% endif %}
+                    {% end %}
 
                     {# Theme Controls - Desktop #}
                     {% with theme_menu_id='theme-menu-desktop' %}
                     {% include 'partials/theme-controls.html' %}
-                    {% endwith %}
+                    {% end %}
                 </div>
 
                 {# Mobile Menu Toggle - opens native dialog #}
@@ -405,7 +404,7 @@ _path, kind, tags are always defined - no defensive checks needed.
                     <span class="brand-text">{{ _mobile_logo_text }}</span>
                     {% else %}
                     <span class="brand-text">{{ _site_title }}</span>
-                    {% endif %}
+                    {% end %}
                 </span>
                 <div class="mobile-nav-actions">
                     {# Search Button - opens search modal #}
@@ -417,7 +416,7 @@ _path, kind, tags are always defined - no defensive checks needed.
                         {{ icon('magnifying-glass', size=16) }}
                         <span>Search</span>
                     </button>
-                    {% endif %}
+                    {% end %}
                     <button type="submit" value="close" class="mobile-nav-close" aria-label="Close menu">
                         {{ icon('x', size=16) }}
                         <span>Close</span>
@@ -437,7 +436,7 @@ _path, kind, tags are always defined - no defensive checks needed.
                         <span class="nav-dropdown-trigger" tabindex="0" role="button" aria-haspopup="true">{{ item.name }}</span>
                         {% else %}
                         <a href="{{ item.href | absolute_url }}">{{ item.name }}</a>
-                        {% endif %}
+                        {% end %}
                         {% if item.children %}
                         <ul class="submenu">
                             {% for child in item.children %}
@@ -445,16 +444,16 @@ _path, kind, tags are always defined - no defensive checks needed.
                                 <a href="{{ child.href | absolute_url }}">
                                     {%- if child.icon -%}
                                     <span class="submenu-icon">{{ icon(child.icon, size=16) }}</span>
-                                    {%- endif -%}
+                                    {%- end -%}
                                     <span class="submenu-text">{{ child.name }}</span>
                                 </a>
                             </li>
-                            {% endfor %}
+                            {% end %}
                         </ul>
-                        {% endif %}
+                        {% end %}
                     </li>
-                    {% endfor %}
-                    {% endif %}
+                    {% end %}
+                    {% end %}
 
                     {# Auto-discovered nav items (if no manual config) #}
                     {% if _auto_nav %}
@@ -467,14 +466,14 @@ _path, kind, tags are always defined - no defensive checks needed.
                         class="{{ 'active' if (_page_url is string and item._path is string and _page_url.startswith(item._path) and item._path != '/') else '' }}">
                         <a href="{{ item.href | absolute_url }}">{{ item.name }}</a>
                     </li>
-                    {% endfor %}
-                    {% endif %}
+                    {% end %}
+                    {% end %}
 
                     {# GitHub link - only show if not bundled in Dev dropdown #}
                     {% set mobile_github_bundled = false %}
                     {% if site._dev_menu_metadata %}
                     {% set mobile_github_bundled = site._dev_menu_metadata.github_bundled | default(false) %}
-                    {% endif %}
+                    {% end %}
                     {% if site.params.repo_url and not mobile_github_bundled %}
                     <li>
                         <a href="{{ site.params.repo_url }}" target="_blank" rel="noopener">
@@ -482,18 +481,18 @@ _path, kind, tags are always defined - no defensive checks needed.
                             GitHub
                         </a>
                     </li>
-                    {% endif %}
+                    {% end %}
 
-                    {% block mobile_nav_items %}{% endblock %}
+                    {% block mobile_nav_items %}{% end %}
                 </ul>
             </nav>
-            {% endif %}
+            {% end %}
 
             {# Theme Controls - Mobile Only #}
             <div class="mobile-nav-footer">
                 {% with theme_menu_id='theme-menu-mobile' %}
                 {% include 'partials/theme-controls.html' %}
-                {% endwith %}
+                {% end %}
             </div>
         </dialog>
 
@@ -502,7 +501,7 @@ _path, kind, tags are always defined - no defensive checks needed.
         {# - docs-layout templates: full-width grid (no container needed) #}
         {# - single-column templates: add .container in the block content #}
         <main id="main-content" role="main">
-            {% block content %}{% endblock %}
+            {% block content %}{% end %}
         </main>
 
         {# Footer #}
@@ -519,9 +518,9 @@ _path, kind, tags are always defined - no defensive checks needed.
                         <ul class="footer-links">
                             {% for item in _footer_menu %}
                             <li><a href="{{ item.href | absolute_url }}">{{ item.name }}</a></li>
-                            {% endfor %}
+                            {% end %}
                         </ul>
-                        {% endif %}
+                        {% end %}
                     </div>
                     <div class="footer-right">
                         {% if _build_badge.enabled %}
@@ -533,7 +532,7 @@ _path, kind, tags are always defined - no defensive checks needed.
                             <span class="bengal-build-time__label">{{ _build_badge.label }}</span>
                             <span class="bengal-build-time__value" data-bengal-build-badge-value></span>
                         </a>
-                        {% endif %}
+                        {% end %}
                         <a href="https://github.com/lbliii/bengal" rel="noopener" class="bengal-badge"
                             aria-label="Built with Bengal" data-tooltip="Built with Bengal" title="Built with Bengal">
                             <span class="cat cat-contemplative">
@@ -577,7 +576,7 @@ _path, kind, tags are always defined - no defensive checks needed.
         <script defer src="{{ asset_url('js/core/session-path-tracker.js') }}"></script>
         <script defer src="{{ asset_url('js/core/version-selector.js') }}"></script>
         {% if _build_badge.enabled %}
-        <script defer src="{{ asset_url('js/core/build-badge.js') }}"></script>{% endif %}
+        <script defer src="{{ asset_url('js/core/build-badge.js') }}"></script>{% end %}
         {# Main initialization #}
         <script defer src="{{ asset_url('js/main.js') }}"></script>
         {# Core enhancements - Always loaded (provide essential interactivity) #}
@@ -592,7 +591,7 @@ _path, kind, tags are always defined - no defensive checks needed.
         {# Lightbox JS - Feature: content.lightbox (still manually loaded for feature gate) #}
         {% if 'content.lightbox' in theme.features %}
         <script defer src="{{ asset_url('js/enhancements/lightbox.js') }}"></script>
-        {% endif %}
+        {% end %}
 
         {# Link Previews - Wikipedia-style hover cards #}
         {% include 'partials/link-previews.html' %}
@@ -623,16 +622,16 @@ _path, kind, tags are always defined - no defensive checks needed.
             };
         </script>
         <script defer src="{{ asset_url('js/enhancements/lazy-loaders.js') }}"></script>
-        {% endif %}
+        {% end %}
 
-        {% block extra_js %}{% endblock %}
+        {% block extra_js %}{% end %}
 
         {# Back to Top Button - Feature: navigation.back_to_top #}
         {% if 'navigation.back_to_top' in theme.features %}
         <button class="back-to-top" aria-label="Scroll to top" title="Back to top">
             {{ icon("arrow-up", size=24) }}
         </button>
-        {% endif %}
+        {% end %}
 
         {# Image Lightbox - Feature: content.lightbox #}
         {# PATTERN: DIALOG (see assets/COMPONENT-PATTERNS.md) #}
@@ -647,7 +646,7 @@ _path, kind, tags are always defined - no defensive checks needed.
             </form>
             <div class="lightbox-dialog__caption"></div>
         </dialog>
-        {% endif %}
+        {% end %}
 
         {# Dev-only live reload is now injected by the server automatically via LiveReloadMixin #}
 </body>

@@ -50,14 +50,14 @@ engine (Jinja2, Mako, or BYORenderer). No global function dependency.
   <select id="version-select" class="version-selector__select" aria-label="Select documentation version">
     {% for v in versions %}
     <option value="{{ v.url_prefix or '/' }}" data-target="{{ site.get_version_target_url(page, v) }}" {% if
-      current_version and current_version.id==v.id %}selected{% endif %} {% if v.deprecated %}class="version-deprecated"
-      {% endif %}>
-      {{ v.label }}{% if v.latest %} (Latest){% endif %}{% if v.deprecated %} ⚠️{% endif %}
+      current_version and current_version.id==v.id %}selected{% end %} {% if v.deprecated %}class="version-deprecated"
+      {% end %}>
+      {{ v.label }}{% if v.latest %} (Latest){% end %}{% if v.deprecated %} ⚠️{% end %}
     </option>
-    {% endfor %}
+    {% end %}
   </select>
 </div>
 
 {# Styles: assets/css/components/versioning.css #}
 {# Script: assets/js/core/version-selector.js #}
-{% endif %}
+{% end %}

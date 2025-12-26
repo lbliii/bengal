@@ -17,19 +17,19 @@ Smart Defaults:
 - Both enabled by default - use discover: frontmatter to customize
 
 Frontmatter (discover: structure):
-  discover:
-    children:
-      title: "Custom Title"    # or false to hide
-      variant: "cards"         # compact | cards | minimal
-    children: false            # disable children entirely
-    related:
-      title: "Custom Title"
-      limit: 5
-    related: false             # disable related entirely
+discover:
+children:
+title: "Custom Title" # or false to hide
+variant: "cards" # compact | cards | minimal
+children: false # disable children entirely
+related:
+title: "Custom Title"
+limit: 5
+related: false # disable related entirely
 #}
 
-{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc with context %}
-{% from 'partials/content-components.html' import tag_list, content_tiles with context %}
+{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc %}
+{% from 'partials/content-components.html' import tag_list, content_tiles %}
 
 {% block content %}
 {# Three-column documentation layout #}
@@ -47,7 +47,7 @@ Frontmatter (discover: structure):
     {% include 'partials/page-hero.html' %}
 
     {# Article Content #}
-    <article class="prose {% if params.css_class %}{{ params.css_class }}{% endif %}">
+    <article class="prose {% if params.css_class %}{{ params.css_class }}{% end %}">
 
       {# Main content #}
       <div class="docs-content">
@@ -56,18 +56,18 @@ Frontmatter (discover: structure):
 
       {# Content tiles - children and related pages #}
       {#
-         Smart defaults: Both children and related enabled with default titles.
-         Use discover: frontmatter only to customize or disable.
+      Smart defaults: Both children and related enabled with default titles.
+      Use discover: frontmatter only to customize or disable.
 
-         discover:
-           children:
-             title: "Custom Title"    # or false to hide title
-             variant: "cards"         # compact | cards | minimal
-           children: false            # disable children entirely
-           related:
-             title: "Custom Title"
-             limit: 5
-           related: false             # disable related entirely
+      discover:
+      children:
+      title: "Custom Title" # or false to hide title
+      variant: "cards" # compact | cards | minimal
+      children: false # disable children entirely
+      related:
+      title: "Custom Title"
+      limit: 5
+      related: false # disable related entirely
       #}
       {% set discover = params.discover if page else {} %}
       {% set children_config = discover.children if discover else {} %}
@@ -83,10 +83,14 @@ Frontmatter (discover: structure):
       {% set show_related = not related_disabled %}
 
       {# Get config values with smart defaults #}
-      {% set children_title = children_config.title | default('In This Section') if children_config is mapping else 'In This Section' %}
-      {% set children_variant = children_config.variant | default('compact') if children_config is mapping else 'compact' %}
-      {% set related_title = related_config.title | default('Related Pages') if related_config is mapping else 'Related Pages' %}
-      {% set related_limit = related_config.limit | default(5) if related_config is mapping else (related_config if related_config is number else 5) %}
+      {% set children_title = children_config.title | default('In This Section') if children_config is mapping else 'In
+      This Section' %}
+      {% set children_variant = children_config.variant | default('compact') if children_config is mapping else
+      'compact' %}
+      {% set related_title = related_config.title | default('Related Pages') if related_config is mapping else 'Related
+      Pages' %}
+      {% set related_limit = related_config.limit | default(5) if related_config is mapping else (related_config if
+      related_config is number else 5) %}
 
       {# Handle title: false to hide title #}
       {% set children_title = none if children_title is sameas false else children_title %}
@@ -98,23 +102,23 @@ Frontmatter (discover: structure):
       {% if show_children and (has_children or has_related) %}
       <div class="docs-children">
         {{ content_tiles(
-          title=children_title if has_children else none,
-          children=posts if show_children else none,
-          subsections=subsections if show_children else none,
-          related=page.related_posts[:related_limit] if has_related else none,
-          related_title=related_title,
-          variant=children_variant,
-          group_by='type' if has_children and has_related else none
+        title=children_title if has_children else none,
+        children=posts if show_children else none,
+        subsections=subsections if show_children else none,
+        related=page.related_posts[:related_limit] if has_related else none,
+        related_title=related_title,
+        variant=children_variant,
+        group_by='type' if has_children and has_related else none
         ) }}
       </div>
-      {% endif %}
+      {% end %}
 
       {# Tags #}
       {% if page.tags %}
       <footer class="docs-footer">
         {{ tag_list(page.tags) }}
       </footer>
-      {% endif %}
+      {% end %}
     </article>
 
     {# Page navigation (prev/next) at bottom #}
@@ -135,7 +139,7 @@ Frontmatter (discover: structure):
     {# Table of Contents #}
     {{ toc(toc_items=toc_items, toc=toc, page=page) }}
   </aside>
-  {% endif %}
+  {% end %}
 </div>
 
 {# Mobile sidebar toggle button #}
@@ -146,6 +150,6 @@ Frontmatter (discover: structure):
 
 {# Sidebar overlay for mobile #}
 <div class="docs-sidebar-overlay" aria-hidden="true"></div>
-{% endblock %}
+{% end %}
 
 {# Sidebar toggle functionality is handled by interactive.js #}

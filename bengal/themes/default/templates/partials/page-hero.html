@@ -33,16 +33,16 @@ BACKWARDS COMPATIBILITY:
 ================================================================================
 #}
 
-{% from 'partials/navigation-components.html' import breadcrumbs with context %}
+{% from 'partials/navigation-components.html' import breadcrumbs %}
 
 {# =============================================================================
    HELPER MACROS (internal)
    ============================================================================= #}
 
 {# Get page URL with fallback chain #}
-{% macro _get_page_url(page) -%}
+{% def _get_page_url(page) -%}
 {{ page._path or page.href or '/' }}
-{%- endmacro %}
+{% end %}
 
 {# =============================================================================
    SHARE DROPDOWN MACRO (internal)
@@ -50,7 +50,7 @@ BACKWARDS COMPATIBILITY:
    Renders the LLM share button with popover menu.
    PATTERN: POPOVER - browser handles show/hide, light dismiss, escape key
    ============================================================================= #}
-{% macro _share_dropdown(page) %}
+{% def _share_dropdown(page) %}
 {% set page_url = canonical_url(_get_page_url(page)) %}
 {% set llm_txt_url = ensure_trailing_slash(page_url) ~ 'index.txt' %}
 {% set share_prompt = "Please help me understand this documentation: " + llm_txt_url %}
@@ -114,14 +114,14 @@ BACKWARDS COMPATIBILITY:
     </div>
   </div>
 </div>
-{% endmacro %}
+{% end %}
 
 {# =============================================================================
    BREADCRUMB EYEBROW MACRO (internal)
 
    Renders breadcrumbs as eyebrow, excluding current page (it's the H1)
    ============================================================================= #}
-{% macro _breadcrumb_eyebrow(page) %}
+{% def _breadcrumb_eyebrow(page) %}
 {% set breadcrumb_items = get_breadcrumbs(page) %}
 {% if breadcrumb_items and breadcrumb_items | length > 1 %}
 <nav class="page-hero__eyebrow" aria-label="Breadcrumb">
@@ -131,60 +131,60 @@ BACKWARDS COMPATIBILITY:
     <li>
       <a href="{{ item.href | absolute_url }}" class="page-hero__breadcrumb-link">{{ item.title }}</a>
     </li>
-    {% endfor %}
+    {% end %}
   </ol>
 </nav>
-{% endif %}
-{% endmacro %}
+{% end %}
+{% enddef %}
 
 {# =============================================================================
    ELEMENT BADGES MACRO (internal)
 
    Renders badges for DocElements (modules, classes, functions, commands)
    ============================================================================= #}
-{% macro _element_badges(element) %}
+{% def _element_badges(element) %}
 {% if element %}
 <div class="page-hero__badges">
 {% if element.element_type == 'module' %}
 <span class="autodoc-badge" data-badge="module">Module</span>
 {% if element.metadata.is_dataclass %}
 <span class="autodoc-badge" data-badge="dataclass">dataclass</span>
-{% endif %}
+{% end %}
 {% elif element.element_type == 'class' %}
 {% if element.metadata.is_mixin %}
 <span class="autodoc-badge" data-badge="mixin">Mixin</span>
-{% endif %}
+{% end %}
 {% if element.metadata.is_dataclass %}
 <span class="autodoc-badge" data-badge="dataclass">dataclass</span>
-{% endif %}
+{% end %}
 {% if element.metadata.is_abstract %}
 <span class="autodoc-badge" data-badge="abstract">abstract</span>
-{% endif %}
+{% end %}
 {% elif element.element_type == 'function' %}
 {% if element.metadata.is_async %}
 <span class="autodoc-badge" data-badge="async">async</span>
-{% endif %}
+{% end %}
 {% elif element.element_type == 'method' %}
 {% if element.metadata.is_async %}
 <span class="autodoc-badge" data-badge="async">async</span>
-{% endif %}
+{% end %}
 {% if element.metadata.is_classmethod %}
 <span class="autodoc-badge" data-badge="classmethod">classmethod</span>
-{% endif %}
+{% end %}
 {% if element.metadata.is_staticmethod %}
 <span class="autodoc-badge" data-badge="staticmethod">staticmethod</span>
-{% endif %}
+{% end %}
 {% if element.metadata.is_property %}
 <span class="autodoc-badge" data-badge="property">property</span>
-{% endif %}
+{% end %}
 {% elif element.element_type == 'command' %}
 <span class="autodoc-badge" data-badge="command">Command</span>
 {% elif element.element_type == 'command-group' %}
 <span class="autodoc-badge" data-badge="command-group">Command Group</span>
-{% endif %}
+{% end %}
 </div>
-{% endif %}
-{% endmacro %}
+{% end %}
+{% enddef %}
 
 {# =============================================================================
    ELEMENT STATS MACRO (internal)
@@ -192,7 +192,7 @@ BACKWARDS COMPATIBILITY:
    Renders stats (counts of children by type) for a DocElement.
    Uses the get_element_stats filter.
    ============================================================================= #}
-{% macro _element_stats(element) %}
+{% def _element_stats(element) %}
 {% set stats = element | get_element_stats %}
 {% if stats %}
 <div class="page-hero__stats">
@@ -201,10 +201,10 @@ BACKWARDS COMPATIBILITY:
     <span class="page-hero__stat-value">{{ stat.value }}</span>
     <span class="page-hero__stat-label">{{ stat.label }}</span>
   </span>
-  {% endfor %}
+  {% end %}
 </div>
-{% endif %}
-{% endmacro %}
+{% end %}
+{% enddef %}
 
 {# =============================================================================
    VARIANT MACROS (public API)
@@ -216,7 +216,7 @@ BACKWARDS COMPATIBILITY:
    Clean magazine-style layout without container styling.
    Default for single documentation pages.
    ----------------------------------------------------------------------------- #}
-{% macro hero_editorial(page, params, theme) %}
+{% def hero_editorial(page, params, theme) %}
 {% if page %}
 <div class="page-hero page-hero--editorial">
   {# Top row: Breadcrumbs (left) + Actions (right) #}
@@ -231,7 +231,7 @@ BACKWARDS COMPATIBILITY:
   {# Description #}
   {% if params.description %}
   <p class="page-hero__description">{{ params.description }}</p>
-  {% endif %}
+  {% end %}
 
   {# Inline Metadata #}
   {% set has_metadata = page.content or page.date or params.lastmod %}
@@ -242,33 +242,33 @@ BACKWARDS COMPATIBILITY:
       {{ icon("clock", size=16) }}
       <span>{{ t('meta.reading_time', {'time': page.content | reading_time}, default='{time} min read') }}</span>
     </span>
-    {% endif %}
+    {% end %}
 
     {% if page.content %}
     <span class="page-hero__meta-item">
       {{ icon("file-text", size=16) }}
       <span>{{ t('meta.word_count', {'count': page.content | wordcount}, default='{count} words') }}</span>
     </span>
-    {% endif %}
+    {% end %}
 
     {% if params.lastmod or page.date %}
     <span class="page-hero__meta-item">
       {{ icon("arrow-clockwise", size=16) }}
       <span>{{ (params.lastmod or page.date) | time_ago }}</span>
     </span>
-    {% endif %}
+    {% end %}
   </div>
-  {% endif %}
+  {% end %}
 </div>
-{% endif %}
-{% endmacro %}
+{% end %}
+{% enddef %}
 
 {# -----------------------------------------------------------------------------
    MAGAZINE VARIANT
 
    Editorial-style with container/background styling.
    ----------------------------------------------------------------------------- #}
-{% macro hero_magazine(page, params, theme) %}
+{% def hero_magazine(page, params, theme) %}
 {% if page %}
 <div class="page-hero page-hero--magazine">
   {# Top row: Breadcrumbs (left) + Actions (right) #}
@@ -283,7 +283,7 @@ BACKWARDS COMPATIBILITY:
   {# Description #}
   {% if params.description %}
   <p class="page-hero__description">{{ params.description }}</p>
-  {% endif %}
+  {% end %}
 
   {# Inline Metadata #}
   {% set has_metadata = page.content or page.date or params.lastmod %}
@@ -294,33 +294,33 @@ BACKWARDS COMPATIBILITY:
       {{ icon("clock", size=16) }}
       <span>{{ page.content | reading_time }} min read</span>
     </span>
-    {% endif %}
+    {% end %}
 
     {% if page.content %}
     <span class="page-hero__meta-item">
       {{ icon("file-text", size=16) }}
       <span>{{ page.content | wordcount }} words</span>
     </span>
-    {% endif %}
+    {% end %}
 
     {% if params.lastmod or page.date %}
     <span class="page-hero__meta-item">
       {{ icon("arrow-clockwise", size=16) }}
       <span>{{ (params.lastmod or page.date) | time_ago }}</span>
     </span>
-    {% endif %}
+    {% end %}
   </div>
-  {% endif %}
+  {% end %}
 </div>
-{% endif %}
-{% endmacro %}
+{% end %}
+{% enddef %}
 
 {# -----------------------------------------------------------------------------
    OVERVIEW VARIANT
 
    For section index pages - wayfinding focused with page count.
    ----------------------------------------------------------------------------- #}
-{% macro hero_overview(page, params, posts, subsections) %}
+{% def hero_overview(page, params, posts, subsections) %}
 {% if page %}
 <div class="page-hero page-hero--overview">
   {# Top row: Breadcrumbs (left) + Actions (right) #}
@@ -335,7 +335,7 @@ BACKWARDS COMPATIBILITY:
   {# Description #}
   {% if params.description %}
   <p class="page-hero__description">{{ params.description }}</p>
-  {% endif %}
+  {% end %}
 
   {# Section Stats - page count instead of read time #}
   {% set page_count = posts | length if posts else 0 %}
@@ -351,10 +351,10 @@ BACKWARDS COMPATIBILITY:
       <span>{{ total_count }} {{ 'page' if total_count == 1 else 'pages' }} in this section</span>
     </span>
   </div>
-  {% endif %}
+  {% end %}
 </div>
-{% endif %}
-{% endmacro %}
+{% end %}
+{% enddef %}
 
 {# -----------------------------------------------------------------------------
    CLASSIC VARIANT
@@ -362,7 +362,7 @@ BACKWARDS COMPATIBILITY:
    Traditional layout with separate action bar and page header.
    Legacy layout for backwards compatibility.
    ----------------------------------------------------------------------------- #}
-{% macro hero_classic(page, params) %}
+{% def hero_classic(page, params) %}
 {# Action Bar: Breadcrumbs + Share #}
 {% include 'partials/action-bar.html' %}
 
@@ -372,9 +372,9 @@ BACKWARDS COMPATIBILITY:
 
     {% if params.description %}
     <p class="lead">{{ params.description }}</p>
-    {% endif %}
+    {% end %}
 </header>
-{% endmacro %}
+{% enddef %}
 
 {# -----------------------------------------------------------------------------
    ELEMENT VARIANT (API)
@@ -382,7 +382,7 @@ BACKWARDS COMPATIBILITY:
    For DocElement pages: modules, classes, functions, commands.
    Includes badges, code-style title, source link, and stats.
    ----------------------------------------------------------------------------- #}
-{% macro hero_element(element, page, config) %}
+{% def hero_element(element, page, config) %}
 <div class="page-hero page-hero--api">
   {# Top row: Breadcrumbs (left) + Actions (right) #}
   <div class="page-hero__top">
@@ -403,26 +403,26 @@ BACKWARDS COMPATIBILITY:
   <div class="page-hero__description page-hero__description--prose">
     {{ element.description | markdownify | safe }}
   </div>
-  {% endif %}
+  {% end %}
 
   {# Footer: Source link + stats #}
   <div class="page-hero__footer">
     {# Source link (for elements with source files) #}
     {% if element.display_source_file or element.source_file %}
     {% if config %}
-    <a href="{{ config.github_repo }}/blob/{{ config.github_branch | default('main') }}/{{ element.display_source_file or element.source_file }}{% if element.line_number %}#L{{ element.line_number }}{% endif %}"
+    <a href="{{ config.github_repo }}/blob/{{ config.github_branch | default('main') }}/{{ element.display_source_file or element.source_file }}{% if element.line_number %}#L{{ element.line_number }}{% end %}"
       class="page-hero__source-link" target="_blank" rel="noopener">
       {{ icon('file-code', size=14) }}
       <span>View source</span>
     </a>
-    {% endif %}
-    {% endif %}
+    {% end %}
+    {% end %}
 
     {# Stats #}
     {{ _element_stats(element) }}
   </div>
 </div>
-{% endmacro %}
+{% enddef %}
 
 {# -----------------------------------------------------------------------------
    SECTION VARIANT (API)
@@ -430,7 +430,7 @@ BACKWARDS COMPATIBILITY:
    For section-index pages: API packages, CLI groups.
    Shows subsection and page counts.
    ----------------------------------------------------------------------------- #}
-{% macro hero_section(section, page, hero_context) %}
+{% def hero_section(section, page, hero_context) %}
 {# Determine section type from explicit context, page type, or URL (fallback) #}
 {% set is_cli = false %}
 {% if hero_context and hero_context.is_cli %}
@@ -439,7 +439,7 @@ BACKWARDS COMPATIBILITY:
   {% set is_cli = true %}
 {% elif page.href and '/cli' in page.href %}
   {% set is_cli = true %}
-{% endif %}
+{% end %}
 
 <div class="page-hero page-hero--api">
   {# Top row: Breadcrumbs (left) + Actions (right) #}
@@ -453,7 +453,7 @@ BACKWARDS COMPATIBILITY:
   <h1 class="page-hero__title">{{ section.title }}</h1>
   {% elif page and page.title %}
   <h1 class="page-hero__title">{{ page.title }}</h1>
-  {% endif %}
+  {% end %}
 
   {# Description from section metadata #}
   {% if section %}
@@ -462,8 +462,8 @@ BACKWARDS COMPATIBILITY:
   <div class="page-hero__description page-hero__description--prose">
     {{ desc | markdownify | safe }}
   </div>
-  {% endif %}
-  {% endif %}
+  {% end %}
+  {% end %}
 
   {# Footer: Stats from section children #}
   {% if section %}
@@ -480,9 +480,9 @@ BACKWARDS COMPATIBILITY:
         <span class="page-hero__stat-label">{{ 'Group' if section_subsections | length == 1 else 'Groups' }}</span>
         {% else %}
         <span class="page-hero__stat-label">{{ 'Package' if section_subsections | length == 1 else 'Packages' }}</span>
-        {% endif %}
+        {% end %}
       </span>
-      {% endif %}
+      {% end %}
       {% if section_pages | length > 0 %}
       <span class="page-hero__stat">
         <span class="page-hero__stat-value">{{ section_pages | length }}</span>
@@ -490,15 +490,15 @@ BACKWARDS COMPATIBILITY:
         <span class="page-hero__stat-label">{{ 'Command' if section_pages | length == 1 else 'Commands' }}</span>
         {% else %}
         <span class="page-hero__stat-label">{{ 'Module' if section_pages | length == 1 else 'Modules' }}</span>
-        {% endif %}
+        {% end %}
       </span>
-      {% endif %}
+      {% end %}
     </div>
-    {% endif %}
+    {% end %}
   </div>
-  {% endif %}
+  {% end %}
 </div>
-{% endmacro %}
+{% enddef %}
 
 {# =============================================================================
    DISPATCHER (backwards-compatible include interface)
@@ -531,8 +531,8 @@ BACKWARDS COMPATIBILITY:
   {% else %}
   {# Fallback: no element/section context, use editorial #}
   {{ hero_editorial(page, params, theme) }}
-  {% endif %}
+  {% end %}
 {% else %}
 {# Default to editorial #}
 {{ hero_editorial(page, params, theme) }}
-{% endif %}
+{% end %}

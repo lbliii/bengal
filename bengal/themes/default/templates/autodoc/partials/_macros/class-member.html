@@ -13,7 +13,7 @@ Args:
   is_first: Whether this is the first item (to auto-open)
 #}
 
-{% macro class_member(cls, is_first=false) %}
+{% def class_member(cls, is_first=false) %}
 {% set cls_methods = (cls.children or []) | selectattr('element_type', 'eq', 'method') | list %}
 {# Attributes are stored as children with element_type='attribute', or sometimes properties #}
 {% set cls_attrs = (cls.children or []) | selectattr('element_type', 'eq', 'attribute') | list %}
@@ -23,7 +23,7 @@ Args:
 {% set is_dataclass = cls.metadata.is_dataclass | default(false) %}
 {% set is_abstract = cls.metadata.is_abstract | default(false) %}
 
-<details class="autodoc-member" data-member="class" {% if is_first %}open{% endif %}>
+<details class="autodoc-member" data-member="class" {% if is_first %}open{% end %}>
   <summary class="autodoc-member-header">
     {# Status dot (yellow/amber for classes) #}
     <span class="autodoc-member-dot"></span>
@@ -33,14 +33,14 @@ Args:
       <div class="autodoc-member-name-row">
         <code class="autodoc-member-name">{{ cls.name }}</code>
         {# Count badge #}
-        <span class="autodoc-member-count" title="{{ cls_methods | length }} method{% if cls_methods | length != 1 %}s{% endif %}{% if all_attrs %}, {{ all_attrs | length }} attribute{% if all_attrs | length != 1 %}s{% endif %}{% endif %}">{{ total_members }}</span>
+        <span class="autodoc-member-count" title="{{ cls_methods | length }} method{% if cls_methods | length != 1 %}s{% end %}{% if all_attrs %}, {{ all_attrs | length }} attribute{% if all_attrs | length != 1 %}s{% end %}{% end %}">{{ total_members }}</span>
         {# Toggle indicator #}
         <span class="autodoc-member-toggle">▼</span>
       </div>
       {# Description preview #}
       {% if cls.description %}
       <span class="autodoc-member-desc-preview">{{ cls.description | truncate(100, True, '…') }}</span>
-      {% endif %}
+      {% end %}
     </div>
 
     {# Badges #}
@@ -48,12 +48,12 @@ Args:
     <span class="autodoc-member-badges">
       {% if is_dataclass %}
       <span class="autodoc-badge" data-badge="dataclass">dataclass</span>
-      {% endif %}
+      {% end %}
       {% if is_abstract %}
       <span class="autodoc-badge" data-badge="abstract">abstract</span>
-      {% endif %}
+      {% end %}
     </span>
-    {% endif %}
+    {% end %}
   </summary>
 
   <div class="autodoc-member-body">
@@ -61,7 +61,7 @@ Args:
     <div class="autodoc-member-desc prose">
       {{ cls.description | markdownify | safe }}
     </div>
-    {% endif %}
+    {% end %}
 
     {# Class attributes (from children with element_type='attribute' or 'property') #}
     {% if all_attrs %}
@@ -81,14 +81,14 @@ Args:
           {% set attr_type = attr.metadata.annotation if attr.metadata and attr.metadata.annotation else none %}
           <tr>
             <td class="autodoc-cell-name"><code>{{ attr.name }}</code></td>
-            <td class="autodoc-cell-type">{% if attr_type %}<code>{{ attr_type }}</code>{% else %}—{% endif %}</td>
+            <td class="autodoc-cell-type">{% if attr_type %}<code>{{ attr_type }}</code>{% else %}—{% end %}</td>
             <td class="autodoc-cell-desc">{{ attr.description | markdownify | safe }}</td>
           </tr>
-          {% endfor %}
+          {% end %}
         </tbody>
       </table>
     </div>
-    {% endif %}
+    {% end %}
 
     {# Class methods - use unified members partial #}
     {% if cls_methods %}
@@ -100,7 +100,7 @@ Args:
       {% set first_open = false %}
       {% include 'autodoc/partials/members.html' %}
     </div>
-    {% endif %}
+    {% end %}
   </div>
 </details>
-{% endmacro %}
+{% enddef %}

@@ -23,7 +23,7 @@ Or set `type: blog` on home page to auto-select
             <h1 class="blog-home-title">{{ page.title | default(config.title) }}</h1>
             {% if params.description %}
             <p class="blog-home-subtitle">{{ params.description }}</p>
-            {% endif %}
+            {% end %}
         </div>
     </header>
 
@@ -32,7 +32,7 @@ Or set `type: blog` on home page to auto-select
     <div class="blog-home-content prose">
         {{ content | safe }}
     </div>
-    {% endif %}
+    {% end %}
 
     {# Recent Posts - Prominent Section #}
     {# Show recent posts by default for blog sites #}
@@ -51,13 +51,13 @@ Or set `type: blog` on home page to auto-select
     {% set blog_posts = [] %}
     {% for p in site.pages %}
     {% if p.metadata.type == 'blog' or '/blog/' in p._path or '/posts/' in p._path %}
-    {% set _ = blog_posts.append(p) %}
-    {% endif %}
-    {% endfor %}
+    {% do blog_posts.append(p) %}
+    {% end %}
+    {% end %}
     {% set recent = blog_posts | selectattr('date') | sort_by('date', reverse=true) | limit(6) %}
     {% else %}
     {% set recent = [] %}
-    {% endif %}
+    {% end %}
 
     {% if recent %}
     <section class="blog-home-recent">
@@ -65,7 +65,7 @@ Or set `type: blog` on home page to auto-select
             <h2 class="blog-home-recent-title">Recent Posts</h2>
             {% if blog_section %}
             <a href="{{ blog_section.href }}" class="blog-home-view-all">View all posts →</a>
-            {% endif %}
+            {% end %}
         </div>
         <div class="blog-home-posts-grid">
             {% for post in recent %}
@@ -77,7 +77,7 @@ Or set `type: blog` on home page to auto-select
                             alt="{{ post.title }}">
                     </a>
                 </div>
-                {% endif %}
+                {% end %}
                 <div class="blog-home-post-content">
                     <h3 class="blog-home-post-title">
                         <a href="{{ post.href }}">{{ post.title }}</a>
@@ -86,24 +86,24 @@ Or set `type: blog` on home page to auto-select
                     <time datetime="{{ post.date | date_iso }}" class="blog-home-post-date">
                         {{ post.date | dateformat('%B %d, %Y') }}
                     </time>
-                    {% endif %}
+                    {% end %}
                     {% if post.metadata.description or post.excerpt %}
                     <p class="blog-home-post-excerpt">
                         {{ post.metadata.description | default(post.excerpt) | truncate(150) }}
                     </p>
-                    {% endif %}
+                    {% end %}
                     {% if post.tags %}
                     <div class="blog-home-post-tags">
                         {{ tag_list(post.tags | limit(3)) }}
                     </div>
-                    {% endif %}
+                    {% end %}
                     <a href="{{ post.href }}" class="blog-home-post-link">Read more →</a>
                 </div>
             </article>
-            {% endfor %}
+            {% end %}
         </div>
     </section>
-    {% endif %}
-    {% endif %}
+    {% end %}
+    {% end %}
 </div>
-{% endblock %}
+{% end %}

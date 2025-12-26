@@ -19,7 +19,7 @@ Context variables:
 {% block content %}
 <div class="container">
 {# Action Bar: Breadcrumbs + Share #}
-{% include 'partials/action-bar.html' with context %}
+{% include 'partials/action-bar.html' %}
 
 <div class="tutorial-container">
     <header class="page-header page-header--centered">
@@ -31,7 +31,7 @@ Context variables:
         <p class="tutorial-description">{{ description }}</p>
         {% else %}
         <p class="tutorial-description">Step-by-step guides to help you learn and master the topics.</p>
-        {% endif %}
+        {% end %}
     </header>
 
     {# Tutorial Statistics #}
@@ -51,23 +51,23 @@ Context variables:
             <strong>{{ beginner_count }}</strong>
             <span>beginner</span>
         </div>
-        {% endif %}
+        {% end %}
 
         {% if intermediate_count > 0 %}
         <div class="tutorial-stat">
             <strong>{{ intermediate_count }}</strong>
             <span>intermediate</span>
         </div>
-        {% endif %}
+        {% end %}
 
         {% if advanced_count > 0 %}
         <div class="tutorial-stat">
             <strong>{{ advanced_count }}</strong>
             <span>advanced</span>
         </div>
-        {% endif %}
+        {% end %}
     </div>
-    {% endif %}
+    {% end %}
 
     {# Tutorial Grid #}
     {% if posts or subsections %}
@@ -92,7 +92,7 @@ Context variables:
                         <p class="tutorial-description">
                             {{ subsection.metadata.description | truncate(150) }}
                         </p>
-                        {% endif %}
+                        {% end %}
 
                         <div class="tutorial-meta">
                             {% if subsection.regular_pages %}
@@ -104,15 +104,15 @@ Context variables:
                             <span class="tutorial-meta-item">
                                 {{ content_pages | length }} tutorial{{ 's' if content_pages | length != 1 }}
                             </span>
-                            {% endif %}
-                            {% endif %}
+                            {% end %}
+                            {% end %}
                         </div>
                     </div>
                 </article>
-                {% endfor %}
+                {% end %}
             </div>
         </section>
-        {% endif %}
+        {% end %}
 
         {# Individual Tutorials #}
         {% if posts %}
@@ -126,7 +126,7 @@ Context variables:
                         <span class="tutorial-icon">{{ tutorial.metadata.icon }}</span>
                         {% else %}
                         <span class="tutorial-icon">📖</span>
-                        {% endif %}
+                        {% end %}
                         <h3 class="tutorial-title">
                             <a href="{{ tutorial.href }}">{{ tutorial.title }}</a>
                         </h3>
@@ -141,7 +141,7 @@ Context variables:
                         <p class="tutorial-description">
                             {{ tutorial.excerpt | truncate(150) }}
                         </p>
-                        {% endif %}
+                        {% end %}
 
                         <div class="tutorial-meta">
                             {# Difficulty Badge #}
@@ -149,7 +149,7 @@ Context variables:
                             <span class="tutorial-badge tutorial-badge-{{ tutorial.metadata.difficulty }}">
                                 {{ tutorial.metadata.difficulty | capitalize }}
                             </span>
-                            {% endif %}
+                            {% end %}
 
                             {# Time Estimate #}
                             {% if tutorial.metadata.time or tutorial.metadata.duration %}
@@ -157,7 +157,7 @@ Context variables:
                                 {{ icon('clock', size=14) }}
                                 {{ tutorial.metadata.time | default(tutorial.metadata.duration) }}
                             </span>
-                            {% endif %}
+                            {% end %}
 
                             {# Prerequisites #}
                             {% if tutorial.metadata.prerequisites %}
@@ -166,7 +166,7 @@ Context variables:
                                 {{ tutorial.metadata.prerequisites | length }} prerequisite{{ 's' if
                                 tutorial.metadata.prerequisites | length != 1 }}
                             </span>
-                            {% endif %}
+                            {% end %}
                         </div>
 
                         <a href="{{ tutorial.href }}" class="tutorial-link">
@@ -174,10 +174,10 @@ Context variables:
                         </a>
                     </div>
                 </article>
-                {% endfor %}
+                {% end %}
             </div>
         </section>
-        {% endif %}
+        {% end %}
 
     </div>
     {% else %}
@@ -185,8 +185,8 @@ Context variables:
     <div class="tutorial-empty">
         <p>No tutorials available yet.</p>
     </div>
-    {% endif %}
+    {% end %}
 
 </div>
 </div>
-{% endblock %}
+{% end %}

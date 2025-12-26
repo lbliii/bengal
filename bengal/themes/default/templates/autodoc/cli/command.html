@@ -13,7 +13,7 @@ This template receives:
 - site: Site instance
 #}
 
-{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc with context %}
+{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc %}
 {% from 'autodoc/partials/_macros/element-card.html' import element_card %}
 
 {% block content %}
@@ -45,14 +45,14 @@ This template receives:
       {% set params = options %}
       {% set title = 'Options' %}
       {% include 'autodoc/partials/params-table.html' %}
-      {% endif %}
+      {% end %}
 
       {# Arguments (as table) #}
       {% if arguments %}
       {% set params = arguments %}
       {% set title = 'Arguments' %}
       {% include 'autodoc/partials/params-table.html' %}
-      {% endif %}
+      {% end %}
 
       {# Examples #}
       {% include 'autodoc/partials/examples.html' %}
@@ -61,10 +61,10 @@ This template receives:
       {% if page.tags %}
       <footer class="docs-footer">
         <span class="docs-footer-label">Tagged</span>
-        {% from 'partials/content-components.html' import tag_list with context %}
+        {% from 'partials/content-components.html' import tag_list %}
         {{ tag_list(page.tags) }}
       </footer>
-      {% endif %}
+      {% end %}
     </article>
 
     {# Page navigation (prev/next) at bottom #}
@@ -83,4 +83,4 @@ This template receives:
 
 {# Sidebar overlay for mobile #}
 <div class="docs-sidebar-overlay" aria-hidden="true"></div>
-{% endblock %}
+{% end %}

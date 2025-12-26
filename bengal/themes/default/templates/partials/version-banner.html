@@ -26,7 +26,7 @@
     {{ icon('danger', size=20, css_class='version-banner__icon') }}
     {% else %}
     {{ icon('warning', size=20, css_class='version-banner__icon') }}
-    {% endif %}
+    {% end %}
 
     {# Message #}
     <div class="version-banner__message">
@@ -35,7 +35,7 @@
           {{ t('version.deprecated', {'label': current_version.label}, default='This version ({label}) is deprecated.') }}
         {% else %}
           {{ t('version.viewing', {'label': current_version.label}, default="You're viewing docs for {label}.") }}
-        {% endif %}
+        {% end %}
       </strong>
       {% if site.latest_version %}
       <span class="version-banner__link-text">
@@ -44,7 +44,7 @@
           {{ t('version.version_label', {'label': site.latest_version.label}, default='version {label}') }}
         </a>.
       </span>
-      {% endif %}
+      {% end %}
     </div>
   </div>
 
@@ -168,4 +168,4 @@
   }
 }
 </style>
-{% endif %}
+{% end %}

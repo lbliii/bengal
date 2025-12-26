@@ -16,7 +16,7 @@ Note: DocElement.href is pre-computed during page building with baseurl included
 Templates should use {{ child.href }} directly for links.
 #}
 
-{% macro element_card(child, card_type=none) %}
+{% def element_card(child, card_type=none) %}
 {% set child_type = card_type or child.element_type %}
 {# Use pre-computed href (includes baseurl), fall back to anchor if not set #}
 {% set child_url = child.href or '#' %}
@@ -24,10 +24,10 @@ Templates should use {{ child.href }} directly for links.
     {% if child_type == 'endpoint' and child.metadata.method %}
     <span class="autodoc-method" data-method="{{ child.metadata.method | lower }}">{{ child.metadata.method | upper
         }}</span>
-    {% endif %}
+    {% end %}
     <code class="autodoc-card-name">{{ child.name }}</code>
     {% if child.description %}
     <span class="autodoc-card-desc">{{ child.description | truncate(100) }}</span>
-    {% endif %}
+    {% end %}
 </a>
-{% endmacro %}
+{% enddef %}

@@ -33,8 +33,9 @@ Usage: Auto-selected for api-hub sections or set template: api-hub/home.html
       {% if desc %}
       <p class="api-hub-hero__subtitle">{{ desc }}</p>
       {% else %}
-      <p class="api-hub-hero__subtitle">Explore comprehensive API documentation for Python modules, REST endpoints, and CLI commands.</p>
-      {% endif %}
+      <p class="api-hub-hero__subtitle">Explore comprehensive API documentation for Python modules, REST endpoints, and
+        CLI commands.</p>
+      {% end %}
 
       {# Stats Bar #}
       {% if section and section.sorted_subsections %}
@@ -43,15 +44,15 @@ Usage: Auto-selected for api-hub sections or set template: api-hub/home.html
         {% set rest_count = 0 %}
         {% set cli_count = 0 %}
         {% for sub in section.sorted_subsections %}
-          {% set sub_type = sub.params.type %}
-          {% if 'python' in sub_type %}
-            {% set python_count = python_count + 1 %}
-          {% elif 'openapi' in sub_type %}
-            {% set rest_count = rest_count + 1 %}
-          {% elif 'cli' in sub_type %}
-            {% set cli_count = cli_count + 1 %}
-          {% endif %}
-        {% endfor %}
+        {% set sub_type = sub.params.type or '' %}
+        {% if 'python' in sub_type %}
+        {% set python_count = python_count + 1 %}
+        {% elif 'openapi' in sub_type %}
+        {% set rest_count = rest_count + 1 %}
+        {% elif 'cli' in sub_type %}
+        {% set cli_count = cli_count + 1 %}
+        {% end %}
+        {% end %}
 
         <div class="api-hub-stat">
           <span class="api-hub-stat__value">{{ section.sorted_subsections | length }}</span>
@@ -64,7 +65,7 @@ Usage: Auto-selected for api-hub sections or set template: api-hub/home.html
           <span class="api-hub-stat__value">{{ python_count }}</span>
           <span class="api-hub-stat__label">Python</span>
         </div>
-        {% endif %}
+        {% end %}
 
         {% if rest_count > 0 %}
         <div class="api-hub-stat api-hub-stat--rest">
@@ -72,7 +73,7 @@ Usage: Auto-selected for api-hub sections or set template: api-hub/home.html
           <span class="api-hub-stat__value">{{ rest_count }}</span>
           <span class="api-hub-stat__label">REST</span>
         </div>
-        {% endif %}
+        {% end %}
 
         {% if cli_count > 0 %}
         <div class="api-hub-stat api-hub-stat--cli">
@@ -80,9 +81,9 @@ Usage: Auto-selected for api-hub sections or set template: api-hub/home.html
           <span class="api-hub-stat__value">{{ cli_count }}</span>
           <span class="api-hub-stat__label">CLI</span>
         </div>
-        {% endif %}
+        {% end %}
       </div>
-      {% endif %}
+      {% end %}
     </div>
   </header>
 
@@ -91,14 +92,14 @@ Usage: Auto-selected for api-hub sections or set template: api-hub/home.html
   <div class="api-hub-content prose">
     {{ content | safe }}
   </div>
-  {% endif %}
+  {% end %}
 
   {# API Tiles Grid #}
   {% if section and section.sorted_subsections %}
   <section class="api-hub-apis" aria-label="Available APIs">
     <div class="api-hub-grid">
       {% for subsection in section.sorted_subsections %}
-      {% set sub_type = subsection.params.type | default('python-reference') %}
+      {% set sub_type = subsection.params.type or 'python-reference' %}
       {% set desc = subsection.params.description | first_sentence %}
       {% set child_count = (subsection.subsections | length) + (subsection.pages | length) %}
 
@@ -107,14 +108,14 @@ Usage: Auto-selected for api-hub sections or set template: api-hub/home.html
         <div class="api-hub-tile__badge-row">
           <span class="api-hub-tile__type-badge api-hub-tile__type-badge--{{ sub_type }}">
             {%- if 'python' in sub_type -%}
-              {{ icon("code", size=12) }} Python
+            {{ icon("code", size=12) }} Python
             {%- elif 'openapi' in sub_type -%}
-              {{ icon("globe", size=12) }} REST
+            {{ icon("globe", size=12) }} REST
             {%- elif 'cli' in sub_type -%}
-              {{ icon("terminal", size=12) }} CLI
+            {{ icon("terminal", size=12) }} CLI
             {%- else -%}
-              {{ icon("book", size=12) }} API
-            {%- endif -%}
+            {{ icon("book", size=12) }} API
+            {% end %}
           </span>
         </div>
 
@@ -129,7 +130,7 @@ Usage: Auto-selected for api-hub sections or set template: api-hub/home.html
             {{ icon("terminal", size=32, css_class="icon-cli") }}
             {%- else -%}
             {{ icon("book", size=32, css_class="icon-default") }}
-            {%- endif -%}
+            {% end %}
           </div>
           <h2 class="api-hub-tile__title">
             <a href="{{ subsection.href }}">{{ subsection.title }}</a>
@@ -151,8 +152,8 @@ Usage: Auto-selected for api-hub sections or set template: api-hub/home.html
             Command-line interface documentation with options and examples.
             {%- else -%}
             API documentation and reference material.
-            {%- endif -%}
-            {% endif %}
+            {% end %}
+            {% end %}
           </p>
 
           {# Preview Items #}
@@ -161,22 +162,23 @@ Usage: Auto-selected for api-hub sections or set template: api-hub/home.html
             <div class="api-hub-tile__preview-label">Includes:</div>
             <ul class="api-hub-tile__preview-list">
               {% set preview_limit = 4 %}
-              {% set preview_items = subsection.sorted_subsections[:preview_limit] if subsection.sorted_subsections else subsection.sorted_pages[:preview_limit] %}
+              {% set preview_items = subsection.sorted_subsections[:preview_limit] if subsection.sorted_subsections else
+              subsection.sorted_pages[:preview_limit] %}
               {% for item in preview_items %}
               <li class="api-hub-tile__preview-item">
                 <span class="api-hub-tile__preview-bullet"></span>
                 <span class="api-hub-tile__preview-title">{{ item.title | default(item.name) }}</span>
               </li>
-              {% endfor %}
+              {% end %}
               {% set remaining = child_count - preview_limit %}
               {% if remaining > 0 %}
               <li class="api-hub-tile__preview-item api-hub-tile__preview-more">
                 <span class="api-hub-tile__preview-more-text">+{{ remaining }} more</span>
               </li>
-              {% endif %}
+              {% end %}
             </ul>
           </div>
-          {% endif %}
+          {% end %}
         </div>
 
         {# Tile Footer #}
@@ -190,7 +192,7 @@ Usage: Auto-selected for api-hub sections or set template: api-hub/home.html
             {{ child_count }} {{ 'command' if child_count == 1 else 'commands' }}
             {%- else -%}
             {{ child_count }} {{ 'item' if child_count == 1 else 'items' }}
-            {%- endif -%}
+            {% end %}
           </span>
           <a href="{{ subsection.href }}" class="api-hub-tile__button">
             Explore
@@ -198,7 +200,7 @@ Usage: Auto-selected for api-hub sections or set template: api-hub/home.html
           </a>
         </div>
       </article>
-      {% endfor %}
+      {% end %}
     </div>
   </section>
   {% else %}
@@ -209,9 +211,10 @@ Usage: Auto-selected for api-hub sections or set template: api-hub/home.html
     </div>
     <h3 class="api-hub-empty__title">No API Documentation Yet</h3>
     <p class="api-hub-empty__text">
-      Enable Python, OpenAPI, or CLI autodoc in your <code>autodoc.yaml</code> configuration to generate API documentation.
+      Enable Python, OpenAPI, or CLI autodoc in your <code>autodoc.yaml</code> configuration to generate API
+      documentation.
     </p>
   </div>
-  {% endif %}
+  {% end %}
 </div>
-{% endblock %}
+{% end %}

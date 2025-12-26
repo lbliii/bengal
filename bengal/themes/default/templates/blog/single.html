@@ -24,9 +24,9 @@ Context variables:
 {# Action Bar: Breadcrumbs + Share #}
 {% include 'partials/action-bar.html' %}
 
-<div class="blog-post-layout {% if toc %}blog-with-toc{% endif %}">
+<div class="blog-post-layout {% if toc %}blog-with-toc{% end %}">
     <article
-        class="blog-post prose {% if params.css_class %}{{ params.css_class }}{% endif %}">
+        class="blog-post prose {% if params.css_class %}{{ params.css_class }}{% end %}">
         <header class="blog-post-header">
             {# Featured Image #}
             {% if params.image or params.cover %}
@@ -34,13 +34,13 @@ Context variables:
                 <img src="{{ params.image | default(params.cover) }}"
                     alt="{{ page.title }}">
             </div>
-            {% endif %}
+            {% end %}
 
             <h1>{{ page.title }}</h1>
 
             {% if params.description %}
             <p class="lead">{{ params.description }}</p>
-            {% endif %}
+            {% end %}
 
             {# Post Metadata #}
             <div class="blog-post-meta">
@@ -50,15 +50,15 @@ Context variables:
                     {% if params.author_avatar %}
                     <img src="{{ params.author_avatar }}" alt="{{ params.author }}"
                         class="author-avatar">
-                    {% endif %}
+                    {% end %}
                     <div class="author-info">
                         <strong>{{ params.author }}</strong>
                         {% if params.author_title %}
                         <span class="author-title">{{ params.author_title }}</span>
-                        {% endif %}
+                        {% end %}
                     </div>
                 </div>
-                {% endif %}
+                {% end %}
 
                 <div class="blog-post-details">
                     {# Publication Date #}
@@ -67,7 +67,7 @@ Context variables:
                         title="{{ page.date | dateformat('%B %d, %Y at %I:%M %p') }}">
                         {{ page.date | dateformat('%B %d, %Y') }}
                     </time>
-                    {% endif %}
+                    {% end %}
 
                     {# Reading Time - Feature: content.reading_time #}
                     {% if page.content and 'content.reading_time' in theme.features %}
@@ -75,7 +75,7 @@ Context variables:
                         {{ icon('clock', size=14) }}
                         {{ page.content | reading_time }} min read
                     </span>
-                    {% endif %}
+                    {% end %}
 
                     {# View Count (if tracked) #}
                     {% if params.views %}
@@ -83,7 +83,7 @@ Context variables:
                         {{ icon('eye', size=14) }}
                         {{ params.views | default(0) }} views
                     </span>
-                    {% endif %}
+                    {% end %}
                 </div>
             </div>
 
@@ -92,7 +92,7 @@ Context variables:
             <div class="blog-post-tags">
                 {{ tag_list(page.tags) }}
             </div>
-            {% endif %}
+            {% end %}
         </header>
 
         {# Main Post Content #}
@@ -107,7 +107,7 @@ Context variables:
             <p class="blog-updated">
                 <em>Last updated: {{ params.updated | dateformat('%B %d, %Y') }}</em>
             </p>
-            {% endif %}
+            {% end %}
 
             {# Author Bio - Feature: content.author #}
             {% if params.author and params.author_bio and
@@ -117,12 +117,12 @@ Context variables:
                     {% if params.author_avatar %}
                     <img src="{{ params.author_avatar }}" alt="{{ params.author }}"
                         class="author-avatar-large">
-                    {% endif %}
+                    {% end %}
                     <div>
                         <h3>About {{ params.author }}</h3>
                         {% if params.author_title %}
                         <p class="author-title">{{ params.author_title }}</p>
-                        {% endif %}
+                        {% end %}
                     </div>
                 </div>
                 <p class="author-bio-text">{{ params.author_bio }}</p>
@@ -130,11 +130,11 @@ Context variables:
                 <div class="author-links">
                     {% for link in params.author_links %}
                     <a href="{{ link.href or link.url }}" target="_blank" rel="noopener noreferrer">{{ link.text }}</a>
-                    {% endfor %}
+                    {% end %}
                 </div>
-                {% endif %}
+                {% end %}
             </div>
-            {% endif %}
+            {% end %}
 
             {# Social Sharing - uses Bengal's share_url() helpers #}
             <div class="blog-social-share">
@@ -201,9 +201,9 @@ Context variables:
                 <button type="submit">Subscribe</button>
             </form>
         </div>
-        {% endif %}
+        {% end %}
     </aside>
-    {% endif %}
+    {% end %}
 </div>
 
 </div>
@@ -227,7 +227,7 @@ Context variables:
                             alt="{{ post.title }}">
                     </a>
                 </div>
-                {% endif %}
+                {% end %}
                 <div class="blog-card-content">
                     <h3 class="blog-card-title">
                         <a href="{{ post.href }}">{{ post.title }}</a>
@@ -236,17 +236,17 @@ Context variables:
                     <p class="blog-card-excerpt">{{ post.metadata.description | default(post.excerpt) |
                         truncate(120) }}
                     </p>
-                    {% endif %}
+                    {% end %}
                     {% if post.date %}
                     <time datetime="{{ post.date | date_iso }}">{{ post.date | time_ago }}</time>
-                    {% endif %}
+                    {% end %}
                 </div>
             </article>
-            {% endfor %}
+            {% end %}
         </div>
     </div>
 </aside>
-{% endif %}
+{% end %}
 
 {# Comments Section (Integration Point) #}
 {% if params.comments != false %}
@@ -260,5 +260,5 @@ Context variables:
         </p>
     </div>
 </div>
-{% endif %}
-{% endblock %}
+{% end %}
+{% end %}

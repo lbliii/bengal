@@ -1,15 +1,15 @@
 {% extends "base.html" %}
 
-{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation with context %}
-{% from 'partials/content-components.html' import tag_list, random_posts with context %}
+{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation %}
+{% from 'partials/content-components.html' import tag_list, random_posts %}
 
 {% block content %}
 <div class="container">
 {# Action Bar: Breadcrumbs + Share #}
 {% include 'partials/action-bar.html' %}
 
-<div class="page-layout {% if toc %}page-with-toc{% endif %}">
-    <article class="page prose {% if params.css_class %}{{ params.css_class }}{% endif %}">
+<div class="page-layout {% if toc %}page-with-toc{% end %}">
+    <article class="page prose {% if params.css_class %}{{ params.css_class }}{% end %}">
         <header class="page-header">
             <h1>{{ page.title }}</h1>
         </header>
@@ -25,7 +25,7 @@
                 {{ tag_list(page.tags) }}
             </div>
         </footer>
-        {% endif %}
+        {% end %}
     </article>
 
     {% if toc %}
@@ -48,7 +48,7 @@
         {# Random posts - dogfooding sample() #}
         {{ random_posts(count=3) }}
     </aside>
-    {% endif %}
+    {% end %}
 </div>
 
 {# Page Navigation (prev/next) #}
@@ -66,16 +66,16 @@
                 <h3><a href="{{ post.href }}">{{ post.title }}</a></h3>
                 {% if post.date %}
                 <time datetime="{{ post.date | date_iso }}">{{ post.date | time_ago }}</time>
-                {% endif %}
+                {% end %}
                 {% if post.content %}
                 <p>{{ post.excerpt }}</p>
-                {% endif %}
+                {% end %}
             </article>
-            {% endfor %}
+            {% end %}
         </div>
     </div>
 </aside>
-{% endif %}
+{% end %}
 {# Graph scripts loaded in base.html #}
 </div>
-{% endblock %}
+{% end %}

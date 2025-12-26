@@ -45,31 +45,31 @@ Example usage in base.html:
     {%- set lang_info = langs|selectattr('code', 'equalto', alt.hreflang)|first %}
     <li
       role="option"
-      {%- if alt.hreflang == current %} aria-selected="true" class="language-switcher__item language-switcher__item--active"{% else %} class="language-switcher__item"{% endif %}
+      {%- if alt.hreflang == current %} aria-selected="true" class="language-switcher__item language-switcher__item--active"{% else %} class="language-switcher__item"{% end %}
     >
       <a href="{{ alt.href }}" hreflang="{{ alt.hreflang }}" lang="{{ alt.hreflang }}">
         {%- if lang_info %}
         {{ lang_info.name }}
         {%- else %}
         {{ alt.hreflang|upper }}
-        {%- endif %}
+        {% end %}
       </a>
     </li>
-    {%- endfor %}
+    {% end %}
 
     {#- Fallback: show all languages if no alternates -#}
     {%- if alternates|length == 0 %}
     {%- for lang in langs %}
     <li
       role="option"
-      {%- if lang.code == current %} aria-selected="true" class="language-switcher__item language-switcher__item--active"{% else %} class="language-switcher__item"{% endif %}
+      {%- if lang.code == current %} aria-selected="true" class="language-switcher__item language-switcher__item--active"{% else %} class="language-switcher__item"{% end %}
     >
       <a href="/{{ lang.code }}/" hreflang="{{ lang.code }}" lang="{{ lang.code }}">
         {{ lang.name }}
       </a>
     </li>
-    {%- endfor %}
-    {%- endif %}
+    {% end %}
+    {% end %}
   </ul>
 </div>
 
@@ -108,4 +108,4 @@ Example usage in base.html:
   });
 })();
 </script>
-{%- endif %}
+{% end %}

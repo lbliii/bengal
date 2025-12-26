@@ -11,7 +11,7 @@
         <h1 class="resume-name">{{ resume.name or page.title }}</h1>
         {% if resume.headline %}
         <p class="resume-headline">{{ resume.headline }}</p>
-        {% endif %}
+        {% end %}
 
         {# Contact Information #}
         {% if resume.contact %}
@@ -21,34 +21,34 @@
             <a href="mailto:{{ contact.email }}" class="contact-item">
                 <span class="contact-icon">✉</span> {{ contact.email }}
             </a>
-            {% endif %}
+            {% end %}
             {% if contact.phone %}
             <span class="contact-item">
                 <span class="contact-icon">📱</span> {{ contact.phone }}
             </span>
-            {% endif %}
+            {% end %}
             {% if contact.location %}
             <span class="contact-item">
                 <span class="contact-icon">📍</span> {{ contact.location }}
             </span>
-            {% endif %}
+            {% end %}
             {% if contact.website %}
             <a href="{{ contact.website }}" class="contact-item" target="_blank">
                 <span class="contact-icon">🌐</span> {{ contact.website | replace('https://', '') | replace('http://', '') }}
             </a>
-            {% endif %}
+            {% end %}
             {% if contact.linkedin %}
             <a href="{{ contact.linkedin }}" class="contact-item" target="_blank">
                 <span class="contact-icon">💼</span> LinkedIn
             </a>
-            {% endif %}
+            {% end %}
             {% if contact.github %}
             <a href="{{ contact.github }}" class="contact-item" target="_blank">
                 <span class="contact-icon">🔗</span> GitHub
             </a>
-            {% endif %}
+            {% end %}
         </div>
-        {% endif %}
+        {% end %}
     </header>
 
     {# Summary/About Section #}
@@ -56,14 +56,14 @@
     <section class="resume-section resume-summary">
         {% if resume.summary %}
         <p class="summary-text">{{ resume.summary }}</p>
-        {% endif %}
+        {% end %}
         {% if content %}
         <div class="summary-content prose">
             {{ content | safe }}
         </div>
-        {% endif %}
+        {% end %}
     </section>
-    {% endif %}
+    {% end %}
 
     {# Experience Section #}
     {% if resume.experience %}
@@ -82,32 +82,32 @@
                         <span class="timeline-date">{{ job.start_date }} - {{ job.end_date or 'Present' }}</span>
                         {% if job.location %}
                         <span class="timeline-location">{{ job.location }}</span>
-                        {% endif %}
+                        {% end %}
                     </div>
                 </div>
                 {% if job.description %}
                 <p class="timeline-description">{{ job.description }}</p>
-                {% endif %}
+                {% end %}
                 {% if job.highlights and job.highlights is iterable and job.highlights is not string %}
                 <ul class="timeline-highlights">
                     {% for highlight in job.highlights %}
                     <li>{{ highlight }}</li>
-                    {% endfor %}
+                    {% end %}
                 </ul>
-                {% endif %}
+                {% end %}
                 {% if job.technologies and job.technologies is iterable and job.technologies is not string %}
                 <div class="timeline-technologies">
                     <strong>Technologies:</strong>
                     {% for tech in job.technologies %}
                     <span class="tech-tag">{{ tech }}</span>
-                    {% endfor %}
+                    {% end %}
                 </div>
-                {% endif %}
+                {% end %}
             </div>
-            {% endfor %}
+            {% end %}
         </div>
     </section>
-    {% endif %}
+    {% end %}
 
     {# Education Section #}
     {% if resume.education %}
@@ -126,29 +126,29 @@
                         <span class="timeline-date">{{ edu.start_date }} - {{ edu.end_date or 'Present' }}</span>
                         {% if edu.location %}
                         <span class="timeline-location">{{ edu.location }}</span>
-                        {% endif %}
+                        {% end %}
                     </div>
                 </div>
                 {% if edu.gpa %}
                 <p class="timeline-description">GPA: {{ edu.gpa }}</p>
-                {% endif %}
+                {% end %}
                 {% if edu.honors %}
                 <ul class="timeline-highlights">
                     {% for honor in edu.honors %}
                     <li>{{ honor }}</li>
-                    {% endfor %}
+                    {% end %}
                 </ul>
-                {% endif %}
+                {% end %}
                 {% if edu.coursework %}
                 <div class="timeline-technologies">
                     <strong>Relevant Coursework:</strong> {{ edu.coursework | join(', ') }}
                 </div>
-                {% endif %}
+                {% end %}
             </div>
-            {% endfor %}
+            {% end %}
         </div>
     </section>
-    {% endif %}
+    {% end %}
 
     {# Skills Section #}
     {% if resume.skills %}
@@ -162,13 +162,13 @@
                 <div class="skill-tags">
                     {% for skill in skill_group.items %}
                     <span class="skill-tag">{{ skill }}</span>
-                    {% endfor %}
+                    {% end %}
                 </div>
             </div>
-            {% endfor %}
+            {% end %}
         </div>
     </section>
-    {% endif %}
+    {% end %}
 
     {# Projects Section #}
     {% if resume.projects %}
@@ -185,51 +185,51 @@
                             <a href="{{ project.url }}" target="_blank">{{ project.name }}</a>
                             {% else %}
                             {{ project.name }}
-                            {% endif %}
+                            {% end %}
                         </h3>
                         {% if project.role %}
                         <p class="timeline-company">{{ project.role }}</p>
-                        {% endif %}
+                        {% end %}
                     </div>
                     {% if project.date %}
                     <div class="timeline-meta">
                         <span class="timeline-date">{{ project.date }}</span>
                     </div>
-                    {% endif %}
+                    {% end %}
                 </div>
                 {% if project.description %}
                 <p class="timeline-description">{{ project.description }}</p>
-                {% endif %}
+                {% end %}
                 {% if project.highlights %}
                 <ul class="timeline-highlights">
                     {% for highlight in project.highlights %}
                     <li>{{ highlight }}</li>
-                    {% endfor %}
+                    {% end %}
                 </ul>
-                {% endif %}
+                {% end %}
                 {% if project.technologies %}
                 <div class="timeline-technologies">
                     <strong>Technologies:</strong>
                     {% for tech in project.technologies %}
                     <span class="tech-tag">{{ tech }}</span>
-                    {% endfor %}
+                    {% end %}
                 </div>
-                {% endif %}
+                {% end %}
                 {% if project.github or project.demo %}
                 <div class="project-links">
                     {% if project.github %}
                     <a href="{{ project.github }}" target="_blank" class="project-link">GitHub</a>
-                    {% endif %}
+                    {% end %}
                     {% if project.demo %}
                     <a href="{{ project.demo }}" target="_blank" class="project-link">Live Demo</a>
-                    {% endif %}
+                    {% end %}
                 </div>
-                {% endif %}
+                {% end %}
             </div>
-            {% endfor %}
+            {% end %}
         </div>
     </section>
-    {% endif %}
+    {% end %}
 
     {# Certifications Section #}
     {% if resume.certifications %}
@@ -243,15 +243,15 @@
                 <p class="certification-issuer">{{ cert.issuer }}</p>
                 {% if cert.date %}
                 <p class="certification-date">{{ cert.date }}</p>
-                {% endif %}
+                {% end %}
                 {% if cert.url %}
                 <a href="{{ cert.url }}" target="_blank" class="certification-link">View Credential →</a>
-                {% endif %}
+                {% end %}
             </div>
-            {% endfor %}
+            {% end %}
         </div>
     </section>
-    {% endif %}
+    {% end %}
 
     {# Awards Section #}
     {% if resume.awards %}
@@ -265,15 +265,15 @@
                 <p class="award-issuer">{{ award.issuer }}</p>
                 {% if award.date %}
                 <p class="award-date">{{ award.date }}</p>
-                {% endif %}
+                {% end %}
                 {% if award.description %}
                 <p class="award-description">{{ award.description }}</p>
-                {% endif %}
+                {% end %}
             </div>
-            {% endfor %}
+            {% end %}
         </div>
     </section>
-    {% endif %}
+    {% end %}
 
     {# Languages Section #}
     {% if resume.languages %}
@@ -286,10 +286,10 @@
                 <span class="language-name">{{ lang.language }}</span>
                 <span class="language-level">{{ lang.proficiency }}</span>
             </div>
-            {% endfor %}
+            {% end %}
         </div>
     </section>
-    {% endif %}
+    {% end %}
 
     {# Volunteer Section #}
     {% if resume.volunteer %}
@@ -310,18 +310,18 @@
                 </div>
                 {% if vol.description %}
                 <p class="timeline-description">{{ vol.description }}</p>
-                {% endif %}
+                {% end %}
             </div>
-            {% endfor %}
+            {% end %}
         </div>
     </section>
-    {% endif %}
+    {% end %}
 
     {# Page Content (bio, personal statement, etc.) #}
     {% if content and content.strip() %}
     <section class="resume-section resume-custom-content prose">
         {{ content | safe }}
     </section>
-    {% endif %}
+    {% end %}
 </div>
-{% endblock %}
+{% end %}

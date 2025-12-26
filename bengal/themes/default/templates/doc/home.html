@@ -22,7 +22,7 @@ Or set `template: doc/home.html` in frontmatter
             <h1 class="docs-home-title">{{ page.title | default(config.title) }}</h1>
             {% if params.description %}
             <p class="docs-home-subtitle">{{ params.description }}</p>
-            {% endif %}
+            {% end %}
         </div>
     </header>
 
@@ -31,7 +31,7 @@ Or set `template: doc/home.html` in frontmatter
     <div class="docs-home-content prose">
         {{ content | safe }}
     </div>
-    {% endif %}
+    {% end %}
 
     {# Quick Links to Key Sections #}
     {% set show_quick_links = params.show_quick_links | default(true) %}
@@ -40,9 +40,9 @@ Or set `template: doc/home.html` in frontmatter
     {% set doc_sections = [] %}
     {% for section in site.sections %}
     {% if section.metadata.type == 'doc' or section.metadata.content_type == 'doc' %}
-    {% set _ = doc_sections.append(section) %}
-    {% endif %}
-    {% endfor %}
+    {% do doc_sections.append(section) %}
+    {% end %}
+    {% end %}
 
     {# If no doc sections found, try common section names #}
     {% if not doc_sections %}
@@ -50,31 +50,38 @@ Or set `template: doc/home.html` in frontmatter
     {% for name in common_names %}
     {% set candidates = site.sections | selectattr('name', 'equalto', name) | list %}
     {% if candidates %}
-    {% set _ = doc_sections.append(candidates[0]) %}
-    {% endif %}
-    {% endfor %}
-    {% endif %}
+    {% do doc_sections.append(candidates[0]) %}
+    {% end %}
+    {% end %}
+    {% end %}
 
     {% if doc_sections %}
+    {# Build sortable list with safe weight values #}
+    {% set sortable_sections = [] %}
+    {% for section in doc_sections %}
+    {% set _weight = section.metadata.weight %}
+    {% do sortable_sections.append({'section': section, 'weight': _weight or 999999}) %}
+    {% end %}
     <section class="docs-home-sections">
         <h2 class="docs-home-sections-title">Documentation Sections</h2>
         <div class="docs-home-sections-grid">
-            {% for section in doc_sections | sort(attribute='metadata.weight', reverse=false) | limit(6) %}
+            {% for item in sortable_sections | sort(attribute='weight') | limit(6) %}
+            {% set section = item.section %}
             <a href="{{ section.href }}" class="docs-home-section-card gradient-border fluid-combined">
                 <h3 class="docs-home-section-title">{{ section.title }}</h3>
                 {% if section.metadata.description %}
                 <p class="docs-home-section-description">{{ section.metadata.description }}</p>
-                {% endif %}
+                {% end %}
                 {% if section.pages %}
                 <span class="docs-home-section-count">{{ section.pages | length }} page{{ 's' if section.pages | length
                     != 1 else '' }}</span>
-                {% endif %}
+                {% end %}
             </a>
-            {% endfor %}
+            {% end %}
         </div>
     </section>
-    {% endif %}
-    {% endif %}
+    {% end %}
+    {% end %}
 
     {# Custom Quick Links from metadata #}
     {% if params.quick_links %}
@@ -85,15 +92,15 @@ Or set `template: doc/home.html` in frontmatter
             <a href="{{ link.href or link.url }}" class="docs-home-quick-link-card gradient-border">
                 {% if link.icon %}
                 <div class="docs-home-quick-link-icon">{{ link.icon }}</div>
-                {% endif %}
+                {% end %}
                 <h3>{{ link.title }}</h3>
                 {% if link.description %}
                 <p>{{ link.description }}</p>
-                {% endif %}
+                {% end %}
             </a>
-            {% endfor %}
+            {% end %}
         </div>
     </section>
-    {% endif %}
+    {% end %}
 </div>
-{% endblock %}
+{% end %}

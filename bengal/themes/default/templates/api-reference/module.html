@@ -13,7 +13,7 @@ This template receives:
 - site: Site instance
 #}
 
-{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc with context %}
+{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc %}
 {% from 'autodoc/partials/_macros/class-member.html' import class_member %}
 {% from 'autodoc/partials/_macros/function-member.html' import function_member %}
 
@@ -44,9 +44,9 @@ This template receives:
         <h2 class="autodoc-section-title">Classes</h2>
         {% for cls in classes %}
         {{ class_member(cls, is_first=loop.first) }}
-        {% endfor %}
+        {% end %}
       </section>
-      {% endif %}
+      {% end %}
 
       {# Functions Section #}
       {% if functions %}
@@ -54,18 +54,18 @@ This template receives:
         <h2 class="autodoc-section-title">Functions</h2>
         {% for func in functions %}
         {{ function_member(func, is_first=loop.first) }}
-        {% endfor %}
+        {% end %}
       </section>
-      {% endif %}
+      {% end %}
 
       {# Tags #}
       {% if page.tags %}
       <footer class="docs-footer">
         <span class="docs-footer-label">Tagged</span>
-        {% from 'partials/content-components.html' import tag_list with context %}
+        {% from 'partials/content-components.html' import tag_list %}
         {{ tag_list(page.tags) }}
       </footer>
-      {% endif %}
+      {% end %}
     </article>
 
     {# Page navigation (prev/next) at bottom #}
@@ -84,4 +84,4 @@ This template receives:
 
 {# Sidebar overlay for mobile #}
 <div class="docs-sidebar-overlay" aria-hidden="true"></div>
-{% endblock %}
+{% end %}

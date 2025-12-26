@@ -26,16 +26,16 @@ Optional: title (str)
         <code>{{ param_name }}</code>
         {% if param_type_val %}
         <span class="autodoc-param-type">{{ param_type_val }}</span>
-        {% endif %}
+        {% end %}
       </dt>
       <dd class="autodoc-param-desc">
         {{ param_desc }}
         {% if param_default %}
         <span class="autodoc-param-default">Default: <code>{{ param_default }}</code></span>
-        {% endif %}
+        {% end %}
       </dd>
     </div>
-    {% endfor %}
+    {% end %}
   </dl>
 </section>
-{% endif %}
+{% end %}

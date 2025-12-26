@@ -38,7 +38,7 @@ related: false # disable related entirely
         <p class="section-description">{{ params.description }}</p>
         {% elif section and section.params.description %}
         <p class="section-description">{{ section.params.description }}</p>
-        {% endif %}
+        {% end %}
     </header>
 
     {# User-provided content (from _index.md) #}
@@ -46,7 +46,7 @@ related: false # disable related entirely
     <div class="section-content prose">
         {{ content | safe }}
     </div>
-    {% endif %}
+    {% end %}
 
     {# Content tiles with smart defaults - use discover: frontmatter to customize #}
     {% set discover = params.discover if page else {} %}
@@ -80,7 +80,7 @@ related: false # disable related entirely
     variant=children_variant,
     group_by='type' if has_children and has_related else none
     ) }}
-    {% endif %}
+    {% end %}
 
     {# Empty state if no children to display #}
     {% if not (posts or subsections) %}
@@ -102,9 +102,9 @@ related: false # disable related entirely
                     </li>
                 </ul>
             </div>
-            {% endif %}
+            {% end %}
         </div>
     </div>
-    {% endif %}
+    {% end %}
 </div>
-{% endblock %}
+{% end %}

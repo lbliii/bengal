@@ -1,7 +1,7 @@
 {#
 Docs TOC Sidebar Component
 
-Right sidebar with contextual graph minimap and table of contents.
+Right sidebarual graph minimap and table of contents.
 Used by docs-family templates: doc, autodoc-python, autodoc-cli.
 
 Features:
@@ -21,7 +21,7 @@ Configuration:
 - Graph minimap can be disabled via theme config
 #}
 
-{% from 'partials/navigation-components.html' import toc with context %}
+{% from 'partials/navigation-components.html' import toc %}
 
 {% if toc_items %}
 <aside class="docs-toc" role="complementary" aria-label="Table of contents">
@@ -35,9 +35,9 @@ Configuration:
       style="min-height: 200px; opacity: 1 !important; visibility: visible !important;">
     </div>
   </div>
-  {% endif %}
+  {% end %}
 
   {# Table of Contents #}
   {{ toc(toc_items=toc_items, toc=toc, page=page) }}
 </aside>
-{% endif %}
+{% end %}

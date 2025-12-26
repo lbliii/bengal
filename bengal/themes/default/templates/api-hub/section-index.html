@@ -17,7 +17,7 @@ This template receives:
 The template can be overridden by creating content/<section>/_index.md with custom content.
 #}
 
-{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc with context %}
+{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc %}
 
 {% block content %}
 {# Three-column documentation layout #}
@@ -36,7 +36,7 @@ The template can be overridden by creating content/<section>/_index.md with cust
       <nav class="page-hero__breadcrumbs" aria-label="Breadcrumb">
         {{ breadcrumbs(page) }}
       </nav>
-      {% endif %}
+      {% end %}
 
       {# Title #}
       <h1 class="page-hero__title">{{ section.title if section else 'API Documentation' }}</h1>
@@ -49,7 +49,7 @@ The template can be overridden by creating content/<section>/_index.md with cust
       </div>
       {% else %}
       <p class="page-hero__description">Browse all API documentation for this project.</p>
-      {% endif %}
+      {% end %}
 
       {# Stats showing child count #}
       {% if section and section.sorted_subsections | length > 0 %}
@@ -61,7 +61,7 @@ The template can be overridden by creating content/<section>/_index.md with cust
           </span>
         </div>
       </div>
-      {% endif %}
+      {% end %}
     </div>
 
     {# Article Content - autodoc skeleton #}
@@ -72,7 +72,7 @@ The template can be overridden by creating content/<section>/_index.md with cust
       <div class="autodoc-custom-content">
         {{ content | safe }}
       </div>
-      {% endif %}
+      {% end %}
 
       {# API Hub Card Grid #}
       {% if section and section.sorted_subsections %}
@@ -94,7 +94,7 @@ The template can be overridden by creating content/<section>/_index.md with cust
               {{ icon("terminal", size=32, css_class="icon-cli") }}
               {%- else -%}
               {{ icon("book", size=32, css_class="icon-default") }}
-              {%- endif -%}
+              {% end %}
             </span>
           </div>
 
@@ -113,8 +113,8 @@ The template can be overridden by creating content/<section>/_index.md with cust
               Command-line tools and options.
               {%- else -%}
               API documentation.
-              {%- endif -%}
-              {% endif %}
+              {% end %}
+              {% end %}
             </p>
           </div>
 
@@ -128,15 +128,15 @@ The template can be overridden by creating content/<section>/_index.md with cust
               {{ child_count }} {{ 'command' if child_count == 1 else 'commands' }}
               {%- else -%}
               {{ child_count }} {{ 'item' if child_count == 1 else 'items' }}
-              {%- endif -%}</span>
+              {% end %}</span>
             <span class="autodoc-badge" data-badge="{{ sub_type }}">
               {%- if 'python' in sub_type -%}Python
               {%- elif 'openapi' in sub_type -%}REST
               {%- elif 'cli' in sub_type -%}CLI
-              {%- else -%}API{%- endif -%}</span>
+              {%- else -%}API{% end %}</span>
           </div>
         </a>
-        {% endfor %}
+        {% end %}
       </div>
       {% else %}
       {# Empty State #}
@@ -145,7 +145,7 @@ The template can be overridden by creating content/<section>/_index.md with cust
         <p class="autodoc-empty-state-text">No API documentation available yet.</p>
         <p class="autodoc-empty-state-hint">Enable Python, OpenAPI, or CLI autodoc in your configuration.</p>
       </div>
-      {% endif %}
+      {% end %}
 
     </article>
 
@@ -165,4 +165,4 @@ The template can be overridden by creating content/<section>/_index.md with cust
 
 {# Sidebar overlay for mobile #}
 <div class="docs-sidebar-overlay" aria-hidden="true"></div>
-{% endblock %}
+{% end %}

@@ -48,7 +48,7 @@ Context variables:
         {# Filter by section if specified #}
         {% if section_filter %}
         {% set year_posts = year_posts | selectattr('_section.name', 'equalto', section_filter) | list %}
-        {% endif %}
+        {% end %}
 
         {% if year_posts %}
         <p class="archive-count">{{ year_posts | length }} post{{ 's' if year_posts | length != 1 }} in {{ year }}</p>
@@ -77,8 +77,8 @@ Context variables:
                 </div>
             </div>
         </div>
-        {% endif %}
-        {% endif %}
+        {% end %}
+        {% end %}
     </header>
 
     {% if year_posts %}
@@ -90,7 +90,7 @@ Context variables:
     {# Filter by section if specified #}
     {% if section_filter %}
     {% set month_posts = month_posts | selectattr('_section.name', 'equalto', section_filter) | list %}
-    {% endif %}
+    {% end %}
 
     {% if month_posts %}
     <section class="month-group">
@@ -113,32 +113,32 @@ Context variables:
 
                     {% if post.metadata.description %}
                     <p class="post-excerpt">{{ post.metadata.description }}</p>
-                    {% endif %}
+                    {% end %}
 
                     <div class="post-meta">
                         {% if post.metadata.author %}
                         <span class="post-author">{{ post.metadata.author }}</span>
-                        {% endif %}
+                        {% end %}
 
                         {% if post.content %}
                         <span class="reading-time">
                             {{ (post.content | wordcount / 200) | round }} min read
                         </span>
-                        {% endif %}
+                        {% end %}
 
                         {% if post.tags %}
                         <span class="post-tags">
                             {{ tag_list(post.tags | limit(3)) }}
                         </span>
-                        {% endif %}
+                        {% end %}
                     </div>
                 </div>
             </article>
-            {% endfor %}
+            {% end %}
         </div>
     </section>
-    {% endif %}
-    {% endfor %}
+    {% end %}
+    {% end %}
 
     {# Navigation to other years #}
     <nav class="year-navigation" aria-label="Other years">
@@ -156,17 +156,17 @@ Context variables:
             {% if section_filter %}
             {% set other_year_posts = other_year_posts | selectattr('_section.name', 'equalto', section_filter) | list
             %}
-            {% endif %}
+            {% end %}
 
             {% if other_year_posts %}
-            <li {% if other_year==year %}class="current-year" {% endif %}>
+            <li {% if other_year==year %}class="current-year" {% end %}>
                 <a href="{{ ('/archive/' ~ other_year ~ '/') | absolute_url }}">
                     {{ other_year }}
                     <span class="year-count">({{ other_year_posts | length }})</span>
                 </a>
             </li>
-            {% endif %}
-            {% endfor %}
+            {% end %}
+            {% end %}
         </ul>
     </nav>
 
@@ -178,7 +178,7 @@ Context variables:
             <a href="{{ '/archive/' | absolute_url }}" class="button">Browse All Archives</a>
         </div>
     </div>
-    {% endif %}
+    {% end %}
 </div>
 
-{% endblock %}
+{% end %}

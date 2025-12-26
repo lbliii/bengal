@@ -16,15 +16,15 @@ Features:
 - Disable with `show_children: false` in frontmatter
 #}
 
-{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc with context %}
-{% from 'partials/content-components.html' import tag_list, content_tiles with context %}
+{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc %}
+{% from 'partials/content-components.html' import tag_list, content_tiles %}
 
 {% block content %}
 {# Ensure page is set - use section.index_page if page not defined #}
 {# This is needed for breadcrumbs, sidebar navigation, and content rendering #}
 {% if not page and section %}
   {% set page = section.index_page %}
-{% endif %}
+{% end %}
 
 {# Three-column documentation layout #}
 <div class="docs-layout">
@@ -40,7 +40,7 @@ Features:
     {% include 'partials/page-hero.html' %}
 
     {# Article Content - flattened structure #}
-    <article class="prose docs-content {% if page and params.css_class %}{{ params.css_class }}{% endif %}">
+    <article class="prose docs-content {% if page and params.css_class %}{{ params.css_class }}{% end %}">
       {{ content | safe }}
 
       {# Content tiles with smart defaults - use discover: frontmatter to customize #}
@@ -77,14 +77,14 @@ Features:
           group_by='type' if has_children and has_related else none
         ) }}
       </div>
-      {% endif %}
+      {% end %}
 
       {# Tags #}
       {% if page and page.tags %}
       <footer class="docs-footer">
         {{ tag_list(page.tags) }}
       </footer>
-      {% endif %}
+      {% end %}
     </article>
 
     {# Page navigation (prev/next) at bottom #}
@@ -96,7 +96,7 @@ Features:
   <aside class="docs-toc" role="complementary" aria-label="Table of contents">
     {{ toc(toc_items=toc_items, toc=toc, page=page) }}
   </aside>
-  {% endif %}
+  {% end %}
 </div>
 
 {# Mobile sidebar toggle button #}
@@ -107,6 +107,6 @@ Features:
 
 {# Sidebar overlay for mobile #}
 <div class="docs-sidebar-overlay" aria-hidden="true"></div>
-{% endblock %}
+{% end %}
 
 {# Sidebar toggle functionality is handled by interactive.js #}

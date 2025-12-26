@@ -25,13 +25,13 @@ Supports two modes:
 {# For section pages (like changelog list), ensure 'page' refers to the section #}
 {% if not page and section %}
 {% set page = section %}
-{% endif %}
+{% end %}
 
 {# Hero Section - matches home page style #}
 {% set hero_classes = ['hero', 'hero--large'] %}
 {% if page and params.blob_background %}
-{% set _ = hero_classes.append('hero--blob-background') %}
-{% endif %}
+{% do hero_classes.append('hero--blob-background') %}
+{% end %}
 <header class="{{ hero_classes | join(' ') }}">
     {% if page and params.blob_background %}
     {# Organic blob background animation #}
@@ -41,7 +41,7 @@ Supports two modes:
         <div class="hero__blob hero__blob--3"></div>
         <div class="hero__blob hero__blob--4"></div>
     </div>
-    {% endif %}
+    {% end %}
     <div class="hero__container">
         <div class="hero__content">
             <h1 class="hero__title">
@@ -50,18 +50,18 @@ Supports two modes:
             {% set hero_description = section.metadata.description if section else (params.description if page else '') %}
             {% if hero_description %}
             <p class="hero__subtitle">{{ hero_description }}</p>
-            {% endif %}
+            {% end %}
 
             {% if page and params.cta_buttons %}
             <div class="hero__actions">
                 {% for button in params.cta_buttons %}
                 <a href="{{ button.href or button.url | absolute_url }}"
-                    class="hero__button hero__button--{{ button.style | default('primary') }} {% if button.style != 'primary' %}gradient-border{% endif %}">
+                    class="hero__button hero__button--{{ button.style | default('primary') }} {% if button.style != 'primary' %}gradient-border{% end %}">
                     {{ button.text }}
                 </a>
-                {% endfor %}
+                {% end %}
             </div>
-            {% endif %}
+            {% end %}
         </div>
     </div>
 </header>
@@ -72,7 +72,7 @@ Supports two modes:
     <section class="changelog-content prose">
         {{ content | safe }}
     </section>
-    {% endif %}
+    {% end %}
 
     {# Check if any releases have structured metadata for filtering #}
     {% set has_structured_data = false %}
@@ -80,15 +80,15 @@ Supports two modes:
         {% for release in changelog_data.releases %}
             {% if release.added or release.changed or release.fixed or release.breaking or release.security %}
                 {% set has_structured_data = true %}
-            {% endif %}
-        {% endfor %}
+            {% end %}
+        {% end %}
     {% elif pages %}
         {% for release in pages %}
             {% if release.metadata.added or release.metadata.changed or release.metadata.fixed or release.metadata.breaking or release.metadata.security %}
                 {% set has_structured_data = true %}
-            {% endif %}
-        {% endfor %}
-    {% endif %}
+            {% end %}
+        {% end %}
+    {% end %}
 
     {# Filter UI - Only show if structured data exists #}
     {% if has_structured_data %}
@@ -112,7 +112,7 @@ Supports two modes:
             🔒 Security
         </button>
     </div>
-    {% endif %}
+    {% end %}
 
     {# Data-driven mode: Use changelog.yaml #}
     {% if changelog_data and changelog_data.releases %}
@@ -121,11 +121,11 @@ Supports two modes:
             {% for release in changelog_data.releases | reverse %}
             {# Build list of change types for filtering #}
             {% set change_types = [] %}
-            {% if release.added %} {% set _ = change_types.append('added') %} {% endif %}
-            {% if release.changed %} {% set _ = change_types.append('changed') %} {% endif %}
-            {% if release.fixed %} {% set _ = change_types.append('fixed') %} {% endif %}
-            {% if release.breaking %} {% set _ = change_types.append('breaking') %} {% endif %}
-            {% if release.security %} {% set _ = change_types.append('security') %} {% endif %}
+            {% if release.added %} {% do change_types.append('added') %} {% end %}
+            {% if release.changed %} {% do change_types.append('changed') %} {% end %}
+            {% if release.fixed %} {% do change_types.append('fixed') %} {% end %}
+            {% if release.breaking %} {% do change_types.append('breaking') %} {% end %}
+            {% if release.security %} {% do change_types.append('security') %} {% end %}
             <div class="timeline-item" data-change-types="{{ change_types | join(' ') }}">
                 <div class="timeline-header">
                     <div class="timeline-title-group">
@@ -134,27 +134,27 @@ Supports two modes:
                             <a href="{{ release.url }}">{{ release.version }}</a>
                             {% else %}
                             {{ release.version }}
-                            {% endif %}
+                            {% end %}
                         </h2>
                         {% if release.name %}
                         <p class="timeline-subtitle">{{ release.name }}</p>
-                        {% endif %}
+                        {% end %}
                     </div>
                     <div class="timeline-meta">
                         {% if release.date %}
                         <span class="timeline-date">{{ release.date }}</span>
-                        {% endif %}
+                        {% end %}
                         {% if release.status %}
                         <span class="release-status status-{{ release.status | lower }}">
                             {{ release.status }}
                         </span>
-                        {% endif %}
+                        {% end %}
                     </div>
                 </div>
 
                 {% if release.summary %}
                 <p class="timeline-description">{{ release.summary }}</p>
-                {% endif %}
+                {% end %}
 
                 {# Added Features #}
                 {% if release.added and release.added is iterable and release.added is not string
@@ -164,10 +164,10 @@ Supports two modes:
                     <ul class="changelog-list">
                         {% for item in release.added %}
                         <li>{{ item }}</li>
-                        {% endfor %}
+                        {% end %}
                     </ul>
                 </div>
-                {% endif %}
+                {% end %}
 
                 {# Changed/Improved #}
                 {% if release.changed and release.changed is iterable and release.changed is not
@@ -177,10 +177,10 @@ Supports two modes:
                     <ul class="changelog-list">
                         {% for item in release.changed %}
                         <li>{{ item }}</li>
-                        {% endfor %}
+                        {% end %}
                     </ul>
                 </div>
-                {% endif %}
+                {% end %}
 
                 {# Fixed Bugs #}
                 {% if release.fixed and release.fixed is iterable and release.fixed is not string
@@ -190,10 +190,10 @@ Supports two modes:
                     <ul class="changelog-list">
                         {% for item in release.fixed %}
                         <li>{{ item }}</li>
-                        {% endfor %}
+                        {% end %}
                     </ul>
                 </div>
-                {% endif %}
+                {% end %}
 
                 {# Deprecated #}
                 {% if release.deprecated and release.deprecated is iterable and release.deprecated
@@ -203,10 +203,10 @@ Supports two modes:
                     <ul class="changelog-list">
                         {% for item in release.deprecated %}
                         <li>{{ item }}</li>
-                        {% endfor %}
+                        {% end %}
                     </ul>
                 </div>
-                {% endif %}
+                {% end %}
 
                 {# Removed #}
                 {% if release.removed and release.removed is iterable and release.removed is not
@@ -216,10 +216,10 @@ Supports two modes:
                     <ul class="changelog-list">
                         {% for item in release.removed %}
                         <li>{{ item }}</li>
-                        {% endfor %}
+                        {% end %}
                     </ul>
                 </div>
-                {% endif %}
+                {% end %}
 
                 {# Security #}
                 {% if release.security and release.security is iterable and release.security is not
@@ -229,10 +229,10 @@ Supports two modes:
                     <ul class="changelog-list">
                         {% for item in release.security %}
                         <li>{{ item }}</li>
-                        {% endfor %}
+                        {% end %}
                     </ul>
                 </div>
-                {% endif %}
+                {% end %}
 
                 {# Breaking Changes #}
                 {% if release.breaking and release.breaking is iterable and release.breaking is not
@@ -242,12 +242,12 @@ Supports two modes:
                     <ul class="changelog-list changelog-list--breaking">
                         {% for item in release.breaking %}
                         <li class="changelog-item--breaking">{{ item }}</li>
-                        {% endfor %}
+                        {% end %}
                     </ul>
                 </div>
-                {% endif %}
+                {% end %}
             </div>
-            {% endfor %}
+            {% end %}
         </div>
     </section>
 
@@ -259,11 +259,11 @@ Supports two modes:
             {# Build list of change types for filtering #}
             {# If no structured metadata, leave empty - JavaScript will show for all filters #}
             {% set change_types = [] %}
-            {% if release.metadata.added %} {% set _ = change_types.append('added') %} {% endif %}
-            {% if release.metadata.changed %} {% set _ = change_types.append('changed') %} {% endif %}
-            {% if release.metadata.fixed %} {% set _ = change_types.append('fixed') %} {% endif %}
-            {% if release.metadata.breaking %} {% set _ = change_types.append('breaking') %} {% endif %}
-            {% if release.metadata.security %} {% set _ = change_types.append('security') %} {% endif %}
+            {% if release.metadata.added %} {% do change_types.append('added') %} {% end %}
+            {% if release.metadata.changed %} {% do change_types.append('changed') %} {% end %}
+            {% if release.metadata.fixed %} {% do change_types.append('fixed') %} {% end %}
+            {% if release.metadata.breaking %} {% do change_types.append('breaking') %} {% end %}
+            {% if release.metadata.security %} {% do change_types.append('security') %} {% end %}
             <div class="timeline-item" data-change-types="{{ change_types | join(' ') }}">
                 <div class="timeline-header">
                     <div class="timeline-title-group">
@@ -272,19 +272,19 @@ Supports two modes:
                         </h2>
                         {% if release.metadata.name %}
                         <p class="timeline-subtitle">{{ release.metadata.name }}</p>
-                        {% endif %}
+                        {% end %}
                     </div>
                     <div class="timeline-meta">
                         {% if release.date %}
                         <time datetime="{{ release.date | date_iso }}">
                             {{ release.date | dateformat('%B %d, %Y') }}
                         </time>
-                        {% endif %}
+                        {% end %}
                         {% if release.metadata.status %}
                         <span class="release-status status-{{ release.metadata.status | lower }}">
                             {{ release.metadata.status }}
                         </span>
-                        {% endif %}
+                        {% end %}
                     </div>
                 </div>
 
@@ -293,7 +293,7 @@ Supports two modes:
                 <p class="timeline-description">
                     {{ release_description }}
                 </p>
-                {% endif %}
+                {% end %}
 
                 {# Show categories if in metadata #}
                 {% if release.metadata.added %}
@@ -302,10 +302,10 @@ Supports two modes:
                     <ul class="changelog-list">
                         {% for item in release.metadata.added %}
                         <li>{{ item }}</li>
-                        {% endfor %}
+                        {% end %}
                     </ul>
                 </div>
-                {% endif %}
+                {% end %}
 
                 {% if release.metadata.changed %}
                 <div class="changelog-category">
@@ -313,10 +313,10 @@ Supports two modes:
                     <ul class="changelog-list">
                         {% for item in release.metadata.changed %}
                         <li>{{ item }}</li>
-                        {% endfor %}
+                        {% end %}
                     </ul>
                 </div>
-                {% endif %}
+                {% end %}
 
                 {% if release.metadata.fixed %}
                 <div class="changelog-category">
@@ -324,16 +324,16 @@ Supports two modes:
                     <ul class="changelog-list">
                         {% for item in release.metadata.fixed %}
                         <li>{{ item }}</li>
-                        {% endfor %}
+                        {% end %}
                     </ul>
                 </div>
-                {% endif %}
+                {% end %}
 
                 <a href="{{ release.href }}" class="changelog-read-more">
                     View full release notes →
                 </a>
             </div>
-            {% endfor %}
+            {% end %}
         </div>
     </section>
 
@@ -342,8 +342,8 @@ Supports two modes:
     <div class="changelog-empty">
         <p>No releases yet. Check back soon!</p>
     </div>
-    {% endif %}
+    {% end %}
 
 
 </div>
-{% endblock %}
+{% end %}

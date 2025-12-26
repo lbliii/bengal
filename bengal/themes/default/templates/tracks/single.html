@@ -11,7 +11,7 @@ Or set `type: track` to auto-select this template
 #}
 
 {% extends "base.html" %}
-{% from 'partials/navigation-components.html' import toc with context %}
+{% from 'partials/navigation-components.html' import toc %}
 
 {% block content %}
 {% set track_id = params.track_id or page.slug %}
@@ -37,7 +37,7 @@ Or set `type: track` to auto-select this template
                 <p class="lead text-muted mt-3">
                     {{ page.description or (track.description if track else '') }}
                 </p>
-                {% endif %}
+                {% end %}
             </header>
 
             {# Main Page Content (Introduction) #}
@@ -45,7 +45,7 @@ Or set `type: track` to auto-select this template
             <div class="track-intro mb-5">
                 {{ content | safe }}
             </div>
-            {% endif %}
+            {% end %}
 
             {# Render All Track Pages Sequentially (Pillar Page Content) #}
             {% if track and track.items %}
@@ -63,7 +63,7 @@ Or set `type: track` to auto-select this template
                             <h2 class="track-section-title">{{ item_page.title }}</h2>
                             {% if item_page.description %}
                             <p class="track-section-description">{{ item_page.description }}</p>
-                            {% endif %}
+                            {% end %}
                         </div>
                     </div>
 
@@ -84,7 +84,7 @@ Or set `type: track` to auto-select this template
                                 </a>
                             </p>
                         </div>
-                        {% endif %}
+                        {% end %}
                     </div>
 
                     {# Track Complete Badge (only after final section) #}
@@ -94,7 +94,7 @@ Or set `type: track` to auto-select this template
                             ✓ Track Complete
                         </span>
                     </div>
-                    {% endif %}
+                    {% end %}
                 </section>
                 {% else %}
                 {# Missing Page Warning #}
@@ -104,8 +104,8 @@ Or set `type: track` to auto-select this template
                         <p class="mb-0">Could not find page: <code>{{ item_slug }}</code></p>
                     </div>
                 </section>
-                {% endif %}
-                {% endfor %}
+                {% end %}
+                {% end %}
             </div>
             {% elif not track %}
             <div class="alert alert-warning">
@@ -117,7 +117,7 @@ Or set `type: track` to auto-select this template
                 <p class="mb-0">Please ensure the page slug matches the track key, or set <code>track_id</code> in
                     frontmatter.</p>
             </div>
-            {% endif %}
+            {% end %}
         </article>
     </div>
 
@@ -129,13 +129,13 @@ Or set `type: track` to auto-select this template
         <aside class="docs-toc" role="complementary" aria-label="Table of contents">
             {{ toc(toc_items=combined_toc_items, page=page) }}
         </aside>
-        {% endif %}
+        {% end %}
     {% elif page.toc_items %}
     {# Fallback to page TOC if no track sections #}
     <aside class="docs-toc" role="complementary" aria-label="Table of contents">
         {{ toc(toc_items=page.toc_items, page=page) }}
     </aside>
-    {% endif %}
+    {% end %}
 </div>
 
 {# Mobile sidebar toggle button #}
@@ -146,4 +146,4 @@ Or set `type: track` to auto-select this template
 
 {# Mobile sidebar overlay #}
 <div class="docs-sidebar-overlay" aria-hidden="true"></div>
-{% endblock %}
+{% end %}

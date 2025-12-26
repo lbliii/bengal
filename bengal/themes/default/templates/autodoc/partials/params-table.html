@@ -58,12 +58,12 @@ Supports:
           <code>{{ param_default }}</code>
           {%- else -%}
           <span class="table-empty">—</span>
-          {%- endif -%}
+          {% end %}
         </td>
         <td class="autodoc-cell-desc" data-label="Description">{{ param_desc | markdownify | safe }}</td>
       </tr>
-      {% endfor %}
+      {% end %}
     </tbody>
   </table>
 </section>
-{% endif %}
+{% end %}

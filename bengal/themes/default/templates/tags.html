@@ -35,14 +35,14 @@
         <div class="tag-item">
           <a href="{{ tag_url(tag.name) }}" class="tag-link">
             <span class="tag-name">{{ tag.name }}</span>
-            <span class="tag-count">{{ tag.count }} post{% if tag.count != 1 %}s{% endif %}</span>
+            <span class="tag-count">{{ tag.count }} post{% if tag.count != 1 %}s{% end %}</span>
           </a>
         </div>
-        {% endfor %}
+        {% end %}
       </div>
       {% else %}
       <p>No tags found.</p>
-      {% endif %}
+      {% end %}
     </article>
   </div>
 
@@ -51,4 +51,4 @@
 </div>
 
 {# styles moved to components/tags.css #}
-{% endblock %}
+{% end %}

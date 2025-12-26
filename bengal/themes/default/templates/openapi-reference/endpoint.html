@@ -12,7 +12,7 @@ This template receives:
 - site: Site instance
 #}
 
-{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc with context %}
+{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc %}
 
 {% block content %}
 {# Three-panel REST API layout #}
@@ -36,7 +36,7 @@ This template receives:
         <div class="autodoc-badges">
           <span class="autodoc-badge" data-badge="deprecated">Deprecated</span>
         </div>
-        {% endif %}
+        {% end %}
 
         <h1 class="autodoc-title">
           <span class="autodoc-method" data-method="{{ element.metadata.method | lower }}">{{ element.metadata.method | upper }}</span>
@@ -47,7 +47,7 @@ This template receives:
         <div class="autodoc-description">
           <p>{{ element.metadata.summary or element.description }}</p>
         </div>
-        {% endif %}
+        {% end %}
 
         {% if element.metadata.operation_id %}
         <div class="autodoc-stats">
@@ -56,7 +56,7 @@ This template receives:
             <span class="autodoc-stat-value"><code>{{ element.metadata.operation_id }}</code></span>
           </span>
         </div>
-        {% endif %}
+        {% end %}
       </header>
 
       {# Parameters Section #}
@@ -64,7 +64,7 @@ This template receives:
       {% set params = element.metadata.parameters %}
       {% set title = 'Parameters' %}
       {% include 'autodoc/partials/params-table.html' %}
-      {% endif %}
+      {% end %}
 
       {# Request Body Section #}
       {% if element.metadata.request_body %}
@@ -74,16 +74,16 @@ This template receives:
         <div class="autodoc-description">
           <p>{{ element.metadata.request_body.description }}</p>
         </div>
-        {% endif %}
+        {% end %}
         {% if element.metadata.request_body.content %}
         <div class="autodoc-badges">
           {% for content_type, schema in element.metadata.request_body.content.items() %}
           <span class="autodoc-badge">{{ content_type }}</span>
-          {% endfor %}
+          {% end %}
         </div>
-        {% endif %}
+        {% end %}
       </section>
-      {% endif %}
+      {% end %}
 
       {# Responses Section #}
       {% if element.metadata.responses %}
@@ -108,24 +108,24 @@ This template receives:
               </td>
               <td class="autodoc-cell-type" data-label="Content Type">
                 {% for content_type in response.content.keys() %}
-                <code>{{ content_type }}</code>{% if not loop.last %}, {% endif %}
-                {% endfor %}
+                <code>{{ content_type }}</code>{% if not loop.last %}, {% end %}
+                {% end %}
               </td>
             </tr>
-            {% endfor %}
+            {% end %}
           </tbody>
         </table>
       </section>
-      {% endif %}
+      {% end %}
 
       {# Tags #}
       {% if page.tags %}
       <footer class="docs-footer">
         <span class="docs-footer-label">Tagged</span>
-        {% from 'partials/content-components.html' import tag_list with context %}
+        {% from 'partials/content-components.html' import tag_list %}
         {{ tag_list(page.tags) }}
       </footer>
-      {% endif %}
+      {% end %}
     </article>
 
     {# Page navigation (prev/next) at bottom #}
@@ -143,7 +143,7 @@ This template receives:
         <pre><code class="language-bash">curl -X {{ element.metadata.method | upper }} \
   "https://api.example.com{{ element.metadata.path }}"{% if element.metadata.method | upper in ['POST', 'PUT', 'PATCH'] %} \
   -H "Content-Type: application/json" \
-  -d '{}'{% endif %}</code></pre>
+  -d '{}'{% end %}</code></pre>
       </div>
 
       {# Response Examples #}
@@ -156,9 +156,9 @@ This template receives:
   "status": "success"
 }</code></pre>
       </div>
-      {% endif %}
-      {% endfor %}
-      {% endif %}
+      {% end %}
+      {% end %}
+      {% end %}
     </div>
   </aside>
 </div>
@@ -171,4 +171,4 @@ This template receives:
 
 {# Sidebar overlay for mobile #}
 <div class="docs-sidebar-overlay" aria-hidden="true"></div>
-{% endblock %}
+{% end %}

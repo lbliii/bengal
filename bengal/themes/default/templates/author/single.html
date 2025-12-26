@@ -42,15 +42,15 @@ Context variables:
 {# Merge social links from data file format #}
 {% if author_data.github and not author_social.github %}
 {% set author_social = author_social | merge({'github': author_data.github}) %}
-{% endif %}
+{% end %}
 {% if author_data.links %}
 {% for link in author_data.links %}
 {% set link_url = link.href or link.url or '' %}
 {% if 'github' in link_url %}
 {% set author_social = author_social | merge({'github': link_url | replace('https://github.com/', '')}) %}
-{% endif %}
-{% endfor %}
-{% endif %}
+{% end %}
+{% end %}
+{% end %}
 
 {% set section_filter = params.section_filter %}
 
@@ -65,22 +65,22 @@ Context variables:
     <div class="author-avatar-placeholder">
       {{ author_name[0] | upper }}
     </div>
-    {% endif %}
+    {% end %}
 
     <div class="author-header-content">
       <h1 class="author-name">{{ author_name }}</h1>
 
       {% if author_data.company or author_data.location %}
       <p class="author-meta">
-        {% if author_data.company %}{{ author_data.company }}{% endif %}
-        {% if author_data.company and author_data.location %} · {% endif %}
-        {% if author_data.location %}{{ author_data.location }}{% endif %}
+        {% if author_data.company %}{{ author_data.company }}{% end %}
+        {% if author_data.company and author_data.location %} · {% end %}
+        {% if author_data.location %}{{ author_data.location }}{% end %}
       </p>
-      {% endif %}
+      {% end %}
 
       {% if author_bio %}
       <p class="author-bio">{{ author_bio }}</p>
-      {% endif %}
+      {% end %}
 
       {# Social links #}
       {% if author_social or author_data.github %}
@@ -89,34 +89,34 @@ Context variables:
         <a href="https://twitter.com/{{ author_social.twitter.lstrip('@') }}" class="social-link" aria-label="Twitter">
           🐦 Twitter
         </a>
-        {% endif %}
+        {% end %}
 
         {% if author_social.github or author_data.github %}
         <a href="https://github.com/{{ author_social.github | default(author_data.github) }}" class="social-link"
           aria-label="GitHub">
           💻 GitHub
         </a>
-        {% endif %}
+        {% end %}
 
         {% if author_social.linkedin %}
         <a href="https://linkedin.com/in/{{ author_social.linkedin }}" class="social-link" aria-label="LinkedIn">
           💼 LinkedIn
         </a>
-        {% endif %}
+        {% end %}
 
         {% if author_social.website %}
         <a href="{{ author_social.website }}" class="social-link" aria-label="Website">
           🌐 Website
         </a>
-        {% endif %}
+        {% end %}
 
         {% if author_social.email %}
         <a href="mailto:{{ author_social.email }}" class="social-link" aria-label="Email">
           ✉️ Email
         </a>
-        {% endif %}
+        {% end %}
       </div>
-      {% endif %}
+      {% end %}
     </div>
   </header>
 
@@ -126,7 +126,7 @@ Context variables:
   {# Filter by section if specified #}
   {% if section_filter %}
   {% set author_posts = author_posts | selectattr('_section.name', 'equalto', section_filter) | list %}
-  {% endif %}
+  {% end %}
 
   {% if author_posts %}
   {# Statistics Section #}
@@ -156,7 +156,7 @@ Context variables:
         <span class="stat-value">{{ years | first }}</span>
         <span class="stat-label">Member Since</span>
       </div>
-      {% endif %}
+      {% end %}
     </div>
   </section>
 
@@ -165,7 +165,7 @@ Context variables:
   <div class="author-content prose">
     {{ content | safe }}
   </div>
-  {% endif %}
+  {% end %}
 
   {# Posts Section #}
   <section class="author-posts">
@@ -177,7 +177,7 @@ Context variables:
       <button class="view-btn" data-view="by-year">By Year</button>
       {% if all_tags %}
       <button class="view-btn" data-view="by-tag">By Topic</button>
-      {% endif %}
+      {% end %}
     </div>
 
     {# All Posts View (default) #}
@@ -192,34 +192,34 @@ Context variables:
 
             {% if post.params.description %}
             <p class="post-excerpt">{{ post.params.description }}</p>
-            {% endif %}
+            {% end %}
 
             <div class="post-meta">
               {% if post.date %}
               <time datetime="{{ post.date | date_iso }}">
                 {{ post.date | dateformat('%B %d, %Y') }}
               </time>
-              {% endif %}
+              {% end %}
 
               {% if post._section %}
               <span class="post-section">{{ post._section.name | title }}</span>
-              {% endif %}
+              {% end %}
 
               {% if post.content %}
               <span class="reading-time">
                 {{ (post.content | wordcount / 200) | round }} min read
               </span>
-              {% endif %}
+              {% end %}
             </div>
 
             {% if post.tags %}
             <div class="post-tags">
               {{ tag_list(post.tags | limit(4)) }}
             </div>
-            {% endif %}
+            {% end %}
           </div>
         </article>
-        {% endfor %}
+        {% end %}
       </div>
     </div>
 
@@ -235,12 +235,12 @@ Context variables:
             <a href="{{ post.href }}">{{ post.title }}</a>
             {% if post.date %}
             <time>{{ post.date | dateformat('%b %d') }}</time>
-            {% endif %}
+            {% end %}
           </li>
-          {% endfor %}
+          {% end %}
         </ul>
       </div>
-      {% endfor %}
+      {% end %}
     </div>
 
     {# By Topic View #}
@@ -250,9 +250,9 @@ Context variables:
       {% set tag_posts = [] %}
       {% for post in author_posts %}
       {% if post.tags and (tag in post.tags) %}
-      {% set _ = tag_posts.append(post) %}
-      {% endif %}
-      {% endfor %}
+      {% do tag_posts.append(post) %}
+      {% end %}
+      {% end %}
       <div class="tag-group">
         <h3>{{ tag }} ({{ tag_posts | length }})</h3>
         <ul class="post-list-compact">
@@ -261,14 +261,14 @@ Context variables:
             <a href="{{ post.href }}">{{ post.title }}</a>
             {% if post.date %}
             <time>{{ post.date | dateformat('%b %d, %Y') }}</time>
-            {% endif %}
+            {% end %}
           </li>
-          {% endfor %}
+          {% end %}
         </ul>
       </div>
-      {% endfor %}
+      {% end %}
     </div>
-    {% endif %}
+    {% end %}
   </section>
 
   {% else %}
@@ -276,7 +276,7 @@ Context variables:
   <div class="author-empty">
     <p>No posts found by {{ author_name }}.</p>
   </div>
-  {% endif %}
+  {% end %}
 </div>
 
 <script>
@@ -296,4 +296,4 @@ Context variables:
     });
   });
 </script>
-{% endblock %}
+{% end %}

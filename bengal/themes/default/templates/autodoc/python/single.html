@@ -19,8 +19,8 @@ Features:
 - Tag list in footer
 #}
 
-{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc with context %}
-{% from 'partials/content-components.html' import tag_list with context %}
+{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc %}
+{% from 'partials/content-components.html' import tag_list %}
 
 {% block content %}
 {# Three-column documentation layout #}
@@ -37,7 +37,7 @@ Features:
     {% include 'partials/page-hero.html' %}
 
     {# Article Content - flattened structure #}
-    <article class="prose docs-content {% if params.css_class %}{{ params.css_class }}{% endif %}">
+    <article class="prose docs-content {% if params.css_class %}{{ params.css_class }}{% end %}">
 
       {# Track Navigation (Top) #}
       {% include 'partials/track_nav.html' %}
@@ -50,7 +50,7 @@ Features:
         <span class="docs-footer-label">{{ t('docs.tagged', default='Tagged') }}</span>
         {{ tag_list(page.tags) }}
       </footer>
-      {% endif %}
+      {% end %}
     </article>
 
     {# Track Navigation (Bottom) #}
@@ -72,7 +72,7 @@ Features:
 
 {# Sidebar overlay for mobile #}
 <div class="docs-sidebar-overlay" aria-hidden="true"></div>
-{% endblock %}
+{% end %}
 
 {# Sidebar toggle functionality is handled by interactive.js #}
 {# Graph scripts loaded in base.html #}

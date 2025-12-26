@@ -14,36 +14,36 @@ The caller (page-hero/element.html) should guard inclusion with {% if element %}
 <span class="autodoc-badge" data-badge="module">Module</span>
 {% if element.metadata.is_dataclass %}
 <span class="autodoc-badge" data-badge="dataclass">dataclass</span>
-{% endif %}
+{% end %}
 {% elif element.element_type == 'class' %}
 {% if element.metadata.is_mixin %}
 <span class="autodoc-badge" data-badge="mixin">Mixin</span>
-{% endif %}
+{% end %}
 {% if element.metadata.is_dataclass %}
 <span class="autodoc-badge" data-badge="dataclass">dataclass</span>
-{% endif %}
+{% end %}
 {% if element.metadata.is_abstract %}
 <span class="autodoc-badge" data-badge="abstract">abstract</span>
-{% endif %}
+{% end %}
 {% elif element.element_type == 'function' %}
 {% if element.metadata.is_async %}
 <span class="autodoc-badge" data-badge="async">async</span>
-{% endif %}
+{% end %}
 {% elif element.element_type == 'method' %}
 {% if element.metadata.is_async %}
 <span class="autodoc-badge" data-badge="async">async</span>
-{% endif %}
+{% end %}
 {% if element.metadata.is_classmethod %}
 <span class="autodoc-badge" data-badge="classmethod">classmethod</span>
-{% endif %}
+{% end %}
 {% if element.metadata.is_staticmethod %}
 <span class="autodoc-badge" data-badge="staticmethod">staticmethod</span>
-{% endif %}
+{% end %}
 {% if element.metadata.is_property %}
 <span class="autodoc-badge" data-badge="property">property</span>
-{% endif %}
+{% end %}
 {% elif element.element_type == 'command' %}
 <span class="autodoc-badge" data-badge="command">Command</span>
 {% elif element.element_type == 'command-group' %}
 <span class="autodoc-badge" data-badge="command-group">Command Group</span>
-{% endif %}
+{% end %}
