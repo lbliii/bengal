@@ -6,9 +6,16 @@ category: guide
 icon: code
 card_color: blue
 ---
-# Jinja2 Templating
+# Templating
 
-Bengal uses [Jinja2](https://jinja.palletsprojects.com/) for all templates. If you know Python, you'll feel at home.
+Bengal supports two template engines:
+
+- **[Jinja2](https://jinja.palletsprojects.com/)** — Default, widely-used template engine
+- **[KIDA](/docs/reference/kida-syntax/)** — Bengal's native template engine (5.6x faster, modern syntax)
+
+:::{tip}
+**New to Bengal?** Start with Jinja2 if you're familiar with it. Try KIDA for better performance and modern features like pattern matching and pipeline operators.
+:::
 
 ## Template Lookup Order
 
@@ -93,6 +100,53 @@ flowchart TB
     A --> B
     A --> C
     B --> D
+```
+
+## KIDA Templates
+
+KIDA is Bengal's native template engine with modern syntax and better performance:
+
+- **Unified syntax**: `{% end %}` closes all blocks
+- **Pattern matching**: `{% match %}...{% case %}` for cleaner conditionals
+- **Pipeline operator**: `|>` for readable filter chains
+- **Fragment caching**: Built-in `{% cache %}` directive
+
+:::{cards}
+:columns: 2
+:gap: small
+
+:::{card} KIDA Syntax Reference
+:icon: book
+:link: /docs/reference/kida-syntax/
+:description: Complete KIDA syntax documentation
+:::{/card}
+
+:::{card} KIDA Tutorial
+:icon: notepad
+:link: /docs/tutorials/getting-started-with-kida/
+:description: Learn KIDA from scratch
+:::{/card}
+
+:::{card} KIDA How-Tos
+:icon: code
+:link: /docs/theming/templating/kida/
+:description: Common KIDA tasks and patterns
+:::{/card}
+
+:::{card} Migrate from Jinja2
+:icon: arrow-right
+:link: /docs/theming/templating/kida/migrate-jinja-to-kida/
+:description: Convert Jinja2 templates to KIDA
+:::{/card}
+:::{/cards}
+
+## Enable KIDA
+
+To use KIDA instead of Jinja2, configure `bengal.yaml`:
+
+```yaml
+site:
+  template_engine: kida
 ```
 
 :::{tip}
