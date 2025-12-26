@@ -10,25 +10,26 @@ _path, kind, tags are always defined - no defensive checks needed.
 ================================================================================
 #}
 {# Template-wide variables using {% let %} for explicit scope #}
-{% let
-_page_title = page.title,
-_page_url = page._path,
-_current_lang = current_lang(),
-_site_title = config.title,
-_build_badge = site.build_badge,
-_doc_app = site.document_application,
-_link_previews = site.link_previews,
-_per_page_json = 'json' in (config.output_formats.per_page ?? [])
-%}
+{# Page shortcuts - page is always available in page templates #}
+{% let _page_title = page.title %}
+{% let _page_url = page._path %}
+
+{# Navigation - cache function calls #}
+{% let _current_lang = current_lang() %}
+{% let _site_title = config.title %}
+
+{# Normalized config objects (pre-processed by Site with defaults applied) #}
+{% let _build_badge = site.build_badge %}
+{% let _doc_app = site.document_application %}
+{% let _link_previews = site.link_previews %}
+{% let _per_page_json = 'json' in (config.output_formats.per_page ?? []) %}
 
 {# Derived values (depend on earlier lets) #}
-{% let
-_main_menu = get_menu_lang('main', _current_lang),
-_footer_menu = get_menu_lang('footer', _current_lang),
-_view_transitions = _doc_app.enabled and _doc_app.navigation.view_transitions,
-_transition_style = _doc_app.navigation.transition_style,
-_auto_nav = get_auto_nav() if _main_menu | length == 0 else []
-%}
+{% let _main_menu = get_menu_lang('main', _current_lang) %}
+{% let _footer_menu = get_menu_lang('footer', _current_lang) %}
+{% let _view_transitions = _doc_app.enabled and _doc_app.navigation.view_transitions %}
+{% let _transition_style = _doc_app.navigation.transition_style %}
+{% let _auto_nav = get_auto_nav() if _main_menu | length == 0 else [] %}
 
 <html lang="{{ _current_lang }}" {% if _view_transitions and _transition_style !='crossfade' %}
     data-transition-style="{{ _transition_style }}" {% end %}>

@@ -135,6 +135,51 @@ class TestKidaNativeFeatures:
         assert tmpl.render().strip() == "Hello, World!"
 
         # With default arguments
+
+    def test_let_template_wide_scope(self, env: Environment):
+        """Test {% let %} for template-wide variables."""
+        # let variables are available across blocks
+        tmpl = env.from_string("""
+{%- let site_title = 'My Site' -%}
+{%- let version = '1.0' -%}
+{{ site_title }} v{{ version }}
+""")
+        assert tmpl.render().strip() == "My Site v1.0"
+
+        # let with dependent values
+        tmpl = env.from_string("""
+{%- let base = 10 -%}
+{%- let doubled = base * 2 -%}
+{%- let tripled = base * 3 -%}
+{{ base }}-{{ doubled }}-{{ tripled }}
+""")
+        assert tmpl.render().strip() == "10-20-30"
+
+    def test_with_as_nil_resilient(self, env: Environment):
+        """Test {% with expr as name %} for nil-resilient binding."""
+        # When value exists, block renders
+        tmpl = env.from_string("""
+{%- with user.name as name -%}
+Hello, {{ name }}!
+{%- end -%}
+""")
+        assert tmpl.render(user={"name": "Alice"}).strip() == "Hello, Alice!"
+
+        # When value is None, block doesn't render
+        assert tmpl.render(user={"name": None}).strip() == ""
+
+        # When key is missing entirely
+        assert tmpl.render(user={}).strip() == ""
+
+    def test_with_as_with_filters(self, env: Environment):
+        """Test {% with %} with filter expressions."""
+        tmpl = env.from_string("""
+{%- with items | length as count -%}
+Found {{ count }} items
+{%- end -%}
+""")
+        assert tmpl.render(items=[1, 2, 3]).strip() == "Found 3 items"
+        assert tmpl.render(items=[]).strip() == ""  # Empty list is falsy
         tmpl = env.from_string("""
 {%- def greet(name='Guest') %}Hi {{ name }}{% enddef -%}
 {{ greet() }} | {{ greet('Alice') }}

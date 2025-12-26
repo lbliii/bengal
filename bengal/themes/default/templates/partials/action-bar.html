@@ -13,7 +13,7 @@ Requires: page object in context
 
 {# Macro: Get page URL with fallback chain for robustness #}
 {% def get_page_url(page) -%}
-    {{ page._path or page.href or '/' }}
+{{ page._path or page.href or '/' }}
 {% end %}
 
 {% if page %}
@@ -50,19 +50,20 @@ Requires: page object in context
             {% end %}
         </nav>
 
-            {# Right: Actions #}
-            <div class="action-bar-actions">
-                {# LLM Share Button #}
-                {# Use relative_url for canonical_url (canonical_url adds baseurl) #}
-                {% set
-                    page_url = canonical_url(get_page_url(page)),
-                    llm_txt_url = ensure_trailing_slash(page_url) ~ 'index.txt',
-                    share_prompt = "Please help me understand this documentation: " + llm_txt_url
-                %}
+        {# Right: Actions #}
+        <div class="action-bar-actions">
+            {# LLM Share Button #}
+            {# Use relative_url for canonical_url (canonical_url adds baseurl) #}
+            {% set
+            page_url = canonical_url(get_page_url(page)),
+            llm_txt_url = ensure_trailing_slash(page_url) ~ 'index.txt',
+            share_prompt = "Please help me understand this documentation: " + llm_txt_url
+            %}
 
             <div class="action-bar-share">
                 <button class="action-bar-share-trigger" popovertarget="action-bar-share-menu"
-                    aria-label="{{ t('share.ai_assistants', default='Share with AI assistants') }}" title="{{ t('share.ai_assistants', default='Share with AI assistants') }}">
+                    aria-label="{{ t('share.ai_assistants', default='Share with AI assistants') }}"
+                    title="{{ t('share.ai_assistants', default='Share with AI assistants') }}">
                     {# Bengal cat symbol - on-brand! #}
                     <span>ᗢ</span>
                     {{ icon('caret-down', size=14, css_class='action-bar-share-chevron') }}
@@ -71,7 +72,8 @@ Requires: page object in context
                 <div id="action-bar-share-menu" popover class="action-bar-share-dropdown--popover">
                     <div class="action-bar-share-content">
                         {# Quick Actions #}
-                        <button class="action-bar-share-item" data-action="copy-url" data-url="{{ page_url }}" type="button">
+                        <button class="action-bar-share-item" data-action="copy-url" data-url="{{ page_url }}"
+                            type="button">
                             {{ icon('link', size=16) }}
                             <span>{{ t('share.copy_url', default='Copy URL') }}</span>
                         </button>
@@ -82,7 +84,8 @@ Requires: page object in context
                             <span>{{ t('share.open_llm_text', default='Open LLM text') }}</span>
                         </a>
 
-                        <button class="action-bar-share-item" data-action="copy-llm-txt" data-url="{{ llm_txt_url }}" type="button">
+                        <button class="action-bar-share-item" data-action="copy-llm-txt" data-url="{{ llm_txt_url }}"
+                            type="button">
                             {{ icon('copy', size=16) }}
                             <span>{{ t('share.copy_llm_text', default='Copy LLM text') }}</span>
                         </button>
@@ -90,10 +93,12 @@ Requires: page object in context
                         <hr class="action-bar-share-separator">
 
                         {# AI Assistant Links #}
-                        <div class="action-bar-share-section-header">{{ t('share.with_ai', default='Share with AI') }}</div>
+                        <div class="action-bar-share-section-header">{{ t('share.with_ai', default='Share with AI') }}
+                        </div>
 
                         <a href="https://claude.ai/new?q={{ share_prompt | urlencode }}" target="_blank"
-                            rel="noopener noreferrer" class="action-bar-share-item action-bar-share-ai" data-ai="claude">
+                            rel="noopener noreferrer" class="action-bar-share-item action-bar-share-ai"
+                            data-ai="claude">
                             {{ icon('ai-claude', size=16) }}
                             <span>{{ t('share.ask_claude', default='Ask Claude') }}</span>
                         </a>
@@ -106,7 +111,8 @@ Requires: page object in context
                         </a>
 
                         <a href="https://gemini.google.com/app?q={{ share_prompt | urlencode }}" target="_blank"
-                            rel="noopener noreferrer" class="action-bar-share-item action-bar-share-ai" data-ai="gemini">
+                            rel="noopener noreferrer" class="action-bar-share-item action-bar-share-ai"
+                            data-ai="gemini">
                             {{ icon('ai-gemini', size=16) }}
                             <span>{{ t('share.ask_gemini', default='Ask Gemini') }}</span>
                         </a>
@@ -128,31 +134,34 @@ Requires: page object in context
     {% if has_metadata %}
     <div id="action-bar-metadata-popover" popover class="action-bar-metadata--popover">
         <div class="action-bar-metadata-content">
-            {% if params.author and 'content.author' in theme.features %}
+            {% with params.author as author %}
+            {% if 'content.author' in theme.features %}
             <span class="action-bar-meta-item">
                 {{ icon("user", size=16) }}
-                <span>{{ params.author }}</span>
+                <span>{{ author }}</span>
             </span>
             {% end %}
+            {% end %}
 
-            {% if page.content and 'content.reading_time' in theme.features %}
+            {% with page.content as content %}
+            {% if 'content.reading_time' in theme.features %}
             <span class="action-bar-meta-item">
                 {{ icon("clock", size=16) }}
-                <span>{{ t('meta.reading_time', {'time': page.content | reading_time}, default='{time} min read') }}</span>
+                <span>{{ t('meta.reading_time', {'time': content | reading_time}, default='{time} min read') }}</span>
             </span>
             {% end %}
 
-            {% if page.content %}
             <span class="action-bar-meta-item">
                 {{ icon("file-text", size=16) }}
-                <span>{{ t('meta.word_count', {'count': page.content | wordcount}, default='{count} words') }}</span>
+                <span>{{ t('meta.word_count', {'count': content | wordcount}, default='{count} words') }}</span>
             </span>
             {% end %}
 
             {% if params.lastmod or page.date %}
             <span class="action-bar-meta-item">
                 {{ icon("arrow-clockwise", size=16) }}
-                <span>{{ t('meta.updated', {'time': (params.lastmod or page.date) | time_ago}, default='Updated {time}') }}</span>
+                <span>{{ t('meta.updated', {'time': (params.lastmod or page.date) | time_ago}, default='Updated {time}')
+                    }}</span>
             </span>
             {% end %}
         </div>
