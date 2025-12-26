@@ -278,18 +278,16 @@ else ''),
 
   {% else %}
   {# Compact (default) variant - row-based list #}
-  {% set current_group = namespace(value='') %}
+  {# Portable pattern: use groupby instead of namespace for group header tracking #}
   <div class="content-tiles-list">
-    {% for item in sorted_items %}
+    {% for group_name, group_items in sorted_items | groupby('group') %}
     {# Optional group headers when group_by='type' #}
-    {% if group_by == 'type' and item.group != current_group.value %}
-    {% set current_group.value = item.group %}
-    {% if item.group == 'related' and related_title %}
+    {% if group_by == 'type' and group_name == 'related' and related_title %}
     <div class="content-tiles-group-header">
       <span class="content-tiles-group-label">{{ related_title }}</span>
     </div>
     {% endif %}
-    {% endif %}
+    {% for item in group_items %}
     <article class="content-tile {% if item.type == 'related' %}content-tile--related{% endif %}">
       {% if show_icons %}
       <div class="content-tile-icon">
@@ -318,6 +316,7 @@ else ''),
         </span>
       </div>
     </article>
+    {% endfor %}
     {% endfor %}
   </div>
   {% endif %}

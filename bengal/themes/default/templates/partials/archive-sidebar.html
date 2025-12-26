@@ -90,13 +90,14 @@ Example:
   </nav>
 
   {# Optional: Show total post count #}
+  {# Portable pattern: accumulate counts then sum #}
   <div class="archive-total">
-    {% set ns = namespace(total_posts=0) %}
+    {% set post_counts = [] %}
     {% for y in site.indexes.date_range.keys() | select('match', '^\\d{4}$') %}
-    {% set ns.total_posts = ns.total_posts + (site.indexes.date_range.get(y) | length) %}
+    {% do post_counts.append(site.indexes.date_range.get(y) | length) %}
     {% endfor %}
     <p class="total-text">
-      <strong>{{ ns.total_posts }}</strong> total posts
+      <strong>{{ post_counts | sum }}</strong> total posts
     </p>
   </div>
   {% else %}

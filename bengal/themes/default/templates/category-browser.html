@@ -58,12 +58,13 @@ Context variables:
 
     {% if all_categories %}
     {# Summary stats #}
+    {# Portable pattern: accumulate counts then sum instead of namespace #}
     <div class="browser-stats">
         <span class="stat">
             <strong>{{ all_categories | length }}</strong> categories
         </span>
 
-        {% set total_posts = namespace(count=0) %}
+        {% set page_counts = [] %}
         {% for category in all_categories %}
         {% set category_posts = site.indexes.category.get(category) | resolve_pages %}
         {% if section_filters %}
@@ -75,11 +76,11 @@ Context variables:
         {% endfor %}
         {% set category_posts = filtered_posts %}
         {% endif %}
-        {% set total_posts.count = total_posts.count + (category_posts | length) %}
+        {% do page_counts.append(category_posts | length) %}
         {% endfor %}
 
         <span class="stat">
-            <strong>{{ total_posts.count }}</strong> total pages
+            <strong>{{ page_counts | sum }}</strong> total pages
         </span>
     </div>
 
@@ -168,46 +169,49 @@ Context variables:
     </div>
 
     {# All Categories A-Z Index #}
+    {# Portable pattern: build letter groups dict, then iterate #}
     <aside class="category-index">
         <h3>Quick Index</h3>
         <nav class="alpha-nav" aria-label="Alphabetical category index">
-            {% set current = namespace(letter=None) %}
+            {# Build letter -> categories mapping #}
+            {% set letter_groups = {} %}
             {% for cat in all_categories | sort %}
-            {% set letter = cat[0]|upper %}
-            {% if current.letter != letter %}
-            {% if current.letter is not none %}
-            </ul>
-</div>
-{% endif %}
-<div class="letter-group">
-    <strong class="letter">{{ letter }}</strong>
-    <ul class="letter-list">
-        {% set current.letter = letter %}
-        {% endif %}
-        {% set cat_posts = site.indexes.category.get(cat) | resolve_pages %}
-        {% if section_filters %}
-        {% set filtered_posts = [] %}
-        {% for post in cat_posts %}
-        {% if post._section.name in section_filters %}
-        {% do filtered_posts.append(post) %}
-        {% endif %}
-        {% endfor %}
-        {% set cat_posts = filtered_posts %}
-        {% endif %}
-        {% if cat_posts %}
-        <li>
-            <a href="{{ ('/category/' ~ cat ~ '/') | absolute_url }}">
-                {{ cat | title }} ({{ cat_posts | length }})
-            </a>
-        </li>
-        {% endif %}
-        {% endfor %}
-        {% if current.letter is not none %}
-    </ul>
-</div>
-{% endif %}
-</nav>
-</aside>
+            {% set letter = cat[0] | upper %}
+            {% if letter not in letter_groups %}
+            {% set _ = letter_groups.update({letter: []}) %}
+            {% endif %}
+            {% do letter_groups[letter].append(cat) %}
+            {% endfor %}
+
+            {# Render each letter group #}
+            {% for letter in letter_groups.keys() | sort %}
+            <div class="letter-group">
+                <strong class="letter">{{ letter }}</strong>
+                <ul class="letter-list">
+                    {% for cat in letter_groups[letter] %}
+                    {% set cat_posts = site.indexes.category.get(cat) | resolve_pages %}
+                    {% if section_filters %}
+                    {% set filtered_posts = [] %}
+                    {% for post in cat_posts %}
+                    {% if post._section.name in section_filters %}
+                    {% do filtered_posts.append(post) %}
+                    {% endif %}
+                    {% endfor %}
+                    {% set cat_posts = filtered_posts %}
+                    {% endif %}
+                    {% if cat_posts %}
+                    <li>
+                        <a href="{{ ('/category/' ~ cat ~ '/') | absolute_url }}">
+                            {{ cat | title }} ({{ cat_posts | length }})
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endfor %}
+        </nav>
+    </aside>
 
 {% else %}
 {# Empty State #}
