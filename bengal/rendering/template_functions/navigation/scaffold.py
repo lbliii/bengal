@@ -31,6 +31,7 @@ from typing import TYPE_CHECKING, Any
 
 from bengal.core.nav_tree import NavTreeCache
 from bengal.utils.concurrent_locks import PerKeyLockManager
+from bengal.utils.lru_cache import LRUCache
 
 if TYPE_CHECKING:
     from jinja2 import Environment
@@ -68,7 +69,7 @@ class NavScaffold:
 
 class NavScaffoldCache:
     """
-    Thread-safe cache for pre-rendered nav scaffold HTML.
+    Thread-safe LRU cache for pre-rendered nav scaffold HTML.
 
     Uses per-scaffold locking to prevent duplicate renders when multiple
     threads request the same scaffold simultaneously. Different scaffolds
@@ -78,16 +79,20 @@ class NavScaffoldCache:
     Invalidated when site object changes (new build session).
 
     Thread Safety:
-        - _lock: Protects the _scaffolds dictionary
+        - Uses shared LRUCache with internal RLock
         - _render_locks: Per-scaffold locks to serialize renders for SAME scope
         - Different scaffolds render in parallel (no contention)
     """
 
-    _scaffolds: dict[tuple[str | None, str], str] = {}
+    _cache: LRUCache[str, str] = LRUCache(maxsize=50, name="nav_scaffold")
     _lock = threading.Lock()
     _render_locks = PerKeyLockManager()  # Per-scaffold render serialization
     _site: Site | None = None
-    _MAX_CACHE_SIZE = 50
+
+    @classmethod
+    def _make_key(cls, version_id: str | None, root_url: str) -> str:
+        """Make a string cache key from version_id and root_url."""
+        return f"{version_id or '__default__'}:{root_url}"
 
     @classmethod
     def get_html(
@@ -113,55 +118,56 @@ class NavScaffoldCache:
         Returns:
             Pre-rendered scaffold HTML (static, no active state)
         """
-        cache_key = (version_id, root_url)
+        cache_key = cls._make_key(version_id, root_url)
 
-        # 1. Quick cache check
+        # 1. Quick cache check (includes site change detection)
         with cls._lock:
             # Full invalidation if site object changed (new build session)
             if cls._site is not site:
-                cls._scaffolds.clear()
-                cls._render_locks.clear()  # Clear render locks on new session
+                cls._cache.clear()
+                cls._render_locks.clear()
                 cls._site = site
 
-            if cache_key in cls._scaffolds:
-                return cls._scaffolds[cache_key]
+        # Check cache first (LRU update happens inside get)
+        cached = cls._cache.get(cache_key)
+        if cached is not None:
+            return cached
 
         # 2. Serialize renders for SAME scaffold (different scaffolds render in parallel)
-        # cache_key is a tuple, which is hashable
         with cls._render_locks.get_lock(cache_key):
             # Double-check: another thread may have rendered while we waited
-            with cls._lock:
-                if cache_key in cls._scaffolds:
-                    return cls._scaffolds[cache_key]
+            cached = cls._cache.get(cache_key)
+            if cached is not None:
+                return cached
 
             # 3. Render outside cache lock (expensive operation)
             html = renderer()
 
-            # 4. Store result
-            with cls._lock:
-                # Evict oldest if at capacity
-                if len(cls._scaffolds) >= cls._MAX_CACHE_SIZE:
-                    oldest_key = next(iter(cls._scaffolds))
-                    cls._scaffolds.pop(oldest_key, None)
-                cls._scaffolds[cache_key] = html
-                return html
+            # 4. Store result (LRU eviction handled by LRUCache)
+            cls._cache.set(cache_key, html)
+            return html
 
     @classmethod
     def invalidate(cls, version_id: str | None = None, root_url: str | None = None) -> None:
         """Invalidate cached scaffolds."""
-        with cls._lock:
-            if version_id is None and root_url is None:
-                cls._scaffolds.clear()
-                cls._render_locks.clear()
-            else:
-                keys_to_remove = [
-                    k
-                    for k in cls._scaffolds
-                    if (version_id is None or k[0] == version_id)
-                    and (root_url is None or k[1] == root_url)
-                ]
-                for k in keys_to_remove:
-                    cls._scaffolds.pop(k, None)
+        if version_id is None and root_url is None:
+            cls._cache.clear()
+            cls._render_locks.clear()
+        else:
+            # For selective invalidation, we need to check keys
+            # Since LRUCache doesn't expose iteration, clear matching keys by checking
+            keys_to_remove = []
+            for key in cls._cache.keys():
+                parts = key.split(":", 1)
+                if len(parts) == 2:
+                    key_version = None if parts[0] == "__default__" else parts[0]
+                    key_root = parts[1]
+                    if (version_id is None or key_version == version_id) and (
+                        root_url is None or key_root == root_url
+                    ):
+                        keys_to_remove.append(key)
+            for key in keys_to_remove:
+                cls._cache.delete(key)
 
     @classmethod
     def clear_locks(cls) -> None:
@@ -172,6 +178,11 @@ class NavScaffoldCache:
         Safe to call when no threads are actively rendering.
         """
         cls._render_locks.clear()
+
+    @classmethod
+    def stats(cls) -> dict[str, Any]:
+        """Get cache statistics."""
+        return cls._cache.stats()
 
 
 class ScaffoldNodeProxy:

@@ -122,6 +122,12 @@ class TestEscapeFilters:
         result = tmpl.render(text=Markup("<b>already safe</b>"))
         assert result == "<b>already safe</b>"
 
+    def test_safe_with_reason(self, env):
+        """safe filter accepts optional reason for documentation."""
+        tmpl = env.from_string('{{ html|safe(reason="sanitized by bleach") }}')
+        result = tmpl.render(html="<b>trusted</b>")
+        assert result == "<b>trusted</b>"
+
     def test_urlencode(self, env):
         """urlencode filter."""
         tmpl = env.from_string('{{ "hello world"|urlencode }}')

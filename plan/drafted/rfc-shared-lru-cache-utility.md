@@ -1,6 +1,6 @@
 # RFC: Shared LRU Cache Utility
 
-**Status**: Implemented (Phase 1-3 Complete)  
+**Status**: Implemented (Phase 1-3 + Tier 2 Complete)  
 **Created**: 2025-12-26  
 **Updated**: 2025-12-26  
 **Author**: AI Assistant  

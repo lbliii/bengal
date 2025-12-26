@@ -11,7 +11,8 @@ from typing import Any
 from unittest.mock import Mock
 
 import pytest
-from bengal.rendering.kida.exceptions import TemplateRuntimeError, UndefinedError
+from bengal.rendering.kida import UndefinedError
+from bengal.rendering.kida.environment.exceptions import TemplateRuntimeError
 
 from bengal.rendering.kida import DictLoader, Environment
 
