@@ -59,7 +59,7 @@ Migrate templates incrementally, starting with:
 ### Block Endings
 
 **Jinja2**:
-```jinja2
+```jinja
 {% if condition %}
   Content
 {% endif %}
@@ -85,7 +85,7 @@ Migrate templates incrementally, starting with:
 ### Template Variables
 
 **Jinja2**:
-```jinja2
+```jinja
 {% set site_title = site.config.title %}
 {# Available in current block only #}
 ```
@@ -101,7 +101,7 @@ Migrate templates incrementally, starting with:
 ### Pattern Matching
 
 **Jinja2**:
-```jinja2
+```jinja
 {% if page.type == "blog" %}
   Blog post
 {% elif page.type == "doc" %}
@@ -132,7 +132,7 @@ Migrate templates incrementally, starting with:
 ### Pipeline Operator
 
 **Jinja2**:
-```jinja2
+```jinja
 {{ items | selectattr('published') | sort(attribute='date') | first }}
 ```
 
@@ -146,7 +146,7 @@ Migrate templates incrementally, starting with:
 ### Fragment Caching
 
 **Jinja2** (requires extension):
-```jinja2
+```jinja
 {% cache "key" %}
   Expensive content
 {% endcache %}
@@ -279,7 +279,7 @@ bengal serve
 ### Collection Filtering
 
 **Jinja2**:
-```jinja2
+```jinja
 {% set posts = site.pages | selectattr('type', 'eq', 'blog') | selectattr('draft', 'eq', false) | sort(attribute='date', reverse=true) %}
 ```
 
@@ -294,7 +294,7 @@ bengal serve
 ### Conditional Rendering
 
 **Jinja2**:
-```jinja2
+```jinja
 {% if page.type == "blog" %}
   <article class="blog">{{ page.content | safe }}</article>
 {% elif page.type == "doc" %}
@@ -319,7 +319,7 @@ bengal serve
 ### Template Variables
 
 **Jinja2**:
-```jinja2
+```jinja
 {% set site_title = site.config.title %}
 {% set nav_items = site.menus.main %}
 ```
@@ -365,7 +365,7 @@ KIDA is stricter than Jinja2. Check:
 ## Complete Example
 
 **Before (Jinja2)**:
-```jinja2
+```jinja
 {% extends "baseof.html" %}
 
 {% set site_title = site.config.title %}
@@ -433,4 +433,3 @@ KIDA is stricter than Jinja2. Check:
 - [Template Functions](/docs/theming/templating/functions/) — Available filters and functions
 - [Performance Guide](/docs/building/performance/) — Performance benefits of KIDA
 :::
-

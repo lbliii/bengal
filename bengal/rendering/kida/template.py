@@ -45,7 +45,7 @@ from typing import TYPE_CHECKING, Any
 
 from markupsafe import Markup
 
-from bengal.rendering.kida.utils.html import html_escape
+from bengal.rendering.kida.utils.html import _SPACELESS_RE, html_escape
 
 if TYPE_CHECKING:
     from bengal.rendering.kida.environment import Environment
@@ -319,47 +319,66 @@ class Template:
                     if cached_block_names:
                         # Create wrapper dict for parent template
                         class CachedBlocksDict:
-                            def __init__(self, original: dict, cached: dict[str, str], cached_names: set[str]):
+                            def __init__(
+                                self, original: dict, cached: dict[str, str], cached_names: set[str]
+                            ):
                                 self._original = original if original is not None else {}
                                 self._cached = cached
                                 self._cached_names = cached_names
+
                             def get(self, key: str, default: Any = None) -> Any:
                                 if key in self._cached_names:
                                     cached_html = self._cached[key]
+
                                     def cached_block_func(_ctx: dict, _blocks: dict) -> str:
                                         return cached_html
+
                                     return cached_block_func
                                 return self._original.get(key, default)
+
                             def setdefault(self, key: str, default: Any = None) -> Any:
                                 if key in self._cached_names:
                                     cached_html = self._cached[key]
+
                                     def cached_block_func(_ctx: dict, _blocks: dict) -> str:
                                         return cached_html
+
                                     return cached_block_func
                                 return self._original.setdefault(key, default)
+
                             def __getitem__(self, key: str) -> Any:
                                 if key in self._cached_names:
                                     cached_html = self._cached[key]
+
                                     def cached_block_func(_ctx: dict, _blocks: dict) -> str:
                                         return cached_html
+
                                     return cached_block_func
                                 return self._original[key]
+
                             def __setitem__(self, key: str, value: Any) -> None:
                                 self._original[key] = value
+
                             def __contains__(self, key: str) -> bool:
                                 return key in self._original or key in self._cached_names
+
                             def keys(self):
                                 return self._original.keys() | self._cached_names
+
                             def copy(self) -> dict:
                                 result = self._original.copy()
                                 for name in self._cached_names:
                                     cached_html = self._cached[name]
+
                                     def make_wrapper(html: str):
                                         def wrapper(_ctx: dict, _blocks: dict) -> str:
                                             return html
+
                                         return wrapper
+
                                     result[name] = make_wrapper(cached_html)
                                 return result
+
                         blocks = CachedBlocksDict(blocks, cached_blocks, cached_block_names)
             # Call parent's render function with blocks dict
             return parent._render_func(context, blocks)
@@ -674,7 +693,7 @@ class Template:
         # This happens automatically - templates don't need any special syntax
         cached_blocks = ctx.get("_cached_blocks", {})
         original_render_func = self._render_func
-        
+
         if cached_blocks and original_render_func:
             # Get template metadata to identify site-cacheable blocks
             meta = self.template_metadata()
@@ -685,85 +704,98 @@ class Template:
                     for block_name, block_meta in meta.blocks.items()
                     if block_name in cached_blocks and block_meta.cache_scope == "site"
                 }
-                
+
                 if cached_block_names:
                     # Create wrapper dict that intercepts .get() calls
                     # Templates call _blocks.get('name', _block_name), so we intercept here
                     class CachedBlocksDict:
                         """Dict wrapper that returns cached HTML for site-scoped blocks."""
-                        
-                        def __init__(self, original: dict, cached: dict[str, str], cached_names: set[str]):
+
+                        def __init__(
+                            self, original: dict, cached: dict[str, str], cached_names: set[str]
+                        ):
                             self._original = original if original is not None else {}
                             self._cached = cached
                             self._cached_names = cached_names
-                        
+
                         def get(self, key: str, default: Any = None) -> Any:
                             """Intercept .get() calls to return cached HTML when available."""
                             if key in self._cached_names:
                                 # Return a wrapper function that returns cached HTML
                                 cached_html = self._cached[key]
+
                                 def cached_block_func(_ctx: dict, _blocks: dict) -> str:
                                     return cached_html
+
                                 return cached_block_func
                             # Fall back to original dict behavior
                             return self._original.get(key, default)
-                        
+
                         def setdefault(self, key: str, default: Any = None) -> Any:
                             """Preserve setdefault() behavior for block registration."""
                             if key in self._cached_names:
                                 # Cached blocks take precedence - return cached wrapper
                                 cached_html = self._cached[key]
+
                                 def cached_block_func(_ctx: dict, _blocks: dict) -> str:
                                     return cached_html
+
                                 return cached_block_func
                             # For non-cached blocks, use normal setdefault
                             return self._original.setdefault(key, default)
-                        
+
                         def __getitem__(self, key: str) -> Any:
                             """Support dict[key] access."""
                             if key in self._cached_names:
                                 cached_html = self._cached[key]
+
                                 def cached_block_func(_ctx: dict, _blocks: dict) -> str:
                                     return cached_html
+
                                 return cached_block_func
                             return self._original[key]
-                        
+
                         def __setitem__(self, key: str, value: Any) -> None:
                             """Support dict[key] = value assignment."""
                             self._original[key] = value
-                        
+
                         def __contains__(self, key: str) -> bool:
                             """Support 'key in dict' checks."""
                             return key in self._original or key in self._cached_names
-                        
+
                         def keys(self):
                             """Support .keys() iteration."""
                             return self._original.keys() | self._cached_names
-                        
+
                         def copy(self) -> dict:
                             """Support .copy() for embed/include operations."""
                             result = self._original.copy()
                             # Add cached wrappers to copy (properly capture in closure)
                             for name in self._cached_names:
                                 cached_html = self._cached[name]
+
                                 # Create wrapper with proper closure capture
                                 def make_wrapper(html: str):
                                     def wrapper(_ctx: dict, _blocks: dict) -> str:
                                         return html
+
                                     return wrapper
+
                                 result[name] = make_wrapper(cached_html)
                             return result
-                    
+
                     # Wrap render function to inject cached blocks wrapper into _blocks parameter
                     # The template receives _blocks as a parameter: render(ctx, _blocks=None)
                     # We intercept and inject our wrapper before the template uses it
                     def wrapped_render(ctx_inner: dict, _blocks: dict | None = None) -> str:
                         """Wrapper that injects cached blocks into _blocks parameter."""
                         # Create wrapped _blocks dict
-                        wrapped_blocks = CachedBlocksDict(_blocks, cached_blocks, cached_block_names)
+                        wrapped_blocks = CachedBlocksDict(
+                            _blocks, cached_blocks, cached_block_names
+                        )
                         # Call original render function with wrapped _blocks
                         return original_render_func(ctx_inner, wrapped_blocks)
-                    
+
                     # Use wrapped render function
                     self._render_func = wrapped_render
 

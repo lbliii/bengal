@@ -66,6 +66,13 @@ Step-by-step guides for common tasks when working with KIDA templates in Bengal.
 :description: Write readable filter chains with the pipeline operator
 :color: indigo
 :::{/card}
+
+:::{card} KIDA vs Jinja2 Comparison
+:icon: git-compare
+:link: ./kida-vs-jinja-comparison
+:description: Side-by-side syntax comparison for common template patterns
+:color: cyan
+:::{/card}
 :::{/cards}
 
 ## What is KIDA?

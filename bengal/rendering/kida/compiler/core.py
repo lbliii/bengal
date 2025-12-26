@@ -14,6 +14,7 @@ Performance Optimizations:
     - Method lookup cached once: `_append = buf.append`
     - Single `''.join(buf)` at return (vs repeated concatenation)
     - Line markers only for error-prone nodes (Output, For, If, etc.)
+    - Buffer pre-allocation for large templates (≥100 outputs)
 
 Block Inheritance:
     Templates with `{% extends %}` generate:
@@ -46,6 +47,15 @@ from bengal.rendering.kida.compiler.utils import OperatorUtilsMixin
 if TYPE_CHECKING:
     from bengal.rendering.kida.environment import Environment
     from bengal.rendering.kida.nodes import Template as TemplateNode
+
+# Buffer pre-allocation threshold: templates with ≥ this many output operations
+# use pre-allocated buffers with indexed assignment for ~5-10% speedup.
+# Below this threshold, dynamic list.append() is used (low overhead for small templates).
+PRE_ALLOC_THRESHOLD = 100
+
+# Safety margin for buffer pre-allocation (20% extra capacity).
+# Handles minor estimation inaccuracies without triggering overflow fallback.
+PRE_ALLOC_HEADROOM = 1.2
 
 
 class Compiler(
@@ -124,6 +134,225 @@ class Compiler(
         self._blocks: dict[str, Any] = {}
         # Counter for unique variable names in nested structures
         self._block_counter: int = 0
+        # Estimated output count from optimizer (0 = not estimated)
+        self._estimated_output_count: int = 0
+
+    @property
+    def _use_prealloc(self) -> bool:
+        """Check if buffer pre-allocation should be used.
+
+        Returns True if estimated output count meets or exceeds the threshold.
+        Pre-allocation provides ~5-10% speedup for large templates by avoiding
+        repeated list resizes during rendering.
+        """
+        return self._estimated_output_count >= PRE_ALLOC_THRESHOLD
+
+    @property
+    def _buffer_size(self) -> int:
+        """Calculate pre-allocated buffer size with headroom.
+
+        Adds 20% safety margin to handle minor estimation inaccuracies
+        (e.g., conditional branches, loop variance) without triggering
+        the overflow fallback path.
+        """
+        return int(self._estimated_output_count * PRE_ALLOC_HEADROOM)
+
+    # -------------------------------------------------------------------------
+    # Buffer Pre-allocation AST Generators
+    # -------------------------------------------------------------------------
+
+    def _make_prealloc_buffer_init(self) -> list[ast.stmt]:
+        """Generate pre-allocated buffer initialization.
+
+        Generates:
+            buf = [None] * <buffer_size>
+            _idx = 0
+            _buf_len = <buffer_size>
+
+        The _buf_len local avoids repeated len() calls in the append closure.
+        """
+        return [
+            # buf = [None] * size
+            ast.Assign(
+                targets=[ast.Name(id="buf", ctx=ast.Store())],
+                value=ast.BinOp(
+                    left=ast.List(elts=[ast.Constant(value=None)], ctx=ast.Load()),
+                    op=ast.Mult(),
+                    right=ast.Constant(value=self._buffer_size),
+                ),
+            ),
+            # _idx = 0
+            ast.Assign(
+                targets=[ast.Name(id="_idx", ctx=ast.Store())],
+                value=ast.Constant(value=0),
+            ),
+            # _buf_len = <buffer_size>
+            ast.Assign(
+                targets=[ast.Name(id="_buf_len", ctx=ast.Store())],
+                value=ast.Constant(value=self._buffer_size),
+            ),
+        ]
+
+    def _make_prealloc_append_func(self) -> list[ast.stmt]:
+        """Generate _append function with overflow protection.
+
+        Generates:
+            def _append(val):
+                nonlocal _idx
+                if _idx < _buf_len:
+                    buf[_idx] = val
+                    _idx += 1
+                else:
+                    buf.append(val)
+
+        The overflow fallback ensures correctness when estimation is too low
+        (e.g., variable-length loops with more iterations than estimated).
+        """
+        return [
+            ast.FunctionDef(
+                name="_append",
+                args=ast.arguments(
+                    posonlyargs=[],
+                    args=[ast.arg(arg="val")],
+                    vararg=None,
+                    kwonlyargs=[],
+                    kw_defaults=[],
+                    kwarg=None,
+                    defaults=[],
+                ),
+                body=[
+                    # nonlocal _idx
+                    ast.Nonlocal(names=["_idx"]),
+                    # if _idx < _buf_len:
+                    ast.If(
+                        test=ast.Compare(
+                            left=ast.Name(id="_idx", ctx=ast.Load()),
+                            ops=[ast.Lt()],
+                            comparators=[ast.Name(id="_buf_len", ctx=ast.Load())],
+                        ),
+                        body=[
+                            # buf[_idx] = val
+                            ast.Assign(
+                                targets=[
+                                    ast.Subscript(
+                                        value=ast.Name(id="buf", ctx=ast.Load()),
+                                        slice=ast.Name(id="_idx", ctx=ast.Load()),
+                                        ctx=ast.Store(),
+                                    )
+                                ],
+                                value=ast.Name(id="val", ctx=ast.Load()),
+                            ),
+                            # _idx += 1
+                            ast.AugAssign(
+                                target=ast.Name(id="_idx", ctx=ast.Store()),
+                                op=ast.Add(),
+                                value=ast.Constant(value=1),
+                            ),
+                        ],
+                        orelse=[
+                            # buf.append(val)
+                            ast.Expr(
+                                value=ast.Call(
+                                    func=ast.Attribute(
+                                        value=ast.Name(id="buf", ctx=ast.Load()),
+                                        attr="append",
+                                        ctx=ast.Load(),
+                                    ),
+                                    args=[ast.Name(id="val", ctx=ast.Load())],
+                                    keywords=[],
+                                ),
+                            ),
+                        ],
+                    ),
+                ],
+                decorator_list=[],
+                returns=None,
+            )
+        ]
+
+    def _make_prealloc_join(self) -> ast.stmt:
+        """Generate return statement with conditional slice.
+
+        Generates:
+            return ''.join(buf[:_idx] if _idx < _buf_len else buf)
+
+        If no overflow occurred (_idx < _buf_len), slice to actual length.
+        If overflow occurred, buf was extended via append() so use full list.
+        """
+        return ast.Return(
+            value=ast.Call(
+                func=ast.Attribute(
+                    value=ast.Constant(value=""),
+                    attr="join",
+                    ctx=ast.Load(),
+                ),
+                args=[
+                    ast.IfExp(
+                        # if _idx < _buf_len (no overflow)
+                        test=ast.Compare(
+                            left=ast.Name(id="_idx", ctx=ast.Load()),
+                            ops=[ast.Lt()],
+                            comparators=[ast.Name(id="_buf_len", ctx=ast.Load())],
+                        ),
+                        # then slice: buf[:_idx]
+                        body=ast.Subscript(
+                            value=ast.Name(id="buf", ctx=ast.Load()),
+                            slice=ast.Slice(
+                                lower=None,
+                                upper=ast.Name(id="_idx", ctx=ast.Load()),
+                                step=None,
+                            ),
+                            ctx=ast.Load(),
+                        ),
+                        # else: buf (overflow appended, use full list)
+                        orelse=ast.Name(id="buf", ctx=ast.Load()),
+                    )
+                ],
+                keywords=[],
+            ),
+        )
+
+    def _make_dynamic_buffer_init(self) -> list[ast.stmt]:
+        """Generate dynamic buffer initialization (original pattern).
+
+        Generates:
+            buf = []
+            _append = buf.append
+        """
+        return [
+            # buf = []
+            ast.Assign(
+                targets=[ast.Name(id="buf", ctx=ast.Store())],
+                value=ast.List(elts=[], ctx=ast.Load()),
+            ),
+            # _append = buf.append
+            ast.Assign(
+                targets=[ast.Name(id="_append", ctx=ast.Store())],
+                value=ast.Attribute(
+                    value=ast.Name(id="buf", ctx=ast.Load()),
+                    attr="append",
+                    ctx=ast.Load(),
+                ),
+            ),
+        ]
+
+    def _make_dynamic_join(self) -> ast.stmt:
+        """Generate simple join return statement (original pattern).
+
+        Generates:
+            return ''.join(buf)
+        """
+        return ast.Return(
+            value=ast.Call(
+                func=ast.Attribute(
+                    value=ast.Constant(value=""),
+                    attr="join",
+                    ctx=ast.Load(),
+                ),
+                args=[ast.Name(id="buf", ctx=ast.Load())],
+                keywords=[],
+            ),
+        )
 
     def _collect_blocks(self, nodes: Any) -> None:
         """Recursively collect all Block nodes from the AST.
@@ -208,7 +437,15 @@ class Compiler(
         )
 
     def _make_block_function(self, name: str, block_node: Any) -> ast.FunctionDef:
-        """Generate a block function: _block_name(ctx, _blocks) -> str."""
+        """Generate a block function: _block_name(ctx, _blocks) -> str.
+
+        Note: Block functions always use dynamic buffer allocation (buf = [])
+        rather than pre-allocation. Rationale:
+        - Blocks are typically smaller than full templates
+        - Block output counts would require per-block estimation (complexity)
+        - Pre-allocation overhead not justified for typical block sizes
+        """
+        # Block functions use simple dynamic buffer (no pre-allocation)
         body: list[ast.stmt] = [
             # _e = _escape
             ast.Assign(
@@ -377,44 +614,27 @@ class Compiler(
                 )
             )
 
-            # buf = []
-            body.append(
-                ast.Assign(
-                    targets=[ast.Name(id="buf", ctx=ast.Store())],
-                    value=ast.List(elts=[], ctx=ast.Load()),
-                )
-            )
-
-            # _append = buf.append (cache method lookup)
-            body.append(
-                ast.Assign(
-                    targets=[ast.Name(id="_append", ctx=ast.Store())],
-                    value=ast.Attribute(
-                        value=ast.Name(id="buf", ctx=ast.Load()),
-                        attr="append",
-                        ctx=ast.Load(),
-                    ),
-                )
-            )
+            # Buffer initialization: pre-allocated or dynamic based on estimated size
+            if self._use_prealloc:
+                # Large template: pre-allocate buffer with indexed assignment
+                # buf = [None] * size; _idx = 0; _buf_len = size
+                body.extend(self._make_prealloc_buffer_init())
+                # def _append(val): ... with overflow protection
+                body.extend(self._make_prealloc_append_func())
+            else:
+                # Small template: dynamic buffer growth
+                # buf = []; _append = buf.append
+                body.extend(self._make_dynamic_buffer_init())
 
             # Compile template body
             for child in node.body:
                 body.extend(self._compile_node(child))
 
-            # return ''.join(buf)
-            body.append(
-                ast.Return(
-                    value=ast.Call(
-                        func=ast.Attribute(
-                            value=ast.Constant(value=""),
-                            attr="join",
-                            ctx=ast.Load(),
-                        ),
-                        args=[ast.Name(id="buf", ctx=ast.Load())],
-                        keywords=[],
-                    ),
-                )
-            )
+            # Return joined buffer: slice if pre-allocated, full if dynamic
+            if self._use_prealloc:
+                body.append(self._make_prealloc_join())
+            else:
+                body.append(self._make_dynamic_join())
 
         return ast.FunctionDef(
             name="render",

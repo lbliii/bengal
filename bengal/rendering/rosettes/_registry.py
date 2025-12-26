@@ -310,6 +310,11 @@ _LEXER_SPECS: dict[str, LexerSpec] = {
         aliases=("directory", "filetree", "dirtree", "files", "scm", "treesitter"),
     ),
     # Template languages
+    "kida": LexerSpec(
+        "bengal.rendering.rosettes.lexers.kida_sm",
+        "KidaStateMachineLexer",
+        aliases=("bengal-template",),
+    ),
     "jinja": LexerSpec(
         "bengal.rendering.rosettes.lexers.jinja_sm",
         "JinjaStateMachineLexer",
