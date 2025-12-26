@@ -167,6 +167,15 @@
       stats.push(createStatItem('📦', 'Assets', payload.total_assets.toLocaleString()));
     }
 
+    // Block cache stats (Kida template introspection)
+    if (payload.block_cache && payload.block_cache.site_blocks_cached > 0) {
+      const bc = payload.block_cache;
+      const total = bc.hits + bc.misses;
+      const reuseRate = total > 0 ? Math.round((bc.hits / total) * 100) : 0;
+      const cacheText = `${bc.site_blocks_cached} blocks, ${reuseRate}% reuse`;
+      stats.push(createStatItem('🧩', 'Block cache', cacheText));
+    }
+
     // Timestamp
     const formattedTime = formatTimestamp(payload.timestamp);
     if (formattedTime) {
