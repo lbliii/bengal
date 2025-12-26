@@ -3,6 +3,11 @@
 All lexers are hand-written state machines with O(n) guaranteed performance
 and zero ReDoS vulnerability. Lexers are loaded on-demand using functools.cache
 for thread-safe memoization.
+
+Performance Note:
+    This module avoids importing bengal.errors at module load time to prevent
+    pulling in the heavy Bengal import chain. Errors are imported lazily only
+    when actually raised (which is rare - only for unsupported languages).
 """
 
 from __future__ import annotations
@@ -11,8 +16,6 @@ from dataclasses import dataclass
 from functools import cache
 from importlib import import_module
 from typing import TYPE_CHECKING
-
-from bengal.errors import BengalRenderingError, ErrorCode
 
 if TYPE_CHECKING:
     from .lexers._state_machine import StateMachineLexer
@@ -352,6 +355,11 @@ def _normalize_name(name: str) -> str:
     lower = name.lower()
     if lower in _ALIAS_TO_NAME:
         return _ALIAS_TO_NAME[lower]
+
+    # Lazy import to avoid pulling in heavy Bengal error infrastructure at module load
+    # This import is only triggered when an unsupported language is requested (rare path)
+    from bengal.errors import BengalRenderingError, ErrorCode
+
     raise BengalRenderingError(
         f"Unknown language: {name!r}. Supported: {_SORTED_LANGUAGES}",
         code=ErrorCode.R011,
@@ -416,8 +424,8 @@ def supports_language(name: str) -> bool:
     Returns:
         True if the language is supported.
     """
-    try:
-        _normalize_name(name)
+    # Fast path: direct lookup without triggering error import
+    if name in _ALIAS_TO_NAME:
         return True
-    except BengalRenderingError:
-        return False
+    lower = name.lower()
+    return lower in _ALIAS_TO_NAME

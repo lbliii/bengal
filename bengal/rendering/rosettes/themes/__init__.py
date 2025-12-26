@@ -15,13 +15,17 @@ Types:
 Palettes:
     Bengal: BENGAL_TIGER, BENGAL_SNOW_LYNX, BENGAL_CHARCOAL
     Third-party: MONOKAI, DRACULA, GITHUB
+
+Performance Note:
+    This module avoids importing bengal.errors at module load time to prevent
+    pulling in the heavy Bengal import chain. Errors are imported lazily only
+    when actually raised (rare path).
 """
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from bengal.errors import BengalRenderingError, ErrorCode
 from bengal.rendering.rosettes.themes._mapping import (
     PYGMENTS_CLASS_MAP,
     ROLE_MAPPING,
@@ -45,6 +49,8 @@ from bengal.rendering.rosettes.themes.palettes import (
 
 if TYPE_CHECKING:
     from typing import Literal
+
+    from bengal.errors import BengalRenderingError, ErrorCode
 
     CssClassStyle = Literal["semantic", "pygments"]
 
@@ -129,6 +135,9 @@ def get_palette(name: str) -> Palette:
         _init_registry()
 
     if name not in _PALETTES:
+        # Lazy import to avoid pulling in heavy Bengal error infrastructure at module load
+        from bengal.errors import BengalRenderingError, ErrorCode
+
         available = ", ".join(sorted(_PALETTES.keys()))
         raise BengalRenderingError(
             f"Unknown syntax theme: {name!r}. Available: {available}",

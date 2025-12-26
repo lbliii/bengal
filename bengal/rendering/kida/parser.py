@@ -907,6 +907,8 @@ class Parser:
     def _parse_ternary(self) -> Expr:
         """Parse ternary conditional: a if b else c
 
+        Jinja2 also supports short form: a if b (defaults to '' if false)
+
         The condition can include filters because filters have higher precedence
         than comparisons: x if y | length > 0 else z
         """
@@ -920,16 +922,18 @@ class Parser:
             # Parse condition using full expression (filters handled in postfix)
             test = self._parse_or()
 
-            # Expect "else"
-            if self._current.type != TokenType.NAME or self._current.value != "else":
-                raise self._error(
-                    "Expected 'else' in ternary expression",
-                    suggestion="Ternary syntax: value_if_true if condition else value_if_false",
+            # Check for optional "else" - Jinja2 allows short form: 's' if x (returns '' if false)
+            if self._current.type == TokenType.NAME and self._current.value == "else":
+                self._advance()  # consume "else"
+                # Parse the "false" value (right-associative)
+                else_expr = self._parse_ternary()
+            else:
+                # Short form: return empty string if condition is false
+                else_expr = Const(
+                    lineno=expr.lineno,
+                    col_offset=expr.col_offset,
+                    value="",
                 )
-            self._advance()  # consume "else"
-
-            # Parse the "false" value (right-associative)
-            else_expr = self._parse_ternary()
 
             return CondExpr(
                 lineno=expr.lineno,
@@ -994,19 +998,25 @@ class Parser:
                 self._advance()
                 op = "is not"
 
-            # Handle tests: "is defined", "is not mapping", etc.
+            # Handle tests: "is defined", "is not mapping", "is sameas false", etc.
             if op in ("is", "is not"):
                 # Check if next token is a test name (NAME token)
                 if self._current.type == TokenType.NAME:
                     test_name = self._advance().value
 
-                    # Parse optional arguments: is divisibleby(3)
+                    # Parse optional arguments
+                    # Jinja2 style: is divisibleby(3) OR is sameas false (no parens)
                     test_args: list[Expr] = []
                     test_kwargs: dict[str, Expr] = {}
                     if self._match(TokenType.LPAREN):
+                        # Arguments in parentheses: is divisibleby(3)
                         self._advance()
                         test_args, test_kwargs = self._parse_call_args()
                         self._expect(TokenType.RPAREN)
+                    elif self._can_start_test_arg():
+                        # Single argument without parens: is sameas false, is sameas none
+                        # Only parse simple values to avoid ambiguity
+                        test_args = [self._parse_primary()]
 
                     # Create Test node
                     left = Test(
@@ -1036,6 +1046,20 @@ class Parser:
             )
 
         return left
+
+    def _can_start_test_arg(self) -> bool:
+        """Check if current token can start a test argument without parens.
+
+        Used for Jinja2 style: is sameas false, is sameas none
+        Only allow simple values to avoid ambiguity with following expressions.
+        """
+        # Allow: true, false, none, numbers, strings
+        if self._current.type in (TokenType.INTEGER, TokenType.FLOAT, TokenType.STRING):
+            return True
+        if self._current.type == TokenType.NAME:
+            # Only allow boolean/none keywords as bare args
+            return self._current.value in ("true", "false", "none", "True", "False", "None")
+        return False
 
     def _parse_addition(self) -> Expr:
         """Parse addition/subtraction/concatenation.
