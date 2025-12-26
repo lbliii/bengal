@@ -113,7 +113,7 @@ def create_engine(
     Configuration:
         template_engine: jinja2  # or "mako", "patitas", etc.
     """
-    engine_name = site.config.get("template_engine", "jinja2")
+    engine_name = site.config.get("template_engine", "kida")
 
     if engine_name == "jinja2":
         from bengal.rendering.engines.jinja import JinjaTemplateEngine

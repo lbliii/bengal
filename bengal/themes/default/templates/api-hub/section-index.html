@@ -78,7 +78,7 @@ The template can be overridden by creating content/<section>/_index.md with cust
       {% if section and section.sorted_subsections %}
       <div class="autodoc-cards autodoc-cards--hub">
         {% for subsection in section.sorted_subsections %}
-        {% set sub_type = subsection.params.type | default('python-reference') %}
+        {% set sub_type = subsection.params.type ?? 'python-reference' %}
         {% set desc = subsection.params.description | first_sentence %}
         {% set child_count = (subsection.subsections | length) + (subsection.pages | length) %}
 

@@ -23,7 +23,7 @@ Context variables:
 
 <div class="tutorial-container">
     <header class="page-header page-header--centered">
-        <h1>📚 {{ section.title if section else title | default('Tutorials') }}</h1>
+        <h1>📚 {{ section.title if section else title ?? 'Tutorials' }}</h1>
 
         {% if section and section.metadata.description %}
         <p class="tutorial-description">{{ section.metadata.description }}</p>

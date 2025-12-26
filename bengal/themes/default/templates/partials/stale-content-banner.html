@@ -12,8 +12,8 @@ Configuration:
 Usage: {% include 'partials/stale-content-banner.html' %}
 #}
 
-{% set stale_days = theme.config.stale_warning_days | default(180) %}
-{% set show_warning = params.stale_warning | default(true) %}
+{% set stale_days = theme.config.stale_warning_days ?? 180 %}
+{% set show_warning = params.stale_warning ?? true %}
 
 {% if show_warning and page is outdated(stale_days) %}
 <div class="stale-content-banner" role="alert">

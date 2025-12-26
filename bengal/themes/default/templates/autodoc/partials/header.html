@@ -8,8 +8,8 @@ Required: element (DocElement)
 Optional: show_stats (bool, default true), show_source (bool, default true)
 #}
 
-{% set show_stats = show_stats | default(true) %}
-{% set show_source = show_source | default(true) %}
+{% set show_stats = show_stats ?? true %}
+{% set show_source = show_source ?? true %}
 
 <header class="autodoc-header">
   {# Badges #}

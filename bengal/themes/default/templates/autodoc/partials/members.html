@@ -8,9 +8,9 @@ Required: members (list of DocElements)
 Optional: title (str), member_type (str), first_open (bool, default true)
 #}
 
-{% set title = title | default('Members') %}
-{% set member_type = member_type | default('method') %}
-{% set first_open = first_open | default(true) %}
+{% set title = title ?? 'Members' %}
+{% set member_type = member_type ?? 'method' %}
+{% set first_open = first_open ?? true %}
 
 {# Separate public and internal members #}
 {% set public_members = members | rejectattr('name', 'match', '^_') | list if members else [] %}

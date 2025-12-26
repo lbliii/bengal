@@ -410,7 +410,7 @@ BACKWARDS COMPATIBILITY:
     {# Source link (for elements with source files) #}
     {% if element.display_source_file or element.source_file %}
     {% if config %}
-    <a href="{{ config.github_repo }}/blob/{{ config.github_branch | default('main') }}/{{ element.display_source_file or element.source_file }}{% if element.line_number %}#L{{ element.line_number }}{% end %}"
+    <a href="{{ config.github_repo }}/blob/{{ config.github_branch ?? 'main' }}/{{ element.display_source_file or element.source_file }}{% if element.line_number %}#L{{ element.line_number }}{% end %}"
       class="page-hero__source-link" target="_blank" rel="noopener">
       {{ icon('file-code', size=14) }}
       <span>View source</span>
@@ -468,8 +468,8 @@ BACKWARDS COMPATIBILITY:
   {# Footer: Stats from section children #}
   {% if section %}
   <div class="page-hero__footer">
-    {% set section_subsections = section.sorted_subsections | default([]) | list %}
-    {% set section_pages = section.sorted_pages | default([]) | rejectattr('source_path', 'match', '.*_index.*') | list %}
+    {% set section_subsections = section.sorted_subsections ?? [] | list %}
+    {% set section_pages = section.sorted_pages ?? [] | rejectattr('source_path', 'match', '.*_index.*') | list %}
 
     {% if section_subsections | length > 0 or section_pages | length > 0 %}
     <div class="page-hero__stats">
@@ -510,9 +510,9 @@ BACKWARDS COMPATIBILITY:
 {# Determine hero style: page variant > frontmatter > template default > theme config #}
 {# Guard: Only run routing code when included with context, not when imported for macros #}
 {% set _page_variant = page.variant if page else none %}
-{% set _page_hero_style = (params | default({})).hero_style | default(none) %}
+{% set _page_hero_style = (params ?? {}).hero_style | default(none) %}
 {% set _template_default = _list_hero_default if _list_hero_default is defined else none %}
-{% set _theme_hero_style = theme.config.hero_style | default('editorial') if theme else 'editorial' %}
+{% set _theme_hero_style = theme.config.hero_style ?? 'editorial' if theme else 'editorial' %}
 
 {% set hero_style = _page_variant if _page_variant else (_page_hero_style if _page_hero_style else (_template_default if _template_default else _theme_hero_style)) %}
 

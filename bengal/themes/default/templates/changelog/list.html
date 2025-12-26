@@ -56,7 +56,7 @@ Supports two modes:
             <div class="hero__actions">
                 {% for button in params.cta_buttons %}
                 <a href="{{ button.href or button.url | absolute_url }}"
-                    class="hero__button hero__button--{{ button.style | default('primary') }} {% if button.style != 'primary' %}gradient-border{% end %}">
+                    class="hero__button hero__button--{{ button.style ?? 'primary' }} {% if button.style != 'primary' %}gradient-border{% end %}">
                     {{ button.text }}
                 </a>
                 {% end %}

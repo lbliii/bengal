@@ -30,16 +30,16 @@ Context variables:
 {% from 'partials/navigation-components.html' import breadcrumbs %}
 {% from 'partials/content-components.html' import tag_list %}
 
-{% set section_filters = params.sections | default([]) %}
-{% set show_recent = params.show_recent | default(3) %}
-{% set layout = params.layout | default('grid') %}
+{% set section_filters = params.sections ?? [] %}
+{% set show_recent = params.show_recent ?? 3 %}
+{% set layout = params.layout ?? 'grid' %}
 
 {% block content %}
 {{ breadcrumbs(page) }}
 
 <div class="category-browser">
     <header class="browser-header">
-        <h1>{{ page.title | default('Browse by Category') }}</h1>
+        <h1>{{ page.title ?? 'Browse by Category' }}</h1>
 
         {% if params.description %}
         <p class="browser-description">{{ params.description }}</p>

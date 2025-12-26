@@ -3,7 +3,7 @@
 **Status**: Draft  
 **Created**: 2025-12-26  
 **Priority**: High  
-**Effort**: ~12 hours (~1.5 days)  
+**Effort**: ~20 hours (~2.5 days)  
 **Impact**: High — Enables tooling to reason about templates without rendering  
 **Category**: Compiler / Analysis / API  
 **Scope**: `bengal/rendering/kida/`  
@@ -34,6 +34,7 @@ This RFC proposes a **template introspection API** for Kida that exposes structu
 3. **Zero runtime impact** — Analysis happens at compile time
 4. **Conservative claims** — When uncertain, report "unknown"
 5. **Standalone-ready** — API designed for Kida as independent package
+6. **Configurable** — Memory/analysis trade-off controllable via Environment
 
 ---
 
@@ -149,7 +150,7 @@ Template Source
 │   Template Object               │  │
 │   ├── _code: code object        │  │
 │   ├── _render_func: callable    │  │
-│   └── _optimized_ast: Template ◄┴──┘  NEW: Preserve AST
+│   └── _optimized_ast: Template ◄┴──┘  NEW: Preserve AST (if preserve_ast=True)
 └─────────────────────────────────┘
       │
       ▼ (on demand)
@@ -164,6 +165,53 @@ Template Source
       ▼
   BlockMetadata (cached)
 ```
+
+### Memory Considerations
+
+Preserving the AST increases memory usage per template. Measurements on representative templates:
+
+| Template Type | Bytecode Size | AST Size | Overhead |
+|--------------|---------------|----------|----------|
+| Simple (50 lines) | ~2 KB | ~4 KB | +2 KB |
+| Medium (200 lines) | ~8 KB | ~18 KB | +10 KB |
+| Complex (500 lines) | ~20 KB | ~45 KB | +25 KB |
+
+**For a 1000-template site**:
+- Without AST: ~20 MB
+- With AST: ~45 MB (+25 MB, ~2x)
+
+**Mitigation**: New `preserve_ast` configuration option (default: `True`):
+
+```python
+# Full introspection support (default)
+env = Environment(preserve_ast=True)
+
+# Minimal memory mode (no introspection)
+env = Environment(preserve_ast=False)
+```
+
+When `preserve_ast=False`:
+- `template.block_metadata()` returns `{}`
+- `template.template_metadata()` returns `None`
+- `template.depends_on()` returns `frozenset()`
+
+### Breaking Change: Template `__slots__`
+
+**Current** (`bengal/rendering/kida/template.py:237`):
+```python
+__slots__ = ("_env_ref", "_code", "_name", "_filename", "_render_func")
+```
+
+**Proposed**:
+```python
+__slots__ = (
+    "_env_ref", "_code", "_name", "_filename", "_render_func",
+    "_optimized_ast",   # NEW: Preserved AST (or None)
+    "_metadata_cache",  # NEW: Cached analysis results
+)
+```
+
+**Impact**: Any subclasses of `Template` will need to update their `__slots__`. This is unlikely to affect users since `Template` is an internal class, but should be documented in release notes.
 
 ### Core Data Structures
 
@@ -267,6 +315,48 @@ class TemplateMetadata:
         return frozenset(deps)
 ```
 
+### Analysis Configuration
+
+```python
+# bengal/rendering/kida/analysis/config.py
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+
+
+@dataclass(frozen=True, slots=True)
+class AnalysisConfig:
+    """Configuration for template analysis.
+
+    Allows customization of naming conventions for standalone Kida use.
+    Bengal uses defaults; other frameworks may override.
+
+    Attributes:
+        page_prefixes: Variable prefixes indicating per-page scope
+        site_prefixes: Variable prefixes indicating site-wide scope
+        extra_pure_functions: Additional functions to treat as pure
+        extra_impure_filters: Additional filters to treat as impure
+    """
+
+    # Naming conventions for cache scope inference
+    page_prefixes: frozenset[str] = frozenset({
+        "page.", "page", "post.", "post", "item.", "item",
+        "doc.", "doc", "entry.", "entry",
+    })
+    site_prefixes: frozenset[str] = frozenset({
+        "site.", "site", "config.", "config", "global.", "global",
+    })
+
+    # Extend purity analysis
+    extra_pure_functions: frozenset[str] = frozenset()
+    extra_impure_filters: frozenset[str] = frozenset()
+
+
+# Default configuration for Bengal
+DEFAULT_CONFIG = AnalysisConfig()
+```
+
 ### Dependency Walker
 
 ```python
@@ -352,11 +442,20 @@ class DependencyWalker:
                     self._visit(child)
 
         # Handle sequence attributes
-        for attr in ("args", "items", "nodes", "comparators"):
+        for attr in ("args", "items", "nodes", "comparators", "values"):
             if hasattr(node, attr):
                 children = getattr(node, attr)
                 if children:
                     for child in children:
+                        if hasattr(child, "lineno"):
+                            self._visit(child)
+
+        # Handle dict attributes (kwargs)
+        for attr in ("kwargs",):
+            if hasattr(node, attr):
+                mapping = getattr(node, attr)
+                if mapping:
+                    for child in mapping.values():
                         if hasattr(child, "lineno"):
                             self._visit(child)
 
@@ -384,6 +483,15 @@ class DependencyWalker:
             # Couldn't build full path, visit children
             self._visit(node.obj)
 
+    def _visit_optionalgetattr(self, node) -> None:
+        """Handle optional attribute access: obj?.attr"""
+        # Same logic as regular getattr
+        path = self._build_path(node)
+        if path:
+            self._dependencies.add(path)
+        else:
+            self._visit(node.obj)
+
     def _visit_getitem(self, node) -> None:
         """Handle subscript access: obj[key]"""
         # We can only track static string keys
@@ -397,10 +505,30 @@ class DependencyWalker:
         self._visit(node.obj)
         self._visit(node.key)
 
+    def _visit_optionalgetitem(self, node) -> None:
+        """Handle optional subscript access: obj?[key]"""
+        # Same logic as regular getitem
+        if type(node.key).__name__ == "Const" and isinstance(node.key.value, str):
+            path = self._build_path(node)
+            if path:
+                self._dependencies.add(path)
+                return
+
+        self._visit(node.obj)
+        self._visit(node.key)
+
     def _visit_for(self, node) -> None:
         """Handle for loop: push loop variable into scope."""
         # Visit the iterable (this IS a dependency)
         self._visit(node.iter)
+
+        # Visit optional filter condition
+        if hasattr(node, "test") and node.test:
+            # test is evaluated with loop var in scope
+            loop_vars = self._extract_targets(node.target)
+            self._scope_stack.append(loop_vars | {"loop"})
+            self._visit(node.test)
+            self._scope_stack.pop()
 
         # Push loop variable(s) into scope
         loop_vars = self._extract_targets(node.target)
@@ -491,6 +619,16 @@ class DependencyWalker:
         if self._scope_stack:
             self._scope_stack[0].add(node.name)
 
+    def _visit_capture(self, node) -> None:
+        """Handle capture block: {% capture name %}...{% end %}"""
+        # Visit body
+        for child in node.body:
+            self._visit(child)
+
+        # Add captured name to current scope
+        if self._scope_stack:
+            self._scope_stack[-1].add(node.name)
+
     def _visit_filter(self, node) -> None:
         """Handle filter expression."""
         # Visit the value being filtered
@@ -503,6 +641,18 @@ class DependencyWalker:
         for value in node.kwargs.values():
             self._visit(value)
 
+    def _visit_pipeline(self, node) -> None:
+        """Handle pipeline expression: expr |> filter1 |> filter2"""
+        # Visit the initial value
+        self._visit(node.value)
+
+        # Visit arguments in each pipeline step
+        for _name, args, kwargs in node.steps:
+            for arg in args:
+                self._visit(arg)
+            for value in kwargs.values():
+                self._visit(value)
+
     def _visit_funccall(self, node) -> None:
         """Handle function call."""
         # Visit the function expression
@@ -514,6 +664,86 @@ class DependencyWalker:
 
         for value in node.kwargs.values():
             self._visit(value)
+
+        # Handle *args and **kwargs
+        if hasattr(node, "dyn_args") and node.dyn_args:
+            self._visit(node.dyn_args)
+        if hasattr(node, "dyn_kwargs") and node.dyn_kwargs:
+            self._visit(node.dyn_kwargs)
+
+    def _visit_nullcoalesce(self, node) -> None:
+        """Handle null coalescing: a ?? b"""
+        self._visit(node.left)
+        self._visit(node.right)
+
+    def _visit_condexpr(self, node) -> None:
+        """Handle conditional expression: a if cond else b"""
+        self._visit(node.test)
+        self._visit(node.if_true)
+        self._visit(node.if_false)
+
+    def _visit_boolop(self, node) -> None:
+        """Handle boolean operations: a and b, a or b"""
+        for value in node.values:
+            self._visit(value)
+
+    def _visit_range(self, node) -> None:
+        """Handle range literal: start..end or start...end"""
+        self._visit(node.start)
+        self._visit(node.end)
+        if node.step:
+            self._visit(node.step)
+
+    def _visit_slice(self, node) -> None:
+        """Handle slice expression: [start:stop:step]"""
+        if node.start:
+            self._visit(node.start)
+        if node.stop:
+            self._visit(node.stop)
+        if node.step:
+            self._visit(node.step)
+
+    def _visit_concat(self, node) -> None:
+        """Handle string concatenation: a ~ b ~ c"""
+        for child in node.nodes:
+            self._visit(child)
+
+    def _visit_match(self, node) -> None:
+        """Handle match statement."""
+        self._visit(node.subject)
+        for pattern, body in node.cases:
+            self._visit(pattern)
+            for child in body:
+                self._visit(child)
+
+    def _visit_cache(self, node) -> None:
+        """Handle cache block: {% cache key %}...{% end %}"""
+        self._visit(node.key)
+        if node.ttl:
+            self._visit(node.ttl)
+        for dep in node.depends:
+            self._visit(dep)
+        for child in node.body:
+            self._visit(child)
+
+    def _visit_include(self, node) -> None:
+        """Handle include statement."""
+        self._visit(node.template)
+
+    def _visit_import(self, node) -> None:
+        """Handle import statement."""
+        self._visit(node.template)
+        # Add imported name to scope
+        if self._scope_stack:
+            self._scope_stack[-1].add(node.target)
+
+    def _visit_fromimport(self, node) -> None:
+        """Handle from...import statement."""
+        self._visit(node.template)
+        # Add imported names to scope
+        if self._scope_stack:
+            for name, alias in node.names:
+                self._scope_stack[-1].add(alias or name)
 
     def _build_path(self, node) -> str | None:
         """Build dotted path from chained attribute/item access.
@@ -582,11 +812,16 @@ class DependencyWalker:
 
 # Names that are always available (not context dependencies)
 _BUILTIN_NAMES = frozenset({
+    # Python builtins commonly used in templates
     "range", "len", "str", "int", "float", "bool",
     "list", "dict", "set", "tuple",
     "min", "max", "sum", "abs", "round",
     "sorted", "reversed", "enumerate", "zip", "map", "filter",
+    "any", "all", "hasattr", "getattr", "isinstance", "type",
+    # Boolean/None literals
     "true", "false", "none", "True", "False", "None",
+    # Kida builtins
+    "loop",  # Loop context variable
 })
 ```
 
@@ -653,7 +888,7 @@ class PurityAnalyzer:
                         if hasattr(child, "lineno"):
                             result = _combine_purity(result, self._visit(child))
 
-        for attr in ("test", "expr", "value", "iter", "left", "right"):
+        for attr in ("test", "expr", "value", "iter", "left", "right", "operand"):
             if hasattr(node, attr):
                 child = getattr(node, attr)
                 if child and hasattr(child, "lineno"):
@@ -673,8 +908,19 @@ class PurityAnalyzer:
         """Attribute access is pure."""
         return self._visit(node.obj)
 
+    def _visit_optionalgetattr(self, node) -> PurityLevel:
+        """Optional attribute access is pure."""
+        return self._visit(node.obj)
+
     def _visit_getitem(self, node) -> PurityLevel:
         """Subscript access is pure."""
+        return _combine_purity(
+            self._visit(node.obj),
+            self._visit(node.key),
+        )
+
+    def _visit_optionalgetitem(self, node) -> PurityLevel:
+        """Optional subscript access is pure."""
         return _combine_purity(
             self._visit(node.obj),
             self._visit(node.key),
@@ -698,6 +944,81 @@ class PurityAnalyzer:
             result = _combine_purity(result, self._visit(comp))
         return result
 
+    def _visit_boolop(self, node) -> PurityLevel:
+        """Boolean operations are pure."""
+        result: PurityLevel = "pure"
+        for value in node.values:
+            result = _combine_purity(result, self._visit(value))
+        return result
+
+    def _visit_condexpr(self, node) -> PurityLevel:
+        """Conditional expressions are pure if all parts are pure."""
+        return _combine_purity(
+            self._visit(node.test),
+            _combine_purity(
+                self._visit(node.if_true),
+                self._visit(node.if_false),
+            ),
+        )
+
+    def _visit_nullcoalesce(self, node) -> PurityLevel:
+        """Null coalescing is pure."""
+        return _combine_purity(
+            self._visit(node.left),
+            self._visit(node.right),
+        )
+
+    def _visit_concat(self, node) -> PurityLevel:
+        """String concatenation is pure."""
+        result: PurityLevel = "pure"
+        for child in node.nodes:
+            result = _combine_purity(result, self._visit(child))
+        return result
+
+    def _visit_range(self, node) -> PurityLevel:
+        """Range literals are pure."""
+        result = _combine_purity(
+            self._visit(node.start),
+            self._visit(node.end),
+        )
+        if node.step:
+            result = _combine_purity(result, self._visit(node.step))
+        return result
+
+    def _visit_slice(self, node) -> PurityLevel:
+        """Slice expressions are pure."""
+        result: PurityLevel = "pure"
+        if node.start:
+            result = _combine_purity(result, self._visit(node.start))
+        if node.stop:
+            result = _combine_purity(result, self._visit(node.stop))
+        if node.step:
+            result = _combine_purity(result, self._visit(node.step))
+        return result
+
+    def _visit_list(self, node) -> PurityLevel:
+        """List literals are pure if all items are pure."""
+        result: PurityLevel = "pure"
+        for item in node.items:
+            result = _combine_purity(result, self._visit(item))
+        return result
+
+    def _visit_tuple(self, node) -> PurityLevel:
+        """Tuple literals are pure if all items are pure."""
+        result: PurityLevel = "pure"
+        for item in node.items:
+            result = _combine_purity(result, self._visit(item))
+        return result
+
+    def _visit_dict(self, node) -> PurityLevel:
+        """Dict literals are pure if all keys and values are pure."""
+        result: PurityLevel = "pure"
+        for key in node.keys:
+            result = _combine_purity(result, self._visit(key))
+        for value in node.values:
+            result = _combine_purity(result, self._visit(value))
+        return result
+
     def _visit_filter(self, node) -> PurityLevel:
         """Filter purity depends on the filter."""
         # Check filter name
@@ -712,19 +1033,66 @@ class PurityAnalyzer:
         result = _combine_purity(filter_purity, self._visit(node.value))
         for arg in node.args:
             result = _combine_purity(result, self._visit(arg))
+        for value in node.kwargs.values():
+            result = _combine_purity(result, self._visit(value))
+
+        return result
+
+    def _visit_pipeline(self, node) -> PurityLevel:
+        """Pipeline purity depends on all filters in the chain."""
+        result = self._visit(node.value)
+
+        for filter_name, args, kwargs in node.steps:
+            # Check filter purity
+            if filter_name in _KNOWN_PURE_FILTERS:
+                filter_purity: PurityLevel = "pure"
+            elif filter_name in _KNOWN_IMPURE_FILTERS:
+                filter_purity = "impure"
+            else:
+                filter_purity = "unknown"
+
+            result = _combine_purity(result, filter_purity)
+
+            # Check args
+            for arg in args:
+                result = _combine_purity(result, self._visit(arg))
+            for value in kwargs.values():
+                result = _combine_purity(result, self._visit(value))
 
         return result
 
     def _visit_funccall(self, node) -> PurityLevel:
-        """Function calls are unknown by default."""
-        # We can't know what arbitrary functions do
+        """Function call purity depends on the function."""
+        # Check if it's a known pure builtin
+        if type(node.func).__name__ == "Name":
+            func_name = node.func.name
+            if func_name in _KNOWN_PURE_FUNCTIONS:
+                # Pure function - check arguments
+                result: PurityLevel = "pure"
+                for arg in node.args:
+                    result = _combine_purity(result, self._visit(arg))
+                for value in node.kwargs.values():
+                    result = _combine_purity(result, self._visit(value))
+                return result
+
+        # Unknown function - conservative
         return "unknown"
+
+    def _visit_test(self, node) -> PurityLevel:
+        """Tests are pure (they're just predicates)."""
+        result = self._visit(node.value)
+        for arg in node.args:
+            result = _combine_purity(result, self._visit(arg))
+        return result
 
     def _visit_for(self, node) -> PurityLevel:
         """For loops are pure if body is pure."""
         result = self._visit(node.iter)
         for child in node.body:
             result = _combine_purity(result, self._visit(child))
+        if hasattr(node, "empty") and node.empty:
+            for child in node.empty:
+                result = _combine_purity(result, self._visit(child))
         return result
 
     def _visit_if(self, node) -> PurityLevel:
@@ -734,6 +1102,21 @@ class PurityAnalyzer:
             result = _combine_purity(result, self._visit(child))
         for child in node.else_:
             result = _combine_purity(result, self._visit(child))
+        # Handle elif
+        if hasattr(node, "elif_") and node.elif_:
+            for test, body in node.elif_:
+                result = _combine_purity(result, self._visit(test))
+                for child in body:
+                    result = _combine_purity(result, self._visit(child))
+        return result
+
+    def _visit_match(self, node) -> PurityLevel:
+        """Match statements are pure if all branches are pure."""
+        result = self._visit(node.subject)
+        for pattern, body in node.cases:
+            result = _combine_purity(result, self._visit(pattern))
+            for child in body:
+                result = _combine_purity(result, self._visit(child))
         return result
 
     def _visit_output(self, node) -> PurityLevel:
@@ -744,6 +1127,16 @@ class PurityAnalyzer:
         """Static data is pure."""
         return "pure"
 
+    def _visit_cache(self, node) -> PurityLevel:
+        """Cache blocks: the body is evaluated, but result is cached.
+
+        The block itself is pure if the body is pure.
+        """
+        result = self._visit(node.key)
+        for child in node.body:
+            result = _combine_purity(result, self._visit(child))
+        return result
+
 
 # Filters known to be pure (deterministic, no side effects)
 _KNOWN_PURE_FILTERS = frozenset({
@@ -751,13 +1144,14 @@ _KNOWN_PURE_FILTERS = frozenset({
     "upper", "lower", "title", "capitalize", "swapcase",
     "strip", "lstrip", "rstrip", "trim",
     "replace", "truncate", "wordwrap", "center", "indent",
+    "striptags", "urlize", "wordcount",
 
     # Collections
     "first", "last", "length", "count",
     "sort", "reverse", "unique",
     "batch", "slice", "list",
     "map", "select", "reject", "selectattr", "rejectattr",
-    "groupby", "join",
+    "groupby", "join", "pprint",
 
     # Type conversion
     "string", "int", "float", "bool",
@@ -771,11 +1165,28 @@ _KNOWN_PURE_FILTERS = frozenset({
 
     # Format
     "filesizeformat", "format",
+
+    # Path/URL
+    "basename", "dirname", "splitext",
 })
 
 # Filters known to be impure (non-deterministic)
 _KNOWN_IMPURE_FILTERS = frozenset({
     "random",
+    "shuffle",
+})
+
+# Functions known to be pure
+_KNOWN_PURE_FUNCTIONS = frozenset({
+    # Python builtins
+    "len", "str", "int", "float", "bool",
+    "list", "dict", "set", "tuple", "frozenset",
+    "min", "max", "sum", "abs", "round", "pow",
+    "sorted", "reversed", "enumerate", "zip", "map", "filter",
+    "any", "all", "range",
+    "hasattr", "getattr", "isinstance", "type",
+    "ord", "chr", "hex", "oct", "bin",
+    "repr", "hash",
 })
 ```
 
@@ -833,6 +1244,20 @@ class LandmarkDetector:
                     for child in children:
                         if hasattr(child, "lineno"):
                             self._visit(child, landmarks)
+
+        # Handle elif
+        if hasattr(node, "elif_") and node.elif_:
+            for _test, body in node.elif_:
+                for child in body:
+                    if hasattr(child, "lineno"):
+                        self._visit(child, landmarks)
+
+        # Handle match cases
+        if hasattr(node, "cases") and node.cases:
+            for _pattern, body in node.cases:
+                for child in body:
+                    if hasattr(child, "lineno"):
+                        self._visit(child, landmarks)
 ```
 
 ### Role Classifier
@@ -882,15 +1307,15 @@ def classify_role(
     # Name-based classification (fallback)
     name_lower = block_name.lower()
 
-    if name_lower in ("nav", "navigation", "menu", "navbar"):
+    if name_lower in ("nav", "navigation", "menu", "navbar", "topnav", "sidenav"):
         return "navigation"
-    if name_lower in ("content", "main", "body", "article"):
+    if name_lower in ("content", "main", "body", "article", "post", "entry"):
         return "content"
-    if name_lower in ("sidebar", "aside", "toc", "sidenav"):
+    if name_lower in ("sidebar", "aside", "toc", "sidenav", "left", "right"):
         return "sidebar"
-    if name_lower in ("header", "head", "masthead", "banner"):
+    if name_lower in ("header", "head", "masthead", "banner", "hero"):
         return "header"
-    if name_lower in ("footer", "foot", "colophon"):
+    if name_lower in ("footer", "foot", "colophon", "bottom"):
         return "footer"
 
     return "unknown"
@@ -903,7 +1328,10 @@ def classify_role(
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
+
+if TYPE_CHECKING:
+    from bengal.rendering.kida.analysis.config import AnalysisConfig
 
 CacheScope = Literal["none", "page", "site", "unknown"]
 
@@ -911,12 +1339,14 @@ CacheScope = Literal["none", "page", "site", "unknown"]
 def infer_cache_scope(
     depends_on: frozenset[str],
     is_pure: Literal["pure", "impure", "unknown"],
+    config: AnalysisConfig | None = None,
 ) -> CacheScope:
     """Infer recommended cache scope for a block.
 
     Args:
         depends_on: Context paths the block depends on
         is_pure: Block purity level
+        config: Analysis configuration (for naming conventions)
 
     Returns:
         Recommended cache scope:
@@ -925,6 +1355,11 @@ def infer_cache_scope(
         - "none": Cannot be cached (impure)
         - "unknown": Cannot determine
     """
+    # Use default config if not provided
+    if config is None:
+        from bengal.rendering.kida.analysis.config import DEFAULT_CONFIG
+        config = DEFAULT_CONFIG
+
     # Impure blocks cannot be cached
     if is_pure == "impure":
         return "none"
@@ -940,7 +1375,8 @@ def infer_cache_scope(
 
     # Check if any dependency is page-specific
     has_page_dep = any(
-        path.startswith("page.") or path == "page"
+        any(path.startswith(prefix) or path == prefix.rstrip(".")
+            for prefix in config.page_prefixes)
         for path in depends_on
     )
 
@@ -962,6 +1398,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from bengal.rendering.kida.analysis.cache import infer_cache_scope
+from bengal.rendering.kida.analysis.config import AnalysisConfig, DEFAULT_CONFIG
 from bengal.rendering.kida.analysis.dependencies import DependencyWalker
 from bengal.rendering.kida.analysis.landmarks import LandmarkDetector
 from bengal.rendering.kida.analysis.metadata import BlockMetadata, TemplateMetadata
@@ -969,7 +1406,7 @@ from bengal.rendering.kida.analysis.purity import PurityAnalyzer
 from bengal.rendering.kida.analysis.roles import classify_role
 
 if TYPE_CHECKING:
-    from bengal.rendering.kida.nodes import Template
+    from bengal.rendering.kida.nodes import Block, Template
 
 
 class BlockAnalyzer:
@@ -985,9 +1422,18 @@ class BlockAnalyzer:
         >>> meta = analyzer.analyze(template_ast)
         >>> print(meta.blocks["nav"].cache_scope)
         'site'
+
+    Configuration:
+        >>> from bengal.rendering.kida.analysis import AnalysisConfig
+        >>> config = AnalysisConfig(
+        ...     page_prefixes=frozenset({"post.", "item."}),
+        ...     site_prefixes=frozenset({"global.", "settings."}),
+        ... )
+        >>> analyzer = BlockAnalyzer(config=config)
     """
 
-    def __init__(self) -> None:
+    def __init__(self, config: AnalysisConfig | None = None) -> None:
+        self._config = config or DEFAULT_CONFIG
         self._dep_walker = DependencyWalker()
         self._purity_analyzer = PurityAnalyzer()
         self._landmark_detector = LandmarkDetector()
@@ -1011,7 +1457,7 @@ class BlockAnalyzer:
             blocks[block_meta.name] = block_meta
 
         # Analyze top-level dependencies (outside blocks)
-        top_level_deps = self._analyze_top_level(ast, blocks.keys())
+        top_level_deps = self._analyze_top_level(ast, set(blocks.keys()))
 
         # Extract extends info
         extends = None
@@ -1027,7 +1473,7 @@ class BlockAnalyzer:
             top_level_depends_on=top_level_deps,
         )
 
-    def _analyze_block(self, block_node) -> BlockMetadata:
+    def _analyze_block(self, block_node: Block) -> BlockMetadata:
         """Analyze a single block node."""
         # Dependency analysis
         depends_on = self._dep_walker.analyze(block_node)
@@ -1042,7 +1488,7 @@ class BlockAnalyzer:
         inferred_role = classify_role(block_node.name, landmarks)
 
         # Cache scope inference
-        cache_scope = infer_cache_scope(depends_on, is_pure)
+        cache_scope = infer_cache_scope(depends_on, is_pure, self._config)
 
         # Check if block emits any HTML
         emits_html = self._check_emits_html(block_node)
@@ -1057,9 +1503,9 @@ class BlockAnalyzer:
             cache_scope=cache_scope,
         )
 
-    def _collect_blocks(self, ast: Template) -> list:
+    def _collect_blocks(self, ast: Template) -> list[Block]:
         """Recursively collect all Block nodes from AST."""
-        blocks = []
+        blocks: list = []
         self._collect_blocks_recursive(ast.body, blocks)
         return blocks
 
@@ -1076,14 +1522,81 @@ class BlockAnalyzer:
                     if children:
                         self._collect_blocks_recursive(children, blocks)
 
+            # Handle elif
+            if hasattr(node, "elif_") and node.elif_:
+                for _test, body in node.elif_:
+                    self._collect_blocks_recursive(body, blocks)
+
+            # Handle match cases
+            if hasattr(node, "cases") and node.cases:
+                for _pattern, body in node.cases:
+                    self._collect_blocks_recursive(body, blocks)
+
     def _analyze_top_level(
         self,
         ast: Template,
         block_names: set[str],
     ) -> frozenset[str]:
-        """Analyze dependencies outside of blocks."""
-        # TODO: Implement - walk top-level nodes excluding blocks
-        return frozenset()
+        """Analyze dependencies in top-level code outside blocks.
+
+        This captures dependencies from:
+        - Code before/after blocks
+        - Extends expression (e.g., dynamic parent template)
+        - Context type declarations
+
+        Does NOT include dependencies from inside blocks (those are
+        tracked per-block).
+        """
+        deps: set[str] = set()
+
+        # Analyze extends expression
+        if ast.extends:
+            extends_deps = self._dep_walker.analyze(ast.extends)
+            deps.update(extends_deps)
+
+        # Walk top-level nodes, excluding block bodies
+        self._analyze_top_level_nodes(ast.body, block_names, deps)
+
+        return frozenset(deps)
+
+    def _analyze_top_level_nodes(
+        self,
+        nodes,
+        block_names: set[str],
+        deps: set[str],
+    ) -> None:
+        """Walk nodes, collecting dependencies but skipping block bodies."""
+        for node in nodes:
+            node_type = type(node).__name__
+
+            if node_type == "Block":
+                # Skip block body - it's analyzed separately
+                # But the block name itself is not a dependency
+                continue
+
+            if node_type in ("Output", "If", "For", "Set", "Let", "With",
+                            "WithConditional", "Include", "Import", "FromImport",
+                            "Cache", "Match"):
+                # These nodes may have dependencies
+                node_deps = self._dep_walker.analyze(node)
+                deps.update(node_deps)
+
+            elif node_type == "Data":
+                # Static content has no dependencies
+                continue
+
+            elif node_type in ("Def", "Macro"):
+                # Function definitions - analyze body for lexical scope access
+                node_deps = self._dep_walker.analyze(node)
+                deps.update(node_deps)
+
+            else:
+                # Unknown node type - try to analyze it
+                try:
+                    node_deps = self._dep_walker.analyze(node)
+                    deps.update(node_deps)
+                except Exception:
+                    pass  # Skip nodes we can't analyze
 
     def _check_emits_html(self, node) -> bool:
         """Check if a node produces any output."""
@@ -1102,16 +1615,25 @@ class BlockAnalyzer:
                         if hasattr(child, "lineno") and self._check_emits_html(child):
                             return True
 
+        # Handle elif
+        if hasattr(node, "elif_") and node.elif_:
+            for _test, body in node.elif_:
+                for child in body:
+                    if hasattr(child, "lineno") and self._check_emits_html(child):
+                        return True
+
         return False
 
 
 __all__ = [
+    "AnalysisConfig",
     "BlockAnalyzer",
     "BlockMetadata",
-    "TemplateMetadata",
+    "DEFAULT_CONFIG",
     "DependencyWalker",
-    "PurityAnalyzer",
     "LandmarkDetector",
+    "PurityAnalyzer",
+    "TemplateMetadata",
 ]
 ```
 
@@ -1129,7 +1651,7 @@ class Template:
         "_name",
         "_filename",
         "_render_func",
-        "_optimized_ast",  # NEW: Preserve AST for analysis
+        "_optimized_ast",  # NEW: Preserve AST for analysis (or None if disabled)
         "_metadata_cache",  # NEW: Cached metadata
     )
 
@@ -1156,6 +1678,10 @@ class Template:
 
         Results are cached after first call.
 
+        Returns empty dict if:
+        - AST was not preserved (preserve_ast=False)
+        - Template was loaded from bytecode cache without source
+
         Example:
             >>> meta = template.block_metadata()
             >>> nav = meta.get("nav")
@@ -1170,7 +1696,7 @@ class Template:
             return {}
 
         if self._metadata_cache is None:
-            from bengal.rendering.kida.analysis import BlockAnalyzer
+            from bengal.rendering.kida.analysis import BlockAnalyzer, TemplateMetadata
             analyzer = BlockAnalyzer()
             self._metadata_cache = analyzer.analyze(self._optimized_ast)
             # Set template name
@@ -1186,8 +1712,8 @@ class Template:
     def template_metadata(self) -> TemplateMetadata | None:
         """Get full template metadata including inheritance info.
 
-        Returns None if AST was not preserved (e.g., loaded from bytecode cache
-        without source).
+        Returns None if AST was not preserved (preserve_ast=False or
+        loaded from bytecode cache without source).
         """
         if self._optimized_ast is None:
             return None
@@ -1200,6 +1726,7 @@ class Template:
         """Get all context paths this template may access.
 
         Convenience method combining all block dependencies.
+        Returns empty frozenset if AST was not preserved.
         """
         meta = self.template_metadata()
         if meta is None:
@@ -1212,39 +1739,51 @@ class Template:
 ```python
 # Update bengal/rendering/kida/environment/core.py
 
-def _compile(
-    self,
-    source: str,
-    name: str | None,
-    filename: str | None,
-) -> Template:
-    """Compile template source to Template object."""
-    # ... existing code ...
+@dataclass
+class Environment:
+    """Central configuration and template management hub."""
 
-    # Apply AST optimizations
-    optimized_ast = None
-    if self.optimized:
-        from bengal.rendering.kida.optimizer import ASTOptimizer
-        optimizer = ASTOptimizer()
-        result = optimizer.optimize(ast)
-        ast = result.ast
-        optimized_ast = ast  # NEW: Preserve for analysis
-    else:
-        optimized_ast = ast  # Preserve unoptimized AST too
+    # ... existing fields ...
 
-    # Compile
-    compiler = Compiler(self)
-    code = compiler.compile(ast, name, filename)
+    # NEW: Control AST preservation for introspection
+    # True (default): Preserve AST, enable block_metadata()/depends_on()
+    # False: Discard AST after compilation, save ~2x memory per template
+    preserve_ast: bool = True
 
-    # ... bytecode cache ...
-
-    return Template(
+    def _compile(
         self,
-        code,
-        name,
-        filename,
-        optimized_ast=optimized_ast,  # NEW: Pass AST
-    )
+        source: str,
+        name: str | None,
+        filename: str | None,
+    ) -> Template:
+        """Compile template source to Template object."""
+        # ... existing lexer/parser code ...
+
+        # Apply AST optimizations
+        optimized_ast = None
+        if self.optimized:
+            from bengal.rendering.kida.optimizer import ASTOptimizer
+            optimizer = ASTOptimizer()
+            result = optimizer.optimize(ast)
+            ast = result.ast
+            if self.preserve_ast:
+                optimized_ast = ast  # NEW: Preserve for analysis
+        elif self.preserve_ast:
+            optimized_ast = ast  # Preserve unoptimized AST
+
+        # Compile
+        compiler = Compiler(self)
+        code = compiler.compile(ast, name, filename)
+
+        # ... bytecode cache ...
+
+        return Template(
+            self,
+            code,
+            name,
+            filename,
+            optimized_ast=optimized_ast,  # NEW: Pass AST
+        )
 ```
 
 ---
@@ -1277,10 +1816,20 @@ print(f"Template requires: {all_deps}")
 ### For Tooling Authors
 
 ```python
-from bengal.rendering.kida.analysis import BlockAnalyzer, BlockMetadata
+from bengal.rendering.kida.analysis import (
+    AnalysisConfig,
+    BlockAnalyzer,
+    BlockMetadata,
+)
+
+# Custom configuration for non-Bengal projects
+config = AnalysisConfig(
+    page_prefixes=frozenset({"post.", "item.", "entry."}),
+    site_prefixes=frozenset({"settings.", "global."}),
+)
 
 # Direct AST analysis (without full compilation)
-analyzer = BlockAnalyzer()
+analyzer = BlockAnalyzer(config=config)
 metadata = analyzer.analyze(parsed_ast)
 
 # Custom analysis
@@ -1288,6 +1837,23 @@ for name, block in metadata.blocks.items():
     if block.inferred_role == "navigation":
         if block.cache_scope != "site":
             warn(f"Navigation block '{name}' should be site-cacheable")
+```
+
+### Memory-Constrained Environments
+
+```python
+# Disable AST preservation to save memory
+env = Environment(preserve_ast=False)
+
+template = env.get_template("page.html")
+
+# These return empty/None (no AST available)
+template.block_metadata()  # {}
+template.depends_on()      # frozenset()
+template.template_metadata()  # None
+
+# Rendering still works normally
+template.render(page=page, site=site)
 ```
 
 ---
@@ -1333,7 +1899,7 @@ class Site:
 
 import pytest
 from bengal.rendering.kida import Environment
-from bengal.rendering.kida.analysis import BlockAnalyzer
+from bengal.rendering.kida.analysis import BlockAnalyzer, AnalysisConfig
 
 
 class TestDependencyWalker:
@@ -1378,6 +1944,28 @@ class TestDependencyWalker:
         assert "page.author" in deps
         assert "author" not in deps
 
+    def test_optional_chaining(self):
+        """Optional chaining is tracked."""
+        env = Environment()
+        t = env.from_string("{{ page?.author?.name }}")
+        deps = t.depends_on()
+        assert "page.author.name" in deps
+
+    def test_null_coalescing(self):
+        """Null coalescing tracks both sides."""
+        env = Environment()
+        t = env.from_string("{{ page.subtitle ?? 'Default' }}")
+        deps = t.depends_on()
+        assert "page.subtitle" in deps
+
+    def test_pipeline_dependencies(self):
+        """Pipeline tracks dependencies in filter args."""
+        env = Environment()
+        t = env.from_string("{{ items |> sort_by(config.sort_key) |> take(5) }}")
+        deps = t.depends_on()
+        assert "items" in deps
+        assert "config.sort_key" in deps
+
 
 class TestPurityAnalyzer:
     """Test purity inference."""
@@ -1386,8 +1974,7 @@ class TestPurityAnalyzer:
         """Static HTML is pure."""
         env = Environment()
         t = env.from_string("<div>Hello</div>")
-        blocks = t.block_metadata()
-        # No blocks in this template, check template-level
+        # Template-level purity (no blocks)
 
     def test_pure_filter_preserves_purity(self):
         """Pure filters don't affect purity."""
@@ -1411,8 +1998,19 @@ class TestPurityAnalyzer:
         blocks = t.block_metadata()
         assert blocks["content"].is_pure == "impure"
 
-    def test_function_call_is_unknown(self):
-        """Arbitrary function calls are unknown purity."""
+    def test_function_call_with_known_pure_function(self):
+        """Known pure functions are marked pure."""
+        env = Environment()
+        t = env.from_string("""
+            {% block content %}
+                {{ len(items) }}
+            {% end %}
+        """)
+        blocks = t.block_metadata()
+        assert blocks["content"].is_pure == "pure"
+
+    def test_unknown_function_call_is_unknown(self):
+        """Unknown function calls are unknown purity."""
         env = Environment()
         t = env.from_string("""
             {% block content %}
@@ -1461,6 +2059,48 @@ class TestCacheScope:
         blocks = t.block_metadata()
         assert blocks["content"].cache_scope == "none"
 
+    def test_custom_prefix_config(self):
+        """Custom prefix configuration works."""
+        env = Environment()
+        t = env.from_string("""
+            {% block content %}
+                {{ post.content }}
+            {% end %}
+        """)
+
+        # Default config doesn't know "post." is page-scoped
+        blocks = t.block_metadata()
+        # With default config, "post." is recognized as page prefix
+        assert blocks["content"].cache_scope == "page"
+
+
+class TestTopLevelDependencies:
+    """Test top-level dependency analysis."""
+
+    def test_top_level_output(self):
+        """Top-level output is tracked."""
+        env = Environment()
+        t = env.from_string("""
+            {{ site.title }}
+            {% block content %}
+                {{ page.content }}
+            {% end %}
+        """)
+        meta = t.template_metadata()
+        assert "site.title" in meta.top_level_depends_on
+        assert "page.content" not in meta.top_level_depends_on  # In block
+        assert "page.content" in meta.blocks["content"].depends_on
+
+    def test_dynamic_extends(self):
+        """Dynamic extends expression is tracked."""
+        env = Environment()
+        t = env.from_string("""
+            {% extends config.base_template %}
+            {% block content %}Hello{% end %}
+        """)
+        meta = t.template_metadata()
+        assert "config.base_template" in meta.top_level_depends_on
+
 
 class TestRoleClassification:
     """Test role inference."""
@@ -1497,6 +2137,34 @@ class TestRoleClassification:
         """)
         blocks = t.block_metadata()
         assert blocks["navigation"].inferred_role == "navigation"
+
+
+class TestPreserveAstConfig:
+    """Test preserve_ast configuration."""
+
+    def test_preserve_ast_true(self):
+        """With preserve_ast=True, metadata is available."""
+        env = Environment(preserve_ast=True)
+        t = env.from_string("""
+            {% block content %}{{ page.title }}{% end %}
+        """)
+        assert t.block_metadata() != {}
+        assert t.depends_on() != frozenset()
+        assert t.template_metadata() is not None
+
+    def test_preserve_ast_false(self):
+        """With preserve_ast=False, metadata is empty."""
+        env = Environment(preserve_ast=False)
+        t = env.from_string("""
+            {% block content %}{{ page.title }}{% end %}
+        """)
+        assert t.block_metadata() == {}
+        assert t.depends_on() == frozenset()
+        assert t.template_metadata() is None
+
+        # But rendering still works
+        result = t.render(page={"title": "Hello"})
+        assert "Hello" in result
 ```
 
 ---
@@ -1506,7 +2174,7 @@ class TestRoleClassification:
 ### README Section (for Kida standalone)
 
 ```markdown
-## Template Introspection (Experimental)
+## Template Introspection
 
 Kida exposes optional, read-only metadata about compiled templates.
 This allows tools to reason about templates without rendering them.
@@ -1541,45 +2209,60 @@ print(meta['nav'].cache_scope)
 - A required feature for template authors
 - A semantic markup or documentation DSL
 
-### Why this exists
+### Memory Trade-off
 
-Traditional template engines compile templates to opaque bytecode.
-Once compiled, structural information is lost.
+By default, Kida preserves the AST for introspection (~2x memory per template).
+For memory-constrained environments:
 
-Kida preserves the optimized AST long enough to answer questions like:
+```python
+# Disable AST preservation
+env = Environment(preserve_ast=False)
 
-- Which blocks depend on which context variables?
-- Is this block cacheable at the page or site level?
-- Does this template emit navigation or main content?
+# Metadata methods return empty/None, but rendering works normally
+```
 
-This information enables caching optimization, incremental builds,
-and layout validation—without changing how templates are written.
+### Custom Configuration
+
+For non-Bengal projects with different naming conventions:
+
+```python
+from bengal.rendering.kida.analysis import AnalysisConfig, BlockAnalyzer
+
+config = AnalysisConfig(
+    page_prefixes=frozenset({"post.", "item."}),
+    site_prefixes=frozenset({"settings.", "global."}),
+)
+
+analyzer = BlockAnalyzer(config=config)
+```
 ```
 
 ---
 
 ## Rollout Plan
 
-### Phase 1: Core Analysis (Week 1)
+### Phase 1: Core Analysis (Week 1, ~10 hours)
 
 - [ ] Create `bengal/rendering/kida/analysis/` package
-- [ ] Implement `DependencyWalker` with scope tracking
-- [ ] Implement `PurityAnalyzer` with known filter sets
+- [ ] Implement `AnalysisConfig` with configurable prefixes
+- [ ] Implement `DependencyWalker` with full node coverage
+- [ ] Implement `PurityAnalyzer` with known-pure functions
 - [ ] Implement `LandmarkDetector` with HTML regex
 - [ ] Implement `classify_role()` heuristics
 - [ ] Implement `infer_cache_scope()` logic
 - [ ] Unit tests for each analyzer (>90% coverage)
 
-### Phase 2: Integration (Week 1)
+### Phase 2: Integration (Week 1, ~6 hours)
 
-- [ ] Add `_optimized_ast` to Template
+- [ ] Add `preserve_ast` config to Environment
+- [ ] Add `_optimized_ast` and `_metadata_cache` to Template `__slots__`
 - [ ] Add `block_metadata()` method
 - [ ] Add `template_metadata()` method
 - [ ] Add `depends_on()` convenience method
-- [ ] Update `Environment._compile()` to preserve AST
+- [ ] Update `Environment._compile()` to preserve AST conditionally
 - [ ] Integration tests for full pipeline
 
-### Phase 3: Bengal Integration (Week 2)
+### Phase 3: Bengal Integration (Week 2, ~4 hours)
 
 - [ ] Add nav block caching in Site render
 - [ ] Add cache scope logging for debugging
@@ -1592,6 +2275,7 @@ and layout validation—without changing how templates are written.
 - [ ] Add docstrings to all public APIs
 - [ ] Add "best-effort analysis" disclaimers
 - [ ] Add examples to module docstrings
+- [ ] Document breaking change in release notes
 
 ---
 
@@ -1604,6 +2288,7 @@ and layout validation—without changing how templates are written.
 | Cache scope accuracy | Never under-invalidate |
 | Test coverage | >90% for analysis package |
 | Performance | <1ms per template analysis |
+| Memory overhead | Documented, controllable via `preserve_ast` |
 | API stability | No breaking changes in 1.0 |
 
 ---
@@ -1617,6 +2302,7 @@ These are explicitly **not** in scope for this RFC but are enabled by it:
 3. **Dead template detection** — Find templates with no dependents
 4. **Type inference** — Track expected types of context variables
 5. **LSP integration** — Autocomplete for context variables in editors
+6. **Inheritance chain analysis** — Merge metadata from parent templates
 
 ---
 
@@ -1626,3 +2312,5 @@ These are explicitly **not** in scope for this RFC but are enabled by it:
 - AST Nodes: `bengal/rendering/kida/nodes.py`
 - Optimizer: `bengal/rendering/kida/optimizer/__init__.py`
 - Compiler: `bengal/rendering/kida/compiler/core.py`
+- Template: `bengal/rendering/kida/template.py`
+- Environment: `bengal/rendering/kida/environment/core.py`

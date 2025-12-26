@@ -7,7 +7,7 @@ Required: element (DocElement) or examples (list)
 Optional: language (str, default based on element type)
 #}
 
-{% set examples_list = examples | default(element.examples | default([])) %}
+{% set examples_list = examples | default(element.examples ?? []) %}
 {% set is_cli = element and element.element_type in ['command', 'command-group'] %}
 {% set language = language | default('bash' if is_cli else 'python') %}
 

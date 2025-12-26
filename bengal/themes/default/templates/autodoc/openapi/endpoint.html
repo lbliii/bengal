@@ -104,7 +104,7 @@ This template receives:
                 <code>{{ status_code }}</code>
               </td>
               <td class="autodoc-cell-desc" data-label="Description">
-                {{ response.description | default('No description') }}
+                {{ response.description ?? 'No description' }}
               </td>
               <td class="autodoc-cell-type" data-label="Content Type">
                 {% for content_type in response.content.keys() %}

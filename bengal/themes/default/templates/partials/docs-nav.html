@@ -155,7 +155,7 @@ within a section (e.g., /api/python/ stops at itself, not /api/).
 
 <nav class="docs-nav" aria-label="Documentation pages" data-bengal="docs-nav">
   {# Version Selector - only show if page is versioned (not autodoc) #}
-  {% if not is_autodoc %}
+  {% unless is_autodoc %}
   {% include 'partials/version-selector.html' %}
   {% end %}
 

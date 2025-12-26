@@ -515,7 +515,7 @@ Example:
 {{ popular_tags(limit=20) }}
 #}
 {% def popular_tags_widget(limit=None) %}
-{% set tag_limit = limit if limit is not none else (theme.popular_tags_count | default(10)) %}
+{% set tag_limit = limit if limit is not none else (theme.popular_tags_count ?? 10) %}
 {% set top_tags = popular_tags(limit=tag_limit) %}
 {% if top_tags %}
 <div class="popular-tags-widget">

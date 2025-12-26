@@ -84,7 +84,7 @@ This template receives:
           {% for page in module_pages %}
           {# ChainableUndefined handles missing metadata gracefully #}
           {% set desc = page.metadata.description | first_sentence %}
-          {% set elem_type = page.metadata.element_type | default('module') %}
+          {% set elem_type = page.metadata.element_type ?? 'module' %}
           <a href="{{ page.href }}" class="autodoc-card"
             data-card="{{ elem_type }}">
             <div class="autodoc-card-header">

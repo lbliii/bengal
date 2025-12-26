@@ -32,7 +32,7 @@
                 <div class="hero__actions">
                     {% for button in params.cta_buttons %}
                     <a href="{{ button.href or button.url | absolute_url }}"
-                        class="hero__button hero__button--{{ button.style | default('primary') }} {% if button.style != 'primary' %}gradient-border{% end %}">
+                        class="hero__button hero__button--{{ button.style ?? 'primary' }} {% if button.style != 'primary' %}gradient-border{% end %}">
                         {{ button.text }}
                     </a>
                     {% end %}
@@ -55,7 +55,7 @@
                 <p class="feature-description">{{ feature.description }}</p>
                 {% if feature.link %}
                 <a href="{{ feature.link.href or feature.link.url | absolute_url }}" class="feature-link">
-                    {{ feature.link.text | default('Learn more') }}
+                    {{ feature.link.text ?? 'Learn more' }}
                     <span aria-hidden="true">→</span>
                 </a>
                 {% end %}
@@ -106,10 +106,10 @@
 
     {# Recent Posts/Updates (if this is a blog-style home) #}
     {# Show recent posts by default for blog sites, or if explicitly enabled #}
-    {% set show_recent = params.show_recent_posts | default(true) %}
+    {% set show_recent = params.show_recent_posts ?? true %}
     {% if show_recent %}
     {# Find blog section and get recent posts #}
-    {% set blog_section_name = params.blog_section | default('blog') %}
+    {% set blog_section_name = params.blog_section ?? 'blog' %}
     {% set blog_section_candidates = site.sections | selectattr('name', 'equalto', blog_section_name) | list if
     site.sections else [] %}
     {% set blog_section = blog_section_candidates[0] if blog_section_candidates else None %}

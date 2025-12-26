@@ -83,7 +83,7 @@ This template receives:
         <div class="autodoc-cards">
           {% for page in command_pages %}
           {% set desc = params.description | default('') | first_sentence %}
-          <a href="{{ page.href }}" class="autodoc-card" data-card="{{ params.element_type | default('command') }}">
+          <a href="{{ page.href }}" class="autodoc-card" data-card="{{ params.element_type ?? 'command' }}">
             <div class="autodoc-card-header">
               <span class="autodoc-card-icon">
                 {%- if params.element_type == 'group' -%}

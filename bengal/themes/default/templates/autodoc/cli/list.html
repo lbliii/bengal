@@ -54,10 +54,10 @@ Features:
       {% set show_children = (not children_disabled) and show_children_feature %}
       {% set show_related = not related_disabled %}
 
-      {% set children_title = children_config.title | default('In This Section') %}
-      {% set children_variant = children_config.variant | default('compact') %}
-      {% set related_title = related_config.title | default('Related Pages') %}
-      {% set related_limit = related_config.limit | default(5) %}
+      {% set children_title = children_config.title ?? 'In This Section' %}
+      {% set children_variant = children_config.variant ?? 'compact' %}
+      {% set related_title = related_config.title ?? 'Related Pages' %}
+      {% set related_limit = related_config.limit ?? 5 %}
 
       {% set children_title = none if children_title is sameas false else children_title %}
       {% set related_title = none if related_title is sameas false else related_title %}

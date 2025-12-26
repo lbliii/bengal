@@ -1,7 +1,7 @@
 {# Appearance Dropdown (mode + brand) #}
 {# Native popover API - browser handles open/close, focus, escape key #}
 {# Use theme_menu_id variable to allow unique IDs for desktop/mobile #}
-{% set _theme_menu_id = theme_menu_id | default('theme-menu') %}
+{% set _theme_menu_id = theme_menu_id ?? 'theme-menu' %}
 <div class="theme-controls">
     <button class="theme-dropdown__button" popovertarget="{{ _theme_menu_id }}" popovertargetaction="toggle"
         title="{{ t('theme.presets', default='Theme presets') }}"

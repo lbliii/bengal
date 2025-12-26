@@ -60,8 +60,8 @@ Usage in base.html or product layout:
     {%- if page.price %}
     "price": {{ page.price | string | tojson }},
     {% end %}
-    "priceCurrency": {{ (page.currency | default("USD")) | tojson }},
-    "availability": "https://schema.org/{% if page.in_stock | default(true) %}InStock{% else %}OutOfStock{% end %}",
+    "priceCurrency": {{ (page.currency ?? "USD") | tojson }},
+    "availability": "https://schema.org/{% if page.in_stock ?? true %}InStock{% else %}OutOfStock{% end %}",
     {%- if page.url %}
     "url": "{{ site.baseurl }}{{ page.url }}",
     {% end %}
@@ -71,8 +71,8 @@ Usage in base.html or product layout:
   ,
   "aggregateRating": {
     "@type": "AggregateRating",
-    "ratingValue": {{ page.aggregate_rating.value | default(4.5) | string | tojson }},
-    "reviewCount": {{ page.aggregate_rating.count | default(1) | string | tojson }}
+    "ratingValue": {{ page.aggregate_rating.value ?? 4.5 | string | tojson }},
+    "reviewCount": {{ page.aggregate_rating.count ?? 1 | string | tojson }}
   }
   {% end %}
 }

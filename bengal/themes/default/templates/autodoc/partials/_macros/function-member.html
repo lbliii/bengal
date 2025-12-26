@@ -18,7 +18,7 @@ Args:
 {% set func_params = func.metadata.args or func.metadata.parameters or [] %}
 {% set func_return = func.metadata.return_type or func.metadata.returns or '' %}
 {% set func_signature = func.metadata.signature or '' %}
-{% set is_async = func.metadata.is_async | default(false) %}
+{% set is_async = func.metadata.is_async ?? false %}
 
 <details class="autodoc-member" data-member="function" {% if is_first %}open{% end %}>
   <summary class="autodoc-member-header">

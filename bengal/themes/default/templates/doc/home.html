@@ -34,7 +34,7 @@ Or set `template: doc/home.html` in frontmatter
     {% end %}
 
     {# Quick Links to Key Sections #}
-    {% set show_quick_links = params.show_quick_links | default(true) %}
+    {% set show_quick_links = params.show_quick_links ?? true %}
     {% if show_quick_links %}
     {# Find main documentation sections #}
     {% set doc_sections = [] %}

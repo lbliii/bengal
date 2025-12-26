@@ -20,8 +20,8 @@ Context variables:
 {% from 'partials/content-components.html' import tag_list %}
 
 {# Defensive defaults for pagination variables (safe fallback if not provided) #}
-{% set total_pages = total_pages | default(1) %}
-{% set current_page = current_page | default(1) %}
+{% set total_pages = total_pages ?? 1 %}
+{% set current_page = current_page ?? 1 %}
 {% set total_posts = total_posts | default(posts | length if posts else 0) %}
 {% set base_url = base_url | default(section.href if section else '/blog/') %}
 
@@ -32,7 +32,7 @@ Context variables:
 
 <div class="blog-container">
     <header class="page-header page-header--centered">
-        <h1>✍️ {{ section.title if section else title | default('Blog') }}</h1>
+        <h1>✍️ {{ section.title if section else title ?? 'Blog' }}</h1>
 
         {% if section and section.metadata.description %}
         <p class="blog-description">{{ section.metadata.description }}</p>

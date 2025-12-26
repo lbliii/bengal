@@ -20,8 +20,8 @@ Args:
 {% set cls_props = (cls.children or []) | selectattr('element_type', 'eq', 'property') | list %}
 {% set all_attrs = cls_attrs + cls_props %}
 {% set total_members = (cls_methods | length) + (all_attrs | length) %}
-{% set is_dataclass = cls.metadata.is_dataclass | default(false) %}
-{% set is_abstract = cls.metadata.is_abstract | default(false) %}
+{% set is_dataclass = cls.metadata.is_dataclass ?? false %}
+{% set is_abstract = cls.metadata.is_abstract ?? false %}
 
 <details class="autodoc-member" data-member="class" {% if is_first %}open{% end %}>
   <summary class="autodoc-member-header">

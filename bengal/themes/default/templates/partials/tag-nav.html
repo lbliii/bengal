@@ -17,8 +17,8 @@ Variables:
   <div class="docs-nav-tree">
     {# Link to all tags page #}
     <a href="{{ '/tags/' | absolute_url }}"
-       class="docs-nav-link {% if not current_tag %}active{% end %}"
-       {% if not current_tag %}aria-current="page"{% end %}>
+       class="docs-nav-link {% unless current_tag %}active{% end %}"
+       {% unless current_tag %}aria-current="page"{% end %}>
       All Tags
     </a>
 

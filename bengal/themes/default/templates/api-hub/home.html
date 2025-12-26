@@ -25,7 +25,7 @@ Usage: Auto-selected for api-hub sections or set template: api-hub/home.html
 
       {# Title #}
       <h1 class="api-hub-hero__title">
-        <span class="fluid-text">{{ (section.title if section else page.title) | default('API Documentation') }}</span>
+        <span class="fluid-text">{{ (section.title if section else page.title) ?? 'API Documentation' }}</span>
       </h1>
 
       {# Description #}

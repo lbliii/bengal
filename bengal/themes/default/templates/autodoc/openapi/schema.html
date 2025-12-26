@@ -72,13 +72,13 @@ This template receives:
             </tr>
           </thead>
           <tbody>
-            {% set required_props = element.metadata.required | default([]) %}
+            {% set required_props = element.metadata.required ?? [] %}
             {% for prop_name, prop_schema in element.metadata.properties.items() %}
             <tr {% if prop_name in required_props %}data-required="true"{% end %}>
               <td class="autodoc-cell-name"><code>{{ prop_name }}</code></td>
-              <td class="autodoc-cell-type"><code>{{ prop_schema.type | default('object') }}</code></td>
+              <td class="autodoc-cell-type"><code>{{ prop_schema.type ?? 'object' }}</code></td>
               <td>{% if prop_name in required_props %}Yes{% else %}No{% end %}</td>
-              <td class="autodoc-cell-desc">{{ prop_schema.description | default('—') }}</td>
+              <td class="autodoc-cell-desc">{{ prop_schema.description ?? '—' }}</td>
             </tr>
             {% end %}
           </tbody>

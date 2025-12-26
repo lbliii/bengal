@@ -84,7 +84,7 @@ This template receives:
           {% for page in command_pages %}
           {# ChainableUndefined handles missing metadata gracefully #}
           {% set desc = page.metadata.description | first_sentence %}
-          {% set elem_type = page.metadata.element_type | default('command') %}
+          {% set elem_type = page.metadata.element_type ?? 'command' %}
           <a href="{{ page.href }}" class="autodoc-card" data-card="{{ elem_type }}">
             <div class="autodoc-card-header">
               <span class="autodoc-card-icon">

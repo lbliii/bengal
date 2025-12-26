@@ -34,7 +34,7 @@ Or set `template: autodoc/cli/home.html` in frontmatter
     {% end %}
 
     {# Quick Links to Key Sections #}
-    {% set show_quick_links = params.show_quick_links | default(true) %}
+    {% set show_quick_links = params.show_quick_links ?? true %}
     {% if show_quick_links %}
     {# Find CLI reference sections #}
     {% set cli_sections = [] %}
@@ -63,7 +63,7 @@ Or set `template: autodoc/cli/home.html` in frontmatter
     {% do sortable_sections.append({'section': section, 'weight': _weight if _weight != none else 999999}) %}
     {% end %}
     <section class="docs-home-sections">
-        <h2 class="docs-home-sections-title">{{ page.title | default('CLI Reference') }} Sections</h2>
+        <h2 class="docs-home-sections-title">{{ page.title ?? 'CLI Reference' }} Sections</h2>
         <div class="docs-home-sections-grid">
             {% for item in sortable_sections | sort(attribute='weight') | limit(6) %}
             {% set section = item.section %}

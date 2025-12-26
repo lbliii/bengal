@@ -6,7 +6,7 @@ Renders the list of exceptions that can be raised.
 Required: element (DocElement)
 #}
 
-{% set raises = element.metadata.raises | default(element.raises | default([])) %}
+{% set raises = element.metadata.raises | default(element.raises ?? []) %}
 
 {% if raises %}
 <section class="autodoc-section" data-section="raises">

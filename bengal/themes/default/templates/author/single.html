@@ -37,7 +37,7 @@ Context variables:
 {% set author_name = author_data.name | default(page.title) %}
 {% set author_bio = author_data.bio | default(params.bio) %}
 {% set author_avatar = author_data.avatar | default(params.avatar) %}
-{% set author_social = author_data.social | default(params.social) | default({}) %}
+{% set author_social = author_data.social | default(params.social) ?? {} %}
 
 {# Merge social links from data file format #}
 {% if author_data.github and not author_social.github %}

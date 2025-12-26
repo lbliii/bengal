@@ -81,7 +81,7 @@ Context variables:
                     {% if params.views %}
                     <span class="view-count">
                         {{ icon('eye', size=14) }}
-                        {{ params.views | default(0) }} views
+                        {{ params.views ?? 0 }} views
                     </span>
                     {% end %}
                 </div>

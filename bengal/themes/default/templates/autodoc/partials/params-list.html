@@ -7,7 +7,7 @@ Required: params (list of dicts or DocElements)
 Optional: title (str)
 #}
 
-{% set title = title | default('Parameters') %}
+{% set title = title ?? 'Parameters' %}
 
 {% if params %}
 <section class="autodoc-section" data-section="parameters">

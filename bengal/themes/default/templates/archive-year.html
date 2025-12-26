@@ -83,7 +83,7 @@ Context variables:
 
     {% if year_posts %}
     {# Group posts by month #}
-    {% for month_num in range(1, 13) %}
+    {% for month_num in 1..12 %}
     {% set month_key = year ~ '-' ~ '%02d' | format(month_num) %}
     {% set month_posts = site.indexes.date_range.get(month_key) | resolve_pages %}
 

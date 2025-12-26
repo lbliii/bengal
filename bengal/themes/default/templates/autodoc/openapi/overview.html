@@ -99,7 +99,7 @@ This template receives:
               <td class="autodoc-cell-name"><code>{{ scheme_name }}</code></td>
               <td class="autodoc-cell-type">
                 {% if scheme.type == 'http' %}
-                {{ scheme.scheme | default('bearer') | title }} ({{ scheme.bearerFormat | default('Token') }})
+                {{ scheme.scheme ?? 'bearer' | title }} ({{ scheme.bearerFormat ?? 'Token' }})
                 {% elif scheme.type == 'apiKey' %}
                 API Key ({{ scheme.in }}: {{ scheme.name }})
                 {% elif scheme.type == 'oauth2' %}
@@ -108,7 +108,7 @@ This template receives:
                 {{ scheme.type }}
                 {% end %}
               </td>
-              <td class="autodoc-cell-desc">{{ scheme.description | default('—') }}</td>
+              <td class="autodoc-cell-desc">{{ scheme.description ?? '—' }}</td>
             </tr>
             {% end %}
           </tbody>
@@ -121,7 +121,7 @@ This template receives:
         <h2 class="autodoc-section-title">Explore</h2>
         <div class="autodoc-cards">
           {# Use page URL as base - for overview page at /api/, links go to /api/endpoints/ etc. #}
-          {% set base_url = page.href | default('/api/') %}
+          {% set base_url = page.href ?? '/api/' %}
           {% set base_url = base_url if base_url.endswith('/') else base_url ~ '/' %}
           <a href="{{ base_url }}endpoints/" class="autodoc-card" data-card="link">
             <div class="autodoc-card-header">

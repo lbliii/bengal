@@ -28,7 +28,7 @@ _path, kind, tags are always defined - no defensive checks needed.
 {% set _view_transitions = _doc_app.enabled and _doc_app.navigation.view_transitions %}
 {% set _transition_style = _doc_app.navigation.transition_style %}
 {% set _link_previews = site.link_previews %}
-{% set _per_page_json = 'json' in (config.output_formats.per_page | default([])) %}
+{% set _per_page_json = 'json' in (config.output_formats.per_page ?? []) %}
 
 <html lang="{{ _current_lang }}" {% if _view_transitions and _transition_style !='crossfade' %}
     data-transition-style="{{ _transition_style }}" {% end %}>
@@ -101,7 +101,7 @@ _path, kind, tags are always defined - no defensive checks needed.
     {% end %}
 
     {# Bengal config meta for JS to read without template tags inside scripts #}
-    <meta name="bengal:search_preload" content="{{ config.search_preload | default('smart') }}">
+    <meta name="bengal:search_preload" content="{{ config.search_preload ?? 'smart' }}">
     <meta name="bengal:baseurl" content="{{ config.baseurl }}">
     <meta name="bengal:index_url" content="{{ '/index.json' | absolute_url }}">
     {# Pre-built Lunr index URL - only emit if lunr package is installed (pip install bengal[search]) #}
@@ -124,7 +124,7 @@ _path, kind, tags are always defined - no defensive checks needed.
     {% set _i18n = config.i18n %}
     {% set _rss_href = '/rss.xml' %}
     {% if _i18n and _i18n.strategy == 'prefix' %}
-    {% set _default_lang = _i18n.default_language | default('en') %}
+    {% set _default_lang = _i18n.default_language ?? 'en' %}
     {% set _default_in_subdir = _i18n.default_in_subdir %}
     {% if _lang and (_default_in_subdir or _lang != _default_lang) %}
     {% set _rss_href = '/' ~ _lang ~ '/rss.xml' %}
@@ -220,7 +220,7 @@ _path, kind, tags are always defined - no defensive checks needed.
     {# Document Application: Speculation Rules for prefetching/prerendering #}
     {% set _speculation = _doc_app.speculation %}
     {% set _speculation_enabled = _doc_app.enabled and _speculation.enabled %}
-    {% set _speculation_feature = _doc_app.features.speculation_rules | default(true) %}
+    {% set _speculation_feature = _doc_app.features.speculation_rules ?? true %}
     {% if _speculation_enabled and _speculation_feature %}
     <script type="speculationrules">
 {
@@ -341,7 +341,7 @@ _path, kind, tags are always defined - no defensive checks needed.
                     {# GitHub link - only show if not bundled in Dev dropdown #}
                     {% set github_bundled = false %}
                     {% if site._dev_menu_metadata %}
-                    {% set github_bundled = site._dev_menu_metadata.github_bundled | default(false) %}
+                    {% set github_bundled = site._dev_menu_metadata.github_bundled ?? false %}
                     {% end %}
                     {% if site.params.repo_url and not github_bundled %}
                     <li>
@@ -361,7 +361,7 @@ _path, kind, tags are always defined - no defensive checks needed.
                     {# Search - Modal trigger if enabled, otherwise link to search page #}
                     {% set search_config = config.search %}
                     {% set ui_config = search_config.ui %}
-                    {% set modal_enabled = ui_config.modal | default(false) %}
+                    {% set modal_enabled = ui_config.modal ?? false %}
                     {% if modal_enabled %}
                     <button type="button" class="nav-search-trigger" id="nav-search-trigger" title="Search (⌘K)"
                         aria-label="Open search">
@@ -410,7 +410,7 @@ _path, kind, tags are always defined - no defensive checks needed.
                     {# Search Button - opens search modal #}
                     {% set mobile_search_config = config.search %}
                     {% set mobile_ui_config = mobile_search_config.ui %}
-                    {% set mobile_modal_enabled = mobile_ui_config.modal | default(false) %}
+                    {% set mobile_modal_enabled = mobile_ui_config.modal ?? false %}
                     {% if mobile_modal_enabled %}
                     <button type="button" class="mobile-nav-search" aria-label="Search" data-open-search>
                         {{ icon('magnifying-glass', size=16) }}
@@ -472,7 +472,7 @@ _path, kind, tags are always defined - no defensive checks needed.
                     {# GitHub link - only show if not bundled in Dev dropdown #}
                     {% set mobile_github_bundled = false %}
                     {% if site._dev_menu_metadata %}
-                    {% set mobile_github_bundled = site._dev_menu_metadata.github_bundled | default(false) %}
+                    {% set mobile_github_bundled = site._dev_menu_metadata.github_bundled ?? false %}
                     {% end %}
                     {% if site.params.repo_url and not mobile_github_bundled %}
                     <li>
@@ -556,7 +556,7 @@ _path, kind, tags are always defined - no defensive checks needed.
         {# into a single file to reduce HTTP requests on mobile. #}
         {# ============================================================== #}
 
-        {% set _bundle_js = config.assets.bundle_js | default(false) %}
+        {% set _bundle_js = config.assets.bundle_js ?? false %}
 
         {% if _bundle_js %}
         {# Bundled JS - Single file containing all theme JavaScript #}

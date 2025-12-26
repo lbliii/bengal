@@ -21,7 +21,7 @@ Context variables:
 
 <div class="authors-page">
   <header class="page-header">
-    <h1>{{ page.title | default('Authors') }}</h1>
+    <h1>{{ page.title ?? 'Authors' }}</h1>
     {% if page.description %}
     <p class="page-description">{{ page.description }}</p>
     {% end %}
@@ -40,7 +40,7 @@ Context variables:
   {# Add authors from data/authors.yaml #}
   {% if site.data.authors %}
     {% for author_key, author_data in site.data.authors.items() %}
-      {% set post_count = (site.indexes.author.get(author_key) | default([])) | length %}
+      {% set post_count = (site.indexes.author.get(author_key) ?? []) | length %}
       {% set _name = author_data.name %}
       {% do authors_list.append({
         'key': author_key,
@@ -57,12 +57,12 @@ Context variables:
   {% end %}
 
   {# Add authors from child pages (if not already in registry) #}
-  {% for child in page.children | default([]) %}
+  {% for child in page.children ?? [] %}
     {% set _child_title = child.title %}
     {% set author_key = child.params.author_name | default(_child_title if _child_title != none else 'unknown') %}
     {% set existing = authors_list | selectattr('key', 'equalto', author_key) | list %}
     {% if not existing %}
-      {% set post_count = (site.indexes.author.get(author_key) | default([])) | length %}
+      {% set post_count = (site.indexes.author.get(author_key) ?? []) | length %}
       {% do authors_list.append({
         'key': author_key,
         'name': _child_title if _child_title != none else 'Unknown Author',

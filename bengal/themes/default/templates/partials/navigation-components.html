@@ -141,7 +141,7 @@ Example:
 {% if show_nav %}
 {# Determine which navigation to use based on content type #}
 {# Use page.metadata instead of params to avoid context dependency #}
-{% set content_type = (page.metadata.type if page and page.metadata else '') | default('page') %}
+{% set content_type = (page.metadata.type if page and page.metadata else '') ?? 'page' %}
 {% set section_types = ['doc', 'tutorial', 'autodoc-python', 'autodoc-cli', 'autodoc-rest', 'changelog'] %}
 {% set use_section_nav = content_type in section_types %}
 
