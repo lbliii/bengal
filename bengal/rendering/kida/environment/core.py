@@ -58,7 +58,7 @@ class Environment:
         loader: Template source provider (FileSystemLoader, DictLoader, etc.)
         autoescape: HTML auto-escaping. True, False, or callable(name) → bool
         auto_reload: Check template modification times (default: True)
-        optimized: Enable compiler optimizations (default: True)
+        optimized: Deprecated, no-op. Kept for backward compatibility.
         strict: Raise UndefinedError for undefined variables (default: True)
         strict_none: Fail early on None comparisons during sorting (default: False)
         cache_size: Maximum compiled templates to cache (default: 400)
@@ -373,7 +373,6 @@ class Environment:
     ) -> Template:
         """Compile template source to Template object.
 
-        Applies AST optimizations when self.optimized=True (default).
         Uses bytecode cache when configured for fast cold-start.
         Preserves AST for introspection when self.preserve_ast=True (default).
         """
@@ -402,20 +401,8 @@ class Environment:
         parser = Parser(tokens, name, filename, source, autoescape=should_escape)
         ast = parser.parse()
 
-        # Apply AST optimizations
-        optimized_ast = None
-        if self.optimized:
-            from bengal.rendering.kida.optimizer import ASTOptimizer
-
-            optimizer = ASTOptimizer()
-            result = optimizer.optimize(ast)
-            ast = result.ast
-            # Preserve optimized AST for introspection if enabled
-            if self.preserve_ast:
-                optimized_ast = ast
-        elif self.preserve_ast:
-            # Preserve unoptimized AST if optimization is disabled
-            optimized_ast = ast
+        # Preserve AST for introspection if enabled
+        optimized_ast = ast if self.preserve_ast else None
 
         # Compile
         compiler = Compiler(self)

@@ -353,15 +353,28 @@ class ContentOrchestrator:
                         changed = True
 
                     if not changed:
-                        pages, sections, _run = orchestrator.generate_from_cache_payload(
-                            cached_payload
-                        )
-                        logger.debug(
-                            "autodoc_cache_hit",
-                            pages=len(pages),
-                            sections=len(sections),
-                        )
-                        return pages, sections
+                        try:
+                            pages, sections, _run = orchestrator.generate_from_cache_payload(
+                                cached_payload
+                            )
+                            logger.debug(
+                                "autodoc_cache_hit",
+                                pages=len(pages),
+                                sections=len(sections),
+                            )
+                            return pages, sections
+                        except (TypeError, KeyError, ValueError) as e:
+                            # Cache payload is malformed - invalidate and fall back to re-extraction
+                            logger.warning(
+                                "autodoc_cache_payload_malformed",
+                                cache_key=cache_key,
+                                error=str(e),
+                                error_type=type(e).__name__,
+                                action="invalidating_cache_and_re_extracting",
+                            )
+                            if hasattr(cache, "invalidate_page_cache"):
+                                cache.invalidate_page_cache(cache_key)
+                            # Fall through to re-extraction below
 
             # Tolerate both 2-tuple and 3-tuple return values
             result = orchestrator.generate()
