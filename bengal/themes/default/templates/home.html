@@ -106,13 +106,17 @@
 
     {# Recent Posts/Updates (if this is a blog-style home) #}
     {# Show recent posts by default for blog sites, or if explicitly enabled #}
-    {% set show_recent = params.show_recent_posts ?? true %}
+    {% set
+    show_recent = params.show_recent_posts ?? true,
+    blog_section_name = params.blog_section ?? 'blog'
+    %}
     {% if show_recent %}
     {# Find blog section and get recent posts #}
-    {% set blog_section_name = params.blog_section ?? 'blog' %}
-    {% set blog_section_candidates = site.sections |> selectattr('name', 'equalto', blog_section_name) |> list if
-    site.sections else [] %}
-    {% set blog_section = blog_section_candidates[0] if blog_section_candidates else None %}
+    {% set
+    blog_section_candidates = site.sections |> selectattr('name', 'equalto', blog_section_name) |> list if site.sections
+    else [],
+    blog_section = blog_section_candidates[0] if blog_section_candidates else None
+    %}
     {% if blog_section and blog_section.pages %}
     {% set recent = blog_section.pages |> selectattr('date') |> sort_by('date', reverse=true) |> limit(3) %}
     {% elif site.pages %}

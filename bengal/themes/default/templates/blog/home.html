@@ -36,14 +36,16 @@ Or set `type: blog` on home page to auto-select
 
     {# Recent Posts - Prominent Section #}
     {# Show recent posts by default for blog sites #}
-    {% set show_recent = params.show_recent_posts ?? true %}
+    {% set
+        show_recent = params.show_recent_posts ?? true,
+        blog_section_name = params.blog_section ?? 'posts'
+    %}
     {% if show_recent %}
     {# Find blog section and get recent posts #}
-    {# Default to "posts" since blog template creates posts/ section #}
-    {% set blog_section_name = params.blog_section ?? 'posts' %}
-    {% set blog_section_candidates = site.sections |> selectattr('name', 'equalto', blog_section_name) |> list if
-    site.sections else [] %}
-    {% set blog_section = blog_section_candidates[0] if blog_section_candidates else None %}
+    {% set
+        blog_section_candidates = site.sections |> selectattr('name', 'equalto', blog_section_name) |> list if site.sections else [],
+        blog_section = blog_section_candidates[0] if blog_section_candidates else None
+    %}
     {% if blog_section and blog_section.pages %}
     {% set recent = blog_section.pages |> selectattr('date') |> sort_by('date', reverse=true) |> limit(6) %}
     {% elif site.pages %}

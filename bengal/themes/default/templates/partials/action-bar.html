@@ -54,9 +54,11 @@ Requires: page object in context
             <div class="action-bar-actions">
                 {# LLM Share Button #}
                 {# Use relative_url for canonical_url (canonical_url adds baseurl) #}
-                {% set page_url = canonical_url(get_page_url(page)) %}
-                {% set llm_txt_url = ensure_trailing_slash(page_url) ~ 'index.txt' %}
-                {% set share_prompt = "Please help me understand this documentation: " + llm_txt_url %}
+                {% set
+                    page_url = canonical_url(get_page_url(page)),
+                    llm_txt_url = ensure_trailing_slash(page_url) ~ 'index.txt',
+                    share_prompt = "Please help me understand this documentation: " + llm_txt_url
+                %}
 
             <div class="action-bar-share">
                 <button class="action-bar-share-trigger" popovertarget="action-bar-share-menu"

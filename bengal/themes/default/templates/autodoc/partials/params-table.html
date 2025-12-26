@@ -13,8 +13,10 @@ Supports:
 - Python args: param.type, param.docstring
 #}
 
-{% set title = title ?? 'Parameters' %}
-{% set param_type = param_type ?? 'parameter' %}
+{% set
+    title = title ?? 'Parameters',
+    param_type = param_type ?? 'parameter'
+%}
 
 {% if params %}
 <section class="autodoc-section" data-section="parameters">

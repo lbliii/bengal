@@ -16,8 +16,10 @@ Example:
 {% include 'partials/archive-sidebar.html' with section_filter='blog', show_months=true %}
 #}
 
-{% set title = title ?? 'Archives' %}
-{% set show_months = show_months ?? false %}
+{% set
+    title = title ?? 'Archives',
+    show_months = show_months ?? false
+%}
 
 <aside class="archive-sidebar-widget">
   <h3>{{ title }}</h3>

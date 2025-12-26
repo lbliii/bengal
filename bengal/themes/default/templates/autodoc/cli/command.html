@@ -18,9 +18,11 @@ This template receives:
 
 {% block content %}
 {# Pre-compute child elements - cache children to avoid duplicate getattr calls #}
-{% set children = getattr(element, 'children', []) %}
-{% set options = children | selectattr('element_type', 'eq', 'option') | list %}
-{% set arguments = children | selectattr('element_type', 'eq', 'argument') | list %}
+{% set
+    children = getattr(element, 'children', []),
+    options = children | selectattr('element_type', 'eq', 'option') | list,
+    arguments = children | selectattr('element_type', 'eq', 'argument') | list
+%}
 
 {# Three-column documentation layout #}
 <div class="docs-layout">

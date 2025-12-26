@@ -234,7 +234,15 @@ class Template:
         'Hello, WORLD!'
     """
 
-    __slots__ = ("_env_ref", "_code", "_name", "_filename", "_render_func")
+    __slots__ = (
+        "_env_ref",
+        "_code",
+        "_name",
+        "_filename",
+        "_render_func",
+        "_optimized_ast",  # Preserved AST for introspection (or None)
+        "_metadata_cache",  # Cached analysis results
+    )
 
     def __init__(
         self,
@@ -242,6 +250,7 @@ class Template:
         code: Any,  # Compiled code object
         name: str | None,
         filename: str | None,
+        optimized_ast: Any = None,  # Preserved AST for introspection
     ):
         """Initialize template with compiled code.
 
@@ -250,12 +259,16 @@ class Template:
             code: Compiled Python code object
             name: Template name (for error messages)
             filename: Source filename (for error messages)
+            optimized_ast: Optional preserved AST for introspection.
+                If None, introspection methods return empty results.
         """
         # Use weakref to prevent circular reference: Template <-> Environment
         self._env_ref: weakref.ref[Environment] = weakref.ref(env)
         self._code = code
         self._name = name
         self._filename = filename
+        self._optimized_ast = optimized_ast
+        self._metadata_cache: Any = None  # Lazy-initialized TemplateMetadata
 
         # Capture env reference for closures (will be dereferenced at call time)
         env_ref = self._env_ref
@@ -740,6 +753,102 @@ class Template:
                 return obj[name]
             except (KeyError, TypeError):
                 return None
+
+    # =========================================================================
+    # Template Introspection API (RFC: kida-template-introspection)
+    # =========================================================================
+
+    def block_metadata(self) -> dict[str, Any]:
+        """Get metadata about template blocks.
+
+        Returns a mapping of block name → BlockMetadata with:
+        - depends_on: Context paths the block may access
+        - is_pure: Whether output is deterministic
+        - cache_scope: Recommended caching granularity
+        - inferred_role: Heuristic classification
+
+        Results are cached after first call.
+
+        Returns empty dict if:
+        - AST was not preserved (preserve_ast=False)
+        - Template was loaded from bytecode cache without source
+
+        Example:
+            >>> meta = template.block_metadata()
+            >>> nav = meta.get("nav")
+            >>> if nav and nav.cache_scope == "site":
+            ...     html = cache.get_or_render("nav", ...)
+
+        Note:
+            This is best-effort static analysis. Dependency sets
+            are conservative (may over-approximate). Treat as hints.
+        """
+        if self._optimized_ast is None:
+            return {}
+
+        if self._metadata_cache is None:
+            self._analyze()
+
+        return self._metadata_cache.blocks if self._metadata_cache else {}
+
+    def template_metadata(self) -> Any:
+        """Get full template metadata including inheritance info.
+
+        Returns TemplateMetadata with:
+        - name: Template identifier
+        - extends: Parent template name (if any)
+        - blocks: Mapping of block name → BlockMetadata
+        - top_level_depends_on: Context paths used outside blocks
+
+        Returns None if AST was not preserved (preserve_ast=False or
+        loaded from bytecode cache without source).
+
+        Example:
+            >>> meta = template.template_metadata()
+            >>> if meta:
+            ...     print(f"Extends: {meta.extends}")
+            ...     print(f"All deps: {meta.all_dependencies()}")
+        """
+        if self._optimized_ast is None:
+            return None
+
+        if self._metadata_cache is None:
+            self._analyze()
+
+        return self._metadata_cache
+
+    def depends_on(self) -> frozenset[str]:
+        """Get all context paths this template may access.
+
+        Convenience method combining all block dependencies and
+        top-level dependencies.
+
+        Returns empty frozenset if AST was not preserved.
+
+        Example:
+            >>> deps = template.depends_on()
+            >>> print(f"Template requires: {deps}")
+            Template requires: frozenset({'page.title', 'site.pages'})
+        """
+        meta = self.template_metadata()
+        if meta is None:
+            return frozenset()
+        return meta.all_dependencies()
+
+    def _analyze(self) -> None:
+        """Perform static analysis and cache results."""
+        from bengal.rendering.kida.analysis import BlockAnalyzer, TemplateMetadata
+
+        analyzer = BlockAnalyzer()
+        result = analyzer.analyze(self._optimized_ast)
+
+        # Set template name from self
+        self._metadata_cache = TemplateMetadata(
+            name=self._name,
+            extends=result.extends,
+            blocks=result.blocks,
+            top_level_depends_on=result.top_level_depends_on,
+        )
 
     def __repr__(self) -> str:
         return f"<Template {self._name or '(inline)'}>"

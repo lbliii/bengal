@@ -34,10 +34,12 @@ Context variables:
 
 {# Try to get author data from registry first, fall back to page metadata #}
 {% set author_data = site.data.authors[author_key] if site.data.authors and author_key in site.data.authors else {} %}
-{% set author_name = author_data.name | default(page.title) %}
-{% set author_bio = author_data.bio | default(params.bio) %}
-{% set author_avatar = author_data.avatar | default(params.avatar) %}
-{% set author_social = author_data.social | default(params.social) ?? {} %}
+{% set
+    author_name = author_data.name ?? page.title,
+    author_bio = author_data.bio ?? params.bio,
+    author_avatar = author_data.avatar ?? params.avatar,
+    author_social = author_data.social ?? params.social ?? {}
+%}
 
 {# Merge social links from data file format #}
 {% if author_data.github and not author_social.github %}

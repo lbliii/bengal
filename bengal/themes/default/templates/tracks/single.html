@@ -14,8 +14,10 @@ Or set `type: track` to auto-select this template
 {% from 'partials/navigation-components.html' import toc %}
 
 {% block content %}
-{% set track_id = params.track_id or page.slug %}
-{% set track = site.data.tracks[track_id] if (track_id and site.data.tracks and track_id in site.data.tracks) else none %}
+{% set
+    track_id = params.track_id or page.slug,
+    track = site.data.tracks[track_id] if (track_id and site.data.tracks and track_id in site.data.tracks) else none
+%}
 
 {# Three-column pillar page layout #}
 <div class="docs-layout track-layout">

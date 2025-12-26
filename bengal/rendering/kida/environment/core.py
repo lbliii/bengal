@@ -120,6 +120,11 @@ class Environment:
     strict: bool = True  # When True, undefined variables raise UndefinedError
     strict_none: bool = False  # When True, sorting with None values raises detailed errors
 
+    # Template Introspection (RFC: kida-template-introspection)
+    # True (default): Preserve AST, enable block_metadata()/depends_on()
+    # False: Discard AST after compilation, save ~2x memory per template
+    preserve_ast: bool = True
+
     # Cache configuration
     cache_size: int = DEFAULT_TEMPLATE_CACHE_SIZE
     fragment_cache_size: int = DEFAULT_FRAGMENT_CACHE_SIZE
@@ -370,6 +375,7 @@ class Environment:
 
         Applies AST optimizations when self.optimized=True (default).
         Uses bytecode cache when configured for fast cold-start.
+        Preserves AST for introspection when self.preserve_ast=True (default).
         """
         from bengal.rendering.kida.compiler import Compiler
         from bengal.rendering.kida.parser import Parser
@@ -382,7 +388,8 @@ class Environment:
             source_hash = hash_source(source)
             cached_code = self._bytecode_cache.get(name, source_hash)
             if cached_code is not None:
-                return Template(self, cached_code, name, filename)
+                # Note: AST is not available when loading from bytecode cache
+                return Template(self, cached_code, name, filename, optimized_ast=None)
 
         # Tokenize
         lexer = Lexer(source, self._lexer_config)
@@ -396,12 +403,19 @@ class Environment:
         ast = parser.parse()
 
         # Apply AST optimizations
+        optimized_ast = None
         if self.optimized:
             from bengal.rendering.kida.optimizer import ASTOptimizer
 
             optimizer = ASTOptimizer()
             result = optimizer.optimize(ast)
             ast = result.ast
+            # Preserve optimized AST for introspection if enabled
+            if self.preserve_ast:
+                optimized_ast = ast
+        elif self.preserve_ast:
+            # Preserve unoptimized AST if optimization is disabled
+            optimized_ast = ast
 
         # Compile
         compiler = Compiler(self)
@@ -411,7 +425,7 @@ class Environment:
         if self._bytecode_cache is not None and name is not None and source_hash is not None:
             self._bytecode_cache.set(name, source_hash, code)
 
-        return Template(self, code, name, filename)
+        return Template(self, code, name, filename, optimized_ast=optimized_ast)
 
     def render(self, template_name: str, *args: Any, **kwargs: Any) -> str:
         """Render a template by name with context.

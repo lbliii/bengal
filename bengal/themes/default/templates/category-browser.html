@@ -30,9 +30,11 @@ Context variables:
 {% from 'partials/navigation-components.html' import breadcrumbs %}
 {% from 'partials/content-components.html' import tag_list %}
 
-{% set section_filters = params.sections ?? [] %}
-{% set show_recent = params.show_recent ?? 3 %}
-{% set layout = params.layout ?? 'grid' %}
+{% set
+    section_filters = params.sections ?? [],
+    show_recent = params.show_recent ?? 3,
+    layout = params.layout ?? 'grid'
+%}
 
 {% block content %}
 {{ breadcrumbs(page) }}
