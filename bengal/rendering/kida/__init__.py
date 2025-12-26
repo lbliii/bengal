@@ -45,6 +45,7 @@ from bengal.rendering.kida.environment import (
     TemplateError,
     TemplateNotFoundError,
     TemplateSyntaxError,
+    UndefinedError,
 )
 from bengal.rendering.kida.template import LoopContext, Markup, Template
 
@@ -63,6 +64,7 @@ __all__ = [
     "TemplateError",
     "TemplateNotFoundError",
     "TemplateSyntaxError",
+    "UndefinedError",
     # Utilities
     "Markup",
     "LoopContext",

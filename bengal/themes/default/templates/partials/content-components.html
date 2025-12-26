@@ -146,19 +146,17 @@ group_by=None
 {% set all_items = [] %}
 
 {# Add subsections with metadata #}
-{# With None-resilient handling, missing attributes return "" so we can use `or` fallback #}
+{# Use weight property for sortable values (framework provides defaults) #}
 {% if subsections %}
 {% for subsection in subsections %}
-{% set _weight = subsection.metadata.weight or 999999 %}
-{% set _title = subsection.title or 'Untitled' %}
 {% do all_items.append({
 'type': 'section',
 'group': 'children',
 'obj': subsection,
-'title': _title,
+'title': subsection.title,
 'href': subsection.href,
 'description': subsection.metadata.description or '',
-'weight': _weight,
+'weight': subsection.weight,
 'page_count': subsection.pages | length if subsection.pages else 0,
 'icon': subsection.metadata.icon or ''
 }) %}
@@ -166,21 +164,20 @@ group_by=None
 {% end %}
 
 {# Add child pages with metadata #}
+{# Use weight property for sortable values (framework provides defaults) #}
 {% if children %}
 {% for post in children %}
 {# Skip the current page if it appears in child posts #}
 {% if not (page and (post._path == page._path)) %}
-{% set _weight = post.metadata.weight or 999999 %}
-{% set _title = post.title or 'Untitled' %}
 {% do all_items.append({
 'type': 'page',
 'group': 'children',
 'obj': post,
-'title': _title,
+'title': post.title,
 'href': post.href,
 'description': post.metadata.description or (post.content | strip_html | excerpt(120) if post.content else ''),
-'weight': _weight,
-'date': post.date or none,
+'weight': post.weight,
+'date': post.date,
 'icon': post.metadata.icon or ''
 }) %}
 {% end %}
@@ -209,18 +206,18 @@ group_by=None
 {% set is_current = page and (rel_page._path == page._path) %}
 {% set is_duplicate = rel_page.href in children_urls %}
 {% if not is_current and not is_duplicate %}
-{% set _title = rel_page.title or 'Untitled' %}
+{% set _desc = rel_page.metadata.description or '' %}
+{% set _desc = _desc if _desc else (rel_page.content | strip_html | excerpt(100) if rel_page.content else '') %}
 {% do all_items.append({
 'type': 'related',
 'group': 'related',
 'obj': rel_page,
-'title': _title,
+'title': rel_page.title,
 'href': rel_page.href,
-'description': rel_page.metadata.description | default(rel_page.content | strip_html | excerpt(100) if rel_page.content
-else '') if rel_page.metadata else (rel_page.content | strip_html | excerpt(100) if rel_page.content else ''),
-'weight': 999999,
-'date': rel_page.date if rel_page.date else none,
-'icon': rel_page.metadata.icon | default('') if rel_page.metadata else ''
+'description': _desc,
+'weight': rel_page.weight,
+'date': rel_page.date,
+'icon': rel_page.metadata.icon or ''
 }) %}
 {% end %}
 {% end %}
@@ -350,39 +347,35 @@ Example:
 {# Merge subsections and pages into unified list #}
 {% set all_items = [] %}
 
-{# Add subsections with metadata - None-resilient #}
+{# Add subsections with metadata - use weight property (framework provides defaults) #}
 {% if subsections %}
 {% for subsection in subsections %}
-{% set _weight = subsection.metadata.weight or 999999 %}
-{% set _title = subsection.title or 'Untitled' %}
 {% do all_items.append({
 'type': 'section',
 'obj': subsection,
-'title': _title,
+'title': subsection.title,
 'href': subsection.href,
 'description': subsection.metadata.description or '',
-'weight': _weight,
+'weight': subsection.weight,
 'page_count': subsection.pages | length if subsection.pages else 0,
 'icon': subsection.metadata.icon or ''
 }) %}
 {% end %}
 {% end %}
 
-{# Add pages with metadata - None-resilient #}
+{# Add pages with metadata - use weight property (framework provides defaults) #}
 {% if posts %}
 {% for post in posts %}
 {# Skip the current section index page if it appears in child posts #}
 {% if not (page and (post._path == page._path)) %}
-{% set _weight = post.metadata.weight or 999999 %}
-{% set _title = post.title or 'Untitled' %}
 {% do all_items.append({
 'type': 'page',
 'obj': post,
-'title': _title,
+'title': post.title,
 'href': post.href,
 'description': post.metadata.description or (post.content | strip_html | excerpt(120) if post.content else ''),
-'weight': _weight,
-'date': post.date or none,
+'weight': post.weight,
+'date': post.date,
 'icon': post.metadata.icon or ''
 }) %}
 {% end %}

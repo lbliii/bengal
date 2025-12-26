@@ -23,6 +23,7 @@ from bengal.rendering.kida.environment.exceptions import (
     TemplateError,
     TemplateNotFoundError,
     TemplateSyntaxError,
+    UndefinedError,
 )
 from bengal.rendering.kida.environment.loaders import DictLoader, FileSystemLoader
 from bengal.rendering.kida.environment.protocols import Filter, Loader, Test
@@ -39,4 +40,5 @@ __all__ = [
     "TemplateError",
     "TemplateNotFoundError",
     "TemplateSyntaxError",
+    "UndefinedError",
 ]

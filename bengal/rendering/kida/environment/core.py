@@ -5,7 +5,6 @@ Central configuration and template management.
 
 from __future__ import annotations
 
-import threading
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
@@ -16,9 +15,16 @@ from bengal.rendering.kida.environment.registry import FilterRegistry
 from bengal.rendering.kida.environment.tests import DEFAULT_TESTS
 from bengal.rendering.kida.lexer import Lexer, LexerConfig
 from bengal.rendering.kida.template import Template
+from bengal.utils.lru_cache import LRUCache
 
 if TYPE_CHECKING:
     pass
+
+
+# Default cache limits
+DEFAULT_TEMPLATE_CACHE_SIZE = 400  # Max compiled templates to keep
+DEFAULT_FRAGMENT_CACHE_SIZE = 1000  # Max fragment cache entries
+DEFAULT_FRAGMENT_TTL = 300.0  # Fragment TTL in seconds (5 minutes)
 
 
 @dataclass
@@ -30,12 +36,31 @@ class Environment:
         autoescape: Auto-escape HTML (default: True for .html/.xml)
         auto_reload: Check template modification times (default: True)
         optimized: Enable compiler optimizations (default: True)
+        strict: Raise UndefinedError for undefined variables (default: True)
         strict_none: Fail early on None comparisons during sorting (default: False)
+        cache_size: Maximum number of compiled templates to cache (default: 400)
+        fragment_cache_size: Maximum fragment cache entries (default: 1000)
+        fragment_ttl: Fragment cache TTL in seconds (default: 300)
 
     Thread-Safety:
         - Immutable configuration after construction
         - Copy-on-write for filters/tests
-        - Lock-free template cache reads
+        - LRU cache with thread-safe operations
+
+    Strict Mode:
+        When strict=True (default), accessing an undefined variable raises
+        UndefinedError instead of silently returning None. This catches typos
+        and missing variables early. Use strict=False for legacy behavior or
+        the | default filter for optional variables.
+
+        Example:
+            >>> env = Environment()  # strict=True by default
+            >>> env.from_string("{{ typo_var }}").render()
+            UndefinedError: Undefined variable 'typo_var' in <template>:1
+
+            >>> env = Environment(strict=False)  # Legacy behavior
+            >>> env.from_string("{{ typo_var }}").render()
+            ''  # Silent empty string
     """
 
     # Configuration
@@ -43,7 +68,13 @@ class Environment:
     autoescape: bool | Callable[[str | None], bool] = True
     auto_reload: bool = True
     optimized: bool = True
+    strict: bool = True  # When True, undefined variables raise UndefinedError
     strict_none: bool = False  # When True, sorting with None values raises detailed errors
+
+    # Cache configuration
+    cache_size: int = DEFAULT_TEMPLATE_CACHE_SIZE
+    fragment_cache_size: int = DEFAULT_FRAGMENT_CACHE_SIZE
+    fragment_ttl: float = DEFAULT_FRAGMENT_TTL
 
     # Lexer settings
     block_start: str = "{%"
@@ -86,9 +117,9 @@ class Environment:
     _filters: dict[str, Callable] = field(default_factory=lambda: DEFAULT_FILTERS.copy())
     _tests: dict[str, Callable] = field(default_factory=lambda: DEFAULT_TESTS.copy())
 
-    # Template cache (thread-safe)
-    _cache: dict[str, Template] = field(default_factory=dict)
-    _cache_lock: threading.RLock = field(default_factory=threading.RLock)
+    # Template cache (LRU with size limit)
+    _cache: LRUCache = field(init=False)
+    _fragment_cache: LRUCache = field(init=False)
 
     def __post_init__(self) -> None:
         """Initialize derived configuration."""
@@ -101,6 +132,17 @@ class Environment:
             comment_end=self.comment_end,
             trim_blocks=self.trim_blocks,
             lstrip_blocks=self.lstrip_blocks,
+        )
+
+        # Initialize LRU caches (uses shared bengal.utils.lru_cache.LRUCache)
+        self._cache: LRUCache[str, Template] = LRUCache(
+            maxsize=self.cache_size,
+            name="kida_template",
+        )
+        self._fragment_cache: LRUCache[str, str] = LRUCache(
+            maxsize=self.fragment_cache_size,
+            ttl=self.fragment_ttl,
+            name="kida_fragment",
         )
 
     @property
@@ -135,6 +177,43 @@ class Environment:
         new_tests[name] = func
         self._tests = new_tests
 
+    def add_global(self, name: str, value: Any) -> None:
+        """Add a global variable (copy-on-write).
+
+        Args:
+            name: Global name (used in templates as {{ name }})
+            value: Any value (variable, function, etc.)
+        """
+        new_globals = self.globals.copy()
+        new_globals[name] = value
+        self.globals = new_globals
+
+    def update_filters(self, filters: dict[str, Callable]) -> None:
+        """Add multiple filters at once (copy-on-write).
+
+        Args:
+            filters: Dict mapping filter names to functions
+
+        Example:
+            >>> env.update_filters({"double": lambda x: x * 2, "triple": lambda x: x * 3})
+        """
+        new_filters = self._filters.copy()
+        new_filters.update(filters)
+        self._filters = new_filters
+
+    def update_tests(self, tests: dict[str, Callable]) -> None:
+        """Add multiple tests at once (copy-on-write).
+
+        Args:
+            tests: Dict mapping test names to functions
+
+        Example:
+            >>> env.update_tests({"positive": lambda x: x > 0, "negative": lambda x: x < 0})
+        """
+        new_tests = self._tests.copy()
+        new_tests.update(tests)
+        self._tests = new_tests
+
     def get_template(self, name: str) -> Template:
         """Load and cache a template by name.
 
@@ -147,24 +226,28 @@ class Environment:
         Raises:
             TemplateNotFoundError: If template doesn't exist
             TemplateSyntaxError: If template has syntax errors
+
+        Note:
+            With auto_reload=True (default), templates are still cached but
+            the cache is checked first. In the future, this may check file
+            modification times to invalidate stale entries.
         """
         if self.loader is None:
             raise RuntimeError("No loader configured")
 
-        # Check cache (lock-free read)
+        # Check cache (thread-safe LRU)
         cached = self._cache.get(name)
-        if cached is not None and not self.auto_reload:
+        if cached is not None:
+            # TODO: With auto_reload=True, could check file modification time
+            # For now, return cached regardless of auto_reload setting
             return cached
 
         # Load and compile
         source, filename = self.loader.get_source(name)
         template = self._compile(source, name, filename)
 
-        # Update cache (atomic swap)
-        with self._cache_lock:
-            new_cache = self._cache.copy()
-            new_cache[name] = template
-            self._cache = new_cache
+        # Update cache (LRU handles eviction)
+        self._cache.set(name, template)
 
         return template
 
@@ -308,3 +391,41 @@ class Environment:
         if callable(self.autoescape):
             return self.autoescape(name)
         return self.autoescape
+
+    def clear_cache(self) -> None:
+        """Clear all cached templates and fragments.
+
+        Call this to release memory when templates are no longer needed,
+        or when template files have been modified and need reloading.
+
+        Example:
+            >>> env.clear_cache()
+        """
+        self._cache.clear()
+        self._fragment_cache.clear()
+
+    def clear_template_cache(self) -> None:
+        """Clear only the template cache (keep fragment cache)."""
+        self._cache.clear()
+
+    def clear_fragment_cache(self) -> None:
+        """Clear only the fragment cache (keep template cache)."""
+        self._fragment_cache.clear()
+
+    def cache_info(self) -> dict[str, Any]:
+        """Return cache statistics.
+
+        Follows Bengal's cache statistics pattern (see DirectiveCache.stats()).
+
+        Returns:
+            Dict with cache statistics including hit/miss rates.
+
+        Example:
+            >>> info = env.cache_info()
+            >>> print(f"Templates: {info['template']['size']}/{info['template']['max_size']}")
+            >>> print(f"Template hit rate: {info['template']['hit_rate']:.1%}")
+        """
+        return {
+            "template": self._cache.stats(),
+            "fragment": self._fragment_cache.stats(),
+        }

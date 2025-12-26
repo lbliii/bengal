@@ -410,13 +410,13 @@ Or use the `default` filter:
 
 ### Phase 2 (~1 week)
 
-- [ ] Add `strict` parameter to `Environment`
-- [ ] Add `UndefinedError` exception class
-- [ ] Update compiler to use `ctx[name]` in strict mode
-- [ ] Update existing tests to use `strict=False` where needed
-- [ ] Add strict mode tests
-- [ ] Document strict mode
-- [ ] Update bengal config to support `kida.strict` setting
+- [x] Add `strict` parameter to `Environment`
+- [x] Add `UndefinedError` exception class
+- [x] Update compiler to use `ctx[name]` in strict mode
+- [x] Update existing tests to use `strict=False` where needed
+- [x] Add strict mode tests
+- [x] Document strict mode
+- [x] Update bengal config to support `kida.strict` setting
 
 ---
 

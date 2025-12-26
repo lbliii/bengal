@@ -89,8 +89,7 @@ related: false # disable related entirely
       'compact' %}
       {% set related_title = related_config.title | default('Related Pages') if related_config is mapping else 'Related
       Pages' %}
-      {% set related_limit = related_config.limit | default(5) if related_config is mapping else (related_config if
-      related_config is number else 5) %}
+      {% set related_limit = related_config.limit | default(5) if related_config is mapping else (related_config if related_config is number else 5) %}
 
       {# Handle title: false to hide title #}
       {% set children_title = none if children_title is sameas false else children_title %}

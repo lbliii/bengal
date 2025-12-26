@@ -7,11 +7,10 @@ re-parsing of identical directive blocks.
 
 from __future__ import annotations
 
-import threading
-from collections import OrderedDict
 from typing import Any
 
 from bengal.utils.hashing import hash_str
+from bengal.utils.lru_cache import LRUCache
 
 
 class DirectiveCache:
@@ -21,8 +20,7 @@ class DirectiveCache:
     Uses content hash to detect changes and reuse parsed AST.
     Implements LRU eviction to limit memory usage.
 
-    Thread-safe: All cache operations are protected by a lock for safe
-    concurrent access during parallel rendering.
+    Thread-safe: Uses shared LRUCache with RLock for safe concurrent access.
 
     Expected impact: 30-50% speedup on pages with repeated directive patterns.
     """
@@ -34,12 +32,10 @@ class DirectiveCache:
         Args:
             max_size: Maximum number of cached items (default 1000)
         """
-        self._cache: OrderedDict[str, Any] = OrderedDict()
-        self._lock = threading.Lock()
-        self._max_size = max_size
-        self._hits = 0
-        self._misses = 0
-        self._enabled = True
+        self._cache: LRUCache[str, Any] = LRUCache(
+            maxsize=max_size,
+            name="directive",
+        )
 
     def _make_key(self, directive_type: str, content: str) -> str:
         """
@@ -54,10 +50,7 @@ class DirectiveCache:
         Returns:
             Cache key string
         """
-        # Create combined string
         combined = f"{directive_type}:{content}"
-
-        # Hash it and use key format: type:hash
         return f"{directive_type}:{hash_str(combined, truncate=16)}"
 
     def get(self, directive_type: str, content: str) -> Any | None:
@@ -71,20 +64,7 @@ class DirectiveCache:
         Returns:
             Cached parsed result or None if not found
         """
-        if not self._enabled:
-            return None
-
-        cache_key = self._make_key(directive_type, content)
-
-        with self._lock:
-            if cache_key in self._cache:
-                self._hits += 1
-                # Move to end (most recently used)
-                self._cache.move_to_end(cache_key)
-                return self._cache[cache_key]
-
-            self._misses += 1
-        return None
+        return self._cache.get(self._make_key(directive_type, content))
 
     def put(self, directive_type: str, content: str, parsed: Any) -> None:
         """
@@ -95,39 +75,19 @@ class DirectiveCache:
             content: Directive content
             parsed: Parsed result to cache
         """
-        if not self._enabled:
-            return
-
-        cache_key = self._make_key(directive_type, content)
-
-        with self._lock:
-            # Add to cache
-            self._cache[cache_key] = parsed
-
-            # Move to end (most recently used)
-            self._cache.move_to_end(cache_key)
-
-            # Evict oldest if over size limit
-            if len(self._cache) > self._max_size:
-                # Remove oldest (first item)
-                self._cache.popitem(last=False)
+        self._cache.set(self._make_key(directive_type, content), parsed)
 
     def clear(self) -> None:
         """Clear the cache."""
-        with self._lock:
-            self._cache.clear()
-            self._hits = 0
-            self._misses = 0
+        self._cache.clear()
 
     def enable(self) -> None:
         """Enable caching."""
-        with self._lock:
-            self._enabled = True
+        self._cache.enable()
 
     def disable(self) -> None:
         """Disable caching."""
-        with self._lock:
-            self._enabled = False
+        self._cache.disable()
 
     def stats(self) -> dict[str, Any]:
         """
@@ -142,24 +102,11 @@ class DirectiveCache:
             - max_size: Maximum cache size
             - enabled: Whether caching is enabled
         """
-        with self._lock:
-            total_requests = self._hits + self._misses
-            hit_rate = self._hits / total_requests if total_requests > 0 else 0.0
-
-            return {
-                "hits": self._hits,
-                "misses": self._misses,
-                "hit_rate": hit_rate,
-                "size": len(self._cache),
-                "max_size": self._max_size,
-                "enabled": self._enabled,
-            }
+        return self._cache.stats()
 
     def reset_stats(self) -> None:
         """Reset hit/miss statistics without clearing cache."""
-        with self._lock:
-            self._hits = 0
-            self._misses = 0
+        self._cache.reset_stats()
 
     def __repr__(self) -> str:
         """String representation."""
@@ -171,7 +118,7 @@ class DirectiveCache:
 
 
 # Global cache instance (shared across all threads)
-# Thread-safe: Protected by internal lock for concurrent access
+# Thread-safe: Uses LRUCache with internal RLock
 _directive_cache = DirectiveCache(max_size=1000)
 
 
@@ -192,15 +139,24 @@ def configure_cache(max_size: int | None = None, enabled: bool | None = None) ->
     Args:
         max_size: Maximum cache size (None to keep current)
         enabled: Whether to enable caching (None to keep current)
+
+    Note:
+        max_size changes require recreating the cache. This clears existing entries.
     """
     global _directive_cache
 
-    with _directive_cache._lock:
-        if max_size is not None:
-            _directive_cache._max_size = max_size
+    if max_size is not None:
+        # Recreate cache with new size
+        was_enabled = _directive_cache._cache.enabled
+        _directive_cache = DirectiveCache(max_size=max_size)
+        if not was_enabled:
+            _directive_cache.disable()
 
-        if enabled is not None:
-            _directive_cache._enabled = enabled
+    if enabled is not None:
+        if enabled:
+            _directive_cache.enable()
+        else:
+            _directive_cache.disable()
 
 
 def clear_cache() -> None:

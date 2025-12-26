@@ -46,13 +46,13 @@ Related Packages:
 from __future__ import annotations
 
 import threading
-from collections import OrderedDict
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 from bengal.core.diagnostics import emit
 from bengal.utils.concurrent_locks import PerKeyLockManager
+from bengal.utils.lru_cache import LRUCache
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
@@ -678,21 +678,18 @@ class NavTreeCache:
     if many version_ids are created while keeping frequently-accessed versions cached.
 
     Thread Safety:
-        - _lock: Protects the _trees dictionary
+        - Uses shared LRUCache with internal RLock
         - _build_locks: Per-version locks to serialize builds for SAME version
         - Different versions build in parallel (no contention)
 
     Eviction Strategy:
-        LRU (Least Recently Used) - entries accessed most recently stay in cache,
-        while entries not accessed recently are evicted first. Uses OrderedDict
-        with move_to_end() on access for O(1) LRU operations.
+        LRU (Least Recently Used) via shared bengal.utils.lru_cache.LRUCache.
     """
 
-    _trees: OrderedDict[str | None, NavTree] = OrderedDict()
+    _cache: LRUCache[str, NavTree] = LRUCache(maxsize=20, name="nav_tree")
     _lock = threading.Lock()
     _build_locks = PerKeyLockManager()  # Per-version build serialization
     _site: Site | None = None
-    _MAX_CACHE_SIZE = 20
 
     @classmethod
     def get(cls, site: Site, version_id: str | None = None) -> NavTree:
@@ -703,54 +700,47 @@ class NavTreeCache:
         on the build, with only one thread doing the actual work. Different
         versions can be built in parallel.
 
-        Uses LRU semantics: accessed entries are moved to end, eviction removes
-        from front (least recently used).
+        Uses LRU semantics via shared LRUCache.
         """
-        # 1. Quick cache check with LRU update
+        # Use string key for cache (None -> "__default__")
+        cache_key = version_id if version_id is not None else "__default__"
+
+        # 1. Quick cache check (includes site change detection)
         with cls._lock:
             # Full invalidation if site object changed (new build session)
             if cls._site is not site:
-                cls._trees.clear()
-                cls._build_locks.clear()  # Clear build locks on new session
+                cls._cache.clear()
+                cls._build_locks.clear()
                 cls._site = site
 
-            if version_id in cls._trees:
-                # LRU: Move accessed entry to end (most recently used)
-                cls._trees.move_to_end(version_id)
-                return cls._trees[version_id]
+        # Check cache first (LRU update happens inside get)
+        cached = cls._cache.get(cache_key)
+        if cached is not None:
+            return cached
 
         # 2. Serialize builds for SAME version (different versions build in parallel)
-        # Use "__default__" as key for None version_id since None is hashable but
-        # using a string makes debugging clearer
-        build_key = version_id if version_id is not None else "__default__"
-        with cls._build_locks.get_lock(build_key):
+        with cls._build_locks.get_lock(cache_key):
             # Double-check: another thread may have built while we waited
-            with cls._lock:
-                if version_id in cls._trees:
-                    # LRU: Move accessed entry to end
-                    cls._trees.move_to_end(version_id)
-                    return cls._trees[version_id]
+            cached = cls._cache.get(cache_key)
+            if cached is not None:
+                return cached
 
             # 3. Build outside cache lock (expensive operation)
             tree = NavTree.build(site, version_id)
 
-            # 4. Store result
-            with cls._lock:
-                # LRU eviction: remove least recently used (first) if cache is full
-                if len(cls._trees) >= cls._MAX_CACHE_SIZE:
-                    cls._trees.popitem(last=False)  # Remove oldest (LRU)
-                cls._trees[version_id] = tree
-                return tree
+            # 4. Store result (LRU eviction handled by LRUCache)
+            cls._cache.set(cache_key, tree)
+            return tree
 
     @classmethod
     def invalidate(cls, version_id: str | None = None) -> None:
         """Invalidate the cache for a specific version or all."""
-        with cls._lock:
-            if version_id is None:
-                cls._trees.clear()
-                cls._build_locks.clear()
-            else:
-                cls._trees.pop(version_id, None)
+        if version_id is None:
+            cls._cache.clear()
+            cls._build_locks.clear()
+        else:
+            cache_key = version_id if version_id is not None else "__default__"
+            cls._cache.delete(cache_key)
 
     @classmethod
     def clear_locks(cls) -> None:
@@ -761,3 +751,13 @@ class NavTreeCache:
         Safe to call when no threads are actively building.
         """
         cls._build_locks.clear()
+
+    @classmethod
+    def stats(cls) -> dict[str, Any]:
+        """
+        Get cache statistics.
+
+        Returns:
+            Dictionary with cache statistics including hit/miss rates.
+        """
+        return cls._cache.stats()

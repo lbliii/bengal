@@ -24,8 +24,12 @@ from bengal.rendering.kida.environment.exceptions import (
 
 @pytest.fixture
 def env() -> Environment:
-    """Create a fresh Kida environment for each test."""
-    return Environment()
+    """Create a fresh Kida environment for each test.
+
+    Uses strict=False to test the lenient None handling behavior.
+    Strict mode (default) raises UndefinedError for missing variables.
+    """
+    return Environment(strict=False)
 
 
 class TestResilientNoneHandling:

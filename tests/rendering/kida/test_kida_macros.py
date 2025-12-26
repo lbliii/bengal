@@ -318,13 +318,16 @@ class TestMacroCallsMacro:
         """Imported macro where helpers call other helpers.
 
         Tests deep nesting: hero_element -> _share_dropdown -> icon.
+        Note: To output literal braces around an expression, use string
+        concatenation with ~ operator instead of {{{ }}} which is ambiguous.
         """
         loader = DictLoader(
             {
                 "nested.html": (
                     "{% macro _level3() %}L3{% endmacro %}"
                     "{% macro _level2() %}[{{ _level3() }}]{% endmacro %}"
-                    "{% macro _level1() %}{{{ _level2() }}}{% endmacro %}"
+                    # Use ~ concatenation to output literal braces
+                    "{% macro _level1() %}{{ '{' ~ _level2() ~ '}' }}{% endmacro %}"
                     "{% macro top() %}TOP:{{ _level1() }}{% endmacro %}"
                 ),
                 "main.html": '{% from "nested.html" import top %}{{ top() }}',

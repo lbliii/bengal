@@ -56,6 +56,11 @@ class KidaTemplateEngine:
         Args:
             site: Bengal Site instance
             profile: Enable template profiling (not yet implemented)
+
+        Configuration (bengal.yaml):
+            kida:
+              strict: true   # (default) Raise UndefinedError for undefined variables
+              strict: false  # Return None for undefined variables (legacy behavior)
         """
         self.site = site
         self.template_dirs = self._build_template_dirs()
@@ -63,11 +68,15 @@ class KidaTemplateEngine:
         # Dependency tracking (set by RenderingPipeline)
         self._dependency_tracker = None
 
+        # Get Kida-specific configuration
+        kida_config = site.config.get("kida", {}) or {}
+
         # Create Kida environment
         self._env = Environment(
             loader=FileSystemLoader(self.template_dirs),
             autoescape=self._select_autoescape,
             auto_reload=site.config.get("development", {}).get("auto_reload", True),
+            strict=kida_config.get("strict", True),  # Default: strict mode enabled
         )
 
         # Register Bengal-specific globals and filters

@@ -277,7 +277,8 @@ class TestStringConcatenation:
     def test_tilde_with_vars(self, env):
         """Tilde with variables."""
         tmpl = env.from_string("{{ prefix ~ name ~ suffix }}")
-        assert tmpl.render(prefix="<", name="test", suffix=">") == "<test>"
+        # Use non-HTML special chars to avoid autoescape issues
+        assert tmpl.render(prefix="[", name="test", suffix="]") == "[test]"
 
     def test_tilde_with_numbers(self, env):
         """Tilde converts to string."""

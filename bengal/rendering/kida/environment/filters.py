@@ -124,8 +124,19 @@ def _filter_reverse(value: Any) -> Any:
         return str(value)[::-1]
 
 
-def _filter_safe(value: Any) -> Any:
-    """Mark as safe (no escaping)."""
+def _filter_safe(value: Any, reason: str | None = None) -> Any:
+    """Mark value as safe (no HTML escaping).
+
+    Args:
+        value: Content to mark as safe for raw HTML output.
+        reason: Optional documentation of why this content is trusted.
+            Purely for code review and audit purposes - not used at runtime.
+
+    Example:
+        {{ content | safe }}
+        {{ user_html | safe(reason="sanitized by bleach library") }}
+        {{ cms_block | safe(reason="trusted CMS output, admin-only") }}
+    """
     return Markup(str(value))
 
 
@@ -251,9 +262,14 @@ def _filter_title(value: str) -> str:
     return str(value).title()
 
 
-def _filter_trim(value: str) -> str:
-    """Strip whitespace."""
-    return str(value).strip()
+def _filter_trim(value: str, chars: str | None = None) -> str:
+    """Strip whitespace or specified characters.
+
+    Args:
+        value: String to trim
+        chars: Optional characters to strip (default: whitespace)
+    """
+    return str(value).strip(chars)
 
 
 def _filter_truncate(

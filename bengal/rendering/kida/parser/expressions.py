@@ -223,11 +223,22 @@ class ExpressionParsingMixin:
         The ~ operator is string concatenation in Jinja.
         """
         return self._parse_binary(
-            self._parse_multiplication,
+            self._parse_multiplication_with_filters,
             TokenType.ADD,
             TokenType.SUB,
             TokenType.TILDE,
         )
+
+    def _parse_multiplication_with_filters(self) -> Expr:
+        """Parse multiplication/division with filter chain.
+
+        Filters are applied after multiplication but before addition:
+        a + b | filter  parses as  a + (b | filter)
+        a * b | filter  parses as  (a * b) | filter
+        -42 | abs       parses as  (-42) | abs  → 42
+        """
+        expr = self._parse_multiplication()
+        return self._parse_filter_chain(expr)
 
     def _parse_multiplication(self) -> Expr:
         """Parse multiplication/division."""
@@ -240,7 +251,11 @@ class ExpressionParsingMixin:
         )
 
     def _parse_unary(self) -> Expr:
-        """Parse unary operators."""
+        """Parse unary operators.
+
+        Unary operators bind tighter than filters:
+        -42|abs  parses as  (-42)|abs  → 42
+        """
         if self._match(TokenType.SUB, TokenType.ADD):
             token = self._advance()
             operand = self._parse_unary()
@@ -254,7 +269,7 @@ class ExpressionParsingMixin:
 
     def _parse_power(self) -> Expr:
         """Parse power operator."""
-        left = self._parse_postfix()
+        left = self._parse_primary_postfix()
 
         if self._match(TokenType.POW):
             self._advance()
@@ -269,11 +284,11 @@ class ExpressionParsingMixin:
 
         return left
 
-    def _parse_postfix(self) -> Expr:
-        """Parse postfix operators (., [], (), |filter).
+    def _parse_primary_postfix(self) -> Expr:
+        """Parse primary expressions with postfix operators (., [], ()).
 
-        Filters are parsed here (high precedence) so that:
-        x | length == 0  parses as  (x | length) == 0
+        Does NOT include filter operator (|) - filters are parsed at a
+        lower precedence level in _parse_filter_chain.
         """
         expr = self._parse_primary()
 
@@ -310,32 +325,40 @@ class ExpressionParsingMixin:
                     args=tuple(args),
                     kwargs=kwargs,
                 )
-            elif self._match(TokenType.PIPE):
-                # Filter: expr | filter_name(args)
-                self._advance()
-                if self._current.type != TokenType.NAME:
-                    raise self._error("Expected filter name")
-                filter_name = self._advance().value
-
-                args: list[Expr] = []
-                kwargs: dict[str, Expr] = {}
-
-                # Optional arguments
-                if self._match(TokenType.LPAREN):
-                    self._advance()
-                    args, kwargs = self._parse_call_args()
-                    self._expect(TokenType.RPAREN)
-
-                expr = Filter(
-                    lineno=expr.lineno,
-                    col_offset=expr.col_offset,
-                    value=expr,
-                    name=filter_name,
-                    args=tuple(args),
-                    kwargs=kwargs,
-                )
             else:
                 break
+
+        return expr
+
+    def _parse_filter_chain(self, expr: Expr) -> Expr:
+        """Parse filter chain: expr | filter1 | filter2(arg).
+
+        Filters are parsed after unary operators:
+        -42|abs  parses as  (-42)|abs  → 42
+        """
+        while self._match(TokenType.PIPE):
+            self._advance()
+            if self._current.type != TokenType.NAME:
+                raise self._error("Expected filter name")
+            filter_name = self._advance().value
+
+            args: list[Expr] = []
+            kwargs: dict[str, Expr] = {}
+
+            # Optional arguments
+            if self._match(TokenType.LPAREN):
+                self._advance()
+                args, kwargs = self._parse_call_args()
+                self._expect(TokenType.RPAREN)
+
+            expr = Filter(
+                lineno=expr.lineno,
+                col_offset=expr.col_offset,
+                value=expr,
+                name=filter_name,
+                args=tuple(args),
+                kwargs=kwargs,
+            )
 
         return expr
 

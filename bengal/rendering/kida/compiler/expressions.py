@@ -17,6 +17,7 @@ class ExpressionCompilationMixin:
 
     Required Host Attributes:
         - _locals: set[str]
+        - _env: Environment (with strict mode setting)
         - _get_binop: method (from OperatorUtilsMixin)
         - _get_unaryop: method (from OperatorUtilsMixin)
         - _get_cmpop: method (from OperatorUtilsMixin)
@@ -41,17 +42,32 @@ class ExpressionCompilationMixin:
             # Locals use O(1) LOAD_FAST instead of O(1) dict lookup + hash
             if node.name in self._locals:
                 return ast.Name(id=node.name, ctx=ast.Load())
-            # Use ctx.get(name) to handle missing variables gracefully
-            # This returns None for missing vars, which default() filter handles
-            return ast.Call(
-                func=ast.Attribute(
-                    value=ast.Name(id="ctx", ctx=ast.Load()),
-                    attr="get",
-                    ctx=ast.Load(),
-                ),
-                args=[ast.Constant(value=node.name)],
-                keywords=[],
-            )
+
+            # Check strict mode from environment
+            if self._env.strict:
+                # Strict mode: use _lookup(ctx, name) which raises UndefinedError
+                # Performance: O(1) dict lookup on fast path (defined var)
+                # Error path converts KeyError to UndefinedError with context
+                return ast.Call(
+                    func=ast.Name(id="_lookup", ctx=ast.Load()),
+                    args=[
+                        ast.Name(id="ctx", ctx=ast.Load()),
+                        ast.Constant(value=node.name),
+                    ],
+                    keywords=[],
+                )
+            else:
+                # Legacy mode: use ctx.get(name) which returns None for missing vars
+                # The default() filter can handle None values
+                return ast.Call(
+                    func=ast.Attribute(
+                        value=ast.Name(id="ctx", ctx=ast.Load()),
+                        attr="get",
+                        ctx=ast.Load(),
+                    ),
+                    args=[ast.Constant(value=node.name)],
+                    keywords=[],
+                )
 
         if node_type == "Tuple":
             ctx = ast.Store() if store else ast.Load()
@@ -100,6 +116,35 @@ class ExpressionCompilationMixin:
             )
 
         if node_type == "Test":
+            # Special handling for 'defined' and 'undefined' tests in strict mode
+            # These need to work even when the value is undefined
+            if node.name in ("defined", "undefined") and self._env.strict:
+                # Generate: _is_defined(lambda: <value>) or not _is_defined(lambda: <value>)
+                value_lambda = ast.Lambda(
+                    args=ast.arguments(
+                        posonlyargs=[],
+                        args=[],
+                        vararg=None,
+                        kwonlyargs=[],
+                        kw_defaults=[],
+                        kwarg=None,
+                        defaults=[],
+                    ),
+                    body=self._compile_expr(node.value),
+                )
+                test_call = ast.Call(
+                    func=ast.Name(id="_is_defined", ctx=ast.Load()),
+                    args=[value_lambda],
+                    keywords=[],
+                )
+                # For 'undefined' test, negate the result
+                if node.name == "undefined":
+                    test_call = ast.UnaryOp(op=ast.Not(), operand=test_call)
+                # Handle negated tests (is not defined, is not undefined)
+                if node.negated:
+                    return ast.UnaryOp(op=ast.Not(), operand=test_call)
+                return test_call
+
             # Compile test: _tests['name'](value, *args, **kwargs)
             # If negated: not _tests['name'](value, *args, **kwargs)
             value = self._compile_expr(node.value)
@@ -128,6 +173,33 @@ class ExpressionCompilationMixin:
             )
 
         if node_type == "Filter":
+            # Special handling for 'default' filter in strict mode
+            # The default filter needs to work even when the value is undefined
+            if node.name in ("default", "d") and self._env.strict:
+                # Generate: _default_safe(lambda: <value>, <default>, <boolean>)
+                # This catches UndefinedError and returns the default value
+                value_lambda = ast.Lambda(
+                    args=ast.arguments(
+                        posonlyargs=[],
+                        args=[],
+                        vararg=None,
+                        kwonlyargs=[],
+                        kw_defaults=[],
+                        kwarg=None,
+                        defaults=[],
+                    ),
+                    body=self._compile_expr(node.value),
+                )
+                # Build args: default_value and boolean flag
+                filter_args = [self._compile_expr(a) for a in node.args]
+                filter_kwargs = {k: self._compile_expr(v) for k, v in node.kwargs.items()}
+
+                return ast.Call(
+                    func=ast.Name(id="_default_safe", ctx=ast.Load()),
+                    args=[value_lambda] + filter_args,
+                    keywords=[ast.keyword(arg=k, value=v) for k, v in filter_kwargs.items()],
+                )
+
             value = self._compile_expr(node.value)
             return ast.Call(
                 func=ast.Subscript(

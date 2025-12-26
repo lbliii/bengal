@@ -97,6 +97,7 @@ from bengal.utils import (
 )
 from bengal.utils.concurrent_locks import PerKeyLockManager
 from bengal.utils.hashing import hash_bytes, hash_dict, hash_file, hash_file_with_stat, hash_str
+from bengal.utils.lru_cache import LRUCache
 from bengal.utils.pagination import Paginator
 from bengal.utils.path_resolver import PathResolver, resolve_path
 from bengal.utils.paths import BengalPaths
@@ -113,6 +114,7 @@ if TYPE_CHECKING:
 
 __all__ = [
     "BengalPaths",
+    "LRUCache",
     "Paginator",
     "PathResolver",
     "PerKeyLockManager",

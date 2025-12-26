@@ -7,6 +7,7 @@ Key Design:
     - StringBuilder pattern instead of generator yields
     - Context is a simple dict (no wrapper objects at runtime)
     - Filters are bound at compile time for fast dispatch
+    - WeakRef to Environment prevents circular reference memory leaks
 
 Complexity:
     - render(): O(n) where n = output size
@@ -16,6 +17,7 @@ Complexity:
 from __future__ import annotations
 
 import re
+import weakref
 from typing import TYPE_CHECKING, Any
 
 from markupsafe import Markup
@@ -144,6 +146,10 @@ class Template:
     Templates are immutable and thread-safe. Each render() call
     creates its own local state (StringBuilder pattern).
 
+    Memory Safety:
+        Uses WeakRef to Environment to prevent circular reference leaks.
+        Template → (weak) → Environment → cache → Template
+
     Example:
         >>> env = Environment()
         >>> t = env.from_string("Hello, {{ name }}!")
@@ -151,7 +157,7 @@ class Template:
         'Hello, World!'
     """
 
-    __slots__ = ("_env", "_code", "_name", "_filename", "_render_func")
+    __slots__ = ("_env_ref", "_code", "_name", "_filename", "_render_func")
 
     def __init__(
         self,
@@ -163,20 +169,27 @@ class Template:
         """Initialize template with compiled code.
 
         Args:
-            env: Parent Environment
+            env: Parent Environment (stored as weak reference)
             code: Compiled Python code object
             name: Template name (for error messages)
             filename: Source filename (for error messages)
         """
-        self._env = env
+        # Use weakref to prevent circular reference: Template <-> Environment
+        self._env_ref: weakref.ref[Environment] = weakref.ref(env)
         self._code = code
         self._name = name
         self._filename = filename
 
+        # Capture env reference for closures (will be dereferenced at call time)
+        env_ref = self._env_ref
+
         # Include helper - loads and renders included template
         def _include(template_name: str, context: dict, ignore_missing: bool = False) -> str:
+            _env = env_ref()
+            if _env is None:
+                raise RuntimeError("Environment has been garbage collected")
             try:
-                included = env.get_template(template_name)
+                included = _env.get_template(template_name)
                 return included.render(**context)
             except Exception:
                 if ignore_missing:
@@ -185,7 +198,10 @@ class Template:
 
         # Extends helper - renders parent template with child's blocks
         def _extends(template_name: str, context: dict, blocks: dict) -> str:
-            parent = env.get_template(template_name)
+            _env = env_ref()
+            if _env is None:
+                raise RuntimeError("Environment has been garbage collected")
+            parent = _env.get_template(template_name)
             # Guard against templates that failed to compile properly
             if parent._render_func is None:
                 raise RuntimeError(
@@ -197,7 +213,10 @@ class Template:
 
         # Import macros from another template
         def _import_macros(template_name: str, with_context: bool, context: dict) -> dict:
-            imported = env.get_template(template_name)
+            _env = env_ref()
+            if _env is None:
+                raise RuntimeError("Environment has been garbage collected")
+            imported = _env.get_template(template_name)
             # Guard against templates that failed to compile properly
             if imported._render_func is None:
                 raise RuntimeError(
@@ -208,7 +227,7 @@ class Template:
             # ALWAYS include globals (filters, functions like canonical_url, icon, etc.)
             # The with_context flag controls whether CALLER's local variables are passed
             # This matches Jinja2 behavior where globals are always available to macros
-            import_ctx = dict(env.globals)
+            import_ctx = dict(_env.globals)
             if with_context:
                 import_ctx.update(context)
             # Execute the template to define macros in its context
@@ -216,32 +235,112 @@ class Template:
             # Return the context (which now contains the macros)
             return import_ctx
 
-        # Cache helpers - use environment's cache if available
+        # Cache helpers - use environment's LRU cache
         def _cache_get(key: str) -> str | None:
-            """Get cached fragment by key."""
-            cache = getattr(env, "_fragment_cache", None)
-            if cache is not None:
-                return cache.get(key)
-            return None
+            """Get cached fragment by key (with TTL support)."""
+            _env = env_ref()
+            if _env is None:
+                return None
+            return _env._fragment_cache.get(key)
 
         def _cache_set(key: str, value: str, ttl: str | None = None) -> None:
-            """Set cached fragment."""
-            cache = getattr(env, "_fragment_cache", None)
-            if cache is None:
-                # Create a simple dict cache if not provided
-                env._fragment_cache = {}  # type: ignore[attr-defined]
-                cache = env._fragment_cache
-            cache[key] = value
-            # Note: TTL handling would require a more sophisticated cache
+            """Set cached fragment (TTL is configured at Environment level)."""
+            _env = env_ref()
+            if _env is None:
+                return
+            # Note: Per-key TTL would require a more sophisticated cache.
+            # Currently uses environment-level TTL for all fragments.
+            _env._fragment_cache.set(key, value)
+
+        # Strict mode variable lookup helper
+        def _lookup(ctx: dict, var_name: str) -> Any:
+            """Look up a variable in strict mode.
+
+            In strict mode, undefined variables raise UndefinedError instead
+            of silently returning None. This catches typos and missing variables
+            early, improving debugging experience.
+
+            Performance:
+                - Fast path (defined var): O(1) dict lookup
+                - Error path: Raises UndefinedError with template context
+            """
+            from bengal.rendering.kida.environment.exceptions import UndefinedError
+
+            try:
+                return ctx[var_name]
+            except KeyError:
+                # Get template context for better error messages
+                template_name = ctx.get("_template")
+                lineno = ctx.get("_line")
+                raise UndefinedError(var_name, template_name, lineno)
+
+        # Default filter helper for strict mode
+        def _default_safe(
+            value_fn: Any,
+            default_value: Any = "",
+            boolean: bool = False,
+        ) -> Any:
+            """Safe default filter that works with strict mode.
+
+            In strict mode, the value expression might raise UndefinedError.
+            This helper catches that and returns the default value.
+
+            Args:
+                value_fn: A lambda that evaluates the value expression
+                default_value: The fallback value if undefined or None/falsy
+                boolean: If True, check for falsy values; if False, check for None only
+
+            Returns:
+                The value if defined and valid, otherwise the default
+            """
+            from bengal.rendering.kida.environment.exceptions import UndefinedError
+
+            try:
+                value = value_fn()
+            except UndefinedError:
+                return default_value
+
+            # Apply default filter logic
+            if boolean:
+                # Return default if value is falsy
+                return value if value else default_value
+            else:
+                # Return default only if value is None
+                return value if value is not None else default_value
+
+        # Is defined test helper for strict mode
+        def _is_defined(value_fn: Any) -> bool:
+            """Check if a value is defined in strict mode.
+
+            In strict mode, we need to catch UndefinedError to determine
+            if a variable is defined.
+
+            Args:
+                value_fn: A lambda that evaluates the value expression
+
+            Returns:
+                True if the value is defined (doesn't raise UndefinedError
+                and is not None), False otherwise
+            """
+            from bengal.rendering.kida.environment.exceptions import UndefinedError
+
+            try:
+                value = value_fn()
+                return value is not None
+            except UndefinedError:
+                return False
 
         # Execute the code to get the render function
         namespace: dict[str, Any] = {
             "__builtins__": {},
-            "_env": env,
+            "_env": env,  # Direct ref needed during exec for globals access
             "_filters": env._filters,
             "_tests": env._tests,
             "_escape": self._escape,
             "_getattr": self._safe_getattr,
+            "_lookup": _lookup,  # Strict mode variable lookup
+            "_default_safe": _default_safe,  # Default filter for strict mode
+            "_is_defined": _is_defined,  # Is defined test for strict mode
             "_include": _include,
             "_extends": _extends,
             "_import_macros": _import_macros,
@@ -262,6 +361,14 @@ class Template:
         }
         exec(code, namespace)
         self._render_func = namespace.get("render")
+
+    @property
+    def _env(self) -> Environment:
+        """Get the Environment (dereferences weak reference)."""
+        env = self._env_ref()
+        if env is None:
+            raise RuntimeError("Environment has been garbage collected")
+        return env
 
     @property
     def name(self) -> str | None:
@@ -323,6 +430,12 @@ class Template:
             # Already enhanced, re-raise as-is
             raise
         except Exception as e:
+            # Check if this is an UndefinedError (from strict mode)
+            # These are already well-formatted, so don't wrap them
+            from bengal.rendering.kida.environment.exceptions import UndefinedError
+
+            if isinstance(e, UndefinedError):
+                raise
             # Enhance generic exceptions with template context
             raise self._enhance_error(e, ctx) from e
 
@@ -394,6 +507,11 @@ class Template:
         except TemplateRuntimeError:
             raise
         except Exception as e:
+            # Check if this is an UndefinedError (from strict mode)
+            from bengal.rendering.kida.environment.exceptions import UndefinedError
+
+            if isinstance(e, UndefinedError):
+                raise
             raise self._enhance_error(e, ctx) from e
 
     @staticmethod
