@@ -63,17 +63,19 @@ class Renderer:
         html = renderer.render_page(page)
     """
 
-    def __init__(self, template_engine: Any, build_stats: Any = None) -> None:
+    def __init__(self, template_engine: Any, build_stats: Any = None, block_cache: Any = None) -> None:
         """
         Initialize the renderer.
 
         Args:
             template_engine: Template engine instance
             build_stats: Optional BuildStats object for error collection
+            block_cache: Optional BlockCache for KIDA template block caching
         """
         self.template_engine = template_engine
         self.site = template_engine.site  # Access to site config for strict mode
         self.build_stats = build_stats  # For collecting template errors
+        self.block_cache = block_cache  # Block cache for KIDA introspection optimization
         # PERF: Cache for top-level content (computed once per build)
         self._top_level_cache: tuple[list[Page], list[Any]] | None = None
         # PERF: Cache for resolved tag pages (computed once per build)
@@ -271,6 +273,28 @@ class Renderer:
             site=self.site,
             content=content,
         )
+
+        # Inject cached blocks for KIDA templates (RFC: kida-template-introspection)
+        # This enables site-wide block caching for nav, footer, etc.
+        if self.block_cache and hasattr(self.template_engine, "get_cacheable_blocks"):
+            cached_blocks = {}
+            cacheable = self.template_engine.get_cacheable_blocks(template_name)
+            
+            # Collect all site-cacheable blocks that are already cached
+            for block_name, scope in cacheable.items():
+                if scope == "site":
+                    cached_html = self.block_cache.get(template_name, block_name)
+                    if cached_html is not None:
+                        cached_blocks[block_name] = cached_html
+            
+            # Inject cached blocks into context for template to use
+            if cached_blocks:
+                context["_cached_blocks"] = cached_blocks
+                logger.debug(
+                    "renderer_using_cached_blocks",
+                    template=template_name,
+                    cached_blocks=list(cached_blocks.keys()),
+                )
 
         # Add special context for generated pages (tags, archives, etc.)
         # These need additional pagination and tag-specific data

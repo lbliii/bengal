@@ -331,6 +331,7 @@ class RenderOrchestrator:
                 build_stats=stats,
                 build_context=build_context,
                 changed_sources=changed_sources,
+                block_cache=self._block_cache,
             )
             last_update_time = time.time()
             update_interval = 0.1  # Update every 100ms (throttled for performance)
@@ -376,6 +377,7 @@ class RenderOrchestrator:
                 build_stats=stats,
                 build_context=build_context,
                 changed_sources=changed_sources,
+                block_cache=self._block_cache,
             )
             for page in pages:
                 pipeline.process_page(page)
@@ -551,6 +553,7 @@ class RenderOrchestrator:
                     build_stats=stats,
                     build_context=build_context,
                     changed_sources=changed_sources,
+                    block_cache=self._block_cache,
                 )
                 _thread_local.pipeline_generation = current_gen
             _thread_local.pipeline.process_page(page)
@@ -626,6 +629,7 @@ class RenderOrchestrator:
             build_stats=stats,
             build_context=build_context,
             changed_sources=changed_sources,
+            block_cache=self._block_cache,
         )
 
         with Progress(
@@ -709,7 +713,9 @@ class RenderOrchestrator:
                     tracker,
                     quiet=True,
                     build_stats=stats,
+                    build_context=build_context,
                     changed_sources=changed_sources,
+                    block_cache=self._block_cache,
                 )
                 _thread_local.pipeline_generation = current_gen
             _thread_local.pipeline.process_page(page)
@@ -838,6 +844,7 @@ class RenderOrchestrator:
                     build_stats=stats,
                     build_context=build_context,
                     changed_sources=changed_sources,
+                    block_cache=self._block_cache,
                 )
                 _thread_local.pipeline_generation = current_gen
             _thread_local.pipeline.process_page(page)

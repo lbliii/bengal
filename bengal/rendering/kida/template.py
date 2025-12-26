@@ -40,34 +40,15 @@ Complexity:
 
 from __future__ import annotations
 
-import re
 import weakref
 from typing import TYPE_CHECKING, Any
 
 from markupsafe import Markup
 
+from bengal.rendering.kida.utils.html import html_escape
+
 if TYPE_CHECKING:
     from bengal.rendering.kida.environment import Environment
-
-
-# Pre-compiled escape table for O(n) single-pass HTML escaping
-# This replaces the O(5n) chained .replace() approach
-_ESCAPE_TABLE = str.maketrans(
-    {
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#39;",
-    }
-)
-
-# Fast path: regex to check if escaping is needed at all
-_ESCAPE_CHECK = re.compile(r'[&<>"\']')
-
-# Spaceless: regex to remove whitespace between HTML tags
-# RFC: kida-modern-syntax-features
-_SPACELESS_RE = re.compile(r">\s+<")
 
 
 class LoopContext:
@@ -819,24 +800,10 @@ class Template:
     def _escape(value: Any) -> str:
         """HTML-escape a value.
 
+        Uses optimized html_escape from utils.html module.
         Complexity: O(n) single-pass using str.translate().
-
-        Optimizations:
-        1. Skip Markup objects (already safe)
-        2. Fast path check - if no escapable chars, return as-is
-        3. Single-pass translation instead of 5 chained .replace()
-
-        This is ~3-5x faster than the naive approach for escape-heavy content.
         """
-        # Skip Markup objects - they're already safe
-        # Must check before str() conversion since str(Markup) returns plain str
-        if isinstance(value, Markup):
-            return str(value)
-        s = str(value)
-        # Fast path: no escapable characters
-        if not _ESCAPE_CHECK.search(s):
-            return s
-        return s.translate(_ESCAPE_TABLE)
+        return html_escape(value)
 
     @staticmethod
     def _safe_getattr(obj: Any, name: str) -> Any:

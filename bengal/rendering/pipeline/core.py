@@ -113,6 +113,7 @@ class RenderingPipeline:
         build_stats: BuildStats | None = None,
         build_context: BuildContext | None = None,
         changed_sources: set[Path] | None = None,
+        block_cache: Any | None = None,
     ) -> None:
         """
         Initialize the rendering pipeline.
@@ -180,7 +181,7 @@ class RenderingPipeline:
         if self.dependency_tracker:
             self.template_engine._dependency_tracker = self.dependency_tracker
 
-        self.renderer = Renderer(self.template_engine, build_stats=build_stats)
+        self.renderer = Renderer(self.template_engine, build_stats=build_stats, block_cache=block_cache)
         self.build_context = build_context
         self.changed_sources = {Path(p) for p in (changed_sources or set())}
 

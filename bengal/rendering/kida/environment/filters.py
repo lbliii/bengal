@@ -63,7 +63,6 @@ Custom Filters:
 from __future__ import annotations
 
 import json
-import re
 import textwrap
 from collections.abc import Callable
 from itertools import groupby
@@ -72,9 +71,12 @@ from typing import Any
 from urllib.parse import quote
 
 from bengal.rendering.kida.template import Markup
-
-# Pre-compiled regex patterns for performance
-_STRIPTAGS_RE = re.compile(r"<[^>]*>")
+from bengal.rendering.kida.utils.html import (
+    html_escape_filter,
+    spaceless,
+    strip_tags,
+    xmlattr,
+)
 
 
 def _filter_abs(value: Any) -> Any:
@@ -103,20 +105,9 @@ def _filter_escape(value: Any) -> Markup:
     """HTML-escape the value.
 
     Returns a Markup object so the result won't be escaped again by autoescape.
+    Uses optimized html_escape_filter from utils.html module.
     """
-    # Already safe - return as-is
-    if isinstance(value, Markup):
-        return value
-
-    escaped = (
-        str(value)
-        .replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace('"', "&quot;")
-        .replace("'", "&#39;")
-    )
-    return Markup(escaped)
+    return html_escape_filter(value)
 
 
 def _filter_first(value: Any) -> Any:
@@ -546,7 +537,7 @@ def _filter_groupby(value: Any, attribute: str) -> list:
 
 def _filter_striptags(value: str) -> str:
     """Strip HTML tags."""
-    return _STRIPTAGS_RE.sub("", str(value))
+    return strip_tags(value)
 
 
 def _filter_wordwrap(value: str, width: int = 79, break_long_words: bool = True) -> str:
@@ -573,20 +564,12 @@ def _filter_pprint(value: Any) -> str:
     return pformat(value)
 
 
-def _filter_xmlattr(value: dict) -> str:
-    """Convert dict to XML attributes."""
-    parts = []
-    for key, val in value.items():
-        if val is not None:
-            escaped = (
-                str(val)
-                .replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
-                .replace('"', "&quot;")
-            )
-            parts.append(f'{key}="{escaped}"')
-    return " ".join(parts)
+def _filter_xmlattr(value: dict) -> Markup:
+    """Convert dict to XML attributes.
+    
+    Returns Markup to prevent double-escaping when autoescape is enabled.
+    """
+    return xmlattr(value)
 
 
 def _filter_unique(value: Any, case_sensitive: bool = False, attribute: str | None = None) -> list:
