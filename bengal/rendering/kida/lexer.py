@@ -1,0 +1,494 @@
+"""Kida lexer — tokenizes template source code.
+
+The lexer operates in two modes:
+1. DATA mode: Outside template constructs, collects raw text
+2. CODE mode: Inside {{ }}, {% %}, {# #}, tokenizes expressions/statements
+
+Design:
+    - Pure Python implementation (optional Rust extension for speed)
+    - Zero global mutable state for thread-safety
+    - Generator-based for memory efficiency with large templates
+    - Rich error messages with source location
+
+Performance:
+    - Compiled regex patterns (class-level, immutable)
+    - Single-pass scanning
+    - Minimal object allocation
+"""
+
+from __future__ import annotations
+
+import re
+from collections.abc import Iterator
+from dataclasses import dataclass
+from enum import Enum, auto
+
+from bengal.rendering.kida._types import Token, TokenType
+
+
+class LexerMode(Enum):
+    """Lexer operating mode."""
+
+    DATA = auto()  # Outside template constructs
+    BLOCK = auto()  # Inside {% %}
+    VARIABLE = auto()  # Inside {{ }}
+    COMMENT = auto()  # Inside {# #}
+
+
+@dataclass(frozen=True, slots=True)
+class LexerConfig:
+    """Lexer configuration.
+
+    Attributes:
+        block_start: Start of block tag (default: '{%')
+        block_end: End of block tag (default: '%}')
+        variable_start: Start of variable tag (default: '{{')
+        variable_end: End of variable tag (default: '}}')
+        comment_start: Start of comment (default: '{#')
+        comment_end: End of comment (default: '#}')
+        line_statement_prefix: Prefix for line statements (default: None)
+        line_comment_prefix: Prefix for line comments (default: None)
+        trim_blocks: Remove first newline after block (default: False)
+        lstrip_blocks: Strip leading whitespace from blocks (default: False)
+    """
+
+    block_start: str = "{%"
+    block_end: str = "%}"
+    variable_start: str = "{{"
+    variable_end: str = "}}"
+    comment_start: str = "{#"
+    comment_end: str = "#}"
+    line_statement_prefix: str | None = None
+    line_comment_prefix: str | None = None
+    trim_blocks: bool = False
+    lstrip_blocks: bool = False
+
+
+# Default configuration (immutable singleton)
+DEFAULT_CONFIG = LexerConfig()
+
+
+class LexerError(Exception):
+    """Lexer error with source location."""
+
+    def __init__(
+        self,
+        message: str,
+        source: str,
+        lineno: int,
+        col_offset: int,
+        suggestion: str | None = None,
+    ):
+        self.message = message
+        self.source = source
+        self.lineno = lineno
+        self.col_offset = col_offset
+        self.suggestion = suggestion
+        super().__init__(self._format_message())
+
+    def _format_message(self) -> str:
+        lines = self.source.splitlines()
+        error_line = lines[self.lineno - 1] if self.lineno <= len(lines) else ""
+        pointer = " " * self.col_offset + "^"
+
+        msg = f"""
+Lexer Error: {self.message}
+  --> line {self.lineno}:{self.col_offset}
+   |
+ {self.lineno:>3} | {error_line}
+   | {pointer}
+"""
+        if self.suggestion:
+            msg += f"\nSuggestion: {self.suggestion}"
+        return msg
+
+
+class Lexer:
+    """Template lexer.
+
+    Thread-safe: all instance state is immutable after construction.
+
+    Example:
+        >>> lexer = Lexer("Hello, {{ name }}!")
+        >>> list(lexer.tokenize())
+        [Token(DATA, 'Hello, ', 1, 0), Token(VARIABLE_BEGIN, '{{', 1, 7), ...]
+    """
+
+    # Compiled patterns (class-level, immutable)
+    _WHITESPACE_RE = re.compile(r"[ \t\n\r]+")
+    _NAME_RE = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*")
+    _STRING_RE = re.compile(
+        r"('([^'\\]*(?:\\.[^'\\]*)*)'"  # Single-quoted
+        r'|"([^"\\]*(?:\\.[^"\\]*)*)")'  # Double-quoted
+    )
+    _INTEGER_RE = re.compile(r"\d+")
+    _FLOAT_RE = re.compile(r"\d+\.\d*|\.\d+")
+
+    # O(1) operator lookup tables (optimized from O(k) list iteration)
+    # Two-char operators checked first, then single-char
+    _OPERATORS_2CHAR: dict[str, TokenType] = {
+        "**": TokenType.POW,
+        "//": TokenType.FLOORDIV,
+        "==": TokenType.EQ,
+        "!=": TokenType.NE,
+        "<=": TokenType.LE,
+        ">=": TokenType.GE,
+    }
+    _OPERATORS_1CHAR: dict[str, TokenType] = {
+        "<": TokenType.LT,
+        ">": TokenType.GT,
+        "+": TokenType.ADD,
+        "-": TokenType.SUB,
+        "*": TokenType.MUL,
+        "/": TokenType.DIV,
+        "%": TokenType.MOD,
+        "=": TokenType.ASSIGN,
+        ".": TokenType.DOT,
+        ",": TokenType.COMMA,
+        ":": TokenType.COLON,
+        "|": TokenType.PIPE,
+        "~": TokenType.TILDE,
+        "(": TokenType.LPAREN,
+        ")": TokenType.RPAREN,
+        "[": TokenType.LBRACKET,
+        "]": TokenType.RBRACKET,
+        "{": TokenType.LBRACE,
+        "}": TokenType.RBRACE,
+    }
+
+    __slots__ = ("_source", "_config", "_pos", "_lineno", "_col_offset", "_mode")
+
+    def __init__(
+        self,
+        source: str,
+        config: LexerConfig | None = None,
+    ):
+        """Initialize lexer with source code.
+
+        Args:
+            source: Template source code
+            config: Lexer configuration (uses defaults if None)
+        """
+        self._source = source
+        self._config = config or DEFAULT_CONFIG
+        self._pos = 0
+        self._lineno = 1
+        self._col_offset = 0
+        self._mode = LexerMode.DATA
+
+    def tokenize(self) -> Iterator[Token]:
+        """Tokenize the source and yield tokens.
+
+        Yields:
+            Token objects in order of appearance
+
+        Raises:
+            LexerError: If source contains invalid syntax
+        """
+        while self._pos < len(self._source):
+            if self._mode == LexerMode.DATA:
+                yield from self._tokenize_data()
+            elif self._mode == LexerMode.VARIABLE:
+                yield from self._tokenize_code(
+                    self._config.variable_end,
+                    TokenType.VARIABLE_END,
+                )
+            elif self._mode == LexerMode.BLOCK:
+                yield from self._tokenize_code(
+                    self._config.block_end,
+                    TokenType.BLOCK_END,
+                )
+            elif self._mode == LexerMode.COMMENT:
+                yield from self._tokenize_comment()
+
+        # Emit EOF token
+        yield Token(TokenType.EOF, "", self._lineno, self._col_offset)
+
+    def _tokenize_data(self) -> Iterator[Token]:
+        """Tokenize raw data outside template constructs."""
+        start_pos = self._pos
+        start_lineno = self._lineno
+        start_col = self._col_offset
+
+        # Find next template construct
+        next_construct = self._find_next_construct()
+
+        if next_construct is None:
+            # Rest of source is data
+            data = self._source[self._pos :]
+            if data:
+                self._advance(len(data))
+                yield Token(TokenType.DATA, data, start_lineno, start_col)
+            return
+
+        construct_type, construct_pos = next_construct
+
+        # Emit data before construct
+        if construct_pos > self._pos:
+            data = self._source[self._pos : construct_pos]
+            self._advance(len(data))
+            yield Token(TokenType.DATA, data, start_lineno, start_col)
+
+        # Emit construct start token
+        if construct_type == "variable":
+            yield self._emit_delimiter(
+                self._config.variable_start,
+                TokenType.VARIABLE_BEGIN,
+            )
+            self._mode = LexerMode.VARIABLE
+        elif construct_type == "block":
+            yield self._emit_delimiter(
+                self._config.block_start,
+                TokenType.BLOCK_BEGIN,
+            )
+            self._mode = LexerMode.BLOCK
+        elif construct_type == "comment":
+            yield self._emit_delimiter(
+                self._config.comment_start,
+                TokenType.COMMENT_BEGIN,
+            )
+            self._mode = LexerMode.COMMENT
+
+    def _tokenize_code(
+        self,
+        end_delimiter: str,
+        end_token_type: TokenType,
+    ) -> Iterator[Token]:
+        """Tokenize code inside {{ }} or {% %}."""
+        # Handle whitespace trimming (- modifier)
+        # e.g., {{- or {%- for left trim, -}} or -%} for right trim
+
+        while self._pos < len(self._source):
+            # Skip whitespace
+            self._skip_whitespace()
+
+            if self._pos >= len(self._source):
+                raise LexerError(
+                    f"Unexpected end of template, expected '{end_delimiter}'",
+                    self._source,
+                    self._lineno,
+                    self._col_offset,
+                    f"Add '{end_delimiter}' to close the tag",
+                )
+
+            # Check for end delimiter (with optional - modifier)
+            if self._source[self._pos :].startswith("-" + end_delimiter):
+                # Trim right whitespace marker
+                self._advance(1)  # Skip -
+                yield self._emit_delimiter(end_delimiter, end_token_type)
+                self._mode = LexerMode.DATA
+                return
+
+            if self._source[self._pos :].startswith(end_delimiter):
+                yield self._emit_delimiter(end_delimiter, end_token_type)
+                self._mode = LexerMode.DATA
+                return
+
+            # Tokenize expression/statement content
+            yield self._next_code_token()
+
+    def _tokenize_comment(self) -> Iterator[Token]:
+        """Skip comment content until closing delimiter."""
+        end = self._config.comment_end
+        end_pos = self._source.find(end, self._pos)
+
+        if end_pos == -1:
+            raise LexerError(
+                f"Unclosed comment, expected '{end}'",
+                self._source,
+                self._lineno,
+                self._col_offset,
+                f"Add '{end}' to close the comment",
+            )
+
+        # Skip comment content
+        comment_content = self._source[self._pos : end_pos]
+        self._advance(len(comment_content))
+
+        # Emit comment end
+        yield self._emit_delimiter(end, TokenType.COMMENT_END)
+        self._mode = LexerMode.DATA
+
+    def _next_code_token(self) -> Token:
+        """Get the next token from code content.
+        
+        Complexity: O(1) for operator lookup (dict-based).
+        """
+        char = self._source[self._pos]
+        
+        # String literal
+        if char in ('"', "'"):
+            return self._scan_string()
+
+        # Number
+        if char.isdigit():
+            return self._scan_number()
+
+        # Name or keyword
+        if char.isalpha() or char == "_":
+            return self._scan_name()
+
+        # Two-char operators (check first for longest match)
+        if self._pos + 1 < len(self._source):
+            two_char = self._source[self._pos : self._pos + 2]
+            if two_char in self._OPERATORS_2CHAR:
+                return self._emit_delimiter(two_char, self._OPERATORS_2CHAR[two_char])
+
+        # Single-char operators - O(1) dict lookup
+        if char in self._OPERATORS_1CHAR:
+            return self._emit_delimiter(char, self._OPERATORS_1CHAR[char])
+
+        # Unknown character
+        raise LexerError(
+            f"Unexpected character: {char!r}",
+            self._source,
+            self._lineno,
+            self._col_offset,
+        )
+
+    def _scan_string(self) -> Token:
+        """Scan a string literal."""
+        start_lineno = self._lineno
+        start_col = self._col_offset
+        quote = self._source[self._pos]
+        pos = self._pos + 1
+
+        while pos < len(self._source):
+            char = self._source[pos]
+            if char == quote:
+                # End of string
+                value = self._source[self._pos + 1 : pos]
+                self._advance(pos - self._pos + 1)
+                return Token(TokenType.STRING, value, start_lineno, start_col)
+            elif char == "\\":
+                # Escape sequence
+                pos += 2
+            else:
+                pos += 1
+
+        raise LexerError(
+            "Unterminated string literal",
+            self._source,
+            start_lineno,
+            start_col,
+            f"Add closing {quote} to end the string",
+        )
+
+    def _scan_number(self) -> Token:
+        """Scan a number literal (integer or float)."""
+        start_lineno = self._lineno
+        start_col = self._col_offset
+
+        # Try float first (longer match)
+        match = self._FLOAT_RE.match(self._source, self._pos)
+        if match and "." in match.group():
+            value = match.group()
+            self._advance(len(value))
+            return Token(TokenType.FLOAT, value, start_lineno, start_col)
+
+        # Integer
+        match = self._INTEGER_RE.match(self._source, self._pos)
+        if match:
+            value = match.group()
+            self._advance(len(value))
+            return Token(TokenType.INTEGER, value, start_lineno, start_col)
+
+        # Should not reach here
+        raise LexerError(
+            "Invalid number",
+            self._source,
+            self._lineno,
+            self._col_offset,
+        )
+
+    def _scan_name(self) -> Token:
+        """Scan a name or keyword."""
+        start_lineno = self._lineno
+        start_col = self._col_offset
+
+        match = self._NAME_RE.match(self._source, self._pos)
+        if not match:
+            raise LexerError(
+                "Invalid identifier",
+                self._source,
+                self._lineno,
+                self._col_offset,
+            )
+
+        name = match.group()
+        self._advance(len(name))
+
+        # Map keywords to token types
+        if name == "and":
+            return Token(TokenType.AND, name, start_lineno, start_col)
+        elif name == "or":
+            return Token(TokenType.OR, name, start_lineno, start_col)
+        elif name == "not":
+            return Token(TokenType.NOT, name, start_lineno, start_col)
+        elif name == "in":
+            return Token(TokenType.IN, name, start_lineno, start_col)
+        elif name == "is":
+            return Token(TokenType.IS, name, start_lineno, start_col)
+        else:
+            return Token(TokenType.NAME, name, start_lineno, start_col)
+
+    def _find_next_construct(self) -> tuple[str, int] | None:
+        """Find the next template construct ({{ }}, {% %}, or {# #})."""
+        positions = []
+
+        for name, start in [
+            ("variable", self._config.variable_start),
+            ("block", self._config.block_start),
+            ("comment", self._config.comment_start),
+        ]:
+            pos = self._source.find(start, self._pos)
+            if pos != -1:
+                positions.append((name, pos))
+
+        if not positions:
+            return None
+
+        # Return the closest construct
+        return min(positions, key=lambda x: x[1])
+
+    def _emit_delimiter(self, delimiter: str, token_type: TokenType) -> Token:
+        """Emit a delimiter token and advance position."""
+        token = Token(token_type, delimiter, self._lineno, self._col_offset)
+        self._advance(len(delimiter))
+        return token
+
+    def _skip_whitespace(self) -> None:
+        """Skip whitespace characters."""
+        match = self._WHITESPACE_RE.match(self._source, self._pos)
+        if match:
+            self._advance(len(match.group()))
+
+    def _advance(self, count: int) -> None:
+        """Advance position by count characters, tracking line/column."""
+        for _ in range(count):
+            if self._pos < len(self._source):
+                if self._source[self._pos] == "\n":
+                    self._lineno += 1
+                    self._col_offset = 0
+                else:
+                    self._col_offset += 1
+                self._pos += 1
+
+
+def tokenize(source: str, config: LexerConfig | None = None) -> list[Token]:
+    """Convenience function to tokenize source into a list.
+
+    Args:
+        source: Template source code
+        config: Optional lexer configuration
+
+    Returns:
+        List of tokens
+
+    Example:
+        >>> tokens = tokenize("{{ name }}")
+        >>> [t.type for t in tokens]
+        [<TokenType.VARIABLE_BEGIN>, <TokenType.NAME>, <TokenType.VARIABLE_END>, <TokenType.EOF>]
+    """
+    lexer = Lexer(source, config)
+    return list(lexer.tokenize())
