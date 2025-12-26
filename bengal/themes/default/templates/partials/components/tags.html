@@ -12,6 +12,15 @@ Components:
 #}
 
 {# =============================================================================
+TAG LINK HELPER
+
+Creates a tag link with consistent styling.
+============================================================================= #}
+{% def tag_link(tag, css_class='tag') %}
+  <a href="{{ tag_url(tag) }}" class="{{ css_class }}">{{ tag }}</a>
+{% end %}
+
+{# =============================================================================
 TAG LIST COMPONENT
 
 Displays tags as styled badges, optionally linkable.
@@ -24,7 +33,7 @@ Displays tags as styled badges, optionally linkable.
 <div class="tags{{ ' tags-small' if small else '' }}">
   {% for tag in display_tags %}
   {% if linkable %}
-  <a href="{{ tag_url(tag) }}" class="tag">{{ tag }}</a>
+  {{ tag_link(tag) }}
   {% else %}
   <span class="tag">{{ tag }}</span>
   {% end %}

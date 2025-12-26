@@ -25,23 +25,16 @@ _path, kind, tags are always defined - no defensive checks needed.
 {% let _per_page_json = 'json' in (config.output_formats.per_page ?? []) %}
 
 {# Derived values (depend on earlier lets) #}
-{# Cache navigation menus - expensive to compute, rarely changes #}
-{% cache 'menu-main-' ~ _current_lang ~ '-' ~ (site.nav_version ?? '') %}
-  {% let _main_menu = get_menu_lang('main', _current_lang) %}
-{% end %}
-
-{% cache 'menu-footer-' ~ _current_lang ~ '-' ~ (site.nav_version ?? '') %}
-  {% let _footer_menu = get_menu_lang('footer', _current_lang) %}
-{% end %}
+{# Navigation menus - assign outside cache for variable access #}
+{% let _main_menu = get_menu_lang('main', _current_lang) %}
+{% let _footer_menu = get_menu_lang('footer', _current_lang) %}
 
 {% let _view_transitions = _doc_app.enabled and _doc_app.navigation.view_transitions %}
 {% let _transition_style = _doc_app.navigation.transition_style %}
 
-{# Cache auto navigation if main menu is empty #}
+{# Auto navigation if main menu is empty #}
 {% if _main_menu | length == 0 %}
-  {% cache 'auto-nav-' ~ (site.nav_version ?? '') %}
-    {% let _auto_nav = get_auto_nav() %}
-  {% end %}
+  {% let _auto_nav = get_auto_nav() %}
 {% else %}
   {% let _auto_nav = [] %}
 {% end %}
@@ -65,10 +58,10 @@ _path, kind, tags are always defined - no defensive checks needed.
     {% end %}
     <title>{{ page_title }}</title>
 
-    {# Meta description - automatically pre-computed by renderer (page.meta_description cached_property) #}
-    {% set meta_desc = meta_desc | default(config.description) %}
-
-    {# Meta Description - Auto-generate if not provided #}
+    {# Meta description - captured for reuse in Open Graph and Twitter Card #}
+    {% capture meta_desc %}
+      {{ meta_desc | default(config.description) }}
+    {% end %}
     <meta name="description" content="{{ meta_desc }}">
 
     {# Meta Keywords - use page.keywords or fallback to tags #}
@@ -93,16 +86,16 @@ _path, kind, tags are always defined - no defensive checks needed.
     {# Use relative_url for canonical URLs (canonical_url adds baseurl) #}
     <meta property="og:url" content="{{ canonical_url(_page_url) }}">
     {% end %}
-    {# Open Graph Image - supports manual override, auto-generated social cards, or site default #}
-    {% set _og_image_path = '' %}
+    {# Open Graph Image - computed with fallback chain #}
+    {% let _og_image_path = '' %}
     {% if params.image %}
-    {% set _og_image_path = og_image(params.image, page) %}
-    {% else %}
-    {# Try auto-generated social card #}
-    {% set _og_image_path = og_image('', page) %}
+      {% let _og_image_path = og_image(params.image, page) %}
+    {% end %}
+    {% if not _og_image_path %}
+      {% let _og_image_path = og_image('', page) %}
     {% end %}
     {% if not _og_image_path and config.og_image %}
-    {% set _og_image_path = og_image(config.og_image) %}
+      {% let _og_image_path = og_image(config.og_image) %}
     {% end %}
     {% if _og_image_path %}
     <meta property="og:image" content="{{ _og_image_path }}">
@@ -150,10 +143,8 @@ _path, kind, tags are always defined - no defensive checks needed.
     {% end %}
     <link rel="alternate" type="application/rss+xml" title="{{ config.title }} RSS Feed" href="{{ _rss_href }}">
 
-    {# hreflang alternates for translated pages - cached per page #}
-    {% cache 'alternate-links-' ~ page._path ~ '-' ~ (site.nav_version ?? '') %}
-      {% let alt_links = alternate_links(page) %}
-    {% end %}
+    {# hreflang alternates for translated pages #}
+    {% let alt_links = alternate_links(page) %}
     {% for alt in alt_links %}
     <link rel="alternate" hreflang="{{ alt.hreflang }}" href="{{ alt.href }}">
     {% end %}

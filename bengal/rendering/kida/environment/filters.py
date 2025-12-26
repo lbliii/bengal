@@ -62,10 +62,19 @@ Custom Filters:
 
 from __future__ import annotations
 
+import json
+import re
+import textwrap
 from collections.abc import Callable
+from itertools import groupby
+from pprint import pformat
 from typing import Any
+from urllib.parse import quote
 
 from bengal.rendering.kida.template import Markup
+
+# Pre-compiled regex patterns for performance
+_STRIPTAGS_RE = re.compile(r"<[^>]*>")
 
 
 def _filter_abs(value: Any) -> Any:
@@ -377,8 +386,6 @@ def _filter_upper(value: str) -> str:
 
 def _filter_tojson(value: Any, indent: int | None = None) -> Any:
     """Convert value to JSON string (marked safe to prevent escaping)."""
-    import json
-
     return Markup(json.dumps(value, indent=indent, default=str))
 
 
@@ -528,8 +535,6 @@ def _filter_reject(value: Any, test_name: str | None = None, *args: Any) -> list
 
 def _filter_groupby(value: Any, attribute: str) -> list:
     """Group items by attribute."""
-    from itertools import groupby
-
     def get_key(item: Any) -> Any:
         return getattr(item, attribute, None)
 
@@ -541,15 +546,11 @@ def _filter_groupby(value: Any, attribute: str) -> list:
 
 def _filter_striptags(value: str) -> str:
     """Strip HTML tags."""
-    import re
-
-    return re.sub(r"<[^>]*>", "", str(value))
+    return _STRIPTAGS_RE.sub("", str(value))
 
 
 def _filter_wordwrap(value: str, width: int = 79, break_long_words: bool = True) -> str:
     """Wrap text at width."""
-    import textwrap
-
     return textwrap.fill(str(value), width=width, break_long_words=break_long_words)
 
 
@@ -564,15 +565,11 @@ def _filter_indent(value: str, width: int = 4, first: bool = False) -> str:
 
 def _filter_urlencode(value: str) -> str:
     """URL-encode a string."""
-    from urllib.parse import quote
-
     return quote(str(value), safe="")
 
 
 def _filter_pprint(value: Any) -> str:
     """Pretty-print a value."""
-    from pprint import pformat
-
     return pformat(value)
 
 

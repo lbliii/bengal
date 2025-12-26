@@ -54,8 +54,41 @@ class ExpressionCompilationMixin:
         """Check if node could produce a string value (macro call, filter chain).
 
         Used to determine when numeric coercion is needed for arithmetic operations.
+        Recursively checks nested expressions to catch Filter nodes inside parentheses.
+        
+        This handles cases like (a | length) + (b | length) where the left/right
+        operands are Filter nodes that need numeric coercion.
         """
-        return type(node).__name__ in _POTENTIALLY_STRING_NODES
+        node_type = type(node).__name__
+        
+        # Direct match: Filter or FuncCall nodes
+        if node_type in _POTENTIALLY_STRING_NODES:
+            return True
+        
+        # Pipeline nodes contain filters, need coercion
+        if node_type == "Pipeline":
+            return True
+        
+        # Recursive check for nested expressions that might contain filters
+        # This handles cases like (a | length) + (b | length) where
+        # the left/right operands are Filter nodes
+        if node_type == "BinOp":
+            # Check both operands recursively
+            return self._is_potentially_string(node.left) or self._is_potentially_string(node.right)
+        
+        if node_type == "UnaryOp":
+            # Check the operand recursively
+            return self._is_potentially_string(node.operand)
+        
+        # For CondExpr (ternary), check all branches
+        if node_type == "CondExpr":
+            return (
+                self._is_potentially_string(node.test)
+                or self._is_potentially_string(node.body)
+                or self._is_potentially_string(node.orelse)
+            )
+        
+        return False
 
     def _wrap_coerce_numeric(self, expr: ast.expr) -> ast.expr:
         """Wrap expression in _coerce_numeric() call for arithmetic safety.

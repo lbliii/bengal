@@ -17,13 +17,11 @@ Variables:
 #}
 
 {# Template-scoped variables #}
-{# Cache popular tags - expensive operation that scans all pages #}
-{% if tags %}
+{# Popular tags - assign outside cache for variable access #}
+{% if tags is defined %}
   {% let all_tags = tags %}
 {% else %}
-  {% cache 'popular-tags-50-' ~ (site.nav_version ?? ''), ttl='1h' %}
-    {% let all_tags = popular_tags(limit=50) %}
-  {% end %}
+  {% let all_tags = popular_tags(limit=50) %}
 {% end %}
 {% let current_tag_normalized = (current_tag ?? '') | lower %}
 
@@ -50,6 +48,7 @@ Variables:
       <span class="tag-nav-name">{{ tag_name }}</span>
       <span class="tag-nav-count">({{ tag_count }})</span>
     </a>
+    {% export last_tag = tag_item %}
     {% end %}
     {% end %}
   </div>

@@ -30,9 +30,7 @@ Used for sections with type="api-hub"
 {% let sub_desc = (subsection?.params?.description ?? '') | first_sentence %}
 {% let sub_subsections = subsection?.subsections ?? [] %}
 {% let sub_pages = subsection?.pages ?? [] %}
-{% let subsections_len = sub_subsections | length | int %}
-{% let pages_len = sub_pages | length | int %}
-{% let child_count = subsections_len + pages_len %}
+{% let child_count = (sub_subsections | length) + (sub_pages | length) %}
 
 <a href="{{ sub_href }}" class="autodoc-card autodoc-card--hub" data-card="{{ sub_type }}">
   <div class="autodoc-card-header">

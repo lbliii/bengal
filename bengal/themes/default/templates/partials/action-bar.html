@@ -30,167 +30,169 @@ HELPER: Get page URL with fallback chain
 BREADCRUMB ITEM HELPER
 ============================================================================= #}
 {% def breadcrumb_item(item, has_metadata=false) %}
-  {% let item_title = item?.title ?? 'Page' %}
-  {% let item_href = item?.href ?? '#' %}
-  {% let is_current = item?.is_current ?? false %}
-  <li{{ ' aria-current="page"' | safe if is_current else '' }}>
+{% let item_title = item?.title ?? 'Page' %}
+{% let item_href = item?.href ?? '#' %}
+{% let is_current = item?.is_current ?? false %}
+<li{{ ' aria-current="page"' | safe if is_current else '' }}>
     {% if is_current %}
-      <span class="action-bar-breadcrumb-current-wrapper">
-        <span class="action-bar-breadcrumb-current" title="{{ item_title }}">{{ item_title | truncate(20, true, '…') }}</span>
+    <span class="action-bar-breadcrumb-current-wrapper">
+        <span class="action-bar-breadcrumb-current" title="{{ item_title }}">{{ item_title | truncate(20, true, '…')
+            }}</span>
         {% if has_metadata %}
         <button class="action-bar-meta-toggle" popovertarget="action-bar-metadata-popover"
             aria-label="Toggle page metadata" title="Show page details">
             {{ icon('caret-down', size=14, css_class='action-bar-meta-toggle-icon') }}
         </button>
         {% end %}
-      </span>
+    </span>
     {% else %}
-      <a href="{{ item_href | absolute_url }}" class="action-bar-breadcrumb-link"
-          title="{{ item_title }}">{{ item_title | truncate(28, true, '…') }}</a>
+    <a href="{{ item_href | absolute_url }}" class="action-bar-breadcrumb-link" title="{{ item_title }}">{{ item_title |
+        truncate(28, true, '…') }}</a>
     {% end %}
-  </li>
-{% end %}
+    </li>
+    {% end %}
 
-{# =============================================================================
-MAIN COMPONENT
-============================================================================= #}
+    {# =============================================================================
+    MAIN COMPONENT
+    ============================================================================= #}
 
-{% if page %}
-{# Template-scoped variables #}
-{% let page_url = canonical_url(get_page_url(page)) %}
-{% let llm_txt_url = ensure_trailing_slash(page_url) ~ 'index.txt' %}
-{% let share_prompt = "Please help me understand this documentation: " ~ llm_txt_url %}
+    {% if page %}
+    {# Template-scoped variables #}
+    {% let page_url = canonical_url(get_page_url(page)) %}
+    {% let llm_txt_url = ensure_trailing_slash(page_url) ~ 'index.txt' %}
+    {% let share_prompt = "Please help me understand this documentation: " ~ llm_txt_url %}
 
-{# Cache breadcrumbs - computed per page, rarely changes #}
-{% cache 'breadcrumbs-' ~ page._path ~ '-' ~ (site.nav_version ?? '') %}
-  {% let breadcrumb_items = get_breadcrumbs(page) ?? [] %}
-{% end %}
+    {# Breadcrumbs - assign outside cache for variable access #}
+    {% let breadcrumb_items = get_breadcrumbs(page) ?? [] %}
 
-{% let has_metadata = params?.author or page?.date or page?.content or params?.lastmod %}
-{% let theme_features = theme?.features ?? [] %}
+    {% let has_metadata = params?.author or page?.date or page?.content or params?.lastmod %}
+    {% let theme_features = theme?.features ?? [] %}
 
-<div class="action-bar-container">
-    {# Main Action Bar #}
-    <div class="action-bar">
-        {# Left: Breadcrumbs #}
-        <nav class="action-bar-nav" aria-label="Breadcrumb">
-            {% if breadcrumb_items | length > 0 %}
-            <ol class="action-bar-breadcrumbs">
-                {% for item in breadcrumb_items %}
-                {{ breadcrumb_item(item, has_metadata) }}
+    <div class="action-bar-container">
+        {# Main Action Bar #}
+        <div class="action-bar">
+            {# Left: Breadcrumbs #}
+            <nav class="action-bar-nav" aria-label="Breadcrumb">
+                {% if breadcrumb_items | length > 0 %}
+                <ol class="action-bar-breadcrumbs">
+                    {% for item in breadcrumb_items %}
+                    {{ breadcrumb_item(item, has_metadata) }}
+                    {% export last_breadcrumb = item %}
+                    {% end %}
+                </ol>
                 {% end %}
-            </ol>
-            {% end %}
-        </nav>
+            </nav>
 
-        {# Right: Actions #}
-        <div class="action-bar-actions">
-            {# LLM Share Button #}
-            <div class="action-bar-share">
-                <button class="action-bar-share-trigger" popovertarget="action-bar-share-menu"
-                    aria-label="{{ t('share.ai_assistants', default='Share with AI assistants') }}"
-                    title="{{ t('share.ai_assistants', default='Share with AI assistants') }}">
-                    <span>ᗢ</span>
-                    {{ icon('caret-down', size=14, css_class='action-bar-share-chevron') }}
-                </button>
+            {# Right: Actions #}
+            <div class="action-bar-actions">
+                {# LLM Share Button #}
+                <div class="action-bar-share">
+                    <button class="action-bar-share-trigger" popovertarget="action-bar-share-menu"
+                        aria-label="{{ t('share.ai_assistants', default='Share with AI assistants') }}"
+                        title="{{ t('share.ai_assistants', default='Share with AI assistants') }}">
+                        <span>ᗢ</span>
+                        {{ icon('caret-down', size=14, css_class='action-bar-share-chevron') }}
+                    </button>
 
-                <div id="action-bar-share-menu" popover class="action-bar-share-dropdown--popover">
-                    <div class="action-bar-share-content">
-                        {# Quick Actions #}
-                        <button class="action-bar-share-item" data-action="copy-url" data-url="{{ page_url }}"
-                            type="button">
-                            {{ icon('link', size=16) }}
-                            <span>{{ t('share.copy_url', default='Copy URL') }}</span>
-                        </button>
+                    <div id="action-bar-share-menu" popover class="action-bar-share-dropdown--popover">
+                        <div class="action-bar-share-content">
+                            {# Quick Actions #}
+                            <button class="action-bar-share-item" data-action="copy-url" data-url="{{ page_url }}"
+                                type="button">
+                                {{ icon('link', size=16) }}
+                                <span>{{ t('share.copy_url', default='Copy URL') }}</span>
+                            </button>
 
-                        <a href="{{ llm_txt_url }}" target="_blank" rel="noopener noreferrer"
-                            class="action-bar-share-item">
-                            {{ icon('external', size=16) }}
-                            <span>{{ t('share.open_llm_text', default='Open LLM text') }}</span>
-                        </a>
+                            <a href="{{ llm_txt_url }}" target="_blank" rel="noopener noreferrer"
+                                class="action-bar-share-item">
+                                {{ icon('external', size=16) }}
+                                <span>{{ t('share.open_llm_text', default='Open LLM text') }}</span>
+                            </a>
 
-                        <button class="action-bar-share-item" data-action="copy-llm-txt" data-url="{{ llm_txt_url }}"
-                            type="button">
-                            {{ icon('copy', size=16) }}
-                            <span>{{ t('share.copy_llm_text', default='Copy LLM text') }}</span>
-                        </button>
+                            <button class="action-bar-share-item" data-action="copy-llm-txt"
+                                data-url="{{ llm_txt_url }}" type="button">
+                                {{ icon('copy', size=16) }}
+                                <span>{{ t('share.copy_llm_text', default='Copy LLM text') }}</span>
+                            </button>
 
-                        <hr class="action-bar-share-separator">
+                            <hr class="action-bar-share-separator">
 
-                        {# AI Assistant Links #}
-                        <div class="action-bar-share-section-header">{{ t('share.with_ai', default='Share with AI') }}
+                            {# AI Assistant Links #}
+                            <div class="action-bar-share-section-header">{{ t('share.with_ai', default='Share with AI')
+                                }}
+                            </div>
+
+                            <a href="https://claude.ai/new?q={{ share_prompt | urlencode }}" target="_blank"
+                                rel="noopener noreferrer" class="action-bar-share-item action-bar-share-ai"
+                                data-ai="claude">
+                                {{ icon('ai-claude', size=16) }}
+                                <span>{{ t('share.ask_claude', default='Ask Claude') }}</span>
+                            </a>
+
+                            <a href="https://chatgpt.com/?q={{ share_prompt | urlencode }}" target="_blank"
+                                rel="noopener noreferrer" class="action-bar-share-item action-bar-share-ai"
+                                data-ai="chatgpt">
+                                {{ icon('ai-chatgpt', size=16) }}
+                                <span>{{ t('share.ask_chatgpt', default='Ask ChatGPT') }}</span>
+                            </a>
+
+                            <a href="https://gemini.google.com/app?q={{ share_prompt | urlencode }}" target="_blank"
+                                rel="noopener noreferrer" class="action-bar-share-item action-bar-share-ai"
+                                data-ai="gemini">
+                                {{ icon('ai-gemini', size=16) }}
+                                <span>{{ t('share.ask_gemini', default='Ask Gemini') }}</span>
+                            </a>
+
+                            <a href="https://copilot.microsoft.com/?q={{ share_prompt | urlencode }}" target="_blank"
+                                rel="noopener noreferrer" class="action-bar-share-item action-bar-share-ai"
+                                data-ai="copilot">
+                                {{ icon('ai-copilot', size=16) }}
+                                <span>{{ t('share.ask_copilot', default='Ask Copilot') }}</span>
+                            </a>
                         </div>
-
-                        <a href="https://claude.ai/new?q={{ share_prompt | urlencode }}" target="_blank"
-                            rel="noopener noreferrer" class="action-bar-share-item action-bar-share-ai"
-                            data-ai="claude">
-                            {{ icon('ai-claude', size=16) }}
-                            <span>{{ t('share.ask_claude', default='Ask Claude') }}</span>
-                        </a>
-
-                        <a href="https://chatgpt.com/?q={{ share_prompt | urlencode }}" target="_blank"
-                            rel="noopener noreferrer" class="action-bar-share-item action-bar-share-ai"
-                            data-ai="chatgpt">
-                            {{ icon('ai-chatgpt', size=16) }}
-                            <span>{{ t('share.ask_chatgpt', default='Ask ChatGPT') }}</span>
-                        </a>
-
-                        <a href="https://gemini.google.com/app?q={{ share_prompt | urlencode }}" target="_blank"
-                            rel="noopener noreferrer" class="action-bar-share-item action-bar-share-ai"
-                            data-ai="gemini">
-                            {{ icon('ai-gemini', size=16) }}
-                            <span>{{ t('share.ask_gemini', default='Ask Gemini') }}</span>
-                        </a>
-
-                        <a href="https://copilot.microsoft.com/?q={{ share_prompt | urlencode }}" target="_blank"
-                            rel="noopener noreferrer" class="action-bar-share-item action-bar-share-ai"
-                            data-ai="copilot">
-                            {{ icon('ai-copilot', size=16) }}
-                            <span>{{ t('share.ask_copilot', default='Ask Copilot') }}</span>
-                        </a>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    {# Expandable Metadata Panel #}
-    {% if has_metadata %}
-    <div id="action-bar-metadata-popover" popover class="action-bar-metadata--popover">
-        <div class="action-bar-metadata-content">
-            {% let author = params?.author ?? '' %}
-            {% if author and 'content.author' in theme_features %}
-            <span class="action-bar-meta-item">
-                {{ icon("user", size=16) }}
-                <span>{{ author }}</span>
-            </span>
-            {% end %}
+        {# Expandable Metadata Panel #}
+        {% if has_metadata %}
+        <div id="action-bar-metadata-popover" popover class="action-bar-metadata--popover">
+            <div class="action-bar-metadata-content">
+                {% let author = params?.author ?? '' %}
+                {% if author and 'content.author' in theme_features %}
+                <span class="action-bar-meta-item">
+                    {{ icon("user", size=16) }}
+                    <span>{{ author }}</span>
+                </span>
+                {% end %}
 
-            {% let page_content = page?.content ?? '' %}
-            {% if page_content %}
-            {% if 'content.reading_time' in theme_features %}
-            <span class="action-bar-meta-item">
-                {{ icon("clock", size=16) }}
-                <span>{{ t('meta.reading_time', {'time': page_content | reading_time}, default='{time} min read')
-                    }}</span>
-            </span>
-            {% end %}
+                {% let page_content = page?.content ?? '' %}
+                {% if page_content %}
+                {% if 'content.reading_time' in theme_features %}
+                <span class="action-bar-meta-item">
+                    {{ icon("clock", size=16) }}
+                    <span>{{ t('meta.reading_time', {'time': page_content | reading_time}, default='{time} min read')
+                        }}</span>
+                </span>
+                {% end %}
 
-            <span class="action-bar-meta-item">
-                {{ icon("file-text", size=16) }}
-                <span>{{ t('meta.word_count', {'count': page_content | wordcount}, default='{count} words') }}</span>
-            </span>
-            {% end %}
+                <span class="action-bar-meta-item">
+                    {{ icon("file-text", size=16) }}
+                    <span>{{ t('meta.word_count', {'count': page_content | wordcount}, default='{count} words')
+                        }}</span>
+                </span>
+                {% end %}
 
-            {% let lastmod = params?.lastmod ?? page?.date %}
-            {% if lastmod %}
-            <span class="action-bar-meta-item">
-                {{ icon("arrow-clockwise", size=16) }}
-                <span>{{ t('meta.updated', {'time': lastmod | time_ago}, default='Updated {time}') }}</span>
-            </span>
-            {% end %}
+                {% let lastmod = params?.lastmod ?? page?.date %}
+                {% if lastmod %}
+                <span class="action-bar-meta-item">
+                    {{ icon("arrow-clockwise", size=16) }}
+                    <span>{{ t('meta.updated', {'time': lastmod | time_ago}, default='Updated {time}') }}</span>
+                </span>
+                {% end %}
+            </div>
         </div>
+        {% end %}
     </div>
     {% end %}
-</div>
-{% end %}

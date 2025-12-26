@@ -46,3 +46,30 @@ Usage with {% call %}:
 </section>
 {% end %}
 {% end %}
+
+{# =============================================================================
+DATE FORMATTING HELPERS
+
+Consistent date formatting across templates.
+============================================================================= #}
+{% def format_date(date, format='short') %}
+  {% if format == 'short' %}
+    {{ date | dateformat('%Y-%m-%d') }}
+  {% elif format == 'long' %}
+    {{ date | dateformat('%B %d, %Y') }}
+  {% elif format == 'iso' %}
+    {{ date | date_iso }}
+  {% elif format == 'ago' %}
+    {{ date | time_ago }}
+  {% else %}
+    {{ date | dateformat(format) }}
+  {% end %}
+{% end %}
+
+{% def date_time_tag(date, format='long', css_class='') %}
+  {% if date %}
+  <time datetime="{{ date | date_iso }}" class="{{ css_class }}">
+    {{ format_date(date, format) }}
+  </time>
+  {% end %}
+{% end %}

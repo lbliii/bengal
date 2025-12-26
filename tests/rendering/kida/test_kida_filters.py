@@ -467,11 +467,15 @@ class TestCustomFilters:
         assert tmpl.render() == "15"
 
     def test_custom_filter_override(self, env):
-        """Override built-in filter."""
+        """Override built-in filter works when optimization is disabled."""
+        # When filter inlining is enabled (default), built-in filters are inlined
+        # and bypass the filter registry. To use custom filter overrides,
+        # disable optimization.
+        env_no_opt = Environment(optimized=False)
 
         def custom_upper(value):
             return value.upper() + "!"
 
-        env.add_filter("upper", custom_upper)
-        tmpl = env.from_string('{{ "hello"|upper }}')
+        env_no_opt.add_filter("upper", custom_upper)
+        tmpl = env_no_opt.from_string('{{ "hello"|upper }}')
         assert tmpl.render() == "HELLO!"

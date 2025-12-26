@@ -31,8 +31,8 @@ Set `type: blog` in section _index.md
 {% from 'partials/components/tags.html' import tag_list %}
 
 {# =============================================================================
-   POST CARD COMPONENTS
-   ============================================================================= #}
+POST CARD COMPONENTS
+============================================================================= #}
 
 {# Featured post card (larger, more prominent) #}
 {% def featured_card(post) %}
@@ -50,50 +50,50 @@ Set `type: blog` in section _index.md
 {% let read_time = (word_count / 200) | round if word_count > 0 else 0 %}
 
 <article class="blog-featured-card gradient-border-strong fluid-bg">
-  {% if post_image %}
-  <div class="blog-card-image">
-    <a href="{{ post_href }}">
-      <img src="{{ post_image }}" alt="{{ post_title }}" loading="lazy">
-    </a>
-  </div>
-  {% end %}
-
-  <div class="blog-card-content">
-    <h3 class="blog-card-title">
-      <a href="{{ post_href }}">{{ post_title }}</a>
-    </h3>
-
-    {% if post_desc %}
-    <p class="blog-card-excerpt">{{ post_desc | truncate(180) }}</p>
+    {% if post_image %}
+    <div class="blog-card-image">
+        <a href="{{ post_href }}">
+            <img src="{{ post_image }}" alt="{{ post_title }}" loading="lazy">
+        </a>
+    </div>
     {% end %}
 
-    <div class="blog-card-meta">
-      {% if post_author %}
-      <span class="blog-author">
-        {% if post_author_avatar %}
-        <img src="{{ post_author_avatar }}" alt="{{ post_author }}" class="author-avatar">
+    <div class="blog-card-content">
+        <h3 class="blog-card-title">
+            <a href="{{ post_href }}">{{ post_title }}</a>
+        </h3>
+
+        {% if post_desc %}
+        <p class="blog-card-excerpt">{{ post_desc | truncate(180) }}</p>
         {% end %}
-        {{ post_author }}
-      </span>
-      {% end %}
 
-      {% if post_date %}
-      <time datetime="{{ post_date | date_iso }}">
-        {{ post_date | dateformat('%B %d, %Y') }}
-      </time>
-      {% end %}
+        <div class="blog-card-meta">
+            {% if post_author %}
+            <span class="blog-author">
+                {% if post_author_avatar %}
+                <img src="{{ post_author_avatar }}" alt="{{ post_author }}" class="author-avatar">
+                {% end %}
+                {{ post_author }}
+            </span>
+            {% end %}
 
-      {% if read_time > 0 %}
-      <span class="reading-time">{{ read_time }} min read</span>
-      {% end %}
+            {% if post_date %}
+            <time datetime="{{ post_date | date_iso }}">
+                {{ post_date | dateformat('%B %d, %Y') }}
+            </time>
+            {% end %}
+
+            {% if read_time > 0 %}
+            <span class="reading-time">{{ read_time }} min read</span>
+            {% end %}
+        </div>
+
+        {% if post_tags | length > 0 %}
+        <div class="blog-card-tags">
+            {{ tag_list(post_tags[:3]) }}
+        </div>
+        {% end %}
     </div>
-
-    {% if post_tags | length > 0 %}
-    <div class="blog-card-tags">
-      {{ tag_list(post_tags[:3]) }}
-    </div>
-    {% end %}
-  </div>
 </article>
 {% end %}
 
@@ -113,50 +113,50 @@ Set `type: blog` in section _index.md
 {% let read_time = (word_count / 200) | round if word_count > 0 else 0 %}
 
 <article class="blog-post-card gradient-border fluid-combined">
-  {% if post_image %}
-  <div class="blog-card-image">
-    <a href="{{ post_href }}">
-      <img src="{{ post_image }}" alt="{{ post_title }}" loading="lazy">
-    </a>
-  </div>
-  {% end %}
-
-  <div class="blog-card-content">
-    <h3 class="blog-card-title">
-      <a href="{{ post_href }}">{{ post_title }}</a>
-    </h3>
-
-    {% if post_desc %}
-    <p class="blog-card-excerpt">{{ post_desc | truncate(200) }}</p>
+    {% if post_image %}
+    <div class="blog-card-image">
+        <a href="{{ post_href }}">
+            <img src="{{ post_image }}" alt="{{ post_title }}" loading="lazy">
+        </a>
+    </div>
     {% end %}
 
-    <div class="blog-card-meta">
-      {% if post_author %}
-      <span class="blog-author">
-        {% if post_author_avatar %}
-        <img src="{{ post_author_avatar }}" alt="{{ post_author }}" class="author-avatar">
+    <div class="blog-card-content">
+        <h3 class="blog-card-title">
+            <a href="{{ post_href }}">{{ post_title }}</a>
+        </h3>
+
+        {% if post_desc %}
+        <p class="blog-card-excerpt">{{ post_desc | truncate(200) }}</p>
         {% end %}
-        {{ post_author }}
-      </span>
-      {% end %}
 
-      {% if post_date %}
-      <time datetime="{{ post_date | date_iso }}">{{ post_date | time_ago }}</time>
-      {% end %}
+        <div class="blog-card-meta">
+            {% if post_author %}
+            <span class="blog-author">
+                {% if post_author_avatar %}
+                <img src="{{ post_author_avatar }}" alt="{{ post_author }}" class="author-avatar">
+                {% end %}
+                {{ post_author }}
+            </span>
+            {% end %}
 
-      {% if read_time > 0 %}
-      <span class="reading-time">{{ read_time }} min read</span>
-      {% end %}
+            {% if post_date %}
+            <time datetime="{{ post_date | date_iso }}">{{ post_date | time_ago }}</time>
+            {% end %}
+
+            {% if read_time > 0 %}
+            <span class="reading-time">{{ read_time }} min read</span>
+            {% end %}
+        </div>
+
+        {% if post_tags | length > 0 %}
+        <div class="blog-card-tags">
+            {{ tag_list(post_tags[:4]) }}
+        </div>
+        {% end %}
+
+        <a href="{{ post_href }}" class="blog-read-more">Read more →</a>
     </div>
-
-    {% if post_tags | length > 0 %}
-    <div class="blog-card-tags">
-      {{ tag_list(post_tags[:4]) }}
-    </div>
-    {% end %}
-
-    <a href="{{ post_href }}" class="blog-read-more">Read more →</a>
-  </div>
 </article>
 {% end %}
 
@@ -173,23 +173,23 @@ Set `type: blog` in section _index.md
 {% let page_count = content_pages | length %}
 
 <article class="blog-post-card">
-  <div class="blog-card-content">
-    <h3 class="blog-card-title">
-      <a href="{{ sub_href }}">{{ sub_title }}</a>
-    </h3>
-    {% if sub_desc %}
-    <p class="blog-card-excerpt">{{ sub_desc }}</p>
-    {% end %}
-    {% if page_count > 0 %}
-    <p class="blog-card-meta">{{ page_count }} post{{ 's' if page_count != 1 else '' }}</p>
-    {% end %}
-  </div>
+    <div class="blog-card-content">
+        <h3 class="blog-card-title">
+            <a href="{{ sub_href }}">{{ sub_title }}</a>
+        </h3>
+        {% if sub_desc %}
+        <p class="blog-card-excerpt">{{ sub_desc }}</p>
+        {% end %}
+        {% if page_count > 0 %}
+        <p class="blog-card-meta">{{ page_count }} post{{ 's' if page_count != 1 else '' }}</p>
+        {% end %}
+    </div>
 </article>
 {% end %}
 
 {# =============================================================================
-   MAIN TEMPLATE
-   ============================================================================= #}
+MAIN TEMPLATE
+============================================================================= #}
 
 {# Defensive defaults for pagination #}
 {% let total_pages = total_pages ?? 1 %}
@@ -199,81 +199,91 @@ Set `type: blog` in section _index.md
 
 {% block content %}
 <div class="container">
-  {# Action Bar: Breadcrumbs + Share #}
-  {% include 'partials/action-bar.html' %}
+    {# Action Bar: Breadcrumbs + Share #}
+    {% include 'partials/action-bar.html' %}
 
-  <div class="blog-container">
-    {# Header #}
-    {% let section_title = section?.title ?? title ?? 'Blog' %}
-    {% let section_desc = section?.metadata?.description ?? description ?? '' %}
+    <div class="blog-container">
+        {# Header #}
+        {% let section_title = section?.title ?? title ?? 'Blog' %}
+        {% let section_desc = section?.metadata?.description ?? description ?? '' %}
 
-    <header class="page-header page-header--centered">
-      <h1>✍️ {{ section_title }}</h1>
+        <header class="page-header page-header--centered">
+            <h1>✍️ {{ section_title }}</h1>
 
-      {% if section_desc %}
-      <p class="blog-description">{{ section_desc }}</p>
-      {% end %}
+            {% if section_desc %}
+            <p class="blog-description">{{ section_desc }}</p>
+            {% end %}
 
-      {% if total_pages > 0 %}
-      <p class="blog-count">
-        Showing {{ posts | length }} of {{ total_posts }} posts
-        {% if current_page > 1 %}(Page {{ current_page }} of {{ total_pages }}){% end %}
-      </p>
-      {% end %}
-    </header>
+            {% if total_pages > 0 %}
+            <p class="blog-count">
+                Showing {{ posts | length }} of {{ total_posts }} posts
+                {% if current_page > 1 %}(Page {{ current_page }} of {{ total_pages }}){% end %}
+            </p>
+            {% end %}
+        </header>
 
-    {% if posts %}
-    {# Featured Posts Section (first page only) #}
-    {% let featured_posts = posts |> where('featured', true) |> take(3) %}
-    {% if featured_posts | length > 0 and current_page == 1 %}
-    <section class="blog-featured">
-      <h2 class="blog-section-title">Featured Posts</h2>
-      <div class="blog-featured-grid stagger-fade-in">
-        {% for post in featured_posts %}
-        {{ featured_card(post) }}
+        {% if posts %}
+        {# Featured Posts Section (first page only) #}
+        {% if current_page == 1 %}
+        {% let featured_posts = posts |> where('featured', true) |> take(3) %}
+        {% else %}
+        {% let featured_posts = [] %}
         {% end %}
-      </div>
-    </section>
-    {% end %}
-
-    {# Regular Posts Section #}
-    {% let regular_posts = posts |> where_not('featured', true) if current_page == 1 else posts %}
-    {% if regular_posts | length > 0 %}
-    <section class="blog-posts">
-      {% if featured_posts | length > 0 and current_page == 1 %}
-      <h2 class="blog-section-title">Recent Posts</h2>
-      {% end %}
-
-      <div class="blog-post-list">
-        {% for post in regular_posts %}
-        {{ post_card(post) }}
+        {% if featured_posts | length > 0 %}
+        <section class="blog-featured">
+            <h2 class="blog-section-title">Featured Posts</h2>
+            <div class="blog-featured-grid stagger-fade-in">
+                {% for post in featured_posts %}
+                {{ featured_card(post) }}
+                {% export last_featured_post = post %}
+                {% end %}
+            </div>
+        </section>
         {% end %}
-      </div>
-    </section>
-    {% end %}
 
-    {# Pagination #}
-    {% if total_pages > 1 %}
-    {{ pagination(current_page, total_pages, base_url) }}
-    {% end %}
-
-    {% elif subsections | length > 0 %}
-    {# Show blog categories/archives if no posts #}
-    <section class="blog-categories">
-      <h2 class="blog-section-title">Categories</h2>
-      <div class="blog-post-list">
-        {% for subsection in subsections %}
-        {{ category_card(subsection) }}
+        {# Regular Posts Section #}
+        {% if current_page == 1 %}
+        {% let regular_posts = posts |> where_not('featured', true) %}
+        {% else %}
+        {% let regular_posts = posts %}
         {% end %}
-      </div>
-    </section>
+        {% if regular_posts | length > 0 %}
+        <section class="blog-posts">
+            {% if featured_posts | length > 0 and current_page == 1 %}
+            <h2 class="blog-section-title">Recent Posts</h2>
+            {% end %}
 
-    {% else %}
-    {# Empty State #}
-    <div class="blog-empty">
-      <p>No blog posts yet. Check back soon!</p>
+            <div class="blog-post-list">
+                {% for post in regular_posts %}
+                {{ post_card(post) }}
+                {% export last_regular_post = post %}
+                {% end %}
+            </div>
+        </section>
+        {% end %}
+
+        {# Pagination #}
+        {% if total_pages > 1 %}
+        {{ pagination(current_page, total_pages, base_url) }}
+        {% end %}
+
+        {% elif subsections | length > 0 %}
+        {# Show blog categories/archives if no posts #}
+        <section class="blog-categories">
+            <h2 class="blog-section-title">Categories</h2>
+            <div class="blog-post-list">
+                {% for subsection in subsections %}
+                {{ category_card(subsection) }}
+                {% end %}
+            </div>
+        </section>
+
+        {% else %}
+        {# Empty State #}
+        <div class="blog-empty">
+            <p>No blog posts yet. Check back soon!</p>
+        </div>
+        {% end %}
     </div>
-    {% end %}
-  </div>
 </div>
 {% end %}

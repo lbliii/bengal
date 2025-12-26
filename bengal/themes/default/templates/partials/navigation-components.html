@@ -50,7 +50,8 @@ For display in HTML href attributes, apply the | absolute_url filter.
       <a href="{{ item.href | absolute_url }}">{{ item.title }}</a>
       {% end %}
       </li>
-      {% end %}
+    {% export last_breadcrumb_item = item %}
+    {% end %}
   </ol>
 </nav>
 {% end %}
@@ -254,10 +255,8 @@ Uses native <details>/<summary> for collapsible groups.
         {% if toc_items %}
         <div class="toc-scroll-container">
           <ul class="toc-items" role="tree">
-            {# Cache TOC grouping - expensive tree traversal, changes only with content #}
-            {% cache 'toc-grouped-' ~ (page?._path ?? '') ~ '-' ~ (page?.date | date_iso ?? '') %}
+            {# TOC grouping - assign outside cache for variable access #}
             {% let grouped_toc = get_toc_grouped(toc_items) ?? [] %}
-            {% end %}
             {% for group in grouped_toc %}
             {% let is_group = group?.is_group ?? false %}
             {% let header = group?.header ?? {} %}

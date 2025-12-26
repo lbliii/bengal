@@ -30,9 +30,7 @@ API TILE COMPONENT
 {% let sub_desc = (subsection?.params?.description ?? '') | first_sentence %}
 {% let sub_subsections = subsection?.subsections ?? [] %}
 {% let sub_pages = subsection?.pages ?? [] %}
-{% let subsections_len = sub_subsections | length | int %}
-{% let pages_len = sub_pages | length | int %}
-{% let child_count = subsections_len + pages_len %}
+{% let child_count = (sub_subsections | length) + (sub_pages | length) %}
 {% let preview_limit = 4 %}
 
 {# Determine preview items #}
@@ -107,6 +105,7 @@ sorted_pages[:preview_limit] %}
           <span class="api-hub-tile__preview-bullet"></span>
           <span class="api-hub-tile__preview-title">{{ item_title }}</span>
         </li>
+        {% export last_preview_item = item %}
         {% end %}
         {% let remaining = child_count - preview_limit %}
         {% if remaining > 0 %}
@@ -156,10 +155,10 @@ MAIN TEMPLATE
 {% let rest_count = 0 %}
 {% let cli_count = 0 %}
 {% for sub in subsections %}
-{% let sub_type = sub?.params?.type ?? '' %}
-{% if 'python' in sub_type %}{% let python_count = python_count + 1 %}{% end %}
-{% if 'openapi' in sub_type %}{% let rest_count = rest_count + 1 %}{% end %}
-{% if 'cli' in sub_type %}{% let cli_count = cli_count + 1 %}{% end %}
+  {% let sub_type = sub?.params?.type ?? '' %}
+  {% if 'python' in sub_type %}{% let python_count = python_count + 1 %}{% end %}
+  {% if 'openapi' in sub_type %}{% let rest_count = rest_count + 1 %}{% end %}
+  {% if 'cli' in sub_type %}{% let cli_count = cli_count + 1 %}{% end %}
 {% end %}
 
 <div class="api-hub-home">

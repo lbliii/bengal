@@ -30,8 +30,8 @@ template: archive-year.html
 {% from 'partials/components/tags.html' import tag_list %}
 
 {# =============================================================================
-   POST CARD COMPONENT
-   ============================================================================= #}
+POST CARD COMPONENT
+============================================================================= #}
 {% def archive_post_card(post) %}
 {% let post_meta = post?.metadata ?? {} %}
 {% let post_title = post?.title ?? 'Untitled' %}
@@ -45,41 +45,41 @@ template: archive-year.html
 {% let read_time = (word_count / 200) | round if word_count > 0 else 0 %}
 
 <article class="archive-post-card">
-  <time class="post-date" datetime="{{ post_date | date_iso }}">
-    {{ post_date | dateformat('%d') }}
-  </time>
+    <time class="post-date" datetime="{{ post_date | date_iso }}">
+        {{ post_date | dateformat('%d') }}
+    </time>
 
-  <div class="post-content">
-    <h3 class="post-title">
-      <a href="{{ post_href }}">{{ post_title }}</a>
-    </h3>
+    <div class="post-content">
+        <h3 class="post-title">
+            <a href="{{ post_href }}">{{ post_title }}</a>
+        </h3>
 
-    {% if post_desc %}
-    <p class="post-excerpt">{{ post_desc }}</p>
-    {% end %}
+        {% if post_desc %}
+        <p class="post-excerpt">{{ post_desc }}</p>
+        {% end %}
 
-    <div class="post-meta">
-      {% if post_author %}
-      <span class="post-author">{{ post_author }}</span>
-      {% end %}
+        <div class="post-meta">
+            {% if post_author %}
+            <span class="post-author">{{ post_author }}</span>
+            {% end %}
 
-      {% if read_time > 0 %}
-      <span class="reading-time">{{ read_time }} min read</span>
-      {% end %}
+            {% if read_time > 0 %}
+            <span class="reading-time">{{ read_time }} min read</span>
+            {% end %}
 
-      {% if post_tags | length > 0 %}
-      <span class="post-tags">
-        {{ tag_list(post_tags[:3]) }}
-      </span>
-      {% end %}
+            {% if post_tags | length > 0 %}
+            <span class="post-tags">
+                {{ tag_list(post_tags[:3]) }}
+            </span>
+            {% end %}
+        </div>
     </div>
-  </div>
 </article>
 {% end %}
 
 {# =============================================================================
-   MAIN TEMPLATE
-   ============================================================================= #}
+MAIN TEMPLATE
+============================================================================= #}
 
 {% block content %}
 {# Template-scoped variables #}
@@ -100,107 +100,109 @@ template: archive-year.html
 {{ breadcrumbs(page) }}
 
 <div class="archive-year">
-  <header class="page-header page-header--centered">
-    <h1>📅 {{ year }} Archive</h1>
+    <header class="page-header page-header--centered">
+        <h1>📅 {{ year }} Archive</h1>
+
+        {% if year_posts | length > 0 %}
+        <p class="archive-count">{{ year_posts | length }} post{{ 's' if year_posts | length != 1 else '' }} in {{ year
+            }}</p>
+
+        {# Optional statistics #}
+        {% if show_stats %}
+        {% let all_content = year_posts |> map(attribute='content') |> join('') %}
+        {% let total_words = all_content | wordcount if all_content else 0 %}
+        {% let all_tags = year_posts |> map(attribute='tags') |> flatten |> unique |> list %}
+        {% let authors = year_posts |> map(attribute='metadata.author') |> select('defined') |> unique |> list %}
+
+        <div class="archive-stats">
+            <div class="stat-grid">
+                <div class="stat">
+                    <span class="stat-value">{{ year_posts | length }}</span>
+                    <span class="stat-label">Posts</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value">{{ total_words | format_number }}</span>
+                    <span class="stat-label">Words</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value">{{ all_tags | length }}</span>
+                    <span class="stat-label">Topics</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value">{{ authors | length }}</span>
+                    <span class="stat-label">Author{{ 's' if authors | length != 1 else '' }}</span>
+                </div>
+            </div>
+        </div>
+        {% end %}
+        {% end %}
+    </header>
 
     {% if year_posts | length > 0 %}
-    <p class="archive-count">{{ year_posts | length }} post{{ 's' if year_posts | length != 1 else '' }} in {{ year }}</p>
+    {# Group posts by month #}
+    {% for month_num in 1..12 %}
+    {% let month_key = year ~ '-' ~ '%02d' | format(month_num) %}
+    {% let month_posts_refs = date_range_index[month_key] ?? [] %}
+    {% let month_posts = month_posts_refs | resolve_pages %}
 
-    {# Optional statistics #}
-    {% if show_stats %}
-    {% let all_content = year_posts |> map(attribute='content') |> join('') %}
-    {% let total_words = all_content | wordcount if all_content else 0 %}
-    {% let all_tags = year_posts |> map(attribute='tags') |> flatten |> unique |> list %}
-    {% let authors = year_posts |> map(attribute='metadata.author') |> select('defined') |> unique |> list %}
+    {# Filter by section if specified #}
+    {% if section_filter %}
+    {% let month_posts = month_posts |> selectattr('_section.name', 'eq', section_filter) |> list %}
+    {% end %}
 
-    <div class="archive-stats">
-      <div class="stat-grid">
-        <div class="stat">
-          <span class="stat-value">{{ year_posts | length }}</span>
-          <span class="stat-label">Posts</span>
+    {% if month_posts | length > 0 %}
+    <section class="month-group">
+        <h2 class="month-title">
+            {{ (year ~ '-' ~ '%02d' | format(month_num) ~ '-01') | dateformat('%B') }}
+            <span class="month-count">({{ month_posts | length }})</span>
+        </h2>
+
+        <div class="month-posts">
+            {% for post in month_posts | sort(attribute='date', reverse=true) %}
+            {{ archive_post_card(post) }}
+            {% end %}
         </div>
-        <div class="stat">
-          <span class="stat-value">{{ total_words | format_number }}</span>
-          <span class="stat-label">Words</span>
-        </div>
-        <div class="stat">
-          <span class="stat-value">{{ all_tags | length }}</span>
-          <span class="stat-label">Topics</span>
-        </div>
-        <div class="stat">
-          <span class="stat-value">{{ authors | length }}</span>
-          <span class="stat-label">Author{{ 's' if authors | length != 1 else '' }}</span>
-        </div>
-      </div>
-    </div>
+    </section>
     {% end %}
     {% end %}
-  </header>
 
-  {% if year_posts | length > 0 %}
-  {# Group posts by month #}
-  {% for month_num in 1..12 %}
-  {% let month_key = year ~ '-' ~ '%02d' | format(month_num) %}
-  {% let month_posts_refs = date_range_index[month_key] ?? [] %}
-  {% let month_posts = month_posts_refs | resolve_pages %}
+    {# Navigation to other years #}
+    <nav class="year-navigation" aria-label="Other years">
+        <h3>Browse Other Years</h3>
+        <ul class="year-list">
+            {# Year list calculation #}
+            {% let all_year_keys = date_range_index | keys %}
+            {% let all_years = all_year_keys |> select('match', '^\\d{4}$') |> sort(reverse=true) |> list %}
 
-  {# Filter by section if specified #}
-  {% if section_filter %}
-  {% let month_posts = month_posts |> selectattr('_section.name', 'eq', section_filter) |> list %}
-  {% end %}
+            {% for other_year in all_years %}
+            {% let other_year_refs = date_range_index[other_year] ?? [] %}
+            {% let other_year_posts = other_year_refs | resolve_pages %}
 
-  {% if month_posts | length > 0 %}
-  <section class="month-group">
-    <h2 class="month-title">
-      {{ (year ~ '-' ~ '%02d' | format(month_num) ~ '-01') | dateformat('%B') }}
-      <span class="month-count">({{ month_posts | length }})</span>
-    </h2>
+            {# Filter by section if specified #}
+            {% if section_filter %}
+            {% let other_year_posts = other_year_posts |> selectattr('_section.name', 'eq', section_filter) |> list %}
+            {% end %}
 
-    <div class="month-posts">
-      {% for post in month_posts | sort(attribute='date', reverse=true) %}
-      {{ archive_post_card(post) }}
-      {% end %}
+            {% if other_year_posts | length > 0 %}
+            <li{{ ' class="current-year"' | safe if other_year==year else '' }}>
+                <a href="{{ ('/archive/' ~ other_year ~ '/') | absolute_url }}">
+                    {{ other_year }}
+                    <span class="year-count">({{ other_year_posts | length }})</span>
+                </a>
+                </li>
+                {% end %}
+                {% end %}
+        </ul>
+    </nav>
+
+    {% else %}
+    {# Empty state #}
+    <div class="archive-empty">
+        <div class="empty-state">
+            <p class="empty-message">No posts found for {{ year }}.</p>
+            <a href="{{ '/archive/' | absolute_url }}" class="button">Browse All Archives</a>
+        </div>
     </div>
-  </section>
-  {% end %}
-  {% end %}
-
-  {# Navigation to other years #}
-  <nav class="year-navigation" aria-label="Other years">
-    <h3>Browse Other Years</h3>
-    <ul class="year-list">
-      {% let all_year_keys = date_range_index | keys %}
-      {% let all_years = all_year_keys |> select('match', '^\\d{4}$') |> sort(reverse=true) |> list %}
-
-      {% for other_year in all_years %}
-      {% let other_year_refs = date_range_index[other_year] ?? [] %}
-      {% let other_year_posts = other_year_refs | resolve_pages %}
-
-      {# Filter by section if specified #}
-      {% if section_filter %}
-      {% let other_year_posts = other_year_posts |> selectattr('_section.name', 'eq', section_filter) |> list %}
-      {% end %}
-
-      {% if other_year_posts | length > 0 %}
-      <li{{ ' class="current-year"' | safe if other_year == year else '' }}>
-        <a href="{{ ('/archive/' ~ other_year ~ '/') | absolute_url }}">
-          {{ other_year }}
-          <span class="year-count">({{ other_year_posts | length }})</span>
-        </a>
-      </li>
-      {% end %}
-      {% end %}
-    </ul>
-  </nav>
-
-  {% else %}
-  {# Empty state #}
-  <div class="archive-empty">
-    <div class="empty-state">
-      <p class="empty-message">No posts found for {{ year }}.</p>
-      <a href="{{ '/archive/' | absolute_url }}" class="button">Browse All Archives</a>
-    </div>
-  </div>
-  {% end %}
+    {% end %}
 </div>
 {% end %}

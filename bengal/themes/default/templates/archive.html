@@ -68,6 +68,7 @@ USAGE:
             <div class="archive-list archive-list-featured">
                 {% for post in featured_posts %}
                 {{ article_card(post, show_excerpt=true, show_image=true) }}
+                {% export last_featured_post = post %}
                 {% end %}
             </div>
         </section>
@@ -81,6 +82,7 @@ USAGE:
             <div class="archive-list">
                 {% for post in regular_posts %}
                 {{ article_card(post, show_excerpt=true) }}
+                {% export last_regular_post = post %}
                 {% end %}
             </div>
         </section>

@@ -28,8 +28,8 @@ Context variables:
 {% from 'partials/components/tags.html' import tag_list %}
 
 {# =============================================================================
-   POST CARD COMPONENT
-   ============================================================================= #}
+POST CARD COMPONENT
+============================================================================= #}
 {% def post_card(post) %}
 {% let post_title = post?.title ?? 'Untitled' %}
 {% let post_href = post?.href ?? '#' %}
@@ -77,8 +77,8 @@ Context variables:
 {% end %}
 
 {# =============================================================================
-   MAIN TEMPLATE
-   ============================================================================= #}
+MAIN TEMPLATE
+============================================================================= #}
 
 {% block content %}
 {# Template-scoped variables #}
@@ -306,16 +306,16 @@ Context variables:
 </div>
 
 <script>
-// Simple view toggle
-document.querySelectorAll('.view-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const view = btn.dataset.view;
-    document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    document.querySelectorAll('[data-view-content]').forEach(v => {
-      v.style.display = v.dataset.viewContent === view ? 'block' : 'none';
+  // Simple view toggle
+  document.querySelectorAll('.view-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const view = btn.dataset.view;
+      document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('[data-view-content]').forEach(v => {
+        v.style.display = v.dataset.viewContent === view ? 'block' : 'none';
+      });
     });
   });
-});
 </script>
 {% end %}
