@@ -37,28 +37,28 @@ show_image: Boolean (default: False) - show featured image
 Example:
 {{ article_card(post, show_image=True, show_excerpt=True) }}
 #}
-{% macro article_card(article, show_excerpt=True, show_image=False) %}
-<article class="article-card gradient-border fluid-combined {% if article is featured %}featured-card{% endif %}">
+{% def article_card(article, show_excerpt=True, show_image=False) %}
+<article class="article-card gradient-border fluid-combined {% if article is featured %}featured-card{% end %}">
   {% if show_image and article.metadata.image %}
   {# Responsive image with srcset - dogfooding image_srcset() #}
   <img src="{{ image_url(article.metadata.image, width=800) }}"
     srcset="{{ article.metadata.image | image_srcset([400, 800, 1200]) }}"
     sizes="(max-width: 640px) 400px, (max-width: 1024px) 800px, 1200px" alt="{{ article.metadata.image | image_alt }}"
     class="article-card-image" loading="lazy">
-  {% endif %}
+  {% end %}
 
   <div class="article-card-content">
     {# Tag badges - dogfooding has_tag() #}
     <div class="article-card-badges">
       {% if article is featured %}
       <span class="badge badge-featured">⭐ Featured</span>
-      {% endif %}
+      {% end %}
       {% if article | has_tag('tutorial') %}
       <span class="badge badge-tutorial">📚 Tutorial</span>
-      {% endif %}
+      {% end %}
       {% if article | has_tag('new') %}
       <span class="badge badge-new">✨ New</span>
-      {% endif %}
+      {% end %}
     </div>
 
     <h2 class="article-card-title">
@@ -70,17 +70,17 @@ Example:
       <time datetime="{{ article.date | date_iso }}" title="{{ article.date | dateformat('%B %d, %Y') }}">
         {{ article.date | time_ago }}
       </time>
-      {% endif %}
+      {% end %}
 
       {% if article.metadata.author and 'content.author' in theme.features %}
       <span class="author">{{ article.metadata.author }}</span>
-      {% endif %}
+      {% end %}
 
       {% if article.content and 'content.reading_time' in theme.features %}
       <span class="reading-time">
         {{ article.content | reading_time }} min read
       </span>
-      {% endif %}
+      {% end %}
     </div>
 
     {% if show_excerpt and 'content.excerpts' in theme.features %}
@@ -89,18 +89,18 @@ Example:
       {{ article.metadata.description }}
       {% elif article.content %}
       {{ article.content | strip_html | excerpt(150) }}
-      {% endif %}
+      {% end %}
     </p>
-    {% endif %}
+    {% end %}
 
     {% if article.tags %}
     <div class="article-card-footer">
       {{ tag_list(article.tags, small=True) }}
     </div>
-    {% endif %}
+    {% end %}
   </div>
 </article>
-{% endmacro %}
+{% end %}
 
 {#
 Content Tiles Component (Enhanced)
@@ -131,7 +131,7 @@ Example:
 {{ content_tiles(title="In This Section", children=posts, related=True, related_title="Related Pages", group_by='type')
 }}
 #}
-{% macro content_tiles(
+{% def content_tiles(
 title=None,
 children=None,
 subsections=None,
@@ -146,41 +146,46 @@ group_by=None
 {% set all_items = [] %}
 
 {# Add subsections with metadata #}
+{# With None-resilient handling, missing attributes return "" so we can use `or` fallback #}
 {% if subsections %}
 {% for subsection in subsections %}
-{% set _ = all_items.append({
+{% set _weight = subsection.metadata.weight or 999999 %}
+{% set _title = subsection.title or 'Untitled' %}
+{% do all_items.append({
 'type': 'section',
 'group': 'children',
 'obj': subsection,
-'title': subsection.title,
+'title': _title,
 'href': subsection.href,
-'description': subsection.metadata.description | default(''),
-'weight': subsection.metadata.weight | default(999999),
+'description': subsection.metadata.description or '',
+'weight': _weight,
 'page_count': subsection.pages | length if subsection.pages else 0,
-'icon': subsection.metadata.icon | default('')
+'icon': subsection.metadata.icon or ''
 }) %}
-{% endfor %}
-{% endif %}
+{% end %}
+{% end %}
 
 {# Add child pages with metadata #}
 {% if children %}
 {% for post in children %}
 {# Skip the current page if it appears in child posts #}
 {% if not (page and (post._path == page._path)) %}
-{% set _ = all_items.append({
+{% set _weight = post.metadata.weight or 999999 %}
+{% set _title = post.title or 'Untitled' %}
+{% do all_items.append({
 'type': 'page',
 'group': 'children',
 'obj': post,
-'title': post.title,
+'title': _title,
 'href': post.href,
-'description': post.metadata.description | default(post.content | strip_html | excerpt(120) if post.content else ''),
-'weight': post.metadata.weight | default(999999),
-'date': post.date if post.date else none,
-'icon': post.metadata.icon | default('')
+'description': post.metadata.description or (post.content | strip_html | excerpt(120) if post.content else ''),
+'weight': _weight,
+'date': post.date or none,
+'icon': post.metadata.icon or ''
 }) %}
-{% endif %}
-{% endfor %}
-{% endif %}
+{% end %}
+{% end %}
+{% end %}
 
 {# Add related pages (deduped - won't repeat pages from children) #}
 {% set related_pages = [] %}
@@ -188,36 +193,37 @@ group_by=None
 {# Auto-get from page.related_posts #}
 {% if page and page.related_posts %}
 {% set related_pages = page.related_posts[:related_limit] %}
-{% endif %}
+{% end %}
 {% elif related %}
 {% set related_pages = related %}
-{% endif %}
+{% end %}
 
 {# Build a set of URLs already in children for O(1) lookup #}
 {% set children_urls = [] %}
 {% for item in all_items %}
-{% set _ = children_urls.append(item.href) %}
-{% endfor %}
+{% do children_urls.append(item.href) %}
+{% end %}
 
 {% for rel_page in related_pages %}
 {# Skip current page and any pages already in children #}
 {% set is_current = page and (rel_page._path == page._path) %}
 {% set is_duplicate = rel_page.href in children_urls %}
 {% if not is_current and not is_duplicate %}
-{% set _ = all_items.append({
+{% set _title = rel_page.title or 'Untitled' %}
+{% do all_items.append({
 'type': 'related',
 'group': 'related',
 'obj': rel_page,
-'title': rel_page.title,
+'title': _title,
 'href': rel_page.href,
 'description': rel_page.metadata.description | default(rel_page.content | strip_html | excerpt(100) if rel_page.content
-else ''),
+else '') if rel_page.metadata else (rel_page.content | strip_html | excerpt(100) if rel_page.content else ''),
 'weight': 999999,
 'date': rel_page.date if rel_page.date else none,
-'icon': rel_page.metadata.icon | default('')
+'icon': rel_page.metadata.icon | default('') if rel_page.metadata else ''
 }) %}
-{% endif %}
-{% endfor %}
+{% end %}
+{% end %}
 
 {% if all_items %}
 {# Sort items: by group (children first), then weight, then title #}
@@ -225,33 +231,33 @@ else ''),
 {% set sorted_items = all_items | sort(attribute='group,weight,title') %}
 {% else %}
 {% set sorted_items = all_items | sort(attribute='weight,title') %}
-{% endif %}
+{% end %}
 
 <section class="content-tiles content-tiles--{{ variant }}">
   {% if title %}
   <h2 class="content-tiles-title">{{ title }}</h2>
-  {% endif %}
+  {% end %}
 
   {% if variant == 'cards' %}
   {# Card grid variant #}
   <div class="content-tiles-grid">
     {% for item in sorted_items %}
-    <article class="content-tile-card {% if item.type == 'related' %}content-tile-card--related{% endif %}">
+    <article class="content-tile-card {% if item.type == 'related' %}content-tile-card--related{% end %}">
       {% if show_icons %}
       <div class="content-tile-card-icon">
         {% set rendered_icon = icon(item.icon, size=24) if item.icon else '' %}
         {% if rendered_icon %}{{ rendered_icon }}
         {% elif item.type == 'section' %}{{ icon('folder', size=24) }}
         {% elif item.type == 'related' %}{{ icon('link', size=24) }}
-        {% else %}{{ icon('file-text', size=24) }}{% endif %}
+        {% else %}{{ icon('file-text', size=24) }}{% end %}
       </div>
-      {% endif %}
+      {% end %}
       <h3 class="content-tile-card-title">
         <a href="{{ item.href }}">{{ item.title }}</a>
       </h3>
       {% if show_descriptions and item.description %}
       <p class="content-tile-card-description">{{ item.description | truncate(120) }}</p>
-      {% endif %}
+      {% end %}
       <div class="content-tile-card-meta">
         {% if item.type == 'section' and item.page_count > 0 %}
         <span>{{ item.page_count }} page{{ 's' if item.page_count != 1 }}</span>
@@ -259,21 +265,21 @@ else ''),
         <span class="content-tile-badge">Related</span>
         {% elif 'date' in item and item['date'] %}
         <span>{{ item['date'] | time_ago }}</span>
-        {% endif %}
+        {% end %}
       </div>
     </article>
-    {% endfor %}
+    {% end %}
   </div>
 
   {% elif variant == 'minimal' %}
   {# Minimal list variant #}
   <ul class="content-tiles-minimal">
     {% for item in sorted_items %}
-    <li class="{% if item.type == 'related' %}content-tile--related{% endif %}">
+    <li class="{% if item.type == 'related' %}content-tile--related{% end %}">
       <a href="{{ item.href }}">{{ item.title }}</a>
-      {% if item.type == 'related' %}<span class="content-tile-badge">Related</span>{% endif %}
+      {% if item.type == 'related' %}<span class="content-tile-badge">Related</span>{% end %}
     </li>
-    {% endfor %}
+    {% end %}
   </ul>
 
   {% else %}
@@ -286,24 +292,24 @@ else ''),
     <div class="content-tiles-group-header">
       <span class="content-tiles-group-label">{{ related_title }}</span>
     </div>
-    {% endif %}
+    {% end %}
     {% for item in group_items %}
-    <article class="content-tile {% if item.type == 'related' %}content-tile--related{% endif %}">
+    <article class="content-tile {% if item.type == 'related' %}content-tile--related{% end %}">
       {% if show_icons %}
       <div class="content-tile-icon">
         {% set rendered_icon = icon(item.icon, size=20) if item.icon else '' %}
         {% if rendered_icon %}{{ rendered_icon }}
         {% elif item.type == 'section' %}{{ icon('folder', size=20) }}
         {% elif item.type == 'related' %}{{ icon('link', size=20) }}
-        {% else %}{{ icon('file-text', size=20) }}{% endif %}
+        {% else %}{{ icon('file-text', size=20) }}{% end %}
       </div>
-      {% endif %}
+      {% end %}
       <div class="content-tile-content">
         <span class="content-tile-title">
           <a href="{{ item.href }}">{{ item.title }}</a>
           {% if show_descriptions and item.description %}
           <span class="content-tile-description">{{ item.description }}</span>
-          {% endif %}
+          {% end %}
           <span class="content-tile-meta">
             {% if item.type == 'section' and item.page_count > 0 %}
             <span class="meta-item">{{ item.page_count }} page{{ 's' if item.page_count != 1 }}</span>
@@ -311,18 +317,18 @@ else ''),
             <span class="meta-item content-tile-badge">Related</span>
             {% elif 'date' in item and item['date'] %}
             <span class="meta-item">{{ item['date'] | time_ago }}</span>
-            {% endif %}
+            {% end %}
           </span>
         </span>
       </div>
     </article>
-    {% endfor %}
-    {% endfor %}
+    {% end %}
+    {% end %}
   </div>
-  {% endif %}
+  {% end %}
 </section>
-{% endif %}
-{% endmacro %}
+{% end %}
+{% end %}
 
 {#
 Child Page Tiles Component (Legacy)
@@ -339,45 +345,49 @@ subsections: List of child sections to display (optional, defaults to None)
 Example:
 {{ child_page_tiles(posts=page.regular_pages, subsections=page.sections) }}
 #}
-{% macro child_page_tiles(posts=None, subsections=None) %}
+{% def child_page_tiles(posts=None, subsections=None) %}
 {% if posts or subsections %}
 {# Merge subsections and pages into unified list #}
 {% set all_items = [] %}
 
-{# Add subsections with metadata #}
+{# Add subsections with metadata - None-resilient #}
 {% if subsections %}
 {% for subsection in subsections %}
-{% set _ = all_items.append({
+{% set _weight = subsection.metadata.weight or 999999 %}
+{% set _title = subsection.title or 'Untitled' %}
+{% do all_items.append({
 'type': 'section',
 'obj': subsection,
-'title': subsection.title,
+'title': _title,
 'href': subsection.href,
-'description': subsection.metadata.description | default(''),
-'weight': subsection.metadata.weight | default(999999),
+'description': subsection.metadata.description or '',
+'weight': _weight,
 'page_count': subsection.pages | length if subsection.pages else 0,
-'icon': subsection.metadata.icon | default('')
+'icon': subsection.metadata.icon or ''
 }) %}
-{% endfor %}
-{% endif %}
+{% end %}
+{% end %}
 
-{# Add pages with metadata #}
+{# Add pages with metadata - None-resilient #}
 {% if posts %}
 {% for post in posts %}
 {# Skip the current section index page if it appears in child posts #}
 {% if not (page and (post._path == page._path)) %}
-{% set _ = all_items.append({
+{% set _weight = post.metadata.weight or 999999 %}
+{% set _title = post.title or 'Untitled' %}
+{% do all_items.append({
 'type': 'page',
 'obj': post,
-'title': post.title,
+'title': _title,
 'href': post.href,
-'description': post.metadata.description | default(post.content | strip_html | excerpt(120) if post.content else ''),
-'weight': post.metadata.weight | default(999999),
-'date': post.date if post.date else none,
-'icon': post.metadata.icon | default('')
+'description': post.metadata.description or (post.content | strip_html | excerpt(120) if post.content else ''),
+'weight': _weight,
+'date': post.date or none,
+'icon': post.metadata.icon or ''
 }) %}
-{% endif %}
-{% endfor %}
-{% endif %}
+{% end %}
+{% end %}
+{% end %}
 
 {# Sort by weight (ascending), then title #}
 {% set sorted_items = all_items | sort(attribute='weight,title') %}
@@ -397,7 +407,7 @@ Example:
         {% else %}
         {# Default file icon for pages #}
         {{ icon('file-text', size=20) }}
-        {% endif %}
+        {% end %}
       </div>
 
       <div class="child-item-content">
@@ -406,23 +416,23 @@ Example:
 
           {% if item.description %}
           <span class="child-item-description">{{ item.description }}</span>
-          {% endif %}
+          {% end %}
 
           <span class="child-item-meta">
             {% if item.type == 'section' and item.page_count > 0 %}
             <span class="meta-item">{{ item.page_count }} page{{ 's' if item.page_count != 1 }}</span>
             {% elif item.type == 'page' and item.date %}
             <span class="meta-item">{{ item.date | time_ago }}</span>
-            {% endif %}
+            {% end %}
           </span>
         </span>
       </div>
     </article>
-    {% endfor %}
+    {% end %}
   </div>
 </section>
-{% endif %}
-{% endmacro %}
+{% end %}
+{% end %}
 
 {#
 Tag List Component
@@ -442,18 +452,18 @@ Example:
 Reusable iterator that skips the current page/item.
 
 Usage:
-{% from 'partials/content-components.html' import for_each_item_excluding_current with context %}
+{% from 'partials/content-components.html' import for_each_item_excluding_current %}
 {% call (post) for_each_item_excluding_current(posts) %}
 ... render using `post` ...
 {% endcall %}
 #}
-{% macro for_each_item_excluding_current(items) %}
+{% def for_each_item_excluding_current(items) %}
 {%- for item in items -%}
 {%- if not (page and item._path == page._path) -%}
 {{ caller(item) }}
-{%- endif -%}
-{%- endfor -%}
-{% endmacro %}
+{% end %}
+{% end %}
+{% end %}
 
 {#
 Render a section with a title only if there are any items.
@@ -464,26 +474,25 @@ Args:
 - section_class: optional additional CSS classes on the section
 
 Usage:
-{% from 'partials/content-components.html' import render_section_if_any with context %}
+{% from 'partials/content-components.html' import render_section_if_any %}
 {% call (items) render_section_if_any(my_list, 'Functions', 'autodoc-section') %}
 <div class="autodoc-items-list">
   <!-- render items here -->
 </div>
 {% endcall %}
 #}
-{% macro render_section_if_any(items, title, section_class='') %}
+{% def render_section_if_any(items, title, section_class='') %}
 {% if items and (items | length) > 0 %}
 <section class="{{ section_class }}">
   <h2 class="autodoc-section-title">{{ title }}</h2>
   {{ caller(items) }}
 </section>
-{% endif %}
-{% endmacro %}
-
-{% macro tag_list(tags, small=False, linkable=True) %}
+{% end %}
+{% end %}
+{% def tag_list(tags, small=False, linkable=True) %}
 {% set max_display = theme.max_tags_display %}
 {% set display_tags = tags[:max_display] if max_display else tags %}
-<div class="tags {% if small %}tags-small{% endif %}">
+<div class="tags {% if small %}tags-small{% end %}">
   {% for tag in display_tags %}
   {% if linkable %}
   {# Use tag_url() function which handles baseurl and i18n prefixes correctly #}
@@ -492,13 +501,13 @@ Usage:
   </a>
   {% else %}
   <span class="tag">{{ tag }}</span>
-  {% endif %}
-  {% endfor %}
+  {% end %}
+  {% end %}
   {% if max_display and tags|length > max_display %}
   <span class="tag tag-more">+{{ tags|length - max_display }} more</span>
-  {% endif %}
+  {% end %}
 </div>
-{% endmacro %}
+{% end %}
 
 {#
 Popular Tags Component
@@ -511,7 +520,7 @@ limit: Number of tags to show (default: 10)
 Example:
 {{ popular_tags(limit=20) }}
 #}
-{% macro popular_tags_widget(limit=None) %}
+{% def popular_tags_widget(limit=None) %}
 {% set tag_limit = limit if limit is not none else (theme.popular_tags_count | default(10)) %}
 {% set top_tags = popular_tags(limit=tag_limit) %}
 {% if top_tags %}
@@ -524,11 +533,11 @@ Example:
       {{ tag }}
       <span class="tag-count">{{ count }}</span>
     </a>
-    {% endfor %}
+    {% end %}
   </div>
 </div>
-{% endif %}
-{% endmacro %}
+{% end %}
+{% end %}
 
 {#
 Random Posts Component
@@ -541,7 +550,7 @@ count: Number of random posts to show (default: 3)
 Example:
 {{ random_posts(count=5) }}
 #}
-{% macro random_posts(count=3) %}
+{% def random_posts(count=3) %}
 {% set random_posts = site.regular_pages | sample(count) %}
 {% if random_posts %}
 <aside class="random-posts-widget">
@@ -556,10 +565,10 @@ Example:
       <time datetime="{{ post.date | date_iso }}">
         {{ post.date | time_ago }}
       </time>
-      {% endif %}
+      {% end %}
     </article>
-    {% endfor %}
+    {% end %}
   </div>
 </aside>
-{% endif %}
-{% endmacro %}
+{% end %}
+{% end %}

@@ -18,6 +18,8 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING, Any
 
+from markupsafe import Markup
+
 if TYPE_CHECKING:
     from bengal.rendering.kida.environment import Environment
 
@@ -36,23 +38,6 @@ _ESCAPE_TABLE = str.maketrans(
 
 # Fast path: regex to check if escaping is needed at all
 _ESCAPE_CHECK = re.compile(r'[&<>"\']')
-
-
-class Markup(str):
-    """A string subclass that is considered safe and won't be escaped.
-
-    This is used for macro output and the |safe filter to prevent
-    double-escaping of HTML content.
-    """
-
-    def __new__(cls, value: str = "") -> Markup:
-        return super().__new__(cls, value)
-
-    def __add__(self, other: str) -> Markup:
-        return Markup(super().__add__(str(other)))
-
-    def __radd__(self, other: str) -> Markup:
-        return Markup(str(other) + str(self))
 
 
 class LoopContext:
@@ -220,7 +205,12 @@ class Template:
                     f"_render_func is None. Check for syntax errors in the template."
                 )
             # Create a context for the imported template
-            import_ctx = dict(context) if with_context else {}
+            # ALWAYS include globals (filters, functions like canonical_url, icon, etc.)
+            # The with_context flag controls whether CALLER's local variables are passed
+            # This matches Jinja2 behavior where globals are always available to macros
+            import_ctx = dict(env.globals)
+            if with_context:
+                import_ctx.update(context)
             # Execute the template to define macros in its context
             imported._render_func(import_ctx, None)
             # Return the context (which now contains the macros)
@@ -299,6 +289,8 @@ class Template:
             >>> t.render({"name": "World"})
             'Hello, World!'
         """
+        from bengal.rendering.kida.environment.exceptions import TemplateRuntimeError
+
         # Build context
         ctx: dict[str, Any] = {}
 
@@ -317,11 +309,54 @@ class Template:
         # Add keyword args
         ctx.update(kwargs)
 
-        # Render
+        # Inject template metadata for error context
+        ctx["_template"] = self._name
+        ctx["_line"] = 0
+
+        # Render with error enhancement
         if self._render_func is None:
             raise RuntimeError("Template not properly compiled")
 
-        return self._render_func(ctx)
+        try:
+            return self._render_func(ctx)
+        except TemplateRuntimeError:
+            # Already enhanced, re-raise as-is
+            raise
+        except Exception as e:
+            # Enhance generic exceptions with template context
+            raise self._enhance_error(e, ctx) from e
+
+    def _enhance_error(self, error: Exception, ctx: dict[str, Any]) -> Exception:
+        """Enhance a generic exception with template context.
+
+        Converts generic Python exceptions into TemplateRuntimeError with
+        template name and line number context.
+        """
+        from bengal.rendering.kida.environment.exceptions import (
+            NoneComparisonError,
+            TemplateRuntimeError,
+        )
+
+        template_name = ctx.get("_template")
+        lineno = ctx.get("_line")
+        error_str = str(error)
+
+        # Handle None comparison errors specially
+        if isinstance(error, TypeError) and "NoneType" in error_str:
+            return NoneComparisonError(
+                None,
+                None,
+                template_name=template_name,
+                lineno=lineno,
+                expression="<see stack trace>",
+            )
+
+        # Generic error enhancement
+        return TemplateRuntimeError(
+            error_str,
+            template_name=template_name,
+            lineno=lineno,
+        )
 
     async def render_async(self, *args: Any, **kwargs: Any) -> str:
         """Render template asynchronously.
@@ -335,6 +370,8 @@ class Template:
         Returns:
             Rendered template as string
         """
+        from bengal.rendering.kida.environment.exceptions import TemplateRuntimeError
+
         # Build context
         ctx: dict[str, Any] = {}
         ctx.update(self._env.globals)
@@ -342,13 +379,22 @@ class Template:
             ctx.update(args[0])
         ctx.update(kwargs)
 
+        # Inject template metadata for error context
+        ctx["_template"] = self._name
+        ctx["_line"] = 0
+
         # Check for async render function
-        render_async = getattr(self, "_render_async_func", None)
-        if render_async is None:
+        render_async_func = getattr(self, "_render_async_func", None)
+        if render_async_func is None:
             # Fall back to sync render
             return self.render(*args, **kwargs)
 
-        return await render_async(ctx)
+        try:
+            return await render_async_func(ctx)
+        except TemplateRuntimeError:
+            raise
+        except Exception as e:
+            raise self._enhance_error(e, ctx) from e
 
     @staticmethod
     def _escape(value: Any) -> str:
@@ -375,21 +421,30 @@ class Template:
 
     @staticmethod
     def _safe_getattr(obj: Any, name: str) -> Any:
-        """Get attribute with dict fallback.
+        """Get attribute with dict fallback and None-safe handling.
 
         Handles both:
         - obj.attr for objects with attributes
         - dict['key'] for dict-like objects
 
+        None Handling (like Hugo/Go templates):
+        - If obj is None, returns "" (prevents crashes)
+        - If attribute value is None, returns "" (normalizes output)
+
         Complexity: O(1)
         """
+        # None access returns empty string (like Hugo)
+        if obj is None:
+            return ""
         try:
-            return getattr(obj, name)
+            val = getattr(obj, name)
+            return "" if val is None else val
         except AttributeError:
             try:
-                return obj[name]
+                val = obj[name]
+                return "" if val is None else val
             except (KeyError, TypeError):
-                return None
+                return ""
 
     def __repr__(self) -> str:
         return f"<Template {self._name or '(inline)'}>"
