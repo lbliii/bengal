@@ -96,6 +96,20 @@ _KNOWN_PURE_FILTERS = frozenset(
         "skip",
         "where",
         "sort_by",
+        # Bengal-specific (deterministic for a build)
+        "dateformat",
+        "date_iso",
+        "date",
+        "absolute_url",
+        "relative_url",
+        "meta_keywords",
+        "jsonify",
+        "markdownify",
+        "slugify",
+        "plainify",
+        "humanize",
+        "titlecase",
+        "words",
     }
 )
 

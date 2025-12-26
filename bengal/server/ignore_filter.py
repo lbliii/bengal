@@ -111,6 +111,7 @@ class IgnoreFilter:
         self.regex_patterns = [re.compile(p) for p in (regex_patterns or [])]
         self.directories = [p.resolve() for p in (directories or [])]
         self.include_defaults = include_defaults
+        self._cache_max_size = cache_max_size
 
         # Pre-compile glob patterns to regex for faster matching
         # fnmatch.translate() converts glob to regex pattern

@@ -177,11 +177,11 @@ class RenderOrchestrator:
         try:
             from bengal.rendering.block_cache import BlockCache
             from bengal.rendering.context import get_engine_globals
-            from bengal.rendering.template_engine import get_engine
+            from bengal.rendering.engines import create_engine
 
-            engine = get_engine(self.site)
+            engine = create_engine(self.site)
 
-            # Check if this is a Kida engine
+            # Check if this is a Kida engine with introspection support
             if not hasattr(engine, "get_cacheable_blocks"):
                 return
 
@@ -200,7 +200,7 @@ class RenderOrchestrator:
                     cached = self._block_cache.warm_site_blocks(engine, template_name, site_context)
                     total_cached += cached
                 except Exception:
-                    pass  # Skip templates that don't exist
+                    pass  # Skip templates that don't exist or fail to warm
 
             if total_cached > 0:
                 logger.info(

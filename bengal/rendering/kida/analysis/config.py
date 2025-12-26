@@ -71,5 +71,36 @@ class AnalysisConfig:
     extra_impure_filters: frozenset[str] = frozenset()
 
 
+# Bengal-specific pure functions (used in templates, deterministic per build)
+# These are template functions that return consistent values for a given site build.
+_BENGAL_PURE_FUNCTIONS = frozenset(
+    {
+        # Locale/language functions
+        "current_lang",
+        "get_menu_lang",
+        "get_menu",
+        "alternate_links",
+        # Translation function (returns same value for same key within a build)
+        "t",
+        # Navigation functions
+        "get_auto_nav",
+        # URL functions (deterministic for a build)
+        "asset_url",
+        "absolute_url",
+        "relative_url",
+        "canonical_url",
+        "build_artifact_url",
+        # Content functions
+        "icon",
+        "og_image",
+        # Site inspection
+        "bengal",
+    }
+)
+
+
 # Default configuration for Bengal
-DEFAULT_CONFIG = AnalysisConfig()
+# Includes Bengal's pure template functions for accurate cache scope analysis
+DEFAULT_CONFIG = AnalysisConfig(
+    extra_pure_functions=_BENGAL_PURE_FUNCTIONS,
+)

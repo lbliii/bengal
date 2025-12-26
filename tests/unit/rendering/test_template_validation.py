@@ -157,94 +157,92 @@ base_url = "https://example.com"
     def test_valid_templates_returns_empty_list(self, valid_template_site: Path):
         """Test that valid templates return an empty error list."""
         from bengal.core.site import Site
-        from bengal.rendering.template_engine import TemplateEngine
+        from bengal.rendering.engines import create_engine
 
         site = Site.from_config(valid_template_site, None)
-        engine = TemplateEngine(site)
+        engine = create_engine(site)
 
-        errors = engine.validate_templates()
+        errors = engine.validate()
 
         assert errors == [], f"Expected no errors, got: {errors}"
 
     def test_broken_template_returns_error(self, broken_template_site: Path):
-        """Test that a broken template returns a TemplateRenderError."""
+        """Test that a broken template returns a TemplateError."""
         from bengal.core.site import Site
-        from bengal.rendering.template_engine import TemplateEngine
+        from bengal.rendering.engines import create_engine
 
         site = Site.from_config(broken_template_site, None)
-        engine = TemplateEngine(site)
+        engine = create_engine(site)
 
-        errors = engine.validate_templates()
+        errors = engine.validate()
 
         assert len(errors) >= 1, "Expected at least one error"
 
-        # Check error properties
+        # Check error properties (TemplateError has message, template_name, lineno)
         error = errors[0]
-        assert hasattr(error, "error_type")
-        assert error.error_type == "syntax"
         assert hasattr(error, "message")
-        assert hasattr(error, "template_context")
+        assert hasattr(error, "template_name")
 
     def test_multiple_broken_templates_returns_all_errors(
         self, multiple_broken_templates_site: Path
     ):
         """Test that multiple broken templates return all errors."""
         from bengal.core.site import Site
-        from bengal.rendering.template_engine import TemplateEngine
+        from bengal.rendering.engines import create_engine
 
         site = Site.from_config(multiple_broken_templates_site, None)
-        engine = TemplateEngine(site)
+        engine = create_engine(site)
 
-        errors = engine.validate_templates()
+        errors = engine.validate()
 
         # Should have at least 2 errors (one for each broken template)
         assert len(errors) >= 2, f"Expected at least 2 errors, got {len(errors)}"
 
-        # All should be syntax errors
+        # All should have error messages
         for error in errors:
-            assert error.error_type == "syntax"
+            assert hasattr(error, "message")
 
     def test_include_patterns_filters_validation(self, broken_template_site: Path):
-        """Test that include_patterns limits which templates are validated."""
+        """Test that patterns limits which templates are validated."""
         from bengal.core.site import Site
-        from bengal.rendering.template_engine import TemplateEngine
+        from bengal.rendering.engines import create_engine
 
         site = Site.from_config(broken_template_site, None)
-        engine = TemplateEngine(site)
+        engine = create_engine(site)
 
         # Validate only page.html (which is valid)
-        errors = engine.validate_templates(include_patterns=["page.html"])
+        errors = engine.validate(patterns=["page.html"])
 
         assert len(errors) == 0, "Expected no errors when validating only page.html"
 
         # Validate only broken.html (which has syntax error)
-        errors = engine.validate_templates(include_patterns=["broken.html"])
+        errors = engine.validate(patterns=["broken.html"])
 
         assert len(errors) >= 1, "Expected error when validating broken.html"
 
     def test_error_includes_template_name(self, broken_template_site: Path):
         """Test that error includes the template name."""
         from bengal.core.site import Site
-        from bengal.rendering.template_engine import TemplateEngine
+        from bengal.rendering.engines import create_engine
 
         site = Site.from_config(broken_template_site, None)
-        engine = TemplateEngine(site)
+        engine = create_engine(site)
 
-        errors = engine.validate_templates()
+        errors = engine.validate()
 
         assert len(errors) >= 1
 
         # Find the error for our broken template (may be others from bundled theme)
         broken_error = None
         for error in errors:
-            template_name = error.template_context.template_name
-            if "broken.html" in template_name:
+            template_name = error.template_name
+            if template_name and "broken.html" in template_name:
                 broken_error = error
                 break
 
         assert broken_error is not None, "Expected error for broken.html template"
-        assert hasattr(broken_error, "template_context")
-        assert "broken.html" in broken_error.template_context.template_name
+        assert hasattr(broken_error, "template_name")
+        assert "broken.html" in broken_error.template_name
 
 
 class TestValidateTemplatesEdgeCases:
@@ -273,13 +271,13 @@ base_url = "https://example.com"
     def test_empty_templates_directory(self, empty_templates_site: Path):
         """Test that an empty custom templates directory doesn't cause errors."""
         from bengal.core.site import Site
-        from bengal.rendering.template_engine import TemplateEngine
+        from bengal.rendering.engines import create_engine
 
         site = Site.from_config(empty_templates_site, None)
-        engine = TemplateEngine(site)
+        engine = create_engine(site)
 
         # Should not raise - validates bundled theme templates
-        errors = engine.validate_templates()
+        errors = engine.validate()
 
         # All bundled theme templates should be valid (no syntax errors)
         # Note: This tests that our bundled theme has no syntax errors
@@ -304,13 +302,13 @@ base_url = "https://example.com"
         )
 
         from bengal.core.site import Site
-        from bengal.rendering.template_engine import TemplateEngine
+        from bengal.rendering.engines import create_engine
 
         site = Site.from_config(tmp_path, None)
-        engine = TemplateEngine(site)
+        engine = create_engine(site)
 
         # Pattern that matches nothing in custom templates
-        errors = engine.validate_templates(include_patterns=["nonexistent/*.html"])
+        errors = engine.validate(patterns=["nonexistent/*.html"])
 
         # May have bundled theme templates, but shouldn't have our custom ones
         assert len(errors) == 0, "Expected no errors for nonexistent pattern"

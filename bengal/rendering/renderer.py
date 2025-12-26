@@ -63,7 +63,9 @@ class Renderer:
         html = renderer.render_page(page)
     """
 
-    def __init__(self, template_engine: Any, build_stats: Any = None, block_cache: Any = None) -> None:
+    def __init__(
+        self, template_engine: Any, build_stats: Any = None, block_cache: Any = None
+    ) -> None:
         """
         Initialize the renderer.
 
@@ -276,17 +278,20 @@ class Renderer:
 
         # Inject cached blocks for KIDA templates (RFC: kida-template-introspection)
         # This enables site-wide block caching for nav, footer, etc.
-        if self.block_cache and hasattr(self.template_engine, "get_cacheable_blocks"):
+        # The block cache was pre-warmed with site-scoped blocks from base.html
+        if self.block_cache and self.block_cache._site_blocks:
+            # Get all cached blocks from base.html (the primary parent template)
+            # We use the cache directly - no introspection needed during rendering
             cached_blocks = {}
-            cacheable = self.template_engine.get_cacheable_blocks(template_name)
-            
-            # Collect all site-cacheable blocks that are already cached
-            for block_name, scope in cacheable.items():
-                if scope == "site":
-                    cached_html = self.block_cache.get(template_name, block_name)
-                    if cached_html is not None:
-                        cached_blocks[block_name] = cached_html
-            
+            for key, html in self.block_cache._site_blocks.items():
+                # Keys are formatted as "template:block", e.g., "base.html:site_footer"
+                if ":" in key:
+                    cached_template, block_name = key.split(":", 1)
+                    # Only inject blocks from parent templates (base.html)
+                    # Skip empty cached blocks (they'd just add overhead)
+                    if cached_template == "base.html" and html:
+                        cached_blocks[block_name] = html
+
             # Inject cached blocks into context for template to use
             if cached_blocks:
                 context["_cached_blocks"] = cached_blocks
@@ -327,7 +332,9 @@ class Renderer:
                 {
                     "posts": top_level_pages,
                     "pages": top_level_pages,  # Alias
-                    "subsections": [SectionContext(sub) for sub in top_level_subsections if sub is not None],
+                    "subsections": [
+                        SectionContext(sub) for sub in top_level_subsections if sub is not None
+                    ],
                 }
             )
 

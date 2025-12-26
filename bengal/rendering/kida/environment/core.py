@@ -405,8 +405,19 @@ class Environment:
             source_hash = hash_source(source)
             cached_code = self._bytecode_cache.get(name, source_hash)
             if cached_code is not None:
-                # Note: AST is not available when loading from bytecode cache
-                return Template(self, cached_code, name, filename, optimized_ast=None)
+                # If introspection is needed, re-parse source to get AST
+                # (AST can't be serialized in bytecode cache, so we re-parse)
+                optimized_ast = None
+                if self.preserve_ast:
+                    lexer = Lexer(source, self._lexer_config)
+                    tokens = list(lexer.tokenize())
+                    should_escape = (
+                        self.autoescape(name) if callable(self.autoescape) else self.autoescape
+                    )
+                    parser = Parser(tokens, name, filename, source, autoescape=should_escape)
+                    optimized_ast = parser.parse()
+
+                return Template(self, cached_code, name, filename, optimized_ast=optimized_ast)
 
         # Tokenize
         lexer = Lexer(source, self._lexer_config)

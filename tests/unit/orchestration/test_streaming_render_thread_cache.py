@@ -8,7 +8,6 @@ build generation mechanism properly invalidates caches across these phases.
 
 from __future__ import annotations
 
-from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
@@ -46,18 +45,18 @@ class TestStreamingUsesRenderOrchestratorCacheInvalidation:
         # No pages means no render calls, generation unchanged
         assert gen_after == gen_before
 
-    def test_render_orchestrator_process_increments_generation(self):
+    def test_render_orchestrator_process_increments_generation(self, tmp_path):
         """
         RenderOrchestrator.process() should increment the build generation.
-        
+
         This is the core mechanism that StreamingRenderOrchestrator relies on
         when it calls RenderOrchestrator.process() for each batch.
         """
         from bengal.orchestration.render import RenderOrchestrator
 
         site = MagicMock()
-        site.root_path = Path("/fake")
-        site.output_dir = Path("/fake/public")
+        site.root_path = tmp_path
+        site.output_dir = tmp_path / "public"
         site.config = {}
         site.pages = []
 
@@ -74,18 +73,18 @@ class TestStreamingUsesRenderOrchestratorCacheInvalidation:
         # Generation should have been incremented
         assert gen_after == gen_before + 1
 
-    def test_multiple_process_calls_increment_generation_each_time(self):
+    def test_multiple_process_calls_increment_generation_each_time(self, tmp_path):
         """
         Each call to RenderOrchestrator.process() should increment generation.
-        
+
         This is critical for StreamingRenderOrchestrator which calls process()
         multiple times (hubs, mid-tier, leaves).
         """
         from bengal.orchestration.render import RenderOrchestrator
 
         site = MagicMock()
-        site.root_path = Path("/fake")
-        site.output_dir = Path("/fake/public")
+        site.root_path = tmp_path
+        site.output_dir = tmp_path / "public"
         site.config = {}
         site.pages = []
 

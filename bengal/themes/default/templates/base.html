@@ -34,9 +34,9 @@ _path, kind, tags are always defined - no defensive checks needed.
 
 {# Auto navigation if main menu is empty #}
 {% if _main_menu | length == 0 %}
-  {% let _auto_nav = get_auto_nav() %}
+{% let _auto_nav = get_auto_nav() %}
 {% else %}
-  {% let _auto_nav = [] %}
+{% let _auto_nav = [] %}
 {% end %}
 
 <html lang="{{ _current_lang }}" {% if _view_transitions and _transition_style !='crossfade' %}
@@ -54,13 +54,14 @@ _path, kind, tags are always defined - no defensive checks needed.
 
     {# Title - captured for reuse in Open Graph and Twitter Card #}
     {% capture page_title %}
-      {% block title %}{{ _page_title if _page_title else _site_title }}{% if _page_title %} - {{ _site_title }}{% end %}{% end %}
+    {% block title %}{{ _page_title if _page_title else _site_title }}{% if _page_title %} - {{ _site_title }}{% end
+    %}{% end %}
     {% end %}
     <title>{{ page_title }}</title>
 
     {# Meta description - captured for reuse in Open Graph and Twitter Card #}
     {% capture meta_desc %}
-      {{ meta_desc | default(config.description) }}
+    {{ meta_desc | default(config.description) }}
     {% end %}
     <meta name="description" content="{{ meta_desc }}">
 
@@ -89,13 +90,13 @@ _path, kind, tags are always defined - no defensive checks needed.
     {# Open Graph Image - computed with fallback chain #}
     {% let _og_image_path = '' %}
     {% if params.image %}
-      {% let _og_image_path = og_image(params.image, page) %}
+    {% let _og_image_path = og_image(params.image, page) %}
     {% end %}
     {% if not _og_image_path %}
-      {% let _og_image_path = og_image('', page) %}
+    {% let _og_image_path = og_image('', page) %}
     {% end %}
     {% if not _og_image_path and config.og_image %}
-      {% let _og_image_path = og_image(config.og_image) %}
+    {% let _og_image_path = og_image(config.og_image) %}
     {% end %}
     {% if _og_image_path %}
     <meta property="og:image" content="{{ _og_image_path }}">
@@ -268,7 +269,7 @@ _path, kind, tags are always defined - no defensive checks needed.
 
     {# Optional JSON bootstrap for client-side scripts #}
     {% if config.expose_metadata_json %}
-    <script id="bengal-bootstrap" type="application/json">{{ bengal | jsonify }}</script>
+    <script id="bengal-bootstrap" type="application/json">{{ bengal | tojson }}</script>
     <script>
         (function () {
             var el = document.getElementById('bengal-bootstrap');
@@ -279,14 +280,120 @@ _path, kind, tags are always defined - no defensive checks needed.
 </head>
 
 <body data-type="{{ page.type }}" data-variant="{{ page.variant or '' }}"
-    class="page-kind-{{ page.kind or 'page' }}{% if page is draft %} draft-page{% end %}{% if page.hidden %} hidden-page{% end %}{% if page is featured %} featured-content{% end %}">
+    class="page-kind-{{ page.kind or 'page' }}{% if page.is_draft %} draft-page{% end %}{% if page.hidden %} hidden-page{% end %}{% if page.is_featured %} featured-content{% end %}">
     {# Skip to main content for accessibility - Feature: accessibility.skip_link #}
     {% if 'accessibility.skip_link' in theme.features %}
     <a href="#main-content" class="skip-link">Skip to main content</a>
     {% end %}
 
-    {# Search Modal (Cmd/Ctrl+K) #}
-    {% include 'partials/search-modal.html' %}
+    {# Search Modal - Site-Scoped Block (RFC: kida-template-introspection) #}
+    {# ===================================================================== #}
+    {# This block is designed to be SITE-CACHEABLE: #}
+    {# - Only depends on config.*, and site-scoped functions #}
+    {# - Does NOT reference page.* or params.* #}
+    {# - Inlined from partials/search-modal.html to enable caching #}
+    {# ===================================================================== #}
+    {% block site_search_modal %}
+    {% let _search_config = config.search %}
+    {% let _ui_config = _search_config.ui %}
+    {% let _modal_enabled = _ui_config.modal ?? false %}
+
+    {% if _modal_enabled %}
+    <dialog id="search-modal" class="search-modal"
+        aria-label="{{ t('search.aria_label', default='Search documentation') }}">
+        {# Backdrop for clicking outside to close #}
+        <div class="search-modal__backdrop" data-close-modal></div>
+
+        {# Modal container #}
+        <div class="search-modal__container" role="dialog" aria-modal="true">
+            {# Header with search input #}
+            <header class="search-modal__header">
+                <div class="search-modal__input-wrapper">
+                    {{ icon('magnifying-glass', size=20, css_class='search-modal__icon') }}
+
+                    <input type="search" id="search-modal-input" class="search-modal__input"
+                        placeholder="{{ _ui_config.placeholder | default(t('search.placeholder', default='Search documentation...')) }}"
+                        autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+                        aria-label="{{ t('search.aria_label', default='Search') }}"
+                        aria-describedby="search-modal-status" aria-controls="search-modal-results"
+                        aria-autocomplete="list">
+
+                    <div class="search-modal__loading" id="search-modal-loading" style="display: none;">
+                        <div class="search-modal__spinner"></div>
+                    </div>
+                </div>
+
+                <button type="button" class="search-modal__close" data-close-modal aria-label="Close search">
+                    <kbd>ESC</kbd>
+                </button>
+            </header>
+
+            {# Status for screen readers #}
+            <div id="search-modal-status" class="sr-only" role="status" aria-live="polite"></div>
+
+            {# Recent searches section #}
+            <section class="search-modal__recent" id="search-modal-recent"
+                aria-label="{{ t('search.recent_aria_label', default='Recent searches') }}">
+                <div class="search-modal__section-header">
+                    <span class="search-modal__section-title">{{ t('search.recent', default='Recent') }}</span>
+                    <button type="button" class="search-modal__clear-recent" id="clear-recent-searches"
+                        title="{{ t('search.clear_recent', default='Clear recent searches') }}">
+                        {{ t('search.clear', default='Clear') }}
+                    </button>
+                </div>
+                <ul class="search-modal__recent-list" id="search-modal-recent-list" role="listbox">
+                    {# Recent searches populated by JS #}
+                </ul>
+            </section>
+
+            {# Search results #}
+            <section class="search-modal__results" id="search-modal-results"
+                aria-label="{{ t('search.results_aria_label', default='Search results') }}">
+                <div class="search-modal__results-list" id="search-modal-results-list" role="listbox">
+                    {# Results populated by JS #}
+                </div>
+
+                {# No results message #}
+                <div class="search-modal__no-results" id="search-modal-no-results" style="display: none;">
+                    {{ icon('magnifying-glass', size=48) }}
+                    <p class="search-modal__no-results-text">{{ t('search.no_results', default='No results for') }}
+                        "<span id="search-modal-no-results-query"></span>"</p>
+                    <p class="search-modal__no-results-hint">{{ t('search.no_results_hint', default='Try different
+                        keywords or check your spelling') }}</p>
+                </div>
+
+                {# Empty state (before search) #}
+                <div class="search-modal__empty" id="search-modal-empty">
+                    <p class="search-modal__empty-hint">{{ t('search.empty_hint', default='Start typing to search...')
+                        }}</p>
+                </div>
+            </section>
+
+            {# Footer with keyboard hints #}
+            <footer class="search-modal__footer">
+                <div class="search-modal__hints">
+                    <span class="search-modal__hint">
+                        <kbd>↑</kbd><kbd>↓</kbd>
+                        <span>{{ t('search.hint_navigate', default='Navigate') }}</span>
+                    </span>
+                    <span class="search-modal__hint">
+                        <kbd>↵</kbd>
+                        <span>{{ t('search.hint_open', default='Open') }}</span>
+                    </span>
+                    <span class="search-modal__hint">
+                        <kbd>ESC</kbd>
+                        <span>{{ t('search.hint_close', default='Close') }}</span>
+                    </span>
+                </div>
+                <div class="search-modal__powered-by">
+                    <span>{{ t('search.powered_by', default='Powered by') }}</span>
+                    <a href="https://lunrjs.com/" target="_blank" rel="noopener">Lunr</a>
+                </div>
+            </footer>
+        </div>
+    </dialog>
+    {% end %}
+    {% end %}
 
     {# Header - App Shell Pattern: Full-width edge-to-edge #}
     <header role="banner" class="header-appshell">
@@ -520,16 +627,25 @@ _path, kind, tags are always defined - no defensive checks needed.
             {% block content %}{% end %}
         </main>
 
-        {# Footer - cached per language since it's identical across pages #}
-        {% cache "footer-" ~ _current_lang ~ "-" ~ _site_title %}
+        {# Footer - Site-Scoped Block (RFC: kida-template-introspection) #}
+        {# ===================================================================== #}
+        {# This block is designed to be SITE-CACHEABLE: #}
+        {# - Only depends on site.*, config.*, and site-scoped functions #}
+        {# - Does NOT reference page.* or params.* #}
+        {# - Introspection will detect cache_scope="site" #}
+        {# - Block will be rendered once per build and reused for all pages #}
+        {# ===================================================================== #}
+        {% block site_footer %}
+        {% let _footer_lang = current_lang() %}
+        {% let _footer_title = config.title %}
+        {% let _footer_menu = get_menu_lang('footer', _footer_lang) %}
+        {% let _footer_badge = site.build_badge %}
         <footer role="contentinfo">
             <div class="container">
-                {# Popular Tags Widget removed to avoid duplicate tags on section index pages #}
-
                 <div class="footer-bottom">
                     <div class="footer-left">
                         <p class="footer-copyright">
-                            &copy; {{ site.build_time | dateformat('%Y') }} {{ _site_title }}
+                            &copy; {{ site.build_time | dateformat('%Y') }} {{ _footer_title }}
                         </p>
                         {% if _footer_menu %}
                         <ul class="footer-links">
@@ -540,13 +656,13 @@ _path, kind, tags are always defined - no defensive checks needed.
                         {% end %}
                     </div>
                     <div class="footer-right">
-                        {% if _build_badge.enabled %}
+                        {% if _footer_badge.enabled %}
                         <a class="bengal-build-time" data-bengal-build-badge
-                            data-bengal-build-badge-dir="{{ _build_badge.dir_name }}"
-                            data-bengal-build-badge-path="{{ build_artifact_url('build.json', _build_badge.dir_name) }}"
-                            data-bengal-build-badge-label="{{ _build_badge.label }}" href="#"
-                            aria-label="{{ _build_badge.label }}" title="{{ _build_badge.label }}" hidden>
-                            <span class="bengal-build-time__label">{{ _build_badge.label }}</span>
+                            data-bengal-build-badge-dir="{{ _footer_badge.dir_name }}"
+                            data-bengal-build-badge-path="{{ build_artifact_url('build.json', _footer_badge.dir_name) }}"
+                            data-bengal-build-badge-label="{{ _footer_badge.label }}" href="#"
+                            aria-label="{{ _footer_badge.label }}" title="{{ _footer_badge.label }}" hidden>
+                            <span class="bengal-build-time__label">{{ _footer_badge.label }}</span>
                             <span class="bengal-build-time__value" data-bengal-build-badge-value></span>
                         </a>
                         {% end %}
@@ -563,20 +679,20 @@ _path, kind, tags are always defined - no defensive checks needed.
         </footer>
         {% end %}
 
-        {# ============================================================== #}
-        {# JavaScript Loading Strategy (Render Performance Optimized) #}
-        {# ============================================================== #}
-        {# All scripts use defer to avoid render-blocking. #}
-        {# Heavy libraries (Mermaid, D3, Tabulator) are lazy-loaded only #}
-        {# when their features are present on the page. #}
-        {# #}
-        {# When bundle_js is enabled in config, all theme JS is bundled #}
-        {# into a single file to reduce HTTP requests on mobile. #}
-        {# ============================================================== #}
+        {# JavaScript Loading - Site-Scoped Block (RFC: kida-template-introspection) #}
+        {# ===================================================================== #}
+        {# This block is designed to be SITE-CACHEABLE: #}
+        {# - Only depends on config.*, site.*, theme.* #}
+        {# - Does NOT reference page.* or params.* #}
+        {# - link-previews.html inlined to enable caching #}
+        {# ===================================================================== #}
+        {% block site_scripts %}
+        {% let _scripts_bundle_js = config.assets.bundle_js ?? false %}
+        {% let _scripts_build_badge = site.build_badge %}
+        {% let _scripts_link_previews = site.link_previews %}
+        {% let _scripts_per_page_json = 'json' in (config.output_formats.per_page ?? []) %}
 
-        {% set _bundle_js = config.assets.bundle_js ?? false %}
-
-        {% if _bundle_js %}
+        {% if _scripts_bundle_js %}
         {# Bundled JS - Single file containing all theme JavaScript #}
         {# Reduces HTTP requests from ~20 to 3 for better mobile performance #}
         <script defer src="{{ asset_url('js/bundle.js') }}"></script>
@@ -593,7 +709,7 @@ _path, kind, tags are always defined - no defensive checks needed.
         <script defer src="{{ asset_url('js/core/nav-dropdown.js') }}"></script>
         <script defer src="{{ asset_url('js/core/session-path-tracker.js') }}"></script>
         <script defer src="{{ asset_url('js/core/version-selector.js') }}"></script>
-        {% if _build_badge.enabled %}
+        {% if _scripts_build_badge.enabled %}
         <script defer src="{{ asset_url('js/core/build-badge.js') }}"></script>{% end %}
         {# Main initialization #}
         <script defer src="{{ asset_url('js/main.js') }}"></script>
@@ -611,8 +727,27 @@ _path, kind, tags are always defined - no defensive checks needed.
         <script defer src="{{ asset_url('js/enhancements/lightbox.js') }}"></script>
         {% end %}
 
-        {# Link Previews - Wikipedia-style hover cards #}
-        {% include 'partials/link-previews.html' %}
+        {# Link Previews - Inlined from partials/link-previews.html #}
+        {% if _scripts_link_previews.enabled and _scripts_per_page_json %}
+        <script id="bengal-config" type="application/json">
+        {
+          "linkPreviews": {
+            "enabled": true,
+            "hoverDelay": {{ _scripts_link_previews.hover_delay ?? 200 }},
+            "hideDelay": {{ _scripts_link_previews.hide_delay ?? 150 }},
+            "showSection": {{ (_scripts_link_previews.show_section ?? true) | tojson }},
+            "showReadingTime": {{ (_scripts_link_previews.show_reading_time ?? true) | tojson }},
+            "showWordCount": {{ (_scripts_link_previews.show_word_count ?? true) | tojson }},
+            "showDate": {{ (_scripts_link_previews.show_date ?? true) | tojson }},
+            "showTags": {{ (_scripts_link_previews.show_tags ?? true) | tojson }},
+            "maxTags": {{ _scripts_link_previews.max_tags ?? 3 }},
+            "includeSelectors": {{ _scripts_link_previews.include_selectors | default([".prose"]) | tojson }},
+            "excludeSelectors": {{ _scripts_link_previews.exclude_selectors | default(["nav", ".toc", ".breadcrumb", ".pagination", ".card", "[class*='-card']", ".tab-nav", "[class*='-widget']", ".child-items", ".content-tiles"]) | tojson }}
+          }
+        }
+        </script>
+        <script defer src="{{ asset_url('js/enhancements/link-previews.js') }}"></script>
+        {% end %}
 
         {# Search - Third-party library #}
         <script defer src="{{ asset_url('js/vendor/lunr.min.js') }}"></script>
@@ -641,9 +776,17 @@ _path, kind, tags are always defined - no defensive checks needed.
         </script>
         <script defer src="{{ asset_url('js/enhancements/lazy-loaders.js') }}"></script>
         {% end %}
+        {% end %}
 
         {% block extra_js %}{% end %}
 
+        {# Site Dialogs - Site-Scoped Block (RFC: kida-template-introspection) #}
+        {# ===================================================================== #}
+        {# This block is designed to be SITE-CACHEABLE: #}
+        {# - Only depends on theme.features (site-scoped) #}
+        {# - Does NOT reference page.* or params.* #}
+        {# ===================================================================== #}
+        {% block site_dialogs %}
         {# Back to Top Button - Feature: navigation.back_to_top #}
         {% if 'navigation.back_to_top' in theme.features %}
         <button class="back-to-top" aria-label="Scroll to top" title="Back to top">
@@ -664,6 +807,7 @@ _path, kind, tags are always defined - no defensive checks needed.
             </form>
             <div class="lightbox-dialog__caption"></div>
         </dialog>
+        {% end %}
         {% end %}
 
         {# Dev-only live reload is now injected by the server automatically via LiveReloadMixin #}
