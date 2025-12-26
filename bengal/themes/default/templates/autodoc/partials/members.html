@@ -162,10 +162,10 @@ first_open = first_open ?? true
     <div class="autodoc-internal-methods-content">
       {% for member in internal_members %}
       {% set
-          member_return = member.metadata.return_type or member.metadata.returns or '',
-          member_params = member.metadata.args or member.metadata.parameters or [],
-          member_signature = member.metadata.signature or '',
-          param_count = member_params | length
+      member_return = member.metadata.return_type or member.metadata.returns or '',
+      member_params = member.metadata.args or member.metadata.parameters or [],
+      member_signature = member.metadata.signature or '',
+      param_count = member_params | length
       %}
 
       <details class="autodoc-member" data-member="{{ member_type }}">

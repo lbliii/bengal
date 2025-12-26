@@ -4,6 +4,7 @@ Content Components
 Reusable macro-based content display components for the Bengal default theme.
 
 Components:
+- card_wrapper(css_class, href, show_border): Slot-based card wrapper for custom content
 - content_tiles(...): Flexible content display with variants (recommended)
 - article_card(article, show_excerpt=True, show_image=False): Rich article preview card
 - child_page_tiles(posts, subsections): [DEPRECATED] Use content_tiles() instead
@@ -12,12 +13,18 @@ Components:
 - random_posts(count=3): Random post discovery widget
 
 Usage:
-from 'partials/content-components.html' import content_tiles, article_card, tag_list
+from 'partials/content-components.html' import content_tiles, article_card, tag_list, card_wrapper
 
 New recommended API:
 content_tiles(title="In This Section", children=posts, subsections=subsections)
 content_tiles(title="Related", related=page.related_posts[:3], variant='minimal')
 content_tiles(children=posts, related=True, group_by='type')
+
+Slot-based components (Kida-native):
+{% call card_wrapper(css_class='my-card', href='/path') %}
+<h3>Custom Card Content</h3>
+<p>This content fills the {% slot %} in the wrapper.</p>
+{% end %}
 
 Legacy (still works):
 article_card(post, show_image=True)
@@ -25,558 +32,641 @@ tag_list(page.tags, small=True)
 #}
 
 {#
-Article Card Component
+Card Wrapper Component (Slot-based)
 
-Displays a rich card preview of an article with metadata, tags, and optional image.
+A flexible wrapper using Kida's {% slot %} pattern for custom card content.
+Use with {% call %} to inject your own card body.
 
 Args:
-article: Page object to display (required)
-show_excerpt: Boolean (default: True) - show description/excerpt
-show_image: Boolean (default: False) - show featured image
+css_class: Additional CSS class(es) for the card (default: '')
+href: Optional link URL - if provided, card becomes clickable
+show_border: Boolean (default: True) - show gradient border effect
 
 Example:
-{{ article_card(post, show_image=True, show_excerpt=True) }}
+{% call card_wrapper(css_class='feature-card', href='/features/new') %}
+<h3>My Custom Feature</h3>
+<p>Description goes here.</p>
+{% end %}
 #}
-{% def article_card(article, show_excerpt=True, show_image=False) %}
-<article class="article-card gradient-border fluid-combined {% if article is featured %}featured-card{% end %}">
-  {% if show_image and article.metadata.image %}
-  {# Responsive image with srcset - dogfooding image_srcset() #}
-  <img src="{{ image_url(article.metadata.image, width=800) }}"
-    srcset="{{ article.metadata.image | image_srcset([400, 800, 1200]) }}"
-    sizes="(max-width: 640px) 400px, (max-width: 1024px) 800px, 1200px" alt="{{ article.metadata.image | image_alt }}"
-    class="article-card-image" loading="lazy">
-  {% end %}
-
-  <div class="article-card-content">
-    {# Tag badges - dogfooding has_tag() #}
-    <div class="article-card-badges">
-      {% if article is featured %}
-      <span class="badge badge-featured">⭐ Featured</span>
-      {% end %}
-      {% if article | has_tag('tutorial') %}
-      <span class="badge badge-tutorial">📚 Tutorial</span>
-      {% end %}
-      {% if article | has_tag('new') %}
-      <span class="badge badge-new">✨ New</span>
-      {% end %}
-    </div>
-
-    <h2 class="article-card-title">
-      <a href="{{ article.href }}">{{ article.title }}</a>
-    </h2>
-
-    <div class="article-card-meta">
-      {% with article.date as date %}
-      <time datetime="{{ date | date_iso }}" title="{{ date | dateformat('%B %d, %Y') }}">
-        {{ date | time_ago }}
-      </time>
-      {% end %}
-
-      {% with article.metadata.author as author %}
-      {% if 'content.author' in theme.features %}
-      <span class="author">{{ author }}</span>
-      {% end %}
-      {% end %}
-
-      {% with article.content as content %}
-      {% if 'content.reading_time' in theme.features %}
-      <span class="reading-time">
-        {{ content | reading_time }} min read
-      </span>
-      {% end %}
-      {% end %}
-    </div>
-
-    {% if show_excerpt and 'content.excerpts' in theme.features %}
-    <p class="article-card-excerpt">
-      {% if article.metadata.description %}
-      {{ article.metadata.description }}
-      {% elif article.content %}
-      {{ article.content | strip_html | excerpt(150) }}
-      {% end %}
-    </p>
-    {% end %}
-
-    {% with article.tags as tags %}
-    <div class="article-card-footer">
-      {{ tag_list(tags, small=True) }}
-    </div>
-    {% end %}
-  </div>
-</article>
-{% end %}
-
-{#
-Content Tiles Component (Enhanced)
-
-Flexible content display with optional headers, multiple content sources,
-and variant display modes. Successor to child_page_tiles.
-
-Args:
-title: Header for children section (string, or None to suppress)
-children: List of child pages to display
-subsections: List of child sections to display
-related: Related pages (list, or True to auto-get from page.related_posts)
-related_title: Header for related section (string, or None to suppress)
-related_limit: Max related pages when related=True (default: 5)
-variant: Display style - 'compact' (rows) | 'cards' | 'minimal'
-show_descriptions: Show item descriptions (default: True)
-show_icons: Show item icons (default: True)
-group_by: Group items - None | 'type' (sections first, then pages, then related)
-
-Variants:
-- compact: Row-based list with icons (default, current style)
-- cards: Grid of preview cards
-- minimal: Simple link list, no descriptions
-
-Example:
-{{ content_tiles(title="In This Section", children=posts, subsections=subsections) }}
-{{ content_tiles(related=page.related_posts[:3], related_title="Related", variant='minimal') }}
-{{ content_tiles(title="In This Section", children=posts, related=True, related_title="Related Pages", group_by='type')
-}}
-#}
-{% def content_tiles(
-title=None,
-children=None,
-subsections=None,
-related=None,
-related_title=None,
-related_limit=5,
-variant='compact',
-show_descriptions=True,
-show_icons=True,
-group_by=None,
-page=None
-) %}
-{% set all_items = [] %}
-
-{# Add subsections with metadata #}
-{# Use weight property for sortable values (framework provides defaults) #}
-{% if subsections %}
-{% for subsection in subsections %}
-{% do all_items.append({
-'type': 'section',
-'group': 'children',
-'obj': subsection,
-'title': subsection.title,
-'href': subsection.href,
-'description': subsection.metadata.description or '',
-'weight': subsection.weight,
-'page_count': subsection.pages | length if subsection.pages else 0,
-'icon': subsection.metadata.icon or ''
-}) %}
-{% end %}
-{% end %}
-
-{# Add child pages with metadata #}
-{# Use weight property for sortable values (framework provides defaults) #}
-{% if children %}
-{% for post in children %}
-{# Skip the current page if it appears in child posts #}
-{% if not (page and (post._path == page._path)) %}
-{% do all_items.append({
-'type': 'page',
-'group': 'children',
-'obj': post,
-'title': post.title,
-'href': post.href,
-'description': post.metadata.description or (post.content | strip_html | excerpt(120) if post.content else ''),
-'weight': post.weight,
-'date': post.date,
-'icon': post.metadata.icon or ''
-}) %}
-{% end %}
-{% end %}
-{% end %}
-
-{# Add related pages (deduped - won't repeat pages from children) #}
-{% set related_pages = [] %}
-{% if related is sameas true %}
-{# Auto-get from page.related_posts #}
-{% if page and page.related_posts %}
-{% set related_pages = page.related_posts[:related_limit] %}
-{% end %}
-{% elif related %}
-{% set related_pages = related %}
-{% end %}
-
-{# Build a set of URLs already in children for O(1) lookup #}
-{% set children_urls = [] %}
-{% for item in all_items %}
-{% do children_urls.append(item.href) %}
-{% end %}
-
-{% for rel_page in related_pages %}
-{# Skip current page and any pages already in children #}
-{% set is_current = page and (rel_page._path == page._path) %}
-{% set is_duplicate = rel_page.href in children_urls %}
-{% if not is_current and not is_duplicate %}
-{% set _desc = rel_page.metadata.description or '' %}
-{% set _desc = _desc if _desc else (rel_page.content | strip_html | excerpt(100) if rel_page.content else '') %}
-{% do all_items.append({
-'type': 'related',
-'group': 'related',
-'obj': rel_page,
-'title': rel_page.title,
-'href': rel_page.href,
-'description': _desc,
-'weight': rel_page.weight,
-'date': rel_page.date,
-'icon': rel_page.metadata.icon or ''
-}) %}
-{% end %}
-{% end %}
-
-{% if all_items %}
-{# Sort items: by group (children first), then weight, then title #}
-{% if group_by == 'type' %}
-{% set sorted_items = all_items | sort(attribute='group,weight,title') %}
-{% else %}
-{% set sorted_items = all_items | sort(attribute='weight,title') %}
-{% end %}
-
-<section class="content-tiles content-tiles--{{ variant }}">
-  {% if title %}
-  <h2 class="content-tiles-title">{{ title }}</h2>
-  {% end %}
-
-  {% if variant == 'cards' %}
-  {# Card grid variant #}
-  <div class="content-tiles-grid">
-    {% for item in sorted_items %}
-    <article class="content-tile-card {% if item.type == 'related' %}content-tile-card--related{% end %}">
-      {% if show_icons %}
-      <div class="content-tile-card-icon">
-        {% set rendered_icon = icon(item.icon, size=24) if item.icon else '' %}
-        {% if rendered_icon %}
-        {{ rendered_icon }}
-        {% else %}
-        {% match item.type %}
-        {% case 'section' %}{{ icon('folder', size=24) }}
-        {% case 'related' %}{{ icon('link', size=24) }}
-        {% case _ %}{{ icon('file-text', size=24) }}
-        {% end %}
-        {% end %}
-      </div>
-      {% end %}
-      <h3 class="content-tile-card-title">
-        <a href="{{ item.href }}">{{ item.title }}</a>
-      </h3>
-      {% if show_descriptions and item.description %}
-      <p class="content-tile-card-description">{{ item.description | truncate(120) }}</p>
-      {% end %}
-      <div class="content-tile-card-meta">
-        {% match item.type %}
-        {% case 'section' %}
-        {% if item.page_count > 0 %}
-        <span>{{ item.page_count }} page{{ 's' if item.page_count != 1 }}</span>
-        {% end %}
-        {% case 'related' %}
-        <span class="content-tile-badge">Related</span>
-        {% case _ %}
-        {% if 'date' in item and item['date'] %}
-        <span>{{ item['date'] | time_ago }}</span>
-        {% end %}
-        {% end %}
-      </div>
-    </article>
-    {% end %}
-  </div>
-
-  {% elif variant == 'minimal' %}
-  {# Minimal list variant #}
-  <ul class="content-tiles-minimal">
-    {% for item in sorted_items %}
-    <li class="{% if item.type == 'related' %}content-tile--related{% end %}">
-      <a href="{{ item.href }}">{{ item.title }}</a>
-      {% if item.type == 'related' %}<span class="content-tile-badge">Related</span>{% end %}
-    </li>
-    {% end %}
-  </ul>
-
-  {% else %}
-  {# Compact (default) variant - row-based list #}
-  {# Portable pattern: use groupby instead of namespace for group header tracking #}
-  <div class="content-tiles-list">
-    {% for group_name, group_items in sorted_items | groupby('group') %}
-    {# Optional group headers when group_by='type' #}
-    {% if group_by == 'type' and group_name == 'related' and related_title %}
-    <div class="content-tiles-group-header">
-      <span class="content-tiles-group-label">{{ related_title }}</span>
-    </div>
-    {% end %}
-    {% for item in group_items %}
-    <article class="content-tile {% if item.type == 'related' %}content-tile--related{% end %}">
-      {% if show_icons %}
-      <div class="content-tile-icon">
-        {% set rendered_icon = icon(item.icon, size=20) if item.icon else '' %}
-        {% if rendered_icon %}{{ rendered_icon }}
-        {% elif item.type == 'section' %}{{ icon('folder', size=20) }}
-        {% elif item.type == 'related' %}{{ icon('link', size=20) }}
-        {% else %}{{ icon('file-text', size=20) }}{% end %}
-      </div>
-      {% end %}
-      <div class="content-tile-content">
-        <span class="content-tile-title">
-          <a href="{{ item.href }}">{{ item.title }}</a>
-          {% if show_descriptions and item.description %}
-          <span class="content-tile-description">{{ item.description }}</span>
-          {% end %}
-          <span class="content-tile-meta">
-            {% if item.type == 'section' and item.page_count > 0 %}
-            <span class="meta-item">{{ item.page_count }} page{{ 's' if item.page_count != 1 }}</span>
-            {% elif item.type == 'related' %}
-            <span class="meta-item content-tile-badge">Related</span>
-            {% elif 'date' in item and item['date'] %}
-            <span class="meta-item">{{ item['date'] | time_ago }}</span>
-            {% end %}
-          </span>
-        </span>
-      </div>
-    </article>
-    {% end %}
-    {% end %}
-  </div>
-  {% end %}
-</section>
-{% end %}
-{% end %}
-
-{#
-Child Page Tiles Component (Legacy)
-
-DEPRECATED: Use content_tiles() instead for new implementations.
-Kept for backward compatibility.
-
-Displays subsections and child pages as compact row-based items with icons.
-
-Args:
-posts: List of child pages to display (optional, defaults to None)
-subsections: List of child sections to display (optional, defaults to None)
-
-Example:
-{{ child_page_tiles(posts=page.regular_pages, subsections=page.sections) }}
-#}
-{% def child_page_tiles(posts=None, subsections=None) %}
-{% if posts or subsections %}
-{# Merge subsections and pages into unified list #}
-{% set all_items = [] %}
-
-{# Add subsections with metadata - use weight property (framework provides defaults) #}
-{% if subsections %}
-{% for subsection in subsections %}
-{% do all_items.append({
-'type': 'section',
-'obj': subsection,
-'title': subsection.title,
-'href': subsection.href,
-'description': subsection.metadata.description or '',
-'weight': subsection.weight,
-'page_count': subsection.pages | length if subsection.pages else 0,
-'icon': subsection.metadata.icon or ''
-}) %}
-{% end %}
-{% end %}
-
-{# Add pages with metadata - use weight property (framework provides defaults) #}
-{% if posts %}
-{% for post in posts %}
-{# Skip the current section index page if it appears in child posts #}
-{% if not (page and (post._path == page._path)) %}
-{% do all_items.append({
-'type': 'page',
-'obj': post,
-'title': post.title,
-'href': post.href,
-'description': post.metadata.description or (post.content | strip_html | excerpt(120) if post.content else ''),
-'weight': post.weight,
-'date': post.date,
-'icon': post.metadata.icon or ''
-}) %}
-{% end %}
-{% end %}
-{% end %}
-
-{# Sort by weight (ascending), then title #}
-{% set sorted_items = all_items | sort(attribute='weight,title') %}
-
-<section class="child-items">
-  <div class="child-items-list">
-    {% for item in sorted_items %}
-    <article class="child-item">
-      <div class="child-item-icon">
-        {# Try custom icon from frontmatter first, then fall back to type-based default #}
-        {% set rendered_icon = icon(item.icon, size=20) if item.icon else '' %}
-        {% if rendered_icon %}
-        {{ rendered_icon }}
-        {% elif item.type == 'section' %}
-        {# Default folder icon for sections #}
-        {{ icon('folder', size=20) }}
-        {% else %}
-        {# Default file icon for pages #}
-        {{ icon('file-text', size=20) }}
-        {% end %}
-      </div>
-
-      <div class="child-item-content">
-        <span class="child-item-title">
-          <a href="{{ item.href }}">{{ item.title }}</a>
-
-          {% if item.description %}
-          <span class="child-item-description">{{ item.description }}</span>
-          {% end %}
-
-          <span class="child-item-meta">
-            {% if item.type == 'section' and item.page_count > 0 %}
-            <span class="meta-item">{{ item.page_count }} page{{ 's' if item.page_count != 1 }}</span>
-            {% elif item.type == 'page' and item.date %}
-            <span class="meta-item">{{ item.date | time_ago }}</span>
-            {% end %}
-          </span>
-        </span>
-      </div>
-    </article>
-    {% end %}
-  </div>
-</section>
-{% end %}
-{% end %}
-
-{#
-Tag List Component
-
-Displays tags as styled badges, optionally linkable to tag archive pages.
-
-Args:
-tags: List of tag strings (required)
-small: Boolean (default: False) - use smaller size
-linkable: Boolean (default: True) - make tags clickable
-
-Example:
-{{ tag_list(page.tags) }}
-{{ tag_list(article.tags, small=True, linkable=False) }}
-#}
-{#
-Reusable iterator that skips the current page/item.
-
-Usage:
-{% from 'partials/content-components.html' import for_each_item_excluding_current %}
-{% call (post) for_each_item_excluding_current(posts) %}
-... render using `post` ...
-{% endcall %}
-#}
-{% def for_each_item_excluding_current(items) %}
-{%- for item in items -%}
-{%- if not (page and item._path == page._path) -%}
-{{ caller(item) }}
-{% end %}
-{% end %}
-{% end %}
-
-{#
-Render a section with a title only if there are any items.
-
-Args:
-- items: list to check (required)
-- title: section title string (required)
-- section_class: optional additional CSS classes on the section
-
-Usage:
-{% from 'partials/content-components.html' import render_section_if_any %}
-{% call (items) render_section_if_any(my_list, 'Functions', 'autodoc-section') %}
-<div class="autodoc-items-list">
-  <!-- render items here -->
-</div>
-{% endcall %}
-#}
-{% def render_section_if_any(items, title, section_class='') %}
-{% if items and (items | length) > 0 %}
-<section class="{{ section_class }}">
-  <h2 class="autodoc-section-title">{{ title }}</h2>
-  {{ caller(items) }}
-</section>
-{% end %}
-{% end %}
-{% def tag_list(tags, small=False, linkable=True) %}
-{% set max_display = theme.max_tags_display %}
-{% set display_tags = tags[:max_display] if max_display else tags %}
-<div class="tags {% if small %}tags-small{% end %}">
-  {% for tag in display_tags %}
-  {% if linkable %}
-  {# Use tag_url() function which handles baseurl and i18n prefixes correctly #}
-  <a href="{{ tag_url(tag) }}" class="tag">
-    {{ tag }}
+{% def card_wrapper(css_class='', href=None, show_border=True) %}
+<div class="card-wrapper {{ 'gradient-border' if show_border else '' }} {{ css_class }}">
+  {% if href %}
+  <a href="{{ href | absolute_url }}" class="card-wrapper-link">
+    {% slot %}
   </a>
   {% else %}
-  <span class="tag">{{ tag }}</span>
-  {% end %}
-  {% end %}
-  {% if max_display and tags|length > max_display %}
-  <span class="tag tag-more">+{{ tags|length - max_display }} more</span>
-  {% end %}
-</div>
-{% end %}
-
-{#
-Popular Tags Component
-
-Displays a tag cloud widget showing the most frequently used tags across the site.
-
-Args:
-limit: Number of tags to show (default: 10)
-
-Example:
-{{ popular_tags(limit=20) }}
-#}
-{% def popular_tags_widget(limit=None) %}
-{% set tag_limit = limit if limit is not none else (theme.popular_tags_count ?? 10) %}
-{% set top_tags = popular_tags(limit=tag_limit) %}
-{% if top_tags %}
-<div class="popular-tags-widget">
-  <h3>{{ t('tags.popular', default='Popular Topics') }}</h3>
-  <div class="tag-cloud">
-    {% for tag, count in top_tags %}
-    <!-- DEBUG: tag={{ tag }}, count={{ count }}, count_type={{ count|string }} -->
-    <a href="{{ tag_url(tag) }}" class="tag-bubble" data-count="{{ count }}">
-      {{ tag }}
-      <span class="tag-count">{{ count }}</span>
-    </a>
-    {% end %}
+  <div class="card-wrapper-content">
+    {% slot %}
   </div>
+  {% end %}
 </div>
-{% end %}
 {% end %}
 
 {#
-Random Posts Component
+Panel Component (Slot-based)
 
-Displays a widget with randomly selected posts from the site.
+Styled panel/callout for alerts, notes, tips, warnings.
+Use with {% call %} to inject custom content.
 
 Args:
-count: Number of random posts to show (default: 3)
+variant: Panel type - 'info' | 'warning' | 'danger' | 'success' | 'tip' (default: 'info')
+title: Optional title text
+icon_name: Override default icon (uses variant-specific icon if not set)
+collapsible: Make panel collapsible with <details> (default: false)
 
-Example:
-{{ random_posts(count=5) }}
-#}
-{% def random_posts(count=3) %}
-{% set random_posts = site.regular_pages | sample(count) %}
-{% if random_posts %}
-<aside class="random-posts-widget">
-  <h3>{{ t('posts.you_might_like', default='You Might Also Like') }}</h3>
-  <div class="random-posts-list">
-    {% for post in random_posts %}
-    <article class="random-post-item">
-      <h4>
-        <a href="{{ post.href }}">{{ post.title }}</a>
-      </h4>
-      {% if post.date %}
-      <time datetime="{{ post.date | date_iso }}">
-        {{ post.date | time_ago }}
-      </time>
+  Example:
+  {% call panel(variant='warning', title='Important') %}
+  <p>This is a warning message.</p>
+  {% end %}
+
+  {% call panel(variant='tip', collapsible=true) %}
+  <p>Click to expand this tip!</p>
+  {% end %}
+  #}
+  {% def panel(variant='info', title=None, icon_name=None, collapsible=false) %}
+  {% let icons = {'info': 'info', 'warning': 'warning', 'danger': 'x-circle', 'success': 'check-circle', 'tip':
+  'lightbulb'} %}
+  {% let panel_icon = icon_name ?? icons[variant] ?? 'info' %}
+
+  {% if collapsible %}
+  <details class="panel panel--{{ variant }}">
+    <summary class="panel-header">
+      {{ icon(panel_icon, size=18, css_class='panel-icon') }}
+      <span class="panel-title">{{ title ?? variant | title }}</span>
+    </summary>
+    <div class="panel-body">
+      {% slot %}
+    </div>
+  </details>
+  {% else %}
+  <aside class="panel panel--{{ variant }}" role="note">
+    <div class="panel-header">
+      {{ icon(panel_icon, size=18, css_class='panel-icon') }}
+      {% if title %}
+      <span class="panel-title">{{ title }}</span>
       {% end %}
-    </article>
+    </div>
+    <div class="panel-body">
+      {% slot %}
+    </div>
+  </aside>
+  {% end %}
+  {% end %}
+
+  {#
+  Article Card Component
+
+  Displays a rich card preview of an article with metadata, tags, and optional image.
+
+  Args:
+  article: Page object to display (required)
+  show_excerpt: Boolean (default: True) - show description/excerpt
+  show_image: Boolean (default: False) - show featured image
+
+  Example:
+  {{ article_card(post, show_image=True, show_excerpt=True) }}
+  #}
+  {% def article_card(article, show_excerpt=True, show_image=False) %}
+  <article class="article-card gradient-border fluid-combined {% if article is featured %}featured-card{% end %}">
+    {% if show_image and article.metadata.image %}
+    {# Responsive image with srcset - dogfooding image_srcset() #}
+    <img src="{{ image_url(article.metadata.image, width=800) }}"
+      srcset="{{ article.metadata.image | image_srcset([400, 800, 1200]) }}"
+      sizes="(max-width: 640px) 400px, (max-width: 1024px) 800px, 1200px" alt="{{ article.metadata.image | image_alt }}"
+      class="article-card-image" loading="lazy">
+    {% end %}
+
+    <div class="article-card-content">
+      {# Tag badges - dogfooding has_tag() #}
+      <div class="article-card-badges">
+        {% if article is featured %}
+        <span class="badge badge-featured">⭐ Featured</span>
+        {% end %}
+        {% if article | has_tag('tutorial') %}
+        <span class="badge badge-tutorial">📚 Tutorial</span>
+        {% end %}
+        {% if article | has_tag('new') %}
+        <span class="badge badge-new">✨ New</span>
+        {% end %}
+      </div>
+
+      <h2 class="article-card-title">
+        <a href="{{ article.href }}">{{ article.title }}</a>
+      </h2>
+
+      <div class="article-card-meta">
+        {% with article.date as date %}
+        <time datetime="{{ date | date_iso }}" title="{{ date | dateformat('%B %d, %Y') }}">
+          {{ date | time_ago }}
+        </time>
+        {% end %}
+
+        {% with article.metadata.author as author %}
+        {% if 'content.author' in theme.features %}
+        <span class="author">{{ author }}</span>
+        {% end %}
+        {% end %}
+
+        {% with article.content as content %}
+        {% if 'content.reading_time' in theme.features %}
+        <span class="reading-time">
+          {{ content | reading_time }} min read
+        </span>
+        {% end %}
+        {% end %}
+      </div>
+
+      {% if show_excerpt and 'content.excerpts' in theme.features %}
+      <p class="article-card-excerpt">
+        {% if article.metadata.description %}
+        {{ article.metadata.description }}
+        {% elif article.content %}
+        {{ article.content | strip_html | excerpt(150) }}
+        {% end %}
+      </p>
+      {% end %}
+
+      {% with article.tags as tags %}
+      <div class="article-card-footer">
+        {{ tag_list(tags, small=True) }}
+      </div>
+      {% end %}
+    </div>
+  </article>
+  {% end %}
+
+  {#
+  Content Tiles Component (Enhanced)
+
+  Flexible content display with optional headers, multiple content sources,
+  and variant display modes. Successor to child_page_tiles.
+
+  Args:
+  title: Header for children section (string, or None to suppress)
+  children: List of child pages to display
+  subsections: List of child sections to display
+  related: Related pages (list, or True to auto-get from page.related_posts)
+  related_title: Header for related section (string, or None to suppress)
+  related_limit: Max related pages when related=True (default: 5)
+  variant: Display style - 'compact' (rows) | 'cards' | 'minimal'
+  show_descriptions: Show item descriptions (default: True)
+  show_icons: Show item icons (default: True)
+  group_by: Group items - None | 'type' (sections first, then pages, then related)
+
+  Variants:
+  - compact: Row-based list with icons (default, current style)
+  - cards: Grid of preview cards
+  - minimal: Simple link list, no descriptions
+
+  Example:
+  {{ content_tiles(title="In This Section", children=posts, subsections=subsections) }}
+  {{ content_tiles(related=page.related_posts[:3], related_title="Related", variant='minimal') }}
+  {{ content_tiles(title="In This Section", children=posts, related=True, related_title="Related Pages",
+  group_by='type')
+  }}
+  #}
+  {% def content_tiles(
+  title=None,
+  children=None,
+  subsections=None,
+  related=None,
+  related_title=None,
+  related_limit=5,
+  variant='compact',
+  show_descriptions=True,
+  show_icons=True,
+  group_by=None,
+  page=None
+  ) %}
+  {% set all_items = [] %}
+
+  {# Add subsections with metadata #}
+  {# Use weight property for sortable values (framework provides defaults) #}
+  {% if subsections %}
+  {% for subsection in subsections %}
+  {% do all_items.append({
+  'type': 'section',
+  'group': 'children',
+  'obj': subsection,
+  'title': subsection.title,
+  'href': subsection.href,
+  'description': subsection.metadata.description or '',
+  'weight': subsection.weight,
+  'page_count': subsection.pages | length if subsection.pages else 0,
+  'icon': subsection.metadata.icon or ''
+  }) %}
+  {% end %}
+  {% end %}
+
+  {# Add child pages with metadata #}
+  {# Use weight property for sortable values (framework provides defaults) #}
+  {% if children %}
+  {% for post in children %}
+  {# Skip the current page if it appears in child posts #}
+  {% if not (page and (post._path == page._path)) %}
+  {% do all_items.append({
+  'type': 'page',
+  'group': 'children',
+  'obj': post,
+  'title': post.title,
+  'href': post.href,
+  'description': post.metadata.description or (post.content | strip_html | excerpt(120) if post.content else ''),
+  'weight': post.weight,
+  'date': post.date,
+  'icon': post.metadata.icon or ''
+  }) %}
+  {% end %}
+  {% end %}
+  {% end %}
+
+  {# Add related pages (deduped - won't repeat pages from children) #}
+  {% set related_pages = [] %}
+  {% if related is sameas true %}
+  {# Auto-get from page.related_posts #}
+  {% if page and page.related_posts %}
+  {% set related_pages = page.related_posts[:related_limit] %}
+  {% end %}
+  {% elif related %}
+  {% set related_pages = related %}
+  {% end %}
+
+  {# Build a set of URLs already in children for O(1) lookup #}
+  {% set children_urls = [] %}
+  {% for item in all_items %}
+  {% do children_urls.append(item.href) %}
+  {% end %}
+
+  {% for rel_page in related_pages %}
+  {# Skip current page and any pages already in children #}
+  {% set is_current = page and (rel_page._path == page._path) %}
+  {% set is_duplicate = rel_page.href in children_urls %}
+  {% if not is_current and not is_duplicate %}
+  {% set _desc = rel_page.metadata.description or '' %}
+  {% set _desc = _desc if _desc else (rel_page.content | strip_html | excerpt(100) if rel_page.content else '') %}
+  {% do all_items.append({
+  'type': 'related',
+  'group': 'related',
+  'obj': rel_page,
+  'title': rel_page.title,
+  'href': rel_page.href,
+  'description': _desc,
+  'weight': rel_page.weight,
+  'date': rel_page.date,
+  'icon': rel_page.metadata.icon or ''
+  }) %}
+  {% end %}
+  {% end %}
+
+  {% if all_items %}
+  {# Sort items: by group (children first), then weight, then title #}
+  {% if group_by == 'type' %}
+  {% set sorted_items = all_items | sort(attribute='group,weight,title') %}
+  {% else %}
+  {% set sorted_items = all_items | sort(attribute='weight,title') %}
+  {% end %}
+
+  <section class="content-tiles content-tiles--{{ variant }}">
+    {% if title %}
+    <h2 class="content-tiles-title">{{ title }}</h2>
+    {% end %}
+
+    {% if variant == 'cards' %}
+    {# Card grid variant #}
+    <div class="content-tiles-grid">
+      {% for item in sorted_items %}
+      <article class="content-tile-card {% if item.type == 'related' %}content-tile-card--related{% end %}">
+        {% if show_icons %}
+        <div class="content-tile-card-icon">
+          {% set rendered_icon = icon(item.icon, size=24) if item.icon else '' %}
+          {% if rendered_icon %}
+          {{ rendered_icon }}
+          {% else %}
+          {% match item.type %}
+          {% case 'section' %}{{ icon('folder', size=24) }}
+          {% case 'related' %}{{ icon('link', size=24) }}
+          {% case _ %}{{ icon('file-text', size=24) }}
+          {% end %}
+          {% end %}
+        </div>
+        {% end %}
+        <h3 class="content-tile-card-title">
+          <a href="{{ item.href }}">{{ item.title }}</a>
+        </h3>
+        {% if show_descriptions and item.description %}
+        <p class="content-tile-card-description">{{ item.description | truncate(120) }}</p>
+        {% end %}
+        <div class="content-tile-card-meta">
+          {% match item.type %}
+          {% case 'section' %}
+          {% if item.page_count > 0 %}
+          <span>{{ item.page_count }} page{{ 's' if item.page_count != 1 }}</span>
+          {% end %}
+          {% case 'related' %}
+          <span class="content-tile-badge">Related</span>
+          {% case _ %}
+          {% if 'date' in item and item['date'] %}
+          <span>{{ item['date'] | time_ago }}</span>
+          {% end %}
+          {% end %}
+        </div>
+      </article>
+      {% end %}
+    </div>
+
+    {% elif variant == 'minimal' %}
+    {# Minimal list variant #}
+    <ul class="content-tiles-minimal">
+      {% for item in sorted_items %}
+      <li class="{% if item.type == 'related' %}content-tile--related{% end %}">
+        <a href="{{ item.href }}">{{ item.title }}</a>
+        {% if item.type == 'related' %}<span class="content-tile-badge">Related</span>{% end %}
+      </li>
+      {% end %}
+    </ul>
+
+    {% else %}
+    {# Compact (default) variant - row-based list #}
+    {# Portable pattern: use groupby instead of namespace for group header tracking #}
+    <div class="content-tiles-list">
+      {% for group_name, group_items in sorted_items | groupby('group') %}
+      {# Optional group headers when group_by='type' #}
+      {% if group_by == 'type' and group_name == 'related' and related_title %}
+      <div class="content-tiles-group-header">
+        <span class="content-tiles-group-label">{{ related_title }}</span>
+      </div>
+      {% end %}
+      {% for item in group_items %}
+      <article class="content-tile {% if item.type == 'related' %}content-tile--related{% end %}">
+        {% if show_icons %}
+        <div class="content-tile-icon">
+          {% set rendered_icon = icon(item.icon, size=20) if item.icon else '' %}
+          {% if rendered_icon %}{{ rendered_icon }}
+          {% elif item.type == 'section' %}{{ icon('folder', size=20) }}
+          {% elif item.type == 'related' %}{{ icon('link', size=20) }}
+          {% else %}{{ icon('file-text', size=20) }}{% end %}
+        </div>
+        {% end %}
+        <div class="content-tile-content">
+          <span class="content-tile-title">
+            <a href="{{ item.href }}">{{ item.title }}</a>
+            {% if show_descriptions and item.description %}
+            <span class="content-tile-description">{{ item.description }}</span>
+            {% end %}
+            <span class="content-tile-meta">
+              {% if item.type == 'section' and item.page_count > 0 %}
+              <span class="meta-item">{{ item.page_count }} page{{ 's' if item.page_count != 1 }}</span>
+              {% elif item.type == 'related' %}
+              <span class="meta-item content-tile-badge">Related</span>
+              {% elif 'date' in item and item['date'] %}
+              <span class="meta-item">{{ item['date'] | time_ago }}</span>
+              {% end %}
+            </span>
+          </span>
+        </div>
+      </article>
+      {% end %}
+      {% end %}
+    </div>
+    {% end %}
+  </section>
+  {% end %}
+  {% end %}
+
+  {#
+  Child Page Tiles Component (Legacy)
+
+  DEPRECATED: Use content_tiles() instead for new implementations.
+  Kept for backward compatibility.
+
+  Displays subsections and child pages as compact row-based items with icons.
+
+  Args:
+  posts: List of child pages to display (optional, defaults to None)
+  subsections: List of child sections to display (optional, defaults to None)
+
+  Example:
+  {{ child_page_tiles(posts=page.regular_pages, subsections=page.sections) }}
+  #}
+  {% def child_page_tiles(posts=None, subsections=None) %}
+  {% if posts or subsections %}
+  {# Merge subsections and pages into unified list #}
+  {% set all_items = [] %}
+
+  {# Add subsections with metadata - use weight property (framework provides defaults) #}
+  {% if subsections %}
+  {% for subsection in subsections %}
+  {% do all_items.append({
+  'type': 'section',
+  'obj': subsection,
+  'title': subsection.title,
+  'href': subsection.href,
+  'description': subsection.metadata.description or '',
+  'weight': subsection.weight,
+  'page_count': subsection.pages | length if subsection.pages else 0,
+  'icon': subsection.metadata.icon or ''
+  }) %}
+  {% end %}
+  {% end %}
+
+  {# Add pages with metadata - use weight property (framework provides defaults) #}
+  {% if posts %}
+  {% for post in posts %}
+  {# Skip the current section index page if it appears in child posts #}
+  {% if not (page and (post._path == page._path)) %}
+  {% do all_items.append({
+  'type': 'page',
+  'obj': post,
+  'title': post.title,
+  'href': post.href,
+  'description': post.metadata.description or (post.content | strip_html | excerpt(120) if post.content else ''),
+  'weight': post.weight,
+  'date': post.date,
+  'icon': post.metadata.icon or ''
+  }) %}
+  {% end %}
+  {% end %}
+  {% end %}
+
+  {# Sort by weight (ascending), then title #}
+  {% set sorted_items = all_items | sort(attribute='weight,title') %}
+
+  <section class="child-items">
+    <div class="child-items-list">
+      {% for item in sorted_items %}
+      <article class="child-item">
+        <div class="child-item-icon">
+          {# Try custom icon from frontmatter first, then fall back to type-based default #}
+          {% set rendered_icon = icon(item.icon, size=20) if item.icon else '' %}
+          {% if rendered_icon %}
+          {{ rendered_icon }}
+          {% elif item.type == 'section' %}
+          {# Default folder icon for sections #}
+          {{ icon('folder', size=20) }}
+          {% else %}
+          {# Default file icon for pages #}
+          {{ icon('file-text', size=20) }}
+          {% end %}
+        </div>
+
+        <div class="child-item-content">
+          <span class="child-item-title">
+            <a href="{{ item.href }}">{{ item.title }}</a>
+
+            {% if item.description %}
+            <span class="child-item-description">{{ item.description }}</span>
+            {% end %}
+
+            <span class="child-item-meta">
+              {% if item.type == 'section' and item.page_count > 0 %}
+              <span class="meta-item">{{ item.page_count }} page{{ 's' if item.page_count != 1 }}</span>
+              {% elif item.type == 'page' and item.date %}
+              <span class="meta-item">{{ item.date | time_ago }}</span>
+              {% end %}
+            </span>
+          </span>
+        </div>
+      </article>
+      {% end %}
+    </div>
+  </section>
+  {% end %}
+  {% end %}
+
+  {#
+  Tag List Component
+
+  Displays tags as styled badges, optionally linkable to tag archive pages.
+
+  Args:
+  tags: List of tag strings (required)
+  small: Boolean (default: False) - use smaller size
+  linkable: Boolean (default: True) - make tags clickable
+
+  Example:
+  {{ tag_list(page.tags) }}
+  {{ tag_list(article.tags, small=True, linkable=False) }}
+  #}
+  {#
+  Reusable iterator that skips the current page/item.
+
+  Usage:
+  {% from 'partials/content-components.html' import for_each_item_excluding_current %}
+  {% call (post) for_each_item_excluding_current(posts) %}
+  ... render using `post` ...
+  {% endcall %}
+  #}
+  {% def for_each_item_excluding_current(items) %}
+  {%- for item in items -%}
+  {%- if not (page and item._path == page._path) -%}
+  {{ caller(item) }}
+  {% end %}
+  {% end %}
+  {% end %}
+
+  {#
+  Render a section with a title only if there are any items.
+
+  Args:
+  - items: list to check (required)
+  - title: section title string (required)
+  - section_class: optional additional CSS classes on the section
+
+  Usage:
+  {% from 'partials/content-components.html' import render_section_if_any %}
+  {% call (items) render_section_if_any(my_list, 'Functions', 'autodoc-section') %}
+  <div class="autodoc-items-list">
+    <!-- render items here -->
+  </div>
+  {% endcall %}
+  #}
+  {% def render_section_if_any(items, title, section_class='') %}
+  {% if items and (items | length) > 0 %}
+  <section class="{{ section_class }}">
+    <h2 class="autodoc-section-title">{{ title }}</h2>
+    {{ caller(items) }}
+  </section>
+  {% end %}
+  {% end %}
+  {% def tag_list(tags, small=False, linkable=True) %}
+  {% set max_display = theme.max_tags_display %}
+  {% set display_tags = tags[:max_display] if max_display else tags %}
+  <div class="tags {% if small %}tags-small{% end %}">
+    {% for tag in display_tags %}
+    {% if linkable %}
+    {# Use tag_url() function which handles baseurl and i18n prefixes correctly #}
+    <a href="{{ tag_url(tag) }}" class="tag">
+      {{ tag }}
+    </a>
+    {% else %}
+    <span class="tag">{{ tag }}</span>
+    {% end %}
+    {% end %}
+    {% if max_display and tags|length > max_display %}
+    <span class="tag tag-more">+{{ tags|length - max_display }} more</span>
     {% end %}
   </div>
-</aside>
-{% end %}
-{% end %}
+  {% end %}
+
+  {#
+  Popular Tags Component
+
+  Displays a tag cloud widget showing the most frequently used tags across the site.
+
+  Args:
+  limit: Number of tags to show (default: 10)
+
+  Example:
+  {{ popular_tags(limit=20) }}
+  #}
+  {% def popular_tags_widget(limit=None) %}
+  {% set tag_limit = limit if limit is not none else (theme.popular_tags_count ?? 10) %}
+  {% set top_tags = popular_tags(limit=tag_limit) %}
+  {% if top_tags %}
+  <div class="popular-tags-widget">
+    <h3>{{ t('tags.popular', default='Popular Topics') }}</h3>
+    <div class="tag-cloud">
+      {% for tag, count in top_tags %}
+      <!-- DEBUG: tag={{ tag }}, count={{ count }}, count_type={{ count|string }} -->
+      <a href="{{ tag_url(tag) }}" class="tag-bubble" data-count="{{ count }}">
+        {{ tag }}
+        <span class="tag-count">{{ count }}</span>
+      </a>
+      {% end %}
+    </div>
+  </div>
+  {% end %}
+  {% end %}
+
+  {#
+  Random Posts Component
+
+  Displays a widget with randomly selected posts from the site.
+
+  Args:
+  count: Number of random posts to show (default: 3)
+
+  Example:
+  {{ random_posts(count=5) }}
+  #}
+  {% def random_posts(count=3) %}
+  {% set random_posts = site.regular_pages | sample(count) %}
+  {% if random_posts %}
+  <aside class="random-posts-widget">
+    <h3>{{ t('posts.you_might_like', default='You Might Also Like') }}</h3>
+    <div class="random-posts-list">
+      {% for post in random_posts %}
+      <article class="random-post-item">
+        <h4>
+          <a href="{{ post.href }}">{{ post.title }}</a>
+        </h4>
+        {% if post.date %}
+        <time datetime="{{ post.date | date_iso }}">
+          {{ post.date | time_ago }}
+        </time>
+        {% end %}
+      </article>
+      {% end %}
+    </div>
+  </aside>
+  {% end %}
+  {% end %}

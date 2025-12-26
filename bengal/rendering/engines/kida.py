@@ -438,6 +438,74 @@ class KidaTemplateEngine:
         return errors
 
     # =========================================================================
+    # TEMPLATE INTROSPECTION (RFC: kida-template-introspection)
+    # =========================================================================
+
+    def get_template_introspection(self, name: str) -> dict[str, Any] | None:
+        """Get introspection metadata for a template.
+
+        Returns analysis of template structure including:
+        - blocks: Block metadata (dependencies, purity, cache scope)
+        - extends: Parent template name (if any)
+        - all_dependencies: All context paths the template accesses
+
+        Args:
+            name: Template identifier (e.g., "page.html")
+
+        Returns:
+            Dict with template metadata, or None if:
+            - Template not found
+            - AST was not preserved (preserve_ast=False)
+
+        Example:
+            >>> info = engine.get_template_introspection("page.html")
+            >>> if info:
+            ...     for block_name, meta in info["blocks"].items():
+            ...         if meta.cache_scope == "site":
+            ...             print(f"Block {block_name} is site-cacheable")
+        """
+        try:
+            template = self._env.get_template(name)
+            meta = template.template_metadata()
+            if meta is None:
+                return None
+
+            return {
+                "name": meta.name,
+                "extends": meta.extends,
+                "blocks": meta.blocks,
+                "all_dependencies": meta.all_dependencies(),
+            }
+        except Exception:
+            return None
+
+    def get_cacheable_blocks(self, name: str) -> dict[str, str]:
+        """Get blocks that can be cached and their cache scope.
+
+        Convenience method for build optimization. Returns only blocks
+        with determined cache scope (excludes "unknown").
+
+        Args:
+            name: Template identifier
+
+        Returns:
+            Dict of block_name → cache_scope ("site" or "page")
+
+        Example:
+            >>> cacheable = engine.get_cacheable_blocks("base.html")
+            >>> # {'nav': 'site', 'footer': 'site', 'content': 'page'}
+        """
+        info = self.get_template_introspection(name)
+        if not info:
+            return {}
+
+        return {
+            block_name: meta.cache_scope
+            for block_name, meta in info["blocks"].items()
+            if meta.cache_scope in ("site", "page") and meta.is_pure == "pure"
+        }
+
+    # =========================================================================
     # COMPATIBILITY METHODS (for Bengal internals)
     # =========================================================================
 

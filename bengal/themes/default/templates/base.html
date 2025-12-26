@@ -510,7 +510,8 @@ _path, kind, tags are always defined - no defensive checks needed.
             {% block content %}{% end %}
         </main>
 
-        {# Footer #}
+        {# Footer - cached per language since it's identical across pages #}
+        {% cache "footer-" ~ _current_lang ~ "-" ~ _site_title %}
         <footer role="contentinfo">
             <div class="container">
                 {# Popular Tags Widget removed to avoid duplicate tags on section index pages #}
@@ -550,6 +551,7 @@ _path, kind, tags are always defined - no defensive checks needed.
                 </div>
             </div>
         </footer>
+        {% end %}
 
         {# ============================================================== #}
         {# JavaScript Loading Strategy (Render Performance Optimized) #}

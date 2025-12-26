@@ -186,6 +186,74 @@ Found {{ count }} items
 """)
         assert tmpl.render().strip() == "Hi Guest | Hi Alice"
 
+    def test_slot_for_caller_content(self, env: Environment):
+        """Test {% slot %} inside {% def %} for caller content injection."""
+        # Define a wrapper with a slot
+        tmpl = env.from_string("""
+{%- def card(title) -%}
+<div class="card">
+  <h3>{{ title }}</h3>
+  <div class="body">{% slot %}</div>
+</div>
+{%- end -%}
+
+{%- call card("My Card") -%}
+<p>This is the slot content!</p>
+{%- end -%}
+""")
+        result = tmpl.render().strip()
+        assert "<h3>My Card</h3>" in result
+        assert "<p>This is the slot content!</p>" in result
+
+    def test_slot_with_multiple_content(self, env: Environment):
+        """Test {% slot %} with rich content."""
+        tmpl = env.from_string("""
+{%- def panel(variant='info') -%}
+<aside class="panel panel--{{ variant }}">
+{% slot %}
+</aside>
+{%- end -%}
+
+{%- call panel(variant='warning') -%}
+<strong>Warning!</strong>
+<p>Something happened.</p>
+{%- end -%}
+""")
+        result = tmpl.render().strip()
+        assert 'class="panel panel--warning"' in result
+        assert "<strong>Warning!</strong>" in result
+        assert "<p>Something happened.</p>" in result
+
+    def test_cache_block(self, env: Environment):
+        """Test {% cache %} for fragment caching."""
+        # Cache block with key expression
+        tmpl = env.from_string("""
+{%- cache "footer-" ~ lang -%}
+<footer>{{ site_title }}</footer>
+{%- end -%}
+""")
+        # First render populates cache
+        result1 = tmpl.render(lang="en", site_title="My Site")
+        assert "<footer>My Site</footer>" in result1
+
+        # Same key returns cached content (even with different site_title)
+        result2 = tmpl.render(lang="en", site_title="Different Site")
+        assert "<footer>My Site</footer>" in result2
+
+        # Different key gets fresh render
+        result3 = tmpl.render(lang="es", site_title="Mi Sitio")
+        assert "<footer>Mi Sitio</footer>" in result3
+
+    def test_cache_with_dynamic_key(self, env: Environment):
+        """Test {% cache %} with dynamic key expressions."""
+        tmpl = env.from_string("""
+{%- cache "item-" ~ item.id -%}
+<div>{{ item.name }}</div>
+{%- end -%}
+""")
+        result = tmpl.render(item={"id": 1, "name": "First"})
+        assert "<div>First</div>" in result
+
 
 class TestTemplateContext:
     """Test templates work with Bengal context objects."""
