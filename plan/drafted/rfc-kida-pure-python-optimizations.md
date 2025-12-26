@@ -25,17 +25,20 @@ This RFC proposes an **AST optimization pass** for Kida that operates entirely i
 | Dead Code Elimination | Compile | 3h | 10-30% | Low |
 | Static Data Coalescing | Compile | 2h | 5-10% | Low |
 | Filter Inlining | Compile | 4h | 5-10% | Medium |
-| Expression Deduplication | Compile | 5h | 10-20% | Medium |
 | Buffer Pre-allocation | Runtime | 2h | 5-10% | Low |
 | Template Bytecode Cache | Startup | 4h | **90%+ cold-start** | Low |
 
-**Total Effort**: ~24 hours (~3 days)
+> **Note**: Expression Deduplication (5h, 10-20% impact) deferred to Phase 2 RFC due to complexity of tracking expression identity across scopes.
+
+**Total Effort**: ~19 hours (~2.5 days)
 
 **Key Deliverables**:
-1. `ASTOptimizer` class with pluggable optimization passes
-2. `BytecodeCache` for persistent compiled template storage
-3. Integration with existing `Environment.optimized` flag
-4. Comprehensive test coverage for each optimization
+1. `ASTOptimizer` class with pluggable optimization passes and stats tracking
+2. `BytecodeCache` for persistent compiled template storage (version-aware)
+3. `InlinedFilter` node type for direct method call generation
+4. `OptimizationStats` for debugging and observability
+5. Integration with existing `Environment.optimized` flag
+6. Comprehensive test coverage (>90%) for each optimization
 
 ---
 
@@ -102,7 +105,7 @@ Template Source
 │  ├── DeadCodeEliminator         │
 │  ├── DataCoalescer              │
 │  ├── FilterInliner              │
-│  └── ExpressionDeduplicator     │
+│  └── BufferEstimator            │
 └─────────────────────────────────┘
       ↓
   Optimized Kida AST
@@ -164,7 +167,7 @@ import operator
 from typing import Any
 
 from bengal.rendering.kida.nodes import (
-    BinOp, Const, UnaryOp, Compare, Node, Expr,
+    BinOp, Const, UnaryOp, Compare, Node, Expr, Concat,
 )
 
 
@@ -203,13 +206,22 @@ class ConstantFolder:
 
     Example:
         >>> folder = ConstantFolder()
-        >>> folded = folder.fold(parse("{{ 1 + 2 * 3 }}"))
-        >>> # Result: Output(expr=Const(value=7))
+        >>> folded, count = folder.fold(parse("{{ 1 + 2 * 3 }}"))
+        >>> # Result: Output(expr=Const(value=7)), count=1
     """
 
-    def fold(self, node: Node) -> Node:
-        """Recursively fold constants in AST."""
-        return self._fold_node(node)
+    def __init__(self) -> None:
+        self._fold_count = 0
+
+    def fold(self, node: Node) -> tuple[Node, int]:
+        """Recursively fold constants in AST.
+
+        Returns:
+            Tuple of (optimized AST, number of constants folded)
+        """
+        self._fold_count = 0
+        result = self._fold_node(node)
+        return result, self._fold_count
 
     def _fold_node(self, node: Node) -> Node:
         """Dispatch to appropriate folder based on node type."""
@@ -240,6 +252,7 @@ class ConstantFolder:
             if op_func is not None:
                 try:
                     result = op_func(left.value, right.value)
+                    self._fold_count += 1
                     return Const(
                         value=result,
                         lineno=node.lineno,
@@ -320,7 +333,7 @@ class ConstantFolder:
             col_offset=node.col_offset,
         )
 
-    def _fold_concat(self, node: Any) -> Expr:
+    def _fold_concat(self, node: Concat) -> Expr:
         """Fold string concatenation of constants."""
         # Concat node has sequence of expressions to join
         folded = [self._fold_node(e) for e in node.nodes]
@@ -425,18 +438,19 @@ class TestConstantFolder:
     def test_fold_arithmetic(self, folder):
         """Arithmetic operations on constants are folded."""
         ast = self._parse("{{ 1 + 2 * 3 }}")
-        folded = folder.fold(ast)
+        folded, count = folder.fold(ast)
 
         # Should have single Output with Const(7)
         output = folded.body[0]
         assert isinstance(output, Output)
         assert isinstance(output.expr, Const)
         assert output.expr.value == 7
+        assert count >= 1  # At least one fold occurred
 
     def test_fold_string_concat(self, folder):
         """String concatenation of constants is folded."""
         ast = self._parse('{{ "Hello" ~ " " ~ "World" }}')
-        folded = folder.fold(ast)
+        folded, count = folder.fold(ast)
 
         output = folded.body[0]
         assert isinstance(output.expr, Const)
@@ -445,7 +459,7 @@ class TestConstantFolder:
     def test_fold_comparison(self, folder):
         """Comparison operations on constants are folded."""
         ast = self._parse("{% if 1 < 2 %}yes{% end %}")
-        folded = folder.fold(ast)
+        folded, count = folder.fold(ast)
 
         # If node test should now be Const(True)
         if_node = folded.body[0]
@@ -455,16 +469,17 @@ class TestConstantFolder:
     def test_no_fold_variables(self, folder):
         """Expressions with variables are not folded."""
         ast = self._parse("{{ x + 1 }}")
-        folded = folder.fold(ast)
+        folded, count = folder.fold(ast)
 
         # Should remain a BinOp, not a Const
         output = folded.body[0]
         assert type(output.expr).__name__ == "BinOp"
+        assert count == 0  # Nothing folded
 
     def test_partial_fold(self, folder):
         """Partial constant expressions are folded where possible."""
         ast = self._parse("{{ x + (1 + 2) }}")
-        folded = folder.fold(ast)
+        folded, count = folder.fold(ast)
 
         # Inner (1 + 2) should be folded to 3
         output = folded.body[0]
@@ -472,25 +487,45 @@ class TestConstantFolder:
         assert type(binop).__name__ == "BinOp"
         assert isinstance(binop.right, Const)
         assert binop.right.value == 3
+        assert count == 1
 
     def test_fold_division_by_zero_safe(self, folder):
         """Division by zero is not folded (would raise at runtime)."""
         ast = self._parse("{{ 1 / 0 }}")
-        folded = folder.fold(ast)
+        folded, count = folder.fold(ast)
 
         # Should remain a BinOp, not crash
         output = folded.body[0]
         assert type(output.expr).__name__ == "BinOp"
+        assert count == 0  # Unsafe fold avoided
 
     def test_fold_nested_structures(self, folder):
         """Constants in nested structures are folded."""
         ast = self._parse("{% for x in items %}{{ 1 + 1 }}{% end %}")
-        folded = folder.fold(ast)
+        folded, count = folder.fold(ast)
 
         for_node = folded.body[0]
         output = for_node.body[0]
         assert isinstance(output.expr, Const)
         assert output.expr.value == 2
+
+    def test_fold_chained_operators(self, folder):
+        """Chained constant operations are fully folded."""
+        ast = self._parse("{{ 2 ** 3 ** 2 }}")  # 2^9 = 512
+        folded, count = folder.fold(ast)
+
+        output = folded.body[0]
+        assert isinstance(output.expr, Const)
+        assert output.expr.value == 512
+
+    def test_fold_unary_operators(self, folder):
+        """Unary operators on constants are folded."""
+        ast = self._parse("{{ -5 }}")
+        folded, count = folder.fold(ast)
+
+        output = folded.body[0]
+        assert isinstance(output.expr, Const)
+        assert output.expr.value == -5
 ```
 
 ---
@@ -545,11 +580,21 @@ class DeadCodeEliminator:
     Thread-safe: Stateless, creates new nodes.
     """
 
-    def eliminate(self, node: Node) -> Node:
-        """Remove dead code from AST."""
+    def __init__(self) -> None:
+        self._eliminate_count = 0
+
+    def eliminate(self, node: Node) -> tuple[Node, int]:
+        """Remove dead code from AST.
+
+        Returns:
+            Tuple of (optimized AST, number of blocks eliminated)
+        """
+        self._eliminate_count = 0
         if isinstance(node, Template):
-            return self._eliminate_template(node)
-        return self._eliminate_node(node)
+            result = self._eliminate_template(node)
+        else:
+            result = self._eliminate_node(node)
+        return result, self._eliminate_count
 
     def _eliminate_template(self, node: Template) -> Template:
         """Process template root."""
@@ -601,6 +646,7 @@ class DeadCodeEliminator:
         """Eliminate dead code in If statements."""
         # Check if test is a constant
         if isinstance(node.test, Const):
+            self._eliminate_count += 1
             if node.test.value:
                 # Condition is always true → inline body
                 return self._eliminate_body(list(node.body))
@@ -626,8 +672,8 @@ class DeadCodeEliminator:
     def _eliminate_for(self, node: For) -> Node | None:
         """Eliminate empty For loops."""
         # Check for empty literal iterable
-        if type(node.iterable).__name__ == "List":
-            if not node.iterable.items:
+        if type(node.iter).__name__ == "List":
+            if not node.iter.items:
                 # Empty list literal → remove loop
                 if node.empty:
                     # Has empty block → inline it
@@ -700,29 +746,32 @@ class TestDeadCodeEliminator:
     def test_eliminate_if_false(self, eliminator):
         """{% if false %}...{% end %} is completely removed."""
         ast = self._parse("before{% if false %}removed{% end %}after")
-        result = eliminator.eliminate(ast)
+        result, count = eliminator.eliminate(ast)
 
         # Should have only 2 Data nodes (before, after)
         assert len(result.body) == 2
         assert result.body[0].value == "before"
         assert result.body[1].value == "after"
+        assert count == 1  # One block eliminated
 
     def test_inline_if_true(self, eliminator):
         """{% if true %}body{% end %} inlines the body."""
         ast = self._parse("{% if true %}content{% end %}")
-        result = eliminator.eliminate(ast)
+        result, count = eliminator.eliminate(ast)
 
         # Should have single Data node
         assert len(result.body) == 1
         assert result.body[0].value == "content"
+        assert count == 1
 
     def test_if_false_with_else(self, eliminator):
         """{% if false %}...{% else %}kept{% end %} keeps else."""
         ast = self._parse("{% if false %}removed{% else %}kept{% end %}")
-        result = eliminator.eliminate(ast)
+        result, count = eliminator.eliminate(ast)
 
         assert len(result.body) == 1
         assert result.body[0].value == "kept"
+        assert count == 1
 
     def test_nested_dead_code(self, eliminator):
         """Dead code in nested structures is eliminated."""
@@ -732,20 +781,36 @@ class TestDeadCodeEliminator:
                 {{ x }}
             {% end %}
         """)
-        result = eliminator.eliminate(ast)
+        result, count = eliminator.eliminate(ast)
 
         for_node = result.body[0]
         # Body should not contain the dead If node
         if_nodes = [n for n in for_node.body if type(n).__name__ == "If"]
         assert len(if_nodes) == 0
+        assert count == 1
 
     def test_preserve_dynamic_conditions(self, eliminator):
         """Non-constant conditions are preserved."""
         ast = self._parse("{% if x %}content{% end %}")
-        result = eliminator.eliminate(ast)
+        result, count = eliminator.eliminate(ast)
 
         # If node should still exist
         assert type(result.body[0]).__name__ == "If"
+        assert count == 0  # Nothing eliminated
+
+    def test_eliminate_multiple_dead_blocks(self, eliminator):
+        """Multiple dead code blocks are all eliminated."""
+        ast = self._parse("""
+            {% if false %}dead1{% end %}
+            live
+            {% if false %}dead2{% end %}
+        """)
+        result, count = eliminator.eliminate(ast)
+
+        # Only the "live" Data node should remain
+        data_nodes = [n for n in result.body if type(n).__name__ == "Data"]
+        assert any("live" in n.value for n in data_nodes)
+        assert count == 2  # Two blocks eliminated
 ```
 
 ---
@@ -795,11 +860,21 @@ class DataCoalescer:
     Impact: ~5-10% reduction in function calls for typical templates.
     """
 
-    def coalesce(self, node: Node) -> Node:
-        """Merge adjacent Data nodes in AST."""
+    def __init__(self) -> None:
+        self._coalesce_count = 0
+
+    def coalesce(self, node: Node) -> tuple[Node, int]:
+        """Merge adjacent Data nodes in AST.
+
+        Returns:
+            Tuple of (optimized AST, number of merge operations)
+        """
+        self._coalesce_count = 0
         if isinstance(node, Template):
-            return self._coalesce_template(node)
-        return self._coalesce_node(node)
+            result = self._coalesce_template(node)
+        else:
+            result = self._coalesce_node(node)
+        return result, self._coalesce_count
 
     def _coalesce_template(self, node: Template) -> Template:
         """Process template root."""
@@ -851,6 +926,7 @@ class DataCoalescer:
         if len(nodes) == 1:
             return nodes[0]
 
+        self._coalesce_count += len(nodes) - 1  # N nodes merged = N-1 eliminations
         merged_value = "".join(n.value for n in nodes)
         return Data(
             value=merged_value,
@@ -919,7 +995,7 @@ _append(_e(str(ctx["name"]).upper()))
 
 from __future__ import annotations
 
-from bengal.rendering.kida.nodes import Node, Filter, Const, FuncCall
+from bengal.rendering.kida.nodes import Node, Filter, Const, FuncCall, Output
 
 
 # Filters that can be safely inlined
@@ -952,9 +1028,18 @@ class FilterInliner:
     Only pure, side-effect-free filters are inlined.
     """
 
-    def inline(self, node: Node) -> Node:
-        """Inline eligible filters in AST."""
-        return self._inline_node(node)
+    def __init__(self) -> None:
+        self._inline_count = 0
+
+    def inline(self, node: Node) -> tuple[Node, int]:
+        """Inline eligible filters in AST.
+
+        Returns:
+            Tuple of (optimized AST, number of filters inlined)
+        """
+        self._inline_count = 0
+        result = self._inline_node(node)
+        return result, self._inline_count
 
     def _inline_node(self, node: Node) -> Node:
         """Process a single node."""
@@ -974,11 +1059,11 @@ class FilterInliner:
         # Check if filter is inlinable
         if node.name not in _INLINABLE_FILTERS:
             # Recurse into nested filters
-            if isinstance(node.node, Filter):
-                new_node = self._inline_filter(node.node)
-                if new_node is not node.node:
+            if isinstance(node.value, Filter):
+                new_value = self._inline_filter(node.value)
+                if new_value is not node.value:
                     from dataclasses import replace
-                    return replace(node, node=new_node)
+                    return replace(node, value=new_value)
             return node
 
         method_name, takes_args = _INLINABLE_FILTERS[node.name]
@@ -991,19 +1076,20 @@ class FilterInliner:
         from bengal.rendering.kida.nodes import InlinedFilter
 
         # First, inline any nested filters
-        inner_node = node.node
-        if isinstance(inner_node, Filter):
-            inner_node = self._inline_filter(inner_node)
+        inner_value = node.value
+        if isinstance(inner_value, Filter):
+            inner_value = self._inline_filter(inner_value)
 
+        self._inline_count += 1
         return InlinedFilter(
-            node=inner_node,
+            value=inner_value,
             method=method_name,
             args=node.args,
             lineno=node.lineno,
             col_offset=node.col_offset,
         )
 
-    def _inline_output(self, node: Any) -> Node:
+    def _inline_output(self, node: Output) -> Node:
         """Inline filters in Output expressions."""
         if isinstance(node.expr, Filter):
             new_expr = self._inline_filter(node.expr)
@@ -1034,7 +1120,59 @@ class FilterInliner:
         return replace(node, **changes)
 ```
 
-**Note**: This requires adding an `InlinedFilter` node type and updating the compiler to generate direct method calls for it.
+### Required Node Addition
+
+Add to `bengal/rendering/kida/nodes.py`:
+
+```python
+@dataclass(frozen=True, slots=True)
+class InlinedFilter(Expr):
+    """Inlined filter as direct method call (optimization).
+
+    Generated by FilterInliner for common pure filters like upper, lower, strip.
+    The compiler generates `str(value).method()` instead of filter dispatch.
+
+    Example:
+        `{{ name | upper }}` compiles to `str(ctx["name"]).upper()`
+        instead of `_filter_upper(ctx["name"])`
+    """
+
+    value: Expr      # The expression being filtered
+    method: str      # The str method to call (e.g., "upper", "lower")
+    args: Sequence[Expr] = ()  # Optional method arguments
+```
+
+### Required Compiler Update
+
+Add handler in `bengal/rendering/kida/compiler/expressions.py`:
+
+```python
+def _compile_inlined_filter(self, node: InlinedFilter) -> ast.Call:
+    """Compile inlined filter to direct method call.
+
+    Generates: str(value).method(*args)
+    """
+    # str(value)
+    str_call = ast.Call(
+        func=ast.Name(id="str", ctx=ast.Load()),
+        args=[self._compile_expr(node.value)],
+        keywords=[],
+    )
+
+    # str(value).method
+    method_attr = ast.Attribute(
+        value=str_call,
+        attr=node.method,
+        ctx=ast.Load(),
+    )
+
+    # str(value).method(*args)
+    return ast.Call(
+        func=method_attr,
+        args=[self._compile_expr(arg) for arg in node.args],
+        keywords=[],
+    )
+```
 
 ---
 
@@ -1070,17 +1208,21 @@ Warm Cache:
 ### Implementation
 
 ```python
-# bengal/rendering/kida/cache/bytecode.py
+# bengal/rendering/kida/bytecode_cache.py
 
 from __future__ import annotations
 
 import hashlib
 import marshal
+import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from types import CodeType
+
+# Python version tag for cache invalidation across Python upgrades
+_PY_VERSION_TAG = f"py{sys.version_info.major}{sys.version_info.minor}"
 
 
 class BytecodeCache:
@@ -1109,22 +1251,34 @@ class BytecodeCache:
         >>> code = cache.get("base.html", source_hash)
     """
 
-    def __init__(self, directory: Path, pattern: str = "__kida_{name}_{hash}.pyc"):
+    def __init__(
+        self,
+        directory: Path,
+        pattern: str = "__kida_{version}_{name}_{hash}.pyc",
+    ):
         """Initialize bytecode cache.
 
         Args:
             directory: Cache directory (created if missing)
-            pattern: Filename pattern with {name} and {hash} placeholders
+            pattern: Filename pattern with {version}, {name}, {hash} placeholders
         """
         self._dir = directory
         self._pattern = pattern
         self._dir.mkdir(parents=True, exist_ok=True)
 
     def _make_path(self, name: str, source_hash: str) -> Path:
-        """Generate cache file path."""
+        """Generate cache file path.
+
+        Includes Python version in filename to prevent cross-version
+        bytecode incompatibility (marshal format is version-specific).
+        """
         # Sanitize name for filesystem
         safe_name = name.replace("/", "_").replace("\\", "_")
-        filename = self._pattern.format(name=safe_name, hash=source_hash[:16])
+        filename = self._pattern.format(
+            version=_PY_VERSION_TAG,
+            name=safe_name,
+            hash=source_hash[:16],
+        )
         return self._dir / filename
 
     def get(self, name: str, source_hash: str) -> CodeType | None:
@@ -1172,14 +1326,18 @@ class BytecodeCache:
             # Best effort - caching failure shouldn't break compilation
             tmp_path.unlink(missing_ok=True)
 
-    def clear(self) -> int:
-        """Remove all cached bytecode.
+    def clear(self, current_version_only: bool = False) -> int:
+        """Remove cached bytecode.
+
+        Args:
+            current_version_only: If True, only clear current Python version's cache
 
         Returns:
             Number of files removed
         """
         count = 0
-        for path in self._dir.glob("__kida_*.pyc"):
+        pattern = f"__kida_{_PY_VERSION_TAG}_*.pyc" if current_version_only else "__kida_*.pyc"
+        for path in self._dir.glob(pattern):
             path.unlink(missing_ok=True)
             count += 1
         return count
@@ -1207,7 +1365,9 @@ def hash_source(source: str) -> str:
 ### Integration with Environment
 
 ```python
-# In Environment._compile():
+# In Environment._compile() - update bengal/rendering/kida/environment/core.py
+
+from bengal.rendering.kida.bytecode_cache import BytecodeCache, hash_source
 
 def _compile(
     self,
@@ -1403,12 +1563,36 @@ class OptimizationConfig:
 
 
 @dataclass
+class OptimizationStats:
+    """Statistics from optimization passes."""
+
+    constants_folded: int = 0
+    dead_blocks_removed: int = 0
+    data_nodes_coalesced: int = 0
+    filters_inlined: int = 0
+    estimated_buffer_size: int = 256
+    passes_applied: list[str] = field(default_factory=list)
+
+    def summary(self) -> str:
+        """Human-readable summary of optimizations applied."""
+        parts = []
+        if self.constants_folded:
+            parts.append(f"{self.constants_folded} constants folded")
+        if self.dead_blocks_removed:
+            parts.append(f"{self.dead_blocks_removed} dead blocks removed")
+        if self.data_nodes_coalesced:
+            parts.append(f"{self.data_nodes_coalesced} data nodes merged")
+        if self.filters_inlined:
+            parts.append(f"{self.filters_inlined} filters inlined")
+        return "; ".join(parts) if parts else "no optimizations applied"
+
+
+@dataclass
 class OptimizationResult:
     """Result of optimization pass."""
 
     ast: Template
-    estimated_buffer_size: int = 256
-    stats: dict = field(default_factory=dict)
+    stats: OptimizationStats = field(default_factory=OptimizationStats)
 
 
 class ASTOptimizer:
@@ -1446,51 +1630,143 @@ class ASTOptimizer:
             4. Filter inlining (simplifies filter calls)
             5. Buffer estimation (calculates pre-allocation size)
         """
-        stats = {}
+        stats = OptimizationStats()
 
         # Pass 1: Constant folding
         if self._config.constant_folding:
-            ast = self._constant_folder.fold(ast)
-            stats["constant_folding"] = "applied"
+            ast, count = self._constant_folder.fold(ast)
+            stats.constants_folded = count
+            stats.passes_applied.append("constant_folding")
 
         # Pass 2: Dead code elimination
         if self._config.dead_code_elimination:
-            ast = self._dead_code_eliminator.eliminate(ast)
-            stats["dead_code_elimination"] = "applied"
+            ast, count = self._dead_code_eliminator.eliminate(ast)
+            stats.dead_blocks_removed = count
+            stats.passes_applied.append("dead_code_elimination")
 
         # Pass 3: Data coalescing
         if self._config.data_coalescing:
-            ast = self._data_coalescer.coalesce(ast)
-            stats["data_coalescing"] = "applied"
+            ast, count = self._data_coalescer.coalesce(ast)
+            stats.data_nodes_coalesced = count
+            stats.passes_applied.append("data_coalescing")
 
         # Pass 4: Filter inlining
         if self._config.filter_inlining:
-            ast = self._filter_inliner.inline(ast)
-            stats["filter_inlining"] = "applied"
+            ast, count = self._filter_inliner.inline(ast)
+            stats.filters_inlined = count
+            stats.passes_applied.append("filter_inlining")
 
         # Pass 5: Buffer estimation
-        estimated_size = 256
         if self._config.estimate_buffer:
-            estimated_size = self._buffer_estimator.estimate(ast)
-            stats["estimated_buffer_size"] = estimated_size
+            stats.estimated_buffer_size = self._buffer_estimator.estimate(ast)
+            stats.passes_applied.append("buffer_estimation")
 
-        return OptimizationResult(
-            ast=ast,
-            estimated_buffer_size=estimated_size,
-            stats=stats,
-        )
+        return OptimizationResult(ast=ast, stats=stats)
 
 
 __all__ = [
     "ASTOptimizer",
     "OptimizationConfig",
     "OptimizationResult",
+    "OptimizationStats",
     "ConstantFolder",
     "DeadCodeEliminator",
     "DataCoalescer",
     "FilterInliner",
     "BufferEstimator",
 ]
+```
+
+---
+
+### Unified Optimizer Test Cases
+
+```python
+# tests/rendering/kida/optimizer/test_ast_optimizer.py
+
+import pytest
+from bengal.rendering.kida.optimizer import (
+    ASTOptimizer,
+    OptimizationConfig,
+    OptimizationStats,
+)
+from bengal.rendering.kida.lexer import tokenize
+from bengal.rendering.kida.parser import Parser
+
+
+class TestASTOptimizer:
+    """Integration tests for the unified optimizer."""
+
+    def _parse(self, source: str):
+        tokens = list(tokenize(source))
+        return Parser(tokens, source=source).parse()
+
+    def test_all_passes_applied(self):
+        """All enabled passes are applied in order."""
+        source = """
+            {% if false %}dead{% end %}
+            {{ 1 + 2 }}
+            <div>A</div><div>B</div>
+            {{ name | upper }}
+        """
+        ast = self._parse(source)
+        optimizer = ASTOptimizer()
+
+        result = optimizer.optimize(ast)
+
+        assert result.stats.dead_blocks_removed >= 1
+        assert result.stats.constants_folded >= 1
+        assert result.stats.data_nodes_coalesced >= 1
+        assert result.stats.filters_inlined >= 1
+        assert result.stats.estimated_buffer_size > 0
+
+    def test_selective_passes(self):
+        """Only enabled passes are applied."""
+        config = OptimizationConfig(
+            constant_folding=True,
+            dead_code_elimination=False,
+            data_coalescing=False,
+            filter_inlining=False,
+            estimate_buffer=False,
+        )
+        optimizer = ASTOptimizer(config)
+
+        source = "{% if false %}dead{% end %}{{ 1 + 1 }}"
+        ast = self._parse(source)
+        result = optimizer.optimize(ast)
+
+        assert "constant_folding" in result.stats.passes_applied
+        assert "dead_code_elimination" not in result.stats.passes_applied
+        assert result.stats.constants_folded >= 1
+
+    def test_stats_summary(self):
+        """Stats summary produces readable output."""
+        stats = OptimizationStats(
+            constants_folded=3,
+            dead_blocks_removed=1,
+            data_nodes_coalesced=5,
+            filters_inlined=2,
+        )
+
+        summary = stats.summary()
+        assert "3 constants folded" in summary
+        assert "1 dead blocks removed" in summary
+        assert "5 data nodes merged" in summary
+        assert "2 filters inlined" in summary
+
+    def test_no_optimizations(self):
+        """Templates with nothing to optimize return unchanged."""
+        source = "{{ name }}"
+        ast = self._parse(source)
+        optimizer = ASTOptimizer()
+
+        result = optimizer.optimize(ast)
+
+        # Only buffer estimation should have any effect
+        assert result.stats.constants_folded == 0
+        assert result.stats.dead_blocks_removed == 0
+        assert result.stats.data_nodes_coalesced == 0
+        assert result.stats.filters_inlined == 0
 ```
 
 ---
@@ -1598,36 +1874,38 @@ class TestOptimizerBenchmarks:
 
 ### Phase 1: Core Optimizations (Week 1)
 
-- [ ] Create `bengal/rendering/kida/optimizer/` package
-- [ ] Implement `ConstantFolder`
-- [ ] Implement `DeadCodeEliminator`
-- [ ] Implement `DataCoalescer`
-- [ ] Unit tests for each pass
+- [ ] Create `bengal/rendering/kida/optimizer/` package structure
+- [ ] Add `InlinedFilter` node to `nodes.py`
+- [ ] Implement `ConstantFolder` with stats tracking
+- [ ] Implement `DeadCodeEliminator` with stats tracking
+- [ ] Implement `DataCoalescer` with stats tracking
+- [ ] Unit tests for each pass (>90% coverage)
 - [ ] Integration with `Environment.optimized` flag
 
 ### Phase 2: Advanced Optimizations (Week 2)
 
-- [ ] Implement `FilterInliner` (requires `InlinedFilter` node)
-- [ ] Update Compiler to handle `InlinedFilter`
+- [ ] Implement `FilterInliner` with stats tracking
+- [ ] Update Compiler to handle `InlinedFilter` node
 - [ ] Implement `BufferEstimator`
-- [ ] Update Compiler to use `io.StringIO`
-- [ ] Implement `BytecodeCache`
+- [ ] Implement `BytecodeCache` with version tagging
 - [ ] Add `bytecode_cache` option to Environment
+- [ ] Add debug logging for optimization passes
 
 ### Phase 3: Testing & Benchmarks (Week 3)
 
-- [ ] Comprehensive test coverage (>90%)
-- [ ] Benchmark suite
-- [ ] Real-world template testing
-- [ ] Memory profiling
-- [ ] Documentation
+- [ ] End-to-end integration tests
+- [ ] Benchmark suite comparing optimized vs unoptimized
+- [ ] Real-world template testing (use `benchmarks/scenarios/`)
+- [ ] Memory profiling (no significant increase)
+- [ ] Edge case testing (empty templates, deeply nested, etc.)
 
 ### Phase 4: Release
 
-- [ ] Enable by default (`optimized=True` is already default)
-- [ ] Bytecode cache disabled by default (opt-in)
-- [ ] Add to changelog
-- [ ] Update performance documentation
+- [ ] Verify `optimized=True` activates all passes
+- [ ] Bytecode cache disabled by default (opt-in via `bytecode_cache=`)
+- [ ] Add to changelog with before/after benchmarks
+- [ ] Update `COMPLEXITY.md` checklist items
+- [ ] Add usage examples to docstrings
 
 ---
 
@@ -1636,6 +1914,10 @@ class TestOptimizerBenchmarks:
 ### Environment Options
 
 ```python
+from pathlib import Path
+from bengal.rendering.kida import Environment
+from bengal.rendering.kida.bytecode_cache import BytecodeCache
+
 env = Environment(
     # Enable/disable optimization pass (default: True)
     optimized=True,
@@ -1659,6 +1941,49 @@ config = OptimizationConfig(
 )
 
 optimizer = ASTOptimizer(config)
+```
+
+### Debugging Optimizations
+
+```python
+from bengal.rendering.kida.optimizer import ASTOptimizer
+from bengal.rendering.kida.lexer import tokenize
+from bengal.rendering.kida.parser import Parser
+
+# Parse template
+source = """
+{% if false %}debug{% end %}
+{{ 60 * 60 * 24 }}
+<div>Hello</div>
+<div>World</div>
+"""
+tokens = list(tokenize(source))
+ast = Parser(tokens, source=source).parse()
+
+# Optimize and inspect stats
+optimizer = ASTOptimizer()
+result = optimizer.optimize(ast)
+
+print(result.stats.summary())
+# Output: "1 constants folded; 1 dead blocks removed; 1 data nodes merged"
+
+print(f"Buffer size estimate: {result.stats.estimated_buffer_size} bytes")
+print(f"Passes applied: {', '.join(result.stats.passes_applied)}")
+```
+
+### Bytecode Cache Statistics
+
+```python
+cache = BytecodeCache(Path(".bengal-cache/kida"))
+
+# Check cache state
+stats = cache.stats()
+print(f"Cached templates: {stats['file_count']}")
+print(f"Total cache size: {stats['total_bytes'] / 1024:.1f} KB")
+
+# Clear cache for current Python version only
+removed = cache.clear(current_version_only=True)
+print(f"Cleared {removed} cached templates")
 ```
 
 ---
@@ -1693,6 +2018,8 @@ optimizer = ASTOptimizer(config)
 | Test coverage | >90% for optimizer package | pytest-cov |
 | No regressions | 0 failing tests | CI |
 | Memory neutral | ±5% memory usage | Memory profiling |
+| Stats tracking works | All counts accurate | Integration tests |
+| Cross-version safety | Cache invalidates on Python upgrade | Manual test |
 
 ---
 
@@ -1700,6 +2027,35 @@ optimizer = ASTOptimizer(config)
 
 - `bengal/rendering/kida/COMPLEXITY.md` — Current optimization status
 - `bengal/rendering/kida/compiler/__init__.py` — AST-to-AST design rationale
+- `bengal/rendering/kida/nodes.py` — AST node definitions
 - Python `ast` module documentation
 - Python `marshal` module documentation
 - Jinja2 `BytecodeCache` implementation (reference)
+
+---
+
+## Revision History
+
+### v1.1 (2025-12-26)
+
+**Corrections**:
+- Fixed `Filter.node` → `Filter.value` to match actual node structure
+- Fixed `For.iterable` → `For.iter` to match actual node structure
+- Added `Concat` to ConstantFolder imports
+- Added `Output` to FilterInliner imports
+- Updated file path from `cache/bytecode.py` → `bytecode_cache.py` (flat structure)
+
+**Additions**:
+- Added `InlinedFilter` node definition and compiler handler
+- Added `OptimizationStats` class for tracking optimization metrics
+- Added Python version tag to bytecode cache for cross-version safety
+- Added `clear(current_version_only=)` option to BytecodeCache
+- Added debug/logging examples to Configuration section
+- Added unified optimizer integration tests
+- Expanded test cases with count verification
+
+**Changes**:
+- Deferred Expression Deduplication to Phase 2 RFC (complexity)
+- Updated effort estimate to ~19 hours
+- All optimizer methods now return `(ast, count)` tuples for observability
+- Updated rollout plan with more specific tasks

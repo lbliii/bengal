@@ -1,7 +1,5 @@
 """Image processing backend with caching.
 
-RFC: hugo-inspired-features
-
 Provides the actual image processing using Pillow, with:
 - Versioned cache to avoid reprocessing
 - Atomic writes for parallel build safety
@@ -29,6 +27,7 @@ Memory Management:
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import os
@@ -254,10 +253,8 @@ class ImageProcessor:
                 json.dump(meta, f)
             os.replace(temp_path, meta_path)
         except Exception:
-            try:
+            with contextlib.suppress(OSError):
                 os.unlink(temp_path)
-            except OSError:
-                pass
             raise
 
     def _do_process(
@@ -291,11 +288,10 @@ class ImageProcessor:
         img = Image.open(source)
 
         # Memory optimization for large images
-        if img.width * img.height > LARGE_IMAGE_THRESHOLD:
-            if params.width and params.height:
-                # Use draft mode to load at reduced resolution
-                img.draft(img.mode, (params.width * 2, params.height * 2))
-                img.load()
+        if img.width * img.height > LARGE_IMAGE_THRESHOLD and params.width and params.height:
+            # Use draft mode to load at reduced resolution
+            img.draft(img.mode, (params.width * 2, params.height * 2))
+            img.load()
 
         # Convert RGBA to RGB for JPEG output
         if params.format == "jpeg" and img.mode in ("RGBA", "P"):
@@ -346,10 +342,8 @@ class ImageProcessor:
             img.save(temp_path, format=output_format.upper(), **save_kwargs)
             os.replace(temp_path, output_path)
         except Exception:
-            try:
+            with contextlib.suppress(OSError):
                 os.unlink(temp_path)
-            except OSError:
-                pass
             raise
 
         # Build relative permalink

@@ -58,7 +58,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Literal, Union
+from typing import Literal
 
 # =============================================================================
 # Base Node
@@ -480,11 +480,14 @@ class With(Node):
 
 
 @dataclass(frozen=True, slots=True)
-class WithHugo(Node):
-    """Hugo-style with block: {% with expr as name %}...{% end %}
+class WithConditional(Node):
+    """Conditional with block: {% with expr as name %}...{% end %}
 
-    Renders body ONLY if expr is truthy. Binds expr to name (or 'it' if no name).
-    This provides nil-resilience: block is silently skipped when expr is None/falsy.
+    Renders body only if expr is truthy. Binds the evaluated expression
+    to the specified variable name (defaults to 'it').
+
+    This provides nil-resilience: the block is silently skipped when the
+    expression evaluates to None, empty collections, or other falsy values.
 
     Syntax:
         {% with page.author as author %}
@@ -495,11 +498,15 @@ class WithHugo(Node):
             <span>{{ it.name }}</span>
         {% end %}
 
-    Compared to Jinja2-style {% with %}:
-        - Hugo-style: Skips body if expr is falsy (nil-resilient)
-        - Jinja2-style: Always renders body (may error on None.attr)
+    Behavior:
+        - Evaluates expr once
+        - If truthy: binds result to name, renders body
+        - If falsy: skips body entirely (no error)
+        - Restores previous variable binding after block
 
-    Part of RFC: hugo-inspired-features.
+    Contrast with standard With node:
+        - With: Always renders body with variable bindings
+        - WithConditional: Only renders if expression is truthy
     """
 
     expr: Expr
@@ -891,30 +898,30 @@ class LoopVar(Expr):
 # Type Aliases
 # =============================================================================
 
-AnyExpr = Union[
-    Const,
-    Name,
-    Tuple,
-    List,
-    Dict,
-    Getattr,
-    OptionalGetattr,
-    Getitem,
-    OptionalGetitem,
-    Slice,
-    FuncCall,
-    Filter,
-    Pipeline,
-    Test,
-    BinOp,
-    UnaryOp,
-    Compare,
-    BoolOp,
-    CondExpr,
-    NullCoalesce,
-    Range,
-    Await,
-    Concat,
-    MarkSafe,
-    LoopVar,
-]
+AnyExpr = (
+    Const
+    | Name
+    | Tuple
+    | List
+    | Dict
+    | Getattr
+    | OptionalGetattr
+    | Getitem
+    | OptionalGetitem
+    | Slice
+    | FuncCall
+    | Filter
+    | Pipeline
+    | Test
+    | BinOp
+    | UnaryOp
+    | Compare
+    | BoolOp
+    | CondExpr
+    | NullCoalesce
+    | Range
+    | Await
+    | Concat
+    | MarkSafe
+    | LoopVar
+)

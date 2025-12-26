@@ -20,7 +20,7 @@ from bengal.rendering.kida.nodes import (
     Raw,
     Spaceless,
     With,
-    WithHugo,
+    WithConditional,
 )
 
 if TYPE_CHECKING:
@@ -48,30 +48,29 @@ class SpecialBlockParsingMixin(BlockStackMixin):
     def _parse_with(self) -> Node:
         """Parse {% with %} in two forms:
 
-        1. Hugo-style: {% with expr %} or {% with expr as name %}
+        1. Conditional: {% with expr %} or {% with expr as name %}
            - Binds expr to 'it' or 'name'
            - Skips body if expr is falsy (nil-resilient)
 
-        2. Jinja2-style: {% with name = expr, ... %}
+        2. Assignment: {% with name = expr, ... %}
            - Creates variable bindings
            - Always renders body
 
-        Detection: If first token after 'with' is a NAME followed by '=', it's Jinja2-style.
-        Otherwise it's Hugo-style (expression followed by 'as' or '%}').
-
-        Part of RFC: hugo-inspired-features.
+        Detection: If first token after 'with' is a NAME followed by '=',
+        it's assignment style. Otherwise it's conditional (expression
+        followed by 'as' or '%}').
         """
         start = self._advance()  # consume 'with'
         self._push_block("with", start)
 
-        # Detect style: peek ahead to see if this is NAME = expr (Jinja2) or expr [as name] (Hugo)
-        if self._is_jinja_style_with():
-            return self._parse_jinja_style_with(start)
+        # Detect style: peek ahead to see if this is NAME = expr or expr [as name]
+        if self._is_assignment_style_with():
+            return self._parse_assignment_with(start)
         else:
-            return self._parse_hugo_style_with(start)
+            return self._parse_conditional_with(start)
 
-    def _is_jinja_style_with(self) -> bool:
-        """Detect Jinja2-style: {% with name = expr %}.
+    def _is_assignment_style_with(self) -> bool:
+        """Detect assignment-style: {% with name = expr %}.
 
         Returns True if current token is NAME and next token is ASSIGN.
         """
@@ -82,10 +81,10 @@ class SpecialBlockParsingMixin(BlockStackMixin):
         next_tok = self._peek(1)
         return next_tok.type == TokenType.ASSIGN
 
-    def _parse_jinja_style_with(self, start) -> With:
-        """Parse Jinja2-style: {% with x = expr, y = expr2 %}...{% end %}.
+    def _parse_assignment_with(self, start) -> With:
+        """Parse assignment-style: {% with x = expr, y = expr2 %}...{% end %}.
 
-        Always renders body with variable bindings.
+        Always renders body with the specified variable bindings.
         """
         # Parse variable assignments
         assignments: list[tuple[str, Expr]] = []
@@ -119,12 +118,10 @@ class SpecialBlockParsingMixin(BlockStackMixin):
             body=tuple(body),
         )
 
-    def _parse_hugo_style_with(self, start) -> WithHugo:
-        """Parse Hugo-style: {% with expr %} or {% with expr as name %}...{% end %}.
+    def _parse_conditional_with(self, start) -> WithConditional:
+        """Parse conditional: {% with expr %} or {% with expr as name %}...{% end %}.
 
-        Renders body ONLY if expr is truthy. Binds expr to 'name' or 'it'.
-
-        Part of RFC: hugo-inspired-features.
+        Renders body only if expr is truthy. Binds expr to 'name' or 'it'.
         """
         # Parse the expression
         expr = self._parse_expression()
@@ -148,7 +145,7 @@ class SpecialBlockParsingMixin(BlockStackMixin):
         # Consume end tag
         self._consume_end_tag("with")
 
-        return WithHugo(
+        return WithConditional(
             lineno=start.lineno,
             col_offset=start.col_offset,
             expr=expr,

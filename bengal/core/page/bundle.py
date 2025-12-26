@@ -1,8 +1,6 @@
 """Page bundle detection and resource access.
 
-RFC: hugo-inspired-features
-
-Hugo's page bundles keep content and assets together:
+Page bundles keep content and assets together in a directory:
 - Leaf bundles: posts/my-post/index.md (page with co-located resources)
 - Branch bundles: posts/_index.md (section index, no resources)
 - Regular pages: posts/my-post.md (standalone file, no bundle resources)
@@ -53,7 +51,7 @@ _CONTENT_EXTENSIONS: set[str] = {".md", ".markdown", ".rst", ".txt"}
 class BundleType(Enum):
     """Type of content bundle.
 
-    Hugo-style bundle classification:
+    Bundle classification based on filename convention:
     - NONE: Regular standalone page (my-post.md)
     - LEAF: Leaf bundle with resources (my-post/index.md)
     - BRANCH: Branch bundle / section index (_index.md)
@@ -185,10 +183,10 @@ class PageResource:
             import yaml
 
             return yaml.safe_load(self.read_text())
-        except ImportError:
+        except ImportError as err:
             raise ImportError(
                 "PyYAML is required for read_yaml(). Install with: pip install pyyaml"
-            )
+            ) from err
 
     def __str__(self) -> str:
         """Return URL for easy template usage."""
@@ -199,7 +197,8 @@ class PageResource:
 class PageResources:
     """Collection of resources co-located with a page bundle.
 
-    Provides Hugo-style resource access methods for leaf bundles.
+    Provides resource access methods for leaf bundles including
+    pattern matching and type-based filtering.
     Empty collection for non-bundle pages.
 
     Attributes:

@@ -1,8 +1,6 @@
 """Image resource model and processing.
 
-RFC: hugo-inspired-features
-
-Provides Hugo-style image processing with caching:
+Provides image processing with caching:
 - ImageResource: Image with processing methods
 - ProcessedImage: Result of processing operation
 - ProcessParams: Parsed processing parameters
@@ -166,9 +164,10 @@ def parse_spec(spec: str) -> ProcessParams | None:
 
 @dataclass
 class ImageResource:
-    """Processed image resource with caching and lazy processing.
+    """Image resource with processing and caching.
 
-    Inspired by Hugo's resources.Get + processing methods.
+    Provides methods for resizing, cropping, and format conversion
+    with automatic caching of processed results.
 
     Attributes:
         source_path: Path to source image file

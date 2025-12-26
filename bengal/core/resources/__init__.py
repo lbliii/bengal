@@ -1,8 +1,6 @@
 """Resource processing for Bengal SSG.
 
-RFC: hugo-inspired-features
-
-This package provides Hugo-style resource processing:
+This package provides image processing with caching:
 - ImageResource: Image with processing methods (fill, fit, resize)
 - ImageProcessor: Processing backend with caching
 - ProcessedImage: Result of image processing

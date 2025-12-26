@@ -1,27 +1,25 @@
-"""Tests for Hugo-style {% with %} block.
+"""Tests for conditional {% with %} block.
 
-RFC: hugo-inspired-features
-
-Hugo-style with provides nil-resilient template blocks that:
+Conditional with provides nil-resilient template blocks that:
 - Skip rendering when expression is falsy (None, empty dict, etc.)
 - Bind expression value to 'it' or custom variable name via 'as'
-- Coexist with Jinja2-style {% with x = expr %} syntax
+- Coexist with assignment-style {% with x = expr %} syntax
 """
 
 import pytest
 
 from bengal.rendering.kida import Environment
-from bengal.rendering.kida.nodes import With, WithHugo
+from bengal.rendering.kida.nodes import With, WithConditional
 
 
-class TestHugoStyleWithParsing:
-    """Test parsing of Hugo-style with syntax."""
+class TestConditionalWithParsing:
+    """Test parsing of conditional with syntax."""
 
     @pytest.fixture
     def env(self):
         return Environment()
 
-    def test_parse_hugo_style_default_binding(self, env):
+    def test_parse_conditional_default_binding(self, env):
         """{% with expr %} binds to 'it' by default."""
         from bengal.rendering.kida.lexer import tokenize
         from bengal.rendering.kida.parser import Parser
@@ -32,10 +30,10 @@ class TestHugoStyleWithParsing:
         ast = parser.parse()
         node = ast.body[0]
 
-        assert isinstance(node, WithHugo)
+        assert isinstance(node, WithConditional)
         assert node.name == "it"
 
-    def test_parse_hugo_style_as_binding(self, env):
+    def test_parse_conditional_as_binding(self, env):
         """{% with expr as name %} binds to custom name."""
         from bengal.rendering.kida.lexer import tokenize
         from bengal.rendering.kida.parser import Parser
@@ -46,11 +44,11 @@ class TestHugoStyleWithParsing:
         ast = parser.parse()
         node = ast.body[0]
 
-        assert isinstance(node, WithHugo)
+        assert isinstance(node, WithConditional)
         assert node.name == "author"
 
-    def test_parse_jinja_style_unchanged(self, env):
-        """{% with x = expr %} still produces Jinja2-style With node."""
+    def test_parse_assignment_style_unchanged(self, env):
+        """{% with x = expr %} produces assignment-style With node."""
         from bengal.rendering.kida.lexer import tokenize
         from bengal.rendering.kida.parser import Parser
 
@@ -64,8 +62,8 @@ class TestHugoStyleWithParsing:
         assert len(node.targets) == 2
 
 
-class TestHugoStyleWithRendering:
-    """Test rendering behavior of Hugo-style with."""
+class TestConditionalWithRendering:
+    """Test rendering behavior of conditional with."""
 
     @pytest.fixture
     def env(self):
@@ -126,8 +124,8 @@ class TestHugoStyleWithRendering:
         assert result == "Name: Bob"
 
 
-class TestHugoStyleWithNesting:
-    """Test nested Hugo-style with blocks."""
+class TestConditionalWithNesting:
+    """Test nested conditional with blocks."""
 
     @pytest.fixture
     def env(self):
@@ -161,7 +159,7 @@ class TestHugoStyleWithNesting:
         assert result == ""
 
 
-class TestHugoStyleWithScopeRestoration:
+class TestConditionalWithScopeRestoration:
     """Test that variable scope is properly restored after with block."""
 
     @pytest.fixture
@@ -183,7 +181,7 @@ class TestHugoStyleWithScopeRestoration:
         assert result == "before value after"
 
 
-class TestHugoStyleWithIntegration:
+class TestConditionalWithIntegration:
     """Integration tests with other template features."""
 
     @pytest.fixture
@@ -191,7 +189,7 @@ class TestHugoStyleWithIntegration:
         return Environment()
 
     def test_with_in_for_loop(self, env):
-        """Hugo-style with inside for loop."""
+        """Conditional with inside for loop."""
         template = env.from_string(
             "{% for item in items %}{% with item.data as data %}{{ data.name }}{% end %}{% end %}"
         )
@@ -205,15 +203,15 @@ class TestHugoStyleWithIntegration:
         assert result == "AC"
 
     def test_with_in_if(self, env):
-        """Hugo-style with inside if block."""
+        """Conditional with inside if block."""
         template = env.from_string(
             "{% if show %}{% with data as d %}{{ d.value }}{% end %}{% end %}"
         )
         result = template.render(show=True, data={"value": "X"})
         assert result == "X"
 
-    def test_mixed_jinja_and_hugo_style(self, env):
-        """Jinja2-style and Hugo-style with coexist."""
+    def test_mixed_styles(self, env):
+        """Assignment-style and conditional with coexist."""
         template = env.from_string(
             "{% with x = 10 %}{{ x }}{% end %}-{% with data as d %}{{ d.y }}{% end %}"
         )

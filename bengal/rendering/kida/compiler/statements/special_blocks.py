@@ -108,13 +108,11 @@ class SpecialBlockMixin:
 
         return stmts
 
-    def _compile_with_hugo(self, node: Any) -> list[ast.stmt]:
-        """Compile {% with expr as name %}...{% end %} (Hugo-style).
+    def _compile_with_conditional(self, node: Any) -> list[ast.stmt]:
+        """Compile {% with expr as name %}...{% end %} (conditional form).
 
-        Renders body ONLY if expr is truthy. Binds expr to 'name'.
-        Provides nil-resilience: block is silently skipped when expr is None/falsy.
-
-        Part of RFC: hugo-inspired-features.
+        Renders body only if expr is truthy. Binds expr result to 'name'.
+        Provides nil-resilience: block is silently skipped when expr is falsy.
 
         Generates:
             _with_val_N = expr

@@ -439,6 +439,7 @@ class Compiler(
             "Let",  # Expression evaluation
             "CallBlock",  # Function calls
             "Do",  # Side-effect expressions
+            "WithConditional",  # Conditional with block (expression evaluation)
         }
     )
 
@@ -499,7 +500,7 @@ class Compiler(
                 "Slot": self._compile_slot,
                 "FromImport": self._compile_from_import,
                 "With": self._compile_with,
-                "WithHugo": self._compile_with_hugo,
+                "WithConditional": self._compile_with_conditional,
                 "Do": self._compile_do,
                 "Raw": self._compile_raw,
                 "Capture": self._compile_capture,
