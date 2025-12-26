@@ -206,7 +206,6 @@ class Lexer:
 
     def _tokenize_data(self) -> Iterator[Token]:
         """Tokenize raw data outside template constructs."""
-        start_pos = self._pos
         start_lineno = self._lineno
         start_col = self._col_offset
 
@@ -257,6 +256,12 @@ class Lexer:
         """Tokenize code inside {{ }} or {% %}."""
         # Handle whitespace trimming (- modifier)
         # e.g., {{- or {%- for left trim, -}} or -%} for right trim
+
+        # Check for leading - (left trim marker) at start of code
+        self._skip_whitespace()
+        if self._pos < len(self._source) and self._source[self._pos] == "-":
+            # Skip the - and any following whitespace
+            self._advance(1)
 
         while self._pos < len(self._source):
             # Skip whitespace
@@ -311,11 +316,11 @@ class Lexer:
 
     def _next_code_token(self) -> Token:
         """Get the next token from code content.
-        
+
         Complexity: O(1) for operator lookup (dict-based).
         """
         char = self._source[self._pos]
-        
+
         # String literal
         if char in ('"', "'"):
             return self._scan_string()

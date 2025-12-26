@@ -73,23 +73,28 @@ class IniStateMachineLexer(StateMachineLexer):
                 at_line_start = True
                 continue
 
-            # Comments (# or ;)
+            # Comments (# or ;) - use C-level find for speed
             if char in "#;":
                 start = pos
-                while pos < length and code[pos] != "\n":
-                    pos += 1
+                end = code.find("\n", pos)
+                pos = end if end != -1 else length
                 yield Token(TokenType.COMMENT_SINGLE, code[start:pos], line, col)
                 at_line_start = False
                 continue
 
-            # Section headers [section]
+            # Section headers [section] - use C-level find
             if at_line_start and char == "[":
                 start = pos
                 pos += 1
-                while pos < length and code[pos] != "]" and code[pos] != "\n":
-                    pos += 1
-                if pos < length and code[pos] == "]":
-                    pos += 1
+                # Find closing bracket or end of line
+                bracket = code.find("]", pos)
+                newline = code.find("\n", pos)
+                if bracket != -1 and (newline == -1 or bracket < newline):
+                    pos = bracket + 1
+                elif newline != -1:
+                    pos = newline
+                else:
+                    pos = length
                 yield Token(TokenType.NAME_TAG, code[start:pos], line, col)
                 at_line_start = False
                 continue

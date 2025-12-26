@@ -285,10 +285,23 @@ class RStateMachineLexer(
                     yield Token(TokenType.NAME, word, line, col)
                 continue
 
-            # Operators
-            if char in "=<>!&|+-*/%^~$@":
+            # Operators - check longest first
+            if char in "=<>!&|+-*/%^~$@:":
                 start = pos
-                if pos + 1 < length and code[pos : pos + 2] in (
+                # 4-char operators
+                if pos + 3 < length and code[pos : pos + 4] == "%in%":
+                    pos += 4
+                # 3-char operators
+                elif pos + 2 < length and code[pos : pos + 3] in (
+                    ":::",
+                    "%*%",
+                    "%/%",
+                    "%o%",
+                    "%x%",
+                ):
+                    pos += 3
+                # 2-char operators
+                elif pos + 1 < length and code[pos : pos + 2] in (
                     "==",
                     "!=",
                     "<=",
@@ -300,30 +313,12 @@ class RStateMachineLexer(
                     "<-",
                     "->",
                     "%%",
-                    "%*%",
-                    "%/%",
-                    "%in%",
-                    "%o%",
-                    "%x%",
                     "::",
-                    ":::",
                 ):
                     pos += 2
-                    if (
-                        code[start:pos] in ("::", ":::")
-                        and pos + 1 < length
-                        and code[pos : pos + 1] == ":"
-                    ):
-                        pos += 1
                 else:
                     pos += 1
                 yield Token(TokenType.OPERATOR, code[start:pos], line, col)
-                continue
-
-            # Range/sequence :
-            if char == ":":
-                yield Token(TokenType.OPERATOR, char, line, col)
-                pos += 1
                 continue
 
             # Punctuation

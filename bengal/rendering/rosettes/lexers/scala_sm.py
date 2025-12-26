@@ -18,8 +18,9 @@ from bengal.rendering.rosettes.lexers._scanners import (
     scan_block_comment,
     scan_identifier,
     scan_string,
+    scan_triple_string,
 )
-from bengal.rendering.rosettes.lexers._state_machine import StateMachineLexer, scan_triple_string
+from bengal.rendering.rosettes.lexers._state_machine import StateMachineLexer
 
 __all__ = ["ScalaStateMachineLexer"]
 

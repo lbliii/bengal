@@ -16,8 +16,9 @@ from bengal.rendering.rosettes.lexers._scanners import (
     OCTAL_DIGITS,
     HashCommentsMixin,
     scan_string,
+    scan_triple_string,
 )
-from bengal.rendering.rosettes.lexers._state_machine import StateMachineLexer, scan_triple_string
+from bengal.rendering.rosettes.lexers._state_machine import StateMachineLexer
 
 __all__ = ["MojoStateMachineLexer"]
 

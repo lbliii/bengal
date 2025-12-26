@@ -39,6 +39,7 @@ from bengal.rendering.kida.nodes import (
     Template,
     Test,
     Tuple,
+    With,
 )
 
 if TYPE_CHECKING:
@@ -213,7 +214,9 @@ class Parser:
             return self._parse_macro()
         elif keyword == "from":
             return self._parse_from_import()
-        elif keyword in ("endif", "endfor", "endblock", "endmacro", "else", "elif"):
+        elif keyword == "with":
+            return self._parse_with()
+        elif keyword in ("endif", "endfor", "endblock", "endmacro", "endwith", "else", "elif"):
             # End/continuation tags handled by parent
             return None
         else:
@@ -570,6 +573,50 @@ class Parser:
             with_context=with_context,
         )
 
+    def _parse_with(self) -> Node:
+        """Parse {% with var=value, ... %} ... {% endwith %}.
+
+        Creates temporary variable bindings scoped to the with block.
+        """
+
+        start = self._advance()  # consume 'with'
+
+        # Parse variable assignments
+        assignments: list[tuple[str, Expr]] = []
+
+        while True:
+            if self._current.type != TokenType.NAME:
+                raise ParseError("Expected variable name", self._current)
+            name = self._advance().value
+
+            self._expect(TokenType.ASSIGN)
+            value = self._parse_expression()
+
+            assignments.append((name, value))
+
+            if not self._match(TokenType.COMMA):
+                break
+            self._advance()  # consume comma
+
+        self._expect(TokenType.BLOCK_END)
+
+        # Parse body until {% endwith %}
+        body = self._parse_body({"endwith"})
+
+        # Consume endwith
+        if self._current.type == TokenType.BLOCK_BEGIN:
+            self._advance()  # consume {%
+            if self._current.type == TokenType.NAME and self._current.value == "endwith":
+                self._advance()  # consume 'endwith'
+                self._expect(TokenType.BLOCK_END)
+
+        return With(
+            lineno=start.lineno,
+            col_offset=start.col_offset,
+            targets=tuple(assignments),
+            body=tuple(body),
+        )
+
     def _skip_comment(self) -> None:
         """Skip comment block."""
         self._expect(TokenType.COMMENT_BEGIN)
@@ -578,39 +625,18 @@ class Parser:
     # Expression parsing
 
     def _parse_expression(self) -> Expr:
-        """Parse expression (with filters and ternary)."""
-        expr = self._parse_ternary()
+        """Parse expression with ternary.
 
-        # Handle filters: expr | filter1 | filter2(arg)
-        while self._match(TokenType.PIPE):
-            self._advance()
-            if self._current.type != TokenType.NAME:
-                raise ParseError("Expected filter name", self._current)
-            filter_name = self._advance().value
-
-            args: list[Expr] = []
-            kwargs: dict[str, Expr] = {}
-
-            # Optional arguments
-            if self._match(TokenType.LPAREN):
-                self._advance()
-                args, kwargs = self._parse_call_args()
-                self._expect(TokenType.RPAREN)
-
-            expr = Filter(
-                lineno=expr.lineno,
-                col_offset=expr.col_offset,
-                value=expr,
-                name=filter_name,
-                args=tuple(args),
-                kwargs=kwargs,
-            )
-
-        return expr
+        Filters are handled at higher precedence (in _parse_unary_postfix).
+        """
+        return self._parse_ternary()
 
     def _parse_ternary(self) -> Expr:
-        """Parse ternary conditional: a if b else c"""
+        """Parse ternary conditional: a if b else c
 
+        The condition can include filters because filters have higher precedence
+        than comparisons: x if y | length > 0 else z
+        """
         # Parse the "true" value first
         expr = self._parse_or()
 
@@ -618,7 +644,7 @@ class Parser:
         if self._current.type == TokenType.NAME and self._current.value == "if":
             self._advance()  # consume "if"
 
-            # Parse condition
+            # Parse condition using full expression (filters handled in postfix)
             test = self._parse_or()
 
             # Expect "else"
@@ -736,11 +762,15 @@ class Parser:
         return left
 
     def _parse_addition(self) -> Expr:
-        """Parse addition/subtraction."""
+        """Parse addition/subtraction/concatenation.
+
+        The ~ operator is string concatenation in Jinja.
+        """
         return self._parse_binary(
             self._parse_multiplication,
             TokenType.ADD,
             TokenType.SUB,
+            TokenType.TILDE,
         )
 
     def _parse_multiplication(self) -> Expr:
@@ -788,7 +818,11 @@ class Parser:
         return left
 
     def _parse_postfix(self) -> Expr:
-        """Parse postfix operators (., [], ())."""
+        """Parse postfix operators (., [], (), |filter).
+
+        Filters are parsed here (high precedence) so that:
+        x | length == 0  parses as  (x | length) == 0
+        """
         from bengal.rendering.kida.nodes import Call as KidaCall
 
         expr = self._parse_primary()
@@ -823,6 +857,30 @@ class Parser:
                     lineno=expr.lineno,
                     col_offset=expr.col_offset,
                     func=expr,
+                    args=tuple(args),
+                    kwargs=kwargs,
+                )
+            elif self._match(TokenType.PIPE):
+                # Filter: expr | filter_name(args)
+                self._advance()
+                if self._current.type != TokenType.NAME:
+                    raise ParseError("Expected filter name", self._current)
+                filter_name = self._advance().value
+
+                args: list[Expr] = []
+                kwargs: dict[str, Expr] = {}
+
+                # Optional arguments
+                if self._match(TokenType.LPAREN):
+                    self._advance()
+                    args, kwargs = self._parse_call_args()
+                    self._expect(TokenType.RPAREN)
+
+                expr = Filter(
+                    lineno=expr.lineno,
+                    col_offset=expr.col_offset,
+                    value=expr,
+                    name=filter_name,
                     args=tuple(args),
                     kwargs=kwargs,
                 )

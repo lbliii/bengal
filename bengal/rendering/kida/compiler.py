@@ -344,6 +344,7 @@ class Compiler:
                 "Block": self._compile_block,
                 "Macro": self._compile_macro,
                 "FromImport": self._compile_from_import,
+                "With": self._compile_with,
             }
         return self._node_dispatch
 
@@ -778,6 +779,93 @@ class Compiler:
 
         return stmts
 
+    def _compile_with(self, node: Any) -> list[ast.stmt]:
+        """Compile {% with var=value, ... %}...{% endwith %}.
+
+        Creates temporary variable bindings scoped to the with block.
+        We store old values and restore them after the block.
+        """
+        stmts: list[ast.stmt] = []
+
+        # Save old values and set new ones
+        old_var_names = []
+        for name, value in node.targets:
+            old_var_name = f"_with_save_{name}"
+            old_var_names.append((name, old_var_name))
+
+            # _with_save_name = ctx.get('name')
+            stmts.append(
+                ast.Assign(
+                    targets=[ast.Name(id=old_var_name, ctx=ast.Store())],
+                    value=ast.Call(
+                        func=ast.Attribute(
+                            value=ast.Name(id="ctx", ctx=ast.Load()),
+                            attr="get",
+                            ctx=ast.Load(),
+                        ),
+                        args=[ast.Constant(value=name)],
+                        keywords=[],
+                    ),
+                )
+            )
+
+            # ctx['name'] = value
+            stmts.append(
+                ast.Assign(
+                    targets=[
+                        ast.Subscript(
+                            value=ast.Name(id="ctx", ctx=ast.Load()),
+                            slice=ast.Constant(value=name),
+                            ctx=ast.Store(),
+                        )
+                    ],
+                    value=self._compile_expr(value),
+                )
+            )
+
+        # Compile body
+        for child in node.body:
+            stmts.extend(self._compile_node(child))
+
+        # Restore old values
+        for name, old_var_name in old_var_names:
+            # if _with_save_name is None: del ctx['name']
+            # else: ctx['name'] = _with_save_name
+            stmts.append(
+                ast.If(
+                    test=ast.Compare(
+                        left=ast.Name(id=old_var_name, ctx=ast.Load()),
+                        ops=[ast.Is()],
+                        comparators=[ast.Constant(value=None)],
+                    ),
+                    body=[
+                        ast.Delete(
+                            targets=[
+                                ast.Subscript(
+                                    value=ast.Name(id="ctx", ctx=ast.Load()),
+                                    slice=ast.Constant(value=name),
+                                    ctx=ast.Del(),
+                                )
+                            ]
+                        )
+                    ],
+                    orelse=[
+                        ast.Assign(
+                            targets=[
+                                ast.Subscript(
+                                    value=ast.Name(id="ctx", ctx=ast.Load()),
+                                    slice=ast.Constant(value=name),
+                                    ctx=ast.Store(),
+                                )
+                            ],
+                            value=ast.Name(id=old_var_name, ctx=ast.Load()),
+                        )
+                    ],
+                )
+            )
+
+        return stmts
+
     def _compile_expr(self, node: Any, store: bool = False) -> ast.expr:
         """Compile expression node to Python AST expression.
 
@@ -892,6 +980,22 @@ class Compiler:
             )
 
         if node_type == "BinOp":
+            # Special handling for ~ (string concatenation)
+            if node.op == "~":
+                # str(left) + str(right)
+                return ast.BinOp(
+                    left=ast.Call(
+                        func=ast.Name(id="_str", ctx=ast.Load()),
+                        args=[self._compile_expr(node.left)],
+                        keywords=[],
+                    ),
+                    op=ast.Add(),
+                    right=ast.Call(
+                        func=ast.Name(id="_str", ctx=ast.Load()),
+                        args=[self._compile_expr(node.right)],
+                        keywords=[],
+                    ),
+                )
             return ast.BinOp(
                 left=self._compile_expr(node.left),
                 op=self._get_binop(node.op),
