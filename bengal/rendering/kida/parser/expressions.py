@@ -30,6 +30,13 @@ from bengal.rendering.kida.nodes import (
 if TYPE_CHECKING:
     from bengal.rendering.kida.nodes import Expr
 
+# Python-style boolean/none keywords (canonical)
+# Lowercase also accepted for convenience
+BOOL_TRUE = frozenset({"True", "true"})
+BOOL_FALSE = frozenset({"False", "false"})
+BOOL_NONE = frozenset({"None", "none"})
+BOOL_KEYWORDS = BOOL_TRUE | BOOL_FALSE | BOOL_NONE
+
 
 class ExpressionParsingMixin:
     """Mixin for parsing expressions.
@@ -145,8 +152,12 @@ class ExpressionParsingMixin:
 
             # Handle tests: "is defined", "is not mapping", "is sameas false", etc.
             if op in ("is", "is not"):
-                # Check if next token is a test name (NAME token)
-                if self._current.type == TokenType.NAME:
+                # Check if next token is a test name (NAME token, but NOT a boolean keyword)
+                # Boolean keywords like True/False/None should be identity comparisons, not tests
+                if (
+                    self._current.type == TokenType.NAME
+                    and self._current.value not in BOOL_KEYWORDS
+                ):
                     test_name = self._advance().value
 
                     # Parse optional arguments
@@ -195,15 +206,15 @@ class ExpressionParsingMixin:
     def _can_start_test_arg(self) -> bool:
         """Check if current token can start a test argument without parens.
 
-        Used for Jinja2 style: is sameas false, is sameas none
+        Used for: is sameas False, is sameas None
         Only allow simple values to avoid ambiguity with following expressions.
         """
-        # Allow: true, false, none, numbers, strings
+        # Allow: True, False, None, numbers, strings
         if self._current.type in (TokenType.INTEGER, TokenType.FLOAT, TokenType.STRING):
             return True
         if self._current.type == TokenType.NAME:
             # Only allow boolean/none keywords as bare args
-            return self._current.value in ("true", "false", "none", "True", "False", "None")
+            return self._current.value in BOOL_KEYWORDS
         return False
 
     def _parse_addition(self) -> Expr:
@@ -401,11 +412,11 @@ class ExpressionParsingMixin:
         # Name or keyword constant
         if token.type == TokenType.NAME:
             self._advance()
-            if token.value == "true":
+            if token.value in BOOL_TRUE:
                 return Const(token.lineno, token.col_offset, True)
-            elif token.value == "false":
+            elif token.value in BOOL_FALSE:
                 return Const(token.lineno, token.col_offset, False)
-            elif token.value == "none":
+            elif token.value in BOOL_NONE:
                 return Const(token.lineno, token.col_offset, None)
             return Name(
                 lineno=token.lineno,

@@ -1,351 +1,209 @@
-# RFC: Kida Python Compatibility & Name Resolution
+# RFC: Kida Python-Native Keywords & Strict Mode
 
 **Status**: Draft  
 **Created**: 2025-12-26  
 **Updated**: 2025-12-26  
 **Author**: AI Assistant  
-**Effort**: Low-Medium (~1-2 weeks)  
-**Impact**: High - Fixes confusing behavior, improves Python compatibility  
+**Effort**: Phase 1: ~1 day | Phase 2: ~1 week  
+**Impact**: High - Aligns Kida with Python conventions, improves DX  
 **Category**: Rendering / Parser / Compiler
 
 ---
 
 ## Executive Summary
 
-Investigation of reported Kida template issues revealed a **single root cause**: Python-style boolean/none keywords (`True`, `False`, `None`) are not recognized by the parser. They're treated as undefined variables that resolve to `None` via `ctx.get()`, causing silent failures.
+Kida is a **Python-native template engine** built for Python 3.13+ and free-threaded Python. Unlike legacy template engines, Kida should embrace Python conventions, not fight them.
 
-This RFC proposes:
+**The Bug**: Python-style keywords (`True`, `False`, `None`) are not recognized. They silently resolve to `None`, causing confusing failures.
 
-1. **Immediate Fix**: Add Python-style keyword recognition in the parser
-2. **Design Enhancement**: Strict mode with undefined variable errors
-3. **Long-term Architecture**: Unified name resolution with configurable behavior
+**The Fix**: Recognize Python keywords as the primary style. This is a one-line fix with zero performance cost.
 
-**Key Finding**: Most reported "bugs" (defs not working in conditionals, nested block issues) were actually symptoms of `{% if True %}` silently failing because `True` → `ctx.get('True')` → `None` → falsy.
+**The Opportunity**: Introduce strict mode as the modern default — undefined variables should error, not silently become `None`.
+
+---
+
+## Design Philosophy
+
+### Kida is Python-Native, Not Jinja-Compatible
+
+| Principle | Kida (2025) | Legacy Engines |
+|-----------|-------------|----------------|
+| **Keywords** | Python-style: `True`, `False`, `None` | Lowercase: `true`, `false`, `none` |
+| **Undefined vars** | Error by default (strict mode) | Silent `None` |
+| **Threading** | Free-threaded safe | GIL-dependent |
+| **Compilation** | AST-to-AST | String manipulation |
+| **Performance** | StringBuilder, zero-copy | Generator yields |
+
+**We support lowercase for convenience, but Python-style is canonical.**
 
 ---
 
 ## Problem Statement
 
-### Root Cause Analysis
-
-| Symptom Reported | Actual Cause | Evidence |
-|------------------|--------------|----------|
-| Defs don't work inside `{% if %}` | `{% if True %}` evaluates to `None` | `True` not in parser keywords |
-| Inconsistent `{% end %}` behavior | Same - tests used `{% if True %}` | Works with `{% if true %}` |
-| "Compiler scoping bug" | Same - conditional never executed | Verified with context variables |
-
-### Technical Evidence
-
-**Parser code** (`parser/expressions.py:401-414`):
-
-```python
-if token.value == "true":
-    return Const(token.lineno, token.col_offset, True)
-elif token.value == "false":
-    return Const(token.lineno, token.col_offset, False)
-elif token.value == "none":
-    return Const(token.lineno, token.col_offset, None)
-# Python-style True/False/None fall through to Name node
-return Name(...)  # → ctx.get('True') → None
-```
-
-**Compiler code** (`compiler/expressions.py:37-55`):
-
-```python
-if node_type == "Name":
-    # ...
-    # All unknown names become ctx.get(name) → silent None
-    return ast.Call(
-        func=ast.Attribute(
-            value=ast.Name(id="ctx", ctx=ast.Load()),
-            attr="get",
-            ...
-        ),
-        args=[ast.Constant(value=node.name)],
-        ...
-    )
-```
-
-### Verified Test Results
+### The Bug
 
 ```python
 env = Environment()
 
-# ✅ Works: Jinja2-style lowercase
-env.from_string("{% if true %}yes{% endif %}").render()  # → 'yes'
-
-# ❌ Fails: Python-style uppercase
+# ❌ Fails silently - True becomes undefined → None → falsy
 env.from_string("{% if True %}yes{% endif %}").render()  # → ''
 
-# ❌ Silent failure: True becomes undefined variable
-env.from_string("{{ True }}").render()  # → 'None'
+# ✅ Works - lowercase recognized
+env.from_string("{% if true %}yes{% endif %}").render()  # → 'yes'
 ```
 
----
+**Root Cause**: Parser only handles lowercase keywords:
 
-## Design Gaps Identified
-
-### 1. Silent Undefined Variable Resolution
-
-**Current Behavior**: All undefined names resolve to `None` via `ctx.get(name)`.
-
-**Problems**:
-- No distinction between "intentionally None" and "undefined"
-- Typos in variable names produce silent failures
-- Template debugging is difficult
-- Python-style keywords accidentally undefined
-
-**Example**:
-```kida
-{{ user_nmae }}  {# Typo: silently becomes None #}
-{{ Undefined }}  {# Silently becomes None #}
-{% if Flase %}   {# Typo: silently becomes None (falsy) #}
+```python
+# parser/expressions.py:404-414
+if token.value == "true":    # Missing "True"
+    return Const(..., True)
+elif token.value == "false":  # Missing "False"
+    return Const(..., False)
+elif token.value == "none":   # Missing "None"
+    return Const(..., None)
+return Name(...)  # True/False/None fall through → ctx.get('True') → None
 ```
 
-### 2. Jinja2 vs Python Keyword Conflict
+### The Inconsistency
 
-**Design Decision Not Made Explicit**:
-- Jinja2 uses `true`, `false`, `none` (lowercase)
-- Python uses `True`, `False`, `None` (capitalized)
-- Kida only supports Jinja2-style
+The parser already recognizes Python-style keywords in `_can_start_test_arg()` (line 206):
 
-**User Expectation Mismatch**:
-- Users familiar with Python expect `True` to work
-- No error message explaining the difference
-- Silent failure is the worst UX outcome
+```python
+return self._current.value in ("true", "false", "none", "True", "False", "None")
+```
 
-### 3. Reserved Words Not Enforced
-
-**Current State**: No reserved words (except `and`, `or`, `not`, `in`, `is` in lexer).
-
-**Risk**: Users could define variables named `true`, `True`, `len`, etc., causing unexpected behavior.
-
-### 4. No Strict Mode for Development
-
-**Missing Feature**: Option to error on undefined variables during development, while gracefully handling them in production.
+But `_parse_primary()` only handles lowercase. This is an oversight, not a design choice.
 
 ---
 
 ## Proposed Solution
 
-### Phase 1: Immediate Fix (Low Effort, High Impact)
+### Phase 1: Python Keyword Recognition (~1 day)
 
-**Goal**: Support Python-style `True`, `False`, `None`.
-
-**Location**: `bengal/rendering/kida/parser/expressions.py`
-
-**Change**:
-
-```python
-# Before (lines 401-414)
-if token.value == "true":
-    return Const(token.lineno, token.col_offset, True)
-elif token.value == "false":
-    return Const(token.lineno, token.col_offset, False)
-elif token.value == "none":
-    return Const(token.lineno, token.col_offset, None)
-
-# After
-if token.value in ("true", "True"):
-    return Const(token.lineno, token.col_offset, True)
-elif token.value in ("false", "False"):
-    return Const(token.lineno, token.col_offset, False)
-elif token.value in ("none", "None"):
-    return Const(token.lineno, token.col_offset, None)
-```
-
-**Complexity**: O(1) - constant-time string comparison  
-**Breaking Change**: No - purely additive  
-**Test Coverage**: Add tests for Python-style keywords
-
----
-
-### Phase 2: Undefined Variable Warnings (Medium Effort)
-
-**Goal**: Warn (don't crash) when undefined variables are accessed.
-
-**Approach**: Track defined variables during compilation, emit warnings at runtime.
-
-**Implementation Options**:
-
-#### Option A: Compile-Time Analysis (Recommended)
-
-Track variable definitions during compilation:
-
-```python
-class Compiler:
-    def __init__(self, env):
-        self._defined_vars: set[str] = set()
-        self._warn_undefined: bool = env.warn_undefined
-
-    def _compile_expr(self, node):
-        if node_type == "Name":
-            if self._warn_undefined and node.name not in self._defined_vars:
-                # Emit warning at compile time
-                self._emit_warning(
-                    f"Undefined variable '{node.name}' at line {node.lineno}. "
-                    f"Did you mean 'true' (lowercase) instead of 'True'?"
-                )
-```
-
-**Pros**:
-- Zero runtime overhead
-- Catches issues during site build
-- Can suggest corrections (True → true)
-
-**Cons**:
-- Cannot track dynamic context variables
-- May false-positive on intended context lookups
-
-#### Option B: Runtime Check (Alternative)
-
-Wrap `ctx.get()` with warning:
-
-```python
-def _safe_get(ctx, name, template_info):
-    value = ctx.get(name)
-    if value is None and name not in ctx:
-        warnings.warn(
-            f"Undefined variable '{name}' in {template_info.name}:{template_info.line}"
-        )
-    return value
-```
-
-**Pros**:
-- Accurate (checks actual context)
-- No false positives
-
-**Cons**:
-- Runtime overhead (~5-10%)
-- Warning per access, not per definition
-
----
-
-### Phase 3: Strict Mode (Medium Effort)
-
-**Goal**: Optional strict mode that errors on undefined variables.
-
-**Configuration**:
-
-```python
-env = Environment(
-    undefined="strict"  # Options: "silent" (default), "warn", "strict"
-)
-```
-
-**Behavior by Mode**:
-
-| Mode | Undefined Variable | Python-style Keywords |
-|------|-------------------|-----------------------|
-| `silent` | Returns `None` | Recognized (Phase 1) |
-| `warn` | Returns `None` + warning | Recognized (Phase 1) |
-| `strict` | Raises `UndefinedError` | Recognized (Phase 1) |
+**Goal**: Recognize `True`, `False`, `None` as the canonical Python style.
 
 **Implementation**:
 
 ```python
-class UndefinedBehavior(Enum):
-    SILENT = "silent"
-    WARN = "warn"
-    STRICT = "strict"
+# parser/expressions.py - module level
+BOOL_TRUE = frozenset({"True", "true"})
+BOOL_FALSE = frozenset({"False", "false"})
+BOOL_NONE = frozenset({"None", "none"})
+BOOL_KEYWORDS = BOOL_TRUE | BOOL_FALSE | BOOL_NONE
 
-class Environment:
-    def __init__(self, undefined: str = "silent"):
-        self._undefined = UndefinedBehavior(undefined)
+# In _parse_primary(), lines 404-414
+if token.value in BOOL_TRUE:
+    return Const(token.lineno, token.col_offset, True)
+elif token.value in BOOL_FALSE:
+    return Const(token.lineno, token.col_offset, False)
+elif token.value in BOOL_NONE:
+    return Const(token.lineno, token.col_offset, None)
 ```
 
-In compiler:
+**Performance**: Zero overhead. `frozenset` lookup is O(1). This runs at parse time, not render time.
+
+---
+
+### Phase 2: Strict Mode as Default (~1 week)
+
+**Goal**: Undefined variables should error, not silently become `None`.
+
+**Rationale**: Silent `None` is a legacy pattern that causes debugging nightmares. Modern Python uses type hints and explicit errors. Kida should too.
+
+**Configuration**:
 
 ```python
-if self._env._undefined == UndefinedBehavior.STRICT:
-    # Generate: raise UndefinedError(name) if name not in ctx
-    return ast.IfExp(
-        test=ast.Compare(
-            left=ast.Constant(value=node.name),
-            ops=[ast.In()],
-            comparators=[ast.Name(id="ctx", ctx=ast.Load())],
-        ),
-        body=ast.Subscript(
-            value=ast.Name(id="ctx", ctx=ast.Load()),
-            slice=ast.Constant(value=node.name),
-        ),
-        orelse=ast.Call(
-            func=ast.Name(id="_raise_undefined", ctx=ast.Load()),
-            args=[ast.Constant(value=node.name)],
-            ...
-        ),
+# Modern (recommended)
+env = Environment()  # strict=True by default
+
+# Legacy compatibility
+env = Environment(strict=False)
+```
+
+**Behavior**:
+
+| Mode | Undefined Variable | Typo in Variable Name |
+|------|-------------------|-----------------------|
+| `strict=True` (default) | `UndefinedError` | `UndefinedError` |
+| `strict=False` | `None` | `None` (silent bug) |
+
+**Implementation**:
+
+```python
+class Environment:
+    def __init__(self, strict: bool = True):
+        self._strict = strict
+```
+
+In compiler, for undefined variables:
+
+```python
+if self._env._strict:
+    # Generate: ctx[name] (raises KeyError → UndefinedError)
+    return ast.Subscript(
+        value=ast.Name(id="ctx", ctx=ast.Load()),
+        slice=ast.Constant(value=node.name),
+        ctx=ast.Load(),
     )
+else:
+    # Legacy: ctx.get(name) → None
+    return ast.Call(
+        func=ast.Attribute(
+            value=ast.Name(id="ctx", ctx=ast.Load()),
+            attr="get",
+            ctx=ast.Load(),
+        ),
+        args=[ast.Constant(value=node.name)],
+        keywords=[],
+    )
+```
+
+**Exception Design**:
+
+```python
+class UndefinedError(TemplateError):
+    """Raised when accessing an undefined variable in strict mode."""
+
+    def __init__(self, name: str, template: str, lineno: int):
+        self.name = name
+        self.template = template
+        self.lineno = lineno
+        super().__init__(
+            f"Undefined variable '{name}' in {template}:{lineno}"
+        )
 ```
 
 ---
 
-### Phase 4: Reserved Words & Builtins (Low Effort)
+### Phase 3: Optional Warning Mode (Future)
 
-**Goal**: Define reserved words and Python builtins for consistency.
-
-**Reserved Words** (parser should recognize):
+For gradual migration, add a warning mode:
 
 ```python
-BOOLEAN_KEYWORDS = frozenset({
-    "true", "True",
-    "false", "False",
-    "none", "None",
-})
-
-LOGIC_KEYWORDS = frozenset({
-    "and", "or", "not", "in", "is",
-})
-
-RESERVED_WORDS = BOOLEAN_KEYWORDS | LOGIC_KEYWORDS
+env = Environment(strict="warn")  # Logs warning, returns None
 ```
 
-**Python Builtins** (optional, for strict mode):
-
-```python
-PYTHON_BUILTINS = frozenset({
-    "len", "str", "int", "float", "list", "dict", "set",
-    "range", "enumerate", "zip", "map", "filter",
-    "min", "max", "sum", "abs", "round",
-    "sorted", "reversed",
-})
-```
-
-In strict mode, these could be auto-imported from Python:
-
-```python
-if self._env.import_builtins:
-    ctx.update({
-        "len": len,
-        "str": str,
-        # ...
-    })
-```
+This is lower priority than getting strict mode right.
 
 ---
 
 ## Performance Analysis
 
-### Phase 1: Zero Overhead
+### Phase 1: Zero Cost
 
-- String comparison `in ("true", "True")` is O(1)
-- Tuple membership is optimized by Python
-- No runtime impact
+- `frozenset` membership is O(1)
+- Runs once at parse time, not per-render
+- Compiled bytecode is identical
 
-### Phase 2-3: Configurable Overhead
+### Phase 2: Strict Mode is Faster
 
-| Mode | Parse Time | Compile Time | Runtime |
-|------|-----------|--------------|---------|
-| Silent | 0% | 0% | 0% |
-| Warn | 0% | +5% (tracking) | +5% (check) |
-| Strict | 0% | +10% (extra AST) | +10% (check) |
+| Mode | Operation | Performance |
+|------|-----------|-------------|
+| `strict=True` | `ctx[name]` | O(1) dict lookup |
+| `strict=False` | `ctx.get(name)` | O(1) + function call overhead |
 
-**Optimization**: Checks can be compiled out for production:
-
-```python
-env = Environment(
-    undefined="warn" if DEBUG else "silent"
-)
-```
+Strict mode is actually **faster** because `ctx[name]` is a direct subscript vs `ctx.get(name)` which has method call overhead.
 
 ---
 
@@ -353,159 +211,264 @@ env = Environment(
 
 ### Phase 1 (Immediate)
 
-1. Add Python-style keyword support
-2. Update tests
-3. Document: "Both `true` and `True` are valid"
-4. **No breaking changes**
+1. Add Python keyword support
+2. Document: "`True`, `False`, `None` are the standard Python keywords. Lowercase `true`, `false`, `none` also work."
+3. **No breaking changes**
 
-### Phase 2-3 (Optional Opt-in)
+### Phase 2 (Strict Mode)
 
-1. Add `undefined` parameter to Environment
-2. Default to `"silent"` (current behavior)
-3. Recommend `"warn"` for development
-4. Document strict mode for new projects
+**Option A: Strict by Default (Recommended)**
 
-### Phase 4 (Long-term)
+New projects get strict mode. Existing code adds `strict=False` if needed.
 
-1. Define reserved words
-2. Consider Python builtin imports
-3. Potentially make `"warn"` the default in v2.0
+```python
+# bengal.yaml or config
+kida:
+  strict: false  # Opt-out for legacy templates
+```
+
+**Option B: Opt-in Strict Mode**
+
+Default remains lenient. Users opt into strict mode.
+
+```python
+env = Environment(strict=True)
+```
+
+**Recommendation**: Option A. Modern defaults should be safe defaults.
 
 ---
 
 ## Test Plan
 
-### Phase 1 Tests
+### Phase 1: Python Keywords
 
 ```python
 class TestPythonKeywords:
-    """Test Python-style True/False/None recognition."""
+    """Python-style True/False/None are canonical."""
 
-    def test_true_uppercase(self):
-        env = Environment()
-        result = env.from_string("{% if True %}yes{% endif %}").render()
-        assert result == "yes"
+    @pytest.fixture
+    def env(self):
+        return Environment(strict=False)  # Test keyword parsing, not strict mode
 
-    def test_false_uppercase(self):
-        env = Environment()
-        result = env.from_string("{% if False %}yes{% else %}no{% endif %}").render()
-        assert result == "no"
+    def test_True_in_conditional(self, env):
+        assert env.from_string("{% if True %}yes{% endif %}").render() == "yes"
 
-    def test_none_uppercase(self):
-        env = Environment()
-        result = env.from_string("{{ None }}").render()
-        assert result == "None"  # or "" depending on design
+    def test_False_in_conditional(self, env):
+        assert env.from_string("{% if False %}no{% else %}yes{% endif %}").render() == "yes"
 
-    def test_def_in_if_true(self):
-        """Regression test for Issue #4."""
-        loader = DictLoader({
-            "base.html": "{% def helper() %}Helper{% enddef %}{% block c %}{% endblock %}",
-            "child.html": '{% extends "base.html" %}{% block c %}{% if True %}{{ helper() }}{% endif %}{% endblock %}',
-        })
-        env = Environment(loader=loader)
-        result = env.get_template("child.html").render()
-        assert "Helper" in result
+    def test_None_renders_empty(self, env):
+        assert env.from_string("{{ None }}").render() == ""
+
+    def test_True_equals_true(self, env):
+        assert env.from_string("{% if True == true %}yes{% endif %}").render() == "yes"
+
+    def test_ternary_with_True(self, env):
+        assert env.from_string("{{ 'yes' if True else 'no' }}").render() == "yes"
+
+    def test_def_inside_if_True(self, env):
+        """Regression test: def blocks inside {% if True %} work."""
+        tmpl = env.from_string("""
+{% def greet() %}Hello{% enddef %}
+{% if True %}{{ greet() }}{% endif %}
+""")
+        assert "Hello" in tmpl.render()
 ```
 
-### Phase 2-3 Tests
+### Phase 2: Strict Mode
 
 ```python
-class TestUndefinedModes:
-    """Test undefined variable handling modes."""
+class TestStrictMode:
+    """Strict mode errors on undefined variables."""
 
-    def test_silent_mode(self):
-        env = Environment(undefined="silent")
-        result = env.from_string("{{ undefined_var }}").render()
-        assert result == "None"  # No error
+    def test_strict_is_default(self):
+        env = Environment()
+        assert env._strict is True
 
-    def test_warn_mode(self):
-        env = Environment(undefined="warn")
-        with pytest.warns(UserWarning, match="Undefined variable 'undefined_var'"):
-            env.from_string("{{ undefined_var }}").render()
-
-    def test_strict_mode(self):
-        env = Environment(undefined="strict")
+    def test_undefined_raises(self):
+        env = Environment()
         with pytest.raises(UndefinedError, match="undefined_var"):
             env.from_string("{{ undefined_var }}").render()
+
+    def test_defined_works(self):
+        env = Environment()
+        result = env.from_string("{{ name }}").render(name="World")
+        assert result == "World"
+
+    def test_strict_false_returns_none(self):
+        env = Environment(strict=False)
+        result = env.from_string("{{ undefined_var }}").render()
+        assert result == ""  # None → empty
+
+    def test_error_includes_location(self):
+        env = Environment()
+        try:
+            env.from_string("line1\n{{ bad }}").render()
+        except UndefinedError as e:
+            assert e.name == "bad"
+            assert e.lineno == 2
+```
+
+---
+
+## Documentation
+
+### Keyword Documentation
+
+```markdown
+## Boolean and None Values
+
+Kida uses Python-style keywords:
+
+- `True` - Boolean true
+- `False` - Boolean false  
+- `None` - Null value (renders as empty string)
+
+```kida
+{% if True %}
+  This always renders.
+{% endif %}
+
+{% if user is None %}
+  No user provided.
+{% endif %}
+```
+
+Lowercase `true`, `false`, `none` are also accepted for convenience.
+```
+
+### Strict Mode Documentation
+
+```markdown
+## Strict Mode (Default)
+
+Kida uses strict mode by default. Undefined variables raise an error:
+
+```python
+env = Environment()
+env.from_string("{{ typo_var }}").render()
+# Raises: UndefinedError: Undefined variable 'typo_var'
+```
+
+This catches bugs early instead of silently rendering empty strings.
+
+### Disabling Strict Mode
+
+For legacy templates or optional variables:
+
+```python
+env = Environment(strict=False)
+```
+
+Or use the `default` filter:
+
+```kida
+{{ optional_var | default("fallback") }}
+```
 ```
 
 ---
 
 ## Alternatives Considered
 
-### 1. Only Support Jinja2-style (lowercase)
+### 1. Only Support Lowercase (Jinja2-style)
 
-**Rejected**: Too surprising for Python users. Violates principle of least astonishment.
+**Rejected**: We're not Jinja2. Python developers expect `True` to work. Silent failure is unacceptable.
 
-### 2. Make True/False/None Compile-Time Errors
+### 2. Warning Instead of Error
 
-**Rejected**: Would break existing templates using context variables named `True`.
+**Deferred**: Warning mode (`strict="warn"`) can be added later. Errors are the right default for catching bugs.
 
-### 3. Auto-Correct with Warning
+### 3. Lenient by Default
 
-**Considered**: `True` → `true` with deprecation warning.
-
-**Decision**: Too magical. Better to support both explicitly.
-
-### 4. Different Syntax Entirely
-
-**Rejected**: `@true`, `$true` etc. would be too different from Jinja2/Python.
+**Rejected**: Silent `None` is a legacy anti-pattern. Modern Python uses explicit errors. Kida should lead, not follow.
 
 ---
 
 ## Success Criteria
 
-| Criterion | Metric | Target |
-|-----------|--------|--------|
-| Python keywords work | All tests pass | 100% |
-| No performance regression | Benchmark | < 5% overhead |
-| Backward compatible | Existing templates | 100% work |
-| DX improvement | Error clarity | Reduced debugging time |
+| Criterion | Target |
+|-----------|--------|
+| `True`/`False`/`None` work | 100% of tests pass |
+| Zero performance regression | Phase 1 has no runtime cost |
+| Strict mode catches typos | `{{ typo }}` raises `UndefinedError` |
+| Clear error messages | Error shows variable name and line number |
+| Backward compatibility | `strict=False` restores legacy behavior |
 
 ---
 
-## Implementation Order
+## Implementation Checklist
 
-1. **Week 1**: Phase 1 (Python keywords) - Ship immediately
-2. **Week 2**: Phase 2 (warnings) - Optional feature
-3. **Future**: Phase 3-4 (strict mode, builtins) - Based on feedback
+### Phase 1 (~1 day)
+
+- [ ] Add `BOOL_TRUE`, `BOOL_FALSE`, `BOOL_NONE` constants to `parser/expressions.py`
+- [ ] Update `_parse_primary()` to use constants
+- [ ] Update `_can_start_test_arg()` to use same constants
+- [ ] Add `tests/rendering/kida/test_python_keywords.py`
+- [ ] Run full test suite
+- [ ] Update syntax documentation
+
+### Phase 2 (~1 week)
+
+- [ ] Add `strict` parameter to `Environment`
+- [ ] Add `UndefinedError` exception class
+- [ ] Update compiler to use `ctx[name]` in strict mode
+- [ ] Update existing tests to use `strict=False` where needed
+- [ ] Add strict mode tests
+- [ ] Document strict mode
+- [ ] Update bengal config to support `kida.strict` setting
+
+---
+
+## Files Modified
+
+| File | Change |
+|------|--------|
+| `parser/expressions.py` | Add `BOOL_*` constants, update `_parse_primary()`, `_can_start_test_arg()` |
+| `environment/core.py` | Add `strict` parameter |
+| `compiler/expressions.py` | Conditional `ctx[name]` vs `ctx.get(name)` |
+| `errors/__init__.py` | Add `UndefinedError` |
+| `tests/rendering/kida/test_python_keywords.py` | New test file |
+| `tests/rendering/kida/test_strict_mode.py` | New test file |
 
 ---
 
 ## Related RFCs
 
-- `rfc-kida-resilient-error-handling.md` - Complements with `None` handling
-- `rfc-template-context-redesign.md` - Context variable architecture
-- `rfc-kida-template-engine.md` - Original Kida design
+- `rfc-kida-resilient-error-handling.md` - Complements with attribute access on `None`
+- `rfc-kida-template-engine.md` - Original Kida design and philosophy
 
 ---
 
-## Appendix: Full Investigation Log
+## Appendix: Investigation Log
 
-### Symptoms Investigated
-
-1. `{% def %}` blocks not closing correctly → **Working**
-2. `{% empty %}` not recognized in nested contexts → **Working**
-3. `{% end %}` behavior inconsistent → **Working as designed**
-4. Defs not accessible in conditionals → **Root cause: True/False/None bug**
-5. Parser error messages → **Enhancement, not bug**
-
-### Verification Commands
+### Verification
 
 ```bash
 python -c '
 from bengal.rendering.kida import Environment
 env = Environment()
-print(env.from_string("{% if true %}yes{% endif %}").render())   # yes
-print(env.from_string("{% if True %}yes{% endif %}").render())   # (empty)
+
+# Bug demonstration:
+print("{% if True %}:", repr(env.from_string("{% if True %}yes{% endif %}").render()))
+print("{% if true %}:", repr(env.from_string("{% if true %}yes{% endif %}").render()))
+print("{{ True }}:", repr(env.from_string("{{ True }}").render()))
 '
+
+# Current output (BUG):
+# {% if True %}: ''
+# {% if true %}: 'yes'
+# {{ True }}: 'None'
+
+# Expected after fix:
+# {% if True %}: 'yes'
+# {% if true %}: 'yes'
+# {{ True }}: 'True'
 ```
 
-### Files Modified
+---
 
-| File | Change |
-|------|--------|
-| `parser/expressions.py` | Add `"True"`, `"False"`, `"None"` cases |
-| `environment/core.py` | Add `undefined` parameter |
-| `compiler/expressions.py` | Add undefined checking logic |
-| `tests/test_kida_*.py` | Add test coverage |
+## Changelog
+
+- **2025-12-26**: Initial draft
+- **2025-12-26**: Reframed as Python-native, not Jinja-compatible. Added strict mode as default. Simplified scope.
