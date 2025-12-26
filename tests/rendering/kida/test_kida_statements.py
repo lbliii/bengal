@@ -191,6 +191,68 @@ class TestIncludeStatement:
         result = tmpl.render(lang="en")
         assert result == "English"
 
+    def test_include_recursion_limit_circular(self):
+        """Circular includes raise TemplateRuntimeError."""
+        from bengal.rendering.kida.environment.exceptions import TemplateRuntimeError
+
+        loader = DictLoader(
+            {
+                "a.html": 'A{% include "b.html" %}',
+                "b.html": 'B{% include "a.html" %}',
+            }
+        )
+        env = Environment(loader=loader)
+        tmpl = env.get_template("a.html")
+
+        with pytest.raises(TemplateRuntimeError) as exc_info:
+            tmpl.render()
+
+        error_msg = str(exc_info.value)
+        assert "Maximum include depth exceeded" in error_msg
+        assert "Check for circular includes" in error_msg
+
+    def test_include_recursion_limit_deep(self):
+        """Deep but legitimate includes work up to limit."""
+        # Create 50 levels of includes (just under the limit)
+        templates = {}
+        for i in range(50):
+            if i == 49:
+                templates[f"level{i}.html"] = f"Level {i}"
+            else:
+                templates[f"level{i}.html"] = f"Level {i}{{% include 'level{i+1}.html' %}}"
+
+        loader = DictLoader(templates)
+        env = Environment(loader=loader)
+        tmpl = env.get_template("level0.html")
+        result = tmpl.render()
+        # Should render successfully
+        assert "Level 0" in result
+        assert "Level 49" in result
+
+    def test_include_recursion_limit_exceeded(self):
+        """Includes exceeding limit raise TemplateRuntimeError."""
+        from bengal.rendering.kida.environment.exceptions import TemplateRuntimeError
+
+        # Create 52 levels (exceeds limit of 50)
+        # level0 includes level1 at depth 1, ... level50 includes level51 at depth 51 (> 50)
+        templates = {}
+        for i in range(52):
+            if i == 51:
+                templates[f"level{i}.html"] = f"Level {i}"
+            else:
+                templates[f"level{i}.html"] = f"Level {i}{{% include 'level{i+1}.html' %}}"
+
+        loader = DictLoader(templates)
+        env = Environment(loader=loader)
+        tmpl = env.get_template("level0.html")
+
+        with pytest.raises(TemplateRuntimeError) as exc_info:
+            tmpl.render()
+
+        error_msg = str(exc_info.value)
+        assert "Maximum include depth exceeded" in error_msg
+        assert "50" in error_msg
+
 
 class TestIncludeIgnoreMissing:
     """include with ignore missing."""

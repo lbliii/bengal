@@ -282,16 +282,31 @@ class Template:
             *,  # Force remaining args to be keyword-only
             blocks: dict | None = None,  # RFC: kida-modern-syntax-features (embed)
         ) -> str:
+            from bengal.rendering.kida.environment.exceptions import TemplateRuntimeError
+
+            # Track include depth to prevent circular includes (DoS protection)
+            depth = context.get("_include_depth", 0)
+            MAX_INCLUDE_DEPTH = 50
+            # Check if the new depth would exceed the limit
+            if depth >= MAX_INCLUDE_DEPTH:
+                raise TemplateRuntimeError(
+                    f"Maximum include depth exceeded ({MAX_INCLUDE_DEPTH}) when including '{template_name}'",
+                    template_name=self._name,
+                    suggestion="Check for circular includes: A → B → A",
+                )
+
             _env = env_ref()
             if _env is None:
                 raise RuntimeError("Environment has been garbage collected")
             try:
                 included = _env.get_template(template_name)
+                # Create new context with incremented depth
+                new_context = {**context, "_include_depth": depth + 1}
                 # If blocks are provided (for embed), call the render function directly
                 # with blocks parameter
                 if blocks is not None and included._render_func is not None:
-                    return included._render_func(context, blocks)
-                return included.render(**context)
+                    return included._render_func(new_context, blocks)
+                return included.render(**new_context)
             except Exception:
                 if ignore_missing:
                     return ""
