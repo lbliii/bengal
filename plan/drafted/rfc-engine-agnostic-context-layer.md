@@ -2,6 +2,7 @@
 
 **Status**: Draft  
 **Created**: 2025-12-26  
+**Revised**: 2025-12-26  
 **Priority**: High  
 **Scope**: `bengal/rendering/`
 
@@ -10,11 +11,12 @@
 ## Executive Summary
 
 Bengal currently duplicates template context setup across template engines (Jinja2, Kida). This leads to:
+
 - Missing globals when adding new engines
 - Inconsistent wrapper usage
 - Maintenance burden when adding new context variables
 
-This RFC proposes a unified `TemplateContext` layer that all engines consume, ensuring identical template access patterns regardless of engine choice.
+This RFC proposes extending the existing `_get_global_contexts()` infrastructure in `bengal/rendering/context/` with a new public `get_engine_globals()` function that all engines consume, ensuring identical template access patterns regardless of engine choice.
 
 ---
 
@@ -22,7 +24,7 @@ This RFC proposes a unified `TemplateContext` layer that all engines consume, en
 
 ### Current Architecture
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────┐
 │                           Bengal Core                                │
 │  ┌──────────┐   ┌──────────┐   ┌───────────────┐   ┌─────────────┐ │
@@ -32,7 +34,7 @@ This RFC proposes a unified `TemplateContext` layer that all engines consume, en
         │              │                 │                  │
         ▼              ▼                 ▼                  ▼
 ┌───────────────────────────────────────────────────────────────────────┐
-│ Jinja Environment (environment.py:378-446)                            │
+│ Jinja Environment (environment.py:413-446)                           │
 │                                                                        │
 │   env.globals["site"] = SiteContext(site)           ✅ Wrapper        │
 │   env.globals["config"] = ConfigContext(config)     ✅ Wrapper        │
@@ -40,188 +42,117 @@ This RFC proposes a unified `TemplateContext` layer that all engines consume, en
 │   env.globals["bengal"] = build_template_metadata() ✅                │
 │   env.globals["versions"] = site.versions           ✅                │
 │   env.globals["versioning_enabled"] = ...           ✅                │
-│   env.globals["url_for"] = ...                      ✅                │
-│   env.globals["get_menu"] = ...                     ✅                │
+│   env.globals["url_for"] = ...                      ✅ Engine-specific│
+│   env.globals["get_menu"] = ...                     ✅ Engine-specific│
 │   env.globals["getattr"] = getattr                  ✅                │
 │   + ~15 more globals                                                   │
 └───────────────────────────────────────────────────────────────────────┘
 
 ┌───────────────────────────────────────────────────────────────────────┐
-│ Kida Engine (kida.py:158-218)                                         │
+│ Kida Engine (kida.py:165-219)                                         │
 │                                                                        │
-│   env.globals["site"] = SiteContext(site)           ✅ (after fix)    │
-│   env.globals["config"] = ConfigContext(config)     ✅ (after fix)    │
-│   env.globals["theme"] = ThemeContext(theme)        ✅ (after fix)    │
-│   env.globals["bengal"] = build_template_metadata() ✅ (after fix)    │
-│   env.globals["versions"] = site.versions           ✅ (after fix)    │
-│   env.globals["versioning_enabled"] = ...           ✅ (after fix)    │
-│   env.globals["url_for"] = ...                      ✅                │
-│   env.globals["get_menu"] = ...                     ✅                │
+│   env.globals["site"] = SiteContext(site)           ✅ Wrapper        │
+│   env.globals["config"] = ConfigContext(config)     ✅ Wrapper        │
+│   env.globals["theme"] = ThemeContext(theme)        ✅ Wrapper        │
+│   env.globals["_raw_site"] = site                   ✅                │
+│   env.globals["bengal"] = build_template_metadata() ✅                │
+│   env.globals["versions"] = site.versions           ✅                │
+│   env.globals["versioning_enabled"] = ...           ✅                │
+│   env.globals["url_for"] = ...                      ✅ Engine-specific│
+│   env.globals["get_menu"] = ...                     ✅ Engine-specific│
 │   env.globals["getattr"] = getattr                  ✅                │
-│   ❓ Missing: _raw_site, other Jinja-specific globals?                │
 └───────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Issues
 
 | Issue | Impact | Example |
-|-------|--------|---------|
-| **Duplication** | ~60 lines duplicated per engine | Each engine re-implements context setup |
-| **Drift** | Engines get out of sync | Kida was missing `bengal`, `versions`, wrappers |
-| **Onboarding** | New engines must copy-paste | Future engines (Mako, Liquid) face same issues |
-| **Testing** | Must test context separately per engine | No single source of truth |
-| **Bugs** | Easy to forget globals | 1302 pages failed due to missing `bengal` |
+| :--- | :--- | :--- |
+| **Duplication** | ~35-40 lines per engine | `environment.py:413-446` vs `kida.py:165-219` |
+| **Drift** | Engines get out of sync | Kida was missing `bengal`, `versions`, and wrappers until recently. |
+| **Onboarding** | High friction for new engines | Future engines (Mako, Liquid) must manually implement Bengal's "ergonomic defaults" (Wrappers). |
+| **Testing** | Fragmentation | No single place to verify that `site.title` fallbacks to `""` across all engines. |
+| **Bugs** | Environment inconsistencies | Missing `bengal` metadata in Kida caused 1302 page build failures in late 2025. |
 
 ### Root Cause
 
-Context setup is **embedded in engine implementations** instead of being a **shared, engine-agnostic service**.
+Context setup is currently an **engine implementation detail** rather than a **core rendering service**. This violates the Principle of Least Surprise for theme developers who expect identical global variables regardless of the engine.
+
+---
+
+## Related Work
+
+Bengal already has the building blocks for context management in `bengal/rendering/context/__init__.py`, but they are currently scoped to **per-page rendering** rather than **engine initialization**.
+
+```python
+# Existing: _get_global_contexts() (private, for per-page context)
+def _get_global_contexts(site: Site) -> dict[str, Any]:
+    """Get cached global context wrappers (site, config, theme, menus)."""
+    # ... uses a thread-safe cache to avoid redundant allocations
+    return {
+        "site": SiteContext(site),
+        "config": ConfigContext(site.config),
+        "theme": ThemeContext(theme_obj) if theme_obj else ThemeContext._empty(),
+        "menus": MenusContext(site),
+    }
+```
+
+**The Gap**:
+
+- `_get_global_contexts()` is private and only used by `build_page_context()`.
+- It lacks certain "static" globals needed by engines like `getattr`, `_raw_site`, and `bengal` metadata.
+- Engines are currently forced to "re-invent" the initialization of these wrappers.
 
 ---
 
 ## Proposed Solution
 
-### Design: TemplateContext Factory
+### Design: Extend Existing Infrastructure
 
-Create a centralized `TemplateContext` class that:
-1. Prepares all context variables in one place
-2. Applies appropriate wrappers (SiteContext, ConfigContext, etc.)
-3. Returns a dict that any engine can consume
+We will promote the existing private infrastructure to a public API. This ensures that the logic used to build per-page context and the logic used to initialize engines stays perfectly synchronized.
 
 ```python
-# bengal/rendering/context/template_context.py
+# bengal/rendering/context/__init__.py
 
-from __future__ import annotations
-
-from typing import TYPE_CHECKING, Any, Callable
-
-from bengal.rendering.context.site_wrappers import (
-    ConfigContext,
-    SiteContext,
-    ThemeContext,
-)
-from bengal.utils.metadata import build_template_metadata
-
-if TYPE_CHECKING:
-    from bengal.core.site import Site
-
-
-class TemplateContext:
+def get_engine_globals(site: Site) -> dict[str, Any]:
     """
-    Engine-agnostic template context preparation.
+    Get all engine-agnostic globals for template engine initialization.
 
-    Provides a unified interface for preparing template globals that all
-    template engines (Jinja2, Kida, future engines) can consume.
+    This is the SINGLE SOURCE OF TRUTH for engine globals.
+    Use this in Jinja, Kida, and any future engines.
 
-    Example:
-        # In any template engine
-        context = TemplateContext(site)
-        env.globals.update(context.globals())
-        env.filters.update(context.filters())
+    Implementation Notes:
+    - Cached and thread-safe via _get_global_contexts().
+    - Uses local imports for metadata to prevent circular dependencies.
     """
+    # Reuse existing cached contexts (site, config, theme, menus)
+    # This leverages the existing id(site) cache for performance.
+    contexts = _get_global_contexts(site)
 
-    __slots__ = ("_site", "_globals_cache", "_filters_cache")
+    # Build metadata with fallback (Local import prevents circularity)
+    try:
+        from bengal.utils.metadata import build_template_metadata
+        bengal_metadata = build_template_metadata(site)
+    except Exception:
+        bengal_metadata = {"engine": {"name": "Bengal SSG", "version": "unknown"}}
 
-    def __init__(self, site: Site):
-        self._site = site
-        self._globals_cache: dict[str, Any] | None = None
-        self._filters_cache: dict[str, Callable] | None = None
+    return {
+        # Core context wrappers (from existing cache)
+        **contexts,
 
-    def globals(self) -> dict[str, Any]:
-        """
-        Get all template globals.
+        # Raw site for internal template functions
+        "_raw_site": site,
 
-        Returns a dict ready to merge into env.globals.
-        Cached after first call for performance.
-        """
-        if self._globals_cache is not None:
-            return self._globals_cache
+        # Metadata for templates/JS
+        "bengal": bengal_metadata,
 
-        site = self._site
+        # Versioning
+        "versioning_enabled": site.versioning_enabled,
+        "versions": site.versions,
 
-        # Core context objects (with safe wrappers)
-        context: dict[str, Any] = {
-            # Primary objects - wrapped for safe template access
-            "site": SiteContext(site),
-            "config": ConfigContext(site.config),
-            "theme": (
-                ThemeContext(site.theme_config)
-                if site.theme_config
-                else ThemeContext._empty()
-            ),
-
-            # Raw site for internal functions that need it
-            "_raw_site": site,
-
-            # Metadata for templates/JS
-            "bengal": self._build_metadata(),
-
-            # Versioning
-            "versioning_enabled": site.versioning_enabled,
-            "versions": site.versions,
-
-            # Python builtins useful in templates
-            "getattr": getattr,
-            "len": len,
-            "range": range,
-            "enumerate": enumerate,
-            "zip": zip,
-            "sorted": sorted,
-            "reversed": reversed,
-            "dict": dict,
-            "list": list,
-            "str": str,
-            "int": int,
-            "float": float,
-            "bool": bool,
-        }
-
-        self._globals_cache = context
-        return context
-
-    def _build_metadata(self) -> dict[str, Any]:
-        """Build bengal metadata with fallback."""
-        try:
-            return build_template_metadata(self._site)
-        except Exception:
-            return {"engine": {"name": "Bengal SSG", "version": "unknown"}}
-
-    def filters(self) -> dict[str, Callable]:
-        """
-        Get common template filters.
-
-        Note: Engine-specific filters (like Jinja's autoescape)
-        should still be added by the engine.
-        """
-        if self._filters_cache is not None:
-            return self._filters_cache
-
-        from bengal.rendering.template_engine.url_helpers import filter_dateformat
-
-        filters: dict[str, Callable] = {
-            "dateformat": filter_dateformat,
-            "date": filter_dateformat,
-        }
-
-        self._filters_cache = filters
-        return filters
-
-    @classmethod
-    def for_engine(
-        cls,
-        site: Site,
-        engine_type: str = "generic",
-    ) -> "TemplateContext":
-        """
-        Factory method for engine-specific context.
-
-        Args:
-            site: Bengal Site instance
-            engine_type: "jinja", "kida", or "generic"
-
-        Returns:
-            Configured TemplateContext instance
-        """
-        return cls(site)
+        # Python builtin useful in templates
+        "getattr": getattr,
+    }
 ```
 
 ### Engine Integration
@@ -231,33 +162,39 @@ Each engine becomes much simpler:
 ```python
 # bengal/rendering/engines/kida.py (after refactor)
 
+from bengal.rendering.context import get_engine_globals
+
 class KidaTemplateEngine:
     def __init__(self, site: Site, *, profile: bool = False):
         self.site = site
         self._env = Environment(...)
 
-        # One-line context setup!
-        context = TemplateContext(site)
-        self._env.globals.update(context.globals())
-        self._env.filters.update(context.filters())
+        # One-line shared context setup!
+        self._env.globals.update(get_engine_globals(site))
 
-        # Engine-specific additions
-        self._register_kida_specific()
+        # Engine-specific additions only
+        self._env.globals["url_for"] = self._url_for
+        self._env.globals["get_menu"] = self._get_menu
+        self._env.globals["get_menu_lang"] = self._get_menu_lang
+        # ... other Kida-specific setup
 ```
 
 ```python
 # bengal/rendering/template_engine/environment.py (after refactor)
 
+from bengal.rendering.context import get_engine_globals
+
 def create_jinja_environment(site, template_engine, profile):
     env = Environment(...)
 
-    # One-line context setup!
-    context = TemplateContext(site)
-    env.globals.update(context.globals())
-    env.filters.update(context.filters())
+    # One-line shared context setup!
+    env.globals.update(get_engine_globals(site))
 
-    # Jinja-specific additions (profiling, extensions, etc.)
-    _register_jinja_specific(env, template_engine)
+    # Jinja-specific additions
+    env.globals["url_for"] = template_engine._url_for
+    env.globals["get_menu"] = template_engine._get_menu
+    env.globals["get_menu_lang"] = template_engine._get_menu_lang
+    # ... other Jinja-specific setup (extensions, profiling, etc.)
 
     return env
 ```
@@ -266,137 +203,106 @@ def create_jinja_environment(site, template_engine, profile):
 
 ## Implementation Plan
 
-### Phase 1: Create TemplateContext (Day 1)
+### Phase 1: Infrastructure (Day 1)
 
-```yaml
-Files:
-  - CREATE: bengal/rendering/context/template_context.py
-  - CREATE: tests/rendering/context/test_template_context.py
+**Target**: `bengal/rendering/context/__init__.py`
 
-Tasks:
-  - [ ] Implement TemplateContext class
-  - [ ] Extract all globals from environment.py into TemplateContext.globals()
-  - [ ] Extract common filters into TemplateContext.filters()
-  - [ ] Add comprehensive tests
-```
+- [ ] Implement `get_engine_globals(site: Site)` function.
+- [ ] Add `get_engine_globals` to `__all__`.
+- [ ] **Test**: Create `tests/rendering/context/test_engine_globals.py` and verify all keys are present.
 
-### Phase 2: Refactor Jinja (Day 1-2)
+### Phase 2: Engine Refactor (Day 1)
 
-```yaml
-Files:
-  - MODIFY: bengal/rendering/template_engine/environment.py
+**Target 1**: `bengal/rendering/template_engine/environment.py` (Jinja2)
 
-Tasks:
-  - [ ] Replace inline globals with TemplateContext.globals()
-  - [ ] Replace inline filters with TemplateContext.filters()
-  - [ ] Keep Jinja-specific setup (extensions, profiling) separate
-  - [ ] Run full test suite
-  - [ ] Test site build
-```
+- [ ] Remove lines 413-446 (manual globals setup).
+- [ ] Replace with `env.globals.update(get_engine_globals(site))`.
+- [ ] Verify `url_for`, `get_menu`, and `get_menu_lang` remain as engine-specific.
 
-### Phase 3: Refactor Kida (Day 2)
+**Target 2**: `bengal/rendering/engines/kida.py` (Kida)
 
-```yaml
-Files:
-  - MODIFY: bengal/rendering/engines/kida.py
+- [ ] Remove lines 165-178 and 211-219 (manual globals setup).
+- [ ] Replace with `self._env.globals.update(get_engine_globals(site))`.
+- [ ] Ensure `_register_bengal_template_functions` is simplified but preserves engine-specific filters.
 
-Tasks:
-  - [ ] Replace inline globals with TemplateContext.globals()
-  - [ ] Replace inline filters with TemplateContext.filters()
-  - [ ] Keep Kida-specific setup (adapter functions) separate
-  - [ ] Run Kida test suite
-  - [ ] Test site build with template_engine: kida
-```
+### Phase 3: Validation (Day 2)
 
-### Phase 4: Documentation & Cleanup (Day 2-3)
+- [ ] **Parity Test**: `tests/rendering/test_engine_context_parity.py`.
+- [ ] **Build Test**: Run `bengal build` on `example-sites/milos-blog/` using both `--engine jinja` and `--engine kida`.
 
-```yaml
-Tasks:
-  - [ ] Update TemplateEngineProtocol documentation
-  - [ ] Add "Adding a New Template Engine" guide
-  - [ ] Remove duplicate code
-  - [ ] Add deprecation warnings for direct globals access
-```
+---
+
+## Security & Privacy Considerations
+
+### 1. Information Exposure
+
+By centralizing context, we ensure that the `expose_metadata` setting (minimal/standard/extended) is applied consistently across all engines via `build_template_metadata`. This prevents an engine from accidentally leaking rendering details (like specific library versions) in "minimal" mode.
+
+### 2. Data Sanitization
+
+All globals provided via `get_engine_globals` use Bengal's "Smart Wrappers" (`SiteContext`, `ConfigContext`, etc.). These wrappers are designed to:
+
+- Prevent templates from accessing private `_` methods/attributes of the underlying objects.
+- Return safe defaults (like empty strings) instead of `None` or raising errors, reducing the risk of XSS through unhandled `None` types in some engines.
+
+### 3. Raw Site Access
+
+The `_raw_site` global remains available for internal template functions but is prefixed with an underscore to discourage theme developers from using it directly. We should continue to move commonly requested data into the safe `SiteContext` wrapper.
 
 ---
 
 ## API Design
 
-### TemplateContext
+### Function Signature
 
 ```python
-class TemplateContext:
-    """Engine-agnostic template context."""
+def get_engine_globals(site: Site) -> dict[str, Any]:
+    """
+    Get all engine-agnostic globals for template engine initialization.
 
-    def __init__(self, site: Site): ...
-
-    def globals(self) -> dict[str, Any]:
-        """All template globals (cached)."""
-
-    def filters(self) -> dict[str, Callable]:
-        """Common template filters (cached)."""
-
-    def tests(self) -> dict[str, Callable]:
-        """Common template tests (cached)."""
-
-    @classmethod
-    def for_engine(cls, site: Site, engine_type: str) -> TemplateContext:
-        """Factory with engine-specific configuration."""
+    Cached and thread-safe.
+    """
 ```
 
 ### Usage Pattern
 
 ```python
 # Standard pattern for any template engine
-context = TemplateContext(site)
+from bengal.rendering.context import get_engine_globals
 
-# Merge into engine's globals
-env.globals.update(context.globals())
-env.filters.update(context.filters())
+env.globals.update(get_engine_globals(site))
 
 # Engine-specific additions
-env.globals["engine_specific_func"] = my_func
+env.globals["url_for"] = self._url_for
+env.globals["get_menu"] = self._get_menu
 ```
 
 ---
 
 ## Context Variables Reference
 
-### Core Globals (from TemplateContext)
+### Shared Globals (from `get_engine_globals()`)
 
 | Variable | Type | Description |
-|----------|------|-------------|
+| :--- | :--- | :--- |
 | `site` | `SiteContext` | Wrapped site with safe access |
 | `config` | `ConfigContext` | Wrapped config with safe access |
 | `theme` | `ThemeContext` | Wrapped theme with `has()` method |
+| `menus` | `MenusContext` | Menu access helper |
 | `_raw_site` | `Site` | Raw site for internal use |
 | `bengal` | `dict` | Metadata (capabilities, engine info) |
 | `versioning_enabled` | `bool` | Whether versioning is active |
 | `versions` | `list` | Available versions |
 | `getattr` | `builtin` | Python's getattr for templates |
 
-### Engine-Specific Globals
+### Engine-Specific Globals (added by each engine)
 
 | Variable | Owner | Description |
-|----------|-------|-------------|
+| :--- | :--- | :--- |
 | `url_for` | Engine | URL generation (needs engine context) |
 | `get_menu` | Engine | Menu retrieval (needs engine caching) |
+| `get_menu_lang` | Engine | Language-specific menu |
 | `breadcrumbs` | Engine | Breadcrumb generation |
-
-### Filters (from TemplateContext)
-
-| Filter | Description |
-|--------|-------------|
-| `dateformat` | Format dates |
-| `date` | Alias for dateformat |
-
-### Engine-Specific Filters
-
-| Filter | Owner | Description |
-|--------|-------|-------------|
-| `safe` | Jinja | Mark as safe HTML |
-| `autoescape` | Jinja | Control escaping |
-| (Kida has same via compatibility) | | |
 
 ---
 
@@ -405,62 +311,63 @@ env.globals["engine_specific_func"] = my_func
 ### Unit Tests
 
 ```python
-# tests/rendering/context/test_template_context.py
+# tests/rendering/context/test_engine_globals.py
 
-class TestTemplateContext:
-    def test_globals_includes_site_context(self, mock_site):
-        ctx = TemplateContext(mock_site)
-        assert isinstance(ctx.globals()["site"], SiteContext)
+class TestGetEngineGlobals:
+    def test_includes_site_context(self, mock_site):
+        globals = get_engine_globals(mock_site)
+        assert isinstance(globals["site"], SiteContext)
 
-    def test_globals_includes_config_context(self, mock_site):
-        ctx = TemplateContext(mock_site)
-        assert isinstance(ctx.globals()["config"], ConfigContext)
+    def test_includes_config_context(self, mock_site):
+        globals = get_engine_globals(mock_site)
+        assert isinstance(globals["config"], ConfigContext)
 
-    def test_globals_includes_theme_context(self, mock_site):
-        ctx = TemplateContext(mock_site)
-        assert isinstance(ctx.globals()["theme"], ThemeContext)
+    def test_includes_theme_context(self, mock_site):
+        globals = get_engine_globals(mock_site)
+        assert isinstance(globals["theme"], ThemeContext)
 
-    def test_globals_includes_bengal_metadata(self, mock_site):
-        ctx = TemplateContext(mock_site)
-        assert "bengal" in ctx.globals()
-        assert "capabilities" in ctx.globals()["bengal"]
+    def test_includes_bengal_metadata(self, mock_site):
+        globals = get_engine_globals(mock_site)
+        assert "bengal" in globals
 
-    def test_globals_cached(self, mock_site):
-        ctx = TemplateContext(mock_site)
-        g1 = ctx.globals()
-        g2 = ctx.globals()
-        assert g1 is g2  # Same object, not recomputed
+    def test_includes_versioning(self, mock_site):
+        globals = get_engine_globals(mock_site)
+        assert "versioning_enabled" in globals
+        assert "versions" in globals
 
-    def test_filters_includes_dateformat(self, mock_site):
-        ctx = TemplateContext(mock_site)
-        assert "dateformat" in ctx.filters()
+    def test_includes_raw_site(self, mock_site):
+        globals = get_engine_globals(mock_site)
+        assert globals["_raw_site"] is mock_site
 ```
 
 ### Integration Tests
 
 ```python
-# tests/rendering/test_context_parity.py
+# tests/rendering/test_engine_context_parity.py
 
 class TestEngineParity:
-    """Ensure Jinja and Kida get identical context."""
+    """Ensure Jinja and Kida get identical shared context."""
 
-    def test_globals_match(self, site):
+    def test_core_globals_match(self, site):
         jinja_engine = JinjaTemplateEngine(site)
         kida_engine = KidaTemplateEngine(site)
 
         jinja_globals = set(jinja_engine.env.globals.keys())
         kida_globals = set(kida_engine._env.globals.keys())
 
-        # Core globals must match
-        core = {"site", "config", "theme", "bengal", "versions", "getattr"}
+        # Core globals must be present in both
+        core = {"site", "config", "theme", "bengal", "versions",
+                "versioning_enabled", "getattr", "_raw_site"}
         assert core <= jinja_globals
         assert core <= kida_globals
 
-    def test_site_wrapper_type_matches(self, site):
+    def test_wrapper_types_match(self, site):
         jinja_engine = JinjaTemplateEngine(site)
         kida_engine = KidaTemplateEngine(site)
 
         assert type(jinja_engine.env.globals["site"]) == type(kida_engine._env.globals["site"])
+        assert type(jinja_engine.env.globals["config"]) == type(kida_engine._env.globals["config"])
+        assert type(jinja_engine.env.globals["theme"]) == type(kida_engine._env.globals["theme"])
 ```
 
 ---
@@ -470,6 +377,7 @@ class TestEngineParity:
 ### For Engine Maintainers
 
 **Before (duplicated setup):**
+
 ```python
 class MyTemplateEngine:
     def __init__(self, site):
@@ -477,17 +385,26 @@ class MyTemplateEngine:
         self._env.globals["config"] = ConfigContext(site.config)
         self._env.globals["theme"] = ThemeContext(site.theme_config)
         self._env.globals["bengal"] = build_template_metadata(site)
-        # ... 20 more lines
+        self._env.globals["versioning_enabled"] = site.versioning_enabled
+        self._env.globals["versions"] = site.versions
+        self._env.globals["_raw_site"] = site
+        self._env.globals["getattr"] = getattr
+        # ... engine-specific stuff
 ```
 
-**After (one line):**
+**After (one line for shared, explicit for engine-specific):**
+
 ```python
+from bengal.rendering.context import get_engine_globals
+
 class MyTemplateEngine:
     def __init__(self, site):
-        context = TemplateContext(site)
-        self._env.globals.update(context.globals())
-        self._env.filters.update(context.filters())
-        # Add only engine-specific stuff
+        # Shared globals (one line!)
+        self._env.globals.update(get_engine_globals(site))
+
+        # Engine-specific only
+        self._env.globals["url_for"] = self._url_for
+        self._env.globals["get_menu"] = self._get_menu
 ```
 
 ### For Theme Developers
@@ -497,7 +414,8 @@ No changes required! Templates continue to work exactly the same.
 ### For Plugin Authors
 
 If you're adding template globals, consider:
-1. Adding to `TemplateContext` if it's engine-agnostic
+
+1. Adding to `get_engine_globals()` if it's engine-agnostic
 2. Adding to the specific engine if it's engine-specific
 
 ---
@@ -505,66 +423,57 @@ If you're adding template globals, consider:
 ## Benefits
 
 | Benefit | Description |
-|---------|-------------|
-| **Single Source of Truth** | One place to define all context variables |
-| **Engine Parity** | Guaranteed identical context across engines |
+| :--- | :--- |
+| **Single Source of Truth** | One function defines all shared context variables |
+| **Engine Parity** | Guaranteed identical shared context across engines |
 | **Easier New Engines** | Adding Mako/Liquid/etc. becomes trivial |
-| **Better Testing** | Test context once, not per-engine |
+| **Better Testing** | Test shared context once, not per-engine |
 | **Reduced Bugs** | No more "forgot to add X to Kida" issues |
-| **Cleaner Code** | ~60 fewer lines per engine |
+| **Cleaner Code** | ~30 fewer lines per engine |
+| **Leverages Existing Infra** | Uses existing `_get_global_contexts()` caching |
 
 ---
 
 ## Risks & Mitigations
 
 | Risk | Mitigation |
-|------|------------|
-| Breaking changes | Keep backward compatibility; deprecate, don't remove |
-| Performance | Cache everything; single dict copy is fast |
-| Engine-specific needs | Engines can still add their own globals after |
-| Over-abstraction | Keep it simple; just a dict factory |
+| :--- | :--- |
+| Breaking changes | Additive change; engines can adopt incrementally |
+| Performance | Reuses existing cache from `_get_global_contexts()` |
+| Engine-specific needs | Engines add their own globals after the shared ones |
+| Over-abstraction | It's just one function returning a dict — minimal abstraction |
 
 ---
 
 ## Success Criteria
 
-- [ ] `TemplateContext.globals()` returns all core globals
-- [ ] Jinja uses `TemplateContext` (not inline setup)
-- [ ] Kida uses `TemplateContext` (not inline setup)
+- [ ] `get_engine_globals()` returns all shared globals
+- [ ] Jinja uses `get_engine_globals()` (not inline setup)
+- [ ] Kida uses `get_engine_globals()` (not inline setup)
 - [ ] Full test suite passes
 - [ ] Bengal site builds with both engines
 - [ ] No more "missing variable" errors due to engine mismatch
-- [ ] Documentation updated
+- [ ] Parity test ensures engines stay in sync
 
 ---
 
 ## Future Considerations
 
-### Extensibility
+### Plugin-Provided Context
 
 ```python
-# Future: Plugin-provided context
-class TemplateContext:
-    _extensions: list[Callable] = []
+# Future: Allow plugins to register additional globals
+_engine_global_extensions: list[Callable[[Site], dict[str, Any]]] = []
 
-    @classmethod
-    def register_extension(cls, fn: Callable[[Site], dict[str, Any]]):
-        """Allow plugins to add globals."""
-        cls._extensions.append(fn)
+def register_engine_global(fn: Callable[[Site], dict[str, Any]]) -> None:
+    """Allow plugins to add globals to all engines."""
+    _engine_global_extensions.append(fn)
 
-    def globals(self) -> dict[str, Any]:
-        result = self._core_globals()
-        for ext in self._extensions:
-            result.update(ext(self._site))
-        return result
-```
-
-### Engine-Specific Context
-
-```python
-# Future: Engine-aware context
-context = TemplateContext.for_engine(site, engine_type="kida")
-# Returns context optimized for Kida (e.g., async-ready functions)
+def get_engine_globals(site: Site) -> dict[str, Any]:
+    result = _core_engine_globals(site)
+    for ext in _engine_global_extensions:
+        result.update(ext(site))
+    return result
 ```
 
 ---
@@ -572,6 +481,7 @@ context = TemplateContext.for_engine(site, engine_type="kida")
 ## References
 
 - Issue: Kida missing `bengal` global causing 1302 page failures
+- Existing: `bengal/rendering/context/__init__.py:_get_global_contexts()`
 - Related: `bengal/rendering/context/site_wrappers.py`
 - Related: `bengal/rendering/template_engine/environment.py`
 - Related: `bengal/rendering/engines/kida.py`
@@ -584,7 +494,7 @@ context = TemplateContext.for_engine(site, engine_type="kida")
 ### From `environment.py` (Jinja)
 
 ```python
-# Line 413-446
+# Lines 413-446 — shared globals (will use get_engine_globals)
 env.globals["site"] = SiteContext(site)
 env.globals["config"] = ConfigContext(site.config)
 env.globals["theme"] = ThemeContext(site.theme_config)
@@ -592,32 +502,31 @@ env.globals["_raw_site"] = site
 env.globals["versioning_enabled"] = site.versioning_enabled
 env.globals["versions"] = site.versions
 env.globals["bengal"] = build_template_metadata(site)
+env.globals["getattr"] = getattr
+
+# Engine-specific (remain in environment.py)
 env.globals["url_for"] = template_engine._url_for
 env.globals["get_menu"] = template_engine._get_menu
 env.globals["get_menu_lang"] = template_engine._get_menu_lang
-env.globals["getattr"] = getattr
 ```
 
-### From `kida.py` (Kida, after fixes)
+### From `kida.py` (Kida)
 
 ```python
-# Line 158-218
+# Lines 165-219 — shared globals (will use get_engine_globals)
 env.globals["site"] = SiteContext(self.site)
 env.globals["config"] = ConfigContext(self.site.config)
 env.globals["theme"] = ThemeContext(self.site.theme_config)
+env.globals["_raw_site"] = self.site
 env.globals["bengal"] = build_template_metadata(self.site)
 env.globals["versioning_enabled"] = self.site.versioning_enabled
 env.globals["versions"] = self.site.versions
+env.globals["getattr"] = getattr
+
+# Engine-specific (remain in kida.py)
 env.globals["url_for"] = self._url_for
 env.globals["get_menu"] = self._get_menu
 env.globals["get_menu_lang"] = self._get_menu_lang
-env.globals["getattr"] = getattr
-```
-
-### Missing from Kida (not yet added)
-
-```python
-env.globals["_raw_site"] = site  # Internal use
 ```
 
 ---
@@ -625,5 +534,7 @@ env.globals["_raw_site"] = site  # Internal use
 ## Changelog
 
 | Date | Change |
-|------|--------|
+| :--- | :--- |
 | 2025-12-26 | Initial draft |
+| 2025-12-26 | Revised: Replace TemplateContext class with get_engine_globals() function; add Related Work section; fix linter/formatting issues |
+| 2025-12-26 | Improved: Detailed Issue examples, circular import safeguards, file:line targets in implementation plan, and new Security section |
