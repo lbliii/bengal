@@ -124,11 +124,13 @@ class RenderOrchestrator:
     Attributes:
         site: Site instance containing pages and configuration
         _free_threaded: Whether running on free-threaded Python (GIL disabled)
+        _block_cache: Cache for site-wide template blocks (Kida only)
 
     Relationships:
         - Uses: RenderingPipeline for individual page rendering
         - Uses: DependencyTracker for dependency tracking
         - Uses: BuildStats for build statistics collection
+        - Uses: BlockCache for site-wide block caching
         - Used by: BuildOrchestrator for rendering phase
 
     Thread Safety:
@@ -149,6 +151,7 @@ class RenderOrchestrator:
         """
         self.site = site
         self._free_threaded = _is_free_threaded()
+        self._block_cache = None  # Lazy initialized for Kida only
 
         # Log free-threaded detection once
         if self._free_threaded:
@@ -156,6 +159,83 @@ class RenderOrchestrator:
                 "Using ThreadPoolExecutor with true parallelism (no GIL)",
                 python_version=f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
             )
+
+    def _warm_block_cache(self) -> None:
+        """Pre-warm block cache with site-wide blocks (Kida only).
+
+        Identifies blocks that only depend on site context and pre-renders
+        them once. These cached blocks are reused for all pages, avoiding
+        redundant rendering of nav, footer, etc.
+
+        RFC: kida-template-introspection
+        """
+        # Only for Kida engine
+        template_engine = self.site.config.get("template_engine", "jinja2")
+        if template_engine != "kida":
+            return
+
+        try:
+            from bengal.rendering.block_cache import BlockCache
+            from bengal.rendering.context import get_engine_globals
+            from bengal.rendering.template_engine import get_engine
+
+            engine = get_engine(self.site)
+
+            # Check if this is a Kida engine
+            if not hasattr(engine, "get_cacheable_blocks"):
+                return
+
+            # Initialize block cache
+            self._block_cache = BlockCache(enabled=True)
+
+            # Build site context for block rendering
+            site_context = get_engine_globals(self.site)
+
+            # Warm cache for key templates
+            templates_to_warm = ["base.html", "page.html", "single.html", "list.html"]
+            total_cached = 0
+
+            for template_name in templates_to_warm:
+                try:
+                    cached = self._block_cache.warm_site_blocks(engine, template_name, site_context)
+                    total_cached += cached
+                except Exception:
+                    pass  # Skip templates that don't exist
+
+            if total_cached > 0:
+                logger.info(
+                    "block_cache_ready",
+                    total_blocks_cached=total_cached,
+                    templates_analyzed=len(templates_to_warm),
+                )
+
+        except Exception as e:
+            # Don't fail build if cache warming fails
+            logger.debug("block_cache_warm_failed", error=str(e))
+
+    def get_cached_block(self, template_name: str, block_name: str) -> str | None:
+        """Get a cached block if available.
+
+        Args:
+            template_name: Template containing the block
+            block_name: Block to retrieve
+
+        Returns:
+            Cached HTML string, or None if not cached
+        """
+        if self._block_cache is None:
+            return None
+        return self._block_cache.get(template_name, block_name)
+
+    def get_block_cache_stats(self) -> dict | None:
+        """Get block cache statistics.
+
+        Returns:
+            Dict with hits, misses, and cached block count, or None if no cache
+        """
+        if self._block_cache is None:
+            return None
+        return self._block_cache.get_stats()
 
     def process(
         self,
@@ -190,6 +270,9 @@ class RenderOrchestrator:
         from bengal.rendering.context import clear_global_context_cache
 
         clear_global_context_cache()
+
+        # Warm block cache before parallel rendering (Kida only)
+        self._warm_block_cache()
 
         # Resolve progress manager from context if not provided
         if (

@@ -242,6 +242,7 @@ class Template:
         "_render_func",
         "_optimized_ast",  # Preserved AST for introspection (or None)
         "_metadata_cache",  # Cached analysis results
+        "_namespace",  # Compiled namespace with block functions
     )
 
     def __init__(
@@ -527,6 +528,7 @@ class Template:
         }
         exec(code, namespace)
         self._render_func = namespace.get("render")
+        self._namespace = namespace  # Keep for render_block()
 
     @property
     def _env(self) -> Environment:
@@ -604,6 +606,95 @@ class Template:
                 raise
             # Enhance generic exceptions with template context
             raise self._enhance_error(e, ctx) from e
+
+    def render_block(self, block_name: str, *args: Any, **kwargs: Any) -> str:
+        """Render a single block from the template.
+
+        Renders just the named block, useful for caching blocks that
+        only depend on site-wide context (e.g., navigation, footer).
+
+        Args:
+            block_name: Name of the block to render (e.g., "nav", "footer")
+            *args: Single dict of context variables
+            **kwargs: Context variables as keyword arguments
+
+        Returns:
+            Rendered block HTML as string
+
+        Raises:
+            KeyError: If block doesn't exist in template
+            RuntimeError: If template not properly compiled
+
+        Example:
+            >>> nav_html = template.render_block("nav", site=site_context)
+            >>> # Cache nav_html for reuse across pages
+
+        Note:
+            For templates with inheritance, this renders the block as
+            defined in THIS template, not the final overridden version.
+            Use with templates that define the blocks you want to cache.
+        """
+        from bengal.rendering.kida.environment.exceptions import TemplateRuntimeError
+
+        # Look up block function
+        func_name = f"_block_{block_name}"
+        block_func = self._namespace.get(func_name)
+
+        if block_func is None:
+            # Check if block exists in metadata
+            available = [
+                k[7:]
+                for k in self._namespace.keys()
+                if k.startswith("_block_") and callable(self._namespace[k])
+            ]
+            raise KeyError(
+                f"Block '{block_name}' not found in template '{self._name}'. "
+                f"Available blocks: {available}"
+            )
+
+        # Build context (same as render())
+        ctx: dict[str, Any] = {}
+        ctx.update(self._env.globals)
+
+        if args:
+            if len(args) == 1 and isinstance(args[0], dict):
+                ctx.update(args[0])
+            else:
+                raise TypeError(
+                    f"render_block() takes at most 1 positional argument (a dict), got {len(args)}"
+                )
+
+        ctx.update(kwargs)
+        ctx["_template"] = self._name
+        ctx["_line"] = 0
+
+        # Call block function
+        try:
+            return block_func(ctx, {})
+        except TemplateRuntimeError:
+            raise
+        except Exception as e:
+            from bengal.rendering.kida.environment.exceptions import UndefinedError
+
+            if isinstance(e, UndefinedError):
+                raise
+            raise self._enhance_error(e, ctx) from e
+
+    def list_blocks(self) -> list[str]:
+        """List all blocks defined in this template.
+
+        Returns:
+            List of block names available for render_block()
+
+        Example:
+            >>> template.list_blocks()
+            ['nav', 'content', 'footer', 'sidebar']
+        """
+        return [
+            k[7:]
+            for k in self._namespace.keys()
+            if k.startswith("_block_") and callable(self._namespace[k])
+        ]
 
     def _enhance_error(self, error: Exception, ctx: dict[str, Any]) -> Exception:
         """Enhance a generic exception with template context.

@@ -13,13 +13,16 @@ Use with {% call %} to inject custom content into the {% slot %}:
 - details_card(summary, css_class, open, data_attrs): Collapsible details/summary card
 
 Example:
-  {% call panel(variant='warning', title='Note') %}
-    <p>This is a warning message.</p>
-  {% end %}
+{% call panel(variant='warning', title='Note') %}
+<p>This is a warning message.</p>
+{% end %}
 
-  {% call section_wrapper(title='Options', collapsible=true) %}
-    <ul><li>Option 1</li><li>Option 2</li></ul>
-  {% end %}
+{% call section_wrapper(title='Options', collapsible=true) %}
+<ul>
+  <li>Option 1</li>
+  <li>Option 2</li>
+</ul>
+{% end %}
 
 === Data-driven Components ===
 Pass data as arguments, component renders it:
@@ -31,8 +34,8 @@ Pass data as arguments, component renders it:
 - random_posts(count): Random post discovery widget
 
 Example:
-  {{ content_tiles(title="In This Section", children=posts, subsections=subsections) }}
-  {{ article_card(post, show_image=True) }}
+{{ content_tiles(title="In This Section", children=posts, subsections=subsections) }}
+{{ article_card(post, show_image=True) }}
 
 === When to use which? ===
 - {% def %} alone: Render data passed as arguments

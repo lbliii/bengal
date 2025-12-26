@@ -174,6 +174,76 @@ class BlockCache:
                     size_bytes=len(html),
                 )
 
+    def warm_site_blocks(
+        self,
+        engine: KidaTemplateEngine,
+        template_name: str,
+        site_context: dict,
+    ) -> int:
+        """Pre-warm cache with site-wide blocks from a template.
+
+        Renders and caches all blocks that have "site" scope (only depend
+        on site-level context, not page-specific data).
+
+        Args:
+            engine: KidaTemplateEngine instance
+            template_name: Template to cache blocks from
+            site_context: Site-level context (site, config, etc.)
+
+        Returns:
+            Number of blocks cached
+
+        Example:
+            >>> cache.warm_site_blocks(engine, "base.html", {"site": site})
+            3  # Cached nav, header, footer
+        """
+        if not self._enabled:
+            return 0
+
+        # Analyze template for cacheable blocks
+        cacheable = self.analyze_template(engine, template_name)
+        if not cacheable:
+            return 0
+
+        # Get the template
+        try:
+            template = engine.env.get_template(template_name)
+        except Exception:
+            return 0
+
+        # Render and cache site-scoped blocks
+        cached_count = 0
+        for block_name, scope in cacheable.items():
+            if scope != "site":
+                continue
+
+            # Check if already cached
+            key = f"{template_name}:{block_name}"
+            if key in self._site_blocks:
+                continue
+
+            # Render block
+            try:
+                html = template.render_block(block_name, site_context)
+                self.set(template_name, block_name, html, scope="site")
+                cached_count += 1
+            except Exception as e:
+                logger.debug(
+                    "block_cache_warm_failed",
+                    template=template_name,
+                    block=block_name,
+                    error=str(e),
+                )
+
+        if cached_count > 0:
+            logger.info(
+                "block_cache_warmed",
+                template=template_name,
+                blocks_cached=cached_count,
+            )
+
+        return cached_count
+
     def clear(self) -> None:
         """Clear all cached blocks (call between builds)."""
         self._site_blocks.clear()

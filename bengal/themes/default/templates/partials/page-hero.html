@@ -7,37 +7,37 @@ All hero variants as macros for optimal rendering performance.
 Eliminates 5+ template includes per page by inlining all variants.
 
 PERFORMANCE:
-  This template uses macros instead of {% include %} for ~10% faster rendering.
-  Same pattern as docs-nav.html macro refactor.
-  See: plan/drafted/rfc-page-hero-template-flattening.md
+This template uses macros instead of {% include %} for ~10% faster rendering.
+Same pattern as docs-nav.html macro refactor.
+See: plan/drafted/rfc-page-hero-template-flattening.md
 
 VARIANTS:
-  - editorial: Clean magazine layout (default for single pages)
-  - magazine: Editorial with container/background styling
-  - overview: Section index with page count
-  - classic: Traditional action-bar + header (legacy)
-  - api/element: Autodoc elements (modules, classes, commands)
-  - section: Autodoc section indexes
+- editorial: Clean magazine layout (default for single pages)
+- magazine: Editorial with container/background styling
+- overview: Section index with page count
+- classic: Traditional action-bar + header (legacy)
+- api/element: Autodoc elements (modules, classes, commands)
+- section: Autodoc section indexes
 
 USAGE:
-  Standard (dispatcher auto-selects variant):
-    {% include 'partials/page-hero.html' %}
+Standard (dispatcher auto-selects variant):
+{% include 'partials/page-hero.html' %}
 
-  Direct macro call (explicit control):
-    {% from 'partials/page-hero.html' import hero_editorial, hero_element %}
-    {{ hero_editorial(page, params, theme) }}
+Direct macro call (explicit control):
+{% from 'partials/page-hero.html' import hero_editorial, hero_element %}
+{{ hero_editorial(page, params, theme) }}
 
 BACKWARDS COMPATIBILITY:
-  All existing {% include 'partials/page-hero.html' %} calls work unchanged.
-  The dispatcher at the bottom routes to the appropriate macro.
+All existing {% include 'partials/page-hero.html' %} calls work unchanged.
+The dispatcher at the bottom routes to the appropriate macro.
 ================================================================================
 #}
 
 {% from 'partials/navigation-components.html' import breadcrumbs %}
 
 {# =============================================================================
-   HELPER MACROS (internal)
-   ============================================================================= #}
+HELPER MACROS (internal)
+============================================================================= #}
 
 {# Get page URL with fallback chain #}
 {% def _get_page_url(page) -%}
@@ -45,11 +45,11 @@ BACKWARDS COMPATIBILITY:
 {% end %}
 
 {# =============================================================================
-   SHARE DROPDOWN MACRO (internal)
+SHARE DROPDOWN MACRO (internal)
 
-   Renders the LLM share button with popover menu.
-   PATTERN: POPOVER - browser handles show/hide, light dismiss, escape key
-   ============================================================================= #}
+Renders the LLM share button with popover menu.
+PATTERN: POPOVER - browser handles show/hide, light dismiss, escape key
+============================================================================= #}
 {% def _share_dropdown(page) %}
 {% set page_url = canonical_url(_get_page_url(page)) %}
 {% set llm_txt_url = ensure_trailing_slash(page_url) ~ 'index.txt' %}
@@ -99,14 +99,14 @@ BACKWARDS COMPATIBILITY:
           <span>{{ t('share.ask_chatgpt', default='Ask ChatGPT') }}</span>
         </a>
 
-        <a href="https://gemini.google.com/app?q={{ share_prompt | urlencode }}" target="_blank" rel="noopener noreferrer"
-          class="page-hero__share-item page-hero__share-ai" data-ai="gemini">
+        <a href="https://gemini.google.com/app?q={{ share_prompt | urlencode }}" target="_blank"
+          rel="noopener noreferrer" class="page-hero__share-item page-hero__share-ai" data-ai="gemini">
           {{ icon('ai-gemini', size=16) }}
           <span>{{ t('share.ask_gemini', default='Ask Gemini') }}</span>
         </a>
 
-        <a href="https://copilot.microsoft.com/?q={{ share_prompt | urlencode }}" target="_blank" rel="noopener noreferrer"
-          class="page-hero__share-item page-hero__share-ai" data-ai="copilot">
+        <a href="https://copilot.microsoft.com/?q={{ share_prompt | urlencode }}" target="_blank"
+          rel="noopener noreferrer" class="page-hero__share-item page-hero__share-ai" data-ai="copilot">
           {{ icon('ai-copilot', size=16) }}
           <span>{{ t('share.ask_copilot', default='Ask Copilot') }}</span>
         </a>
@@ -117,10 +117,10 @@ BACKWARDS COMPATIBILITY:
 {% end %}
 
 {# =============================================================================
-   BREADCRUMB EYEBROW MACRO (internal)
+BREADCRUMB EYEBROW MACRO (internal)
 
-   Renders breadcrumbs as eyebrow, excluding current page (it's the H1)
-   ============================================================================= #}
+Renders breadcrumbs as eyebrow, excluding current page (it's the H1)
+============================================================================= #}
 {% def _breadcrumb_eyebrow(page) %}
 {% set breadcrumb_items = get_breadcrumbs(page) %}
 {% if breadcrumb_items and breadcrumb_items | length > 1 %}
@@ -138,66 +138,66 @@ BACKWARDS COMPATIBILITY:
 {% enddef %}
 
 {# =============================================================================
-   ELEMENT BADGES MACRO (internal)
+ELEMENT BADGES MACRO (internal)
 
-   Renders badges for DocElements (modules, classes, functions, commands)
-   ============================================================================= #}
+Renders badges for DocElements (modules, classes, functions, commands)
+============================================================================= #}
 {% def _element_badges(element) %}
 {% if element %}
 <div class="page-hero__badges">
-{% match element.element_type %}
+  {% match element.element_type %}
   {% case 'module' %}
-    <span class="autodoc-badge" data-badge="module">Module</span>
-    {% if element.metadata.is_dataclass %}
-    <span class="autodoc-badge" data-badge="dataclass">dataclass</span>
-    {% end %}
+  <span class="autodoc-badge" data-badge="module">Module</span>
+  {% if element.metadata.is_dataclass %}
+  <span class="autodoc-badge" data-badge="dataclass">dataclass</span>
+  {% end %}
 
   {% case 'class' %}
-    {% if element.metadata.is_mixin %}
-    <span class="autodoc-badge" data-badge="mixin">Mixin</span>
-    {% end %}
-    {% if element.metadata.is_dataclass %}
-    <span class="autodoc-badge" data-badge="dataclass">dataclass</span>
-    {% end %}
-    {% if element.metadata.is_abstract %}
-    <span class="autodoc-badge" data-badge="abstract">abstract</span>
-    {% end %}
+  {% if element.metadata.is_mixin %}
+  <span class="autodoc-badge" data-badge="mixin">Mixin</span>
+  {% end %}
+  {% if element.metadata.is_dataclass %}
+  <span class="autodoc-badge" data-badge="dataclass">dataclass</span>
+  {% end %}
+  {% if element.metadata.is_abstract %}
+  <span class="autodoc-badge" data-badge="abstract">abstract</span>
+  {% end %}
 
   {% case 'function' %}
-    {% if element.metadata.is_async %}
-    <span class="autodoc-badge" data-badge="async">async</span>
-    {% end %}
+  {% if element.metadata.is_async %}
+  <span class="autodoc-badge" data-badge="async">async</span>
+  {% end %}
 
   {% case 'method' %}
-    {% if element.metadata.is_async %}
-    <span class="autodoc-badge" data-badge="async">async</span>
-    {% end %}
-    {% if element.metadata.is_classmethod %}
-    <span class="autodoc-badge" data-badge="classmethod">classmethod</span>
-    {% end %}
-    {% if element.metadata.is_staticmethod %}
-    <span class="autodoc-badge" data-badge="staticmethod">staticmethod</span>
-    {% end %}
-    {% if element.metadata.is_property %}
-    <span class="autodoc-badge" data-badge="property">property</span>
-    {% end %}
+  {% if element.metadata.is_async %}
+  <span class="autodoc-badge" data-badge="async">async</span>
+  {% end %}
+  {% if element.metadata.is_classmethod %}
+  <span class="autodoc-badge" data-badge="classmethod">classmethod</span>
+  {% end %}
+  {% if element.metadata.is_staticmethod %}
+  <span class="autodoc-badge" data-badge="staticmethod">staticmethod</span>
+  {% end %}
+  {% if element.metadata.is_property %}
+  <span class="autodoc-badge" data-badge="property">property</span>
+  {% end %}
 
   {% case 'command' %}
-    <span class="autodoc-badge" data-badge="command">Command</span>
+  <span class="autodoc-badge" data-badge="command">Command</span>
 
   {% case 'command-group' %}
-    <span class="autodoc-badge" data-badge="command-group">Command Group</span>
-{% end %}
+  <span class="autodoc-badge" data-badge="command-group">Command Group</span>
+  {% end %}
 </div>
 {% end %}
 {% enddef %}
 
 {# =============================================================================
-   ELEMENT STATS MACRO (internal)
+ELEMENT STATS MACRO (internal)
 
-   Renders stats (counts of children by type) for a DocElement.
-   Uses the get_element_stats filter.
-   ============================================================================= #}
+Renders stats (counts of children by type) for a DocElement.
+Uses the get_element_stats filter.
+============================================================================= #}
 {% def _element_stats(element) %}
 {% set stats = element | get_element_stats %}
 {% if stats %}
@@ -213,15 +213,15 @@ BACKWARDS COMPATIBILITY:
 {% enddef %}
 
 {# =============================================================================
-   VARIANT MACROS (public API)
-   ============================================================================= #}
+VARIANT MACROS (public API)
+============================================================================= #}
 
 {# -----------------------------------------------------------------------------
-   EDITORIAL VARIANT
+EDITORIAL VARIANT
 
-   Clean magazine-style layout without container styling.
-   Default for single documentation pages.
-   ----------------------------------------------------------------------------- #}
+Clean magazine-style layout without container styling.
+Default for single documentation pages.
+----------------------------------------------------------------------------- #}
 {% def hero_editorial(page, params, theme) %}
 {% if page %}
 <div class="page-hero page-hero--editorial">
@@ -270,10 +270,10 @@ BACKWARDS COMPATIBILITY:
 {% enddef %}
 
 {# -----------------------------------------------------------------------------
-   MAGAZINE VARIANT
+MAGAZINE VARIANT
 
-   Editorial-style with container/background styling.
-   ----------------------------------------------------------------------------- #}
+Editorial-style with container/background styling.
+----------------------------------------------------------------------------- #}
 {% def hero_magazine(page, params, theme) %}
 {% if page %}
 <div class="page-hero page-hero--magazine">
@@ -322,10 +322,10 @@ BACKWARDS COMPATIBILITY:
 {% enddef %}
 
 {# -----------------------------------------------------------------------------
-   OVERVIEW VARIANT
+OVERVIEW VARIANT
 
-   For section index pages - wayfinding focused with page count.
-   ----------------------------------------------------------------------------- #}
+For section index pages - wayfinding focused with page count.
+----------------------------------------------------------------------------- #}
 {% def hero_overview(page, params, posts, subsections) %}
 {% if page %}
 <div class="page-hero page-hero--overview">
@@ -363,31 +363,31 @@ BACKWARDS COMPATIBILITY:
 {% enddef %}
 
 {# -----------------------------------------------------------------------------
-   CLASSIC VARIANT
+CLASSIC VARIANT
 
-   Traditional layout with separate action bar and page header.
-   Legacy layout for backwards compatibility.
-   ----------------------------------------------------------------------------- #}
+Traditional layout with separate action bar and page header.
+Legacy layout for backwards compatibility.
+----------------------------------------------------------------------------- #}
 {% def hero_classic(page, params) %}
 {# Action Bar: Breadcrumbs + Share #}
 {% include 'partials/action-bar.html' %}
 
 {# Page Header #}
 <header class="page-header page-header--classic">
-    <h1>{{ page.title }}</h1>
+  <h1>{{ page.title }}</h1>
 
-    {% if params.description %}
-    <p class="lead">{{ params.description }}</p>
-    {% end %}
+  {% if params.description %}
+  <p class="lead">{{ params.description }}</p>
+  {% end %}
 </header>
 {% enddef %}
 
 {# -----------------------------------------------------------------------------
-   ELEMENT VARIANT (API)
+ELEMENT VARIANT (API)
 
-   For DocElement pages: modules, classes, functions, commands.
-   Includes badges, code-style title, source link, and stats.
-   ----------------------------------------------------------------------------- #}
+For DocElement pages: modules, classes, functions, commands.
+Includes badges, code-style title, source link, and stats.
+----------------------------------------------------------------------------- #}
 {% def hero_element(element, page, config) %}
 <div class="page-hero page-hero--api">
   {# Top row: Breadcrumbs (left) + Actions (right) #}
@@ -431,11 +431,11 @@ BACKWARDS COMPATIBILITY:
 {% enddef %}
 
 {# -----------------------------------------------------------------------------
-   SECTION VARIANT (API)
+SECTION VARIANT (API)
 
-   For section-index pages: API packages, CLI groups.
-   Shows subsection and page counts.
-   ----------------------------------------------------------------------------- #}
+For section-index pages: API packages, CLI groups.
+Shows subsection and page counts.
+----------------------------------------------------------------------------- #}
 {% def hero_section(section, page, hero_context) %}
 {# Determine section type from explicit context, page type, or URL (fallback) #}
 {% set is_cli = hero_context?.is_cli ?? (page.type == 'autodoc-cli') ?? (page.href and '/cli' in page.href) ?? false %}
@@ -500,40 +500,42 @@ BACKWARDS COMPATIBILITY:
 {% enddef %}
 
 {# =============================================================================
-   DISPATCHER (backwards-compatible include interface)
+DISPATCHER (backwards-compatible include interface)
 
-   Routes to appropriate macro based on hero_style configuration.
-   This runs when template is included via {% include 'partials/page-hero.html' %}
-   ============================================================================= #}
+Routes to appropriate macro based on hero_style configuration.
+This runs when template is included via {% include 'partials/page-hero.html' %}
+============================================================================= #}
 
 {# Determine hero style: page variant > frontmatter > template default > theme config #}
 {# Guard: Only run routing code when included with context, not when imported for macros #}
-{% set _page_variant = page.variant if page else none %}
-{% set _page_hero_style = (params ?? {}).hero_style | default(none) %}
-{% set _template_default = _list_hero_default if _list_hero_default is defined else none %}
-{% set _theme_hero_style = theme.config.hero_style ?? 'editorial' if theme else 'editorial' %}
+{# Use Kida's optional chaining (?.) and null coalescing (??) for strict mode safety #}
+{% set _page_variant = page?.variant ?? none %}
+{% set _page_hero_style = params?.hero_style ?? none %}
+{% set _template_default = _list_hero_default ?? none %}
+{% set _theme_hero_style = theme?.config?.hero_style ?? 'editorial' %}
 
-{% set hero_style = _page_variant if _page_variant else (_page_hero_style if _page_hero_style else (_template_default if _template_default else _theme_hero_style)) %}
+{# Cascade: page variant → frontmatter → template default → theme config #}
+{% set hero_style = _page_variant ?? _page_hero_style ?? _template_default ?? _theme_hero_style %}
 
 {# Route to appropriate macro #}
 {% match hero_style %}
-  {% case 'magazine' %}
-    {{ hero_magazine(page, params, theme) }}
-  {% case 'classic' %}
-    {{ hero_classic(page, params) }}
-  {% case 'overview' %}
-    {{ hero_overview(page, params, posts, subsections) }}
-  {% case 'api' %}
-    {# API style routes to element or section based on available context #}
-    {% if element %}
-    {{ hero_element(element, page, config) }}
-    {% elif section %}
-    {{ hero_section(section, page, hero_context) }}
-    {% else %}
-    {# Fallback: no element/section context, use editorial #}
-    {{ hero_editorial(page, params, theme) }}
-    {% end %}
-  {% case _ %}
-    {# Default to editorial #}
-    {{ hero_editorial(page, params, theme) }}
+{% case 'magazine' %}
+{{ hero_magazine(page, params, theme) }}
+{% case 'classic' %}
+{{ hero_classic(page, params) }}
+{% case 'overview' %}
+{{ hero_overview(page, params, posts, subsections) }}
+{% case 'api' %}
+{# API style routes to element or section based on available context #}
+{% if element %}
+{{ hero_element(element, page, config) }}
+{% elif section %}
+{{ hero_section(section, page, hero_context) }}
+{% else %}
+{# Fallback: no element/section context, use editorial #}
+{{ hero_editorial(page, params, theme) }}
+{% end %}
+{% case _ %}
+{# Default to editorial #}
+{{ hero_editorial(page, params, theme) }}
 {% end %}

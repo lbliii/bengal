@@ -308,6 +308,66 @@ Found {{ count }} items
         assert "<h1>Page Title</h1>" in result
         assert "<p>Welcome to My Site!</p>" in result
 
+    def test_embed_with_block_overrides(self, env: Environment):
+        """Test {% embed %} with block overrides."""
+        from bengal.rendering.kida import DictLoader
+
+        # Create environment with a template to embed
+        env = Environment(
+            loader=DictLoader(
+                {
+                    "card.html": """
+<div class="card">
+  {% block header %}<h3>Default Title</h3>{% end %}
+  <div class="body">{% block body %}Default body{% end %}</div>
+  {% block footer %}{% end %}
+</div>
+"""
+                }
+            ),
+            autoescape=True,
+        )
+
+        # Test embedding with block overrides
+        tmpl = env.from_string("""
+{%- embed 'card.html' -%}
+  {%- block header -%}<h3>Custom Title</h3>{%- end -%}
+  {%- block body -%}<p>Custom content!</p>{%- end -%}
+{%- end -%}
+""")
+        result = tmpl.render()
+        assert "<h3>Custom Title</h3>" in result
+        assert "<p>Custom content!</p>" in result
+        # Footer block should be empty (default is empty, not overridden)
+
+    def test_embed_partial_override(self, env: Environment):
+        """Test {% embed %} with only some blocks overridden."""
+        from bengal.rendering.kida import DictLoader
+
+        env = Environment(
+            loader=DictLoader(
+                {
+                    "panel.html": """
+<aside class="panel">
+  <header>{% block title %}Info{% end %}</header>
+  <div>{% block body %}Default content{% end %}</div>
+</aside>
+"""
+                }
+            ),
+            autoescape=True,
+        )
+
+        # Only override body, keep default title
+        tmpl = env.from_string("""
+{%- embed 'panel.html' -%}
+  {%- block body -%}<p>My custom body</p>{%- end -%}
+{%- end -%}
+""")
+        result = tmpl.render()
+        assert "<header>Info</header>" in result  # Default title kept
+        assert "<p>My custom body</p>" in result  # Body overridden
+
 
 class TestTemplateContext:
     """Test templates work with Bengal context objects."""

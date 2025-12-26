@@ -1,0 +1,56 @@
+{#
+Embeddable Card Component
+
+Base card layout with overridable blocks. Use with {% embed %}.
+
+Blocks:
+- header: Card header content (optional)
+- body: Main card content (required)
+- footer: Card footer content (optional)
+
+Args (via context):
+- css_class: Additional CSS classes
+- href: Optional link URL (makes card clickable)
+- show_border: Show gradient border (default: true)
+
+Example:
+{% embed 'partials/_embeds/card.html' %}
+{% block header %}<h3>My Title</h3>{% end %}
+{% block body %}
+<p>Custom card content here.</p>
+{% end %}
+{% block footer %}
+<a href="/more">Learn more →</a>
+{% end %}
+{% end %}
+
+Example with context:
+{% with css_class='featured-card', href='/feature' %}
+{% embed 'partials/_embeds/card.html' %}
+{% block body %}<p>Clickable card!</p>{% end %}
+{% end %}
+{% end %}
+#}
+
+{% let card_class = css_class ?? '' %}
+{% let card_href = href ?? none %}
+{% let card_border = show_border ?? true %}
+
+{% if card_href %}
+<a href="{{ card_href | absolute_url }}"
+    class="embed-card {{ 'gradient-border' if card_border else '' }} {{ card_class }}">
+    {% block header %}{% end %}
+    <div class="embed-card-body">
+        {% block body %}{% end %}
+    </div>
+    {% block footer %}{% end %}
+</a>
+{% else %}
+<div class="embed-card {{ 'gradient-border' if card_border else '' }} {{ card_class }}">
+    {% block header %}{% end %}
+    <div class="embed-card-body">
+        {% block body %}{% end %}
+    </div>
+    {% block footer %}{% end %}
+</div>
+{% end %}
