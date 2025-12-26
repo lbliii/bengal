@@ -268,4 +268,8 @@ class BuildStats:
             "memory_rss_mb": self.memory_rss_mb,
             "memory_heap_mb": self.memory_heap_mb,
             "memory_peak_mb": self.memory_peak_mb,
+            # Block cache stats (RFC: kida-template-introspection)
+            "block_cache_hits": self.block_cache_hits,
+            "block_cache_misses": self.block_cache_misses,
+            "block_cache_site_blocks": self.block_cache_site_blocks,
         }

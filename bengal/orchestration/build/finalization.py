@@ -160,6 +160,16 @@ def _write_build_time_artifacts(site: Any, last_build_stats: dict[str, Any]) -> 
         "timestamp": _safe_isoformat(getattr(site, "build_time", None)),
     }
 
+    # Add block cache stats if available (RFC: kida-template-introspection)
+    block_cache_hits = int(last_build_stats.get("block_cache_hits") or 0)
+    block_cache_site_blocks = int(last_build_stats.get("block_cache_site_blocks") or 0)
+    if block_cache_site_blocks > 0 or block_cache_hits > 0:
+        payload["block_cache"] = {
+            "site_blocks_cached": block_cache_site_blocks,
+            "hits": block_cache_hits,
+            "misses": int(last_build_stats.get("block_cache_misses") or 0),
+        }
+
     svg = build_shields_like_badge_svg(
         label=build_badge_cfg["label"],
         message=duration_text,
