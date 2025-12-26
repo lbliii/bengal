@@ -9,26 +9,26 @@ Cache expensive function calls once per render. Page properties like title,
 _path, kind, tags are always defined - no defensive checks needed.
 ================================================================================
 #}
-{# Page shortcuts - page is always available in page templates #}
-{% set _page_title = page.title %}
-{% set _page_url = page._path %}
+{# Template-wide variables using {% let %} for explicit scope #}
+{% let
+_page_title = page.title,
+_page_url = page._path,
+_current_lang = current_lang(),
+_site_title = config.title,
+_build_badge = site.build_badge,
+_doc_app = site.document_application,
+_link_previews = site.link_previews,
+_per_page_json = 'json' in (config.output_formats.per_page ?? [])
+%}
 
-{# Navigation - cache function calls #}
-{% set _current_lang = current_lang() %}
-{% set _main_menu = get_menu_lang('main', _current_lang) %}
-{% set _auto_nav = get_auto_nav() if _main_menu | length == 0 else [] %}
-{% set _footer_menu = get_menu_lang('footer', _current_lang) %}
-
-{# Site config shortcuts #}
-{% set _site_title = config.title %}
-
-{# Normalized config objects (pre-processed by Site with defaults applied) #}
-{% set _build_badge = site.build_badge %}
-{% set _doc_app = site.document_application %}
-{% set _view_transitions = _doc_app.enabled and _doc_app.navigation.view_transitions %}
-{% set _transition_style = _doc_app.navigation.transition_style %}
-{% set _link_previews = site.link_previews %}
-{% set _per_page_json = 'json' in (config.output_formats.per_page ?? []) %}
+{# Derived values (depend on earlier lets) #}
+{% let
+_main_menu = get_menu_lang('main', _current_lang),
+_footer_menu = get_menu_lang('footer', _current_lang),
+_view_transitions = _doc_app.enabled and _doc_app.navigation.view_transitions,
+_transition_style = _doc_app.navigation.transition_style,
+_auto_nav = get_auto_nav() if _main_menu | length == 0 else []
+%}
 
 <html lang="{{ _current_lang }}" {% if _view_transitions and _transition_style !='crossfade' %}
     data-transition-style="{{ _transition_style }}" {% end %}>
@@ -44,7 +44,8 @@ _path, kind, tags are always defined - no defensive checks needed.
     {% end %}
 
     {# Title - uses cached variables #}
-    <title>{% block title %}{{ _page_title if _page_title else _site_title }}{% if _page_title %} - {{ _site_title }}{% end %}{% end %}
+    <title>{% block title %}{{ _page_title if _page_title else _site_title }}{% if _page_title %} - {{ _site_title }}{%
+        end %}{% end %}
     </title>
 
     {# Meta description - automatically pre-computed by renderer (page.meta_description cached_property) #}
@@ -300,9 +301,11 @@ _path, kind, tags are always defined - no defensive checks needed.
                     {% if _main_menu %}
                     {% for item in _main_menu %}
                     <li class="{{ 'active' if item.active else '' }} {{ 'active-trail' if item.active_trail else '' }}">
-                        {# If item has children and no unique link (href is #), render as non-clickable dropdown trigger #}
+                        {# If item has children and no unique link (href is #), render as non-clickable dropdown trigger
+                        #}
                         {% if item.children and item.href == '#' %}
-                        <span class="nav-dropdown-trigger" tabindex="0" role="button" aria-haspopup="true">{{ item.name }}</span>
+                        <span class="nav-dropdown-trigger" tabindex="0" role="button" aria-haspopup="true">{{ item.name
+                            }}</span>
                         {% else %}
                         <a href="{{ item.href | absolute_url }}">{{ item.name }}</a>
                         {% end %}
@@ -431,9 +434,11 @@ _path, kind, tags are always defined - no defensive checks needed.
                     {% if _main_menu %}
                     {% for item in _main_menu %}
                     <li class="{{ 'has-submenu' if item.children else '' }} {{ 'active' if item.active else '' }}">
-                        {# If item has children and no unique link (href is #), render as non-clickable dropdown trigger #}
+                        {# If item has children and no unique link (href is #), render as non-clickable dropdown trigger
+                        #}
                         {% if item.children and item.href == '#' %}
-                        <span class="nav-dropdown-trigger" tabindex="0" role="button" aria-haspopup="true">{{ item.name }}</span>
+                        <span class="nav-dropdown-trigger" tabindex="0" role="button" aria-haspopup="true">{{ item.name
+                            }}</span>
                         {% else %}
                         <a href="{{ item.href | absolute_url }}">{{ item.name }}</a>
                         {% end %}

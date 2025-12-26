@@ -66,20 +66,24 @@ Example:
     </h2>
 
     <div class="article-card-meta">
-      {% if article.date %}
-      <time datetime="{{ article.date | date_iso }}" title="{{ article.date | dateformat('%B %d, %Y') }}">
-        {{ article.date | time_ago }}
+      {% with article.date as date %}
+      <time datetime="{{ date | date_iso }}" title="{{ date | dateformat('%B %d, %Y') }}">
+        {{ date | time_ago }}
       </time>
       {% end %}
 
-      {% if article.metadata.author and 'content.author' in theme.features %}
-      <span class="author">{{ article.metadata.author }}</span>
+      {% with article.metadata.author as author %}
+      {% if 'content.author' in theme.features %}
+      <span class="author">{{ author }}</span>
+      {% end %}
       {% end %}
 
-      {% if article.content and 'content.reading_time' in theme.features %}
+      {% with article.content as content %}
+      {% if 'content.reading_time' in theme.features %}
       <span class="reading-time">
-        {{ article.content | reading_time }} min read
+        {{ content | reading_time }} min read
       </span>
+      {% end %}
       {% end %}
     </div>
 
@@ -93,9 +97,9 @@ Example:
     </p>
     {% end %}
 
-    {% if article.tags %}
+    {% with article.tags as tags %}
     <div class="article-card-footer">
-      {{ tag_list(article.tags, small=True) }}
+      {{ tag_list(tags, small=True) }}
     </div>
     {% end %}
   </div>

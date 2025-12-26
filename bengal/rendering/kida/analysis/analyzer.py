@@ -79,11 +79,20 @@ class BlockAnalyzer:
         top_level_deps = self._analyze_top_level(ast, set(blocks.keys()))
 
         # Extract extends info
+        # Extends can be on the Template node directly, or in the body
         extends = None
         if ast.extends:
             extends_expr = ast.extends.template
             if type(extends_expr).__name__ == "Const":
                 extends = extends_expr.value
+        else:
+            # Check body for Extends node (parser puts it there)
+            for node in ast.body:
+                if type(node).__name__ == "Extends":
+                    extends_expr = node.template
+                    if type(extends_expr).__name__ == "Const":
+                        extends = extends_expr.value
+                    break
 
         return TemplateMetadata(
             name=None,  # Set by caller
