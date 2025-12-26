@@ -18,9 +18,9 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from bengal.errors import BengalRenderingError
 from bengal.rendering.engines.errors import TemplateError, TemplateNotFoundError
 from bengal.rendering.engines.protocol import TemplateEngineProtocol
-from bengal.rendering.errors import TemplateRenderError
 from bengal.rendering.kida import Environment
 from bengal.rendering.kida.environment import (
     FileSystemLoader,
@@ -48,7 +48,7 @@ class KidaTemplateEngine:
           template_engine: kida
     """
 
-    __slots__ = ("site", "template_dirs", "_env")
+    __slots__ = ("site", "template_dirs", "_env", "_dependency_tracker")
 
     def __init__(self, site: Site, *, profile: bool = False):
         """Initialize Kida engine for site.
@@ -59,6 +59,9 @@ class KidaTemplateEngine:
         """
         self.site = site
         self.template_dirs = self._build_template_dirs()
+
+        # Dependency tracking (set by RenderingPipeline)
+        self._dependency_tracker = None
 
         # Create Kida environment
         self._env = Environment(
@@ -74,18 +77,55 @@ class KidaTemplateEngine:
         self._register_filters()
 
     def _build_template_dirs(self) -> list[Path]:
-        """Build ordered list of template search directories."""
-        dirs = []
+        """Build ordered list of template search directories.
 
-        # Theme templates first
-        theme_path = self.site.theme_path
-        if theme_path and (theme_path / "templates").is_dir():
-            dirs.append(theme_path / "templates")
+        Uses same resolution logic as Jinja engine:
+        1. Site-level custom templates (highest priority)
+        2. Theme chain (child themes first, then parent themes)
+        """
+        from bengal.core.theme.registry import get_theme_package
+        from bengal.rendering.template_engine.environment import resolve_theme_chain
 
-        # Site-level templates override
-        site_templates = self.site.root_path / "templates"
-        if site_templates.is_dir():
-            dirs.insert(0, site_templates)
+        dirs: list[Path] = []
+
+        # Site-level custom templates (highest priority)
+        custom_templates = self.site.root_path / "templates"
+        if custom_templates.exists():
+            dirs.append(custom_templates)
+
+        # Resolve theme chain (handles theme inheritance)
+        theme_chain = resolve_theme_chain(self.site.theme, self.site)
+
+        for theme_name in theme_chain:
+            # Site-level theme directory
+            site_theme_templates = self.site.root_path / "themes" / theme_name / "templates"
+            if site_theme_templates.exists():
+                dirs.append(site_theme_templates)
+                continue
+
+            # Installed theme directory (via entry point)
+            try:
+                pkg = get_theme_package(theme_name)
+                if pkg:
+                    resolved = pkg.resolve_resource_path("templates")
+                    if resolved and resolved.exists():
+                        dirs.append(resolved)
+                        continue
+            except Exception:
+                pass
+
+            # Bundled theme directory
+            bundled_theme_templates = (
+                Path(__file__).parent.parent.parent / "themes" / theme_name / "templates"
+            )
+            if bundled_theme_templates.exists():
+                dirs.append(bundled_theme_templates)
+
+        # Ensure default theme exists as ultimate fallback
+        # (resolve_theme_chain filters out 'default' to avoid duplicates)
+        default_templates = Path(__file__).parent.parent.parent / "themes" / "default" / "templates"
+        if default_templates not in dirs and default_templates.exists():
+            dirs.append(default_templates)
 
         return dirs
 
@@ -134,7 +174,7 @@ class KidaTemplateEngine:
 
             # i18n
             self._env.globals["t"] = lambda key, **kw: i18n._translate(key, self.site, **kw)
-            self._env.globals["current_lang"] = lambda: i18n._current_language(self.site)
+            self._env.globals["current_lang"] = lambda: i18n._current_lang(self.site)
 
             # SEO
             self._env.globals["og_image"] = lambda img, page=None: seo.og_image(
@@ -331,16 +371,16 @@ class KidaTemplateEngine:
             return template.render(ctx)
 
         except KidaTemplateNotFoundError as e:
-            raise TemplateNotFoundError(str(e)) from e
+            raise TemplateNotFoundError(name, self.template_dirs) from e
         except KidaTemplateSyntaxError as e:
-            raise TemplateRenderError(
-                message=str(e),
-                template_name=name,
+            raise BengalRenderingError(
+                message=f"Template syntax error in '{name}': {e}",
+                original_error=e,
             ) from e
         except Exception as e:
-            raise TemplateRenderError(
-                message=str(e),
-                template_name=name,
+            raise BengalRenderingError(
+                message=f"Template render error in '{name}': {e}",
+                original_error=e,
             ) from e
 
     def render_string(
@@ -367,9 +407,9 @@ class KidaTemplateEngine:
             return tmpl.render(ctx)
 
         except Exception as e:
-            raise TemplateRenderError(
-                message=str(e),
-                template_name="<string>",
+            raise BengalRenderingError(
+                message=f"Template string render error: {e}",
+                original_error=e,
             ) from e
 
     def template_exists(self, name: str) -> bool:
@@ -453,6 +493,30 @@ class KidaTemplateEngine:
                 )
 
         return errors
+
+    # =========================================================================
+    # COMPATIBILITY METHODS (for Bengal internals)
+    # =========================================================================
+
+    @property
+    def env(self) -> Environment:
+        """Access to underlying Kida environment.
+
+        Used by autodoc and other internals that check template existence.
+        """
+        return self._env
+
+    def _find_template_path(self, name: str) -> Path | None:
+        """Alias for get_template_path (used by debug/explainer)."""
+        return self.get_template_path(name)
+
+    def render(self, template_name: str, context: dict[str, Any]) -> str:
+        """Alias for render_template (for compatibility)."""
+        return self.render_template(template_name, context)
+
+    def validate_templates(self, include_patterns: list[str] | None = None) -> list[TemplateError]:
+        """Alias for validate (for compatibility)."""
+        return self.validate(include_patterns)
 
 
 # Verify protocol compliance

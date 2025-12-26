@@ -8,4 +8,8 @@ site:
   description: "A modern Python static site generator"
   language: "en"
 
+# Template Engine
+# Use Kida for 2-5x faster template rendering
+template_engine: kida
+
 # Note: Theme settings moved to theme.yaml

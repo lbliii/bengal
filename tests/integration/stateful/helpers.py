@@ -242,14 +242,15 @@ def get_cache_path(site_dir: Path) -> Path:
         site_dir: Site root directory
 
     Returns:
-        Path to cache file
+        Path to cache file (base path, actual file may be .json or .json.zst)
     """
     return site_dir / ".bengal" / "cache.json"
 
 
 def cache_exists(site_dir: Path) -> bool:
-    """Check if build cache exists."""
-    return get_cache_path(site_dir).exists()
+    """Check if build cache exists (handles both .json and .json.zst formats)."""
+    base_path = get_cache_path(site_dir)
+    return base_path.exists() or base_path.with_suffix(".json.zst").exists()
 
 
 def read_cache_size(site_dir: Path) -> int:
