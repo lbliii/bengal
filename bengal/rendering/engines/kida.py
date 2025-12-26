@@ -433,9 +433,9 @@ class KidaTemplateEngine:
             except Exception as e:
                 errors.append(
                     TemplateError(
+                        template=name,
                         message=str(e),
-                        template_name=name,
-                        lineno=getattr(e, "lineno", None),
+                        line=getattr(e, "lineno", None),
                     )
                 )
 

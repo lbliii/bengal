@@ -11,7 +11,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from bengal.rendering.template_engine import TemplateEngine
+from bengal.rendering.engines import create_engine
 
 
 class TestActionBarLLMUrls:
@@ -34,8 +34,8 @@ baseurl = "https://example.com"
 
         site = Site.from_config(tmp_path)
 
-        # Create template engine
-        engine = TemplateEngine(site)
+        # Create template engine (defaults to Kida which supports {% def %} syntax)
+        engine = create_engine(site)
         return engine
 
     def _create_mock_page(self, title, url, content="Content"):
@@ -55,8 +55,7 @@ baseurl = "https://example.com"
         page = self._create_mock_page("Getting Started", "/docs/getting-started/", "Page content")
 
         # Render the action-bar partial
-        template = template_engine.env.get_template("partials/action-bar.html")
-        rendered = template.render(page=page)
+        rendered = template_engine.render_template("partials/action-bar.html", {"page": page})
 
         # Check that the LLM.txt URL is correct
         assert "/docs/getting-started/index.txt" in rendered, (
@@ -67,8 +66,7 @@ baseurl = "https://example.com"
         """Test LLM.txt URL for root-level pages."""
         page = self._create_mock_page("Home", "/", "Home content")
 
-        template = template_engine.env.get_template("partials/action-bar.html")
-        rendered = template.render(page=page)
+        rendered = template_engine.render_template("partials/action-bar.html", {"page": page})
 
         # Root page should have /index.txt
         assert "/index.txt" in rendered
@@ -79,8 +77,7 @@ baseurl = "https://example.com"
             "Advanced Topics", "/docs/guides/advanced/topics/", "Advanced content"
         )
 
-        template = template_engine.env.get_template("partials/action-bar.html")
-        rendered = template.render(page=page)
+        rendered = template_engine.render_template("partials/action-bar.html", {"page": page})
 
         # Should generate correct nested path
         assert "/docs/guides/advanced/topics/index.txt" in rendered
@@ -89,8 +86,7 @@ baseurl = "https://example.com"
         """Test that action-bar includes 'Copy LLM text' button."""
         page = self._create_mock_page("Test Page", "/test/")
 
-        template = template_engine.env.get_template("partials/action-bar.html")
-        rendered = template.render(page=page)
+        rendered = template_engine.render_template("partials/action-bar.html", {"page": page})
 
         # Check for Copy LLM text button
         assert "Copy LLM text" in rendered
@@ -100,8 +96,7 @@ baseurl = "https://example.com"
         """Test that action-bar includes 'Open LLM text' link."""
         page = self._create_mock_page("Test Page", "/test/")
 
-        template = template_engine.env.get_template("partials/action-bar.html")
-        rendered = template.render(page=page)
+        rendered = template_engine.render_template("partials/action-bar.html", {"page": page})
 
         # Check for Open LLM text link
         assert "Open LLM text" in rendered
@@ -113,8 +108,7 @@ baseurl = "https://example.com"
         """Test that AI assistant share links use correct LLM.txt URL."""
         page = self._create_mock_page("Documentation", "/docs/", "Docs content")
 
-        template = template_engine.env.get_template("partials/action-bar.html")
-        rendered = template.render(page=page)
+        rendered = template_engine.render_template("partials/action-bar.html", {"page": page})
 
         # Check that AI share links include the LLM.txt URL
         # The share prompt should reference /docs/index.txt
@@ -130,8 +124,7 @@ baseurl = "https://example.com"
         """Test that URLs are properly encoded in share links."""
         page = self._create_mock_page("Test Page", "/test/")
 
-        template = template_engine.env.get_template("partials/action-bar.html")
-        rendered = template.render(page=page)
+        rendered = template_engine.render_template("partials/action-bar.html", {"page": page})
 
         # Share links should have URL-encoded parameters
         assert "claude.ai/new?q=" in rendered
@@ -166,36 +159,32 @@ baseurl = "https://example.com"
         from bengal.core.site import Site
 
         site = Site.from_config(tmp_path)
-        engine = TemplateEngine(site)
+        engine = create_engine(site)
         return engine
 
     def test_ensure_trailing_slash_function(self, template_engine):
         """Test that ensure_trailing_slash helper works correctly."""
         # This function is used in action-bar.html to construct LLM.txt URLs
-        template = template_engine.env.from_string("{{ ensure_trailing_slash('/test') }}")
-        result = template.render()
+        result = template_engine.render_string("{{ ensure_trailing_slash('/test') }}", {})
         assert result == "/test/"
 
     def test_ensure_trailing_slash_idempotent(self, template_engine):
         """Test that ensure_trailing_slash is idempotent."""
-        template = template_engine.env.from_string("{{ ensure_trailing_slash('/test/') }}")
-        result = template.render()
+        result = template_engine.render_string("{{ ensure_trailing_slash('/test/') }}", {})
         assert result == "/test/"
 
     def test_canonical_url_function(self, template_engine):
         """Test that canonical_url helper works correctly."""
         # Used in action-bar to get the canonical URL for a page
-        template = template_engine.env.from_string("{{ canonical_url('/docs/') }}")
-        result = template.render()
+        result = template_engine.render_string("{{ canonical_url('/docs/') }}", {})
         # Should return absolute URL with baseurl
         assert result == "https://example.com/docs/"
 
     def test_urlencode_filter(self, template_engine):
         """Test that urlencode filter works for share links."""
-        template = template_engine.env.from_string(
-            "{{ 'Please help: /test/index.txt' | urlencode }}"
+        result = template_engine.render_string(
+            "{{ 'Please help: /test/index.txt' | urlencode }}", {}
         )
-        result = template.render()
         # Should encode spaces and special chars
         assert "%20" in result or "+" in result
         assert "index.txt" in result

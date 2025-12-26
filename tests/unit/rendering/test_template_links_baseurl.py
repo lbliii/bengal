@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from bengal.core.site import Site
-from bengal.rendering.template_engine import TemplateEngine
+from bengal.rendering.engines import create_engine
 from tests._testing.mocks import MockPage
 
 
@@ -31,9 +31,9 @@ output_dir = "public"
     )
 
     site = Site.from_config(site_dir)
-    engine = TemplateEngine(site)
+    engine = create_engine(site)
 
-    html = engine.render("base.html", {"page": None})
+    html = engine.render_template("base.html", {"page": None})
 
     assert '<meta name="bengal:baseurl" content="/bengal">' in html
     # Logo link uses absolute_url
@@ -66,7 +66,7 @@ output_dir = "public"
     )
 
     site = Site.from_config(site_dir)
-    engine = TemplateEngine(site)
+    engine = create_engine(site)
 
     page = MockPage(title="Module", href="/api/module/", slug="module")
     result = engine._url_for(page)
@@ -101,7 +101,7 @@ output_dir = "public"
     )
 
     site = Site.from_config(site_dir)
-    engine = TemplateEngine(site)
+    engine = create_engine(site)
 
     page = MockPage(title="Module", href="/api/module/", slug="module")
     result = engine._url_for(page)
@@ -143,7 +143,7 @@ output_dir = "public"
     )
 
     site = Site.from_config(site_dir)
-    engine = TemplateEngine(site)
+    engine = create_engine(site)
 
     page = MockPage(title="Module", href="/api/module/", slug="module")
     result = engine._url_for(page)

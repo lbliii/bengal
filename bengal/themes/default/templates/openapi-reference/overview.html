@@ -102,7 +102,7 @@ This template receives:
                   {% case 'http' %}
                     {{ (scheme.scheme ?? 'bearer') | title }} ({{ scheme.bearerFormat ?? 'Token' }})
                   {% case 'apiKey' %}
-                    API Key ({{ scheme.in }}: {{ scheme.name }})
+                    API Key ({{ scheme['in'] }}: {{ scheme.name }})
                   {% case 'oauth2' %}
                     OAuth 2.0
                   {% case _ %}

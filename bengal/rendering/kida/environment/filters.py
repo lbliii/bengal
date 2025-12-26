@@ -74,7 +74,6 @@ from bengal.rendering.kida.environment.exceptions import TemplateRuntimeError
 from bengal.rendering.kida.template import Markup
 from bengal.rendering.kida.utils.html import (
     html_escape_filter,
-    spaceless,
     strip_tags,
     xmlattr,
 )
@@ -123,19 +122,19 @@ def _filter_first(value: Any) -> Any:
 
 def _filter_int(value: Any, default: int = 0, strict: bool = False) -> int:
     """Convert to integer.
-    
+
     Args:
         value: Value to convert to integer.
         default: Default value to return if conversion fails (default: 0).
         strict: If True, raise TemplateRuntimeError on conversion failure
             instead of returning default (default: False).
-    
+
     Returns:
         Integer value, or default if conversion fails and strict=False.
-    
+
     Raises:
         TemplateRuntimeError: If strict=True and conversion fails.
-    
+
     Examples:
         >>> _filter_int("42")
         42
@@ -553,6 +552,7 @@ def _filter_reject(value: Any, test_name: str | None = None, *args: Any) -> list
 
 def _filter_groupby(value: Any, attribute: str) -> list:
     """Group items by attribute."""
+
     def get_key(item: Any) -> Any:
         return getattr(item, attribute, None)
 
@@ -593,7 +593,7 @@ def _filter_pprint(value: Any) -> str:
 
 def _filter_xmlattr(value: dict) -> Markup:
     """Convert dict to XML attributes.
-    
+
     Returns Markup to prevent double-escaping when autoescape is enabled.
     """
     return xmlattr(value)
@@ -677,6 +677,34 @@ def _filter_round(value: Any, precision: int = 0, method: str = "common") -> flo
         return round(float(value), precision)
 
 
+def _filter_format_number(value: Any, decimal_places: int = 0) -> str:
+    """Format a number with thousands separators.
+
+    Example:
+        {{ 1234567 | format_number }} → "1,234,567"
+        {{ 1234.567 | format_number(2) }} → "1,234.57"
+    """
+    try:
+        num = float(value)
+        if decimal_places > 0:
+            return f"{num:,.{decimal_places}f}"
+        else:
+            return f"{int(num):,}"
+    except (ValueError, TypeError):
+        return str(value)
+
+
+def _filter_commas(value: Any) -> str:
+    """Format a number with commas as thousands separators.
+
+    Alias for format_number without decimal places.
+
+    Example:
+        {{ 1234567 | commas }} → "1,234,567"
+    """
+    return _filter_format_number(value, 0)
+
+
 def _filter_dictsort(
     value: dict,
     case_sensitive: bool = False,
@@ -710,19 +738,19 @@ def _filter_wordcount(value: str) -> int:
 
 def _filter_float(value: Any, default: float = 0.0, strict: bool = False) -> float:
     """Convert value to float.
-    
+
     Args:
         value: Value to convert to float.
         default: Default value to return if conversion fails (default: 0.0).
         strict: If True, raise TemplateRuntimeError on conversion failure
             instead of returning default (default: False).
-    
+
     Returns:
         Float value, or default if conversion fails and strict=False.
-    
+
     Raises:
         TemplateRuntimeError: If strict=True and conversion fails.
-    
+
     Examples:
         >>> _filter_float("3.14")
         3.14
@@ -952,6 +980,8 @@ DEFAULT_FILTERS: dict[str, Callable] = {
     "round": _filter_round,
     "strip": _filter_trim,  # alias
     "wordcount": _filter_wordcount,
+    "format_number": _filter_format_number,
+    "commas": _filter_commas,
     # Debugging and validation filters
     "require": _filter_require,
     "debug": _filter_debug,

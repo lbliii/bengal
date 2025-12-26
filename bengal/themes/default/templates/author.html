@@ -200,7 +200,7 @@ Context variables:
 
                   {% if post.content %}
                   <span class="reading-time">
-                    {{ (post.content | wordcount / 200) | round }} min read
+                    {{ ((post.content | wordcount) / 200) | round }} min read
                   </span>
                   {% end %}
                 </div>

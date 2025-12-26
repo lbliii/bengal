@@ -231,9 +231,9 @@ _path, kind, tags are always defined - no defensive checks needed.
     </script>
 
     {# Document Application: Speculation Rules for prefetching/prerendering #}
-    {% set _speculation = _doc_app.speculation %}
-    {% set _speculation_enabled = _doc_app.enabled and _speculation.enabled %}
-    {% set _speculation_feature = _doc_app.features.speculation_rules ?? true %}
+    {% let _speculation = _doc_app.speculation %}
+    {% let _speculation_enabled = _doc_app.enabled and _speculation.enabled %}
+    {% let _speculation_feature = _doc_app.features.speculation_rules ?? true %}
     {% if _speculation_enabled and _speculation_feature %}
     <script type="speculationrules">
 {
