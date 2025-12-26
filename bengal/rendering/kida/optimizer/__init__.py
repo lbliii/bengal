@@ -1,14 +1,22 @@
 """Kida AST Optimization Pass.
 
 Pure-Python AST optimizations applied before compilation to Python AST.
-Achieves 10-30% faster rendering without external dependencies.
 
-Optimizations:
+Default Behavior:
+    **All optimizations are disabled by default.** Benchmarks show that
+    optimization overhead exceeds render savings for single-render builds
+    (static site generation).
+
+    For multi-render scenarios (dev server with hot reload), enable
+    optimizations with `OptimizationConfig.all_enabled()` to amortize
+    the compile-time cost across multiple renders.
+
+Available Optimizations:
+    - **Data Coalescing**: Merge adjacent Data nodes
     - **Constant Folding**: Evaluate constant expressions at compile time
     - **Dead Code Elimination**: Remove statically unreachable code
-    - **Data Coalescing**: Merge adjacent Data nodes to reduce _append() calls
     - **Filter Inlining**: Inline simple pure filters as direct method calls
-    - **Buffer Estimation**: Estimate output size for pre-allocation
+    - **Buffer Estimation**: Estimate output size (informational only)
 
 Thread-Safety:
     All optimizers are stateless and create new nodes, never mutating.
@@ -17,13 +25,13 @@ Thread-Safety:
 Example:
     >>> from bengal.rendering.kida.optimizer import ASTOptimizer, OptimizationConfig
     >>>
+    >>> # Default: no optimizations (fastest for single-render builds)
     >>> optimizer = ASTOptimizer()
     >>> result = optimizer.optimize(ast)
     >>>
-    >>> print(result.stats.summary())
-    "3 constants folded; 1 dead blocks removed; 5 data nodes merged"
-
-    >>> optimized_ast = result.ast
+    >>> # Enable all optimizations for dev server (renders many times):
+    >>> config = OptimizationConfig.all_enabled()
+    >>> optimizer = ASTOptimizer(config)
 """
 
 from __future__ import annotations
@@ -45,20 +53,38 @@ if TYPE_CHECKING:
 class OptimizationConfig:
     """Configuration for AST optimization passes.
 
-    All optimizations are enabled by default except filter_inlining,
-    which is disabled because users can override built-in filters.
-    Disable individual passes for debugging or when a specific
-    optimization causes issues.
+    By default, **all optimizations are disabled**. Benchmarks show that
+    optimization overhead exceeds render savings for single-render builds.
+
+    For multi-render scenarios (dev server with hot reload), use
+    `OptimizationConfig.all_enabled()` to amortize compile-time cost.
     """
 
-    constant_folding: bool = True
-    dead_code_elimination: bool = True
-    data_coalescing: bool = True
-    # Filter inlining converts common pure filters to direct method calls.
-    # Safe for built-in filters. If you override built-in filters (rare),
-    # set filter_inlining=False in Environment to use your custom implementation.
-    filter_inlining: bool = True
-    estimate_buffer: bool = True
+    # Data coalescing: merge adjacent static strings to reduce _append() calls.
+    data_coalescing: bool = False
+
+    # Constant folding: evaluate constant expressions at compile time.
+    constant_folding: bool = False
+
+    # Dead code elimination: remove unreachable branches.
+    dead_code_elimination: bool = False
+
+    # Filter inlining: inline pure filters as direct method calls.
+    filter_inlining: bool = False
+
+    # Buffer estimation: calculate output size stats (informational only).
+    estimate_buffer: bool = False
+
+    @classmethod
+    def all_enabled(cls) -> OptimizationConfig:
+        """Enable all optimizations (for dev server/multi-render scenarios)."""
+        return cls(
+            data_coalescing=True,
+            constant_folding=True,
+            dead_code_elimination=True,
+            filter_inlining=True,
+            estimate_buffer=True,
+        )
 
 
 @dataclass
@@ -116,12 +142,23 @@ class ASTOptimizer:
     def __init__(self, config: OptimizationConfig | None = None):
         self._config = config or OptimizationConfig()
 
-        # Initialize passes
-        self._constant_folder = ConstantFolder()
-        self._dead_code_eliminator = DeadCodeEliminator()
-        self._data_coalescer = DataCoalescer()
-        self._filter_inliner = FilterInliner()
-        self._buffer_estimator = BufferEstimator()
+        # Lazy-init passes only when enabled
+        self._constant_folder: ConstantFolder | None = None
+        self._dead_code_eliminator: DeadCodeEliminator | None = None
+        self._data_coalescer: DataCoalescer | None = None
+        self._filter_inliner: FilterInliner | None = None
+        self._buffer_estimator: BufferEstimator | None = None
+
+    def _any_enabled(self) -> bool:
+        """Check if any optimization pass is enabled."""
+        c = self._config
+        return (
+            c.constant_folding
+            or c.dead_code_elimination
+            or c.data_coalescing
+            or c.filter_inlining
+            or c.estimate_buffer
+        )
 
     def optimize(self, ast: Template) -> OptimizationResult:
         """Apply all enabled optimization passes.
@@ -131,36 +168,53 @@ class ASTOptimizer:
             2. Dead code elimination (reduces AST size)
             3. Data coalescing (merges adjacent static content)
             4. Filter inlining (simplifies filter calls)
-            5. Buffer estimation (calculates pre-allocation size)
+            5. Buffer estimation (informational only)
+
+        Returns:
+            OptimizationResult with (possibly unchanged) AST and stats.
         """
+        # Fast path: skip if no optimizations enabled
+        if not self._any_enabled():
+            return OptimizationResult(ast=ast, stats=OptimizationStats())
+
         stats = OptimizationStats()
 
         # Pass 1: Constant folding
         if self._config.constant_folding:
+            if self._constant_folder is None:
+                self._constant_folder = ConstantFolder()
             ast, count = self._constant_folder.fold(ast)
             stats.constants_folded = count
             stats.passes_applied.append("constant_folding")
 
         # Pass 2: Dead code elimination
         if self._config.dead_code_elimination:
+            if self._dead_code_eliminator is None:
+                self._dead_code_eliminator = DeadCodeEliminator()
             ast, count = self._dead_code_eliminator.eliminate(ast)
             stats.dead_blocks_removed = count
             stats.passes_applied.append("dead_code_elimination")
 
         # Pass 3: Data coalescing
         if self._config.data_coalescing:
+            if self._data_coalescer is None:
+                self._data_coalescer = DataCoalescer()
             ast, count = self._data_coalescer.coalesce(ast)
             stats.data_nodes_coalesced = count
             stats.passes_applied.append("data_coalescing")
 
         # Pass 4: Filter inlining
         if self._config.filter_inlining:
+            if self._filter_inliner is None:
+                self._filter_inliner = FilterInliner()
             ast, count = self._filter_inliner.inline(ast)
             stats.filters_inlined = count
             stats.passes_applied.append("filter_inlining")
 
         # Pass 5: Buffer estimation
         if self._config.estimate_buffer:
+            if self._buffer_estimator is None:
+                self._buffer_estimator = BufferEstimator()
             stats.estimated_buffer_size = self._buffer_estimator.estimate(ast)
             stats.estimated_output_count = self._buffer_estimator.count_output_operations(ast)
             stats.passes_applied.append("buffer_estimation")

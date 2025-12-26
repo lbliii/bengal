@@ -36,35 +36,24 @@ This plan implements **17 actionable improvements** identified in the Kida evalu
 **Risk**: Low  
 **Dependencies**: None (all items can be parallelized)
 
-### Task 1.1: Enable Filter Inlining by Default
+### Task 1.1: Enable Filter Inlining by Default ⚠️ SUPERSEDED
 
 **Reference**: Evaluation Report §1.4  
-**Effort**: 1 hour  
+**Original Effort**: 1 hour  
 **Risk**: Low  
-**Impact**: 5-10% speedup for filter-heavy templates
+**Expected Impact**: 5-10% speedup for filter-heavy templates
 
-**Changes**:
-- `bengal/rendering/kida/optimizer/__init__.py:59` — Change `filter_inlining: bool = False` → `True`
-- `bengal/rendering/kida/optimizer/filter_inliner.py` — Expand `_INLINABLE_FILTERS` dict
+**Status**: ⚠️ Superseded by Task 4.1.1 — All optimizations disabled by default
 
-**Implementation Steps**:
-1. Update `OptimizationConfig.filter_inlining` default to `True`
-2. Add documentation comment explaining override behavior
-3. Expand `_INLINABLE_FILTERS` with additional string methods:
-   - `swapcase`, `casefold`, `isdigit`, `isalpha`
-4. Add test verifying filter override still works when inlining enabled
-5. Run benchmark validation (see evaluation report §1.4)
+Filter inlining, like all other optimizer passes, adds compile-time overhead that only
+pays off when templates are rendered multiple times. For single-render scenarios (builds),
+the overhead exceeds the render savings.
 
-**Acceptance Criteria**:
-- [ ] `filter_inlining=True` by default
-- [ ] Expanded `_INLINABLE_FILTERS` includes new methods
-- [ ] Test: User override of built-in filter still works
-- [ ] Benchmark: ≥5% speedup for filter-heavy templates (p < 0.05)
+**New Recommendation**:
+- Use default config (all disabled) for builds
+- Use `OptimizationConfig.all_enabled()` for dev server to get filter inlining benefits
 
-**Files**:
-- `bengal/rendering/kida/optimizer/__init__.py`
-- `bengal/rendering/kida/optimizer/filter_inliner.py`
-- `tests/rendering/kida/test_filter_inlining.py` (new)
+**See**: Task 4.1.1 for the consolidated optimization configuration change.
 
 ---
 
@@ -483,6 +472,42 @@ assignment. Benchmark testing revealed the optimization was **slower, not faster
 of any Python-level alternative. `list.append + join` is already optimal in CPython.
 
 **Files Reverted**: All pre-allocation code removed from `compiler/core.py`
+
+---
+
+### Task 4.1.1: Disable Optimizations for Builds ✅ COMPLETE
+
+**Status**: ✅ Completed 2024-12-26
+
+**Investigation Summary**:
+
+After the buffer pre-allocation investigation, further analysis revealed that **all optimizer
+passes added compile-time overhead that exceeded render savings for single-render scenarios**
+(static site builds). Even "data coalescing" (the simplest pass) added ~3-8ms overhead per
+500 pages.
+
+**Benchmark Results** (500 pages, single-render each):
+
+| Optimization Config | Build Time | vs No Opts |
+|---------------------|------------|------------|
+| All passes disabled | 181.8 ms   | baseline   |
+| Data coalescing only | 196.4 ms  | +8% slower |
+| All passes enabled  | 220+ ms   | +22% slower |
+
+**Changes Made**:
+1. `OptimizationConfig` now defaults to **all passes disabled**
+2. Added `OptimizationConfig.all_enabled()` class method for multi-render scenarios
+3. `ASTOptimizer` has fast-path: skips all processing when no passes enabled
+4. Lazy initialization of optimizer passes (only created when needed)
+
+**Use Cases**:
+- **Static site builds**: Use default config (all disabled) — fastest compile + render
+- **Dev server (hot reload)**: Use `OptimizationConfig.all_enabled()` — amortize compile cost
+
+**Files Changed**:
+- `bengal/rendering/kida/optimizer/__init__.py` — Config defaults, lazy init, fast path
+- `tests/rendering/kida/test_kida_environment.py` — Updated tests for new defaults
+- `tests/rendering/kida/test_kida_optimizer.py` — Updated tests for new defaults
 
 ---
 

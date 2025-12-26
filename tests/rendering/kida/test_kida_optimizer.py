@@ -419,8 +419,8 @@ class TestBufferEstimator:
 class TestASTOptimizer:
     """Integration tests for the unified optimizer."""
 
-    def test_all_passes_applied(self):
-        """All enabled passes are applied in order."""
+    def test_default_config_no_passes(self):
+        """Default config has all passes disabled for build performance."""
         source = """
             {% if false %}dead{% end %}
             {{ 1 + 2 }}
@@ -432,10 +432,26 @@ class TestASTOptimizer:
 
         result = optimizer.optimize(ast)
 
+        # With default config, no optimizations are applied
+        assert result.stats.dead_blocks_removed == 0
+        assert result.stats.constants_folded == 0
+        assert result.stats.passes_applied == []
+
+    def test_all_enabled_config_passes(self):
+        """all_enabled() config applies all passes."""
+        source = """
+            {% if false %}dead{% end %}
+            {{ 1 + 2 }}
+            <div>A</div><div>B</div>
+            {{ name | upper }}
+        """
+        ast = _parse(source)
+        optimizer = ASTOptimizer(OptimizationConfig.all_enabled())
+
+        result = optimizer.optimize(ast)
+
         assert result.stats.dead_blocks_removed >= 1
         assert result.stats.constants_folded >= 1
-        # Data coalescing and filter inlining may or may not occur
-        # depending on exact AST structure
         assert result.stats.estimated_buffer_size > 0
 
     def test_selective_passes(self):

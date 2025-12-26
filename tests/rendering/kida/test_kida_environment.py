@@ -231,19 +231,33 @@ class TestEnvironmentFilters:
         tmpl = env.from_string("{{ 'hello'|upper }}")
         assert tmpl.render() == "HELLO!"
 
-    def test_filter_inlining_enabled_by_default(self):
-        """Filter inlining is enabled by default for performance."""
+    def test_filter_inlining_disabled_by_default(self):
+        """Filter inlining is disabled by default (all optimizations disabled for build perf)."""
         from bengal.rendering.kida.optimizer import OptimizationConfig
 
-        # Verify default config has inlining enabled
+        # Verify default config has all optimizations disabled
         config = OptimizationConfig()
-        assert config.filter_inlining is True
+        assert config.filter_inlining is False
+        assert config.constant_folding is False
+        assert config.dead_code_elimination is False
+        assert config.data_coalescing is False
+        assert config.estimate_buffer is False
 
-        # With inlining enabled, built-in filters are inlined (bypass registry)
+        # Filters still work via registry lookup
         env = Environment()
         tmpl = env.from_string("{{ 'hello'|upper }}")
-        # Should use inlined method call, not filter registry
         assert tmpl.render() == "HELLO"
+
+    def test_all_enabled_config(self):
+        """all_enabled() provides config with all optimizations enabled."""
+        from bengal.rendering.kida.optimizer import OptimizationConfig
+
+        config = OptimizationConfig.all_enabled()
+        assert config.filter_inlining is True
+        assert config.constant_folding is True
+        assert config.dead_code_elimination is True
+        assert config.data_coalescing is True
+        assert config.estimate_buffer is True
 
 
 class TestEnvironmentTests:
