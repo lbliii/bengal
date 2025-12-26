@@ -7,6 +7,11 @@ Provides:
 - languages(): configured languages list from config
 - alternate_links(page): list of {hreflang, href} for page translations
 - locale_date(date, format='medium'): localized date formatting (Babel if available)
+
+Architecture:
+    Core functions (_make_t, _current_lang, _languages, etc.) are pure Python
+    with no engine dependencies. The register() function uses the adapter layer
+    to wrap these for the specific template engine being used.
 """
 
 from __future__ import annotations
@@ -16,17 +21,8 @@ from typing import TYPE_CHECKING, Any, TypedDict
 from bengal.utils.file_io import load_data_file
 from bengal.utils.logger import get_logger
 
-try:
-    from jinja2 import pass_context  # Jinja2 >=3
-except Exception:  # pragma: no cover - fallback, tests ensure availability
-    from collections.abc import Callable
-    from typing import Any
-
-    def pass_context[F: Callable[..., Any]](fn: F) -> F:
-        return fn
-
-
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from datetime import date, datetime
 
     from jinja2 import Environment
@@ -93,35 +89,23 @@ _DEF_FORMATS = {
 
 
 def register(env: Environment, site: Site) -> None:
-    """Register i18n helpers into Jinja2 environment.
+    """Register i18n helpers into template environment.
+
+    Context-dependent functions (t, current_lang) are registered via the
+    adapter layer which handles engine-specific context mechanisms.
+
+    Non-context functions (languages, alternate_links, locale_date) are
+    registered directly here as they don't need @pass_context.
 
     Globals:
-      - t
-      - current_lang
+      - t (via adapter)
+      - current_lang (via adapter)
       - languages
       - alternate_links
       - locale_date
     """
-    # Base translators (no context)
-    base_translate = _make_t(site)
 
-    @pass_context
-    def t(
-        ctx: Any,
-        key: str,
-        params: dict[str, Any] | None = None,
-        lang: str | None = None,
-        default: str | None = None,
-    ) -> str:
-        page = ctx.get("page") if hasattr(ctx, "get") else None
-        use_lang = lang or getattr(page, "lang", None)
-        return base_translate(key, params=params, lang=use_lang, default=default)
-
-    @pass_context
-    def current_lang(ctx: Any) -> str | None:
-        page = ctx.get("page") if hasattr(ctx, "get") else None
-        return _current_lang(site, page)
-
+    # Register context-independent functions directly
     def languages() -> list[LanguageInfo]:
         return _languages(site)
 
@@ -135,13 +119,15 @@ def register(env: Environment, site: Site) -> None:
 
     env.globals.update(
         {
-            "t": t,
-            "current_lang": current_lang,
             "languages": languages,
             "alternate_links": alternate_links,
             "locale_date": locale_date,
         }
     )
+
+    # Note: t() and current_lang() are registered by the adapter layer
+    # (bengal.rendering.adapters) which handles @pass_context for Jinja2
+    # and context injection for Kida
 
 
 def _current_lang(site: Site, page: Page | None = None) -> str | None:

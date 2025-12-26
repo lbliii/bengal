@@ -137,67 +137,30 @@ class KidaTemplateEngine:
         """Register Bengal-specific template functions.
 
         Strategy:
-        1. Use register_all() which adds ~100 filters and globals
-           (Works because Kida has same .filters/.globals interface as Jinja2)
-        2. Override the 3 functions that use @pass_context decorator
-        3. Add menu/asset functions from TemplateEngine mixins
+        1. Add site/config globals
+        2. Use register_all() with engine_type="kida" which:
+           - Registers ~100 filters and globals (non-context-dependent)
+           - Uses the Kida adapter for context-dependent functions (t, tag_url, etc.)
+        3. Add menu/navigation functions from TemplateEngine mixins
 
-        This avoids duplicating the filter registration logic that register_all()
-        already handles correctly.
+        This avoids duplicating the filter registration logic and uses the
+        adapter layer for clean engine-agnostic function handling.
         """
         self._env.globals["site"] = self.site
         self._env.globals["config"] = self.site.config
 
-        # === Step 1: Register all template functions (same as Jinja engine) ===
-        # This provides: get_page, navigation, icons, seo, dates, strings, etc.
-        try:
-            from bengal.rendering.template_functions import register_all
+        # === Step 1: Register all template functions with Kida adapter ===
+        # This handles both non-context functions (icons, dates, strings, etc.)
+        # and context-dependent functions (t, current_lang, tag_url, asset_url)
+        # via the adapter layer
+        from bengal.rendering.template_functions import register_all
 
-            register_all(self._env, self.site)
-        except ImportError:
-            pass
+        register_all(self._env, self.site, engine_type="kida")
 
-        # === Step 2: Override @pass_context functions ===
-        # Kida doesn't support Jinja2's @pass_context decorator, so we provide
-        # context-free versions of the 3 functions that use it.
-        try:
-            from bengal.rendering.template_functions.i18n import _current_lang, _make_t
-
-            base_translate = _make_t(self.site)
-
-            def t_no_ctx(
-                key: str,
-                params: dict | None = None,
-                lang: str | None = None,
-                default: str | None = None,
-            ) -> str:
-                return base_translate(key, params=params, lang=lang, default=default)
-
-            self._env.globals["t"] = t_no_ctx
-            self._env.globals["current_lang"] = lambda: _current_lang(self.site, None)
-
-            from bengal.rendering.template_functions.taxonomies import tag_url
-
-            self._env.globals["tag_url"] = lambda tag: tag_url(tag, self.site)
-        except ImportError:
-            pass
-
-        # === Step 3: Add functions from TemplateEngine mixins ===
+        # === Step 2: Add filters from TemplateEngine mixins ===
         # These are added by Jinja's environment.py but not by register_all()
         try:
-            from bengal.rendering.template_engine.url_helpers import (
-                filter_dateformat,
-                with_baseurl,
-            )
-
-            # asset_url (simplified - no manifest lookup)
-            def simple_asset_url(path: str) -> str:
-                if not path:
-                    return "/assets/"
-                clean_path = path.replace("\\", "/").strip().lstrip("/")
-                return with_baseurl(f"/assets/{clean_path}", self.site)
-
-            self._env.globals["asset_url"] = simple_asset_url
+            from bengal.rendering.template_engine.url_helpers import filter_dateformat
 
             # dateformat filter (from url_helpers, not dates module)
             self._env.filters["dateformat"] = filter_dateformat
@@ -212,16 +175,13 @@ class KidaTemplateEngine:
         except ImportError:
             pass
 
-        # === Step 4: Menu functions (from MenuHelpersMixin) ===
-        try:
-            self._menu_dict_cache: dict[str, list[dict]] = {}
-            self._env.globals["get_menu"] = self._get_menu
-            self._env.globals["get_menu_lang"] = self._get_menu_lang
-            self._env.globals["url_for"] = self._url_for
-            self._env.globals["getattr"] = getattr
-            self._env.globals["theme"] = self.site.theme_config
-        except Exception:
-            pass
+        # === Step 3: Menu functions (from MenuHelpersMixin) ===
+        self._menu_dict_cache: dict[str, list[dict]] = {}
+        self._env.globals["get_menu"] = self._get_menu
+        self._env.globals["get_menu_lang"] = self._get_menu_lang
+        self._env.globals["url_for"] = self._url_for
+        self._env.globals["getattr"] = getattr
+        self._env.globals["theme"] = self.site.theme_config
 
     def _get_menu(self, menu_name: str = "main") -> list[dict]:
         """Get menu items as dicts (cached)."""
@@ -284,6 +244,12 @@ class KidaTemplateEngine:
         """
         try:
             template = self._env.get_template(name)
+
+            # Inject page-aware functions before render
+            # This updates t(), current_lang(), tag_url(), asset_url() with page context
+            from bengal.rendering.adapters.kida import inject_page_context
+
+            inject_page_context(self._env, context.get("page"))
 
             # Inject site and config
             ctx = {"site": self.site, "config": self.site.config}

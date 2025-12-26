@@ -23,7 +23,6 @@ from jinja2 import (
     select_autoescape,
 )
 from jinja2.bccache import FileSystemBytecodeCache
-from jinja2.runtime import Context
 
 from bengal.core.theme import get_theme_package
 from bengal.errors import ErrorCode
@@ -446,19 +445,14 @@ def create_jinja_environment(
     # Usage: getattr(element, 'children', []) to safely get children with default
     env.globals["getattr"] = getattr
 
-    # Make asset_url context-aware for file:// protocol support
-    from jinja2 import pass_context
-
-    @pass_context
-    def asset_url_with_context(ctx: Context, asset_path: str) -> str:
-        page = ctx.get("page") if hasattr(ctx, "get") else None
-        result = template_engine._asset_url(asset_path, page_context=page)
-        return str(result) if result else ""
-
-    env.globals["asset_url"] = asset_url_with_context
-
-    # Register all template functions
+    # Register all template functions (non-context-dependent)
     register_all(env, site)
+
+    # Register context-dependent functions via adapter layer
+    # This handles t(), current_lang(), tag_url(), asset_url() with @pass_context
+    from bengal.rendering.adapters import register_context_functions
+
+    register_context_functions(env, site, adapter_type="jinja")
 
     # Best-effort cache of template search paths for non-dev builds.
     if not auto_reload:

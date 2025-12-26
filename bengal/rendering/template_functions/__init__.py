@@ -118,16 +118,22 @@ from . import (
 logger = get_logger(__name__)
 
 
-def register_all(env: Environment, site: Site) -> None:
+def register_all(env: Environment, site: Site, engine_type: str | None = None) -> None:
     """
-    Register all template functions with Jinja2 environment.
+    Register all template functions with template environment.
 
     This is a thin coordinator - each module handles its own registration
     following the Single Responsibility Principle.
 
+    Non-context-dependent functions are registered directly by their modules.
+    Context-dependent functions (t, current_lang, tag_url, asset_url) are
+    registered by the adapter layer (see bengal.rendering.adapters).
+
     Args:
-        env: Jinja2 environment to register functions with
+        env: Template environment to register functions with
         site: Site instance for context-aware functions
+        engine_type: Engine type for adapter selection (auto-detected if None).
+                     If provided, also registers context-dependent functions.
     """
     logger.debug("registering_template_functions", phase="template_setup")
 
@@ -173,6 +179,14 @@ def register_all(env: Environment, site: Site) -> None:
 
     # Phase 9: Version URL functions (smart fallback for version switching)
     version_url.register(env, site)
+
+    # Phase 10: Context-dependent functions via adapter (if engine_type specified)
+    # When engine_type is provided, register context functions automatically.
+    # Otherwise, caller is responsible for calling adapters.register_context_functions()
+    if engine_type is not None:
+        from bengal.rendering.adapters import register_context_functions
+
+        register_context_functions(env, site, engine_type)
 
     logger.debug("template_functions_registered", count=20)
 
