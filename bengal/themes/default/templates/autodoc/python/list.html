@@ -57,9 +57,12 @@ Features:
       {% set show_children = (not children_disabled) and show_children_feature %}
       {% set show_related = not related_disabled %}
 
-      {% set children_title = children_config.title | default('In This Section') if children_config is mapping else 'In This Section' %}
-      {% set children_variant = children_config.variant | default('compact') if children_config is mapping else 'compact' %}
-      {% set related_title = related_config.title | default('Related Pages') if related_config is mapping else 'Related Pages' %}
+      {% set children_title = children_config.title | default('In This Section') if children_config is mapping else 'In
+      This Section' %}
+      {% set children_variant = children_config.variant | default('compact') if children_config is mapping else
+      'compact' %}
+      {% set related_title = related_config.title | default('Related Pages') if related_config is mapping else 'Related
+      Pages' %}
       {% set related_limit = related_config.limit | default(5) if related_config is mapping else 5 %}
 
       {% set children_title = none if children_title is sameas false else children_title %}
@@ -71,13 +74,14 @@ Features:
       {% if show_children and (has_children or has_related) %}
       <div class="docs-children">
         {{ content_tiles(
-          title=children_title if has_children else none,
-          children=posts if show_children else none,
-          subsections=subsections if show_children else none,
-          related=page.related_posts[:related_limit] if has_related else none,
-          related_title=related_title,
-          variant=children_variant,
-          group_by='type' if has_children and has_related else none
+        title=children_title if has_children else none,
+        children=posts if show_children else none,
+        subsections=subsections if show_children else none,
+        related=page.related_posts[:related_limit] if has_related else none,
+        related_title=related_title,
+        variant=children_variant,
+        group_by='type' if has_children and has_related else none,
+        page=page
         ) }}
       </div>
       {% end %}

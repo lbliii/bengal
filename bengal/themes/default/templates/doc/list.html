@@ -107,7 +107,8 @@ related: false # disable related entirely
         related=page.related_posts[:related_limit] if has_related else none,
         related_title=related_title,
         variant=children_variant,
-        group_by='type' if has_children and has_related else none
+        group_by='type' if has_children and has_related else none,
+        page=page
         ) }}
       </div>
       {% end %}

@@ -140,7 +140,8 @@ Example:
 {% set show_nav = 'navigation.prev_next' in theme.features %}
 {% if show_nav %}
 {# Determine which navigation to use based on content type #}
-{% set content_type = params.type | default('page') %}
+{# Use page.metadata instead of params to avoid context dependency #}
+{% set content_type = (page.metadata.type if page and page.metadata else '') | default('page') %}
 {% set section_types = ['doc', 'tutorial', 'autodoc-python', 'autodoc-cli', 'autodoc-rest', 'changelog'] %}
 {% set use_section_nav = content_type in section_types %}
 
@@ -353,9 +354,10 @@ Uses native <details>/<summary> for collapsible groups (no JS required for toggl
         </div>
         {% end %}
 
-        {# Edit on GitHub (if configured) #}
-        {% if params.edit_url or config.github_edit_base %}
-        <a href="{% if params.edit_url %}{{ params.edit_url }}{% else %}{{ config.github_edit_base }}{{ page.source_path }}{% end %}"
+        {# Edit on GitHub (if configured) - use page.metadata to avoid context dependency #}
+        {% set page_meta = page.metadata if page and page.metadata else {} %}
+        {% if page_meta.edit_url or config.github_edit_base %}
+        <a href="{% if page_meta.edit_url %}{{ page_meta.edit_url }}{% else %}{{ config.github_edit_base }}{{ page.source_path }}{% end %}"
           class="toc-edit-link" target="_blank" rel="noopener noreferrer">
           {{ icon('pencil', size=14) }}
           <span>{{ t('toc.edit_page', default='Edit this page') }}</span>
@@ -363,12 +365,12 @@ Uses native <details>/<summary> for collapsible groups (no JS required for toggl
         {% end %}
 
         {# Contributors (if configured) #}
-        {% if params.contributors %}
+        {% if page_meta.contributors %}
         <div class="toc-meta-item">
           {{ icon('users', size=14) }}
           <div>
             <div class="toc-meta-label">{{ t('toc.contributors', default='Contributors') }}</div>
-            <div class="toc-meta-value">{{ params.contributors | join(', ') }}</div>
+            <div class="toc-meta-value">{{ page_meta.contributors | join(', ') }}</div>
           </div>
         </div>
         {% end %}

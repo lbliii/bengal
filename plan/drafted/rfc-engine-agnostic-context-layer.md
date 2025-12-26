@@ -1,8 +1,9 @@
 # RFC: Engine-Agnostic Template Context Layer
 
-**Status**: Draft  
+**Status**: Implemented  
 **Created**: 2025-12-26  
 **Revised**: 2025-12-26  
+**Implemented**: 2025-12-26  
 **Priority**: High  
 **Scope**: `bengal/rendering/`
 

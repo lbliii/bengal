@@ -508,8 +508,9 @@ BACKWARDS COMPATIBILITY:
    ============================================================================= #}
 
 {# Determine hero style: page variant > frontmatter > template default > theme config #}
+{# Guard: Only run routing code when included with context, not when imported for macros #}
 {% set _page_variant = page.variant if page else none %}
-{% set _page_hero_style = params.hero_style if params else none %}
+{% set _page_hero_style = (params | default({})).hero_style | default(none) %}
 {% set _template_default = _list_hero_default if _list_hero_default is defined else none %}
 {% set _theme_hero_style = theme.config.hero_style | default('editorial') if theme else 'editorial' %}
 

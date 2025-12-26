@@ -146,35 +146,17 @@ class KidaTemplateEngine:
         """Register Bengal-specific template functions.
 
         Strategy:
-        1. Add site/config globals
-        2. Use register_all() with engine_type="kida" which:
-           - Registers ~100 filters and globals (non-context-dependent)
-           - Uses the Kida adapter for context-dependent functions (t, tag_url, etc.)
-        3. Add menu/navigation functions from TemplateEngine mixins
+        1. Apply shared engine globals via get_engine_globals()
+        2. Use register_all() with engine_type="kida" for filters and non-context functions
+        3. Add engine-specific globals (url_for, get_menu, breadcrumbs)
 
-        This avoids duplicating the filter registration logic and uses the
-        adapter layer for clean engine-agnostic function handling.
+        This uses the centralized context layer for consistent globals across engines.
         """
-        # Use the same context wrappers as Jinja for safe template access
-        from bengal.rendering.context.site_wrappers import (
-            ConfigContext,
-            SiteContext,
-            ThemeContext,
-        )
+        # === Step 0: Apply shared engine globals ===
+        # Single source of truth: site, config, theme, menus, bengal, versions, etc.
+        from bengal.rendering.context import get_engine_globals
 
-        self._env.globals["site"] = SiteContext(self.site)
-        self._env.globals["config"] = ConfigContext(self.site.config)
-        self._env.globals["_raw_site"] = self.site  # For internal template functions
-
-        # === Step 0: Register bengal metadata global ===
-        # This provides bengal.capabilities, bengal.engine, etc. to templates
-        try:
-            from bengal.utils.metadata import build_template_metadata
-
-            self._env.globals["bengal"] = build_template_metadata(self.site)
-        except Exception:
-            # Fallback if metadata building fails
-            self._env.globals["bengal"] = {"engine": {"name": "Bengal SSG", "version": "unknown"}}
+        self._env.globals.update(get_engine_globals(self.site))
 
         # === Step 1: Register all template functions with Kida adapter ===
         # This handles both non-context functions (icons, dates, strings, etc.)
@@ -202,21 +184,11 @@ class KidaTemplateEngine:
         except ImportError:
             pass
 
-        # === Step 3: Menu functions (from MenuHelpersMixin) ===
+        # === Step 3: Engine-specific globals (menu functions) ===
         self._menu_dict_cache: dict[str, list[dict]] = {}
         self._env.globals["get_menu"] = self._get_menu
         self._env.globals["get_menu_lang"] = self._get_menu_lang
         self._env.globals["url_for"] = self._url_for
-        self._env.globals["getattr"] = getattr
-        self._env.globals["theme"] = (
-            ThemeContext(self.site.theme_config)
-            if self.site.theme_config
-            else ThemeContext._empty()
-        )
-
-        # === Step 4: Versioning globals ===
-        self._env.globals["versioning_enabled"] = self.site.versioning_enabled
-        self._env.globals["versions"] = self.site.versions
 
     def _get_menu(self, menu_name: str = "main") -> list[dict]:
         """Get menu items as dicts (cached)."""

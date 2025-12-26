@@ -5,6 +5,7 @@ Provides mixin for parsing function and macro related statements (macro, def, ca
 
 from __future__ import annotations
 
+import warnings
 from typing import TYPE_CHECKING
 
 from bengal.rendering.kida._types import TokenType
@@ -32,7 +33,18 @@ class FunctionBlockParsingMixin(BlockStackMixin):
     """
 
     def _parse_macro(self) -> Macro:
-        """Parse {% macro name(args) %}...{% end %} or {% endmacro %}."""
+        """Parse {% macro name(args) %}...{% end %} or {% endmacro %}.
+
+        .. deprecated::
+            Use ``{% def %}`` instead. Macros are retained only for Jinja2
+            compatibility via ``kida.compat.jinja.JinjaParser``.
+        """
+        warnings.warn(
+            "{% macro %} is deprecated in Kida. Use {% def %} instead. "
+            "Macros are retained only for Jinja2 compatibility.",
+            DeprecationWarning,
+            stacklevel=4,  # Points to user's parse() call
+        )
         start = self._advance()  # consume 'macro'
         self._push_block("macro", start)
 

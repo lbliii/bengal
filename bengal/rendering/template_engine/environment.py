@@ -26,10 +26,9 @@ from jinja2.bccache import FileSystemBytecodeCache
 
 from bengal.core.theme import get_theme_package
 from bengal.errors import ErrorCode
-from bengal.rendering.context import ConfigContext, ParamsContext, SiteContext, ThemeContext
+from bengal.rendering.context import ParamsContext, get_engine_globals
 from bengal.rendering.template_functions import register_all
 from bengal.utils.logger import get_logger
-from bengal.utils.metadata import build_template_metadata
 
 logger = get_logger(__name__)
 
@@ -408,42 +407,16 @@ def create_jinja_environment(
 
     env.filters["safe_access"] = filter_safe_access
 
-    # Add global variables with smart wrappers for safe template access
-    # SiteContext wraps Site for ergonomic {{ site.title }}, {{ site.params.x }} access
-    env.globals["site"] = SiteContext(site)
-    # ConfigContext wraps config dict for safe {{ config.key.nested }} access
-    env.globals["config"] = ConfigContext(site.config)
-    # ThemeContext wraps Theme for {{ theme.name }}, {{ theme.has('feature') }} access
-    env.globals["theme"] = (
-        ThemeContext(site.theme_config) if site.theme_config else ThemeContext._empty()
-    )
-    # Keep raw site reference for internal template functions that need it
-    env.globals["_raw_site"] = site
+    # === Shared engine globals ===
+    # Single source of truth: site, config, theme, menus, bengal, versions, getattr, etc.
+    # See bengal/rendering/context/__init__.py:get_engine_globals()
+    env.globals.update(get_engine_globals(site))
 
-    # Add versioning context
-    # Templates can access: versions (list), versioning_enabled (bool)
-    # Per-page: current_version is set in page context, not here
-    env.globals["versioning_enabled"] = site.versioning_enabled
-    env.globals["versions"] = site.versions
-
-    try:
-        env.globals["bengal"] = build_template_metadata(site)
-    except Exception as e:
-        logger.debug(
-            "template_metadata_build_failed",
-            error=str(e),
-            error_type=type(e).__name__,
-            action="using_fallback_metadata",
-        )
-        env.globals["bengal"] = {"engine": {"name": "Bengal SSG", "version": "unknown"}}
-
-    # Add global functions
+    # === Engine-specific globals ===
+    # These need access to the TemplateEngine instance
     env.globals["url_for"] = template_engine._url_for
     env.globals["get_menu"] = template_engine._get_menu
     env.globals["get_menu_lang"] = template_engine._get_menu_lang
-    # Add Python's getattr for safe attribute access in templates
-    # Usage: getattr(element, 'children', []) to safely get children with default
-    env.globals["getattr"] = getattr
 
     # Register all template functions (non-context-dependent)
     register_all(env, site)

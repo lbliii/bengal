@@ -332,69 +332,11 @@ class ExpressionCompilationMixin:
             )
 
         if node_type == "BoolOp":
-            # In strict mode, 'or' expressions need special handling:
-            # `undefined_var or fallback()` should evaluate fallback() when var is undefined
-            # Python's BoolOp short-circuits, but _lookup() raises before or can evaluate
-            # Solution: wrap left operand in _or_safe() which catches UndefinedError
-            if node.op == "or" and self._env.strict:
-                # Compile: _or_safe(lambda: left, right)
-                # For chained or: _or_safe(lambda: _or_safe(lambda: a, b), c)
-                values = list(node.values)
-                if len(values) == 2:
-                    # Simple case: a or b -> _or_safe(lambda: a, b)
-                    left_lambda = ast.Lambda(
-                        args=ast.arguments(
-                            posonlyargs=[],
-                            args=[],
-                            vararg=None,
-                            kwonlyargs=[],
-                            kw_defaults=[],
-                            kwarg=None,
-                            defaults=[],
-                        ),
-                        body=self._compile_expr(values[0]),
-                    )
-                    return ast.Call(
-                        func=ast.Name(id="_or_safe", ctx=ast.Load()),
-                        args=[left_lambda, self._compile_expr(values[1])],
-                        keywords=[],
-                    )
-                else:
-                    # Chained case: a or b or c -> _or_safe(lambda: _or_safe(...), c)
-                    # Build from left to right
-                    from bengal.rendering.kida.nodes import BoolOp as KidaBoolOp
-
-                    # Create nested BoolOp for first N-1 values
-                    left_boolop = KidaBoolOp(
-                        lineno=node.lineno,
-                        col_offset=node.col_offset,
-                        op="or",
-                        values=values[:-1],
-                    )
-                    left_lambda = ast.Lambda(
-                        args=ast.arguments(
-                            posonlyargs=[],
-                            args=[],
-                            vararg=None,
-                            kwonlyargs=[],
-                            kw_defaults=[],
-                            kwarg=None,
-                            defaults=[],
-                        ),
-                        body=self._compile_expr(left_boolop),
-                    )
-                    return ast.Call(
-                        func=ast.Name(id="_or_safe", ctx=ast.Load()),
-                        args=[left_lambda, self._compile_expr(values[-1])],
-                        keywords=[],
-                    )
-            else:
-                # Non-strict mode or 'and' operator: use standard Python BoolOp
-                op = ast.And() if node.op == "and" else ast.Or()
-                return ast.BoolOp(
-                    op=op,
-                    values=[self._compile_expr(v) for v in node.values],
-                )
+            op = ast.And() if node.op == "and" else ast.Or()
+            return ast.BoolOp(
+                op=op,
+                values=[self._compile_expr(v) for v in node.values],
+            )
 
         if node_type == "CondExpr":
             return ast.IfExp(

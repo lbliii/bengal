@@ -9,9 +9,9 @@ Variables:
 - current_tag: Current tag name if viewing a tag page (optional)
 #}
 
-{# Use default filter to handle undefined 'tags' in strict mode before or fallback #}
+{# Use default filter to handle undefined variables in strict mode #}
 {% set all_tags = (tags | default(none)) or popular_tags(limit=50) %}
-{% set current_tag_normalized = (current_tag | lower) if current_tag else '' %}
+{% set current_tag_normalized = (current_tag | default('') | lower) %}
 
 <nav class="docs-nav" aria-label="Tags">
   <div class="docs-nav-tree">
