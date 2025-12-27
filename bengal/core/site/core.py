@@ -520,6 +520,10 @@ class Site(
         self._discovery_breakdown_ms = None
         self._asset_manifest_fallbacks_global.clear()
 
+        # Clear Kida adapter's asset manifest cache (used for fingerprint resolution)
+        if hasattr(self, "_kida_asset_manifest_cache"):
+            delattr(self, "_kida_asset_manifest_cache")
+
         # CSS optimization state
         self.features_detected.clear()
 
