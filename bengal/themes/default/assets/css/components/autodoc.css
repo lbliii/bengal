@@ -1031,7 +1031,7 @@ a.autodoc-card span {
    ============================================ */
 
 .docs-layout--three-panel {
-  grid-template-columns: 260px minmax(0, 1.2fr) minmax(350px, 0.8fr) !important;
+  grid-template-columns: 280px minmax(0, 1.1fr) minmax(400px, 0.9fr) !important;
   background-color: var(--color-bg-primary);
   gap: 0;
 }

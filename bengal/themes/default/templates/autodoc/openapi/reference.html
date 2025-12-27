@@ -26,9 +26,9 @@ This template receives:
 
 {# Cache group info #}
 {% let
-  tag_name = section.name | title,
-  description = section.metadata.description ?? section.params.description,
-  all_endpoints = section.metadata.endpoints ?? []
+  tag_name = section.title,
+  description = section.params.description ?? section.params.summary,
+  all_endpoints = section.params.endpoints ?? []
 %}
 
 {% block content %}
@@ -36,7 +36,7 @@ This template receives:
 <div class="docs-layout docs-layout--three-panel docs-layout--consolidated">
   {# Left Sidebar: Navigation #}
   <aside class="docs-sidebar" id="docs-sidebar" role="navigation" aria-label="API navigation">
-    {% include 'partials/docs-nav.html' %}
+    {% include 'autodoc/partials/rest-nav.html' %}
   </aside>
 
   {# Center: Endpoint Documentation #}
