@@ -156,7 +156,6 @@ class MakefileStateMachineLexer(
                 pos += 1
                 if pos < length:
                     if code[pos] in "({":
-                        close = ")" if code[pos] == "(" else "}"
                         pos += 1
                         depth = 1
                         while pos < length and depth > 0:

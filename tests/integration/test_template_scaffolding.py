@@ -2,8 +2,6 @@
 
 Tests that all 7 site templates scaffold correctly and build without errors.
 Validates the end-to-end user workflow: scaffold → build → validate output.
-
-Phase 1 of RFC: User Scenario Coverage & Validation Matrix
 """
 
 from __future__ import annotations
@@ -180,10 +178,10 @@ def test_template_dev_server_starts(tmp_path) -> None:
     This is a smoke test to ensure dev server infrastructure works.
     Only tests default template to keep CI fast.
     """
+    import signal
     import subprocess
     import sys
     import time
-    import signal
 
     site_name = "site-dev-server"
     site_dir = tmp_path / site_name
@@ -216,9 +214,17 @@ def test_template_dev_server_starts(tmp_path) -> None:
         assert proc.poll() is None, "Dev server crashed on startup"
 
     finally:
-        # Clean up - use SIGKILL for reliable termination in tests
+        # Clean up - use SIGKILL for the whole process group for reliable termination
         try:
-            proc.kill()
+            import os
+            import signal
+
+            os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
             proc.wait(timeout=5)
         except (ProcessLookupError, subprocess.TimeoutExpired, PermissionError, OSError):
-            pass  # Process already exited, timed out, or permission denied - OK in cleanup
+            # Fall back to killing just the process if group kill fails
+            try:
+                proc.kill()
+                proc.wait(timeout=2)
+            except (ProcessLookupError, subprocess.TimeoutExpired, PermissionError, OSError):
+                pass

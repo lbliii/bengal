@@ -338,6 +338,7 @@ class JinjaTemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin)
                             message=str(e),
                             path=template_file,
                             original_exception=e,
+                            error_type="syntax",
                         )
                     )
                 except Exception:

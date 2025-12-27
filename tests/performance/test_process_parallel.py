@@ -44,6 +44,7 @@ def render_page_process(args):
 @pytest.mark.slow
 @pytest.mark.serial
 @pytest.mark.parallel_unsafe
+@pytest.mark.memory_intensive(limit_gb=1.0)
 def test_thread_vs_process_rendering():
     """Compare thread-based vs process-based rendering.
 

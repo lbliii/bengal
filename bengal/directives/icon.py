@@ -4,7 +4,6 @@ Icon directive for Mistune.
 Provides inline SVG icons from Bengal's icon library.
 
 Icons are loaded via the theme-aware resolver (site > theme > parent > default).
-See: plan/drafted/rfc-theme-aware-icons.md
 
 Syntax:
 

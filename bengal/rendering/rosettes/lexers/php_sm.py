@@ -301,7 +301,6 @@ class PhpStateMachineLexer(
                 # Find end delimiter
                 start_line = line
                 while pos < length:
-                    line_begin = pos
                     while pos < length and code[pos] in " \t":
                         pos += 1
                     if code[pos : pos + len(delim)] == delim:

@@ -2,6 +2,9 @@
 Template change detection for incremental builds.
 
 Handles checking template files for changes and tracking affected pages.
+Supports block-level detection when Kida engine is available.
+
+RFC: block-level-incremental-builds
 """
 
 from __future__ import annotations
@@ -18,6 +21,12 @@ if TYPE_CHECKING:
     from bengal.cache import BuildCache
     from bengal.core.site import Site
     from bengal.orchestration.build.results import ChangeSummary
+    from bengal.orchestration.incremental.rebuild_decision import (
+        RebuildDecision,
+        RebuildDecisionEngine,
+    )
+    from bengal.rendering.block_cache import BlockCache
+    from bengal.rendering.engines.kida import KidaTemplateEngine
 
 logger = get_logger(__name__)
 
@@ -38,12 +47,22 @@ class TemplateChangeDetector:
     Detects changes in template files and tracks affected pages.
 
     Collects all template files first, then checks in parallel if above threshold.
+
+    Block-Level Detection (RFC: block-level-incremental-builds):
+        When `block_cache` is provided and Kida engine is used, enables
+        block-level change detection. This can skip page rebuilds entirely
+        when only site-scoped blocks (nav, footer, header) change.
+
+    Thread-Safety:
+        Uses cached engine and context to avoid repeated initialization.
+        Thread-safe for concurrent template checks.
     """
 
     def __init__(
         self,
         site: Site,
         cache: BuildCache,
+        block_cache: BlockCache | None = None,
     ) -> None:
         """
         Initialize template change detector.
@@ -51,9 +70,17 @@ class TemplateChangeDetector:
         Args:
             site: Site instance for configuration and paths
             cache: BuildCache for change detection
+            block_cache: Optional BlockCache for block-level detection
         """
         self.site = site
         self.cache = cache
+        self.block_cache = block_cache
+
+        # Lazy-initialized components for block-level detection
+        # (avoid engine creation until needed)
+        self._engine: KidaTemplateEngine | None = None
+        self._decision_engine: RebuildDecisionEngine | None = None
+        self._site_context: dict | None = None
 
     def check_templates(
         self,
@@ -96,23 +123,65 @@ class TemplateChangeDetector:
         change_summary: ChangeSummary,
         verbose: bool,
     ) -> None:
-        """Sequential template checking for small workloads."""
+        """Sequential template checking for small workloads.
+
+        If block-level detection is available, uses it to skip page rebuilds
+        when only site-scoped blocks change.
+        """
         changed_template_names: list[str] = []
+        blocks_rewarmed = 0
+        pages_skipped = 0
 
         for template_file in template_files:
             if self.cache.is_changed(template_file):
                 if verbose and template_file not in change_summary.modified_templates:
                     change_summary.modified_templates.append(template_file)
-                affected = self.cache.get_affected_pages(template_file)
-                for page_path_str in affected:
-                    pages_to_rebuild.add(Path(page_path_str))
 
-                # Collect template name for optional cache invalidation
                 template_name = self._path_to_template_name(template_file)
+
+                # Try block-level detection first
+                if template_name and self._can_use_block_detection():
+                    decision = self._decide_block_level(template_name, template_file)
+
+                    if decision.skip_all_pages:
+                        # Just re-warm blocks, skip page rebuilds!
+                        self._rewarm_blocks(template_name, decision.blocks_to_rewarm)
+                        blocks_rewarmed += len(decision.blocks_to_rewarm)
+                        pages_skipped += len(self.cache.get_affected_pages(template_file))
+                        logger.info(
+                            "template_change_block_level",
+                            template=template_file.name,
+                            blocks_rewarmed=list(decision.blocks_to_rewarm),
+                            pages_skipped=True,
+                            reason=decision.reason,
+                        )
+                        # Update file hash so we don't recheck next build
+                        self.cache.update_file(template_file)
+                        continue
+
+                    # Add only affected pages from decision
+                    pages_to_rebuild.update(decision.pages_to_rebuild)
+                    if decision.blocks_to_rewarm:
+                        self._rewarm_blocks(template_name, decision.blocks_to_rewarm)
+                        blocks_rewarmed += len(decision.blocks_to_rewarm)
+                else:
+                    # Fallback to file-level (current behavior)
+                    affected = self.cache.get_affected_pages(template_file)
+                    for page_path_str in affected:
+                        pages_to_rebuild.add(Path(page_path_str))
+
                 if template_name:
                     changed_template_names.append(template_name)
             else:
                 self.cache.update_file(template_file)
+
+        # Log block-level savings
+        if blocks_rewarmed > 0 or pages_skipped > 0:
+            logger.info(
+                "block_level_incremental_savings",
+                blocks_rewarmed=blocks_rewarmed,
+                pages_skipped=pages_skipped,
+            )
 
         # Optional: Help template engine clear cache if it supports it
         if changed_template_names:
@@ -272,3 +341,157 @@ class TemplateChangeDetector:
                 error=str(e),
                 error_type=type(e).__name__,
             )
+
+    # =========================================================================
+    # Block-Level Detection (RFC: block-level-incremental-builds)
+    # =========================================================================
+
+    def _get_engine(self) -> KidaTemplateEngine:
+        """Get or create cached engine instance.
+
+        Reuses engine across multiple template checks to avoid
+        repeated initialization overhead.
+        """
+        if self._engine is None:
+            from bengal.rendering.engines import create_engine
+
+            self._engine = create_engine(self.site)
+        return self._engine
+
+    def _get_site_context(self) -> dict:
+        """Get or create cached site context."""
+        if self._site_context is None:
+            from bengal.rendering.context import get_engine_globals
+
+            self._site_context = get_engine_globals(self.site)
+        return self._site_context
+
+    def _get_decision_engine(self) -> RebuildDecisionEngine:
+        """Get or create cached decision engine."""
+        if self._decision_engine is None:
+            from bengal.orchestration.incremental.block_detector import (
+                BlockChangeDetector,
+            )
+            from bengal.orchestration.incremental.rebuild_decision import (
+                RebuildDecisionEngine,
+            )
+
+            engine = self._get_engine()
+            block_detector = BlockChangeDetector(engine, self.block_cache)
+            self._decision_engine = RebuildDecisionEngine(
+                block_detector=block_detector,
+                block_cache=self.block_cache,
+                build_cache=self.cache,
+                engine=engine,
+            )
+        return self._decision_engine
+
+    def _can_use_block_detection(self) -> bool:
+        """Check if block-level detection is available for this site."""
+        if self.block_cache is None:
+            return False
+        # Check if Kida engine is being used
+        engine_type = self.site.config.get("template_engine", "kida")
+        return engine_type == "kida"
+
+    def _decide_block_level(
+        self,
+        template_name: str,
+        template_path: Path,
+    ) -> RebuildDecision:
+        """Make block-level rebuild decision for a template change.
+
+        Args:
+            template_name: Template name (e.g., "base.html")
+            template_path: Path to template file
+
+        Returns:
+            RebuildDecision with blocks to re-warm and pages to rebuild
+        """
+        from bengal.orchestration.incremental.rebuild_decision import RebuildDecision
+
+        if not template_name:
+            # Fallback: rebuild all affected pages
+            affected = self.cache.get_affected_pages(template_path)
+            return RebuildDecision(
+                blocks_to_rewarm=set(),
+                pages_to_rebuild={Path(p) for p in affected},
+                skip_all_pages=False,
+                reason="Could not resolve template name",
+                child_templates=set(),
+            )
+
+        try:
+            decision_engine = self._get_decision_engine()
+            return decision_engine.decide(template_name, template_path)
+        except Exception as e:
+            logger.debug(
+                "block_level_decision_failed",
+                template=template_name,
+                error=str(e),
+            )
+            # Fallback: rebuild all affected pages
+            affected = self.cache.get_affected_pages(template_path)
+            return RebuildDecision(
+                blocks_to_rewarm=set(),
+                pages_to_rebuild={Path(p) for p in affected},
+                skip_all_pages=False,
+                reason=f"Block-level detection failed: {e}",
+                child_templates=set(),
+            )
+
+    def _rewarm_blocks(self, template_name: str, blocks: set[str]) -> None:
+        """Re-warm specific blocks after changes.
+
+        Uses cached engine and context for efficiency.
+
+        Args:
+            template_name: Template name (e.g., "base.html")
+            blocks: Set of block names to re-warm
+        """
+        if not self.block_cache or not blocks:
+            return
+
+        # Clear old cached blocks
+        for block_name in blocks:
+            key = f"{template_name}:{block_name}"
+            self.block_cache._site_blocks.pop(key, None)
+
+        # Re-warm using cached engine and context
+        try:
+            engine = self._get_engine()
+            site_context = self._get_site_context()
+
+            for block_name in blocks:
+                try:
+                    template = engine.env.get_template(template_name)
+                    html = template.render_block(block_name, site_context)
+                    self.block_cache.set(template_name, block_name, html, scope="site")
+                    logger.debug(
+                        "block_rewarmed",
+                        template=template_name,
+                        block=block_name,
+                        size_bytes=len(html),
+                    )
+                except Exception as e:
+                    logger.debug(
+                        "block_rewarm_failed",
+                        template=template_name,
+                        block=block_name,
+                        error=str(e),
+                    )
+        except Exception as e:
+            logger.debug(
+                "block_rewarm_engine_failed",
+                template=template_name,
+                error=str(e),
+            )
+
+    def reset(self) -> None:
+        """Reset cached state between builds.
+
+        Call this at the end of a build to release resources.
+        """
+        self._engine = None
+        self._decision_engine = None
+        self._site_context = None

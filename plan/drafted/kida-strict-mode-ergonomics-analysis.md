@@ -306,4 +306,3 @@ env = Environment(strict="warn")  # Warns but doesn't fail
 2. Migration guide for Jinja2 users
 3. Prominent `??` operator examples
 4. Consider warning mode for gradual adoption
-

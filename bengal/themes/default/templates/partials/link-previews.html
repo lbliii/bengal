@@ -1,24 +1,30 @@
-{# Link Previews Configuration Bridge & Script #}
-{# Wikipedia-style hover cards powered by per-page JSON #}
-{% let _link_previews = site.link_previews %}
+{# Link Previews - Wikipedia-style hover cards #}
+{# Self-sufficient: auto-detects if JSON files are available #}
+{% let _link_previews_enabled = site.link_previews.enabled ?? true %}
 {% let _per_page_json = 'json' in (config.output_formats.per_page ?? []) %}
-{% if _link_previews.enabled and _per_page_json %}
+
+{% if _link_previews_enabled %}
+<script defer src="{{ asset_url('js/enhancements/link-previews.js') }}"></script>
+{% end %}
+
+{# Config bridge: only include when both link previews and per-page JSON are enabled #}
+{% if _link_previews_enabled and _per_page_json %}
+{% let _lp = site.link_previews %}
 <script id="bengal-config" type="application/json">
 {
   "linkPreviews": {
-    "enabled": true,
-    "hoverDelay": {{ _link_previews.hover_delay ?? 200 }},
-    "hideDelay": {{ _link_previews.hide_delay ?? 150 }},
-    "showSection": {{ (_link_previews.show_section ?? true) | tojson }},
-    "showReadingTime": {{ (_link_previews.show_reading_time ?? true) | tojson }},
-    "showWordCount": {{ (_link_previews.show_word_count ?? true) | tojson }},
-    "showDate": {{ (_link_previews.show_date ?? true) | tojson }},
-    "showTags": {{ (_link_previews.show_tags ?? true) | tojson }},
-    "maxTags": {{ _link_previews.max_tags ?? 3 }},
-    "includeSelectors": {{ (_link_previews.include_selectors ?? [".prose"]) | tojson }},
-    "excludeSelectors": {{ (_link_previews.exclude_selectors ?? ["nav", ".toc", ".breadcrumb", ".pagination", ".card", "[class*='-card']", ".tab-nav", "[class*='-widget']", ".child-items", ".content-tiles"]) | tojson }}
+    "enabled": {{ _link_previews_enabled | lower }},
+    "hoverDelay": {{ _lp.hover_delay ?? 200 }},
+    "hideDelay": {{ _lp.hide_delay ?? 150 }},
+    "showSection": {{ (_lp.show_section ?? true) | lower }},
+    "showReadingTime": {{ (_lp.show_reading_time ?? true) | lower }},
+    "showWordCount": {{ (_lp.show_word_count ?? true) | lower }},
+    "showDate": {{ (_lp.show_date ?? true) | lower }},
+    "showTags": {{ (_lp.show_tags ?? true) | lower }},
+    "maxTags": {{ _lp.max_tags ?? 3 }},
+    "includeSelectors": {{ (_lp.include_selectors ?? ['.prose']) | tojson }},
+    "excludeSelectors": {{ (_lp.exclude_selectors ?? []) | tojson }}
   }
 }
 </script>
-<script defer src="{{ asset_url('js/enhancements/link-previews.js') }}"></script>
 {% end %}

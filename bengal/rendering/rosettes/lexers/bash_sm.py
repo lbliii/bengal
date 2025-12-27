@@ -220,10 +220,7 @@ class BashStateMachineLexer(
                 # Get delimiter
                 while pos < length and code[pos] in " \t":
                     pos += 1
-                delim_start = pos
-                quoted = False
                 if pos < length and code[pos] in "\"'":
-                    quoted = True
                     quote = code[pos]
                     pos += 1
                     while pos < length and code[pos] != quote:

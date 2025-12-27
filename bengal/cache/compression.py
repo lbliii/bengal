@@ -1,8 +1,9 @@
 """
 Cache compression utilities using Zstandard (PEP 784).
 
-Python 3.14+ stdlib compression.zstd module for cache file compression.
-Provides transparent compression/decompression with backward compatibility.
+This module leverages the Python 3.14+ standard library `compression.zstd` module
+for high-performance cache file compression. Zstandard provides superior
+compression ratios (92-93% savings) with sub-millisecond overhead.
 
 Performance (from spike benchmarks):
     - Compression ratio: 12-14x on typical cache files
@@ -11,14 +12,15 @@ Performance (from spike benchmarks):
     - Decompress time: <0.3ms for typical files
 
 Related:
-    - plan/active/rfc-zstd-cache-compression.md - RFC with benchmarks
+    - plan/drafted/rfc-kida-modernization-314-315.md - Modernization RFC
     - bengal/cache/cache_store.py - Uses these utilities
-    - bengal/cache/build_cache.py - Uses these utilities
+    - bengal/cache/build_cache/core.py - Uses these utilities
 """
 
 from __future__ import annotations
 
 import json
+from compression import zstd
 from pathlib import Path
 from typing import Any, cast
 
@@ -39,42 +41,8 @@ logger = get_logger(__name__)
 # Level 6+: Diminishing returns, slower
 COMPRESSION_LEVEL = 3
 
-# Try to import compression.zstd (Python 3.14+)
-# Fallback to zstandard package if available
-# Fallback to mock if neither (allows running in older environments)
-try:
-    # Try stdlib first (Python 3.14+)
-    from compression import zstd
-
-    # Re-export ZstdError
-    ZstdError: type[Exception] = zstd.ZstdError
-
-except ImportError:
-    try:
-        # Try PyPI package
-        import zstandard as zstd  # type: ignore
-
-        # Re-export ZstdError
-        ZstdError = zstd.ZstdError  # type: ignore[no-redef]
-
-    except ImportError:
-        # Fallback mock for environments without zstd
-        logger.warning("zstd_not_available_using_mock", reason="compression_module_missing")
-
-        class MockZstd:
-            @staticmethod
-            def compress(data: bytes, level: int = 3) -> bytes:
-                return data
-
-            @staticmethod
-            def decompress(data: bytes) -> bytes:
-                return data
-
-            class ZstdError(Exception):
-                pass
-
-        zstd = MockZstd()  # type: ignore[assignment]
-        ZstdError = MockZstd.ZstdError  # type: ignore[no-redef]
+# Re-export ZstdError for convenience
+ZstdError = zstd.ZstdError
 
 
 def save_compressed(data: dict[str, Any], path: Path, level: int = COMPRESSION_LEVEL) -> int:
@@ -100,7 +68,7 @@ def save_compressed(data: dict[str, Any], path: Path, level: int = COMPRESSION_L
     json_bytes = json.dumps(data, separators=(",", ":"), default=str).encode("utf-8")
     original_size = len(json_bytes)
 
-    # Compress with Zstandard
+    # Compress with Zstandard (PEP 784)
     compressed = zstd.compress(json_bytes, level=level)
 
     # Prepend magic header for version validation
@@ -153,6 +121,7 @@ def load_compressed(path: Path) -> dict[str, Any]:
         record_error(error, file_path=str(path))
         raise error
 
+    # Decompress with Zstandard (PEP 784)
     json_bytes = zstd.decompress(remaining)
     data = json.loads(json_bytes)
 

@@ -488,6 +488,7 @@ class Compiler(
                 "Output": self._compile_output,
                 "If": self._compile_if,
                 "For": self._compile_for,
+                "While": self._compile_while,
                 "Match": self._compile_match,
                 "Set": self._compile_set,
                 "Let": self._compile_let,

@@ -13,6 +13,7 @@ FEATURES DEMONSTRATED:
 - {% capture %} String building and buffering
 - {% filter %} Block-level transformations
 - {% match %} Advanced pattern matching with guards
+- {% while %} Condition-based loops (NEW in Kida 2.0!)
 - {% with %} Nil-resilient scope binding
 - {% unless %} Negative conditionals (cleaner than if not)
 - {% break %} / {% continue %} Loop control
@@ -586,4 +587,74 @@ USAGE:
 {% end %}
 
 {% end %}
+{% end %}
+
+{# =============================================================================
+   WHILE LOOP EXAMPLE (Kida 2.0 Moonshot Feature!)
+
+   Demonstrates: {% while %} condition-based loops with break/continue
+   ============================================================================= #}
+{% def countdown_widget(start=10, step=1) %}
+{# While loops are perfect for condition-based iteration #}
+<div class="countdown-widget">
+  <h4>Countdown from {{ start }}</h4>
+  <ul class="countdown-list">
+    {% let n = start %}
+    {% while n > 0 %}
+    <li class="countdown-item{{ ' countdown-item--highlight' if n <= 3 else '' }}">
+      {{ n }}
+    </li>
+    {% let n = n - step %}
+    {% end %}
+  </ul>
+  <div class="countdown-end">🎉 Launch!</div>
+</div>
+{% end %}
+
+{# While loop with break condition #}
+{% def find_first_featured(posts, max_search=100) %}
+{# Search through posts until we find a featured one #}
+{% let found = none %}
+{% let index = 0 %}
+{% let post_list = posts ?? [] %}
+
+{% while index < post_list | length and index < max_search %}
+  {% let post = post_list[index] %}
+  {% if post?.featured %}
+    {% let found = post %}
+    {% break %}
+  {% end %}
+  {% let index = index + 1 %}
+{% end %}
+
+{% if found %}
+<article class="featured-find">
+  <h3>{{ found.title }}</h3>
+  <p>Found at position {{ index + 1 }}</p>
+</article>
+{% else %}
+<p class="no-featured">No featured post found in first {{ index }} posts.</p>
+{% end %}
+{% end %}
+
+{# While loop with continue for filtering #}
+{% def filtered_render(items, min_score=0) %}
+{# Render items that meet minimum score, skip others #}
+<ul class="filtered-list">
+  {% let idx = 0 %}
+  {% let items_list = items ?? [] %}
+  {% while idx < items_list | length %}
+    {% let item = items_list[idx] %}
+    {% let idx = idx + 1 %}
+
+    {# Skip items below threshold #}
+    {% if (item?.score ?? 0) < min_score %}
+      {% continue %}
+    {% end %}
+
+    <li class="filtered-item" data-score="{{ item?.score ?? 0 }}">
+      {{ item?.title ?? 'Untitled' }}
+    </li>
+  {% end %}
+</ul>
 {% end %}

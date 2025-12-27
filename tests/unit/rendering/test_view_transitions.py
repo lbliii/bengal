@@ -1,5 +1,5 @@
 """
-Unit tests for View Transitions feature (Document Application RFC).
+Unit tests for View Transitions feature.
 
 Tests the View Transitions API integration including:
 - Meta tag generation based on config

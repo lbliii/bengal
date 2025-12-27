@@ -5,8 +5,6 @@ Tests gallery directive functionality:
 - Image parsing from markdown
 - Lightbox attribute
 - Custom column options
-
-Phase 2 of RFC: User Scenario Coverage - Extended Validation
 """
 
 from __future__ import annotations

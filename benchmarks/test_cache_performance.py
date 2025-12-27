@@ -1,7 +1,7 @@
 """
 Performance benchmarks for cache algorithm operations.
 
-Tests bottleneck operations identified in RFC: Cache Algorithm Optimization:
+Tests bottleneck operations:
 1. TaxonomyIndex.get_tags_for_page() - O(t×p) linear scan
 2. TaxonomyIndex.remove_page_from_all_tags() - O(t×p) linear scan
 3. QueryIndex._remove_page_from_key() - O(p) list.remove()
@@ -301,6 +301,7 @@ class TestTaxonomyGetTagsForPage:
         assert isinstance(result, set)
 
     @pytest.mark.slow
+    @pytest.mark.memory_intensive(limit_gb=1.0)
     def test_10k_pages(self, taxonomy_index_10k):
         """Baseline: 10K pages, 500 tags. Expected bottleneck."""
         page_path = Path("content/blog/post-05000.md")
@@ -349,6 +350,7 @@ class TestTaxonomyRemovePageFromAllTags:
         assert isinstance(result, set)
 
     @pytest.mark.slow
+    @pytest.mark.memory_intensive(limit_gb=1.0)
     def test_10k_pages(self):
         """Optimized: 10K pages, 500 tags with reverse index."""
         page_path = Path("content/blog/post-05000.md")
@@ -494,6 +496,7 @@ class TestFileTrackingGetAffectedPages:
         print(f"   Found {len(result)} affected pages")
 
     @pytest.mark.slow
+    @pytest.mark.memory_intensive(limit_gb=1.0)
     def test_10k_pages(self, file_tracking_deps_10k):
         """Baseline: 10K pages, 20 deps/page. Expected bottleneck."""
         dependencies = file_tracking_deps_10k
@@ -583,7 +586,7 @@ def test_baseline_summary():
     print("📊 CACHE ALGORITHM BASELINE SUMMARY")
     print("=" * 70)
     print("""
-Operations benchmarked (RFC: Cache Algorithm Optimization):
+Operations benchmarked:
 
 1. TaxonomyIndex.get_tags_for_page()
    Current: O(t×p) linear scan of all tags

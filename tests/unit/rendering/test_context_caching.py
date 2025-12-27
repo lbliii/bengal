@@ -6,9 +6,6 @@ Tests cover:
 - site.versions property caching
 - site.latest_version property caching
 - Autodoc template environment menu caching
-
-These tests verify the ergonomic overhead optimizations described in:
-plan/drafted/rfc-ergonomic-overhead-diagnostics.md
 """
 
 from __future__ import annotations

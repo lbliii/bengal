@@ -6,8 +6,6 @@ Tests sites that combine multiple content types:
 - Portfolio projects (portfolio type)
 
 Each section uses cascade to set the content type for child pages.
-
-Phase 3 of RFC: User Scenario Coverage & Validation Matrix
 """
 
 from __future__ import annotations

@@ -206,4 +206,3 @@ If variable export from cache blocks becomes a common need, consider:
 3. Evaluating if application-level caching (Python-side) is more appropriate
 
 For now, the workarounds are sufficient and maintain the performance benefits of fragment caching.
-

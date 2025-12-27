@@ -2,7 +2,6 @@
 Unit tests for bengal.icons.resolver module.
 
 Tests the theme-aware icon resolution system.
-See: plan/drafted/rfc-theme-aware-icons.md
 """
 
 from __future__ import annotations

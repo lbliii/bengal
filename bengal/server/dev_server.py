@@ -121,8 +121,7 @@ class DevServer:
             auto_port: Whether to automatically find an available port if the
                 specified one is in use
             open_browser: Whether to automatically open the browser
-            version_scope: RFC: rfc-versioned-docs-pipeline-integration (Phase 3)
-                Focus rebuilds on a single version (e.g., "v2", "latest").
+            version_scope: Focus rebuilds on a single version (e.g., "v2", "latest").
                 If None, all versions are rebuilt on changes.
         """
         self.site = site
@@ -471,7 +470,6 @@ class DevServer:
             Tuple of (WatcherRunner, BuildTrigger)
         """
         # Create build trigger (handles all build execution)
-        # RFC: rfc-versioned-docs-pipeline-integration (Phase 3)
         build_trigger = BuildTrigger(
             site=self.site,
             host=self.host,
@@ -560,11 +558,26 @@ class DevServer:
         verifies the process is actually a Bengal process and offers to
         terminate it gracefully.
 
+        Also checks if the target port is currently held by a Bengal process,
+        even if no PID file exists, providing a safety net for lost PID files.
+
         Raises:
             OSError: If stale process cannot be killed and user chooses not to continue
         """
         pid_file = PIDManager.get_pid_file(self.site.root_path)
         stale_pid = PIDManager.check_stale_pid(pid_file)
+
+        # If no PID file, check if a Bengal process is already on our preferred port
+        # This handles cases where the PID file was lost or we're restarting
+        if not stale_pid:
+            port_pid = PIDManager.get_process_on_port(self.port)
+            if port_pid and PIDManager.is_bengal_process(port_pid):
+                stale_pid = port_pid
+                logger.info(
+                    "bengal_process_found_on_port_without_pid_file",
+                    pid=stale_pid,
+                    port=self.port,
+                )
 
         if stale_pid:
             port_pid = PIDManager.get_process_on_port(self.port)

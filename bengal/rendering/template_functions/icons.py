@@ -10,8 +10,6 @@ Performance:
     - Rendered SVG cached by parameters (typical hit rate: >95%)
     - Regex processing only on cache miss
     - Zero file I/O during template rendering (after first load)
-
-See: plan/drafted/rfc-theme-aware-icons.md
 """
 
 from __future__ import annotations

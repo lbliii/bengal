@@ -93,7 +93,6 @@ class KidaTemplateEngine:
             auto_reload=site.config.get("development", {}).get("auto_reload", True),
             strict=kida_config.get("strict", True),  # Default: strict mode enabled
             bytecode_cache=bytecode_cache,
-            # RFC: kida-template-introspection
             # Preserve AST for block metadata/dependency analysis (site-wide block caching)
             preserve_ast=True,
         )
@@ -441,18 +440,31 @@ class KidaTemplateEngine:
             try:
                 self._env.get_template(name)
             except Exception as e:
+                # Determine error type from exception class name
+                exc_name = type(e).__name__.lower()
+                if "syntax" in exc_name:
+                    error_type = "syntax"
+                elif "undefined" in exc_name:
+                    error_type = "undefined"
+                elif "runtime" in exc_name:
+                    error_type = "runtime"
+                elif "notfound" in exc_name:
+                    error_type = "not_found"
+                else:
+                    error_type = "other"
                 errors.append(
                     TemplateError(
                         template=name,
                         message=str(e),
                         line=getattr(e, "lineno", None),
+                        error_type=error_type,
                     )
                 )
 
         return errors
 
     # =========================================================================
-    # TEMPLATE INTROSPECTION (RFC: kida-template-introspection)
+    # TEMPLATE INTROSPECTION
     # =========================================================================
 
     def get_template_introspection(self, name: str) -> dict[str, Any] | None:

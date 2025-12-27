@@ -43,7 +43,6 @@ dependencies = [
     "watchfiles>=0.20",                        # Rust-based file watching for dev server (fast)
     "httpx>=0.27.0",                           # Async HTTP client for link checking
     "uvloop>=0.21.0; sys_platform != 'win32'", # Rust-based event loop (Linux/macOS)
-    "zstandard>=0.23.0",                       # Cache compression (fallback until PEP 784 stdlib available)
 ]
 
 [project.optional-dependencies]

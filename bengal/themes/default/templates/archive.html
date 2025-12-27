@@ -36,15 +36,15 @@ USAGE:
 {% block content %}
 {# Template-scoped variables with multi-let #}
 {% let
-    page_or_section = section ?? page,
-    page_title = title ?? section?.title ?? 'Archive',
-    page_desc = description ?? section?.params?.description ?? '',
-    archive_posts = posts ?? [],
-    archive_subsections = subsections ?? [],
-    total_pages = total_pages ?? 1,
-    current_page = current_page ?? 1,
-    total_posts = total_posts ?? (archive_posts | length),
-    base_url = base_url ?? section?.href ?? '/archive/'
+page_or_section = section ?? page,
+page_title = title ?? section?.title ?? 'Archive',
+page_desc = description ?? section?.params?.description ?? '',
+archive_posts = posts ?? [],
+archive_subsections = subsections ?? [],
+total_pages = total_pages ?? 1,
+current_page = current_page ?? 1,
+total_posts = total_posts ?? (archive_posts | length),
+base_url = base_url ?? section?.href ?? '/archive/'
 %}
 
 <div class="container">
@@ -79,8 +79,8 @@ USAGE:
 
         {% if archive_posts | length > 0 %}
         {# =====================================================================
-           FEATURED POSTS - Using {% break %} to limit count
-           ===================================================================== #}
+        FEATURED POSTS - Using {% break %} to limit count
+        ===================================================================== #}
         {% let featured_posts = archive_posts |> where('featured', true) |> list %}
         {% if featured_posts | length > 0 %}
         <section class="featured-posts">
@@ -114,8 +114,8 @@ USAGE:
         {% end %}
 
         {# =====================================================================
-           REGULAR POSTS - Using {% continue %} to skip drafts
-           ===================================================================== #}
+        REGULAR POSTS - Using {% continue %} to skip drafts
+        ===================================================================== #}
         {% let regular_posts = archive_posts |> where_not('featured', true) |> list %}
         {% if regular_posts | length > 0 %}
         <section class="regular-posts">
@@ -134,8 +134,8 @@ USAGE:
         {% end %}
 
         {# =====================================================================
-           PAGINATION - Using range expressions for page numbers
-           ===================================================================== #}
+        PAGINATION - Using range expressions for page numbers
+        ===================================================================== #}
         {% if total_pages > 1 %}
         <nav class="archive-pagination" aria-label="Archive pagination">
             <div class="pagination-info">
@@ -143,106 +143,105 @@ USAGE:
             </div>
 
             {# Quick jump using range expression 1..total_pages #}
-            {% if total_pages <= 10 %}
-            <div class="pagination-quick-jump">
+            {% if total_pages <= 10 %} <div class="pagination-quick-jump">
                 {% for page_num in 1..total_pages %}
                 {% let is_current = page_num == current_page %}
                 <a href="{{ base_url }}{% if page_num > 1 %}page/{{ page_num }}/{% end %}"
-                   class="pagination-page{{ ' pagination-page--current' if is_current else '' }}"
-                   {{ 'aria-current="page"' | safe if is_current else '' }}>
+                    class="pagination-page{{ ' pagination-page--current' if is_current else '' }}"
+                    {{ 'aria-current="page"' | safe if is_current else '' }}>
                     {{ page_num }}
                 </a>
                 {% end %}
-            </div>
-            {% else %}
-            {# For many pages, show abbreviated with ellipsis #}
-            <div class="pagination-quick-jump">
-                {# First 3 pages #}
-                {% for page_num in 1..3 %}
-                {% let is_current = page_num == current_page %}
-                <a href="{{ base_url }}{% if page_num > 1 %}page/{{ page_num }}/{% end %}"
-                   class="pagination-page{{ ' pagination-page--current' if is_current else '' }}">
-                    {{ page_num }}
-                </a>
-                {% end %}
-
-                <span class="pagination-ellipsis">…</span>
-
-                {# Last 3 pages using range with calculated start #}
-                {% let start_page = total_pages - 2 %}
-                {% for page_num in start_page..total_pages %}
-                {% let is_current = page_num == current_page %}
-                <a href="{{ base_url }}page/{{ page_num }}/"
-                   class="pagination-page{{ ' pagination-page--current' if is_current else '' }}">
-                    {{ page_num }}
-                </a>
-                {% end %}
-            </div>
-            {% end %}
-
-            {# Standard prev/next pagination #}
-            {{ pagination(current_page, total_pages, base_url) }}
-        </nav>
+    </div>
+    {% else %}
+    {# For many pages, show abbreviated with ellipsis #}
+    <div class="pagination-quick-jump">
+        {# First 3 pages #}
+        {% for page_num in 1..3 %}
+        {% let is_current = page_num == current_page %}
+        <a href="{{ base_url }}{% if page_num > 1 %}page/{{ page_num }}/{% end %}"
+            class="pagination-page{{ ' pagination-page--current' if is_current else '' }}">
+            {{ page_num }}
+        </a>
         {% end %}
 
-        {% elif archive_subsections | length > 0 %}
-        {# =====================================================================
-           SUBSECTIONS - Using {% embed %} for card composition
-           ===================================================================== #}
-        <section class="subsections">
-            <h2 class="section-subtitle">Sections</h2>
-            <div class="archive-list archive-subsection-grid">
-                {% for subsection in archive_subsections %}
-                {% let
-                    sub_title = subsection?.title ?? 'Section',
-                    sub_href = subsection?.href ?? '#',
-                    sub_desc = subsection?.params?.description ?? '',
-                    sub_pages = subsection?.pages ?? [],
-                    sub_count = sub_pages | length
-                %}
+        <span class="pagination-ellipsis">…</span>
 
-                {# Card for subsection - using standard article pattern #}
-                <article class="archive-item archive-subsection-card">
-                    <h3><a href="{{ sub_href }}">{{ sub_title }}</a></h3>
-                    {% if sub_desc %}
-                    <p class="archive-subsection-desc">{{ sub_desc }}</p>
-                    {% end %}
-                    <span class="archive-subsection-meta">
-                        {% match sub_count %}
-                        {% case 0 %}No pages yet
-                        {% case 1 %}1 page
-                        {% case n %}{{ n }} pages
-                        {% end %}
-                    </span>
-                </article>
-                {% end %}
-            </div>
-        </section>
-
-        {% else %}
-        {# =====================================================================
-           EMPTY STATE - Using {% unless %} for negative conditional
-           ===================================================================== #}
-        <div class="archive-empty">
-            <div class="empty-state">
-                <p class="empty-message">No posts in this archive yet.</p>
-                {% with section as sec %}
-                {% let section_path = sec?.path %}
-                {% let content_dir = site?.content_dir %}
-                <div class="empty-help">
-                    <p><strong>To add posts:</strong></p>
-                    <ul>
-                        <li>Create a post with a date:
-                            <code>content/{{ section_path.relative_to(content_dir) if section_path and content_dir else '' }}/my-post.md</code>
-                        </li>
-                        <li>Add frontmatter with <code>date: 2025-01-01</code></li>
-                    </ul>
-                    <p class="empty-hint">💡 Posts in this section will be displayed in reverse chronological order.</p>
-                </div>
-                {% end %}
-            </div>
-        </div>
+        {# Last 3 pages using range with calculated start #}
+        {% let start_page = total_pages - 2 %}
+        {% for page_num in start_page..total_pages %}
+        {% let is_current = page_num == current_page %}
+        <a href="{{ base_url }}page/{{ page_num }}/"
+            class="pagination-page{{ ' pagination-page--current' if is_current else '' }}">
+            {{ page_num }}
+        </a>
         {% end %}
     </div>
+    {% end %}
+
+    {# Standard prev/next pagination #}
+    {{ pagination(current_page, total_pages, base_url) }}
+    </nav>
+    {% end %}
+
+    {% elif archive_subsections | length > 0 %}
+    {# =====================================================================
+    SUBSECTIONS - Using {% embed %} for card composition
+    ===================================================================== #}
+    <section class="subsections">
+        <h2 class="section-subtitle">Sections</h2>
+        <div class="archive-list archive-subsection-grid">
+            {% for subsection in archive_subsections %}
+            {% let
+            sub_title = subsection?.title ?? 'Section',
+            sub_href = subsection?.href ?? '#',
+            sub_desc = subsection?.params?.description ?? '',
+            sub_pages = subsection?.pages ?? [],
+            sub_count = sub_pages | length
+            %}
+
+            {# Card for subsection - using standard article pattern #}
+            <article class="archive-item archive-subsection-card">
+                <h3><a href="{{ sub_href }}">{{ sub_title }}</a></h3>
+                {% if sub_desc %}
+                <p class="archive-subsection-desc">{{ sub_desc }}</p>
+                {% end %}
+                <span class="archive-subsection-meta">
+                    {% match sub_count %}
+                    {% case 0 %}No pages yet
+                    {% case 1 %}1 page
+                    {% case n %}{{ n }} pages
+                    {% end %}
+                </span>
+            </article>
+            {% end %}
+        </div>
+    </section>
+
+    {% else %}
+    {# =====================================================================
+    EMPTY STATE - Using {% unless %} for negative conditional
+    ===================================================================== #}
+    <div class="archive-empty">
+        <div class="empty-state">
+            <p class="empty-message">No posts in this archive yet.</p>
+            {% with section as sec %}
+            {% let section_path = sec?.path %}
+            {% let content_dir = site?.content_dir %}
+            <div class="empty-help">
+                <p><strong>To add posts:</strong></p>
+                <ul>
+                    <li>Create a post with a date:
+                        <code>content/{{ section_path.relative_to(content_dir) if section_path and content_dir else '' }}/my-post.md</code>
+                    </li>
+                    <li>Add frontmatter with <code>date: 2025-01-01</code></li>
+                </ul>
+                <p class="empty-hint">💡 Posts in this section will be displayed in reverse chronological order.</p>
+            </div>
+            {% end %}
+        </div>
+    </div>
+    {% end %}
+</div>
 </div>
 {% end %}

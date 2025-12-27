@@ -9,7 +9,9 @@ Architecture:
     BlockCache
     ├── _site_blocks: dict[str, str]      # Cached site-wide blocks
     ├── _page_blocks: dict[str, str]      # Cached page-level blocks (per build)
-    └── _analyzed_templates: set[str]     # Templates we've analyzed
+    ├── _analyzed_templates: set[str]     # Templates we've analyzed
+    ├── _block_hashes: dict[str, str]     # Block content hashes for change detection
+    └── _hash_lock: Lock                   # Thread safety for hash updates
     ```
 
 Usage:
@@ -32,12 +34,17 @@ Thread-Safety:
     - Site-wide cache is populated once at build start
     - Read-only during parallel page rendering
     - Page-level cache is per-build (cleared between builds)
+    - Block hash updates use threading.Lock for safety
 
 RFC: kida-template-introspection
+RFC: block-level-incremental-builds
 """
 
 from __future__ import annotations
 
+import hashlib
+from collections.abc import Iterator
+from threading import Lock
 from typing import TYPE_CHECKING, Any, Literal
 
 from bengal.utils.logger import get_logger
@@ -72,7 +79,14 @@ class BlockCache:
     # Feedback suggests a factor of ~40x in real-world large sites.
     SAVINGS_MULTIPLIER = 25.0
 
-    __slots__ = ("_site_blocks", "_cacheable_blocks", "_stats", "_enabled")
+    __slots__ = (
+        "_site_blocks",
+        "_cacheable_blocks",
+        "_stats",
+        "_enabled",
+        "_block_hashes",  # {template:block -> content_hash}
+        "_hash_lock",  # Thread safety for hash updates
+    )
 
     def __init__(self, enabled: bool = True) -> None:
         """Initialize block cache.
@@ -89,6 +103,9 @@ class BlockCache:
             "site_blocks_cached": 0,
             "total_render_time_ms": 0.0,
         }
+        # Block content hashes for change detection (RFC: block-level-incremental-builds)
+        self._block_hashes: dict[str, str] = {}
+        self._hash_lock = Lock()
 
     def analyze_template(
         self,
@@ -257,15 +274,24 @@ class BlockCache:
 
         return cached_count
 
-    def clear(self) -> None:
-        """Clear all cached blocks (call between builds)."""
+    def clear(self, *, preserve_hashes: bool = False) -> None:
+        """Clear all cached blocks (call between builds).
+
+        Args:
+            preserve_hashes: If True, keep block hashes for change detection.
+                            Set True for incremental builds, False for full builds.
+        """
         self._site_blocks.clear()
         self._stats = {
             "hits": 0,
             "misses": 0,
             "site_blocks_cached": 0,
+            "total_render_time_ms": 0.0,
         }
-        logger.debug("block_cache_cleared")
+        if not preserve_hashes:
+            with self._hash_lock:
+                self._block_hashes.clear()
+        logger.debug("block_cache_cleared", preserve_hashes=preserve_hashes)
 
     def get_stats(self) -> dict[str, Any]:
         """Get cache statistics.
@@ -326,6 +352,180 @@ class BlockCache:
         if template_name not in self._cacheable_blocks:
             return "unknown"
         return self._cacheable_blocks[template_name].get(block_name, "unknown")
+
+    # =========================================================================
+    # Block Change Detection (RFC: block-level-incremental-builds)
+    # =========================================================================
+
+    def _extract_blocks(self, ast: Any) -> Iterator[tuple[str, Any]]:
+        """Walk AST and yield (block_name, block_node) pairs.
+
+        Kida's AST uses Node subclasses. Block nodes have a `name` attribute.
+
+        Args:
+            ast: Root AST node from template._optimized_ast
+
+        Yields:
+            Tuples of (block_name, block_node) for each block in template
+
+        Thread-Safety:
+            Read-only operation, safe for concurrent calls.
+        """
+        from bengal.rendering.kida.nodes import Block
+
+        def walk(node: Any) -> Iterator[Any]:
+            """Walk AST depth-first, yielding all nodes."""
+            yield node
+            # Check common child containers
+            for attr in ("body", "nodes", "else_", "elif_"):
+                children = getattr(node, attr, None)
+                if children:
+                    for child in children:
+                        yield from walk(child)
+
+        for node in walk(ast):
+            if isinstance(node, Block):
+                yield node.name, node
+
+    def _serialize_block_ast(self, block_node: Any) -> str:
+        """Serialize a block's AST to a stable string for hashing.
+
+        Uses a depth-first traversal to create a canonical string
+        representation that is stable across Python runs.
+
+        Strategy: Serialize node types and string literals only.
+        This captures structural changes without being sensitive to
+        internal AST implementation details.
+
+        Args:
+            block_node: Block node from Kida's AST
+
+        Returns:
+            Stable string representation of block content
+
+        Thread-Safety:
+            Read-only operation, safe for concurrent calls.
+        """
+        parts: list[str] = []
+
+        def visit(node: Any) -> None:
+            # Node type name provides structure
+            parts.append(type(node).__name__)
+
+            # For Data nodes (raw HTML/text), include content
+            if hasattr(node, "data"):
+                parts.append(repr(node.data))
+
+            # For Name nodes (variable references), include the name
+            if hasattr(node, "name") and isinstance(node.name, str):
+                parts.append(node.name)
+
+            # For Const nodes (literals), include the value
+            if hasattr(node, "value"):
+                parts.append(repr(node.value))
+
+            # Recurse into children
+            for attr in ("body", "nodes", "else_", "elif_"):
+                children = getattr(node, attr, None)
+                if children:
+                    for child in children:
+                        visit(child)
+
+        visit(block_node)
+        return "|".join(parts)
+
+    def compute_block_hashes(
+        self,
+        engine: KidaTemplateEngine,
+        template_name: str,
+    ) -> dict[str, str]:
+        """Compute content hashes for each block in a template.
+
+        Uses the template's optimized AST to extract block content
+        and compute stable hashes for change detection.
+
+        Args:
+            engine: KidaTemplateEngine instance
+            template_name: Template to hash blocks for
+
+        Returns:
+            Dict of block_name → content_hash (16-char hex)
+
+        Thread-Safety:
+            Read-only operation, safe for concurrent calls.
+        """
+        try:
+            template = engine.env.get_template(template_name)
+        except Exception:
+            return {}
+
+        ast = template._optimized_ast
+
+        if ast is None:
+            return {}
+
+        hashes = {}
+        for block_name, block_node in self._extract_blocks(ast):
+            content = self._serialize_block_ast(block_node)
+            hashes[block_name] = hashlib.sha256(content.encode()).hexdigest()[:16]
+
+        return hashes
+
+    def detect_changed_blocks(
+        self,
+        engine: KidaTemplateEngine,
+        template_name: str,
+    ) -> set[str]:
+        """Detect which blocks changed since last build.
+
+        Compares current block hashes to cached hashes.
+
+        Args:
+            engine: KidaTemplateEngine instance
+            template_name: Template to analyze
+
+        Returns:
+            Set of block names that changed
+
+        Thread-Safety:
+            Uses lock for hash dict updates. Safe for concurrent calls.
+        """
+        current_hashes = self.compute_block_hashes(engine, template_name)
+        changed = set()
+
+        with self._hash_lock:
+            for block_name, current_hash in current_hashes.items():
+                key = f"{template_name}:{block_name}"
+                cached_hash = self._block_hashes.get(key)
+
+                if cached_hash != current_hash:
+                    changed.add(block_name)
+                    self._block_hashes[key] = current_hash
+
+        return changed
+
+    def update_block_hashes(
+        self,
+        engine: KidaTemplateEngine,
+        template_name: str,
+    ) -> None:
+        """Update cached block hashes for a template without detecting changes.
+
+        Used during initial build to populate hashes.
+
+        Args:
+            engine: KidaTemplateEngine instance
+            template_name: Template to hash
+
+        Thread-Safety:
+            Uses lock for hash dict updates. Safe for concurrent calls.
+        """
+        current_hashes = self.compute_block_hashes(engine, template_name)
+
+        with self._hash_lock:
+            for block_name, current_hash in current_hashes.items():
+                key = f"{template_name}:{block_name}"
+                self._block_hashes[key] = current_hash
 
     def __repr__(self) -> str:
         stats = self.get_stats()

@@ -138,6 +138,9 @@ class StatementParsingMixin:
             return self._parse_unless()
         elif keyword == "for":
             return self._parse_for()
+        elif keyword == "while":
+            # RFC: kida-2.0-moonshot
+            return self._parse_while()
         elif keyword == "break":
             # RFC: kida-modern-syntax-features
             return self._parse_break()

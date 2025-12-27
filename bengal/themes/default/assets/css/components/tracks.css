@@ -492,15 +492,133 @@
     border-bottom: 1px solid var(--color-border);
 }
 
+/* ============================================
+   TRACK PROGRESS INDICATOR (Step Dots)
+   ============================================ */
+
 .track-progress {
-    border-radius: 3px;
-    background: var(--color-surface-elevated);
-    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-6) 0;
+    margin-top: var(--space-6);
 }
 
-.track-progress .progress-bar {
-    transition: width 0.3s ease;
+.track-progress__steps {
+    display: flex;
+    align-items: center;
+    gap: 0;
+}
+
+.track-progress__step {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--color-surface-elevated);
+    border: 2px solid var(--color-border);
+    transition: all 0.3s ease;
+}
+
+.track-progress__step--current {
     background: var(--color-primary);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 4px var(--color-primary-muted, rgba(var(--color-primary-rgb, 99, 102, 241), 0.2));
+    transform: scale(1.1);
+}
+
+.track-progress__step--complete {
+    background: var(--color-success-bg, #10b981);
+    border-color: var(--color-success-border, #059669);
+}
+
+.track-progress__number {
+    font-size: var(--text-sm);
+    font-weight: var(--weight-bold);
+    color: var(--color-text-muted);
+    line-height: 1;
+}
+
+.track-progress__step--current .track-progress__number {
+    color: var(--color-text-inverse, #fff);
+}
+
+.track-progress__step--complete .track-progress__number {
+    color: var(--color-text-inverse, #fff);
+    font-size: var(--text-base);
+}
+
+.track-progress__connector {
+    width: 40px;
+    height: 3px;
+    background: var(--color-border);
+    transition: background 0.3s ease;
+}
+
+.track-progress__connector--complete {
+    background: var(--color-success-bg, #10b981);
+}
+
+.track-progress__label {
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Responsive sizing for mobile */
+@media (max-width: 575.98px) {
+    .track-progress__step {
+        width: 32px;
+        height: 32px;
+    }
+
+    .track-progress__step--current {
+        transform: scale(1.05);
+    }
+
+    .track-progress__connector {
+        width: 24px;
+    }
+
+    .track-progress__number {
+        font-size: var(--text-xs);
+    }
+
+    .track-progress__step--complete .track-progress__number {
+        font-size: var(--text-sm);
+    }
+}
+
+/* Animation for step transitions */
+@keyframes track-step-pulse {
+    0%, 100% {
+        box-shadow: 0 0 0 4px var(--color-primary-muted, rgba(99, 102, 241, 0.2));
+    }
+    50% {
+        box-shadow: 0 0 0 8px var(--color-primary-muted, rgba(99, 102, 241, 0.1));
+    }
+}
+
+.track-progress__step--current {
+    animation: track-step-pulse 2s ease-in-out infinite;
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+    .track-progress__step--current {
+        animation: none;
+    }
+
+    .track-progress__step,
+    .track-progress__connector {
+        transition: none;
+    }
 }
 
 /* Responsive navigation buttons */

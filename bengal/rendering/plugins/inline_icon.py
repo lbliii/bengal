@@ -13,7 +13,6 @@ This works inside table cells and other inline contexts where
 the block-level :::{icon} directive cannot be used.
 
 Icons are loaded via the theme-aware resolver (site > theme > parent > default).
-See: plan/drafted/rfc-theme-aware-icons.md
 """
 
 from __future__ import annotations

@@ -172,7 +172,7 @@ def run_comprehensive_benchmarks():
     print("-" * 90)
 
     real_results = []
-    for filename, description in real_templates:
+    for filename, _description in real_templates:
         path = TEMPLATES_DIR / filename
         if not path.exists():
             print(f"{filename:40} | NOT FOUND")

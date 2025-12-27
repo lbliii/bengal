@@ -35,6 +35,38 @@ class ControlFlowMixin:
         """
         return [ast.Continue()]
 
+    def _compile_while(self, node: Any) -> list[ast.stmt]:
+        """Compile {% while cond %}...{% end %} loop.
+
+        Generates:
+            while condition:
+                ... body ...
+
+        Part of RFC: kida-2.0-moonshot (While Loops).
+
+        Example:
+            {% let counter = 0 %}
+            {% while counter < 5 %}
+                {{ counter }}
+                {% let counter = counter + 1 %}
+            {% end %}
+        """
+        test = self._compile_expr(node.test)
+
+        body: list[ast.stmt] = []
+        for child in node.body:
+            body.extend(self._compile_node(child))
+        if not body:
+            body = [ast.Pass()]
+
+        return [
+            ast.While(
+                test=test,
+                body=body,
+                orelse=[],
+            )
+        ]
+
     def _compile_if(self, node: Any) -> list[ast.stmt]:
         """Compile {% if %} conditional."""
         test = self._compile_expr(node.test)

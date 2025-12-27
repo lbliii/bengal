@@ -9,7 +9,7 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 from bengal.rendering.kida._types import TokenType
-from bengal.rendering.kida.nodes import Break, Continue, For, If, Match, UnaryOp
+from bengal.rendering.kida.nodes import Break, Continue, For, If, Match, UnaryOp, While
 
 if TYPE_CHECKING:
     from bengal.rendering.kida.nodes import Expr, Node
@@ -115,6 +115,38 @@ class ControlFlowBlockParsingMixin(BlockStackMixin):
 
         self._expect(TokenType.BLOCK_END)
         return Continue(lineno=start.lineno, col_offset=start.col_offset)
+
+    def _parse_while(self) -> While:
+        """Parse {% while cond %}...{% end %} or {% endwhile %}.
+
+        Kida-native while loop for condition-based iteration.
+
+        Syntax:
+            {% while items | length > 0 %}
+                {{ items | pop }}
+            {% end %}
+
+        Part of RFC: kida-2.0-moonshot (While Loops).
+        """
+        start = self._advance()  # consume 'while'
+        self._push_block("while", start)
+
+        # Parse condition
+        condition = self._parse_expression()
+        self._expect(TokenType.BLOCK_END)
+
+        # Parse body
+        body = self._parse_body(stop_on_continuation=False)
+
+        # Consume end tag
+        self._consume_end_tag("while")
+
+        return While(
+            lineno=start.lineno,
+            col_offset=start.col_offset,
+            test=condition,
+            body=tuple(body),
+        )
 
     def _parse_if(self) -> If:
         """Parse {% if %} ... {% end %} or {% endif %}.

@@ -86,6 +86,14 @@ from bengal.rendering.kida.environment import (
 )
 from bengal.rendering.kida.template import LoopContext, Markup, Template
 
+# Python 3.14+ t-string support (PEP 750)
+# Only import if string.templatelib is available
+try:
+    from bengal.rendering.kida.tstring import k
+except ImportError:
+    # Pre-3.14 Python - t-strings not available
+    k = None
+
 __version__ = "0.1.0"
 
 __all__ = [
@@ -94,6 +102,8 @@ __all__ = [
     # Core
     "Environment",
     "Template",
+    # Template Strings (3.14+)
+    "k",
     # Loaders
     "DictLoader",
     "FileSystemLoader",

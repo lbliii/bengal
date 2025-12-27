@@ -44,6 +44,7 @@ class BlockStackMixin:
             "endspaceless",
             "endembed",
             "endunless",  # RFC: kida-modern-syntax-features
+            "endwhile",  # RFC: kida-2.0-moonshot
         }
     )
 

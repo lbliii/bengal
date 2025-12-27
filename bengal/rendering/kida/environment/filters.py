@@ -569,12 +569,30 @@ def _filter_reject(value: Any, test_name: str | None = None, *args: Any) -> list
 
 
 def _filter_groupby(value: Any, attribute: str) -> list:
-    """Group items by attribute."""
+    """Group items by attribute with None-safe sorting.
+
+    Items with None/empty values for the attribute are grouped together
+    and sorted last.
+    """
 
     def get_key(item: Any) -> Any:
+        # Support dict-style access for dict items
+        if isinstance(item, dict):
+            return item.get(attribute)
         return getattr(item, attribute, None)
 
-    sorted_items = sorted(value, key=get_key)
+    def sort_key(item: Any) -> tuple:
+        """None-safe sort key: (is_none, value_for_comparison)."""
+        val = get_key(item)
+        if val is None or val == "":
+            # None/empty sorts last, use empty string for grouping key stability
+            return (1, "")
+        if isinstance(val, (int, float)):
+            return (0, val)
+        # Convert to string for consistent comparison
+        return (0, str(val).lower())
+
+    sorted_items = sorted(value, key=sort_key)
     return [
         {"grouper": key, "list": list(group)} for key, group in groupby(sorted_items, key=get_key)
     ]

@@ -1,7 +1,7 @@
-"""Tests for Kida adapter's asset_url fingerprint resolution.
+"""Tests for asset_url fingerprint resolution.
 
-These tests verify that the kida adapter properly resolves fingerprinted
-asset URLs from the asset manifest, matching the behavior of the Jinja engine.
+These tests verify that the asset resolver properly resolves fingerprinted
+asset URLs from the asset manifest, matching the behavior of all template engines.
 
 Regression test for: kida adapter not resolving fingerprinted assets.
 """
@@ -14,9 +14,7 @@ from typing import Any
 
 import pytest
 
-from bengal.rendering.adapters.kida import (
-    _asset_url_with_page,
-)
+from bengal.rendering.assets import resolve_asset_url
 
 
 class MockSite:
@@ -59,65 +57,65 @@ def site_with_manifest(tmp_path: Path) -> MockSite:
     return MockSite(output_dir=tmp_path)
 
 
-class TestKidaAssetUrlFingerprinting:
-    """Test that kida adapter resolves fingerprinted asset URLs."""
+class TestAssetUrlFingerprinting:
+    """Test that asset resolver resolves fingerprinted asset URLs."""
 
     def test_resolves_fingerprinted_css(self, site_with_manifest: MockSite) -> None:
         """CSS files should resolve to fingerprinted paths from manifest."""
-        result = _asset_url_with_page("css/style.css", site_with_manifest)
+        result = resolve_asset_url("css/style.css", site_with_manifest)
         assert result == "/assets/css/style.abc123.css"
 
     def test_resolves_fingerprinted_js(self, site_with_manifest: MockSite) -> None:
         """JS files should resolve to fingerprinted paths from manifest."""
-        result = _asset_url_with_page("js/main.js", site_with_manifest)
+        result = resolve_asset_url("js/main.js", site_with_manifest)
         assert result == "/assets/js/main.def456.js"
 
     def test_resolves_fingerprinted_image(self, site_with_manifest: MockSite) -> None:
         """Image files should resolve to fingerprinted paths from manifest."""
-        result = _asset_url_with_page("images/logo.png", site_with_manifest)
+        result = resolve_asset_url("images/logo.png", site_with_manifest)
         assert result == "/assets/images/logo.789abc.png"
 
     def test_fallback_for_unknown_asset(self, site_with_manifest: MockSite) -> None:
         """Assets not in manifest should fallback to direct path."""
-        result = _asset_url_with_page("js/unknown.js", site_with_manifest)
+        result = resolve_asset_url("js/unknown.js", site_with_manifest)
         assert result == "/assets/js/unknown.js"
 
     def test_dev_mode_skips_fingerprinting(self, site_with_manifest: MockSite) -> None:
         """Dev mode should return non-fingerprinted URLs for fast iteration."""
         site_with_manifest.dev_mode = True
-        result = _asset_url_with_page("css/style.css", site_with_manifest)
+        result = resolve_asset_url("css/style.css", site_with_manifest)
         assert result == "/assets/css/style.css"
         assert "abc123" not in result
 
     def test_empty_path_returns_assets_root(self, site_with_manifest: MockSite) -> None:
         """Empty path should return assets root."""
-        result = _asset_url_with_page("", site_with_manifest)
+        result = resolve_asset_url("", site_with_manifest)
         assert result == "/assets/"
 
     def test_normalizes_path_separators(self, site_with_manifest: MockSite) -> None:
         """Backslashes should be normalized to forward slashes."""
-        result = _asset_url_with_page("css\\style.css", site_with_manifest)
+        result = resolve_asset_url("css\\style.css", site_with_manifest)
         assert result == "/assets/css/style.abc123.css"
 
     def test_strips_leading_slash(self, site_with_manifest: MockSite) -> None:
         """Leading slashes should be stripped."""
-        result = _asset_url_with_page("/css/style.css", site_with_manifest)
+        result = resolve_asset_url("/css/style.css", site_with_manifest)
         assert result == "/assets/css/style.abc123.css"
 
 
-class TestKidaAssetUrlWithBaseurl:
-    """Test that kida adapter respects baseurl configuration."""
+class TestAssetUrlWithBaseurl:
+    """Test that asset resolver respects baseurl configuration."""
 
     def test_path_baseurl(self, site_with_manifest: MockSite) -> None:
         """Path-based baseurl should be prepended."""
         site_with_manifest.config["baseurl"] = "/docs"
-        result = _asset_url_with_page("css/style.css", site_with_manifest)
+        result = resolve_asset_url("css/style.css", site_with_manifest)
         assert result == "/docs/assets/css/style.abc123.css"
 
     def test_absolute_baseurl(self, site_with_manifest: MockSite) -> None:
         """Absolute baseurl should be prepended."""
         site_with_manifest.config["baseurl"] = "https://cdn.example.com"
-        result = _asset_url_with_page("css/style.css", site_with_manifest)
+        result = resolve_asset_url("css/style.css", site_with_manifest)
         assert result == "https://cdn.example.com/assets/css/style.abc123.css"
 
 
@@ -127,11 +125,11 @@ class TestManifestCaching:
     def test_manifest_cached_on_site(self, site_with_manifest: MockSite) -> None:
         """Manifest should be cached on site object after first lookup."""
         # First call should load and cache
-        _asset_url_with_page("css/style.css", site_with_manifest)
-        assert hasattr(site_with_manifest, "_kida_asset_manifest_cache")
+        resolve_asset_url("css/style.css", site_with_manifest)
+        assert hasattr(site_with_manifest, "_asset_manifest_cache")
 
         # Cache should contain the manifest entries
-        cache = site_with_manifest._kida_asset_manifest_cache
+        cache = site_with_manifest._asset_manifest_cache
         assert "css/style.css" in cache
         assert cache["css/style.css"].fingerprint == "abc123"
 
@@ -139,8 +137,8 @@ class TestManifestCaching:
         """Sites without manifest should cache empty dict to avoid repeated loads."""
         site = MockSite(output_dir=tmp_path)  # No manifest file
 
-        result = _asset_url_with_page("css/style.css", site)
+        result = resolve_asset_url("css/style.css", site)
         assert result == "/assets/css/style.css"  # Fallback
 
-        assert hasattr(site, "_kida_asset_manifest_cache")
-        assert site._kida_asset_manifest_cache == {}
+        assert hasattr(site, "_asset_manifest_cache")
+        assert site._asset_manifest_cache == {}
