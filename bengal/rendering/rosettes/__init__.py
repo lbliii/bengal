@@ -28,6 +28,7 @@ Free-Threading Declaration:
 
 from __future__ import annotations
 
+import os
 from concurrent.futures import ThreadPoolExecutor
 from typing import TYPE_CHECKING
 
@@ -221,8 +222,6 @@ def highlight_many(
         return highlight(code, language, css_class_style=css_class_style)
 
     # Optimal worker count based on benchmarking: 4 workers is sweet spot
-    import os
-
     if max_workers is None:
         max_workers = min(4, os.cpu_count() or 4)
 
@@ -274,8 +273,6 @@ def tokenize_many(
         return tokenize(code, language)
 
     # Optimal worker count based on benchmarking
-    import os
-
     if max_workers is None:
         max_workers = min(4, os.cpu_count() or 4)
 

@@ -79,7 +79,7 @@ _LEXER_SPECS: dict[str, LexerSpec] = {
     "html": LexerSpec(
         "bengal.rendering.rosettes.lexers.html_sm",
         "HtmlStateMachineLexer",
-        aliases=("htm", "xhtml"),
+        aliases=("htm", "xhtml", "go-html-template"),
     ),
     "css": LexerSpec(
         "bengal.rendering.rosettes.lexers.css_sm",
@@ -206,7 +206,7 @@ _LEXER_SPECS: dict[str, LexerSpec] = {
     "markdown": LexerSpec(
         "bengal.rendering.rosettes.lexers.markdown_sm",
         "MarkdownStateMachineLexer",
-        aliases=("md", "mdown", "rst", "restructuredtext", "rest"),
+        aliases=("md", "mdown"),
     ),
     "xml": LexerSpec(
         "bengal.rendering.rosettes.lexers.xml_sm",
@@ -217,12 +217,12 @@ _LEXER_SPECS: dict[str, LexerSpec] = {
     "ini": LexerSpec(
         "bengal.rendering.rosettes.lexers.ini_sm",
         "IniStateMachineLexer",
-        aliases=("cfg", "dosini", "properties", "conf"),
+        aliases=("cfg", "dosini", "properties", "conf", "apache"),
     ),
     "nginx": LexerSpec(
         "bengal.rendering.rosettes.lexers.nginx_sm",
         "NginxStateMachineLexer",
-        aliases=("nginxconf", "apache", "apacheconf", "httpd"),
+        aliases=("nginxconf",),
     ),
     "dockerfile": LexerSpec(
         "bengal.rendering.rosettes.lexers.dockerfile_sm",
@@ -318,13 +318,13 @@ _LEXER_SPECS: dict[str, LexerSpec] = {
     "jinja": LexerSpec(
         "bengal.rendering.rosettes.lexers.jinja_sm",
         "JinjaStateMachineLexer",
-        aliases=("jinja2", "j2", "django", "go-html-template", "go-template", "gotpl"),
+        aliases=("jinja2", "j2", "django"),
     ),
     # Plaintext (no highlighting)
     "plaintext": LexerSpec(
         "bengal.rendering.rosettes.lexers.plaintext_sm",
         "PlaintextStateMachineLexer",
-        aliases=("text", "plain", "txt", "none", "raw"),
+        aliases=("text", "plain", "txt", "none", "raw", "rst"),
     ),
 }
 

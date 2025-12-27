@@ -768,4 +768,9 @@ class ExpressionParsingMixin:
             TokenType.POW: "**",
             TokenType.TILDE: "~",  # String concatenation
         }
-        return mapping.get(token_type, "+")
+        op = mapping.get(token_type)
+        if op is None:
+            from bengal.rendering.kida.parser.errors import ParseError
+
+            raise ParseError(f"Unmapped token type for binary operator: {token_type!r}")
+        return op

@@ -100,7 +100,7 @@ def profile_validators(site: Any, runs: int = 3) -> tuple[float, list[ValidatorR
     all_times: dict[str, list[float]] = {}
     all_issues: dict[str, int] = {}
 
-    for run in range(runs):
+    for _run in range(runs):
         health = HealthCheck(site)
         for validator in health.validators:
             start = time.perf_counter()
@@ -115,6 +115,9 @@ def profile_validators(site: Any, runs: int = 3) -> tuple[float, list[ValidatorR
                 all_times[validator.name].append(elapsed)
                 all_issues[validator.name] = len(result)
             except Exception:
+                # Ignore individual validator failures during profiling so that
+                # broken/experimental validators do not abort the benchmark or
+                # skew timing aggregation.
                 pass
 
     results = []
@@ -148,7 +151,7 @@ def profile_phases(site: Any, runs: int = 3) -> list[PhaseResult]:
         from bengal.rendering.template_engine import TemplateEngine
 
         start = time.perf_counter()
-        _engine = TemplateEngine(site)
+        TemplateEngine(site)
         times.append((time.perf_counter() - start) * 1000)
 
     results.append(
@@ -209,7 +212,7 @@ def profile_phases(site: Any, runs: int = 3) -> list[PhaseResult]:
         from bengal.rendering.pipeline import RenderingPipeline
 
         start = time.perf_counter()
-        _pipeline = RenderingPipeline(site, dependency_tracker=None, quiet=True)
+        RenderingPipeline(site, dependency_tracker=None, quiet=True)
         times.append((time.perf_counter() - start) * 1000)
 
     results.append(
@@ -246,9 +249,7 @@ def generate_recommendations(
     # Phase recommendations
     for p in phases:
         if "TemplateEngine" in p.name and p.avg_ms > 100:
-            recs.append(
-                f"💡 {p.name}: {p.avg_ms:.0f}ms - consider caching or lazy initialization"
-            )
+            recs.append(f"💡 {p.name}: {p.avg_ms:.0f}ms - consider caching or lazy initialization")
         if "discovery" in p.name.lower() and p.avg_ms > 500:
             recs.append(f"⚠️  {p.name}: {p.avg_ms:.0f}ms - consider incremental discovery")
 
@@ -258,9 +259,7 @@ def generate_recommendations(
     return recs
 
 
-def compare_to_baseline(
-    report: ProfileReport, baseline_path: Path
-) -> list[str]:
+def compare_to_baseline(report: ProfileReport, baseline_path: Path) -> list[str]:
     """Compare current results to baseline and flag regressions."""
     try:
         with open(baseline_path) as f:
@@ -277,11 +276,11 @@ def compare_to_baseline(
         new = report.health_total_ms
         if new > old * threshold:
             diffs.append(
-                f"🔴 REGRESSION: Health checks {old:.0f}ms → {new:.0f}ms (+{((new/old)-1)*100:.0f}%)"
+                f"🔴 REGRESSION: Health checks {old:.0f}ms → {new:.0f}ms (+{((new / old) - 1) * 100:.0f}%)"
             )
         elif new < old * 0.8:
             diffs.append(
-                f"🟢 IMPROVEMENT: Health checks {old:.0f}ms → {new:.0f}ms ({((new/old)-1)*100:.0f}%)"
+                f"🟢 IMPROVEMENT: Health checks {old:.0f}ms → {new:.0f}ms ({((new / old) - 1) * 100:.0f}%)"
             )
 
     # Compare individual validators
@@ -292,7 +291,7 @@ def compare_to_baseline(
             new = v.avg_ms
             if new > old * threshold and new > 50:  # Only flag if >50ms
                 diffs.append(
-                    f"🔴 {v.name}: {old:.0f}ms → {new:.0f}ms (+{((new/old)-1)*100:.0f}%)"
+                    f"🔴 {v.name}: {old:.0f}ms → {new:.0f}ms (+{((new / old) - 1) * 100:.0f}%)"
                 )
 
     if not diffs:
@@ -478,4 +477,3 @@ Examples:
 
 if __name__ == "__main__":
     main()
-

@@ -296,7 +296,7 @@ class Lexer:
             LexerError: If source contains invalid syntax or token limit exceeded
         """
         token_count = 0
-        
+
         def _counted_yield(token: Token) -> Token:
             """Helper to count tokens as they're yielded."""
             nonlocal token_count
@@ -310,12 +310,12 @@ class Lexer:
                     suggestion="Template is too complex. Split into smaller templates.",
                 )
             return token
-        
+
         def _counted_yield_from(tokens: Iterator[Token]) -> Iterator[Token]:
             """Helper to count tokens from a generator."""
             for token in tokens:
                 yield _counted_yield(token)
-        
+
         while self._pos < len(self._source):
             if self._mode == LexerMode.DATA:
                 yield from _counted_yield_from(self._tokenize_data())
@@ -558,12 +558,12 @@ class Lexer:
         """Scan a string literal."""
         start_lineno = self._lineno
         start_col = self._col_offset
-        quote = self._source[self._pos]
+        quote_char = self._source[self._pos]
         pos = self._pos + 1
 
         while pos < len(self._source):
             char = self._source[pos]
-            if char == quote:
+            if char == quote_char:
                 # End of string
                 value = self._source[self._pos + 1 : pos]
                 self._advance(pos - self._pos + 1)
@@ -579,7 +579,7 @@ class Lexer:
             self._source,
             start_lineno,
             start_col,
-            f"Add closing {quote} to end the string",
+            f"Add closing {quote_char} to end the string",
         )
 
     def _scan_number(self) -> Token:
@@ -694,13 +694,13 @@ class Lexer:
 
     def _advance(self, count: int) -> None:
         """Advance position by count characters, tracking line/column.
-        
+
         Optimized to use batch processing with count() for newline detection
         instead of character-by-character iteration. Provides ~15-20% speedup
         for templates with long DATA nodes.
         """
         end_pos = min(self._pos + count, len(self._source))
-        chunk = self._source[self._pos:end_pos]
+        chunk = self._source[self._pos : end_pos]
         newlines = chunk.count("\n")
         if newlines:
             self._lineno += newlines

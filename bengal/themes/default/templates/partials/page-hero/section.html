@@ -20,4 +20,4 @@ See: plan/drafted/rfc-page-hero-template-flattening.md
 
 {# Shim: Forward to macro for backwards compatibility #}
 {% from 'partials/page-hero/_macros.html' import hero_section %}
-{{ hero_section(section, page, hero_context) }}
+{{ hero_section(section, page, hero_context ?? {}) }}

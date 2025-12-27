@@ -243,12 +243,16 @@ class KidaTemplateEngine:
         return self._menu_dict_cache[cache_key]
 
     def _url_for(self, page: Any) -> str:
-        """Generate URL for a page."""
+        """Generate URL for a page with base URL support."""
+        # If page has _path, use it to apply baseurl (for MockPage and similar)
+        # Otherwise, use href property which should already include baseurl
         if hasattr(page, "_path") and page._path:
             from bengal.rendering.template_engine.url_helpers import with_baseurl
 
-            return with_baseurl(page._path, self.site.config.get("baseurl", ""))
-        return getattr(page, "href", str(page)) if page else ""
+            return with_baseurl(page._path, self.site)
+        from bengal.rendering.template_engine.url_helpers import href_for
+
+        return href_for(page, self.site)
 
     def render_template(
         self,
@@ -532,6 +536,12 @@ class KidaTemplateEngine:
     def validate_templates(self, include_patterns: list[str] | None = None) -> list[TemplateError]:
         """Alias for validate (for compatibility)."""
         return self.validate(include_patterns)
+
+    def _resolve_theme_chain(self, active_theme: str | None) -> list[str]:
+        """Resolve theme inheritance chain."""
+        from bengal.rendering.template_engine.environment import resolve_theme_chain
+
+        return resolve_theme_chain(active_theme, self.site)
 
 
 # Verify protocol compliance

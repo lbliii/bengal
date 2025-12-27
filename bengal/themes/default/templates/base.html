@@ -10,6 +10,8 @@ _path, kind, tags are always defined - no defensive checks needed.
 ================================================================================
 #}
 {# Template-wide variables using {% let %} for explicit scope #}
+{# Ensure params is defined (defaults to empty dict if not provided) #}
+{% let params = params ?? {} %}
 {# Page shortcuts - page is always available in page templates #}
 {% let _page_title = page.title %}
 {% let _page_url = page._path %}

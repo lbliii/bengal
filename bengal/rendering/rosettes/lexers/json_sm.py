@@ -1,6 +1,6 @@
 """Hand-written JSON lexer optimized for speed.
 
-O(n) guaranteed, zero regex, thread-safe.
+O(n) guaranteed, zero regex; uses frozenset for O(1) character lookups, thread-safe.
 Minimal overhead for the simple JSON grammar.
 """
 

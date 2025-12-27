@@ -65,6 +65,7 @@ BREADCRUMB ITEM HELPER
     {# Breadcrumbs - assign outside cache for variable access #}
     {% let breadcrumb_items = get_breadcrumbs(page) ?? [] %}
 
+    {% let params = params ?? {} %}
     {% let has_metadata = params?.author or page?.date or page?.content or params?.lastmod %}
     {% let theme_features = theme?.features ?? [] %}
 

@@ -3,6 +3,11 @@
 Filters transform values in template expressions using the pipe syntax:
 `{{ value | filter }}` or `{{ value | filter(arg1, arg2) }}`
 
+Constants for sort key tuples:
+    SORT_KEY_NONE: (1, 0, 0) - Used for None/empty values (sorts last)
+    SORT_KEY_NUMERIC: (0, 0, value) - Used for numeric values
+    SORT_KEY_STRING: (0, 1, value) - Used for string values
+
 Categories:
     **String Manipulation**:
         - `capitalize`, `lower`, `upper`, `title`: Case conversion
@@ -46,9 +51,9 @@ Categories:
 
 None-Resilient Behavior:
     Filters handle None gracefully (like Hugo):
-    - `{{ none | default('N/A') }}` → `'N/A'`
-    - `{{ none | length }}` → `0`
-    - `{{ none | first }}` → `None`
+    - `{{ none | default('N/A') }}` -> `'N/A'`
+    - `{{ none | length }}` -> `0`
+    - `{{ none | first }}` -> `None`
 
 Custom Filters:
     >>> env.add_filter('double', lambda x: x * 2)
@@ -77,6 +82,19 @@ from bengal.rendering.kida.utils.html import (
     strip_tags,
     xmlattr,
 )
+
+# Sort key tuple constants for clarity
+SORT_KEY_NONE = (1, 0, 0)  # None/empty values sort last
+
+
+def _make_sort_key_numeric(value: int | float) -> tuple[int, int, int | float]:
+    """Create sort key for numeric value."""
+    return (0, 0, value)
+
+
+def _make_sort_key_string(value: str) -> tuple[int, int, str]:
+    """Create sort key for string value."""
+    return (0, 1, value)
 
 
 def _filter_abs(value: Any) -> Any:
@@ -257,13 +275,13 @@ def _filter_sort(
         if not attributes:
             val = item
             if val is None or val == "":
-                return (1, 0, "")  # None/empty sorts last
+                return SORT_KEY_NONE  # None/empty sorts last
             if isinstance(val, (int, float)):
-                return (0, 0, val)  # Numbers
+                return _make_sort_key_numeric(val)  # Numbers
             val_str = str(val)
             if not case_sensitive:
                 val_str = val_str.lower()
-            return (0, 1, val_str)  # Strings
+            return _make_sort_key_string(val_str)  # Strings
 
         # Build tuple of values for multi-attribute sort
         values = []
@@ -273,19 +291,19 @@ def _filter_sort(
 
             # Defensive: Handle None and "" (None-resilient) first
             if val is None or val == "":
-                # None/empty always sorts last: (1, 0, 0)
-                values.append((1, 0, 0))
+                # None/empty always sorts last
+                values.append(SORT_KEY_NONE)
             elif isinstance(val, (int, float)):
-                # Numbers: (0, 0, number) - type 0 means numeric
-                values.append((0, 0, val))
+                # Numbers: type 0 means numeric
+                values.append(_make_sort_key_numeric(val))
             else:
-                # Everything else as string: (0, 1, string) - type 1 means string
+                # Everything else as string: type 1 means string
                 # Convert to string safely (handles edge cases)
                 try:
                     val_str = str(val)
                     if not case_sensitive:
                         val_str = val_str.lower()
-                    values.append((0, 1, val_str))
+                    values.append(_make_sort_key_string(val_str))
                 except (TypeError, ValueError):
                     # Fallback for unstringable values (shouldn't happen, but be defensive)
                     values.append((1, 0, ""))
@@ -910,9 +928,10 @@ def _debug_repr(value: Any, max_len: int = 60) -> str:
             "weight",
             getattr(value, "metadata", {}).get("weight") if hasattr(value, "metadata") else None,
         )
-        if weight is not None:
-            return f"{type_name}(title={title!r}, weight={weight})"
-        return f"{type_name}(title={title!r})"
+        if title is not None:
+            if weight is not None:
+                return f"{type_name}(title={title!r}, weight={weight})"
+            return f"{type_name}(title={title!r})"
 
     # Truncate long reprs
     r = repr(value)

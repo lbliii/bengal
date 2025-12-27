@@ -56,6 +56,20 @@ class TemplateError:
     path: Path | None = None
     original_exception: Exception | None = None  # Original exception for type checking
 
+    @property
+    def template_context(self):
+        """Create a TemplateErrorContext from this error for compatibility."""
+        from bengal.rendering.errors import TemplateErrorContext
+
+        return TemplateErrorContext(
+            template_name=self.template,
+            line_number=self.line,
+            column=self.column,
+            source_line=None,
+            surrounding_lines=[],
+            template_path=self.path,
+        )
+
     def __str__(self) -> str:
         loc = f":{self.line}" if self.line else ""
         return f"{self.template}{loc}: {self.message}"
