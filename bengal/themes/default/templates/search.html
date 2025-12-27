@@ -1,171 +1,177 @@
 {% extends "base.html" %}
 
 {#
-Search Results Page
+================================================================================
+Search Results Page Template (Kida-Native)
+================================================================================
 
-Dedicated full-page search experience with modal-consistent design language.
-Uses the same result rendering as the search modal for consistency.
+Dedicated full-page search experience.
+
+KIDA FEATURES USED:
+- {% let %} for template-scoped variables
+- Optional chaining (?.) for null-safe access
+- Null coalescing (??) for smart defaults
 
 JavaScript: All functionality is handled by /assets/js/core/search.js
 CSS: /assets/css/components/search.css
+================================================================================
 #}
 
-{% block title %}Search - {{ config.title }}{% endblock %}
+{% block title %}Search - {{ config?.title ?? 'Site' }}{% end %}
 
 {% block content %}
+{# Template-scoped variables #}
+{% let site_pages = site?.pages ?? [] %}
+{% let page_count = site_pages | length %}
+
 <div class="container">
-<div class="search-page">
-  {# Search Header - Compact & Focused #}
-  <header class="search-page__header">
-    <div class="search-page__title-row">
-      <h1 class="search-page__title">
-        {{ icon('magnifying-glass', size=24, css_class='search-page__title-icon') }}
-        <span>Search</span>
-      </h1>
-      <span class="search-page__page-count">{{ site.pages | length }} pages indexed</span>
-    </div>
-  </header>
-
-  {# Main Search Interface #}
-  <div class="search-page__container">
-    {# Search Input - Modal Style #}
-    <div class="search-page__input-section">
-      <div class="search-page__input-wrapper">
-        {{ icon('magnifying-glass', size=20, css_class='search-page__icon') }}
-
-        <input type="search" id="search-input" class="search-page__input" placeholder="Search documentation..."
-          autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Search"
-          aria-describedby="search-status" aria-controls="search-results" aria-autocomplete="list" autofocus>
-
-        <div class="search-page__loading" id="search-loading-indicator" style="display: none;">
-          <div class="search-page__spinner"></div>
-        </div>
-
-        <button type="button" class="search-page__clear" id="search-clear" style="display: none;"
-          aria-label="Clear search">
-          {{ icon('x-mark', size=16) }}
-        </button>
+  <div class="search-page">
+    {# Search Header #}
+    <header class="search-page__header">
+      <div class="search-page__title-row">
+        <h1 class="search-page__title">
+          {{ icon('magnifying-glass', size=24, css_class='search-page__title-icon') }}
+          <span>Search</span>
+        </h1>
+        <span class="search-page__page-count">{{ page_count }} pages indexed</span>
       </div>
+    </header>
 
-      {# Keyboard hints #}
-      <div class="search-page__hints">
-        <span class="search-page__hint">
-          <kbd>↑</kbd><kbd>↓</kbd>
-          <span>Navigate</span>
-        </span>
-        <span class="search-page__hint">
-          <kbd>↵</kbd>
-          <span>Open</span>
-        </span>
-        <span class="search-page__hint">
-          <kbd>ESC</kbd>
-          <span>Clear</span>
-        </span>
-      </div>
-    </div>
+    {# Main Search Interface #}
+    <div class="search-page__container">
+      {# Search Input #}
+      <div class="search-page__input-section">
+        <div class="search-page__input-wrapper">
+          {{ icon('magnifying-glass', size=20, css_class='search-page__icon') }}
 
-    {# Status for screen readers #}
-    <div id="search-status" class="sr-only" role="status" aria-live="polite"></div>
+          <input type="search" id="search-input" class="search-page__input"
+                 placeholder="Search documentation..."
+                 autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+                 aria-label="Search" aria-describedby="search-status"
+                 aria-controls="search-results" aria-autocomplete="list" autofocus>
 
-    {# Search Results Area #}
-    <div class="search-page__results-area">
-      {# Results Container #}
-      <section class="search-page__results" id="search-results" aria-label="Search results" style="display: none;">
-        {# Results header with count #}
-        <div class="search-page__results-header">
-          <span id="search-results-count" class="search-page__results-count"></span>
+          <div class="search-page__loading" id="search-loading-indicator" style="display: none;">
+            <div class="search-page__spinner"></div>
+          </div>
 
-          {# Filters toggle #}
-          <button type="button" class="search-page__filters-toggle" id="filters-toggle" aria-expanded="false">
-            {{ icon('funnel', size=16) }}
-            <span>Filters</span>
+          <button type="button" class="search-page__clear" id="search-clear" style="display: none;"
+                  aria-label="Clear search">
+            {{ icon('x-mark', size=16) }}
           </button>
         </div>
 
-        {# Filters Panel (collapsible) #}
-        <div class="search-page__filters" id="search-filters" style="display: none;">
-          <div class="search-page__filters-grid">
-            {# Section filter #}
-            <div class="search-page__filter-group">
-              <label for="filter-section">Section</label>
-              <select id="filter-section" class="search-page__filter-select">
-                <option value="">All Sections</option>
-              </select>
-            </div>
+        {# Keyboard hints #}
+        <div class="search-page__hints">
+          <span class="search-page__hint">
+            <kbd>↑</kbd><kbd>↓</kbd>
+            <span>Navigate</span>
+          </span>
+          <span class="search-page__hint">
+            <kbd>↵</kbd>
+            <span>Open</span>
+          </span>
+          <span class="search-page__hint">
+            <kbd>ESC</kbd>
+            <span>Clear</span>
+          </span>
+        </div>
+      </div>
 
-            {# Type filter #}
-            <div class="search-page__filter-group">
-              <label for="filter-type">Type</label>
-              <select id="filter-type" class="search-page__filter-select">
-                <option value="">All Types</option>
-              </select>
-            </div>
+      {# Status for screen readers #}
+      <div id="search-status" class="sr-only" role="status" aria-live="polite"></div>
 
-            {# Clear filters #}
-            <button type="button" class="search-page__filter-clear" id="clear-filters">
-              {{ icon('x-mark', size=14) }}
-              Clear
+      {# Search Results Area #}
+      <div class="search-page__results-area">
+        {# Results Container #}
+        <section class="search-page__results" id="search-results" aria-label="Search results" style="display: none;">
+          <div class="search-page__results-header">
+            <span id="search-results-count" class="search-page__results-count"></span>
+
+            <button type="button" class="search-page__filters-toggle" id="filters-toggle" aria-expanded="false">
+              {{ icon('funnel', size=16) }}
+              <span>Filters</span>
             </button>
           </div>
-        </div>
 
-        {# Results list - matches modal format #}
-        <div id="search-results-list" class="search-page__results-list" role="listbox">
-          {# Results populated by JavaScript #}
-        </div>
+          {# Filters Panel #}
+          <div class="search-page__filters" id="search-filters" style="display: none;">
+            <div class="search-page__filters-grid">
+              <div class="search-page__filter-group">
+                <label for="filter-section">Section</label>
+                <select id="filter-section" class="search-page__filter-select">
+                  <option value="">All Sections</option>
+                </select>
+              </div>
 
-        {# No results message #}
-        <div class="search-page__no-results" id="search-no-results" style="display: none;">
-          {{ icon('magnifying-glass', size=48) }}
-          <p class="search-page__no-results-text">No results for "<span id="search-no-results-query"></span>"</p>
-          <p class="search-page__no-results-hint">Try different keywords or check your spelling</p>
-        </div>
-      </section>
+              <div class="search-page__filter-group">
+                <label for="filter-type">Type</label>
+                <select id="filter-type" class="search-page__filter-select">
+                  <option value="">All Types</option>
+                </select>
+              </div>
 
-      {# Empty State (before searching) #}
-      <div class="search-page__empty" id="search-empty">
-        <div class="search-page__empty-content">
-          {{ icon('magnifying-glass', size=56, css_class='search-page__empty-icon') }}
-          <p class="search-page__empty-title">Start typing to search</p>
-          <p class="search-page__empty-hint">Search through documentation, tutorials, API reference, and more</p>
-        </div>
+              <button type="button" class="search-page__filter-clear" id="clear-filters">
+                {{ icon('x-mark', size=14) }}
+                Clear
+              </button>
+            </div>
+          </div>
 
-        {# Quick Search Suggestions #}
-        <div class="search-page__suggestions">
-          <span class="search-page__suggestions-label">Try searching for:</span>
-          <div class="search-page__suggestion-pills">
-            <button type="button" class="search-page__suggestion" data-query="getting started">Getting Started</button>
-            <button type="button" class="search-page__suggestion" data-query="configuration">Configuration</button>
-            <button type="button" class="search-page__suggestion" data-query="template">Templates</button>
-            <button type="button" class="search-page__suggestion" data-query="markdown">Markdown</button>
-            <button type="button" class="search-page__suggestion" data-query="api">API</button>
-            <button type="button" class="search-page__suggestion" data-query="tutorial">Tutorials</button>
+          {# Results list #}
+          <div id="search-results-list" class="search-page__results-list" role="listbox"></div>
+
+          {# No results message #}
+          <div class="search-page__no-results" id="search-no-results" style="display: none;">
+            {{ icon('magnifying-glass', size=48) }}
+            <p class="search-page__no-results-text">No results for "<span id="search-no-results-query"></span>"</p>
+            <p class="search-page__no-results-hint">Try different keywords or check your spelling</p>
+          </div>
+        </section>
+
+        {# Empty State (before searching) #}
+        <div class="search-page__empty" id="search-empty">
+          <div class="search-page__empty-content">
+            {{ icon('magnifying-glass', size=56, css_class='search-page__empty-icon') }}
+            <p class="search-page__empty-title">Start typing to search</p>
+            <p class="search-page__empty-hint">Search through documentation, tutorials, API reference, and more</p>
+          </div>
+
+          {# Quick Search Suggestions #}
+          <div class="search-page__suggestions">
+            <span class="search-page__suggestions-label">Try searching for:</span>
+            <div class="search-page__suggestion-pills">
+              <button type="button" class="search-page__suggestion" data-query="getting started">Getting Started</button>
+              <button type="button" class="search-page__suggestion" data-query="configuration">Configuration</button>
+              <button type="button" class="search-page__suggestion" data-query="template">Templates</button>
+              <button type="button" class="search-page__suggestion" data-query="markdown">Markdown</button>
+              <button type="button" class="search-page__suggestion" data-query="api">API</button>
+              <button type="button" class="search-page__suggestion" data-query="tutorial">Tutorials</button>
+            </div>
+          </div>
+
+          {# Search Tips #}
+          <div class="search-page__tips">
+            <div class="search-page__tip">
+              <span class="search-page__tip-label">Operators:</span>
+              <code>+term</code> must include
+              <code>-term</code> exclude
+              <code>term~2</code> fuzzy
+            </div>
           </div>
         </div>
 
-        {# Search Tips - Compact #}
-        <div class="search-page__tips">
-          <div class="search-page__tip">
-            <span class="search-page__tip-label">Operators:</span>
-            <code>+term</code> must include
-            <code>-term</code> exclude
-            <code>term~2</code> fuzzy
-          </div>
+        {# Loading State #}
+        <div class="search-page__loading-state" id="search-loading" style="display: none;">
+          <div class="search-page__spinner search-page__spinner--large"></div>
+          <p>Loading search index...</p>
         </div>
-      </div>
 
-      {# Loading State #}
-      <div class="search-page__loading-state" id="search-loading" style="display: none;">
-        <div class="search-page__spinner search-page__spinner--large"></div>
-        <p>Loading search index...</p>
-      </div>
-
-      {# Error State #}
-      <div class="search-page__error" id="search-error" style="display: none;">
-        <p>Failed to load search index. Please try refreshing the page.</p>
+        {# Error State #}
+        <div class="search-page__error" id="search-error" style="display: none;">
+          <p>Failed to load search index. Please try refreshing the page.</p>
+        </div>
       </div>
     </div>
   </div>
 </div>
-</div>
-{% endblock %}
+{% end %}

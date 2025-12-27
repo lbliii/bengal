@@ -20,8 +20,9 @@ Args:
     menu: List of menu item dicts from get_menu_lang()
     is_mobile: If true, adds 'has-submenu' class for mobile styling
 #}
-{% macro render_menu_items(menu, is_mobile=false) %}
+{% def render_menu_items(menu, is_mobile=false) %}
 {% if menu %}
+{% spaceless %}
 {% for item in menu %}
 <li class="{{ 'has-submenu' if (is_mobile and item.children) else '' }} {{ 'active' if item.active else '' }} {{ 'active-trail' if (not is_mobile and item.active_trail) else '' }}">
     <a href="{{ item.href | absolute_url }}">{{ item.name }}</a>
@@ -31,13 +32,14 @@ Args:
         <li class="{{ 'active' if child.active else '' }}">
             <a href="{{ child.href | absolute_url }}">{{ child.name }}</a>
         </li>
-        {% endfor %}
+        {% end %}
     </ul>
-    {% endif %}
+    {% end %}
 </li>
-{% endfor %}
-{% endif %}
-{% endmacro %}
+{% end %}
+{% end %}
+{% end %}
+{% end %}
 
 {#
 Render auto-discovered navigation items.
@@ -46,7 +48,7 @@ Args:
     auto_nav: List of auto-discovered nav items from get_auto_nav()
     page_url: Current page URL for active state detection
 #}
-{% macro render_auto_nav(auto_nav, page_url) %}
+{% def render_auto_nav(auto_nav, page_url) %}
 {% if auto_nav %}
 {# Always show Home first in auto mode #}
 <li class="{{ 'active' if page_url == '/' else '' }}">
@@ -56,9 +58,9 @@ Args:
 <li class="{{ 'active' if (page_url is string and item._path is string and page_url.startswith(item._path) and item._path != '/') else '' }}">
     <a href="{{ item.href | absolute_url }}">{{ item.name }}</a>
 </li>
-{% endfor %}
-{% endif %}
-{% endmacro %}
+{% end %}
+{% end %}
+{% end %}
 
 {#
 Render GitHub link if configured and not bundled in Dev menu.
@@ -67,11 +69,11 @@ Args:
     site: Site object with config
     is_mobile: If true, uses mobile styling with inline SVG margin
 #}
-{% macro render_github_link(site, is_mobile=false) %}
+{% def render_github_link(site, is_mobile=false) %}
 {% set github_bundled = false %}
 {% if site._dev_menu_metadata %}
 {% set github_bundled = site._dev_menu_metadata.get("github_bundled", false) %}
-{% endif %}
+{% end %}
 {% if config.params and config.params.repo_url and not github_bundled %}
 <li>
     {% if is_mobile %}
@@ -85,10 +87,10 @@ Args:
         {{ icon('github-logo', size=16) }}
         <span>GitHub</span>
     </a>
-    {% endif %}
+    {% end %}
 </li>
-{% endif %}
-{% endmacro %}
+{% end %}
+{% end %}
 
 {#
 Render logo/brand element.
@@ -97,7 +99,7 @@ Args:
     site: Site object with config
     site_title: Pre-cached site title
 #}
-{% macro render_logo(site, site_title) %}
+{% def render_logo(site, site_title) %}
 {% set _logo_image = config.logo_image or config.site.logo_image %}
 {% set _logo_text = config.logo_text or config.site.logo_text %}
 {% if _logo_image %}
@@ -106,5 +108,5 @@ Args:
 <span class="brand-text">{{ _logo_text }}</span>
 {% else %}
 <span class="brand-text">{{ site_title }}</span>
-{% endif %}
-{% endmacro %}
+{% end %}
+{% end %}

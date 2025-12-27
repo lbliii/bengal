@@ -180,6 +180,19 @@ class JinjaTemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin)
 
         except Exception as e:
             record_error(e, file_path=name, build_phase="rendering")
+
+            # Generate more specific suggestion for TypeError
+            suggestion = "Check template syntax and ensure all context variables are defined"
+            error_str = str(e).lower()
+            if isinstance(e, TypeError) and (
+                "'nonetype' object is not callable" in error_str
+                or "nonetype object is not callable" in error_str
+            ):
+                suggestion = (
+                    "A filter or function is None. Check that all filters are registered "
+                    "and template functions are properly defined in globals."
+                )
+
             logger.error(
                 "template_render_failed",
                 template=name,
@@ -187,7 +200,7 @@ class JinjaTemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin)
                 error=truncate_error(e, 500),
                 context_keys=list(context.keys()),
                 error_code=ErrorCode.R001.value,
-                suggestion="Check template syntax and ensure all context variables are defined",
+                suggestion=suggestion,
             )
             raise
 

@@ -246,8 +246,10 @@ class TestPageDiscoveryCache:
         cache.add_metadata(PageMetadata(source_path="test.md", title="Test"))
         cache.save_to_disk()
 
-        assert cache_path.exists()
-        assert cache_path.parent == tmp_path / "nested" / "deep"
+        # Check compressed path (actual file saved)
+        compressed_path = cache_path.with_suffix(".json.zst")
+        assert compressed_path.exists()
+        assert compressed_path.parent == tmp_path / "nested" / "deep"
 
     def test_load_corrupted_cache(self, cache_dir):
         """Test loading corrupted cache file."""
@@ -359,3 +361,83 @@ class TestPageDiscoveryCache:
         retrieved = cache.get_metadata(Path(path))
         assert retrieved is not None
         assert retrieved.title == "Post"
+
+    def test_round_trip_compressed_format(self, cache_dir):
+        """Test save/load cycle with compressed format."""
+        from datetime import datetime
+
+        # Create and populate cache
+        cache1 = PageDiscoveryCache(cache_dir / "page_metadata.json")
+        cache1.add_metadata(
+            PageMetadata(
+                source_path="content/index.md",
+                title="Home",
+                date=datetime(2025, 10, 26, 12, 30),
+                tags=["nav", "featured"],
+                slug="home",
+            )
+        )
+        cache1.save_to_disk()
+
+        # Verify compressed file exists
+        compressed_path = cache_dir / "page_metadata.json.zst"
+        assert compressed_path.exists(), "Compressed cache file should exist"
+
+        # Load in new instance (should use compressed format)
+        cache2 = PageDiscoveryCache(cache_dir / "page_metadata.json")
+        metadata = cache2.get_metadata(Path("content/index.md"))
+
+        assert metadata is not None
+        assert metadata.title == "Home"
+        assert metadata.tags == ["nav", "featured"]
+        assert metadata.slug == "home"
+
+        # Verify file was written (compression ratio check skipped for small test data)
+        # Real-world caches achieve 92-93% reduction, but tiny test payloads
+        # don't compress well due to header overhead
+        compressed_size = compressed_path.stat().st_size
+        assert compressed_size > 0, "Compressed cache file should not be empty"
+
+    def test_migration_from_uncompressed(self, cache_dir):
+        """Test backward compatibility: load old .json format, save new .json.zst format."""
+        # Create old uncompressed JSON format
+        json_path = cache_dir / "page_metadata.json"
+        old_data = {
+            "pages": {
+                "content/index.md": {
+                    "metadata": {
+                        "source_path": "content/index.md",
+                        "title": "Home",
+                        "date": None,
+                        "tags": ["nav"],
+                        "section": None,
+                        "slug": None,
+                        "weight": None,
+                        "lang": None,
+                        "file_hash": None,
+                    },
+                    "cached_at": "2025-10-16T12:00:00",
+                    "is_valid": True,
+                }
+            }
+        }
+        with open(json_path, "w") as f:
+            json.dump(old_data, f, indent=2)
+
+        # Load old format (should work via load_auto fallback)
+        cache = PageDiscoveryCache(cache_dir / "page_metadata.json")
+        metadata = cache.get_metadata(Path("content/index.md"))
+        assert metadata is not None
+        assert metadata.title == "Home"
+        assert metadata.tags == ["nav"]
+
+        # Save should create new compressed format
+        cache.save_to_disk()
+        compressed_path = cache_dir / "page_metadata.json.zst"
+        assert compressed_path.exists(), "Save should create compressed format"
+
+        # Subsequent load should use compressed format
+        cache2 = PageDiscoveryCache(cache_dir / "page_metadata.json")
+        metadata2 = cache2.get_metadata(Path("content/index.md"))
+        assert metadata2 is not None
+        assert metadata2.title == "Home"

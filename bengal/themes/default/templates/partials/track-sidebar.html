@@ -39,11 +39,11 @@ Usage:
           <span class="track-nav-label">{{ item_page.title }}</span>
         </a>
       </li>
-        {% endif %}
-      {% endfor %}
+        {% end %}
+      {% end %}
     </ol>
   </section>
-  {% endif %}
+  {% end %}
 
   {# Other Tracks Section #}
   {% if site.data.tracks and site.data.tracks|length > 1 %}
@@ -61,10 +61,10 @@ Usage:
           <span class="track-nav-track-meta">{{ track.items|length }} lessons</span>
         </a>
       </li>
-        {% endif %}
-        {% endif %}
-      {% endfor %}
+        {% end %}
+        {% end %}
+      {% end %}
     </ul>
   </section>
-  {% endif %}
+  {% end %}
 </nav>

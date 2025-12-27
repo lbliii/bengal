@@ -1,7 +1,13 @@
 """Lazy lexer registry for Rosettes.
 
-Lexers are loaded on-demand to minimize import time.
-The registry uses functools.cache for thread-safe caching.
+All lexers are hand-written state machines with O(n) guaranteed performance
+and zero ReDoS vulnerability. Lexers are loaded on-demand using functools.cache
+for thread-safe memoization.
+
+Performance Note:
+    This module avoids importing bengal.errors at module load time to prevent
+    pulling in the heavy Bengal import chain. Errors are imported lazily only
+    when actually raised (which is rare - only for unsupported languages).
 """
 
 from __future__ import annotations
@@ -12,7 +18,7 @@ from importlib import import_module
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ._protocol import Lexer
+    from .lexers._state_machine import StateMachineLexer
 
 __all__ = ["get_lexer", "list_languages", "supports_language"]
 
@@ -22,7 +28,7 @@ class LexerSpec:
     """Specification for lazy-loading a lexer.
 
     Attributes:
-        module: Full module path (e.g., 'rosettes.lexers.python').
+        module: Full module path (e.g., 'rosettes.lexers.python_sm').
         class_name: Name of the lexer class in the module.
         aliases: Alternative names for lookup.
     """
@@ -32,268 +38,293 @@ class LexerSpec:
     aliases: tuple[str, ...] = ()
 
 
-# Static registry — lexers are loaded on demand
-# Mapping: canonical name -> LexerSpec
+# Static registry — all state machine lexers (O(n) guaranteed, zero ReDoS)
 _LEXER_SPECS: dict[str, LexerSpec] = {
+    # Core languages
     "python": LexerSpec(
-        "bengal.rendering.rosettes.lexers.python",
-        "PythonLexer",
+        "bengal.rendering.rosettes.lexers.python_sm",
+        "PythonStateMachineLexer",
         aliases=("py", "python3", "py3"),
     ),
     "javascript": LexerSpec(
-        "bengal.rendering.rosettes.lexers.javascript",
-        "JavaScriptLexer",
-        aliases=("js", "ecmascript"),
+        "bengal.rendering.rosettes.lexers.javascript_sm",
+        "JavaScriptStateMachineLexer",
+        aliases=("js", "ecmascript", "jsx"),
     ),
     "typescript": LexerSpec(
-        "bengal.rendering.rosettes.lexers.typescript",
-        "TypeScriptLexer",
+        "bengal.rendering.rosettes.lexers.typescript_sm",
+        "TypeScriptStateMachineLexer",
         aliases=("ts",),
     ),
     "json": LexerSpec(
-        "bengal.rendering.rosettes.lexers.json",
-        "JsonLexer",
+        "bengal.rendering.rosettes.lexers.json_sm",
+        "JsonStateMachineLexer",
         aliases=("json5",),
     ),
     "yaml": LexerSpec(
-        "bengal.rendering.rosettes.lexers.yaml",
-        "YamlLexer",
+        "bengal.rendering.rosettes.lexers.yaml_sm",
+        "YamlStateMachineLexer",
         aliases=("yml",),
     ),
     "toml": LexerSpec(
-        "bengal.rendering.rosettes.lexers.toml",
-        "TomlLexer",
+        "bengal.rendering.rosettes.lexers.toml_sm",
+        "TomlStateMachineLexer",
         aliases=(),
     ),
     "bash": LexerSpec(
-        "bengal.rendering.rosettes.lexers.bash",
-        "BashLexer",
+        "bengal.rendering.rosettes.lexers.bash_sm",
+        "BashStateMachineLexer",
         aliases=("sh", "shell", "zsh", "ksh"),
     ),
     "html": LexerSpec(
-        "bengal.rendering.rosettes.lexers.html",
-        "HtmlLexer",
-        aliases=("htm", "xhtml"),
+        "bengal.rendering.rosettes.lexers.html_sm",
+        "HtmlStateMachineLexer",
+        aliases=("htm", "xhtml", "go-html-template"),
     ),
     "css": LexerSpec(
-        "bengal.rendering.rosettes.lexers.css",
-        "CssLexer",
+        "bengal.rendering.rosettes.lexers.css_sm",
+        "CssStateMachineLexer",
         aliases=(),
     ),
     "diff": LexerSpec(
-        "bengal.rendering.rosettes.lexers.diff",
-        "DiffLexer",
+        "bengal.rendering.rosettes.lexers.diff_sm",
+        "DiffStateMachineLexer",
         aliases=("patch", "udiff"),
     ),
-    # Phase 2: Additional languages (10 more)
-    "rust": LexerSpec(
-        "bengal.rendering.rosettes.lexers.rust",
-        "RustLexer",
-        aliases=("rs",),
-    ),
-    "go": LexerSpec(
-        "bengal.rendering.rosettes.lexers.go",
-        "GoLexer",
-        aliases=("golang",),
-    ),
-    "sql": LexerSpec(
-        "bengal.rendering.rosettes.lexers.sql",
-        "SqlLexer",
-        aliases=("mysql", "postgresql", "sqlite"),
-    ),
-    "markdown": LexerSpec(
-        "bengal.rendering.rosettes.lexers.markdown",
-        "MarkdownLexer",
-        aliases=("md", "mdown"),
-    ),
-    "xml": LexerSpec(
-        "bengal.rendering.rosettes.lexers.xml",
-        "XmlLexer",
-        aliases=("xsl", "xslt", "rss", "svg"),
-    ),
+    # Systems languages
     "c": LexerSpec(
-        "bengal.rendering.rosettes.lexers.c",
-        "CLexer",
+        "bengal.rendering.rosettes.lexers.c_sm",
+        "CStateMachineLexer",
         aliases=("h",),
     ),
     "cpp": LexerSpec(
-        "bengal.rendering.rosettes.lexers.cpp",
-        "CppLexer",
+        "bengal.rendering.rosettes.lexers.cpp_sm",
+        "CppStateMachineLexer",
         aliases=("c++", "cxx", "hpp"),
     ),
-    "java": LexerSpec(
-        "bengal.rendering.rosettes.lexers.java",
-        "JavaLexer",
-        aliases=(),
+    "rust": LexerSpec(
+        "bengal.rendering.rosettes.lexers.rust_sm",
+        "RustStateMachineLexer",
+        aliases=("rs",),
     ),
-    "ruby": LexerSpec(
-        "bengal.rendering.rosettes.lexers.ruby",
-        "RubyLexer",
-        aliases=("rb",),
-    ),
-    "php": LexerSpec(
-        "bengal.rendering.rosettes.lexers.php",
-        "PhpLexer",
-        aliases=("php3", "php4", "php5", "php7", "php8"),
-    ),
-    # Phase 3: Additional languages (10 more)
-    "kotlin": LexerSpec(
-        "bengal.rendering.rosettes.lexers.kotlin",
-        "KotlinLexer",
-        aliases=("kt", "kts"),
-    ),
-    "swift": LexerSpec(
-        "bengal.rendering.rosettes.lexers.swift",
-        "SwiftLexer",
-        aliases=(),
-    ),
-    "scala": LexerSpec(
-        "bengal.rendering.rosettes.lexers.scala",
-        "ScalaLexer",
-        aliases=("sc",),
-    ),
-    "dockerfile": LexerSpec(
-        "bengal.rendering.rosettes.lexers.dockerfile",
-        "DockerfileLexer",
-        aliases=("docker",),
-    ),
-    "graphql": LexerSpec(
-        "bengal.rendering.rosettes.lexers.graphql",
-        "GraphQLLexer",
-        aliases=("gql",),
-    ),
-    "makefile": LexerSpec(
-        "bengal.rendering.rosettes.lexers.makefile",
-        "MakefileLexer",
-        aliases=("make", "mf", "bsdmake"),
-    ),
-    "lua": LexerSpec(
-        "bengal.rendering.rosettes.lexers.lua",
-        "LuaLexer",
-        aliases=(),
-    ),
-    "powershell": LexerSpec(
-        "bengal.rendering.rosettes.lexers.powershell",
-        "PowerShellLexer",
-        aliases=("posh", "ps1", "psm1", "pwsh"),
-    ),
-    "elixir": LexerSpec(
-        "bengal.rendering.rosettes.lexers.elixir",
-        "ElixirLexer",
-        aliases=("ex", "exs"),
-    ),
-    "hcl": LexerSpec(
-        "bengal.rendering.rosettes.lexers.hcl",
-        "HclLexer",
-        aliases=("terraform", "tf"),
-    ),
-    # Phase 4: Additional languages (10 more)
-    "haskell": LexerSpec(
-        "bengal.rendering.rosettes.lexers.haskell",
-        "HaskellLexer",
-        aliases=("hs",),
-    ),
-    "r": LexerSpec(
-        "bengal.rendering.rosettes.lexers.r",
-        "RLexer",
-        aliases=("rlang", "splus"),
-    ),
-    "perl": LexerSpec(
-        "bengal.rendering.rosettes.lexers.perl",
-        "PerlLexer",
-        aliases=("pl", "pm"),
-    ),
-    "clojure": LexerSpec(
-        "bengal.rendering.rosettes.lexers.clojure",
-        "ClojureLexer",
-        aliases=("clj", "edn"),
-    ),
-    "dart": LexerSpec(
-        "bengal.rendering.rosettes.lexers.dart",
-        "DartLexer",
-        aliases=(),
-    ),
-    "groovy": LexerSpec(
-        "bengal.rendering.rosettes.lexers.groovy",
-        "GroovyLexer",
-        aliases=("gradle",),
-    ),
-    "julia": LexerSpec(
-        "bengal.rendering.rosettes.lexers.julia",
-        "JuliaLexer",
-        aliases=("jl",),
-    ),
-    "protobuf": LexerSpec(
-        "bengal.rendering.rosettes.lexers.protobuf",
-        "ProtobufLexer",
-        aliases=("proto", "proto3"),
-    ),
-    "ini": LexerSpec(
-        "bengal.rendering.rosettes.lexers.ini",
-        "IniLexer",
-        aliases=("cfg", "dosini", "properties", "conf"),
-    ),
-    "nginx": LexerSpec(
-        "bengal.rendering.rosettes.lexers.nginx",
-        "NginxLexer",
-        aliases=("nginxconf",),
-    ),
-    # Phase 5: AI/ML and emerging languages (10 more)
-    "mojo": LexerSpec(
-        "bengal.rendering.rosettes.lexers.mojo",
-        "MojoLexer",
-        aliases=("🔥",),
+    "go": LexerSpec(
+        "bengal.rendering.rosettes.lexers.go_sm",
+        "GoStateMachineLexer",
+        aliases=("golang",),
     ),
     "zig": LexerSpec(
-        "bengal.rendering.rosettes.lexers.zig",
-        "ZigLexer",
+        "bengal.rendering.rosettes.lexers.zig_sm",
+        "ZigStateMachineLexer",
         aliases=(),
     ),
-    "cuda": LexerSpec(
-        "bengal.rendering.rosettes.lexers.cuda",
-        "CudaLexer",
-        aliases=("cu",),
-    ),
-    "gleam": LexerSpec(
-        "bengal.rendering.rosettes.lexers.gleam",
-        "GleamLexer",
+    # JVM languages
+    "java": LexerSpec(
+        "bengal.rendering.rosettes.lexers.java_sm",
+        "JavaStateMachineLexer",
         aliases=(),
+    ),
+    "kotlin": LexerSpec(
+        "bengal.rendering.rosettes.lexers.kotlin_sm",
+        "KotlinStateMachineLexer",
+        aliases=("kt", "kts"),
+    ),
+    "scala": LexerSpec(
+        "bengal.rendering.rosettes.lexers.scala_sm",
+        "ScalaStateMachineLexer",
+        aliases=("sc",),
+    ),
+    "groovy": LexerSpec(
+        "bengal.rendering.rosettes.lexers.groovy_sm",
+        "GroovyStateMachineLexer",
+        aliases=("gradle", "gvy"),
+    ),
+    "clojure": LexerSpec(
+        "bengal.rendering.rosettes.lexers.clojure_sm",
+        "ClojureStateMachineLexer",
+        aliases=("clj", "edn"),
+    ),
+    # Apple ecosystem
+    "swift": LexerSpec(
+        "bengal.rendering.rosettes.lexers.swift_sm",
+        "SwiftStateMachineLexer",
+        aliases=(),
+    ),
+    # Scripting languages
+    "ruby": LexerSpec(
+        "bengal.rendering.rosettes.lexers.ruby_sm",
+        "RubyStateMachineLexer",
+        aliases=("rb",),
+    ),
+    "perl": LexerSpec(
+        "bengal.rendering.rosettes.lexers.perl_sm",
+        "PerlStateMachineLexer",
+        aliases=("pl", "pm"),
+    ),
+    "php": LexerSpec(
+        "bengal.rendering.rosettes.lexers.php_sm",
+        "PhpStateMachineLexer",
+        aliases=("php3", "php4", "php5", "php7", "php8"),
+    ),
+    "lua": LexerSpec(
+        "bengal.rendering.rosettes.lexers.lua_sm",
+        "LuaStateMachineLexer",
+        aliases=(),
+    ),
+    "r": LexerSpec(
+        "bengal.rendering.rosettes.lexers.r_sm",
+        "RStateMachineLexer",
+        aliases=("rlang", "splus"),
+    ),
+    "powershell": LexerSpec(
+        "bengal.rendering.rosettes.lexers.powershell_sm",
+        "PowershellStateMachineLexer",
+        aliases=("posh", "ps1", "psm1", "pwsh"),
+    ),
+    # Functional languages
+    "haskell": LexerSpec(
+        "bengal.rendering.rosettes.lexers.haskell_sm",
+        "HaskellStateMachineLexer",
+        aliases=("hs",),
+    ),
+    "elixir": LexerSpec(
+        "bengal.rendering.rosettes.lexers.elixir_sm",
+        "ElixirStateMachineLexer",
+        aliases=("ex", "exs"),
+    ),
+    # Data/query languages
+    "sql": LexerSpec(
+        "bengal.rendering.rosettes.lexers.sql_sm",
+        "SqlStateMachineLexer",
+        aliases=("mysql", "postgresql", "sqlite"),
+    ),
+    "graphql": LexerSpec(
+        "bengal.rendering.rosettes.lexers.graphql_sm",
+        "GraphqlStateMachineLexer",
+        aliases=("gql",),
+    ),
+    # Markup
+    "markdown": LexerSpec(
+        "bengal.rendering.rosettes.lexers.markdown_sm",
+        "MarkdownStateMachineLexer",
+        aliases=("md", "mdown"),
+    ),
+    "xml": LexerSpec(
+        "bengal.rendering.rosettes.lexers.xml_sm",
+        "XmlStateMachineLexer",
+        aliases=("xsl", "xslt", "rss", "svg"),
+    ),
+    # Config formats
+    "ini": LexerSpec(
+        "bengal.rendering.rosettes.lexers.ini_sm",
+        "IniStateMachineLexer",
+        aliases=("cfg", "dosini", "properties", "conf", "apache"),
+    ),
+    "nginx": LexerSpec(
+        "bengal.rendering.rosettes.lexers.nginx_sm",
+        "NginxStateMachineLexer",
+        aliases=("nginxconf",),
+    ),
+    "dockerfile": LexerSpec(
+        "bengal.rendering.rosettes.lexers.dockerfile_sm",
+        "DockerfileStateMachineLexer",
+        aliases=("docker",),
+    ),
+    "makefile": LexerSpec(
+        "bengal.rendering.rosettes.lexers.makefile_sm",
+        "MakefileStateMachineLexer",
+        aliases=("make", "mf", "bsdmake"),
+    ),
+    "hcl": LexerSpec(
+        "bengal.rendering.rosettes.lexers.hcl_sm",
+        "HclStateMachineLexer",
+        aliases=("terraform", "tf"),
+    ),
+    # Schema/IDL
+    "protobuf": LexerSpec(
+        "bengal.rendering.rosettes.lexers.protobuf_sm",
+        "ProtobufStateMachineLexer",
+        aliases=("proto", "proto3"),
+    ),
+    # Modern/emerging languages
+    "dart": LexerSpec(
+        "bengal.rendering.rosettes.lexers.dart_sm",
+        "DartStateMachineLexer",
+        aliases=(),
+    ),
+    "julia": LexerSpec(
+        "bengal.rendering.rosettes.lexers.julia_sm",
+        "JuliaStateMachineLexer",
+        aliases=("jl",),
     ),
     "nim": LexerSpec(
-        "bengal.rendering.rosettes.lexers.nim",
-        "NimLexer",
+        "bengal.rendering.rosettes.lexers.nim_sm",
+        "NimStateMachineLexer",
         aliases=("nimrod",),
     ),
-    "stan": LexerSpec(
-        "bengal.rendering.rosettes.lexers.stan",
-        "StanLexer",
-        aliases=(),
-    ),
-    "pkl": LexerSpec(
-        "bengal.rendering.rosettes.lexers.pkl",
-        "PklLexer",
-        aliases=(),
-    ),
-    "cue": LexerSpec(
-        "bengal.rendering.rosettes.lexers.cue",
-        "CueLexer",
+    "gleam": LexerSpec(
+        "bengal.rendering.rosettes.lexers.gleam_sm",
+        "GleamStateMachineLexer",
         aliases=(),
     ),
     "v": LexerSpec(
-        "bengal.rendering.rosettes.lexers.v",
-        "VLexer",
+        "bengal.rendering.rosettes.lexers.v_sm",
+        "VStateMachineLexer",
         aliases=("vlang",),
     ),
+    # AI/ML specialized
+    "mojo": LexerSpec(
+        "bengal.rendering.rosettes.lexers.mojo_sm",
+        "MojoStateMachineLexer",
+        aliases=("🔥",),
+    ),
     "triton": LexerSpec(
-        "bengal.rendering.rosettes.lexers.triton",
-        "TritonLexer",
+        "bengal.rendering.rosettes.lexers.triton_sm",
+        "TritonStateMachineLexer",
         aliases=(),
     ),
-    # Directory/file trees
+    "cuda": LexerSpec(
+        "bengal.rendering.rosettes.lexers.cuda_sm",
+        "CudaStateMachineLexer",
+        aliases=("cu",),
+    ),
+    "stan": LexerSpec(
+        "bengal.rendering.rosettes.lexers.stan_sm",
+        "StanStateMachineLexer",
+        aliases=(),
+    ),
+    # Configuration languages
+    "pkl": LexerSpec(
+        "bengal.rendering.rosettes.lexers.pkl_sm",
+        "PklStateMachineLexer",
+        aliases=(),
+    ),
+    "cue": LexerSpec(
+        "bengal.rendering.rosettes.lexers.cue_sm",
+        "CueStateMachineLexer",
+        aliases=(),
+    ),
+    # Tree/directory
     "tree": LexerSpec(
-        "bengal.rendering.rosettes.lexers.tree",
-        "TreeLexer",
-        aliases=("directory", "filetree", "dirtree", "files"),
+        "bengal.rendering.rosettes.lexers.tree_sm",
+        "TreeStateMachineLexer",
+        aliases=("directory", "filetree", "dirtree", "files", "scm", "treesitter"),
+    ),
+    # Template languages
+    "kida": LexerSpec(
+        "bengal.rendering.rosettes.lexers.kida_sm",
+        "KidaStateMachineLexer",
+        aliases=("bengal-template",),
+    ),
+    "jinja": LexerSpec(
+        "bengal.rendering.rosettes.lexers.jinja_sm",
+        "JinjaStateMachineLexer",
+        aliases=("jinja2", "j2", "django"),
+    ),
+    # Plaintext (no highlighting)
+    "plaintext": LexerSpec(
+        "bengal.rendering.rosettes.lexers.plaintext_sm",
+        "PlaintextStateMachineLexer",
+        aliases=("text", "plain", "txt", "none", "raw", "rst"),
     ),
 }
 
@@ -320,7 +351,7 @@ def _normalize_name(name: str) -> str:
         Canonical language name.
 
     Raises:
-        LookupError: If the language is not supported.
+        BengalRenderingError: If the language is not supported (R011).
     """
     # Try direct lookup first (common case: already lowercase)
     if name in _ALIAS_TO_NAME:
@@ -329,11 +360,24 @@ def _normalize_name(name: str) -> str:
     lower = name.lower()
     if lower in _ALIAS_TO_NAME:
         return _ALIAS_TO_NAME[lower]
-    raise LookupError(f"Unknown language: {name!r}. Supported: {_SORTED_LANGUAGES}")
+
+    # Lazy import to avoid pulling in heavy Bengal error infrastructure at module load
+    # This import is only triggered when an unsupported language is requested (rare path)
+    from bengal.errors import BengalRenderingError, ErrorCode
+
+    raise BengalRenderingError(
+        f"Unknown language: {name!r}. Supported: {_SORTED_LANGUAGES}",
+        code=ErrorCode.R011,
+        suggestion=f"Use one of the {len(_SORTED_LANGUAGES)} supported languages, "
+        f"or check for typos in '{name}'.",
+    )
 
 
-def get_lexer(name: str) -> Lexer:
+def get_lexer(name: str) -> StateMachineLexer:
     """Get a lexer instance by name or alias.
+
+    All lexers are hand-written state machines with O(n) guaranteed
+    performance and zero ReDoS vulnerability.
 
     Uses functools.cache for thread-safe memoization.
     Lexers are loaded lazily on first access.
@@ -342,10 +386,10 @@ def get_lexer(name: str) -> Lexer:
         name: Language name or alias (e.g., 'python', 'py', 'js').
 
     Returns:
-        Lexer instance.
+        StateMachineLexer instance.
 
     Raises:
-        LookupError: If the language is not supported.
+        BengalRenderingError: If the language is not supported (R011).
 
     Example:
         >>> lexer = get_lexer("python")
@@ -359,7 +403,7 @@ def get_lexer(name: str) -> Lexer:
 
 
 @cache
-def _get_lexer_by_canonical(canonical: str) -> Lexer:
+def _get_lexer_by_canonical(canonical: str) -> StateMachineLexer:
     """Internal cached loader - keyed by canonical name."""
     spec = _LEXER_SPECS[canonical]
     module = import_module(spec.module)
@@ -385,8 +429,8 @@ def supports_language(name: str) -> bool:
     Returns:
         True if the language is supported.
     """
-    try:
-        _normalize_name(name)
+    # Fast path: direct lookup without triggering error import
+    if name in _ALIAS_TO_NAME:
         return True
-    except LookupError:
-        return False
+    lower = name.lower()
+    return lower in _ALIAS_TO_NAME

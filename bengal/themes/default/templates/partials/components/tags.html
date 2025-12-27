@@ -1,0 +1,69 @@
+{#
+================================================================================
+Tag Components (Kida-Native)
+================================================================================
+
+Tag display and tag cloud widgets.
+
+Components:
+- tag_list(tags, small, linkable): Styled tag badges
+- popular_tags_widget(limit): Tag cloud widget
+================================================================================
+#}
+
+{# =============================================================================
+TAG LINK HELPER
+
+Creates a tag link with consistent styling.
+============================================================================= #}
+{% def tag_link(tag, css_class='tag') %}
+  <a href="{{ tag_url(tag) }}" class="{{ css_class }}">{{ tag }}</a>
+{% end %}
+
+{# =============================================================================
+TAG LIST COMPONENT
+
+Displays tags as styled badges, optionally linkable.
+============================================================================= #}
+{% def tag_list(tags, small=false, linkable=true) %}
+{% let max_display = (theme?.max_tags_display ?? 0) | int %}
+{% let display_tags = tags[:max_display] if max_display > 0 else tags %}
+{% let tag_count = tags | length %}
+
+<div class="tags{{ ' tags-small' if small else '' }}">
+  {% for tag in display_tags %}
+  {% if linkable %}
+  {{ tag_link(tag) }}
+  {% else %}
+  <span class="tag">{{ tag }}</span>
+  {% end %}
+  {% end %}
+  {% if max_display > 0 and tag_count > max_display %}
+  <span class="tag tag-more">+{{ tag_count - max_display }} more</span>
+  {% end %}
+</div>
+{% end %}
+
+{# =============================================================================
+POPULAR TAGS WIDGET
+
+Displays a tag cloud widget with most frequently used tags.
+============================================================================= #}
+{% def popular_tags_widget(limit=none) %}
+{% let tag_limit = limit ?? theme?.popular_tags_count ?? 10 %}
+{% let top_tags = popular_tags(limit=tag_limit) ?? [] %}
+
+{% if top_tags | length > 0 %}
+<div class="popular-tags-widget">
+  <h3>{{ t('tags.popular', default='Popular Topics') }}</h3>
+  <div class="tag-cloud">
+    {% for tag, count in top_tags %}
+    <a href="{{ tag_url(tag) }}" class="tag-bubble" data-count="{{ count }}">
+      {{ tag }}
+      <span class="tag-count">{{ count }}</span>
+    </a>
+    {% end %}
+  </div>
+</div>
+{% end %}
+{% end %}

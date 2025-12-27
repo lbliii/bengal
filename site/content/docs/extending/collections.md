@@ -204,7 +204,7 @@ class MyBlogPost(BlogPost):
 
 When content fails validation, Bengal reports detailed errors:
 
-```
+```text
 ContentValidationError: Validation failed for content/blog/my-post.md
 
   Schema: BlogPost

@@ -360,6 +360,18 @@ class QueryIndex(ABC):
             with open(self.cache_path, encoding="utf-8") as f:
                 data = json.load(f)
 
+            # Type validation to prevent 'str' object has no attribute 'get' errors
+            if not isinstance(data, dict):
+                logger.warning(
+                    "index_invalid_data_type",
+                    index=self.name,
+                    expected="dict",
+                    got=type(data).__name__,
+                    suggestion="Cache file corrupted. Index will be rebuilt.",
+                )
+                self.entries = {}
+                return
+
             # Version check
             from bengal.errors import ErrorCode
 

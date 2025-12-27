@@ -13,7 +13,7 @@ This template receives:
 - site: Site instance
 #}
 
-{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc with context %}
+{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc %}
 
 {% block content %}
 {# Three-column documentation layout #}
@@ -52,7 +52,7 @@ This template receives:
               <p class="autodoc-card-desc">{{ desc }}</p>
               {% else %}
               <p class="autodoc-card-desc">{{ subsection.name }} commands</p>
-              {% endif %}
+              {% end %}
             </div>
             <div class="autodoc-card-footer">
               <span class="autodoc-card-meta">
@@ -60,21 +60,21 @@ This template receives:
               </span>
             </div>
           </a>
-          {% endif %}
-          {% endfor %}
+          {% end %}
+          {% end %}
         </div>
       </section>
-      {% endif %}
+      {% end %}
 
       {# Command Pages - Card Grid #}
       {% set command_pages = [] %}
       {% if section %}
       {% for page in section.sorted_pages %}
         {% if page != section.index_page and not (page.source_path is match('.*_index.*')) %}
-          {% set _ = command_pages.append(page) %}
-        {% endif %}
-      {% endfor %}
-      {% endif %}
+          {% do command_pages.append(page) %}
+        {% end %}
+      {% end %}
+      {% end %}
 
       {% if command_pages %}
       <section class="autodoc-section" data-section="commands">
@@ -83,32 +83,32 @@ This template receives:
         <div class="autodoc-cards">
           {% for page in command_pages %}
           {% set desc = params.description | default('') | first_sentence %}
-          <a href="{{ page.href }}" class="autodoc-card" data-card="{{ params.element_type | default('command') }}">
+          <a href="{{ page.href }}" class="autodoc-card" data-card="{{ params.element_type ?? 'command' }}">
             <div class="autodoc-card-header">
               <span class="autodoc-card-icon">
                 {%- if params.element_type == 'group' -%}
                 {{ icon("folder", size=16, css_class="icon-info") }}
                 {%- else -%}
                 {{ icon("terminal", size=16, css_class="icon-success") }}
-                {%- endif -%}
+                {% end %}
               </span>
               <span class="autodoc-card-name">{{ page.title }}</span>
               {% if params.element_type %}
               <span class="autodoc-badge" data-badge="{{ params.element_type }}">{{ params.element_type }}</span>
-              {% endif %}
+              {% end %}
             </div>
             <div class="autodoc-card-body">
               {% if desc %}
               <p class="autodoc-card-desc">{{ desc }}</p>
               {% else %}
               <p class="autodoc-card-desc">No description available</p>
-              {% endif %}
+              {% end %}
             </div>
           </a>
-          {% endfor %}
+          {% end %}
         </div>
       </section>
-      {% endif %}
+      {% end %}
 
       {# Empty State #}
       {% if not section or (not section.subsections and not command_pages) %}
@@ -116,7 +116,7 @@ This template receives:
         <div class="autodoc-empty-state-icon">{{ icon("terminal", size=48, css_class="icon-muted") }}</div>
         <p class="autodoc-empty-state-text">No CLI documentation available in this section yet.</p>
       </div>
-      {% endif %}
+      {% end %}
 
     </article>
 
@@ -136,4 +136,4 @@ This template receives:
 
 {# Sidebar overlay for mobile #}
 <div class="docs-sidebar-overlay" aria-hidden="true"></div>
-{% endblock %}
+{% end %}

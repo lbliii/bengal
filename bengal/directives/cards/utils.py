@@ -20,7 +20,20 @@ VALID_LAYOUTS = frozenset(["default", "horizontal", "portrait", "compact"])
 VALID_GAPS = frozenset(["small", "medium", "large"])
 VALID_STYLES = frozenset(["default", "minimal", "bordered"])
 VALID_COLORS = frozenset(
-    ["blue", "green", "red", "yellow", "orange", "purple", "gray", "pink", "indigo"]
+    [
+        "blue",
+        "green",
+        "red",
+        "yellow",
+        "orange",
+        "purple",
+        "gray",
+        "pink",
+        "indigo",
+        "teal",
+        "cyan",
+        "violet",
+    ]
 )
 
 

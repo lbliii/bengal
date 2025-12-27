@@ -507,7 +507,12 @@ class SitePropertiesMixin:
                 "dropdowns": interactivity.get("dropdowns", defaults["interactivity"]["dropdowns"]),
                 "code_copy": interactivity.get("code_copy", defaults["interactivity"]["code_copy"]),
             },
-            "features": value.get("features", {}),
+            # Feature flags with defaults (all enabled by default)
+            "features": {
+                "speculation_rules": True,
+                "view_transitions_meta": True,
+                **value.get("features", {}),
+            },
         }
 
     @property

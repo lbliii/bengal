@@ -45,36 +45,36 @@ Usage in base.html or product layout:
   "image": {{ [page.image] | tojson }},
   {%- else %}
   "image": [],
-  {%- endif %}
+  {% end %}
   {%- if page.sku %}
   "sku": {{ page.sku | tojson }},
-  {%- endif %}
+  {% end %}
   {%- if page.brand %}
   "brand": {
     "@type": "Brand",
     "name": {{ page.brand | tojson }}
   },
-  {%- endif %}
+  {% end %}
   "offers": {
     "@type": "Offer",
     {%- if page.price %}
     "price": {{ page.price | string | tojson }},
-    {%- endif %}
-    "priceCurrency": {{ (page.currency | default("USD")) | tojson }},
-    "availability": "https://schema.org/{% if page.in_stock | default(true) %}InStock{% else %}OutOfStock{% endif %}",
+    {% end %}
+    "priceCurrency": {{ (page.currency ?? "USD") | tojson }},
+    "availability": "https://schema.org/{% if page.in_stock ?? true %}InStock{% else %}OutOfStock{% end %}",
     {%- if page.url %}
     "url": "{{ site.baseurl }}{{ page.url }}",
-    {%- endif %}
+    {% end %}
     "priceValidUntil": "{{ (page.price_valid_until | default((now() | dateformat('%Y-12-31')))) }}"
   }
   {%- if page.aggregate_rating %}
   ,
   "aggregateRating": {
     "@type": "AggregateRating",
-    "ratingValue": {{ page.aggregate_rating.value | default(4.5) | string | tojson }},
-    "reviewCount": {{ page.aggregate_rating.count | default(1) | string | tojson }}
+    "ratingValue": {{ (page.aggregate_rating.value ?? 4.5) | string | tojson }},
+    "reviewCount": {{ (page.aggregate_rating.count ?? 1) | string | tojson }}
   }
-  {%- endif %}
+  {% end %}
 }
 </script>
-{%- endif %}
+{% end %}

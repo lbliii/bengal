@@ -144,6 +144,21 @@ class PageProxy:
         return self.core.nav_title or self.core.title
 
     @property
+    def weight(self) -> float:
+        """
+        Get page weight for sorting (always returns sortable value).
+
+        Returns weight from cached core if set, otherwise infinity (sorts last).
+        This property ensures pages are always sortable without None errors.
+        """
+        if self.core.weight is not None:
+            try:
+                return float(self.core.weight)
+            except (ValueError, TypeError):
+                pass
+        return float("inf")
+
+    @property
     def date(self) -> datetime | None:
         """Get page date from cached metadata (parsed from ISO string)."""
         if not self.core.date:
@@ -290,11 +305,12 @@ class PageProxy:
             return self._full_page.metadata
 
         # Build metadata dict from cached PageCore fields
-        cached_metadata: dict[str, Any] = {}
+        # Always include weight with sortable default (None → infinity for sort-last)
+        cached_metadata: dict[str, Any] = {
+            "weight": self.core.weight if self.core.weight is not None else float("inf"),
+        }
         if self.core.type:
             cached_metadata["type"] = self.core.type
-        if self.core.weight is not None:
-            cached_metadata["weight"] = self.core.weight
         if self.core.tags:
             cached_metadata["tags"] = self.core.tags
         if self.core.date:

@@ -61,7 +61,7 @@ bengal graph report
 :::{example-label} Output
 :::
 
-```
+```text
 ================================================================================
 📊 Site Analysis Report
 ================================================================================
@@ -99,7 +99,7 @@ bengal graph report --brief --ci --threshold-isolated 5
 :::{example-label} CI Output
 :::
 
-```
+```text
 📊 Site Analysis: 124 pages
    Isolated: 21 (16.9%) ⚠️
    Lightly linked: 26 (21.0%)
@@ -165,7 +165,7 @@ bengal graph orphans --level all
 :::{example-label} Output
 :::
 
-```
+```text
 📊 Connectivity Distribution
 ==========================================================================================
   🟢 Well-Connected (≥2.0):      39 pages (31.5%)
@@ -245,7 +245,7 @@ bengal graph pagerank --top-n 10
 :::{example-label} Output
 :::
 
-```
+```text
 🏆 Top 10 Pages by PageRank
 ====================================================================================================
 Analyzed 124 pages • Converged in 55 iterations • Damping: 0.85
@@ -294,7 +294,7 @@ bengal graph bridges --top-n 10
 :::{example-label} Output
 :::
 
-```
+```text
 ====================================================================================================
 🌉 Navigation Path Analysis
 ====================================================================================================

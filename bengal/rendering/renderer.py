@@ -63,17 +63,21 @@ class Renderer:
         html = renderer.render_page(page)
     """
 
-    def __init__(self, template_engine: Any, build_stats: Any = None) -> None:
+    def __init__(
+        self, template_engine: Any, build_stats: Any = None, block_cache: Any = None
+    ) -> None:
         """
         Initialize the renderer.
 
         Args:
             template_engine: Template engine instance
             build_stats: Optional BuildStats object for error collection
+            block_cache: Optional BlockCache for KIDA template block caching
         """
         self.template_engine = template_engine
         self.site = template_engine.site  # Access to site config for strict mode
         self.build_stats = build_stats  # For collecting template errors
+        self.block_cache = block_cache  # Block cache for KIDA introspection optimization
         # PERF: Cache for top-level content (computed once per build)
         self._top_level_cache: tuple[list[Page], list[Any]] | None = None
         # PERF: Cache for resolved tag pages (computed once per build)
@@ -272,6 +276,35 @@ class Renderer:
             content=content,
         )
 
+        # Inject cached blocks for KIDA templates (RFC: kida-template-introspection)
+        # This enables site-wide block caching for nav, footer, etc.
+        # The block cache was pre-warmed with site-scoped blocks from base.html
+        if self.block_cache and self.block_cache._site_blocks:
+            # Get all cached blocks from base.html (the primary parent template)
+            # We use the cache directly - no introspection needed during rendering
+            cached_blocks = {}
+            for key, html in self.block_cache._site_blocks.items():
+                # Keys are formatted as "template:block", e.g., "base.html:site_footer"
+                if ":" in key:
+                    cached_template, block_name = key.split(":", 1)
+                    # Only inject blocks from parent templates (base.html)
+                    # Skip empty cached blocks (they'd just add overhead)
+                    if cached_template == "base.html" and html:
+                        cached_blocks[block_name] = html
+
+            # Inject cached blocks into context for template to use
+            if cached_blocks:
+                context["_cached_blocks"] = cached_blocks
+                # Inject stats object so CachedBlocksDict can record hits
+                if hasattr(self.block_cache, "_stats"):
+                    context["_cached_stats"] = self.block_cache._stats
+
+                logger.debug(
+                    "renderer_using_cached_blocks",
+                    template=template_name,
+                    cached_blocks=list(cached_blocks.keys()),
+                )
+
         # Add special context for generated pages (tags, archives, etc.)
         # These need additional pagination and tag-specific data
         if page.metadata.get("_generated"):
@@ -294,11 +327,18 @@ class Renderer:
             # PERF: Use cached sets for O(n) instead of O(n²) filtering
             top_level_pages, top_level_subsections = self._get_top_level_content()
 
+            # Wrap subsections in SectionContext so subsection.params works correctly
+            # This prevents 'str' object has no attribute 'get' errors when accessing
+            # subsection?.params?.type in templates
+            from bengal.rendering.context import SectionContext
+
             context.update(
                 {
                     "posts": top_level_pages,
                     "pages": top_level_pages,  # Alias
-                    "subsections": top_level_subsections,
+                    "subsections": [
+                        SectionContext(sub) for sub in top_level_subsections if sub is not None
+                    ],
                 }
             )
 

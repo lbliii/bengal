@@ -1,5 +1,16 @@
 ## [Unreleased]
 
+### Cache Compression Consistency ✅
+- **cache(taxonomy_index)**: migrate to compressed `.json.zst` format using `save_compressed()`/`load_auto()`
+- **cache(asset_dependency_map)**: migrate to compressed format; remove redundant `AtomicFile` wrapper
+- **cache(page_discovery_cache)**: migrate to compressed format; remove redundant `AtomicFile` wrapper and `default=str` parameter
+- **cache(paths)**: update docstrings to document compression support for auxiliary caches
+- **cache(compression)**: fix `load_auto()` exception handling to properly catch `CacheVersionError` and fall back to JSON
+- **cache(compression)**: add type validation in `load_auto()` to ensure JSON always returns dict
+- **perf**: ~40% reduction in `.bengal/` directory size (~2.8M savings), 10x faster cache I/O
+- **tests**: add round-trip serialization tests and migration tests for backward compatibility
+- **docs**: update cache architecture docs to reflect compression for all cache files
+
 ### Content Layer Algorithm Optimization ✅
 - **content_layer(local)**: remove O(n log n) sort from `fetch_all()` (now O(n) by default)
 - **content_layer(local)**: add `sort: bool` config option for deterministic ordering when needed

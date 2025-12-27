@@ -19,6 +19,8 @@ import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from bengal.utils.lru_cache import LRUCache
+
 if TYPE_CHECKING:
     from collections.abc import Callable
 
@@ -109,6 +111,7 @@ class IgnoreFilter:
         self.regex_patterns = [re.compile(p) for p in (regex_patterns or [])]
         self.directories = [p.resolve() for p in (directories or [])]
         self.include_defaults = include_defaults
+        self._cache_max_size = cache_max_size
 
         # Pre-compile glob patterns to regex for faster matching
         # fnmatch.translate() converts glob to regex pattern
@@ -117,9 +120,11 @@ class IgnoreFilter:
             regex = fnmatch.translate(pattern)
             self._compiled_globs.append(re.compile(regex))
 
-        # LRU-style cache for path results: path_str -> is_ignored
-        self._path_cache: dict[str, bool] = {}
-        self._cache_max_size = cache_max_size
+        # LRU cache for path results: path_str -> is_ignored
+        self._path_cache: LRUCache[str, bool] = LRUCache(
+            maxsize=cache_max_size,
+            name="ignore_filter",
+        )
 
     def __call__(self, path: Path) -> bool:
         """
@@ -133,21 +138,16 @@ class IgnoreFilter:
         Returns:
             True if the path matches any ignore pattern, False otherwise
         """
-        # Check cache first (O(1) for repeated paths)
         path_str = str(path)
+
+        # Check cache first
         cached = self._path_cache.get(path_str)
         if cached is not None:
             return cached
 
-        # Compute result
+        # Compute result and cache it
         result = self._check_path(path)
-
-        # Update cache with LRU eviction
-        if len(self._path_cache) >= self._cache_max_size:
-            # Remove oldest entry (first key in ordered dict)
-            first_key = next(iter(self._path_cache))
-            del self._path_cache[first_key]
-        self._path_cache[path_str] = result
+        self._path_cache.set(path_str, result)
 
         return result
 
@@ -198,6 +198,10 @@ class IgnoreFilter:
         Call this after configuration changes to ensure fresh results.
         """
         self._path_cache.clear()
+
+    def cache_stats(self) -> dict[str, Any]:
+        """Get cache statistics for debugging."""
+        return self._path_cache.stats()
 
     @classmethod
     def from_config(

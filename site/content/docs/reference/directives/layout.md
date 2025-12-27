@@ -95,7 +95,7 @@ Footer content (alternative to :footer: option)
 
 - `:icon:` - Icon name (e.g., `book`, `code`, `rocket`)
 - `:link:` - Card link URL (path, slug, or `id:ref-target`)
-- `:color:` - Color: `blue`, `green`, `red`, `yellow`, `orange`, `purple`, `gray`, `pink`, `indigo`
+- `:color:` - Color: `blue`, `green`, `red`, `yellow`, `orange`, `purple`, `gray`, `pink`, `indigo`, `teal`, `cyan`, `violet`
 - `:image:` - Header image URL
 - `:footer:` - Footer text (or use `+++` separator)
 - `:pull:` - Auto-fetch fields from linked page: `title`, `description`, `icon`, `image`, `date`, `tags`

@@ -1,0 +1,66 @@
+{#
+Embeddable Panel Component
+
+Base panel/callout layout with overridable blocks. Use with {% embed %}.
+
+Blocks:
+- icon: Icon area (defaults to variant-specific icon)
+- title: Panel title (optional)
+- body: Main panel content (required)
+- actions: Action buttons/links (optional)
+
+Args (via context):
+- variant: Panel type - 'info' | 'warning' | 'danger' | 'success' | 'tip' (default: 'info')
+- collapsible: Make panel collapsible (default: false)
+- open: If collapsible, start expanded (default: true)
+
+Example:
+{% embed 'partials/_embeds/panel.html' %}
+{% block title %}Important Note{% end %}
+{% block body %}
+<p>This is critical information.</p>
+{% end %}
+{% end %}
+
+Example with variant:
+{% with variant='warning' %}
+{% embed 'partials/_embeds/panel.html' %}
+{% block title %}Warning{% end %}
+{% block body %}<p>Be careful!</p>{% end %}
+{% block actions %}
+<a href="/docs/safety">Safety Guide →</a>
+{% end %}
+{% end %}
+{% end %}
+#}
+
+{% let panel_variant = variant ?? 'info' %}
+{% let panel_collapsible = collapsible ?? false %}
+{% let panel_open = open ?? true %}
+{% let icons = {'info': 'info', 'warning': 'warning', 'danger': 'x-circle', 'success': 'check-circle', 'tip':
+'lightbulb'} %}
+{% let default_icon = icons[panel_variant] ?? 'info' %}
+
+{% if panel_collapsible %}
+<details class="embed-panel embed-panel--{{ panel_variant }}" {% if panel_open %} open{% end %}>
+    <summary class="embed-panel-header">
+        <span class="embed-panel-icon">{% block icon %}{{ icon(default_icon, size=18) }}{% end %}</span>
+        <span class="embed-panel-title">{% block title %}{{ panel_variant | title }}{% end %}</span>
+    </summary>
+    <div class="embed-panel-body">
+        {% block body %}{% end %}
+    </div>
+    {% block actions %}{% end %}
+</details>
+{% else %}
+<aside class="embed-panel embed-panel--{{ panel_variant }}" role="note">
+    <div class="embed-panel-header">
+        <span class="embed-panel-icon">{% block icon %}{{ icon(default_icon, size=18) }}{% end %}</span>
+        <span class="embed-panel-title">{% block title %}{% end %}</span>
+    </div>
+    <div class="embed-panel-body">
+        {% block body %}{% end %}
+    </div>
+    {% block actions %}{% end %}
+</aside>
+{% end %}

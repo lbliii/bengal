@@ -1,21 +1,48 @@
 {% extends "base.html" %}
 
 {#
-Documentation Template
+================================================================================
+Documentation Single Page Template (Kida-Native)
+================================================================================
 
-Three-column layout optimized for documentation sites:
+Three-column layout optimized for documentation pages.
+
+LAYOUT:
 - Left sidebar: Navigation tree
-- Center: Content
-- Right sidebar: TOC + metadata
+- Center: Content with track navigation
+- Right sidebar: Contextual Graph + TOC + metadata
 
-Usage: Set `template: doc.html` in frontmatter
+KIDA FEATURES USED:
+- {% let %} for template-scoped variables
+- Optional chaining (?.) for null-safe access
+- Null coalescing (??) for defaults
+- {% spaceless %} for clean HTML output
+- {% cache %} for expensive computations
+
+FEATURES:
+- Version banner (warns about old/deprecated versions)
+- Stale content banner (warns when page hasn't been updated)
+- Page hero with breadcrumbs, title, description, metadata
+- Track navigation support (learning paths)
+- Contextual knowledge graph
+- Table of contents with progress tracking
+- Tag list in footer
+
+USAGE:
+Set `template: doc/single.html` in frontmatter
 Or set `type: doc` to auto-select this template
+================================================================================
 #}
 
-{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc with context %}
-{% from 'partials/content-components.html' import tag_list with context %}
+{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc %}
+{% from 'partials/components/tags.html' import tag_list %}
 
 {% block content %}
+{# Template-scoped variables #}
+{% let page_tags = page?.tags ?? [] %}
+{% let page_href = page?.href ?? '' %}
+{% let css_class = params?.css_class ?? '' %}
+
 {# Three-column documentation layout #}
 <div class="docs-layout">
   {# Left Sidebar: Navigation #}
@@ -32,13 +59,11 @@ Or set `type: doc` to auto-select this template
     {% include 'partials/stale-content-banner.html' %}
 
     {# Page Hero: Breadcrumbs + Title + Description + Metadata #}
-    {# Supports variants: classic (default) or magazine (set via hero_style) #}
     {% include 'partials/page-hero.html' %}
 
     {# Article Content #}
-    <article class="prose {% if params.css_class %}{{ params.css_class }}{% endif %}">
-
-      {# Track Navigation (Top) #}
+    <article class="prose {{ css_class }}">
+      {# Track Navigation (Top) - for learning paths #}
       {% include 'partials/track_nav.html' %}
 
       {# Main content #}
@@ -47,12 +72,12 @@ Or set `type: doc` to auto-select this template
       </div>
 
       {# Tags #}
-      {% if page.tags %}
+      {% if page_tags | length > 0 %}
       <footer class="docs-footer">
         <span class="docs-footer-label">{{ t('docs.tagged', default='Tagged') }}</span>
-        {{ tag_list(page.tags) }}
+        {{ tag_list(page_tags) }}
       </footer>
-      {% endif %}
+      {% end %}
     </article>
 
     {# Track Navigation (Bottom) #}
@@ -66,28 +91,24 @@ Or set `type: doc` to auto-select this template
   {% if toc_items %}
   <aside class="docs-toc" role="complementary" aria-label="Table of contents">
     {# Contextual Graph Minimap - shows connections to current page #}
-    <div class="graph-contextual" data-page-url="{{ page.href }}">
-      {# Placeholder - will be replaced by JavaScript #}
-      <div class="graph-contextual-container graph-loading"
-        style="min-height: 200px; opacity: 1 !important; visibility: visible !important;">
-      </div>
+    <div class="graph-contextual" data-page-url="{{ page_href }}">
+      <div class="graph-contextual-container graph-loading" style="min-height: 200px;"></div>
     </div>
 
     {# Table of Contents #}
     {{ toc(toc_items=toc_items, toc=toc, page=page) }}
   </aside>
-  {% endif %}
+  {% end %}
 </div>
 
 {# Mobile sidebar toggle button #}
+{% spaceless %}
 <button class="docs-sidebar-toggle" aria-label="Toggle navigation sidebar" aria-expanded="false"
   aria-controls="docs-sidebar">
   {{ icon('list', size=20) }}
 </button>
+{% end %}
 
 {# Sidebar overlay for mobile #}
 <div class="docs-sidebar-overlay" aria-hidden="true"></div>
-{% endblock %}
-
-{# Sidebar toggle functionality is handled by interactive.js #}
-{# Graph scripts loaded in base.html #}
+{% end %}

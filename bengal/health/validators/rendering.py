@@ -4,8 +4,10 @@ Rendering validator - checks output HTML quality.
 Validates:
 - HTML structure is valid
 - No unrendered Jinja2 variables (outside code blocks)
-- Template functions are available
 - SEO metadata present
+
+Note: Template function validation was removed as redundant - missing filters
+cause immediate template errors during build.
 """
 
 from __future__ import annotations
@@ -31,8 +33,10 @@ class RenderingValidator(BaseValidator):
     Checks:
     - Basic HTML structure (<html>, <head>, <body>)
     - No unrendered Jinja2 variables in output
-    - Template functions registered and working
     - Basic SEO metadata present
+
+    Note: Template function validation was removed as redundant - missing filters
+    cause immediate template errors during build.
     """
 
     name = "Rendering"
@@ -49,13 +53,13 @@ class RenderingValidator(BaseValidator):
         # Check 1: HTML structure
         results.extend(self._check_html_structure(site))
 
-        # Check 2: Unrendered Jinja2
+        # Check 2: Unrendered Jinja2 (catches silent template failures)
         results.extend(self._check_unrendered_jinja2(site))
 
-        # Check 3: Template functions
-        results.extend(self._check_template_functions(site))
+        # Note: _check_template_functions removed - redundant with build success
+        # (missing filters cause immediate template errors during build)
 
-        # Check 4: SEO metadata
+        # Check 3: SEO metadata (catches missing titles/descriptions)
         results.extend(self._check_seo_metadata(site))
 
         return results
@@ -185,58 +189,9 @@ class RenderingValidator(BaseValidator):
             )
             return any(p in html_content for p in ["{{ page.", "{{ site."])
 
-    def _check_template_functions(self, site: Site) -> list[CheckResult]:
-        """Check that template functions are registered."""
-        results = []
-
-        # List of essential template functions that should be available
-        essential_functions = [
-            "truncatewords",
-            "slugify",
-            "where",
-            "group_by",
-            "absolute_url",
-            "time_ago",
-            "safe_html",
-        ]
-
-        try:
-            # Import template engine to check registered functions
-            from bengal.rendering.template_engine import TemplateEngine
-
-            # Create a temporary engine instance
-            engine = TemplateEngine(site)
-
-            # Check which functions are registered
-            registered = engine.env.filters.keys()
-            missing = [f for f in essential_functions if f not in registered]
-
-            if missing:
-                results.append(
-                    CheckResult.error(
-                        f"{len(missing)} essential template function(s) not registered",
-                        code="H032",
-                        recommendation="Check template function registration in TemplateEngine.__init__()",
-                        details=missing,
-                    )
-                )
-            else:
-                total_functions = len(registered)
-                results.append(
-                    CheckResult.success(
-                        f"Template functions validated ({total_functions} functions registered)"
-                    )
-                )
-
-        except Exception as e:
-            results.append(
-                CheckResult.warning(
-                    f"Could not validate template functions: {e}",
-                    recommendation="This may indicate a problem with TemplateEngine initialization.",
-                )
-            )
-
-        return results
+    # Note: _check_template_functions was removed (H032).
+    # It created a new TemplateEngine (~137ms) just to verify filters exist.
+    # This is redundant: if filters were missing, templates would error during build.
 
     def _check_seo_metadata(self, site: Site) -> list[CheckResult]:
         """Check for basic SEO metadata in pages."""

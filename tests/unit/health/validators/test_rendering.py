@@ -161,53 +161,6 @@ class TestRenderingValidatorUnrenderedJinja2:
         assert any("jinja2" in r.message.lower() for r in warning_results)
 
 
-class TestRenderingValidatorTemplateFunctions:
-    """Tests for template function validation."""
-
-    def test_success_when_functions_registered(self, validator, mock_site):
-        """Returns success when essential functions registered."""
-        with patch("bengal.rendering.template_engine.TemplateEngine") as MockTemplateEngine:
-            mock_engine = MagicMock()
-            mock_engine.env.filters.keys.return_value = [
-                "truncatewords",
-                "slugify",
-                "where",
-                "group_by",
-                "absolute_url",
-                "time_ago",
-                "safe_html",
-            ]
-            MockTemplateEngine.return_value = mock_engine
-
-            results = validator.validate(mock_site)
-
-            success_results = [r for r in results if r.status == CheckStatus.SUCCESS]
-            assert any("function" in r.message.lower() for r in success_results)
-
-    def test_error_when_functions_missing(self, validator, mock_site):
-        """Returns error when essential functions missing."""
-        with patch("bengal.rendering.template_engine.TemplateEngine") as MockTemplateEngine:
-            mock_engine = MagicMock()
-            # Missing some essential functions
-            mock_engine.env.filters.keys.return_value = ["truncatewords"]
-            MockTemplateEngine.return_value = mock_engine
-
-            results = validator.validate(mock_site)
-
-            error_results = [r for r in results if r.status == CheckStatus.ERROR]
-            assert any("function" in r.message.lower() for r in error_results)
-
-    def test_warning_when_template_engine_fails(self, validator, mock_site):
-        """Returns warning when TemplateEngine fails."""
-        with patch("bengal.rendering.template_engine.TemplateEngine") as MockTemplateEngine:
-            MockTemplateEngine.side_effect = Exception("Engine error")
-
-            results = validator.validate(mock_site)
-
-            warning_results = [r for r in results if r.status == CheckStatus.WARNING]
-            assert any("could not validate" in r.message.lower() for r in warning_results)
-
-
 class TestRenderingValidatorSEOMetadata:
     """Tests for SEO metadata validation."""
 

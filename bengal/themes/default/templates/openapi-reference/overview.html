@@ -13,7 +13,7 @@ This template receives:
 - site: Site instance
 #}
 
-{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc with context %}
+{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc %}
 
 {% block content %}
 {# Three-column documentation layout #}
@@ -37,14 +37,14 @@ This template receives:
           <span class="autodoc-badge" data-badge="rest">REST API</span>
           {% if element.metadata.version %}
           <span class="autodoc-badge" data-badge="version">v{{ element.metadata.version }}</span>
-          {% endif %}
+          {% end %}
         </div>
 
         <h1 class="autodoc-title">{{ element.name }}</h1>
 
         {% if element.description %}
         <div class="autodoc-description">{{ element.description | safe }}</div>
-        {% endif %}
+        {% end %}
       </header>
 
       {# Servers #}
@@ -57,12 +57,12 @@ This template receives:
             <code class="autodoc-server-url">{{ server.href or server }}</code>
             {% if server.description %}
             <span class="autodoc-server-desc">— {{ server.description }}</span>
-            {% endif %}
+            {% end %}
           </li>
-          {% endfor %}
+          {% end %}
         </ul>
       </section>
-      {% endif %}
+      {% end %}
 
       {# Tags / Endpoint Groups #}
       {% if element.metadata.tags %}
@@ -74,12 +74,12 @@ This template receives:
             <h3 class="autodoc-card-name">{{ tag.name or tag }}</h3>
             {% if tag.description %}
             <p class="autodoc-card-desc">{{ tag.description }}</p>
-            {% endif %}
+            {% end %}
           </div>
-          {% endfor %}
+          {% end %}
         </div>
       </section>
-      {% endif %}
+      {% end %}
 
       {# Authentication / Security Schemes #}
       {% if element.metadata.security_schemes %}
@@ -98,30 +98,31 @@ This template receives:
             <tr>
               <td class="autodoc-cell-name"><code>{{ scheme_name }}</code></td>
               <td class="autodoc-cell-type">
-                {% if scheme.type == 'http' %}
-                {{ scheme.scheme | default('bearer') | title }} ({{ scheme.bearerFormat | default('Token') }})
-                {% elif scheme.type == 'apiKey' %}
-                API Key ({{ scheme.in }}: {{ scheme.name }})
-                {% elif scheme.type == 'oauth2' %}
-                OAuth 2.0
-                {% else %}
-                {{ scheme.type }}
-                {% endif %}
+                {% match scheme.type %}
+                  {% case 'http' %}
+                    {{ (scheme.scheme ?? 'bearer') | title }} ({{ scheme.bearerFormat ?? 'Token' }})
+                  {% case 'apiKey' %}
+                    API Key ({{ scheme['in'] }}: {{ scheme.name }})
+                  {% case 'oauth2' %}
+                    OAuth 2.0
+                  {% case _ %}
+                    {{ scheme.type }}
+                {% end %}
               </td>
-              <td class="autodoc-cell-desc">{{ scheme.description | default('—') }}</td>
+              <td class="autodoc-cell-desc">{{ scheme.description ?? '—' }}</td>
             </tr>
-            {% endfor %}
+            {% end %}
           </tbody>
         </table>
       </section>
-      {% endif %}
+      {% end %}
 
       {# Quick Links to Endpoints and Schemas #}
       <section class="autodoc-section" data-section="explore">
         <h2 class="autodoc-section-title">Explore</h2>
         <div class="autodoc-cards">
           {# Use page URL as base - for overview page at /api/, links go to /api/endpoints/ etc. #}
-          {% set base_url = page.href | default('/api/') %}
+          {% set base_url = page.href ?? '/api/' %}
           {% set base_url = base_url if base_url.endswith('/') else base_url ~ '/' %}
           <a href="{{ base_url }}endpoints/" class="autodoc-card" data-card="link">
             <div class="autodoc-card-header">
@@ -144,10 +145,10 @@ This template receives:
       {% if page.tags %}
       <footer class="docs-footer">
         <span class="docs-footer-label">Tagged</span>
-        {% from 'partials/content-components.html' import tag_list with context %}
+        {% from 'partials/components/tags.html' import tag_list %}
         {{ tag_list(page.tags) }}
       </footer>
-      {% endif %}
+      {% end %}
     </article>
 
     {# Page navigation (prev/next) at bottom #}
@@ -166,4 +167,4 @@ This template receives:
 
 {# Sidebar overlay for mobile #}
 <div class="docs-sidebar-overlay" aria-hidden="true"></div>
-{% endblock %}
+{% end %}

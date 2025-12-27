@@ -482,6 +482,7 @@ class GraphBuilder:
         analysis_pages = self.get_analysis_pages()
         analysis_pages_set = set(analysis_pages)
 
+        topical_count = 0
         for page in analysis_pages:
             is_index = hasattr(page, "source_path") and page.source_path.stem in (
                 "_index",
@@ -502,10 +503,11 @@ class GraphBuilder:
                     self.link_types[(page, child)] = LinkType.TOPICAL
                     # Build reverse index for O(E) PageRank
                     self.incoming_edges[child].append(page)
+                    topical_count += 1
 
         logger.debug(
             "knowledge_graph_section_hierarchy_complete",
-            topical_links=sum(1 for lt in self.link_types.values() if lt == LinkType.TOPICAL),
+            topical_links=topical_count,
         )
 
     def _analyze_navigation_links(self) -> None:
@@ -519,6 +521,7 @@ class GraphBuilder:
         """
         analysis_pages = self.get_analysis_pages()
         analysis_pages_set = set(analysis_pages)
+        sequential_count = 0
 
         for page in analysis_pages:
             next_page = getattr(page, "next_in_section", None)
@@ -528,6 +531,7 @@ class GraphBuilder:
                 self.link_types[(page, next_page)] = LinkType.SEQUENTIAL
                 # Build reverse index for O(E) PageRank
                 self.incoming_edges[next_page].append(page)
+                sequential_count += 1
 
             prev_page = getattr(page, "prev_in_section", None)
             if prev_page and prev_page in analysis_pages_set:
@@ -536,10 +540,11 @@ class GraphBuilder:
                 self.link_types[(page, prev_page)] = LinkType.SEQUENTIAL
                 # Build reverse index for O(E) PageRank
                 self.incoming_edges[prev_page].append(page)
+                sequential_count += 1
 
         logger.debug(
             "knowledge_graph_navigation_links_complete",
-            sequential_links=sum(1 for lt in self.link_types.values() if lt == LinkType.SEQUENTIAL),
+            sequential_links=sequential_count,
         )
 
     def _build_link_metrics(self) -> None:
@@ -548,26 +553,28 @@ class GraphBuilder:
 
         Aggregates links by type into LinkMetrics objects for
         weighted connectivity scoring.
+
+        Optimized: Uses inverted index for O(P + L) instead of O(P × L).
         """
         analysis_pages = self.get_analysis_pages()
 
+        # Build inverted index: target -> {link_type: count}
+        # O(L) single pass instead of O(P × L) nested loop
+        incoming_by_type: dict[Page, dict[LinkType, int]] = defaultdict(lambda: defaultdict(int))
+        for (_source, target), link_type in self.link_types.items():
+            incoming_by_type[target][link_type] += 1
+
+        # Build metrics for each page using the index: O(P)
         for page in analysis_pages:
             metrics = LinkMetrics()
+            page_links = incoming_by_type.get(page, {})
 
-            for (_source, target), link_type in self.link_types.items():
-                if target == page:
-                    if link_type == LinkType.EXPLICIT:
-                        metrics.explicit += 1
-                    elif link_type == LinkType.MENU:
-                        metrics.menu += 1
-                    elif link_type == LinkType.TAXONOMY:
-                        metrics.taxonomy += 1
-                    elif link_type == LinkType.RELATED:
-                        metrics.related += 1
-                    elif link_type == LinkType.TOPICAL:
-                        metrics.topical += 1
-                    elif link_type == LinkType.SEQUENTIAL:
-                        metrics.sequential += 1
+            metrics.explicit = page_links.get(LinkType.EXPLICIT, 0)
+            metrics.menu = page_links.get(LinkType.MENU, 0)
+            metrics.taxonomy = page_links.get(LinkType.TAXONOMY, 0)
+            metrics.related = page_links.get(LinkType.RELATED, 0)
+            metrics.topical = page_links.get(LinkType.TOPICAL, 0)
+            metrics.sequential = page_links.get(LinkType.SEQUENTIAL, 0)
 
             # Fallback: count untracked incoming refs as explicit
             total_tracked = metrics.total_links()

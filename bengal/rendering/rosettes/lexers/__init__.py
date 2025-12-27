@@ -1,9 +1,9 @@
 """Rosettes lexers package.
 
-Lexers are loaded lazily via the registry.
-Import individual lexers only when needed.
+All lexers are hand-written state machines with O(n) guaranteed performance
+and zero ReDoS vulnerability. Lexers are loaded lazily via the registry.
 """
 
-from bengal.rendering.rosettes.lexers._base import PatternLexer, Rule
+from bengal.rendering.rosettes.lexers._state_machine import StateMachineLexer
 
-__all__ = ["PatternLexer", "Rule"]
+__all__ = ["StateMachineLexer"]

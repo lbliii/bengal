@@ -65,7 +65,6 @@ class DirectiveValidator(BaseValidator):
     2. Checking syntax validity (check_directive_syntax)
     3. Checking completeness (check_directive_completeness)
     4. Checking performance (check_directive_performance)
-    5. Checking rendering output (check_directive_rendering)
 
     Checks:
     - Directive blocks are well-formed (opening and closing)
@@ -73,6 +72,9 @@ class DirectiveValidator(BaseValidator):
     - Tab markers are properly formatted
     - Nesting depth is reasonable
     - Performance warnings for heavy directive usage
+
+    Note: Rendering validation (H207) was removed - syntax validation catches
+    directive problems at source level, making output scanning redundant.
     """
 
     name = "Directives"

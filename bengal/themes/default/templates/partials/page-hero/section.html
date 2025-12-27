@@ -1,87 +1,23 @@
 {#
-Section Hero - for section-index pages (API packages, CLI groups)
+================================================================================
+DEPRECATED: Section Hero Component
+================================================================================
 
-Contract:
-  - section: Section instance (REQUIRED)
-  - page: Page instance
-  - site: Site instance (from global context)
-  - config: Autodoc config dict
-  - hero_context: Optional dict with explicit flags:
-      - is_cli: bool - True if CLI section (explicit, no URL sniffing)
+This template is now inlined as a macro in page-hero.html for ~8% faster rendering.
+The macro eliminates 2 nested includes (wrapper, share-dropdown).
 
-Data access: All via section.metadata.get() (dict access)
+MIGRATION:
+  Old: {% include 'partials/page-hero/section.html' %}
+  New: {% include 'partials/page-hero.html' %}  (auto-routes to section)
 
-Usage:
-  {% include 'partials/page-hero/section.html' %}
+  Or call macro directly:
+    {% from 'partials/page-hero/_macros.html' import hero_section %}
+    {{ hero_section(section, page, hero_context) }}
 
-  For CLI sections, set hero_context before include:
-  {% set hero_context = {'is_cli': true} %}
-  {% include 'partials/page-hero/section.html' %}
+See: plan/drafted/rfc-page-hero-template-flattening.md
+================================================================================
 #}
 
-{# Determine section type from explicit context, page type, or URL sniffing (fallback) #}
-{# Priority: 1. hero_context.is_cli, 2. page.type == 'autodoc-cli', 3. '/cli' in page.href #}
-{% set is_cli = false %}
-{% if hero_context and hero_context.is_cli %}
-  {% set is_cli = hero_context.is_cli %}
-{% elif page.type == 'autodoc-cli' %}
-  {% set is_cli = true %}
-{% elif page.href and '/cli' in page.href %}
-  {% set is_cli = true %}
-{% endif %}
-
-{# Include shared wrapper (opens .page-hero div) #}
-{% include 'partials/page-hero/_wrapper.html' %}
-
-  {# No badges for sections #}
-
-  {# Title - section title (with None check) #}
-  {% if section and section.title %}
-  <h1 class="page-hero__title">{{ section.title }}</h1>
-  {% elif page and page.title %}
-  <h1 class="page-hero__title">{{ page.title }}</h1>
-  {% endif %}
-
-  {# Description from section metadata (dict access) #}
-  {% if section %}
-  {% set desc = section.metadata.description %}
-  {% if desc %}
-  <div class="page-hero__description page-hero__description--prose">
-    {{ desc | markdownify | safe }}
-  </div>
-  {% endif %}
-  {% endif %}
-
-  {# Footer: Stats from section children #}
-  {% if section %}
-  <div class="page-hero__footer">
-    {% set section_subsections = section.sorted_subsections | default([]) | list %}
-    {% set section_pages = section.sorted_pages | default([]) | rejectattr('source_path', 'match', '.*_index.*') | list %}
-
-    {% if section_subsections | length > 0 or section_pages | length > 0 %}
-    <div class="page-hero__stats">
-      {% if section_subsections | length > 0 %}
-      <span class="page-hero__stat">
-        <span class="page-hero__stat-value">{{ section_subsections | length }}</span>
-        {% if is_cli %}
-        <span class="page-hero__stat-label">{{ 'Group' if section_subsections | length == 1 else 'Groups' }}</span>
-        {% else %}
-        <span class="page-hero__stat-label">{{ 'Package' if section_subsections | length == 1 else 'Packages' }}</span>
-        {% endif %}
-      </span>
-      {% endif %}
-      {% if section_pages | length > 0 %}
-      <span class="page-hero__stat">
-        <span class="page-hero__stat-value">{{ section_pages | length }}</span>
-        {% if is_cli %}
-        <span class="page-hero__stat-label">{{ 'Command' if section_pages | length == 1 else 'Commands' }}</span>
-        {% else %}
-        <span class="page-hero__stat-label">{{ 'Module' if section_pages | length == 1 else 'Modules' }}</span>
-        {% endif %}
-      </span>
-      {% endif %}
-    </div>
-    {% endif %}
-  </div>
-  {% endif %}
-</div>
+{# Shim: Forward to macro for backwards compatibility #}
+{% from 'partials/page-hero/_macros.html' import hero_section %}
+{{ hero_section(section, page, hero_context ?? {}) }}

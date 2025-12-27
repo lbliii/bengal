@@ -1,17 +1,37 @@
 {% extends "base.html" %}
 
-{% block title %}Page Not Found - {{ config.title }}{% endblock %}
+{#
+================================================================================
+404 Error Page Template (Kida-Native)
+================================================================================
+
+Page not found error page.
+
+KIDA FEATURES USED:
+- {% let %} for template-scoped variables
+- Optional chaining (?.) for null-safe access
+- Null coalescing (??) for smart defaults
+================================================================================
+#}
+
+{% block title %}Page Not Found - {{ config?.title ?? 'Site' }}{% end %}
 
 {% block meta %}
 <meta name="robots" content="noindex, nofollow">
-{% endblock %}
+{% end %}
 
 {% block content %}
+{# Template-scoped variables #}
+{% let current_language = current_lang() %}
+{% let main_menu = get_menu_lang('main', current_language) %}
+{% let auto_nav = get_auto_nav() if main_menu | length == 0 else [] %}
+{% let nav_items = main_menu if main_menu | length > 0 else auto_nav %}
+
 <div class="container">
   <div class="empty-state">
     <div class="empty-state__code">404</div>
 
-    {# Decorative icon - compass/lost metaphor #}
+    {# Decorative icon #}
     <div class="empty-state__icon" aria-hidden="true">
       {{ icon('compass', size=120) }}
     </div>
@@ -28,32 +48,26 @@
       </a>
     </div>
 
-    {# Get actual navigation items from site config or auto-discovery #}
-    {% set main_menu = get_menu_lang('main', current_lang()) %}
-    {% set auto_nav = [] %}
-    {% if main_menu | length == 0 %}
-    {% set auto_nav = get_auto_nav() %}
-    {% endif %}
-    {% set nav_items = main_menu if main_menu else auto_nav %}
-
-    {# Only show suggestions if we have navigation items #}
-    {% if nav_items %}
+    {# Navigation suggestions #}
+    {% if nav_items | length > 0 %}
     <div class="empty-state__suggestions">
       <h2>Quick Navigation</h2>
       <ul>
         {% for item in nav_items[:5] %}
+        {% let item_href = item?.href ?? '#' %}
+        {% let item_name = item?.name ?? 'Link' %}
         <li>
-          <a href="{{ item.href | absolute_url }}">{{ item.name }}</a>
+          <a href="{{ item_href | absolute_url }}">{{ item_name }}</a>
         </li>
-        {% endfor %}
+        {% end %}
       </ul>
     </div>
-    {% endif %}
+    {% end %}
 
-    {# Search hint - points to existing global search #}
+    {# Search hint #}
     <p class="empty-state__search-hint">
       Press <kbd>⌘</kbd><kbd>K</kbd> to search
     </p>
   </div>
 </div>
-{% endblock %}
+{% end %}

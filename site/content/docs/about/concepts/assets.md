@@ -41,7 +41,7 @@ By default, Bengal uses a pure Python pipeline that requires no external depende
 
 Place assets in your `assets/` directory:
 
-```text
+```tree
 assets/
 ├── css/
 │   └── style.css

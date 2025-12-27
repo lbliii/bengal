@@ -233,7 +233,7 @@ def scan_string(
     escape_char: str = "\\",
     allow_multiline: bool = False,
 ) -> tuple[int, int]:
-    """Scan a string literal.
+    """Scan a string literal using C-optimized str.find().
 
     Args:
         pos: Position after opening quote.
@@ -245,32 +245,46 @@ def scan_string(
         Tuple of (position after closing quote, newline count).
     """
     length = len(code)
-    newlines = 0
+    scan_start = pos
 
-    while pos < length:
-        char = code[pos]
+    while True:
+        # Use C-level str.find() for fast quote scanning
+        quote_pos = code.find(quote, pos)
 
-        if char == quote:
-            return pos + 1, newlines
+        if quote_pos == -1:
+            # Unterminated string - count newlines and return end
+            if allow_multiline:
+                return length, code.count("\n", scan_start, length)
+            # For single-line, find first newline
+            newline_pos = code.find("\n", scan_start)
+            if newline_pos != -1 and newline_pos < length:
+                return newline_pos, 0
+            return length, 0
 
-        if char == escape_char and pos + 1 < length:
-            if code[pos + 1] == "\n":
-                newlines += 1
-            pos += 2
-            continue
+        # Check for newline before quote (single-line mode)
+        if not allow_multiline:
+            newline_pos = code.find("\n", pos, quote_pos)
+            if newline_pos != -1:
+                return newline_pos, 0
 
-        if char == "\n":
-            if not allow_multiline:
-                return pos, newlines
-            newlines += 1
+        # Count preceding backslashes to check if escaped
+        num_backslashes = 0
+        check = quote_pos - 1
+        while check >= scan_start and code[check] == escape_char:
+            num_backslashes += 1
+            check -= 1
 
-        pos += 1
+        if num_backslashes % 2 == 0:
+            # Even backslashes = not escaped, this is the closing quote
+            newlines = code.count("\n", scan_start, quote_pos) if allow_multiline else 0
+            return quote_pos + 1, newlines
 
-    return pos, newlines
+        # Odd backslashes = escaped quote, continue searching
+        pos = quote_pos + 1
 
 
 def scan_triple_string(code: str, pos: int, quote: str) -> tuple[int, int]:
-    """Scan a triple-quoted string.
+    """Scan a triple-quoted string using C-optimized str.find().
 
     Args:
         pos: Position after opening triple quote.
@@ -281,24 +295,30 @@ def scan_triple_string(code: str, pos: int, quote: str) -> tuple[int, int]:
     """
     length = len(code)
     triple = quote * 3
-    newlines = 0
+    scan_start = pos
 
-    while pos < length:
-        if code[pos : pos + 3] == triple:
-            return pos + 3, newlines
+    while True:
+        # Use C-level str.find() for fast triple-quote scanning
+        triple_pos = code.find(triple, pos)
 
-        if code[pos] == "\\":
-            if pos + 1 < length and code[pos + 1] == "\n":
-                newlines += 1
-            pos += 2
-            continue
+        if triple_pos == -1:
+            # Unterminated string
+            return length, code.count("\n", scan_start, length)
 
-        if code[pos] == "\n":
-            newlines += 1
+        # Check if escaped (count preceding backslashes)
+        num_backslashes = 0
+        check = triple_pos - 1
+        while check >= scan_start and code[check] == "\\":
+            num_backslashes += 1
+            check -= 1
 
-        pos += 1
+        if num_backslashes % 2 == 0:
+            # Not escaped, this is the closing triple quote
+            newlines = code.count("\n", scan_start, triple_pos)
+            return triple_pos + 3, newlines
 
-    return pos, newlines
+        # Escaped, continue searching after this position
+        pos = triple_pos + 1
 
 
 def scan_c_style_number(
@@ -373,9 +393,8 @@ def scan_c_style_number(
         pos = _scan_suffix(code, pos, config.float_suffixes)
 
         # Check for imaginary suffix
-        if config.imaginary_suffix and pos < length:
-            if code[pos] == config.imaginary_suffix:
-                pos += 1
+        if config.imaginary_suffix and pos < length and code[pos] == config.imaginary_suffix:
+            pos += 1
 
         return TokenType.NUMBER_FLOAT, pos
 
@@ -386,10 +405,9 @@ def scan_c_style_number(
         return TokenType.NUMBER_FLOAT, pos
 
     # Check for imaginary suffix (Python: 1j)
-    if config.imaginary_suffix and pos < length:
-        if code[pos] == config.imaginary_suffix:
-            pos += 1
-            return TokenType.NUMBER_FLOAT, pos
+    if config.imaginary_suffix and pos < length and code[pos] == config.imaginary_suffix:
+        pos += 1
+        return TokenType.NUMBER_FLOAT, pos
 
     # Integer with optional suffix
     pos = _scan_suffix(code, pos, config.integer_suffixes)
@@ -565,9 +583,10 @@ class CStyleNumbersMixin:
         char = code[pos]
 
         # Must start with digit or dot followed by digit
-        if char not in DIGITS:
-            if char != "." or pos + 1 >= len(code) or code[pos + 1] not in DIGITS:
-                return None, pos
+        if char not in DIGITS and (
+            char != "." or pos + 1 >= len(code) or code[pos + 1] not in DIGITS
+        ):
+            return None, pos
 
         start = pos
         token_type, pos = scan_c_style_number(code, pos, self.NUMBER_CONFIG)

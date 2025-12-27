@@ -42,6 +42,7 @@ if TYPE_CHECKING:
 __all__ = [
     "HighlightBackend",
     "highlight",
+    "highlight_many",
     "get_highlighter",
     "get_default_backend",
     "register_backend",
@@ -195,6 +196,49 @@ def highlight(
     """
     highlighter = get_highlighter(backend)
     return highlighter.highlight(code, language, hl_lines, show_linenos)
+
+
+def highlight_many(
+    items: list[tuple[str, str]],
+    backend: str | None = None,
+) -> list[str]:
+    """
+    Highlight multiple code blocks in parallel.
+
+    On Python 3.14t free-threaded, this provides significant speedups
+    (1.5-2x) for pages with many code blocks.
+
+    Args:
+        items: List of (code, language) tuples
+        backend: Override default backend (None uses rosettes)
+
+    Returns:
+        List of highlighted HTML strings in the same order
+
+    Example:
+        >>> from bengal.rendering.highlighting import highlight_many
+        >>> blocks = [
+        ...     ("def hello(): pass", "python"),
+        ...     ("fn main() {}", "rust"),
+        ... ]
+        >>> results = highlight_many(blocks)
+        >>> len(results)
+        2
+    """
+    # Rosettes has native parallel support
+    backend_name = (backend or "auto").lower()
+    if backend_name == "auto":
+        backend_name = _select_best_backend()
+
+    if backend_name == "rosettes":
+        # Use Rosettes' native parallel implementation
+        from bengal.rendering import rosettes
+
+        return rosettes.highlight_many(items)
+
+    # Fallback: sequential for other backends
+    highlighter = get_highlighter(backend)
+    return [highlighter.highlight(code, lang) for code, lang in items]
 
 
 # =============================================================================

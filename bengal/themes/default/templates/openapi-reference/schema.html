@@ -13,7 +13,7 @@ This template receives:
 - site: Site instance
 #}
 
-{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc with context %}
+{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc %}
 
 {% block content %}
 {# Three-column documentation layout #}
@@ -45,7 +45,7 @@ This template receives:
         <div class="autodoc-description">
           <p>{{ element.description }}</p>
         </div>
-        {% endif %}
+        {% end %}
       </header>
 
       {# Schema Type #}
@@ -56,7 +56,7 @@ This template receives:
           <span class="autodoc-stat-value"><code>{{ element.metadata.type }}</code></span>
         </span>
       </div>
-      {% endif %}
+      {% end %}
 
       {# Properties #}
       {% if element.metadata.properties %}
@@ -72,19 +72,19 @@ This template receives:
             </tr>
           </thead>
           <tbody>
-            {% set required_props = element.metadata.required | default([]) %}
+            {% set required_props = element.metadata.required ?? [] %}
             {% for prop_name, prop_schema in element.metadata.properties.items() %}
-            <tr {% if prop_name in required_props %}data-required="true"{% endif %}>
+            <tr {% if prop_name in required_props %}data-required="true"{% end %}>
               <td class="autodoc-cell-name"><code>{{ prop_name }}</code></td>
-              <td class="autodoc-cell-type"><code>{{ prop_schema.type | default('object') }}</code></td>
-              <td>{% if prop_name in required_props %}Yes{% else %}No{% endif %}</td>
-              <td class="autodoc-cell-desc">{{ prop_schema.description | default('—') }}</td>
+              <td class="autodoc-cell-type"><code>{{ prop_schema.type ?? 'object' }}</code></td>
+              <td>{% if prop_name in required_props %}Yes{% else %}No{% end %}</td>
+              <td class="autodoc-cell-desc">{{ prop_schema.description ?? '—' }}</td>
             </tr>
-            {% endfor %}
+            {% end %}
           </tbody>
         </table>
       </section>
-      {% endif %}
+      {% end %}
 
       {# Example #}
       {% if element.metadata.example %}
@@ -94,16 +94,16 @@ This template receives:
           <pre><code class="language-json">{{ element.metadata.example | tojson(indent=2) }}</code></pre>
         </div>
       </section>
-      {% endif %}
+      {% end %}
 
       {# Tags #}
       {% if page.tags %}
       <footer class="docs-footer">
         <span class="docs-footer-label">Tagged</span>
-        {% from 'partials/content-components.html' import tag_list with context %}
+        {% from 'partials/components/tags.html' import tag_list %}
         {{ tag_list(page.tags) }}
       </footer>
-      {% endif %}
+      {% end %}
     </article>
 
     {# Page navigation (prev/next) at bottom #}
@@ -122,4 +122,4 @@ This template receives:
 
 {# Sidebar overlay for mobile #}
 <div class="docs-sidebar-overlay" aria-hidden="true"></div>
-{% endblock %}
+{% end %}

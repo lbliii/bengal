@@ -230,9 +230,9 @@ Content.
             orch1 = BuildOrchestrator(site1)
             orch1.build(incremental=False)
 
-            # Check that TaxonomyIndex was created
-            index_file = tmpdir_path / ".bengal" / "taxonomy_index.json"
-            assert index_file.exists(), "TaxonomyIndex should be persisted"
+            # Check that TaxonomyIndex was created (compressed format)
+            index_file = tmpdir_path / ".bengal" / "taxonomy_index.json.zst"
+            assert index_file.exists(), "TaxonomyIndex should be persisted as compressed .json.zst"
 
             # Verify it has correct data
             index = TaxonomyIndex(index_file)

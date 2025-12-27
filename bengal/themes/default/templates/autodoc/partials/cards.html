@@ -29,15 +29,15 @@ For individual cards, import the macro:
 {% if title %}
 <section class="autodoc-section" data-section="children">
   <h2 class="autodoc-section-title">{{ title }}</h2>
-{% endif %}
+{% end %}
 
   <div class="autodoc-cards">
     {% for child in children %}
     {{ element_card(child, card_type) }}
-    {% endfor %}
+    {% end %}
   </div>
 
 {% if title %}
 </section>
-{% endif %}
-{% endif %}
+{% end %}
+{% end %}

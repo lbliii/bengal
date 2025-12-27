@@ -101,7 +101,7 @@ collections = {
 
 By default, validation **warns** but doesn't fail builds:
 
-```
+```tree
 ⚠ content/blog/my-post.md
   └─ date: Required field 'date' is missing
 ```

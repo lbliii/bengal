@@ -48,6 +48,14 @@ Feature mapping and syntax translation for users migrating from other static sit
 :color: purple
 Configure GitHub Actions for automatic builds, testing, and deployment to GitHub Pages, Netlify, or Vercel.
 :::{/card}
+
+:::{card} Getting Started with Kida
+:icon: zap
+:link: ./getting-started-with-kida/
+:description: Learn Kida template syntax from scratch
+:color: teal
+Master Bengal's native template engine with pattern matching, pipelines, and fragment caching. Perfect for performance-focused developers.
+:::{/card}
 :::{/cards}
 
 ## Learning Journey

@@ -48,8 +48,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from bengal.cache.compression import load_auto, save_compressed
 from bengal.core.page.page_core import PageCore
-from bengal.utils.atomic_write import AtomicFile
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -132,13 +132,15 @@ class PageDiscoveryCache:
 
     def _load_from_disk(self) -> None:
         """Load cache from disk if it exists."""
-        if not self.cache_path.exists():
+        # load_auto handles both .json.zst and .json formats
+        compressed_path = self.cache_path.with_suffix(".json.zst")
+        if not compressed_path.exists() and not self.cache_path.exists():
             logger.debug("page_discovery_cache_not_found", path=str(self.cache_path))
             return
 
         try:
-            with open(self.cache_path) as f:
-                data = json.load(f)
+            # load_auto tries .json.zst first, falls back to .json
+            data = load_auto(self.cache_path)
 
             # Load cache entries (no version check - just fail and rebuild if format changed)
             for path_str, entry_data in data.get("pages", {}).items():
@@ -185,10 +187,9 @@ class PageDiscoveryCache:
                 "pages": {path: entry.to_dict() for path, entry in self.pages.items()},
             }
 
-            # Atomic write to avoid partial/corrupt files on crash
-            with AtomicFile(self.cache_path, "w", encoding="utf-8") as f:
-                # Use custom default handler for datetime objects
-                json.dump(data, f, indent=2, default=str)
+            # Save as compressed .json.zst format (save_compressed handles atomic writes and default=str)
+            compressed_path = self.cache_path.with_suffix(".json.zst")
+            save_compressed(data, compressed_path)
 
             logger.info(
                 "page_discovery_cache_saved",

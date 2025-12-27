@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from bengal.core.output import OutputRecord
     from bengal.health.report import HealthReport
+    from bengal.rendering.errors import ErrorDeduplicator
 
 
 @dataclass
@@ -88,6 +89,13 @@ class BuildStats:
     cache_bypass_hits: int = 0  # Pages that bypassed cache (in changed_sources or is_changed)
     cache_bypass_misses: int = 0  # Pages that used cache (not changed)
 
+    # Block cache statistics (RFC: kida-template-introspection)
+    # Tracks site-wide template block caching (nav, footer, etc.)
+    block_cache_hits: int = 0  # Times cached block was reused
+    block_cache_misses: int = 0  # Times block wasn't in cache
+    block_cache_site_blocks: int = 0  # Number of site-scoped blocks cached
+    block_cache_time_saved_ms: float = 0.0  # Estimated time saved by block caching
+
     # Additional phase timings (Phase 2)
     menu_time_ms: float = 0
     related_posts_time_ms: float = 0
@@ -113,8 +121,27 @@ class BuildStats:
         default_factory=list
     )  # Rich template errors (TemplateRenderError instances)
 
+    # Error deduplication for template errors (reduces noise during rendering)
+    # Lazily initialized via get_error_deduplicator() to avoid circular imports
+    _error_deduplicator: ErrorDeduplicator | None = field(default=None, repr=False)
+
     # Enhanced error collection by category
     errors_by_category: dict[str, ErrorCategory] = field(default_factory=dict)
+
+    def get_error_deduplicator(self) -> ErrorDeduplicator:
+        """
+        Get the error deduplicator for this build.
+
+        Lazily initialized to avoid circular imports.
+
+        Returns:
+            ErrorDeduplicator instance for this build
+        """
+        if self._error_deduplicator is None:
+            from bengal.rendering.errors import ErrorDeduplicator
+
+            self._error_deduplicator = ErrorDeduplicator()
+        return self._error_deduplicator
 
     def add_warning(self, file_path: str, message: str, warning_type: str = "other") -> None:
         """Add a warning to the build."""
@@ -242,4 +269,9 @@ class BuildStats:
             "memory_rss_mb": self.memory_rss_mb,
             "memory_heap_mb": self.memory_heap_mb,
             "memory_peak_mb": self.memory_peak_mb,
+            # Block cache stats (RFC: kida-template-introspection)
+            "block_cache_hits": self.block_cache_hits,
+            "block_cache_misses": self.block_cache_misses,
+            "block_cache_site_blocks": self.block_cache_site_blocks,
+            "block_cache_time_saved_ms": self.block_cache_time_saved_ms,
         }

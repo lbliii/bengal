@@ -1,143 +1,22 @@
 {#
-Page Hero - Editorial Variant
+================================================================================
+DEPRECATED: Editorial Hero Component
+================================================================================
 
-Clean magazine-style layout without container styling:
-- Breadcrumbs as eyebrow (trimmed, no current page)
-- LLM share button aligned right
-- Large H1 title tight below breadcrumbs
-- Description
-- Inline metadata (read time, word count, updated)
+This template is now inlined as a macro in page-hero.html for faster rendering.
 
-No border, background, or blob animations - just clean typography.
+MIGRATION:
+  Old: {% include 'partials/page-hero-editorial.html' %}
+  New: {% include 'partials/page-hero.html' %}  (auto-routes to editorial)
 
-Usage: Included via page-hero.html dispatcher
-Set hero_style: editorial in frontmatter or theme config
+  Or call macro directly:
+    {% from 'partials/page-hero/_macros.html' import hero_editorial %}
+    {{ hero_editorial(page, params, theme) }}
+
+See: plan/drafted/rfc-page-hero-template-flattening.md
+================================================================================
 #}
 
-{% from 'partials/navigation-components.html' import breadcrumbs with context %}
-
-{# Macro: Get page URL with fallback chain for robustness #}
-{% macro get_page_url(page) -%}
-    {{ page._path or page.href or '/' }}
-{%- endmacro %}
-
-{% if page %}
-<div class="page-hero page-hero--editorial">
-  {# Top row: Breadcrumbs (left) + Actions (right) #}
-  <div class="page-hero__top">
-    {# Breadcrumbs as eyebrow - trimmed (excludes current page) #}
-    <nav class="page-hero__eyebrow" aria-label="Breadcrumb">
-      {% set breadcrumb_items = get_breadcrumbs(page) %}
-      {% if breadcrumb_items and breadcrumb_items | length > 1 %}
-      <ol class="page-hero__breadcrumbs">
-        {# Skip the last item (current page) - it's the H1 #}
-        {% for item in breadcrumb_items[:-1] %}
-        <li>
-          <a href="{{ item.href | absolute_url }}" class="page-hero__breadcrumb-link">{{ item.title }}</a>
-        </li>
-        {% endfor %}
-      </ol>
-      {% endif %}
-    </nav>
-
-    {# Actions: LLM Share Button #}
-    <div class="page-hero__actions">
-      {% set page_url = canonical_url(get_page_url(page)) %}
-      {% set llm_txt_url = ensure_trailing_slash(page_url) ~ 'index.txt' %}
-      {% set share_prompt = "Please help me understand this documentation: " + llm_txt_url %}
-
-      <div class="page-hero__share">
-        <button class="page-hero__share-trigger" popovertarget="page-hero-share-menu"
-          aria-label="{{ t('share.ai_assistants', default='Share with AI assistants') }}" title="{{ t('share.ai_assistants', default='Share with AI assistants') }}">
-          <span>ᗢ</span>
-          {{ icon('caret-down', size=14, css_class='page-hero__share-chevron') }}
-        </button>
-
-        <div id="page-hero-share-menu" popover class="page-hero__share-dropdown--popover">
-          <div class="page-hero__share-content">
-            {# Quick Actions #}
-            <button class="page-hero__share-item" data-action="copy-url" data-url="{{ page_url }}" type="button">
-              {{ icon('link', size=16) }}
-              <span>{{ t('share.copy_url', default='Copy URL') }}</span>
-            </button>
-
-            <a href="{{ llm_txt_url }}" target="_blank" rel="noopener noreferrer" class="page-hero__share-item">
-              {{ icon('external', size=16) }}
-              <span>{{ t('share.open_llm_text', default='Open LLM text') }}</span>
-            </a>
-
-            <button class="page-hero__share-item" data-action="copy-llm-txt" data-url="{{ llm_txt_url }}" type="button">
-              {{ icon('copy', size=16) }}
-              <span>{{ t('share.copy_llm_text', default='Copy LLM text') }}</span>
-            </button>
-
-            <hr class="page-hero__share-separator">
-
-            {# AI Assistant Links #}
-            <div class="page-hero__share-section-header">{{ t('share.with_ai', default='Share with AI') }}</div>
-
-            <a href="https://claude.ai/new?q={{ share_prompt | urlencode }}" target="_blank" rel="noopener noreferrer"
-              class="page-hero__share-item page-hero__share-ai" data-ai="claude">
-              {{ icon('ai-claude', size=16) }}
-              <span>{{ t('share.ask_claude', default='Ask Claude') }}</span>
-            </a>
-
-            <a href="https://chatgpt.com/?q={{ share_prompt | urlencode }}" target="_blank" rel="noopener noreferrer"
-              class="page-hero__share-item page-hero__share-ai" data-ai="chatgpt">
-              {{ icon('ai-chatgpt', size=16) }}
-              <span>{{ t('share.ask_chatgpt', default='Ask ChatGPT') }}</span>
-            </a>
-
-            <a href="https://gemini.google.com/app?q={{ share_prompt | urlencode }}" target="_blank" rel="noopener noreferrer"
-              class="page-hero__share-item page-hero__share-ai" data-ai="gemini">
-              {{ icon('ai-gemini', size=16) }}
-              <span>{{ t('share.ask_gemini', default='Ask Gemini') }}</span>
-            </a>
-
-            <a href="https://copilot.microsoft.com/?q={{ share_prompt | urlencode }}" target="_blank" rel="noopener noreferrer"
-              class="page-hero__share-item page-hero__share-ai" data-ai="copilot">
-              {{ icon('ai-copilot', size=16) }}
-              <span>{{ t('share.ask_copilot', default='Ask Copilot') }}</span>
-            </a>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  {# Title - tight below breadcrumbs #}
-  <h1 class="page-hero__title">{{ page.title }}</h1>
-
-  {# Description #}
-  {% if params.description %}
-  <p class="page-hero__description">{{ params.description }}</p>
-  {% endif %}
-
-  {# Inline Metadata #}
-  {% set has_metadata = page.content or page.date or params.lastmod %}
-  {% if has_metadata %}
-  <div class="page-hero__meta">
-    {% if page.content and 'content.reading_time' in theme.features %}
-    <span class="page-hero__meta-item">
-      {{ icon("clock", size=16) }}
-      <span>{{ t('meta.reading_time', {'time': page.content | reading_time}, default='{time} min read') }}</span>
-    </span>
-    {% endif %}
-
-    {% if page.content %}
-    <span class="page-hero__meta-item">
-      {{ icon("file-text", size=16) }}
-      <span>{{ t('meta.word_count', {'count': page.content | wordcount}, default='{count} words') }}</span>
-    </span>
-    {% endif %}
-
-    {% if params.lastmod or page.date %}
-    <span class="page-hero__meta-item">
-      {{ icon("arrow-clockwise", size=16) }}
-      <span>{{ (params.lastmod or page.date) | time_ago }}</span>
-    </span>
-    {% endif %}
-  </div>
-  {% endif %}
-</div>
-{% endif %}
+{# Shim: Forward to macro for backwards compatibility #}
+{% from 'partials/page-hero/_macros.html' import hero_editorial %}
+{{ hero_editorial(page, params, theme) }}

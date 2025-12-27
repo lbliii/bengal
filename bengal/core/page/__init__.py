@@ -56,6 +56,7 @@ if TYPE_CHECKING:
     from bengal.core.section import Section
     from bengal.core.site import Site
 
+from .bundle import BundleType, PageBundleMixin, PageResource, PageResources
 from .computed import PageComputedMixin
 from .content import PageContentMixin
 from .frontmatter import Frontmatter
@@ -75,6 +76,7 @@ class Page(
     PageRelationshipsMixin,
     PageOperationsMixin,
     PageContentMixin,
+    PageBundleMixin,
 ):
     """
     Represents a single content page.
@@ -624,4 +626,11 @@ class Page(
         return str(self._section_path) if self._section_path else None
 
 
-__all__ = ["Frontmatter", "Page", "PageProxy"]
+__all__ = [
+    "BundleType",
+    "Frontmatter",
+    "Page",
+    "PageProxy",
+    "PageResource",
+    "PageResources",
+]

@@ -190,7 +190,7 @@ bengal build --no-incremental
 
 ### Cache Location
 
-```
+```tree
 .bengal/
 ├── cache/
 │   ├── content/        # Parsed markdown cache
@@ -248,7 +248,7 @@ bengal build --profile-templates
 
 **Output:**
 
-```
+```text
 Template Rendering Times:
   layouts/blog.html: 1.2s (340 pages, 3.5ms avg)
   layouts/docs.html: 0.8s (890 pages, 0.9ms avg)
@@ -263,7 +263,7 @@ Template Rendering Times:
 
 If one section has 5K+ pages, consider splitting:
 
-```
+```tree
 content/
 ├── blog/
 │   ├── 2024/     # 500 pages
@@ -337,7 +337,7 @@ bengal build --verbose
 
 **Output:**
 
-```
+```text
 Build Summary:
   Total Pages: 15,432
   Rendered: 342 (incremental)

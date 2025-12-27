@@ -1,327 +1,364 @@
 {% extends "base.html" %}
 
+{#
+================================================================================
+Resume List Template (Kida-Native)
+================================================================================
+
+Resume/CV page with professional layout.
+
+KIDA FEATURES USED:
+- {% let %} for template-scoped variables
+- Optional chaining (?.) for null-safe access
+- Null coalescing (??) for smart defaults
+- {% def %} for reusable section components
+
+USAGE:
+Set `type: resume` in frontmatter
+================================================================================
+#}
+
+{# =============================================================================
+TIMELINE ITEM COMPONENT
+============================================================================= #}
+{% def timeline_item(item, title_field='title', subtitle_field='company') %}
+{% let item_title = item[title_field] ?? '' %}
+{% let item_subtitle = item[subtitle_field] ?? '' %}
+{% let item_start = item?.start_date ?? '' %}
+{% let item_end = item?.end_date ?? 'Present' %}
+{% let item_location = item?.location ?? '' %}
+{% let item_desc = item?.description ?? '' %}
+{% let item_highlights = item?.highlights ?? [] %}
+{% let item_technologies = item?.technologies ?? [] %}
+
+<div class="timeline-item">
+    <div class="timeline-header">
+        <div class="timeline-title-group">
+            <h3 class="timeline-title">{{ item_title }}</h3>
+            <p class="timeline-company">{{ item_subtitle }}</p>
+        </div>
+        <div class="timeline-meta">
+            <span class="timeline-date">{{ item_start }} - {{ item_end }}</span>
+            {% if item_location %}
+            <span class="timeline-location">{{ item_location }}</span>
+            {% end %}
+        </div>
+    </div>
+    {% if item_desc %}
+    <p class="timeline-description">{{ item_desc }}</p>
+    {% end %}
+    {% if item_highlights is iterable and item_highlights is not string and item_highlights | length > 0 %}
+    <ul class="timeline-highlights">
+        {% for highlight in item_highlights %}
+        <li>{{ highlight }}</li>
+        {% end %}
+    </ul>
+    {% end %}
+    {% if item_technologies is iterable and item_technologies is not string and item_technologies | length > 0 %}
+    <div class="timeline-technologies">
+        <strong>Technologies:</strong>
+        {% for tech in item_technologies %}
+        <span class="tech-tag">{{ tech }}</span>
+        {% end %}
+    </div>
+    {% end %}
+</div>
+{% end %}
+
+{# =============================================================================
+MAIN TEMPLATE
+============================================================================= #}
+
 {% block content %}
-{# Load resume data from site.data (preferred) or params (fallback) #}
-{# Use safe_access filter for clean dot-notation access without .get() everywhere #}
-{% set resume = (site.data.resume if site.data and site.data.resume else params) | safe_access %}
+{# Load resume data #}
+{% let site_data = site?.data ?? {} %}
+{% let resume = site_data?.resume ?? params ?? {} %}
+{% let resume_name = resume?.name ?? page?.title ?? 'Resume' %}
+{% let resume_headline = resume?.headline ?? '' %}
+{% let resume_contact = resume?.contact ?? {} %}
+{% let resume_summary = resume?.summary ?? '' %}
+{% let resume_experience = resume?.experience ?? [] %}
+{% let resume_education = resume?.education ?? [] %}
+{% let resume_skills = resume?.skills ?? [] %}
+{% let resume_projects = resume?.projects ?? [] %}
+{% let resume_certifications = resume?.certifications ?? [] %}
+{% let resume_awards = resume?.awards ?? [] %}
+{% let resume_languages = resume?.languages ?? [] %}
+{% let resume_volunteer = resume?.volunteer ?? [] %}
 
 <div class="resume">
     {# Header Section #}
     <header class="resume-header">
-        <h1 class="resume-name">{{ resume.name or page.title }}</h1>
-        {% if resume.headline %}
-        <p class="resume-headline">{{ resume.headline }}</p>
-        {% endif %}
+        <h1 class="resume-name">{{ resume_name }}</h1>
+        {% if resume_headline %}
+        <p class="resume-headline">{{ resume_headline }}</p>
+        {% end %}
 
         {# Contact Information #}
-        {% if resume.contact %}
-        {% set contact = resume.contact %}
+        {% if resume_contact | length > 0 %}
         <div class="resume-contact">
-            {% if contact.email %}
-            <a href="mailto:{{ contact.email }}" class="contact-item">
-                <span class="contact-icon">✉</span> {{ contact.email }}
+            {% if resume_contact?.email %}
+            <a href="mailto:{{ resume_contact.email }}" class="contact-item">
+                <span class="contact-icon">✉</span> {{ resume_contact.email }}
             </a>
-            {% endif %}
-            {% if contact.phone %}
+            {% end %}
+            {% if resume_contact?.phone %}
             <span class="contact-item">
-                <span class="contact-icon">📱</span> {{ contact.phone }}
+                <span class="contact-icon">📱</span> {{ resume_contact.phone }}
             </span>
-            {% endif %}
-            {% if contact.location %}
+            {% end %}
+            {% if resume_contact?.location %}
             <span class="contact-item">
-                <span class="contact-icon">📍</span> {{ contact.location }}
+                <span class="contact-icon">📍</span> {{ resume_contact.location }}
             </span>
-            {% endif %}
-            {% if contact.website %}
-            <a href="{{ contact.website }}" class="contact-item" target="_blank">
-                <span class="contact-icon">🌐</span> {{ contact.website | replace('https://', '') | replace('http://', '') }}
+            {% end %}
+            {% if resume_contact?.website %}
+            {% let website_display = resume_contact.website | replace('https://', '') | replace('http://', '') %}
+            <a href="{{ resume_contact.website }}" class="contact-item" target="_blank">
+                <span class="contact-icon">🌐</span> {{ website_display }}
             </a>
-            {% endif %}
-            {% if contact.linkedin %}
-            <a href="{{ contact.linkedin }}" class="contact-item" target="_blank">
+            {% end %}
+            {% if resume_contact?.linkedin %}
+            <a href="{{ resume_contact.linkedin }}" class="contact-item" target="_blank">
                 <span class="contact-icon">💼</span> LinkedIn
             </a>
-            {% endif %}
-            {% if contact.github %}
-            <a href="{{ contact.github }}" class="contact-item" target="_blank">
+            {% end %}
+            {% if resume_contact?.github %}
+            <a href="{{ resume_contact.github }}" class="contact-item" target="_blank">
                 <span class="contact-icon">🔗</span> GitHub
             </a>
-            {% endif %}
+            {% end %}
         </div>
-        {% endif %}
+        {% end %}
     </header>
 
     {# Summary/About Section #}
-    {% if resume.summary or content %}
+    {% if resume_summary or content %}
     <section class="resume-section resume-summary">
-        {% if resume.summary %}
-        <p class="summary-text">{{ resume.summary }}</p>
-        {% endif %}
+        {% if resume_summary %}
+        <p class="summary-text">{{ resume_summary }}</p>
+        {% end %}
         {% if content %}
         <div class="summary-content prose">
             {{ content | safe }}
         </div>
-        {% endif %}
+        {% end %}
     </section>
-    {% endif %}
+    {% end %}
 
     {# Experience Section #}
-    {% if resume.experience %}
+    {% if resume_experience | length > 0 %}
     <section class="resume-section">
         <h2 class="section-title">Experience</h2>
         <div class="timeline">
-            {% for job in resume.experience %}
-            {% set job = job | safe_access %}
-            <div class="timeline-item">
-                <div class="timeline-header">
-                    <div class="timeline-title-group">
-                        <h3 class="timeline-title">{{ job.title }}</h3>
-                        <p class="timeline-company">{{ job.company }}</p>
-                    </div>
-                    <div class="timeline-meta">
-                        <span class="timeline-date">{{ job.start_date }} - {{ job.end_date or 'Present' }}</span>
-                        {% if job.location %}
-                        <span class="timeline-location">{{ job.location }}</span>
-                        {% endif %}
-                    </div>
-                </div>
-                {% if job.description %}
-                <p class="timeline-description">{{ job.description }}</p>
-                {% endif %}
-                {% if job.highlights and job.highlights is iterable and job.highlights is not string %}
-                <ul class="timeline-highlights">
-                    {% for highlight in job.highlights %}
-                    <li>{{ highlight }}</li>
-                    {% endfor %}
-                </ul>
-                {% endif %}
-                {% if job.technologies and job.technologies is iterable and job.technologies is not string %}
-                <div class="timeline-technologies">
-                    <strong>Technologies:</strong>
-                    {% for tech in job.technologies %}
-                    <span class="tech-tag">{{ tech }}</span>
-                    {% endfor %}
-                </div>
-                {% endif %}
-            </div>
-            {% endfor %}
+            {% for job in resume_experience %}
+            {{ timeline_item(job, title_field='title', subtitle_field='company') }}
+            {% end %}
         </div>
     </section>
-    {% endif %}
+    {% end %}
 
     {# Education Section #}
-    {% if resume.education %}
+    {% if resume_education | length > 0 %}
     <section class="resume-section">
         <h2 class="section-title">Education</h2>
         <div class="timeline">
-            {% for edu in resume.education %}
-            {% set edu = edu | safe_access %}
-            <div class="timeline-item">
-                <div class="timeline-header">
-                    <div class="timeline-title-group">
-                        <h3 class="timeline-title">{{ edu.degree }}</h3>
-                        <p class="timeline-company">{{ edu.institution }}</p>
-                    </div>
-                    <div class="timeline-meta">
-                        <span class="timeline-date">{{ edu.start_date }} - {{ edu.end_date or 'Present' }}</span>
-                        {% if edu.location %}
-                        <span class="timeline-location">{{ edu.location }}</span>
-                        {% endif %}
-                    </div>
-                </div>
-                {% if edu.gpa %}
-                <p class="timeline-description">GPA: {{ edu.gpa }}</p>
-                {% endif %}
-                {% if edu.honors %}
-                <ul class="timeline-highlights">
-                    {% for honor in edu.honors %}
-                    <li>{{ honor }}</li>
-                    {% endfor %}
-                </ul>
-                {% endif %}
-                {% if edu.coursework %}
-                <div class="timeline-technologies">
-                    <strong>Relevant Coursework:</strong> {{ edu.coursework | join(', ') }}
-                </div>
-                {% endif %}
+            {% for edu in resume_education %}
+            {% let edu_item = {
+            'title': edu?.degree ?? '',
+            'company': edu?.institution ?? '',
+            'start_date': edu?.start_date ?? '',
+            'end_date': edu?.end_date ?? 'Present',
+            'location': edu?.location ?? '',
+            'description': 'GPA: ' ~ edu.gpa if edu?.gpa else '',
+            'highlights': edu?.honors ?? [],
+            'technologies': []
+            } %}
+            {{ timeline_item(edu_item) }}
+            {% if edu?.coursework %}
+            <div class="timeline-technologies" style="margin-top: -1rem; padding-left: 1rem;">
+                <strong>Relevant Coursework:</strong> {{ edu.coursework | join(', ') }}
             </div>
-            {% endfor %}
+            {% end %}
+            {% end %}
         </div>
     </section>
-    {% endif %}
+    {% end %}
 
     {# Skills Section #}
-    {% if resume.skills %}
+    {% if resume_skills | length > 0 %}
     <section class="resume-section">
         <h2 class="section-title">Skills</h2>
         <div class="skills-grid">
-            {% for skill_group in resume.skills %}
-            {% set skill_group = skill_group | safe_access %}
+            {% for skill_group in resume_skills %}
+            {% let group_category = skill_group?.category ?? 'Skills' %}
+            {% let group_items = skill_group?.items ?? [] %}
             <div class="skill-group">
-                <h3 class="skill-category">{{ skill_group.category }}</h3>
+                <h3 class="skill-category">{{ group_category }}</h3>
                 <div class="skill-tags">
-                    {% for skill in skill_group.items %}
+                    {% for skill in group_items %}
                     <span class="skill-tag">{{ skill }}</span>
-                    {% endfor %}
+                    {% end %}
                 </div>
             </div>
-            {% endfor %}
+            {% end %}
         </div>
     </section>
-    {% endif %}
+    {% end %}
 
     {# Projects Section #}
-    {% if resume.projects %}
+    {% if resume_projects | length > 0 %}
     <section class="resume-section">
         <h2 class="section-title">Projects</h2>
         <div class="timeline">
-            {% for project in resume.projects %}
-            {% set project = project | safe_access %}
+            {% for project in resume_projects %}
+            {% let project_name = project?.name ?? '' %}
+            {% let project_url = project?.url ?? '' %}
+            {% let project_role = project?.role ?? '' %}
+            {% let project_date = project?.date ?? '' %}
+            {% let project_desc = project?.description ?? '' %}
+            {% let project_highlights = project?.highlights ?? [] %}
+            {% let project_technologies = project?.technologies ?? [] %}
+            {% let project_github = project?.github ?? '' %}
+            {% let project_demo = project?.demo ?? '' %}
             <div class="timeline-item">
                 <div class="timeline-header">
                     <div class="timeline-title-group">
                         <h3 class="timeline-title">
-                            {% if project.url %}
-                            <a href="{{ project.url }}" target="_blank">{{ project.name }}</a>
+                            {% if project_url %}
+                            <a href="{{ project_url }}" target="_blank">{{ project_name }}</a>
                             {% else %}
-                            {{ project.name }}
-                            {% endif %}
+                            {{ project_name }}
+                            {% end %}
                         </h3>
-                        {% if project.role %}
-                        <p class="timeline-company">{{ project.role }}</p>
-                        {% endif %}
+                        {% if project_role %}
+                        <p class="timeline-company">{{ project_role }}</p>
+                        {% end %}
                     </div>
-                    {% if project.date %}
+                    {% if project_date %}
                     <div class="timeline-meta">
-                        <span class="timeline-date">{{ project.date }}</span>
+                        <span class="timeline-date">{{ project_date }}</span>
                     </div>
-                    {% endif %}
+                    {% end %}
                 </div>
-                {% if project.description %}
-                <p class="timeline-description">{{ project.description }}</p>
-                {% endif %}
-                {% if project.highlights %}
+                {% if project_desc %}
+                <p class="timeline-description">{{ project_desc }}</p>
+                {% end %}
+                {% if project_highlights | length > 0 %}
                 <ul class="timeline-highlights">
-                    {% for highlight in project.highlights %}
+                    {% for highlight in project_highlights %}
                     <li>{{ highlight }}</li>
-                    {% endfor %}
+                    {% end %}
                 </ul>
-                {% endif %}
-                {% if project.technologies %}
+                {% end %}
+                {% if project_technologies | length > 0 %}
                 <div class="timeline-technologies">
                     <strong>Technologies:</strong>
-                    {% for tech in project.technologies %}
+                    {% for tech in project_technologies %}
                     <span class="tech-tag">{{ tech }}</span>
-                    {% endfor %}
+                    {% end %}
                 </div>
-                {% endif %}
-                {% if project.github or project.demo %}
+                {% end %}
+                {% if project_github or project_demo %}
                 <div class="project-links">
-                    {% if project.github %}
-                    <a href="{{ project.github }}" target="_blank" class="project-link">GitHub</a>
-                    {% endif %}
-                    {% if project.demo %}
-                    <a href="{{ project.demo }}" target="_blank" class="project-link">Live Demo</a>
-                    {% endif %}
+                    {% if project_github %}
+                    <a href="{{ project_github }}" target="_blank" class="project-link">GitHub</a>
+                    {% end %}
+                    {% if project_demo %}
+                    <a href="{{ project_demo }}" target="_blank" class="project-link">Live Demo</a>
+                    {% end %}
                 </div>
-                {% endif %}
+                {% end %}
             </div>
-            {% endfor %}
+            {% end %}
         </div>
     </section>
-    {% endif %}
+    {% end %}
 
     {# Certifications Section #}
-    {% if resume.certifications %}
+    {% if resume_certifications | length > 0 %}
     <section class="resume-section">
         <h2 class="section-title">Certifications</h2>
         <div class="certifications-list">
-            {% for cert in resume.certifications %}
-            {% set cert = cert | safe_access %}
+            {% for cert in resume_certifications %}
+            {% let cert_name = cert?.name ?? '' %}
+            {% let cert_issuer = cert?.issuer ?? '' %}
+            {% let cert_date = cert?.date ?? '' %}
+            {% let cert_url = cert?.url ?? '' %}
             <div class="certification-item">
-                <h3 class="certification-name">{{ cert.name }}</h3>
-                <p class="certification-issuer">{{ cert.issuer }}</p>
-                {% if cert.date %}
-                <p class="certification-date">{{ cert.date }}</p>
-                {% endif %}
-                {% if cert.url %}
-                <a href="{{ cert.url }}" target="_blank" class="certification-link">View Credential →</a>
-                {% endif %}
+                <h3 class="certification-name">{{ cert_name }}</h3>
+                <p class="certification-issuer">{{ cert_issuer }}</p>
+                {% if cert_date %}
+                <p class="certification-date">{{ cert_date }}</p>
+                {% end %}
+                {% if cert_url %}
+                <a href="{{ cert_url }}" target="_blank" class="certification-link">View Credential →</a>
+                {% end %}
             </div>
-            {% endfor %}
+            {% end %}
         </div>
     </section>
-    {% endif %}
+    {% end %}
 
     {# Awards Section #}
-    {% if resume.awards %}
+    {% if resume_awards | length > 0 %}
     <section class="resume-section">
         <h2 class="section-title">Awards & Recognition</h2>
         <div class="awards-list">
-            {% for award in resume.awards %}
-            {% set award = award | safe_access %}
+            {% for award in resume_awards %}
+            {% let award_name = award?.name ?? '' %}
+            {% let award_issuer = award?.issuer ?? '' %}
+            {% let award_date = award?.date ?? '' %}
+            {% let award_desc = award?.description ?? '' %}
             <div class="award-item">
-                <h3 class="award-name">{{ award.name }}</h3>
-                <p class="award-issuer">{{ award.issuer }}</p>
-                {% if award.date %}
-                <p class="award-date">{{ award.date }}</p>
-                {% endif %}
-                {% if award.description %}
-                <p class="award-description">{{ award.description }}</p>
-                {% endif %}
+                <h3 class="award-name">{{ award_name }}</h3>
+                <p class="award-issuer">{{ award_issuer }}</p>
+                {% if award_date %}
+                <p class="award-date">{{ award_date }}</p>
+                {% end %}
+                {% if award_desc %}
+                <p class="award-description">{{ award_desc }}</p>
+                {% end %}
             </div>
-            {% endfor %}
+            {% end %}
         </div>
     </section>
-    {% endif %}
+    {% end %}
 
     {# Languages Section #}
-    {% if resume.languages %}
+    {% if resume_languages | length > 0 %}
     <section class="resume-section">
         <h2 class="section-title">Languages</h2>
         <div class="languages-list">
-            {% for lang in resume.languages %}
-            {% set lang = lang | safe_access %}
+            {% for lang in resume_languages %}
+            {% let lang_name = lang?.language ?? '' %}
+            {% let lang_level = lang?.proficiency ?? '' %}
             <div class="language-item">
-                <span class="language-name">{{ lang.language }}</span>
-                <span class="language-level">{{ lang.proficiency }}</span>
+                <span class="language-name">{{ lang_name }}</span>
+                <span class="language-level">{{ lang_level }}</span>
             </div>
-            {% endfor %}
+            {% end %}
         </div>
     </section>
-    {% endif %}
+    {% end %}
 
     {# Volunteer Section #}
-    {% if resume.volunteer %}
+    {% if resume_volunteer | length > 0 %}
     <section class="resume-section">
         <h2 class="section-title">Volunteer Experience</h2>
         <div class="timeline">
-            {% for vol in resume.volunteer %}
-            {% set vol = vol | safe_access %}
-            <div class="timeline-item">
-                <div class="timeline-header">
-                    <div class="timeline-title-group">
-                        <h3 class="timeline-title">{{ vol.role }}</h3>
-                        <p class="timeline-company">{{ vol.organization }}</p>
-                    </div>
-                    <div class="timeline-meta">
-                        <span class="timeline-date">{{ vol.start_date }} - {{ vol.end_date or 'Present' }}</span>
-                    </div>
-                </div>
-                {% if vol.description %}
-                <p class="timeline-description">{{ vol.description }}</p>
-                {% endif %}
-            </div>
-            {% endfor %}
+            {% for vol in resume_volunteer %}
+            {% let vol_item = {
+            'title': vol?.role ?? '',
+            'company': vol?.organization ?? '',
+            'start_date': vol?.start_date ?? '',
+            'end_date': vol?.end_date ?? 'Present',
+            'description': vol?.description ?? ''
+            } %}
+            {{ timeline_item(vol_item) }}
+            {% end %}
         </div>
     </section>
-    {% endif %}
-
-    {# Page Content (bio, personal statement, etc.) #}
-    {% if content and content.strip() %}
-    <section class="resume-section resume-custom-content prose">
-        {{ content | safe }}
-    </section>
-    {% endif %}
+    {% end %}
 </div>
-{% endblock %}
+{% end %}

@@ -244,6 +244,28 @@ class Section(
                 return index_nav
         return self.title
 
+    @property
+    def weight(self) -> float:
+        """
+        Get section weight for sorting (always returns sortable value).
+
+        Returns weight from metadata if set, otherwise infinity (sorts last).
+        This property ensures sections are always sortable without None errors.
+
+        Example in _index.md:
+            ---
+            title: Getting Started
+            weight: 10
+            ---
+        """
+        w = self.metadata.get("weight")
+        if w is not None:
+            try:
+                return float(w)
+            except (ValueError, TypeError):
+                pass
+        return float("inf")
+
     def __repr__(self) -> str:
         return f"Section(name='{self.name}', pages={len(self.pages)}, subsections={len(self.subsections)})"
 

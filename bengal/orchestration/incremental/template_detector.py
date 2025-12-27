@@ -97,6 +97,8 @@ class TemplateChangeDetector:
         verbose: bool,
     ) -> None:
         """Sequential template checking for small workloads."""
+        changed_template_names: list[str] = []
+
         for template_file in template_files:
             if self.cache.is_changed(template_file):
                 if verbose and template_file not in change_summary.modified_templates:
@@ -104,8 +106,17 @@ class TemplateChangeDetector:
                 affected = self.cache.get_affected_pages(template_file)
                 for page_path_str in affected:
                     pages_to_rebuild.add(Path(page_path_str))
+
+                # Collect template name for optional cache invalidation
+                template_name = self._path_to_template_name(template_file)
+                if template_name:
+                    changed_template_names.append(template_name)
             else:
                 self.cache.update_file(template_file)
+
+        # Optional: Help template engine clear cache if it supports it
+        if changed_template_names:
+            self._invalidate_engine_cache(changed_template_names)
 
     def _check_templates_parallel(
         self,
@@ -132,6 +143,9 @@ class TemplateChangeDetector:
                 affected = self.cache.get_affected_pages(template_file)
             return (template_file, changed, affected)
 
+        changed_template_names: list[str] = []
+        changed_names_lock = Lock()
+
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures = {executor.submit(check_single_template, t): t for t in template_files}
 
@@ -144,6 +158,12 @@ class TemplateChangeDetector:
                                 change_summary.modified_templates.append(template_file)
                             for page_path_str in affected:
                                 pages_to_rebuild.add(Path(page_path_str))
+
+                        # Collect template name for optional cache invalidation
+                        template_name = self._path_to_template_name(template_file)
+                        if template_name:
+                            with changed_names_lock:
+                                changed_template_names.append(template_name)
                     else:
                         with unchanged_lock:
                             unchanged_templates.append(template_file)
@@ -158,6 +178,10 @@ class TemplateChangeDetector:
         # Update unchanged templates sequentially (cache writes should be serialized)
         for template_file in unchanged_templates:
             self.cache.update_file(template_file)
+
+        # Optional: Help template engine clear cache if it supports it
+        if changed_template_names:
+            self._invalidate_engine_cache(changed_template_names)
 
     def _get_theme_templates_dir(self) -> Path | None:
         """Get the templates directory for the current theme."""
@@ -178,3 +202,73 @@ class TemplateChangeDetector:
             return bundled_theme_dir
 
         return None
+
+    def _path_to_template_name(self, template_path: Path) -> str | None:
+        """Convert template file path to template name (relative to template dirs).
+
+        Template names are relative to template directories, e.g.:
+        - Path: /site/themes/default/templates/base.html
+        - Name: base.html
+
+        Args:
+            template_path: Absolute path to template file
+
+        Returns:
+            Template name relative to template directory, or None if not found
+        """
+        try:
+            # Check site templates directory first
+            site_templates_dir = self.site.root_path / "templates"
+            if site_templates_dir.exists():
+                try:
+                    rel_path = template_path.relative_to(site_templates_dir)
+                    return str(rel_path.as_posix())
+                except ValueError:
+                    pass
+
+            # Check theme templates directory
+            theme_templates_dir = self._get_theme_templates_dir()
+            if theme_templates_dir and theme_templates_dir.exists():
+                try:
+                    rel_path = template_path.relative_to(theme_templates_dir)
+                    return str(rel_path.as_posix())
+                except ValueError:
+                    pass
+        except Exception:
+            # If path conversion fails, return None (cache invalidation is optional)
+            pass
+
+        return None
+
+    def _invalidate_engine_cache(self, template_names: list[str]) -> None:
+        """Optionally invalidate template engine cache if engine supports it.
+
+        This is an optional optimization. Engines that support cache invalidation
+        (like Kida) can benefit from faster cache clearing when Bengal detects
+        template changes. Engines without this method will continue to work normally
+        (they handle invalidation internally).
+
+        Args:
+            template_names: List of template names to invalidate
+        """
+        try:
+            # Get template engine instance
+            from bengal.rendering.engines import create_engine
+
+            engine = create_engine(self.site)
+
+            # Check if engine supports cache invalidation (optional method)
+            if hasattr(engine, "clear_template_cache"):
+                engine.clear_template_cache(template_names)
+                logger.debug(
+                    "template_engine_cache_invalidated",
+                    engine=type(engine).__name__,
+                    templates=len(template_names),
+                )
+        except Exception as e:
+            # Cache invalidation is optional - log but don't fail
+            logger.debug(
+                "template_engine_cache_invalidation_failed",
+                error=str(e),
+                error_type=type(e).__name__,
+            )

@@ -39,9 +39,14 @@ from __future__ import annotations
 def __getattr__(name: str):
     """Lazy import for backward compatibility with TemplateEngine alias."""
     if name == "TemplateEngine":
-        from bengal.rendering.engines.jinja import JinjaTemplateEngine
+        # Use create_engine() factory to respect site config (defaults to Kida)
+        # This maintains backward compatibility while supporting the new engine system
+        def _TemplateEngine(site, **kwargs):
+            from bengal.rendering.engines import create_engine
 
-        return JinjaTemplateEngine
+            return create_engine(site, **kwargs)
+
+        return _TemplateEngine
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 

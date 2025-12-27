@@ -73,32 +73,31 @@ def _convert_sphinx_roles(text: str) -> str:
     """
     # Pattern: :role:`~module.path.ClassName` or :role:`ClassName`
     # The ~ prefix means "show only the last component"
-    # Add leading space to prevent running into previous word (markdown collapses multiple spaces)
 
-    # :class:`~module.ClassName` → `ClassName`
-    # :class:`ClassName` → `ClassName`
-    text = re.sub(r":class:`~?(?:[a-zA-Z0-9_.]+\.)?([a-zA-Z0-9_]+)`", r" `\1`", text)
+    # Helper to convert a single role type
+    def convert_role(
+        pattern_role: str, text: str, suffix: str = "", keep_full_path: bool = False
+    ) -> str:
+        if keep_full_path:
+            # For :mod: - keep full module path
+            pattern = rf":({pattern_role}):`~?([a-zA-Z0-9_.]+)`"
+            replacement = rf"`\2`{suffix}"
+        else:
+            # Extract just the last component (class/function name)
+            pattern = rf":({pattern_role}):`~?(?:[a-zA-Z0-9_.]+\.)?([a-zA-Z0-9_]+)`"
+            replacement = rf"`\2`{suffix}"
 
-    # :func:`function_name` → `function_name()`
-    text = re.sub(r":func:`~?(?:[a-zA-Z0-9_.]+\.)?([a-zA-Z0-9_]+)`", r" `\1()`", text)
+        return re.sub(pattern, replacement, text)
 
-    # :meth:`method_name` → `method_name()`
-    text = re.sub(r":meth:`~?(?:[a-zA-Z0-9_.]+\.)?([a-zA-Z0-9_]+)`", r" `\1()`", text)
-
-    # :mod:`module.name` → `module.name` (keep full module path)
-    text = re.sub(r":mod:`~?([a-zA-Z0-9_.]+)`", r" `\1`", text)
-
-    # :attr:`attribute_name` → `attribute_name`
-    text = re.sub(r":attr:`~?(?:[a-zA-Z0-9_.]+\.)?([a-zA-Z0-9_]+)`", r" `\1`", text)
-
-    # :exc:`ExceptionName` → `ExceptionName`
-    text = re.sub(r":exc:`~?(?:[a-zA-Z0-9_.]+\.)?([a-zA-Z0-9_]+)`", r" `\1`", text)
-
-    # :const:`CONSTANT_NAME` → `CONSTANT_NAME`
-    text = re.sub(r":const:`~?(?:[a-zA-Z0-9_.]+\.)?([a-zA-Z0-9_]+)`", r" `\1`", text)
-
-    # :data:`variable_name` → `variable_name`
-    text = re.sub(r":data:`~?(?:[a-zA-Z0-9_.]+\.)?([a-zA-Z0-9_]+)`", r" `\1`", text)
+    # Convert each role type
+    text = convert_role("class", text)
+    text = convert_role("func", text, suffix="()")
+    text = convert_role("meth", text, suffix="()")
+    text = convert_role("mod", text, keep_full_path=True)
+    text = convert_role("attr", text)
+    text = convert_role("exc", text)
+    text = convert_role("const", text)
+    text = convert_role("data", text)
 
     return text
 

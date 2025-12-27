@@ -338,11 +338,21 @@ class CacheStore:
         if self._compressed_path and self._compressed_path.exists():
             try:
                 from bengal.cache.compression import ZstdError, load_compressed
-                from bengal.cache.version import CacheVersionError
+                from bengal.errors import BengalCacheError, ErrorCode
 
                 data: dict[Any, Any] | None = load_compressed(self._compressed_path)
                 return data
-            except (ZstdError, json.JSONDecodeError, OSError, CacheVersionError) as e:
+            except BengalCacheError as e:
+                # If it's a version error (A002), fall back to uncompressed JSON
+                if e.code == ErrorCode.A002:
+                    # Fall through to uncompressed JSON below
+                    pass
+                else:
+                    # Other cache errors - log and return None
+                    logger.error(f"Failed to load compressed cache {self._compressed_path}: {e}")
+                    return None
+            except (ZstdError, json.JSONDecodeError, OSError) as e:
+                # Other errors - log and return None
                 logger.error(f"Failed to load compressed cache {self._compressed_path}: {e}")
                 return None
 
@@ -351,6 +361,13 @@ class CacheStore:
             try:
                 content = self.cache_path.read_text(encoding="utf-8")
                 data = json.loads(content)
+                # Validate type to prevent 'str' object has no attribute 'get' errors
+                if not isinstance(data, dict):
+                    logger.error(
+                        f"Cache file {self.cache_path} contains invalid data type: "
+                        f"{type(data).__name__}. Expected dict."
+                    )
+                    return None
                 return data
             except (json.JSONDecodeError, OSError) as e:
                 logger.error(f"Failed to load cache {self.cache_path}: {e}")

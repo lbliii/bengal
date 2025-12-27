@@ -16,8 +16,10 @@ Example:
 {% include 'partials/archive-sidebar.html' with section_filter='blog', show_months=true %}
 #}
 
-{% set title = title | default('Archives') %}
-{% set show_months = show_months | default(false) %}
+{% set
+    title = title ?? 'Archives',
+    show_months = show_months ?? false
+%}
 
 <aside class="archive-sidebar-widget">
   <h3>{{ title }}</h3>
@@ -38,7 +40,7 @@ Example:
       {# Filter by section if specified #}
       {% if section_filter %}
       {% set year_posts = year_posts | selectattr('_section.name', 'equalto', section_filter) | list %}
-      {% endif %}
+      {% end %}
 
       {% if year_posts %}
       <li class="archive-year-item">
@@ -51,14 +53,14 @@ Example:
           </summary>
 
           <ul class="archive-month-list">
-            {% for month_num in range(1, 13) %}
+            {% for month_num in 1..12 %}
             {% set month_key = year ~ '-' ~ '%02d' | format(month_num) %}
             {% set month_posts = site.indexes.date_range.get(month_key) | resolve_pages %}
 
             {# Filter by section if specified #}
             {% if section_filter %}
             {% set month_posts = month_posts | selectattr('_section.name', 'equalto', section_filter) | list %}
-            {% endif %}
+            {% end %}
 
             {% if month_posts %}
             <li class="archive-month-item">
@@ -72,8 +74,8 @@ Example:
                 <span class="month-count">({{ month_posts | length }})</span>
               </a>
             </li>
-            {% endif %}
-            {% endfor %}
+            {% end %}
+            {% end %}
           </ul>
         </details>
         {% else %}
@@ -82,24 +84,25 @@ Example:
           <span class="year-label">{{ year }}</span>
           <span class="year-count">({{ year_posts | length }})</span>
         </a>
-        {% endif %}
+        {% end %}
       </li>
-      {% endif %}
-      {% endfor %}
+      {% end %}
+      {% end %}
     </ul>
   </nav>
 
   {# Optional: Show total post count #}
+  {# Portable pattern: accumulate counts then sum #}
   <div class="archive-total">
-    {% set ns = namespace(total_posts=0) %}
+    {% set post_counts = [] %}
     {% for y in site.indexes.date_range.keys() | select('match', '^\\d{4}$') %}
-    {% set ns.total_posts = ns.total_posts + (site.indexes.date_range.get(y) | length) %}
-    {% endfor %}
+    {% do post_counts.append(site.indexes.date_range.get(y) | length) %}
+    {% end %}
     <p class="total-text">
-      <strong>{{ ns.total_posts }}</strong> total posts
+      <strong>{{ post_counts | sum }}</strong> total posts
     </p>
   </div>
   {% else %}
   <p class="no-archives">No archives available.</p>
-  {% endif %}
+  {% end %}
 </aside>

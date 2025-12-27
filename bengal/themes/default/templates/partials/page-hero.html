@@ -1,51 +1,517 @@
 {#
-Page Hero - Dispatcher
+================================================================================
+Page Hero Component (Kida-Native)
+================================================================================
 
-Routes to the appropriate page hero variant based on configuration.
+All hero variants as macros for optimal rendering performance.
 
-Variants:
-- editorial: Clean magazine layout without container styling (default for single pages)
-- overview: Section index pages with page count instead of read time (default for list pages)
-- magazine: Editorial-style consolidated header with container/background
-- classic: Traditional separate action-bar + page-header
+KIDA FEATURES USED:
+- {% let %} for template-scoped variables
+- Optional chaining (?.) for null-safe access
+- Null coalescing (??) for smart defaults
+- {% def %} for reusable macros
+- {% match %} for variant routing
 
-Configuration:
-- Site-wide: theme.hero_style in bengal.toml
-- Per-page: variant (new) or hero_style (legacy) in frontmatter (overrides site-wide)
+VARIANTS:
+- editorial: Clean magazine layout (default for single pages)
+- magazine: Editorial with container/background styling
+- overview: Section index with page count
+- classic: Traditional action-bar + header (legacy)
+- api/element: Autodoc elements (modules, classes, commands)
+- section: Autodoc section indexes
 
-Usage:
+USAGE:
+Standard (dispatcher auto-selects variant):
 {% include 'partials/page-hero.html' %}
+
+Direct macro call (explicit control):
+{% from 'partials/page-hero.html' import hero_editorial, hero_element %}
+{{ hero_editorial(page, params, theme) }}
+================================================================================
 #}
 
-{# Determine hero style: page variant > page frontmatter > template default > theme config > default (editorial) #}
-{# Priority: variant (PageCore) > hero_style (PageCore/Metadata) > _list_hero_default > theme config > editorial #}
+{% from 'partials/navigation-components.html' import breadcrumbs %}
 
-{% set _page_variant = page.variant if page else none %}
-{% set _page_hero_style = params.hero_style if params else none %}
-{% set _template_default = _list_hero_default if _list_hero_default is defined else none %}
-{% set _theme_hero_style = theme.config.hero_style | default('editorial') if theme else 'editorial' %}
+{# =============================================================================
+   HELPER MACROS (internal)
+   ============================================================================= #}
 
-{# Resolve effective variant #}
-{% set hero_style = _page_variant if _page_variant else (_page_hero_style if _page_hero_style else (_template_default if
-_template_default else _theme_hero_style)) %}
+{# Get page URL with fallback chain #}
+{% def _get_page_url(page) -%}
+{{ page?._path ?? page?.href ?? '/' }}
+{% end %}
 
-{% if hero_style == 'magazine' %}
-{% include 'partials/page-hero-magazine.html' %}
-{% elif hero_style == 'classic' %}
-{% include 'partials/page-hero-classic.html' %}
-{% elif hero_style == 'overview' %}
-{% include 'partials/page-hero-overview.html' %}
-{% elif hero_style == 'api' %}
-{# Route to appropriate separated template based on whether element exists #}
+{# =============================================================================
+   SHARE DROPDOWN MACRO (internal)
+   ============================================================================= #}
+{% def _share_dropdown(page) %}
+{% let page_url = canonical_url(_get_page_url(page)) %}
+{% let llm_txt_url = ensure_trailing_slash(page_url) ~ 'index.txt' %}
+{% let share_prompt = "Please help me understand this documentation: " ~ llm_txt_url %}
+
+<div class="page-hero__actions">
+  <div class="page-hero__share">
+    <button class="page-hero__share-trigger" popovertarget="page-hero-share-menu"
+            aria-label="{{ t('share.ai_assistants', default='Share with AI assistants') }}"
+            title="{{ t('share.ai_assistants', default='Share with AI assistants') }}">
+      <span>ᗢ</span>
+      {{ icon('caret-down', size=14, css_class='page-hero__share-chevron') }}
+    </button>
+
+    <div id="page-hero-share-menu" popover class="page-hero__share-dropdown--popover">
+      <div class="page-hero__share-content">
+        <button class="page-hero__share-item" data-action="copy-url" data-url="{{ page_url }}" type="button">
+          {{ icon('link', size=16) }}
+          <span>{{ t('share.copy_url', default='Copy URL') }}</span>
+        </button>
+
+        <a href="{{ llm_txt_url }}" target="_blank" rel="noopener noreferrer" class="page-hero__share-item">
+          {{ icon('external', size=16) }}
+          <span>{{ t('share.open_llm_text', default='Open LLM text') }}</span>
+        </a>
+
+        <button class="page-hero__share-item" data-action="copy-llm-txt" data-url="{{ llm_txt_url }}" type="button">
+          {{ icon('copy', size=16) }}
+          <span>{{ t('share.copy_llm_text', default='Copy LLM text') }}</span>
+        </button>
+
+        <hr class="page-hero__share-separator">
+
+        <div class="page-hero__share-section-header">{{ t('share.with_ai', default='Share with AI') }}</div>
+
+        <a href="https://claude.ai/new?q={{ share_prompt | urlencode }}" target="_blank" rel="noopener noreferrer"
+           class="page-hero__share-item page-hero__share-ai" data-ai="claude">
+          {{ icon('ai-claude', size=16) }}
+          <span>{{ t('share.ask_claude', default='Ask Claude') }}</span>
+        </a>
+
+        <a href="https://chatgpt.com/?q={{ share_prompt | urlencode }}" target="_blank" rel="noopener noreferrer"
+           class="page-hero__share-item page-hero__share-ai" data-ai="chatgpt">
+          {{ icon('ai-chatgpt', size=16) }}
+          <span>{{ t('share.ask_chatgpt', default='Ask ChatGPT') }}</span>
+        </a>
+
+        <a href="https://gemini.google.com/app?q={{ share_prompt | urlencode }}" target="_blank" rel="noopener noreferrer"
+           class="page-hero__share-item page-hero__share-ai" data-ai="gemini">
+          {{ icon('ai-gemini', size=16) }}
+          <span>{{ t('share.ask_gemini', default='Ask Gemini') }}</span>
+        </a>
+
+        <a href="https://copilot.microsoft.com/?q={{ share_prompt | urlencode }}" target="_blank" rel="noopener noreferrer"
+           class="page-hero__share-item page-hero__share-ai" data-ai="copilot">
+          {{ icon('ai-copilot', size=16) }}
+          <span>{{ t('share.ask_copilot', default='Ask Copilot') }}</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% end %}
+
+{# =============================================================================
+   BREADCRUMB EYEBROW MACRO (internal)
+   ============================================================================= #}
+{% def _breadcrumb_eyebrow(page) %}
+{% let breadcrumb_items = get_breadcrumbs(page) ?? [] %}
+{% if breadcrumb_items | length > 1 %}
+<nav class="page-hero__eyebrow" aria-label="Breadcrumb">
+  <ol class="page-hero__breadcrumbs">
+    {# Skip the last item (current page) - it's the H1 #}
+    {% for item in breadcrumb_items[:-1] %}
+    {% let item_title = item?.title ?? 'Page' %}
+    {% let item_href = item?.href ?? '#' %}
+    <li>
+      <a href="{{ item_href | absolute_url }}" class="page-hero__breadcrumb-link">{{ item_title }}</a>
+    </li>
+    {% end %}
+  </ol>
+</nav>
+{% end %}
+{% enddef %}
+
+{# =============================================================================
+   ELEMENT BADGES MACRO (internal)
+   ============================================================================= #}
+{% def _element_badges(element) %}
 {% if element %}
-{% include 'partials/page-hero/element.html' %}
+{% let element_type = element?.element_type ?? '' %}
+{% let metadata = element?.metadata ?? {} %}
+
+<div class="page-hero__badges">
+  {% match element_type %}
+  {% case 'module' %}
+  <span class="autodoc-badge" data-badge="module">Module</span>
+  {% if metadata?.is_dataclass %}
+  <span class="autodoc-badge" data-badge="dataclass">dataclass</span>
+  {% end %}
+
+  {% case 'class' %}
+  {% if metadata?.is_mixin %}
+  <span class="autodoc-badge" data-badge="mixin">Mixin</span>
+  {% end %}
+  {% if metadata?.is_dataclass %}
+  <span class="autodoc-badge" data-badge="dataclass">dataclass</span>
+  {% end %}
+  {% if metadata?.is_abstract %}
+  <span class="autodoc-badge" data-badge="abstract">abstract</span>
+  {% end %}
+
+  {% case 'function' %}
+  {% if metadata?.is_async %}
+  <span class="autodoc-badge" data-badge="async">async</span>
+  {% end %}
+
+  {% case 'method' %}
+  {% if metadata?.is_async %}
+  <span class="autodoc-badge" data-badge="async">async</span>
+  {% end %}
+  {% if metadata?.is_classmethod %}
+  <span class="autodoc-badge" data-badge="classmethod">classmethod</span>
+  {% end %}
+  {% if metadata?.is_staticmethod %}
+  <span class="autodoc-badge" data-badge="staticmethod">staticmethod</span>
+  {% end %}
+  {% if metadata?.is_property %}
+  <span class="autodoc-badge" data-badge="property">property</span>
+  {% end %}
+
+  {% case 'command' %}
+  <span class="autodoc-badge" data-badge="command">Command</span>
+
+  {% case 'command-group' %}
+  <span class="autodoc-badge" data-badge="command-group">Command Group</span>
+  {% end %}
+</div>
+{% end %}
+{% enddef %}
+
+{# =============================================================================
+   ELEMENT STATS MACRO (internal)
+   ============================================================================= #}
+{% def _element_stats(element) %}
+{% let stats = element | get_element_stats %}
+{% if stats %}
+<div class="page-hero__stats">
+  {% for stat in stats %}
+  <span class="page-hero__stat">
+    <span class="page-hero__stat-value">{{ stat?.value ?? 0 }}</span>
+    <span class="page-hero__stat-label">{{ stat?.label ?? '' }}</span>
+  </span>
+  {% end %}
+</div>
+{% end %}
+{% enddef %}
+
+{# =============================================================================
+   VARIANT MACROS (public API)
+   ============================================================================= #}
+
+{# -----------------------------------------------------------------------------
+   EDITORIAL VARIANT
+   ----------------------------------------------------------------------------- #}
+{% def hero_editorial(page, params, theme) %}
+{% if page %}
+{% let page_title = page?.title ?? 'Page' %}
+{% let page_desc = params?.description ?? '' %}
+{% let page_content = page?.content ?? '' %}
+{% let page_date = page?.date %}
+{% let lastmod = params?.lastmod %}
+{% let theme_features = theme?.features ?? [] %}
+
+<div class="page-hero page-hero--editorial">
+  <div class="page-hero__top">
+    {{ _breadcrumb_eyebrow(page) }}
+    {{ _share_dropdown(page) }}
+  </div>
+
+  <h1 class="page-hero__title">{{ page_title }}</h1>
+
+  {% if page_desc %}
+  <p class="page-hero__description">{{ page_desc }}</p>
+  {% end %}
+
+  {% let has_metadata = page_content or page_date or lastmod %}
+  {% if has_metadata %}
+  <div class="page-hero__meta">
+    {% if page_content and 'content.reading_time' in theme_features %}
+    <span class="page-hero__meta-item">
+      {{ icon("clock", size=16) }}
+      <span>{{ t('meta.reading_time', {'time': page_content | reading_time}, default='{time} min read') }}</span>
+    </span>
+    {% end %}
+
+    {% if page_content %}
+    <span class="page-hero__meta-item">
+      {{ icon("file-text", size=16) }}
+      <span>{{ t('meta.word_count', {'count': page_content | wordcount}, default='{count} words') }}</span>
+    </span>
+    {% end %}
+
+    {% if lastmod or page_date %}
+    <span class="page-hero__meta-item">
+      {{ icon("arrow-clockwise", size=16) }}
+      <span>{{ (lastmod ?? page_date) | time_ago }}</span>
+    </span>
+    {% end %}
+  </div>
+  {% end %}
+</div>
+{% end %}
+{% enddef %}
+
+{# -----------------------------------------------------------------------------
+   MAGAZINE VARIANT
+   ----------------------------------------------------------------------------- #}
+{% def hero_magazine(page, params, theme) %}
+{% if page %}
+{% let page_title = page?.title ?? 'Page' %}
+{% let page_desc = params?.description ?? '' %}
+{% let page_content = page?.content ?? '' %}
+{% let page_date = page?.date %}
+{% let lastmod = params?.lastmod %}
+{% let theme_features = theme?.features ?? [] %}
+
+<div class="page-hero page-hero--magazine">
+  <div class="page-hero__top">
+    {{ _breadcrumb_eyebrow(page) }}
+    {{ _share_dropdown(page) }}
+  </div>
+
+  <h1 class="page-hero__title">{{ page_title }}</h1>
+
+  {% if page_desc %}
+  <p class="page-hero__description">{{ page_desc }}</p>
+  {% end %}
+
+  {% let has_metadata = page_content or page_date or lastmod %}
+  {% if has_metadata %}
+  <div class="page-hero__meta">
+    {% if page_content and 'content.reading_time' in theme_features %}
+    <span class="page-hero__meta-item">
+      {{ icon("clock", size=16) }}
+      <span>{{ page_content | reading_time }} min read</span>
+    </span>
+    {% end %}
+
+    {% if page_content %}
+    <span class="page-hero__meta-item">
+      {{ icon("file-text", size=16) }}
+      <span>{{ page_content | wordcount }} words</span>
+    </span>
+    {% end %}
+
+    {% if lastmod or page_date %}
+    <span class="page-hero__meta-item">
+      {{ icon("arrow-clockwise", size=16) }}
+      <span>{{ (lastmod ?? page_date) | time_ago }}</span>
+    </span>
+    {% end %}
+  </div>
+  {% end %}
+</div>
+{% end %}
+{% enddef %}
+
+{# -----------------------------------------------------------------------------
+   OVERVIEW VARIANT
+   ----------------------------------------------------------------------------- #}
+{% def hero_overview(page, params, posts, subsections) %}
+{% if page %}
+{% let page_title = page?.title ?? 'Section' %}
+{% let page_desc = params?.description ?? '' %}
+{% let page_count = posts | length if posts else 0 %}
+{% let subsection_count = subsections | length if subsections else 0 %}
+{% let total_count = page_count + subsection_count %}
+
+<div class="page-hero page-hero--overview">
+  <div class="page-hero__top">
+    {{ _breadcrumb_eyebrow(page) }}
+    {{ _share_dropdown(page) }}
+  </div>
+
+  <h1 class="page-hero__title">{{ page_title }}</h1>
+
+  {% if page_desc %}
+  <p class="page-hero__description">{{ page_desc }}</p>
+  {% end %}
+
+  {% if total_count > 0 %}
+  <div class="page-hero__meta page-hero__meta--section">
+    <span class="page-hero__meta-item page-hero__meta-item--section">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
+        <polyline points="14 2 14 8 20 8"></polyline>
+      </svg>
+      <span>{{ total_count }} {{ 'page' if total_count == 1 else 'pages' }} in this section</span>
+    </span>
+  </div>
+  {% end %}
+</div>
+{% end %}
+{% enddef %}
+
+{# -----------------------------------------------------------------------------
+   CLASSIC VARIANT
+   ----------------------------------------------------------------------------- #}
+{% def hero_classic(page, params) %}
+{% let page_title = page?.title ?? 'Page' %}
+{% let page_desc = params?.description ?? '' %}
+
+{% include 'partials/action-bar.html' %}
+
+<header class="page-header page-header--classic">
+  <h1>{{ page_title }}</h1>
+  {% if page_desc %}
+  <p class="lead">{{ page_desc }}</p>
+  {% end %}
+</header>
+{% enddef %}
+
+{# -----------------------------------------------------------------------------
+   ELEMENT VARIANT (API)
+   ----------------------------------------------------------------------------- #}
+{% def hero_element(element, page, config) %}
+{% let element_name = element?.qualified_name ?? 'Element' %}
+{% let element_desc = element?.description ?? '' %}
+{% let source_file = element?.display_source_file ?? element?.source_file ?? '' %}
+{% let line_number = element?.line_number %}
+{% let github_repo = config?.github_repo ?? '' %}
+{% let github_branch = config?.github_branch ?? 'main' %}
+
+<div class="page-hero page-hero--api">
+  <div class="page-hero__top">
+    {{ _breadcrumb_eyebrow(page) }}
+    {{ _share_dropdown(page) }}
+  </div>
+
+  {{ _element_badges(element) }}
+
+  <h1 class="page-hero__title page-hero__title--code">
+    <code>{{ element_name }}</code>
+  </h1>
+
+  {% if element_desc %}
+  <div class="page-hero__description page-hero__description--prose">
+    {{ element_desc | markdownify | safe }}
+  </div>
+  {% end %}
+
+  <div class="page-hero__footer">
+    {% if source_file and github_repo %}
+    {% let line_suffix = '#L' ~ line_number if line_number else '' %}
+    <a href="{{ github_repo }}/blob/{{ github_branch }}/{{ source_file }}{{ line_suffix }}"
+       class="page-hero__source-link" target="_blank" rel="noopener">
+      {{ icon('file-code', size=14) }}
+      <span>View source</span>
+    </a>
+    {% end %}
+
+    {{ _element_stats(element) }}
+  </div>
+</div>
+{% enddef %}
+
+{# -----------------------------------------------------------------------------
+   SECTION VARIANT (API)
+   ----------------------------------------------------------------------------- #}
+{% def hero_section(section, page, hero_context) %}
+{% let is_cli = hero_context?.is_cli ?? (page?.type == 'autodoc-cli') ?? (page?.href and '/cli' in page.href) ?? false %}
+{% let section_title = section?.title ?? page?.title ?? 'Section' %}
+{% let section_desc = section?.metadata?.description ?? '' %}
+{% let section_subsections = section?.sorted_subsections ?? [] %}
+{% let section_pages = section?.sorted_pages ?? [] %}
+
+{# Filter out index pages from count #}
+{% let filtered_pages = [] %}
+{% for p in section_pages %}
+{% let source_path = p?.source_path ?? '' %}
+{% if '_index' not in (source_path | string) %}
+{% do filtered_pages.append(p) %}
+{% end %}
+{% end %}
+
+<div class="page-hero page-hero--api">
+  <div class="page-hero__top">
+    {{ _breadcrumb_eyebrow(page) }}
+    {{ _share_dropdown(page) }}
+  </div>
+
+  <h1 class="page-hero__title">{{ section_title }}</h1>
+
+  {% if section_desc %}
+  <div class="page-hero__description page-hero__description--prose">
+    {{ section_desc | markdownify | safe }}
+  </div>
+  {% end %}
+
+  {% if section_subsections | length > 0 or filtered_pages | length > 0 %}
+  <div class="page-hero__footer">
+    <div class="page-hero__stats">
+      {% if section_subsections | length > 0 %}
+      <span class="page-hero__stat">
+        <span class="page-hero__stat-value">{{ section_subsections | length }}</span>
+        {% if is_cli %}
+        <span class="page-hero__stat-label">{{ 'Group' if section_subsections | length == 1 else 'Groups' }}</span>
+        {% else %}
+        <span class="page-hero__stat-label">{{ 'Package' if section_subsections | length == 1 else 'Packages' }}</span>
+        {% end %}
+      </span>
+      {% end %}
+      {% if filtered_pages | length > 0 %}
+      <span class="page-hero__stat">
+        <span class="page-hero__stat-value">{{ filtered_pages | length }}</span>
+        {% if is_cli %}
+        <span class="page-hero__stat-label">{{ 'Command' if filtered_pages | length == 1 else 'Commands' }}</span>
+        {% else %}
+        <span class="page-hero__stat-label">{{ 'Module' if filtered_pages | length == 1 else 'Modules' }}</span>
+        {% end %}
+      </span>
+      {% end %}
+    </div>
+  </div>
+  {% end %}
+</div>
+{% enddef %}
+
+{# =============================================================================
+   DISPATCHER (backwards-compatible include interface)
+   ============================================================================= #}
+
+{# Ensure all context variables are defined #}
+{% let page = page ?? none %}
+{% let params = params ?? {} %}
+{% let theme = theme ?? {} %}
+{% let element = element ?? none %}
+{% let section = section ?? none %}
+{% let posts = posts ?? [] %}
+{% let subsections = subsections ?? [] %}
+{% let config = config ?? {} %}
+{% let hero_context = hero_context ?? {} %}
+{% let _list_hero_default = _list_hero_default ?? none %}
+
+{# Determine hero style #}
+{% let _page_variant = page?.variant ?? none %}
+{% let _page_hero_style = params?.hero_style ?? none %}
+{% let _template_default = _list_hero_default %}
+{% let _theme_hero_style = theme?.config?.hero_style ?? 'editorial' %}
+{% let hero_style = _page_variant ?? _page_hero_style ?? _template_default ?? _theme_hero_style %}
+
+{# Route to appropriate macro #}
+{% match hero_style %}
+{% case 'magazine' %}
+{{ hero_magazine(page, params, theme) }}
+{% case 'classic' %}
+{{ hero_classic(page, params) }}
+{% case 'overview' %}
+{{ hero_overview(page, params, posts, subsections) }}
+{% case 'api' %}
+{% if element %}
+{{ hero_element(element, page, config) }}
 {% elif section %}
-{% include 'partials/page-hero/section.html' %}
+{{ hero_section(section, page, hero_context) }}
 {% else %}
-{# Fallback to editorial: API hero requires element/section context; without it we cannot render an API-specific layout, so we use the standard editorial hero as the safe, context-agnostic default. #}
-{% include 'partials/page-hero-editorial.html' %}
-{% endif %}
-{% else %}
-{# Default to editorial #}
-{% include 'partials/page-hero-editorial.html' %}
-{% endif %}
+{{ hero_editorial(page, params, theme) }}
+{% end %}
+{% case _ %}
+{{ hero_editorial(page, params, theme) }}
+{% end %}

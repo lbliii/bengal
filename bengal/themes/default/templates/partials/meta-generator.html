@@ -8,20 +8,20 @@ Defaults to minimal (generator only).
 {# Standard/Extended extras #}
 {% if bengal.theme.name %}
 <meta name="bengal:theme"
-    content="{{ bengal.theme.name }}{% if bengal.theme.version %}@{{ bengal.theme.version }}{% endif %}">
-{% endif %}
+    content="{{ bengal.theme.name }}{% if bengal.theme.version %}@{{ bengal.theme.version }}{% end %}">
+{% end %}
 
 {# Suppress build timestamp in dev to avoid content churn and spurious reloads #}
 {% if (not config.dev_server) and bengal.build.timestamp %}
 <meta name="bengal:build" content="{{ bengal.build.timestamp }}">
-{% endif %}
+{% end %}
 
 {# Extended extras #}
 {% if bengal.rendering.markdown %}
 <meta name="bengal:markdown"
-    content="{{ bengal.rendering.markdown }}{% if bengal.rendering.markdownVersion %}@{{ bengal.rendering.markdownVersion }}{% endif %}">
-{% endif %}
+    content="{{ bengal.rendering.markdown }}{% if bengal.rendering.markdownVersion %}@{{ bengal.rendering.markdownVersion }}{% end %}">
+{% end %}
 {% if bengal.rendering.highlighter %}
 <meta name="bengal:highlighter"
-    content="{{ bengal.rendering.highlighter }}{% if bengal.rendering.highlighterVersion %}@{{ bengal.rendering.highlighterVersion }}{% endif %}">
-{% endif %}
+    content="{{ bengal.rendering.highlighter }}{% if bengal.rendering.highlighterVersion %}@{{ bengal.rendering.highlighterVersion }}{% end %}">
+{% end %}

@@ -1,66 +1,107 @@
 {% extends "base.html" %}
 
+{#
+================================================================================
+Generic Post Template (Kida-Native)
+================================================================================
+
+Default template for blog posts and articles.
+
+KIDA FEATURES USED:
+- {% let %} for template-scoped variables
+- Optional chaining (?.) for null-safe access
+- Null coalescing (??) for smart defaults
+- {% def %} for reusable components
+
+USAGE:
+Auto-selected for posts without a specific type
+================================================================================
+#}
+
 {% from 'partials/navigation-components.html' import breadcrumbs %}
-{% from 'partials/content-components.html' import tag_list %}
+{% from 'partials/components/tags.html' import tag_list %}
+
+{# =============================================================================
+   RELATED POST CARD COMPONENT
+   ============================================================================= #}
+{% def related_card(post) %}
+{% let post_title = post?.title ?? 'Untitled' %}
+{% let post_href = post?.href ?? '#' %}
+{% let post_date = post?.date %}
+{% let post_excerpt = post?.excerpt ?? '' %}
+{% let post_content = post?.content ?? '' %}
+
+<article class="related-post-card gradient-border fluid-combined">
+  <h3><a href="{{ post_href }}">{{ post_title }}</a></h3>
+  {% if post_date %}
+  <time datetime="{{ post_date | date_iso }}">{{ post_date | time_ago }}</time>
+  {% end %}
+  {% if post_content %}
+  <p>{{ post_excerpt }}</p>
+  {% end %}
+</article>
+{% end %}
+
+{# =============================================================================
+   MAIN TEMPLATE
+   ============================================================================= #}
 
 {% block content %}
+{# Template-scoped variables #}
+{% let page_title = page?.title ?? 'Post' %}
+{% let page_tags = page?.tags ?? [] %}
+{% let css_class = params?.css_class ?? '' %}
+
 <div class="container">
-{# Action Bar: Breadcrumbs + Share #}
-{% include 'partials/action-bar.html' %}
+  {# Action Bar: Breadcrumbs + Share #}
+  {% include 'partials/action-bar.html' %}
 
-<div class="page-layout {% if toc %}page-with-toc{% endif %}">
+  <div class="page-layout{{ ' page-with-toc' if toc else '' }}">
     <article class="post">
-        <header class="post-header">
-            <h1>{{ page.title }}</h1>
-        </header>
+      <header class="post-header">
+        <h1>{{ page_title }}</h1>
+      </header>
 
-        <div class="post-content prose">
-            {{ content | safe }}
+      <div class="post-content prose">
+        {{ content | safe }}
+      </div>
+
+      {% if page_tags | length > 0 %}
+      <footer class="post-footer">
+        <div class="tags">
+          <strong>Tags:</strong>
+          {{ tag_list(page_tags) }}
         </div>
-
-        {% if page.tags %}
-        <footer class="post-footer">
-            <div class="tags">
-                <strong>Tags:</strong>
-                {{ tag_list(page.tags) }}
-            </div>
-        </footer>
-        {% endif %}
+      </footer>
+      {% end %}
     </article>
 
     {% if toc %}
     <aside class="page-sidebar">
-        <nav class="toc" aria-label="Table of contents">
-            <h2 class="toc-title">On This Page</h2>
-            <div class="toc-content">
-                {{ toc | safe }}
-            </div>
-        </nav>
+      <nav class="toc" aria-label="Table of contents">
+        <h2 class="toc-title">On This Page</h2>
+        <div class="toc-content">
+          {{ toc | safe }}
+        </div>
+      </nav>
     </aside>
-    {% endif %}
-</div>
+    {% end %}
+  </div>
 </div>
 
-{# Related Posts Section - Pre-computed during build #}
-{% set related = page.related_posts[:3] %}
-{% if related %}
+{# Related Posts Section #}
+{% let related = page?.related_posts ?? [] %}
+{% let related_posts = related[:3] %}
+{% if related_posts | length > 0 %}
 <aside class="related-posts">
-    <div class="container">
-        <h2>Related Posts</h2>
-        <div class="related-posts-grid">
-            {% for post in related %}
-            <article class="related-post-card gradient-border fluid-combined">
-                <h3><a href="{{ post.href }}">{{ post.title }}</a></h3>
-                {% if post.date %}
-                <time datetime="{{ post.date | date_iso }}">{{ post.date | time_ago }}</time>
-                {% endif %}
-                {% if post.content %}
-                <p>{{ post.excerpt }}</p>
-                {% endif %}
-            </article>
-            {% endfor %}
-        </div>
+  <div class="container">
+    <h2>Related Posts</h2>
+    <div class="related-posts-grid">
+      {% for post in related_posts %}
+      {{ related_card(post) }}
+      {% end %}
     </div>
+  </div>
 </aside>
-{% endif %}
-{% endblock %}
+{% end %}
+{% end %}

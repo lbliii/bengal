@@ -77,7 +77,7 @@ post_build_hooks = [
 
 Override any theme template by placing a file with the same name in your project's `templates/` directory:
 
-```
+```tree
 your-project/
 ├── templates/
 │   └── page.html      # Overrides theme's page.html

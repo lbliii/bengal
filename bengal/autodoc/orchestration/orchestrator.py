@@ -110,10 +110,12 @@ class VirtualAutodocOrchestrator:
 
         Intended for BuildCache persistence. Only valid after generate().
         """
+        from bengal import __version__
+
         autodoc_cfg = self.site.config.get("autodoc", {})
         cfg_hash = hash_dict(autodoc_cfg) if isinstance(autodoc_cfg, dict) else ""
         return {
-            "version": 2,  # Bumped: v2 uses dict format for ParameterInfo/RaisesInfo
+            "version": __version__,
             "autodoc_config_hash": cfg_hash,
             "elements": {
                 k: [e.to_dict() for e in v]
@@ -137,21 +139,45 @@ class VirtualAutodocOrchestrator:
         if not isinstance(elements_section, dict):
             return [], [], result
 
-        python_elements = [
-            DocElement.from_dict(e)
-            for e in (elements_section.get("python") or [])
-            if isinstance(e, dict)
-        ]
-        cli_elements = [
-            DocElement.from_dict(e)
-            for e in (elements_section.get("cli") or [])
-            if isinstance(e, dict)
-        ]
-        openapi_elements = [
-            DocElement.from_dict(e)
-            for e in (elements_section.get("openapi") or [])
-            if isinstance(e, dict)
-        ]
+        # Safely deserialize elements, skipping any that fail
+        python_elements = []
+        for e in elements_section.get("python") or []:
+            if isinstance(e, dict):
+                try:
+                    python_elements.append(DocElement.from_dict(e))
+                except Exception as err:
+                    logger.warning(
+                        "autodoc_cache_element_deserialization_failed",
+                        element_type="python",
+                        error=str(err),
+                        action="skipping_element",
+                    )
+
+        cli_elements = []
+        for e in elements_section.get("cli") or []:
+            if isinstance(e, dict):
+                try:
+                    cli_elements.append(DocElement.from_dict(e))
+                except Exception as err:
+                    logger.warning(
+                        "autodoc_cache_element_deserialization_failed",
+                        element_type="cli",
+                        error=str(err),
+                        action="skipping_element",
+                    )
+
+        openapi_elements = []
+        for e in elements_section.get("openapi") or []:
+            if isinstance(e, dict):
+                try:
+                    openapi_elements.append(DocElement.from_dict(e))
+                except Exception as err:
+                    logger.warning(
+                        "autodoc_cache_element_deserialization_failed",
+                        element_type="openapi",
+                        error=str(err),
+                        action="skipping_element",
+                    )
 
         # Reuse the normal generation pipeline, but skip extraction.
         all_elements: list[DocElement] = []

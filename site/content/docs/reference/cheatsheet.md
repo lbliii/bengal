@@ -274,7 +274,7 @@ no_format: true                        # Skip HTML formatting
 
 ## Project Structure
 
-```text
+```tree
 mysite/
 ├── bengal.toml              # Configuration
 ├── content/                 # Source content

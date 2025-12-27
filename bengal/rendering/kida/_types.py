@@ -1,0 +1,258 @@
+"""Core types for Kida template engine.
+
+Defines the fundamental types used throughout the Kida pipeline:
+
+Types:
+    - `Token`: Single lexer output unit with type, value, and location
+    - `TokenType`: Enum classifying token types (operators, literals, etc.)
+
+Constants:
+    - `KEYWORDS`: Frozenset of reserved words recognized by parser
+    - `PRECEDENCE`: Dict mapping token types to operator precedence
+
+Thread-Safety:
+    All types are immutable (frozen dataclasses, enums) for safe
+    concurrent access during template compilation.
+
+Token Categories:
+    - **Delimiters**: `BLOCK_BEGIN`, `VARIABLE_BEGIN`, etc.
+    - **Literals**: `STRING`, `INTEGER`, `FLOAT`
+    - **Identifiers**: `NAME` (variables, keywords)
+    - **Operators**: `ADD`, `SUB`, `MUL`, `EQ`, `AND`, etc.
+    - **Punctuation**: `DOT`, `COMMA`, `PIPE`, `LPAREN`, etc.
+    - **Special**: `EOF`, `DATA` (raw text)
+
+Example:
+    >>> from bengal.rendering.kida._types import Token, TokenType
+    >>> token = Token(TokenType.NAME, "user", lineno=1, col_offset=5)
+    >>> token.type == TokenType.NAME
+    True
+    >>> token.value
+    'user'
+"""
+
+from dataclasses import dataclass
+from enum import Enum
+
+
+class TokenType(Enum):
+    """Classification of lexer tokens.
+
+    Categories:
+        - Delimiters: Block, variable, comment markers
+        - Literals: Strings, numbers, booleans
+        - Identifiers: Names, keywords
+        - Operators: Arithmetic, comparison, logical
+        - Punctuation: Parentheses, brackets, dots
+        - Special: EOF, whitespace, data (raw text)
+    """
+
+    # Delimiters
+    BLOCK_BEGIN = "block_begin"  # {%
+    BLOCK_END = "block_end"  # %}
+    VARIABLE_BEGIN = "variable_begin"  # {{
+    VARIABLE_END = "variable_end"  # }}
+    COMMENT_BEGIN = "comment_begin"  # {#
+    COMMENT_END = "comment_end"  # #}
+
+    # Raw text between template constructs
+    DATA = "data"
+
+    # Literals
+    STRING = "string"
+    INTEGER = "integer"
+    FLOAT = "float"
+
+    # Identifiers and keywords
+    NAME = "name"
+
+    # Operators
+    ADD = "add"  # +
+    SUB = "sub"  # -
+    MUL = "mul"  # *
+    DIV = "div"  # /
+    FLOORDIV = "floordiv"  # //
+    MOD = "mod"  # %
+    POW = "pow"  # **
+
+    # Comparison
+    EQ = "eq"  # ==
+    NE = "ne"  # !=
+    LT = "lt"  # <
+    LE = "le"  # <=
+    GT = "gt"  # >
+    GE = "ge"  # >=
+
+    # Logical
+    AND = "and"
+    OR = "or"
+    NOT = "not"
+
+    # Membership & Identity
+    IN = "in"
+    NOT_IN = "not_in"
+    IS = "is"
+    IS_NOT = "is_not"
+
+    # Assignment
+    ASSIGN = "assign"  # =
+
+    # Punctuation
+    DOT = "dot"  # .
+    COMMA = "comma"  # ,
+    COLON = "colon"  # :
+    PIPE = "pipe"  # |
+    PIPELINE = "pipeline"  # |> (Kida-native)
+    TILDE = "tilde"  # ~
+    LPAREN = "lparen"  # (
+    RPAREN = "rparen"  # )
+    LBRACKET = "lbracket"  # [
+    RBRACKET = "rbracket"  # ]
+    LBRACE = "lbrace"  # {
+    RBRACE = "rbrace"  # }
+
+    # Modern syntax features (RFC: kida-modern-syntax-features)
+    OPTIONAL_DOT = "optional_dot"  # ?.
+    OPTIONAL_BRACKET = "optional_bracket"  # ?[
+    NULLISH_COALESCE = "nullish_coalesce"  # ??
+    RANGE_INCLUSIVE = "range_inclusive"  # ..
+    RANGE_EXCLUSIVE = "range_exclusive"  # ...
+
+    # Special
+    EOF = "eof"
+    NEWLINE = "newline"
+    WHITESPACE = "whitespace"
+
+
+@dataclass(frozen=True, slots=True)
+class Token:
+    """A single token from the lexer.
+
+    Attributes:
+        type: Classification of this token
+        value: The actual text/value of the token
+        lineno: 1-based line number in source
+        col_offset: 0-based column offset in source
+
+    Immutable by design for thread-safety.
+
+    Example:
+        >>> token = Token(TokenType.NAME, "user", 1, 5)
+        >>> token.type
+        <TokenType.NAME: 'name'>
+        >>> token.value
+        'user'
+    """
+
+    type: TokenType
+    value: str
+    lineno: int
+    col_offset: int
+
+    def __repr__(self) -> str:
+        return f"Token({self.type.name}, {self.value!r}, {self.lineno}:{self.col_offset})"
+
+
+# Keywords recognized by the parser
+KEYWORDS = frozenset(
+    {
+        # Control flow
+        "if",
+        "elif",
+        "else",
+        "endif",
+        "for",
+        "endfor",
+        "while",
+        "endwhile",
+        # Modern syntax features (RFC: kida-modern-syntax-features)
+        "unless",
+        "break",
+        "continue",
+        "spaceless",
+        "endspaceless",
+        "embed",
+        "endembed",
+        "by",  # For range step syntax: 1..10 by 2
+        # Template structure
+        "block",
+        "endblock",
+        "extends",
+        "include",
+        "import",
+        "from",
+        "macro",
+        "endmacro",
+        "call",
+        "endcall",
+        # Variables (Kida additions)
+        "let",
+        "set",
+        "export",
+        # Async (Kida native)
+        "async",
+        "await",
+        # Logic
+        "and",
+        "or",
+        "not",
+        "in",
+        "is",
+        # Literals
+        "true",
+        "false",
+        "none",
+        # Filters/tests
+        "with",
+        "endwith",
+        "filter",
+        "endfilter",
+        # Misc
+        "raw",
+        "endraw",
+        "autoescape",
+        "endautoescape",
+        "do",  # Statement expression
+        # Pattern matching (Kida-native)
+        "match",
+        "case",
+        "endmatch",
+        # Special
+        "as",
+        "recursive",
+        "scoped",
+        "required",
+        "ignore",
+        "missing",
+    }
+)
+
+
+# Operator precedence (higher = binds tighter)
+# Nullish coalesce has lowest precedence so: a or b ?? 'fallback' parses as (a or b) ?? 'fallback'
+PRECEDENCE = {
+    TokenType.NULLISH_COALESCE: 0,  # Lowest - below OR
+    TokenType.OR: 1,
+    TokenType.AND: 2,
+    TokenType.NOT: 3,
+    TokenType.IN: 4,
+    TokenType.NOT_IN: 4,
+    TokenType.IS: 4,
+    TokenType.IS_NOT: 4,
+    TokenType.EQ: 5,
+    TokenType.NE: 5,
+    TokenType.LT: 5,
+    TokenType.LE: 5,
+    TokenType.GT: 5,
+    TokenType.GE: 5,
+    TokenType.PIPE: 6,
+    TokenType.PIPELINE: 6,  # Same precedence as PIPE
+    TokenType.TILDE: 7,
+    TokenType.ADD: 8,
+    TokenType.SUB: 8,
+    TokenType.MUL: 9,
+    TokenType.DIV: 9,
+    TokenType.FLOORDIV: 9,
+    TokenType.MOD: 9,
+    TokenType.POW: 10,
+}

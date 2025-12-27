@@ -82,7 +82,7 @@ cd my-custom-site
 
 You should see this structure:
 
-```text
+```tree
 my-custom-site/
 ├── config/           # Configuration directory
 │   └── _default/     # Default environment settings
@@ -386,7 +386,7 @@ This generates static files in `public/` using your swizzled templates.
 
 **Review Build Output**
 
-```text
+```tree
 public/
 ├── index.html
 ├── static/

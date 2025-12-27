@@ -51,7 +51,7 @@ flowchart LR
 :::{tab-item} Files → Pages
 Your file structure becomes your URL structure:
 
-```
+```text
 content/blog/hello.md → /blog/hello/
 content/docs/_index.md → /docs/
 ```

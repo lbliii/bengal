@@ -19,8 +19,9 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from jinja2 import Environment, FileSystemLoader
 
+from bengal.core.site import Site
+from bengal.rendering.engines import create_engine
 from bengal.rendering.template_functions.autodoc import get_element_stats
 
 # ==============================================================================
@@ -216,43 +217,29 @@ class MockSite:
 
 
 @pytest.fixture
-def template_env() -> Environment:
-    """Create Jinja2 environment with Bengal default templates."""
-    templates_dir = (
-        Path(__file__).parent.parent.parent.parent / "bengal" / "themes" / "default" / "templates"
-    )
+def template_engine(tmp_path):
+    """Create Kida template engine with Bengal default templates."""
+    # Create minimal site structure
+    (tmp_path / "content").mkdir()
+    config_content = """
+[site]
+title = "Test Site"
+baseurl = "https://example.com"
+"""
+    (tmp_path / "bengal.toml").write_text(config_content)
 
-    env = Environment(
-        loader=FileSystemLoader([str(templates_dir)]),
-        autoescape=True,
-        trim_blocks=True,
-        lstrip_blocks=True,
-    )
+    # Create site
+    site = Site.from_config(tmp_path)
 
-    # Register essential template functions used by page-hero templates
-    env.globals["icon"] = mock_icon
-    env.globals["get_breadcrumbs"] = mock_get_breadcrumbs
-    env.globals["canonical_url"] = mock_canonical_url
-    env.globals["ensure_trailing_slash"] = mock_ensure_trailing_slash
-    env.globals["getattr"] = getattr  # Required for safe attribute access in templates
+    # Create template engine (defaults to Kida)
+    engine = create_engine(site)
 
-    # Register filters
-    env.filters["absolute_url"] = mock_absolute_url
-    env.filters["markdownify"] = mock_markdownify
-    env.filters["urlencode"] = mock_urlencode
-    env.filters["match"] = mock_match_filter
-    env.filters["get_element_stats"] = get_element_stats
+    # Register mock functions via engine's registration system
+    # These are normally registered by the engine, but we need to override with mocks
+    # Note: Most functions are already registered by the engine, but we can override
+    # via the environment if needed. For now, the mocks will be available via context.
 
-    # Register tests (for `is match`)
-    env.tests["match"] = mock_match_test
-
-    # Register globals needed by templates
-    env.globals["get_element_stats"] = get_element_stats
-
-    # Register translation function (mock that returns default value)
-    env.globals["t"] = mock_translate
-
-    return env
+    return engine
 
 
 def mock_translate(
@@ -323,7 +310,7 @@ def mock_match_test(value: Any, pattern: str) -> bool:
 
 
 def render_page_hero(
-    env: Environment,
+    engine,
     *,
     element: MockDocElement | None = None,
     section: MockSection | None = None,
@@ -339,7 +326,7 @@ def render_page_hero(
     - partials/page-hero/section.html for section-index pages
 
     Args:
-        env: Jinja2 environment with templates loaded
+        engine: Template engine instance
         element: DocElement for element pages (may be None for section-index)
         section: Section for section-index pages
         page: Page object (required)
@@ -356,23 +343,33 @@ def render_page_hero(
     if site is None:
         site = MockSite()
 
+    # Build context with mock functions
+    context = {
+        "element": element,
+        "section": section,
+        "page": page,
+        "config": config,
+        "site": site,
+        # Add mock functions that templates might need
+        "icon": mock_icon,
+        "get_breadcrumbs": mock_get_breadcrumbs,
+        "canonical_url": mock_canonical_url,
+        "ensure_trailing_slash": mock_ensure_trailing_slash,
+        "get_element_stats": get_element_stats,
+        "t": mock_translate,
+    }
+
     # Use new separated templates based on whether we have an element
     if element is not None:
-        template = env.get_template("partials/page-hero/element.html")
+        template_name = "partials/page-hero/element.html"
     else:
-        template = env.get_template("partials/page-hero/section.html")
+        template_name = "partials/page-hero/section.html"
 
-    return template.render(
-        element=element,
-        section=section,
-        page=page,
-        config=config,
-        site=site,
-    )
+    return engine.render_template(template_name, context)
 
 
 def _render_section_hero(
-    env: Environment,
+    engine,
     *,
     section: MockSection,
     page: MockPage | None = None,
@@ -386,7 +383,7 @@ def _render_section_hero(
     Uses the new partials/page-hero/section.html template.
 
     Args:
-        env: Jinja2 environment with templates loaded
+        engine: Template engine instance
         section: Section for section-index pages (required)
         page: Page object
         config: Autodoc config
@@ -403,15 +400,22 @@ def _render_section_hero(
     if site is None:
         site = MockSite()
 
-    template = env.get_template("partials/page-hero/section.html")
+    context = {
+        "section": section,
+        "page": page,
+        "config": config,
+        "site": site,
+        "hero_context": hero_context,
+        # Add mock functions
+        "icon": mock_icon,
+        "get_breadcrumbs": mock_get_breadcrumbs,
+        "canonical_url": mock_canonical_url,
+        "ensure_trailing_slash": mock_ensure_trailing_slash,
+        "get_element_stats": get_element_stats,
+        "t": mock_translate,
+    }
 
-    return template.render(
-        section=section,
-        page=page,
-        config=config,
-        site=site,
-        hero_context=hero_context,
-    )
+    return engine.render_template("partials/page-hero/section.html", context)
 
 
 def normalize_html(html: str) -> str:
@@ -449,7 +453,7 @@ def assert_not_contains(html: str, *substrings: str) -> None:
 class TestAPIModulePageHero:
     """Test page-hero/element.html for API module pages with DocElement."""
 
-    def test_renders_qualified_name_in_title(self, template_env: Environment) -> None:
+    def test_renders_qualified_name_in_title(self, template_engine) -> None:
         """Verify element.qualified_name appears in title."""
         element = MockDocElement(
             name="site",
@@ -459,12 +463,12 @@ class TestAPIModulePageHero:
         )
         page = MockPage(title="Site")
 
-        html = render_page_hero(template_env, element=element, page=page)
+        html = render_page_hero(template_engine, element=element, page=page)
 
         assert_contains(html, "bengal.core.site.Site")
         assert "page-hero__title--code" in html
 
-    def test_renders_element_description(self, template_env: Environment) -> None:
+    def test_renders_element_description(self, template_engine) -> None:
         """Verify element.description renders with markdownify."""
         element = MockDocElement(
             name="test_module",
@@ -474,13 +478,13 @@ class TestAPIModulePageHero:
         )
         page = MockPage(title="Test Module")
 
-        html = render_page_hero(template_env, element=element, page=page)
+        html = render_page_hero(template_engine, element=element, page=page)
 
         # markdownify wraps in <p>
         assert_contains(html, "This is the module description.")
         assert "page-hero__description" in html
 
-    def test_renders_classes_and_functions_stats(self, template_env: Environment) -> None:
+    def test_renders_classes_and_functions_stats(self, template_engine) -> None:
         """Verify stats show Classes and Functions counts."""
         element = MockDocElement(
             name="utils",
@@ -497,13 +501,13 @@ class TestAPIModulePageHero:
         )
         page = MockPage(title="Utils")
 
-        html = render_page_hero(template_env, element=element, page=page)
+        html = render_page_hero(template_engine, element=element, page=page)
 
         # Should show "2 Classes" and "3 Functions"
         assert_contains(html, "2", "Classes")
         assert_contains(html, "3", "Functions")
 
-    def test_renders_singular_class_function(self, template_env: Environment) -> None:
+    def test_renders_singular_class_function(self, template_engine) -> None:
         """Verify singular labels for single class/function."""
         element = MockDocElement(
             name="single",
@@ -517,14 +521,14 @@ class TestAPIModulePageHero:
         )
         page = MockPage(title="Single")
 
-        html = render_page_hero(template_env, element=element, page=page)
+        html = render_page_hero(template_engine, element=element, page=page)
 
         # Should show singular "Class" and "Function"
         assert_contains(html, "1")
         assert "Class" in html or "class" in html.lower()
         assert "Function" in html or "function" in html.lower()
 
-    def test_renders_source_link_with_line_number(self, template_env: Environment) -> None:
+    def test_renders_source_link_with_line_number(self, template_engine) -> None:
         """Verify source link includes line number."""
         element = MockDocElement(
             name="test_module",
@@ -541,13 +545,13 @@ class TestAPIModulePageHero:
         )
         page = MockPage(title="Test Module")
 
-        html = render_page_hero(template_env, element=element, page=page, config=config)
+        html = render_page_hero(template_engine, element=element, page=page, config=config)
 
         assert_contains(html, "View source")
         assert_contains(html, "#L42")
         assert_contains(html, "bengal/test_module.py")
 
-    def test_no_stats_for_empty_children(self, template_env: Environment) -> None:
+    def test_no_stats_for_empty_children(self, template_engine) -> None:
         """Verify no stats section when element has no children."""
         element = MockDocElement(
             name="empty_module",
@@ -558,7 +562,7 @@ class TestAPIModulePageHero:
         )
         page = MockPage(title="Empty Module")
 
-        html = render_page_hero(template_env, element=element, page=page)
+        html = render_page_hero(template_engine, element=element, page=page)
 
         # Should not have stats for classes/functions
         assert "Classes" not in html
@@ -583,7 +587,7 @@ class TestAPISectionIndexPageHero:
     In tests, we must NOT pass element at all to trigger the section-index branch.
     """
 
-    def test_renders_section_title(self, template_env: Environment) -> None:
+    def test_renders_section_title(self, template_engine) -> None:
         """Verify section.title appears in title (not element.qualified_name)."""
         section = MockSection(
             name="core",
@@ -593,13 +597,13 @@ class TestAPISectionIndexPageHero:
         page = MockPage(title="Core Package", href="/api/core/")
 
         # NOTE: We use _render_section_hero which omits element entirely
-        html = _render_section_hero(template_env, section=section, page=page)
+        html = _render_section_hero(template_engine, section=section, page=page)
 
         assert_contains(html, "Core Package")
         # Should NOT have code-styled title
         assert "page-hero__title--code" not in html or "Core Package" in html
 
-    def test_renders_section_description(self, template_env: Environment) -> None:
+    def test_renders_section_description(self, template_engine) -> None:
         """Verify section.metadata.description renders."""
         section = MockSection(
             name="orchestration",
@@ -608,11 +612,11 @@ class TestAPISectionIndexPageHero:
         )
         page = MockPage(title="Orchestration", href="/api/orchestration/")
 
-        html = _render_section_hero(template_env, section=section, page=page)
+        html = _render_section_hero(template_engine, section=section, page=page)
 
         assert_contains(html, "Build orchestration components")
 
-    def test_renders_packages_and_modules_stats(self, template_env: Environment) -> None:
+    def test_renders_packages_and_modules_stats(self, template_engine) -> None:
         """Verify stats show Packages (subsections) and Modules (pages) counts."""
         section = MockSection(
             name="bengal",
@@ -630,7 +634,7 @@ class TestAPISectionIndexPageHero:
         )
         page = MockPage(title="Bengal API", href="/api/")
 
-        html = _render_section_hero(template_env, section=section, page=page)
+        html = _render_section_hero(template_engine, section=section, page=page)
 
         # Should show "2 Packages" and "3 Modules" (not Groups/Commands)
         assert_contains(html, "2")
@@ -638,7 +642,7 @@ class TestAPISectionIndexPageHero:
         assert_contains(html, "3")
         assert_contains(html, "Module")
 
-    def test_excludes_index_pages_from_module_count(self, template_env: Environment) -> None:
+    def test_excludes_index_pages_from_module_count(self, template_engine) -> None:
         """Verify _index pages are excluded from module count."""
         section = MockSection(
             name="core",
@@ -658,7 +662,7 @@ class TestAPISectionIndexPageHero:
         )
         page = MockPage(title="Core", href="/api/core/")
 
-        html = _render_section_hero(template_env, section=section, page=page)
+        html = _render_section_hero(template_engine, section=section, page=page)
 
         # Should only count 1 module (site), not the _index
         assert_contains(html, "1")
@@ -673,7 +677,7 @@ class TestAPISectionIndexPageHero:
 class TestCLICommandPageHero:
     """Test page-hero/element.html for CLI command pages."""
 
-    def test_renders_command_qualified_name(self, template_env: Environment) -> None:
+    def test_renders_command_qualified_name(self, template_engine) -> None:
         """Verify command qualified_name in title."""
         element = MockDocElement(
             name="build",
@@ -683,11 +687,11 @@ class TestCLICommandPageHero:
         )
         page = MockPage(title="build")
 
-        html = render_page_hero(template_env, element=element, page=page)
+        html = render_page_hero(template_engine, element=element, page=page)
 
         assert_contains(html, "bengal build")
 
-    def test_renders_options_and_arguments_stats(self, template_env: Environment) -> None:
+    def test_renders_options_and_arguments_stats(self, template_engine) -> None:
         """Verify stats show Options and Arguments counts."""
         element = MockDocElement(
             name="build",
@@ -703,13 +707,13 @@ class TestCLICommandPageHero:
         )
         page = MockPage(title="build")
 
-        html = render_page_hero(template_env, element=element, page=page)
+        html = render_page_hero(template_engine, element=element, page=page)
 
         # Should show "3 Options" and "1 Argument"
         assert_contains(html, "3", "Options")
         assert_contains(html, "1", "Argument")
 
-    def test_renders_command_groups_stats(self, template_env: Environment) -> None:
+    def test_renders_command_groups_stats(self, template_engine) -> None:
         """Verify stats show Groups and Commands for CLI group elements."""
         element = MockDocElement(
             name="site",
@@ -725,7 +729,7 @@ class TestCLICommandPageHero:
         )
         page = MockPage(title="site")
 
-        html = render_page_hero(template_env, element=element, page=page)
+        html = render_page_hero(template_engine, element=element, page=page)
 
         # Should show "1 Group" and "3 Commands"
         assert_contains(html, "1", "Group")
@@ -744,7 +748,7 @@ class TestCLISectionIndexPageHero:
     Uses the _render_section_hero helper to render section-index pages.
     """
 
-    def test_renders_groups_not_packages_label(self, template_env: Environment) -> None:
+    def test_renders_groups_not_packages_label(self, template_engine) -> None:
         """Verify CLI sections show 'Groups' not 'Packages' for subsections."""
         section = MockSection(
             name="cli",
@@ -759,14 +763,14 @@ class TestCLISectionIndexPageHero:
         # CLI detection uses URL sniffing - URL must contain '/cli'
         page = MockPage(title="CLI Reference", href="/cli/")
 
-        html = _render_section_hero(template_env, section=section, page=page)
+        html = _render_section_hero(template_engine, section=section, page=page)
 
         # Should show "2 Groups" not "2 Packages"
         assert_contains(html, "2")
         assert_contains(html, "Group")
         assert_not_contains(html, "Package")
 
-    def test_renders_commands_not_modules_label(self, template_env: Environment) -> None:
+    def test_renders_commands_not_modules_label(self, template_engine) -> None:
         """Verify CLI sections show 'Commands' not 'Modules' for pages."""
         section = MockSection(
             name="cli",
@@ -789,14 +793,14 @@ class TestCLISectionIndexPageHero:
         # CLI detection uses URL sniffing
         page = MockPage(title="CLI Reference", href="/cli/")
 
-        html = _render_section_hero(template_env, section=section, page=page)
+        html = _render_section_hero(template_engine, section=section, page=page)
 
         # Should show "2 Commands" not "2 Modules"
         assert_contains(html, "2")
         assert_contains(html, "Command")
         assert_not_contains(html, "Module")
 
-    def test_url_sniffing_detects_cli_section(self, template_env: Environment) -> None:
+    def test_url_sniffing_detects_cli_section(self, template_engine) -> None:
         """Verify URL-based CLI detection works for nested CLI paths."""
         section = MockSection(
             name="subgroup",
@@ -813,13 +817,13 @@ class TestCLISectionIndexPageHero:
         # Nested CLI path still contains '/cli'
         page = MockPage(title="Subgroup Commands", href="/cli/group/subgroup/")
 
-        html = _render_section_hero(template_env, section=section, page=page)
+        html = _render_section_hero(template_engine, section=section, page=page)
 
         # Should still detect as CLI and show "Command" not "Module"
         assert_contains(html, "Command")
         assert_not_contains(html, "Module")
 
-    def test_non_cli_section_shows_api_labels(self, template_env: Environment) -> None:
+    def test_non_cli_section_shows_api_labels(self, template_engine) -> None:
         """Verify non-CLI sections (without /cli in URL) show API labels."""
         section = MockSection(
             name="api",
@@ -838,7 +842,7 @@ class TestCLISectionIndexPageHero:
         # API path without /cli
         page = MockPage(title="API Reference", href="/api/")
 
-        html = _render_section_hero(template_env, section=section, page=page)
+        html = _render_section_hero(template_engine, section=section, page=page)
 
         # Should show "Package" and "Module" not "Group" and "Command"
         assert_contains(html, "Package")
@@ -855,17 +859,17 @@ class TestCLISectionIndexPageHero:
 class TestPageHeroEdgeCases:
     """Test edge cases and error handling in page-hero templates."""
 
-    def test_handles_no_element_for_section_index(self, template_env: Environment) -> None:
+    def test_handles_no_element_for_section_index(self, template_engine) -> None:
         """Verify template handles section-index pages (no element in context)."""
         section = MockSection(name="test", title="Test Section")
         page = MockPage(title="Test Section")
 
         # Should not raise
-        html = _render_section_hero(template_env, section=section, page=page)
+        html = _render_section_hero(template_engine, section=section, page=page)
 
         assert "page-hero" in html
 
-    def test_handles_empty_description(self, template_env: Environment) -> None:
+    def test_handles_empty_description(self, template_engine) -> None:
         """Verify template handles empty description gracefully."""
         element = MockDocElement(
             name="empty_desc",
@@ -875,13 +879,13 @@ class TestPageHeroEdgeCases:
         )
         page = MockPage(title="Empty Desc")
 
-        html = render_page_hero(template_env, element=element, page=page)
+        html = render_page_hero(template_engine, element=element, page=page)
 
         # Should render without description section
         # But should still have the hero div
         assert "page-hero" in html
 
-    def test_handles_missing_source_file(self, template_env: Environment) -> None:
+    def test_handles_missing_source_file(self, template_engine) -> None:
         """Verify template handles missing source_file gracefully."""
         element = MockDocElement(
             name="no_source",
@@ -893,12 +897,12 @@ class TestPageHeroEdgeCases:
         )
         page = MockPage(title="No Source")
 
-        html = render_page_hero(template_env, element=element, page=page)
+        html = render_page_hero(template_engine, element=element, page=page)
 
         # Should render without source link
         assert "View source" not in html
 
-    def test_share_dropdown_renders(self, template_env: Environment) -> None:
+    def test_share_dropdown_renders(self, template_engine) -> None:
         """Verify share dropdown with AI links renders."""
         element = MockDocElement(
             name="test",
@@ -908,14 +912,14 @@ class TestPageHeroEdgeCases:
         )
         page = MockPage(title="Test", href="/api/test/")
 
-        html = render_page_hero(template_env, element=element, page=page)
+        html = render_page_hero(template_engine, element=element, page=page)
 
         # Should have share dropdown elements
         assert_contains(html, "page-hero__share")
         assert_contains(html, "Claude")
         assert_contains(html, "ChatGPT")
 
-    def test_breadcrumbs_render(self, template_env: Environment) -> None:
+    def test_breadcrumbs_render(self, template_engine) -> None:
         """Verify breadcrumbs render in hero."""
         page = MockPage(title="Test Page", href="/api/core/test/")
         element = MockDocElement(
@@ -925,7 +929,7 @@ class TestPageHeroEdgeCases:
             element_type="module",
         )
 
-        html = render_page_hero(template_env, element=element, page=page)
+        html = render_page_hero(template_engine, element=element, page=page)
 
         assert_contains(html, "page-hero__breadcrumbs")
 
@@ -936,7 +940,7 @@ class TestPageHeroEdgeCases:
 
 
 def _render_new_element_hero(
-    env: Environment,
+    engine,
     *,
     element: MockDocElement,
     section: MockSection | None = None,
@@ -956,19 +960,26 @@ def _render_new_element_hero(
     if site is None:
         site = MockSite()
 
-    template = env.get_template("partials/page-hero/element.html")
+    context = {
+        "element": element,
+        "section": section,
+        "page": page,
+        "config": config,
+        "site": site,
+        # Add mock functions
+        "icon": mock_icon,
+        "get_breadcrumbs": mock_get_breadcrumbs,
+        "canonical_url": mock_canonical_url,
+        "ensure_trailing_slash": mock_ensure_trailing_slash,
+        "get_element_stats": get_element_stats,
+        "t": mock_translate,
+    }
 
-    return template.render(
-        element=element,
-        section=section,
-        page=page,
-        config=config,
-        site=site,
-    )
+    return engine.render_template("partials/page-hero/element.html", context)
 
 
 def _render_new_section_hero(
-    env: Environment,
+    engine,
     *,
     section: MockSection,
     page: MockPage | None = None,
@@ -988,24 +999,29 @@ def _render_new_section_hero(
     if site is None:
         site = MockSite()
 
-    template = env.get_template("partials/page-hero/section.html")
-
     context: dict[str, Any] = {
         "section": section,
         "page": page,
         "config": config,
         "site": site,
+        # Add mock functions
+        "icon": mock_icon,
+        "get_breadcrumbs": mock_get_breadcrumbs,
+        "canonical_url": mock_canonical_url,
+        "ensure_trailing_slash": mock_ensure_trailing_slash,
+        "get_element_stats": get_element_stats,
+        "t": mock_translate,
     }
     if hero_context:
         context["hero_context"] = hero_context
 
-    return template.render(**context)
+    return engine.render_template("partials/page-hero/section.html", context)
 
 
 class TestNewElementTemplate:
     """Test the new page-hero/element.html produces equivalent output."""
 
-    def test_renders_qualified_name(self, template_env: Environment) -> None:
+    def test_renders_qualified_name(self, template_engine) -> None:
         """Verify element.qualified_name appears in title."""
         element = MockDocElement(
             name="Site",
@@ -1015,12 +1031,12 @@ class TestNewElementTemplate:
         )
         page = MockPage(title="Site")
 
-        html = _render_new_element_hero(template_env, element=element, page=page)
+        html = _render_new_element_hero(template_engine, element=element, page=page)
 
         assert_contains(html, "bengal.core.site.Site")
         assert "page-hero__title--code" in html
 
-    def test_renders_element_description(self, template_env: Environment) -> None:
+    def test_renders_element_description(self, template_engine) -> None:
         """Verify element.description renders."""
         element = MockDocElement(
             name="test",
@@ -1030,11 +1046,11 @@ class TestNewElementTemplate:
         )
         page = MockPage(title="Test")
 
-        html = _render_new_element_hero(template_env, element=element, page=page)
+        html = _render_new_element_hero(template_engine, element=element, page=page)
 
         assert_contains(html, "Module description here.")
 
-    def test_renders_classes_functions_stats(self, template_env: Environment) -> None:
+    def test_renders_classes_functions_stats(self, template_engine) -> None:
         """Verify stats show Classes and Functions."""
         element = MockDocElement(
             name="utils",
@@ -1048,12 +1064,12 @@ class TestNewElementTemplate:
         )
         page = MockPage(title="Utils")
 
-        html = _render_new_element_hero(template_env, element=element, page=page)
+        html = _render_new_element_hero(template_engine, element=element, page=page)
 
         assert_contains(html, "1", "Class")
         assert_contains(html, "1", "Function")
 
-    def test_renders_cli_stats(self, template_env: Environment) -> None:
+    def test_renders_cli_stats(self, template_engine) -> None:
         """Verify CLI element renders options/arguments stats."""
         element = MockDocElement(
             name="build",
@@ -1067,7 +1083,7 @@ class TestNewElementTemplate:
         )
         page = MockPage(title="build")
 
-        html = _render_new_element_hero(template_env, element=element, page=page)
+        html = _render_new_element_hero(template_engine, element=element, page=page)
 
         assert_contains(html, "1", "Option")
         assert_contains(html, "1", "Argument")
@@ -1076,7 +1092,7 @@ class TestNewElementTemplate:
 class TestNewSectionTemplate:
     """Test the new page-hero/section.html produces equivalent output."""
 
-    def test_renders_section_title(self, template_env: Environment) -> None:
+    def test_renders_section_title(self, template_engine) -> None:
         """Verify section.title appears in title."""
         section = MockSection(
             name="core",
@@ -1085,11 +1101,11 @@ class TestNewSectionTemplate:
         )
         page = MockPage(title="Core Package", href="/api/core/")
 
-        html = _render_new_section_hero(template_env, section=section, page=page)
+        html = _render_new_section_hero(template_engine, section=section, page=page)
 
         assert_contains(html, "Core Package")
 
-    def test_renders_section_description(self, template_env: Environment) -> None:
+    def test_renders_section_description(self, template_engine) -> None:
         """Verify section.metadata.description renders."""
         section = MockSection(
             name="rendering",
@@ -1098,11 +1114,11 @@ class TestNewSectionTemplate:
         )
         page = MockPage(title="Rendering", href="/api/rendering/")
 
-        html = _render_new_section_hero(template_env, section=section, page=page)
+        html = _render_new_section_hero(template_engine, section=section, page=page)
 
         assert_contains(html, "Rendering components")
 
-    def test_renders_packages_modules_stats(self, template_env: Environment) -> None:
+    def test_renders_packages_modules_stats(self, template_engine) -> None:
         """Verify stats show Packages and Modules for API sections."""
         section = MockSection(
             name="api",
@@ -1112,12 +1128,12 @@ class TestNewSectionTemplate:
         )
         page = MockPage(title="API Reference", href="/api/")
 
-        html = _render_new_section_hero(template_env, section=section, page=page)
+        html = _render_new_section_hero(template_engine, section=section, page=page)
 
         assert_contains(html, "1", "Package")
         assert_contains(html, "1", "Module")
 
-    def test_renders_groups_commands_for_cli(self, template_env: Environment) -> None:
+    def test_renders_groups_commands_for_cli(self, template_engine) -> None:
         """Verify CLI sections show Groups and Commands labels."""
         section = MockSection(
             name="cli",
@@ -1127,13 +1143,13 @@ class TestNewSectionTemplate:
         )
         page = MockPage(title="CLI Reference", href="/cli/")
 
-        html = _render_new_section_hero(template_env, section=section, page=page)
+        html = _render_new_section_hero(template_engine, section=section, page=page)
 
         # URL sniffing should detect /cli/
         assert_contains(html, "1", "Group")
         assert_contains(html, "1", "Command")
 
-    def test_explicit_hero_context_is_cli(self, template_env: Environment) -> None:
+    def test_explicit_hero_context_is_cli(self, template_engine) -> None:
         """Verify explicit hero_context.is_cli works."""
         section = MockSection(
             name="commands",
@@ -1145,7 +1161,7 @@ class TestNewSectionTemplate:
 
         # Explicit context should override URL detection
         html = _render_new_section_hero(
-            template_env,
+            template_engine,
             section=section,
             page=page,
             hero_context={"is_cli": True},

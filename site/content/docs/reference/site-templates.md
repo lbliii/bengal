@@ -124,7 +124,7 @@ Section names are mapped to content types:
 
 For each section, Bengal creates:
 
-```text
+```tree
 content/<section>/
 ├── _index.md          # Section index (always created)
 ├── <page-1>.md        # Sample pages (with --with-content)
@@ -178,7 +178,7 @@ bengal config init --type file
 
 ### Directory Structure Created
 
-```text
+```tree
 config/
 ├── _default/
 │   ├── site.yaml      # Site identity
@@ -201,7 +201,7 @@ config/
 Minimal starter with single index page.
 
 **Structure:**
-```text
+```tree
 content/
 └── index.md
 ```
@@ -215,7 +215,7 @@ content/
 Full documentation site with common sections.
 
 **Structure:**
-```text
+```tree
 content/
 ├── index.md
 ├── getting-started/
@@ -239,7 +239,7 @@ content/
 Blog with posts section and about page.
 
 **Structure:**
-```text
+```tree
 content/
 ├── index.md
 ├── about.md
@@ -259,7 +259,7 @@ content/
 Project showcase with contact page.
 
 **Structure:**
-```text
+```tree
 content/
 ├── index.md
 ├── about.md
@@ -279,7 +279,7 @@ content/
 CV/Resume with structured data.
 
 **Structure:**
-```text
+```tree
 content/
 └── _index.md
 
@@ -296,7 +296,7 @@ data/
 Marketing landing page with legal pages.
 
 **Structure:**
-```text
+```tree
 content/
 ├── index.md
 ├── privacy.md
@@ -312,7 +312,7 @@ content/
 Version history with structured data.
 
 **Structure:**
-```text
+```tree
 content/
 └── _index.md
 
@@ -329,7 +329,7 @@ data/
 Product showcase with catalog and pricing.
 
 **Structure:**
-```text
+```tree
 content/
 ├── _index.md
 ├── contact.md
@@ -356,7 +356,7 @@ data/
 
 Templates are defined in `bengal/cli/templates/<name>/`:
 
-```text
+```tree
 bengal/cli/templates/docs/
 ├── __init__.py
 ├── template.py       # TEMPLATE = SiteTemplate(...)

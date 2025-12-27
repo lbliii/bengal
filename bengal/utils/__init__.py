@@ -82,9 +82,10 @@ See Also:
 
 from __future__ import annotations
 
-from bengal.core.section import resolve_page_section_path
+from typing import TYPE_CHECKING, Any
+
+# Lightweight utils - these are fine to import eagerly
 from bengal.utils import (
-    async_compat,
     concurrent_locks,
     dates,
     file_io,
@@ -94,9 +95,9 @@ from bengal.utils import (
     text,
     thread_local,
 )
-from bengal.utils.async_compat import run_async
 from bengal.utils.concurrent_locks import PerKeyLockManager
 from bengal.utils.hashing import hash_bytes, hash_dict, hash_file, hash_file_with_stat, hash_str
+from bengal.utils.lru_cache import LRUCache
 from bengal.utils.pagination import Paginator
 from bengal.utils.path_resolver import PathResolver, resolve_path
 from bengal.utils.paths import BengalPaths
@@ -105,8 +106,15 @@ from bengal.utils.sentinel import MISSING, is_missing
 from bengal.utils.text import humanize_slug
 from bengal.utils.thread_local import ThreadLocalCache, ThreadSafeSet
 
+# TYPE_CHECKING imports for static analysis (no runtime cost)
+if TYPE_CHECKING:
+    from bengal.core.section import resolve_page_section_path as _resolve_page_section_path
+    from bengal.utils import async_compat as _async_compat
+    from bengal.utils.async_compat import run_async as _run_async
+
 __all__ = [
     "BengalPaths",
+    "LRUCache",
     "Paginator",
     "PathResolver",
     "PerKeyLockManager",
@@ -135,3 +143,25 @@ __all__ = [
     "text",
     "thread_local",
 ]
+
+
+def __getattr__(name: str) -> Any:
+    """
+    Lazy import for heavy dependencies.
+
+    This avoids pulling in bengal.core.section (which triggers the full core infra)
+    and async_compat (which loads uvloop) until they're actually needed.
+    """
+    if name == "resolve_page_section_path":
+        from bengal.core.section import resolve_page_section_path
+
+        return resolve_page_section_path
+    if name == "async_compat":
+        from bengal.utils import async_compat
+
+        return async_compat
+    if name == "run_async":
+        from bengal.utils.async_compat import run_async
+
+        return run_async
+    raise AttributeError(f"module 'bengal.utils' has no attribute {name!r}")

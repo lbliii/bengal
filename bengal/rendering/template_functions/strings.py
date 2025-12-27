@@ -221,7 +221,8 @@ def _convert_docstring_to_markdown(text: str) -> str:
     Handles:
     - Indented lists (    - Item) → proper markdown lists
     - Section headers (Section:) → bold labels or headings
-    - Preserves code blocks
+    - Doctest blocks (>>> ...) → fenced code blocks
+    - Preserves existing code blocks
 
     Args:
         text: Docstring text
@@ -231,6 +232,10 @@ def _convert_docstring_to_markdown(text: str) -> str:
     """
     if not text:
         return ""
+
+    # First pass: convert non-indented doctest blocks to fenced code blocks
+    # This prevents >>> from being interpreted as blockquotes by mistune
+    text = _convert_doctest_to_codeblocks(text)
 
     lines = text.split("\n")
     result = []
@@ -257,7 +262,11 @@ def _convert_docstring_to_markdown(text: str) -> str:
             term_match = re.match(r"^([^:]+):\s*(.*)$", content)
             if term_match:
                 term, desc = term_match.groups()
-                result.append(f"- **{term}**: {desc}")
+                # Don't double-wrap already bolded terms (e.g., "**Rendering**")
+                if term.startswith("**") and term.endswith("**"):
+                    result.append(f"- {term}: {desc}")
+                else:
+                    result.append(f"- **{term}**: {desc}")
             else:
                 result.append(f"- {content}")
             continue
@@ -270,6 +279,81 @@ def _convert_docstring_to_markdown(text: str) -> str:
             continue
 
         result.append(line)
+
+    return "\n".join(result)
+
+
+def _convert_doctest_to_codeblocks(text: str) -> str:
+    """
+    Convert doctest-style examples (>>> ...) to fenced code blocks.
+
+    This prevents >>> from being interpreted as nested blockquotes by markdown.
+    Only converts non-indented doctest blocks (indented ones become code blocks
+    automatically via 4-space markdown rule).
+
+    Args:
+        text: Text containing potential doctest blocks
+
+    Returns:
+        Text with doctest blocks wrapped in ```python fences
+    """
+    lines = text.split("\n")
+    result = []
+    doctest_buffer: list[str] = []
+    in_fenced_block = False
+
+    def flush_doctest():
+        """Flush accumulated doctest lines as a fenced code block."""
+        if doctest_buffer:
+            result.append("```python")
+            result.extend(doctest_buffer)
+            result.append("```")
+            doctest_buffer.clear()
+
+    for line in lines:
+        stripped = line.strip()
+
+        # Track existing fenced code blocks - don't modify inside them
+        if stripped.startswith("```"):
+            flush_doctest()
+            in_fenced_block = not in_fenced_block
+            result.append(line)
+            continue
+
+        if in_fenced_block:
+            result.append(line)
+            continue
+
+        # Skip already-indented lines (4+ spaces) - they'll become code blocks naturally
+        if line.startswith("    ") or line.startswith("\t"):
+            flush_doctest()
+            result.append(line)
+            continue
+
+        # Check for doctest line (>>> at start, with optional minimal whitespace)
+        # Match: optional 0-3 spaces, then >>>
+        if re.match(r"^[ ]{0,3}>>>", line):
+            doctest_buffer.append(line)
+            continue
+
+        # Check for doctest continuation (output line or ... continuation)
+        # Only if we're already in a doctest block
+        if doctest_buffer:
+            # Continuation line: starts with ... or is doctest output (no prefix)
+            # Output lines are typically not starting with >>> or ...
+            if stripped.startswith("...") or (
+                stripped and not stripped.startswith(">>>") and not stripped.endswith(":")
+            ):
+                doctest_buffer.append(line)
+                continue
+            else:
+                # End of doctest block
+                flush_doctest()
+
+        result.append(line)
+
+    # Flush any remaining doctest
+    flush_doctest()
 
     return "\n".join(result)
 

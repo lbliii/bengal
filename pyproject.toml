@@ -31,6 +31,7 @@ dependencies = [
     "click>=8.1.7",
     "mistune>=3.0.0",
     "jinja2>=3.1.0",
+    "markupsafe>=3.0.0",                       # HTML escaping and safe string handling (required for Kida)
     "pyyaml>=6.0",
     "python-frontmatter>=1.0.0",
     "jsmin>=3.0.1",
@@ -42,11 +43,20 @@ dependencies = [
     "watchfiles>=0.20",                        # Rust-based file watching for dev server (fast)
     "httpx>=0.27.0",                           # Async HTTP client for link checking
     "uvloop>=0.21.0; sys_platform != 'win32'", # Rust-based event loop (Linux/macOS)
+    "zstandard>=0.23.0",                       # Cache compression (fallback until PEP 784 stdlib available)
 ]
 
 [project.optional-dependencies]
 # Pre-built Lunr search index (faster client-side search)
 search = ["lunr>=0.7.0"]
+
+# Image processing (RFC: hugo-inspired-features)
+# Note: Pillow is already a core dependency for social cards
+# These extras add advanced image processing features
+images = ["Pillow>=10.0"]                                   # Already included, explicit for clarity
+smartcrop = ["Pillow>=10.0", "smartcrop>=0.3"]           # Smart face/feature detection cropping
+avif = ["Pillow>=10.0", "pillow-avif-plugin>=1.3"]          # AVIF format output support
+fast-images = ["pyvips>=2.2"]                               # libvips acceleration (advanced users)
 
 # Content Layer - Remote content sources
 # These provide async HTTP for fetching from GitHub, REST APIs, Notion, etc.

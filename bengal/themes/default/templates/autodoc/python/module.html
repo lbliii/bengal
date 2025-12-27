@@ -1,27 +1,40 @@
 {% extends "base.html" %}
 
 {#
-API Reference Module Template
+================================================================================
+API Reference Module Template (Kida-Native)
+================================================================================
 
 Renders a Python module's API documentation using the unified autodoc skeleton.
 Extends base.html to inherit theme navigation, sidebars, and styling.
-Uses autodoc.css for all styling and autodoc/partials for components.
 
-This template receives:
-- element: DocElement for the module
+TEMPLATE VARIABLES:
+- element: DocElement for the module (required)
+- page: PageContext proxy with title, metadata, tags, _path
 - config: Autodoc configuration
 - site: Site instance
+- section: Parent section (for navigation)
+
+KIDA FEATURES USED:
+- Optional chaining (?.) for safe attribute access
+- Null coalescing (??) for defaults
+- {% def %} macros for DRY component reuse
+- {% match %} for element type dispatch
+- {% let %} for template-scoped caching
+
+================================================================================
 #}
 
-{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc with context %}
+{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc %}
 {% from 'autodoc/partials/_macros/class-member.html' import class_member %}
 {% from 'autodoc/partials/_macros/function-member.html' import function_member %}
 
 {% block content %}
-{# Pre-compute element children - use getattr for safe access #}
-{% set element_children = getattr(element, 'children', []) %}
-{% set classes = element_children | selectattr('element_type', 'eq', 'class') | list %}
-{% set functions = element_children | selectattr('element_type', 'eq', 'function') | list %}
+{# Template-scoped caching of computed values #}
+{% let element_children = element?.children ?? [] %}
+{% let classes = element_children | selectattr('element_type', 'eq', 'class') | list %}
+{% let functions = element_children | selectattr('element_type', 'eq', 'function') | list %}
+{% let page_tags = page?.tags ?? [] %}
 
 {# Three-column documentation layout #}
 <div class="docs-layout">
@@ -32,44 +45,47 @@ This template receives:
 
   {# Main Content #}
   <div class="docs-main">
-    {# Page Hero: Breadcrumbs + Badges + Title + Description + Stats #}
-    {% include 'partials/page-hero/element.html' %}
+    {# Page Hero: Use direct macro call with explicit context #}
+    {% from 'partials/page-hero.html' import hero_element %}
+    {{ hero_element(element, page, config) }}
 
     {# Article Content - Unified autodoc skeleton #}
     <article data-autodoc data-type="python" data-element="module" class="autodoc docs-content">
 
       {# Classes Section #}
-      {% if classes %}
+      {% if classes | length > 0 %}
       <section class="autodoc-section" data-section="classes">
         <h2 class="autodoc-section-title">Classes</h2>
         {% for cls in classes %}
         {{ class_member(cls, is_first=loop.first) }}
-        {% endfor %}
+        {% end %}
       </section>
-      {% endif %}
+      {% end %}
 
       {# Functions Section #}
-      {% if functions %}
+      {% if functions | length > 0 %}
       <section class="autodoc-section" data-section="functions">
         <h2 class="autodoc-section-title">Functions</h2>
         {% for func in functions %}
         {{ function_member(func, is_first=loop.first) }}
-        {% endfor %}
+        {% end %}
       </section>
-      {% endif %}
+      {% end %}
 
-      {# Tags #}
-      {% if page.tags %}
+      {# Tags - with null-safe access #}
+      {% if page_tags | length > 0 %}
       <footer class="docs-footer">
         <span class="docs-footer-label">Tagged</span>
-        {% from 'partials/content-components.html' import tag_list with context %}
-        {{ tag_list(page.tags) }}
+        {% from 'partials/components/tags.html' import tag_list %}
+        {{ tag_list(page_tags) }}
       </footer>
-      {% endif %}
+      {% end %}
     </article>
 
-    {# Page navigation (prev/next) at bottom #}
+    {# Page navigation (prev/next) at bottom - null-safe #}
+    {% if page %}
     {{ page_navigation(page) }}
+    {% end %}
   </div>
 
   {# Right Sidebar: Contextual Graph + TOC + Metadata #}
@@ -84,4 +100,4 @@ This template receives:
 
 {# Sidebar overlay for mobile #}
 <div class="docs-sidebar-overlay" aria-hidden="true"></div>
-{% endblock %}
+{% end %}

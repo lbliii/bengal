@@ -35,6 +35,8 @@ class IconSet:
     Attributes:
         mascot: Bengal cat symbol for success headers
         error_mascot: Mouse symbol for error headers
+        rosettes: Rosettes syntax highlighter logo (spots pattern)
+        kida: Kida template engine logo (face + whiskers)
         success: Success/check indicator
         warning: Warning indicator
         error: Error indicator
@@ -49,6 +51,8 @@ class IconSet:
     # Branding
     mascot: str = "ᓚᘏᗢ"  # Bengal cat
     error_mascot: str = "ᘛ⁐̤ᕐᐷ"  # Mouse (for errors)
+    rosettes: str = "⌾⌾⌾"  # Rosettes syntax highlighter (spots)
+    kida: str = ")彡"  # Kida template engine (face + whiskers)
 
     # Status indicators
     success: str = "✓"

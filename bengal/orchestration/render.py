@@ -124,11 +124,13 @@ class RenderOrchestrator:
     Attributes:
         site: Site instance containing pages and configuration
         _free_threaded: Whether running on free-threaded Python (GIL disabled)
+        _block_cache: Cache for site-wide template blocks (Kida only)
 
     Relationships:
         - Uses: RenderingPipeline for individual page rendering
         - Uses: DependencyTracker for dependency tracking
         - Uses: BuildStats for build statistics collection
+        - Uses: BlockCache for site-wide block caching
         - Used by: BuildOrchestrator for rendering phase
 
     Thread Safety:
@@ -149,6 +151,7 @@ class RenderOrchestrator:
         """
         self.site = site
         self._free_threaded = _is_free_threaded()
+        self._block_cache = None  # Lazy initialized for Kida only
 
         # Log free-threaded detection once
         if self._free_threaded:
@@ -156,6 +159,83 @@ class RenderOrchestrator:
                 "Using ThreadPoolExecutor with true parallelism (no GIL)",
                 python_version=f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
             )
+
+    def _warm_block_cache(self) -> None:
+        """Pre-warm block cache with site-wide blocks (Kida only).
+
+        Identifies blocks that only depend on site context and pre-renders
+        them once. These cached blocks are reused for all pages, avoiding
+        redundant rendering of nav, footer, etc.
+
+        RFC: kida-template-introspection
+        """
+        # Only for Kida engine
+        template_engine = self.site.config.get("template_engine", "jinja2")
+        if template_engine != "kida":
+            return
+
+        try:
+            from bengal.rendering.block_cache import BlockCache
+            from bengal.rendering.context import get_engine_globals
+            from bengal.rendering.engines import create_engine
+
+            engine = create_engine(self.site)
+
+            # Check if this is a Kida engine with introspection support
+            if not hasattr(engine, "get_cacheable_blocks"):
+                return
+
+            # Initialize block cache
+            self._block_cache = BlockCache(enabled=True)
+
+            # Build site context for block rendering
+            site_context = get_engine_globals(self.site)
+
+            # Warm cache for key templates
+            templates_to_warm = ["base.html", "page.html", "single.html", "list.html"]
+            total_cached = 0
+
+            for template_name in templates_to_warm:
+                try:
+                    cached = self._block_cache.warm_site_blocks(engine, template_name, site_context)
+                    total_cached += cached
+                except Exception:
+                    pass  # Skip templates that don't exist or fail to warm
+
+            if total_cached > 0:
+                logger.info(
+                    "block_cache_ready",
+                    total_blocks_cached=total_cached,
+                    templates_analyzed=len(templates_to_warm),
+                )
+
+        except Exception as e:
+            # Don't fail build if cache warming fails
+            logger.debug("block_cache_warm_failed", error=str(e))
+
+    def get_cached_block(self, template_name: str, block_name: str) -> str | None:
+        """Get a cached block if available.
+
+        Args:
+            template_name: Template containing the block
+            block_name: Block to retrieve
+
+        Returns:
+            Cached HTML string, or None if not cached
+        """
+        if self._block_cache is None:
+            return None
+        return self._block_cache.get(template_name, block_name)
+
+    def get_block_cache_stats(self) -> dict | None:
+        """Get block cache statistics.
+
+        Returns:
+            Dict with hits, misses, and cached block count, or None if no cache
+        """
+        if self._block_cache is None:
+            return None
+        return self._block_cache.get_stats()
 
     def process(
         self,
@@ -190,6 +270,9 @@ class RenderOrchestrator:
         from bengal.rendering.context import clear_global_context_cache
 
         clear_global_context_cache()
+
+        # Warm block cache before parallel rendering (Kida only)
+        self._warm_block_cache()
 
         # Resolve progress manager from context if not provided
         if (
@@ -248,6 +331,7 @@ class RenderOrchestrator:
                 build_stats=stats,
                 build_context=build_context,
                 changed_sources=changed_sources,
+                block_cache=self._block_cache,
             )
             last_update_time = time.time()
             update_interval = 0.1  # Update every 100ms (throttled for performance)
@@ -293,6 +377,7 @@ class RenderOrchestrator:
                 build_stats=stats,
                 build_context=build_context,
                 changed_sources=changed_sources,
+                block_cache=self._block_cache,
             )
             for page in pages:
                 pipeline.process_page(page)
@@ -386,6 +471,51 @@ class RenderOrchestrator:
                 pages, tracker, quiet, stats, build_context, changed_sources
             )
 
+    def _should_use_complexity_ordering(self) -> bool:
+        """Check if complexity-based ordering is enabled."""
+        return self.site.config.get("build", {}).get("complexity_ordering", True)
+
+    def _maybe_sort_by_complexity(self, pages: list[Page], max_workers: int) -> list[Page]:
+        """Sort pages by complexity if enabled and beneficial.
+
+        Only sorts if:
+        1. Complexity ordering is enabled in config (default: True)
+        2. We have more pages than workers (otherwise no benefit)
+
+        Heavy pages are sorted first to minimize straggler workers.
+        """
+        if not self._should_use_complexity_ordering():
+            return pages
+
+        if len(pages) <= max_workers:
+            # No benefit from sorting if we have fewer pages than workers
+            return pages
+
+        from bengal.orchestration.complexity import get_complexity_stats, sort_by_complexity
+
+        sorted_pages = sort_by_complexity(pages, descending=True)
+
+        # Log complexity distribution at debug level
+        complexity_stats = get_complexity_stats(sorted_pages)
+        logger.debug(
+            "complexity_distribution",
+            page_count=complexity_stats["count"],
+            min_score=complexity_stats["min"],
+            max_score=complexity_stats["max"],
+            mean_score=round(complexity_stats["mean"], 1),
+            variance_ratio=round(complexity_stats["variance_ratio"], 1),
+        )
+        # Log ordering effectiveness (high variance = big benefit)
+        if complexity_stats["variance_ratio"] > 10:
+            logger.debug(
+                "complexity_ordering_beneficial",
+                reason="high variance detected",
+                top_5=complexity_stats["top_5_scores"],
+                bottom_5=complexity_stats["bottom_5_scores"],
+            )
+
+        return sorted_pages
+
     def _render_parallel_simple(
         self,
         pages: list[Page],
@@ -399,6 +529,9 @@ class RenderOrchestrator:
         from bengal.rendering.pipeline import RenderingPipeline
 
         max_workers = get_max_workers(self.site.config.get("max_workers"))
+
+        # Sort heavy pages first to avoid straggler workers (LPT scheduling)
+        sorted_pages = self._maybe_sort_by_complexity(pages, max_workers)
 
         # Capture current generation for staleness check
         current_gen = _get_current_generation()
@@ -420,6 +553,7 @@ class RenderOrchestrator:
                     build_stats=stats,
                     build_context=build_context,
                     changed_sources=changed_sources,
+                    block_cache=self._block_cache,
                 )
                 _thread_local.pipeline_generation = current_gen
             _thread_local.pipeline.process_page(page)
@@ -427,12 +561,13 @@ class RenderOrchestrator:
         try:
             with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
                 # Map futures to pages for error reporting
+                # Uses sorted_pages (heavy first) for optimal parallel scheduling
                 future_to_page = {
-                    executor.submit(process_page_with_pipeline, page): page for page in pages
+                    executor.submit(process_page_with_pipeline, page): page for page in sorted_pages
                 }
 
                 # Track errors for aggregation
-                aggregator = ErrorAggregator(total_items=len(pages))
+                aggregator = ErrorAggregator(total_items=len(sorted_pages))
                 threshold = 5
 
                 # Wait for all to complete
@@ -494,6 +629,7 @@ class RenderOrchestrator:
             build_stats=stats,
             build_context=build_context,
             changed_sources=changed_sources,
+            block_cache=self._block_cache,
         )
 
         with Progress(
@@ -548,6 +684,10 @@ class RenderOrchestrator:
         from bengal.rendering.pipeline import RenderingPipeline
 
         max_workers = get_max_workers(self.site.config.get("max_workers"))
+
+        # Sort heavy pages first to avoid straggler workers (LPT scheduling)
+        sorted_pages = self._maybe_sort_by_complexity(pages, max_workers)
+
         completed_count = 0
         lock = threading.Lock()
         last_update_time = time.time()
@@ -573,7 +713,9 @@ class RenderOrchestrator:
                     tracker,
                     quiet=True,
                     build_stats=stats,
+                    build_context=build_context,
                     changed_sources=changed_sources,
+                    block_cache=self._block_cache,
                 )
                 _thread_local.pipeline_generation = current_gen
             _thread_local.pipeline.process_page(page)
@@ -609,12 +751,13 @@ class RenderOrchestrator:
         try:
             with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
                 # Map futures to pages for error reporting
+                # Uses sorted_pages (heavy first) for optimal parallel scheduling
                 future_to_page = {
-                    executor.submit(process_page_with_pipeline, page): page for page in pages
+                    executor.submit(process_page_with_pipeline, page): page for page in sorted_pages
                 }
 
                 # Track errors for aggregation
-                aggregator = ErrorAggregator(total_items=len(pages))
+                aggregator = ErrorAggregator(total_items=len(sorted_pages))
                 threshold = 5
 
                 # Wait for all to complete
@@ -644,7 +787,7 @@ class RenderOrchestrator:
                 if progress_manager:
                     progress_manager.update_phase(
                         "rendering",
-                        current=len(pages),
+                        current=len(sorted_pages),
                         current_item="",
                         threads=max_workers,
                     )
@@ -680,6 +823,9 @@ class RenderOrchestrator:
         console = get_console()
         max_workers = get_max_workers(self.site.config.get("max_workers"))
 
+        # Sort heavy pages first to avoid straggler workers (LPT scheduling)
+        sorted_pages = self._maybe_sort_by_complexity(pages, max_workers)
+
         # Capture current generation for staleness check
         current_gen = _get_current_generation()
 
@@ -698,6 +844,7 @@ class RenderOrchestrator:
                     build_stats=stats,
                     build_context=build_context,
                     changed_sources=changed_sources,
+                    block_cache=self._block_cache,
                 )
                 _thread_local.pipeline_generation = current_gen
             _thread_local.pipeline.process_page(page)
@@ -714,14 +861,17 @@ class RenderOrchestrator:
             console=console,
             transient=False,
         ) as progress:
-            task = progress.add_task("[cyan]Rendering pages...", total=len(pages))
+            task = progress.add_task("[cyan]Rendering pages...", total=len(sorted_pages))
 
             try:
                 with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-                    futures = [executor.submit(process_page_with_pipeline, page) for page in pages]
+                    # Uses sorted_pages (heavy first) for optimal parallel scheduling
+                    futures = [
+                        executor.submit(process_page_with_pipeline, page) for page in sorted_pages
+                    ]
 
                     # Track errors for aggregation
-                    aggregator = ErrorAggregator(total_items=len(pages))
+                    aggregator = ErrorAggregator(total_items=len(sorted_pages))
 
                     # Wait for all to complete and update progress
                     threshold = 5

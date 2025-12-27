@@ -1,0 +1,241 @@
+{#
+================================================================================
+Content Tiles Component (Kida-Native)
+================================================================================
+
+Flexible content display with optional headers, multiple content sources,
+and variant display modes.
+
+Variants:
+- compact: Row-based list with icons (default)
+- cards: Grid of preview cards
+- minimal: Simple link list
+
+Usage:
+  {{ content_tiles(title='Section', children=posts, variant='cards') }}
+================================================================================
+#}
+
+{# =============================================================================
+CONTENT TILES COMPONENT
+============================================================================= #}
+{% def content_tiles(
+  title=none,
+  children=none,
+  subsections=none,
+  related=none,
+  related_title=none,
+  related_limit=5,
+  variant='compact',
+  show_descriptions=true,
+  show_icons=true,
+  group_by=none,
+  page=none
+) %}
+{% let all_items = [] %}
+{% let page_path = page?._path ?? '' %}
+
+{# Add subsections with metadata #}
+{% if subsections %}
+{% for subsection in subsections %}
+{% let sub_pages = subsection?.pages ?? [] %}
+{% do all_items.append({
+  'type': 'section',
+  'group': 'children',
+  'obj': subsection,
+  'title': subsection?.title ?? 'Untitled',
+  'href': subsection?.href ?? '',
+  'description': subsection?.metadata?.description ?? '',
+  'weight': subsection?.weight ?? 999,
+  'page_count': sub_pages | length,
+  'icon': subsection?.metadata?.icon ?? ''
+}) %}
+{% end %}
+{% end %}
+
+{# Add child pages with metadata #}
+{% if children %}
+{% for post in children %}
+{# Skip the current page #}
+{% if post?._path != page_path %}
+{% let post_content = post?.content ?? '' %}
+{% let post_desc = post?.metadata?.description ?? '' %}
+{% let desc = post_desc ?? (post_content | strip_html | excerpt(120) if post_content else '') %}
+{% do all_items.append({
+  'type': 'page',
+  'group': 'children',
+  'obj': post,
+  'title': post?.title ?? 'Untitled',
+  'href': post?.href ?? '',
+  'description': desc,
+  'weight': post?.weight ?? 999,
+  'date': post?.date,
+  'icon': post?.metadata?.icon ?? ''
+}) %}
+{% end %}
+{% end %}
+{% end %}
+
+{# Add related pages (deduped) #}
+{% let related_pages = [] %}
+{% if related is sameas true %}
+{% let page_related = page?.related_posts ?? [] %}
+{% let related_pages = page_related[:related_limit] %}
+{% elif related %}
+{% let related_pages = related %}
+{% end %}
+
+{# Build set of existing URLs for dedup #}
+{% let children_urls = [] %}
+{% for item in all_items %}
+{% do children_urls.append(item.href) %}
+{% end %}
+
+{% for rel_page in related_pages %}
+{% let rel_path = rel_page?._path ?? '' %}
+{% let rel_href = rel_page?.href ?? '' %}
+{% let is_current = rel_path == page_path %}
+{% let is_duplicate = rel_href in children_urls %}
+{% if not is_current and not is_duplicate %}
+{% let rel_content = rel_page?.content ?? '' %}
+{% let rel_desc = rel_page?.metadata?.description ?? '' %}
+{% let desc = rel_desc ?? (rel_content | strip_html | excerpt(100) if rel_content else '') %}
+{% do all_items.append({
+  'type': 'related',
+  'group': 'related',
+  'obj': rel_page,
+  'title': rel_page?.title ?? 'Untitled',
+  'href': rel_href,
+  'description': desc,
+  'weight': rel_page?.weight ?? 999,
+  'date': rel_page?.date,
+  'icon': rel_page?.metadata?.icon ?? ''
+}) %}
+{% end %}
+{% end %}
+
+{% if all_items | length > 0 %}
+{# Sort items #}
+{% let sorted_items = all_items | sort(attribute='group,weight,title') if group_by == 'type' else all_items | sort(attribute='weight,title') %}
+
+<section class="content-tiles content-tiles--{{ variant }}">
+  {% if title %}
+  <h2 class="content-tiles-title">{{ title }}</h2>
+  {% end %}
+
+  {% match variant %}
+  {# ===== CARDS VARIANT ===== #}
+  {% case 'cards' %}
+  <div class="content-tiles-grid">
+    {% for item in sorted_items %}
+    <article class="content-tile-card{{ ' content-tile-card--related' if item.type == 'related' else '' }}">
+      {% if show_icons %}
+      <div class="content-tile-card-icon">
+        {% if item.icon %}
+        {{ icon(item.icon, size=24) }}
+        {% else %}
+        {% match item.type %}
+        {% case 'section' %}{{ icon('folder', size=24) }}
+        {% case 'related' %}{{ icon('link', size=24) }}
+        {% case _ %}{{ icon('file-text', size=24) }}
+        {% end %}
+        {% end %}
+      </div>
+      {% end %}
+      <h3 class="content-tile-card-title">
+        <a href="{{ item.href }}">{{ item.title }}</a>
+      </h3>
+      {% if show_descriptions and item.description %}
+      <p class="content-tile-card-description">{{ item.description | truncate(120) }}</p>
+      {% end %}
+      <div class="content-tile-card-meta">
+        {% match item.type %}
+        {% case 'section' %}
+        {% if item.page_count > 0 %}
+        <span>{{ item.page_count }} page{{ 's' if item.page_count != 1 else '' }}</span>
+        {% end %}
+        {% case 'related' %}
+        <span class="content-tile-badge">Related</span>
+        {% case _ %}
+        {% if item.date %}
+        <span>{{ item.date | time_ago }}</span>
+        {% end %}
+        {% end %}
+      </div>
+    </article>
+    {% end %}
+  </div>
+
+  {# ===== MINIMAL VARIANT ===== #}
+  {% case 'minimal' %}
+  <ul class="content-tiles-minimal">
+    {% for item in sorted_items %}
+    <li class="{{ 'content-tile--related' if item.type == 'related' else '' }}">
+      <a href="{{ item.href }}">{{ item.title }}</a>
+      {% if item.type == 'related' %}<span class="content-tile-badge">Related</span>{% end %}
+    </li>
+    {% end %}
+  </ul>
+
+  {# ===== COMPACT VARIANT (default) ===== #}
+  {% case _ %}
+  <div class="content-tiles-list">
+    {% for group_name, group_items in sorted_items | groupby('group') %}
+    {# Group headers when group_by='type' #}
+    {% if group_by == 'type' and group_name == 'related' and related_title %}
+    <div class="content-tiles-group-header">
+      <span class="content-tiles-group-label">{{ related_title }}</span>
+    </div>
+    {% end %}
+    {% for item in group_items %}
+    <article class="content-tile{{ ' content-tile--related' if item.type == 'related' else '' }}">
+      {% if show_icons %}
+      <div class="content-tile-icon">
+        {% if item.icon %}
+        {{ icon(item.icon, size=20) }}
+        {% elif item.type == 'section' %}
+        {{ icon('folder', size=20) }}
+        {% elif item.type == 'related' %}
+        {{ icon('link', size=20) }}
+        {% else %}
+        {{ icon('file-text', size=20) }}
+        {% end %}
+      </div>
+      {% end %}
+      <div class="content-tile-content">
+        <span class="content-tile-title">
+          <a href="{{ item.href }}">{{ item.title }}</a>
+          {% if show_descriptions and item.description %}
+          <span class="content-tile-description">{{ item.description }}</span>
+          {% end %}
+          <span class="content-tile-meta">
+            {% if item.type == 'section' and item.page_count > 0 %}
+            <span class="meta-item">{{ item.page_count }} page{{ 's' if item.page_count != 1 else '' }}</span>
+            {% elif item.type == 'related' %}
+            <span class="meta-item content-tile-badge">Related</span>
+            {% elif item.date %}
+            <span class="meta-item">{{ item.date | time_ago }}</span>
+            {% end %}
+          </span>
+        </span>
+      </div>
+    </article>
+    {% end %}
+    {% end %}
+  </div>
+  {% end %}
+</section>
+{% end %}
+{% end %}
+
+{# =============================================================================
+CHILD PAGE TILES COMPONENT (Legacy)
+
+DEPRECATED: Use content_tiles() instead.
+Kept for backward compatibility.
+============================================================================= #}
+{% def child_page_tiles(posts=none, subsections=none) %}
+{% if posts or subsections %}
+{{ content_tiles(children=posts, subsections=subsections, page=page) }}
+{% end %}
+{% end %}

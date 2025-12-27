@@ -33,7 +33,7 @@ from pathlib import Path
 from typing import Any
 
 from bengal.cache.cacheable import Cacheable
-from bengal.utils.atomic_write import AtomicFile
+from bengal.cache.compression import load_auto, save_compressed
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -133,13 +133,15 @@ class AssetDependencyMap:
 
     def _load_from_disk(self) -> None:
         """Load asset dependencies from disk if file exists."""
-        if not self.cache_path.exists():
+        # load_auto handles both .json.zst and .json formats
+        compressed_path = self.cache_path.with_suffix(".json.zst")
+        if not compressed_path.exists() and not self.cache_path.exists():
             logger.debug("asset_dependency_map_not_found", path=str(self.cache_path))
             return
 
         try:
-            with open(self.cache_path) as f:
-                data = json.load(f)
+            # load_auto tries .json.zst first, falls back to .json
+            data = load_auto(self.cache_path)
 
             # Validate version
             if data.get("version") != self.VERSION:
@@ -182,9 +184,9 @@ class AssetDependencyMap:
                 "pages": {path: entry.to_cache_dict() for path, entry in self.pages.items()},
             }
 
-            # Atomic write to avoid partial/corrupt files on crash
-            with AtomicFile(self.cache_path, "w", encoding="utf-8") as f:
-                json.dump(data, f, indent=2)
+            # Save as compressed .json.zst format (save_compressed handles atomic writes)
+            compressed_path = self.cache_path.with_suffix(".json.zst")
+            save_compressed(data, compressed_path)
 
             logger.info(
                 "asset_dependency_map_saved",

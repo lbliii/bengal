@@ -300,6 +300,7 @@ class ContentOrchestrator:
             return [], []
 
         try:
+            from bengal import __version__
             from bengal.autodoc.orchestration import VirtualAutodocOrchestrator
             from bengal.utils.hashing import hash_dict
 
@@ -333,8 +334,7 @@ class ContentOrchestrator:
                 cached_payload = cache.get_page_cache(cache_key)
                 if (
                     isinstance(cached_payload, dict)
-                    and cached_payload.get("version")
-                    == 2  # v2: dict format for ParameterInfo/RaisesInfo
+                    and cached_payload.get("version") == __version__
                     and cached_payload.get("autodoc_config_hash") == current_cfg_hash
                 ):
                     changed = False
@@ -353,15 +353,28 @@ class ContentOrchestrator:
                         changed = True
 
                     if not changed:
-                        pages, sections, _run = orchestrator.generate_from_cache_payload(
-                            cached_payload
-                        )
-                        logger.debug(
-                            "autodoc_cache_hit",
-                            pages=len(pages),
-                            sections=len(sections),
-                        )
-                        return pages, sections
+                        try:
+                            pages, sections, _run = orchestrator.generate_from_cache_payload(
+                                cached_payload
+                            )
+                            logger.debug(
+                                "autodoc_cache_hit",
+                                pages=len(pages),
+                                sections=len(sections),
+                            )
+                            return pages, sections
+                        except (TypeError, KeyError, ValueError) as e:
+                            # Cache payload is malformed - invalidate and fall back to re-extraction
+                            logger.warning(
+                                "autodoc_cache_payload_malformed",
+                                cache_key=cache_key,
+                                error=str(e),
+                                error_type=type(e).__name__,
+                                action="invalidating_cache_and_re_extracting",
+                            )
+                            if hasattr(cache, "invalidate_page_cache"):
+                                cache.invalidate_page_cache(cache_key)
+                            # Fall through to re-extraction below
 
             # Tolerate both 2-tuple and 3-tuple return values
             result = orchestrator.generate()
@@ -414,7 +427,7 @@ class ContentOrchestrator:
                         payload = orchestrator.get_cache_payload()
                         if (
                             isinstance(payload, dict)
-                            and payload.get("version") == 1
+                            and payload.get("version") == __version__
                             and payload.get("autodoc_config_hash") == current_cfg_hash
                         ):
                             cache.set_page_cache(cache_key, payload)

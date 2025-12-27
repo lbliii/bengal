@@ -1,82 +1,83 @@
 {#
-Share Dropdown Component
+================================================================================
+DEPRECATED: Share Dropdown Component
+================================================================================
 
-PATTERN: POPOVER (see assets/COMPONENT-PATTERNS.md)
-- Trigger: popovertarget attribute
-- Browser handles: show/hide, light dismiss, escape key, top layer
-- JS handles: Copy actions, AI share functionality
+This template is now inlined as a macro in page-hero.html for faster rendering.
 
-Receives from parent context:
-- page: Page object with .href or ._path
+MIGRATION:
+  This template should not be included directly anymore.
+  Use {% include 'partials/page-hero.html' %} instead.
 
-Example:
-{% include 'partials/page-hero/_share-dropdown.html' %}
+  The share dropdown is automatically included in all hero variants.
+
+See: plan/drafted/rfc-page-hero-template-flattening.md
+================================================================================
 #}
 
-{# Macro: Get page URL with fallback chain #}
-{% macro get_page_url(page) -%}
+{# Shim: Render share dropdown for backwards compatibility #}
+{% def get_page_url(page) -%}
 {{ page._path or page.href or '/' }}
-{%- endmacro %}
+{% end %}
 
-{# Actions: LLM Share Button #}
 <div class="page-hero__actions">
-    {% set page_url = canonical_url(get_page_url(page)) %}
-    {% set llm_txt_url = ensure_trailing_slash(page_url) ~ 'index.txt' %}
-    {% set share_prompt = "Please help me understand this documentation: " + llm_txt_url %}
+  {% set page_url = canonical_url(get_page_url(page)) %}
+  {% set llm_txt_url = ensure_trailing_slash(page_url) ~ 'index.txt' %}
+  {% set share_prompt = "Please help me understand this documentation: " + llm_txt_url %}
 
-    <div class="page-hero__share">
-        <button class="page-hero__share-trigger" popovertarget="page-hero-share-menu"
-            aria-label="{{ t('share.ai_assistants', default='Share with AI assistants') }}" title="{{ t('share.ai_assistants', default='Share with AI assistants') }}">
-            <span>ᗢ</span>
-            {{ icon('caret-down', size=14, css_class='page-hero__share-chevron') }}
+  <div class="page-hero__share">
+    <button class="page-hero__share-trigger" popovertarget="page-hero-share-menu"
+      aria-label="{{ t('share.ai_assistants', default='Share with AI assistants') }}"
+      title="{{ t('share.ai_assistants', default='Share with AI assistants') }}">
+      <span>ᗢ</span>
+      {{ icon('caret-down', size=14, css_class='page-hero__share-chevron') }}
+    </button>
+
+    <div id="page-hero-share-menu" popover class="page-hero__share-dropdown--popover">
+      <div class="page-hero__share-content">
+        <button class="page-hero__share-item" data-action="copy-url" data-url="{{ page_url }}" type="button">
+          {{ icon('link', size=16) }}
+          <span>{{ t('share.copy_url', default='Copy URL') }}</span>
         </button>
 
-        <div id="page-hero-share-menu" popover class="page-hero__share-dropdown--popover">
-            <div class="page-hero__share-content">
-                <button class="page-hero__share-item" data-action="copy-url" data-url="{{ page_url }}" type="button">
-                    {{ icon('link', size=16) }}
-                    <span>{{ t('share.copy_url', default='Copy URL') }}</span>
-                </button>
+        <a href="{{ llm_txt_url }}" target="_blank" rel="noopener noreferrer" class="page-hero__share-item">
+          {{ icon('external', size=16) }}
+          <span>{{ t('share.open_llm_text', default='Open LLM text') }}</span>
+        </a>
 
-                <a href="{{ llm_txt_url }}" target="_blank" rel="noopener noreferrer" class="page-hero__share-item">
-                    {{ icon('external', size=16) }}
-                    <span>{{ t('share.open_llm_text', default='Open LLM text') }}</span>
-                </a>
+        <button class="page-hero__share-item" data-action="copy-llm-txt" data-url="{{ llm_txt_url }}" type="button">
+          {{ icon('copy', size=16) }}
+          <span>{{ t('share.copy_llm_text', default='Copy LLM text') }}</span>
+        </button>
 
-                <button class="page-hero__share-item" data-action="copy-llm-txt" data-url="{{ llm_txt_url }}"
-                    type="button">
-                    {{ icon('copy', size=16) }}
-                    <span>{{ t('share.copy_llm_text', default='Copy LLM text') }}</span>
-                </button>
+        <hr class="page-hero__share-separator">
 
-                <hr class="page-hero__share-separator">
+        <div class="page-hero__share-section-header">{{ t('share.with_ai', default='Share with AI') }}</div>
 
-                <div class="page-hero__share-section-header">{{ t('share.with_ai', default='Share with AI') }}</div>
+        <a href="https://claude.ai/new?q={{ share_prompt | urlencode }}" target="_blank" rel="noopener noreferrer"
+          class="page-hero__share-item page-hero__share-ai" data-ai="claude">
+          {{ icon('ai-claude', size=16) }}
+          <span>{{ t('share.ask_claude', default='Ask Claude') }}</span>
+        </a>
 
-                <a href="https://claude.ai/new?q={{ share_prompt | urlencode }}" target="_blank"
-                    rel="noopener noreferrer" class="page-hero__share-item page-hero__share-ai" data-ai="claude">
-                    {{ icon('ai-claude', size=16) }}
-                    <span>{{ t('share.ask_claude', default='Ask Claude') }}</span>
-                </a>
+        <a href="https://chatgpt.com/?q={{ share_prompt | urlencode }}" target="_blank" rel="noopener noreferrer"
+          class="page-hero__share-item page-hero__share-ai" data-ai="chatgpt">
+          {{ icon('ai-chatgpt', size=16) }}
+          <span>{{ t('share.ask_chatgpt', default='Ask ChatGPT') }}</span>
+        </a>
 
-                <a href="https://chatgpt.com/?q={{ share_prompt | urlencode }}" target="_blank"
-                    rel="noopener noreferrer" class="page-hero__share-item page-hero__share-ai" data-ai="chatgpt">
-                    {{ icon('ai-chatgpt', size=16) }}
-                    <span>{{ t('share.ask_chatgpt', default='Ask ChatGPT') }}</span>
-                </a>
+        <a href="https://gemini.google.com/app?q={{ share_prompt | urlencode }}" target="_blank" rel="noopener noreferrer"
+          class="page-hero__share-item page-hero__share-ai" data-ai="gemini">
+          {{ icon('ai-gemini', size=16) }}
+          <span>{{ t('share.ask_gemini', default='Ask Gemini') }}</span>
+        </a>
 
-                <a href="https://gemini.google.com/app?q={{ share_prompt | urlencode }}" target="_blank"
-                    rel="noopener noreferrer" class="page-hero__share-item page-hero__share-ai" data-ai="gemini">
-                    {{ icon('ai-gemini', size=16) }}
-                    <span>{{ t('share.ask_gemini', default='Ask Gemini') }}</span>
-                </a>
-
-                <a href="https://copilot.microsoft.com/?q={{ share_prompt | urlencode }}" target="_blank"
-                    rel="noopener noreferrer" class="page-hero__share-item page-hero__share-ai" data-ai="copilot">
-                    {{ icon('ai-copilot', size=16) }}
-                    <span>{{ t('share.ask_copilot', default='Ask Copilot') }}</span>
-                </a>
-            </div>
-        </div>
+        <a href="https://copilot.microsoft.com/?q={{ share_prompt | urlencode }}" target="_blank" rel="noopener noreferrer"
+          class="page-hero__share-item page-hero__share-ai" data-ai="copilot">
+          {{ icon('ai-copilot', size=16) }}
+          <span>{{ t('share.ask_copilot', default='Ask Copilot') }}</span>
+        </a>
+      </div>
     </div>
+  </div>
 </div>

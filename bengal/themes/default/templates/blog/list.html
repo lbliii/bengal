@@ -1,231 +1,289 @@
 {% extends "base.html" %}
 
 {#
-Blog List Template
+================================================================================
+Blog List Template (Kida-Native)
+================================================================================
 
-Used for blog section indexes. Displays blog posts in reverse chronological
-order with featured posts, excerpts, and pagination.
+Blog section index with featured posts, excerpts, and pagination.
 
-Usage: Set `type: blog` in section _index.md
+KIDA FEATURES USED:
+- {% let %} for template-scoped variables
+- Optional chaining (?.) for null-safe access
+- Null coalescing (??) for smart defaults
+- Pipeline operator (|>) for filter chains
+- {% def %} for reusable post card components
+- {% match %} for conditional rendering
 
-Context variables:
+CONTEXT VARIABLES:
 - section: Section object with blog posts
 - posts: List of blog post pages (may be paginated)
 - subsections: Blog categories/archives
 - total_pages: Total pagination pages
 - current_page: Current page number
+
+USAGE:
+Set `type: blog` in section _index.md
+================================================================================
 #}
 
 {% from 'partials/navigation-components.html' import breadcrumbs, pagination %}
-{% from 'partials/content-components.html' import tag_list %}
+{% from 'partials/components/tags.html' import tag_list %}
 
-{# Defensive defaults for pagination variables (safe fallback if not provided) #}
-{% set total_pages = total_pages | default(1) %}
-{% set current_page = current_page | default(1) %}
-{% set total_posts = total_posts | default(posts | length if posts else 0) %}
-{% set base_url = base_url | default(section.href if section else '/blog/') %}
+{# =============================================================================
+POST CARD COMPONENTS
+============================================================================= #}
+
+{# Featured post card (larger, more prominent) #}
+{% def featured_card(post) %}
+{% let post_meta = post?.metadata ?? {} %}
+{% let post_image = post_meta?.image ?? post_meta?.cover ?? '' %}
+{% let post_title = post?.title ?? 'Untitled' %}
+{% let post_href = post?.href ?? '#' %}
+{% let post_date = post?.date %}
+{% let post_desc = post_meta?.description ?? post?.excerpt ?? '' %}
+{% let post_tags = post?.tags ?? [] %}
+{% let post_author = post_meta?.author ?? '' %}
+{% let post_author_avatar = post_meta?.author_avatar ?? '' %}
+{% let post_content = post?.content ?? '' %}
+{% let word_count = post_content | wordcount if post_content else 0 %}
+{% let read_time = (word_count / 200) | round if word_count > 0 else 0 %}
+
+<article class="blog-featured-card gradient-border-strong fluid-bg">
+    {% if post_image %}
+    <div class="blog-card-image">
+        <a href="{{ post_href }}">
+            <img src="{{ post_image }}" alt="{{ post_title }}" loading="lazy">
+        </a>
+    </div>
+    {% end %}
+
+    <div class="blog-card-content">
+        <h3 class="blog-card-title">
+            <a href="{{ post_href }}">{{ post_title }}</a>
+        </h3>
+
+        {% if post_desc %}
+        <p class="blog-card-excerpt">{{ post_desc | truncate(180) }}</p>
+        {% end %}
+
+        <div class="blog-card-meta">
+            {% if post_author %}
+            <span class="blog-author">
+                {% if post_author_avatar %}
+                <img src="{{ post_author_avatar }}" alt="{{ post_author }}" class="author-avatar">
+                {% end %}
+                {{ post_author }}
+            </span>
+            {% end %}
+
+            {% if post_date %}
+            <time datetime="{{ post_date | date_iso }}">
+                {{ post_date | dateformat('%B %d, %Y') }}
+            </time>
+            {% end %}
+
+            {% if read_time > 0 %}
+            <span class="reading-time">{{ read_time }} min read</span>
+            {% end %}
+        </div>
+
+        {% if post_tags | length > 0 %}
+        <div class="blog-card-tags">
+            {{ tag_list(post_tags[:3]) }}
+        </div>
+        {% end %}
+    </div>
+</article>
+{% end %}
+
+{# Regular post card #}
+{% def post_card(post) %}
+{% let post_meta = post?.metadata ?? {} %}
+{% let post_image = post_meta?.image ?? post_meta?.cover ?? '' %}
+{% let post_title = post?.title ?? 'Untitled' %}
+{% let post_href = post?.href ?? '#' %}
+{% let post_date = post?.date %}
+{% let post_desc = post_meta?.description ?? post?.excerpt ?? '' %}
+{% let post_tags = post?.tags ?? [] %}
+{% let post_author = post_meta?.author ?? '' %}
+{% let post_author_avatar = post_meta?.author_avatar ?? '' %}
+{% let post_content = post?.content ?? '' %}
+{% let word_count = post_content | wordcount if post_content else 0 %}
+{% let read_time = (word_count / 200) | round if word_count > 0 else 0 %}
+
+<article class="blog-post-card gradient-border fluid-combined">
+    {% if post_image %}
+    <div class="blog-card-image">
+        <a href="{{ post_href }}">
+            <img src="{{ post_image }}" alt="{{ post_title }}" loading="lazy">
+        </a>
+    </div>
+    {% end %}
+
+    <div class="blog-card-content">
+        <h3 class="blog-card-title">
+            <a href="{{ post_href }}">{{ post_title }}</a>
+        </h3>
+
+        {% if post_desc %}
+        <p class="blog-card-excerpt">{{ post_desc | truncate(200) }}</p>
+        {% end %}
+
+        <div class="blog-card-meta">
+            {% if post_author %}
+            <span class="blog-author">
+                {% if post_author_avatar %}
+                <img src="{{ post_author_avatar }}" alt="{{ post_author }}" class="author-avatar">
+                {% end %}
+                {{ post_author }}
+            </span>
+            {% end %}
+
+            {% if post_date %}
+            <time datetime="{{ post_date | date_iso }}">{{ post_date | time_ago }}</time>
+            {% end %}
+
+            {% if read_time > 0 %}
+            <span class="reading-time">{{ read_time }} min read</span>
+            {% end %}
+        </div>
+
+        {% if post_tags | length > 0 %}
+        <div class="blog-card-tags">
+            {{ tag_list(post_tags[:4]) }}
+        </div>
+        {% end %}
+
+        <a href="{{ post_href }}" class="blog-read-more">Read more →</a>
+    </div>
+</article>
+{% end %}
+
+{# Category/subsection card #}
+{% def category_card(subsection) %}
+{% let sub_title = subsection?.title ?? 'Category' %}
+{% let sub_href = subsection?.href ?? '#' %}
+{% let sub_desc = subsection?.metadata?.description ?? '' %}
+{% let sub_pages = subsection?.regular_pages ?? [] %}
+{% let index_page = subsection?.index_page %}
+{% let index_path = index_page?._path ?? '' %}
+{# Count non-index pages #}
+{% let content_pages = sub_pages |> rejectattr('relative_url', 'eq', index_path) |> list %}
+{% let page_count = content_pages | length %}
+
+<article class="blog-post-card">
+    <div class="blog-card-content">
+        <h3 class="blog-card-title">
+            <a href="{{ sub_href }}">{{ sub_title }}</a>
+        </h3>
+        {% if sub_desc %}
+        <p class="blog-card-excerpt">{{ sub_desc }}</p>
+        {% end %}
+        {% if page_count > 0 %}
+        <p class="blog-card-meta">{{ page_count }} post{{ 's' if page_count != 1 else '' }}</p>
+        {% end %}
+    </div>
+</article>
+{% end %}
+
+{# =============================================================================
+MAIN TEMPLATE
+============================================================================= #}
+
+{# Defensive defaults for pagination #}
+{% let total_pages = total_pages ?? 1 %}
+{% let current_page = current_page ?? 1 %}
+{% let total_posts = total_posts ?? (posts | length if posts else 0) %}
+{% let base_url = base_url ?? section?.href ?? '/blog/' %}
 
 {% block content %}
 <div class="container">
-{# Action Bar: Breadcrumbs + Share #}
-{% include 'partials/action-bar.html' with context %}
+    {# Action Bar: Breadcrumbs + Share #}
+    {% include 'partials/action-bar.html' %}
 
-<div class="blog-container">
-    <header class="page-header page-header--centered">
-        <h1>✍️ {{ section.title if section else title | default('Blog') }}</h1>
+    <div class="blog-container">
+        {# Header #}
+        {% let section_title = section?.title ?? title ?? 'Blog' %}
+        {% let section_desc = section?.metadata?.description ?? description ?? '' %}
 
-        {% if section and section.metadata.description %}
-        <p class="blog-description">{{ section.metadata.description }}</p>
-        {% elif description %}
-        <p class="blog-description">{{ description }}</p>
-        {% endif %}
+        <header class="page-header page-header--centered">
+            <h1>✍️ {{ section_title }}</h1>
 
-        {% if total_pages %}
-        <p class="blog-count">
-            Showing {{ posts | length }} of {{ total_posts }} posts
-            {% if current_page > 1 %}(Page {{ current_page }} of {{ total_pages }}){% endif %}
-        </p>
-        {% endif %}
-    </header>
+            {% if section_desc %}
+            <p class="blog-description">{{ section_desc }}</p>
+            {% end %}
 
-    {% if posts %}
-    {# Featured Posts Section #}
-    {% set featured_posts = posts | where('featured', true) | limit(3) %}
-    {% if featured_posts and current_page == 1 %}
-    <section class="blog-featured">
-        <h2 class="blog-section-title">Featured Posts</h2>
-        <div class="blog-featured-grid stagger-fade-in">
-            {% for post in featured_posts %}
-            <article class="blog-featured-card gradient-border-strong fluid-bg">
-                {% if post.metadata.image or post.metadata.cover %}
-                <div class="blog-card-image">
-                    <a href="{{ post.href }}">
-                        <img src="{{ post.metadata.image | default(post.metadata.cover) }}"
-                            alt="{{ post.title }}">
-                    </a>
-                </div>
-                {% endif %}
+            {% if total_pages > 0 %}
+            <p class="blog-count">
+                Showing {{ posts | length }} of {{ total_posts }} posts
+                {% if current_page > 1 %}(Page {{ current_page }} of {{ total_pages }}){% end %}
+            </p>
+            {% end %}
+        </header>
 
-                <div class="blog-card-content">
-                    <h3 class="blog-card-title">
-                    <a href="{{ post.href }}">{{ post.title }}</a>
-                    </h3>
+        {% if posts %}
+        {# Featured Posts Section (first page only) #}
+        {% if current_page == 1 %}
+        {% let featured_posts = posts |> where('featured', true) |> take(3) %}
+        {% else %}
+        {% let featured_posts = [] %}
+        {% end %}
+        {% if featured_posts | length > 0 %}
+        <section class="blog-featured">
+            <h2 class="blog-section-title">Featured Posts</h2>
+            <div class="blog-featured-grid stagger-fade-in">
+                {% for post in featured_posts %}
+                {{ featured_card(post) }}
+                {% export last_featured_post = post %}
+                {% end %}
+            </div>
+        </section>
+        {% end %}
 
-                    {% if post.metadata.description or post.excerpt %}
-                    <p class="blog-card-excerpt">
-                        {{ post.metadata.description | default(post.excerpt) | truncate(180) }}
-                    </p>
-                    {% endif %}
+        {# Regular Posts Section #}
+        {% if current_page == 1 %}
+        {% let regular_posts = posts |> where_not('featured', true) %}
+        {% else %}
+        {% let regular_posts = posts %}
+        {% end %}
+        {% if regular_posts | length > 0 %}
+        <section class="blog-posts">
+            {% if featured_posts | length > 0 and current_page == 1 %}
+            <h2 class="blog-section-title">Recent Posts</h2>
+            {% end %}
 
-                    <div class="blog-card-meta">
-                        {% if post.metadata.author %}
-                        <span class="blog-author">
-                            {% if post.metadata.author_avatar %}
-                            <img src="{{ post.metadata.author_avatar }}" alt="{{ post.metadata.author }}"
-                                class="author-avatar">
-                            {% endif %}
-                            {{ post.metadata.author }}
-                        </span>
-                        {% endif %}
+            <div class="blog-post-list">
+                {% for post in regular_posts %}
+                {{ post_card(post) }}
+                {% export last_regular_post = post %}
+                {% end %}
+            </div>
+        </section>
+        {% end %}
 
-                        {% if post.date %}
-                        <time datetime="{{ post.date | date_iso }}">
-                            {{ post.date | dateformat('%B %d, %Y') }}
-                        </time>
-                        {% endif %}
+        {# Pagination #}
+        {% if total_pages > 1 %}
+        {{ pagination(current_page, total_pages, base_url) }}
+        {% end %}
 
-                        {% if post.content %}
-                        <span class="reading-time">
-                            {{ (post.content | wordcount / 200) | round }} min read
-                        </span>
-                        {% endif %}
-                    </div>
+        {% elif subsections | length > 0 %}
+        {# Show blog categories/archives if no posts #}
+        <section class="blog-categories">
+            <h2 class="blog-section-title">Categories</h2>
+            <div class="blog-post-list">
+                {% for subsection in subsections %}
+                {{ category_card(subsection) }}
+                {% end %}
+            </div>
+        </section>
 
-                    {% if post.tags %}
-                    <div class="blog-card-tags">
-                        {{ tag_list(post.tags | limit(3)) }}
-                    </div>
-                    {% endif %}
-                </div>
-            </article>
-            {% endfor %}
+        {% else %}
+        {# Empty State #}
+        <div class="blog-empty">
+            <p>No blog posts yet. Check back soon!</p>
         </div>
-    </section>
-    {% endif %}
-
-    {# All Posts Section #}
-    {% set regular_posts = posts | where_not('featured', true) if current_page == 1 else posts %}
-    {% if regular_posts %}
-    <section class="blog-posts">
-        {% if featured_posts and current_page == 1 %}
-        <h2 class="blog-section-title">Recent Posts</h2>
-        {% endif %}
-
-        <div class="blog-post-list">
-            {% for post in regular_posts %}
-            <article class="blog-post-card gradient-border fluid-combined">
-                {% if post.metadata.image or post.metadata.cover %}
-                <div class="blog-card-image">
-                <a href="{{ post.href }}">
-                        <img src="{{ post.metadata.image | default(post.metadata.cover) }}"
-                            alt="{{ post.title }}">
-                    </a>
-                </div>
-                {% endif %}
-
-                <div class="blog-card-content">
-                    <h3 class="blog-card-title">
-                    <a href="{{ post.href }}">{{ post.title }}</a>
-                    </h3>
-
-                    {% if post.metadata.description or post.excerpt %}
-                    <p class="blog-card-excerpt">
-                        {{ post.metadata.description | default(post.excerpt) | truncate(200) }}
-                    </p>
-                    {% endif %}
-
-                    <div class="blog-card-meta">
-                        {% if post.metadata.author %}
-                        <span class="blog-author">
-                            {% if post.metadata.author_avatar %}
-                            <img src="{{ post.metadata.author_avatar }}" alt="{{ post.metadata.author }}"
-                                class="author-avatar">
-                            {% endif %}
-                            {{ post.metadata.author }}
-                        </span>
-                        {% endif %}
-
-                        {% if post.date %}
-                        <time datetime="{{ post.date | date_iso }}">
-                            {{ post.date | time_ago }}
-                        </time>
-                        {% endif %}
-
-                        {% if post.content %}
-                        <span class="reading-time">
-                            {{ (post.content | wordcount / 200) | round }} min read
-                        </span>
-                        {% endif %}
-                    </div>
-
-                    {% if post.tags %}
-                    <div class="blog-card-tags">
-                        {{ tag_list(post.tags | limit(4)) }}
-                    </div>
-                    {% endif %}
-
-                    <a href="{{ post.href }}" class="blog-read-more">
-                        Read more →
-                    </a>
-                </div>
-            </article>
-            {% endfor %}
-        </div>
-    </section>
-    {% endif %}
-
-    {# Pagination #}
-    {% if total_pages and total_pages > 1 %}
-    {{ pagination(current_page, total_pages, base_url) }}
-    {% endif %}
-
-    {% elif subsections %}
-    {# Show blog categories/archives if no posts #}
-    <section class="blog-categories">
-        <h2 class="blog-section-title">Categories</h2>
-        <div class="blog-post-list">
-            {% for subsection in subsections %}
-            <article class="blog-post-card">
-                <div class="blog-card-content">
-                    <h3 class="blog-card-title">
-                    <a href="{{ subsection.href }}">{{ subsection.title }}</a>
-                    </h3>
-                    {% if subsection.metadata.description %}
-                    <p class="blog-card-excerpt">{{ subsection.metadata.description }}</p>
-                    {% endif %}
-                    {% if subsection.regular_pages %}
-                    {# Count only non-index pages #}
-                    {# Use relative_url for comparisons (without baseurl) #}
-                    {% set index_url = subsection.index_page._path if subsection.index_page else '' %}
-                    {% set content_pages = subsection.regular_pages | rejectattr('relative_url', 'equalto', index_url) | list %}
-                    {% if content_pages %}
-                    <p class="blog-card-meta">{{ content_pages | length }} post{{ 's' if content_pages | length != 1 }}
-                    </p>
-                    {% endif %}
-                    {% endif %}
-                </div>
-            </article>
-            {% endfor %}
-        </div>
-    </section>
-
-    {% else %}
-    {# Empty State #}
-    <div class="blog-empty">
-        <p>No blog posts yet. Check back soon!</p>
+        {% end %}
     </div>
-    {% endif %}
-
 </div>
-</div>
-{% endblock %}
+{% end %}

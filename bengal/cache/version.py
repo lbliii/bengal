@@ -48,8 +48,8 @@ class CacheVersion(NamedTuple):
         )
 
 
-class CacheVersionError(Exception):
-    """Raised when cache version is incompatible with current environment."""
+# CacheVersionError removed - use BengalCacheError with ErrorCode.A002 instead
+# This class was deprecated in favor of the unified error system.
 
 
 def validate_cache_header(data: bytes) -> tuple[bool, bytes]:

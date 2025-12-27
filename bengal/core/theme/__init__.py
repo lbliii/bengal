@@ -45,6 +45,13 @@ Related Packages:
 
 from __future__ import annotations
 
+from bengal.core.theme.compatibility import (
+    FEATURE_SUPPORT,
+    check_theme_compatibility,
+    format_compatibility_warning,
+    get_engine_capabilities,
+    get_minimum_engine_level,
+)
 from bengal.core.theme.config import Theme
 from bengal.core.theme.registry import (
     ThemePackage,
@@ -72,4 +79,10 @@ __all__ = [
     "resolve_theme_templates_path",
     "iter_theme_asset_dirs",
     "_read_theme_extends",  # Internal helper (used by CLI)
+    # Theme compatibility
+    "FEATURE_SUPPORT",
+    "check_theme_compatibility",
+    "get_engine_capabilities",
+    "get_minimum_engine_level",
+    "format_compatibility_warning",
 ]

@@ -23,10 +23,12 @@ from pathlib import Path
 from typing import Any, cast
 
 from bengal.cache.version import (
-    CacheVersionError,
     prepend_cache_header,
     validate_cache_header,
 )
+from bengal.errors.codes import ErrorCode
+from bengal.errors.exceptions import BengalCacheError
+from bengal.errors.session import record_error
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -133,7 +135,7 @@ def load_compressed(path: Path) -> dict[str, Any]:
 
     Raises:
         FileNotFoundError: If path doesn't exist
-        CacheVersionError: If cache version is incompatible
+        BengalCacheError: If cache version is incompatible (code A002)
         zstd.ZstdError: If decompression fails
         json.JSONDecodeError: If JSON is invalid
     """
@@ -142,19 +144,27 @@ def load_compressed(path: Path) -> dict[str, Any]:
     # Validate magic header before decompression
     is_valid, remaining = validate_cache_header(compressed)
     if not is_valid:
-        from bengal.errors import BengalCacheError, ErrorCode, record_error
-
+        # Create error and record in session for tracking
         error = BengalCacheError(
-            f"Incompatible cache version or magic header: {path}",
-            code=ErrorCode.A002,  # cache_version_mismatch
-            file_path=path,
-            suggestion="Delete .bengal/ directory to rebuild cache with current version.",
+            f"Incompatible cache version or magic header: {path}. "
+            "Delete .bengal/ directory to rebuild cache with current version.",
+            code=ErrorCode.A002,
         )
         record_error(error, file_path=str(path))
         raise error
 
     json_bytes = zstd.decompress(remaining)
     data = json.loads(json_bytes)
+
+    # Validate type to prevent 'str' object has no attribute 'get' errors
+    if not isinstance(data, dict):
+        error = BengalCacheError(
+            f"Cache file {path} contains invalid data type: {type(data).__name__}. "
+            "Expected dict. Delete .bengal/ directory to rebuild cache.",
+            code=ErrorCode.A001,  # cache_corruption
+        )
+        record_error(error, file_path=str(path))
+        raise error
 
     logger.debug(
         "cache_decompressed",
@@ -236,15 +246,26 @@ def load_auto(path: Path) -> dict[str, Any]:
     if compressed_path.exists():
         try:
             return load_compressed(compressed_path)
-        except CacheVersionError:
-            # Incompatible version - fallback to JSON or re-raise if no JSON
-            logger.debug("compressed_cache_incompatible", path=str(compressed_path))
+        except BengalCacheError as e:
+            # Check if it's a version error (code A002) - fallback to JSON
+            if e.code == ErrorCode.A002:
+                # Incompatible version - fallback to JSON or re-raise if no JSON
+                logger.debug("compressed_cache_incompatible", path=str(compressed_path))
+            else:
+                # Other cache errors - re-raise
+                raise
 
     # Fall back to uncompressed JSON
     json_path = path if path.suffix == ".json" else path.with_suffix(".json")
     if json_path.exists():
         with open(json_path, encoding="utf-8") as f:
-            return cast(dict[str, Any], json.load(f))
+            data = json.load(f)
+            if not isinstance(data, dict):
+                raise ValueError(
+                    f"Cache file {json_path} contains invalid data type: {type(data).__name__}. "
+                    "Expected dict."
+                )
+            return cast(dict[str, Any], data)
 
     raise FileNotFoundError(f"Cache file not found: {path} (tried .json.zst and .json)")
 

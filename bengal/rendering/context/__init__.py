@@ -83,6 +83,8 @@ __all__ = [
     "build_page_context",
     "build_special_page_context",
     "clear_global_context_cache",
+    # Engine globals
+    "get_engine_globals",
 ]
 
 
@@ -155,6 +157,74 @@ def clear_global_context_cache() -> None:
     """
     with _context_lock:
         _global_context_cache.clear()
+
+
+def get_engine_globals(site: Site) -> dict[str, Any]:
+    """
+    Get all engine-agnostic globals for template engine initialization.
+
+    This is the SINGLE SOURCE OF TRUTH for engine globals.
+    Use this in Jinja, Kida, and any future engines.
+
+    Shared globals include:
+        - site: SiteContext wrapper for safe {{ site.title }} access
+        - config: ConfigContext wrapper for safe {{ config.key }} access
+        - theme: ThemeContext wrapper for {{ theme.name }}, {{ theme.has('x') }}
+        - menus: MenusContext for menu access
+        - _raw_site: Raw Site instance for internal template functions
+        - bengal: Metadata dict (capabilities, engine info)
+        - versioning_enabled: Whether versioning is active
+        - versions: List of available versions
+        - getattr: Python's getattr for safe attribute access
+
+    Engine-specific globals (url_for, get_menu, get_menu_lang, breadcrumbs)
+    must still be added by each engine after calling this function.
+
+    Implementation Notes:
+        - Cached and thread-safe via _get_global_contexts()
+        - Uses local imports for metadata to prevent circular dependencies
+
+    Args:
+        site: Site instance
+
+    Returns:
+        Dict of globals to merge into engine's globals
+
+    Example:
+        from bengal.rendering.context import get_engine_globals
+
+        # In engine initialization:
+        env.globals.update(get_engine_globals(site))
+
+        # Then add engine-specific globals:
+        env.globals["url_for"] = self._url_for
+        env.globals["get_menu"] = self._get_menu
+    """
+    # Reuse existing cached contexts (site, config, theme, menus)
+    # This leverages the existing id(site) cache for performance.
+    contexts = _get_global_contexts(site)
+
+    # Build metadata with fallback (local import prevents circularity)
+    try:
+        from bengal.utils.metadata import build_template_metadata
+
+        bengal_metadata = build_template_metadata(site)
+    except Exception:
+        bengal_metadata = {"engine": {"name": "Bengal SSG", "version": "unknown"}}
+
+    return {
+        # Core context wrappers (from existing cache)
+        **contexts,
+        # Raw site for internal template functions
+        "_raw_site": site,
+        # Metadata for templates/JS
+        "bengal": bengal_metadata,
+        # Versioning
+        "versioning_enabled": site.versioning_enabled,
+        "versions": site.versions,
+        # Python builtin useful in templates
+        "getattr": getattr,
+    }
 
 
 def build_page_context(
@@ -252,15 +322,21 @@ def build_page_context(
             else metadata.get("_posts", getattr(resolved_section, "pages", []))
         )
         context["pages"] = context["posts"]  # Alias
-        context["subsections"] = (
+        raw_subsections = (
             subsections
             if subsections is not None
             else metadata.get("_subsections", getattr(resolved_section, "subsections", []))
         )
+        # Wrap subsections in SectionContext so subsection.params works correctly
+        # This prevents 'str' object has no attribute 'get' errors when accessing
+        # subsection?.params?.type in templates
+        context["subsections"] = [SectionContext(sub) for sub in raw_subsections if sub is not None]
     else:
         context["posts"] = posts or []
         context["pages"] = context["posts"]
-        context["subsections"] = subsections or []
+        # Wrap subsections even when no section exists
+        raw_subsections = subsections or []
+        context["subsections"] = [SectionContext(sub) for sub in raw_subsections if sub is not None]
 
     # Add autodoc element if provided
     if element:

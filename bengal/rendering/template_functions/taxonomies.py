@@ -2,21 +2,16 @@
 Taxonomy helper functions for templates.
 
 Provides 4 functions for working with tags, categories, and related content.
+
+Architecture:
+    Core functions (tag_url, related_posts, etc.) are pure Python with no
+    engine dependencies. Context-dependent functions like tag_url_with_site
+    are registered via the adapter layer for engine-specific context handling.
 """
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
-
-try:
-    from jinja2 import pass_context
-except Exception:  # pragma: no cover
-    from collections.abc import Callable
-    from typing import Any
-
-    def pass_context[F: Callable[..., Any]](fn: F) -> F:
-        return fn
-
 
 from bengal.utils.logger import get_logger
 
@@ -29,7 +24,14 @@ logger = get_logger(__name__)
 
 
 def register(env: Environment, site: Site) -> None:
-    """Register taxonomy helper functions with Jinja2 environment."""
+    """Register taxonomy helper functions with template environment.
+
+    Context-dependent functions (tag_url) are registered via the adapter
+    layer which handles engine-specific context mechanisms.
+
+    Non-context functions (related_posts, popular_tags, has_tag) are
+    registered directly here.
+    """
 
     # Create closures that have access to site
     def related_posts_with_site(page: Any, limit: int = 5) -> list[Any]:
@@ -41,42 +43,6 @@ def register(env: Environment, site: Site) -> None:
         tags_with_pages = {tag_slug: tag_data["pages"] for tag_slug, tag_data in raw_tags.items()}
         return popular_tags(tags_with_pages, limit)
 
-    @pass_context
-    def tag_url_with_site(ctx: Any, tag: str) -> str:
-        page = ctx.get("page") if hasattr(ctx, "get") else None
-        # Locale-aware prefix for i18n prefix strategy
-        i18n = site.config.get("i18n", {}) or {}
-        strategy = i18n.get("strategy", "none")
-        default_lang = i18n.get("default_language", "en")
-        default_in_subdir = bool(i18n.get("default_in_subdir", False))
-        lang = getattr(page, "lang", None)
-        prefix = ""
-        if strategy == "prefix" and lang and (default_in_subdir or lang != default_lang):
-            prefix = f"/{lang}"
-
-        # Generate tag URL and apply base URL
-        relative_url = f"{prefix}{tag_url(tag)}"
-
-        # Apply base URL prefix if configured
-        # Use site.baseurl property which handles config access correctly
-        baseurl = site.baseurl or ""
-        if baseurl:
-            baseurl = baseurl.rstrip("/")
-            # If baseurl was just "/" it's now empty - treat as root (no prefix needed)
-            if not baseurl:
-                return relative_url
-            # Ensure relative_url starts with /
-            if not relative_url.startswith("/"):
-                relative_url = "/" + relative_url
-            # Handle absolute vs path-only base URLs
-            if baseurl.startswith(("http://", "https://", "file://")):
-                return f"{baseurl}{relative_url}"
-            else:
-                base_path = "/" + baseurl.lstrip("/")
-                return f"{base_path}{relative_url}"
-
-        return relative_url
-
     env.filters.update(
         {
             "has_tag": has_tag,
@@ -87,7 +53,8 @@ def register(env: Environment, site: Site) -> None:
         {
             "related_posts": related_posts_with_site,
             "popular_tags": popular_tags_with_site,
-            "tag_url": tag_url_with_site,
+            # Note: tag_url is registered by the adapter layer
+            # (bengal.rendering.adapters) which handles @pass_context for Jinja2
         }
     )
 

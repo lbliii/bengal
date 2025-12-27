@@ -1,39 +1,48 @@
 {#
-Page Hero Wrapper - shared structure for all API hero variants
+================================================================================
+DEPRECATED: Page Hero Wrapper Component
+================================================================================
 
-Opens the .page-hero div and renders breadcrumbs + share dropdown.
-Caller is responsible for closing the div after adding variant-specific content.
+This template is now inlined in page-hero.html macros for faster rendering.
+The wrapper functionality is now part of the hero_element and hero_section macros.
 
-Contract:
-- page: Page instance (REQUIRED)
-- site: Site instance (from global context)
-- config: Configuration dict (from global context)
+MIGRATION:
+  This template should not be included directly anymore.
+  Use {% include 'partials/page-hero.html' %} instead.
 
-Usage:
-{% include 'partials/page-hero/_wrapper.html' %}
-<!-- Your badges, title, description, footer here -->
-</div> <!-- Close .page-hero -->
+See: plan/drafted/rfc-page-hero-template-flattening.md
+================================================================================
 #}
 
-{% from 'partials/navigation-components.html' import breadcrumbs with context %}
+{# Emit warning if someone includes this directly #}
+<!-- WARNING: page-hero/_wrapper.html is deprecated. Use page-hero.html instead. -->
+
+{# Fallback: render basic wrapper structure for backwards compatibility #}
+{% from 'partials/navigation-components.html' import breadcrumbs %}
 
 <div class="page-hero page-hero--api">
-    {# Top row: Breadcrumbs (left) + Actions (right) #}
-    <div class="page-hero__top">
-        {# Breadcrumbs as eyebrow #}
-        <nav class="page-hero__eyebrow" aria-label="Breadcrumb">
-            {% set breadcrumb_items = get_breadcrumbs(page) %}
-            {% if breadcrumb_items and breadcrumb_items | length > 1 %}
-            <ol class="page-hero__breadcrumbs">
-                {% for item in breadcrumb_items[:-1] %}
-                <li>
-                    <a href="{{ item.href | absolute_url }}" class="page-hero__breadcrumb-link">{{ item.title }}</a>
-                </li>
-                {% endfor %}
-            </ol>
-            {% endif %}
-        </nav>
+  <div class="page-hero__top">
+    <nav class="page-hero__eyebrow" aria-label="Breadcrumb">
+      {% set breadcrumb_items = get_breadcrumbs(page) %}
+      {% if breadcrumb_items and breadcrumb_items | length > 1 %}
+      <ol class="page-hero__breadcrumbs">
+        {% for item in breadcrumb_items[:-1] %}
+        <li>
+          <a href="{{ item.href | absolute_url }}" class="page-hero__breadcrumb-link">{{ item.title }}</a>
+        </li>
+        {% end %}
+      </ol>
+      {% end %}
+    </nav>
 
-        {# Share dropdown - extracted component #}
-        {% include 'partials/page-hero/_share-dropdown.html' %}
+    {# Share dropdown - inline since we can't import macros in backwards compat mode #}
+    <div class="page-hero__actions">
+      <div class="page-hero__share">
+        <button class="page-hero__share-trigger" popovertarget="page-hero-share-menu"
+          aria-label="Share with AI assistants" title="Share with AI assistants">
+          <span>ᗢ</span>
+          {{ icon('caret-down', size=14, css_class='page-hero__share-chevron') }}
+        </button>
+      </div>
     </div>
+  </div>

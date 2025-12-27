@@ -1,26 +1,40 @@
 {% extends "base.html" %}
 
 {#
-CLI Reference Command Template
+================================================================================
+CLI Reference Command Template (Kida-Native)
+================================================================================
 
 Renders a CLI command's documentation using the unified autodoc skeleton.
 Extends base.html to inherit theme navigation, sidebars, and styling.
-Uses autodoc.css for all styling.
 
-This template receives:
-- element: DocElement for the command
-- config: Autodoc configuration
-- site: Site instance
+TEMPLATE VARIABLES:
+  - element: DocElement for the command (required)
+  - page: PageContext proxy with title, metadata, tags, _path
+  - config: Autodoc configuration
+  - site: Site instance
+  - section: Parent section (for navigation)
+
+KIDA FEATURES USED:
+  - Optional chaining (?.) for safe attribute access
+  - Null coalescing (??) for defaults
+  - {% let %} for template-scoped multi-value caching
+  - Pipeline operator for data transformation chains
+
+================================================================================
 #}
 
-{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc with context %}
+{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc %}
 {% from 'autodoc/partials/_macros/element-card.html' import element_card %}
 
 {% block content %}
-{# Pre-compute child elements - cache children to avoid duplicate getattr calls #}
-{% set children = getattr(element, 'children', []) %}
-{% set options = children | selectattr('element_type', 'eq', 'option') | list %}
-{% set arguments = children | selectattr('element_type', 'eq', 'argument') | list %}
+{# Template-scoped caching of computed values using multi-assignment let #}
+{% let
+    children = element?.children ?? [],
+    options = children | selectattr('element_type', 'eq', 'option') | list,
+    arguments = children | selectattr('element_type', 'eq', 'argument') | list,
+    page_tags = page?.tags ?? []
+%}
 
 {# Three-column documentation layout #}
 <div class="docs-layout">
@@ -31,44 +45,47 @@ This template receives:
 
   {# Main Content #}
   <div class="docs-main">
-    {# Page Hero: Breadcrumbs + Badges + Title + Description + Stats #}
-    {% include 'partials/page-hero/element.html' %}
+    {# Page Hero: Use direct macro call with explicit context #}
+    {% from 'partials/page-hero/_macros.html' import hero_element %}
+    {{ hero_element(element, page, config) }}
 
-    {# Article Content - New autodoc skeleton #}
+    {# Article Content - Unified autodoc skeleton #}
     <article data-autodoc data-type="cli" data-element="command" class="autodoc docs-content">
 
       {# Usage #}
       {% include 'autodoc/partials/usage.html' %}
 
       {# Options (as table) #}
-      {% if options %}
+      {% if options | length > 0 %}
       {% set params = options %}
       {% set title = 'Options' %}
       {% include 'autodoc/partials/params-table.html' %}
-      {% endif %}
+      {% end %}
 
       {# Arguments (as table) #}
-      {% if arguments %}
+      {% if arguments | length > 0 %}
       {% set params = arguments %}
       {% set title = 'Arguments' %}
       {% include 'autodoc/partials/params-table.html' %}
-      {% endif %}
+      {% end %}
 
       {# Examples #}
       {% include 'autodoc/partials/examples.html' %}
 
-      {# Tags #}
-      {% if page.tags %}
+      {# Tags - with null-safe access #}
+      {% if page_tags | length > 0 %}
       <footer class="docs-footer">
         <span class="docs-footer-label">Tagged</span>
-        {% from 'partials/content-components.html' import tag_list with context %}
-        {{ tag_list(page.tags) }}
+        {% from 'partials/components/tags.html' import tag_list %}
+        {{ tag_list(page_tags) }}
       </footer>
-      {% endif %}
+      {% end %}
     </article>
 
-    {# Page navigation (prev/next) at bottom #}
+    {# Page navigation (prev/next) at bottom - null-safe #}
+    {% if page %}
     {{ page_navigation(page) }}
+    {% end %}
   </div>
 
   {# Right Sidebar: Contextual Graph + TOC + Metadata #}
@@ -83,4 +100,4 @@ This template receives:
 
 {# Sidebar overlay for mobile #}
 <div class="docs-sidebar-overlay" aria-hidden="true"></div>
-{% endblock %}
+{% end %}

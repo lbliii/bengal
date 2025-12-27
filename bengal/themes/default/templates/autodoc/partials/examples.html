@@ -1,17 +1,33 @@
 {#
-Autodoc Examples Partial
+================================================================================
+Autodoc Examples Partial (Kida-Native)
+================================================================================
 
-Renders code examples.
+Renders code examples for API elements and CLI commands.
 
-Required: element (DocElement) or examples (list)
-Optional: language (str, default based on element type)
+TEMPLATE VARIABLES:
+  - element: DocElement with examples list
+  - examples: Override list of examples (optional)
+  - language: str, default based on element type
+
+KIDA FEATURES USED:
+  - Optional chaining (?.) for safe attribute access
+  - Null coalescing (??) for defaults
+  - {% let %} for template-scoped caching
+  - {% match %} for type dispatch
+
+================================================================================
 #}
 
-{% set examples_list = examples | default(element.examples | default([])) %}
-{% set is_cli = element and element.element_type in ['command', 'command-group'] %}
-{% set language = language | default('bash' if is_cli else 'python') %}
+{% let
+    elem_type = element?.element_type ?? 'module',
+    is_cli = elem_type in ['command', 'command-group'],
+    default_lang = 'bash' if is_cli else 'python',
+    lang = language ?? default_lang,
+    examples_list = examples ?? element?.examples ?? []
+%}
 
-{% if examples_list %}
+{% if examples_list | length > 0 %}
 <section class="autodoc-section" data-section="examples">
   <h2 class="autodoc-section-title">Examples</h2>
 
@@ -19,13 +35,13 @@ Optional: language (str, default based on element type)
   <div class="autodoc-example">
     {% if example is mapping and example.title %}
     <h3 class="autodoc-example-title">{{ example.title }}</h3>
-    <pre><code class="language-{{ example.language | default(language) }}">{{ example.code }}</code></pre>
+    <pre><code class="language-{{ example?.language ?? lang }}">{{ example.code }}</code></pre>
     {% elif example is mapping and example.code %}
-    <pre><code class="language-{{ example.language | default(language) }}">{{ example.code }}</code></pre>
+    <pre><code class="language-{{ example?.language ?? lang }}">{{ example.code }}</code></pre>
     {% else %}
-    <pre><code class="language-{{ language }}">{{ example }}</code></pre>
-    {% endif %}
+    <pre><code class="language-{{ lang }}">{{ example }}</code></pre>
+    {% end %}
   </div>
-  {% endfor %}
+  {% end %}
 </section>
-{% endif %}
+{% end %}

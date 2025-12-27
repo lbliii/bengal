@@ -1,192 +1,213 @@
 {% extends "base.html" %}
 
 {#
-Tutorial List Template
+================================================================================
+Tutorial List Template (Kida-Native)
+================================================================================
 
-Used for tutorial section indexes. Displays tutorials in a grid
-with difficulty levels, time estimates, and visual indicators.
+Tutorial section index with difficulty levels, time estimates, and grid layout.
 
-Usage: Set `type: tutorial` in section _index.md
+KIDA FEATURES USED:
+- {% let %} for template-scoped variables
+- Optional chaining (?.) for null-safe access
+- Null coalescing (??) for smart defaults
+- Pipeline operator (|>) for filter chains
+- {% def %} for reusable card components
 
-Context variables:
-- section: Section object with tutorials
-- posts: List of tutorial pages
-- subsections: Tutorial categories/groups
+USAGE:
+Set `type: tutorial` in section _index.md
+================================================================================
 #}
 
 {% from 'partials/navigation-components.html' import breadcrumbs %}
 
+{# =============================================================================
+   TUTORIAL CARD COMPONENT
+   ============================================================================= #}
+{% def tutorial_card(tutorial) %}
+{% let tut_meta = tutorial?.metadata ?? {} %}
+{% let tut_title = tutorial?.title ?? 'Tutorial' %}
+{% let tut_href = tutorial?.href ?? '#' %}
+{% let tut_icon = tut_meta?.icon ?? '📖' %}
+{% let tut_desc = tut_meta?.description ?? tutorial?.excerpt ?? '' %}
+{% let tut_difficulty = tut_meta?.difficulty ?? '' %}
+{% let tut_time = tut_meta?.time ?? tut_meta?.duration ?? '' %}
+{% let tut_prereqs = tut_meta?.prerequisites ?? [] %}
+
+<article class="tutorial-card gradient-border fluid-combined">
+  <div class="tutorial-card-header">
+    <span class="tutorial-icon">{{ tut_icon }}</span>
+    <h3 class="tutorial-title">
+      <a href="{{ tut_href }}">{{ tut_title }}</a>
+    </h3>
+  </div>
+
+  <div class="tutorial-card-content">
+    {% if tut_desc %}
+    <p class="tutorial-description">{{ tut_desc | truncate(150) }}</p>
+    {% end %}
+
+    <div class="tutorial-meta">
+      {# Difficulty Badge #}
+      {% if tut_difficulty %}
+      <span class="tutorial-badge tutorial-badge-{{ tut_difficulty }}">
+        {{ tut_difficulty | capitalize }}
+      </span>
+      {% end %}
+
+      {# Time Estimate #}
+      {% if tut_time %}
+      <span class="tutorial-meta-item">
+        {{ icon('clock', size=14) }} {{ tut_time }}
+      </span>
+      {% end %}
+
+      {# Prerequisites #}
+      {% if tut_prereqs | length > 0 %}
+      <span class="tutorial-meta-item">
+        {{ icon('check-circle', size=14) }}
+        {{ tut_prereqs | length }} prerequisite{{ 's' if tut_prereqs | length != 1 else '' }}
+      </span>
+      {% end %}
+    </div>
+
+    <a href="{{ tut_href }}" class="tutorial-link">Start tutorial →</a>
+  </div>
+</article>
+{% end %}
+
+{# =============================================================================
+   SUBSECTION CARD COMPONENT
+   ============================================================================= #}
+{% def subsection_card(subsection) %}
+{% let sub_title = subsection?.title ?? 'Category' %}
+{% let sub_href = subsection?.href ?? '#' %}
+{% let sub_desc = subsection?.metadata?.description ?? '' %}
+{% let sub_pages = subsection?.regular_pages ?? [] %}
+{% let index_page = subsection?.index_page %}
+{% let index_path = index_page?._path ?? '' %}
+{% let content_pages = sub_pages |> rejectattr('relative_url', 'eq', index_path) |> list %}
+{% let page_count = content_pages | length %}
+
+<article class="tutorial-card gradient-border fluid-combined">
+  <div class="tutorial-card-header">
+    <span class="tutorial-icon">📁</span>
+    <h3 class="tutorial-title">
+      <a href="{{ sub_href }}">{{ sub_title }}</a>
+    </h3>
+  </div>
+
+  <div class="tutorial-card-content">
+    {% if sub_desc %}
+    <p class="tutorial-description">{{ sub_desc | truncate(150) }}</p>
+    {% end %}
+
+    <div class="tutorial-meta">
+      {% if page_count > 0 %}
+      <span class="tutorial-meta-item">
+        {{ page_count }} tutorial{{ 's' if page_count != 1 else '' }}
+      </span>
+      {% end %}
+    </div>
+  </div>
+</article>
+{% end %}
+
+{# =============================================================================
+   MAIN TEMPLATE
+   ============================================================================= #}
+
 {% block content %}
+{# Template-scoped variables #}
+{% let section_title = section?.title ?? title ?? 'Tutorials' %}
+{% let section_desc = section?.metadata?.description ?? description ?? '' %}
+{% let tutorial_posts = posts ?? [] %}
+{% let tutorial_subsections = subsections ?? [] %}
+
 <div class="container">
-{# Action Bar: Breadcrumbs + Share #}
-{% include 'partials/action-bar.html' with context %}
+  {# Action Bar: Breadcrumbs + Share #}
+  {% include 'partials/action-bar.html' %}
 
-<div class="tutorial-container">
+  <div class="tutorial-container">
     <header class="page-header page-header--centered">
-        <h1>📚 {{ section.title if section else title | default('Tutorials') }}</h1>
+      <h1>📚 {{ section_title }}</h1>
 
-        {% if section and section.metadata.description %}
-        <p class="tutorial-description">{{ section.metadata.description }}</p>
-        {% elif description %}
-        <p class="tutorial-description">{{ description }}</p>
-        {% else %}
-        <p class="tutorial-description">Step-by-step guides to help you learn and master the topics.</p>
-        {% endif %}
+      {% if section_desc %}
+      <p class="tutorial-description">{{ section_desc }}</p>
+      {% else %}
+      <p class="tutorial-description">Step-by-step guides to help you learn and master the topics.</p>
+      {% end %}
     </header>
 
     {# Tutorial Statistics #}
-    {% if posts %}
+    {% if tutorial_posts | length > 0 %}
+    {% let beginner_count = tutorial_posts |> where('metadata.difficulty', 'beginner') |> length %}
+    {% let intermediate_count = tutorial_posts |> where('metadata.difficulty', 'intermediate') |> length %}
+    {% let advanced_count = tutorial_posts |> where('metadata.difficulty', 'advanced') |> length %}
+
     <div class="tutorial-stats">
-        <div class="tutorial-stat">
-            <strong>{{ posts | length }}</strong>
-            <span>{{ 'tutorial' if posts | length == 1 else 'tutorials' }}</span>
-        </div>
+      <div class="tutorial-stat">
+        <strong>{{ tutorial_posts | length }}</strong>
+        <span>{{ 'tutorial' if tutorial_posts | length == 1 else 'tutorials' }}</span>
+      </div>
 
-        {% set beginner_count = posts | where('difficulty', 'beginner') | length %}
-        {% set intermediate_count = posts | where('difficulty', 'intermediate') | length %}
-        {% set advanced_count = posts | where('difficulty', 'advanced') | length %}
+      {% if beginner_count > 0 %}
+      <div class="tutorial-stat">
+        <strong>{{ beginner_count }}</strong>
+        <span>beginner</span>
+      </div>
+      {% end %}
 
-        {% if beginner_count > 0 %}
-        <div class="tutorial-stat">
-            <strong>{{ beginner_count }}</strong>
-            <span>beginner</span>
-        </div>
-        {% endif %}
+      {% if intermediate_count > 0 %}
+      <div class="tutorial-stat">
+        <strong>{{ intermediate_count }}</strong>
+        <span>intermediate</span>
+      </div>
+      {% end %}
 
-        {% if intermediate_count > 0 %}
-        <div class="tutorial-stat">
-            <strong>{{ intermediate_count }}</strong>
-            <span>intermediate</span>
-        </div>
-        {% endif %}
-
-        {% if advanced_count > 0 %}
-        <div class="tutorial-stat">
-            <strong>{{ advanced_count }}</strong>
-            <span>advanced</span>
-        </div>
-        {% endif %}
+      {% if advanced_count > 0 %}
+      <div class="tutorial-stat">
+        <strong>{{ advanced_count }}</strong>
+        <span>advanced</span>
+      </div>
+      {% end %}
     </div>
-    {% endif %}
+    {% end %}
 
     {# Tutorial Grid #}
-    {% if posts or subsections %}
+    {% if tutorial_posts | length > 0 or tutorial_subsections | length > 0 %}
     <div class="tutorial-content">
 
-        {# Subsections (Tutorial Categories) #}
-        {% if subsections %}
-        <section class="tutorial-section">
-            <h2 class="tutorial-section-title">Categories</h2>
-            <div class="tutorial-grid stagger-fade-in">
-                {% for subsection in subsections %}
-                <article class="tutorial-card gradient-border fluid-combined">
-                    <div class="tutorial-card-header">
-                        <span class="tutorial-icon">📁</span>
-                        <h3 class="tutorial-title">
-                            <a href="{{ subsection.href }}">{{ subsection.title }}</a>
-                        </h3>
-                    </div>
+      {# Subsections (Tutorial Categories) #}
+      {% if tutorial_subsections | length > 0 %}
+      <section class="tutorial-section">
+        <h2 class="tutorial-section-title">Categories</h2>
+        <div class="tutorial-grid stagger-fade-in">
+          {% for subsection in tutorial_subsections %}
+          {{ subsection_card(subsection) }}
+          {% end %}
+        </div>
+      </section>
+      {% end %}
 
-                    <div class="tutorial-card-content">
-                        {% if subsection.metadata.description %}
-                        <p class="tutorial-description">
-                            {{ subsection.metadata.description | truncate(150) }}
-                        </p>
-                        {% endif %}
-
-                        <div class="tutorial-meta">
-                            {% if subsection.regular_pages %}
-                            {# Count only non-index pages #}
-                            {# Use relative_url for comparisons (without baseurl) #}
-                            {% set content_pages = subsection.regular_pages | rejectattr('relative_url', 'equalto',
-                            subsection.index_page._path if subsection.index_page else '') | list %}
-                            {% if content_pages %}
-                            <span class="tutorial-meta-item">
-                                {{ content_pages | length }} tutorial{{ 's' if content_pages | length != 1 }}
-                            </span>
-                            {% endif %}
-                            {% endif %}
-                        </div>
-                    </div>
-                </article>
-                {% endfor %}
-            </div>
-        </section>
-        {% endif %}
-
-        {# Individual Tutorials #}
-        {% if posts %}
-        <section class="tutorial-section">
-            <h2 class="tutorial-section-title">All Tutorials</h2>
-            <div class="tutorial-grid stagger-fade-in">
-                {% for tutorial in posts %}
-                <article class="tutorial-card gradient-border fluid-combined">
-                    <div class="tutorial-card-header">
-                        {% if tutorial.metadata.icon %}
-                        <span class="tutorial-icon">{{ tutorial.metadata.icon }}</span>
-                        {% else %}
-                        <span class="tutorial-icon">📖</span>
-                        {% endif %}
-                        <h3 class="tutorial-title">
-                            <a href="{{ tutorial.href }}">{{ tutorial.title }}</a>
-                        </h3>
-                    </div>
-
-                    <div class="tutorial-card-content">
-                        {% if tutorial.metadata.description %}
-                        <p class="tutorial-description">
-                            {{ tutorial.metadata.description | truncate(150) }}
-                        </p>
-                        {% elif tutorial.excerpt %}
-                        <p class="tutorial-description">
-                            {{ tutorial.excerpt | truncate(150) }}
-                        </p>
-                        {% endif %}
-
-                        <div class="tutorial-meta">
-                            {# Difficulty Badge #}
-                            {% if tutorial.metadata.difficulty %}
-                            <span class="tutorial-badge tutorial-badge-{{ tutorial.metadata.difficulty }}">
-                                {{ tutorial.metadata.difficulty | capitalize }}
-                            </span>
-                            {% endif %}
-
-                            {# Time Estimate #}
-                            {% if tutorial.metadata.time or tutorial.metadata.duration %}
-                            <span class="tutorial-meta-item">
-                                {{ icon('clock', size=14) }}
-                                {{ tutorial.metadata.time | default(tutorial.metadata.duration) }}
-                            </span>
-                            {% endif %}
-
-                            {# Prerequisites #}
-                            {% if tutorial.metadata.prerequisites %}
-                            <span class="tutorial-meta-item">
-                                {{ icon('check-circle', size=14) }}
-                                {{ tutorial.metadata.prerequisites | length }} prerequisite{{ 's' if
-                                tutorial.metadata.prerequisites | length != 1 }}
-                            </span>
-                            {% endif %}
-                        </div>
-
-                        <a href="{{ tutorial.href }}" class="tutorial-link">
-                            Start tutorial →
-                        </a>
-                    </div>
-                </article>
-                {% endfor %}
-            </div>
-        </section>
-        {% endif %}
-
+      {# Individual Tutorials #}
+      {% if tutorial_posts | length > 0 %}
+      <section class="tutorial-section">
+        <h2 class="tutorial-section-title">All Tutorials</h2>
+        <div class="tutorial-grid stagger-fade-in">
+          {% for tutorial in tutorial_posts %}
+          {{ tutorial_card(tutorial) }}
+          {% end %}
+        </div>
+      </section>
+      {% end %}
     </div>
     {% else %}
     {# Empty State #}
     <div class="tutorial-empty">
-        <p>No tutorials available yet.</p>
+      <p>No tutorials available yet.</p>
     </div>
-    {% endif %}
-
+    {% end %}
+  </div>
 </div>
-</div>
-{% endblock %}
+{% end %}

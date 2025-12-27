@@ -129,6 +129,37 @@ class PageMetadataMixin:
         return self.title
 
     @property
+    def weight(self) -> float:
+        """
+        Get page weight for sorting (always returns sortable value).
+
+        Returns weight from metadata/core if set, otherwise infinity (sorts last).
+        This property ensures pages are always sortable without None errors.
+
+        Example in frontmatter:
+            ```yaml
+            ---
+            title: Getting Started
+            weight: 10
+            ---
+            ```
+        """
+        # Check core first (cached)
+        if self.core is not None and self.core.weight is not None:
+            try:
+                return float(self.core.weight)
+            except (ValueError, TypeError):
+                pass
+        # Check metadata (fallback)
+        w = self.metadata.get("weight")
+        if w is not None:
+            try:
+                return float(w)
+            except (ValueError, TypeError):
+                pass
+        return float("inf")
+
+    @property
     def date(self) -> datetime | None:
         """
         Get page date from metadata.

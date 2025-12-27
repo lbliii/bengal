@@ -1,0 +1,75 @@
+{#
+================================================================================
+Helper Components (Kida-Native)
+================================================================================
+
+Reusable utility functions for templates.
+
+Components:
+- for_each_item_excluding_current(items): Iterator that skips current page
+- render_section_if_any(items, title, section_class): Conditional section render
+================================================================================
+#}
+
+{# =============================================================================
+FOR EACH ITEM EXCLUDING CURRENT
+
+Reusable iterator that skips the current page/item.
+Usage with {% call %}:
+{% call(item) for_each_item_excluding_current(items) %}
+{{ item.title }}
+{% end %}
+============================================================================= #}
+{% def for_each_item_excluding_current(items) %}
+{% let page_path = page?._path ?? '' %}
+{% for item in items %}
+{% if item?._path != page_path %}
+{{ caller(item) }}
+{% end %}
+{% end %}
+{% end %}
+
+{# =============================================================================
+RENDER SECTION IF ANY
+
+Render a section with a title only if there are items.
+Usage with {% call %}:
+{% call(items) render_section_if_any(my_items, 'Section Title') %}
+{% for item in items %}...{% end %}
+{% end %}
+============================================================================= #}
+{% def render_section_if_any(items, title, section_class='') %}
+{% if items | length > 0 %}
+<section class="{{ section_class }}">
+    <h2 class="autodoc-section-title">{{ title }}</h2>
+    {{ caller(items) }}
+</section>
+{% end %}
+{% end %}
+
+{# =============================================================================
+DATE FORMATTING HELPERS
+
+Consistent date formatting across templates.
+============================================================================= #}
+{% def format_date(date, format='short') %}
+  {% if format == 'short' %}
+    {{ date | dateformat('%Y-%m-%d') }}
+  {% elif format == 'long' %}
+    {{ date | dateformat('%B %d, %Y') }}
+  {% elif format == 'iso' %}
+    {{ date | date_iso }}
+  {% elif format == 'ago' %}
+    {{ date | time_ago }}
+  {% else %}
+    {{ date | dateformat(format) }}
+  {% end %}
+{% end %}
+
+{% def date_time_tag(date, format='long', css_class='') %}
+  {% if date %}
+  <time datetime="{{ date | date_iso }}" class="{{ css_class }}">
+    {{ format_date(date, format) }}
+  </time>
+  {% end %}
+{% end %}

@@ -300,6 +300,60 @@ def phase_assets(
     return assets_to_process
 
 
+def _log_template_introspection(orchestrator: BuildOrchestrator, verbose: bool) -> None:
+    """Log template introspection insights (verbose mode only).
+
+    Uses Kida's introspection API to analyze templates and log:
+    - Cacheable blocks (site-wide vs page-level)
+    - Block dependencies
+    - Optimization opportunities
+
+    RFC: kida-template-introspection
+    """
+    if not verbose:
+        return
+
+    # Only works with Kida engine
+    template_engine = orchestrator.site.config.get("template_engine", "jinja2")
+    if template_engine != "kida":
+        return
+
+    try:
+        from bengal.rendering.template_engine import get_engine
+
+        engine = get_engine(orchestrator.site)
+
+        # Check if this is a Kida engine with introspection
+        if not hasattr(engine, "get_cacheable_blocks"):
+            return
+
+        # Analyze key templates
+        templates_to_check = ["base.html", "page.html", "single.html", "list.html"]
+        site_cacheable = 0
+        page_cacheable = 0
+
+        for template_name in templates_to_check:
+            cacheable = engine.get_cacheable_blocks(template_name)
+            if cacheable:
+                for _block_name, scope in cacheable.items():
+                    if scope == "site":
+                        site_cacheable += 1
+                    elif scope == "page":
+                        page_cacheable += 1
+
+        if site_cacheable > 0 or page_cacheable > 0:
+            orchestrator.logger.info(
+                "template_introspection",
+                site_cacheable_blocks=site_cacheable,
+                page_cacheable_blocks=page_cacheable,
+                hint="Site-cacheable blocks can be rendered once per build",
+            )
+
+    except Exception as e:
+        # Don't fail build if introspection fails
+        orchestrator.logger.debug("template_introspection_failed", error=str(e))
+
+
 def phase_render(
     orchestrator: BuildOrchestrator,
     cli: CLIOutput,
@@ -350,6 +404,14 @@ def phase_render(
         - Updates orchestrator.stats.rendering_time_ms
     """
     quiet_mode = quiet and not verbose
+
+    # Log template introspection insights (verbose mode, Kida only)
+    _log_template_introspection(orchestrator, verbose)
+
+    # Reset error deduplicator for this render phase (on build stats)
+    if orchestrator.stats is not None:
+        dedup = orchestrator.stats.get_error_deduplicator()
+        dedup.reset()
 
     with orchestrator.logger.phase(
         "rendering",
@@ -429,6 +491,18 @@ def phase_render(
 
         orchestrator.stats.rendering_time_ms = (time.time() - rendering_start) * 1000
 
+        # Collect block cache stats (RFC: kida-template-introspection)
+        block_cache_stats = orchestrator.render.get_block_cache_stats()
+        if block_cache_stats:
+            orchestrator.stats.block_cache_hits = block_cache_stats.get("hits", 0)
+            orchestrator.stats.block_cache_misses = block_cache_stats.get("misses", 0)
+            orchestrator.stats.block_cache_site_blocks = block_cache_stats.get(
+                "site_blocks_cached", 0
+            )
+            orchestrator.stats.block_cache_time_saved_ms = block_cache_stats.get(
+                "time_saved_ms", 0.0
+            )
+
         # Show phase completion with page count, throughput, and top bottleneck
         page_count = len(pages_to_build)
         rendering_ms = orchestrator.stats.rendering_time_ms
@@ -465,6 +539,10 @@ def phase_render(
     if quiet_mode:
         # Call helper method on orchestrator
         orchestrator._print_rendering_summary()
+
+    # Show summary of suppressed duplicate errors (from build stats)
+    if orchestrator.stats is not None:
+        orchestrator.stats.get_error_deduplicator().display_summary()
 
     return ctx
 

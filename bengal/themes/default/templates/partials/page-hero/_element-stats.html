@@ -1,16 +1,21 @@
 {#
-Element Stats Component
+================================================================================
+DEPRECATED: Element Stats Component
+================================================================================
 
-Renders stats (counts of children by type) for a DocElement.
-Uses the get_element_stats filter to extract and format stats.
+This template is now inlined as a macro in page-hero.html for faster rendering.
 
-Receives from parent context:
-- element: DocElement with children to count
+MIGRATION:
+  This template should not be included directly anymore.
+  Use {% include 'partials/page-hero.html' %} instead.
 
-Example:
-{% include 'partials/page-hero/_element-stats.html' %}
+  The element stats are automatically included in the hero_element macro.
+
+See: plan/drafted/rfc-page-hero-template-flattening.md
+================================================================================
 #}
 
+{# Shim: Render stats for backwards compatibility #}
 {% set stats = element | get_element_stats %}
 {% if stats %}
 <div class="page-hero__stats">
@@ -19,6 +24,6 @@ Example:
     <span class="page-hero__stat-value">{{ stat.value }}</span>
     <span class="page-hero__stat-label">{{ stat.label }}</span>
   </span>
-  {% endfor %}
+  {% end %}
 </div>
-{% endif %}
+{% end %}

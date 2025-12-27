@@ -28,22 +28,24 @@ Context variables:
 #}
 
 {% from 'partials/navigation-components.html' import breadcrumbs %}
-{% from 'partials/content-components.html' import tag_list %}
+{% from 'partials/components/tags.html' import tag_list %}
 
-{% set section_filters = params.sections | default([]) %}
-{% set show_recent = params.show_recent | default(3) %}
-{% set layout = params.layout | default('grid') %}
+{% set
+    section_filters = params.sections ?? [],
+    show_recent = params.show_recent ?? 3,
+    layout = params.layout ?? 'grid'
+%}
 
 {% block content %}
 {{ breadcrumbs(page) }}
 
 <div class="category-browser">
     <header class="browser-header">
-        <h1>{{ page.title | default('Browse by Category') }}</h1>
+        <h1>{{ page.title ?? 'Browse by Category' }}</h1>
 
         {% if params.description %}
         <p class="browser-description">{{ params.description }}</p>
-        {% endif %}
+        {% end %}
     </header>
 
     {# Main content from markdown #}
@@ -51,19 +53,20 @@ Context variables:
     <div class="browser-content prose">
         {{ content | safe }}
     </div>
-    {% endif %}
+    {% end %}
 
     {# Get all categories from index #}
     {% set all_categories = site.indexes.category.keys() | sort %}
 
     {% if all_categories %}
     {# Summary stats #}
+    {# Portable pattern: accumulate counts then sum instead of namespace #}
     <div class="browser-stats">
         <span class="stat">
             <strong>{{ all_categories | length }}</strong> categories
         </span>
 
-        {% set total_posts = namespace(count=0) %}
+        {% set page_counts = [] %}
         {% for category in all_categories %}
         {% set category_posts = site.indexes.category.get(category) | resolve_pages %}
         {% if section_filters %}
@@ -71,24 +74,24 @@ Context variables:
         {% for post in category_posts %}
         {% if post._section.name in section_filters %}
         {% do filtered_posts.append(post) %}
-        {% endif %}
-        {% endfor %}
+        {% end %}
+        {% end %}
         {% set category_posts = filtered_posts %}
-        {% endif %}
-        {% set total_posts.count = total_posts.count + (category_posts | length) %}
-        {% endfor %}
+        {% end %}
+        {% do page_counts.append(category_posts | length) %}
+        {% end %}
 
         <span class="stat">
-            <strong>{{ total_posts.count }}</strong> total pages
+            <strong>{{ page_counts | sum }}</strong> total pages
         </span>
     </div>
 
     {# Layout toggle #}
     <div class="layout-toggle">
-        <button class="layout-btn {% if layout == 'grid' %}active{% endif %}" data-layout="grid" aria-label="Grid view">
+        <button class="layout-btn {% if layout == 'grid' %}active{% end %}" data-layout="grid" aria-label="Grid view">
             📊 Grid
         </button>
-        <button class="layout-btn {% if layout == 'list' %}active{% endif %}" data-layout="list" aria-label="List view">
+        <button class="layout-btn {% if layout == 'list' %}active{% end %}" data-layout="list" aria-label="List view">
             📝 List
         </button>
     </div>
@@ -105,10 +108,10 @@ Context variables:
         {% for post in category_posts %}
         {% if post._section.name in section_filters %}
         {% do filtered_posts.append(post) %}
-        {% endif %}
-        {% endfor %}
+        {% end %}
+        {% end %}
         {% set category_posts = filtered_posts %}
-        {% endif %}
+        {% end %}
 
         {% if category_posts %}
         <article class="category-card">
@@ -134,7 +137,7 @@ Context variables:
                 <span class="meta-item">
                     ✍️ {{ authors | length }} author{{ 's' if authors | length != 1 }}
                 </span>
-                {% endif %}
+                {% end %}
             </div>
 
             {# Recent posts in this category #}
@@ -150,64 +153,67 @@ Context variables:
                         <time datetime="{{ post.date | date_iso }}">
                             {{ post.date | time_ago }}
                         </time>
-                        {% endif %}
+                        {% end %}
                     </li>
-                    {% endfor %}
+                    {% end %}
                 </ul>
 
                 {% if category_posts | length > show_recent %}
                 <a href="{{ ('/category/' ~ category ~ '/') | absolute_url }}" class="view-all">
                     View all {{ category_posts | length }} →
                 </a>
-                {% endif %}
+                {% end %}
             </div>
-            {% endif %}
+            {% end %}
         </article>
-        {% endif %}
-        {% endfor %}
+        {% end %}
+        {% end %}
     </div>
 
     {# All Categories A-Z Index #}
+    {# Portable pattern: build letter groups dict, then iterate #}
     <aside class="category-index">
         <h3>Quick Index</h3>
         <nav class="alpha-nav" aria-label="Alphabetical category index">
-            {% set current = namespace(letter=None) %}
+            {# Build letter -> categories mapping #}
+            {% set letter_groups = {} %}
             {% for cat in all_categories | sort %}
-            {% set letter = cat[0]|upper %}
-            {% if current.letter != letter %}
-            {% if current.letter is not none %}
-            </ul>
-</div>
-{% endif %}
-<div class="letter-group">
-    <strong class="letter">{{ letter }}</strong>
-    <ul class="letter-list">
-        {% set current.letter = letter %}
-        {% endif %}
-        {% set cat_posts = site.indexes.category.get(cat) | resolve_pages %}
-        {% if section_filters %}
-        {% set filtered_posts = [] %}
-        {% for post in cat_posts %}
-        {% if post._section.name in section_filters %}
-        {% do filtered_posts.append(post) %}
-        {% endif %}
-        {% endfor %}
-        {% set cat_posts = filtered_posts %}
-        {% endif %}
-        {% if cat_posts %}
-        <li>
-            <a href="{{ ('/category/' ~ cat ~ '/') | absolute_url }}">
-                {{ cat | title }} ({{ cat_posts | length }})
-            </a>
-        </li>
-        {% endif %}
-        {% endfor %}
-        {% if current.letter is not none %}
-    </ul>
-</div>
-{% endif %}
-</nav>
-</aside>
+            {% set letter = cat[0] | upper %}
+            {% if letter not in letter_groups %}
+            {% do letter_groups.update({letter: []}) %}
+            {% end %}
+            {% do letter_groups[letter].append(cat) %}
+            {% end %}
+
+            {# Render each letter group #}
+            {% for letter in letter_groups.keys() | sort %}
+            <div class="letter-group">
+                <strong class="letter">{{ letter }}</strong>
+                <ul class="letter-list">
+                    {% for cat in letter_groups[letter] %}
+                    {% set cat_posts = site.indexes.category.get(cat) | resolve_pages %}
+                    {% if section_filters %}
+                    {% set filtered_posts = [] %}
+                    {% for post in cat_posts %}
+                    {% if post._section.name in section_filters %}
+                    {% do filtered_posts.append(post) %}
+                    {% end %}
+                    {% end %}
+                    {% set cat_posts = filtered_posts %}
+                    {% end %}
+                    {% if cat_posts %}
+                    <li>
+                        <a href="{{ ('/category/' ~ cat ~ '/') | absolute_url }}">
+                            {{ cat | title }} ({{ cat_posts | length }})
+                        </a>
+                    </li>
+                    {% end %}
+                    {% end %}
+                </ul>
+            </div>
+            {% end %}
+        </nav>
+    </aside>
 
 {% else %}
 {# Empty State #}
@@ -218,7 +224,7 @@ Context variables:
             categories.</p>
     </div>
 </div>
-{% endif %}
+{% end %}
 </div>
 
 <script>
@@ -238,4 +244,4 @@ Context variables:
     });
 </script>
 
-{% endblock %}
+{% end %}

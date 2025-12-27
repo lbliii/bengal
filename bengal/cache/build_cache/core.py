@@ -347,12 +347,27 @@ class BuildCache(
         compressed_path = cache_path.with_suffix(".json.zst")
         if compressed_path.exists():
             try:
-                from bengal.cache.compression import ZstdError, load_compressed
-                from bengal.cache.version import CacheVersionError
+                from bengal.cache.compression import load_compressed
+                from bengal.errors import BengalCacheError, ErrorCode
 
                 logger.debug("cache_loading_compressed", path=str(compressed_path))
                 return load_compressed(compressed_path)
-            except (ZstdError, json.JSONDecodeError, OSError, CacheVersionError) as e:
+            except BengalCacheError as e:
+                # If it's a version error (A002), fall back to uncompressed JSON
+                if e.code == ErrorCode.A002:
+                    # Fall through to uncompressed JSON below
+                    pass
+                else:
+                    # Other errors - log and try uncompressed
+                    from bengal.errors import ErrorCode
+
+                    logger.warning(
+                        "cache_compressed_load_failed",
+                        path=str(compressed_path),
+                        error=str(e),
+                        action="trying_uncompressed",
+                        error_code=ErrorCode.A003.value,  # cache_read_error
+                    )
                 from bengal.errors import ErrorCode
 
                 logger.warning(

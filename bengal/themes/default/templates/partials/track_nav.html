@@ -29,10 +29,10 @@
             </a>
             {% else %}
             <span class="text-muted small">&larr; Previous (Missing)</span>
-            {% endif %}
+            {% end %}
             {% else %}
             <span class="text-muted small">Start of Track</span>
-            {% endif %}
+            {% end %}
 
             {% if next_slug %}
             {% set next_page = get_page(next_slug) %}
@@ -42,10 +42,10 @@
             </a>
             {% else %}
             <span class="text-muted small">Next (Missing) &rarr;</span>
-            {% endif %}
+            {% end %}
             {% else %}
             <a href="{{ '/tracks/' | absolute_url }}" class="btn btn-success btn-sm">Finish Track &check;</a>
-            {% endif %}
+            {% end %}
 
         </div>
 
@@ -58,6 +58,6 @@
     </div>
     </div>
 
-    {% endif %}
-    {% endfor %}
-    {% endif %}
+    {% end %}
+    {% end %}
+    {% end %}

@@ -1,57 +1,23 @@
 {#
-Element Hero - for DocElement pages (modules, classes, functions, commands)
+================================================================================
+DEPRECATED: Element Hero Component
+================================================================================
 
-Contract:
-  - element: DocElement instance (REQUIRED, not None)
-  - page: Page instance
-  - section: Section instance (may be None)
-  - site: Site instance (from global context)
-  - config: Autodoc config dict
+This template is now inlined as a macro in page-hero.html for ~10% faster rendering.
+The macro eliminates 4 nested includes (wrapper, share-dropdown, badges, stats).
 
-Data access: All via element.attribute (dataclass properties)
+MIGRATION:
+  Old: {% include 'partials/page-hero/element.html' %}
+  New: {% include 'partials/page-hero.html' %}  (auto-routes to element)
 
-Usage:
-  {% include 'partials/page-hero/element.html' %}
+  Or call macro directly:
+    {% from 'partials/page-hero/_macros.html' import hero_element %}
+    {{ hero_element(element, page, config) }}
+
+See: plan/drafted/rfc-page-hero-template-flattening.md
+================================================================================
 #}
 
-{# Include shared wrapper (opens .page-hero div) #}
-{% include 'partials/page-hero/_wrapper.html' %}
-
-  {# Badges - element type indicators #}
-  <div class="page-hero__badges">
-    {% include 'autodoc/partials/badges.html' %}
-  </div>
-
-  {# Title - qualified name for elements #}
-  <h1 class="page-hero__title page-hero__title--code">
-    <code>{{ element.qualified_name }}</code>
-  </h1>
-
-  {# Description from element (attribute access) #}
-  {% if element.description %}
-  <div class="page-hero__description page-hero__description--prose">
-    {{ element.description | markdownify | safe }}
-  </div>
-  {% endif %}
-
-  {# Footer: Source link + stats #}
-  <div class="page-hero__footer">
-    {# Source link (for elements with source files) #}
-    {% if element.display_source_file or element.source_file %}
-    {% if config %}
-    <a href="{{ config.github_repo }}/blob/{{ config.github_branch | default('main') }}/{{ element.display_source_file or element.source_file }}{% if element.line_number %}#L{{ element.line_number }}{% endif %}"
-      class="page-hero__source-link" target="_blank" rel="noopener">
-      {{ icon('file-code', size=14) }}
-      <span>View source</span>
-    </a>
-    {% endif %}
-    {% endif %}
-
-    {# Stats computed from element.children - use getattr for safe attribute access with default.
-       Note: This pattern (getattr(obj, 'attr', default)) is used across autodoc templates
-       for defensive coding. If this pattern proliferates, consider extracting to a macro
-       or custom filter for consistency. #}
-    {% set children = getattr(element, 'children', []) %}
-    {% include 'partials/page-hero/_element-stats.html' %}
-  </div>
-</div>
+{# Shim: Forward to macro for backwards compatibility #}
+{% from 'partials/page-hero/_macros.html' import hero_element %}
+{{ hero_element(element, page, config) }}
