@@ -86,14 +86,16 @@ def register_context_functions(env: Environment, site: Site) -> None:
 
     @pass_context
     def asset_url(ctx: Any, asset_path: str) -> str:
-        """Generate asset URL with page context for relative URL support.
+        """Generate asset URL with fingerprint resolution.
 
         Args:
             ctx: Jinja2 context
             asset_path: Path to asset (e.g., "css/style.css")
         """
+        from bengal.rendering.assets import resolve_asset_url
+
         page = ctx.get("page") if hasattr(ctx, "get") else None
-        return _asset_url_with_page(asset_path, site, page)
+        return resolve_asset_url(asset_path, site, page)
 
     # Register context-dependent functions
     env.globals.update(
