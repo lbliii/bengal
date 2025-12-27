@@ -315,17 +315,15 @@ class StatementParsingMixin:
             - x (single variable)
             - a, b (comma-separated before '=')
             - (a, b) (parenthesized tuple)
+            - (a, b), c (nested/mixed)
         """
         from bengal.rendering.kida.nodes import Tuple
 
-        # Check for parenthesized tuple
-        if self._match(TokenType.LPAREN):
-            return self._parse_primary()  # Will parse as tuple
-
-        # Parse first name
+        # Parse first item (name or parenthesized tuple)
+        # _parse_primary() handles both cases - names and parenthesized tuples
         first = self._parse_primary()
 
-        # Check for comma (tuple unpacking without parens)
+        # Check for comma (tuple unpacking)
         if self._match(TokenType.COMMA):
             items = [first]
             while self._match(TokenType.COMMA):

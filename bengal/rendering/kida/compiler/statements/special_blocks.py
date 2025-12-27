@@ -210,25 +210,27 @@ class SpecialBlockMixin:
                 )
             )
         elif isinstance(node.target, KidaTuple):
-            # Unpack: ctx['x'], ctx['y'] = _with_val_N
-            targets = []
-            for item in node.target.items:
-                if isinstance(item, KidaName):
-                    targets.append(
-                        ast.Subscript(
-                            value=ast.Name(id="ctx", ctx=ast.Load()),
-                            slice=ast.Constant(value=item.name),
-                            ctx=ast.Store(),
-                        )
+            # Unpack: ctx['x'], (ctx['y'], ctx['z']) = _with_val_N
+            # We need to generate a target expression that maps to ctx subscripts
+            def _gen_store_target(t: Any) -> ast.expr:
+                if isinstance(t, KidaName):
+                    return ast.Subscript(
+                        value=ast.Name(id="ctx", ctx=ast.Load()),
+                        slice=ast.Constant(value=t.name),
+                        ctx=ast.Store(),
                     )
-                else:
-                    # Nested tuples not supported in 'with' target yet, but could be
-                    pass
+                elif isinstance(t, KidaTuple):
+                    return ast.Tuple(
+                        elts=[_gen_store_target(item) for item in t.items],
+                        ctx=ast.Store(),
+                    )
+                return ast.Constant(value=None)  # Should not happen
 
-            if targets:
+            target_ast = _gen_store_target(node.target)
+            if target_ast:
                 if_body.append(
                     ast.Assign(
-                        targets=[ast.Tuple(elts=targets, ctx=ast.Store())],
+                        targets=[target_ast],
                         value=ast.Name(id=val_name, ctx=ast.Load()),
                     )
                 )
@@ -274,12 +276,18 @@ class SpecialBlockMixin:
                 )
             )
 
-        # 6. Build final If node
+        # 6. Compile empty block
+        orelse = []
+        if node.empty:
+            for child in node.empty:
+                orelse.extend(self._compile_node(child))
+
+        # 7. Build final If node
         stmts.append(
             ast.If(
                 test=test,
                 body=if_body,
-                orelse=[],
+                orelse=orelse,
             )
         )
 

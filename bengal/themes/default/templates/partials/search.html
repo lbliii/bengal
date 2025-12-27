@@ -1,42 +1,90 @@
 {#
-Search Component (Embeddable)
+================================================================================
+Search Inline Component (Kida-Native)
+================================================================================
 
 A compact, embeddable search component that matches the modal design language.
 Can be included on any page for inline search functionality.
 
+KIDA FEATURES:
+- {% let %} for template-scoped variables and nil-resilient defaults
+- Optional chaining (?.) for null-safe config access
+- Null coalescing (??) for smart defaults
+- {% match %} for variant-based rendering
+- {% spaceless %} for clean HTML output
+- {% capture %} for buffered content
+- t() for full i18n support
+
 Dependencies:
 - JavaScript: /assets/js/core/search.js (BengalSearch module)
-- CSS: Inline styles below for component-specific styling
+- CSS: /assets/css/components/search.css
 
 Usage:
   {% include 'partials/search.html' %}
+  {% include 'partials/search.html' with variant='compact' %}
+  {% include 'partials/search.html' with show_filters=true %}
+================================================================================
 #}
 
-<div class="search-inline" id="search-container">
-  {# Search Input - Matches modal styling #}
+{# ============================================================================
+   Configuration & Defaults (nil-resilient)
+   ============================================================================ #}
+{% let search_config = config?.search ?? {} %}
+{% let ui_config = search_config?.ui ?? {} %}
+{% let variant = variant ?? ui_config?.inline_variant ?? 'default' %}
+{% let show_filters = show_filters ?? ui_config?.show_filters ?? true %}
+{% let show_shortcuts = show_shortcuts ?? ui_config?.show_shortcuts ?? true %}
+{% let placeholder = placeholder ?? ui_config?.placeholder ?? t('search.placeholder', default='Search documentation...') %}
+{% let autofocus = autofocus ?? false %}
+
+{# ============================================================================
+   Variant Configuration
+   ============================================================================ #}
+{% let VARIANT_CONFIG = {
+  'default': {'show_header': true, 'max_results': 10, 'collapsed_api': true},
+  'compact': {'show_header': false, 'max_results': 5, 'collapsed_api': true},
+  'full': {'show_header': true, 'max_results': 20, 'collapsed_api': false}
+} %}
+{% let active_config = VARIANT_CONFIG[variant] ?? VARIANT_CONFIG['default'] %}
+
+{# ============================================================================
+   Main Component
+   ============================================================================ #}
+<div class="search-inline"
+     id="search-container"
+     data-variant="{{ variant }}"
+     data-max-results="{{ active_config.max_results }}"
+     data-collapsed-api="{{ active_config.collapsed_api | lower }}">
+
+  {# --------------------------------------------------------------------
+     Search Input Section
+     -------------------------------------------------------------------- #}
   <div class="search-inline__input-wrapper">
-    {{ icon("magnifying-glass", size=18, css_class="search-inline__icon") }}
+    {{ icon('magnifying-glass', size=18, css_class='search-inline__icon') }}
 
-    <input
-      type="search"
-      id="search-input"
-      name="search"
-      class="search-inline__input"
-      placeholder="Search documentation..."
-      autocomplete="off"
-      autocorrect="off"
-      autocapitalize="off"
-      spellcheck="false"
-      aria-label="Search"
-      aria-describedby="search-status"
-      aria-controls="search-results"
-      aria-autocomplete="list"
-    >
+    <input type="search"
+           id="search-input"
+           name="search"
+           class="search-inline__input"
+           placeholder="{{ placeholder }}"
+           autocomplete="off"
+           autocorrect="off"
+           autocapitalize="off"
+           spellcheck="false"
+           aria-label="{{ t('search.aria_label', default='Search') }}"
+           aria-describedby="search-status"
+           aria-controls="search-results"
+           aria-autocomplete="list"
+           {% if autofocus %}autofocus{% end %}>
 
-    {# Keyboard shortcut hint #}
+    {# Keyboard shortcut hint (hideable) #}
+    {% if show_shortcuts %}
+    {% spaceless %}
     <div class="search-inline__shortcut" aria-hidden="true">
       <kbd>⌘</kbd><kbd>K</kbd>
     </div>
+    {% endspaceless %}
+    {% end %}
 
     {# Loading indicator #}
     <div class="search-inline__loading" id="search-loading-inline" style="display: none;">
@@ -44,917 +92,116 @@ Usage:
     </div>
 
     {# Clear button #}
-    <button
-      type="button"
-      class="search-inline__clear"
-      id="search-clear"
-      aria-label="Clear search"
-      style="display: none;">
-      {{ icon("x-mark", size=14) }}
+    <button type="button"
+            class="search-inline__clear"
+            id="search-clear"
+            aria-label="{{ t('search.clear', default='Clear search') }}"
+            style="display: none;">
+      {{ icon('x-mark', size=14) }}
     </button>
   </div>
 
-  {# Status for screen readers #}
-  <div
-    id="search-status"
-    class="sr-only"
-    role="status"
-    aria-live="polite"
-    aria-atomic="true">
+  {# --------------------------------------------------------------------
+     Screen Reader Status
+     -------------------------------------------------------------------- #}
+  <div id="search-status"
+       class="sr-only"
+       role="status"
+       aria-live="polite"
+       aria-atomic="true">
   </div>
 
-  {# Filters (collapsible) #}
+  {# --------------------------------------------------------------------
+     Filters Section (optional)
+     -------------------------------------------------------------------- #}
+  {% if show_filters %}
   <div class="search-inline__filters" id="search-filters" style="display: none;">
-    <button type="button" class="search-inline__filters-toggle" aria-expanded="false" aria-controls="search-filters-content">
+    <button type="button"
+            class="search-inline__filters-toggle"
+            aria-expanded="false"
+            aria-controls="search-filters-content">
       {{ icon('funnel', size=14) }}
-      <span>Filters</span>
+      <span>{{ t('search.filters', default='Filters') }}</span>
     </button>
 
     <div class="search-inline__filters-content" id="search-filters-content" style="display: none;">
       <div class="search-inline__filter-group">
-        <label for="filter-section">Section:</label>
+        <label for="filter-section">{{ t('search.filter_section', default='Section:') }}</label>
         <select id="filter-section" class="search-inline__filter-select">
-          <option value="">All Sections</option>
+          <option value="">{{ t('search.all_sections', default='All Sections') }}</option>
+          {# Options populated by JavaScript from search index #}
         </select>
       </div>
 
       <div class="search-inline__filter-group">
-        <label for="filter-type">Type:</label>
+        <label for="filter-type">{{ t('search.filter_type', default='Type:') }}</label>
         <select id="filter-type" class="search-inline__filter-select">
-          <option value="">All Types</option>
+          <option value="">{{ t('search.all_types', default='All Types') }}</option>
+          {# Options populated by JavaScript from search index #}
         </select>
       </div>
 
       <button type="button" class="search-inline__filter-clear" id="clear-filters">
-        Clear
+        {{ t('search.clear_filters', default='Clear') }}
       </button>
     </div>
   </div>
+  {% end %}
 
-  {# Search Results - Modal-style rendering #}
-  <div
-    id="search-results"
-    class="search-inline__results"
-    role="region"
-    aria-label="Search results"
-    style="display: none;">
+  {# --------------------------------------------------------------------
+     Search Results Container
+     -------------------------------------------------------------------- #}
+  <div id="search-results"
+       class="search-inline__results"
+       role="region"
+       aria-label="{{ t('search.results_aria_label', default='Search results') }}"
+       style="display: none;">
 
+    {% if active_config.show_header %}
     <div class="search-inline__results-header">
       <span id="search-results-count" class="search-inline__results-count"></span>
     </div>
+    {% end %}
 
     <div id="search-results-list" class="search-inline__results-list" role="listbox">
       {# Results populated by JavaScript #}
     </div>
 
+    {# No results state #}
     <div id="search-no-results" class="search-inline__no-results" style="display: none;">
-      {{ icon("magnifying-glass", size=40) }}
-      <p class="search-inline__no-results-text">No results for "<span id="search-no-results-query"></span>"</p>
-      <p class="search-inline__no-results-hint">Try different keywords or clear your filters</p>
+      {{ icon('magnifying-glass', size=40) }}
+      <p class="search-inline__no-results-text">
+        {{ t('search.no_results', default='No results for') }} "<span id="search-no-results-query"></span>"
+      </p>
+      <p class="search-inline__no-results-hint">
+        {{ t('search.no_results_hint', default='Try different keywords or clear your filters') }}
+      </p>
     </div>
   </div>
 
-  {# Loading state #}
+  {# --------------------------------------------------------------------
+     Loading State
+     -------------------------------------------------------------------- #}
   <div id="search-loading" class="search-inline__loading-state" style="display: none;">
     <div class="search-inline__spinner search-inline__spinner--large"></div>
-    <p>Loading search index...</p>
+    <p>{{ t('search.loading_index', default='Loading search index...') }}</p>
   </div>
 
-  {# Error state #}
+  {# --------------------------------------------------------------------
+     Error State
+     -------------------------------------------------------------------- #}
   <div id="search-error" class="search-inline__error" style="display: none;">
-    <p>Failed to load search index. Please try refreshing.</p>
+    <p>{{ t('search.error', default='Failed to load search index. Please try refreshing.') }}</p>
   </div>
 </div>
 
-<script>
-(function() {
-  'use strict';
-
-  function initializeSearchUI() {
-    if (typeof window.BengalSearch === 'undefined') {
-      setTimeout(initializeSearchUI, 100);
-      return;
-    }
-
-    // Elements
-    const container = document.getElementById('search-container');
-    const input = document.getElementById('search-input');
-    const clearBtn = document.getElementById('search-clear');
-    const loadingInline = document.getElementById('search-loading-inline');
-    const status = document.getElementById('search-status');
-    const results = document.getElementById('search-results');
-    const resultsList = document.getElementById('search-results-list');
-    const resultsCount = document.getElementById('search-results-count');
-    const noResults = document.getElementById('search-no-results');
-    const noResultsQuery = document.getElementById('search-no-results-query');
-    const loading = document.getElementById('search-loading');
-    const error = document.getElementById('search-error');
-    const filters = document.getElementById('search-filters');
-    const filtersToggle = document.querySelector('.search-inline__filters-toggle');
-    const filtersContent = document.getElementById('search-filters-content');
-    const clearFiltersBtn = document.getElementById('clear-filters');
-    const filterSection = document.getElementById('filter-section');
-    const filterType = document.getElementById('filter-type');
-
-    let debounceTimer = null;
-    let currentQuery = '';
-    let currentFilters = {};
-    let selectedIndex = -1;
-    let currentResultItems = [];
-
-    function init() {
-      loading.style.display = 'block';
-
-      if (BengalSearch.isLoaded()) {
-        onIndexLoaded();
-      } else {
-        window.addEventListener('searchIndexLoaded', onIndexLoaded);
-        window.addEventListener('searchIndexError', onIndexError);
-      }
-
-      input.addEventListener('input', onInput);
-      input.addEventListener('keydown', onKeydown);
-      clearBtn.addEventListener('click', clearSearch);
-      filtersToggle?.addEventListener('click', toggleFilters);
-      filterSection?.addEventListener('change', onFilterChange);
-      filterType?.addEventListener('change', onFilterChange);
-      clearFiltersBtn?.addEventListener('click', clearFilters);
-    }
-
-    function onIndexLoaded() {
-      loading.style.display = 'none';
-      populateFilterOptions();
-    }
-
-    function onIndexError(e) {
-      loading.style.display = 'none';
-      error.style.display = 'block';
-    }
-
-    function populateFilterOptions() {
-      const sections = BengalSearch.getAvailableSections();
-      sections.forEach(section => {
-        const opt = document.createElement('option');
-        opt.value = section;
-        opt.textContent = section;
-        filterSection?.appendChild(opt);
-      });
-
-      const types = BengalSearch.getAvailableTypes();
-      types.forEach(type => {
-        const opt = document.createElement('option');
-        opt.value = type;
-        opt.textContent = type;
-        filterType?.appendChild(opt);
-      });
-
-      if (sections.length > 0 || types.length > 0) {
-        filters.style.display = 'block';
-      }
-    }
-
-    function onInput(e) {
-      const query = e.target.value.trim();
-      clearBtn.style.display = query ? 'flex' : 'none';
-
-      clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => performSearch(query), 150);
-    }
-
-    function onKeydown(e) {
-      switch (e.key) {
-        case 'ArrowDown':
-          e.preventDefault();
-          navigateResults(1);
-          break;
-        case 'ArrowUp':
-          e.preventDefault();
-          navigateResults(-1);
-          break;
-        case 'Enter':
-          e.preventDefault();
-          selectResult();
-          break;
-        case 'Escape':
-          if (currentQuery) {
-            e.preventDefault();
-            clearSearch();
-          }
-          break;
-      }
-    }
-
-    function performSearch(query) {
-      currentQuery = query;
-      selectedIndex = -1;
-      currentResultItems = [];
-
-      if (!query || query.length < 2) {
-        results.style.display = 'none';
-        status.textContent = '';
-        return;
-      }
-
-      currentFilters = {
-        section: filterSection?.value || null,
-        type: filterType?.value || null,
-        tags: []
-      };
-
-      const searchResults = BengalSearch.search(query, currentFilters);
-      displayResults(searchResults, query);
-    }
-
-    function displayResults(searchResults, query) {
-      resultsList.innerHTML = '';
-
-      if (searchResults.length === 0) {
-        results.style.display = 'block';
-        noResults.style.display = 'flex';
-        noResultsQuery.textContent = query;
-        status.textContent = 'No results found';
-        return;
-      }
-
-      results.style.display = 'block';
-      noResults.style.display = 'none';
-      resultsCount.textContent = `${searchResults.length} result${searchResults.length !== 1 ? 's' : ''}`;
-      status.textContent = `Found ${searchResults.length} result${searchResults.length !== 1 ? 's' : ''}`;
-
-      // Group by autodoc status (matching modal behavior)
-      const { docs, api } = groupByAutodoc(searchResults);
-      let globalIndex = 0;
-
-      // Documentation section
-      if (docs.length > 0) {
-        const section = createResultSection('Documentation', docs, query, false, globalIndex);
-        resultsList.appendChild(section);
-        globalIndex += docs.length;
-      }
-
-      // API Reference section (collapsed by default)
-      if (api.length > 0) {
-        const section = createResultSection(`API Reference (${api.length})`, api, query, true, globalIndex);
-        resultsList.appendChild(section);
-      }
-
-      currentResultItems = Array.from(resultsList.querySelectorAll('.search-inline__result-item'));
-    }
-
-    function groupByAutodoc(results) {
-      const docs = [];
-      const api = [];
-      results.forEach(r => {
-        if (r.isAutodoc) api.push(r);
-        else docs.push(r);
-      });
-      return { docs, api };
-    }
-
-    function createResultSection(title, items, query, collapsed, startIndex) {
-      const section = document.createElement('div');
-      section.className = 'search-inline__results-group';
-
-      const header = document.createElement('div');
-      header.className = 'search-inline__section-header' + (collapsed ? ' search-inline__section-header--collapsible' : '');
-      header.innerHTML = `
-        <span class="search-inline__section-title">${title}</span>
-        ${collapsed ? '<span class="search-inline__section-toggle">▶</span>' : ''}
-      `;
-
-      const itemsContainer = document.createElement('div');
-      itemsContainer.className = 'search-inline__section-items';
-      if (collapsed) {
-        itemsContainer.style.display = 'none';
-      }
-
-      items.forEach((result, localIndex) => {
-        const item = createResultItem(result, startIndex + localIndex);
-        itemsContainer.appendChild(item);
-      });
-
-      if (collapsed) {
-        header.style.cursor = 'pointer';
-        header.setAttribute('role', 'button');
-        header.setAttribute('tabindex', '0');
-
-        const toggle = () => {
-          const isHidden = itemsContainer.style.display === 'none';
-          itemsContainer.style.display = isHidden ? 'block' : 'none';
-          header.querySelector('.search-inline__section-toggle').textContent = isHidden ? '▼' : '▶';
-          currentResultItems = Array.from(resultsList.querySelectorAll('.search-inline__result-item'));
-        };
-
-        header.addEventListener('click', toggle);
-        header.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            toggle();
-          }
-        });
-      }
-
-      section.appendChild(header);
-      section.appendChild(itemsContainer);
-      return section;
-    }
-
-    function createResultItem(result, index) {
-      const item = document.createElement('div');
-      item.className = 'search-inline__result-item';
-      item.setAttribute('role', 'option');
-      item.setAttribute('aria-selected', 'false');
-      item.setAttribute('data-index', index);
-
-      const href = result.href || result.uri || result.href;
-      const title = result.highlightedTitle || result.title || 'Untitled';
-      const description = result.description || result.highlightedExcerpt || result.excerpt || '';
-      const section = result.section || '';
-
-      item.innerHTML = `
-        <a href="${href}" class="search-inline__result-link" tabindex="-1">
-          <div class="search-inline__result-content">
-            <span class="search-inline__result-title">${title}</span>
-            ${section ? `<span class="search-inline__result-section">${section}</span>` : ''}
-            ${result.isAutodoc ? '<span class="search-inline__autodoc-badge">API</span>' : ''}
-          </div>
-          ${description ? `<p class="search-inline__result-excerpt">${description}</p>` : ''}
-        </a>
-      `;
-
-      item.addEventListener('click', (e) => {
-        e.preventDefault();
-        selectedIndex = index;
-        selectResult();
-      });
-
-      return item;
-    }
-
-    function navigateResults(direction) {
-      if (currentResultItems.length === 0) return;
-
-      if (selectedIndex >= 0 && selectedIndex < currentResultItems.length) {
-        currentResultItems[selectedIndex].classList.remove('search-inline__result-item--selected');
-        currentResultItems[selectedIndex].setAttribute('aria-selected', 'false');
-      }
-
-      selectedIndex += direction;
-      if (selectedIndex < 0) selectedIndex = currentResultItems.length - 1;
-      if (selectedIndex >= currentResultItems.length) selectedIndex = 0;
-
-      const selected = currentResultItems[selectedIndex];
-      selected.classList.add('search-inline__result-item--selected');
-      selected.setAttribute('aria-selected', 'true');
-      selected.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-
-      const title = selected.querySelector('.search-inline__result-title');
-      if (title) {
-        status.textContent = `${title.textContent}, ${selectedIndex + 1} of ${currentResultItems.length}`;
-      }
-    }
-
-    function selectResult() {
-      if (selectedIndex >= 0 && selectedIndex < currentResultItems.length) {
-        const link = currentResultItems[selectedIndex].querySelector('a');
-        if (link) window.location.href = link.href;
-      }
-    }
-
-    function clearSearch() {
-      input.value = '';
-      currentQuery = '';
-      clearBtn.style.display = 'none';
-      results.style.display = 'none';
-      status.textContent = '';
-      selectedIndex = -1;
-      currentResultItems = [];
-      input.focus();
-    }
-
-    function toggleFilters() {
-      const isExpanded = filtersToggle.getAttribute('aria-expanded') === 'true';
-      filtersToggle.setAttribute('aria-expanded', !isExpanded);
-      filtersContent.style.display = isExpanded ? 'none' : 'block';
-    }
-
-    function onFilterChange() {
-      if (currentQuery) performSearch(currentQuery);
-    }
-
-    function clearFilters() {
-      if (filterSection) filterSection.value = '';
-      if (filterType) filterType.value = '';
-      if (currentQuery) performSearch(currentQuery);
-    }
-
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', init);
-    } else {
-      init();
-    }
-  }
-
-  initializeSearchUI();
-})();
-</script>
-
-<style>
-/* ============================================
-   SEARCH INLINE COMPONENT
-   Matches modal design language
-   ============================================ */
-
-.search-inline {
-  max-width: 100%;
-  margin: 0 auto;
-}
-
-/* Input wrapper */
-.search-inline__input-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.625rem 0.875rem;
-  border-radius: var(--border-radius-medium, 8px);
-  border: 1px solid var(--color-border);
-  background: var(--color-bg-primary);
-  box-shadow:
-    inset 1px 1px 2px rgba(0, 0, 0, 0.06),
-    inset -0.5px -0.5px 1px rgba(255, 255, 255, 0.4);
-  transition: all var(--transition-fast, 0.15s);
-}
-
-.search-inline__input-wrapper:focus-within {
-  border-color: var(--color-primary);
-  box-shadow:
-    inset 1.5px 1.5px 3px rgba(0, 0, 0, 0.08),
-    inset -0.5px -0.5px 1px rgba(255, 255, 255, 0.3),
-    0 0 0 3px color-mix(in srgb, var(--color-primary) 15%, transparent);
-}
-
-[data-theme="dark"] .search-inline__input-wrapper {
-  box-shadow:
-    inset 1.5px 1.5px 3px rgba(0, 0, 0, 0.3),
-    inset -0.5px -0.5px 1px rgba(255, 255, 255, 0.05);
-}
-
-.search-inline__icon {
-  flex-shrink: 0;
-  color: var(--color-text-tertiary);
-  pointer-events: none;
-}
-
-.search-inline__input {
-  flex: 1;
-  padding: 0.25rem 0.5rem;
-  font-size: var(--text-body, 1rem);
-  font-family: inherit;
-  color: var(--color-text-primary);
-  background: transparent;
-  border: none;
-  outline: none;
-}
-
-.search-inline__input::-webkit-search-cancel-button,
-.search-inline__input::-webkit-search-decoration {
-  -webkit-appearance: none;
-  display: none;
-}
-
-.search-inline__input::placeholder {
-  color: var(--color-text-tertiary);
-}
-
-/* Shortcut hint */
-.search-inline__shortcut {
-  display: flex;
-  gap: 0.125rem;
-  pointer-events: none;
-}
-
-.search-inline__shortcut kbd {
-  padding: 0.125rem 0.25rem;
-  font-size: var(--text-xxs, 0.625rem);
-  font-family: var(--font-mono);
-  color: var(--color-text-tertiary);
-  background: linear-gradient(180deg,
-    var(--color-surface, var(--color-bg-elevated)),
-    var(--color-bg-secondary));
-  border: 1px solid var(--color-border);
-  border-radius: 3px;
-  box-shadow: var(--neumorphic-subtle);
-}
-
-.search-inline__input:focus ~ .search-inline__shortcut {
-  display: none;
-}
-
-/* Loading spinner */
-.search-inline__loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-}
-
-.search-inline__spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid var(--color-border);
-  border-top-color: var(--color-primary);
-  border-radius: 50%;
-  animation: search-inline-spin 0.6s linear infinite;
-}
-
-.search-inline__spinner--large {
-  width: 32px;
-  height: 32px;
-  border-width: 3px;
-}
-
-@keyframes search-inline-spin {
-  to { transform: rotate(360deg); }
-}
-
-/* Clear button */
-.search-inline__clear {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  background: linear-gradient(180deg,
-    var(--color-surface, var(--color-bg-elevated)),
-    var(--color-bg-secondary));
-  border: 1px solid var(--color-border);
-  border-radius: var(--border-radius-small, 4px);
-  box-shadow: var(--neumorphic-subtle);
-  color: var(--color-text-tertiary);
-  cursor: pointer;
-  transition: all var(--transition-fast, 0.15s);
-}
-
-.search-inline__clear:hover {
-  color: var(--color-text-primary);
-  box-shadow: var(--neumorphic-hover);
-}
-
-/* Filters */
-.search-inline__filters {
-  margin-top: 0.75rem;
-}
-
-.search-inline__filters-toggle {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.375rem 0.625rem;
-  font-size: var(--text-xs, 0.75rem);
-  font-weight: var(--weight-medium, 500);
-  color: var(--color-text-secondary);
-  background: linear-gradient(180deg,
-    var(--color-surface, var(--color-bg-elevated)),
-    var(--color-bg-secondary));
-  border: 1px solid var(--color-border);
-  border-radius: var(--border-radius-small, 4px);
-  box-shadow: var(--neumorphic-subtle);
-  cursor: pointer;
-  transition: all var(--transition-fast, 0.15s);
-}
-
-.search-inline__filters-toggle:hover {
-  box-shadow: var(--neumorphic-hover);
-}
-
-.search-inline__filters-content {
-  margin-top: 0.75rem;
-  padding: 0.75rem;
-  display: flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  background: linear-gradient(180deg,
-    var(--color-surface, var(--color-bg-elevated)),
-    var(--color-bg-tertiary));
-  border: 1px solid var(--color-border);
-  border-radius: var(--border-radius-medium, 8px);
-  box-shadow: var(--neumorphic-subtle);
-}
-
-.search-inline__filter-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  flex: 1;
-  min-width: 120px;
-}
-
-.search-inline__filter-group label {
-  font-size: var(--text-xs, 0.75rem);
-  font-weight: var(--weight-medium, 500);
-  color: var(--color-text-tertiary);
-}
-
-.search-inline__filter-select {
-  padding: 0.375rem 0.5rem;
-  font-size: var(--text-sm, 0.875rem);
-  font-family: inherit;
-  color: var(--color-text-primary);
-  background: var(--color-bg-primary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--border-radius-small, 4px);
-}
-
-.search-inline__filter-clear {
-  padding: 0.375rem 0.625rem;
-  font-size: var(--text-xs, 0.75rem);
-  color: var(--color-text-tertiary);
-  background: transparent;
-  border: 1px solid var(--color-border);
-  border-radius: var(--border-radius-small, 4px);
-  cursor: pointer;
-  transition: all var(--transition-fast, 0.15s);
-}
-
-.search-inline__filter-clear:hover {
-  color: var(--color-error, #ef4444);
-  border-color: var(--color-error, #ef4444);
-}
-
-/* Results */
-.search-inline__results {
-  margin-top: 1rem;
-  padding: 0.75rem;
-  background: linear-gradient(180deg,
-    rgba(255, 255, 255, 0.9),
-    rgba(250, 250, 250, 0.85));
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: var(--border-radius-large, 12px);
-  box-shadow:
-    0 10px 25px -5px rgba(0, 0, 0, 0.1),
-    0 0 0 1px rgba(0, 0, 0, 0.05);
-  max-height: 400px;
-  overflow-y: auto;
-}
-
-[data-theme="dark"] .search-inline__results {
-  background: linear-gradient(180deg,
-    rgba(30, 30, 32, 0.92),
-    rgba(24, 24, 26, 0.88));
-  border-color: rgba(255, 255, 255, 0.08);
-}
-
-.search-inline__results-header {
-  padding-bottom: 0.5rem;
-  margin-bottom: 0.5rem;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.search-inline__results-count {
-  font-size: var(--text-xs, 0.75rem);
-  font-weight: var(--weight-medium, 500);
-  color: var(--color-text-tertiary);
-}
-
-.search-inline__results-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-/* Result groups */
-.search-inline__results-group {
-  margin-bottom: 0.5rem;
-}
-
-.search-inline__section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.25rem 0.5rem;
-  margin-bottom: 0.25rem;
-  background: linear-gradient(180deg,
-    var(--color-surface, var(--color-bg-elevated)),
-    var(--color-bg-tertiary));
-  border: 1px solid var(--color-border);
-  border-radius: var(--border-radius-small, 4px);
-  font-size: var(--text-xxs, 0.625rem);
-  font-weight: var(--weight-semibold, 600);
-  color: var(--color-text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.search-inline__section-header--collapsible:hover {
-  box-shadow: var(--neumorphic-subtle);
-}
-
-.search-inline__section-toggle {
-  font-size: 0.5rem;
-  color: var(--color-text-tertiary);
-}
-
-.search-inline__section-items {
-  display: flex;
-  flex-direction: column;
-  gap: 0.125rem;
-}
-
-/* Result items - matches modal */
-.search-inline__result-item {
-  border-radius: var(--border-radius-small, 6px);
-  border: 1px solid transparent;
-  transition: all var(--transition-fast, 0.15s);
-  position: relative;
-}
-
-.search-inline__result-item:hover {
-  background: linear-gradient(180deg,
-    var(--color-surface, var(--color-bg-elevated)),
-    var(--color-bg-secondary));
-  border-color: var(--color-border);
-}
-
-.search-inline__result-item--selected {
-  background: linear-gradient(180deg,
-    var(--color-surface, var(--color-bg-elevated)),
-    var(--color-bg-secondary));
-  border-color: var(--color-border);
-}
-
-.search-inline__result-item--selected::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background: var(--gradient-border);
-  border-radius: var(--border-radius-small, 6px) 0 0 var(--border-radius-small, 6px);
-}
-
-.search-inline__result-link {
-  display: block;
-  padding: 0.5rem 0.625rem;
-  color: inherit;
-  text-decoration: none;
-}
-
-.search-inline__result-content {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.125rem;
-}
-
-.search-inline__result-title {
-  font-size: var(--text-sm, 0.875rem);
-  font-weight: var(--weight-medium, 500);
-  color: var(--color-text-primary);
-}
-
-.search-inline__result-section {
-  font-size: 0.5rem;
-  font-weight: var(--weight-medium, 500);
-  color: var(--color-text-tertiary);
-  padding: 0.125rem 0.375rem;
-  background: linear-gradient(180deg,
-    var(--color-surface, var(--color-bg-elevated)),
-    var(--color-bg-tertiary));
-  border: 1px solid var(--color-border);
-  border-radius: var(--border-radius-full, 9999px);
-}
-
-.search-inline__result-excerpt {
-  margin: 0;
-  font-size: var(--text-xs, 0.75rem);
-  color: var(--color-text-secondary);
-  line-height: 1.4;
-  display: -webkit-box;
-  -webkit-line-clamp: 1;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-/* Autodoc badge */
-.search-inline__autodoc-badge {
-  padding: 0.125rem 0.25rem;
-  margin-left: auto;
-  font-size: 0.5rem;
-  font-weight: var(--weight-semibold, 600);
-  background: linear-gradient(180deg,
-    color-mix(in srgb, var(--color-info, #3b82f6) 15%, var(--color-bg-elevated)),
-    color-mix(in srgb, var(--color-info, #3b82f6) 10%, var(--color-bg-secondary)));
-  color: var(--color-info, #3b82f6);
-  border: 1px solid color-mix(in srgb, var(--color-info, #3b82f6) 30%, transparent);
-  border-radius: var(--border-radius-small, 4px);
-  text-transform: uppercase;
-}
-
-/* Highlight matches */
-.search-inline__result-title mark,
-.search-inline__result-excerpt mark {
-  background: rgba(255, 215, 0, 0.3);
-  color: inherit;
-  font-weight: var(--weight-semibold, 600);
-  padding: 0 0.125rem;
-  border-radius: 2px;
-}
-
-[data-theme="dark"] .search-inline__result-title mark,
-[data-theme="dark"] .search-inline__result-excerpt mark {
-  background: color-mix(in srgb, var(--color-primary) 25%, transparent);
-}
-
-/* No results */
-.search-inline__no-results {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 2rem 1rem;
-  text-align: center;
-  color: var(--color-text-tertiary);
-}
-
-.search-inline__no-results svg {
-  margin-bottom: 0.75rem;
-  opacity: 0.4;
-}
-
-.search-inline__no-results-text {
-  margin: 0 0 0.25rem;
-  font-size: var(--text-sm, 0.875rem);
-  font-weight: var(--weight-medium, 500);
-  color: var(--color-text-secondary);
-}
-
-.search-inline__no-results-hint {
-  margin: 0;
-  font-size: var(--text-xs, 0.75rem);
-}
-
-/* Loading state */
-.search-inline__loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 2rem 1rem;
-  color: var(--color-text-secondary);
-  font-size: var(--text-sm, 0.875rem);
-}
-
-.search-inline__loading-state p {
-  margin: 0.75rem 0 0;
-}
-
-/* Error state */
-.search-inline__error {
-  padding: 0.75rem;
-  margin-top: 1rem;
-  background: linear-gradient(180deg,
-    color-mix(in srgb, var(--color-error, #ef4444) 10%, var(--color-bg-elevated)),
-    color-mix(in srgb, var(--color-error, #ef4444) 5%, var(--color-bg-secondary)));
-  border: 1px solid color-mix(in srgb, var(--color-error, #ef4444) 30%, transparent);
-  border-radius: var(--border-radius-medium, 8px);
-  color: var(--color-error, #ef4444);
-  font-size: var(--text-sm, 0.875rem);
-  text-align: center;
-}
-
-.search-inline__error p {
-  margin: 0;
-}
-
-/* Accessibility */
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-/* Responsive */
-@media (max-width: 640px) {
-  .search-inline__shortcut {
-    display: none;
-  }
-
-  .search-inline__filters-content {
-    flex-direction: column;
-  }
-
-  .search-inline__filter-group {
-    min-width: 100%;
-  }
-}
-</style>
+{# ============================================================================
+   Component Initialization
+   ============================================================================
+
+   The search functionality is handled by /assets/js/core/search.js
+   which provides the BengalSearch module. The inline component uses the
+   same search engine as the modal and search page for consistency.
+
+   CSS is loaded from /assets/css/components/search.css
+   ============================================================================ #}

@@ -140,8 +140,8 @@ class VariableBlockParsingMixin(BlockStackMixin):
         Multi-let syntax allows comma-separated independent assignments:
             {% let a = 1, b = 2, c = 3 %}
 
-        Unlike set, let does not support tuple unpacking since let variables
-        are always single names (template-scoped).
+        Supports tuple unpacking:
+            {% let a, b = 1, 2 %}
 
         Returns:
             Single Let node or list of Let nodes for multi-let.
@@ -150,29 +150,72 @@ class VariableBlockParsingMixin(BlockStackMixin):
         lets: list[Let] = []
 
         while True:
-            if self._current.type != TokenType.NAME:
-                raise self._error("Expected variable name")
-            name = self._advance().value
+            # Parse target - can be single name or tuple for unpacking
+            target = self._parse_tuple_or_name()
 
             self._expect(TokenType.ASSIGN)
-            value = self._parse_expression()
 
-            lets.append(
-                Let(
-                    lineno=start.lineno,
-                    col_offset=start.col_offset,
-                    name=name,
-                    value=value,
+            # Check for tuple unpacking
+            from bengal.rendering.kida.nodes import Tuple as KidaTuple
+
+            is_tuple_unpack = isinstance(target, KidaTuple) and len(target.items) > 1
+
+            if is_tuple_unpack:
+                # Tuple unpacking: use _parse_tuple_or_expression for RHS
+                value = self._parse_tuple_or_expression()
+                lets.append(
+                    Let(
+                        lineno=start.lineno,
+                        col_offset=start.col_offset,
+                        name=target,  # node.name can now be an Expr (Name or Tuple)
+                        value=value,
+                    )
                 )
-            )
+                # Tuple unpacking cannot be combined with multi-let
+                break
+            else:
+                # Single target: use _parse_expression to preserve commas
+                value = self._parse_expression()
 
-            # Check for multi-let continuation: , name =
-            if self._current.type == TokenType.COMMA:
-                if self._is_multi_set_continuation():
-                    self._advance()  # consume comma
-                    continue
-                # Not multi-let, break (could be trailing comma)
-            break
+                # Check for multi-let continuation
+                if self._current.type == TokenType.COMMA:
+                    if self._is_multi_set_continuation():
+                        lets.append(
+                            Let(
+                                lineno=start.lineno,
+                                col_offset=start.col_offset,
+                                name=target,
+                                value=value,
+                            )
+                        )
+                        self._advance()  # consume comma
+                        continue
+                    else:
+                        # Handle tuple value assignment: let x = 1, 2, 3
+                        items = [value]
+                        while self._current.type == TokenType.COMMA:
+                            self._advance()
+                            if self._match(TokenType.BLOCK_END):
+                                break
+                            items.append(self._parse_expression())
+
+                        if len(items) > 1:
+                            value = KidaTuple(
+                                lineno=items[0].lineno,
+                                col_offset=items[0].col_offset,
+                                items=tuple(items),
+                                ctx="load",
+                            )
+
+                lets.append(
+                    Let(
+                        lineno=start.lineno,
+                        col_offset=start.col_offset,
+                        name=target,
+                        value=value,
+                    )
+                )
+                break
 
         self._expect(TokenType.BLOCK_END)
 
@@ -180,20 +223,31 @@ class VariableBlockParsingMixin(BlockStackMixin):
         return lets[0] if len(lets) == 1 else lets
 
     def _parse_export(self) -> Export:
-        """Parse {% export x = expr %}."""
+        """Parse {% export x = expr %}.
+
+        Supports tuple unpacking:
+            {% export a, b = 1, 2 %}
+        """
         start = self._advance()  # consume 'export'
 
-        if self._current.type != TokenType.NAME:
-            raise self._error("Expected variable name")
-        name = self._advance().value
+        # Parse target - can be single name or tuple for unpacking
+        target = self._parse_tuple_or_name()
 
         self._expect(TokenType.ASSIGN)
-        value = self._parse_expression()
+
+        # Check for tuple unpacking
+        from bengal.rendering.kida.nodes import Tuple as KidaTuple
+
+        if isinstance(target, KidaTuple) and len(target.items) > 1:
+            value = self._parse_tuple_or_expression()
+        else:
+            value = self._parse_expression()
+
         self._expect(TokenType.BLOCK_END)
 
         return Export(
             lineno=start.lineno,
             col_offset=start.col_offset,
-            name=name,
+            name=target,  # node.name can now be an Expr (Name or Tuple)
             value=value,
         )

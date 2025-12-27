@@ -123,6 +123,7 @@ class SpecialBlockParsingMixin(BlockStackMixin):
 
         Renders body only if expr is truthy. Binds expr to 'name' or 'it'.
         Supports multiple expressions and bindings: {% with a, b as x, y %}.
+        Also supports {% else %} or {% empty %} for falsy cases.
         """
         from bengal.rendering.kida.nodes import Name as KidaName
 
@@ -145,8 +146,22 @@ class SpecialBlockParsingMixin(BlockStackMixin):
 
         self._expect(TokenType.BLOCK_END)
 
-        # Parse body
-        body = self._parse_body()
+        self._push_block("with", start)
+
+        # Parse body, stopping on continuation (else/empty) or end keywords
+        body = self._parse_body(stop_on_continuation=True)
+
+        empty: list[Node] = []
+
+        # Check for continuation keywords
+        if self._current.type == TokenType.BLOCK_BEGIN:
+            next_tok = self._peek(1)
+            if next_tok.type == TokenType.NAME and next_tok.value in ("else", "empty"):
+                self._advance()  # consume {%
+                self._advance()  # consume 'else' or 'empty'
+                self._expect(TokenType.BLOCK_END)
+                # After else/empty, only stop on end keywords
+                empty = self._parse_body(stop_on_continuation=False)
 
         # Consume end tag
         self._consume_end_tag("with")
@@ -157,6 +172,7 @@ class SpecialBlockParsingMixin(BlockStackMixin):
             expr=expr,
             target=target,
             body=tuple(body),
+            empty=tuple(empty),
         )
 
     def _parse_do(self) -> Do:

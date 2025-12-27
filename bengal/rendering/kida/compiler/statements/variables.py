@@ -22,106 +22,105 @@ class VariableAssignmentMixin:
     def _compile_set(self, node: Any) -> list[ast.stmt]:
         """Compile {% set %}.
 
-        Handles both single names and tuple unpacking:
+        Handles both single names and structural unpacking:
             {% set x = value %}
             {% set a, b = 1, 2 %}
+            {% set (a, b), c = ([1, 2], 3) %}
         """
-        value = self._compile_expr(node.value)
-        target_type = type(node.target).__name__
+        return self._compile_assignment(node.target, node.value)
 
-        if target_type == "Name":
+    def _compile_let(self, node: Any) -> list[ast.stmt]:
+        """Compile {% let %}.
+
+        Let is like set but semantically represents a template-scoped variable.
+        Supports structural unpacking: {% let a, b = 1, 2 %}
+        """
+        return self._compile_assignment(node.name, node.value)
+
+    def _compile_export(self, node: Any) -> list[ast.stmt]:
+        """Compile {% export %}.
+
+        Export makes a variable available in outer scope.
+        Supports structural unpacking: {% export a, b = 1, 2 %}
+        """
+        return self._compile_assignment(node.name, node.value)
+
+    def _compile_assignment(self, target: Any, value: Any) -> list[ast.stmt]:
+        """Common logic for set/let/export assignments.
+
+        Handles recursive structural unpacking using ctx dict for all variables.
+        """
+        from bengal.rendering.kida.nodes import Name as KidaName
+        from bengal.rendering.kida.nodes import Tuple as KidaTuple
+
+        compiled_value = self._compile_expr(value)
+
+        if isinstance(target, KidaName):
             # Single variable: ctx['name'] = value
             return [
                 ast.Assign(
                     targets=[
                         ast.Subscript(
                             value=ast.Name(id="ctx", ctx=ast.Load()),
-                            slice=ast.Constant(value=node.target.name),
+                            slice=ast.Constant(value=target.name),
                             ctx=ast.Store(),
                         )
                     ],
-                    value=value,
+                    value=compiled_value,
                 )
             ]
-        elif target_type == "Tuple":
-            # Tuple unpacking: temp = value; ctx['a'] = temp[0]; ctx['b'] = temp[1]; ...
+        elif isinstance(target, KidaTuple):
+            # Structural unpacking:
+            # _unpack_tmp_N = value
+            # _compile_unpacking(_unpack_tmp_N, target)
+            self._block_counter += 1
+            tmp_name = f"_unpack_tmp_{self._block_counter}"
+
             stmts: list[ast.stmt] = [
-                # _unpack_tmp = value
                 ast.Assign(
-                    targets=[ast.Name(id="_unpack_tmp", ctx=ast.Store())],
-                    value=value,
+                    targets=[ast.Name(id=tmp_name, ctx=ast.Store())],
+                    value=compiled_value,
                 )
             ]
-            for i, item in enumerate(node.target.items):
-                if type(item).__name__ == "Name":
-                    # ctx['name'] = _unpack_tmp[i]
-                    stmts.append(
+
+            def _gen_unpack(current_target: Any, current_val_ast: ast.expr) -> list[ast.stmt]:
+                inner_stmts = []
+                if isinstance(current_target, KidaName):
+                    inner_stmts.append(
                         ast.Assign(
                             targets=[
                                 ast.Subscript(
                                     value=ast.Name(id="ctx", ctx=ast.Load()),
-                                    slice=ast.Constant(value=item.name),
+                                    slice=ast.Constant(value=current_target.name),
                                     ctx=ast.Store(),
                                 )
                             ],
-                            value=ast.Subscript(
-                                value=ast.Name(id="_unpack_tmp", ctx=ast.Load()),
-                                slice=ast.Constant(value=i),
-                                ctx=ast.Load(),
-                            ),
+                            value=current_val_ast,
                         )
                     )
+                elif isinstance(current_target, KidaTuple):
+                    for i, item in enumerate(current_target.items):
+                        sub_val = ast.Subscript(
+                            value=current_val_ast,
+                            slice=ast.Constant(value=i),
+                            ctx=ast.Load(),
+                        )
+                        inner_stmts.extend(_gen_unpack(item, sub_val))
+                return inner_stmts
+
+            stmts.extend(_gen_unpack(target, ast.Name(id=tmp_name, ctx=ast.Load())))
             return stmts
         else:
-            # Fallback for compatibility - treat as single name string
+            # Fallback
             return [
                 ast.Assign(
                     targets=[
                         ast.Subscript(
                             value=ast.Name(id="ctx", ctx=ast.Load()),
-                            slice=ast.Constant(value=str(node.target)),
+                            slice=ast.Constant(value=str(target)),
                             ctx=ast.Store(),
                         )
                     ],
-                    value=value,
+                    value=compiled_value,
                 )
             ]
-
-    def _compile_let(self, node: Any) -> list[ast.stmt]:
-        """Compile {% let name = value %.
-
-        Let is like set but semantically represents a template-scoped variable.
-        """
-        value = self._compile_expr(node.value)
-        return [
-            ast.Assign(
-                targets=[
-                    ast.Subscript(
-                        value=ast.Name(id="ctx", ctx=ast.Load()),
-                        slice=ast.Constant(value=node.name),
-                        ctx=ast.Store(),
-                    )
-                ],
-                value=value,
-            )
-        ]
-
-    def _compile_export(self, node: Any) -> list[ast.stmt]:
-        """Compile {% export name = value %.
-
-        Export makes a variable available in outer scope.
-        Currently same semantics as let - proper scoping in later version.
-        """
-        value = self._compile_expr(node.value)
-        return [
-            ast.Assign(
-                targets=[
-                    ast.Subscript(
-                        value=ast.Name(id="ctx", ctx=ast.Load()),
-                        slice=ast.Constant(value=node.name),
-                        ctx=ast.Store(),
-                    )
-                ],
-                value=value,
-            )
-        ]

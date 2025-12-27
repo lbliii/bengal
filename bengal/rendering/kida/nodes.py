@@ -290,15 +290,16 @@ class Match(Node):
 
 @dataclass(frozen=True, slots=True)
 class Let(Node):
-    """Template-scoped variable: {% let x = expr %}
+    """Template-scoped variable: {% let x = expr %} or {% let a, b = 1, 2 %}
 
     Variables declared with 'let' persist across the template
     and can be modified within inner scopes.
+    Supports tuple unpacking on the left-hand side.
 
     Kida-native replacement for Jinja's confusing namespace() workaround.
     """
 
-    name: str
+    name: Expr  # Name or Tuple for unpacking
     value: Expr
 
 
@@ -320,10 +321,11 @@ class Set(Node):
 
 @dataclass(frozen=True, slots=True)
 class Export(Node):
-    """Export variable from inner scope: {% export x = expr %}
+    """Export variable from inner scope: {% export x = expr %} or {% export a, b = 1, 2 %}
 
     Explicitly exports a variable from an inner scope (like a for loop)
     to the enclosing scope. Makes scope behavior explicit and predictable.
+    Supports tuple unpacking on the left-hand side.
 
     Example:
         {% for item in items %}
@@ -332,7 +334,7 @@ class Export(Node):
         {{ last }}
     """
 
-    name: str
+    name: Expr  # Name or Tuple for unpacking
     value: Expr
 
 
@@ -513,7 +515,7 @@ class WithConditional(Node):
     Behavior:
         - Evaluates expr once
         - If truthy: binds result to target, renders body
-        - If falsy: skips body entirely (no error)
+        - If falsy: renders empty block (if provided), or skips entirely
         - Restores previous variable binding after block
 
     Contrast with standard With node:
@@ -524,6 +526,7 @@ class WithConditional(Node):
     expr: Expr
     target: Expr  # Name or Tuple for binding
     body: Sequence[Node]
+    empty: Sequence[Node] = ()
 
 
 @dataclass(frozen=True, slots=True)
