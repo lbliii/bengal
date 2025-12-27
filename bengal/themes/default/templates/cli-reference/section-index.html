@@ -26,8 +26,8 @@ This template receives:
   {# Main Content #}
   <div class="docs-main">
     {# Page Hero: Breadcrumbs + Title + Description + Stats (with CLI labels) #}
-    {% set hero_context = {'is_cli': true} %}
-    {% include 'partials/page-hero/section.html' %}
+    {% from 'partials/page-hero/_macros.html' import hero_section %}
+    {{ hero_section(section, page, {'is_cli': true}) }}
 
     {# Article Content - autodoc skeleton #}
     <article data-autodoc data-type="cli" data-element="section-index" class="autodoc docs-content">
@@ -70,9 +70,9 @@ This template receives:
       {% set command_pages = [] %}
       {% if section %}
       {% for page in section.sorted_pages %}
-        {% if page != section.index_page and not (page.source_path is match('.*_index.*')) %}
-          {% do command_pages.append(page) %}
-        {% end %}
+      {% if page != section.index_page and not (page.source_path is match('.*_index.*')) %}
+      {% do command_pages.append(page) %}
+      {% end %}
       {% end %}
       {% end %}
 

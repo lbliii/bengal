@@ -33,7 +33,8 @@ This template receives:
   {# Main Content #}
   <div class="docs-main">
     {# Page Hero: Breadcrumbs + Badges + Title + Description + Stats #}
-    {% include 'partials/page-hero/element.html' %}
+    {% from 'partials/page-hero/_macros.html' import hero_element %}
+    {{ hero_element(element, page, config) }}
 
     {# Article Content - Unified autodoc skeleton #}
     <article data-autodoc data-type="python" data-element="module" class="autodoc docs-content">

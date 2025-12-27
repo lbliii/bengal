@@ -26,7 +26,8 @@ This template receives:
   {# Main Content #}
   <div class="docs-main">
     {# Page Hero: Breadcrumbs + Title + Description + Stats #}
-    {% include 'partials/page-hero/section.html' %}
+    {% from 'partials/page-hero/_macros.html' import hero_section %}
+    {{ hero_section(section, page, {}) }}
 
     {# Article Content - autodoc skeleton #}
     <article data-autodoc data-type="python" data-element="section-index" class="autodoc docs-content">

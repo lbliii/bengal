@@ -13,7 +13,7 @@ VARIANTS:
 - hero_editorial: Clean magazine layout (default for single pages)
 - hero_magazine: Editorial with container/background styling
 - hero_overview: Section index with page count
-- hero_classic: Traditional action-bar + header (legacy)
+- hero_classic: Traditional action-bar + header (two-piece layout)
 - hero_element: Autodoc elements (modules, classes, commands)
 - hero_section: Autodoc section indexes
 
@@ -403,11 +403,8 @@ KIDA FEATURES:
 {# -----------------------------------------------------------------------------
 CLASSIC VARIANT
 
-Traditional layout with separate action bar and page header.
-Legacy layout for backwards compatibility.
-
-KIDA FEATURES:
-- Minimal - kept simple for legacy compatibility
+Traditional two-piece layout with separate action bar and page header.
+Useful for pages that need the action bar above the fold.
 ----------------------------------------------------------------------------- #}
 {% def hero_classic(page, params) %}
 {# Action Bar: Breadcrumbs + Share #}

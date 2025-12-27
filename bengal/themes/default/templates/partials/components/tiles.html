@@ -227,15 +227,3 @@ CONTENT TILES COMPONENT
 </section>
 {% end %}
 {% end %}
-
-{# =============================================================================
-CHILD PAGE TILES COMPONENT (Legacy)
-
-DEPRECATED: Use content_tiles() instead.
-Kept for backward compatibility.
-============================================================================= #}
-{% def child_page_tiles(posts=none, subsections=none) %}
-{% if posts or subsections %}
-{{ content_tiles(children=posts, subsections=subsections, page=page) }}
-{% end %}
-{% end %}
