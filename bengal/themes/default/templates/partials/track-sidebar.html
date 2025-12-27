@@ -1,5 +1,7 @@
 {#
-Track Sidebar Component
+================================================================================
+Track Sidebar Component (Kida-Native v2)
+================================================================================
 
 Left sidebar for track pages showing:
 - Current track section navigation
@@ -14,57 +16,88 @@ Data Attributes (for JS):
 - data-track-completed: Set by JS when section scrolled past
 - aria-current="step": Set by JS on active section
 
+KIDA FEATURES USED:
+- {% let %} for scoped variable binding
+- {% with %} for nil-resilient data access
+- {% match %} for clean conditional rendering
+- Optional chaining (?.) and null coalescing (??)
+- Pipeline operators (|>) for filter chains
+- {% spaceless %} for clean navigation HTML
+
 Usage:
 {% include 'partials/track-sidebar.html' %}
+================================================================================
 #}
 
-{% set track_id = params.track_id or page.slug %}
-{% set current_track = site.data.tracks[track_id] if (track_id and site.data.tracks and track_id in site.data.tracks) else none %}
+{% let track_id = params?.track_id ?? page?.slug ?? '' %}
+
+{# Nil-resilient track lookup with {% with %} #}
+{% with site?.data?.tracks as all_tracks %}
+{% let current_track = all_tracks[track_id] if (track_id and all_tracks and track_id in all_tracks) else none %}
 
 <nav class="track-sidebar" aria-label="Track navigation" data-bengal="track-nav" data-track-id="{{ track_id }}">
-  {# Current Track Sections (Primary navigation) #}
-  {% if current_track and current_track.items %}
+  {# =========================================================================
+     CURRENT TRACK SECTIONS (Primary navigation)
+     ========================================================================= #}
+  {% with current_track?.items as track_items %}
+  {% if track_items | length > 0 %}
   <section class="track-nav-sections">
-    <h3 class="track-nav-title">{{ current_track.title or 'Sections' }}</h3>
+    <h3 class="track-nav-title">{{ current_track?.title ?? t('tracks.sections', default='Sections') }}</h3>
+    {% spaceless %}
     <ol class="track-nav-list">
-      {% for item_slug in current_track.items %}
-        {% set item_page = get_page(item_slug) %}
-        {% if item_page %}
+      {% for item_slug in track_items %}
+      {% with get_page(item_slug) as item_page %}
+      {% if item_page %}
       <li>
         <a href="#track-section-{{ loop.index }}"
            class="track-nav-link"
            data-track-section="{{ loop.index }}"
            data-track-target="#track-section-{{ loop.index }}">
           <span class="track-nav-number">{{ loop.index }}</span>
-          <span class="track-nav-label">{{ item_page.title }}</span>
+          <span class="track-nav-label">{{ item_page?.title ?? item_slug }}</span>
         </a>
       </li>
-        {% end %}
+      {% end %}
+      {% end %}
       {% end %}
     </ol>
+    {% end %}
   </section>
   {% end %}
+  {% end %}
 
-  {# Other Tracks Section #}
-  {% if site.data.tracks and site.data.tracks|length > 1 %}
+  {# =========================================================================
+     OTHER TRACKS SECTION
+     ========================================================================= #}
+  {% let track_count = (all_tracks ?? {}) | length %}
+  {% if track_count > 1 %}
   <section class="track-nav-other">
-    <h3 class="track-nav-title">Other Tracks</h3>
+    <h3 class="track-nav-title">{{ t('tracks.other', default='Other Tracks') }}</h3>
     <ul class="track-nav-tracks">
-      {% for id, track in site.data.tracks | items %}
-        {% if id != track_id %}
-        {% set track_pages = site.pages | where('metadata.track_id', id) %}
-        {% set track_page = track_pages[0] if track_pages else None %}
-        {% if track_page %}
+      {% for id, track in all_tracks |> items %}
+      {% if id != track_id %}
+      {# Find track page with nil-resilient access #}
+      {% let track_pages = (site?.pages ?? []) |> where('metadata.track_id', id) %}
+      {% with track_pages |> first as track_page %}
+      {% if track_page %}
       <li>
         <a href="{{ track_page.href }}" class="track-nav-track-link">
-          <span class="track-nav-track-title">{{ track.title }}</span>
-          <span class="track-nav-track-meta">{{ track.items|length }} lessons</span>
+          <span class="track-nav-track-title">{{ track?.title ?? id }}</span>
+          <span class="track-nav-track-meta">
+            {% let lesson_count = (track?.items ?? []) | length %}
+            {% match lesson_count %}
+            {% case 1 %}1 lesson
+            {% case n %}{{ n }} lessons
+            {% end %}
+          </span>
         </a>
       </li>
-        {% end %}
-        {% end %}
+      {% end %}
+      {% end %}
+      {% end %}
       {% end %}
     </ul>
   </section>
   {% end %}
 </nav>
+{% end %}

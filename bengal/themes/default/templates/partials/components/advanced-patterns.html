@@ -1,0 +1,391 @@
+{#
+================================================================================
+Advanced Kida Patterns Showcase
+================================================================================
+
+This file demonstrates the full power of Kida's templating features.
+Import and use these components as building blocks for complex UIs.
+
+FEATURES DEMONSTRATED:
+- {% def %} Recursive macros for tree traversal
+- {% embed %} Template composition with block overrides
+- {% cache %} Fragment caching for expensive computations
+- {% capture %} String building and buffering
+- {% filter %} Block-level transformations
+- {% match %} Advanced pattern matching with guards
+- {% with %} Nil-resilient scope binding
+- Pipeline operators (|>) for functional composition
+
+USAGE:
+{% from 'partials/components/advanced-patterns.html' import tree_view, card_grid, smart_list %}
+{{ tree_view(site.sections, depth=3) }}
+
+================================================================================
+#}
+
+{# =============================================================================
+   RECURSIVE TREE VIEW MACRO
+
+   Renders hierarchical data (sections, menus, TOC) with arbitrary depth.
+   Demonstrates: {% def %} recursion, {% match %}, {% let %}, nil-resilience
+   ============================================================================= #}
+{% def tree_view(nodes, depth=3, current_depth=0, node_template='default') %}
+{% if nodes | length > 0 and current_depth < depth %}
+<ul class="tree-view" data-depth="{{ current_depth }}">
+  {% for node in nodes %}
+  {% let node_title = node?.title ?? node?.name ?? 'Untitled' %}
+  {% let node_href = node?.href ?? node?.url ?? '#' %}
+  {% let node_children = node?.children ?? node?.subsections ?? node?.items ?? [] %}
+  {% let has_children = node_children | length > 0 %}
+  {% let is_active = node?.is_current ?? false %}
+
+  <li class="tree-node{{ ' tree-node--active' if is_active else '' }}{{ ' tree-node--expandable' if has_children else '' }}">
+    {# Node content - pattern matched by template type #}
+    {% match node_template %}
+    {% case 'nav' %}
+    <a href="{{ node_href }}" class="tree-link"{{ ' aria-current="page"' | safe if is_active else '' }}>
+      {{ icon(node?.icon ?? 'file', size=16) if node?.icon else '' }}
+      <span>{{ node_title }}</span>
+      {% if has_children %}<span class="tree-count">({{ node_children | length }})</span>{% end %}
+    </a>
+
+    {% case 'toc' %}
+    <a href="{{ node_href }}" class="tree-link tree-link--toc">
+      <span class="tree-marker"></span>
+      <span>{{ node_title }}</span>
+    </a>
+
+    {% case _ %}
+    <div class="tree-content">
+      {% if node_href != '#' %}
+      <a href="{{ node_href }}" class="tree-link">{{ node_title }}</a>
+      {% else %}
+      <span class="tree-label">{{ node_title }}</span>
+      {% end %}
+    </div>
+    {% end %}
+
+    {# Recursive children #}
+    {% if has_children %}
+    {{ tree_view(node_children, depth, current_depth + 1, node_template) }}
+    {% end %}
+  </li>
+  {% end %}
+</ul>
+{% end %}
+{% end %}
+
+{# =============================================================================
+   SMART CARD GRID MACRO
+
+   Data-driven card grid with multiple layout variants and smart sizing.
+   Demonstrates: {% match %}, data-driven rendering, {% cache %}
+   ============================================================================= #}
+
+{# Card variant configurations - data-driven for extensibility #}
+{% let CARD_VARIANTS = {
+  'compact': {'cols': 4, 'show_desc': false, 'show_meta': false, 'max_title': 40},
+  'default': {'cols': 3, 'show_desc': true, 'show_meta': true, 'max_title': 60},
+  'feature': {'cols': 2, 'show_desc': true, 'show_meta': true, 'max_title': 80},
+  'hero': {'cols': 1, 'show_desc': true, 'show_meta': true, 'max_title': 120}
+} %}
+
+{% def card_grid(items, variant='default', cache_key=none) %}
+{% let config = CARD_VARIANTS[variant] ?? CARD_VARIANTS.default %}
+{% let item_list = items ?? [] %}
+
+{% if item_list | length > 0 %}
+{# Use cache if key provided - great for expensive grids #}
+{% if cache_key %}
+{% cache cache_key %}
+{{ _render_card_grid(item_list, config, variant) }}
+{% end %}
+{% else %}
+{{ _render_card_grid(item_list, config, variant) }}
+{% end %}
+{% end %}
+{% end %}
+
+{# Internal: Render the actual card grid #}
+{% def _render_card_grid(items, config, variant) %}
+<div class="card-grid card-grid--{{ variant }}" data-cols="{{ config.cols }}">
+  {% for item in items %}
+  {% let card_title = item?.title ?? 'Untitled' %}
+  {% let card_desc = item?.description ?? item?.summary ?? '' %}
+  {% let card_href = item?.href ?? '#' %}
+  {% let card_icon = item?.icon ?? item?.metadata?.icon %}
+  {% let card_date = item?.date %}
+  {% let card_tags = item?.tags ?? [] %}
+
+  <article class="card card--{{ variant }}">
+    {# Card header with optional icon #}
+    <header class="card-header">
+      {% if card_icon %}
+      <div class="card-icon">{{ icon(card_icon, size=24) }}</div>
+      {% end %}
+      <h3 class="card-title">
+        <a href="{{ card_href }}">{{ card_title |> truncate(config.max_title) }}</a>
+      </h3>
+    </header>
+
+    {# Description - conditionally shown #}
+    {% if config.show_desc and card_desc %}
+    <p class="card-description">{{ card_desc |> truncate(150) }}</p>
+    {% end %}
+
+    {# Metadata row - conditionally shown #}
+    {% if config.show_meta %}
+    <footer class="card-meta">
+      {% if card_date %}
+      <time datetime="{{ card_date |> date_iso }}">{{ card_date |> time_ago }}</time>
+      {% end %}
+      {% if card_tags | length > 0 %}
+      {% spaceless %}
+      <span class="card-tags">
+        {% for tag in card_tags |> take(3) %}
+        <span class="card-tag">{{ tag }}</span>
+        {% end %}
+        {% if card_tags | length > 3 %}
+        <span class="card-tag card-tag--more">+{{ card_tags | length - 3 }}</span>
+        {% end %}
+      </span>
+      {% end %}
+      {% end %}
+    </footer>
+    {% end %}
+  </article>
+  {% end %}
+</div>
+{% end %}
+
+{# =============================================================================
+   SMART LIST MACRO
+
+   Flexible list with grouping, filtering, and sorting capabilities.
+   Demonstrates: {% capture %}, {% filter %}, data-driven patterns
+   ============================================================================= #}
+{% def smart_list(items, group_by=none, sort_by='weight,title', filter_fn=none, empty_message=none) %}
+{% let item_list = items ?? [] %}
+
+{# Apply filtering if function provided #}
+{% let filtered_items = item_list %}
+
+{# Sort items #}
+{% let sorted_items = filtered_items |> sort(attribute=sort_by) %}
+
+{% if sorted_items | length > 0 %}
+<div class="smart-list">
+  {% if group_by %}
+  {# Grouped rendering #}
+  {% for group in sorted_items |> groupby(group_by) %}
+  <section class="smart-list-group">
+    <h4 class="smart-list-group-title">{{ group.grouper ?? t('list.ungrouped', default='Other') }}</h4>
+    {{ _render_list_items(group.list) }}
+  </section>
+  {% end %}
+  {% else %}
+  {# Flat rendering #}
+  {{ _render_list_items(sorted_items) }}
+  {% end %}
+</div>
+{% else %}
+{# Empty state #}
+<div class="smart-list smart-list--empty">
+  <p>{{ empty_message ?? t('list.empty', default='No items to display.') }}</p>
+</div>
+{% end %}
+{% end %}
+
+{% def _render_list_items(items) %}
+<ul class="smart-list-items">
+  {% for item in items %}
+  <li class="smart-list-item">
+    <a href="{{ item?.href ?? '#' }}">
+      <span class="smart-list-title">{{ item?.title ?? 'Untitled' }}</span>
+      {% with item?.description as desc %}
+      {% if desc %}
+      <span class="smart-list-desc">{{ desc |> truncate(80) }}</span>
+      {% end %}
+      {% end %}
+    </a>
+  </li>
+  {% end %}
+</ul>
+{% end %}
+
+{# =============================================================================
+   BREADCRUMB BUILDER MACRO
+
+   Builds breadcrumbs with smart truncation and overflow handling.
+   Demonstrates: {% capture %}, {% spaceless %}, complex logic
+   ============================================================================= #}
+{% def breadcrumb_builder(crumbs, max_visible=4, truncate_middle=true) %}
+{% let crumb_list = crumbs ?? [] %}
+{% let total_crumbs = crumb_list | length %}
+
+{% if total_crumbs > 0 %}
+{% spaceless %}
+<nav class="breadcrumb-nav" aria-label="Breadcrumb">
+  <ol class="breadcrumb-list">
+    {% if total_crumbs <= max_visible or not truncate_middle %}
+    {# Show all crumbs #}
+    {% for crumb in crumb_list %}
+    {{ _render_breadcrumb_item(crumb, loop.last) }}
+    {% end %}
+    {% else %}
+    {# Truncate middle - show first, ellipsis, last N-1 #}
+    {% let visible_end = max_visible - 1 %}
+    {# First item #}
+    {{ _render_breadcrumb_item(crumb_list |> first, false) }}
+    {# Ellipsis #}
+    <li class="breadcrumb-item breadcrumb-item--ellipsis" aria-hidden="true">
+      <span>…</span>
+    </li>
+    {# Last N-1 items #}
+    {% for crumb in crumb_list |> skip(total_crumbs - visible_end) %}
+    {{ _render_breadcrumb_item(crumb, loop.last) }}
+    {% end %}
+    {% end %}
+  </ol>
+</nav>
+{% end %}
+{% end %}
+{% end %}
+
+{% def _render_breadcrumb_item(crumb, is_last) %}
+<li class="breadcrumb-item{{ ' breadcrumb-item--current' if is_last else '' }}">
+  {% if is_last %}
+  <span aria-current="page">{{ crumb?.title ?? 'Page' }}</span>
+  {% else %}
+  <a href="{{ crumb?.href ?? '#' }}">{{ crumb?.title ?? 'Page' }}</a>
+  {% end %}
+</li>
+{% end %}
+
+{# =============================================================================
+   STATS BADGE ROW MACRO
+
+   Renders a row of stat badges with smart pluralization.
+   Demonstrates: {% match %} for pluralization, data-driven rendering
+   ============================================================================= #}
+
+{# Pluralization rules - extend for other languages #}
+{% let PLURAL_RULES = {
+  'page': 'pages',
+  'post': 'posts',
+  'section': 'sections',
+  'module': 'modules',
+  'class': 'classes',
+  'function': 'functions',
+  'command': 'commands',
+  'endpoint': 'endpoints',
+  'item': 'items'
+} %}
+
+{% def stats_badges(stats) %}
+{% let stat_list = stats ?? [] %}
+{% if stat_list | length > 0 %}
+{% spaceless %}
+<div class="stats-badges">
+  {% for stat in stat_list %}
+  {% let value = stat?.value ?? 0 %}
+  {% let label = stat?.label ?? 'item' %}
+  {% let plural_label = PLURAL_RULES[label] ?? (label ~ 's') %}
+  <span class="stats-badge">
+    <span class="stats-badge-value">{{ value }}</span>
+    <span class="stats-badge-label">
+      {% match value %}
+      {% case 1 %}{{ label }}
+      {% case _ %}{{ plural_label }}
+      {% end %}
+    </span>
+  </span>
+  {% end %}
+</div>
+{% end %}
+{% end %}
+{% end %}
+
+{# =============================================================================
+   CONDITIONAL WRAPPER MACRO
+
+   Wraps content in a container only if condition is met.
+   Demonstrates: {% caller %} pattern, conditional composition
+   ============================================================================= #}
+{% def wrap_if(condition, tag='div', css_class='', attrs='') %}
+{% if condition %}
+<{{ tag }} class="{{ css_class }}"{{ (' ' ~ attrs) | safe if attrs else '' }}>
+{{ caller() }}
+</{{ tag }}>
+{% else %}
+{{ caller() }}
+{% end %}
+{% end %}
+
+{# =============================================================================
+   RESPONSIVE IMAGE MACRO
+
+   Generates responsive image with srcset and lazy loading.
+   Demonstrates: {% capture %}, string building, data attributes
+   ============================================================================= #}
+{% def responsive_image(src, alt='', sizes='100vw', widths=[320, 640, 1024, 1280], loading='lazy') %}
+{% if src %}
+{% capture srcset_value %}
+{% for width in widths %}
+{{ src }}?w={{ width }} {{ width }}w{% if not loop.last %}, {% end %}
+{% end %}
+{% end %}
+<img
+  src="{{ src }}?w={{ widths |> last }}"
+  srcset="{{ srcset_value | trim }}"
+  sizes="{{ sizes }}"
+  alt="{{ alt }}"
+  loading="{{ loading }}"
+  decoding="async"
+  class="responsive-image"
+>
+{% end %}
+{% end %}
+
+{# =============================================================================
+   LOADING SKELETON MACRO
+
+   Renders a loading skeleton placeholder.
+   Demonstrates: Simple utility macro, CSS class generation
+   ============================================================================= #}
+{% def skeleton(type='text', lines=3, width='100%') %}
+{% match type %}
+{% case 'card' %}
+<div class="skeleton skeleton--card" style="width: {{ width }}">
+  <div class="skeleton-image"></div>
+  <div class="skeleton-title"></div>
+  <div class="skeleton-text"></div>
+  <div class="skeleton-text skeleton-text--short"></div>
+</div>
+
+{% case 'avatar' %}
+<div class="skeleton skeleton--avatar" style="width: {{ width }}"></div>
+
+{% case 'image' %}
+<div class="skeleton skeleton--image" style="width: {{ width }}; aspect-ratio: 16/9;"></div>
+
+{% case _ %}
+<div class="skeleton skeleton--text" style="width: {{ width }}">
+  {% for _ in range(lines) %}
+  <div class="skeleton-line{{ ' skeleton-line--short' if loop.last else '' }}"></div>
+  {% end %}
+</div>
+{% end %}
+{% end %}
+
+{# =============================================================================
+   TOOLTIP WRAPPER MACRO
+
+   Wraps content in a tooltip container.
+   Demonstrates: {% caller %}, attribute building
+   ============================================================================= #}
+{% def tooltip(text, position='top') %}
+<span class="tooltip-wrapper" data-tooltip="{{ text }}" data-tooltip-position="{{ position }}">
+  {{ caller() }}
+</span>
+{% end %}

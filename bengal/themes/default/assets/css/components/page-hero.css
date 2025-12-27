@@ -238,6 +238,7 @@
 
 .page-hero__actions {
   flex-shrink: 0;
+  margin-left: auto; /* Always push to right, even when breadcrumbs are absent */
 }
 
 .page-hero__share {
