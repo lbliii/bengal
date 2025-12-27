@@ -469,6 +469,8 @@ HELPER: Render a menu item (desktop/mobile)
 
     <main id="main-content" role="main">{% block content %}{% end %}</main>
 
+    {% include 'partials/link-previews.html' %}
+
     {# Footer #}
     {% block site_footer %}
     <footer role="contentinfo">
@@ -527,13 +529,6 @@ HELPER: Render a menu item (desktop/mobile)
     <script defer src="{{ asset_url('js/enhancements/copy-link.js') }}"></script>
     {% if 'content.lightbox' in theme.features %}
     <script defer src="{{ asset_url('js/enhancements/lightbox.js') }}"></script>{% end %}
-    {% with site.link_previews as lp %}
-    {% if lp.enabled and 'json' in config.output_formats.per_page %}
-    <script id="bengal-config"
-        type="application/json">{"linkPreviews": {"enabled": true, "hoverDelay": {{ lp.hover_delay ?? 200 }}, "hideDelay": {{ lp.hide_delay ?? 150 }}, "showSection": {{ (lp.show_section ?? true) | tojson }}, "showReadingTime": {{ (lp.show_reading_time ?? true) | tojson }}, "showWordCount": {{ (lp.show_word_count ?? true) | tojson }}, "showDate": {{ (lp.show_date ?? true) | tojson }}, "showTags": {{ (lp.show_tags ?? true) | tojson }}, "maxTags": {{ lp.max_tags ?? 3 }}, "includeSelectors": {{ (lp.include_selectors ?? [".prose"]) | tojson }}, "excludeSelectors": {{ (lp.exclude_selectors ?? ["nav", ".toc", ".breadcrumb", ".pagination", ".card", "[class*='-card']", ".tab-nav", "[class*='-widget']", ".child-items", ".content-tiles"]) | tojson }}}</script>
-    <script defer src="{{ asset_url('js/enhancements/link-previews.js') }}"></script>
-    {% end %}
-    {% end %}
     <script defer src="{{ asset_url('js/vendor/lunr.min.js') }}"></script>
     <script>
         window.BENGAL_LAZY_ASSETS = { tabulator: '{{ asset_url("js/tabulator.min.js") }}', dataTable: '{{ asset_url("js/data-table.js") }}', mermaidToolbar: '{{ asset_url("js/mermaid-toolbar.js") }}', mermaidTheme: '{{ asset_url("js/mermaid-theme.js") }}', graphMinimap: '{{ asset_url("js/graph-minimap.js") }}', graphContextual: '{{ asset_url("js/graph-contextual.js") }}' };
