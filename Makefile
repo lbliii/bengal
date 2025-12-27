@@ -4,7 +4,7 @@
 PYTHON_VERSION ?= 3.14t
 VENV_DIR ?= .venv
 
-.PHONY: all help setup install run build serve clean test shell typecheck typecheck-strict
+.PHONY: all help setup install run build serve clean test shell typecheck typecheck-strict deploy-test
 
 all: help
 
@@ -18,6 +18,7 @@ help:
 	@echo "  make install  - Install dependencies in development mode"
 	@echo "  make build    - Build the documentation site (site/)"
 	@echo "  make serve    - Start the development server for site/"
+	@echo "  make deploy-test - Build production & serve (simulates GitHub Pages)"
 	@echo "  make run      - Run bengal CLI (use ARGS='...' to pass arguments)"
 	@echo "  make test     - Run the test suite"
 	@echo "  make typecheck - Run mypy type checking"
@@ -44,6 +45,17 @@ build:
 serve:
 	@echo "Starting development server..."
 	uv run bengal site serve site
+
+deploy-test:
+	@echo "Building with production config (simulates GitHub Pages)..."
+	cd site && uv run bengal build -e production
+	@echo ""
+	@echo "Verifying CSS exists..."
+	@ls -la site/public/assets/css/style.css || (echo "ERROR: CSS not found!" && exit 1)
+	@echo ""
+	@echo "Starting server at http://localhost:8000/bengal/"
+	@echo "Press Ctrl+C to stop"
+	cd site/public && python3 -m http.server 8000
 
 # Example: make run ARGS="site build"
 run:

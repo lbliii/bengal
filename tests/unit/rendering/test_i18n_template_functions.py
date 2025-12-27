@@ -34,8 +34,11 @@ def test_t_and_current_lang_from_context(tmp_path: Path) -> None:
     class P:
         lang = "fr"
 
-    template = engine.env.from_string("{{ t('greeting', {'name': 'Alice'}) }}")
-    html = template.render(page=P(), site=site)
+    # Use render_string which properly injects page context for both Jinja and Kida
+    html = engine.render_string(
+        "{{ t('greeting', {'name': 'Alice'}) }}",
+        {"page": P(), "site": site},
+    )
     assert "Bonjour Alice" in html
 
 
