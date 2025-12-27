@@ -1,15 +1,5 @@
-"""Variable assignment statement compilation for Kida compiler.
-
-Provides mixin for compiling variable assignment statements (set, let, export).
-"""
-
-from __future__ import annotations
-
 import ast
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    pass
+from typing import Any
 
 
 class VariableAssignmentMixin:

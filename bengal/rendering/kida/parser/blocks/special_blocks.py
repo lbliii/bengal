@@ -58,7 +58,7 @@ class SpecialBlockParsingMixin(BlockStackMixin):
 
         Detection: If first token after 'with' is a NAME followed by '=',
         it's assignment style. Otherwise it's conditional (expression
-        followed by 'as' or '%}').
+        followed by 'as' or '%' }).
         """
         start = self._advance()  # consume 'with'
         self._push_block("with", start)
