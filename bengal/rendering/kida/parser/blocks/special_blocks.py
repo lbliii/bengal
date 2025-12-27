@@ -146,8 +146,6 @@ class SpecialBlockParsingMixin(BlockStackMixin):
 
         self._expect(TokenType.BLOCK_END)
 
-        self._push_block("with", start)
-
         # Parse body, stopping on continuation (else/empty) or end keywords
         body = self._parse_body(stop_on_continuation=True)
 
