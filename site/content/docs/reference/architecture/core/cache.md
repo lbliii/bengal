@@ -12,7 +12,7 @@ tags:
 - dependency-tracking
 - cache
 - compression
-- zstandard
+- compression.zstd (Python 3.14+ stdlib)
 keywords:
 - cache
 - caching

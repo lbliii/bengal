@@ -1,7 +1,8 @@
 # RFC: Block-Level Incremental Builds
 
-**Status**: Draft  
+**Status**: Implemented  
 **Created**: 2025-12-26  
+**Implemented**: 2025-12-26  
 **Priority**: High  
 **Effort**: ~18 hours (~2.5 days)  
 **Impact**: High — 90%+ reduction in template-triggered rebuilds  
@@ -9,6 +10,16 @@
 **Scope**: `bengal/orchestration/incremental/`, `bengal/rendering/block_cache.py`  
 **Dependencies**: RFC kida-template-introspection (implemented)  
 **Reviewed**: 2025-12-26 — Added implementation details, thread safety, inheritance handling
+
+## Implementation Notes
+
+**Files Created/Modified**:
+- `bengal/rendering/block_cache.py` — Extended with block hashing and change detection
+- `bengal/orchestration/incremental/block_detector.py` — NEW: BlockChangeDetector, BlockChangeSet
+- `bengal/orchestration/incremental/rebuild_decision.py` — NEW: RebuildDecisionEngine, RebuildDecision
+- `bengal/orchestration/incremental/template_detector.py` — Integrated block-level detection
+- `bengal/orchestration/incremental/__init__.py` — Exported new classes
+- `benchmarks/test_block_level_incremental.py` — NEW: Benchmark validation suite
 
 ---
 

@@ -1,0 +1,28 @@
+{#
+================================================================================
+Page Hero: Section Template
+================================================================================
+
+Standalone template for rendering section-index page heroes.
+Delegates to hero_section macro from _macros.html.
+
+USAGE:
+{% include 'partials/page-hero/section.html' %}
+
+EXPECTED CONTEXT:
+- section: Section object with subsections and pages
+- page: Current page object
+- hero_context: Optional dict with flags (e.g., is_cli)
+
+For direct macro access:
+{% from 'partials/page-hero/_macros.html' import hero_section %}
+{{ hero_section(section, page, hero_context) }}
+================================================================================
+#}
+
+{% from 'partials/page-hero/_macros.html' import hero_section %}
+
+{# Ensure hero_context has a default value #}
+{% let _hero_context = hero_context ?? {} %}
+
+{{ hero_section(section, page, _hero_context) }}

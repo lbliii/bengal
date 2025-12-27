@@ -255,7 +255,7 @@ IMPORT OVERHEAD REPORT
 ❌ bengal.utils
    Time: 143.6ms
    Heavy deps: bengal.core.site, bengal.errors
-   Optional deps: uvloop, zstandard
+   Optional deps: uvloop
 ```
 
 ### Design Patterns (from investigation)

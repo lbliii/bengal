@@ -57,7 +57,7 @@ OPTIONAL_DEPS = frozenset(
         "aiohttp",
         "tree_sitter",
         "zstd",
-        "zstandard",
+        "compression.zstd",
         "mako",
         "patitas",
         "lunr",

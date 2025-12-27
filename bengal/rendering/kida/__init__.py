@@ -85,6 +85,7 @@ from bengal.rendering.kida.environment import (
     UndefinedError,
 )
 from bengal.rendering.kida.template import LoopContext, Markup, Template
+from bengal.rendering.kida.tstring import k
 
 __version__ = "0.1.0"
 
@@ -94,6 +95,8 @@ __all__ = [
     # Core
     "Environment",
     "Template",
+    # Template Strings (3.14+)
+    "k",
     # Loaders
     "DictLoader",
     "FileSystemLoader",

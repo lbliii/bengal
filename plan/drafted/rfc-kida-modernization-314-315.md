@@ -1,6 +1,6 @@
 # RFC: Kida Modernization for Python 3.14+ and 3.15
 
-- **Status**: Draft
+- **Status**: Implemented (Phase 1)
 - **Author**: Kida Core Team / AI Assistant
 - **Date**: 2025-12-26
 - **Target Version**: Kida 2.0 / Bengal 1.5
@@ -9,14 +9,14 @@
 
 ## 1. Executive Summary
 
-This RFC proposes a roadmap for modernizing the Kida template engine to leverage the revolutionary features introduced in **Python 3.14.0** (Stable) and the upcoming **Python 3.15**. The focus is on transitioning Kida from a "fast single-threaded engine" to a **"massively parallel, multi-core rendering powerhouse"** while improving developer experience (DX) through advanced profiling and type awareness.
+This RFC outlines the modernization of the Kida template engine for **Python 3.14.0** and the upcoming **Python 3.15**. Phase 1 (Stability and Foundation) is now complete, including native Zstandard caching and PEP 750 support.
 
-Key pillars of this modernization:
-1.  **GIL-less Rendering**: Exploiting PEP 779 (Free-threaded Python) for true parallel build cycles.
-2.  **Native Zstandard Caching**: Adopting PEP 784 for high-speed, high-ratio fragment compression.
-3.  **T-String Interpolation**: Leveraging PEP 750 for specialized string processing.
-4.  **Deferred Type Validation**: Utilizing PEP 649 for complex `autodoc` type resolution.
-5.  **Tachyon Profiling**: Integrating Python 3.15's dedicated profiling package for template bottleneck detection.
+Key pillars:
+1.  **GIL-less Rendering**: Exploiting PEP 779 (Free-threaded Python) for true parallel build cycles. (Verified 🟢)
+2.  **Native Zstandard Caching**: Adopting PEP 784 for high-speed, high-ratio fragment compression. (Implemented ✅)
+3.  **T-String Interpolation**: Leveraging PEP 750 for specialized string processing. (Implemented via `kida.k` ✅)
+4.  **Deferred Type Validation**: Utilizing PEP 649 for complex `autodoc` type resolution. (Pending)
+5.  **Tachyon Profiling**: Integrating Python 3.15's dedicated profiling package for template bottleneck detection. (Pending)
 
 ---
 
