@@ -13,6 +13,7 @@ KIDA FEATURES USED:
 - Optional chaining (?.) for null-safe access
 - Null coalescing (??) for smart defaults
 - {% def %} for reusable section components
+- {% while %} for progress indicator (Kida 2.0!)
 
 USAGE:
 Set `template: tracks/single.html` in frontmatter
@@ -22,6 +23,43 @@ Or set `type: track` to auto-select this template
 
 {% extends "base.html" %}
 {% from 'partials/navigation-components.html' import toc %}
+
+{# =============================================================================
+   PROGRESS INDICATOR COMPONENT (uses {% while %} - Kida 2.0!)
+
+   Renders a visual step indicator for track progress.
+   Demonstrates: {% while %} with step-by-step rendering
+   ============================================================================= #}
+{% def track_progress_indicator(total_steps, current_step=1) %}
+<div class="track-progress" role="progressbar" aria-valuenow="{{ current_step }}" aria-valuemin="1" aria-valuemax="{{ total_steps }}">
+  <div class="track-progress__steps">
+    {% let step = 1 %}
+    {% while step <= total_steps %}
+      {% let is_complete = step < current_step %}
+      {% let is_current = step == current_step %}
+      {% let step_class = 'track-progress__step' %}
+      {% if is_complete %}{% let step_class = step_class ~ ' track-progress__step--complete' %}{% end %}
+      {% if is_current %}{% let step_class = step_class ~ ' track-progress__step--current' %}{% end %}
+
+      <div class="{{ step_class }}" data-step="{{ step }}">
+        <span class="track-progress__number">
+          {% if is_complete %}✓{% else %}{{ step }}{% end %}
+        </span>
+      </div>
+
+      {# Connector line between steps (except after last) #}
+      {% if step < total_steps %}
+      <div class="track-progress__connector{{ ' track-progress__connector--complete' if is_complete else '' }}"></div>
+      {% end %}
+
+      {% let step = step + 1 %}
+    {% end %}
+  </div>
+  <div class="track-progress__label">
+    Step {{ current_step }} of {{ total_steps }}
+  </div>
+</div>
+{% end %}
 
 {# =============================================================================
    TRACK SECTION COMPONENT
@@ -105,6 +143,11 @@ Or set `type: track` to auto-select this template
         <h1>{{ track_title }}</h1>
         {% if track_desc %}
         <p class="lead text-muted mt-3">{{ track_desc }}</p>
+        {% end %}
+
+        {# Progress indicator using {% while %} - shows total sections #}
+        {% if track_items | length > 0 %}
+        {{ track_progress_indicator(track_items | length, 1) }}
         {% end %}
       </header>
 

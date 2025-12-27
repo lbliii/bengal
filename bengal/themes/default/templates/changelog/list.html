@@ -17,6 +17,7 @@ KIDA FEATURES USED:
 - Null coalescing (??) for smart defaults
 - {% def %} for reusable release components
 - {% match %} for category rendering
+- {% while %} for version history traversal (Kida 2.0!)
 
 USAGE:
 Set `type: changelog` in section _index.md
@@ -86,6 +87,59 @@ Set `type: changelog` in section _index.md
   {{ change_category('Security', '🔒', release?.security) }}
   {{ change_category('Breaking Changes', '⚡', release?.breaking, is_breaking=true) }}
 </div>
+{% end %}
+
+{# =============================================================================
+   RECENT MAJOR VERSION RELEASES (uses {% while %} - Kida 2.0!)
+
+   Finds releases from the current major version series using while loop.
+   Demonstrates: {% while %} with {% break %} for early termination
+   ============================================================================= #}
+{% def recent_major_releases(releases, max_count=5) %}
+{% let result = [] %}
+{% let target_major = none %}
+{% let idx = 0 %}
+
+{% while idx < releases | length and result | length < max_count %}
+  {% let release = releases[idx] %}
+  {% let version = release?.version ?? release?.title ?? '' %}
+
+  {# Extract major version (e.g., "0.1" from "0.1.5") #}
+  {% let parts = version | replace('v', '') | split('.') %}
+  {% if parts | length >= 2 %}
+    {% let this_major = parts[0] ~ '.' ~ parts[1] %}
+
+    {# Set target on first iteration #}
+    {% if not target_major %}
+      {% let target_major = this_major %}
+    {% end %}
+
+    {# Stop when we hit a different major version #}
+    {% if this_major != target_major %}
+      {% break %}
+    {% end %}
+
+    {% let _ = result.append(release) %}
+  {% end %}
+
+  {% let idx = idx + 1 %}
+{% end %}
+
+{% if result | length > 0 %}
+<aside class="recent-releases-summary">
+  <h3>Recent {{ target_major }}.x Releases</h3>
+  <ul class="recent-releases-list">
+    {% for r in result %}
+    <li>
+      <a href="{{ r?.url ?? r?.href ?? '#' }}">{{ r?.version ?? r?.title }}</a>
+      {% if r?.date %}
+      <time>{{ r.date | dateformat('%b %d') if r.date is string else r.date }}</time>
+      {% end %}
+    </li>
+    {% end %}
+  </ul>
+</aside>
+{% end %}
 {% end %}
 
 {# =============================================================================
@@ -194,6 +248,13 @@ Set `type: changelog` in section _index.md
 </header>
 
 <div class="changelog-container">
+  {# Quick summary of recent releases using {% while %} #}
+  {% if changelog_data and changelog_data?.releases %}
+  {{ recent_major_releases(changelog_data.releases | reverse | list) }}
+  {% elif pages | length > 0 %}
+  {{ recent_major_releases(pages | reverse | list) }}
+  {% end %}
+
   {# Content (if any) #}
   {% if content and content.strip() %}
   <section class="changelog-content prose">
