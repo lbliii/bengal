@@ -1,6 +1,6 @@
 {#
 ================================================================================
-Class Member Macro (Kida-Native)
+Class Member Macro (Kida-Native v2)
 ================================================================================
 
 Renders a class as a collapsible card with status dot, count badge, and description.
@@ -14,10 +14,14 @@ ARGS:
   cls: Class DocElement to render (required)
   is_first: Whether this is the first item (to auto-open)
 
-KIDA FEATURES USED:
+KIDA FEATURES SHOWCASED:
+  - {% let %} multi-assignment for template-scoped caching
+  - {% match %} for pluralization and conditional dispatch
+  - {% unless %} for negative conditionals
   - Optional chaining (?.) for safe attribute access
   - Null coalescing (??) for defaults
-  - {% let %} for template-scoped caching
+  - Pipeline operators (|>) for filter chains
+  - {% spaceless %} for clean badge output
 
 ================================================================================
 #}
@@ -26,14 +30,15 @@ KIDA FEATURES USED:
 {# Pre-compute all values with null-safety (using multi-let) #}
 {% let
     cls_children = cls?.children ?? [],
-    cls_methods = cls_children | selectattr('element_type', 'eq', 'method') | list,
-    cls_attrs = cls_children | selectattr('element_type', 'eq', 'attribute') | list,
-    cls_props = cls_children | selectattr('element_type', 'eq', 'property') | list,
+    cls_methods = cls_children |> selectattr('element_type', 'eq', 'method') |> list,
+    cls_attrs = cls_children |> selectattr('element_type', 'eq', 'attribute') |> list,
+    cls_props = cls_children |> selectattr('element_type', 'eq', 'property') |> list,
     all_attrs = cls_attrs + cls_props,
     total_members = (cls_methods | length) + (all_attrs | length),
     cls_meta = cls?.metadata ?? {},
     is_dataclass = cls_meta?.is_dataclass ?? false,
     is_abstract = cls_meta?.is_abstract ?? false,
+    is_mixin = cls_meta?.is_mixin ?? false,
     cls_name = cls?.name ?? 'Unknown',
     cls_desc = cls?.description ?? ''
 %}
@@ -47,34 +52,41 @@ KIDA FEATURES USED:
     <div class="autodoc-member-content">
       <div class="autodoc-member-name-row">
         <code class="autodoc-member-name">{{ cls_name }}</code>
-        {# Count badge #}
-        <span class="autodoc-member-count" title="{{ cls_methods | length }} method{% if cls_methods | length != 1 %}s{% end %}{% if all_attrs | length > 0 %}, {{ all_attrs | length }} attribute{% if all_attrs | length != 1 %}s{% end %}{% end %}">{{ total_members }}</span>
+        {# Count badge with smart pluralization using match #}
+        {% spaceless %}
+        <span class="autodoc-member-count" title="{% match cls_methods | length %}{% case 1 %}1 method{% case n %}{{ n }} methods{% end %}{% if all_attrs | length > 0 %}, {% match all_attrs | length %}{% case 1 %}1 attribute{% case n %}{{ n }} attributes{% end %}{% end %}">{{ total_members }}</span>
+        {% end %}
         {# Toggle indicator #}
         <span class="autodoc-member-toggle">▼</span>
       </div>
       {# Description preview #}
-      {% if cls_desc %}
-      <span class="autodoc-member-desc-preview">{{ cls_desc | truncate(100, True, '…') }}</span>
+      {% with cls_desc as desc %}
+      <span class="autodoc-member-desc-preview">{{ desc |> truncate(100, true, '…') }}</span>
       {% end %}
     </div>
 
-    {# Badges #}
-    {% if is_dataclass or is_abstract %}
+    {# Badges - using data-driven approach with match for badge rendering #}
+    {% let badge_flags = [
+      {'key': 'dataclass', 'active': is_dataclass},
+      {'key': 'abstract', 'active': is_abstract},
+      {'key': 'mixin', 'active': is_mixin}
+    ] %}
+    {% let active_badges = badge_flags |> selectattr('active') |> list %}
+    {% if active_badges | length > 0 %}
+    {% spaceless %}
     <span class="autodoc-member-badges">
-      {% if is_dataclass %}
-      <span class="autodoc-badge" data-badge="dataclass">dataclass</span>
-      {% end %}
-      {% if is_abstract %}
-      <span class="autodoc-badge" data-badge="abstract">abstract</span>
+      {% for badge in active_badges %}
+      <span class="autodoc-badge" data-badge="{{ badge.key }}">{{ badge.key }}</span>
       {% end %}
     </span>
+    {% end %}
     {% end %}
   </summary>
 
   <div class="autodoc-member-body">
-    {% if cls_desc %}
+    {% with cls_desc as desc %}
     <div class="autodoc-member-desc prose">
-      {{ cls_desc | markdownify | safe }}
+      {{ desc |> markdownify |> safe }}
     </div>
     {% end %}
 
@@ -92,15 +104,27 @@ KIDA FEATURES USED:
         </thead>
         <tbody>
           {% for attr in all_attrs %}
-          {# Attributes are DocElements with name, description, and metadata.annotation #}
-          {% set attr_meta = attr?.metadata ?? {} %}
-          {% set attr_type = attr_meta?.annotation %}
-          {% set attr_name = attr?.name ?? 'unknown' %}
-          {% set attr_desc = attr?.description ?? '' %}
+          {# Use let instead of set for Kida-native syntax #}
+          {% let
+              attr_meta = attr?.metadata ?? {},
+              attr_type = attr_meta?.annotation,
+              attr_name = attr?.name ?? 'unknown',
+              attr_desc = attr?.description ?? ''
+          %}
           <tr>
             <td class="autodoc-cell-name"><code>{{ attr_name }}</code></td>
-            <td class="autodoc-cell-type">{% if attr_type %}<code>{{ attr_type }}</code>{% else %}—{% end %}</td>
-            <td class="autodoc-cell-desc">{{ attr_desc | markdownify | safe if attr_desc else '—' }}</td>
+            <td class="autodoc-cell-type">
+              {% match attr_type %}
+              {% case type if type %}<code>{{ type }}</code>
+              {% case _ %}—
+              {% end %}
+            </td>
+            <td class="autodoc-cell-desc">
+              {% match attr_desc %}
+              {% case desc if desc %}{{ desc |> markdownify |> safe }}
+              {% case _ %}—
+              {% end %}
+            </td>
           </tr>
           {% end %}
         </tbody>
@@ -108,14 +132,14 @@ KIDA FEATURES USED:
     </div>
     {% end %}
 
-    {# Class methods - use unified members partial #}
+    {# Class methods - use unified members partial with let #}
     {% if cls_methods | length > 0 %}
     <div class="autodoc-section" data-section="methods">
       <h4 class="autodoc-label">Methods</h4>
-      {% set members = cls_methods %}
-      {% set title = '' %}
-      {% set member_type = 'method' %}
-      {% set first_open = false %}
+      {% let members = cls_methods %}
+      {% let title = '' %}
+      {% let member_type = 'method' %}
+      {% let first_open = false %}
       {% include 'autodoc/partials/members.html' %}
     </div>
     {% end %}

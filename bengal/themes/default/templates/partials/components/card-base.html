@@ -1,0 +1,111 @@
+{#
+================================================================================
+Card Base Component (Kida-Native {% embed %} Showcase)
+================================================================================
+
+Reusable card component designed for use with Kida's {% embed %} directive.
+Provides customizable slots (blocks) for header, body, footer, and badges.
+
+This is a SHOWCASE of Kida's powerful template composition features:
+- {% embed %} allows including a template AND overriding its blocks
+- Unlike {% include %}, {% embed %} lets callers customize specific regions
+- Think of it like "slots" in modern component frameworks
+
+USAGE WITH {% embed %}:
+
+  {% embed 'partials/components/card-base.html' with context %}
+    {% block header %}
+      <h3>{{ post.title }}</h3>
+    {% end %}
+    {% block body %}
+      <p>{{ post.excerpt }}</p>
+    {% end %}
+    {% block footer %}
+      <time>{{ post.date |> time_ago }}</time>
+    {% end %}
+  {% end %}
+
+AVAILABLE BLOCKS:
+  - badges: Optional badges/tags area (top-right corner)
+  - icon: Optional icon area (before header)
+  - header: Main title/header content (required for meaningful card)
+  - body: Main content area
+  - footer: Bottom area for metadata, links, actions
+  - actions: CTA buttons area (after footer)
+
+CONFIGURATION VARIABLES (passed via context):
+  - card_class: Additional CSS classes for the card (default: '')
+  - card_variant: Card style variant: 'default', 'feature', 'compact', 'hero'
+  - card_href: If set, wraps the entire card in a link
+  - card_elevation: Shadow level: 'none', 'low', 'medium', 'high'
+  - gradient_border: Enable gradient border effect (default: false)
+
+KIDA FEATURES SHOWCASED:
+- {% block %} for named content slots
+- {% match %} for variant-based styling
+- Optional chaining (?.) and null coalescing (??)
+- {% spaceless %} for clean output
+- Template composition pattern
+
+================================================================================
+#}
+
+{# Configuration with defaults #}
+{% let
+    variant = card_variant ?? 'default',
+    extra_class = card_class ?? '',
+    elevation = card_elevation ?? 'low',
+    href = card_href ?? '',
+    has_gradient = gradient_border ?? false
+%}
+
+{# Build CSS classes based on configuration #}
+{% let card_classes = ['card', 'card--' ~ variant] %}
+{% if extra_class %}{% let card_classes = card_classes + [extra_class] %}{% end %}
+{% if elevation != 'none' %}{% let card_classes = card_classes + ['card--elevation-' ~ elevation] %}{% end %}
+{% if has_gradient %}{% let card_classes = card_classes + ['gradient-border'] %}{% end %}
+
+{# Render card structure #}
+{% if href %}
+<a href="{{ href }}" class="{{ card_classes | join(' ') }} card--linked">
+{% else %}
+<article class="{{ card_classes | join(' ') }}">
+{% end %}
+
+  {# Badges slot (optional) - top corner for tags, status indicators #}
+  <div class="card__badges">
+    {% block badges %}{% end %}
+  </div>
+
+  {# Icon slot (optional) - visual indicator before content #}
+  {% block icon %}{% end %}
+
+  {# Header slot - title area #}
+  <header class="card__header">
+    {% block header %}
+    <h3 class="card__title">Card Title</h3>
+    {% end %}
+  </header>
+
+  {# Body slot - main content area #}
+  <div class="card__body">
+    {% block body %}
+    <p class="card__description">Card content goes here.</p>
+    {% end %}
+  </div>
+
+  {# Footer slot - metadata, timestamps, secondary info #}
+  <footer class="card__footer">
+    {% block footer %}{% end %}
+  </footer>
+
+  {# Actions slot - CTA buttons, links #}
+  <div class="card__actions">
+    {% block actions %}{% end %}
+  </div>
+
+{% if href %}
+</a>
+{% else %}
+</article>
+{% end %}

@@ -1,6 +1,6 @@
 {#
 ================================================================================
-Advanced Kida Patterns Showcase
+Advanced Kida Patterns Showcase (v2)
 ================================================================================
 
 This file demonstrates the full power of Kida's templating features.
@@ -8,13 +8,25 @@ Import and use these components as building blocks for complex UIs.
 
 FEATURES DEMONSTRATED:
 - {% def %} Recursive macros for tree traversal
-- {% embed %} Template composition with block overrides
+- {% embed %} Template composition with block overrides (SEE: card-base.html)
 - {% cache %} Fragment caching for expensive computations
 - {% capture %} String building and buffering
 - {% filter %} Block-level transformations
 - {% match %} Advanced pattern matching with guards
 - {% with %} Nil-resilient scope binding
+- {% unless %} Negative conditionals (cleaner than if not)
+- {% break %} / {% continue %} Loop control
+- Range expressions: 1..10, 1..100 by 10
 - Pipeline operators (|>) for functional composition
+
+KIDA-NATIVE SYNTAX GUIDE:
+  {% let x = 1 %}           - Template-scoped variable
+  {% set x = 1 %}           - Block-scoped variable (re-assignable)
+  {% export x = 1 %}        - Export from inner scope
+  x?.property               - Optional chaining (null-safe)
+  x ?? default              - Null coalescing
+  value |> filter           - Pipeline operator
+  {% end %}                 - Universal block end (like Go templates)
 
 USAGE:
 {% from 'partials/components/advanced-patterns.html' import tree_view, card_grid, smart_list %}
@@ -388,4 +400,190 @@ USAGE:
 <span class="tooltip-wrapper" data-tooltip="{{ text }}" data-tooltip-position="{{ position }}">
   {{ caller() }}
 </span>
+{% end %}
+
+{# =============================================================================
+   RANGE-BASED PAGINATION HELPER
+
+   Generates pagination links using Kida range expressions.
+   Demonstrates: Range expressions (1..N), {% match %} for edge cases
+   ============================================================================= #}
+{% def range_pagination(current, total, base_url='/page/', max_visible=7) %}
+{% if total > 1 %}
+<nav class="range-pagination" aria-label="Pagination">
+  <ul class="range-pagination-list">
+    {# Previous button #}
+    {% unless current == 1 %}
+    <li><a href="{{ base_url }}{{ current - 1 }}/" rel="prev">← Prev</a></li>
+    {% end %}
+
+    {# Page numbers using range expression #}
+    {% if total <= max_visible %}
+    {# Show all pages: 1..total #}
+    {% for page in 1..total %}
+    {% let is_current = page == current %}
+    <li>
+      <a href="{{ base_url }}{{ page }}/"
+         class="{{ 'current' if is_current else '' }}"
+         {{ 'aria-current="page"' | safe if is_current else '' }}>
+        {{ page }}
+      </a>
+    </li>
+    {% end %}
+    {% else %}
+    {# Show abbreviated: 1, 2, ..., current-1, current, current+1, ..., total-1, total #}
+    {% for page in 1..2 %}
+    <li><a href="{{ base_url }}{{ page }}/">{{ page }}</a></li>
+    {% end %}
+
+    {% if current > 4 %}
+    <li class="ellipsis">…</li>
+    {% end %}
+
+    {# Pages around current #}
+    {% let start = (current - 1) if current > 3 else 3 %}
+    {% let end = (current + 1) if current < total - 2 else total - 2 %}
+    {% for page in start..end %}
+    {% let is_current = page == current %}
+    <li>
+      <a href="{{ base_url }}{{ page }}/"
+         class="{{ 'current' if is_current else '' }}"
+         {{ 'aria-current="page"' | safe if is_current else '' }}>
+        {{ page }}
+      </a>
+    </li>
+    {% end %}
+
+    {% if current < total - 3 %}
+    <li class="ellipsis">…</li>
+    {% end %}
+
+    {% let last_start = total - 1 %}
+    {% for page in last_start..total %}
+    <li><a href="{{ base_url }}{{ page }}/">{{ page }}</a></li>
+    {% end %}
+    {% end %}
+
+    {# Next button #}
+    {% unless current == total %}
+    <li><a href="{{ base_url }}{{ current + 1 }}/" rel="next">Next →</a></li>
+    {% end %}
+  </ul>
+</nav>
+{% end %}
+{% end %}
+
+{# =============================================================================
+   STEP INDICATOR (For Loop with Index Example)
+
+   Generates a numbered step indicator.
+   Demonstrates: {% for %} with loop.index, {% match %} for state dispatch
+   ============================================================================= #}
+{% def step_indicator(steps, current_step=1) %}
+{% let step_count = steps | length %}
+{% if step_count > 0 %}
+<ol class="step-indicator">
+  {% for step in steps %}
+  {% let step_num = loop.index %}
+  {% let is_complete = step_num < current_step %}
+  {% let is_current = step_num == current_step %}
+  {% let is_upcoming = step_num > current_step %}
+
+  <li class="step-indicator__step{{ ' step--complete' if is_complete else '' }}{{ ' step--current' if is_current else '' }}{{ ' step--upcoming' if is_upcoming else '' }}">
+    <span class="step-indicator__number">
+      {% match is_complete, is_current %}
+      {% case true, _ %}✓
+      {% case _, true %}{{ step_num }}
+      {% case _ %}{{ step_num }}
+      {% end %}
+    </span>
+    <span class="step-indicator__label">{{ step?.label ?? step ?? 'Step ' ~ step_num }}</span>
+  </li>
+  {% end %}
+</ol>
+{% end %}
+{% end %}
+
+{# =============================================================================
+   FILTER BLOCK EXAMPLE
+
+   Demonstrates: {% filter %} for block-level transformations
+   ============================================================================= #}
+{% def markdown_card(title) %}
+<div class="markdown-card">
+  <h3>{{ title }}</h3>
+  <div class="markdown-card__content">
+    {% filter markdown %}
+{{ caller() }}
+    {% end %}
+  </div>
+</div>
+{% end %}
+
+{# =============================================================================
+   CAPTURE + BUILD PATTERN
+
+   Demonstrates: {% capture %} for complex string building
+   ============================================================================= #}
+{% def meta_tags(page) %}
+{% capture og_title %}{{ page?.title ?? 'Untitled' }} | {{ site?.title ?? 'Site' }}{% endcapture %}
+{% capture og_description %}{{ page?.description ?? page?.excerpt ?? '' |> truncate(160) }}{% endcapture %}
+{% capture og_url %}{{ site?.baseurl ?? '' }}{{ page?.href ?? '/' }}{% endcapture %}
+
+<meta property="og:title" content="{{ og_title | trim }}">
+<meta property="og:description" content="{{ og_description | trim }}">
+<meta property="og:url" content="{{ og_url | trim }}">
+<meta property="og:type" content="article">
+{% end %}
+
+{# =============================================================================
+   EMBED USAGE EXAMPLE
+
+   Demonstrates: How to use card-base.html with {% embed %}
+
+   NOTE: {% embed %} blocks can ONLY contain {% block %} overrides.
+   Configuration variables must be set in the parent context before embed.
+   ============================================================================= #}
+{% def post_card_embed(post) %}
+{# Set context variables before embed - embed only accepts blocks #}
+{% let card_href = post?.href ?? '#' %}
+{% let card_variant = 'feature' if post?.featured else 'default' %}
+
+{% embed 'partials/components/card-base.html' with context %}
+
+{% block badges %}
+{% if post?.featured %}
+<span class="badge badge--featured">Featured</span>
+{% end %}
+{% for tag in (post?.tags ?? []) |> take(2) %}
+<span class="badge">{{ tag }}</span>
+{% end %}
+{% end %}
+
+{% block header %}
+<h3 class="card__title">{{ post?.title ?? 'Untitled' }}</h3>
+{% end %}
+
+{% block body %}
+{% with post?.excerpt ?? post?.description as excerpt %}
+<p class="card__description">{{ excerpt |> truncate(150) }}</p>
+{% end %}
+{% end %}
+
+{% block footer %}
+{% with post?.date as date %}
+<time datetime="{{ date |> date_iso }}" class="card__date">
+  {{ date |> time_ago }}
+</time>
+{% end %}
+{% if post?.author %}
+<span class="card__author">by {{ post.author }}</span>
+{% end %}
+{% end %}
+
+{% block actions %}
+<a href="{{ post?.href ?? '#' }}" class="card__cta">Read more →</a>
+{% end %}
+
+{% end %}
 {% end %}

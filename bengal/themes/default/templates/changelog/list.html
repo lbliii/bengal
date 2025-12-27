@@ -143,9 +143,9 @@ Set `type: changelog` in section _index.md
 {# Load changelog data #}
 {% let changelog_data = site?.data?.changelog ?? none %}
 
-{# Ensure page is set for section pages #}
-{% if not page and section %}
-{% let page = section %}
+{# Ensure page is set for section pages - using unless for cleaner negative check #}
+{% unless page %}
+{% if section %}{% let page = section %}{% end %}
 {% end %}
 
 {# Template-scoped variables #}

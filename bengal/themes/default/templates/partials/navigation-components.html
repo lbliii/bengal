@@ -236,6 +236,13 @@ TABLE OF CONTENTS COMPONENT
 Interactive TOC with progress tracking, collapsible sections, and metadata.
 Uses recursive macros for optimal performance and arbitrary depth.
 JS enhances with: active item tracking, auto-expand on scroll, progress.
+
+KIDA FEATURES SHOWCASED:
+- {% def %} recursive macros for tree traversal
+- {% cache %} for expensive TOC rendering
+- {% match %} for level-based styling
+- {% unless %} for negative conditionals
+- {% break %} for early loop termination (contributor limit)
 ============================================================================= #}
 
 {# HELPER: Render a single TOC node (recursive) #}
@@ -249,7 +256,12 @@ JS enhances with: active item tracking, auto-expand on scroll, progress.
 {% if node_id %}
 <li class="toc-item toc-level-{{ node_level }}" role="treeitem" data-level="{{ node_level }}">
   {% if has_children %}
-  <details class="toc-group" {{ 'open' if node_level <=2 else '' }}>
+  {# Auto-expand based on heading level using match #}
+  {% match node_level %}
+  {% case 1 %}<details class="toc-group" open>
+  {% case 2 %}<details class="toc-group" open>
+  {% case _ %}<details class="toc-group">
+  {% end %}
     <summary class="toc-group-header">
       <a href="#{{ node_id }}" class="toc-link" data-toc-item="#{{ node_id }}">
         {{ node_title }}
@@ -276,6 +288,8 @@ JS enhances with: active item tracking, auto-expand on scroll, progress.
 {% enddef %}
 
 {% def toc(toc_items=none, toc=none, page=none) %}
+{# Cache TOC rendering per-page for performance #}
+{% cache 'toc-' ~ (page?._path ?? 'unknown') %}
 <div class="toc-sidebar" data-bengal="toc">
   {# Scroll Progress Indicator #}
   <div class="toc-progress" aria-hidden="true">
@@ -329,17 +343,25 @@ JS enhances with: active item tracking, auto-expand on scroll, progress.
     </a>
     {% end %}
 
-    {# Contributors #}
+    {# Contributors - limit display with loop control #}
     {% if contributors | length > 0 %}
     <div class="toc-meta-item">
       {{ icon('users', size=14) }}
       <div>
         <div class="toc-meta-label">{{ t('toc.contributors', default='Contributors') }}</div>
-        <div class="toc-meta-value">{{ contributors | join(', ') }}</div>
+        <div class="toc-meta-value">
+          {% let max_contributors = 5 %}
+          {% let shown_contributors = contributors |> take(max_contributors) %}
+          {{ shown_contributors | join(', ') }}
+          {% if contributors | length > max_contributors %}
+          <span class="toc-meta-more">+{{ contributors | length - max_contributors }} more</span>
+          {% end %}
+        </div>
       </div>
     </div>
     {% end %}
   </div>
   {% end %}
 </div>
+{% end %}{# End cache block #}
 {% enddef %}

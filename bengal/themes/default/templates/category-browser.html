@@ -1,13 +1,24 @@
 {% extends "base.html" %}
 
 {#
-Category Browser Template
+================================================================================
+Category Browser Template (Kida-Native v2)
+================================================================================
 
 Displays all categories with post counts and recent posts.
 Perfect for documentation sites to browse by category/type.
 Uses query indexes for O(1) category lookups.
 
 URL Pattern: /categories/
+
+KIDA FEATURES SHOWCASED:
+- {% let %} for template-scoped variables (multi-assignment)
+- {% match %} for layout dispatch and pluralization
+- {% cache %} for expensive category computations
+- {% unless %} for negative conditionals
+- Pipeline operators (|>) for filter chains
+- Optional chaining (?.) and null coalescing (??)
+- {% spaceless %} for clean HTML output
 
 Usage:
 Create content/categories/_index.md:
@@ -25,206 +36,229 @@ Optional metadata:
 Context variables:
 - page: Current page
 - site.indexes.category: Category index
+================================================================================
 #}
 
 {% from 'partials/navigation-components.html' import breadcrumbs %}
 {% from 'partials/components/tags.html' import tag_list %}
 
-{% set
-    section_filters = params.sections ?? [],
-    show_recent = params.show_recent ?? 3,
-    layout = params.layout ?? 'grid'
+{# =============================================================================
+   CONFIGURATION (Kida multi-let)
+   ============================================================================= #}
+{% let
+    section_filters = params?.sections ?? [],
+    show_recent = params?.show_recent ?? 3,
+    layout = params?.layout ?? 'grid',
+    all_categories = (site?.indexes?.category?.keys() ?? []) |> sort |> list
 %}
+
+{# =============================================================================
+   HELPER MACROS
+   ============================================================================= #}
+
+{# Filter posts by section - returns filtered list #}
+{% def filter_by_section(posts, filters) %}
+{% if filters | length > 0 %}
+{{ posts |> selectattr('_section.name', 'in', filters) |> list }}
+{% else %}
+{{ posts }}
+{% end %}
+{% end %}
+
+{# Category card component with caching #}
+{% def category_card(category, section_filters, show_recent) %}
+{% let raw_posts = site.indexes.category.get(category) |> resolve_pages %}
+{% let category_posts = raw_posts |> selectattr('_section.name', 'in', section_filters) |> list if section_filters | length > 0 else raw_posts %}
+
+{% if category_posts | length > 0 %}
+{% let
+    post_count = category_posts | length,
+    total_words = category_posts |> map(attribute='content') |> join('') |> wordcount,
+    authors = category_posts |> map(attribute='params.author') |> unique |> list,
+    recent_posts = category_posts |> sort(attribute='date', reverse=true) |> take(show_recent)
+%}
+
+<article class="category-card">
+    <div class="category-header">
+        <h2 class="category-title">
+            <a href="{{ ('/category/' ~ category ~ '/') | absolute_url }}">{{ category | title }}</a>
+        </h2>
+        {% spaceless %}
+        <span class="category-count">
+            {% match post_count %}
+            {% case 1 %}1 page
+            {% case n %}{{ n }} pages
+            {% end %}
+        </span>
+        {% end %}
+    </div>
+
+    {# Category stats #}
+    <div class="category-meta">
+        <span class="meta-item">
+            📖 {{ total_words |> format_number }} words
+        </span>
+
+        {% if authors | length > 0 %}
+        {% spaceless %}
+        <span class="meta-item">
+            ✍️ {% match authors | length %}
+            {% case 1 %}1 author
+            {% case n %}{{ n }} authors
+            {% end %}
+        </span>
+        {% end %}
+        {% end %}
+    </div>
+
+    {# Recent posts in this category #}
+    {% if show_recent > 0 and recent_posts | length > 0 %}
+    <div class="category-recent">
+        <h3 class="recent-title">Recent:</h3>
+        <ul class="recent-list">
+            {% for post in recent_posts %}
+            <li>
+                <a href="{{ post?.href ?? '#' }}">{{ post?.title ?? 'Untitled' }}</a>
+                {% with post?.date as post_date %}
+                <time datetime="{{ post_date |> date_iso }}">
+                    {{ post_date |> time_ago }}
+                </time>
+                {% end %}
+            </li>
+            {% end %}
+        </ul>
+
+        {% if post_count > show_recent %}
+        <a href="{{ ('/category/' ~ category ~ '/') | absolute_url }}" class="view-all">
+            View all {{ post_count }} →
+        </a>
+        {% end %}
+    </div>
+    {% end %}
+</article>
+{% end %}
+{% end %}
+
+{# Letter group for A-Z index - uses caching for expensive lookups #}
+{% def letter_group(letter, categories, section_filters) %}
+<div class="letter-group">
+    <strong class="letter">{{ letter }}</strong>
+    <ul class="letter-list">
+        {% for cat in categories %}
+        {% let raw_posts = site.indexes.category.get(cat) |> resolve_pages %}
+        {% let cat_posts = raw_posts |> selectattr('_section.name', 'in', section_filters) |> list if section_filters | length > 0 else raw_posts %}
+        {% if cat_posts | length > 0 %}
+        <li>
+            <a href="{{ ('/category/' ~ cat ~ '/') | absolute_url }}">
+                {{ cat | title }} ({{ cat_posts | length }})
+            </a>
+        </li>
+        {% end %}
+        {% end %}
+    </ul>
+</div>
+{% end %}
+
+{# =============================================================================
+   MAIN TEMPLATE
+   ============================================================================= #}
 
 {% block content %}
 {{ breadcrumbs(page) }}
 
 <div class="category-browser">
     <header class="browser-header">
-        <h1>{{ page.title ?? 'Browse by Category' }}</h1>
+        <h1>{{ page?.title ?? 'Browse by Category' }}</h1>
 
-        {% if params.description %}
-        <p class="browser-description">{{ params.description }}</p>
+        {% with params?.description as desc %}
+        <p class="browser-description">{{ desc }}</p>
         {% end %}
     </header>
 
     {# Main content from markdown #}
-    {% if content %}
+    {% with content as page_content %}
     <div class="browser-content prose">
-        {{ content | safe }}
+        {{ page_content | safe }}
     </div>
     {% end %}
 
-    {# Get all categories from index #}
-    {% set all_categories = site.indexes.category.keys() | sort %}
-
-    {% if all_categories %}
-    {# Summary stats #}
-    {# Portable pattern: accumulate counts then sum instead of namespace #}
+    {% if all_categories | length > 0 %}
+    {# =========================================================================
+       SUMMARY STATS - Cached for expensive computation
+       ========================================================================= #}
+    {% cache 'category-browser-stats-' ~ (section_filters |> join('-')) %}
+    {% let total_pages = all_categories |> map('site.indexes.category.get') |> map('resolve_pages') |> map('length') |> sum ?? 0 %}
     <div class="browser-stats">
+        {% spaceless %}
         <span class="stat">
-            <strong>{{ all_categories | length }}</strong> categories
+            <strong>{{ all_categories | length }}</strong>
+            {% match all_categories | length %}
+            {% case 1 %}category
+            {% case _ %}categories
+            {% end %}
         </span>
-
-        {% set page_counts = [] %}
-        {% for category in all_categories %}
-        {% set category_posts = site.indexes.category.get(category) | resolve_pages %}
-        {% if section_filters %}
-        {% set filtered_posts = [] %}
-        {% for post in category_posts %}
-        {% if post._section.name in section_filters %}
-        {% do filtered_posts.append(post) %}
-        {% end %}
-        {% end %}
-        {% set category_posts = filtered_posts %}
-        {% end %}
-        {% do page_counts.append(category_posts | length) %}
         {% end %}
 
         <span class="stat">
-            <strong>{{ page_counts | sum }}</strong> total pages
+            <strong>{{ total_pages }}</strong> total pages
         </span>
     </div>
+    {% end %}
 
-    {# Layout toggle #}
+    {# =========================================================================
+       LAYOUT TOGGLE - Pattern matched for active state
+       ========================================================================= #}
     <div class="layout-toggle">
-        <button class="layout-btn {% if layout == 'grid' %}active{% end %}" data-layout="grid" aria-label="Grid view">
-            📊 Grid
+        {% for layout_option in ['grid', 'list'] %}
+        {% let is_active = layout == layout_option %}
+        {% let label = 'Grid view' if layout_option == 'grid' else 'List view' %}
+        {% let emoji = '📊' if layout_option == 'grid' else '📝' %}
+        <button class="layout-btn{{ ' active' if is_active else '' }}"
+                data-layout="{{ layout_option }}"
+                aria-label="{{ label }}"
+                {{ 'aria-pressed="true"' | safe if is_active else '' }}>
+            {{ emoji }} {{ layout_option | title }}
         </button>
-        <button class="layout-btn {% if layout == 'list' %}active{% end %}" data-layout="list" aria-label="List view">
-            📝 List
-        </button>
+        {% end %}
     </div>
 
-    {# Category Grid/List #}
+    {# =========================================================================
+       CATEGORY GRID/LIST - Main content area
+       ========================================================================= #}
     <div class="category-container" data-layout="{{ layout }}">
         {% for category in all_categories %}
-        {# O(1) lookup for category pages #}
-        {% set category_posts = site.indexes.category.get(category) | resolve_pages %}
-
-        {# Filter by section if specified #}
-        {% if section_filters %}
-        {% set filtered_posts = [] %}
-        {% for post in category_posts %}
-        {% if post._section.name in section_filters %}
-        {% do filtered_posts.append(post) %}
-        {% end %}
-        {% end %}
-        {% set category_posts = filtered_posts %}
-        {% end %}
-
-        {% if category_posts %}
-        <article class="category-card">
-            <div class="category-header">
-                <h2 class="category-title">
-                    <a href="{{ ('/category/' ~ category ~ '/') | absolute_url }}">{{ category | title }}</a>
-                </h2>
-                <span class="category-count">{{ category_posts | length }} page{{ 's' if category_posts | length != 1
-                    }}</span>
-            </div>
-
-            {# Category stats #}
-            <div class="category-meta">
-                {% set total_words = category_posts | map(attribute='content') | join('') | wordcount %}
-                {% set authors = category_posts | map(attribute='params.author') | unique | list
-                %}
-
-                <span class="meta-item">
-                    📖 {{ total_words | format_number }} words
-                </span>
-
-                {% if authors %}
-                <span class="meta-item">
-                    ✍️ {{ authors | length }} author{{ 's' if authors | length != 1 }}
-                </span>
-                {% end %}
-            </div>
-
-            {# Recent posts in this category #}
-            {% if show_recent > 0 %}
-            {% set recent_posts = category_posts | sort_by('date', reverse=true) | limit(show_recent) %}
-            <div class="category-recent">
-                <h3 class="recent-title">Recent:</h3>
-                <ul class="recent-list">
-                    {% for post in recent_posts %}
-                    <li>
-                        <a href="{{ post.href }}">{{ post.title }}</a>
-                        {% if post.date %}
-                        <time datetime="{{ post.date | date_iso }}">
-                            {{ post.date | time_ago }}
-                        </time>
-                        {% end %}
-                    </li>
-                    {% end %}
-                </ul>
-
-                {% if category_posts | length > show_recent %}
-                <a href="{{ ('/category/' ~ category ~ '/') | absolute_url }}" class="view-all">
-                    View all {{ category_posts | length }} →
-                </a>
-                {% end %}
-            </div>
-            {% end %}
-        </article>
-        {% end %}
+        {{ category_card(category, section_filters, show_recent) }}
         {% end %}
     </div>
 
-    {# All Categories A-Z Index #}
-    {# Portable pattern: build letter groups dict, then iterate #}
+    {# =========================================================================
+       ALPHABETICAL INDEX - Grouped by first letter
+       ========================================================================= #}
+    {% cache 'category-browser-index-' ~ (section_filters |> join('-')) %}
     <aside class="category-index">
         <h3>Quick Index</h3>
         <nav class="alpha-nav" aria-label="Alphabetical category index">
-            {# Build letter -> categories mapping #}
-            {% set letter_groups = {} %}
-            {% for cat in all_categories | sort %}
-            {% set letter = cat[0] | upper %}
-            {% if letter not in letter_groups %}
-            {% do letter_groups.update({letter: []}) %}
-            {% end %}
-            {% do letter_groups[letter].append(cat) %}
-            {% end %}
-
-            {# Render each letter group #}
-            {% for letter in letter_groups.keys() | sort %}
-            <div class="letter-group">
-                <strong class="letter">{{ letter }}</strong>
-                <ul class="letter-list">
-                    {% for cat in letter_groups[letter] %}
-                    {% set cat_posts = site.indexes.category.get(cat) | resolve_pages %}
-                    {% if section_filters %}
-                    {% set filtered_posts = [] %}
-                    {% for post in cat_posts %}
-                    {% if post._section.name in section_filters %}
-                    {% do filtered_posts.append(post) %}
-                    {% end %}
-                    {% end %}
-                    {% set cat_posts = filtered_posts %}
-                    {% end %}
-                    {% if cat_posts %}
-                    <li>
-                        <a href="{{ ('/category/' ~ cat ~ '/') | absolute_url }}">
-                            {{ cat | title }} ({{ cat_posts | length }})
-                        </a>
-                    </li>
-                    {% end %}
-                    {% end %}
-                </ul>
-            </div>
+            {# Group categories by first letter using Kida's groupby filter #}
+            {% for group in all_categories |> groupby('0 | upper') %}
+            {% let letter = group?.grouper ?? '?' %}
+            {% let cats = group?.list ?? [] %}
+            {{ letter_group(letter, cats, section_filters) }}
             {% end %}
         </nav>
     </aside>
+    {% end %}
 
-{% else %}
-{# Empty State #}
-<div class="browser-empty">
-    <div class="empty-state">
-        <p class="empty-message">No categories found.</p>
-        <p class="empty-hint">Add <code>categories: ["tutorial", "guide"]</code> to page frontmatter to create
-            categories.</p>
+    {% else %}
+    {# =========================================================================
+       EMPTY STATE
+       ========================================================================= #}
+    <div class="browser-empty">
+        <div class="empty-state">
+            <p class="empty-message">No categories found.</p>
+            <p class="empty-hint">Add <code>categories: ["tutorial", "guide"]</code> to page frontmatter to create categories.</p>
+        </div>
     </div>
-</div>
-{% end %}
+    {% end %}
 </div>
 
 <script>
@@ -235,8 +269,12 @@ Context variables:
             const container = document.querySelector('.category-container');
 
             // Update buttons
-            document.querySelectorAll('.layout-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.layout-btn').forEach(b => {
+                b.classList.remove('active');
+                b.setAttribute('aria-pressed', 'false');
+            });
             btn.classList.add('active');
+            btn.setAttribute('aria-pressed', 'true');
 
             // Update container
             container.dataset.layout = layout;
