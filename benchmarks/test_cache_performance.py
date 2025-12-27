@@ -1,7 +1,7 @@
 """
 Performance benchmarks for cache algorithm operations.
 
-Tests bottleneck operations identified in RFC: Cache Algorithm Optimization:
+Tests bottleneck operations:
 1. TaxonomyIndex.get_tags_for_page() - O(t×p) linear scan
 2. TaxonomyIndex.remove_page_from_all_tags() - O(t×p) linear scan
 3. QueryIndex._remove_page_from_key() - O(p) list.remove()
@@ -586,7 +586,7 @@ def test_baseline_summary():
     print("📊 CACHE ALGORITHM BASELINE SUMMARY")
     print("=" * 70)
     print("""
-Operations benchmarked (RFC: Cache Algorithm Optimization):
+Operations benchmarked:
 
 1. TaxonomyIndex.get_tags_for_page()
    Current: O(t×p) linear scan of all tags

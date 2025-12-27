@@ -1,8 +1,4 @@
-"""
-Tests for the unified HTML transformer.
-
-RFC: rfc-rendering-package-optimizations.md
-"""
+"""Tests for the unified HTML transformer."""
 
 from __future__ import annotations
 

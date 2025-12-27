@@ -121,8 +121,7 @@ class DevServer:
             auto_port: Whether to automatically find an available port if the
                 specified one is in use
             open_browser: Whether to automatically open the browser
-            version_scope: RFC: rfc-versioned-docs-pipeline-integration (Phase 3)
-                Focus rebuilds on a single version (e.g., "v2", "latest").
+            version_scope: Focus rebuilds on a single version (e.g., "v2", "latest").
                 If None, all versions are rebuilt on changes.
         """
         self.site = site
@@ -471,7 +470,6 @@ class DevServer:
             Tuple of (WatcherRunner, BuildTrigger)
         """
         # Create build trigger (handles all build execution)
-        # RFC: rfc-versioned-docs-pipeline-integration (Phase 3)
         build_trigger = BuildTrigger(
             site=self.site,
             host=self.host,

@@ -4,8 +4,6 @@ Tests template-specific functionality:
 - Resume data loading from YAML
 - Changelog releases parsing
 - Template rendering with data
-
-Phase 2 of RFC: User Scenario Coverage - Extended Validation
 """
 
 from __future__ import annotations

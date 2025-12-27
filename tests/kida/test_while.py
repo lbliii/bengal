@@ -1,7 +1,4 @@
-"""Tests for {% while %} loop statement.
-
-Part of RFC: kida-2.0-moonshot (While Loops).
-"""
+"""Tests for {% while %} loop statement."""
 
 from __future__ import annotations
 

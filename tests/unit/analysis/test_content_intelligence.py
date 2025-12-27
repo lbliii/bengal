@@ -1,7 +1,7 @@
 """
-Unit tests for Content Intelligence (Document Application RFC Phase 6).
+Unit tests for Content Intelligence.
 
-Tests content analysis for Document Application optimizations:
+Tests content analysis optimizations:
 - Code block detection for tab suggestions
 - Accessibility analysis
 - Navigation pattern detection

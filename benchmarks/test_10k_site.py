@@ -5,8 +5,6 @@ Tests:
 - Memory usage during discovery
 - Build time scaling
 
-Phase 2 of RFC: User Scenario Coverage - Extended Validation
-
 Run with:
     pytest benchmarks/test_10k_site.py -v --benchmark
     pytest benchmarks/test_10k_site.py -v  # Without benchmark plugin

@@ -3,8 +3,6 @@ Unit tests for BuildState.
 
 Tests the BuildState class which provides per-build mutable state
 with thread-safe locks and render context management.
-
-See: plan/drafted/rfc-site-responsibility-separation.md
 """
 
 from __future__ import annotations

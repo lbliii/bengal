@@ -93,7 +93,6 @@ class KidaTemplateEngine:
             auto_reload=site.config.get("development", {}).get("auto_reload", True),
             strict=kida_config.get("strict", True),  # Default: strict mode enabled
             bytecode_cache=bytecode_cache,
-            # RFC: kida-template-introspection
             # Preserve AST for block metadata/dependency analysis (site-wide block caching)
             preserve_ast=True,
         )
@@ -465,7 +464,7 @@ class KidaTemplateEngine:
         return errors
 
     # =========================================================================
-    # TEMPLATE INTROSPECTION (RFC: kida-template-introspection)
+    # TEMPLATE INTROSPECTION
     # =========================================================================
 
     def get_template_introspection(self, name: str) -> dict[str, Any] | None:

@@ -2,8 +2,6 @@
 
 Tests that all 7 site templates scaffold correctly and build without errors.
 Validates the end-to-end user workflow: scaffold → build → validate output.
-
-Phase 1 of RFC: User Scenario Coverage & Validation Matrix
 """
 
 from __future__ import annotations

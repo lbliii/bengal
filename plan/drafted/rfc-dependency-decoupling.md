@@ -5,20 +5,21 @@
 **Author**: AI Assistant + Lawrence Lane  
 **Priority**: P0 (Critical)  
 **Related**: `bengal/core/`, `bengal/orchestration/`, `bengal/utils/`  
-**Confidence**: 85% 🟢
+**Confidence**: 90% 🟢
 
 ---
 
 ## Executive Summary
 
-Bengal has **26 circular dependencies** at the package level, with `core` ↔ `orchestration` ↔ `rendering` forming a tightly coupled triangle. This RFC proposes a phased decoupling strategy using dependency inversion, interface extraction, and package restructuring.
+Bengal has circular dependencies at the package level, with `core` ↔ `orchestration` ↔ `rendering` forming a tightly coupled triangle. This RFC proposes a phased decoupling strategy using dependency inversion, interface extraction, and package restructuring.
 
 | Metric | Current | Target |
 |--------|---------|--------|
-| Package-level cycles | 26 | 0 |
-| `utils` dependencies | 10+ bidirectional | 0 bidirectional |
-| Files >1000 lines | 7 | 3 |
-| God objects (>50 methods) | 3 | 0 |
+| Runtime import cycles | 12 | 0 |
+| TYPE_CHECKING-only imports | 14 | 14 (acceptable) |
+| `utils` bidirectional deps | 18 imports to core/orchestration/rendering | 0 bidirectional |
+| Files >1000 lines | 5 | 2 |
+| God objects (>50 methods) | 1 (`PageProxy`: 75 methods) | 0 |
 
 **Estimated effort**: 3-4 weeks across 4 phases
 
@@ -33,11 +34,24 @@ Bengal has **26 circular dependencies** at the package level, with `core` ↔ `o
 3. **Mental model overload** — Understanding one package requires understanding all coupled packages
 4. **Refactoring risk** — Changes ripple unpredictably across packages
 
+### Runtime vs TYPE_CHECKING Cycles
+
+Not all cross-package imports are equal:
+
+| Import Type | Runtime Impact | Example |
+|-------------|---------------|---------|
+| **Runtime import** | ❌ Creates cycle | `from bengal.orchestration.stats import BuildStats` |
+| **TYPE_CHECKING import** | ✅ No cycle | `if TYPE_CHECKING: from bengal.core.page import Page` |
+
+Many `orchestration` → `core` imports use `TYPE_CHECKING` guards correctly. These don't cause runtime issues but do indicate architectural coupling that complicates understanding.
+
+**This RFC focuses on eliminating runtime cycles first**, then reducing TYPE_CHECKING coupling where practical.
+
 ### Current Dependency Graph
 
 ```
      ┌──────────────────────────────────────────────┐
-     │                   utils                       │ ◄── 10+ bidirectional
+     │                   utils                       │ ◄── 18 imports to core/orch/rendering
      └──────────────────────────────────────────────┘
                           ▲
      ┌─────────┬──────────┼──────────┬──────────────┐
@@ -51,16 +65,30 @@ orchestration ←──────────────────→ rende
    cli                              directives
 ```
 
-### Specific Violations Found
+### Specific Runtime Violations Found
 
-| Cycle | Location | Cause |
-|-------|----------|-------|
-| `core` → `orchestration` | `core/site/core.py:63` | Imports `BuildStats` |
-| `orchestration` → `core` | `orchestration/build/__init__.py` | Uses `Site`, `Page` |
-| `core` → `rendering` | `core/page/proxy.py` | Template awareness |
-| `rendering` → `core` | `rendering/context/` | Page/Site wrappers |
-| `utils` → `core` | `utils/path.py` | Page path utilities |
-| `core` → `utils` | Throughout | Logger, helpers |
+| Cycle | Location | Cause | Type |
+|-------|----------|-------|------|
+| `core` → `orchestration` | `core/site/core.py:63` | `from bengal.orchestration.stats import BuildStats` | **Runtime** |
+| `core` → `rendering` | `core/site/core.py:531` | `from bengal.rendering.pipeline.thread_local import get_created_dirs` | **Runtime** |
+| `core` → `rendering` | `core/site/core.py:627` | `from bengal.rendering.template_functions.version_url import...` | **Runtime** |
+| `core` → `rendering` | `core/page/metadata.py:368` | `from bengal.rendering.pipeline import extract_toc_structure` | **Runtime** |
+| `core` → `rendering` | `core/page/content.py:139,202,218` | `from bengal.rendering.ast_utils import...` | **Runtime** |
+| `core` → `rendering` | `core/asset/asset_core.py:713` | `from bengal.rendering.template_engine.url_helpers import with_baseurl` | **Runtime** |
+| `core` → `rendering` | `core/page/operations.py:65` | `from bengal.rendering.renderer import Renderer` | **Runtime** |
+| `orchestration` → `core` | 79 locations | Uses `Site`, `Page`, etc. | Mixed (many TYPE_CHECKING) |
+| `rendering` → `core` | 88 locations | Page/Site wrappers | Mixed |
+| `utils` → `core/orchestration/rendering` | 18 locations | Various utilities | **Runtime** |
+
+### Large Files Requiring Refactoring
+
+| File | Lines | Issue |
+|------|-------|-------|
+| `rendering/errors.py` | 1,242 | Error handling monolith |
+| `rendering/kida/compat/jinja.py` | 1,226 | Jinja compatibility layer |
+| `directives/embed.py` | 1,188 | Embed directive logic |
+| `rendering/kida/template.py` | 1,129 | Template engine core |
+| `rendering/kida/environment/filters.py` | 1,025 | Filter definitions |
 
 ---
 
@@ -133,7 +161,7 @@ from .renderer import RendererProtocol
 
 #### 1.2 Define `StatsProtocol`
 
-**Problem**: `core/site/core.py` imports `BuildStats` from `orchestration`
+**Problem**: `core/site/core.py:63` imports `BuildStats` from `orchestration`
 
 ```python
 # bengal/interfaces/stats.py
@@ -197,7 +225,7 @@ class PageLike(Protocol):
 
 ### Phase 2: Split `utils` Package (Week 1-2)
 
-The `utils` package is a catch-all with bidirectional dependencies to 10+ packages.
+The `utils` package is a catch-all with 18 imports to core/orchestration/rendering.
 
 #### 2.1 Categorize Current Utils
 
@@ -209,6 +237,9 @@ The `utils` package is a catch-all with bidirectional dependencies to 10+ packag
 | `rich_console.py` | None | `bengal/console/` (new) |
 | `url_strategy.py` | `config` | `core/url/` |
 | `profile.py` | `core.Site` | `orchestration/profile.py` |
+| `metadata.py` | `core.theme`, `rendering.rosettes` | Split or move to `core/` |
+| `build_context.py` | `core.*`, `orchestration.stats` | `orchestration/context/` |
+| `swizzle.py` | `core.site`, `rendering.engines` | `orchestration/swizzle.py` |
 
 #### 2.2 Create Leaf Packages
 
@@ -240,9 +271,9 @@ def get_page_output_path(page: Page) -> Path:
 
 ---
 
-### Phase 3: Decouple Core ↔ Orchestration (Week 2-3)
+### Phase 3: Decouple Core ↔ Orchestration ↔ Rendering (Week 2-3)
 
-The tightest coupling. Core should not know about build orchestration.
+The tightest coupling. Core should not know about build orchestration or rendering.
 
 #### 3.1 Remove `BuildStats` from Core
 
@@ -269,58 +300,64 @@ class Site:
         self._stats = stats
 ```
 
-#### 3.2 Invert Render Context Creation
+#### 3.2 Move Rendering Utilities to Rendering Package
 
-**Current**: `core/page/proxy.py` creates render contexts
-**After**: `orchestration/` provides context factory
+The `core` package imports rendering utilities for:
+- TOC extraction (`extract_toc_structure`)
+- AST utilities (`extract_plain_text`, `extract_links_from_ast`)
+- URL helpers (`with_baseurl`)
+- Renderer access
 
-```python
-# bengal/interfaces/context.py
-class ContextFactoryProtocol(Protocol):
-    def create_page_context(self, page: PageLike) -> dict[str, Any]: ...
-    def create_site_context(self, site: SiteProtocol) -> dict[str, Any]: ...
-```
-
-#### 3.3 Event-Based Communication
-
-Replace direct calls with events for loose coupling:
+**Strategy**: Invert these dependencies with callbacks or move logic to appropriate layer.
 
 ```python
-# bengal/core/events.py
-from dataclasses import dataclass
-from typing import Callable, Any
-
+# Option A: Callback injection
 @dataclass
-class Event:
-    name: str
-    data: dict[str, Any]
+class Page:
+    _toc_extractor: Callable[[str], list[TocItem]] | None = None
 
-class EventBus:
-    """Decoupled communication between packages."""
+    @property
+    def toc_items(self) -> list[TocItem]:
+        if self._toc_extractor:
+            return self._toc_extractor(self.toc)
+        return []  # Fallback
 
-    _handlers: dict[str, list[Callable]] = {}
-
-    @classmethod
-    def subscribe(cls, event_name: str, handler: Callable) -> None:
-        cls._handlers.setdefault(event_name, []).append(handler)
-
-    @classmethod  
-    def emit(cls, event: Event) -> None:
-        for handler in cls._handlers.get(event.name, []):
-            handler(event)
-
-# Usage in core (no import from orchestration)
-EventBus.emit(Event("page.rendered", {"path": page.output_path}))
-
-# Usage in orchestration (subscribes during init)
-EventBus.subscribe("page.rendered", build_stats.record_page)
+# Option B: Move to rendering (preferred for most cases)
+# TOC/AST utilities stay in rendering, accessed via orchestration
 ```
+
+#### 3.3 Targeted Event Hooks (Not Full Event Bus)
+
+Instead of a general-purpose EventBus, use **specific callback injection** for the 3 known use cases:
+
+```python
+# bengal/core/site/core.py
+@dataclass
+class Site:
+    # Specific callbacks instead of general EventBus
+    on_page_rendered: Callable[[Path], None] | None = field(default=None, repr=False)
+    on_build_error: Callable[[Exception], None] | None = field(default=None, repr=False)
+    on_asset_processed: Callable[[Path], None] | None = field(default=None, repr=False)
+```
+
+**Rationale**: A full EventBus adds:
+- Hidden control flow (harder to debug)
+- Performance overhead (pub/sub indirection)
+- Testing complexity (mock subscriptions)
+
+Targeted callbacks are explicit, traceable, and sufficient for the current use cases.
+
+**If more events needed later**, upgrade to EventBus with these safeguards:
+1. Typed event classes (not string names)
+2. Async-aware handlers
+3. Event flow documentation
+4. Tracing/logging built-in
 
 ---
 
-### Phase 4: Reduce God Objects (Week 3-4)
+### Phase 4: Reduce Large Files and God Objects (Week 3-4)
 
-#### 4.1 Split `PageProxy` (74 methods → 3 classes)
+#### 4.1 Split `PageProxy` (75 methods → 3 classes)
 
 ```python
 # bengal/core/page/proxy/
@@ -330,7 +367,7 @@ EventBus.subscribe("page.rendered", build_stats.record_page)
 └── compatibility.py  # PageCompatibility (Page interface impl)
 ```
 
-**Before**: 74 methods in one class
+**Before**: 75 methods in one class (806 lines)
 **After**: 3 focused classes, PageProxy composes them
 
 ```python
@@ -353,7 +390,7 @@ class PageProxy:
         return self._loader.load_content()
 ```
 
-#### 4.2 Split `rendering/errors.py` (1242 lines → 4 modules)
+#### 4.2 Split `rendering/errors.py` (1,242 lines → 4 modules)
 
 ```
 bengal/rendering/errors/
@@ -364,7 +401,7 @@ bengal/rendering/errors/
 └── deduplication.py      # ErrorDeduplicator class
 ```
 
-#### 4.3 Split `directives/embed.py` (1188 lines)
+#### 4.3 Split `directives/embed.py` (1,188 lines)
 
 ```
 bengal/directives/embed/
@@ -377,6 +414,18 @@ bengal/directives/embed/
 │   └── video.py          # Video embedding
 └── validators.py         # Input validation
 ```
+
+#### 4.4 Kida Files (Deferred)
+
+The following files exceed 1000 lines but are **deferred** from this RFC:
+
+| File | Lines | Reason for Deferral |
+|------|-------|---------------------|
+| `rendering/kida/compat/jinja.py` | 1,226 | Jinja compatibility is inherently complex; splitting may reduce cohesion |
+| `rendering/kida/template.py` | 1,129 | Core template logic; splitting requires deeper template engine refactoring |
+| `rendering/kida/environment/filters.py` | 1,025 | Filter collection; natural to be large, consider splitting by category later |
+
+**Future RFC**: Consider `rfc-kida-refactoring.md` for template engine modularization.
 
 ---
 
@@ -409,14 +458,17 @@ All changes maintain API compatibility:
 1. **Add import cycle detection to CI**:
    ```python
    # tests/test_no_cycles.py
-   def test_no_package_cycles():
-       cycles = detect_import_cycles("bengal")
-       assert cycles == [], f"Found cycles: {cycles}"
+   def test_no_runtime_package_cycles():
+       """Ensure no runtime circular imports between packages."""
+       cycles = detect_runtime_import_cycles("bengal")
+       assert cycles == [], f"Found runtime cycles: {cycles}"
    ```
 
 2. **Interface compliance tests**:
    ```python
    def test_page_implements_pagelike():
+       from bengal.interfaces import PageLike
+       from bengal.core.page import Page
        assert isinstance(Page(...), PageLike)
    ```
 
@@ -429,9 +481,10 @@ All changes maintain API compatibility:
 | Risk | Likelihood | Impact | Mitigation |
 |------|------------|--------|------------|
 | Breaking existing imports | Medium | High | Re-exports + deprecation warnings |
-| Performance regression from protocols | Low | Medium | Use `@runtime_checkable` sparingly |
-| Incomplete migration leaves hybrid state | Medium | Medium | CI gate: zero cycles before merge |
-| Event bus adds indirection complexity | Medium | Low | Document event flow, add tracing |
+| Performance regression from protocols | Low | Medium | Use `@runtime_checkable` sparingly; benchmark |
+| Incomplete migration leaves hybrid state | Medium | Medium | CI gate: zero runtime cycles before merge |
+| Callback injection adds complexity | Low | Low | Limited to 3 specific callbacks; documented |
+| TYPE_CHECKING imports mask coupling | Medium | Low | Track as tech debt; address in future RFC |
 
 ---
 
@@ -439,16 +492,17 @@ All changes maintain API compatibility:
 
 | Metric | Before | After Phase 1 | After Phase 4 |
 |--------|--------|---------------|---------------|
-| Package-level cycles | 26 | 15 | 0 |
-| `utils` bidirectional deps | 10 | 5 | 0 |
-| Files >1000 lines | 7 | 7 | 3 |
-| God objects (>50 methods) | 3 | 3 | 0 |
+| Runtime import cycles | 12 | 5 | 0 |
+| TYPE_CHECKING imports (coupling) | 14 | 14 | 10 |
+| `utils` bidirectional deps | 18 | 8 | 0 |
+| Files >1000 lines | 5 | 5 | 2 |
+| God objects (>50 methods) | 1 | 1 | 0 |
 | Import time (`python -c "import bengal"`) | ~1.2s | ~1.0s | ~0.8s |
 | Test isolation (can test `core` alone) | ❌ | ❌ | ✅ |
 
 ---
 
-## Appendix: Files to Modify
+## Appendix A: Files to Modify
 
 ### Phase 1 Files
 - `bengal/interfaces/__init__.py` (new)
@@ -463,17 +517,140 @@ All changes maintain API compatibility:
 - `bengal/console/__init__.py` (new, move from utils/rich_console.py)
 - `bengal/utils/__init__.py` (modify, add re-exports)
 - `bengal/core/utils/path.py` (new, move from utils/path.py)
+- `bengal/orchestration/context.py` (new, move from utils/build_context.py)
 
 ### Phase 3 Files
-- `bengal/core/events.py` (new)
-- `bengal/interfaces/context.py` (new)
-- `bengal/orchestration/build/__init__.py` (modify)
-- `bengal/core/site/core.py` (modify)
+- `bengal/core/site/core.py` (modify, add callbacks)
+- `bengal/orchestration/build/__init__.py` (modify, inject callbacks)
+- `bengal/core/page/metadata.py` (modify, remove rendering import)
+- `bengal/core/page/content.py` (modify, use callback for AST utils)
+- `bengal/core/asset/asset_core.py` (modify, remove rendering import)
 
 ### Phase 4 Files
 - `bengal/core/page/proxy/` (new package, split from proxy.py)
 - `bengal/rendering/errors/` (new package, split from errors.py)
 - `bengal/directives/embed/` (new package, split from embed.py)
+
+---
+
+## Appendix B: Measurement Scripts
+
+### Detect Runtime Import Cycles
+
+```python
+#!/usr/bin/env python3
+"""Detect runtime circular imports in Bengal packages."""
+
+import ast
+import sys
+from pathlib import Path
+from collections import defaultdict
+
+def get_runtime_imports(file_path: Path) -> list[str]:
+    """Extract imports that run at module load time (not in TYPE_CHECKING)."""
+    with open(file_path) as f:
+        tree = ast.parse(f.read())
+
+    imports = []
+    in_type_checking = False
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.If):
+            # Check for TYPE_CHECKING guard
+            if isinstance(node.test, ast.Name) and node.test.id == "TYPE_CHECKING":
+                continue  # Skip imports inside TYPE_CHECKING
+
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            if isinstance(node, ast.ImportFrom) and node.module:
+                if node.module.startswith("bengal."):
+                    imports.append(node.module.split(".")[1])  # Package name
+
+    return imports
+
+def build_dependency_graph(bengal_path: Path) -> dict[str, set[str]]:
+    """Build package-level dependency graph."""
+    graph = defaultdict(set)
+
+    for package_dir in bengal_path.iterdir():
+        if package_dir.is_dir() and not package_dir.name.startswith("_"):
+            package_name = package_dir.name
+            for py_file in package_dir.rglob("*.py"):
+                for dep in get_runtime_imports(py_file):
+                    if dep != package_name:
+                        graph[package_name].add(dep)
+
+    return graph
+
+def find_cycles(graph: dict[str, set[str]]) -> list[tuple[str, str]]:
+    """Find bidirectional edges (cycles) in the graph."""
+    cycles = []
+    for pkg, deps in graph.items():
+        for dep in deps:
+            if pkg in graph.get(dep, set()):
+                if (dep, pkg) not in cycles:  # Avoid duplicates
+                    cycles.append((pkg, dep))
+    return cycles
+
+if __name__ == "__main__":
+    bengal_path = Path("bengal")
+    graph = build_dependency_graph(bengal_path)
+    cycles = find_cycles(graph)
+
+    if cycles:
+        print(f"Found {len(cycles)} runtime cycles:")
+        for a, b in cycles:
+            print(f"  {a} ↔ {b}")
+        sys.exit(1)
+    else:
+        print("No runtime cycles found ✓")
+        sys.exit(0)
+```
+
+### Count Dependencies
+
+```bash
+#!/bin/bash
+# Count imports between Bengal packages
+
+echo "=== core → orchestration ==="
+grep -r "from bengal\.orchestration" bengal/core --include="*.py" | grep -v TYPE_CHECKING | wc -l
+
+echo "=== core → rendering ==="
+grep -r "from bengal\.rendering" bengal/core --include="*.py" | grep -v TYPE_CHECKING | wc -l
+
+echo "=== utils → core/orchestration/rendering ==="
+grep -r "from bengal\.\(core\|orchestration\|rendering\)" bengal/utils --include="*.py" | wc -l
+
+echo "=== Files over 1000 lines ==="
+find bengal -name "*.py" -exec wc -l {} \; | awk '$1 > 1000 {print}' | sort -rn
+```
+
+---
+
+## Appendix C: Current State Snapshot (2025-12-26)
+
+```
+Runtime cycles detected:
+  core ↔ orchestration (1 runtime import)
+  core ↔ rendering (7 runtime imports)
+  utils ↔ core (implicit via multiple modules)
+  utils ↔ orchestration (2 runtime imports)
+  utils ↔ rendering (1 runtime import)
+
+TYPE_CHECKING-only (not runtime cycles):
+  orchestration → core: 79 locations (mostly TYPE_CHECKING)
+  rendering → core: 88 locations (mostly TYPE_CHECKING)
+
+Files >1000 lines:
+  rendering/errors.py: 1,242
+  rendering/kida/compat/jinja.py: 1,226
+  directives/embed.py: 1,188
+  rendering/kida/template.py: 1,129
+  rendering/kida/environment/filters.py: 1,025
+
+God objects:
+  PageProxy: 75 methods (806 lines)
+```
 
 ---
 

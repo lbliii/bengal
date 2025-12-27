@@ -18,7 +18,6 @@ Related Modules:
     - bengal.cache.dependency_tracker: Dependency graph construction
 
 See Also:
-    - plan/active/rfc-content-ast-architecture.md: AST architecture RFC
     - bengal/rendering/pipeline/cache_checker.py: Cache operations
     - bengal/rendering/pipeline/json_accumulator.py: JSON data accumulation
     - bengal/rendering/pipeline/autodoc_renderer.py: Autodoc rendering
@@ -157,7 +156,6 @@ class RenderingPipeline:
             # Pass version_config for cross-version linking support [[v2:path]]
             version_config = getattr(site, "version_config", None)
 
-            # RFC: rfc-versioned-docs-pipeline-integration (Phase 2)
             # Pass cross-version tracker for dependency tracking during incremental builds
             cross_version_tracker = None
             if dependency_tracker and hasattr(dependency_tracker, "track_cross_version_link"):
@@ -210,8 +208,7 @@ class RenderingPipeline:
             build_stats=build_stats,
         )
 
-        # PERF: Unified HTML transformer (RFC: rfc-rendering-package-optimizations)
-        # Single instance reused across all pages, ~27% faster than separate transforms
+        # PERF: Unified HTML transformer - single instance reused across all pages, ~27% faster than separate transforms
         self._html_transformer = HybridHTMLTransformer(baseurl=site.config.get("baseurl", ""))
 
         # Cache per-pipeline helpers (one pipeline per worker thread).
@@ -272,7 +269,7 @@ class RenderingPipeline:
         template = determine_template(page)
         parser_version = self._get_parser_version()
 
-        # Determine cache bypass using centralized helper (RFC: rfc-incremental-hot-reload-invariants)
+        # Determine cache bypass using centralized helper
         skip_cache = self._cache_checker.should_bypass_cache(page, self.changed_sources)
 
         # Track cache bypass statistics
@@ -336,7 +333,6 @@ class RenderingPipeline:
 
             # PERF: Unified HTML transformation (~27% faster than separate passes)
             # Handles: Jinja block escaping, .md link normalization, baseurl prefixing
-            # RFC: rfc-rendering-package-optimizations.md
             page.parsed_ast = self._html_transformer.transform(page.parsed_ast or "")
 
             # Flush deferred highlighting: batch process all code blocks in parallel
@@ -375,7 +371,6 @@ class RenderingPipeline:
     def _parse_with_mistune(self, page: Page, need_toc: bool) -> None:
         """Parse content using Mistune parser."""
         if page.metadata.get("preprocess") is False:
-            # RFC: rfc-versioned-docs-pipeline-integration (Phase 2)
             # Inject source_path into metadata for cross-version dependency tracking
             # (non-context parse methods don't have access to page object)
             metadata_with_source = dict(page.metadata)
@@ -471,7 +466,6 @@ class RenderingPipeline:
         write_output(page, self.site, self.dependency_tracker, collector=self._output_collector)
 
         # Accumulate unified page data during rendering (JSON + search index)
-        # See: plan/drafted/rfc-unified-page-data-accumulation.md
         self._json_accumulator.accumulate_unified_page_data(page)
         # Inline asset extraction (eliminates separate Track assets phase)
         self._accumulate_asset_deps(page)

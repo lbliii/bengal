@@ -85,12 +85,11 @@ class BuildStats:
     cache_misses: int = 0  # Pages/assets rebuilt
     time_saved_ms: float = 0  # Estimated time saved by caching
 
-    # Cache bypass statistics (RFC: rfc-incremental-hot-reload-invariants)
+    # Cache bypass statistics
     cache_bypass_hits: int = 0  # Pages that bypassed cache (in changed_sources or is_changed)
     cache_bypass_misses: int = 0  # Pages that used cache (not changed)
 
-    # Block cache statistics (RFC: kida-template-introspection)
-    # Tracks site-wide template block caching (nav, footer, etc.)
+    # Block cache statistics - tracks site-wide template block caching (nav, footer, etc.)
     block_cache_hits: int = 0  # Times cached block was reused
     block_cache_misses: int = 0  # Times block wasn't in cache
     block_cache_site_blocks: int = 0  # Number of site-scoped blocks cached
@@ -109,7 +108,7 @@ class BuildStats:
 
     # Builder-provided list of typed output records for hot reload decisions.
     # When provided, the dev server uses this for CSS-only reload detection
-    # instead of snapshot diffing. See: plan/ready/rfc-build-output-tracking.md
+    # instead of snapshot diffing.
     changed_outputs: list[OutputRecord] = field(default_factory=list)
 
     # Health check report (set after health checks run)
@@ -274,7 +273,7 @@ class BuildStats:
             "memory_rss_mb": self.memory_rss_mb,
             "memory_heap_mb": self.memory_heap_mb,
             "memory_peak_mb": self.memory_peak_mb,
-            # Block cache stats (RFC: kida-template-introspection)
+            # Block cache stats
             "block_cache_hits": self.block_cache_hits,
             "block_cache_misses": self.block_cache_misses,
             "block_cache_site_blocks": self.block_cache_site_blocks,

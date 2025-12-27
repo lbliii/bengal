@@ -5,7 +5,6 @@ Provides inline SVG icons from Bengal's icon library for use in cards, buttons,
 and other directives without requiring the full icon directive.
 
 Icons are loaded via the theme-aware resolver (site > theme > parent > default).
-See: plan/drafted/rfc-theme-aware-icons.md
 
 Performance:
     - Icons are loaded via bengal.icons.resolver (theme-aware, cached)

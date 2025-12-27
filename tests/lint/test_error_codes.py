@@ -14,7 +14,6 @@ Usage:
 
 See Also:
     - bengal/errors/codes.py: Error code definitions
-    - plan/drafted/rfc-error-beautification.md: RFC for this enforcement
 """
 
 from __future__ import annotations
@@ -84,8 +83,7 @@ def test_all_bengal_errors_have_codes() -> None:
     """
     Ensure all BengalError raises include code= parameter.
 
-    This test enforces the error beautification RFC requirement that
-    all BengalError exceptions should include error codes for:
+    This test enforces that all BengalError exceptions should include error codes for:
     - User-friendly CLI output
     - Documentation links
     - Searchability and debugging
