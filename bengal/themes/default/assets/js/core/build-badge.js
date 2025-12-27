@@ -172,7 +172,16 @@
       const bc = payload.block_cache;
       const total = bc.hits + bc.misses;
       const reuseRate = total > 0 ? Math.round((bc.hits / total) * 100) : 0;
-      const cacheText = `${bc.site_blocks_cached} blocks, ${reuseRate}% reuse`;
+      let cacheText = `${bc.site_blocks_cached} blocks, ${reuseRate}% reuse`;
+
+      // Add time saved if available
+      if (bc.time_saved_ms > 0) {
+        const saved = bc.time_saved_ms < 1000
+          ? `${Math.round(bc.time_saved_ms)}ms`
+          : `${(bc.time_saved_ms / 1000).toFixed(2)}s`;
+        cacheText += ` (saved ${saved})`;
+      }
+
       stats.push(createStatItem('🧩', 'Block cache', cacheText));
     }
 

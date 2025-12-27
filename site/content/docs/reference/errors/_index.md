@@ -1319,6 +1319,6 @@ If you encounter an error:
 1. Check the error message and suggestion in the CLI output
 2. Search this page for the error code (Ctrl+F / Cmd+F)
 3. Review the troubleshooting steps above
-4. Check the [troubleshooting guide](/docs/guides/troubleshooting/)
+4. Check the [troubleshooting guide](/docs/building/troubleshooting/)
 
 For bugs or unclear errors, please [open an issue](https://github.com/bengal-ssg/bengal/issues).

@@ -499,6 +499,9 @@ def phase_render(
             orchestrator.stats.block_cache_site_blocks = block_cache_stats.get(
                 "site_blocks_cached", 0
             )
+            orchestrator.stats.block_cache_time_saved_ms = block_cache_stats.get(
+                "time_saved_ms", 0.0
+            )
 
         # Show phase completion with page count, throughput, and top bottleneck
         page_count = len(pages_to_build)

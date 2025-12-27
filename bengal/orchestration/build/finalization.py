@@ -117,6 +117,11 @@ def phase_collect_stats(
         "rendering_time_ms": orchestrator.stats.rendering_time_ms,
         "total_pages": orchestrator.stats.total_pages,
         "total_assets": orchestrator.stats.total_assets,
+        # Block cache statistics (RFC: kida-template-introspection)
+        "block_cache_hits": orchestrator.stats.block_cache_hits,
+        "block_cache_misses": orchestrator.stats.block_cache_misses,
+        "block_cache_site_blocks": orchestrator.stats.block_cache_site_blocks,
+        "block_cache_time_saved_ms": orchestrator.stats.block_cache_time_saved_ms,
     }
 
     _write_build_time_artifacts(orchestrator.site, orchestrator.site._last_build_stats)
@@ -168,6 +173,7 @@ def _write_build_time_artifacts(site: Any, last_build_stats: dict[str, Any]) -> 
             "site_blocks_cached": block_cache_site_blocks,
             "hits": block_cache_hits,
             "misses": int(last_build_stats.get("block_cache_misses") or 0),
+            "time_saved_ms": float(last_build_stats.get("block_cache_time_saved_ms") or 0.0),
         }
 
     svg = build_shields_like_badge_svg(

@@ -1,7 +1,7 @@
 ---
-title: KIDA Syntax Reference
-nav_title: KIDA Syntax
-description: Complete reference for KIDA template syntax, operators, and features
+title: Kida Syntax Reference
+nav_title: Kida Syntax
+description: Complete reference for Kida template syntax, operators, and features
 weight: 60
 type: doc
 draft: false
@@ -20,17 +20,17 @@ keywords:
 category: reference
 ---
 
-# KIDA Syntax Reference
+# Kida Syntax Reference
 
-Complete reference for KIDA template syntax, operators, and features. KIDA is Bengal's **default template engine**, optimized for performance and free-threaded Python.
+Complete reference for Kida template syntax, operators, and features. Kida is Bengal's **default template engine**, optimized for performance and free-threaded Python.
 
 :::{tip}
-**New to KIDA?** Start with the [KIDA Tutorial](/docs/tutorials/getting-started-with-kida/) for a guided introduction. KIDA is Jinja2-compatible, so existing Jinja2 templates work without changes.
+**New to Kida?** Start with the [Kida Tutorial](/docs/tutorials/getting-started-with-kida/) for a guided introduction. Kida is Jinja2-compatible, so existing Jinja2 templates work without changes.
 :::
 
-## Quick Comparison: KIDA vs Jinja2
+## Quick Comparison: Kida vs Jinja2
 
-| Feature | KIDA | Jinja2 |
+| Feature | Kida | Jinja2 |
 |---------|------|--------|
 | Block endings | `{% end %}` (unified) | `{% endif %}`, `{% endfor %}`, etc. |
 | Template variables | `{% let %}` (template-scoped) | `{% set %}` (block-scoped) |
@@ -110,7 +110,7 @@ Output a variable:
 
 ### Pattern Matching
 
-KIDA's native pattern matching replaces long `if/elif` chains:
+Kida's native pattern matching replaces long `if/elif` chains:
 
 ```kida
 {% match page.type %}
@@ -197,7 +197,7 @@ Make a variable from an inner scope available to the outer scope:
 {% endblock %}
 ```
 
-**Note**: KIDA uses `{% endblock %}` for blocks (Jinja2 compatibility), but `{% end %}` works too.
+**Note**: Kida uses `{% endblock %}` for blocks (Jinja2 compatibility), but `{% end %}` works too.
 
 ### Includes
 
@@ -220,7 +220,7 @@ Make a variable from an inner scope available to the outer scope:
 
 ### Defining Functions (`{% def %}`)
 
-KIDA functions have true lexical scoping (unlike Jinja2 macros):
+Kida functions have true lexical scoping (unlike Jinja2 macros):
 
 ```kida
 {% def card(item) %}
@@ -275,10 +275,10 @@ KIDA functions have true lexical scoping (unlike Jinja2 macros):
 
 ### Pipeline Operator (`|>`)
 
-KIDA's pipeline operator provides left-to-right readability:
+Kida's pipeline operator provides left-to-right readability:
 
 ```kida
-{# KIDA: Read left-to-right #}
+{# Kida: Read left-to-right #}
 {{ items |> where('published', true) |> sort_by('date') |> take(5) }}
 
 {# Jinja2: Read inside-out #}
@@ -354,7 +354,7 @@ KIDA's pipeline operator provides left-to-right readability:
 
 ## Fragment Caching
 
-KIDA provides built-in fragment caching:
+Kida provides built-in fragment caching:
 
 ```kida
 {% cache "sidebar-nav" %}
@@ -384,11 +384,11 @@ KIDA provides built-in fragment caching:
 
 ## Automatic Block Caching
 
-KIDA automatically caches site-scoped template blocks for optimal build performance. This happens automatically—no template syntax changes required.
+Kida automatically caches site-scoped template blocks for optimal build performance. This happens automatically—no template syntax changes required.
 
 **How it works**:
 
-1. **Analysis**: KIDA analyzes your templates to identify blocks that only depend on site-wide context (not page-specific data)
+1. **Analysis**: Kida analyzes your templates to identify blocks that only depend on site-wide context (not page-specific data)
 2. **Pre-rendering**: These blocks are rendered once at build start
 3. **Automatic reuse**: During page rendering, cached blocks are used automatically instead of re-rendering
 
@@ -422,7 +422,7 @@ The `nav` block depends only on `site.pages` (site-wide), so it's automatically 
 - **Not cacheable**: Blocks with non-deterministic behavior (random, shuffle, etc.)
 
 :::{tip}
-**Performance tip**: Structure your templates so site-wide blocks (nav, footer, sidebar) are separate from page-specific blocks (content). KIDA will automatically optimize them.
+**Performance tip**: Structure your templates so site-wide blocks (nav, footer, sidebar) are separate from page-specific blocks (content). Kida will automatically optimize them.
 :::
 
 ## Modern Syntax Features
@@ -583,7 +583,7 @@ Remove whitespace between HTML tags:
 
 ### Strict Mode (Default)
 
-KIDA raises `UndefinedError` for undefined variables:
+Kida raises `UndefinedError` for undefined variables:
 
 ```kida
 {{ missing_var }}  {# Raises UndefinedError #}
@@ -601,7 +601,7 @@ kida:
 
 ## Configuration
 
-KIDA is the default template engine. Configure KIDA options in `bengal.yaml`:
+Kida is the default template engine. Configure Kida options in `bengal.yaml`:
 
 ```yaml
 kida:
@@ -619,10 +619,10 @@ site:
 
 ## Migration from Jinja2
 
-KIDA can parse Jinja2 syntax via compatibility mode. Most Jinja2 templates work without changes, but consider migrating to KIDA syntax for better performance:
+Kida can parse Jinja2 syntax via compatibility mode. Most Jinja2 templates work without changes, but consider migrating to Kida syntax for better performance:
 
 :::{seealso}
-[How to Migrate from Jinja2 to KIDA](/docs/theming/templating/kida/migrate-jinja-to-kida/) — Step-by-step migration guide
+[How to Migrate from Jinja2 to Kida](/docs/theming/templating/kida/migrate-jinja-to-kida/) — Step-by-step migration guide
 :::
 
 **Key differences**:
@@ -677,7 +677,7 @@ KIDA can parse Jinja2 syntax via compatibility mode. Most Jinja2 templates work 
 
 ## See Also
 
-- [KIDA Tutorial](/docs/tutorials/getting-started-with-kida/) — Learn KIDA step-by-step
+- [Kida Tutorial](/docs/tutorials/getting-started-with-kida/) — Learn Kida step-by-step
 - [Template Functions Reference](/docs/reference/template-functions/) — Available filters and functions
 - [Theming Guide](/docs/theming/templating/) — Template organization and inheritance
-- [KIDA How-Tos](/docs/theming/templating/kida/) — Common tasks and patterns
+- [Kida How-Tos](/docs/theming/templating/kida/) — Common tasks and patterns

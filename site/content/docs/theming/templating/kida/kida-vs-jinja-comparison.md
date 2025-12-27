@@ -1,6 +1,6 @@
 ---
-title: KIDA vs Jinja2 Comparison (Legacy)
-nav_title: KIDA vs Jinja2 (Legacy)
+title: Kida vs Jinja2 Comparison (Legacy)
+nav_title: Kida vs Jinja2 (Legacy)
 description: Legacy comparison document - see new modular comparison structure
 weight: 100
 type: doc
@@ -21,13 +21,13 @@ keywords:
 category: reference
 ---
 
-# KIDA vs Jinja2 Comparison (Legacy)
+# Kida vs Jinja2 Comparison (Legacy)
 
 :::{warning}
 **This is a legacy document**. The comparison has been restructured into focused, modular articles. See the [new Comparison Guide](/docs/theming/templating/kida/comparison/) for the updated structure.
 :::
 
-This document contains a comprehensive side-by-side comparison of KIDA and Jinja2. For better organization, this content has been split into focused articles:
+This document contains a comprehensive side-by-side comparison of Kida and Jinja2. For better organization, this content has been split into focused articles:
 
 - **[Comparison Overview](/docs/theming/templating/kida/comparison/)** — Feature-by-feature comparison index
 - **[Syntax Comparison](/docs/theming/templating/kida/comparison/syntax)** — Side-by-side syntax examples
@@ -41,17 +41,17 @@ This document contains a comprehensive side-by-side comparison of KIDA and Jinja
 
 ---
 
-# KIDA vs Jinja2 Comparison (Legacy Content)
+# Kida vs Jinja2 Comparison (Legacy Content)
 
-Side-by-side comparison of common template patterns in KIDA (Bengal's default engine) and Jinja2. Use this reference when migrating templates or learning KIDA syntax.
+Side-by-side comparison of common template patterns in Kida (Bengal's default engine) and Jinja2. Use this reference when migrating templates or learning Kida syntax.
 
 :::{tip}
-**KIDA is Jinja2-compatible**: Your Jinja2 templates work without changes. KIDA is the default engine, so you can migrate incrementally to unlock performance benefits.
+**Kida is Jinja2-compatible**: Your Jinja2 templates work without changes. Kida is the default engine, so you can migrate incrementally to unlock performance benefits.
 :::
 
 ## Quick Reference
 
-| Feature | KIDA | Jinja2 |
+| Feature | Kida | Jinja2 |
 |---------|------|--------|
 | Block endings | `{% end %}` (unified) | `{% endif %}`, `{% endfor %}`, etc. |
 | Template variables | `{% let %}` (template-scoped) | `{% set %}` (block-scoped) |
@@ -68,11 +68,11 @@ Side-by-side comparison of common template patterns in KIDA (Bengal's default en
 
 ## Block Endings
 
-KIDA uses `{% end %}` for all block endings, eliminating the need to remember specific closing tags.
+Kida uses `{% end %}` for all block endings, eliminating the need to remember specific closing tags.
 
 :::{tab-set}
 
-:::{tab-item} KIDA
+:::{tab-item} Kida
 ```jinja
 {% if page.draft %}
   <span class="draft">Draft</span>
@@ -107,18 +107,18 @@ KIDA uses `{% end %}` for all block endings, eliminating the need to remember sp
 :::{/tab-set}
 
 :::{note}
-KIDA also accepts `{% endblock %}` for block endings (Jinja2 compatibility), but `{% end %}` works everywhere.
+Kida also accepts `{% endblock %}` for block endings (Jinja2 compatibility), but `{% end %}` works everywhere.
 :::
 
 ---
 
 ## Variables and Scoping
 
-KIDA distinguishes between template-scoped (`{% let %}`) and block-scoped (`{% set %}`) variables.
+Kida distinguishes between template-scoped (`{% let %}`) and block-scoped (`{% set %}`) variables.
 
 :::{tab-set}
 
-:::{tab-item} KIDA
+:::{tab-item} Kida
 ```jinja
 {# Template-scoped: available everywhere in template #}
 {% let site_title = site.config.title %}
@@ -158,11 +158,11 @@ KIDA distinguishes between template-scoped (`{% let %}`) and block-scoped (`{% s
 
 ### Exporting from Inner Scope
 
-KIDA provides `{% export %}` to make inner-scope variables accessible outside:
+Kida provides `{% export %}` to make inner-scope variables accessible outside:
 
 :::{tab-set}
 
-:::{tab-item} KIDA
+:::{tab-item} Kida
 ```jinja
 {% for post in posts %}
   {% if post.featured %}
@@ -196,11 +196,11 @@ KIDA provides `{% export %}` to make inner-scope variables accessible outside:
 
 ## Pattern Matching
 
-KIDA's `{% match %}` replaces verbose `if/elif` chains with clean pattern matching.
+Kida's `{% match %}` replaces verbose `if/elif` chains with clean pattern matching.
 
 :::{tab-set}
 
-:::{tab-item} KIDA
+:::{tab-item} Kida
 ```jinja
 {% match page.type %}
   {% case "blog" %}
@@ -239,7 +239,7 @@ KIDA's `{% match %}` replaces verbose `if/elif` chains with clean pattern matchi
 
 :::{tab-set}
 
-:::{tab-item} KIDA
+:::{tab-item} Kida
 ```jinja
 {% match page.status %}
   {% case "published" %}
@@ -278,11 +278,11 @@ KIDA's `{% match %}` replaces verbose `if/elif` chains with clean pattern matchi
 
 ## Pipeline Operator
 
-KIDA's `|>` pipeline reads left-to-right, matching natural reading order.
+Kida's `|>` pipeline reads left-to-right, matching natural reading order.
 
 :::{tab-set}
 
-:::{tab-item} KIDA
+:::{tab-item} Kida
 ```jinja
 {# Left-to-right: Read naturally as a data pipeline #}
 {% let recent_posts = site.pages
@@ -320,7 +320,7 @@ KIDA's `|>` pipeline reads left-to-right, matching natural reading order.
 
 ### Filter Name Differences
 
-| Jinja2 Filter | KIDA Filter | Description |
+| Jinja2 Filter | Kida Filter | Description |
 |--------------|-------------|-------------|
 | `selectattr('key')` | `where('key', true)` | Boolean filter |
 | `selectattr('key', 'eq', val)` | `where('key', val)` | Equality filter |
@@ -334,11 +334,11 @@ KIDA's `|>` pipeline reads left-to-right, matching natural reading order.
 
 ## Optional Chaining and Null Coalescing
 
-KIDA provides modern JavaScript-like operators for null-safe access.
+Kida provides modern JavaScript-like operators for null-safe access.
 
 :::{tab-set}
 
-:::{tab-item} KIDA
+:::{tab-item} Kida
 ```jinja
 {# Optional chaining: Safe navigation through potentially null values #}
 {{ user?.profile?.name | default('Anonymous') }}
@@ -387,13 +387,13 @@ KIDA provides modern JavaScript-like operators for null-safe access.
 
 ## Functions vs Macros
 
-KIDA's `{% def %}` provides true lexical scoping, unlike Jinja2 macros.
+Kida's `{% def %}` provides true lexical scoping, unlike Jinja2 macros.
 
 :::{tab-set}
 
-:::{tab-item} KIDA
+:::{tab-item} Kida
 ```jinja
-{# KIDA functions have access to outer scope #}
+{# Kida functions have access to outer scope #}
 {% let site_name = site.config.title %}
 {% let theme_color = config.theme.primary_color %}
 
@@ -450,7 +450,7 @@ KIDA's `{% def %}` provides true lexical scoping, unlike Jinja2 macros.
 
 :::{tab-set}
 
-:::{tab-item} KIDA
+:::{tab-item} Kida
 ```jinja
 {% def modal(title, size="md") %}
   <div class="modal modal-{{ size }}">
@@ -507,11 +507,11 @@ KIDA's `{% def %}` provides true lexical scoping, unlike Jinja2 macros.
 
 ## Fragment Caching
 
-KIDA has built-in fragment caching; Jinja2 requires an extension.
+Kida has built-in fragment caching; Jinja2 requires an extension.
 
 :::{tab-set}
 
-:::{tab-item} KIDA
+:::{tab-item} Kida
 ```jinja
 {# Simple cache #}
 {% cache "sidebar-nav" %}
@@ -567,11 +567,11 @@ KIDA has built-in fragment caching; Jinja2 requires an extension.
 
 ## Range Literals and Loop Control
 
-KIDA provides modern range syntax and full loop control.
+Kida provides modern range syntax and full loop control.
 
 :::{tab-set}
 
-:::{tab-item} KIDA
+:::{tab-item} Kida
 ```jinja
 {# Inclusive range #}
 {% for i in 1..5 %}
@@ -637,7 +637,7 @@ Real-world comparison of filtering blog posts.
 
 :::{tab-set}
 
-:::{tab-item} KIDA
+:::{tab-item} Kida
 ```jinja
 {# Get published blog posts, sorted by date, limited to 10 #}
 {% let posts = site.pages
@@ -708,11 +708,11 @@ Real-world comparison of filtering blog posts.
 
 ## Complete Template Example
 
-A blog post template showing multiple KIDA features together.
+A blog post template showing multiple Kida features together.
 
 :::{tab-set}
 
-:::{tab-item} KIDA
+:::{tab-item} Kida
 ```jinja
 {% extends "baseof.html" %}
 
@@ -890,7 +890,7 @@ A common navigation template pattern.
 
 :::{tab-set}
 
-:::{tab-item} KIDA
+:::{tab-item} Kida
 ```jinja
 {# Navigation with automatic caching (site-scoped blocks are cached automatically) #}
 {% let main_menu = get_menu('main') %}
@@ -972,7 +972,7 @@ A common navigation template pattern.
 
 ## Performance Comparison
 
-| Metric | KIDA | Jinja2 |
+| Metric | Kida | Jinja2 |
 |--------|------|--------|
 | Render speed | **5.6x faster** | Baseline |
 | Site-scoped block caching | Automatic | Manual/None |
@@ -982,10 +982,10 @@ A common navigation template pattern.
 
 ### Automatic Block Caching
 
-KIDA automatically detects and caches site-scoped blocks (navigation, footer, sidebar) that don't depend on page-specific data. This provides **10-100x faster builds** for navigation-heavy sites with no template changes required.
+Kida automatically detects and caches site-scoped blocks (navigation, footer, sidebar) that don't depend on page-specific data. This provides **10-100x faster builds** for navigation-heavy sites with no template changes required.
 
 ```jinja
-{# KIDA automatically caches this block #}
+{# Kida automatically caches this block #}
 {% block nav %}
   <nav>
     {% for page in site.pages %}
@@ -1004,19 +1004,19 @@ KIDA automatically detects and caches site-scoped blocks (navigation, footer, si
 
 ## Migration Checklist
 
-When migrating from Jinja2 to KIDA:
+When migrating from Jinja2 to Kida:
 
-- [ ] Enable KIDA in `bengal.yaml`: `template_engine: kida`
+- [ ] Enable Kida in `bengal.yaml`: `template_engine: kida`
 - [ ] Replace block endings (`{% endif %}` → `{% end %}`)
 - [ ] Replace template-wide `{% set %}` with `{% let %}`
 - [ ] Convert long `if/elif` chains to `{% match %}`
-- [ ] Update filter chains to use `|>` and KIDA filter names
+- [ ] Update filter chains to use `|>` and Kida filter names
 - [ ] Add `{% cache %}` for expensive operations
 - [ ] Use `?.` for null-safe access
 - [ ] Use `??` for default values
 
 :::{seealso}
-- [Migrate from Jinja2 to KIDA](/docs/theming/templating/kida/migrate-jinja-to-kida/) — Step-by-step migration guide
-- [KIDA Syntax Reference](/docs/reference/kida-syntax/) — Complete syntax documentation
-- [KIDA How-Tos](/docs/theming/templating/kida/) — Common tasks and patterns
+- [Migrate from Jinja2 to Kida](/docs/theming/templating/kida/migrate-jinja-to-kida/) — Step-by-step migration guide
+- [Kida Syntax Reference](/docs/reference/kida-syntax/) — Complete syntax documentation
+- [Kida How-Tos](/docs/theming/templating/kida/) — Common tasks and patterns
 :::

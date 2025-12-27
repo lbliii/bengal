@@ -180,13 +180,20 @@ class CachedBlocksDict:
     Complexity: O(1) for lookups.
     """
 
-    __slots__ = ("_original", "_cached", "_cached_names")
+    __slots__ = ("_original", "_cached", "_cached_names", "_stats")
 
-    def __init__(self, original: dict | None, cached: dict[str, str], cached_names: set[str]):
+    def __init__(
+        self,
+        original: dict | None,
+        cached: dict[str, str],
+        cached_names: set[str],
+        stats: dict[str, int] | None = None,
+    ):
         # Ensure original is a dict even if None is passed
         self._original = original if original is not None else {}
         self._cached = cached
         self._cached_names = cached_names
+        self._stats = stats
 
     def get(self, key: str, default: Any = None) -> Any:
         """Intercept .get() calls to return cached HTML when available."""
@@ -194,12 +201,20 @@ class CachedBlocksDict:
             cached_html = self._cached[key]
             # print(f"[CachedBlocksDict.get] CACHE HIT for {key}")
 
+            # Record hit in shared stats if available
+            if self._stats is not None:
+                self._stats["hits"] = self._stats.get("hits", 0) + 1
+
             # Return a wrapper function that matches the block function signature:
             # _block_name(ctx, _blocks)
             def cached_block_func(_ctx: dict, _blocks: dict) -> str:
                 return cached_html
 
             return cached_block_func
+
+        # Record miss in shared stats if available (block exists but not cached)
+        if self._stats is not None:
+            self._stats["misses"] = self._stats.get("misses", 0) + 1
 
         # print(f"[CachedBlocksDict.get] CACHE MISS for {key}")
         # Fall back to original dict behavior
@@ -215,6 +230,10 @@ class CachedBlocksDict:
             # Cached blocks take precedence - return cached wrapper
             cached_html = self._cached[key]
 
+            # Record hit in shared stats if available
+            if self._stats is not None:
+                self._stats["hits"] = self._stats.get("hits", 0) + 1
+
             def cached_block_func(_ctx: dict, _blocks: dict) -> str:
                 return cached_html
 
@@ -227,6 +246,10 @@ class CachedBlocksDict:
         """Support dict[key] access."""
         if key in self._cached_names:
             cached_html = self._cached[key]
+
+            # Record hit in shared stats if available
+            if self._stats is not None:
+                self._stats["hits"] = self._stats.get("hits", 0) + 1
 
             def cached_block_func(_ctx: dict, _blocks: dict) -> str:
                 return cached_html
@@ -254,13 +277,15 @@ class CachedBlocksDict:
             cached_html = self._cached[name]
 
             # Create wrapper with proper closure capture
-            def make_wrapper(html: str):
+            def make_wrapper(html: str, stats: dict[str, int] | None):
                 def wrapper(_ctx: dict, _blocks: dict) -> str:
+                    if stats is not None:
+                        stats["hits"] = stats.get("hits", 0) + 1
                     return html
 
                 return wrapper
 
-            result[name] = make_wrapper(cached_html)
+            result[name] = make_wrapper(cached_html, self._stats)
         return result
 
 
@@ -403,11 +428,14 @@ class Template:
             # This ensures parent templates also use cached blocks automatically.
             # Avoid double-wrapping if already a CachedBlocksDict.
             cached_blocks = context.get("_cached_blocks", {})
+            cached_stats = context.get("_cached_stats")
             if cached_blocks and not isinstance(blocks, CachedBlocksDict):
                 cached_block_names = set(cached_blocks.keys())
                 if cached_block_names:
                     # Wrap blocks dict with our cache-aware proxy
-                    blocks = CachedBlocksDict(blocks, cached_blocks, cached_block_names)
+                    blocks = CachedBlocksDict(
+                        blocks, cached_blocks, cached_block_names, stats=cached_stats
+                    )
 
             # Call parent's render function with blocks dict
             return parent._render_func(context, blocks)
@@ -721,6 +749,7 @@ class Template:
         # Inject site-scoped cached blocks into the root render call if available.
         # This enables O(1) block reuse across the entire site.
         cached_blocks = ctx.get("_cached_blocks", {})
+        cached_stats = ctx.get("_cached_stats")
         render_func = self._render_func
 
         if render_func is None:
@@ -732,7 +761,9 @@ class Template:
             cached_block_names = set(cached_blocks.keys())
             if cached_block_names:
                 # Wrap a fresh dict with our cache-aware proxy
-                blocks_arg = CachedBlocksDict(None, cached_blocks, cached_block_names)
+                blocks_arg = CachedBlocksDict(
+                    None, cached_blocks, cached_block_names, stats=cached_stats
+                )
 
         # Render with error enhancement
         try:

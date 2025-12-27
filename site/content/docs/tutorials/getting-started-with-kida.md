@@ -1,7 +1,7 @@
 ---
-title: Getting Started with KIDA
-nav_title: KIDA Tutorial
-description: Learn KIDA template syntax from scratch with hands-on examples
+title: Getting Started with Kida
+nav_title: Kida Tutorial
+description: Learn Kida template syntax from scratch with hands-on examples
 weight: 25
 draft: false
 lang: en
@@ -17,14 +17,14 @@ keywords:
 category: tutorial
 ---
 
-# Getting Started with KIDA
+# Getting Started with Kida
 
-Learn KIDA, Bengal's native template engine, from scratch. This tutorial teaches you KIDA syntax through hands-on examples, building up to a complete blog template.
+Learn Kida, Bengal's native template engine, from scratch. This tutorial teaches you Kida syntax through hands-on examples, building up to a complete blog template.
 
 ## Goal
 
 By the end of this tutorial, you will:
-1. Understand KIDA syntax basics
+1. Understand Kida syntax basics
 2. Know how to use pattern matching and pipelines
 3. Create a custom blog template
 4. Use fragment caching for performance
@@ -36,16 +36,16 @@ By the end of this tutorial, you will:
 - Basic understanding of HTML
 - Familiarity with terminal/command line
 
-## What is KIDA?
+## What is Kida?
 
-KIDA is Bengal's **default template engine**, designed for:
+Kida is Bengal's **default template engine**, designed for:
 - **Performance**: 5.6x faster than Jinja2
 - **Modern syntax**: Unified `{% end %}`, pattern matching, pipelines
 - **Free-threading**: Ready for Python 3.14t+
 - **Jinja2 compatible**: Existing Jinja2 templates work without changes
 
 :::{tip}
-**Coming from Jinja2?** KIDA can parse Jinja2 syntax, so your existing templates work. This tutorial focuses on KIDA-native features.
+**Coming from Jinja2?** Kida can parse Jinja2 syntax, so your existing templates work. This tutorial focuses on Kida-native features.
 :::
 
 ## Step 1: Set Up Your Project
@@ -60,9 +60,9 @@ bengal new site my-kida-site
 cd my-kida-site
 ```
 
-### Configure KIDA (Optional)
+### Configure Kida (Optional)
 
-KIDA is the default engine. Optionally configure KIDA options in `bengal.yaml`:
+Kida is the default engine. Optionally configure Kida options in `bengal.yaml`:
 
 ```yaml
 kida:
@@ -72,7 +72,7 @@ kida:
 
 ### Create Test Template
 
-Create your first KIDA template:
+Create your first Kida template:
 
 ```bash
 mkdir -p templates
@@ -349,7 +349,7 @@ tags:
   - tutorial
 ---
 
-This is my first blog post using KIDA templates!
+This is my first blog post using Kida templates!
 ```
 
 ## Step 9: Build and Test
@@ -441,7 +441,7 @@ Fallback for None:
 
 ### Undefined Variable Error
 
-KIDA raises errors for undefined variables by default:
+Kida raises errors for undefined variables by default:
 
 ```kida
 {# ❌ Raises UndefinedError #}
@@ -469,22 +469,22 @@ Check build output for detailed error messages.
 
 ## Next Steps
 
-- [KIDA Syntax Reference](/docs/reference/kida-syntax/) — Complete syntax documentation
-- [KIDA How-Tos](/docs/theming/templating/kida/) — Common tasks and patterns
+- [Kida Syntax Reference](/docs/reference/kida-syntax/) — Complete syntax documentation
+- [Kida How-Tos](/docs/theming/templating/kida/) — Common tasks and patterns
 - [Create Custom Template](/docs/theming/templating/kida/create-custom-template/) — Build advanced templates
-- [Add Custom Filters](/docs/theming/templating/kida/add-custom-filter/) — Extend KIDA functionality
+- [Add Custom Filters](/docs/theming/templating/kida/add-custom-filter/) — Extend Kida functionality
 
 ## Summary
 
 You've learned:
-- ✅ Basic KIDA syntax (variables, conditionals, loops)
+- ✅ Basic Kida syntax (variables, conditionals, loops)
 - ✅ Pattern matching for cleaner conditionals
 - ✅ Pipeline operator for readable filter chains
 - ✅ Template inheritance and blocks
 - ✅ Fragment caching for performance
 - ✅ Common patterns and best practices
 
-**Practice**: Build a complete blog with list pages, single posts, and tag pages using KIDA syntax.
+**Practice**: Build a complete blog with list pages, single posts, and tag pages using Kida syntax.
 
 :::{seealso}
 - [Template Functions Reference](/docs/reference/template-functions/) — Available filters and functions

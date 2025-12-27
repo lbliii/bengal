@@ -19,7 +19,7 @@ category: guide
 
 # Use Pattern Matching
 
-Learn how to use KIDA's pattern matching feature to replace long `if/elif` chains with cleaner, more readable code.
+Learn how to use Kida's pattern matching feature to replace long `if/elif` chains with cleaner, more readable code.
 
 ## Goal
 
@@ -206,7 +206,7 @@ You can nest pattern matching:
 
 ## Combining with Other Logic
 
-Pattern matching works well with other KIDA features:
+Pattern matching works well with other Kida features:
 
 ```kida
 {% let post_type = page.type %}
@@ -309,11 +309,10 @@ When migrating from `if/elif`:
 ## Next Steps
 
 - [Create Custom Template](/docs/theming/templating/kida/create-custom-template/) — Build templates using pattern matching
-- [KIDA Syntax Reference](/docs/reference/kida-syntax/) — Complete syntax documentation
-- [Use Pipeline Operator](/docs/theming/templating/kida/use-pipeline-operator/) — Combine with other KIDA features
+- [Kida Syntax Reference](/docs/reference/kida-syntax/) — Complete syntax documentation
+- [Use Pipeline Operator](/docs/theming/templating/kida/use-pipeline-operator/) — Combine with other Kida features
 
 :::{seealso}
-- [KIDA Tutorial](/docs/tutorials/getting-started-with-kida/) — Learn KIDA from scratch
+- [Kida Tutorial](/docs/tutorials/getting-started-with-kida/) — Learn Kida from scratch
 - [Template Functions](/docs/theming/templating/functions/) — Available filters and functions
 :::
-

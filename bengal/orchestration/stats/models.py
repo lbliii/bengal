@@ -94,6 +94,7 @@ class BuildStats:
     block_cache_hits: int = 0  # Times cached block was reused
     block_cache_misses: int = 0  # Times block wasn't in cache
     block_cache_site_blocks: int = 0  # Number of site-scoped blocks cached
+    block_cache_time_saved_ms: float = 0.0  # Estimated time saved by block caching
 
     # Additional phase timings (Phase 2)
     menu_time_ms: float = 0
@@ -272,4 +273,5 @@ class BuildStats:
             "block_cache_hits": self.block_cache_hits,
             "block_cache_misses": self.block_cache_misses,
             "block_cache_site_blocks": self.block_cache_site_blocks,
+            "block_cache_time_saved_ms": self.block_cache_time_saved_ms,
         }

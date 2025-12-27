@@ -1,7 +1,7 @@
 ---
 title: Create a Custom Template
 nav_title: Custom Template
-description: Build a custom template from scratch using KIDA syntax
+description: Build a custom template from scratch using Kida syntax
 weight: 10
 type: doc
 draft: false
@@ -19,7 +19,7 @@ category: guide
 
 # Create a Custom Template
 
-Learn how to create a custom template using KIDA syntax. This guide walks through building a blog post template from scratch.
+Learn how to create a custom template using Kida syntax. This guide walks through building a blog post template from scratch.
 
 ## Goal
 
@@ -32,7 +32,7 @@ Create a custom blog post template that:
 ## Prerequisites
 
 - Bengal site initialized
-- KIDA enabled in `bengal.yaml`:
+- Kida enabled in `bengal.yaml`:
   ```yaml
   site:
     template_engine: kida
@@ -90,16 +90,16 @@ Override the `content` block to display your post:
   <article class="blog-post">
     <header>
       <h1>{{ post.title }}</h1>
-      
+
       <div class="post-meta">
         <time datetime="{{ post.date | dateformat('%Y-%m-%d') }}">
           {{ post.date | dateformat('%B %d, %Y') }}
         </time>
-        
+
         {% if author.name %}
           <span class="author">By {{ author.name }}</span>
         {% end %}
-        
+
         <span class="reading-time">{{ reading_time }} min read</span>
       </div>
     </header>
@@ -195,7 +195,7 @@ Cache expensive operations:
       |> where('tags', post.tags[0])
       |> where('id', '!=', post.id)
       |> take(3) %}
-    
+
     {% if related %}
       <aside class="related-posts">
         <h2>Related Posts</h2>
@@ -232,16 +232,16 @@ Here's a complete blog post template:
   <article class="blog-post">
     <header>
       <h1>{{ post.title }}</h1>
-      
+
       <div class="post-meta">
         <time datetime="{{ post.date | dateformat('%Y-%m-%d') }}">
           {{ post.date | dateformat('%B %d, %Y') }}
         </time>
-        
+
         {% if author.name %}
           <span class="author">By {{ author.name }}</span>
         {% end %}
-        
+
         <span class="reading-time">{{ reading_time }} min read</span>
       </div>
     </header>
@@ -295,12 +295,11 @@ Visit a blog post page to see your custom template in action.
 
 ## Next Steps
 
-- [Add Custom Filters](/docs/theming/templating/kida/add-custom-filter/) — Extend KIDA with your own filters
+- [Add Custom Filters](/docs/theming/templating/kida/add-custom-filter/) — Extend Kida with your own filters
 - [Use Pattern Matching](/docs/theming/templating/kida/use-pattern-matching/) — Clean up conditional logic
 - [Cache Fragments](/docs/theming/templating/kida/cache-fragments/) — Improve performance
 
 :::{seealso}
-- [KIDA Syntax Reference](/docs/reference/kida-syntax/) — Complete syntax documentation
+- [Kida Syntax Reference](/docs/reference/kida-syntax/) — Complete syntax documentation
 - [Template Functions](/docs/theming/templating/functions/) — Available filters and functions
 :::
-

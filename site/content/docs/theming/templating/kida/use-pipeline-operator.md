@@ -19,7 +19,7 @@ category: guide
 
 # Use Pipeline Operator
 
-Learn how to use KIDA's pipeline operator (`|>`) to write readable, left-to-right filter chains.
+Learn how to use Kida's pipeline operator (`|>`) to write readable, left-to-right filter chains.
 
 ## Goal
 
@@ -41,7 +41,7 @@ The pipeline operator (`|>`) provides:
 {{ items | where('published', true) | sort_by('date') | take(5) }}
 ```
 
-**KIDA pipeline** (left-to-right):
+**Kida pipeline** (left-to-right):
 ```kida
 {{ items |> where('published', true) |> sort_by('date') |> take(5) }}
 ```
@@ -215,7 +215,7 @@ Add comments to explain each step:
 
 <div class="author-stats">
   <p>{{ author.name }} has written {{ total_posts }} posts.</p>
-  
+
   <h3>Recent Posts</h3>
   <ul>
     {% for post in recent_posts %}
@@ -255,7 +255,7 @@ Add comments to explain each step:
     |> where('draft', false)
     |> sort_by('date', reverse=true)
     |> take(10) %}
-  
+
   <ul>
     {% for post in recent %}
       <li><a href="{{ post.url }}">{{ post.title }}</a></li>
@@ -354,10 +354,9 @@ Here's a complete template using pipeline operators:
 
 - [Create Custom Template](/docs/theming/templating/kida/create-custom-template/) — Build templates using pipelines
 - [Cache Fragments](/docs/theming/templating/kida/cache-fragments/) — Cache pipeline results
-- [KIDA Syntax Reference](/docs/reference/kida-syntax/) — Complete syntax documentation
+- [Kida Syntax Reference](/docs/reference/kida-syntax/) — Complete syntax documentation
 
 :::{seealso}
-- [KIDA Tutorial](/docs/tutorials/getting-started-with-kida/) — Learn KIDA from scratch
+- [Kida Tutorial](/docs/tutorials/getting-started-with-kida/) — Learn Kida from scratch
 - [Template Functions](/docs/theming/templating/functions/) — Available filters
 :::
-

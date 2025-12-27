@@ -295,6 +295,10 @@ class Renderer:
             # Inject cached blocks into context for template to use
             if cached_blocks:
                 context["_cached_blocks"] = cached_blocks
+                # Inject stats object so CachedBlocksDict can record hits
+                if hasattr(self.block_cache, "_stats"):
+                    context["_cached_stats"] = self.block_cache._stats
+
                 logger.debug(
                     "renderer_using_cached_blocks",
                     template=template_name,

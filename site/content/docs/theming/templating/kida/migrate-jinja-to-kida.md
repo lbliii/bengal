@@ -1,7 +1,7 @@
 ---
-title: Migrate from Jinja2 to KIDA
+title: Migrate from Jinja2 to Kida
 nav_title: Migrate from Jinja2
-description: Convert existing Jinja2 templates to KIDA syntax
+description: Convert existing Jinja2 templates to Kida syntax
 weight: 50
 type: doc
 draft: false
@@ -18,13 +18,13 @@ keywords:
 category: guide
 ---
 
-# Migrate from Jinja2 to KIDA
+# Migrate from Jinja2 to Kida
 
-Learn how to convert existing Jinja2 templates to KIDA syntax for better performance and modern features.
+Learn how to convert existing Jinja2 templates to Kida syntax for better performance and modern features.
 
 ## Goal
 
-Migrate your Jinja2 templates to KIDA syntax while maintaining functionality and unlocking performance benefits.
+Migrate your Jinja2 templates to Kida syntax while maintaining functionality and unlocking performance benefits.
 
 ## Prerequisites
 
@@ -36,16 +36,16 @@ Migrate your Jinja2 templates to KIDA syntax while maintaining functionality and
 
 ### Phase 1: Compatibility Mode (Zero Changes)
 
-KIDA is Bengal's default engine and can parse Jinja2 syntax. Your existing Jinja2 templates work without changes.
+Kida is Bengal's default engine and can parse Jinja2 syntax. Your existing Jinja2 templates work without changes.
 
 :::{tip}
-**Already using KIDA**: Since KIDA is the default engine, new Bengal sites already use KIDA. Your Jinja2 templates work, but you can migrate to KIDA syntax to unlock additional features and performance.
+**Already using Kida**: Since Kida is the default engine, new Bengal sites already use Kida. Your Jinja2 templates work, but you can migrate to Kida syntax to unlock additional features and performance.
 :::
 
 ### Phase 2: Gradual Migration
 
 Migrate templates incrementally, starting with:
-1. New templates (use KIDA syntax)
+1. New templates (use Kida syntax)
 2. Frequently-used templates (biggest performance gain)
 3. Simple templates (easiest to migrate)
 4. Complex templates (last)
@@ -65,7 +65,7 @@ Migrate templates incrementally, starting with:
 {% endfor %}
 ```
 
-**KIDA**:
+**Kida**:
 ```kida
 {% if condition %}
   Content
@@ -86,7 +86,7 @@ Migrate templates incrementally, starting with:
 {# Available in current block only #}
 ```
 
-**KIDA**:
+**Kida**:
 ```kida
 {% let site_title = site.config.title %}
 {# Available throughout template #}
@@ -109,7 +109,7 @@ Migrate templates incrementally, starting with:
 {% endif %}
 ```
 
-**KIDA**:
+**Kida**:
 ```kida
 {% match page.type %}
   {% case "blog" %}
@@ -132,12 +132,12 @@ Migrate templates incrementally, starting with:
 {{ items | selectattr('published') | sort(attribute='date') | first }}
 ```
 
-**KIDA**:
+**Kida**:
 ```kida
 {{ items |> where('published', true) |> sort_by('date') |> first }}
 ```
 
-**Migration**: Replace `|` with `|>` and use KIDA filter names (`where` instead of `selectattr`, `sort_by` instead of `sort`).
+**Migration**: Replace `|` with `|>` and use Kida filter names (`where` instead of `selectattr`, `sort_by` instead of `sort`).
 
 ### Fallback Values
 
@@ -147,13 +147,13 @@ Migrate templates incrementally, starting with:
 {{ name | default('Anonymous') | upper }}
 ```
 
-**KIDA** (simple fallbacks):
+**Kida** (simple fallbacks):
 ```kida
 {{ user.name ?? 'Anonymous' }}
 {{ config.timeout ?? 30 }}
 ```
 
-**KIDA** (fallbacks with filter chains):
+**Kida** (fallbacks with filter chains):
 ```kida
 {# Use | default() when applying filters after the fallback #}
 {{ items | default([]) | length }}
@@ -183,7 +183,7 @@ Migrate templates incrementally, starting with:
 {% endcache %}
 ```
 
-**KIDA** (built-in):
+**Kida** (built-in):
 ```kida
 {% cache "key" %}
   Expensive content
@@ -296,7 +296,7 @@ bengal serve
 
 ## Filter Name Mapping
 
-| Jinja2 Filter | KIDA Filter | Notes |
+| Jinja2 Filter | Kida Filter | Notes |
 |--------------|------------|-------|
 | `selectattr('key')` | `where('key', true)` | Boolean check |
 | `selectattr('key', 'eq', val)` | `where('key', val)` | Equality |
@@ -314,7 +314,7 @@ bengal serve
 {% set posts = site.pages | selectattr('type', 'eq', 'blog') | selectattr('draft', 'eq', false) | sort(attribute='date', reverse=true) %}
 ```
 
-**KIDA**:
+**Kida**:
 ```kida
 {% let posts = site.pages
   |> where('type', 'blog')
@@ -335,7 +335,7 @@ bengal serve
 {% endif %}
 ```
 
-**KIDA**:
+**Kida**:
 ```kida
 {% match page.type %}
   {% case "blog" %}
@@ -355,7 +355,7 @@ bengal serve
 {% set nav_items = site.menus.main %}
 ```
 
-**KIDA**:
+**Kida**:
 ```kida
 {% let site_title = site.config.title %}
 {% let nav_items = site.menus.main %}
@@ -363,12 +363,12 @@ bengal serve
 
 ## Migration Checklist
 
-- [ ] Enable KIDA in `bengal.yaml`
+- [ ] Enable Kida in `bengal.yaml`
 - [ ] Test templates work in compatibility mode
 - [ ] Replace `{% endif %}`, `{% endfor %}`, etc. with `{% end %}`
 - [ ] Replace template-wide `{% set %}` with `{% let %}`
 - [ ] Convert long `if/elif` chains to pattern matching
-- [ ] Update filter chains to use `|>` and KIDA filter names
+- [ ] Update filter chains to use `|>` and Kida filter names
 - [ ] Add fragment caching where appropriate
 - [ ] Test all templates
 - [ ] Remove Jinja2 compatibility code
@@ -384,14 +384,14 @@ bengal build --verbose
 
 ### Filter Not Found
 
-KIDA uses different filter names. Check the [KIDA Syntax Reference](/docs/reference/kida-syntax/) for available filters.
+Kida uses different filter names. Check the [Kida Syntax Reference](/docs/reference/kida-syntax/) for available filters.
 
 ### Syntax Errors
 
-KIDA is stricter than Jinja2. Check:
+Kida is stricter than Jinja2. Check:
 - All blocks properly closed with `{% end %}`
 - Variables defined before use
-- Filter names match KIDA syntax
+- Filter names match Kida syntax
 
 ## Complete Example
 
@@ -422,7 +422,7 @@ KIDA is stricter than Jinja2. Check:
 {% endblock %}
 ```
 
-**After (KIDA)**:
+**After (Kida)**:
 ```kida
 {% extends "baseof.html" %}
 
@@ -456,11 +456,11 @@ KIDA is stricter than Jinja2. Check:
 
 ## Next Steps
 
-- [KIDA Syntax Reference](/docs/reference/kida-syntax/) — Complete syntax documentation
-- [KIDA Tutorial](/docs/tutorials/getting-started-with-kida/) — Learn KIDA from scratch
-- [Create Custom Template](/docs/theming/templating/kida/create-custom-template/) — Build new templates with KIDA
+- [Kida Syntax Reference](/docs/reference/kida-syntax/) — Complete syntax documentation
+- [Kida Tutorial](/docs/tutorials/getting-started-with-kida/) — Learn Kida from scratch
+- [Create Custom Template](/docs/theming/templating/kida/create-custom-template/) — Build new templates with Kida
 
 :::{seealso}
 - [Template Functions](/docs/theming/templating/functions/) — Available filters and functions
-- [Performance Guide](/docs/building/performance/) — Performance benefits of KIDA
+- [Performance Guide](/docs/building/performance/) — Performance benefits of Kida
 :::

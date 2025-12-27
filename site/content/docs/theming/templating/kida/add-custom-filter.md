@@ -1,7 +1,7 @@
 ---
 title: Add a Custom Filter
 nav_title: Custom Filter
-description: Extend KIDA with your own template filters
+description: Extend Kida with your own template filters
 weight: 20
 type: doc
 draft: false
@@ -20,7 +20,7 @@ category: guide
 
 # Add a Custom Filter
 
-Learn how to create and register custom filters for KIDA templates in Bengal.
+Learn how to create and register custom filters for Kida templates in Bengal.
 
 ## Goal
 
@@ -29,7 +29,7 @@ Create a custom filter that formats currency values and use it in templates.
 ## Prerequisites
 
 - Bengal site initialized
-- KIDA enabled in `bengal.yaml`
+- Kida enabled in `bengal.yaml`
 - Python knowledge
 
 ## Steps
@@ -49,11 +49,11 @@ Define your filter function:
 # python/filters.py
 def currency(value: float, symbol: str = "$") -> str:
     """Format a number as currency.
-    
+
     Args:
         value: Numeric value to format
         symbol: Currency symbol (default: "$")
-    
+
     Returns:
         Formatted string like "$1,234.56"
     """
@@ -79,8 +79,8 @@ from bengal.core import Site
 from .filters import currency
 
 def register_filters(site: Site) -> None:
-    """Register custom KIDA filters."""
-    # Get the KIDA environment from the template engine
+    """Register custom Kida filters."""
+    # Get the Kida environment from the template engine
     if hasattr(site, '_template_engine') and site._template_engine:
         env = site._template_engine._env
         env.add_filter("currency", currency)
@@ -118,22 +118,22 @@ Use your custom filter in templates:
 # python/filters.py
 def truncate_words(value: str, length: int = 50, suffix: str = "...") -> str:
     """Truncate text to a specific word count.
-    
+
     Args:
         value: Text to truncate
         length: Maximum word count
         suffix: Text to append if truncated
-    
+
     Returns:
         Truncated text
     """
     if not value:
         return ""
-    
+
     words = value.split()
     if len(words) <= length:
         return value
-    
+
     return " ".join(words[:length]) + suffix
 ```
 
@@ -160,25 +160,25 @@ Access template context in filters:
 # python/filters.py
 def relative_date(value, context=None):
     """Format date relative to current date.
-    
+
     Args:
         value: Date to format
         context: Template context (auto-injected)
-    
+
     Returns:
         Relative date string like "2 days ago"
     """
     from datetime import datetime
-    
+
     if not value:
         return ""
-    
+
     if isinstance(value, str):
         value = datetime.fromisoformat(value)
-    
+
     now = datetime.now()
     delta = now - value
-    
+
     if delta.days == 0:
         return "Today"
     elif delta.days == 1:
@@ -199,7 +199,7 @@ from .filters import relative_date
 
 def register_filters(site: Site) -> None:
     env = site._template_engine._env
-    # KIDA automatically passes context to filters
+    # Kida automatically passes context to filters
     env.add_filter("relative_date", relative_date)
 ```
 
@@ -216,18 +216,18 @@ Create a filter that works on collections:
 # python/filters.py
 def where_contains(items, key, value):
     """Filter items where key contains value.
-    
+
     Args:
         items: List of dictionaries
         key: Key to check
         value: Value to search for
-    
+
     Returns:
         Filtered list
     """
     if not items:
         return []
-    
+
     return [
         item for item in items
         if value.lower() in str(item.get(key, "")).lower()
@@ -260,11 +260,11 @@ from bengal.core import Site
 def register_filters(site: Site) -> None:
     """Register all custom filters."""
     env = site._template_engine._env
-    
+
     @env.filter()
     def currency(value: float, symbol: str = "$") -> str:
         return f"{symbol}{value:,.2f}"
-    
+
     @env.filter()
     def truncate_words(value: str, length: int = 50) -> str:
         words = value.split()
@@ -304,7 +304,7 @@ def test_truncate_words():
 
 ```python
 # python/filters.py
-"""Custom KIDA template filters."""
+"""Custom Kida template filters."""
 
 def currency(value: float | None, symbol: str = "$") -> str:
     """Format a number as currency."""
@@ -316,26 +316,26 @@ def truncate_words(value: str | None, length: int = 50, suffix: str = "...") -> 
     """Truncate text to a specific word count."""
     if not value:
         return ""
-    
+
     words = value.split()
     if len(words) <= length:
         return value
-    
+
     return " ".join(words[:length]) + suffix
 
 def relative_date(value, context=None) -> str:
     """Format date relative to current date."""
     from datetime import datetime
-    
+
     if not value:
         return ""
-    
+
     if isinstance(value, str):
         value = datetime.fromisoformat(value)
-    
+
     now = datetime.now()
     delta = now - value
-    
+
     if delta.days == 0:
         return "Today"
     elif delta.days == 1:
@@ -354,7 +354,7 @@ from bengal.core import Site
 from .filters import currency, truncate_words, relative_date
 
 def register_filters(site: Site) -> None:
-    """Register custom KIDA filters."""
+    """Register custom Kida filters."""
     if hasattr(site, '_template_engine') and site._template_engine:
         env = site._template_engine._env
         env.add_filter("currency", currency)
@@ -372,10 +372,9 @@ build_hooks:
 
 - [Use Pipeline Operator](/docs/theming/templating/kida/use-pipeline-operator/) — Chain filters together
 - [Create Custom Template](/docs/theming/templating/kida/create-custom-template/) — Build templates with your filters
-- [KIDA Syntax Reference](/docs/reference/kida-syntax/) — Complete syntax documentation
+- [Kida Syntax Reference](/docs/reference/kida-syntax/) — Complete syntax documentation
 
 :::{seealso}
 - [Template Functions Reference](/docs/reference/template-functions/) — Built-in filters
 - [Build Hooks](/docs/extending/build-hooks/) — More customization options
 :::
-

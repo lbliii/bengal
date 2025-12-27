@@ -1,6 +1,6 @@
 ---
-title: KIDA Template Engine
-nav_title: KIDA
+title: Kida Template Engine
+nav_title: Kida
 description: Next-generation template engine optimized for performance and free-threaded Python
 weight: 10
 type: doc
@@ -19,17 +19,17 @@ keywords:
 category: explanation
 ---
 
-# KIDA Template Engine
+# Kida Template Engine
 
-**KIDA** is a next-generation template engine designed from the ground up for **free-threaded Python (3.14t+)** and optimized for performance. It serves as Bengal's default template engine, achieving **5.6x faster rendering than Jinja2** with zero external C dependencies.
+**Kida** is a next-generation template engine designed from the ground up for **free-threaded Python (3.14t+)** and optimized for performance. It serves as Bengal's default template engine, achieving **5.6x faster rendering than Jinja2** with zero external C dependencies.
 
 :::{tip}
-**New to KIDA?** Start with the [KIDA Tutorial](/docs/tutorials/getting-started-with-kida/) for a hands-on introduction, or read the [Overview](/docs/theming/templating/kida/overview/) to understand why KIDA is a serious choice for production applications.
+**New to Kida?** Start with the [Kida Tutorial](/docs/tutorials/getting-started-with-kida/) for a hands-on introduction, or read the [Overview](/docs/theming/templating/kida/overview/) to understand why Kida is a serious choice for production applications.
 :::
 
-## Why KIDA?
+## Why Kida?
 
-KIDA is not just another template engine—it's a **production-ready, high-performance solution** built for modern Python applications:
+Kida is not just another template engine—it's a **production-ready, high-performance solution** built for modern Python applications:
 
 ### Performance
 
@@ -55,7 +55,7 @@ KIDA is not just another template engine—it's a **production-ready, high-perfo
 
 ## Quick Start
 
-KIDA is Bengal's default template engine. No configuration needed:
+Kida is Bengal's default template engine. No configuration needed:
 
 ```kida
 {# templates/page.html #}
@@ -67,7 +67,7 @@ KIDA is Bengal's default template engine. No configuration needed:
 {% end %}
 ```
 
-Your existing Jinja2 templates work without changes—KIDA can parse Jinja2 syntax automatically.
+Your existing Jinja2 templates work without changes—Kida can parse Jinja2 syntax automatically.
 
 ## Documentation Structure
 
@@ -78,14 +78,14 @@ Your existing Jinja2 templates work without changes—KIDA can parse Jinja2 synt
 :::{card} Overview
 :icon: info-circle
 :link: ./overview
-:description: Understand why KIDA is a serious, production-ready template engine
+:description: Understand why Kida is a serious, production-ready template engine
 :color: blue
 :::{/card}
 
 :::{card} Architecture
 :icon: sitemap
 :link: ./architecture
-:description: Deep dive into KIDA's AST-to-AST compilation and performance optimizations
+:description: Deep dive into Kida's AST-to-AST compilation and performance optimizations
 :color: purple
 :::{/card}
 
@@ -99,28 +99,28 @@ Your existing Jinja2 templates work without changes—KIDA can parse Jinja2 synt
 :::{card} Syntax Reference
 :icon: book
 :link: /docs/reference/kida-syntax
-:description: Complete reference for KIDA template syntax, operators, and features
+:description: Complete reference for Kida template syntax, operators, and features
 :color: green
 :::{/card}
 
 :::{card} Tutorial
 :icon: graduation-cap
 :link: /docs/tutorials/getting-started-with-kida
-:description: Learn KIDA step-by-step with hands-on examples
+:description: Learn Kida step-by-step with hands-on examples
 :color: teal
 :::{/card}
 
 :::{card} Migration Guide
 :icon: arrow-right
 :link: ./migrate-jinja-to-kida
-:description: Convert existing Jinja2 templates to KIDA syntax
+:description: Convert existing Jinja2 templates to Kida syntax
 :color: indigo
 :::{/card}
 
 :::{card} How-Tos
 :icon: wrench
 :link: ./how-tos
-:description: Step-by-step guides for common KIDA tasks
+:description: Step-by-step guides for common Kida tasks
 :color: cyan
 :::{/card}
 
@@ -184,7 +184,7 @@ Fragment caching as a language feature—no extensions required.
 
 ### Automatic Block Caching
 
-KIDA automatically detects and caches site-scoped blocks (navigation, footer, sidebar) that don't depend on page-specific data. This provides **10-100x faster builds** with zero template changes.
+Kida automatically detects and caches site-scoped blocks (navigation, footer, sidebar) that don't depend on page-specific data. This provides **10-100x faster builds** with zero template changes.
 
 ```kida
 {# Automatically cached - depends only on site.pages #}
@@ -233,7 +233,7 @@ Functions have access to outer scope (unlike Jinja2 macros).
 
 ## Production Ready
 
-KIDA is used in production by Bengal and is designed for:
+Kida is used in production by Bengal and is designed for:
 
 - **High-traffic websites**: 5.6x faster rendering means lower server costs
 - **Large sites**: Automatic block caching enables 10-100x faster builds
@@ -243,14 +243,14 @@ KIDA is used in production by Bengal and is designed for:
 
 ## Next Steps
 
-- **New to KIDA?** → [Tutorial](/docs/tutorials/getting-started-with-kida/)
+- **New to Kida?** → [Tutorial](/docs/tutorials/getting-started-with-kida/)
 - **Want to understand why?** → [Overview](/docs/theming/templating/kida/overview/)
 - **Need syntax help?** → [Syntax Reference](/docs/reference/kida-syntax/)
 - **Migrating from Jinja2?** → [Migration Guide](/docs/theming/templating/kida/migrate-jinja-to-kida/)
 - **Looking for patterns?** → [How-Tos](/docs/theming/templating/kida/how-tos/)
 
 :::{seealso}
-- [KIDA Architecture](/docs/theming/templating/kida/architecture/) — Deep dive into how KIDA works
-- [KIDA Performance](/docs/theming/templating/kida/performance/) — Benchmarks and optimization strategies
+- [Kida Architecture](/docs/theming/templating/kida/architecture/) — Deep dive into how Kida works
+- [Kida Performance](/docs/theming/templating/kida/performance/) — Benchmarks and optimization strategies
 - [Template Functions Reference](/docs/reference/template-functions/) — Available filters and functions
 :::

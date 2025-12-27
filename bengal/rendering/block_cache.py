@@ -81,6 +81,7 @@ class BlockCache:
             "hits": 0,
             "misses": 0,
             "site_blocks_cached": 0,
+            "total_render_time_ms": 0.0,
         }
 
     def analyze_template(
@@ -212,6 +213,8 @@ class BlockCache:
             return 0
 
         # Render and cache site-scoped blocks
+        import time
+
         cached_count = 0
         for block_name, scope in cacheable.items():
             if scope != "site":
@@ -224,7 +227,11 @@ class BlockCache:
 
             # Render block
             try:
+                start_time = time.perf_counter()
                 html = template.render_block(block_name, site_context)
+                duration = (time.perf_counter() - start_time) * 1000
+                self._stats["total_render_time_ms"] += duration
+
                 self.set(template_name, block_name, html, scope="site")
                 cached_count += 1
             except Exception as e:
@@ -263,11 +270,22 @@ class BlockCache:
         total = self._stats["hits"] + self._stats["misses"]
         hit_rate = (self._stats["hits"] / total * 100) if total > 0 else 0
 
+        # Estimate time saved (hits * avg render time of cached blocks)
+        avg_render_time = 0.0
+        if self._stats["site_blocks_cached"] > 0:
+            avg_render_time = (
+                self._stats["total_render_time_ms"] / self._stats["site_blocks_cached"]
+            )
+
+        time_saved_ms = self._stats["hits"] * avg_render_time
+
         return {
             "hits": self._stats["hits"],
             "misses": self._stats["misses"],
             "site_blocks_cached": self._stats["site_blocks_cached"],
             "hit_rate_pct": round(hit_rate, 1),
+            "total_render_time_ms": self._stats["total_render_time_ms"],
+            "time_saved_ms": time_saved_ms,
         }
 
     def is_cacheable(self, template_name: str, block_name: str) -> bool:

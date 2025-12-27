@@ -335,6 +335,15 @@ def create_cache_stats_panel(stats: BuildStats) -> Panel | None:
             )
             lines.append(Text(f"   Reused: {block_hits:>4}x", style="green"))
 
+            # Time savings estimate for blocks
+            block_time_saved = getattr(stats, "block_cache_time_saved_ms", 0)
+            if block_time_saved > 0:
+                if block_time_saved < 1000:
+                    saved_str = f"{int(block_time_saved)}ms"
+                else:
+                    saved_str = f"{block_time_saved / 1000:.2f}s"
+                lines.append(Text(f"   ⚡ Time Saved: {saved_str}", style="cyan"))
+
     # Return None if no cache data at all
     if not lines:
         return None

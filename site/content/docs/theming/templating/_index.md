@@ -1,6 +1,6 @@
 ---
 title: Templating
-description: KIDA template engine, layouts, inheritance, and partials
+description: Kida template engine, layouts, inheritance, and partials
 weight: 10
 category: guide
 icon: code
@@ -8,16 +8,16 @@ card_color: blue
 ---
 # Templating
 
-Bengal's template system uses **KIDA** as the default engine, with support for Jinja2 and custom engines.
+Bengal's template system uses **Kida** as the default engine, with support for Jinja2 and custom engines.
 
 ## Template Engines
 
-- **[KIDA](/docs/reference/kida-syntax/)** — Bengal's native template engine (default). 5.6x faster, modern syntax, pattern matching, pipeline operators
+- **[Kida](/docs/reference/kida-syntax/)** — Bengal's native template engine (default). 5.6x faster, modern syntax, pattern matching, pipeline operators
 - **[Jinja2](https://jinja.palletsprojects.com/)** — Industry-standard engine with excellent documentation and tooling
 - **Custom engines** — Bring your own via the plugin API
 
 :::{tip}
-**KIDA is Jinja2-compatible**: Your existing Jinja2 templates work without changes. Use KIDA-specific features incrementally.
+**Kida is Jinja2-compatible**: Your existing Jinja2 templates work without changes. Use Kida-specific features incrementally.
 :::
 
 ## Template Lookup Order
@@ -105,9 +105,9 @@ flowchart TB
     B --> D
 ```
 
-## KIDA Features
+## Kida Features
 
-KIDA is Bengal's default template engine with modern syntax and better performance:
+Kida is Bengal's default template engine with modern syntax and better performance:
 
 - **Unified syntax**: `{% end %}` closes all blocks (no more `{% endif %}`, `{% endfor %}`)
 - **Pattern matching**: `{% match %}...{% case %}` for cleaner conditionals
@@ -119,34 +119,34 @@ KIDA is Bengal's default template engine with modern syntax and better performan
 :columns: 2
 :gap: small
 
-:::{card} KIDA Syntax Reference
+:::{card} Kida Syntax Reference
 :icon: book
 :link: /docs/reference/kida-syntax/
-:description: Complete KIDA syntax documentation
+:description: Complete Kida syntax documentation
 :::{/card}
 
-:::{card} KIDA Tutorial
+:::{card} Kida Tutorial
 :icon: notepad
 :link: /docs/tutorials/getting-started-with-kida/
-:description: Learn KIDA from scratch
+:description: Learn Kida from scratch
 :::{/card}
 
-:::{card} KIDA How-Tos
+:::{card} Kida How-Tos
 :icon: code
 :link: /docs/theming/templating/kida/
-:description: Common KIDA tasks and patterns
+:description: Common Kida tasks and patterns
 :::{/card}
 
 :::{card} Migrate from Jinja2
 :icon: arrow-right
 :link: /docs/theming/templating/kida/migrate-jinja-to-kida/
-:description: Convert Jinja2 templates to KIDA
+:description: Convert Jinja2 templates to Kida
 :::{/card}
 :::{/cards}
 
 ## Choose Your Engine
 
-KIDA is the default. To use a different engine, configure `bengal.yaml`:
+Kida is the default. To use a different engine, configure `bengal.yaml`:
 
 ```yaml
 site:

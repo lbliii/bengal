@@ -24,10 +24,10 @@ keywords:
 category: documentation
 ---
 
-Bengal uses KIDA as its default template engine (with Jinja2 and custom engines also supported). This guide explains what data is available in templates and how to access site and page data.
+Bengal uses Kida as its default template engine (with Jinja2 and custom engines also supported). This guide explains what data is available in templates and how to access site and page data.
 
 :::{tip}
-Examples in this guide use KIDA syntax, but concepts apply to all engines. KIDA is Jinja2-compatible, so Jinja2 templates work without changes.
+Examples in this guide use Kida syntax, but concepts apply to all engines. Kida is Jinja2-compatible, so Jinja2 templates work without changes.
 :::
 
 ## The Template Context

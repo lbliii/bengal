@@ -20,7 +20,7 @@ category: guide
 
 # Cache Template Fragments
 
-Learn how to use KIDA's built-in fragment caching to improve template rendering performance.
+Learn how to use Kida's built-in fragment caching to improve template rendering performance.
 
 ## Goal
 
@@ -123,7 +123,7 @@ Cache related post calculations:
     |> where('id', '!=', post.id)
     |> sort_by('date', reverse=true)
     |> take(5) %}
-  
+
   {% if related %}
     <aside class="related-posts">
       <h2>Related Posts</h2>
@@ -149,7 +149,7 @@ Cache expensive statistics calculations:
   {% let total_posts = site.pages |> where('type', 'blog') |> length %}
   {% let total_docs = site.pages |> where('type', 'doc') |> length %}
   {% let total_tags = site.tags |> length %}
-  
+
   <div class="stats">
     <div class="stat">
       <span class="value">{{ total_posts }}</span>
@@ -178,7 +178,7 @@ Cache author data processing:
     |> where('author', page.author)
     |> where('type', 'blog')
     |> length %}
-  
+
   <div class="author-card">
     {% if author.name %}
       <h3>{{ author.name }}</h3>
@@ -201,7 +201,7 @@ Cache tag cloud generation:
     |> items()
     |> sort_by('count', reverse=true)
     |> take(20) %}
-  
+
   <div class="tag-cloud">
     {% for tag in tags %}
       <a href="{{ tag_url(tag.name) }}" class="tag tag-{{ tag.count }}">
@@ -331,7 +331,7 @@ Here's a complete template using fragment caching:
   <article class="blog-post">
     <header>
       <h1>{{ post.title }}</h1>
-      
+
       {% cache "post-meta-" ~ post.id %}
         <div class="post-meta">
           <time>{{ post.date | dateformat('%B %d, %Y') }}</time>
@@ -351,7 +351,7 @@ Here's a complete template using fragment caching:
         |> where('id', '!=', post.id)
         |> sort_by('date', reverse=true)
         |> take(5) %}
-      
+
       {% if related %}
         <aside class="related-posts">
           <h2>Related Posts</h2>
@@ -370,7 +370,7 @@ Here's a complete template using fragment caching:
   {% cache "sidebar-nav-" ~ site.nav_version %}
     {{ build_sidebar_nav(site.pages) }}
   {% end %}
-  
+
   {% cache "tag-cloud", ttl="1h" %}
     {{ build_tag_cloud(site.tags) }}
   {% end %}
@@ -380,11 +380,10 @@ Here's a complete template using fragment caching:
 ## Next Steps
 
 - [Create Custom Template](/docs/theming/templating/kida/create-custom-template/) — Build templates with caching
-- [KIDA Syntax Reference](/docs/reference/kida-syntax/) — Complete syntax documentation
+- [Kida Syntax Reference](/docs/reference/kida-syntax/) — Complete syntax documentation
 - [Performance Guide](/docs/building/performance/) — More performance tips
 
 :::{seealso}
-- [KIDA Tutorial](/docs/tutorials/getting-started-with-kida/) — Learn KIDA from scratch
+- [Kida Tutorial](/docs/tutorials/getting-started-with-kida/) — Learn Kida from scratch
 - [Template Functions](/docs/theming/templating/functions/) — Available filters and functions
 :::
-
