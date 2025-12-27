@@ -1,25 +1,5 @@
-{# Link Previews Configuration Bridge & Script #}
-{# Wikipedia-style hover cards powered by per-page JSON #}
-{% let _link_previews = site.link_previews %}
-{% let _per_page_json = config.output_formats.enabled and 'json' in (config.output_formats.per_page ?? []) %}
-{% if _link_previews.enabled and _per_page_json %}
-<script id="bengal-config" type="application/json">
-{{ {
-  "linkPreviews": {
-    "enabled": true,
-    "debug": config.debug ?? false,
-    "hoverDelay": _link_previews.hover_delay ?? 200,
-    "hideDelay": _link_previews.hide_delay ?? 150,
-    "showSection": _link_previews.show_section ?? true,
-    "showReadingTime": _link_previews.show_reading_time ?? true,
-    "showWordCount": _link_previews.show_word_count ?? true,
-    "showDate": _link_previews.show_date ?? true,
-    "showTags": _link_previews.show_tags ?? true,
-    "maxTags": _link_previews.max_tags ?? 3,
-    "includeSelectors": _link_previews.include_selectors ?? [".prose"],
-    "excludeSelectors": _link_previews.exclude_selectors ?? ["nav", ".toc", ".breadcrumb", ".pagination", ".card", "[class*='-card']", ".tab-nav", "[class*='-widget']", ".child-items", ".content-tiles"]
-  }
-} | tojson }}
-</script>
+{# Link Previews - Wikipedia-style hover cards #}
+{# Self-sufficient: auto-detects if JSON files are available #}
+{% if site.link_previews.enabled ?? true %}
 <script defer src="{{ asset_url('js/enhancements/link-previews.js') }}"></script>
 {% end %}

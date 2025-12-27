@@ -560,11 +560,26 @@ class DevServer:
         verifies the process is actually a Bengal process and offers to
         terminate it gracefully.
 
+        Also checks if the target port is currently held by a Bengal process,
+        even if no PID file exists, providing a safety net for lost PID files.
+
         Raises:
             OSError: If stale process cannot be killed and user chooses not to continue
         """
         pid_file = PIDManager.get_pid_file(self.site.root_path)
         stale_pid = PIDManager.check_stale_pid(pid_file)
+
+        # If no PID file, check if a Bengal process is already on our preferred port
+        # This handles cases where the PID file was lost or we're restarting
+        if not stale_pid:
+            port_pid = PIDManager.get_process_on_port(self.port)
+            if port_pid and PIDManager.is_bengal_process(port_pid):
+                stale_pid = port_pid
+                logger.info(
+                    "bengal_process_found_on_port_without_pid_file",
+                    pid=stale_pid,
+                    port=self.port,
+                )
 
         if stale_pid:
             port_pid = PIDManager.get_process_on_port(self.port)

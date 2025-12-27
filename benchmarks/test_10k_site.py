@@ -92,6 +92,7 @@ theme = "default"
 
 @pytest.mark.slow
 @pytest.mark.benchmark
+@pytest.mark.memory_intensive(limit_gb=2.0)
 def test_10k_site_discovery_performance(tmp_path: Path) -> None:
     """Benchmark content discovery for 10k pages.
 
@@ -129,6 +130,7 @@ def test_10k_site_discovery_performance(tmp_path: Path) -> None:
 
 @pytest.mark.slow
 @pytest.mark.benchmark
+@pytest.mark.memory_intensive(limit_gb=2.0)
 def test_10k_site_memory_usage(tmp_path: Path) -> None:
     """Verify memory stays reasonable for 10k pages.
 

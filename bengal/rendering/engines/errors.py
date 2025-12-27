@@ -55,6 +55,7 @@ class TemplateError:
     column: int | None = None
     path: Path | None = None
     original_exception: Exception | None = None  # Original exception for type checking
+    error_type: str = "other"  # Type: 'syntax', 'filter', 'undefined', 'runtime', 'other'
 
     @property
     def template_context(self):

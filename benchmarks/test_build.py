@@ -58,6 +58,7 @@ SCENARIOS = ["small_site", "large_site"]
 
 
 @pytest.mark.benchmark
+@pytest.mark.parallel_unsafe
 @pytest.mark.parametrize("scenario", SCENARIOS)
 def test_build_performance(benchmark, scenario):
     """

@@ -9,6 +9,9 @@ from pathlib import Path
 import pytest
 from benchmark_history import BenchmarkHistoryLogger
 
+# Register test guards
+pytest_plugins = ["tests._testing.guards"]
+
 
 def get_git_info():
     """Get current git commit and branch."""

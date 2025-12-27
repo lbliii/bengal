@@ -202,6 +202,11 @@ class BuildStats:
         self.directives_by_type[directive_type] = self.directives_by_type.get(directive_type, 0) + 1
 
     @property
+    def pages_built(self) -> int:
+        """Alias for total_pages for backwards compatibility."""
+        return self.total_pages
+
+    @property
     def has_errors(self) -> bool:
         """Check if build has any errors."""
         # Check categorized errors

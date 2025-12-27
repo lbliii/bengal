@@ -441,11 +441,24 @@ class KidaTemplateEngine:
             try:
                 self._env.get_template(name)
             except Exception as e:
+                # Determine error type from exception class name
+                exc_name = type(e).__name__.lower()
+                if "syntax" in exc_name:
+                    error_type = "syntax"
+                elif "undefined" in exc_name:
+                    error_type = "undefined"
+                elif "runtime" in exc_name:
+                    error_type = "runtime"
+                elif "notfound" in exc_name:
+                    error_type = "not_found"
+                else:
+                    error_type = "other"
                 errors.append(
                     TemplateError(
                         template=name,
                         message=str(e),
                         line=getattr(e, "lineno", None),
+                        error_type=error_type,
                     )
                 )
 

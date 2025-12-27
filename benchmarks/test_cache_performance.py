@@ -301,6 +301,7 @@ class TestTaxonomyGetTagsForPage:
         assert isinstance(result, set)
 
     @pytest.mark.slow
+    @pytest.mark.memory_intensive(limit_gb=1.0)
     def test_10k_pages(self, taxonomy_index_10k):
         """Baseline: 10K pages, 500 tags. Expected bottleneck."""
         page_path = Path("content/blog/post-05000.md")
@@ -349,6 +350,7 @@ class TestTaxonomyRemovePageFromAllTags:
         assert isinstance(result, set)
 
     @pytest.mark.slow
+    @pytest.mark.memory_intensive(limit_gb=1.0)
     def test_10k_pages(self):
         """Optimized: 10K pages, 500 tags with reverse index."""
         page_path = Path("content/blog/post-05000.md")
@@ -494,6 +496,7 @@ class TestFileTrackingGetAffectedPages:
         print(f"   Found {len(result)} affected pages")
 
     @pytest.mark.slow
+    @pytest.mark.memory_intensive(limit_gb=1.0)
     def test_10k_pages(self, file_tracking_deps_10k):
         """Baseline: 10K pages, 20 deps/page. Expected bottleneck."""
         dependencies = file_tracking_deps_10k

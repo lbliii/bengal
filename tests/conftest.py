@@ -53,7 +53,7 @@ This file provides:
 # ============================================================================
 
 # Register Phase 1 testing plugins
-pytest_plugins = ["tests._testing.fixtures", "tests._testing.markers"]
+pytest_plugins = ["tests._testing.fixtures", "tests._testing.markers", "tests._testing.guards"]
 
 
 # ============================================================================
