@@ -373,6 +373,42 @@ class StatementParsingMixin:
 
         return first
 
+    def _parse_tuple_or_null_coalesce_no_ternary(self) -> Expr:
+        """Parse null coalescing that may be an implicit tuple, without ternary.
+
+        Used for match subject and case patterns to allow:
+            {% match a, b %}
+            {% case 1, 2 %}
+        while preserving the ability to use 'if' as a guard clause:
+            {% case 1 if x %}  <- 'if' is a guard, not a ternary conditional
+        """
+        from bengal.rendering.kida.nodes import Tuple
+
+        first = self._parse_null_coalesce_no_ternary()
+
+        # Check for comma (implicit tuple like 1, 2, 3)
+        if self._match(TokenType.COMMA):
+            items = [first]
+            while self._match(TokenType.COMMA):
+                self._advance()
+                if self._match(TokenType.BLOCK_END):
+                    break  # trailing comma before %}
+
+                # Stop if we see 'if' - it's a guard clause, not part of the tuple
+                if self._current.type == TokenType.NAME and self._current.value == "if":
+                    break
+
+                items.append(self._parse_null_coalesce_no_ternary())
+
+            return Tuple(
+                lineno=first.lineno,
+                col_offset=first.col_offset,
+                items=tuple(items),
+                ctx="load",
+            )
+
+        return first
+
     def _parse_for_target(self) -> Expr:
         """Parse for loop target (variable or tuple for unpacking).
 

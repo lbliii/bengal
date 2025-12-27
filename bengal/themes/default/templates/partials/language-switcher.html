@@ -18,19 +18,19 @@ Example usage in base.html:
   {% include "partials/language-switcher.html" %}
 -#}
 
-{%- set current = current_lang() -%}
-{%- set alternates = alternate_links(page) -%}
-{%- set langs = languages() -%}
+{%- let current = current_lang() -%}
+{%- let alternates = alternate_links(page) -%}
+{%- let langs = languages() -%}
 
-{%- if langs|length > 1 %}
-<div class="language-switcher" role="navigation" aria-label="{{ t('ui.language_selection', 'Language') }}">
+{%- if langs | length > 1 %}
+<div class="language-switcher" role="navigation" aria-label="{{ t('ui.language_selection', default='Language') }}">
   <button
     class="language-switcher__toggle"
     aria-expanded="false"
     aria-haspopup="listbox"
     type="button"
   >
-    <span class="language-switcher__current">{{ current|upper }}</span>
+    <span class="language-switcher__current">{{ current | upper }}</span>
     <svg class="language-switcher__icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
       <circle cx="12" cy="12" r="9"/>
       <path d="M3.6 9h16.8"/>
@@ -42,23 +42,19 @@ Example usage in base.html:
 
   <ul class="language-switcher__menu" role="listbox" hidden>
     {%- for alt in alternates if alt.hreflang != 'x-default' %}
-    {%- set lang_info = langs|selectattr('code', 'equalto', alt.hreflang)|first %}
+    {%- let lang_info = langs |> selectattr('code', 'eq', alt.hreflang) |> first %}
     <li
       role="option"
       {%- if alt.hreflang == current %} aria-selected="true" class="language-switcher__item language-switcher__item--active"{% else %} class="language-switcher__item"{% end %}
     >
       <a href="{{ alt.href }}" hreflang="{{ alt.hreflang }}" lang="{{ alt.hreflang }}">
-        {%- if lang_info %}
-        {{ lang_info.name }}
-        {%- else %}
-        {{ alt.hreflang|upper }}
-        {% end %}
+        {{ lang_info?.name ?? (alt.hreflang | upper) }}
       </a>
     </li>
     {% end %}
 
     {#- Fallback: show all languages if no alternates -#}
-    {%- if alternates|length == 0 %}
+    {%- if alternates | length == 0 %}
     {%- for lang in langs %}
     <li
       role="option"

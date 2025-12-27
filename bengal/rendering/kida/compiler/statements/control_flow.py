@@ -236,23 +236,21 @@ class ControlFlowMixin:
     def _compile_match(self, node: Any) -> list[ast.stmt]:
         """Compile {% match expr %}{% case pattern [if guard] %}...{% end %}.
 
-        Generates chained if/elif comparisons:
-            _match_subject = expr
-            if _match_subject == pattern1:
-                ...body1...
-            elif _match_subject == pattern2 and guard2:
-                ...body2...
-            elif guard3:  # Wildcard case (_) with guard
-                ...
-            elif True:  # Wildcard case (_) without guard
-                ...default...
+        Generates chained if/elif comparisons with structural pattern matching
+        and variable binding support.
 
-        The wildcard pattern (_) compiles to `True` (always matches).
-        Guards are optional conditions added with `if`: {% case _ if condition %}
+        Example:
+            {% match site.logo, site.logo_text %}
+                {% case logo, _ if logo %}...
+            {% end %}
 
-        Uses unique variable name with block counter to support nested match blocks.
+        Generates:
+            _match_subject_N = (site.logo, site.logo_text)
+            if isinstance(_match_subject_N, (list, tuple)) and len(_match_subject_N) == 2:
+                logo = _match_subject_N[0]
+                if logo:
+                    ...
         """
-        from bengal.rendering.kida.nodes import Name as KidaName
 
         stmts: list[ast.stmt] = []
 
@@ -272,44 +270,81 @@ class ControlFlowMixin:
             return stmts
 
         # Build if/elif chain from cases
-        # Process cases in reverse to build the orelse chain
         orelse: list[ast.stmt] = []
 
         for pattern_expr, guard_expr, case_body in reversed(node.cases):
-            # Compile case body
+            # 1. Generate pattern match test and variable bindings
+            pattern_test, bindings = self._make_pattern_match(
+                pattern_expr, ast.Name(id=subject_var, ctx=ast.Load())
+            )
+
+            # 2. Track names for body/guard compilation
+            bound_names = [name for name, _ in bindings]
+            for name in bound_names:
+                self._locals.add(name)
+
+            # 3. Build the test condition, including walrus bindings if needed
+            # We use walrus operators (name := value) in the test so that
+            # variables are bound before the guard is evaluated.
+            test = pattern_test
+            if bindings:
+                walrus_exprs = []
+                for name, value_ast in bindings:
+                    # (name := value)
+                    walrus = ast.NamedExpr(
+                        target=ast.Name(id=name, ctx=ast.Store()),
+                        value=value_ast,
+                    )
+                    # (name := value) or True -- ensures the test continues
+                    walrus_or_true = ast.BoolOp(
+                        op=ast.Or(),
+                        values=[walrus, ast.Constant(value=True)],
+                    )
+                    walrus_exprs.append(walrus_or_true)
+
+                # Combine with existing test
+                if isinstance(test, ast.Constant) and test.value is True:
+                    if len(walrus_exprs) == 1:
+                        test = walrus_exprs[0]
+                    else:
+                        test = ast.BoolOp(op=ast.And(), values=walrus_exprs)
+                else:
+                    test = ast.BoolOp(op=ast.And(), values=[test] + walrus_exprs)
+
+            if guard_expr:
+                # Guard can now safely refer to bound names
+                compiled_guard = self._compile_expr(guard_expr)
+                if isinstance(test, ast.Constant) and test.value is True:
+                    test = compiled_guard
+                else:
+                    # Append guard to the And chain
+                    if isinstance(test, ast.BoolOp) and isinstance(test.op, ast.And):
+                        test.values.append(compiled_guard)
+                    else:
+                        test = ast.BoolOp(
+                            op=ast.And(),
+                            values=[test, compiled_guard],
+                        )
+
+            # 4. Compile case body
             body_stmts: list[ast.stmt] = []
+            # We still prepend assignments for clarity and to ensure locals
+            # are defined even if something strange happens with short-circuiting.
+            for name, value_ast in bindings:
+                body_stmts.append(
+                    ast.Assign(
+                        targets=[ast.Name(id=name, ctx=ast.Store())],
+                        value=value_ast,
+                    )
+                )
+
             for child in case_body:
                 body_stmts.extend(self._compile_node(child))
+
             if not body_stmts:
                 body_stmts = [ast.Pass()]
 
-            # Check for wildcard pattern (_)
-            is_wildcard = isinstance(pattern_expr, KidaName) and pattern_expr.name == "_"
-
-            if is_wildcard:
-                if guard_expr:
-                    # Wildcard with guard: just use the guard as the test
-                    test = self._compile_expr(guard_expr)
-                else:
-                    # Wildcard without guard: always True (becomes else clause)
-                    test = ast.Constant(value=True)
-            else:
-                # Equality comparison: _match_subject_N == pattern
-                pattern_test = ast.Compare(
-                    left=ast.Name(id=subject_var, ctx=ast.Load()),
-                    ops=[ast.Eq()],
-                    comparators=[self._compile_expr(pattern_expr)],
-                )
-                if guard_expr:
-                    # Pattern with guard: pattern_match AND guard
-                    test = ast.BoolOp(
-                        op=ast.And(),
-                        values=[pattern_test, self._compile_expr(guard_expr)],
-                    )
-                else:
-                    test = pattern_test
-
-            # Build if node
+            # 5. Build If node
             if_node = ast.If(
                 test=test,
                 body=body_stmts,
@@ -317,8 +352,100 @@ class ControlFlowMixin:
             )
             orelse = [if_node]
 
+            # 6. Cleanup locals after compiling this case
+            for name in bound_names:
+                self._locals.discard(name)
+
         # The first case becomes the outermost if
         if orelse:
             stmts.extend(orelse)
 
         return stmts
+
+    def _make_pattern_match(
+        self, pattern: Any, subject_ast: ast.expr
+    ) -> tuple[ast.expr, list[tuple[str, ast.expr]]]:
+        """Generate match test and bindings for a pattern.
+
+        Returns:
+            (test_ast, [(name, value_ast), ...])
+        """
+        from bengal.rendering.kida.nodes import Const as KidaConst
+        from bengal.rendering.kida.nodes import Name as KidaName
+        from bengal.rendering.kida.nodes import Tuple as KidaTuple
+
+        if isinstance(pattern, KidaName):
+            if pattern.name == "_":
+                return ast.Constant(value=True), []
+            else:
+                # Binding pattern: always matches, binds subject to name
+                return ast.Constant(value=True), [(pattern.name, subject_ast)]
+
+        if isinstance(pattern, KidaTuple):
+            # Match fixed-size tuple/sequence
+            n = len(pattern.items)
+
+            # Test: _isinstance(subject, (_list, _tuple)) and _len(subject) == n
+            type_check = ast.Call(
+                func=ast.Name(id="_isinstance", ctx=ast.Load()),
+                args=[
+                    subject_ast,
+                    ast.Tuple(
+                        elts=[
+                            ast.Name(id="_list", ctx=ast.Load()),
+                            ast.Name(id="_tuple", ctx=ast.Load()),
+                        ],
+                        ctx=ast.Load(),
+                    ),
+                ],
+                keywords=[],
+            )
+            len_check = ast.Compare(
+                left=ast.Call(
+                    func=ast.Name(id="_len", ctx=ast.Load()),
+                    args=[subject_ast],
+                    keywords=[],
+                ),
+                ops=[ast.Eq()],
+                comparators=[ast.Constant(value=n)],
+            )
+
+            all_bindings = []
+            sub_tests = [type_check, len_check]
+
+            for i, item in enumerate(pattern.items):
+                # subject[i]
+                item_subject = ast.Subscript(
+                    value=subject_ast,
+                    slice=ast.Constant(value=i),
+                    ctx=ast.Load(),
+                )
+                sub_test, sub_bindings = self._make_pattern_match(item, item_subject)
+                if not (isinstance(sub_test, ast.Constant) and sub_test.value is True):
+                    sub_tests.append(sub_test)
+                all_bindings.extend(sub_bindings)
+
+            if len(sub_tests) == 1:
+                test = sub_tests[0]
+            else:
+                test = ast.BoolOp(op=ast.And(), values=sub_tests)
+
+            return test, all_bindings
+
+        if isinstance(pattern, KidaConst):
+            return (
+                ast.Compare(
+                    left=subject_ast,
+                    ops=[ast.Eq()],
+                    comparators=[ast.Constant(value=pattern.value)],
+                ),
+                [],
+            )
+
+        # Default: simple equality match for complex expressions
+        test = ast.Compare(
+            left=subject_ast,
+            ops=[ast.Eq()],
+            comparators=[self._compile_expr(pattern)],
+        )
+        return test, []

@@ -7,20 +7,20 @@ Required: params (list of dicts or DocElements)
 Optional: title (str)
 #}
 
-{% set title = title ?? 'Parameters' %}
+{% let section_title = title ?? 'Parameters' %}
 
 {% if params %}
 <section class="autodoc-section" data-section="parameters">
-  <h2 class="autodoc-section-title">{{ title }}</h2>
+  <h2 class="autodoc-section-title">{{ section_title }}</h2>
 
   <dl class="autodoc-params">
     {% for param in params %}
     {# ChainableUndefined handles both dict and object access #}
-    {% set is_required = param.metadata.required | default(param.required) %}
-    {% set param_name = param.name %}
-    {% set param_type_val = param.metadata.type | default(param.type) %}
-    {% set param_default = param.metadata.default | default(param.default) %}
-    {% set param_desc = param.description or param.docstring %}
+    {% let is_required = param?.metadata?.required ?? param?.required ?? false %}
+    {% let param_name = param?.name ?? 'unknown' %}
+    {% let param_type_val = param?.metadata?.type ?? param?.type ?? '' %}
+    {% let param_default = param?.metadata?.default ?? param?.default %}
+    {% let param_desc = param?.description ?? param?.docstring ?? '' %}
     <div class="autodoc-param" data-required="{{ 'true' if is_required else 'false' }}">
       <dt class="autodoc-param-name">
         <code>{{ param_name }}</code>

@@ -22,22 +22,22 @@ For individual cards, import the macro:
 
 {% from 'autodoc/partials/_macros/element-card.html' import element_card %}
 
-{% set title = title | default('') %}
-{% set card_type = card_type | default(none) %}
+{% let section_title = title ?? '' %}
+{% let section_card_type = card_type ?? none %}
 
 {% if children %}
-{% if title %}
+{% if section_title %}
 <section class="autodoc-section" data-section="children">
-  <h2 class="autodoc-section-title">{{ title }}</h2>
+  <h2 class="autodoc-section-title">{{ section_title }}</h2>
 {% end %}
 
   <div class="autodoc-cards">
     {% for child in children %}
-    {{ element_card(child, card_type) }}
+    {{ element_card(child, section_card_type) }}
     {% end %}
   </div>
 
-{% if title %}
+{% if section_title %}
 </section>
 {% end %}
 {% end %}

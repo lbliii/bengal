@@ -49,13 +49,9 @@ per-call overhead of {% include %} (context copy, template lookup).
 {% let is_section = item?.is_section ?? false %}
 {% let has_children = item_children | length > 0 %}
 
-{% match true %}
-{# ===== HAS CHILDREN ===== #}
-{% case has_children %}
-
-{% match depth %}
+{% match has_children, depth %}
 {# ===== ROOT NODE (depth 0) - Static header, no toggle ===== #}
-{% case 0 %}
+{% case true, 0 %}
 <div class="docs-nav-group docs-nav-group--root{{ ' is-in-trail' if is_in_trail else '' }}" data-depth="{{ depth }}">
   <div class="docs-nav-group-header">
     {% if show_nav_icons %}
@@ -76,7 +72,7 @@ per-call overhead of {% include %} (context copy, template lookup).
     {% end %}
   </div>
 
-  <div class="docs-nav-group-items">
+  <div class="docs-nav-group-items is-expanded expanded">
     {% for child in item_children %}
     {{ nav_node(child, depth + 1) }}
     {% end %}
@@ -84,7 +80,7 @@ per-call overhead of {% include %} (context copy, template lookup).
 </div>
 
 {# ===== EXPANDABLE NODE (depth > 0) - Native <details>/<summary> ===== #}
-    {% case _ %}
+    {% case true, _ %}
     <details class="docs-nav-group{{ ' is-in-trail' if is_in_trail else '' }}" data-depth="{{ depth }}" {{ 'open' | safe
       if is_in_trail else '' }}>
       <summary class="docs-nav-group-summary">
@@ -116,10 +112,9 @@ per-call overhead of {% include %} (context copy, template lookup).
         {% end %}
       </div>
     </details>
-    {% end %}
 
     {# ===== LEAF NODE (no children) ===== #}
-    {% case _ %}
+    {% case false, _ %}
     <div class="docs-nav-group docs-nav-group--leaf" data-depth="{{ depth }}">
       {% if item_href %}
       <a href="{{ item_href }}"
@@ -180,41 +175,9 @@ per-call overhead of {% include %} (context copy, template lookup).
         {% if root_section %}
         {# Scoped navigation: include root section as header #}
         {% let nav_context = get_nav_context(page, root_section=root_section) %}
-        {% let root_item = nav_context?.root ?? {} %}
-        {% let root_children = root_item?.children ?? [] %}
-        {% let root_title = root_item?.title ?? 'Documentation' %}
-        {% let root_href = root_item?.href ?? '' %}
-        {% let root_icon = root_item?.icon ?? '' %}
-        {% let root_is_current = root_item?.is_current ?? false %}
-        {% let root_is_in_trail = root_item?.is_in_trail ?? false %}
-
-        {# Render root section as static header with its children #}
-        <div class="docs-nav-group docs-nav-group--root{{ ' is-in-trail' if root_is_in_trail else '' }}" data-depth="0">
-          <div class="docs-nav-group-header">
-            {% if show_nav_icons %}
-            {% spaceless %}
-            <span class="docs-nav-icon" {{ ' data-default="true"' | safe if not root_icon else '' }}>
-              {{ icon(root_icon ?? 'folder', size=16) }}
-            </span>
-            {% end %}
-            {% end %}
-
-            {% if root_href %}
-            <a href="{{ root_href }}" class="docs-nav-group-title{{ ' active' if root_is_current else '' }}"
-              {{ 'aria-current="page"' | safe if root_is_current else '' }}>
-              {{ root_title }}
-            </a>
-            {% else %}
-            <span class="docs-nav-group-title">{{ root_title }}</span>
-            {% end %}
-          </div>
-
-          <div class="docs-nav-group-items is-expanded expanded">
-            {% for item in root_children %}
-            {{ nav_node(item, 1) }}
-            {% end %}
-          </div>
-        </div>
+        {% with nav_context?.root as root_item %}
+        {{ nav_node(root_item, 0) }}
+        {% end %}
         {% else %}
         {# Regular navigation: render all top-level items #}
         {% let nav_items = get_nav_tree(page) ?? [] %}

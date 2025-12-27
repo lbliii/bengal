@@ -27,11 +27,9 @@ Usage:
 #}
 
 {# Only render if modal is enabled #}
-{% set
-search_config = config.search,
-ui_config = search_config.ui if search_config else {},
-modal_enabled = ui_config.modal if ui_config else false
-%}
+{% let search_config = config?.search %}
+{% let ui_config = search_config?.ui ?? {} %}
+{% let modal_enabled = ui_config?.modal ?? false %}
 
 {% if modal_enabled %}
 <dialog id="search-modal" class="search-modal"
@@ -47,7 +45,7 @@ modal_enabled = ui_config.modal if ui_config else false
         {{ icon('magnifying-glass', size=20, css_class='search-modal__icon') }}
 
         <input type="search" id="search-modal-input" class="search-modal__input"
-          placeholder="{{ ui_config.placeholder | default(t('search.placeholder', default='Search documentation...')) }}"
+          placeholder="{{ ui_config.placeholder ?? t('search.placeholder', default='Search documentation...') }}"
           autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
           aria-label="{{ t('search.aria_label', default='Search') }}" aria-describedby="search-modal-status"
           aria-controls="search-modal-results" aria-autocomplete="list">

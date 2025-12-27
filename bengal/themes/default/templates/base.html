@@ -31,8 +31,9 @@ _path, kind, tags are always defined - no defensive checks needed.
 {% let _main_menu = get_menu_lang('main', _current_lang) %}
 {% let _footer_menu = get_menu_lang('footer', _current_lang) %}
 
-{% let _view_transitions = _doc_app.enabled and _doc_app.navigation.view_transitions %}
-{% let _transition_style = _doc_app.navigation.transition_style %}
+{% let _doc_app_nav = _doc_app?.navigation %}
+{% let _view_transitions = _doc_app.enabled and _doc_app_nav?.view_transitions %}
+{% let _transition_style = _doc_app_nav?.transition_style %}
 
 {# Auto navigation if main menu is empty #}
 {% if _main_menu | length == 0 %}
@@ -56,14 +57,19 @@ _path, kind, tags are always defined - no defensive checks needed.
 
     {# Title - captured for reuse in Open Graph and Twitter Card #}
     {% capture page_title %}
-    {% block title %}{{ _page_title if _page_title else _site_title }}{% if _page_title %} - {{ _site_title }}{% end
-    %}{% end %}
+    {% block title %}
+    {% match page.title %}
+    {% case title if title and _site_title %}{{ title }} - {{ _site_title }}
+    {% case title if title %}{{ title }}
+    {% case _ %}{{ _site_title }}
     {% end %}
-    <title>{{ page_title }}</title>
+    {% end %}
+    {% end %}
+    <title>{{ page_title | trim }}</title>
 
     {# Meta description - captured for reuse in Open Graph and Twitter Card #}
     {% capture meta_desc %}
-    {{ meta_desc | default(config.description) }}
+    {{ meta_desc ?? config.description }}
     {% end %}
     <meta name="description" content="{{ meta_desc }}">
 
@@ -89,17 +95,8 @@ _path, kind, tags are always defined - no defensive checks needed.
     {# Use relative_url for canonical URLs (canonical_url adds baseurl) #}
     <meta property="og:url" content="{{ canonical_url(_page_url) }}">
     {% end %}
-    {# Open Graph Image - computed with fallback chain #}
-    {% let _og_image_path = '' %}
-    {% if params.image %}
-    {% let _og_image_path = og_image(params.image, page) %}
-    {% end %}
-    {% if not _og_image_path %}
-    {% let _og_image_path = og_image('', page) %}
-    {% end %}
-    {% if not _og_image_path and config.og_image %}
-    {% let _og_image_path = og_image(config.og_image) %}
-    {% end %}
+    {# Open Graph Image - computed with fallback chain using null coalescing #}
+    {% let _og_image_path = og_image(params?.image ?? config?.og_image ?? '', page) %}
     {% if _og_image_path %}
     <meta property="og:image" content="{{ _og_image_path }}">
     {% end %}
@@ -134,14 +131,12 @@ _path, kind, tags are always defined - no defensive checks needed.
     {% end %}
 
     {# RSS Feed (locale-aware when i18n prefix strategy is enabled) #}
-    {% set _lang = _current_lang %}
-    {% set _i18n = config.i18n %}
-    {% set _rss_href = '/rss.xml' %}
+    {% let _i18n = config.i18n %}
+    {% let _rss_href = '/rss.xml' %}
     {% if _i18n and _i18n.strategy == 'prefix' %}
-    {% set _default_lang = _i18n.default_language ?? 'en' %}
-    {% set _default_in_subdir = _i18n.default_in_subdir %}
-    {% if _lang and (_default_in_subdir or _lang != _default_lang) %}
-    {% set _rss_href = '/' ~ _lang ~ '/rss.xml' %}
+    {% let _default_lang = _i18n.default_language ?? 'en' %}
+    {% if _current_lang and (_i18n.default_in_subdir or _current_lang != _default_lang) %}
+    {% let _rss_href = '/' ~ _current_lang ~ '/rss.xml' %}
     {% end %}
     {% end %}
     <link rel="alternate" type="application/rss+xml" title="{{ config.title }} RSS Feed" href="{{ _rss_href }}">
@@ -233,36 +228,35 @@ _path, kind, tags are always defined - no defensive checks needed.
     </script>
 
     {# Document Application: Speculation Rules for prefetching/prerendering #}
-    {% let _speculation = _doc_app.speculation %}
-    {% let _speculation_enabled = _doc_app.enabled and _speculation.enabled %}
-    {% let _speculation_feature = _doc_app.features.speculation_rules ?? true %}
-    {% if _speculation_enabled and _speculation_feature %}
+    {% with _doc_app.speculation as speculation %}
+    {% if _doc_app.enabled and speculation.enabled and (_doc_app.features?.speculation_rules ?? true) %}
     <script type="speculationrules">
 {
   "prerender": [
     {
       "where": {
         "and": [
-          { "href_matches": "{{ _speculation.prerender.patterns | join('", "') }}" },
+          { "href_matches": "{{ speculation.prerender.patterns | join('", "') }}" },
           { "not": { "selector_matches": "[data-external], [target=_blank], .external" } }
         ]
       },
-      "eagerness": "{{ _speculation.prerender.eagerness }}"
+      "eagerness": "{{ speculation.prerender.eagerness }}"
     }
   ],
   "prefetch": [
     {
       "where": {
         "and": [
-          { "href_matches": "{{ _speculation.prefetch.patterns | join('", "') }}" },
+          { "href_matches": "{{ speculation.prefetch.patterns | join('", "') }}" },
           { "not": { "selector_matches": "[data-external], [target=_blank], .external" } }
         ]
       },
-      "eagerness": "{{ _speculation.prefetch.eagerness }}"
+      "eagerness": "{{ speculation.prefetch.eagerness }}"
     }
   ]
 }
     </script>
+    {% end %}
     {% end %}
 
     {% block extra_head %}{% end %}
@@ -284,7 +278,7 @@ _path, kind, tags are always defined - no defensive checks needed.
 <body data-type="{{ page.type }}" data-variant="{{ page.variant or '' }}"
     class="page-kind-{{ page.kind or 'page' }}{% if page.is_draft %} draft-page{% end %}{% if page.hidden %} hidden-page{% end %}{% if page.is_featured %} featured-content{% end %}">
     {# Skip to main content for accessibility - Feature: accessibility.skip_link #}
-    {% if 'accessibility.skip_link' in theme.features %}
+    {% if 'accessibility.skip_link' in (theme.features ?? []) %}
     <a href="#main-content" class="skip-link">Skip to main content</a>
     {% end %}
 
@@ -314,7 +308,7 @@ _path, kind, tags are always defined - no defensive checks needed.
                     {{ icon('magnifying-glass', size=20, css_class='search-modal__icon') }}
 
                     <input type="search" id="search-modal-input" class="search-modal__input"
-                        placeholder="{{ _ui_config.placeholder | default(t('search.placeholder', default='Search documentation...')) }}"
+                        placeholder="{{ _ui_config.placeholder ?? t('search.placeholder', default='Search documentation...') }}"
                         autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
                         aria-label="{{ t('search.aria_label', default='Search') }}"
                         aria-describedby="search-modal-status" aria-controls="search-modal-results"
@@ -403,14 +397,12 @@ _path, kind, tags are always defined - no defensive checks needed.
             <div class="header-nav-content">
                 {# Logo / Site Title #}
                 <a href="{{ '/' | absolute_url }}" class="logo">
-                    {% set _logo_image = site.logo %}
-                    {% set _logo_text = site.logo_text %}
-                    {% if _logo_image %}
-                    <img src="{{ _logo_image | absolute_url }}" alt="{{ _site_title }}" class="brand-image" />
-                    {% elif _logo_text %}
-                    <span class="brand-text">{{ _logo_text }}</span>
+                    {% if site.logo %}
+                        <img src="{{ site.logo | absolute_url }}" alt="{{ _site_title }}" class="brand-image" />
+                    {% elif site.logo_text %}
+                        <span class="brand-text">{{ site.logo_text }}</span>
                     {% else %}
-                    <span class="brand-text">{{ _site_title }}</span>
+                        <span class="brand-text">{{ _site_title }}</span>
                     {% end %}
                 </a>
 
@@ -519,14 +511,12 @@ _path, kind, tags are always defined - no defensive checks needed.
         <dialog id="mobile-nav-dialog" class="mobile-nav-dialog" aria-label="Mobile navigation">
             <form method="dialog" class="mobile-nav-header">
                 <span class="logo">
-                    {% set _mobile_logo_image = site.logo %}
-                    {% set _mobile_logo_text = site.logo_text %}
-                    {% if _mobile_logo_image %}
-                    <img src="{{ _mobile_logo_image | absolute_url }}" alt="{{ _site_title }}" class="brand-image" />
-                    {% elif _mobile_logo_text %}
-                    <span class="brand-text">{{ _mobile_logo_text }}</span>
+                    {% if site.logo %}
+                        <img src="{{ site.logo | absolute_url }}" alt="{{ _site_title }}" class="brand-image" />
+                    {% elif site.logo_text %}
+                        <span class="brand-text">{{ site.logo_text }}</span>
                     {% else %}
-                    <span class="brand-text">{{ _site_title }}</span>
+                        <span class="brand-text">{{ _site_title }}</span>
                     {% end %}
                 </span>
                 <div class="mobile-nav-actions">
@@ -743,8 +733,8 @@ _path, kind, tags are always defined - no defensive checks needed.
             "showDate": {{ (_scripts_link_previews.show_date ?? true) | tojson }},
             "showTags": {{ (_scripts_link_previews.show_tags ?? true) | tojson }},
             "maxTags": {{ _scripts_link_previews.max_tags ?? 3 }},
-            "includeSelectors": {{ _scripts_link_previews.include_selectors | default([".prose"]) | tojson }},
-            "excludeSelectors": {{ _scripts_link_previews.exclude_selectors | default(["nav", ".toc", ".breadcrumb", ".pagination", ".card", "[class*='-card']", ".tab-nav", "[class*='-widget']", ".child-items", ".content-tiles"]) | tojson }}
+            "includeSelectors": {{ (_scripts_link_previews.include_selectors ?? [".prose"]) | tojson }},
+            "excludeSelectors": {{ (_scripts_link_previews.exclude_selectors ?? ["nav", ".toc", ".breadcrumb", ".pagination", ".card", "[class*='-card']", ".tab-nav", "[class*='-widget']", ".child-items", ".content-tiles"]) | tojson }}
           }
         }
         </script>

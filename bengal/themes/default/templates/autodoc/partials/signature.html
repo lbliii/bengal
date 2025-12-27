@@ -7,10 +7,11 @@ Required: element (DocElement)
 Optional: language (str, default 'python')
 #}
 
-{% set language = language ?? 'python' %}
+{% let sig_language = language ?? 'python' %}
+{% let sig_element = element?.metadata?.signature ?? element?.signature %}
 
-{% if element.metadata.signature or element.signature %}
+{% if sig_element %}
 <div class="autodoc-signature">
-  <pre><code class="language-{{ language }}">{{ element.metadata.signature or element.signature }}</code></pre>
+  <pre><code class="language-{{ sig_language }}">{{ sig_element }}</code></pre>
 </div>
 {% end %}

@@ -679,6 +679,7 @@ class Template:
             "_dict": dict,
             "_set": set,
             "_tuple": tuple,
+            "_isinstance": isinstance,
             "_bool": bool,
             "_int": int,
             "_float": float,

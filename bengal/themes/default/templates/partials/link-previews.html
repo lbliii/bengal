@@ -1,7 +1,7 @@
 {# Link Previews Configuration Bridge & Script #}
 {# Wikipedia-style hover cards powered by per-page JSON #}
-{% set _link_previews = site.link_previews %}
-{% set _per_page_json = 'json' in (config.output_formats.per_page ?? []) %}
+{% let _link_previews = site.link_previews %}
+{% let _per_page_json = 'json' in (config.output_formats.per_page ?? []) %}
 {% if _link_previews.enabled and _per_page_json %}
 <script id="bengal-config" type="application/json">
 {
@@ -15,8 +15,8 @@
     "showDate": {{ (_link_previews.show_date ?? true) | tojson }},
     "showTags": {{ (_link_previews.show_tags ?? true) | tojson }},
     "maxTags": {{ _link_previews.max_tags ?? 3 }},
-    "includeSelectors": {{ _link_previews.include_selectors | default([".prose"]) | tojson }},
-    "excludeSelectors": {{ _link_previews.exclude_selectors | default(["nav", ".toc", ".breadcrumb", ".pagination", ".card", "[class*='-card']", ".tab-nav", "[class*='-widget']", ".child-items", ".content-tiles"]) | tojson }}
+    "includeSelectors": {{ (_link_previews.include_selectors ?? [".prose"]) | tojson }},
+    "excludeSelectors": {{ (_link_previews.exclude_selectors ?? ["nav", ".toc", ".breadcrumb", ".pagination", ".card", "[class*='-card']", ".tab-nav", "[class*='-widget']", ".child-items", ".content-tiles"]) | tojson }}
   }
 }
 </script>

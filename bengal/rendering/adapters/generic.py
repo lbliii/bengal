@@ -27,13 +27,11 @@ def register_context_functions(env: Any, site: Site) -> None:
         site: Site instance
     """
     # Import pure function implementations
-    from bengal.rendering.template_engine.url_helpers import with_baseurl
     from bengal.rendering.template_functions.i18n import (
         _current_lang,
         _languages,
         _make_t,
     )
-    from bengal.rendering.template_functions.taxonomies import tag_url as base_tag_url
 
     # Create base translator (closure over site)
     base_translate = _make_t(site)
@@ -69,35 +67,19 @@ def register_context_functions(env: Any, site: Site) -> None:
         return _languages(site)
 
     def tag_url(tag: str) -> str:
-        """Generate tag URL without locale-aware prefix.
+        """Generate tag URL.
 
         Note: This generic adapter cannot access page context for i18n prefix.
         """
-        relative_url = base_tag_url(tag)
+        from bengal.rendering.urls import resolve_tag_url
 
-        # Apply base URL prefix if configured
-        baseurl = site.baseurl or ""
-        if baseurl:
-            baseurl = baseurl.rstrip("/")
-            if not baseurl:
-                return relative_url
-            if not relative_url.startswith("/"):
-                relative_url = "/" + relative_url
-            if baseurl.startswith(("http://", "https://", "file://")):
-                return f"{baseurl}{relative_url}"
-            else:
-                base_path = "/" + baseurl.lstrip("/")
-                return f"{base_path}{relative_url}"
-
-        return relative_url
+        return resolve_tag_url(tag, site, None)
 
     def asset_url(path: str) -> str:
-        """Generate asset URL."""
-        if not path:
-            return with_baseurl("/assets/", site)
+        """Generate asset URL with fingerprint resolution."""
+        from bengal.rendering.urls import resolve_asset_url
 
-        clean_path = path.replace("\\", "/").strip().lstrip("/")
-        return with_baseurl(f"/assets/{clean_path}", site)
+        return resolve_asset_url(path, site, None)
 
     # Register functions - check if env has globals attribute
     if hasattr(env, "globals"):

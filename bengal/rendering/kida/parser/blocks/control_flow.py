@@ -266,11 +266,11 @@ class ControlFlowBlockParsingMixin(BlockStackMixin):
         start = self._advance()  # consume 'match'
         self._push_block("match", start)
 
-        # Parse subject expression
-        subject = self._parse_expression()
+        # Parse subject expression (supports implicit tuples: {% match a, b %})
+        subject = self._parse_tuple_or_expression()
         self._expect(TokenType.BLOCK_END)
 
-        cases: list[tuple[Expr, Sequence[Node]]] = []
+        cases: list[tuple[Expr, Expr | None, Sequence[Node]]] = []
 
         # Parse case clauses
         # Skip DATA tokens (whitespace between {% match %} and {% case %})
@@ -298,11 +298,10 @@ class ControlFlowBlockParsingMixin(BlockStackMixin):
                 self._advance()  # consume {%
                 self._advance()  # consume 'case'
 
-                # Parse pattern expression - use _parse_null_coalesce_no_ternary
-                # to avoid consuming 'if' as a ternary conditional
-                # This allows: {% case _ if guard %} without the 'if' being parsed
-                # as part of a conditional expression
-                pattern = self._parse_null_coalesce_no_ternary()
+                # Parse pattern expression - use _parse_tuple_or_null_coalesce_no_ternary
+                # to avoid consuming 'if' as a ternary conditional and to support
+                # implicit tuples: {% case 1, 2 if guard %}
+                pattern = self._parse_tuple_or_null_coalesce_no_ternary()
 
                 # Check for optional guard clause: {% case pattern if guard %}
                 guard: Expr | None = None

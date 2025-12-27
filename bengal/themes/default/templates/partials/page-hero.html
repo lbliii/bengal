@@ -133,53 +133,29 @@ Direct macro call (explicit control):
    ELEMENT BADGES MACRO (internal)
    ============================================================================= #}
 {% def _element_badges(element) %}
-{% if element %}
-{% let element_type = element?.element_type ?? '' %}
-{% let metadata = element?.metadata ?? {} %}
-
+{% with element?.element_type, element?.metadata as type, meta %}
 <div class="page-hero__badges">
-  {% match element_type %}
-  {% case 'module' %}
-  <span class="autodoc-badge" data-badge="module">Module</span>
-  {% if metadata?.is_dataclass %}
-  <span class="autodoc-badge" data-badge="dataclass">dataclass</span>
-  {% end %}
+  {% match type %}
+    {% case 'module' %}
+      <span class="autodoc-badge" data-badge="module">Module</span>
+      {% if meta?.is_dataclass %}<span class="autodoc-badge" data-badge="dataclass">dataclass</span>{% end %}
 
-  {% case 'class' %}
-  {% if metadata?.is_mixin %}
-  <span class="autodoc-badge" data-badge="mixin">Mixin</span>
-  {% end %}
-  {% if metadata?.is_dataclass %}
-  <span class="autodoc-badge" data-badge="dataclass">dataclass</span>
-  {% end %}
-  {% if metadata?.is_abstract %}
-  <span class="autodoc-badge" data-badge="abstract">abstract</span>
-  {% end %}
+    {% case 'class' %}
+      {% if meta?.is_mixin %}<span class="autodoc-badge" data-badge="mixin">Mixin</span>{% end %}
+      {% if meta?.is_dataclass %}<span class="autodoc-badge" data-badge="dataclass">dataclass</span>{% end %}
+      {% if meta?.is_abstract %}<span class="autodoc-badge" data-badge="abstract">abstract</span>{% end %}
 
-  {% case 'function' %}
-  {% if metadata?.is_async %}
-  <span class="autodoc-badge" data-badge="async">async</span>
-  {% end %}
+    {% case 'function' %}
+      {% if meta?.is_async %}<span class="autodoc-badge" data-badge="async">async</span>{% end %}
 
-  {% case 'method' %}
-  {% if metadata?.is_async %}
-  <span class="autodoc-badge" data-badge="async">async</span>
-  {% end %}
-  {% if metadata?.is_classmethod %}
-  <span class="autodoc-badge" data-badge="classmethod">classmethod</span>
-  {% end %}
-  {% if metadata?.is_staticmethod %}
-  <span class="autodoc-badge" data-badge="staticmethod">staticmethod</span>
-  {% end %}
-  {% if metadata?.is_property %}
-  <span class="autodoc-badge" data-badge="property">property</span>
-  {% end %}
+    {% case 'method' %}
+      {% if meta?.is_async %}<span class="autodoc-badge" data-badge="async">async</span>{% end %}
+      {% if meta?.is_classmethod %}<span class="autodoc-badge" data-badge="classmethod">classmethod</span>{% end %}
+      {% if meta?.is_staticmethod %}<span class="autodoc-badge" data-badge="staticmethod">staticmethod</span>{% end %}
+      {% if meta?.is_property %}<span class="autodoc-badge" data-badge="property">property</span>{% end %}
 
-  {% case 'command' %}
-  <span class="autodoc-badge" data-badge="command">Command</span>
-
-  {% case 'command-group' %}
-  <span class="autodoc-badge" data-badge="command-group">Command Group</span>
+    {% case 'command' %}<span class="autodoc-badge" data-badge="command">Command</span>
+    {% case 'command-group' %}<span class="autodoc-badge" data-badge="command-group">Command Group</span>
   {% end %}
 </div>
 {% end %}
@@ -207,9 +183,9 @@ Direct macro call (explicit control):
    ============================================================================= #}
 
 {# -----------------------------------------------------------------------------
-   EDITORIAL VARIANT
+   SHARED HERO BASE (internal)
    ----------------------------------------------------------------------------- #}
-{% def hero_editorial(page, params, theme) %}
+{% def _hero_base(page, params, theme, variant='editorial') %}
 {% if page %}
 {% let page_title = page?.title ?? 'Page' %}
 {% let page_desc = params?.description ?? '' %}
@@ -218,7 +194,7 @@ Direct macro call (explicit control):
 {% let lastmod = params?.lastmod %}
 {% let theme_features = theme?.features ?? [] %}
 
-<div class="page-hero page-hero--editorial">
+<div class="page-hero page-hero--{{ variant }}">
   <div class="page-hero__top">
     {{ _breadcrumb_eyebrow(page) }}
     {{ _share_dropdown(page) }}
@@ -260,56 +236,17 @@ Direct macro call (explicit control):
 {% enddef %}
 
 {# -----------------------------------------------------------------------------
+   EDITORIAL VARIANT
+   ----------------------------------------------------------------------------- #}
+{% def hero_editorial(page, params, theme) %}
+{{ _hero_base(page, params, theme, variant='editorial') }}
+{% enddef %}
+
+{# -----------------------------------------------------------------------------
    MAGAZINE VARIANT
    ----------------------------------------------------------------------------- #}
 {% def hero_magazine(page, params, theme) %}
-{% if page %}
-{% let page_title = page?.title ?? 'Page' %}
-{% let page_desc = params?.description ?? '' %}
-{% let page_content = page?.content ?? '' %}
-{% let page_date = page?.date %}
-{% let lastmod = params?.lastmod %}
-{% let theme_features = theme?.features ?? [] %}
-
-<div class="page-hero page-hero--magazine">
-  <div class="page-hero__top">
-    {{ _breadcrumb_eyebrow(page) }}
-    {{ _share_dropdown(page) }}
-  </div>
-
-  <h1 class="page-hero__title">{{ page_title }}</h1>
-
-  {% if page_desc %}
-  <p class="page-hero__description">{{ page_desc }}</p>
-  {% end %}
-
-  {% let has_metadata = page_content or page_date or lastmod %}
-  {% if has_metadata %}
-  <div class="page-hero__meta">
-    {% if page_content and 'content.reading_time' in theme_features %}
-    <span class="page-hero__meta-item">
-      {{ icon("clock", size=16) }}
-      <span>{{ page_content | reading_time }} min read</span>
-    </span>
-    {% end %}
-
-    {% if page_content %}
-    <span class="page-hero__meta-item">
-      {{ icon("file-text", size=16) }}
-      <span>{{ page_content | wordcount }} words</span>
-    </span>
-    {% end %}
-
-    {% if lastmod or page_date %}
-    <span class="page-hero__meta-item">
-      {{ icon("arrow-clockwise", size=16) }}
-      <span>{{ (lastmod ?? page_date) | time_ago }}</span>
-    </span>
-    {% end %}
-  </div>
-  {% end %}
-</div>
-{% end %}
+{{ _hero_base(page, params, theme, variant='magazine') }}
 {% enddef %}
 
 {# -----------------------------------------------------------------------------
@@ -397,9 +334,9 @@ Direct macro call (explicit control):
   {% end %}
 
   <div class="page-hero__footer">
-    {% if source_file and github_repo %}
-    {% let line_suffix = '#L' ~ line_number if line_number else '' %}
-    <a href="{{ github_repo }}/blob/{{ github_branch }}/{{ source_file }}{{ line_suffix }}"
+    {% with source_file, github_repo as f, repo %}
+    {% let line_suffix = ('#L' ~ line_number) if line_number else '' %}
+    <a href="{{ repo }}/blob/{{ github_branch }}/{{ f }}{{ line_suffix }}"
        class="page-hero__source-link" target="_blank" rel="noopener">
       {{ icon('file-code', size=14) }}
       <span>View source</span>
@@ -421,14 +358,8 @@ Direct macro call (explicit control):
 {% let section_subsections = section?.sorted_subsections ?? [] %}
 {% let section_pages = section?.sorted_pages ?? [] %}
 
-{# Filter out index pages from count #}
-{% let filtered_pages = [] %}
-{% for p in section_pages %}
-{% let source_path = p?.source_path ?? '' %}
-{% if '_index' not in (source_path | string) %}
-{% do filtered_pages.append(p) %}
-{% end %}
-{% end %}
+{# Filter out index pages from count using pipeline #}
+{% let filtered_pages = section_pages |> rejectattr('source_path', 'match', '_index') |> list %}
 
 <div class="page-hero page-hero--api">
   <div class="page-hero__top">
@@ -497,21 +428,11 @@ Direct macro call (explicit control):
 {% let hero_style = _page_variant ?? _page_hero_style ?? _template_default ?? _theme_hero_style %}
 
 {# Route to appropriate macro #}
-{% match hero_style %}
-{% case 'magazine' %}
-{{ hero_magazine(page, params, theme) }}
-{% case 'classic' %}
-{{ hero_classic(page, params) }}
-{% case 'overview' %}
-{{ hero_overview(page, params, posts, subsections) }}
-{% case 'api' %}
-{% if element %}
-{{ hero_element(element, page, config) }}
-{% elif section %}
-{{ hero_section(section, page, hero_context) }}
-{% else %}
-{{ hero_editorial(page, params, theme) }}
-{% end %}
-{% case _ %}
-{{ hero_editorial(page, params, theme) }}
+{% match hero_style, element, section %}
+    {% case 'magazine', _, _ %}{{ hero_magazine(page, params, theme) }}
+    {% case 'classic', _, _ %}{{ hero_classic(page, params) }}
+    {% case 'overview', _, _ %}{{ hero_overview(page, params, posts, subsections) }}
+    {% case 'api', el, _ if el %}{{ hero_element(el, page, config) }}
+    {% case 'api', _, sec if sec %}{{ hero_section(sec, page, hero_context) }}
+    {% case _ %}{{ hero_editorial(page, params, theme) }}
 {% end %}

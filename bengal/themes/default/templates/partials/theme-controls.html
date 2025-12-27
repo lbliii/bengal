@@ -1,7 +1,16 @@
 {# Appearance Dropdown (mode + brand) #}
 {# Native popover API - browser handles open/close, focus, escape key #}
 {# Use theme_menu_id variable to allow unique IDs for desktop/mobile #}
-{% set _theme_menu_id = theme_menu_id ?? 'theme-menu' %}
+{% let _theme_menu_id = theme_menu_id ?? 'theme-menu' %}
+
+{# HELPER: Render a theme option button #}
+{% def theme_option(type, value, label_key, default_label, icon_name=none) %}
+<button type="button" data-{{ type }}="{{ value }}" class="theme-option">
+    {% if icon_name %}{{ icon(icon_name, size=18) }}{% end %}
+    <span>{{ t(label_key, default=default_label) }}</span>
+</button>
+{% end %}
+
 <div class="theme-controls">
     <button class="theme-dropdown__button" popovertarget="{{ _theme_menu_id }}" popovertargetaction="toggle"
         title="{{ t('theme.presets', default='Theme presets') }}"
@@ -15,31 +24,17 @@
     <div id="{{ _theme_menu_id }}" popover class="theme-dropdown__menu--popover">
         <fieldset class="theme-menu-section">
             <legend class="separator">{{ t('theme.mode', default='Mode') }}</legend>
-            <button type="button" data-appearance="system" class="theme-option">
-                {{ icon("monitor", size=18) }}
-                <span>{{ t('theme.system', default='System') }}</span>
-            </button>
-            <button type="button" data-appearance="light" class="theme-option">
-                {{ icon("sun", size=18) }}
-                <span>{{ t('theme.light', default='Light') }}</span>
-            </button>
-            <button type="button" data-appearance="dark" class="theme-option">
-                {{ icon("moon", size=18) }}
-                <span>{{ t('theme.dark', default='Dark') }}</span>
-            </button>
+            {{ theme_option('appearance', 'system', 'theme.system', 'System', 'monitor') }}
+            {{ theme_option('appearance', 'light', 'theme.light', 'Light', 'sun') }}
+            {{ theme_option('appearance', 'dark', 'theme.dark', 'Dark', 'moon') }}
         </fieldset>
         <fieldset class="theme-menu-section">
             <legend class="separator">{{ t('theme.palette', default='Palette') }}</legend>
-            <button type="button" data-palette="snow-lynx" class="theme-option">{{ t('theme.palette_snow_lynx',
-                default='Snow Lynx') }}</button>
-            <button type="button" data-palette="brown-bengal" class="theme-option">{{ t('theme.palette_brown_bengal',
-                default='Brown Bengal') }}</button>
-            <button type="button" data-palette="silver-bengal" class="theme-option">{{ t('theme.palette_silver_bengal',
-                default='Silver Bengal') }}</button>
-            <button type="button" data-palette="charcoal-bengal" class="theme-option">{{
-                t('theme.palette_charcoal_bengal', default='Charcoal Bengal') }}</button>
-            <button type="button" data-palette="blue-bengal" class="theme-option">{{ t('theme.palette_blue_bengal',
-                default='Blue Bengal') }}</button>
+            {{ theme_option('palette', 'snow-lynx', 'theme.palette_snow_lynx', 'Snow Lynx') }}
+            {{ theme_option('palette', 'brown-bengal', 'theme.palette_brown_bengal', 'Brown Bengal') }}
+            {{ theme_option('palette', 'silver-bengal', 'theme.palette_silver_bengal', 'Silver Bengal') }}
+            {{ theme_option('palette', 'charcoal-bengal', 'theme.palette_charcoal_bengal', 'Charcoal Bengal') }}
+            {{ theme_option('palette', 'blue-bengal', 'theme.palette_blue_bengal', 'Blue Bengal') }}
         </fieldset>
     </div>
 </div>
