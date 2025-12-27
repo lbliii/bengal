@@ -1,12 +1,13 @@
 {# Link Previews Configuration Bridge & Script #}
 {# Wikipedia-style hover cards powered by per-page JSON #}
 {% let _link_previews = site.link_previews %}
-{% let _per_page_json = 'json' in (config.output_formats.per_page ?? []) %}
+{% let _per_page_json = config.output_formats.enabled and 'json' in (config.output_formats.per_page ?? []) %}
 {% if _link_previews.enabled and _per_page_json %}
 <script id="bengal-config" type="application/json">
 {
   "linkPreviews": {
     "enabled": true,
+    "debug": {{ config.debug | tojson }},
     "hoverDelay": {{ _link_previews.hover_delay ?? 200 }},
     "hideDelay": {{ _link_previews.hide_delay ?? 150 }},
     "showSection": {{ (_link_previews.show_section ?? true) | tojson }},

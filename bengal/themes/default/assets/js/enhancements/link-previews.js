@@ -25,10 +25,14 @@
 
   function getBengalConfig() {
     const el = document.getElementById('bengal-config');
-    if (!el) return null;
+    if (!el) {
+      console.warn('[LinkPreviews] Configuration element #bengal-config not found.');
+      return null;
+    }
     try {
       return JSON.parse(el.textContent);
-    } catch {
+    } catch (err) {
+      console.error('[LinkPreviews] Failed to parse #bengal-config:', err);
       return null;
     }
   }
@@ -46,6 +50,7 @@
   // ============================================================
 
   const CONFIG = {
+    debug: previewConfig.debug ?? (window.Bengal && window.Bengal.debug) ?? false,
     hoverDelay: previewConfig.hoverDelay ?? 200,
     hideDelay: previewConfig.hideDelay ?? 150,
     prefetchDelay: 50,
@@ -93,22 +98,26 @@
    * /docs/page.html → /docs/page/index.json
    */
   function toJsonUrl(pageUrl) {
+    let result;
     // 1. If it ends in .html, swap for .json (supports pretty_urls: false)
     if (pageUrl.endsWith('.html')) {
-      return pageUrl.replace(/\.html$/, '.json');
+      result = pageUrl.replace(/\.html$/, '.json');
+    } else {
+      // 2. Handle directory-style URLs (/foo or /foo/)
+      // Normalize: remove trailing slash
+      let url = pageUrl.replace(/\/$/, '');
+
+      // Handle empty path (root)
+      if (!url || url === '') {
+        result = '/index.json';
+      } else {
+        // Always append /index.json for directory-style URLs
+        result = url + '/index.json';
+      }
     }
 
-    // 2. Handle directory-style URLs (/foo or /foo/)
-    // Normalize: remove trailing slash
-    let url = pageUrl.replace(/\/$/, '');
-
-    // Handle empty path (root)
-    if (!url || url === '') {
-      return '/index.json';
-    }
-
-    // Always append /index.json for directory-style URLs
-    return url + '/index.json';
+    if (CONFIG.debug) console.log('[LinkPreviews] toJsonUrl:', pageUrl, '->', result);
+    return result;
   }
 
   /**
@@ -116,7 +125,10 @@
    */
   function isPreviewable(link) {
     // Internal links only
-    if (link.hostname !== window.location.hostname) return false;
+    if (link.hostname !== window.location.hostname) {
+      if (CONFIG.debug) console.log('[LinkPreviews] Not previewable: external hostname', link.hostname);
+      return false;
+    }
 
     // Skip anchors on same page, downloads, opt-out links
     if (link.hash && link.pathname === window.location.pathname) return false;
@@ -126,11 +138,17 @@
 
     // Include only links inside prose sections (if configured)
     const includeSelector = CONFIG.includeSelectors.join(', ');
-    if (includeSelector && !link.closest(includeSelector)) return false;
+    if (includeSelector && !link.closest(includeSelector)) {
+      if (CONFIG.debug) console.log('[LinkPreviews] Not previewable: not in includeSelector', includeSelector);
+      return false;
+    }
 
     // Skip links inside excluded selectors (nav, toc, etc.)
     const excludeSelector = CONFIG.excludeSelectors.join(', ');
-    if (excludeSelector && link.closest(excludeSelector)) return false;
+    if (excludeSelector && link.closest(excludeSelector)) {
+      if (CONFIG.debug) console.log('[LinkPreviews] Not previewable: in excludeSelector', link.closest(excludeSelector));
+      return false;
+    }
 
     return true;
   }
@@ -183,6 +201,7 @@
 
     try {
       const jsonUrl = toJsonUrl(url);
+      if (CONFIG.debug) console.log('[LinkPreviews] Fetching:', jsonUrl);
       const response = await fetch(jsonUrl, { signal: controller.signal });
 
       if (!response.ok) {
@@ -190,6 +209,7 @@
       }
 
       const data = await response.json();
+      if (CONFIG.debug) console.log('[LinkPreviews] Data received:', data);
       cacheSet(url, data);
       pendingFetch = null;
       return data;
@@ -200,6 +220,8 @@
       if (error.name === 'AbortError') {
         return null;
       }
+
+      console.error('[LinkPreviews] Fetch failed for', url, ':', error);
 
       // Cache failures to avoid repeated requests
       cacheSet(url, null);
@@ -225,6 +247,8 @@
 
   function createPreviewCard(data, link) {
     if (!data) return null;
+
+    if (CONFIG.debug) console.log('[LinkPreviews] Creating preview card for', link.href);
 
     // Check if we already have an active preview for this link
     if (activePreview && activeLink === link) return activePreview;
@@ -362,6 +386,7 @@
     activeLink = link;
 
     hoverTimeout = setTimeout(async () => {
+      hoverTimeout = null;
       // Ensure we are still targeting the same link after the delay
       if (activeLink !== link) return;
 
@@ -382,8 +407,14 @@
   }
 
   function cancelShow() {
-    clearTimeout(hoverTimeout);
-    clearTimeout(prefetchTimeout);
+    if (hoverTimeout) {
+      clearTimeout(hoverTimeout);
+      hoverTimeout = null;
+    }
+    if (prefetchTimeout) {
+      clearTimeout(prefetchTimeout);
+      prefetchTimeout = null;
+    }
 
     // If no preview is active, clear the pending link
     if (!activePreview) {
@@ -392,7 +423,10 @@
   }
 
   function cancelHide() {
-    clearTimeout(hideTimeout);
+    if (hideTimeout) {
+      clearTimeout(hideTimeout);
+      hideTimeout = null;
+    }
   }
 
   // Mouse events for hover (mouseover/mouseout bubble, so event delegation works)
@@ -406,12 +440,17 @@
 
     if (!isPreviewable(link)) return;
 
-    // Ignore if already hovering/pending the same link
-    // This prevents multiple mouseover events (from link children) from resetting the timer
+    // If we're already targeting this link (either showing or scheduled)
     if (link === activeLink) {
       cancelHide();
+      // If no preview and no timer, something is wrong, re-schedule
+      if (!activePreview && !hoverTimeout) {
+        scheduleShow(link);
+      }
       return;
     }
+
+    if (CONFIG.debug) console.log('[LinkPreviews] Mouseover new link:', link.href);
 
     // Start prefetch immediately
     prefetch(link.pathname);
@@ -545,9 +584,7 @@
     if (initialized) return;
     initialized = true;
 
-    if (window.BengalUtils?.log) {
-      window.BengalUtils.log('[LinkPreviews] Initializing...', { config: CONFIG });
-    }
+    console.log('[LinkPreviews] Initializing...', { config: CONFIG });
 
     // Use event delegation for efficiency
     // Note: mouseover/mouseout bubble (unlike pointerenter/pointerleave), so delegation works
@@ -579,8 +616,8 @@
     });
 
     // Log initialization
-    if (window.BengalUtils?.log) {
-      window.BengalUtils.log('[LinkPreviews] Initialized');
+    if (CONFIG.debug) {
+      console.log('[LinkPreviews] Initialized');
     }
   }
 
