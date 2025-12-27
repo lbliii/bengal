@@ -462,7 +462,7 @@ html[data-theme="dark"] .bengal-badge[data-tooltip]::after {
 .build-stats-card {
   position: absolute;
   z-index: var(--z-tooltip, 1070);
-  width: 240px;
+  width: 260px;
   padding: var(--space-3);
 
   background: var(--color-bg-elevated);

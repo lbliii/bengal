@@ -330,7 +330,7 @@ def create_cache_stats_panel(stats: BuildStats) -> Panel | None:
         lines.append(Text(f"   Blocks Cached: {block_cached}", style="magenta"))
         if block_total > 0:
             lines.append(
-                Text(f"   {block_emoji} Reuse Rate: ", style="magenta")
+                Text(f"   {block_emoji} Block reuse: ", style="magenta")
                 + Text(f"{block_hit_rate:.1f}%", style=f"bold {block_color}")
             )
             lines.append(Text(f"   Reused: {block_hits:>4}x", style="green"))
@@ -342,7 +342,7 @@ def create_cache_stats_panel(stats: BuildStats) -> Panel | None:
                     saved_str = f"{int(block_time_saved)}ms"
                 else:
                     saved_str = f"{block_time_saved / 1000:.2f}s"
-                lines.append(Text(f"   ⚡ Time Saved: {saved_str}", style="cyan"))
+                lines.append(Text(f"   ✨ Cache gain:  {saved_str}", style="cyan"))
 
     # Return None if no cache data at all
     if not lines:

@@ -172,17 +172,17 @@
       const bc = payload.block_cache;
       const total = bc.hits + bc.misses;
       const reuseRate = total > 0 ? Math.round((bc.hits / total) * 100) : 0;
-      let cacheText = `${bc.site_blocks_cached} blocks, ${reuseRate}% reuse`;
 
-      // Add time saved if available
+      // Split into two rows for better readability in the grid
+      // Include the number of cached blocks in the label
+      stats.push(createStatItem('🧩', `Block reuse (${bc.site_blocks_cached})`, `${reuseRate}% (${bc.hits}x)`));
+
       if (bc.time_saved_ms > 0) {
         const saved = bc.time_saved_ms < 1000
           ? `${Math.round(bc.time_saved_ms)}ms`
           : `${(bc.time_saved_ms / 1000).toFixed(2)}s`;
-        cacheText += ` (saved ${saved})`;
+        stats.push(createStatItem('✨', 'Cache gain', saved));
       }
-
-      stats.push(createStatItem('🧩', 'Block cache', cacheText));
     }
 
     // Timestamp
