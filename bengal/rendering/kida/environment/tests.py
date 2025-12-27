@@ -98,6 +98,8 @@ def _apply_test(value: Any, test_name: str, *args: Any) -> bool:
         return value is True
     if test_name == "false":
         return value is False
+    if test_name == "match":
+        return args and _test_match(value, args[0])
     # Fallback: truthy check
     return bool(value)
 
@@ -206,6 +208,21 @@ def _test_upper(value: str) -> bool:
     return str(value).isupper()
 
 
+def _test_match(value: Any, pattern: str) -> bool:
+    """Test if string matches regex pattern.
+
+    Used by rejectattr/selectattr for filtering by regex pattern.
+
+    Example:
+        {% for page in pages | rejectattr('path', 'match', '.*_index.*') %}
+    """
+    import re
+
+    if value is None:
+        return False
+    return bool(re.match(pattern, str(value)))
+
+
 # Default tests
 DEFAULT_TESTS: dict[str, Callable] = {
     "callable": _test_callable,
@@ -235,4 +252,5 @@ DEFAULT_TESTS: dict[str, Callable] = {
     "true": lambda v: v is True,  # is true test
     "undefined": lambda v: v is None,
     "upper": _test_upper,
+    "match": _test_match,
 }

@@ -4,7 +4,7 @@ from pathlib import Path
 
 from bengal.assets.manifest import AssetManifest
 from bengal.core.theme import Theme
-from bengal.rendering.template_engine import TemplateEngine
+from bengal.rendering.engines.jinja import JinjaTemplateEngine
 
 
 class DummySite:
@@ -31,28 +31,28 @@ class DummySite:
 
 def test_asset_url_no_baseurl(tmp_path: Path):
     site = DummySite(tmp_path, baseurl="")
-    engine = TemplateEngine(site)
+    engine = JinjaTemplateEngine(site)
     url = engine._asset_url("css/style.css")
     assert url == "/assets/css/style.css"
 
 
 def test_asset_url_path_baseurl(tmp_path: Path):
     site = DummySite(tmp_path, baseurl="/bengal")
-    engine = TemplateEngine(site)
+    engine = JinjaTemplateEngine(site)
     url = engine._asset_url("css/style.css")
     assert url == "/bengal/assets/css/style.css"
 
 
 def test_asset_url_absolute_baseurl(tmp_path: Path):
     site = DummySite(tmp_path, baseurl="https://docs.example.com/sub")
-    engine = TemplateEngine(site)
+    engine = JinjaTemplateEngine(site)
     url = engine._asset_url("css/style.css")
     assert url == "https://docs.example.com/sub/assets/css/style.css"
 
 
 def test_asset_url_prefers_fingerprinted_when_present_with_baseurl(tmp_path: Path):
     site = DummySite(tmp_path, baseurl="/bengal")
-    engine = TemplateEngine(site)
+    engine = JinjaTemplateEngine(site)
 
     out = site.output_dir / "assets" / "css"
     out.mkdir(parents=True, exist_ok=True)
@@ -76,6 +76,6 @@ def test_asset_url_respects_manifest_mapping(tmp_path: Path):
     )
     manifest.write(site.output_dir / "asset-manifest.json")
 
-    engine = TemplateEngine(site)
+    engine = JinjaTemplateEngine(site)
     url = engine._asset_url("css/style.css")
     assert url == "/docs/assets/css/style.deadbeef.css"

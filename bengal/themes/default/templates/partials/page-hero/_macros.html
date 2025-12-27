@@ -37,8 +37,8 @@ HELPER MACROS (internal)
 
 {# Get page URL with fallback chain #}
 {% def _get_page_url(page) -%}
-{{ page._path or page.href or '/' }}
-{% end %}
+{{ (page._path or page.href or '/') | trim }}
+{%- end %}
 
 {# =============================================================================
 SHARE DROPDOWN MACRO (internal)
@@ -434,7 +434,8 @@ Shows subsection and page counts.
 ----------------------------------------------------------------------------- #}
 {% def hero_section(section, page, hero_context) %}
 {# Determine section type from explicit context, page type, or URL (fallback) #}
-{% set is_cli = hero_context?.is_cli ?? (page.type == 'autodoc-cli') ?? (page.href and '/cli' in page.href) ?? false %}
+{# Note: Use 'or' for boolean fallback chain, not '??' which only coalesces None #}
+{% set is_cli = hero_context?.is_cli or (page.type == 'autodoc-cli') or (page.href and '/cli' in page.href) or false %}
 
 <div class="page-hero page-hero--api">
   {# Top row: Breadcrumbs (left) + Actions (right) #}

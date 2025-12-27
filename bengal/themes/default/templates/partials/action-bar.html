@@ -23,8 +23,8 @@ USAGE:
 HELPER: Get page URL with fallback chain
 ============================================================================= #}
 {% def get_page_url(page) -%}
-{{ page?._path ?? page?.href ?? '/' }}
-{% end %}
+{{ (page?._path ?? page?.href ?? '/') | trim }}
+{%- end %}
 
 {# =============================================================================
 BREADCRUMB ITEM HELPER

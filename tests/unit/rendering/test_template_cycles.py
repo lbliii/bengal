@@ -3,10 +3,15 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from jinja2.exceptions import TemplateError
 
 from bengal.core.site import Site
-from bengal.rendering.template_engine import TemplateEngine
+from bengal.rendering.engines import create_engine
+from bengal.rendering.kida.environment.exceptions import (
+    TemplateError as KidaTemplateError,
+)
+from bengal.rendering.kida.environment.exceptions import (
+    TemplateRuntimeError,
+)
 
 
 class TestTemplateCircularDependencies:
@@ -19,9 +24,9 @@ class TestTemplateCircularDependencies:
         (Path(tmp_path) / "bengal.toml").write_text("title='t'")
 
         site = Site.from_config(tmp_path)
-        engine = TemplateEngine(site)
+        engine = create_engine(site)
 
-        with pytest.raises((TemplateError, RecursionError)):
+        with pytest.raises((KidaTemplateError, TemplateRuntimeError, RecursionError)):
             tpl = engine.env.get_template("loop.html")
             tpl.render()
 
@@ -35,9 +40,9 @@ class TestTemplateCircularDependencies:
         (Path(tmp_path) / "bengal.toml").write_text("title='t'")
 
         site = Site.from_config(tmp_path)
-        engine = TemplateEngine(site)
+        engine = create_engine(site)
 
-        with pytest.raises((TemplateError, RecursionError)):
+        with pytest.raises((KidaTemplateError, TemplateRuntimeError, RecursionError)):
             tpl = engine.env.get_template("a.html")
             tpl.render()
 
@@ -50,8 +55,8 @@ class TestTemplateCircularDependencies:
         (Path(tmp_path) / "bengal.toml").write_text("title='t'")
 
         site = Site.from_config(tmp_path)
-        engine = TemplateEngine(site)
+        engine = create_engine(site)
 
-        with pytest.raises((TemplateError, RecursionError)):
+        with pytest.raises((KidaTemplateError, TemplateRuntimeError, RecursionError)):
             tpl = engine.env.get_template("base.html")
             tpl.render()

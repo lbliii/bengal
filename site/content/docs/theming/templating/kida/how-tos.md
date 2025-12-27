@@ -1,80 +1,61 @@
 ---
 title: Kida How-Tos
 nav_title: How-Tos
-description: Step-by-step guides for common Kida template tasks
+description: Task-oriented guides for common Kida template patterns
 weight: 30
 type: doc
 draft: false
 lang: en
 tags:
 - how-to
-- templates
 - kida
-keywords:
-- kida how-to
-- template tasks
-- kida patterns
 category: how-to
 ---
 
 # Kida How-Tos
 
-Step-by-step guides for common tasks when working with Kida templates in Bengal.
+Task-oriented guides for working with Kida templates.
 
 :::{cards}
 :columns: 2
 :gap: medium
 
-:::{card} Create a Custom Template
-:icon: code
+:::{card} Create Custom Templates
 :link: ./create-custom-template
-:description: Build a custom template from scratch using Kida syntax
-:color: blue
-:::{/card}
-
-:::{card} Add a Custom Filter
-:icon: filter
-:link: ./add-custom-filter
-:description: Extend Kida with your own template filters
-:color: green
-:::{/card}
+Build a template from scratch with extends, blocks, and includes.
+:::
 
 :::{card} Use Pattern Matching
-:icon: code-branch
 :link: ./use-pattern-matching
-:description: Replace long if/elif chains with clean pattern matching
-:color: purple
-:::{/card}
-
-:::{card} Cache Template Fragments
-:icon: zap
-:link: ./cache-fragments
-:description: Improve performance with built-in fragment caching
-:color: orange
-:::{/card}
-
-:::{card} Use Automatic Block Caching
-:icon: lightning-bolt
-:link: ./cacheable-blocks
-:description: Leverage automatic caching for site-scoped blocks
-:color: yellow
-:::{/card}
-
-:::{card} Migrate from Jinja2
-:icon: arrow-right
-:link: ./migrate-jinja-to-kida
-:description: Convert existing Jinja2 templates to Kida syntax
-:color: teal
-:::{/card}
+Replace `if/elif` chains with `{% match %}...{% case %}`.
+:::
 
 :::{card} Use Pipeline Operator
-:icon: workflow
 :link: ./use-pipeline-operator
-:description: Write readable filter chains with the pipeline operator
-:color: indigo
-:::{/card}
+Filter collections with left-to-right `|>` syntax.
+:::
 
-:::{/cards}
+:::{card} Cache Fragments
+:link: ./cache-fragments
+Wrap expensive operations in `{% cache %}`.
+:::
+
+:::{card} Automatic Block Caching
+:link: ./cacheable-blocks
+Structure templates for automatic site-scoped caching.
+:::
+
+:::{card} Add Custom Filters
+:link: ./add-custom-filter
+Register Python functions as template filters.
+:::
+
+:::{card} Migrate from Jinja2
+:link: ./migrate-jinja-to-kida
+Convert existing templates to Kida syntax.
+:::
+
+:::
 
 ## Common Patterns
 
@@ -87,55 +68,43 @@ Step-by-step guides for common tasks when working with Kida templates in Bengal.
   |> sort_by('date', reverse=true)
   |> take(10) %}
 
-<ul>
-  {% for post in posts %}
-    <li>
-      <a href="{{ post.url }}">{{ post.title }}</a>
-      <time>{{ post.date | dateformat('%B %d, %Y') }}</time>
-    </li>
-  {% end %}
-</ul>
-```
-
-### Tag Cloud
-
-```kida
-{% let tags = site.tags
-  |> items()
-  |> sort_by('count', reverse=true)
-  |> take(20) %}
-
-<div class="tag-cloud">
-  {% for tag in tags %}
-    <a href="{{ tag_url(tag.name) }}" class="tag">
-      {{ tag.name }} ({{ tag.count }})
-    </a>
-  {% end %}
-</div>
+{% for post in posts %}
+  <article>
+    <a href="{{ post.url }}">{{ post.title }}</a>
+    <time>{{ post.date | dateformat('%B %d, %Y') }}</time>
+  </article>
+{% end %}
 ```
 
 ### Navigation with Active State
 
 ```kida
-{% let current_path = page._path %}
+{% let current = page._path %}
 
 <nav>
   {% for item in site.menus.main %}
-    {% let is_active = current_path == item.url or current_path | startswith(item.url ~ '/') %}
-    <a href="{{ item.url }}" {% if is_active %}aria-current="page"{% end %}>
+    {% let active = current == item.url or current | startswith(item.url ~ '/') %}
+    <a href="{{ item.url }}" {% if active %}aria-current="page"{% end %}>
       {{ item.title }}
     </a>
   {% end %}
 </nav>
 ```
 
-## Next Steps
+### Conditional Content by Page Type
 
-- **Learn the syntax**: [Syntax Reference](/docs/reference/kida-syntax/)
-- **See examples**: [Tutorial](/docs/tutorials/getting-started-with-kida/)
-- **Understand performance**: [Performance Guide](/docs/theming/templating/kida/performance/)
+```kida
+{% match page.type %}
+  {% case "blog" %}
+    {% include "partials/blog-meta.html" %}
+  {% case "doc" %}
+    {% include "partials/doc-nav.html" %}
+  {% case _ %}
+    {# Default: no extra content #}
+{% end %}
+```
 
 :::{seealso}
-- [Kida Overview](/docs/theming/templating/kida/overview/) — Why Kida is production-ready
-- [Kida Comparison](/docs/theming/templating/kida/comparison/) — Feature-by-feature comparison with Jinja2
+- [Kida Syntax Reference](/docs/reference/kida-syntax/) — Complete syntax documentation
+- [Template Functions](/docs/reference/template-functions/) — Available filters
 :::

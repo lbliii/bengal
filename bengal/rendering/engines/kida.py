@@ -351,6 +351,12 @@ class KidaTemplateEngine:
         try:
             tmpl = self._env.from_string(template)
 
+            # Inject page-aware functions before render
+            # This updates t(), current_lang(), tag_url(), asset_url() with page context
+            from bengal.rendering.adapters.kida import inject_page_context
+
+            inject_page_context(self._env, context.get("page"))
+
             # Inject site and config
             ctx = {"site": self.site, "config": self.site.config}
             ctx.update(context)
