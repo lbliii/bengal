@@ -202,7 +202,7 @@ def test_kida_faster_than_jinja(
     assert jinja_result == kida_result, f"Output mismatch for {template_name}"
 
     # Benchmark Kida
-    result = benchmark(kida_template.render, **simple_context)
+    benchmark(kida_template.render, **simple_context)
 
 
 def test_loop_performance(benchmark, simple_context, kida_env):
@@ -269,7 +269,8 @@ def main():
         print("-" * 80)
         avg_speedup = total_jinja / total_kida if total_kida > 0 else 0
         print(
-            f"{'TOTAL':30} | {total_jinja * 1000:8.3f}ms | {total_kida * 1000:8.3f}ms | {avg_speedup:5.1f}x"
+            f"{'TOTAL':30} | {total_jinja * 1000:8.3f}ms | "
+            f"{total_kida * 1000:8.3f}ms | {avg_speedup:5.1f}x"
         )
         print()
         print(f"Kida wins: {wins}/{len(results)} benchmarks")

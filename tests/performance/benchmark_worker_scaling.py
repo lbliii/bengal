@@ -617,10 +617,7 @@ def main():
         ),
     }
 
-    if args.workload == "all":
-        selected = list(workloads.keys())
-    else:
-        selected = [args.workload]
+    selected = list(workloads.keys()) if args.workload == "all" else [args.workload]
 
     results = []
     for workload_key in selected:

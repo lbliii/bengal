@@ -206,8 +206,8 @@ HELPER: Render a menu item (desktop/mobile)
         };
         window.Bengal = window.Bengal || {};
         window.Bengal.enhanceBaseUrl = '{{ asset_url("js/enhancements") }}';
-        window.Bengal.watchDom = {{ config.enhancements.watch_dom | default (true) | lower }};
-        window.Bengal.debug = {{ config.enhancements.debug | default (false) | lower }};
+        window.Bengal.watchDom = {{ (config.enhancements?.watch_dom ?? true) | lower }};
+        window.Bengal.debug = {{ (config.enhancements?.debug ?? false) | lower }};
         window.Bengal.enhanceUrls = {
             'toc': '{{ asset_url("js/enhancements/toc.js") }}',
             'docs-nav': '{{ asset_url("js/enhancements/docs-nav.js") }}',

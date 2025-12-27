@@ -79,9 +79,7 @@ class HtmlStateMachineLexer(StateMachineLexer):
                 pos += 1
 
                 # Closing tag
-                is_closing = False
                 if pos < length and code[pos] == "/":
-                    is_closing = True
                     pos += 1
 
                 # Tag name

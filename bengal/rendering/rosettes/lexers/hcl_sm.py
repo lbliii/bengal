@@ -238,7 +238,6 @@ class HclStateMachineLexer(
                         line_start = pos
                     # Find end delimiter
                     while pos < length:
-                        line_begin = pos
                         if strip_indent:
                             while pos < length and code[pos] in " \t":
                                 pos += 1

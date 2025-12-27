@@ -232,17 +232,13 @@ class RubyStateMachineLexer(
                     if quoted:
                         quote = code[pos]
                         pos += 1
-                        delim_start = pos
                         while pos < length and code[pos] != quote:
                             pos += 1
-                        delim = code[delim_start:pos]
                         if pos < length:
                             pos += 1
                     else:
-                        delim_start = pos
                         while pos < length and (code[pos].isalnum() or code[pos] == "_"):
                             pos += 1
-                        delim = code[delim_start:pos]
                     yield Token(TokenType.STRING_HEREDOC, code[start:pos], line, col)
                     continue
 
@@ -342,11 +338,15 @@ class RubyStateMachineLexer(
 
                 while pos < length and (code[pos] in DIGITS or code[pos] == "_"):
                     pos += 1
-                if pos < length and code[pos] == ".":
-                    if pos + 1 < length and code[pos + 1] in DIGITS:
+                if (
+                    pos < length
+                    and code[pos] == "."
+                    and pos + 1 < length
+                    and code[pos + 1] in DIGITS
+                ):
+                    pos += 1
+                    while pos < length and (code[pos] in DIGITS or code[pos] == "_"):
                         pos += 1
-                        while pos < length and (code[pos] in DIGITS or code[pos] == "_"):
-                            pos += 1
                 if pos < length and code[pos] in "eE":
                     pos += 1
                     if pos < length and code[pos] in "+-":

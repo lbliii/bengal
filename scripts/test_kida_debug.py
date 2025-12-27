@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Debug Kida block compilation."""
 
+import ast as pyast
 import sys
 
 sys.path.insert(0, "/Users/llane/Documents/github/python/bengal")
@@ -25,6 +26,5 @@ print(ast)
 compiler = Compiler()
 code = compiler.compile(ast, filename="parent.html")
 print("\n=== Generated Python ===")
-import ast as pyast
 
 print(pyast.unparse(code))

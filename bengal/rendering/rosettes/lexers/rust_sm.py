@@ -337,19 +337,18 @@ class RustStateMachineLexer(
             pos += 1
 
         # Float
-        if pos < length and code[pos] == ".":
-            if pos + 1 < length and code[pos + 1] in DIGITS:
+        if pos < length and code[pos] == "." and pos + 1 < length and code[pos + 1] in DIGITS:
+            pos += 1
+            while pos < length and (code[pos] in DIGITS or code[pos] == "_"):
                 pos += 1
+            if pos < length and code[pos] in "eE":
+                pos += 1
+                if pos < length and code[pos] in "+-":
+                    pos += 1
                 while pos < length and (code[pos] in DIGITS or code[pos] == "_"):
                     pos += 1
-                if pos < length and code[pos] in "eE":
-                    pos += 1
-                    if pos < length and code[pos] in "+-":
-                        pos += 1
-                    while pos < length and (code[pos] in DIGITS or code[pos] == "_"):
-                        pos += 1
-                pos = self._scan_type_suffix(code, pos)
-                return TokenType.NUMBER_FLOAT, pos
+            pos = self._scan_type_suffix(code, pos)
+            return TokenType.NUMBER_FLOAT, pos
 
         if pos < length and code[pos] in "eE":
             pos += 1

@@ -44,8 +44,29 @@ def register(env: Environment, site: Site) -> None:
             "get": dict_get,
             "first_sentence": first_sentence,
             "filesize": filesize,
+            "split": split_string,
         }
     )
+
+
+def split_string(text: str, separator: str = " ") -> list[str]:
+    """
+    Split a string into a list using a separator.
+
+    Args:
+        text: Text to split
+        separator: Separator string (default: space)
+
+    Returns:
+        List of string parts
+
+    Example:
+        {{ "1.2.3" | split('.') }}  # ["1", "2", "3"]
+        {{ "a,b,c" | split(',') }}  # ["a", "b", "c"]
+    """
+    if not text:
+        return []
+    return text.split(separator)
 
 
 def dict_get(obj: Any, key: str, default: Any = None) -> Any:

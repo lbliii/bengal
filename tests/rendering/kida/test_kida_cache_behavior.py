@@ -400,7 +400,7 @@ class TestCacheThreadSafety:
             t.join()
 
         assert len(results) == 20
-        for i, r in enumerate(results):
+        for _i, r in enumerate(results):
             assert "Hello" in r
 
     def test_concurrent_fragment_caching(self) -> None:
@@ -446,7 +446,6 @@ class TestCacheConfiguration:
 
     def test_disabled_caching(self) -> None:
         """Template cache can be disabled."""
-        env = Environment(cache_size=0)
         # With size 0, cache should still work (unlimited)
         loader = DictLoader({"test.html": "Hello"})
         env_with_loader = Environment(loader=loader, cache_size=0)

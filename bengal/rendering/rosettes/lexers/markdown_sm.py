@@ -46,7 +46,6 @@ class MarkdownStateMachineLexer(StateMachineLexer):
                 start = pos
                 pos += 3
                 # Language identifier
-                lang_start = pos
                 while pos < length and code[pos] != "\n":
                     pos += 1
                 start_line = line

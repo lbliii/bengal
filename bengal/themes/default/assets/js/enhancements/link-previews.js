@@ -364,16 +364,17 @@
     clearTimeout(hideTimeout);
   }
 
-  // Pointer events (work for both mouse and touch)
-  function handlePointerEnter(event) {
-    // Skip touch events - handled separately via long-press
-    if (event.pointerType === 'touch') return;
-
+  // Mouse events for hover (mouseover/mouseout bubble, so event delegation works)
+  // Note: pointerenter/pointerleave do NOT bubble, so event delegation fails with them
+  function handleMouseOver(event) {
     // Guard: event.target may be a non-Element (e.g., Document, TextNode)
     if (!event.target || typeof event.target.closest !== 'function') return;
 
     const link = event.target.closest('a');
     if (!link || !isPreviewable(link)) return;
+
+    // Ignore if already hovering the same link
+    if (link === activeLink && activePreview) return;
 
     // Start prefetch immediately
     prefetch(link.pathname);
@@ -382,14 +383,21 @@
     scheduleShow(link);
   }
 
-  function handlePointerLeave(event) {
-    if (event.pointerType === 'touch') return;
-
+  function handleMouseOut(event) {
     // Guard: event.target may be a non-Element (e.g., Document, TextNode)
     if (!event.target || typeof event.target.closest !== 'function') return;
 
     const link = event.target.closest('a');
     if (!link) return;
+
+    // Check if we're moving to the preview card or staying within the link
+    const relatedTarget = event.relatedTarget;
+    if (relatedTarget) {
+      // Still within the same link
+      if (link.contains(relatedTarget)) return;
+      // Moving to the preview card
+      if (activePreview && activePreview.contains(relatedTarget)) return;
+    }
 
     scheduleHide();
   }
@@ -496,8 +504,9 @@
 
   function init() {
     // Use event delegation for efficiency
-    document.addEventListener('pointerenter', handlePointerEnter, true);
-    document.addEventListener('pointerleave', handlePointerLeave, true);
+    // Note: mouseover/mouseout bubble (unlike pointerenter/pointerleave), so delegation works
+    document.addEventListener('mouseover', handleMouseOver);
+    document.addEventListener('mouseout', handleMouseOut);
     document.addEventListener('focusin', handleFocusIn, true);
     document.addEventListener('focusout', handleFocusOut, true);
     document.addEventListener('keydown', handleKeyDown);

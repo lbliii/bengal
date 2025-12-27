@@ -200,12 +200,16 @@ class HaskellStateMachineLexer(StateMachineLexer):
                 while pos < length and code[pos] in DIGITS:
                     pos += 1
                 is_float = False
-                if pos < length and code[pos] == ".":
-                    if pos + 1 < length and code[pos + 1] in DIGITS:
-                        is_float = True
+                if (
+                    pos < length
+                    and code[pos] == "."
+                    and pos + 1 < length
+                    and code[pos + 1] in DIGITS
+                ):
+                    is_float = True
+                    pos += 1
+                    while pos < length and code[pos] in DIGITS:
                         pos += 1
-                        while pos < length and code[pos] in DIGITS:
-                            pos += 1
                 if pos < length and code[pos] in "eE":
                     is_float = True
                     pos += 1
