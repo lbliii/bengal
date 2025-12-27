@@ -181,7 +181,9 @@ class RenderingPipeline:
         if self.dependency_tracker:
             self.template_engine._dependency_tracker = self.dependency_tracker
 
-        self.renderer = Renderer(self.template_engine, build_stats=build_stats, block_cache=block_cache)
+        self.renderer = Renderer(
+            self.template_engine, build_stats=build_stats, block_cache=block_cache
+        )
         self.build_context = build_context
         self.changed_sources = {Path(p) for p in (changed_sources or set())}
 
@@ -255,6 +257,8 @@ class RenderingPipeline:
         is_autodoc = page.metadata.get("is_autodoc")
         if getattr(page, "_virtual", False) and (prerendered is not None or is_autodoc):
             self._autodoc_renderer.process_virtual_page(page)
+            # Accumulate unified page data for virtual pages (JSON + search index)
+            self._json_accumulator.accumulate_unified_page_data(page)
             # Inline asset extraction for virtual pages
             self._accumulate_asset_deps(page)
             return
