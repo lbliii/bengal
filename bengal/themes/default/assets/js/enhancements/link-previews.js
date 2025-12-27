@@ -93,18 +93,21 @@
    * /docs/page.html → /docs/page/index.json
    */
   function toJsonUrl(pageUrl) {
-    // Normalize: remove trailing index.html and trailing slash
-    let url = pageUrl
-      .replace(/\/?index\.html$/, '')
-      .replace(/\.html$/, '')
-      .replace(/\/$/, '');
+    // 1. If it ends in .html, swap for .json (supports pretty_urls: false)
+    if (pageUrl.endsWith('.html')) {
+      return pageUrl.replace(/\.html$/, '.json');
+    }
+
+    // 2. Handle directory-style URLs (/foo or /foo/)
+    // Normalize: remove trailing slash
+    let url = pageUrl.replace(/\/$/, '');
 
     // Handle empty path (root)
     if (!url || url === '') {
-      url = '';
+      return '/index.json';
     }
 
-    // Always append /index.json
+    // Always append /index.json for directory-style URLs
     return url + '/index.json';
   }
 
@@ -223,6 +226,9 @@
   function createPreviewCard(data, link) {
     if (!data) return null;
 
+    // Check if we already have an active preview for this link
+    if (activePreview && activeLink === link) return activePreview;
+
     const preview = document.createElement('div');
     preview.className = 'link-preview';
     preview.id = generateId();
@@ -320,15 +326,17 @@
   }
 
   function destroyPreview() {
+    // Remove ARIA association regardless of whether preview existed
+    if (activeLink) {
+      activeLink.removeAttribute('aria-describedby');
+    }
+
     if (activePreview) {
-      // Remove ARIA association
-      if (activeLink) {
-        activeLink.removeAttribute('aria-describedby');
-      }
       activePreview.remove();
       activePreview = null;
-      activeLink = null;
     }
+
+    activeLink = null;
   }
 
   // ============================================================
@@ -336,13 +344,31 @@
   // ============================================================
 
   function scheduleShow(link) {
+    // If we're already showing OR scheduled for this link, do nothing
+    if (link === activeLink) {
+      cancelHide();
+      return;
+    }
+
     cancelShow();
     cancelHide();
 
+    // If another preview is showing, destroy it immediately
+    if (activePreview) {
+      destroyPreview();
+    }
+
+    // Set as pending link
+    activeLink = link;
+
     hoverTimeout = setTimeout(async () => {
+      // Ensure we are still targeting the same link after the delay
+      if (activeLink !== link) return;
+
       const data = await fetchPreviewData(link.pathname);
-      if (data && !activePreview) {
-        activeLink = link;
+
+      // Verify again after fetch (user might have moved out during fetch)
+      if (data && activeLink === link && !activePreview) {
         activePreview = createPreviewCard(data, link);
       }
     }, CONFIG.hoverDelay);
@@ -358,6 +384,11 @@
   function cancelShow() {
     clearTimeout(hoverTimeout);
     clearTimeout(prefetchTimeout);
+
+    // If no preview is active, clear the pending link
+    if (!activePreview) {
+      activeLink = null;
+    }
   }
 
   function cancelHide() {
@@ -371,10 +402,16 @@
     if (!event.target || typeof event.target.closest !== 'function') return;
 
     const link = event.target.closest('a');
-    if (!link || !isPreviewable(link)) return;
+    if (!link) return;
 
-    // Ignore if already hovering the same link
-    if (link === activeLink && activePreview) return;
+    if (!isPreviewable(link)) return;
+
+    // Ignore if already hovering/pending the same link
+    // This prevents multiple mouseover events (from link children) from resetting the timer
+    if (link === activeLink) {
+      cancelHide();
+      return;
+    }
 
     // Start prefetch immediately
     prefetch(link.pathname);
@@ -392,7 +429,7 @@
 
     // Check if we're moving to the preview card or staying within the link
     const relatedTarget = event.relatedTarget;
-    if (relatedTarget) {
+    if (relatedTarget && typeof relatedTarget.closest === 'function') {
       // Still within the same link
       if (link.contains(relatedTarget)) return;
       // Moving to the preview card
@@ -502,7 +539,16 @@
   // Initialization
   // ============================================================
 
+  let initialized = false;
+
   function init() {
+    if (initialized) return;
+    initialized = true;
+
+    if (window.BengalUtils?.log) {
+      window.BengalUtils.log('[LinkPreviews] Initializing...', { config: CONFIG });
+    }
+
     // Use event delegation for efficiency
     // Note: mouseover/mouseout bubble (unlike pointerenter/pointerleave), so delegation works
     document.addEventListener('mouseover', handleMouseOver);
