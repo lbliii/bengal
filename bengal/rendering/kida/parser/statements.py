@@ -159,6 +159,8 @@ class StatementParsingMixin:
             return self._parse_extends()
         elif keyword == "include":
             return self._parse_include()
+        elif keyword == "import":
+            return self._parse_import()
         elif keyword == "macro":
             return self._parse_macro()
         elif keyword == "from":
@@ -237,7 +239,7 @@ class StatementParsingMixin:
         else:
             raise self._error(
                 f"Unknown block keyword: {keyword}",
-                suggestion="Valid keywords: if, unless, for, break, continue, set, let, block, extends, include, macro, from, with, do, raw, def, call, capture, cache, filter, slot, match, spaceless, embed",
+                suggestion="Valid keywords: if, unless, for, break, continue, set, let, block, extends, include, import, macro, from, with, do, raw, def, call, capture, cache, filter, slot, match, spaceless, embed",
             )
 
     def _skip_comment(self) -> None:

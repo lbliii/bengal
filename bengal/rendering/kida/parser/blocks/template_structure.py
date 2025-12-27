@@ -6,7 +6,7 @@ Provides mixin for parsing template structure statements (block, extends, includ
 from __future__ import annotations
 
 from bengal.rendering.kida._types import TokenType
-from bengal.rendering.kida.nodes import Block, Extends, FromImport, Include
+from bengal.rendering.kida.nodes import Block, Extends, FromImport, Import, Include
 from bengal.rendering.kida.parser.blocks.core import BlockStackMixin
 
 
@@ -101,6 +101,40 @@ class TemplateStructureBlockParsingMixin(BlockStackMixin):
             template=template,
             with_context=with_context,
             ignore_missing=ignore_missing,
+        )
+
+    def _parse_import(self) -> Import:
+        """Parse {% import "template.html" as f [with context] %}."""
+        start = self._advance()  # consume 'import'
+
+        template = self._parse_expression()
+
+        # Expect 'as'
+        if self._current.type != TokenType.NAME or self._current.value != "as":
+            raise self._error("Expected 'as' after template name in import")
+        self._advance()  # consume 'as'
+
+        if self._current.type != TokenType.NAME:
+            raise self._error("Expected alias name for import")
+        target = self._advance().value
+
+        with_context = False
+        if self._current.type == TokenType.NAME and self._current.value == "with":
+            self._advance()  # consume 'with'
+            if self._current.type == TokenType.NAME and self._current.value == "context":
+                self._advance()  # consume 'context'
+                with_context = True
+            else:
+                raise self._error("Expected 'context' after 'with'")
+
+        self._expect(TokenType.BLOCK_END)
+
+        return Import(
+            lineno=start.lineno,
+            col_offset=start.col_offset,
+            template=template,
+            target=target,
+            with_context=with_context,
         )
 
     def _parse_from_import(self) -> FromImport:

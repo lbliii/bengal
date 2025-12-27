@@ -86,6 +86,7 @@ def create_pages(
     get_element_metadata: callable,
     find_parent_section: callable,
     result: AutodocRunResult | None = None,
+    consolidate: bool = False,
 ) -> tuple[list[Page], AutodocRunResult]:
     """
     Create virtual pages for documentation elements.
@@ -103,6 +104,7 @@ def create_pages(
         get_element_metadata: Function to get element metadata
         find_parent_section: Function to find parent section
         result: AutodocRunResult to track failures and warnings
+        consolidate: Whether to consolidate elements into section index pages (OpenAPI)
 
     Returns:
         Tuple of (list of virtual Page objects, updated result)
@@ -122,17 +124,24 @@ def create_pages(
         compute_element_urls(element, site, doc_type, resolve_output_prefix)
 
         # Determine which elements get pages based on type
+        # In consolidated mode (OpenAPI), endpoints don't get individual pages
         if (
             doc_type == "python"
             and element.element_type != "module"
             or doc_type == "cli"
             and element.element_type not in ("command", "command-group")
             or doc_type == "openapi"
-            and element.element_type
-            not in (
-                "openapi_endpoint",
-                "openapi_schema",
-                "openapi_overview",
+            and (
+                (consolidate and element.element_type == "openapi_endpoint")
+                or (
+                    not consolidate
+                    and element.element_type
+                    not in (
+                        "openapi_endpoint",
+                        "openapi_schema",
+                        "openapi_overview",
+                    )
+                )
             )
         ):
             continue

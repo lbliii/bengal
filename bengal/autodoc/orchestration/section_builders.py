@@ -319,7 +319,7 @@ def create_openapi_sections(
                 sections[schemas_key] = schemas_section
 
     # Create sections for tags
-    for tag, _endpoints in tagged_endpoints.items():
+    for tag, endpoints in tagged_endpoints.items():
         tag_section = Section.create_virtual(
             name=tag,
             relative_url=join_url_paths(prefix, "tags", tag),
@@ -327,10 +327,26 @@ def create_openapi_sections(
             metadata={
                 "type": "autodoc-rest",
                 "tag": tag,
+                "endpoints": endpoints,  # Store endpoints for consolidated rendering
             },
         )
         api_section.add_subsection(tag_section)
         sections[f"{prefix}/tags/{tag}"] = tag_section
+
+    # Handle untagged endpoints - create a 'default' tag section if needed
+    if untagged_endpoints:
+        default_section = Section.create_virtual(
+            name="default",
+            relative_url=join_url_paths(prefix, "tags", "default"),
+            title="Default",
+            metadata={
+                "type": "autodoc-rest",
+                "tag": "default",
+                "endpoints": untagged_endpoints,
+            },
+        )
+        api_section.add_subsection(default_section)
+        sections[f"{prefix}/tags/default"] = default_section
 
     logger.debug("autodoc_sections_created", count=len(sections), type="openapi")
     return sections

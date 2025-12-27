@@ -225,6 +225,30 @@ class TestMacroImport:
         tmpl = env.get_template("main.html")
         assert tmpl.render() == "Hi World"
 
+    def test_full_import_as(self):
+        """Import entire template with alias: {% import "macros.html" as m %}."""
+        loader = DictLoader(
+            {
+                "macros.html": "{% macro greet(name) %}Hi {{ name }}{% endmacro %}",
+                "main.html": '{% import "macros.html" as m %}{{ m.greet("World") }}',
+            }
+        )
+        env = Environment(loader=loader)
+        tmpl = env.get_template("main.html")
+        assert tmpl.render() == "Hi World"
+
+    def test_full_import_as_with_context(self):
+        """Import entire template with context."""
+        loader = DictLoader(
+            {
+                "macros.html": "{% macro show_name() %}Name: {{ name }}{% endmacro %}",
+                "main.html": '{% import "macros.html" as m with context %}{{ m.show_name() }}',
+            }
+        )
+        env = Environment(loader=loader)
+        tmpl = env.get_template("main.html")
+        assert tmpl.render(name="Alice") == "Name: Alice"
+
 
 class TestMacroCallsMacro:
     """Test macros that call other macros defined in the same file.

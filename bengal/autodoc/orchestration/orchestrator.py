@@ -241,6 +241,10 @@ class VirtualAutodocOrchestrator:
                 openapi_elements, self.site, self._resolve_output_prefix, all_sections
             )
             all_sections.update(openapi_sections)
+
+            # Consolidate endpoints? Default to True for a "gold standard" experience
+            consolidate = self.openapi_config.get("consolidate", True)
+
             openapi_pages, _ = create_pages(
                 openapi_elements,
                 openapi_sections,
@@ -250,6 +254,7 @@ class VirtualAutodocOrchestrator:
                 lambda e, dt: get_element_metadata(e, dt, self._resolve_output_prefix),
                 lambda e, s, dt: find_parent_section(e, s, dt, self._resolve_output_prefix),
                 result,
+                consolidate=consolidate,
             )
             all_pages.extend(openapi_pages)
             result.rendered += len(openapi_pages)
@@ -590,6 +595,10 @@ class VirtualAutodocOrchestrator:
                         openapi_elements, self.site, self._resolve_output_prefix, all_sections
                     )
                     all_sections.update(openapi_sections)
+
+                    # Consolidate endpoints? Default to True for a "gold standard" experience
+                    consolidate = self.openapi_config.get("consolidate", True)
+
                     openapi_pages, _ = create_pages(
                         openapi_elements,
                         openapi_sections,
@@ -599,6 +608,7 @@ class VirtualAutodocOrchestrator:
                         lambda e, dt: get_element_metadata(e, dt, self._resolve_output_prefix),
                         lambda e, s, dt: find_parent_section(e, s, dt, self._resolve_output_prefix),
                         result,
+                        consolidate=consolidate,
                     )
                     all_pages.extend(openapi_pages)
                     result.rendered += len(openapi_pages)

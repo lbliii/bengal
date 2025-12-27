@@ -366,3 +366,69 @@ class TestInheritanceWithFromImport:
         env = Environment(loader=loader)
         result = env.get_template("child.html").render(name="Alice")
         assert "Name: Alice" in result
+
+
+class TestInheritanceWithScoping:
+    """Tests for top-level statements (let, import, etc.) in child templates."""
+
+    def test_let_in_child_available_in_block(self):
+        """{% let %} in child template should be available in blocks."""
+        loader = DictLoader(
+            {
+                "base.html": "<html>{% block content %}{% endblock %}</html>",
+                "child.html": (
+                    '{% extends "base.html" %}'
+                    '{% let my_var = "test_value" %}'
+                    "{% block content %}{{ my_var }}{% endblock %}"
+                ),
+            }
+        )
+        env = Environment(loader=loader)
+        assert env.get_template("child.html").render() == "<html>test_value</html>"
+
+    def test_import_as_in_child_available_in_block(self):
+        """{% import ... as ... %} in child template should be available in blocks."""
+        loader = DictLoader(
+            {
+                "macros.html": "{% macro greet(name) %}Hello, {{ name }}!{% endmacro %}",
+                "base.html": "<html>{% block content %}{% endblock %}</html>",
+                "child.html": (
+                    '{% extends "base.html" %}'
+                    '{% import "macros.html" as m %}'
+                    '{% block content %}{{ m.greet("World") }}{% endblock %}'
+                ),
+            }
+        )
+        env = Environment(loader=loader)
+        assert env.get_template("child.html").render() == "<html>Hello, World!</html>"
+
+    def test_export_in_child_available_in_block(self):
+        """{% export %} in child template should be available in blocks."""
+        loader = DictLoader(
+            {
+                "base.html": "<html>{% block content %}{% endblock %}</html>",
+                "child.html": (
+                    '{% extends "base.html" %}'
+                    '{% export exported_var = "exported" %}'
+                    "{% block content %}{{ exported_var }}{% endblock %}"
+                ),
+            }
+        )
+        env = Environment(loader=loader)
+        assert env.get_template("child.html").render() == "<html>exported</html>"
+
+    def test_do_in_child_executes(self):
+        """{% do %} in child template should execute before blocks."""
+        loader = DictLoader(
+            {
+                "base.html": "<html>{% block content %}{% endblock %}</html>",
+                "child.html": (
+                    '{% extends "base.html" %}'
+                    '{% do my_dict.update({"a": 1}) %}'
+                    "{% block content %}{{ my_dict.a }}{% endblock %}"
+                ),
+            }
+        )
+        env = Environment(loader=loader)
+        my_dict = {}
+        assert env.get_template("child.html").render(my_dict=my_dict) == "<html>1</html>"

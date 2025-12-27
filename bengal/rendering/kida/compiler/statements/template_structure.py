@@ -148,3 +148,31 @@ class TemplateStructureMixin:
             )
 
         return stmts
+
+    def _compile_import(self, node: Any) -> list[ast.stmt]:
+        """Compile {% import "template.html" as f %.
+
+        Generates: ctx['f'] = _import_macros(template_name, with_context, ctx)
+        """
+        template_expr = self._compile_expr(node.template)
+
+        return [
+            ast.Assign(
+                targets=[
+                    ast.Subscript(
+                        value=ast.Name(id="ctx", ctx=ast.Load()),
+                        slice=ast.Constant(value=node.target),
+                        ctx=ast.Store(),
+                    )
+                ],
+                value=ast.Call(
+                    func=ast.Name(id="_import_macros", ctx=ast.Load()),
+                    args=[
+                        template_expr,
+                        ast.Constant(value=node.with_context),
+                        ast.Name(id="ctx", ctx=ast.Load()),
+                    ],
+                    keywords=[],
+                ),
+            )
+        ]

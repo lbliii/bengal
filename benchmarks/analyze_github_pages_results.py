@@ -26,21 +26,37 @@ def load_benchmark_results(json_path: Path) -> dict[str, Any]:
         return json.load(f)
 
 
-def parse_test_name(test_name: str) -> tuple[str, int, str]:
+def parse_test_name(
+    test_name: str, bench_data: dict[str, Any] | None = None
+) -> tuple[str, int, str]:
     """
     Parse test name to extract site size and config.
 
-    Format: test_build_configuration[site_50_pages-50-BuildConfig(...)]
+    Format: test_build_configuration[default-site_50_pages-50]
+    Or from params: {"site_fixture": "site_50_pages", "page_count": 50, "build_config": "..."}
     """
-    # Extract parameters from test name
+    # Try to get from params first (more reliable)
+    if bench_data and "params" in bench_data:
+        params = bench_data["params"]
+        page_count = params.get("page_count", 0)
+        site_fixture = params.get("site_fixture", "unknown")
+        # Extract config from param string
+        param_str = bench_data.get("param", "")
+        config_str = param_str.split("-")[0] if "-" in param_str else "default"
+        return site_fixture, page_count, config_str
+
+    # Fallback: parse from test name
     if "[" in test_name:
         params = test_name.split("[")[1].rstrip("]")
         parts = params.split("-")
         if len(parts) >= 3:
-            site_fixture = parts[0]
-            page_count = int(parts[1])
-            config_str = "-".join(parts[2:])
-            return site_fixture, page_count, config_str
+            config_str = parts[0]
+            site_fixture = parts[1]
+            try:
+                page_count = int(parts[2])
+                return site_fixture, page_count, config_str
+            except ValueError:
+                pass
 
     # Fallback for other test names
     return "unknown", 0, "unknown"
@@ -55,7 +71,7 @@ def analyze_results(results: dict[str, Any]) -> dict[str, Any]:
 
     for bench in benchmarks:
         test_name = bench.get("name", "")
-        site_fixture, page_count, config_str = parse_test_name(test_name)
+        site_fixture, page_count, config_str = parse_test_name(test_name, bench)
 
         if page_count > 0:
             bench_data = {

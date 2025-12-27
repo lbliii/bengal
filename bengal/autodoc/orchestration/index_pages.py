@@ -61,6 +61,9 @@ def create_index_pages(
         # with banner and tiles; other sections use 'section-index'
         if section_type == "autodoc-hub":
             template_name = f"{template_dir}/home"
+        elif section_type == "autodoc-rest" and section.metadata.get("endpoints"):
+            # Consolidated OpenAPI reference page for tag/resource sections
+            template_name = f"{template_dir}/reference"
         else:
             template_name = f"{template_dir}/section-index"
 

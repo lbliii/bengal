@@ -1,0 +1,916 @@
+{
+    "machine_info": {
+        "node": "CWVG2P361J",
+        "processor": "arm",
+        "machine": "arm64",
+        "python_compiler": "Clang 16.0.6 ",
+        "python_implementation": "CPython",
+        "python_implementation_version": "3.12.2",
+        "python_version": "3.12.2",
+        "python_build": [
+            "main",
+            "Feb 16 2024 20:54:21"
+        ],
+        "release": "25.1.0",
+        "system": "Darwin",
+        "cpu": {
+            "python_version": "3.12.2.final.0 (64 bit)",
+            "cpuinfo_version": [
+                9,
+                0,
+                0
+            ],
+            "cpuinfo_version_string": "9.0.0",
+            "arch": "ARM_8",
+            "bits": 64,
+            "count": 11,
+            "arch_string_raw": "arm64",
+            "brand_raw": "Apple M3 Pro"
+        }
+    },
+    "commit_info": {
+        "id": "ab8bdce35b97662cb5ca38ac9fc77c90ff5de5ff",
+        "time": "2025-12-27T00:23:02-05:00",
+        "author_time": "2025-12-27T00:23:02-05:00",
+        "dirty": true,
+        "project": "bengal",
+        "branch": "main"
+    },
+    "benchmarks": [
+        {
+            "group": null,
+            "name": "test_build_configuration[default-site_50_pages-50]",
+            "fullname": "test_github_pages_optimization.py::test_build_configuration[default-site_50_pages-50]",
+            "params": {
+                "build_config": "UNSERIALIZABLE[BuildConfig(parallel=True, incremental=None, memory_optimized=False, fast=False, profile=None, quiet=False, strict=False, clean_output=False)]",
+                "site_fixture": "site_50_pages",
+                "page_count": 50
+            },
+            "param": "default-site_50_pages-50",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": 100000
+            },
+            "stats": {
+                "min": 2.6955064159992617,
+                "max": 4.7338718329847325,
+                "mean": 3.5903241083957256,
+                "stddev": 0.8197601813832943,
+                "rounds": 5,
+                "median": 3.6284407089988235,
+                "iqr": 1.2868704172651633,
+                "q1": 2.8704126664888463,
+                "q3": 4.15728308375401,
+                "iqr_outliers": 0,
+                "stddev_outliers": 2,
+                "outliers": "2;0",
+                "ld15iqr": 2.6955064159992617,
+                "hd15iqr": 4.7338718329847325,
+                "ops": 0.2785263864233229,
+                "total": 17.951620541978627,
+                "data": [
+                    4.7338718329847325,
+                    3.9650868340104353,
+                    3.6284407089988235,
+                    2.6955064159992617,
+                    2.9287147499853745
+                ],
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_build_configuration[seq-site_50_pages-50]",
+            "fullname": "test_github_pages_optimization.py::test_build_configuration[seq-site_50_pages-50]",
+            "params": {
+                "build_config": "UNSERIALIZABLE[BuildConfig(parallel=False, incremental=None, memory_optimized=False, fast=False, profile=None, quiet=False, strict=False, clean_output=False)]",
+                "site_fixture": "site_50_pages",
+                "page_count": 50
+            },
+            "param": "seq-site_50_pages-50",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": 100000
+            },
+            "stats": {
+                "min": 2.1809454579779413,
+                "max": 2.691863249987364,
+                "mean": 2.352590507990681,
+                "stddev": 0.22308583131678306,
+                "rounds": 5,
+                "median": 2.2191049579996616,
+                "iqr": 0.3292546040174784,
+                "q1": 2.1961133642325876,
+                "q3": 2.525367968250066,
+                "iqr_outliers": 0,
+                "stddev_outliers": 1,
+                "outliers": "1;0",
+                "ld15iqr": 2.1809454579779413,
+                "hd15iqr": 2.691863249987364,
+                "ops": 0.42506334893533515,
+                "total": 11.762952539953403,
+                "data": [
+                    2.4698695410043,
+                    2.2191049579996616,
+                    2.1809454579779413,
+                    2.2011693329841364,
+                    2.691863249987364
+                ],
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_build_configuration[full-site_50_pages-50]",
+            "fullname": "test_github_pages_optimization.py::test_build_configuration[full-site_50_pages-50]",
+            "params": {
+                "build_config": "UNSERIALIZABLE[BuildConfig(parallel=True, incremental=False, memory_optimized=False, fast=False, profile=None, quiet=False, strict=False, clean_output=False)]",
+                "site_fixture": "site_50_pages",
+                "page_count": 50
+            },
+            "param": "full-site_50_pages-50",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": 100000
+            },
+            "stats": {
+                "min": 2.24989370800904,
+                "max": 2.6209276669833343,
+                "mean": 2.499752758198883,
+                "stddev": 0.16394092864589357,
+                "rounds": 5,
+                "median": 2.606285416026367,
+                "iqr": 0.23818524023954524,
+                "q1": 2.3728814267451526,
+                "q3": 2.611066666984698,
+                "iqr_outliers": 0,
+                "stddev_outliers": 1,
+                "outliers": "1;0",
+                "ld15iqr": 2.24989370800904,
+                "hd15iqr": 2.6209276669833343,
+                "ops": 0.40003956260079016,
+                "total": 12.498763790994417,
+                "data": [
+                    2.6209276669833343,
+                    2.606285416026367,
+                    2.4138773329905234,
+                    2.6077796669851523,
+                    2.24989370800904
+                ],
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_build_configuration[inc-site_50_pages-50]",
+            "fullname": "test_github_pages_optimization.py::test_build_configuration[inc-site_50_pages-50]",
+            "params": {
+                "build_config": "UNSERIALIZABLE[BuildConfig(parallel=True, incremental=True, memory_optimized=False, fast=False, profile=None, quiet=False, strict=False, clean_output=False)]",
+                "site_fixture": "site_50_pages",
+                "page_count": 50
+            },
+            "param": "inc-site_50_pages-50",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": 100000
+            },
+            "stats": {
+                "min": 2.262432124989573,
+                "max": 4.8447005830239505,
+                "mean": 2.9768033584055957,
+                "stddev": 1.0692417228947815,
+                "rounds": 5,
+                "median": 2.5823269590036944,
+                "iqr": 1.0280750202437048,
+                "q1": 2.322313000258873,
+                "q3": 3.350388020502578,
+                "iqr_outliers": 0,
+                "stddev_outliers": 1,
+                "outliers": "1;0",
+                "ld15iqr": 2.262432124989573,
+                "hd15iqr": 4.8447005830239505,
+                "ops": 0.33593082229509763,
+                "total": 14.884016792027978,
+                "data": [
+                    4.8447005830239505,
+                    2.852283832995454,
+                    2.5823269590036944,
+                    2.3422732920153067,
+                    2.262432124989573
+                ],
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_build_configuration[fast-site_50_pages-50]",
+            "fullname": "test_github_pages_optimization.py::test_build_configuration[fast-site_50_pages-50]",
+            "params": {
+                "build_config": "UNSERIALIZABLE[BuildConfig(parallel=True, incremental=None, memory_optimized=False, fast=True, profile=None, quiet=False, strict=False, clean_output=False)]",
+                "site_fixture": "site_50_pages",
+                "page_count": 50
+            },
+            "param": "fast-site_50_pages-50",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": 100000
+            },
+            "stats": {
+                "min": 2.334267792000901,
+                "max": 2.5240521660016384,
+                "mean": 2.4429482999956234,
+                "stddev": 0.08041219999742535,
+                "rounds": 5,
+                "median": 2.438688166992506,
+                "iqr": 0.13587143625045428,
+                "q1": 2.3835042922437424,
+                "q3": 2.5193757284941967,
+                "iqr_outliers": 0,
+                "stddev_outliers": 2,
+                "outliers": "2;0",
+                "ld15iqr": 2.334267792000901,
+                "hd15iqr": 2.5240521660016384,
+                "ops": 0.40934145024755186,
+                "total": 12.214741499978118,
+                "data": [
+                    2.399916458991356,
+                    2.334267792000901,
+                    2.5240521660016384,
+                    2.438688166992506,
+                    2.517816915991716
+                ],
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_build_configuration[full_fast-site_50_pages-50]",
+            "fullname": "test_github_pages_optimization.py::test_build_configuration[full_fast-site_50_pages-50]",
+            "params": {
+                "build_config": "UNSERIALIZABLE[BuildConfig(parallel=True, incremental=False, memory_optimized=False, fast=True, profile=None, quiet=False, strict=False, clean_output=False)]",
+                "site_fixture": "site_50_pages",
+                "page_count": 50
+            },
+            "param": "full_fast-site_50_pages-50",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": 100000
+            },
+            "stats": {
+                "min": 2.4010440839920193,
+                "max": 2.552137207996566,
+                "mean": 2.4494685334037056,
+                "stddev": 0.06284065833062727,
+                "rounds": 5,
+                "median": 2.4192590420134366,
+                "iqr": 0.08161540624860208,
+                "q1": 2.4064283332554623,
+                "q3": 2.4880437395040644,
+                "iqr_outliers": 0,
+                "stddev_outliers": 1,
+                "outliers": "1;0",
+                "ld15iqr": 2.4010440839920193,
+                "hd15iqr": 2.552137207996566,
+                "ops": 0.4082518253910496,
+                "total": 12.247342667018529,
+                "data": [
+                    2.466679250006564,
+                    2.4192590420134366,
+                    2.4010440839920193,
+                    2.552137207996566,
+                    2.4082230830099434
+                ],
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_build_configuration[inc_fast-site_50_pages-50]",
+            "fullname": "test_github_pages_optimization.py::test_build_configuration[inc_fast-site_50_pages-50]",
+            "params": {
+                "build_config": "UNSERIALIZABLE[BuildConfig(parallel=True, incremental=True, memory_optimized=False, fast=True, profile=None, quiet=False, strict=False, clean_output=False)]",
+                "site_fixture": "site_50_pages",
+                "page_count": 50
+            },
+            "param": "inc_fast-site_50_pages-50",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": 100000
+            },
+            "stats": {
+                "min": 2.305728999985149,
+                "max": 2.746808958996553,
+                "mean": 2.533388541796012,
+                "stddev": 0.15620750226523308,
+                "rounds": 5,
+                "median": 2.534041332983179,
+                "iqr": 0.12251467800524551,
+                "q1": 2.475446187250782,
+                "q3": 2.5979608652560273,
+                "iqr_outliers": 0,
+                "stddev_outliers": 2,
+                "outliers": "2;0",
+                "ld15iqr": 2.305728999985149,
+                "hd15iqr": 2.746808958996553,
+                "ops": 0.39472823986606626,
+                "total": 12.66694270898006,
+                "data": [
+                    2.746808958996553,
+                    2.5320185830059927,
+                    2.534041332983179,
+                    2.5483448340091854,
+                    2.305728999985149
+                ],
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_build_configuration[writer-site_50_pages-50]",
+            "fullname": "test_github_pages_optimization.py::test_build_configuration[writer-site_50_pages-50]",
+            "params": {
+                "build_config": "UNSERIALIZABLE[BuildConfig(parallel=True, incremental=None, memory_optimized=False, fast=False, profile='writer', quiet=False, strict=False, clean_output=False)]",
+                "site_fixture": "site_50_pages",
+                "page_count": 50
+            },
+            "param": "writer-site_50_pages-50",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": 100000
+            },
+            "stats": {
+                "min": 2.5421372080163565,
+                "max": 4.8293479999993,
+                "mean": 3.6439735163992735,
+                "stddev": 0.8405252526150644,
+                "rounds": 5,
+                "median": 3.6152467079809867,
+                "iqr": 1.0513894480027375,
+                "q1": 3.1081668017504853,
+                "q3": 4.159556249753223,
+                "iqr_outliers": 0,
+                "stddev_outliers": 2,
+                "outliers": "2;0",
+                "ld15iqr": 2.5421372080163565,
+                "hd15iqr": 4.8293479999993,
+                "ops": 0.2744257046599317,
+                "total": 18.21986758199637,
+                "data": [
+                    2.5421372080163565,
+                    3.6152467079809867,
+                    4.8293479999993,
+                    3.9362923330045305,
+                    3.296843332995195
+                ],
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_build_configuration[theme-dev-site_50_pages-50]",
+            "fullname": "test_github_pages_optimization.py::test_build_configuration[theme-dev-site_50_pages-50]",
+            "params": {
+                "build_config": "UNSERIALIZABLE[BuildConfig(parallel=True, incremental=None, memory_optimized=False, fast=False, profile='theme-dev', quiet=False, strict=False, clean_output=False)]",
+                "site_fixture": "site_50_pages",
+                "page_count": 50
+            },
+            "param": "theme-dev-site_50_pages-50",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": 100000
+            },
+            "stats": {
+                "min": 2.6348716669890564,
+                "max": 3.604665249993559,
+                "mean": 2.9977206001931336,
+                "stddev": 0.36763935282753063,
+                "rounds": 5,
+                "median": 2.9660731669864617,
+                "iqr": 0.3808428950069356,
+                "q1": 2.7581430109930807,
+                "q3": 3.1389859060000163,
+                "iqr_outliers": 0,
+                "stddev_outliers": 1,
+                "outliers": "1;0",
+                "ld15iqr": 2.6348716669890564,
+                "hd15iqr": 3.604665249993559,
+                "ops": 0.3335867925568424,
+                "total": 14.988603000965668,
+                "data": [
+                    2.6348716669890564,
+                    2.799233458994422,
+                    2.9660731669864617,
+                    3.604665249993559,
+                    2.9837594580021687
+                ],
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_build_configuration[dev-site_50_pages-50]",
+            "fullname": "test_github_pages_optimization.py::test_build_configuration[dev-site_50_pages-50]",
+            "params": {
+                "build_config": "UNSERIALIZABLE[BuildConfig(parallel=True, incremental=None, memory_optimized=False, fast=False, profile='dev', quiet=False, strict=False, clean_output=False)]",
+                "site_fixture": "site_50_pages",
+                "page_count": 50
+            },
+            "param": "dev-site_50_pages-50",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": 100000
+            },
+            "stats": {
+                "min": 10.42120491701644,
+                "max": 15.261993499996606,
+                "mean": 11.579954333399655,
+                "stddev": 2.067215489318983,
+                "rounds": 5,
+                "median": 10.689088832994457,
+                "iqr": 1.4854810209872085,
+                "q1": 10.540465948004567,
+                "q3": 12.025946968991775,
+                "iqr_outliers": 1,
+                "stddev_outliers": 1,
+                "outliers": "1;1",
+                "ld15iqr": 10.42120491701644,
+                "hd15iqr": 15.261993499996606,
+                "ops": 0.086356126389526,
+                "total": 57.89977166699828,
+                "data": [
+                    10.42120491701644,
+                    10.580219625000609,
+                    10.947264791990165,
+                    10.689088832994457,
+                    15.261993499996606
+                ],
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_build_configuration[quiet-site_50_pages-50]",
+            "fullname": "test_github_pages_optimization.py::test_build_configuration[quiet-site_50_pages-50]",
+            "params": {
+                "build_config": "UNSERIALIZABLE[BuildConfig(parallel=True, incremental=None, memory_optimized=False, fast=False, profile=None, quiet=True, strict=False, clean_output=False)]",
+                "site_fixture": "site_50_pages",
+                "page_count": 50
+            },
+            "param": "quiet-site_50_pages-50",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": 100000
+            },
+            "stats": {
+                "min": 2.293297708994942,
+                "max": 2.6264335830055643,
+                "mean": 2.400836866599275,
+                "stddev": 0.13988602516439227,
+                "rounds": 5,
+                "median": 2.3229835829988588,
+                "iqr": 0.18359643701114692,
+                "q1": 2.3087192397433682,
+                "q3": 2.492315676754515,
+                "iqr_outliers": 0,
+                "stddev_outliers": 1,
+                "outliers": "1;0",
+                "ld15iqr": 2.293297708994942,
+                "hd15iqr": 2.6264335830055643,
+                "ops": 0.41652142797043723,
+                "total": 12.004184332996374,
+                "data": [
+                    2.3229835829988588,
+                    2.4476097080041654,
+                    2.6264335830055643,
+                    2.293297708994942,
+                    2.3138597499928437
+                ],
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_build_configuration[fast_quiet-site_50_pages-50]",
+            "fullname": "test_github_pages_optimization.py::test_build_configuration[fast_quiet-site_50_pages-50]",
+            "params": {
+                "build_config": "UNSERIALIZABLE[BuildConfig(parallel=True, incremental=None, memory_optimized=False, fast=True, profile=None, quiet=True, strict=False, clean_output=False)]",
+                "site_fixture": "site_50_pages",
+                "page_count": 50
+            },
+            "param": "fast_quiet-site_50_pages-50",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": 100000
+            },
+            "stats": {
+                "min": 2.262412542011589,
+                "max": 2.6242100830131676,
+                "mean": 2.3472369918075855,
+                "stddev": 0.15609768731419713,
+                "rounds": 5,
+                "median": 2.274233792006271,
+                "iqr": 0.1260942917142529,
+                "q1": 2.263528885523556,
+                "q3": 2.3896231772378087,
+                "iqr_outliers": 1,
+                "stddev_outliers": 1,
+                "outliers": "1;1",
+                "ld15iqr": 2.262412542011589,
+                "hd15iqr": 2.6242100830131676,
+                "ops": 0.42603282220339805,
+                "total": 11.736184959037928,
+                "data": [
+                    2.3114275419793557,
+                    2.6242100830131676,
+                    2.263901000027545,
+                    2.262412542011589,
+                    2.274233792006271
+                ],
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_build_configuration[strict-site_50_pages-50]",
+            "fullname": "test_github_pages_optimization.py::test_build_configuration[strict-site_50_pages-50]",
+            "params": {
+                "build_config": "UNSERIALIZABLE[BuildConfig(parallel=True, incremental=None, memory_optimized=False, fast=False, profile=None, quiet=False, strict=True, clean_output=False)]",
+                "site_fixture": "site_50_pages",
+                "page_count": 50
+            },
+            "param": "strict-site_50_pages-50",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": 100000
+            },
+            "stats": {
+                "min": 2.294078208011342,
+                "max": 2.6565370419993997,
+                "mean": 2.4742901166027877,
+                "stddev": 0.16960639027982566,
+                "rounds": 5,
+                "median": 2.3925563330121804,
+                "iqr": 0.30146658401645254,
+                "q1": 2.3536982392397476,
+                "q3": 2.6551648232562,
+                "iqr_outliers": 0,
+                "stddev_outliers": 3,
+                "outliers": "3;0",
+                "ld15iqr": 2.294078208011342,
+                "hd15iqr": 2.6565370419993997,
+                "ops": 0.4041563247938786,
+                "total": 12.371450583013939,
+                "data": [
+                    2.3925563330121804,
+                    2.3735715829825494,
+                    2.6565370419993997,
+                    2.654707417008467,
+                    2.294078208011342
+                ],
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_build_configuration[fast_strict-site_50_pages-50]",
+            "fullname": "test_github_pages_optimization.py::test_build_configuration[fast_strict-site_50_pages-50]",
+            "params": {
+                "build_config": "UNSERIALIZABLE[BuildConfig(parallel=True, incremental=None, memory_optimized=False, fast=True, profile=None, quiet=False, strict=True, clean_output=False)]",
+                "site_fixture": "site_50_pages",
+                "page_count": 50
+            },
+            "param": "fast_strict-site_50_pages-50",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": 100000
+            },
+            "stats": {
+                "min": 2.3153027090011165,
+                "max": 5.412178041995503,
+                "mean": 3.76908576679416,
+                "stddev": 1.284930024295716,
+                "rounds": 5,
+                "median": 3.5769143749785144,
+                "iqr": 2.178946739724779,
+                "q1": 2.7043493645105627,
+                "q3": 4.883296104235342,
+                "iqr_outliers": 0,
+                "stddev_outliers": 2,
+                "outliers": "2;0",
+                "ld15iqr": 2.3153027090011165,
+                "hd15iqr": 5.412178041995503,
+                "ops": 0.2653163291772375,
+                "total": 18.8454288339708,
+                "data": [
+                    2.3153027090011165,
+                    2.8340315830137115,
+                    3.5769143749785144,
+                    5.412178041995503,
+                    4.707002124981955
+                ],
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_build_configuration[clean-site_50_pages-50]",
+            "fullname": "test_github_pages_optimization.py::test_build_configuration[clean-site_50_pages-50]",
+            "params": {
+                "build_config": "UNSERIALIZABLE[BuildConfig(parallel=True, incremental=None, memory_optimized=False, fast=False, profile=None, quiet=False, strict=False, clean_output=True)]",
+                "site_fixture": "site_50_pages",
+                "page_count": 50
+            },
+            "param": "clean-site_50_pages-50",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": 100000
+            },
+            "stats": {
+                "min": 2.2541573330236133,
+                "max": 2.5416020000120625,
+                "mean": 2.3384240830142518,
+                "stddev": 0.11601955465105664,
+                "rounds": 5,
+                "median": 2.309528208017582,
+                "iqr": 0.09726501074328553,
+                "q1": 2.270899739014567,
+                "q3": 2.3681647497578524,
+                "iqr_outliers": 1,
+                "stddev_outliers": 1,
+                "outliers": "1;1",
+                "ld15iqr": 2.2541573330236133,
+                "hd15iqr": 2.5416020000120625,
+                "ops": 0.42763842848855294,
+                "total": 11.692120415071258,
+                "data": [
+                    2.5416020000120625,
+                    2.2764805410115514,
+                    2.309528208017582,
+                    2.2541573330236133,
+                    2.310352333006449
+                ],
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_build_configuration[fast_clean-site_50_pages-50]",
+            "fullname": "test_github_pages_optimization.py::test_build_configuration[fast_clean-site_50_pages-50]",
+            "params": {
+                "build_config": "UNSERIALIZABLE[BuildConfig(parallel=True, incremental=None, memory_optimized=False, fast=True, profile=None, quiet=False, strict=False, clean_output=True)]",
+                "site_fixture": "site_50_pages",
+                "page_count": 50
+            },
+            "param": "fast_clean-site_50_pages-50",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": 100000
+            },
+            "stats": {
+                "min": 2.5393377910077106,
+                "max": 5.764816707989667,
+                "mean": 3.2786690829962026,
+                "stddev": 1.394649766885702,
+                "rounds": 5,
+                "median": 2.620435916003771,
+                "iqr": 0.9802454167293035,
+                "q1": 2.5986797290024697,
+                "q3": 3.5789251457317732,
+                "iqr_outliers": 1,
+                "stddev_outliers": 1,
+                "outliers": "1;1",
+                "ld15iqr": 2.5393377910077106,
+                "hd15iqr": 5.764816707989667,
+                "ops": 0.3050018085650025,
+                "total": 16.393345414981013,
+                "data": [
+                    2.620435916003771,
+                    2.6184603750007227,
+                    2.5393377910077106,
+                    2.850294624979142,
+                    5.764816707989667
+                ],
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_build_configuration[fast_strict_clean-site_50_pages-50]",
+            "fullname": "test_github_pages_optimization.py::test_build_configuration[fast_strict_clean-site_50_pages-50]",
+            "params": {
+                "build_config": "UNSERIALIZABLE[BuildConfig(parallel=True, incremental=None, memory_optimized=False, fast=True, profile=None, quiet=False, strict=True, clean_output=True)]",
+                "site_fixture": "site_50_pages",
+                "page_count": 50
+            },
+            "param": "fast_strict_clean-site_50_pages-50",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": 100000
+            },
+            "stats": {
+                "min": 2.6560647079895716,
+                "max": 3.917795874993317,
+                "mean": 3.3562232749944085,
+                "stddev": 0.4885682901737807,
+                "rounds": 5,
+                "median": 3.5009957919828594,
+                "iqr": 0.6952496667581727,
+                "q1": 2.9889552394961356,
+                "q3": 3.6842049062543083,
+                "iqr_outliers": 0,
+                "stddev_outliers": 2,
+                "outliers": "2;0",
+                "ld15iqr": 2.6560647079895716,
+                "hd15iqr": 3.917795874993317,
+                "ops": 0.297953955402942,
+                "total": 16.781116374972044,
+                "data": [
+                    3.606341250007972,
+                    3.5009957919828594,
+                    3.917795874993317,
+                    3.0999187499983236,
+                    2.6560647079895716
+                ],
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_build_configuration[seq_inc-site_50_pages-50]",
+            "fullname": "test_github_pages_optimization.py::test_build_configuration[seq_inc-site_50_pages-50]",
+            "params": {
+                "build_config": "UNSERIALIZABLE[BuildConfig(parallel=False, incremental=True, memory_optimized=False, fast=False, profile=None, quiet=False, strict=False, clean_output=False)]",
+                "site_fixture": "site_50_pages",
+                "page_count": 50
+            },
+            "param": "seq_inc-site_50_pages-50",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": 100000
+            },
+            "stats": {
+                "min": 2.4224008329911157,
+                "max": 3.2488625830155797,
+                "mean": 2.7547605914005544,
+                "stddev": 0.31497158462898306,
+                "rounds": 5,
+                "median": 2.731163207994541,
+                "iqr": 0.3967364377604099,
+                "q1": 2.5248058329962078,
+                "q3": 2.9215422707566177,
+                "iqr_outliers": 0,
+                "stddev_outliers": 2,
+                "outliers": "2;0",
+                "ld15iqr": 2.4224008329911157,
+                "hd15iqr": 3.2488625830155797,
+                "ops": 0.3630079518059272,
+                "total": 13.773802957002772,
+                "data": [
+                    3.2488625830155797,
+                    2.731163207994541,
+                    2.8124355000036303,
+                    2.558940832997905,
+                    2.4224008329911157
+                ],
+                "iterations": 1
+            }
+        },
+        {
+            "group": null,
+            "name": "test_optimal_ci_build[site_50_pages-50]",
+            "fullname": "test_github_pages_optimization.py::test_optimal_ci_build[site_50_pages-50]",
+            "params": {
+                "site_fixture": "site_50_pages",
+                "page_count": 50
+            },
+            "param": "site_50_pages-50",
+            "extra_info": {},
+            "options": {
+                "disable_gc": false,
+                "timer": "perf_counter",
+                "min_rounds": 5,
+                "max_time": 1.0,
+                "min_time": 5e-06,
+                "warmup": 100000
+            },
+            "stats": {
+                "min": 2.300117374979891,
+                "max": 4.40538183398894,
+                "mean": 3.0770289833890274,
+                "stddev": 0.8327994812217443,
+                "rounds": 5,
+                "median": 2.668449207994854,
+                "iqr": 1.0338448647453333,
+                "q1": 2.5754636562414817,
+                "q3": 3.609308520986815,
+                "iqr_outliers": 0,
+                "stddev_outliers": 1,
+                "outliers": "1;0",
+                "ld15iqr": 2.300117374979891,
+                "hd15iqr": 4.40538183398894,
+                "ops": 0.32498881401455115,
+                "total": 15.385144916945137,
+                "data": [
+                    2.300117374979891,
+                    2.668449207994854,
+                    2.6672457499953452,
+                    3.3439507499861065,
+                    4.40538183398894
+                ],
+                "iterations": 1
+            }
+        }
+    ],
+    "datetime": "2025-12-27T05:24:22.255458+00:00",
+    "version": "5.1.0"
+}

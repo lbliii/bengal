@@ -317,10 +317,19 @@ class Compiler(
 
             # First, execute top-level statements that modify context (imports, sets, etc.)
             # These need to run before blocks are called so imported macros are available.
-            # We compile FromImport, Import, Set, Macro, and Def nodes at the top level.
+            # We compile FromImport, Import, Set, Let, Export, Macro, and Def nodes at the top level.
             for child in node.body:
                 child_type = type(child).__name__
-                if child_type in ("FromImport", "Set", "Macro", "Def"):
+                if child_type in (
+                    "FromImport",
+                    "Import",
+                    "Set",
+                    "Let",
+                    "Export",
+                    "Macro",
+                    "Def",
+                    "Do",
+                ):
                     body.extend(self._compile_node(child))
 
             # For each block: _blocks.setdefault('name', block_func)
@@ -493,6 +502,7 @@ class Compiler(
                 "Set": self._compile_set,
                 "Let": self._compile_let,
                 "Export": self._compile_export,
+                "Import": self._compile_import,
                 "Include": self._compile_include,
                 "Block": self._compile_block,
                 "Macro": self._compile_macro,
