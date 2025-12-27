@@ -1,8 +1,8 @@
 ---
 title: Template Engine Concepts
-nav_title: Concepts
+nav_title: Template Engine
 description: Foundational concepts for understanding Kida and template engines
-weight: 3
+weight: 26
 type: doc
 draft: false
 lang: en

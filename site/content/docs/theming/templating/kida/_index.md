@@ -35,8 +35,8 @@ Your Jinja2 templates work without changes—Kida parses both syntaxes.
 :columns: 2
 :gap: medium
 
-:::{card} Concepts
-:link: ./concepts
+:::{card} Template Engine Concepts
+:link: /docs/about/concepts/template-engine/
 **Start here.** What filters, tags, and scope mean—plus Hugo/Jinja2 mental model translations.
 :::
 

@@ -21,37 +21,37 @@ Task-oriented guides for working with Kida templates.
 :gap: medium
 
 :::{card} Create Custom Templates
-:link: ./create-custom-template
+:link: /docs/theming/templating/kida/create-custom-template/
 Build a template from scratch with extends, blocks, and includes.
 :::
 
 :::{card} Use Pattern Matching
-:link: ./use-pattern-matching
+:link: /docs/theming/templating/kida/use-pattern-matching/
 Replace `if/elif` chains with `{% match %}...{% case %}`.
 :::
 
 :::{card} Use Pipeline Operator
-:link: ./use-pipeline-operator
+:link: /docs/theming/templating/kida/use-pipeline-operator/
 Filter collections with left-to-right `|>` syntax.
 :::
 
 :::{card} Cache Fragments
-:link: ./cache-fragments
+:link: /docs/theming/templating/kida/cache-fragments/
 Wrap expensive operations in `{% cache %}`.
 :::
 
 :::{card} Automatic Block Caching
-:link: ./cacheable-blocks
+:link: /docs/theming/templating/kida/cacheable-blocks/
 Structure templates for automatic site-scoped caching.
 :::
 
 :::{card} Add Custom Filters
-:link: ./add-custom-filter
+:link: /docs/theming/templating/kida/add-custom-filter/
 Register Python functions as template filters.
 :::
 
 :::{card} Migrate from Jinja2
-:link: ./migrate-jinja-to-kida
+:link: /docs/theming/templating/kida/migrate-jinja-to-kida/
 Convert existing templates to Kida syntax.
 :::
 
