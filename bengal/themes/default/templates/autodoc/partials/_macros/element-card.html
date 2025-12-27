@@ -26,18 +26,20 @@ KIDA FEATURES USED:
 #}
 
 {% def element_card(child, card_type=none) %}
-{# Extract values with null-safety #}
-{% set child_type = card_type ?? child?.element_type ?? 'unknown' %}
-{% set child_url = child?.href ?? '#' %}
-{% set child_name = child?.name ?? 'Unknown' %}
-{% set child_desc = child?.description ?? '' %}
-{% set child_meta = child?.metadata ?? {} %}
-{% set http_method = child_meta?.method ?? '' %}
+{# Extract values with null-safety using {% let %} #}
+{% let child_type = card_type ?? child?.element_type ?? 'unknown' %}
+{% let child_url = child?.href ?? '#' %}
+{% let child_name = child?.name ?? 'Unknown' %}
+{% let child_desc = child?.description ?? '' %}
+{% let child_meta = child?.metadata ?? {} %}
+{% let http_method = child_meta?.method ?? '' %}
 
 <a href="{{ child_url }}" class="autodoc-card" data-card="{{ child_type }}">
-    {% if child_type == 'endpoint' and http_method %}
-    <span class="autodoc-method" data-method="{{ http_method | lower }}">{{ http_method | upper }}</span>
+    {% match child_type, http_method %}
+    {% case 'endpoint', method if method %}
+    <span class="autodoc-method" data-method="{{ method | lower }}">{{ method | upper }}</span>
     {% end %}
+
     <code class="autodoc-card-name">{{ child_name }}</code>
     {% if child_desc %}
     <span class="autodoc-card-desc">{{ child_desc | truncate(100) }}</span>

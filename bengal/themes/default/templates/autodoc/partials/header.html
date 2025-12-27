@@ -8,37 +8,25 @@ Required: element (DocElement)
 Optional: show_stats (bool, default true), show_source (bool, default true)
 #}
 
-{% set
-    show_stats = show_stats ?? true,
-    show_source = show_source ?? true
+{% let
+show_stats = show_stats ?? true,
+show_source = show_source ?? true,
+meta = element?.metadata ?? {},
+children = element?.children ?? []
 %}
 
 <header class="autodoc-header">
   {# Badges #}
-  {% set badges = [] %}
-  {% if element.metadata.is_deprecated %}
-    {% do badges.append('deprecated') %}
-  {% end %}
-  {% if element.metadata.is_async %}
-    {% do badges.append('async') %}
-  {% end %}
-  {% if element.metadata.is_abstract %}
-    {% do badges.append('abstract') %}
-  {% end %}
-  {% if element.metadata.is_dataclass %}
-    {% do badges.append('dataclass') %}
-  {% end %}
-  {% if element.metadata.is_classmethod %}
-    {% do badges.append('classmethod') %}
-  {% end %}
-  {% if element.metadata.is_staticmethod %}
-    {% do badges.append('staticmethod') %}
-  {% end %}
-  {% if element.metadata.is_property %}
-    {% do badges.append('property') %}
-  {% end %}
+  {% let badges = [] %}
+  {% if meta?.is_deprecated %}{% do badges.append('deprecated') %}{% end %}
+  {% if meta?.is_async %}{% do badges.append('async') %}{% end %}
+  {% if meta?.is_abstract %}{% do badges.append('abstract') %}{% end %}
+  {% if meta?.is_dataclass %}{% do badges.append('dataclass') %}{% end %}
+  {% if meta?.is_classmethod %}{% do badges.append('classmethod') %}{% end %}
+  {% if meta?.is_staticmethod %}{% do badges.append('staticmethod') %}{% end %}
+  {% if meta?.is_property %}{% do badges.append('property') %}{% end %}
 
-  {% if badges %}
+  {% if badges | length > 0 %}
   <div class="autodoc-badges">
     {% for badge in badges %}
     <span class="autodoc-badge" data-badge="{{ badge }}">{{ badge | title }}</span>
@@ -48,48 +36,53 @@ Optional: show_stats (bool, default true), show_source (bool, default true)
 
   {# Title #}
   <h1 class="autodoc-title">
-    {% if element.element_type == 'endpoint' and element.metadata.method %}
-    <span class="autodoc-method" data-method="{{ element.metadata.method | lower }}">{{ element.metadata.method | upper }}</span>
+    {% with meta?.method as method %}
+    {% if element?.element_type == 'endpoint' and method %}
+    <span class="autodoc-method" data-method="{{ method | lower }}">{{ method | upper }}</span>
     {% end %}
-    <code>{{ element.qualified_name or element.name }}</code>
+    {% end %}
+    <code>{{ element?.qualified_name ?? element?.name }}</code>
   </h1>
 
   {# Description #}
-  {% if element.description %}
+  {% if element?.description %}
   <div class="autodoc-description prose">
     {{ element.description | markdownify | safe }}
   </div>
   {% end %}
 
-  {# Stats row - use getattr for safe access to children #}
+  {# Stats row #}
   {% if show_stats %}
-  {% set children = getattr(element, 'children', []) %}
-  {% set options = children | selectattr('element_type', 'eq', 'option') | list %}
-  {% set arguments = children | selectattr('element_type', 'eq', 'argument') | list %}
-  {% set methods = children | selectattr('element_type', 'eq', 'method') | list %}
-  {% set functions = children | selectattr('element_type', 'eq', 'function') | list %}
-  {% set classes = children | selectattr('element_type', 'eq', 'class') | list %}
-  {% set attributes = children | selectattr('element_type', 'eq', 'attribute') | list %}
-  {# Filter subcommands manually since 'in' test isn't available in selectattr #}
-  {% set subcommands = [] %}
-  {% for child in children %}
-    {% if child.element_type in ['command', 'command-group'] %}
-      {% do subcommands.append(child) %}
-    {% end %}
+  {% let stat_config = [
+  {'type': 'option', 'label': 'Options'},
+  {'type': 'argument', 'label': 'Arguments'},
+  {'type': 'method', 'label': 'Methods'},
+  {'type': 'function', 'label': 'Functions'},
+  {'type': 'class', 'label': 'Classes'},
+  {'type': 'attribute', 'label': 'Attributes'}
+  ] %}
+
+  {% let stats = [] %}
+  {% for item in stat_config %}
+  {% let count = children |> selectattr('element_type', 'eq', item.type) |> list |> length %}
+  {% if count > 0 %}
+  {% do stats.append({'value': count, 'label': item.label}) %}
   {% end %}
-  {% set parameters = element.metadata.args or element.metadata.parameters or [] %}
+  {% end %}
 
-  {% set stats = [] %}
-  {% if options %}{% do stats.append({'value': options | length, 'label': 'Options'}) %}{% end %}
-  {% if arguments %}{% do stats.append({'value': arguments | length, 'label': 'Arguments'}) %}{% end %}
-  {% if parameters %}{% do stats.append({'value': parameters | length, 'label': 'Parameters'}) %}{% end %}
-  {% if methods %}{% do stats.append({'value': methods | length, 'label': 'Methods'}) %}{% end %}
-  {% if functions %}{% do stats.append({'value': functions | length, 'label': 'Functions'}) %}{% end %}
-  {% if classes %}{% do stats.append({'value': classes | length, 'label': 'Classes'}) %}{% end %}
-  {% if attributes %}{% do stats.append({'value': attributes | length, 'label': 'Attributes'}) %}{% end %}
-  {% if subcommands %}{% do stats.append({'value': subcommands | length, 'label': 'Subcommands'}) %}{% end %}
+  {# Subcommands (command or command-group) #}
+  {% let subcommands_count = children |> selectattr('element_type', 'match', '^command(-group)?$') |> list |> length %}
+  {% if subcommands_count > 0 %}
+  {% do stats.append({'value': subcommands_count, 'label': 'Subcommands'}) %}
+  {% end %}
 
-  {% if stats %}
+  {# Parameters #}
+  {% let parameters = meta?.args ?? meta?.parameters ?? [] %}
+  {% if parameters | length > 0 %}
+  {% do stats.append({'value': parameters | length, 'label': 'Parameters'}) %}
+  {% end %}
+
+  {% if stats | length > 0 %}
   <div class="autodoc-stats">
     {% for stat in stats %}
     <span class="autodoc-stat">
@@ -102,9 +95,11 @@ Optional: show_stats (bool, default true), show_source (bool, default true)
   {% end %}
 
   {# Source link #}
-  {% if show_source and element.metadata.source_file %}
-  <a href="{{ element.metadata.source_url or '#' }}" class="autodoc-source" target="_blank" rel="noopener">
+  {% with meta?.source_file as source_file %}
+  {% if show_source and source_file %}
+  <a href="{{ meta?.source_url ?? '#' }}" class="autodoc-source" target="_blank" rel="noopener">
     View source
   </a>
+  {% end %}
   {% end %}
 </header>

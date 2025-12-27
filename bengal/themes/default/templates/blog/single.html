@@ -92,8 +92,8 @@ Set `type: blog` in frontmatter or use cascade from section
 {% let show_comments = params?.comments ?? true %}
 
 {# Reading time calculation #}
-{% let word_count = page_content | wordcount if page_content else 0 %}
-{% let read_time = page_content | reading_time if page_content else 0 %}
+{% let word_count = page_content |> wordcount ?? 0 %}
+{% let read_time = page_content |> reading_time ?? 0 %}
 
 <div class="container">
   {# Action Bar: Breadcrumbs + Share #}
@@ -118,18 +118,20 @@ Set `type: blog` in frontmatter or use cascade from section
         {# Post Metadata #}
         <div class="blog-post-meta">
           {# Author Info #}
-          {% if post_author and 'content.author' in theme_features %}
+          {% with post_author as author %}
+          {% if 'content.author' in theme_features %}
           <div class="blog-post-author">
             {% if post_author_avatar %}
-            <img src="{{ post_author_avatar }}" alt="{{ post_author }}" class="author-avatar">
+            <img src="{{ post_author_avatar }}" alt="{{ author }}" class="author-avatar">
             {% end %}
             <div class="author-info">
-              <strong>{{ post_author }}</strong>
+              <strong>{{ author }}</strong>
               {% if post_author_title %}
               <span class="author-title">{{ post_author_title }}</span>
               {% end %}
             </div>
           </div>
+          {% end %}
           {% end %}
 
           <div class="blog-post-details">
@@ -182,20 +184,21 @@ Set `type: blog` in frontmatter or use cascade from section
         {% end %}
 
         {# Author Bio #}
-        {% if post_author and post_author_bio and 'content.author' in theme_features %}
+        {% with post_author, post_author_bio as author, bio %}
+        {% if 'content.author' in theme_features %}
         <div class="author-bio">
           <div class="author-bio-header">
             {% if post_author_avatar %}
-            <img src="{{ post_author_avatar }}" alt="{{ post_author }}" class="author-avatar-large">
+            <img src="{{ post_author_avatar }}" alt="{{ author }}" class="author-avatar-large">
             {% end %}
             <div>
-              <h3>About {{ post_author }}</h3>
+              <h3>About {{ author }}</h3>
               {% if post_author_title %}
               <p class="author-title">{{ post_author_title }}</p>
               {% end %}
             </div>
           </div>
-          <p class="author-bio-text">{{ post_author_bio }}</p>
+          <p class="author-bio-text">{{ bio }}</p>
           {% if post_author_links | length > 0 %}
           <div class="author-links">
             {% for link in post_author_links %}
@@ -207,30 +210,25 @@ Set `type: blog` in frontmatter or use cascade from section
           {% end %}
         </div>
         {% end %}
+        {% end %}
 
         {# Social Sharing #}
         <div class="blog-social-share">
           <h4>{{ t('blog.share_post', default='Share this post') }}</h4>
           <div class="share-buttons">
-            <a href="{{ share_url('twitter', page) }}" target="_blank" rel="noopener noreferrer"
-               class="share-button share-twitter" aria-label="Share on Twitter">
-              {{ icon('twitter-logo', size=20) }} Twitter
+            {% let platforms = [
+              {'id': 'twitter', 'label': 'Twitter', 'icon': 'twitter-logo'},
+              {'id': 'linkedin', 'label': 'LinkedIn', 'icon': 'linkedin-logo'},
+              {'id': 'facebook', 'label': 'Facebook', 'icon': 'facebook-logo'},
+              {'id': 'reddit', 'label': 'Reddit', 'icon': 'reddit-logo'},
+              {'id': 'email', 'label': 'Email', 'icon': 'envelope-simple'}
+            ] %}
+            {% for platform in platforms %}
+            <a href="{{ share_url(platform.id, page) }}" target="_blank" rel="noopener noreferrer"
+               class="share-button share-{{ platform.id }}" aria-label="Share on {{ platform.label }}">
+              {{ icon(platform.icon, size=20) }} {{ platform.label }}
             </a>
-            <a href="{{ share_url('linkedin', page) }}" target="_blank" rel="noopener noreferrer"
-               class="share-button share-linkedin" aria-label="Share on LinkedIn">
-              {{ icon('linkedin-logo', size=20) }} LinkedIn
-            </a>
-            <a href="{{ share_url('facebook', page) }}" target="_blank" rel="noopener noreferrer"
-               class="share-button share-facebook" aria-label="Share on Facebook">
-              {{ icon('facebook-logo', size=20) }} Facebook
-            </a>
-            <a href="{{ share_url('reddit', page) }}" target="_blank" rel="noopener noreferrer"
-               class="share-button share-reddit" aria-label="Share on Reddit">
-              {{ icon('reddit-logo', size=20) }} Reddit
-            </a>
-            <a href="{{ share_url('email', page) }}" class="share-button share-email" aria-label="Share via Email">
-              {{ icon('envelope-simple', size=20) }} Email
-            </a>
+            {% end %}
             <button class="share-button share-copy"
                     onclick="navigator.clipboard.writeText('{{ page_href }}'); this.innerHTML = '✓ Copied!'"
                     aria-label="Copy link">
@@ -271,8 +269,7 @@ Set `type: blog` in frontmatter or use cascade from section
 {{ page_navigation(page) }}
 
 {# Related Posts #}
-{% let related = page?.related_posts ?? [] %}
-{% let related_posts = related[:3] %}
+{% let related_posts = page?.related_posts |> take(3) ?? [] %}
 {% if related_posts | length > 0 %}
 <aside class="related-posts">
   <div class="container">

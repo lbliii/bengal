@@ -122,20 +122,26 @@ class SpecialBlockParsingMixin(BlockStackMixin):
         """Parse conditional: {% with expr %} or {% with expr as name %}...{% end %}.
 
         Renders body only if expr is truthy. Binds expr to 'name' or 'it'.
+        Supports multiple expressions and bindings: {% with a, b as x, y %}.
         """
-        # Parse the expression
-        expr = self._parse_expression()
+        from bengal.rendering.kida.nodes import Name as KidaName
+
+        # Parse the expression(s) - support implicit tuples
+        expr = self._parse_tuple_or_expression()
 
         # Check for 'as name'
-        name = "it"  # Default binding name
         if self._current.type == TokenType.NAME and self._current.value == "as":
             self._advance()  # consume 'as'
-            if self._current.type != TokenType.NAME:
-                raise self._error(
-                    "Expected variable name after 'as'",
-                    suggestion="Use: {% with expr as varname %}...{% end %}",
-                )
-            name = self._advance().value
+            # Parse targets - support implicit tuples
+            target = self._parse_tuple_or_expression()
+        else:
+            # Default binding name
+            target = KidaName(
+                lineno=expr.lineno,
+                col_offset=expr.col_offset,
+                name="it",
+                ctx="store",
+            )
 
         self._expect(TokenType.BLOCK_END)
 
@@ -149,7 +155,7 @@ class SpecialBlockParsingMixin(BlockStackMixin):
             lineno=start.lineno,
             col_offset=start.col_offset,
             expr=expr,
-            name=name,
+            target=target,
             body=tuple(body),
         )
 

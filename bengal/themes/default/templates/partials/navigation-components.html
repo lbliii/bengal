@@ -49,8 +49,8 @@ For display in HTML href attributes, apply the | absolute_url filter.
       <a href="{{ item.href | absolute_url }}">{{ item.title }}</a>
       {% end %}
       </li>
-    {% export last_breadcrumb_item = item %}
-    {% end %}
+      {% export last_breadcrumb_item = item %}
+      {% end %}
   </ol>
 </nav>
 {% end %}
@@ -135,42 +135,42 @@ Intelligently chooses navigation scope based on content type:
 {% def page_navigation(page) %}
 {# Early return if page is null #}
 {% if page %}
-  {# Check feature flag #}
-  {% let theme_features = theme?.features ?? [] %}
-  {% if 'navigation.prev_next' in theme_features %}
-    {# Determine navigation scope based on content type #}
-    {% let content_type = page?.metadata?.type ?? 'page' %}
-    {% let section_types = ['doc', 'tutorial', 'autodoc-python', 'autodoc-cli', 'autodoc-rest', 'changelog'] %}
-    {% let use_section_nav = content_type in section_types %}
+{# Check feature flag #}
+{% let theme_features = theme?.features ?? [] %}
+{% if 'navigation.prev_next' in theme_features %}
+{# Determine navigation scope based on content type #}
+{% let content_type = page?.metadata?.type ?? 'page' %}
+{% let section_types = ['doc', 'tutorial', 'autodoc-python', 'autodoc-cli', 'autodoc-rest', 'changelog'] %}
+{% let use_section_nav = content_type in section_types %}
 
-    {# Get navigation links with null-safe access #}
-    {% let prev_link = page?.prev_in_section if use_section_nav else page?.prev %}
-    {% let next_link = page?.next_in_section if use_section_nav else page?.next %}
+{# Get navigation links with null-safe access #}
+{% let prev_link = page?.prev_in_section if use_section_nav else page?.prev %}
+{% let next_link = page?.next_in_section if use_section_nav else page?.next %}
 
-    {% if prev_link or next_link %}
-    <nav class="page-navigation" aria-label="Page navigation">
-      <div class="nav-links">
-        {% with prev_link as prev %}
-        <div class="nav-previous">
-          <a href="{{ prev.href }}" rel="prev">
-            <span class="nav-subtitle">← Previous</span>
-            <span class="nav-title">{{ prev.title }}</span>
-          </a>
-        </div>
-        {% end %}
-
-        {% with next_link as next %}
-        <div class="nav-next">
-          <a href="{{ next.href }}" rel="next">
-            <span class="nav-subtitle">Next →</span>
-            <span class="nav-title">{{ next.title }}</span>
-          </a>
-        </div>
-        {% end %}
-      </div>
-    </nav>
+{% if prev_link or next_link %}
+<nav class="page-navigation" aria-label="Page navigation">
+  <div class="nav-links">
+    {% with prev_link as prev %}
+    <div class="nav-previous">
+      <a href="{{ prev.href }}" rel="prev">
+        <span class="nav-subtitle">← Previous</span>
+        <span class="nav-title">{{ prev.title }}</span>
+      </a>
+    </div>
     {% end %}
-  {% end %}
+
+    {% with next_link as next %}
+    <div class="nav-next">
+      <a href="{{ next.href }}" rel="next">
+        <span class="nav-subtitle">Next →</span>
+        <span class="nav-title">{{ next.title }}</span>
+      </a>
+    </div>
+    {% end %}
+  </div>
+</nav>
+{% end %}
+{% end %}
 {% end %}
 {% enddef %}
 
@@ -249,7 +249,7 @@ JS enhances with: active item tracking, auto-expand on scroll, progress.
 {% if node_id %}
 <li class="toc-item toc-level-{{ node_level }}" role="treeitem" data-level="{{ node_level }}">
   {% if has_children %}
-  <details class="toc-group" {{ 'open' if node_level <= 2 else '' }}>
+  <details class="toc-group" {{ 'open' if node_level <=2 else '' }}>
     <summary class="toc-group-header">
       <a href="#{{ node_id }}" class="toc-link" data-toc-item="#{{ node_id }}">
         {{ node_title }}

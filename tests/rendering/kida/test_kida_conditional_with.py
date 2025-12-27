@@ -31,7 +31,7 @@ class TestConditionalWithParsing:
         node = ast.body[0]
 
         assert isinstance(node, WithConditional)
-        assert node.name == "it"
+        assert node.target.name == "it"
 
     def test_parse_conditional_as_binding(self, env):
         """{% with expr as name %} binds to custom name."""
@@ -45,7 +45,7 @@ class TestConditionalWithParsing:
         node = ast.body[0]
 
         assert isinstance(node, WithConditional)
-        assert node.name == "author"
+        assert node.target.name == "author"
 
     def test_parse_assignment_style_unchanged(self, env):
         """{% with x = expr %} produces assignment-style With node."""

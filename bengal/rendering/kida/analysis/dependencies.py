@@ -341,12 +341,13 @@ class DependencyWalker:
         self._scope_stack.pop()
 
     def _visit_withconditional(self, node: Any) -> None:
-        """Handle conditional with: {% with expr as name %}"""
+        """Handle conditional with: {% with expr as target %}"""
         # Visit the expression (IS a dependency)
         self._visit(node.expr)
 
-        # Push binding into scope
-        self._scope_stack.append({node.name})
+        # Extract targets and push into scope
+        targets = self._extract_targets(node.target)
+        self._scope_stack.append(targets)
 
         # Visit body
         for child in node.body:

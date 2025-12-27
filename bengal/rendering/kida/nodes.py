@@ -492,7 +492,7 @@ class WithConditional(Node):
     """Conditional with block: {% with expr as name %}...{% end %}
 
     Renders body only if expr is truthy. Binds the evaluated expression
-    to the specified variable name (defaults to 'it').
+    to the specified variable name(s).
 
     This provides nil-resilience: the block is silently skipped when the
     expression evaluates to None, empty collections, or other falsy values.
@@ -506,9 +506,13 @@ class WithConditional(Node):
             <span>{{ it.name }}</span>
         {% end %}
 
+        {% with a, b as x, y %}
+            {{ x }}, {{ y }}
+        {% end %}
+
     Behavior:
         - Evaluates expr once
-        - If truthy: binds result to name, renders body
+        - If truthy: binds result to target, renders body
         - If falsy: skips body entirely (no error)
         - Restores previous variable binding after block
 
@@ -518,7 +522,7 @@ class WithConditional(Node):
     """
 
     expr: Expr
-    name: str  # Variable name to bind expr to (defaults to 'it')
+    target: Expr  # Name or Tuple for binding
     body: Sequence[Node]
 
 

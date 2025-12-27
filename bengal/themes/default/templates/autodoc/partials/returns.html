@@ -8,9 +8,12 @@ Trivial types (None) are already visible in header badge + signature.
 Required: element (DocElement)
 #}
 
-{% set return_type = element.metadata.return_type | default(element.metadata.returns | default('')) %}
-{% set return_desc = element.metadata.return_description | default('') %}
-{% set is_nontrivial_return = return_type and return_type not in ('None', 'none', 'void', '') %}
+{% let
+meta = element?.metadata ?? {},
+return_type = meta?.return_type ?? meta?.returns ?? '',
+return_desc = meta?.return_description ?? '',
+is_nontrivial_return = return_type and return_type | lower not in ('none', 'void', '')
+%}
 
 {% if return_desc or is_nontrivial_return %}
 <section class="autodoc-section" data-section="returns">
@@ -18,7 +21,7 @@ Required: element (DocElement)
   <div class="autodoc-returns">
     <code class="autodoc-returns-type">{{ return_type }}</code>
     {% if return_desc %}
-    <span class="autodoc-returns-desc">{{ return_desc }}</span>
+    <span class="autodoc-returns-desc">{{ return_desc | markdownify | safe }}</span>
     {% end %}
   </div>
 </section>

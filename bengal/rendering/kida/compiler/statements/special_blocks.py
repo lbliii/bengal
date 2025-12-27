@@ -109,28 +109,24 @@ class SpecialBlockMixin:
         return stmts
 
     def _compile_with_conditional(self, node: Any) -> list[ast.stmt]:
-        """Compile {% with expr as name %}...{% end %} (conditional form).
+        """Compile {% with expr as target %}...{% end %} (conditional form).
 
-        Renders body only if expr is truthy. Binds expr result to 'name'.
+        Renders body only if expr is truthy. Binds expr result to target.
+        Supports multiple bindings and structural unpacking.
         Provides nil-resilience: block is silently skipped when expr is falsy.
 
         Generates:
             _with_val_N = expr
             if _with_val_N:
-                _with_save_name = ctx.get('name')
-                ctx['name'] = _with_val_N
+                # [save old values]
+                # [bind new values]
                 ... body ...
-                # restore old value
-                if _with_save_name is None:
-                    del ctx['name']
-                else:
-                    ctx['name'] = _with_save_name
+                # [restore old values]
         """
         # Get unique suffix for this block
         self._block_counter += 1
         suffix = str(self._block_counter)
         val_name = f"_with_val_{suffix}"
-        old_var_name = f"_with_save_{node.name}_{suffix}"
 
         stmts: list[ast.stmt] = []
 
@@ -145,80 +141,143 @@ class SpecialBlockMixin:
         # Build the if body
         if_body: list[ast.stmt] = []
 
-        # _with_save_name_N = ctx.get('name')
-        if_body.append(
-            ast.Assign(
-                targets=[ast.Name(id=old_var_name, ctx=ast.Store())],
-                value=ast.Call(
-                    func=ast.Attribute(
-                        value=ast.Name(id="ctx", ctx=ast.Load()),
-                        attr="get",
-                        ctx=ast.Load(),
-                    ),
-                    args=[ast.Constant(value=node.name)],
-                    keywords=[],
-                ),
-            )
-        )
+        # Use pattern matching logic for bindings
+        # This handles both single names and tuples/unpacking
+        from bengal.rendering.kida.nodes import Name as KidaName
+        from bengal.rendering.kida.nodes import Tuple as KidaTuple
 
-        # ctx['name'] = _with_val_N
-        if_body.append(
-            ast.Assign(
-                targets=[
+        # 1. Determine truthy check
+        # If it's a tuple, we might want to check if all elements are truthy
+        # for nil-resilience. But for now, let's stick to Python truthiness
+        # of the whole expression result.
+        test = ast.Name(id=val_name, ctx=ast.Load())
+
+        # If it's an implicit tuple from multiple 'with' subjects,
+        # we check if all elements are truthy for better nil-resilience.
+        if isinstance(node.expr, KidaTuple):
+            # val_N[0] and val_N[1] and ...
+            truth_checks = []
+            for i in range(len(node.expr.items)):
+                truth_checks.append(
                     ast.Subscript(
-                        value=ast.Name(id="ctx", ctx=ast.Load()),
-                        slice=ast.Constant(value=node.name),
-                        ctx=ast.Store(),
+                        value=ast.Name(id=val_name, ctx=ast.Load()),
+                        slice=ast.Constant(value=i),
+                        ctx=ast.Load(),
                     )
-                ],
-                value=ast.Name(id=val_name, ctx=ast.Load()),
-            )
-        )
+                )
+            if len(truth_checks) > 1:
+                test = ast.BoolOp(op=ast.And(), values=truth_checks)
+            elif truth_checks:
+                test = truth_checks[0]
 
-        # Compile body
+        # 2. Track names and handle bindings
+        bound_names = self._extract_names(node.target)
+        save_restore_stmts: list[tuple[str, str]] = []
+
+        for name in bound_names:
+            old_var_name = f"_with_save_{name}_{suffix}"
+            save_restore_stmts.append((name, old_var_name))
+
+            # _with_save_name_N = ctx.get('name')
+            if_body.append(
+                ast.Assign(
+                    targets=[ast.Name(id=old_var_name, ctx=ast.Store())],
+                    value=ast.Call(
+                        func=ast.Attribute(
+                            value=ast.Name(id="ctx", ctx=ast.Load()),
+                            attr="get",
+                            ctx=ast.Load(),
+                        ),
+                        args=[ast.Constant(value=name)],
+                        keywords=[],
+                    ),
+                )
+            )
+
+        # 3. Bind new values
+        if isinstance(node.target, KidaName):
+            # ctx['name'] = _with_val_N
+            if_body.append(
+                ast.Assign(
+                    targets=[
+                        ast.Subscript(
+                            value=ast.Name(id="ctx", ctx=ast.Load()),
+                            slice=ast.Constant(value=node.target.name),
+                            ctx=ast.Store(),
+                        )
+                    ],
+                    value=ast.Name(id=val_name, ctx=ast.Load()),
+                )
+            )
+        elif isinstance(node.target, KidaTuple):
+            # Unpack: ctx['x'], ctx['y'] = _with_val_N
+            targets = []
+            for item in node.target.items:
+                if isinstance(item, KidaName):
+                    targets.append(
+                        ast.Subscript(
+                            value=ast.Name(id="ctx", ctx=ast.Load()),
+                            slice=ast.Constant(value=item.name),
+                            ctx=ast.Store(),
+                        )
+                    )
+                else:
+                    # Nested tuples not supported in 'with' target yet, but could be
+                    pass
+
+            if targets:
+                if_body.append(
+                    ast.Assign(
+                        targets=[ast.Tuple(elts=targets, ctx=ast.Store())],
+                        value=ast.Name(id=val_name, ctx=ast.Load()),
+                    )
+                )
+
+        # 4. Compile body
         for child in node.body:
             if_body.extend(self._compile_node(child))
 
-        # Restore old value
-        # if _with_save_name_N is None: del ctx['name']
-        # else: ctx['name'] = _with_save_name_N
-        if_body.append(
-            ast.If(
-                test=ast.Compare(
-                    left=ast.Name(id=old_var_name, ctx=ast.Load()),
-                    ops=[ast.Is()],
-                    comparators=[ast.Constant(value=None)],
-                ),
-                body=[
-                    ast.Delete(
-                        targets=[
-                            ast.Subscript(
-                                value=ast.Name(id="ctx", ctx=ast.Load()),
-                                slice=ast.Constant(value=node.name),
-                                ctx=ast.Del(),
-                            )
-                        ]
-                    )
-                ],
-                orelse=[
-                    ast.Assign(
-                        targets=[
-                            ast.Subscript(
-                                value=ast.Name(id="ctx", ctx=ast.Load()),
-                                slice=ast.Constant(value=node.name),
-                                ctx=ast.Store(),
-                            )
-                        ],
-                        value=ast.Name(id=old_var_name, ctx=ast.Load()),
-                    )
-                ],
+        # 5. Restore old values
+        for name, old_var_name in reversed(save_restore_stmts):
+            # if _with_save_name_N is None: del ctx['name']
+            # else: ctx['name'] = _with_save_name_N
+            if_body.append(
+                ast.If(
+                    test=ast.Compare(
+                        left=ast.Name(id=old_var_name, ctx=ast.Load()),
+                        ops=[ast.Is()],
+                        comparators=[ast.Constant(value=None)],
+                    ),
+                    body=[
+                        ast.Delete(
+                            targets=[
+                                ast.Subscript(
+                                    value=ast.Name(id="ctx", ctx=ast.Load()),
+                                    slice=ast.Constant(value=name),
+                                    ctx=ast.Del(),
+                                )
+                            ]
+                        )
+                    ],
+                    orelse=[
+                        ast.Assign(
+                            targets=[
+                                ast.Subscript(
+                                    value=ast.Name(id="ctx", ctx=ast.Load()),
+                                    slice=ast.Constant(value=name),
+                                    ctx=ast.Store(),
+                                )
+                            ],
+                            value=ast.Name(id=old_var_name, ctx=ast.Load()),
+                        )
+                    ],
+                )
             )
-        )
 
-        # if _with_val_N: ...
+        # 6. Build final If node
         stmts.append(
             ast.If(
-                test=ast.Name(id=val_name, ctx=ast.Load()),
+                test=test,
                 body=if_body,
                 orelse=[],
             )

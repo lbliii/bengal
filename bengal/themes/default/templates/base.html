@@ -10,9 +10,7 @@ _path, kind, tags are always defined - no defensive checks needed.
 ================================================================================
 #}
 {# Template-wide variables using {% let %} for explicit scope #}
-{# Ensure params is defined (defaults to empty dict if not provided) #}
 {% let params = params ?? {} %}
-{# Page shortcuts - page is always available in page templates #}
 {% let _page_title = page.title %}
 {% let _page_url = page._path %}
 
@@ -26,8 +24,7 @@ _path, kind, tags are always defined - no defensive checks needed.
 {% let _link_previews = site.link_previews %}
 {% let _per_page_json = 'json' in (config.output_formats.per_page ?? []) %}
 
-{# Derived values (depend on earlier lets) #}
-{# Navigation menus - assign outside cache for variable access #}
+{# Derived values #}
 {% let _main_menu = get_menu_lang('main', _current_lang) %}
 {% let _footer_menu = get_menu_lang('footer', _current_lang) %}
 
@@ -36,11 +33,40 @@ _path, kind, tags are always defined - no defensive checks needed.
 {% let _transition_style = _doc_app_nav?.transition_style %}
 
 {# Auto navigation if main menu is empty #}
-{% if _main_menu | length == 0 %}
-{% let _auto_nav = get_auto_nav() %}
-{% else %}
-{% let _auto_nav = [] %}
-{% end %}
+{% let _auto_nav = get_auto_nav() if _main_menu | length == 0 else [] %}
+
+{# =============================================================================
+HELPER: Render a menu item (desktop/mobile)
+============================================================================= #}
+{% def render_menu_item(item, is_mobile=false) %}
+{% let has_children = item.children | length > 0 %}
+{% let is_active = item.active or (_page_url == item.href) %}
+{% let is_trail = item.active_trail ?? false %}
+
+<li
+    class="{{ 'has-submenu' if has_children else '' }} {{ 'active' if is_active else '' }} {{ 'active-trail' if is_trail else '' }}">
+    {% if has_children and item.href == '#' %}
+    <span class="nav-dropdown-trigger" tabindex="0" role="button" aria-haspopup="true">{{ item.name }}</span>
+    {% else %}
+    <a href="{{ item.href | absolute_url }}" {{ 'aria-current="page"' | safe if is_active else '' }}>{{ item.name }}</a>
+    {% end %}
+
+    {% if has_children %}
+    <ul class="submenu">
+        {% for child in item.children %}
+        <li class="{{ 'active' if child.active else '' }}">
+            <a href="{{ child.href | absolute_url }}">
+                {% with child.icon as icon_name %}
+                {% if icon_name %}<span class="submenu-icon">{{ icon(icon_name, size=16) }}</span>{% end %}
+                {% end %}
+                <span class="submenu-text">{{ child.name }}</span>
+            </a>
+        </li>
+        {% end %}
+    </ul>
+    {% end %}
+</li>
+{% enddef %}
 
 <html lang="{{ _current_lang }}" {% if _view_transitions and _transition_style !='crossfade' %}
     data-transition-style="{{ _transition_style }}" {% end %}>
@@ -64,14 +90,14 @@ _path, kind, tags are always defined - no defensive checks needed.
     {% case _ %}{{ _site_title }}
     {% end %}
     {% end %}
-    {% end %}
+    {% endcapture %}
     <title>{{ page_title | trim }}</title>
 
     {# Meta description - captured for reuse in Open Graph and Twitter Card #}
     {% capture meta_desc %}
     {{ meta_desc ?? config.description }}
-    {% end %}
-    <meta name="description" content="{{ meta_desc }}">
+    {% endcapture %}
+    <meta name="description" content="{{ meta_desc | trim }}">
 
     {# Meta Keywords - use page.keywords or fallback to tags #}
     {% if page.keywords %}
@@ -87,68 +113,64 @@ _path, kind, tags are always defined - no defensive checks needed.
 
     {# Open Graph / Facebook #}
     <meta property="og:type" content="article">
-    <meta property="og:title" content="{{ page_title }}">
+    <meta property="og:title" content="{{ page_title | trim }}">
     {% if meta_desc %}
-    <meta property="og:description" content="{{ meta_desc }}">
+    <meta property="og:description" content="{{ meta_desc | trim }}">
     {% end %}
     {% if config.baseurl %}
-    {# Use relative_url for canonical URLs (canonical_url adds baseurl) #}
     <meta property="og:url" content="{{ canonical_url(_page_url) }}">
     {% end %}
-    {# Open Graph Image - computed with fallback chain using null coalescing #}
+    {# Open Graph Image #}
     {% let _og_image_path = og_image(params?.image ?? config?.og_image ?? '', page) %}
     {% if _og_image_path %}
     <meta property="og:image" content="{{ _og_image_path }}">
     {% end %}
 
-    {# Twitter Card - uses same image as Open Graph #}
+    {# Twitter Card #}
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="{{ page_title }}">
+    <meta name="twitter:title" content="{{ page_title | trim }}">
     {% if meta_desc %}
-    <meta name="twitter:description" content="{{ meta_desc }}">
+    <meta name="twitter:description" content="{{ meta_desc | trim }}">
     {% end %}
     {% if _og_image_path %}
     <meta name="twitter:image" content="{{ _og_image_path }}">
     {% end %}
 
-    {# Bengal config meta for JS to read without template tags inside scripts #}
+    {# Bengal config meta #}
     <meta name="bengal:search_preload" content="{{ config.search_preload ?? 'smart' }}">
     <meta name="bengal:baseurl" content="{{ config.baseurl }}">
     <meta name="bengal:index_url" content="{{ '/index.json' | absolute_url }}">
-    {# Pre-built Lunr index URL - only emit if lunr package is installed (pip install bengal[search]) #}
     {% if bengal.capabilities.prebuilt_search %}
     <meta name="bengal:search_index_url" content="{{ '/search-index.json' | absolute_url }}">
     {% end %}
-    {# Version meta tag for version-scoped search #}
     {% if page.version %}
     <meta name="bengal:version" content="{{ page.version }}">
     {% end %}
 
     {# Canonical URL #}
     {% if config.baseurl %}
-    {# Use relative_url for canonical URLs (canonical_url adds baseurl) #}
     <link rel="canonical" href="{{ canonical_url(_page_url) }}">
     {% end %}
 
-    {# RSS Feed (locale-aware when i18n prefix strategy is enabled) #}
-    {% let _i18n = config.i18n %}
-    {% let _rss_href = '/rss.xml' %}
-    {% if _i18n and _i18n.strategy == 'prefix' %}
-    {% let _default_lang = _i18n.default_language ?? 'en' %}
-    {% if _current_lang and (_i18n.default_in_subdir or _current_lang != _default_lang) %}
-    {% let _rss_href = '/' ~ _current_lang ~ '/rss.xml' %}
+    {# RSS Feed #}
+    {% with config.i18n as i18n %}
+    {% let rss_href = '/rss.xml' %}
+    {% if i18n and i18n.strategy == 'prefix' %}
+    {% let default_lang = i18n.default_language ?? 'en' %}
+    {% if _current_lang and (i18n.default_in_subdir or _current_lang != default_lang) %}
+    {% let rss_href = '/' ~ _current_lang ~ '/rss.xml' %}
     {% end %}
     {% end %}
-    <link rel="alternate" type="application/rss+xml" title="{{ config.title }} RSS Feed" href="{{ _rss_href }}">
+    <link rel="alternate" type="application/rss+xml" title="{{ _site_title }} RSS Feed" href="{{ rss_href }}">
+    {% end %}
 
-    {# hreflang alternates for translated pages #}
-    {% let alt_links = alternate_links(page) %}
-    {% for alt in alt_links %}
+    {# hreflang alternates #}
+    {% for alt in alternate_links(page) %}
     <link rel="alternate" hreflang="{{ alt.hreflang }}" href="{{ alt.href }}">
     {% end %}
 
     {# Favicon #}
-    {% set favicon_path = config.site.favicon %}
+    {% with config.site.favicon as favicon_path %}
     {% if favicon_path %}
     <link rel="icon" type="image/png" href="{{ favicon_path }}">
     {% else %}
@@ -158,39 +180,34 @@ _path, kind, tags are always defined - no defensive checks needed.
     <link rel="apple-touch-icon" sizes="180x180" href="{{ asset_url('apple-touch-icon.png') }}">
     <link rel="manifest" href="{{ asset_url('site.webmanifest') }}">
     {% end %}
+    {% end %}
 
-    {# Preconnect to CDN origins for faster resource loading #}
+    {# Preconnect #}
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="preconnect" href="https://d3js.org" crossorigin>
-    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
-    <link rel="dns-prefetch" href="https://d3js.org">
 
-    {# Fonts - Preload critical fonts, load CSS non-blocking #}
+    {# Fonts #}
     {% if config.fonts %}
-    {# Preload the most critical font weight for faster LCP #}
     <link rel="preload" href="{{ asset_url('fonts/outfit-700.woff2') }}" as="font" type="font/woff2" crossorigin>
-    {# Load font CSS with non-blocking pattern #}
     <link rel="preload" href="{{ asset_url('fonts.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript>
         <link rel="stylesheet" href="{{ asset_url('fonts.css') }}">
     </noscript>
     {% end %}
 
-    {# Stylesheets - main CSS (render-blocking, but cached) #}
+    {# Stylesheets #}
     <link rel="stylesheet" href="{{ asset_url('css/style.css') }}">
 
-    {# Theme configuration defaults from bengal.toml #}
+    {# Theme configuration JS #}
     <script>
         window.BENGAL_THEME_DEFAULTS = {
             appearance: '{{ theme.default_appearance }}',
             palette: '{{ theme.default_palette }}'
         };
-        // Progressive Enhancement System Configuration
         window.Bengal = window.Bengal || {};
         window.Bengal.enhanceBaseUrl = '{{ asset_url("js/enhancements") }}';
         window.Bengal.watchDom = {{ config.enhancements.watch_dom | default (true) | lower }};
         window.Bengal.debug = {{ config.enhancements.debug | default (false) | lower }};
-        // Enhancement URLs (fingerprinted in production builds)
         window.Bengal.enhanceUrls = {
             'toc': '{{ asset_url("js/enhancements/toc.js") }}',
             'docs-nav': '{{ asset_url("js/enhancements/docs-nav.js") }}',
@@ -207,15 +224,14 @@ _path, kind, tags are always defined - no defensive checks needed.
         };
     </script>
 
-    {# Theme & Palette initialization - INLINED to prevent FOUC (must be synchronous) #}
+    {# Inline theme init #}
     <script>
         (function () {
             try {
                 var defaults = window.BENGAL_THEME_DEFAULTS || { appearance: 'system', palette: '' };
                 var defaultAppearance = defaults.appearance;
                 if (defaultAppearance === 'system') {
-                    defaultAppearance = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)
-                        ? 'dark' : 'light';
+                    defaultAppearance = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
                 }
                 var storedTheme = localStorage.getItem('bengal-theme');
                 var storedPalette = localStorage.getItem('bengal-palette');
@@ -227,43 +243,41 @@ _path, kind, tags are always defined - no defensive checks needed.
         })();
     </script>
 
-    {# Document Application: Speculation Rules for prefetching/prerendering #}
+    {# Speculation Rules #}
     {% with _doc_app.speculation as speculation %}
     {% if _doc_app.enabled and speculation.enabled and (_doc_app.features?.speculation_rules ?? true) %}
     <script type="speculationrules">
-{
-  "prerender": [
     {
-      "where": {
-        "and": [
-          { "href_matches": "{{ speculation.prerender.patterns | join('", "') }}" },
-          { "not": { "selector_matches": "[data-external], [target=_blank], .external" } }
-        ]
-      },
-      "eagerness": "{{ speculation.prerender.eagerness }}"
+      "prerender": [
+        {
+          "where": {
+            "and": [
+              { "href_matches": "{{ speculation.prerender.patterns | join('", "') }}" },
+              { "not": { "selector_matches": "[data-external], [target=_blank], .external" } }
+            ]
+          },
+          "eagerness": "{{ speculation.prerender.eagerness }}"
+        }
+      ],
+      "prefetch": [
+        {
+          "where": {
+            "and": [
+              { "href_matches": "{{ speculation.prefetch.patterns | join('", "') }}" },
+              { "not": { "selector_matches": "[data-external], [target=_blank], .external" } }
+            ]
+          },
+          "eagerness": "{{ speculation.prefetch.eagerness }}"
+        }
+      ]
     }
-  ],
-  "prefetch": [
-    {
-      "where": {
-        "and": [
-          { "href_matches": "{{ speculation.prefetch.patterns | join('", "') }}" },
-          { "not": { "selector_matches": "[data-external], [target=_blank], .external" } }
-        ]
-      },
-      "eagerness": "{{ speculation.prefetch.eagerness }}"
-    }
-  ]
-}
     </script>
     {% end %}
     {% end %}
 
     {% block extra_head %}{% end %}
-    {# Generator and build meta #}
     {% include 'partials/meta-generator.html' %}
 
-    {# Optional JSON bootstrap for client-side scripts #}
     {% if config.expose_metadata_json %}
     <script id="bengal-bootstrap" type="application/json">{{ bengal | tojson }}</script>
     <script>
@@ -277,173 +291,95 @@ _path, kind, tags are always defined - no defensive checks needed.
 
 <body data-type="{{ page.type }}" data-variant="{{ page.variant or '' }}"
     class="page-kind-{{ page.kind or 'page' }}{% if page.is_draft %} draft-page{% end %}{% if page.hidden %} hidden-page{% end %}{% if page.is_featured %} featured-content{% end %}">
-    {# Skip to main content for accessibility - Feature: accessibility.skip_link #}
+
     {% if 'accessibility.skip_link' in (theme.features ?? []) %}
     <a href="#main-content" class="skip-link">Skip to main content</a>
     {% end %}
 
-    {# Search Modal - Site-Scoped Block (RFC: kida-template-introspection) #}
-    {# ===================================================================== #}
-    {# This block is designed to be SITE-CACHEABLE: #}
-    {# - Only depends on config.*, and site-scoped functions #}
-    {# - Does NOT reference page.* or params.* #}
-    {# - Inlined from partials/search-modal.html to enable caching #}
-    {# ===================================================================== #}
+    {# Search Modal Block #}
     {% block site_search_modal %}
-    {% let _search_config = config.search %}
-    {% let _ui_config = _search_config.ui %}
-    {% let _modal_enabled = _ui_config.modal ?? false %}
-
-    {% if _modal_enabled %}
+    {% with config.search.ui as ui %}
+    {% if ui.modal ?? false %}
     <dialog id="search-modal" class="search-modal"
         aria-label="{{ t('search.aria_label', default='Search documentation') }}">
-        {# Backdrop for clicking outside to close #}
         <div class="search-modal__backdrop" data-close-modal></div>
-
-        {# Modal container #}
         <div class="search-modal__container" role="dialog" aria-modal="true">
-            {# Header with search input #}
             <header class="search-modal__header">
                 <div class="search-modal__input-wrapper">
                     {{ icon('magnifying-glass', size=20, css_class='search-modal__icon') }}
-
                     <input type="search" id="search-modal-input" class="search-modal__input"
-                        placeholder="{{ _ui_config.placeholder ?? t('search.placeholder', default='Search documentation...') }}"
+                        placeholder="{{ ui.placeholder ?? t('search.placeholder', default='Search documentation...') }}"
                         autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
                         aria-label="{{ t('search.aria_label', default='Search') }}"
                         aria-describedby="search-modal-status" aria-controls="search-modal-results"
                         aria-autocomplete="list">
-
                     <div class="search-modal__loading" id="search-modal-loading" style="display: none;">
                         <div class="search-modal__spinner"></div>
                     </div>
                 </div>
-
-                <button type="button" class="search-modal__close" data-close-modal aria-label="Close search">
-                    <kbd>ESC</kbd>
-                </button>
+                <button type="button" class="search-modal__close" data-close-modal
+                    aria-label="Close search"><kbd>ESC</kbd></button>
             </header>
-
-            {# Status for screen readers #}
             <div id="search-modal-status" class="sr-only" role="status" aria-live="polite"></div>
-
-            {# Recent searches section #}
             <section class="search-modal__recent" id="search-modal-recent"
                 aria-label="{{ t('search.recent_aria_label', default='Recent searches') }}">
                 <div class="search-modal__section-header">
                     <span class="search-modal__section-title">{{ t('search.recent', default='Recent') }}</span>
-                    <button type="button" class="search-modal__clear-recent" id="clear-recent-searches"
-                        title="{{ t('search.clear_recent', default='Clear recent searches') }}">
-                        {{ t('search.clear', default='Clear') }}
-                    </button>
+                    <button type="button" class="search-modal__clear-recent" id="clear-recent-searches">{{
+                        t('search.clear', default='Clear') }}</button>
                 </div>
-                <ul class="search-modal__recent-list" id="search-modal-recent-list" role="listbox">
-                    {# Recent searches populated by JS #}
-                </ul>
+                <ul class="search-modal__recent-list" id="search-modal-recent-list" role="listbox"></ul>
             </section>
-
-            {# Search results #}
             <section class="search-modal__results" id="search-modal-results"
                 aria-label="{{ t('search.results_aria_label', default='Search results') }}">
-                <div class="search-modal__results-list" id="search-modal-results-list" role="listbox">
-                    {# Results populated by JS #}
-                </div>
-
-                {# No results message #}
+                <div class="search-modal__results-list" id="search-modal-results-list" role="listbox"></div>
                 <div class="search-modal__no-results" id="search-modal-no-results" style="display: none;">
                     {{ icon('magnifying-glass', size=48) }}
                     <p class="search-modal__no-results-text">{{ t('search.no_results', default='No results for') }}
                         "<span id="search-modal-no-results-query"></span>"</p>
-                    <p class="search-modal__no-results-hint">{{ t('search.no_results_hint', default='Try different
-                        keywords or check your spelling') }}</p>
                 </div>
-
-                {# Empty state (before search) #}
                 <div class="search-modal__empty" id="search-modal-empty">
                     <p class="search-modal__empty-hint">{{ t('search.empty_hint', default='Start typing to search...')
                         }}</p>
                 </div>
             </section>
-
-            {# Footer with keyboard hints #}
             <footer class="search-modal__footer">
                 <div class="search-modal__hints">
-                    <span class="search-modal__hint">
-                        <kbd>↑</kbd><kbd>↓</kbd>
-                        <span>{{ t('search.hint_navigate', default='Navigate') }}</span>
-                    </span>
-                    <span class="search-modal__hint">
-                        <kbd>↵</kbd>
-                        <span>{{ t('search.hint_open', default='Open') }}</span>
-                    </span>
-                    <span class="search-modal__hint">
-                        <kbd>ESC</kbd>
-                        <span>{{ t('search.hint_close', default='Close') }}</span>
-                    </span>
+                    <span class="search-modal__hint"><kbd>↑</kbd><kbd>↓</kbd> <span>{{ t('search.hint_navigate',
+                            default='Navigate') }}</span></span>
+                    <span class="search-modal__hint"><kbd>↵</kbd> <span>{{ t('search.hint_open', default='Open')
+                            }}</span></span>
+                    <span class="search-modal__hint"><kbd>ESC</kbd> <span>{{ t('search.hint_close', default='Close')
+                            }}</span></span>
                 </div>
-                <div class="search-modal__powered-by">
-                    <span>{{ t('search.powered_by', default='Powered by') }}</span>
-                    <a href="https://lunrjs.com/" target="_blank" rel="noopener">Lunr</a>
-                </div>
+                <div class="search-modal__powered-by"><span>{{ t('search.powered_by', default='Powered by') }}</span> <a
+                        href="https://lunrjs.com/" target="_blank" rel="noopener">Lunr</a></div>
             </footer>
         </div>
     </dialog>
     {% end %}
     {% end %}
+    {% end %}
 
-    {# Header - App Shell Pattern: Full-width edge-to-edge #}
+    {# Header #}
     <header role="banner" class="header-appshell">
         <nav role="navigation" aria-label="Main navigation">
             <div class="header-nav-content">
-                {# Logo / Site Title #}
                 <a href="{{ '/' | absolute_url }}" class="logo">
-                    {% if site.logo %}
-                        <img src="{{ site.logo | absolute_url }}" alt="{{ _site_title }}" class="brand-image" />
-                    {% elif site.logo_text %}
-                        <span class="brand-text">{{ site.logo_text }}</span>
-                    {% else %}
-                        <span class="brand-text">{{ _site_title }}</span>
+                    {% match site.logo, site.logo_text %}
+                    {% case logo, _ if logo %}<img src="{{ logo | absolute_url }}" alt="{{ _site_title }}"
+                        class="brand-image" />
+                    {% case _, text if text %}<span class="brand-text">{{ text }}</span>
+                    {% case _ %}<span class="brand-text">{{ _site_title }}</span>
                     {% end %}
                 </a>
 
-                {# Desktop Navigation - uses cached _main_menu and _auto_nav from top of template #}
                 {% if _main_menu or _auto_nav %}
+                {% spaceless %}
                 <ul class="nav-main hidden-mobile">
-                    {# Manual menu items (if configured) #}
-                    {% if _main_menu %}
-                    {% for item in _main_menu %}
-                    <li class="{{ 'active' if item.active else '' }} {{ 'active-trail' if item.active_trail else '' }}">
-                        {# If item has children and no unique link (href is #), render as non-clickable dropdown trigger
-                        #}
-                        {% if item.children and item.href == '#' %}
-                        <span class="nav-dropdown-trigger" tabindex="0" role="button" aria-haspopup="true">{{ item.name
-                            }}</span>
-                        {% else %}
-                        <a href="{{ item.href | absolute_url }}">{{ item.name }}</a>
-                        {% end %}
-                        {% if item.children %}
-                        <ul class="submenu">
-                            {% for child in item.children %}
-                            <li class="{{ 'active' if child.active else '' }}">
-                                <a href="{{ child.href | absolute_url }}">
-                                    {%- if child.icon -%}
-                                    <span class="submenu-icon">{{ icon(child.icon, size=16) }}</span>
-                                    {%- end -%}
-                                    <span class="submenu-text">{{ child.name }}</span>
-                                </a>
-                            </li>
-                            {% end %}
-                        </ul>
-                        {% end %}
-                    </li>
-                    {% end %}
-                    {% end %}
-
-                    {# Auto-discovered nav items (if no manual config) #}
+                    {% for item in _main_menu %}{{ render_menu_item(item) }}{% end %}
                     {% if _auto_nav %}
-                    {# Always show Home first in auto mode #}
-                    <li class="{{ 'active' if _page_url == '/' else '' }}">
-                        <a href="{{ '/' | absolute_url }}">Home</a>
+                    <li class="{{ 'active' if _page_url == '/' else '' }}"><a href="{{ '/' | absolute_url }}">Home</a>
                     </li>
                     {% for item in _auto_nav %}
                     <li
@@ -452,52 +388,31 @@ _path, kind, tags are always defined - no defensive checks needed.
                     </li>
                     {% end %}
                     {% end %}
-
-                    {# GitHub link - only show if not bundled in Dev dropdown #}
-                    {% set github_bundled = false %}
-                    {% if site._dev_menu_metadata %}
-                    {% set github_bundled = site._dev_menu_metadata.github_bundled ?? false %}
+                    {% with site.params.repo_url as repo_url %}
+                    {% if repo_url and not (site._dev_menu_metadata?.github_bundled ?? false) %}
+                    <li><a href="{{ repo_url }}" target="_blank" rel="noopener" aria-label="GitHub">{{
+                            icon('github-logo', size=16) }} <span>GitHub</span></a></li>
                     {% end %}
-                    {% if site.params.repo_url and not github_bundled %}
-                    <li>
-                        <a href="{{ site.params.repo_url }}" target="_blank" rel="noopener" title="GitHub Repository"
-                            data-external="true" aria-label="GitHub (opens in new tab)">
-                            {{ icon('github-logo', size=16) }}
-                            <span>GitHub</span>
-                        </a>
-                    </li>
                     {% end %}
                     {% block nav_items %}{% end %}
                 </ul>
                 {% end %}
+                {% end %}
 
-                {# Header Actions - Desktop Only (Search + Theme) #}
                 <div class="header-actions hidden-mobile">
-                    {# Search - Modal trigger if enabled, otherwise link to search page #}
-                    {% set search_config = config.search %}
-                    {% set ui_config = search_config.ui %}
-                    {% set modal_enabled = ui_config.modal ?? false %}
-                    {% if modal_enabled %}
-                    <button type="button" class="nav-search-trigger" id="nav-search-trigger" title="Search (⌘K)"
-                        aria-label="Open search">
-                        {{ icon('magnifying-glass', size=16) }}
-                        <span>Search</span>
-                        <kbd class="nav-search-shortcut">⌘K</kbd>
-                    </button>
+                    {% with config.search.ui as ui %}
+                    {% if ui.modal ?? false %}
+                    <button type="button" class="nav-search-trigger" id="nav-search-trigger" title="Search (⌘K)">{{
+                        icon('magnifying-glass', size=16) }} <span>Search</span> <kbd
+                            class="nav-search-shortcut">⌘K</kbd></button>
                     {% else %}
-                    <a href="{{ '/search/' | absolute_url }}" class="nav-search-trigger" title="Search (⌘K)">
-                        {{ icon('magnifying-glass', size=16) }}
-                        <span>Search</span>
-                    </a>
+                    <a href="{{ '/search/' | absolute_url }}" class="nav-search-trigger" title="Search (⌘K)">{{
+                        icon('magnifying-glass', size=16) }} <span>Search</span></a>
                     {% end %}
-
-                    {# Theme Controls - Desktop #}
-                    {% with theme_menu_id='theme-menu-desktop' %}
-                    {% include 'partials/theme-controls.html' %}
                     {% end %}
+                    {% with theme_menu_id='theme-menu-desktop' %}{% include 'partials/theme-controls.html' %}{% end %}
                 </div>
 
-                {# Mobile Menu Toggle - opens native dialog #}
                 <button class="mobile-nav-toggle visible-mobile" aria-label="Open menu"
                     onclick="document.getElementById('mobile-nav-dialog').showModal()">
                     {{ icon('list', size=24) }}
@@ -506,303 +421,142 @@ _path, kind, tags are always defined - no defensive checks needed.
         </nav>
     </header>
 
-    {# Mobile Navigation - Native <dialog> element #}
-        {# Browser handles focus trap, backdrop, escape key automatically #}
-        <dialog id="mobile-nav-dialog" class="mobile-nav-dialog" aria-label="Mobile navigation">
-            <form method="dialog" class="mobile-nav-header">
-                <span class="logo">
-                    {% if site.logo %}
-                        <img src="{{ site.logo | absolute_url }}" alt="{{ _site_title }}" class="brand-image" />
-                    {% elif site.logo_text %}
-                        <span class="brand-text">{{ site.logo_text }}</span>
-                    {% else %}
-                        <span class="brand-text">{{ _site_title }}</span>
-                    {% end %}
-                </span>
-                <div class="mobile-nav-actions">
-                    {# Search Button - opens search modal #}
-                    {% set mobile_search_config = config.search %}
-                    {% set mobile_ui_config = mobile_search_config.ui %}
-                    {% set mobile_modal_enabled = mobile_ui_config.modal ?? false %}
-                    {% if mobile_modal_enabled %}
-                    <button type="button" class="mobile-nav-search" aria-label="Search" data-open-search>
-                        {{ icon('magnifying-glass', size=16) }}
-                        <span>Search</span>
-                    </button>
-                    {% end %}
-                    <button type="submit" value="close" class="mobile-nav-close" aria-label="Close menu">
-                        {{ icon('x', size=16) }}
-                        <span>Close</span>
-                    </button>
-                </div>
-            </form>
-
-            {% if _main_menu or _auto_nav %}
-            <nav class="mobile-nav-content" role="navigation" aria-label="Mobile navigation">
-                <ul>
-                    {# Manual menu items (if configured) #}
-                    {% if _main_menu %}
-                    {% for item in _main_menu %}
-                    <li class="{{ 'has-submenu' if item.children else '' }} {{ 'active' if item.active else '' }}">
-                        {# If item has children and no unique link (href is #), render as non-clickable dropdown trigger
-                        #}
-                        {% if item.children and item.href == '#' %}
-                        <span class="nav-dropdown-trigger" tabindex="0" role="button" aria-haspopup="true">{{ item.name
-                            }}</span>
-                        {% else %}
-                        <a href="{{ item.href | absolute_url }}">{{ item.name }}</a>
-                        {% end %}
-                        {% if item.children %}
-                        <ul class="submenu">
-                            {% for child in item.children %}
-                            <li class="{{ 'active' if child.active else '' }}">
-                                <a href="{{ child.href | absolute_url }}">
-                                    {%- if child.icon -%}
-                                    <span class="submenu-icon">{{ icon(child.icon, size=16) }}</span>
-                                    {%- end -%}
-                                    <span class="submenu-text">{{ child.name }}</span>
-                                </a>
-                            </li>
-                            {% end %}
-                        </ul>
-                        {% end %}
-                    </li>
-                    {% end %}
-                    {% end %}
-
-                    {# Auto-discovered nav items (if no manual config) #}
-                    {% if _auto_nav %}
-                    {# Always show Home first in auto mode #}
-                    <li class="{{ 'active' if _page_url == '/' else '' }}">
-                        <a href="{{ '/' | absolute_url }}">Home</a>
-                    </li>
-                    {% for item in _auto_nav %}
-                    <li
-                        class="{{ 'active' if (_page_url is string and item._path is string and _page_url.startswith(item._path) and item._path != '/') else '' }}">
-                        <a href="{{ item.href | absolute_url }}">{{ item.name }}</a>
-                    </li>
-                    {% end %}
-                    {% end %}
-
-                    {# GitHub link - only show if not bundled in Dev dropdown #}
-                    {% set mobile_github_bundled = false %}
-                    {% if site._dev_menu_metadata %}
-                    {% set mobile_github_bundled = site._dev_menu_metadata.github_bundled ?? false %}
-                    {% end %}
-                    {% if site.params.repo_url and not mobile_github_bundled %}
-                    <li>
-                        <a href="{{ site.params.repo_url }}" target="_blank" rel="noopener">
-                            {{ icon('github-logo', size=16, css_class='nav-icon') }}
-                            GitHub
-                        </a>
-                    </li>
-                    {% end %}
-
-                    {% block mobile_nav_items %}{% end %}
-                </ul>
-            </nav>
-            {% end %}
-
-            {# Theme Controls - Mobile Only #}
-            <div class="mobile-nav-footer">
-                {% with theme_menu_id='theme-menu-mobile' %}
-                {% include 'partials/theme-controls.html' %}
+    {# Mobile Navigation #}
+    <dialog id="mobile-nav-dialog" class="mobile-nav-dialog" aria-label="Mobile navigation">
+        <form method="dialog" class="mobile-nav-header">
+            <span class="logo">
+                {% match site.logo, site.logo_text %}
+                {% case logo, _ if logo %}<img src="{{ logo | absolute_url }}" alt="{{ _site_title }}"
+                    class="brand-image" />
+                {% case _, text if text %}<span class="brand-text">{{ text }}</span>
+                {% case _ %}<span class="brand-text">{{ _site_title }}</span>
                 {% end %}
+            </span>
+            <div class="mobile-nav-actions">
+                {% if config.search.ui.modal ?? false %}
+                <button type="button" class="mobile-nav-search" data-open-search>{{ icon('magnifying-glass', size=16) }}
+                    <span>Search</span></button>
+                {% end %}
+                <button type="submit" value="close" class="mobile-nav-close">{{ icon('x', size=16) }}
+                    <span>Close</span></button>
             </div>
-        </dialog>
+        </form>
 
-        {# Main Content #}
-        {# Note: No .container wrapper here - templates define their own containment strategy #}
-        {# - docs-layout templates: full-width grid (no container needed) #}
-        {# - single-column templates: add .container in the block content #}
-        <main id="main-content" role="main">
-            {% block content %}{% end %}
-        </main>
+        {% if _main_menu or _auto_nav %}
+        <nav class="mobile-nav-content" role="navigation">
+            <ul>
+                {% for item in _main_menu %}{{ render_menu_item(item, is_mobile=true) }}{% end %}
+                {% if _auto_nav %}
+                <li class="{{ 'active' if _page_url == '/' else '' }}"><a href="{{ '/' | absolute_url }}">Home</a></li>
+                {% for item in _auto_nav %}<li
+                    class="{{ 'active' if (_page_url.startswith(item._path) if _page_url is string and item._path != '/' else false) else '' }}">
+                    <a href="{{ item.href | absolute_url }}">{{ item.name }}</a>
+                </li>{% end %}
+                {% end %}
+                {% with site.params.repo_url as repo_url %}
+                {% if repo_url and not (site._dev_menu_metadata?.github_bundled ?? false) %}
+                <li><a href="{{ repo_url }}" target="_blank" rel="noopener">{{ icon('github-logo', size=16) }}
+                        GitHub</a></li>
+                {% end %}
+                {% end %}
+                {% block mobile_nav_items %}{% end %}
+            </ul>
+        </nav>
+        {% end %}
+        <div class="mobile-nav-footer">{% with theme_menu_id='theme-menu-mobile' %}{% include
+            'partials/theme-controls.html' %}{% end %}</div>
+    </dialog>
 
-        {# Footer - Site-Scoped Block (RFC: kida-template-introspection) #}
-        {# ===================================================================== #}
-        {# This block is designed to be SITE-CACHEABLE: #}
-        {# - Only depends on site.*, config.*, and site-scoped functions #}
-        {# - Does NOT reference page.* or params.* #}
-        {# - Introspection will detect cache_scope="site" #}
-        {# - Block will be rendered once per build and reused for all pages #}
-        {# ===================================================================== #}
-        {% block site_footer %}
-        {% let _footer_lang = current_lang() %}
-        {% let _footer_title = config.title %}
-        {% let _footer_menu = get_menu_lang('footer', _footer_lang) %}
-        {% let _footer_badge = site.build_badge %}
-        <footer role="contentinfo">
-            <div class="container">
-                <div class="footer-bottom">
-                    <div class="footer-left">
-                        <p class="footer-copyright">
-                            &copy; {{ site.build_time | dateformat('%Y') }} {{ _footer_title }}
-                        </p>
-                        {% if _footer_menu %}
-                        <ul class="footer-links">
-                            {% for item in _footer_menu %}
-                            <li><a href="{{ item.href | absolute_url }}">{{ item.name }}</a></li>
-                            {% end %}
-                        </ul>
-                        {% end %}
-                    </div>
-                    <div class="footer-right">
-                        {% if _footer_badge.enabled %}
-                        <a class="bengal-build-time" data-bengal-build-badge
-                            data-bengal-build-badge-dir="{{ _footer_badge.dir_name }}"
-                            data-bengal-build-badge-path="{{ build_artifact_url('build.json', _footer_badge.dir_name) }}"
-                            data-bengal-build-badge-label="{{ _footer_badge.label }}" href="#"
-                            aria-label="{{ _footer_badge.label }}" title="{{ _footer_badge.label }}" hidden>
-                            <span class="bengal-build-time__label">{{ _footer_badge.label }}</span>
-                            <span class="bengal-build-time__value" data-bengal-build-badge-value></span>
-                        </a>
-                        {% end %}
-                        <a href="https://github.com/lbliii/bengal" rel="noopener" class="bengal-badge"
-                            aria-label="Built with Bengal" data-tooltip="Built with Bengal" title="Built with Bengal">
-                            <span class="cat cat-contemplative">
-                                <span class="cat-tail">ᓚ</span><span class="cat-body">ᘏ</span><span
-                                    class="cat-head">ᗢ</span>
-                            </span>
-                        </a>
-                    </div>
+    <main id="main-content" role="main">{% block content %}{% end %}</main>
+
+    {# Footer #}
+    {% block site_footer %}
+    <footer role="contentinfo">
+        <div class="container">
+            <div class="footer-bottom">
+                <div class="footer-left">
+                    <p class="footer-copyright">&copy; {{ site.build_time | dateformat('%Y') }} {{ _site_title }}</p>
+                    {% if _footer_menu %}
+                    <ul class="footer-links">{% for item in _footer_menu %}<li><a
+                                href="{{ item.href | absolute_url }}">{{ item.name }}</a></li>{% end %}</ul>
+                    {% end %}
+                </div>
+                <div class="footer-right">
+                    {% with site.build_badge as badge %}
+                    {% if badge.enabled %}
+                    <a class="bengal-build-time" data-bengal-build-badge
+                        data-bengal-build-badge-dir="{{ badge.dir_name }}"
+                        data-bengal-build-badge-path="{{ build_artifact_url('build.json', badge.dir_name) }}"
+                        data-bengal-build-badge-label="{{ badge.label }}" href="#" hidden>
+                        <span class="bengal-build-time__label">{{ badge.label }}</span>
+                        <span class="bengal-build-time__value" data-bengal-build-badge-value></span>
+                    </a>
+                    {% end %}
+                    {% end %}
+                    <a href="https://github.com/lbliii/bengal" class="bengal-badge" aria-label="Built with Bengal"><span
+                            class="cat cat-contemplative"><span class="cat-tail">ᓚ</span><span
+                                class="cat-body">ᘏ</span><span class="cat-head">ᗢ</span></span></a>
                 </div>
             </div>
-        </footer>
-        {% end %}
+        </div>
+    </footer>
+    {% end %}
 
-        {# JavaScript Loading - Site-Scoped Block (RFC: kida-template-introspection) #}
-        {# ===================================================================== #}
-        {# This block is designed to be SITE-CACHEABLE: #}
-        {# - Only depends on config.*, site.*, theme.* #}
-        {# - Does NOT reference page.* or params.* #}
-        {# - link-previews.html inlined to enable caching #}
-        {# ===================================================================== #}
-        {% block site_scripts %}
-        {% let _scripts_bundle_js = config.assets.bundle_js ?? false %}
-        {% let _scripts_build_badge = site.build_badge %}
-        {% let _scripts_link_previews = site.link_previews %}
-        {% let _scripts_per_page_json = 'json' in (config.output_formats.per_page ?? []) %}
+    {# Scripts #}
+    {% block site_scripts %}
+    {% if config.assets.bundle_js ?? false %}
+    <script defer src="{{ asset_url('js/bundle.js') }}"></script>
+    <script defer src="{{ asset_url('js/vendor/lunr.min.js') }}"></script>
+    {% else %}
+    <script defer src="{{ asset_url('js/utils.js') }}"></script>
+    <script defer src="{{ asset_url('js/bengal-enhance.js') }}"></script>
+    <script defer src="{{ asset_url('js/core/theme.js') }}"></script>
+    <script defer src="{{ asset_url('js/core/search.js') }}"></script>
+    <script defer src="{{ asset_url('js/core/nav-dropdown.js') }}"></script>
+    <script defer src="{{ asset_url('js/core/session-path-tracker.js') }}"></script>
+    <script defer src="{{ asset_url('js/core/version-selector.js') }}"></script>
+    {% if site.build_badge.enabled %}
+    <script defer src="{{ asset_url('js/core/build-badge.js') }}"></script>{% end %}
+    <script defer src="{{ asset_url('js/main.js') }}"></script>
+    <script defer src="{{ asset_url('js/enhancements/interactive.js') }}"></script>
+    <script defer src="{{ asset_url('js/enhancements/mobile-nav.js') }}"></script>
+    <script defer src="{{ asset_url('js/enhancements/tabs.js') }}"></script>
+    <script defer src="{{ asset_url('js/enhancements/toc.js') }}"></script>
+    <script defer src="{{ asset_url('js/enhancements/tracks.js') }}"></script>
+    <script defer src="{{ asset_url('js/enhancements/action-bar.js') }}"></script>
+    <script defer src="{{ asset_url('js/enhancements/copy-link.js') }}"></script>
+    {% if 'content.lightbox' in theme.features %}
+    <script defer src="{{ asset_url('js/enhancements/lightbox.js') }}"></script>{% end %}
+    {% with site.link_previews as lp %}
+    {% if lp.enabled and 'json' in config.output_formats.per_page %}
+    <script id="bengal-config"
+        type="application/json">{"linkPreviews": {"enabled": true, "hoverDelay": {{ lp.hover_delay ?? 200 }}, "hideDelay": {{ lp.hide_delay ?? 150 }}, "showSection": {{ (lp.show_section ?? true) | tojson }}, "showReadingTime": {{ (lp.show_reading_time ?? true) | tojson }}, "showWordCount": {{ (lp.show_word_count ?? true) | tojson }}, "showDate": {{ (lp.show_date ?? true) | tojson }}, "showTags": {{ (lp.show_tags ?? true) | tojson }}, "maxTags": {{ lp.max_tags ?? 3 }}, "includeSelectors": {{ (lp.include_selectors ?? [".prose"]) | tojson }}, "excludeSelectors": {{ (lp.exclude_selectors ?? ["nav", ".toc", ".breadcrumb", ".pagination", ".card", "[class*='-card']", ".tab-nav", "[class*='-widget']", ".child-items", ".content-tiles"]) | tojson }}}</script>
+    <script defer src="{{ asset_url('js/enhancements/link-previews.js') }}"></script>
+    {% end %}
+    {% end %}
+    <script defer src="{{ asset_url('js/vendor/lunr.min.js') }}"></script>
+    <script>
+        window.BENGAL_LAZY_ASSETS = { tabulator: '{{ asset_url("js/tabulator.min.js") }}', dataTable: '{{ asset_url("js/data-table.js") }}', mermaidToolbar: '{{ asset_url("js/mermaid-toolbar.js") }}', mermaidTheme: '{{ asset_url("js/mermaid-theme.js") }}', graphMinimap: '{{ asset_url("js/graph-minimap.js") }}', graphContextual: '{{ asset_url("js/graph-contextual.js") }}' };
+        window.BENGAL_ICONS = { close: '{{ asset_url("icons/close.svg") }}', enlarge: '{{ asset_url("icons/enlarge.svg") }}', copy: '{{ asset_url("icons/copy.svg") }}', 'download-svg': '{{ asset_url("icons/download.svg") }}', 'download-png': '{{ asset_url("icons/image.svg") }}', 'zoom-in': '{{ asset_url("icons/zoom-in.svg") }}', 'zoom-out': '{{ asset_url("icons/zoom-out.svg") }}', reset: '{{ asset_url("icons/reset.svg") }}' };
+    </script>
+    <script defer src="{{ asset_url('js/enhancements/lazy-loaders.js') }}"></script>
+    {% end %}
+    {% end %}
 
-        {% if _scripts_bundle_js %}
-        {# Bundled JS - Single file containing all theme JavaScript #}
-        {# Reduces HTTP requests from ~20 to 3 for better mobile performance #}
-        <script defer src="{{ asset_url('js/bundle.js') }}"></script>
-        {# Third-party libraries (not bundled - already optimized) #}
-        <script defer src="{{ asset_url('js/vendor/lunr.min.js') }}"></script>
-        {% else %}
-        {# Individual Scripts - Better for development/debugging #}
-        {# Progressive Enhancement System - Load first so other scripts can register #}
-        <script defer src="{{ asset_url('js/utils.js') }}"></script>
-        <script defer src="{{ asset_url('js/bengal-enhance.js') }}"></script>
-        {# Core modules - Always loaded #}
-        <script defer src="{{ asset_url('js/core/theme.js') }}"></script>
-        <script defer src="{{ asset_url('js/core/search.js') }}"></script>
-        <script defer src="{{ asset_url('js/core/nav-dropdown.js') }}"></script>
-        <script defer src="{{ asset_url('js/core/session-path-tracker.js') }}"></script>
-        <script defer src="{{ asset_url('js/core/version-selector.js') }}"></script>
-        {% if _scripts_build_badge.enabled %}
-        <script defer src="{{ asset_url('js/core/build-badge.js') }}"></script>{% end %}
-        {# Main initialization #}
-        <script defer src="{{ asset_url('js/main.js') }}"></script>
-        {# Core enhancements - Always loaded (provide essential interactivity) #}
-        <script defer src="{{ asset_url('js/enhancements/interactive.js') }}"></script>
-        <script defer src="{{ asset_url('js/enhancements/mobile-nav.js') }}"></script>
-        <script defer src="{{ asset_url('js/enhancements/tabs.js') }}"></script>
-        <script defer src="{{ asset_url('js/enhancements/toc.js') }}"></script>
-        <script defer src="{{ asset_url('js/enhancements/tracks.js') }}"></script>
-        <script defer src="{{ asset_url('js/enhancements/action-bar.js') }}"></script>
-        <script defer src="{{ asset_url('js/enhancements/copy-link.js') }}"></script>
-        {# Optional enhancements - Auto-loaded by bengal-enhance.js when data-bengal elements detected #}
-        {# Lightbox JS - Feature: content.lightbox (still manually loaded for feature gate) #}
-        {% if 'content.lightbox' in theme.features %}
-        <script defer src="{{ asset_url('js/enhancements/lightbox.js') }}"></script>
-        {% end %}
+    {% block extra_js %}{% end %}
 
-        {# Link Previews - Inlined from partials/link-previews.html #}
-        {% if _scripts_link_previews.enabled and _scripts_per_page_json %}
-        <script id="bengal-config" type="application/json">
-        {
-          "linkPreviews": {
-            "enabled": true,
-            "hoverDelay": {{ _scripts_link_previews.hover_delay ?? 200 }},
-            "hideDelay": {{ _scripts_link_previews.hide_delay ?? 150 }},
-            "showSection": {{ (_scripts_link_previews.show_section ?? true) | tojson }},
-            "showReadingTime": {{ (_scripts_link_previews.show_reading_time ?? true) | tojson }},
-            "showWordCount": {{ (_scripts_link_previews.show_word_count ?? true) | tojson }},
-            "showDate": {{ (_scripts_link_previews.show_date ?? true) | tojson }},
-            "showTags": {{ (_scripts_link_previews.show_tags ?? true) | tojson }},
-            "maxTags": {{ _scripts_link_previews.max_tags ?? 3 }},
-            "includeSelectors": {{ (_scripts_link_previews.include_selectors ?? [".prose"]) | tojson }},
-            "excludeSelectors": {{ (_scripts_link_previews.exclude_selectors ?? ["nav", ".toc", ".breadcrumb", ".pagination", ".card", "[class*='-card']", ".tab-nav", "[class*='-widget']", ".child-items", ".content-tiles"]) | tojson }}
-          }
-        }
-        </script>
-        <script defer src="{{ asset_url('js/enhancements/link-previews.js') }}"></script>
-        {% end %}
-
-        {# Search - Third-party library #}
-        <script defer src="{{ asset_url('js/vendor/lunr.min.js') }}"></script>
-
-        {# Lazy-loaded Libraries - URLs injected here, logic in external file #}
-        <script>
-            window.BENGAL_LAZY_ASSETS = {
-                tabulator: '{{ asset_url("js/tabulator.min.js") }}',
-                dataTable: '{{ asset_url("js/data-table.js") }}',
-                mermaidToolbar: '{{ asset_url("js/mermaid-toolbar.js") }}',
-                mermaidTheme: '{{ asset_url("js/mermaid-theme.js") }}',
-                graphMinimap: '{{ asset_url("js/graph-minimap.js") }}',
-                graphContextual: '{{ asset_url("js/graph-contextual.js") }}'
-            };
-            {# Icon paths for JavaScript - Phosphor icons #}
-            window.BENGAL_ICONS = {
-                close: '{{ asset_url("icons/close.svg") }}',
-                enlarge: '{{ asset_url("icons/enlarge.svg") }}',
-                copy: '{{ asset_url("icons/copy.svg") }}',
-                'download-svg': '{{ asset_url("icons/download.svg") }}',
-                'download-png': '{{ asset_url("icons/image.svg") }}',
-                'zoom-in': '{{ asset_url("icons/zoom-in.svg") }}',
-                'zoom-out': '{{ asset_url("icons/zoom-out.svg") }}',
-                reset: '{{ asset_url("icons/reset.svg") }}'
-            };
-        </script>
-        <script defer src="{{ asset_url('js/enhancements/lazy-loaders.js') }}"></script>
-        {% end %}
-        {% end %}
-
-        {% block extra_js %}{% end %}
-
-        {# Site Dialogs - Site-Scoped Block (RFC: kida-template-introspection) #}
-        {# ===================================================================== #}
-        {# This block is designed to be SITE-CACHEABLE: #}
-        {# - Only depends on theme.features (site-scoped) #}
-        {# - Does NOT reference page.* or params.* #}
-        {# ===================================================================== #}
-        {% block site_dialogs %}
-        {# Back to Top Button - Feature: navigation.back_to_top #}
-        {% if 'navigation.back_to_top' in theme.features %}
-        <button class="back-to-top" aria-label="Scroll to top" title="Back to top">
-            {{ icon("arrow-up", size=24) }}
-        </button>
-        {% end %}
-
-        {# Image Lightbox - Feature: content.lightbox #}
-        {# PATTERN: DIALOG (see assets/COMPONENT-PATTERNS.md) #}
-        {# Browser handles: focus trap, escape key, backdrop, inert on background #}
-        {% if 'content.lightbox' in theme.features %}
-        <dialog id="lightbox-dialog" class="lightbox-dialog" aria-label="Image lightbox">
-            <img class="lightbox-dialog__image" alt="">
-            <form method="dialog" class="lightbox-dialog__controls">
-                <button type="submit" class="lightbox-dialog__close" aria-label="Close lightbox">
-                    {{ icon("close", size=24) }}
-                </button>
-            </form>
-            <div class="lightbox-dialog__caption"></div>
-        </dialog>
-        {% end %}
-        {% end %}
-
-        {# Dev-only live reload is now injected by the server automatically via LiveReloadMixin #}
+    {% block site_dialogs %}
+    {% if 'navigation.back_to_top' in theme.features %}<button class="back-to-top" aria-label="Scroll to top">{{
+        icon("arrow-up", size=24) }}</button>{% end %}
+    {% if 'content.lightbox' in theme.features %}
+    <dialog id="lightbox-dialog" class="lightbox-dialog" aria-label="Image lightbox">
+        <img class="lightbox-dialog__image" alt="">
+        <form method="dialog" class="lightbox-dialog__controls"><button type="submit" class="lightbox-dialog__close"
+                aria-label="Close lightbox">{{ icon("close", size=24) }}</button></form>
+        <div class="lightbox-dialog__caption"></div>
+    </dialog>
+    {% end %}
+    {% end %}
 </body>
 
 </html>

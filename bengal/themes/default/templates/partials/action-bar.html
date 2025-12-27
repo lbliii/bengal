@@ -75,12 +75,14 @@ BREADCRUMB ITEM HELPER
             {# Left: Breadcrumbs #}
             <nav class="action-bar-nav" aria-label="Breadcrumb">
                 {% if breadcrumb_items | length > 0 %}
+                {% spaceless %}
                 <ol class="action-bar-breadcrumbs">
                     {% for item in breadcrumb_items %}
                     {{ breadcrumb_item(item, has_metadata) }}
                     {% export last_breadcrumb = item %}
                     {% end %}
                 </ol>
+                {% end %}
                 {% end %}
             </nav>
 
@@ -120,36 +122,26 @@ BREADCRUMB ITEM HELPER
 
                             {# AI Assistant Links #}
                             <div class="action-bar-share-section-header">{{ t('share.with_ai', default='Share with AI')
-                                }}
-                            </div>
+                                }}</div>
 
-                            <a href="https://claude.ai/new?q={{ share_prompt | urlencode }}" target="_blank"
-                                rel="noopener noreferrer" class="action-bar-share-item action-bar-share-ai"
-                                data-ai="claude">
-                                {{ icon('ai-claude', size=16) }}
-                                <span>{{ t('share.ask_claude', default='Ask Claude') }}</span>
-                            </a>
+                            {% let ai_platforms = [
+                            {'id': 'claude', 'name': 'Claude', 'icon': 'ai-claude', 'url': 'https://claude.ai/new?q='},
+                            {'id': 'chatgpt', 'name': 'ChatGPT', 'icon': 'ai-chatgpt', 'url':
+                            'https://chatgpt.com/?q='},
+                            {'id': 'gemini', 'name': 'Gemini', 'icon': 'ai-gemini', 'url':
+                            'https://gemini.google.com/app?q='},
+                            {'id': 'copilot', 'name': 'Copilot', 'icon': 'ai-copilot', 'url':
+                            'https://copilot.microsoft.com/?q='}
+                            ] %}
 
-                            <a href="https://chatgpt.com/?q={{ share_prompt | urlencode }}" target="_blank"
+                            {% for ai in ai_platforms %}
+                            <a href="{{ ai.url ~ (share_prompt | urlencode) }}" target="_blank"
                                 rel="noopener noreferrer" class="action-bar-share-item action-bar-share-ai"
-                                data-ai="chatgpt">
-                                {{ icon('ai-chatgpt', size=16) }}
-                                <span>{{ t('share.ask_chatgpt', default='Ask ChatGPT') }}</span>
+                                data-ai="{{ ai.id }}">
+                                {{ icon(ai.icon, size=16) }}
+                                <span>{{ t('share.ask_' ~ ai.id, default='Ask ' ~ ai.name) }}</span>
                             </a>
-
-                            <a href="https://gemini.google.com/app?q={{ share_prompt | urlencode }}" target="_blank"
-                                rel="noopener noreferrer" class="action-bar-share-item action-bar-share-ai"
-                                data-ai="gemini">
-                                {{ icon('ai-gemini', size=16) }}
-                                <span>{{ t('share.ask_gemini', default='Ask Gemini') }}</span>
-                            </a>
-
-                            <a href="https://copilot.microsoft.com/?q={{ share_prompt | urlencode }}" target="_blank"
-                                rel="noopener noreferrer" class="action-bar-share-item action-bar-share-ai"
-                                data-ai="copilot">
-                                {{ icon('ai-copilot', size=16) }}
-                                <span>{{ t('share.ask_copilot', default='Ask Copilot') }}</span>
-                            </a>
+                            {% end %}
                         </div>
                     </div>
                 </div>
@@ -160,37 +152,40 @@ BREADCRUMB ITEM HELPER
         {% if has_metadata %}
         <div id="action-bar-metadata-popover" popover class="action-bar-metadata--popover">
             <div class="action-bar-metadata-content">
-                {% let author = params?.author ?? '' %}
+                {% with params?.author as author %}
                 {% if author and 'content.author' in theme_features %}
                 <span class="action-bar-meta-item">
                     {{ icon("user", size=16) }}
                     <span>{{ author }}</span>
                 </span>
                 {% end %}
+                {% end %}
 
-                {% let page_content = page?.content ?? '' %}
-                {% if page_content %}
+                {% with page?.content as content_body %}
+                {% if content_body %}
                 {% if 'content.reading_time' in theme_features %}
                 <span class="action-bar-meta-item">
                     {{ icon("clock", size=16) }}
-                    <span>{{ t('meta.reading_time', {'time': page_content | reading_time}, default='{time} min read')
+                    <span>{{ t('meta.reading_time', {'time': content_body | reading_time}, default='{time} min read')
                         }}</span>
                 </span>
                 {% end %}
 
                 <span class="action-bar-meta-item">
                     {{ icon("file-text", size=16) }}
-                    <span>{{ t('meta.word_count', {'count': page_content | wordcount}, default='{count} words')
+                    <span>{{ t('meta.word_count', {'count': content_body | wordcount}, default='{count} words')
                         }}</span>
                 </span>
                 {% end %}
+                {% end %}
 
-                {% let lastmod = params?.lastmod ?? page?.date %}
-                {% if lastmod %}
+                {% with params?.lastmod ?? page?.date as last_updated %}
+                {% if last_updated %}
                 <span class="action-bar-meta-item">
                     {{ icon("arrow-clockwise", size=16) }}
-                    <span>{{ t('meta.updated', {'time': lastmod | time_ago}, default='Updated {time}') }}</span>
+                    <span>{{ t('meta.updated', {'time': last_updated | time_ago}, default='Updated {time}') }}</span>
                 </span>
+                {% end %}
                 {% end %}
             </div>
         </div>
