@@ -1,0 +1,26 @@
+{#
+================================================================================
+Page Hero: Element Template
+================================================================================
+
+Standalone template for rendering DocElement page heroes.
+Delegates to hero_element macro from _macros.html.
+
+USAGE:
+{% include 'partials/page-hero/element.html' %}
+
+EXPECTED CONTEXT:
+- element: DocElement (module, class, function, command)
+- page: Current page object
+- config: Autodoc config (github_repo, github_branch)
+
+For direct macro access:
+{% from 'partials/page-hero/_macros.html' import hero_element %}
+{{ hero_element(element, page, config) }}
+================================================================================
+#}
+
+{% from 'partials/page-hero/_macros.html' import hero_element %}
+
+{{ hero_element(element, page, config) }}
+

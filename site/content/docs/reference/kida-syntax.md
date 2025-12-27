@@ -36,6 +36,7 @@ Complete reference for Kida template syntax, operators, and features. Kida is Be
 | Template variables | `{% let %}` (template-scoped) | `{% set %}` (block-scoped) |
 | Block variables | `{% set %}` (block-scoped) | `{% set %}` (block-scoped) |
 | Pattern matching | `{% match %}...{% case %}...{% end %}` | `{% if %}...{% elif %}...{% endif %}` |
+| While loops | `{% while cond %}...{% end %}` | Not available |
 | Pipeline operator | `|>` | `\|` (filter chain) |
 | Fragment caching | `{% cache key %}...{% end %}` | Requires extension |
 | Functions | `{% def %}` (lexical scope) | `{% macro %}` (no scope) |
@@ -484,6 +485,37 @@ Fallback for None values:
   {{ i }}  {# 1, 3, 5, 7, 9 #}
 {% end %}
 ```
+
+### While Loops
+
+Condition-based loops for scenarios where the iteration count isn't known upfront:
+
+```kida
+{% let counter = 0 %}
+{% while counter < 5 %}
+  {{ counter }}
+  {% let counter = counter + 1 %}
+{% end %}
+```
+
+**With break and continue**:
+
+```kida
+{% let i = 0 %}
+{% while true %}
+  {% if i >= 10 %}{% break %}{% end %}
+  {% let i = i + 1 %}
+  {% if i % 2 == 0 %}{% continue %}{% end %}
+  {{ i }}  {# Prints odd numbers: 1, 3, 5, 7, 9 #}
+{% end %}
+```
+
+:::{tip}
+While loops are useful for:
+- Processing data until a condition is met
+- Implementing search algorithms in templates
+- Building countdown/countup displays
+:::
 
 ### Break and Continue
 

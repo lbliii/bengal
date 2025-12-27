@@ -1,7 +1,7 @@
-"""Tests for Kida adapter's asset_url fingerprint resolution.
+"""Tests for asset_url fingerprint resolution.
 
-These tests verify that the kida adapter properly resolves fingerprinted
-asset URLs from the asset manifest, matching the behavior of the Jinja engine.
+These tests verify that the asset resolver properly resolves fingerprinted
+asset URLs from the asset manifest, matching the behavior of all template engines.
 
 Regression test for: kida adapter not resolving fingerprinted assets.
 """
@@ -14,9 +14,7 @@ from typing import Any
 
 import pytest
 
-from bengal.rendering.adapters.kida import (
-    _asset_url_with_page,
-)
+from bengal.rendering.assets import resolve_asset_url
 
 
 class MockSite:

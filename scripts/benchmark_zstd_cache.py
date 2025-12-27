@@ -2,8 +2,8 @@
 """
 Benchmark Zstd cache compression vs plain JSON.
 
-Spike for RFC: Zstandard Cache Compression
-Tests Python 3.14's new compression.zstd module (PEP 784).
+Tests Python 3.14's new standard library `compression.zstd` module (PEP 784).
+This benchmark is used to verify compression ratios and timings on real cache files.
 
 Usage:
     python scripts/benchmark_zstd_cache.py [--site-root SITE_ROOT]
@@ -18,35 +18,8 @@ import argparse
 import json
 import sys
 import time
+from compression import zstd
 from pathlib import Path
-
-# Check Python version and zstd availability
-try:
-    from compression import zstd
-
-    ZSTD_AVAILABLE = True
-except ImportError:
-    ZSTD_AVAILABLE = False
-    # Try third-party zstandard as fallback
-    try:
-        import zstandard as zstd_fallback
-
-        ZSTD_AVAILABLE = True
-
-        # Create compatible interface
-        class zstd:
-            @staticmethod
-            def compress(data: bytes, level: int = 3) -> bytes:
-                cctx = zstd_fallback.ZstdCompressor(level=level)
-                return cctx.compress(data)
-
-            @staticmethod
-            def decompress(data: bytes) -> bytes:
-                dctx = zstd_fallback.ZstdDecompressor()
-                return dctx.decompress(data)
-
-    except ImportError:
-        pass
 
 
 def format_size(size_bytes: int) -> str:
@@ -116,21 +89,10 @@ def main():
     args = parser.parse_args()
 
     print("=" * 80)
-    print("🔬 Zstd Cache Compression Benchmark (RFC Spike)")
+    print("🔬 Zstd Cache Compression Benchmark (PEP 784)")
     print("=" * 80)
 
-    # Check zstd availability
-    if not ZSTD_AVAILABLE:
-        print("\n❌ Zstd not available!")
-        print("   Python 3.14's compression.zstd module not found.")
-        print("   Fallback zstandard package also not installed.")
-        print("\n   To run this benchmark, install the fallback:")
-        print("   pip install zstandard")
-        sys.exit(1)
-
-    print(
-        f"\n✅ Zstd available (using {'stdlib' if 'compression' in sys.modules else 'zstandard fallback'})"
-    )
+    print(f"\n✅ Using Python {sys.version.split()[0]} stdlib compression.zstd")
 
     cache_dir = Path(args.site_root) / ".bengal"
 
@@ -227,11 +189,11 @@ def main():
     # Decision
     print("\n" + "-" * 80)
     if level_3_savings >= 40:
-        print("✅ PASS: ≥40% savings achieved - proceed to implementation RFC")
+        print("✅ PASS: ≥40% savings achieved")
     elif level_3_savings >= 20:
-        print("🟡 MODERATE: 20-40% savings - consider opt-in for large sites")
+        print("🟡 MODERATE: 20-40% savings")
     else:
-        print("❌ FAIL: <20% savings - not worth the complexity")
+        print("❌ FAIL: <20% savings")
 
     if total_compress_time[3] > 500:
         print("⚠️  WARNING: Compress time >500ms - may impact build performance")

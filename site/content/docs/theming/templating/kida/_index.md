@@ -102,6 +102,7 @@ Convert existing templates.
 | Block endings | `{% end %}` | `{% endif %}`, `{% endfor %}`, etc. |
 | Template variables | `{% let x = ... %}` | `{% set x = ... %}` |
 | Pattern matching | `{% match %}...{% case %}` | `{% if %}...{% elif %}` |
+| While loops | `{% while cond %}` | Not available |
 | Pipeline operator | `\|>` | Not available |
 | Optional chaining | `?.` | Not available |
 | Null coalescing | `??` | `\| default()` |
