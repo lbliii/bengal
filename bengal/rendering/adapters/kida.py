@@ -82,8 +82,10 @@ def register_context_functions(env: Any, site: Site) -> None:
             return _tag_url_with_page(tag, site, page)
 
         def asset_url(path: str) -> str:
-            """Generate asset URL."""
-            return _asset_url_with_page(path, site, page)
+            """Generate asset URL with fingerprint resolution."""
+            from bengal.rendering.assets import resolve_asset_url
+
+            return resolve_asset_url(path, site, page)
 
         return {
             "t": t,

@@ -54,6 +54,7 @@ from __future__ import annotations
 
 from bengal.health.validators.accessibility import AccessibilityValidator
 from bengal.health.validators.anchors import AnchorValidator
+from bengal.health.validators.asset_urls import AssetURLValidator
 from bengal.health.validators.assets import AssetValidator
 from bengal.health.validators.autodoc import AutodocValidator
 from bengal.health.validators.cache import CacheValidator
@@ -81,6 +82,8 @@ __all__ = [
     "AccessibilityValidator",
     # Anchor validation (RFC: plan/active/rfc-explicit-anchor-targets.md)
     "AnchorValidator",
+    # Asset URL validation - catches fingerprinting issues before deploy
+    "AssetURLValidator",
     "AssetValidator",
     # Autodoc HTML validation
     "AutodocValidator",
