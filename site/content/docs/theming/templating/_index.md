@@ -1,6 +1,6 @@
 ---
 title: Templating
-description: Jinja2 layouts, inheritance, and partials
+description: KIDA template engine, layouts, inheritance, and partials
 weight: 10
 category: guide
 icon: code
@@ -8,13 +8,16 @@ card_color: blue
 ---
 # Templating
 
-Bengal supports two template engines:
+Bengal's template system uses **KIDA** as the default engine, with support for Jinja2 and custom engines.
 
-- **[Jinja2](https://jinja.palletsprojects.com/)** — Default, widely-used template engine
-- **[KIDA](/docs/reference/kida-syntax/)** — Bengal's native template engine (5.6x faster, modern syntax)
+## Template Engines
+
+- **[KIDA](/docs/reference/kida-syntax/)** — Bengal's native template engine (default). 5.6x faster, modern syntax, pattern matching, pipeline operators
+- **[Jinja2](https://jinja.palletsprojects.com/)** — Industry-standard engine with excellent documentation and tooling
+- **Custom engines** — Bring your own via the plugin API
 
 :::{tip}
-**New to Bengal?** Start with Jinja2 if you're familiar with it. Try KIDA for better performance and modern features like pattern matching and pipeline operators.
+**KIDA is Jinja2-compatible**: Your existing Jinja2 templates work without changes. Use KIDA-specific features incrementally.
 :::
 
 ## Template Lookup Order
@@ -34,7 +37,7 @@ Bengal searches: **Your project** → **Theme** → **Bengal defaults**
 
 :::{tab-set}
 :::{tab-item} Basic Template
-```jinja2
+```kida
 {# templates/layouts/single.html #}
 {% extends "baseof.html" %}
 
@@ -48,7 +51,7 @@ Bengal searches: **Your project** → **Theme** → **Bengal defaults**
 :::
 
 :::{tab-item} Base Layout
-```jinja2
+```kida
 {# templates/baseof.html #}
 <!DOCTYPE html>
 <html>
@@ -65,13 +68,13 @@ Bengal searches: **Your project** → **Theme** → **Bengal defaults**
 :::
 
 :::{tab-item} Partial
-```jinja2
+```kida
 {# templates/partials/header.html #}
 <header>
   <nav>
     {% for item in site.menus.main %}
       <a href="{{ item.href }}">{{ item.title }}</a>
-    {% endfor %}
+    {% end %}
   </nav>
 </header>
 ```
@@ -102,14 +105,15 @@ flowchart TB
     B --> D
 ```
 
-## KIDA Templates
+## KIDA Features
 
-KIDA is Bengal's native template engine with modern syntax and better performance:
+KIDA is Bengal's default template engine with modern syntax and better performance:
 
-- **Unified syntax**: `{% end %}` closes all blocks
+- **Unified syntax**: `{% end %}` closes all blocks (no more `{% endif %}`, `{% endfor %}`)
 - **Pattern matching**: `{% match %}...{% case %}` for cleaner conditionals
 - **Pipeline operator**: `|>` for readable filter chains
 - **Fragment caching**: Built-in `{% cache %}` directive
+- **Jinja2 compatible**: Existing Jinja2 templates work without changes
 
 :::{cards}
 :columns: 2
@@ -140,13 +144,37 @@ KIDA is Bengal's native template engine with modern syntax and better performanc
 :::{/card}
 :::{/cards}
 
-## Enable KIDA
+## Choose Your Engine
 
-To use KIDA instead of Jinja2, configure `bengal.yaml`:
+KIDA is the default. To use a different engine, configure `bengal.yaml`:
 
 ```yaml
 site:
-  template_engine: kida
+  # Available engines: kida (default), jinja2, mako, patitas
+  template_engine: jinja2
+```
+
+### Custom Engines (BYOR)
+
+Register custom template engines via the plugin API:
+
+```python
+from bengal.rendering.engines import register_engine
+
+class MyTemplateEngine:
+    """Implement TemplateEngineProtocol."""
+    def render_template(self, name: str, context: dict) -> str:
+        # Your implementation
+        ...
+
+register_engine("myengine", MyTemplateEngine)
+```
+
+Then configure:
+
+```yaml
+site:
+  template_engine: myengine
 ```
 
 :::{tip}

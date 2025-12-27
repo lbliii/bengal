@@ -41,9 +41,9 @@ This validates all templates during build, even those not used by every page. Co
 - `Unexpected end of template`
 
 **Causes:**
-- Unclosed tags (`{% if ... %}` without `{% endif %}`)
+- Unclosed tags (`{% if ... %}` without `{% end %}`)
 - Missing closing brackets
-- Invalid Jinja2 syntax
+- Invalid template syntax
 
 :::{example-label} Error Message
 :::

@@ -1,19 +1,19 @@
 ---
 title: Use Templates
 nav_title: Templates
-description: Access variables and objects in Jinja2 templates
+description: Access variables and objects in Bengal templates
 weight: 25
 type: doc
 draft: false
 lang: en
 tags:
 - templating
-- jinja2
+- kida
 - templates
 - variables
 keywords:
 - templating
-- jinja2
+- kida
 - templates
 - variables
 - context
@@ -24,7 +24,11 @@ keywords:
 category: documentation
 ---
 
-Bengal uses Jinja2 as its template engine. This guide explains what data is available in templates and how to access site and page data.
+Bengal uses KIDA as its default template engine (with Jinja2 and custom engines also supported). This guide explains what data is available in templates and how to access site and page data.
+
+:::{tip}
+Examples in this guide use KIDA syntax, but concepts apply to all engines. KIDA is Jinja2-compatible, so Jinja2 templates work without changes.
+:::
 
 ## The Template Context
 
@@ -133,7 +137,7 @@ banner_image: "images/banner.jpg"
 
 For type-safe access to frontmatter, use `page.frontmatter`:
 
-```jinja2
+```kida
 {# Typed access - IDE autocomplete works #}
 {{ page.frontmatter.title }}
 {{ page.frontmatter.date }}
@@ -161,11 +165,11 @@ Bengal provides granular control over page visibility in different contexts:
 :::{example-label} Using Visibility in Templates
 :::
 
-```jinja2
+```kida
 {# Conditional rendering based on visibility #}
 {% if page.in_listings %}
   <li><a href="{{ page.href }}">{{ page.title }}</a></li>
-{% endif %}
+{% end %}
 
 {# SEO meta tag #}
 <meta name="robots" content="{{ page.robots_meta }}">
@@ -281,7 +285,7 @@ You can access it via `site.data`:
 
 ## Template Inheritance
 
-Bengal themes typically use Jinja2's inheritance model.
+Bengal themes use template inheritance for layouts.
 
 ### Base Template (`base.html`)
 
@@ -360,7 +364,7 @@ Bengal provides 80+ template functions organized into categories:
 |--------|-------------|---------|
 | `date_format(fmt)` | Format date | `{{ page.date \| date_format('%B %d, %Y') }}` |
 
-### Built-in Jinja2
+### Built-in Filters
 
 - **`| safe`**: Marks HTML as safe to render (prevents escaping).
 
@@ -387,23 +391,23 @@ author:
 
 Access in templates:
 
-```jinja2
+```kida
 {% if page.author %}
 <div class="author-card">
   {% if page.author.avatar %}
     <img src="{{ page.author.avatar }}" alt="{{ page.author.name }}">
-  {% endif %}
+  {% end %}
   <span>{{ page.author.name }}</span>
   {% if page.author.twitter %}
     <a href="https://twitter.com/{{ page.author.twitter }}">@{{ page.author.twitter }}</a>
-  {% endif %}
+  {% end %}
 </div>
-{% endif %}
+{% end %}
 
 {# Multiple authors #}
 {% for author in page.authors %}
   <span class="author">{{ author.name }}</span>
-{% endfor %}
+{% end %}
 ```
 
 ### Series Properties
@@ -422,7 +426,7 @@ series:
 
 Access in templates:
 
-```jinja2
+```kida
 {% if page.series %}
 <nav class="series-nav">
   <h4>{{ page.series.name }}</h4>
@@ -430,13 +434,13 @@ Access in templates:
 
   {% if page.prev_in_series %}
     <a href="{{ page.prev_in_series.href }}">← {{ page.prev_in_series.title }}</a>
-  {% endif %}
+  {% end %}
 
   {% if page.next_in_series %}
     <a href="{{ page.next_in_series.href }}">{{ page.next_in_series.title }} →</a>
-  {% endif %}
+  {% end %}
 </nav>
-{% endif %}
+{% end %}
 ```
 
 ## Debugging

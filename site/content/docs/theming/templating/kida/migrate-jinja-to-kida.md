@@ -24,7 +24,7 @@ Learn how to convert existing Jinja2 templates to KIDA syntax for better perform
 
 ## Goal
 
-Migrate your Jinja2 templates to KIDA while maintaining functionality and improving performance.
+Migrate your Jinja2 templates to KIDA syntax while maintaining functionality and unlocking performance benefits.
 
 ## Prerequisites
 
@@ -34,17 +34,13 @@ Migrate your Jinja2 templates to KIDA while maintaining functionality and improv
 
 ## Migration Strategy
 
-### Phase 1: Enable KIDA (Compatibility Mode)
+### Phase 1: Compatibility Mode (Zero Changes)
 
-KIDA can parse Jinja2 syntax, so you can enable it immediately:
+KIDA is Bengal's default engine and can parse Jinja2 syntax. Your existing Jinja2 templates work without changes.
 
-```yaml
-# bengal.yaml
-site:
-  template_engine: kida
-```
-
-Your Jinja2 templates will work without changes, but you won't get KIDA-specific benefits yet.
+:::{tip}
+**Already using KIDA**: Since KIDA is the default engine, new Bengal sites already use KIDA. Your Jinja2 templates work, but you can migrate to KIDA syntax to unlock additional features and performance.
+:::
 
 ### Phase 2: Gradual Migration
 

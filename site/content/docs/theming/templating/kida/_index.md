@@ -1,104 +1,193 @@
 ---
-title: KIDA How-Tos
-nav_title: KIDA How-Tos
-description: Step-by-step guides for common KIDA template tasks
-weight: 20
+title: KIDA Template Engine
+nav_title: KIDA
+description: Next-generation template engine optimized for performance and free-threaded Python
+weight: 10
 type: doc
 draft: false
 lang: en
 tags:
-- how-to
 - templates
 - kida
+- performance
+- free-threading
 keywords:
-- kida how-to
-- template tasks
-- kida patterns
-category: guide
+- kida template engine
+- template engine
+- performance
+- free-threading
+category: explanation
 ---
 
-Step-by-step guides for common tasks when working with KIDA templates in Bengal.
+# KIDA Template Engine
 
-## Common Tasks
+**KIDA** is a next-generation template engine designed from the ground up for **free-threaded Python (3.14t+)** and optimized for performance. It serves as Bengal's default template engine, achieving **5.6x faster rendering than Jinja2** with zero external C dependencies.
+
+:::{tip}
+**New to KIDA?** Start with the [KIDA Tutorial](/docs/tutorials/getting-started-with-kida/) for a hands-on introduction, or read the [Overview](/docs/theming/templating/kida/overview/) to understand why KIDA is a serious choice for production applications.
+:::
+
+## Why KIDA?
+
+KIDA is not just another template engine—it's a **production-ready, high-performance solution** built for modern Python applications:
+
+### Performance
+
+- **5.6x faster** than Jinja2 (arithmetic mean across benchmarks)
+- **AST-to-AST compilation**: Direct Python AST generation (no string manipulation)
+- **StringBuilder pattern**: O(n) output construction vs O(n²) string concatenation
+- **Automatic block caching**: 10-100x faster builds for navigation-heavy sites
+- **Bytecode caching**: Near-instant cold starts for serverless environments
+
+### Modern Architecture
+
+- **Free-threading ready**: Declares GIL independence via PEP 703's `_Py_mod_gil = 0`
+- **Thread-safe by design**: All public APIs are thread-safe
+- **Compile-time optimizations**: Constant folding, dead code elimination, filter inlining
+- **Precise error reporting**: Source location tracking for actionable error messages
+
+### Developer Experience
+
+- **Familiar syntax**: Jinja2-compatible, so existing templates work without changes
+- **Modern features**: Pattern matching, pipeline operator, optional chaining, null coalescing
+- **Built-in caching**: Fragment caching as a language feature
+- **True lexical scoping**: Functions with access to outer scope (unlike Jinja2 macros)
+
+## Quick Start
+
+KIDA is Bengal's default template engine. No configuration needed:
+
+```kida
+{# templates/page.html #}
+<h1>{{ page.title }}</h1>
+{{ page.content | safe }}
+
+{% if page.published %}
+  <time>{{ page.date | dateformat('%B %d, %Y') }}</time>
+{% end %}
+```
+
+Your existing Jinja2 templates work without changes—KIDA can parse Jinja2 syntax automatically.
+
+## Documentation Structure
 
 :::{cards}
 :columns: 2
 :gap: medium
 
-:::{card} Create a Custom Template
-:icon: code
-:link: ./create-custom-template
-:description: Build a custom template from scratch using KIDA syntax
+:::{card} Overview
+:icon: info-circle
+:link: ./overview
+:description: Understand why KIDA is a serious, production-ready template engine
 :color: blue
 :::{/card}
 
-:::{card} Add a Custom Filter
-:icon: filter
-:link: ./add-custom-filter
-:description: Extend KIDA with your own template filters
-:color: green
-:::{/card}
-
-:::{card} Use Pattern Matching
-:icon: code-branch
-:link: ./use-pattern-matching
-:description: Replace long if/elif chains with clean pattern matching
+:::{card} Architecture
+:icon: sitemap
+:link: ./architecture
+:description: Deep dive into KIDA's AST-to-AST compilation and performance optimizations
 :color: purple
 :::{/card}
 
-:::{card} Cache Template Fragments
-:icon: zap
-:link: ./cache-fragments
-:description: Improve performance with built-in fragment caching
+:::{card} Performance
+:icon: tachometer-alt
+:link: ./performance
+:description: Benchmarks, optimization strategies, and automatic caching
 :color: orange
 :::{/card}
 
-:::{card} Migrate from Jinja2
-:icon: arrow-right
-:link: ./migrate-jinja-to-kida
-:description: Convert existing Jinja2 templates to KIDA syntax
+:::{card} Syntax Reference
+:icon: book
+:link: /docs/reference/kida-syntax
+:description: Complete reference for KIDA template syntax, operators, and features
+:color: green
+:::{/card}
+
+:::{card} Tutorial
+:icon: graduation-cap
+:link: /docs/tutorials/getting-started-with-kida
+:description: Learn KIDA step-by-step with hands-on examples
 :color: teal
 :::{/card}
 
-:::{card} Use Pipeline Operator
-:icon: workflow
-:link: ./use-pipeline-operator
-:description: Write readable filter chains with the pipeline operator
+:::{card} Migration Guide
+:icon: arrow-right
+:link: ./migrate-jinja-to-kida
+:description: Convert existing Jinja2 templates to KIDA syntax
 :color: indigo
 :::{/card}
 
-:::{card} KIDA vs Jinja2 Comparison
-:icon: git-compare
-:link: ./kida-vs-jinja-comparison
-:description: Side-by-side syntax comparison for common template patterns
+:::{card} How-Tos
+:icon: wrench
+:link: ./how-tos
+:description: Step-by-step guides for common KIDA tasks
 :color: cyan
 :::{/card}
+
+:::{card} Comparison
+:icon: git-compare
+:link: ./comparison
+:description: Feature-by-feature comparison with Jinja2
+:color: gray
+:::{/card}
+
 :::{/cards}
 
-## What is KIDA?
+## Key Features
 
-KIDA is Bengal's native template engine, optimized for performance and free-threaded Python. It provides:
+### Unified Block Endings
 
-- **Unified syntax**: `{% end %}` closes all blocks
-- **Pattern matching**: Clean `{% match %}...{% case %}` syntax
-- **Pipeline operator**: Left-to-right readable filter chains
-- **Fragment caching**: Built-in `{% cache %}` directive
-- **Automatic block caching**: Site-scoped blocks cached automatically for 10-100x faster builds
-- **Better performance**: 5.6x faster than Jinja2
-
-## Automatic Block Caching
-
-KIDA automatically caches site-scoped template blocks (like navigation, footer, sidebar) to dramatically improve build performance. This happens automatically—no template changes needed.
-
-**How it works**:
-- KIDA analyzes your templates to identify blocks that only depend on site-wide context
-- These blocks are pre-rendered once at build start
-- During page rendering, cached blocks are reused automatically
-- **Result**: 10-100x faster builds for navigation-heavy sites
-
-**Example**:
 ```kida
-{# base.html - nav block depends only on site.pages #}
+{% if page.draft %}...{% end %}
+{% for post in posts %}...{% end %}
+{% block content %}...{% end %}
+```
+
+One closing tag (`{% end %}`) for all blocks—no need to remember `{% endif %}`, `{% endfor %}`, etc.
+
+### Pattern Matching
+
+```kida
+{% match page.type %}
+  {% case "blog" %}
+    <article class="blog-post">...</article>
+  {% case "doc" %}
+    <article class="doc">...</article>
+  {% case _ %}
+    <article>...</article>
+{% end %}
+```
+
+Replace verbose `if/elif` chains with clean pattern matching.
+
+### Pipeline Operator
+
+```kida
+{% let posts = site.pages
+  |> where('type', 'blog')
+  |> where('draft', false)
+  |> sort_by('date', reverse=true)
+  |> take(10) %}
+```
+
+Left-to-right readable filter chains (unlike Jinja2's inside-out filter chains).
+
+### Built-in Fragment Caching
+
+```kida
+{% cache "sidebar-nav" %}
+  {{ build_nav_tree(site.pages) }}
+{% end %}
+```
+
+Fragment caching as a language feature—no extensions required.
+
+### Automatic Block Caching
+
+KIDA automatically detects and caches site-scoped blocks (navigation, footer, sidebar) that don't depend on page-specific data. This provides **10-100x faster builds** with zero template changes.
+
+```kida
+{# Automatically cached - depends only on site.pages #}
 {% block nav %}
   <nav>
     {% for page in site.pages %}
@@ -106,13 +195,62 @@ KIDA automatically caches site-scoped template blocks (like navigation, footer, 
     {% end %}
   </nav>
 {% end %}
+
+{# Renders per-page - depends on page.content #}
+{% block content %}
+  {{ page.content | safe }}
+{% end %}
 ```
 
-The `nav` block is automatically detected as site-cacheable and cached once per build, then reused for all pages. No template syntax changes required!
+### Modern Operators
+
+```kida
+{# Optional chaining #}
+{{ user?.profile?.name | default('Anonymous') }}
+
+{# Null coalescing #}
+{{ page.subtitle ?? page.title }}
+
+{# Range literals #}
+{% for i in 1..10 %}...{% end %}
+{% for i in 1..10 by 2 %}...{% end %}
+```
+
+### True Lexical Scoping
+
+```kida
+{% let site_name = site.config.title %}
+
+{% def card(item) %}
+  <div class="card">
+    <h3>{{ item.title }}</h3>
+    <small>From: {{ site_name }}</small>  {# Accesses outer scope! #}
+  </div>
+{% end %}
+```
+
+Functions have access to outer scope (unlike Jinja2 macros).
+
+## Production Ready
+
+KIDA is used in production by Bengal and is designed for:
+
+- **High-traffic websites**: 5.6x faster rendering means lower server costs
+- **Large sites**: Automatic block caching enables 10-100x faster builds
+- **Free-threaded Python**: Optimized for Python 3.14t+ concurrent rendering
+- **Serverless**: Bytecode caching provides near-instant cold starts
+- **Enterprise**: Thread-safe, well-tested, production-ready
+
+## Next Steps
+
+- **New to KIDA?** → [Tutorial](/docs/tutorials/getting-started-with-kida/)
+- **Want to understand why?** → [Overview](/docs/theming/templating/kida/overview/)
+- **Need syntax help?** → [Syntax Reference](/docs/reference/kida-syntax/)
+- **Migrating from Jinja2?** → [Migration Guide](/docs/theming/templating/kida/migrate-jinja-to-kida/)
+- **Looking for patterns?** → [How-Tos](/docs/theming/templating/kida/how-tos/)
 
 :::{seealso}
-
-- [KIDA Syntax Reference](/docs/reference/kida-syntax/) — Complete syntax documentation
-- [KIDA Tutorial](/docs/tutorials/getting-started-with-kida/) — Learn KIDA from scratch
-
+- [KIDA Architecture](/docs/theming/templating/kida/architecture/) — Deep dive into how KIDA works
+- [KIDA Performance](/docs/theming/templating/kida/performance/) — Benchmarks and optimization strategies
+- [Template Functions Reference](/docs/reference/template-functions/) — Available filters and functions
 :::

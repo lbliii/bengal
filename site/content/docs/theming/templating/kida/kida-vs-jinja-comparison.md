@@ -1,10 +1,10 @@
 ---
-title: KIDA vs Jinja2 Comparison
-nav_title: KIDA vs Jinja2
-description: Side-by-side comparison of common template patterns in KIDA and Jinja2
-weight: 55
+title: KIDA vs Jinja2 Comparison (Legacy)
+nav_title: KIDA vs Jinja2 (Legacy)
+description: Legacy comparison document - see new modular comparison structure
+weight: 100
 type: doc
-draft: false
+draft: true
 lang: en
 tags:
 - reference
@@ -12,6 +12,7 @@ tags:
 - kida
 - jinja
 - comparison
+- legacy
 keywords:
 - kida vs jinja
 - template comparison
@@ -20,14 +21,32 @@ keywords:
 category: reference
 ---
 
-# KIDA vs Jinja2 Comparison
+# KIDA vs Jinja2 Comparison (Legacy)
 
-meow
+:::{warning}
+**This is a legacy document**. The comparison has been restructured into focused, modular articles. See the [new Comparison Guide](/docs/theming/templating/kida/comparison/) for the updated structure.
+:::
 
-Side-by-side comparison of common template patterns in KIDA and Jinja2. Use this reference when migrating templates or learning KIDA syntax.
+This document contains a comprehensive side-by-side comparison of KIDA and Jinja2. For better organization, this content has been split into focused articles:
+
+- **[Comparison Overview](/docs/theming/templating/kida/comparison/)** — Feature-by-feature comparison index
+- **[Syntax Comparison](/docs/theming/templating/kida/comparison/syntax)** — Side-by-side syntax examples
+- **[Control Flow](/docs/theming/templating/kida/comparison/control-flow)** — Conditionals, loops, pattern matching
+- **[Variables and Scoping](/docs/theming/templating/kida/comparison/variables)** — Variable scoping patterns
+- **[Functions and Macros](/docs/theming/templating/kida/comparison/functions)** — Functions vs macros
+- **[Filters and Pipelines](/docs/theming/templating/kida/comparison/filters)** — Filter syntax and pipelines
+- **[Caching](/docs/theming/templating/kida/comparison/caching)** — Fragment caching and optimization
+- **[Modern Features](/docs/theming/templating/kida/comparison/modern-features)** — Optional chaining, null coalescing, etc.
+- **[Performance](/docs/theming/templating/kida/comparison/performance)** — Benchmarks and optimization
+
+---
+
+# KIDA vs Jinja2 Comparison (Legacy Content)
+
+Side-by-side comparison of common template patterns in KIDA (Bengal's default engine) and Jinja2. Use this reference when migrating templates or learning KIDA syntax.
 
 :::{tip}
-**KIDA is Jinja2-compatible**: Your Jinja2 templates work without changes. Migrate incrementally to unlock KIDA's performance benefits.
+**KIDA is Jinja2-compatible**: Your Jinja2 templates work without changes. KIDA is the default engine, so you can migrate incrementally to unlock performance benefits.
 :::
 
 ## Quick Reference

@@ -38,11 +38,11 @@ By the end of this tutorial, you will:
 
 ## What is KIDA?
 
-KIDA is Bengal's native template engine, designed for:
+KIDA is Bengal's **default template engine**, designed for:
 - **Performance**: 5.6x faster than Jinja2
 - **Modern syntax**: Unified `{% end %}`, pattern matching, pipelines
 - **Free-threading**: Ready for Python 3.14t+
-- **Zero dependencies**: Pure Python
+- **Jinja2 compatible**: Existing Jinja2 templates work without changes
 
 :::{tip}
 **Coming from Jinja2?** KIDA can parse Jinja2 syntax, so your existing templates work. This tutorial focuses on KIDA-native features.
@@ -60,14 +60,11 @@ bengal new site my-kida-site
 cd my-kida-site
 ```
 
-### Enable KIDA
+### Configure KIDA (Optional)
 
-Edit `bengal.yaml`:
+KIDA is the default engine. Optionally configure KIDA options in `bengal.yaml`:
 
 ```yaml
-site:
-  template_engine: kida
-
 kida:
   strict: true              # Raise on undefined variables (default)
   bytecode_cache: true       # Cache compiled templates (default)
@@ -264,7 +261,7 @@ Create a full-featured blog template:
   <article class="blog-post">
     <header>
       <h1>{{ post.title }}</h1>
-      
+
       <div class="post-meta">
         <time datetime="{{ post.date | dateformat('%Y-%m-%d') }}">
           {{ post.date | dateformat('%B %d, %Y') }}
@@ -494,4 +491,3 @@ You've learned:
 - [Theming Guide](/docs/theming/templating/) — Template organization
 - [Performance Guide](/docs/building/performance/) — Optimization tips
 :::
-

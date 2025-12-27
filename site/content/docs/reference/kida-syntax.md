@@ -22,10 +22,10 @@ category: reference
 
 # KIDA Syntax Reference
 
-Complete reference for KIDA template syntax, operators, and features. KIDA is Bengal's native template engine, optimized for performance and free-threaded Python.
+Complete reference for KIDA template syntax, operators, and features. KIDA is Bengal's **default template engine**, optimized for performance and free-threaded Python.
 
 :::{tip}
-**New to KIDA?** Start with the [KIDA Tutorial](/docs/tutorials/getting-started-with-kida/) for a guided introduction.
+**New to KIDA?** Start with the [KIDA Tutorial](/docs/tutorials/getting-started-with-kida/) for a guided introduction. KIDA is Jinja2-compatible, so existing Jinja2 templates work without changes.
 :::
 
 ## Quick Comparison: KIDA vs Jinja2
@@ -601,16 +601,20 @@ kida:
 
 ## Configuration
 
-Enable KIDA in `bengal.yaml`:
+KIDA is the default template engine. Configure KIDA options in `bengal.yaml`:
 
 ```yaml
-site:
-  template_engine: kida
-
 kida:
   strict: true              # Raise on undefined (default)
   bytecode_cache: true      # Cache compiled templates (default)
   autoescape: true          # HTML escape by default (default)
+```
+
+To use a different engine instead:
+
+```yaml
+site:
+  template_engine: jinja2   # or mako, patitas, or custom
 ```
 
 ## Migration from Jinja2
@@ -618,7 +622,7 @@ kida:
 KIDA can parse Jinja2 syntax via compatibility mode. Most Jinja2 templates work without changes, but consider migrating to KIDA syntax for better performance:
 
 :::{seealso}
-[How to Migrate from Jinja2 to KIDA](/docs/theming/templating/migrate-jinja-to-kida/) — Step-by-step migration guide
+[How to Migrate from Jinja2 to KIDA](/docs/theming/templating/kida/migrate-jinja-to-kida/) — Step-by-step migration guide
 :::
 
 **Key differences**:
