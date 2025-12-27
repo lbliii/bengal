@@ -73,14 +73,15 @@ all_members = members ?? []
       {% end %}
     </div>
 
-    {# Badges - collect applicable ones #}
-    {% let member_badges = [] %}
-    {% if member_meta?.is_async %}{% do member_badges.append('async') %}{% end %}
-    {% if member_meta?.is_classmethod %}{% do member_badges.append('classmethod') %}{% end %}
-    {% if member_meta?.is_staticmethod %}{% do member_badges.append('staticmethod') %}{% end %}
-    {% if member_meta?.is_property %}{% do member_badges.append('property') %}{% end %}
-    {% if member_meta?.is_abstract %}{% do member_badges.append('abstract') %}{% end %}
-    {% if member_meta?.is_deprecated %}{% do member_badges.append('deprecated') %}{% end %}
+    {# Badges - declarative conditional list building with | compact #}
+    {% let member_badges = [
+    'async' if member_meta?.is_async,
+    'classmethod' if member_meta?.is_classmethod,
+    'staticmethod' if member_meta?.is_staticmethod,
+    'property' if member_meta?.is_property,
+    'abstract' if member_meta?.is_abstract,
+    'deprecated' if member_meta?.is_deprecated,
+    ] | compact %}
     {% if member_badges | length > 0 %}
     <span class="autodoc-member-badges">
       {% for badge in member_badges %}

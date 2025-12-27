@@ -198,6 +198,91 @@ For regular CI, use the 1k variant:
   run: pytest benchmarks/test_10k_site.py -k "1k_site" -v
 ```
 
+## GitHub Pages Optimization Benchmarks
+
+The `test_github_pages_optimization.py` suite comprehensively tests ALL Bengal build option combinations under GitHub Pages worker constraints (2-core CPU, 7GB RAM) using Python 3.14t free-threading.
+
+### Purpose
+
+This suite systematically explores the build option space to find optimal configurations for GitHub Pages deployments, which run on constrained resources.
+
+### Resource Constraints
+
+- **CPU**: 2 cores (emulated via CPU affinity)
+- **RAM**: 7GB limit (emulated via resource limits)
+- **Python**: 3.14t (free-threading, no GIL)
+
+### Build Options Tested
+
+- `--parallel` / `--no-parallel`
+- `--incremental` / `--no-incremental` / auto
+- `--memory-optimized`
+- `--fast`
+- `--profile` (writer/theme-dev/dev)
+- `--quiet`
+- `--strict`
+- `--clean-output`
+
+### Site Sizes
+
+- 50 pages: Small site (typical blog)
+- 200 pages: Medium site (documentation)
+- 500 pages: Large site (comprehensive docs)
+- 1000 pages: Very large site (stress test)
+
+### Running GitHub Pages Benchmarks
+
+```bash
+# Run all configurations (comprehensive, takes time)
+pytest benchmarks/test_github_pages_optimization.py -v --benchmark
+
+# Run specific site size
+pytest benchmarks/test_github_pages_optimization.py -k "50_pages" -v
+
+# Run optimal CI build test
+pytest benchmarks/test_github_pages_optimization.py -k "optimal_ci_build" -v
+
+# Save results for analysis
+pytest benchmarks/test_github_pages_optimization.py --benchmark-json=gh_pages_results.json
+
+# Analyze results
+python benchmarks/analyze_github_pages_results.py gh_pages_results.json
+```
+
+### Expected Insights
+
+- **Fast mode impact**: Logging overhead reduction on constrained systems
+- **Memory-optimized tradeoffs**: Speed vs memory usage for large sites
+- **Parallel speedup**: Expected ~1.5-2x on 2-core systems (Python 3.14t)
+- **Optimal CI configuration**: Best flags for GitHub Actions workflows
+- **Scaling characteristics**: How each mode performs as site size increases
+
+### Prerequisites
+
+```bash
+# Install dependencies (includes psutil for resource constraints)
+pip install -r benchmarks/requirements.txt
+
+# Ensure Python 3.14t is available
+python --version  # Should show 3.14.x
+```
+
+### Analysis Script
+
+The `analyze_github_pages_results.py` script processes benchmark results and generates:
+- Best configuration per site size
+- Performance comparison tables
+- Recommendations for GitHub Pages builds
+- Resource usage analysis
+
+```bash
+# Generate and analyze results
+pytest benchmarks/test_github_pages_optimization.py --benchmark-json=results.json
+python benchmarks/analyze_github_pages_results.py results.json
+```
+
+---
+
 ## Import Overhead Benchmarks
 
 The `test_import_overhead.py` suite measures module startup latency and "import pollution" - when lightweight modules accidentally pull in heavy dependencies.

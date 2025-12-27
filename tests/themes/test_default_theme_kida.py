@@ -126,6 +126,35 @@ class TestKidaNativeFeatures:
 """)
         assert tmpl.render().strip() == "2"
 
+    def test_compact_filter(self, env: Environment):
+        """Test | compact for declarative list building (replaces {% do %} patterns)."""
+        # Basic: remove all falsy values
+        tmpl = env.from_string("{{ items | compact | join(', ') }}")
+        assert tmpl.render(items=["a", None, "", "b", 0, False]) == "a, b"
+
+        # With truthy=false: remove only None
+        tmpl = env.from_string("{{ items | compact(truthy=false) | join(', ') }}")
+        assert tmpl.render(items=["a", None, "", "b"]) == "a, , b"
+
+        # Declarative conditional list building pattern
+        tmpl = env.from_string("""
+{%- let badges = [
+    'async' if is_async,
+    'deprecated' if is_deprecated,
+    'abstract' if is_abstract,
+] | compact -%}
+{{ badges | join(', ') }}
+""")
+        assert (
+            tmpl.render(is_async=True, is_deprecated=False, is_abstract=True).strip()
+            == "async, abstract"
+        )
+        assert tmpl.render(is_async=False, is_deprecated=False, is_abstract=False).strip() == ""
+
+        # None input returns empty list
+        tmpl = env.from_string("{{ none | compact | length }}")
+        assert tmpl.render() == "0"
+
     def test_def_functions(self, env: Environment):
         """Test {% def %} for reusable functions."""
         tmpl = env.from_string("""

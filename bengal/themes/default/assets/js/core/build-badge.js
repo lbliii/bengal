@@ -185,6 +185,42 @@
       }
     }
 
+    // Build mode and execution context
+    const buildModeParts = [];
+
+    // Build mode (incremental, full, cold, warm, skipped)
+    if (payload.build_mode) {
+      const modeLabels = {
+        'full': 'Full rebuild',
+        'cold': 'Cold build',
+        'warm': 'Warm build',
+        'skipped': 'Skipped'
+      };
+      const modeLabel = modeLabels[payload.build_mode] || payload.build_mode;
+      buildModeParts.push(modeLabel);
+    } else if (payload.incremental) {
+      buildModeParts.push('Incremental');
+    }
+
+    // Parallel/sequential
+    if (payload.parallel !== false) {
+      buildModeParts.push('Parallel');
+    } else {
+      buildModeParts.push('Sequential');
+    }
+
+    if (buildModeParts.length > 0) {
+      stats.push(createStatItem('🔧', 'Mode', buildModeParts.join(', ')));
+    }
+
+    // CPU/Worker stats (execution context)
+    if (typeof payload.cpu_count === 'number' && payload.cpu_count > 0) {
+      const workers = payload.worker_count || 1;
+      const parallel = payload.parallel !== false;
+      const mode = parallel ? `${workers} workers` : 'sequential';
+      stats.push(createStatItem('⚙️', 'Execution', `${payload.cpu_count} CPUs, ${mode}`));
+    }
+
     // Timestamp
     const formattedTime = formatTimestamp(payload.timestamp);
     if (formattedTime) {

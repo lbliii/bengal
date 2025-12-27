@@ -497,6 +497,47 @@ def _filter_skip(value: Any, count: int) -> list:
         return []
 
 
+def _filter_compact(value: Any, *, truthy: bool = True) -> list:
+    """Remove None values (and optionally all falsy values) from a sequence.
+
+    Enables declarative list building with conditional items, replacing
+    imperative {% do %} patterns.
+
+    Example:
+        {# Declarative conditional list building #}
+        {% let badges = [
+            'async' if member.is_async,
+            'deprecated' if member.is_deprecated,
+            'abstract' if member.is_abstract,
+        ] | compact %}
+
+        {# Remove only None (keep empty strings, 0, False) #}
+        {{ [0, None, '', False, 'value'] | compact(truthy=false) }}
+        → [0, '', False, 'value']
+
+        {# Remove all falsy values (default) #}
+        {{ [0, None, '', False, 'value'] | compact }}
+        → ['value']
+
+    Args:
+        value: Sequence to compact
+        truthy: If True (default), remove all falsy values.
+                If False, remove only None values.
+
+    Returns:
+        List with None/falsy values removed.
+    """
+    if value is None:
+        return []
+    try:
+        if truthy:
+            return [v for v in value if v]
+        else:
+            return [v for v in value if v is not None]
+    except (TypeError, ValueError):
+        return []
+
+
 def _filter_map(
     value: Any,
     *args: Any,
@@ -1009,6 +1050,7 @@ DEFAULT_FILTERS: dict[str, Callable] = {
     "sum": _filter_sum,
     "take": _filter_take,
     "unique": _filter_unique,
+    "compact": _filter_compact,
     # Additional filters
     "count": _filter_length,  # alias
     "dictsort": _filter_dictsort,

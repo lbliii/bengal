@@ -117,6 +117,11 @@ def phase_collect_stats(
         "rendering_time_ms": orchestrator.stats.rendering_time_ms,
         "total_pages": orchestrator.stats.total_pages,
         "total_assets": orchestrator.stats.total_assets,
+        "parallel": orchestrator.stats.parallel,
+        "incremental": orchestrator.stats.incremental,
+        "skipped": orchestrator.stats.skipped,
+        "cache_hits": orchestrator.stats.cache_hits,
+        "cache_misses": orchestrator.stats.cache_misses,
         # Block cache statistics (RFC: kida-template-introspection)
         "block_cache_hits": orchestrator.stats.block_cache_hits,
         "block_cache_misses": orchestrator.stats.block_cache_misses,
@@ -148,13 +153,32 @@ def _write_build_time_artifacts(site: Any, last_build_stats: dict[str, Any]) -> 
     if not output_dir:
         return
 
+    import os
     from pathlib import Path
 
+    from bengal.config.defaults import get_max_workers
     from bengal.orchestration.badge import build_shields_like_badge_svg, format_duration_ms_compact
     from bengal.utils.atomic_write import AtomicFile
 
     duration_ms = float(last_build_stats.get("build_time_ms") or 0)
     duration_text = format_duration_ms_compact(duration_ms)
+
+    # Get CPU/worker stats for context
+    cpu_count = os.cpu_count() or 0
+    max_workers = get_max_workers(config.get("max_workers"))
+    parallel = last_build_stats.get("parallel", True)
+    incremental = last_build_stats.get("incremental", False)
+    skipped = last_build_stats.get("skipped", False)
+    cache_hits = int(last_build_stats.get("cache_hits") or 0)
+
+    # Determine build mode (cold/warm)
+    # Cold: full rebuild (not incremental) OR incremental but no cache hits
+    # Warm: incremental with cache hits
+    build_mode = "full"
+    if skipped:
+        build_mode = "skipped"
+    elif incremental:
+        build_mode = "warm" if cache_hits > 0 else "cold"
 
     payload = {
         "build_time_ms": duration_ms,
@@ -163,6 +187,11 @@ def _write_build_time_artifacts(site: Any, last_build_stats: dict[str, Any]) -> 
         "total_assets": int(last_build_stats.get("total_assets") or 0),
         "rendering_time_ms": float(last_build_stats.get("rendering_time_ms") or 0),
         "timestamp": _safe_isoformat(getattr(site, "build_time", None)),
+        "parallel": parallel,
+        "incremental": incremental,
+        "build_mode": build_mode,
+        "cpu_count": cpu_count,
+        "worker_count": max_workers if parallel else 1,
     }
 
     # Add block cache stats if available (RFC: kida-template-introspection)
