@@ -46,8 +46,8 @@
    ============================================ */
 
 /* Exclude autodoc from .prose lead paragraph styling */
-article[data-autodoc] > p:first-of-type,
-[data-autodoc] .autodoc-description > p:first-of-type {
+article[data-autodoc]>p:first-of-type,
+[data-autodoc] .autodoc-description>p:first-of-type {
   font-size: inherit;
   color: inherit;
 }
@@ -117,11 +117,11 @@ article[data-autodoc] > p:first-of-type,
   color: var(--color-text-secondary);
 }
 
-.autodoc-description > p:first-child {
+.autodoc-description>p:first-child {
   margin-top: 0;
 }
 
-.autodoc-description > p:last-child {
+.autodoc-description>p:last-child {
   margin-bottom: 0;
 }
 
@@ -592,7 +592,7 @@ tr[data-required="true"] .autodoc-cell-name::after {
 }
 
 /* Only rotate the toggle that belongs to THIS details, not nested ones */
-.autodoc-member[open] > .autodoc-member-header .autodoc-member-toggle {
+.autodoc-member[open]>.autodoc-member-header .autodoc-member-toggle {
   transform: rotate(180deg);
 }
 
@@ -662,11 +662,11 @@ tr[data-required="true"] .autodoc-cell-name::after {
   margin-bottom: var(--space-4);
 }
 
-.autodoc-member-desc > p:first-child {
+.autodoc-member-desc>p:first-child {
   margin-top: 0;
 }
 
-.autodoc-member-desc > p:last-child {
+.autodoc-member-desc>p:last-child {
   margin-bottom: 0;
 }
 
@@ -721,7 +721,7 @@ tr[data-required="true"] .autodoc-cell-name::after {
   background: var(--color-bg-primary);
 }
 
-.autodoc-internal-methods[open] > .autodoc-internal-methods-header .autodoc-member-toggle {
+.autodoc-internal-methods[open]>.autodoc-internal-methods-header .autodoc-member-toggle {
   transform: rotate(180deg);
 }
 
@@ -968,6 +968,7 @@ a.autodoc-card span {
    ============================================ */
 
 @media (max-width: 768px) {
+
   /* Stack tables on mobile */
   .autodoc-table thead {
     display: none;
@@ -1011,6 +1012,7 @@ a.autodoc-card span {
 }
 
 @media (max-width: 480px) {
+
   /* Even smaller gaps on small mobile */
   [data-autodoc] {
     --autodoc-gap: var(--space-4);
@@ -1025,130 +1027,334 @@ a.autodoc-card span {
   }
 }
 
+/* Status code coloring */
+[data-status-class="2"] {
+  color: var(--color-success);
+  font-weight: var(--weight-bold);
+}
+
+[data-status-class="4"] {
+  color: var(--color-warning);
+  font-weight: var(--weight-bold);
+}
+
+[data-status-class="5"] {
+  color: var(--color-error);
+  font-weight: var(--weight-bold);
+}
+
 /* ============================================
-   THREE-PANEL REST API LAYOUT
-   Specifically for OpenAPI endpoints
+   RADICAL "GOLD STANDARD" REST EXPLORER
+   Edge-to-edge, three-panel, obsidian panel
    ============================================ */
 
-.docs-layout--three-panel {
-  grid-template-columns: 280px minmax(0, 1.1fr) minmax(400px, 0.9fr) !important;
-  background-color: var(--color-bg-primary);
-  gap: 0;
+/* Break out of standard layout constraints */
+body[data-type="autodoc-rest"] #main-content {
+  padding: 0;
+  max-width: none;
 }
 
-.docs-layout--consolidated .docs-main {
-  padding-inline: 0; /* Let sections handle padding */
-  max-width: none !important; /* Break free from prose constraints */
-}
-
-.autodoc-page-header {
-  padding: var(--space-8) var(--space-8) var(--space-4);
-  border-bottom: 1px solid var(--autodoc-border);
-  background: var(--color-bg-secondary);
-}
-
-.autodoc-page-title {
-  font-size: var(--text-3xl);
-  font-weight: var(--weight-bold);
-  margin-bottom: var(--space-2);
-}
-
-.autodoc-endpoint-group {
-  border-bottom: 1px solid var(--autodoc-border);
-}
-
-.autodoc-endpoint-details {
-  display: block;
-}
-
-.autodoc-endpoint-summary {
-  list-style: none;
-  cursor: pointer;
-  padding: var(--space-4) var(--space-8);
-  background: var(--color-bg-primary);
-  position: sticky;
-  top: 60px; /* Below header */
-  z-index: 10;
-  border-bottom: 1px solid transparent;
-  transition: all var(--transition-base);
-}
-
-.autodoc-endpoint-summary:hover {
-  background: var(--color-bg-hover);
-}
-
-.autodoc-endpoint-details[open] .autodoc-endpoint-summary {
-  border-bottom-color: var(--autodoc-border);
-  background: var(--color-bg-secondary);
-}
-
-.autodoc-endpoint-header-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-}
-
-.autodoc-endpoint-short-desc {
-  font-size: var(--text-sm);
-  color: var(--color-text-muted);
-  white-space: nowrap;
+.rest-explorer {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  grid-template-areas: "sidebar content";
+  height: calc(100vh - 60px);
+  /* Fill viewport below header */
   overflow: hidden;
-  text-overflow: ellipsis;
+  background: var(--color-bg-primary);
 }
 
-.autodoc-endpoint-content {
-  padding: var(--space-8);
-  display: flex;
-  flex-direction: column;
-  gap: var(--autodoc-section-gap);
-}
-
-.autodoc-examples-panel {
-  grid-area: toc;
-  background-color: #1a1a1a; /* Darker theme for code panel */
-  color: #e0e0e0;
-  border-left: 1px solid #333;
-  padding: 0; /* Inner groups handle padding */
+.rest-explorer__sidebar {
+  grid-area: sidebar;
+  border-right: 1px solid var(--autodoc-border);
+  overflow-y: auto;
+  padding: var(--space-6);
+  background: var(--color-bg-secondary);
   position: sticky;
   top: 60px;
   height: calc(100vh - 60px);
-  overflow-y: auto;
 }
 
-.autodoc-examples-panel-content {
-  padding: var(--space-6);
+.rest-explorer__footer {
+  padding: var(--space-8);
+  border-top: 1px solid var(--autodoc-border);
+  background: var(--color-bg-secondary);
+  margin-top: auto;
 }
 
-.autodoc-examples-group {
-  padding-block: var(--space-8);
-  border-bottom: 1px solid #333;
+/* ============================================
+   REST NAVIGATION STYLES
+   ============================================ */
+
+.docs-nav--rest {
   display: flex;
   flex-direction: column;
   gap: var(--space-6);
 }
 
-.autodoc-examples-group:last-child {
-  border-bottom: none;
+.docs-nav-back {
+  margin-bottom: var(--space-2);
 }
 
-.autodoc-example-body pre {
-  background-color: #0d0d0d !important;
-  border-color: #333 !important;
-  color: #fff !important;
+.docs-nav-back-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: var(--weight-bold);
 }
 
-/* Status code coloring */
-[data-status-class="2"] { color: var(--color-success); font-weight: var(--weight-bold); }
-[data-status-class="4"] { color: var(--color-warning); font-weight: var(--weight-bold); }
-[data-status-class="5"] { color: var(--color-error); font-weight: var(--weight-bold); }
+.docs-nav-back-link:hover {
+  color: var(--color-primary);
+}
+
+/* ============================================
+   RADICAL "GOLD STANDARD" REST EXPLORER
+   Edge-to-edge, three-panel, obsidian panel
+   ============================================ */
+
+/* 1. Global Reset for REST Pages */
+body[data-type="autodoc-rest"] #main-content {
+  padding: 0;
+  max-width: none;
+}
+
+body[data-type="autodoc-rest"] footer:not(.rest-explorer__footer) {
+  display: none;
+}
+
+/* 2. Main Layout */
+.rest-explorer {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  grid-template-areas: "sidebar content";
+  height: calc(100vh - 60px); /* Fill viewport below header */
+  overflow: hidden;
+  background: var(--color-bg-primary);
+}
+
+.rest-explorer__sidebar {
+  grid-area: sidebar;
+  border-right: 1px solid var(--autodoc-border);
+  overflow-y: auto;
+  padding: var(--space-8) var(--space-6);
+  background: var(--color-bg-secondary);
+}
+
+.rest-explorer__content {
+  grid-area: content;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+  display: flex;
+  flex-direction: column;
+}
+
+.rest-explorer__header {
+  padding: var(--space-12) var(--space-10);
+  border-bottom: 1px solid var(--autodoc-border);
+  background: var(--color-bg-primary);
+  max-width: 100%;
+}
+
+.rest-explorer__title {
+  font-size: var(--text-5xl);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  margin-bottom: var(--space-4);
+  color: var(--color-text-primary);
+}
+
+.rest-explorer__description {
+  font-size: var(--text-lg);
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  max-width: 80ch;
+}
+
+/* 3. Endpoint Blocks */
+.rest-endpoint {
+  display: grid;
+  grid-template-columns: 1fr 42%; /* High-density ratio */
+  border-bottom: 1px solid var(--autodoc-border);
+  min-height: 500px;
+}
+
+.rest-endpoint__doc {
+  padding: var(--space-12) var(--space-10);
+  max-width: 900px;
+  justify-self: center;
+  width: 100%;
+}
+
+.rest-endpoint__header {
+  margin-bottom: var(--space-10);
+}
+
+.rest-endpoint__title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-2);
+}
+
+.rest-endpoint__path {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  background: var(--color-bg-tertiary);
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+}
+
+.rest-endpoint__summary {
+  font-size: var(--text-4xl);
+  font-weight: 800;
+  color: var(--color-text-primary);
+  margin-top: var(--space-4);
+  letter-spacing: -0.02em;
+}
+
+.rest-endpoint__example {
+  background-color: #0b0d10; /* Ultra-deep space */
+  color: #e0e6ed;
+  padding: var(--space-10);
+  border-left: 1px solid #1e2227;
+  position: relative;
+  box-shadow: inset 10px 0 20px -10px rgba(0,0,0,0.5);
+}
+
+.rest-endpoint__example::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 1px;
+  background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.08), transparent);
+}
+
+/* 4. Code Component Overrides */
+.rest-endpoint__example pre {
+  background: #050608 !important;
+  border: 1px solid #2a2e35 !important;
+  padding: var(--space-8) !important;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--elevation-high);
+  margin-bottom: var(--space-8) !important;
+}
+
+.rest-endpoint__example .autodoc-example-title {
+  color: #61affe; /* API Blue */
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  font-weight: 800;
+  margin-bottom: var(--space-4);
+  display: flex;
+  justify-content: space-between;
+}
+
+.rest-endpoint__example .autodoc-example-lang {
+  background: #1e2227;
+  color: #8892b0;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+/* 5. Navigation Sidebar Enhancements */
+.docs-nav--rest {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.docs-nav-rest-item {
+  position: relative;
+  margin-bottom: var(--space-1);
+}
+
+.docs-nav-rest-link {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--space-4);
+  text-decoration: none;
+  border-radius: var(--radius-lg);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid transparent;
+}
+
+.docs-nav-rest-link:hover {
+  background: var(--color-bg-primary);
+  transform: translateX(4px);
+}
+
+.docs-nav-rest-item.active .docs-nav-rest-link {
+  background: var(--color-bg-primary);
+  border-color: var(--color-primary);
+  box-shadow: var(--elevation-medium);
+}
+
+.docs-nav-rest-method {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.docs-nav-rest-path {
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.docs-nav-rest-method[data-method="get"] { color: var(--color-success); }
+.docs-nav-rest-method[data-method="post"] { color: #49cc90; }
+.docs-nav-rest-method[data-method="put"] { color: #fca130; }
+.docs-nav-rest-method[data-method="delete"] { color: #f93e3e; }
+.docs-nav-rest-method[data-method="patch"] { color: #50e3c2; }
+
+/* 6. Method Badge Styling (Center Content) */
+.autodoc-method {
+  padding: 4px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  color: #fff;
+  letter-spacing: 0.05em;
+  box-shadow: 0 4px 12px -4px rgba(0,0,0,0.2);
+}
+
+.autodoc-method[data-method="get"] { background: #61affe; }
+.autodoc-method[data-method="post"] { background: #49cc90; }
+.autodoc-method[data-method="put"] { background: #fca130; }
+.autodoc-method[data-method="delete"] { background: #f93e3e; }
+.autodoc-method[data-method="patch"] { background: #50e3c2; }
+
+.rest-explorer__footer {
+  padding: var(--space-12) var(--space-10);
+  background: var(--color-bg-secondary);
+  border-top: 1px solid var(--autodoc-border);
+}
+
+@media (max-width: 1600px) {
+  .rest-endpoint { grid-template-columns: 1fr 45%; }
+}
 
 @media (max-width: 1200px) {
-  .docs-layout--three-panel {
-    grid-template-columns: 260px 1fr !important;
-    grid-template-areas: "sidebar content";
-  }
+  .rest-explorer { grid-template-columns: 280px 1fr; }
+  .rest-endpoint { grid-template-columns: 1fr; }
+  .rest-endpoint__example { border-left: none; border-top: 1px solid #1e2227; }
+}
 
-  .autodoc-examples-panel {
-    display: none;
-  }
+@media (max-width: 850px) {
+  .rest-explorer { grid-template-columns: 1fr; grid-template-areas: "content"; }
+  .rest-explorer__sidebar { display: none; }
 }

@@ -367,6 +367,36 @@ class DocElement:
                 f"Clear the cache with: rm -rf .bengal/cache/"
             )
 
+        def _to_openapi_parameter(p: Any, context: str) -> OpenAPIParameterMetadata:
+            """Convert OpenAPI parameter data to OpenAPIParameterMetadata, failing loudly on mismatch."""
+            if isinstance(p, dict):
+                return OpenAPIParameterMetadata(**p)
+            raise TypeError(
+                f"Autodoc cache format mismatch in {context}: expected dict, got {type(p).__name__}. "
+                f"Value: {p!r}. This usually means the cache was created with an older version. "
+                f"Clear the cache with: rm -rf .bengal/cache/"
+            )
+
+        def _to_openapi_request_body(rb: Any, context: str) -> OpenAPIRequestBodyMetadata:
+            """Convert OpenAPI request body data to OpenAPIRequestBodyMetadata, failing loudly on mismatch."""
+            if isinstance(rb, dict):
+                return OpenAPIRequestBodyMetadata(**rb)
+            raise TypeError(
+                f"Autodoc cache format mismatch in {context}: expected dict, got {type(rb).__name__}. "
+                f"Value: {rb!r}. This usually means the cache was created with an older version. "
+                f"Clear the cache with: rm -rf .bengal/cache/"
+            )
+
+        def _to_openapi_response(r: Any, context: str) -> OpenAPIResponseMetadata:
+            """Convert OpenAPI response data to OpenAPIResponseMetadata, failing loudly on mismatch."""
+            if isinstance(r, dict):
+                return OpenAPIResponseMetadata(**r)
+            raise TypeError(
+                f"Autodoc cache format mismatch in {context}: expected dict, got {type(r).__name__}. "
+                f"Value: {r!r}. This usually means the cache was created with an older version. "
+                f"Clear the cache with: rm -rf .bengal/cache/"
+            )
+
         # Handle nested dataclasses
         if type_name == "PythonClassMetadata" and type_data.get("parsed_doc"):
             pd = type_data["parsed_doc"]
@@ -420,13 +450,17 @@ class DocElement:
             # Convert nested types
             if type_data.get("parameters"):
                 type_data["parameters"] = tuple(
-                    OpenAPIParameterMetadata(**p) for p in type_data["parameters"]
+                    _to_openapi_parameter(p, "OpenAPIEndpointMetadata.parameters")
+                    for p in type_data["parameters"]
                 )
             if type_data.get("request_body"):
-                type_data["request_body"] = OpenAPIRequestBodyMetadata(**type_data["request_body"])
+                type_data["request_body"] = _to_openapi_request_body(
+                    type_data["request_body"], "OpenAPIEndpointMetadata.request_body"
+                )
             if type_data.get("responses"):
                 type_data["responses"] = tuple(
-                    OpenAPIResponseMetadata(**r) for r in type_data["responses"]
+                    _to_openapi_response(r, "OpenAPIEndpointMetadata.responses")
+                    for r in type_data["responses"]
                 )
 
         # Convert lists to tuples for frozen dataclasses

@@ -42,7 +42,7 @@ KIDA FEATURES USED:
         <div class="docs-nav-rest-item" data-method="{{ method | lower }}">
           <a href="#{{ target_id }}" class="docs-nav-rest-link">
             <span class="docs-nav-rest-method" data-method="{{ method | lower }}">{{ method }}</span>
-            <span class="docs-nav-rest-path" title="{{ path }}">{{ path }}</span>
+            <span class="docs-nav-rest-path" title="{{ summary or path }}">{{ summary or path | truncate(30) }}</span>
           </a>
         </div>
       {% end %}
@@ -71,79 +71,3 @@ KIDA FEATURES USED:
   </div>
   {% end %}
 </nav>
-
-<style>
-.docs-nav--rest {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
-}
-
-.docs-nav-back {
-  margin-bottom: var(--space-2);
-}
-
-.docs-nav-back-link {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: var(--text-xs);
-  color: var(--color-text-muted);
-  text-decoration: none;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-weight: var(--weight-bold);
-}
-
-.docs-nav-back-link:hover {
-  color: var(--color-primary);
-}
-
-.docs-nav-rest-item {
-  position: relative;
-  margin-block: 2px;
-}
-
-.docs-nav-rest-link {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-2);
-  padding: var(--space-1) var(--space-2);
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
-  text-decoration: none;
-  border-radius: var(--radius-sm);
-  transition: background var(--transition-base);
-}
-
-.docs-nav-rest-link:hover {
-  background: var(--color-bg-hover);
-  color: var(--color-text-primary);
-}
-
-.docs-nav-rest-method {
-  font-family: var(--font-mono);
-  font-weight: var(--weight-bold);
-  min-width: 35px;
-  text-align: right;
-  font-size: 10px;
-}
-
-.docs-nav-rest-method[data-method="get"] { color: var(--color-success); }
-.docs-nav-rest-method[data-method="post"] { color: var(--blue-500); }
-.docs-nav-rest-method[data-method="put"] { color: var(--orange-500); }
-.docs-nav-rest-method[data-method="delete"] { color: var(--red-500); }
-.docs-nav-rest-method[data-method="patch"] { color: var(--green-400); }
-
-.docs-nav-rest-path {
-  font-family: var(--font-mono);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.docs-nav-sub-header {
-  margin-top: var(--space-4);
-  opacity: 0.6;
-}
-</style>

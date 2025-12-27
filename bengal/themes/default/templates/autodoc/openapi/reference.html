@@ -32,26 +32,29 @@ This template receives:
 %}
 
 {% block content %}
-{# Three-panel REST API layout #}
-<div class="docs-layout docs-layout--three-panel docs-layout--consolidated">
-  {# Left Sidebar: Navigation #}
-  <aside class="docs-sidebar" id="docs-sidebar" role="navigation" aria-label="API navigation">
+{# Radical "Gold Standard" REST layout: Edge-to-edge, fixed sidebars, obsidian examples #}
+<div class="rest-explorer">
+  {# 1. Specialized Left Sidebar #}
+  <aside class="rest-explorer__sidebar" role="navigation" aria-label="API navigation">
     {% include 'autodoc/partials/rest-nav.html' %}
   </aside>
 
-  {# Center: Endpoint Documentation #}
-  <div class="docs-main">
-    <header class="autodoc-page-header">
-      <h1 class="autodoc-page-title">{{ tag_name }}</h1>
+  {# 2. Main Scrolling Content #}
+  <main class="rest-explorer__content">
+    <header class="rest-explorer__header">
+      <h1 class="rest-explorer__title">{{ tag_name }}</h1>
+      <div class="autodoc-badges">
+        <span class="autodoc-badge" data-badge="openapi">OpenAPI 3.1</span>
+        <span class="autodoc-badge" data-badge="rest">REST</span>
+      </div>
       {% if description %}
-      <div class="autodoc-description prose">
+      <div class="rest-explorer__description prose">
         {{ description | markdownify | safe }}
       </div>
       {% end %}
     </header>
 
-    {# Article Content - Loop through all endpoints #}
-    <div class="autodoc-reference-group">
+    <div class="rest-explorer__endpoints">
       {% for element in all_endpoints %}
         {% let
           meta = element.metadata,
@@ -66,37 +69,19 @@ This template receives:
         %}
 
         <section id="{{ operation_id or (method|lower ~ '-' ~ path|slugify) }}"
-                 class="autodoc-endpoint-group"
-                 data-autodoc
-                 data-type="openapi"
-                 data-element="endpoint">
+                 class="rest-endpoint"
+                 data-method="{{ method | lower }}">
 
-          <details class="autodoc-endpoint-details" open>
-            <summary class="autodoc-endpoint-summary">
-              <div class="autodoc-endpoint-header-row">
+          <div class="rest-endpoint__doc">
+            <div class="rest-endpoint__header">
+              <div class="rest-endpoint__title-row">
                 <span class="autodoc-method" data-method="{{ method | lower }}">{{ method }}</span>
-                <code class="autodoc-path">{{ path }}</code>
-                {% if summary %}
-                <span class="autodoc-endpoint-short-desc">{{ summary | truncate(60) }}</span>
-                {% end %}
+                <code class="rest-endpoint__path">{{ path }}</code>
               </div>
-            </summary>
+              <h2 class="rest-endpoint__summary">{{ summary or path }}</h2>
+            </div>
 
-            <div class="autodoc-endpoint-content">
-              <div class="autodoc-header">
-                <h2 class="autodoc-title">
-                  {{ summary or path }}
-                </h2>
-                {% if operation_id %}
-                <div class="autodoc-stats">
-                  <span class="autodoc-stat">
-                    <span class="autodoc-stat-label">Operation ID:</span>
-                    <span class="autodoc-stat-value"><code>{{ operation_id }}</code></span>
-                  </span>
-                </div>
-                {% end %}
-              </div>
-
+            <div class="rest-endpoint__body">
               {# Parameters Section #}
               {% if parameters | length > 0 %}
                 {% let params = parameters %}
@@ -104,36 +89,27 @@ This template receives:
                 {% include 'autodoc/partials/params-table.html' %}
               {% end %}
 
-              {# Request Body Section #}
               {% if req_body %}
               <div class="autodoc-section" data-section="request-body">
                 <h3 class="autodoc-section-title">Request Body</h3>
                 {% if req_body.description %}
-                <div class="autodoc-description">
-                  <p>{{ req_body.description }}</p>
-                </div>
+                <div class="autodoc-description"><p>{{ req_body.description }}</p></div>
                 {% end %}
                 {% if req_body.content is mapping %}
                 <div class="autodoc-badges">
                   {% for content_type in req_body.content.keys() %}
-                  <span class="autodoc-badge">{{ content_type }}</span>
+                  <span class="autodoc-badge" data-badge="content-type">{{ content_type }}</span>
                   {% end %}
                 </div>
                 {% end %}
               </div>
               {% end %}
 
-              {# Responses Section #}
               {% if responses %}
               <div class="autodoc-section" data-section="responses">
                 <h3 class="autodoc-section-title">Responses</h3>
                 <table class="autodoc-table">
-                  <thead>
-                    <tr>
-                      <th>Status</th>
-                      <th>Description</th>
-                    </tr>
-                  </thead>
+                  <thead><tr><th>Status</th><th>Description</th></tr></thead>
                   <tbody>
                     {% for status_code, response in responses.items() %}
                     <tr>
@@ -146,101 +122,80 @@ This template receives:
               </div>
               {% end %}
             </div>
-          </details>
+          </div>
+
+          <div class="rest-endpoint__example">
+            <div class="autodoc-examples-group">
+              <div class="autodoc-example">
+                <header class="autodoc-example-header">
+                  <h4 class="autodoc-example-title">Request</h4>
+                  <span class="autodoc-example-lang">curl</span>
+                </header>
+                <div class="autodoc-example-body">
+                  <pre><code class="language-bash">curl -X {{ method }} "https://api.example.com{{ path }}"</code></pre>
+                </div>
+              </div>
+
+              {% for status_code, response in responses.items() %}
+                {% if status_code[:1] == '2' %}
+                <div class="autodoc-example">
+                  <header class="autodoc-example-header">
+                    <h4 class="autodoc-example-title">Response {{ status_code }}</h4>
+                    <span class="autodoc-example-lang">json</span>
+                  </header>
+                  <div class="autodoc-example-body">
+                    {% let response_example = response.content['application/json']?.example ?? response.content['application/json']?.examples?.values() | first ?? {"status": "success"} %}
+                    <pre><code class="language-json">{{ response_example | tojson(indent=2) }}</code></pre>
+                  </div>
+                </div>
+                {% end %}
+              {% end %}
+            </div>
+          </div>
         </section>
       {% end %}
     </div>
 
-    {# Page navigation (prev/next) at bottom #}
     {{ page_navigation(page) }}
-  </div>
 
-  {# Right Panel: Code Examples - These should ideally sync with the center #}
-  <aside class="autodoc-examples-panel" id="autodoc-examples">
-    <div class="autodoc-examples-panel-content">
-      <h3 class="autodoc-examples-panel-title">{{ icon('code', size=16) }} Code Examples</h3>
-
-      {% for element in all_endpoints %}
-        {% let
-          meta = element.metadata,
-          method = meta.method | upper,
-          path = meta.path,
-          operation_id = meta.operation_id,
-          responses = meta.responses ?? {}
-        %}
-
-        <div class="autodoc-examples-group" data-for="{{ operation_id or (method|lower ~ '-' ~ path|slugify) }}">
-          <div class="autodoc-example">
-            <header class="autodoc-example-header">
-              <h4 class="autodoc-example-title">Request</h4>
-              <span class="autodoc-example-lang">curl</span>
-            </header>
-            <div class="autodoc-example-body">
-              <pre><code class="language-bash">curl -X {{ method }} "https://api.example.com{{ path }}"</code></pre>
-            </div>
-          </div>
-
-          {# Success Response Example #}
-          {% for status_code, response in responses.items() %}
-            {% if status_code[:1] == '2' %}
-            <div class="autodoc-example">
-              <header class="autodoc-example-header">
-                <h4 class="autodoc-example-title">Response {{ status_code }}</h4>
-                <span class="autodoc-example-lang">json</span>
-              </header>
-              <div class="autodoc-example-body">
-                <pre><code class="language-json">{{ (response.content['application/json']?.example ?? {"status": "success"}) | tojson(indent=2) }}</code></pre>
-              </div>
-            </div>
-            {% end %}
-          {% end %}
-        </div>
-      {% end %}
-    </div>
-  </aside>
+    {# Footer inside scrollable area #}
+    <footer class="rest-explorer__footer">
+      <div class="footer-bottom">
+        <p>&copy; {{ site.build_time | dateformat('%Y') }} {{ config.title }}</p>
+      </div>
+    </footer>
+  </main>
 </div>
 
-{# Mobile sidebar toggle #}
-<button class="docs-sidebar-toggle" aria-label="Toggle navigation sidebar">
-  {{ icon('list', size=20) }}
-</button>
-<div class="docs-sidebar-overlay"></div>
+{# Disable standard footer #}
+{% block site_footer %}{% end %}
 
-{# Scroll Sync Script for Consolidated REST Docs #}
+{# Scroll Sync Script #}
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  const main = document.querySelector('.docs-main');
-  const examplesPanel = document.querySelector('#autodoc-examples');
-  const endpoints = document.querySelectorAll('.autodoc-endpoint-group');
-  const examples = document.querySelectorAll('.autodoc-examples-group');
+  const endpoints = document.querySelectorAll('.rest-endpoint');
+  const navItems = document.querySelectorAll('.docs-nav-rest-item');
 
-  if (!main || !examplesPanel || !endpoints.length) return;
-
-  const syncExamples = () => {
-    let currentId = null;
-    const scrollPos = window.scrollY + 100;
-
-    endpoints.forEach(endpoint => {
-      if (endpoint.offsetTop <= scrollPos) {
-        currentId = endpoint.id;
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entries.some(e => e.isIntersecting)) {
+        const intersecting = entries.filter(e => e.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (intersecting) {
+          const id = intersecting.target.id;
+          navItems.forEach(item => {
+            const link = item.querySelector('a');
+            if (link.getAttribute('href') === '#' + id) {
+              item.classList.add('active');
+            } else {
+              item.classList.remove('active');
+            }
+          });
+        }
       }
     });
+  }, { threshold: [0.1, 0.5], rootMargin: '-10% 0px -70% 0px' });
 
-    if (currentId) {
-      examples.forEach(group => {
-        if (group.dataset.for === currentId) {
-          group.style.opacity = '1';
-          group.style.filter = 'none';
-        } else {
-          group.style.opacity = '0.3';
-          group.style.filter = 'grayscale(0.5) blur(1px)';
-        }
-      });
-    }
-  };
-
-  window.addEventListener('scroll', syncExamples);
-  syncExamples();
+  endpoints.forEach(el => observer.observe(el));
 });
 </script>
 {% end %}
