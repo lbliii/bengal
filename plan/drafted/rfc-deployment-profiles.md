@@ -2,163 +2,338 @@
 
 ## Problem
 
-Currently Bengal requires manual configuration for deployment:
-- User must know to set `baseurl` for GitHub Pages project sites
-- No validation that config is correct for target platform
-- "Works locally, breaks in prod" is too common
-- Different platforms have different requirements (GitHub Pages, Netlify, Cloudflare, Vercel, S3, etc.)
+Bengal users encounter deployment failures despite successful local builds:
+
+1. **Baseurl misconfiguration** - Project sites on GitHub Pages require `/repo-name` baseurl, which users forget or misconfigure
+2. **No pre-deploy validation** - Build succeeds but links break in production
+3. **Platform-specific requirements unclear** - GitHub Pages needs `.nojekyll`, Netlify uses `_redirects`, etc.
+4. **Poor discoverability** - Users don't know what Bengal auto-detects vs. what they must configure
+
+## Prior Art
+
+Bengal already has runtime platform detection in `bengal/config/env_overrides.py`:
+
+```python
+# Existing: Auto-detection via CI environment variables
+# Priority: BENGAL_BASEURL > Netlify > Vercel > GitHub Pages
+
+if os.environ.get("GITHUB_ACTIONS") == "true":
+    # Auto-sets baseurl to /{repo-name} for project sites
+    # Detects user/org sites ({owner}.github.io) and uses empty baseurl
+
+if os.environ.get("NETLIFY") == "true":
+    # Uses URL or DEPLOY_PRIME_URL
+
+if os.environ.get("VERCEL") in ("1", "true"):
+    # Uses VERCEL_URL with https:// prefix
+```
+
+**What works today**:
+- ✅ CI environment auto-detection (GitHub Actions, Netlify, Vercel)
+- ✅ Baseurl auto-configuration in CI
+- ✅ Explicit override via `BENGAL_BASEURL` env var
+- ✅ User/org vs project site detection for GitHub Pages
+
+**What's missing** (this RFC):
+- ❌ Local development platform awareness (no CI env vars)
+- ❌ Pre-build validation
+- ❌ Platform-specific file generation (`.nojekyll`)
+- ❌ CLI for inspecting detected configuration
+- ❌ Cloudflare Pages detection
 
 ## Proposal
 
-Add first-class deployment profile support that:
-1. Auto-detects platform when possible
-2. Validates configuration for the target
-3. Provides sensible defaults per platform
-4. Warns about common misconfigurations at build time
+Extend the existing auto-detection with:
+1. **Explicit `deploy` config** - Optional declaration for local awareness
+2. **Validation layer** - Catch misconfigurations before build
+3. **Platform files** - Auto-generate `.nojekyll`, `_redirects`, etc.
+4. **CLI commands** - Inspect and validate deployment configuration
 
 ## Configuration
+
+The `deploy` section is **optional**. When present, it provides explicit platform targeting and enables local validation. When absent, runtime detection from `env_overrides.py` continues to work.
 
 ```yaml
 # config/environments/production.yaml
 
 deploy:
-  # Explicit platform specification
+  # Explicit platform (optional - enables local validation)
   platform: github-pages  # github-pages | netlify | cloudflare | vercel | s3 | static
 
-  # Platform-specific options
+  # Platform-specific options (all optional)
   github_pages:
-    # Auto-detect from git remote, or specify explicitly
-    repo: lane-neuro/bengal  # optional, auto-detected from git
-    type: project  # project | user-org (auto-detected from repo name)
-    # baseurl is AUTO-SET based on repo name for project sites
+    repo: owner/repo      # Auto-detected from git remote
+    type: project         # project | user-org (auto-detected)
+    custom_domain: docs.example.com  # Optional: disables baseurl requirement
 
-  # OR for other platforms
   netlify:
-    site_id: my-site  # optional
+    # No baseurl needed - Netlify serves from root
+    generate_redirects: true  # Create _redirects for SPA routing
 
   cloudflare:
-    project_name: my-docs
+    # No baseurl needed - Cloudflare Pages serves from root
+
+  vercel:
+    # No baseurl needed - Vercel serves from root
 ```
 
-## Auto-Detection Logic
+### Config vs Runtime Detection
+
+| Scenario | Config `deploy:` | Runtime Detection | Result |
+|----------|------------------|-------------------|--------|
+| CI build, no config | absent | active | Runtime sets baseurl |
+| CI build, explicit config | present | skipped | Config values used |
+| Local build, no config | absent | inactive | No platform awareness |
+| Local build, explicit config | present | n/a | Validation enabled |
+
+**Key principle**: Explicit config always wins. Runtime detection is the fallback for zero-config CI deployments.
+
+## Validation Rules
 
 ### GitHub Pages
+
 ```python
-def detect_github_pages_config():
-    # 1. Check git remote for github.com
-    remote = get_git_remote_url()
-    if 'github.com' not in remote:
-        return None
+class GitHubPagesValidator:
+    def validate(self, config: dict, site: Site) -> list[Issue]:
+        issues = []
 
-    # 2. Parse owner/repo
-    owner, repo = parse_github_remote(remote)
+        # 1. Baseurl check (unless custom domain)
+        if not config.get("custom_domain"):
+            repo = detect_repo_name()
+            expected = f"/{repo}" if is_project_site(repo) else ""
+            actual = config.get("baseurl", "")
+            if actual != expected:
+                issues.append(Issue(
+                    level="error",
+                    message=f"Baseurl mismatch: expected '{expected}', got '{actual}'",
+                    fix=f"Set site.baseurl: \"{expected}\" in production.yaml"
+                ))
 
-    # 3. Determine site type
-    if repo == f"{owner}.github.io":
-        # User/org site - no baseurl needed
-        return {"type": "user-org", "baseurl": ""}
-    else:
-        # Project site - baseurl = /repo
-        return {"type": "project", "baseurl": f"/{repo}"}
+        # 2. Check for hardcoded absolute paths in templates
+        for template in site.templates:
+            if has_absolute_asset_paths(template):
+                issues.append(Issue(
+                    level="warning",
+                    message=f"Absolute asset path in {template.path}",
+                    fix="Use {{ asset_url('...') }} instead of /assets/..."
+                ))
+
+        return issues
 ```
-
-### Environment Variables (CI Detection)
-```python
-# Auto-detect platform from CI environment
-def detect_platform():
-    if os.environ.get("GITHUB_ACTIONS"):
-        return "github-pages"
-    if os.environ.get("NETLIFY"):
-        return "netlify"
-    if os.environ.get("CF_PAGES"):
-        return "cloudflare"
-    if os.environ.get("VERCEL"):
-        return "vercel"
-    return "static"  # fallback
-```
-
-## Build-Time Validation
-
-When building for production, Bengal validates:
-
-### GitHub Pages
-- [ ] baseurl matches repo name (for project sites)
-- [ ] .nojekyll will be created
-- [ ] Asset paths use baseurl correctly
-- [ ] No absolute paths that bypass baseurl
 
 ### All Platforms
-- [ ] All internal links are valid
-- [ ] All asset references resolve
-- [ ] No hardcoded localhost URLs
-- [ ] Canonical URLs are correct
 
-## Warning Examples
+| Check | Level | Description |
+|-------|-------|-------------|
+| Baseurl consistency | error | Config matches detected platform requirements |
+| No localhost URLs | error | Hardcoded `localhost` or `127.0.0.1` in output |
+| Asset paths | warning | Absolute paths that bypass baseurl |
+| Internal links | warning | Links to non-existent pages |
+| Canonical URLs | info | Verify `<link rel="canonical">` uses correct base |
 
-```
-⚠️  GitHub Pages project site detected: lane-neuro/bengal
-    Expected baseurl: /bengal
-    Configured baseurl: (empty)
+## Platform Files
 
-    Fix: Set `site.baseurl: "/bengal"` in production.yaml
-    Or: Use `deploy.platform: github-pages` for auto-configuration
+Auto-generated in output directory when platform is detected/configured:
 
-⚠️  Found 3 absolute asset paths that bypass baseurl:
-    - templates/base.html:45: href="/assets/style.css"
-    Should be: href="{{ asset_url('style.css') }}"
-```
+| Platform | File | Purpose |
+|----------|------|---------|
+| GitHub Pages | `.nojekyll` | Disable Jekyll processing |
+| GitHub Pages | `CNAME` | Custom domain (if configured) |
+| Netlify | `_redirects` | SPA routing / redirects |
+| Netlify | `_headers` | Security headers (if configured) |
+| Cloudflare | `_routes.json` | Functions routing (if applicable) |
 
-## New CLI Commands
+## CLI Commands
+
+### `bengal deploy info`
+
+Show detected/configured deployment information:
 
 ```bash
-# Show detected deployment info
-bengal deploy info
-# Output:
-#   Platform: github-pages (auto-detected)
-#   Site type: project
-#   Repo: lane-neuro/bengal  
-#   Baseurl: /bengal
-#   Build command: bengal build -e production
+$ bengal deploy info
 
-# Validate deployment config
-bengal deploy validate
-# Output:
-#   ✓ Platform detected: github-pages
-#   ✓ Baseurl correctly set to /bengal
-#   ✓ Asset URLs use asset_url() function
-#   ⚠️ 2 internal links not verified (pages don't exist yet)
+Platform: github-pages
+  Source: config (deploy.platform in production.yaml)
 
-# Build with deployment validation
-bengal build -e production --validate-deploy
+Repository: lane-neuro/bengal
+  Source: git remote origin
+
+Site Type: project
+  Baseurl: /bengal (required)
+
+Configuration Status:
+  ✓ site.baseurl matches expected value
+  ✓ .nojekyll will be generated
+
+Build Command:
+  bengal build -e production
+```
+
+### `bengal deploy validate`
+
+Pre-build validation:
+
+```bash
+$ bengal deploy validate
+
+Validating deployment configuration...
+
+Platform: github-pages (project site)
+
+Checks:
+  ✓ Baseurl correctly set to /bengal
+  ✓ No hardcoded localhost URLs
+  ✓ Asset URLs use asset_url() or relative paths
+  ⚠ 2 templates use absolute paths (non-blocking)
+    - templates/custom.html:23
+    - templates/widget.html:45
+
+Result: PASS (2 warnings)
+```
+
+### `bengal build --validate-deploy`
+
+Build with deployment validation:
+
+```bash
+$ bengal build -e production --validate-deploy
+
+Validating deployment configuration... OK
+Building site...
+  ✓ 42 pages rendered
+  ✓ Assets processed
+  ✓ .nojekyll generated
+
+Build complete: public/
 ```
 
 ## Implementation Phases
 
-### Phase 1: Detection & Validation
-- Add `deploy` config section
-- Implement platform auto-detection
-- Add build-time baseurl validation
-- Warn on common misconfigurations
+### Phase 1: Validation & CLI (This RFC)
 
-### Phase 2: Auto-Configuration
-- Auto-set baseurl for GitHub Pages
-- Generate platform-specific files (.nojekyll, _redirects, etc.)
-- Platform-specific asset handling
+**Scope**: High-value gaps only
 
-### Phase 3: Deploy Command
-- `bengal deploy` command for common platforms
-- Direct deployment without separate CI
-- Preview URL generation
+- [ ] Add `deploy` config section parsing
+- [ ] Implement `bengal deploy info` command
+- [ ] Implement `bengal deploy validate` command
+- [ ] Add `--validate-deploy` flag to build command
+- [ ] Generate `.nojekyll` for GitHub Pages
+- [ ] Add Cloudflare Pages detection to `env_overrides.py`
 
-## Benefits
+**Files affected**:
+- `bengal/config/deploy.py` (new)
+- `bengal/cli/commands/deploy.py` (new)
+- `bengal/cli/commands/build.py` (add flag)
+- `bengal/config/env_overrides.py` (add Cloudflare)
+- `bengal/orchestration/build/finalization.py` (add .nojekyll)
 
-1. **Fewer "works locally, breaks in prod"** - Validation catches issues before deploy
-2. **Less configuration** - Auto-detection handles common cases
-3. **Better DX** - Clear errors with actionable fixes
-4. **Platform flexibility** - Easy to switch between hosting providers
+**Estimated effort**: 2-3 days
 
-## Open Questions
+### Phase 2: Extended Platform Support
 
-1. Should auto-detection be opt-in or opt-out?
-2. How to handle custom domains on GitHub Pages?
-3. Should we support direct deployment (like `hugo deploy`)?
+- [ ] Generate `_redirects` for Netlify
+- [ ] CNAME file generation for custom domains
+- [ ] S3/static bucket configuration
+- [ ] Platform-specific headers generation
+
+### Phase 3: Direct Deployment (Future)
+
+- [ ] `bengal deploy` command (direct push to platforms)
+- [ ] Preview URL generation
+- [ ] Deployment status checking
+
+**Note**: Phase 3 is explicitly deferred. Most users have CI/CD pipelines; direct deployment is nice-to-have.
+
+## Error Handling
+
+Detection failures should never break builds:
+
+```python
+def get_deploy_config(config: dict) -> DeployConfig:
+    """Get deployment configuration with graceful fallback."""
+    try:
+        explicit = config.get("deploy", {})
+        if explicit.get("platform"):
+            return DeployConfig.from_explicit(explicit)
+
+        detected = detect_platform_from_env()
+        if detected:
+            return DeployConfig.from_detected(detected)
+
+    except Exception as e:
+        logger.warning("deploy_detection_failed", error=str(e))
+
+    return DeployConfig.static()  # Safe fallback
+```
+
+## Custom Domains
+
+Custom domains change baseurl requirements:
+
+```yaml
+# With custom domain, baseurl is typically empty
+deploy:
+  platform: github-pages
+  github_pages:
+    custom_domain: docs.example.com
+
+site:
+  baseurl: ""  # Correct for custom domain
+```
+
+Detection logic:
+1. Check for `CNAME` file in content root
+2. Check `deploy.github_pages.custom_domain` config
+3. If either present, skip baseurl validation
+
+## Migration Path
+
+**No breaking changes**. This RFC is purely additive:
+
+1. Existing `site.baseurl` config continues to work
+2. Existing `BENGAL_BASEURL` env var continues to work
+3. Existing `env_overrides.py` runtime detection unchanged
+4. New `deploy:` section is optional
+
+Users can adopt incrementally:
+- Start with `bengal deploy info` to see what Bengal detects
+- Add `deploy:` config if they want local validation
+- Use `--validate-deploy` in CI for pre-merge checks
+
+## Design Decisions
+
+### Q: Auto-detection opt-in or opt-out?
+
+**Answer**: Opt-out (current behavior preserved).
+
+Runtime detection via `env_overrides.py` remains active by default. Users who want to disable it can set explicit empty values:
+
+```yaml
+site:
+  baseurl: ""  # Explicit empty = no auto-detection
+```
+
+### Q: How to handle custom domains on GitHub Pages?
+
+**Answer**: CNAME detection + explicit config.
+
+If `CNAME` file exists or `deploy.github_pages.custom_domain` is set, baseurl validation is skipped (custom domains serve from root).
+
+### Q: Should we support direct deployment?
+
+**Answer**: Defer to Phase 3.
+
+Focus on validation first. Direct deployment is complex (auth, error handling, rollback) and most users have CI/CD.
+
+## Success Metrics
+
+1. **Reduced support issues** - Fewer "works locally, breaks on GitHub Pages" reports
+2. **Faster debugging** - `bengal deploy info` provides instant clarity
+3. **CI integration** - `--validate-deploy` catches issues before merge
+
+## References
+
+- Existing implementation: `bengal/config/env_overrides.py`
+- Baseurl tests: `tests/integration/test_baseurl_builds.py`
+- Hugo's approach: `hugo deploy` command (Phase 3 reference)
+- Astro's approach: Adapter-based deployment configuration
