@@ -7,10 +7,15 @@ import subprocess
 from pathlib import Path
 
 import pytest
-from benchmark_history import BenchmarkHistoryLogger
 
-# Register test guards
-pytest_plugins = ["tests._testing.guards"]
+try:
+    from benchmark_history import BenchmarkHistoryLogger
+except ImportError:
+    BenchmarkHistoryLogger = None
+
+# Register test guards (optional, only if available in main tests directory)
+# Skip guards plugin for benchmarks - it's not needed and may not be available
+# pytest_plugins = ["tests._testing.guards"]  # Commented out for benchmarks
 
 
 def get_git_info():
@@ -32,6 +37,8 @@ def get_git_info():
 @pytest.fixture(scope="session")
 def benchmark_history_logger():
     """Provide benchmark history logger to tests."""
+    if BenchmarkHistoryLogger is None:
+        return None
     return BenchmarkHistoryLogger()
 
 
@@ -49,6 +56,9 @@ def pytest_sessionfinish(session, exitstatus):
         return
 
     latest_file = benchmark_files[-1]
+
+    if BenchmarkHistoryLogger is None:
+        return  # Benchmark history logger not available
 
     try:
         with open(latest_file) as f:
