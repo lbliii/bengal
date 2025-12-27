@@ -44,41 +44,14 @@ Kida parses Jinja2 syntax, so existing templates work without changes. This page
 
 ## Detailed Comparisons
 
-:::{cards}
-:columns: 2
-:gap: medium
+For detailed comparisons, see the [Kida vs Jinja2 Comparison (Legacy)](./kida-vs-jinja-comparison) page, which includes comprehensive side-by-side examples of:
 
-:::{card} Syntax
-:link: ./comparison/syntax
-Block endings, variables, expressions.
-:::
-
-:::{card} Control Flow
-:link: ./comparison/control-flow
-Conditionals, loops, pattern matching.
-:::
-
-:::{card} Variables
-:link: ./comparison/variables
-Scoping, `let` vs `set`, exports.
-:::
-
-:::{card} Functions
-:link: ./comparison/functions
-`def` vs `macro`, lexical scope.
-:::
-
-:::{card} Filters
-:link: ./comparison/filters
-Pipeline operator, filter names.
-:::
-
-:::{card} Caching
-:link: ./comparison/caching
-Fragment caching, automatic blocks.
-:::
-
-:::
+- **Syntax**: Block endings, variables, expressions
+- **Control Flow**: Conditionals, loops, pattern matching
+- **Variables**: Scoping, `let` vs `set`, exports
+- **Functions**: `def` vs `macro`, lexical scope
+- **Filters**: Pipeline operator, filter names
+- **Caching**: Fragment caching, automatic blocks
 
 ## Filter Name Mapping
 

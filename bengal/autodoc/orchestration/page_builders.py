@@ -329,13 +329,13 @@ def get_element_metadata(
         else:
             return "autodoc/cli/command", url_path, "autodoc-cli"
     elif doc_type == "openapi":
-        # OpenAPI docs use openautodoc/python type for full-width 3-panel layout
+        # OpenAPI docs use autodoc/openapi templates
         if element.element_type == "openapi_overview":
-            return "openautodoc/python/overview", f"{prefix}/overview", "autodoc-rest"
+            return "autodoc/openapi/overview", f"{prefix}/overview", "autodoc-rest"
         elif element.element_type == "openapi_schema":
             schema_name = element.name
             return (
-                "openautodoc/python/schema",
+                "autodoc/openapi/schema",
                 f"{prefix}/schemas/{schema_name}",
                 "autodoc-rest",
             )
@@ -343,7 +343,7 @@ def get_element_metadata(
             method = get_openapi_method(element).lower()
             path = get_openapi_path(element).strip("/").replace("/", "-")
             return (
-                "openautodoc/python/endpoint",
+                "autodoc/openapi/endpoint",
                 f"{prefix}/endpoints/{method}-{path}",
                 "autodoc-rest",
             )

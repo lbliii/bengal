@@ -337,8 +337,7 @@ icons:
   extend_defaults: false  # Only theme icons available
 ```
 
-:::{admonition} Caution
-:class: caution
+:::{caution}
 With `extend_defaults: false`, any icon not in your theme will show a missing icon indicator.
 :::
 

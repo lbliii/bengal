@@ -27,17 +27,16 @@ category: reference
 **This is a legacy document**. The comparison has been restructured into focused, modular articles. See the [new Comparison Guide](/docs/theming/templating/kida/comparison/) for the updated structure.
 :::
 
-This document contains a comprehensive side-by-side comparison of Kida and Jinja2. For better organization, this content has been split into focused articles:
+This document contains a comprehensive side-by-side comparison of Kida and Jinja2. The content is organized into focused sections covering:
 
-- **[Comparison Overview](/docs/theming/templating/kida/comparison/)** — Feature-by-feature comparison index
-- **[Syntax Comparison](/docs/theming/templating/kida/comparison/syntax)** — Side-by-side syntax examples
-- **[Control Flow](/docs/theming/templating/kida/comparison/control-flow)** — Conditionals, loops, pattern matching
-- **[Variables and Scoping](/docs/theming/templating/kida/comparison/variables)** — Variable scoping patterns
-- **[Functions and Macros](/docs/theming/templating/kida/comparison/functions)** — Functions vs macros
-- **[Filters and Pipelines](/docs/theming/templating/kida/comparison/filters)** — Filter syntax and pipelines
-- **[Caching](/docs/theming/templating/kida/comparison/caching)** — Fragment caching and optimization
-- **[Modern Features](/docs/theming/templating/kida/comparison/modern-features)** — Optional chaining, null coalescing, etc.
-- **[Performance](/docs/theming/templating/kida/comparison/performance)** — Benchmarks and optimization
+- **Syntax Comparison** — Side-by-side syntax examples (see Block Endings, Variables and Scoping sections below)
+- **Control Flow** — Conditionals, loops, pattern matching (see Pattern Matching section below)
+- **Variables and Scoping** — Variable scoping patterns (see Variables and Scoping section below)
+- **Functions and Macros** — Functions vs macros (see Functions vs Macros section below)
+- **Filters and Pipelines** — Filter syntax and pipelines (see Pipeline Operator section below)
+- **Caching** — Fragment caching and optimization (see Fragment Caching section below)
+- **Modern Features** — Optional chaining, null coalescing, etc. (see Optional Chaining and Null Coalescing section below)
+- **Performance** — Benchmarks and optimization (see Performance Comparison section below)
 
 ---
 

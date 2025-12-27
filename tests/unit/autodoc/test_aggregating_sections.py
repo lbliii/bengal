@@ -176,9 +176,9 @@ class TestApiHubTemplateMapping:
         assert template_dir == "autodoc/python"
 
     def test_autodoc_rest_maps_to_openapi(self) -> None:
-        """autodoc-rest type should map to openautodoc/python."""
+        """autodoc-rest type should map to autodoc/openapi."""
         template_dir = get_template_dir_for_type("autodoc-rest")
-        assert template_dir == "openautodoc/python"
+        assert template_dir == "autodoc/openapi"
 
     def test_autodoc_cli_maps_to_autodoc_cli(self) -> None:
         """autodoc-cli type should map to autodoc/cli."""

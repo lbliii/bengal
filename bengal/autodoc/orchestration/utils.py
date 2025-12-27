@@ -29,7 +29,7 @@ def get_template_dir_for_type(page_type: str) -> str:
     type_to_template = {
         "autodoc-python": "autodoc/python",
         "autodoc-cli": "autodoc/cli",
-        "autodoc-rest": "openautodoc/python",
+        "autodoc-rest": "autodoc/openapi",
         "autodoc-hub": "api-hub",
     }
     return type_to_template.get(page_type, page_type)

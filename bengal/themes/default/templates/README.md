@@ -148,8 +148,11 @@ templates/
 │   ├── command.html
 │   └── command-group.html
 │
-└── openautodoc/python/           # OpenAPI docs
-    └── endpoint.html
+└── autodoc/openapi/               # OpenAPI docs
+    ├── endpoint.html
+    ├── overview.html
+    ├── schema.html
+    └── section-index.html
 ```
 
 ### Naming Conventions

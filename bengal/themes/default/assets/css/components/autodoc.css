@@ -1024,3 +1024,125 @@ a.autodoc-card span {
     padding: var(--space-3);
   }
 }
+
+/* ============================================
+   THREE-PANEL REST API LAYOUT
+   Specifically for OpenAPI endpoints
+   ============================================ */
+
+.docs-layout--three-panel {
+  grid-template-columns: 260px 1fr 400px !important;
+  background-color: var(--color-bg-primary);
+}
+
+.autodoc-examples-panel {
+  grid-area: toc;
+  background-color: var(--color-bg-secondary);
+  border-left: 1px solid var(--autodoc-border);
+  padding: var(--space-6);
+  position: sticky;
+  top: 60px;
+  max-height: calc(100vh - 60px);
+  overflow-y: auto;
+}
+
+.autodoc-examples-panel-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.autodoc-examples-panel-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  margin-bottom: var(--space-4);
+  color: var(--color-text-primary);
+}
+
+.autodoc-example {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.autodoc-example-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.autodoc-example-title {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+}
+
+.autodoc-example-lang {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  background: var(--color-bg-tertiary);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+
+.autodoc-example-body pre {
+  margin: 0;
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-code);
+  font-size: var(--text-xs);
+  border: 1px solid var(--autodoc-border);
+}
+
+.autodoc-schema-preview {
+  margin-top: var(--space-3);
+  padding: var(--space-3);
+  background: var(--color-bg-secondary);
+  border: 1px dashed var(--autodoc-border);
+  border-radius: var(--radius-md);
+}
+
+.autodoc-schema-label {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-2);
+}
+
+.autodoc-schema-props {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: var(--text-xs);
+}
+
+.autodoc-schema-props li {
+  padding-block: 2px;
+}
+
+.autodoc-more {
+  color: var(--color-text-tertiary);
+  font-style: italic;
+  margin-top: var(--space-1);
+}
+
+/* Status code coloring */
+[data-status-class="2"] { color: var(--color-success); font-weight: var(--weight-bold); }
+[data-status-class="4"] { color: var(--color-warning); font-weight: var(--weight-bold); }
+[data-status-class="5"] { color: var(--color-error); font-weight: var(--weight-bold); }
+
+@media (max-width: 1200px) {
+  .docs-layout--three-panel {
+    grid-template-columns: 260px 1fr !important;
+    grid-template-areas: "sidebar content";
+  }
+
+  .autodoc-examples-panel {
+    display: none;
+  }
+}

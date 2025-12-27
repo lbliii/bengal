@@ -1,19 +1,31 @@
 {% extends "base.html" %}
 
 {#
-OpenAPI Reference Schema Template
+================================================================================
+OpenAPI Reference Schema Template (Kida-Enhanced)
+================================================================================
 
 Renders an OpenAPI schema's documentation using the autodoc skeleton.
-Extends base.html to inherit theme navigation, sidebars, and styling.
-Uses autodoc.css for all styling.
+Uses Kida's advanced templating features for robust rendering.
 
 This template receives:
 - element: DocElement for the schema
 - config: Autodoc configuration
 - site: Site instance
+================================================================================
 #}
 
 {% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc %}
+
+{# Cache schema metadata #}
+{% let
+  meta = element.metadata,
+  schema_type = meta.type ?? 'object',
+  properties = meta.properties ?? {},
+  required_props = meta.required ?? [],
+  example = meta.example,
+  enum_values = meta.enum ?? []
+%}
 
 {% block content %}
 {# Three-column documentation layout #}
@@ -35,6 +47,7 @@ This template receives:
       <header class="autodoc-header">
         <div class="autodoc-badges">
           <span class="autodoc-badge" data-badge="schema">Schema</span>
+          <span class="autodoc-badge" data-badge="openapi">OpenAPI</span>
         </div>
 
         <h1 class="autodoc-title">
@@ -48,18 +61,22 @@ This template receives:
         {% end %}
       </header>
 
-      {# Schema Type #}
-      {% if element.metadata.type %}
+      {# Schema Meta Stats #}
       <div class="autodoc-stats">
         <span class="autodoc-stat">
-          <span class="autodoc-stat-label">Type:</span>
-          <span class="autodoc-stat-value"><code>{{ element.metadata.type }}</code></span>
+          <span class="autodoc-stat-label">Base Type:</span>
+          <span class="autodoc-stat-value"><code>{{ schema_type }}</code></span>
         </span>
+        {% if enum_values | length > 0 %}
+        <span class="autodoc-stat">
+          <span class="autodoc-stat-label">Enum:</span>
+          <span class="autodoc-stat-value"><code>{{ enum_values | join(', ') }}</code></span>
+        </span>
+        {% end %}
       </div>
-      {% end %}
 
       {# Properties #}
-      {% if element.metadata.properties %}
+      {% if properties | length > 0 %}
       <section class="autodoc-section" data-section="properties">
         <h2 class="autodoc-section-title">Properties</h2>
         <table class="autodoc-table" data-table="properties">
@@ -72,13 +89,41 @@ This template receives:
             </tr>
           </thead>
           <tbody>
-            {% set required_props = element.metadata.required ?? [] %}
-            {% for prop_name, prop_schema in element.metadata.properties.items() %}
-            <tr {% if prop_name in required_props %}data-required="true"{% end %}>
-              <td class="autodoc-cell-name"><code>{{ prop_name }}</code></td>
-              <td class="autodoc-cell-type"><code>{{ prop_schema.type ?? 'object' }}</code></td>
-              <td>{% if prop_name in required_props %}Yes{% else %}No{% end %}</td>
-              <td class="autodoc-cell-desc">{{ prop_schema.description ?? '—' }}</td>
+            {% for prop_name, prop_schema in properties.items() %}
+            {% let is_required = prop_name in required_props %}
+            <tr {{ 'data-required="true"' | safe if is_required else '' }}>
+              <td class="autodoc-cell-name">
+                <code>{{ prop_name }}</code>
+                {% if is_required %}
+                <span class="autodoc-required-star" title="Required">*</span>
+                {% end %}
+              </td>
+              <td class="autodoc-cell-type">
+                <code>{{ prop_schema.type ?? 'object' }}</code>
+                {% if prop_schema.format %}
+                <small class="autodoc-format">({{ prop_schema.format }})</small>
+                {% end %}
+              </td>
+              <td class="autodoc-cell-required">
+                {% if is_required %}
+                <span class="autodoc-badge" data-badge="required">Required</span>
+                {% else %}
+                <span class="autodoc-badge" data-badge="optional">Optional</span>
+                {% end %}
+              </td>
+              <td class="autodoc-cell-desc">
+                {% if prop_schema.description %}
+                {{ prop_schema.description | markdownify | safe }}
+                {% else %}
+                <span class="table-empty">—</span>
+                {% end %}
+
+                {% if prop_schema.enum %}
+                <div class="autodoc-prop-enum">
+                  <strong>Enum:</strong> <code>{{ prop_schema.enum | join(' | ') }}</code>
+                </div>
+                {% end %}
+              </td>
             </tr>
             {% end %}
           </tbody>
@@ -87,11 +132,17 @@ This template receives:
       {% end %}
 
       {# Example #}
-      {% if element.metadata.example %}
+      {% if example %}
       <section class="autodoc-section" data-section="examples">
         <h2 class="autodoc-section-title">Example</h2>
         <div class="autodoc-example">
-          <pre><code class="language-json">{{ element.metadata.example | tojson(indent=2) }}</code></pre>
+          <header class="autodoc-example-header">
+            <h4 class="autodoc-example-title">JSON Representation</h4>
+            <span class="autodoc-example-lang">json</span>
+          </header>
+          <div class="autodoc-example-body">
+            <pre><code class="language-json">{{ example | tojson(indent=2) }}</code></pre>
+          </div>
         </div>
       </section>
       {% end %}

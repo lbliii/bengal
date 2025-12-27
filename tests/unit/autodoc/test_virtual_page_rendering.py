@@ -354,7 +354,7 @@ class TestPageTypes:
             element_type="openapi_endpoint",
             source_file=None,
             line_number=1,
-            metadata={"type": "openautodoc/python", "method": "GET", "path": "/users"},
+            metadata={"type": "autodoc-rest", "method": "GET", "path": "/users"},
             children=[],
             examples=[],
             see_also=[],
@@ -364,14 +364,14 @@ class TestPageTypes:
             source_id="openapi/endpoints/users/list.md",
             title="GET /users",
             metadata={
-                "type": "openautodoc/python",
+                "type": "autodoc-rest",
                 "element_type": "openapi_endpoint",
                 "is_autodoc": True,
                 "autodoc_element": element,
-                "_autodoc_template": "openautodoc/python/endpoint",
+                "_autodoc_template": "autodoc/openapi/endpoint",
             },
             rendered_html=None,
-            template_name="openautodoc/python/endpoint",
+            template_name="autodoc/openapi/endpoint",
             output_path=mock_site.output_dir / "openapi/users/list/index.html",
         )
         page._site = mock_site
