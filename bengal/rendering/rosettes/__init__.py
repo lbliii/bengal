@@ -79,6 +79,8 @@ def highlight(
     show_linenos: bool = False,
     css_class: str | None = None,
     css_class_style: str = "semantic",
+    start: int = 0,
+    end: int | None = None,
 ) -> str:
     """Highlight source code and return HTML.
 
@@ -98,6 +100,8 @@ def highlight(
         css_class_style: Class naming style:
             - "semantic" (default): Uses readable classes like .syntax-function
             - "pygments": Uses Pygments-compatible classes like .nf
+        start: Starting index in the source string.
+        end: Optional ending index in the source string.
 
     Returns:
         HTML string with syntax-highlighted code.
@@ -127,7 +131,9 @@ def highlight(
     # Fast path: no line highlighting needed
     if not hl_lines and not show_linenos:
         formatter = HtmlFormatter(css_class_style=css_class_style)
-        return formatter.format_string_fast(lexer.tokenize_fast(code), format_config)
+        return formatter.format_string_fast(
+            lexer.tokenize_fast(code, start=start, end=end), format_config
+        )
 
     # Slow path: line highlighting or line numbers
     hl_config = HighlightConfig(
@@ -136,10 +142,15 @@ def highlight(
         css_class=css_class,
     )
     formatter = HtmlFormatter(config=hl_config, css_class_style=css_class_style)
-    return formatter.format_string(lexer.tokenize(code), format_config)
+    return formatter.format_string(lexer.tokenize(code, start=start, end=end), format_config)
 
 
-def tokenize(code: str, language: str) -> list[Token]:
+def tokenize(
+    code: str,
+    language: str,
+    start: int = 0,
+    end: int | None = None,
+) -> list[Token]:
     """Tokenize source code without formatting.
 
     Useful for analysis, custom formatting, or testing.
@@ -151,6 +162,8 @@ def tokenize(code: str, language: str) -> list[Token]:
     Args:
         code: The source code to tokenize.
         language: Language name or alias.
+        start: Starting index in the source string.
+        end: Optional ending index in the source string.
 
     Returns:
         List of Token objects.
@@ -164,7 +177,7 @@ def tokenize(code: str, language: str) -> list[Token]:
         <TokenType.NAME: 'n'>
     """
     lexer = get_lexer(language)
-    return list(lexer.tokenize(code))
+    return list(lexer.tokenize(code, start=start, end=end))
 
 
 # =============================================================================

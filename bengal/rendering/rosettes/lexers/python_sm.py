@@ -279,15 +279,22 @@ class PythonStateMachineLexer(StateMachineLexer):
     filenames = ("*.py", "*.pyw", "*.pyi")
     mimetypes = ("text/x-python", "application/x-python")
 
-    def tokenize(self, code: str) -> Iterator[Token]:
+    def tokenize(
+        self,
+        code: str,
+        config: LexerConfig | None = None,
+        *,
+        start: int = 0,
+        end: int | None = None,
+    ) -> Iterator[Token]:
         """Tokenize Python source code.
 
         Single-pass, character-by-character. O(n) guaranteed.
         """
-        pos = 0
-        length = len(code)
+        pos = start
+        length = end if end is not None else len(code)
         line = 1
-        line_start = 0
+        line_start = start
 
         while pos < length:
             char = code[pos]

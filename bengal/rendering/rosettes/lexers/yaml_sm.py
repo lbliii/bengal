@@ -62,7 +62,7 @@ class YamlStateMachineLexer(
         pos = 0
         length = len(code)
         line = 1
-        line_start = 0
+        line_start = start
         at_line_start = True
 
         while pos < length:

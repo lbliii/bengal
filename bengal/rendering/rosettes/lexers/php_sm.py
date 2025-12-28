@@ -191,7 +191,7 @@ class PhpStateMachineLexer(
         pos = 0
         length = len(code)
         line = 1
-        line_start = 0
+        line_start = start
         in_php = False
 
         while pos < length:

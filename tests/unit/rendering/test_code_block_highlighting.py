@@ -37,7 +37,7 @@ print("hello")
 """
         html = parser.parse(content, {})
 
-        assert '<div class="rosettes">' in html
+        assert '<div class="rosettes"' in html
         assert "<pre>" in html
         assert "<code>" in html
 
@@ -93,7 +93,7 @@ line3 = 3
 
         # Should have basic code block structure
         # Note: Rosettes doesn't use table-based line numbers
-        assert '<div class="rosettes">' in html
+        assert '<div class="rosettes"' in html
         assert "<pre>" in html
         assert "<code>" in html
 
@@ -401,7 +401,7 @@ line3 = 3
         # Should have .hll span for highlighted line
         assert '<span class="hll">' in html
         # Should have basic code block structure
-        assert '<div class="rosettes">' in html
+        assert '<div class="rosettes"' in html
 
     def test_code_block_contains_content(self, parser):
         """Test that code content is in the output."""

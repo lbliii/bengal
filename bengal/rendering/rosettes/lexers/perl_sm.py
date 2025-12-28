@@ -276,11 +276,17 @@ class PerlStateMachineLexer(
     filenames = ("*.pl", "*.pm", "*.t")
     mimetypes = ("text/x-perl", "application/x-perl")
 
-    def tokenize(self, code: str) -> Iterator[Token]:
-        pos = 0
-        length = len(code)
+    def tokenize(
+        self,
+        code: str,
+        config: LexerConfig | None = None,
+        start: int = 0,
+        end: int | None = None,
+    ) -> Iterator[Token]:
+        pos = start
+        length = end if end is not None else len(code)
         line = 1
-        line_start = 0
+        line_start = start
 
         while pos < length:
             char = code[pos]
@@ -288,10 +294,10 @@ class PerlStateMachineLexer(
 
             # Whitespace
             if char in " \t":
-                start = pos
+                ws_start = pos
                 while pos < length and code[pos] in " \t":
                     pos += 1
-                yield Token(TokenType.WHITESPACE, code[start:pos], line, col)
+                yield Token(TokenType.WHITESPACE, code[ws_start:pos], line, col)
                 continue
 
             if char == "\n":
@@ -302,11 +308,11 @@ class PerlStateMachineLexer(
                 continue
 
             # Shebang
-            if pos == 0 and char == "#" and pos + 1 < length and code[pos + 1] == "!":
-                start = pos
+            if pos == start and char == "#" and pos + 1 < length and code[pos + 1] == "!":
+                shebang_start = pos
                 while pos < length and code[pos] != "\n":
                     pos += 1
-                yield Token(TokenType.COMMENT_HASHBANG, code[start:pos], line, col)
+                yield Token(TokenType.COMMENT_HASHBANG, code[shebang_start:pos], line, col)
                 continue
 
             # Comments

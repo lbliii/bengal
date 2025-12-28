@@ -9,9 +9,9 @@ Thread Safety:
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterator, Sequence
+from collections.abc import Callable, Sequence
 from html import escape as html_escape
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from bengal.rendering.parsers.patitas.nodes import (
     Block,
@@ -47,7 +47,9 @@ from bengal.rendering.parsers.patitas.nodes import (
 from bengal.rendering.parsers.patitas.stringbuilder import StringBuilder
 
 if TYPE_CHECKING:
+    from bengal.directives.cache import DirectiveCache
     from bengal.rendering.parsers.patitas.directives.registry import DirectiveRegistry
+    from bengal.rendering.parsers.patitas.protocols import LexerDelegate
     from bengal.rendering.parsers.patitas.roles.registry import RoleRegistry
 
 
@@ -70,38 +72,50 @@ class HtmlRenderer:
     """
 
     __slots__ = (
+        "_source",
         "_highlight",
         "_highlight_style",
         "_rosettes_available",
         "_directive_registry",
+        "_directive_cache",
         "_role_registry",
         "_text_transformer",
+        "_delegate",
     )
 
     def __init__(
         self,
+        source: str = "",
         *,
         highlight: bool = False,
         highlight_style: Literal["semantic", "pygments"] = "semantic",
         directive_registry: DirectiveRegistry | None = None,
+        directive_cache: DirectiveCache | None = None,
         role_registry: RoleRegistry | None = None,
         text_transformer: Callable[[str], str] | None = None,
+        delegate: LexerDelegate | None = None,
     ) -> None:
         """Initialize renderer.
 
         Args:
+            source: Original source buffer for zero-copy extraction
             highlight: Enable syntax highlighting for code blocks
             highlight_style: Highlighting style ("semantic" or "pygments")
             directive_registry: Optional registry for custom directive rendering
+            directive_cache: Optional cache for rendered directive output (auto-enabled for versioned sites)
             role_registry: Optional registry for custom role rendering
             text_transformer: Optional callback to transform plain text nodes
+            delegate: Optional sub-lexer delegate for ZCLH handoff
         """
+        self._source = source
         self._highlight = highlight
         self._highlight_style = highlight_style
         self._rosettes_available: bool | None = None
         self._directive_registry = directive_registry
+        self._directive_cache = directive_cache
         self._role_registry = role_registry
         self._text_transformer = text_transformer
+        self._delegate = delegate
 
     def render(self, nodes: Sequence[Block]) -> str:
         """Render AST nodes to HTML.
@@ -165,8 +179,8 @@ class HtmlRenderer:
                 self._render_inline_children(children, sb)
                 sb.append("</p>\n")
 
-            case FencedCode(code=code, info=info):
-                self._render_fenced_code(code, info, sb)
+            case FencedCode() as node:
+                self._render_fenced_code(node, sb)
 
             case IndentedCode(code=code):
                 sb.append(f"<pre><code>{_escape_html(code)}</code></pre>\n")
@@ -291,14 +305,27 @@ class HtmlRenderer:
         """Render a directive block.
 
         Uses registered handler if available, otherwise falls back to default.
+        Caches rendered output for versioned sites (auto-enabled when directive_cache provided).
         """
-        # Pre-render children
+        # Pre-render children (needed for both cache key and rendering)
         children_sb = StringBuilder()
         for child in node.children:
             self._render_block(child, children_sb)
         rendered_children = children_sb.build()
 
+        # Check directive cache (enabled for versioned sites)
+        cache_key: str | None = None
+        if self._directive_cache:
+            # Content-based cache key: name + title + options + children content hash
+            options_str = repr(node.options) if node.options else ""
+            cache_key = f"{node.name}:{node.title or ''}:{options_str}:{hash(rendered_children)}"
+            cached = self._directive_cache.get("directive_html", cache_key)
+            if cached:
+                sb.append(cached)
+                return
+
         # Check for registered handler
+        result_sb = StringBuilder()
         if self._directive_registry:
             handler = self._directive_registry.get(node.name)
             if handler and hasattr(handler, "render"):
@@ -310,58 +337,108 @@ class HtmlRenderer:
                     handler.render(
                         node,
                         rendered_children,
-                        sb,
+                        result_sb,
                         render_child_directive=self._render_block,
                     )
                 else:
-                    handler.render(node, rendered_children, sb)
+                    handler.render(node, rendered_children, result_sb)
+
+                result = result_sb.build()
+                if cache_key and self._directive_cache:
+                    self._directive_cache.put("directive_html", cache_key, result)
+                sb.append(result)
                 return
 
         # Default rendering
-        sb.append(f'<div class="directive directive-{_escape_attr(node.name)}">')
+        result_sb.append(f'<div class="directive directive-{_escape_attr(node.name)}">')
         if node.title:
-            sb.append(f'<p class="directive-title">{_escape_html(node.title)}</p>')
-        sb.append(rendered_children)
-        sb.append("</div>\n")
+            result_sb.append(f'<p class="directive-title">{_escape_html(node.title)}</p>')
+        result_sb.append(rendered_children)
+        result_sb.append("</div>\n")
 
-    def _render_fenced_code(self, code: str, info: str | None, sb: StringBuilder) -> None:
-        """Render fenced code block with optional highlighting."""
+        result = result_sb.build()
+        if cache_key and self._directive_cache:
+            self._directive_cache.put("directive_html", cache_key, result)
+        sb.append(result)
+
+    def _render_fenced_code(
+        self,
+        node: FencedCode,
+        sb: StringBuilder,
+    ) -> None:
+        """Render fenced code block with optional zero-copy highlighting."""
+        info = node.info
         if info:
             lang = info.split()[0].lower()
             if lang == "mermaid":
-                sb.append(f'<div class="mermaid">{_escape_html(code)}</div>\n')
+                sb.append(
+                    f'<div class="mermaid">{_escape_html(node.get_code(self._source))}</div>\n'
+                )
                 return
 
+        # Attempt syntax highlighting via delegate (ZCLH protocol)
+        if self._delegate and info:
+            lang = info.split()[0].lower()
+            if self._delegate.supports_language(lang):
+                tokens = self._delegate.tokenize_range(
+                    self._source,
+                    node.source_start,
+                    node.source_end,
+                    lang,
+                )
+                self._render_highlighted_tokens(tokens, lang, sb)
+                return
+
+        # Fallback: internal highlighting or plain code
         if self._highlight and info:
-            highlighted = self._try_highlight(code, info)
+            highlighted = self._try_highlight_range(node.source_start, node.source_end, info)
             if highlighted:
-                # Rosettes doesn't add trailing newline before </code>, but mistune does
-                # Fix: insert newline before closing </code></pre></div>
+                # Rosettes parity: ensure trailing newline
                 if highlighted.endswith("</code></pre></div>"):
                     highlighted = highlighted[:-19] + "\n</code></pre></div>"
                 sb.append(highlighted)
                 return
 
-        # Plain code block
+        # Plain code block extraction
+        code = node.get_code(self._source)
         sb.append("<pre><code")
         if info:
-            # Extract language (first word of info string)
-            lang = info.split()[0] if info else ""
+            lang = info.split()[0]
             if lang:
                 sb.append(f' class="language-{_escape_attr(lang)}"')
         sb.append(">")
         sb.append(_escape_html(code))
-        # Ensure trailing newline in code content (matches mistune behavior)
         if code and not code.endswith("\n"):
             sb.append("\n")
         sb.append("</code></pre>\n")
 
-    def _try_highlight(self, code: str, info: str) -> str | None:
-        """Try to highlight code using Bengal's rosettes.
+    def _render_highlighted_tokens(
+        self,
+        tokens: Any,
+        language: str,
+        sb: StringBuilder,
+    ) -> None:
+        """Render tokens from a sub-lexer delegate."""
+        # This assumes tokens are compatible with rosettes format
+        # but we wrap them in standard containers for safety.
+        sb.append(f'<div class="highlight {self._highlight_style}"><pre>')
+        sb.append(f'<code class="language-{_escape_attr(language)}">')
 
-        Returns highlighted HTML or None if highlighting unavailable.
-        """
-        # Check rosettes availability (cached)
+        # Basic token rendering if not already stringified
+        for token in tokens:
+            if hasattr(token, "html"):
+                sb.append(token.html)
+            elif hasattr(token, "value"):
+                # Handle basic token objects (type, value)
+                cls = f' class="token {getattr(token, "type", "text")}"'
+                sb.append(f"<span{cls}>{_escape_html(token.value)}</span>")
+            else:
+                sb.append(_escape_html(str(token)))
+
+        sb.append("\n</code></pre></div>\n")
+
+    def _try_highlight_range(self, start: int, end: int, info: str) -> str | None:
+        """Try to highlight a source range using internal rosettes."""
         if self._rosettes_available is None:
             try:
                 from bengal.rendering.rosettes import highlight  # noqa: F401
@@ -381,12 +458,13 @@ class HtmlRenderer:
             from bengal.rendering.rosettes import highlight
 
             return highlight(
-                code,
+                self._source,
                 lang,
                 css_class_style=self._highlight_style,
+                start=start,
+                end=end,
             )
         except (LookupError, ValueError):
-            # Language not supported or other error
             return None
 
     def _render_inline_children(self, children: Sequence[Inline], sb: StringBuilder) -> None:

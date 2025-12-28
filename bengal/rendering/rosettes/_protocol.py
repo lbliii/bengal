@@ -48,12 +48,16 @@ class Lexer(Protocol):
         self,
         code: str,
         config: LexerConfig | None = None,
+        start: int = 0,
+        end: int | None = None,
     ) -> Iterator[Token]:
         """Tokenize source code into a stream of tokens.
 
         Args:
             code: The source code to tokenize.
             config: Optional lexer configuration.
+            start: Starting index in the source string.
+            end: Optional ending index in the source string.
 
         Yields:
             Token objects in order of appearance.
@@ -63,6 +67,8 @@ class Lexer(Protocol):
     def tokenize_fast(
         self,
         code: str,
+        start: int = 0,
+        end: int | None = None,
     ) -> Iterator[tuple[TokenType, str]]:
         """Fast tokenization without position tracking.
 
@@ -71,6 +77,8 @@ class Lexer(Protocol):
 
         Args:
             code: The source code to tokenize.
+            start: Starting index in the source string.
+            end: Optional ending index in the source string.
 
         Yields:
             (TokenType, value) tuples.

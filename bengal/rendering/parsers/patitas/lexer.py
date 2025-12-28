@@ -14,9 +14,13 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterator
 from enum import Enum, auto
+from typing import TYPE_CHECKING
 
 from bengal.rendering.parsers.patitas.location import SourceLocation
 from bengal.rendering.parsers.patitas.tokens import Token, TokenType
+
+if TYPE_CHECKING:
+    pass
 
 
 class LexerMode(Enum):
@@ -67,6 +71,7 @@ class Lexer:
         "_source_file",
         "_fence_char",
         "_fence_count",
+        "_fence_info",  # Language hint from fence start
         "_consumed_newline",
         "_saved_lineno",
         "_saved_col",
@@ -97,6 +102,13 @@ class Lexer:
         self._mode = LexerMode.BLOCK
         self._source_file = source_file
         self._text_transformer = text_transformer
+        self._fence_char = ""
+        self._fence_count = 0
+        self._fence_info = ""
+        self._consumed_newline = False
+        self._saved_lineno = 1
+        self._saved_col = 1
+        self._directive_stack = []
 
         # Fenced code state
         self._fence_char: str = ""
@@ -256,6 +268,7 @@ class Lexer:
             fence_char = self._fence_char
             self._fence_char = ""
             self._fence_count = 0
+            self._fence_info = ""
             yield Token(
                 TokenType.FENCED_CODE_END,
                 fence_char * 3,
@@ -276,6 +289,15 @@ class Lexer:
             content,
             self._location_from(line_start),
         )
+
+    def _handoff_to_delegate(self) -> Iterator[Token]:
+        # REMOVED: In line with updated RFC, handoff happens in the Renderer.
+        # This Lexer remains "dumb" and only emits offsets.
+        pass
+
+    def _find_closing_fence_pos(self) -> int:
+        # REMOVED: No longer needed by Lexer.
+        pass
 
     # =========================================================================
     # Line classification helpers (pure logic, no position mutation)
@@ -355,6 +377,7 @@ class Lexer:
         # Valid fence - update state
         self._fence_char = fence_char
         self._fence_count = count
+        self._fence_info = info.split()[0] if info else ""
         self._mode = LexerMode.CODE_FENCE
 
         value = fence_char * count + (info if info else "")
@@ -955,18 +978,21 @@ class Lexer:
         return SourceLocation(
             lineno=self._lineno,
             col_offset=self._col,
+            offset=self._pos,
+            end_offset=self._pos,
             source_file=self._source_file,
         )
 
-    def _location_from(self, start_pos: int) -> SourceLocation:  # noqa: ARG002
+    def _location_from(self, start_pos: int) -> SourceLocation:
         """Get source location from saved position.
 
         O(1) - uses pre-saved location from _save_location() call.
-        The start_pos parameter is kept for API compatibility but not used.
         """
         return SourceLocation(
             lineno=self._saved_lineno,
             col_offset=self._saved_col,
+            offset=start_pos,
+            end_offset=self._pos,
             end_lineno=self._lineno,
             end_col_offset=self._col,
             source_file=self._source_file,

@@ -104,6 +104,9 @@ class TokenType(Enum):
     FOOTNOTE_REF = auto()  # [^id]
     FOOTNOTE_DEF = auto()  # [^id]:
 
+    # Zero-Copy Lexer Handoff (ZCLH)
+    SUB_LEXER_TOKENS = auto()  # Delegated tokens from a sub-lexer
+
 
 @dataclass(frozen=True, slots=True)
 class Token:

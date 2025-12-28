@@ -130,12 +130,17 @@ class PatitasParser(BaseMarkdownParser):
 
             return html
         except Exception as e:
+            source_path = metadata.get("_source_path", "unknown")
             logger.warning(
                 "patitas_parsing_error",
                 error=str(e),
                 error_type=type(e).__name__,
+                path=source_path,
+                hint="Verify that the source buffer is being passed correctly for ZCLH zero-copy extraction."
+                if "source" in str(e) and isinstance(e, TypeError)
+                else None,
             )
-            return f'<div class="markdown-error"><p><strong>Markdown parsing error:</strong> {e}</p><pre>{content}</pre></div>'
+            return f'<div class="markdown-error"><p><strong>Markdown parsing error in {source_path}:</strong> {e}</p><pre>{content[:500]}...</pre></div>'
 
     def parse_with_toc(self, content: str, metadata: dict[str, Any]) -> tuple[str, str]:
         """Parse Markdown content and extract table of contents.
@@ -154,7 +159,7 @@ class PatitasParser(BaseMarkdownParser):
         ast = self._md.parse_to_ast(content)
 
         # Render HTML
-        html = self._md.render_ast(ast)
+        html = self._md.render_ast(ast, content)
 
         # Post-process cross-references if enabled
         html = self._apply_post_processing(html, metadata)
@@ -208,12 +213,17 @@ class PatitasParser(BaseMarkdownParser):
             return html
 
         except Exception as e:
+            source_path = metadata.get("_source_path", "unknown")
             logger.warning(
                 "patitas_parsing_error_with_context",
                 error=str(e),
                 error_type=type(e).__name__,
+                path=source_path,
+                hint="Variable substitution or zero-copy handoff may be missing required arguments."
+                if isinstance(e, TypeError)
+                else None,
             )
-            return f'<div class="markdown-error"><p><strong>Markdown parsing error:</strong> {e}</p><pre>{content}</pre></div>'
+            return f'<div class="markdown-error"><p><strong>Markdown parsing error in {source_path}:</strong> {e}</p><pre>{content[:500]}...</pre></div>'
 
     def parse_with_toc_and_context(
         self, content: str, metadata: dict[str, Any], context: dict[str, Any]
@@ -245,7 +255,7 @@ class PatitasParser(BaseMarkdownParser):
             ast = self._md.parse_to_ast(content, text_transformer=var_plugin.substitute_variables)
 
             # 3. Render to HTML
-            html = self._md.render_ast(ast)
+            html = self._md.render_ast(ast, content)
 
             # 4. Restore placeholders
             html = var_plugin.restore_placeholders(html)
@@ -260,13 +270,18 @@ class PatitasParser(BaseMarkdownParser):
             return html, toc
 
         except Exception as e:
+            source_path = metadata.get("_source_path", "unknown")
             logger.warning(
                 "patitas_parsing_error_with_toc_and_context",
                 error=str(e),
                 error_type=type(e).__name__,
+                path=source_path,
+                hint="TOC extraction with ZCLH requires the source buffer to be passed to render_ast()."
+                if "source" in str(e) and isinstance(e, TypeError)
+                else None,
             )
             return (
-                f'<div class="markdown-error"><p><strong>Markdown parsing error:</strong> {e}</p><pre>{content}</pre></div>',
+                f'<div class="markdown-error"><p><strong>Markdown parsing error in {source_path}:</strong> {e}</p><pre>{content[:500]}...</pre></div>',
                 "",
             )
 

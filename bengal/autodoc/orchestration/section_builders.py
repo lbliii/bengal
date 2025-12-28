@@ -304,9 +304,7 @@ def create_openapi_sections(
             root_metadata["tags"] = getattr(typed_meta, "tags", ())
         root_metadata["description"] = overview_element.description or "REST API documentation."
         root_metadata["overview_element"] = overview_element
-        # Use overview element's name (API title) for display name if not configured
-        if not openapi_config.get("display_name") and overview_element.name:
-            display_name = overview_element.name
+        # Don't override display_name with element name - use config or default only
 
     # Create root OpenAPI section (always new, never reuse)
     api_section = Section.create_virtual(

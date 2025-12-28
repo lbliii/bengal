@@ -16,12 +16,12 @@ class TestRendererBasics:
 
     def test_empty_input(self, render_nodes):
         """Empty AST produces empty output."""
-        html = render_nodes(())
+        html = render_nodes((), source="")
         assert html == ""
 
     def test_renderer_creates_new_stringbuilder(self):
         """Each render call creates new StringBuilder."""
-        renderer = HtmlRenderer()
+        renderer = HtmlRenderer(source="")
         html1 = renderer.render(())
         html2 = renderer.render(())
         assert html1 == html2 == ""
@@ -257,8 +257,9 @@ class TestIterBlocks:
 
     def test_iter_blocks(self):
         """iter_blocks yields per-block HTML."""
-        ast = parse_to_ast("# One\n\n# Two\n\n# Three")
-        renderer = HtmlRenderer()
+        source = "# One\n\n# Two\n\n# Three"
+        ast = parse_to_ast(source)
+        renderer = HtmlRenderer(source)
         blocks = list(renderer.iter_blocks(ast))
         assert len(blocks) == 3
         assert all("<h1>" in block for block in blocks)

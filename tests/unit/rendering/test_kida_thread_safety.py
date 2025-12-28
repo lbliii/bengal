@@ -57,7 +57,10 @@ def test_kida_no_globals_leakage():
     # 1. Render with a variable
     engine.render_string("{{ secret }}", {"secret": "X"})
 
-    # 2. Render WITHOUT the variable - should fail/be empty, not "X"
-    # Kida by default is strict, so it should raise or be empty if strict=False
-    with pytest.raises((KeyError, NameError, LookupError)):  # Kida is strict by default
+    # 2. Render WITHOUT the variable - should fail, not leak "X" from previous render
+    # Kida by default is strict, so it should raise UndefinedError
+    from bengal.errors.exceptions import BengalRenderingError
+    from bengal.rendering.kida.environment.exceptions import UndefinedError
+
+    with pytest.raises((UndefinedError, BengalRenderingError)):
         engine.render_string("{{ secret }}", {})

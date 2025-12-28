@@ -211,7 +211,9 @@ class ContentDiscovery:
         max_workers = get_optimal_workers(
             100,  # Estimate - content discovery typically processes many files
             workload_type=WorkloadType.IO_BOUND,
-            config_override=self.site.config.get("max_workers"),
+            config_override=self.site.config.get("max_workers")
+            if self.site and self.site.config
+            else None,
         )
         self._executor = ThreadPoolExecutor(max_workers=max_workers)
 

@@ -61,6 +61,48 @@ from bengal.utils.logger import get_logger, truncate_error
 logger = get_logger(__name__)
 
 
+def _configure_directive_cache_for_versions(site: Site) -> None:
+    """Auto-enable directive cache for versioned sites.
+
+    Versioned sites benefit from directive caching because identical
+    directive blocks appear across multiple versions. Cache provides
+    3-5x speedup for repeated directive content.
+
+    Single-version sites skip caching (no benefit, adds overhead).
+    """
+    from bengal.directives.cache import configure_cache
+
+    version_config = getattr(site, "version_config", None)
+    if not version_config:
+        return
+
+    # Check for explicit config override
+    build_config = site.config.get("build", {}) or {}
+    cache_override = build_config.get("directive_cache")
+
+    if cache_override is not None:
+        # Explicit config: respect user preference
+        configure_cache(enabled=bool(cache_override))
+        logger.debug(
+            "directive_cache_configured",
+            enabled=bool(cache_override),
+            reason="explicit_config",
+        )
+        return
+
+    # Auto-detect: enable if multiple versions
+    if version_config.enabled and len(version_config.versions) > 1:
+        configure_cache(enabled=True)
+        logger.debug(
+            "directive_cache_auto_enabled",
+            versions=len(version_config.versions),
+            reason="multiple_versions_detected",
+        )
+    else:
+        # Single version or no versioning: disable (avoid overhead)
+        configure_cache(enabled=False)
+
+
 class RenderingPipeline:
     """
     Coordinates the entire rendering process for content pages.
@@ -135,6 +177,10 @@ class RenderingPipeline:
             build_context: Optional BuildContext for dependency injection
         """
         self.site = site
+
+        # Auto-enable directive cache for versioned sites (3-5x speedup on repeated directives)
+        _configure_directive_cache_for_versions(site)
+
         # Get markdown engine from config (default: mistune)
         markdown_engine = site.config.get("markdown_engine")
         if not markdown_engine:

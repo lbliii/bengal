@@ -272,7 +272,7 @@ TAB_SET_CONTRACT = DirectiveContract(
 
 # Tab item must be inside tab-set
 TAB_ITEM_CONTRACT = DirectiveContract(
-    allows_parent=("tab-set", "tabs"),
+    requires_parent=("tab-set", "tabs"),
 )
 
 # Dropdown has no restrictions

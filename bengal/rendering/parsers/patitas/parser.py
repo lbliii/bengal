@@ -227,7 +227,7 @@ class Parser:
         )
 
     def _parse_fenced_code(self) -> FencedCode:
-        """Parse fenced code block."""
+        """Parse fenced code block with zero-copy coordinates."""
         start_token = self._current
         assert start_token is not None and start_token.type == TokenType.FENCED_CODE_START
         self._advance()
@@ -247,30 +247,38 @@ class Parser:
         if info_str:
             info = info_str
 
-        # Collect content
-        content_parts: list[str] = []
+        # Track content boundaries (ZERO-COPY: no string accumulation)
+        content_start: int | None = None
+        content_end: int = 0
+
         while not self._at_end():
             token = self._current
             assert token is not None
 
             if token.type == TokenType.FENCED_CODE_END:
+                # If we have no content tokens, content_end should be where the fence ends
+                if content_start is None:
+                    content_start = start_token.location.end_offset
+                    content_end = content_start
                 self._advance()
                 break
             elif token.type == TokenType.FENCED_CODE_CONTENT:
-                content_parts.append(token.value)
+                if content_start is None:
+                    content_start = token.location.offset
+                content_end = token.location.end_offset
+                self._advance()
+            elif token.type == TokenType.SUB_LEXER_TOKENS:
+                # This shouldn't happen in the new "dumb" lexer mode,
+                # but we handle it for robustness if someone uses an old lexer.
                 self._advance()
             else:
                 # Unexpected token, stop
                 break
 
-        code = "".join(content_parts)
-        # Remove trailing newline if present
-        if code.endswith("\n"):
-            code = code[:-1]
-
         return FencedCode(
             location=start_token.location,
-            code=code,
+            source_start=content_start if content_start is not None else 0,
+            source_end=content_end,
             info=info,
             marker=marker,  # type: ignore[arg-type]
         )

@@ -266,15 +266,29 @@ class Paragraph(Node):
 
 @dataclass(frozen=True, slots=True)
 class FencedCode(Node):
-    """Fenced code block.
+    """Fenced code block with zero-copy source reference.
 
-    Markdown: ```lang\\ncode\\n```
-    HTML: <pre><code class="language-lang">code</code></pre>
+    BREAKING CHANGE (v0.4.0):
+        Previous: code: str (extracted content)
+        Current:  source_start/source_end indices into original source
+
+    Migration:
+        Old: block.code
+        New: block.get_code(source)
     """
 
-    code: str
+    source_start: int
+    source_end: int
     info: str | None = None
     marker: Literal["`", "~"] = "`"
+
+    def get_code(self, source: str) -> str:
+        """Extract code content (creates new string)."""
+        return source[self.source_start : self.source_end]
+
+    def code_length(self) -> int:
+        """Length of code content without allocation."""
+        return self.source_end - self.source_start
 
 
 @dataclass(frozen=True, slots=True)

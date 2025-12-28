@@ -45,7 +45,7 @@ class TreeStateMachineLexer(StateMachineLexer):
         pos = 0
         length = len(code)
         line = 1
-        line_start = 0
+        line_start = start
 
         while pos < length:
             char = code[pos]
