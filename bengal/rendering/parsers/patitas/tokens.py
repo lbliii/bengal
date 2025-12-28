@@ -87,6 +87,23 @@ class TokenType(Enum):
     # Role system (MyST-compatible)
     ROLE = auto()  # {role}`content`
 
+    # Plugin tokens - Tables (GFM)
+    TABLE_ROW = auto()  # | cell | cell |
+    TABLE_DELIMITER = auto()  # |---|---|
+
+    # Plugin tokens - Strikethrough
+    STRIKETHROUGH_MARKER = auto()  # ~~
+
+    # Plugin tokens - Math
+    MATH_INLINE = auto()  # $...$
+    MATH_BLOCK_START = auto()  # $$
+    MATH_BLOCK_END = auto()  # $$
+    MATH_BLOCK_CONTENT = auto()
+
+    # Plugin tokens - Footnotes
+    FOOTNOTE_REF = auto()  # [^id]
+    FOOTNOTE_DEF = auto()  # [^id]:
+
 
 @dataclass(frozen=True, slots=True)
 class Token:

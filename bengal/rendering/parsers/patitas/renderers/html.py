@@ -20,6 +20,8 @@ from bengal.rendering.parsers.patitas.nodes import (
     Directive,
     Emphasis,
     FencedCode,
+    FootnoteDef,
+    FootnoteRef,
     Heading,
     HtmlBlock,
     HtmlInline,
@@ -30,10 +32,15 @@ from bengal.rendering.parsers.patitas.nodes import (
     Link,
     List,
     ListItem,
+    Math,
+    MathBlock,
     Paragraph,
     Role,
     SoftBreak,
+    Strikethrough,
     Strong,
+    Table,
+    TableRow,
     Text,
     ThematicBreak,
 )
@@ -159,6 +166,19 @@ class HtmlRenderer:
             case Directive() as directive:
                 self._render_directive(directive, sb)
 
+            case Table() as table:
+                self._render_table(table, sb)
+
+            case MathBlock(content=content):
+                # Render as div with math-block class (for MathJax/KaTeX)
+                sb.append('<div class="math-block">\n')
+                sb.append(_escape_html(content))
+                sb.append("\n</div>\n")
+
+            case FootnoteDef():
+                # Footnote definitions are collected and rendered at document end
+                pass  # Handled in post-processing
+
     def _render_list_item(self, item: ListItem, sb: StringBuilder, tight: bool) -> None:
         """Render a list item."""
         sb.append("<li>")
@@ -181,6 +201,48 @@ class HtmlRenderer:
                 self._render_block(child, sb)
 
         sb.append("</li>\n")
+
+    def _render_table(self, table: Table, sb: StringBuilder) -> None:
+        """Render a table with thead and tbody."""
+        sb.append("<table>\n")
+
+        # Render header rows
+        if table.head:
+            sb.append("<thead>\n")
+            for row in table.head:
+                self._render_table_row(row, table.alignments, sb, is_header=True)
+            sb.append("</thead>\n")
+
+        # Render body rows
+        if table.body:
+            sb.append("<tbody>\n")
+            for row in table.body:
+                self._render_table_row(row, table.alignments, sb, is_header=False)
+            sb.append("</tbody>\n")
+
+        sb.append("</table>\n")
+
+    def _render_table_row(
+        self,
+        row: TableRow,
+        alignments: tuple[str | None, ...],
+        sb: StringBuilder,
+        is_header: bool,
+    ) -> None:
+        """Render a table row."""
+        sb.append("<tr>")
+        tag = "th" if is_header else "td"
+
+        for i, cell in enumerate(row.cells):
+            align = alignments[i] if i < len(alignments) else None
+            if align:
+                sb.append(f'<{tag} style="text-align: {align}">')
+            else:
+                sb.append(f"<{tag}>")
+            self._render_inline_children(cell.children, sb)
+            sb.append(f"</{tag}>")
+
+        sb.append("</tr>\n")
 
     def _render_directive(self, node: Directive, sb: StringBuilder) -> None:
         """Render a directive block.
@@ -363,6 +425,30 @@ def _render_role(node: Role, sb: StringBuilder, render_children) -> None:
     )
 
 
+# =============================================================================
+# Plugin inline dispatch handlers
+# =============================================================================
+
+
+def _render_strikethrough(node: Strikethrough, sb: StringBuilder, render_children) -> None:
+    sb.append("<del>")
+    render_children(node.children, sb)
+    sb.append("</del>")
+
+
+def _render_math(node: Math, sb: StringBuilder, render_children) -> None:
+    # Inline math - rendered with span.math class for MathJax/KaTeX
+    sb.append(f'<span class="math">{_escape_html(node.content)}</span>')
+
+
+def _render_footnote_ref(node: FootnoteRef, sb: StringBuilder, render_children) -> None:
+    # Footnote reference - links to footnote definition
+    identifier = _escape_attr(node.identifier)
+    sb.append(
+        f'<sup><a href="#fn-{identifier}" id="fnref-{identifier}">{_escape_html(node.identifier)}</a></sup>'
+    )
+
+
 # Type -> handler dispatch table (O(1) lookup, faster than match)
 _INLINE_DISPATCH = {
     Text: _render_text,
@@ -375,4 +461,8 @@ _INLINE_DISPATCH = {
     SoftBreak: _render_soft_break,
     HtmlInline: _render_html_inline,
     Role: _render_role,
+    # Plugin nodes
+    Strikethrough: _render_strikethrough,
+    Math: _render_math,
+    FootnoteRef: _render_footnote_ref,
 }

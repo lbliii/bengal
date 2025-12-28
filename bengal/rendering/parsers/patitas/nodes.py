@@ -176,9 +176,59 @@ class Role(Node):
     target: str | None = None
 
 
+# =============================================================================
+# Plugin Inline Nodes
+# =============================================================================
+
+
+@dataclass(frozen=True, slots=True)
+class Strikethrough(Node):
+    """Strikethrough (deleted) text.
+
+    Markdown: ~~deleted~~
+    HTML: <del>deleted</del>
+    """
+
+    children: tuple[Inline, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class Math(Node):
+    """Inline math expression.
+
+    Markdown: $E = mc^2$
+    HTML: <span class="math">E = mc^2</span>
+    """
+
+    content: str
+
+
+@dataclass(frozen=True, slots=True)
+class FootnoteRef(Node):
+    """Footnote reference.
+
+    Markdown: [^1] or [^note]
+    HTML: <sup><a href="#fn-1">1</a></sup>
+    """
+
+    identifier: str
+
+
 # Type alias for inline elements
 Inline = (
-    Text | Emphasis | Strong | Link | Image | CodeSpan | LineBreak | SoftBreak | HtmlInline | Role
+    Text
+    | Emphasis
+    | Strong
+    | Strikethrough
+    | Link
+    | Image
+    | CodeSpan
+    | LineBreak
+    | SoftBreak
+    | HtmlInline
+    | Role
+    | Math
+    | FootnoteRef
 )
 
 
@@ -318,6 +368,80 @@ class Document(Node):
     children: tuple[Block, ...]
 
 
+# =============================================================================
+# Plugin Block Nodes
+# =============================================================================
+
+
+@dataclass(frozen=True, slots=True)
+class TableCell(Node):
+    """Table cell (th or td).
+
+    Markdown: | cell content |
+    HTML: <td>cell content</td> or <th>cell content</th>
+    """
+
+    children: tuple[Inline, ...]
+    is_header: bool = False
+    align: Literal["left", "center", "right"] | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class TableRow(Node):
+    """Table row.
+
+    Markdown: | cell1 | cell2 |
+    HTML: <tr><td>cell1</td><td>cell2</td></tr>
+    """
+
+    cells: tuple[TableCell, ...]
+    is_header: bool = False
+
+
+@dataclass(frozen=True, slots=True)
+class Table(Node):
+    """Table (GFM-style).
+
+    Markdown:
+        | A | B |
+        |---|---|
+        | 1 | 2 |
+
+    HTML: <table>...</table>
+    """
+
+    head: tuple[TableRow, ...]  # Header rows (usually 1)
+    body: tuple[TableRow, ...]  # Body rows
+    alignments: tuple[Literal["left", "center", "right"] | None, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class MathBlock(Node):
+    """Block math expression.
+
+    Markdown:
+        $$
+        E = mc^2
+        $$
+
+    HTML: <div class="math-block">E = mc^2</div>
+    """
+
+    content: str
+
+
+@dataclass(frozen=True, slots=True)
+class FootnoteDef(Node):
+    """Footnote definition.
+
+    Markdown: [^1]: Footnote content here.
+    HTML: (rendered in footnotes section)
+    """
+
+    identifier: str
+    children: tuple[Block, ...]
+
+
 # Type alias for block elements
 Block = (
     Document
@@ -331,4 +455,7 @@ Block = (
     | ThematicBreak
     | HtmlBlock
     | Directive
+    | Table
+    | MathBlock
+    | FootnoteDef
 )

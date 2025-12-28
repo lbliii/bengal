@@ -30,17 +30,23 @@ from bengal.rendering.parsers.patitas.nodes import (
     Link,
     List,
     ListItem,
+    Math,
     Paragraph,
     Role,
     SoftBreak,
+    Strikethrough,
     Strong,
+    Table,
+    TableCell,
+    TableRow,
     Text,
     ThematicBreak,
 )
 from bengal.rendering.parsers.patitas.tokens import Token, TokenType
 
 # Frozenset for O(1) special character lookup in inline parsing
-_INLINE_SPECIAL_CHARS = frozenset("*_`[!\\\n<{")
+# Note: ~ added for strikethrough, $ added for math (when enabled)
+_INLINE_SPECIAL_CHARS = frozenset("*_`[!\\\n<{~$")
 
 
 class Parser:
@@ -59,7 +65,20 @@ class Parser:
         Safe to share AST across threads.
     """
 
-    __slots__ = ("_source", "_tokens", "_pos", "_current", "_source_file")
+    __slots__ = (
+        "_source",
+        "_tokens",
+        "_pos",
+        "_current",
+        "_source_file",
+        # Plugin flags - set by Markdown class
+        "_tables_enabled",
+        "_strikethrough_enabled",
+        "_task_lists_enabled",
+        "_footnotes_enabled",
+        "_math_enabled",
+        "_autolinks_enabled",
+    )
 
     def __init__(self, source: str, source_file: str | None = None) -> None:
         """Initialize parser with source text.
@@ -73,6 +92,14 @@ class Parser:
         self._tokens: list[Token] = []
         self._pos = 0
         self._current: Token | None = None
+
+        # Plugin flags - default to disabled, set by Markdown class
+        self._tables_enabled = False
+        self._strikethrough_enabled = False
+        self._task_lists_enabled = False
+        self._footnotes_enabled = False
+        self._math_enabled = False
+        self._autolinks_enabled = False
 
     def parse(self) -> Sequence[Block]:
         """Parse source into AST blocks.
@@ -368,8 +395,12 @@ class Parser:
 
         return IndentedCode(location=start_token.location, code=code)
 
-    def _parse_paragraph(self) -> Paragraph:
-        """Parse paragraph (consecutive text lines)."""
+    def _parse_paragraph(self) -> Paragraph | Table:
+        """Parse paragraph (consecutive text lines) or table.
+
+        If tables are enabled and lines form a valid GFM table, returns Table.
+        Otherwise returns Paragraph.
+        """
         start_token = self._current
         assert start_token is not None and start_token.type == TokenType.PARAGRAPH_LINE
 
@@ -385,10 +416,180 @@ class Parser:
             else:
                 break
 
+        # Check for table structure if tables enabled
+        if self._tables_enabled and len(lines) >= 2 and "|" in lines[0]:
+            table = self._try_parse_table(lines, start_token.location)
+            if table:
+                return table
+
         content = "\n".join(lines)
         children = self._parse_inline(content, start_token.location)
 
         return Paragraph(location=start_token.location, children=children)
+
+    def _try_parse_table(self, lines: list[str], location: SourceLocation) -> Table | None:
+        """Try to parse lines as a GFM table.
+
+        GFM table structure:
+        | Header 1 | Header 2 |   <- header row
+        |----------|----------|   <- delimiter row (required)
+        | Cell 1   | Cell 2   |   <- body rows
+
+        Returns Table if valid, None if not a table.
+        """
+        if len(lines) < 2:
+            return None
+
+        # Parse potential header row
+        header_cells = self._parse_table_row(lines[0])
+        if not header_cells:
+            return None
+
+        # Check delimiter row (second line)
+        delimiter_row = lines[1].strip()
+        alignments = self._parse_table_delimiter(delimiter_row, len(header_cells))
+        if alignments is None:
+            return None
+
+        # Parse header row cells as inline content
+        header_row = TableRow(
+            location=location,
+            cells=tuple(
+                TableCell(
+                    location=location,
+                    children=self._parse_inline(cell.strip(), location),
+                    is_header=True,
+                    align=alignments[i] if i < len(alignments) else None,
+                )
+                for i, cell in enumerate(header_cells)
+            ),
+            is_header=True,
+        )
+
+        # Parse body rows
+        body_rows: list[TableRow] = []
+        for line in lines[2:]:
+            row_cells = self._parse_table_row(line)
+            if row_cells:
+                body_rows.append(
+                    TableRow(
+                        location=location,
+                        cells=tuple(
+                            TableCell(
+                                location=location,
+                                children=self._parse_inline(cell.strip(), location),
+                                is_header=False,
+                                align=alignments[i] if i < len(alignments) else None,
+                            )
+                            for i, cell in enumerate(row_cells)
+                        ),
+                        is_header=False,
+                    )
+                )
+
+        return Table(
+            location=location,
+            head=(header_row,),
+            body=tuple(body_rows),
+            alignments=alignments,
+        )
+
+    def _parse_table_row(self, line: str) -> list[str] | None:
+        """Parse a table row into cells.
+
+        Returns list of cell contents, or None if not a valid row.
+        """
+        line = line.strip()
+
+        # Must contain at least one pipe
+        if "|" not in line:
+            return None
+
+        # Remove leading/trailing pipes
+        if line.startswith("|"):
+            line = line[1:]
+        if line.endswith("|"):
+            line = line[:-1]
+
+        # Split on unescaped pipes
+        cells: list[str] = []
+        current_cell = []
+        i = 0
+        while i < len(line):
+            if line[i] == "\\" and i + 1 < len(line) and line[i + 1] == "|":
+                # Escaped pipe
+                current_cell.append("|")
+                i += 2
+            elif line[i] == "|":
+                cells.append("".join(current_cell))
+                current_cell = []
+                i += 1
+            else:
+                current_cell.append(line[i])
+                i += 1
+
+        # Add last cell
+        cells.append("".join(current_cell))
+
+        return cells if cells else None
+
+    def _parse_table_delimiter(
+        self, line: str, expected_cols: int
+    ) -> tuple[str | None, ...] | None:
+        """Parse table delimiter row and extract alignments.
+
+        Delimiter format: |:---|:---:|---:|
+        Returns tuple of alignments ('left', 'center', 'right', None).
+        Returns None if not a valid delimiter row.
+        """
+        line = line.strip()
+
+        # Remove leading/trailing pipes
+        if line.startswith("|"):
+            line = line[1:]
+        if line.endswith("|"):
+            line = line[:-1]
+
+        parts = line.split("|")
+        if not parts:
+            return None
+
+        alignments: list[str | None] = []
+        for part in parts:
+            part = part.strip()
+            if not part:
+                continue
+
+            # Check for valid delimiter pattern: at least one dash
+            has_left_colon = part.startswith(":")
+            has_right_colon = part.endswith(":")
+
+            # Remove colons to check dashes
+            inner = part
+            if has_left_colon:
+                inner = inner[1:]
+            if has_right_colon:
+                inner = inner[:-1]
+
+            # Must have at least one dash
+            if not inner or not all(c == "-" for c in inner):
+                return None
+
+            # Determine alignment
+            if has_left_colon and has_right_colon:
+                alignments.append("center")
+            elif has_left_colon:
+                alignments.append("left")
+            elif has_right_colon:
+                alignments.append("right")
+            else:
+                alignments.append(None)
+
+        # Must have at least one column
+        if not alignments:
+            return None
+
+        return tuple(alignments)
 
     def _parse_directive(self) -> Directive:
         """Parse directive block (:::{name} ... :::)."""
@@ -637,6 +838,51 @@ class Parser:
                     pos += 1
                     continue
 
+            # Strikethrough: ~~text~~ (when enabled)
+            if char == "~" and self._strikethrough_enabled:
+                if pos + 1 < text_len and text[pos + 1] == "~":
+                    # Found ~~, treat as delimiter
+                    pos += 2
+
+                    # Determine flanking status
+                    before = text[pos - 3] if pos > 2 else " "
+                    after = text[pos] if pos < text_len else " "
+
+                    left_flanking = self._is_left_flanking(before, after, "~")
+                    right_flanking = self._is_right_flanking(before, after, "~")
+
+                    tokens_append(
+                        {
+                            "type": "delimiter",
+                            "char": "~",
+                            "count": 2,
+                            "original_count": 2,
+                            "can_open": left_flanking,
+                            "can_close": right_flanking,
+                            "active": True,
+                        }
+                    )
+                    continue
+                else:
+                    # Single ~, emit as text
+                    tokens_append({"type": "text", "content": "~"})
+                    pos += 1
+                    continue
+
+            # Math: $inline$ or $$block$$ (when enabled)
+            if char == "$" and self._math_enabled:
+                math_result = self._try_parse_math(text, pos, location)
+                if math_result:
+                    node, new_pos = math_result
+                    tokens_append({"type": "node", "node": node})
+                    pos = new_pos
+                    continue
+                else:
+                    # Not valid math, emit $ as literal text
+                    tokens_append({"type": "text", "content": "$"})
+                    pos += 1
+                    continue
+
             # Regular text - accumulate using set lookup (O(1) per char)
             text_start = pos
             # Use a frozenset for faster membership testing
@@ -815,16 +1061,20 @@ class Parser:
 
             elif token_type == "delimiter":
                 if "matched_with" in token and token["matched_with"] > idx:
-                    # This is an opener - build emphasis/strong
+                    # This is an opener - build emphasis/strong/strikethrough
                     closer_idx = token["matched_with"]
                     match_count = token["match_count"]
+                    delim_char = token.get("char", "*")
 
                     # Collect children between opener and closer
                     children = self._build_inline_ast(tokens[idx + 1 : closer_idx], location)
 
-                    # Build node
-                    if match_count == 2:
-                        node: Inline = Strong(location=location, children=children)
+                    # Build node based on delimiter character
+                    if delim_char == "~":
+                        # Strikethrough: ~~ always uses 2 tildes
+                        node: Inline = Strikethrough(location=location, children=children)
+                    elif match_count == 2:
+                        node = Strong(location=location, children=children)
                     else:
                         node = Emphasis(location=location, children=children)
 
@@ -1004,6 +1254,42 @@ class Parser:
             name=role_name,
             content=content,
         ), backtick_close + 1
+
+    def _try_parse_math(
+        self, text: str, pos: int, location: SourceLocation
+    ) -> tuple[Math, int] | None:
+        """Try to parse inline math at position.
+
+        Syntax: $expression$ (not $$, that's block math)
+
+        Returns (Math, new_position) or None if not valid math.
+        """
+        if text[pos] != "$":
+            return None
+
+        text_len = len(text)
+
+        # Check for $$ (block math delimiter - skip here, handled at block level)
+        if pos + 1 < text_len and text[pos + 1] == "$":
+            return None
+
+        # Find closing $
+        content_start = pos + 1
+        dollar_close = text.find("$", content_start)
+        if dollar_close == -1:
+            return None
+
+        # Content cannot be empty
+        content = text[content_start:dollar_close]
+        if not content:
+            return None
+
+        # Content cannot start or end with space (unless single char)
+        if len(content) > 1:
+            if content[0] == " " and content[-1] == " ":
+                return None
+
+        return Math(location=location, content=content), dollar_close + 1
 
     # =========================================================================
     # Token navigation

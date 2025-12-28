@@ -19,7 +19,7 @@ import re
 from typing import Any
 
 from bengal.rendering.parsers.base import BaseMarkdownParser
-from bengal.rendering.parsers.patitas import parse, parse_to_ast, render_ast
+from bengal.rendering.parsers.patitas import create_markdown, parse_to_ast
 from bengal.rendering.parsers.patitas.nodes import Block, Heading
 from bengal.utils.logger import get_logger
 
@@ -61,13 +61,29 @@ class PatitasParser(BaseMarkdownParser):
     - Cross-references
     """
 
-    def __init__(self, enable_highlighting: bool = True) -> None:
+    # Default plugins to enable (matches mistune's plugins)
+    DEFAULT_PLUGINS = ["table", "strikethrough", "task_lists", "math"]
+
+    def __init__(
+        self,
+        enable_highlighting: bool = True,
+        plugins: list[str] | None = None,
+    ) -> None:
         """Initialize the Patitas parser.
 
         Args:
             enable_highlighting: Enable syntax highlighting for code blocks
+            plugins: List of plugins to enable. Defaults to standard set:
+                     table, strikethrough, task_lists, math
         """
         self.enable_highlighting = enable_highlighting
+        self._plugins = plugins if plugins is not None else self.DEFAULT_PLUGINS
+
+        # Create configured markdown instance
+        self._md = create_markdown(
+            plugins=self._plugins,
+            highlight=enable_highlighting,
+        )
 
     def parse(self, content: str, metadata: dict[str, Any]) -> str:
         """Parse Markdown content into HTML.
@@ -83,7 +99,7 @@ class PatitasParser(BaseMarkdownParser):
             return ""
 
         try:
-            return parse(content, highlight=self.enable_highlighting)
+            return self._md(content)
         except Exception as e:
             logger.warning(
                 "patitas_parsing_error",
@@ -105,11 +121,11 @@ class PatitasParser(BaseMarkdownParser):
         if not content:
             return "", ""
 
-        # Parse to AST
-        ast = parse_to_ast(content)
+        # Parse to AST using configured markdown instance
+        ast = self._md.parse_to_ast(content)
 
         # Render HTML
-        html = render_ast(ast, highlight=self.enable_highlighting)
+        html = self._md.render_ast(ast)
 
         # Inject heading IDs and extract TOC
         html = self._inject_heading_ids(html)

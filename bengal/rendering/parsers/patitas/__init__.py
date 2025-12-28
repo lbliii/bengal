@@ -53,6 +53,8 @@ from bengal.rendering.parsers.patitas.nodes import (
     Document,
     Emphasis,
     FencedCode,
+    FootnoteDef,
+    FootnoteRef,
     Heading,
     HtmlBlock,
     HtmlInline,
@@ -63,10 +65,16 @@ from bengal.rendering.parsers.patitas.nodes import (
     Link,
     List,
     ListItem,
+    Math,
+    MathBlock,
     Node,
     Paragraph,
     Role,
+    Strikethrough,
     Strong,
+    Table,
+    TableCell,
+    TableRow,
     Text,
     ThematicBreak,
 )
@@ -89,7 +97,7 @@ __all__ = [
     "Token",
     "TokenType",
     "StringBuilder",
-    # AST Nodes
+    # AST Nodes - Core
     "Node",
     "Block",
     "Inline",
@@ -114,6 +122,15 @@ __all__ = [
     # Directive and Role nodes
     "Directive",
     "Role",
+    # Plugin AST Nodes
+    "Strikethrough",
+    "Table",
+    "TableRow",
+    "TableCell",
+    "Math",
+    "MathBlock",
+    "FootnoteRef",
+    "FootnoteDef",
 ]
 
 # Version
@@ -340,9 +357,36 @@ class Markdown:
 
     Thread-safe: can be shared across threads. Each __call__ creates
     independent parser/renderer instances.
+
+    Plugins:
+        Plugins are applied at construction time and modify the parser behavior:
+        - "table": GFM-style pipe tables
+        - "strikethrough": ~~deleted~~ syntax
+        - "task_lists": - [ ] checkbox syntax
+        - "footnotes": [^1] footnote references
+        - "math": $inline$ and $$block$$ math
+        - "autolinks": automatic URL and email detection
+        - "all": enable all plugins
     """
 
-    __slots__ = ("_plugins", "_highlight", "_highlight_style")
+    __slots__ = (
+        "_plugins",
+        "_highlight",
+        "_highlight_style",
+        "_plugins_enabled",
+    )
+
+    # Available plugins and their enabled flags
+    AVAILABLE_PLUGINS = frozenset(
+        {
+            "table",
+            "strikethrough",
+            "task_lists",
+            "footnotes",
+            "math",
+            "autolinks",
+        }
+    )
 
     def __init__(
         self,
@@ -354,6 +398,24 @@ class Markdown:
         self._highlight = highlight
         self._highlight_style = highlight_style
 
+        # Determine which plugins are enabled
+        if "all" in plugins:
+            self._plugins_enabled = frozenset(self.AVAILABLE_PLUGINS)
+        else:
+            enabled = set()
+            for plugin in plugins:
+                if plugin in self.AVAILABLE_PLUGINS:
+                    enabled.add(plugin)
+                elif plugin != "all":
+                    # Unknown plugin - warn but continue
+                    import warnings
+
+                    warnings.warn(
+                        f"Unknown plugin: {plugin!r}. Available: {sorted(self.AVAILABLE_PLUGINS)}",
+                        stacklevel=3,
+                    )
+            self._plugins_enabled = frozenset(enabled)
+
     def __call__(self, source: str) -> str:
         """Parse and render Markdown source to HTML.
 
@@ -363,21 +425,44 @@ class Markdown:
         Returns:
             Rendered HTML string
         """
-        ast = parse_to_ast(source)
-        return render_ast(
-            ast,
+        ast = self._parse_to_ast(source)
+        return self._render_ast(ast)
+
+    def _parse_to_ast(self, source: str) -> Sequence[Block]:
+        """Parse source to AST with plugins applied."""
+        from bengal.rendering.parsers.patitas.parser import Parser
+
+        parser = Parser(source)
+
+        # Apply plugin-specific flags
+        parser._tables_enabled = "table" in self._plugins_enabled
+        parser._strikethrough_enabled = "strikethrough" in self._plugins_enabled
+        parser._task_lists_enabled = "task_lists" in self._plugins_enabled
+        parser._footnotes_enabled = "footnotes" in self._plugins_enabled
+        parser._math_enabled = "math" in self._plugins_enabled
+        parser._autolinks_enabled = "autolinks" in self._plugins_enabled
+
+        return parser.parse()
+
+    def _render_ast(self, ast: Sequence[Block]) -> str:
+        """Render AST with configured options."""
+        from bengal.rendering.parsers.patitas.renderers.html import HtmlRenderer
+
+        renderer = HtmlRenderer(
             highlight=self._highlight,
             highlight_style=self._highlight_style,
         )
+        return renderer.render(ast)
 
     def parse_to_ast(self, source: str) -> Sequence[Block]:
         """Parse source to AST without rendering."""
-        return parse_to_ast(source)
+        return self._parse_to_ast(source)
 
     def render_ast(self, ast: Sequence[Block]) -> str:
         """Render AST to HTML."""
-        return render_ast(
-            ast,
-            highlight=self._highlight,
-            highlight_style=self._highlight_style,
-        )
+        return self._render_ast(ast)
+
+    @property
+    def plugins(self) -> frozenset[str]:
+        """Get enabled plugins."""
+        return self._plugins_enabled
