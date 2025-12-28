@@ -80,6 +80,13 @@ class DirectiveHandler(Protocol):
     options_class: ClassVar[type[DirectiveOptions]]
     """Class for typed options parsing. Defaults to DirectiveOptions."""
 
+    preserves_raw_content: ClassVar[bool]
+    """If True, parser will preserve raw content string in node.raw_content.
+
+    Set this to True for directives that need to parse raw content themselves
+    (e.g., gallery parsing image URLs from content).
+    """
+
     def parse(
         self,
         name: str,

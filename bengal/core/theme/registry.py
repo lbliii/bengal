@@ -311,4 +311,15 @@ def get_theme_package(slug: str) -> ThemePackage | None:
 
 
 def clear_theme_cache() -> None:
+    """Clear theme discovery cache."""
     get_installed_themes.cache_clear()
+
+
+# Register cache for centralized cleanup (prevents memory leaks in tests)
+try:
+    from bengal.utils.cache_registry import register_cache
+
+    register_cache("theme_cache", clear_theme_cache)
+except ImportError:
+    # Cache registry not available (shouldn't happen in normal usage)
+    pass

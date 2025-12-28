@@ -10,7 +10,7 @@ Thread Safety:
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 
 from bengal.rendering.parsers.patitas.lexer import Lexer
 from bengal.rendering.parsers.patitas.location import SourceLocation
@@ -21,6 +21,8 @@ from bengal.rendering.parsers.patitas.nodes import (
     Directive,
     Emphasis,
     FencedCode,
+    FootnoteDef,
+    FootnoteRef,
     Heading,
     HtmlInline,
     Image,
@@ -30,17 +32,23 @@ from bengal.rendering.parsers.patitas.nodes import (
     Link,
     List,
     ListItem,
+    Math,
     Paragraph,
     Role,
     SoftBreak,
+    Strikethrough,
     Strong,
+    Table,
+    TableCell,
+    TableRow,
     Text,
     ThematicBreak,
 )
 from bengal.rendering.parsers.patitas.tokens import Token, TokenType
 
 # Frozenset for O(1) special character lookup in inline parsing
-_INLINE_SPECIAL_CHARS = frozenset("*_`[!\\\n<{")
+# Note: ~ added for strikethrough, $ added for math (when enabled)
+_INLINE_SPECIAL_CHARS = frozenset("*_`[!\\\n<{~$")
 
 
 class Parser:
@@ -59,20 +67,64 @@ class Parser:
         Safe to share AST across threads.
     """
 
-    __slots__ = ("_source", "_tokens", "_pos", "_current", "_source_file")
+    __slots__ = (
+        "_source",
+        "_tokens",
+        "_pos",
+        "_current",
+        "_source_file",
+        # Transformation
+        "_text_transformer",
+        # Plugin flags - set by Markdown class
+        "_tables_enabled",
+        "_strikethrough_enabled",
+        "_task_lists_enabled",
+        "_footnotes_enabled",
+        "_math_enabled",
+        "_autolinks_enabled",
+        # Directive support
+        "_directive_registry",
+        "_directive_stack",
+        "_strict_contracts",
+    )
 
-    def __init__(self, source: str, source_file: str | None = None) -> None:
+    def __init__(
+        self,
+        source: str,
+        source_file: str | None = None,
+        *,
+        directive_registry=None,
+        strict_contracts: bool = False,
+        text_transformer: Callable[[str], str] | None = None,
+    ) -> None:
         """Initialize parser with source text.
 
         Args:
             source: Markdown source text
             source_file: Optional source file path for error messages
+            directive_registry: Optional directive registry for handler lookup
+            strict_contracts: If True, raise errors on contract violations
+            text_transformer: Optional callback to transform plain text lines
         """
         self._source = source
         self._source_file = source_file
         self._tokens: list[Token] = []
         self._pos = 0
         self._current: Token | None = None
+        self._text_transformer = text_transformer
+
+        # Plugin flags - default to disabled, set by Markdown class
+        self._tables_enabled = False
+        self._strikethrough_enabled = False
+        self._task_lists_enabled = False
+        self._footnotes_enabled = False
+        self._math_enabled = False
+        self._autolinks_enabled = False
+
+        # Directive support
+        self._directive_registry = directive_registry
+        self._directive_stack: list[str] = []
+        self._strict_contracts = strict_contracts
 
     def parse(self) -> Sequence[Block]:
         """Parse source into AST blocks.
@@ -84,7 +136,7 @@ class Parser:
             Returns immutable AST (frozen dataclasses).
         """
         # Tokenize source
-        lexer = Lexer(self._source, self._source_file)
+        lexer = Lexer(self._source, self._source_file, text_transformer=self._text_transformer)
         self._tokens = list(lexer.tokenize())
         self._pos = 0
         self._current = self._tokens[0] if self._tokens else None
@@ -135,6 +187,9 @@ class Parser:
             case TokenType.DIRECTIVE_OPEN:
                 return self._parse_directive()
 
+            case TokenType.FOOTNOTE_DEF:
+                return self._parse_footnote_def()
+
             case _:
                 # Skip unknown tokens
                 self._advance()
@@ -172,7 +227,7 @@ class Parser:
         )
 
     def _parse_fenced_code(self) -> FencedCode:
-        """Parse fenced code block."""
+        """Parse fenced code block with zero-copy coordinates."""
         start_token = self._current
         assert start_token is not None and start_token.type == TokenType.FENCED_CODE_START
         self._advance()
@@ -192,30 +247,38 @@ class Parser:
         if info_str:
             info = info_str
 
-        # Collect content
-        content_parts: list[str] = []
+        # Track content boundaries (ZERO-COPY: no string accumulation)
+        content_start: int | None = None
+        content_end: int = 0
+
         while not self._at_end():
             token = self._current
             assert token is not None
 
             if token.type == TokenType.FENCED_CODE_END:
+                # If we have no content tokens, content_end should be where the fence ends
+                if content_start is None:
+                    content_start = start_token.location.end_offset
+                    content_end = content_start
                 self._advance()
                 break
             elif token.type == TokenType.FENCED_CODE_CONTENT:
-                content_parts.append(token.value)
+                if content_start is None:
+                    content_start = token.location.offset
+                content_end = token.location.end_offset
+                self._advance()
+            elif token.type == TokenType.SUB_LEXER_TOKENS:
+                # This shouldn't happen in the new "dumb" lexer mode,
+                # but we handle it for robustness if someone uses an old lexer.
                 self._advance()
             else:
                 # Unexpected token, stop
                 break
 
-        code = "".join(content_parts)
-        # Remove trailing newline if present
-        if code.endswith("\n"):
-            code = code[:-1]
-
         return FencedCode(
             location=start_token.location,
-            code=code,
+            source_start=content_start if content_start is not None else 0,
+            source_end=content_end,
             info=info,
             marker=marker,  # type: ignore[arg-type]
         )
@@ -263,25 +326,40 @@ class Parser:
 
         return BlockQuote(location=start_token.location, children=())
 
-    def _parse_list(self) -> List:
-        """Parse list (unordered or ordered)."""
+    def _parse_list(self, parent_indent: int = -1) -> List:
+        """Parse list (unordered or ordered) with nested list support.
+
+        Args:
+            parent_indent: Indent level of parent list (-1 for top-level)
+
+        Handles:
+        - Nested lists via indentation tracking
+        - Task lists with [ ] and [x] markers
+        - Multi-line list items (continuation paragraphs)
+        - Loose lists (blank lines between items)
+        """
         start_token = self._current
         assert start_token is not None and start_token.type == TokenType.LIST_ITEM_MARKER
 
-        items: list[ListItem] = []
-        ordered = start_token.value[0].isdigit()
+        # Extract indent from marker value (spaces prefixed by lexer)
+        start_indent = self._get_marker_indent(start_token.value)
+        marker_stripped = start_token.value.lstrip()
+        ordered = marker_stripped[0].isdigit()
         start = 1
 
         if ordered:
             # Extract starting number
             num_str = ""
-            for c in start_token.value:
+            for c in marker_stripped:
                 if c.isdigit():
                     num_str += c
                 else:
                     break
             if num_str:
                 start = int(num_str)
+
+        items: list[ListItem] = []
+        tight = True  # Will be set to False if blank lines between items
 
         while not self._at_end():
             token = self._current
@@ -290,39 +368,111 @@ class Parser:
             if token.type != TokenType.LIST_ITEM_MARKER:
                 break
 
-            # Check if same list type
-            is_ordered = token.value[0].isdigit()
+            # Get indent of this marker
+            current_indent = self._get_marker_indent(token.value)
+            current_marker = token.value.lstrip()
+
+            # If less indented than our list, we're done
+            if current_indent < start_indent:
+                break
+
+            # If more indented, this is a nested list - let parent handle
+            if current_indent > start_indent:
+                break
+
+            # Check if same list type (ordered vs unordered)
+            is_ordered = current_marker[0].isdigit()
             if is_ordered != ordered:
                 break
 
             self._advance()
 
-            # Collect item content
+            # Collect item content, children (nested lists), and detect task list
+            item_children: list[Block] = []
             content_lines: list[str] = []
+            checked: bool | None = None
+
             while not self._at_end():
                 tok = self._current
                 assert tok is not None
 
                 if tok.type == TokenType.PARAGRAPH_LINE:
-                    content_lines.append(tok.value)
+                    line = tok.value
+
+                    # Check for task list marker at start of first line
+                    if not content_lines and checked is None:
+                        if line.startswith("[ ] "):
+                            checked = False
+                            line = line[4:]
+                        elif line.startswith("[x] ") or line.startswith("[X] "):
+                            checked = True
+                            line = line[4:]
+
+                    content_lines.append(line)
                     self._advance()
+
                 elif tok.type == TokenType.BLANK_LINE:
                     self._advance()
-                    break
+                    # Check what comes next
+                    if self._at_end():
+                        break
+                    next_tok = self._current
+                    assert next_tok is not None
+
+                    if next_tok.type == TokenType.LIST_ITEM_MARKER:
+                        next_indent = self._get_marker_indent(next_tok.value)
+                        if next_indent <= start_indent:
+                            # Same or less indent - this blank separates items
+                            tight = False
+                            break
+                        # More indent - could be nested list
+                    elif next_tok.type == TokenType.PARAGRAPH_LINE:
+                        # Continuation paragraph (loose list)
+                        tight = False
+                        # Save current paragraph first
+                        if content_lines:
+                            content = "\n".join(content_lines)
+                            inlines = self._parse_inline(content, token.location)
+                            para = Paragraph(location=token.location, children=inlines)
+                            item_children.append(para)
+                            content_lines = []
+                        continue
+                    else:
+                        break
+
                 elif tok.type == TokenType.LIST_ITEM_MARKER:
-                    break
+                    nested_indent = self._get_marker_indent(tok.value)
+                    if nested_indent > start_indent:
+                        # Nested list - first save current paragraph if any
+                        if content_lines:
+                            content = "\n".join(content_lines)
+                            inlines = self._parse_inline(content, token.location)
+                            para = Paragraph(location=token.location, children=inlines)
+                            item_children.append(para)
+                            content_lines = []
+
+                        # Parse nested list
+                        nested_list = self._parse_list(parent_indent=start_indent)
+                        item_children.append(nested_list)
+                    else:
+                        # Same or less indent - done with this item
+                        break
+
                 else:
                     break
 
-            # Create item
-            content = "\n".join(content_lines)
-            if content:
-                children = self._parse_inline(content, token.location)
-                para = Paragraph(location=token.location, children=children)
-                item = ListItem(location=token.location, children=(para,))
-            else:
-                item = ListItem(location=token.location, children=())
+            # Finalize item content
+            if content_lines:
+                content = "\n".join(content_lines)
+                inlines = self._parse_inline(content, token.location)
+                para = Paragraph(location=token.location, children=inlines)
+                item_children.append(para)
 
+            item = ListItem(
+                location=token.location,
+                children=tuple(item_children),
+                checked=checked,
+            )
             items.append(item)
 
         return List(
@@ -330,8 +480,24 @@ class Parser:
             items=tuple(items),
             ordered=ordered,
             start=start,
-            tight=True,  # TODO: detect loose lists
+            tight=tight,
         )
+
+    def _get_marker_indent(self, marker_value: str) -> int:
+        """Extract indent level from list marker value.
+
+        Marker values are prefixed with spaces by the lexer to encode indent.
+        E.g., "  -" has indent 2, "1." has indent 0.
+        """
+        indent = 0
+        for char in marker_value:
+            if char == " ":
+                indent += 1
+            elif char == "\t":
+                indent += 4 - (indent % 4)
+            else:
+                break
+        return indent
 
     def _parse_indented_code(self) -> IndentedCode:
         """Parse indented code block."""
@@ -368,8 +534,12 @@ class Parser:
 
         return IndentedCode(location=start_token.location, code=code)
 
-    def _parse_paragraph(self) -> Paragraph:
-        """Parse paragraph (consecutive text lines)."""
+    def _parse_paragraph(self) -> Paragraph | Table:
+        """Parse paragraph (consecutive text lines) or table.
+
+        If tables are enabled and lines form a valid GFM table, returns Table.
+        Otherwise returns Paragraph.
+        """
         start_token = self._current
         assert start_token is not None and start_token.type == TokenType.PARAGRAPH_LINE
 
@@ -385,13 +555,247 @@ class Parser:
             else:
                 break
 
+        # Check for table structure if tables enabled
+        if self._tables_enabled and len(lines) >= 2 and "|" in lines[0]:
+            table = self._try_parse_table(lines, start_token.location)
+            if table:
+                return table
+
         content = "\n".join(lines)
         children = self._parse_inline(content, start_token.location)
 
         return Paragraph(location=start_token.location, children=children)
 
+    def _parse_footnote_def(self) -> FootnoteDef:
+        """Parse footnote definition.
+
+        Format: [^identifier]: content
+        Token value format: identifier:content
+        """
+        token = self._current
+        assert token is not None and token.type == TokenType.FOOTNOTE_DEF
+        self._advance()
+
+        # Parse token value (identifier:content)
+        value = token.value
+        colon_pos = value.find(":")
+        if colon_pos == -1:
+            # Shouldn't happen if lexer is correct
+            return FootnoteDef(location=token.location, identifier="", children=())
+
+        identifier = value[:colon_pos]
+        content = value[colon_pos + 1 :].strip()
+
+        # Parse content as inline if present
+        if content:
+            inlines = self._parse_inline(content, token.location)
+            para = Paragraph(location=token.location, children=inlines)
+            return FootnoteDef(location=token.location, identifier=identifier, children=(para,))
+
+        # Collect continuation lines (indented content)
+        children: list[Block] = []
+        while not self._at_end():
+            tok = self._current
+            assert tok is not None
+
+            if tok.type == TokenType.PARAGRAPH_LINE:
+                # Continuation paragraph
+                lines = [tok.value]
+                self._advance()
+
+                while not self._at_end():
+                    next_tok = self._current
+                    assert next_tok is not None
+                    if next_tok.type == TokenType.PARAGRAPH_LINE:
+                        lines.append(next_tok.value)
+                        self._advance()
+                    else:
+                        break
+
+                para_content = "\n".join(lines)
+                inlines = self._parse_inline(para_content, tok.location)
+                children.append(Paragraph(location=tok.location, children=inlines))
+
+            elif tok.type == TokenType.BLANK_LINE:
+                self._advance()
+            else:
+                break
+
+        return FootnoteDef(location=token.location, identifier=identifier, children=tuple(children))
+
+    def _try_parse_table(self, lines: list[str], location: SourceLocation) -> Table | None:
+        """Try to parse lines as a GFM table.
+
+        GFM table structure:
+        | Header 1 | Header 2 |   <- header row
+        |----------|----------|   <- delimiter row (required)
+        | Cell 1   | Cell 2   |   <- body rows
+
+        Returns Table if valid, None if not a table.
+        """
+        if len(lines) < 2:
+            return None
+
+        # Parse potential header row
+        header_cells = self._parse_table_row(lines[0])
+        if not header_cells:
+            return None
+
+        # Check delimiter row (second line)
+        delimiter_row = lines[1].strip()
+        alignments = self._parse_table_delimiter(delimiter_row, len(header_cells))
+        if alignments is None:
+            return None
+
+        # Parse header row cells as inline content
+        header_row = TableRow(
+            location=location,
+            cells=tuple(
+                TableCell(
+                    location=location,
+                    children=self._parse_inline(cell.strip(), location),
+                    is_header=True,
+                    align=alignments[i] if i < len(alignments) else None,
+                )
+                for i, cell in enumerate(header_cells)
+            ),
+            is_header=True,
+        )
+
+        # Parse body rows
+        body_rows: list[TableRow] = []
+        for line in lines[2:]:
+            row_cells = self._parse_table_row(line)
+            if row_cells:
+                body_rows.append(
+                    TableRow(
+                        location=location,
+                        cells=tuple(
+                            TableCell(
+                                location=location,
+                                children=self._parse_inline(cell.strip(), location),
+                                is_header=False,
+                                align=alignments[i] if i < len(alignments) else None,
+                            )
+                            for i, cell in enumerate(row_cells)
+                        ),
+                        is_header=False,
+                    )
+                )
+
+        return Table(
+            location=location,
+            head=(header_row,),
+            body=tuple(body_rows),
+            alignments=alignments,
+        )
+
+    def _parse_table_row(self, line: str) -> list[str] | None:
+        """Parse a table row into cells.
+
+        Returns list of cell contents, or None if not a valid row.
+        """
+        line = line.strip()
+
+        # Must contain at least one pipe
+        if "|" not in line:
+            return None
+
+        # Remove leading/trailing pipes
+        if line.startswith("|"):
+            line = line[1:]
+        if line.endswith("|"):
+            line = line[:-1]
+
+        # Split on unescaped pipes
+        cells: list[str] = []
+        current_cell = []
+        i = 0
+        while i < len(line):
+            if line[i] == "\\" and i + 1 < len(line) and line[i + 1] == "|":
+                # Escaped pipe
+                current_cell.append("|")
+                i += 2
+            elif line[i] == "|":
+                cells.append("".join(current_cell))
+                current_cell = []
+                i += 1
+            else:
+                current_cell.append(line[i])
+                i += 1
+
+        # Add last cell
+        cells.append("".join(current_cell))
+
+        return cells if cells else None
+
+    def _parse_table_delimiter(
+        self, line: str, expected_cols: int
+    ) -> tuple[str | None, ...] | None:
+        """Parse table delimiter row and extract alignments.
+
+        Delimiter format: |:---|:---:|---:|
+        Returns tuple of alignments ('left', 'center', 'right', None).
+        Returns None if not a valid delimiter row.
+        """
+        line = line.strip()
+
+        # Remove leading/trailing pipes
+        if line.startswith("|"):
+            line = line[1:]
+        if line.endswith("|"):
+            line = line[:-1]
+
+        parts = line.split("|")
+        if not parts:
+            return None
+
+        alignments: list[str | None] = []
+        for part in parts:
+            part = part.strip()
+            if not part:
+                continue
+
+            # Check for valid delimiter pattern: at least one dash
+            has_left_colon = part.startswith(":")
+            has_right_colon = part.endswith(":")
+
+            # Remove colons to check dashes
+            inner = part
+            if has_left_colon:
+                inner = inner[1:]
+            if has_right_colon:
+                inner = inner[:-1]
+
+            # Must have at least one dash
+            if not inner or not all(c == "-" for c in inner):
+                return None
+
+            # Determine alignment
+            if has_left_colon and has_right_colon:
+                alignments.append("center")
+            elif has_left_colon:
+                alignments.append("left")
+            elif has_right_colon:
+                alignments.append("right")
+            else:
+                alignments.append(None)
+
+        # Must have at least one column
+        if not alignments:
+            return None
+
+        return tuple(alignments)
+
     def _parse_directive(self) -> Directive:
-        """Parse directive block (:::{name} ... :::)."""
+        """Parse directive block (:::{name} ... :::).
+
+        Returns Directive with typed options. If a handler is registered,
+        uses the handler's options_class and parse() method. Otherwise,
+        creates Directive directly with default DirectiveOptions.
+        """
+        from bengal.rendering.parsers.patitas.directives.options import DirectiveOptions
+
         start_token = self._current
         assert start_token is not None and start_token.type == TokenType.DIRECTIVE_OPEN
         self._advance()
@@ -408,8 +812,8 @@ class Parser:
             title = self._current.value
             self._advance()
 
-        # Parse options
-        options: dict[str, str] = {}
+        # Parse raw options dict
+        raw_options: dict[str, str] = {}
         while not self._at_end():
             token = self._current
             assert token is not None
@@ -418,7 +822,7 @@ class Parser:
                 # Parse key:value from token
                 if ":" in token.value:
                     key, value = token.value.split(":", 1)
-                    options[key.strip()] = value.strip()
+                    raw_options[key.strip()] = value.strip()
                 self._advance()
             elif token.type == TokenType.BLANK_LINE:
                 # Skip blank lines in option section
@@ -427,30 +831,136 @@ class Parser:
             else:
                 break
 
+        # Get handler from registry (if available)
+        handler = None
+        if self._directive_registry:
+            handler = self._directive_registry.get(name)
+
+        # Validate parent contract BEFORE parsing children
+        if handler and hasattr(handler, "contract") and handler.contract:
+            parent_name = self._directive_stack[-1] if self._directive_stack else None
+            violation = handler.contract.validate_parent(name, parent_name)
+            if violation:
+                from bengal.errors import DirectiveContractError
+                from bengal.utils.logger import get_logger
+
+                logger = get_logger(__name__)
+                if self._strict_contracts and violation.violation_type != "suggested_parent":
+                    raise DirectiveContractError(
+                        violation.message,
+                        location=start_token.location,
+                        suggestion=violation.suggestion,
+                    )
+                else:
+                    logger.warning(
+                        "directive_contract_violation",
+                        directive=name,
+                        parent=parent_name,
+                        violation_message=violation.message,
+                    )
+
+        # Parse options into typed object
+        if handler and hasattr(handler, "options_class"):
+            typed_options = handler.options_class.from_raw(raw_options)
+        else:
+            # No handler - use default DirectiveOptions
+            typed_options = DirectiveOptions.from_raw(raw_options)
+
+        # Check if handler needs raw content preserved
+        preserves_raw_content = False
+        if handler and hasattr(handler, "preserves_raw_content"):
+            preserves_raw_content = handler.preserves_raw_content
+
+        # Push onto stack before parsing children
+        self._directive_stack.append(name)
+
         # Parse content (nested blocks)
         children: list[Block] = []
-        while not self._at_end():
-            token = self._current
-            assert token is not None
+        raw_content_parts: list[str] = []
+        try:
+            while not self._at_end():
+                token = self._current
+                assert token is not None
 
-            if token.type == TokenType.DIRECTIVE_CLOSE:
-                self._advance()
-                break
-            elif token.type == TokenType.BLANK_LINE:
-                self._advance()
-                continue
+                if token.type == TokenType.DIRECTIVE_CLOSE:
+                    self._advance()
+                    break
+                elif token.type == TokenType.BLANK_LINE:
+                    if preserves_raw_content:
+                        raw_content_parts.append("\n")
+                    self._advance()
+                    continue
 
-            block = self._parse_block()
-            if block is not None:
-                children.append(block)
+                # Save raw content if needed (before parsing)
+                if preserves_raw_content and token.location:
+                    # Note: This is a simplified approach - full raw content capture
+                    # would require tracking the original source positions
+                    pass
 
-        return Directive(
-            location=start_token.location,
-            name=name,
-            title=title,
-            options=frozenset(options.items()),
-            children=tuple(children),
-        )
+                block = self._parse_block()
+                if block is not None:
+                    children.append(block)
+        finally:
+            # Always pop from stack, even on error
+            self._directive_stack.pop()
+
+        # Validate children contract AFTER parsing
+        if handler and hasattr(handler, "contract") and handler.contract:
+            child_directives = [c for c in children if isinstance(c, Directive)]
+            violations = handler.contract.validate_children(name, child_directives)
+            if violations:
+                from bengal.errors import DirectiveContractError
+                from bengal.utils.logger import get_logger
+
+                logger = get_logger(__name__)
+                for violation in violations:
+                    if self._strict_contracts:
+                        raise DirectiveContractError(
+                            violation.message,
+                            location=start_token.location,
+                            suggestion=violation.suggestion,
+                        )
+                    else:
+                        logger.warning(
+                            "directive_contract_violation",
+                            directive=name,
+                            violation_message=violation.message,
+                        )
+
+        # Build raw_content if needed
+        raw_content: str | None = None
+        if preserves_raw_content:
+            raw_content = "".join(raw_content_parts) if raw_content_parts else ""
+
+        # Use handler if available, otherwise create Directive directly
+        if handler and hasattr(handler, "parse"):
+            # Handler returns Directive with typed options
+            directive = handler.parse(
+                name=name,
+                title=title,
+                options=typed_options,
+                content=raw_content or "",
+                children=children,
+                location=start_token.location,
+            )
+            # Ensure raw_content is set if handler requested it
+            if preserves_raw_content and directive.raw_content is None:
+                # Reconstruct directive with raw_content
+                # Note: This is a workaround - ideally handler.parse() would handle this
+                from dataclasses import replace
+
+                directive = replace(directive, raw_content=raw_content)
+            return directive
+        else:
+            # No handler - create Directive directly with typed options
+            return Directive(
+                location=start_token.location,
+                name=name,
+                title=title,
+                options=typed_options,
+                children=tuple(children),
+                raw_content=raw_content,
+            )
 
     # =========================================================================
     # Inline parsing with CommonMark delimiter stack algorithm
@@ -499,11 +1009,10 @@ class Parser:
                 if close_pos != -1:
                     code = text[pos:close_pos]
                     # Normalize: strip one space from each end if both present
+                    # But not if it's all spaces
                     code_len = len(code)
-                    if code_len >= 2 and code[0] == " " and code[-1] == " ":
-                        # But not if it's all spaces
-                        if code.strip():
-                            code = code[1:-1]
+                    if code_len >= 2 and code[0] == " " and code[-1] == " " and code.strip():
+                        code = code[1:-1]
                     tokens_append({"type": "code_span", "code": code})
                     pos = close_pos + count
                 else:
@@ -551,8 +1060,18 @@ class Parser:
                 )
                 continue
 
-            # Link: [text](url)
+            # Link or footnote reference: [text](url) or [^id]
             if char == "[":
+                # Check for footnote reference: [^id]
+                if self._footnotes_enabled and pos + 1 < text_len and text[pos + 1] == "^":
+                    fn_result = self._try_parse_footnote_ref(text, pos, location)
+                    if fn_result:
+                        node, new_pos = fn_result
+                        tokens_append({"type": "node", "node": node})
+                        pos = new_pos
+                        continue
+
+                # Try regular link
                 link_result = self._try_parse_link(text, pos, location)
                 if link_result:
                     node, new_pos = link_result
@@ -634,6 +1153,51 @@ class Parser:
                 else:
                     # Not a valid role, emit { as literal text
                     tokens_append({"type": "text", "content": "{"})
+                    pos += 1
+                    continue
+
+            # Strikethrough: ~~text~~ (when enabled)
+            if char == "~" and self._strikethrough_enabled:
+                if pos + 1 < text_len and text[pos + 1] == "~":
+                    # Found ~~, treat as delimiter
+                    pos += 2
+
+                    # Determine flanking status
+                    before = text[pos - 3] if pos > 2 else " "
+                    after = text[pos] if pos < text_len else " "
+
+                    left_flanking = self._is_left_flanking(before, after, "~")
+                    right_flanking = self._is_right_flanking(before, after, "~")
+
+                    tokens_append(
+                        {
+                            "type": "delimiter",
+                            "char": "~",
+                            "count": 2,
+                            "original_count": 2,
+                            "can_open": left_flanking,
+                            "can_close": right_flanking,
+                            "active": True,
+                        }
+                    )
+                    continue
+                else:
+                    # Single ~, emit as text
+                    tokens_append({"type": "text", "content": "~"})
+                    pos += 1
+                    continue
+
+            # Math: $inline$ or $$block$$ (when enabled)
+            if char == "$" and self._math_enabled:
+                math_result = self._try_parse_math(text, pos, location)
+                if math_result:
+                    node, new_pos = math_result
+                    tokens_append({"type": "node", "node": node})
+                    pos = new_pos
+                    continue
+                else:
+                    # Not valid math, emit $ as literal text
+                    tokens_append({"type": "text", "content": "$"})
                     pos += 1
                     continue
 
@@ -736,13 +1300,14 @@ class Parser:
                 # Check "sum of delimiters" rule (CommonMark)
                 # If either opener or closer can both open and close,
                 # the sum of delimiter counts must not be multiple of 3
-                if (opener.get("can_open") and opener.get("can_close")) or (
+                both_can_open_close = (opener.get("can_open") and opener.get("can_close")) or (
                     closer.get("can_open") and closer.get("can_close")
-                ):
-                    if (opener["count"] + closer["count"]) % 3 == 0:
-                        if opener["count"] % 3 != 0 or closer["count"] % 3 != 0:
-                            opener_idx -= 1
-                            continue
+                )
+                sum_is_multiple_of_3 = (opener["count"] + closer["count"]) % 3 == 0
+                neither_is_multiple_of_3 = opener["count"] % 3 != 0 or closer["count"] % 3 != 0
+                if both_can_open_close and sum_is_multiple_of_3 and neither_is_multiple_of_3:
+                    opener_idx -= 1
+                    continue
 
                 # Found matching opener
                 found_opener = True
@@ -815,16 +1380,20 @@ class Parser:
 
             elif token_type == "delimiter":
                 if "matched_with" in token and token["matched_with"] > idx:
-                    # This is an opener - build emphasis/strong
+                    # This is an opener - build emphasis/strong/strikethrough
                     closer_idx = token["matched_with"]
                     match_count = token["match_count"]
+                    delim_char = token.get("char", "*")
 
                     # Collect children between opener and closer
                     children = self._build_inline_ast(tokens[idx + 1 : closer_idx], location)
 
-                    # Build node
-                    if match_count == 2:
-                        node: Inline = Strong(location=location, children=children)
+                    # Build node based on delimiter character
+                    if delim_char == "~":
+                        # Strikethrough: ~~ always uses 2 tildes
+                        node: Inline = Strikethrough(location=location, children=children)
+                    elif match_count == 2:
+                        node = Strong(location=location, children=children)
                     else:
                         node = Emphasis(location=location, children=children)
 
@@ -844,6 +1413,34 @@ class Parser:
                 idx += 1
 
         return tuple(result)
+
+    def _try_parse_footnote_ref(
+        self, text: str, pos: int, location: SourceLocation
+    ) -> tuple[FootnoteRef, int] | None:
+        """Try to parse a footnote reference at position.
+
+        Format: [^identifier]
+        Returns (FootnoteRef, new_position) or None if not a footnote ref.
+        """
+        if pos + 2 >= len(text) or text[pos : pos + 2] != "[^":
+            return None
+
+        # Find closing ]
+        bracket_pos = text.find("]", pos + 2)
+        if bracket_pos == -1:
+            return None
+
+        identifier = text[pos + 2 : bracket_pos]
+
+        # Validate identifier (alphanumeric with dashes/underscores)
+        if not identifier or not all(c.isalnum() or c in "-_" for c in identifier):
+            return None
+
+        # Make sure this isn't followed by : (which would be a definition)
+        if bracket_pos + 1 < len(text) and text[bracket_pos + 1] == ":":
+            return None
+
+        return FootnoteRef(location=location, identifier=identifier), bracket_pos + 1
 
     def _try_parse_link(
         self, text: str, pos: int, location: SourceLocation
@@ -1004,6 +1601,41 @@ class Parser:
             name=role_name,
             content=content,
         ), backtick_close + 1
+
+    def _try_parse_math(
+        self, text: str, pos: int, location: SourceLocation
+    ) -> tuple[Math, int] | None:
+        """Try to parse inline math at position.
+
+        Syntax: $expression$ (not $$, that's block math)
+
+        Returns (Math, new_position) or None if not valid math.
+        """
+        if text[pos] != "$":
+            return None
+
+        text_len = len(text)
+
+        # Check for $$ (block math delimiter - skip here, handled at block level)
+        if pos + 1 < text_len and text[pos + 1] == "$":
+            return None
+
+        # Find closing $
+        content_start = pos + 1
+        dollar_close = text.find("$", content_start)
+        if dollar_close == -1:
+            return None
+
+        # Content cannot be empty
+        content = text[content_start:dollar_close]
+        if not content:
+            return None
+
+        # Content cannot start or end with space (unless single char)
+        if len(content) > 1 and content[0] == " " and content[-1] == " ":
+            return None
+
+        return Math(location=location, content=content), dollar_close + 1
 
     # =========================================================================
     # Token navigation

@@ -23,7 +23,7 @@ Usage:
     >>>
     >>> # With options
     >>> md = create_markdown(plugins=["table", "footnotes"])
-    >>> html = md("# Hello\\n\\n| A | B |\\n|---|---|\\n| 1 | 2 |")
+    >>> html = md("# Hello\n\n| A | B |\n|---|---|\n| 1 | 2 |")
 
 Thread Safety:
     Patitas is designed for Python 3.14t free-threaded builds:
@@ -40,7 +40,7 @@ See Also:
 from __future__ import annotations
 
 import os
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -53,6 +53,8 @@ from bengal.rendering.parsers.patitas.nodes import (
     Document,
     Emphasis,
     FencedCode,
+    FootnoteDef,
+    FootnoteRef,
     Heading,
     HtmlBlock,
     HtmlInline,
@@ -63,10 +65,16 @@ from bengal.rendering.parsers.patitas.nodes import (
     Link,
     List,
     ListItem,
+    Math,
+    MathBlock,
     Node,
     Paragraph,
     Role,
+    Strikethrough,
     Strong,
+    Table,
+    TableCell,
+    TableRow,
     Text,
     ThematicBreak,
 )
@@ -75,6 +83,7 @@ from bengal.rendering.parsers.patitas.tokens import Token, TokenType
 
 if TYPE_CHECKING:
     from bengal.rendering.parsers.patitas.parser import Parser
+    from bengal.rendering.parsers.patitas.protocols import LexerDelegate
     from bengal.rendering.parsers.patitas.renderers.html import HtmlRenderer
 
 __all__ = [
@@ -89,7 +98,7 @@ __all__ = [
     "Token",
     "TokenType",
     "StringBuilder",
-    # AST Nodes
+    # AST Nodes - Core
     "Node",
     "Block",
     "Inline",
@@ -114,6 +123,15 @@ __all__ = [
     # Directive and Role nodes
     "Directive",
     "Role",
+    # Plugin AST Nodes
+    "Strikethrough",
+    "Table",
+    "TableRow",
+    "TableCell",
+    "Math",
+    "MathBlock",
+    "FootnoteRef",
+    "FootnoteDef",
 ]
 
 # Version
@@ -134,7 +152,7 @@ def __getattr__(name: str) -> object:
     raise AttributeError(f"module 'patitas' has no attribute {name!r}")
 
 
-def parse(source: str, *, highlight: bool = False) -> str:
+def parse(source: str, *, highlight: bool = False, delegate: LexerDelegate | None = None) -> str:
     """Parse Markdown source to HTML.
 
     Simple one-shot parsing function for common use cases.
@@ -142,67 +160,31 @@ def parse(source: str, *, highlight: bool = False) -> str:
     Args:
         source: Markdown source text
         highlight: Enable syntax highlighting for code blocks
+        delegate: Optional sub-lexer delegate for ZCLH handoff
 
     Returns:
         Rendered HTML string
-
-    Examples:
-        >>> parse("# Hello **World**")
-        '<h1>Hello <strong>World</strong></h1>\\n'
-
-        >>> parse("```python\\nprint('hi')\\n```", highlight=True)
-        '<pre><code class="language-python">print(&#x27;hi&#x27;)</code></pre>\\n'
-
-    Thread Safety:
-        This function is fully thread-safe. Each call creates independent
-        parser and renderer instances with no shared state.
     """
     ast = parse_to_ast(source)
-    return render_ast(ast, highlight=highlight)
+    return render_ast(ast, source, highlight=highlight, delegate=delegate)
 
 
 def parse_many(
     sources: Sequence[str],
     *,
     highlight: bool = False,
+    delegate: LexerDelegate | None = None,
     workers: int | Literal["auto"] = "auto",
 ) -> list[str]:
     """Parse multiple Markdown documents in parallel.
 
     Leverages Python 3.14t free-threading for true parallel execution.
-    Auto-tunes worker count based on document sizes and CPU cores.
-
-    Args:
-        sources: Sequence of Markdown source strings
-        highlight: Enable syntax highlighting for code blocks
-        workers: Number of parallel workers, or "auto" for optimal selection
-
-    Returns:
-        List of rendered HTML strings (order preserved)
-
-    Examples:
-        >>> docs = ["# Doc 1", "# Doc 2", "# Doc 3"]
-        >>> htmls = parse_many(docs)
-        >>> len(htmls)
-        3
-
-        >>> # With explicit workers
-        >>> htmls = parse_many(docs, workers=4)
-
-    Thread Safety:
-        Fully thread-safe. Uses ThreadPoolExecutor for parallel execution.
-        On Python 3.14t with GIL disabled, achieves true parallelism.
-
-    Performance Notes:
-        - Auto mode targets ~2x speedup (sweet spot for memory-bound parsing)
-        - Small docs (<1KB): Sequential may be faster due to thread overhead
-        - Large docs (>10KB): Benefits most from parallelism
     """
     n_docs = len(sources)
 
     # Fast path: single doc or empty
     if n_docs <= 1:
-        return [parse(s, highlight=highlight) for s in sources]
+        return [parse(s, highlight=highlight, delegate=delegate) for s in sources]
 
     # Calculate total work
     total_chars = sum(len(s) for s in sources)
@@ -211,18 +193,12 @@ def parse_many(
     # Determine optimal worker count
     if workers == "auto":
         # Fast path: skip parallelism for small workloads
-        # Thread overhead (~1-2ms) only pays off for larger batches
         if total_chars < 5000:  # < 5KB total
-            return [parse(s, highlight=highlight) for s in sources]
+            return [parse(s, highlight=highlight, delegate=delegate) for s in sources]
 
-        # Heuristics for sweet spot:
-        # - Cap at 4 workers (diminishing returns beyond this)
-        # - Cap at n_docs (no point having more workers than docs)
-        # - Cap at CPU count // 2 (leave headroom for system)
         cpu_count = os.cpu_count() or 4
         max_workers = min(4, n_docs, max(2, cpu_count // 2))
 
-        # For small docs, reduce parallelism (overhead dominates)
         if avg_size < 1000:  # < 1KB average per doc
             max_workers = min(2, max_workers)
     else:
@@ -230,73 +206,79 @@ def parse_many(
 
     # Sequential fallback if only 1 worker
     if max_workers <= 1:
-        return [parse(s, highlight=highlight) for s in sources]
+        return [parse(s, highlight=highlight, delegate=delegate) for s in sources]
 
     # Parallel execution
     def _parse_one(source: str) -> str:
-        return parse(source, highlight=highlight)
+        return parse(source, highlight=highlight, delegate=delegate)
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         return list(executor.map(_parse_one, sources))
 
 
-def parse_to_ast(source: str) -> Sequence[Block]:
-    """Parse Markdown source to typed AST.
+def parse_to_ast(
+    source: str,
+    source_file: str | None = None,
+    *,
+    plugins: list[str] | None = None,
+    text_transformer: Callable[[str], str] | None = None,
+) -> Sequence[Block]:
+    """Parse Markdown source into typed AST blocks."""
+    from .parser import Parser
 
-    Returns a sequence of typed Block nodes that can be inspected,
-    transformed, or rendered.
+    parser = Parser(
+        source,
+        source_file,
+        text_transformer=text_transformer,
+    )
 
-    Args:
-        source: Markdown source text
+    # Enable plugins
+    if plugins:
+        if "table" in plugins:
+            parser._tables_enabled = True
+        if "strikethrough" in plugins:
+            parser._strikethrough_enabled = True
+        if "task_lists" in plugins:
+            parser._task_lists_enabled = True
+        if "footnotes" in plugins:
+            parser._footnotes_enabled = True
+        if "math" in plugins:
+            parser._math_enabled = True
+        if "autolinks" in plugins:
+            parser._autolinks_enabled = True
 
-    Returns:
-        Sequence of Block AST nodes
-
-    Examples:
-        >>> ast = parse_to_ast("# Hello")
-        >>> ast[0]
-        Heading(level=1, children=(Text(content='Hello'),), style='atx', ...)
-
-        >>> from dataclasses import asdict
-        >>> asdict(ast[0])
-        {'location': ..., 'level': 1, 'children': (...,), 'style': 'atx'}
-
-    Thread Safety:
-        Returns immutable AST (frozen dataclasses). Safe to share across threads.
-    """
-    from bengal.rendering.parsers.patitas.parser import Parser
-
-    parser = Parser(source)
     return parser.parse()
 
 
 def render_ast(
     ast: Sequence[Block],
+    source: str,
     *,
     highlight: bool = False,
     highlight_style: str = "semantic",
+    text_transformer: Callable[[str], str] | None = None,
+    delegate: LexerDelegate | None = None,
 ) -> str:
     """Render AST nodes to HTML.
 
-    Args:
-        ast: Sequence of Block AST nodes from parse_to_ast()
-        highlight: Enable syntax highlighting for code blocks
-        highlight_style: Highlighting style ("semantic" or "pygments")
-
-    Returns:
-        Rendered HTML string
-
-    Examples:
-        >>> ast = parse_to_ast("# Hello **World**")
-        >>> render_ast(ast)
-        '<h1>Hello <strong>World</strong></h1>\\n'
-
-    Thread Safety:
-        Uses StringBuilder local to each call. Safe for concurrent use.
+    Note: The 'source' buffer is required because Patitas uses a Zero-Copy Lexer Handoff (ZCLH)
+    where AST nodes like FencedCode store source offsets rather than content strings.
     """
+    if source is None:
+        raise TypeError(
+            "render_ast() requires the 'source' buffer for Zero-Copy extraction. "
+            "See rfc-zero-copy-lexer-handoff.md for details."
+        )
+
     from bengal.rendering.parsers.patitas.renderers.html import HtmlRenderer
 
-    renderer = HtmlRenderer(highlight=highlight, highlight_style=highlight_style)
+    renderer = HtmlRenderer(
+        source,
+        highlight=highlight,
+        highlight_style=highlight_style,
+        text_transformer=text_transformer,
+        delegate=delegate,
+    )
     return renderer.render(ast)
 
 
@@ -305,33 +287,14 @@ def create_markdown(
     plugins: list[str] | None = None,
     highlight: bool = True,
     highlight_style: str = "semantic",
+    delegate: LexerDelegate | None = None,
 ) -> Markdown:
-    """Create a configured Markdown parser/renderer.
-
-    Factory function for creating reusable Markdown instances with
-    specific configuration.
-
-    Args:
-        plugins: List of plugin names to enable (e.g., ["table", "footnotes"])
-        highlight: Enable syntax highlighting for code blocks
-        highlight_style: Highlighting style ("semantic" or "pygments")
-
-    Returns:
-        Markdown instance that can be called to parse/render content
-
-    Examples:
-        >>> md = create_markdown(plugins=["table"])
-        >>> md("| A | B |\\n|---|---|\\n| 1 | 2 |")
-        '<table>...'
-
-    Thread Safety:
-        The returned Markdown instance is thread-safe. Multiple threads
-        can call the same instance concurrently.
-    """
+    """Create a configured Markdown parser/renderer."""
     return Markdown(
         plugins=plugins or [],
         highlight=highlight,
         highlight_style=highlight_style,
+        delegate=delegate,
     )
 
 
@@ -342,42 +305,128 @@ class Markdown:
     independent parser/renderer instances.
     """
 
-    __slots__ = ("_plugins", "_highlight", "_highlight_style")
+    __slots__ = (
+        "_plugins",
+        "_highlight",
+        "_highlight_style",
+        "_plugins_enabled",
+        "_directive_registry",
+        "_delegate",
+    )
+
+    AVAILABLE_PLUGINS = frozenset(
+        {
+            "table",
+            "strikethrough",
+            "task_lists",
+            "footnotes",
+            "math",
+            "autolinks",
+        }
+    )
 
     def __init__(
         self,
         plugins: list[str],
         highlight: bool,
         highlight_style: str,
+        delegate: LexerDelegate | None = None,
     ) -> None:
         self._plugins = tuple(plugins)  # Immutable
         self._highlight = highlight
         self._highlight_style = highlight_style
+        self._delegate = delegate
 
-    def __call__(self, source: str) -> str:
-        """Parse and render Markdown source to HTML.
+        # Determine which plugins are enabled
+        if "all" in plugins:
+            self._plugins_enabled = frozenset(self.AVAILABLE_PLUGINS)
+        else:
+            enabled = set()
+            for plugin in plugins:
+                if plugin in self.AVAILABLE_PLUGINS:
+                    enabled.add(plugin)
+                elif plugin != "all":
+                    import warnings
 
-        Args:
-            source: Markdown source text
+                    warnings.warn(
+                        f"Unknown plugin: {plugin!r}. Available: {sorted(self.AVAILABLE_PLUGINS)}",
+                        stacklevel=3,
+                    )
+            self._plugins_enabled = frozenset(enabled)
 
-        Returns:
-            Rendered HTML string
-        """
-        ast = parse_to_ast(source)
-        return render_ast(
-            ast,
-            highlight=self._highlight,
-            highlight_style=self._highlight_style,
+        from bengal.rendering.parsers.patitas.directives.registry import (
+            create_default_registry,
         )
 
-    def parse_to_ast(self, source: str) -> Sequence[Block]:
+        self._directive_registry = create_default_registry()
+
+    def __call__(self, source: str, text_transformer: Callable[[str], str] | None = None) -> str:
+        """Parse and render Markdown source to HTML."""
+        ast = self._parse_to_ast(source, text_transformer=text_transformer)
+        return self._render_ast(ast, source, text_transformer=text_transformer)
+
+    def _parse_to_ast(
+        self, source: str, text_transformer: Callable[[str], str] | None = None
+    ) -> Sequence[Block]:
+        """Parse source to AST with plugins applied."""
+        from bengal.rendering.parsers.patitas.parser import Parser
+
+        parser = Parser(
+            source,
+            directive_registry=self._directive_registry,
+            text_transformer=text_transformer,
+        )
+
+        parser._tables_enabled = "table" in self._plugins_enabled
+        parser._strikethrough_enabled = "strikethrough" in self._plugins_enabled
+        parser._task_lists_enabled = "task_lists" in self._plugins_enabled
+        parser._footnotes_enabled = "footnotes" in self._plugins_enabled
+        parser._math_enabled = "math" in self._plugins_enabled
+        parser._autolinks_enabled = "autolinks" in self._plugins_enabled
+
+        return parser.parse()
+
+    def _render_ast(
+        self,
+        ast: Sequence[Block],
+        source: str,
+        text_transformer: Callable[[str], str] | None = None,
+    ) -> str:
+        """Render AST with configured options."""
+        from bengal.directives.cache import get_cache
+        from bengal.rendering.parsers.patitas.renderers.html import HtmlRenderer
+
+        # Use global directive cache if enabled (auto-enabled for versioned sites)
+        directive_cache = get_cache()
+        cache_enabled = directive_cache.stats().get("enabled", False)
+
+        renderer = HtmlRenderer(
+            source,
+            highlight=self._highlight,
+            highlight_style=self._highlight_style,
+            directive_registry=self._directive_registry,
+            directive_cache=directive_cache if cache_enabled else None,
+            text_transformer=text_transformer,
+            delegate=self._delegate,
+        )
+        return renderer.render(ast)
+
+    def parse_to_ast(
+        self, source: str, text_transformer: Callable[[str], str] | None = None
+    ) -> Sequence[Block]:
         """Parse source to AST without rendering."""
-        return parse_to_ast(source)
+        return self._parse_to_ast(source, text_transformer=text_transformer)
 
-    def render_ast(self, ast: Sequence[Block]) -> str:
+    def render_ast(
+        self,
+        ast: Sequence[Block],
+        source: str,
+        text_transformer: Callable[[str], str] | None = None,
+    ) -> str:
         """Render AST to HTML."""
-        return render_ast(
-            ast,
-            highlight=self._highlight,
-            highlight_style=self._highlight_style,
-        )
+        return self._render_ast(ast, source, text_transformer=text_transformer)
+
+    @property
+    def plugins(self) -> frozenset[str]:
+        """Get enabled plugins."""
+        return self._plugins_enabled

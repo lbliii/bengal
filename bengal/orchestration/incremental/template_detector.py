@@ -16,6 +16,7 @@ from threading import Lock
 from typing import TYPE_CHECKING
 
 from bengal.utils.logger import get_logger
+from bengal.utils.workers import WorkloadType, get_optimal_workers, should_parallelize
 
 if TYPE_CHECKING:
     from bengal.cache import BuildCache
@@ -30,16 +31,11 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
-# Threshold for switching from sequential to parallel processing.
+# Note: PARALLEL_THRESHOLD and DEFAULT_MAX_WORKERS are deprecated
+# in favor of should_parallelize() and get_optimal_workers()
+# Kept for backwards compatibility if accessed directly
 PARALLEL_THRESHOLD = 50
-
-# Default max workers for parallel operations
 DEFAULT_MAX_WORKERS = min(8, (os.cpu_count() or 4))
-
-
-def _get_max_workers(site: Site) -> int:
-    """Get max workers from site config or use default."""
-    return site.config.get("max_workers", DEFAULT_MAX_WORKERS)
 
 
 class TemplateChangeDetector:
@@ -107,7 +103,8 @@ class TemplateChangeDetector:
         if not template_files:
             return
 
-        if len(template_files) < PARALLEL_THRESHOLD:
+        # Template change detection is I/O-bound (stat calls)
+        if not should_parallelize(len(template_files), workload_type=WorkloadType.IO_BOUND):
             self._check_templates_sequential(
                 template_files, pages_to_rebuild, change_summary, verbose
             )
@@ -199,7 +196,11 @@ class TemplateChangeDetector:
         Note: cache.update_file() is called sequentially after parallel check
         to avoid potential race conditions in cache updates.
         """
-        max_workers = _get_max_workers(self.site)
+        max_workers = get_optimal_workers(
+            len(template_files),
+            workload_type=WorkloadType.IO_BOUND,
+            config_override=self.site.config.get("max_workers"),
+        )
         results_lock = Lock()
         unchanged_templates: list[Path] = []
         unchanged_lock = Lock()

@@ -30,11 +30,11 @@ import threading
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from bengal.config.defaults import get_max_workers
 from bengal.errors import ErrorAggregator, extract_error_context
 from bengal.utils.logger import get_logger
 from bengal.utils.progress import ProgressReporter
 from bengal.utils.url_strategy import URLStrategy
+from bengal.utils.workers import WorkloadType, get_optimal_workers, should_parallelize
 
 logger = get_logger(__name__)
 
@@ -287,9 +287,9 @@ class RenderOrchestrator:
         # Other pages should already have paths from previous builds or will get them when needed.
         self._set_output_paths_for_pages(pages)
 
-        # Use parallel rendering only for 5+ pages (avoid thread overhead for small batches)
-        PARALLEL_THRESHOLD = 5
-        if parallel and len(pages) >= PARALLEL_THRESHOLD:
+        # Use parallel rendering only when worthwhile (avoid thread overhead for small batches)
+        # WorkloadType.MIXED because rendering involves both I/O (templates) and CPU (parsing)
+        if parallel and should_parallelize(len(pages), workload_type=WorkloadType.MIXED):
             self._render_parallel(
                 pages, tracker, quiet, stats, progress_manager, build_context, changed_sources
             )
@@ -528,7 +528,11 @@ class RenderOrchestrator:
         """Parallel rendering without progress (traditional)."""
         from bengal.rendering.pipeline import RenderingPipeline
 
-        max_workers = get_max_workers(self.site.config.get("max_workers"))
+        max_workers = get_optimal_workers(
+            len(pages),
+            workload_type=WorkloadType.MIXED,
+            config_override=self.site.config.get("max_workers"),
+        )
 
         # Sort heavy pages first to avoid straggler workers (LPT scheduling)
         sorted_pages = self._maybe_sort_by_complexity(pages, max_workers)
@@ -683,7 +687,11 @@ class RenderOrchestrator:
 
         from bengal.rendering.pipeline import RenderingPipeline
 
-        max_workers = get_max_workers(self.site.config.get("max_workers"))
+        max_workers = get_optimal_workers(
+            len(pages),
+            workload_type=WorkloadType.MIXED,
+            config_override=self.site.config.get("max_workers"),
+        )
 
         # Sort heavy pages first to avoid straggler workers (LPT scheduling)
         sorted_pages = self._maybe_sort_by_complexity(pages, max_workers)
@@ -821,7 +829,11 @@ class RenderOrchestrator:
         from bengal.utils.rich_console import get_console
 
         console = get_console()
-        max_workers = get_max_workers(self.site.config.get("max_workers"))
+        max_workers = get_optimal_workers(
+            len(pages),
+            workload_type=WorkloadType.MIXED,
+            config_override=self.site.config.get("max_workers"),
+        )
 
         # Sort heavy pages first to avoid straggler workers (LPT scheduling)
         sorted_pages = self._maybe_sort_by_complexity(pages, max_workers)

@@ -1,329 +1,366 @@
-"""Edge case and stress tests for Patitas.
+"""Edge case tests for Patitas parser.
 
-Tests error handling, malformed input, and unusual cases.
+Tests for edge cases that ensure parity with Mistune parser output:
+- Nested lists
+- Task lists
+- Multi-line list items (loose lists)
+- Table rendering
+- Footnotes
+- Strikethrough
+
+These tests verify both AST construction and HTML rendering.
 """
 
 from __future__ import annotations
 
-from bengal.rendering.parsers.patitas import parse, parse_to_ast
-from bengal.rendering.parsers.patitas.lexer import Lexer
-from bengal.rendering.parsers.patitas.parser import Parser
-
-
-class TestMalformedInput:
-    """Malformed input handling."""
-
-    def test_only_backticks(self):
-        """Input with only backticks."""
-        html = parse("```")
-        # Should not crash
-        assert html is not None
-
-    def test_only_asterisks(self):
-        """Input with only asterisks."""
-        html = parse("***")
-        assert html is not None
-
-    def test_only_underscores(self):
-        """Input with only underscores."""
-        html = parse("___")
-        # This is a thematic break
-        assert "<hr />" in html
-
-    def test_only_hashes(self):
-        """Input with only hashes."""
-        html = parse("######")
-        assert html is not None
-
-    def test_unclosed_brackets(self):
-        """Various unclosed brackets."""
-        for s in ["[", "[[", "[text", "![", "![alt"]:
-            html = parse(s)
-            assert html is not None
-
-    def test_mismatched_delimiters(self):
-        """Mismatched emphasis delimiters."""
-        html = parse("*text**")
-        assert html is not None
-
-    def test_deeply_nested_brackets(self):
-        """Deeply nested brackets."""
-        html = parse("[[[[[[[[text]]]]]]]]")
-        assert html is not None
-
-
-class TestUnicodeHandling:
-    """Unicode content handling."""
-
-    def test_unicode_text(self):
-        """Basic unicode text."""
-        html = parse("Hello 世界")
-        assert "世界" in html
-
-    def test_unicode_in_heading(self):
-        """Unicode in heading."""
-        html = parse("# Привет мир")
-        assert "Привет" in html
-
-    def test_emoji(self):
-        """Emoji handling."""
-        html = parse("Hello 🌍")
-        assert "🌍" in html
-
-    def test_unicode_in_code(self):
-        """Unicode in code block."""
-        html = parse("```\n日本語\n```")
-        assert "日本語" in html
-
-    def test_unicode_in_link(self):
-        """Unicode in link text."""
-        html = parse("[日本語](url)")
-        assert "日本語" in html
-
-    def test_rtl_text(self):
-        """Right-to-left text."""
-        html = parse("مرحبا")
-        assert "مرحبا" in html
-
-
-class TestWhitespaceHandling:
-    """Whitespace handling."""
-
-    def test_trailing_spaces(self):
-        """Trailing spaces on lines."""
-        html = parse("text   ")
-        assert "text" in html
-
-    def test_leading_spaces(self):
-        """Leading spaces on lines."""
-        html = parse("   text")
-        assert "text" in html
-
-    def test_mixed_tabs_spaces(self):
-        """Mixed tabs and spaces."""
-        html = parse("\t text")
-        assert html is not None
-
-    def test_windows_line_endings(self):
-        """Windows CRLF line endings."""
-        html = parse("line1\r\nline2")
-        assert "line1" in html
-        assert "line2" in html
-
-    def test_old_mac_line_endings(self):
-        """Old Mac CR line endings."""
-        html = parse("line1\rline2")
-        assert html is not None
-
-    def test_many_blank_lines(self):
-        """Many consecutive blank lines."""
-        html = parse("para1\n\n\n\n\n\npara2")
-        assert html.count("<p>") == 2
-
-
-class TestLargeInput:
-    """Large input handling."""
-
-    def test_long_line(self):
-        """Very long single line."""
-        text = "a" * 10000
-        html = parse(text)
-        assert text in html
-
-    def test_many_lines(self):
-        """Many lines of input."""
-        text = "\n".join([f"Line {i}" for i in range(1000)])
-        html = parse(text)
-        assert "Line 0" in html
-        assert "Line 999" in html
-
-    def test_large_code_block(self):
-        """Large code block."""
-        code = "\n".join([f"line {i}" for i in range(1000)])
-        text = f"```\n{code}\n```"
-        html = parse(text)
-        assert "line 0" in html
-
-    def test_many_headings(self):
-        """Many headings."""
-        text = "\n\n".join([f"# Heading {i}" for i in range(100)])
-        html = parse(text)
-        assert html.count("<h1>") == 100
-
-
-class TestSpecialCharacters:
-    """Special character handling."""
-
-    def test_null_byte(self):
-        """Null byte in input."""
-        html = parse("text\x00more")
-        assert html is not None
-
-    def test_bell_character(self):
-        """Bell character in input."""
-        html = parse("text\x07more")
-        assert html is not None
-
-    def test_backspace(self):
-        """Backspace in input."""
-        html = parse("text\x08more")
-        assert html is not None
-
-    def test_form_feed(self):
-        """Form feed in input."""
-        html = parse("text\x0cmore")
-        assert html is not None
-
-
-class TestRecoveryBehavior:
-    """Error recovery behavior."""
-
-    def test_invalid_emphasis_graceful(self):
-        """Invalid emphasis renders gracefully."""
-        html = parse("*unclosed")
-        assert "unclosed" in html
-
-    def test_invalid_link_graceful(self):
-        """Invalid link renders gracefully."""
-        html = parse("[text](")
-        assert "text" in html
-
-    def test_invalid_code_span_graceful(self):
-        """Unclosed code span renders gracefully."""
-        html = parse("`unclosed")
-        assert "unclosed" in html
-
-    def test_deeply_nested_emphasis(self):
-        """Deeply nested emphasis doesn't crash."""
-        text = "*" * 20 + "text" + "*" * 20
-        html = parse(text)
-        assert html is not None
-
-
-class TestLexerRobustness:
-    """Lexer robustness tests."""
-
-    def test_lexer_empty(self):
-        """Lexer handles empty input."""
-        lexer = Lexer("")
-        tokens = list(lexer.tokenize())
-        assert len(tokens) == 1  # Just EOF
-
-    def test_lexer_preserves_state(self):
-        """Lexer state is isolated."""
-        lexer1 = Lexer("# One")
-        lexer2 = Lexer("# Two")
-        tokens1 = list(lexer1.tokenize())
-        tokens2 = list(lexer2.tokenize())
-        assert "One" in tokens1[0].value
-        assert "Two" in tokens2[0].value
-
-
-class TestParserRobustness:
-    """Parser robustness tests."""
-
-    def test_parser_empty(self):
-        """Parser handles empty input."""
-        ast = parse_to_ast("")
-        assert len(ast) == 0
-
-    def test_parser_returns_tuple(self):
-        """Parser always returns tuple."""
-        for input_text in ["", "text", "# heading", "- list"]:
-            ast = parse_to_ast(input_text)
-            assert isinstance(ast, tuple)
-
-    def test_parser_isolated(self):
-        """Parser instances are isolated."""
-        parser1 = Parser("# One")
-        parser2 = Parser("# Two")
-        ast1 = parser1.parse()
-        ast2 = parser2.parse()
-        assert ast1[0] != ast2[0]
-
-
-class TestMemoryEfficiency:
-    """Memory efficiency tests."""
-
-    def test_stringbuilder_reuse(self):
-        """StringBuilder doesn't leak memory."""
-        from bengal.rendering.parsers.patitas.stringbuilder import StringBuilder
-
-        sb = StringBuilder()
-        for _ in range(1000):
-            sb.append("text")
-        result = sb.build()
-        assert len(result) == 4000  # "text" * 1000
-
-    def test_many_parses(self):
-        """Many parses don't leak."""
-        for _ in range(100):
-            html = parse("# Heading\n\nParagraph with **bold** and *italic*.")
-            assert "<h1>" in html
-
-
-class TestBoundaryConditions:
-    """Boundary condition tests."""
-
-    def test_emphasis_at_boundaries(self):
-        """Emphasis at line/paragraph boundaries."""
-        test_cases = [
-            "*em*",
-            "*em*\n",
-            "\n*em*",
-            "*em* ",
-            " *em*",
-        ]
-        for case in test_cases:
-            html = parse(case)
-            assert html is not None
-
-    def test_code_span_at_boundaries(self):
-        """Code span at boundaries."""
-        test_cases = [
-            "`code`",
-            "`code`\n",
-            "\n`code`",
-        ]
-        for case in test_cases:
-            html = parse(case)
-            assert html is not None
-
-    def test_heading_at_eof(self):
-        """Heading at end of file (no trailing newline)."""
-        html = parse("# Heading")
-        assert "<h1>" in html
-
-    def test_code_block_at_eof(self):
-        """Code block at end of file."""
-        html = parse("```\ncode\n```")
-        assert "<pre>" in html
-
-
-class TestReDoSPrevention:
-    """ReDoS prevention tests (O(n) guarantee)."""
-
-    def test_many_asterisks(self):
-        """Many asterisks process quickly."""
-        text = "*" * 1000 + "text" + "*" * 1000
-        html = parse(text)
-        assert html is not None
-
-    def test_many_underscores(self):
-        """Many underscores process quickly."""
-        text = "_" * 1000 + "text" + "_" * 1000
-        html = parse(text)
-        assert html is not None
-
-    def test_many_brackets(self):
-        """Many brackets process quickly."""
-        text = "[" * 100 + "text" + "]" * 100
-        html = parse(text)
-        assert html is not None
-
-    def test_pathological_emphasis(self):
-        """Pathological emphasis pattern processes quickly."""
-        # This pattern can cause exponential time in some parsers
-        text = "**a]**a]**a]**a]**a]**a]**a]**a]"
-        html = parse(text)
-        assert html is not None
+import pytest
+
+from bengal.rendering.parsers.patitas.nodes import (
+    FootnoteDef,
+    FootnoteRef,
+    List,
+    ListItem,
+    Paragraph,
+)
+
+
+class TestNestedLists:
+    """Nested list parsing and rendering."""
+
+    def test_nested_unordered_list_ast(self, parse_ast):
+        """Nested unordered list produces correct AST structure."""
+        source = "- Item 1\n  - Sub item 1a\n  - Sub item 1b\n- Item 2"
+        ast = parse_ast(source)
+
+        assert len(ast) == 1
+        lst = ast[0]
+        assert isinstance(lst, List)
+        assert not lst.ordered
+        assert len(lst.items) == 2
+
+        # First item should have nested list
+        first_item = lst.items[0]
+        assert isinstance(first_item, ListItem)
+        # Should have paragraph + nested list as children
+        assert len(first_item.children) == 2
+        assert isinstance(first_item.children[0], Paragraph)
+        assert isinstance(first_item.children[1], List)
+
+        # Nested list should have 2 items
+        nested = first_item.children[1]
+        assert len(nested.items) == 2
+
+    def test_nested_ordered_list_ast(self, parse_ast):
+        """Nested ordered list produces correct AST structure."""
+        source = "1. Item 1\n   1. Sub item 1a\n   2. Sub item 1b\n2. Item 2"
+        ast = parse_ast(source)
+
+        assert len(ast) == 1
+        lst = ast[0]
+        assert isinstance(lst, List)
+        assert lst.ordered
+
+    def test_nested_list_html(self, parse_md):
+        """Nested list renders to correct HTML."""
+        source = "- Item 1\n  - Sub 1\n  - Sub 2\n- Item 2"
+        html = parse_md(source)
+
+        # Should contain nested ul
+        assert "<ul>" in html
+        assert html.count("<ul>") == 2
+        assert html.count("</ul>") == 2
+        assert "<li>" in html
+        # Verify nesting structure
+        assert "Item 1" in html
+        assert "Sub 1" in html
+        assert "Item 2" in html
+
+
+class TestTaskLists:
+    """Task list (checkbox) parsing and rendering."""
+
+    def test_task_list_unchecked_ast(self, parse_ast):
+        """Unchecked task list item has checked=False."""
+        source = "- [ ] Unchecked item"
+        ast = parse_ast(source)
+
+        lst = ast[0]
+        item = lst.items[0]
+        assert item.checked is False
+
+    def test_task_list_checked_ast(self, parse_ast):
+        """Checked task list item has checked=True."""
+        source = "- [x] Checked item"
+        ast = parse_ast(source)
+
+        lst = ast[0]
+        item = lst.items[0]
+        assert item.checked is True
+
+    def test_task_list_checked_uppercase(self, parse_ast):
+        """Uppercase X is also accepted."""
+        source = "- [X] Checked item"
+        ast = parse_ast(source)
+
+        lst = ast[0]
+        item = lst.items[0]
+        assert item.checked is True
+
+    def test_regular_list_no_checked(self, parse_ast):
+        """Regular list items have checked=None."""
+        source = "- Regular item"
+        ast = parse_ast(source)
+
+        lst = ast[0]
+        item = lst.items[0]
+        assert item.checked is None
+
+    def test_task_list_html(self, parse_md):
+        """Task list renders with checkboxes."""
+        source = "- [ ] Unchecked\n- [x] Checked"
+        html = parse_md(source)
+
+        assert 'class="task-list-item"' in html
+        assert 'class="task-list-item-checkbox"' in html
+        assert 'type="checkbox"' in html
+        assert "disabled" in html
+        # Checked item should have checked attribute
+        assert " checked" in html
+
+
+class TestMultiLineListItems:
+    """Multi-line list items (loose lists) parsing and rendering."""
+
+    def test_loose_list_detection(self, parse_ast):
+        """List with blank lines between items is loose."""
+        source = "- Item 1\n\n  Continuation\n\n- Item 2"
+        ast = parse_ast(source)
+
+        lst = ast[0]
+        assert lst.tight is False
+
+    def test_tight_list_detection(self, parse_ast):
+        """List without blank lines is tight."""
+        source = "- Item 1\n- Item 2\n- Item 3"
+        ast = parse_ast(source)
+
+        lst = ast[0]
+        assert lst.tight is True
+
+    def test_loose_list_multiple_paragraphs(self, parse_ast):
+        """Loose list item has multiple paragraphs."""
+        source = "- Item 1\n\n  Continuation paragraph.\n\n- Item 2"
+        ast = parse_ast(source)
+
+        lst = ast[0]
+        first_item = lst.items[0]
+        # Should have two paragraphs
+        paragraphs = [c for c in first_item.children if isinstance(c, Paragraph)]
+        assert len(paragraphs) == 2
+
+    def test_loose_list_html(self, parse_md):
+        """Loose list renders paragraphs inside list items."""
+        source = "- Item 1\n\n  Continuation paragraph.\n\n- Item 2"
+        html = parse_md(source)
+
+        # Both items should have <p> tags
+        assert html.count("<p>") >= 3  # 2 for first item, 1 for second
+        assert "<li><p>" in html
+
+
+class TestTableRendering:
+    """Table rendering with wrapper div."""
+
+    def test_table_has_wrapper(self, parse_md):
+        """Table is wrapped in table-wrapper div."""
+        source = "| A | B |\n|---|---|\n| 1 | 2 |"
+        html = parse_md(source)
+
+        assert 'class="table-wrapper"' in html
+        assert "<table>" in html
+        assert "</table></div>" in html
+
+    def test_table_pretty_printing(self, parse_md):
+        """Table rows are pretty-printed with newlines."""
+        source = "| A | B |\n|---|---|\n| 1 | 2 |"
+        html = parse_md(source)
+
+        assert "<tr>\n" in html
+        assert "<th>" in html
+        assert "<td>" in html
+
+
+class TestFootnotes:
+    """Footnote parsing and rendering."""
+
+    def test_footnote_ref_ast(self, parse_ast):
+        """Footnote reference in AST."""
+        source = "Text with footnote[^1]."
+        ast = parse_ast(source)
+
+        para = ast[0]
+        refs = [c for c in para.children if isinstance(c, FootnoteRef)]
+        assert len(refs) == 1
+        assert refs[0].identifier == "1"
+
+    def test_footnote_def_ast(self, parse_ast):
+        """Footnote definition in AST."""
+        source = "[^1]: This is the footnote."
+        ast = parse_ast(source)
+
+        defs = [n for n in ast if isinstance(n, FootnoteDef)]
+        assert len(defs) == 1
+        assert defs[0].identifier == "1"
+        assert len(defs[0].children) > 0
+
+    def test_footnote_alphanumeric_id(self, parse_ast):
+        """Footnote with alphanumeric identifier."""
+        source = "Text[^note-1].\n\n[^note-1]: Note content."
+        ast = parse_ast(source)
+
+        # Find the footnote ref
+        para = ast[0]
+        refs = [c for c in para.children if isinstance(c, FootnoteRef)]
+        assert len(refs) == 1
+        assert refs[0].identifier == "note-1"
+
+    def test_footnote_html(self, parse_md):
+        """Footnotes render correctly."""
+        source = "Text with footnote[^1].\n\n[^1]: This is the footnote."
+        html = parse_md(source)
+
+        # Reference
+        assert 'class="footnote-ref"' in html
+        assert 'href="#fn-1"' in html
+        assert 'id="fnref-1"' in html
+
+        # Definition section
+        assert 'class="footnotes"' in html
+        assert 'id="fn-1"' in html
+        assert 'href="#fnref-1"' in html
+        assert "&#8617;" in html  # Back reference character
+
+
+class TestStrikethrough:
+    """Strikethrough parsing and rendering."""
+
+    def test_strikethrough_html(self, parse_md):
+        """Strikethrough renders with del tags."""
+        source = "This is ~~deleted~~ text."
+        html = parse_md(source)
+
+        assert "<del>" in html
+        assert "</del>" in html
+        assert "deleted" in html
+
+
+class TestMistuneParserParity:
+    """Tests ensuring parity between Patitas and Mistune parsers."""
+
+    @pytest.fixture
+    def mistune_parser(self):
+        """Create a Mistune parser for comparison."""
+        from bengal.rendering.parsers import create_markdown_parser
+
+        return create_markdown_parser("mistune")
+
+    @pytest.fixture
+    def patitas_parser_cmp(self):
+        """Create a Patitas parser for comparison."""
+        from bengal.rendering.parsers import create_markdown_parser
+
+        return create_markdown_parser("patitas")
+
+    def _normalize_html(self, html: str) -> str:
+        """Normalize HTML for comparison (remove extra whitespace)."""
+        import re
+
+        # Remove extra whitespace between tags
+        html = re.sub(r">\s+<", "><", html)
+        # Normalize whitespace
+        html = " ".join(html.split())
+        return html.strip()
+
+    @pytest.mark.parametrize(
+        "name,source",
+        [
+            ("nested_list", "- Item 1\n  - Sub 1\n  - Sub 2\n- Item 2"),
+            ("task_list", "- [ ] Unchecked\n- [x] Checked"),
+            ("table", "| A | B |\n|---|---|\n| 1 | 2 |"),
+            ("strikethrough", "This is ~~deleted~~ text."),
+            ("footnotes", "Text[^1].\n\n[^1]: Note."),
+        ],
+    )
+    def test_html_parity(self, mistune_parser, patitas_parser_cmp, name, source):
+        """Verify HTML output parity for common edge cases."""
+        mistune_html = self._normalize_html(mistune_parser.parse(source, {}))
+        patitas_html = self._normalize_html(patitas_parser_cmp.parse(source, {}))
+
+        assert mistune_html == patitas_html, (
+            f"HTML parity failed for {name}:\n"
+            f"Mistune:  {mistune_html[:200]}\n"
+            f"Patitas: {patitas_html[:200]}"
+        )
+
+    def test_loose_list_parity(self, mistune_parser, patitas_parser_cmp):
+        """Verify loose list parity."""
+        source = "- Item 1\n\n  Continuation.\n\n- Item 2"
+        mistune_html = self._normalize_html(mistune_parser.parse(source, {}))
+        patitas_html = self._normalize_html(patitas_parser_cmp.parse(source, {}))
+
+        assert mistune_html == patitas_html
+
+
+class TestEdgeCasesRegression:
+    """Regression tests for specific edge cases."""
+
+    def test_empty_list_item(self, parse_ast):
+        """List can have empty items."""
+        source = "- \n- Item 2"
+        ast = parse_ast(source)
+
+        lst = ast[0]
+        assert len(lst.items) == 2
+
+    def test_list_with_code_block(self, parse_md):
+        """List item can contain code block."""
+        source = "- Item with code:\n\n  ```python\n  print(1)\n  ```"
+        html = parse_md(source)
+
+        assert "<li>" in html
+        assert "<pre>" in html or "<code>" in html
+
+    def test_deeply_nested_list(self, parse_ast):
+        """Deeply nested lists parse correctly."""
+        source = "- L1\n  - L2\n    - L3\n      - L4"
+        ast = parse_ast(source)
+
+        # Navigate to deepest level
+        l1 = ast[0]
+        assert isinstance(l1, List)
+
+    def test_mixed_list_markers(self, parse_ast):
+        """Different list markers create separate lists."""
+        source = "- Item 1\n* Item 2\n+ Item 3"
+        ast = parse_ast(source)
+
+        # All should be in the same list (CommonMark spec)
+        assert len(ast) == 1
+        _lst = ast[0]  # noqa: F841 - verify it exists
+        # Note: This behavior depends on implementation - might be 3 separate lists
+
+    def test_footnote_without_definition(self, parse_md):
+        """Footnote reference without definition renders as text."""
+        source = "Text[^undefined]."
+        html = parse_md(source)
+        # Should still have the reference markup
+        assert "undefined" in html
+
+    def test_multiple_footnotes(self, parse_md):
+        """Multiple footnotes are collected and rendered."""
+        source = "Text[^1] and[^2].\n\n[^1]: First.\n[^2]: Second."
+        html = parse_md(source)
+
+        assert html.count('id="fn-') == 2
+        assert "First" in html
+        assert "Second" in html

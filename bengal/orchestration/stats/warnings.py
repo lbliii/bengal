@@ -31,6 +31,8 @@ def display_warnings(stats: BuildStats) -> None:
     # Group by type
     type_names = {
         "jinja2": "Jinja2 Template Errors",
+        "kida": "Kida Template Errors",
+        "template": "Template Syntax Errors",
         "preprocessing": "Pre-processing Errors",
         "link": "Link Validation Warnings",
         "other": "Other Warnings",

@@ -38,15 +38,13 @@ from __future__ import annotations
 import concurrent.futures
 from typing import TYPE_CHECKING, Any
 
-from bengal.config.defaults import get_max_workers
 from bengal.utils.logger import get_logger
+from bengal.utils.workers import WorkloadType, get_optimal_workers, should_parallelize
 
 logger = get_logger(__name__)
 
-# Threshold for parallel processing - below this we use sequential processing
-# to avoid thread pool overhead for small workloads.
-# Lowered from 100 to 50 based on I/O-bound analysis.
-# See: plan/drafted/rfc-orchestration-package-optimizations.md (Phase 3)
+# Note: MIN_PAGES_FOR_PARALLEL is deprecated in favor of should_parallelize()
+# Kept for backwards compatibility if accessed directly
 MIN_PAGES_FOR_PARALLEL = 50
 
 if TYPE_CHECKING:
@@ -145,7 +143,10 @@ class RelatedPostsOrchestrator:
             pages_to_process = list(self.site.regular_pages)
 
         # Use parallel processing for larger sites to avoid thread overhead
-        if parallel and len(pages_to_process) >= MIN_PAGES_FOR_PARALLEL:
+        # Related posts computation is CPU-bound (tag matching, scoring)
+        if parallel and should_parallelize(
+            len(pages_to_process), workload_type=WorkloadType.CPU_BOUND
+        ):
             pages_with_related = self._build_parallel(
                 pages_to_process, page_tags_map, tags_dict, limit
             )
@@ -160,7 +161,8 @@ class RelatedPostsOrchestrator:
             total_pages=len(self.site.pages),
             affected_pages=len(pages_to_process) if affected_pages else None,
             mode="parallel"
-            if parallel and len(pages_to_process) >= MIN_PAGES_FOR_PARALLEL
+            if parallel
+            and should_parallelize(len(pages_to_process), workload_type=WorkloadType.CPU_BOUND)
             else "sequential",
         )
 
@@ -224,8 +226,12 @@ class RelatedPostsOrchestrator:
         Returns:
             Number of pages with related posts found
         """
-        # Get max_workers from site config (auto-detect if not set)
-        max_workers = get_max_workers(self.site.config.get("max_workers"))
+        # Get optimal workers based on workload (CPU-bound tag matching)
+        max_workers = get_optimal_workers(
+            len(pages),
+            workload_type=WorkloadType.CPU_BOUND,
+            config_override=self.site.config.get("max_workers"),
+        )
 
         pages_with_related = 0
 

@@ -30,8 +30,8 @@ from threading import Lock
 from typing import TYPE_CHECKING, Any
 
 from bengal.assets.manifest import AssetManifest
-from bengal.config.defaults import get_max_workers
 from bengal.utils.logger import get_logger
+from bengal.utils.workers import WorkloadType, get_optimal_workers
 
 logger = get_logger(__name__)
 
@@ -364,12 +364,11 @@ class AssetOrchestrator:
         """
         assets_output = self.site.output_dir / "assets"
         total_assets = len(css_entries) + len(other_assets)
-        # Use configured max_workers, or auto-detect with asset-aware bound
-        config_workers = self.site.config.get("max_workers")
-        max_workers = (
-            get_max_workers(config_workers)
-            if config_workers
-            else min(8, max(1, (total_assets + 3) // 4))
+        # Use optimal workers based on workload (asset processing is I/O-bound)
+        max_workers = get_optimal_workers(
+            total_assets,
+            workload_type=WorkloadType.IO_BOUND,
+            config_override=self.site.config.get("max_workers"),
         )
 
         errors = []

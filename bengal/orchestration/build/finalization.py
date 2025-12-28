@@ -156,16 +156,21 @@ def _write_build_time_artifacts(site: Any, last_build_stats: dict[str, Any]) -> 
     import os
     from pathlib import Path
 
-    from bengal.config.defaults import get_max_workers
     from bengal.orchestration.badge import build_shields_like_badge_svg, format_duration_ms_compact
     from bengal.utils.atomic_write import AtomicFile
+    from bengal.utils.workers import WorkloadType, get_optimal_workers
 
     duration_ms = float(last_build_stats.get("build_time_ms") or 0)
     duration_text = format_duration_ms_compact(duration_ms)
 
     # Get CPU/worker stats for context
     cpu_count = os.cpu_count() or 0
-    max_workers = get_max_workers(config.get("max_workers"))
+    # Report optimal workers for a typical mixed workload
+    max_workers = get_optimal_workers(
+        100,
+        workload_type=WorkloadType.MIXED,
+        config_override=config.get("max_workers"),
+    )
     parallel = last_build_stats.get("parallel", True)
     incremental = last_build_stats.get("incremental", False)
     skipped = last_build_stats.get("skipped", False)

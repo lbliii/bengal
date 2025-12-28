@@ -81,7 +81,7 @@ Renders as "Tip" (capitalized type name).
 :::{tab-item} Nested Content
 Admonitions support full markdown including nested directives. Use named closers for clarity:
 
-```markdown
+`````markdown
 :::{note}
 Here's a tip:
 
@@ -89,14 +89,14 @@ Here's a tip:
 Nested admonitions work!
 :::
 :::{/note}
-```
+`````
 :::
 
-:::{/tab-set}
+::::{/tab-set}
 
 ### All Types
 
-````markdown
+`````markdown
 :::{note} Note
 General information
 :::
@@ -137,7 +137,7 @@ Cautionary note (renders as warning)
 - [Related Topic](/docs/related/)
 - [API Reference](/docs/api/)
 :::
-````
+`````
 
 ## Options
 
@@ -146,14 +146,14 @@ Admonitions support standard directive options:
 - `:class:` - Additional CSS classes
 - `:id:` - Element ID
 
-````markdown
+`````markdown
 :::{note} Custom Note
 :class: custom-class
 :id: my-note
 
 Content here
 :::
-````
+`````
 
 ## Rendering
 

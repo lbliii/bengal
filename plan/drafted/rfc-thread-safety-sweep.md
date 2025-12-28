@@ -746,6 +746,7 @@ No code path should acquire these in reverse order.
 
 | File | Line | Variable | Status |
 |------|------|----------|--------|
+| `rendering/engines/kida.py` | 145-210 | `env.globals` (mutation) | ✅ Fixed: Use per-render context |
 | `directives/factory.py` | 110-130 | `_DIRECTIVE_INSTANCES` | ✅ Double-check locking |
 | `rendering/pygments_cache.py` | 29-34 | `_lexer_cache`, `_cache_stats` | ✅ Lock protected |
 | `server/live_reload.py` | 548-551 | `_reload_generation` (in `notify_clients_reload`) | ✅ Condition protected |

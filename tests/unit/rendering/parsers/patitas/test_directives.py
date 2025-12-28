@@ -48,6 +48,9 @@ This is a warning.
 
     def test_directive_with_options(self) -> None:
         """Parse directive with options."""
+        from bengal.rendering.parsers.patitas.directives import create_default_registry
+        from bengal.rendering.parsers.patitas.parser import Parser
+
         source = """
 :::{note}
 :class: custom-class
@@ -56,14 +59,20 @@ This is a warning.
 Content here.
 :::
 """
-        ast = parse_to_ast(source.strip())
+        # Use parser with registry to get typed options
+        registry = create_default_registry()
+        parser = Parser(source.strip(), directive_registry=registry)
+        ast = parser.parse()
+
         assert len(ast) == 1
         assert isinstance(ast[0], Directive)
         assert ast[0].name == "note"
 
-        options = dict(ast[0].options)
-        assert options.get("class") == "custom-class"
-        assert options.get("name") == "my-note"
+        # Options are now typed objects (AdmonitionOptions), access directly
+        options = ast[0].options
+        assert isinstance(options, AdmonitionOptions)
+        assert options.class_ == "custom-class"
+        assert options.name == "my-note"
 
     def test_nested_directives(self) -> None:
         """Parse nested directives with different colon counts."""
@@ -123,13 +132,15 @@ This is inside a code block.
 :::
 ```
 """
-        ast = parse_to_ast(source.strip())
+        stripped = source.strip()
+        ast = parse_to_ast(stripped)
         # Should be a fenced code block, not a directive
         from bengal.rendering.parsers.patitas.nodes import FencedCode
 
         assert len(ast) == 1
         assert isinstance(ast[0], FencedCode)
-        assert ":::{note}" in ast[0].code
+        # FencedCode uses zero-copy: get_code(source) instead of .code attribute
+        assert ":::{note}" in ast[0].get_code(stripped)
 
 
 class TestDirectiveOptions:
@@ -229,7 +240,7 @@ class TestDirectiveRegistry:
         # All admonition names work
         assert registry.has("warning")
         assert registry.has("tip")
-        assert registry.has("important")
+        assert registry.has("danger")
 
     def test_default_registry(self) -> None:
         """Default registry has built-in directives."""
@@ -281,6 +292,7 @@ Content here.
 
     def test_render_with_registry(self) -> None:
         """Render using custom directive registry."""
+        from bengal.rendering.parsers.patitas.parser import Parser
         from bengal.rendering.parsers.patitas.renderers.html import HtmlRenderer
 
         registry = create_default_registry()
@@ -291,7 +303,9 @@ Content here.
 This is a note.
 :::
 """
-        ast = parse_to_ast(source.strip())
+        # Parse with registry to get typed options (AdmonitionOptions)
+        parser = Parser(source.strip(), directive_registry=registry)
+        ast = parser.parse()
         html = renderer.render(ast)
 
         # Should use AdmonitionDirective's render method

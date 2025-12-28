@@ -43,6 +43,8 @@ class SourceLocation:
 
     lineno: int
     col_offset: int
+    offset: int = 0  # NEW: Absolute start offset in source buffer
+    end_offset: int = 0  # NEW: Absolute end offset in source buffer
     end_lineno: int | None = None
     end_col_offset: int | None = None
     source_file: str | None = None
@@ -69,6 +71,8 @@ class SourceLocation:
         return SourceLocation(
             lineno=self.lineno,
             col_offset=self.col_offset,
+            offset=self.offset,
+            end_offset=end.end_offset or end.offset,
             end_lineno=end.end_lineno or end.lineno,
             end_col_offset=end.end_col_offset or end.col_offset,
             source_file=self.source_file,

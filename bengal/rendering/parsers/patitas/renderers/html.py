@@ -9,9 +9,9 @@ Thread Safety:
 
 from __future__ import annotations
 
-from collections.abc import Iterator, Sequence
+from collections.abc import Callable, Sequence
 from html import escape as html_escape
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from bengal.rendering.parsers.patitas.nodes import (
     Block,
@@ -20,6 +20,8 @@ from bengal.rendering.parsers.patitas.nodes import (
     Directive,
     Emphasis,
     FencedCode,
+    FootnoteDef,
+    FootnoteRef,
     Heading,
     HtmlBlock,
     HtmlInline,
@@ -30,17 +32,24 @@ from bengal.rendering.parsers.patitas.nodes import (
     Link,
     List,
     ListItem,
+    Math,
+    MathBlock,
     Paragraph,
     Role,
     SoftBreak,
+    Strikethrough,
     Strong,
+    Table,
+    TableRow,
     Text,
     ThematicBreak,
 )
 from bengal.rendering.parsers.patitas.stringbuilder import StringBuilder
 
 if TYPE_CHECKING:
+    from bengal.directives.cache import DirectiveCache
     from bengal.rendering.parsers.patitas.directives.registry import DirectiveRegistry
+    from bengal.rendering.parsers.patitas.protocols import LexerDelegate
     from bengal.rendering.parsers.patitas.roles.registry import RoleRegistry
 
 
@@ -63,34 +72,50 @@ class HtmlRenderer:
     """
 
     __slots__ = (
+        "_source",
         "_highlight",
         "_highlight_style",
         "_rosettes_available",
         "_directive_registry",
+        "_directive_cache",
         "_role_registry",
+        "_text_transformer",
+        "_delegate",
     )
 
     def __init__(
         self,
+        source: str = "",
         *,
         highlight: bool = False,
         highlight_style: Literal["semantic", "pygments"] = "semantic",
         directive_registry: DirectiveRegistry | None = None,
+        directive_cache: DirectiveCache | None = None,
         role_registry: RoleRegistry | None = None,
+        text_transformer: Callable[[str], str] | None = None,
+        delegate: LexerDelegate | None = None,
     ) -> None:
         """Initialize renderer.
 
         Args:
+            source: Original source buffer for zero-copy extraction
             highlight: Enable syntax highlighting for code blocks
             highlight_style: Highlighting style ("semantic" or "pygments")
             directive_registry: Optional registry for custom directive rendering
+            directive_cache: Optional cache for rendered directive output (auto-enabled for versioned sites)
             role_registry: Optional registry for custom role rendering
+            text_transformer: Optional callback to transform plain text nodes
+            delegate: Optional sub-lexer delegate for ZCLH handoff
         """
+        self._source = source
         self._highlight = highlight
         self._highlight_style = highlight_style
         self._rosettes_available: bool | None = None
         self._directive_registry = directive_registry
+        self._directive_cache = directive_cache
         self._role_registry = role_registry
+        self._text_transformer = text_transformer
+        self._delegate = delegate
 
     def render(self, nodes: Sequence[Block]) -> str:
         """Render AST nodes to HTML.
@@ -102,9 +127,44 @@ class HtmlRenderer:
             Rendered HTML string
         """
         sb = StringBuilder()
+        footnotes: list[FootnoteDef] = []
+
         for node in nodes:
-            self._render_block(node, sb)
+            # Collect footnote definitions for rendering at the end
+            if isinstance(node, FootnoteDef):
+                footnotes.append(node)
+            else:
+                self._render_block(node, sb)
+
+        # Render footnote definitions section at the end
+        if footnotes:
+            self._render_footnotes_section(footnotes, sb)
+
         return sb.build()
+
+    def _render_footnotes_section(self, footnotes: list[FootnoteDef], sb: StringBuilder) -> None:
+        """Render footnote definitions as a section at the end of the document."""
+        sb.append('<section class="footnotes">\n<ol>\n')
+
+        for fn in footnotes:
+            identifier = _escape_attr(fn.identifier)
+            sb.append(f'<li id="fn-{identifier}">')
+
+            # Render footnote content
+            if fn.children:
+                for child in fn.children:
+                    if isinstance(child, Paragraph):
+                        # Inline the paragraph content with back-reference
+                        sb.append("<p>")
+                        self._render_inline_children(child.children, sb)
+                        sb.append(f'<a href="#fnref-{identifier}" class="footnote">&#8617;</a>')
+                        sb.append("</p>")
+                    else:
+                        self._render_block(child, sb)
+
+            sb.append("</li>\n")
+
+        sb.append("</ol>\n</section>\n")
 
     def _render_block(self, node: Block, sb: StringBuilder) -> None:
         """Render a block node to StringBuilder."""
@@ -119,8 +179,8 @@ class HtmlRenderer:
                 self._render_inline_children(children, sb)
                 sb.append("</p>\n")
 
-            case FencedCode(code=code, info=info):
-                self._render_fenced_code(code, info, sb)
+            case FencedCode() as node:
+                self._render_fenced_code(node, sb)
 
             case IndentedCode(code=code):
                 sb.append(f"<pre><code>{_escape_html(code)}</code></pre>\n")
@@ -159,14 +219,30 @@ class HtmlRenderer:
             case Directive() as directive:
                 self._render_directive(directive, sb)
 
+            case Table() as table:
+                self._render_table(table, sb)
+
+            case MathBlock(content=content):
+                # Render as div with math-block class (for MathJax/KaTeX)
+                sb.append('<div class="math-block">\n')
+                sb.append(_escape_html(content))
+                sb.append("\n</div>\n")
+
+            case FootnoteDef():
+                # Footnote definitions are collected and rendered at document end
+                pass  # Handled in post-processing
+
     def _render_list_item(self, item: ListItem, sb: StringBuilder, tight: bool) -> None:
         """Render a list item."""
-        sb.append("<li>")
-
         if item.checked is not None:
-            # Task list item
-            checked = "checked" if item.checked else ""
-            sb.append(f'<input type="checkbox" disabled {checked}/> ')
+            # Task list item - match Mistune's class names
+            sb.append('<li class="task-list-item">')
+            checked_attr = " checked" if item.checked else ""
+            sb.append(
+                f'<input class="task-list-item-checkbox" type="checkbox" disabled{checked_attr}/>'
+            )
+        else:
+            sb.append("<li>")
 
         if tight:
             # Tight list: render children without paragraph wrapper
@@ -182,59 +258,237 @@ class HtmlRenderer:
 
         sb.append("</li>\n")
 
+    def _render_table(self, table: Table, sb: StringBuilder) -> None:
+        """Render a table with thead and tbody."""
+        # Wrap in table-wrapper for horizontal scrolling on narrow screens
+        sb.append('<div class="table-wrapper"><table>\n')
+
+        # Render header rows
+        if table.head:
+            sb.append("<thead>\n")
+            for row in table.head:
+                self._render_table_row(row, table.alignments, sb, is_header=True)
+            sb.append("</thead>\n")
+
+        # Render body rows
+        if table.body:
+            sb.append("<tbody>\n")
+            for row in table.body:
+                self._render_table_row(row, table.alignments, sb, is_header=False)
+            sb.append("</tbody>\n")
+
+        sb.append("</table></div>")
+
+    def _render_table_row(
+        self,
+        row: TableRow,
+        alignments: tuple[str | None, ...],
+        sb: StringBuilder,
+        is_header: bool,
+    ) -> None:
+        """Render a table row with pretty-printing (matching Mistune)."""
+        sb.append("<tr>\n")
+        tag = "th" if is_header else "td"
+
+        for i, cell in enumerate(row.cells):
+            align = alignments[i] if i < len(alignments) else None
+            if align:
+                sb.append(f'  <{tag} style="text-align: {align}">')
+            else:
+                sb.append(f"  <{tag}>")
+            self._render_inline_children(cell.children, sb)
+            sb.append(f"</{tag}>\n")
+
+        sb.append("</tr>\n")
+
     def _render_directive(self, node: Directive, sb: StringBuilder) -> None:
         """Render a directive block.
 
         Uses registered handler if available, otherwise falls back to default.
+        Caches rendered output for versioned sites (auto-enabled when directive_cache provided).
+        
+        Optimization: Check cache BEFORE rendering children to skip work on cache hits.
         """
-        # Pre-render children
+        # Check directive cache FIRST (before rendering children)
+        cache_key: str | None = None
+        if self._directive_cache:
+            # Lightweight AST-based cache key (no rendering needed)
+            cache_key = self._directive_ast_cache_key(node)
+            cached = self._directive_cache.get("directive_html", cache_key)
+            if cached:
+                sb.append(cached)
+                return
+
+        # Cache miss: now render children
         children_sb = StringBuilder()
         for child in node.children:
             self._render_block(child, children_sb)
         rendered_children = children_sb.build()
 
         # Check for registered handler
+        result_sb = StringBuilder()
         if self._directive_registry:
             handler = self._directive_registry.get(node.name)
             if handler and hasattr(handler, "render"):
-                handler.render(node, rendered_children, sb)
+                # Provide render callback for handlers that need to render children themselves
+                import inspect
+
+                sig = inspect.signature(handler.render)
+                if "render_child_directive" in sig.parameters:
+                    handler.render(
+                        node,
+                        rendered_children,
+                        result_sb,
+                        render_child_directive=self._render_block,
+                    )
+                else:
+                    handler.render(node, rendered_children, result_sb)
+
+                result = result_sb.build()
+                if cache_key and self._directive_cache:
+                    self._directive_cache.put("directive_html", cache_key, result)
+                sb.append(result)
                 return
 
         # Default rendering
-        sb.append(f'<div class="directive directive-{_escape_attr(node.name)}">')
+        result_sb.append(f'<div class="directive directive-{_escape_attr(node.name)}">')
         if node.title:
-            sb.append(f'<p class="directive-title">{_escape_html(node.title)}</p>')
-        sb.append(rendered_children)
-        sb.append("</div>\n")
+            result_sb.append(f'<p class="directive-title">{_escape_html(node.title)}</p>')
+        result_sb.append(rendered_children)
+        result_sb.append("</div>\n")
 
-    def _render_fenced_code(self, code: str, info: str | None, sb: StringBuilder) -> None:
-        """Render fenced code block with optional highlighting."""
+        result = result_sb.build()
+        if cache_key and self._directive_cache:
+            self._directive_cache.put("directive_html", cache_key, result)
+        sb.append(result)
+
+    def _directive_ast_cache_key(self, node: Directive) -> str:
+        """Generate cache key from directive AST structure without rendering.
+        
+        Creates a lightweight hash of the directive's structure:
+        - Directive name, title, options
+        - Recursive structure of all child blocks
+        
+        This allows cache lookup BEFORE expensive child rendering.
+        """
+        parts: list[str] = [node.name, node.title or ""]
+        
+        # Options as string
+        if node.options:
+            parts.append(repr(node.options))
+        
+        # Recursive AST structure hash
+        def hash_block(block: Block) -> str:
+            """Hash a block's structure without rendering."""
+            sig_parts = [type(block).__name__]
+            
+            # Add content-bearing attributes
+            if hasattr(block, "content"):
+                sig_parts.append(str(getattr(block, "content", "")))
+            if hasattr(block, "code"):
+                sig_parts.append(str(getattr(block, "code", "")))
+            if hasattr(block, "info"):
+                sig_parts.append(str(getattr(block, "info", "")))
+            if hasattr(block, "level"):
+                sig_parts.append(str(getattr(block, "level", "")))
+            if hasattr(block, "url"):
+                sig_parts.append(str(getattr(block, "url", "")))
+            
+            # Recurse into children
+            if hasattr(block, "children"):
+                children = getattr(block, "children", ())
+                if children:
+                    sig_parts.extend(hash_block(child) for child in children)
+            
+            return "|".join(sig_parts)
+        
+        # Hash all children
+        children_sig = "".join(hash_block(child) for child in node.children)
+        parts.append(str(hash(children_sig)))
+        
+        return ":".join(parts)
+
+    def _render_fenced_code(
+        self,
+        node: FencedCode,
+        sb: StringBuilder,
+    ) -> None:
+        """Render fenced code block with optional zero-copy highlighting."""
+        info = node.info
+        if info:
+            lang = info.split()[0].lower()
+            if lang == "mermaid":
+                sb.append(
+                    f'<div class="mermaid">{_escape_html(node.get_code(self._source))}</div>\n'
+                )
+                return
+
+        # Attempt syntax highlighting via delegate (ZCLH protocol)
+        if self._delegate and info:
+            lang = info.split()[0].lower()
+            if self._delegate.supports_language(lang):
+                tokens = self._delegate.tokenize_range(
+                    self._source,
+                    node.source_start,
+                    node.source_end,
+                    lang,
+                )
+                self._render_highlighted_tokens(tokens, lang, sb)
+                return
+
+        # Fallback: internal highlighting or plain code
         if self._highlight and info:
-            highlighted = self._try_highlight(code, info)
+            highlighted = self._try_highlight_range(node.source_start, node.source_end, info)
             if highlighted:
+                # Rosettes parity: ensure trailing newline
+                if highlighted.endswith("</code></pre></div>"):
+                    highlighted = highlighted[:-19] + "\n</code></pre></div>"
                 sb.append(highlighted)
                 return
 
-        # Plain code block
+        # Plain code block extraction
+        code = node.get_code(self._source)
         sb.append("<pre><code")
         if info:
-            # Extract language (first word of info string)
-            lang = info.split()[0] if info else ""
+            lang = info.split()[0]
             if lang:
                 sb.append(f' class="language-{_escape_attr(lang)}"')
         sb.append(">")
         sb.append(_escape_html(code))
+        if code and not code.endswith("\n"):
+            sb.append("\n")
         sb.append("</code></pre>\n")
 
-    def _try_highlight(self, code: str, info: str) -> str | None:
-        """Try to highlight code using rosettes.
+    def _render_highlighted_tokens(
+        self,
+        tokens: Any,
+        language: str,
+        sb: StringBuilder,
+    ) -> None:
+        """Render tokens from a sub-lexer delegate."""
+        # This assumes tokens are compatible with rosettes format
+        # but we wrap them in standard containers for safety.
+        sb.append(f'<div class="highlight {self._highlight_style}"><pre>')
+        sb.append(f'<code class="language-{_escape_attr(language)}">')
 
-        Returns highlighted HTML or None if highlighting unavailable.
-        """
-        # Check rosettes availability (cached)
+        # Basic token rendering if not already stringified
+        for token in tokens:
+            if hasattr(token, "html"):
+                sb.append(token.html)
+            elif hasattr(token, "value"):
+                # Handle basic token objects (type, value)
+                cls = f' class="token {getattr(token, "type", "text")}"'
+                sb.append(f"<span{cls}>{_escape_html(token.value)}</span>")
+            else:
+                sb.append(_escape_html(str(token)))
+
+        sb.append("\n</code></pre></div>\n")
+
+    def _try_highlight_range(self, start: int, end: int, info: str) -> str | None:
+        """Try to highlight a source range using internal rosettes."""
         if self._rosettes_available is None:
             try:
-                import rosettes  # noqa: F401
+                from bengal.rendering.rosettes import highlight  # noqa: F401
 
                 self._rosettes_available = True
             except ImportError:
@@ -248,15 +502,16 @@ class HtmlRenderer:
             return None
 
         try:
-            from rosettes import highlight
+            from bengal.rendering.rosettes import highlight
 
             return highlight(
-                code,
+                self._source,
                 lang,
                 css_class_style=self._highlight_style,
+                start=start,
+                end=end,
             )
         except (LookupError, ValueError):
-            # Language not supported or other error
             return None
 
     def _render_inline_children(self, children: Sequence[Inline], sb: StringBuilder) -> None:
@@ -294,8 +549,11 @@ class HtmlRenderer:
 
 
 def _escape_html(text: str) -> str:
-    """Escape HTML special characters."""
-    return html_escape(text, quote=False)
+    """Escape HTML special characters including quotes.
+
+    Matches mistune's escape behavior for parity.
+    """
+    return html_escape(text, quote=True)
 
 
 def _escape_attr(text: str) -> str:
@@ -309,7 +567,16 @@ def _escape_attr(text: str) -> str:
 
 
 def _render_text(node: Text, sb: StringBuilder, render_children) -> None:
-    sb.append(_escape_html(node.content))
+    # Use text_transformer if provided (e.g., for variable substitution)
+    # This happens BEFORE HTML escaping to allow variables to contain HTML (e.g. icons)
+    # but the renderer will then escape the result for safety.
+    # Note: VariableSubstitutionPlugin handles its own safety checks.
+    content = node.content
+    renderer = getattr(render_children, "__self__", None)
+    if renderer and hasattr(renderer, "_text_transformer") and renderer._text_transformer:
+        content = renderer._text_transformer(content)
+
+    sb.append(_escape_html(content))
 
 
 def _render_emphasis(node: Emphasis, sb: StringBuilder, render_children) -> None:
@@ -363,6 +630,31 @@ def _render_role(node: Role, sb: StringBuilder, render_children) -> None:
     )
 
 
+# =============================================================================
+# Plugin inline dispatch handlers
+# =============================================================================
+
+
+def _render_strikethrough(node: Strikethrough, sb: StringBuilder, render_children) -> None:
+    sb.append("<del>")
+    render_children(node.children, sb)
+    sb.append("</del>")
+
+
+def _render_math(node: Math, sb: StringBuilder, render_children) -> None:
+    # Inline math - rendered with span.math class for MathJax/KaTeX
+    sb.append(f'<span class="math">{_escape_html(node.content)}</span>')
+
+
+def _render_footnote_ref(node: FootnoteRef, sb: StringBuilder, render_children) -> None:
+    # Footnote reference - links to footnote definition (Mistune-compatible output)
+    identifier = _escape_attr(node.identifier)
+    sb.append(
+        f'<sup class="footnote-ref" id="fnref-{identifier}">'
+        f'<a href="#fn-{identifier}">{_escape_html(node.identifier)}</a></sup>'
+    )
+
+
 # Type -> handler dispatch table (O(1) lookup, faster than match)
 _INLINE_DISPATCH = {
     Text: _render_text,
@@ -375,4 +667,8 @@ _INLINE_DISPATCH = {
     SoftBreak: _render_soft_break,
     HtmlInline: _render_html_inline,
     Role: _render_role,
+    # Plugin nodes
+    Strikethrough: _render_strikethrough,
+    Math: _render_math,
+    FootnoteRef: _render_footnote_ref,
 }

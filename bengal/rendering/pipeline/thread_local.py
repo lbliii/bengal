@@ -53,6 +53,28 @@ _parser_cache: ThreadLocalCache[BaseMarkdownParser] = ThreadLocalCache(
 _created_dirs = ThreadSafeSet()
 
 
+# Register caches for centralized cleanup (prevents memory leaks in tests)
+def _clear_parser_cache() -> None:
+    """Clear parser cache for all threads (registered for test cleanup)."""
+    _parser_cache.clear_all()
+
+
+def _clear_created_dirs() -> None:
+    """Clear created directories cache (registered for test cleanup)."""
+    _created_dirs.clear()
+
+
+# Register at module import time for automatic test cleanup
+try:
+    from bengal.utils.cache_registry import register_cache
+
+    register_cache("parser_cache", _clear_parser_cache)
+    register_cache("created_dirs_cache", _clear_created_dirs)
+except ImportError:
+    # Cache registry not available (shouldn't happen in normal usage)
+    pass
+
+
 def get_thread_parser(engine: str | None = None) -> BaseMarkdownParser:
     """
     Get or create a MarkdownParser instance for the current thread.

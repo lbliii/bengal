@@ -44,7 +44,7 @@ Kida parses Jinja2 syntax, so existing templates work without changes. This page
 
 ## Detailed Comparisons
 
-For detailed comparisons, see the [Kida vs Jinja2 Comparison (Legacy)](./kida-vs-jinja-comparison) page, which includes comprehensive side-by-side examples of:
+For detailed comparisons, see the [Kida vs Jinja2 Comparison (Legacy)](./kida-vs-jinja-comparison.md) page, which includes comprehensive side-by-side examples of:
 
 - **Syntax**: Block endings, variables, expressions
 - **Control Flow**: Conditionals, loops, pattern matching
@@ -83,9 +83,9 @@ For detailed comparisons, see the [Kida vs Jinja2 Comparison (Legacy)](./kida-vs
 2. Existing templates work as-is
 3. Convert to Kida syntax as you edit files
 
-See [Migration Guide](./migrate-jinja-to-kida) for step-by-step instructions.
+See [Migration Guide](./migrate-jinja-to-kida.md) for step-by-step instructions.
 
 :::{seealso}
-- [Migration Guide](./migrate-jinja-to-kida) — Step-by-step conversion
+- [Migration Guide](./migrate-jinja-to-kida.md) — Step-by-step conversion
 - [Kida Syntax Reference](/docs/reference/kida-syntax/) — Complete syntax
 :::

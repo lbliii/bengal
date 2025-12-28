@@ -14,6 +14,7 @@ from threading import Lock
 from typing import TYPE_CHECKING
 
 from bengal.utils.logger import get_logger
+from bengal.utils.workers import WorkloadType, get_optimal_workers, should_parallelize
 
 if TYPE_CHECKING:
     from bengal.cache import BuildCache, DependencyTracker
@@ -25,24 +26,18 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
-# Threshold for switching from sequential to parallel processing.
-# Below this, thread overhead exceeds benefit. Tuned for typical filesystem latency.
+# Note: PARALLEL_THRESHOLD and DEFAULT_MAX_WORKERS are deprecated
+# in favor of should_parallelize() and get_optimal_workers()
+# Kept for backwards compatibility if accessed directly
 PARALLEL_THRESHOLD = 50
-
-# Default max workers for parallel operations (None = cpu_count)
 DEFAULT_MAX_WORKERS = min(8, (os.cpu_count() or 4))
-
-
-def _get_max_workers(site: Site) -> int:
-    """Get max workers from site config or use default."""
-    return site.config.get("max_workers", DEFAULT_MAX_WORKERS)
 
 
 class FileChangeDetector:
     """
     Detects changes in content files (pages and assets).
 
-    Uses parallel processing for large workloads (>PARALLEL_THRESHOLD items).
+    Uses parallel processing for large workloads (workload-aware threshold).
     For smaller sets, sequential is faster due to thread overhead.
 
     Performance:
@@ -81,7 +76,7 @@ class FileChangeDetector:
     ) -> None:
         """Check pages for changes.
 
-        Uses parallel processing for large page sets (>PARALLEL_THRESHOLD).
+        Uses parallel processing for large page sets (workload-aware threshold).
         For smaller sets, sequential is faster due to thread overhead.
         """
         # Filter pages first (cheap in-memory operations)
@@ -103,7 +98,8 @@ class FileChangeDetector:
             return
 
         # Choose sequential or parallel based on workload size
-        if len(pages_to_scan) < PARALLEL_THRESHOLD:
+        # File change detection is I/O-bound (stat calls)
+        if not should_parallelize(len(pages_to_scan), workload_type=WorkloadType.IO_BOUND):
             self._check_pages_sequential(
                 pages_to_scan, all_changed, pages_to_rebuild, change_summary, verbose
             )
@@ -141,7 +137,11 @@ class FileChangeDetector:
 
         Thread-safe: Uses lock for result collection.
         """
-        max_workers = _get_max_workers(self.site)
+        max_workers = get_optimal_workers(
+            len(pages),
+            workload_type=WorkloadType.IO_BOUND,
+            config_override=self.site.config.get("max_workers"),
+        )
         results_lock = Lock()
 
         def check_single_page(page: Page) -> tuple[Path, bool, list[str] | None]:
@@ -181,13 +181,14 @@ class FileChangeDetector:
     ) -> None:
         """Check assets for changes.
 
-        Uses parallel processing for large asset sets (>PARALLEL_THRESHOLD).
+        Uses parallel processing for large asset sets (workload-aware threshold).
         """
         assets = self.site.assets
         if not assets:
             return
 
-        if len(assets) < PARALLEL_THRESHOLD:
+        # Asset change detection is I/O-bound (stat calls)
+        if not should_parallelize(len(assets), workload_type=WorkloadType.IO_BOUND):
             # Sequential for small workloads
             for asset in assets:
                 if self.cache.should_bypass(asset.source_path, forced_changed):
@@ -209,7 +210,11 @@ class FileChangeDetector:
         verbose: bool,
     ) -> None:
         """Parallel asset checking for large workloads."""
-        max_workers = _get_max_workers(self.site)
+        max_workers = get_optimal_workers(
+            len(self.site.assets),
+            workload_type=WorkloadType.IO_BOUND,
+            config_override=self.site.config.get("max_workers"),
+        )
         results_lock = Lock()
 
         def check_single_asset(asset: Asset) -> tuple[Asset, bool]:

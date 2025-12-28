@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 
+from bengal.rendering.rosettes._config import LexerConfig
 from bengal.rendering.rosettes._types import Token, TokenType
 from bengal.rendering.rosettes.lexers._state_machine import StateMachineLexer
 
@@ -25,14 +26,21 @@ class DiffStateMachineLexer(StateMachineLexer):
     filenames = ("*.diff", "*.patch")
     mimetypes = ("text/x-diff", "text/x-patch")
 
-    def tokenize(self, code: str) -> Iterator[Token]:
-        pos = 0
-        length = len(code)
+    def tokenize(
+        self,
+        code: str,
+        config: LexerConfig | None = None,
+        *,
+        start: int = 0,
+        end: int | None = None,
+    ) -> Iterator[Token]:
+        pos = start
+        length = end if end is not None else len(code)
         line = 1
 
         while pos < length:
             # Use C-level find to get line end - much faster than char-by-char
-            line_end = code.find("\n", pos)
+            line_end = code.find("\n", pos, length)
             if line_end == -1:
                 line_end = length
                 has_newline = False

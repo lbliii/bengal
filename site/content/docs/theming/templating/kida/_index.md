@@ -31,7 +31,7 @@ Your Jinja2 templates work without changes—Kida parses both syntaxes.
 
 ## Documentation
 
-:::{cards}
+::::{cards}
 :columns: 2
 :gap: medium
 
@@ -60,11 +60,11 @@ Benchmarks and optimization strategies.
 Feature-by-feature Kida vs Jinja2.
 :::
 
-:::
+::::
 
 ## How-To Guides
 
-:::{cards}
+::::{cards}
 :columns: 2
 :gap: medium
 
@@ -98,7 +98,7 @@ Extend Kida with your own filters.
 Convert existing templates.
 :::
 
-:::
+::::
 
 ## Quick Syntax Reference
 

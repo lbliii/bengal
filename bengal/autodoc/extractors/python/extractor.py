@@ -59,8 +59,8 @@ from bengal.autodoc.utils import (
     get_python_function_is_property,
     sanitize_text,
 )
-from bengal.config.defaults import get_max_workers
 from bengal.utils.logger import get_logger
+from bengal.utils.workers import WorkloadType, get_optimal_workers
 
 logger = get_logger(__name__)
 
@@ -317,7 +317,11 @@ class PythonExtractor(Extractor):
             - Python 3.13 (GIL): ~1.5-2x faster
             - Python 3.14t (no GIL): ~3-4x faster
         """
-        max_workers = get_max_workers(self.config.get("max_workers"))
+        max_workers = get_optimal_workers(
+            len(py_files),
+            workload_type=WorkloadType.CPU_BOUND,
+            config_override=self.config.get("max_workers"),
+        )
         elements: list[DocElement] = []
         start_time = time.perf_counter()
 

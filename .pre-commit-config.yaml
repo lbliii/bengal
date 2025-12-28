@@ -30,7 +30,7 @@ repos:
 
       # Check for debugger imports and breakpoints
       - id: debug-statements
-        language_version: python3.12
+        language_version: python3.14
 
       # Check TOML file syntax
       - id: check-toml
@@ -54,6 +54,12 @@ repos:
 
   - repo: local
     hooks:
+      - id: check-python-version
+        name: Check Python version (3.14+ required)
+        entry: uv run python scripts/check_python_version.py
+        language: system
+        pass_filenames: false
+        always_run: true
       - id: block-string-based-click-cls
         name: Block string-based Click cls usage
         entry: bash -c "! rg -n 'cls=\"bengal\\.cli\\.(Bengal(Group|Command))\"' bengal/cli || (echo 'Use direct class references from bengal.cli.base for Click cls' && exit 1)"

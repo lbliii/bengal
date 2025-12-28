@@ -8,6 +8,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from typing import TYPE_CHECKING
 
+from bengal.rendering.rosettes._config import LexerConfig
 from bengal.rendering.rosettes._types import Token, TokenType
 
 if TYPE_CHECKING:
@@ -55,20 +56,34 @@ class StateMachineLexer:
     )
     WHITESPACE: frozenset[str] = frozenset(" \t\n\r\f\v")
 
-    def tokenize(self, code: str) -> Iterator[Token]:
+    def tokenize(
+        self,
+        code: str,
+        config: LexerConfig | None = None,
+        start: int = 0,
+        end: int | None = None,
+    ) -> Iterator[Token]:
         """Tokenize source code.
 
         Subclasses override this with language-specific logic.
 
         Args:
             code: The source code to tokenize.
+            config: Optional lexer configuration.
+            start: Starting index in the source string.
+            end: Optional ending index in the source string.
 
         Yields:
             Token objects in order of appearance.
         """
         raise NotImplementedError("Subclasses must implement tokenize()")
 
-    def tokenize_fast(self, code: str) -> Iterator[tuple[TokenType, str]]:
+    def tokenize_fast(
+        self,
+        code: str,
+        start: int = 0,
+        end: int | None = None,
+    ) -> Iterator[tuple[TokenType, str]]:
         """Fast tokenization without position tracking.
 
         Default implementation strips position info from tokenize().
@@ -76,11 +91,13 @@ class StateMachineLexer:
 
         Args:
             code: The source code to tokenize.
+            start: Starting index in the source string.
+            end: Optional ending index in the source string.
 
         Yields:
             (TokenType, value) tuples.
         """
-        for token in self.tokenize(code):
+        for token in self.tokenize(code, start=start, end=end):
             yield (token.type, token.value)
 
 

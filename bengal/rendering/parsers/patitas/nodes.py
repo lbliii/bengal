@@ -38,9 +38,12 @@ Thread Safety:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal
+from typing import Generic, Literal, TypeVar
 
+from bengal.rendering.parsers.patitas.directives.options import DirectiveOptions
 from bengal.rendering.parsers.patitas.location import SourceLocation
+
+TOptions = TypeVar("TOptions", bound=DirectiveOptions)
 
 # =============================================================================
 # Base Node
@@ -176,9 +179,59 @@ class Role(Node):
     target: str | None = None
 
 
+# =============================================================================
+# Plugin Inline Nodes
+# =============================================================================
+
+
+@dataclass(frozen=True, slots=True)
+class Strikethrough(Node):
+    """Strikethrough (deleted) text.
+
+    Markdown: ~~deleted~~
+    HTML: <del>deleted</del>
+    """
+
+    children: tuple[Inline, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class Math(Node):
+    """Inline math expression.
+
+    Markdown: $E = mc^2$
+    HTML: <span class="math">E = mc^2</span>
+    """
+
+    content: str
+
+
+@dataclass(frozen=True, slots=True)
+class FootnoteRef(Node):
+    """Footnote reference.
+
+    Markdown: [^1] or [^note]
+    HTML: <sup><a href="#fn-1">1</a></sup>
+    """
+
+    identifier: str
+
+
 # Type alias for inline elements
 Inline = (
-    Text | Emphasis | Strong | Link | Image | CodeSpan | LineBreak | SoftBreak | HtmlInline | Role
+    Text
+    | Emphasis
+    | Strong
+    | Strikethrough
+    | Link
+    | Image
+    | CodeSpan
+    | LineBreak
+    | SoftBreak
+    | HtmlInline
+    | Role
+    | Math
+    | FootnoteRef
 )
 
 
@@ -213,15 +266,29 @@ class Paragraph(Node):
 
 @dataclass(frozen=True, slots=True)
 class FencedCode(Node):
-    """Fenced code block.
+    """Fenced code block with zero-copy source reference.
 
-    Markdown: ```lang\\ncode\\n```
-    HTML: <pre><code class="language-lang">code</code></pre>
+    BREAKING CHANGE (v0.4.0):
+        Previous: code: str (extracted content)
+        Current:  source_start/source_end indices into original source
+
+    Migration:
+        Old: block.code
+        New: block.get_code(source)
     """
 
-    code: str
+    source_start: int
+    source_end: int
     info: str | None = None
     marker: Literal["`", "~"] = "`"
+
+    def get_code(self, source: str) -> str:
+        """Extract code content (creates new string)."""
+        return source[self.source_start : self.source_end]
+
+    def code_length(self) -> int:
+        """Length of code content without allocation."""
+        return self.source_end - self.source_start
 
 
 @dataclass(frozen=True, slots=True)
@@ -295,15 +362,18 @@ class HtmlBlock(Node):
 
 
 @dataclass(frozen=True, slots=True)
-class Directive(Node):
+class Directive(Node, Generic[TOptions]):
     """Block directive (MyST syntax).
 
     Markdown: :::{name} title\\n:option: value\\ncontent\\n:::
+
+    Generic over options type for full type safety. Use Directive[YourOptions]
+    to get typed options access in handlers.
     """
 
     name: str
     title: str | None
-    options: frozenset[tuple[str, str]]
+    options: TOptions  # Typed options object — IDE knows the exact type!
     children: tuple[Block, ...]
     raw_content: str | None = None  # For directives needing unparsed content
 
@@ -315,6 +385,80 @@ class Document(Node):
     Contains all top-level blocks in the document.
     """
 
+    children: tuple[Block, ...]
+
+
+# =============================================================================
+# Plugin Block Nodes
+# =============================================================================
+
+
+@dataclass(frozen=True, slots=True)
+class TableCell(Node):
+    """Table cell (th or td).
+
+    Markdown: | cell content |
+    HTML: <td>cell content</td> or <th>cell content</th>
+    """
+
+    children: tuple[Inline, ...]
+    is_header: bool = False
+    align: Literal["left", "center", "right"] | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class TableRow(Node):
+    """Table row.
+
+    Markdown: | cell1 | cell2 |
+    HTML: <tr><td>cell1</td><td>cell2</td></tr>
+    """
+
+    cells: tuple[TableCell, ...]
+    is_header: bool = False
+
+
+@dataclass(frozen=True, slots=True)
+class Table(Node):
+    """Table (GFM-style).
+
+    Markdown:
+        | A | B |
+        |---|---|
+        | 1 | 2 |
+
+    HTML: <table>...</table>
+    """
+
+    head: tuple[TableRow, ...]  # Header rows (usually 1)
+    body: tuple[TableRow, ...]  # Body rows
+    alignments: tuple[Literal["left", "center", "right"] | None, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class MathBlock(Node):
+    """Block math expression.
+
+    Markdown:
+        $$
+        E = mc^2
+        $$
+
+    HTML: <div class="math-block">E = mc^2</div>
+    """
+
+    content: str
+
+
+@dataclass(frozen=True, slots=True)
+class FootnoteDef(Node):
+    """Footnote definition.
+
+    Markdown: [^1]: Footnote content here.
+    HTML: (rendered in footnotes section)
+    """
+
+    identifier: str
     children: tuple[Block, ...]
 
 
@@ -331,4 +475,7 @@ Block = (
     | ThematicBreak
     | HtmlBlock
     | Directive
+    | Table
+    | MathBlock
+    | FootnoteDef
 )

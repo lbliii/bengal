@@ -26,6 +26,32 @@ def pytest_configure(config: pytest.Config) -> None:
     Environment-controlled profiles:
     - BENGAL_CI_FAST=1: reduce Hypothesis examples and scale of long tests.
     """
+    # Enforce Python 3.14+ requirement (fail fast if wrong version)
+    import sys
+
+    if sys.version_info < (3, 14):  # noqa: UP036
+        pytest.exit(
+            f"ERROR: Python 3.14+ required, but found {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}\n"
+            f"Current Python: {sys.executable}\n"
+            f"Solution: Use 'uv run pytest' instead of 'pytest' to use the project's Python version.\n"
+            f"Or run: make test",
+            returncode=1,
+        )
+
+    # Check if free-threading build (warn if not, but don't fail)
+    is_freethreading_build = "free-threading" in sys.version
+    if not is_freethreading_build:
+        import warnings
+
+        warnings.warn(
+            f"Warning: Not using free-threading build (3.14t). "
+            f"Current: {sys.executable}\n"
+            f"Expected: Python 3.14t free-threading build\n"
+            f"Solution: Ensure .python-version contains '3.14t' and use 'uv run pytest'",
+            UserWarning,
+            stacklevel=2,
+        )
+
     if os.environ.get("BENGAL_CI_FAST") == "1":
         try:
             from hypothesis import settings
@@ -383,25 +409,36 @@ def reset_bengal_state(request):
     This fixture runs automatically for every test (autouse=True) and ensures:
     - Rich console is reset (prevents Live display conflicts)
     - Logger state is cleared (prevents file handle leaks)
-    - Theme cache is cleared (ensures fresh theme discovery)
-    - Parser cache is cleared (ensures fresh parsers with current directives)
+    - All registered caches are cleared (via cache registry system)
+      - Global context cache (prevents memory leaks from Site object IDs)
+      - Parser cache (ensures fresh parsers with current directives)
+      - Created directories cache (fresh directory tracking per test)
+      - Theme cache (ensures fresh theme discovery)
+
+    Cache Registry System:
+        Caches register themselves at module import time via
+        bengal.utils.cache_registry.register_cache(). This ensures new caches
+        are automatically included in test cleanup without manual updates.
 
     With the LazyLogger pattern, module-level logger references automatically
     refresh when reset_loggers() is called, eliminating orphaned logger issues.
 
-    Future expansions:
-    - PageProxyCache (if added as singleton)
-    - TaxonomyIndex caching state
-    - Template engine instances/bytecode cache
-    - Asset dependency map state
+    See: docs/cache-registry-system.md for details on the cache registry system.
     """
-    # Setup: Clear parser cache before test to get fresh parsers with latest directives
+    # Setup: Clear all registered caches before test (ensures fresh state)
+    # This is done before test to ensure clean state, and again after test for cleanup
     try:
-        from bengal.rendering.pipeline.thread_local import reset_parser_cache
+        from bengal.utils.cache_registry import clear_all_caches
 
-        reset_parser_cache()
+        clear_all_caches()
     except ImportError:
-        logger.debug("Parser cache reset skipped: reset_parser_cache not available")
+        # Fallback to manual cleanup if registry not available
+        try:
+            from bengal.rendering.pipeline.thread_local import reset_parser_cache
+
+            reset_parser_cache()
+        except ImportError:
+            logger.debug("Parser cache reset skipped: reset_parser_cache not available")
 
     # Setup: Force reload directives factory to pick up any new directives
     # This is needed because directive imports happen at module load time
@@ -437,21 +474,25 @@ def reset_bengal_state(request):
     except ImportError:
         logger.debug("Logger reset skipped: reset_loggers not available")
 
-    # 3. Clear theme cache (forces fresh discovery)
+    # 3. Clear all registered caches (centralized cleanup prevents memory leaks)
+    # This automatically clears: global_context_cache, parser_cache, created_dirs_cache
+    # and any other caches that register themselves
     try:
-        from bengal.core.theme import clear_theme_cache
+        from bengal.utils.cache_registry import clear_all_caches
 
-        clear_theme_cache()
+        clear_all_caches()
     except ImportError:
-        logger.debug("Theme cache clear skipped: clear_theme_cache not available")
+        logger.debug("Cache registry not available: skipping centralized cache cleanup")
+        # Fallback to manual cleanup if registry not available
+        try:
+            from bengal.rendering.context import clear_global_context_cache
+            from bengal.rendering.pipeline.thread_local import get_created_dirs, reset_parser_cache
 
-    # 4. Clear created directories cache (ensures fresh directory tracking per test)
-    try:
-        from bengal.rendering.pipeline.thread_local import get_created_dirs
-
-        get_created_dirs().clear()
-    except ImportError:
-        logger.debug("Created dirs cache clear skipped: get_created_dirs not available")
+            get_created_dirs().clear()
+            reset_parser_cache()
+            clear_global_context_cache()
+        except ImportError:
+            logger.debug("Manual cache cleanup skipped: modules not available")
 
 
 @pytest.fixture(scope="class")

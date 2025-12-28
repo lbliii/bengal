@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 
+from bengal.rendering.rosettes._config import LexerConfig
 from bengal.rendering.rosettes._types import Token, TokenType
 from bengal.rendering.rosettes.lexers._scanners import (
     IDENT_START_DOLLAR,
@@ -208,12 +209,19 @@ class JavaScriptStateMachineLexer(
         one_char=frozenset("+-*/%&|^~!<>=?:."),
     )
 
-    def tokenize(self, code: str) -> Iterator[Token]:
+    def tokenize(
+        self,
+        code: str,
+        config: LexerConfig | None = None,
+        *,
+        start: int = 0,
+        end: int | None = None,
+    ) -> Iterator[Token]:
         """Tokenize JavaScript source code."""
-        pos = 0
-        length = len(code)
+        pos = start
+        length = end if end is not None else len(code)
         line = 1
-        line_start = 0
+        line_start = start
 
         while pos < length:
             char = code[pos]

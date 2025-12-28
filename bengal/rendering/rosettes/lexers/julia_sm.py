@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 
+from bengal.rendering.rosettes._config import LexerConfig
 from bengal.rendering.rosettes._types import Token, TokenType
 from bengal.rendering.rosettes.lexers._scanners import (
     BINARY_DIGITS,
@@ -161,11 +162,18 @@ class JuliaStateMachineLexer(
     filenames = ("*.jl",)
     mimetypes = ("text/x-julia", "application/x-julia")
 
-    def tokenize(self, code: str) -> Iterator[Token]:
-        pos = 0
-        length = len(code)
+    def tokenize(
+        self,
+        code: str,
+        config: LexerConfig | None = None,
+        *,
+        start: int = 0,
+        end: int | None = None,
+    ) -> Iterator[Token]:
+        pos = start
+        length = end if end is not None else len(code)
         line = 1
-        line_start = 0
+        line_start = start
 
         while pos < length:
             char = code[pos]

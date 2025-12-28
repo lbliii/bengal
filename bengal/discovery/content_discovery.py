@@ -41,13 +41,13 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from bengal.config.defaults import get_max_workers
 from bengal.core.page import Page, PageProxy
 from bengal.core.section import Section
 from bengal.discovery.content_parser import ContentParser
 from bengal.discovery.directory_walker import DirectoryWalker
 from bengal.discovery.section_builder import SectionBuilder
 from bengal.utils.logger import get_logger
+from bengal.utils.workers import WorkloadType, get_optimal_workers
 
 logger = get_logger(__name__)
 
@@ -207,8 +207,14 @@ class ContentDiscovery:
         # Get i18n configuration
         i18n_config = self._get_i18n_config()
 
-        # Initialize thread pool for parallel parsing
-        max_workers = min(8, get_max_workers())
+        # Initialize thread pool for parallel parsing (I/O-bound file discovery)
+        max_workers = get_optimal_workers(
+            100,  # Estimate - content discovery typically processes many files
+            workload_type=WorkloadType.IO_BOUND,
+            config_override=self.site.config.get("max_workers")
+            if self.site and self.site.config
+            else None,
+        )
         self._executor = ThreadPoolExecutor(max_workers=max_workers)
 
         try:

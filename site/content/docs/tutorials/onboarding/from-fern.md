@@ -72,7 +72,7 @@ Fern is powerful for API-first teams with SDK generation. Bengal focuses purely 
 :::{/tab}
 
 :::{tab} Bengal (Clean Markdown!)
-```markdown
+````markdown
 :::{info}
 This is an informational callout.
 :::
@@ -88,7 +88,7 @@ Operation completed successfully.
 :::{danger}
 Critical warning—proceed with caution.
 :::
-```
+````
 :::{/tab}
 
 :::{/tab-set}
@@ -122,7 +122,7 @@ Critical warning—proceed with caution.
 :::{/tab}
 
 :::{tab} Bengal
-````markdown
+`````markdown
 :::{tab-set}
 :::{tab} Python
 ```python
@@ -142,7 +142,7 @@ client := myapi.NewClient(myapi.WithAPIKey("..."))
 ```
 :::{/tab}
 :::{/tab-set}
-````
+`````
 :::{/tab}
 
 :::{/tab-set}
@@ -173,7 +173,7 @@ client := myapi.NewClient(myapi.WithAPIKey("..."))
 :::{/tab}
 
 :::{tab} Bengal
-```markdown
+````markdown
 :::{cards}
 :columns: 2
 
@@ -192,7 +192,7 @@ Complete reference for all endpoints.
 :::{/card}
 
 :::{/cards}
-```
+````
 :::{/tab}
 
 :::{/tab-set}
@@ -217,7 +217,7 @@ Complete reference for all endpoints.
 :::{/tab}
 
 :::{tab} Bengal
-```markdown
+````markdown
 :::{dropdown} How do I authenticate?
 :icon: key
 
@@ -232,7 +232,7 @@ Authorization: Bearer YOUR_API_KEY
 
 We allow 1000 requests per minute per API key.
 :::
-```
+````
 :::{/tab}
 
 :::{/tab-set}
@@ -265,7 +265,7 @@ We allow 1000 requests per minute per API key.
 :::{/tab}
 
 :::{tab} Bengal
-````markdown
+`````markdown
 :::{steps}
 
 :::{step} Install the SDK
@@ -288,7 +288,7 @@ const users = await client.users.list();
 :::{/step}
 
 :::{/steps}
-````
+`````
 :::{/tab}
 
 :::{/tab-set}
@@ -308,7 +308,7 @@ const users = await client.users.list();
 :::{/tab}
 
 :::{tab} Bengal (Table + OpenAPI)
-```markdown
+````markdown
 ## List Users
 
 `GET /users`
@@ -339,7 +339,7 @@ curl -X GET "https://api.example.com/users?limit=10" \
 :path: /users
 :method: GET
 :::
-```
+````
 :::{/tab}
 
 :::{/tab-set}
@@ -562,7 +562,7 @@ Your OpenAPI spec works with any generator. Documentation is independent of SDK 
 :::::{tab-set}
 
 ::::{tab} Content Variables
-```markdown
+````markdown
 ---
 title: API Reference
 api_version: "2.0"
@@ -573,13 +573,13 @@ base_url: "https://api.example.com/v2"
 
 Current version: **{{ page.metadata.api_version }}**
 Base URL: `{{ page.metadata.base_url }}`
-```
+````
 
 Use template variables directly in markdown.
 ::::{/tab}
 
 ::::{tab} Reusable Snippets
-```markdown
+````markdown
 <!-- _snippets/auth-note.md -->
 :::{note}
 All API requests require authentication.
@@ -589,7 +589,7 @@ Include your API key in the `Authorization` header.
 <!-- In any page -->
 :::{include} /_snippets/auth-note.md
 :::
-```
+````
 
 DRY principle for documentation.
 ::::{/tab}
@@ -830,12 +830,12 @@ autodoc:
 
 Or inline in pages:
 
-```markdown
+````markdown
 :::{openapi} openapi.yaml
 :path: /users/{id}
 :method: GET
 :::
-```
+````
 :::
 
 :::{dropdown} What about the API playground?
