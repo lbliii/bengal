@@ -55,9 +55,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from bengal.config.defaults import get_max_workers
 from bengal.utils.logger import get_logger
 from bengal.utils.url_strategy import URLStrategy
+from bengal.utils.workers import WorkloadType, get_optimal_workers
 
 logger = get_logger(__name__)
 
@@ -677,8 +677,12 @@ class TaxonomyOrchestrator:
         """
         from bengal.errors import ErrorAggregator, ErrorCode
 
-        # Get max_workers from site config (auto-detect if not set)
-        max_workers = get_max_workers(self.site.config.get("max_workers"))
+        # Get optimal workers for CPU-bound page generation
+        max_workers = get_optimal_workers(
+            len(locale_tags),
+            workload_type=WorkloadType.CPU_BOUND,
+            config_override=self.site.config.get("max_workers"),
+        )
 
         all_generated_pages = []
 
