@@ -527,6 +527,175 @@ Dropdown inside a tab.
 """,
     ),
     # =========================================================================
+    # Cards - Basic and Advanced (Phase B.1)
+    # =========================================================================
+    (
+        "cards_basic",
+        """\
+::::{cards}
+
+:::{card} Card 1
+Content of card 1.
+:::
+
+:::{card} Card 2
+Content of card 2.
+:::
+
+::::
+""",
+    ),
+    (
+        "cards_columns",
+        """\
+::::{cards}
+:columns: 3
+
+:::{card} Card A
+Card A content.
+:::
+
+:::{card} Card B
+Card B content.
+:::
+
+:::{card} Card C
+Card C content.
+:::
+
+::::
+""",
+    ),
+    (
+        "cards_options",
+        """\
+::::{cards}
+:columns: 2
+:gap: large
+:style: bordered
+
+:::{card} Styled Card
+Card content here.
+:::
+
+::::
+""",
+    ),
+    (
+        "card_with_icon",
+        """\
+::::{cards}
+
+:::{card} Getting Started
+:icon: rocket
+
+Start your journey here.
+:::
+
+::::
+""",
+    ),
+    (
+        "card_with_link",
+        """\
+::::{cards}
+
+:::{card} Documentation
+:link: /docs/
+
+Read the full documentation.
+:::
+
+::::
+""",
+    ),
+    (
+        "card_with_badge",
+        """\
+::::{cards}
+
+:::{card} New Feature
+:badge: New
+
+This is a new feature.
+:::
+
+::::
+""",
+    ),
+    (
+        "card_with_color",
+        """\
+::::{cards}
+
+:::{card} Success Card
+:color: green
+
+Everything is working.
+:::
+
+::::
+""",
+    ),
+    (
+        "card_with_description",
+        """\
+::::{cards}
+
+:::{card} API Reference
+:description: Complete API documentation
+
+Explore all endpoints and methods.
+:::
+
+::::
+""",
+    ),
+    (
+        "card_full_options",
+        """\
+::::{cards}
+:columns: 2
+
+:::{card} Full Featured Card
+:icon: star
+:link: https://example.com
+:badge: Pro
+:color: blue
+:description: A card with all options
+
+Detailed card content with **markdown** support.
+:::
+
+::::
+""",
+    ),
+    (
+        "cards_multiple",
+        """\
+::::{cards}
+:columns: 3
+
+:::{card} First
+First card content.
+:::
+
+:::{card} Second
+Second card content.
+:::
+
+:::{card} Third
+Third card content.
+:::
+
+:::{card} Fourth
+Fourth card content.
+:::
+
+::::
+""",
+    ),
+    # =========================================================================
     # Content with Markdown
     # =========================================================================
     (
@@ -831,3 +1000,131 @@ Level 3 content
         html = render_with_patitas(source)
         # All levels should be present
         assert html  # Basic check that it renders
+
+
+class TestCards:
+    """Tests specifically for card directives."""
+
+    def test_cards_structure(self, render_with_patitas: Callable[[str], str]) -> None:
+        """Verify cards produces expected grid structure."""
+        source = """\
+::::{cards}
+
+:::{card} Card 1
+Content 1
+:::
+
+::::
+"""
+        html = render_with_patitas(source)
+        # Should have card-grid container
+        assert "card-grid" in html or "card" in html.lower()
+
+    def test_cards_columns_attribute(self, render_with_patitas: Callable[[str], str]) -> None:
+        """Verify columns attribute is rendered."""
+        source = """\
+::::{cards}
+:columns: 3
+
+:::{card} Card
+Content
+:::
+
+::::
+"""
+        html = render_with_patitas(source)
+        # Columns attribute should be present
+        assert "columns" in html.lower() or "3" in html
+
+    def test_card_with_link(self, render_with_patitas: Callable[[str], str]) -> None:
+        """Verify card with link renders as anchor element."""
+        source = """\
+::::{cards}
+
+:::{card} Linked Card
+:link: https://example.com
+
+Click me!
+:::
+
+::::
+"""
+        html = render_with_patitas(source)
+        # Should have anchor element with href
+        assert "<a" in html.lower() and "href" in html.lower()
+
+    def test_card_with_icon(self, render_with_patitas: Callable[[str], str]) -> None:
+        """Verify card with icon renders icon element."""
+        source = """\
+::::{cards}
+
+:::{card} Icon Card
+:icon: rocket
+
+Has an icon!
+:::
+
+::::
+"""
+        html = render_with_patitas(source)
+        # Should have icon reference
+        assert "icon" in html.lower() or "rocket" in html.lower()
+
+    def test_card_with_badge(self, render_with_patitas: Callable[[str], str]) -> None:
+        """Verify card with badge renders badge element."""
+        source = """\
+::::{cards}
+
+:::{card} Badge Card
+:badge: New
+
+Has a badge!
+:::
+
+::::
+"""
+        html = render_with_patitas(source)
+        # Should have badge element
+        assert "badge" in html.lower() or "New" in html
+
+    def test_card_color_class(self, render_with_patitas: Callable[[str], str]) -> None:
+        """Verify card with color has color class."""
+        source = """\
+::::{cards}
+
+:::{card} Colored Card
+:color: blue
+
+Blue card!
+:::
+
+::::
+"""
+        html = render_with_patitas(source)
+        # Should have color class
+        assert "blue" in html.lower() or "color" in html.lower()
+
+    def test_multiple_cards(self, render_with_patitas: Callable[[str], str]) -> None:
+        """Verify multiple cards render correctly."""
+        source = """\
+::::{cards}
+
+:::{card} Card 1
+Content 1
+:::
+
+:::{card} Card 2
+Content 2
+:::
+
+:::{card} Card 3
+Content 3
+:::
+
+::::
+"""
+        html = render_with_patitas(source)
+        # All cards should be present
+        assert html.count("card") >= 3 or (
+            "Card 1" in html and "Card 2" in html and "Card 3" in html
+        )

@@ -273,6 +273,18 @@ GRID_ITEM_CONTRACT = DirectiveContract(
     requires_parent=("grid",),
 )
 
+# Cards grid container
+CARDS_CONTRACT = DirectiveContract(
+    # Cards can contain card children (but not required - could be empty)
+    allows_children=("card",),
+)
+
+# Individual card
+CARD_CONTRACT = DirectiveContract(
+    # Card should be inside cards (soft validation)
+    requires_parent=("cards",),
+)
+
 # Definition list
 DEFINITION_LIST_CONTRACT = DirectiveContract(
     requires_children=("definition",),

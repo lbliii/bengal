@@ -2,7 +2,7 @@
 
 | Field        | Value                                      |
 |--------------|-------------------------------------------|
-| **Status**   | In Progress (Phase A.1 Complete)           |
+| **Status**   | In Progress (Phase B.1 Complete)           |
 | **Author**   | Bengal Team                                |
 | **Created**  | 2025-12-28                                 |
 | **Updated**  | 2025-12-28                                 |
@@ -20,13 +20,14 @@
 |--------|---------|--------|
 | **Phase A** | ✅ 17 directives done | 17/55 (31%) |
 | **Phase A.1** | ✅ 43/43 parity tests | 100% HTML parity |
-| **Remaining** | 38 directives | Weeks 4-9 |
-| **Total LOC** | 1,900 implemented | ~6,350 projected |
+| **Phase B.1** | ✅ 3 cards directives done | 20/55 (36%) |
+| **Remaining** | 35 directives | Weeks 5-9 |
+| **Total LOC** | ~2,400 implemented | ~6,350 projected |
 | **Risk Level** | Low | Verified by parity testing |
 
 **Key Benefits**: Thread-safety, typed AST, no mistune dependency, identical HTML output.
 
-**Next Action**: Implement Phase B.1 (cards system) with same parity testing approach.
+**Next Action**: Implement Phase B.2 (code-tabs, tables, media) with same parity testing approach.
 
 ---
 
@@ -277,9 +278,9 @@ else:
 | `tab-item` | `tab` | ✅ Done | Icons, badges, sync |
 | `steps` | — | ✅ Done | Contract validation |
 | `step` | — | ✅ Done | Metadata, anchors |
-| `cards` | — | ⏳ Phase B | Grid layout |
-| `card` | — | ⏳ Phase B | Contract: requires `cards` |
-| `child-cards` | — | ⏳ Phase B | Auto-generates cards |
+| `cards` | — | ✅ Done (B.1) | Grid layout |
+| `card` | — | ✅ Done (B.1) | Contract: requires `cards` |
+| `child-cards` | — | ✅ Done (B.1) | Auto-generates cards |
 
 ### Content & Tables (6 directive names)
 
@@ -352,7 +353,7 @@ else:
 | `build` | — | ⏳ Phase C | Build-time directive |
 | `asciinema` | — | ⏳ Phase C | Terminal recording |
 
-**Summary: 17 done, 38 remaining**
+**Summary: 20 done, 35 remaining**
 
 ---
 
@@ -605,23 +606,31 @@ def test_edge_case_parity(name: str, source: str):
 - Zero HTML diff between mistune and Patitas rendering
 - Golden files committed to version control
 
-### Phase B: Content Directives — NOT STARTED
+### Phase B: Content Directives — IN PROGRESS
 
 **Goal**: Migrate content-focused directives that are widely used in documentation.
 
-| Directive | Complexity | Dependencies |
-|-----------|------------|--------------|
-| `cards` / `card` / `child-cards` | High | Contracts exist |
-| `code-tabs` | Medium | Rosettes |
-| `list-table` | Medium | — |
-| `data-table` | Medium | — |
-| `figure` / `gallery` / `audio` | Medium | — |
-| `checklist` | Low | — |
+**Phase B.1**: ✅ COMPLETE (2025-12-28)
 
-#### B.1: Cards System (High Priority)
+| Directive | Complexity | Dependencies | Status |
+|-----------|------------|--------------|--------|
+| `cards` / `card` / `child-cards` | High | Contracts exist | ✅ Done |
+| `code-tabs` | Medium | Rosettes | ⏳ Next |
+| `list-table` | Medium | — | ⏳ Pending |
+| `data-table` | Medium | — | ⏳ Pending |
+| `figure` / `gallery` / `audio` | Medium | — | ⏳ Pending |
+| `checklist` | Low | — | ⏳ Pending |
 
-**Files to create**:
-- `patitas/directives/builtins/cards.py` (~400 LOC)
+#### B.1: Cards System (High Priority) — ✅ COMPLETE
+
+**Files created**:
+- `patitas/directives/builtins/cards.py` (~500 LOC)
+
+**Implementation Notes**:
+- `CardsDirective`: Grid container with columns, gap, style, variant options
+- `CardDirective`: Individual card with link, icon, badge, color, description
+- `ChildCardsDirective`: Auto-generates cards from child pages (placeholder for build-time)
+- All parity tests passing (17/17 card-related tests)
 
 **Source analysis** from `bengal/directives/cards/`:
 
@@ -1220,26 +1229,27 @@ warnings.warn(
 
 ## File Structure
 
-### Current (Phase A Complete)
+### Current (Phase B.1 Complete)
 
 ```
 bengal/rendering/parsers/patitas/directives/
 ├── __init__.py
 ├── protocol.py          # ✅ DirectiveHandler protocol (182 LOC)
 ├── options.py           # ✅ 8 option classes (253 LOC)
-├── contracts.py         # ✅ 8 contracts (285 LOC)
+├── contracts.py         # ✅ 10 contracts (320 LOC)
 ├── registry.py          # ✅ Directive registration
 │
-└── builtins/            # ✅ Phase A complete
-    ├── __init__.py      # ✅ Exports all handlers (40 LOC)
+└── builtins/            # ✅ Phase A + B.1 complete
+    ├── __init__.py      # ✅ Exports all handlers (50 LOC)
     ├── admonition.py    # ✅ 10 types (216 LOC)
+    ├── cards.py         # ✅ cards, card, child-cards (500 LOC)
     ├── container.py     # ✅ container, div (127 LOC)
     ├── dropdown.py      # ✅ dropdown, details (244 LOC)
     ├── steps.py         # ✅ steps, step (348 LOC)
     └── tabs.py          # ✅ tab-set, tab-item (465 LOC)
 ```
 
-### Planned (Phases B-D)
+### Planned (Phases B.2-D)
 
 ```
 bengal/rendering/parsers/patitas/directives/
@@ -1249,8 +1259,7 @@ bengal/rendering/parsers/patitas/directives/
 └── builtins/
     ├── ...existing files...
     │
-    │ # Phase B: Content Directives
-    ├── cards.py         # ⏳ cards, card, child-cards (400 LOC)
+    │ # Phase B.2: Remaining Content Directives
     ├── code_tabs.py     # ⏳ code-tabs (200 LOC)
     ├── tables.py        # ⏳ list-table, data-table (300 LOC)
     ├── media.py         # ⏳ figure, gallery, audio (250 LOC)
@@ -1284,8 +1293,9 @@ tests/performance/
 | Phase | Directive LOC | Test LOC | Total |
 |-------|---------------|----------|-------|
 | A (done) | 1,400 | — | 1,400 |
-| A.1 | — | 500 | 500 |
-| B | 1,250 | 400 | 1,650 |
+| A.1 (done) | — | 500 | 500 |
+| B.1 (done) | 500 | 200 | 700 |
+| B.2 | 750 | 200 | 950 |
 | C | 1,450 | 400 | 1,850 |
 | D | 150 | 300 | 450 |
 | **Total** | **4,250** | **1,600** | **5,850** |
@@ -1478,8 +1488,8 @@ git push
 |------|-------|--------|--------------|
 | 1-2 | Phase A | ✅ COMPLETE | Core directives (1,400 LOC) |
 | 3 | Phase A.1 | ✅ COMPLETE | Parity tests (500 LOC), 43/43 passing |
-| 4 | Phase B.1 | ⏳ NEXT | Cards system (400 LOC) |
-| 5 | Phase B.2-3 | Pending | Code-tabs, tables, media, checklist (850 LOC) |
+| 4 | Phase B.1 | ✅ COMPLETE | Cards system (500 LOC), 17/17 passing |
+| 5 | Phase B.2 | ⏳ NEXT | Code-tabs, tables, media, checklist (850 LOC) |
 | 6 | Phase C.1-2 | Pending | Video embeds, developer embeds, versioning (600 LOC) |
 | 7 | Phase C.3-4 | Pending | Navigation, file I/O, miscellaneous (850 LOC) |
 | 8-9 | Phase D | Pending | Integration, deprecation, documentation |
@@ -1489,7 +1499,8 @@ git push
 ```
 Week 1-2   [████████████████████] Phase A: Core Directives ✅
 Week 3     [████████████████████] Phase A.1: Test Infrastructure ✅
-Week 4-5   [░░░░░░░░░░░░░░░░░░░░] Phase B: Content Directives
+Week 4     [████████████████████] Phase B.1: Cards System ✅
+Week 5     [░░░░░░░░░░░░░░░░░░░░] Phase B.2: Remaining Content
 Week 6-7   [░░░░░░░░░░░░░░░░░░░░] Phase C: Specialized Directives
 Week 8-9   [░░░░░░░░░░░░░░░░░░░░] Phase D: Integration
 ```
