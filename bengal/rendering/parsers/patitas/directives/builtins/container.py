@@ -109,16 +109,20 @@ class ContainerDirective:
         """Render container to HTML.
 
         Produces a div with the specified classes.
+        The title is used as class name(s), merged with :class: option.
         """
         opts = dict(node.options)
-        css_class = opts.get("css_class", "").strip()
 
-        # Clean up None string
-        if css_class == "None":
-            css_class = ""
+        # Title contains class name(s)
+        classes = node.title.strip() if node.title else ""
 
-        if css_class:
-            sb.append(f'<div class="{html_escape(css_class)}">\n')
+        # Merge with :class: option (parser stores as "class", not "class_")
+        extra_class = opts.get("class", "") or opts.get("class_", "") or opts.get("css_class", "")
+        if extra_class and extra_class != "None":
+            classes = f"{classes} {extra_class}".strip() if classes else extra_class
+
+        if classes:
+            sb.append(f'<div class="{html_escape(classes)}">\n')
         else:
             sb.append("<div>\n")
 

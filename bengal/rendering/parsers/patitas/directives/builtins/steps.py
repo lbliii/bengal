@@ -296,13 +296,24 @@ class StepsDirective:
         node: Directive,
         rendered_children: str,
         sb: StringBuilder,
+        *,
+        render_child_directive=None,
     ) -> None:
         """Render steps container to HTML.
 
         Wraps step list items in <ol>.
+
+        Note: This handler renders its own children to inject step numbers,
+        so it ignores the pre-rendered `rendered_children` parameter.
+
+        Args:
+            node: The steps directive AST node
+            rendered_children: Pre-rendered children (ignored - we render ourselves)
+            sb: StringBuilder for output
+            render_child_directive: Optional callback to render child directives
         """
         opts = dict(node.options)
-        css_class = opts.get("class_", "") or ""
+        css_class = opts.get("class", "") or opts.get("class_", "") or ""
         style = opts.get("style", "default") or "default"
 
         # Clean up None strings
@@ -334,14 +345,113 @@ class StepsDirective:
         if start != 1:
             style_attr = f' style="counter-reset: step {start - 1}"'
 
+        # Render children with step numbers
+        children_html = self._render_step_children(
+            node.children, start, render_child_directive
+        )
+
         # Wrap in <ol> if contains step <li> elements
-        if "<li>" in rendered_children or "<li " in rendered_children:
+        if "<li>" in children_html or "<li " in children_html:
             sb.append(f'<div class="{html_escape(class_str)}"{style_attr}>\n')
             sb.append(f"<ol{start_attr}>\n")
-            sb.append(rendered_children)
+            sb.append(children_html)
             sb.append("</ol>\n")
             sb.append("</div>\n")
         else:
             sb.append(f'<div class="{html_escape(class_str)}">\n')
-            sb.append(rendered_children)
+            sb.append(children_html)
             sb.append("</div>\n")
+
+    def _render_step_children(
+        self,
+        children: tuple,
+        start: int,
+        render_child_directive=None,
+    ) -> str:
+        """Render step children with proper step numbers.
+
+        Args:
+            children: Child AST nodes
+            start: Starting step number
+            render_child_directive: Callback to render child directives
+
+        Returns:
+            Rendered HTML string
+        """
+        from bengal.rendering.parsers.patitas.stringbuilder import StringBuilder
+
+        sb = StringBuilder()
+        step_num = start
+
+        for child in children:
+            if isinstance(child, Directive) and child.name == "step":
+                # Create modified options with step number
+                new_opts = dict(child.options)
+                new_opts["step_number"] = str(step_num)
+                new_opts["heading_level"] = "2"
+                step_num += 1
+
+                # Create new directive with updated options
+                updated_child = Directive(
+                    location=child.location,
+                    name=child.name,
+                    title=child.title,
+                    options=frozenset(new_opts.items()),
+                    children=child.children,
+                )
+
+                # Render using callback if provided, otherwise use StepDirective
+                if render_child_directive:
+                    render_child_directive(updated_child, sb)
+                else:
+                    # Render step's children first
+                    child_content = self._render_step_content(
+                        updated_child.children, render_child_directive
+                    )
+                    StepDirective().render(updated_child, child_content, sb)
+            elif render_child_directive:
+                render_child_directive(child, sb)
+            # Non-step, non-directive children are skipped
+
+        return sb.build()
+
+    def _render_step_content(
+        self,
+        children: tuple,
+        render_child_directive=None,
+    ) -> str:
+        """Render step content (children of a step directive).
+
+        Args:
+            children: Child AST nodes
+            render_child_directive: Callback to render child nodes
+
+        Returns:
+            Rendered HTML string
+        """
+        from bengal.rendering.parsers.patitas.stringbuilder import StringBuilder
+
+        if render_child_directive:
+            sb = StringBuilder()
+            for child in children:
+                render_child_directive(child, sb)
+            return sb.build()
+        else:
+            # Fallback: simple rendering for common node types
+            return self._simple_render_children(children)
+
+    def _simple_render_children(self, children: tuple) -> str:
+        """Simple fallback renderer for step content."""
+        from bengal.rendering.parsers.patitas.nodes import Paragraph
+        from bengal.rendering.parsers.patitas.stringbuilder import StringBuilder
+
+        sb = StringBuilder()
+        for child in children:
+            if isinstance(child, Paragraph):
+                sb.append("<p>")
+                for inline in child.children:
+                    if hasattr(inline, "content"):
+                        sb.append(html_escape(inline.content))
+                sb.append("</p>\n")
+            # Other types can be added as needed
+        return sb.build()

@@ -190,8 +190,8 @@ class AdmonitionDirective:
         # Get CSS class for type (caution → warning)
         css_class = TYPE_TO_CSS.get(admon_type, "note")
 
-        # Add extra class if specified
-        extra_class = opts.get("class_", "")
+        # Add extra class if specified (parser stores as "class", not "class_")
+        extra_class = opts.get("class", "") or opts.get("class_", "")
         if extra_class and extra_class != "None":
             css_class = f"{css_class} {extra_class}"
 

@@ -165,10 +165,20 @@ class TabItemDirective:
         """
         opts = dict(node.options)
         title = node.title or "Tab"
-        selected = "true" if opts.get("selected", "").lower() in ("true", "1", "yes") else "false"
+        # Handle :selected: flag - presence (even empty) means True
+        if "selected" in opts:
+            selected_val = opts["selected"].lower()
+            selected = "true" if selected_val not in ("false", "0", "no") else "false"
+        else:
+            selected = "false"
         icon = opts.get("icon", "") or ""
         badge = opts.get("badge", "") or ""
-        disabled = "true" if opts.get("disabled", "").lower() in ("true", "1", "yes") else "false"
+        # Handle :disabled: flag - presence (even empty) means True
+        if "disabled" in opts:
+            disabled_val = opts["disabled"].lower()
+            disabled = "true" if disabled_val not in ("false", "0", "no") else "false"
+        else:
+            disabled = "false"
 
         # Clean up None strings
         if icon == "None":

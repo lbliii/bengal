@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | **RFC ID** | `rfc-patitas-markdown-parser` |
-| **Status** | Implementation (Phase 5) |
+| **Status** | ✅ Complete (docs ongoing) |
 | **Created** | 2025-12-27 |
 | **Updated** | 2025-12-28 |
 | **Target** | Python 3.14+ (optimized for free-threaded builds) |

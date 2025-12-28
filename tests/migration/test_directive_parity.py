@@ -513,17 +513,17 @@ Tab B content.
     (
         "nested_dropdown_in_tabs",
         """\
-::::{tab-set}
+:::::{tab-set}
 
-:::{tab-item} Tab with Dropdown
+::::{tab-item} Tab with Dropdown
 
-::::{dropdown} Nested Dropdown
+:::{dropdown} Nested Dropdown
 Dropdown inside a tab.
-::::
-
 :::
 
 ::::
+
+:::::
 """,
     ),
     # =========================================================================

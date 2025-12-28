@@ -181,12 +181,18 @@ class DropdownDirective:
         """
         opts = dict(node.options)
         title = node.title or "Details"
-        is_open = opts.get("open", "").lower() in ("true", "1", "yes")
+        # Handle `:open:` flag - presence of the option (even empty) means True
+        # Only "false", "0", "no" explicitly mean closed
+        if "open" in opts:
+            open_val = opts["open"].lower()
+            is_open = open_val not in ("false", "0", "no")
+        else:
+            is_open = False
         icon = opts.get("icon", "")
         badge = opts.get("badge", "")
         color = opts.get("color", "")
         description = opts.get("description", "")
-        css_class = opts.get("class_", "")
+        css_class = opts.get("class", "") or opts.get("class_", "")
 
         # Clean up None strings
         if icon == "None":

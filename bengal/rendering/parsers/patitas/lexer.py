@@ -225,7 +225,11 @@ class Lexer:
         # Check for closing fence
         if self._is_closing_fence(line):
             self._commit_to(line_end)
-            self._mode = LexerMode.BLOCK
+            # Return to DIRECTIVE mode if inside a directive, otherwise BLOCK
+            if self._directive_stack:
+                self._mode = LexerMode.DIRECTIVE
+            else:
+                self._mode = LexerMode.BLOCK
             # Reset fence state
             fence_char = self._fence_char
             self._fence_char = ""
@@ -530,6 +534,7 @@ class Lexer:
         - Directive options (:key: value)
         - Nested directives (higher colon count)
         - Closing fence (matching or higher colon count)
+        - All block-level elements (lists, headings, code, quotes, etc.)
         - Regular content (paragraph lines)
         """
         # Save location BEFORE scanning
@@ -565,18 +570,44 @@ class Lexer:
                 return
 
         # Check for directive option (:key: value)
+        # Only at the start of directive content, before any blank line
         if content.startswith(":") and not content.startswith(":::"):
             option_token = self._try_classify_directive_option(content, line_start)
             if option_token:
                 yield option_token
                 return
 
-        # Check for fenced code block inside directive
+        # Fenced code: ``` or ~~~
         if content.startswith("`") or content.startswith("~"):
             token = self._try_classify_fence_start(content, line_start)
             if token:
                 yield token
                 return
+
+        # ATX Heading: # ## ### etc.
+        if content.startswith("#"):
+            token = self._try_classify_atx_heading(content, line_start)
+            if token:
+                yield token
+                return
+
+        # Thematic break: ---, ***, ___
+        if content[0] in "-*_":
+            token = self._try_classify_thematic_break(content, line_start)
+            if token:
+                yield token
+                return
+
+        # Block quote: >
+        if content.startswith(">"):
+            yield from self._classify_block_quote(content, line_start)
+            return
+
+        # List item: -, *, +, or 1. 1)
+        list_tokens = self._try_classify_list_marker(content, line_start)
+        if list_tokens is not None:
+            yield from list_tokens
+            return
 
         # Regular paragraph content
         yield Token(

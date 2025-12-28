@@ -259,7 +259,19 @@ class HtmlRenderer:
         if self._directive_registry:
             handler = self._directive_registry.get(node.name)
             if handler and hasattr(handler, "render"):
-                handler.render(node, rendered_children, sb)
+                # Provide render callback for handlers that need to render children themselves
+                import inspect
+
+                sig = inspect.signature(handler.render)
+                if "render_child_directive" in sig.parameters:
+                    handler.render(
+                        node,
+                        rendered_children,
+                        sb,
+                        render_child_directive=self._render_block,
+                    )
+                else:
+                    handler.render(node, rendered_children, sb)
                 return
 
         # Default rendering
@@ -286,6 +298,9 @@ class HtmlRenderer:
                 sb.append(f' class="language-{_escape_attr(lang)}"')
         sb.append(">")
         sb.append(_escape_html(code))
+        # Ensure trailing newline in code content (matches mistune behavior)
+        if code and not code.endswith("\n"):
+            sb.append("\n")
         sb.append("</code></pre>\n")
 
     def _try_highlight(self, code: str, info: str) -> str | None:
@@ -356,8 +371,11 @@ class HtmlRenderer:
 
 
 def _escape_html(text: str) -> str:
-    """Escape HTML special characters."""
-    return html_escape(text, quote=False)
+    """Escape HTML special characters including quotes.
+
+    Matches mistune's escape behavior for parity.
+    """
+    return html_escape(text, quote=True)
 
 
 def _escape_attr(text: str) -> str:
