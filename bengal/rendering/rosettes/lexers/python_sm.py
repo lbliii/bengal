@@ -368,12 +368,22 @@ class PythonStateMachineLexer(StateMachineLexer):
 
             # -----------------------------------------------------------------
             # Identifiers, keywords, builtins
+            # Python 3 allows Unicode identifiers (PEP 3131)
             # -----------------------------------------------------------------
-            if char in self.IDENT_START:
+            if char in self.IDENT_START or char.isidentifier():
                 start = pos
                 pos += 1
-                while pos < length and code[pos] in self.IDENT_CONT:
-                    pos += 1
+                # Scan identifier: ASCII fast path, then Unicode fallback
+                while pos < length:
+                    next_char = code[pos]
+                    if next_char in self.IDENT_CONT:
+                        # Fast path: ASCII continuation character
+                        pos += 1
+                    elif next_char.isidentifier() or next_char.isdigit():
+                        # Unicode identifier or digit continuation
+                        pos += 1
+                    else:
+                        break
                 word = code[start:pos]
                 token_type = self._classify_word(word)
                 yield Token(token_type, word, line, col)
@@ -385,15 +395,38 @@ class PythonStateMachineLexer(StateMachineLexer):
             if char == "@":
                 start = pos
                 pos += 1
-                if pos < length and code[pos] in self.IDENT_START:
-                    pos += 1
-                    while pos < length and code[pos] in self.IDENT_CONT:
+                if pos < length:
+                    next_char = code[pos]
+                    if next_char in self.IDENT_START or next_char.isidentifier():
                         pos += 1
-                    # Handle dotted decorators
-                    while pos < length and code[pos] == ".":
-                        pos += 1
-                        while pos < length and code[pos] in self.IDENT_CONT:
+                        # Scan identifier: ASCII fast path, then Unicode fallback
+                        while pos < length:
+                            char_at_pos = code[pos]
+                            if (
+                                char_at_pos in self.IDENT_CONT
+                                or char_at_pos.isidentifier()
+                                or char_at_pos.isdigit()
+                            ):
+                                pos += 1
+                            else:
+                                break
+                        # Handle dotted decorators
+                        while pos < length and code[pos] == ".":
                             pos += 1
+                            if pos < length:
+                                char_at_pos = code[pos]
+                                if char_at_pos in self.IDENT_CONT or char_at_pos.isidentifier():
+                                    pos += 1
+                                    while pos < length:
+                                        cont_char = code[pos]
+                                        if (
+                                            cont_char in self.IDENT_CONT
+                                            or cont_char.isidentifier()
+                                            or cont_char.isdigit()
+                                        ):
+                                            pos += 1
+                                        else:
+                                            break
                 yield Token(TokenType.NAME_DECORATOR, code[start:pos], line, col)
                 continue
 

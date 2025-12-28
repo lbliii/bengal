@@ -29,11 +29,13 @@ class FormatConfig:
         css_class: Base CSS class for the code container.
         wrap_code: If True, wrap output in <pre><code> tags.
         class_prefix: Prefix for token CSS classes.
+        data_language: Language name for data-language attribute (e.g., 'python').
     """
 
     css_class: str = "highlight"
     wrap_code: bool = True
     class_prefix: str = ""
+    data_language: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

@@ -150,7 +150,10 @@ class HtmlFormatter:
 
         # Opening tags
         if config.wrap_code:
-            yield f'<div class="{container}"><pre><code>'
+            data_lang_attr = (
+                f' data-language="{config.data_language}"' if config.data_language else ""
+            )
+            yield f'<div class="{container}"{data_lang_attr}><pre><code>'
 
         # Hot path - format each token
         if is_semantic:
@@ -222,7 +225,10 @@ class HtmlFormatter:
             span_open = {k: f'<span class="{prefix}{k}">' for k in span_open}
 
         if config.wrap_code:
-            yield f'<div class="{container}"><pre><code>'
+            data_lang_attr = (
+                f' data-language="{config.data_language}"' if config.data_language else ""
+            )
+            yield f'<div class="{container}"{data_lang_attr}><pre><code>'
 
         current_line = 1
         in_hl = current_line in hl_lines

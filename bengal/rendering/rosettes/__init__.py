@@ -116,12 +116,13 @@ def highlight(
         True
     """
     lexer = get_lexer(language)
+    canonical_language = lexer.name  # Get canonical name (e.g., 'python' from 'py')
 
     # Determine container class based on style
     if css_class is None:
         css_class = "rosettes" if css_class_style == "semantic" else "highlight"
 
-    format_config = FormatConfig(css_class=css_class)
+    format_config = FormatConfig(css_class=css_class, data_language=canonical_language)
 
     # Fast path: no line highlighting needed
     if not hl_lines and not show_linenos:
