@@ -35,7 +35,7 @@
         id="response-tab-{{ status }}"
       >
         {# Status Code Badge with Color #}
-        {% match status | string | slice(0, 1) %}
+        {% match (status | string)[:1] %}
           {% case '2' %}
             <span class="badge badge--success">{{ status }}</span>
           {% case '3' %}
@@ -86,10 +86,14 @@
         {% with schema_ref as ref %}
           {% if ref %}
             {% let schema_name = ref | split('/') | last %}
-            {% let schema = schemas[schema_name] if schemas else none %}
+            {# schemas may be undefined in some contexts - use empty dict as fallback #}
+            {% let schemas_dict = schemas ?? {} %}
+            {% let schema = schemas_dict.get(schema_name) if schemas_dict else none %}
 
             {% if schema %}
-              {% include 'autodoc/openapi/partials/schema-viewer.html' with schema=schema, name=schema_name, depth=0 %}
+              {% let name = schema_name %}
+              {% let depth = 0 %}
+              {% include 'autodoc/openapi/partials/schema-viewer.html' %}
             {% else %}
               <div class="api-responses__ref">
                 <code>{{ ref }}</code>

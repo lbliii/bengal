@@ -11,12 +11,14 @@
   └─────────────┴──────────────────────┴─────────────────┘
 
   Context:
-    - element: OpenAPIEndpointMetadata or OpenAPIOverviewMetadata
+    - element: DocElement with OpenAPI metadata (optional for section pages)
+    - section: Section (for section index pages)
     - site: Site
     - config: Config
 #}
-{% template element: any, site: Site, config: Config %}
+{% extends 'base.html' %}
 
+{% block main %}
 <div class="api-explorer" data-autodoc="openapi">
   {# Sidebar Navigation #}
   <aside class="api-explorer__sidebar">
@@ -39,6 +41,7 @@
     {% end %}
   </aside>
 </div>
+{% end %}
 
 {#
   CSS for explorer layout lives in autodoc.css

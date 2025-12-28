@@ -92,29 +92,43 @@ We use `{% embed %}` for the three-column layout, allowing themes to easily over
 
 ## Template Architecture
 
+### Standardized Template Naming Convention
+
+All autodoc types (Python, CLI, OpenAPI) follow the same template naming pattern:
+
+| Template | Purpose | Python | CLI | OpenAPI |
+|----------|---------|--------|-----|---------|
+| `home.html` | Landing page | ✓ | ✓ | ✓ |
+| `list.html` | List/index view | ✓ | ✓ | ✓ (consolidated endpoints) |
+| `single.html` | Individual item | ✓ | ✓ | `endpoint.html`, `schema.html` |
+| `section-index.html` | Generic fallback | ✓ | ✓ | ✓ |
+
+OpenAPI uses domain-specific names for `single.html` equivalents because endpoints and schemas have distinct rendering requirements.
+
 ### File Structure
 
 ```
 bengal/themes/default/templates/autodoc/openapi/
-├── # Page Templates
-├── home.html              # API overview (servers, auth, base URLs)
-├── tag.html               # Tag-grouped endpoint list
-├── endpoint.html          # Single endpoint (The Hero Template)
-├── schema.html            # Standalone schema/model page
+├── # Page Templates (Standard Names)
+├── home.html              # API landing (servers, auth, endpoint categories)
+├── list.html              # Consolidated endpoints for a tag section
+├── endpoint.html          # Single endpoint detail (single.html equivalent)
+├── schema.html            # Single schema detail (single.html equivalent)
+├── section-index.html     # Generic fallback for sections
 │
-├── # Layouts
+├── # Layouts (extend base.html)
 ├── layouts/
-│   ├── explorer.html      # Three-column "Stripe-style" layout (Uses {% embed %})
-│   └── reference.html     # Single-column "Legacy-style" fallback
+│   ├── explorer.html      # Three-column "Stripe-style" layout
+│   └── reference.html     # Single-column layout
 │
 ├── # Components (Partials)
 └── partials/
-    ├── playground-bar.html     # Method + path + copy bar (Uses {% spaceless %})
+    ├── playground-bar.html     # Method + path + copy bar
     ├── endpoint-header.html    # Title, description, and auth badges
     ├── param-row.html          # Atomic parameter unit with badges
     ├── request-body.html       # Body schema viewer
-    ├── schema-viewer.html      # Recursive tree (Uses {% cache %})
-    ├── responses.html          # Tabbed response viewer (Uses {% match %})
+    ├── schema-viewer.html      # Recursive tree
+    ├── responses.html          # Tabbed response viewer
     ├── code-samples.html       # Language-switched sample panels
     └── sidebar-nav.html        # Smart API navigation
 ```

@@ -57,13 +57,19 @@ def create_index_pages(
         section_type = section.metadata.get("type", "autodoc-python")
         template_dir = get_template_dir_for_type(section_type)
 
-        # api-hub sections use 'home' template for the premium landing page
-        # with banner and tiles; other sections use 'section-index'
+        # Template selection for section index pages:
+        # 1. api-hub: aggregating hub for multiple API types (Python + REST)
+        # 2. autodoc-rest with is_api_home: rich API landing page (servers, auth, endpoints)
+        # 3. autodoc-rest with endpoints (tag sections): consolidated reference view
+        # 4. Default: generic section-index grid of child pages
         if section_type == "autodoc-hub":
             template_name = f"{template_dir}/home"
+        elif section_type == "autodoc-rest" and section.metadata.get("is_api_home"):
+            # Root API section uses home.html for rich landing page
+            template_name = f"{template_dir}/home"
         elif section_type == "autodoc-rest" and section.metadata.get("endpoints"):
-            # Consolidated OpenAPI reference page for tag/resource sections
-            template_name = f"{template_dir}/reference"
+            # Tag sections with endpoints use consolidated list view
+            template_name = f"{template_dir}/list"
         else:
             template_name = f"{template_dir}/section-index"
 

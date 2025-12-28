@@ -45,10 +45,14 @@
   {% with schema_ref as ref %}
     {% if ref %}
       {% let schema_name = ref | split('/') | last %}
-      {% let schema = schemas[schema_name] if schemas else none %}
+      {# schemas may be undefined in some contexts - use empty dict as fallback #}
+      {% let schemas_dict = schemas ?? {} %}
+      {% let schema = schemas_dict.get(schema_name) if schemas_dict else none %}
 
       {% if schema %}
-        {% include 'autodoc/openapi/partials/schema-viewer.html' with schema=schema, name=schema_name, depth=0 %}
+        {% let name = schema_name %}
+        {% let depth = 0 %}
+        {% include 'autodoc/openapi/partials/schema-viewer.html' %}
       {% else %}
         <div class="api-request-body__ref">
           <code>{{ ref }}</code>

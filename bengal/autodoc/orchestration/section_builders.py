@@ -270,18 +270,50 @@ def create_openapi_sections(
     openapi_config = autodoc_config.get("openapi", {})
     display_name = openapi_config.get("display_name") or "REST API Reference"
 
+    # First pass: Find overview element to get API metadata
+    overview_element = None
+    all_endpoints: list[DocElement] = []
+    all_schemas: list[DocElement] = []
+
+    for element in elements:
+        if element.element_type == "openapi_overview":
+            overview_element = element
+        elif element.element_type == "openapi_endpoint":
+            all_endpoints.append(element)
+        elif element.element_type == "openapi_schema":
+            all_schemas.append(element)
+
+    # Build root section metadata from overview element
+    root_metadata: dict = {
+        "type": "autodoc-rest",
+        "weight": 100,
+        "icon": "book",
+        "nav_root": True,  # Act as navigation root (don't show parent in sidebar)
+        "is_api_home": True,  # Signals this is the API landing page
+        "endpoints": all_endpoints,  # All endpoints for stats and listing
+        "schemas": all_schemas,  # All schemas for reference
+    }
+
+    # Extract rich metadata from overview element
+    if overview_element:
+        typed_meta = overview_element.typed_metadata
+        if typed_meta:
+            root_metadata["version"] = getattr(typed_meta, "version", None)
+            root_metadata["servers"] = getattr(typed_meta, "servers", ())
+            root_metadata["security_schemes"] = getattr(typed_meta, "security_schemes", {})
+            root_metadata["tags"] = getattr(typed_meta, "tags", ())
+        root_metadata["description"] = overview_element.description or "REST API documentation."
+        root_metadata["overview_element"] = overview_element
+        # Use overview element's name (API title) for display name if not configured
+        if not openapi_config.get("display_name") and overview_element.name:
+            display_name = overview_element.name
+
     # Create root OpenAPI section (always new, never reuse)
     api_section = Section.create_virtual(
         name=root_name,
         relative_url=join_url_paths(prefix),
         title=display_name,
-        metadata={
-            "type": "autodoc-rest",
-            "weight": 100,
-            "icon": "book",
-            "description": "REST API documentation.",
-            "nav_root": True,  # Act as navigation root (don't show parent in sidebar)
-        },
+        metadata=root_metadata,
     )
     sections[prefix] = api_section
 
@@ -289,34 +321,30 @@ def create_openapi_sections(
     tagged_endpoints: dict[str, list[DocElement]] = {}
     untagged_endpoints: list[DocElement] = []
 
-    for element in elements:
-        if element.element_type == "openapi_endpoint":
-            tags = get_openapi_tags(element)
-            if tags:
-                for tag in tags:
-                    if tag not in tagged_endpoints:
-                        tagged_endpoints[tag] = []
-                    tagged_endpoints[tag].append(element)
-            else:
-                untagged_endpoints.append(element)
-        elif element.element_type == "openapi_overview":
-            # Overview goes at root
-            pass
-        elif element.element_type == "openapi_schema":
-            # Schemas go in a schemas section
-            schemas_key = f"{prefix}/schemas"
-            if schemas_key not in sections:
-                schemas_section = Section.create_virtual(
-                    name="schemas",
-                    relative_url=join_url_paths(prefix, "schemas"),
-                    title="Schemas",
-                    metadata={
-                        "type": "autodoc-rest",
-                        "description": "API data schemas and models.",
-                    },
-                )
-                api_section.add_subsection(schemas_section)
-                sections[schemas_key] = schemas_section
+    for element in all_endpoints:
+        tags = get_openapi_tags(element)
+        if tags:
+            for tag in tags:
+                if tag not in tagged_endpoints:
+                    tagged_endpoints[tag] = []
+                tagged_endpoints[tag].append(element)
+        else:
+            untagged_endpoints.append(element)
+
+    # Create schemas section if we have schemas
+    if all_schemas:
+        schemas_key = f"{prefix}/schemas"
+        schemas_section = Section.create_virtual(
+            name="schemas",
+            relative_url=join_url_paths(prefix, "schemas"),
+            title="Schemas",
+            metadata={
+                "type": "autodoc-rest",
+                "description": "API data schemas and models.",
+            },
+        )
+        api_section.add_subsection(schemas_section)
+        sections[schemas_key] = schemas_section
 
     # Create sections for tags
     for tag, endpoints in tagged_endpoints.items():

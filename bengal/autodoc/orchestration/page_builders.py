@@ -125,6 +125,7 @@ def create_pages(
 
         # Determine which elements get pages based on type
         # In consolidated mode (OpenAPI), endpoints don't get individual pages
+        # openapi_overview never gets a separate page - root section index IS the overview
         if (
             doc_type == "python"
             and element.element_type != "module"
@@ -132,15 +133,11 @@ def create_pages(
             and element.element_type not in ("command", "command-group")
             or doc_type == "openapi"
             and (
-                (consolidate and element.element_type == "openapi_endpoint")
+                element.element_type == "openapi_overview"  # Root section handles overview
+                or (consolidate and element.element_type == "openapi_endpoint")
                 or (
                     not consolidate
-                    and element.element_type
-                    not in (
-                        "openapi_endpoint",
-                        "openapi_schema",
-                        "openapi_overview",
-                    )
+                    and element.element_type not in ("openapi_endpoint", "openapi_schema")
                 )
             )
         ):
@@ -305,9 +302,8 @@ def find_parent_section(
             return sections.get(section_path) or sections.get(prefix) or default_section
         return sections.get(prefix) or default_section
     elif doc_type == "openapi":
-        if element.element_type == "openapi_overview":
-            return sections.get(prefix) or default_section
-        elif element.element_type == "openapi_schema":
+        # Note: openapi_overview doesn't get a page - root section index handles it
+        if element.element_type == "openapi_schema":
             return sections.get(f"{prefix}/schemas") or sections.get(prefix) or default_section
         elif element.element_type == "openapi_endpoint":
             tags = get_openapi_tags(element)
@@ -339,9 +335,8 @@ def get_element_metadata(
             return "autodoc/cli/command", url_path, "autodoc-cli"
     elif doc_type == "openapi":
         # OpenAPI docs use autodoc/openapi templates
-        if element.element_type == "openapi_overview":
-            return "autodoc/openapi/overview", f"{prefix}/overview", "autodoc-rest"
-        elif element.element_type == "openapi_schema":
+        # Note: openapi_overview doesn't get a page - root section index handles it
+        if element.element_type == "openapi_schema":
             schema_name = element.name
             return (
                 "autodoc/openapi/schema",

@@ -4,12 +4,14 @@
   Used when a simpler, single-column layout is preferred (mobile, print, etc.)
 
   Context:
-    - element: OpenAPIEndpointMetadata or OpenAPIOverviewMetadata
+    - element: DocElement with OpenAPI metadata (optional for section pages)
+    - section: Section (for section index pages)
     - site: Site
     - config: Config
 #}
-{% template element: any, site: Site, config: Config %}
+{% extends 'base.html' %}
 
+{% block main %}
 <article class="api-reference" data-autodoc="openapi">
   {# Header with navigation breadcrumb #}
   <header class="api-reference__header">
@@ -39,3 +41,4 @@
     {% end %}
   </nav>
 </article>
+{% end %}

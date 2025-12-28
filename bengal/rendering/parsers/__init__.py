@@ -18,11 +18,25 @@ Parser Engines:
 
         Performance: ~100 pages in 3.8s (3.2x slower)
 
+    PatitasParser (Experimental):
+        Modern parser with typed AST, designed for Python 3.14+ free-threading.
+        Features O(n) guaranteed parsing, immutable AST nodes, and StringBuilder
+        rendering. Still in development - use for testing/evaluation.
+
+        Key features:
+        - O(n) parsing (no regex backtracking, no ReDoS)
+        - Typed AST with frozen dataclasses
+        - Thread-safe by design
+        - StringBuilder O(n) rendering
+
+        See: plan/drafted/rfc-patitas-markdown-parser.md
+
 Public API:
     - create_markdown_parser(): Factory function (recommended)
     - BaseMarkdownParser: Protocol for custom parser implementations
     - MistuneParser: Fast Mistune-based parser
     - PythonMarkdownParser: Python-Markdown based parser
+    - PatitasParser: Modern typed-AST parser (experimental)
 
 Configuration:
     Set the parser in bengal.yaml:
@@ -30,7 +44,7 @@ Configuration:
     .. code-block:: yaml
 
         markdown:
-          parser: mistune  # or 'python-markdown'
+          parser: mistune  # or 'python-markdown' or 'patitas'
 
 Usage:
     >>> from bengal.rendering.parsers import create_markdown_parser
@@ -43,11 +57,17 @@ Usage:
     >>>
     >>> # Parse with TOC extraction
     >>> html, toc = parser.parse_with_toc("## Section 1\\n## Section 2", {})
+    >>>
+    >>> # Use experimental Patitas parser
+    >>> parser = create_markdown_parser('patitas')
 
 Thread Safety:
-    Parser instances are NOT thread-safe. The rendering pipeline uses
-    thread-local caching (see pipeline.thread_local) to provide one
-    parser per worker thread.
+    MistuneParser and PythonMarkdownParser instances are NOT thread-safe.
+    The rendering pipeline uses thread-local caching (see pipeline.thread_local)
+    to provide one parser per worker thread.
+
+    PatitasParser is thread-safe by design - each parse() call creates
+    independent parser/renderer instances with no shared state.
 
 Related Modules:
     - bengal.rendering.pipeline.thread_local: Thread-local parser management
@@ -56,12 +76,14 @@ Related Modules:
 
 See Also:
     - architecture/performance.md: Parser benchmarks and optimization
+    - plan/drafted/rfc-patitas-markdown-parser.md: Patitas RFC
 """
 
 from __future__ import annotations
 
 from bengal.rendering.parsers.base import BaseMarkdownParser
 from bengal.rendering.parsers.mistune import MistuneParser
+from bengal.rendering.parsers.patitas.wrapper import PatitasParser
 from bengal.rendering.parsers.python_markdown import PythonMarkdownParser
 
 # Alias for convenience
@@ -71,6 +93,7 @@ __all__ = [
     "BaseMarkdownParser",
     "PythonMarkdownParser",
     "MistuneParser",
+    "PatitasParser",
     "MarkdownParser",
     "create_markdown_parser",
 ]
@@ -87,6 +110,7 @@ def create_markdown_parser(engine: str | None = None) -> BaseMarkdownParser:
         engine: Parser engine name. Options:
             - 'mistune' (default): Fast, recommended for production
             - 'python-markdown' / 'markdown': Full-featured, slower
+            - 'patitas': Modern parser with typed AST (experimental)
 
     Returns:
         Parser instance implementing BaseMarkdownParser protocol.
@@ -101,11 +125,16 @@ def create_markdown_parser(engine: str | None = None) -> BaseMarkdownParser:
         >>>
         >>> # Explicit engine selection
         >>> parser = create_markdown_parser('python-markdown')
+        >>>
+        >>> # Experimental modern parser
+        >>> parser = create_markdown_parser('patitas')
     """
     engine = (engine or "mistune").lower()
 
     if engine == "mistune":
         return MistuneParser()
+    elif engine == "patitas":
+        return PatitasParser()
     elif engine in ("python-markdown", "python_markdown", "markdown"):
         try:
             return PythonMarkdownParser()
@@ -118,7 +147,7 @@ def create_markdown_parser(engine: str | None = None) -> BaseMarkdownParser:
         from bengal.errors import BengalConfigError, ErrorCode
 
         raise BengalConfigError(
-            f"Unsupported markdown engine: {engine}. Choose from: 'python-markdown', 'mistune'",
-            suggestion="Set markdown.engine to 'python-markdown' or 'mistune' in config",
+            f"Unsupported markdown engine: {engine}. Choose from: 'python-markdown', 'mistune', 'patitas'",
+            suggestion="Set markdown.engine to 'python-markdown', 'mistune', or 'patitas' in config",
             code=ErrorCode.C003,
         )

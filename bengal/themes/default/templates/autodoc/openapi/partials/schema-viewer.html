@@ -17,7 +17,7 @@
 {% let schema_type = schema?.type ?? 'object' %}
 {% let properties = schema?.properties ?? {} %}
 {% let required_props = schema?.required ?? [] %}
-{% let items = schema?.items %}
+{% let items = schema['items'] if schema else none %}
 {% let enum_values = schema?.enum %}
 {% let example = schema?.example %}
 {% let current_depth = depth ?? 0 %}
@@ -88,12 +88,11 @@
 
         {# Nested object/array - recurse if not too deep #}
         {% if (prop_schema.type == 'object' or prop_schema.type == 'array') and current_depth < max %}
-          {% include 'autodoc/openapi/partials/schema-viewer.html' with
-             schema=prop_schema,
-             name='',
-             depth=current_depth + 1,
-             max_depth=max
-          %}
+          {% let schema = prop_schema %}
+          {% let name = '' %}
+          {% let depth = current_depth + 1 %}
+          {% let max_depth = max %}
+          {% include 'autodoc/openapi/partials/schema-viewer.html' %}
         {% end %}
       </div>
     {% end %}
@@ -105,12 +104,11 @@
   <div class="api-schema-viewer__items">
     <span class="api-schema-viewer__items-label">Array of:</span>
     {% if current_depth < max %}
-      {% include 'autodoc/openapi/partials/schema-viewer.html' with
-         schema=items,
-         name='',
-         depth=current_depth + 1,
-         max_depth=max
-      %}
+      {% let schema = items %}
+      {% let name = '' %}
+      {% let depth = current_depth + 1 %}
+      {% let max_depth = max %}
+      {% include 'autodoc/openapi/partials/schema-viewer.html' %}
     {% else %}
       <code>{{ items.type ?? 'any' }}</code>
     {% end %}

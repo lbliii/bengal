@@ -51,7 +51,7 @@ Context:
       </h3>
       <div class="api-endpoint__param-list">
         {% for param in path_params %}
-        {% include 'autodoc/openapi/partials/param-row.html' with param=param %}
+        {% include 'autodoc/openapi/partials/param-row.html' %}
         {% end %}
       </div>
     </div>
@@ -66,7 +66,7 @@ Context:
       </h3>
       <div class="api-endpoint__param-list">
         {% for param in query_params %}
-        {% include 'autodoc/openapi/partials/param-row.html' with param=param %}
+        {% include 'autodoc/openapi/partials/param-row.html' %}
         {% end %}
       </div>
     </div>
@@ -81,7 +81,7 @@ Context:
       </h3>
       <div class="api-endpoint__param-list">
         {% for param in header_params %}
-        {% include 'autodoc/openapi/partials/param-row.html' with param=param %}
+        {% include 'autodoc/openapi/partials/param-row.html' %}
         {% end %}
       </div>
     </div>
@@ -96,7 +96,7 @@ Context:
       </h3>
       <div class="api-endpoint__param-list">
         {% for param in cookie_params %}
-        {% include 'autodoc/openapi/partials/param-row.html' with param=param %}
+        {% include 'autodoc/openapi/partials/param-row.html' %}
         {% end %}
       </div>
     </div>
@@ -108,7 +108,7 @@ Context:
   {% with request_body as body %}
   {% if body %}
   <section class="api-endpoint__section api-endpoint__request-body">
-    {% include 'autodoc/openapi/partials/request-body.html' with body=body, schemas=schemas %}
+    {% include 'autodoc/openapi/partials/request-body.html' %}
   </section>
   {% end %}
   {% end %}
@@ -116,7 +116,7 @@ Context:
   {# Responses Section #}
   {% if responses %}
   <section class="api-endpoint__section api-endpoint__responses">
-    {% include 'autodoc/openapi/partials/responses.html' with responses=responses, schemas=schemas %}
+    {% include 'autodoc/openapi/partials/responses.html' %}
   </section>
   {% end %}
 </article>
@@ -124,5 +124,5 @@ Context:
 
 {% block code %}
 {# Code Samples Panel (right sidebar in explorer layout) #}
-{% include 'autodoc/openapi/partials/code-samples.html' with element=element, base_url=base_url %}
+{% include 'autodoc/openapi/partials/code-samples.html' %}
 {% end %}

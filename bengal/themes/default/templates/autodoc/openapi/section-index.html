@@ -1,62 +1,95 @@
 {#
-  Bengal OpenAPI Section Index
+Bengal OpenAPI Section Index
 
-  Generic section index for OpenAPI documentation sections.
-  Used for sections without consolidated endpoints.
+Generic section index for OpenAPI documentation sections.
+Used for sections without consolidated endpoints (e.g., /schemas/).
 
-  Context:
-    - section: Section
-    - children: list[Page] (child pages in this section)
-    - site: Site
-    - config: Config
+Context:
+- section: Section
+- site: Site
+- config: Config
 #}
+{% extends 'autodoc/openapi/layouts/reference.html' %}
+
 {% let title = section.title ?? 'API Section' %}
 {% let description = section.metadata.description ?? '' %}
-{% let child_pages = children ?? section.children ?? [] %}
+{# Get pages from the section - section.pages contains Page objects #}
+{% let child_pages = section.pages ?? [] %}
+{# Get subsections for navigation to child sections #}
+{% let child_sections = section.subsections ?? [] %}
 
+{% block header %}
+<header class="api-section-index__header">
+  <nav class="api-section-index__breadcrumb" aria-label="API breadcrumb">
+    <ol class="breadcrumb">
+      {% if section.parent %}
+      <li class="breadcrumb__item">
+        <a href="{{ section.parent.url }}">{{ section.parent.title }}</a>
+      </li>
+      {% end %}
+      <li class="breadcrumb__item">
+        <span aria-current="page">{{ title }}</span>
+      </li>
+    </ol>
+  </nav>
+
+  <h1 class="api-section-index__title">{{ title }}</h1>
+
+  {% if description %}
+  <div class="api-section-index__description prose">
+    {{ description | markdownify | safe }}
+  </div>
+  {% end %}
+</header>
+{% end %}
+
+{% block content %}
 <article class="api-section-index" data-autodoc="openapi">
-  {# Header #}
-  <header class="api-section-index__header">
-    <nav class="api-section-index__breadcrumb" aria-label="API breadcrumb">
-      <ol class="breadcrumb">
-        <li class="breadcrumb__item">
-          <a href="{{ url_for('autodoc:openapi:home') }}">API</a>
-        </li>
-        {% if section.parent %}
-        <li class="breadcrumb__item">
-          <a href="{{ section.parent.url }}">{{ section.parent.title }}</a>
-        </li>
-        {% end %}
-        <li class="breadcrumb__item">
-          <span aria-current="page">{{ title }}</span>
-        </li>
-      </ol>
-    </nav>
-
-    <h1 class="api-section-index__title">{{ title }}</h1>
-
-    {% if description %}
-    <div class="api-section-index__description prose">
-      {{ description | markdownify | safe }}
-    </div>
-    {% end %}
-  </header>
-
-  {# Child Pages Grid #}
-  {% if child_pages %}
-  <div class="api-section-index__grid">
-    {% for child in child_pages %}
+  {# Child Sections Grid (e.g., tag groups) #}
+  {% if child_sections %}
+  <section class="api-section-index__sections">
+    <h2 class="api-section-index__section-title">Categories</h2>
+    <div class="api-section-index__grid">
+      {% for child in child_sections %}
       <a href="{{ child.url }}" class="api-section-index__card card card--hoverable">
         <h3 class="api-section-index__card-title">{{ child.title }}</h3>
-        {% if child.description %}
+        {% with child.metadata.description as desc %}
+        {% if desc %}
         <p class="api-section-index__card-description text-muted">
-          {{ child.description | truncate(120) }}
+          {{ desc | truncate(120) }}
         </p>
         {% end %}
+        {% end %}
       </a>
-    {% end %}
-  </div>
-  {% else %}
+      {% end %}
+    </div>
+  </section>
+  {% end %}
+
+  {# Child Pages Grid (e.g., individual schemas) #}
+  {% if child_pages %}
+  <section class="api-section-index__pages">
+    <h2 class="api-section-index__section-title">Items</h2>
+    <div class="api-section-index__grid">
+      {% for child in child_pages %}
+      {# Skip the index page itself #}
+      {% if child != section.index_page %}
+      <a href="{{ child.url }}" class="api-section-index__card card card--hoverable">
+        <h3 class="api-section-index__card-title">{{ child.title }}</h3>
+        {% with child.metadata.description as desc %}
+        {% if desc %}
+        <p class="api-section-index__card-description text-muted">
+          {{ desc | truncate(120) }}
+        </p>
+        {% end %}
+        {% end %}
+      </a>
+      {% end %}
+      {% end %}
+    </div>
+  </section>
+  {% elif not child_sections %}
   <p class="api-section-index__empty text-muted">No items in this section.</p>
   {% end %}
 </article>
+{% end %}
