@@ -13,6 +13,11 @@ from bengal.autodoc.models import (
     PythonFunctionMetadata,
     PythonModuleMetadata,
 )
+from bengal.autodoc.models.openapi import (
+    OpenAPIParameterMetadata,
+    OpenAPIRequestBodyMetadata,
+    OpenAPIResponseMetadata,
+)
 from bengal.autodoc.models.python import ParameterInfo
 
 
@@ -382,6 +387,102 @@ class TestRoundTrip:
         assert isinstance(restored.typed_metadata, CLIGroupMetadata)
         assert restored.typed_metadata.callback == original.typed_metadata.callback
         assert restored.typed_metadata.command_count == original.typed_metadata.command_count
+
+    def test_round_trip_openapi_with_nested_metadata(self) -> None:
+        """Test round-trip for OpenAPIEndpointMetadata with nested parameters/request_body/responses.
+
+        This test prevents regression of cache corruption where nested dataclasses
+        were serialized as string representations instead of dicts.
+        """
+        params = (
+            OpenAPIParameterMetadata(
+                name="page",
+                location="query",
+                required=False,
+                schema_type="integer",
+                description="Page number (1-based)",
+            ),
+            OpenAPIParameterMetadata(
+                name="userId",
+                location="path",
+                required=True,
+                schema_type="string",
+                description="User identifier",
+            ),
+        )
+        request_body = OpenAPIRequestBodyMetadata(
+            content_type="application/json",
+            schema_ref="#/components/schemas/UserCreate",
+            required=True,
+            description="User data",
+        )
+        responses = (
+            OpenAPIResponseMetadata(
+                status_code="200",
+                description="Success",
+                content_type="application/json",
+                schema_ref="#/components/schemas/User",
+            ),
+            OpenAPIResponseMetadata(
+                status_code="404",
+                description="Not found",
+            ),
+        )
+        typed_meta = OpenAPIEndpointMetadata(
+            method="POST",
+            path="/users/{userId}",
+            operation_id="updateUser",
+            summary="Update a user",
+            tags=("users", "admin"),
+            parameters=params,
+            request_body=request_body,
+            responses=responses,
+            security=("bearerAuth",),
+            deprecated=False,
+        )
+        original = DocElement(
+            name="POST /users/{userId}",
+            qualified_name="openapi.paths./users/{userId}.post",
+            description="Update a user",
+            element_type="openapi_endpoint",
+            typed_metadata=typed_meta,
+        )
+
+        data = original.to_dict()
+        restored = DocElement.from_dict(data)
+
+        # Verify top-level metadata
+        assert restored.typed_metadata is not None
+        assert isinstance(restored.typed_metadata, OpenAPIEndpointMetadata)
+        assert restored.typed_metadata.method == "POST"
+        assert restored.typed_metadata.path == "/users/{userId}"
+        assert restored.typed_metadata.tags == ("users", "admin")
+
+        # Verify nested parameters are dicts → dataclass instances
+        assert len(restored.typed_metadata.parameters) == 2
+        param1 = restored.typed_metadata.parameters[0]
+        assert isinstance(param1, OpenAPIParameterMetadata)
+        assert param1.name == "page"
+        assert param1.location == "query"
+        assert param1.schema_type == "integer"
+
+        param2 = restored.typed_metadata.parameters[1]
+        assert isinstance(param2, OpenAPIParameterMetadata)
+        assert param2.name == "userId"
+        assert param2.required is True
+
+        # Verify nested request_body
+        assert restored.typed_metadata.request_body is not None
+        assert isinstance(restored.typed_metadata.request_body, OpenAPIRequestBodyMetadata)
+        assert restored.typed_metadata.request_body.content_type == "application/json"
+        assert restored.typed_metadata.request_body.schema_ref == "#/components/schemas/UserCreate"
+
+        # Verify nested responses
+        assert len(restored.typed_metadata.responses) == 2
+        resp1 = restored.typed_metadata.responses[0]
+        assert isinstance(resp1, OpenAPIResponseMetadata)
+        assert resp1.status_code == "200"
+        assert resp1.content_type == "application/json"
 
     def test_round_trip_with_children(self) -> None:
         """Test round-trip preserves children typed_metadata."""

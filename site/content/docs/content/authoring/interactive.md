@@ -14,8 +14,8 @@ How to create engaging, interactive documentation.
 
 Present related content in switchable tabs:
 
-```markdown
-:::{tab-set}
+````markdown
+::::{tab-set}
 :::{tab-item} macOS
 ```bash
 brew install bengal
@@ -31,26 +31,26 @@ pip install bengal
 pip install bengal
 ```
 :::
-:::
-```
+::::
+````
 
 :::{tab-set}
 :::{tab-item} macOS
 ```bash
 brew install bengal
 ```
-:::
+:::{/tab-item}
 :::{tab-item} Linux
 ```bash
 pip install bengal
 ```
-:::
+:::{/tab-item}
 :::{tab-item} Windows
 ```powershell
 pip install bengal
 ```
-:::
-:::
+:::{/tab-item}
+:::{/tab-set}
 
 ### When to Use Tabs
 
@@ -135,7 +135,7 @@ Here's where advanced configuration details would go...
 
 Create visual step sequences:
 
-```markdown
+````markdown
 :::{steps}
 
 :::{step} Install Dependencies
@@ -167,7 +167,7 @@ Visit http://localhost:5173 to see your site.
 :::{/step}
 
 :::{/steps}
-```
+````
 
 ### Step Options
 
@@ -293,8 +293,8 @@ Interactive task lists:
 
 Create rich, interactive content by combining elements:
 
-```markdown
-:::{steps}
+````markdown
+::::{steps}
 
 :::{step} Choose Your Platform
 :description: Select installation method
@@ -304,14 +304,14 @@ Create rich, interactive content by combining elements:
 ```bash
 pip install bengal
 ```
-:::
+:::{/tab-item}
 :::{tab-item} pipx
 ```bash
 pipx install bengal
 ```
-:::
-:::
-:::
+:::{/tab-item}
+:::{/tab-set}
+:::{/step}
 
 :::{step} Verify Installation
 
@@ -324,10 +324,10 @@ bengal --version
 
 If you see "command not found", ensure Python's bin directory is in your PATH.
 :::
-:::
+:::{/step}
 
-:::
-```
+::::{/steps}
+````
 
 ## Best Practices
 

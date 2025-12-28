@@ -70,9 +70,7 @@ class HTMLNormalizer(HTMLParser):
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         # Sort attributes for consistent comparison
         sorted_attrs = sorted(attrs, key=lambda x: x[0])
-        attr_str = " ".join(
-            f'{k}="{v}"' if v else k for k, v in sorted_attrs if v is not None
-        )
+        attr_str = " ".join(f'{k}="{v}"' if v else k for k, v in sorted_attrs if v is not None)
         if attr_str:
             self.parts.append(f"<{tag} {attr_str}>")
         else:
@@ -266,9 +264,7 @@ def print_summary(stats: ComparisonStats) -> None:
 
     print(f"{'Files processed:':<30} {total:>8}")
     print(f"{'Identical output:':<30} {stats.identical:>8} ({pct_identical:.1f}%)")
-    print(
-        f"{'Normalized identical:':<30} {stats.normalized_identical:>8} ({pct_norm:.1f}%)"
-    )
+    print(f"{'Normalized identical:':<30} {stats.normalized_identical:>8} ({pct_norm:.1f}%)")
     print(f"{'Different output:':<30} {stats.different:>8} ({pct_diff:.1f}%)")
     print()
 
@@ -321,18 +317,12 @@ def print_summary(stats: ComparisonStats) -> None:
 
 def main() -> int:
     """Main entry point."""
-    parser = argparse.ArgumentParser(
-        description="Compare mistune vs patitas parser output"
-    )
-    parser.add_argument(
-        "--verbose", "-v", action="store_true", help="Show all file results"
-    )
+    parser = argparse.ArgumentParser(description="Compare mistune vs patitas parser output")
+    parser.add_argument("--verbose", "-v", action="store_true", help="Show all file results")
     parser.add_argument(
         "--limit", "-n", type=int, default=None, help="Limit number of files to process"
     )
-    parser.add_argument(
-        "--diff", "-d", action="store_true", help="Show diff for different files"
-    )
+    parser.add_argument("--diff", "-d", action="store_true", help="Show diff for different files")
     parser.add_argument(
         "--content-dir",
         type=Path,
@@ -364,4 +354,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-

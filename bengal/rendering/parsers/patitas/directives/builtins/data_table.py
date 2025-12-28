@@ -33,7 +33,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Sequence
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from html import escape as html_escape
 from typing import TYPE_CHECKING, Any, ClassVar
 
@@ -59,6 +59,15 @@ class DataTableOptions(DirectiveOptions):
     pagination: int | bool = 50
     height: str = "auto"
     columns: str = ""  # Comma-separated visible columns
+
+    # Computed attributes (populated during parse)
+    file_path: str = ""
+    table_id: str = ""
+    visible_columns: list[str] | None = None
+    error: str = ""
+    # These will be populated by integration layer
+    table_columns: list[str] = field(default_factory=list)
+    table_data: list[dict[str, Any]] = field(default_factory=list)
 
 
 class DataTableDirective:
@@ -131,14 +140,13 @@ class DataTableDirective:
             table_id = f"data-table-{hashlib.sha256(file_path.encode()).hexdigest()[:8]}"
 
         # Store configuration
-        computed_opts = replace(options)
-        object.__setattr__(computed_opts, "file_path", file_path)
-        object.__setattr__(computed_opts, "table_id", table_id)
-        object.__setattr__(computed_opts, "visible_columns", visible_columns)
-        object.__setattr__(computed_opts, "error", "" if file_path else "No file path specified")
-        # These will be populated by integration layer
-        object.__setattr__(computed_opts, "table_columns", [])
-        object.__setattr__(computed_opts, "table_data", [])
+        computed_opts = replace(
+            options,
+            file_path=file_path,
+            table_id=table_id,
+            visible_columns=visible_columns,
+            error="" if file_path else "No file path specified",
+        )
 
         return Directive(
             location=location,

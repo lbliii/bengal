@@ -349,6 +349,10 @@ class AsciinemaOptions(DirectiveOptions):
     start_at: str = ""
     css_class: str = ""
 
+    # Computed attributes (populated during parse)
+    recording_id: str = ""
+    error: str = ""
+
 
 class AsciinemaDirective:
     """
@@ -424,9 +428,12 @@ class AsciinemaDirective:
             )
 
         # Store computed values
-        computed_opts = replace(options)
-        object.__setattr__(computed_opts, "recording_id", recording_id)
-        object.__setattr__(computed_opts, "error", error)
+
+        computed_opts = replace(
+            options,
+            recording_id=recording_id,
+            error=error,
+        )
 
         return Directive(
             location=location,

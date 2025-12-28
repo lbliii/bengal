@@ -75,6 +75,11 @@ class YouTubeOptions(DirectiveOptions):
     privacy: bool = True
     controls: bool = True
 
+    # Computed attributes (populated during parse)
+    video_id: str = ""
+    embed_url: str = ""
+    error: str = ""
+
 
 class YouTubeDirective:
     """
@@ -130,10 +135,12 @@ class YouTubeDirective:
         # Store computed values as attributes on options
         from dataclasses import replace
 
-        computed_opts = replace(options)
-        computed_opts.video_id = video_id
-        computed_opts.embed_url = embed_url
-        computed_opts.error = error
+        computed_opts = replace(
+            options,
+            video_id=video_id,
+            embed_url=embed_url,
+            error=error,
+        )
 
         return Directive(
             location=location,
@@ -248,6 +255,11 @@ class VimeoOptions(DirectiveOptions):
     dnt: bool = True
     background: bool = False
 
+    # Computed attributes (populated during parse)
+    video_id: str = ""
+    embed_url: str = ""
+    error: str = ""
+
 
 class VimeoDirective:
     """
@@ -302,10 +314,12 @@ class VimeoDirective:
         # Store computed values as attributes on options
         from dataclasses import replace
 
-        computed_opts = replace(options)
-        computed_opts.video_id = video_id
-        computed_opts.embed_url = embed_url
-        computed_opts.error = error
+        computed_opts = replace(
+            options,
+            video_id=video_id,
+            embed_url=embed_url,
+            error=error,
+        )
 
         return Directive(
             location=location,
@@ -415,6 +429,11 @@ class TikTokOptions(DirectiveOptions):
     loop: bool = False
     muted: bool = False
 
+    # Computed attributes (populated during parse)
+    video_id: str = ""
+    embed_url: str = ""
+    error: str = ""
+
 
 class TikTokDirective:
     """
@@ -468,10 +487,12 @@ class TikTokDirective:
         # Store computed values as attributes on options
         from dataclasses import replace
 
-        computed_opts = replace(options)
-        computed_opts.video_id = video_id
-        computed_opts.embed_url = embed_url
-        computed_opts.error = error
+        computed_opts = replace(
+            options,
+            video_id=video_id,
+            embed_url=embed_url,
+            error=error,
+        )
 
         return Directive(
             location=location,
@@ -588,6 +609,11 @@ class SelfHostedVideoOptions(DirectiveOptions):
     aspect: str = "16/9"
     css_class: str = ""
 
+    # Computed attributes (populated during parse)
+    video_path: str = ""
+    mime_type: str = ""
+    error: str = ""
+
 
 class SelfHostedVideoDirective:
     """
@@ -649,10 +675,12 @@ class SelfHostedVideoDirective:
         # Store computed values as attributes on options
         from dataclasses import replace
 
-        computed_opts = replace(options)
-        computed_opts.video_path = video_path
-        computed_opts.mime_type = mime_type
-        computed_opts.error = error
+        computed_opts = replace(
+            options,
+            video_path=video_path,
+            mime_type=mime_type,
+            error=error,
+        )
 
         return Directive(
             location=location,

@@ -70,6 +70,10 @@ class GistOptions(DirectiveOptions):
     file: str = ""
     css_class: str = ""
 
+    # Computed attributes (populated during parse)
+    gist_ref: str = ""
+    error: str = ""
+
 
 class GistDirective:
     """
@@ -118,9 +122,11 @@ class GistDirective:
         # Store computed values as attributes
         from dataclasses import replace
 
-        computed_opts = replace(options)
-        computed_opts.gist_ref = gist_ref
-        computed_opts.error = error
+        computed_opts = replace(
+            options,
+            gist_ref=gist_ref,
+            error=error,
+        )
 
         return Directive(
             location=location,
@@ -196,6 +202,11 @@ class CodePenOptions(DirectiveOptions):
     preview: bool = True
     css_class: str = ""
 
+    # Computed attributes (populated during parse)
+    username: str = ""
+    pen_id: str = ""
+    error: str = ""
+
 
 class CodePenDirective:
     """
@@ -251,10 +262,12 @@ class CodePenDirective:
         # Store computed values as attributes
         from dataclasses import replace
 
-        computed_opts = replace(options)
-        computed_opts.username = username
-        computed_opts.pen_id = pen_id
-        computed_opts.error = error
+        computed_opts = replace(
+            options,
+            username=username,
+            pen_id=pen_id,
+            error=error,
+        )
 
         return Directive(
             location=location,
@@ -365,6 +378,10 @@ class CodeSandboxOptions(DirectiveOptions):
     theme: str = "dark"
     css_class: str = ""
 
+    # Computed attributes (populated during parse)
+    sandbox_id: str = ""
+    error: str = ""
+
 
 class CodeSandboxDirective:
     """
@@ -417,9 +434,11 @@ class CodeSandboxDirective:
         # Store computed values as attributes
         from dataclasses import replace
 
-        computed_opts = replace(options)
-        computed_opts.sandbox_id = sandbox_id
-        computed_opts.error = error
+        computed_opts = replace(
+            options,
+            sandbox_id=sandbox_id,
+            error=error,
+        )
 
         return Directive(
             location=location,
@@ -522,6 +541,10 @@ class StackBlitzOptions(DirectiveOptions):
     hidedevtools: bool = False
     css_class: str = ""
 
+    # Computed attributes (populated during parse)
+    project_id: str = ""
+    error: str = ""
+
 
 class StackBlitzDirective:
     """
@@ -574,9 +597,11 @@ class StackBlitzDirective:
         # Store computed values as attributes
         from dataclasses import replace
 
-        computed_opts = replace(options)
-        computed_opts.project_id = project_id
-        computed_opts.error = error
+        computed_opts = replace(
+            options,
+            project_id=project_id,
+            error=error,
+        )
 
         return Directive(
             location=location,
@@ -682,6 +707,10 @@ class SpotifyOptions(DirectiveOptions):
     theme: int = 0  # 0 = dark, 1 = light
     css_class: str = ""
 
+    # Computed attributes (populated during parse)
+    spotify_id: str = ""
+    error: str = ""
+
 
 class SpotifyDirective:
     """
@@ -733,9 +762,12 @@ class SpotifyDirective:
         # Store computed values as attributes
         from dataclasses import replace
 
-        computed_opts = replace(options, height=height)
-        computed_opts.spotify_id = spotify_id
-        computed_opts.error = error
+        computed_opts = replace(
+            options,
+            height=height,
+            spotify_id=spotify_id,
+            error=error,
+        )
 
         return Directive(
             location=location,
@@ -832,6 +864,10 @@ class SoundCloudOptions(DirectiveOptions):
     visual: bool = False
     css_class: str = ""
 
+    # Computed attributes (populated during parse)
+    url_path: str = ""
+    error: str = ""
+
 
 class SoundCloudDirective:
     """
@@ -890,9 +926,13 @@ class SoundCloudDirective:
         # Store computed values as attributes
         from dataclasses import replace
 
-        computed_opts = replace(options, height=height, color=options.color.lstrip("#"))
-        computed_opts.url_path = cleaned_path
-        computed_opts.error = error
+        computed_opts = replace(
+            options,
+            height=height,
+            color=options.color.lstrip("#"),
+            url_path=cleaned_path,
+            error=error,
+        )
 
         return Directive(
             location=location,

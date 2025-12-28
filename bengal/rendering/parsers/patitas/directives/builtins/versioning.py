@@ -80,6 +80,10 @@ class SinceOptions(DirectiveOptions):
 
     css_class: str = "version-since"
 
+    # Computed attributes (populated during parse)
+    version: str = ""
+    has_content: bool = False
+
 
 class SinceDirective:
     """
@@ -129,9 +133,11 @@ class SinceDirective:
         # Store computed values as attributes
         from dataclasses import replace
 
-        computed_opts = replace(options)
-        computed_opts.version = title.strip() if title else ""
-        computed_opts.has_content = bool(content.strip())
+        computed_opts = replace(
+            options,
+            version=title.strip() if title else "",
+            has_content=bool(content.strip()),
+        )
 
         return Directive(
             location=location,
@@ -186,6 +192,10 @@ class DeprecatedOptions(DirectiveOptions):
 
     css_class: str = "version-deprecated"
 
+    # Computed attributes (populated during parse)
+    version: str = ""
+    has_content: bool = False
+
 
 class DeprecatedDirective:
     """
@@ -235,9 +245,11 @@ class DeprecatedDirective:
         # Store computed values as attributes
         from dataclasses import replace
 
-        computed_opts = replace(options)
-        computed_opts.version = title.strip() if title else ""
-        computed_opts.has_content = bool(content.strip())
+        computed_opts = replace(
+            options,
+            version=title.strip() if title else "",
+            has_content=bool(content.strip()),
+        )
 
         return Directive(
             location=location,
@@ -260,10 +272,7 @@ class DeprecatedDirective:
         css_class = opts.css_class
         has_content = getattr(opts, "has_content", False)
 
-        if not version:
-            version_text = "Deprecated"
-        else:
-            version_text = f"Deprecated since {html_escape(version)}"
+        version_text = "Deprecated" if not version else f"Deprecated since {html_escape(version)}"
 
         # Badge with icon
         badge_html = (
@@ -294,6 +303,10 @@ class ChangedOptions(DirectiveOptions):
     """Options for changed directive."""
 
     css_class: str = "version-changed"
+
+    # Computed attributes (populated during parse)
+    version: str = ""
+    has_content: bool = False
 
 
 class ChangedDirective:
@@ -344,9 +357,11 @@ class ChangedDirective:
         # Store computed values as attributes
         from dataclasses import replace
 
-        computed_opts = replace(options)
-        computed_opts.version = title.strip() if title else ""
-        computed_opts.has_content = bool(content.strip())
+        computed_opts = replace(
+            options,
+            version=title.strip() if title else "",
+            has_content=bool(content.strip()),
+        )
 
         return Directive(
             location=location,

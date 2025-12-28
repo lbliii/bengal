@@ -64,6 +64,10 @@ def get_max_workers(config_value: int | None = None) -> int:
     """
     Resolve max_workers with auto-detection.
 
+    .. deprecated:: 1.0
+        Use :func:`bengal.utils.workers.get_optimal_workers` instead.
+        This function does not account for workload type or environment.
+
     Args:
         config_value: User-configured value from site.config.get("max_workers")
                      - None or 0 = auto-detect based on CPU count
@@ -79,7 +83,19 @@ def get_max_workers(config_value: int | None = None) -> int:
         11
         >>> get_max_workers(8)     # Use specified
         8
+
+    See Also:
+        :func:`bengal.utils.workers.get_optimal_workers` for workload-aware
+        worker tuning with environment detection and workload-type profiles.
     """
+    import warnings
+
+    warnings.warn(
+        "get_max_workers() is deprecated. Use bengal.utils.workers.get_optimal_workers() "
+        "for workload-aware worker tuning with environment detection.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     if config_value is None or config_value == 0:
         return DEFAULT_MAX_WORKERS
     return max(1, config_value)

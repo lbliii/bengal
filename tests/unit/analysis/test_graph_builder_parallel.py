@@ -19,11 +19,15 @@ from bengal.core.site import Site
 
 @pytest.fixture
 def small_site(tmp_path):
-    """Create a small test site (below parallel threshold)."""
+    """Create a small test site (below parallel threshold).
+
+    Note: CPU_BOUND workloads have a parallel threshold of 5 tasks.
+    We use 4 pages to stay below this threshold.
+    """
     site = Site(root_path=tmp_path, config={})
 
     pages = []
-    for i in range(10):
+    for i in range(4):
         page = Page(
             source_path=tmp_path / f"page{i}.md",
             content=f"# Page {i}",
@@ -34,7 +38,8 @@ def small_site(tmp_path):
     # Add some related posts to create connections
     pages[0].related_posts = [pages[1], pages[2]]
     pages[1].related_posts = [pages[0]]
-    pages[3].related_posts = [pages[4], pages[5], pages[6]]
+    pages[2].related_posts = [pages[0], pages[3]]
+    pages[3].related_posts = [pages[1], pages[2]]
 
     site.pages = pages
     return site

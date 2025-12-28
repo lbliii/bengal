@@ -9,7 +9,7 @@ Thread Safety:
 
 from __future__ import annotations
 
-from collections.abc import Iterator, Sequence
+from collections.abc import Callable, Iterator, Sequence
 from html import escape as html_escape
 from typing import TYPE_CHECKING, Literal
 
@@ -75,6 +75,7 @@ class HtmlRenderer:
         "_rosettes_available",
         "_directive_registry",
         "_role_registry",
+        "_text_transformer",
     )
 
     def __init__(
@@ -84,6 +85,7 @@ class HtmlRenderer:
         highlight_style: Literal["semantic", "pygments"] = "semantic",
         directive_registry: DirectiveRegistry | None = None,
         role_registry: RoleRegistry | None = None,
+        text_transformer: Callable[[str], str] | None = None,
     ) -> None:
         """Initialize renderer.
 
@@ -92,12 +94,14 @@ class HtmlRenderer:
             highlight_style: Highlighting style ("semantic" or "pygments")
             directive_registry: Optional registry for custom directive rendering
             role_registry: Optional registry for custom role rendering
+            text_transformer: Optional callback to transform plain text nodes
         """
         self._highlight = highlight
         self._highlight_style = highlight_style
         self._rosettes_available: bool | None = None
         self._directive_registry = directive_registry
         self._role_registry = role_registry
+        self._text_transformer = text_transformer
 
     def render(self, nodes: Sequence[Block]) -> str:
         """Render AST nodes to HTML.
@@ -109,9 +113,44 @@ class HtmlRenderer:
             Rendered HTML string
         """
         sb = StringBuilder()
+        footnotes: list[FootnoteDef] = []
+
         for node in nodes:
-            self._render_block(node, sb)
+            # Collect footnote definitions for rendering at the end
+            if isinstance(node, FootnoteDef):
+                footnotes.append(node)
+            else:
+                self._render_block(node, sb)
+
+        # Render footnote definitions section at the end
+        if footnotes:
+            self._render_footnotes_section(footnotes, sb)
+
         return sb.build()
+
+    def _render_footnotes_section(self, footnotes: list[FootnoteDef], sb: StringBuilder) -> None:
+        """Render footnote definitions as a section at the end of the document."""
+        sb.append('<section class="footnotes">\n<ol>\n')
+
+        for fn in footnotes:
+            identifier = _escape_attr(fn.identifier)
+            sb.append(f'<li id="fn-{identifier}">')
+
+            # Render footnote content
+            if fn.children:
+                for child in fn.children:
+                    if isinstance(child, Paragraph):
+                        # Inline the paragraph content with back-reference
+                        sb.append("<p>")
+                        self._render_inline_children(child.children, sb)
+                        sb.append(f'<a href="#fnref-{identifier}" class="footnote">&#8617;</a>')
+                        sb.append("</p>")
+                    else:
+                        self._render_block(child, sb)
+
+            sb.append("</li>\n")
+
+        sb.append("</ol>\n</section>\n")
 
     def _render_block(self, node: Block, sb: StringBuilder) -> None:
         """Render a block node to StringBuilder."""
@@ -181,12 +220,15 @@ class HtmlRenderer:
 
     def _render_list_item(self, item: ListItem, sb: StringBuilder, tight: bool) -> None:
         """Render a list item."""
-        sb.append("<li>")
-
         if item.checked is not None:
-            # Task list item
-            checked = "checked" if item.checked else ""
-            sb.append(f'<input type="checkbox" disabled {checked}/> ')
+            # Task list item - match Mistune's class names
+            sb.append('<li class="task-list-item">')
+            checked_attr = " checked" if item.checked else ""
+            sb.append(
+                f'<input class="task-list-item-checkbox" type="checkbox" disabled{checked_attr}/>'
+            )
+        else:
+            sb.append("<li>")
 
         if tight:
             # Tight list: render children without paragraph wrapper
@@ -204,7 +246,8 @@ class HtmlRenderer:
 
     def _render_table(self, table: Table, sb: StringBuilder) -> None:
         """Render a table with thead and tbody."""
-        sb.append("<table>\n")
+        # Wrap in table-wrapper for horizontal scrolling on narrow screens
+        sb.append('<div class="table-wrapper"><table>\n')
 
         # Render header rows
         if table.head:
@@ -220,7 +263,7 @@ class HtmlRenderer:
                 self._render_table_row(row, table.alignments, sb, is_header=False)
             sb.append("</tbody>\n")
 
-        sb.append("</table>\n")
+        sb.append("</table></div>")
 
     def _render_table_row(
         self,
@@ -229,18 +272,18 @@ class HtmlRenderer:
         sb: StringBuilder,
         is_header: bool,
     ) -> None:
-        """Render a table row."""
-        sb.append("<tr>")
+        """Render a table row with pretty-printing (matching Mistune)."""
+        sb.append("<tr>\n")
         tag = "th" if is_header else "td"
 
         for i, cell in enumerate(row.cells):
             align = alignments[i] if i < len(alignments) else None
             if align:
-                sb.append(f'<{tag} style="text-align: {align}">')
+                sb.append(f'  <{tag} style="text-align: {align}">')
             else:
-                sb.append(f"<{tag}>")
+                sb.append(f"  <{tag}>")
             self._render_inline_children(cell.children, sb)
-            sb.append(f"</{tag}>")
+            sb.append(f"</{tag}>\n")
 
         sb.append("</tr>\n")
 
@@ -283,6 +326,12 @@ class HtmlRenderer:
 
     def _render_fenced_code(self, code: str, info: str | None, sb: StringBuilder) -> None:
         """Render fenced code block with optional highlighting."""
+        if info:
+            lang = info.split()[0].lower()
+            if lang == "mermaid":
+                sb.append(f'<div class="mermaid">{_escape_html(code)}</div>\n')
+                return
+
         if self._highlight and info:
             highlighted = self._try_highlight(code, info)
             if highlighted:
@@ -393,7 +442,16 @@ def _escape_attr(text: str) -> str:
 
 
 def _render_text(node: Text, sb: StringBuilder, render_children) -> None:
-    sb.append(_escape_html(node.content))
+    # Use text_transformer if provided (e.g., for variable substitution)
+    # This happens BEFORE HTML escaping to allow variables to contain HTML (e.g. icons)
+    # but the renderer will then escape the result for safety.
+    # Note: VariableSubstitutionPlugin handles its own safety checks.
+    content = node.content
+    renderer = getattr(render_children, "__self__", None)
+    if renderer and hasattr(renderer, "_text_transformer") and renderer._text_transformer:
+        content = renderer._text_transformer(content)
+
+    sb.append(_escape_html(content))
 
 
 def _render_emphasis(node: Emphasis, sb: StringBuilder, render_children) -> None:
@@ -464,10 +522,11 @@ def _render_math(node: Math, sb: StringBuilder, render_children) -> None:
 
 
 def _render_footnote_ref(node: FootnoteRef, sb: StringBuilder, render_children) -> None:
-    # Footnote reference - links to footnote definition
+    # Footnote reference - links to footnote definition (Mistune-compatible output)
     identifier = _escape_attr(node.identifier)
     sb.append(
-        f'<sup><a href="#fn-{identifier}" id="fnref-{identifier}">{_escape_html(node.identifier)}</a></sup>'
+        f'<sup class="footnote-ref" id="fnref-{identifier}">'
+        f'<a href="#fn-{identifier}">{_escape_html(node.identifier)}</a></sup>'
     )
 
 

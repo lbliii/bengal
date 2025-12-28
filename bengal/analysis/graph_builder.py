@@ -25,9 +25,9 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any
 
 from bengal.analysis.link_types import LinkMetrics, LinkType
-from bengal.config.defaults import get_max_workers
 from bengal.errors import BengalGraphError, ErrorCode, record_error
 from bengal.utils.logger import get_logger
+from bengal.utils.workers import WorkloadType, get_optimal_workers, should_parallelize
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
@@ -35,8 +35,8 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
-# Threshold for parallel processing - below this we use sequential processing
-# to avoid thread pool overhead for small workloads
+# Note: MIN_PAGES_FOR_PARALLEL is deprecated in favor of should_parallelize()
+# Kept for backwards compatibility if accessed directly
 MIN_PAGES_FOR_PARALLEL = 100
 
 
@@ -95,8 +95,12 @@ class GraphBuilder:
         elif site.config.get("parallel_graph") is False:
             self.parallel = False
         else:
-            # Auto mode: parallel if 100+ pages
-            self.parallel = len(site.pages) >= MIN_PAGES_FOR_PARALLEL
+            # Auto mode: use should_parallelize for workload-aware decision
+            # Graph building is CPU-bound (analyzing links, building graph structures)
+            self.parallel = should_parallelize(
+                len(site.pages),
+                workload_type=WorkloadType.CPU_BOUND,
+            )
 
         # Graph data structures
         self.incoming_refs: dict[Page, float] = defaultdict(float)
@@ -183,8 +187,12 @@ class GraphBuilder:
             - Python 3.13 (GIL): ~1.5-2x faster (reduced context switching)
             - Python 3.14t (no GIL): ~3-4x faster (true parallelism)
         """
-        max_workers = get_max_workers(self.site.config.get("max_workers"))
         analysis_pages = self.get_analysis_pages()
+        max_workers = get_optimal_workers(
+            len(analysis_pages),
+            workload_type=WorkloadType.CPU_BOUND,
+            config_override=self.site.config.get("max_workers"),
+        )
         analysis_pages_set = set(analysis_pages)
 
         logger.debug(

@@ -32,7 +32,7 @@ TClass = TypeVar("TClass", bound=type)
 
 
 @overload
-def directive(
+def directive(  # noqa: UP047
     *names: str,
     options: type[TOptions] = ...,
     contract: DirectiveContract | None = ...,
@@ -42,7 +42,7 @@ def directive(
 
 
 @overload
-def directive(
+def directive(  # noqa: UP047
     *names: str,
     options: type[TOptions] = ...,
     contract: DirectiveContract | None = ...,

@@ -35,7 +35,7 @@ def measure_memory(func, *args, iterations=10):
         tracemalloc.start()
 
         try:
-            result = func(*args)
+            func(*args)
         finally:
             current, peak = tracemalloc.get_traced_memory()
             tracemalloc.stop()

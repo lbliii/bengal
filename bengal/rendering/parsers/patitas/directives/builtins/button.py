@@ -51,6 +51,10 @@ class ButtonOptions(DirectiveOptions):
     icon: str = ""
     target: str = ""
 
+    # Computed attributes (populated during parse)
+    url: str = "#"
+    label: str = "Button"
+
 
 class ButtonDirective:
     """
@@ -105,9 +109,11 @@ class ButtonDirective:
         # Store computed values as attributes
         from dataclasses import replace
 
-        computed_opts = replace(options)
-        computed_opts.url = url
-        computed_opts.label = label
+        computed_opts = replace(
+            options,
+            url=url,
+            label=label,
+        )
 
         return Directive(
             location=location,

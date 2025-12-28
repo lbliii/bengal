@@ -106,6 +106,23 @@ _global_context_cache: dict[int, dict[str, Any]] = {}
 _context_lock = threading.Lock()
 
 
+# Register cache for centralized cleanup (prevents memory leaks in tests)
+def _clear_global_context_cache() -> None:
+    """Clear global context cache (registered for test cleanup)."""
+    with _context_lock:
+        _global_context_cache.clear()
+
+
+# Register at module import time for automatic test cleanup
+try:
+    from bengal.utils.cache_registry import register_cache
+
+    register_cache("global_context_cache", _clear_global_context_cache)
+except ImportError:
+    # Cache registry not available (shouldn't happen in normal usage)
+    pass
+
+
 def _get_global_contexts(site: Site) -> dict[str, Any]:
     """
     Get or create cached global context wrappers for a site.
@@ -155,8 +172,7 @@ def clear_global_context_cache() -> None:
 
     Thread-safe: Clears under lock.
     """
-    with _context_lock:
-        _global_context_cache.clear()
+    _clear_global_context_cache()
 
 
 def get_engine_globals(site: Site) -> dict[str, Any]:

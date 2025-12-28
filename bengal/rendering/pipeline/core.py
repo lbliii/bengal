@@ -327,17 +327,18 @@ class RenderingPipeline:
         enable_deferred_highlighting()
         try:
             if hasattr(self.parser, "parse_with_toc_and_context"):
-                self._parse_with_mistune(page, need_toc)
+                self._parse_with_context_aware_parser(page, need_toc)
             else:
                 self._parse_with_legacy(page, need_toc)
+
+            # Flush deferred highlighting: batch process all code blocks in parallel
+            # This replaces <!--code:XXX--> placeholders with highlighted HTML
+            # Must run BEFORE transformer so highlighter output is also escaped/transformed
+            page.parsed_ast = flush_deferred_highlighting(page.parsed_ast)
 
             # PERF: Unified HTML transformation (~27% faster than separate passes)
             # Handles: Jinja block escaping, .md link normalization, baseurl prefixing
             page.parsed_ast = self._html_transformer.transform(page.parsed_ast or "")
-
-            # Flush deferred highlighting: batch process all code blocks in parallel
-            # This replaces <!--code:XXX--> placeholders with highlighted HTML
-            page.parsed_ast = flush_deferred_highlighting(page.parsed_ast)
 
             # Restore any remaining escape placeholders in code block output
             # This is needed because deferred highlighting captures code BEFORE
@@ -368,8 +369,8 @@ class RenderingPipeline:
         likely_has_setext = re.search(r"^.+\n\s{0,3}(?:===+|---+)\s*$", content_text, re.MULTILINE)
         return bool(likely_has_setext)
 
-    def _parse_with_mistune(self, page: Page, need_toc: bool) -> None:
-        """Parse content using Mistune parser."""
+    def _parse_with_context_aware_parser(self, page: Page, need_toc: bool) -> None:
+        """Parse content using a context-aware parser (Mistune, Patitas)."""
         if page.metadata.get("preprocess") is False:
             # Inject source_path into metadata for cross-version dependency tracking
             # (non-context parse methods don't have access to page object)
@@ -558,32 +559,27 @@ class RenderingPipeline:
         write_output(page, self.site, self.dependency_tracker, collector=self._output_collector)
 
     def _preprocess_content(self, page: Page) -> str:
-        """Pre-process page content through Jinja2 (legacy parser only)."""
+        """Pre-process page content through configured template engine (legacy parser only)."""
         if page.metadata.get("preprocess") is False:
             return page.content
 
-        from jinja2 import Template, TemplateSyntaxError
-
         try:
-            template = Template(page.content)
-            return template.render(page=page, site=self.site, config=self.site.config)
-        except TemplateSyntaxError as e:
-            if self.build_stats:
-                self.build_stats.add_warning(str(page.source_path), str(e), "jinja2")
-            else:
-                logger.warning(
-                    "jinja2_syntax_error",
-                    source_path=str(page.source_path),
-                    error=truncate_error(e),
-                    error_code=ErrorCode.R002.value,
-                    suggestion="Check Jinja2 syntax in page frontmatter or content",
-                )
-            return page.content
+            # Use the configured template engine for preprocessing
+            # This respects site.config.template_engine (Kida, Jinja2, etc.)
+            # We use strict=False because documentation pages often contain
+            # template syntax examples with undefined variables (e.g. {{ secrets.XXX }})
+            return self.template_engine.render_string(
+                page.content,
+                {"page": page, "site": self.site, "config": self.site.config},
+                strict=False,
+            )
         except Exception as e:
             if self.build_stats:
-                self.build_stats.add_warning(
-                    str(page.source_path), truncate_error(e), "preprocessing"
-                )
+                # Map error to correct category for stats display
+                # Use engine name for categorization (defaults to jinja2/kida)
+                engine_name = getattr(self.template_engine, "NAME", "template")
+                error_type = engine_name if "syntax" in str(e).lower() else "preprocessing"
+                self.build_stats.add_warning(str(page.source_path), str(e), error_type)
             else:
                 logger.warning(
                     "preprocessing_error",

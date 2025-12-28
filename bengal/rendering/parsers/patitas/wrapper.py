@@ -52,17 +52,16 @@ class PatitasParser(BaseMarkdownParser):
     - Hard/soft breaks
     - Raw HTML
 
-    TODO (future phases):
+    Supported features (via plugins):
     - Tables (GFM)
     - Strikethrough
     - Task lists
-    - Footnotes
-    - Directives
-    - Cross-references
+    - Math (inline and block)
+    - Cross-references ([[link]] syntax)
     """
 
     # Default plugins to enable (matches mistune's plugins)
-    DEFAULT_PLUGINS = ["table", "strikethrough", "task_lists", "math"]
+    DEFAULT_PLUGINS = ["table", "strikethrough", "task_lists", "math", "footnotes"]
 
     def __init__(
         self,
@@ -85,12 +84,19 @@ class PatitasParser(BaseMarkdownParser):
             highlight=enable_highlighting,
         )
 
+        # Cross-reference support (enabled via enable_cross_references)
+        self._xref_enabled = False
+        self._xref_plugin: Any | None = None
+
+        # Variable substitution plugin (stored for placeholder restoration)
+        self._var_plugin: Any | None = None
+
     def parse(self, content: str, metadata: dict[str, Any]) -> str:
         """Parse Markdown content into HTML.
 
         Args:
             content: Markdown content to parse
-            metadata: Page metadata (unused, for interface compatibility)
+            metadata: Page metadata (used for cross-reference context)
 
         Returns:
             Rendered HTML string
@@ -99,7 +105,30 @@ class PatitasParser(BaseMarkdownParser):
             return ""
 
         try:
-            return self._md(content)
+            html = self._md(content)
+
+            # Post-process cross-references if enabled
+            if self._xref_enabled and self._xref_plugin:
+                # Set current page version for version-aware anchor resolution
+                page_version = (
+                    metadata.get("version") or metadata.get("_version") if metadata else None
+                )
+                self._xref_plugin.current_version = page_version
+
+                # Set current page source path for cross-version dependency tracking
+                source_path = metadata.get("_source_path") if metadata else None
+                if source_path:
+                    from pathlib import Path
+
+                    self._xref_plugin.current_source_page = (
+                        Path(source_path) if isinstance(source_path, str) else source_path
+                    )
+                else:
+                    self._xref_plugin.current_source_page = None
+
+                html = self._xref_plugin._substitute_xrefs(html)
+
+            return html
         except Exception as e:
             logger.warning(
                 "patitas_parsing_error",
@@ -113,7 +142,7 @@ class PatitasParser(BaseMarkdownParser):
 
         Args:
             content: Markdown content to parse
-            metadata: Page metadata
+            metadata: Page metadata (includes source path for cross-reference context)
 
         Returns:
             Tuple of (HTML with heading IDs, TOC HTML)
@@ -127,11 +156,142 @@ class PatitasParser(BaseMarkdownParser):
         # Render HTML
         html = self._md.render_ast(ast)
 
+        # Post-process cross-references if enabled
+        html = self._apply_post_processing(html, metadata)
+
         # Inject heading IDs and extract TOC
         html = self._inject_heading_ids(html)
         toc = self._extract_toc(ast)
 
         return html, toc
+
+    def parse_with_context(
+        self, content: str, metadata: dict[str, Any], context: dict[str, Any]
+    ) -> str:
+        """Parse Markdown with variable substitution support.
+
+        Enables {{ page.title }}, {{ site.baseurl }}, etc. in markdown content.
+        Uses VariableSubstitutionPlugin for preprocessing and restoration.
+
+        Args:
+            content: Markdown content to parse
+            metadata: Page metadata
+            context: Variable context (page, site, config)
+
+        Returns:
+            Rendered HTML with variables substituted
+        """
+        if not content:
+            return ""
+
+        from bengal.rendering.plugins import VariableSubstitutionPlugin
+
+        # Create plugin instance for this page and store for pipeline access
+        self._var_plugin = VariableSubstitutionPlugin(context)
+        var_plugin = self._var_plugin
+
+        try:
+            # 1. Preprocess: handle {{/* escaped syntax */}}
+            content = var_plugin.preprocess(content)
+
+            # 2. Parse & Substitute in ONE pass (the "window thing")
+            # The Lexer handles variable substitution as it scans lines.
+            # This is O(n) with zero extra passes or AST walks.
+            html = self._md(content, text_transformer=var_plugin.substitute_variables)
+
+            # 3. Restore placeholders: restore BENGALESCAPED placeholders
+            html = var_plugin.restore_placeholders(html)
+
+            # 4. Apply other post-processing (cross-references, etc.)
+            html = self._apply_post_processing(html, metadata)
+
+            return html
+
+        except Exception as e:
+            logger.warning(
+                "patitas_parsing_error_with_context",
+                error=str(e),
+                error_type=type(e).__name__,
+            )
+            return f'<div class="markdown-error"><p><strong>Markdown parsing error:</strong> {e}</p><pre>{content}</pre></div>'
+
+    def parse_with_toc_and_context(
+        self, content: str, metadata: dict[str, Any], context: dict[str, Any]
+    ) -> tuple[str, str]:
+        """Parse Markdown with variable substitution and extract TOC.
+
+        Args:
+            content: Markdown content to parse
+            metadata: Page metadata
+            context: Variable context (page, site, config)
+
+        Returns:
+            Tuple of (HTML with heading IDs, TOC HTML)
+        """
+        if not content:
+            return "", ""
+
+        from bengal.rendering.plugins import VariableSubstitutionPlugin
+
+        # Create plugin instance for this page and store for pipeline access
+        self._var_plugin = VariableSubstitutionPlugin(context)
+        var_plugin = self._var_plugin
+
+        try:
+            # 1. Preprocess: handle {{/* escaped syntax */}}
+            content = var_plugin.preprocess(content)
+
+            # 2. Parse & Substitute in ONE pass (the "window thing")
+            ast = self._md.parse_to_ast(content, text_transformer=var_plugin.substitute_variables)
+
+            # 3. Render to HTML
+            html = self._md.render_ast(ast)
+
+            # 4. Restore placeholders
+            html = var_plugin.restore_placeholders(html)
+
+            # 5. Apply other post-processing
+            html = self._apply_post_processing(html, metadata)
+
+            # 6. Inject heading IDs and extract TOC
+            html = self._inject_heading_ids(html)
+            toc = self._extract_toc(ast)
+
+            return html, toc
+
+        except Exception as e:
+            logger.warning(
+                "patitas_parsing_error_with_toc_and_context",
+                error=str(e),
+                error_type=type(e).__name__,
+            )
+            return (
+                f'<div class="markdown-error"><p><strong>Markdown parsing error:</strong> {e}</p><pre>{content}</pre></div>',
+                "",
+            )
+
+    def _apply_post_processing(self, html: str, metadata: dict[str, Any]) -> str:
+        """Apply common post-processing to HTML output."""
+        # Post-process cross-references if enabled
+        if self._xref_enabled and self._xref_plugin:
+            # Set current page version for version-aware anchor resolution
+            page_version = metadata.get("version") or metadata.get("_version") if metadata else None
+            self._xref_plugin.current_version = page_version
+
+            # Set current page source path for cross-version dependency tracking
+            source_path = metadata.get("_source_path") if metadata else None
+            if source_path:
+                from pathlib import Path
+
+                self._xref_plugin.current_source_page = (
+                    Path(source_path) if isinstance(source_path, str) else source_path
+                )
+            else:
+                self._xref_plugin.current_source_page = None
+
+            html = self._xref_plugin._substitute_xrefs(html)
+
+        return html
 
     def _inject_heading_ids(self, html: str) -> str:
         """Inject ID attributes into heading elements.
@@ -337,3 +497,47 @@ class PatitasParser(BaseMarkdownParser):
         result = asdict(node)
         result["type"] = type(node).__name__.lower()
         return result
+
+    # =========================================================================
+    # Cross-Reference Support
+    # =========================================================================
+
+    def enable_cross_references(
+        self,
+        xref_index: dict[str, Any],
+        version_config: Any | None = None,
+        cross_version_tracker: Any | None = None,
+    ) -> None:
+        """Enable cross-reference support with [[link]] syntax.
+
+        Should be called after content discovery when xref_index is built.
+        Creates CrossReferencePlugin for post-processing HTML output.
+
+        Performance: O(1) - just stores reference to index
+        Thread-safe: Each parser instance needs this called once
+
+        Args:
+            xref_index: Pre-built cross-reference index from site discovery
+            version_config: Optional versioning configuration for cross-version links
+            cross_version_tracker: Optional callback for tracking cross-version link
+                dependencies. Called with (source_page, target_version, target_path)
+                when a [[v2:path]] link is resolved.
+
+        RFC: rfc-versioned-docs-pipeline-integration (Phase 2)
+
+        Raises:
+            ImportError: If CrossReferencePlugin cannot be imported
+        """
+        if self._xref_enabled:
+            # Already enabled, just update index, version_config, and tracker
+            if self._xref_plugin:
+                self._xref_plugin.xref_index = xref_index
+                self._xref_plugin.version_config = version_config
+                self._xref_plugin._cross_version_tracker = cross_version_tracker
+            return
+
+        from bengal.rendering.plugins import CrossReferencePlugin
+
+        # Create plugin instance (for post-processing HTML)
+        self._xref_plugin = CrossReferencePlugin(xref_index, version_config, cross_version_tracker)
+        self._xref_enabled = True

@@ -248,7 +248,7 @@ Content here
 
 ### Tabs
 
-```markdown
+````markdown
 :::{tab-set}
 
 :::{tab-item} Python
@@ -264,7 +264,7 @@ console.log("Hello");
 :::
 
 :::{/tab-set}
-```
+````
 
 ## Glossary Directive
 

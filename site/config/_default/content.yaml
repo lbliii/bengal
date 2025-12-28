@@ -2,6 +2,12 @@
 # =====================
 # Fine-tunes Bengal's content processing (independent of theme)
 
+# Markdown Parser
+# ===============
+# Select the markdown parser engine
+markdown:
+  parser: "patitas"  # Use Patitas parser (modern, thread-safe, typed AST)
+
 content:
   # Default content type for documentation site
   default_type: "doc"

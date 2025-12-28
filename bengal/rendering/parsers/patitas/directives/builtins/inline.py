@@ -287,9 +287,15 @@ TARGET_ID_PATTERN = re.compile(r"^[a-zA-Z][a-zA-Z0-9_-]*$")
 
 @dataclass(frozen=True, slots=True)
 class TargetOptions(DirectiveOptions):
-    """Options for target directive."""
+    """Options for target directive.
 
-    pass
+    Attributes:
+        id: Anchor ID (computed from title)
+        error: Validation error message (if any)
+    """
+
+    id: str | None = None  # Computed from title
+    error: str | None = None  # Validation error if any
 
 
 class TargetDirective:
@@ -339,12 +345,14 @@ class TargetDirective:
                 f"Must start with letter, contain only letters, numbers, hyphens, underscores."
             )
 
-        # Store computed values as attributes
+        # Store computed values in options
         from dataclasses import replace
 
-        computed_opts = replace(options)
-        computed_opts.id = anchor_id
-        computed_opts.error = error
+        computed_opts = replace(
+            options,
+            id=anchor_id,
+            error=error,
+        )
 
         return Directive(
             location=location,
@@ -363,7 +371,7 @@ class TargetDirective:
         """Render target as invisible anchor element."""
         opts = node.options  # Direct typed access!
 
-        error = getattr(opts, "error", "")
+        error = opts.error or ""
         if error:
             sb.append(
                 f'<span class="directive-error" '
@@ -371,7 +379,7 @@ class TargetDirective:
             )
             return
 
-        anchor_id = getattr(opts, "id", "")
+        anchor_id = opts.id or ""
         sb.append(f'<span id="{html_escape(anchor_id)}" class="target-anchor"></span>\n')
 
 

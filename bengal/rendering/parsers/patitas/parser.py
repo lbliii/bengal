@@ -10,7 +10,7 @@ Thread Safety:
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 
 from bengal.rendering.parsers.patitas.lexer import Lexer
 from bengal.rendering.parsers.patitas.location import SourceLocation
@@ -21,6 +21,8 @@ from bengal.rendering.parsers.patitas.nodes import (
     Directive,
     Emphasis,
     FencedCode,
+    FootnoteDef,
+    FootnoteRef,
     Heading,
     HtmlInline,
     Image,
@@ -71,6 +73,8 @@ class Parser:
         "_pos",
         "_current",
         "_source_file",
+        # Transformation
+        "_text_transformer",
         # Plugin flags - set by Markdown class
         "_tables_enabled",
         "_strikethrough_enabled",
@@ -91,6 +95,7 @@ class Parser:
         *,
         directive_registry=None,
         strict_contracts: bool = False,
+        text_transformer: Callable[[str], str] | None = None,
     ) -> None:
         """Initialize parser with source text.
 
@@ -99,12 +104,14 @@ class Parser:
             source_file: Optional source file path for error messages
             directive_registry: Optional directive registry for handler lookup
             strict_contracts: If True, raise errors on contract violations
+            text_transformer: Optional callback to transform plain text lines
         """
         self._source = source
         self._source_file = source_file
         self._tokens: list[Token] = []
         self._pos = 0
         self._current: Token | None = None
+        self._text_transformer = text_transformer
 
         # Plugin flags - default to disabled, set by Markdown class
         self._tables_enabled = False
@@ -129,7 +136,7 @@ class Parser:
             Returns immutable AST (frozen dataclasses).
         """
         # Tokenize source
-        lexer = Lexer(self._source, self._source_file)
+        lexer = Lexer(self._source, self._source_file, text_transformer=self._text_transformer)
         self._tokens = list(lexer.tokenize())
         self._pos = 0
         self._current = self._tokens[0] if self._tokens else None
@@ -179,6 +186,9 @@ class Parser:
 
             case TokenType.DIRECTIVE_OPEN:
                 return self._parse_directive()
+
+            case TokenType.FOOTNOTE_DEF:
+                return self._parse_footnote_def()
 
             case _:
                 # Skip unknown tokens
@@ -308,25 +318,40 @@ class Parser:
 
         return BlockQuote(location=start_token.location, children=())
 
-    def _parse_list(self) -> List:
-        """Parse list (unordered or ordered)."""
+    def _parse_list(self, parent_indent: int = -1) -> List:
+        """Parse list (unordered or ordered) with nested list support.
+
+        Args:
+            parent_indent: Indent level of parent list (-1 for top-level)
+
+        Handles:
+        - Nested lists via indentation tracking
+        - Task lists with [ ] and [x] markers
+        - Multi-line list items (continuation paragraphs)
+        - Loose lists (blank lines between items)
+        """
         start_token = self._current
         assert start_token is not None and start_token.type == TokenType.LIST_ITEM_MARKER
 
-        items: list[ListItem] = []
-        ordered = start_token.value[0].isdigit()
+        # Extract indent from marker value (spaces prefixed by lexer)
+        start_indent = self._get_marker_indent(start_token.value)
+        marker_stripped = start_token.value.lstrip()
+        ordered = marker_stripped[0].isdigit()
         start = 1
 
         if ordered:
             # Extract starting number
             num_str = ""
-            for c in start_token.value:
+            for c in marker_stripped:
                 if c.isdigit():
                     num_str += c
                 else:
                     break
             if num_str:
                 start = int(num_str)
+
+        items: list[ListItem] = []
+        tight = True  # Will be set to False if blank lines between items
 
         while not self._at_end():
             token = self._current
@@ -335,39 +360,111 @@ class Parser:
             if token.type != TokenType.LIST_ITEM_MARKER:
                 break
 
-            # Check if same list type
-            is_ordered = token.value[0].isdigit()
+            # Get indent of this marker
+            current_indent = self._get_marker_indent(token.value)
+            current_marker = token.value.lstrip()
+
+            # If less indented than our list, we're done
+            if current_indent < start_indent:
+                break
+
+            # If more indented, this is a nested list - let parent handle
+            if current_indent > start_indent:
+                break
+
+            # Check if same list type (ordered vs unordered)
+            is_ordered = current_marker[0].isdigit()
             if is_ordered != ordered:
                 break
 
             self._advance()
 
-            # Collect item content
+            # Collect item content, children (nested lists), and detect task list
+            item_children: list[Block] = []
             content_lines: list[str] = []
+            checked: bool | None = None
+
             while not self._at_end():
                 tok = self._current
                 assert tok is not None
 
                 if tok.type == TokenType.PARAGRAPH_LINE:
-                    content_lines.append(tok.value)
+                    line = tok.value
+
+                    # Check for task list marker at start of first line
+                    if not content_lines and checked is None:
+                        if line.startswith("[ ] "):
+                            checked = False
+                            line = line[4:]
+                        elif line.startswith("[x] ") or line.startswith("[X] "):
+                            checked = True
+                            line = line[4:]
+
+                    content_lines.append(line)
                     self._advance()
+
                 elif tok.type == TokenType.BLANK_LINE:
                     self._advance()
-                    break
+                    # Check what comes next
+                    if self._at_end():
+                        break
+                    next_tok = self._current
+                    assert next_tok is not None
+
+                    if next_tok.type == TokenType.LIST_ITEM_MARKER:
+                        next_indent = self._get_marker_indent(next_tok.value)
+                        if next_indent <= start_indent:
+                            # Same or less indent - this blank separates items
+                            tight = False
+                            break
+                        # More indent - could be nested list
+                    elif next_tok.type == TokenType.PARAGRAPH_LINE:
+                        # Continuation paragraph (loose list)
+                        tight = False
+                        # Save current paragraph first
+                        if content_lines:
+                            content = "\n".join(content_lines)
+                            inlines = self._parse_inline(content, token.location)
+                            para = Paragraph(location=token.location, children=inlines)
+                            item_children.append(para)
+                            content_lines = []
+                        continue
+                    else:
+                        break
+
                 elif tok.type == TokenType.LIST_ITEM_MARKER:
-                    break
+                    nested_indent = self._get_marker_indent(tok.value)
+                    if nested_indent > start_indent:
+                        # Nested list - first save current paragraph if any
+                        if content_lines:
+                            content = "\n".join(content_lines)
+                            inlines = self._parse_inline(content, token.location)
+                            para = Paragraph(location=token.location, children=inlines)
+                            item_children.append(para)
+                            content_lines = []
+
+                        # Parse nested list
+                        nested_list = self._parse_list(parent_indent=start_indent)
+                        item_children.append(nested_list)
+                    else:
+                        # Same or less indent - done with this item
+                        break
+
                 else:
                     break
 
-            # Create item
-            content = "\n".join(content_lines)
-            if content:
-                children = self._parse_inline(content, token.location)
-                para = Paragraph(location=token.location, children=children)
-                item = ListItem(location=token.location, children=(para,))
-            else:
-                item = ListItem(location=token.location, children=())
+            # Finalize item content
+            if content_lines:
+                content = "\n".join(content_lines)
+                inlines = self._parse_inline(content, token.location)
+                para = Paragraph(location=token.location, children=inlines)
+                item_children.append(para)
 
+            item = ListItem(
+                location=token.location,
+                children=tuple(item_children),
+                checked=checked,
+            )
             items.append(item)
 
         return List(
@@ -375,8 +472,24 @@ class Parser:
             items=tuple(items),
             ordered=ordered,
             start=start,
-            tight=True,  # TODO: detect loose lists
+            tight=tight,
         )
+
+    def _get_marker_indent(self, marker_value: str) -> int:
+        """Extract indent level from list marker value.
+
+        Marker values are prefixed with spaces by the lexer to encode indent.
+        E.g., "  -" has indent 2, "1." has indent 0.
+        """
+        indent = 0
+        for char in marker_value:
+            if char == " ":
+                indent += 1
+            elif char == "\t":
+                indent += 4 - (indent % 4)
+            else:
+                break
+        return indent
 
     def _parse_indented_code(self) -> IndentedCode:
         """Parse indented code block."""
@@ -444,6 +557,63 @@ class Parser:
         children = self._parse_inline(content, start_token.location)
 
         return Paragraph(location=start_token.location, children=children)
+
+    def _parse_footnote_def(self) -> FootnoteDef:
+        """Parse footnote definition.
+
+        Format: [^identifier]: content
+        Token value format: identifier:content
+        """
+        token = self._current
+        assert token is not None and token.type == TokenType.FOOTNOTE_DEF
+        self._advance()
+
+        # Parse token value (identifier:content)
+        value = token.value
+        colon_pos = value.find(":")
+        if colon_pos == -1:
+            # Shouldn't happen if lexer is correct
+            return FootnoteDef(location=token.location, identifier="", children=())
+
+        identifier = value[:colon_pos]
+        content = value[colon_pos + 1 :].strip()
+
+        # Parse content as inline if present
+        if content:
+            inlines = self._parse_inline(content, token.location)
+            para = Paragraph(location=token.location, children=inlines)
+            return FootnoteDef(location=token.location, identifier=identifier, children=(para,))
+
+        # Collect continuation lines (indented content)
+        children: list[Block] = []
+        while not self._at_end():
+            tok = self._current
+            assert tok is not None
+
+            if tok.type == TokenType.PARAGRAPH_LINE:
+                # Continuation paragraph
+                lines = [tok.value]
+                self._advance()
+
+                while not self._at_end():
+                    next_tok = self._current
+                    assert next_tok is not None
+                    if next_tok.type == TokenType.PARAGRAPH_LINE:
+                        lines.append(next_tok.value)
+                        self._advance()
+                    else:
+                        break
+
+                para_content = "\n".join(lines)
+                inlines = self._parse_inline(para_content, tok.location)
+                children.append(Paragraph(location=tok.location, children=inlines))
+
+            elif tok.type == TokenType.BLANK_LINE:
+                self._advance()
+            else:
+                break
+
+        return FootnoteDef(location=token.location, identifier=identifier, children=tuple(children))
 
     def _try_parse_table(self, lines: list[str], location: SourceLocation) -> Table | None:
         """Try to parse lines as a GFM table.
@@ -667,7 +837,7 @@ class Parser:
                 from bengal.utils.logger import get_logger
 
                 logger = get_logger(__name__)
-                if self._strict_contracts:
+                if self._strict_contracts and violation.violation_type != "suggested_parent":
                     raise DirectiveContractError(
                         violation.message,
                         location=start_token.location,
@@ -678,7 +848,7 @@ class Parser:
                         "directive_contract_violation",
                         directive=name,
                         parent=parent_name,
-                        message=violation.message,
+                        violation_message=violation.message,
                     )
 
         # Parse options into typed object
@@ -746,7 +916,7 @@ class Parser:
                         logger.warning(
                             "directive_contract_violation",
                             directive=name,
-                            message=violation.message,
+                            violation_message=violation.message,
                         )
 
         # Build raw_content if needed
@@ -831,11 +1001,10 @@ class Parser:
                 if close_pos != -1:
                     code = text[pos:close_pos]
                     # Normalize: strip one space from each end if both present
+                    # But not if it's all spaces
                     code_len = len(code)
-                    if code_len >= 2 and code[0] == " " and code[-1] == " ":
-                        # But not if it's all spaces
-                        if code.strip():
-                            code = code[1:-1]
+                    if code_len >= 2 and code[0] == " " and code[-1] == " " and code.strip():
+                        code = code[1:-1]
                     tokens_append({"type": "code_span", "code": code})
                     pos = close_pos + count
                 else:
@@ -883,8 +1052,18 @@ class Parser:
                 )
                 continue
 
-            # Link: [text](url)
+            # Link or footnote reference: [text](url) or [^id]
             if char == "[":
+                # Check for footnote reference: [^id]
+                if self._footnotes_enabled and pos + 1 < text_len and text[pos + 1] == "^":
+                    fn_result = self._try_parse_footnote_ref(text, pos, location)
+                    if fn_result:
+                        node, new_pos = fn_result
+                        tokens_append({"type": "node", "node": node})
+                        pos = new_pos
+                        continue
+
+                # Try regular link
                 link_result = self._try_parse_link(text, pos, location)
                 if link_result:
                     node, new_pos = link_result
@@ -1113,13 +1292,14 @@ class Parser:
                 # Check "sum of delimiters" rule (CommonMark)
                 # If either opener or closer can both open and close,
                 # the sum of delimiter counts must not be multiple of 3
-                if (opener.get("can_open") and opener.get("can_close")) or (
+                both_can_open_close = (opener.get("can_open") and opener.get("can_close")) or (
                     closer.get("can_open") and closer.get("can_close")
-                ):
-                    if (opener["count"] + closer["count"]) % 3 == 0:
-                        if opener["count"] % 3 != 0 or closer["count"] % 3 != 0:
-                            opener_idx -= 1
-                            continue
+                )
+                sum_is_multiple_of_3 = (opener["count"] + closer["count"]) % 3 == 0
+                neither_is_multiple_of_3 = opener["count"] % 3 != 0 or closer["count"] % 3 != 0
+                if both_can_open_close and sum_is_multiple_of_3 and neither_is_multiple_of_3:
+                    opener_idx -= 1
+                    continue
 
                 # Found matching opener
                 found_opener = True
@@ -1225,6 +1405,34 @@ class Parser:
                 idx += 1
 
         return tuple(result)
+
+    def _try_parse_footnote_ref(
+        self, text: str, pos: int, location: SourceLocation
+    ) -> tuple[FootnoteRef, int] | None:
+        """Try to parse a footnote reference at position.
+
+        Format: [^identifier]
+        Returns (FootnoteRef, new_position) or None if not a footnote ref.
+        """
+        if pos + 2 >= len(text) or text[pos : pos + 2] != "[^":
+            return None
+
+        # Find closing ]
+        bracket_pos = text.find("]", pos + 2)
+        if bracket_pos == -1:
+            return None
+
+        identifier = text[pos + 2 : bracket_pos]
+
+        # Validate identifier (alphanumeric with dashes/underscores)
+        if not identifier or not all(c.isalnum() or c in "-_" for c in identifier):
+            return None
+
+        # Make sure this isn't followed by : (which would be a definition)
+        if bracket_pos + 1 < len(text) and text[bracket_pos + 1] == ":":
+            return None
+
+        return FootnoteRef(location=location, identifier=identifier), bracket_pos + 1
 
     def _try_parse_link(
         self, text: str, pos: int, location: SourceLocation
@@ -1416,9 +1624,8 @@ class Parser:
             return None
 
         # Content cannot start or end with space (unless single char)
-        if len(content) > 1:
-            if content[0] == " " and content[-1] == " ":
-                return None
+        if len(content) > 1 and content[0] == " " and content[-1] == " ":
+            return None
 
         return Math(location=location, content=content), dollar_close + 1
 

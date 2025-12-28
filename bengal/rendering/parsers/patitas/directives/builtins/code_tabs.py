@@ -222,10 +222,17 @@ class CodeTabItem:
 
 @dataclass(frozen=True, slots=True)
 class CodeTabsOptions(DirectiveOptions):
-    """Options for code-tabs directive."""
+    """Options for code-tabs directive.
+
+    Attributes:
+        sync: Sync key for tab synchronization (default: "language")
+        linenos: Force line numbers on/off (None = auto for 3+ lines)
+        tabs: Parsed tab items (injected by parse method)
+    """
 
     sync: str = "language"
     linenos: bool | None = None
+    tabs: tuple[CodeTabItem, ...] | None = None  # Injected by parse()
 
 
 class CodeTabsDirective:
@@ -286,9 +293,8 @@ class CodeTabsDirective:
         if not tabs:
             tabs = self._parse_legacy_syntax(content)
 
-        # Store tabs as serialized data
-        computed_opts = replace(options)
-        object.__setattr__(computed_opts, "tabs", tabs)
+        # Store tabs in options
+        computed_opts = replace(options, tabs=tabs)
 
         return Directive(
             location=location,
@@ -383,7 +389,7 @@ class CodeTabsDirective:
     ) -> None:
         """Render code tabs to HTML."""
         opts = node.options
-        tabs: tuple[CodeTabItem, ...] = getattr(opts, "tabs", ())
+        tabs: tuple[CodeTabItem, ...] = opts.tabs or ()
 
         if not tabs:
             sb.append(f'<div class="code-tabs" data-bengal="tabs">{rendered_children}</div>')

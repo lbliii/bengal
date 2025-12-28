@@ -283,19 +283,19 @@ class TestASTImmutability:
     def test_heading_is_frozen(self, parse_ast):
         """Heading nodes are frozen."""
         ast = parse_ast("# Heading")
-        with pytest.raises(Exception):  # FrozenInstanceError
+        with pytest.raises((AttributeError, TypeError)):  # FrozenInstanceError
             ast[0].level = 2
 
     def test_paragraph_is_frozen(self, parse_ast):
         """Paragraph nodes are frozen."""
         ast = parse_ast("Text")
-        with pytest.raises(Exception):
+        with pytest.raises((AttributeError, TypeError)):  # FrozenInstanceError
             ast[0].children = ()
 
     def test_fenced_code_is_frozen(self, parse_ast):
         """FencedCode nodes are frozen."""
         ast = parse_ast("```\ncode\n```")
-        with pytest.raises(Exception):
+        with pytest.raises((AttributeError, TypeError)):  # FrozenInstanceError
             ast[0].code = "modified"
 
 

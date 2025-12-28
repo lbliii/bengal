@@ -192,47 +192,31 @@ patitas/
 
 Adopt the proven rosettes architecture: hand-written state machines with O(n) guaranteed performance.
 
+#### The "Lexer Window" Pattern (Variable Substitution)
+
+Patitas implements a unique "Lexer Window" pattern for variable substitution (`{{ var }}`). Unlike traditional parsers that walk the AST to replace text, Patitas integrates a `text_transformer` callback directly into the Lexer's scan-window.
+
+**Why this is elite:**
+- **Zero Object Churn**: Variables are resolved *before* AST nodes are created. We never create thousands of `Text` nodes only to replace them.
+- **Single Pass**: Variable resolution happens as the string is scanned from memory into tokens.
+- **Context Awareness**: The transformer can resolve block markers (like `# Heading`) inside a variable, which the Lexer then correctly classifies in the same pass.
+
 ```python
-class LexerMode(Enum):
-    """Lexer operating modes."""
-    BLOCK = auto()           # Between blocks
-    PARAGRAPH = auto()       # Inside paragraph text
-    CODE_FENCE = auto()      # Inside fenced code block
-    CODE_INDENT = auto()     # Inside indented code
-    DIRECTIVE = auto()       # Inside directive block
-    INLINE = auto()          # Processing inline content
+def _scan_block(self) -> Iterator[Token]:
+    # ... read line into window ...
+    content = line[content_start:]
 
-class Lexer:
-    """State-machine lexer with O(n) guaranteed performance.
+    # Apply text transformation (the "window thing")
+    if self._text_transformer:
+        content = self._text_transformer(content)
 
-    No regex in the hot path. Each character is examined exactly once.
-    Zero ReDoS vulnerability by construction.
-
-    Thread-Safety:
-        Lexer instances are single-use. Create one per source string.
-        All state is instance-local; no shared mutable state.
-    """
-
-    __slots__ = (
-        "_source",
-        "_pos",
-        "_lineno",
-        "_col",
-        "_mode",
-        "_mode_stack",
-        "_source_file",  # For error messages
-    )
-
-    def tokenize(self) -> Iterator[Token]:
-        """Tokenize source into token stream.
-
-        Complexity: O(n) where n = len(source)
-        Memory: O(1) iterator (tokens yielded, not accumulated)
-        """
-        while self._pos < len(self._source):
-            yield from self._dispatch_mode()
-        yield Token(TokenType.EOF, "", self._lineno, self._col)
+    # Tokenizer now sees the RESOLVED content
+    if content.startswith("#"):
+        yield from self._scan_atx_heading(content)
 ```
+
+**Complexity**: $O(n)$ where $n = len(source)$. Total overhead is one function call per line/segment.
+
 
 **Why not regex?**
 

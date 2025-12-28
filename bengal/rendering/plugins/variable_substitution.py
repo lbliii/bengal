@@ -264,9 +264,14 @@ class VariableSubstitutionPlugin:
                     code=ErrorCode.R003,
                 )
 
-            if hasattr(result, part):
+            # Preference: Dictionary keys take precedence over methods/attributes
+            # This prevents {{ items }} returning the dict.items() method instead of the value.
+            if isinstance(result, dict) and part in result:
+                result = result[part]
+            elif hasattr(result, part):
                 result = getattr(result, part)
             elif isinstance(result, dict):
+                # Fallback for get() if we want to allow None (though _eval_expression usually raises)
                 result = result.get(part)
                 if result is None:
                     raise BengalRenderingError(

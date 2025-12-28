@@ -49,6 +49,7 @@ class KidaTemplateEngine:
           template_engine: kida
     """
 
+    NAME = "kida"
     __slots__ = ("site", "template_dirs", "_env", "_dependency_tracker", "_menu_dict_cache")
 
     def __init__(self, site: Site, *, profile: bool = False):
@@ -274,17 +275,17 @@ class KidaTemplateEngine:
         try:
             template = self._env.get_template(name)
 
-            # Inject page-aware functions before render
-            # This updates t(), current_lang(), tag_url(), asset_url() with page context
-            from bengal.rendering.adapters.kida import inject_page_context
-
-            inject_page_context(self._env, context.get("page"))
-
-            # Inject site and config
+            # Get page-aware functions (t, current_lang, etc.)
+            # Instead of mutating env.globals (not thread-safe), we pass them in context
             ctx = {"site": self.site, "config": self.site.config}
             ctx.update(context)
 
-            # Cached blocks are automatically used by Template.render() - no template changes needed
+            page = context.get("page")
+            if hasattr(self._env, "_page_aware_factory"):
+                page_functions = self._env._page_aware_factory(page)
+                ctx.update(page_functions)
+
+            # Cached blocks are automatically used by Template.render()
             return template.render(ctx)
 
         except KidaTemplateNotFoundError as e:
@@ -337,28 +338,40 @@ class KidaTemplateEngine:
         self,
         template: str,
         context: dict[str, Any],
+        strict: bool | None = None,
     ) -> str:
         """Render a template string.
 
         Args:
             template: Template content as string
             context: Variables available to the template
+            strict: Override strict mode for this render (None uses env default)
 
         Returns:
             Rendered HTML string
         """
         try:
-            tmpl = self._env.from_string(template)
+            # Note: strict override requires fresh compilation or env change
+            # For string templates, we just re-compile if strict differs from env
+            if strict is not None and strict != self._env.strict:
+                # Create ephemeral env with desired strictness
+                from copy import copy
 
-            # Inject page-aware functions before render
-            # This updates t(), current_lang(), tag_url(), asset_url() with page context
-            from bengal.rendering.adapters.kida import inject_page_context
+                env = copy(self._env)
+                env.strict = strict
+                tmpl = env.from_string(template)
+            else:
+                tmpl = self._env.from_string(template)
 
-            inject_page_context(self._env, context.get("page"))
-
-            # Inject site and config
+            # Get page-aware functions (t, current_lang, etc.)
+            # Instead of mutating env.globals (not thread-safe), we pass them in context
             ctx = {"site": self.site, "config": self.site.config}
             ctx.update(context)
+
+            page = context.get("page")
+            if hasattr(self._env, "_page_aware_factory"):
+                page_functions = self._env._page_aware_factory(page)
+                ctx.update(page_functions)
 
             return tmpl.render(ctx)
 

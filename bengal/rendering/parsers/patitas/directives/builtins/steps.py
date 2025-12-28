@@ -70,11 +70,15 @@ class StepOptions(StyledOptions):
         description: Lead-in text with special typography
         optional: Mark step as optional/skippable
         duration: Estimated time for the step
+        step_number: Step number (injected by parent steps container)
+        heading_level: Heading level for step title (injected by parent)
     """
 
     description: str | None = None
     optional: bool = False
     duration: str | None = None
+    step_number: int | None = None  # Injected by StepsDirective.parse()
+    heading_level: int | None = None  # Injected by StepsDirective.parse()
 
 
 @dataclass(frozen=True, slots=True)
@@ -149,20 +153,10 @@ class StepDirective:
             css_class = ""
 
         # Get step number from options (injected by parent steps)
-        # Note: step_number is injected as an attribute on the options object
-        # by StepsDirective.parse() - check if it exists
-        step_number = 1
-        if hasattr(opts, "step_number"):
-            step_number = opts.step_number  # type: ignore
-        elif hasattr(node, "_step_number"):  # Fallback: check node
-            step_number = node._step_number  # type: ignore
+        step_number = opts.step_number if opts.step_number is not None else 1
 
         # Get heading level from options (injected by parent steps)
-        heading_level = 2
-        if hasattr(opts, "heading_level"):
-            heading_level = opts.heading_level  # type: ignore
-        elif hasattr(node, "_heading_level"):  # Fallback: check node
-            heading_level = node._heading_level  # type: ignore
+        heading_level = opts.heading_level if opts.heading_level is not None else 2
 
         # Generate step ID from title or fallback to step number
         step_id = self._slugify(title) if title else f"step-{step_number}"
@@ -268,19 +262,13 @@ class StepsDirective:
                 # Get the child's options
                 child_opts = child.options
 
-                # Create a new options object with injected values
-                # Since StepOptions doesn't have step_number/heading_level fields,
-                # we'll store them as attributes on the directive node itself
-                # by creating a wrapper or storing them separately
-
-                # For now, we'll create a new options object and store step_number
-                # in a way that StepDirective.render() can access it
-                # We'll use replace to create a copy and add attributes
-                new_opts = replace(child_opts)
-                # Store step_number and heading_level as attributes
-                # (This is a workaround - ideally we'd extend StepOptions)
-                new_opts.step_number = step_num
-                new_opts.heading_level = heading_level
+                # Create a new options object with injected step_number and heading_level
+                # StepOptions now includes these fields, so we can use replace()
+                new_opts = replace(
+                    child_opts,
+                    step_number=step_num,
+                    heading_level=heading_level,
+                )
                 step_num += 1
 
                 # Create new Directive with updated options
@@ -397,10 +385,13 @@ class StepsDirective:
                 child_opts = child.options
                 from dataclasses import replace
 
-                # Create a copy and add attributes
-                new_opts = replace(child_opts)
-                new_opts.step_number = step_num
-                new_opts.heading_level = 2
+                # Create a new options object with injected step_number and heading_level
+                # StepOptions now includes these fields, so we can use replace()
+                new_opts = replace(
+                    child_opts,
+                    step_number=step_num,
+                    heading_level=2,
+                )
                 step_num += 1
 
                 # Create new directive with updated options

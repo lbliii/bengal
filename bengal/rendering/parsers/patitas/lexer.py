@@ -12,7 +12,7 @@ Thread Safety:
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from enum import Enum, auto
 
 from bengal.rendering.parsers.patitas.location import SourceLocation
@@ -72,14 +72,22 @@ class Lexer:
         "_saved_col",
         # Directive state
         "_directive_stack",  # Stack of (colon_count, name) for nested directives
+        # Transformation
+        "_text_transformer",
     )
 
-    def __init__(self, source: str, source_file: str | None = None) -> None:
+    def __init__(
+        self,
+        source: str,
+        source_file: str | None = None,
+        text_transformer: Callable[[str], str] | None = None,
+    ) -> None:
         """Initialize lexer with source text.
 
         Args:
             source: Markdown source text
             source_file: Optional source file path for error messages
+            text_transformer: Optional callback to transform plain text lines
         """
         self._source = source
         self._source_len = len(source)  # Cache length
@@ -88,6 +96,7 @@ class Lexer:
         self._col = 1
         self._mode = LexerMode.BLOCK
         self._source_file = source_file
+        self._text_transformer = text_transformer
 
         # Fenced code state
         self._fence_char: str = ""
@@ -150,6 +159,12 @@ class Lexer:
         indent, content_start = self._calc_indent(line)
         content = line[content_start:]
 
+        # Apply text transformation (the "window thing")
+        # This allows variables to resolve BEFORE classification, so {{ var }}
+        # can contain block markers like headings or lists.
+        if self._text_transformer:
+            content = self._text_transformer(content)
+
         # Commit position now - we WILL consume this line
         self._commit_to(line_end)
 
@@ -194,9 +209,16 @@ class Lexer:
             return
 
         # List item: -, *, +, or 1. 1)
-        list_tokens = self._try_classify_list_marker(content, line_start)
+        # Pass indent so nested lists can be detected
+        list_tokens = self._try_classify_list_marker(content, line_start, indent)
         if list_tokens is not None:
             yield from list_tokens
+            return
+
+        # Footnote definition: [^id]: content
+        footnote_token = self._try_classify_footnote_def(content, line_start)
+        if footnote_token is not None:
+            yield footnote_token
             return
 
         # Directive: :::{name} or ::::{name} etc.
@@ -388,10 +410,18 @@ class Lexer:
                 self._location_from(line_start),
             )
 
-    def _try_classify_list_marker(self, content: str, line_start: int) -> Iterator[Token] | None:
+    def _try_classify_list_marker(
+        self, content: str, line_start: int, indent: int = 0
+    ) -> Iterator[Token] | None:
         """Try to classify content as list item marker.
 
+        Args:
+            content: Line content with leading whitespace stripped
+            line_start: Position in source where line starts
+            indent: Number of leading spaces (for nesting detection)
+
         Yields marker token and content token if valid, returns None otherwise.
+        The marker value includes leading spaces to preserve indent info for parser.
         """
         if not content:
             return None
@@ -399,7 +429,9 @@ class Lexer:
         # Unordered: -, *, +
         if content[0] in "-*+":
             if len(content) > 1 and content[1] in " \t":
-                return self._yield_list_marker_and_content(content[0], content[2:], line_start)
+                return self._yield_list_marker_and_content(
+                    content[0], content[2:], line_start, indent
+                )
             return None
 
         # Ordered: 1. or 1)
@@ -418,17 +450,25 @@ class Lexer:
                     num = content[:pos]
                     marker = f"{num}{marker_char}"
                     remaining = content[pos + 2 :]  # Skip marker and space
-                    return self._yield_list_marker_and_content(marker, remaining, line_start)
+                    return self._yield_list_marker_and_content(
+                        marker, remaining, line_start, indent
+                    )
 
         return None
 
     def _yield_list_marker_and_content(
-        self, marker: str, remaining: str, line_start: int
+        self, marker: str, remaining: str, line_start: int, indent: int = 0
     ) -> Iterator[Token]:
-        """Yield list marker token and optional content token."""
+        """Yield list marker token and optional content token.
+
+        The marker value is prefixed with spaces to preserve indent for parser.
+        E.g., indent=2, marker="-" yields value "  -" so parser knows nesting.
+        """
+        # Prefix marker with spaces to encode indent level
+        indented_marker = " " * indent + marker
         yield Token(
             TokenType.LIST_ITEM_MARKER,
-            marker,
+            indented_marker,
             self._location_from(line_start),
         )
         remaining = remaining.rstrip("\n")
@@ -438,6 +478,36 @@ class Lexer:
                 remaining,
                 self._location_from(line_start),
             )
+
+    def _try_classify_footnote_def(self, content: str, line_start: int) -> Token | None:
+        """Try to classify content as footnote definition.
+
+        Format: [^identifier]: content
+
+        Returns FOOTNOTE_DEF token if valid, None otherwise.
+        """
+        if not content.startswith("[^"):
+            return None
+
+        # Find ]: after identifier
+        bracket_end = content.find("]:")
+        if bracket_end == -1 or bracket_end < 3:
+            return None
+
+        identifier = content[2:bracket_end]
+        if not identifier:
+            return None
+
+        # Identifier must be alphanumeric with dashes/underscores
+        if not all(c.isalnum() or c in "-_" for c in identifier):
+            return None
+
+        # Content after ]: (may be empty, with content on following lines)
+        fn_content = content[bracket_end + 2 :].strip().rstrip("\n")
+
+        # Value format: identifier:content
+        value = f"{identifier}:{fn_content}"
+        return Token(TokenType.FOOTNOTE_DEF, value, self._location_from(line_start))
 
     def _try_classify_directive_start(
         self, content: str, line_start: int
@@ -604,7 +674,8 @@ class Lexer:
             return
 
         # List item: -, *, +, or 1. 1)
-        list_tokens = self._try_classify_list_marker(content, line_start)
+        # Pass indent so nested lists can be detected
+        list_tokens = self._try_classify_list_marker(content, line_start, indent)
         if list_tokens is not None:
             yield from list_tokens
             return
@@ -671,16 +742,44 @@ class Lexer:
 
         stack_count, stack_name = self._directive_stack[-1]
 
-        # Check if this closes the current directive
-        if colon_count >= stack_count and (name is None or name == stack_name):
-            # Valid close
-            self._directive_stack.pop()
-            yield Token(TokenType.DIRECTIVE_CLOSE, ":" * colon_count, location)
+        # Check if this closes the current directive or an outer one
+        if name is not None:
+            # Named closer: find matching directive in stack
+            match_index = -1
+            for i in range(len(self._directive_stack) - 1, -1, -1):
+                s_count, s_name = self._directive_stack[i]
+                if s_name == name and colon_count >= s_count:
+                    match_index = i
+                    break
 
-            # Switch mode back if no more directives
-            if not self._directive_stack:
-                self._mode = LexerMode.BLOCK
-            return
+            if match_index != -1:
+                # Close this and all nested directives
+                # Emit a separate DIRECTIVE_CLOSE token for each popped level
+                # so the recursive parser can correctly exit all nested loops.
+                popped_count = 0
+                while len(self._directive_stack) > match_index:
+                    s_count, s_name = self._directive_stack.pop()
+                    popped_count += 1
+                    # Use the original name for the first token, simple colons for others
+                    # OR just use simple colons for all to be consistent.
+                    # The parser only cares about the token type to break the loop.
+                    if popped_count == 1:
+                        yield Token(TokenType.DIRECTIVE_CLOSE, f":::{{{name}}}", location)
+                    else:
+                        yield Token(TokenType.DIRECTIVE_CLOSE, ":" * s_count, location)
+
+                if not self._directive_stack:
+                    self._mode = LexerMode.BLOCK
+                return
+        else:
+            # Simple close: closes the top directive
+            if colon_count >= stack_count:
+                self._directive_stack.pop()
+                yield Token(TokenType.DIRECTIVE_CLOSE, ":" * colon_count, location)
+
+                if not self._directive_stack:
+                    self._mode = LexerMode.BLOCK
+                return
 
         # Not a valid close for current directive, emit as content
         yield Token(TokenType.PARAGRAPH_LINE, ":" * colon_count, location)

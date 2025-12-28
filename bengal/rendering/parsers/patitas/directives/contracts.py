@@ -58,7 +58,12 @@ class DirectiveContract:
     """
 
     requires_parent: tuple[str, ...] | None = None
-    """This directive must be inside one of these parent directives."""
+    """This directive must be inside one of these parent directives.
+    Violations are considered errors in strict mode."""
+
+    allows_parent: tuple[str, ...] | None = None
+    """This directive is intended to be inside one of these parents.
+    Violations are always just warnings."""
 
     requires_children: tuple[str, ...] | None = None
     """This directive must contain at least one of these child directives."""
@@ -91,7 +96,7 @@ class DirectiveContract:
         directive_name: str,
         parent_name: str | None,
     ) -> ContractViolation | None:
-        """Validate that directive has required parent.
+        """Validate that directive has required or allowed parent.
 
         Args:
             directive_name: Name of the directive being validated
@@ -100,24 +105,35 @@ class DirectiveContract:
         Returns:
             ContractViolation if invalid, None if valid
         """
-        if self.requires_parent is None:
-            return None
+        # 1. Check strict requirements
+        if self.requires_parent is not None:
+            if parent_name is None:
+                return ContractViolation(
+                    directive=directive_name,
+                    violation_type="missing_parent",
+                    message=f"'{directive_name}' must be inside: {', '.join(self.requires_parent)}",
+                    expected=self.requires_parent,
+                    actual=None,
+                )
 
-        if parent_name is None:
+            if parent_name not in self.requires_parent:
+                return ContractViolation(
+                    directive=directive_name,
+                    violation_type="wrong_parent",
+                    message=f"'{directive_name}' must be inside {', '.join(self.requires_parent)}, not '{parent_name}'",
+                    expected=self.requires_parent,
+                    actual=parent_name,
+                )
+
+        # 2. Check soft suggestions
+        if self.allows_parent is not None and (
+            parent_name is None or parent_name not in self.allows_parent
+        ):
             return ContractViolation(
                 directive=directive_name,
-                violation_type="missing_parent",
-                message=f"'{directive_name}' must be inside: {', '.join(self.requires_parent)}",
-                expected=self.requires_parent,
-                actual=None,
-            )
-
-        if parent_name not in self.requires_parent:
-            return ContractViolation(
-                directive=directive_name,
-                violation_type="wrong_parent",
-                message=f"'{directive_name}' must be inside {', '.join(self.requires_parent)}, not '{parent_name}'",
-                expected=self.requires_parent,
+                violation_type="suggested_parent",
+                message=f"'{directive_name}' is intended to be inside: {', '.join(self.allows_parent)}",
+                expected=self.allows_parent,
                 actual=parent_name,
             )
 
@@ -241,24 +257,22 @@ class ContractViolation:
 
 # Steps container must have step children
 STEPS_CONTRACT = DirectiveContract(
-    requires_children=("step",),
     allows_children=("step",),
 )
 
 # Step must be inside steps
 STEP_CONTRACT = DirectiveContract(
-    requires_parent=("steps",),
+    allows_parent=("steps",),
 )
 
 # Tab container must have tab-item children
 TAB_SET_CONTRACT = DirectiveContract(
-    requires_children=("tab-item",),
-    allows_children=("tab-item",),
+    allows_children=("tab-item", "tab"),
 )
 
 # Tab item must be inside tab-set
 TAB_ITEM_CONTRACT = DirectiveContract(
-    requires_parent=("tab-set",),
+    allows_parent=("tab-set", "tabs"),
 )
 
 # Dropdown has no restrictions
@@ -281,8 +295,8 @@ CARDS_CONTRACT = DirectiveContract(
 
 # Individual card
 CARD_CONTRACT = DirectiveContract(
-    # Card should be inside cards (soft validation)
-    requires_parent=("cards",),
+    # Card can be inside cards grid, but also allowed standalone
+    requires_parent=None,
 )
 
 # Definition list

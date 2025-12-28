@@ -16,7 +16,7 @@ category: how-to
 
 Task-oriented guides for working with Kida templates.
 
-:::{cards}
+::::{cards}
 :columns: 2
 :gap: medium
 
@@ -55,7 +55,7 @@ Register Python functions as template filters.
 Convert existing templates to Kida syntax.
 :::
 
-:::
+::::
 
 ## Common Patterns
 

@@ -175,12 +175,12 @@ def apply_plugins(
 
 # Import built-in plugins to register them
 # These imports trigger the @register_plugin decorators
-from bengal.rendering.parsers.patitas.plugins.autolinks import AutolinksPlugin
-from bengal.rendering.parsers.patitas.plugins.footnotes import FootnotesPlugin
-from bengal.rendering.parsers.patitas.plugins.math import MathPlugin
-from bengal.rendering.parsers.patitas.plugins.strikethrough import StrikethroughPlugin
-from bengal.rendering.parsers.patitas.plugins.table import TablePlugin
-from bengal.rendering.parsers.patitas.plugins.task_lists import TaskListPlugin
+from bengal.rendering.parsers.patitas.plugins.autolinks import AutolinksPlugin  # noqa: E402
+from bengal.rendering.parsers.patitas.plugins.footnotes import FootnotesPlugin  # noqa: E402
+from bengal.rendering.parsers.patitas.plugins.math import MathPlugin  # noqa: E402
+from bengal.rendering.parsers.patitas.plugins.strikethrough import StrikethroughPlugin  # noqa: E402
+from bengal.rendering.parsers.patitas.plugins.table import TablePlugin  # noqa: E402
+from bengal.rendering.parsers.patitas.plugins.task_lists import TaskListPlugin  # noqa: E402
 
 __all__ += [
     "StrikethroughPlugin",
