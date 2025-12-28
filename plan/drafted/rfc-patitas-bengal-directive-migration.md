@@ -2,7 +2,7 @@
 
 | Field        | Value                                      |
 |--------------|-------------------------------------------|
-| **Status**   | In Progress (Phase B.1 Complete)           |
+| **Status**   | In Progress (Phase B.2 Complete)           |
 | **Author**   | Bengal Team                                |
 | **Created**  | 2025-12-28                                 |
 | **Updated**  | 2025-12-28                                 |
@@ -20,14 +20,15 @@
 |--------|---------|--------|
 | **Phase A** | ✅ 17 directives done | 17/55 (31%) |
 | **Phase A.1** | ✅ 43/43 parity tests | 100% HTML parity |
-| **Phase B.1** | ✅ 3 cards directives done | 20/55 (36%) |
-| **Remaining** | 35 directives | Weeks 5-9 |
-| **Total LOC** | ~2,400 implemented | ~6,350 projected |
+| **Phase B.1** | ✅ 3 cards directives | 20/55 (36%) |
+| **Phase B.2** | ✅ 5 content directives | 25/55 (45%) |
+| **Remaining** | 30 directives | Weeks 6-9 |
+| **Total LOC** | ~3,000 implemented | ~6,350 projected |
 | **Risk Level** | Low | Verified by parity testing |
 
 **Key Benefits**: Thread-safety, typed AST, no mistune dependency, identical HTML output.
 
-**Next Action**: Implement Phase B.2 (code-tabs, tables, media) with same parity testing approach.
+**Next Action**: Implement Phase C (specialized directives: video, developer embeds, versioning).
 
 ---
 
@@ -281,6 +282,11 @@ else:
 | `cards` | — | ✅ Done (B.1) | Grid layout |
 | `card` | — | ✅ Done (B.1) | Contract: requires `cards` |
 | `child-cards` | — | ✅ Done (B.1) | Auto-generates cards |
+| `checklist` | — | ✅ Done (B.2) | Styled lists with progress |
+| `figure` | — | ✅ Done (B.2) | Semantic image with caption |
+| `audio` | — | ✅ Done (B.2) | Self-hosted audio files |
+| `gallery` | — | ✅ Done (B.2) | Responsive image gallery |
+| `list-table` | — | ✅ Done (B.2) | MyST-style tables |
 
 ### Content & Tables (6 directive names)
 
@@ -353,7 +359,7 @@ else:
 | `build` | — | ⏳ Phase C | Build-time directive |
 | `asciinema` | — | ⏳ Phase C | Terminal recording |
 
-**Summary: 20 done, 35 remaining**
+**Summary: 25 done, 30 remaining**
 
 ---
 
@@ -614,12 +620,12 @@ def test_edge_case_parity(name: str, source: str):
 
 | Directive | Complexity | Dependencies | Status |
 |-----------|------------|--------------|--------|
-| `cards` / `card` / `child-cards` | High | Contracts exist | ✅ Done |
-| `code-tabs` | Medium | Rosettes | ⏳ Next |
-| `list-table` | Medium | — | ⏳ Pending |
-| `data-table` | Medium | — | ⏳ Pending |
-| `figure` / `gallery` / `audio` | Medium | — | ⏳ Pending |
-| `checklist` | Low | — | ⏳ Pending |
+| `cards` / `card` / `child-cards` | High | Contracts exist | ✅ Done (B.1) |
+| `checklist` | Low | — | ✅ Done (B.2) |
+| `figure` / `audio` / `gallery` | Medium | — | ✅ Done (B.2) |
+| `list-table` | Medium | — | ✅ Done (B.2) |
+| `code-tabs` | Medium | Rosettes | ⏳ Phase C |
+| `data-table` | Medium | File I/O | ⏳ Phase C |
 
 #### B.1: Cards System (High Priority) — ✅ COMPLETE
 
@@ -1489,8 +1495,8 @@ git push
 | 1-2 | Phase A | ✅ COMPLETE | Core directives (1,400 LOC) |
 | 3 | Phase A.1 | ✅ COMPLETE | Parity tests (500 LOC), 43/43 passing |
 | 4 | Phase B.1 | ✅ COMPLETE | Cards system (500 LOC), 17/17 passing |
-| 5 | Phase B.2 | ⏳ NEXT | Code-tabs, tables, media, checklist (850 LOC) |
-| 6 | Phase C.1-2 | Pending | Video embeds, developer embeds, versioning (600 LOC) |
+| 5 | Phase B.2 | ✅ COMPLETE | Checklist, media, tables (600 LOC), 5 directives |
+| 6 | Phase C.1-2 | ⏳ NEXT | Video embeds, developer embeds, versioning (600 LOC) |
 | 7 | Phase C.3-4 | Pending | Navigation, file I/O, miscellaneous (850 LOC) |
 | 8-9 | Phase D | Pending | Integration, deprecation, documentation |
 
@@ -1500,7 +1506,7 @@ git push
 Week 1-2   [████████████████████] Phase A: Core Directives ✅
 Week 3     [████████████████████] Phase A.1: Test Infrastructure ✅
 Week 4     [████████████████████] Phase B.1: Cards System ✅
-Week 5     [░░░░░░░░░░░░░░░░░░░░] Phase B.2: Remaining Content
+Week 5     [████████████████████] Phase B.2: Content Directives ✅
 Week 6-7   [░░░░░░░░░░░░░░░░░░░░] Phase C: Specialized Directives
 Week 8-9   [░░░░░░░░░░░░░░░░░░░░] Phase D: Integration
 ```
