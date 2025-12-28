@@ -21,11 +21,18 @@ class XmlStateMachineLexer(StateMachineLexer):
     filenames = ("*.xml", "*.xsl", "*.xslt", "*.rss", "*.atom", "*.svg")
     mimetypes = ("text/xml", "application/xml", "image/svg+xml")
 
-    def tokenize(self, code: str) -> Iterator[Token]:
-        pos = 0
-        length = len(code)
+    def tokenize(
+        self,
+        code: str,
+        config: LexerConfig | None = None,
+        *,
+        start: int = 0,
+        end: int | None = None,
+    ) -> Iterator[Token]:
+        pos = start
+        length = end if end is not None else len(code)
         line = 1
-        line_start = start
+        line_start = starttart
 
         while pos < length:
             char = code[pos]

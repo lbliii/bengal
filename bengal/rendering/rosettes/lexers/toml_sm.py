@@ -36,9 +36,16 @@ class TomlStateMachineLexer(
     filenames = ("*.toml",)
     mimetypes = ("application/toml",)
 
-    def tokenize(self, code: str) -> Iterator[Token]:
-        pos = 0
-        length = len(code)
+    def tokenize(
+        self,
+        code: str,
+        config: LexerConfig | None = None,
+        *,
+        start: int = 0,
+        end: int | None = None,
+    ) -> Iterator[Token]:
+        pos = start
+        length = end if end is not None else len(code)
         line = 1
         line_start = start
 
