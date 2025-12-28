@@ -641,16 +641,15 @@ class Lexer:
         stack_count, stack_name = self._directive_stack[-1]
 
         # Check if this closes the current directive
-        if colon_count >= stack_count:
-            if name is None or name == stack_name:
-                # Valid close
-                self._directive_stack.pop()
-                yield Token(TokenType.DIRECTIVE_CLOSE, ":" * colon_count, location)
+        if colon_count >= stack_count and (name is None or name == stack_name):
+            # Valid close
+            self._directive_stack.pop()
+            yield Token(TokenType.DIRECTIVE_CLOSE, ":" * colon_count, location)
 
-                # Switch mode back if no more directives
-                if not self._directive_stack:
-                    self._mode = LexerMode.BLOCK
-                return
+            # Switch mode back if no more directives
+            if not self._directive_stack:
+                self._mode = LexerMode.BLOCK
+            return
 
         # Not a valid close for current directive, emit as content
         yield Token(TokenType.PARAGRAPH_LINE, ":" * colon_count, location)

@@ -138,8 +138,8 @@ class TestDirectiveOptions:
     def test_basic_option_parsing(self) -> None:
         """Parse basic string options."""
         raw = {"name": "my-note", "class": "custom"}
-        opts = DirectiveOptions.from_raw(raw)
-        # Base class has no fields, so just verify it works
+        # Base class has no fields, so just verify from_raw works without error
+        DirectiveOptions.from_raw(raw)
 
     def test_admonition_options(self) -> None:
         """Parse admonition-specific options."""
