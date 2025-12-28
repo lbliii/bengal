@@ -1,0 +1,83 @@
+{#
+Bengal OpenAPI Endpoint Header
+
+Displays: Title, description, auth badges, tags
+
+Uses Kida's {% with ... as ... %} for nil-safe optional sections.
+
+Context:
+- element: DocElement with OpenAPIEndpointMetadata
+- element.typed_metadata: OpenAPIEndpointMetadata
+#}
+{% let meta = element.typed_metadata %}
+{% let method = meta?.method ?? 'GET' %}
+{% let path = meta?.path ?? '/unknown' %}
+{% let summary = meta?.summary ?? element.name %}
+{% let operation_id = meta?.operation_id %}
+{% let tags = meta?.tags ?? () %}
+{% let security = meta?.security ?? () %}
+
+<header class="api-endpoint-header">
+    {# Breadcrumb / Tag Path #}
+    {% if tags %}
+    <nav class="api-endpoint-header__breadcrumb" aria-label="API breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb__item">
+                <a href="{{ url_for('autodoc:openapi:home') }}">API</a>
+            </li>
+            {% for tag in tags %}
+            <li class="breadcrumb__item">
+                <a href="{{ url_for('autodoc:openapi:tag', tag=tag) }}">{{ tag }}</a>
+            </li>
+            {% end %}
+        </ol>
+    </nav>
+    {% end %}
+
+    {# Title: Summary or Operation ID #}
+    <h1 class="api-endpoint-header__title">
+        {{ summary }}
+    </h1>
+
+    {# Operation ID (for developers) #}
+    {% with operation_id as op_id %}
+    <div class="api-endpoint-header__operation-id">
+        <code>{{ op_id }}</code>
+    </div>
+    {% end %}
+
+    {# Description #}
+    {% with element.description as desc %}
+    <div class="api-endpoint-header__description prose">
+        {{ desc | markdownify | safe }}
+    </div>
+    {% end %}
+
+    {# Meta Badges Row #}
+    <div class="api-endpoint-header__meta">
+        {# Authentication Requirements #}
+        {% if security %}
+        <div class="api-endpoint-header__auth">
+            {% for scheme in security %}
+            <span class="badge badge--outline badge--sm">
+                <svg class="icon icon--xs" aria-hidden="true">
+                    <use href="#icon-lock"></use>
+                </svg>
+                {{ scheme }}
+            </span>
+            {% end %}
+        </div>
+        {% end %}
+
+        {# Tags #}
+        {% if tags %}
+        <div class="api-endpoint-header__tags">
+            {% for tag in tags %}
+            <a href="{{ url_for('autodoc:openapi:tag', tag=tag) }}" class="tag tag--sm">
+                {{ tag }}
+            </a>
+            {% end %}
+        </div>
+        {% end %}
+    </div>
+</header>

@@ -1,0 +1,41 @@
+{#
+  Bengal OpenAPI Reference Layout - Single-Column Fallback
+
+  Used when a simpler, single-column layout is preferred (mobile, print, etc.)
+
+  Context:
+    - element: OpenAPIEndpointMetadata or OpenAPIOverviewMetadata
+    - site: Site
+    - config: Config
+#}
+{% template element: any, site: Site, config: Config %}
+
+<article class="api-reference" data-autodoc="openapi">
+  {# Header with navigation breadcrumb #}
+  <header class="api-reference__header">
+    {% block header %}
+      {% include 'autodoc/openapi/partials/endpoint-header.html' %}
+    {% end %}
+  </header>
+
+  {# Main Content #}
+  <div class="api-reference__body">
+    {% block content %}
+      {# Override this block in child templates #}
+    {% end %}
+  </div>
+
+  {# Code Samples (inline, not side panel) #}
+  <section class="api-reference__code">
+    {% block code %}
+      {% include 'autodoc/openapi/partials/code-samples.html' %}
+    {% end %}
+  </section>
+
+  {# Sidebar Navigation (bottom on mobile) #}
+  <nav class="api-reference__nav">
+    {% block navigation %}
+      {% include 'autodoc/openapi/partials/sidebar-nav.html' %}
+    {% end %}
+  </nav>
+</article>

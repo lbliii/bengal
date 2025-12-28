@@ -1,0 +1,52 @@
+{#
+  Bengal OpenAPI Explorer Layout - Three-Column "Stripe-Style"
+
+  Uses Kida's {% embed %} system to allow themes to override specific slots.
+
+  Grid Structure:
+  ┌─────────────┬──────────────────────┬─────────────────┐
+  │  Sidebar    │    Main Content      │  Code Samples   │
+  │  (250px)    │    (1fr)             │  (400px)        │
+  │             │                      │  Dark Panel     │
+  └─────────────┴──────────────────────┴─────────────────┘
+
+  Context:
+    - element: OpenAPIEndpointMetadata or OpenAPIOverviewMetadata
+    - site: Site
+    - config: Config
+#}
+{% template element: any, site: Site, config: Config %}
+
+<div class="api-explorer" data-autodoc="openapi">
+  {# Sidebar Navigation #}
+  <aside class="api-explorer__sidebar">
+    {% block sidebar %}
+      {% include 'autodoc/openapi/partials/sidebar-nav.html' %}
+    {% end %}
+  </aside>
+
+  {# Main Content Area #}
+  <main class="api-explorer__main">
+    {% block content %}
+      {# Override this block in child templates #}
+    {% end %}
+  </main>
+
+  {# Code Samples Panel (Dark) #}
+  <aside class="api-explorer__code-panel">
+    {% block code %}
+      {% include 'autodoc/openapi/partials/code-samples.html' %}
+    {% end %}
+  </aside>
+</div>
+
+{#
+  CSS for explorer layout lives in autodoc.css
+  Using CSS Grid with semantic tokens:
+
+  .api-explorer {
+    display: grid;
+    grid-template-columns: 250px 1fr 400px;
+    gap: var(--autodoc-gap);
+  }
+#}

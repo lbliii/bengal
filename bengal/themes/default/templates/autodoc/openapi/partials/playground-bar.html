@@ -1,0 +1,73 @@
+{#
+  Bengal OpenAPI Playground Bar
+
+  Displays: METHOD + /path/to/endpoint + Copy Button
+
+  Uses Kida's {% spaceless %} for clean inline output.
+
+  Context:
+    - element: DocElement with OpenAPIEndpointMetadata
+    - element.typed_metadata: OpenAPIEndpointMetadata
+#}
+{% let meta = element.typed_metadata %}
+{% let method = meta?.method ?? 'GET' %}
+{% let path = meta?.path ?? '/unknown' %}
+
+<div class="api-playground-bar">
+  {% spaceless %}
+  <div class="api-playground-bar__method-path">
+    {# HTTP Method Badge #}
+    {% match method %}
+      {% case 'GET' %}
+        <span class="api-method api-method--get">GET</span>
+      {% case 'POST' %}
+        <span class="api-method api-method--post">POST</span>
+      {% case 'PUT' %}
+        <span class="api-method api-method--put">PUT</span>
+      {% case 'PATCH' %}
+        <span class="api-method api-method--patch">PATCH</span>
+      {% case 'DELETE' %}
+        <span class="api-method api-method--delete">DELETE</span>
+      {% case 'HEAD' %}
+        <span class="api-method api-method--head">HEAD</span>
+      {% case 'OPTIONS' %}
+        <span class="api-method api-method--options">OPTIONS</span>
+      {% case _ %}
+        <span class="api-method">{{ method }}</span>
+    {% end %}
+
+    {# Path with highlighted parameters #}
+    <code class="api-playground-bar__path">{{ path | highlight_path_params | safe }}</code>
+  </div>
+  {% end %}
+
+  {# Copy Button #}
+  <button
+    class="api-playground-bar__copy"
+    type="button"
+    data-copy-target="endpoint-url"
+    aria-label="Copy endpoint URL"
+  >
+    <svg class="icon" aria-hidden="true" width="16" height="16">
+      <use href="#icon-copy"></use>
+    </svg>
+    <span class="api-playground-bar__copy-text">Copy</span>
+  </button>
+
+  {# Hidden input for copy functionality #}
+  <input
+    type="hidden"
+    id="endpoint-url"
+    value="{{ path }}"
+  >
+</div>
+
+{# Deprecated Warning Banner #}
+{% if meta?.deprecated %}
+<div class="api-deprecated-banner" role="alert">
+  <svg class="icon" aria-hidden="true" width="16" height="16">
+    <use href="#icon-warning"></use>
+  </svg>
+  <span>This endpoint is deprecated and may be removed in a future version.</span>
+</div>
+{% end %}

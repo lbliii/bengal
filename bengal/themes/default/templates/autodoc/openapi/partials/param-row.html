@@ -1,0 +1,59 @@
+{#
+  Bengal OpenAPI Parameter Row
+
+  Atomic parameter unit with name, type, badges, and description.
+
+  Uses Kida's:
+    - {% let %} for template-scoped variables
+    - Nil-coalescing (??) for safe defaults
+    - {% with ... as ... %} for optional sections
+
+  Context:
+    - param: OpenAPIParameterMetadata
+      - name: str
+      - location: 'path' | 'query' | 'header' | 'cookie'
+      - required: bool
+      - schema_type: str
+      - description: str
+#}
+{% let name = param?.name ?? 'unnamed' %}
+{% let type = param?.schema_type ?? 'string' %}
+{% let location = param?.location ?? 'query' %}
+{% let is_required = param?.required ?? false %}
+{% let description = param?.description ?? '' %}
+
+<div class="api-param-row {{ 'api-param-row--required' if is_required else '' }}">
+  {# Parameter Name and Type #}
+  {% spaceless %}
+  <div class="api-param-row__meta">
+    <code class="api-param-row__name">{{ name }}</code>
+    <span class="api-param-row__type">{{ type }}</span>
+
+    {# Location Badge #}
+    {% match location %}
+      {% case 'path' %}
+        <span class="badge badge--info-subtle badge--xs">path</span>
+      {% case 'query' %}
+        <span class="badge badge--secondary-subtle badge--xs">query</span>
+      {% case 'header' %}
+        <span class="badge badge--warning-subtle badge--xs">header</span>
+      {% case 'cookie' %}
+        <span class="badge badge--accent-subtle badge--xs">cookie</span>
+    {% end %}
+
+    {# Required Badge #}
+    {% if is_required %}
+      <span class="badge badge--danger-subtle badge--xs">required</span>
+    {% end %}
+  </div>
+  {% end %}
+
+  {# Description #}
+  {% with description as desc %}
+    {% if desc %}
+    <div class="api-param-row__description prose-sm">
+      {{ desc | markdownify | safe }}
+    </div>
+    {% end %}
+  {% end %}
+</div>

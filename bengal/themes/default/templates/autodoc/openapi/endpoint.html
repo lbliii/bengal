@@ -1,249 +1,128 @@
-{% extends "base.html" %}
-
 {#
-================================================================================
-OpenAPI Reference Endpoint Template (Kida-Enhanced)
-================================================================================
+  Bengal OpenAPI Endpoint Page - The Hero Template
 
-Three-panel layout optimized for REST API documentation.
-Uses Kida's advanced templating features:
-- Pipeline operators (|>) for metadata processing
-- Null coalescing (??) and optional chaining (?.)
-- Template-scoped caching with {% let %}
-- Local function definitions with {% def %}
+  Full endpoint documentation with parameters, request body, responses, and code samples.
+  Uses the three-column explorer layout.
 
-This template receives:
-- element: DocElement for the endpoint
-- config: Autodoc configuration
-- site: Site instance
-================================================================================
+  Context:
+    - element: DocElement with OpenAPIEndpointMetadata
+    - element.typed_metadata: OpenAPIEndpointMetadata
+    - schemas: dict (resolved schemas from spec)
+    - base_url: str (API base URL)
+    - api_spec: OpenAPIOverviewMetadata
+    - endpoints: list[DocElement] (all endpoints for nav)
+    - site: Site
+    - config: Config
 #}
+{% extends 'autodoc/openapi/layouts/explorer.html' %}
 
-{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc %}
+{% let meta = element.typed_metadata %}
+{% let method = meta?.method ?? 'GET' %}
+{% let path = meta?.path ?? '/' %}
+{% let parameters = meta?.parameters ?? () %}
+{% let request_body = meta?.request_body %}
+{% let responses = meta?.responses ?? () %}
 
-{# Cache endpoint metadata #}
-{% let
-  meta = element.metadata,
-  method = meta.method | upper,
-  path = meta.path,
-  summary = meta.summary ?? element.description,
-  operation_id = meta.operation_id,
-  is_deprecated = meta.deprecated ?? false,
-  parameters = meta.parameters ?? [],
-  req_body = meta.request_body ?? {},
-  responses = meta.responses ?? {}
-%}
+{# Group parameters by location #}
+{% let path_params = parameters | selectattr('location', 'eq', 'path') | list %}
+{% let query_params = parameters | selectattr('location', 'eq', 'query') | list %}
+{% let header_params = parameters | selectattr('location', 'eq', 'header') | list %}
+{% let cookie_params = parameters | selectattr('location', 'eq', 'cookie') | list %}
 
 {% block content %}
-{# Three-panel REST API layout #}
-<div class="docs-layout docs-layout--three-panel">
-  {# Left Sidebar: Navigation #}
-  <aside class="docs-sidebar" id="docs-sidebar" role="navigation" aria-label="API navigation">
-    {% include 'partials/docs-nav.html' %}
-  </aside>
+<article class="api-endpoint" data-method="{{ method | lower }}">
+  {# Playground Bar: Method + Path + Copy #}
+  {% include 'autodoc/openapi/partials/playground-bar.html' %}
 
-  {# Center: Endpoint Documentation #}
-  <div class="docs-main">
-    {# Breadcrumbs #}
-    {{ breadcrumbs(page) }}
+  {# Endpoint Header: Title, Description, Badges #}
+  {% include 'autodoc/openapi/partials/endpoint-header.html' %}
 
-    {# Article Content - New autodoc skeleton #}
-    <article data-autodoc data-type="openapi" data-element="endpoint" class="autodoc docs-content">
+  {# Parameters Section #}
+  {% if parameters %}
+  <section class="api-endpoint__section api-endpoint__parameters">
+    <h2 class="api-endpoint__section-title">Parameters</h2>
 
-      {# Header with method badge #}
-      <header class="autodoc-header">
-        <div class="autodoc-badges">
-          {% if is_deprecated %}
-          <span class="autodoc-badge" data-badge="deprecated">Deprecated</span>
-          {% end %}
-          <span class="autodoc-badge" data-badge="openapi">OpenAPI</span>
-        </div>
-
-        <h1 class="autodoc-title">
-          <span class="autodoc-method" data-method="{{ method | lower }}">{{ method }}</span>
-          <code class="autodoc-path">{{ path }}</code>
-        </h1>
-
-        {% if summary %}
-        <div class="autodoc-description prose">
-          {{ summary | markdownify | safe }}
-        </div>
+    {# Path Parameters #}
+    {% if path_params %}
+    <div class="api-endpoint__param-group">
+      <h3 class="api-endpoint__param-group-title">
+        Path Parameters
+        <span class="badge badge--info-subtle badge--xs">{{ path_params | length }}</span>
+      </h3>
+      <div class="api-endpoint__param-list">
+        {% for param in path_params %}
+          {% include 'autodoc/openapi/partials/param-row.html' with param=param %}
         {% end %}
-
-        {% if operation_id %}
-        <div class="autodoc-stats">
-          <span class="autodoc-stat">
-            <span class="autodoc-stat-label">Operation ID:</span>
-            <span class="autodoc-stat-value"><code>{{ operation_id }}</code></span>
-          </span>
-        </div>
-        {% end %}
-      </header>
-
-      {# Parameters Section #}
-      {% if parameters | length > 0 %}
-      {% let params = parameters %}
-      {% let title = 'Parameters' %}
-      {% include 'autodoc/partials/params-table.html' %}
-      {% end %}
-
-      {# Request Body Section #}
-      {% if req_body %}
-      <section class="autodoc-section" data-section="request-body">
-        <h2 class="autodoc-section-title">Request Body</h2>
-
-        {% if req_body.description %}
-        <div class="autodoc-description">
-          <p>{{ req_body.description }}</p>
-        </div>
-        {% end %}
-
-        {% if req_body.content is mapping %}
-        <div class="autodoc-request-content">
-          <div class="autodoc-badges">
-            {% for content_type in req_body.content.keys() %}
-            <span class="autodoc-badge" data-badge="content-type">{{ content_type }}</span>
-            {% end %}
-          </div>
-
-          {# Show schema summary if available #}
-          {% for content_type, details in req_body.content.items() %}
-            {% if details.schema %}
-              <div class="autodoc-schema-preview" data-content-type="{{ content_type }}">
-                <span class="autodoc-schema-label">Schema: <code>{{ details.schema.type ?? 'object' }}</code></span>
-                {% if details.schema.properties %}
-                <ul class="autodoc-schema-props">
-                  {% for prop_name, prop_meta in details.schema.properties.items() | slice(0, 5) %}
-                  <li><code>{{ prop_name }}</code>: <small>{{ prop_meta.type ?? 'any' }}</small></li>
-                  {% end %}
-                  {% if details.schema.properties | length > 5 %}
-                  <li class="autodoc-more">... and {{ details.schema.properties | length - 5 }} more properties</li>
-                  {% end %}
-                </ul>
-                {% end %}
-              </div>
-            {% end %}
-          {% end %}
-        </div>
-        {% end %}
-      </section>
-      {% end %}
-
-      {# Responses Section #}
-      {% if responses %}
-      <section class="autodoc-section" data-section="responses">
-        <h2 class="autodoc-section-title">Responses</h2>
-        <table class="autodoc-table" data-table="responses">
-          <thead>
-            <tr>
-              <th>Status</th>
-              <th>Description</th>
-              <th>Content Type</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for status_code, response in responses.items() %}
-            <tr>
-              <td class="autodoc-cell-name" data-label="Status">
-                <code data-status-class="{{ status_code[:1] }}">{{ status_code }}</code>
-              </td>
-              <td class="autodoc-cell-desc" data-label="Description">
-                {{ response.description ?? 'No description' }}
-              </td>
-              <td class="autodoc-cell-type" data-label="Content Type">
-                {% if response.content is mapping %}
-                  {% let content_types = response.content.keys() | list %}
-                  {% if content_types | length > 0 %}
-                    {% for ct in content_types %}
-                    <code>{{ ct }}</code>{% if not loop.last %}, {% end %}
-                    {% end %}
-                  {% else %}
-                    <span class="table-empty">—</span>
-                  {% end %}
-                {% else %}
-                  <span class="table-empty">—</span>
-                {% end %}
-              </td>
-            </tr>
-            {% end %}
-          </tbody>
-        </table>
-      </section>
-      {% end %}
-
-      {# Tags #}
-      {% if page.tags %}
-      <footer class="docs-footer">
-        <span class="docs-footer-label">Tagged</span>
-        {% from 'partials/components/tags.html' import tag_list %}
-        {{ tag_list(page.tags) }}
-      </footer>
-      {% end %}
-    </article>
-
-    {# Page navigation (prev/next) at bottom #}
-    {{ page_navigation(page) }}
-  </div>
-
-  {# Right Panel: Code Examples #}
-  <aside class="autodoc-examples-panel" id="autodoc-examples" role="complementary" aria-label="Code examples">
-    <div class="autodoc-examples-panel-content">
-      <h3 class="autodoc-examples-panel-title">{{ icon('code', size=16) }} Code Examples</h3>
-
-      {# Request Example - Enhanced #}
-      <div class="autodoc-example">
-        <header class="autodoc-example-header">
-          <h4 class="autodoc-example-title">Request</h4>
-          <span class="autodoc-example-lang">curl</span>
-        </header>
-        <div class="autodoc-example-body">
-          <pre><code class="language-bash">curl -X {{ method }} \
-  "https://api.example.com{{ path }}" \
-  -H "Accept: application/json" \{% if method in ['POST', 'PUT', 'PATCH'] %}
-  -H "Content-Type: application/json" \
-  -d '{
-    {% let body_schema = req_body.content['application/json']?.schema ?? {} %}
-    {% if body_schema.properties %}
-    {% for name, prop in body_schema.properties.items() | slice(0, 3) %}
-    "{{ name }}": {{ '...' | tojson }}{% if not loop.last %},{% end %}
-    {% end %}
-    {% else %}
-    ...
-    {% end %}
-  }'{% end %}</code></pre>
-        </div>
       </div>
-
-      {# Response Examples #}
-      {% if responses %}
-        {% for status_code, response in responses.items() %}
-          {# Show examples for 2xx responses #}
-          {% if status_code[:1] == '2' %}
-            <div class="autodoc-example" data-status="{{ status_code }}">
-              <header class="autodoc-example-header">
-                <h4 class="autodoc-example-title">Response {{ status_code }}</h4>
-                <span class="autodoc-example-lang">json</span>
-              </header>
-              <div class="autodoc-example-body">
-                {% let response_content = response.content ?? {} %}
-                {% let json_response = response_content['application/json'] ?? {} %}
-                {% let response_example = json_response?.example ?? json_response?.examples?.values() | first ?? {} %}
-                <pre><code class="language-json">{{ (response_example if response_example else {"status": "success"}) | tojson(indent=2) }}</code></pre>
-              </div>
-            </div>
-          {% end %}
-        {% end %}
-      {% end %}
     </div>
-  </aside>
-</div>
+    {% end %}
 
-{# Mobile sidebar toggle button #}
-<button class="docs-sidebar-toggle" aria-label="Toggle navigation sidebar" aria-expanded="false"
-  aria-controls="docs-sidebar">
-  {{ icon('list', size=20) }}
-</button>
+    {# Query Parameters #}
+    {% if query_params %}
+    <div class="api-endpoint__param-group">
+      <h3 class="api-endpoint__param-group-title">
+        Query Parameters
+        <span class="badge badge--secondary-subtle badge--xs">{{ query_params | length }}</span>
+      </h3>
+      <div class="api-endpoint__param-list">
+        {% for param in query_params %}
+          {% include 'autodoc/openapi/partials/param-row.html' with param=param %}
+        {% end %}
+      </div>
+    </div>
+    {% end %}
 
-{# Sidebar overlay for mobile #}
-<div class="docs-sidebar-overlay" aria-hidden="true"></div>
+    {# Header Parameters #}
+    {% if header_params %}
+    <div class="api-endpoint__param-group">
+      <h3 class="api-endpoint__param-group-title">
+        Header Parameters
+        <span class="badge badge--warning-subtle badge--xs">{{ header_params | length }}</span>
+      </h3>
+      <div class="api-endpoint__param-list">
+        {% for param in header_params %}
+          {% include 'autodoc/openapi/partials/param-row.html' with param=param %}
+        {% end %}
+      </div>
+    </div>
+    {% end %}
+
+    {# Cookie Parameters #}
+    {% if cookie_params %}
+    <div class="api-endpoint__param-group">
+      <h3 class="api-endpoint__param-group-title">
+        Cookie Parameters
+        <span class="badge badge--accent-subtle badge--xs">{{ cookie_params | length }}</span>
+      </h3>
+      <div class="api-endpoint__param-list">
+        {% for param in cookie_params %}
+          {% include 'autodoc/openapi/partials/param-row.html' with param=param %}
+        {% end %}
+      </div>
+    </div>
+    {% end %}
+  </section>
+  {% end %}
+
+  {# Request Body Section #}
+  {% with request_body as body %}
+    {% if body %}
+    <section class="api-endpoint__section api-endpoint__request-body">
+      {% include 'autodoc/openapi/partials/request-body.html' with body=body, schemas=schemas %}
+    </section>
+    {% end %}
+  {% end %}
+
+  {# Responses Section #}
+  {% if responses %}
+  <section class="api-endpoint__section api-endpoint__responses">
+    {% include 'autodoc/openapi/partials/responses.html' with responses=responses, schemas=schemas %}
+  </section>
+  {% end %}
+</article>
+{% end %}
+
+{% block code %}
+{# Code Samples Panel (right sidebar in explorer layout) #}
+{% include 'autodoc/openapi/partials/code-samples.html' with element=element, base_url=base_url %}
 {% end %}

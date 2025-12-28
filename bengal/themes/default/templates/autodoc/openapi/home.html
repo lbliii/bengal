@@ -1,0 +1,199 @@
+{#
+  Bengal OpenAPI Home Page
+
+  API overview page showing servers, authentication, and endpoint groups.
+
+  Context:
+    - element: DocElement with OpenAPIOverviewMetadata
+    - element.typed_metadata: OpenAPIOverviewMetadata
+      - version: str | None
+      - servers: tuple[str, ...]
+      - security_schemes: dict
+      - tags: tuple[dict, ...]
+    - endpoints: list[DocElement] (all endpoint pages)
+    - site: Site
+    - config: Config
+#}
+{% extends 'autodoc/openapi/layouts/reference.html' %}
+
+{% let meta = element.typed_metadata %}
+{% let version = meta?.version %}
+{% let servers = meta?.servers ?? () %}
+{% let security_schemes = meta?.security_schemes ?? {} %}
+{% let tags = meta?.tags ?? () %}
+
+{% block header %}
+<header class="api-home-header">
+  <div class="api-home-header__content">
+    <h1 class="api-home-header__title">{{ element.name }}</h1>
+
+    {% if version %}
+    <span class="api-home-header__version badge badge--outline">v{{ version }}</span>
+    {% end %}
+  </div>
+
+  {% with element.description as desc %}
+    {% if desc %}
+    <div class="api-home-header__description prose">
+      {{ desc | markdownify | safe }}
+    </div>
+    {% end %}
+  {% end %}
+</header>
+{% end %}
+
+{% block content %}
+<div class="api-home">
+  {# Quick Stats #}
+  <section class="api-home__stats">
+    <div class="api-home__stat">
+      <span class="api-home__stat-value">{{ endpoints | length }}</span>
+      <span class="api-home__stat-label">Endpoints</span>
+    </div>
+    <div class="api-home__stat">
+      <span class="api-home__stat-value">{{ tags | length }}</span>
+      <span class="api-home__stat-label">Categories</span>
+    </div>
+    {% if security_schemes %}
+    <div class="api-home__stat">
+      <span class="api-home__stat-value">{{ security_schemes | length }}</span>
+      <span class="api-home__stat-label">Auth Methods</span>
+    </div>
+    {% end %}
+  </section>
+
+  {# Base URLs / Servers #}
+  {% if servers %}
+  <section class="api-home__servers">
+    <h2 class="api-home__section-title">Base URLs</h2>
+    <div class="api-home__server-list">
+      {% for server in servers %}
+      <div class="api-home__server">
+        <code class="api-home__server-url">{{ server }}</code>
+        <button
+          class="api-home__server-copy"
+          type="button"
+          data-copy-value="{{ server }}"
+          aria-label="Copy URL"
+        >
+          <svg class="icon" aria-hidden="true" width="14" height="14">
+            <use href="#icon-copy"></use>
+          </svg>
+        </button>
+      </div>
+      {% end %}
+    </div>
+  </section>
+  {% end %}
+
+  {# Authentication #}
+  {% if security_schemes %}
+  <section class="api-home__auth">
+    <h2 class="api-home__section-title">Authentication</h2>
+    <div class="api-home__auth-schemes">
+      {% for name, scheme in security_schemes.items() %}
+      <div class="api-home__auth-scheme card">
+        <div class="api-home__auth-header">
+          <h3 class="api-home__auth-name">
+            <svg class="icon" aria-hidden="true" width="16" height="16">
+              <use href="#icon-lock"></use>
+            </svg>
+            {{ name }}
+          </h3>
+          <span class="badge badge--outline badge--sm">{{ scheme.type ?? 'custom' }}</span>
+        </div>
+
+        {% with scheme.description as desc %}
+          {% if desc %}
+          <p class="api-home__auth-description text-muted">{{ desc }}</p>
+          {% end %}
+        {% end %}
+
+        {% if scheme.type == 'http' %}
+          <code class="api-home__auth-example">
+            Authorization: {{ scheme.scheme | title }} &lt;token&gt;
+          </code>
+        {% elif scheme.type == 'apiKey' %}
+          <code class="api-home__auth-example">
+            {{ scheme.name }}: &lt;api_key&gt;
+            <span class="text-muted">({{ scheme.in }})</span>
+          </code>
+        {% end %}
+      </div>
+      {% end %}
+    </div>
+  </section>
+  {% end %}
+
+  {# Endpoint Groups by Tag #}
+  <section class="api-home__endpoints">
+    <h2 class="api-home__section-title">Endpoints</h2>
+
+    {% if tags %}
+    <div class="api-home__tag-grid">
+      {% for tag_info in tags %}
+        {% let tag_name = tag_info.name if tag_info.name else tag_info %}
+        {% let tag_desc = tag_info.description ?? '' %}
+        {% let tag_endpoints = endpoints | selectattr('typed_metadata.tags', 'contains', tag_name) | list %}
+
+        <a href="{{ url_for('autodoc:openapi:tag', tag=tag_name) }}" class="api-home__tag-card card card--hoverable">
+          <div class="api-home__tag-header">
+            <h3 class="api-home__tag-name">{{ tag_name }}</h3>
+            <span class="badge badge--secondary">{{ tag_endpoints | length }}</span>
+          </div>
+          {% if tag_desc %}
+          <p class="api-home__tag-description text-muted">{{ tag_desc | truncate(100) }}</p>
+          {% end %}
+
+          {# Preview of methods in this tag #}
+          <div class="api-home__tag-methods">
+            {% let methods = tag_endpoints | map(attribute='typed_metadata.method') | unique | list %}
+            {% for method in methods %}
+              {% match method %}
+                {% case 'GET' %}
+                  <span class="api-method api-method--get api-method--xs">GET</span>
+                {% case 'POST' %}
+                  <span class="api-method api-method--post api-method--xs">POST</span>
+                {% case 'PUT' %}
+                  <span class="api-method api-method--put api-method--xs">PUT</span>
+                {% case 'PATCH' %}
+                  <span class="api-method api-method--patch api-method--xs">PATCH</span>
+                {% case 'DELETE' %}
+                  <span class="api-method api-method--delete api-method--xs">DELETE</span>
+                {% case _ %}
+                  <span class="api-method api-method--xs">{{ method }}</span>
+              {% end %}
+            {% end %}
+          </div>
+        </a>
+      {% end %}
+    </div>
+    {% else %}
+    {# No tags - show all endpoints #}
+    <div class="api-home__endpoint-list">
+      {% for ep in endpoints %}
+        {% let ep_meta = ep.typed_metadata %}
+        <a href="{{ ep.url }}" class="api-home__endpoint-item">
+          {% match ep_meta?.method %}
+            {% case 'GET' %}
+              <span class="api-method api-method--get api-method--sm">GET</span>
+            {% case 'POST' %}
+              <span class="api-method api-method--post api-method--sm">POST</span>
+            {% case 'PUT' %}
+              <span class="api-method api-method--put api-method--sm">PUT</span>
+            {% case 'PATCH' %}
+              <span class="api-method api-method--patch api-method--sm">PATCH</span>
+            {% case 'DELETE' %}
+              <span class="api-method api-method--delete api-method--sm">DELETE</span>
+            {% case _ %}
+              <span class="api-method api-method--sm">{{ ep_meta?.method }}</span>
+          {% end %}
+          <span class="api-home__endpoint-path">{{ ep_meta?.path ?? ep.name }}</span>
+          <span class="api-home__endpoint-summary text-muted">{{ ep_meta?.summary ?? '' }}</span>
+        </a>
+      {% end %}
+    </div>
+    {% end %}
+  </section>
+</div>
+{% end %}

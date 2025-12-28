@@ -1,0 +1,59 @@
+{#
+  Bengal OpenAPI Request Body
+
+  Displays request body schema with content type and required status.
+
+  Uses Kida's {% with ... as ... %} for nil-safe optional sections.
+
+  Context:
+    - body: OpenAPIRequestBodyMetadata
+      - content_type: str
+      - schema_ref: str | None
+      - required: bool
+      - description: str
+    - schemas: dict (resolved schemas from spec)
+#}
+{% let content_type = body?.content_type ?? 'application/json' %}
+{% let schema_ref = body?.schema_ref %}
+{% let is_required = body?.required ?? false %}
+{% let description = body?.description ?? '' %}
+
+<section class="api-request-body">
+  <header class="api-request-body__header">
+    <h3 class="api-request-body__title">Request Body</h3>
+
+    <div class="api-request-body__meta">
+      <span class="badge badge--outline badge--sm">{{ content_type }}</span>
+      {% if is_required %}
+        <span class="badge badge--danger-subtle badge--sm">required</span>
+      {% else %}
+        <span class="badge badge--secondary-subtle badge--sm">optional</span>
+      {% end %}
+    </div>
+  </header>
+
+  {# Description #}
+  {% with description as desc %}
+    {% if desc %}
+    <div class="api-request-body__description prose-sm">
+      {{ desc | markdownify | safe }}
+    </div>
+    {% end %}
+  {% end %}
+
+  {# Schema Viewer #}
+  {% with schema_ref as ref %}
+    {% if ref %}
+      {% let schema_name = ref | split('/') | last %}
+      {% let schema = schemas[schema_name] if schemas else none %}
+
+      {% if schema %}
+        {% include 'autodoc/openapi/partials/schema-viewer.html' with schema=schema, name=schema_name, depth=0 %}
+      {% else %}
+        <div class="api-request-body__ref">
+          <code>{{ ref }}</code>
+        </div>
+      {% end %}
+    {% end %}
+  {% end %}
+</section>

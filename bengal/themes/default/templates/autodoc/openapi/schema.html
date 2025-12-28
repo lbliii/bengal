@@ -1,176 +1,203 @@
-{% extends "base.html" %}
-
 {#
-================================================================================
-OpenAPI Reference Schema Template (Kida-Enhanced)
-================================================================================
+  Bengal OpenAPI Schema Page
 
-Renders an OpenAPI schema's documentation using the autodoc skeleton.
-Uses Kida's advanced templating features for robust rendering.
+  Standalone page for a schema/model definition.
 
-This template receives:
-- element: DocElement for the schema
-- config: Autodoc configuration
-- site: Site instance
-================================================================================
+  Context:
+    - element: DocElement with OpenAPISchemaMetadata
+    - element.typed_metadata: OpenAPISchemaMetadata
+      - schema_type: str | None
+      - properties: dict
+      - required: tuple[str, ...]
+      - enum: tuple | None
+      - example: Any
+    - schemas: dict (all resolved schemas)
+    - site: Site
+    - config: Config
 #}
+{% extends 'autodoc/openapi/layouts/reference.html' %}
 
-{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc %}
+{% let meta = element.typed_metadata %}
+{% let schema_type = meta?.schema_type ?? 'object' %}
+{% let properties = meta?.properties ?? {} %}
+{% let required_props = meta?.required ?? () %}
+{% let enum_values = meta?.enum %}
+{% let example = meta?.example %}
 
-{# Cache schema metadata #}
-{% let
-  meta = element.metadata,
-  schema_type = meta.type ?? 'object',
-  properties = meta.properties ?? {},
-  required_props = meta.required ?? [],
-  example = meta.example,
-  enum_values = meta.enum ?? []
-%}
+{% block header %}
+<header class="api-schema-header">
+  <nav class="api-schema-header__breadcrumb" aria-label="API breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb__item">
+        <a href="{{ url_for('autodoc:openapi:home') }}">API</a>
+      </li>
+      <li class="breadcrumb__item">
+        <a href="{{ url_for('autodoc:openapi:schemas') }}">Schemas</a>
+      </li>
+      <li class="breadcrumb__item">
+        <span aria-current="page">{{ element.name }}</span>
+      </li>
+    </ol>
+  </nav>
 
-{% block content %}
-{# Three-column documentation layout #}
-<div class="docs-layout">
-  {# Left Sidebar: Navigation #}
-  <aside class="docs-sidebar" id="docs-sidebar" role="navigation" aria-label="API navigation">
-    {% include 'partials/docs-nav.html' %}
-  </aside>
+  <div class="api-schema-header__title-row">
+    <h1 class="api-schema-header__title">{{ element.name }}</h1>
 
-  {# Main Content #}
-  <div class="docs-main">
-    {# Page Hero: Breadcrumbs + Title + Description + Metadata #}
-    {% include 'partials/page-hero.html' %}
-
-    {# Article Content - autodoc skeleton #}
-    <article data-autodoc data-type="openapi" data-element="schema" class="autodoc docs-content">
-
-      {# Header #}
-      <header class="autodoc-header">
-        <div class="autodoc-badges">
-          <span class="autodoc-badge" data-badge="schema">Schema</span>
-          <span class="autodoc-badge" data-badge="openapi">OpenAPI</span>
-        </div>
-
-        <h1 class="autodoc-title">
-          <code>{{ element.name }}</code>
-        </h1>
-
-        {% if element.description %}
-        <div class="autodoc-description prose">
-          {{ element.description | markdownify | safe }}
-        </div>
-        {% end %}
-      </header>
-
-      {# Schema Meta Stats #}
-      <div class="autodoc-stats">
-        <span class="autodoc-stat">
-          <span class="autodoc-stat-label">Base Type:</span>
-          <span class="autodoc-stat-value"><code>{{ schema_type }}</code></span>
-        </span>
-        {% if enum_values | length > 0 %}
-        <span class="autodoc-stat">
-          <span class="autodoc-stat-label">Enum:</span>
-          <span class="autodoc-stat-value"><code>{{ enum_values | join(', ') }}</code></span>
-        </span>
-        {% end %}
-      </div>
-
-      {# Properties #}
-      {% if properties | length > 0 %}
-      <section class="autodoc-section" data-section="properties">
-        <h2 class="autodoc-section-title">Properties</h2>
-        <table class="autodoc-table" data-table="properties">
-          <thead>
-            <tr>
-              <th>Property</th>
-              <th>Type</th>
-              <th>Required</th>
-              <th>Description</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for prop_name, prop_schema in properties.items() %}
-            {% let is_required = prop_name in required_props %}
-            <tr {{ 'data-required="true"' | safe if is_required else '' }}>
-              <td class="autodoc-cell-name">
-                <code>{{ prop_name }}</code>
-                {% if is_required %}
-                <span class="autodoc-required-star" title="Required">*</span>
-                {% end %}
-              </td>
-              <td class="autodoc-cell-type">
-                <code>{{ prop_schema.type ?? 'object' }}</code>
-                {% if prop_schema.format %}
-                <small class="autodoc-format">({{ prop_schema.format }})</small>
-                {% end %}
-              </td>
-              <td class="autodoc-cell-required">
-                {% if is_required %}
-                <span class="autodoc-badge" data-badge="required">Required</span>
-                {% else %}
-                <span class="autodoc-badge" data-badge="optional">Optional</span>
-                {% end %}
-              </td>
-              <td class="autodoc-cell-desc">
-                {% if prop_schema.description %}
-                {{ prop_schema.description | markdownify | safe }}
-                {% else %}
-                <span class="table-empty">—</span>
-                {% end %}
-
-                {% if prop_schema.enum %}
-                <div class="autodoc-prop-enum">
-                  <strong>Enum:</strong> <code>{{ prop_schema.enum | join(' | ') }}</code>
-                </div>
-                {% end %}
-              </td>
-            </tr>
-            {% end %}
-          </tbody>
-        </table>
-      </section>
-      {% end %}
-
-      {# Example #}
-      {% if example %}
-      <section class="autodoc-section" data-section="examples">
-        <h2 class="autodoc-section-title">Example</h2>
-        <div class="autodoc-example">
-          <header class="autodoc-example-header">
-            <h4 class="autodoc-example-title">JSON Representation</h4>
-            <span class="autodoc-example-lang">json</span>
-          </header>
-          <div class="autodoc-example-body">
-            <pre><code class="language-json">{{ example | tojson(indent=2) }}</code></pre>
-          </div>
-        </div>
-      </section>
-      {% end %}
-
-      {# Tags #}
-      {% if page.tags %}
-      <footer class="docs-footer">
-        <span class="docs-footer-label">Tagged</span>
-        {% from 'partials/components/tags.html' import tag_list %}
-        {{ tag_list(page.tags) }}
-      </footer>
-      {% end %}
-    </article>
-
-    {# Page navigation (prev/next) at bottom #}
-    {{ page_navigation(page) }}
+    {# Type Badge #}
+    {% match schema_type %}
+      {% case 'object' %}
+        <span class="badge badge--info">object</span>
+      {% case 'array' %}
+        <span class="badge badge--success">array</span>
+      {% case 'string' %}
+        <span class="badge badge--secondary">string</span>
+      {% case 'integer' %}
+        <span class="badge badge--warning">integer</span>
+      {% case 'number' %}
+        <span class="badge badge--warning">number</span>
+      {% case 'boolean' %}
+        <span class="badge badge--accent">boolean</span>
+      {% case _ %}
+        <span class="badge badge--outline">{{ schema_type }}</span>
+    {% end %}
   </div>
 
-  {# Right Sidebar: Contextual Graph + TOC + Metadata #}
-  {% include 'partials/docs-toc-sidebar.html' %}
+  {% with element.description as desc %}
+    {% if desc %}
+    <div class="api-schema-header__description prose">
+      {{ desc | markdownify | safe }}
+    </div>
+    {% end %}
+  {% end %}
+</header>
+{% end %}
+
+{% block content %}
+<div class="api-schema">
+  {# Enum Values (if applicable) #}
+  {% if enum_values %}
+  <section class="api-schema__section api-schema__enum">
+    <h2 class="api-schema__section-title">Allowed Values</h2>
+    <div class="api-schema__enum-list">
+      {% for val in enum_values %}
+      <code class="api-schema__enum-value">{{ val }}</code>
+      {% end %}
+    </div>
+  </section>
+  {% end %}
+
+  {# Properties (for object type) #}
+  {% if schema_type == 'object' and properties %}
+  <section class="api-schema__section api-schema__properties">
+    <h2 class="api-schema__section-title">
+      Properties
+      <span class="badge badge--outline badge--sm">{{ properties | length }}</span>
+    </h2>
+
+    <div class="api-schema__property-list">
+      {% for prop_name, prop_schema in properties.items() %}
+        {% let is_required = prop_name in required_props %}
+        {% let prop_type = prop_schema.type ?? 'any' %}
+        {% let prop_desc = prop_schema.description ?? '' %}
+        {% let prop_format = prop_schema.format %}
+        {% let prop_enum = prop_schema.enum %}
+        {% let prop_default = prop_schema.default %}
+        {% let prop_example = prop_schema.example %}
+
+        <div class="api-schema__property {{ 'api-schema__property--required' if is_required else '' }}">
+          <div class="api-schema__property-header">
+            <code class="api-schema__property-name">{{ prop_name }}</code>
+            <span class="api-schema__property-type">{{ prop_type }}</span>
+
+            {% if prop_format %}
+              <span class="api-schema__property-format text-muted">({{ prop_format }})</span>
+            {% end %}
+
+            {% if is_required %}
+              <span class="badge badge--danger-subtle badge--xs">required</span>
+            {% end %}
+          </div>
+
+          {% if prop_desc %}
+          <div class="api-schema__property-description prose-sm">
+            {{ prop_desc | markdownify | safe }}
+          </div>
+          {% end %}
+
+          {# Enum values for property #}
+          {% if prop_enum %}
+          <div class="api-schema__property-enum">
+            <span class="api-schema__property-enum-label">Allowed:</span>
+            {% for val in prop_enum %}
+              <code class="api-schema__property-enum-value">{{ val }}</code>
+            {% end %}
+          </div>
+          {% end %}
+
+          {# Default value #}
+          {% if prop_default is not none %}
+          <div class="api-schema__property-default">
+            <span class="api-schema__property-default-label">Default:</span>
+            <code>{{ prop_default | tojson }}</code>
+          </div>
+          {% end %}
+
+          {# Nested object/array #}
+          {% if prop_type == 'object' and prop_schema.properties %}
+            {% include 'autodoc/openapi/partials/schema-viewer.html' with
+               schema=prop_schema,
+               name='',
+               depth=1,
+               max_depth=3
+            %}
+          {% elif prop_type == 'array' and prop_schema.items %}
+            <div class="api-schema__property-array">
+              <span class="api-schema__property-array-label">Array of:</span>
+              {% if prop_schema.items.type %}
+                <code>{{ prop_schema.items.type }}</code>
+              {% elif prop_schema.items['$ref'] %}
+                {% let ref_name = prop_schema.items['$ref'] | split('/') | last %}
+                <a href="{{ url_for('autodoc:openapi:schema', name=ref_name) }}">
+                  <code>{{ ref_name }}</code>
+                </a>
+              {% end %}
+            </div>
+          {% end %}
+        </div>
+      {% end %}
+    </div>
+  </section>
+  {% end %}
+
+  {# Example #}
+  {% with example as ex %}
+    {% if ex %}
+    <section class="api-schema__section api-schema__example">
+      <h2 class="api-schema__section-title">Example</h2>
+      <div class="api-schema__example-code">
+        <button
+          class="api-schema__example-copy"
+          type="button"
+          data-copy-target="schema-example"
+          aria-label="Copy example"
+        >
+          <svg class="icon" aria-hidden="true" width="14" height="14">
+            <use href="#icon-copy"></use>
+          </svg>
+        </button>
+        <pre id="schema-example"><code class="language-json">{{ ex | tojson(indent=2) }}</code></pre>
+      </div>
+    </section>
+    {% end %}
+  {% end %}
+
+  {# Usage: Where is this schema used? #}
+  <section class="api-schema__section api-schema__usage">
+    <h2 class="api-schema__section-title">Used By</h2>
+    <div class="api-schema__usage-list">
+      {# This would require additional context about where the schema is referenced #}
+      <p class="text-muted">Endpoints that use this schema will be listed here.</p>
+    </div>
+  </section>
 </div>
-
-{# Mobile sidebar toggle button #}
-<button class="docs-sidebar-toggle" aria-label="Toggle navigation sidebar" aria-expanded="false"
-  aria-controls="docs-sidebar">
-  {{ icon('list', size=20) }}
-</button>
-
-{# Sidebar overlay for mobile #}
-<div class="docs-sidebar-overlay" aria-hidden="true"></div>
 {% end %}

@@ -102,6 +102,29 @@
   --color-alert-error-bg: var(--color-error-bg);
   --color-alert-error-border: var(--color-error-border);
 
+  /* HTTP Method Colors (API Documentation) */
+  --color-method-get: var(--color-info);
+  --color-method-get-bg: var(--color-info-bg);
+  --color-method-get-border: var(--color-info-border);
+  --color-method-post: var(--color-success);
+  --color-method-post-bg: var(--color-success-bg);
+  --color-method-post-border: var(--color-success-border);
+  --color-method-put: var(--color-warning);
+  --color-method-put-bg: var(--color-warning-bg);
+  --color-method-put-border: var(--color-warning-border);
+  --color-method-patch: var(--color-warning);
+  --color-method-patch-bg: var(--color-warning-bg);
+  --color-method-patch-border: var(--color-warning-border);
+  --color-method-delete: var(--color-error);
+  --color-method-delete-bg: var(--color-error-bg);
+  --color-method-delete-border: var(--color-error-border);
+  --color-method-head: var(--gray-500);
+  --color-method-head-bg: var(--gray-50);
+  --color-method-head-border: var(--gray-300);
+  --color-method-options: var(--gray-500);
+  --color-method-options-bg: var(--gray-50);
+  --color-method-options-border: var(--gray-300);
+
   /* Danger/Error alias (for consistency) */
   --color-danger: var(--red-600);
   --color-danger-bg: var(--red-50);

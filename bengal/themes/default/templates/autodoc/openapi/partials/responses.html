@@ -1,0 +1,106 @@
+{#
+  Bengal OpenAPI Responses
+
+  Tabbed response viewer with status code color-coding.
+
+  Uses Kida's {% match %} for status code classification.
+
+  Context:
+    - responses: tuple[OpenAPIResponseMetadata]
+      - status_code: str
+      - description: str
+      - content_type: str | None
+      - schema_ref: str | None
+    - schemas: dict (resolved schemas from spec)
+#}
+{% let response_list = responses ?? () %}
+
+<section class="api-responses">
+  <header class="api-responses__header">
+    <h3 class="api-responses__title">Responses</h3>
+  </header>
+
+  {% if response_list %}
+  {# Response Tabs #}
+  <div class="api-responses__tabs" role="tablist">
+    {% for resp in response_list %}
+      {% let status = resp.status_code ?? 'default' %}
+      {% let status_class = status_code_class(status) %}
+
+      <button
+        class="api-responses__tab {{ status_class }} {{ 'api-responses__tab--active' if loop.first else '' }}"
+        role="tab"
+        aria-selected="{{ 'true' if loop.first else 'false' }}"
+        aria-controls="response-panel-{{ status }}"
+        id="response-tab-{{ status }}"
+      >
+        {# Status Code Badge with Color #}
+        {% match status | string | slice(0, 1) %}
+          {% case '2' %}
+            <span class="badge badge--success">{{ status }}</span>
+          {% case '3' %}
+            <span class="badge badge--info">{{ status }}</span>
+          {% case '4' %}
+            <span class="badge badge--warning">{{ status }}</span>
+          {% case '5' %}
+            <span class="badge badge--danger">{{ status }}</span>
+          {% case _ %}
+            <span class="badge badge--outline">{{ status }}</span>
+        {% end %}
+      </button>
+    {% end %}
+  </div>
+
+  {# Response Panels #}
+  <div class="api-responses__panels">
+    {% for resp in response_list %}
+      {% let status = resp.status_code ?? 'default' %}
+      {% let description = resp.description ?? '' %}
+      {% let content_type = resp.content_type %}
+      {% let schema_ref = resp.schema_ref %}
+
+      <div
+        class="api-responses__panel {{ 'api-responses__panel--active' if loop.first else '' }}"
+        role="tabpanel"
+        id="response-panel-{{ status }}"
+        aria-labelledby="response-tab-{{ status }}"
+        {{ 'hidden' if not loop.first else '' }}
+      >
+        {# Response Description #}
+        {% if description %}
+        <div class="api-responses__description prose-sm">
+          {{ description | markdownify | safe }}
+        </div>
+        {% end %}
+
+        {# Content Type #}
+        {% with content_type as ct %}
+          {% if ct %}
+          <div class="api-responses__content-type">
+            <span class="badge badge--outline badge--sm">{{ ct }}</span>
+          </div>
+          {% end %}
+        {% end %}
+
+        {# Response Schema #}
+        {% with schema_ref as ref %}
+          {% if ref %}
+            {% let schema_name = ref | split('/') | last %}
+            {% let schema = schemas[schema_name] if schemas else none %}
+
+            {% if schema %}
+              {% include 'autodoc/openapi/partials/schema-viewer.html' with schema=schema, name=schema_name, depth=0 %}
+            {% else %}
+              <div class="api-responses__ref">
+                <code>{{ ref }}</code>
+              </div>
+            {% end %}
+          {% end %}
+        {% end %}
+      </div>
+    {% end %}
+  </div>
+  {% else %}
+  <p class="api-responses__empty text-muted">No response documentation available.</p>
+  {% end %}
+</section>

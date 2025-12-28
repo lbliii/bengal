@@ -105,6 +105,7 @@ from . import (
     images,
     math_functions,
     navigation,
+    openapi,
     pagination_helpers,
     resources,
     seo,
@@ -176,6 +177,9 @@ def register_all(env: Environment, site: Site, engine_type: str | None = None) -
     # Phase 7: Autodoc functions (normalized parameter access)
     autodoc.register(env, site)
 
+    # Phase 7b: OpenAPI-specific functions (code samples, path highlighting)
+    openapi.register(env, site)
+
     # Phase 8: Template tests (match, draft, featured, etc.)
     template_tests.register(env, site)
 
@@ -209,6 +213,7 @@ __all__ = [
     "images",
     "math_functions",
     "navigation",
+    "openapi",
     "pagination_helpers",
     "register_all",
     "resources",
