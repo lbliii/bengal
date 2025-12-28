@@ -8,10 +8,8 @@ working with any package name (not just 'bengal').
 from pathlib import Path
 
 from bengal.autodoc.orchestration.utils import (
-    format_source_file_for_display as _format_source_file_for_display,
-)
-from bengal.autodoc.orchestration.utils import (
-    normalize_autodoc_config as _normalize_autodoc_config,
+    format_source_file_for_display,
+    normalize_autodoc_config,
 )
 
 # =============================================================================
@@ -30,7 +28,7 @@ def test_formats_absolute_path_relative_to_repo_root(tmp_path: Path) -> None:
     source.parent.mkdir(parents=True)
     source.touch()
 
-    result = _format_source_file_for_display(source, site_root)
+    result = format_source_file_for_display(source, site_root)
 
     assert result == "mypackage/core/module.py"
 
@@ -45,7 +43,7 @@ def test_formats_absolute_path_with_custom_package_name(tmp_path: Path) -> None:
     source.parent.mkdir(parents=True)
     source.touch()
 
-    result = _format_source_file_for_display(source, site_root)
+    result = format_source_file_for_display(source, site_root)
 
     assert result == "company_api/endpoints/users.py"
 
@@ -58,7 +56,7 @@ def test_formats_absolute_path_relative_to_site_root_when_no_parent(tmp_path: Pa
     source.parent.mkdir(parents=True)
     source.touch()
 
-    result = _format_source_file_for_display(source, site_root)
+    result = format_source_file_for_display(source, site_root)
 
     # Result is relative to tmp_path (parent of site_root), so includes "site/"
     assert result == "site/api/openapi.yaml"
@@ -74,7 +72,7 @@ def test_relative_path_preserved_as_is() -> None:
     source = Path("mypackage/collections/__init__.py")
     site_root = Path("/home/runner/work/project/site")
 
-    result = _format_source_file_for_display(source, site_root)
+    result = format_source_file_for_display(source, site_root)
 
     assert result == "mypackage/collections/__init__.py"
 
@@ -84,7 +82,7 @@ def test_relative_path_with_parent_refs_preserved() -> None:
     source = Path("../src/utils/helpers.py")
     site_root = Path("/home/user/project/docs")
 
-    result = _format_source_file_for_display(source, site_root)
+    result = format_source_file_for_display(source, site_root)
 
     assert result == "../src/utils/helpers.py"
 
@@ -96,13 +94,13 @@ def test_relative_path_with_parent_refs_preserved() -> None:
 
 def test_none_source_returns_none() -> None:
     """None input returns None."""
-    result = _format_source_file_for_display(None, Path("/some/path"))
+    result = format_source_file_for_display(None, Path("/some/path"))
     assert result is None
 
 
 def test_empty_string_returns_none() -> None:
     """Empty string returns None (falsy)."""
-    result = _format_source_file_for_display("", Path("/some/path"))
+    result = format_source_file_for_display("", Path("/some/path"))
     assert result is None
 
 
@@ -115,7 +113,7 @@ def test_outside_repo_falls_back_to_absolute(tmp_path: Path) -> None:
     external.parent.mkdir(parents=True)
     external.touch()
 
-    result = _format_source_file_for_display(external, site_root)
+    result = format_source_file_for_display(external, site_root)
 
     # File is outside repo hierarchy (sibling of project, not inside project)
     # Function only goes up 1 level (to project/), so this is truly external
@@ -132,7 +130,7 @@ def test_file_in_parent_directory_is_relative(tmp_path: Path) -> None:
     site_root.mkdir(parents=True)
     source.touch()
 
-    result = _format_source_file_for_display(source, site_root)
+    result = format_source_file_for_display(source, site_root)
 
     # File is in parent of site_root, should be "README.md"
     assert result == "README.md"
@@ -148,7 +146,7 @@ def test_deeply_nested_package_structure(tmp_path: Path) -> None:
     source.parent.mkdir(parents=True)
     source.touch()
 
-    result = _format_source_file_for_display(source, site_root)
+    result = format_source_file_for_display(source, site_root)
 
     # Should be relative to repo_root (3 levels up from site_root)
     # But our function only goes up to parent, so will be relative to packages/docs
@@ -172,7 +170,7 @@ def test_normalizes_autodoc_config_with_defaults() -> None:
         },
     }
 
-    normalized = _normalize_autodoc_config(site_cfg)
+    normalized = normalize_autodoc_config(site_cfg)
 
     assert normalized["github_repo"] == "https://github.com/myorg/myproject"
     assert normalized["github_branch"] == "main"
@@ -187,7 +185,7 @@ def test_normalizes_autodoc_config_preserves_full_url() -> None:
         },
     }
 
-    normalized = _normalize_autodoc_config(site_cfg)
+    normalized = normalize_autodoc_config(site_cfg)
 
     assert normalized["github_repo"] == "https://github.com/myorg/myproject"
     assert normalized["github_branch"] == "develop"
@@ -200,7 +198,7 @@ def test_normalizes_autodoc_config_from_site_level() -> None:
         "github_branch": "release",
     }
 
-    normalized = _normalize_autodoc_config(site_cfg)
+    normalized = normalize_autodoc_config(site_cfg)
 
     assert normalized["github_repo"] == "https://github.com/company/product"
     assert normalized["github_branch"] == "release"

@@ -134,7 +134,3 @@ class PageContext:
 
     def __repr__(self) -> str:
         return f"PageContext(title={self.title!r}, _path={self._path!r})"
-
-
-# Backward compatibility alias
-_PageContext = PageContext

@@ -870,31 +870,11 @@ class PythonExtractor(Extractor):
         )
 
     def _should_skip(self, path: Path) -> bool:
-        """
-        Check if file should be skipped during extraction.
-
-        This is a thin wrapper around skip_logic.should_skip for backward compatibility.
-
-        Args:
-            path: Path to check
-
-        Returns:
-            True if path should be skipped
-        """
+        """Check if file should be skipped during extraction."""
         return should_skip(path, self.exclude_patterns)
 
     def _infer_module_name(self, file_path: Path) -> str:
-        """
-        Infer module name from file path relative to source root.
-
-        This is a thin wrapper around module_info.infer_module_name for backward compatibility.
-
-        Args:
-            file_path: Path to the Python file
-
-        Returns:
-            Qualified module name (e.g., "bengal.cli.commands.build")
-        """
+        """Infer module name from file path relative to source root."""
         return infer_module_name(file_path, self._source_root)
 
     @override

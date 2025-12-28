@@ -148,9 +148,3 @@ def slugify(text: str) -> str:
     slug = re.sub(r"-+", "-", slug).strip("-")
 
     return slug if slug else "rest"
-
-
-# Backward compatibility aliases (underscore-prefixed versions)
-_get_template_dir_for_type = get_template_dir_for_type
-_normalize_autodoc_config = normalize_autodoc_config
-_format_source_file_for_display = format_source_file_for_display
