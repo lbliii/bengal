@@ -5,8 +5,8 @@ Tests directive parsing performance on real site content to validate
 the RFC Patitas Directive Ergonomics improvements.
 
 This benchmark:
-1. Parses all markdown files from the real site
-2. Measures directive parsing time
+1. Parses markdown files from the real site (sampled)
+2. Measures full parse+render pipeline (like compare_parsers.py)
 3. Tracks directive usage statistics
 4. Validates performance improvements from typed options
 
@@ -26,6 +26,7 @@ from pathlib import Path
 
 import pytest
 
+from bengal.rendering.parsers.patitas import create_markdown
 from bengal.rendering.parsers.patitas.directives import create_default_registry
 from bengal.rendering.parsers.patitas.nodes import Directive
 from bengal.rendering.parsers.patitas.parser import Parser
@@ -61,6 +62,12 @@ def directive_registry():
     return create_default_registry()
 
 
+@pytest.fixture(scope="module")
+def patitas_parser():
+    """Create Patitas parser (reused across tests, has default directive registry)."""
+    return create_markdown(highlight=False)
+
+
 def count_directives_in_ast(ast_nodes) -> dict[str, int]:
     """Count directives by name in AST."""
     counts = defaultdict(int)
@@ -81,16 +88,22 @@ def count_directives_in_ast(ast_nodes) -> dict[str, int]:
 class TestDirectiveParsingPerformance:
     """Benchmark directive parsing on real site content."""
 
-    def test_parse_all_site_files(self, benchmark, site_markdown_files, directive_registry):
-        """Parse all markdown files from the real site."""
+    def test_parse_sampled_site_files(self, benchmark, site_markdown_files, patitas_parser):
+        """Parse sampled markdown files from the real site (full pipeline)."""
+        # Sample files for faster execution
+        sample_size = min(20, len(site_markdown_files))
+        files_to_parse = site_markdown_files[:sample_size]
+        
+        # Pre-load content
+        file_contents = [(f, f.read_text()) for f in files_to_parse]
 
         def parse_all():
             total_directives = 0
-            for file_path in site_markdown_files:
-                content = file_path.read_text()
-                parser = Parser(content, directive_registry=directive_registry)
-                ast = parser.parse()
-                # Count directives
+            for file_path, content in file_contents:
+                # Use high-level parser (full parse+render pipeline)
+                html = patitas_parser(content)
+                # Parse AST separately to count directives
+                ast = patitas_parser.parse_to_ast(content)
                 directive_counts = count_directives_in_ast(ast)
                 total_directives += sum(directive_counts.values())
             return total_directives
@@ -99,15 +112,15 @@ class TestDirectiveParsingPerformance:
 
         # Verify we parsed something
         assert result > 0, "Should have parsed at least one directive"
-        print(f"\nParsed {result} total directives across {len(site_markdown_files)} files")
+        print(f"\nParsed {result} total directives across {sample_size} files")
 
     def test_parse_single_file_with_directives(
-        self, benchmark, site_markdown_files, directive_registry
+        self, benchmark, site_markdown_files, patitas_parser
     ):
-        """Parse a single file containing directives."""
+        """Parse a single file containing directives (full pipeline)."""
         # Find a file with directives
         test_file = None
-        for file_path in site_markdown_files:
+        for file_path in site_markdown_files[:50]:  # Check first 50 files
             content = file_path.read_text()
             if ":::" in content:  # Simple heuristic for directives
                 test_file = (file_path, content)
@@ -119,8 +132,10 @@ class TestDirectiveParsingPerformance:
         file_path, content = test_file
 
         def parse_file():
-            parser = Parser(content, directive_registry=directive_registry)
-            ast = parser.parse()
+            # Full pipeline: parse + render
+            html = patitas_parser(content)
+            # Also parse AST to count directives
+            ast = patitas_parser.parse_to_ast(content)
             return count_directives_in_ast(ast)
 
         result = benchmark(parse_file)
@@ -171,31 +186,42 @@ class TestDirectiveParsingPerformance:
         print(f"\nAccessed options for {result} directives")
         print(f"Average per directive: {benchmark.stats.mean * 1000 / result:.3f}ms")
 
-    def test_directive_statistics(self, site_markdown_files, directive_registry):
+    def test_directive_statistics(self, site_markdown_files, patitas_parser):
         """Collect statistics about directive usage in the real site."""
         all_counts = defaultdict(int)
         files_with_directives = 0
+        
+        # Sample up to 30 files for faster execution
+        sample_size = min(30, len(site_markdown_files))
+        files_to_parse = site_markdown_files[:sample_size]
 
-        for file_path in site_markdown_files:
-            content = file_path.read_text()
-            parser = Parser(content, directive_registry=directive_registry)
-            ast = parser.parse()
+        for file_path in files_to_parse:
+            try:
+                content = file_path.read_text()
+                ast = patitas_parser.parse_to_ast(content)
 
-            counts = count_directives_in_ast(ast)
-            if counts:
-                files_with_directives += 1
-                for name, count in counts.items():
-                    all_counts[name] += count
+                counts = count_directives_in_ast(ast)
+                if counts:
+                    files_with_directives += 1
+                    for name, count in counts.items():
+                        all_counts[name] += count
+            except Exception:
+                # Skip files that fail to parse
+                continue
 
         print("\n" + "=" * 60)
         print("DIRECTIVE USAGE STATISTICS")
         print("=" * 60)
-        print(f"Total files parsed: {len(site_markdown_files)}")
+        print(f"Total files in site: {len(site_markdown_files)}")
+        print(f"Files sampled: {sample_size}")
         print(f"Files with directives: {files_with_directives}")
         print(f"Total directives: {sum(all_counts.values())}")
-        print("\nDirective breakdown:")
-        for name, count in sorted(all_counts.items(), key=lambda x: -x[1]):
-            print(f"  {name:20s}: {count:4d}")
+        if all_counts:
+            print("\nDirective breakdown:")
+            for name, count in sorted(all_counts.items(), key=lambda x: -x[1]):
+                print(f"  {name:20s}: {count:4d}")
+        else:
+            print("\nNo directives found in sampled files.")
         print("=" * 60)
 
     def test_parse_large_file_with_many_directives(

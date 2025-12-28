@@ -286,6 +286,10 @@ class HtmlRenderer:
         if self._highlight and info:
             highlighted = self._try_highlight(code, info)
             if highlighted:
+                # Rosettes doesn't add trailing newline before </code>, but mistune does
+                # Fix: insert newline before closing </code></pre></div>
+                if highlighted.endswith("</code></pre></div>"):
+                    highlighted = highlighted[:-19] + "\n</code></pre></div>"
                 sb.append(highlighted)
                 return
 
@@ -304,14 +308,14 @@ class HtmlRenderer:
         sb.append("</code></pre>\n")
 
     def _try_highlight(self, code: str, info: str) -> str | None:
-        """Try to highlight code using rosettes.
+        """Try to highlight code using Bengal's rosettes.
 
         Returns highlighted HTML or None if highlighting unavailable.
         """
         # Check rosettes availability (cached)
         if self._rosettes_available is None:
             try:
-                import rosettes  # noqa: F401
+                from bengal.rendering.rosettes import highlight  # noqa: F401
 
                 self._rosettes_available = True
             except ImportError:
@@ -325,7 +329,7 @@ class HtmlRenderer:
             return None
 
         try:
-            from rosettes import highlight
+            from bengal.rendering.rosettes import highlight
 
             return highlight(
                 code,

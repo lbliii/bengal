@@ -374,6 +374,7 @@ class Markdown:
         "_highlight",
         "_highlight_style",
         "_plugins_enabled",
+        "_directive_registry",
     )
 
     # Available plugins and their enabled flags
@@ -416,6 +417,13 @@ class Markdown:
                     )
             self._plugins_enabled = frozenset(enabled)
 
+        # Create default directive registry with all builtins
+        from bengal.rendering.parsers.patitas.directives.registry import (
+            create_default_registry,
+        )
+
+        self._directive_registry = create_default_registry()
+
     def __call__(self, source: str) -> str:
         """Parse and render Markdown source to HTML.
 
@@ -432,7 +440,7 @@ class Markdown:
         """Parse source to AST with plugins applied."""
         from bengal.rendering.parsers.patitas.parser import Parser
 
-        parser = Parser(source)
+        parser = Parser(source, directive_registry=self._directive_registry)
 
         # Apply plugin-specific flags
         parser._tables_enabled = "table" in self._plugins_enabled
@@ -451,6 +459,7 @@ class Markdown:
         renderer = HtmlRenderer(
             highlight=self._highlight,
             highlight_style=self._highlight_style,
+            directive_registry=self._directive_registry,
         )
         return renderer.render(ast)
 
