@@ -34,11 +34,9 @@ from bengal.autodoc.orchestration.section_builders import (
     create_openapi_sections,
     create_python_sections,
 )
-from bengal.autodoc.orchestration.template_env import create_template_environment
 from bengal.autodoc.orchestration.utils import normalize_autodoc_config, slugify
 from bengal.core.page import Page
 from bengal.core.section import Section
-from bengal.rendering.kida import Environment
 from bengal.utils.hashing import hash_dict
 from bengal.utils.logger import get_logger
 
@@ -92,10 +90,6 @@ class VirtualAutodocOrchestrator:
         self.python_config = self.config.get("python", {})
         self.cli_config = self.config.get("cli", {})
         self.openapi_config = self.config.get("openapi", {})
-        # Performance: do not build a Kida environment unless we actually
-        # generate autodoc pages. Content discovery may probe autodoc enablement
-        # even when autodoc is disabled, and environment setup is expensive.
-        self.template_env: Environment | None = None
         # Performance: these values are used in tight loops during generation.
         # Cache them per orchestrator instance (one per build).
         self._output_prefix_cache: dict[str, str] = {}
@@ -270,12 +264,6 @@ class VirtualAutodocOrchestrator:
 
         root_sections = [section for section in all_sections.values() if section.parent is None]
         return all_pages, root_sections, result
-
-    def _ensure_template_env(self) -> Environment:
-        """Create the autodoc Kida environment lazily (only when needed)."""
-        if self.template_env is None:
-            self.template_env = create_template_environment(self.site)
-        return self.template_env
 
     def _derive_python_prefix(self) -> str:
         """

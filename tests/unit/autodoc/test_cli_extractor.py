@@ -198,11 +198,6 @@ class TestCLIExtractor:
         process_cmd = [c for c in root.children if c.name == "process"][0]
         assert process_cmd.qualified_name == "sample-cli.process"
 
-    def test_get_template_dir(self):
-        """Test that template directory is correct."""
-        extractor = CLIExtractor()
-        assert extractor.get_template_dir() == "cli"
-
     def test_get_output_path(self):
         """Test that output paths are generated correctly."""
         extractor = CLIExtractor()

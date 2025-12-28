@@ -32,8 +32,6 @@ class AutodocRunResult:
         failed_render_identifiers: Qualified names of elements that failed rendering
         fallback_pages: URL paths of pages rendered via fallback template
         autodoc_dependencies: Mapping of source file paths to autodoc page paths
-        missing_html_pages: Pages that should have HTML but don't
-        page_type_mismatches: Pages with incorrect type metadata
     """
 
     extracted: int = 0
@@ -55,10 +53,6 @@ class AutodocRunResult:
     autodoc_dependencies: dict[str, set[str]] = field(default_factory=dict)
     """Mapping of source file paths to the autodoc page paths they produce.
     Used by IncrementalOrchestrator for selective autodoc rebuilds."""
-    missing_html_pages: list[str] = field(default_factory=list)
-    """Pages that should have HTML output but don't (detected in validation)."""
-    page_type_mismatches: list[str] = field(default_factory=list)
-    """Pages with incorrect type metadata for nav tree."""
 
     def has_failures(self) -> bool:
         """Check if any failures occurred."""
@@ -67,10 +61,6 @@ class AutodocRunResult:
     def has_warnings(self) -> bool:
         """Check if any warnings occurred."""
         return self.warnings > 0
-
-    def has_html_issues(self) -> bool:
-        """Check if any HTML generation issues occurred."""
-        return len(self.missing_html_pages) > 0 or len(self.page_type_mismatches) > 0
 
     def add_dependency(self, source_file: str, page_path: str) -> None:
         """
@@ -83,30 +73,6 @@ class AutodocRunResult:
         if source_file not in self.autodoc_dependencies:
             self.autodoc_dependencies[source_file] = set()
         self.autodoc_dependencies[source_file].add(page_path)
-
-    def add_missing_html(self, page_path: str) -> None:
-        """
-        Record a page that is missing HTML output.
-
-        Args:
-            page_path: Path to the page missing HTML
-        """
-        self.missing_html_pages.append(page_path)
-        self.warnings += 1
-
-    def add_type_mismatch(self, page_path: str, expected_type: str, actual_type: str) -> None:
-        """
-        Record a page with incorrect type metadata.
-
-        Args:
-            page_path: Path to the page
-            expected_type: Expected page type
-            actual_type: Actual page type found
-        """
-        self.page_type_mismatches.append(
-            f"{page_path}: expected {expected_type}, got {actual_type}"
-        )
-        self.warnings += 1
 
 
 class PageContext:
