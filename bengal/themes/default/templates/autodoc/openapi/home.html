@@ -147,7 +147,7 @@
         {# Skip the schemas section #}
         {% if tag_section.name != 'schemas' %}
         {% let tag_endpoints = tag_section.metadata.endpoints ?? [] %}
-        <a href="{{ tag_section.url }}" class="api-home__tag-card card card--hoverable">
+        <a href="{{ tag_section.href }}" class="api-home__tag-card card card--hoverable">
           <div class="api-home__tag-header">
             <h3 class="api-home__tag-name">{{ tag_section.title }}</h3>
             <span class="badge badge--secondary">{{ tag_endpoints | length }}</span>
@@ -220,7 +220,7 @@
     <h2 class="api-home__section-title">Schemas</h2>
     <div class="api-home__schema-grid">
       {% for schema in schemas[:12] %}
-      <a href="{{ schema.href ?? (section.url ~ 'schemas/' ~ schema.name ~ '/') }}" class="api-home__schema-card card card--hoverable">
+      <a href="{{ schema.href ?? (section.href ~ 'schemas/' ~ schema.name ~ '/') }}" class="api-home__schema-card card card--hoverable">
         <code class="api-home__schema-name">{{ schema.name }}</code>
         {% with schema.description as desc %}
           {% if desc %}
@@ -230,7 +230,7 @@
       </a>
       {% end %}
       {% if schemas | length > 12 %}
-      <a href="{{ section.url }}schemas/" class="api-home__schema-more card card--hoverable">
+      <a href="{{ section.href }}schemas/" class="api-home__schema-more card card--hoverable">
         <span>View all {{ schemas | length }} schemas →</span>
       </a>
       {% end %}

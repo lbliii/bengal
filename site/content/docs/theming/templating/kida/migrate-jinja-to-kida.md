@@ -375,6 +375,21 @@ bengal serve
 
 ## Troubleshooting
 
+### Validate Templates Before Building
+
+Run template validation to catch syntax errors before a slow build:
+
+```bash
+# Validate all templates
+bengal validate --templates
+
+# Validate with migration hints
+bengal validate --templates --fix
+
+# Validate specific templates
+bengal validate --templates --templates-pattern "autodoc/**/*.html"
+```
+
 ### Template Not Found
 
 ```bash
@@ -392,6 +407,69 @@ Kida is stricter than Jinja2. Check:
 - All blocks properly closed with `{% end %}`
 - Variables defined before use
 - Filter names match Kida syntax
+
+## Common Migration Gotchas
+
+### Include with Variables
+
+Jinja2 allows passing variables directly in the include statement:
+
+**Jinja2** (not supported in Kida):
+```jinja
+{% include 'partial.html' with param=value %}
+```
+
+**Kida** (set variables before include):
+```kida
+{% let param = value %}
+{% include 'partial.html' %}
+```
+
+### Dict Key Access (Method Name Conflicts)
+
+Python dict methods (`items`, `keys`, `values`, `get`) conflict with key access. Using dotted notation returns the method, not the key value.
+
+**Problem**:
+```kida
+{# This returns the items() method, not the 'items' key! #}
+{{ schema.items }}
+```
+
+**Solutions**:
+```kida
+{# Solution 1: Bracket notation #}
+{{ schema['items'] }}
+
+{# Solution 2: get() filter (cleaner syntax) #}
+{{ schema | get('items') }}
+{{ schema | get('items', default_value) }}
+```
+
+### Slice Filter Behavior
+
+Kida's `slice` filter groups items (like Jinja2's slice), it doesn't do string slicing.
+
+```kida
+{# This groups items into 3 slices, not string slicing #}
+{{ items | slice(3) }}
+
+{# For string/list slicing, use Python slice syntax #}
+{{ text[:5] }}
+{{ items[1:4] }}
+```
+
+### Undefined Variables with Nil-Coalescing
+
+In strict mode, use `??` to handle undefined variables safely:
+
+```kida
+{# May error if 'schemas' is undefined in strict mode #}
+{% let schema = schemas[name] if schemas else none %}
+
+{# Safe - ?? handles undefined #}
+{% let schemas_dict = schemas ?? {} %}
+{% let schema = schemas_dict | get(name) %}
+```
 
 ## Complete Example
 

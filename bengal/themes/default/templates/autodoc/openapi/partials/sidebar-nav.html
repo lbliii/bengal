@@ -54,7 +54,7 @@
             {% let is_deprecated = ep_meta?.deprecated ?? false %}
 
             <li class="api-sidebar-nav__endpoint {{ 'api-sidebar-nav__endpoint--active' if is_current else '' }} {{ 'api-sidebar-nav__endpoint--deprecated' if is_deprecated else '' }}">
-              <a href="{{ ep.url }}" class="api-sidebar-nav__link">
+              <a href="{{ ep.href }}" class="api-sidebar-nav__link">
                 {# Method Badge #}
                 {% match ep_meta?.method %}
                   {% case 'GET' %}
@@ -91,7 +91,7 @@
           {% let is_current = current_endpoint and current_endpoint.qualified_name == ep.qualified_name %}
 
           <li class="api-sidebar-nav__endpoint {{ 'api-sidebar-nav__endpoint--active' if is_current else '' }}">
-            <a href="{{ ep.url }}" class="api-sidebar-nav__link">
+            <a href="{{ ep.href }}" class="api-sidebar-nav__link">
               {% match ep_meta?.method %}
                 {% case 'GET' %}
                   <span class="api-method api-method--get api-method--sm">GET</span>

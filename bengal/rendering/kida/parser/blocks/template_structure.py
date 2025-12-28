@@ -74,22 +74,44 @@ class TemplateStructureBlockParsingMixin(BlockStackMixin):
                 if self._current.type == TokenType.NAME and self._current.value == "context":
                     self._advance()  # consume 'context'
                     with_context = True
+                elif self._current.type == TokenType.NAME:
+                    # Detected Jinja2 "with var=value" pattern
+                    raise self._error(
+                        'Jinja2\'s "include with var=value" syntax is not supported',
+                        suggestion=(
+                            "In Kida, set variables before the include:\n"
+                            "  {% let var = value %}\n"
+                            "  {% include 'template.html' %}"
+                        ),
+                    )
                 else:
-                    raise self._error("Expected 'context' after 'with'")
+                    raise self._error(
+                        "Expected 'context' after 'with'",
+                        suggestion=(
+                            "Use '{% include \"template.html\" with context %}' "
+                            "or just '{% include \"template.html\" %}'"
+                        ),
+                    )
             elif keyword == "without":
                 self._advance()  # consume 'without'
                 if self._current.type == TokenType.NAME and self._current.value == "context":
                     self._advance()  # consume 'context'
                     with_context = False
                 else:
-                    raise self._error("Expected 'context' after 'without'")
+                    raise self._error(
+                        "Expected 'context' after 'without'",
+                        suggestion="Use '{% include \"template.html\" without context %}'",
+                    )
             elif keyword == "ignore":
                 self._advance()  # consume 'ignore'
                 if self._current.type == TokenType.NAME and self._current.value == "missing":
                     self._advance()  # consume 'missing'
                     ignore_missing = True
                 else:
-                    raise self._error("Expected 'missing' after 'ignore'")
+                    raise self._error(
+                        "Expected 'missing' after 'ignore'",
+                        suggestion="Use '{% include \"template.html\" ignore missing %}'",
+                    )
             else:
                 break
 

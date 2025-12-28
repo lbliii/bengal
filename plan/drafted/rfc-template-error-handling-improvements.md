@@ -1,9 +1,11 @@
 # RFC: Template Error Handling & Developer Experience Improvements
 
-**Status**: Draft  
+**Status**: Draft → Ready for Review  
 **Created**: 2025-12-27  
+**Updated**: 2025-12-27  
 **Author**: AI Assistant + Lawrence Lane  
 **Priority**: P1 (High)  
+**Estimated Effort**: ~4 hours  
 **Related**: `bengal/rendering/pipeline/autodoc_renderer.py`, `bengal/rendering/kida/`, `bengal/cli/`  
 **Confidence**: 95% 🟢
 
@@ -18,12 +20,12 @@ This RFC proposes improvements to both **Bengal** (error surfacing, validation t
 **Key Problems Identified**:
 1. Parse errors conflated with "not found" errors
 2. Errors logged at `warning` level, easily missed
-3. No pre-build template validation
+3. No CLI access to existing template validation
 4. Jinja2 → Kida migration has undocumented gotchas
 
 **Proposed Solutions**:
 1. Distinguish error types in autodoc renderer
-2. Add `bengal validate-templates` CLI command
+2. Extend `bengal validate` with `--templates` flag (leveraging existing infrastructure)
 3. Add `get()` filter to Kida for safe dict access
 4. Improve error messages for common Jinja2 migration issues
 
@@ -49,8 +51,9 @@ Parse Error: Expected 'context' after 'with'
 
 ### Root Cause Analysis
 
+**Evidence**: `bengal/rendering/pipeline/autodoc_renderer.py:177-188`
+
 ```python
-# bengal/rendering/pipeline/autodoc_renderer.py:177-188
 try:
     template = self.template_engine.env.get_template(f"{template_name}.html")
 except Exception:  # ← Catches ALL exceptions
@@ -72,6 +75,22 @@ except Exception:  # ← Catches ALL exceptions
 
 ---
 
+## Prior Art: Existing Infrastructure
+
+Before implementing, note that Bengal/Kida already provides:
+
+| Component | Location | Status |
+|-----------|----------|--------|
+| `TemplateSyntaxError` | `kida/environment/exceptions.py:60` | ✅ Exists with `lineno`, `name`, `filename` |
+| `TemplateNotFoundError` | `kida/environment/exceptions.py:46` | ✅ Exists |
+| `TemplateRuntimeError` | `kida/environment/exceptions.py:88` | ✅ Exists with `suggestion` field |
+| `KidaTemplateEngine.validate()` | `rendering/engines/kida.py:554` | ✅ Exists, validates all templates |
+| `bengal validate` command | `cli/commands/validate.py` | ✅ Exists for health checks |
+
+**Key insight**: Template validation infrastructure exists but isn't exposed properly.
+
+---
+
 ## Proposed Changes
 
 ### 1. Bengal: Distinguish Error Types in Autodoc Renderer
@@ -88,10 +107,7 @@ except Exception:
 
 **After** (proposed):
 ```python
-from bengal.rendering.kida.environment import (
-    TemplateNotFoundError,
-    TemplateSyntaxError,
-)
+from bengal.rendering.kida import TemplateSyntaxError, TemplateNotFoundError
 
 def _load_autodoc_template(self, template_name: str) -> Template:
     """Load autodoc template with proper error handling.
@@ -101,7 +117,7 @@ def _load_autodoc_template(self, template_name: str) -> Template:
         TemplateNotFoundError: Template doesn't exist (use fallback)
     """
     names_to_try = [f"{template_name}.html", template_name]
-    last_error = None
+    last_error: TemplateNotFoundError | None = None
 
     for name in names_to_try:
         try:
@@ -112,8 +128,8 @@ def _load_autodoc_template(self, template_name: str) -> Template:
                 "autodoc_template_syntax_error",
                 template=name,
                 error=str(e),
-                line=getattr(e, 'lineno', None),
-                source_snippet=self._extract_source_snippet(name, e),
+                line=e.lineno,
+                file=e.filename,
             )
             raise  # Don't silently continue
         except TemplateNotFoundError as e:
@@ -125,9 +141,10 @@ def _load_autodoc_template(self, template_name: str) -> Template:
         "autodoc_template_not_found",
         template=template_name,
         tried=names_to_try,
-        search_paths=self.template_engine.template_dirs,
     )
-    raise last_error
+    if last_error:
+        raise last_error
+    raise TemplateNotFoundError(f"Template '{template_name}' not found")
 ```
 
 **Log Output Improvement**:
@@ -152,72 +169,108 @@ def _load_autodoc_template(self, template_name: str) -> Template:
 
 ---
 
-### 2. Bengal: Add `bengal validate-templates` CLI Command
+### 2. Bengal: Extend `validate` Command with `--templates` Flag
 
-**File**: `bengal/cli/commands/validate.py` (new)
+**File**: `bengal/cli/commands/validate.py` (extend existing)
 
+Rather than creating a new command, extend the existing `bengal validate` to support template validation via `KidaTemplateEngine.validate()`.
+
+**Implementation**:
 ```python
-"""Template validation command for pre-build syntax checking."""
-
-import click
-from pathlib import Path
-from bengal.core import Site
-from bengal.rendering.engines import create_engine
-
-
-@click.command("validate-templates")
-@click.option("--fix", is_flag=True, help="Suggest fixes for common issues")
-@click.option("--pattern", default="**/*.html", help="Glob pattern for templates")
-@click.pass_context
-def validate_templates(ctx, fix: bool, pattern: str):
-    """Validate all templates for syntax errors before building.
+@click.command("validate")
+@click.option(
+    "--templates",
+    is_flag=True,
+    help="Validate template syntax (Kida/Jinja2 templates)",
+)
+@click.option(
+    "--templates-pattern",
+    default=None,
+    help="Glob pattern for templates (e.g., 'autodoc/**/*.html')",
+)
+@click.option(
+    "--fix",
+    is_flag=True,
+    help="Show migration hints for template errors",
+)
+# ... existing options ...
+def validate(
+    templates: bool,
+    templates_pattern: str | None,
+    fix: bool,
+    # ... existing params ...
+):
+    """
+    Validate site health and content quality.
 
     Examples:
-        bengal validate-templates
-        bengal validate-templates --pattern "autodoc/**/*.html"
-        bengal validate-templates --fix
+        bengal validate                              # Health checks
+        bengal validate --templates                  # Template syntax
+        bengal validate --templates --fix            # With migration hints
+        bengal validate --templates-pattern "autodoc/**/*.html"
     """
-    site = Site.from_config(Path.cwd())
-    engine = create_engine(site)
-
-    errors = engine.validate(patterns=[pattern] if pattern != "**/*.html" else None)
-
-    if not errors:
-        click.secho("✓ All templates valid", fg="green")
+    if templates:
+        _validate_templates(site, templates_pattern, fix, cli)
         return
 
-    click.secho(f"✗ Found {len(errors)} template errors:", fg="red")
+    # ... existing health check logic ...
+
+
+def _validate_templates(
+    site: Site,
+    pattern: str | None,
+    show_hints: bool,
+    cli: CLIOutput,
+) -> None:
+    """Validate templates using existing engine.validate() method."""
+    from bengal.rendering.engines import create_engine
+
+    engine = create_engine(site)
+    patterns = [pattern] if pattern else None
+    errors = engine.validate(patterns)
+
+    if not errors:
+        cli.success("✓ All templates valid")
+        return
+
+    cli.error(f"✗ Found {len(errors)} template error(s):")
 
     for error in errors:
-        click.echo()
-        click.secho(f"  {error.template}", fg="yellow")
-        click.echo(f"    Line {error.line}: {error.message}")
+        cli.blank()
+        cli.warning(f"  {error.template}")
+        cli.info(f"    Line {error.line}: {error.message}")
 
-        if fix and error.suggestion:
-            click.secho(f"    💡 {error.suggestion}", fg="cyan")
+        if show_hints and error.suggestion:
+            cli.info(f"    💡 {error.suggestion}")
 
-    ctx.exit(1)
+    raise click.ClickException(f"Template validation failed: {len(errors)} error(s)")
 ```
 
 **Usage**:
 ```bash
 # Validate all templates
-bengal validate-templates
+bengal validate --templates
 
 # Validate only autodoc templates
-bengal validate-templates --pattern "autodoc/**/*.html"
+bengal validate --templates --templates-pattern "autodoc/**/*.html"
 
 # Show migration hints
-bengal validate-templates --fix
+bengal validate --templates --fix
+
+# Combined with content validation
+bengal validate --templates && bengal validate
 ```
 
-**Integration with Build**:
+**Optional: Add to build command**:
 ```python
 # bengal/cli/commands/build.py
-@click.option("--validate/--no-validate", default=True,
-              help="Validate templates before building")
-def build(validate: bool, ...):
-    if validate:
+@click.option(
+    "--validate-templates/--no-validate-templates",
+    default=False,  # Opt-in, not default (builds should be fast)
+    help="Validate templates before building",
+)
+def build(validate_templates: bool, ...):
+    if validate_templates:
         errors = engine.validate()
         if errors:
             # Show errors and exit before wasting time on full build
@@ -226,9 +279,61 @@ def build(validate: bool, ...):
 
 ---
 
-### 3. Kida: Add `get()` Filter for Safe Dict Access
+### 3. Kida: Fix Strict Mode for Attribute/Key Access (BUG)
+
+**File**: `bengal/rendering/kida/compiler/expressions.py`
+
+**Problem**: Strict mode only catches undefined *variables*, not undefined *attributes* or *keys*.
+
+```python
+# Current behavior (WRONG):
+{{ undefined_var }}       # → UndefinedError ✓
+{{ obj.undefined_attr }}  # → '' (silent!) ✗
+{{ dict.missing_key }}    # → '' (silent!) ✗
+```
+
+**Impact**: Templates with typos like `{{ section.url }}` (should be `section.href`) silently render empty strings instead of failing.
+
+**Expected behavior (strict=True)**:
+```python
+{{ obj.undefined_attr }}  # → UndefinedError
+{{ dict.missing_key }}    # → UndefinedError
+```
+
+**Root Cause**: The attribute resolver catches `AttributeError` and `KeyError` and returns `None`/empty string instead of checking strict mode.
+
+**Fix**: In the attribute/key access compiler, check strict mode and raise `UndefinedError`:
+
+```python
+def _resolve_attr(obj, attr, strict=False):
+    """Resolve attribute with strict mode support."""
+    # Try attribute access
+    try:
+        return getattr(obj, attr)
+    except AttributeError:
+        pass
+
+    # Try item access
+    try:
+        return obj[attr]
+    except (KeyError, TypeError, IndexError):
+        pass
+
+    # Both failed - check strict mode
+    if strict:
+        raise UndefinedError(f"Undefined attribute '{attr}' on {type(obj).__name__}")
+
+    return None  # Non-strict: return None (becomes '')
+```
+
+---
+
+### 4. Kida: Add `get()` Filter for Safe Dict Access (Optional after #3)
 
 **File**: `bengal/rendering/kida/environment/filters.py`
+
+> Note: After fixing #3, this becomes optional since strict mode will catch typos.
+> Still useful for intentionally optional attributes.
 
 **Problem**: Python dict methods (`.items`, `.keys`, `.get`) conflict with dict key access.
 
@@ -244,7 +349,7 @@ def build(validate: bool, ...):
 {{ schema | get('items', default_value) }}
 ```
 
-**Implementation**:
+**Implementation** (simplified):
 ```python
 def _filter_get(value: Any, key: str, default: Any = None) -> Any:
     """Safe dictionary/object access.
@@ -268,22 +373,12 @@ def _filter_get(value: Any, key: str, default: Any = None) -> Any:
     if value is None:
         return default
 
-    # Try dict-style access first
+    # Dict access (handles method name conflicts)
     if isinstance(value, dict):
         return value.get(key, default)
 
-    # Try attribute access for objects
-    try:
-        result = getattr(value, key, None)
-        # Don't return bound methods - that's a key conflict
-        if callable(result) and hasattr(value, '__getitem__'):
-            try:
-                return value[key]
-            except (KeyError, TypeError):
-                return default
-        return result if result is not None else default
-    except Exception:
-        return default
+    # Object attribute access
+    return getattr(value, key, default)
 
 
 # Register in DEFAULT_FILTERS
@@ -295,11 +390,11 @@ DEFAULT_FILTERS = {
 
 ---
 
-### 4. Kida: Better Error Messages for Jinja2 Migration
+### 5. Kida: Better Error Messages for Jinja2 Migration
 
 **File**: `bengal/rendering/kida/parser/blocks/template_structure.py`
 
-**Current Error**:
+**Current Error** (line 78):
 ```
 Parse Error: Expected 'context' after 'with'
 ```
@@ -323,18 +418,19 @@ Parse Error: Jinja2's "include with var=value" syntax is not supported.
 ```python
 def _parse_include(self) -> Include:
     """Parse {% include "partial.html" [with context] [ignore missing] %}."""
-    start = self._advance()
+    start = self._advance()  # consume 'include'
     template = self._parse_expression()
 
     with_context = True
     ignore_missing = False
 
+    # Parse optional modifiers
     while self._current.type == TokenType.NAME:
         keyword = self._current.value
         if keyword == "with":
-            self._advance()
+            self._advance()  # consume 'with'
             if self._current.type == TokenType.NAME and self._current.value == "context":
-                self._advance()
+                self._advance()  # consume 'context'
                 with_context = True
             elif self._current.type == TokenType.NAME:
                 # Detected Jinja2 "with var=value" pattern
@@ -347,17 +443,25 @@ def _parse_include(self) -> Include:
                     ),
                 )
             else:
-                raise self._error("Expected 'context' after 'with'")
-        # ... rest of parsing
+                raise self._error(
+                    "Expected 'context' after 'with'",
+                    suggestion="Use '{% include \"template.html\" with context %}' or just '{% include \"template.html\" %}'"
+                )
+        # ... rest of parsing unchanged
 ```
 
 ---
 
-### 5. Kida: Document Common Gotchas
+### 6. Documentation: Migration Guide
 
-**File**: `docs/kida/migration-from-jinja2.md` (new)
+**File**: `site/reference/kida/migration-from-jinja2.md` (new)
 
 ```markdown
+---
+title: Migrating from Jinja2 to Kida
+description: Common gotchas and syntax differences when migrating templates
+---
+
 # Migrating from Jinja2 to Kida
 
 ## Syntax Differences
@@ -398,10 +502,10 @@ Python dict methods (`items`, `keys`, `values`, `get`) conflict with key access.
 Kida's `slice` filter groups items (like Jinja2), it doesn't do string slicing.
 
 ```jinja
-{# Wrong - this groups into 0 slices (error!) #}
-{{ status | slice(0, 1) }}
+{# Wrong - this groups into slices #}
+{{ items | slice(3) }}
 
-{# Correct - Python slice syntax #}
+{# Correct for string/list slicing #}
 {{ status[:1] }}
 ```
 
@@ -415,7 +519,16 @@ In strict mode, use `??` to handle undefined variables:
 
 {# Safe - ?? handles undefined #}
 {% let schemas_dict = schemas ?? {} %}
-{% let schema = schemas_dict.get(name) %}
+{% let schema = schemas_dict | get(name) %}
+```
+
+## Validation
+
+Run template validation before building:
+
+```bash
+bengal validate --templates
+bengal validate --templates --fix  # Show migration hints
 ```
 ```
 
@@ -423,38 +536,47 @@ In strict mode, use `??` to handle undefined variables:
 
 ## Implementation Plan
 
-### Phase 1: Error Handling (Bengal) - 2 hours
+### Phase 1: Error Handling (Bengal) - 1 hour
 - [ ] Refactor `autodoc_renderer.py` to distinguish error types
-- [ ] Add source snippet extraction for syntax errors
+- [ ] Import specific exception types from `bengal.rendering.kida`
 - [ ] Update log levels (syntax errors → ERROR)
-- [ ] Add error codes for programmatic handling
 
-### Phase 2: CLI Validation (Bengal) - 2 hours
-- [ ] Create `validate-templates` command
-- [ ] Add `--validate` flag to build command
-- [ ] Output structured errors with suggestions
+### Phase 2: CLI Integration (Bengal) - 1 hour
+- [ ] Add `--templates` flag to existing `validate` command
+- [ ] Add `--templates-pattern` for filtering
+- [ ] Add `--fix` flag for migration hints
+- [ ] Wire up `engine.validate()` to CLI output
 
-### Phase 3: Kida Filters - 1 hour
+### Phase 3: Kida Strict Mode Fix (CRITICAL) - 2 hours
+- [ ] Fix attribute resolver to check strict mode
+- [ ] Fix key resolver to check strict mode  
+- [ ] Raise `UndefinedError` for undefined attrs/keys in strict mode
+- [ ] Add comprehensive tests for strict mode behavior
+- [ ] Verify backwards compatibility for non-strict mode
+
+### Phase 4: Kida Filters - 30 minutes
 - [ ] Add `get(key, default)` filter
-- [ ] Add comprehensive tests
+- [ ] Add tests for dict method name conflicts
 
-### Phase 4: Kida Error Messages - 1 hour
-- [ ] Improve `include with` error message
+### Phase 5: Kida Error Messages - 30 minutes
+- [ ] Improve `include with` error detection
+- [ ] Add `suggestion` parameter to parser errors
 - [ ] Add migration hints to common errors
-- [ ] Add `suggestion` field to `TemplateSyntaxError`
 
-### Phase 5: Documentation - 1 hour
-- [ ] Create migration guide
+### Phase 6: Documentation - 1 hour
+- [ ] Create migration guide at `site/reference/kida/`
 - [ ] Document common gotchas
 - [ ] Add examples to filter docs
+
+**Total**: ~6 hours
 
 ---
 
 ## Success Criteria
 
-1. **Parse errors immediately visible**: Syntax errors show at ERROR level with source snippets
+1. **Parse errors immediately visible**: Syntax errors show at ERROR level with source location
 2. **Clear error messages**: Developers understand what's wrong and how to fix it
-3. **Pre-build validation**: `bengal validate-templates` catches errors before slow build
+3. **Pre-build validation**: `bengal validate --templates` catches errors before slow build
 4. **Migration path**: Jinja2 users get helpful hints when using unsupported syntax
 5. **Safe dict access**: `| get('items')` provides clean alternative to bracket notation
 
@@ -474,11 +596,17 @@ In strict mode, use `??` to handle undefined variables:
 **Cons**: Silently produces broken output, harder to debug  
 **Decision**: Rejected - fail fast is better for development
 
-### 3. Runtime Template Validation Only
+### 3. Create New `validate-templates` Command
+
+**Pros**: Clear separation of concerns  
+**Cons**: Duplicates infrastructure, `engine.validate()` already exists  
+**Decision**: Rejected - extend existing `validate` command instead
+
+### 4. Runtime Template Validation Only
 
 **Pros**: Simpler implementation  
 **Cons**: Slow builds waste time before showing errors  
-**Decision**: Add both CLI validation AND better runtime errors
+**Decision**: Add CLI validation AND better runtime errors
 
 ---
 
@@ -507,13 +635,15 @@ error=Template 'autodoc/openapi/list' not found in: /path/to/templates
       {% let param = param %}
       {% include 'autodoc/openapi/partials/param-row.html' %}
 
-   See: https://bengal.dev/docs/kida/migration-from-jinja2
+   See: https://bengal.dev/reference/kida/migration-from-jinja2
 ```
 
 ---
 
 ## References
 
-- [Kida Template Engine Documentation](../docs/kida/)
-- [Bengal Rendering Pipeline](../bengal/rendering/pipeline/)
-- [Incident: Template Cache Debugging Session](./incidents/2025-12-27-template-cache-confusion.md)
+- **Kida Exception Hierarchy**: `bengal/rendering/kida/environment/exceptions.py`
+- **Existing Validation**: `bengal/rendering/engines/kida.py:554`
+- **Current Validate Command**: `bengal/cli/commands/validate.py`
+- **Include Parser**: `bengal/rendering/kida/parser/blocks/template_structure.py:61-104`
+- **Incident**: Template Cache Debugging Session (2025-12-27)

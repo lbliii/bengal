@@ -730,6 +730,42 @@ def _filter_attr(value: Any, name: str) -> Any:
         return ""
 
 
+def _filter_get(value: Any, key: str, default: Any = None) -> Any:
+    """Safe dictionary/object access that avoids Python method name conflicts.
+
+    When accessing dict keys like 'items', 'keys', 'values', or 'get', using
+    dotted access (e.g., ``schema.items``) returns the method, not the key value.
+    This filter provides clean syntax for safe key access.
+
+    Examples:
+        {{ user | get('name') }}              # Get 'name' key
+        {{ config | get('timeout', 30) }}     # With default value
+        {{ schema | get('items') }}           # Safe access to 'items' key
+        {{ data | get('keys') }}              # Safe access to 'keys' key
+
+    Args:
+        value: Dict, object, or None to access
+        key: Key or attribute name to access
+        default: Value to return if key doesn't exist (default: None)
+
+    Returns:
+        value[key] if exists, else default
+
+    Note:
+        This avoids conflicts with Python's built-in dict method names
+        (items, keys, values, get) that would otherwise shadow key access.
+    """
+    if value is None:
+        return default
+
+    # Dict access (handles method name conflicts)
+    if isinstance(value, dict):
+        return value.get(key, default)
+
+    # Object attribute access
+    return getattr(value, key, default)
+
+
 def _filter_format(value: str, *args: Any, **kwargs: Any) -> str:
     """Format string with args/kwargs."""
     return str(value).format(*args, **kwargs)
@@ -1064,4 +1100,6 @@ DEFAULT_FILTERS: dict[str, Callable] = {
     # Debugging and validation filters
     "require": _filter_require,
     "debug": _filter_debug,
+    # Safe access filter (avoids Python method name conflicts)
+    "get": _filter_get,
 }

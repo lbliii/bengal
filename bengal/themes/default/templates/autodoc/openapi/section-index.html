@@ -24,7 +24,7 @@ Context:
     <ol class="breadcrumb">
       {% if section.parent %}
       <li class="breadcrumb__item">
-        <a href="{{ section.parent.url }}">{{ section.parent.title }}</a>
+        <a href="{{ section.parent.href }}">{{ section.parent.title }}</a>
       </li>
       {% end %}
       <li class="breadcrumb__item">
@@ -51,7 +51,7 @@ Context:
     <h2 class="api-section-index__section-title">Categories</h2>
     <div class="api-section-index__grid">
       {% for child in child_sections %}
-      <a href="{{ child.url }}" class="api-section-index__card card card--hoverable">
+      <a href="{{ child.href }}" class="api-section-index__card card card--hoverable">
         <h3 class="api-section-index__card-title">{{ child.title }}</h3>
         {% with child.metadata.description as desc %}
         {% if desc %}
@@ -74,7 +74,7 @@ Context:
       {% for child in child_pages %}
       {# Skip the index page itself #}
       {% if child != section.index_page %}
-      <a href="{{ child.url }}" class="api-section-index__card card card--hoverable">
+      <a href="{{ child.href }}" class="api-section-index__card card card--hoverable">
         <h3 class="api-section-index__card-title">{{ child.title }}</h3>
         {% with child.metadata.description as desc %}
         {% if desc %}

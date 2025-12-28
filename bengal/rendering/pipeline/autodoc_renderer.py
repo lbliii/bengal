@@ -15,12 +15,17 @@ from __future__ import annotations
 from contextlib import suppress
 from typing import TYPE_CHECKING, Any
 
+from bengal.rendering.kida.environment.exceptions import (
+    TemplateNotFoundError,
+    TemplateSyntaxError,
+)
 from bengal.rendering.pipeline.output import determine_output_path, format_html, write_output
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
     from bengal.rendering.engines.protocol import TemplateEngine
+    from bengal.rendering.kida.template import Template
     from bengal.rendering.renderer import Renderer
 
 logger = get_logger(__name__)
@@ -172,31 +177,32 @@ class AutodocRenderer:
         if hasattr(self.site, "mark_active_menu_items"):
             self.site.mark_active_menu_items(page)
 
-        # Use the site's template engine (which has full context: menus, globals, etc.)
-        # This ensures autodoc pages have the same nav/header as regular pages
+        # Load template with proper error handling
+        # Distinguishes between syntax errors (fail fast) and not-found errors (fallback)
         try:
-            template = self.template_engine.env.get_template(f"{template_name}.html")
-        except Exception:
-            # Try without .html extension
-            try:
-                template = self.template_engine.env.get_template(template_name)
-            except Exception as e:
-                logger.warning(
-                    "autodoc_template_not_found",
-                    template=template_name,
-                    error=str(e),
-                )
-                # Tag page metadata to indicate fallback was used
-                page.metadata["_autodoc_fallback_template"] = True
-                page.metadata["_autodoc_fallback_reason"] = str(e)
-                # Fall back to rendering as regular virtual page
-                fallback_desc = getattr(element, "description", "") if element else ""
-                page._prerendered_html = f"<h1>{page.title}</h1><p>{fallback_desc}</p>"
-                page.parsed_ast = page._prerendered_html
-                page.toc = ""
-                page.rendered_html = self.renderer.render_page(page, page._prerendered_html)
-                page.rendered_html = format_html(page.rendered_html, page, self.site)
-                return
+            template = self._load_autodoc_template(template_name)
+        except TemplateSyntaxError:
+            # Syntax error = fail fast, no fallback
+            # Error already logged by _load_autodoc_template
+            raise
+        except TemplateNotFoundError as e:
+            # Template not found = use fallback rendering
+            logger.warning(
+                "autodoc_template_not_found",
+                template=template_name,
+                error=str(e),
+            )
+            # Tag page metadata to indicate fallback was used
+            page.metadata["_autodoc_fallback_template"] = True
+            page.metadata["_autodoc_fallback_reason"] = str(e)
+            # Fall back to rendering as regular virtual page
+            fallback_desc = getattr(element, "description", "") if element else ""
+            page._prerendered_html = f"<h1>{page.title}</h1><p>{fallback_desc}</p>"
+            page.parsed_ast = page._prerendered_html
+            page.toc = ""
+            page.rendered_html = self.renderer.render_page(page, page._prerendered_html)
+            page.rendered_html = format_html(page.rendered_html, page, self.site)
+            return
 
         # Render with full site context (same as regular pages)
         # Prefer explicit _section reference set by orchestrators; fall back to page.section
@@ -274,6 +280,48 @@ class AutodocRenderer:
         page._toc_items_cache = []  # Set private cache, not read-only property
         page.rendered_html = html_content
         page.rendered_html = format_html(page.rendered_html, page, self.site)
+
+    def _load_autodoc_template(self, template_name: str) -> Template:
+        """Load autodoc template with proper error handling.
+
+        Distinguishes between:
+        - TemplateSyntaxError: Parse errors (fail fast, don't try fallback)
+        - TemplateNotFoundError: Template doesn't exist (try fallback names)
+
+        Args:
+            template_name: Base template name (e.g., "autodoc/python/module")
+
+        Returns:
+            Loaded Template object
+
+        Raises:
+            TemplateSyntaxError: Template has parse errors (fail fast)
+            TemplateNotFoundError: Template doesn't exist after trying all names
+        """
+        names_to_try = [f"{template_name}.html", template_name]
+        last_error: TemplateNotFoundError | None = None
+
+        for name in names_to_try:
+            try:
+                return self.template_engine.env.get_template(name)
+            except TemplateSyntaxError as e:
+                # Syntax error = fail fast, don't try fallback
+                logger.error(
+                    "autodoc_template_syntax_error",
+                    template=name,
+                    error=str(e),
+                    line=getattr(e, "lineno", None),
+                    file=getattr(e, "filename", None),
+                )
+                raise  # Don't silently continue
+            except TemplateNotFoundError as e:
+                last_error = e
+                continue  # Try next name
+
+        # All names exhausted - actually not found
+        if last_error:
+            raise last_error
+        raise TemplateNotFoundError(f"Template '{template_name}' not found")
 
     def _normalize_autodoc_element(self, element: Any) -> Any:
         """

@@ -29,7 +29,7 @@ Context:
         <ol class="breadcrumb">
             {% if section.parent %}
             <li class="breadcrumb__item">
-                <a href="{{ section.parent.url }}">{{ section.parent.title }}</a>
+                <a href="{{ section.parent.href }}">{{ section.parent.title }}</a>
             </li>
             {% end %}
             <li class="breadcrumb__item">

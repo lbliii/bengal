@@ -79,6 +79,21 @@ if TYPE_CHECKING:
     type=click.Choice([s.value for s in TracebackStyle]),
     help="Traceback verbosity: full | compact | minimal | off",
 )
+@click.option(
+    "--templates",
+    is_flag=True,
+    help="Validate template syntax (Kida/Jinja2 templates)",
+)
+@click.option(
+    "--templates-pattern",
+    default=None,
+    help="Glob pattern for templates (e.g., 'autodoc/**/*.html')",
+)
+@click.option(
+    "--fix",
+    is_flag=True,
+    help="Show migration hints for template errors",
+)
 @click.argument("source", type=click.Path(exists=True), default=".")
 def validate(
     files: tuple[Path, ...],
@@ -90,6 +105,9 @@ def validate(
     incremental: bool,
     ignore: tuple[str, ...],
     traceback: str | None,
+    templates: bool,
+    templates_pattern: str | None,
+    fix: bool,
     source: str,
 ) -> None:
     """
@@ -105,6 +123,9 @@ def validate(
         bengal validate --profile writer
         bengal validate --verbose
         bengal validate --ignore H101 --ignore H202
+        bengal validate --templates
+        bengal validate --templates --fix
+        bengal validate --templates --templates-pattern "autodoc/**/*.html"
 
     See also:
         bengal site build - Build the site
@@ -133,6 +154,11 @@ def validate(
     site.discover_assets()
 
     cli.success(f"Loaded {len(site.pages)} pages")
+
+    # Handle template validation mode
+    if templates:
+        _validate_templates(site, templates_pattern, fix, cli)
+        return
 
     # Determine context for validation
     context: list[Path] | None = None
@@ -334,3 +360,87 @@ def _run_watch_mode(
         run_async(_watch_loop())
     except KeyboardInterrupt:
         signal_handler(signal.SIGINT, None)
+
+
+def _validate_templates(
+    site: Site,
+    pattern: str | None,
+    show_hints: bool,
+    cli: CLIOutput,
+) -> None:
+    """Validate templates using existing engine.validate() method.
+
+    Args:
+        site: Site instance with template engine
+        pattern: Optional glob pattern to filter templates
+        show_hints: Whether to show migration hints for errors
+        cli: CLI output instance
+
+    Raises:
+        click.ClickException: If template validation fails
+    """
+    from bengal.rendering.engines import create_engine
+
+    cli.blank()
+    cli.info("Validating templates...")
+
+    # Create the template engine
+    engine = create_engine(site)
+
+    # Build patterns list if provided
+    patterns = [pattern] if pattern else None
+
+    # Validate templates
+    errors = engine.validate(patterns)
+
+    if not errors:
+        cli.blank()
+        cli.success("✓ All templates valid")
+        return
+
+    cli.blank()
+    cli.error(f"✗ Found {len(errors)} template error(s):")
+
+    for error in errors:
+        cli.blank()
+        cli.warning(f"  Template: {error.template}")
+        if error.line:
+            cli.info(f"    Line {error.line}: {error.message}")
+        else:
+            cli.info(f"    {error.message}")
+
+        # Show migration hints if requested and available
+        if show_hints:
+            suggestion = getattr(error, "suggestion", None)
+            if suggestion:
+                cli.info(f"    💡 {suggestion}")
+            else:
+                # Provide common migration hints based on error type
+                _show_migration_hint(error, cli)
+
+    cli.blank()
+    raise click.ClickException(f"Template validation failed: {len(errors)} error(s)")
+
+
+def _show_migration_hint(error: Any, cli: CLIOutput) -> None:
+    """Show migration hints for common Jinja2 → Kida issues.
+
+    Args:
+        error: Template error object
+        cli: CLI output instance
+    """
+    message = error.message.lower() if error.message else ""
+
+    # Common Jinja2 migration patterns
+    if "include" in message and "with" in message:
+        cli.info("    💡 Hint: Kida uses {% let var=value %} before {% include %}")
+        cli.info("             instead of Jinja2's 'include with var=value' syntax.")
+    elif "items" in message or "keys" in message or "values" in message:
+        cli.info("    💡 Hint: Use {{ dict | get('items') }} instead of {{ dict.items }}")
+        cli.info("             to avoid conflicts with Python dict method names.")
+    elif "undefined" in message:
+        cli.info("    💡 Hint: Use {{ var ?? default }} or {{ var | default(value) }}")
+        cli.info("             to handle undefined variables.")
+    elif "slice" in message:
+        cli.info("    💡 Hint: Kida's slice filter groups items (like Jinja2).")
+        cli.info("             For string slicing, use {{ text[:5] }} syntax.")
