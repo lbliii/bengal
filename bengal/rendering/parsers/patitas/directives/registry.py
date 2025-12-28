@@ -186,18 +186,24 @@ def create_default_registry() -> DirectiveRegistry:
     """Create registry with all built-in directives.
 
     Returns:
-        Registry with admonitions, tabs, dropdown, etc.
+        Registry with admonitions, tabs, dropdown, container, steps, etc.
     """
     from bengal.rendering.parsers.patitas.directives.builtins import (
         AdmonitionDirective,
+        ContainerDirective,
         DropdownDirective,
+        StepDirective,
+        StepsDirective,
         TabItemDirective,
         TabSetDirective,
     )
 
     builder = DirectiveRegistryBuilder()
     builder.register(AdmonitionDirective())
+    builder.register(ContainerDirective())
     builder.register(DropdownDirective())
+    builder.register(StepDirective())
+    builder.register(StepsDirective())
     builder.register(TabSetDirective())
     builder.register(TabItemDirective())
 
