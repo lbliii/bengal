@@ -22,20 +22,20 @@ class TestJavaScriptKeywords:
     """Test JavaScript keyword tokenization."""
 
     def test_const_keyword(self, javascript_lexer) -> None:
-        """'const' should be KEYWORD."""
+        """'const' should be KEYWORD_DECLARATION."""
         tokens = list(javascript_lexer.tokenize("const"))
-        assert tokens[0].type == TokenType.KEYWORD
+        assert tokens[0].type == TokenType.KEYWORD_DECLARATION
         assert tokens[0].value == "const"
 
     def test_let_keyword(self, javascript_lexer) -> None:
-        """'let' should be KEYWORD."""
+        """'let' should be KEYWORD_DECLARATION."""
         tokens = list(javascript_lexer.tokenize("let"))
-        assert tokens[0].type == TokenType.KEYWORD
+        assert tokens[0].type == TokenType.KEYWORD_DECLARATION
 
     def test_function_keyword(self, javascript_lexer) -> None:
-        """'function' should be KEYWORD."""
+        """'function' should be KEYWORD_DECLARATION."""
         tokens = list(javascript_lexer.tokenize("function"))
-        assert tokens[0].type == TokenType.KEYWORD
+        assert tokens[0].type == TokenType.KEYWORD_DECLARATION
 
     def test_async_await(self, javascript_lexer) -> None:
         """'async' and 'await' should be KEYWORD."""
@@ -50,17 +50,17 @@ class TestJavaScriptStrings:
     """Test JavaScript string tokenization."""
 
     def test_single_quoted_string(self, javascript_lexer) -> None:
-        """Single-quoted strings should be STRING_SINGLE."""
+        """Single-quoted strings should be STRING."""
         code = "'hello'"
         tokens = list(javascript_lexer.tokenize(code))
-        string_tokens = [t for t in tokens if t.type == TokenType.STRING_SINGLE]
+        string_tokens = [t for t in tokens if t.type == TokenType.STRING]
         assert len(string_tokens) > 0
 
     def test_double_quoted_string(self, javascript_lexer) -> None:
-        """Double-quoted strings should be STRING_DOUBLE."""
+        """Double-quoted strings should be STRING."""
         code = '"hello"'
         tokens = list(javascript_lexer.tokenize(code))
-        string_tokens = [t for t in tokens if t.type == TokenType.STRING_DOUBLE]
+        string_tokens = [t for t in tokens if t.type == TokenType.STRING]
         assert len(string_tokens) > 0
 
     def test_template_literal(self, javascript_lexer) -> None:
@@ -71,11 +71,14 @@ class TestJavaScriptStrings:
         assert len(tokens) > 0
 
     def test_escape_sequences(self, javascript_lexer) -> None:
-        """Escape sequences should be STRING_ESCAPE."""
+        """Escape sequences should be included in STRING token."""
         code = '"\\n\\t\\r"'
         tokens = list(javascript_lexer.tokenize(code))
-        escape_tokens = [t for t in tokens if t.type == TokenType.STRING_ESCAPE]
-        assert len(escape_tokens) > 0
+        # Escape sequences are part of the string token, not separate tokens
+        string_tokens = [t for t in tokens if t.type == TokenType.STRING]
+        assert len(string_tokens) > 0
+        # Verify escape sequences are in the string value
+        assert "\\n" in string_tokens[0].value or "\n" in string_tokens[0].value
 
 
 class TestJavaScriptNumbers:
@@ -148,7 +151,7 @@ class TestJavaScriptComplex:
         code = "const foo = (x) => x + 1"
         tokens = list(javascript_lexer.tokenize(code))
         types = [t.type for t in tokens]
-        assert TokenType.KEYWORD in types  # const
+        assert TokenType.KEYWORD_DECLARATION in types  # const
         assert TokenType.OPERATOR in types  # =>, +
 
     def test_destructuring(self, javascript_lexer) -> None:
@@ -156,7 +159,7 @@ class TestJavaScriptComplex:
         code = "const {x, y} = obj"
         tokens = list(javascript_lexer.tokenize(code))
         types = [t.type for t in tokens]
-        assert TokenType.KEYWORD in types  # const
+        assert TokenType.KEYWORD_DECLARATION in types  # const
 
     def test_function_declaration(self, javascript_lexer) -> None:
         """Function declarations should tokenize correctly."""

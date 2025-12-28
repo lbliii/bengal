@@ -90,7 +90,17 @@ class Lexer:
         Complexity: O(n) where n = len(source)
         Memory: O(1) iterator (tokens yielded, not accumulated)
         """
+        iterations = 0
+        max_iterations = len(self._source) * 2 + 100  # Safety limit
+
         while self._pos < len(self._source):
+            iterations += 1
+            if iterations > max_iterations:
+                raise RuntimeError(
+                    f"Lexer infinite loop detected: pos={self._pos}, "
+                    f"len={len(self._source)}, mode={self._mode}, "
+                    f"fence_char={repr(self._fence_char)}, fence_count={self._fence_count}"
+                )
             yield from self._dispatch_mode()
 
         yield Token(TokenType.EOF, "", self._location())
@@ -250,8 +260,8 @@ class Lexer:
             indent += 1
             self._advance()
 
-        # Check for closing fence
-        if self._peek() == self._fence_char:
+        # Check for closing fence (only if fence_char is set)
+        if self._fence_char and self._peek() == self._fence_char:
             fence_start = self._pos
             count = 0
             while self._peek() == self._fence_char:
@@ -279,18 +289,37 @@ class Lexer:
             self._pos = start_pos
 
         # Scan content line
-        line_start = start_pos
+        line_start = self._pos
+
+        # Handle EOF case - if we're at EOF, we need to close the fence implicitly
+        if self._peek() == "":
+            # At EOF without closing fence - close it implicitly
+            self._mode = LexerMode.BLOCK
+            # Yield any remaining content (should be empty at EOF)
+            if line_start < len(self._source):
+                content = self._source[line_start:]
+                yield Token(TokenType.FENCED_CODE_CONTENT, content, self._location_from(start_pos))
+            # Ensure we're past EOF to exit the main loop
+            self._pos = len(self._source)
+            return
+
+        # Scan until newline or EOF
         while self._peek() not in "\n" and self._peek() != "":
             self._advance()
 
         content = self._source[line_start : self._pos]
 
-        # Consume newline
+        # Consume newline (if present)
         if self._peek() == "\n":
             self._advance()
             content += "\n"
+        elif self._peek() == "":
+            # At EOF - ensure we advance past it
+            self._pos = len(self._source)
 
-        yield Token(TokenType.FENCED_CODE_CONTENT, content, self._location_from(start_pos))
+        # Only yield non-empty content (empty lines are handled elsewhere)
+        if content:
+            yield Token(TokenType.FENCED_CODE_CONTENT, content, self._location_from(start_pos))
 
     def _try_scan_thematic_break(self, char: str, start_pos: int) -> Token | None:
         """Try to scan a thematic break (---, ***, ___).

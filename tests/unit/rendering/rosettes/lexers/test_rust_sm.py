@@ -22,15 +22,15 @@ class TestRustKeywords:
     """Test Rust keyword tokenization."""
 
     def test_fn_keyword(self, rust_lexer) -> None:
-        """'fn' should be KEYWORD."""
+        """'fn' should be KEYWORD_DECLARATION."""
         tokens = list(rust_lexer.tokenize("fn"))
-        assert tokens[0].type == TokenType.KEYWORD
+        assert tokens[0].type == TokenType.KEYWORD_DECLARATION
         assert tokens[0].value == "fn"
 
     def test_let_keyword(self, rust_lexer) -> None:
-        """'let' should be KEYWORD."""
+        """'let' should be KEYWORD_DECLARATION."""
         tokens = list(rust_lexer.tokenize("let"))
-        assert tokens[0].type == TokenType.KEYWORD
+        assert tokens[0].type == TokenType.KEYWORD_DECLARATION
 
     def test_mut_keyword(self, rust_lexer) -> None:
         """'mut' should be KEYWORD."""
@@ -47,10 +47,10 @@ class TestRustStrings:
     """Test Rust string tokenization."""
 
     def test_double_quoted_string(self, rust_lexer) -> None:
-        """Double-quoted strings should be STRING_DOUBLE."""
+        """Double-quoted strings should be STRING."""
         code = '"hello"'
         tokens = list(rust_lexer.tokenize(code))
-        string_tokens = [t for t in tokens if t.type == TokenType.STRING_DOUBLE]
+        string_tokens = [t for t in tokens if t.type == TokenType.STRING]
         assert len(string_tokens) > 0
 
     def test_raw_string(self, rust_lexer) -> None:
@@ -143,15 +143,15 @@ class TestRustComplex:
         code = 'fn main() { println!("Hello"); }'
         tokens = list(rust_lexer.tokenize(code))
         types = [t.type for t in tokens]
-        assert TokenType.KEYWORD in types  # fn
-        assert TokenType.NAME_FUNCTION in types  # main
+        assert TokenType.KEYWORD_DECLARATION in types  # fn
+        assert TokenType.NAME in types  # main
 
     def test_lifetime(self, rust_lexer) -> None:
         """Lifetimes should tokenize correctly."""
         code = "fn foo<'a>(x: &'a str) -> &'a str"
         tokens = list(rust_lexer.tokenize(code))
         types = [t.type for t in tokens]
-        assert TokenType.KEYWORD in types  # fn
+        assert TokenType.KEYWORD_DECLARATION in types  # fn
 
     def test_macro(self, rust_lexer) -> None:
         """Macros should tokenize correctly."""

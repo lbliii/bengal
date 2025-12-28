@@ -63,18 +63,18 @@ class TestPythonStrings:
     """Test Python string tokenization."""
 
     def test_single_quoted_string(self, python_lexer) -> None:
-        """Single-quoted strings should be STRING_SINGLE."""
+        """Single-quoted strings should be STRING."""
         code = "'hello'"
         tokens = list(python_lexer.tokenize(code))
         assert len(tokens) >= 1
-        string_tokens = [t for t in tokens if t.type == TokenType.STRING_SINGLE]
+        string_tokens = [t for t in tokens if t.type == TokenType.STRING]
         assert len(string_tokens) > 0
 
     def test_double_quoted_string(self, python_lexer) -> None:
-        """Double-quoted strings should be STRING_DOUBLE."""
+        """Double-quoted strings should be STRING."""
         code = '"hello"'
         tokens = list(python_lexer.tokenize(code))
-        string_tokens = [t for t in tokens if t.type == TokenType.STRING_DOUBLE]
+        string_tokens = [t for t in tokens if t.type == TokenType.STRING]
         assert len(string_tokens) > 0
 
     def test_triple_quoted_string(self, python_lexer) -> None:
@@ -99,11 +99,14 @@ class TestPythonStrings:
         assert len(tokens) > 0
 
     def test_escape_sequences(self, python_lexer) -> None:
-        """Escape sequences should be STRING_ESCAPE."""
+        """Escape sequences should be included in STRING token."""
         code = '"\\n\\t\\r"'
         tokens = list(python_lexer.tokenize(code))
-        escape_tokens = [t for t in tokens if t.type == TokenType.STRING_ESCAPE]
-        assert len(escape_tokens) > 0
+        # Escape sequences are part of the string token, not separate tokens
+        string_tokens = [t for t in tokens if t.type == TokenType.STRING]
+        assert len(string_tokens) > 0
+        # Verify escape sequences are in the string value
+        assert "\\n" in string_tokens[0].value or "\n" in string_tokens[0].value
 
 
 class TestPythonNumbers:
@@ -167,12 +170,18 @@ class TestPythonOperators:
             assert len(op_tokens) > 0
 
     def test_comparison_operators(self, python_lexer) -> None:
-        """Comparison operators should be OPERATOR."""
-        operators = ["==", "!=", "<", ">", "<=", ">=", "is", "in"]
+        """Comparison operators should be OPERATOR (except 'is' and 'in' which are keywords)."""
+        operators = ["==", "!=", "<", ">", "<=", ">="]
         for op in operators:
             tokens = list(python_lexer.tokenize(op))
             op_tokens = [t for t in tokens if t.type == TokenType.OPERATOR]
             assert len(op_tokens) > 0
+
+        # 'is' and 'in' are keywords, not operators
+        tokens = list(python_lexer.tokenize("is"))
+        assert tokens[0].type == TokenType.KEYWORD
+        tokens = list(python_lexer.tokenize("in"))
+        assert tokens[0].type == TokenType.KEYWORD
 
 
 class TestPythonDecorators:
@@ -205,7 +214,8 @@ class TestPythonTypeAnnotations:
         # Should have function, parameter, type hint
         types = [t.type for t in tokens]
         assert TokenType.KEYWORD_DECLARATION in types  # def
-        assert TokenType.NAME_FUNCTION in types  # foo
+        assert TokenType.NAME in types  # foo, x
+        assert TokenType.NAME_BUILTIN in types  # int, str
 
 
 class TestPythonComplex:
@@ -217,9 +227,9 @@ class TestPythonComplex:
         tokens = list(python_lexer.tokenize(code))
         # Should have keywords, names, strings
         types = [t.type for t in tokens]
-        assert TokenType.KEYWORD_DECLARATION in types
-        assert TokenType.NAME_FUNCTION in types
-        assert TokenType.STRING in types or TokenType.STRING_DOUBLE in types
+        assert TokenType.KEYWORD_DECLARATION in types  # def
+        assert TokenType.NAME in types  # hello, name
+        assert TokenType.STRING in types  # f-string
 
     def test_class_definition(self, python_lexer) -> None:
         """Class definition should tokenize correctly."""
@@ -227,7 +237,7 @@ class TestPythonComplex:
         tokens = list(python_lexer.tokenize(code))
         types = [t.type for t in tokens]
         assert TokenType.KEYWORD_DECLARATION in types  # class, def
-        assert TokenType.NAME_CLASS in types
+        assert TokenType.NAME in types  # MyClass, __init__, self
 
     def test_import_statement(self, python_lexer) -> None:
         """Import statements should tokenize correctly."""

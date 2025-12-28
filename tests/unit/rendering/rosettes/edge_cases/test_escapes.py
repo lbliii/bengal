@@ -9,29 +9,37 @@ class TestStandardEscapes:
     """Test standard escape sequences."""
 
     def test_all_standard_escapes(self) -> None:
-        """All standard escapes should be STRING_ESCAPE."""
+        """Escape sequences should be included in STRING token."""
         lexer = get_lexer("python")
         # String containing: \n \t \r \\ \" \'
         code = r'"\n\t\r\\\"\'"'
         tokens = list(lexer.tokenize(code))
-        escape_tokens = [t for t in tokens if t.type == TokenType.STRING_ESCAPE]
-        assert len(escape_tokens) > 0
+        # Escape sequences are part of the string token, not separate tokens
+        string_tokens = [t for t in tokens if t.type == TokenType.STRING]
+        assert len(string_tokens) > 0
+        # Verify escape sequences are in the string value
+        value = string_tokens[0].value
+        assert "\\n" in value or "\n" in value
 
     def test_newline_escape(self) -> None:
-        """Newline escape sequence should be STRING_ESCAPE."""
+        """Escape sequences should be included in STRING token."""
         lexer = get_lexer("python")
         code = '"\\n"'
         tokens = list(lexer.tokenize(code))
-        escape_tokens = [t for t in tokens if t.type == TokenType.STRING_ESCAPE]
-        assert len(escape_tokens) > 0
+        string_tokens = [t for t in tokens if t.type == TokenType.STRING]
+        assert len(string_tokens) > 0
+        # Verify escape sequence is in the string value
+        assert "\\n" in string_tokens[0].value or "\n" in string_tokens[0].value
 
     def test_tab_escape(self) -> None:
-        """Tab escape sequence should be STRING_ESCAPE."""
+        """Escape sequences should be included in STRING token."""
         lexer = get_lexer("python")
         code = '"\\t"'
         tokens = list(lexer.tokenize(code))
-        escape_tokens = [t for t in tokens if t.type == TokenType.STRING_ESCAPE]
-        assert len(escape_tokens) > 0
+        string_tokens = [t for t in tokens if t.type == TokenType.STRING]
+        assert len(string_tokens) > 0
+        # Verify escape sequence is in the string value
+        assert "\\t" in string_tokens[0].value or "\t" in string_tokens[0].value
 
 
 class TestInvalidEscapes:

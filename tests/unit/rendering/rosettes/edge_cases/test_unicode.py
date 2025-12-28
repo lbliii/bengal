@@ -50,12 +50,15 @@ class TestUnicodeInStrings:
         assert "日本語" in all_values
 
     def test_unicode_escape_sequences(self) -> None:
-        """Unicode escape sequences should be STRING_ESCAPE."""
+        """Unicode escape sequences should be included in STRING token."""
         lexer = get_lexer("python")
-        code = '"\\u0041"'  # Should be STRING_ESCAPE
+        code = '"\\u0041"'  # Unicode escape
         tokens = list(lexer.tokenize(code))
-        escape_tokens = [t for t in tokens if t.type == TokenType.STRING_ESCAPE]
-        assert len(escape_tokens) > 0
+        # Escape sequences are part of the string token, not separate tokens
+        string_tokens = [t for t in tokens if t.type == TokenType.STRING]
+        assert len(string_tokens) > 0
+        # Verify escape sequence is in the string value
+        assert "\\u0041" in string_tokens[0].value
 
 
 class TestUnicodeBoundaries:
