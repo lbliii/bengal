@@ -362,9 +362,9 @@ def get_element_metadata(
 
 def prepare_element_for_template(element: DocElement) -> dict[str, Any]:
     """
-    Prepare DocElement for Jinja2 template consumption.
+    Prepare DocElement for Kida template consumption.
 
-    Converts DocElement to a clean dict that Jinja2 can handle without
+    Converts DocElement to a clean dict that templates can handle without
     undefined attribute errors. This is the "middle ground" approach:
     Python prepares clean data, templates just display it.
 

@@ -1,0 +1,161 @@
+{#
+  Bengal OpenAPI Reference Page
+
+  Consolidated view of multiple endpoints within a tag/resource section.
+  Used for tag sections that have endpoints grouped together.
+
+  Context:
+    - section: Section (with metadata.endpoints list)
+    - endpoints: list[DocElement] (endpoints in this section)
+    - schemas: dict (resolved schemas)
+    - api_spec: OpenAPIOverviewMetadata
+    - base_url: str
+    - site: Site
+    - config: Config
+#}
+{% let tag_name = section.title ?? 'API Reference' %}
+{% let tag_desc = section.metadata.description ?? '' %}
+{% let endpoint_list = section.metadata.endpoints ?? endpoints ?? [] %}
+
+<article class="api-reference-page" data-autodoc="openapi">
+  {# Page Header #}
+  <header class="api-reference-page__header">
+    <nav class="api-reference-page__breadcrumb" aria-label="API breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb__item">
+          <a href="{{ url_for('autodoc:openapi:home') }}">API</a>
+        </li>
+        <li class="breadcrumb__item">
+          <span aria-current="page">{{ tag_name }}</span>
+        </li>
+      </ol>
+    </nav>
+
+    <h1 class="api-reference-page__title">{{ tag_name }}</h1>
+
+    {% if tag_desc %}
+    <div class="api-reference-page__description prose">
+      {{ tag_desc | markdownify | safe }}
+    </div>
+    {% end %}
+
+    <div class="api-reference-page__meta">
+      <span class="badge badge--outline">{{ endpoint_list | length }} endpoint{{ 's' if endpoint_list | length != 1 else '' }}</span>
+    </div>
+  </header>
+
+  {# Table of Contents for this section #}
+  <nav class="api-reference-page__toc" aria-label="Endpoints in this section">
+    <h2 class="api-reference-page__toc-title">Endpoints</h2>
+    <ul class="api-reference-page__toc-list">
+      {% for ep in endpoint_list %}
+        {% let ep_meta = ep.typed_metadata if ep.typed_metadata else ep %}
+        {% let method = ep_meta.method ?? 'GET' %}
+        {% let path = ep_meta.path ?? ep.name %}
+        {% let ep_id = (method ~ '-' ~ path) | slugify %}
+
+        <li class="api-reference-page__toc-item">
+          <a href="#{{ ep_id }}" class="api-reference-page__toc-link">
+            {% match method %}
+              {% case 'GET' %}
+                <span class="api-method api-method--get api-method--xs">GET</span>
+              {% case 'POST' %}
+                <span class="api-method api-method--post api-method--xs">POST</span>
+              {% case 'PUT' %}
+                <span class="api-method api-method--put api-method--xs">PUT</span>
+              {% case 'PATCH' %}
+                <span class="api-method api-method--patch api-method--xs">PATCH</span>
+              {% case 'DELETE' %}
+                <span class="api-method api-method--delete api-method--xs">DELETE</span>
+              {% case _ %}
+                <span class="api-method api-method--xs">{{ method }}</span>
+            {% end %}
+            <code>{{ path }}</code>
+          </a>
+        </li>
+      {% end %}
+    </ul>
+  </nav>
+
+  {# Consolidated Endpoints #}
+  <div class="api-reference-page__endpoints">
+    {% for ep in endpoint_list %}
+      {% let ep_meta = ep.typed_metadata if ep.typed_metadata else ep %}
+      {% let method = ep_meta.method ?? 'GET' %}
+      {% let path = ep_meta.path ?? ep.name %}
+      {% let ep_id = (method ~ '-' ~ path) | slugify %}
+      {% let summary = ep_meta.summary ?? ep.description ?? '' %}
+      {% let parameters = ep_meta.parameters ?? () %}
+      {% let request_body = ep_meta.request_body %}
+      {% let responses = ep_meta.responses ?? () %}
+      {% let is_deprecated = ep_meta.deprecated ?? false %}
+
+      <section class="api-reference-page__endpoint {{ 'api-reference-page__endpoint--deprecated' if is_deprecated else '' }}" id="{{ ep_id }}">
+        {# Endpoint Header #}
+        <header class="api-reference-page__endpoint-header">
+          <div class="api-reference-page__endpoint-method-path">
+            {% match method %}
+              {% case 'GET' %}
+                <span class="api-method api-method--get">GET</span>
+              {% case 'POST' %}
+                <span class="api-method api-method--post">POST</span>
+              {% case 'PUT' %}
+                <span class="api-method api-method--put">PUT</span>
+              {% case 'PATCH' %}
+                <span class="api-method api-method--patch">PATCH</span>
+              {% case 'DELETE' %}
+                <span class="api-method api-method--delete">DELETE</span>
+              {% case _ %}
+                <span class="api-method">{{ method }}</span>
+            {% end %}
+            <code class="api-reference-page__endpoint-path">{{ path | highlight_path_params | safe }}</code>
+
+            {% if is_deprecated %}
+              <span class="badge badge--warning-subtle">Deprecated</span>
+            {% end %}
+          </div>
+
+          {% if summary %}
+          <p class="api-reference-page__endpoint-summary">{{ summary }}</p>
+          {% end %}
+        </header>
+
+        {# Parameters #}
+        {% if parameters %}
+        <div class="api-reference-page__endpoint-params">
+          <h4 class="api-reference-page__subsection-title">Parameters</h4>
+          <div class="api-reference-page__param-list">
+            {% for param in parameters %}
+              {% include 'autodoc/openapi/partials/param-row.html' with param=param %}
+            {% end %}
+          </div>
+        </div>
+        {% end %}
+
+        {# Request Body #}
+        {% with request_body as body %}
+          {% if body %}
+          <div class="api-reference-page__endpoint-body">
+            {% include 'autodoc/openapi/partials/request-body.html' with body=body, schemas=schemas %}
+          </div>
+          {% end %}
+        {% end %}
+
+        {# Responses #}
+        {% if responses %}
+        <div class="api-reference-page__endpoint-responses">
+          {% include 'autodoc/openapi/partials/responses.html' with responses=responses, schemas=schemas %}
+        </div>
+        {% end %}
+
+        {# Code Sample (collapsed) #}
+        <details class="api-reference-page__endpoint-code">
+          <summary>Code Examples</summary>
+          {% include 'autodoc/openapi/partials/code-samples.html' with element=ep, base_url=base_url %}
+        </details>
+      </section>
+    {% else %}
+      <p class="api-reference-page__empty text-muted">No endpoints in this section.</p>
+    {% end %}
+  </div>
+</article>

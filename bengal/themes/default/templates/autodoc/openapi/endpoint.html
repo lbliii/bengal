@@ -1,18 +1,18 @@
 {#
-  Bengal OpenAPI Endpoint Page - The Hero Template
+Bengal OpenAPI Endpoint Page - The Hero Template
 
-  Full endpoint documentation with parameters, request body, responses, and code samples.
-  Uses the three-column explorer layout.
+Full endpoint documentation with parameters, request body, responses, and code samples.
+Uses the three-column explorer layout.
 
-  Context:
-    - element: DocElement with OpenAPIEndpointMetadata
-    - element.typed_metadata: OpenAPIEndpointMetadata
-    - schemas: dict (resolved schemas from spec)
-    - base_url: str (API base URL)
-    - api_spec: OpenAPIOverviewMetadata
-    - endpoints: list[DocElement] (all endpoints for nav)
-    - site: Site
-    - config: Config
+Context:
+- element: DocElement with OpenAPIEndpointMetadata
+- element.typed_metadata: OpenAPIEndpointMetadata
+- schemas: dict (resolved schemas from spec)
+- base_url: str (API base URL)
+- api_spec: OpenAPIOverviewMetadata
+- endpoints: list[DocElement] (all endpoints for nav)
+- site: Site
+- config: Config
 #}
 {% extends 'autodoc/openapi/layouts/explorer.html' %}
 
@@ -51,7 +51,7 @@
       </h3>
       <div class="api-endpoint__param-list">
         {% for param in path_params %}
-          {% include 'autodoc/openapi/partials/param-row.html' with param=param %}
+        {% include 'autodoc/openapi/partials/param-row.html' with param=param %}
         {% end %}
       </div>
     </div>
@@ -66,7 +66,7 @@
       </h3>
       <div class="api-endpoint__param-list">
         {% for param in query_params %}
-          {% include 'autodoc/openapi/partials/param-row.html' with param=param %}
+        {% include 'autodoc/openapi/partials/param-row.html' with param=param %}
         {% end %}
       </div>
     </div>
@@ -81,7 +81,7 @@
       </h3>
       <div class="api-endpoint__param-list">
         {% for param in header_params %}
-          {% include 'autodoc/openapi/partials/param-row.html' with param=param %}
+        {% include 'autodoc/openapi/partials/param-row.html' with param=param %}
         {% end %}
       </div>
     </div>
@@ -96,7 +96,7 @@
       </h3>
       <div class="api-endpoint__param-list">
         {% for param in cookie_params %}
-          {% include 'autodoc/openapi/partials/param-row.html' with param=param %}
+        {% include 'autodoc/openapi/partials/param-row.html' with param=param %}
         {% end %}
       </div>
     </div>
@@ -106,11 +106,11 @@
 
   {# Request Body Section #}
   {% with request_body as body %}
-    {% if body %}
-    <section class="api-endpoint__section api-endpoint__request-body">
-      {% include 'autodoc/openapi/partials/request-body.html' with body=body, schemas=schemas %}
-    </section>
-    {% end %}
+  {% if body %}
+  <section class="api-endpoint__section api-endpoint__request-body">
+    {% include 'autodoc/openapi/partials/request-body.html' with body=body, schemas=schemas %}
+  </section>
+  {% end %}
   {% end %}
 
   {# Responses Section #}

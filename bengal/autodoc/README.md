@@ -71,7 +71,7 @@ via theme templates without intermediate markdown files. This provides:
   - `orchestrator.py`: Main `VirtualAutodocOrchestrator` class
   - `section_builders.py`: Section hierarchy creation
   - `page_builders.py`: Page creation and rendering
-  - `template_env.py`: Jinja2 template environment setup
+  - `template_env.py`: Kida template environment setup
   - `extractors.py`: Extraction facade functions
   - `index_pages.py`: Section index page generation
   - `result.py`: `AutodocRunResult` and `PageContext` classes

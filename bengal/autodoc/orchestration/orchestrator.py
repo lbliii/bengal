@@ -14,7 +14,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import yaml
-from jinja2 import Environment
 
 from bengal.autodoc.base import DocElement
 from bengal.autodoc.orchestration.extractors import (
@@ -39,6 +38,7 @@ from bengal.autodoc.orchestration.template_env import create_template_environmen
 from bengal.autodoc.orchestration.utils import normalize_autodoc_config, slugify
 from bengal.core.page import Page
 from bengal.core.section import Section
+from bengal.rendering.kida import Environment
 from bengal.utils.hashing import hash_dict
 from bengal.utils.logger import get_logger
 
@@ -92,7 +92,7 @@ class VirtualAutodocOrchestrator:
         self.python_config = self.config.get("python", {})
         self.cli_config = self.config.get("cli", {})
         self.openapi_config = self.config.get("openapi", {})
-        # Performance: do not build a Jinja environment unless we actually
+        # Performance: do not build a Kida environment unless we actually
         # generate autodoc pages. Content discovery may probe autodoc enablement
         # even when autodoc is disabled, and environment setup is expensive.
         self.template_env: Environment | None = None
@@ -272,7 +272,7 @@ class VirtualAutodocOrchestrator:
         return all_pages, root_sections, result
 
     def _ensure_template_env(self) -> Environment:
-        """Create the autodoc Jinja environment lazily (only when needed)."""
+        """Create the autodoc Kida environment lazily (only when needed)."""
         if self.template_env is None:
             self.template_env = create_template_environment(self.site)
         return self.template_env

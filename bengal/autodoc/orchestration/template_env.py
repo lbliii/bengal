@@ -1,7 +1,8 @@
 """
 Template environment factory for autodoc.
 
-Creates and configures Jinja2 template environments for rendering autodoc pages.
+Creates and configures Kida template environments for rendering autodoc pages.
+Uses Bengal's Kida template engine for consistent behavior with site templates.
 """
 
 from __future__ import annotations
@@ -9,9 +10,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from jinja2 import Environment, FileSystemLoader, pass_context, select_autoescape
-from jinja2.runtime import Context
-
+from bengal.rendering.kida import Environment
+from bengal.rendering.kida.environment import FileSystemLoader
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
@@ -22,13 +22,13 @@ logger = get_logger(__name__)
 
 def create_template_environment(site: Site) -> Environment:
     """
-    Create Jinja2 environment for HTML templates.
+    Create Kida environment for autodoc HTML templates.
 
     Args:
         site: Site instance for configuration and context
 
     Returns:
-        Configured Jinja2 Environment
+        Configured Kida Environment
     """
     # Import icon function from main template system
     # Icons are already preloaded during main template engine initialization
@@ -59,13 +59,16 @@ def create_template_environment(site: Site) -> Environment:
     if not template_dirs:
         logger.warning("autodoc_no_template_dirs", fallback="inline_templates")
         # Use a minimal fallback
-        return Environment(autoescape=select_autoescape())
+        return Environment()
+
+    # Get Kida-specific configuration
+    kida_config = site.config.get("kida", {}) or {}
 
     env = Environment(
         loader=FileSystemLoader(template_dirs),
-        autoescape=select_autoescape(["html", "htm", "xml"]),
-        trim_blocks=True,
-        lstrip_blocks=True,
+        autoescape=True,
+        auto_reload=site.config.get("development", {}).get("auto_reload", True),
+        strict=kida_config.get("strict", True),
     )
 
     # Add icon function from main template system
@@ -145,8 +148,7 @@ def create_template_environment(site: Site) -> Environment:
     # This is a simplified version that works without full TemplateEngine
     from bengal.rendering.template_engine.url_helpers import with_baseurl
 
-    @pass_context
-    def asset_url(ctx: Context, asset_path: str) -> str:
+    def asset_url(asset_path: str) -> str:
         """Generate URL for an asset with baseurl handling."""
         # Normalize path
         safe_path = (asset_path or "").replace("\\", "/").strip()
@@ -181,9 +183,6 @@ def create_template_environment(site: Site) -> Environment:
     # Usage: getattr(element, 'children', []) to safely get children with default
     # Required because templates may use StrictUndefined mode
     env.globals["getattr"] = getattr
-
-    # Note: Custom tests (match) and filters (first_sentence) are now
-    # registered via register_all() from bengal.rendering.template_functions
 
     return env
 

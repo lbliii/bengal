@@ -6,10 +6,12 @@ progressive disclosure (collapsed by default).
 
 Note: When using the full theme, page-hero-api.html handles the header.
 This fallback includes a minimal header for standalone rendering.
+
+Uses Kida syntax ({% end %} for all blocks).
 -#}
 
-{% set classes = (element.children or []) | selectattr('element_type', 'eq', 'class') | list %}
-{% set functions = (element.children or []) | selectattr('element_type', 'eq', 'function') | list %}
+{% let classes = (element.children ?? []) | selectattr('element_type', 'eq', 'class') | list %}
+{% let functions = (element.children ?? []) | selectattr('element_type', 'eq', 'function') | list %}
 
 <div class="autodoc-explorer">
     {# Classes Section #}
@@ -26,10 +28,10 @@ This fallback includes a minimal header for standalone rendering.
                     <span class="api-card__badges">
                         {% if cls.metadata.is_dataclass %}
                         <span class="api-badge--compact api-badge--dataclass">dataclass</span>
-                        {% endif %}
+                        {% end %}
                         {% if cls.metadata.is_abstract %}
                         <span class="api-badge--compact api-badge--abstract">abstract</span>
-                        {% endif %}
+                        {% end %}
                     </span>
                     <span class="api-card__toggle">▸</span>
                 </summary>
@@ -37,17 +39,17 @@ This fallback includes a minimal header for standalone rendering.
                 <div class="api-card__body">
                     {% if cls.description %}
                     <div class="api-card__description">{{ cls.description | markdownify | safe }}</div>
-                    {% endif %}
+                    {% end %}
 
                     {# Class Signature #}
                     {% if cls.metadata.signature %}
                     <div class="api-signature">
                         <pre><code class="language-python">class {{ cls.name }}{{ cls.metadata.signature }}</code></pre>
                     </div>
-                    {% endif %}
+                    {% end %}
 
                     {# Attributes #}
-                    {% set attributes = (cls.children or []) | selectattr('element_type', 'eq', 'attribute') | list %}
+                    {% let attributes = (cls.children ?? []) | selectattr('element_type', 'eq', 'attribute') | list %}
                     {% if attributes %}
                     <div class="api-attributes">
                         <h4 class="api-subsection-title">Attributes</h4>
@@ -64,17 +66,17 @@ This fallback includes a minimal header for standalone rendering.
                                 <tr>
                                     <td><code>{{ attr.name }}</code></td>
                                     <td>{% if attr.metadata.type_annotation
-                                        %}<code>{{ attr.metadata.type_annotation }}</code>{% else %}—{% endif %}</td>
+                                        %}<code>{{ attr.metadata.type_annotation }}</code>{% else %}—{% end %}</td>
                                     <td>{{ attr.description | default('—') | markdownify | safe }}</td>
                                 </tr>
-                                {% endfor %}
+                                {% end %}
                             </tbody>
                         </table>
                     </div>
-                    {% endif %}
+                    {% end %}
 
                     {# Methods #}
-                    {% set methods = (cls.children or []) | selectattr('element_type', 'eq', 'method') | list %}
+                    {% let methods = (cls.children ?? []) | selectattr('element_type', 'eq', 'method') | list %}
                     {% if methods %}
                     <div class="api-methods">
                         <h4 class="api-subsection-title">Methods</h4>
@@ -84,28 +86,28 @@ This fallback includes a minimal header for standalone rendering.
                                 <code class="api-method__name">{{ method.name }}</code>
                                 {% if method.metadata.is_async %}
                                 <span class="api-badge--tiny api-badge--async">async</span>
-                                {% endif %}
+                                {% end %}
                                 {% if method.metadata.is_classmethod %}
                                 <span class="api-badge--tiny api-badge--classmethod">classmethod</span>
-                                {% endif %}
+                                {% end %}
                                 {% if method.metadata.is_staticmethod %}
                                 <span class="api-badge--tiny api-badge--staticmethod">staticmethod</span>
-                                {% endif %}
+                                {% end %}
                                 {% if method.metadata.is_property %}
                                 <span class="api-badge--tiny api-badge--property">property</span>
-                                {% endif %}
+                                {% end %}
                             </summary>
                             <div class="api-method__content">
                                 {% if method.metadata.signature %}
                                 <pre
                                     class="api-method__signature"><code class="language-python">{{ method.metadata.signature }}</code></pre>
-                                {% endif %}
+                                {% end %}
                                 {% if method.description %}
                                 <div class="api-method__description">{{ method.description | markdownify | safe }}</div>
-                                {% endif %}
+                                {% end %}
 
                                 {# Parameters - using normalized get_params filter #}
-                                {% set method_params = method | get_params %}
+                                {% let method_params = method | get_params %}
                                 {% if method_params %}
                                 <div class="api-parameters">
                                     <h5 class="api-label">Parameters</h5>
@@ -114,37 +116,37 @@ This fallback includes a minimal header for standalone rendering.
                                             {% for param in method_params %}
                                             <tr>
                                                 <td><code>{{ param.name }}</code></td>
-                                                <td>{% if param.type %}<code>{{ param.type }}</code>{% else %}—{% endif %}</td>
+                                                <td>{% if param.type %}<code>{{ param.type }}</code>{% else %}—{% end %}</td>
                                                 <td>{{ param.description | default('') | markdownify | safe }}</td>
                                             </tr>
-                                            {% endfor %}
+                                            {% end %}
                                         </tbody>
                                     </table>
                                 </div>
-                                {% endif %}
+                                {% end %}
 
                                 {# Returns - using normalized get_return_info filter #}
-                                {% set method_ret = method | get_return_info %}
+                                {% let method_ret = method | get_return_info %}
                                 {% if method_ret.type and method_ret.type != 'None' %}
                                 <div class="api-returns">
                                     <h5 class="api-label">Returns</h5>
                                     <p>
                                         <code>{{ method_ret.type }}</code>
-                                        {% if method_ret.description %} — {{ method_ret.description | markdownify | safe }}{% endif %}
+                                        {% if method_ret.description %} — {{ method_ret.description | markdownify | safe }}{% end %}
                                     </p>
                                 </div>
-                                {% endif %}
+                                {% end %}
                             </div>
                         </details>
-                        {% endfor %}
+                        {% end %}
                     </div>
-                    {% endif %}
+                    {% end %}
                 </div>
             </details>
-            {% endfor %}
+            {% end %}
         </div>
     </section>
-    {% endif %}
+    {% end %}
 
     {# Functions Section #}
     {% if functions %}
@@ -160,7 +162,7 @@ This fallback includes a minimal header for standalone rendering.
                     <span class="api-card__badges">
                         {% if func.metadata.is_async %}
                         <span class="api-badge--compact api-badge--async">async</span>
-                        {% endif %}
+                        {% end %}
                     </span>
                     <span class="api-card__toggle">▸</span>
                 </summary>
@@ -168,14 +170,14 @@ This fallback includes a minimal header for standalone rendering.
                 <div class="api-card__body">
                     {% if func.metadata.signature %}
                     <pre class="api-signature"><code class="language-python">{{ func.metadata.signature }}</code></pre>
-                    {% endif %}
+                    {% end %}
 
                     {% if func.description %}
                     <div class="api-card__description">{{ func.description | markdownify | safe }}</div>
-                    {% endif %}
+                    {% end %}
 
                     {# Parameters - using normalized get_params filter #}
-                    {% set func_params = func | get_params %}
+                    {% let func_params = func | get_params %}
                     {% if func_params %}
                     <div class="api-parameters">
                         <h4 class="api-label">Parameters</h4>
@@ -192,27 +194,27 @@ This fallback includes a minimal header for standalone rendering.
                                 {% for param in func_params %}
                                 <tr>
                                     <td><code>{{ param.name }}</code></td>
-                                    <td>{% if param.type %}<code>{{ param.type }}</code>{% else %}—{% endif %}</td>
-                                    <td>{% if param.default %}<code>{{ param.default }}</code>{% else %}—{% endif %}</td>
+                                    <td>{% if param.type %}<code>{{ param.type }}</code>{% else %}—{% end %}</td>
+                                    <td>{% if param.default %}<code>{{ param.default }}</code>{% else %}—{% end %}</td>
                                     <td>{{ param.description | default('') | markdownify | safe }}</td>
                                 </tr>
-                                {% endfor %}
+                                {% end %}
                             </tbody>
                         </table>
                     </div>
-                    {% endif %}
+                    {% end %}
 
                     {# Returns - using normalized get_return_info filter #}
-                    {% set func_ret = func | get_return_info %}
+                    {% let func_ret = func | get_return_info %}
                     {% if func_ret.type and func_ret.type != 'None' %}
                     <div class="api-returns">
                         <h4 class="api-label">Returns</h4>
                         <p>
                             <code>{{ func_ret.type }}</code>
-                            {% if func_ret.description %} — {{ func_ret.description | markdownify | safe }}{% endif %}
+                            {% if func_ret.description %} — {{ func_ret.description | markdownify | safe }}{% end %}
                         </p>
                     </div>
-                    {% endif %}
+                    {% end %}
 
                     {# Raises #}
                     {% if func.metadata.raises %}
@@ -222,12 +224,12 @@ This fallback includes a minimal header for standalone rendering.
                             {% for exc in func.metadata.raises %}
                             <li>
                                 <code>{{ exc.type }}</code>
-                                {% if exc.description %} — {{ exc.description | markdownify | safe }}{% endif %}
+                                {% if exc.description %} — {{ exc.description | markdownify | safe }}{% end %}
                             </li>
-                            {% endfor %}
+                            {% end %}
                         </ul>
                     </div>
-                    {% endif %}
+                    {% end %}
 
                     {# Examples #}
                     {% if func.metadata.examples %}
@@ -235,13 +237,13 @@ This fallback includes a minimal header for standalone rendering.
                         <h4 class="api-label">Examples</h4>
                         {% for example in func.metadata.examples %}
                         <pre class="api-example"><code class="language-python">{{ example }}</code></pre>
-                        {% endfor %}
+                        {% end %}
                     </div>
-                    {% endif %}
+                    {% end %}
                 </div>
             </details>
-            {% endfor %}
+            {% end %}
         </div>
     </section>
-    {% endif %}
+    {% end %}
 </div>

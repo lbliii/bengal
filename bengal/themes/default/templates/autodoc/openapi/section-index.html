@@ -1,0 +1,62 @@
+{#
+  Bengal OpenAPI Section Index
+
+  Generic section index for OpenAPI documentation sections.
+  Used for sections without consolidated endpoints.
+
+  Context:
+    - section: Section
+    - children: list[Page] (child pages in this section)
+    - site: Site
+    - config: Config
+#}
+{% let title = section.title ?? 'API Section' %}
+{% let description = section.metadata.description ?? '' %}
+{% let child_pages = children ?? section.children ?? [] %}
+
+<article class="api-section-index" data-autodoc="openapi">
+  {# Header #}
+  <header class="api-section-index__header">
+    <nav class="api-section-index__breadcrumb" aria-label="API breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb__item">
+          <a href="{{ url_for('autodoc:openapi:home') }}">API</a>
+        </li>
+        {% if section.parent %}
+        <li class="breadcrumb__item">
+          <a href="{{ section.parent.url }}">{{ section.parent.title }}</a>
+        </li>
+        {% end %}
+        <li class="breadcrumb__item">
+          <span aria-current="page">{{ title }}</span>
+        </li>
+      </ol>
+    </nav>
+
+    <h1 class="api-section-index__title">{{ title }}</h1>
+
+    {% if description %}
+    <div class="api-section-index__description prose">
+      {{ description | markdownify | safe }}
+    </div>
+    {% end %}
+  </header>
+
+  {# Child Pages Grid #}
+  {% if child_pages %}
+  <div class="api-section-index__grid">
+    {% for child in child_pages %}
+      <a href="{{ child.url }}" class="api-section-index__card card card--hoverable">
+        <h3 class="api-section-index__card-title">{{ child.title }}</h3>
+        {% if child.description %}
+        <p class="api-section-index__card-description text-muted">
+          {{ child.description | truncate(120) }}
+        </p>
+        {% end %}
+      </a>
+    {% end %}
+  </div>
+  {% else %}
+  <p class="api-section-index__empty text-muted">No items in this section.</p>
+  {% end %}
+</article>
