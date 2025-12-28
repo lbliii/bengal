@@ -39,7 +39,7 @@ Great news: You get the same rich components without React, JSX, or npm. Bengal'
 :::{tab-set}
 
 :::{tab} Docusaurus
-```markdown
+````markdown
 :::note
 This is a note
 :::
@@ -47,11 +47,11 @@ This is a note
 :::tip Pro Tip
 This is a tip with a title
 :::
-```
+````
 :::{/tab}
 
 :::{tab} Bengal
-```markdown
+````markdown
 :::{note}
 This is a note
 :::
@@ -59,7 +59,7 @@ This is a note
 :::{tip} Pro Tip
 This is a tip with a title
 :::
-```
+````
 :::{/tab}
 
 :::{/tab-set}
@@ -95,7 +95,7 @@ import TabItem from '@theme/TabItem';
 :::{/tab}
 
 :::{tab} Bengal (No imports!)
-````markdown
+`````markdown
 :::{tab-set}
 :::{tab} JavaScript
 ```javascript
@@ -108,7 +108,7 @@ print("Hello")
 ```
 :::{/tab}
 :::{/tab-set}
-````
+`````
 :::{/tab}
 
 :::{/tab-set}
@@ -135,12 +135,12 @@ def hello():
 :::{/tab}
 
 :::{tab} Bengal
-````markdown
+`````markdown
 ```python title="hello.py"
 def hello():
     print("Hello!")
 ```
-````
+`````
 :::{/tab}
 
 :::{/tab-set}
@@ -165,7 +165,7 @@ import {Card, CardGrid} from '@site/src/components/Card';
 :::{/tab}
 
 :::{tab} Bengal (Built-in!)
-```markdown
+````markdown
 :::{cards}
 :columns: 2
 
@@ -182,7 +182,7 @@ Complete API documentation
 :::{/card}
 
 :::{/cards}
-```
+````
 :::{/tab}
 
 :::{/tab-set}
@@ -202,13 +202,13 @@ Complete API documentation
 :::{/tab}
 
 :::{tab} Bengal
-```markdown
+````markdown
 :::{dropdown} Click to expand
 :icon: info
 
 Hidden content here with **markdown** support.
 :::
-```
+````
 :::{/tab}
 
 :::{/tab-set}
@@ -227,7 +227,7 @@ function Hello() {
 :::{/tab}
 
 :::{tab} Bengal
-```markdown
+````markdown
 <!-- Live editors not built-in -->
 <!-- Options: -->
 <!-- 1. Link to CodeSandbox/StackBlitz -->
@@ -239,6 +239,7 @@ function Hello() {
   return <div>Hello World!</div>;
 }
 ```
+````
 :::{/tab}
 
 :::{/tab-set}
@@ -246,7 +247,7 @@ function Hello() {
 :::{note}
 Bengal focuses on documentation, not interactive playgrounds. For live code, use built-in embed directives:
 
-```markdown
+````markdown
 :::{codesandbox} sandbox-id
 :title: My CodeSandbox Example
 :::
@@ -258,7 +259,7 @@ Bengal focuses on documentation, not interactive playgrounds. For live code, use
 :::{codepen} user/pen-id
 :title: CodePen Example
 :::
-```
+````
 :::
 
 ---
@@ -346,7 +347,7 @@ module.exports = {
 :::{/tab}
 
 :::{tab} Bengal (Automatic!)
-```markdown
+````markdown
 <!-- Bengal auto-generates sidebar from directory structure -->
 <!-- Use weight frontmatter for ordering: -->
 
@@ -367,7 +368,7 @@ weight: 10
 title: Installation
 weight: 20
 ---
-```
+````
 :::{/tab}
 
 :::{/tab-set}
@@ -423,14 +424,14 @@ import MyComponent from '@site/src/components/MyComponent';
 <MyComponent prop="value" />
 ```
 
-```markdown
+````markdown
 <!-- ✅ Bengal - Use built-in directives instead -->
 :::{card} Title
 :link: /path/
 
 Content here
 :::
-```
+````
 
 ### Export/Props Don't Work (Use Frontmatter)
 
@@ -461,7 +462,7 @@ Current version: {{ page.metadata.version }}
 </div>
 ```
 
-```markdown
+````markdown
 <!-- ✅ Bengal - Use directive or HTML -->
 :::{card} Custom Content
 :class: custom-box
@@ -474,7 +475,7 @@ With directive styling
   <h3>Custom Content</h3>
   <p>With HTML styling</p>
 </div>
-```
+````
 
 ---
 
@@ -499,7 +500,7 @@ With directive styling
 :::::{tab-set}
 
 ::::{tab} Variables
-```markdown
+````markdown
 ---
 title: API Reference
 api_version: "3.0"
@@ -511,7 +512,7 @@ base_url: "https://api.example.com"
 Current API version: **{{ page.metadata.api_version }}**
 
 Base URL: `{{ page.metadata.base_url }}`
-```
+````
 
 Docusaurus requires React state or MDX exports for this.
 ::::{/tab}
@@ -529,16 +530,16 @@ terms:
     tags: [api, http]
 ```
 
-```markdown
+````markdown
 <!-- In any page -->
 :::{glossary}
 :tags: api
 :::
-```
+````
 ::::{/tab}
 
 ::::{tab} Navigation
-```markdown
+````markdown
 <!-- Auto-generate cards from child pages -->
 :::{child-cards}
 :columns: 3
@@ -560,18 +561,18 @@ terms:
 :::{related}
 :tags: api, authentication
 :::
-```
+````
 ::::{/tab}
 
 ::::{tab} Data Tables
-```markdown
+````markdown
 :::{data-table}
 :source: data/endpoints.yaml
 :columns: method, path, description
 :sortable: true
 :filterable: true
 :::
-```
+````
 ::::{/tab}
 
 :::::{/tab-set}
@@ -646,7 +647,7 @@ No. Bengal outputs static HTML. For interactivity:
 
 Use Bengal's built-in embed directives:
 
-```markdown
+````markdown
 :::{codesandbox} example-id
 :title: Interactive Example
 :::
@@ -654,7 +655,7 @@ Use Bengal's built-in embed directives:
 :::{stackblitz} example-id
 :title: StackBlitz Demo
 :::
-```
+````
 
 Or link directly:
 
