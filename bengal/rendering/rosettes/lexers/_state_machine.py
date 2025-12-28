@@ -8,6 +8,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from typing import TYPE_CHECKING
 
+from bengal.rendering.rosettes._config import LexerConfig
 from bengal.rendering.rosettes._types import Token, TokenType
 
 if TYPE_CHECKING:
