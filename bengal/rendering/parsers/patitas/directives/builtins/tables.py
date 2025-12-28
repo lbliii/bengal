@@ -105,6 +105,7 @@ class ListTableDirective:
     token_type: ClassVar[str] = "list_table"
     contract: ClassVar[DirectiveContract | None] = None
     options_class: ClassVar[type[ListTableOptions]] = ListTableOptions
+    preserves_raw_content: ClassVar[bool] = True  # Needs raw content for list parsing
 
     def parse(
         self,
@@ -116,37 +117,26 @@ class ListTableDirective:
         location: SourceLocation,
     ) -> Directive:
         """Build list-table AST node."""
-        opts_items = [
-            ("header-rows", str(options.header_rows)),
-            ("widths", options.widths),
-            ("class", options.css_class),
-        ]
-
         return Directive(
             location=location,
             name=name,
             title=title,
-            options=frozenset(opts_items),
+            options=options,  # Pass typed options directly
             children=tuple(children),
             raw_content=content,  # Preserve raw content for list parsing
         )
 
     def render(
         self,
-        node: Directive,
+        node: Directive[ListTableOptions],
         rendered_children: str,
         sb: StringBuilder,
     ) -> None:
         """Render list-table to HTML."""
-        opts = dict(node.options)
+        opts = node.options  # Direct typed access!
 
-        # Parse options
-        try:
-            header_rows = int(opts.get("header-rows", "0"))
-        except ValueError:
-            header_rows = 0
-
-        widths_str = opts.get("widths", "")
+        header_rows = opts.header_rows
+        widths_str = opts.widths
         widths: list[int] = []
         if widths_str:
             try:
@@ -154,7 +144,7 @@ class ListTableDirective:
             except ValueError:
                 widths = []
 
-        css_class = opts.get("class", "")
+        css_class = opts.css_class
 
         # Parse the list content into rows
         rows = self._parse_list_rows(node.raw_content or "")

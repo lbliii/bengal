@@ -163,6 +163,7 @@ from bengal.errors.exceptions import (
     BengalGraphError,
     BengalRenderingError,
     BengalServerError,
+    DirectiveContractError,
 )
 
 # =============================================================================
@@ -261,6 +262,7 @@ __all__ = [
     "BengalServerError",
     "BengalAssetError",
     "BengalGraphError",
+    "DirectiveContractError",
     # ============================================================
     # Context (lazy)
     # ============================================================

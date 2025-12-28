@@ -45,7 +45,7 @@ HTML Output:
 from __future__ import annotations
 
 from collections.abc import Sequence
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from html import escape as html_escape
 from typing import TYPE_CHECKING, ClassVar
 
@@ -153,20 +153,17 @@ class DropdownDirective:
         """Build dropdown AST node."""
         effective_title = title or "Details"
 
-        opts_dict = asdict(options)
-        opts_items = [(k, str(v)) for k, v in opts_dict.items() if v is not None]
-
         return Directive(
             location=location,
             name=name,
             title=effective_title,
-            options=frozenset(opts_items),
+            options=options,  # Pass typed options directly
             children=tuple(children),
         )
 
     def render(
         self,
-        node: Directive,
+        node: Directive[DropdownOptions],
         rendered_children: str,
         sb: StringBuilder,
     ) -> None:
@@ -179,20 +176,14 @@ class DropdownDirective:
             rendered_children: Pre-rendered child content
             sb: StringBuilder for output
         """
-        opts = dict(node.options)
+        opts = node.options  # Direct typed access!
         title = node.title or "Details"
-        # Handle `:open:` flag - presence of the option (even empty) means True
-        # Only "false", "0", "no" explicitly mean closed
-        if "open" in opts:
-            open_val = opts["open"].lower()
-            is_open = open_val not in ("false", "0", "no")
-        else:
-            is_open = False
-        icon = opts.get("icon", "")
-        badge = opts.get("badge", "")
-        color = opts.get("color", "")
-        description = opts.get("description", "")
-        css_class = opts.get("class", "") or opts.get("class_", "")
+        is_open = opts.open
+        icon = opts.icon or ""
+        badge = opts.badge or ""
+        color = opts.color or ""
+        description = opts.description or ""
+        css_class = opts.class_ or ""
 
         # Clean up None strings
         if icon == "None":

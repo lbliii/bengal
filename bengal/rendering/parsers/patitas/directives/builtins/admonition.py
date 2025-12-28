@@ -36,7 +36,6 @@ HTML Output:
 from __future__ import annotations
 
 from collections.abc import Sequence
-from dataclasses import asdict
 from html import escape as html_escape
 from typing import TYPE_CHECKING, ClassVar
 
@@ -153,23 +152,17 @@ class AdmonitionDirective:
         # Use custom title or capitalize the type name
         effective_title = title if title else name.capitalize()
 
-        # Convert options to frozenset, including admon_type for rendering
-        opts_dict = asdict(options)
-        opts_dict["admon_type"] = name
-        # Filter out None values and convert
-        opts_items = [(k, str(v)) for k, v in opts_dict.items() if v is not None]
-
         return Directive(
             location=location,
             name=name,
             title=effective_title,
-            options=frozenset(opts_items),
+            options=options,  # Pass typed options directly
             children=tuple(children),
         )
 
     def render(
         self,
-        node: Directive,
+        node: Directive[AdmonitionOptions],
         rendered_children: str,
         sb: StringBuilder,
     ) -> None:
@@ -183,16 +176,16 @@ class AdmonitionDirective:
             rendered_children: Pre-rendered child content
             sb: StringBuilder for output
         """
-        opts = dict(node.options)
-        admon_type = opts.get("admon_type", node.name)
+        opts = node.options  # Direct typed access!
+        admon_type = node.name  # Type is in node.name
         title = node.title or admon_type.capitalize()
 
         # Get CSS class for type (caution → warning)
         css_class = TYPE_TO_CSS.get(admon_type, "note")
 
-        # Add extra class if specified (parser stores as "class", not "class_")
-        extra_class = opts.get("class", "") or opts.get("class_", "")
-        if extra_class and extra_class != "None":
+        # Add extra class if specified
+        extra_class = opts.class_ or ""
+        if extra_class:
             css_class = f"{css_class} {extra_class}"
 
         # Render icon

@@ -90,6 +90,8 @@ class ContentConfig(TypedDict, total=False):
     toc_style: Literal["nested", "flat"]
     sort_pages_by: Literal["weight", "date", "title", "modified"]
     sort_order: Literal["asc", "desc"]
+    strict_contracts: bool
+    """If True, raise errors on directive contract violations. Defaults to False (warnings only)."""
 
 
 # =============================================================================

@@ -436,6 +436,45 @@ class BengalContentError(BengalError):
         super().__init__(message, **kwargs)
 
 
+class DirectiveContractError(BengalContentError):
+    """
+    Directive nesting contract violation error.
+
+    Raised when a directive nesting contract is violated in strict mode.
+    This is a subclass of BengalContentError since it occurs during parsing.
+
+    Example:
+        >>> raise DirectiveContractError(
+        ...     "'step' must be inside 'steps'",
+        ...     file_path=Path("content/guide.md"),
+        ...     line_number=45,
+        ... )
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        location=None,
+        **kwargs: Any,
+    ) -> None:
+        """Initialize directive contract error.
+
+        Args:
+            message: Human-readable error message
+            location: Optional SourceLocation for error context
+            **kwargs: Additional arguments passed to BengalContentError
+        """
+        # Convert location to file_path/line_number if provided
+        if location and hasattr(location, "file_path"):
+            if "file_path" not in kwargs:
+                kwargs["file_path"] = location.file_path
+            if "line_number" not in kwargs and hasattr(location, "line_number"):
+                kwargs["line_number"] = location.line_number
+
+        super().__init__(message, **kwargs)
+
+
 class BengalRenderingError(BengalError):
     """
     Rendering-related errors (templates, shortcodes, output).

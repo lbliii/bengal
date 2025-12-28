@@ -2,7 +2,7 @@
 
 | Field        | Value                                      |
 |--------------|-------------------------------------------|
-| **Status**   | In Progress (Phase B.2 Complete)           |
+| **Status**   | ✅ Complete (Phase D done, 98% directives) |
 | **Author**   | Bengal Team                                |
 | **Created**  | 2025-12-28                                 |
 | **Updated**  | 2025-12-28                                 |
@@ -22,13 +22,18 @@
 | **Phase A.1** | ✅ 43/43 parity tests | 100% HTML parity |
 | **Phase B.1** | ✅ 3 cards directives | 20/55 (36%) |
 | **Phase B.2** | ✅ 5 content directives | 25/55 (45%) |
-| **Remaining** | 30 directives | Weeks 6-9 |
-| **Total LOC** | ~3,000 implemented | ~6,350 projected |
+| **Phase C.1** | ✅ 13 embed directives | 38/55 (69%) |
+| **Phase C.2** | ✅ 9 navigation/misc directives | 47/55 (85%) |
+| **Phase C.3** | ✅ 5 file I/O/misc directives | 52/55 (95%) |
+| **Phase C.4** | ✅ 2 code-tabs/data-table | 54/55 (98%) |
+| **Phase D** | ✅ Integration complete | Parser factory + deprecation |
+| **Remaining** | 1 directive (glossary) | Blocked on roles |
+| **Total LOC** | ~6,700 implemented | ~6,700 projected |
 | **Risk Level** | Low | Verified by parity testing |
 
 **Key Benefits**: Thread-safety, typed AST, no mistune dependency, identical HTML output.
 
-**Next Action**: Implement Phase C (specialized directives: video, developer embeds, versioning).
+**Status**: ✅ **Migration complete** — 54/55 directives (98%), parser factory updated, deprecation warnings ready. Only `glossary` remains (blocked on roles migration).
 
 ---
 
@@ -292,33 +297,33 @@ else:
 
 | Directive | Aliases | Status | Notes |
 |-----------|---------|--------|-------|
-| `code-tabs` | `code_tabs` | ⏳ Phase B | Language sync |
-| `list-table` | — | ⏳ Phase B | Table from list |
-| `data-table` | — | ⏳ Phase B | Table from YAML/JSON |
-| `checklist` | — | ⏳ Phase B | Interactive checkboxes |
-| `gallery` | — | ⏳ Phase B | Image grid |
+| `code-tabs` | `code_tabs` | ✅ Done (C.4) | Language sync |
+| `list-table` | — | ✅ Done (B.2) | Table from list |
+| `data-table` | — | ✅ Done (C.4) | Table from YAML/JSON |
+| `checklist` | — | ✅ Done (B.2) | Interactive checkboxes |
+| `gallery` | — | ✅ Done (B.2) | Image grid |
 | `figure` | — | ⏳ Phase B | Image with caption |
 
 ### Embeds - Video (5 directive names)
 
 | Directive | Status | Notes |
 |-----------|--------|-------|
-| `youtube` | ⏳ Phase C | Embed iframe |
-| `vimeo` | ⏳ Phase C | Embed iframe |
-| `video` | ⏳ Phase C | HTML5 `<video>` |
-| `tiktok` | ⏳ Phase C | Embed iframe |
-| `audio` | ⏳ Phase C | HTML5 `<audio>` |
+| `youtube` | ✅ Done (C.1) | Privacy-enhanced mode |
+| `vimeo` | ✅ Done (C.1) | Do Not Track mode |
+| `video` | ✅ Done (C.1) | HTML5 `<video>` |
+| `tiktok` | ✅ Done (C.1) | Vertical aspect default |
+| `audio` | ✅ Done (B.2) | HTML5 `<audio>` |
 
 ### Embeds - Developer Tools (6 directive names)
 
 | Directive | Status | Notes |
 |-----------|--------|-------|
-| `gist` | ⏳ Phase C | GitHub Gist |
-| `codepen` | ⏳ Phase C | CodePen embed |
-| `codesandbox` | ⏳ Phase C | CodeSandbox embed |
-| `stackblitz` | ⏳ Phase C | StackBlitz embed |
-| `spotify` | ⏳ Phase C | Spotify embed |
-| `soundcloud` | ⏳ Phase C | SoundCloud embed |
+| `gist` | ✅ Done (C.1) | GitHub Gist |
+| `codepen` | ✅ Done (C.1) | CodePen embed |
+| `codesandbox` | ✅ Done (C.1) | CodeSandbox embed |
+| `stackblitz` | ✅ Done (C.1) | StackBlitz embed |
+| `spotify` | ✅ Done (C.1) | Spotify embed |
+| `soundcloud` | ✅ Done (C.1) | SoundCloud embed |
 
 ### File Inclusion (3 directive names)
 
@@ -332,34 +337,41 @@ else:
 
 | Directive | Status | Notes |
 |-----------|--------|-------|
-| `breadcrumbs` | ⏳ Phase C | Site navigation |
-| `siblings` | ⏳ Phase C | Adjacent pages |
-| `prev-next` | ⏳ Phase C | Sequential navigation |
-| `related` | ⏳ Phase C | Related content |
+| `breadcrumbs` | ✅ Done (C.2) | Site navigation |
+| `siblings` | ✅ Done (C.2) | Adjacent pages |
+| `prev-next` | ✅ Done (C.2) | Sequential navigation |
+| `related` | ✅ Done (C.2) | Related content |
 
 ### Versioning (6 directive names)
 
 | Directive | Aliases | Status | Notes |
 |-----------|---------|--------|-------|
-| `since` | `versionadded` | ⏳ Phase C | Version badge |
-| `deprecated` | `versionremoved` | ⏳ Phase C | Deprecation notice |
-| `changed` | `versionchanged` | ⏳ Phase C | Change notice |
+| `since` | `versionadded` | ✅ Done (C.1) | Version badge |
+| `deprecated` | `versionremoved` | ✅ Done (C.1) | Deprecation notice |
+| `changed` | `versionchanged` | ✅ Done (C.1) | Change notice |
 
 ### Miscellaneous (9 directive names)
 
 | Directive | Aliases | Status | Notes |
 |-----------|---------|--------|-------|
-| `badge` | `bdg` | ⏳ Phase C | Inline badge |
-| `button` | — | ⏳ Phase C | Styled button |
-| `icon` | `svg-icon` | ⏳ Phase C | Inline SVG |
-| `rubric` | — | ⏳ Phase C | Section heading |
-| `target` | `anchor` | ⏳ Phase C | Link target |
-| `example-label` | — | ⏳ Phase C | Example annotation |
-| `glossary` | — | ⏳ Phase C | ⚠️ Requires roles |
-| `build` | — | ⏳ Phase C | Build-time directive |
-| `asciinema` | — | ⏳ Phase C | Terminal recording |
+| `badge` | `bdg` | ✅ Done (C.2) | Inline badge |
+| `button` | — | ✅ Done (C.2) | Styled button |
+| `icon` | `svg-icon` | ✅ Done (C.2) | Inline SVG |
+| `rubric` | — | ✅ Done (C.2) | Section heading |
+| `target` | `anchor` | ✅ Done (C.2) | Link target |
+| `example-label` | — | ✅ Done (C.3) | Example annotation |
+| `glossary` | — | ⏳ Phase C.4 | ⚠️ Requires roles |
+| `build` | — | ✅ Done (C.3) | Build-time directive |
+| `asciinema` | — | ✅ Done (C.3) | Terminal recording |
 
-**Summary: 25 done, 30 remaining**
+### File I/O (2 directive names)
+
+| Directive | Status | Notes |
+|-----------|--------|-------|
+| `include` | ✅ Done (C.3) | Include markdown files |
+| `literalinclude` | ✅ Done (C.3) | Include code as code blocks |
+
+**Summary: 54 done, 1 remaining (glossary blocked on roles)**
 
 ---
 
@@ -624,8 +636,8 @@ def test_edge_case_parity(name: str, source: str):
 | `checklist` | Low | — | ✅ Done (B.2) |
 | `figure` / `audio` / `gallery` | Medium | — | ✅ Done (B.2) |
 | `list-table` | Medium | — | ✅ Done (B.2) |
-| `code-tabs` | Medium | Rosettes | ⏳ Phase C |
-| `data-table` | Medium | File I/O | ⏳ Phase C |
+| `code-tabs` | Medium | Rosettes | ✅ Done (C.4) |
+| `data-table` | Medium | File I/O | ✅ Done (C.4) |
 
 #### B.1: Cards System (High Priority) — ✅ COMPLETE
 
@@ -764,19 +776,20 @@ class ChecklistDirective:
 
 **Estimated Total**: 1,250 LOC, 2 weeks
 
-### Phase C: Specialized Directives — NOT STARTED
+### Phase C: Specialized Directives — ✅ C.1-C.3 COMPLETE, C.4 NEXT
 
 **Goal**: Complete migration of remaining directives by category.
 
-| Category | Directives | Complexity |
-|----------|------------|------------|
-| File I/O | include, literalinclude | High |
-| Video embeds | youtube, vimeo, video, tiktok | Low |
-| Developer embeds | gist, codepen, codesandbox, stackblitz, spotify, soundcloud | Low |
-| Navigation | breadcrumbs, siblings, prev-next, related | Medium |
-| Versioning | since, deprecated, changed | Low |
-| Miscellaneous | badge, button, icon, rubric, target, example-label, build, asciinema | Low |
-| Cross-refs | glossary | Medium (⚠️ needs roles) |
+| Category | Directives | Status |
+|----------|------------|--------|
+| Video embeds | youtube, vimeo, video, tiktok | ✅ C.1 Complete |
+| Developer embeds | gist, codepen, codesandbox, stackblitz, spotify, soundcloud | ✅ C.1 Complete |
+| Versioning | since, deprecated, changed | ✅ C.1 Complete |
+| Navigation | breadcrumbs, siblings, prev-next, related | ✅ C.2 Complete |
+| Misc (core) | badge, button, icon, rubric, target | ✅ C.2 Complete |
+| File I/O | include, literalinclude | ✅ C.3 Complete |
+| Misc (remaining) | example-label, build, asciinema | ✅ C.3 Complete |
+| Cross-refs | glossary | ⏳ C.4 (⚠️ needs roles) |
 
 #### C.1: File I/O Directives (High Priority, High Complexity)
 
@@ -1022,16 +1035,29 @@ class GlossaryDirective:
 
 #### Phase C Implementation Order
 
-1. **Week 6**: Video + developer embeds (quick wins)
-2. **Week 6**: Versioning + miscellaneous (quick wins)
-3. **Week 7**: Navigation (requires site context)
-4. **Week 7**: File I/O (complex, security-sensitive)
+1. **Week 6**: ✅ Video + developer embeds (quick wins) — `video.py`, `embed.py`
+2. **Week 6**: ✅ Versioning (quick wins) — `versioning.py`
+3. **Week 7**: ✅ Navigation (requires site context) — `navigation.py`
+4. **Week 7**: ✅ Miscellaneous core (inline, button) — `inline.py`, `button.py`
+5. **Week 8**: ✅ File I/O (FileResolver protocol) — `include.py`
+6. **Week 8**: ✅ Remaining misc (example-label, build, asciinema) — `misc.py`
+7. **Week 8**: ✅ Code tabs + data table — `code_tabs.py`, `data_table.py`
+8. **Blocked**: ⏳ Glossary (requires roles migration)
 
-**Estimated Total**: 1,450 LOC, 2 weeks
+**Completed C.1-C.4**: ~3,600 LOC
+**Remaining**: Glossary (blocked on roles migration)
 
-### Phase D: Integration & Deprecation — NOT STARTED
+### Phase D: Integration & Deprecation — ✅ COMPLETE
 
 **Goal**: Seamlessly switch Bengal from mistune to Patitas backend with zero breaking changes.
+
+**Completed**:
+- ✅ `create_default_registry()` updated with all 54 directive handlers
+- ✅ Parser factory (`bengal/rendering/parsers/__init__.py`) updated:
+  - Patitas documented as recommended for Python 3.14+
+  - Deprecation warning (opt-in via `BENGAL_PARSER_DEPRECATION_WARNINGS=1`)
+  - Updated docstrings and examples
+- ✅ All builtins exported from `directives/builtins/__init__.py`
 
 #### D.1: Parser Factory Update
 
@@ -1235,7 +1261,7 @@ warnings.warn(
 
 ## File Structure
 
-### Current (Phase B.1 Complete)
+### Current (Phase C.1 Complete)
 
 ```
 bengal/rendering/parsers/patitas/directives/
@@ -1245,17 +1271,23 @@ bengal/rendering/parsers/patitas/directives/
 ├── contracts.py         # ✅ 10 contracts (320 LOC)
 ├── registry.py          # ✅ Directive registration
 │
-└── builtins/            # ✅ Phase A + B.1 complete
-    ├── __init__.py      # ✅ Exports all handlers (50 LOC)
+└── builtins/            # ✅ Phase A + B.1 + B.2 + C.1 complete
+    ├── __init__.py      # ✅ Exports all handlers (100 LOC)
     ├── admonition.py    # ✅ 10 types (216 LOC)
     ├── cards.py         # ✅ cards, card, child-cards (500 LOC)
+    ├── checklist.py     # ✅ checklist (150 LOC)
     ├── container.py     # ✅ container, div (127 LOC)
     ├── dropdown.py      # ✅ dropdown, details (244 LOC)
+    ├── embed.py         # ✅ gist, codepen, codesandbox, stackblitz, spotify, soundcloud (850 LOC)
+    ├── media.py         # ✅ figure, audio, gallery (520 LOC)
     ├── steps.py         # ✅ steps, step (348 LOC)
-    └── tabs.py          # ✅ tab-set, tab-item (465 LOC)
+    ├── tables.py        # ✅ list-table (200 LOC)
+    ├── tabs.py          # ✅ tab-set, tab-item (465 LOC)
+    ├── versioning.py    # ✅ since, deprecated, changed (350 LOC)
+    └── video.py         # ✅ youtube, vimeo, tiktok, video (600 LOC)
 ```
 
-### Planned (Phases B.2-D)
+### Planned (Phases C.2-D)
 
 ```
 bengal/rendering/parsers/patitas/directives/
@@ -1265,18 +1297,11 @@ bengal/rendering/parsers/patitas/directives/
 └── builtins/
     ├── ...existing files...
     │
-    │ # Phase B.2: Remaining Content Directives
-    ├── code_tabs.py     # ⏳ code-tabs (200 LOC)
-    ├── tables.py        # ⏳ list-table, data-table (300 LOC)
-    ├── media.py         # ⏳ figure, gallery, audio (250 LOC)
-    ├── checklist.py     # ⏳ checklist (100 LOC)
-    │
-    │ # Phase C: Specialized Directives
-    ├── include.py       # ⏳ include, literalinclude (300 LOC)
-    ├── video.py         # ⏳ youtube, vimeo, video, tiktok (200 LOC)
-    ├── embed.py         # ⏳ gist, codepen, codesandbox, etc. (250 LOC)
-    ├── navigation.py    # ⏳ breadcrumbs, siblings, prev-next (200 LOC)
-    ├── versioning.py    # ⏳ since, deprecated, changed (150 LOC)
+    │ # Phase C.2-C.4: Specialized Directives
+    ├── code_tabs.py     # ✅ code-tabs (300 LOC)
+    ├── data_table.py    # ✅ data-table (200 LOC)
+    ├── include.py       # ✅ include, literalinclude (300 LOC)
+    ├── navigation.py    # ✅ breadcrumbs, siblings, prev-next (400 LOC)
     ├── inline.py        # ⏳ badge, icon, target (150 LOC)
     ├── button.py        # ⏳ button (80 LOC)
     └── misc.py          # ⏳ rubric, example-label, build (120 LOC)
@@ -1301,10 +1326,11 @@ tests/performance/
 | A (done) | 1,400 | — | 1,400 |
 | A.1 (done) | — | 500 | 500 |
 | B.1 (done) | 500 | 200 | 700 |
-| B.2 | 750 | 200 | 950 |
-| C | 1,450 | 400 | 1,850 |
+| B.2 (done) | 870 | 200 | 1,070 |
+| C.1 (done) | 1,800 | — | 1,800 |
+| C.2 | 650 | 200 | 850 |
 | D | 150 | 300 | 450 |
-| **Total** | **4,250** | **1,600** | **5,850** |
+| **Total** | **5,370** | **1,400** | **6,770** |
 
 ---
 
@@ -1495,10 +1521,12 @@ git push
 | 1-2 | Phase A | ✅ COMPLETE | Core directives (1,400 LOC) |
 | 3 | Phase A.1 | ✅ COMPLETE | Parity tests (500 LOC), 43/43 passing |
 | 4 | Phase B.1 | ✅ COMPLETE | Cards system (500 LOC), 17/17 passing |
-| 5 | Phase B.2 | ✅ COMPLETE | Checklist, media, tables (600 LOC), 5 directives |
-| 6 | Phase C.1-2 | ⏳ NEXT | Video embeds, developer embeds, versioning (600 LOC) |
-| 7 | Phase C.3-4 | Pending | Navigation, file I/O, miscellaneous (850 LOC) |
-| 8-9 | Phase D | Pending | Integration, deprecation, documentation |
+| 5 | Phase B.2 | ✅ COMPLETE | Checklist, media, tables (870 LOC), 5 directives |
+| 6 | Phase C.1 | ✅ COMPLETE | Video, embed, versioning (1,800 LOC), 13 directives |
+| 7 | Phase C.2 | ✅ COMPLETE | Navigation, misc directives (800 LOC), 9 directives |
+| 8 | Phase C.3 | ✅ COMPLETE | File I/O, example-label, build, asciinema (500 LOC), 5 directives |
+| 8 | Phase C.4 | ✅ COMPLETE | code-tabs, data-table (500 LOC), 2 directives |
+| 9 | Phase D | ✅ COMPLETE | Integration, parser factory, deprecation warnings |
 
 ### Milestone Tracking
 
@@ -1507,14 +1535,17 @@ Week 1-2   [████████████████████] Phase 
 Week 3     [████████████████████] Phase A.1: Test Infrastructure ✅
 Week 4     [████████████████████] Phase B.1: Cards System ✅
 Week 5     [████████████████████] Phase B.2: Content Directives ✅
-Week 6-7   [░░░░░░░░░░░░░░░░░░░░] Phase C: Specialized Directives
-Week 8-9   [░░░░░░░░░░░░░░░░░░░░] Phase D: Integration
+Week 6     [████████████████████] Phase C.1: Video + Embed + Versioning ✅
+Week 7     [████████████████████] Phase C.2: Navigation + Misc ✅
+Week 8     [████████████████████] Phase C.3: File I/O + Build + Terminal ✅
+Week 8     [████████████████████] Phase C.4: Code Tabs + Data Table ✅
+Week 9     [████████████████████] Phase D: Integration ✅ (glossary blocked on roles)
 ```
 
 **Original estimate**: 9 weeks  
-**Current progress**: Phase A complete (2 weeks)  
-**Remaining work**: 6-7 weeks  
-**Projected completion**: Mid-February 2026
+**Current progress**: Phase C.4 complete (8 weeks), 98% directives done (54/55)  
+**Remaining work**: 3-4 weeks  
+**Projected completion**: Mid-January 2026
 
 ---
 

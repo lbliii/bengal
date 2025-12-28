@@ -42,10 +42,9 @@ HTML Output:
 
 from __future__ import annotations
 
-import contextlib
 import re
 from collections.abc import Sequence
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from html import escape as html_escape
 from typing import TYPE_CHECKING, ClassVar
 
@@ -115,20 +114,17 @@ class StepDirective:
         location: SourceLocation,
     ) -> Directive:
         """Build step AST node."""
-        opts_dict = asdict(options)
-        opts_items = [(k, str(v)) for k, v in opts_dict.items() if v is not None]
-
         return Directive(
             location=location,
             name=name,
             title=title,
-            options=frozenset(opts_items),
+            options=options,  # Pass typed options directly
             children=tuple(children),
         )
 
     def render(
         self,
-        node: Directive,
+        node: Directive[StepOptions],
         rendered_children: str,
         sb: StringBuilder,
     ) -> None:
@@ -137,12 +133,12 @@ class StepDirective:
         Creates an <li> element with step marker, title, metadata,
         and content. The parent steps container wraps these in <ol>.
         """
-        opts = dict(node.options)
+        opts = node.options  # Direct typed access!
         title = node.title or ""
-        description = opts.get("description", "") or ""
-        optional = opts.get("optional", "").lower() in ("true", "1", "yes")
-        duration = opts.get("duration", "") or ""
-        css_class = opts.get("class_", "") or ""
+        description = opts.description or ""
+        optional = opts.optional
+        duration = opts.duration or ""
+        css_class = opts.class_ or ""
 
         # Clean up None strings
         if description == "None":
@@ -153,16 +149,20 @@ class StepDirective:
             css_class = ""
 
         # Get step number from options (injected by parent steps)
+        # Note: step_number is injected as an attribute on the options object
+        # by StepsDirective.parse() - check if it exists
         step_number = 1
-        if "step_number" in opts:
-            with contextlib.suppress(ValueError, TypeError):
-                step_number = int(opts["step_number"])
+        if hasattr(opts, "step_number"):
+            step_number = opts.step_number  # type: ignore
+        elif hasattr(node, "_step_number"):  # Fallback: check node
+            step_number = node._step_number  # type: ignore
 
         # Get heading level from options (injected by parent steps)
         heading_level = 2
-        if "heading_level" in opts:
-            with contextlib.suppress(ValueError, TypeError):
-                heading_level = int(opts["heading_level"])
+        if hasattr(opts, "heading_level"):
+            heading_level = opts.heading_level  # type: ignore
+        elif hasattr(node, "_heading_level"):  # Fallback: check node
+            heading_level = node._heading_level  # type: ignore
 
         # Generate step ID from title or fallback to step number
         step_id = self._slugify(title) if title else f"step-{step_number}"
@@ -252,9 +252,6 @@ class StepsDirective:
 
         Injects step_number and heading_level into child step directives.
         """
-        opts_dict = asdict(options)
-        opts_items = [(k, str(v)) for k, v in opts_dict.items() if v is not None]
-
         # Inject step numbers into children
         start = options.start
         heading_level = 2  # Default heading level
@@ -264,10 +261,26 @@ class StepsDirective:
 
         for child in children:
             if isinstance(child, Directive) and child.name == "step":
-                # Add step_number and heading_level to child's options
-                new_opts = dict(child.options)
-                new_opts["step_number"] = str(step_num)
-                new_opts["heading_level"] = str(heading_level)
+                # Create new StepOptions with injected step_number and heading_level
+                # We need to extend the options with these fields
+                from dataclasses import replace
+
+                # Get the child's options
+                child_opts = child.options
+
+                # Create a new options object with injected values
+                # Since StepOptions doesn't have step_number/heading_level fields,
+                # we'll store them as attributes on the directive node itself
+                # by creating a wrapper or storing them separately
+
+                # For now, we'll create a new options object and store step_number
+                # in a way that StepDirective.render() can access it
+                # We'll use replace to create a copy and add attributes
+                new_opts = replace(child_opts)
+                # Store step_number and heading_level as attributes
+                # (This is a workaround - ideally we'd extend StepOptions)
+                new_opts.step_number = step_num
+                new_opts.heading_level = heading_level
                 step_num += 1
 
                 # Create new Directive with updated options
@@ -276,7 +289,7 @@ class StepsDirective:
                         location=child.location,
                         name=child.name,
                         title=child.title,
-                        options=frozenset(new_opts.items()),
+                        options=new_opts,  # Use typed options
                         children=child.children,
                     )
                 )
@@ -287,13 +300,13 @@ class StepsDirective:
             location=location,
             name=name,
             title=title,
-            options=frozenset(opts_items),
+            options=options,  # Pass typed options directly
             children=tuple(processed_children),
         )
 
     def render(
         self,
-        node: Directive,
+        node: Directive[StepsOptions],
         rendered_children: str,
         sb: StringBuilder,
         *,
@@ -312,9 +325,9 @@ class StepsDirective:
             sb: StringBuilder for output
             render_child_directive: Optional callback to render child directives
         """
-        opts = dict(node.options)
-        css_class = opts.get("class", "") or opts.get("class_", "") or ""
-        style = opts.get("style", "default") or "default"
+        opts = node.options  # Direct typed access!
+        css_class = opts.class_ or ""
+        style = opts.style or "default"
 
         # Clean up None strings
         if css_class == "None":
@@ -323,10 +336,7 @@ class StepsDirective:
             style = "default"
 
         # Get start number
-        start = 1
-        if "start" in opts:
-            with contextlib.suppress(ValueError, TypeError):
-                start = int(opts["start"])
+        start = opts.start
 
         # Build class string
         classes = ["steps"]
@@ -346,9 +356,7 @@ class StepsDirective:
             style_attr = f' style="counter-reset: step {start - 1}"'
 
         # Render children with step numbers
-        children_html = self._render_step_children(
-            node.children, start, render_child_directive
-        )
+        children_html = self._render_step_children(node.children, start, render_child_directive)
 
         # Wrap in <ol> if contains step <li> elements
         if "<li>" in children_html or "<li " in children_html:
@@ -385,10 +393,14 @@ class StepsDirective:
 
         for child in children:
             if isinstance(child, Directive) and child.name == "step":
-                # Create modified options with step number
-                new_opts = dict(child.options)
-                new_opts["step_number"] = str(step_num)
-                new_opts["heading_level"] = "2"
+                # Get child's typed options and inject step_number/heading_level
+                child_opts = child.options
+                from dataclasses import replace
+
+                # Create a copy and add attributes
+                new_opts = replace(child_opts)
+                new_opts.step_number = step_num
+                new_opts.heading_level = 2
                 step_num += 1
 
                 # Create new directive with updated options
@@ -396,7 +408,7 @@ class StepsDirective:
                     location=child.location,
                     name=child.name,
                     title=child.title,
-                    options=frozenset(new_opts.items()),
+                    options=new_opts,  # Use typed options
                     children=child.children,
                 )
 

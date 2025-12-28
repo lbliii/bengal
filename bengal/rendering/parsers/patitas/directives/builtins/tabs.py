@@ -43,7 +43,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Sequence
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from html import escape as html_escape
 from typing import TYPE_CHECKING, ClassVar
 
@@ -141,20 +141,17 @@ class TabItemDirective:
         location: SourceLocation,
     ) -> Directive:
         """Build tab-item AST node."""
-        opts_dict = asdict(options)
-        opts_items = [(k, str(v)) for k, v in opts_dict.items() if v is not None]
-
         return Directive(
             location=location,
             name=name,
             title=title or "Tab",
-            options=frozenset(opts_items),
+            options=options,  # Pass typed options directly
             children=tuple(children),
         )
 
     def render(
         self,
-        node: Directive,
+        node: Directive[TabItemOptions],
         rendered_children: str,
         sb: StringBuilder,
     ) -> None:
@@ -163,28 +160,12 @@ class TabItemDirective:
         Creates a wrapper div with metadata that the parent tab-set
         will parse to build the navigation and panels.
         """
-        opts = dict(node.options)
+        opts = node.options  # Direct typed access!
         title = node.title or "Tab"
-        # Handle :selected: flag - presence (even empty) means True
-        if "selected" in opts:
-            selected_val = opts["selected"].lower()
-            selected = "true" if selected_val not in ("false", "0", "no") else "false"
-        else:
-            selected = "false"
-        icon = opts.get("icon", "") or ""
-        badge = opts.get("badge", "") or ""
-        # Handle :disabled: flag - presence (even empty) means True
-        if "disabled" in opts:
-            disabled_val = opts["disabled"].lower()
-            disabled = "true" if disabled_val not in ("false", "0", "no") else "false"
-        else:
-            disabled = "false"
-
-        # Clean up None strings
-        if icon == "None":
-            icon = ""
-        if badge == "None":
-            badge = ""
+        selected = "true" if opts.selected else "false"
+        icon = opts.icon or ""
+        badge = opts.badge or ""
+        disabled = "true" if opts.disabled else "false"
 
         sb.append(
             f'<div class="tab-item" '
@@ -222,20 +203,17 @@ class TabSetDirective:
         location: SourceLocation,
     ) -> Directive:
         """Build tab-set AST node."""
-        opts_dict = asdict(options)
-        opts_items = [(k, str(v)) for k, v in opts_dict.items() if v is not None]
-
         return Directive(
             location=location,
             name=name,
             title=title,
-            options=frozenset(opts_items),
+            options=options,  # Pass typed options directly
             children=tuple(children),
         )
 
     def render(
         self,
-        node: Directive,
+        node: Directive[TabSetOptions],
         rendered_children: str,
         sb: StringBuilder,
     ) -> None:
@@ -248,20 +226,12 @@ class TabSetDirective:
         - "enhanced" (default): JavaScript-based tabs with data-tab-target
         - "css_state_machine": URL-driven tabs using :target CSS selector
         """
-        opts = dict(node.options)
+        opts = node.options  # Direct typed access!
 
         # Stable IDs are critical for deterministic builds
-        tab_id = opts.get("id") or f"tabs-{hash_str(rendered_children or '', truncate=12)}"
-        if tab_id == "None":
-            tab_id = f"tabs-{hash_str(rendered_children or '', truncate=12)}"
-
-        sync_key = opts.get("sync", "") or ""
-        if sync_key == "None":
-            sync_key = ""
-
-        mode = opts.get("mode", "") or "enhanced"
-        if mode == "None":
-            mode = "enhanced"
+        tab_id = opts.id or f"tabs-{hash_str(rendered_children or '', truncate=12)}"
+        sync_key = opts.sync or ""
+        mode = opts.mode or "enhanced"
 
         # Extract tab items from rendered HTML
         matches = _extract_tab_items(rendered_children)

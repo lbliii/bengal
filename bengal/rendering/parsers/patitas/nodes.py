@@ -38,9 +38,12 @@ Thread Safety:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal
+from typing import Generic, Literal, TypeVar
 
+from bengal.rendering.parsers.patitas.directives.options import DirectiveOptions
 from bengal.rendering.parsers.patitas.location import SourceLocation
+
+TOptions = TypeVar("TOptions", bound=DirectiveOptions)
 
 # =============================================================================
 # Base Node
@@ -345,15 +348,18 @@ class HtmlBlock(Node):
 
 
 @dataclass(frozen=True, slots=True)
-class Directive(Node):
+class Directive(Node, Generic[TOptions]):
     """Block directive (MyST syntax).
 
     Markdown: :::{name} title\\n:option: value\\ncontent\\n:::
+
+    Generic over options type for full type safety. Use Directive[YourOptions]
+    to get typed options access in handlers.
     """
 
     name: str
     title: str | None
-    options: frozenset[tuple[str, str]]
+    options: TOptions  # Typed options object — IDE knows the exact type!
     children: tuple[Block, ...]
     raw_content: str | None = None  # For directives needing unparsed content
 

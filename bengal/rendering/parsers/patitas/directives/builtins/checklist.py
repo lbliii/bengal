@@ -116,36 +116,28 @@ class ChecklistDirective:
         location: SourceLocation,
     ) -> Directive:
         """Build checklist AST node."""
-        # Store options in frozenset for the node
-        opts_items = [
-            ("style", options.style),
-            ("show-progress", str(options.show_progress)),
-            ("compact", str(options.compact)),
-            ("class", options.css_class),
-        ]
-
         return Directive(
             location=location,
             name=name,
             title=title,
-            options=frozenset(opts_items),
+            options=options,  # Pass typed options directly
             children=tuple(children),
         )
 
     def render(
         self,
-        node: Directive,
+        node: Directive[ChecklistOptions],
         rendered_children: str,
         sb: StringBuilder,
     ) -> None:
         """Render checklist to HTML."""
-        opts = dict(node.options)
+        opts = node.options  # Direct typed access!
 
         title = node.title or ""
-        style = opts.get("style", "default")
-        show_progress = opts.get("show-progress", "False") == "True"
-        compact = opts.get("compact", "False") == "True"
-        css_class = opts.get("class", "")
+        style = opts.style
+        show_progress = opts.show_progress
+        compact = opts.compact
+        css_class = opts.css_class
 
         # Build class list
         classes = ["checklist"]

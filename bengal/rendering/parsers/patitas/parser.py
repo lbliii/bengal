@@ -78,14 +78,27 @@ class Parser:
         "_footnotes_enabled",
         "_math_enabled",
         "_autolinks_enabled",
+        # Directive support
+        "_directive_registry",
+        "_directive_stack",
+        "_strict_contracts",
     )
 
-    def __init__(self, source: str, source_file: str | None = None) -> None:
+    def __init__(
+        self,
+        source: str,
+        source_file: str | None = None,
+        *,
+        directive_registry=None,
+        strict_contracts: bool = False,
+    ) -> None:
         """Initialize parser with source text.
 
         Args:
             source: Markdown source text
             source_file: Optional source file path for error messages
+            directive_registry: Optional directive registry for handler lookup
+            strict_contracts: If True, raise errors on contract violations
         """
         self._source = source
         self._source_file = source_file
@@ -100,6 +113,11 @@ class Parser:
         self._footnotes_enabled = False
         self._math_enabled = False
         self._autolinks_enabled = False
+
+        # Directive support
+        self._directive_registry = directive_registry
+        self._directive_stack: list[str] = []
+        self._strict_contracts = strict_contracts
 
     def parse(self) -> Sequence[Block]:
         """Parse source into AST blocks.
@@ -592,7 +610,14 @@ class Parser:
         return tuple(alignments)
 
     def _parse_directive(self) -> Directive:
-        """Parse directive block (:::{name} ... :::)."""
+        """Parse directive block (:::{name} ... :::).
+
+        Returns Directive with typed options. If a handler is registered,
+        uses the handler's options_class and parse() method. Otherwise,
+        creates Directive directly with default DirectiveOptions.
+        """
+        from bengal.rendering.parsers.patitas.directives.options import DirectiveOptions
+
         start_token = self._current
         assert start_token is not None and start_token.type == TokenType.DIRECTIVE_OPEN
         self._advance()
@@ -609,8 +634,8 @@ class Parser:
             title = self._current.value
             self._advance()
 
-        # Parse options
-        options: dict[str, str] = {}
+        # Parse raw options dict
+        raw_options: dict[str, str] = {}
         while not self._at_end():
             token = self._current
             assert token is not None
@@ -619,7 +644,7 @@ class Parser:
                 # Parse key:value from token
                 if ":" in token.value:
                     key, value = token.value.split(":", 1)
-                    options[key.strip()] = value.strip()
+                    raw_options[key.strip()] = value.strip()
                 self._advance()
             elif token.type == TokenType.BLANK_LINE:
                 # Skip blank lines in option section
@@ -628,30 +653,136 @@ class Parser:
             else:
                 break
 
+        # Get handler from registry (if available)
+        handler = None
+        if self._directive_registry:
+            handler = self._directive_registry.get(name)
+
+        # Validate parent contract BEFORE parsing children
+        if handler and hasattr(handler, "contract") and handler.contract:
+            parent_name = self._directive_stack[-1] if self._directive_stack else None
+            violation = handler.contract.validate_parent(name, parent_name)
+            if violation:
+                from bengal.errors import DirectiveContractError
+                from bengal.utils.logger import get_logger
+
+                logger = get_logger(__name__)
+                if self._strict_contracts:
+                    raise DirectiveContractError(
+                        violation.message,
+                        location=start_token.location,
+                        suggestion=violation.suggestion,
+                    )
+                else:
+                    logger.warning(
+                        "directive_contract_violation",
+                        directive=name,
+                        parent=parent_name,
+                        message=violation.message,
+                    )
+
+        # Parse options into typed object
+        if handler and hasattr(handler, "options_class"):
+            typed_options = handler.options_class.from_raw(raw_options)
+        else:
+            # No handler - use default DirectiveOptions
+            typed_options = DirectiveOptions.from_raw(raw_options)
+
+        # Check if handler needs raw content preserved
+        preserves_raw_content = False
+        if handler and hasattr(handler, "preserves_raw_content"):
+            preserves_raw_content = handler.preserves_raw_content
+
+        # Push onto stack before parsing children
+        self._directive_stack.append(name)
+
         # Parse content (nested blocks)
         children: list[Block] = []
-        while not self._at_end():
-            token = self._current
-            assert token is not None
+        raw_content_parts: list[str] = []
+        try:
+            while not self._at_end():
+                token = self._current
+                assert token is not None
 
-            if token.type == TokenType.DIRECTIVE_CLOSE:
-                self._advance()
-                break
-            elif token.type == TokenType.BLANK_LINE:
-                self._advance()
-                continue
+                if token.type == TokenType.DIRECTIVE_CLOSE:
+                    self._advance()
+                    break
+                elif token.type == TokenType.BLANK_LINE:
+                    if preserves_raw_content:
+                        raw_content_parts.append("\n")
+                    self._advance()
+                    continue
 
-            block = self._parse_block()
-            if block is not None:
-                children.append(block)
+                # Save raw content if needed (before parsing)
+                if preserves_raw_content and token.location:
+                    # Note: This is a simplified approach - full raw content capture
+                    # would require tracking the original source positions
+                    pass
 
-        return Directive(
-            location=start_token.location,
-            name=name,
-            title=title,
-            options=frozenset(options.items()),
-            children=tuple(children),
-        )
+                block = self._parse_block()
+                if block is not None:
+                    children.append(block)
+        finally:
+            # Always pop from stack, even on error
+            self._directive_stack.pop()
+
+        # Validate children contract AFTER parsing
+        if handler and hasattr(handler, "contract") and handler.contract:
+            child_directives = [c for c in children if isinstance(c, Directive)]
+            violations = handler.contract.validate_children(name, child_directives)
+            if violations:
+                from bengal.errors import DirectiveContractError
+                from bengal.utils.logger import get_logger
+
+                logger = get_logger(__name__)
+                for violation in violations:
+                    if self._strict_contracts:
+                        raise DirectiveContractError(
+                            violation.message,
+                            location=start_token.location,
+                            suggestion=violation.suggestion,
+                        )
+                    else:
+                        logger.warning(
+                            "directive_contract_violation",
+                            directive=name,
+                            message=violation.message,
+                        )
+
+        # Build raw_content if needed
+        raw_content: str | None = None
+        if preserves_raw_content:
+            raw_content = "".join(raw_content_parts) if raw_content_parts else ""
+
+        # Use handler if available, otherwise create Directive directly
+        if handler and hasattr(handler, "parse"):
+            # Handler returns Directive with typed options
+            directive = handler.parse(
+                name=name,
+                title=title,
+                options=typed_options,
+                content=raw_content or "",
+                children=children,
+                location=start_token.location,
+            )
+            # Ensure raw_content is set if handler requested it
+            if preserves_raw_content and directive.raw_content is None:
+                # Reconstruct directive with raw_content
+                # Note: This is a workaround - ideally handler.parse() would handle this
+                from dataclasses import replace
+
+                directive = replace(directive, raw_content=raw_content)
+            return directive
+        else:
+            # No handler - create Directive directly with typed options
+            return Directive(
+                location=start_token.location,
+                name=name,
+                title=title,
+                options=typed_options,
+                children=tuple(children),
+                raw_content=raw_content,
+            )
 
     # =========================================================================
     # Inline parsing with CommonMark delimiter stack algorithm

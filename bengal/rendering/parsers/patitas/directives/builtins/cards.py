@@ -246,36 +246,38 @@ class CardsDirective:
         location: SourceLocation,
     ) -> Directive:
         """Build cards grid AST node."""
-        opts_items = [
-            ("columns", normalize_columns(options.columns)),
-            ("gap", options.gap if options.gap in VALID_GAPS else "medium"),
-            ("style", options.style if options.style in VALID_STYLES else "default"),
-            ("variant", options.variant),
-            ("layout", options.layout if options.layout in VALID_LAYOUTS else "default"),
-        ]
+        # Normalize and validate options
+        normalized_opts = CardsOptions(
+            columns=normalize_columns(options.columns),
+            gap=options.gap if options.gap in VALID_GAPS else "medium",
+            style=options.style if options.style in VALID_STYLES else "default",
+            variant=options.variant,
+            layout=options.layout if options.layout in VALID_LAYOUTS else "default",
+            class_=options.class_,
+        )
 
         return Directive(
             location=location,
             name=name,
             title=title,
-            options=frozenset(opts_items),
+            options=normalized_opts,  # Pass typed options directly
             children=tuple(children),
         )
 
     def render(
         self,
-        node: Directive,
+        node: Directive[CardsOptions],
         rendered_children: str,
         sb: StringBuilder,
     ) -> None:
         """Render cards grid container to HTML."""
-        opts = dict(node.options)
+        opts = node.options  # Direct typed access!
 
-        columns = opts.get("columns", "auto")
-        gap = opts.get("gap", "medium")
-        style = opts.get("style", "default")
-        variant = opts.get("variant", "navigation")
-        layout = opts.get("layout", "default")
+        columns = opts.columns
+        gap = opts.gap
+        style = opts.style
+        variant = opts.variant
+        layout = opts.layout
 
         sb.append(
             f'<div class="card-grid" '
@@ -327,52 +329,44 @@ class CardDirective:
         # Parse pull fields
         pull_fields = [f.strip() for f in options.pull.split(",") if f.strip()]
 
-        # Validate color
-        color = options.color if options.color in VALID_COLORS else ""
+        # Validate color and layout, create normalized options
+        from dataclasses import replace
 
-        # Validate layout
-        layout = options.layout if options.layout in VALID_LAYOUTS else ""
-
-        opts_items = [
-            ("title", title or ""),
-            ("icon", options.icon),
-            ("link", options.link),
-            ("description", options.description),
-            ("badge", options.badge),
-            ("color", color),
-            ("image", options.image),
-            ("footer", footer),
-            ("pull", ",".join(pull_fields)),
-            ("layout", layout),
-        ]
+        normalized_opts = replace(
+            options,
+            color=options.color if options.color in VALID_COLORS else "",
+            layout=options.layout if options.layout in VALID_LAYOUTS else "",
+            footer=footer,
+            pull=",".join(pull_fields),
+        )
 
         return Directive(
             location=location,
             name=name,
             title=title,
-            options=frozenset(opts_items),
+            options=normalized_opts,  # Pass typed options directly
             children=tuple(children),
         )
 
     def render(
         self,
-        node: Directive,
+        node: Directive[CardOptions],
         rendered_children: str,
         sb: StringBuilder,
     ) -> None:
         """Render individual card to HTML."""
-        opts = dict(node.options)
+        opts = node.options  # Direct typed access!
 
-        # Title comes from node.title (directive title) or options (if stored there)
-        title = node.title or opts.get("title", "")
-        icon = opts.get("icon", "")
-        link = opts.get("link", "")
-        description = opts.get("description", "")
-        badge = opts.get("badge", "")
-        color = opts.get("color", "")
-        image = opts.get("image", "")
-        footer = opts.get("footer", "")
-        layout = opts.get("layout", "")
+        # Title comes from node.title (directive title)
+        title = node.title or ""
+        icon = opts.icon
+        link = opts.link
+        description = opts.description
+        badge = opts.badge
+        color = opts.color
+        image = opts.image
+        footer = opts.footer
+        layout = opts.layout
 
         # Card wrapper (link or div)
         if link:
@@ -467,29 +461,29 @@ class ChildCardsDirective:
         """Build child-cards AST node."""
         fields = [f.strip() for f in options.fields.split(",") if f.strip()]
 
-        opts_items = [
-            ("columns", options.columns),
-            ("gap", options.gap if options.gap in VALID_GAPS else "medium"),
-            (
-                "include",
-                options.include if options.include in ("sections", "pages", "all") else "all",
-            ),
-            ("fields", ",".join(fields)),
-            ("layout", options.layout if options.layout in VALID_LAYOUTS else "default"),
-            ("style", options.style if options.style in VALID_STYLES else "default"),
-        ]
+        # Normalize and validate options
+        from dataclasses import replace
+
+        normalized_opts = replace(
+            options,
+            gap=options.gap if options.gap in VALID_GAPS else "medium",
+            include=options.include if options.include in ("sections", "pages", "all") else "all",
+            fields=",".join(fields),
+            layout=options.layout if options.layout in VALID_LAYOUTS else "default",
+            style=options.style if options.style in VALID_STYLES else "default",
+        )
 
         return Directive(
             location=location,
             name=name,
             title=title,
-            options=frozenset(opts_items),
+            options=normalized_opts,  # Pass typed options directly
             children=(),  # No children - auto-generated at render time
         )
 
     def render(
         self,
-        node: Directive,
+        node: Directive[ChildCardsOptions],
         rendered_children: str,
         sb: StringBuilder,
     ) -> None:
@@ -498,12 +492,12 @@ class ChildCardsDirective:
         Note: This requires render context with current_page and section
         information. Without it, renders an empty placeholder.
         """
-        opts = dict(node.options)
+        opts = node.options  # Direct typed access!
 
-        columns = opts.get("columns", "auto")
-        gap = opts.get("gap", "medium")
-        style = opts.get("style", "default")
-        layout = opts.get("layout", "default")
+        columns = opts.columns
+        gap = opts.gap
+        style = opts.style
+        layout = opts.layout
 
         # Placeholder - actual child page discovery requires render context
         # which is injected by the renderer when available

@@ -101,34 +101,22 @@ class FigureDirective:
         location: SourceLocation,
     ) -> Directive:
         """Build figure AST node."""
-        opts_items = [
-            ("alt", options.alt),
-            ("caption", options.caption),
-            ("width", options.width),
-            ("height", options.height),
-            ("align", options.align),
-            ("link", options.link),
-            ("target", options.target),
-            ("loading", options.loading),
-            ("class", options.css_class),
-        ]
-
         return Directive(
             location=location,
             name=name,
             title=title,  # Image path is in title
-            options=frozenset(opts_items),
+            options=options,  # Pass typed options directly
             children=tuple(children),
         )
 
     def render(
         self,
-        node: Directive,
+        node: Directive[FigureOptions],
         rendered_children: str,
         sb: StringBuilder,
     ) -> None:
         """Render figure to HTML."""
-        opts = dict(node.options)
+        opts = node.options  # Direct typed access!
 
         image_path = node.title.strip() if node.title else ""
 
@@ -142,15 +130,15 @@ class FigureDirective:
             )
             return
 
-        alt = opts.get("alt", "")
-        caption = opts.get("caption", "")
-        width = opts.get("width", "")
-        height = opts.get("height", "")
-        align = opts.get("align", "")
-        link = opts.get("link", "")
-        target = opts.get("target", "_self")
-        loading = opts.get("loading", "lazy")
-        css_class = opts.get("class", "")
+        alt = opts.alt
+        caption = opts.caption
+        width = opts.width
+        height = opts.height
+        align = opts.align
+        link = opts.link
+        target = opts.target
+        loading = opts.loading
+        css_class = opts.css_class
 
         # Build class string
         classes = ["figure"]
@@ -256,32 +244,22 @@ class AudioDirective:
         location: SourceLocation,
     ) -> Directive:
         """Build audio AST node."""
-        opts_items = [
-            ("title", options.title),
-            ("controls", str(options.controls)),
-            ("autoplay", str(options.autoplay)),
-            ("loop", str(options.loop)),
-            ("muted", str(options.muted)),
-            ("preload", options.preload),
-            ("class", options.css_class),
-        ]
-
         return Directive(
             location=location,
             name=name,
             title=title,  # Audio path is in title
-            options=frozenset(opts_items),
+            options=options,  # Pass typed options directly
             children=tuple(children),
         )
 
     def render(
         self,
-        node: Directive,
+        node: Directive[AudioOptions],
         rendered_children: str,
         sb: StringBuilder,
     ) -> None:
         """Render audio embed to HTML."""
-        opts = dict(node.options)
+        opts = node.options  # Direct typed access!
 
         audio_path = node.title.strip() if node.title else ""
 
@@ -295,7 +273,7 @@ class AudioDirective:
             )
             return
 
-        title = opts.get("title", "")
+        title = opts.title
         if not title:
             sb.append(
                 f'<div class="audio-embed audio-error">\n'
@@ -305,12 +283,12 @@ class AudioDirective:
             )
             return
 
-        controls = opts.get("controls", "True") != "False"
-        autoplay = opts.get("autoplay", "False") == "True"
-        loop = opts.get("loop", "False") == "True"
-        muted = opts.get("muted", "False") == "True"
-        preload = opts.get("preload", "metadata")
-        css_class = opts.get("class", "")
+        controls = opts.controls
+        autoplay = opts.autoplay
+        loop = opts.loop
+        muted = opts.muted
+        preload = opts.preload
+        css_class = opts.css_class
 
         # Determine MIME type
         mime_type = "audio/mpeg"
@@ -402,6 +380,7 @@ class GalleryDirective:
     token_type: ClassVar[str] = "gallery"
     contract: ClassVar[DirectiveContract | None] = None
     options_class: ClassVar[type[GalleryOptions]] = GalleryOptions
+    preserves_raw_content: ClassVar[bool] = True  # Needs raw content for image parsing
 
     def parse(
         self,
@@ -413,41 +392,29 @@ class GalleryDirective:
         location: SourceLocation,
     ) -> Directive:
         """Build gallery AST node."""
-        opts_items = [
-            ("columns", str(options.columns)),
-            ("lightbox", str(options.lightbox)),
-            ("gap", options.gap),
-            ("aspect-ratio", options.aspect_ratio),
-            ("class", options.css_class),
-        ]
-
         return Directive(
             location=location,
             name=name,
             title=title,
-            options=frozenset(opts_items),
+            options=options,  # Pass typed options directly
             children=tuple(children),
             raw_content=content,  # Preserve raw content for image parsing
         )
 
     def render(
         self,
-        node: Directive,
+        node: Directive[GalleryOptions],
         rendered_children: str,
         sb: StringBuilder,
     ) -> None:
         """Render gallery to HTML."""
-        opts = dict(node.options)
+        opts = node.options  # Direct typed access!
 
-        try:
-            columns = int(opts.get("columns", "3"))
-        except ValueError:
-            columns = 3
-
-        lightbox = opts.get("lightbox", "True") != "False"
-        gap = opts.get("gap", "1rem")
-        aspect_ratio = opts.get("aspect-ratio", "4/3")
-        css_class = opts.get("class", "")
+        columns = opts.columns
+        lightbox = opts.lightbox
+        gap = opts.gap
+        aspect_ratio = opts.aspect_ratio
+        css_class = opts.css_class
 
         # Parse images from raw content
         images = self._parse_images(node.raw_content or "")

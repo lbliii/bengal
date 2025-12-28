@@ -90,19 +90,22 @@ class ContainerDirective:
         if extra_class:
             classes = f"{classes} {extra_class}" if classes else extra_class
 
-        opts_items = [("css_class", classes)]
+        # Create options with merged classes
+        from dataclasses import replace
+
+        merged_opts = replace(options, class_=classes)
 
         return Directive(
             location=location,
             name=name,
             title=None,  # Title is used as classes, not displayed
-            options=frozenset(opts_items),
+            options=merged_opts,  # Pass typed options directly
             children=tuple(children),
         )
 
     def render(
         self,
-        node: Directive,
+        node: Directive[ContainerOptions],
         rendered_children: str,
         sb: StringBuilder,
     ) -> None:
@@ -111,15 +114,10 @@ class ContainerDirective:
         Produces a div with the specified classes.
         The title is used as class name(s), merged with :class: option.
         """
-        opts = dict(node.options)
+        opts = node.options  # Direct typed access!
 
-        # Title contains class name(s)
-        classes = node.title.strip() if node.title else ""
-
-        # Merge with :class: option (parser stores as "class", not "class_")
-        extra_class = opts.get("class", "") or opts.get("class_", "") or opts.get("css_class", "")
-        if extra_class and extra_class != "None":
-            classes = f"{classes} {extra_class}".strip() if classes else extra_class
+        # Title contains class name(s) - but we merged them in parse()
+        classes = opts.class_ or ""
 
         if classes:
             sb.append(f'<div class="{html_escape(classes)}">\n')
