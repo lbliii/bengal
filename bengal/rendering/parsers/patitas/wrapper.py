@@ -15,20 +15,14 @@ Thread Safety:
 
 from __future__ import annotations
 
-import re
 from typing import Any
 
 from bengal.rendering.parsers.base import BaseMarkdownParser
 from bengal.rendering.parsers.patitas import create_markdown, parse_to_ast
-from bengal.rendering.parsers.patitas.nodes import Block, Heading
+from bengal.rendering.parsers.patitas.nodes import Block
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
-
-# Heading pattern for TOC extraction from rendered HTML
-_HEADING_PATTERN = re.compile(
-    r"<h([1-6])(?:\s+id=[\"']([^\"']+)[\"'])?\s*>(.+?)</h\1>", re.IGNORECASE | re.DOTALL
-)
 
 
 class PatitasParser(BaseMarkdownParser):
@@ -145,6 +139,9 @@ class PatitasParser(BaseMarkdownParser):
     def parse_with_toc(self, content: str, metadata: dict[str, Any]) -> tuple[str, str]:
         """Parse Markdown content and extract table of contents.
 
+        Uses single-pass heading decoration (RFC: rfc-path-to-200-pgs).
+        Heading IDs and TOC are generated during the AST walk - no regex post-pass.
+
         Args:
             content: Markdown content to parse
             metadata: Page metadata (includes source path for cross-reference context)
@@ -158,15 +155,12 @@ class PatitasParser(BaseMarkdownParser):
         # Parse to AST using configured markdown instance
         ast = self._md.parse_to_ast(content)
 
-        # Render HTML
-        html = self._md.render_ast(ast, content)
+        # Render HTML with single-pass TOC extraction (RFC: rfc-path-to-200-pgs)
+        # Heading IDs are injected during render, TOC collected in same pass
+        html, toc, _toc_items = self._md.render_ast_with_toc(ast, content)
 
         # Post-process cross-references if enabled
         html = self._apply_post_processing(html, metadata)
-
-        # Inject heading IDs and extract TOC
-        html = self._inject_heading_ids(html)
-        toc = self._extract_toc(ast)
 
         return html, toc
 
@@ -230,6 +224,9 @@ class PatitasParser(BaseMarkdownParser):
     ) -> tuple[str, str]:
         """Parse Markdown with variable substitution and extract TOC.
 
+        Uses single-pass heading decoration (RFC: rfc-path-to-200-pgs).
+        Heading IDs and TOC are generated during the AST walk - no regex post-pass.
+
         Args:
             content: Markdown content to parse
             metadata: Page metadata
@@ -254,18 +251,17 @@ class PatitasParser(BaseMarkdownParser):
             # 2. Parse & Substitute in ONE pass (the "window thing")
             ast = self._md.parse_to_ast(content, text_transformer=var_plugin.substitute_variables)
 
-            # 3. Render to HTML
-            html = self._md.render_ast(ast, content)
+            # 3. Render HTML with single-pass TOC extraction (RFC: rfc-path-to-200-pgs)
+            # Heading IDs are injected during render, TOC collected in same pass
+            html, toc, _toc_items = self._md.render_ast_with_toc(
+                ast, content, text_transformer=var_plugin.substitute_variables
+            )
 
             # 4. Restore placeholders
             html = var_plugin.restore_placeholders(html)
 
             # 5. Apply other post-processing
             html = self._apply_post_processing(html, metadata)
-
-            # 6. Inject heading IDs and extract TOC
-            html = self._inject_heading_ids(html)
-            toc = self._extract_toc(ast)
 
             return html, toc
 
@@ -307,151 +303,6 @@ class PatitasParser(BaseMarkdownParser):
             html = self._xref_plugin._substitute_xrefs(html)
 
         return html
-
-    def _inject_heading_ids(self, html: str) -> str:
-        """Inject ID attributes into heading elements.
-
-        Args:
-            html: HTML content
-
-        Returns:
-            HTML with heading IDs added
-        """
-
-        def replace_heading(match: re.Match[str]) -> str:
-            level = match.group(1)
-            existing_id = match.group(2)
-            content = match.group(3)
-
-            if existing_id:
-                return match.group(0)  # Already has ID
-
-            # Generate slug from content
-            slug = self._slugify(self._strip_tags(content))
-            return f'<h{level} id="{slug}">{content}</h{level}>'
-
-        return _HEADING_PATTERN.sub(replace_heading, html)
-
-    def _extract_toc(self, ast: tuple[Block, ...]) -> str:
-        """Extract table of contents from AST.
-
-        Args:
-            ast: Parsed AST blocks
-
-        Returns:
-            TOC HTML as nested list
-        """
-        toc_items: list[tuple[int, str, str]] = []
-
-        for block in ast:
-            if isinstance(block, Heading):
-                # Extract text from heading children
-                text = self._extract_text_from_inline(block.children)
-                slug = self._slugify(text)
-                toc_items.append((block.level, text, slug))
-
-        if not toc_items:
-            return ""
-
-        return self._build_toc_html(toc_items)
-
-    def _extract_text_from_inline(self, children: tuple[Any, ...]) -> str:
-        """Extract plain text from inline nodes.
-
-        Args:
-            children: Inline child nodes
-
-        Returns:
-            Concatenated text content
-        """
-        from bengal.rendering.parsers.patitas.nodes import (
-            CodeSpan,
-            Emphasis,
-            Strong,
-            Text,
-        )
-
-        parts: list[str] = []
-        for child in children:
-            if isinstance(child, Text):
-                parts.append(child.content)
-            elif isinstance(child, (Emphasis, Strong)):
-                parts.append(self._extract_text_from_inline(child.children))
-            elif isinstance(child, CodeSpan):
-                parts.append(child.code)
-        return "".join(parts)
-
-    def _build_toc_html(self, items: list[tuple[int, str, str]]) -> str:
-        """Build TOC HTML from items.
-
-        Args:
-            items: List of (level, text, slug) tuples
-
-        Returns:
-            TOC HTML as nested list
-        """
-        if not items:
-            return ""
-
-        result: list[str] = ['<ul class="toc">']
-        prev_level = items[0][0]
-
-        for level, text, slug in items:
-            if level > prev_level:
-                result.append("<ul>")
-            elif level < prev_level:
-                for _ in range(prev_level - level):
-                    result.append("</li></ul>")
-                result.append("</li>")
-
-            if level <= prev_level and result[-1] not in ("</ul>", '<ul class="toc">'):
-                result.append("</li>")
-
-            result.append(f'<li><a href="#{slug}">{self._escape_html(text)}</a>')
-            prev_level = level
-
-        # Close remaining tags
-        result.append("</li>")
-        result.append("</ul>")
-
-        return "".join(result)
-
-    def _slugify(self, text: str) -> str:
-        """Convert text to URL-friendly slug.
-
-        Args:
-            text: Text to slugify
-
-        Returns:
-            Slugified text (max 100 characters)
-        """
-        from bengal.utils.text import slugify
-
-        return slugify(text, unescape_html=True, max_length=100)
-
-    def _strip_tags(self, html: str) -> str:
-        """Remove HTML tags from string.
-
-        Args:
-            html: HTML string
-
-        Returns:
-            Plain text without tags
-        """
-        return re.sub(r"<[^>]+>", "", html)
-
-    def _escape_html(self, text: str) -> str:
-        """Escape HTML special characters.
-
-        Args:
-            text: Text to escape
-
-        Returns:
-            HTML-escaped text
-        """
-        from html import escape
-
-        return escape(text, quote=False)
 
     # =========================================================================
     # AST Support

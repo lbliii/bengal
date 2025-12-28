@@ -33,7 +33,8 @@ def test_lexer_window_block_elevation():
 
     # If the window thing works, the Lexer sees "# Elevated Heading"
     # and produces a Heading token, not a Paragraph with text.
-    assert "<h1>Elevated Heading</h1>" in html
+    # RFC: rfc-path-to-200-pgs - Headings now include IDs via single-pass decoration
+    assert '<h1 id="elevated-heading">Elevated Heading</h1>' in html
     assert "<p>" not in html
 
 

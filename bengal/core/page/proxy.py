@@ -29,6 +29,53 @@ if TYPE_CHECKING:
 
 from .page_core import PageCore
 
+# =============================================================================
+# Lazy Property Delegation Helpers
+# =============================================================================
+# These reduce boilerplate for properties that delegate to _full_page after
+# ensuring it's loaded. See RFC: rfc-code-smell-remediation.md §1.2
+# =============================================================================
+
+
+def _lazy_property(attr_name: str, default: Any = None, doc: str | None = None):
+    """Create a lazy property that delegates to _full_page.
+
+    Args:
+        attr_name: Attribute name on the full Page object
+        default: Default value if _full_page is None
+        doc: Optional docstring for the property
+    """
+
+    def getter(self: PageProxy) -> Any:
+        self._ensure_loaded()
+        return getattr(self._full_page, attr_name, default) if self._full_page else default
+
+    getter.__doc__ = doc or f"Get {attr_name} (lazy-loaded from full page)."
+    return property(getter)
+
+
+def _lazy_property_with_setter(attr_name: str, default: Any = None, getter_doc: str | None = None):
+    """Create a lazy property with getter and setter that delegates to _full_page.
+
+    Args:
+        attr_name: Attribute name on the full Page object
+        default: Default value if _full_page is None
+        getter_doc: Optional docstring for the getter
+    """
+
+    def getter(self: PageProxy) -> Any:
+        self._ensure_loaded()
+        return getattr(self._full_page, attr_name, default) if self._full_page else default
+
+    def setter(self: PageProxy, value: Any) -> None:
+        self._ensure_loaded()
+        if self._full_page:
+            setattr(self._full_page, attr_name, value)
+
+    getter.__doc__ = getter_doc or f"Get {attr_name} (lazy-loaded from full page)."
+    setter.__doc__ = f"Set {attr_name}."
+    return property(getter, setter)
+
 
 class PageProxy:
     """
@@ -181,11 +228,6 @@ class PageProxy:
     def slug(self) -> str | None:
         """Get URL slug from cached metadata."""
         return self.core.slug
-
-    @property
-    def weight(self) -> int | None:
-        """Get sort weight from cached metadata."""
-        return self.core.weight
 
     @property
     def lang(self) -> str | None:

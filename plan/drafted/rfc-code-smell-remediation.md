@@ -2,9 +2,22 @@
 
 **Status**: Draft  
 **Created**: 2025-12-28  
+**Updated**: 2025-12-28  
 **Author**: AI Assistant + Lawrence Lane  
 **Priority**: P1 (High) — Technical debt at breaking point  
-**Confidence**: 95% 🟢 (based on direct AST analysis of 800+ files)
+**Confidence**: 92% 🟢 (metrics verified against source code)
+
+---
+
+## TL;DR
+
+**Do first** (Week 1): Dispatch table for `_parse_block_content` (1h, Low risk) → immediate complexity reduction.
+
+**High impact, high risk**: `PageProxy` delegation (4h) — critical path, needs comprehensive testing.
+
+**Investigate before committing**: Embed directive consolidation — run diff analysis first.
+
+**Skip if time-constrained**: Phase 4 (API improvements) — nice-to-have, not blocking.
 
 ---
 
@@ -20,7 +33,7 @@ Static analysis of the bengal codebase reveals critical maintainability issues:
 | **Monolithic Files** (1000+ lines) | 10 | `patitas/parser.py` (1655 lines) |
 | **Long Parameter Lists** (≥10) | 10 | `build` CLI command (25 params) |
 
-**Key Insight**: These aren't isolated issues—they're symptoms of missing abstractions. The `PageProxy` class's 74 methods exist because there's no delegation pattern. The 460-line `build()` exists because phase orchestration isn't complete.
+**Key Insight**: These aren't isolated issues—they're symptoms of missing abstractions. The `PageProxy` class's ~70 wrapper methods exist because there's no delegation pattern. The 461-line `build()` exists because phase orchestration isn't complete.
 
 This RFC proposes a phased remediation plan targeting the highest-impact issues first.
 
@@ -64,7 +77,7 @@ This RFC proposes a phased remediation plan targeting the highest-impact issues 
 The class contains ~70 wrapper methods and properties that exist because the class manually delegates to `_full_page` or `core`:
 
 ```python
-# Current pattern (repeated 74 times!)
+# Current pattern (repeated ~70 times!)
 @property
 def title(self) -> str:
     return self.core.title or ""
@@ -190,7 +203,7 @@ def _parse_block_content(self) -> Node | list[Node] | None:
 
 #### 1.2 `PageProxy` Delegation Pattern
 
-**Before** (74 wrapper methods):
+**Before** (~70 wrapper methods):
 ```python
 class PageProxy:
     @property
@@ -236,7 +249,7 @@ class PageProxy:
 ```
 
 **Benefits**:
-- Reduces 74 methods → ~10 explicit + `__getattr__`
+- Reduces ~70 methods → ~10 explicit + `__getattr__`
 - Automatically forwards new `Page` attributes
 - Clear separation: cached vs lazy-loaded
 - Easier to maintain transparency contract
@@ -250,6 +263,38 @@ class PageProxy:
 - All template access patterns (verified via integration tests)
 - Incremental build correctness (proxy→page replacement)
 - Serialization behavior if relevant to caching
+
+**Alternative Approach (Code Generation)**:
+
+If `__getattr__` proves problematic (debugging difficulty, IDE autocomplete), consider explicit code generation:
+
+```python
+# bengal/core/page/proxy_generator.py
+def generate_proxy_class(
+    page_cls: type,
+    cached_attrs: set[str],
+    lazy_attrs: set[str],
+) -> type:
+    """Generate PageProxy class with explicit delegation methods."""
+    methods = {}
+
+    for attr in cached_attrs:
+        methods[attr] = property(lambda self, a=attr: getattr(self.core, a, None))
+
+    for attr in lazy_attrs:
+        def make_lazy_prop(a):
+            def getter(self):
+                self._ensure_loaded()
+                return getattr(self._full_page, a, None)
+            return property(getter)
+        methods[attr] = make_lazy_prop(attr)
+
+    return type("PageProxy", (PageProxyBase,), methods)
+
+# Usage: PageProxy = generate_proxy_class(Page, CACHED, LAZY)
+```
+
+This preserves explicit method definitions (IDE-friendly) while avoiding manual repetition.
 
 ---
 
@@ -479,6 +524,23 @@ class BuildOrchestrator:
 
 ---
 
+## Decision Matrix: Implementation Priority
+
+| Task | Impact | Risk | Effort | Priority |
+|------|--------|------|--------|----------|
+| Dispatch table (`_parse_block_content`) | High | Low | 1h | **P0** — Do first |
+| Template extraction (`generate_html`) | Medium | Low | 4h | **P1** — Easy win |
+| Split `errors.py` | Medium | Low | 4h | **P1** — Easy win |
+| `PageProxy` delegation | High | **High** | 4h | **P2** — High value, needs care |
+| Split `patitas/parser.py` | High | Medium | 8h | **P2** — Significant effort |
+| Consolidate embed directives | Medium | Medium | 6h | **P3** — Investigate first |
+| Parameter object for CLI | Medium | Medium | 6h | **P3** — Nice to have |
+| Decompose `BuildOrchestrator.build` | Medium | Low | 4h | **P3** — Already uses phases |
+
+**Recommendation**: Start with P0/P1 tasks to build confidence and establish patterns before tackling P2 items.
+
+---
+
 ## Implementation Plan
 
 ### Pre-Flight Validation
@@ -518,15 +580,24 @@ python -m bengal build site/ --profile > reports/bench-before.txt
 | Day | Task | Effort | Risk |
 |-----|------|--------|------|
 | 1-2 | Split `errors.py` | 4h | Low |
-| 2-3 | Investigate embed duplication | 2h | N/A |
-| 3-5 | Consolidate embed logic | 6h | Medium |
+| 2-3 | Investigate embed duplication (see §2.3) | 2h | N/A |
+| 3-5 | Consolidate embed logic (if overlap >30%) | 4-6h | Medium |
+
+**Rollback Criteria**:
+- If imports break after `errors.py` split: revert and fix re-exports
+- If embed consolidation causes directive failures: keep separate implementations
 
 ### Week 3: Parser Modularization
 
 | Day | Task | Effort | Risk |
 |-----|------|--------|------|
 | 1-3 | Split `patitas/parser.py` | 8h | Medium |
-| 4-5 | Integration testing | 4h | N/A |
+| 4-5 | Integration testing + fuzzing | 4h | N/A |
+
+**Rollback Criteria**:
+- If any markdown parsing edge case fails: revert and add test coverage first
+- If parser benchmark regresses >10%: profile and optimize before merging
+- Run fuzzing with 1000+ random inputs before merge
 
 ### Week 4: API Improvements
 
@@ -534,7 +605,25 @@ python -m bengal build site/ --profile > reports/bench-before.txt
 |-----|------|--------|------|
 | 1-2 | Parameter object for CLI | 6h | Medium |
 | 3-4 | Decompose `BuildOrchestrator.build` | 4h | Low |
-| 5 | Documentation updates | 2h | N/A |
+| 5 | Documentation updates + final validation | 2h | N/A |
+
+**Rollback Criteria**:
+- If CLI parameter names change: maintain aliases for backward compatibility
+- If build orchestrator changes break phase ordering: revert immediately
+
+### Post-Implementation Validation
+
+After completing all phases:
+
+```bash
+# Compare metrics
+python scripts/detect_code_smells.py > reports/smells-after.txt
+diff reports/smells-before.txt reports/smells-after.txt
+
+# Verify all success criteria met
+pytest tests/ -q --tb=no
+python -m bengal build site/ --profile  # Compare with baseline
+```
 
 ---
 
@@ -544,11 +633,12 @@ python -m bengal build site/ --profile > reports/bench-before.txt
 
 | Metric | Before | Target | Measurement |
 |--------|--------|--------|-------------|
-| Max function length | 460 lines | < 100 lines | AST analysis |
-| Max class methods | 74 | < 25 | AST analysis |
-| Max nesting depth | 31 levels | < 5 levels | AST analysis |
+| Max function length | 461 lines | < 100 lines | AST analysis |
+| Max class methods (non-delegated) | ~70 | < 25 | AST analysis |
+| Max cyclomatic complexity | 40+ branches | < 10 branches | AST analysis |
 | Max file length | 1655 lines | < 800 lines | wc -l |
 | Max parameters | 25 | < 8 | AST analysis |
+| Test coverage (new code) | N/A | > 90% | pytest-cov |
 
 ### Qualitative
 
@@ -561,13 +651,21 @@ python -m bengal build site/ --profile > reports/bench-before.txt
 
 ## Risks and Mitigations
 
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| Breaking `PageProxy` transparency | High | Comprehensive property access tests |
-| Dispatch table performance | Low | Benchmark before/after (dict lookup is O(1)) |
-| Template extraction breaks output | Medium | Diff HTML output before/after |
-| Parser split breaks edge cases | High | Run full benchmark suite + fuzzing |
-| CLI changes break scripts | Medium | Maintain backward-compatible parameter names |
+| Risk | Impact | Likelihood | Mitigation |
+|------|--------|------------|------------|
+| Breaking `PageProxy` transparency | **Critical** | Medium | Comprehensive property access tests; integration tests with all templates; incremental build validation |
+| `__getattr__` masks errors | High | Medium | Explicit error propagation tests; fallback to code generation approach if debugging becomes difficult |
+| Dispatch table performance | Low | Very Low | Benchmark before/after (dict lookup is O(1)) |
+| Template extraction breaks output | Medium | Low | Diff HTML output before/after; visual regression tests |
+| Parser split breaks edge cases | High | Medium | Full benchmark suite + fuzzing with 1000+ inputs; property-based tests |
+| CLI changes break scripts | Medium | Low | Maintain backward-compatible parameter names as aliases |
+| Embed consolidation loses functionality | Medium | Medium | Investigation-first approach; keep separate if overlap <30% |
+
+**Rollback Strategy**:
+- Each change is a separate commit with clear scope
+- Revert immediately if test suite fails
+- 24-hour soak period on staging before production use
+- Feature flags for high-risk changes (PageProxy, parser) if available
 
 ---
 
@@ -577,6 +675,7 @@ python -m bengal build site/ --profile > reports/bench-before.txt
 
 - Full test suite must pass after each phase
 - Add snapshot tests for complex outputs (graph HTML, error messages)
+- Integration tests with real templates (not mocks)
 
 ### 2. Property-Based Tests
 
@@ -589,14 +688,54 @@ def test_proxy_forwards_all_page_attributes(attr_name):
 
     if not attr_name.startswith("_"):
         assert getattr(proxy, attr_name) == getattr(page, attr_name)
+
+@given(st.text(min_size=1, max_size=50))
+def test_proxy_raises_on_invalid_attribute(attr_name):
+    """Ensure __getattr__ doesn't mask missing attributes."""
+    proxy = create_test_proxy()
+    if not hasattr(Page, attr_name):
+        with pytest.raises(AttributeError):
+            getattr(proxy, attr_name)
+```
+
+For dispatch tables:
+```python
+@given(st.sampled_from(list(BLOCK_PARSERS.keys())))
+def test_all_block_keywords_dispatch(keyword):
+    parser = create_test_parser(f"{{% {keyword} %}}")
+    result = parser._parse_block_content()
+    assert result is not None or keyword in END_KEYWORDS
 ```
 
 ### 3. Benchmark Validation
 
 Ensure refactoring doesn't regress performance:
-- Parser throughput (pages/second)
-- Build time for reference site
-- Memory usage for large sites
+- Parser throughput (pages/second) — target: <5% regression
+- Build time for reference site — target: <5% regression
+- Memory usage for large sites — target: no increase
+
+```bash
+# Run before and after each phase
+python -m bengal build site/ --profile 2>&1 | tee benchmark-$(date +%Y%m%d).txt
+```
+
+### 4. Fuzzing (Parser Changes)
+
+```python
+# tests/test_parser_fuzz.py
+from hypothesis import given, settings
+import hypothesis.strategies as st
+
+@settings(max_examples=1000)
+@given(st.text(min_size=1, max_size=10000))
+def test_parser_handles_arbitrary_input(content):
+    """Parser should never crash on arbitrary input."""
+    try:
+        parser = Parser(content)
+        parser.parse()
+    except ParseError:
+        pass  # Expected for invalid input
+    # No other exceptions should escape
 
 ---
 
@@ -760,6 +899,26 @@ def main():
 if __name__ == "__main__":
     main()
 ```
+
+---
+
+## Dependencies and Prerequisites
+
+### Prerequisites
+- `scripts/detect_code_smells.py` must exist (included in Appendix B)
+- Test coverage baseline established before starting
+- Benchmark baseline for reference site
+
+### Related RFCs
+| RFC | Relationship |
+|-----|-------------|
+| `rfc-dependency-decoupling.md` | May conflict with Phase 2 module splits; coordinate timing |
+| `rfc-mixin-composition.md` | Alternative approach for parser decomposition in Phase 3 |
+| `rfc-patitas-markdown-parser.md` | Parser split (§2.1) should align with any Patitas architectural decisions |
+
+### Blocking Relationships
+- Phase 3 (parser split) should complete before any Patitas performance optimizations
+- Phase 2.3 (embed consolidation) may affect directive registration; coordinate with directive factory refactoring
 
 ---
 

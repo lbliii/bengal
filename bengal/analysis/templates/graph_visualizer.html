@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+
+    <!-- Include theme CSS - absolute path with baseurl support -->
+    <link rel="stylesheet" href="{{ css_path }}">
+
+    <!-- Theme configuration defaults -->
+    <script>
+        window.BENGAL_THEME_DEFAULTS = {
+            appearance: '{{ default_appearance }}',
+            palette: '{{ default_palette }}'
+        };
+    </script>
+
+    <!-- Theme & Palette initialization - INLINED to prevent FOUC (must be synchronous) -->
+    <script>
+        (function () {
+            try {
+                var defaults = window.BENGAL_THEME_DEFAULTS || { appearance: 'system', palette: '' };
+                var defaultAppearance = defaults.appearance;
+                if (defaultAppearance === 'system') {
+                    defaultAppearance = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)
+                        ? 'dark' : 'light';
+                }
+                var storedTheme = localStorage.getItem('bengal-theme');
+                var storedPalette = localStorage.getItem('bengal-palette');
+                var theme = storedTheme ? (storedTheme === 'system' ? defaultAppearance : storedTheme) : defaultAppearance;
+                var palette = storedPalette ?? defaults.palette;
+                document.documentElement.setAttribute('data-theme', theme);
+                if (palette) { document.documentElement.setAttribute('data-palette', palette); }
+            } catch (e) { document.documentElement.setAttribute('data-theme', 'light'); }
+        })();
+    </script>
+
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body class="graph-body">
+    <div id="container" class="graph-container">
+        <div class="graph-controls">
+            <h2>Knowledge Graph</h2>
+            <input
+                type="text"
+                id="search"
+                placeholder="Search pages or tags..."
+                autocomplete="off"
+            />
+            <div class="graph-filter-group">
+                <label>Filter by Type:</label>
+                <select id="filter-type">
+                    <option value="all">All Pages</option>
+                    <option value="hub">Hubs Only</option>
+                    <option value="orphan">Orphans Only</option>
+                    <option value="regular">Regular Pages</option>
+                </select>
+            </div>
+            <div class="graph-stats">
+                <p><strong>Pages:</strong> {{ stats.total_pages }}</p>
+                <p><strong>Links:</strong> {{ stats.total_links }}</p>
+                <p><strong>Hubs:</strong> {{ stats.hubs }}</p>
+                <p><strong>Orphans:</strong> {{ stats.orphans }}</p>
+            </div>
+        </div>
+
+        <div class="graph-legend">
+            <h3>Legend</h3>
+            <div class="graph-legend-item">
+                <div class="graph-legend-color" style="background: var(--graph-node-hub);"></div>
+                <span>Hub (highly connected)</span>
+            </div>
+            <div class="graph-legend-item">
+                <div class="graph-legend-color" style="background: var(--graph-node-regular);"></div>
+                <span>Regular page</span>
+            </div>
+            <div class="graph-legend-item">
+                <div class="graph-legend-color" style="background: var(--graph-node-orphan);"></div>
+                <span>Orphan (no incoming links)</span>
+            </div>
+            <div class="graph-legend-item">
+                <div class="graph-legend-color" style="background: var(--graph-node-generated);"></div>
+                <span>Generated page</span>
+            </div>
+        </div>
+
+        <div id="graph" class="graph-svg"></div>
+        <div class="graph-tooltip" id="tooltip"></div>
+    </div>
+
+    <script>
+        // Graph data (sort_keys=True for deterministic output)
+        const graphData = {{ graph_data_json }};
+
+        // Dimensions
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+
+        // Create SVG
+        const svg = d3.select("#graph")
+            .append("svg")
+            .attr("width", width)
+            .attr("height", height);
+
+        // Add zoom behavior
+        const g = svg.append("g");
+
+        svg.call(d3.zoom()
+            .scaleExtent([0.1, 4])
+            .on("zoom", (event) => {
+                g.attr("transform", event.transform);
+            })
+        );
+
+        // Helper function to resolve CSS variables to actual colors
+        function resolveCSSVariable(varName) {
+            const cleanVar = varName.replace(/var\(|\s|\)/g, '');
+            const root = document.documentElement;
+            const value = getComputedStyle(root).getPropertyValue(cleanVar).trim();
+            return value || '#9e9e9e';
+        }
+
+        // Map node types to graph-specific CSS variables
+        const nodeTypeColorMap = {
+            'hub': '--graph-node-hub',
+            'regular': '--graph-node-regular',
+            'orphan': '--graph-node-orphan',
+            'generated': '--graph-node-generated'
+        };
+
+        // Resolve colors before rendering
+        graphData.nodes.forEach(node => {
+            const cssVar = nodeTypeColorMap[node.type] || '--graph-node-regular';
+            node.color = resolveCSSVariable(cssVar);
+        });
+
+        // Resolve link color
+        const linkColor = resolveCSSVariable('--graph-link-color') || 'rgba(100, 100, 100, 0.2)';
+        const linkHighlightColor = resolveCSSVariable('--graph-link-highlight') || 'rgba(255, 180, 100, 0.7)';
+
+        // Create force simulation and PRE-COMPUTE positions before rendering
+        //
+        // Philosophy: Let LINKS define structure, use collision only to prevent overlap
+        // - No charge/repulsion - that tears connected nodes apart
+        // - Link strength scaled by connectivity - hubs pull harder, become cluster centers
+        // - Collision prevents overlap without pushing clusters apart
+
+        // Build node lookup for link strength calculation
+        const nodeById = new Map(graphData.nodes.map(n => [n.id, n]));
+
+        const simulation = d3.forceSimulation(graphData.nodes)
+            .force("link", d3.forceLink(graphData.edges)
+                .id(d => d.id)
+                .distance(d => {
+                    // Bidirectional links (weight=2) are closer
+                    return d.weight === 2 ? 60 : 100;
+                })
+                .strength(d => {
+                    // Bidirectional links pull harder
+                    return d.weight === 2 ? 1.5 : 0.8;
+                }))
+            .force("charge", d3.forceManyBody()
+                .strength(-200)       // More repulsion for spacing
+                .distanceMax(400))    // Affects further nodes
+            .force("center", d3.forceCenter(width / 2, height / 2))
+            .force("collision", d3.forceCollide()
+                .radius(d => d.size + 12)
+                .strength(0.8))
+
+        // Pre-compute 85% of layout (run simulation synchronously)
+        const totalIterations = Math.ceil(Math.log(simulation.alphaMin()) / Math.log(1 - simulation.alphaDecay()));
+        const precomputeIterations = Math.floor(totalIterations * 0.85);
+        for (let i = 0; i < precomputeIterations; i++) {
+            simulation.tick();
+        }
+
+        // Render with mostly-computed positions - links first (behind nodes)
+        const link = g.append("g")
+            .attr("class", "graph-links")
+            .selectAll("line")
+            .data(graphData.edges)
+            .enter().append("line")
+            .attr("class", "graph-link")
+            .attr("stroke", linkColor)
+            .attr("stroke-width", 1)
+            .attr("stroke-linecap", "round")
+            .style("opacity", 0.6)
+            .attr("x1", d => d.source.x)
+            .attr("y1", d => d.source.y)
+            .attr("x2", d => d.target.x)
+            .attr("y2", d => d.target.y);
+
+        // Render nodes (on top of links)
+        const node = g.append("g")
+            .attr("class", "graph-nodes")
+            .selectAll("circle")
+            .data(graphData.nodes)
+            .enter().append("circle")
+            .attr("class", d => `graph-node graph-node-${d.type}`)
+            .attr("r", d => d.size)
+            .attr("fill", d => d.color)
+            .attr("cx", d => d.x)
+            .attr("cy", d => d.y)
+            .call(d3.drag()
+                .on("start", dragstarted)
+                .on("drag", dragged)
+                .on("end", dragended))
+            .on("click", (event, d) => {
+                window.location.href = d.url;
+            })
+            .on("mouseover", (event, d) => {
+                showTooltip(event, d);
+                highlightConnections(d);
+            })
+            .on("mouseout", () => {
+                hideTooltip();
+                clearHighlights();
+            });
+
+        // Setup tick handler for animations and dragging
+        simulation.on("tick", () => {
+            link
+                .attr("x1", d => d.source.x)
+                .attr("y1", d => d.source.y)
+                .attr("x2", d => d.target.x)
+                .attr("y2", d => d.target.y);
+            node
+                .attr("cx", d => d.x)
+                .attr("cy", d => d.y);
+        });
+
+        // Very quick settling - barely noticeable snap
+        simulation.alphaDecay(0.2).alpha(0.05).restart();
+
+        // Drag functions
+        function dragstarted(event, d) {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+        }
+
+        function dragged(event, d) {
+            d.fx = event.x;
+            d.fy = event.y;
+        }
+
+        function dragended(event, d) {
+            if (!event.active) simulation.alphaTarget(0);
+            d.fx = null;
+            d.fy = null;
+        }
+
+        // Tooltip functions
+        const tooltip = d3.select("#tooltip");
+
+        function showTooltip(event, d) {
+            const tags = d.tags.length > 0
+                ? `<div class="tags">${d.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>`
+                : '';
+
+            tooltip
+                .style("display", "block")
+                .style("left", (event.pageX + 10) + "px")
+                .style("top", (event.pageY + 10) + "px")
+                .html(`
+                    <h4>${d.label}</h4>
+                    <p>${d.reading_time} min read · ${d.incoming_refs} in / ${d.outgoing_refs} out</p>
+                    ${tags}
+                `);
+        }
+
+        function hideTooltip() {
+            tooltip.style("display", "none");
+        }
+
+        // Highlight state management
+        let currentHighlight = null;
+        let clearTimer = null;
+
+        function highlightConnections(d) {
+            // Cancel any pending clear
+            if (clearTimer) {
+                clearTimeout(clearTimer);
+                clearTimer = null;
+            }
+
+            // Skip if already highlighting this node
+            if (currentHighlight === d.id) return;
+            currentHighlight = d.id;
+
+            // Find connected node IDs
+            const connectedIds = new Set([d.id]);
+            graphData.edges.forEach(e => {
+                const sourceId = typeof e.source === 'object' ? e.source.id : e.source;
+                const targetId = typeof e.target === 'object' ? e.target.id : e.target;
+                if (sourceId === d.id) connectedIds.add(targetId);
+                if (targetId === d.id) connectedIds.add(sourceId);
+            });
+
+            // Animate the fade (smooth transition now that we have debouncing)
+            node.transition().duration(150)
+                .style("opacity", n => connectedIds.has(n.id) ? 1 : 0.12);
+
+            // Highlight connected links with animation
+            link.transition().duration(150)
+                .style("opacity", e => {
+                    const sourceId = typeof e.source === 'object' ? e.source.id : e.source;
+                    const targetId = typeof e.target === 'object' ? e.target.id : e.target;
+                    return (sourceId === d.id || targetId === d.id) ? 1 : 0.06;
+                })
+                .style("stroke-width", e => {
+                    const sourceId = typeof e.source === 'object' ? e.source.id : e.source;
+                    const targetId = typeof e.target === 'object' ? e.target.id : e.target;
+                    return (sourceId === d.id || targetId === d.id) ? 2 : 1;
+                });
+
+            link.classed("highlighted", e => {
+                const sourceId = typeof e.source === 'object' ? e.source.id : e.source;
+                const targetId = typeof e.target === 'object' ? e.target.id : e.target;
+                return sourceId === d.id || targetId === d.id;
+            });
+        }
+
+        function scheduleClearHighlights() {
+            // Delay clearing - gives time to move to another node
+            if (clearTimer) clearTimeout(clearTimer);
+            clearTimer = setTimeout(() => {
+                currentHighlight = null;
+                node.transition().duration(300).style("opacity", 1);
+                link.transition().duration(300)
+                    .style("opacity", 0.6)
+                    .style("stroke-width", 1);
+                link.classed("highlighted", false);
+            }, 800);
+        }
+
+        function clearHighlights() {
+            scheduleClearHighlights();
+        }
+
+        // Search and filter functionality
+        const searchInput = document.getElementById('search');
+        const filterType = document.getElementById('filter-type');
+
+        function updateVisibility() {
+            const query = searchInput.value.toLowerCase();
+            const filter = filterType.value;
+
+            node.style("opacity", d => {
+                // Apply search filter
+                const matchesSearch = !query ||
+                    d.label.toLowerCase().includes(query) ||
+                    d.tags.some(t => t.toLowerCase().includes(query));
+
+                // Apply type filter (use node.type property)
+                let matchesType = true;
+                if (filter !== 'all') {
+                    matchesType = d.type === filter;
+                }
+
+                return matchesSearch && matchesType ? 1 : 0.2;
+            });
+
+            // Hide links to filtered nodes
+            link.style("opacity", d => {
+                const sourceVisible = node.filter(n => n.id === (typeof d.source === 'object' ? d.source.id : d.source)).style("opacity") === "1";
+                const targetVisible = node.filter(n => n.id === (typeof d.target === 'object' ? d.target.id : d.target)).style("opacity") === "1";
+                return sourceVisible && targetVisible ? 1 : 0.1;
+            });
+        }
+
+        searchInput.addEventListener('input', updateVisibility);
+        filterType.addEventListener('change', updateVisibility);
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === '/' || (e.metaKey && e.key === 'k')) {
+                e.preventDefault();
+                searchInput.focus();
+            }
+            if (e.key === 'Escape') {
+                searchInput.value = '';
+                filterType.value = 'all';
+                searchInput.blur();
+                updateVisibility();
+            }
+        });
+    </script>
+</body>
+</html>

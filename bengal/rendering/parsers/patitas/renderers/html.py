@@ -5,11 +5,16 @@ Renders typed AST to HTML with O(n) performance using StringBuilder.
 Thread Safety:
     All state is local to each render() call.
     Multiple threads can render concurrently without synchronization.
+
+Single-Pass Heading Decoration (RFC: rfc-path-to-200-pgs):
+    Heading IDs are generated during the AST walk, eliminating the need for
+    regex-based post-processing. TOC data is collected during rendering.
 """
 
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterator, Sequence
+from dataclasses import dataclass
 from html import escape as html_escape
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -53,6 +58,21 @@ if TYPE_CHECKING:
     from bengal.rendering.parsers.patitas.roles.registry import RoleRegistry
 
 
+@dataclass(frozen=True, slots=True)
+class HeadingInfo:
+    """Heading metadata collected during rendering.
+
+    Used to build TOC without post-render regex scanning.
+    Collected by HtmlRenderer during the AST walk.
+
+    RFC: rfc-path-to-200-pgs (Single-Pass Heading Decoration)
+    """
+
+    level: int
+    text: str
+    slug: str
+
+
 class HtmlRenderer:
     """Render AST to HTML using StringBuilder pattern.
 
@@ -81,6 +101,10 @@ class HtmlRenderer:
         "_role_registry",
         "_text_transformer",
         "_delegate",
+        # Single-pass heading decoration (RFC: rfc-path-to-200-pgs)
+        "_headings",
+        "_slugify",
+        "_seen_slugs",
     )
 
     def __init__(
@@ -94,6 +118,7 @@ class HtmlRenderer:
         role_registry: RoleRegistry | None = None,
         text_transformer: Callable[[str], str] | None = None,
         delegate: LexerDelegate | None = None,
+        slugify: Callable[[str], str] | None = None,
     ) -> None:
         """Initialize renderer.
 
@@ -106,6 +131,7 @@ class HtmlRenderer:
             role_registry: Optional registry for custom role rendering
             text_transformer: Optional callback to transform plain text nodes
             delegate: Optional sub-lexer delegate for ZCLH handoff
+            slugify: Optional custom slugify function for heading IDs
         """
         self._source = source
         self._highlight = highlight
@@ -116,9 +142,16 @@ class HtmlRenderer:
         self._role_registry = role_registry
         self._text_transformer = text_transformer
         self._delegate = delegate
+        # Single-pass heading decoration (RFC: rfc-path-to-200-pgs)
+        self._headings: list[HeadingInfo] = []
+        self._slugify = slugify or _default_slugify
+        self._seen_slugs: dict[str, int] = {}  # For unique slug generation
 
     def render(self, nodes: Sequence[Block]) -> str:
         """Render AST nodes to HTML.
+
+        Heading IDs are generated during this walk (single-pass decoration).
+        Use get_headings() after render() to retrieve collected heading info.
 
         Args:
             nodes: Sequence of Block AST nodes
@@ -126,6 +159,10 @@ class HtmlRenderer:
         Returns:
             Rendered HTML string
         """
+        # Clear heading state for fresh render
+        self._headings = []
+        self._seen_slugs = {}
+
         sb = StringBuilder()
         footnotes: list[FootnoteDef] = []
 
@@ -170,7 +207,16 @@ class HtmlRenderer:
         """Render a block node to StringBuilder."""
         match node:
             case Heading(level=level, children=children):
-                sb.append(f"<h{level}>")
+                # Single-pass heading decoration (RFC: rfc-path-to-200-pgs)
+                # Extract text and generate slug during AST walk
+                text = self._extract_plain_text(children)
+                slug = self._get_unique_slug(text)
+
+                # Collect heading info for TOC generation
+                self._headings.append(HeadingInfo(level=level, text=text, slug=slug))
+
+                # Emit heading with ID already included
+                sb.append(f'<h{level} id="{slug}">')
                 self._render_inline_children(children, sb)
                 sb.append(f"</h{level}>\n")
 
@@ -306,7 +352,7 @@ class HtmlRenderer:
 
         Uses registered handler if available, otherwise falls back to default.
         Caches rendered output for versioned sites (auto-enabled when directive_cache provided).
-        
+
         Optimization: Check cache BEFORE rendering children to skip work on cache hits.
         """
         # Check directive cache FIRST (before rendering children)
@@ -364,24 +410,24 @@ class HtmlRenderer:
 
     def _directive_ast_cache_key(self, node: Directive) -> str:
         """Generate cache key from directive AST structure without rendering.
-        
+
         Creates a lightweight hash of the directive's structure:
         - Directive name, title, options
         - Recursive structure of all child blocks
-        
+
         This allows cache lookup BEFORE expensive child rendering.
         """
         parts: list[str] = [node.name, node.title or ""]
-        
+
         # Options as string
         if node.options:
             parts.append(repr(node.options))
-        
+
         # Recursive AST structure hash
         def hash_block(block: Block) -> str:
             """Hash a block's structure without rendering."""
             sig_parts = [type(block).__name__]
-            
+
             # Add content-bearing attributes
             if hasattr(block, "content"):
                 sig_parts.append(str(getattr(block, "content", "")))
@@ -393,19 +439,19 @@ class HtmlRenderer:
                 sig_parts.append(str(getattr(block, "level", "")))
             if hasattr(block, "url"):
                 sig_parts.append(str(getattr(block, "url", "")))
-            
+
             # Recurse into children
             if hasattr(block, "children"):
                 children = getattr(block, "children", ())
                 if children:
                     sig_parts.extend(hash_block(child) for child in children)
-            
+
             return "|".join(sig_parts)
-        
+
         # Hash all children
         children_sig = "".join(hash_block(child) for child in node.children)
         parts.append(str(hash(children_sig)))
-        
+
         return ":".join(parts)
 
     def _render_fenced_code(
@@ -547,6 +593,124 @@ class HtmlRenderer:
             self._render_block(node, sb)
             yield sb.build()
 
+    # =========================================================================
+    # Single-Pass Heading Decoration (RFC: rfc-path-to-200-pgs)
+    # =========================================================================
+
+    def _extract_plain_text(self, children: Sequence[Inline]) -> str:
+        """Extract plain text from inline nodes.
+
+        Recursively extracts text content without HTML tags.
+        Used for slug generation and TOC text.
+
+        Args:
+            children: Sequence of inline nodes
+
+        Returns:
+            Concatenated plain text
+        """
+        parts: list[str] = []
+        for child in children:
+            if isinstance(child, Text):
+                content = child.content
+                # Apply text transformer if present (e.g., variable substitution)
+                if self._text_transformer:
+                    content = self._text_transformer(content)
+                parts.append(content)
+            elif isinstance(child, CodeSpan):
+                parts.append(child.code)
+            elif isinstance(child, (Emphasis, Strong, Strikethrough, Link)):
+                parts.append(self._extract_plain_text(child.children))
+            elif isinstance(child, Math):
+                parts.append(child.content)
+            # Skip: Image, LineBreak, SoftBreak, HtmlInline, Role, FootnoteRef
+        return "".join(parts)
+
+    def _get_unique_slug(self, text: str) -> str:
+        """Generate a unique slug for a heading.
+
+        Handles duplicate headings by appending -1, -2, etc.
+
+        Args:
+            text: Heading text to slugify
+
+        Returns:
+            Unique slug string
+        """
+        base_slug = self._slugify(text)
+        if not base_slug:
+            base_slug = "heading"
+
+        # Check for duplicates
+        if base_slug not in self._seen_slugs:
+            self._seen_slugs[base_slug] = 0
+            return base_slug
+
+        # Increment counter and append suffix
+        self._seen_slugs[base_slug] += 1
+        return f"{base_slug}-{self._seen_slugs[base_slug]}"
+
+    def get_headings(self) -> list[HeadingInfo]:
+        """Get headings collected during rendering.
+
+        Call after render() to retrieve heading info for TOC generation.
+
+        Returns:
+            List of HeadingInfo with level, text, and slug
+        """
+        return self._headings.copy()
+
+    def get_toc_items(self) -> list[dict[str, Any]]:
+        """Get structured TOC data.
+
+        Returns list of dicts compatible with existing TOC data format.
+
+        Returns:
+            List of {"level": int, "text": str, "slug": str} dicts
+        """
+        return [{"level": h.level, "text": h.text, "slug": h.slug} for h in self._headings]
+
+    def get_toc_html(self) -> str:
+        """Build TOC HTML from collected headings.
+
+        Generates nested <ul> structure for table of contents.
+
+        Returns:
+            TOC HTML string, empty if no headings
+        """
+        if not self._headings:
+            return ""
+
+        result: list[str] = ['<ul class="toc">']
+        prev_level = self._headings[0].level
+
+        for heading in self._headings:
+            level = heading.level
+
+            # Handle nesting changes
+            if level > prev_level:
+                # Deeper: open new nested list(s)
+                for _ in range(level - prev_level):
+                    result.append("<ul>")
+            elif level < prev_level:
+                # Shallower: close nested list(s)
+                for _ in range(prev_level - level):
+                    result.append("</li></ul>")
+                result.append("</li>")
+            elif result[-1] not in ("</ul>", '<ul class="toc">'):
+                # Same level, close previous item
+                result.append("</li>")
+
+            # Add TOC item
+            result.append(f'<li><a href="#{heading.slug}">{_escape_html(heading.text)}</a>')
+            prev_level = level
+
+        # Close remaining tags
+        result.append("</li>")
+        result.append("</ul>")
+
+        return "".join(result)
+
 
 def _escape_html(text: str) -> str:
     """Escape HTML special characters including quotes.
@@ -559,6 +723,16 @@ def _escape_html(text: str) -> str:
 def _escape_attr(text: str) -> str:
     """Escape HTML attribute value."""
     return html_escape(text, quote=True)
+
+
+def _default_slugify(text: str) -> str:
+    """Default slugify function for heading IDs.
+
+    Uses bengal.utils.text.slugify with HTML unescaping enabled.
+    """
+    from bengal.utils.text import slugify
+
+    return slugify(text, unescape_html=True, max_length=100)
 
 
 # =============================================================================
