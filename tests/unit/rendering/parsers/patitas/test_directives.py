@@ -132,13 +132,15 @@ This is inside a code block.
 :::
 ```
 """
-        ast = parse_to_ast(source.strip())
+        stripped = source.strip()
+        ast = parse_to_ast(stripped)
         # Should be a fenced code block, not a directive
         from bengal.rendering.parsers.patitas.nodes import FencedCode
 
         assert len(ast) == 1
         assert isinstance(ast[0], FencedCode)
-        assert ":::{note}" in ast[0].code
+        # FencedCode uses zero-copy: get_code(source) instead of .code attribute
+        assert ":::{note}" in ast[0].get_code(stripped)
 
 
 class TestDirectiveOptions:
