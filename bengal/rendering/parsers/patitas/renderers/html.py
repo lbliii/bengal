@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator, Sequence
 from html import escape as html_escape
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from bengal.rendering.parsers.patitas.nodes import (
     Block,
@@ -39,6 +39,10 @@ from bengal.rendering.parsers.patitas.nodes import (
 )
 from bengal.rendering.parsers.patitas.stringbuilder import StringBuilder
 
+if TYPE_CHECKING:
+    from bengal.rendering.parsers.patitas.directives.registry import DirectiveRegistry
+    from bengal.rendering.parsers.patitas.roles.registry import RoleRegistry
+
 
 class HtmlRenderer:
     """Render AST to HTML using StringBuilder pattern.
@@ -58,23 +62,35 @@ class HtmlRenderer:
         Each call creates independent StringBuilder.
     """
 
-    __slots__ = ("_highlight", "_highlight_style", "_rosettes_available")
+    __slots__ = (
+        "_highlight",
+        "_highlight_style",
+        "_rosettes_available",
+        "_directive_registry",
+        "_role_registry",
+    )
 
     def __init__(
         self,
         *,
         highlight: bool = False,
         highlight_style: Literal["semantic", "pygments"] = "semantic",
+        directive_registry: DirectiveRegistry | None = None,
+        role_registry: RoleRegistry | None = None,
     ) -> None:
         """Initialize renderer.
 
         Args:
             highlight: Enable syntax highlighting for code blocks
             highlight_style: Highlighting style ("semantic" or "pygments")
+            directive_registry: Optional registry for custom directive rendering
+            role_registry: Optional registry for custom role rendering
         """
         self._highlight = highlight
         self._highlight_style = highlight_style
         self._rosettes_available: bool | None = None
+        self._directive_registry = directive_registry
+        self._role_registry = role_registry
 
     def render(self, nodes: Sequence[Block]) -> str:
         """Render AST nodes to HTML.
@@ -107,9 +123,7 @@ class HtmlRenderer:
                 self._render_fenced_code(code, info, sb)
 
             case IndentedCode(code=code):
-                sb.append("<pre><code>")
-                sb.append(_escape_html(code))
-                sb.append("</code></pre>\n")
+                sb.append(f"<pre><code>{_escape_html(code)}</code></pre>\n")
 
             case BlockQuote(children=children):
                 sb.append("<blockquote>\n")
@@ -142,14 +156,8 @@ class HtmlRenderer:
                 if not html.endswith("\n"):
                     sb.append("\n")
 
-            case Directive(name=name, title=title, children=children):
-                # Basic directive rendering (can be extended)
-                sb.append(f'<div class="directive directive-{_escape_attr(name)}">')
-                if title:
-                    sb.append(f'<p class="directive-title">{_escape_html(title)}</p>')
-                for child in children:
-                    self._render_block(child, sb)
-                sb.append("</div>\n")
+            case Directive() as directive:
+                self._render_directive(directive, sb)
 
     def _render_list_item(self, item: ListItem, sb: StringBuilder, tight: bool) -> None:
         """Render a list item."""
@@ -173,6 +181,31 @@ class HtmlRenderer:
                 self._render_block(child, sb)
 
         sb.append("</li>\n")
+
+    def _render_directive(self, node: Directive, sb: StringBuilder) -> None:
+        """Render a directive block.
+
+        Uses registered handler if available, otherwise falls back to default.
+        """
+        # Pre-render children
+        children_sb = StringBuilder()
+        for child in node.children:
+            self._render_block(child, children_sb)
+        rendered_children = children_sb.build()
+
+        # Check for registered handler
+        if self._directive_registry:
+            handler = self._directive_registry.get(node.name)
+            if handler and hasattr(handler, "render"):
+                handler.render(node, rendered_children, sb)
+                return
+
+        # Default rendering
+        sb.append(f'<div class="directive directive-{_escape_attr(node.name)}">')
+        if node.title:
+            sb.append(f'<p class="directive-title">{_escape_html(node.title)}</p>')
+        sb.append(rendered_children)
+        sb.append("</div>\n")
 
     def _render_fenced_code(self, code: str, info: str | None, sb: StringBuilder) -> None:
         """Render fenced code block with optional highlighting."""
@@ -227,59 +260,20 @@ class HtmlRenderer:
             return None
 
     def _render_inline_children(self, children: Sequence[Inline], sb: StringBuilder) -> None:
-        """Render inline children."""
+        """Render inline children using dict dispatch for speed."""
+        # Local references for tight loop
+        dispatch = _INLINE_DISPATCH
+        render_children = self._render_inline_children
         for child in children:
-            self._render_inline(child, sb)
+            handler = dispatch.get(type(child))
+            if handler:
+                handler(child, sb, render_children)
 
     def _render_inline(self, node: Inline, sb: StringBuilder) -> None:
-        """Render an inline node."""
-        match node:
-            case Text(content=content):
-                sb.append(_escape_html(content))
-
-            case Emphasis(children=children):
-                sb.append("<em>")
-                self._render_inline_children(children, sb)
-                sb.append("</em>")
-
-            case Strong(children=children):
-                sb.append("<strong>")
-                self._render_inline_children(children, sb)
-                sb.append("</strong>")
-
-            case Link(url=url, title=title, children=children):
-                sb.append(f'<a href="{_escape_attr(url)}"')
-                if title:
-                    sb.append(f' title="{_escape_attr(title)}"')
-                sb.append(">")
-                self._render_inline_children(children, sb)
-                sb.append("</a>")
-
-            case Image(url=url, alt=alt, title=title):
-                sb.append(f'<img src="{_escape_attr(url)}" alt="{_escape_attr(alt)}"')
-                if title:
-                    sb.append(f' title="{_escape_attr(title)}"')
-                sb.append(" />")
-
-            case CodeSpan(code=code):
-                sb.append("<code>")
-                sb.append(_escape_html(code))
-                sb.append("</code>")
-
-            case LineBreak():
-                sb.append("<br />\n")
-
-            case SoftBreak():
-                sb.append("\n")
-
-            case HtmlInline(html=html):
-                sb.append(html)
-
-            case Role(name=name, content=content):
-                # Basic role rendering
-                sb.append(f'<span class="role role-{_escape_attr(name)}">')
-                sb.append(_escape_html(content))
-                sb.append("</span>")
+        """Render an inline node using dict dispatch."""
+        handler = _INLINE_DISPATCH.get(type(node))
+        if handler:
+            handler(node, sb, self._render_inline_children)
 
     def iter_blocks(self, nodes: Sequence[Block]) -> Iterator[str]:
         """Iterate over rendered blocks.
@@ -307,3 +301,78 @@ def _escape_html(text: str) -> str:
 def _escape_attr(text: str) -> str:
     """Escape HTML attribute value."""
     return html_escape(text, quote=True)
+
+
+# =============================================================================
+# Inline dispatch handlers (dict dispatch is ~2x faster than match statement)
+# =============================================================================
+
+
+def _render_text(node: Text, sb: StringBuilder, render_children) -> None:
+    sb.append(_escape_html(node.content))
+
+
+def _render_emphasis(node: Emphasis, sb: StringBuilder, render_children) -> None:
+    sb.append("<em>")
+    render_children(node.children, sb)
+    sb.append("</em>")
+
+
+def _render_strong(node: Strong, sb: StringBuilder, render_children) -> None:
+    sb.append("<strong>")
+    render_children(node.children, sb)
+    sb.append("</strong>")
+
+
+def _render_link(node: Link, sb: StringBuilder, render_children) -> None:
+    sb.append(f'<a href="{_escape_attr(node.url)}"')
+    if node.title:
+        sb.append(f' title="{_escape_attr(node.title)}"')
+    sb.append(">")
+    render_children(node.children, sb)
+    sb.append("</a>")
+
+
+def _render_image(node: Image, sb: StringBuilder, render_children) -> None:
+    sb.append(f'<img src="{_escape_attr(node.url)}" alt="{_escape_attr(node.alt)}"')
+    if node.title:
+        sb.append(f' title="{_escape_attr(node.title)}"')
+    sb.append(" />")
+
+
+def _render_code_span(node: CodeSpan, sb: StringBuilder, render_children) -> None:
+    sb.append(f"<code>{_escape_html(node.code)}</code>")
+
+
+def _render_line_break(node: LineBreak, sb: StringBuilder, render_children) -> None:
+    sb.append("<br />\n")
+
+
+def _render_soft_break(node: SoftBreak, sb: StringBuilder, render_children) -> None:
+    sb.append("\n")
+
+
+def _render_html_inline(node: HtmlInline, sb: StringBuilder, render_children) -> None:
+    sb.append(node.html)
+
+
+def _render_role(node: Role, sb: StringBuilder, render_children) -> None:
+    # Default role rendering - can be overridden by registry
+    sb.append(
+        f'<span class="role role-{_escape_attr(node.name)}">{_escape_html(node.content)}</span>'
+    )
+
+
+# Type -> handler dispatch table (O(1) lookup, faster than match)
+_INLINE_DISPATCH = {
+    Text: _render_text,
+    Emphasis: _render_emphasis,
+    Strong: _render_strong,
+    Link: _render_link,
+    Image: _render_image,
+    CodeSpan: _render_code_span,
+    LineBreak: _render_line_break,
+    SoftBreak: _render_soft_break,
+    HtmlInline: _render_html_inline,
+    Role: _render_role,
+}

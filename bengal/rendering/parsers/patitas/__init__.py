@@ -39,14 +39,17 @@ See Also:
 
 from __future__ import annotations
 
+import os
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any
+from concurrent.futures import ThreadPoolExecutor
+from typing import TYPE_CHECKING, Any, Literal
 
 from bengal.rendering.parsers.patitas.location import SourceLocation
 from bengal.rendering.parsers.patitas.nodes import (
     Block,
     BlockQuote,
     CodeSpan,
+    Directive,
     Document,
     Emphasis,
     FencedCode,
@@ -62,6 +65,7 @@ from bengal.rendering.parsers.patitas.nodes import (
     ListItem,
     Node,
     Paragraph,
+    Role,
     Strong,
     Text,
     ThematicBreak,
@@ -76,6 +80,7 @@ if TYPE_CHECKING:
 __all__ = [
     # Public API
     "parse",
+    "parse_many",
     "parse_to_ast",
     "render_ast",
     "create_markdown",
@@ -106,6 +111,9 @@ __all__ = [
     "CodeSpan",
     "LineBreak",
     "HtmlInline",
+    # Directive and Role nodes
+    "Directive",
+    "Role",
 ]
 
 # Version
@@ -151,6 +159,85 @@ def parse(source: str, *, highlight: bool = False) -> str:
     """
     ast = parse_to_ast(source)
     return render_ast(ast, highlight=highlight)
+
+
+def parse_many(
+    sources: Sequence[str],
+    *,
+    highlight: bool = False,
+    workers: int | Literal["auto"] = "auto",
+) -> list[str]:
+    """Parse multiple Markdown documents in parallel.
+
+    Leverages Python 3.14t free-threading for true parallel execution.
+    Auto-tunes worker count based on document sizes and CPU cores.
+
+    Args:
+        sources: Sequence of Markdown source strings
+        highlight: Enable syntax highlighting for code blocks
+        workers: Number of parallel workers, or "auto" for optimal selection
+
+    Returns:
+        List of rendered HTML strings (order preserved)
+
+    Examples:
+        >>> docs = ["# Doc 1", "# Doc 2", "# Doc 3"]
+        >>> htmls = parse_many(docs)
+        >>> len(htmls)
+        3
+
+        >>> # With explicit workers
+        >>> htmls = parse_many(docs, workers=4)
+
+    Thread Safety:
+        Fully thread-safe. Uses ThreadPoolExecutor for parallel execution.
+        On Python 3.14t with GIL disabled, achieves true parallelism.
+
+    Performance Notes:
+        - Auto mode targets ~2x speedup (sweet spot for memory-bound parsing)
+        - Small docs (<1KB): Sequential may be faster due to thread overhead
+        - Large docs (>10KB): Benefits most from parallelism
+    """
+    n_docs = len(sources)
+
+    # Fast path: single doc or empty
+    if n_docs <= 1:
+        return [parse(s, highlight=highlight) for s in sources]
+
+    # Calculate total work
+    total_chars = sum(len(s) for s in sources)
+    avg_size = total_chars / n_docs
+
+    # Determine optimal worker count
+    if workers == "auto":
+        # Fast path: skip parallelism for small workloads
+        # Thread overhead (~1-2ms) only pays off for larger batches
+        if total_chars < 5000:  # < 5KB total
+            return [parse(s, highlight=highlight) for s in sources]
+
+        # Heuristics for sweet spot:
+        # - Cap at 4 workers (diminishing returns beyond this)
+        # - Cap at n_docs (no point having more workers than docs)
+        # - Cap at CPU count // 2 (leave headroom for system)
+        cpu_count = os.cpu_count() or 4
+        max_workers = min(4, n_docs, max(2, cpu_count // 2))
+
+        # For small docs, reduce parallelism (overhead dominates)
+        if avg_size < 1000:  # < 1KB average per doc
+            max_workers = min(2, max_workers)
+    else:
+        max_workers = workers
+
+    # Sequential fallback if only 1 worker
+    if max_workers <= 1:
+        return [parse(s, highlight=highlight) for s in sources]
+
+    # Parallel execution
+    def _parse_one(source: str) -> str:
+        return parse(source, highlight=highlight)
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        return list(executor.map(_parse_one, sources))
 
 
 def parse_to_ast(source: str) -> Sequence[Block]:

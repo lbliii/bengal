@@ -1,7 +1,7 @@
 ---
 title: Use Pipeline Operator
 nav_title: Pipeline Operator
-description: Write readable filter chains with the pipeline operator
+description: Alternative syntax for filter chains in Kida templates
 weight: 60
 type: doc
 draft: false
@@ -17,60 +17,38 @@ keywords:
 category: guide
 ---
 
-# Use Pipeline Operator
+# Pipeline Operator
 
-Learn how to use Kida's pipeline operator (`|>`) to write readable, left-to-right filter chains.
+Kida supports two syntaxes for filter chains: the traditional pipe (`|`) and the pipeline operator (`|>`). Both compile to identical code—choose based on your style preference.
 
-## Goal
+## Quick Comparison
 
-Write cleaner, more readable filter chains using the pipeline operator instead of nested filters.
-
-## Why Pipeline Operator?
-
-The pipeline operator (`|>`) provides:
-- **Left-to-right readability**: Read filters in execution order
-- **Better debugging**: Easier to see intermediate steps
-- **Cleaner syntax**: No deeply nested parentheses
-
-## Basic Usage
-
-### Traditional Filter Chain
-
-**Jinja2 style** (nested, read inside-out):
 ```kida
+{# These are functionally identical #}
 {{ items | where('published', true) | sort_by('date') | take(5) }}
-```
-
-**Kida pipeline** (left-to-right):
-```kida
 {{ items |> where('published', true) |> sort_by('date') |> take(5) }}
 ```
 
-### Reading Order
+Both operators:
+- Read left-to-right
+- Compile to the same nested function calls
+- Have identical performance
+- Support the same filters
 
-**Traditional** (inside-out):
-```
-1. Start with items
-2. Apply where filter
-3. Apply sort_by filter
-4. Apply take filter
-5. Read result
-```
+## When to Use Each
 
-**Pipeline** (left-to-right):
-```
-1. Start with items
-2. Filter published items
-3. Sort by date
-4. Take first 5
-5. Done
-```
+| Syntax | Convention |
+|--------|------------|
+| `\|` | Inline expressions, Jinja2 familiarity |
+| `\|>` | Multiline pipelines, functional programming style |
 
-## Common Patterns
+:::{note}
+You cannot mix `|` and `|>` in the same expression. Pick one style per chain.
+:::
 
-### Collection Processing
+## Multiline Pipelines
 
-Process a collection step-by-step:
+The pipeline operator works well for multiline formatting:
 
 ```kida
 {% let recent_posts = site.pages
@@ -80,68 +58,29 @@ Process a collection step-by-step:
   |> take(10) %}
 ```
 
-### Data Transformation
-
-Transform data through multiple steps:
+The same works with the traditional pipe:
 
 ```kida
-{% let formatted_content = page.content
-  |> markdownify
-  |> truncate(200)
-  |> strip_tags
-  |> trim %}
-```
-
-### Filtering and Sorting
-
-Combine filtering and sorting:
-
-```kida
-{% let featured_posts = site.pages
-  |> where('type', 'blog')
-  |> where('featured', true)
-  |> sort_by('date', reverse=true)
-  |> take(5) %}
-```
-
-### Grouping and Aggregation
-
-Group and process data:
-
-```kida
-{% let posts_by_category = site.pages
-  |> where('type', 'blog')
-  |> group_by('category')
-  |> items() %}
-```
-
-## Multi-Line Formatting
-
-Break long chains across multiple lines:
-
-```kida
-{% let processed_items = items
-  |> where('status', 'active')
-  |> where('published', true)
-  |> sort_by('date', reverse=true)
-  |> take(10)
-  |> map('title') %}
+{% let recent_posts = site.pages
+  | where('type', 'blog')
+  | where('draft', false)
+  | sort_by('date', reverse=true)
+  | take(10) %}
 ```
 
 ### With Comments
 
-Add comments to explain each step:
+Add inline comments to explain each step:
 
 ```kida
 {% let recent_posts = site.pages
   |> where('type', 'blog')        {# Only blog posts #}
   |> where('draft', false)        {# Exclude drafts #}
   |> sort_by('date', reverse=true) {# Newest first #}
-  |> take(10)                      {# Limit to 10 #}
-%}
+  |> take(10) %}                   {# Limit to 10 #}
 ```
 
-## Real-World Examples
+## Examples
 
 ### Blog Post List
 
@@ -201,32 +140,6 @@ Add comments to explain each step:
 </div>
 ```
 
-### Author Statistics
-
-```kida
-{% let author_posts = site.pages
-  |> where('author', page.author)
-  |> where('type', 'blog')
-  |> where('draft', false)
-  |> sort_by('date', reverse=true) %}
-
-{% let total_posts = author_posts |> length %}
-{% let recent_posts = author_posts |> take(5) %}
-
-<div class="author-stats">
-  <p>{{ author.name }} has written {{ total_posts }} posts.</p>
-
-  <h3>Recent Posts</h3>
-  <ul>
-    {% for post in recent_posts %}
-      <li><a href="{{ post.url }}">{{ post.title }}</a></li>
-    {% end %}
-  </ul>
-</div>
-```
-
-## Combining with Other Features
-
 ### With Pattern Matching
 
 ```kida
@@ -264,91 +177,44 @@ Add comments to explain each step:
 {% end %}
 ```
 
-### With Functions
+## Filter Chain Best Practices
+
+These apply to both `|` and `|>`:
+
+1. **Filter early** — Reduce data before sorting or mapping
+2. **Limit early** — Use `take()` if you only need a few items
+3. **Cache expensive chains** — Use `{% cache %}` for repeated computations
+4. **Use multiline format** — For chains longer than 3 filters
+5. **Add comments** — Explain non-obvious transformations
 
 ```kida
-{% def format_posts(posts) %}
-  {% let formatted = posts
-    |> map('title')
-    |> join(', ') %}
-  {{ formatted }}
-{% end %}
-
-{{ format_posts(site.pages |> where('type', 'blog')) }}
-```
-
-## Performance Considerations
-
-Pipeline operations are evaluated lazily when possible, but be mindful of:
-
-- **Early filtering**: Filter early to reduce data processed
-- **Limit early**: Use `take()` early if you only need a few items
-- **Cache expensive chains**: Cache the result if used multiple times
-
-```kida
-{# ✅ Good: Filter early #}
+{# ✅ Good: Filter before sorting #}
 {% let posts = site.pages
-  |> where('type', 'blog')      {# Filter first #}
-  |> where('draft', false)      {# Then filter drafts #}
-  |> sort_by('date')            {# Then sort #}
-  |> take(10) %}                {# Finally limit #}
-
-{# ❌ Less efficient: Sort before filtering #}
-{% let posts = site.pages
-  |> sort_by('date')            {# Sort everything #}
-  |> where('type', 'blog')      {# Then filter #}
-  |> take(10) %}
-```
-
-## Best Practices
-
-1. **Use multi-line format** for chains longer than 3 filters
-2. **Add comments** to explain complex transformations
-3. **Filter early** to reduce data processed
-4. **Cache results** if used multiple times
-5. **Use descriptive variable names** for intermediate results
-
-## Complete Example
-
-Here's a complete template using pipeline operators:
-
-```kida
-{% extends "baseof.html" %}
-
-{% let recent_posts = site.pages
   |> where('type', 'blog')
   |> where('draft', false)
-  |> sort_by('date', reverse=true)
+  |> sort_by('date')
   |> take(10) %}
 
-{% let popular_tags = site.tags
-  |> items()
-  |> sort_by('count', reverse=true)
+{# ❌ Less efficient: Sort everything first #}
+{% let posts = site.pages
+  |> sort_by('date')
+  |> where('type', 'blog')
   |> take(10) %}
-
-{% block content %}
-  <h1>Recent Posts</h1>
-  <ul>
-    {% for post in recent_posts %}
-      <li>
-        <a href="{{ post.url }}">{{ post.title }}</a>
-        <span>{{ post.date | dateformat('%B %d, %Y') }}</span>
-      </li>
-    {% end %}
-  </ul>
-{% endblock %}
-
-{% block sidebar %}
-  <h2>Popular Tags</h2>
-  <div class="tag-cloud">
-    {% for tag in popular_tags %}
-      <a href="{{ tag_url(tag.name) }}" class="tag">
-        {{ tag.name }} ({{ tag.count }})
-      </a>
-    {% end %}
-  </div>
-{% endblock %}
 ```
+
+## Technical Details
+
+Both operators compile to nested filter calls:
+
+```python
+# Template: items |> where('type', 'blog') |> take(5)
+# Compiles to: _filters['take'](_filters['where'](items, 'type', 'blog'), 5)
+
+# Template: items | where('type', 'blog') | take(5)
+# Compiles to: _filters['take'](_filters['where'](items, 'type', 'blog'), 5)
+```
+
+The `|>` operator exists for developers who prefer its visual style, particularly those familiar with functional programming languages like F#, Elixir, or OCaml where `|>` is the standard pipeline operator.
 
 ## Next Steps
 

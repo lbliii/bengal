@@ -18,6 +18,7 @@ from bengal.rendering.parsers.patitas.nodes import (
     Block,
     BlockQuote,
     CodeSpan,
+    Directive,
     Emphasis,
     FencedCode,
     Heading,
@@ -30,12 +31,16 @@ from bengal.rendering.parsers.patitas.nodes import (
     List,
     ListItem,
     Paragraph,
+    Role,
     SoftBreak,
     Strong,
     Text,
     ThematicBreak,
 )
 from bengal.rendering.parsers.patitas.tokens import Token, TokenType
+
+# Frozenset for O(1) special character lookup in inline parsing
+_INLINE_SPECIAL_CHARS = frozenset("*_`[!\\\n<{")
 
 
 class Parser:
@@ -126,6 +131,9 @@ class Parser:
 
             case TokenType.PARAGRAPH_LINE:
                 return self._parse_paragraph()
+
+            case TokenType.DIRECTIVE_OPEN:
+                return self._parse_directive()
 
             case _:
                 # Skip unknown tokens
@@ -382,196 +390,460 @@ class Parser:
 
         return Paragraph(location=start_token.location, children=children)
 
+    def _parse_directive(self) -> Directive:
+        """Parse directive block (:::{name} ... :::)."""
+        start_token = self._current
+        assert start_token is not None and start_token.type == TokenType.DIRECTIVE_OPEN
+        self._advance()
+
+        # Get directive name
+        name = ""
+        if self._current and self._current.type == TokenType.DIRECTIVE_NAME:
+            name = self._current.value
+            self._advance()
+
+        # Get optional title
+        title: str | None = None
+        if self._current and self._current.type == TokenType.DIRECTIVE_TITLE:
+            title = self._current.value
+            self._advance()
+
+        # Parse options
+        options: dict[str, str] = {}
+        while not self._at_end():
+            token = self._current
+            assert token is not None
+
+            if token.type == TokenType.DIRECTIVE_OPTION:
+                # Parse key:value from token
+                if ":" in token.value:
+                    key, value = token.value.split(":", 1)
+                    options[key.strip()] = value.strip()
+                self._advance()
+            elif token.type == TokenType.BLANK_LINE:
+                # Skip blank lines in option section
+                self._advance()
+                break  # Options section ends at first blank line
+            else:
+                break
+
+        # Parse content (nested blocks)
+        children: list[Block] = []
+        while not self._at_end():
+            token = self._current
+            assert token is not None
+
+            if token.type == TokenType.DIRECTIVE_CLOSE:
+                self._advance()
+                break
+            elif token.type == TokenType.BLANK_LINE:
+                self._advance()
+                continue
+
+            block = self._parse_block()
+            if block is not None:
+                children.append(block)
+
+        return Directive(
+            location=start_token.location,
+            name=name,
+            title=title,
+            options=frozenset(options.items()),
+            children=tuple(children),
+        )
+
     # =========================================================================
-    # Inline parsing
+    # Inline parsing with CommonMark delimiter stack algorithm
     # =========================================================================
 
     def _parse_inline(self, text: str, location: SourceLocation) -> tuple[Inline, ...]:
-        """Parse inline content from text.
+        """Parse inline content using CommonMark delimiter stack algorithm.
 
-        Handles emphasis, strong, links, images, code spans, etc.
+        This implements the proper flanking delimiter rules for emphasis/strong.
+        See: https://spec.commonmark.org/0.31.2/#emphasis-and-strong-emphasis
         """
         if not text:
             return ()
 
-        result: list[Inline] = []
-        pos = 0
-        text_start = 0
+        # Phase 1: Tokenize into text segments and delimiter runs
+        tokens = self._tokenize_inline(text, location)
 
-        while pos < len(text):
+        # Phase 2: Process delimiter stack to match openers/closers
+        self._process_emphasis(tokens)
+
+        # Phase 3: Build AST from processed tokens
+        return self._build_inline_ast(tokens, location)
+
+    def _tokenize_inline(self, text: str, location: SourceLocation) -> list[dict]:
+        """Tokenize inline content into segments and delimiters.
+
+        Returns list of token dicts with type, content, position info.
+        """
+        tokens: list[dict] = []
+        pos = 0
+        text_len = len(text)  # Cache length for hot loop
+        tokens_append = tokens.append  # Local reference for speed
+
+        while pos < text_len:
             char = text[pos]
 
-            # Check for emphasis/strong: * or _
-            if char in "*_":
-                # Flush pending text
-                if pos > text_start:
-                    result.append(Text(location=location, content=text[text_start:pos]))
-
-                # Count delimiter chars
-                delim = char
-                count = 0
-                while pos < len(text) and text[pos] == delim:
-                    count += 1
-                    pos += 1
-
-                # Try to find closing delimiter
-                close_pos = self._find_closing_delimiter(text, pos, delim, count)
-
-                if close_pos is not None:
-                    inner = text[pos:close_pos]
-
-                    if count >= 2:
-                        # Strong (or strong + emphasis)
-                        inner_children = self._parse_inline(inner, location)
-                        node: Inline = Strong(location=location, children=inner_children)
-                        if count > 2:
-                            # Strong + emphasis
-                            node = Emphasis(location=location, children=(node,))
-                        result.append(node)
-                    else:
-                        # Emphasis
-                        inner_children = self._parse_inline(inner, location)
-                        result.append(Emphasis(location=location, children=inner_children))
-
-                    pos = close_pos + count
-                    text_start = pos
-                else:
-                    # No closing, treat as literal
-                    result.append(Text(location=location, content=delim * count))
-                    text_start = pos
-                continue
-
-            # Code span: `code`
+            # Code span: `code` - handle first to avoid delimiter confusion
             if char == "`":
-                if pos > text_start:
-                    result.append(Text(location=location, content=text[text_start:pos]))
-
-                # Count backticks
                 count = 0
-                while pos < len(text) and text[pos] == "`":
+                while pos < text_len and text[pos] == "`":
                     count += 1
                     pos += 1
 
-                # Find closing
-                close_pos = text.find("`" * count, pos)
+                # Find closing backticks
+                close_pos = self._find_code_span_close(text, pos, count)
                 if close_pos != -1:
                     code = text[pos:close_pos]
-                    # Normalize spaces
-                    if code.startswith(" ") and code.endswith(" ") and len(code) > 1:
-                        code = code[1:-1]
-                    result.append(CodeSpan(location=location, code=code))
+                    # Normalize: strip one space from each end if both present
+                    code_len = len(code)
+                    if code_len >= 2 and code[0] == " " and code[-1] == " ":
+                        # But not if it's all spaces
+                        if code.strip():
+                            code = code[1:-1]
+                    tokens_append({"type": "code_span", "code": code})
                     pos = close_pos + count
-                    text_start = pos
                 else:
-                    result.append(Text(location=location, content="`" * count))
-                    text_start = pos
+                    tokens_append({"type": "text", "content": "`" * count})
                 continue
 
-            # Link: [text](url) or [text][ref]
+            # Emphasis delimiters: * or _
+            if char in "*_":
+                delim_start = pos
+                delim_char = char
+                count = 0
+                while pos < text_len and text[pos] == delim_char:
+                    count += 1
+                    pos += 1
+
+                # Determine flanking status (CommonMark rules)
+                before = text[delim_start - 1] if delim_start > 0 else " "
+                after = text[pos] if pos < text_len else " "
+
+                left_flanking = self._is_left_flanking(before, after, delim_char)
+                right_flanking = self._is_right_flanking(before, after, delim_char)
+
+                # For underscore, additional rules apply
+                if delim_char == "_":
+                    can_open = left_flanking and (
+                        not right_flanking or self._is_punctuation(before)
+                    )
+                    can_close = right_flanking and (
+                        not left_flanking or self._is_punctuation(after)
+                    )
+                else:
+                    can_open = left_flanking
+                    can_close = right_flanking
+
+                tokens_append(
+                    {
+                        "type": "delimiter",
+                        "char": delim_char,
+                        "count": count,
+                        "original_count": count,
+                        "can_open": can_open,
+                        "can_close": can_close,
+                        "active": True,
+                    }
+                )
+                continue
+
+            # Link: [text](url)
             if char == "[":
                 link_result = self._try_parse_link(text, pos, location)
                 if link_result:
-                    if pos > text_start:
-                        result.append(Text(location=location, content=text[text_start:pos]))
                     node, new_pos = link_result
-                    result.append(node)
+                    tokens_append({"type": "node", "node": node})
                     pos = new_pos
-                    text_start = pos
                     continue
+                tokens_append({"type": "text", "content": "["})
+                pos += 1
+                continue
 
             # Image: ![alt](url)
-            if char == "!" and pos + 1 < len(text) and text[pos + 1] == "[":
-                img_result = self._try_parse_image(text, pos, location)
-                if img_result:
-                    if pos > text_start:
-                        result.append(Text(location=location, content=text[text_start:pos]))
-                    node, new_pos = img_result
-                    result.append(node)
-                    pos = new_pos
-                    text_start = pos
-                    continue
+            if char == "!":
+                if pos + 1 < text_len and text[pos + 1] == "[":
+                    img_result = self._try_parse_image(text, pos, location)
+                    if img_result:
+                        node, new_pos = img_result
+                        tokens_append({"type": "node", "node": node})
+                        pos = new_pos
+                        continue
+                # Not an image, emit ! as literal text
+                tokens_append({"type": "text", "content": "!"})
+                pos += 1
+                continue
 
             # Hard break: \ at end of line
-            if char == "\\" and pos + 1 < len(text) and text[pos + 1] == "\n":
-                if pos > text_start:
-                    result.append(Text(location=location, content=text[text_start:pos]))
-                result.append(LineBreak(location=location))
+            if char == "\\" and pos + 1 < text_len and text[pos + 1] == "\n":
+                tokens_append({"type": "hard_break"})
                 pos += 2
-                text_start = pos
                 continue
 
             # Soft break: single newline
             if char == "\n":
-                if pos > text_start:
-                    result.append(Text(location=location, content=text[text_start:pos]))
-                result.append(SoftBreak(location=location))
+                tokens_append({"type": "soft_break"})
                 pos += 1
-                text_start = pos
                 continue
 
             # Escaped character
-            if char == "\\" and pos + 1 < len(text):
-                next_char = text[pos + 1]
-                if next_char in "\\`*_{}[]()#+-.!|":
-                    if pos > text_start:
-                        result.append(Text(location=location, content=text[text_start:pos]))
-                    result.append(Text(location=location, content=next_char))
-                    pos += 2
-                    text_start = pos
+            if char == "\\":
+                if pos + 1 < text_len:
+                    next_char = text[pos + 1]
+                    if next_char in "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~":
+                        # CommonMark: any ASCII punctuation can be escaped
+                        tokens_append({"type": "text", "content": next_char})
+                        pos += 2
+                        continue
+                    else:
+                        # Backslash before non-punctuation: emit literal backslash
+                        tokens_append({"type": "text", "content": "\\"})
+                        pos += 1
+                        continue
+                else:
+                    # Backslash at end of text: emit literal backslash
+                    tokens_append({"type": "text", "content": "\\"})
+                    pos += 1
                     continue
 
-            # HTML inline: < ... >
+            # HTML inline: <tag>
             if char == "<":
                 html_result = self._try_parse_html_inline(text, pos, location)
                 if html_result:
-                    if pos > text_start:
-                        result.append(Text(location=location, content=text[text_start:pos]))
                     node, new_pos = html_result
-                    result.append(node)
+                    tokens_append({"type": "node", "node": node})
                     pos = new_pos
-                    text_start = pos
+                    continue
+                else:
+                    # Not valid HTML, emit < as literal text
+                    tokens_append({"type": "text", "content": "<"})
+                    pos += 1
                     continue
 
-            pos += 1
+            # Role: {role}`content`
+            if char == "{":
+                role_result = self._try_parse_role(text, pos, location)
+                if role_result:
+                    node, new_pos = role_result
+                    tokens_append({"type": "node", "node": node})
+                    pos = new_pos
+                    continue
+                else:
+                    # Not a valid role, emit { as literal text
+                    tokens_append({"type": "text", "content": "{"})
+                    pos += 1
+                    continue
 
-        # Flush remaining text
-        if text_start < len(text):
-            result.append(Text(location=location, content=text[text_start:]))
+            # Regular text - accumulate using set lookup (O(1) per char)
+            text_start = pos
+            # Use a frozenset for faster membership testing
+            while pos < text_len and text[pos] not in _INLINE_SPECIAL_CHARS:
+                pos += 1
+            if pos > text_start:
+                tokens_append({"type": "text", "content": text[text_start:pos]})
+
+        return tokens
+
+    def _is_left_flanking(self, before: str, after: str, delim: str) -> bool:
+        """Check if delimiter run is left-flanking.
+
+        Left-flanking: not followed by whitespace, and either:
+        - not followed by punctuation, OR
+        - preceded by whitespace or punctuation
+        """
+        if self._is_whitespace(after):
+            return False
+        if not self._is_punctuation(after):
+            return True
+        return self._is_whitespace(before) or self._is_punctuation(before)
+
+    def _is_right_flanking(self, before: str, after: str, delim: str) -> bool:
+        """Check if delimiter run is right-flanking.
+
+        Right-flanking: not preceded by whitespace, and either:
+        - not preceded by punctuation, OR
+        - followed by whitespace or punctuation
+        """
+        if self._is_whitespace(before):
+            return False
+        if not self._is_punctuation(before):
+            return True
+        return self._is_whitespace(after) or self._is_punctuation(after)
+
+    def _is_whitespace(self, char: str) -> bool:
+        """Check if character is Unicode whitespace."""
+        return char in " \t\n\r\f\v" or char == ""
+
+    def _is_punctuation(self, char: str) -> bool:
+        """Check if character is ASCII punctuation."""
+        return char in "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
+
+    def _find_code_span_close(self, text: str, start: int, backtick_count: int) -> int:
+        """Find closing backticks for code span."""
+        pos = start
+        text_len = len(text)
+        while True:
+            idx = text.find("`", pos)
+            if idx == -1:
+                return -1
+            # Count consecutive backticks
+            count = 0
+            check_pos = idx
+            while check_pos < text_len and text[check_pos] == "`":
+                count += 1
+                check_pos += 1
+            if count == backtick_count:
+                return idx
+            pos = check_pos
+
+    def _process_emphasis(self, tokens: list[dict]) -> None:
+        """Process delimiter stack to match emphasis openers/closers.
+
+        Implements CommonMark emphasis algorithm.
+        Modifies tokens in place to mark matched delimiters.
+        """
+        # Find delimiter tokens that can close
+        closer_idx = 0
+        while closer_idx < len(tokens):
+            closer = tokens[closer_idx]
+            if (
+                closer.get("type") != "delimiter"
+                or not closer.get("can_close")
+                or not closer.get("active")
+            ):
+                closer_idx += 1
+                continue
+
+            # Look backwards for matching opener
+            opener_idx = closer_idx - 1
+            found_opener = False
+
+            while opener_idx >= 0:
+                opener = tokens[opener_idx]
+                if opener.get("type") != "delimiter":
+                    opener_idx -= 1
+                    continue
+                if not opener.get("can_open") or not opener.get("active"):
+                    opener_idx -= 1
+                    continue
+                if opener.get("char") != closer.get("char"):
+                    opener_idx -= 1
+                    continue
+
+                # Check "sum of delimiters" rule (CommonMark)
+                # If either opener or closer can both open and close,
+                # the sum of delimiter counts must not be multiple of 3
+                if (opener.get("can_open") and opener.get("can_close")) or (
+                    closer.get("can_open") and closer.get("can_close")
+                ):
+                    if (opener["count"] + closer["count"]) % 3 == 0:
+                        if opener["count"] % 3 != 0 or closer["count"] % 3 != 0:
+                            opener_idx -= 1
+                            continue
+
+                # Found matching opener
+                found_opener = True
+
+                # Determine how many delimiters to use
+                use_count = 2 if (opener["count"] >= 2 and closer["count"] >= 2) else 1
+
+                # Mark the match
+                opener["matched_with"] = closer_idx
+                opener["match_count"] = use_count
+                closer["matched_with"] = opener_idx
+                closer["match_count"] = use_count
+
+                # Consume delimiters
+                opener["count"] -= use_count
+                closer["count"] -= use_count
+
+                # Deactivate if exhausted
+                if opener["count"] == 0:
+                    opener["active"] = False
+                if closer["count"] == 0:
+                    closer["active"] = False
+
+                # Remove any unmatched delimiters between opener and closer
+                for i in range(opener_idx + 1, closer_idx):
+                    if tokens[i].get("type") == "delimiter" and tokens[i].get("active"):
+                        tokens[i]["active"] = False
+
+                break
+
+            if not found_opener:
+                # No opener found, deactivate closer if it can't open
+                if not closer.get("can_open"):
+                    closer["active"] = False
+                closer_idx += 1
+            elif closer["count"] > 0:
+                # Closer still has delimiters, continue from same position
+                pass
+            else:
+                closer_idx += 1
+
+    def _build_inline_ast(self, tokens: list[dict], location: SourceLocation) -> tuple[Inline, ...]:
+        """Build AST from processed tokens."""
+        result: list[Inline] = []
+        idx = 0
+
+        while idx < len(tokens):
+            token = tokens[idx]
+            token_type = token.get("type")
+
+            if token_type == "text":
+                result.append(Text(location=location, content=token["content"]))
+                idx += 1
+
+            elif token_type == "code_span":
+                result.append(CodeSpan(location=location, code=token["code"]))
+                idx += 1
+
+            elif token_type == "node":
+                result.append(token["node"])
+                idx += 1
+
+            elif token_type == "hard_break":
+                result.append(LineBreak(location=location))
+                idx += 1
+
+            elif token_type == "soft_break":
+                result.append(SoftBreak(location=location))
+                idx += 1
+
+            elif token_type == "delimiter":
+                if "matched_with" in token and token["matched_with"] > idx:
+                    # This is an opener - build emphasis/strong
+                    closer_idx = token["matched_with"]
+                    match_count = token["match_count"]
+
+                    # Collect children between opener and closer
+                    children = self._build_inline_ast(tokens[idx + 1 : closer_idx], location)
+
+                    # Build node
+                    if match_count == 2:
+                        node: Inline = Strong(location=location, children=children)
+                    else:
+                        node = Emphasis(location=location, children=children)
+
+                    result.append(node)
+
+                    # Skip to after closer
+                    idx = closer_idx + 1
+                else:
+                    # Unmatched delimiter - emit as text
+                    count = token.get("original_count", token.get("count", 1))
+                    if token.get("active") and token.get("count", 0) > 0:
+                        count = token["count"]
+                    result.append(Text(location=location, content=token["char"] * count))
+                    idx += 1
+
+            else:
+                idx += 1
 
         return tuple(result)
-
-    def _find_closing_delimiter(self, text: str, start: int, delim: str, count: int) -> int | None:
-        """Find closing delimiter for emphasis/strong.
-
-        Returns position of closing delimiter or None if not found.
-        """
-        pos = start
-        while pos < len(text):
-            if text[pos] == delim:
-                # Count consecutive delimiters
-                close_count = 0
-                close_start = pos
-                while pos < len(text) and text[pos] == delim:
-                    close_count += 1
-                    pos += 1
-
-                if close_count >= count:
-                    return close_start
-
-            elif text[pos] == "`":
-                # Skip code spans
-                count_bt = 0
-                while pos < len(text) and text[pos] == "`":
-                    count_bt += 1
-                    pos += 1
-                # Find closing
-                close = text.find("`" * count_bt, pos)
-                if close != -1:
-                    pos = close + count_bt
-            else:
-                pos += 1
-
-        return None
 
     def _try_parse_link(
         self, text: str, pos: int, location: SourceLocation
@@ -691,6 +963,47 @@ class Parser:
             return None
 
         return HtmlInline(location=location, html=html), close_pos + 1
+
+    def _try_parse_role(
+        self, text: str, pos: int, location: SourceLocation
+    ) -> tuple[Role, int] | None:
+        """Try to parse a role at position.
+
+        Syntax: {role}`content`
+
+        Returns (Role, new_position) or None if not a role.
+        """
+        if text[pos] != "{":
+            return None
+
+        # Find closing }
+        brace_close = text.find("}", pos + 1)
+        if brace_close == -1:
+            return None
+
+        role_name = text[pos + 1 : brace_close].strip()
+
+        # Validate role name (alphanumeric + - + _)
+        if not role_name or not all(c.isalnum() or c in "-_" for c in role_name):
+            return None
+
+        # Must have backtick immediately after }
+        if brace_close + 1 >= len(text) or text[brace_close + 1] != "`":
+            return None
+
+        # Find closing backtick
+        content_start = brace_close + 2
+        backtick_close = text.find("`", content_start)
+        if backtick_close == -1:
+            return None
+
+        content = text[content_start:backtick_close]
+
+        return Role(
+            location=location,
+            name=role_name,
+            content=content,
+        ), backtick_close + 1
 
     # =========================================================================
     # Token navigation
