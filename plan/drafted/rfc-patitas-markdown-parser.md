@@ -1375,18 +1375,18 @@ CommonMark compliance is notoriously complex (emphasis parsing alone has many ed
 
 **Exit Criteria**: 100% CommonMark spec pass rate, fuzz testing clean
 
-### Phase 2: Directive System (3 weeks)
+### Phase 2: Directive System (3 weeks) ✅ COMPLETE
 
-- [ ] DirectiveHandler protocol
-- [ ] DirectiveOptions typed parsing
-- [ ] DirectiveContract validation
-- [ ] Named closer support (`:::{/name}`)
-- [ ] Code block awareness (skip `:::` inside fences)
-- [ ] Built-in directives (admonition, dropdown, tabs)
-- [ ] Role system (inline directives)
-- [ ] Built-in roles (ref, kbd, abbr)
+- [x] DirectiveHandler protocol
+- [x] DirectiveOptions typed parsing
+- [x] DirectiveContract validation
+- [x] Named closer support (`:::{/name}`)
+- [x] Code block awareness (skip `:::` inside fences)
+- [x] Built-in directives (admonition, dropdown, tabs)
+- [x] Role system (inline directives)
+- [x] Built-in roles (ref, kbd, abbr, math, sub, sup)
 
-**Exit Criteria**: Bengal's top 10 directives ported and tested
+**Exit Criteria**: ✅ Directive/role protocols implemented with example builtins
 
 ### Phase 3: Extensions (2 weeks)
 
@@ -1399,15 +1399,17 @@ CommonMark compliance is notoriously complex (emphasis parsing alone has many ed
 
 **Exit Criteria**: All plugins pass their respective spec tests
 
-### Phase 4: Integration (2 weeks)
+### Phase 4: Integration (1 week)
+
+> **Note**: Bengal directive migration moved to separate RFC:
+> `rfc-patitas-bengal-directive-migration.md` (8 weeks, runs in parallel)
 
 - [ ] Rosettes integration (syntax highlighting)
 - [ ] Bengal parser wrapper (`PatitasParser` class)
-- [ ] Mistune compatibility layer
-- [ ] Bengal directive migration helpers
-- [ ] Migration guide with examples
+- [ ] ~~Mistune compatibility layer~~ (not needed - native implementations)
+- [ ] ~~Bengal directive migration helpers~~ (see separate RFC)
 
-**Exit Criteria**: Bengal test suite passes with Patitas backend
+**Exit Criteria**: Rosettes highlighting works, PatitasParser API complete
 
 ### Phase 5: Optimization & Hardening (2 weeks)
 
@@ -1426,7 +1428,19 @@ Reserved for:
 - Integration issues discovered late
 - Documentation polish
 
-**Total: 17 weeks**
+**Total: 14 weeks** (+ 8 weeks parallel directive migration)
+
+### Parallel Track: Bengal Directive Migration (8 weeks)
+
+See `rfc-patitas-bengal-directive-migration.md` for full details.
+
+Runs concurrently with Phases 3-5:
+- Phase A (weeks 1-2): Core directives (admonitions, dropdown, tabs, steps)
+- Phase B (weeks 3-4): Content directives (cards, tables, code-tabs)
+- Phase C (weeks 5-6): Specialized directives (includes, embeds, glossary)
+- Phase D (weeks 7-8): Integration, deprecation, documentation
+
+**Exit Criteria**: All 60+ Bengal directives ported with identical HTML output
 
 ### Risk Mitigation
 

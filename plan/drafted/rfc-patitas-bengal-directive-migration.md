@@ -23,7 +23,7 @@ Port all Bengal directives from mistune-based `BengalDirective` implementations 
 
 ## Motivation
 
-Bengal currently has 60+ directives built on mistune's `DirectivePlugin` base class. While Phase 2 of Patitas created the `DirectiveHandler` protocol and example implementations, Bengal's production directives remain on mistune.
+Bengal currently has 55+ directive names (31 directive modules) built on mistune's `DirectivePlugin` base class. While Phase 2 of Patitas created the `DirectiveHandler` protocol and example implementations, Bengal's production directives remain on mistune.
 
 **Why not use adapters/shims?**
 
@@ -102,6 +102,8 @@ class DropdownDirective:
 | Children | `list[dict]` tokens | `tuple[Block, ...]` AST nodes |
 | Render output | Return `str` | Append to `StringBuilder` |
 | Attributes | `dict[str, Any]` | `frozenset[tuple[str, str]]` |
+| Class attrs | `NAMES` (list, SCREAMING_CASE) | `names` (tuple, snake_case) |
+| Immutability | Mutable dataclasses | `frozen=True, slots=True` |
 
 ---
 
@@ -116,7 +118,16 @@ Most Bengal directives can be migrated via **mechanical translation**:
 3. Rename `parse_directive` → `parse` with updated signature
 4. Change `render` to use `StringBuilder` instead of returning string
 5. Replace `attrs.get("key")` with typed options access
-6. Preserve HTML generation logic exactly (identical output)
+6. Add `frozen=True, slots=True` to options dataclasses
+7. Preserve HTML generation logic exactly (identical output)
+
+### Complexity Scoring
+
+| Score | Criteria | Examples |
+|-------|----------|----------|
+| **Low** | Single HTML element, no children, simple options | `badge`, `rubric`, `video` |
+| **Medium** | Nested structure, contract validation, options logic | `dropdown`, `tabs`, `steps` |
+| **High** | File I/O, cross-references, complex state | `include`, `glossary`, `cards` |
 
 ### Golden File Testing
 
@@ -142,19 +153,144 @@ def test_html_parity(name: str, source: str):
 
 ---
 
-## Directive Inventory
+## Complete Directive Inventory
+
+### Admonitions (10 directive names, 1 module)
+
+| Directive | Aliases | Complexity | Notes |
+|-----------|---------|------------|-------|
+| `note` | — | Low | Multi-name registration pattern |
+| `tip` | — | Low | |
+| `warning` | — | Low | |
+| `danger` | — | Low | |
+| `error` | — | Low | |
+| `info` | — | Low | |
+| `example` | — | Low | |
+| `success` | — | Low | |
+| `caution` | — | Low | Maps to `warning` CSS |
+| `seealso` | — | Low | |
+
+### Layout & Structure (12 directive names)
+
+| Directive | Aliases | Complexity | Notes |
+|-----------|---------|------------|-------|
+| `dropdown` | `details` | Low | HTML5 `<details>` element |
+| `container` | `div` | Low | Pass-through wrapper |
+| `tab-set` | `tabs` | Medium | Contract: requires `tab-item` children |
+| `tab-item` | `tab` | Medium | Contract: requires `tab-set` parent |
+| `steps` | — | Medium | Contract: requires `step` children |
+| `step` | — | Medium | Contract: requires `steps` parent |
+| `cards` | — | High | Grid layout, contract validation |
+| `card` | — | High | Contract: requires `cards` parent |
+| `child-cards` | — | High | Auto-generates cards from children |
+
+### Content & Tables (6 directive names)
+
+| Directive | Aliases | Complexity | Notes |
+|-----------|---------|------------|-------|
+| `code-tabs` | `code_tabs` | Medium | Language sync, syntax highlighting |
+| `list-table` | — | Medium | Table from list syntax |
+| `data-table` | — | Medium | Table from YAML/JSON |
+| `checklist` | — | Low | Interactive checkboxes |
+| `gallery` | — | Medium | Image grid layout |
+| `figure` | — | Medium | Image with caption |
+
+### Embeds - Video (5 directive names)
+
+| Directive | Aliases | Complexity | Notes |
+|-----------|---------|------------|-------|
+| `youtube` | — | Low | Embed iframe |
+| `vimeo` | — | Low | Embed iframe |
+| `video` | — | Low | HTML5 `<video>` |
+| `tiktok` | — | Low | Embed iframe |
+| `audio` | — | Low | HTML5 `<audio>` |
+
+### Embeds - Developer Tools (6 directive names)
+
+| Directive | Aliases | Complexity | Notes |
+|-----------|---------|------------|-------|
+| `gist` | — | Low | GitHub Gist embed |
+| `codepen` | — | Low | CodePen embed |
+| `codesandbox` | — | Low | CodeSandbox embed |
+| `stackblitz` | — | Low | StackBlitz embed |
+| `spotify` | — | Low | Spotify embed |
+| `soundcloud` | — | Low | SoundCloud embed |
+
+### File Inclusion (3 directive names)
+
+| Directive | Aliases | Complexity | Notes |
+|-----------|---------|------------|-------|
+| `include` | — | High | File system access, caching |
+| `literalinclude` | — | High | Code file inclusion with options |
+| `marimo` | — | Medium | Notebook integration |
+
+### Navigation (4 directive names)
+
+| Directive | Aliases | Complexity | Notes |
+|-----------|---------|------------|-------|
+| `breadcrumbs` | — | Medium | Site navigation context |
+| `siblings` | — | Medium | Adjacent page links |
+| `prev-next` | — | Medium | Sequential navigation |
+| `related` | — | Medium | Related content links |
+
+### Versioning (6 directive names)
+
+| Directive | Aliases | Complexity | Notes |
+|-----------|---------|------------|-------|
+| `since` | `versionadded` | Low | Version badge |
+| `deprecated` | `versionremoved` | Low | Deprecation notice |
+| `changed` | `versionchanged` | Low | Change notice |
+
+### Miscellaneous (9 directive names)
+
+| Directive | Aliases | Complexity | Notes |
+|-----------|---------|------------|-------|
+| `badge` | `bdg` | Low | Inline badge |
+| `button` | — | Low | Styled button/link |
+| `icon` | `svg-icon` | Low | Inline SVG icon |
+| `rubric` | — | Low | Section heading |
+| `target` | `anchor` | Low | Link target |
+| `example-label` | — | Low | Example annotation |
+| `glossary` | — | Medium | Cross-reference system (⚠️ requires roles) |
+| `build` | — | Low | Build-time directive |
+| `asciinema` | — | Low | Terminal recording embed |
+
+**Total: 55+ directive names across 31 modules**
+
+---
+
+## Phase Plan
+
+### Phase 0: Pre-work (Week 0)
+
+Validate existing Patitas builtins match Bengal output before proceeding.
+
+| Task | Status | Notes |
+|------|--------|-------|
+| Audit `patitas/builtins/admonition.py` | Pending | Compare HTML output |
+| Audit `patitas/builtins/dropdown.py` | Pending | Compare HTML output |
+| Audit `patitas/builtins/tabs.py` | Pending | Compare HTML output |
+| Create golden file test harness | Pending | Framework for parity tests |
+| Extract icon utilities to shared module | Pending | Unblock icon-dependent directives |
+
+**Exit Criteria**: 3 existing builtins produce identical HTML to Bengal
 
 ### Phase A: Core Directives (Week 1-2)
 
 High-frequency directives used on most pages:
 
-| Directive | Complexity | Notes |
-|-----------|------------|-------|
-| `note`, `tip`, `warning`, etc. | Low | 10 types, single implementation |
-| `dropdown` / `details` | Low | Simple HTML5 `<details>` |
-| `tab-set` / `tab-item` | Medium | Contract validation, 2 render modes |
-| `container` / `div` | Low | Pass-through wrapper |
-| `steps` / `step` | Medium | Numbered steps with contracts |
+| Directive | Complexity | Patitas Status | Icon Deps |
+|-----------|------------|----------------|-----------|
+| Admonitions (10) | Low | ✅ Exists | Yes |
+| `dropdown` / `details` | Low | ✅ Exists | Yes |
+| `tab-set` / `tab-item` | Medium | ✅ Exists | No |
+| `container` / `div` | Low | Pending | No |
+| `steps` / `step` | Medium | Pending | No |
+
+**Deliverables**:
+- Validate 3 existing builtins
+- Migrate `container`, `steps`
+- Extract icon utilities to `patitas/directives/utils/icons.py`
 
 **Exit Criteria**: 90% of docs pages render identically
 
@@ -162,14 +298,14 @@ High-frequency directives used on most pages:
 
 Rich content and layout directives:
 
-| Directive | Complexity | Notes |
-|-----------|------------|-------|
-| `cards` / `card` / `grid` | High | Complex layout, child-cards |
-| `code-tabs` | Medium | Language-sync, code highlighting |
-| `list-table` | Medium | Table from list syntax |
-| `data-table` | Medium | Table from YAML/JSON |
-| `figure` / `gallery` | Medium | Image handling |
-| `checklist` | Low | Interactive checkboxes |
+| Directive | Complexity | Icon Deps | Notes |
+|-----------|------------|-----------|-------|
+| `cards` / `card` / `child-cards` | High | Yes | Complex layout |
+| `code-tabs` | Medium | No | Language-sync |
+| `list-table` | Medium | No | |
+| `data-table` | Medium | No | |
+| `figure` / `gallery` / `audio` | Medium | No | |
+| `checklist` | Low | No | |
 
 **Exit Criteria**: All layout directives migrated
 
@@ -177,16 +313,22 @@ Rich content and layout directives:
 
 Domain-specific and embed directives:
 
-| Directive | Complexity | Notes |
-|-----------|------------|-------|
-| `include` / `literalinclude` | High | File system access, caching |
-| `youtube` / `vimeo` / `video` | Low | Embed iframes |
-| `gist` / `codepen` / etc. | Low | Developer tool embeds |
-| `glossary` | Medium | Cross-reference system |
-| `marimo` | Medium | Notebook integration |
-| `since` / `deprecated` / etc. | Low | Version badges |
+| Directive | Complexity | Dependencies | Notes |
+|-----------|------------|--------------|-------|
+| `include` / `literalinclude` | High | File system | Caching |
+| Video embeds (5) | Low | None | iframes |
+| Developer embeds (6) | Low | None | iframes |
+| Navigation (4) | Medium | Site context | |
+| Versioning (6) | Low | None | Badges |
+| `glossary` | Medium | **Role system** | ⚠️ Blocked without roles |
+| `marimo` | Medium | None | Notebook |
 
-**Exit Criteria**: Full directive library migrated
+**Note**: `glossary` requires role system (`{term}` role). Either:
+1. Include role migration in this RFC
+2. Defer `glossary` to Phase D
+3. Create separate RFC for roles
+
+**Exit Criteria**: Full directive library migrated (except role-dependent)
 
 ### Phase D: Integration & Deprecation (Week 7-8)
 
@@ -194,12 +336,41 @@ Domain-specific and embed directives:
 2. Run full test suite with Patitas backend
 3. Deprecation warnings for direct mistune usage
 4. Documentation updates
+5. Role system migration (if included in this RFC)
 
 **Exit Criteria**: Bengal test suite passes, deprecation complete
 
 ---
 
 ## Technical Design
+
+### Icon System Migration
+
+Icons are used by 7 directive modules. Current architecture:
+
+```
+bengal/directives/_icons.py
+├── ICONS: dict[str, str]     # SVG data
+├── ICON_MAP: dict[str, str]  # Semantic aliases
+├── render_svg_icon()         # Render utility
+└── warn_missing_icon()       # Warning helper
+```
+
+**Migration approach** (Phase A):
+
+1. Create `patitas/directives/utils/icons.py`
+2. Copy icon utilities (not SVG data)
+3. Import SVG data from Bengal: `from bengal.directives._icons import ICONS`
+4. Future: Extract to `bengal-icons` package if Patitas becomes standalone
+
+```python
+# patitas/directives/utils/icons.py
+from bengal.directives._icons import ICONS, ICON_MAP
+
+def render_svg_icon(name: str, size: int = 20, css_class: str = "") -> str:
+    """Render inline SVG icon."""
+    ...
+```
 
 ### Shared Utilities
 
@@ -219,21 +390,7 @@ def build_class_string(*classes: str) -> str:
 def bool_attr(name: str, value: bool) -> str:
     """Generate HTML boolean attribute."""
     return f" {name}" if value else ""
-
-def render_svg_icon(name: str, size: int = 20, css_class: str = "") -> str:
-    """Render inline SVG icon."""
-    ...
 ```
-
-### Icon System
-
-Icons are currently in `bengal/directives/_icons.py`. Options:
-
-1. **Copy to Patitas**: Duplicate icon SVGs (increases package size)
-2. **Import from Bengal**: `from bengal.directives._icons import ...`
-3. **External package**: Extract to `bengal-icons` package
-
-**Recommendation**: Option 2 initially (Bengal already depends on itself), extract later if Patitas becomes standalone.
 
 ### Options Migration
 
@@ -247,7 +404,7 @@ class DropdownOptions(DirectiveOptions):
     icon: str = ""
     _field_aliases: ClassVar[dict[str, str]] = {"class": "css_class"}
 
-# Patitas (identical)
+# Patitas (add frozen + slots)
 @dataclass(frozen=True, slots=True)
 class DropdownOptions(DirectiveOptions):
     open: bool = False
@@ -273,6 +430,54 @@ TAB_ITEM_CONTRACT = DirectiveContract(requires_parent=("tab_set",))
 
 ---
 
+## Test Migration Strategy
+
+### Existing Test Coverage
+
+Bengal directive tests live in:
+- `tests/unit/directives/` - Unit tests per directive
+- `tests/integration/` - Full parsing tests
+
+### Migration Approach
+
+1. **Port unit tests alongside code**
+   - Each directive migration includes its test migration
+   - Update imports from `bengal.directives` → `patitas.directives.bengal`
+
+2. **Golden file tests** (new)
+   - Generate expected HTML from current Bengal/mistune
+   - Store in `tests/fixtures/directive_golden/`
+   - Compare Patitas output against golden files
+
+3. **Parity test harness**
+   ```python
+   def assert_html_parity(source: str, directive_name: str):
+       """Run same source through both parsers, assert identical output."""
+       bengal_html = normalize_html(render_bengal(source))
+       patitas_html = normalize_html(render_patitas(source))
+       assert patitas_html == bengal_html, f"{directive_name}: HTML mismatch"
+   ```
+
+4. **Thread safety tests**
+   - TSan (ThreadSanitizer) in CI
+   - Concurrent parsing stress tests
+   - Location: `tests/thread_safety/`
+
+### CI Integration
+
+```yaml
+# .github/workflows/test.yml
+- name: Directive Parity Tests
+  run: pytest tests/migration/test_directive_parity.py -v
+
+- name: Thread Safety (TSan)
+  run: |
+    python -X dev -m pytest tests/thread_safety/ \
+      --tb=short -q
+```
+
+---
+
 ## File Structure
 
 ```
@@ -282,13 +487,16 @@ bengal/rendering/parsers/patitas/directives/
 ├── options.py           # DirectiveOptions base + common options
 ├── contracts.py         # DirectiveContract + predefined contracts
 ├── registry.py          # DirectiveRegistry
-├── utils.py             # Rendering utilities (from bengal.directives.utils)
+├── utils/
+│   ├── __init__.py
+│   ├── html.py          # escape_html, build_class_string, bool_attr
+│   └── icons.py         # Icon rendering (imports SVGs from Bengal)
 │
 ├── builtins/            # Patitas-native example directives
 │   ├── __init__.py
-│   ├── admonition.py    # Example implementation
-│   ├── dropdown.py
-│   └── tabs.py
+│   ├── admonition.py    # ✅ Exists
+│   ├── dropdown.py      # ✅ Exists
+│   └── tabs.py          # ✅ Exists
 │
 └── bengal/              # Full Bengal directive library (migrated)
     ├── __init__.py
@@ -304,8 +512,12 @@ bengal/rendering/parsers/patitas/directives/
     ├── code_tabs.py
     ├── tables.py        # list-table, data-table
     ├── includes.py      # include, literalinclude
-    ├── embeds.py        # youtube, gist, etc.
-    ├── versioning.py    # since, deprecated, etc.
+    ├── embeds/
+    │   ├── __init__.py
+    │   ├── video.py     # youtube, vimeo, video, tiktok
+    │   └── developer.py # gist, codepen, codesandbox, stackblitz
+    ├── navigation.py    # breadcrumbs, siblings, prev-next, related
+    ├── versioning.py    # since, deprecated, changed
     └── ...
 ```
 
@@ -315,11 +527,13 @@ bengal/rendering/parsers/patitas/directives/
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|------------|--------|------------|
-| HTML output differences | Medium | High | Golden file tests for every directive/option combo |
+| HTML output differences | **High** | High | Phase 0: Audit existing builtins; golden file tests for every directive/option combo |
 | Missing edge cases | Medium | Medium | Port Bengal's directive tests alongside code |
-| Icon system coupling | Low | Low | Use Bengal import initially |
+| Icon system coupling | **Medium** | Medium | Phase A: Extract icon utilities early |
 | Performance regression | Low | Medium | Benchmark key directives |
 | Free-threading issues | Low | High | TSan in CI, stress tests |
+| Role system dependency | **Medium** | Medium | Decision: include roles or gate Phase C items |
+| Existing builtin drift | **Medium** | High | Phase 0 validates builtins before proceeding |
 
 ---
 
@@ -330,6 +544,7 @@ bengal/rendering/parsers/patitas/directives/
 3. **Performance**: ≤5% regression on directive-heavy pages
 4. **Thread-safe**: Zero TSan errors under concurrent parsing
 5. **Clean break**: No runtime dependency on mistune for directive parsing
+6. **Test coverage**: All migrated directives have parity tests
 
 ---
 
@@ -337,24 +552,30 @@ bengal/rendering/parsers/patitas/directives/
 
 | Week | Phase | Deliverables |
 |------|-------|--------------|
-| 1-2 | Phase A | Core directives (admonitions, dropdown, tabs, steps) |
+| 0 | Phase 0 | Audit builtins, golden file harness, icon extraction |
+| 1-2 | Phase A | Core directives (admonitions, dropdown, tabs, steps, container) |
 | 3-4 | Phase B | Content directives (cards, tables, code-tabs, gallery) |
-| 5-6 | Phase C | Specialized directives (includes, embeds, glossary) |
+| 5-6 | Phase C | Specialized directives (includes, embeds, navigation, versioning) |
 | 7-8 | Phase D | Integration, deprecation, documentation |
 
-**Total: 8 weeks**
+**Total: 9 weeks** (including Phase 0)
 
 ---
 
 ## Open Questions
 
-1. **Standalone Patitas?** Should Patitas be extractable as a standalone package, or is Bengal-coupling acceptable?
+1. **Role migration**: Include in this RFC or separate?
+   - `glossary` directive blocked without `{term}` role
+   - Cross-references (`{ref}`, `{doc}`) used by multiple directives
+   - **Recommendation**: Separate RFC, gate `glossary` until complete
 
-2. **Icon handling**: Copy SVGs to Patitas, import from Bengal, or extract to separate package?
+2. **Standalone Patitas?** Should Patitas be extractable as a standalone package?
+   - Current: Icon import from Bengal acceptable
+   - Future: Extract `bengal-icons` package if needed
 
-3. **Rosettes integration**: Should syntax highlighting be part of this RFC or separate?
-
-4. **Role migration**: Bengal has inline roles too (e.g., `{ref}`, `{doc}`). Include in this RFC or separate?
+3. **Rosettes integration**: Should syntax highlighting be part of this RFC?
+   - `code-tabs` uses Rosettes for highlighting
+   - **Recommendation**: Include as Phase B dependency
 
 ---
 
@@ -366,7 +587,7 @@ bengal/rendering/parsers/patitas/directives/
 
 ---
 
-## Appendix: Directive Migration Checklist Template
+## Appendix A: Directive Migration Checklist
 
 For each directive migration:
 
@@ -380,3 +601,37 @@ For each directive migration:
 - [ ] Verify HTML output matches exactly
 - [ ] Update imports in Bengal
 - [ ] Mark old implementation as deprecated
+
+---
+
+## Appendix B: Icon Dependencies
+
+Directives that import from `bengal.directives._icons`:
+
+| Module | Directives | Icon Usage |
+|--------|------------|------------|
+| `admonitions.py` | 10 types | Admonition type icons |
+| `dropdown.py` | `dropdown`, `details` | Optional title icon |
+| `button.py` | `button` | Button icon |
+| `code_tabs.py` | `code-tabs` | Language icons |
+| `cards/utils.py` | `card`, `cards` | Card icons |
+| `icon.py` | `icon`, `svg-icon` | Direct icon rendering |
+
+**Migration order**: Extract icon utilities in Phase 0/A before migrating these directives.
+
+---
+
+## Appendix C: Contract Relationships
+
+```
+steps ──requires──► step (child)
+step ──requires──► steps (parent)
+
+tab-set ──requires──► tab-item (child)
+tab-item ──requires──► tab-set (parent)
+
+cards ──requires──► card (child)
+card ──requires──► cards (parent)
+```
+
+All contracts already exist in `patitas/directives/contracts.py`.

@@ -4,21 +4,33 @@ Supports standard admonition types:
     - note: General information
     - warning: Potential issues
     - tip: Helpful suggestions
-    - important: Critical information
-    - caution: Proceed carefully
-    - attention: Pay attention
     - danger: Serious risk
     - error: Error conditions
-    - hint: Subtle suggestions
+    - info: Informational callout
+    - example: Example content
+    - success: Success messages
+    - caution: Proceed carefully (maps to warning CSS)
     - seealso: Related information
 
 Example:
     :::{note} Optional Title
     :class: custom-class
-    :collapsible:
 
     This is the note content.
     :::
+
+Thread Safety:
+    Stateless handler. Safe for concurrent use across threads.
+
+HTML Output:
+    Matches Bengal's admonition directive exactly:
+    <div class="admonition note">
+      <p class="admonition-title">
+        <span class="admonition-icon-wrapper">{SVG}</span>
+        <span class="admonition-title-text">Title</span>
+      </p>
+      {content}
+    </div>
 """
 
 from __future__ import annotations
@@ -38,32 +50,80 @@ if TYPE_CHECKING:
     from bengal.rendering.parsers.patitas.stringbuilder import StringBuilder
 
 
-# Standard admonition types and their default titles
-ADMONITION_TYPES: dict[str, str] = {
-    "note": "Note",
-    "warning": "Warning",
-    "tip": "Tip",
-    "important": "Important",
-    "caution": "Caution",
-    "attention": "Attention",
-    "danger": "Danger",
-    "error": "Error",
-    "hint": "Hint",
-    "seealso": "See Also",
-    "admonition": "Note",  # Generic admonition
+# All supported admonition types (matches Bengal)
+ADMONITION_TYPES = frozenset(
+    [
+        "note",
+        "tip",
+        "warning",
+        "danger",
+        "error",
+        "info",
+        "example",
+        "success",
+        "caution",
+        "seealso",
+    ]
+)
+
+# Map types to CSS classes (caution maps to warning)
+TYPE_TO_CSS: dict[str, str] = {
+    "note": "note",
+    "tip": "tip",
+    "warning": "warning",
+    "caution": "warning",
+    "danger": "danger",
+    "error": "error",
+    "info": "info",
+    "example": "example",
+    "success": "success",
+    "seealso": "seealso",
 }
+
+# Map types to icon names (matches Bengal)
+TYPE_TO_ICON: dict[str, str] = {
+    "note": "note",
+    "info": "info",
+    "tip": "tip",
+    "warning": "warning",
+    "caution": "caution",
+    "danger": "danger",
+    "error": "error",
+    "success": "success",
+    "example": "example",
+    "seealso": "info",
+}
+
+
+def _render_admonition_icon(icon_name: str) -> str:
+    """Render admonition icon using Phosphor icons.
+
+    Args:
+        icon_name: Name of the icon to render
+
+    Returns:
+        SVG HTML string, or empty string if icon not found
+    """
+    try:
+        from bengal.directives._icons import render_svg_icon
+
+        return render_svg_icon(icon_name, size=20, css_class="admonition-icon")
+    except ImportError:
+        # Fallback if Bengal icons not available
+        return ""
 
 
 class AdmonitionDirective:
     """Handler for admonition directives.
 
     Renders callout boxes for notes, warnings, tips, etc.
+    Produces HTML identical to Bengal's admonition directive.
 
     Thread Safety:
         Stateless handler. Safe for concurrent use.
     """
 
-    names: ClassVar[tuple[str, ...]] = tuple(ADMONITION_TYPES.keys())
+    names: ClassVar[tuple[str, ...]] = tuple(ADMONITION_TYPES)
     token_type: ClassVar[str] = "admonition"
     contract: ClassVar[DirectiveContract | None] = None
     options_class: ClassVar[type[AdmonitionOptions]] = AdmonitionOptions
@@ -81,7 +141,7 @@ class AdmonitionDirective:
 
         Args:
             name: Admonition type (note, warning, etc.)
-            title: Custom title (uses default if None)
+            title: Custom title (uses type name if None)
             options: Typed admonition options
             content: Raw content (unused, prefer children)
             children: Parsed child blocks
@@ -90,11 +150,12 @@ class AdmonitionDirective:
         Returns:
             Directive node for AST
         """
-        # Use custom title or default for type
-        effective_title = title or ADMONITION_TYPES.get(name, "Note")
+        # Use custom title or capitalize the type name
+        effective_title = title if title else name.capitalize()
 
-        # Convert options to frozenset
+        # Convert options to frozenset, including admon_type for rendering
         opts_dict = asdict(options)
+        opts_dict["admon_type"] = name
         # Filter out None values and convert
         opts_items = [(k, str(v)) for k, v in opts_dict.items() if v is not None]
 
@@ -114,8 +175,8 @@ class AdmonitionDirective:
     ) -> None:
         """Render admonition to HTML.
 
-        Produces a <div class="admonition TYPE"> with optional collapsible
-        behavior using <details>/<summary>.
+        Produces HTML matching Bengal's admonition directive exactly,
+        including icon wrapper structure.
 
         Args:
             node: Directive AST node
@@ -123,33 +184,32 @@ class AdmonitionDirective:
             sb: StringBuilder for output
         """
         opts = dict(node.options)
-        admon_type = node.name
-        title = node.title or ADMONITION_TYPES.get(admon_type, "Note")
+        admon_type = opts.get("admon_type", node.name)
+        title = node.title or admon_type.capitalize()
 
-        # Check collapsible option
-        collapsible = opts.get("collapsible", "").lower() in ("true", "1", "yes", "")
-        if "collapsible" in opts and opts["collapsible"] == "":
-            collapsible = True
+        # Get CSS class for type (caution → warning)
+        css_class = TYPE_TO_CSS.get(admon_type, "note")
 
-        is_open = opts.get("open", "true").lower() in ("true", "1", "yes", "")
+        # Add extra class if specified
+        extra_class = opts.get("class_", "")
+        if extra_class and extra_class != "None":
+            css_class = f"{css_class} {extra_class}"
 
-        # Build CSS classes
-        classes = ["admonition", admon_type]
-        if opts.get("class_"):
-            classes.append(opts["class_"])
+        # Render icon
+        icon_name = TYPE_TO_ICON.get(admon_type, "info")
+        icon_html = _render_admonition_icon(icon_name)
 
-        class_str = " ".join(classes)
-
-        if collapsible:
-            # Use <details>/<summary> for collapsible
-            open_attr = " open" if is_open else ""
-            sb.append(f'<details class="{html_escape(class_str)}"{open_attr}>\n')
-            sb.append(f'<summary class="admonition-title">{html_escape(title)}</summary>\n')
-            sb.append(rendered_children)
-            sb.append("</details>\n")
+        # Build title with icon (matching Bengal's structure)
+        if icon_html:
+            title_html = (
+                f'<span class="admonition-icon-wrapper">{icon_html}</span>'
+                f'<span class="admonition-title-text">{html_escape(title)}</span>'
+            )
         else:
-            # Standard div structure
-            sb.append(f'<div class="{html_escape(class_str)}">\n')
-            sb.append(f'<p class="admonition-title">{html_escape(title)}</p>\n')
-            sb.append(rendered_children)
-            sb.append("</div>\n")
+            title_html = html_escape(title)
+
+        # Output HTML (matching Bengal's exact structure)
+        sb.append(f'<div class="admonition {html_escape(css_class)}">\n')
+        sb.append(f'  <p class="admonition-title">{title_html}</p>\n')
+        sb.append(rendered_children)
+        sb.append("</div>\n")

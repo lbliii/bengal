@@ -229,7 +229,7 @@ class TestDirectiveRegistry:
         # All admonition names work
         assert registry.has("warning")
         assert registry.has("tip")
-        assert registry.has("important")
+        assert registry.has("danger")
 
     def test_default_registry(self) -> None:
         """Default registry has built-in directives."""

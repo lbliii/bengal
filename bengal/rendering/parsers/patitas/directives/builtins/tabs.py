@@ -1,25 +1,49 @@
 """Tab directives for tabbed content.
 
+Provides tabbed content sections with full markdown support including
+nested directives, code blocks, and admonitions.
+
+Supports two rendering modes:
+    - "enhanced" (default): JavaScript-based tabs with data-tab-target
+    - "css_state_machine": URL-driven tabs using :target CSS selector
+
+Tab-Item Options:
+    :selected: - Whether this tab is initially selected
+    :icon: - Icon name to show next to tab label
+    :badge: - Badge text (e.g., "New", "Beta", "Pro")
+    :disabled: - Mark tab as disabled/unavailable
+
 Example:
     :::{tab-set}
+    :sync: language
 
-    :::{tab-item} Tab 1
-    Content for tab 1.
-    :::
-
-    :::{tab-item} Tab 2
+    :::{tab-item} Python
+    :icon: python
     :selected:
 
-    Content for tab 2.
+    Content for Python tab.
+    :::
+
+    :::{tab-item} JavaScript
+    :badge: Popular
+
+    Content for JavaScript tab.
     :::
 
     :::
+
+Thread Safety:
+    Stateless handlers. Safe for concurrent use across threads.
+
+HTML Output:
+    Matches Bengal's tabs directive exactly.
 """
 
 from __future__ import annotations
 
+import re
 from collections.abc import Sequence
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 from html import escape as html_escape
 from typing import TYPE_CHECKING, ClassVar
 
@@ -28,13 +52,140 @@ from bengal.rendering.parsers.patitas.directives.contracts import (
     TAB_SET_CONTRACT,
     DirectiveContract,
 )
-from bengal.rendering.parsers.patitas.directives.options import TabItemOptions, TabSetOptions
+from bengal.rendering.parsers.patitas.directives.options import StyledOptions
 from bengal.rendering.parsers.patitas.nodes import Directive
 
 if TYPE_CHECKING:
     from bengal.rendering.parsers.patitas.location import SourceLocation
     from bengal.rendering.parsers.patitas.nodes import Block
     from bengal.rendering.parsers.patitas.stringbuilder import StringBuilder
+
+
+# Import hash utility for stable IDs
+try:
+    from bengal.utils.hashing import hash_str
+except ImportError:
+    import hashlib
+
+    def hash_str(s: str, truncate: int = 12) -> str:
+        """Fallback hash function."""
+        return hashlib.md5(s.encode()).hexdigest()[:truncate]
+
+
+@dataclass(frozen=True, slots=True)
+class TabItemOptions(StyledOptions):
+    """Options for tab-item directive.
+
+    Attributes:
+        selected: Whether this tab is initially selected
+        icon: Icon name to show next to tab label
+        badge: Badge text (e.g., "New", "Beta", "Pro")
+        disabled: Mark tab as disabled/unavailable
+    """
+
+    selected: bool = False
+    icon: str | None = None
+    badge: str | None = None
+    disabled: bool = False
+    sync: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class TabSetOptions(StyledOptions):
+    """Options for tab-set directive.
+
+    Attributes:
+        id: Unique ID for the tab set
+        sync: Sync key for synchronizing tabs across multiple tab-sets
+        mode: Rendering mode - "enhanced" (JS) or "css_state_machine" (URL-driven)
+    """
+
+    id: str | None = None
+    sync: str | None = None
+    mode: str | None = None
+
+
+@dataclass
+class TabItemData:
+    """Data extracted from a rendered tab-item div."""
+
+    title: str
+    selected: str
+    icon: str
+    badge: str
+    disabled: str
+    content: str
+
+
+class TabItemDirective:
+    """Handler for tab-item directive.
+
+    Must be inside a tab-set container.
+
+    Thread Safety:
+        Stateless handler. Safe for concurrent use.
+    """
+
+    names: ClassVar[tuple[str, ...]] = ("tab-item", "tab")
+    token_type: ClassVar[str] = "tab_item"
+    contract: ClassVar[DirectiveContract | None] = TAB_ITEM_CONTRACT
+    options_class: ClassVar[type[TabItemOptions]] = TabItemOptions
+
+    def parse(
+        self,
+        name: str,
+        title: str | None,
+        options: TabItemOptions,
+        content: str,
+        children: Sequence[Block],
+        location: SourceLocation,
+    ) -> Directive:
+        """Build tab-item AST node."""
+        opts_dict = asdict(options)
+        opts_items = [(k, str(v)) for k, v in opts_dict.items() if v is not None]
+
+        return Directive(
+            location=location,
+            name=name,
+            title=title or "Tab",
+            options=frozenset(opts_items),
+            children=tuple(children),
+        )
+
+    def render(
+        self,
+        node: Directive,
+        rendered_children: str,
+        sb: StringBuilder,
+    ) -> None:
+        """Render tab-item to HTML.
+
+        Creates a wrapper div with metadata that the parent tab-set
+        will parse to build the navigation and panels.
+        """
+        opts = dict(node.options)
+        title = node.title or "Tab"
+        selected = "true" if opts.get("selected", "").lower() in ("true", "1", "yes") else "false"
+        icon = opts.get("icon", "") or ""
+        badge = opts.get("badge", "") or ""
+        disabled = "true" if opts.get("disabled", "").lower() in ("true", "1", "yes") else "false"
+
+        # Clean up None strings
+        if icon == "None":
+            icon = ""
+        if badge == "None":
+            badge = ""
+
+        sb.append(
+            f'<div class="tab-item" '
+            f'data-title="{html_escape(title)}" '
+            f'data-selected="{selected}" '
+            f'data-icon="{html_escape(icon)}" '
+            f'data-badge="{html_escape(badge)}" '
+            f'data-disabled="{disabled}">'
+        )
+        sb.append(rendered_children)
+        sb.append("</div>")
 
 
 class TabSetDirective:
@@ -47,7 +198,7 @@ class TabSetDirective:
     """
 
     names: ClassVar[tuple[str, ...]] = ("tab-set", "tabs")
-    token_type: ClassVar[str] = "tab-set"
+    token_type: ClassVar[str] = "tab_set"
     contract: ClassVar[DirectiveContract | None] = TAB_SET_CONTRACT
     options_class: ClassVar[type[TabSetOptions]] = TabSetOptions
 
@@ -80,107 +231,234 @@ class TabSetDirective:
     ) -> None:
         """Render tab-set to HTML.
 
-        Creates a tabbed interface with radio button controls.
+        Extracts tab items from rendered children and builds
+        navigation + content panels.
+
+        Supports two modes:
+        - "enhanced" (default): JavaScript-based tabs with data-tab-target
+        - "css_state_machine": URL-driven tabs using :target CSS selector
         """
         opts = dict(node.options)
 
-        # Build CSS classes
-        classes = ["tab-set"]
-        if opts.get("class_"):
-            classes.append(opts["class_"])
+        # Stable IDs are critical for deterministic builds
+        tab_id = opts.get("id") or f"tabs-{hash_str(rendered_children or '', truncate=12)}"
+        if tab_id == "None":
+            tab_id = f"tabs-{hash_str(rendered_children or '', truncate=12)}"
 
-        class_str = " ".join(classes)
+        sync_key = opts.get("sync", "") or ""
+        if sync_key == "None":
+            sync_key = ""
 
-        # Get sync group for synchronized tabs
-        sync_group = opts.get("sync_group", "")
+        mode = opts.get("mode", "") or "enhanced"
+        if mode == "None":
+            mode = "enhanced"
 
-        sb.append(f'<div class="{html_escape(class_str)}"')
-        if sync_group:
-            sb.append(f' data-sync-group="{html_escape(sync_group)}"')
-        sb.append(">\n")
+        # Extract tab items from rendered HTML
+        matches = _extract_tab_items(rendered_children)
 
-        # Render tab buttons
-        sb.append('<div class="tab-set-labels" role="tablist">\n')
+        if not matches:
+            sb.append(f'<div class="tabs" id="{html_escape(tab_id)}" data-bengal="tabs">\n')
+            sb.append(rendered_children)
+            sb.append("</div>\n")
+            return
 
-        # Extract tab items from children for labels
-        tab_id = 0
-        for child in node.children:
-            if isinstance(child, Directive) and child.name in ("tab-item", "tab"):
-                tab_label = child.title or f"Tab {tab_id + 1}"
-                child_opts = dict(child.options)
-                selected = child_opts.get("selected", "").lower() in ("true", "1", "yes", "")
-                selected_attr = ' aria-selected="true"' if selected or tab_id == 0 else ""
-                sb.append(
-                    f'<button class="tab-label" role="tab"{selected_attr}>'
-                    f"{html_escape(tab_label)}</button>\n"
-                )
-                tab_id += 1
+        # Route to appropriate renderer
+        if mode == "css_state_machine":
+            self._render_css_state_machine(tab_id, sync_key, matches, sb)
+        else:
+            self._render_enhanced(tab_id, sync_key, matches, sb)
 
-        sb.append("</div>\n")
-
-        # Render tab content
-        sb.append('<div class="tab-set-content">\n')
-        sb.append(rendered_children)
-        sb.append("</div>\n")
-
-        sb.append("</div>\n")
-
-
-class TabItemDirective:
-    """Handler for tab-item directive.
-
-    Must be inside a tab-set container.
-
-    Thread Safety:
-        Stateless handler. Safe for concurrent use.
-    """
-
-    names: ClassVar[tuple[str, ...]] = ("tab-item", "tab")
-    token_type: ClassVar[str] = "tab-item"
-    contract: ClassVar[DirectiveContract | None] = TAB_ITEM_CONTRACT
-    options_class: ClassVar[type[TabItemOptions]] = TabItemOptions
-
-    def parse(
-        self,
-        name: str,
-        title: str | None,
-        options: TabItemOptions,
-        content: str,
-        children: Sequence[Block],
-        location: SourceLocation,
-    ) -> Directive:
-        """Build tab-item AST node."""
-        opts_dict = asdict(options)
-        opts_items = [(k, str(v)) for k, v in opts_dict.items() if v is not None]
-
-        return Directive(
-            location=location,
-            name=name,
-            title=title or "Tab",
-            options=frozenset(opts_items),
-            children=tuple(children),
-        )
-
-    def render(
-        self,
-        node: Directive,
-        rendered_children: str,
-        sb: StringBuilder,
+    def _render_enhanced(
+        self, tab_id: str, sync_key: str, matches: list[TabItemData], sb: StringBuilder
     ) -> None:
-        """Render tab-item to HTML."""
-        opts = dict(node.options)
+        """Render JavaScript-enhanced tabs (default mode)."""
+        # Build tab navigation
+        sb.append(f'<div class="tabs" id="{html_escape(tab_id)}" data-bengal="tabs"')
+        if sync_key:
+            sb.append(f' data-sync="{html_escape(sync_key)}"')
+        sb.append('>\n  <ul class="tab-nav">\n')
 
-        # Build CSS classes
-        classes = ["tab-item"]
-        if opts.get("class_"):
-            classes.append(opts["class_"])
+        for i, tab_data in enumerate(matches):
+            # Determine active state
+            is_first_unselected = i == 0 and not any(t.selected == "true" for t in matches)
+            is_active = tab_data.selected == "true" or is_first_unselected
+            is_disabled = tab_data.disabled == "true"
 
-        selected = opts.get("selected", "").lower() in ("true", "1", "yes", "")
-        if selected:
-            classes.append("selected")
+            # Build classes
+            li_classes = []
+            if is_active and not is_disabled:
+                li_classes.append("active")
+            if is_disabled:
+                li_classes.append("disabled")
+            class_attr = f' class="{" ".join(li_classes)}"' if li_classes else ""
 
-        class_str = " ".join(classes)
+            # Build tab label with optional icon and badge
+            label_parts = []
+            if tab_data.icon:
+                label_parts.append(
+                    f'<span class="tab-icon" data-icon="{html_escape(tab_data.icon)}"></span>'
+                )
+            label_parts.append(html_escape(tab_data.title))
+            if tab_data.badge:
+                label_parts.append(f'<span class="tab-badge">{html_escape(tab_data.badge)}</span>')
+            label = "".join(label_parts)
 
-        sb.append(f'<div class="{html_escape(class_str)}" role="tabpanel">\n')
-        sb.append(rendered_children)
-        sb.append("</div>\n")
+            # Build link attributes
+            disabled_attr = ' aria-disabled="true" tabindex="-1"' if is_disabled else ""
+            sb.append(
+                f'    <li{class_attr}><a href="#" data-tab-target="{html_escape(tab_id)}-{i}"{disabled_attr}>{label}</a></li>\n'
+            )
+        sb.append("  </ul>\n")
+
+        # Build content panes
+        sb.append('  <div class="tab-content">\n')
+        for i, tab_data in enumerate(matches):
+            is_first_unselected = i == 0 and not any(t.selected == "true" for t in matches)
+            is_active = tab_data.selected == "true" or is_first_unselected
+            is_disabled = tab_data.disabled == "true"
+
+            pane_classes = ["tab-pane"]
+            if is_active and not is_disabled:
+                pane_classes.append("active")
+            class_str = " ".join(pane_classes)
+
+            sb.append(
+                f'    <div id="{html_escape(tab_id)}-{i}" class="{class_str}">\n{tab_data.content}    </div>\n'
+            )
+        sb.append("  </div>\n</div>\n")
+
+    def _render_css_state_machine(
+        self, tab_id: str, sync_key: str, matches: list[TabItemData], sb: StringBuilder
+    ) -> None:
+        """Render CSS state machine tabs (URL-driven, no JS required).
+
+        Uses :target CSS selector for tab state. Tab URLs become:
+        /page#tabset-id-tabname
+        """
+        # Build tab navigation using proper ARIA roles
+        sb.append(f'<div class="tabs tabs--native" id="{html_escape(tab_id)}"')
+        if sync_key:
+            sb.append(f' data-sync="{html_escape(sync_key)}"')
+        sb.append('>\n  <nav class="tab-nav" role="tablist">\n')
+
+        for tab_data in matches:
+            is_disabled = tab_data.disabled == "true"
+
+            # Generate slug from title for readable URLs
+            tab_slug = self._slugify(tab_data.title)
+            pane_id = f"{tab_id}-{tab_slug}"
+
+            # Build tab label with optional icon and badge
+            label_parts = []
+            if tab_data.icon:
+                label_parts.append(
+                    f'<span class="tab-icon" data-icon="{html_escape(tab_data.icon)}"></span>'
+                )
+            label_parts.append(f"<span>{html_escape(tab_data.title)}</span>")
+            if tab_data.badge:
+                label_parts.append(f'<span class="tab-badge">{html_escape(tab_data.badge)}</span>')
+            label = "".join(label_parts)
+
+            # ARIA attributes for accessibility
+            aria_attrs = f'role="tab" aria-controls="{html_escape(pane_id)}"'
+            if is_disabled:
+                aria_attrs += ' aria-disabled="true" tabindex="-1"'
+
+            # Use data-pane for CSS pairing
+            sb.append(
+                f'    <a href="#{html_escape(pane_id)}" {aria_attrs} data-pane="{html_escape(pane_id)}">{label}</a>\n'
+            )
+        sb.append("  </nav>\n")
+
+        # Build content panes with proper roles
+        sb.append('  <div class="tab-content">\n')
+        for tab_data in matches:
+            tab_slug = self._slugify(tab_data.title)
+            pane_id = f"{tab_id}-{tab_slug}"
+
+            sb.append(
+                f'    <section id="{html_escape(pane_id)}" role="tabpanel" class="tab-pane">\n'
+                f"{tab_data.content}"
+                f"    </section>\n"
+            )
+        sb.append("  </div>\n</div>\n")
+
+    def _slugify(self, text: str) -> str:
+        """Convert text to URL-safe slug."""
+        # Lowercase, replace spaces with hyphens, remove non-alphanumeric
+        slug = text.lower().strip()
+        slug = re.sub(r"\s+", "-", slug)
+        slug = re.sub(r"[^a-z0-9-]", "", slug)
+        slug = re.sub(r"-+", "-", slug)
+        return slug.strip("-") or "tab"
+
+
+def _extract_tab_items(text: str) -> list[TabItemData]:
+    """Extract tab-item divs from rendered HTML, handling nested divs correctly.
+
+    Args:
+        text: Rendered HTML containing tab-item divs
+
+    Returns:
+        List of TabItemData with extracted attributes
+    """
+    matches: list[TabItemData] = []
+    pattern = re.compile(
+        r'<div class="tab-item" '
+        r'data-title="([^"]*)" '
+        r'data-selected="([^"]*)" '
+        r'data-icon="([^"]*)" '
+        r'data-badge="([^"]*)" '
+        r'data-disabled="([^"]*)">',
+        re.DOTALL,
+    )
+
+    pos = 0
+    while True:
+        match = pattern.search(text, pos)
+        if not match:
+            break
+
+        title = match.group(1)
+        selected = match.group(2)
+        icon = match.group(3)
+        badge = match.group(4)
+        disabled = match.group(5)
+        start = match.end()
+
+        # Find matching closing </div> by counting nesting levels
+        depth = 1
+        i = start
+        while i < len(text) and depth > 0:
+            # Check for opening div tag
+            if i + 4 < len(text) and text[i : i + 4] == "<div":
+                depth += 1
+                # Find the closing '>' of this tag
+                tag_end = text.find(">", i)
+                if tag_end != -1:
+                    i = tag_end + 1
+                else:
+                    i += 1
+            elif i + 6 <= len(text) and text[i : i + 6] == "</div>":
+                depth -= 1
+                if depth == 0:
+                    content = text[start:i]
+                    matches.append(
+                        TabItemData(
+                            title=title,
+                            selected=selected,
+                            icon=icon,
+                            badge=badge,
+                            disabled=disabled,
+                            content=content,
+                        )
+                    )
+                    pos = i + 6
+                    break
+                i += 6
+            else:
+                i += 1
+        else:
+            pos = match.end()
+
+    return matches
