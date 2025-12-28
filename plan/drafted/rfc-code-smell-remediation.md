@@ -1,6 +1,6 @@
 # RFC: Code Smell Remediation — God Classes, Monolithic Functions, and Deep Nesting
 
-**Status**: Draft  
+**Status**: Implemented (Phase 1)  
 **Created**: 2025-12-28  
 **Updated**: 2025-12-28  
 **Author**: AI Assistant + Lawrence Lane  
@@ -9,11 +9,25 @@
 
 ---
 
+## Implementation Status
+
+| Task | Status | Commit |
+|------|--------|--------|
+| P0: Dispatch table for `_parse_block_content` | ✅ Done | `dfe277c4` |
+| P1: Extract `generate_html` templates | ✅ Done | `dfe277c4` |
+| P1: Split `errors.py` | ⏭️ Skipped | File is cohesive |
+| P2: PageProxy delegation helpers | ✅ Done | `dfe277c4` |
+| Detection script | ✅ Done | `scripts/detect_code_smells.py` |
+
+**Metrics**: 520 → 518 issues (specific high-impact files fixed)
+
+---
+
 ## TL;DR
 
-**Do first** (Week 1): Dispatch table for `_parse_block_content` (1h, Low risk) → immediate complexity reduction.
+**Do first** (Week 1): Dispatch table for `_parse_block_content` (1h, Low risk) → ✅ DONE.
 
-**High impact, high risk**: `PageProxy` delegation (4h) — critical path, needs comprehensive testing.
+**High impact, high risk**: `PageProxy` delegation (4h) — ✅ DONE (helper functions added).
 
 **Investigate before committing**: Embed directive consolidation — run diff analysis first.
 
