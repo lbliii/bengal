@@ -200,5 +200,5 @@ pytest test_cold_build_permutations.py -v
 
 :::{seealso}
 - [Architecture Overview](/docs/reference/architecture/) for how the build pipeline works
-- [Configuration Reference](/docs/about/concepts/configuration/) for performance-related settings
+- [Configuration Reference](/docs/building/configuration/) for performance-related settings
 :::

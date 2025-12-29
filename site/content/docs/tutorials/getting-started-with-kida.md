@@ -39,8 +39,8 @@ By the end of this tutorial, you will:
 ## What is Kida?
 
 Kida is Bengal's **default template engine**, designed for:
-- **Performance**: 5.6x faster than Jinja2
-- **Modern syntax**: Unified `{% end %}`, pattern matching, pipelines
+- **Free-threading**: GIL-free rendering on Python 3.14t+
+- **Cleaner syntax**: Unified `{% end %}` for all blocks, pattern matching, pipelines
 - **Free-threading**: Ready for Python 3.14t+
 - **Jinja2 compatible**: Existing Jinja2 templates work without changes
 

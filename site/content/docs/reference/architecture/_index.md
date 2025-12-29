@@ -101,48 +101,19 @@ graph TB
     Debug -.->|"diagnostics"| Site
 ```
 
-::::{dropdown} Key flows (overview)
-1. **Build**: CLI → Site → Discovery → Orchestration → Rendering → Post-process
-2. **Dev server**: watch → incremental rebuild → serve output
-3. **Template context**: Site + Page + NavTree → Rendering
-::::
+## Key Flows
 
-## Module Overview
+| Flow | Path |
+|------|------|
+| **Build** | CLI → Site → Discovery → Orchestration → Rendering → Post-process |
+| **Dev server** | Watch → Incremental rebuild → Serve output |
+| **Template context** | Site + Page + NavTree → Rendering |
 
-### Core Modules
+## Quick Links
 
-- **`core/`**: Passive data models (Site, Page, Section, Asset, Menu, NavTree)
-- **`orchestration/`**: Build coordination via specialized orchestrators
-- **`rendering/`**: Template engine, Markdown parsing, directive system
-- **`discovery/`**: Content and asset discovery from filesystem or remote sources
-
-### Supporting Modules
-
-- **`cache/`**: Build cache with Zstandard compression, dependency tracking, query indexes, and incremental build support
-- **`collections/`**: Type-safe content schemas with validation for frontmatter
-- **`content_layer/`**: Unified API for local/remote content sources (GitHub, Notion, REST)
-- **`content_types/`**: Content strategies (Blog, Docs, Portfolio, Landing) with Strategy Pattern
-- **`directives/`**: 50+ MyST-style directives for markdown (admonitions, cards, tabs, code-tabs, embeds, navigation, versioning)
-- **`postprocess/`**: Sitemap, RSS, link validation
-- **`health/`**: Comprehensive build validation with 20+ validators organized in tiers
-- **`config/`**: Format-agnostic configuration loading, environment detection, build profiles
-- **`cli/`**: Command-line interface with typo detection and Rich output
-- **`output/`**: Centralized CLI output system with profile-aware formatting
-- **`server/`**: Development server with SSE-based live reload
-- **`utils/`**: Shared utilities (paths, file I/O, dates, pagination, atomic writes)
-- **`errors/`**: Structured error system with actionable suggestions
-
-### Feature Subsystems
-
-- **`autodoc/`**: Generate docs from Python (AST-based), CLI (Click), and OpenAPI specs
-- **`analysis/`**: Knowledge graph, PageRank, community detection, link suggestions, graph visualization
-- **`fonts/`**: Google Fonts download, self-hosting, and CSS generation
-- **`debug/`**: Diagnostic tools (Page Explainer, Delta Analyzer, Dependency Visualizer)
-- **`services/`**: Service interfaces and implementations
-- **`assets/`**: Asset processing pipeline (minification, optimization, fingerprinting)
-
-## Pointers
-
-- **Object model**: refer to [Object Model](core/object-model/)
-- **Rendering pipeline**: refer to [Rendering Pipeline](rendering/rendering/)
-- **Build orchestration**: refer to [Orchestration](core/orchestration/)
+| Topic | Page |
+|-------|------|
+| Data models (Site, Page, Section) | [Object Model](core/object-model/) |
+| Build coordination | [Orchestration](core/orchestration/) |
+| Markdown → HTML | [Rendering Pipeline](rendering/rendering/) |
+| Design guidelines | [Design Principles](design-principles/) |

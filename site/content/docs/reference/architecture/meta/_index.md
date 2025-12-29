@@ -9,41 +9,15 @@ icon: tag
 ---
 # Meta & Operations
 
-Operational details, standards, and project meta-information.
+Operational details and project standards.
 
-## Project Quality
-
-```mermaid
-flowchart LR
-    subgraph Standards
-        A[Testing]
-        B[Performance]
-        C[Organization]
-    end
-
-    subgraph Extensibility
-        D[Extension Points]
-        E[Plugin Hooks]
-    end
-
-    A --> Quality[Quality Assurance]
-    B --> Quality
-    C --> Maintainability[Maintainability]
-    D --> Customization[Customization]
-    E --> Customization
-```
-
-## Scope
-
-| Area | What this section covers | Approach |
+| Area | Coverage | Approach |
 |------|----------|----------|
 | **Testing** | Unit + Integration | pytest, fixture-based |
 | **Performance** | Benchmarked | Build time, memory, incremental |
 | **Organization** | Documented | Clear module boundaries |
 
 ## Extension Points
-
-Bengal supports customization at multiple levels:
 
 | Level | Mechanism | Use Case |
 |-------|-----------|----------|

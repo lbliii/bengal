@@ -436,6 +436,6 @@ build:
 
 ## Related Documentation
 
-- [Configuration Concepts](/docs/about/concepts/configuration/) - How config works
+- [Configuration](/docs/building/configuration/) - How config works
 - [Configuration System](/docs/reference/architecture/tooling/config/) - Architecture details
 - [Scaffold Tutorial](/docs/tutorials/scaffold-your-site/) - Step-by-step guide

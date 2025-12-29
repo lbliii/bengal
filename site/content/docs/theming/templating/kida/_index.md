@@ -1,20 +1,14 @@
 ---
 title: Kida Template Engine
 nav_title: Kida
-description: High-performance template engine for Bengal with modern syntax and automatic caching
+description: Template engine with unified block endings, pattern matching, pipelines, and automatic caching
 weight: 10
-type: doc
-draft: false
-lang: en
-tags:
-- templates
-- kida
-category: explanation
+icon: zap
 ---
 
 # Kida Template Engine
 
-Bengal's default template engine. Renders 5.6x faster than Jinja2, supports free-threaded Python, and caches site-scoped blocks automatically.
+Bengal's default template engine. Kida renders templates faster than Jinja2, supports free-threaded Python, and caches site-scoped blocks automatically.
 
 ```kida
 {% let posts = site.pages |> where('type', 'blog') |> take(5) %}
@@ -27,78 +21,33 @@ Bengal's default template engine. Renders 5.6x faster than Jinja2, supports free
 {% end %}
 ```
 
-Your Jinja2 templates work without changes—Kida parses both syntaxes.
+Kida has its own native syntax. For migrating from Jinja2, use the optional `kida.compat.jinja` compatibility layer.
 
-## Documentation
+## Key Features
 
-::::{cards}
+| Feature | Benefit |
+|---------|---------|
+| **Unified endings** | `{% end %}` for all blocks |
+| **Pattern matching** | `{% match %}...{% case %}` replaces `if/elif` chains |
+| **Pipeline operator** | `\|>` for left-to-right filter chains |
+| **Optional chaining** | `?.` for safe navigation |
+| **Null coalescing** | `??` for concise fallbacks |
+| **Lexical scoping** | `{% def %}` functions access outer scope |
+| **Automatic caching** | Site-wide blocks render once per build |
+
+## Topics
+
+:::{child-cards}
 :columns: 2
-:gap: medium
-
-:::{card} Template Engine Concepts
-:link: /docs/about/concepts/template-engine/
-**Start here.** What filters, tags, and scope mean—plus Hugo/Jinja2 mental model translations.
+:include: sections
 :::
 
-:::{card} Overview
-:link: ./overview
-Why Kida exists and when to use it.
-:::
+## Standalone Pages
 
-:::{card} Architecture
-:link: ./architecture
-AST-to-AST compilation, StringBuilder rendering, thread safety.
-:::
-
-:::{card} Performance
-:link: ./performance
-Benchmarks and optimization strategies.
-:::
-
-:::{card} Comparison
-:link: ./comparison
-Feature-by-feature Kida vs Jinja2.
-:::
-
-::::
-
-## How-To Guides
-
-::::{cards}
+:::{child-cards}
 :columns: 2
-:gap: medium
-
-:::{card} Create Custom Templates
-:link: ./create-custom-template
-Build templates from scratch.
+:include: pages
 :::
-
-:::{card} Use Pattern Matching
-:link: ./use-pattern-matching
-Replace `if/elif` chains with `{% match %}`.
-:::
-
-:::{card} Use Pipeline Operator
-:link: ./use-pipeline-operator
-Left-to-right filter chains with `|>`.
-:::
-
-:::{card} Cache Fragments
-:link: ./cache-fragments
-Built-in `{% cache %}` for expensive operations.
-:::
-
-:::{card} Add Custom Filters
-:link: ./add-custom-filter
-Extend Kida with your own filters.
-:::
-
-:::{card} Migrate from Jinja2
-:link: ./migrate-jinja-to-kida
-Convert existing templates.
-:::
-
-::::
 
 ## Quick Syntax Reference
 
@@ -107,7 +56,6 @@ Convert existing templates.
 | Block endings | `{% end %}` | `{% endif %}`, `{% endfor %}`, etc. |
 | Template variables | `{% let x = ... %}` | `{% set x = ... %}` |
 | Pattern matching | `{% match %}...{% case %}` | `{% if %}...{% elif %}` |
-| While loops | `{% while cond %}` | Not available |
 | Pipeline operator | `\|>` | Not available |
 | Optional chaining | `?.` | Not available |
 | Null coalescing | `??` | `\| default()` |
@@ -116,7 +64,6 @@ Convert existing templates.
 | Range literals | `1..10` | `range(1, 11)` |
 
 :::{seealso}
-
 - [Kida Syntax Reference](/docs/reference/kida-syntax/) — Complete syntax documentation
 - [Template Functions](/docs/reference/template-functions/) — Available filters and functions
 :::

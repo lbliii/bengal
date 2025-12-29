@@ -1,25 +1,11 @@
 ---
-title: Generate Output Formats
-nav_title: Formats
-description: Create JSON, LLM-ready text, and other output formats
-weight: 30
-type: doc
-draft: false
-lang: en
-tags:
-- output formats
-- json
-- llm
-- api
-keywords:
-- output formats
-- json
-- llm
-- api
-- search
-- rag
-category: documentation
+title: Output Formats
+nav_title: Output Formats
+description: Generate JSON, LLM-ready text, and other output formats for search and AI discovery
+weight: 40
 ---
+
+# Output Formats
 
 Bengal can generate multiple output formats for your content, enabling search functionality, AI discovery, and programmatic access.
 
@@ -30,7 +16,7 @@ Bengal can generate multiple output formats for your content, enabling search fu
 Generated for every page in your site:
 
 - **JSON** (`index.json`): Structured data including metadata, HTML content, and plain text.
-- **LLM Text** (`index.txt`): AI-friendly plain text format optimized for **RAG** (Retrieval-Augmented Generation) and LLM consumption. RAG allows AI models to "read" your documentation to answer questions accurately.
+- **LLM Text** (`index.txt`): AI-friendly plain text format optimized for **RAG** (Retrieval-Augmented Generation) and LLM consumption.
 
 ### Site-Wide Formats
 
@@ -64,7 +50,7 @@ exclude_patterns = ["404.html", "search.html"]  # Files to exclude
 
 ## Use Cases
 
-### 1. Client-Side Search
+### Client-Side Search
 
 Fetch the site index to implement fast, client-side search without a backend.
 
@@ -84,12 +70,6 @@ This generates `search-index.json` (a pre-serialized Lunr index) in addition to 
 <ul id="search-results"></ul>
 
 <script>
-  // If using pre-built index (requires lunr.js):
-  // fetch('/search-index.json')
-  //   .then(res => res.json())
-  //   .then(data => { searchIndex = lunr.Index.load(data); });
-
-  // Standard JSON index (no dependency):
   const searchInput = document.getElementById('search-input');
   const resultsList = document.getElementById('search-results');
   let searchIndex = [];
@@ -112,7 +92,7 @@ This generates `search-index.json` (a pre-serialized Lunr index) in addition to 
     const results = searchIndex.filter(page =>
       (page.title && page.title.toLowerCase().includes(query)) ||
       (page.excerpt && page.excerpt.toLowerCase().includes(query))
-    ).slice(0, 10); // Limit to 10 results
+    ).slice(0, 10);
 
     resultsList.innerHTML = results.map(page => `
       <li>
@@ -126,7 +106,7 @@ This generates `search-index.json` (a pre-serialized Lunr index) in addition to 
 </script>
 ```
 
-### 2. AI & LLM Discovery
+### AI & LLM Discovery
 
 Provide `llm-full.txt` to LLMs to allow them to ingest your entire documentation site efficiently.
 
@@ -134,7 +114,7 @@ Provide `llm-full.txt` to LLMs to allow them to ingest your entire documentation
 curl https://mysite.com/llm-full.txt
 ```
 
-### 3. Static API
+### Static API
 
 Use your static site as a read-only API for other applications.
 

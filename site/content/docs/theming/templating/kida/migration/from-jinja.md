@@ -1,30 +1,22 @@
 ---
-title: Migrate from Jinja2 to Kida
-nav_title: Migrate from Jinja2
+title: From Jinja2
+nav_title: From Jinja2
 description: Convert existing Jinja2 templates to Kida syntax
-weight: 50
+weight: 10
 type: doc
-draft: false
-lang: en
 tags:
 - how-to
-- templates
 - kida
 - migration
-keywords:
-- jinja2 migration
-- kida migration
-- template migration
-category: guide
 ---
 
 # Migrate from Jinja2 to Kida
 
-Learn how to convert existing Jinja2 templates to Kida syntax for better performance and modern features.
+Learn how to convert existing Jinja2 templates to Kida syntax for unified block endings, pattern matching, and pipeline operators.
 
 ## Goal
 
-Migrate your Jinja2 templates to Kida syntax while maintaining functionality and unlocking performance benefits.
+Migrate your Jinja2 templates to Kida syntax while maintaining functionality.
 
 ## Prerequisites
 
@@ -39,7 +31,7 @@ Migrate your Jinja2 templates to Kida syntax while maintaining functionality and
 Kida is Bengal's default engine and can parse Jinja2 syntax. Your existing Jinja2 templates work without changes.
 
 :::{tip}
-**Already using Kida**: Since Kida is the default engine, new Bengal sites already use Kida. Your Jinja2 templates work, but you can migrate to Kida syntax to unlock additional features and performance.
+**Already using Kida**: Since Kida is the default engine, new Bengal sites already use Kida. Your Jinja2 templates work, but you can migrate to Kida syntax to use pattern matching, pipeline operators, and unified `{% end %}` blocks.
 :::
 
 ### Phase 2: Gradual Migration

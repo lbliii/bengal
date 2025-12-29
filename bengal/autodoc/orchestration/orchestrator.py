@@ -126,6 +126,10 @@ class VirtualAutodocOrchestrator:
         This avoids expensive re-extraction (AST parsing, import/inspect) when sources
         are unchanged, while still creating the in-memory Page/Section objects needed
         for rendering.
+
+        Raises:
+            ValueError: If any elements fail to deserialize, triggering cache
+                       invalidation and re-extraction in the calling code.
         """
         result = AutodocRunResult()
 
@@ -133,18 +137,21 @@ class VirtualAutodocOrchestrator:
         if not isinstance(elements_section, dict):
             return [], [], result
 
-        # Safely deserialize elements, skipping any that fail
+        # Track deserialization failures to invalidate corrupted cache
+        deserialization_failures: list[tuple[str, str]] = []
+
         python_elements = []
         for e in elements_section.get("python") or []:
             if isinstance(e, dict):
                 try:
                     python_elements.append(DocElement.from_dict(e))
                 except Exception as err:
+                    deserialization_failures.append(("python", str(err)))
                     logger.warning(
                         "autodoc_cache_element_deserialization_failed",
                         element_type="python",
                         error=str(err),
-                        action="skipping_element",
+                        action="will_invalidate_cache",
                     )
 
         cli_elements = []
@@ -153,11 +160,12 @@ class VirtualAutodocOrchestrator:
                 try:
                     cli_elements.append(DocElement.from_dict(e))
                 except Exception as err:
+                    deserialization_failures.append(("cli", str(err)))
                     logger.warning(
                         "autodoc_cache_element_deserialization_failed",
                         element_type="cli",
                         error=str(err),
-                        action="skipping_element",
+                        action="will_invalidate_cache",
                     )
 
         openapi_elements = []
@@ -166,12 +174,23 @@ class VirtualAutodocOrchestrator:
                 try:
                     openapi_elements.append(DocElement.from_dict(e))
                 except Exception as err:
+                    deserialization_failures.append(("openapi", str(err)))
                     logger.warning(
                         "autodoc_cache_element_deserialization_failed",
                         element_type="openapi",
                         error=str(err),
-                        action="skipping_element",
+                        action="will_invalidate_cache",
                     )
+
+        # If any elements failed to deserialize, raise to trigger cache invalidation
+        # This ensures corrupted cache entries are replaced with fresh data
+        if deserialization_failures:
+            failed_types = {t for t, _ in deserialization_failures}
+            raise ValueError(
+                f"Autodoc cache corrupted: {len(deserialization_failures)} element(s) "
+                f"failed to deserialize in {', '.join(sorted(failed_types))}. "
+                f"Cache will be invalidated and re-extracted."
+            )
 
         # Reuse the normal generation pipeline, but skip extraction.
         all_elements: list[DocElement] = []

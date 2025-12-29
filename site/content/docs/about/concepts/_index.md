@@ -42,7 +42,7 @@ flowchart LR
 | **Page** | A single content file (`.md`) → single HTML output |
 | **Section** | A directory with `_index.md` → list page with children |
 | **Leaf Bundle** | A directory with `index.md` → page with co-located assets |
-| **Template** | Jinja2 HTML that wraps your content |
+| **Template** | Kida/Jinja2 HTML that wraps your content |
 | **Asset** | CSS, JS, images — processed, optimized, and fingerprinted |
 | **Cascade** | Metadata inheritance from section `_index.md` to child pages |
 
@@ -81,3 +81,15 @@ assets/css/main.css → public/assets/css/main.a1b2c3.css
 :::{tip}
 **Start simple**: Most sites only need pages and a theme. Add sections when you need grouping, leaf bundles when you need co-located assets.
 :::
+
+## Deep Dives
+
+These concepts are covered in detail in their respective sections:
+
+| Concept | Learn More |
+|---------|------------|
+| **Content Organization** | [Content Structure](/docs/content/organization/) — frontmatter, sections, bundles |
+| **Templates** | [Kida Templating](/docs/theming/templating/kida/) — syntax, caching, performance |
+| **Assets** | [Asset Pipeline](/docs/theming/assets/) — CSS, JS, images, optimization |
+| **Build Process** | [Configuration](/docs/building/configuration/) — profiles, environment settings |
+| **Output Formats** | [Output Formats](/docs/building/output-formats/) — JSON, LLM text, search index |

@@ -528,7 +528,7 @@ Now that you can swizzle templates, explore further:
 
 - **[Theme Customization Guide](/docs/theming/themes/customize/)** — Deep dive into advanced customization techniques
 - **[Template Reference](/docs/theming/templating/)** — Learn about Jinja2 templates and available functions
-- **[Variables Reference](/docs/theming/variables/)** — Discover all template variables available
+- **[Variables Reference](/docs/reference/theme-variables/)** — Discover all template variables available
 - **[Assets Guide](/docs/theming/assets/)** — Customize CSS and JavaScript
 
 ## Summary

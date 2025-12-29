@@ -141,5 +141,5 @@ Choose the right extension mechanism for your needs:
 ## Related Resources
 
 - [Architecture Reference](/docs/reference/architecture/) for understanding Bengal internals
-- [Build Pipeline](/docs/about/concepts/build-pipeline/) for pipeline phase details
-- [Configuration](/docs/about/concepts/configuration/) for `bengal.toml` options
+- [Build Pipeline](/docs/reference/architecture/core/pipeline/) for pipeline phase details
+- [Configuration](/docs/building/configuration/) for `bengal.toml` options

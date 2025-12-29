@@ -1,36 +1,36 @@
 ---
-title: Comparison
-description: How Bengal compares to other static site generators
+title: Key Capabilities
+description: What Bengal does
 weight: 10
 type: doc
 tags:
-- comparison
-- benchmarks
+- features
+- capabilities
 ---
 
-# Comparison
+# Key Capabilities
 
-| | Bengal | Hugo | MkDocs | Jekyll |
-|---|--------|------|--------|--------|
-| **Language** | Python 3.14+ | Go | Python | Ruby |
-| **Templates** | Jinja2 | Go Templates | Jinja2 | Liquid |
-| **Mixed content** | Yes | Yes | No (docs only) | Yes |
-| **Incremental builds** | Yes | Yes | No | No |
-| **Free-threading (GIL=0)** | Yes | N/A | No | No |
-
-:::{note}
-See [[docs/about/benchmarks|Benchmarks]] for Bengal's measured build times. We do not publish comparative benchmarks for other SSGs.
-:::
+Bengal is a static site generator that produces HTML, CSS, and JavaScript from Markdown content and Jinja2 templates.
 
 ## What Bengal Does
 
-- **Jinja2 templates** — Same templating as Flask/Django
+- **Jinja2 templates** — Same templating engine used by Flask and Django
 - **Incremental builds** — Rebuild only changed files
 - **Mixed content** — Docs, blog, landing pages in one site
 - **Auto-generated docs** — API docs from Python source, CLI tools, and OpenAPI specs
 - **Asset pipeline** — Fingerprinting and minification
 - **MyST Markdown** — Directives, admonitions, cross-references
 - **Free-threading** — True parallelism on Python 3.14+ with GIL disabled
+
+## Technical Details
+
+| Feature | Description |
+|---------|-------------|
+| **Language** | Python 3.14+ |
+| **Templates** | Jinja2 |
+| **Content Types** | Docs, blog, pages (mixed) |
+| **Incremental Builds** | Yes |
+| **Free-Threading (GIL=0)** | Yes |
 
 :::{seealso}
 - [[docs/about/benchmarks|Benchmarks]]

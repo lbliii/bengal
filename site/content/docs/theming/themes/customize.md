@@ -436,5 +436,5 @@ For section-specific navigation (e.g., docs-only sidebar):
 - [Templating](/docs/theming/templating/) — Template basics
 - [Assets](/docs/theming/assets/) — Asset pipeline
 - [Icon Reference](/docs/reference/icons/) — SVG icons and customization
-- [Variables Reference](/docs/theming/variables/) — Available template variables
+- [Variables Reference](/docs/reference/theme-variables/) — Available template variables
 :::

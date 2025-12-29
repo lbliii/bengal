@@ -426,7 +426,7 @@ The `nav` block depends only on `site.pages` (site-wide), so it's automatically 
 **Performance tip**: Structure your templates so site-wide blocks (nav, footer, sidebar) are separate from page-specific blocks (content). Kida will automatically optimize them.
 :::
 
-## Modern Syntax Features
+## Kida-Only Features
 
 ### Optional Chaining (`?.`)
 
@@ -651,7 +651,7 @@ site:
 
 ## Migration from Jinja2
 
-Kida can parse Jinja2 syntax via compatibility mode. Most Jinja2 templates work without changes, but consider migrating to Kida syntax for better performance:
+Kida can parse Jinja2 syntax via compatibility mode. Most Jinja2 templates work without changes, but consider migrating to Kida syntax for pattern matching, pipeline operators, and unified block endings:
 
 :::{seealso}
 [How to Migrate from Jinja2 to Kida](/docs/theming/templating/kida/migrate-jinja-to-kida/) — Step-by-step migration guide

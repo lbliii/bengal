@@ -1,7 +1,7 @@
 ---
 title: Core Architecture
 nav_title: Core
-description: Data models, build coordination, and core principles
+description: Data models and build coordination
 weight: 10
 cascade:
   type: doc
@@ -10,27 +10,6 @@ icon: bengal-rosette
 # Core Architecture
 
 Foundational data models and build coordination.
-
-## Data Model Overview
-
-```mermaid
-graph TB
-    subgraph "Core Objects"
-        Site[Site]
-        Page[Page]
-        Section[Section]
-        Asset[Asset]
-    end
-
-    Site --> Section
-    Site --> Page
-    Site --> Asset
-    Section --> Page
-    Section --> Section
-    Page --> Asset
-```
-
-## Key Components
 
 | Component | Responsibility | Module |
 |-----------|----------------|--------|
@@ -47,6 +26,5 @@ graph TB
 - **Immutable Where Possible**: Minimize side effects
 
 :::{seealso}
-- [Design Principles](../design-principles/) — Full architectural guidelines
-- [Orchestration](orchestration/) — How builds are coordinated
+[Design Principles](../design-principles/) — Full architectural guidelines
 :::

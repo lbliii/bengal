@@ -58,3 +58,11 @@ flowchart TB
 :::{tip}
 **Quick wins**: Start with [CSS Variables](./themes/customize/) to change colors and fonts without touching templates. Use `bengal utils theme swizzle` to copy and customize specific templates when you need structural changes.
 :::
+
+## Reference
+
+| Reference | Description |
+|-----------|-------------|
+| [Theme Variables](/docs/reference/theme-variables/) | Complete `page`, `site`, `section` object reference |
+| [Template Functions](/docs/reference/template-functions/) | 80+ filters and functions for templates |
+| [Kida Syntax](/docs/reference/kida-syntax/) | Kida template engine syntax reference |

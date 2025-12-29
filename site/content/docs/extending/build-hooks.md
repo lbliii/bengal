@@ -158,5 +158,5 @@ Or use a local config override file that's not committed to version control.
 
 ## Related
 
-- [Configuration](/docs/about/concepts/configuration/) for all `bengal.toml` options
-- [Build Pipeline](/docs/about/concepts/build-pipeline/) for understanding when hooks run
+- [Configuration](/docs/building/configuration/) for all `bengal.toml` options
+- [Build Pipeline](/docs/reference/architecture/core/pipeline/) for understanding when hooks run

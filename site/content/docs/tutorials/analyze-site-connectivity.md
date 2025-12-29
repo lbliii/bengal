@@ -289,7 +289,7 @@ grep -r "defined in" content/docs/ --include="*.md"
 In related pages, add links:
 
 ```markdown
-<!-- In content/docs/about/concepts/configuration.md -->
+<!-- In content/docs/building/configuration/_index.md -->
 For definitions of these terms, see the [Glossary](/docs/about/glossary/).
 ```
 

@@ -97,7 +97,7 @@ Quick reference for terms used in Bengal documentation. Terms are listed alphabe
 ## I
 
 **Incremental Build**
-: Building only files that changed since the last build, rather than regenerating the entire site. Bengal's incremental rebuilds complete in 35–50 ms compared to 3–8 s for Jekyll—60–200x faster. Tracks dependencies so template changes also trigger appropriate rebuilds.
+: Building only files that changed since the last build, rather than regenerating the entire site. Bengal's incremental rebuilds complete in 35–80 ms for single-page changes. Tracks dependencies so template changes also trigger appropriate rebuilds.
 
 **Index File**
 : Special Markdown files that define sections or pages:
@@ -162,7 +162,7 @@ Quick reference for terms used in Bengal documentation. Terms are listed alphabe
 : A content folder with an `_index.md` file. Represents a group of related pages (e.g., `content/blog/`, `content/docs/`). Has its own landing page and can contain child pages or nested sections.
 
 **Shortcode**
-: A reusable content component invoked within Markdown. Bengal uses MyST directive syntax (`:::{shortcode}`) rather than Hugo-style `{{< shortcode >}}`.
+: A reusable content component invoked within Markdown. Bengal uses MyST directive syntax (`:::{shortcode}`) for shortcodes.
 
 **Site**
 : The top-level container representing your entire Bengal project. Provides access to all pages, sections, menus, and configuration in templates via the `site` variable.

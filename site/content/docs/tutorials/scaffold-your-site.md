@@ -212,7 +212,7 @@ See [RFC: Skeleton Manifests](https://github.com/bengal-ssg/bengal/blob/main/pla
 
 ## Next Steps
 
-- [Configuration Reference](/docs/about/concepts/configuration/) - Detailed config options
+- [Configuration Reference](/docs/building/configuration/) - Detailed config options
 - [Content Organization](/docs/content/organization/) - Structuring your content
 - [Theming Guide](/docs/theming/) - Customize appearance
 

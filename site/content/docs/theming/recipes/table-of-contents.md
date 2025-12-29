@@ -125,6 +125,6 @@ document.querySelectorAll('h2[id], h3[id]').forEach(h => observer.observe(h));
 ```
 
 :::{seealso}
-- [Template Variables](/docs/theming/variables/) — All page properties
+- [Template Variables](/docs/reference/theme-variables/) — All page properties
 - [Configuration](/docs/building/configuration/) — Markup options
 :::

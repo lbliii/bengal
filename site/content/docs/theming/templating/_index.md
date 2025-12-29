@@ -12,7 +12,7 @@ Bengal's template system uses **Kida** as the default engine, with support for J
 
 ## Template Engines
 
-- **[Kida](/docs/reference/kida-syntax/)** — Bengal's native template engine (default). 5.6x faster, modern syntax, pattern matching, pipeline operators
+- **[Kida](/docs/reference/kida-syntax/)** — Bengal's native template engine (default). Unified `{% end %}` blocks, pattern matching, pipeline operators
 - **[Jinja2](https://jinja.palletsprojects.com/)** — Industry-standard engine with excellent documentation and tooling
 - **Custom engines** — Bring your own via the plugin API
 
@@ -107,7 +107,7 @@ flowchart TB
 
 ## Kida Features
 
-Kida is Bengal's default template engine with modern syntax and better performance:
+Kida is Bengal's default template engine:
 
 - **Unified syntax**: `{% end %}` closes all blocks (no more `{% endif %}`, `{% endfor %}`)
 - **Pattern matching**: `{% match %}...{% case %}` for cleaner conditionals

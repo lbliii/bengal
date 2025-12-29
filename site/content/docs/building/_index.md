@@ -53,6 +53,7 @@ flowchart LR
 | Configure my site | [Configuration](./configuration/) |
 | Build for production | [Commands](./commands/) |
 | Speed up builds | [Performance](./performance/) |
+| Generate JSON/LLM output | [Output Formats](./output-formats/) |
 | Deploy my site | [Deployment](./deployment/) |
 | Fix build errors | [Troubleshooting](./troubleshooting/) |
 

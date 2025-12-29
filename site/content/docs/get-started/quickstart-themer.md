@@ -182,5 +182,5 @@ bengal utils theme swizzle partials/header.html
 
 - **[[docs/theming/themes/customize|Theme Customization]]** — Deep dive into overrides
 - **[[docs/theming/templating/functions|Template Functions]]** — All available filters and functions
-- **[[docs/theming/variables|Variables Reference]]** — Complete template variables
+- **[[docs/reference/theme-variables|Variables Reference]]** — Complete template variables
 - **[[docs/theming/assets|Assets]]** — CSS, JS, and image handling

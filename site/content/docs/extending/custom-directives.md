@@ -291,4 +291,4 @@ def test_alert_directive_render():
 ## Related
 
 - [Directives Reference](/docs/reference/directives/) for built-in directives
-- [Build Pipeline](/docs/about/concepts/build-pipeline/) for understanding when directives are processed
+- [Build Pipeline](/docs/reference/architecture/core/pipeline/) for understanding when directives are processed
