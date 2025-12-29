@@ -360,10 +360,17 @@ class Markdown:
 
         self._directive_registry = create_default_registry()
 
-    def __call__(self, source: str, text_transformer: Callable[[str], str] | None = None) -> str:
+    def __call__(
+        self,
+        source: str,
+        text_transformer: Callable[[str], str] | None = None,
+        page_context: Any | None = None,
+    ) -> str:
         """Parse and render Markdown source to HTML."""
         ast = self._parse_to_ast(source, text_transformer=text_transformer)
-        return self._render_ast(ast, source, text_transformer=text_transformer)
+        return self._render_ast(
+            ast, source, text_transformer=text_transformer, page_context=page_context
+        )
 
     def _parse_to_ast(
         self, source: str, text_transformer: Callable[[str], str] | None = None
@@ -391,8 +398,16 @@ class Markdown:
         ast: Sequence[Block],
         source: str,
         text_transformer: Callable[[str], str] | None = None,
+        page_context: Any | None = None,
     ) -> str:
-        """Render AST with configured options."""
+        """Render AST with configured options.
+
+        Args:
+            ast: Parsed AST blocks
+            source: Original source buffer
+            text_transformer: Optional callback to transform plain text
+            page_context: Optional page object for directives that need page/section info
+        """
         from bengal.directives.cache import get_cache
         from bengal.rendering.parsers.patitas.renderers.html import HtmlRenderer
 
@@ -408,6 +423,7 @@ class Markdown:
             directive_cache=directive_cache if cache_enabled else None,
             text_transformer=text_transformer,
             delegate=self._delegate,
+            page_context=page_context,
         )
         return renderer.render(ast)
 
@@ -422,15 +438,19 @@ class Markdown:
         ast: Sequence[Block],
         source: str,
         text_transformer: Callable[[str], str] | None = None,
+        page_context: Any | None = None,
     ) -> str:
         """Render AST to HTML."""
-        return self._render_ast(ast, source, text_transformer=text_transformer)
+        return self._render_ast(
+            ast, source, text_transformer=text_transformer, page_context=page_context
+        )
 
     def render_ast_with_toc(
         self,
         ast: Sequence[Block],
         source: str,
         text_transformer: Callable[[str], str] | None = None,
+        page_context: Any | None = None,
     ) -> tuple[str, str, list[dict[str, Any]]]:
         """Render AST to HTML with single-pass TOC extraction.
 
@@ -442,6 +462,7 @@ class Markdown:
             ast: Parsed AST blocks
             source: Original source buffer
             text_transformer: Optional callback to transform plain text
+            page_context: Optional page object for directives that need page/section info
 
         Returns:
             Tuple of (HTML with heading IDs, TOC HTML, TOC items list)
@@ -461,6 +482,7 @@ class Markdown:
             directive_cache=directive_cache if cache_enabled else None,
             text_transformer=text_transformer,
             delegate=self._delegate,
+            page_context=page_context,
         )
 
         # Render HTML - headings collected during this walk

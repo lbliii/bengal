@@ -41,7 +41,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 from html import escape as html_escape
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from bengal.rendering.parsers.patitas.directives.contracts import (
     CARD_CONTRACT,
@@ -486,21 +486,63 @@ class ChildCardsDirective:
         node: Directive[ChildCardsOptions],
         rendered_children: str,
         sb: StringBuilder,
+        *,
+        page_context: Any | None = None,
     ) -> None:
         """Render child cards by walking the page object tree.
 
-        Note: This requires render context with current_page and section
-        information. Without it, renders an empty placeholder.
+        Args:
+            node: Directive AST node with options
+            rendered_children: Pre-rendered children HTML (unused)
+            sb: StringBuilder for output
+            page_context: Page object from renderer (for section/children access)
         """
+        from bengal.directives.cards.utils import (
+            collect_children,
+            render_child_card,
+        )
+
         opts = node.options  # Direct typed access!
 
         columns = opts.columns
         gap = opts.gap
         style = opts.style
         layout = opts.layout
+        include = opts.include
+        fields = [f.strip() for f in opts.fields.split(",") if f.strip()]
 
-        # Placeholder - actual child page discovery requires render context
-        # which is injected by the renderer when available
+        def no_content(message: str) -> None:
+            """Render empty state with message."""
+            sb.append(
+                f'<div class="card-grid" '
+                f'data-columns="{html_escape(columns)}" '
+                f'data-gap="{html_escape(gap)}" '
+                f'data-style="{html_escape(style)}" '
+                f'data-variant="navigation" '
+                f'data-layout="{html_escape(layout)}">\n'
+            )
+            sb.append(f"  <p><em>{html_escape(message)}</em></p>\n")
+            sb.append("</div>\n")
+
+        # Check for page context
+        if not page_context:
+            no_content("No page context available")
+            return
+
+        # Get section from page
+        section = getattr(page_context, "_section", None)
+        if not section:
+            no_content("Page has no section")
+            return
+
+        # Collect children from section
+        children_items = collect_children(section, page_context, include)
+
+        if not children_items:
+            no_content("No child content found")
+            return
+
+        # Start card grid
         sb.append(
             f'<div class="card-grid" '
             f'data-columns="{html_escape(columns)}" '
@@ -509,5 +551,10 @@ class ChildCardsDirective:
             f'data-variant="navigation" '
             f'data-layout="{html_escape(layout)}">\n'
         )
-        sb.append("  <p><em>Child cards will be generated at build time.</em></p>\n")
+
+        # Generate cards
+        for child in children_items:
+            card_html = render_child_card(child, fields, layout, html_escape)
+            sb.append(card_html)
+
         sb.append("</div>\n")

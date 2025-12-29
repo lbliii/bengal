@@ -189,6 +189,9 @@ class PatitasParser(BaseMarkdownParser):
         self._var_plugin = VariableSubstitutionPlugin(context)
         var_plugin = self._var_plugin
 
+        # Extract page context for directives (child-cards, breadcrumbs, etc.)
+        page_context = context.get("page")
+
         try:
             # 1. Preprocess: handle {{/* escaped syntax */}}
             content = var_plugin.preprocess(content)
@@ -196,7 +199,11 @@ class PatitasParser(BaseMarkdownParser):
             # 2. Parse & Substitute in ONE pass (the "window thing")
             # The Lexer handles variable substitution as it scans lines.
             # This is O(n) with zero extra passes or AST walks.
-            html = self._md(content, text_transformer=var_plugin.substitute_variables)
+            html = self._md(
+                content,
+                text_transformer=var_plugin.substitute_variables,
+                page_context=page_context,
+            )
 
             # 3. Restore placeholders: restore BENGALESCAPED placeholders
             html = var_plugin.restore_placeholders(html)
@@ -244,6 +251,9 @@ class PatitasParser(BaseMarkdownParser):
         self._var_plugin = VariableSubstitutionPlugin(context)
         var_plugin = self._var_plugin
 
+        # Extract page context for directives (child-cards, breadcrumbs, etc.)
+        page_context = context.get("page")
+
         try:
             # 1. Preprocess: handle {{/* escaped syntax */}}
             content = var_plugin.preprocess(content)
@@ -254,7 +264,10 @@ class PatitasParser(BaseMarkdownParser):
             # 3. Render HTML with single-pass TOC extraction (RFC: rfc-path-to-200-pgs)
             # Heading IDs are injected during render, TOC collected in same pass
             html, toc, _toc_items = self._md.render_ast_with_toc(
-                ast, content, text_transformer=var_plugin.substitute_variables
+                ast,
+                content,
+                text_transformer=var_plugin.substitute_variables,
+                page_context=page_context,
             )
 
             # 4. Restore placeholders

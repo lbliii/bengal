@@ -105,6 +105,8 @@ class HtmlRenderer:
         "_headings",
         "_slugify",
         "_seen_slugs",
+        # Page context for directives (child-cards, breadcrumbs, etc.)
+        "_page_context",
     )
 
     def __init__(
@@ -119,6 +121,7 @@ class HtmlRenderer:
         text_transformer: Callable[[str], str] | None = None,
         delegate: LexerDelegate | None = None,
         slugify: Callable[[str], str] | None = None,
+        page_context: Any | None = None,
     ) -> None:
         """Initialize renderer.
 
@@ -132,6 +135,7 @@ class HtmlRenderer:
             text_transformer: Optional callback to transform plain text nodes
             delegate: Optional sub-lexer delegate for ZCLH handoff
             slugify: Optional custom slugify function for heading IDs
+            page_context: Optional page context for directives that need page/section info
         """
         self._source = source
         self._highlight = highlight
@@ -146,6 +150,8 @@ class HtmlRenderer:
         self._headings: list[HeadingInfo] = []
         self._slugify = slugify or _default_slugify
         self._seen_slugs: dict[str, int] = {}  # For unique slug generation
+        # Page context for directives (child-cards, breadcrumbs, etc.)
+        self._page_context = page_context
 
     def render(self, nodes: Sequence[Block]) -> str:
         """Render AST nodes to HTML.
@@ -380,15 +386,20 @@ class HtmlRenderer:
                 import inspect
 
                 sig = inspect.signature(handler.render)
+                kwargs: dict[str, Any] = {}
+
+                # Pass page context getter for directives that need it (child-cards, breadcrumbs, etc.)
+                if "get_page_context" in sig.parameters:
+                    kwargs["get_page_context"] = lambda: self._page_context
+
+                # Pass page context directly for simpler directive interfaces
+                if "page_context" in sig.parameters:
+                    kwargs["page_context"] = self._page_context
+
                 if "render_child_directive" in sig.parameters:
-                    handler.render(
-                        node,
-                        rendered_children,
-                        result_sb,
-                        render_child_directive=self._render_block,
-                    )
-                else:
-                    handler.render(node, rendered_children, result_sb)
+                    kwargs["render_child_directive"] = self._render_block
+
+                handler.render(node, rendered_children, result_sb, **kwargs)
 
                 result = result_sb.build()
                 if cache_key and self._directive_cache:
