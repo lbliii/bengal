@@ -21,7 +21,7 @@ Bengal's default template engine. Kida renders templates faster than Jinja2, sup
 {% end %}
 ```
 
-Kida has its own native syntax. For migrating from Jinja2, use the optional `kida.compat.jinja` compatibility layer.
+Your Jinja2 templates work without changes—Kida parses both syntaxes.
 
 ## Key Features
 

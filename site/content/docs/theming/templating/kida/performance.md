@@ -1,7 +1,7 @@
 ---
 title: Kida Performance
 nav_title: Performance
-description: Benchmarks, automatic caching, and optimization strategies
+description: Automatic caching, free-threading, and optimization strategies
 weight: 20
 type: doc
 draft: false
@@ -15,35 +15,25 @@ category: reference
 
 # Kida Performance
 
-Kida renders 5.6x faster than Jinja2 (arithmetic mean across benchmarks). This page covers benchmarks, automatic caching, and optimization strategies.
+Kida uses automatic block caching, bytecode caching, and free-threading to reduce rendering time. This page covers the mechanisms and optimization strategies.
 
-## Benchmarks
+## Free-Threading Support
 
-Test conditions: Both engines with `autoescape=True`, Python 3.12, 10,000 iterations.
+Kida renders templates without holding the Global Interpreter Lock (GIL). On Python 3.14t+, templates render in parallel across CPU cores.
 
-| Template Type | Kida | Jinja2 | Speedup |
-|--------------|------|--------|---------|
-| Simple `{{ name }}` | 0.005s | 0.045s | 8.9x |
-| Filter chain | 0.006s | 0.050s | 8.9x |
-| Conditionals | 0.004s | 0.039s | 11.2x |
-| For loop (100 items) | 0.014s | 0.028s | 2.1x |
-| For loop (1000 items) | 0.013s | 0.024s | 1.8x |
-| Dict attribute access | 0.006s | 0.026s | 4.3x |
-| HTML escape heavy | 0.019s | 0.044s | 2.3x |
-
-**Summary:** Arithmetic mean 5.6x, geometric mean 4.4x. Kida wins all 7 benchmarks.
-
-:::{details} Benchmark methodology
-Benchmarks run via `pytest-benchmark` with warmup. Source: `benchmarks/test_kida_vs_jinja.py`
-:::
+```yaml
+# bengal.yaml
+build:
+  parallel: true  # Default on Python 3.14t+
+```
 
 ## Automatic Block Caching
 
-Kida analyzes templates to identify site-scoped blocks (blocks that only access `site.*`, `config.*`, or other non-page data). These blocks render once per build.
+Kida analyzes templates at compile time to identify **site-scoped blocks**—blocks that only access `site.*`, `config.*`, or other non-page data. These blocks render once per build and reuse the cached result for every page.
 
 ```kida
 {% block nav %}
-  {# Accesses site.pages only — cached automatically #}
+  {# Accesses site.pages only — renders once, cached for all pages #}
   {% for page in site.pages %}
     <a href="{{ page.url }}">{{ page.title }}</a>
   {% end %}
@@ -55,13 +45,14 @@ Kida analyzes templates to identify site-scoped blocks (blocks that only access 
 {% end %}
 ```
 
-| Site Size | Without Caching | With Caching | Speedup |
-|-----------|-----------------|--------------|---------|
-| 100 pages | 6s | 1.2s | 5x |
-| 500 pages | 30s | 5s | 6x |
-| 1000 pages | 60s | 6-10s | 6-10x |
+**How it works:**
 
-No template changes required.
+1. During template compilation, Kida traces variable access in each block
+2. Blocks that never access `page.*` or other page-specific variables are marked site-scoped
+3. At render time, site-scoped blocks execute once and cache their output
+4. Subsequent pages reuse the cached HTML without re-rendering
+
+No template changes required—caching happens automatically based on variable access patterns.
 
 ## Fragment Caching
 
@@ -79,6 +70,11 @@ Manually cache expensive operations with `{% cache %}`:
 
 **TTL formats:** `"30s"`, `"5m"`, `"1h"`, `"1d"`
 
+Use fragment caching for:
+- Expensive function calls
+- External API responses
+- Complex computations that don't change often
+
 ## Bytecode Caching
 
 Compiled templates cache to disk in `.bengal/cache/kida/`. On subsequent builds, Kida loads bytecode directly without recompilation.
@@ -89,7 +85,12 @@ kida:
   bytecode_cache: true  # Default
 ```
 
-Cold start reduction: ~90%.
+**How it works:**
+
+1. First build: Kida parses and compiles templates to Python bytecode
+2. Bytecode writes to `.bengal/cache/kida/`
+3. Subsequent builds: Kida loads cached bytecode (skips parsing/compilation)
+4. Template changes: Kida detects file modification time and recompiles only changed templates
 
 ## Optimization Strategies
 
@@ -98,7 +99,7 @@ Cold start reduction: ~90%.
 Separate site-wide blocks from page-specific blocks:
 
 ```kida
-{# Site-wide — cached #}
+{# Site-wide — cached automatically #}
 {% block header %}{% include "partials/header.html" %}{% end %}
 {% block nav %}{% include "partials/nav.html" %}{% end %}
 
@@ -129,17 +130,24 @@ Every filter call has overhead. Avoid unnecessary intermediate steps:
 {{ items |> where('published', true) |> list |> take(10) }}
 ```
 
-## Build Time Comparison
+### Avoid re-computing in loops
 
-| Site Size | Jinja2 | Kida | Improvement |
-|-----------|--------|------|-------------|
-| 50 pages | 5s | 1s | 5x |
-| 500 pages | 60s | 11s | 5.5x |
-| 1000 pages | 60m | 6-10m | 6-10x |
+Move invariant expressions outside loops:
 
-For serverless cold starts: ~500ms (Jinja2) → ~50ms (Kida with bytecode cache).
+```kida
+{# Good: Compute once #}
+{% let base_url = site.config.base_url %}
+{% for page in pages %}
+  <a href="{{ base_url }}{{ page.url }}">{{ page.title }}</a>
+{% end %}
+
+{# Avoid: Recomputes site.config.base_url on every iteration #}
+{% for page in pages %}
+  <a href="{{ site.config.base_url }}{{ page.url }}">{{ page.title }}</a>
+{% end %}
+```
 
 :::{seealso}
-- [Architecture](/docs/theming/templating/kida/architecture/) — How optimizations work
-- [Cacheable Blocks](/docs/theming/templating/kida/cacheable-blocks/) — Automatic caching details
+- [Kida Syntax Reference](/docs/reference/kida-syntax/) — Complete syntax documentation
+- [Fragment Caching](/docs/theming/templating/kida/syntax/caching/) — Detailed caching guide
 :::

@@ -5,7 +5,7 @@ weight: 10
 icon: code
 ---
 
-Kida is a modern template engine with pattern matching, pipeline operators, and unified block endings. For migrating from Jinja2, use the optional `kida.compat.jinja` compatibility layer.
+Kida extends Jinja2 with pattern matching, pipeline operators, and unified block endings. Your existing Jinja2 templates work without changes—Kida parses both syntaxes.
 
 ## Quick Reference
 
