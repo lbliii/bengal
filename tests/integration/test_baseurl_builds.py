@@ -140,6 +140,8 @@ def test_internal_markdown_links_transformed(site, build_site):
 
 def test_build_with_env_absolute_baseurl(site_factory, monkeypatch):
     """Test that BENGAL_BASEURL env var overrides config baseurl."""
+    from bengal.orchestration.build.options import BuildOptions
+
     # Override baseurl via environment variable BEFORE creating site
     monkeypatch.setenv("BENGAL_BASEURL", "https://example.com/sub")
 
@@ -147,7 +149,8 @@ def test_build_with_env_absolute_baseurl(site_factory, monkeypatch):
     site = site_factory("test-baseurl", confoverrides={"site.baseurl": ""})
 
     # Build the site
-    site.build()
+    options = BuildOptions(force_sequential=True, incremental=False)
+    site.build(options)
 
     # Validate HTML contains absolute baseurl-prefixed CSS
     html = (site.output_dir / "index.html").read_text(encoding="utf-8")
