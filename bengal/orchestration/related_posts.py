@@ -39,7 +39,7 @@ import concurrent.futures
 from typing import TYPE_CHECKING, Any
 
 from bengal.utils.logger import get_logger
-from bengal.utils.workers import WorkloadType, get_optimal_workers, should_parallelize
+from bengal.utils.workers import WorkloadType, get_optimal_workers
 
 logger = get_logger(__name__)
 
@@ -144,9 +144,9 @@ class RelatedPostsOrchestrator:
 
         # Use parallel processing for larger sites to avoid thread overhead
         # Related posts computation is CPU-bound (tag matching, scoring)
-        if parallel and should_parallelize(
-            len(pages_to_process), workload_type=WorkloadType.CPU_BOUND
-        ):
+        # parallel is now always a boolean (computed from force_sequential in phase_related_posts)
+        # so we can use it directly
+        if parallel:
             pages_with_related = self._build_parallel(
                 pages_to_process, page_tags_map, tags_dict, limit
             )
@@ -160,10 +160,7 @@ class RelatedPostsOrchestrator:
             pages_with_related=pages_with_related,
             total_pages=len(self.site.pages),
             affected_pages=len(pages_to_process) if affected_pages else None,
-            mode="parallel"
-            if parallel
-            and should_parallelize(len(pages_to_process), workload_type=WorkloadType.CPU_BOUND)
-            else "sequential",
+            mode="parallel" if parallel else "sequential",
         )
 
     def _build_sequential(

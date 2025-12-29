@@ -72,7 +72,7 @@ class BuildRequest:
         profile: Build profile name (e.g., "WRITER", "PUBLISHER")
         nav_changed_paths: Paths with navigation-affecting frontmatter changes
         structural_changed: Whether structural changes (create/delete/move) occurred
-        parallel: Whether to use parallel rendering
+        force_sequential: If True, force sequential processing (bypasses auto-detection)
         version_scope: RFC: rfc-versioned-docs-pipeline-integration (Phase 3)
             Focus rebuilds on a single version (e.g., "v2", "latest").
             If None, all versions are rebuilt on changes.
@@ -84,7 +84,7 @@ class BuildRequest:
     profile: str = "WRITER"
     nav_changed_paths: tuple[str, ...] = field(default_factory=tuple)
     structural_changed: bool = False
-    parallel: bool = True
+    force_sequential: bool = False
     version_scope: str | None = None
 
 
@@ -160,14 +160,18 @@ def _execute_build(request: BuildRequest) -> BuildResult:
         )
 
         # Execute build
-        stats = site.build(
-            profile=profile,
+        # Use BuildOptions with force_sequential - parallel will be auto-detected
+        from bengal.orchestration.build.options import BuildOptions
+
+        build_opts = BuildOptions(
+            force_sequential=request.force_sequential,
             incremental=request.incremental,
-            parallel=request.parallel,
+            profile=profile,
             changed_sources=changed_sources,
             nav_changed_sources=nav_changed_sources,
             structural_changed=request.structural_changed,
         )
+        stats = site.build(options=build_opts)
 
         build_time_ms = (time.time() - start_time) * 1000
 

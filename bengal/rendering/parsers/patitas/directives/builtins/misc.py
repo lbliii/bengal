@@ -14,6 +14,7 @@ HTML Output:
 
 from __future__ import annotations
 
+import hashlib
 import re
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, replace
@@ -351,6 +352,7 @@ class AsciinemaOptions(DirectiveOptions):
 
     # Computed attributes (populated during parse)
     recording_id: str = ""
+    is_local_file: bool = False  # True if input is a local .cast file path
     error: str = ""
 
 
@@ -358,7 +360,9 @@ class AsciinemaDirective:
     """
     Asciinema terminal recording embed directive.
 
-    Syntax:
+    Supports both remote (asciinema.org) and local (.cast file) recordings.
+
+    Remote recording syntax:
         :::{asciinema} 590029
         :title: Installation Demo
         :cols: 80
@@ -366,6 +370,18 @@ class AsciinemaDirective:
         :speed: 1.5
         :autoplay: true
         :::
+
+    Local file syntax:
+        :::{asciinema} recordings/demo.cast
+        :title: Local Demo
+        :cols: 80
+        :speed: 1.5
+        :::
+
+    Input:
+        - Numeric ID (e.g., "590029") for asciinema.org recordings
+        - File path ending in .cast (e.g., "recordings/demo.cast") for local files
+          Local paths are resolved relative to site root and should be in static/ directory
 
     Options:
         :title: (required) Accessible title for recording
@@ -381,13 +397,11 @@ class AsciinemaDirective:
         :class: Additional CSS classes
 
     Output:
-        <figure class="terminal-embed asciinema" role="img" aria-label="...">
-          <script id="asciicast-..." src="..." async data-cols="80" ...></script>
-          <noscript><a href="...">View recording: ...</a></noscript>
-        </figure>
+        Remote: <figure> with script tag loading from asciinema.org
+        Local: <figure> with asciinema player initialized with local .cast file
 
     Security:
-        Recording ID validated (numeric only).
+        Recording ID validated (numeric for remote, .cast extension for local).
 
     Accessibility:
         ARIA role="img" with aria-label. Noscript fallback.
@@ -401,8 +415,10 @@ class AsciinemaDirective:
     contract: ClassVar[DirectiveContract | None] = None
     options_class: ClassVar[type[AsciinemaOptions]] = AsciinemaOptions
 
-    # Asciinema recording ID: numeric only
+    # Asciinema recording ID: numeric only (for remote recordings)
     ID_PATTERN: ClassVar[re.Pattern[str]] = re.compile(r"^\d+$")
+    # Local file pattern: ends with .cast, may be relative or absolute path
+    LOCAL_FILE_PATTERN: ClassVar[re.Pattern[str]] = re.compile(r".*\.cast$", re.IGNORECASE)
 
     def parse(
         self,
@@ -413,25 +429,37 @@ class AsciinemaDirective:
         children: Sequence[Block],
         location: SourceLocation,
     ) -> Directive:
-        """Build Asciinema embed AST node."""
+        """Build Asciinema embed AST node.
+
+        Accepts either:
+        - Numeric ID (e.g., "590029") for asciinema.org recordings
+        - File path (e.g., "recordings/demo.cast") for local recordings
+        """
         recording_id = title.strip() if title else ""
 
-        # Validate recording ID
+        # Determine if input is a local file or remote ID
+        is_local_file = bool(recording_id and self.LOCAL_FILE_PATTERN.match(recording_id))
+        is_remote_id = bool(recording_id and self.ID_PATTERN.match(recording_id))
+
+        # Validate input
         error = ""
         if not recording_id:
-            error = "Missing recording ID for Asciinema embed"
-        elif not self.ID_PATTERN.match(recording_id):
-            error = f"Invalid Asciinema recording ID: {recording_id!r}. Expected numeric ID."
+            error = "Missing recording ID or file path for Asciinema embed"
+        elif not is_local_file and not is_remote_id:
+            error = (
+                f"Invalid Asciinema input: {recording_id!r}. "
+                f"Expected numeric ID (e.g., '590029') or file path ending in .cast (e.g., 'recordings/demo.cast')."
+            )
         elif not options.title:
             error = (
                 f"Missing required :title: option for Asciinema embed. Recording: {recording_id}"
             )
 
         # Store computed values
-
         computed_opts = replace(
             options,
             recording_id=recording_id,
+            is_local_file=is_local_file,
             error=error,
         )
 
@@ -449,17 +477,21 @@ class AsciinemaDirective:
         rendered_children: str,
         sb: StringBuilder,
     ) -> None:
-        """Render Asciinema embed to HTML."""
+        """Render Asciinema embed to HTML.
+
+        Supports both remote (asciinema.org) and local (.cast file) recordings.
+        """
         opts = node.options
 
         error = getattr(opts, "error", "")
         recording_id = getattr(opts, "recording_id", "")
+        is_local_file = getattr(opts, "is_local_file", False)
 
         if error:
             sb.append(
                 f'<div class="terminal-embed asciinema terminal-error">\n'
                 f'  <p class="error">Asciinema Error: {html_escape(error)}</p>\n'
-                f"  <p>Recording ID: <code>{html_escape(recording_id or 'unknown')}</code></p>\n"
+                f"  <p>Recording: <code>{html_escape(recording_id or 'unknown')}</code></p>\n"
                 f"</div>\n"
             )
             return
@@ -506,19 +538,91 @@ class AsciinemaDirective:
 
         data_attrs_str = " ".join(data_attrs)
 
-        script_url = f"https://asciinema.org/a/{recording_id}.js"
-        recording_url = f"https://asciinema.org/a/{recording_id}"
+        # Generate different HTML for local vs remote recordings
+        if is_local_file:
+            # Local file: normalize path (ensure it starts with / if relative)
+            file_path = recording_id
+            if not file_path.startswith(("/", "http://", "https://")):
+                # Relative path - assume it's in static/ directory
+                file_path = f"/{file_path.lstrip('/')}"
 
-        sb.append(
-            f'<figure class="{class_str}" role="img" aria-label="{safe_title}">\n'
-            f"  <script\n"
-            f'    id="asciicast-{recording_id}"\n'
-            f'    src="{script_url}"\n'
-            f"    async\n"
-            f"    {data_attrs_str}\n"
-            f"  ></script>\n"
-            f"  <noscript>\n"
-            f'    <a href="{recording_url}">View recording: {safe_title}</a>\n'
-            f"  </noscript>\n"
-            f"</figure>\n"
-        )
+            # Generate unique ID for this recording
+            recording_hash = hashlib.md5(file_path.encode()).hexdigest()[:8]
+            element_id = f"asciicast-local-{recording_hash}"
+
+            # For local files, use asciinema player library from CDN
+            # Load asciinema player script and initialize with local file
+            # Using jsdelivr CDN for asciinema-player which supports local files
+            player_config = {
+                "cols": cols,
+                "rows": rows,
+                "theme": theme,
+                "speed": speed,
+                "autoplay": autoplay,
+                "loop": loop,
+                "poster": poster,
+            }
+            if idle_time_limit is not None:
+                player_config["idleTimeLimit"] = idle_time_limit
+            if start_at:
+                player_config["startAt"] = start_at
+
+            # Build config JSON string
+            config_items = []
+            for key, value in player_config.items():
+                if isinstance(value, bool):
+                    config_items.append(f'"{key}": {str(value).lower()}')
+                elif isinstance(value, (int, float)):
+                    config_items.append(f'"{key}": {value}')
+                elif value is None:
+                    continue
+                else:
+                    config_items.append(f'"{key}": {repr(str(value))}')
+            config_json = "{" + ", ".join(config_items) + "}"
+
+            sb.append(
+                f'<figure class="{class_str}" role="img" aria-label="{safe_title}">\n'
+                f'  <div id="{element_id}"></div>\n'
+                f'  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/asciinema-player@3/dist/bundle/asciinema-player.css">\n'
+                f'  <script src="https://cdn.jsdelivr.net/npm/asciinema-player@3/dist/bundle/asciinema-player.min.js"></script>\n'
+                f"  <script>\n"
+                f"    (function() {{\n"
+                f"      function initPlayer() {{\n"
+                f"        if (window.AsciinemaPlayer) {{\n"
+                f"          AsciinemaPlayer.create(\n"
+                f'            "{html_escape(file_path)}",\n'
+                f'            document.getElementById("{element_id}"),\n'
+                f"            {config_json}\n"
+                f"          );\n"
+                f"        }}\n"
+                f"      }}\n"
+                f'      if (document.readyState === "loading") {{\n'
+                f'        document.addEventListener("DOMContentLoaded", initPlayer);\n'
+                f"      }} else {{\n"
+                f"        initPlayer();\n"
+                f"      }}\n"
+                f"    }})();\n"
+                f"  </script>\n"
+                f"  <noscript>\n"
+                f'    <a href="{html_escape(file_path)}">View recording: {safe_title}</a>\n'
+                f"  </noscript>\n"
+                f"</figure>\n"
+            )
+        else:
+            # Remote recording: use asciinema.org script
+            script_url = f"https://asciinema.org/a/{recording_id}.js"
+            recording_url = f"https://asciinema.org/a/{recording_id}"
+
+            sb.append(
+                f'<figure class="{class_str}" role="img" aria-label="{safe_title}">\n'
+                f"  <script\n"
+                f'    id="asciicast-{recording_id}"\n'
+                f'    src="{script_url}"\n'
+                f"    async\n"
+                f"    {data_attrs_str}\n"
+                f"  ></script>\n"
+                f"  <noscript>\n"
+                f'    <a href="{recording_url}">View recording: {safe_title}</a>\n'
+                f"  </noscript>\n"
+                f"</figure>\n"
+            )

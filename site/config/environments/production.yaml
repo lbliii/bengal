@@ -6,10 +6,7 @@ site:
   baseurl: "/bengal"
 
 build:
-  # Enable parallelization for fast production builds
-  parallel: true
-
-  # Enable incremental builds for fast development
+  # Enable incremental builds
   incremental: true
 
   # Strict mode for production

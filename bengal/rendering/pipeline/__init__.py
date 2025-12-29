@@ -37,9 +37,11 @@ from __future__ import annotations
 
 from bengal.rendering.pipeline.core import RenderingPipeline
 from bengal.rendering.pipeline.toc import TOC_EXTRACTION_VERSION, extract_toc_structure
+from bengal.rendering.pipeline.write_behind import WriteBehindCollector
 
 __all__ = [
     "RenderingPipeline",
+    "WriteBehindCollector",
     "extract_toc_structure",
     "TOC_EXTRACTION_VERSION",
 ]

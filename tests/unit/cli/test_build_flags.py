@@ -196,6 +196,60 @@ class TestStrictMode:
     # This is covered by integration tests
 
 
+class TestConfigRespect:
+    """Test that CLI respects config values when flags not explicitly passed.
+
+    RFC: rfc-path-to-200-pgs - discovered that --parallel default=True
+    was ignoring config settings. These tests prevent regressions.
+    """
+
+    def test_parallel_flag_default_is_none(self):
+        """Test that --parallel default allows config fallback."""
+
+        from bengal.cli.commands.build import build
+
+        # Find the parallel option
+        parallel_option = None
+        for param in build.params:
+            if param.name == "parallel":
+                parallel_option = param
+                break
+
+        assert parallel_option is not None, "--parallel option not found"
+        assert parallel_option.default is None, (
+            f"--parallel default should be None to allow config fallback, "
+            f"got {parallel_option.default}"
+        )
+
+    def test_incremental_flag_default_is_none(self):
+        """Test that --incremental default allows config fallback."""
+        from bengal.cli.commands.build import build
+
+        incremental_option = None
+        for param in build.params:
+            if param.name == "incremental":
+                incremental_option = param
+                break
+
+        assert incremental_option is not None
+        assert incremental_option.default is None, (
+            "--incremental default should be None to allow config fallback"
+        )
+
+    def test_fast_flag_default_is_none(self):
+        """Test that --fast default allows config fallback."""
+        from bengal.cli.commands.build import build
+
+        fast_option = None
+        for param in build.params:
+            if param.name == "fast":
+                fast_option = param
+                break
+
+        assert fast_option is not None
+        assert fast_option.default is None, "--fast default should be None to allow config fallback"
+
+
 class TestFastMode:
     """Test --fast flag functionality."""
 

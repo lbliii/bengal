@@ -65,7 +65,6 @@ from bengal.orchestration.stats import BuildStats
 if TYPE_CHECKING:
     from bengal.orchestration.build.options import BuildOptions
     from bengal.orchestration.build_state import BuildState
-    from bengal.utils.profile import BuildProfile
 
 
 # Thread-safe output lock for parallel processing.
@@ -309,21 +308,7 @@ class Site(
 
     def build(
         self,
-        options: BuildOptions | None = None,
-        *,
-        # Individual parameters (prefer using BuildOptions)
-        parallel: bool = True,
-        incremental: bool | None = None,
-        verbose: bool = False,
-        quiet: bool = False,
-        profile: BuildProfile | None = None,
-        memory_optimized: bool = False,
-        strict: bool = False,
-        full_output: bool = False,
-        profile_templates: bool = False,
-        changed_sources: set[Path] | None = None,
-        nav_changed_sources: set[Path] | None = None,
-        structural_changed: bool = False,
+        options: BuildOptions,
     ) -> BuildStats:
         """
         Build the entire site.
@@ -332,50 +317,16 @@ class Site(
 
         Args:
             options: BuildOptions dataclass with all build configuration.
-                    If provided, individual parameters are ignored.
-            parallel: Whether to use parallel processing
-            incremental: Whether to perform incremental build (only changed files)
-            verbose: Whether to show detailed build information
-            quiet: Whether to suppress progress output (minimal output mode)
-            profile: Build profile (writer, theme-dev, or dev)
-            memory_optimized: Use streaming build for memory efficiency (best for 5K+ pages)
-            strict: Whether to fail on warnings
-            full_output: Show full traditional output instead of live progress
-            profile_templates: Enable template profiling for performance analysis
-            structural_changed: Whether structural changes occurred (file create/delete/move)
-                               Forces full content discovery when True.
 
         Returns:
             BuildStats object with build statistics
 
         Example:
-            >>> # Using BuildOptions (preferred)
             >>> from bengal.orchestration.build.options import BuildOptions
-            >>> options = BuildOptions(parallel=True, strict=True)
+            >>> options = BuildOptions(strict=True)
             >>> stats = site.build(options)
-            >>>
-            >>> # Or using individual parameters
-            >>> stats = site.build(parallel=True, strict=True)
         """
         from bengal.orchestration import BuildOrchestrator
-        from bengal.orchestration.build.options import BuildOptions as _BuildOptions
-
-        # Resolve options: use provided BuildOptions or construct from individual params
-        if options is None:
-            options = _BuildOptions(
-                parallel=parallel,
-                incremental=incremental,
-                verbose=verbose,
-                quiet=quiet,
-                profile=profile,
-                memory_optimized=memory_optimized,
-                strict=strict,
-                full_output=full_output,
-                profile_templates=profile_templates,
-                changed_sources=changed_sources or set(),
-                nav_changed_sources=nav_changed_sources or set(),
-                structural_changed=structural_changed,
-            )
 
         orchestrator = BuildOrchestrator(self)
         result = orchestrator.build(options)

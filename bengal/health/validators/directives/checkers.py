@@ -12,7 +12,7 @@ from typing import Any
 from bengal.health.report import CheckResult
 from bengal.utils.logger import get_logger
 
-from .constants import MAX_DIRECTIVES_PER_PAGE, MAX_TABS_PER_BLOCK
+from .constants import MAX_TABS_PER_BLOCK
 
 logger = get_logger(__name__)
 
@@ -224,41 +224,9 @@ def check_directive_performance(data: dict[str, Any]) -> list[CheckResult]:
     """Check for performance issues with directive usage."""
     results = []
     warnings = data["performance_warnings"]
-    by_page = data.get("by_page", {})
 
     if warnings:
-        heavy_pages = [w for w in warnings if w["issue"] == "heavy_directive_usage"]
         too_many_tabs = [w for w in warnings if w["issue"] == "too_many_tabs"]
-
-        if heavy_pages:
-            details = []
-            for w in sorted(heavy_pages, key=lambda x: x["count"], reverse=True)[:5]:
-                page_path = _get_relative_content_path(w["page"])
-                total_count = w["count"]
-
-                # Get directive type breakdown if available
-                page_directives = by_page.get(w["page"], [])
-                if page_directives:
-                    type_counts: dict[str, int] = {}
-                    for d in page_directives:
-                        dtype = d.get("type", "unknown")
-                        type_counts[dtype] = type_counts.get(dtype, 0) + 1
-
-                    # Show top 3 directive types
-                    sorted_types = sorted(type_counts.items(), key=lambda x: x[1], reverse=True)[:3]
-                    type_breakdown = ", ".join(f"{dtype}: {count}" for dtype, count in sorted_types)
-                    details.append(f"{page_path}: {total_count} directives ({type_breakdown})")
-                else:
-                    details.append(f"{page_path}: {total_count} directives")
-
-            results.append(
-                CheckResult.warning(
-                    f"{len(heavy_pages)} page(s) have heavy directive usage (>{MAX_DIRECTIVES_PER_PAGE} directives)",
-                    code="H205",
-                    recommendation="Consider splitting large pages for better performance.",
-                    details=details,
-                )
-            )
 
         if too_many_tabs:
             results.append(

@@ -179,6 +179,10 @@ class BuildContext:
     # Output collector for hot reload tracking
     output_collector: OutputCollector | None = None
 
+    # Write-behind collector for async I/O (RFC: rfc-path-to-200-pgs Phase III)
+    # Created by BuildOrchestrator when build.write_behind=True
+    write_behind: Any = None  # WriteBehindCollector (lazy import to avoid circular)
+
     # Timing (build start time for duration calculation)
     build_start: float = 0.0
 

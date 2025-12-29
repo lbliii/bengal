@@ -826,15 +826,29 @@ With preview only:
 
 ### Asciinema
 
-Embed terminal recordings from asciinema.org.
+Embed terminal recordings from asciinema.org or local `.cast` files.
 
 **Syntax**:
 
+Remote recording (asciinema.org):
 ```markdown
 :::{asciinema} RECORDING_ID
 :title: Recording title for accessibility
 :::
 ```
+
+Local recording file:
+```markdown
+:::{asciinema} recordings/demo.cast
+:title: Recording title for accessibility
+:::
+```
+
+**Input**:
+- **Numeric ID** (e.g., `590029`) for asciinema.org recordings
+- **File path** ending in `.cast` (e.g., `recordings/demo.cast`) for local files
+  - Local files should be placed in your `static/` directory
+  - Paths are resolved relative to site root (e.g., `static/recordings/demo.cast` → `/recordings/demo.cast`)
 
 **Options**:
 
@@ -885,6 +899,19 @@ With custom theme and idle time limit:
 :poster: npt:0:5
 :::
 ```
+
+Using a local recording file:
+
+```markdown
+:::{asciinema} recordings/install-demo.cast
+:title: Installation walkthrough
+:cols: 120
+:speed: 1.5
+:autoplay: true
+:::
+```
+
+**Note**: For local files, place your `.cast` files in the `static/` directory (e.g., `static/recordings/demo.cast`). The directive will automatically load the asciinema player and initialize it with your local file.
 
 ## Accessibility Requirements
 

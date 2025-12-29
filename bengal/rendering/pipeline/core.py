@@ -55,6 +55,7 @@ from bengal.rendering.pipeline.transforms import (
 from bengal.rendering.pipeline.unified_transform import (
     HybridHTMLTransformer,
 )
+from bengal.rendering.pipeline.write_behind import WriteBehindCollector
 from bengal.rendering.renderer import Renderer
 from bengal.utils.logger import get_logger, truncate_error
 
@@ -155,6 +156,7 @@ class RenderingPipeline:
         build_context: BuildContext | None = None,
         changed_sources: set[Path] | None = None,
         block_cache: Any | None = None,
+        write_behind: WriteBehindCollector | None = None,
     ) -> None:
         """
         Initialize the rendering pipeline.
@@ -175,6 +177,7 @@ class RenderingPipeline:
             quiet: If True, suppress per-page output
             build_stats: Optional BuildStats object to collect warnings
             build_context: Optional BuildContext for dependency injection
+            write_behind: Optional WriteBehindCollector for async I/O (RFC: rfc-path-to-200-pgs)
         """
         self.site = site
 
@@ -256,6 +259,12 @@ class RenderingPipeline:
 
         # PERF: Unified HTML transformer - single instance reused across all pages, ~27% faster than separate transforms
         self._html_transformer = HybridHTMLTransformer(baseurl=site.config.get("baseurl", ""))
+
+        # Write-behind collector for async I/O (RFC: rfc-path-to-200-pgs Phase III)
+        # Use explicit parameter, or get from BuildContext if available
+        self._write_behind = write_behind or (
+            getattr(build_context, "write_behind", None) if build_context else None
+        )
 
         # Cache per-pipeline helpers (one pipeline per worker thread).
         # These are safe to reuse and avoid per-page import/initialization overhead.
@@ -510,7 +519,14 @@ class RenderingPipeline:
         # Store rendered output in cache
         self._cache_checker.cache_rendered_output(page, template)
 
-        write_output(page, self.site, self.dependency_tracker, collector=self._output_collector)
+        # Write output (sync or async via write-behind)
+        write_output(
+            page,
+            self.site,
+            self.dependency_tracker,
+            collector=self._output_collector,
+            write_behind=self._write_behind,
+        )
 
         # Accumulate unified page data during rendering (JSON + search index)
         self._json_accumulator.accumulate_unified_page_data(page)

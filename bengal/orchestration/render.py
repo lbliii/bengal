@@ -34,7 +34,7 @@ from bengal.errors import ErrorAggregator, extract_error_context
 from bengal.utils.logger import get_logger
 from bengal.utils.progress import ProgressReporter
 from bengal.utils.url_strategy import URLStrategy
-from bengal.utils.workers import WorkloadType, get_optimal_workers, should_parallelize
+from bengal.utils.workers import WorkloadType, get_optimal_workers
 
 logger = get_logger(__name__)
 
@@ -282,21 +282,45 @@ class RenderOrchestrator:
         ):
             progress_manager = build_context.progress_manager
 
+        # Initialize write-behind I/O for sequential builds (RFC: rfc-path-to-200-pgs Phase III)
+        # Overlaps I/O with CPU rendering - only beneficial for sequential builds.
+        # For parallel builds, each worker already writes independently (better parallelism).
+        write_behind = None
+        # Compute parallel mode: use should_parallelize() unless parallel=False was explicitly passed
+        # Note: parallel parameter is now computed from force_sequential in phase_render,
+        # so this should always be a boolean (True/False), not None
+        use_parallel = parallel  # Already computed in phase_render based on force_sequential
+        if not use_parallel and build_context:
+            from bengal.rendering.pipeline.write_behind import WriteBehindCollector
+
+            write_behind = WriteBehindCollector(site=self.site)
+            build_context.write_behind = write_behind
+            logger.debug("write_behind_enabled", reason="sequential_build")
+
         # PRE-PROCESS: Set output paths for pages being rendered
         # Note: This only sets paths for pages we're actually rendering.
         # Other pages should already have paths from previous builds or will get them when needed.
         self._set_output_paths_for_pages(pages)
 
-        # Use parallel rendering only when worthwhile (avoid thread overhead for small batches)
-        # WorkloadType.MIXED because rendering involves both I/O (templates) and CPU (parsing)
-        if parallel and should_parallelize(len(pages), workload_type=WorkloadType.MIXED):
-            self._render_parallel(
-                pages, tracker, quiet, stats, progress_manager, build_context, changed_sources
-            )
-        else:
-            self._render_sequential(
-                pages, tracker, quiet, stats, progress_manager, build_context, changed_sources
-            )
+        try:
+            # Use parallel rendering only when worthwhile (avoid thread overhead for small batches)
+            # WorkloadType.MIXED because rendering involves both I/O (templates) and CPU (parsing)
+            if use_parallel:
+                self._render_parallel(
+                    pages, tracker, quiet, stats, progress_manager, build_context, changed_sources
+                )
+            else:
+                self._render_sequential(
+                    pages, tracker, quiet, stats, progress_manager, build_context, changed_sources
+                )
+        finally:
+            # Flush write-behind queue and wait for all writes to complete
+            if write_behind:
+                try:
+                    written = write_behind.flush_and_close()
+                    logger.debug("write_behind_flushed", files_written=written)
+                except Exception as e:
+                    logger.error("write_behind_flush_error", error=str(e))
 
     def _render_sequential(
         self,

@@ -36,8 +36,13 @@ class BuildOptions:
     Consolidates all build parameters into a single object, replacing
     the 11-parameter signature of BuildOrchestrator.build().
 
+    **Preferred Usage**: Use :func:`bengal.config.build_options_resolver.resolve_build_options`
+    to create BuildOptions with proper precedence (CLI > config > DEFAULTS).
+    Direct instantiation is supported for backward compatibility and testing.
+
     Attributes:
-        parallel: Whether to use parallel processing (default: True)
+        force_sequential: If True, force sequential processing (bypasses auto-detection).
+            Use --no-parallel CLI flag to set this. Default: False (auto-detect via should_parallelize).
         incremental: Whether to perform incremental build. None = auto-detect
             based on cache presence. True = force incremental. False = force full.
         verbose: Whether to show verbose console logs during build
@@ -52,28 +57,22 @@ class BuildOptions:
         structural_changed: Whether structural changes occurred (file create/delete/move)
 
     Example:
+        >>> # Preferred: Use resolver for proper precedence
+        >>> from bengal.config.build_options_resolver import resolve_build_options, CLIFlags
+        >>> options = resolve_build_options(site.config, CLIFlags(force_sequential=True))
+        >>>
+        >>> # Direct instantiation (for testing/backward compatibility)
         >>> from bengal.orchestration.build.options import BuildOptions
         >>> from bengal.utils.profile import BuildProfile
-        >>>
-        >>> # Default options (writer profile, parallel, auto-incremental)
-        >>> options = BuildOptions()
-        >>>
-        >>> # Strict production build
         >>> options = BuildOptions(
         ...     profile=BuildProfile.WRITER,
         ...     strict=True,
         ...     incremental=False,
         ... )
-        >>>
-        >>> # Dev server rebuild with changed paths
-        >>> options = BuildOptions(
-        ...     incremental=True,
-        ...     changed_sources={Path("content/blog/post.md")},
-        ... )
     """
 
     # Build behavior
-    parallel: bool = True
+    force_sequential: bool = False
     incremental: bool | None = None
     verbose: bool = False
     quiet: bool = False
