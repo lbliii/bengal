@@ -3,7 +3,6 @@
 
 build:
   output_dir: "public"
-  parallel: true
   incremental: true
 
 # Build-time badge artifacts (written after build finishes)

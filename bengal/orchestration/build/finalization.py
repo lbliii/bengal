@@ -35,16 +35,18 @@ def phase_postprocess(
     Args:
         orchestrator: Build orchestrator instance
         cli: CLI output for user messages
-        parallel: Whether to use parallel processing
+        parallel: Whether to use parallel processing (deprecated, always False)
         ctx: Build context
         incremental: Whether this is an incremental build
         collector: Optional output collector for hot reload tracking
     """
-    with orchestrator.logger.phase("postprocessing", parallel=parallel):
+    # Note: parallel parameter kept for backward compatibility but always False
+    # Post-processing doesn't use parallel processing
+    with orchestrator.logger.phase("postprocessing", parallel=False):
         postprocess_start = time.time()
 
         orchestrator.postprocess.run(
-            parallel=parallel,
+            parallel=False,
             progress_manager=None,
             build_context=ctx,
             incremental=incremental,

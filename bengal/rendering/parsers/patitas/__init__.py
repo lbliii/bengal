@@ -426,6 +426,52 @@ class Markdown:
         """Render AST to HTML."""
         return self._render_ast(ast, source, text_transformer=text_transformer)
 
+    def render_ast_with_toc(
+        self,
+        ast: Sequence[Block],
+        source: str,
+        text_transformer: Callable[[str], str] | None = None,
+    ) -> tuple[str, str, list[dict[str, Any]]]:
+        """Render AST to HTML with single-pass TOC extraction.
+
+        RFC: rfc-path-to-200-pgs (Single-Pass Heading Decoration)
+
+        Headings are collected during rendering - no post-render regex pass needed.
+
+        Args:
+            ast: Parsed AST blocks
+            source: Original source buffer
+            text_transformer: Optional callback to transform plain text
+
+        Returns:
+            Tuple of (HTML with heading IDs, TOC HTML, TOC items list)
+        """
+        from bengal.directives.cache import get_cache
+        from bengal.rendering.parsers.patitas.renderers.html import HtmlRenderer
+
+        # Use global directive cache if enabled
+        directive_cache = get_cache()
+        cache_enabled = directive_cache.stats().get("enabled", False)
+
+        renderer = HtmlRenderer(
+            source,
+            highlight=self._highlight,
+            highlight_style=self._highlight_style,
+            directive_registry=self._directive_registry,
+            directive_cache=directive_cache if cache_enabled else None,
+            text_transformer=text_transformer,
+            delegate=self._delegate,
+        )
+
+        # Render HTML - headings collected during this walk
+        html = renderer.render(ast)
+
+        # Get TOC data from renderer (no extra pass!)
+        toc_html = renderer.get_toc_html()
+        toc_items = renderer.get_toc_items()
+
+        return html, toc_html, toc_items
+
     @property
     def plugins(self) -> frozenset[str]:
         """Get enabled plugins."""

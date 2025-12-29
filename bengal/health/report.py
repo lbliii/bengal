@@ -716,11 +716,10 @@ class HealthReport:
         # No header - flows from phase line "✓ Health check Xms"
         lines.append("")
 
-        # Separate validators by priority: problems first, then suggestions, then passed
+        # Separate validators by priority: problems first, then suggestions
         # Skip validators that only have INFO messages (writers don't need that noise)
         validators_with_problems = []
         validators_with_suggestions = []
-        validators_passed = []
 
         for vr in self.validator_reports:
             # Skip INFO-only validators
@@ -736,8 +735,6 @@ class HealthReport:
                 validators_with_problems.append(vr)
             elif vr.suggestion_count > 0:
                 validators_with_suggestions.append(vr)
-            else:
-                validators_passed.append(vr)
 
         # Sort problems by severity: errors first, then warnings
         validators_with_problems.sort(key=lambda v: (v.error_count == 0, v.warning_count == 0))
@@ -813,18 +810,6 @@ class HealthReport:
                 f"[info]{icons.tip} {self.total_suggestions} quality suggestion(s) available (use --suggestions to view)[/info]"
             )
 
-        # Show passed validators in a collapsed summary (reduce noise)
-        if validators_passed:
-            if validators_with_problems or (validators_with_suggestions and show_suggestions):
-                lines.append("")
-            lines.append(
-                f"[success]{icons.success} {len(validators_passed)} validator(s) passed[/success]"
-            )
-            # List them in a compact format if few, otherwise just count
-            if len(validators_passed) <= 5:
-                passed_names = ", ".join([vr.validator_name for vr in validators_passed])
-                lines.append(f"   {passed_names}")
-
         # Summary (compact single line)
         score = self.build_quality_score()
         rating = self.quality_rating()
@@ -849,18 +834,15 @@ class HealthReport:
         # No header - flows from phase line "✓ Health check Xms"
         lines.append("")
 
-        # Separate validators by priority: problems first, then suggestions, then passed
+        # Separate validators by priority: problems first, then suggestions
         validators_with_problems = []
         validators_with_suggestions = []
-        validators_passed = []
 
         for vr in self.validator_reports:
             if vr.has_problems:
                 validators_with_problems.append(vr)
             elif vr.suggestion_count > 0:
                 validators_with_suggestions.append(vr)
-            else:
-                validators_passed.append(vr)
 
         # Sort problems by severity: errors first, then warnings
         validators_with_problems.sort(key=lambda v: (v.error_count == 0, v.warning_count == 0))
@@ -906,18 +888,6 @@ class HealthReport:
 
                 if not is_last_problem:
                     lines.append("")
-
-        # Show passed validators (collapsed in verbose too, but expandable)
-        if validators_passed:
-            if validators_with_problems:
-                lines.append("")
-            lines.append(
-                f"[success]{icons.success} {len(validators_passed)} validator(s) passed[/success]"
-            )
-
-            # In verbose mode, show brief summary of passed checks within each validator
-            for vr in validators_passed:
-                lines.append(f"   {icons.success} {vr.validator_name}")
 
         # Summary (compact single line)
         score = self.build_quality_score()

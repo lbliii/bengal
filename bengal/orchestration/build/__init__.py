@@ -136,71 +136,27 @@ class BuildOrchestrator:
 
     def build(
         self,
-        options: BuildOptions | None = None,
-        *,
-        parallel: bool = True,
-        incremental: bool | None = None,
-        verbose: bool = False,
-        quiet: bool = False,
-        profile: BuildProfile | None = None,
-        memory_optimized: bool = False,
-        strict: bool = False,
-        full_output: bool = False,
-        profile_templates: bool = False,
-        changed_sources: set[Path] | None = None,
-        nav_changed_sources: set[Path] | None = None,
-        structural_changed: bool = False,
-        on_phase_start: Callable[[str], None] | None = None,
-        on_phase_complete: Callable[[str, float, str], None] | None = None,
+        options: BuildOptions,
     ) -> BuildStats:
         """
         Execute full build pipeline.
 
         Args:
             options: BuildOptions dataclass with all build configuration.
-                    If provided, individual parameters are ignored.
-            parallel: Whether to use parallel processing
-            incremental: Whether to perform incremental build (only changed files)
-            verbose: Whether to show verbose console logs during build (default: False, logs go to file)
-            quiet: Whether to suppress progress output (minimal output mode)
-            profile: Build profile (writer, theme-dev, or dev)
-            memory_optimized: Use streaming build for memory efficiency (best for 5K+ pages)
-            strict: Whether to fail build on validation errors
-            full_output: Show full traditional output instead of live progress
-            profile_templates: Enable template profiling for performance analysis
-            structural_changed: Whether structural changes occurred (file create/delete/move).
-                               Forces full content discovery when True, even in incremental mode.
 
         Returns:
             BuildStats object with build statistics
 
         Example:
             >>> from bengal.orchestration.build.options import BuildOptions
-            >>> options = BuildOptions(parallel=True, strict=True)
+            >>> options = BuildOptions(strict=True)
             >>> stats = orchestrator.build(options)
-            >>>
-            >>> # Or using individual parameters
-            >>> stats = orchestrator.build(parallel=True, strict=True)
         """
-        # Resolve options: use provided BuildOptions or construct from individual params
-        if options is None:
-            options = BuildOptions(
-                parallel=parallel,
-                incremental=incremental,
-                verbose=verbose,
-                quiet=quiet,
-                profile=profile,
-                memory_optimized=memory_optimized,
-                strict=strict,
-                full_output=full_output,
-                profile_templates=profile_templates,
-                changed_sources=changed_sources or set(),
-                nav_changed_sources=nav_changed_sources or set(),
-                structural_changed=structural_changed,
-            )
 
         # Extract values from options for use in build phases
-        parallel = options.parallel
+        # Parallel is now auto-detected via should_parallelize() unless force_sequential=True
+        # We'll compute it when we know the page count (in rendering phase)
+        force_sequential = options.force_sequential
         incremental = options.incremental
         verbose = options.verbose
         quiet = options.quiet
@@ -214,9 +170,8 @@ class BuildOrchestrator:
         structural_changed = options.structural_changed
 
         # Extract phase callbacks (RFC: rfc-dashboard-api-integration)
-        # Prefer explicit params, fall back to options
-        on_phase_start = on_phase_start or options.on_phase_start
-        on_phase_complete = on_phase_complete or options.on_phase_complete
+        on_phase_start = options.on_phase_start
+        on_phase_complete = options.on_phase_complete
 
         # Helper to safely call phase callbacks
         def notify_phase_start(phase_name: str) -> None:
@@ -289,12 +244,14 @@ class BuildOrchestrator:
             collector.start_build()
 
         # Initialize stats (incremental may be None, resolve later)
-        self.stats = BuildStats(parallel=parallel, incremental=bool(incremental))
+        # parallel will be computed dynamically in rendering phase based on force_sequential and should_parallelize()
+        # For now, set to False - will be updated when we know the actual execution mode
+        self.stats = BuildStats(parallel=False, incremental=bool(incremental))
         self.stats.strict_mode = strict
 
         logger.info(
             "build_start",
-            parallel=parallel,
+            force_sequential=force_sequential,
             incremental=incremental,
             root_path=str(self.site.root_path),
         )
@@ -454,7 +411,10 @@ class BuildOrchestrator:
         content.phase_sections(self, cli, incremental, affected_sections)
 
         # Phase 7: Taxonomies & Dynamic Pages
-        affected_tags = content.phase_taxonomies(self, cache, incremental, parallel, pages_to_build)
+        # Pass force_sequential - phase will compute parallel based on should_parallelize()
+        affected_tags = content.phase_taxonomies(
+            self, cache, incremental, force_sequential, pages_to_build
+        )
 
         # Phase 8: Save Taxonomy Index
         content.phase_taxonomy_index(self)
@@ -463,7 +423,8 @@ class BuildOrchestrator:
         content.phase_menus(self, incremental, {str(p) for p in changed_page_paths})
 
         # Phase 10: Related Posts Index
-        content.phase_related_posts(self, incremental, parallel, pages_to_build)
+        # Pass force_sequential - phase will compute parallel based on should_parallelize()
+        content.phase_related_posts(self, incremental, force_sequential, pages_to_build)
 
         # Phase 11: Query Indexes
         content.phase_query_indexes(self, cache, incremental, pages_to_build)
@@ -493,8 +454,9 @@ class BuildOrchestrator:
         assets_start = time.time()
 
         # Phase 13: Process Assets
+        # Assets phase doesn't use parallel processing, so force_sequential doesn't matter here
         assets_to_process = rendering.phase_assets(
-            self, cli, incremental, parallel, assets_to_process, collector=output_collector
+            self, cli, incremental, False, assets_to_process, collector=output_collector
         )
 
         assets_duration_ms = (time.time() - assets_start) * 1000
@@ -509,11 +471,12 @@ class BuildOrchestrator:
         rendering_start = time.time()
 
         # Phase 14: Render Pages (with cached content from discovery)
+        # Pass force_sequential - phase will compute parallel based on should_parallelize() and page count
         ctx = rendering.phase_render(
             self,
             cli,
             incremental,
-            parallel,
+            force_sequential,
             quiet,
             verbose,
             memory_optimized,
@@ -546,8 +509,9 @@ class BuildOrchestrator:
         finalization_start = time.time()
 
         # Phase 17: Post-processing
+        # Post-processing doesn't use parallel processing, so pass False
         finalization.phase_postprocess(
-            self, cli, parallel, ctx, incremental, collector=output_collector
+            self, cli, False, ctx, incremental, collector=output_collector
         )
 
         # Phase 18: Save Cache
@@ -682,11 +646,11 @@ class BuildOrchestrator:
         self,
         cache: BuildCache,
         incremental: bool,
-        parallel: bool,
+        force_sequential: bool,
         pages_to_build: list[Page],
     ) -> set[str]:
         """Phase 7: Taxonomies & Dynamic Pages."""
-        return content.phase_taxonomies(self, cache, incremental, parallel, pages_to_build)
+        return content.phase_taxonomies(self, cache, incremental, force_sequential, pages_to_build)
 
     def _phase_taxonomy_index(self) -> None:
         """Phase 8: Save Taxonomy Index."""
@@ -697,10 +661,10 @@ class BuildOrchestrator:
         content.phase_menus(self, incremental, {str(p) for p in changed_page_paths})
 
     def _phase_related_posts(
-        self, incremental: bool, parallel: bool, pages_to_build: list[Page]
+        self, incremental: bool, force_sequential: bool, pages_to_build: list[Page]
     ) -> None:
         """Phase 10: Related Posts Index."""
-        content.phase_related_posts(self, incremental, parallel, pages_to_build)
+        content.phase_related_posts(self, incremental, force_sequential, pages_to_build)
 
     def _phase_query_indexes(
         self, cache: BuildCache, incremental: bool, pages_to_build: list[Page]
@@ -728,7 +692,7 @@ class BuildOrchestrator:
         self,
         cli: CLIOutput,
         incremental: bool,
-        parallel: bool,
+        force_sequential: bool,
         quiet: bool,
         verbose: bool,
         memory_optimized: bool,
@@ -743,7 +707,7 @@ class BuildOrchestrator:
             self,
             cli,
             incremental,
-            parallel,
+            force_sequential,
             quiet,
             verbose,
             memory_optimized,
@@ -767,12 +731,13 @@ class BuildOrchestrator:
     def _phase_postprocess(
         self,
         cli: CLIOutput,
-        parallel: bool,
+        force_sequential: bool,
         ctx: BuildContext | Any | None,
         incremental: bool,
     ) -> None:
         """Phase 17: Post-processing."""
-        finalization.phase_postprocess(self, cli, parallel, ctx, incremental)
+        # Post-processing doesn't use parallel processing, so pass False
+        finalization.phase_postprocess(self, cli, False, ctx, incremental)
 
     def _phase_cache_save(self, pages_to_build: list[Page], assets_to_process: list[Any]) -> None:
         """Phase 18: Save Cache."""

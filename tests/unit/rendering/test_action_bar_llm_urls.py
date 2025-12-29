@@ -222,9 +222,10 @@ This is test content.
 
         # Build the site
         from bengal.core.site import Site
+        from bengal.orchestration.build.options import BuildOptions
 
         site = Site.from_config(site_dir)
-        site.build()
+        site.build(BuildOptions())
 
         # Read the generated HTML
         html_path = site.output_dir / "test" / "index.html"

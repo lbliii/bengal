@@ -79,7 +79,7 @@ def phase_taxonomies(
     orchestrator: BuildOrchestrator,
     cache: BuildCache,
     incremental: bool,
-    parallel: bool,
+    force_sequential: bool,
     pages_to_build: list[Any],
 ) -> set[str]:
     """
@@ -92,7 +92,7 @@ def phase_taxonomies(
         orchestrator: Build orchestrator instance
         cache: Build cache
         incremental: Whether this is an incremental build
-        parallel: Whether to use parallel processing
+        force_sequential: If True, force sequential processing (bypasses auto-detection)
         pages_to_build: List of pages being built (for incremental)
 
     Returns:
@@ -128,7 +128,13 @@ def phase_taxonomies(
 
         elif not incremental:
             # Full build: Collect and generate everything
-            orchestrator.taxonomy.collect_and_generate(parallel=parallel)
+            # Compute parallel mode: use should_parallelize() unless force_sequential=True
+            from bengal.utils.workers import WorkloadType, should_parallelize
+
+            use_parallel = not force_sequential and should_parallelize(
+                len(orchestrator.site.pages), workload_type=WorkloadType.CPU_BOUND
+            )
+            orchestrator.taxonomy.collect_and_generate(parallel=use_parallel)
 
             # Mark all tags as affected (for Phase 6 - adding to pages_to_build)
             if hasattr(orchestrator.site, "taxonomies") and "tags" in orchestrator.site.taxonomies:
@@ -246,7 +252,7 @@ def phase_menus(
 def phase_related_posts(
     orchestrator: BuildOrchestrator,
     incremental: bool,
-    parallel: bool,
+    force_sequential: bool,
     pages_to_build: list[Any],
 ) -> None:
     """
@@ -258,7 +264,7 @@ def phase_related_posts(
     Args:
         orchestrator: Build orchestrator instance
         incremental: Whether this is an incremental build
-        parallel: Whether to use parallel processing
+        force_sequential: If True, force sequential processing (bypasses auto-detection)
         pages_to_build: List of pages being built (for incremental optimization)
 
     Side effects:
@@ -274,13 +280,19 @@ def phase_related_posts(
     if should_build_related:
         with orchestrator.logger.phase("related_posts_index"):
             from bengal.orchestration.related_posts import RelatedPostsOrchestrator
+            from bengal.utils.workers import WorkloadType, should_parallelize
+
+            # Compute parallel mode: use should_parallelize() unless force_sequential=True
+            use_parallel = not force_sequential and should_parallelize(
+                len(pages_to_build), workload_type=WorkloadType.CPU_BOUND
+            )
 
             related_posts_start = time.time()
             related_posts_orchestrator = RelatedPostsOrchestrator(orchestrator.site)
             # OPTIMIZATION: In incremental builds, only update related posts for changed pages
             related_posts_orchestrator.build_index(
                 limit=5,
-                parallel=parallel,
+                parallel=use_parallel,
                 affected_pages=pages_to_build if incremental else None,
             )
 

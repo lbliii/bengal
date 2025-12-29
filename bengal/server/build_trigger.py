@@ -247,6 +247,9 @@ class BuildTrigger:
 
             # Create build request
             use_incremental = not needs_full_rebuild
+
+            # Dev server always uses auto-detection (force_sequential=False)
+            # Parallel will be computed dynamically based on page count
             # RFC: rfc-versioned-docs-pipeline-integration (Phase 3)
             request = BuildRequest(
                 site_root=str(self.site.root_path),
@@ -255,7 +258,7 @@ class BuildTrigger:
                 profile="WRITER",
                 nav_changed_paths=tuple(str(p) for p in nav_changed_files),
                 structural_changed=structural_changed,
-                parallel=True,
+                force_sequential=False,  # Always auto-detect in dev server
                 version_scope=self.version_scope,
             )
 

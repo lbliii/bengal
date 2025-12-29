@@ -410,17 +410,16 @@ This one is valid.
         assert len(error_results) > 0
         assert any("syntax error" in r.message.lower() for r in error_results)
 
-    def test_validate_with_performance_warnings(self, tmp_path):
-        """Test validation warns about performance issues."""
-        # Create content with many directives (>10)
-        # Use colon fences (:::) - backtick fences are no longer supported for directives
-        directives = [f":::{{note}} Note {i}\nContent {i}\n:::\n" for i in range(15)]
-        content = "---\ntitle: Heavy Page\n---\n\n" + "\n".join(directives)
+    def test_validate_with_many_tabs_performance_warning(self, tmp_path):
+        """Test validation warns about tabs blocks with too many tabs."""
+        # Create tabs block with many tabs (>8 is the threshold per MAX_TABS_PER_BLOCK)
+        tabs = "\n".join([f"### Tab: Tab {i}\nContent {i}\n" for i in range(12)])
+        content = f"---\ntitle: Many Tabs\n---\n\n:::{{tabs}}\n{tabs}:::\n"
 
-        source_file = tmp_path / "heavy.md"
+        source_file = tmp_path / "many_tabs.md"
         source_file.write_text(content)
 
-        output_file = tmp_path / "output" / "heavy.html"
+        output_file = tmp_path / "output" / "many_tabs.html"
         output_file.parent.mkdir(parents=True, exist_ok=True)
         output_file.write_text("<html><body>Content</body></html>")
 
@@ -430,10 +429,10 @@ This one is valid.
         validator = DirectiveValidator()
         results = validator.validate(site)
 
-        # Should have performance warning
+        # Should have performance warning about many tabs
         warning_results = [r for r in results if r.status == CheckStatus.WARNING]
         assert len(warning_results) > 0
-        assert any("heavy directive usage" in r.message.lower() for r in warning_results)
+        assert any("tabs" in r.message.lower() for r in warning_results)
 
     # Note: test_validate_unrendered_directive was removed.
     # The rendering validation (H207) was intentionally removed from DirectiveValidator

@@ -6,9 +6,6 @@ site:
   baseurl: "/"
 
 build:
-  # Disable parallelization for easier debugging
-  parallel: true
-
   # Enable incremental builds for fast development
   incremental: true
 

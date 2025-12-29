@@ -19,13 +19,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from bengal.directives.validator import DirectiveSyntaxValidator
 from bengal.utils.autodoc import is_autodoc_page
 from bengal.utils.logger import get_logger
 
 from .constants import (
     KNOWN_DIRECTIVES,
-    MAX_DIRECTIVES_PER_PAGE,
     MAX_TABS_PER_BLOCK,
 )
 
@@ -184,28 +182,9 @@ class DirectiveAnalyzer:
                     content = page.source_path.read_text(encoding="utf-8")
                     disk_reads += 1
 
-                # Check for fence nesting structure using the shared validator
-                fence_errors = DirectiveSyntaxValidator.validate_nested_fences(
-                    content, page.source_path
-                )
-                for error in fence_errors:
-                    # Extract line number if present
-                    line_match = re.match(r"Line (\d+):", error)
-                    line_num = int(line_match.group(1)) if line_match else 0
-
-                    data["fence_nesting_warnings"].append(
-                        {
-                            "page": page.source_path,
-                            "line": line_num,
-                            "type": "structure",
-                            "warning": error,
-                        }
-                    )
-
-                # Check for markdown code blocks with nested code blocks (same fence length)
-                code_block_warnings = self._check_code_block_nesting(content, page.source_path)
-                for warning in code_block_warnings:
-                    data["fence_nesting_warnings"].append(warning)
+                # NOTE: DirectiveSyntaxValidator.validate_nested_fences and _check_code_block_nesting
+                # removed — both produce false positives for valid MyST colon-fence syntax.
+                # Patitas lexer handles fence nesting correctly. See: rfc-patitas-structural-validation.md
 
                 page_directives = self._extract_directives(content, page.source_path)
 
@@ -236,28 +215,9 @@ class DirectiveAnalyzer:
                             }
                         )
 
-                    # Check for fence nesting warnings
-                    if directive.get("fence_nesting_warning"):
-                        warning_data = {
-                            "page": page.source_path,
-                            "line": directive["line_number"],
-                            "type": directive["type"],
-                            "warning": directive["fence_nesting_warning"],
-                        }
-                        if directive.get("inner_conflict_line"):
-                            warning_data["inner_line"] = directive["inner_conflict_line"]
-                        data["fence_nesting_warnings"].append(warning_data)
-
-                    # Check for fence style warnings (backtick vs colon)
-                    if directive.get("fence_style_warning"):
-                        data["fence_nesting_warnings"].append(
-                            {
-                                "page": page.source_path,
-                                "line": directive["line_number"],
-                                "type": directive["type"],
-                                "warning": directive["fence_style_warning"],
-                            }
-                        )
+                    # NOTE: fence_nesting_warning and fence_style_warning checks removed.
+                    # These produced false positives. Patitas handles fence validation correctly.
+                    # See: rfc-patitas-structural-validation.md
 
             except Exception as e:
                 # Skip files we can't read
@@ -271,17 +231,6 @@ class DirectiveAnalyzer:
 
         # Check for performance issues
         for page_path, directives in data["by_page"].items():
-            # Too many directives on one page?
-            if len(directives) > MAX_DIRECTIVES_PER_PAGE:
-                data["performance_warnings"].append(
-                    {
-                        "page": Path(page_path),
-                        "issue": "heavy_directive_usage",
-                        "count": len(directives),
-                        "message": f"{len(directives)} directives on one page (>{MAX_DIRECTIVES_PER_PAGE})",
-                    }
-                )
-
             # Check individual directive issues
             for directive in directives:
                 # Too many tabs in a tabs block?
@@ -643,7 +592,8 @@ class DirectiveAnalyzer:
                     "fence_type": "colon",
                 }
 
-                self._check_fence_nesting(directive_info)
+                # NOTE: _check_fence_nesting call removed — produces false positives.
+                # Patitas lexer handles this correctly. See: rfc-patitas-structural-validation.md
 
                 if directive_type not in KNOWN_DIRECTIVES:
                     directive_info["syntax_error"] = f"Unknown directive type: {directive_type}"

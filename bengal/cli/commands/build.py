@@ -16,6 +16,7 @@ from bengal.cli.helpers import (
     validate_flag_conflicts,
     validate_mutually_exclusive,
 )
+from bengal.config.build_options_resolver import CLIFlags, resolve_build_options
 from bengal.errors.traceback import TracebackStyle
 from bengal.orchestration.stats import (
     display_build_stats,
@@ -47,9 +48,10 @@ from bengal.utils.logger import (
 )
 @validate_mutually_exclusive(("quiet", "verbose"))
 @click.option(
-    "--parallel/--no-parallel",
-    default=True,
-    help="Enable parallel processing for faster builds (default: enabled)",
+    "--no-parallel",
+    is_flag=True,
+    default=False,
+    help="Force sequential processing (bypasses auto-detection). Use for debugging or benchmarking.",
 )
 @click.option(
     "--incremental/--no-incremental",
@@ -159,8 +161,8 @@ from bengal.utils.logger import (
 )
 @click.argument("source", type=click.Path(exists=True), default=".")
 def build(
-    parallel: bool,
-    incremental: bool,
+    no_parallel: bool,
+    incremental: bool | None,
     memory_optimized: bool,
     environment: str | None,
     profile: str,
@@ -205,8 +207,8 @@ def build(
         # We can't set it here as modules are already imported
         # Force quiet mode for minimal output
         quiet = True
-        # Ensure parallel is enabled
-        parallel = True
+        # Fast mode doesn't force sequential (still auto-detects via should_parallelize)
+        # But --no-parallel can override it
 
     # New validations for build flag combinations
     if memory_optimized and perf_profile:
@@ -281,16 +283,30 @@ def build(
         # Apply file-based traceback config after site is loaded (lowest precedence)
         configure_traceback(debug=debug, traceback=traceback, site=site)
 
-        # Check if fast_mode is enabled in config (CLI flag takes precedence)
-        if fast is None:
-            # No explicit CLI flag, check config
-            config_fast_mode = site.config.get("build", {}).get("fast_mode", False)
-            if config_fast_mode:
-                # Enable fast mode from config
-                # Note: PYTHON_GIL=0 must be set in shell to suppress import warnings
-                quiet = True
-                parallel = True
-                fast_mode_enabled = True
+        # Resolve build options with unified precedence: CLI > config > DEFAULTS
+        cli_flags = CLIFlags(
+            force_sequential=no_parallel,
+            incremental=incremental,
+            quiet=quiet,
+            verbose=verbose,
+            strict=strict,
+            fast=fast,
+            memory_optimized=memory_optimized,
+            profile_templates=profile_templates,
+        )
+        build_options = resolve_build_options(site.config, cli_flags)
+
+        # Extract resolved values for backward compatibility with existing code
+        # Note: parallel is now computed dynamically via should_parallelize() unless force_sequential=True
+        incremental = build_options.incremental
+        quiet = build_options.quiet
+        verbose = build_options.verbose
+        strict = build_options.strict
+        memory_optimized = build_options.memory_optimized
+        profile_templates = build_options.profile_templates
+
+        # Check if fast mode was enabled (from config or CLI)
+        fast_mode_enabled = fast is True or (fast is None and build_options.quiet)
 
         # Override config with CLI flags
         if strict:
@@ -317,7 +333,7 @@ def build(
 
             run_build_dashboard(
                 site=site,
-                parallel=parallel,
+                parallel=not build_options.force_sequential,
                 incremental=incremental,
                 memory_optimized=memory_optimized,
                 strict=strict,
@@ -391,8 +407,10 @@ def build(
                         worktree_site.config["output_dir"] = str(Path(site.output_dir) / version.id)
 
                     # Build this version
-                    worktree_site.build(
-                        parallel=parallel,
+                    from bengal.orchestration.build.options import BuildOptions
+
+                    worktree_build_opts = BuildOptions(
+                        force_sequential=False,  # Auto-detect via should_parallelize()
                         incremental=incremental,
                         verbose=profile_config["verbose_build_stats"],
                         quiet=quiet,
@@ -401,6 +419,7 @@ def build(
                         strict=strict,
                         full_output=full_output,
                     )
+                    worktree_site.build(worktree_build_opts)
 
                 # Cleanup worktrees
                 git_adapter.cleanup_worktrees(keep_cached=True)
@@ -482,9 +501,11 @@ def build(
             profiler = cProfile.Profile()
             profiler.enable()
 
-            # Pass profile to build
-            stats = site.build(
-                parallel=parallel,
+            # Pass profile to build using BuildOptions
+            from bengal.orchestration.build.options import BuildOptions as PerfBuildOptions
+
+            perf_build_opts = PerfBuildOptions(
+                force_sequential=build_options.force_sequential,
                 incremental=incremental,
                 verbose=profile_config["verbose_build_stats"],
                 quiet=quiet,
@@ -493,6 +514,7 @@ def build(
                 strict=strict,
                 full_output=full_output,
             )
+            stats = site.build(options=perf_build_opts)
 
             profiler.disable()
 
@@ -529,8 +551,11 @@ def build(
 
             # Pass profile to build
             # When --full-output is used, enable console logs for debugging
-            stats = site.build(
-                parallel=parallel,
+            # Use BuildOptions directly - parallel is auto-detected via should_parallelize() unless force_sequential=True
+            from bengal.orchestration.build.options import BuildOptions
+
+            build_opts = BuildOptions(
+                force_sequential=build_options.force_sequential,
                 incremental=incremental,
                 verbose=profile_config.get("verbose_console_logs", False) or full_output,
                 quiet=quiet,
@@ -540,6 +565,7 @@ def build(
                 full_output=full_output,
                 profile_templates=profile_templates,
             )
+            stats = site.build(options=build_opts)
 
             # Display template profiling report if enabled
             if profile_templates and not quiet:

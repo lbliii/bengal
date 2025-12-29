@@ -14,6 +14,77 @@ if TYPE_CHECKING:
     from bengal.rendering.kida.nodes import Expr, Node
 
 
+# =============================================================================
+# Block Keyword Dispatch Table
+# =============================================================================
+# Maps block keywords to their parser method names.
+# Reduces cyclomatic complexity from 40+ elif branches to O(1) dict lookup.
+# See RFC: rfc-code-smell-remediation.md §1.1
+# =============================================================================
+
+_BLOCK_PARSERS: dict[str, str] = {
+    # Control flow
+    "if": "_parse_if",
+    "unless": "_parse_unless",  # RFC: kida-modern-syntax-features
+    "for": "_parse_for",
+    "while": "_parse_while",  # RFC: kida-2.0-moonshot
+    "break": "_parse_break",  # RFC: kida-modern-syntax-features
+    "continue": "_parse_continue",  # RFC: kida-modern-syntax-features
+    # Variables
+    "set": "_parse_set",
+    "let": "_parse_let",
+    "export": "_parse_export",
+    # Template structure
+    "block": "_parse_block_tag",
+    "extends": "_parse_extends",
+    "include": "_parse_include",
+    "import": "_parse_import",
+    "macro": "_parse_macro",
+    "from": "_parse_from_import",
+    # Scope and execution
+    "with": "_parse_with",
+    "do": "_parse_do",
+    "raw": "_parse_raw",
+    "def": "_parse_def",
+    "call": "_parse_call",
+    "capture": "_parse_capture",
+    "cache": "_parse_cache",
+    "filter": "_parse_filter_block",
+    # Advanced features
+    "slot": "_parse_slot",
+    "match": "_parse_match",
+    "spaceless": "_parse_spaceless",  # RFC: kida-modern-syntax-features
+    "embed": "_parse_embed",  # RFC: kida-modern-syntax-features
+}
+
+# Continuation keywords that are invalid outside their block context
+_CONTINUATION_KEYWORDS: frozenset[str] = frozenset({"elif", "else", "empty", "case"})
+
+# End keywords that close blocks
+_END_KEYWORDS: frozenset[str] = frozenset(
+    {
+        "endif",
+        "endfor",
+        "endblock",
+        "endmacro",
+        "endwith",
+        "endraw",
+        "end",
+        "enddef",
+        "endcall",
+        "endcapture",
+        "endcache",
+        "endfilter",
+        "endmatch",
+        "endspaceless",
+        "endembed",
+    }
+)
+
+# All valid block keywords for error messages
+_VALID_KEYWORDS: frozenset[str] = frozenset(_BLOCK_PARSERS.keys())
+
+
 class StatementParsingMixin:
     """Mixin for parsing template statements.
 
@@ -118,6 +189,9 @@ class StatementParsingMixin:
         This is split from _parse_block so it can be reused in contexts
         where BLOCK_BEGIN is already consumed (e.g., inside macro bodies).
 
+        Uses dispatch table pattern for O(1) keyword lookup instead of
+        20+ elif branches. See RFC: rfc-code-smell-remediation.md §1.1
+
         Returns:
             - Single Node for most blocks
             - list[Node] for multi-set ({% set a = 1, b = 2 %})
@@ -131,115 +205,63 @@ class StatementParsingMixin:
 
         keyword = self._current.value
 
-        if keyword == "if":
-            return self._parse_if()
-        elif keyword == "unless":
-            # RFC: kida-modern-syntax-features
-            return self._parse_unless()
-        elif keyword == "for":
-            return self._parse_for()
-        elif keyword == "while":
-            # RFC: kida-2.0-moonshot
-            return self._parse_while()
-        elif keyword == "break":
-            # RFC: kida-modern-syntax-features
-            return self._parse_break()
-        elif keyword == "continue":
-            # RFC: kida-modern-syntax-features
-            return self._parse_continue()
-        elif keyword == "set":
-            return self._parse_set()
-        elif keyword == "let":
-            return self._parse_let()
-        elif keyword == "export":
-            return self._parse_export()
-        elif keyword == "block":
-            return self._parse_block_tag()
-        elif keyword == "extends":
-            return self._parse_extends()
-        elif keyword == "include":
-            return self._parse_include()
-        elif keyword == "import":
-            return self._parse_import()
-        elif keyword == "macro":
-            return self._parse_macro()
-        elif keyword == "from":
-            return self._parse_from_import()
-        elif keyword == "with":
-            return self._parse_with()
-        elif keyword == "do":
-            return self._parse_do()
-        elif keyword == "raw":
-            return self._parse_raw()
-        elif keyword == "def":
-            return self._parse_def()
-        elif keyword == "call":
-            return self._parse_call()
-        elif keyword == "capture":
-            return self._parse_capture()
-        elif keyword == "cache":
-            return self._parse_cache()
-        elif keyword == "filter":
-            return self._parse_filter_block()
-        elif keyword == "slot":
-            return self._parse_slot()
-        elif keyword == "match":
-            return self._parse_match()
-        elif keyword == "spaceless":
-            # RFC: kida-modern-syntax-features
-            return self._parse_spaceless()
-        elif keyword == "embed":
-            # RFC: kida-modern-syntax-features
-            return self._parse_embed()
-        elif keyword in ("elif", "else", "empty", "case"):
-            # Continuation tags outside of their block context
+        # Fast path: dispatch table lookup for block keywords (O(1))
+        parser_name = _BLOCK_PARSERS.get(keyword)
+        if parser_name is not None:
+            parser = getattr(self, parser_name)
+            return parser()
+
+        # Handle continuation keywords (elif, else, empty, case)
+        if keyword in _CONTINUATION_KEYWORDS:
             raise self._error(
                 f"Unexpected '{keyword}' - not inside a matching block",
                 suggestion=f"'{keyword}' can only appear inside an 'if' or 'for' block",
             )
-        elif keyword in (
-            "endif",
-            "endfor",
-            "endblock",
-            "endmacro",
-            "endwith",
-            "endraw",
-            "end",
-            "enddef",
-            "endcall",
-            "endcapture",
-            "endcache",
-            "endfilter",
-            "endmatch",
-            "endspaceless",
-            "endembed",
-        ):
-            # End tags without matching opening block
-            if not self._block_stack:
-                raise self._error(
-                    f"Unexpected '{keyword}' - no open block to close",
-                    suggestion="Remove this tag or add a matching opening tag",
-                )
-            # If we have open blocks, this is likely a mismatch
-            # Check if it matches the innermost block
-            innermost_block = self._block_stack[-1][0]
-            expected_end = f"end{innermost_block}" if innermost_block != "block" else "endblock"
-            if keyword == "end":
-                # Unified {% end %} is always valid if there's an open block
-                return None
-            elif keyword == expected_end:
-                # Matching end tag - let parent handle it
-                return None
-            else:
-                # Mismatched end tag
-                raise self._error(
-                    f"Mismatched closing tag: expected '{{% {expected_end} %}}' or '{{% end %}}', got '{{% {keyword} %}}'",
-                    suggestion=f"The innermost open block is '{innermost_block}' (opened at line {self._block_stack[-1][1]})",
-                )
-        else:
+
+        # Handle end keywords (endif, endfor, end, etc.)
+        if keyword in _END_KEYWORDS:
+            return self._handle_end_keyword(keyword)
+
+        # Unknown keyword
+        raise self._error(
+            f"Unknown block keyword: {keyword}",
+            suggestion=f"Valid keywords: {', '.join(sorted(_VALID_KEYWORDS))}",
+        )
+
+    def _handle_end_keyword(self, keyword: str) -> None:
+        """Handle end keywords (endif, endfor, end, etc.).
+
+        Args:
+            keyword: The end keyword being processed
+
+        Returns:
+            None for valid end tags (signals parent to close block)
+
+        Raises:
+            TemplateParseError: For mismatched or orphaned end tags
+        """
+        # End tag without matching opening block
+        if not self._block_stack:
             raise self._error(
-                f"Unknown block keyword: {keyword}",
-                suggestion="Valid keywords: if, unless, for, break, continue, set, let, block, extends, include, import, macro, from, with, do, raw, def, call, capture, cache, filter, slot, match, spaceless, embed",
+                f"Unexpected '{keyword}' - no open block to close",
+                suggestion="Remove this tag or add a matching opening tag",
+            )
+
+        # Check if end tag matches the innermost block
+        innermost_block = self._block_stack[-1][0]
+        expected_end = f"end{innermost_block}" if innermost_block != "block" else "endblock"
+
+        if keyword == "end":
+            # Unified {% end %} is always valid if there's an open block
+            return None
+        elif keyword == expected_end:
+            # Matching end tag - let parent handle it
+            return None
+        else:
+            # Mismatched end tag
+            raise self._error(
+                f"Mismatched closing tag: expected '{{% {expected_end} %}}' or '{{% end %}}', got '{{% {keyword} %}}'",
+                suggestion=f"The innermost open block is '{innermost_block}' (opened at line {self._block_stack[-1][1]})",
             )
 
     def _skip_comment(self) -> None:

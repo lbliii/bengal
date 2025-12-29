@@ -256,7 +256,8 @@ def phase_assets(
         - Copies/processes assets to output directory
         - Updates orchestrator.stats.assets_time_ms
     """
-    with orchestrator.logger.phase("assets", asset_count=len(assets_to_process), parallel=parallel):
+    # Assets phase doesn't use parallel processing, so always False
+    with orchestrator.logger.phase("assets", asset_count=len(assets_to_process), parallel=False):
         assets_start = time.time()
 
         # CRITICAL FIX: On incremental builds, if no assets changed, still need to ensure
@@ -358,7 +359,7 @@ def phase_render(
     orchestrator: BuildOrchestrator,
     cli: CLIOutput,
     incremental: bool,
-    parallel: bool,
+    force_sequential: bool,
     quiet: bool,
     verbose: bool,
     memory_optimized: bool,
@@ -416,7 +417,7 @@ def phase_render(
     with orchestrator.logger.phase(
         "rendering",
         page_count=len(pages_to_build),
-        parallel=parallel,
+        force_sequential=force_sequential,
         memory_optimized=memory_optimized,
     ):
         rendering_start = time.time()
@@ -445,9 +446,15 @@ def phase_render(
             # Transfer incremental state (changed pages) for validators.
             if early_context is not None:
                 ctx.changed_page_paths = set(getattr(early_context, "changed_page_paths", set()))
+            # Compute parallel mode: use should_parallelize() unless force_sequential=True
+            from bengal.utils.workers import WorkloadType, should_parallelize
+
+            use_parallel = not force_sequential and should_parallelize(
+                len(pages_to_build), workload_type=WorkloadType.MIXED
+            )
             streaming_render.process(
                 pages_to_build,
-                parallel=parallel,
+                parallel=use_parallel,
                 quiet=quiet_mode,
                 tracker=tracker,
                 stats=orchestrator.stats,
@@ -477,9 +484,18 @@ def phase_render(
             # Transfer incremental state (changed pages) for validators.
             if early_context is not None:
                 ctx.changed_page_paths = set(getattr(early_context, "changed_page_paths", set()))
+        # Compute parallel mode: use should_parallelize() unless force_sequential=True
+        from bengal.utils.workers import WorkloadType, should_parallelize
+
+        use_parallel = not force_sequential and should_parallelize(
+            len(pages_to_build), workload_type=WorkloadType.MIXED
+        )
+        # Update stats with actual execution mode
+        orchestrator.stats.parallel = use_parallel
+
         orchestrator.render.process(
             pages_to_build,
-            parallel=parallel,
+            parallel=use_parallel,
             quiet=quiet_mode,
             tracker=tracker,
             stats=orchestrator.stats,

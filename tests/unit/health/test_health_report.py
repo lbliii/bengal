@@ -417,9 +417,8 @@ class TestHealthReportFormatting:
         assert "Bad Validator" in output
         assert "warning(s)" in output
         assert "Issue found" in output
-        # Passed validators are collapsed
-        assert "passed" in output
-        # No dedicated header - flows from phase line
+        # Good validators are not shown in normal mode (reduces noise)
+        # Only problems are shown to focus on actionable items
         # Summary line at end
         assert "Health:" in output
 
@@ -460,7 +459,8 @@ class TestHealthReportFormatting:
         """Test that legacy verbose=True parameter works."""
         report = HealthReport()
         vr = ValidatorReport("Validator")
-        vr.results = [CheckResult.success("OK")]
+        # Add a warning so the validator appears in output
+        vr.results = [CheckResult.success("OK"), CheckResult.warning("Minor issue")]
         report.validator_reports = [vr]
 
         # Legacy parameter should trigger verbose mode

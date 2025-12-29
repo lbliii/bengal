@@ -116,30 +116,23 @@ class TestProfilePrecedence:
 class TestFlagPropagation:
     """Test that flags are properly propagated through the build system."""
 
-    def test_quiet_flag_structure(self):
-        """Test that quiet parameter exists in build signature."""
-        import inspect
+    def test_build_options_has_quiet(self):
+        """Test that quiet field exists in BuildOptions."""
+        from bengal.orchestration.build.options import BuildOptions
 
-        from bengal.orchestration.build import BuildOrchestrator
+        # Check that BuildOptions has quiet field with correct default
+        options = BuildOptions()
+        assert hasattr(options, "quiet")
+        assert options.quiet is False  # Should default to False
 
-        # Check method signature
-        sig = inspect.signature(BuildOrchestrator.build)
-        params = sig.parameters
+    def test_build_options_has_strict(self):
+        """Test that strict field exists in BuildOptions."""
+        from bengal.orchestration.build.options import BuildOptions
 
-        assert "quiet" in params
-        assert params["quiet"].default is False  # Should default to False
-
-    def test_strict_flag_structure(self):
-        """Test that strict parameter exists in build signature."""
-        import inspect
-
-        from bengal.orchestration.build import BuildOrchestrator
-
-        sig = inspect.signature(BuildOrchestrator.build)
-        params = sig.parameters
-
-        assert "strict" in params
-        assert params["strict"].default is False  # Should default to False
+        # Check that BuildOptions has strict field with correct default
+        options = BuildOptions()
+        assert hasattr(options, "strict")
+        assert options.strict is False  # Should default to False
 
     def test_render_orchestrator_accepts_quiet(self):
         """Test that RenderOrchestrator.process accepts quiet parameter."""
@@ -194,6 +187,60 @@ class TestStrictMode:
 
     # Note: Full functionality test requires integration with health checks
     # This is covered by integration tests
+
+
+class TestConfigRespect:
+    """Test that CLI respects config values when flags not explicitly passed.
+
+    RFC: rfc-path-to-200-pgs - discovered that --parallel default=True
+    was ignoring config settings. These tests prevent regressions.
+    """
+
+    def test_no_parallel_flag_default_is_false(self):
+        """Test that --no-parallel default is False (auto-detect mode)."""
+
+        from bengal.cli.commands.build import build
+
+        # Find the no_parallel option (now named no_parallel, is_flag=True)
+        no_parallel_option = None
+        for param in build.params:
+            if param.name == "no_parallel":
+                no_parallel_option = param
+                break
+
+        assert no_parallel_option is not None, "--no-parallel option not found"
+        assert no_parallel_option.default is False, (
+            f"--no-parallel default should be False to allow auto-detection, "
+            f"got {no_parallel_option.default}"
+        )
+
+    def test_incremental_flag_default_is_none(self):
+        """Test that --incremental default allows config fallback."""
+        from bengal.cli.commands.build import build
+
+        incremental_option = None
+        for param in build.params:
+            if param.name == "incremental":
+                incremental_option = param
+                break
+
+        assert incremental_option is not None
+        assert incremental_option.default is None, (
+            "--incremental default should be None to allow config fallback"
+        )
+
+    def test_fast_flag_default_is_none(self):
+        """Test that --fast default allows config fallback."""
+        from bengal.cli.commands.build import build
+
+        fast_option = None
+        for param in build.params:
+            if param.name == "fast":
+                fast_option = param
+                break
+
+        assert fast_option is not None
+        assert fast_option.default is None, "--fast default should be None to allow config fallback"
 
 
 class TestFastMode:

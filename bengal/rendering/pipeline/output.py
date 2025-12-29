@@ -45,6 +45,7 @@ if TYPE_CHECKING:
     from bengal.core.output import OutputCollector
     from bengal.core.page import Page
     from bengal.core.site import Site
+    from bengal.rendering.pipeline.write_behind import WriteBehindCollector
 
 logger = get_logger(__name__)
 
@@ -107,6 +108,7 @@ def write_output(
     site: Site,
     dependency_tracker: DependencyTracker | None = None,
     collector: OutputCollector | None = None,
+    write_behind: WriteBehindCollector | None = None,
 ) -> None:
     """
     Write rendered page to output directory.
@@ -117,17 +119,29 @@ def write_output(
     - Fast writes for dev server performance
     - Source→output tracking for incremental cleanup
     - Output tracking for hot reload (when collector provided)
+    - Write-behind async I/O (when write_behind provided)
+
+    RFC: rfc-path-to-200-pgs (Phase III - Write-Behind I/O)
 
     Args:
         page: Page with rendered content
         site: Site instance for config
         dependency_tracker: Optional tracker for output mapping
         collector: Optional output collector for hot reload tracking
+        write_behind: Optional write-behind collector for async writes
     """
     # Ensure output_path is set
     if page.output_path is None:
         return
 
+    # Write-behind mode: queue for async write (RFC: rfc-path-to-200-pgs)
+    if write_behind is not None:
+        write_behind.enqueue(page.output_path, page.rendered_html)
+        # Still track dependencies and record output (these are fast)
+        _track_and_record(page, site, dependency_tracker, collector)
+        return
+
+    # Synchronous write (original behavior)
     # Ensure parent directory exists (with caching to reduce syscalls)
     parent_dir = page.output_path.parent
 
@@ -171,6 +185,23 @@ def write_output(
                 ensure_parent=False,
             )
 
+    _track_and_record(page, site, dependency_tracker, collector)
+
+
+def _track_and_record(
+    page: Page,
+    site: Site,
+    dependency_tracker: DependencyTracker | None,
+    collector: OutputCollector | None,
+) -> None:
+    """Track dependencies and record output (shared by sync and async paths).
+
+    Args:
+        page: Page with output_path set
+        site: Site instance
+        dependency_tracker: Optional tracker for output mapping
+        collector: Optional output collector for hot reload
+    """
     # Track source→output mapping for cleanup on deletion
     # (Skip generated and autodoc pages - they have virtual paths that don't exist on disk)
     if (
@@ -179,6 +210,7 @@ def write_output(
         and not page.metadata.get("is_autodoc")
         and hasattr(dependency_tracker, "cache")
         and dependency_tracker.cache
+        and page.output_path
     ):
         dependency_tracker.cache.track_output(page.source_path, page.output_path, site.output_dir)
 

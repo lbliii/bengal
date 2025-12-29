@@ -186,10 +186,13 @@ class DevServer:
             # Use WRITER profile for fast builds (can enable specific validators via config)
             # Config can override profile to enable directives validator without full THEME_DEV overhead
             show_building_indicator("Initial build")
-            stats = self.site.build(
+            from bengal.orchestration.build.options import BuildOptions
+
+            build_opts = BuildOptions(
                 profile=BuildProfile.WRITER,
                 incremental=not baseurl_was_cleared,
             )
+            stats = self.site.build(build_opts)
             display_build_stats(stats, show_art=False, output_dir=str(self.site.output_dir))
 
             logger.debug(
