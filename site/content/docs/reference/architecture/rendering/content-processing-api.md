@@ -223,7 +223,7 @@ content:
 ```
 
 **Template Access**:
-```jinja2
+```kida
 {{ section.total_words }}
 {{ section.avg_reading_time }}
 {{ section.content_freshness }}  # Days since last update
@@ -278,7 +278,7 @@ for node in walk_ast(page.ast):
 
 These can be accessed directly without configuration:
 
-```jinja2
+```kida
 {{ page.tags | join(", ") }}
 {{ page.metadata.custom_field }}
 ```

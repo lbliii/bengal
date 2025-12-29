@@ -83,7 +83,7 @@ flowchart LR
         Input[Page Object] --> Parse
 
         subgraph Parse [1. Parse]
-            P1_Parse["Mistune Markdown Parser<br/>Variable substitution<br/>Directive processing"]
+            P1_Parse["Patitas Markdown Parser<br/>Variable substitution<br/>Directive processing"]
         end
 
         Parse --> PostProc
@@ -95,7 +95,7 @@ flowchart LR
         PostProc --> Template
 
         subgraph Template [3. Template]
-            P3_Template["Jinja2 Engine<br/>Theme resolution<br/>Context injection"]
+            P3_Template["Kida Template Engine<br/>Theme resolution<br/>Context injection"]
         end
 
         Template --> Output[Write HTML to output/]

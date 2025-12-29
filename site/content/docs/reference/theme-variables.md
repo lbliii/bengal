@@ -1,15 +1,14 @@
 ---
 title: Theme Variables
 nav_title: Variables
-description: Comprehensive reference of all variables and functions available in Jinja2
-  templates.
+description: Comprehensive reference of all variables and functions available in Kida templates.
 weight: 10
 type: doc
 tags:
 - reference
 - templates
 - variables
-- jinja2
+- kida
 category: reference
 ---
 
@@ -55,7 +54,7 @@ Available on index pages (`_index.md`) and doc-type pages.
 :::{example-label} Auto-Generated Child Cards
 :::
 
-```jinja2
+```kida
 <div class="child-cards">
   {% for subsection in section.subsections %}
     <a href="{{ subsection.index_page.url }}" class="card">
@@ -69,7 +68,7 @@ Available on index pages (`_index.md`) and doc-type pages.
 :::{example-label} Section Navigation
 :::
 
-```jinja2
+```kida
 <nav class="section-nav">
   <h4>In this section:</h4>
   <ul>
@@ -118,7 +117,7 @@ The current page being rendered.
 :::{example-label} Custom Breadcrumbs
 :::
 
-```jinja2
+```kida
 <nav class="breadcrumbs">
   <a href="/">Home</a>
   {% for ancestor in page.ancestors %}
@@ -131,7 +130,7 @@ The current page being rendered.
 :::{example-label} Prev/Next Navigation
 :::
 
-```jinja2
+```kida
 <nav class="prev-next">
   {% if page.prev_in_section %}
     <a href="{{ page.prev_in_section.href }}">← {{ page.prev_in_section.title }}</a>
@@ -145,7 +144,7 @@ The current page being rendered.
 :::{example-label} Related Posts
 :::
 
-```jinja2
+```kida
 {% if page.related_posts %}
 <aside class="related">
   <h3>Related Articles</h3>
@@ -176,7 +175,7 @@ Bengal provides two URL properties with clear purposes:
 :::{example-label} Usage
 :::
 
-```jinja2
+```kida
 {# Display URL (includes baseurl) #}
 <a href="{{ page.href }}">{{ page.title }}</a>
 

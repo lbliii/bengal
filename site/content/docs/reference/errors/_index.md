@@ -813,14 +813,14 @@ The template contains a syntax error that prevents it from being parsed. This is
 **Example**
 
 ❌ **Missing end tag**:
-```jinja2
+```kida
 {% if page.draft %}
   Draft content
 {# Missing {% endif %} #}
 ```
 
 ✅ **Correct**:
-```jinja2
+```kida
 {% if page.draft %}
   Draft content
 {% endif %}

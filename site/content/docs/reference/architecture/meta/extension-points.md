@@ -108,7 +108,7 @@ def register_custom_functions(engine: TemplateEngine):
 ```
 
 **Usage in templates**:
-```jinja2
+```kida
 {{ page.title | custom }}
 ```
 

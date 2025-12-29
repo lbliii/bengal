@@ -10,7 +10,7 @@ tags:
 - reference
 - templates
 - filters
-- jinja2
+- kida
 - hugo
 keywords:
 - template functions
@@ -35,7 +35,7 @@ Filter items where a key matches a value. Supports Hugo-like comparison operator
 :::{example-label} Basic Usage
 :::
 
-```jinja2
+```kida
 {# Filter by exact value (default) #}
 {% set tutorials = site.pages | where('category', 'tutorial') %}
 
@@ -60,7 +60,7 @@ Filter items where a key matches a value. Supports Hugo-like comparison operator
 :::{example-label} Operator Examples
 :::
 
-```jinja2
+```kida
 {# Pages newer than a year ago #}
 {% set recent = site.pages | where('date', one_year_ago, 'gt') %}
 
@@ -81,7 +81,7 @@ Filter items where a key matches a value. Supports Hugo-like comparison operator
 
 Filter items where a key does NOT equal a value. Shorthand for `where(key, value, 'ne')`.
 
-```jinja2
+```kida
 {# Exclude drafts #}
 {% set published = site.pages | where_not('draft', true) %}
 
@@ -93,7 +93,7 @@ Filter items where a key does NOT equal a value. Shorthand for `where(key, value
 
 Sort items by a key, with optional reverse order.
 
-```jinja2
+```kida
 {# Sort by date, newest first #}
 {% set recent = site.pages | sort_by('date', reverse=true) %}
 
@@ -108,7 +108,7 @@ Sort items by a key, with optional reverse order.
 
 Group items by a key value, returning a dictionary.
 
-```jinja2
+```kida
 {% set by_category = site.pages | group_by('category') %}
 
 {% for category, pages in by_category.items() %}
@@ -125,7 +125,7 @@ Group items by a key value, returning a dictionary.
 
 Group pages by publication year. Returns dictionary sorted by year (newest first).
 
-```jinja2
+```kida
 {% set by_year = site.pages | group_by_year %}
 
 {% for year, posts in by_year.items() %}
@@ -145,7 +145,7 @@ Group pages by publication year. Returns dictionary sorted by year (newest first
 
 Group pages by year-month. Returns dictionary keyed by `(year, month)` tuples.
 
-```jinja2
+```kida
 {% set by_month = site.pages | group_by_month %}
 
 {% for (year, month), posts in by_month.items() %}
@@ -162,7 +162,7 @@ Group pages by year-month. Returns dictionary keyed by `(year, month)` tuples.
 
 Get list of years with post counts for archive navigation.
 
-```jinja2
+```kida
 {% set years = site.pages | archive_years %}
 
 <aside class="archive">
@@ -184,7 +184,7 @@ Get list of years with post counts for archive navigation.
 
 Take the first N items from a list.
 
-```jinja2
+```kida
 {# Latest 5 posts #}
 {% set latest = site.pages | sort_by('date', reverse=true) | limit(5) %}
 
@@ -196,7 +196,7 @@ Take the first N items from a list.
 
 Skip the first N items from a list.
 
-```jinja2
+```kida
 {# Skip first 10 items (pagination page 2) #}
 {% set page_2 = items | offset(10) | limit(10) %}
 
@@ -208,7 +208,7 @@ Skip the first N items from a list.
 
 Get the first item from a list, or `None` if empty.
 
-```jinja2
+```kida
 {# Get the featured post #}
 {% set featured = site.pages | where('metadata.featured', true) | first %}
 
@@ -223,7 +223,7 @@ Get the first item from a list, or `None` if empty.
 
 Get the last item from a list, or `None` if empty.
 
-```jinja2
+```kida
 {# Get the oldest post #}
 {% set oldest = site.pages | sort_by('date') | last %}
 
@@ -235,7 +235,7 @@ Get the last item from a list, or `None` if empty.
 
 Reverse a list (returns a new list, original unchanged).
 
-```jinja2
+```kida
 {# Oldest first #}
 {% set chronological = site.pages | sort_by('date') %}
 
@@ -247,7 +247,7 @@ Reverse a list (returns a new list, original unchanged).
 
 Remove duplicate items while preserving order.
 
-```jinja2
+```kida
 {# Get unique tags from all posts #}
 {% set all_tags = [] %}
 {% for page in site.pages %}
@@ -260,7 +260,7 @@ Remove duplicate items while preserving order.
 
 Flatten nested lists into a single list.
 
-```jinja2
+```kida
 {# Combine all tags from all pages #}
 {% set nested_tags = site.pages | map(attribute='tags') | list %}
 {% set all_tags = nested_tags | flatten | uniq %}
@@ -274,7 +274,7 @@ Perform set operations on lists of pages or items.
 
 Combine two lists, removing duplicates.
 
-```jinja2
+```kida
 {# Combine featured and recent posts #}
 {% set featured = site.pages | where('metadata.featured', true) %}
 {% set recent = site.pages | sort_by('date', reverse=true) | limit(5) %}
@@ -285,7 +285,7 @@ Combine two lists, removing duplicates.
 
 Get items that appear in both lists.
 
-```jinja2
+```kida
 {# Posts that are both featured AND tagged 'python' #}
 {% set featured = site.pages | where('metadata.featured', true) %}
 {% set python = site.pages | where('tags', 'python', 'in') %}
@@ -296,7 +296,7 @@ Get items that appear in both lists.
 
 Get items in the first list that are NOT in the second list.
 
-```jinja2
+```kida
 {# All posts except featured ones #}
 {% set all_posts = site.pages | where('type', 'post') %}
 {% set featured = site.pages | where('metadata.featured', true) %}
@@ -307,7 +307,7 @@ Get items in the first list that are NOT in the second list.
 
 Filters can be chained for powerful queries:
 
-```jinja2
+```kida
 {# Recent Python tutorials, sorted by date #}
 {% set result = site.pages
   | where('category', 'tutorial')
@@ -330,7 +330,7 @@ Bengal's template functions are designed for easy migration from Hugo. Here's ho
 ```
 
 **Bengal:**
-```jinja2
+```kida
 {% set posts = site.pages | where('section', 'blog') %}
 {% set recent = site.pages | where('date', one_year_ago, 'gt') %}
 ```
@@ -344,7 +344,7 @@ Bengal's template functions are designed for easy migration from Hugo. Here's ho
 ```
 
 **Bengal:**
-```jinja2
+```kida
 {% for page in site.pages | sort_by('date', reverse=true) %}
 {% for page in site.pages | sort_by('title') %}
 ```
@@ -358,7 +358,7 @@ Bengal's template functions are designed for easy migration from Hugo. Here's ho
 ```
 
 **Bengal:**
-```jinja2
+```kida
 {% set featured = site.pages | where('metadata.featured', true) | first %}
 {% set oldest = site.pages | sort_by('date') | last %}
 ```
@@ -371,7 +371,7 @@ Bengal's template functions are designed for easy migration from Hugo. Here's ho
 ```
 
 **Bengal:**
-```jinja2
+```kida
 {% for page in site.pages | limit(5) %}
 ```
 
@@ -385,7 +385,7 @@ Bengal's template functions are designed for easy migration from Hugo. Here's ho
 ```
 
 **Bengal:**
-```jinja2
+```kida
 {% set both = list1 | intersect(list2) %}
 {% set combined = list1 | union(list2) %}
 {% set diff = list1 | complement(list2) %}
@@ -399,7 +399,7 @@ Bengal's template functions are designed for easy migration from Hugo. Here's ho
 ```
 
 **Bengal:**
-```jinja2
+```kida
 {# Check if page has 'python' tag #}
 {% set tagged = site.pages | where('tags', 'python', 'in') %}
 
@@ -415,7 +415,7 @@ Bengal's template functions are designed for easy migration from Hugo. Here's ho
 ```
 
 **Bengal:**
-```jinja2
+```kida
 {% set result = site.pages | where('section', 'blog') | where('metadata.featured', true) %}
 ```
 
@@ -449,7 +449,7 @@ These global functions simplify common navigation patterns.
 
 Get a section by its path. Cleaner alternative to `site.get_section_by_path()`.
 
-```jinja2
+```kida
 {% set docs = get_section('docs') %}
 {% if docs %}
   <h2>{{ docs.title }}</h2>
@@ -463,7 +463,7 @@ Get a section by its path. Cleaner alternative to `site.get_section_by_path()`.
 
 Get pages from a section directly. Combines `get_section()` with `.pages` access.
 
-```jinja2
+```kida
 {# Non-recursive (direct children only) #}
 {% for page in section_pages('docs') | sort_by('weight') %}
   <a href="{{ page.url }}">{{ page.title }}</a>
@@ -479,7 +479,7 @@ Get pages from a section directly. Combines `get_section()` with `.pages` access
 
 Check if a page exists without loading it. More efficient than `get_page()` for conditional rendering.
 
-```jinja2
+```kida
 {% if page_exists('guides/advanced') %}
   <a href="/guides/advanced/">Advanced Guide Available</a>
 {% endif %}
@@ -497,7 +497,7 @@ These functions generate links to pages and headings. All use O(1) lookups from 
 
 Generate a cross-reference link to a page.
 
-```jinja2
+```kida
 {{ ref('docs/getting-started') }}
 {{ ref('docs/getting-started', 'Get Started') }}
 {{ ref('id:install-guide') }}
@@ -519,7 +519,7 @@ Generate a cross-reference link to a page.
 :::{example-label} Usage
 :::
 
-```jinja2
+```kida
 {# Link with auto-title #}
 {{ ref('docs/api') }}
 
@@ -539,7 +539,7 @@ Generate a cross-reference link to a page.
 
 Get a page object for custom link generation or metadata access.
 
-```jinja2
+```kida
 {% set page = doc('docs/getting-started') %}
 {% if page %}
   <a href="{{ page.url }}">{{ page.title }}</a>
@@ -561,7 +561,7 @@ Get a page object for custom link generation or metadata access.
 :::{example-label} Usage
 :::
 
-```jinja2
+```kida
 {# Custom link with metadata #}
 {% set api_page = doc('docs/api') %}
 {% if api_page %}
@@ -585,7 +585,7 @@ Get a page object for custom link generation or metadata access.
 
 Link to a heading (anchor) in a page.
 
-```jinja2
+```kida
 {{ anchor('Installation') }}
 {{ anchor('Configuration', 'docs/getting-started') }}
 ```
@@ -605,7 +605,7 @@ Link to a heading (anchor) in a page.
 :::{example-label} Usage
 :::
 
-```jinja2
+```kida
 {# Link to any heading with this text #}
 {{ anchor('Installation') }}
 
@@ -624,7 +624,7 @@ Link to a heading (anchor) in a page.
 
 Get relative URL for a page without generating a full link.
 
-```jinja2
+```kida
 <a href="{{ relref('docs/api') }}" class="btn">API Docs</a>
 
 {% set api_url = relref('docs/api') %}
@@ -648,7 +648,7 @@ Get relative URL for a page without generating a full link.
 :::{example-label} Usage
 :::
 
-```jinja2
+```kida
 {# Custom styled link #}
 <a href="{{ relref('docs/api') }}" class="btn btn-primary">
   View API Documentation
@@ -668,7 +668,7 @@ Get relative URL for a page without generating a full link.
 
 Alias for `ref()` for compatibility with other systems.
 
-```jinja2
+```kida
 {{ xref('docs/api') }}
 {{ xref('docs/api', 'API Reference') }}
 ```
@@ -683,7 +683,7 @@ These functions support multilingual sites with translations, language detection
 
 Translate UI strings using translation files.
 
-```jinja2
+```kida
 {# Basic translation #}
 {{ t('nav.home') }}
 
@@ -727,7 +727,7 @@ content:
 
 Get the current page's language code.
 
-```jinja2
+```kida
 <html lang="{{ current_lang() }}">
 
 {% if current_lang() == 'fr' %}
@@ -744,7 +744,7 @@ Get the current page's language code.
 
 Get list of all configured languages.
 
-```jinja2
+```kida
 {# Language switcher #}
 <nav class="language-switcher">
   {% for lang in languages() %}
@@ -766,7 +766,7 @@ Get list of all configured languages.
 
 Generate hreflang links for SEO.
 
-```jinja2
+```kida
 {# In <head> #}
 {% for alt in alternate_links(page) %}
   <link rel="alternate" hreflang="{{ alt.hreflang }}" href="{{ alt.href }}">
@@ -788,7 +788,7 @@ Generate hreflang links for SEO.
 
 Format dates according to locale.
 
-```jinja2
+```kida
 {# Format with current locale #}
 {{ locale_date(page.date, 'medium') }}
 {# → "Dec 19, 2025" (English) or "19 déc. 2025" (French) #}
@@ -840,7 +840,7 @@ See [[docs/content/i18n|Multilingual Sites Guide]] for complete i18n setup.
 
 Count words in text, stripping HTML first. Uses same logic as `reading_time`.
 
-```jinja2
+```kida
 {{ page.content | word_count }} words
 
 {# Combined with reading time #}
@@ -859,7 +859,7 @@ These filters help calculate and display content age and date information.
 
 Calculate days since a date. Useful for freshness indicators.
 
-```jinja2
+```kida
 {# Days since publication #}
 {{ page.date | days_ago }} days old
 
@@ -873,7 +873,7 @@ Calculate days since a date. Useful for freshness indicators.
 
 Calculate calendar months since a date.
 
-```jinja2
+```kida
 {% if page.date | months_ago > 6 %}
 <div class="notice">This content may be outdated.</div>
 {% endif %}
@@ -883,7 +883,7 @@ Calculate calendar months since a date.
 
 Get month name from number (1-12).
 
-```jinja2
+```kida
 {{ 3 | month_name }}         {# → "March" #}
 {{ 3 | month_name(true) }}   {# → "Mar" (abbreviated) #}
 
@@ -895,7 +895,7 @@ Get month name from number (1-12).
 
 Convert day count to human-readable relative time.
 
-```jinja2
+```kida
 {{ page.date | days_ago | humanize_days }}
 {# → "today", "yesterday", "3 days ago", "2 weeks ago", etc. #}
 ```
@@ -910,7 +910,7 @@ Generate share URLs for social platforms.
 
 Generate share URL for any supported platform.
 
-```jinja2
+```kida
 <a href="{{ share_url('twitter', page) }}">Share on Twitter</a>
 <a href="{{ share_url('linkedin', page) }}">Share on LinkedIn</a>
 <a href="{{ share_url('facebook', page) }}">Share on Facebook</a>
@@ -924,7 +924,7 @@ Generate share URL for any supported platform.
 
 For more control, use platform-specific functions:
 
-```jinja2
+```kida
 {# Twitter with via attribution #}
 <a href="{{ twitter_share_url(page.absolute_href, page.title, via='myblog') }}">
   Tweet this
@@ -951,7 +951,7 @@ These properties are available on all page objects.
 
 Access structured author information from frontmatter.
 
-```jinja2
+```kida
 {# Single author #}
 {% if page.author %}
 <div class="author">
@@ -977,7 +977,7 @@ Access structured author information from frontmatter.
 
 For multi-part content like tutorials.
 
-```jinja2
+```kida
 {% if page.series %}
 <nav class="series-nav">
   <h4>{{ page.series.name }}</h4>
@@ -1006,7 +1006,7 @@ series:
 
 Content age as computed properties.
 
-```jinja2
+```kida
 {# Days since publication #}
 {% if page.age_days < 7 %}
 <span class="badge">New</span>
@@ -1025,7 +1025,7 @@ These properties are available on section objects.
 
 Count of pages in a section.
 
-```jinja2
+```kida
 <span>{{ section.post_count }} articles</span>
 <span>{{ section.post_count_recursive }} total in all subsections</span>
 ```
@@ -1034,7 +1034,7 @@ Count of pages in a section.
 
 Get featured pages from a section.
 
-```jinja2
+```kida
 {% for post in section.featured_posts(3) %}
 <article class="featured">
   <h2>{{ post.title }}</h2>
@@ -1044,7 +1044,7 @@ Get featured pages from a section.
 
 ### Section Statistics
 
-```jinja2
+```kida
 <div class="section-stats">
   <span>{{ section.word_count | intcomma }} words</span>
   <span>{{ section.total_reading_time }} min total reading time</span>

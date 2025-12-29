@@ -1,44 +1,52 @@
 ---
-title: Orchestration
-description: How Bengal coordinates builds and manages phases
+title: Build Orchestration
+nav_title: Orchestration
+description: How Bengal coordinates builds through 21 phases
 weight: 20
 ---
 
-# Orchestration System
+# Build Orchestration
 
 Bengal's orchestration system coordinates builds through specialized orchestrators. The `Site` is a passive data container; **orchestrators handle build logic**.
 
-## Build Pipeline
+## Build Phases
 
-The build process has **21 phases** organized into four modules:
+The build executes **21 phases** organized into 5 groups:
 
 ```mermaid
 flowchart LR
     subgraph Init["Phases 1-5"]
         A[Fonts]
-        B[Discovery]
-        C[Cache]
-        D[Config]
-        E[Filter]
+        A --> A1[Template Validation]
+        A1 --> B[Discovery]
+        B --> C[Cache Metadata]
+        C --> D[Config Check]
+        D --> E[Incremental Filter]
     end
 
     subgraph Content["Phases 6-12"]
         F[Sections]
         G[Taxonomies]
-        H[Menus]
-        I[Indexes]
+        H[Taxonomy Index]
+        I[Menus]
+        J[Related Posts]
+        K[Query Indexes]
+        L[Update Pages List]
     end
 
     subgraph Render["Phases 13-16"]
-        J[Assets]
-        K[Render]
-        L[Track]
+        M[Assets]
+        N[Render Pages]
+        O[Update Site Pages]
+        P[Track Assets]
     end
 
     subgraph Final["Phases 17-21"]
-        M[Postprocess]
-        N[Cache Save]
-        O[Health]
+        Q[Postprocess]
+        R[Cache Save]
+        S[Collect Stats]
+        T[Health Check]
+        U[Finalize]
     end
 
     Init --> Content --> Render --> Final
@@ -46,60 +54,64 @@ flowchart LR
 
 ## Phase Reference
 
-### Discovery & Setup (1-5)
+### Initialization (Phases 1-5)
 
-| Phase | Description |
-|-------|-------------|
-| `phase_fonts` | Download Google Fonts, generate CSS |
-| `phase_discovery` | Scan `content/`, create Page/Section objects |
-| `phase_cache_metadata` | Save page metadata for incremental builds |
-| `phase_config_check` | Check config changes, clean deleted files |
-| `phase_incremental_filter` | Detect changes, filter to minimal rebuild set |
+| Phase | Function | Description |
+|-------|----------|-------------|
+| 1 | `phase_fonts` | Download Google Fonts, generate CSS |
+| 1.5 | `phase_template_validation` | Validate template syntax (optional) |
+| 2 | `phase_discovery` | Scan `content/`, create Page/Section objects |
+| 3 | `phase_cache_metadata` | Save page metadata for incremental builds |
+| 4 | `phase_config_check` | Check config changes, clean deleted files |
+| 5 | `phase_incremental_filter` | Detect changes, filter to minimal rebuild set |
 
-### Content Processing (6-12)
+### Content Processing (Phases 6-12)
 
-| Phase | Description |
-|-------|-------------|
-| `phase_sections` | Ensure sections have index pages |
-| `phase_taxonomies` | Collect tags/categories, generate taxonomy pages |
-| `phase_taxonomy_index` | Persist tag-to-pages mapping |
-| `phase_menus` | Build hierarchical navigation menus |
-| `phase_related_posts` | Pre-compute related posts |
-| `phase_query_indexes` | Build query indexes for fast lookups |
-| `phase_update_pages_list` | Include generated taxonomy pages |
+| Phase | Function | Description |
+|-------|----------|-------------|
+| 6 | `phase_sections` | Ensure sections have index pages |
+| 7 | `phase_taxonomies` | Collect tags/categories, generate taxonomy pages |
+| 8 | `phase_taxonomy_index` | Persist tag-to-pages mapping |
+| 9 | `phase_menus` | Build hierarchical navigation menus |
+| 10 | `phase_related_posts` | Pre-compute related posts |
+| 11 | `phase_query_indexes` | Build query indexes for fast lookups |
+| 12 | `phase_update_pages_list` | Include generated taxonomy pages |
+| 12.5 | URL collision check | Detect duplicate output paths |
 
-### Rendering (13-16)
+### Rendering (Phases 13-16)
 
-| Phase | Description |
-|-------|-------------|
-| `phase_assets` | Minify, optimize, fingerprint assets |
-| `phase_render` | Markdown → HTML, apply templates |
-| `phase_update_site_pages` | Replace stale PageProxy objects |
-| `phase_track_assets` | Persist page-to-assets mapping |
+| Phase | Function | Description |
+|-------|----------|-------------|
+| 13 | `phase_assets` | Minify, optimize, fingerprint assets |
+| 14 | `phase_render` | Markdown → HTML, apply templates |
+| 15 | `phase_update_site_pages` | Replace stale PageProxy objects |
+| 16 | `phase_track_assets` | Persist page-to-assets mapping |
 
-### Finalization (17-21)
+### Finalization (Phases 17-21)
 
-| Phase | Description |
-|-------|-------------|
-| `phase_postprocess` | Generate sitemap, RSS, validate links |
-| `phase_cache_save` | Save cache for incremental builds |
-| `phase_collect_stats` | Collect build statistics |
-| `phase_health_check` | Run validators |
-| `phase_finalize` | Cleanup and logging |
+| Phase | Function | Description |
+|-------|----------|-------------|
+| 17 | `phase_postprocess` | Generate sitemap, RSS, validate links |
+| 18 | `phase_cache_save` | Save cache for incremental builds |
+| 19 | `phase_collect_stats` | Collect build statistics |
+| 19.5 | Error session | Track errors for pattern detection |
+| 20 | Health check | Run validators |
+| 21 | `phase_finalize` | Cleanup and logging |
 
 ## Orchestrators
 
-| Orchestrator | Responsibility |
-|--------------|----------------|
-| **BuildOrchestrator** | Main conductor, calls all phases |
-| **ContentOrchestrator** | Find/organize content, apply cascades |
-| **RenderOrchestrator** | Parallel rendering, write output |
-| **IncrementalOrchestrator** | Detect changes, filter work |
-| **SectionOrchestrator** | Validate section hierarchy |
-| **TaxonomyOrchestrator** | Collect terms, generate pages |
-| **MenuOrchestrator** | Build navigation menus |
-| **AssetOrchestrator** | Process static assets |
-| **PostprocessOrchestrator** | Sitemap, RSS, link validation |
+| Orchestrator | Responsibility | Module |
+|--------------|----------------|--------|
+| **BuildOrchestrator** | Main conductor, calls all phases | `bengal/orchestration/build/` |
+| **ContentOrchestrator** | Find/organize content, apply cascades | `bengal/orchestration/content/` |
+| **RenderOrchestrator** | Parallel rendering, write output | `bengal/orchestration/render.py` |
+| **StreamingRenderOrchestrator** | Memory-optimized batched rendering | `bengal/orchestration/streaming.py` |
+| **IncrementalOrchestrator** | Detect changes, filter work | `bengal/orchestration/incremental/` |
+| **SectionOrchestrator** | Validate section hierarchy | `bengal/orchestration/section.py` |
+| **TaxonomyOrchestrator** | Collect terms, generate pages | `bengal/orchestration/taxonomy.py` |
+| **MenuOrchestrator** | Build navigation menus | `bengal/orchestration/menu.py` |
+| **AssetOrchestrator** | Process static assets | `bengal/orchestration/asset.py` |
+| **PostprocessOrchestrator** | Sitemap, RSS, link validation | `bengal/orchestration/postprocess.py` |
 
 ## BuildContext
 
@@ -109,32 +121,43 @@ Shared context passed through rendering and post-processing:
 @dataclass
 class BuildContext:
     site: Site
-    pages: list[Page]
-    assets: list[Asset]
-    tracker: DependencyTracker
     stats: BuildStats
-    profile: BuildProfile
+    pages: list[Page] = None  # Set during phase_render
+    tracker: DependencyTracker = None
     incremental: bool = False
-    pages_to_build: list[Page] = None
+    changed_page_paths: set[Path] = None
+    knowledge_graph: KnowledgeGraph = None  # Lazy-computed for streaming
 ```
 
-Created during Phase 14 (`phase_render`) and reused for post-processing.
+Created early (Phase 2) and enriched through the build.
 
 ## Parallelization
 
-Orchestrators auto-switch between sequential and parallel execution:
+Orchestrators auto-switch based on workload:
 
 ```python
+PARALLEL_THRESHOLD = 5  # Avoid thread overhead for small sites
+
 if parallel and len(items) > PARALLEL_THRESHOLD:
-    # ThreadPoolExecutor for large workloads
+    with ThreadPoolExecutor() as executor:
+        # Parallel processing
 else:
-    # Sequential for small sites (avoid thread overhead)
+    # Sequential for small workloads
 ```
 
-## Incremental Builds
+## Dashboard Notifications
 
-The `IncrementalOrchestrator` filters work before heavy lifting:
+The build broadcasts phase status for monitoring:
 
-1. **Detect**: Find changed files (SHA256)
-2. **Trace**: Find dependents (pages using changed templates)
-3. **Filter**: Pass only affected items to Render/Asset orchestrators
+```python
+notify_phase_start("discovery")
+# ... phase work ...
+notify_phase_complete("discovery", duration_ms, "150 pages, 12 sections")
+```
+
+Groups: `discovery`, `content`, `assets`, `rendering`, `finalization`, `health`
+
+:::{seealso}
+- [Pipeline](pipeline/) — Streaming and memory optimization
+- [Cache](cache/) — Build caching
+:::

@@ -159,7 +159,7 @@ no_format: true                        # Skip HTML formatting
 
 ### Page Context
 
-```jinja2
+```kida
 {{ page.title }}              {# Page title #}
 {{ page.description }}        {# Meta description #}
 {{ page.content }}            {# Rendered HTML content #}
@@ -179,7 +179,7 @@ no_format: true                        # Skip HTML formatting
 
 ### Site Context
 
-```jinja2
+```kida
 {{ site.title }}              {# Site title #}
 {{ site.description }}        {# Site description #}
 {{ site.baseurl }}            {# Base URL #}
@@ -192,7 +192,7 @@ no_format: true                        # Skip HTML formatting
 
 ### Section Context
 
-```jinja2
+```kida
 {{ section.title }}           {# Section title #}
 {{ section.pages }}           {# Pages in this section #}
 {{ section.subsections }}     {# Child sections #}
@@ -205,7 +205,7 @@ no_format: true                        # Skip HTML formatting
 
 ### List Pages in Section
 
-```jinja2
+```kida
 {% for page in section.pages | sort(attribute='date', reverse=true) %}
   <article>
     <h2><a href="{{ page.url }}">{{ page.title }}</a></h2>
@@ -217,7 +217,7 @@ no_format: true                        # Skip HTML formatting
 
 ### Render Tags
 
-```jinja2
+```kida
 {% for tag in page.tags %}
   <a href="/tags/{{ tag | slugify }}/" class="tag">{{ tag }}</a>
 {% endfor %}
@@ -225,7 +225,7 @@ no_format: true                        # Skip HTML formatting
 
 ### Conditional Content
 
-```jinja2
+```kida
 {% if page.draft %}
   <div class="draft-banner">⚠️ Draft</div>
 {% endif %}
@@ -237,7 +237,7 @@ no_format: true                        # Skip HTML formatting
 
 ### Include Partials
 
-```jinja2
+```kida
 {% include "partials/header.html" %}
 {% include "partials/footer.html" %}
 {% include "partials/sidebar.html" with context %}
@@ -245,7 +245,7 @@ no_format: true                        # Skip HTML formatting
 
 ### Navigation Menu
 
-```jinja2
+```kida
 <nav>
   {% for item in site.menus.main | sort(attribute='weight') %}
     <a href="{{ item.url }}"
@@ -258,7 +258,7 @@ no_format: true                        # Skip HTML formatting
 
 ### Breadcrumbs
 
-```jinja2
+```kida
 <nav class="breadcrumbs">
   <a href="/">Home</a>
   {% for ancestor in page.ancestors %}
@@ -382,7 +382,7 @@ weight = 2
 
 ## Filters Reference
 
-```jinja2
+```kida
 {{ "hello world" | title }}           {# Hello World #}
 {{ "Hello World" | slugify }}         {# hello-world #}
 {{ page.date | date('%Y-%m-%d') }}    {# 2024-01-15 #}

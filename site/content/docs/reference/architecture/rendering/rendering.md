@@ -8,8 +8,8 @@ tags:
 - pipeline
 - markdown
 - templates
-- jinja2
-- mistune
+- kida
+- patitas
 - parsing
 - html
 keywords:
@@ -17,8 +17,8 @@ keywords:
 - pipeline
 - markdown
 - templates
-- Jinja2
-- Mistune
+- Kida
+- Patitas
 - parsing
 - HTML
 - directives
@@ -56,8 +56,8 @@ flowchart TD
     PostProc --> TOC[Table of Contents]
 
     TOC --> Context[Build Context]
-    Context --> Jinja[Jinja2 Engine]
-    Jinja --> Final[Final HTML]
+    Context --> Kida[Kida Engine]
+    Kida --> Final[Final HTML]
 ```
 
 ## Components
@@ -66,23 +66,25 @@ flowchart TD
 :::{tab-item} Parser
 **Markdown Parser** (`rendering/parsers/`)
 
-Mistune is the default markdown engine (unless overridden by configuration).
+Patitas is the default markdown engine (thread-safe, O(n) guaranteed).
 
 **Features:**
 - **Variable Substitution**: `{{ page.title }}` in content
 - **Directives**: `:::{note}` syntax for rich components
 - **TOC Extraction**: Auto-generates table of contents
+- **Thread-Safe**: Designed for Python 3.14+ free-threaded builds
 :::
 
 :::{tab-item} Templates
-**Template Engine** (`rendering/template_engine/`)
+**Template Engine** (`rendering/engines/`)
 
-Jinja2-based engine with project-specific helpers.
+Kida-based engine with project-specific helpers.
 
 **Capabilities:**
 - **Theme Support**: Overridable templates (Site > Theme > Default)
 - **Safe Rendering**: Error boundaries prevent build crashes
 - **Caching**: Bytecode caching for speed
+- **Free-Threading**: Safe for parallel rendering
 :::
 
 :::{tab-item} Pipeline
@@ -104,7 +106,7 @@ Orchestrates the flow for each page. Organized as a package with focused modules
 :::
 ::::
 
-## Mistune Directives
+## Markdown Directives
 
 Bengal extends Markdown with directives using `:::{name}` syntax. Directives are lazy-loaded on demand for fast startup times.
 

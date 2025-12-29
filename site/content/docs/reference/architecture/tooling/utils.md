@@ -122,7 +122,7 @@ Utility modules shared across subsystems.
   - `get_profile_dir()` - Performance profiling directory
   - `get_profile_path()` - Profile file path
   - `get_cache_path()` - Build cache path
-  - `get_template_cache_dir()` - Jinja2 bytecode cache
+  - `get_template_cache_dir()` - Template bytecode cache
   - `get_build_log_path()` - Build log path
 - **Pattern**: Separates source, output, cache, and dev files
 

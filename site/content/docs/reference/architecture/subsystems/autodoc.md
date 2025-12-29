@@ -40,8 +40,8 @@ flowchart LR
     Extractor --> Model[DocElement Model]
 
     Model --> Generator[Doc Generator]
-    Generator --> Templates[Jinja2 Templates]
-    Templates --> Output[Markdown Files]
+    Generator --> Templates[Kida Templates]
+    Templates --> Output[Virtual Pages]
 
     Output --> Build[Bengal Build]
     Build --> HTML[Final HTML]
