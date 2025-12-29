@@ -116,30 +116,23 @@ class TestProfilePrecedence:
 class TestFlagPropagation:
     """Test that flags are properly propagated through the build system."""
 
-    def test_quiet_flag_structure(self):
-        """Test that quiet parameter exists in build signature."""
-        import inspect
+    def test_build_options_has_quiet(self):
+        """Test that quiet field exists in BuildOptions."""
+        from bengal.orchestration.build.options import BuildOptions
 
-        from bengal.orchestration.build import BuildOrchestrator
+        # Check that BuildOptions has quiet field with correct default
+        options = BuildOptions()
+        assert hasattr(options, "quiet")
+        assert options.quiet is False  # Should default to False
 
-        # Check method signature
-        sig = inspect.signature(BuildOrchestrator.build)
-        params = sig.parameters
+    def test_build_options_has_strict(self):
+        """Test that strict field exists in BuildOptions."""
+        from bengal.orchestration.build.options import BuildOptions
 
-        assert "quiet" in params
-        assert params["quiet"].default is False  # Should default to False
-
-    def test_strict_flag_structure(self):
-        """Test that strict parameter exists in build signature."""
-        import inspect
-
-        from bengal.orchestration.build import BuildOrchestrator
-
-        sig = inspect.signature(BuildOrchestrator.build)
-        params = sig.parameters
-
-        assert "strict" in params
-        assert params["strict"].default is False  # Should default to False
+        # Check that BuildOptions has strict field with correct default
+        options = BuildOptions()
+        assert hasattr(options, "strict")
+        assert options.strict is False  # Should default to False
 
     def test_render_orchestrator_accepts_quiet(self):
         """Test that RenderOrchestrator.process accepts quiet parameter."""
@@ -203,22 +196,22 @@ class TestConfigRespect:
     was ignoring config settings. These tests prevent regressions.
     """
 
-    def test_parallel_flag_default_is_none(self):
-        """Test that --parallel default allows config fallback."""
+    def test_no_parallel_flag_default_is_false(self):
+        """Test that --no-parallel default is False (auto-detect mode)."""
 
         from bengal.cli.commands.build import build
 
-        # Find the parallel option
-        parallel_option = None
+        # Find the no_parallel option (now named no_parallel, is_flag=True)
+        no_parallel_option = None
         for param in build.params:
-            if param.name == "parallel":
-                parallel_option = param
+            if param.name == "no_parallel":
+                no_parallel_option = param
                 break
 
-        assert parallel_option is not None, "--parallel option not found"
-        assert parallel_option.default is None, (
-            f"--parallel default should be None to allow config fallback, "
-            f"got {parallel_option.default}"
+        assert no_parallel_option is not None, "--no-parallel option not found"
+        assert no_parallel_option.default is False, (
+            f"--no-parallel default should be False to allow auto-detection, "
+            f"got {no_parallel_option.default}"
         )
 
     def test_incremental_flag_default_is_none(self):

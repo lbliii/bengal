@@ -1,5 +1,9 @@
 """
 Tests for RenderOrchestrator including performance optimizations.
+
+Note: Parallel/sequential decision is now made at the BuildOrchestrator level
+via should_parallelize(). The RenderOrchestrator.process() method directly
+uses the parallel parameter passed to it without additional threshold logic.
 """
 
 from pathlib import Path
@@ -28,11 +32,11 @@ def orchestrator(mock_site):
     return RenderOrchestrator(mock_site)
 
 
-class TestParallelThreshold:
-    """Test suite for parallel rendering threshold optimization."""
+class TestParallelRendering:
+    """Test suite for parallel rendering behavior."""
 
-    def test_sequential_for_single_page(self, orchestrator, mock_site):
-        """Test that single page uses sequential rendering."""
+    def test_sequential_when_parallel_false(self, orchestrator, mock_site):
+        """Test that parallel=False uses sequential rendering."""
         pages = [Page(source_path=Path("/fake/site/content/page1.md"), content="", metadata={})]
 
         with (
@@ -40,32 +44,14 @@ class TestParallelThreshold:
             patch.object(orchestrator, "_render_parallel") as mock_par,
             patch.object(orchestrator, "_set_output_paths_for_pages"),
         ):
-            orchestrator.process(pages, parallel=True)
+            orchestrator.process(pages, parallel=False)
 
-            # Should use sequential
+            # Should use sequential when parallel=False
             mock_seq.assert_called_once()
             mock_par.assert_not_called()
 
-    def test_sequential_for_few_pages(self, orchestrator, mock_site):
-        """Test that 2-4 pages use sequential rendering (below threshold)."""
-        pages = [
-            Page(source_path=Path(f"/fake/site/content/page{i}.md"), content="", metadata={})
-            for i in range(4)
-        ]
-
-        with (
-            patch.object(orchestrator, "_render_sequential") as mock_seq,
-            patch.object(orchestrator, "_render_parallel") as mock_par,
-            patch.object(orchestrator, "_set_output_paths_for_pages"),
-        ):
-            orchestrator.process(pages, parallel=True)
-
-            # Should use sequential (below threshold of 5)
-            mock_seq.assert_called_once()
-            mock_par.assert_not_called()
-
-    def test_parallel_for_many_pages(self, orchestrator, mock_site):
-        """Test that 5+ pages use parallel rendering (meets threshold)."""
+    def test_parallel_when_parallel_true(self, orchestrator, mock_site):
+        """Test that parallel=True uses parallel rendering."""
         pages = [
             Page(source_path=Path(f"/fake/site/content/page{i}.md"), content="", metadata={})
             for i in range(5)
@@ -78,27 +64,29 @@ class TestParallelThreshold:
         ):
             orchestrator.process(pages, parallel=True)
 
-            # Should use parallel (meets threshold of 5)
+            # Should use parallel when parallel=True
             mock_par.assert_called_once()
             mock_seq.assert_not_called()
 
-    def test_parallel_disabled(self, orchestrator, mock_site):
-        """Test that parallel=False always uses sequential."""
-        pages = [
-            Page(source_path=Path(f"/fake/site/content/page{i}.md"), content="", metadata={})
-            for i in range(10)
-        ]
+    def test_parallel_true_with_few_pages(self, orchestrator, mock_site):
+        """Test that parallel=True still uses parallel even with few pages.
+
+        Note: The threshold logic for deciding parallel vs sequential based on
+        page count is now at the BuildOrchestrator level (should_parallelize).
+        RenderOrchestrator directly respects the parallel parameter.
+        """
+        pages = [Page(source_path=Path("/fake/site/content/page1.md"), content="", metadata={})]
 
         with (
             patch.object(orchestrator, "_render_sequential") as mock_seq,
             patch.object(orchestrator, "_render_parallel") as mock_par,
             patch.object(orchestrator, "_set_output_paths_for_pages"),
         ):
-            orchestrator.process(pages, parallel=False)
+            orchestrator.process(pages, parallel=True)
 
-            # Should use sequential even with many pages
-            mock_seq.assert_called_once()
-            mock_par.assert_not_called()
+            # With parallel=True, uses parallel rendering regardless of page count
+            mock_par.assert_called_once()
+            mock_seq.assert_not_called()
 
 
 class TestOutputPathOptimization:
@@ -226,18 +214,6 @@ class TestProcessMethod:
 
 class TestPerformanceOptimization:
     """Test that optimizations improve performance."""
-
-    def test_parallel_threshold_reduces_overhead(self, orchestrator):
-        """Test that small batches avoid thread pool overhead."""
-        # This is more of a documentation test - the actual performance
-        # improvement is measured by benchmarks, not unit tests
-
-        # With threshold=5, batches of 2-4 pages avoid ThreadPoolExecutor
-        # overhead which is ~10-20ms per batch
-
-        # Verify the threshold constant
-        # The threshold is in the process() method
-        pass  # This test documents the optimization
 
     def test_output_path_optimization_reduces_iteration(self, orchestrator, mock_site):
         """Test that path setting only processes needed pages."""

@@ -6,6 +6,9 @@ Tests cover:
 - BuildOptions with custom values
 - Integration with BuildOrchestrator.build()
 - Integration with Site.build()
+
+Note: Parallel processing is now auto-detected via should_parallelize().
+Use force_sequential=True to explicitly disable parallel processing.
 """
 
 from __future__ import annotations
@@ -18,10 +21,10 @@ from bengal.orchestration.build.options import BuildOptions
 class TestBuildOptionsDefaults:
     """Tests for BuildOptions default values."""
 
-    def test_default_parallel_is_true(self):
-        """Test parallel defaults to True."""
+    def test_default_force_sequential_is_false(self):
+        """Test force_sequential defaults to False (auto-detect mode)."""
         options = BuildOptions()
-        assert options.parallel is True
+        assert options.force_sequential is False
 
     def test_default_incremental_is_none(self):
         """Test incremental defaults to None (auto-detect)."""
@@ -84,10 +87,10 @@ class TestBuildOptionsDefaults:
 class TestBuildOptionsCustomValues:
     """Tests for BuildOptions with custom values."""
 
-    def test_parallel_false(self):
-        """Test setting parallel to False."""
-        options = BuildOptions(parallel=False)
-        assert options.parallel is False
+    def test_force_sequential_true(self):
+        """Test setting force_sequential to True (disable parallel)."""
+        options = BuildOptions(force_sequential=True)
+        assert options.force_sequential is True
 
     def test_incremental_true(self):
         """Test setting incremental to True."""
@@ -153,13 +156,13 @@ class TestBuildOptionsMultipleValues:
 
         options = BuildOptions(
             profile=BuildProfile.WRITER,
-            parallel=True,
+            force_sequential=False,  # Auto-detect
             incremental=False,
             strict=True,
         )
 
         assert options.profile == BuildProfile.WRITER
-        assert options.parallel is True
+        assert options.force_sequential is False
         assert options.incremental is False
         assert options.strict is True
 
@@ -177,14 +180,15 @@ class TestBuildOptionsMultipleValues:
         assert options.incremental is True
         assert options.changed_sources == changed
 
-    def test_memory_optimized_large_site_options(self):
-        """Test options for memory-optimized large site builds."""
+    def test_sequential_large_site_options(self):
+        """Test options for forcing sequential build."""
         options = BuildOptions(
-            parallel=True,
+            force_sequential=True,  # Disable parallel
             memory_optimized=True,
             quiet=True,
         )
 
+        assert options.force_sequential is True
         assert options.memory_optimized is True
         assert options.quiet is True
 
@@ -200,25 +204,25 @@ class TestBuildOptionsDataclassBehavior:
 
     def test_options_equality(self):
         """Test BuildOptions equality comparison."""
-        options1 = BuildOptions(parallel=True, strict=True)
-        options2 = BuildOptions(parallel=True, strict=True)
+        options1 = BuildOptions(force_sequential=True, strict=True)
+        options2 = BuildOptions(force_sequential=True, strict=True)
 
         assert options1 == options2
 
     def test_options_inequality(self):
         """Test BuildOptions inequality comparison."""
-        options1 = BuildOptions(parallel=True)
-        options2 = BuildOptions(parallel=False)
+        options1 = BuildOptions(force_sequential=True)
+        options2 = BuildOptions(force_sequential=False)
 
         assert options1 != options2
 
     def test_options_repr(self):
         """Test BuildOptions has readable repr."""
-        options = BuildOptions(parallel=True, strict=True)
+        options = BuildOptions(force_sequential=True, strict=True)
         repr_str = repr(options)
 
         assert "BuildOptions" in repr_str
-        assert "parallel=True" in repr_str
+        assert "force_sequential=True" in repr_str
         assert "strict=True" in repr_str
 
     def test_mutable_default_isolation(self):

@@ -169,7 +169,13 @@ def build_site(request) -> Callable:
         else:
             raise RuntimeError("build_site requires pytest request fixture")
 
-        site.build(parallel=parallel, incremental=incremental)
+        from bengal.orchestration.build.options import BuildOptions
+
+        options = BuildOptions(
+            force_sequential=not parallel,
+            incremental=incremental,
+        )
+        site.build(options)
 
     return _build
 
@@ -191,7 +197,13 @@ class EphemeralSite:
 
     def build(self, parallel: bool = False, incremental: bool = False) -> None:
         """Build the site."""
-        self.site.build(parallel=parallel, incremental=incremental)
+        from bengal.orchestration.build.options import BuildOptions
+
+        options = BuildOptions(
+            force_sequential=not parallel,
+            incremental=incremental,
+        )
+        self.site.build(options)
 
     def read_output(self, path: str) -> str:
         """Read a file from the output directory."""
