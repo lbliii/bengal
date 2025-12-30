@@ -1,0 +1,93 @@
+/**
+ * TIER 1: Directive Base CSS - Tabs
+ *
+ * PRINCIPLE: Opinion-free functional requirements only.
+ * Handles show/hide, accessibility, and prose resets.
+ * Does NOT dictate layout (flex vs grid vs block).
+ *
+ * Themes provide ALL visual styling including layout.
+ */
+
+/* ==========================================================================
+   FUNCTIONAL: Show/Hide Tab Panes
+   This is the ONLY thing all tab implementations need.
+   ========================================================================== */
+
+.tab-pane {
+  display: none;
+}
+
+.tab-pane.active {
+  display: block;
+}
+
+/* ==========================================================================
+   FUNCTIONAL: List Reset (prose contamination fix)
+   Prevents markdown/prose styles from breaking tab navigation.
+   ========================================================================== */
+
+.tab-nav,
+.tab-nav li {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Higher specificity for prose containers */
+.prose .tab-nav,
+.prose .tab-nav li,
+.content .tab-nav,
+.content .tab-nav li {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* ==========================================================================
+   FUNCTIONAL: Accessibility
+   Focus states and reduced motion support.
+   ========================================================================== */
+
+/* Focus visible for keyboard navigation */
+/* Uses token contract: --color-primary -> --color-accent -> currentColor */
+.tab-nav a:focus-visible {
+  outline: 2px solid var(--color-primary, var(--color-accent, currentColor));
+  outline-offset: 2px;
+}
+
+/* Reduced motion: disable transitions */
+@media (prefers-reduced-motion: reduce) {
+  .tab-nav a,
+  .tab-pane {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* Screen reader only class (utility) */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ==========================================================================
+   THAT'S IT.
+
+   Base CSS is ~50 lines, not 200+.
+
+   Themes handle:
+   - Container layout (.tabs display, position, etc.)
+   - Navigation layout (.tab-nav flex/grid/inline)
+   - Colors, borders, backgrounds
+   - Typography
+   - Animations and transitions
+   - Dark mode variants
+   - Responsive behavior
+   ========================================================================== */

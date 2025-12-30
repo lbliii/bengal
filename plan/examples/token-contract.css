@@ -1,0 +1,120 @@
+/**
+ * TOKEN CONTRACT: Soft Convention for Theme Authors
+ *
+ * Base CSS USES these tokens but does NOT DEFINE them.
+ * Themes SHOULD define these for best integration.
+ * Themes that don't define them still work (fallbacks exist).
+ */
+
+/* ==========================================================================
+   DOCUMENTATION ONLY - This is NOT shipped CSS
+   This documents the tokens that base CSS looks for.
+   ========================================================================== */
+
+/*
+ * CORE TOKENS (highest priority - base CSS uses these first)
+ *
+ * Themes SHOULD define at minimum:
+ */
+
+:root {
+  /* Primary action color (links, buttons, focus states) */
+  --color-primary: /* theme provides */;
+
+  /* Background colors */
+  --color-bg: /* main background */;
+  --color-bg-alt: /* secondary/card background */;
+
+  /* Border color */
+  --color-border: /* standard border */;
+
+  /* Text colors */
+  --color-text: /* primary text */;
+  --color-text-muted: /* secondary/muted text */;
+
+  /* Semantic colors (for admonitions) */
+  --color-info: /* note/info accent */;
+  --color-success: /* tip/success accent */;
+  --color-warning: /* warning accent */;
+  --color-error: /* danger/error accent */;
+}
+
+/*
+ * EXTENDED TOKENS (fallback chain - base CSS checks these if core missing)
+ *
+ * Themes MAY define these for finer control:
+ */
+
+:root {
+  /* Alternative primary (ink uses accent instead of primary) */
+  --color-accent: /* falls back if --color-primary missing */;
+
+  /* Background variants (default theme's granularity) */
+  --color-bg-primary: /* falls back to --color-bg */;
+  --color-bg-secondary: /* falls back to --color-bg-alt */;
+  --color-surface: /* card/elevated surfaces */;
+
+  /* Border variants */
+  --color-border-light: /* subtle borders */;
+  --color-border-strong: /* emphasized borders */;
+
+  /* Text variants (default theme's granularity) */
+  --color-text-primary: /* falls back to --color-text */;
+  --color-text-secondary: /* falls back to --color-text-muted */;
+}
+
+/* ==========================================================================
+   HOW BASE CSS USES TOKENS (with fallback chains)
+   ========================================================================== */
+
+/*
+ * Focus states - uses primary, falls back to accent, then currentColor
+ */
+.tab-nav a:focus-visible {
+  outline: 2px solid var(--color-primary, var(--color-accent, currentColor));
+}
+
+/*
+ * Admonition accents - uses semantic colors with fallbacks
+ */
+.admonition.note {
+  --_accent: var(--color-info, var(--color-primary, #3b82f6));
+}
+
+.admonition.tip {
+  --_accent: var(--color-success, #10b981);
+}
+
+.admonition.warning {
+  --_accent: var(--color-warning, #f59e0b);
+}
+
+.admonition.danger {
+  --_accent: var(--color-error, #ef4444);
+}
+
+/* ==========================================================================
+   THEME COMPATIBILITY MATRIX
+   ========================================================================== */
+
+/*
+ * Default Theme: Defines extended tokens
+ * - --color-primary ✅
+ * - --color-bg-primary, --color-bg-secondary ✅
+ * - --color-border-light, --color-border-strong ✅
+ * - --color-info, --color-success, --color-warning, --color-error ✅
+ *
+ * Ink Theme: Defines core tokens
+ * - --color-accent (base finds via fallback chain)
+ * - --color-bg, --color-bg-alt ✅
+ * - --color-border, --color-border-strong ✅
+ * - --color-success, --color-warning, --color-error ✅
+ *
+ * Minimal Theme: Defines minimum
+ * - --color-primary ✅
+ * - --color-bg ✅
+ * - --color-border ✅
+ * - Falls back to hardcoded values for semantic colors
+ *
+ * ALL THREE WORK because base CSS has fallbacks.
+ */
