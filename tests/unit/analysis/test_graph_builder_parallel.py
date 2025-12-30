@@ -30,7 +30,7 @@ def small_site(tmp_path):
     for i in range(4):
         page = Page(
             source_path=tmp_path / f"page{i}.md",
-            content=f"# Page {i}",
+            _raw_content=f"# Page {i}",
             metadata={"title": f"Page {i}"},
         )
         pages.append(page)
@@ -54,7 +54,7 @@ def large_site(tmp_path):
     for i in range(150):  # Above MIN_PAGES_FOR_PARALLEL (100)
         page = Page(
             source_path=tmp_path / f"page{i}.md",
-            content=f"# Page {i}",
+            _raw_content=f"# Page {i}",
             metadata={"title": f"Page {i}"},
         )
         pages.append(page)
@@ -131,7 +131,7 @@ class TestParallelMatchesSequential:
             for i in range(10):
                 page = Page(
                     source_path=tmp_path / f"page{i}.md",
-                    content=f"# Page {i}",
+                    _raw_content=f"# Page {i}",
                     metadata={"title": f"Page {i}"},
                 )
                 pages.append(page)
@@ -193,7 +193,7 @@ class TestParallelErrorHandling:
         for i in range(5):
             page = Page(
                 source_path=tmp_path / f"page{i}.md",
-                content=f"# Page {i}",
+                _raw_content=f"# Page {i}",
                 metadata={"title": f"Page {i}"},
             )
             # Ensure attributes don't exist

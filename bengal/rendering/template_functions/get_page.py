@@ -104,7 +104,7 @@ def _ensure_page_parsed(page: Page, site: Site) -> None:
         return
 
     # Skip if no content
-    if not hasattr(page, "content") or not page.content:
+    if not hasattr(page, "content") or not page._source:
         return
 
     # Lazy-create parser on site object for reuse
@@ -136,7 +136,7 @@ def _ensure_page_parsed(page: Page, site: Site) -> None:
         need_toc = False
     else:
         # Quick heuristic: only generate TOC if markdown likely contains headings
-        content_text = page.content or ""
+        content_text = page._source or ""
         likely_has_atx = re.search(r"^(?:\s{0,3})(?:##|###|####)\s+.+", content_text, re.MULTILINE)
         if not likely_has_atx:
             likely_has_setext = re.search(
@@ -155,9 +155,9 @@ def _ensure_page_parsed(page: Page, site: Site) -> None:
             if page.metadata.get("preprocess") is False:
                 # Parse without variable substitution
                 if need_toc:
-                    parsed_content, toc = parser.parse_with_toc(page.content, page.metadata)
+                    parsed_content, toc = parser.parse_with_toc(page._source, page.metadata)
                 else:
-                    parsed_content = parser.parse(page.content, page.metadata)
+                    parsed_content = parser.parse(page._source, page.metadata)
                     toc = ""
                 # Escape template syntax
                 parsed_content = parser._escape_template_syntax_in_html(parsed_content)
@@ -165,21 +165,21 @@ def _ensure_page_parsed(page: Page, site: Site) -> None:
                 # Parse with variable substitution
                 if need_toc:
                     parsed_content, toc = parser.parse_with_toc_and_context(
-                        page.content, page.metadata, context
+                        page._source, page.metadata, context
                     )
                 else:
-                    parsed_content = parser.parse_with_context(page.content, page.metadata, context)
+                    parsed_content = parser.parse_with_context(page._source, page.metadata, context)
                     toc = ""
         elif hasattr(parser, "parse_with_toc"):
             # Fallback parser
             if need_toc:
-                parsed_content, toc = parser.parse_with_toc(page.content, page.metadata)
+                parsed_content, toc = parser.parse_with_toc(page._source, page.metadata)
             else:
-                parsed_content = parser.parse(page.content, page.metadata)
+                parsed_content = parser.parse(page._source, page.metadata)
                 toc = ""
         else:
             # Basic parser
-            parsed_content = parser.parse(page.content, page.metadata)
+            parsed_content = parser.parse(page._source, page.metadata)
             toc = ""
 
         # Escape Jinja blocks

@@ -20,7 +20,7 @@ class TestHiddenShorthand:
         """Pages are not hidden by default."""
         page = Page(
             source_path=Path("content/test.md"),
-            content="Test content",
+            _raw_content="Test content",
             metadata={"title": "Test"},
         )
 
@@ -30,7 +30,7 @@ class TestHiddenShorthand:
         """Pages can be marked as hidden."""
         page = Page(
             source_path=Path("content/secret.md"),
-            content="Secret content",
+            _raw_content="Secret content",
             metadata={"title": "Secret", "hidden": True},
         )
 
@@ -40,7 +40,7 @@ class TestHiddenShorthand:
         """hidden: true expands to restrictive visibility defaults."""
         page = Page(
             source_path=Path("content/secret.md"),
-            content="Secret content",
+            _raw_content="Secret content",
             metadata={"title": "Secret", "hidden": True},
         )
 
@@ -61,7 +61,7 @@ class TestVisibilityObject:
         """By default, all visibility settings are permissive."""
         page = Page(
             source_path=Path("content/test.md"),
-            content="Test content",
+            _raw_content="Test content",
             metadata={"title": "Test"},
         )
 
@@ -78,7 +78,7 @@ class TestVisibilityObject:
         """Can override individual visibility settings."""
         page = Page(
             source_path=Path("content/archive.md"),
-            content="Archive content",
+            _raw_content="Archive content",
             metadata={
                 "title": "Archive",
                 "visibility": {
@@ -98,7 +98,7 @@ class TestVisibilityObject:
         """Can set all visibility options."""
         page = Page(
             source_path=Path("content/internal.md"),
-            content="Internal content",
+            _raw_content="Internal content",
             metadata={
                 "title": "Internal",
                 "visibility": {
@@ -130,7 +130,7 @@ class TestInListingsProperty:
         """Regular pages are in listings."""
         page = Page(
             source_path=Path("content/post.md"),
-            content="Post content",
+            _raw_content="Post content",
             metadata={"title": "Post"},
         )
 
@@ -140,7 +140,7 @@ class TestInListingsProperty:
         """Hidden pages are not in listings."""
         page = Page(
             source_path=Path("content/secret.md"),
-            content="Secret",
+            _raw_content="Secret",
             metadata={"title": "Secret", "hidden": True},
         )
 
@@ -150,7 +150,7 @@ class TestInListingsProperty:
         """Draft pages are not in listings."""
         page = Page(
             source_path=Path("content/draft.md"),
-            content="Draft",
+            _raw_content="Draft",
             metadata={"title": "Draft", "draft": True},
         )
 
@@ -160,7 +160,7 @@ class TestInListingsProperty:
         """Pages with visibility.listings: false are not in listings."""
         page = Page(
             source_path=Path("content/archive.md"),
-            content="Archive",
+            _raw_content="Archive",
             metadata={
                 "title": "Archive",
                 "visibility": {"listings": False},
@@ -177,7 +177,7 @@ class TestInSitemapProperty:
         """Regular pages are in sitemap."""
         page = Page(
             source_path=Path("content/post.md"),
-            content="Post content",
+            _raw_content="Post content",
             metadata={"title": "Post"},
         )
 
@@ -187,7 +187,7 @@ class TestInSitemapProperty:
         """Hidden pages are not in sitemap."""
         page = Page(
             source_path=Path("content/secret.md"),
-            content="Secret",
+            _raw_content="Secret",
             metadata={"title": "Secret", "hidden": True},
         )
 
@@ -197,7 +197,7 @@ class TestInSitemapProperty:
         """Draft pages are not in sitemap."""
         page = Page(
             source_path=Path("content/draft.md"),
-            content="Draft",
+            _raw_content="Draft",
             metadata={"title": "Draft", "draft": True},
         )
 
@@ -211,7 +211,7 @@ class TestInSearchProperty:
         """Regular pages are in search index."""
         page = Page(
             source_path=Path("content/post.md"),
-            content="Post content",
+            _raw_content="Post content",
             metadata={"title": "Post"},
         )
 
@@ -221,7 +221,7 @@ class TestInSearchProperty:
         """Hidden pages are not in search index."""
         page = Page(
             source_path=Path("content/secret.md"),
-            content="Secret",
+            _raw_content="Secret",
             metadata={"title": "Secret", "hidden": True},
         )
 
@@ -235,7 +235,7 @@ class TestInRssProperty:
         """Regular pages are in RSS feeds."""
         page = Page(
             source_path=Path("content/post.md"),
-            content="Post content",
+            _raw_content="Post content",
             metadata={"title": "Post"},
         )
 
@@ -245,7 +245,7 @@ class TestInRssProperty:
         """Hidden pages are not in RSS feeds."""
         page = Page(
             source_path=Path("content/secret.md"),
-            content="Secret",
+            _raw_content="Secret",
             metadata={"title": "Secret", "hidden": True},
         )
 
@@ -259,7 +259,7 @@ class TestRobotsMeta:
         """Regular pages have index, follow robots meta."""
         page = Page(
             source_path=Path("content/post.md"),
-            content="Post content",
+            _raw_content="Post content",
             metadata={"title": "Post"},
         )
 
@@ -269,7 +269,7 @@ class TestRobotsMeta:
         """Hidden pages have noindex, nofollow robots meta."""
         page = Page(
             source_path=Path("content/secret.md"),
-            content="Secret",
+            _raw_content="Secret",
             metadata={"title": "Secret", "hidden": True},
         )
 
@@ -279,7 +279,7 @@ class TestRobotsMeta:
         """Can set custom robots meta."""
         page = Page(
             source_path=Path("content/nofollow.md"),
-            content="Content",
+            _raw_content="Content",
             metadata={
                 "title": "NoFollow",
                 "visibility": {"robots": "noindex"},
@@ -296,7 +296,7 @@ class TestShouldRenderInEnvironment:
         """render: always (default) renders in both environments."""
         page = Page(
             source_path=Path("content/post.md"),
-            content="Post content",
+            _raw_content="Post content",
             metadata={"title": "Post"},
         )
 
@@ -307,7 +307,7 @@ class TestShouldRenderInEnvironment:
         """render: local only renders in dev server, not production."""
         page = Page(
             source_path=Path("content/wip.md"),
-            content="WIP content",
+            _raw_content="WIP content",
             metadata={
                 "title": "WIP",
                 "visibility": {"render": "local"},
@@ -321,7 +321,7 @@ class TestShouldRenderInEnvironment:
         """render: never doesn't render in any environment."""
         page = Page(
             source_path=Path("content/template.md"),
-            content="Template content",
+            _raw_content="Template content",
             metadata={
                 "title": "Template",
                 "visibility": {"render": "never"},
@@ -339,7 +339,7 @@ class TestShouldRenderProperty:
         """render: always should render."""
         page = Page(
             source_path=Path("content/post.md"),
-            content="Post",
+            _raw_content="Post",
             metadata={"title": "Post"},
         )
 
@@ -349,7 +349,7 @@ class TestShouldRenderProperty:
         """render: local should render (environment-agnostic check)."""
         page = Page(
             source_path=Path("content/wip.md"),
-            content="WIP",
+            _raw_content="WIP",
             metadata={
                 "title": "WIP",
                 "visibility": {"render": "local"},
@@ -362,7 +362,7 @@ class TestShouldRenderProperty:
         """render: never should not render."""
         page = Page(
             source_path=Path("content/template.md"),
-            content="Template",
+            _raw_content="Template",
             metadata={
                 "title": "Template",
                 "visibility": {"render": "never"},
@@ -379,7 +379,7 @@ class TestVisibilityWithDraft:
         """Draft pages are excluded from all outputs regardless of visibility."""
         page = Page(
             source_path=Path("content/draft.md"),
-            content="Draft",
+            _raw_content="Draft",
             metadata={
                 "title": "Draft",
                 "draft": True,

@@ -75,7 +75,7 @@ def mock_page(tmp_path):
     page = SimpleNamespace(
         source_path=source_path,
         output_path=None,
-        content="Hello world",
+        _raw_content="Hello world",
         title="Test Page",
         metadata={"title": "Test Page", "type": "doc"},
         tags=[],

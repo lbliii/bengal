@@ -416,7 +416,7 @@ class RenderingPipeline:
         if page.metadata.get("toc") is False:
             return False
 
-        content_text = page.content or ""
+        content_text = page._source or ""
         likely_has_atx = re.search(r"^(?:\s{0,3})(?:##|###|####)\s+.+", content_text, re.MULTILINE)
         if likely_has_atx:
             return True
@@ -433,10 +433,10 @@ class RenderingPipeline:
             metadata_with_source["_source_path"] = page.source_path
 
             if need_toc:
-                parsed_content, toc = self.parser.parse_with_toc(page.content, metadata_with_source)
+                parsed_content, toc = self.parser.parse_with_toc(page._source, metadata_with_source)
                 parsed_content = escape_template_syntax_in_html(parsed_content)
             else:
-                parsed_content = self.parser.parse(page.content, metadata_with_source)
+                parsed_content = self.parser.parse(page._source, metadata_with_source)
                 parsed_content = escape_template_syntax_in_html(parsed_content)
                 toc = ""
         else:
@@ -451,20 +451,20 @@ class RenderingPipeline:
             ):
                 if need_toc:
                     parsed_content, toc = self.parser.parse_with_toc_and_context(
-                        page.content, page.metadata, context
+                        page._source, page.metadata, context
                     )
                 else:
                     parsed_content = self.parser.parse_with_context(
-                        page.content, page.metadata, context
+                        page._source, page.metadata, context
                     )
                     toc = ""
             else:
                 # Fallback for parsers without context support (e.g., PythonMarkdownParser)
                 if need_toc:
-                    parsed_content, toc = self.parser.parse_with_toc(page.content, page.metadata)
+                    parsed_content, toc = self.parser.parse_with_toc(page._source, page.metadata)
                     parsed_content = escape_template_syntax_in_html(parsed_content)
                 else:
-                    parsed_content = self.parser.parse(page.content, page.metadata)
+                    parsed_content = self.parser.parse(page._source, page.metadata)
                     parsed_content = escape_template_syntax_in_html(parsed_content)
                     toc = ""
 
@@ -476,7 +476,7 @@ class RenderingPipeline:
                 and persist_tokens
             ):
                 try:
-                    ast_tokens = self.parser.parse_to_ast(page.content, page.metadata)
+                    ast_tokens = self.parser.parse_to_ast(page._source, page.metadata)
                     page._ast_cache = ast_tokens
                 except Exception as e:
                     logger.debug(
@@ -623,7 +623,7 @@ class RenderingPipeline:
     def _preprocess_content(self, page: Page) -> str:
         """Pre-process page content through configured template engine (legacy parser only)."""
         if page.metadata.get("preprocess") is False:
-            return page.content
+            return page._source
 
         try:
             # Use the configured template engine for preprocessing
@@ -631,7 +631,7 @@ class RenderingPipeline:
             # We use strict=False because documentation pages often contain
             # template syntax examples with undefined variables (e.g. {{ secrets.XXX }})
             return self.template_engine.render_string(
-                page.content,
+                page._source,
                 {"page": page, "site": self.site, "config": self.site.config},
                 strict=False,
             )
@@ -650,4 +650,4 @@ class RenderingPipeline:
                     error_code=ErrorCode.R003.value,
                     suggestion="Check page content for template syntax errors",
                 )
-            return page.content
+            return page._source

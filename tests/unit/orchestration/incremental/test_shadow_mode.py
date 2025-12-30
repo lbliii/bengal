@@ -30,12 +30,12 @@ def mock_site(tmp_path):
     site.pages = [
         Page(
             source_path=tmp_path / "content/page1.md",
-            content="Content 1",
+            _raw_content="Content 1",
             metadata={"title": "Page 1"},
         ),
         Page(
             source_path=tmp_path / "content/page2.md",
-            content="Content 2",
+            _raw_content="Content 2",
             metadata={"title": "Page 2"},
         ),
     ]

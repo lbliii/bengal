@@ -26,7 +26,7 @@ def make_page(
         metadata["weight"] = weight
     return Page(
         source_path=tmp_path / f"{name}.md",
-        content=f"Content for {name}",
+        _raw_content=f"Content for {name}",
         metadata=metadata,
     )
 

@@ -93,11 +93,11 @@ class TestContentLayerManager:
 
         # Add two mock sources
         entries1 = [
-            ContentEntry(id="1.md", slug="one", content="one", source_name="s1"),
-            ContentEntry(id="2.md", slug="two", content="two", source_name="s1"),
+            ContentEntry(id="1.md", slug="one", _raw_content="one", source_name="s1"),
+            ContentEntry(id="2.md", slug="two", _raw_content="two", source_name="s1"),
         ]
         entries2 = [
-            ContentEntry(id="3.md", slug="three", content="three", source_name="s2"),
+            ContentEntry(id="3.md", slug="three", _raw_content="three", source_name="s2"),
         ]
 
         manager.register_custom_source("s1", MockSource("s1", {}, entries1))
@@ -112,7 +112,7 @@ class TestContentLayerManager:
     def test_fetch_all_sync(self, tmp_path: Path) -> None:
         """Test synchronous fetch wrapper."""
         manager = ContentLayerManager(cache_dir=tmp_path / "cache")
-        entries = [ContentEntry(id="1.md", slug="one", content="")]
+        entries = [ContentEntry(id="1.md", slug="one", _raw_content="")]
 
         manager.register_custom_source("test", MockSource("test", {}, entries))
 
@@ -130,7 +130,7 @@ class TestContentLayerManager:
             ContentEntry(
                 id="test.md",
                 slug="test",
-                content="# Test",
+                _raw_content="# Test",
                 frontmatter={"title": "Test"},
                 source_name="test",
             )
@@ -159,7 +159,7 @@ class TestContentLayerManager:
             cache_ttl=timedelta(hours=1),
         )
 
-        entries = [ContentEntry(id="1.md", slug="one", content="")]
+        entries = [ContentEntry(id="1.md", slug="one", _raw_content="")]
         manager._save_cache("test", entries, "key-123")
 
         # Valid cache
@@ -210,7 +210,7 @@ class TestContentLayerManager:
         manager.register_custom_source("uncached", MockSource("uncached", {}))
 
         # Only cache one
-        entries = [ContentEntry(id="1.md", slug="one", content="")]
+        entries = [ContentEntry(id="1.md", slug="one", _raw_content="")]
         manager._save_cache("cached", entries, "key")
 
         status = manager.get_cache_status()

@@ -156,7 +156,8 @@ class Page(
     core: PageCore | None = field(default=None, init=False)
 
     # Optional fields (with defaults)
-    content: str = ""
+    # Raw markdown source content (use _source property for access)
+    _raw_content: str = ""
     metadata: dict[str, Any] = field(default_factory=dict)
     # NOTE: Despite the name, parsed_ast currently stores rendered HTML (legacy).
     # The ASTNode types in bengal.rendering.ast_types are for future AST-based
@@ -388,7 +389,7 @@ class Page(
 
         page = cls(
             source_path=Path(source_id),
-            content=content,
+            _raw_content=content,
             metadata=page_metadata,
             rendered_html=rendered_html or "",
             output_path=output_path,

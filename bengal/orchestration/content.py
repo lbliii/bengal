@@ -743,8 +743,8 @@ class ContentOrchestrator:
             # Index target directives (:::{target} id)
             # Extract target directives from content for cross-reference indexing
             # NOTE: Target directives take precedence over heading anchors since they're explicit
-            if hasattr(page, "content") and page.content:
-                target_anchors = self._extract_target_directives(page.content)
+            if hasattr(page, "content") and page._source:
+                target_anchors = self._extract_target_directives(page._source)
                 page_version = getattr(page, "version", None)
                 for anchor_id in target_anchors:
                     anchor_key = anchor_id.lower()

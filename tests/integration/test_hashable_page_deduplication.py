@@ -249,11 +249,11 @@ class TestMemoryOptimizations:
         path = tmp_path / "content/post.md"
 
         # Create page in build 1
-        page1 = Page(source_path=path, content="Original content")
+        page1 = Page(source_path=path, _raw_content="Original content")
         data = {page1: "some cached data"}
 
         # Simulate page reconstruction in build 2 (incremental build)
-        page2 = Page(source_path=path, content="Updated content")
+        page2 = Page(source_path=path, _raw_content="Updated content")
 
         # Should be able to find cached data using reconstructed page
         assert page2 in data

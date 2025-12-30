@@ -47,7 +47,7 @@ VALID_HTML = """<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="description" content="Test page">
+    <meta name="description" _raw_content="Test page">
     <title>Test Page</title>
 </head>
 <body>
@@ -177,7 +177,7 @@ class TestRenderingValidatorSEOMetadata:
     def test_warning_for_missing_title(self, validator, mock_site, tmp_path):
         """Returns warning for missing title tag."""
         no_title = """<!DOCTYPE html>
-<html><head><meta name="description" content="Test"></head><body></body></html>"""
+<html><head><meta name="description" _raw_content="Test"></head><body></body></html>"""
         page = create_page(mock_site.output_dir, "no-title.html", no_title)
         mock_site.pages = [page]
 
@@ -202,7 +202,7 @@ class TestRenderingValidatorSEOMetadata:
         """Accepts og:description as alternative."""
         og_description = """<!DOCTYPE html>
 <html><head><title>Test</title>
-<meta property="og:description" content="OpenGraph desc"></head><body></body></html>"""
+<meta property="og:description" _raw_content="OpenGraph desc"></head><body></body></html>"""
         page = create_page(mock_site.output_dir, "og-desc.html", og_description)
         mock_site.pages = [page]
 

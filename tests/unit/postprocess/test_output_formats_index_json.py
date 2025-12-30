@@ -99,7 +99,7 @@ class TestSiteIndexJsonGeneration:
             page = self._create_mock_page(
                 title=f"Page {i}",
                 url=f"/page{i}/",
-                content=f"Content {i}",
+                _raw_content=f"Content {i}",
                 output_path=output_dir / f"page{i}/index.html",
             )
             pages.append(page)
@@ -160,7 +160,7 @@ class TestSiteIndexJsonGeneration:
             page = self._create_mock_page(
                 title=f"Docs {i}",
                 url=f"/docs/page{i}/",
-                content=f"Content {i}",
+                _raw_content=f"Content {i}",
                 output_path=output_dir / f"docs/page{i}/index.html",
                 section_name="docs",
             )
@@ -170,7 +170,7 @@ class TestSiteIndexJsonGeneration:
             page = self._create_mock_page(
                 title=f"Blog {i}",
                 url=f"/blog/post{i}/",
-                content=f"Content {i}",
+                _raw_content=f"Content {i}",
                 output_path=output_dir / f"blog/post{i}/index.html",
                 section_name="blog",
             )

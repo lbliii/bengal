@@ -40,19 +40,19 @@ class TestCascadeRebuilds:
         # Create index page with cascade
         index_page = Page(
             source_path=Path("/site/content/docs/_index.md"),
-            content="Index",
+            _raw_content="Index",
             metadata={"title": "Docs", "cascade": {"type": "doc"}},
         )
 
         # Create child pages
         child1 = Page(
             source_path=Path("/site/content/docs/page1.md"),
-            content="Page 1",
+            _raw_content="Page 1",
             metadata={"title": "Page 1"},
         )
         child2 = Page(
             source_path=Path("/site/content/docs/page2.md"),
-            content="Page 2",
+            _raw_content="Page 2",
             metadata={"title": "Page 2"},
         )
 
@@ -91,13 +91,13 @@ class TestCascadeRebuilds:
         # Index without cascade
         index_page = Page(
             source_path=Path("/site/content/blog/_index.md"),
-            content="Blog",
+            _raw_content="Blog",
             metadata={"title": "Blog"},  # No cascade
         )
 
         child = Page(
             source_path=Path("/site/content/blog/post.md"),
-            content="Post",
+            _raw_content="Post",
             metadata={"title": "Post"},
         )
 

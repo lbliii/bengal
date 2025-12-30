@@ -42,7 +42,7 @@ class TestAnchorValidatorDuplicateDetection:
         """Test that pages without duplicate anchors pass validation."""
         page = MagicMock()
         page.source_path = Path("content/test.md")
-        page.content = "# Test Page\n\nContent here."
+        page._raw_content = "# Test Page\n\nContent here."
         page.rendered_html = '<h2 id="heading-1">Heading 1</h2><h2 id="heading-2">Heading 2</h2>'
         mock_site.pages = [page]
 
@@ -55,7 +55,7 @@ class TestAnchorValidatorDuplicateDetection:
         """Test that duplicate anchor IDs are detected."""
         page = MagicMock()
         page.source_path = Path("content/test.md")
-        page.content = ""
+        page._raw_content = ""
         page.rendered_html = '<h2 id="install">Install</h2><h2 id="install">Install Again</h2>'
         mock_site.pages = [page]
 
@@ -70,7 +70,7 @@ class TestAnchorValidatorDuplicateDetection:
         """Test that multiple different duplicate anchors are all detected."""
         page = MagicMock()
         page.source_path = Path("content/test.md")
-        page.content = ""
+        page._raw_content = ""
         page.rendered_html = """
             <h2 id="setup">Setup</h2>
             <h2 id="setup">Setup Again</h2>
@@ -96,7 +96,7 @@ class TestAnchorValidatorDuplicateDetection:
 
         page = MagicMock()
         page.source_path = Path("content/test.md")
-        page.content = ""
+        page._raw_content = ""
         page.rendered_html = '<h2 id="dupe">First</h2><h2 id="dupe">Second</h2>'
         mock_site.pages = [page]
 
@@ -109,7 +109,7 @@ class TestAnchorValidatorDuplicateDetection:
         """Test that pages with no rendered HTML don't crash."""
         page = MagicMock()
         page.source_path = Path("content/test.md")
-        page.content = ""
+        page._raw_content = ""
         page.rendered_html = None
         mock_site.pages = [page]
 
@@ -146,7 +146,7 @@ class TestAnchorValidatorReferenceValidation:
         """Test that valid [[#anchor]] references pass."""
         page = MagicMock()
         page.source_path = Path("content/test.md")
-        page.content = "See [[#install]] for details."
+        page._raw_content = "See [[#install]] for details."
         page.rendered_html = ""
         mock_site.pages = [page]
 
@@ -159,7 +159,7 @@ class TestAnchorValidatorReferenceValidation:
         """Test that references to heading anchors pass."""
         page = MagicMock()
         page.source_path = Path("content/test.md")
-        page.content = "See [[#configuration]] for details."
+        page._raw_content = "See [[#configuration]] for details."
         page.rendered_html = ""
         mock_site.pages = [page]
 
@@ -171,7 +171,7 @@ class TestAnchorValidatorReferenceValidation:
         """Test that broken [[#anchor]] references are detected."""
         page = MagicMock()
         page.source_path = Path("content/test.md")
-        page.content = "See [[#nonexistent]] for details."
+        page._raw_content = "See [[#nonexistent]] for details."
         page.rendered_html = ""
         mock_site.pages = [page]
 
@@ -185,7 +185,7 @@ class TestAnchorValidatorReferenceValidation:
         """Test that multiple broken references are all detected."""
         page = MagicMock()
         page.source_path = Path("content/test.md")
-        page.content = """
+        page._raw_content = """
 See [[#missing1]] for first part.
 Then [[#missing2]] for second part.
         """
@@ -202,7 +202,7 @@ Then [[#missing2]] for second part.
         """Test that anchor matching is case-insensitive."""
         page = MagicMock()
         page.source_path = Path("content/test.md")
-        page.content = "See [[#INSTALL]] for details."  # Uppercase
+        page._raw_content = "See [[#INSTALL]] for details."  # Uppercase
         page.rendered_html = ""
         mock_site.pages = [page]
 
@@ -215,7 +215,7 @@ Then [[#missing2]] for second part.
         """Test that [[#anchor|text]] syntax is validated."""
         page = MagicMock()
         page.source_path = Path("content/test.md")
-        page.content = "See [[#missing|the link]] for details."
+        page._raw_content = "See [[#missing|the link]] for details."
         page.rendered_html = ""
         mock_site.pages = [page]
 
@@ -230,7 +230,7 @@ Then [[#missing2]] for second part.
         site.xref_index = None  # No xref_index built yet
         page = MagicMock()
         page.source_path = Path("content/test.md")
-        page.content = "See [[#something]] here."
+        page._raw_content = "See [[#something]] here."
         page.rendered_html = ""
         site.pages = [page]
 
@@ -262,7 +262,7 @@ class TestAnchorValidatorMetadata:
 
         page = MagicMock()
         page.source_path = Path("content/docs/guide.md")
-        page.content = "See [[#broken]]."
+        page._raw_content = "See [[#broken]]."
         page.rendered_html = ""
         site.pages = [page]
 
@@ -280,7 +280,7 @@ class TestAnchorValidatorMetadata:
 
         page = MagicMock()
         page.source_path = Path("content/test.md")
-        page.content = "Line 1\nLine 2\nSee [[#broken]] here.\nLine 4"
+        page._raw_content = "Line 1\nLine 2\nSee [[#broken]] here.\nLine 4"
         page.rendered_html = ""
         site.pages = [page]
 
@@ -313,7 +313,7 @@ class TestAnchorValidatorSimilarSuggestions:
 
         page = MagicMock()
         page.source_path = Path("content/test.md")
-        page.content = "See [[#install]] for details."  # Partial match
+        page._raw_content = "See [[#install]] for details."  # Partial match
         page.rendered_html = ""
         site.pages = [page]
 

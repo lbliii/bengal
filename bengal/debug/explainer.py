@@ -219,8 +219,8 @@ class PageExplainer:
         if page.is_virtual:
             return SourceInfo(
                 path=source_path,
-                size_bytes=len(page.content.encode()) if page.content else 0,
-                line_count=page.content.count("\n") + 1 if page.content else 0,
+                size_bytes=len(page._source.encode()) if page._source else 0,
+                line_count=page._source.count("\n") + 1 if page._source else 0,
                 modified=None,
                 encoding="UTF-8",
             )
@@ -249,8 +249,8 @@ class PageExplainer:
         # Fallback: use content from page object
         return SourceInfo(
             path=source_path,
-            size_bytes=len(page.content.encode()) if page.content else 0,
-            line_count=page.content.count("\n") + 1 if page.content else 0,
+            size_bytes=len(page._source.encode()) if page._source else 0,
+            line_count=page._source.count("\n") + 1 if page._source else 0,
             modified=None,
             encoding="UTF-8",
         )
@@ -470,8 +470,8 @@ class PageExplainer:
                 deps.data.extend(data_refs)
 
         # Asset references from content
-        if page.content:
-            deps.assets = self._extract_asset_refs(page.content)
+        if page._source:
+            deps.assets = self._extract_asset_refs(page._source)
 
         # Include dependencies from shortcodes
         for shortcode in self._get_shortcode_usage(page):
@@ -539,15 +539,15 @@ class PageExplainer:
         Returns:
             List of ShortcodeUsage, sorted by count (descending).
         """
-        if not page.content:
+        if not page._source:
             return []
 
         usages: dict[str, ShortcodeUsage] = {}
 
-        for match in DIRECTIVE_PATTERN.finditer(page.content):
+        for match in DIRECTIVE_PATTERN.finditer(page._source):
             # Get name from either capture group
             name = match.group(1) or match.group(2)
-            line = page.content[: match.start()].count("\n") + 1
+            line = page._source[: match.start()].count("\n") + 1
 
             if name not in usages:
                 usages[name] = ShortcodeUsage(name=name, count=0, lines=[])
@@ -695,11 +695,11 @@ class PageExplainer:
                 )
 
         # Check internal links
-        if page.content:
+        if page._source:
             link_pattern = re.compile(r"\[([^\]]+)\]\((/[^)]+)\)")
-            for match in link_pattern.finditer(page.content):
+            for match in link_pattern.finditer(page._source):
                 link_text, link_target = match.groups()
-                line = page.content[: match.start()].count("\n") + 1
+                line = page._source[: match.start()].count("\n") + 1
 
                 # Check if target page exists
                 target_exists = any(
@@ -719,8 +719,8 @@ class PageExplainer:
                     )
 
         # Check for missing images
-        if page.content:
-            for asset_ref in self._extract_asset_refs(page.content):
+        if page._source:
+            for asset_ref in self._extract_asset_refs(page._source):
                 # Skip external and data URLs
                 if asset_ref.startswith(("http", "data:", "#")):
                     continue

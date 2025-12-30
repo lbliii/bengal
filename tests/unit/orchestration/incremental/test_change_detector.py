@@ -25,12 +25,12 @@ def mock_site(tmp_path):
     site.pages = [
         Page(
             source_path=tmp_path / "content/page1.md",
-            content="Content 1",
+            _raw_content="Content 1",
             metadata={"title": "Page 1", "tags": ["python"]},
         ),
         Page(
             source_path=tmp_path / "content/page2.md",
-            content="Content 2",
+            _raw_content="Content 2",
             metadata={"title": "Page 2"},
         ),
     ]
@@ -104,7 +104,7 @@ class TestChangeDetectorBasic:
         # Add a generated page
         generated_page = Page(
             source_path=mock_site.root_path / "content/_generated/tags.md",
-            content="",
+            _raw_content="",
             metadata={"_generated": True},
         )
         mock_site.pages.append(generated_page)
@@ -269,22 +269,22 @@ class TestVersionScopeFiltering:
         site.pages = [
             Page(
                 source_path=tmp_path / "content/docs/v1/guide.md",
-                content="V1 Guide",
+                _raw_content="V1 Guide",
                 metadata={"title": "V1 Guide", "version": "v1"},
             ),
             Page(
                 source_path=tmp_path / "content/docs/v2/guide.md",
-                content="V2 Guide",
+                _raw_content="V2 Guide",
                 metadata={"title": "V2 Guide", "version": "v2"},
             ),
             Page(
                 source_path=tmp_path / "content/docs/v2/api.md",
-                content="V2 API",
+                _raw_content="V2 API",
                 metadata={"title": "V2 API", "version": "v2"},
             ),
             Page(
                 source_path=tmp_path / "content/about.md",
-                content="About",
+                _raw_content="About",
                 metadata={"title": "About"},  # No version (shared)
             ),
         ]

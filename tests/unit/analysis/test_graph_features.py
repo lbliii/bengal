@@ -17,21 +17,21 @@ def site_with_structure(tmp_path):
     # Create hub page
     hub = Page(
         source_path=tmp_path / "hub.md",
-        content="# Hub",
+        _raw_content="# Hub",
         metadata={"title": "Hub Page", "tags": ["important"]},
     )
 
     # Create pages that link to hub
     page1 = Page(
         source_path=tmp_path / "page1.md",
-        content="# Page 1",
+        _raw_content="# Page 1",
         metadata={"title": "Page 1", "tags": ["python"]},
     )
     page1.related_posts = [hub]
 
     page2 = Page(
         source_path=tmp_path / "page2.md",
-        content="# Page 2",
+        _raw_content="# Page 2",
         metadata={"title": "Page 2", "tags": ["python"]},
     )
     page2.related_posts = [hub]
@@ -39,13 +39,13 @@ def site_with_structure(tmp_path):
     # Create orphaned pages
     orphan1 = Page(
         source_path=tmp_path / "orphan1.md",
-        content="# Orphan 1",
+        _raw_content="# Orphan 1",
         metadata={"title": "Orphan 1", "tags": ["tutorial"]},
     )
 
     orphan2 = Page(
         source_path=tmp_path / "orphan2.md",
-        content="# Orphan 2",
+        _raw_content="# Orphan 2",
         metadata={"title": "Orphan 2", "tags": ["tutorial"]},
     )
 
@@ -174,13 +174,13 @@ class TestAutodocFiltering:
 
         regular = Page(
             source_path=tmp_path / "regular.md",
-            content="# Regular",
+            _raw_content="# Regular",
             metadata={"title": "Regular", "type": "doc"},
         )
 
         autodoc = Page(
             source_path=tmp_path / "api" / "module.md",
-            content="# API",
+            _raw_content="# API",
             metadata={"title": "API", "type": "autodoc-python"},
         )
 
@@ -200,13 +200,13 @@ class TestAutodocFiltering:
 
         regular = Page(
             source_path=tmp_path / "regular.md",
-            content="# Regular",
+            _raw_content="# Regular",
             metadata={"title": "Regular"},
         )
 
         autodoc = Page(
             source_path=tmp_path / "api" / "module.md",
-            content="# API",
+            _raw_content="# API",
             metadata={"title": "API", "type": "autodoc-python"},
         )
 
@@ -226,25 +226,25 @@ class TestAutodocFiltering:
 
         api_ref = Page(
             source_path=tmp_path / "api.md",
-            content="",
+            _raw_content="",
             metadata={"type": "autodoc-python"},
         )
 
         python_module = Page(
             source_path=tmp_path / "module.md",
-            content="",
+            _raw_content="",
             metadata={"type": "python-module"},
         )
 
         api_path = Page(
             source_path=tmp_path / "content" / "api" / "test.md",
-            content="",
+            _raw_content="",
             metadata={},
         )
 
         regular = Page(
             source_path=tmp_path / "regular.md",
-            content="",
+            _raw_content="",
             metadata={"type": "doc"},
         )
 
@@ -264,13 +264,13 @@ class TestLinkExtraction:
 
         page1 = Page(
             source_path=tmp_path / "page1.md",
-            content="# Page 1\n\nSee [Page 2](page2.md)",
+            _raw_content="# Page 1\n\nSee [Page 2](page2.md)",
             metadata={"title": "Page 1"},
         )
 
         page2 = Page(
             source_path=tmp_path / "page2.md",
-            content="# Page 2",
+            _raw_content="# Page 2",
             metadata={"title": "Page 2"},
         )
 

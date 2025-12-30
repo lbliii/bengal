@@ -42,7 +42,7 @@ class FeatureDetector:
 
     Example:
         detector = FeatureDetector()
-        features = detector.detect_features_in_content(page.content)
+        features = detector.detect_features_in_content(page._source)
     """
 
     # Feature detection patterns
@@ -114,8 +114,8 @@ class FeatureDetector:
         features: set[str] = set()
 
         # Detect from content
-        if page.content:
-            features.update(self.detect_features_in_content(page.content))
+        if page._source:
+            features.update(self.detect_features_in_content(page._source))
 
         # Check metadata for explicit feature flags
         if page.metadata:

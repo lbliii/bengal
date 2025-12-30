@@ -84,7 +84,7 @@ class TestContentIntelligence:
         """Create a mock page."""
         page = MagicMock()
         page._path = path
-        page.content = content
+        page._raw_content = content
         page.raw_content = raw_content or content
         return page
 
@@ -203,7 +203,7 @@ class TestConvenienceFunction:
         """Convenience function should work."""
         page = MagicMock()
         page._path = "/docs/test/"
-        page.content = ""
+        page._raw_content = ""
         page.raw_content = ""
 
         site = MagicMock()

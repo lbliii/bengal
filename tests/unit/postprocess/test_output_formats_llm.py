@@ -329,7 +329,7 @@ class TestSiteWideLLMFullGeneration:
             page = self._create_mock_page(
                 title=f"Page {i}",
                 url=f"/page{i}/",
-                content=f"Content for page {i}",
+                _raw_content=f"Content for page {i}",
                 output_path=output_dir / f"page{i}/index.html",
             )
             pages.append(page)

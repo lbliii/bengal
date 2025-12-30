@@ -23,25 +23,25 @@ def mock_site():
         # Regular page (visible in all outputs)
         Page(
             source_path=Path("content/regular.md"),
-            content="Regular content",
+            _raw_content="Regular content",
             metadata={"title": "Regular Page"},
         ),
         # Hidden page (hidden shorthand)
         Page(
             source_path=Path("content/hidden.md"),
-            content="Hidden content",
+            _raw_content="Hidden content",
             metadata={"title": "Hidden Page", "hidden": True},
         ),
         # Draft page
         Page(
             source_path=Path("content/draft.md"),
-            content="Draft content",
+            _raw_content="Draft content",
             metadata={"title": "Draft Page", "draft": True},
         ),
         # Page with visibility.listings: false
         Page(
             source_path=Path("content/unlisted.md"),
-            content="Unlisted content",
+            _raw_content="Unlisted content",
             metadata={
                 "title": "Unlisted Page",
                 "visibility": {"listings": False},
@@ -50,7 +50,7 @@ def mock_site():
         # Page with visibility.menu: false only
         Page(
             source_path=Path("content/no-menu.md"),
-            content="No menu content",
+            _raw_content="No menu content",
             metadata={
                 "title": "No Menu Page",
                 "visibility": {"menu": False},
@@ -99,27 +99,27 @@ class TestPageVisibilityInCollections:
         """Test in_listings property for pages with different visibility."""
         regular = Page(
             source_path=Path("regular.md"),
-            content="",
+            _raw_content="",
             metadata={"title": "Regular"},
         )
         hidden = Page(
             source_path=Path("hidden.md"),
-            content="",
+            _raw_content="",
             metadata={"title": "Hidden", "hidden": True},
         )
         draft = Page(
             source_path=Path("draft.md"),
-            content="",
+            _raw_content="",
             metadata={"title": "Draft", "draft": True},
         )
         unlisted = Page(
             source_path=Path("unlisted.md"),
-            content="",
+            _raw_content="",
             metadata={"title": "Unlisted", "visibility": {"listings": False}},
         )
         no_menu = Page(
             source_path=Path("no-menu.md"),
-            content="",
+            _raw_content="",
             metadata={"title": "NoMenu", "visibility": {"menu": False}},
         )
 
@@ -133,17 +133,17 @@ class TestPageVisibilityInCollections:
         """Test in_sitemap property for pages with different visibility."""
         regular = Page(
             source_path=Path("regular.md"),
-            content="",
+            _raw_content="",
             metadata={"title": "Regular"},
         )
         hidden = Page(
             source_path=Path("hidden.md"),
-            content="",
+            _raw_content="",
             metadata={"title": "Hidden", "hidden": True},
         )
         no_sitemap = Page(
             source_path=Path("no-sitemap.md"),
-            content="",
+            _raw_content="",
             metadata={"title": "NoSitemap", "visibility": {"sitemap": False}},
         )
 
@@ -155,17 +155,17 @@ class TestPageVisibilityInCollections:
         """Test in_search property for pages with different visibility."""
         regular = Page(
             source_path=Path("regular.md"),
-            content="",
+            _raw_content="",
             metadata={"title": "Regular"},
         )
         hidden = Page(
             source_path=Path("hidden.md"),
-            content="",
+            _raw_content="",
             metadata={"title": "Hidden", "hidden": True},
         )
         no_search = Page(
             source_path=Path("no-search.md"),
-            content="",
+            _raw_content="",
             metadata={"title": "NoSearch", "visibility": {"search": False}},
         )
 
@@ -177,17 +177,17 @@ class TestPageVisibilityInCollections:
         """Test in_rss property for pages with different visibility."""
         regular = Page(
             source_path=Path("regular.md"),
-            content="",
+            _raw_content="",
             metadata={"title": "Regular"},
         )
         hidden = Page(
             source_path=Path("hidden.md"),
-            content="",
+            _raw_content="",
             metadata={"title": "Hidden", "hidden": True},
         )
         no_rss = Page(
             source_path=Path("no-rss.md"),
-            content="",
+            _raw_content="",
             metadata={"title": "NoRss", "visibility": {"rss": False}},
         )
 

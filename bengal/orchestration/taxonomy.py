@@ -745,7 +745,7 @@ class TaxonomyOrchestrator:
 
         tag_index = Page(
             source_path=virtual_path,
-            content="",
+            _raw_content="",
             metadata={
                 "title": "All Tags",
                 "template": "tags.html",
@@ -770,7 +770,7 @@ class TaxonomyOrchestrator:
         virtual_path = self.url_strategy.make_virtual_path(self.site, "tags")
         tag_index = Page(
             source_path=virtual_path,
-            content="",
+            _raw_content="",
             metadata={
                 "title": "All Tags",
                 "template": "tags.html",
@@ -835,7 +835,7 @@ class TaxonomyOrchestrator:
 
             tag_page = Page(
                 source_path=virtual_path,
-                content="",
+                _raw_content="",
                 metadata={
                     "title": f"Posts tagged '{tag_data['name']}'",
                     "template": "tag.html",
@@ -896,7 +896,7 @@ class TaxonomyOrchestrator:
             )
             tag_page = Page(
                 source_path=virtual_path,
-                content="",
+                _raw_content="",
                 metadata={
                     "title": f"Posts tagged '{tag_data['name']}'",
                     "template": "tag.html",

@@ -549,8 +549,11 @@ def word_count(text: str) -> int:
         Number of words
 
     Example:
-        {{ page.content | word_count }} words
-        {{ page.content | word_count }} words ({{ page.content | reading_time }} min read)
+        {{ page.word_count }} words  {# Recommended: use computed property #}
+        {{ page.word_count }} words ({{ page.reading_time }} min read)
+
+        {# Filter works on any text #}
+        {{ custom_text | word_count }} words
     """
     if not text:
         return 0

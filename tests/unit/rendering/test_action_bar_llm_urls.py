@@ -38,7 +38,7 @@ baseurl = "https://example.com"
         engine = create_engine(site)
         return engine
 
-    def _create_mock_page(self, title, url, content="Content"):
+    def _create_mock_page(self, title, url, _raw_content="Content"):
         """Create a mock page with all required attributes."""
         page = Mock()
         page.title = title
@@ -46,7 +46,7 @@ baseurl = "https://example.com"
         page._path = url  # _path doesn't include baseurl
         page.metadata = {}
         page.date = None
-        page.content = content
+        page.content = _raw_content
         page.ancestors = []  # Required for breadcrumbs
         return page
 

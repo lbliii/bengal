@@ -46,7 +46,7 @@ class HasMetadata(Protocol):
     """Protocol for objects that have metadata and content attributes."""
 
     metadata: dict[str, Any]
-    content: str
+    _raw_content: str
 
 
 @runtime_checkable
@@ -96,7 +96,7 @@ class PageLike(Protocol):
 
     @property
     def content(self) -> str:
-        """Raw markdown source content."""
+        """Rendered HTML content (template-ready)."""
         ...
 
     @property
@@ -171,7 +171,7 @@ class PageComputedMixin:
             internal/advanced use. Templates should use page.word_count
             and page.reading_time instead of accessing _source directly.
         """
-        return self.content
+        return self._raw_content
 
     @cached_property
     def word_count(self: HasMetadata) -> int:
@@ -226,8 +226,8 @@ class PageComputedMixin:
         if description:
             return cast(str, description)
 
-        # Generate from content
-        text = self.content
+        # Generate from raw content
+        text = self._raw_content
         if not text:
             return ""
 
@@ -299,11 +299,11 @@ class PageComputedMixin:
         Example:
             <p class="excerpt">{{ page.excerpt }}</p>
         """
-        if not self.content:
+        if not self._raw_content:
             return ""
 
         # Strip HTML first
-        clean_text = re.sub(r"<[^>]+>", "", self.content)
+        clean_text = re.sub(r"<[^>]+>", "", self._raw_content)
 
         length = 200
         if len(clean_text) <= length:

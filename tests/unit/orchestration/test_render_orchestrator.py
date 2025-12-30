@@ -37,7 +37,9 @@ class TestParallelRendering:
 
     def test_sequential_when_parallel_false(self, orchestrator, mock_site):
         """Test that parallel=False uses sequential rendering."""
-        pages = [Page(source_path=Path("/fake/site/content/page1.md"), content="", metadata={})]
+        pages = [
+            Page(source_path=Path("/fake/site/content/page1.md"), _raw_content="", metadata={})
+        ]
 
         with (
             patch.object(orchestrator, "_render_sequential") as mock_seq,
@@ -53,7 +55,7 @@ class TestParallelRendering:
     def test_parallel_when_parallel_true(self, orchestrator, mock_site):
         """Test that parallel=True uses parallel rendering."""
         pages = [
-            Page(source_path=Path(f"/fake/site/content/page{i}.md"), content="", metadata={})
+            Page(source_path=Path(f"/fake/site/content/page{i}.md"), _raw_content="", metadata={})
             for i in range(5)
         ]
 
@@ -75,7 +77,9 @@ class TestParallelRendering:
         page count is now at the BuildOrchestrator level (should_parallelize).
         RenderOrchestrator directly respects the parallel parameter.
         """
-        pages = [Page(source_path=Path("/fake/site/content/page1.md"), content="", metadata={})]
+        pages = [
+            Page(source_path=Path("/fake/site/content/page1.md"), _raw_content="", metadata={})
+        ]
 
         with (
             patch.object(orchestrator, "_render_sequential") as mock_seq,
@@ -95,8 +99,8 @@ class TestOutputPathOptimization:
     def test_set_output_paths_for_pages(self, orchestrator, mock_site):
         """Test that output paths are set only for specified pages."""
         pages = [
-            Page(source_path=Path("/fake/site/content/page1.md"), content="", metadata={}),
-            Page(source_path=Path("/fake/site/content/page2.md"), content="", metadata={}),
+            Page(source_path=Path("/fake/site/content/page1.md"), _raw_content="", metadata={}),
+            Page(source_path=Path("/fake/site/content/page2.md"), _raw_content="", metadata={}),
         ]
 
         # Pages start with no output_path
@@ -116,7 +120,7 @@ class TestOutputPathOptimization:
         pages = [
             Page(
                 source_path=Path("/fake/site/content/page1.md"),
-                content="",
+                _raw_content="",
                 metadata={},
                 output_path=existing_path,
             ),
@@ -131,7 +135,7 @@ class TestOutputPathOptimization:
         """Test that only specified pages get paths, not all site pages."""
         # Add some pages to the site
         mock_site.pages = [
-            Page(source_path=Path(f"/fake/site/content/page{i}.md"), content="", metadata={})
+            Page(source_path=Path(f"/fake/site/content/page{i}.md"), _raw_content="", metadata={})
             for i in range(10)
         ]
 
@@ -147,7 +151,9 @@ class TestOutputPathOptimization:
 
     def test_output_path_computation(self, orchestrator, mock_site):
         """Test that output paths are computed correctly."""
-        page = Page(source_path=Path("/fake/site/content/blog/post.md"), content="", metadata={})
+        page = Page(
+            source_path=Path("/fake/site/content/blog/post.md"), _raw_content="", metadata={}
+        )
 
         orchestrator._set_output_paths_for_pages([page])
 
@@ -158,7 +164,9 @@ class TestOutputPathOptimization:
 
     def test_output_path_for_index_file(self, orchestrator, mock_site):
         """Test output path for _index.md files."""
-        page = Page(source_path=Path("/fake/site/content/blog/_index.md"), content="", metadata={})
+        page = Page(
+            source_path=Path("/fake/site/content/blog/_index.md"), _raw_content="", metadata={}
+        )
 
         orchestrator._set_output_paths_for_pages([page])
 
@@ -173,7 +181,9 @@ class TestProcessMethod:
 
     def test_process_calls_set_output_paths(self, orchestrator, mock_site):
         """Test that process() calls _set_output_paths_for_pages."""
-        pages = [Page(source_path=Path("/fake/site/content/page1.md"), content="", metadata={})]
+        pages = [
+            Page(source_path=Path("/fake/site/content/page1.md"), _raw_content="", metadata={})
+        ]
 
         with patch.object(orchestrator, "_set_output_paths_for_pages") as mock_set:
             with patch.object(orchestrator, "_render_sequential"):
@@ -184,7 +194,9 @@ class TestProcessMethod:
 
     def test_process_passes_tracker_to_sequential(self, orchestrator, mock_site):
         """Test that process passes tracker to sequential rendering."""
-        pages = [Page(source_path=Path("/fake/site/content/page1.md"), content="", metadata={})]
+        pages = [
+            Page(source_path=Path("/fake/site/content/page1.md"), _raw_content="", metadata={})
+        ]
         mock_tracker = Mock()
 
         with patch.object(orchestrator, "_set_output_paths_for_pages"):
@@ -198,7 +210,7 @@ class TestProcessMethod:
     def test_process_passes_stats_to_parallel(self, orchestrator, mock_site):
         """Test that process passes stats to parallel rendering."""
         pages = [
-            Page(source_path=Path(f"/fake/site/content/page{i}.md"), content="", metadata={})
+            Page(source_path=Path(f"/fake/site/content/page{i}.md"), _raw_content="", metadata={})
             for i in range(5)
         ]
         mock_stats = Mock()
@@ -219,7 +231,7 @@ class TestPerformanceOptimization:
         """Test that path setting only processes needed pages."""
         # Add 100 pages to site
         mock_site.pages = [
-            Page(source_path=Path(f"/fake/site/content/page{i}.md"), content="", metadata={})
+            Page(source_path=Path(f"/fake/site/content/page{i}.md"), _raw_content="", metadata={})
             for i in range(100)
         ]
 

@@ -21,7 +21,7 @@ def sample_page():
     """Create a sample page for testing."""
     return Page(
         source_path=Path("content/blog/post.md"),
-        content="# My Post\n\nContent here.",
+        _raw_content="# My Post\n\nContent here.",
         metadata={
             "title": "My Post",
             "date": "2025-01-15",
