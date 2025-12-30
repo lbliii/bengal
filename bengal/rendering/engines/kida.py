@@ -420,10 +420,13 @@ class KidaTemplateEngine:
         return None
 
     def _track_referenced_templates(self, template_name: str) -> None:
-        """Track parent templates (extends chain) as dependencies.
+        """Track all referenced templates (extends/includes/imports) as dependencies.
 
-        Walks the inheritance chain and records each parent template
-        as a dependency for incremental builds.
+        Recursively walks the template tree to find all templates that could
+        affect the output. Tracks:
+        - Parent templates ({% extends %})
+        - Included templates ({% include %})
+        - Imported templates ({% import %}, {% from ... import %})
 
         Args:
             template_name: Name of template to analyze
@@ -432,36 +435,83 @@ class KidaTemplateEngine:
             return
 
         seen: set[str] = {template_name}
+        to_process: list[str] = [template_name]
 
-        try:
-            template = self._env.get_template(template_name)
-            # Get template metadata which contains extends info
-            metadata = getattr(template, "metadata", None)
-            if metadata is None:
-                return
+        while to_process:
+            current_name = to_process.pop()
 
-            parent_name = getattr(metadata, "extends", None)
+            try:
+                template = self._env.get_template(current_name)
+                ast = getattr(template, "_optimized_ast", None)
+                if ast is None:
+                    continue
 
-            # Walk the inheritance chain
-            while parent_name and parent_name not in seen:
-                seen.add(parent_name)
-                parent_path = self.get_template_path(parent_name)
-                if parent_path:
-                    self._dependency_tracker.track_partial(parent_path)
+                # Find all referenced templates in the AST
+                referenced = self._extract_referenced_templates(ast)
 
-                # Get next parent in chain
-                try:
-                    parent_template = self._env.get_template(parent_name)
-                    parent_metadata = getattr(parent_template, "metadata", None)
-                    parent_name = (
-                        getattr(parent_metadata, "extends", None) if parent_metadata else None
-                    )
-                except Exception:
-                    break
+                for ref_name in referenced:
+                    if ref_name in seen:
+                        continue
+                    seen.add(ref_name)
 
-        except Exception:
-            # Template analysis is optional - don't fail the build
-            pass
+                    # Track as dependency
+                    ref_path = self.get_template_path(ref_name)
+                    if ref_path:
+                        self._dependency_tracker.track_partial(ref_path)
+
+                    # Queue for recursive processing (catches nested includes)
+                    to_process.append(ref_name)
+
+            except Exception:
+                # Template analysis is optional - don't fail the build
+                continue
+
+    def _extract_referenced_templates(self, ast: Any) -> set[str]:
+        """Extract all referenced template names from an AST.
+
+        Walks the AST to find Extends, Include, Import, and FromImport nodes
+        and extracts their template names (if static strings).
+
+        Args:
+            ast: Parsed template AST
+
+        Returns:
+            Set of template names referenced by this template
+        """
+        referenced: set[str] = set()
+        nodes_to_visit: list[Any] = [ast]
+
+        while nodes_to_visit:
+            node = nodes_to_visit.pop()
+            if node is None:
+                continue
+
+            node_type = type(node).__name__
+
+            # Check for template-referencing nodes
+            if node_type in ("Extends", "Include", "Import", "FromImport"):
+                template_expr = getattr(node, "template", None)
+                if template_expr and type(template_expr).__name__ == "Const":
+                    value = getattr(template_expr, "value", None)
+                    if isinstance(value, str):
+                        referenced.add(value)
+
+            # Recurse into child nodes
+            for attr in ("body", "else_", "empty", "cases", "default"):
+                child = getattr(node, attr, None)
+                if child is not None:
+                    if isinstance(child, (list, tuple)):
+                        nodes_to_visit.extend(child)
+                    else:
+                        nodes_to_visit.append(child)
+
+            # Handle extends on Template node
+            if node_type == "Template":
+                extends = getattr(node, "extends", None)
+                if extends:
+                    nodes_to_visit.append(extends)
+
+        return referenced
 
     def list_templates(self) -> list[str]:
         """List all available template names.
@@ -647,6 +697,23 @@ class KidaTemplateEngine:
     def validate_templates(self, include_patterns: list[str] | None = None) -> list[TemplateError]:
         """Alias for validate (for compatibility)."""
         return self.validate(include_patterns)
+
+    def clear_template_cache(self, names: list[str] | None = None) -> None:
+        """Clear template cache for external invalidation.
+
+        Called by TemplateChangeDetector when template files change to force
+        cache invalidation without waiting for hash checks.
+
+        Args:
+            names: Optional list of template names to clear.
+                   If None, clears all cached templates.
+
+        Example:
+            >>> engine.clear_template_cache()  # Clear all
+            >>> engine.clear_template_cache(["base.html", "page.html"])  # Specific
+        """
+        if hasattr(self._env, "clear_template_cache"):
+            self._env.clear_template_cache(names)
 
     def _resolve_theme_chain(self, active_theme: str | None) -> list[str]:
         """Resolve theme inheritance chain."""
