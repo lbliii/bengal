@@ -23,12 +23,12 @@ Display the most recent posts from a section using Bengal's query filters.
 
 ## The Pattern
 
-```jinja2
-{% set posts = site.pages
-  | where('section', 'blog')
-  | where('draft', false)
-  | sort_by('date', reverse=true)
-  | limit(5) %}
+```kida
+{% let posts = site.pages
+  |> where('section', 'blog')
+  |> where('draft', false)
+  |> sort_by('date', reverse=true)
+  |> limit(5) %}
 
 <ul class="recent-posts">
 {% for post in posts %}
@@ -36,7 +36,7 @@ Display the most recent posts from a section using Bengal's query filters.
     <a href="{{ post.href }}">{{ post.title }}</a>
     <time>{{ post.date | date('%B %d, %Y') }}</time>
   </li>
-{% endfor %}
+{% end %}
 </ul>
 ```
 
@@ -54,21 +54,21 @@ Display the most recent posts from a section using Bengal's query filters.
 :::{tab-set}
 :::{tab-item} Any Section
 
-```jinja2
+```kida
 {# All non-draft pages, any section #}
-{% set recent = site.pages
-  | where('draft', false)
-  | sort_by('date', reverse=true)
-  | limit(10) %}
+{% let recent = site.pages
+  |> where('draft', false)
+  |> sort_by('date', reverse=true)
+  |> limit(10) %}
 ```
 
 :::{/tab-item}
 :::{tab-item} With Featured
 
-```jinja2
-{% set posts = site.pages | where('section', 'blog') | sort_by('date', reverse=true) %}
-{% set featured = posts | first %}
-{% set rest = posts | offset(1) | limit(4) %}
+```kida
+{% let posts = site.pages |> where('section', 'blog') |> sort_by('date', reverse=true) %}
+{% let featured = posts |> first %}
+{% let rest = posts |> offset(1) |> limit(4) %}
 
 <div class="featured">
   <h2>{{ featured.title }}</h2>
@@ -78,23 +78,23 @@ Display the most recent posts from a section using Bengal's query filters.
 <ul class="more-posts">
 {% for post in rest %}
   <li><a href="{{ post.href }}">{{ post.title }}</a></li>
-{% endfor %}
+{% end %}
 </ul>
 ```
 
 :::{/tab-item}
 :::{tab-item} Exclude Current
 
-```jinja2
+```kida
 {# In a sidebar, show recent posts excluding the current one #}
-{% set others = site.pages
-  | where('section', 'blog')
-  | sort_by('date', reverse=true)
-  | limit(6) %}
+{% let others = site.pages
+  |> where('section', 'blog')
+  |> sort_by('date', reverse=true)
+  |> limit(6) %}
 
 {% for post in others if post._path != page._path %}
   <a href="{{ post.href }}">{{ post.title }}</a>
-{% endfor %}
+{% end %}
 ```
 
 :::{/tab-item}

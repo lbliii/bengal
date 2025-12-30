@@ -166,6 +166,21 @@ class TaxonomyIndex:
             for page, tags in data.get("page_to_tags", {}).items():
                 self._page_to_tags[page] = set(tags)
 
+            # Verify invariants after load (detect corruption early)
+            # RFC: Cache Lifecycle Hardening - Phase 3
+            violations = self._check_invariants()
+            if violations:
+                logger.warning(
+                    "taxonomy_index_corruption_detected",
+                    violations=violations[:5],  # First 5
+                    total=len(violations),
+                    action="rebuilding_index",
+                )
+                # Clear and let it rebuild naturally
+                self.tags = {}
+                self._page_to_tags = {}
+                return
+
             logger.info(
                 "taxonomy_index_loaded",
                 tags=len(self.tags),
@@ -187,6 +202,17 @@ class TaxonomyIndex:
 
     def save_to_disk(self) -> None:
         """Save taxonomy index to disk (including reverse index)."""
+        # Verify consistency before save
+        # RFC: Cache Lifecycle Hardening - Phase 3
+        violations = self._check_invariants()
+        if violations:
+            logger.warning(
+                "taxonomy_index_invariant_violation",
+                violations=violations[:5],  # First 5
+                total=len(violations),
+                action="saving_anyway",
+            )
+
         try:
             self.cache_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -217,6 +243,44 @@ class TaxonomyIndex:
                 error_code=ErrorCode.A004.value,  # cache_write_error
                 suggestion="Check disk space and permissions. Taxonomy index may be incomplete.",
             )
+
+    def _check_invariants(self) -> list[str]:
+        """
+        Verify forward and reverse indexes are in sync.
+
+        RFC: Cache Lifecycle Hardening - Phase 3
+        Detects index desync early before it causes subtle bugs.
+
+        Returns:
+            List of violations (empty if consistent)
+        """
+        violations: list[str] = []
+
+        # Check 1: Every page in _page_to_tags exists in tags[tag].page_paths
+        for page, tags in self._page_to_tags.items():
+            for tag in tags:
+                if tag not in self.tags:
+                    violations.append(
+                        f"Reverse index has tag '{tag}' for page '{page}' not in forward index"
+                    )
+                elif page not in self.tags[tag].page_paths:
+                    violations.append(
+                        f"Page '{page}' in reverse index for tag '{tag}' but not in forward"
+                    )
+
+        # Check 2: Every page in tags[tag].page_paths exists in _page_to_tags
+        for tag_slug, entry in self.tags.items():
+            for page in entry.page_paths:
+                if page not in self._page_to_tags:
+                    violations.append(
+                        f"Page '{page}' in forward index for tag '{tag_slug}' but not in reverse"
+                    )
+                elif tag_slug not in self._page_to_tags[page]:
+                    violations.append(
+                        f"Tag '{tag_slug}' for page '{page}' in forward but not in reverse"
+                    )
+
+        return violations
 
     def update_tag(self, tag_slug: str, tag_name: str, page_paths: list[str]) -> None:
         """

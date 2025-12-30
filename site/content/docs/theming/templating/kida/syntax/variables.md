@@ -12,7 +12,7 @@ tags:
 
 # Variables and Scoping
 
-Kida distinguishes between template-scoped (`{% let %}`) and block-scoped (`{% set %}`) variables.
+Kida distinguishes between template-scoped (`{% let %}`) and block-scoped (`{% let %}`) variables.
 
 ## Template Variables with `{% let %}`
 
@@ -33,13 +33,13 @@ Use `{% let %}` for variables available throughout the template:
 </nav>
 ```
 
-## Block Variables with `{% set %}`
+## Block Variables with `{% let %}`
 
-Use `{% set %}` for variables scoped to the current block:
+Use `{% let %}` for variables scoped to the current block:
 
 ```kida
 {% if page.published %}
-  {% set status = "Published" %}
+  {% let status = "Published" %}
   <span>{{ status }}</span>  {# Works here #}
 {% end %}
 {# status not accessible here #}
@@ -62,25 +62,72 @@ Use `{% export %}` to make inner-scope variables accessible outside:
 
 Compare to Jinja2's namespace workaround:
 
-```jinja2
+```kida
 {# Jinja2 workaround: use namespace #}
-{% set ns = namespace(featured_post=none) %}
+{% let ns = namespace(featured_post=none) %}
 {% for post in posts %}
   {% if post.featured %}
-    {% set ns.featured_post = post %}
-  {% endif %}
+    {% let ns.featured_post = post %}
+  {% end %}
 {% endfor %}
 {{ ns.featured_post.title }}
 ```
 
 ## Multiple Assignment
 
-Assign multiple variables at once:
+### Multi-let (Comma-Separated)
+
+Assign multiple independent variables in a single `{% let %}` block:
+
+```kida
+{# Single-line multi-let #}
+{% let a = 1, b = 2, c = 3 %}
+
+{# Multi-line multi-let (recommended for readability) #}
+{% let
+    _site_title = config?.title ?? 'Untitled Site',
+    _page_title = page?.title ?? config?.title ?? 'Page',
+    _description = page?.description ?? config?.description ?? '' %}
+```
+
+This is the **recommended pattern** for template setup sections:
+
+```kida
+{% extends "base.html" %}
+
+{# Group related configuration variables #}
+{% let
+    _show_sidebar = page?.sidebar ?? true,
+    _show_toc = page?.toc ?? true,
+    _show_reading_time = theme?.features?.content?.reading_time ?? false %}
+
+{# Group navigation variables #}
+{% let
+    _prev = get_prev_page(page),
+    _next = get_next_page(page),
+    _has_nav = _prev is defined or _next is defined %}
+
+{% block content %}
+  {# Variables are available throughout the template #}
+{% end %}
+```
+
+### Tuple Unpacking
+
+Destructure tuples or pairs into separate variables:
 
 ```kida
 {% let (title, subtitle) = (page.title, page.subtitle) %}
+{% let (first, second, third) = get_top_three() %}
+```
+
+### Literal Assignment
+
+Assign array and dict literals directly:
+
+```kida
 {% let items = [1, 2, 3] %}
-{% let config = {"key": "value"} %}
+{% let config = {"key": "value", "enabled": true} %}
 ```
 
 ## Scoping Rules
@@ -88,7 +135,7 @@ Assign multiple variables at once:
 | Keyword | Scope | Use Case |
 |---------|-------|----------|
 | `{% let %}` | Template-wide | Site config, reusable data |
-| `{% set %}` | Current block | Temporary values in loops/conditionals |
+| `{% let %}` | Current block | Temporary values in loops/conditionals |
 | `{% export %}` | Outer scope | Promote inner values to outer scope |
 
 ## Common Patterns
@@ -99,8 +146,8 @@ Assign multiple variables at once:
 {% extends "baseof.html" %}
 
 {# Template-level configuration #}
-{% let show_sidebar = page.sidebar | default(true) %}
-{% let show_toc = page.toc | default(true) %}
+{% let show_sidebar = page.sidebar ?? true %}
+{% let show_toc = page.toc ?? true %}
 {% let theme_color = config.theme.primary_color %}
 
 {% block content %}
@@ -114,7 +161,7 @@ Assign multiple variables at once:
 
 ```kida
 {% let post = page %}
-{% let author = site.authors[post.author] | default({}) %}
+{% let author = site.authors[post.author] ?? {} %}
 {% let reading_time = post.content | wordcount | reading_time %}
 {% let related_posts = site.pages
   |> where('type', 'blog')
@@ -124,7 +171,7 @@ Assign multiple variables at once:
 <article>
   <header>
     <h1>{{ post.title }}</h1>
-    <span>By {{ author.name | default('Anonymous') }}</span>
+    <span>By {{ author.name ?? 'Anonymous' }}</span>
     <span>{{ reading_time }} min read</span>
   </header>
   {{ post.content | safe }}

@@ -21,6 +21,7 @@ Hash Characteristics:
       practical uniqueness while keeping identifiers manageable.
     - **Cross-platform**: Uses POSIX paths for consistent hashing across
       operating systems.
+    - **Stable**: Excludes internal/runtime keys that don't affect build output.
 
 Key Functions:
     compute_config_hash: Compute deterministic hash of configuration state.
@@ -47,6 +48,18 @@ from pathlib import Path
 from typing import Any
 
 from bengal.utils.hashing import hash_str
+
+# Keys to exclude from hashing (internal/runtime-computed, don't affect build output)
+EXCLUDED_KEYS = frozenset(
+    {
+        "_paths",  # Internal BengalPaths object
+        "_config_hash",  # Self-reference (shouldn't be there, defensive)
+        "_theme_obj",  # Runtime Theme object
+        "_site",  # Site backreference
+        "_cache",  # Cache reference
+        "_tracker",  # Tracker reference
+    }
+)
 
 
 def _json_default(obj: Any) -> str:
@@ -81,6 +94,33 @@ def _json_default(obj: Any) -> str:
     return str(obj)
 
 
+def _clean_config(d: dict[str, Any]) -> dict[str, Any]:
+    """
+    Recursively remove excluded keys from config dict.
+
+    Removes internal/runtime keys that shouldn't affect build output:
+    - Keys in EXCLUDED_KEYS set
+    - Keys starting with underscore (private/internal)
+
+    Args:
+        d: Configuration dictionary to clean
+
+    Returns:
+        Cleaned dictionary without excluded keys
+    """
+    result = {}
+    for k, v in d.items():
+        # Skip excluded keys and private keys
+        if k in EXCLUDED_KEYS or k.startswith("_"):
+            continue
+        # Recursively clean nested dicts
+        if isinstance(v, dict):
+            result[k] = _clean_config(v)
+        else:
+            result[k] = v
+    return result
+
+
 def compute_config_hash(config: dict[str, Any]) -> str:
     """
     Compute deterministic SHA-256 hash of configuration state.
@@ -92,11 +132,14 @@ def compute_config_hash(config: dict[str, Any]) -> str:
     - Profile-specific settings
     - Merged split config files
 
+    Excludes internal/runtime keys that don't affect build output.
+
     Algorithm:
-        1. Recursively sort all dictionary keys (deterministic ordering)
-        2. Serialize to JSON with custom handler for non-JSON types
-        3. Compute SHA-256 hash
-        4. Return first 16 characters (sufficient for uniqueness)
+        1. Remove excluded/internal keys (keys starting with '_')
+        2. Recursively sort all dictionary keys (deterministic ordering)
+        3. Serialize to JSON with custom handler for non-JSON types
+        4. Compute SHA-256 hash
+        5. Return first 16 characters (sufficient for uniqueness)
 
     Args:
         config: Resolved configuration dictionary
@@ -113,10 +156,18 @@ def compute_config_hash(config: dict[str, Any]) -> str:
         >>> config3 = {"title": "My Site", "baseurl": "/blog"}
         >>> compute_config_hash(config1) == compute_config_hash(config3)
         False
+
+        >>> # Internal keys don't affect hash
+        >>> config4 = {"title": "My Site", "baseurl": "/", "_paths": object()}
+        >>> compute_config_hash(config1) == compute_config_hash(config4)
+        True
     """
+    # Clean config by removing internal/excluded keys
+    stable_config = _clean_config(config)
+
     # Serialize with deterministic key ordering
     serialized = json.dumps(
-        config,
+        stable_config,
         sort_keys=True,
         default=_json_default,
         ensure_ascii=True,

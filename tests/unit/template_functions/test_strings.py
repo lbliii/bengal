@@ -1,6 +1,8 @@
 """Tests for string template functions."""
 
 from bengal.rendering.template_functions.strings import (
+    base64_decode,
+    base64_encode,
     excerpt,
     filesize,
     pluralize,
@@ -333,3 +335,63 @@ class TestFilesize:
     def test_zero_bytes(self):
         result = filesize(0)
         assert "0" in result
+
+
+class TestBase64Encode:
+    """Tests for base64_encode filter."""
+
+    def test_simple_string(self):
+        result = base64_encode("hello")
+        assert result == "aGVsbG8="
+
+    def test_with_spaces(self):
+        result = base64_encode("hello world")
+        assert result == "aGVsbG8gd29ybGQ="
+
+    def test_unicode(self):
+        result = base64_encode("héllo")
+        assert result != ""  # Should encode unicode properly
+
+    def test_empty_string(self):
+        assert base64_encode("") == ""
+
+    def test_none_input(self):
+        assert base64_encode(None) == ""
+
+
+class TestBase64Decode:
+    """Tests for base64_decode filter."""
+
+    def test_simple_string(self):
+        result = base64_decode("aGVsbG8=")
+        assert result == "hello"
+
+    def test_with_spaces(self):
+        result = base64_decode("aGVsbG8gd29ybGQ=")
+        assert result == "hello world"
+
+    def test_roundtrip(self):
+        original = "Test string 123!"
+        encoded = base64_encode(original)
+        decoded = base64_decode(encoded)
+        assert decoded == original
+
+    def test_empty_string(self):
+        assert base64_decode("") == ""
+
+    def test_none_input(self):
+        assert base64_decode(None) == ""
+
+    def test_invalid_base64(self):
+        # Should return empty string on invalid input
+        result = base64_decode("not_valid_base64!!!")
+        assert result == ""
+
+
+class TestPlainify:
+    """Tests for plainify filter (alias for strip_html)."""
+
+    def test_plainify_is_strip_html(self):
+        # The plainify filter is an alias for strip_html
+        html = "<p>Hello <strong>world</strong></p>"
+        assert strip_html(html) == "Hello world"

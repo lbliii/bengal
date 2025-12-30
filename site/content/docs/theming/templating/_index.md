@@ -109,7 +109,7 @@ flowchart TB
 
 Kida is Bengal's default template engine:
 
-- **Unified syntax**: `{% end %}` closes all blocks (no more `{% endif %}`, `{% endfor %}`)
+- **Unified syntax**: `{% end %}` closes all blocks (no more `{% end %}`, `{% end %}`)
 - **Pattern matching**: `{% match %}...{% case %}` for cleaner conditionals
 - **Pipeline operator**: `|>` for readable filter chains
 - **Fragment caching**: Built-in `{% cache %}` directive
@@ -150,8 +150,7 @@ Kida is the default. To use a different engine, configure `bengal.yaml`:
 
 ```yaml
 site:
-  # Available engines: kida (default), jinja2, mako, patitas
-  template_engine: jinja2
+  template_engine: jinja2  # Options: kida (default), jinja2, mako, patitas
 ```
 
 ### Custom Engines (BYOR)

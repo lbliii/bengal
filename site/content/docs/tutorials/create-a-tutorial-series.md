@@ -226,7 +226,7 @@ Create `templates/partials/series-nav.html`:
       <span class="link-direction">← Previous</span>
       <span class="link-title">Start of series</span>
     </div>
-    {% endif %}
+    {% end %}
 
     {% if page.next_in_series %}
     <a href="{{ page.next_in_series.href }}" class="series-link next">
@@ -238,10 +238,10 @@ Create `templates/partials/series-nav.html`:
       <span class="link-direction">🎉 Complete!</span>
       <span class="link-title">You finished the series</span>
     </div>
-    {% endif %}
+    {% end %}
   </div>
 </nav>
-{% endif %}
+{% end %}
 ```
 
 Add the styles to `assets/css/series.css`:
@@ -372,24 +372,24 @@ Create `templates/series-index/single.html` for the series overview page:
 
     {% if page.description %}
     <p class="lead">{{ page.description }}</p>
-    {% endif %}
+    {% end %}
 
     <div class="series-meta">
       {% if page.metadata.difficulty %}
       <span class="meta-item">
         <strong>Difficulty:</strong> {{ page.metadata.difficulty | title }}
       </span>
-      {% endif %}
+      {% end %}
       {% if page.metadata.estimated_time %}
       <span class="meta-item">
         <strong>Time:</strong> {{ page.metadata.estimated_time }}
       </span>
-      {% endif %}
+      {% end %}
       {% if page.metadata.prerequisites %}
       <span class="meta-item">
         <strong>Prerequisites:</strong> {{ page.metadata.prerequisites | join(', ') }}
       </span>
-      {% endif %}
+      {% end %}
     </div>
   </header>
 
@@ -411,8 +411,8 @@ Create `templates/series-index/single.html` for the series overview page:
           <span class="part-time">{{ part.reading_time }} min</span>
         </a>
       </li>
-      {% endif %}
-      {% endfor %}
+      {% end %}
+      {% end %}
     </ol>
 
     <a href="{{ section.pages | sort_by('weight') | first | attr('href') }}"
@@ -530,24 +530,24 @@ Create `templates/partials/series-toc.html`:
   </h4>
 
   <ol class="toc-parts">
-    {% set series_pages = page._section.pages | sort_by('weight') %}
+    {% let series_pages = page._section.pages | sort_by('weight') %}
     {% for part in series_pages %}
     {% if part.series %}
-    <li class="{% if part.eq(page) %}current{% endif %}">
+    <li class="{% if part.eq(page) %}current{% end %}">
       <a href="{{ part.href }}">
         <span class="part-num">{{ part.series.part }}.</span>
         {{ part.nav_title or part.title }}
       </a>
     </li>
-    {% endif %}
-    {% endfor %}
+    {% end %}
+    {% end %}
   </ol>
 
   <div class="toc-progress">
     {{ page.series.part }} / {{ page.series.total }} complete
   </div>
 </aside>
-{% endif %}
+{% end %}
 ```
 
 Styles:
@@ -659,7 +659,7 @@ Add a completion message to the series navigation for the last part:
     </ul>
   </div>
 </div>
-{% endif %}
+{% end %}
 ```
 
 Styles:

@@ -90,12 +90,8 @@ class VirtualAutodocOrchestrator:
         self.python_config = self.config.get("python", {})
         self.cli_config = self.config.get("cli", {})
         self.openapi_config = self.config.get("openapi", {})
-        # Performance: these values are used in tight loops during generation.
-        # Cache them per orchestrator instance (one per build).
         self._output_prefix_cache: dict[str, str] = {}
         self._openapi_prefix_cache: str | None = None
-        # Ephemeral: used by the build cache integration to persist extracted elements
-        # for incremental builds (rebuild virtual pages without re-parsing sources).
         self._last_extracted_elements: dict[str, list[DocElement]] = {}
 
     def get_cache_payload(self) -> dict[str, Any]:
@@ -299,7 +295,6 @@ class VirtualAutodocOrchestrator:
         # If exactly one source directory, derive from its name
         if len(source_dirs) == 1:
             source_dir = source_dirs[0]
-            # Extract package name from path (last component)
             package_name = Path(source_dir).name
             if package_name and package_name != ".":
                 return f"api/{slugify(package_name)}"
@@ -391,30 +386,20 @@ class VirtualAutodocOrchestrator:
 
     def is_enabled(self) -> bool:
         """Check if virtual autodoc is enabled for any type."""
-        # Performance + ergonomics: treat autodoc as opt-in.
-        # If the site does not define an `autodoc` section, do not run autodoc.
         if not isinstance(self.config, dict) or not self.config:
             return False
 
-        # Virtual pages are now the default (and only) option
-        # Only check if explicitly disabled via virtual_pages: false
-        # Check Python
-        python_enabled = (
-            self.python_config.get("virtual_pages", True)  # Default to True
-            and self.python_config.get("enabled", True)
+        python_enabled = self.python_config.get("virtual_pages", True) and self.python_config.get(
+            "enabled", True
         )
 
-        # Check CLI
-        cli_enabled = (
-            self.cli_config.get("virtual_pages", True)  # Default to True
-            and self.cli_config.get("enabled", True)
+        cli_enabled = self.cli_config.get("virtual_pages", True) and self.cli_config.get(
+            "enabled", True
         )
 
-        # Check OpenAPI
-        openapi_enabled = (
-            self.openapi_config.get("virtual_pages", True)  # Default to True
-            and self.openapi_config.get("enabled", True)
-        )
+        openapi_enabled = self.openapi_config.get(
+            "virtual_pages", True
+        ) and self.openapi_config.get("enabled", True)
 
         return bool(python_enabled or cli_enabled or openapi_enabled)
 
@@ -437,7 +422,6 @@ class VirtualAutodocOrchestrator:
         if self.cli_config.get("enabled", False):
             enabled_prefixes[self._resolve_output_prefix("cli")] = "cli"
 
-        # Check for exact matches (multiple types with same prefix)
         prefix_counts: dict[str, list[str]] = {}
         for prefix, doc_type in enabled_prefixes.items():
             if prefix not in prefix_counts:
@@ -454,11 +438,9 @@ class VirtualAutodocOrchestrator:
                     f"Consider distinct output_prefix values to avoid navigation conflicts.",
                 )
 
-        # Check for hierarchical overlaps (e.g., "api" and "api/python")
         prefixes = list(enabled_prefixes.keys())
         for i, p1 in enumerate(prefixes):
             for p2 in prefixes[i + 1 :]:
-                # Check if one is a prefix of the other
                 if p1.startswith(f"{p2}/") or p2.startswith(f"{p1}/"):
                     logger.warning(
                         "autodoc_prefix_hierarchy_overlap",
@@ -488,7 +470,6 @@ class VirtualAutodocOrchestrator:
             logger.debug("virtual_autodoc_disabled")
             return [], [], result
 
-        # Check for prefix overlaps before generating
         self._check_prefix_overlaps()
 
         all_elements: list[DocElement] = []
@@ -497,7 +478,6 @@ class VirtualAutodocOrchestrator:
         self._last_extracted_elements = {}
 
         # 1. Extract Python documentation
-        # Virtual pages are now the default (and only) option
         if self.python_config.get("virtual_pages", True) and self.python_config.get(
             "enabled", True
         ):
@@ -543,7 +523,6 @@ class VirtualAutodocOrchestrator:
                     ) from e
 
         # 2. Extract CLI documentation
-        # Virtual pages are now the default (and only) option
         if self.cli_config.get("virtual_pages", True) and self.cli_config.get("enabled", True):
             try:
                 cli_elements = extract_cli(self.site, self.cli_config)
@@ -587,8 +566,6 @@ class VirtualAutodocOrchestrator:
                     ) from e
 
         # 3. Extract OpenAPI documentation
-        # Pass existing sections so OpenAPI can reuse "api" section if Python already created it
-        # Virtual pages are now the default (and only) option
         if self.openapi_config.get("virtual_pages", True) and self.openapi_config.get(
             "enabled", True
         ):
@@ -652,7 +629,6 @@ class VirtualAutodocOrchestrator:
             return [], [], result
 
         # 4. Create aggregating parent sections for shared prefixes
-        # (e.g., /api/ for /api/python/ and /api/openapi/)
         parent_sections = create_aggregating_parent_sections(all_sections)
         all_sections.update(parent_sections)
 
@@ -693,7 +669,6 @@ class VirtualAutodocOrchestrator:
         root_section_keys.update(aggregating_keys)
 
         # Then add individual type sections that aren't children of aggregating sections
-        # NOTE: Use default=True to match the generation logic above
         for doc_type, config in [
             ("python", self.python_config),
             ("openapi", self.openapi_config),

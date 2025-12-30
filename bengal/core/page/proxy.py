@@ -33,7 +33,7 @@ from .page_core import PageCore
 # Lazy Property Delegation Helpers
 # =============================================================================
 # These reduce boilerplate for properties that delegate to _full_page after
-# ensuring it's loaded. See RFC: rfc-code-smell-remediation.md §1.2
+# ensuring it's loaded.
 # =============================================================================
 
 
@@ -382,9 +382,6 @@ class PageProxy:
         """Get extracted links (lazy-loaded)."""
         self._ensure_loaded()
         return self._full_page.links if self._full_page else []
-
-    # Note: version property is defined above (line ~219) as it's a cached field from PageCore
-    # No lazy-loading needed for version - it's available from core.version
 
     @property
     def toc(self) -> str | None:

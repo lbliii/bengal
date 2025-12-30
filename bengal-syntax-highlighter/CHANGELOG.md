@@ -2,6 +2,28 @@
 
 All notable changes to the "Bengal SSG Syntax Highlighter" extension will be documented in this file.
 
+## [1.1.0] - 2025-12-30
+
+### Added
+- **Kida template syntax highlighting** in markdown code blocks
+- Support for Kida-specific operators:
+  - `??` (null coalescing operator)
+  - `?.` (optional chaining)
+  - `|>` (pipeline operator)
+- Template tag highlighting: `{% %}`, `{{ }}`, `{# #}`
+- Keyword highlighting: `let`, `if`, `for`, `in`, `match`, `case`, `end`, `extends`, `block`, `cache`, `spaceless`, etc.
+- Constant highlighting: `true`, `false`, `none`, `null`
+- Function call highlighting
+- String and number highlighting
+- Standalone Kida language support (`.kida` files)
+- Language configuration with auto-closing pairs and folding
+
+### Technical
+- Added `kida.tmLanguage.json` for standalone Kida files
+- Added `language-configuration.json` for bracket matching and folding
+- Extended markdown injection to support `kida` code blocks
+- All operators now use `keyword.operator.*` scopes for consistent theming
+
 ## [1.0.0] - 2025-10-04
 
 ### Added

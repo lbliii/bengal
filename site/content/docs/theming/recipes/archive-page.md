@@ -35,9 +35,9 @@ This recipe shows how to customize grouping or build your own archive layouts.
 
 ### Yearly Archive
 
-```jinja2
-{% set posts = site.pages | where('section', 'blog') | sort_by('date', reverse=true) %}
-{% set by_year = posts | group_by_year %}
+```kida
+{% let posts = site.pages |> where('section', 'blog') |> sort_by('date', reverse=true) %}
+{% let by_year = posts |> group_by_year %}
 
 <div class="archive">
 {% for year, year_posts in by_year.items() %}
@@ -49,10 +49,10 @@ This recipe shows how to customize grouping or build your own archive layouts.
         <time>{{ post.date | date('%b %d') }}</time>
         <a href="{{ post.href }}">{{ post.title }}</a>
       </li>
-    {% endfor %}
+    {% end %}
     </ul>
   </section>
-{% endfor %}
+{% end %}
 </div>
 ```
 
@@ -71,9 +71,9 @@ This recipe shows how to customize grouping or build your own archive layouts.
 
 Quick navigation showing years with counts:
 
-```jinja2
-{% set posts = site.pages | where('section', 'blog') %}
-{% set years = posts | archive_years %}
+```kida
+{% let posts = site.pages |> where('section', 'blog') %}
+{% let years = posts |> archive_years %}
 
 <aside class="archive-nav">
   <h3>Archive</h3>
@@ -83,7 +83,7 @@ Quick navigation showing years with counts:
       <a href="/blog/{{ item.year }}/">{{ item.year }}</a>
       <span class="count">({{ item.count }})</span>
     </li>
-  {% endfor %}
+  {% end %}
   </ul>
 </aside>
 ```
@@ -91,9 +91,9 @@ Quick navigation showing years with counts:
 :::{/tab-item}
 :::{tab-item} Monthly Archive
 
-```jinja2
-{% set posts = site.pages | where('section', 'blog') | sort_by('date', reverse=true) %}
-{% set by_month = posts | group_by_month %}
+```kida
+{% let posts = site.pages |> where('section', 'blog') |> sort_by('date', reverse=true) %}
+{% let by_month = posts |> group_by_month %}
 
 <div class="archive">
 {% for (year, month), month_posts in by_month.items() %}
@@ -105,19 +105,19 @@ Quick navigation showing years with counts:
         <time>{{ post.date | date('%d') }}</time>
         <a href="{{ post.href }}">{{ post.title }}</a>
       </li>
-    {% endfor %}
+    {% end %}
     </ul>
   </section>
-{% endfor %}
+{% end %}
 </div>
 ```
 
 :::{/tab-item}
 :::{tab-item} Compact Timeline
 
-```jinja2
-{% set posts = site.pages | where('section', 'blog') | sort_by('date', reverse=true) %}
-{% set by_year = posts | group_by_year %}
+```kida
+{% let posts = site.pages |> where('section', 'blog') |> sort_by('date', reverse=true) %}
+{% let by_year = posts |> group_by_year %}
 
 <div class="timeline">
 {% for year, year_posts in by_year.items() %}
@@ -129,51 +129,51 @@ Quick navigation showing years with counts:
         <span class="date">{{ post.date | date('%b %d') }}</span>
         <span class="title">{{ post.title }}</span>
       </a>
-      {% endfor %}
+      {% end %}
     </div>
   </div>
-{% endfor %}
+{% end %}
 </div>
 ```
 
 :::{/tab-item}
 :::{tab-item} With Categories
 
-```jinja2
-{% set posts = site.pages | where('section', 'blog') | sort_by('date', reverse=true) %}
-{% set by_year = posts | group_by_year %}
+```kida
+{% let posts = site.pages |> where('section', 'blog') |> sort_by('date', reverse=true) %}
+{% let by_year = posts |> group_by_year %}
 
 {% for year, year_posts in by_year.items() %}
 <section>
   <h2>{{ year }}</h2>
 
-  {% set by_category = year_posts | group_by('category') %}
+  {% let by_category = year_posts |> group_by('category') %}
   {% for category, cat_posts in by_category.items() %}
   <div class="category-group">
     <h3>{{ category | title }}</h3>
     <ul>
     {% for post in cat_posts %}
       <li><a href="{{ post.href }}">{{ post.title }}</a></li>
-    {% endfor %}
+    {% end %}
     </ul>
   </div>
-  {% endfor %}
+  {% end %}
 </section>
-{% endfor %}
+{% end %}
 ```
 
 :::{/tab-item}
 :::{tab-item} Stats Header
 
-```jinja2
-{% set posts = site.pages | where('section', 'blog') %}
-{% set years = posts | archive_years %}
+```kida
+{% let posts = site.pages |> where('section', 'blog') %}
+{% let years = posts |> archive_years %}
 
 <header class="archive-header">
   <h1>Archive</h1>
   <p class="archive-stats">
     {{ posts | length }} posts across {{ years | length }} years
-    ({{ years | first | attr('year') }}–{{ years | last | attr('year') }})
+    ({{ years |> first |> attr('year') }}–{{ years |> last |> attr('year') }})
   </p>
 </header>
 ```

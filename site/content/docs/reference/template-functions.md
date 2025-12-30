@@ -37,10 +37,10 @@ Filter items where a key matches a value. Supports Hugo-like comparison operator
 
 ```kida
 {# Filter by exact value (default) #}
-{% set tutorials = site.pages | where('category', 'tutorial') %}
+{% let tutorials = site.pages |> where('category', 'tutorial') %}
 
 {# Filter by nested attribute #}
-{% set track_pages = site.pages | where('metadata.track_id', 'getting-started') %}
+{% let track_pages = site.pages |> where('metadata.track_id', 'getting-started') %}
 ```
 
 :::{example-label} With Comparison Operators
@@ -62,19 +62,19 @@ Filter items where a key matches a value. Supports Hugo-like comparison operator
 
 ```kida
 {# Pages newer than a year ago #}
-{% set recent = site.pages | where('date', one_year_ago, 'gt') %}
+{% let recent = site.pages |> where('date', one_year_ago, 'gt') %}
 
 {# Pages with priority 5 or higher #}
-{% set important = site.pages | where('metadata.priority', 5, 'gte') %}
+{% let important = site.pages |> where('metadata.priority', 5, 'gte') %}
 
 {# Pages tagged with 'python' #}
-{% set python_posts = site.pages | where('tags', 'python', 'in') %}
+{% let python_posts = site.pages |> where('tags', 'python', 'in') %}
 
 {# Pages with specific statuses #}
-{% set active = site.pages | where('status', ['active', 'featured'], 'in') %}
+{% let active = site.pages |> where('status', ['active', 'featured'], 'in') %}
 
 {# Exclude archived pages #}
-{% set live = site.pages | where('status', ['archived', 'draft'], 'not_in') %}
+{% let live = site.pages |> where('status', ['archived', 'draft'], 'not_in') %}
 ```
 
 ### where_not
@@ -83,10 +83,10 @@ Filter items where a key does NOT equal a value. Shorthand for `where(key, value
 
 ```kida
 {# Exclude drafts #}
-{% set published = site.pages | where_not('draft', true) %}
+{% let published = site.pages |> where_not('draft', true) %}
 
 {# Exclude archived items #}
-{% set active = users | where_not('status', 'archived') %}
+{% let active = users |> where_not('status', 'archived') %}
 ```
 
 ### sort_by
@@ -95,13 +95,13 @@ Sort items by a key, with optional reverse order.
 
 ```kida
 {# Sort by date, newest first #}
-{% set recent = site.pages | sort_by('date', reverse=true) %}
+{% let recent = site.pages |> sort_by('date', reverse=true) %}
 
 {# Sort alphabetically by title #}
-{% set alphabetical = site.pages | sort_by('title') %}
+{% let alphabetical = site.pages |> sort_by('title') %}
 
 {# Sort by weight (ascending) #}
-{% set ordered = sections | sort_by('weight') %}
+{% let ordered = sections |> sort_by('weight') %}
 ```
 
 ### group_by
@@ -109,16 +109,16 @@ Sort items by a key, with optional reverse order.
 Group items by a key value, returning a dictionary.
 
 ```kida
-{% set by_category = site.pages | group_by('category') %}
+{% let by_category = site.pages |> group_by('category') %}
 
 {% for category, pages in by_category.items() %}
 <h2>{{ category }}</h2>
 <ul>
   {% for page in pages %}
   <li><a href="{{ page.url }}">{{ page.title }}</a></li>
-  {% endfor %}
+  {% end %}
 </ul>
-{% endfor %}
+{% end %}
 ```
 
 ### group_by_year
@@ -126,16 +126,16 @@ Group items by a key value, returning a dictionary.
 Group pages by publication year. Returns dictionary sorted by year (newest first).
 
 ```kida
-{% set by_year = site.pages | group_by_year %}
+{% let by_year = site.pages |> group_by_year %}
 
 {% for year, posts in by_year.items() %}
 <h2>{{ year }}</h2>
 <ul>
   {% for post in posts %}
   <li><a href="{{ post.href }}">{{ post.title }}</a></li>
-  {% endfor %}
+  {% end %}
 </ul>
-{% endfor %}
+{% end %}
 ```
 
 **Parameters:**
@@ -146,16 +146,16 @@ Group pages by publication year. Returns dictionary sorted by year (newest first
 Group pages by year-month. Returns dictionary keyed by `(year, month)` tuples.
 
 ```kida
-{% set by_month = site.pages | group_by_month %}
+{% let by_month = site.pages |> group_by_month %}
 
 {% for (year, month), posts in by_month.items() %}
 <h2>{{ month | month_name }} {{ year }}</h2>
 <ul>
   {% for post in posts %}
   <li><a href="{{ post.href }}">{{ post.title }}</a></li>
-  {% endfor %}
+  {% end %}
 </ul>
-{% endfor %}
+{% end %}
 ```
 
 ### archive_years
@@ -163,7 +163,7 @@ Group pages by year-month. Returns dictionary keyed by `(year, month)` tuples.
 Get list of years with post counts for archive navigation.
 
 ```kida
-{% set years = site.pages | archive_years %}
+{% let years = site.pages |> archive_years %}
 
 <aside class="archive">
   <h3>Archive</h3>
@@ -173,7 +173,7 @@ Get list of years with post counts for archive navigation.
       <a href="/blog/{{ item.year }}/">{{ item.year }}</a>
       <span>({{ item.count }})</span>
     </li>
-    {% endfor %}
+    {% end %}
   </ul>
 </aside>
 ```
@@ -186,10 +186,10 @@ Take the first N items from a list.
 
 ```kida
 {# Latest 5 posts #}
-{% set latest = site.pages | sort_by('date', reverse=true) | limit(5) %}
+{% let latest = site.pages |> sort_by('date', reverse=true) |> limit(5) %}
 
 {# Top 3 featured items #}
-{% set featured = items | where('featured', true) | limit(3) %}
+{% let featured = items |> where('featured', true) |> limit(3) %}
 ```
 
 ### offset
@@ -198,10 +198,10 @@ Skip the first N items from a list.
 
 ```kida
 {# Skip first 10 items (pagination page 2) #}
-{% set page_2 = items | offset(10) | limit(10) %}
+{% let page_2 = items |> offset(10) |> limit(10) %}
 
 {# Skip the featured post #}
-{% set rest = posts | offset(1) %}
+{% let rest = posts |> offset(1) %}
 ```
 
 ### first
@@ -210,13 +210,13 @@ Get the first item from a list, or `None` if empty.
 
 ```kida
 {# Get the featured post #}
-{% set featured = site.pages | where('metadata.featured', true) | first %}
+{% let featured = site.pages |> where('metadata.featured', true) |> first %}
 
 {% if featured %}
 <div class="hero">
   <h1>{{ featured.title }}</h1>
 </div>
-{% endif %}
+{% end %}
 ```
 
 ### last
@@ -225,10 +225,10 @@ Get the last item from a list, or `None` if empty.
 
 ```kida
 {# Get the oldest post #}
-{% set oldest = site.pages | sort_by('date') | last %}
+{% let oldest = site.pages |> sort_by('date') |> last %}
 
 {# Get the final step #}
-{% set final_step = steps | last %}
+{% let final_step = steps |> last %}
 ```
 
 ### reverse
@@ -237,10 +237,10 @@ Reverse a list (returns a new list, original unchanged).
 
 ```kida
 {# Oldest first #}
-{% set chronological = site.pages | sort_by('date') %}
+{% let chronological = site.pages |> sort_by('date') %}
 
 {# Newest first (reversed) #}
-{% set newest_first = chronological | reverse %}
+{% let newest_first = chronological |> reverse %}
 ```
 
 ### uniq
@@ -249,11 +249,11 @@ Remove duplicate items while preserving order.
 
 ```kida
 {# Get unique tags from all posts #}
-{% set all_tags = [] %}
+{% let all_tags = [] %}
 {% for page in site.pages %}
-  {% set all_tags = all_tags + page.tags %}
-{% endfor %}
-{% set unique_tags = all_tags | uniq %}
+  {% let all_tags = all_tags + page.tags %}
+{% end %}
+{% let unique_tags = all_tags | uniq %}
 ```
 
 ### flatten
@@ -262,8 +262,8 @@ Flatten nested lists into a single list.
 
 ```kida
 {# Combine all tags from all pages #}
-{% set nested_tags = site.pages | map(attribute='tags') | list %}
-{% set all_tags = nested_tags | flatten | uniq %}
+{% let nested_tags = site.pages |> map(attribute='tags') |> list %}
+{% let all_tags = nested_tags |> flatten |> uniq %}
 ```
 
 ## Set Operations
@@ -276,9 +276,9 @@ Combine two lists, removing duplicates.
 
 ```kida
 {# Combine featured and recent posts #}
-{% set featured = site.pages | where('metadata.featured', true) %}
-{% set recent = site.pages | sort_by('date', reverse=true) | limit(5) %}
-{% set combined = featured | union(recent) %}
+{% let featured = site.pages |> where('metadata.featured', true) %}
+{% let recent = site.pages |> sort_by('date', reverse=true) |> limit(5) %}
+{% let combined = featured |> union(recent) %}
 ```
 
 ### intersect
@@ -287,9 +287,9 @@ Get items that appear in both lists.
 
 ```kida
 {# Posts that are both featured AND tagged 'python' #}
-{% set featured = site.pages | where('metadata.featured', true) %}
-{% set python = site.pages | where('tags', 'python', 'in') %}
-{% set featured_python = featured | intersect(python) %}
+{% let featured = site.pages |> where('metadata.featured', true) %}
+{% let python = site.pages |> where('tags', 'python', 'in') %}
+{% let featured_python = featured |> intersect(python) %}
 ```
 
 ### complement
@@ -298,9 +298,9 @@ Get items in the first list that are NOT in the second list.
 
 ```kida
 {# All posts except featured ones #}
-{% set all_posts = site.pages | where('type', 'post') %}
-{% set featured = site.pages | where('metadata.featured', true) %}
-{% set regular = all_posts | complement(featured) %}
+{% let all_posts = site.pages |> where('type', 'post') %}
+{% let featured = site.pages |> where('metadata.featured', true) %}
+{% let regular = all_posts |> complement(featured) %}
 ```
 
 ## Chaining Filters
@@ -309,12 +309,12 @@ Filters can be chained for powerful queries:
 
 ```kida
 {# Recent Python tutorials, sorted by date #}
-{% set result = site.pages
-  | where('category', 'tutorial')
-  | where('tags', 'python', 'in')
-  | where('draft', false)
-  | sort_by('date', reverse=true)
-  | limit(10) %}
+{% let result = site.pages
+  |> where('category', 'tutorial')
+  |> where('tags', 'python', 'in')
+  |> where('draft', false)
+  |> sort_by('date', reverse=true)
+  |> limit(10) %}
 ```
 
 ## Hugo Migration Guide
@@ -331,8 +331,8 @@ Bengal's template functions are designed for easy migration from Hugo. Here's ho
 
 **Bengal:**
 ```kida
-{% set posts = site.pages | where('section', 'blog') %}
-{% set recent = site.pages | where('date', one_year_ago, 'gt') %}
+{% let posts = site.pages |> where('section', 'blog') %}
+{% let recent = site.pages |> where('date', one_year_ago, 'gt') %}
 ```
 
 ### Sorting
@@ -345,8 +345,8 @@ Bengal's template functions are designed for easy migration from Hugo. Here's ho
 
 **Bengal:**
 ```kida
-{% for page in site.pages | sort_by('date', reverse=true) %}
-{% for page in site.pages | sort_by('title') %}
+{% for page in site.pages |> sort_by('date', reverse=true) %}
+{% for page in site.pages |> sort_by('title') %}
 ```
 
 ### First/Last
@@ -359,8 +359,8 @@ Bengal's template functions are designed for easy migration from Hugo. Here's ho
 
 **Bengal:**
 ```kida
-{% set featured = site.pages | where('metadata.featured', true) | first %}
-{% set oldest = site.pages | sort_by('date') | last %}
+{% let featured = site.pages |> where('metadata.featured', true) |> first %}
+{% let oldest = site.pages |> sort_by('date') |> last %}
 ```
 
 ### Limiting
@@ -372,7 +372,7 @@ Bengal's template functions are designed for easy migration from Hugo. Here's ho
 
 **Bengal:**
 ```kida
-{% for page in site.pages | limit(5) %}
+{% for page in site.pages |> limit(5) %}
 ```
 
 ### Set Operations
@@ -386,9 +386,9 @@ Bengal's template functions are designed for easy migration from Hugo. Here's ho
 
 **Bengal:**
 ```kida
-{% set both = list1 | intersect(list2) %}
-{% set combined = list1 | union(list2) %}
-{% set diff = list1 | complement(list2) %}
+{% let both = list1 |> intersect(list2) %}
+{% let combined = list1 |> union(list2) %}
+{% let diff = list1 |> complement(list2) %}
 ```
 
 ### Tag Filtering
@@ -401,10 +401,10 @@ Bengal's template functions are designed for easy migration from Hugo. Here's ho
 **Bengal:**
 ```kida
 {# Check if page has 'python' tag #}
-{% set tagged = site.pages | where('tags', 'python', 'in') %}
+{% let tagged = site.pages |> where('tags', 'python', 'in') %}
 
 {# Check if page has any of these tags #}
-{% set tagged = site.pages | where('tags', ['python', 'web'], 'in') %}
+{% let tagged = site.pages |> where('tags', ['python', 'web'], 'in') %}
 ```
 
 ### Complex Queries
@@ -416,7 +416,7 @@ Bengal's template functions are designed for easy migration from Hugo. Here's ho
 
 **Bengal:**
 ```kida
-{% set result = site.pages | where('section', 'blog') | where('metadata.featured', true) %}
+{% let result = site.pages |> where('section', 'blog') |> where('metadata.featured', true) %}
 ```
 
 ## Quick Reference
@@ -450,13 +450,13 @@ These global functions simplify common navigation patterns.
 Get a section by its path. Cleaner alternative to `site.get_section_by_path()`.
 
 ```kida
-{% set docs = get_section('docs') %}
+{% let docs = get_section('docs') %}
 {% if docs %}
   <h2>{{ docs.title }}</h2>
-  {% for page in docs.pages | sort_by('weight') %}
+  {% for page in docs.pages |> sort_by('weight') %}
     <a href="{{ page.url }}">{{ page.title }}</a>
-  {% endfor %}
-{% endif %}
+  {% end %}
+{% end %}
 ```
 
 ### section_pages
@@ -465,14 +465,14 @@ Get pages from a section directly. Combines `get_section()` with `.pages` access
 
 ```kida
 {# Non-recursive (direct children only) #}
-{% for page in section_pages('docs') | sort_by('weight') %}
+{% for page in section_pages('docs') |> sort_by('weight') %}
   <a href="{{ page.url }}">{{ page.title }}</a>
-{% endfor %}
+{% end %}
 
 {# Recursive (include all nested pages) #}
 {% for page in section_pages('docs', recursive=true) %}
   <a href="{{ page.url }}">{{ page.title }}</a>
-{% endfor %}
+{% end %}
 ```
 
 ### page_exists
@@ -482,11 +482,11 @@ Check if a page exists without loading it. More efficient than `get_page()` for 
 ```kida
 {% if page_exists('guides/advanced') %}
   <a href="/guides/advanced/">Advanced Guide Available</a>
-{% endif %}
+{% end %}
 
 {# Works with or without .md extension #}
-{% if page_exists('docs/getting-started.md') %}...{% endif %}
-{% if page_exists('docs/getting-started') %}...{% endif %}
+{% if page_exists('docs/getting-started.md') %}...{% end %}
+{% if page_exists('docs/getting-started') %}...{% end %}
 ```
 
 ## Linking Functions
@@ -532,7 +532,7 @@ Generate a cross-reference link to a page.
 {# In loops #}
 {% for page in related_pages %}
   <li>{{ ref(page.path) }}</li>
-{% endfor %}
+{% end %}
 ```
 
 ### doc
@@ -540,11 +540,11 @@ Generate a cross-reference link to a page.
 Get a page object for custom link generation or metadata access.
 
 ```kida
-{% set page = doc('docs/getting-started') %}
+{% let page = doc('docs/getting-started') %}
 {% if page %}
   <a href="{{ page.url }}">{{ page.title }}</a>
   <p>{{ page.description }}</p>
-{% endif %}
+{% end %}
 ```
 
 **Parameters**:
@@ -563,7 +563,7 @@ Get a page object for custom link generation or metadata access.
 
 ```kida
 {# Custom link with metadata #}
-{% set api_page = doc('docs/api') %}
+{% let api_page = doc('docs/api') %}
 {% if api_page %}
   <div class="card">
     <a href="{{ api_page.url }}">
@@ -572,13 +572,13 @@ Get a page object for custom link generation or metadata access.
     <p>{{ api_page.description }}</p>
     <span class="date">{{ api_page.date | date('%Y-%m-%d') }}</span>
   </div>
-{% endif %}
+{% end %}
 
 {# Check if page exists before linking #}
-{% set guide = doc('docs/advanced-guide') %}
+{% let guide = doc('docs/advanced-guide') %}
 {% if guide and not guide.draft %}
   <a href="{{ guide.url }}">Advanced Guide</a>
-{% endif %}
+{% end %}
 ```
 
 ### anchor
@@ -627,10 +627,10 @@ Get relative URL for a page without generating a full link.
 ```kida
 <a href="{{ relref('docs/api') }}" class="btn">API Docs</a>
 
-{% set api_url = relref('docs/api') %}
+{% let api_url = relref('docs/api') %}
 {% if api_url %}
   <link rel="preload" href="{{ api_url }}" as="document">
-{% endif %}
+{% end %}
 ```
 
 **Parameters**:
@@ -655,10 +655,10 @@ Get relative URL for a page without generating a full link.
 </a>
 
 {# Preload for performance #}
-{% set api_url = relref('docs/api') %}
+{% let api_url = relref('docs/api') %}
 {% if api_url %}
   <link rel="preload" href="{{ api_url }}" as="document">
-{% endif %}
+{% end %}
 
 {# OpenGraph meta tag #}
 <meta property="og:url" content="{{ site.baseurl }}{{ relref('docs/getting-started') }}">
@@ -732,10 +732,10 @@ Get the current page's language code.
 
 {% if current_lang() == 'fr' %}
   {# French-specific content #}
-{% endif %}
+{% end %}
 
 {# Use in conditional logic #}
-{% set is_english = current_lang() == 'en' %}
+{% let is_english = current_lang() == 'en' %}
 ```
 
 **Returns:** Language code string (e.g., `"en"`, `"fr"`) or `None`
@@ -749,10 +749,10 @@ Get list of all configured languages.
 <nav class="language-switcher">
   {% for lang in languages() %}
     <a href="/{{ lang.code }}/"
-       {% if lang.code == current_lang() %}class="active"{% endif %}>
+       {% if lang.code == current_lang() %}class="active"{% end %}>
       {{ lang.name }}
     </a>
-  {% endfor %}
+  {% end %}
 </nav>
 ```
 
@@ -770,7 +770,7 @@ Generate hreflang links for SEO.
 {# In <head> #}
 {% for alt in alternate_links(page) %}
   <link rel="alternate" hreflang="{{ alt.hreflang }}" href="{{ alt.href }}">
-{% endfor %}
+{% end %}
 ```
 
 **Output:**
@@ -866,7 +866,7 @@ Calculate days since a date. Useful for freshness indicators.
 {# Conditional styling #}
 {% if page.date | days_ago < 7 %}
 <span class="badge badge-new">New</span>
-{% endif %}
+{% end %}
 ```
 
 ### months_ago
@@ -876,7 +876,7 @@ Calculate calendar months since a date.
 ```kida
 {% if page.date | months_ago > 6 %}
 <div class="notice">This content may be outdated.</div>
-{% endif %}
+{% end %}
 ```
 
 ### month_name
@@ -957,18 +957,18 @@ Access structured author information from frontmatter.
 <div class="author">
   {% if page.author.avatar %}
   <img src="{{ page.author.avatar }}" alt="{{ page.author.name }}">
-  {% endif %}
+  {% end %}
   <span>{{ page.author.name }}</span>
   {% if page.author.twitter %}
   <a href="https://twitter.com/{{ page.author.twitter }}">@{{ page.author.twitter }}</a>
-  {% endif %}
+  {% end %}
 </div>
-{% endif %}
+{% end %}
 
 {# Multiple authors #}
 {% for author in page.authors %}
 <span class="author">{{ author.name }}</span>
-{% endfor %}
+{% end %}
 ```
 
 **Author fields:** `name`, `email`, `bio`, `avatar`, `url`, `twitter`, `github`, `linkedin`, `mastodon`, `social` (dict)
@@ -985,13 +985,13 @@ For multi-part content like tutorials.
 
   {% if page.prev_in_series %}
   <a href="{{ page.prev_in_series.href }}">← {{ page.prev_in_series.title }}</a>
-  {% endif %}
+  {% end %}
 
   {% if page.next_in_series %}
   <a href="{{ page.next_in_series.href }}">{{ page.next_in_series.title }} →</a>
-  {% endif %}
+  {% end %}
 </nav>
-{% endif %}
+{% end %}
 ```
 
 **Series frontmatter:**
@@ -1012,7 +1012,7 @@ Content age as computed properties.
 <span class="badge">New</span>
 {% elif page.age_months > 6 %}
 <div class="notice">This article is {{ page.age_months }} months old.</div>
-{% endif %}
+{% end %}
 ```
 
 ---
@@ -1039,7 +1039,7 @@ Get featured pages from a section.
 <article class="featured">
   <h2>{{ post.title }}</h2>
 </article>
-{% endfor %}
+{% end %}
 ```
 
 ### Section Statistics

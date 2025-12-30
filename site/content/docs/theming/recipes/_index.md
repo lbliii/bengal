@@ -8,12 +8,12 @@ lang: en
 tags:
 - cookbook
 - templates
-- jinja
+- kida
 - examples
 keywords:
 - cookbook
 - templates
-- jinja
+- kida
 - examples
 - bengal
 category: guide
@@ -58,21 +58,21 @@ Add features to individual pages.
 
 ### The Essentials
 
-```jinja2
+```kida
 {# Get pages from a section #}
-{% set posts = site.pages | where('section', 'blog') %}
+{% let posts = site.pages |> where('section', 'blog') %}
 
 {# Sort by date, newest first #}
-{% set recent = posts | sort_by('date', reverse=true) %}
+{% let recent = posts |> sort_by('date', reverse=true) %}
 
 {# Limit to 5 #}
-{% set latest = recent | limit(5) %}
+{% let latest = recent |> limit(5) %}
 
 {# Or chain it all #}
-{% set latest = site.pages
-  | where('section', 'blog')
-  | sort_by('date', reverse=true)
-  | limit(5) %}
+{% let latest = site.pages
+  |> where('section', 'blog')
+  |> sort_by('date', reverse=true)
+  |> limit(5) %}
 ```
 
 ### Common Filters

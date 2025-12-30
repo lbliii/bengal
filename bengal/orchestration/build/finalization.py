@@ -40,7 +40,6 @@ def phase_postprocess(
         incremental: Whether this is an incremental build
         collector: Optional output collector for hot reload tracking
     """
-    # Note: parallel parameter kept for backward compatibility but always False
     # Post-processing doesn't use parallel processing
     with orchestrator.logger.phase("postprocessing", parallel=False):
         postprocess_start = time.time()

@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING, Any
 
 from bengal.errors import BengalRenderingError
 from bengal.rendering.engines.errors import TemplateError, TemplateNotFoundError
-from bengal.rendering.engines.protocol import TemplateEngineProtocol
+from bengal.rendering.engines.protocol import EngineCapability, TemplateEngineProtocol
 from bengal.rendering.kida import Environment
 from bengal.rendering.kida.bytecode_cache import BytecodeCache
 from bengal.rendering.kida.environment import (
@@ -475,6 +475,34 @@ class KidaTemplateEngine:
                 )
 
         return errors
+
+    # =========================================================================
+    # ENGINE CAPABILITIES
+    # =========================================================================
+
+    @property
+    def capabilities(self) -> EngineCapability:
+        """
+        Return Kida engine capabilities.
+
+        Kida supports all advanced features:
+        - Block caching for efficient re-rendering
+        - Block-level change detection for incremental builds
+        - Template introspection for dependency analysis
+        - Pipeline operators (|>) for functional transformations
+        - Pattern matching (match/case) in templates
+        """
+        return (
+            EngineCapability.BLOCK_CACHING
+            | EngineCapability.BLOCK_LEVEL_DETECTION
+            | EngineCapability.INTROSPECTION
+            | EngineCapability.PIPELINE_OPERATORS
+            | EngineCapability.PATTERN_MATCHING
+        )
+
+    def has_capability(self, cap: EngineCapability) -> bool:
+        """Check if Kida has a specific capability."""
+        return cap in self.capabilities
 
     # =========================================================================
     # TEMPLATE INTROSPECTION

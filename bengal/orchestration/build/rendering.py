@@ -314,18 +314,14 @@ def _log_template_introspection(orchestrator: BuildOrchestrator, verbose: bool) 
     if not verbose:
         return
 
-    # Only works with Kida engine
-    template_engine = orchestrator.site.config.get("template_engine", "jinja2")
-    if template_engine != "kida":
-        return
-
     try:
+        from bengal.rendering.engines.protocol import EngineCapability
         from bengal.rendering.template_engine import get_engine
 
         engine = get_engine(orchestrator.site)
 
-        # Check if this is a Kida engine with introspection
-        if not hasattr(engine, "get_cacheable_blocks"):
+        # Check if engine supports introspection via capability detection
+        if not engine.has_capability(EngineCapability.INTROSPECTION):
             return
 
         # Analyze key templates

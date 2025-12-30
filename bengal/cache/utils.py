@@ -8,7 +8,7 @@ Functions:
     clear_build_cache: Remove the main build cache (.bengal/cache.json.zst)
         to force file fingerprint recalculation on next build.
 
-    clear_template_cache: Remove Jinja2 bytecode cache (.bengal/templates/)
+    clear_template_cache: Remove template bytecode cache (.bengal/templates/)
         to force template recompilation.
 
     clear_output_directory: Remove the entire output directory (public/)
@@ -106,7 +106,7 @@ def clear_build_cache(site_root_path: str | Path, logger: BengalLogger | None = 
 
 def clear_template_cache(site_root_path: str | Path, logger: BengalLogger | None = None) -> bool:
     """
-    Clear Jinja2 bytecode template cache.
+    Clear template bytecode cache.
 
     Useful when:
     - Template files change but bytecode cache is stale

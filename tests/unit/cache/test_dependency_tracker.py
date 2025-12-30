@@ -66,7 +66,8 @@ class TestDependencyTracker:
         # Check dependency was recorded
         assert str(page) in cache.dependencies
         assert str(template) in cache.dependencies[str(page)]
-        # Check template hash was recorded
+        # Check template hash was recorded (must flush deferred updates first)
+        tracker.flush_pending_updates()
         assert str(template) in cache.file_fingerprints
 
     def test_track_partial(self, tmp_path):

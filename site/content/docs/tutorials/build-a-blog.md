@@ -227,7 +227,7 @@ Create `templates/base.html`. We will extend the default theme and inject our ch
 {# Inject our custom CSS into the head #}
 {% block extra_head %}
 <link rel="stylesheet" href="{{ asset_url('css/custom.css') }}">
-{% endblock %}
+{% end %}
 
 {# Add a custom footer after the main content #}
 {% block footer %}
@@ -237,7 +237,7 @@ Create `templates/base.html`. We will extend the default theme and inject our ch
         Built with <a href="https://bengal.dev">Bengal</a>.
     </p>
 </footer>
-{% endblock %}
+{% end %}
 ```
 
 Check your browser. The header color should change (if the theme uses the `--primary-color` variable), and your custom footer should appear.

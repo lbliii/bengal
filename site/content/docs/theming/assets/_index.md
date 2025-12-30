@@ -61,7 +61,7 @@ fingerprint = true   # main.css → main.a1b2c3.css
 :::
 
 :::{tab-item} Template Usage
-```jinja2
+```kida
 {# Basic asset URL (function syntax) #}
 <link rel="stylesheet" href="{{ asset_url('css/main.css') }}">
 
@@ -74,11 +74,11 @@ fingerprint = true   # main.css → main.a1b2c3.css
 :::
 
 :::{tab-item} Page Bundle Assets
-```jinja
+```kida
 {# Access assets co-located with current page #}
 {% for image in page.resources.match("*.jpg") %}
   <img src="{{ image.url }}" alt="{{ image.title }}">
-{% endfor %}
+{% end %}
 ```
 :::
 :::{/tab-set}

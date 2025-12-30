@@ -169,7 +169,7 @@ class BuildOrchestrator:
         nav_changed_sources = options.nav_changed_sources or None
         structural_changed = options.structural_changed
 
-        # Extract phase callbacks (RFC: rfc-dashboard-api-integration)
+        # Extract phase callbacks
         on_phase_start = options.on_phase_start
         on_phase_complete = options.on_phase_complete
 
@@ -244,8 +244,6 @@ class BuildOrchestrator:
             collector.start_build()
 
         # Initialize stats (incremental may be None, resolve later)
-        # parallel will be computed dynamically in rendering phase based on force_sequential and should_parallelize()
-        # For now, set to False - will be updated when we know the actual execution mode
         self.stats = BuildStats(parallel=False, incremental=bool(incremental))
         self.stats.strict_mode = strict
 
@@ -290,7 +288,6 @@ class BuildOrchestrator:
         self.site.build_time = datetime.now()
 
         # Create fresh BuildState for this build
-        # See: plan/drafted/rfc-site-responsibility-separation.md
         build_state = BuildState(
             build_time=self.site.build_time,
             incremental=bool(incremental),
@@ -340,7 +337,6 @@ class BuildOrchestrator:
 
         # Create output collector for hot reload tracking
         # This collector tracks all written files (HTML, CSS, assets) for typed reload decisions.
-        # See: plan/ready/rfc-build-output-tracking.md
         output_collector = BuildOutputCollector(output_dir=self.site.output_dir)
 
         # Phase 1: Font Processing
@@ -435,7 +431,6 @@ class BuildOrchestrator:
         )
 
         # Phase 12.5: URL Collision Detection (proactive validation)
-        # See: plan/drafted/rfc-url-collision-detection.md
         collisions = self.site.validate_no_url_collisions(strict=options.strict)
         if collisions:
             for msg in collisions:
@@ -554,7 +549,6 @@ class BuildOrchestrator:
         finalization.phase_finalize(self, verbose, collector)
 
         # Clear build state (build complete)
-        # See: plan/drafted/rfc-site-responsibility-separation.md
         self.site.set_build_state(None)
 
         return self.stats

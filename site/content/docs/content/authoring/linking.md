@@ -275,7 +275,7 @@ Use template functions in Jinja2 templates for dynamic link generation.
 
 Generate a cross-reference link:
 
-```jinja2
+```kida
 {{ ref('docs/getting-started') }}
 {{ ref('docs/getting-started', 'Get Started') }}
 {{ ref('id:install-guide') }}
@@ -292,12 +292,12 @@ Generate a cross-reference link:
 
 Get a page object for custom link generation:
 
-```jinja2
-{% set page = doc('docs/getting-started') %}
+```kida
+{% let page = doc('docs/getting-started') %}
 {% if page %}
   <a href="{{ page.url }}">{{ page.title }}</a>
   <p>{{ page.description }}</p>
-{% endif %}
+{% end %}
 ```
 
 **Returns**: `Page` object or `None`
@@ -311,7 +311,7 @@ Get a page object for custom link generation:
 
 Link to a heading:
 
-```jinja2
+```kida
 {{ anchor('Installation') }}
 {{ anchor('Configuration', 'docs/getting-started') }}
 ```
@@ -331,13 +331,13 @@ Link to a heading:
 
 Get relative URL without generating a link:
 
-```jinja2
+```kida
 <a href="{{ relref('docs/api') }}" class="btn">API Docs</a>
 
-{% set api_url = relref('docs/api') %}
+{% let api_url = relref('docs/api') %}
 {% if api_url %}
   <link rel="preload" href="{{ api_url }}" as="document">
-{% endif %}
+{% end %}
 ```
 
 **Returns**: URL string or empty string if not found
@@ -452,7 +452,7 @@ All linking methods use O(1) lookups from pre-built indexes:
 
 ### Navigation Menu
 
-```jinja2
+```kida
 <nav>
   {% for item in site.menus.main %}
     <a href="{{ item.url }}">{{ item.name }}</a>
@@ -472,8 +472,8 @@ All linking methods use O(1) lookups from pre-built indexes:
 
 ### Dynamic Related Pages
 
-```jinja2
-{% set related = site.pages | where('tags', page.tags, 'in') | limit(5) %}
+```kida
+{% let related = site.pages | where('tags', page.tags, 'in') | limit(5) %}
 {% if related %}
   <h2>Related Pages</h2>
   <ul>
@@ -481,7 +481,7 @@ All linking methods use O(1) lookups from pre-built indexes:
       <li>{{ ref(page.path) }}</li>
     {% endfor %}
   </ul>
-{% endif %}
+{% end %}
 ```
 
 ### Table of Contents

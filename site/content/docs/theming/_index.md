@@ -8,7 +8,7 @@ icon: palette
 ---
 # Design & Theming
 
-Control how your site looks with Jinja2 templates, CSS/JS assets, and theme packages.
+Control how your site looks with Kida templates, CSS/JS assets, and theme packages.
 
 ## What Do You Need?
 
@@ -30,7 +30,7 @@ flowchart TB
 
     subgraph "Template Engine"
         D[Select Layout]
-        E[Render Jinja2]
+        E[Render Templates]
         F[Process Assets]
     end
 

@@ -5,6 +5,9 @@ from bengal.rendering.template_functions.urls import (
     ensure_trailing_slash,
     url_decode,
     url_encode,
+    url_param,
+    url_parse,
+    url_query,
 )
 
 
@@ -126,3 +129,100 @@ class TestEnsureTrailingSlash:
         # Ensure trailing slash is added to path
         result = ensure_trailing_slash("https://example.com/page")
         assert result == "https://example.com/page/"
+
+
+class TestUrlParse:
+    """Tests for url_parse filter."""
+
+    def test_full_url(self):
+        result = url_parse("https://example.com/path?q=test#section")
+        assert result["scheme"] == "https"
+        assert result["host"] == "example.com"
+        assert result["path"] == "/path"
+        assert result["query"] == "q=test"
+        assert result["fragment"] == "section"
+        assert result["params"]["q"] == ["test"]
+
+    def test_url_with_multiple_params(self):
+        result = url_parse("https://example.com/search?q=test&page=2&sort=date")
+        assert result["params"]["q"] == ["test"]
+        assert result["params"]["page"] == ["2"]
+        assert result["params"]["sort"] == ["date"]
+
+    def test_relative_url(self):
+        result = url_parse("/docs/guide?version=2")
+        assert result["scheme"] == ""
+        assert result["host"] == ""
+        assert result["path"] == "/docs/guide"
+        assert result["params"]["version"] == ["2"]
+
+    def test_empty_url(self):
+        result = url_parse("")
+        assert result["scheme"] == ""
+        assert result["host"] == ""
+        assert result["path"] == ""
+
+    def test_none_url(self):
+        result = url_parse(None)
+        assert result["scheme"] == ""
+        assert result["params"] == {}
+
+    def test_url_without_query(self):
+        result = url_parse("https://example.com/path")
+        assert result["params"] == {}
+        assert result["query"] == ""
+
+
+class TestUrlParam:
+    """Tests for url_param filter."""
+
+    def test_extract_param(self):
+        result = url_param("https://example.com?page=2", "page")
+        assert result == "2"
+
+    def test_extract_first_value(self):
+        result = url_param("https://example.com?tag=a&tag=b", "tag")
+        assert result == "a"
+
+    def test_missing_param_default(self):
+        result = url_param("https://example.com?page=2", "sort", "date")
+        assert result == "date"
+
+    def test_missing_param_empty(self):
+        result = url_param("https://example.com?page=2", "sort")
+        assert result == ""
+
+    def test_empty_url(self):
+        result = url_param("", "page", "1")
+        assert result == "1"
+
+    def test_none_url(self):
+        result = url_param(None, "page", "1")
+        assert result == "1"
+
+
+class TestUrlQuery:
+    """Tests for url_query filter."""
+
+    def test_simple_dict(self):
+        result = url_query({"q": "test", "page": 1})
+        # Order may vary, so check both params are present
+        assert "q=test" in result
+        assert "page=1" in result
+
+    def test_list_value(self):
+        result = url_query({"tags": ["a", "b"]})
+        assert "tags=a" in result
+        assert "tags=b" in result
+
+    def test_special_characters(self):
+        result = url_query({"q": "hello world"})
+        assert "q=hello+world" in result or "q=hello%20world" in result
+
+    def test_empty_dict(self):
+        result = url_query({})
+        assert result == ""
+
+    def test_none_dict(self):
+        result = url_query(None)
+        assert result == ""

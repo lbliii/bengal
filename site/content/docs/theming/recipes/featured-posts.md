@@ -44,20 +44,20 @@ featured: true
 
 ### Template Code
 
-```jinja2
-{% set featured = section.featured_posts %}
+```kida
+{% let featured = section.featured_posts %}
 
 {% if featured %}
 <section class="featured-posts">
   <h2>Featured</h2>
-  {% for post in featured | limit(3) %}
+  {% for post in featured |> limit(3) %}
   <article class="featured-card">
     <h3><a href="{{ post.href }}">{{ post.title }}</a></h3>
     <p>{{ post.description }}</p>
   </article>
-  {% endfor %}
+  {% end %}
 </section>
-{% endif %}
+{% end %}
 ```
 
 ## What's Happening
@@ -74,14 +74,14 @@ featured: true
 
 Single featured post as hero:
 
-```jinja2
-{% set hero = section.featured_posts | first %}
+```kida
+{% let hero = section.featured_posts |> first %}
 
 {% if hero %}
 <header class="hero">
   {% if hero.metadata.cover_image %}
   <img src="{{ hero.metadata.cover_image }}" alt="">
-  {% endif %}
+  {% end %}
   <div class="hero-content">
     <span class="label">Featured</span>
     <h1><a href="{{ hero.href }}">{{ hero.title }}</a></h1>
@@ -89,16 +89,16 @@ Single featured post as hero:
     <a href="{{ hero.href }}" class="btn">Read More</a>
   </div>
 </header>
-{% endif %}
+{% end %}
 ```
 
 :::{/tab-item}
 :::{tab-item} Sidebar + Main
 
-```jinja2
-{% set all_posts = section.sorted_pages %}
-{% set featured = section.featured_posts | limit(3) %}
-{% set regular = all_posts | complement(featured) | limit(10) %}
+```kida
+{% let all_posts = section.sorted_pages %}
+{% let featured = section.featured_posts |> limit(3) %}
+{% let regular = all_posts |> complement(featured) |> limit(10) %}
 
 <div class="posts-layout">
   <aside class="featured-sidebar">
@@ -107,7 +107,7 @@ Single featured post as hero:
     <article class="featured-item">
       <a href="{{ post.href }}">{{ post.title }}</a>
     </article>
-    {% endfor %}
+    {% end %}
   </aside>
 
   <main class="posts-main">
@@ -116,7 +116,7 @@ Single featured post as hero:
       <h2><a href="{{ post.href }}">{{ post.title }}</a></h2>
       <p>{{ post.excerpt }}</p>
     </article>
-    {% endfor %}
+    {% end %}
   </main>
 </div>
 ```
@@ -124,35 +124,35 @@ Single featured post as hero:
 :::{/tab-item}
 :::{tab-item} Badge in Lists
 
-```jinja2
+```kida
 {% for post in section.sorted_pages %}
-<article class="{% if post.metadata.featured %}is-featured{% endif %}">
+<article class="{% if post.metadata.featured %}is-featured{% end %}">
   {% if post.metadata.featured %}
   <span class="badge">⭐ Featured</span>
-  {% endif %}
+  {% end %}
   <h2><a href="{{ post.href }}">{{ post.title }}</a></h2>
 </article>
-{% endfor %}
+{% end %}
 ```
 
 :::{/tab-item}
 :::{tab-item} Image Grid
 
-```jinja2
-{% set featured = section.featured_posts | limit(4) %}
+```kida
+{% let featured = section.featured_posts |> limit(4) %}
 
 <div class="featured-grid">
   {% for post in featured %}
   <article class="grid-item">
     {% if post.metadata.cover_image %}
     <img src="{{ post.metadata.cover_image }}" alt="">
-    {% endif %}
+    {% end %}
     <div class="content">
       <h3><a href="{{ post.href }}">{{ post.title }}</a></h3>
       <time>{{ post.date | date('%B %d, %Y') }}</time>
     </div>
   </article>
-  {% endfor %}
+  {% end %}
 </div>
 ```
 
@@ -161,8 +161,8 @@ Single featured post as hero:
 
 Get featured posts from any section:
 
-```jinja2
-{% set all_featured = site.pages | where('metadata.featured', true) | limit(5) %}
+```kida
+{% let all_featured = site.pages |> where('metadata.featured', true) |> limit(5) %}
 
 <section class="site-featured">
   <h2>Editor's Picks</h2>
@@ -171,7 +171,7 @@ Get featured posts from any section:
     <span class="section-name">{{ post.section }}</span>
     {{ post.title }}
   </a>
-  {% endfor %}
+  {% end %}
 </section>
 ```
 
@@ -187,8 +187,8 @@ featured_priority: 1  # Lower = higher priority
 ---
 ```
 
-```jinja2
-{% set featured = section.featured_posts | sort_by('metadata.featured_priority') %}
+```kida
+{% let featured = section.featured_posts |> sort_by('metadata.featured_priority') %}
 ```
 
 :::{/tab-item}
@@ -196,10 +196,10 @@ featured_priority: 1  # Lower = higher priority
 
 Show different featured posts based on day:
 
-```jinja2
-{% set featured = section.featured_posts %}
-{% set today_index = now().timetuple().tm_yday % (featured | length) %}
-{% set todays_featured = featured[today_index] %}
+```kida
+{% let featured = section.featured_posts %}
+{% let today_index = now().timetuple().tm_yday % (featured | length) %}
+{% let todays_featured = featured[today_index] %}
 
 <aside class="daily-pick">
   <h3>Today's Pick</h3>

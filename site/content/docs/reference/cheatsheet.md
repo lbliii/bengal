@@ -206,13 +206,13 @@ no_format: true                        # Skip HTML formatting
 ### List Pages in Section
 
 ```kida
-{% for page in section.pages | sort(attribute='date', reverse=true) %}
+{% for page in section.pages |> sort_by('date', reverse=true) %}
   <article>
     <h2><a href="{{ page.url }}">{{ page.title }}</a></h2>
     <time>{{ page.date | date('%B %d, %Y') }}</time>
     <p>{{ page.summary }}</p>
   </article>
-{% endfor %}
+{% end %}
 ```
 
 ### Render Tags
@@ -220,7 +220,7 @@ no_format: true                        # Skip HTML formatting
 ```kida
 {% for tag in page.tags %}
   <a href="/tags/{{ tag | slugify }}/" class="tag">{{ tag }}</a>
-{% endfor %}
+{% end %}
 ```
 
 ### Conditional Content
@@ -228,11 +228,11 @@ no_format: true                        # Skip HTML formatting
 ```kida
 {% if page.draft %}
   <div class="draft-banner">⚠️ Draft</div>
-{% endif %}
+{% end %}
 
 {% if page.toc %}
   <nav class="toc">{{ page.toc }}</nav>
-{% endif %}
+{% end %}
 ```
 
 ### Include Partials
@@ -247,12 +247,12 @@ no_format: true                        # Skip HTML formatting
 
 ```kida
 <nav>
-  {% for item in site.menus.main | sort(attribute='weight') %}
+  {% for item in site.menus.main |> sort_by('weight') %}
     <a href="{{ item.url }}"
-       {% if page.url == item.url %}class="active"{% endif %}>
+       {% if page.url == item.url %}class="active"{% end %}>
       {{ item.name }}
     </a>
-  {% endfor %}
+  {% end %}
 </nav>
 ```
 
@@ -264,7 +264,7 @@ no_format: true                        # Skip HTML formatting
   {% for ancestor in page.ancestors %}
     <span>/</span>
     <a href="{{ ancestor.url }}">{{ ancestor.title }}</a>
-  {% endfor %}
+  {% end %}
   <span>/</span>
   <span>{{ page.title }}</span>
 </nav>
@@ -336,7 +336,7 @@ minify = true
 fingerprint = true
 
 [markdown]
-parser = "mistune"
+parser = "patitas"  # Recommended (thread-safe, O(n))
 table_of_contents = true
 gfm = true
 
@@ -392,7 +392,7 @@ weight = 2
 {{ list | length }}                   {# Count items #}
 {{ list | first }}                    {# First item #}
 {{ list | last }}                     {# Last item #}
-{{ list | sort(attribute='date') }}   {# Sort by attribute #}
+{{ list |> sort_by('date') }}   {# Sort by attribute #}
 {{ list | reverse }}                  {# Reverse order #}
 {{ list | join(', ') }}               {# Join with comma #}
 {{ path | asset_url }}                {# Fingerprinted URL #}

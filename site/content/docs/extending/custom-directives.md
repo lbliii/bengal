@@ -157,7 +157,7 @@ Convert the token to HTML:
 ```python
 def render(
     self,
-    renderer: Any,   # Mistune renderer (for rendering children)
+    renderer: Any,   # Patitas renderer (for rendering children)
     text: str,       # Pre-rendered HTML of children
     **attrs: Any,    # Attributes from parse_directive
 ) -> str:
@@ -245,7 +245,7 @@ Usage:
 
 ## Registration
 
-Custom directives must be registered with the Mistune parser. The standard approach is to add them to the directive factory, but for project-specific directives, you can create a custom parser configuration.
+Custom directives must be registered with the Patitas parser. The standard approach is to add them to the directive factory, but for project-specific directives, you can create a custom parser configuration.
 
 :::{note}
 A plugin system for registering custom directives without modifying Bengal source code is planned for a future release. For now, directives must be added to the Bengal codebase or used via a fork.

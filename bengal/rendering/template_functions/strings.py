@@ -1,7 +1,7 @@
 """
 String manipulation functions for templates.
 
-Provides 14 essential string functions for text processing in templates.
+Provides essential string functions for text processing in templates.
 
 Many of these functions are now thin wrappers around bengal.utils.text utilities
 to avoid code duplication and ensure consistency.
@@ -9,6 +9,7 @@ to avoid code duplication and ensure consistency.
 
 from __future__ import annotations
 
+import base64
 import re
 from typing import TYPE_CHECKING, Any
 
@@ -33,6 +34,7 @@ def register(env: Environment, site: Site) -> None:
             "slugify": slugify,
             "markdownify": markdownify,
             "strip_html": strip_html,
+            "plainify": strip_html,  # Hugo compatibility alias
             "truncate_chars": truncate_chars,
             "replace_regex": replace_regex,
             "pluralize": pluralize,
@@ -45,6 +47,8 @@ def register(env: Environment, site: Site) -> None:
             "first_sentence": first_sentence,
             "filesize": filesize,
             "split": split_string,
+            "base64_encode": base64_encode,
+            "base64_decode": base64_decode,
         }
     )
 
@@ -663,3 +667,48 @@ def filesize(size_bytes: int) -> str:
         {{ page.content | length | filesize }}
     """
     return text_utils.humanize_bytes(size_bytes)
+
+
+def base64_encode(text: str | None) -> str:
+    """
+    Encode text as Base64.
+
+    Args:
+        text: Text to encode
+
+    Returns:
+        Base64 encoded string
+
+    Example:
+        {{ "hello" | base64_encode }}  # "aGVsbG8="
+        {{ small_image | base64_encode }}  # For data URLs
+    """
+    if not text:
+        return ""
+
+    try:
+        return base64.b64encode(text.encode("utf-8")).decode("ascii")
+    except Exception:
+        return ""
+
+
+def base64_decode(text: str | None) -> str:
+    """
+    Decode Base64 text.
+
+    Args:
+        text: Base64 encoded string
+
+    Returns:
+        Decoded text, or empty string on error
+
+    Example:
+        {{ "aGVsbG8=" | base64_decode }}  # "hello"
+    """
+    if not text:
+        return ""
+
+    try:
+        return base64.b64decode(text).decode("utf-8")
+    except Exception:
+        return ""

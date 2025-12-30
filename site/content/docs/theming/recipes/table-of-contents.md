@@ -23,13 +23,13 @@ Bengal automatically generates a table of contents from page headings. Access it
 
 ## The Pattern
 
-```jinja2
+```kida
 {% if page.toc %}
 <nav class="toc" aria-label="On this page">
   <h2>On this page</h2>
   {{ page.toc | safe }}
 </nav>
-{% endif %}
+{% end %}
 ```
 
 That's it. Bengal parses headings and generates nested HTML lists.
@@ -65,16 +65,16 @@ toc: false
 
 Then in template:
 
-```jinja2
+```kida
 {% if page.toc and page.metadata.toc != false %}
   {{ page.toc | safe }}
-{% endif %}
+{% end %}
 ```
 
 :::{/tab-item}
 :::{tab-item} Article Layout
 
-```jinja2
+```kida
 <div class="article-layout">
   <aside class="sidebar">
     {% if page.toc %}
@@ -82,7 +82,7 @@ Then in template:
       <h2>On this page</h2>
       {{ page.toc | safe }}
     </nav>
-    {% endif %}
+    {% end %}
   </aside>
 
   <main>
@@ -95,13 +95,13 @@ Then in template:
 :::{/tab-item}
 :::{tab-item} Conditional by Section
 
-```jinja2
+```kida
 {# Only show TOC for docs section #}
 {% if page.section == 'docs' and page.toc %}
   <nav class="toc">
     {{ page.toc | safe }}
   </nav>
-{% endif %}
+{% end %}
 ```
 
 :::{/tab-item}

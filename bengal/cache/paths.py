@@ -21,7 +21,7 @@ Directory Structure:
     ├── server.pid           # Dev server PID
     ├── asset-manifest.json  # Asset manifest
     ├── indexes/             # Query indexes (section, author, etc.)
-    ├── templates/           # Jinja bytecode cache
+    ├── templates/           # Template bytecode cache
     ├── content_cache/       # Remote content cache
     ├── logs/                # Build/serve logs
     ├── metrics/             # Performance metrics
@@ -131,7 +131,7 @@ class BengalPaths:
 
     @property
     def templates_dir(self) -> Path:
-        """Jinja bytecode cache directory (.bengal/templates/)."""
+        """Template bytecode cache directory (.bengal/templates/)."""
         return self.state_dir / "templates"
 
     # =========================================================================

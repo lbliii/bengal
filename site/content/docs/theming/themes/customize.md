@@ -85,7 +85,7 @@ default_appearance = "light"
 You don't need to copy all templates. Override only what you need:
 
 **`themes/my-custom-theme/templates/base.html`:**
-```jinja2
+```kida
 {# Extend default theme's base template #}
 {% extends "default/base.html" %}
 
@@ -96,10 +96,10 @@ You don't need to copy all templates. Override only what you need:
     <nav>
         {% for item in menu.main %}
         <a href="{{ item.href }}">{{ item.name }}</a>
-        {% endfor %}
+        {% end %}
     </nav>
 </header>
-{% endblock %}
+{% end %}
 
 {# Everything else inherits from default theme #}
 ```
@@ -109,7 +109,7 @@ You don't need to copy all templates. Override only what you need:
 Override specific partials:
 
 **`themes/my-custom-theme/templates/partials/footer.html`:**
-```jinja2
+```kida
 <footer class="custom-footer">
     <p>&copy; {{ site.author }} {{ "now" | date("%Y") }}</p>
     <p>Custom footer content</p>
@@ -146,7 +146,7 @@ To customize the hero for API documentation pages:
 
 **For element pages (modules, classes, functions, commands):**
 
-```jinja2
+```kida
 {# themes/my-theme/templates/partials/page-hero/element.html #}
 {% include 'partials/page-hero/_wrapper.html' %}
 
@@ -167,21 +167,21 @@ To customize the hero for API documentation pages:
 
 **For section-index pages:**
 
-```jinja2
+```kida
 {# themes/my-theme/templates/partials/page-hero/section.html #}
-{% set is_cli = hero_context.is_cli %}
+{% let is_cli = hero_context.is_cli %}
 
 {% include 'partials/page-hero/_wrapper.html' %}
 
   <h1 class="page-hero__title">{{ section.title }}</h1>
 
   {# Section description - safe access returns empty string if missing #}
-  {% set desc = section.metadata.description %}
+  {% let desc = section.metadata.description %}
   {% if desc %}
   <div class="page-hero__description">
     {{ desc | markdownify | safe }}
   </div>
-  {% endif %}
+  {% end %}
 
 </div>
 ```
@@ -190,9 +190,9 @@ To customize the hero for API documentation pages:
 
 For CLI reference sections, pass explicit context to avoid URL sniffing:
 
-```jinja2
+```kida
 {# In autodoc/cli/section-index.html #}
-{% set hero_context = {'is_cli': true} %}
+{% let hero_context = {'is_cli': true} %}
 {% include 'partials/page-hero/section.html' %}
 ```
 
@@ -238,12 +238,12 @@ Create your own CSS file that overrides theme styles:
 Include in your base template:
 
 **`themes/my-custom-theme/templates/base.html`:**
-```jinja2
+```kida
 {% extends "default/base.html" %}
 
 {% block extra_head %}
 <link rel="stylesheet" href="{{ asset_url('css/custom.css') }}">
-{% endblock %}
+{% end %}
 ```
 
 ### Method 2: Use CSS Variables
@@ -264,25 +264,25 @@ Many themes support CSS variables. Override them:
 
 Themes can expose configuration options:
 
-**`themes/my-custom-theme/theme.yaml`:**
-```yaml
-name: my-custom-theme
-version: 1.0.0
-description: Customizable theme
+**`themes/my-custom-theme/theme.toml`:**
+```toml
+name = "my-custom-theme"
+version = "1.0.0"
+description = "Customizable theme"
 
-params:
-  show_author: true
-  show_date: true
-  sidebar_position: left
-  color_scheme: light
+[params]
+show_author = true
+show_date = true
+sidebar_position = "left"
+color_scheme = "light"
 ```
 
 Access in templates:
 
-```jinja2
+```kida
 {% if theme.config.params.show_author %}
 <p>By {{ page.author or site.author }}</p>
-{% endif %}
+{% end %}
 ```
 
 Configure in `bengal.toml`:
@@ -317,15 +317,15 @@ bengal new theme my-theme
 ### Use Theme Inheritance
 
 ✅ **Good:**
-```jinja2
+```kida
 {% extends "default/base.html" %}
 {% block header %}
   {# Only override header #}
-{% endblock %}
+{% end %}
 ```
 
 ❌ **Bad:**
-```jinja2
+```kida
 {# Copying entire base.html #}
 <!DOCTYPE html>
 <html>
@@ -342,7 +342,7 @@ bengal new theme my-theme
 
 **Solutions:**
 - Verify theme directory exists: `themes/my-theme/`
-- Check `theme.yaml` has correct `name` field
+- Check `theme.toml` has correct `name` field
 - Run `bengal utils theme list` to see available themes
 :::
 
@@ -374,12 +374,12 @@ Bengal provides a pre-computed navigation tree for efficient template rendering.
 
 ### Basic Usage
 
-```jinja2
+```kida
 <nav class="sidebar">
   {% for item in get_nav_tree(page) %}
     <a href="{{ item.href }}"
-       {% if item.is_current %}class="active"{% endif %}
-       {% if item.is_in_trail %}class="in-trail"{% endif %}>
+       {% if item.is_current %}class="active"{% end %}
+       {% if item.is_in_trail %}class="in-trail"{% end %}>
       {{ item.title }}
     </a>
 
@@ -391,7 +391,7 @@ Bengal provides a pre-computed navigation tree for efficient template rendering.
           </li>
         {% endfor %}
       </ul>
-    {% endif %}
+    {% end %}
   {% endfor %}
 </nav>
 ```
@@ -418,8 +418,8 @@ Each navigation node provides:
 
 For section-specific navigation (e.g., docs-only sidebar):
 
-```jinja2
-{% set root = page._section.root if page._section else none %}
+```kida
+{% let root = page._section.root if page._section else none %}
 {% for item in get_nav_tree(page, root_section=root) %}
   <a href="{{ item.href }}">{{ item.title }}</a>
 {% endfor %}

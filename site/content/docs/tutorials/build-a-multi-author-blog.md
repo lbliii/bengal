@@ -131,7 +131,7 @@ Create a reusable author byline partial at `templates/partials/author-byline.htm
   <div class="author-avatar-placeholder">
     {{ page.author.name[0] }}
   </div>
-  {% endif %}
+  {% end %}
 
   <div class="author-info">
     <a href="/authors/{{ page.author.name | slugify }}/" class="author-name">
@@ -140,7 +140,7 @@ Create a reusable author byline partial at `templates/partials/author-byline.htm
 
     {% if page.author.bio %}
     <p class="author-bio">{{ page.author.bio }}</p>
-    {% endif %}
+    {% end %}
 
     <div class="author-meta">
       <time datetime="{{ page.date | date_iso }}">
@@ -156,23 +156,23 @@ Create a reusable author byline partial at `templates/partials/author-byline.htm
          aria-label="Twitter">
         <svg class="icon"><use href="#icon-twitter"></use></svg>
       </a>
-      {% endif %}
+      {% end %}
       {% if page.author.github %}
       <a href="https://github.com/{{ page.author.github }}"
          aria-label="GitHub">
         <svg class="icon"><use href="#icon-github"></use></svg>
       </a>
-      {% endif %}
+      {% end %}
       {% if page.author.linkedin %}
       <a href="https://linkedin.com/in/{{ page.author.linkedin }}"
          aria-label="LinkedIn">
         <svg class="icon"><use href="#icon-linkedin"></use></svg>
       </a>
-      {% endif %}
+      {% end %}
     </div>
   </div>
 </div>
-{% endif %}
+{% end %}
 ```
 
 Add matching styles in `assets/css/author.css`:
@@ -260,7 +260,7 @@ Include the byline in your blog post template (`templates/blog/single.html`):
   <h1>{{ page.title }}</h1>
   {% include "partials/author-byline.html" %}
 </header>
-{% endblock %}
+{% end %}
 ```
 :::{/step}
 
@@ -317,29 +317,29 @@ Create the author page template at `templates/authors/single.html`:
     <img src="{{ page.metadata.avatar }}"
          alt="{{ page.title }}"
          class="author-profile-avatar">
-    {% endif %}
+    {% end %}
 
     <div class="author-header-info">
       <h1>{{ page.title }}</h1>
 
       {% if page.metadata.location %}
       <p class="author-location">📍 {{ page.metadata.location }}</p>
-      {% endif %}
+      {% end %}
 
       {% if page.metadata.bio %}
       <p class="author-bio-long">{{ page.metadata.bio }}</p>
-      {% endif %}
+      {% end %}
 
       <div class="author-links">
         {% if page.metadata.website %}
         <a href="{{ page.metadata.website }}">Website</a>
-        {% endif %}
+        {% end %}
         {% if page.metadata.twitter %}
         <a href="https://twitter.com/{{ page.metadata.twitter }}">Twitter</a>
-        {% endif %}
+        {% end %}
         {% if page.metadata.github %}
         <a href="https://github.com/{{ page.metadata.github }}">GitHub</a>
-        {% endif %}
+        {% end %}
       </div>
     </div>
   </header>
@@ -351,7 +351,7 @@ Create the author page template at `templates/authors/single.html`:
   <section class="author-posts">
     <h2>Posts by {{ page.title }}</h2>
 
-    {% set author_posts = site.pages
+    {% let author_posts = site.pages
       | where('author.name', page.title)
       | sort_by('date', reverse=true) %}
 
@@ -362,14 +362,14 @@ Create the author page template at `templates/authors/single.html`:
         <a href="{{ post.href }}">{{ post.title }}</a>
         <time>{{ post.date | date('%B %d, %Y') }}</time>
       </li>
-      {% endfor %}
+      {% end %}
     </ul>
     {% else %}
     <p>No posts yet.</p>
-    {% endif %}
+    {% end %}
   </section>
 </article>
-{% endblock %}
+{% end %}
 ```
 
 Add styles to `assets/css/author.css`:
@@ -474,7 +474,7 @@ Create the listing template at `templates/authors/list.html`:
     <h1>{{ page.title }}</h1>
     {% if page.description %}
     <p class="lead">{{ page.description }}</p>
-    {% endif %}
+    {% end %}
   </header>
 
   <div class="authors-grid">
@@ -488,21 +488,21 @@ Create the listing template at `templates/authors/list.html`:
       <div class="author-card-avatar-placeholder">
         {{ author.title[0] }}
       </div>
-      {% endif %}
+      {% end %}
 
       <h2>{{ author.title }}</h2>
 
       {% if author.metadata.bio %}
       <p>{{ author.metadata.bio | truncate(100) }}</p>
-      {% endif %}
+      {% end %}
 
-      {% set post_count = site.pages | where('author.name', author.title) | length %}
+      {% let post_count = site.pages | where('author.name', author.title) | length %}
       <span class="author-post-count">{{ post_count }} posts</span>
     </a>
-    {% endfor %}
+    {% end %}
   </div>
 </div>
-{% endblock %}
+{% end %}
 ```
 
 Add grid styles:
@@ -587,10 +587,10 @@ Update your byline partial to handle multiple authors:
     <a href="/authors/{{ author.name | slugify }}/" class="author-chip">
       {% if author.avatar %}
       <img src="{{ author.avatar }}" alt="{{ author.name }}">
-      {% endif %}
+      {% end %}
       <span>{{ author.name }}</span>
     </a>
-    {% endfor %}
+    {% end %}
   </div>
 
   <div class="post-meta">
@@ -604,7 +604,7 @@ Update your byline partial to handle multiple authors:
 <div class="author-byline">
   {# ... existing single author code ... #}
 </div>
-{% endif %}
+{% end %}
 ```
 
 Add styles for author chips:

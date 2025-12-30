@@ -83,18 +83,18 @@ Replace O(n) page filtering with O(1) index lookups in templates.
 
 ### The Problem
 
-```jinja2
+```kida
 {# O(n) - scans ALL pages on every request #}
-{% set blog_posts = site.pages | where('section', 'blog') %}
+{% let blog_posts = site.pages | where('section', 'blog') %}
 ```
 
 On a 10K page site, this filter runs 10,000 comparisons.
 
 ### The Solution
 
-```jinja2
+```kida
 {# O(1) - instant hash lookup #}
-{% set blog_posts = site.indexes.section.get('blog') | resolve_pages %}
+{% let blog_posts = site.indexes.section.get('blog') | resolve_pages %}
 ```
 
 ### Built-in Indexes
@@ -110,27 +110,27 @@ On a 10K page site, this filter runs 10,000 comparisons.
 
 **Section-based listing:**
 
-```jinja2
-{% set blog_posts = site.indexes.section.get('blog') | resolve_pages %}
+```kida
+{% let blog_posts = site.indexes.section.get('blog') | resolve_pages %}
 {% for post in blog_posts | sort_by('date', reverse=true) %}
   <h2>{{ post.title }}</h2>
-{% endfor %}
+{% end %}
 ```
 
 **Author archive:**
 
-```jinja2
-{% set author_posts = site.indexes.author.get('Jane Smith') | resolve_pages %}
+```kida
+{% let author_posts = site.indexes.author.get('Jane Smith') | resolve_pages %}
 <p>{{ author_posts | length }} posts by Jane</p>
 ```
 
 **Monthly archives:**
 
-```jinja2
-{% set jan_posts = site.indexes.date_range.get('2024-01') | resolve_pages %}
+```kida
+{% let jan_posts = site.indexes.date_range.get('2024-01') | resolve_pages %}
 {% for post in jan_posts %}
   {{ post.title }}
-{% endfor %}
+{% end %}
 ```
 
 ### Performance Impact
@@ -286,7 +286,7 @@ pagination:
 
 Move rarely-accessed content to separate pages:
 
-```jinja2
+```kida
 {# Don't: render full changelog inline #}
 {{ include('changelog.html') }}
 

@@ -9,11 +9,11 @@ Key Concepts:
     - Caches TOC and structured TOC items
     - Optionally caches true AST for parse-once, use-many patterns
     - Validates against metadata, template, and parser version
+    - Uses content hash for dependency validation
 
 Related Modules:
     - bengal.cache.build_cache.core: Main BuildCache class
     - bengal.rendering.pipeline: Markdown parsing pipeline
-    - plan/active/rfc-content-ast-architecture.md: AST caching RFC
 """
 
 from __future__ import annotations
@@ -23,11 +23,14 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from bengal.utils.hashing import hash_str
+from bengal.utils.hashing import hash_file, hash_str
+from bengal.utils.logger import get_logger
 from bengal.utils.sentinel import MISSING
 
 if TYPE_CHECKING:
     pass
+
+logger = get_logger(__name__)
 
 
 class ParsedContentCacheMixin:
@@ -65,13 +68,6 @@ class ParsedContentCacheMixin:
 
         This allows skipping markdown parsing when only templates change,
         resulting in 20-30% faster builds in that scenario.
-
-        Phase 3 Enhancement (RFC-content-ast-architecture):
-        - Also caches the true AST for parse-once, use-many patterns
-        - AST enables faster TOC/link extraction and plain text generation
-
-        RFC: rfc-incremental-hot-reload-invariants Phase 3:
-        - Also caches nav_metadata_hash for fine-grained section index change detection
 
         Args:
             file_path: Path to source file
@@ -113,7 +109,7 @@ class ParsedContentCacheMixin:
             "links": links or [],
             "ast": ast,  # Phase 3: Store true AST tokens
             "metadata_hash": metadata_hash,
-            "nav_metadata_hash": nav_metadata_hash,  # RFC: incremental-hot-reload-invariants
+            "nav_metadata_hash": nav_metadata_hash,
             "template": template,
             "parser_version": parser_version,
             "timestamp": datetime.now().isoformat(),
@@ -126,12 +122,15 @@ class ParsedContentCacheMixin:
         """
         Get cached parsed content if valid (Optimization #2).
 
+        Uses content hash for dependency validation instead of mtime-first check.
+        This prevents false invalidations when files are touched but not modified.
+
         Validates that:
         1. Content file hasn't changed (via file_fingerprints)
         2. Metadata hasn't changed (via metadata_hash)
         3. Template hasn't changed (via template name)
         4. Parser version matches (avoid incompatibilities)
-        5. Template file hasn't changed (via dependencies)
+        5. Template file content hasn't changed (via content hash comparison)
 
         Args:
             file_path: Path to source file
@@ -167,13 +166,54 @@ class ParsedContentCacheMixin:
         if cached.get("parser_version") != parser_version:
             return MISSING
 
-        # Validate template file hasn't changed (via dependencies)
-        # Check if any of the page's dependencies (templates) have changed
+        # Validate dependencies using content hash (not mtime).
+        # This prevents false invalidations when files are touched but not modified.
         if key in self.dependencies:
             for dep_path in self.dependencies[key]:
                 dep = Path(dep_path)
-                if dep.exists() and self.is_changed(dep):
-                    # Template file changed - invalidate cache
+                if not dep.exists():
+                    continue
+
+                # Get cached fingerprint for this dependency
+                cached_fp = self.file_fingerprints.get(dep_path)
+                if not cached_fp:
+                    # Dependency not tracked - treat as changed
+                    logger.debug(
+                        "dependency_not_tracked",
+                        page=key,
+                        dependency=dep_path,
+                    )
+                    return MISSING
+
+                cached_hash = cached_fp.get("hash")
+                if not cached_hash:
+                    # No hash stored - treat as changed
+                    logger.debug(
+                        "dependency_no_hash",
+                        page=key,
+                        dependency=dep_path,
+                    )
+                    return MISSING
+
+                # Compare content hashes (immune to mtime drift)
+                try:
+                    current_hash = hash_file(dep)
+                    if current_hash != cached_hash:
+                        logger.debug(
+                            "dependency_changed",
+                            page=key,
+                            dependency=dep_path,
+                            cached_hash=cached_hash[:8],
+                            current_hash=current_hash[:8],
+                        )
+                        return MISSING
+                except (OSError, FileNotFoundError) as e:
+                    logger.debug(
+                        "dependency_hash_failed",
+                        page=key,
+                        dependency=dep_path,
+                        error=str(e),
+                    )
                     return MISSING
 
         return cached

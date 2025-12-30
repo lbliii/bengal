@@ -155,22 +155,65 @@ class DependencyTracker:
         # repeatedly during a build. This tracker is shared across threads, so use
         # the existing lock for atomic check-and-add.
         self._dependency_files_updated: set[Path] = set()
+        # Queue fingerprint updates during build, apply atomically after build completes.
+        # This prevents mid-build state drift and false positives in subsequent builds.
+        self._pending_fingerprint_updates: set[Path] = set()
 
     def _update_dependency_file_once(self, path: Path) -> None:
         """
-        Update a dependency file in the cache at most once per build.
+        Queue fingerprint update for post-build application.
+
+        Fingerprints are queued during the build and applied atomically
+        in flush_pending_updates() to prevent mid-build state drift.
 
         `BuildCache.update_file()` can be expensive (stat + hash), and template rendering
         may reference the same partials hundreds/thousands of times across pages.
+        This method ensures each file is only queued once per build.
         """
-        should_update = False
         with self.lock:
             if path not in self._dependency_files_updated:
                 self._dependency_files_updated.add(path)
-                should_update = True
+                self._pending_fingerprint_updates.add(path)
 
-        if should_update:
-            self.cache.update_file(path)
+    def flush_pending_updates(self) -> None:
+        """
+        Apply all pending fingerprint updates.
+
+        Call this in CacheManager.save() after all build operations complete.
+        This ensures fingerprints reflect post-build state, not mid-build state,
+        preventing false positives in subsequent builds.
+
+        Thread Safety:
+            Uses existing lock for atomic batch update.
+        """
+        with self.lock:
+            pending = self._pending_fingerprint_updates.copy()
+            self._pending_fingerprint_updates.clear()
+
+        updated_count = 0
+        for path in pending:
+            if path.exists():
+                self.cache.update_file(path)
+                updated_count += 1
+
+        if pending:
+            logger.debug(
+                "fingerprint_flush",
+                queued=len(pending),
+                updated=updated_count,
+                skipped=len(pending) - updated_count,
+            )
+
+    def reset_pending_updates(self) -> None:
+        """
+        Clear pending updates without applying them.
+
+        Use this when a build fails and you don't want to persist
+        partial fingerprint updates.
+        """
+        with self.lock:
+            self._pending_fingerprint_updates.clear()
+            self._dependency_files_updated.clear()
 
     def _hash_config(self) -> str:
         """Hash config for invalidation."""
@@ -192,7 +235,7 @@ class DependencyTracker:
             page_path: Path to the page being processed
         """
         self.current_page.value = page_path
-        # NOTE: Do NOT update file hash here - that would invalidate the cache
+        # Do NOT update file hash here - that would invalidate the cache
         # check that happens immediately after. File hashes are updated in
         # IncrementalOrchestrator.save_cache() AFTER successful rendering.
 
@@ -272,8 +315,6 @@ class DependencyTracker:
         When the target page in another version changes, the source page
         should be rebuilt to update the cross-version link.
 
-        RFC: rfc-versioned-docs-pipeline-integration (Phase 2)
-
         Args:
             source_page: Path to the page containing the cross-version link
             target_version: Version ID being linked to (e.g., "v2")
@@ -315,8 +356,6 @@ class DependencyTracker:
 
         When a page in version X changes, this method returns all pages
         that have cross-version links pointing to that page (from any version).
-
-        RFC: rfc-versioned-docs-pipeline-integration (Phase 2)
 
         Args:
             changed_version: Version ID of the changed page (e.g., "v2")

@@ -84,6 +84,46 @@ _thread_local = threading.local()
 _build_generation: int = 0
 _generation_lock = threading.Lock()
 
+# Active render tracking (RFC: Cache Lifecycle Hardening - Phase 4)
+# Prevents cache invalidation during active render operations
+_active_render_count: int = 0
+_active_render_lock = threading.Lock()
+
+
+def _increment_active_renders() -> None:
+    """
+    Increment active render count (call at render start).
+
+    RFC: Cache Lifecycle Hardening - Phase 4
+    Thread-safe counter for tracking active render operations.
+    """
+    global _active_render_count
+    with _active_render_lock:
+        _active_render_count += 1
+
+
+def _decrement_active_renders() -> None:
+    """
+    Decrement active render count (call at render end).
+
+    RFC: Cache Lifecycle Hardening - Phase 4
+    Thread-safe counter for tracking active render operations.
+    """
+    global _active_render_count
+    with _active_render_lock:
+        _active_render_count -= 1
+
+
+def get_active_render_count() -> int:
+    """
+    Get current active render count (for debugging/testing).
+
+    Returns:
+        Number of active render operations
+    """
+    with _active_render_lock:
+        return _active_render_count
+
 
 def clear_thread_local_pipelines() -> None:
     """
@@ -96,8 +136,24 @@ def clear_thread_local_pipelines() -> None:
 
     This works by incrementing a global generation counter. Worker threads
     check this counter and recreate their pipelines when it changes.
+
+    RFC: Cache Lifecycle Hardening - Phase 4
+    Warning: Should not be called while renders are active. If called during
+    active renders, logs a warning but proceeds (defensive behavior).
     """
     global _build_generation
+
+    # Check for active renders (RFC: Cache Lifecycle Hardening)
+    with _active_render_lock:
+        if _active_render_count > 0:
+            logger.warning(
+                "clear_pipelines_during_active_render",
+                active_count=_active_render_count,
+                hint="This may cause inconsistent render results",
+            )
+            # In strict mode, could raise RuntimeError here
+            # For now, log warning and proceed (defensive)
+
     with _generation_lock:
         _build_generation += 1
 
@@ -106,6 +162,24 @@ def _get_current_generation() -> int:
     """Get the current build generation (thread-safe)."""
     with _generation_lock:
         return _build_generation
+
+
+# Register thread-local pipeline cache with centralized cache registry
+try:
+    from bengal.utils.cache_registry import InvalidationReason, register_cache
+
+    register_cache(
+        "thread_local_pipelines",
+        clear_thread_local_pipelines,
+        invalidate_on={
+            InvalidationReason.TEMPLATE_CHANGE,
+            InvalidationReason.FULL_REBUILD,
+            InvalidationReason.TEST_CLEANUP,
+        },
+    )
+except ImportError:
+    # Cache registry not available (shouldn't happen in normal usage)
+    pass
 
 
 class RenderOrchestrator:
@@ -169,20 +243,16 @@ class RenderOrchestrator:
 
         RFC: kida-template-introspection
         """
-        # Only for Kida engine
-        template_engine = self.site.config.get("template_engine", "jinja2")
-        if template_engine != "kida":
-            return
-
         try:
             from bengal.rendering.block_cache import BlockCache
             from bengal.rendering.context import get_engine_globals
             from bengal.rendering.engines import create_engine
+            from bengal.rendering.engines.protocol import EngineCapability
 
             engine = create_engine(self.site)
 
-            # Check if this is a Kida engine with introspection support
-            if not hasattr(engine, "get_cacheable_blocks"):
+            # Check if engine supports block caching via capability detection
+            if not engine.has_capability(EngineCapability.BLOCK_CACHING):
                 return
 
             # Initialize block cache
@@ -260,16 +330,50 @@ class RenderOrchestrator:
             stats: Build statistics tracker
             progress_manager: Live progress manager (optional)
         """
+        # Track active render for cache lifecycle management (RFC: Phase 4)
+        _increment_active_renders()
+
+        try:
+            self._process_impl(
+                pages=pages,
+                parallel=parallel,
+                quiet=quiet,
+                tracker=tracker,
+                stats=stats,
+                progress_manager=progress_manager,
+                reporter=reporter,
+                build_context=build_context,
+                changed_sources=changed_sources,
+            )
+        finally:
+            _decrement_active_renders()
+
+    def _process_impl(
+        self,
+        pages: list[Page],
+        parallel: bool,
+        quiet: bool,
+        tracker: DependencyTracker | None,
+        stats: BuildStats | None,
+        progress_manager: ProgressManagerProtocol | None,
+        reporter: ProgressReporter | None,
+        build_context: BuildContext | None,
+        changed_sources: set[Path] | None,
+    ) -> None:
+        """
+        Internal implementation of process() wrapped with render tracking.
+        """
         # Clear stale thread-local pipelines from previous builds.
         # CRITICAL: Without this, template changes may not be reflected because
         # the old Jinja2 environment with its internal cache would be reused.
         clear_thread_local_pipelines()
 
-        # Clear global context cache to ensure fresh wrappers for this build
-        # (SiteContext, ConfigContext, ThemeContext, MenusContext are cached per-site)
-        from bengal.rendering.context import clear_global_context_cache
+        # Use centralized cache registry for build-start invalidation
+        # This replaces manual clear_global_context_cache() call and ensures
+        # all BUILD_START caches are invalidated in correct order
+        from bengal.utils.cache_registry import InvalidationReason, invalidate_for_reason
 
-        clear_global_context_cache()
+        invalidate_for_reason(InvalidationReason.BUILD_START)
 
         # Warm block cache before parallel rendering (Kida only)
         self._warm_block_cache()
@@ -282,13 +386,10 @@ class RenderOrchestrator:
         ):
             progress_manager = build_context.progress_manager
 
-        # Initialize write-behind I/O for sequential builds (RFC: rfc-path-to-200-pgs Phase III)
+        # Initialize write-behind I/O for sequential builds
         # Overlaps I/O with CPU rendering - only beneficial for sequential builds.
         # For parallel builds, each worker already writes independently (better parallelism).
         write_behind = None
-        # Compute parallel mode: use should_parallelize() unless parallel=False was explicitly passed
-        # Note: parallel parameter is now computed from force_sequential in phase_render,
-        # so this should always be a boolean (True/False), not None
         use_parallel = parallel  # Already computed in phase_render based on force_sequential
         if not use_parallel and build_context:
             from bengal.rendering.pipeline.write_behind import WriteBehindCollector
@@ -298,8 +399,6 @@ class RenderOrchestrator:
             logger.debug("write_behind_enabled", reason="sequential_build")
 
         # PRE-PROCESS: Set output paths for pages being rendered
-        # Note: This only sets paths for pages we're actually rendering.
-        # Other pages should already have paths from previous builds or will get them when needed.
         self._set_output_paths_for_pages(pages)
 
         try:

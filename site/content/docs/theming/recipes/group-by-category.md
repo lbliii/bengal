@@ -22,21 +22,21 @@ Display content organized by category, tag, or any frontmatter field.
 
 ## The Pattern
 
-```jinja2
-{% set by_category = site.pages
-  | where('section', 'docs')
-  | group_by('category') %}
+```kida
+{% let by_category = site.pages
+  |> where('section', 'docs')
+  |> group_by('category') %}
 
-{% for category, pages in by_category.items() | sort %}
+{% for category, pages in by_category.items() |> sort %}
 <section>
   <h2>{{ category | title }}</h2>
   <ul>
-  {% for page in pages | sort_by('weight') %}
+  {% for page in pages |> sort_by('weight') %}
     <li><a href="{{ page.href }}">{{ page.title }}</a></li>
-  {% endfor %}
+  {% end %}
   </ul>
 </section>
-{% endfor %}
+{% end %}
 ```
 
 ## What's Happening
@@ -53,52 +53,52 @@ Display content organized by category, tag, or any frontmatter field.
 :::{tab-set}
 :::{tab-item} By Year
 
-```jinja2
+```kida
 {# Group blog posts by publication year #}
-{% set posts = site.pages | where('section', 'blog') | sort_by('date', reverse=true) %}
+{% let posts = site.pages |> where('section', 'blog') |> sort_by('date', reverse=true) %}
 
-{% set current_year = none %}
+{% let current_year = none %}
 {% for post in posts %}
-  {% set post_year = post.date.year %}
+  {% let post_year = post.date.year %}
   {% if post_year != current_year %}
-    {% set current_year = post_year %}
+    {% let current_year = post_year %}
     <h2>{{ post_year }}</h2>
-  {% endif %}
+  {% end %}
   <li><a href="{{ post.href }}">{{ post.title }}</a></li>
-{% endfor %}
+{% end %}
 ```
 
 :::{/tab-item}
 :::{tab-item} By Tag (Taxonomy)
 
-```jinja2
+```kida
 {# Show all tags with their post counts #}
-{% for tag, data in site.taxonomies.tags.items() | sort %}
+{% for tag, data in site.taxonomies.tags.items() |> sort %}
 <div class="tag">
   <a href="{{ data.href }}">{{ tag }}</a>
   <span class="count">{{ data.pages | length }}</span>
 </div>
-{% endfor %}
+{% end %}
 ```
 
 :::{/tab-item}
 :::{tab-item} Nested Groups
 
-```jinja2
+```kida
 {# Group by category, then by author #}
-{% set by_category = site.pages | group_by('category') %}
+{% let by_category = site.pages |> group_by('category') %}
 
 {% for category, cat_pages in by_category.items() %}
   <h2>{{ category }}</h2>
 
-  {% set by_author = cat_pages | group_by('author') %}
+  {% let by_author = cat_pages |> group_by('author') %}
   {% for author, author_pages in by_author.items() %}
     <h3>{{ author }}</h3>
     {% for page in author_pages %}
       <li>{{ page.title }}</li>
-    {% endfor %}
-  {% endfor %}
-{% endfor %}
+    {% end %}
+  {% end %}
+{% end %}
 ```
 
 :::{/tab-item}
@@ -108,17 +108,17 @@ Display content organized by category, tag, or any frontmatter field.
 
 Pages without the grouped field go into a `None` group:
 
-```jinja2
-{% set by_category = pages | group_by('category') %}
+```kida
+{% let by_category = pages |> group_by('category') %}
 
 {% for category, pages in by_category.items() %}
   {% if category %}
     <h2>{{ category }}</h2>
   {% else %}
     <h2>Uncategorized</h2>
-  {% endif %}
+  {% end %}
   {# ... #}
-{% endfor %}
+{% end %}
 ```
 
 :::{seealso}

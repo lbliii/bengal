@@ -254,10 +254,10 @@ Menu data is available to all themes via `site.menus`:
     <ul>
     {% for child in item.children %}
       <li><a href="{{ child.url }}">{{ child.name }}</a></li>
-    {% endfor %}
+    {% end %}
     </ul>
-  {% endif %}
-{% endfor %}
+  {% end %}
+{% end %}
 ```
 
 ### Menu Item Properties (Core)
@@ -284,5 +284,5 @@ To render non-clickable dropdown triggers (like the default theme does):
   <span class="dropdown-trigger">{{ item.name }}</span>
 {% else %}
   <a href="{{ item.href }}">{{ item.name }}</a>
-{% endif %}
+{% end %}
 ```

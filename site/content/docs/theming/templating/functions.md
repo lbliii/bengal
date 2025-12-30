@@ -24,24 +24,24 @@ Bengal provides 80+ template functions and filters organized by category.
 
 ### Filter Pages
 
-```jinja2
-{% set posts = site.pages
-  | where('type', 'blog')
-  | where('draft', false)
-  | sort_by('date', reverse=true)
-  | limit(10) %}
+```kida
+{% let posts = site.pages
+  |> where('type', 'blog')
+  |> where('draft', false)
+  |> sort_by('date', reverse=true)
+  |> limit(10) %}
 ```
 
 ### Build Navigation
 
-```jinja2
-{% set docs = get_section('docs') %}
-{% set crumbs = breadcrumbs(page) %}
+```kida
+{% let docs = get_section('docs') %}
+{% let crumbs = breadcrumbs(page) %}
 ```
 
 ### Cross-Reference
 
-```jinja2
+```kida
 {{ ref('docs/getting-started') }}
 {{ ref('docs/api', 'API Reference') }}
 ```
