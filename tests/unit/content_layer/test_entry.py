@@ -16,7 +16,7 @@ class TestContentEntry:
         entry = ContentEntry(
             id="test.md",
             slug="test",
-            _raw_content="# Hello World",
+            content="# Hello World",
             frontmatter={"title": "Test Page"},
             source_type="local",
             source_name="docs",
@@ -34,7 +34,7 @@ class TestContentEntry:
         entry = ContentEntry(
             id="test.md",
             slug="test-page",
-            _raw_content="content",
+            content="content",
             frontmatter={"title": "My Custom Title"},
         )
 
@@ -45,7 +45,7 @@ class TestContentEntry:
         entry = ContentEntry(
             id="test.md",
             slug="my-test-page",
-            _raw_content="content",
+            content="content",
             frontmatter={},
         )
 
@@ -56,7 +56,7 @@ class TestContentEntry:
         entry = ContentEntry(
             id="test.md",
             slug="test",
-            _raw_content="content",
+            content="content",
             source_type="local",
         )
 
@@ -67,7 +67,7 @@ class TestContentEntry:
         entry = ContentEntry(
             id="test.md",
             slug="test",
-            _raw_content="content",
+            content="content",
             source_type="github",
         )
 
@@ -76,14 +76,14 @@ class TestContentEntry:
     def test_is_cached(self) -> None:
         """Test is_cached property."""
         # Not cached
-        entry1 = ContentEntry(id="1.md", slug="1", _raw_content="")
+        entry1 = ContentEntry(id="1.md", slug="1", content="")
         assert not entry1.is_cached
 
         # Cached
         entry2 = ContentEntry(
             id="2.md",
             slug="2",
-            _raw_content="",
+            content="",
             cached_path=Path("/tmp/cache/2.md"),
             cached_at=datetime.now(),
         )
@@ -96,7 +96,7 @@ class TestContentEntry:
         original = ContentEntry(
             id="test.md",
             slug="test",
-            _raw_content="# Test",
+            content="# Test",
             frontmatter={"title": "Test", "tags": ["a", "b"]},
             source_type="github",
             source_name="docs",
@@ -124,7 +124,7 @@ class TestContentEntry:
         entry = ContentEntry(
             id="test.md",
             slug="test-page",
-            _raw_content="# Content",
+            content="# Content",
             frontmatter={"title": "Test"},
             source_type="github",
             source_url="https://github.com/org/repo",
