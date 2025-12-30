@@ -1,41 +1,38 @@
 {
   "name": "bengal-syntax-highlighter",
-  "displayName": "Bengal SSG Syntax Highlighter",
-  "description": "Syntax highlighting for Bengal SSG markdown directives including tabs, admonitions, and dropdowns",
-  "version": "1.0.0",
-  "publisher": "bengal-ssg",
-  "author": {
-    "name": "Bengal SSG Team"
-  },
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/yourusername/bengal"
-  },
+  "displayName": "Bengal Syntax Highlighter",
+  "description": "Syntax highlighting for Bengal documentation framework and Kida templating engine",
+  "version": "1.2.0",
+  "publisher": "bengal",
   "engines": {
-    "vscode": "^1.74.0"
+    "vscode": "^1.60.0"
   },
   "categories": [
     "Programming Languages"
   ],
-  "keywords": [
-    "bengal",
-    "ssg",
-    "markdown",
-    "syntax",
-    "highlighting",
-    "directives",
-    "tabs",
-    "admonitions"
-  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bengal/bengal-syntax-highlighter"
+  },
   "contributes": {
+    "languages": [
+      {
+        "id": "kida",
+        "aliases": ["Kida", "kida"],
+        "extensions": [".kida"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
     "grammars": [
       {
         "scopeName": "markdown.bengal.injection",
         "path": "./syntaxes/bengal.tmLanguage.json",
-        "injectTo": [
-          "text.html.markdown"
-        ]
+        "injectTo": ["text.html.markdown"]
+      },
+      {
+        "language": "kida",
+        "scopeName": "source.kida",
+        "path": "./syntaxes/kida.tmLanguage.json"
       }
     ]
   }

@@ -1,10 +1,25 @@
 # Bengal SSG Syntax Highlighter
 
-A Visual Studio Code extension that provides beautiful syntax highlighting for Bengal SSG markdown directives.
+A Visual Studio Code extension that provides beautiful syntax highlighting for Bengal SSG markdown directives and **Kida template syntax**.
 
 ## ✨ Features
 
 This extension enhances your Bengal markdown files with syntax highlighting for:
+
+### Kida Template Syntax (v1.1.0)
+
+- **Template tags**: `{% if %}`, `{% for %}`, `{% let %}`, `{% match %}`, `{% end %}`
+- **Variable output**: `{{ page.title }}`
+- **Comments**: `{# comment #}`
+- **Kida-specific operators**:
+  - `??` (null coalescing)
+  - `?.` (optional chaining)
+  - `|>` (pipeline operator)
+  - `|` (filter operator)
+- **Keywords**: `if`, `for`, `in`, `let`, `match`, `case`, `end`, `extends`, `block`, etc.
+- **Constants**: `true`, `false`, `none`, `null`
+
+### Bengal Directives
 
 - **Tabs directive** with prominent `### Tab:` markers
 - **Admonitions** (note, tip, warning, danger, error, info, example, success, caution)
@@ -48,7 +63,7 @@ Structure is immediately obvious!
 2. Install the generated `.vsix` file:
    ```bash
    # In VS Code or Cursor
-   code --install-extension bengal-syntax-highlighter-1.0.0.vsix
+   code --install-extension bengal-syntax-highlighter-1.1.0.vsix
    ```
 
    Or use VS Code UI:
@@ -66,6 +81,34 @@ Structure is immediately obvious!
 3. Open any `.md` file with Bengal directives
 
 ## 🎨 What Gets Highlighted
+
+### Kida Templates
+
+In markdown code blocks with `kida` language:
+
+````markdown
+```kida
+{% let
+    _site_title = config?.title ?? 'Untitled Site',
+    _page_title = page?.title ?? config?.title ?? 'Page' %}
+
+{{ _page_title }}
+
+{% for post in posts |> where('draft', false) |> sort('date') %}
+  <h2>{{ post.title }}</h2>
+{% end %}
+```
+````
+
+Highlighted elements:
+- `{% %}` tags in **purple** (punctuation)
+- `let`, `for`, `in`, `end` keywords in **pink/red**
+- `??` null coalescing in **operator color** (cyan/blue)
+- `?.` optional chaining in **operator color**
+- `|>` pipeline in **operator color**
+- `'strings'` in **green**
+- `config`, `page` variables in **normal text**
+- Function calls like `where()` in **yellow**
 
 ### Tabs Directive
 
@@ -168,8 +211,10 @@ To debug scopes:
 ```
 bengal-syntax-highlighter/
 ├── package.json                    # Extension manifest
+├── language-configuration.json     # Kida language config
 ├── syntaxes/
-│   └── bengal.tmLanguage.json     # TextMate grammar
+│   ├── bengal.tmLanguage.json     # Bengal markdown injection
+│   └── kida.tmLanguage.json       # Kida template grammar
 ├── examples/
 │   └── test.md                    # Test file
 └── README.md                      # This file

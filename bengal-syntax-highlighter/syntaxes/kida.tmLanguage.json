@@ -1,0 +1,233 @@
+{
+    "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+    "scopeName": "source.kida",
+    "name": "Kida",
+    "fileTypes": [
+        "kida",
+        "html"
+    ],
+    "patterns": [
+        {
+            "include": "#kida-template-tag"
+        },
+        {
+            "include": "#kida-variable-output"
+        },
+        {
+            "include": "#kida-comment"
+        },
+        {
+            "include": "text.html.basic"
+        }
+    ],
+    "repository": {
+        "kida-template-tag": {
+            "patterns": [
+                {
+                    "name": "meta.tag.template.kida",
+                    "begin": "(\\{%)(-)?",
+                    "end": "(-)?(%\\})",
+                    "beginCaptures": {
+                        "1": {
+                            "name": "punctuation.definition.tag.begin.kida"
+                        },
+                        "2": {
+                            "name": "keyword.operator.whitespace.kida"
+                        }
+                    },
+                    "endCaptures": {
+                        "1": {
+                            "name": "keyword.operator.whitespace.kida"
+                        },
+                        "2": {
+                            "name": "punctuation.definition.tag.end.kida"
+                        }
+                    },
+                    "patterns": [
+                        {
+                            "include": "#kida-keywords"
+                        },
+                        {
+                            "include": "#kida-operators"
+                        },
+                        {
+                            "include": "#kida-strings"
+                        },
+                        {
+                            "include": "#kida-numbers"
+                        },
+                        {
+                            "include": "#kida-constants"
+                        },
+                        {
+                            "include": "#kida-functions"
+                        },
+                        {
+                            "include": "#kida-identifiers"
+                        }
+                    ]
+                }
+            ]
+        },
+        "kida-variable-output": {
+            "patterns": [
+                {
+                    "name": "meta.variable.output.kida",
+                    "begin": "(\\{\\{)(-)?",
+                    "end": "(-)?(\\}\\})",
+                    "beginCaptures": {
+                        "1": {
+                            "name": "punctuation.definition.variable.begin.kida"
+                        },
+                        "2": {
+                            "name": "keyword.operator.whitespace.kida"
+                        }
+                    },
+                    "endCaptures": {
+                        "1": {
+                            "name": "keyword.operator.whitespace.kida"
+                        },
+                        "2": {
+                            "name": "punctuation.definition.variable.end.kida"
+                        }
+                    },
+                    "patterns": [
+                        {
+                            "include": "#kida-operators"
+                        },
+                        {
+                            "include": "#kida-strings"
+                        },
+                        {
+                            "include": "#kida-numbers"
+                        },
+                        {
+                            "include": "#kida-constants"
+                        },
+                        {
+                            "include": "#kida-functions"
+                        },
+                        {
+                            "include": "#kida-identifiers"
+                        }
+                    ]
+                }
+            ]
+        },
+        "kida-comment": {
+            "patterns": [
+                {
+                    "name": "comment.block.kida",
+                    "begin": "\\{#",
+                    "end": "#\\}"
+                }
+            ]
+        },
+        "kida-keywords": {
+            "patterns": [
+                {
+                    "name": "keyword.control.kida",
+                    "match": "\\b(if|elif|else|for|in|end|match|case|while|break|continue|extends|block|include|import|from|as|with|macro|def|call|filter|let|export|cache|spaceless|autoescape|raw|capture)\\b"
+                },
+                {
+                    "name": "keyword.operator.logical.kida",
+                    "match": "\\b(and|or|not|is|in)\\b"
+                }
+            ]
+        },
+        "kida-operators": {
+            "patterns": [
+                {
+                    "name": "keyword.operator.nullcoalesce.kida",
+                    "match": "\\?\\?"
+                },
+                {
+                    "name": "keyword.operator.optionalchain.kida",
+                    "match": "\\?\\."
+                },
+                {
+                    "name": "keyword.operator.pipeline.kida",
+                    "match": "\\|>"
+                },
+                {
+                    "name": "keyword.operator.filter.kida",
+                    "match": "\\|(?!>)"
+                },
+                {
+                    "name": "keyword.operator.comparison.kida",
+                    "match": "==|!=|<=|>=|<|>"
+                },
+                {
+                    "name": "keyword.operator.assignment.kida",
+                    "match": "="
+                },
+                {
+                    "name": "keyword.operator.arithmetic.kida",
+                    "match": "\\+|-|\\*|/|%|\\*\\*|//"
+                },
+                {
+                    "name": "keyword.operator.string.kida",
+                    "match": "~"
+                }
+            ]
+        },
+        "kida-strings": {
+            "patterns": [
+                {
+                    "name": "string.quoted.double.kida",
+                    "begin": "\"",
+                    "end": "\"",
+                    "patterns": [
+                        {
+                            "name": "constant.character.escape.kida",
+                            "match": "\\\\."
+                        }
+                    ]
+                },
+                {
+                    "name": "string.quoted.single.kida",
+                    "begin": "'",
+                    "end": "'",
+                    "patterns": [
+                        {
+                            "name": "constant.character.escape.kida",
+                            "match": "\\\\."
+                        }
+                    ]
+                }
+            ]
+        },
+        "kida-numbers": {
+            "patterns": [
+                {
+                    "name": "constant.numeric.kida",
+                    "match": "\\b\\d+(\\.\\d+)?\\b"
+                }
+            ]
+        },
+        "kida-constants": {
+            "patterns": [
+                {
+                    "name": "constant.language.kida",
+                    "match": "\\b(true|false|True|False|none|None|null)\\b"
+                }
+            ]
+        },
+        "kida-functions": {
+            "patterns": [
+                {
+                    "name": "entity.name.function.kida",
+                    "match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)(?=\\s*\\()"
+                }
+            ]
+        },
+        "kida-identifiers": {
+            "patterns": [
+                {
+                    "name": "variable.other.kida",
+                    "match": "\\b[a-zA-Z_][a-zA-Z0-9_]*\\b"
+                }
+            ]
+        }
+    }
+}
