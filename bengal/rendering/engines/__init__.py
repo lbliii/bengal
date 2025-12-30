@@ -10,7 +10,12 @@ Architecture:
     imports of engine classes are for type hints and testing only.
 
 Available Engines:
-    jinja2 (Default):
+    kida (Default):
+        Bengal's native template engine. Jinja2-compatible with unified
+        block endings, pattern matching, pipeline operators, and automatic
+        block caching. Supports free-threaded Python.
+
+    jinja2 (Optional):
         Industry-standard template engine. Feature-rich with excellent
         documentation and tooling support.
 

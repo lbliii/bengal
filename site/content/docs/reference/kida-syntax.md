@@ -33,8 +33,8 @@ Complete reference for Kida template syntax, operators, and features. Kida is Be
 | Feature | Kida | Jinja2 |
 |---------|------|--------|
 | Block endings | `{% end %}` (unified) | `{% endif %}`, `{% endfor %}`, etc. |
-| Template variables | `{% let %}` (template-scoped) | `{% set %}` (block-scoped) |
-| Block variables | `{% set %}` (block-scoped) | `{% set %}` (block-scoped) |
+| Template variables | `{% let %}` (template-scoped) | `{% let %}` (block-scoped) |
+| Block variables | `{% let %}` (block-scoped) | `{% let %}` (block-scoped) |
 | Pattern matching | `{% match %}...{% case %}...{% end %}` | `{% if %}...{% elif %}...{% endif %}` |
 | While loops | `{% while cond %}...{% end %}` | Not available |
 | Pipeline operator | `|>` | `\|` (filter chain) |
@@ -91,7 +91,7 @@ Output a variable:
 ### Loops
 
 ```kida
-{% for post in site.pages | where('type', 'blog') %}
+{% for post in site.pages |> where('type', 'blog') %}
   <article>
     <h2>{{ post.title }}</h2>
     {{ post.content | safe }}
@@ -153,13 +153,13 @@ Variables available throughout the entire template:
 <h1>{{ site_title }}</h1>
 ```
 
-### Block-Scoped Variables (`{% set %}`)
+### Block-Scoped Variables (`{% let %}`)
 
 Variables scoped to the current block:
 
 ```kida
 {% if page.published %}
-  {% set status = "Published" %}
+  {% let status = "Published" %}
   <span>{{ status }}</span>
 {% end %}
 {# status not available here #}
@@ -660,7 +660,7 @@ Kida can parse Jinja2 syntax via compatibility mode. Most Jinja2 templates work 
 **Key differences**:
 
 1. **Block endings**: Replace `{% endif %}`, `{% endfor %}` with `{% end %}`
-2. **Template variables**: Use `{% let %}` instead of `{% set %}` for template-wide scope
+2. **Template variables**: Use `{% let %}` instead of `{% let %}` for template-wide scope
 3. **Pattern matching**: Replace long `if/elif` chains with `{% match %}...{% case %}`
 4. **Pipeline**: Use `|>` for better readability
 

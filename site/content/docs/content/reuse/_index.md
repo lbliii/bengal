@@ -80,11 +80,11 @@ Query content dynamically:
 
 ```jinja
 {# All tutorials #}
-{% set tutorials = site.pages
+{% let tutorials = site.pages
    | selectattr("params.type", "equalto", "tutorial") %}
 
 {# Recent posts #}
-{% set recent = site.pages
+{% let recent = site.pages
    | sort(attribute="date", reverse=true)
    | list | slice(5) %}
 ```

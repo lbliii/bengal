@@ -53,8 +53,8 @@ Your Jinja2 templates work without changes—Kida parses both syntaxes.
 
 | Feature | Kida | Jinja2 |
 |---------|------|--------|
-| Block endings | `{% end %}` | `{% endif %}`, `{% endfor %}`, etc. |
-| Template variables | `{% let x = ... %}` | `{% set x = ... %}` |
+| Block endings | `{% end %}` | `{% end %}`, `{% endfor %}`, etc. |
+| Template variables | `{% let x = ... %}` | `{% let x = ... %}` |
 | Pattern matching | `{% match %}...{% case %}` | `{% if %}...{% elif %}` |
 | Pipeline operator | `\|>` | Not available |
 | Optional chaining | `?.` | Not available |

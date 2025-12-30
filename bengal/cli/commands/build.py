@@ -203,8 +203,6 @@ def build(
 
     # Apply fast mode settings if enabled
     if fast_mode_enabled:
-        # Note: PYTHON_GIL=0 must be set in shell before Python starts to suppress warnings
-        # We can't set it here as modules are already imported
         # Force quiet mode for minimal output
         quiet = True
         # Fast mode doesn't force sequential (still auto-detects via should_parallelize)
@@ -224,8 +222,6 @@ def build(
         cli.blank()
 
     # Determine build profile with proper precedence.
-    # NOTE: --verbose is NOT passed here - it only controls output verbosity, not profile.
-    #       Build profiles (dev, theme_dev, debug) are separate from verbosity settings.
     build_profile = BuildProfile.from_cli_args(
         profile=profile, dev=use_dev, theme_dev=use_theme_dev, debug=debug
     )
@@ -297,7 +293,6 @@ def build(
         build_options = resolve_build_options(site.config, cli_flags)
 
         # Extract resolved values for backward compatibility with existing code
-        # Note: parallel is now computed dynamically via should_parallelize() unless force_sequential=True
         incremental = build_options.incremental
         quiet = build_options.quiet
         verbose = build_options.verbose
@@ -323,9 +318,6 @@ def build(
                 assets_cfg = {}
             assets_cfg["pipeline"] = bool(assets_pipeline)
             site.config["assets"] = assets_cfg
-
-        # Autodoc virtual pages are now generated during content discovery
-        # No separate pre-build step needed
 
         # Launch interactive dashboard if requested
         if dashboard:

@@ -99,9 +99,9 @@ You do not need to copy all templates. Extend the default:
     <h1>{{ site.title }}</h1>
     {% for item in menus.main %}
     <a href="{{ item.href }}">{{ item.name }}</a>
-    {% endfor %}
+    {% end %}
 </header>
-{% endblock %}
+{% end %}
 ```
 
 Everything not overridden inherits from the default theme or parent theme.
@@ -127,7 +127,7 @@ Include in your template:
 ```html
 {% block extra_head %}
 <link rel="stylesheet" href="{{ asset_url('css/custom.css') }}">
-{% endblock %}
+{% end %}
 ```
 
 ## Template Variables

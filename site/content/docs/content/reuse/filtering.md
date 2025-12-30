@@ -40,29 +40,29 @@ Imagine a documentation site where you want to find "API Guides" for "v2.0".
 
 Bengal exposes `site.taxonomies` which gives us lists of pages for each tag.
 
-```jinja2
-{% set api_pages = site.taxonomies.tags["api"].pages %}
-{% set v2_pages = site.taxonomies.tags["v2"].pages %}
+```kida
+{% let api_pages = site.taxonomies.tags["api"].pages %}
+{% let v2_pages = site.taxonomies.tags["v2"].pages %}
 ```
 
 ### 2. Finding the Intersection
 
 We can find pages that exist in both lists.
 
-```jinja2
-{% set results = [] %}
+```kida
+{% let results = [] %}
 
 {% for page in api_pages %}
   {% if page in v2_pages %}
     {% do results.append(page) %}
-  {% endif %}
-{% endfor %}
+  {% end %}
+{% end %}
 
 <h2>API v2 Guides ({{ results|length }})</h2>
 <ul>
   {% for page in results %}
     <li><a href="{{ page.url }}">{{ page.title }}</a></li>
-  {% endfor %}
+  {% end %}
 </ul>
 ```
 
@@ -88,27 +88,27 @@ Here are all our Python tutorials.
 
 `templates/filter_page.html`:
 
-```jinja2
+```kida
 {% extends "base.html" %}
 
 {% block content %}
   <h1>{{ page.title }}</h1>
 
   {# 1. Start with all site pages #}
-  {% set matches = site.pages %}
+  {% let matches = site.pages %}
 
   {# 2. Apply intersection for each required tag #}
   {% for tag in page.filter_tags %}
-    {% set tag_pages = site.taxonomies.tags[tag].pages %}
+    {% let tag_pages = site.taxonomies.tags[tag].pages %}
     {# Use a custom filter or loop to intersect #}
-    {% set new_matches = [] %}
+    {% let new_matches = [] %}
     {% for m in matches %}
       {% if m in tag_pages %}
         {% do new_matches.append(m) %}
-      {% endif %}
-    {% endfor %}
-    {% set matches = new_matches %}
-  {% endfor %}
+      {% end %}
+    {% end %}
+    {% let matches = new_matches %}
+  {% end %}
 
   {# 3. Render Results #}
   <div class="results">
@@ -116,7 +116,7 @@ Here are all our Python tutorials.
       {% include "partials/card.html" %}
     {% else %}
       <p>No matches found.</p>
-    {% endfor %}
+    {% end %}
   </div>
 
 {% endblock %}

@@ -282,13 +282,10 @@ class RenderOrchestrator:
         ):
             progress_manager = build_context.progress_manager
 
-        # Initialize write-behind I/O for sequential builds (RFC: rfc-path-to-200-pgs Phase III)
+        # Initialize write-behind I/O for sequential builds
         # Overlaps I/O with CPU rendering - only beneficial for sequential builds.
         # For parallel builds, each worker already writes independently (better parallelism).
         write_behind = None
-        # Compute parallel mode: use should_parallelize() unless parallel=False was explicitly passed
-        # Note: parallel parameter is now computed from force_sequential in phase_render,
-        # so this should always be a boolean (True/False), not None
         use_parallel = parallel  # Already computed in phase_render based on force_sequential
         if not use_parallel and build_context:
             from bengal.rendering.pipeline.write_behind import WriteBehindCollector
@@ -298,8 +295,6 @@ class RenderOrchestrator:
             logger.debug("write_behind_enabled", reason="sequential_build")
 
         # PRE-PROCESS: Set output paths for pages being rendered
-        # Note: This only sets paths for pages we're actually rendering.
-        # Other pages should already have paths from previous builds or will get them when needed.
         self._set_output_paths_for_pages(pages)
 
         try:

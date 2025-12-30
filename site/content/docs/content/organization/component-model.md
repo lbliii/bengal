@@ -360,7 +360,7 @@ banner_image: "/images/posts/docs-tips.jpg"
 <span>{{ page.reading_time }} read</span>
 {% if page.featured %}
   <span class="badge">Featured</span>
-{% endif %}
+{% end %}
 ```
 :::{/tab-item}
 
@@ -388,12 +388,12 @@ github_path: "docs/reference/configuration.md"
 ```jinja
 {% if page.icon %}
   <i class="icon-{{ page.icon }}"></i>
-{% endif %}
+{% end %}
 {% if page.badge %}
   <span class="badge badge-{{ page.badge_color }}">
     {{ page.badge }}
   </span>
-{% endif %}
+{% end %}
 ```
 :::{/tab-item}
 
@@ -429,7 +429,7 @@ gallery:
 <div class="tech-stack">
   {% for tech in page.technologies %}
     <span class="tech-badge">{{ tech }}</span>
-  {% endfor %}
+  {% end %}
 </div>
 <a href="{{ page.project_url }}">View Live</a>
 ```
@@ -466,7 +466,7 @@ topics:
 <p>Duration: {{ page.duration }}</p>
 {% if page.video_url %}
   <a href="{{ page.video_url }}">Watch Recording</a>
-{% endif %}
+{% end %}
 ```
 :::{/tab-item}
 
@@ -736,7 +736,7 @@ structure:
 <p>By {{ page.author }}</p>
 {% if page.featured %}
   <span class="badge">Featured</span>
-{% endif %}
+{% end %}
 ```
 
 ---

@@ -50,7 +50,7 @@ series:
 
 ### Template Code
 
-```jinja2
+```kida
 {% if page.series %}
 <nav class="series-nav">
   <div class="series-header">
@@ -63,16 +63,16 @@ series:
     <a href="{{ page.prev_in_series.href }}" class="prev">
       ← {{ page.prev_in_series.title }}
     </a>
-    {% endif %}
+    {% end %}
 
     {% if page.next_in_series %}
     <a href="{{ page.next_in_series.href }}" class="next">
       {{ page.next_in_series.title }} →
     </a>
-    {% endif %}
+    {% end %}
   </div>
 </nav>
-{% endif %}
+{% end %}
 ```
 
 ## What's Happening
@@ -88,13 +88,13 @@ series:
 :::{tab-set}
 :::{tab-item} Progress Bar
 
-```jinja2
+```kida
 {% if page.series %}
 <div class="series-progress-bar">
   <div class="progress" style="width: {{ (page.series.part / page.series.total * 100) | round }}%"></div>
 </div>
 <span>{{ page.series.part }} / {{ page.series.total }}</span>
-{% endif %}
+{% end %}
 ```
 
 :::{/tab-item}
@@ -102,32 +102,32 @@ series:
 
 Show all parts with current highlighted:
 
-```jinja2
+```kida
 {% if page.series %}
 <aside class="series-toc">
   <h4>{{ page.series.name }}</h4>
   <ol>
     {% for part_page in page.series.pages %}
-    <li {% if part_page.eq(page) %}class="current"{% endif %}>
+    <li {% if part_page.eq(page) %}class="current"{% end %}>
       <a href="{{ part_page.href }}">{{ part_page.title }}</a>
     </li>
-    {% endfor %}
+    {% end %}
   </ol>
 </aside>
-{% endif %}
+{% end %}
 ```
 
 :::{/tab-item}
 :::{tab-item} Compact Footer
 
-```jinja2
+```kida
 {% if page.series %}
 <footer class="series-footer">
   {% if page.prev_in_series %}
   <a href="{{ page.prev_in_series.href }}">← Previous</a>
   {% else %}
   <span></span>
-  {% endif %}
+  {% end %}
 
   <span>{{ page.series.part }}/{{ page.series.total }}</span>
 
@@ -135,22 +135,22 @@ Show all parts with current highlighted:
   <a href="{{ page.next_in_series.href }}">Next →</a>
   {% else %}
   <span></span>
-  {% endif %}
+  {% end %}
 </footer>
-{% endif %}
+{% end %}
 ```
 
 :::{/tab-item}
 :::{tab-item} Completion Message
 
-```jinja2
+```kida
 {% if page.series %}
   {% if not page.next_in_series %}
   <div class="series-complete">
     🎉 You've completed "{{ page.series.name }}"!
   </div>
-  {% endif %}
-{% endif %}
+  {% end %}
+{% end %}
 ```
 
 :::{/tab-item}

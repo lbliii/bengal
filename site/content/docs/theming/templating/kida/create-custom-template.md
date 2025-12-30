@@ -118,7 +118,7 @@ Override the `content` block to display your post:
       </footer>
     {% end %}
   </article>
-{% endblock %}
+{% end %}
 ```
 
 ### Step 5: Add Pattern Matching for Post Types
@@ -147,7 +147,7 @@ Use pattern matching to handle different post types:
         {{ post.content | safe }}
       </article>
   {% end %}
-{% endblock %}
+{% end %}
 ```
 
 ### Step 6: Use Pipeline Operator for Data Processing
@@ -176,7 +176,7 @@ Process collections with the pipeline operator:
       </ul>
     </aside>
   {% end %}
-{% endblock %}
+{% end %}
 ```
 
 ### Step 7: Add Fragment Caching
@@ -207,7 +207,7 @@ Cache expensive operations:
       </aside>
     {% end %}
   {% end %}
-{% endblock %}
+{% end %}
 ```
 
 ## Complete Example
@@ -276,7 +276,7 @@ Here's a complete blog post template:
       </aside>
     {% end %}
   {% end %}
-{% endblock %}
+{% end %}
 ```
 
 ## Testing

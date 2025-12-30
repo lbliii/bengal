@@ -12,7 +12,7 @@ tags:
 
 # Variables and Scoping
 
-Kida distinguishes between template-scoped (`{% let %}`) and block-scoped (`{% set %}`) variables.
+Kida distinguishes between template-scoped (`{% let %}`) and block-scoped (`{% let %}`) variables.
 
 ## Template Variables with `{% let %}`
 
@@ -33,13 +33,13 @@ Use `{% let %}` for variables available throughout the template:
 </nav>
 ```
 
-## Block Variables with `{% set %}`
+## Block Variables with `{% let %}`
 
-Use `{% set %}` for variables scoped to the current block:
+Use `{% let %}` for variables scoped to the current block:
 
 ```kida
 {% if page.published %}
-  {% set status = "Published" %}
+  {% let status = "Published" %}
   <span>{{ status }}</span>  {# Works here #}
 {% end %}
 {# status not accessible here #}
@@ -62,13 +62,13 @@ Use `{% export %}` to make inner-scope variables accessible outside:
 
 Compare to Jinja2's namespace workaround:
 
-```jinja2
+```kida
 {# Jinja2 workaround: use namespace #}
-{% set ns = namespace(featured_post=none) %}
+{% let ns = namespace(featured_post=none) %}
 {% for post in posts %}
   {% if post.featured %}
-    {% set ns.featured_post = post %}
-  {% endif %}
+    {% let ns.featured_post = post %}
+  {% end %}
 {% endfor %}
 {{ ns.featured_post.title }}
 ```
@@ -88,7 +88,7 @@ Assign multiple variables at once:
 | Keyword | Scope | Use Case |
 |---------|-------|----------|
 | `{% let %}` | Template-wide | Site config, reusable data |
-| `{% set %}` | Current block | Temporary values in loops/conditionals |
+| `{% let %}` | Current block | Temporary values in loops/conditionals |
 | `{% export %}` | Outer scope | Promote inner values to outer scope |
 
 ## Common Patterns

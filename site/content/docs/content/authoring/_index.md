@@ -143,7 +143,7 @@ Welcome to **{{ product_name }}** version {{ version }}.
 :::{warning}
 This is a beta release.
 :::
-{% endif %}
+{% end %}
 ```
 
 ### Available Variables

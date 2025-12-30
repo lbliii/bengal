@@ -47,7 +47,7 @@ Kida functions can access variables from their outer scope:
 
 Jinja2 macros require passing all variables explicitly:
 
-```jinja2
+```kida
 {# Jinja2: Must pass all needed variables #}
 {% macro card(item, site_name, theme_color) %}
   <div class="card" style="border-color: {{ theme_color }}">

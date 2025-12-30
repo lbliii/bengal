@@ -47,6 +47,7 @@ Related:
 
 from __future__ import annotations
 
+import contextlib
 import re
 import threading
 from datetime import datetime
@@ -117,8 +118,7 @@ class BuildTrigger:
             host: Server host for URL display
             port: Server port for URL display
             executor: BuildExecutor instance (created if not provided)
-            version_scope: RFC: rfc-versioned-docs-pipeline-integration (Phase 3)
-                Focus rebuilds on a single version (e.g., "v2", "latest").
+            version_scope: Focus rebuilds on a single version (e.g., "v2", "latest").
                 If None, all versions are rebuilt on changes.
         """
         self.site = site
@@ -250,7 +250,6 @@ class BuildTrigger:
 
             # Dev server always uses auto-detection (force_sequential=False)
             # Parallel will be computed dynamically based on page count
-            # RFC: rfc-versioned-docs-pipeline-integration (Phase 3)
             request = BuildRequest(
                 site_root=str(self.site.root_path),
                 changed_paths=tuple(changed_files),
@@ -631,11 +630,19 @@ class BuildTrigger:
 
     def _is_template_change(self, changed_paths: set[Path]) -> bool:
         """
-        Check if any changed file is a template.
+        Check if template changes require full rebuild.
+
+        Instead of full rebuild for any template change, uses dependency tracking
+        to determine if incremental rebuild is possible.
+
+        Returns True only if:
+        1. Changed templates have dependents AND
+        2. Incremental template update isn't possible
 
         Optimizations:
         1. Filter to .html files first (skip non-templates early)
         2. Use cached template directories (avoids exists() calls)
+        3. Check dependency graph to skip orphan templates
         """
         template_dirs = self._get_template_dirs()
         if not template_dirs:
@@ -646,15 +653,99 @@ class BuildTrigger:
         if not html_paths:
             return False
 
+        # Get cache for dependency tracking
+        cache = getattr(self.site, "_cache", None)
+        if cache is None:
+            # Try to get cache from site's cache manager or incremental orchestrator
+            try:
+                from bengal.cache import BuildCache
+
+                cache_path = self.site.paths.build_cache
+                if cache_path.exists():
+                    cache = BuildCache.load(cache_path)
+            except Exception:
+                cache = None
+
         for path in html_paths:
-            for template_dir in template_dirs:
-                try:
-                    path.relative_to(template_dir)
-                    return True
-                except ValueError:
-                    continue
+            if not self._is_in_template_dir(path, template_dirs):
+                continue
+
+            # Check if template has any dependents
+            affected: set[str] = set()
+            if cache is not None:
+                with contextlib.suppress(Exception):
+                    affected = cache.get_affected_pages(path)
+
+            if not affected:
+                # Template has no dependents - skip entirely
+                logger.debug(
+                    "template_change_ignored",
+                    template=str(path),
+                    reason="no_dependents",
+                )
+                continue
+
+            # Has dependents - check if we can do incremental update
+            if self._can_use_incremental_template_update(path, cache):
+                logger.debug(
+                    "template_change_incremental",
+                    template=str(path),
+                    affected_pages=len(affected),
+                )
+                continue  # Will be handled by incremental build
+
+            # Must do full rebuild
+            logger.debug(
+                "template_change_full_rebuild",
+                template=str(path),
+                affected_pages=len(affected),
+                reason="incremental_not_possible",
+            )
+            return True
 
         return False
+
+    def _is_in_template_dir(self, path: Path, template_dirs: list[Path]) -> bool:
+        """Check if path is within any template directory."""
+        for template_dir in template_dirs:
+            try:
+                path.relative_to(template_dir)
+                return True
+            except ValueError:
+                continue
+        return False
+
+    def _can_use_incremental_template_update(self, template_path: Path, cache: Any) -> bool:
+        """
+        Check if incremental template update is possible.
+
+        Incremental update is possible when:
+        1. Block-level detection is available (Kida engine)
+        2. Only site-scoped blocks changed (nav, footer, etc.)
+        3. All affected pages can be re-rendered individually
+
+        Args:
+            template_path: Path to the changed template
+            cache: BuildCache instance or None
+
+        Returns:
+            True if incremental update is possible
+        """
+        # Check if template engine supports block-level detection
+        engine_type = self.site.config.get("template_engine", "kida")
+        if engine_type != "kida":
+            return False
+
+        # Check if we have block cache support
+        try:
+            from bengal.orchestration.incremental.template_detector import (
+                TemplateChangeDetector,
+            )
+
+            detector = TemplateChangeDetector(self.site, cache, block_cache=None)
+            return detector._can_use_block_detection()
+        except Exception:
+            return False
 
     def _should_regenerate_autodoc(self, changed_paths: set[Path]) -> bool:
         """Check if autodoc regeneration is needed."""

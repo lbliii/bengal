@@ -799,7 +799,7 @@ Jinja2/template syntax error.
 The template contains a syntax error that prevents it from being parsed. This is usually a Jinja2 syntax issue.
 
 **Common Causes**
-- Missing `{% endif %}` or `{% endfor %}`
+- Missing `{% end %}` or `{% endfor %}`
 - Unclosed `{{` or `{%` tags
 - Invalid filter syntax
 - Mismatched block names
@@ -816,14 +816,14 @@ The template contains a syntax error that prevents it from being parsed. This is
 ```kida
 {% if page.draft %}
   Draft content
-{# Missing {% endif %} #}
+{# Missing {% end %} #}
 ```
 
 ✅ **Correct**:
 ```kida
 {% if page.draft %}
   Draft content
-{% endif %}
+{% end %}
 ```
 
 ---

@@ -3,8 +3,6 @@ Template change detection for incremental builds.
 
 Handles checking template files for changes and tracking affected pages.
 Supports block-level detection when Kida engine is available.
-
-RFC: block-level-incremental-builds
 """
 
 from __future__ import annotations
@@ -44,7 +42,7 @@ class TemplateChangeDetector:
 
     Collects all template files first, then checks in parallel if above threshold.
 
-    Block-Level Detection (RFC: block-level-incremental-builds):
+    Block-Level Detection:
         When `block_cache` is provided and Kida engine is used, enables
         block-level change detection. This can skip page rebuilds entirely
         when only site-scoped blocks (nav, footer, header) change.
@@ -169,8 +167,8 @@ class TemplateChangeDetector:
 
                 if template_name:
                     changed_template_names.append(template_name)
-            else:
-                self.cache.update_file(template_file)
+            # Unchanged templates don't need fingerprint updates.
+            # If content is unchanged, the existing fingerprint is valid.
 
         # Log block-level savings
         if blocks_rewarmed > 0 or pages_skipped > 0:
@@ -245,9 +243,9 @@ class TemplateChangeDetector:
                         error=str(e),
                     )
 
-        # Update unchanged templates sequentially (cache writes should be serialized)
-        for template_file in unchanged_templates:
-            self.cache.update_file(template_file)
+        # Unchanged templates don't need fingerprint updates.
+        # The existing fingerprint is valid if content hasn't changed.
+        _ = unchanged_templates  # Suppress unused variable warning
 
         # Optional: Help template engine clear cache if it supports it
         if changed_template_names:

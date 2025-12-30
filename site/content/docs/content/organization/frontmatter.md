@@ -113,7 +113,7 @@ author: lbliii
 Access in templates:
 
 ```jinja
-{% set author_info = site.data.authors[page.metadata.author] %}
+{% let author_info = site.data.authors[page.metadata.author] %}
 {{ author_info.name }} — {{ author_info.bio }}
 ```
 

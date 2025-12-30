@@ -68,7 +68,6 @@ if TYPE_CHECKING:
 
 
 # Thread-safe output lock for parallel processing.
-# NOTE: Used to serialize print/log output when multiple threads render pages concurrently.
 _print_lock = Lock()
 
 
@@ -135,26 +134,18 @@ class Site(
     menu: dict[str, list[MenuItem]] = field(default_factory=dict)
     menu_builders: dict[str, MenuBuilder] = field(default_factory=dict)
     # Localized menus when i18n is enabled: {lang: {menu_name: [MenuItem]}}.
-    # NOTE: Populated by MenuBuilder when i18n is configured. See: bengal/core/menu.py
     menu_localized: dict[str, dict[str, list[MenuItem]]] = field(default_factory=dict)
     menu_builders_localized: dict[str, dict[str, MenuBuilder]] = field(default_factory=dict)
     # Current language context for rendering (set per page during rendering).
-    # NOTE: Used by template functions to return localized content. Set by RenderingPipeline.
     current_language: str | None = None
     # Global data from data/ directory (YAML, JSON, TOML files).
-    # NOTE: Loaded from site root data/ directory. Accessible in templates as site.data.
     data: Any = field(default_factory=dict)
     # Runtime flag: True when running in dev server mode (not persisted to config).
-    # NOTE: Set by DevServer and BuildExecutor. Used to disable caching, timestamps, etc.
     dev_mode: bool = False
 
     # Versioning configuration (loaded from config during __post_init__)
-    # NOTE: When versioning is enabled, pages are organized by version and templates
-    # have access to version selector data via site.versions and site.current_version.
-    # See: plan/drafted/rfc-versioned-documentation.md
     version_config: VersionConfig = field(default_factory=VersionConfig)
     # Current version context for rendering (set per page during rendering)
-    # NOTE: Used by template functions to return version-specific content.
     current_version: Version | None = None
 
     # Private caches for expensive properties (invalidated when pages change)
@@ -165,7 +156,6 @@ class Site(
     _page_path_map: dict[str, Page] | None = field(default=None, repr=False, init=False)
     _page_path_map_version: int = field(default=-1, repr=False, init=False)
     # Page source path lookup cache for O(1) page resolution (shared by orchestrators)
-    # See: plan/drafted/rfc-orchestration-package-optimizations.md (Phase 1)
     _page_by_source_path_cache: dict[Path, Page] | None = field(
         default=None, repr=False, init=False
     )
@@ -177,11 +167,9 @@ class Site(
     url_registry: URLRegistry = field(default_factory=URLRegistry, init=False)
 
     # Content registry for O(1) page/section lookups
-    # See: plan/drafted/rfc-site-responsibility-separation.md
     _registry: ContentRegistry | None = field(default=None, repr=False, init=False)
 
     # Current build state (set during build, None outside build context)
-    # See: plan/drafted/rfc-site-responsibility-separation.md
     _current_build_state: BuildState | None = field(default=None, repr=False, init=False)
 
     # Config hash for cache invalidation (computed on init)
@@ -236,7 +224,6 @@ class Site(
 
     # Features detected during content discovery (mermaid, graph, data_tables, etc.)
     # Used by CSSOptimizer to include only CSS for features actually in use.
-    # See: plan/drafted/rfc-css-tree-shaking.md
     features_detected: set[str] = field(default_factory=set, repr=False, init=False)
 
     def __post_init__(self) -> None:
@@ -245,7 +232,6 @@ class Site(
             self.root_path = Path(self.root_path)
 
         # Ensure root_path is always absolute to eliminate CWD-dependent behavior.
-        # See: plan/active/rfc-path-resolution-architecture.md
         if not self.root_path.is_absolute():
             self.root_path = self.root_path.resolve()
 
@@ -264,7 +250,6 @@ class Site(
 
         # Initialize theme-aware icon resolver for all icon consumers
         # (template functions, inline icon plugin, directives)
-        # See: plan/drafted/rfc-theme-aware-icons.md
         icon_resolver.initialize(self)
 
         if "output_dir" in self.config:
@@ -294,12 +279,10 @@ class Site(
             self._asset_manifest_fallbacks_lock = Lock()
 
         # Initialize URL registry for claim-time ownership enforcement
-        # See: plan/drafted/plan-url-ownership-architecture.md
         if not hasattr(self, "url_registry") or self.url_registry is None:
             self.url_registry = URLRegistry()
 
         # Initialize content registry for O(1) lookups
-        # See: plan/drafted/rfc-site-responsibility-separation.md
         if self._registry is None:
             self._registry = ContentRegistry()
             self._registry.set_root_path(self.root_path)
@@ -355,8 +338,7 @@ class Site(
             auto_port: Whether to automatically find an available port if the specified one is
                        in use
             open_browser: Whether to automatically open the browser
-            version_scope: RFC: rfc-versioned-docs-pipeline-integration (Phase 3)
-                Focus rebuilds on a single version (e.g., "v2", "latest").
+            version_scope: Focus rebuilds on a single version (e.g., "v2", "latest").
                 If None, all versions are rebuilt on changes.
         """
         from bengal.server.dev_server import DevServer
@@ -448,7 +430,6 @@ class Site(
         self.invalidate_page_caches()
 
         # Clear content registry (includes section registries and URL ownership)
-        # See: plan/drafted/rfc-site-responsibility-separation.md
         self.registry.clear()
 
         # Reset URL registry and reconnect with content registry
@@ -482,9 +463,6 @@ class Site(
         from bengal.rendering.pipeline.thread_local import get_created_dirs
 
         get_created_dirs().clear()
-
-        # Note: Don't reset _asset_manifest_previous (needed for incremental asset comparison)
-        # Note: Don't reset _asset_manifest_fallbacks_lock (thread lock should persist)
 
     # =========================================================================
     # ERGONOMIC HELPER METHODS (for theme developers)
@@ -588,7 +566,7 @@ class Site(
         return f"Site(pages={pages}, sections={sections}, assets={assets})"
 
     # =========================================================================
-    # BUILD STATE ACCESS (rfc-site-responsibility-separation.md)
+    # BUILD STATE ACCESS
     # =========================================================================
 
     @property
@@ -619,7 +597,7 @@ class Site(
         self._current_build_state = state
 
     # =========================================================================
-    # REGISTRY ACCESS (rfc-site-responsibility-separation.md)
+    # REGISTRY ACCESS
     # =========================================================================
 
     @property
@@ -679,8 +657,6 @@ class Site(
 
         See Also:
             - bengal/health/validators/url_collisions.py: Health check validator
-            - plan/drafted/rfc-url-collision-detection.md: Design rationale
-            - plan/drafted/plan-url-ownership-architecture.md: URL ownership system
         """
         collisions: list[str] = []
 

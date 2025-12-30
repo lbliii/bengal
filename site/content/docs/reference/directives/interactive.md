@@ -368,8 +368,8 @@ Row 2, Col 1 | Row 2, Col 2 | Row 2, Col 3
 :pagination: false
 
 bengal | 0.1.0 | Active
-mistune | 3.0.0 | Active
-jinja2 | 3.1.0 | Active
+patitas | 1.0.0 | Active
+kida | 1.0.0 | Active
 :::
 ```
 

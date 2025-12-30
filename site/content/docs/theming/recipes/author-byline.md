@@ -57,21 +57,21 @@ author: Jane Smith
 
 ### Template Code
 
-```jinja2
+```kida
 {% if page.author %}
 <div class="author-byline">
   {% if page.author.avatar %}
   <img src="{{ page.author.avatar }}" alt="{{ page.author.name }}" class="author-avatar">
-  {% endif %}
+  {% end %}
 
   <div class="author-info">
     <span class="author-name">{{ page.author.name }}</span>
     {% if page.author.bio %}
     <p class="author-bio">{{ page.author.bio }}</p>
-    {% endif %}
+    {% end %}
   </div>
 </div>
-{% endif %}
+{% end %}
 ```
 
 ## What's Happening
@@ -89,7 +89,7 @@ author: Jane Smith
 :::{tab-set}
 :::{tab-item} With Social Links
 
-```jinja2
+```kida
 {% if page.author %}
 <div class="author-byline">
   <img src="{{ page.author.avatar or '/images/default-avatar.png' }}"
@@ -103,32 +103,32 @@ author: Jane Smith
       <a href="https://twitter.com/{{ page.author.twitter }}">
         <i class="icon-twitter"></i>
       </a>
-      {% endif %}
+      {% end %}
       {% if page.author.github %}
       <a href="https://github.com/{{ page.author.github }}">
         <i class="icon-github"></i>
       </a>
-      {% endif %}
+      {% end %}
       {% if page.author.linkedin %}
       <a href="https://linkedin.com/in/{{ page.author.linkedin }}">
         <i class="icon-linkedin"></i>
       </a>
-      {% endif %}
+      {% end %}
       {% if page.author.mastodon %}
       <a href="{{ page.author.mastodon }}">
         <i class="icon-mastodon"></i>
       </a>
-      {% endif %}
+      {% end %}
     </div>
   </div>
 </div>
-{% endif %}
+{% end %}
 ```
 
 :::{/tab-item}
 :::{tab-item} Multiple Authors
 
-```jinja2
+```kida
 {% if page.authors %}
 <div class="authors">
   <span class="authors-label">Written by</span>
@@ -136,12 +136,12 @@ author: Jane Smith
   <div class="author">
     {% if author.avatar %}
     <img src="{{ author.avatar }}" alt="{{ author.name }}">
-    {% endif %}
+    {% end %}
     <span>{{ author.name }}</span>
   </div>
-  {% endfor %}
+  {% end %}
 </div>
-{% endif %}
+{% end %}
 ```
 
 Frontmatter for multiple authors:
@@ -159,47 +159,47 @@ authors:
 :::{/tab-item}
 :::{tab-item} Compact Inline
 
-```jinja2
+```kida
 {% if page.author %}
 <p class="byline">
   By {{ page.author.name }}
   {% if page.date %}
   · {{ page.date | date('%B %d, %Y') }}
-  {% endif %}
+  {% end %}
   · {{ page.reading_time }} min read
 </p>
-{% endif %}
+{% end %}
 ```
 
 :::{/tab-item}
 :::{tab-item} Link to Author Page
 
-```jinja2
+```kida
 {% if page.author %}
 <a href="/authors/{{ page.author.name | slugify }}/" class="author-link">
   {% if page.author.avatar %}
   <img src="{{ page.author.avatar }}" alt="">
-  {% endif %}
+  {% end %}
   {{ page.author.name }}
 </a>
-{% endif %}
+{% end %}
 ```
 
 :::{/tab-item}
 :::{tab-item} Full Author Card
 
-```jinja2
+```kida
 {% if page.author %}
 <aside class="author-card">
   <div class="author-header">
     {% if page.author.avatar %}
     <img src="{{ page.author.avatar }}" alt="{{ page.author.name }}" class="avatar">
-    {% endif %}
+    {% end %}
     <div>
       <h4>{{ page.author.name }}</h4>
       {% if page.author.bio %}
       <p>{{ page.author.bio }}</p>
-      {% endif %}
+      {% end %}
     </div>
   </div>
 
@@ -207,9 +207,9 @@ authors:
   <a href="{{ page.author.website }}" class="author-website">
     Visit website →
   </a>
-  {% endif %}
+  {% end %}
 </aside>
-{% endif %}
+{% end %}
 ```
 
 :::{/tab-item}

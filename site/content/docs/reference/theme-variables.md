@@ -61,7 +61,7 @@ Available on index pages (`_index.md`) and doc-type pages.
       <h3>{{ subsection.title }}</h3>
       <p>{{ subsection.metadata.description }}</p>
     </a>
-  {% endfor %}
+  {% end %}
 </div>
 ```
 
@@ -74,7 +74,7 @@ Available on index pages (`_index.md`) and doc-type pages.
   <ul>
     {% for page in section.sorted_pages %}
       <li><a href="{{ page.url }}">{{ page.title }}</a></li>
-    {% endfor %}
+    {% end %}
   </ul>
 </nav>
 ```
@@ -122,7 +122,7 @@ The current page being rendered.
   <a href="/">Home</a>
   {% for ancestor in page.ancestors %}
     > <a href="{{ ancestor.href }}">{{ ancestor.title }}</a>
-  {% endfor %}
+  {% end %}
   > <span>{{ page.title }}</span>
 </nav>
 ```
@@ -134,10 +134,10 @@ The current page being rendered.
 <nav class="prev-next">
   {% if page.prev_in_section %}
     <a href="{{ page.prev_in_section.href }}">← {{ page.prev_in_section.title }}</a>
-  {% endif %}
+  {% end %}
   {% if page.next_in_section %}
     <a href="{{ page.next_in_section.href }}">{{ page.next_in_section.title }} →</a>
-  {% endif %}
+  {% end %}
 </nav>
 ```
 
@@ -151,10 +151,10 @@ The current page being rendered.
   <ul>
     {% for post in page.related_posts[:5] %}
       <li><a href="{{ post.href }}">{{ post.title }}</a></li>
-    {% endfor %}
+    {% end %}
   </ul>
 </aside>
-{% endif %}
+{% end %}
 ```
 
 #### URL Properties
@@ -182,7 +182,7 @@ Bengal provides two URL properties with clear purposes:
 {# Comparison (without baseurl) #}
 {% if page._path == '/docs/' %}
   <span class="active">Current Section</span>
-{% endif %}
+{% end %}
 
 {# url_for() also works for URL generation #}
 <a href="{{ url_for(page) }}">{{ page.title }}</a>
@@ -224,7 +224,7 @@ Retrieves a navigation menu.
 ```html
 {% for item in get_menu('main') %}
   <a href="{{ item.url }}">{{ item.name }}</a>
-{% endfor %}
+{% end %}
 ```
 
 ## Template Helpers

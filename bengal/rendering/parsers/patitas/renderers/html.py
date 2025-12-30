@@ -6,7 +6,7 @@ Thread Safety:
     All state is local to each render() call.
     Multiple threads can render concurrently without synchronization.
 
-Single-Pass Heading Decoration (RFC: rfc-path-to-200-pgs):
+Single-Pass Heading Decoration:
     Heading IDs are generated during the AST walk, eliminating the need for
     regex-based post-processing. TOC data is collected during rendering.
 """
@@ -64,8 +64,6 @@ class HeadingInfo:
 
     Used to build TOC without post-render regex scanning.
     Collected by HtmlRenderer during the AST walk.
-
-    RFC: rfc-path-to-200-pgs (Single-Pass Heading Decoration)
     """
 
     level: int
@@ -101,11 +99,9 @@ class HtmlRenderer:
         "_role_registry",
         "_text_transformer",
         "_delegate",
-        # Single-pass heading decoration (RFC: rfc-path-to-200-pgs)
         "_headings",
         "_slugify",
         "_seen_slugs",
-        # Page context for directives (child-cards, breadcrumbs, etc.)
         "_page_context",
     )
 
@@ -146,7 +142,6 @@ class HtmlRenderer:
         self._role_registry = role_registry
         self._text_transformer = text_transformer
         self._delegate = delegate
-        # Single-pass heading decoration (RFC: rfc-path-to-200-pgs)
         self._headings: list[HeadingInfo] = []
         self._slugify = slugify or _default_slugify
         self._seen_slugs: dict[str, int] = {}  # For unique slug generation
@@ -213,7 +208,6 @@ class HtmlRenderer:
         """Render a block node to StringBuilder."""
         match node:
             case Heading(level=level, children=children):
-                # Single-pass heading decoration (RFC: rfc-path-to-200-pgs)
                 # Extract text and generate slug during AST walk
                 text = self._extract_plain_text(children)
                 slug = self._get_unique_slug(text)
@@ -605,7 +599,7 @@ class HtmlRenderer:
             yield sb.build()
 
     # =========================================================================
-    # Single-Pass Heading Decoration (RFC: rfc-path-to-200-pgs)
+    # Single-Pass Heading Decoration
     # =========================================================================
 
     def _extract_plain_text(self, children: Sequence[Inline]) -> str:

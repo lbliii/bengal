@@ -49,14 +49,14 @@ Create `templates/page.html`:
         <time datetime="{{ page.date | isodate }}">
             {{ page.date | date("%B %d, %Y") }}
         </time>
-        {% endif %}
+        {% end %}
     </header>
 
     <div class="prose">
         {{ page.content | safe }}
     </div>
 </article>
-{% endblock %}
+{% end %}
 ```
 
 #### Custom Header
@@ -89,7 +89,7 @@ Create `templates/404.html`:
     <p>The page you're looking for doesn't exist.</p>
     <a href="/">Return home</a>
 </div>
-{% endblock %}
+{% end %}
 ```
 
 ## CSS Customization
@@ -254,13 +254,13 @@ When your theme extends another theme (like `default`), you can explicitly refer
 {% block head %}
 {{ super() }}
 <link rel="stylesheet" href="{{ 'css/my-theme.css' | asset_url }}">
-{% endblock %}
+{% end %}
 
 {% block content %}
 <div class="my-theme-wrapper">
     {{ super() }}
 </div>
-{% endblock %}
+{% end %}
 ```
 
 This explicit syntax is useful when:
@@ -379,7 +379,7 @@ Use Jinja's `{% block %}` and `{% extends %}`:
 {% block head %}
 {{ super() }}  {# Keep parent content #}
 <link rel="stylesheet" href="{{ 'custom.css' | asset_url }}">
-{% endblock %}
+{% end %}
 ```
 
 ### 4. Test Dark Mode

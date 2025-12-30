@@ -23,17 +23,17 @@ Find content that matches multiple criteria — tags, categories, or custom fiel
 
 ## The Pattern
 
-```jinja2
+```kida
 {# Pages tagged with 'python' #}
-{% set python_posts = site.pages
-  | where('tags', 'python', 'in') %}
+{% let python_posts = site.pages
+  |> where('tags', 'python', 'in') %}
 
 {# Chain multiple filters #}
-{% set tutorials = site.pages
-  | where('category', 'tutorial')
-  | where('tags', 'python', 'in')
-  | where('draft', false)
-  | sort_by('date', reverse=true) %}
+{% let tutorials = site.pages
+  |> where('category', 'tutorial')
+  |> where('tags', 'python', 'in')
+  |> where('draft', false)
+  |> sort_by('date', reverse=true) %}
 ```
 
 ## Filter Operators
@@ -52,42 +52,42 @@ Find content that matches multiple criteria — tags, categories, or custom fiel
 :::{tab-set}
 :::{tab-item} Any of These Tags
 
-```jinja2
+```kida
 {# Has 'python' OR 'javascript' tag #}
-{% set python = site.pages | where('tags', 'python', 'in') %}
-{% set js = site.pages | where('tags', 'javascript', 'in') %}
-{% set either = python | union(js) %}
+{% let python = site.pages |> where('tags', 'python', 'in') %}
+{% let js = site.pages |> where('tags', 'javascript', 'in') %}
+{% let either = python |> union(js) %}
 ```
 
 :::{/tab-item}
 :::{tab-item} ALL of These Tags
 
-```jinja2
+```kida
 {# Has both 'python' AND 'tutorial' tags #}
-{% set python = site.pages | where('tags', 'python', 'in') %}
-{% set tutorials = site.pages | where('tags', 'tutorial', 'in') %}
-{% set both = python | intersect(tutorials) %}
+{% let python = site.pages |> where('tags', 'python', 'in') %}
+{% let tutorials = site.pages |> where('tags', 'tutorial', 'in') %}
+{% let both = python |> intersect(tutorials) %}
 ```
 
 :::{/tab-item}
 :::{tab-item} Exclude Tags
 
-```jinja2
+```kida
 {# Everything except archived posts #}
-{% set active = site.pages
-  | where('tags', 'archived', 'not_in') %}
+{% let active = site.pages
+  |> where('tags', 'archived', 'not_in') %}
 ```
 
 :::{/tab-item}
 :::{tab-item} Nested Field
 
-```jinja2
+```kida
 {# Access frontmatter via metadata #}
-{% set featured = site.pages
-  | where('metadata.featured', true) %}
+{% let featured = site.pages
+  |> where('metadata.featured', true) %}
 
-{% set series = site.pages
-  | where('metadata.series', 'getting-started') %}
+{% let series = site.pages
+  |> where('metadata.series', 'getting-started') %}
 ```
 
 :::{/tab-item}
@@ -95,21 +95,21 @@ Find content that matches multiple criteria — tags, categories, or custom fiel
 
 ## Build a Tag Filter Page
 
-```jinja2
+```kida
 {# In a page with frontmatter: filter_tags: ['python', 'beginner'] #}
 
-{% set matches = site.pages %}
+{% let matches = site.pages %}
 
 {% for tag in page.metadata.filter_tags %}
-  {% set tag_pages = site.pages | where('tags', tag, 'in') %}
-  {% set matches = matches | intersect(tag_pages) %}
-{% endfor %}
+  {% let tag_pages = site.pages |> where('tags', tag, 'in') %}
+  {% let matches = matches |> intersect(tag_pages) %}
+{% end %}
 
 <h1>Posts tagged: {{ page.metadata.filter_tags | join(', ') }}</h1>
 
-{% for post in matches | sort_by('date', reverse=true) %}
+{% for post in matches |> sort_by('date', reverse=true) %}
   <li><a href="{{ post.href }}">{{ post.title }}</a></li>
-{% endfor %}
+{% end %}
 ```
 
 :::{seealso}

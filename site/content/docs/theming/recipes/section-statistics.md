@@ -32,7 +32,7 @@ This recipe shows how to use section-level properties like `section.post_count`,
 
 ## The Pattern
 
-```jinja2
+```kida
 <div class="section-stats">
   <span>{{ section.post_count }} articles</span>
   <span>{{ section.word_count | intcomma }} words</span>
@@ -54,7 +54,7 @@ This recipe shows how to use section-level properties like `section.post_count`,
 :::{tab-set}
 :::{tab-item} Section Header
 
-```jinja2
+```kida
 <header class="section-header">
   <h1>{{ section.title }}</h1>
   <p class="section-description">{{ section.description }}</p>
@@ -79,7 +79,7 @@ This recipe shows how to use section-level properties like `section.post_count`,
 :::{/tab-item}
 :::{tab-item} Sidebar Widget
 
-```jinja2
+```kida
 <aside class="stats-widget">
   <h3>Blog Stats</h3>
   <dl>
@@ -101,7 +101,7 @@ This recipe shows how to use section-level properties like `section.post_count`,
 :::{/tab-item}
 :::{tab-item} Comparison Table
 
-```jinja2
+```kida
 <div class="subsection-stats">
   <h2>Categories</h2>
   <table>
@@ -114,14 +114,14 @@ This recipe shows how to use section-level properties like `section.post_count`,
       </tr>
     </thead>
     <tbody>
-    {% for sub in section.subsections | sort_by('post_count', reverse=true) %}
+    {% for sub in section.subsections |> sort_by('post_count', reverse=true) %}
       <tr>
         <td><a href="{{ sub.href }}">{{ sub.title }}</a></td>
         <td>{{ sub.post_count }}</td>
         <td>{{ sub.word_count | intcomma }}</td>
         <td>{{ sub.total_reading_time }} min</td>
       </tr>
-    {% endfor %}
+    {% end %}
     </tbody>
   </table>
 </div>
@@ -130,11 +130,11 @@ This recipe shows how to use section-level properties like `section.post_count`,
 :::{/tab-item}
 :::{tab-item} Progress Bars
 
-```jinja2
-{% set max_posts = section.subsections | map(attribute='post_count') | max %}
+```kida
+{% let max_posts = section.subsections |> map(attribute='post_count') |> max %}
 
 <div class="category-bars">
-{% for sub in section.subsections | sort_by('post_count', reverse=true) %}
+{% for sub in section.subsections |> sort_by('post_count', reverse=true) %}
   <div class="category-bar">
     <a href="{{ sub.href }}">{{ sub.title }}</a>
     <div class="bar">
@@ -142,16 +142,16 @@ This recipe shows how to use section-level properties like `section.post_count`,
     </div>
     <span>{{ sub.post_count }}</span>
   </div>
-{% endfor %}
+{% end %}
 </div>
 ```
 
 :::{/tab-item}
 :::{tab-item} Site-Wide
 
-```jinja2
-{% set blog = get_section('blog') %}
-{% set docs = get_section('docs') %}
+```kida
+{% let blog = get_section('blog') %}
+{% let docs = get_section('docs') %}
 
 <footer class="site-stats">
   <h3>This Site</h3>
@@ -177,20 +177,20 @@ This recipe shows how to use section-level properties like `section.post_count`,
 
 Combine with author data:
 
-```jinja2
-{% set posts = section.regular_pages %}
-{% set authors = posts | map(attribute='author') | uniq %}
+```kida
+{% let posts = section.regular_pages %}
+{% let authors = posts |> map(attribute='author') |> uniq %}
 
 <div class="author-stats">
   <h3>Contributors</h3>
   <ul>
   {% for author in authors if author %}
-    {% set author_posts = posts | where('author.name', author.name) %}
+    {% let author_posts = posts |> where('author.name', author.name) %}
     <li>
       <span>{{ author.name }}</span>
       <span>{{ author_posts | length }} posts</span>
     </li>
-  {% endfor %}
+  {% end %}
   </ul>
 </div>
 ```

@@ -27,10 +27,10 @@ Kida uses `{% end %}` for all block endings, eliminating the need to remember sp
 
 {% block content %}
   {{ page.content | safe }}
-{% endblock %}
+{% end %}
 ```
 
-Jinja2's `{% endblock %}` is also accepted for block endings.
+Jinja2's `{% end %}` is also accepted for block endings.
 
 ## Conditionals
 
@@ -79,7 +79,7 @@ Kida adds `{% while %}` (not available in Jinja2):
 {% let counter = 0 %}
 {% while counter < 5 %}
   <p>Count: {{ counter }}</p>
-  {% set counter = counter + 1 %}
+  {% let counter = counter + 1 %}
 {% end %}
 ```
 
@@ -209,5 +209,5 @@ Kida provides cleaner range syntax:
         {{ page.content | safe }}
       </article>
   {% end %}
-{% endblock %}
+{% end %}
 ```

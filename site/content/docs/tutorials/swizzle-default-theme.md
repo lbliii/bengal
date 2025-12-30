@@ -200,8 +200,8 @@ Find the breadcrumbs macro (around line 30-50) and look for the separator. It mi
         <span class="separator">/</span>
       {% else %}
         <span class="current">{{ item.title }}</span>
-      {% endif %}
-    {% endfor %}
+      {% end %}
+    {% end %}
   </nav>
 {% endmacro %}
 ```
@@ -312,10 +312,10 @@ Instead of modifying the entire `base.html`, you can create a minimal override t
   <nav>
     {% for item in menu.main %}
     <a href="{{ item.url }}">{{ item.name }}</a>
-    {% endfor %}
+    {% end %}
   </nav>
 </header>
-{% endblock %}
+{% end %}
 
 {# Everything else inherits from default::base.html #}
 ```
@@ -434,7 +434,7 @@ If you only need to override a block, use inheritance instead of full swizzle:
 ```html
 {# ✅ Good: Override only what's needed #}
 {% extends "default::base.html" %}
-{% block header %}...{% endblock %}
+{% block header %}...{% end %}
 
 {# ❌ Avoid: Copying entire template when you only need one block #}
 ```

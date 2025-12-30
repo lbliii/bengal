@@ -38,7 +38,7 @@ class FileTrackingMixin:
         - dependencies: dict[str, set[str]]
         - output_sources: dict[str, str]
 
-    Performance Optimization (RFC: Cache Algorithm Optimization):
+    Performance Optimization:
     - Added reverse_dependencies for O(1) affected pages lookup
     - get_affected_pages(): O(n) → O(1)
     """
@@ -78,8 +78,7 @@ class FileTrackingMixin:
         """
         Determine if cache should be bypassed for a source file.
 
-        This is the single source of truth for cache bypass decisions
-        (RFC: rfc-incremental-hot-reload-invariants).
+        This is the single source of truth for cache bypass decisions.
 
         Cache bypass is required when:
         1. File is in the changed_sources set (explicit change from file watcher)
@@ -103,7 +102,7 @@ class FileTrackingMixin:
         """
         Check if a file has changed since last build.
 
-        Performance Optimization (RFC: orchestrator-performance-improvements):
+        Performance Optimization:
             - Fast path: mtime + size check (single stat call, no file read)
             - Slow path: SHA256 hash only when mtime/size mismatch detected
             - Handles edge cases: touch/rsync may change mtime but not content
@@ -118,46 +117,70 @@ class FileTrackingMixin:
         Returns:
             True if file is new or has changed, False if unchanged
         """
-        if not file_path.exists():
-            # File was deleted
-            return True
-
         file_key = str(file_path)
 
-        # Check fingerprint first (fast path)
-        if file_key in self.file_fingerprints:
-            cached = self.file_fingerprints[file_key]
-            try:
-                stat = file_path.stat()
+        if not file_path.exists():
+            # File was deleted
+            logger.debug("cache_miss", file=file_key, reason="file_not_found")
+            return True
 
-                # Fast path: mtime + size unchanged = definitely no change
-                if cached.get("mtime") == stat.st_mtime and cached.get("size") == stat.st_size:
+        # Check fingerprint first (fast path)
+        cached = self.file_fingerprints.get(file_key)
+        if not cached:
+            logger.debug("cache_miss", file=file_key, reason="not_in_cache")
+            return True
+
+        try:
+            stat = file_path.stat()
+            current_mtime = stat.st_mtime
+            current_size = stat.st_size
+            cached_mtime = cached.get("mtime")
+            cached_size = cached.get("size")
+
+            # Fast path: mtime + size unchanged = definitely no change
+            if cached_mtime == current_mtime and cached_size == current_size:
+                logger.debug("cache_hit", file=file_key, reason="mtime_size_match")
+                return False
+
+            # mtime or size changed - verify with hash (handles touch/rsync)
+            cached_hash = cached.get("hash")
+            if cached_hash:
+                current_hash = self.hash_file(file_path)
+                if current_hash == cached_hash:
+                    # Content unchanged despite mtime change (e.g., touch)
+                    # Update mtime/size in fingerprint for future fast path
+                    self.file_fingerprints[file_key] = {
+                        "mtime": current_mtime,
+                        "size": current_size,
+                        "hash": cached_hash,
+                    }
+                    logger.debug(
+                        "cache_hit",
+                        file=file_key,
+                        reason="mtime_changed_content_same",
+                        cached_mtime=cached_mtime,
+                        current_mtime=current_mtime,
+                    )
                     return False
 
-                # mtime or size changed - verify with hash (handles touch/rsync)
-                cached_hash = cached.get("hash")
-                if cached_hash:
-                    current_hash = self.hash_file(file_path)
-                    if current_hash == cached_hash:
-                        # Content unchanged despite mtime change (e.g., touch)
-                        # Update mtime/size in fingerprint for future fast path
-                        self.file_fingerprints[file_key] = {
-                            "mtime": stat.st_mtime,
-                            "size": stat.st_size,
-                            "hash": cached_hash,
-                        }
-                        return False
-                    return True  # Hash differs, file changed
-
-                # No cached hash, fall through to treat as changed
+                # Hash differs, file changed
+                logger.debug(
+                    "cache_miss",
+                    file=file_key,
+                    reason="content_changed",
+                    cached_hash=cached_hash[:8] if cached_hash else "none",
+                    current_hash=current_hash[:8] if current_hash else "none",
+                )
                 return True
 
-            except OSError:
-                # Can't stat file, treat as changed
-                return True
+            # No cached hash, treat as changed
+            logger.debug("cache_miss", file=file_key, reason="no_cached_hash")
+            return True
 
-        # New file (not in any cache)
-        return True
+        except OSError as e:
+            # Can't stat file, treat as changed
+            logger.debug("cache_miss", file=file_key, reason="stat_failed", error=str(e))
+            return True
 
     def update_file(self, file_path: Path) -> None:
         """
@@ -238,7 +261,7 @@ class FileTrackingMixin:
             self.dependencies[source_key] = set()
         self.dependencies[source_key].add(dep_key)
 
-        # Reverse graph: dependency → sources (RFC: Cache Algorithm Optimization)
+        # Reverse graph: dependency → sources
         if dep_key not in self.reverse_dependencies:
             self.reverse_dependencies[dep_key] = set()
         self.reverse_dependencies[dep_key].add(source_key)
@@ -248,7 +271,6 @@ class FileTrackingMixin:
         Find all pages that depend on a changed file (O(1) via reverse graph).
 
         Performance: O(1) lookup instead of O(n) iteration.
-        (RFC: Cache Algorithm Optimization)
 
         Args:
             changed_file: File that changed

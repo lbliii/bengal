@@ -66,7 +66,7 @@ orchestrator.process(
 
 Templates access fingerprinted URLs via the manifest:
 
-```jinja2
+```kida
 <link rel="stylesheet" href="{{ asset('css/main.css') }}">
 {# Outputs: /assets/css/main.abc123.css #}
 ```

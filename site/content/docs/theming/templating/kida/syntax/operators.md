@@ -80,7 +80,7 @@ Safe navigation through potentially null values:
 
 Compare to Jinja2's defensive coding:
 
-```jinja2
+```kida
 {{ user.profile.name if user and user.profile and user.profile.name else 'Anonymous' }}
 ```
 

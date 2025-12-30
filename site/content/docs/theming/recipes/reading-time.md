@@ -23,7 +23,7 @@ Display estimated reading time using Bengal's `reading_time` property or filter.
 
 ### Use the page property (recommended)
 
-```jinja2
+```kida
 <span class="reading-time">
   {{ page.reading_time }} min read
 </span>
@@ -31,7 +31,7 @@ Display estimated reading time using Bengal's `reading_time` property or filter.
 
 ### Use the filter on content
 
-```jinja2
+```kida
 <span class="reading-time">
   {{ page.content | reading_time }} min read
 </span>
@@ -53,7 +53,7 @@ Both approaches calculate reading time at 200 words per minute by default.
 
 Bengal provides a `word_count` filter that strips HTML and counts words:
 
-```jinja2
+```kida
 <span>{{ page.content | word_count }} words · {{ page.content | reading_time }} min read</span>
 ```
 
@@ -62,10 +62,10 @@ Both filters work together seamlessly since they use the same word counting logi
 :::{/tab-item}
 :::{tab-item} Custom WPM
 
-```jinja2
+```kida
 {# 250 words per minute instead of 200 #}
-{% set words = page.content | word_count %}
-{% set minutes = (words / 250) | round(0, 'ceil') | int %}
+{% let words = page.content | word_count %}
+{% let minutes = (words / 250) | round(0, 'ceil') | int %}
 
 <span>{{ minutes }} min read</span>
 ```
@@ -73,17 +73,18 @@ Both filters work together seamlessly since they use the same word counting logi
 :::{/tab-item}
 :::{tab-item} Short Content
 
-```jinja2
-{% set minutes = page.content | reading_time %}
+```kida
+{% let minutes = page.content | reading_time %}
 
 <span class="reading-time">
-{% if minutes < 1 %}
-  Quick read
-{% elif minutes == 1 %}
-  1 min read
-{% else %}
-  {{ minutes }} min read
-{% endif %}
+{% match minutes %}
+  {% case m if m < 1 %}
+    Quick read
+  {% case 1 %}
+    1 min read
+  {% case m %}
+    {{ m }} min read
+{% end %}
 </span>
 ```
 
@@ -92,12 +93,8 @@ Both filters work together seamlessly since they use the same word counting logi
 
 Allow manual override for complex content:
 
-```jinja2
-{% if page.metadata.reading_time %}
-  {% set minutes = page.metadata.reading_time %}
-{% else %}
-  {% set minutes = page.content | reading_time %}
-{% endif %}
+```kida
+{% let minutes = page.metadata.reading_time ?? page.content | reading_time %}
 ```
 
 Then in frontmatter:

@@ -178,6 +178,8 @@ class CacheManager:
         """
         Update cache with processed files.
 
+        Flushes deferred fingerprint updates before saving cache.
+
         Args:
             pages_built: Pages that were built
             assets_processed: Assets that were processed
@@ -240,6 +242,11 @@ class CacheManager:
         if theme_templates_dir and theme_templates_dir.exists():
             for template_file in theme_templates_dir.rglob("*.html"):
                 self.cache.update_file(template_file)
+
+        # Flush deferred fingerprint updates before saving.
+        # This ensures fingerprints reflect post-build state, not mid-build state.
+        if self.tracker:
+            self.tracker.flush_pending_updates()
 
         # Save cache
         self.cache.save(cache_path)
