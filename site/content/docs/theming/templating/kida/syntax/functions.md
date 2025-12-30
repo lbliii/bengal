@@ -214,7 +214,7 @@ Use in templates:
     </div>
     {% if post.tags %}
       <div class="tags">
-        {% for tag in post.tags | take(3) %}
+        {% for tag in post.tags |> take(3) %}
           {{ tag_badge(tag) }}
         {% end %}
       </div>

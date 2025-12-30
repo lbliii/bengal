@@ -72,7 +72,7 @@ Use `{% let %}` for template-wide variables:
 
 {% let post = page %}
 {% let reading_time = post.content | reading_time %}
-{% let author = site.authors[post.author] | default({}) %}
+{% let author = site.authors[post.author] ?? {} %}
 ```
 
 ### Step 4: Override Content Block
@@ -84,7 +84,7 @@ Override the `content` block to display your post:
 
 {% let post = page %}
 {% let reading_time = post.content | reading_time %}
-{% let author = site.authors[post.author] | default({}) %}
+{% let author = site.authors[post.author] ?? {} %}
 
 {% block content %}
   <article class="blog-post">
@@ -220,10 +220,10 @@ Here's a complete blog post template:
 
 {% let post = page %}
 {% let reading_time = post.content | reading_time %}
-{% let author = site.authors[post.author] | default({}) %}
+{% let author = site.authors[post.author] ?? {} %}
 {% let related_posts = site.pages
   |> where('type', 'blog')
-  |> where('tags', post.tags[0] | default(''))
+  |> where('tags', post.tags[0] ?? '')
   |> where('id', '!=', post.id)
   |> sort_by('date', reverse=true)
   |> take(3) %}

@@ -250,7 +250,7 @@ Create a full-featured blog template:
 {% let reading_time = post.content | reading_time %}
 {% let related_posts = site.pages
   |> where('type', 'blog')
-  |> where('tags', post.tags[0] | default(''))
+  |> where('tags', post.tags[0] ?? '')
   |> where('id', '!=', post.id)
   |> sort_by('date', reverse=true)
   |> take(5) %}
@@ -386,8 +386,8 @@ Define reusable functions:
 Safe attribute access:
 
 ```kida
-{{ user?.profile?.name | default('Anonymous') }}
-{{ page?.metadata?.author | default('Unknown') }}
+{{ user?.profile?.name ?? 'Anonymous' }}
+{{ page?.metadata?.author ?? 'Unknown' }}
 ```
 
 ### Null Coalescing

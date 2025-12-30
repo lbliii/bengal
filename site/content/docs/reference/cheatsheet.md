@@ -206,7 +206,7 @@ no_format: true                        # Skip HTML formatting
 ### List Pages in Section
 
 ```kida
-{% for page in section.pages | sort(attribute='date', reverse=true) %}
+{% for page in section.pages |> sort_by('date', reverse=true) %}
   <article>
     <h2><a href="{{ page.url }}">{{ page.title }}</a></h2>
     <time>{{ page.date | date('%B %d, %Y') }}</time>
@@ -247,7 +247,7 @@ no_format: true                        # Skip HTML formatting
 
 ```kida
 <nav>
-  {% for item in site.menus.main | sort(attribute='weight') %}
+  {% for item in site.menus.main |> sort_by('weight') %}
     <a href="{{ item.url }}"
        {% if page.url == item.url %}class="active"{% end %}>
       {{ item.name }}
@@ -392,7 +392,7 @@ weight = 2
 {{ list | length }}                   {# Count items #}
 {{ list | first }}                    {# First item #}
 {{ list | last }}                     {# Last item #}
-{{ list | sort(attribute='date') }}   {# Sort by attribute #}
+{{ list |> sort_by('date') }}   {# Sort by attribute #}
 {{ list | reverse }}                  {# Reverse order #}
 {{ list | join(', ') }}               {# Join with comma #}
 {{ path | asset_url }}                {# Fingerprinted URL #}

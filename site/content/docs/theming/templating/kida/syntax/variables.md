@@ -99,8 +99,8 @@ Assign multiple variables at once:
 {% extends "baseof.html" %}
 
 {# Template-level configuration #}
-{% let show_sidebar = page.sidebar | default(true) %}
-{% let show_toc = page.toc | default(true) %}
+{% let show_sidebar = page.sidebar ?? true %}
+{% let show_toc = page.toc ?? true %}
 {% let theme_color = config.theme.primary_color %}
 
 {% block content %}
@@ -114,7 +114,7 @@ Assign multiple variables at once:
 
 ```kida
 {% let post = page %}
-{% let author = site.authors[post.author] | default({}) %}
+{% let author = site.authors[post.author] ?? {} %}
 {% let reading_time = post.content | wordcount | reading_time %}
 {% let related_posts = site.pages
   |> where('type', 'blog')
@@ -124,7 +124,7 @@ Assign multiple variables at once:
 <article>
   <header>
     <h1>{{ post.title }}</h1>
-    <span>By {{ author.name | default('Anonymous') }}</span>
+    <span>By {{ author.name ?? 'Anonymous' }}</span>
     <span>{{ reading_time }} min read</span>
   </header>
   {{ post.content | safe }}

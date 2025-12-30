@@ -314,14 +314,14 @@ Kida's pipeline operator provides left-to-right readability:
 ### Collection Filters
 
 ```kida
-{{ items | first }}
-{{ items | last }}
+{{ items |> first }}
+{{ items |> last }}
 {{ items | length }}
-{{ items | sort }}
-{{ items | reverse }}
-{{ items | unique }}
+{{ items |> sort }}
+{{ items |> reverse }}
+{{ items |> unique }}
 {{ items | join(', ') }}
-{{ items | group_by('category') }}
+{{ items |> group_by('category') }}
 ```
 
 ### Type Conversion
@@ -433,8 +433,8 @@ The `nav` block depends only on `site.pages` (site-wide), so it's automatically 
 Safe attribute access:
 
 ```kida
-{{ user?.profile?.name | default('Anonymous') }}
-{{ page?.metadata?.author | default('Unknown') }}
+{{ user?.profile?.name ?? 'Anonymous' }}
+{{ page?.metadata?.author ?? 'Unknown' }}
 ```
 
 ### Null Coalescing (`??`)

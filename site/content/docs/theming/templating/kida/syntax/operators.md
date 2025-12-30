@@ -32,7 +32,7 @@ Both `|` and `|>` compile to identical code:
 
 ```kida
 {# These are functionally identical #}
-{{ items | where('published', true) | sort_by('date') | take(5) }}
+{{ items |> where('published', true) |> sort_by('date') |> take(5) }}
 {{ items |> where('published', true) |> sort_by('date') |> take(5) }}
 ```
 
@@ -73,7 +73,7 @@ Add inline comments to explain each step:
 Safe navigation through potentially null values:
 
 ```kida
-{{ user?.profile?.name | default('Anonymous') }}
+{{ user?.profile?.name ?? 'Anonymous' }}
 {{ page?.metadata?.author?.avatar }}
 {{ config?.social?.twitter?.handle }}
 ```

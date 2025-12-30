@@ -73,7 +73,7 @@ Set time-to-live for cache expiration:
 {% cache "related-posts-" ~ page.id %}
   {% let related = site.pages
     |> where('type', 'blog')
-    |> where('tags', page.tags[0] | default(''))
+    |> where('tags', page.tags[0] ?? '')
     |> where('id', '!=', page.id)
     |> sort_by('date', reverse=true)
     |> take(5) %}
