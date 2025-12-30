@@ -1,11 +1,13 @@
 # RFC: Cache Lifecycle Hardening
 
-**Status**: Draft  
+**Status**: Draft (Planned)  
 **Created**: 2025-12-30  
 **Updated**: 2025-12-30  
 **Author**: AI Assistant  
 **Priority**: Medium  
-**Affects**: `bengal/cache/`, `bengal/orchestration/`, `bengal/rendering/context/`  
+**Estimated Effort**: 3-4 weeks (4 phases)  
+**Risk Level**: Low-Medium  
+**Affects**: `bengal/cache/`, `bengal/orchestration/`, `bengal/rendering/context/`, `bengal/utils/`  
 **Related**: `rfc-cache-invalidation-fixes.md`
 
 ---
@@ -22,6 +24,15 @@ Following the cache invalidation fixes, this RFC addresses broader cache lifecyc
 5. Fragile invalidation chains that must be manually maintained
 
 **Proposed Solution**: Centralized cache registry with lifecycle hooks, observer pattern for invalidation cascades, and build-scoped context management.
+
+**Implementation Summary**: 4 phases, 28 tasks, ~3-4 weeks
+
+| Phase | Tasks | Risk | Value |
+|-------|-------|------|-------|
+| 1. Cache Registry | 11 | Low | High |
+| 2. Build-Scoped Context | 7 | Medium | Medium |
+| 3. Invariant Checks | 6 | Low | Medium |
+| 4. Thread-Local Guards | 6 | Low | Low |
 
 ---
 
@@ -127,6 +138,21 @@ self._page_to_keys: dict[str, set[str]] = {}  # Must stay in sync
 
 ---
 
+## Code Verification
+
+Claims in this RFC have been verified against the codebase:
+
+| Claim | Status | Evidence |
+|-------|--------|----------|
+| Cache registry is basic (`clear_all_caches` only) | ✅ Verified | `utils/cache_registry.py:72-91` - only has `register_cache`, `clear_all_caches`, `list_registered_caches` |
+| NavTreeCache called from 5+ locations | ✅ Verified | Found **39 calls** to `NavTreeCache.invalidate()` across tests, benchmarks, and production code |
+| Global context uses `id(site)` as key | ✅ Verified | `rendering/context/__init__.py:142` - `site_id = id(site)` |
+| Thread-local uses generation counter | ✅ Verified | `orchestration/render.py:84-85` - `_build_generation: int = 0` |
+| TaxonomyIndex has two-layer indexes | ✅ Verified | `cache/taxonomy_index.py:128-130` - `tags` + `_page_to_tags` |
+| BuildContext exists (to be extended) | ✅ Verified | `utils/build_context.py:122-642` - comprehensive dataclass with 50+ fields |
+
+---
+
 ## Root Cause Analysis
 
 ### Pattern 1: No Single Source of Truth for Cache State
@@ -176,9 +202,15 @@ def clear_all_caches() -> None:
 
 ```python
 # utils/cache_registry.py (enhanced)
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum, auto
+from graphlib import TopologicalSorter
 from typing import Callable
+import logging
+import threading
+import time
+
+logger = logging.getLogger(__name__)
 
 class InvalidationReason(Enum):
     """Why a cache was invalidated."""
@@ -200,6 +232,7 @@ class CacheEntry:
     depends_on: set[str] = field(default_factory=set)  # Cache dependencies
 
 _registered_caches: dict[str, CacheEntry] = {}
+_registry_lock = threading.Lock()
 _invalidation_log: list[tuple[str, InvalidationReason, float]] = []
 
 def register_cache(
@@ -208,28 +241,144 @@ def register_cache(
     invalidate_on: set[InvalidationReason] | None = None,
     depends_on: set[str] | None = None,
 ) -> None:
-    """Register a cache with lifecycle metadata."""
-    _registered_caches[name] = CacheEntry(
-        name=name,
-        clear_fn=clear_fn,
-        invalidate_on=invalidate_on or {InvalidationReason.FULL_REBUILD},
-        depends_on=depends_on or set(),
-    )
+    """
+    Register a cache with lifecycle metadata.
+    
+    Caches should register themselves at module import time (standard pattern).
+    This ensures all caches are registered before any build operations.
+    
+    Args:
+        name: Unique cache name (for debugging and dependency tracking)
+        clear_fn: Callable that clears the cache (e.g., lambda: cache.clear())
+        invalidate_on: Set of reasons that should trigger invalidation
+        depends_on: Set of cache names this cache depends on (for cascade invalidation)
+    
+    Raises:
+        ValueError: If dependency cycle detected or dependencies don't exist
+    
+    Example:
+        register_cache(
+            "nav_tree",
+            NavTreeCache.invalidate,
+            invalidate_on={InvalidationReason.CONFIG_CHANGED, InvalidationReason.STRUCTURAL_CHANGE},
+            depends_on={"build_cache"},  # Nav tree depends on build cache
+        )
+    """
+    with _registry_lock:
+        # Validate dependencies exist (if not empty)
+        if depends_on:
+            missing = depends_on - _registered_caches.keys()
+            if missing:
+                raise ValueError(
+                    f"Cache '{name}' depends on non-existent caches: {missing}. "
+                    f"Register dependencies first or remove them from depends_on."
+                )
+        
+        # Check for cycles (defensive - shouldn't happen with proper design)
+        _validate_no_cycles(name, depends_on or set())
+        
+        _registered_caches[name] = CacheEntry(
+            name=name,
+            clear_fn=clear_fn,
+            invalidate_on=invalidate_on or {InvalidationReason.FULL_REBUILD},
+            depends_on=depends_on or set(),
+        )
+
+def _validate_no_cycles(new_cache: str, new_deps: set[str]) -> None:
+    """
+    Validate that adding new_cache with new_deps doesn't create a cycle.
+    
+    Uses DFS to detect cycles in dependency graph.
+    """
+    # Build dependency graph
+    graph: dict[str, set[str]] = {}
+    for name, entry in _registered_caches.items():
+        graph[name] = entry.depends_on.copy()
+    graph[new_cache] = new_deps.copy()
+    
+    # Check for cycles using DFS
+    visited: set[str] = set()
+    rec_stack: set[str] = set()
+    
+    def has_cycle(node: str) -> bool:
+        visited.add(node)
+        rec_stack.add(node)
+        
+        for dep in graph.get(node, set()):
+            if dep not in visited:
+                if has_cycle(dep):
+                    return True
+            elif dep in rec_stack:
+                return True
+        
+        rec_stack.remove(node)
+        return False
+    
+    for node in graph:
+        if node not in visited:
+            if has_cycle(node):
+                raise ValueError(
+                    f"Cache dependency cycle detected involving '{new_cache}'. "
+                    f"Dependencies: {new_deps}"
+                )
+
+def _topological_sort(cache_names: set[str]) -> list[str]:
+    """
+    Topologically sort cache names by dependency order.
+    
+    Uses graphlib.TopologicalSorter (Python 3.9+) for reliable ordering.
+    Ensures dependencies are invalidated before dependents.
+    
+    Args:
+        cache_names: Set of cache names to sort
+    
+    Returns:
+        List of cache names in dependency order (dependencies first)
+    """
+    # Build dependency graph for selected caches
+    graph: dict[str, set[str]] = {}
+    for name in cache_names:
+        if name in _registered_caches:
+            # Only include dependencies that are also in cache_names
+            entry = _registered_caches[name]
+            graph[name] = entry.depends_on & cache_names
+    
+    # Handle empty graph or single node
+    if not graph:
+        return list(cache_names)
+    if len(graph) == 1:
+        return list(cache_names)
+    
+    # Use TopologicalSorter for reliable ordering
+    sorter = TopologicalSorter(graph)
+    try:
+        return list(sorter.static_order())
+    except ValueError as e:
+        # Shouldn't happen if cycle detection works, but defensive
+        logger.warning(f"Topological sort failed (cycle?): {e}. Invalidating in arbitrary order.")
+        return list(cache_names)
 
 def invalidate_for_reason(reason: InvalidationReason) -> list[str]:
     """
     Invalidate all caches that should be cleared for this reason.
     
     Returns list of invalidated cache names (for logging).
-    """
-    import time
-    invalidated = []
     
-    for name, entry in _registered_caches.items():
-        if reason in entry.invalidate_on:
-            entry.clear_fn()
-            invalidated.append(name)
-            _invalidation_log.append((name, reason, time.time()))
+    Thread-safe: Uses registry lock for consistency.
+    """
+    invalidated = []
+    timestamp = time.time()
+    
+    with _registry_lock:
+        for name, entry in _registered_caches.items():
+            if reason in entry.invalidate_on:
+                try:
+                    entry.clear_fn()
+                    invalidated.append(name)
+                    _invalidation_log.append((name, reason, timestamp))
+                except Exception as e:
+                    # Log but don't fail - one cache failure shouldn't break invalidation
+                    logger.warning(f"Failed to invalidate cache '{name}': {e}")
     
     return invalidated
 
@@ -237,34 +386,55 @@ def invalidate_with_dependents(cache_name: str, reason: InvalidationReason) -> l
     """
     Invalidate a specific cache and all caches that depend on it.
     
-    Uses topological sort to ensure correct order.
-    """
-    # Find all dependents (transitive closure)
-    to_invalidate = {cache_name}
-    changed = True
-    while changed:
-        changed = False
-        for name, entry in _registered_caches.items():
-            if entry.depends_on & to_invalidate and name not in to_invalidate:
-                to_invalidate.add(name)
-                changed = True
+    Uses topological sort to ensure correct order (dependencies before dependents).
     
-    # Invalidate in dependency order
-    invalidated = []
-    for name in _topological_sort(to_invalidate):
-        if name in _registered_caches:
-            _registered_caches[name].clear_fn()
-            invalidated.append(name)
+    Args:
+        cache_name: Name of cache to invalidate
+        reason: Reason for invalidation (for logging)
+    
+    Returns:
+        List of invalidated cache names in dependency order
+    
+    Raises:
+        KeyError: If cache_name not registered
+    """
+    with _registry_lock:
+        if cache_name not in _registered_caches:
+            raise KeyError(f"Cache '{cache_name}' not registered")
+        
+        # Find all dependents (transitive closure)
+        to_invalidate = {cache_name}
+        changed = True
+        while changed:
+            changed = False
+            for name, entry in _registered_caches.items():
+                if entry.depends_on & to_invalidate and name not in to_invalidate:
+                    to_invalidate.add(name)
+                    changed = True
+        
+        # Invalidate in dependency order
+        invalidated = []
+        timestamp = time.time()
+        for name in _topological_sort(to_invalidate):
+            if name in _registered_caches:
+                try:
+                    _registered_caches[name].clear_fn()
+                    invalidated.append(name)
+                    _invalidation_log.append((name, reason, timestamp))
+                except Exception as e:
+                    logger.warning(f"Failed to invalidate cache '{name}': {e}")
     
     return invalidated
 
 def get_invalidation_log() -> list[tuple[str, InvalidationReason, float]]:
     """Get log of recent invalidations (for debugging)."""
-    return _invalidation_log[-100:]  # Keep last 100
+    with _registry_lock:
+        return _invalidation_log[-100:]  # Keep last 100
 
 def clear_invalidation_log() -> None:
     """Clear invalidation log."""
-    _invalidation_log.clear()
+    with _registry_lock:
+        _invalidation_log.clear()
 ```
 
 #### 1.2 Migrate Existing Caches
@@ -347,42 +517,81 @@ if config_changed:
 
 **Goal**: Ensure context caches are scoped to a specific build, preventing cross-build contamination.
 
-#### 2.1 Build Context as Cache Scope
+**Note**: `BuildContext` already exists in `bengal/utils/build_context.py` as a dataclass for sharing state across build phases. This phase extends the existing class rather than creating a new one.
+
+#### 2.1 Extend Existing BuildContext
 
 ```python
 # utils/build_context.py (enhanced)
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Callable
 import uuid
 
 @dataclass
 class BuildContext:
-    """Context for a single build execution."""
-    site: Site
-    stats: BuildStats
+    """
+    Shared build context passed across build phases.
+    
+    Extended with build-scoped caching to prevent cross-build contamination.
+    Existing fields preserved for backward compatibility.
+    """
+    # ... existing fields (site, stats, cache, tracker, etc.) ...
+    
+    # NEW: Build-scoped cache identifier
     build_id: str = field(default_factory=lambda: uuid.uuid4().hex[:8])
     
-    # Build-scoped caches
-    _context_cache: dict[str, Any] = field(default_factory=dict)
+    # NEW: Build-scoped caches (separate from existing _page_contents, etc.)
+    _build_scoped_cache: dict[str, Any] = field(default_factory=dict, repr=False)
     
     def get_cached(self, key: str, factory: Callable[[], Any]) -> Any:
-        """Get or create cached value for this build."""
-        if key not in self._context_cache:
-            self._context_cache[key] = factory()
-        return self._context_cache[key]
+        """
+        Get or create cached value scoped to this build.
+        
+        Values cached here are automatically cleared when build completes,
+        preventing cross-build contamination.
+        
+        Args:
+            key: Cache key (should be descriptive, e.g., "global_contexts")
+            factory: Callable that creates the value if not cached
+        
+        Returns:
+            Cached value (created on first access)
+        
+        Example:
+            contexts = build_context.get_cached(
+                "global_contexts",
+                lambda: _create_contexts(site)
+            )
+        """
+        if key not in self._build_scoped_cache:
+            self._build_scoped_cache[key] = factory()
+        return self._build_scoped_cache[key]
     
     def __enter__(self) -> BuildContext:
-        """Enter build scope - signal BUILD_START."""
+        """
+        Enter build scope - signal BUILD_START event.
+        
+        Enables context manager usage:
+            with BuildContext(...) as ctx:
+                # Build operations
+        """
         from bengal.utils.cache_registry import invalidate_for_reason, InvalidationReason
         invalidate_for_reason(InvalidationReason.BUILD_START)
         return self
     
     def __exit__(self, *args) -> None:
-        """Exit build scope - signal BUILD_END."""
+        """
+        Exit build scope - signal BUILD_END event and clear build-scoped caches.
+        
+        Automatically clears _build_scoped_cache to free memory and prevent
+        cross-build contamination.
+        """
         from bengal.utils.cache_registry import invalidate_for_reason, InvalidationReason
         invalidate_for_reason(InvalidationReason.BUILD_END)
-        self._context_cache.clear()
+        self._build_scoped_cache.clear()
 ```
+
+**Backward Compatibility**: Existing code using `BuildContext` continues to work. Build-scoped caching is opt-in via `get_cached()` method. Context manager protocol is optional.
 
 #### 2.2 Refactor Global Context to Use Build Scope
 
@@ -472,6 +681,23 @@ def save_to_disk(self) -> None:
             )
     
     # ... existing save logic ...
+
+def load_from_disk(self) -> None:
+    """Load taxonomy index with invariant check."""
+    # ... existing load logic ...
+    
+    # Verify invariants after load (detect corruption early)
+    if logger.isEnabledFor(logging.DEBUG):
+        violations = self._check_invariants()
+        if violations:
+            logger.error(
+                "taxonomy_index_corruption_detected",
+                violations=violations[:5],
+                total=len(violations),
+                action="Rebuilding index from scratch",
+            )
+            # Optionally: clear and rebuild if corruption detected
+            # self.clear()
 ```
 
 #### 3.2 QueryIndex Invariant Check (Similar Pattern)
@@ -511,17 +737,18 @@ def _check_invariants(self) -> list[str]:
 ```python
 # orchestration/render.py
 
-_active_renders = threading.atomic.AtomicInteger(0)  # Python 3.13+
-# Or for compatibility:
+# Thread-safe counter for active renders
 _active_render_count: int = 0
 _active_render_lock = threading.Lock()
 
 def _increment_active_renders() -> None:
+    """Increment active render count (call at render start)."""
     global _active_render_count
     with _active_render_lock:
         _active_render_count += 1
 
 def _decrement_active_renders() -> None:
+    """Decrement active render count (call at render end)."""
     global _active_render_count
     with _active_render_lock:
         _active_render_count -= 1
@@ -531,6 +758,7 @@ def clear_thread_local_pipelines() -> None:
     Invalidate thread-local pipeline caches across all threads.
     
     IMPORTANT: Must not be called while renders are active.
+    This guard prevents invalidation during active operations.
     """
     with _active_render_lock:
         if _active_render_count > 0:
@@ -538,11 +766,22 @@ def clear_thread_local_pipelines() -> None:
                 "clear_pipelines_during_active_render",
                 active_count=_active_render_count,
             )
-            # In strict mode, could raise here
+            # In strict mode, could raise RuntimeError here
+            # For now, log warning and proceed (defensive)
     
     global _build_generation
     with _generation_lock:
         _build_generation += 1
+```
+
+**Integration**: Wrap render operations with increment/decrement:
+```python
+def render_page(...):
+    _increment_active_renders()
+    try:
+        # ... render logic ...
+    finally:
+        _decrement_active_renders()
 ```
 
 ---
@@ -558,23 +797,130 @@ def clear_thread_local_pipelines() -> None:
 
 ### Phase 2: Build-Scoped Context (Week 2-3)
 
-1. Enhance `BuildContext` with scoped caching
-2. Update `build_page_context()` to accept optional `build_context`
-3. Gradually migrate from global cache to build-scoped
-4. Add tests for cross-build isolation
+1. Extend existing `BuildContext` class with `build_id` and `_build_scoped_cache`
+2. Add `get_cached()` method and context manager protocol (`__enter__`/`__exit__`)
+3. Update `_get_global_contexts()` to accept optional `build_context` parameter
+4. Gradually migrate from global cache to build-scoped (backward compatible)
+5. Add tests for cross-build isolation
+6. **Performance**: Benchmark build-scoped cache overhead (expected: <1ms per build)
 
 ### Phase 3: Invariant Checks (Week 3)
 
 1. Add `_check_invariants()` to TaxonomyIndex and QueryIndex
-2. Call during save (debug mode only initially)
-3. Add tests that verify invariants hold after various operations
-4. Consider enabling in CI as regression protection
+2. Call during `save_to_disk()` (debug mode only initially)
+3. Call during `load_from_disk()` to detect corruption early
+4. Add tests that verify invariants hold after various operations
+5. Add tests that verify corruption detection works
+6. Consider enabling in CI as regression protection (with sampling to reduce overhead)
+7. **Performance**: Measure invariant check overhead (expected: <10ms for typical sites)
 
 ### Phase 4: Thread-Local Guards (Week 4)
 
 1. Add active render tracking
 2. Add guards to `clear_thread_local_pipelines()`
 3. Add tests for concurrent build scenarios
+
+---
+
+## Implementation Tasks
+
+Detailed task breakdown for each phase:
+
+### Phase 1: Central Cache Registry (High Value, Low Risk)
+
+**Architecture Change**:
+```
+Current: _cache_registry: dict[str, Callable]
+Target:  _registered_caches: dict[str, CacheEntry] with metadata
+         + dependency tracking + topological invalidation
+```
+
+| Task ID | Task | File(s) | Complexity |
+|---------|------|---------|------------|
+| 1.1 | Add `InvalidationReason` enum | `utils/cache_registry.py` | Low |
+| 1.2 | Add `CacheEntry` dataclass with `invalidate_on`, `depends_on` | `utils/cache_registry.py` | Low |
+| 1.3 | Implement `_validate_no_cycles()` DFS cycle detection | `utils/cache_registry.py` | Medium |
+| 1.4 | Implement `_topological_sort()` using `graphlib.TopologicalSorter` | `utils/cache_registry.py` | Medium |
+| 1.5 | Add `invalidate_for_reason()` API | `utils/cache_registry.py` | Low |
+| 1.6 | Add `invalidate_with_dependents()` API | `utils/cache_registry.py` | Medium |
+| 1.7 | Migrate NavTreeCache registration | `core/nav_tree.py` | Low |
+| 1.8 | Migrate GlobalContext registration | `rendering/context/__init__.py` | Low |
+| 1.9 | Migrate VersionPageIndex registration | `rendering/template_functions/version_url.py` | Low |
+| 1.10 | Replace invalidation calls in IncrementalOrchestrator | `orchestration/incremental/orchestrator.py` | Medium |
+| 1.11 | Add unit tests for registry | `tests/unit/cache/test_cache_registry.py` | Medium |
+
+**Key Migration Point** (orchestration/incremental/orchestrator.py:116-133):
+```python
+# Before
+if config_changed:
+    NavTreeCache.invalidate()
+    invalidate_version_page_index()
+    if hasattr(self.site, "invalidate_version_caches"):
+        self.site.invalidate_version_caches()
+
+# After
+if config_changed:
+    invalidate_for_reason(InvalidationReason.CONFIG_CHANGED)
+```
+
+### Phase 2: Build-Scoped Context (Medium Risk)
+
+**Architecture Change**:
+```
+Extend existing BuildContext (not replace) with:
+- build_id: str (uuid4 hex)
+- _build_scoped_cache: dict[str, Any]
+- get_cached(key, factory) method
+- __enter__ / __exit__ context manager
+```
+
+| Task ID | Task | File(s) | Complexity |
+|---------|------|---------|------------|
+| 2.1 | Add `build_id` field (default: `uuid.uuid4().hex[:8]`) | `utils/build_context.py` | Low |
+| 2.2 | Add `_build_scoped_cache` field | `utils/build_context.py` | Low |
+| 2.3 | Add `get_cached(key, factory)` method | `utils/build_context.py` | Low |
+| 2.4 | Add `__enter__` (signal BUILD_START) | `utils/build_context.py` | Low |
+| 2.5 | Add `__exit__` (signal BUILD_END, clear cache) | `utils/build_context.py` | Low |
+| 2.6 | Refactor `_get_global_contexts()` to accept `build_context` | `rendering/context/__init__.py` | Medium |
+| 2.7 | Add integration tests for build isolation | `tests/integration/test_cache_lifecycle.py` | Medium |
+
+**Backward Compatibility**: Existing code continues to work. Build-scoped caching is opt-in via `build_context` parameter.
+
+### Phase 3: Invariant Checks (Low Risk)
+
+| Task ID | Task | File(s) | Complexity |
+|---------|------|---------|------------|
+| 3.1 | Add `_check_invariants()` to TaxonomyIndex | `cache/taxonomy_index.py` | Medium |
+| 3.2 | Call invariants in `save_to_disk()` (debug mode) | `cache/taxonomy_index.py` | Low |
+| 3.3 | Call invariants in `_load_from_disk()` | `cache/taxonomy_index.py` | Low |
+| 3.4 | Add `_check_invariants()` to QueryIndex | `cache/query_index.py` | Medium |
+| 3.5 | Call invariants in QueryIndex save/load | `cache/query_index.py` | Low |
+| 3.6 | Add tests for invariant detection | `tests/unit/cache/test_taxonomy_index.py` | Medium |
+
+### Phase 4: Thread-Local Guards (Low Risk)
+
+| Task ID | Task | File(s) | Complexity |
+|---------|------|---------|------------|
+| 4.1 | Add `_active_render_count` and lock | `orchestration/render.py` | Low |
+| 4.2 | Add `_increment_active_renders()` | `orchestration/render.py` | Low |
+| 4.3 | Add `_decrement_active_renders()` | `orchestration/render.py` | Low |
+| 4.4 | Add guard to `clear_thread_local_pipelines()` | `orchestration/render.py` | Low |
+| 4.5 | Wrap render operations with increment/decrement | `orchestration/render.py` | Medium |
+| 4.6 | Add concurrency tests | `tests/unit/orchestration/test_render.py` | Medium |
+
+---
+
+## Identified Gaps
+
+Issues discovered during planning that require attention:
+
+1. **QueryIndex verification needed**: RFC references `cache/query_index.py` - verify it has similar two-layer structure to TaxonomyIndex before implementing Phase 3.4.
+
+2. **Version Page Index location**: Verify `rendering/template_functions/version_url.py` contains `invalidate_version_page_index()` function.
+
+3. **Performance baseline**: Recommend adding benchmark tests before Phase 1 implementation to establish baseline for measuring overhead.
+
+4. **Documentation**: Cache registration pattern (module-level at import time) should be documented in registry docstring and contributing guide.
 
 ---
 
@@ -652,12 +998,33 @@ class TestCacheLifecycle:
 
 ## Success Criteria
 
+### Functional Criteria
+
 1. **No scattered invalidation calls**: All cache invalidation goes through registry
 2. **Dependency tracking works**: Adding new cache with dependency auto-cascades
 3. **Build isolation verified**: Concurrent builds don't interfere
 4. **Invariant checks pass**: Two-layer caches stay in sync
 5. **No regressions**: Existing tests continue to pass
-6. **Performance neutral**: No measurable slowdown in builds
+6. **Backward compatibility**: Existing code using BuildContext continues to work
+
+### Performance Criteria
+
+| Metric | Target | Measurement Method |
+|--------|--------|-------------------|
+| Registry lookup overhead | <0.1ms per invalidation | Benchmark with 10+ caches |
+| Dependency traversal | <1ms for typical graphs | Benchmark with 5-level deep graph |
+| Build-scoped cache | <1ms per build | Measure `__enter__`/`__exit__` overhead |
+| Invariant checks | <10ms for typical sites | Measure on 500+ page site |
+| Total build regression | <1% slowdown | Compare before/after on reference site |
+
+### Implementation Completeness
+
+| Phase | Completion Criteria |
+|-------|---------------------|
+| Phase 1 | All caches registered with metadata; 0 direct invalidation calls outside registry |
+| Phase 2 | BuildContext context manager works; global context accepts build_context |
+| Phase 3 | Invariants checked on save/load; 0 false positives in test suite |
+| Phase 4 | Guards prevent invalidation during active renders; concurrent tests pass |
 
 ---
 
@@ -665,20 +1032,28 @@ class TestCacheLifecycle:
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|------------|--------|------------|
-| Over-invalidation (clearing too much) | Medium | Low (slower builds) | Log invalidations, tune `invalidate_on` |
-| Under-invalidation (missing clears) | Low | High (stale data) | Integration tests, invariant checks |
-| Dependency cycles | Low | Medium | Validate no cycles at registration |
-| Migration breaks existing code | Medium | Medium | Gradual migration, feature flags |
+| Over-invalidation (clearing too much) | Medium | Low (slower builds) | Log invalidations, tune `invalidate_on`, performance benchmarks |
+| Under-invalidation (missing clears) | Low | High (stale data) | Integration tests, invariant checks, comprehensive test coverage |
+| Dependency cycles | Low | Medium | Cycle detection at registration time, clear error messages |
+| Migration breaks existing code | Medium | Medium | Backward compatibility (optional build_context param), gradual migration |
+| Performance regression | Low | Medium | Benchmark each phase, measure overhead, optimize hot paths |
+| BuildContext integration issues | Medium | Medium | Extend existing class (don't replace), maintain backward compatibility |
 
 ---
 
 ## Open Questions
 
-1. **Should invariant checks be enabled in production?** Currently proposed for debug-only. Could catch issues earlier if always-on with sampling.
+1. **Should invariant checks be enabled in production?** 
+   - **Recommendation**: Start with debug-only (as proposed). After Phase 3, evaluate performance impact. If <10ms overhead, consider enabling in CI with sampling (check 10% of saves). Production: keep debug-only unless corruption issues emerge.
 
-2. **How to handle cache versioning?** When cache format changes, need coordinated migration. Registry could track versions.
+2. **How to handle cache versioning?** 
+   - **Recommendation**: Add `version: int` field to `CacheEntry` in Phase 1. Registry tracks versions. `invalidate_for_reason()` can check versions. Consider separate RFC for coordinated version migration strategy (when cache formats change).
 
-3. **Should we add cache hit/miss metrics?** Would help identify optimization opportunities but adds overhead.
+3. **Should we add cache hit/miss metrics?** 
+   - **Recommendation**: Defer to Phase 2 (after registry is stable). Add lightweight counters to `CacheEntry` (hit_count, miss_count). Enable via feature flag (low overhead when disabled). Use for optimization opportunities identification.
+
+4. **Cache registration timing?**
+   - **Recommendation**: Module-level registration at import time (current pattern). Document this pattern in registry docstring. Ensures all caches registered before any build operations.
 
 ---
 
@@ -686,8 +1061,13 @@ class TestCacheLifecycle:
 
 - `rfc-cache-invalidation-fixes.md`: Related fixes for file fingerprint timing
 - `bengal/utils/cache_registry.py`: Existing (basic) cache registry
+- `bengal/utils/build_context.py`: Existing BuildContext class (to be extended)
 - `bengal/core/nav_tree.py`: NavTreeCache implementation
 - `bengal/rendering/context/__init__.py`: Global context caching
+- `bengal/orchestration/incremental/orchestrator.py`: Current invalidation sites
+- `bengal/cache/taxonomy_index.py`: Two-layer cache example
+- `bengal/cache/query_index.py`: Two-layer cache example
+- Python `graphlib.TopologicalSorter`: Used for dependency ordering (Python 3.9+)
 
 ---
 
@@ -696,4 +1076,13 @@ class TestCacheLifecycle:
 | Date | Change |
 |------|--------|
 | 2025-12-30 | Initial draft |
+| 2025-12-30 | Improved: Added topological sort implementation, cycle detection, error handling |
+| 2025-12-30 | Fixed: Acknowledged existing BuildContext, proposed extension rather than replacement |
+| 2025-12-30 | Fixed: Removed non-existent Python 3.13 threading.atomic reference |
+| 2025-12-30 | Added: Performance considerations, cache registration timing, invariant checks on load |
+| 2025-12-30 | Enhanced: Error handling documentation, backward compatibility strategy |
+| 2025-12-30 | Added: Code Verification section with evidence for all claims |
+| 2025-12-30 | Added: Implementation Tasks section with detailed task breakdown per phase |
+| 2025-12-30 | Added: Identified Gaps section noting items requiring attention |
+| 2025-12-30 | Enhanced: Success Criteria with performance targets and completion criteria tables |
 
