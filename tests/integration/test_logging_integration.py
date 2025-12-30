@@ -129,9 +129,9 @@ class TestLoggingIntegration:
 
         # Verify build_start has context
         build_start = build_start_events[0]
-        assert "parallel" in build_start.context
+        assert "force_sequential" in build_start.context
         assert "incremental" in build_start.context
-        assert not build_start.context["parallel"]
+        assert build_start.context["force_sequential"]  # We passed force_sequential=True
         assert not build_start.context["incremental"]
 
         # Verify build_complete has stats

@@ -87,11 +87,6 @@ paths:
 
         # Patch the module-level extraction functions
         with (
-            patch.object(
-                VirtualAutodocOrchestrator,
-                "_ensure_template_env",
-                return_value=MagicMock(),
-            ),
             patch(
                 "bengal.autodoc.orchestration.orchestrator.extract_python",
                 return_value=[python_element],
@@ -155,16 +150,9 @@ paths:
             ),
         ]
 
-        with (
-            patch.object(
-                VirtualAutodocOrchestrator,
-                "_ensure_template_env",
-                return_value=MagicMock(),
-            ),
-            patch(
-                "bengal.autodoc.orchestration.orchestrator.extract_cli",
-                return_value=cli_elements,
-            ),
+        with patch(
+            "bengal.autodoc.orchestration.orchestrator.extract_cli",
+            return_value=cli_elements,
         ):
             orchestrator = VirtualAutodocOrchestrator(mock_site)
             pages, sections, result = orchestrator.generate()
@@ -237,16 +225,9 @@ class TestBackwardsCompatibility:
             description="Test module",
         )
 
-        with (
-            patch.object(
-                VirtualAutodocOrchestrator,
-                "_ensure_template_env",
-                return_value=MagicMock(),
-            ),
-            patch(
-                "bengal.autodoc.orchestration.orchestrator.extract_python",
-                return_value=[python_element],
-            ),
+        with patch(
+            "bengal.autodoc.orchestration.orchestrator.extract_python",
+            return_value=[python_element],
         ):
             orchestrator = VirtualAutodocOrchestrator(mock_site)
             pages, sections, result = orchestrator.generate()
@@ -291,16 +272,9 @@ paths: {}
             description="API Overview",
         )
 
-        with (
-            patch.object(
-                VirtualAutodocOrchestrator,
-                "_ensure_template_env",
-                return_value=MagicMock(),
-            ),
-            patch(
-                "bengal.autodoc.orchestration.orchestrator.extract_openapi",
-                return_value=[openapi_element],
-            ),
+        with patch(
+            "bengal.autodoc.orchestration.orchestrator.extract_openapi",
+            return_value=[openapi_element],
         ):
             orchestrator = VirtualAutodocOrchestrator(mock_site)
             pages, sections, result = orchestrator.generate()
@@ -332,15 +306,10 @@ paths: {}
         src_dir.mkdir()
         (src_dir / "__init__.py").write_text('"""Test package."""')
 
-        with patch.object(
-            VirtualAutodocOrchestrator,
-            "_ensure_template_env",
-            return_value=MagicMock(),
-        ):
-            orchestrator = VirtualAutodocOrchestrator(mock_site)
+        orchestrator = VirtualAutodocOrchestrator(mock_site)
 
-            # Verify default prefixes:
-            # - Python: derived from source_dirs[0] name => "api/src"
-            # - CLI: default is "cli"
-            assert orchestrator._resolve_output_prefix("python") == "api/src"
-            assert orchestrator._resolve_output_prefix("cli") == "cli"
+        # Verify default prefixes:
+        # - Python: derived from source_dirs[0] name => "api/src"
+        # - CLI: default is "cli"
+        assert orchestrator._resolve_output_prefix("python") == "api/src"
+        assert orchestrator._resolve_output_prefix("cli") == "cli"

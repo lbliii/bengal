@@ -122,7 +122,7 @@ DEFAULTS: dict[str, Any] = {
     "assets_dir": "assets",
     "templates_dir": "templates",
     "parallel": True,
-    "incremental": True,
+    "incremental": None,  # None = auto-detect based on cache presence (see BuildOrchestrator)
     "max_workers": None,  # None = auto-detect via get_max_workers()
     "parallel_graph": True,  # Parallel knowledge graph building (auto for 100+ pages)
     "parallel_autodoc": True,  # Parallel autodoc extraction (auto for 10+ modules)

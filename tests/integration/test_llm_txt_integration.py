@@ -11,6 +11,7 @@ These tests ensure that LLM.txt files are:
 import pytest
 
 from bengal.core.site import Site
+from bengal.orchestration.build.options import BuildOptions
 
 
 @pytest.fixture
@@ -101,7 +102,7 @@ class TestLLMTextFullBuild:
     def test_per_page_llm_txt_generated(self, test_site):
         """Test that each page gets an index.txt file."""
         site = Site.from_config(test_site)
-        site.build()
+        site.build(BuildOptions())
 
         output_dir = site.output_dir
 
@@ -112,7 +113,7 @@ class TestLLMTextFullBuild:
     def test_site_wide_llm_full_generated(self, test_site):
         """Test that llm-full.txt is generated at site root."""
         site = Site.from_config(test_site)
-        site.build()
+        site.build(BuildOptions())
 
         llm_full_path = site.output_dir / "llm-full.txt"
         assert llm_full_path.exists(), "llm-full.txt should be at site root"
@@ -125,7 +126,7 @@ class TestLLMTextFullBuild:
     def test_per_page_llm_txt_content_format(self, test_site):
         """Test that per-page LLM.txt follows format specification."""
         site = Site.from_config(test_site)
-        site.build()
+        site.build(BuildOptions())
 
         txt_path = site.output_dir / "getting-started" / "index.txt"
         content = txt_path.read_text()
@@ -146,7 +147,7 @@ class TestLLMTextFullBuild:
     def test_llm_txt_strips_code_blocks_properly(self, test_site):
         """Test that code blocks are handled correctly in LLM.txt."""
         site = Site.from_config(test_site)
-        site.build()
+        site.build(BuildOptions())
 
         txt_path = site.output_dir / "getting-started" / "index.txt"
         content = txt_path.read_text()
@@ -161,7 +162,7 @@ class TestLLMTextFullBuild:
     def test_llm_txt_urls_are_correct(self, test_site):
         """Test that LLM.txt files use correct URLs."""
         site = Site.from_config(test_site)
-        site.build()
+        site.build(BuildOptions())
 
         # Check getting-started
         txt1 = (site.output_dir / "getting-started" / "index.txt").read_text()
@@ -178,7 +179,7 @@ class TestLLMTextIncrementalBuild:
     def test_llm_txt_updated_on_page_change(self, test_site):
         """Test that LLM.txt is regenerated when page changes."""
         site = Site.from_config(test_site)
-        site.build()
+        site.build(BuildOptions())
 
         # Initial content
         txt_path = site.output_dir / "getting-started" / "index.txt"
@@ -200,7 +201,7 @@ This content has been updated with new information.
 
         # Rebuild (incremental)
         site = Site.from_config(test_site)
-        site.build()
+        site.build(BuildOptions())
 
         # Check updated content
         updated_content = txt_path.read_text()
@@ -219,7 +220,7 @@ This content has been updated with new information.
         2. Implement a cleanup step that removes orphaned files
         """
         site = Site.from_config(test_site)
-        site.build()
+        site.build(BuildOptions())
 
         # Verify files exist
         txt_path = site.output_dir / "autodoc/python" / "index.txt"
@@ -232,7 +233,7 @@ This content has been updated with new information.
 
         # Rebuild
         site = Site.from_config(test_site)
-        site.build()
+        site.build(BuildOptions())
 
         # HTML should be removed (this works!)
         assert not html_path.exists(), "HTML should be deleted with page"
@@ -251,7 +252,7 @@ This content has been updated with new information.
     def test_llm_full_updated_on_any_page_change(self, test_site):
         """Test that llm-full.txt is updated when any page changes."""
         site = Site.from_config(test_site)
-        site.build()
+        site.build(BuildOptions())
 
         llm_full_path = site.output_dir / "llm-full.txt"
         initial_content = llm_full_path.read_text()
@@ -270,7 +271,7 @@ Updated content for testing llm-full.txt regeneration.
 
         # Rebuild
         site = Site.from_config(test_site)
-        site.build()
+        site.build(BuildOptions())
 
         # llm-full.txt should contain updated content
         new_content = llm_full_path.read_text()
@@ -284,7 +285,7 @@ class TestLLMTextURLAccessibility:
     def test_index_txt_path_matches_url_pattern(self, test_site):
         """Test that index.txt follows the same path pattern as index.html."""
         site = Site.from_config(test_site)
-        site.build()
+        site.build(BuildOptions())
 
         output_dir = site.output_dir
 
@@ -301,7 +302,7 @@ class TestLLMTextURLAccessibility:
     def test_llm_txt_accessible_via_action_bar_url(self, test_site):
         """Test that LLM.txt is accessible via the action-bar URL pattern."""
         site = Site.from_config(test_site)
-        site.build()
+        site.build(BuildOptions())
 
         # Action-bar template uses: {{ page_url }}/index.txt
         # For page at /getting-started/, the URL would be:
@@ -352,7 +353,7 @@ How to install.
 
         # Build
         site = Site.from_config(site_dir)
-        site.build()
+        site.build(BuildOptions())
 
         # Verify nested LLM.txt exists
         txt_path = site.output_dir / "docs" / "guides" / "install" / "index.txt"
@@ -397,7 +398,7 @@ Content here.
 
         # Build
         site = Site.from_config(site_dir)
-        site.build()
+        site.build(BuildOptions())
 
         # LLM.txt files should NOT exist
         assert not (site.output_dir / "test" / "index.txt").exists()
@@ -434,7 +435,7 @@ Content here.
 
         # Build
         site = Site.from_config(site_dir)
-        site.build()
+        site.build(BuildOptions())
 
         # HTML should exist
         assert (site.output_dir / "test" / "index.html").exists()

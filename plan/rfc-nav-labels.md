@@ -42,13 +42,331 @@ Documentation sidebars often need visual groupings that aren't navigable pages. 
 
 ### Competitive Analysis
 
-| SSG | How Labels Work |
-|-----|-----------------|
-| **VitePress** | `{ text: 'Getting Started', items: [...] }` (no `link` = label) |
-| **Docusaurus** | `{ type: 'category', label: '...' }` |
-| **Hugo Docsy** | `headless: true` in section frontmatter |
-| **GitBook** | Groups in SUMMARY.md without links |
-| **MkDocs Material** | `- 'Section Name':` without path |
+A comprehensive review of how major SSGs implement navigation labels/section dividers:
+
+#### VitePress
+
+**Config-based sidebar with implicit labels:**
+
+```javascript
+// .vitepress/config.js
+export default {
+  themeConfig: {
+    sidebar: [
+      {
+        text: 'Getting Started',  // ← Label (no `link` property)
+        items: [
+          { text: 'Installation', link: '/guide/installation' },
+          { text: 'Quick Start', link: '/guide/quick-start' }
+        ]
+      },
+      {
+        text: 'Reference',        // ← Another label
+        collapsed: false,         // Optional: start expanded
+        items: [
+          { text: 'API', link: '/reference/api' },
+          { text: 'CLI', link: '/reference/cli' }
+        ]
+      }
+    ]
+  }
+}
+```
+
+**Key insight**: Omitting `link` property creates a non-clickable label. Adding `link` makes it clickable.
+
+| Feature | VitePress |
+|---------|-----------|
+| Label trigger | Omit `link` property |
+| Collapsible | `collapsed: true/false` |
+| Config location | JavaScript config file |
+| Content-driven | No (pure config) |
+
+---
+
+#### Docusaurus
+
+**Category type with optional link:**
+
+```javascript
+// sidebars.js
+module.exports = {
+  docs: [
+    {
+      type: 'category',
+      label: 'Getting Started',   // ← Label text
+      link: null,                 // ← No link = non-clickable label
+      // OR link: { type: 'doc', id: 'intro' }  ← clickable
+      // OR link: { type: 'generated-index' }   ← auto-generated index
+      items: [
+        'installation',
+        'quick-start'
+      ],
+      collapsed: false,
+      collapsible: true
+    },
+    {
+      type: 'category',
+      label: 'Reference',
+      items: ['api', 'cli']
+    }
+  ]
+};
+```
+
+**Key insight**: `type: 'category'` + `link: null` (or omitted) creates a label. `link: { type: 'generated-index' }` creates a clickable category with auto-generated content.
+
+| Feature | Docusaurus |
+|---------|------------|
+| Label trigger | `type: 'category'` without `link` |
+| Collapsible | `collapsible: true`, `collapsed: true/false` |
+| Auto-index | `link: { type: 'generated-index' }` |
+| Config location | JavaScript config file |
+
+---
+
+#### MkDocs Material
+
+**YAML nav with implicit grouping:**
+
+```yaml
+# mkdocs.yml
+nav:
+  - Getting Started:              # ← Label (group without path)
+      - Installation: getting-started/installation.md
+      - Quick Start: getting-started/quick-start.md
+  - Reference:                    # ← Another label
+      - API: reference/api.md
+      - CLI: reference/cli.md
+```
+
+**With section index pages (Material extension):**
+
+```yaml
+# mkdocs.yml
+plugins:
+  - search
+  - section-index              # Enable section index pages
+
+nav:
+  - Getting Started:
+      - getting-started/index.md  # ← Makes "Getting Started" clickable
+      - Installation: getting-started/installation.md
+```
+
+| Feature | MkDocs Material |
+|---------|-----------------|
+| Label trigger | Group name without direct path |
+| Collapsible | `navigation.sections` + `navigation.expand` |
+| Section index | Plugin: `section-index` |
+| Config location | YAML config file |
+
+---
+
+#### Astro Starlight
+
+**Hybrid: config + frontmatter:**
+
+```javascript
+// astro.config.mjs
+export default defineConfig({
+  integrations: [
+    starlight({
+      sidebar: [
+        {
+          label: 'Getting Started',  // ← Label
+          items: [
+            { label: 'Installation', link: '/guides/installation/' },
+            { label: 'Quick Start', link: '/guides/quick-start/' }
+          ]
+        },
+        {
+          label: 'Reference',
+          autogenerate: { directory: 'reference' }  // ← Auto from folder
+        }
+      ]
+    })
+  ]
+});
+```
+
+**With badges and custom props:**
+
+```javascript
+{
+  label: 'Getting Started',
+  badge: 'New',           // ← Optional badge
+  attrs: { class: 'highlighted' },
+  items: [...]
+}
+```
+
+| Feature | Starlight |
+|---------|-----------|
+| Label trigger | `label` without `link` at group level |
+| Autogenerate | `autogenerate: { directory: '...' }` |
+| Badges | `badge: 'New'` / `badge: { text: 'Exp', variant: 'caution' }` |
+| Config location | JavaScript config file |
+
+---
+
+#### Hugo (Docsy Theme)
+
+**Frontmatter + section structure:**
+
+```yaml
+# content/docs/getting-started/_index.md
+---
+title: Getting Started
+linkTitle: Getting Started
+weight: 10
+# No content = acts as label in some themes
+---
+```
+
+**Docsy-specific: `simple_list` param:**
+
+```yaml
+# content/docs/reference/_index.md
+---
+title: Reference
+linkTitle: Reference
+simple_list: true    # ← Renders children as simple list, section as label
+weight: 20
+---
+```
+
+**Hugo headless bundles** (different concept - excludes from nav entirely):
+```yaml
+# content/data/_index.md
+---
+headless: true       # ← NOT included in nav at all
+---
+```
+
+| Feature | Hugo/Docsy |
+|---------|------------|
+| Label trigger | Theme-dependent (empty content, `simple_list`) |
+| Collapsible | Theme CSS/JS |
+| Headless | `headless: true` (excludes from nav) |
+| Config location | Frontmatter |
+
+---
+
+#### Nextra (Next.js)
+
+**`_meta.json` for navigation control:**
+
+```json
+// pages/docs/_meta.json
+{
+  "-- Getting Started": {
+    "type": "separator",
+    "title": "Getting Started"
+  },
+  "installation": "Installation",
+  "quick-start": "Quick Start",
+  "-- Reference": {
+    "type": "separator",
+    "title": "Reference"
+  },
+  "api": "API",
+  "cli": "CLI"
+}
+```
+
+**Key insight**: `type: "separator"` creates a visual divider/label.
+
+| Feature | Nextra |
+|---------|--------|
+| Label trigger | `type: "separator"` in `_meta.json` |
+| Placeholder | `type: "placeholder"` (reserves space) |
+| Menu | `type: "menu"` (dropdown) |
+| Config location | `_meta.json` files |
+
+---
+
+#### GitBook
+
+**SUMMARY.md with groups:**
+
+```markdown
+# Summary
+
+## Getting Started
+
+* [Installation](getting-started/installation.md)
+* [Quick Start](getting-started/quick-start.md)
+
+## Reference
+
+* [API](reference/api.md)
+* [CLI](reference/cli.md)
+```
+
+**Key insight**: `## Heading` without a link creates a label/group.
+
+| Feature | GitBook |
+|---------|---------|
+| Label trigger | `## Heading` in SUMMARY.md (no link) |
+| Collapsible | Not natively |
+| Config location | SUMMARY.md file |
+
+---
+
+#### Gatsby (Carbon Design)
+
+**YAML config with explicit dividers:**
+
+```yaml
+# src/data/nav-items.yaml
+- title: Home
+  path: /
+- title: Getting Started
+  hasDivider: true         # ← Adds divider line below
+  pages:
+    - title: Installation
+      path: /installation
+    - title: Quick Start
+      path: /quick-start
+- title: Reference
+  pages:
+    - title: API
+      path: /api
+```
+
+| Feature | Gatsby/Carbon |
+|---------|---------------|
+| Divider | `hasDivider: true` |
+| Type | Visual line, not label text |
+| Config location | YAML config file |
+
+---
+
+### Competitive Summary
+
+| SSG | Label Mechanism | Config Location | Collapsible | Content-Driven |
+|-----|-----------------|-----------------|-------------|----------------|
+| **VitePress** | Omit `link` | JS config | ✅ `collapsed` | ❌ Config-only |
+| **Docusaurus** | `type: category`, no `link` | JS config | ✅ `collapsible` | ❌ Config-only |
+| **MkDocs Material** | Group without path | YAML config | ✅ via settings | ❌ Config-only |
+| **Starlight** | `label` at group level | JS config | ✅ | Hybrid |
+| **Hugo/Docsy** | Theme-dependent | Frontmatter | Theme | ✅ Frontmatter |
+| **Nextra** | `type: separator` | `_meta.json` | ❌ | ❌ Config-only |
+| **GitBook** | `## Heading` | SUMMARY.md | ❌ | ❌ Config-only |
+| **Bengal (proposed)** | `nav_label: true` | Frontmatter | Theme | ✅ Frontmatter |
+
+### Bengal's Differentiator
+
+Most SSGs use **config-based** navigation (separate from content). Bengal uses **content-driven** navigation (frontmatter in `_index.md`).
+
+**Advantages of frontmatter approach:**
+1. **Colocation**: Label config lives with the content it groups
+2. **Discoverability**: Authors find the option while editing content
+3. **Portability**: Moving a folder moves its nav config too
+4. **Simplicity**: No separate config file to maintain
+
+**Trade-off**: Less flexible than config-based (can't define arbitrary labels without content). Mitigated by optional `auto_label_empty_sections` config
 
 ### Use Cases
 
