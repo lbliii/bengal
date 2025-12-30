@@ -161,19 +161,19 @@ BREADCRUMB ITEM HELPER
                 {% end %}
                 {% end %}
 
-                {% with page?.content as content_body %}
-                {% if content_body %}
+                {% with page?.word_count as wc %}
+                {% if wc %}
                 {% if 'content.reading_time' in theme_features %}
                 <span class="action-bar-meta-item">
                     {{ icon("clock", size=16) }}
-                    <span>{{ t('meta.reading_time', {'time': content_body | reading_time}, default='{time} min read')
+                    <span>{{ t('meta.reading_time', {'time': page.reading_time}, default='{time} min read')
                         }}</span>
                 </span>
                 {% end %}
 
                 <span class="action-bar-meta-item">
                     {{ icon("file-text", size=16) }}
-                    <span>{{ t('meta.word_count', {'count': content_body | wordcount}, default='{count} words')
+                    <span>{{ t('meta.word_count', {'count': wc}, default='{count} words')
                         }}</span>
                 </span>
                 {% end %}

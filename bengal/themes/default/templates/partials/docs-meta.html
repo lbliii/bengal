@@ -1,48 +1,52 @@
 {#
-  Document Metadata Component
+Document Metadata Component
 
-  Displays publication date, word count, and reading time in a clean, minimal format.
+Displays publication date, word count, and reading time in a clean, minimal format.
 
-  Variables:
-    - page: Current page object (required)
-    - page.date: Publication/update date (optional)
-    - page.content: Page content (for reading time and word count)
+Variables:
+- page: Current page object (required)
+- page.date: Publication/update date (optional)
+- page.word_count: Pre-computed word count (computed property)
+- page.reading_time: Pre-computed reading time (computed property)
 
-  Template Functions Used:
-    - locale_date(date, 'long', lang): Formats date according to locale
-    - reading_time: Calculates reading time from content
-    - word_count: Counts words in content (strips HTML)
-    - current_lang(): Gets current language
+Template Functions Used:
+- locale_date(date, 'long', lang): Formats date according to locale
+- current_lang(): Gets current language
+- commas: Number formatting filter
 
-  Features:
-    - Locale-aware date formatting
-    - Word count display
-    - Reading time estimation
-    - SVG icons
-    - Minimal, clean design
+Features:
+- Locale-aware date formatting
+- Word count display (uses computed property)
+- Reading time estimation (uses computed property)
+- SVG icons
+- Minimal, clean design
 
-  Usage:
-    {% include 'partials/docs-meta.html' %}
+Usage:
+{% include 'partials/docs-meta.html' %}
+
+Note:
+Uses page.word_count and page.reading_time computed properties
+instead of filters for better performance (cached on first access).
 #}
 
-{% if page.date or page.content %}
+{% if page.date or page.word_count %}
 <div class="docs-meta">
-  {% if page.date %}
-  <time datetime="{{ page.date | date_iso }}" class="docs-meta-item">
-    {{ icon("calendar", size=14) }}
-    <span>{{ locale_date(page.date, 'long', current_lang()) }}</span>
-  </time>
-  {% end %}
+    {% if page.date %}
+    <time datetime="{{ page.date | date_iso }}" class="docs-meta-item">
+        {{ icon("calendar", size=14) }}
+        <span>{{ locale_date(page.date, 'long', current_lang()) }}</span>
+    </time>
+    {% end %}
 
-  {% if page.content %}
-  <span class="docs-meta-item">
-    {{ icon("file-text", size=14) }}
-    <span>{{ t('meta.word_count', {'count': page.content | word_count | commas}, default='{count} words') }}</span>
-  </span>
-  <span class="docs-meta-item">
-    {{ icon("clock", size=14) }}
-    <span>{{ t('meta.reading_time', {'time': page.content | reading_time}, default='{time} min read') }}</span>
-  </span>
-  {% end %}
+    {% if page.word_count %}
+    <span class="docs-meta-item">
+        {{ icon("file-text", size=14) }}
+        <span>{{ t('meta.word_count', {'count': page.word_count | commas}, default='{count} words') }}</span>
+    </span>
+    <span class="docs-meta-item">
+        {{ icon("clock", size=14) }}
+        <span>{{ t('meta.reading_time', {'time': page.reading_time}, default='{time} min read') }}</span>
+    </span>
+    {% end %}
 </div>
 {% end %}

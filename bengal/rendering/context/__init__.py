@@ -368,6 +368,7 @@ def build_page_context(
         "meta_desc": (
             getattr(page, "meta_description", "") or getattr(page, "description", "") or ""
         ),
+        "word_count": getattr(page, "word_count", 0) or 0,
         "reading_time": getattr(page, "reading_time", 0) or 0,
         "excerpt": getattr(page, "excerpt", "") or "",
         # Versioning defaults

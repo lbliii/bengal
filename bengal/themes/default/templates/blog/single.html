@@ -23,6 +23,10 @@ KIDA FEATURES USED:
 - {% def %} for reusable components
 - {% match %} for conditional rendering
 
+NOTE:
+Uses page.word_count and page.reading_time computed properties
+instead of filters for better performance (cached on first access).
+
 USAGE:
 Set `type: blog` in frontmatter or use cascade from section
 ================================================================================
@@ -72,7 +76,8 @@ Set `type: blog` in frontmatter or use cascade from section
 {# Template-scoped variables with null-safe access #}
 {% let page_title = page?.title ?? 'Blog Post' %}
 {% let page_date = page?.date %}
-{% let page_content = page?.content ?? '' %}
+{% let page_word_count = page?.word_count ?? 0 %}
+{% let page_read_time = page?.reading_time ?? 0 %}
 {% let page_tags = page?.tags ?? [] %}
 {% let page_href = page?.href ?? '' %}
 {% let theme_features = theme?.features ?? [] %}
@@ -90,10 +95,6 @@ Set `type: blog` in frontmatter or use cascade from section
 {% let css_class = params?.css_class ?? '' %}
 {% let show_newsletter = params?.show_newsletter ?? false %}
 {% let show_comments = params?.comments ?? true %}
-
-{# Reading time calculation #}
-{% let word_count = page_content |> wordcount ?? 0 %}
-{% let read_time = page_content |> reading_time ?? 0 %}
 
 <div class="container">
   {# Action Bar: Breadcrumbs + Share #}
@@ -144,10 +145,10 @@ Set `type: blog` in frontmatter or use cascade from section
             {% end %}
 
             {# Reading Time #}
-            {% if page_content and 'content.reading_time' in theme_features %}
+            {% if page_word_count and 'content.reading_time' in theme_features %}
             <span class="reading-time">
               {{ icon('clock', size=14) }}
-              {{ read_time }} min read
+              {{ page_read_time }} min read
             </span>
             {% end %}
 

@@ -170,27 +170,30 @@ KIDA FEATURES:
 - Data-driven metadata items
 - {% with %} for nil-resilient feature check
 - Conditional rendering based on available data
+
+NOTE: Uses page.word_count and page.reading_time computed properties
+instead of filters for better performance (cached on first access).
 ============================================================================= #}
 {% def _hero_metadata(page, params, theme, show_reading_time=true) %}
-{% let has_content = page?.content %}
+{% let has_word_count = page?.word_count %}
 {% let has_date = page?.date or params?.lastmod %}
-{% if has_content or has_date %}
+{% if has_word_count or has_date %}
 <div class="page-hero__meta">
     {# Reading Time - conditionally shown based on theme features #}
     {% with theme?.features as features %}
-    {% if has_content and show_reading_time and features and 'content.reading_time' in features %}
+    {% if has_word_count and show_reading_time and features and 'content.reading_time' in features %}
     <span class="page-hero__meta-item">
         {{ icon("clock", size=16) }}
-        <span>{{ t('meta.reading_time', {'time': page.content |> reading_time}, default='{time} min read') }}</span>
+        <span>{{ t('meta.reading_time', {'time': page.reading_time}, default='{time} min read') }}</span>
     </span>
     {% end %}
     {% end %}
 
     {# Word Count #}
-    {% if has_content %}
+    {% if has_word_count %}
     <span class="page-hero__meta-item">
         {{ icon("file-text", size=16) }}
-        <span>{{ t('meta.word_count', {'count': page.content |> wordcount}, default='{count} words') }}</span>
+        <span>{{ t('meta.word_count', {'count': page.word_count}, default='{count} words') }}</span>
     </span>
     {% end %}
 

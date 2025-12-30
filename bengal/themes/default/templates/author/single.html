@@ -36,10 +36,10 @@ POST CARD COMPONENT
 {% let post_date = post?.date %}
 {% let post_desc = post?.params?.description ?? '' %}
 {% let post_section = post?._section %}
-{% let post_content = post?.content ?? '' %}
+
 {% let post_tags = post?.tags ?? [] %}
-{% let word_count = post_content | wordcount if post_content else 0 %}
-{% let read_time = (word_count / 200) | round if word_count > 0 else 0 %}
+
+{% let read_time = post?.reading_time ?? 0 %}
 
 <article class="author-post-card">
   <div class="post-card-content">

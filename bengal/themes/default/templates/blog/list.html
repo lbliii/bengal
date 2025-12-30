@@ -22,6 +22,10 @@ CONTEXT VARIABLES:
 - total_pages: Total pagination pages
 - current_page: Current page number
 
+NOTE:
+Uses post.word_count and post.reading_time computed properties
+instead of filters for better performance (cached on first access).
+
 USAGE:
 Set `type: blog` in section _index.md
 ================================================================================
@@ -45,9 +49,7 @@ POST CARD COMPONENTS
 {% let post_tags = post?.tags ?? [] %}
 {% let post_author = post_meta?.author ?? '' %}
 {% let post_author_avatar = post_meta?.author_avatar ?? '' %}
-{% let post_content = post?.content ?? '' %}
-{% let word_count = post_content | wordcount if post_content else 0 %}
-{% let read_time = (word_count / 200) | round if word_count > 0 else 0 %}
+{% let read_time = post?.reading_time ?? 0 %}
 
 <article class="blog-featured-card gradient-border-strong fluid-bg">
     {% if post_image %}
@@ -108,9 +110,7 @@ POST CARD COMPONENTS
 {% let post_tags = post?.tags ?? [] %}
 {% let post_author = post_meta?.author ?? '' %}
 {% let post_author_avatar = post_meta?.author_avatar ?? '' %}
-{% let post_content = post?.content ?? '' %}
-{% let word_count = post_content | wordcount if post_content else 0 %}
-{% let read_time = (word_count / 200) | round if word_count > 0 else 0 %}
+{% let read_time = post?.reading_time ?? 0 %}
 
 <article class="blog-post-card gradient-border fluid-combined">
     {% if post_image %}

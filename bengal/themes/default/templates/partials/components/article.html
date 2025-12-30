@@ -64,9 +64,9 @@ Displays a rich card preview of an article with metadata, tags, and image.
       <span class="author">{{ article_author }}</span>
       {% end %}
 
-      {% if article_content and 'content.reading_time' in theme_features %}
+      {% if article?.reading_time and 'content.reading_time' in theme_features %}
       <span class="reading-time">
-        {{ article_content | reading_time }} min read
+        {{ article.reading_time }} min read
       </span>
       {% end %}
     </div>

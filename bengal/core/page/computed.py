@@ -96,7 +96,7 @@ class PageLike(Protocol):
 
     @property
     def content(self) -> str:
-        """Rendered HTML content."""
+        """Raw markdown source content."""
         ...
 
     @property
@@ -131,9 +131,75 @@ class PageComputedMixin:
 
     This mixin handles expensive operations that are cached after first access:
     - meta_description - SEO-friendly description
+    - word_count - Word count from source content
     - reading_time - Estimated reading time
     - excerpt - Content excerpt
+
+    Underscore Convention:
+        Properties prefixed with `_` are for internal/advanced use:
+        - _source: Raw markdown source (for plugins, custom analysis)
+        Properties without `_` are template-ready:
+        - word_count, reading_time: Pre-computed for templates
     """
+
+    @property
+    def _source(self: HasMetadata) -> str:
+        """
+        Raw markdown source content.
+
+        This property provides access to the original markdown source content.
+        Use this for:
+        - Plugins that need raw markdown
+        - Custom analysis or transformation
+        - Internal comparisons and hashing
+
+        For template use, prefer the computed properties:
+        - page.word_count - Pre-computed word count
+        - page.reading_time - Pre-computed reading time
+
+        Returns:
+            Raw markdown source string
+
+        Example:
+            >>> len(page._source)  # Character count
+            1523
+            >>> page._source[:100]  # First 100 chars
+            '# My Page Title\\n\\nThis is the introduction...'
+
+        Note:
+            Following the underscore convention, this property is for
+            internal/advanced use. Templates should use page.word_count
+            and page.reading_time instead of accessing _source directly.
+        """
+        return self.content
+
+    @cached_property
+    def word_count(self: HasMetadata) -> int:
+        """
+        Word count from source markdown (computed once, cached).
+
+        Counts words in the raw markdown source content. This is the
+        authoritative word count for the page, representing the author's
+        actual words rather than rendered HTML which may include generated
+        content.
+
+        The result is cached after first access for efficient repeated use.
+
+        Returns:
+            Word count (integer)
+
+        Example:
+            <span>{{ page.word_count }} words</span>
+
+        See Also:
+            - page.reading_time: Estimated reading time based on word_count
+            - page._source: Raw markdown source (internal use only)
+        """
+        # Use _source (raw markdown) for accurate word count
+        source = self._source
+        if not source:
+            return 0
+        return len(source.split())
 
     @cached_property
     def meta_description(self: HasMetadata) -> str:
@@ -196,8 +262,9 @@ class PageComputedMixin:
         """
         Calculate reading time in minutes (computed once, cached).
 
-        Estimates reading time based on word count at 200 words per minute.
-        Strips HTML before counting to ensure accurate word count.
+        Estimates reading time based on word_count at 200 words per minute.
+        Uses the source markdown word count (via word_count property) for
+        accurate estimation of author's actual writing.
 
         The result is cached after first access for efficient repeated use.
 
@@ -206,21 +273,12 @@ class PageComputedMixin:
 
         Example:
             <span class="reading-time">{{ page.reading_time }} min read</span>
+
+        See Also:
+            - page.word_count: The word count used for this calculation
         """
-        if not self.content:
-            return 1
-
-        # Strip HTML if present
-        clean_text = re.sub(r"<[^>]+>", "", self.content)
-
-        # Count words
-        words = len(clean_text.split())
-
-        # Calculate reading time at 200 WPM
-        minutes = words / 200
-
-        # Always return at least 1 minute
-        return max(1, round(minutes))
+        # Use word_count property (based on _source markdown)
+        return max(1, round(self.word_count / 200))
 
     @cached_property
     def excerpt(self: HasMetadata) -> str:

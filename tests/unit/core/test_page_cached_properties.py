@@ -1,10 +1,116 @@
 """
-Tests for Page cached properties (meta_description, reading_time, excerpt).
+Tests for Page cached properties (meta_description, reading_time, excerpt, word_count).
 
 Tests automatic caching behavior and performance optimization.
+
+RFC Implementation:
+    These tests verify the Template Object Model improvements from
+    plan/rfc-template-object-model.md, specifically:
+    - page._source: Raw markdown source (alias for page.content)
+    - page.word_count: Pre-computed word count from _source
+    - page.reading_time: Updated to use word_count (from _source)
 """
 
 from bengal.core.page import Page
+
+
+class TestPageSource:
+    """Test Page._source property (raw markdown access)."""
+
+    def test_source_returns_raw_content(self, tmp_path):
+        """_source returns raw markdown content."""
+        raw_markdown = "# Hello World\n\nThis is **bold** text."
+        page = Page(
+            source_path=tmp_path / "test.md",
+            content=raw_markdown,
+            metadata={},
+        )
+
+        assert page._source == raw_markdown
+
+    def test_source_is_alias_for_content(self, tmp_path):
+        """_source is an alias for content field."""
+        page = Page(
+            source_path=tmp_path / "test.md",
+            content="Some raw markdown",
+            metadata={},
+        )
+
+        # They should return the same value
+        assert page._source == page.content
+
+    def test_source_empty_content(self, tmp_path):
+        """_source returns empty string for empty content."""
+        page = Page(source_path=tmp_path / "test.md", content="", metadata={})
+
+        assert page._source == ""
+
+
+class TestPageWordCount:
+    """Test Page.word_count cached property."""
+
+    def test_word_count_basic(self, tmp_path):
+        """Word count correctly counts words in source."""
+        page = Page(
+            source_path=tmp_path / "test.md",
+            content="One two three four five",
+            metadata={},
+        )
+
+        assert page.word_count == 5
+
+    def test_word_count_with_markdown(self, tmp_path):
+        """Word count includes markdown syntax as words."""
+        # Note: _source is raw markdown, not rendered HTML
+        page = Page(
+            source_path=tmp_path / "test.md",
+            content="# Hello World\n\nThis is **bold** text.",
+            metadata={},
+        )
+
+        # Counts: #, Hello, World, This, is, **bold**, text.
+        # Note: markdown syntax is included since we count raw source
+        assert page.word_count >= 5  # At least the actual words
+
+    def test_word_count_empty_content(self, tmp_path):
+        """Empty content returns 0 words."""
+        page = Page(source_path=tmp_path / "test.md", content="", metadata={})
+
+        assert page.word_count == 0
+
+    def test_word_count_whitespace_only(self, tmp_path):
+        """Whitespace-only content returns 0 words."""
+        page = Page(source_path=tmp_path / "test.md", content="   \n\n   ", metadata={})
+
+        assert page.word_count == 0
+
+    def test_word_count_caching(self, tmp_path):
+        """Result is cached after first access."""
+        page = Page(
+            source_path=tmp_path / "test.md",
+            content="One two three four five",
+            metadata={},
+        )
+
+        # First access computes
+        count1 = page.word_count
+
+        # Modify content (shouldn't affect cached result)
+        page.content = "Just one"
+
+        # Second access returns cached value
+        count2 = page.word_count
+
+        assert count1 == count2 == 5
+
+    def test_word_count_large_document(self, tmp_path):
+        """Word count works for large documents."""
+        words = ["word"] * 5000
+        content = " ".join(words)
+
+        page = Page(source_path=tmp_path / "test.md", content=content, metadata={})
+
+        assert page.word_count == 5000
 
 
 class TestPageMetaDescription:
@@ -93,10 +199,14 @@ class TestPageMetaDescription:
 
 
 class TestPageReadingTime:
-    """Test Page.reading_time cached property."""
+    """Test Page.reading_time cached property.
+
+    Note: reading_time now uses word_count (from _source) for calculation,
+    ensuring consistent word counting between properties.
+    """
 
     def test_reading_time_calculation(self, tmp_path):
-        """Reading time calculated at 200 WPM."""
+        """Reading time calculated at 200 WPM based on word_count."""
         # 400 words = 2 minutes at 200 WPM
         words = ["word"] * 400
         content = " ".join(words)
@@ -104,6 +214,8 @@ class TestPageReadingTime:
         page = Page(source_path=tmp_path / "test.md", content=content, metadata={})
 
         assert page.reading_time == 2
+        # Verify it uses word_count
+        assert page.word_count == 400
 
     def test_reading_time_minimum_one(self, tmp_path):
         """Minimum reading time is 1 minute."""
@@ -111,15 +223,23 @@ class TestPageReadingTime:
 
         assert page.reading_time >= 1
 
-    def test_reading_time_strips_html(self, tmp_path):
-        """HTML tags are stripped before counting words."""
+    def test_reading_time_uses_source_markdown(self, tmp_path):
+        """Reading time is based on source markdown word count.
+
+        Unlike the old implementation which stripped HTML, this now counts
+        words in the raw markdown source (_source), which is more accurate
+        for representing the author's actual word count.
+        """
+        # Raw markdown - word count includes markdown syntax tokens
         page = Page(
             source_path=tmp_path / "test.md",
-            content="<p>This is <strong>bold</strong> text.</p>",
+            content="This is **bold** text for testing.",
             metadata={},
         )
 
-        # Should count 4 words (HTML tags stripped)
+        # Counts raw words: This, is, **bold**, text, for, testing.
+        # The word count is from _source (raw markdown)
+        assert page.word_count >= 5
         assert page.reading_time == 1
 
     def test_reading_time_rounds_correctly(self, tmp_path):
@@ -154,6 +274,18 @@ class TestPageReadingTime:
         time2 = page.reading_time
 
         assert time1 == time2 == 2
+
+    def test_reading_time_consistent_with_word_count(self, tmp_path):
+        """Reading time is calculated from word_count property."""
+        words = ["word"] * 600
+        content = " ".join(words)
+
+        page = Page(source_path=tmp_path / "test.md", content=content, metadata={})
+
+        # word_count should be 600
+        assert page.word_count == 600
+        # reading_time should be 600/200 = 3 minutes
+        assert page.reading_time == 3
 
     def test_reading_time_empty_content(self, tmp_path):
         """Empty content returns 1 minute."""
