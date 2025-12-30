@@ -23,6 +23,7 @@ from jinja2 import TemplateSyntaxError
 from bengal.assets.manifest import AssetManifestEntry
 from bengal.errors import ErrorCode, record_error
 from bengal.rendering.engines.errors import TemplateError
+from bengal.rendering.engines.protocol import EngineCapability
 from bengal.rendering.template_engine.asset_url import AssetURLMixin
 from bengal.rendering.template_engine.environment import (
     create_jinja_environment,
@@ -390,6 +391,24 @@ class JinjaTemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin)
         if self._profiler:
             return self._profiler.get_report()
         return None
+
+    # =========================================================================
+    # ENGINE CAPABILITIES
+    # =========================================================================
+
+    @property
+    def capabilities(self) -> EngineCapability:
+        """
+        Return Jinja2 engine capabilities.
+
+        Jinja2 is a standard template engine without special
+        block-level caching or introspection features.
+        """
+        return EngineCapability.NONE
+
+    def has_capability(self, cap: EngineCapability) -> bool:
+        """Check if Jinja2 has a specific capability."""
+        return cap in self.capabilities
 
     # =========================================================================
     # INTERNAL HELPERS

@@ -389,9 +389,16 @@ class TemplateChangeDetector:
         """Check if block-level detection is available for this site."""
         if self.block_cache is None:
             return False
-        # Check if Kida engine is being used
-        engine_type = self.site.config.get("template_engine", "kida")
-        return engine_type == "kida"
+
+        # Check if engine supports block-level detection via capability
+        try:
+            from bengal.rendering.engines import create_engine
+            from bengal.rendering.engines.protocol import EngineCapability
+
+            engine = create_engine(self.site)
+            return engine.has_capability(EngineCapability.BLOCK_LEVEL_DETECTION)
+        except Exception:
+            return False
 
     def _decide_block_level(
         self,

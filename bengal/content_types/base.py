@@ -209,6 +209,8 @@ class ContentTypeStrategy:
             resolution logic, or override ``_get_type_name()`` to customize
             the type prefix used in template paths.
         """
+        from bengal.content_types.templates import resolve_template_cascade
+
         # Backward compatibility: if no page provided, return default template
         if page is None:
             return self.default_template
@@ -218,23 +220,6 @@ class ContentTypeStrategy:
 
         # Get type name (e.g., "blog", "doc")
         type_name = self._get_type_name()
-
-        # Helper to check template existence
-        def template_exists(name: str) -> bool:
-            if template_engine is None:
-                return False
-            try:
-                template_engine.env.get_template(name)
-                return True
-            except Exception as e:
-                logger.debug(
-                    "content_type_template_check_failed",
-                    template=name,
-                    error=str(e),
-                    error_type=type(e).__name__,
-                    action="returning_false",
-                )
-                return False
 
         if is_home:
             templates_to_try = [
@@ -258,13 +243,11 @@ class ContentTypeStrategy:
                 "page.html",
             ]
 
-        # Try each template in order
-        for template_name in templates_to_try:
-            if template_exists(template_name):
-                return template_name
-
-        # Final fallback
-        return self.default_template
+        return resolve_template_cascade(
+            templates_to_try,
+            template_engine,
+            fallback=self.default_template,
+        )
 
     def _get_type_name(self) -> str:
         """

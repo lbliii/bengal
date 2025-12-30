@@ -243,20 +243,16 @@ class RenderOrchestrator:
 
         RFC: kida-template-introspection
         """
-        # Only for Kida engine
-        template_engine = self.site.config.get("template_engine", "jinja2")
-        if template_engine != "kida":
-            return
-
         try:
             from bengal.rendering.block_cache import BlockCache
             from bengal.rendering.context import get_engine_globals
             from bengal.rendering.engines import create_engine
+            from bengal.rendering.engines.protocol import EngineCapability
 
             engine = create_engine(self.site)
 
-            # Check if this is a Kida engine with introspection support
-            if not hasattr(engine, "get_cacheable_blocks"):
+            # Check if engine supports block caching via capability detection
+            if not engine.has_capability(EngineCapability.BLOCK_CACHING):
                 return
 
             # Initialize block cache

@@ -1,0 +1,145 @@
+/**
+ * Ink Theme - Foundation Tokens
+ *
+ * Minimal primitives for a typography-focused theme.
+ * Inspired by traditional ink-on-paper aesthetics.
+ */
+
+:root {
+  /* ============================================
+     COLOR PRIMITIVES - Ink & Paper
+     ============================================ */
+
+  /* Paper tones (warm whites) */
+  --paper-50: #fdfcfa;
+  --paper-100: #f8f6f3;
+  --paper-200: #f0ece6;
+  --paper-300: #e5e2de;
+  --paper-400: #d4d0c9;
+
+  /* Ink tones (warm blacks) */
+  --ink-50: #f5f5f4;
+  --ink-100: #d6d5d2;
+  --ink-200: #a8a7a3;
+  --ink-300: #6b6b6b;
+  --ink-400: #4a4a48;
+  --ink-500: #2d2d2b;
+  --ink-600: #1a1a1a;
+  --ink-700: #121211;
+  --ink-800: #0a0a09;
+  --ink-900: #000000;
+
+  /* Vermillion accent (traditional red ink) */
+  --vermillion-50: #fef3f0;
+  --vermillion-100: #fce4dd;
+  --vermillion-200: #f9c8b8;
+  --vermillion-300: #f3a085;
+  --vermillion-400: #e07b5f;
+  --vermillion-500: #c24d2c;
+  --vermillion-600: #a83d21;
+  --vermillion-700: #8c3119;
+  --vermillion-800: #6e2614;
+  --vermillion-900: #531c0f;
+
+  /* Pure values */
+  --white: #ffffff;
+  --black: #000000;
+
+  /* ============================================
+     SPACING - 4px base, minimal scale
+     ============================================ */
+
+  --size-0: 0;
+  --size-px: 1px;
+  --size-1: 0.25rem;     /* 4px */
+  --size-2: 0.5rem;      /* 8px */
+  --size-3: 0.75rem;     /* 12px */
+  --size-4: 1rem;        /* 16px */
+  --size-6: 1.5rem;      /* 24px */
+  --size-8: 2rem;        /* 32px */
+  --size-10: 2.5rem;     /* 40px */
+  --size-12: 3rem;       /* 48px */
+  --size-16: 4rem;       /* 64px */
+  --size-20: 5rem;       /* 80px */
+  --size-24: 6rem;       /* 96px */
+
+  /* ============================================
+     FONT SIZE - Major Second scale (1.125)
+     ============================================ */
+
+  --font-size-xs: 0.75rem;      /* 12px */
+  --font-size-sm: 0.875rem;     /* 14px */
+  --font-size-base: 1.0625rem;  /* 17px - slightly larger for reading */
+  --font-size-lg: 1.25rem;      /* 20px */
+  --font-size-xl: 1.5rem;       /* 24px */
+  --font-size-2xl: 1.875rem;    /* 30px */
+  --font-size-3xl: 2.25rem;     /* 36px */
+  --font-size-4xl: 3rem;        /* 48px */
+  --font-size-5xl: 3.75rem;     /* 60px */
+
+  /* ============================================
+     FONT WEIGHT - Limited for clarity
+     ============================================ */
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* ============================================
+     LINE HEIGHT - Optimized for reading
+     ============================================ */
+
+  --line-height-tight: 1.2;
+  --line-height-snug: 1.35;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;  /* Generous for body text */
+  --line-height-loose: 2;
+
+  /* ============================================
+     LETTER SPACING - Refined tracking
+     ============================================ */
+
+  --letter-spacing-tight: -0.03em;
+  --letter-spacing-normal: 0;
+  --letter-spacing-wide: 0.05em;
+  --letter-spacing-wider: 0.1em;
+
+  /* ============================================
+     BORDER RADIUS - Minimal
+     ============================================ */
+
+  --radius-none: 0;
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+
+  /* ============================================
+     SHADOWS - Subtle only
+     ============================================ */
+
+  --shadow-none: none;
+  --shadow-subtle: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-soft: 0 2px 8px rgba(0, 0, 0, 0.06);
+
+  /* ============================================
+     TRANSITIONS - Calm, subtle
+     ============================================ */
+
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 350ms;
+
+  --ease-out: cubic-bezier(0.33, 1, 0.68, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* ============================================
+     Z-INDEX - Simple layer system
+     ============================================ */
+
+  --z-base: 0;
+  --z-header: 100;
+  --z-dropdown: 200;
+  --z-modal: 300;
+  --z-tooltip: 400;
+}

@@ -165,6 +165,48 @@ Variables scoped to the current block:
 {# status not available here #}
 ```
 
+### Multi-let (Comma-Separated)
+
+Assign multiple variables in a single `{% let %}` block:
+
+```kida
+{# Single-line multi-let #}
+{% let a = 1, b = 2, c = 3 %}
+
+{# Multi-line multi-let (recommended for readability) #}
+{% let
+    _site_title = config?.title ?? 'Untitled Site',
+    _page_title = page?.title ?? config?.title ?? 'Page',
+    _description = page?.description ?? '' %}
+```
+
+**Recommended pattern** for template setup:
+
+```kida
+{% extends "base.html" %}
+
+{# Group related configuration at template start #}
+{% let
+    _show_sidebar = page?.sidebar ?? true,
+    _show_toc = page?.toc ?? true,
+    _prev = get_prev_page(page),
+    _next = get_next_page(page) %}
+
+{% block content %}
+  {# Variables available throughout #}
+  {% if _show_sidebar %}...{% end %}
+{% end %}
+```
+
+### Tuple Unpacking
+
+Destructure tuples into separate variables:
+
+```kida
+{% let (title, subtitle) = (page.title, page.subtitle) %}
+{% let (first, second) = get_pair() %}
+```
+
 ### Exporting from Inner Scope (`{% export %}`)
 
 Make a variable from an inner scope available to the outer scope:

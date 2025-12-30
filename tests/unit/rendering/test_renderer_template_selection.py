@@ -29,6 +29,10 @@ class MockTemplateEngine:
 
         self.env.get_template = mock_get_template
 
+    def template_exists(self, name: str) -> bool:
+        """Check if a template exists (protocol method)."""
+        return name in self.available_templates
+
 
 class TestTemplateSelection:
     """Tests for Renderer._get_template_name() logic."""

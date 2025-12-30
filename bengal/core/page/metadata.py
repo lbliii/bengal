@@ -715,3 +715,108 @@ class PageMetadataMixin:
         if render == "never":
             return False
         return not (render == "local" and is_production)
+
+    # =========================================================================
+    # Metadata Access Helpers
+    # =========================================================================
+
+    def get_user_metadata(self, key: str, default: Any = None) -> Any:
+        """
+        Get user-defined frontmatter value.
+
+        Does NOT return internal keys (prefixed with `_`).
+        Use for accessing author-provided frontmatter.
+
+        Args:
+            key: Metadata key to retrieve
+            default: Default value if key not found
+
+        Returns:
+            Metadata value or default
+
+        Example:
+            >>> page.get_user_metadata("author", "Unknown")
+            "Jane Doe"
+            >>> page.get_user_metadata("_generated")  # Returns default
+            None
+        """
+        if key.startswith("_"):
+            return default
+        return self.metadata.get(key, default)
+
+    def get_internal_metadata(self, key: str, default: Any = None) -> Any:
+        """
+        Get internal metadata value.
+
+        Only returns keys prefixed with `_`.
+        Auto-prefixes key if not already prefixed.
+
+        Args:
+            key: Metadata key (with or without `_` prefix)
+            default: Default value if key not found
+
+        Returns:
+            Internal metadata value or default
+
+        Example:
+            >>> page.get_internal_metadata("generated")  # Looks up "_generated"
+            True
+            >>> page.get_internal_metadata("_version")  # Works with prefix too
+            "v3"
+        """
+        if not key.startswith("_"):
+            key = f"_{key}"
+        return self.metadata.get(key, default)
+
+    @property
+    def is_generated(self) -> bool:
+        """
+        Whether page was dynamically generated.
+
+        Generated pages are created by autodoc, pagination, or other
+        dynamic content generators, not from markdown source files.
+
+        Returns:
+            True if page was generated (not from source file)
+        """
+        return bool(self.metadata.get("_generated"))
+
+    @property
+    def assigned_template(self) -> str | None:
+        """
+        Template explicitly assigned to this page.
+
+        Returns the template specified in frontmatter, if any.
+        This overrides automatic template selection.
+
+        Returns:
+            Template name or None if not explicitly assigned
+
+        Example:
+            ```yaml
+            ---
+            template: custom/landing.html
+            ---
+            ```
+        """
+        return self.metadata.get("template")
+
+    @property
+    def content_type_name(self) -> str | None:
+        """
+        Content type assigned to this page.
+
+        Returns the content type from frontmatter. Content types
+        determine sorting, filtering, and template selection behavior.
+
+        Returns:
+            Content type name or None
+
+        Example:
+            ```yaml
+            ---
+            content_type: blog
+            ---
+            ```
+        """
+        return self.metadata.get("content_type")

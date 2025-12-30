@@ -731,13 +731,16 @@ class BuildTrigger:
         Returns:
             True if incremental update is possible
         """
-        # Check if template engine supports block-level detection
-        engine_type = self.site.config.get("template_engine", "kida")
-        if engine_type != "kida":
-            return False
-
-        # Check if we have block cache support
         try:
+            from bengal.rendering.engines import create_engine
+            from bengal.rendering.engines.protocol import EngineCapability
+
+            # Check if template engine supports block-level detection via capability
+            engine = create_engine(self.site)
+            if not engine.has_capability(EngineCapability.BLOCK_LEVEL_DETECTION):
+                return False
+
+            # Check if we have block cache support
             from bengal.orchestration.incremental.template_detector import (
                 TemplateChangeDetector,
             )

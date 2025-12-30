@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{#
+================================================================================
+INK THEME - Generic Page (Kida-Native)
+================================================================================
+Simple page template for standalone pages.
+
+KIDA FEATURES USED:
+- {% let %} with null coalescing
+- Optional chaining (?.)
+- {% match %} for conditional rendering
+================================================================================
+#}
+
+{% let _title = page?.title ?? 'Page' %}
+{% let _has_content = page?.content is defined and page.content | length > 0 %}
+
+{% block content %}
+<div class="container">
+    <article class="content">
+        <header class="page-header">
+            <h1 class="page-title">{{ _title }}</h1>
+        </header>
+
+        {# Content with pattern matching for empty state #}
+        {% match _has_content %}
+        {% case true %}
+        <div class="prose">
+            {{ page.content | safe }}
+        </div>
+        {% case false %}
+        <p class="empty-state">This page has no content yet.</p>
+        {% end %}
+    </article>
+</div>
+{% end %}

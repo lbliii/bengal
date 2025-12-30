@@ -51,12 +51,44 @@ Related Modules:
 
 from __future__ import annotations
 
+from enum import Flag, auto
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
     from bengal.core import Site
     from bengal.rendering.engines.errors import TemplateError
+
+
+class EngineCapability(Flag):
+    """
+    Capabilities that template engines may support.
+
+    Using Flag enum allows:
+    - Composable capabilities (BLOCK_CACHING | INTROSPECTION)
+    - Single property on engine (vs multiple can_* methods)
+    - Easy extensibility (add new capabilities without API change)
+    - Type-safe capability checks
+
+    Alternative considered: Individual `can_cache_blocks()`, `can_introspect()`
+    methods. Rejected because:
+    - Requires protocol changes for each new capability
+    - More verbose engine implementations
+    - Harder to query "what can this engine do?"
+
+    Example:
+        >>> if engine.has_capability(EngineCapability.BLOCK_CACHING):
+        ...     enable_block_cache()
+        >>> if EngineCapability.INTROSPECTION in engine.capabilities:
+        ...     analyze_template_structure()
+    """
+
+    NONE = 0
+    BLOCK_CACHING = auto()  # Can cache rendered blocks
+    BLOCK_LEVEL_DETECTION = auto()  # Can detect block-level changes
+    INTROSPECTION = auto()  # Can analyze template structure
+    PIPELINE_OPERATORS = auto()  # Supports |> operator
+    PATTERN_MATCHING = auto()  # Supports match/case in templates
 
 
 @runtime_checkable
@@ -197,5 +229,40 @@ class TemplateEngineProtocol(Protocol):
         Contract:
             - MUST NOT raise exceptions (return errors in list)
             - MUST validate syntax only (not runtime errors)
+        """
+        ...
+
+    @property
+    def capabilities(self) -> EngineCapability:
+        """
+        Return engine capabilities for feature detection.
+
+        Enables capability-based feature detection instead of
+        engine name string comparisons.
+
+        Returns:
+            EngineCapability flags indicating supported features
+
+        Example:
+            >>> if EngineCapability.BLOCK_CACHING in engine.capabilities:
+            ...     enable_block_cache()
+        """
+        ...
+
+    def has_capability(self, cap: EngineCapability) -> bool:
+        """
+        Check if engine has a specific capability.
+
+        Convenience method for single capability checks.
+
+        Args:
+            cap: Capability to check for
+
+        Returns:
+            True if engine supports the capability
+
+        Example:
+            >>> if engine.has_capability(EngineCapability.INTROSPECTION):
+            ...     metadata = engine.get_template_introspection(name)
         """
         ...

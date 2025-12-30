@@ -109,6 +109,8 @@ class BlogStrategy(ContentTypeStrategy):
 
     def get_template(self, page: Page | None = None, template_engine: Any | None = None) -> str:
         """Blog-specific template selection."""
+        from bengal.rendering.engines.utils import safe_template_exists
+
         # Backward compatibility
         if page is None:
             return self.default_template
@@ -116,25 +118,9 @@ class BlogStrategy(ContentTypeStrategy):
         is_home = page.is_home or page._path == "/"
         is_section_index = page.source_path.stem == "_index"
 
-        # Helper to check template existence
-        def template_exists(name: str) -> bool:
-            if template_engine is None:
-                return False
-            try:
-                template_engine.env.get_template(name)
-                return True
-            except Exception as e:
-                logger.debug(
-                    "template_check_failed",
-                    template=name,
-                    error=str(e),
-                    error_type=type(e).__name__,
-                )
-                return False
-
         if is_home:
             # Try blog/home.html first
-            if template_exists("blog/home.html"):
+            if safe_template_exists(template_engine, "blog/home.html"):
                 return "blog/home.html"
             # Fallback to generic home
             return super().get_template(page, template_engine)
@@ -214,6 +200,8 @@ class DocsStrategy(ContentTypeStrategy):
 
     def get_template(self, page: Page | None = None, template_engine: Any | None = None) -> str:
         """Docs-specific template selection."""
+        from bengal.rendering.engines.utils import safe_template_exists
+
         # Backward compatibility
         if page is None:
             return self.default_template
@@ -221,25 +209,9 @@ class DocsStrategy(ContentTypeStrategy):
         is_home = page.is_home or page._path == "/"
         is_section_index = page.source_path.stem == "_index"
 
-        # Helper to check template existence
-        def template_exists(name: str) -> bool:
-            if template_engine is None:
-                return False
-            try:
-                template_engine.env.get_template(name)
-                return True
-            except Exception as e:
-                logger.debug(
-                    "template_check_failed",
-                    template=name,
-                    error=str(e),
-                    error_type=type(e).__name__,
-                )
-                return False
-
         if is_home:
             # Try doc/home.html first
-            if template_exists("doc/home.html"):
+            if safe_template_exists(template_engine, "doc/home.html"):
                 return "doc/home.html"
             # Fallback to generic home
             return super().get_template(page, template_engine)
@@ -316,6 +288,8 @@ class ApiReferenceStrategy(ContentTypeStrategy):
 
     def get_template(self, page: Page | None = None, template_engine: Any | None = None) -> str:
         """API reference-specific template selection."""
+        from bengal.rendering.engines.utils import safe_template_exists
+
         # Backward compatibility
         if page is None:
             return self.default_template
@@ -323,25 +297,9 @@ class ApiReferenceStrategy(ContentTypeStrategy):
         is_home = page.is_home or page._path == "/"
         is_section_index = page.source_path.stem == "_index"
 
-        # Helper to check template existence
-        def template_exists(name: str) -> bool:
-            if template_engine is None:
-                return False
-            try:
-                template_engine.env.get_template(name)
-                return True
-            except Exception as e:
-                logger.debug(
-                    "template_check_failed",
-                    template=name,
-                    error=str(e),
-                    error_type=type(e).__name__,
-                )
-                return False
-
         if is_home:
             # Try autodoc/python/home.html first
-            if template_exists("autodoc/python/home.html"):
+            if safe_template_exists(template_engine, "autodoc/python/home.html"):
                 return "autodoc/python/home.html"
             # Fallback to generic home
             return super().get_template(page, template_engine)
@@ -415,6 +373,8 @@ class CliReferenceStrategy(ContentTypeStrategy):
 
     def get_template(self, page: Page | None = None, template_engine: Any | None = None) -> str:
         """CLI reference-specific template selection."""
+        from bengal.rendering.engines.utils import safe_template_exists
+
         # Backward compatibility
         if page is None:
             return self.default_template
@@ -422,25 +382,9 @@ class CliReferenceStrategy(ContentTypeStrategy):
         is_home = page.is_home or page._path == "/"
         is_section_index = page.source_path.stem == "_index"
 
-        # Helper to check template existence
-        def template_exists(name: str) -> bool:
-            if template_engine is None:
-                return False
-            try:
-                template_engine.env.get_template(name)
-                return True
-            except Exception as e:
-                logger.debug(
-                    "template_check_failed",
-                    template=name,
-                    error=str(e),
-                    error_type=type(e).__name__,
-                )
-                return False
-
         if is_home:
             # Try autodoc/cli/home.html first
-            if template_exists("autodoc/cli/home.html"):
+            if safe_template_exists(template_engine, "autodoc/cli/home.html"):
                 return "autodoc/cli/home.html"
             # Fallback to generic home
             return super().get_template(page, template_engine)

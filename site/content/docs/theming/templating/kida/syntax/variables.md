@@ -75,12 +75,59 @@ Compare to Jinja2's namespace workaround:
 
 ## Multiple Assignment
 
-Assign multiple variables at once:
+### Multi-let (Comma-Separated)
+
+Assign multiple independent variables in a single `{% let %}` block:
+
+```kida
+{# Single-line multi-let #}
+{% let a = 1, b = 2, c = 3 %}
+
+{# Multi-line multi-let (recommended for readability) #}
+{% let
+    _site_title = config?.title ?? 'Untitled Site',
+    _page_title = page?.title ?? config?.title ?? 'Page',
+    _description = page?.description ?? config?.description ?? '' %}
+```
+
+This is the **recommended pattern** for template setup sections:
+
+```kida
+{% extends "base.html" %}
+
+{# Group related configuration variables #}
+{% let
+    _show_sidebar = page?.sidebar ?? true,
+    _show_toc = page?.toc ?? true,
+    _show_reading_time = theme?.features?.content?.reading_time ?? false %}
+
+{# Group navigation variables #}
+{% let
+    _prev = get_prev_page(page),
+    _next = get_next_page(page),
+    _has_nav = _prev is defined or _next is defined %}
+
+{% block content %}
+  {# Variables are available throughout the template #}
+{% end %}
+```
+
+### Tuple Unpacking
+
+Destructure tuples or pairs into separate variables:
 
 ```kida
 {% let (title, subtitle) = (page.title, page.subtitle) %}
+{% let (first, second, third) = get_top_three() %}
+```
+
+### Literal Assignment
+
+Assign array and dict literals directly:
+
+```kida
 {% let items = [1, 2, 3] %}
-{% let config = {"key": "value"} %}
+{% let config = {"key": "value", "enabled": true} %}
 ```
 
 ## Scoping Rules
