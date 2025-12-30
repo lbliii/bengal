@@ -13,6 +13,7 @@ import contextlib
 import pytest
 
 from bengal.core.site import Site
+from bengal.orchestration.build.options import BuildOptions
 from bengal.utils.file_io import write_text_file
 
 
@@ -88,7 +89,7 @@ Content with {{ page.custom_data.nonexistent }} reference.
 
         try:
             # Build with error collection
-            stats = site.build(parallel=False)
+            stats = site.build(BuildOptions(force_sequential=True))
 
             # Should complete build even with errors
             assert stats is not None
@@ -153,7 +154,7 @@ Content
         # Build should collect errors
         # Errors expected, but should be collected
         with contextlib.suppress(Exception):
-            site.build(parallel=False)
+            site.build(BuildOptions(force_sequential=True))
 
     def test_recovery_from_missing_template(self, tmp_path):
         """Test recovery when custom template is missing."""
@@ -189,7 +190,7 @@ Content
 
         # Should handle missing template gracefully
         try:
-            site.build(parallel=False)
+            site.build(BuildOptions(force_sequential=True))
         except Exception as e:
             # Should provide helpful error message
             assert "template" in str(e).lower() or "layout" in str(e).lower()
@@ -233,7 +234,7 @@ title: Test Page
         site.discover_assets()
 
         # Build should complete despite missing asset
-        stats = site.build(parallel=False)
+        stats = site.build(BuildOptions(force_sequential=True))
         assert stats is not None
 
     def test_broken_internal_link(self, tmp_path):
@@ -268,7 +269,7 @@ Check out [this page](/nonexistent-page/) for more info.
         site.discover_content()
 
         # Build should complete and potentially warn about broken link
-        stats = site.build(parallel=False)
+        stats = site.build(BuildOptions(force_sequential=True))
         assert stats is not None
 
 
@@ -383,7 +384,7 @@ Also valid.
         site.discover_assets()
 
         # Build should complete
-        stats = site.build(parallel=False)
+        stats = site.build(BuildOptions(force_sequential=True))
         assert stats is not None
 
         # Output should exist for valid pages
@@ -422,7 +423,7 @@ Initial content.
         # First build
         site1 = Site.from_config(tmp_path, config_path=config_file)
         site1.discover_content()
-        stats1 = site1.build(parallel=False)
+        stats1 = site1.build(BuildOptions(force_sequential=True))
         assert stats1 is not None
 
         # Modify page
@@ -438,7 +439,7 @@ Updated content.
         # Incremental rebuild
         site2 = Site.from_config(tmp_path, config_path=config_file)
         site2.discover_content()
-        stats2 = site2.build(parallel=False)
+        stats2 = site2.build(BuildOptions(force_sequential=True))
         assert stats2 is not None
 
 
@@ -480,7 +481,7 @@ Content {i}
 
         # Parallel build should handle errors in isolation
         try:
-            stats = site.build(parallel=True)
+            stats = site.build(BuildOptions())
             assert stats is not None
         except Exception:
             # If parallel build fails, it should provide useful info

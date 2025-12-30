@@ -686,9 +686,16 @@ class AssetOrchestrator:
         Process a CSS entry point (e.g., style.css) with bundling.
 
         Steps:
-        1. Bundle all @import statements into single file
-        2. Minify the bundled CSS
-        3. Output to public directory
+        1. Prepend directive base CSS (functional styles for tabs, dropdowns, etc.)
+        2. Bundle all @import statements into single file
+        3. Minify the bundled CSS
+        4. Output to public directory
+
+        The directive base CSS provides opinion-free functional styles that ALL
+        themes need (show/hide logic, accessibility, prose contamination fixes).
+        It's loaded first so theme CSS can override any rule via CSS cascade.
+
+        See: plan/rfc-directive-base-css.md
 
         Args:
             css_entry: CSS entry point asset
@@ -703,8 +710,19 @@ class AssetOrchestrator:
             css_entry._site = self.site  # type: ignore[attr-defined]
             assets_output = self.site.output_dir / "assets"
 
-            # Step 1: Bundle CSS (resolve all @imports)
+            # Step 1: Get directive base CSS (functional styles)
+            # Base CSS is prepended so theme CSS can override via cascade
+            from bengal.assets.css import get_directive_base_css
+
+            base_css = get_directive_base_css()
+
+            # Step 2: Bundle CSS (resolve all @imports)
             bundled_css = css_entry.bundle_css()
+
+            # Prepend base CSS to bundled theme CSS
+            # Base CSS loads first → theme CSS loads second → theme wins (same specificity)
+            if base_css:
+                bundled_css = f"/* Directive Base CSS - Auto-included */\n{base_css}\n\n/* Theme CSS */\n{bundled_css}"
 
             # Store bundled content for minification
             css_entry._bundled_content = bundled_css

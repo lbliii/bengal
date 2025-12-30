@@ -30,6 +30,7 @@ from tempfile import mkdtemp
 from results_manager import BenchmarkResults
 
 from bengal.core.site import Site
+from bengal.orchestration.build.options import BuildOptions
 
 
 def create_large_test_site(num_pages: int, sections: int = 20) -> Path:
@@ -233,7 +234,7 @@ def benchmark_full_build(site_root: Path) -> dict:
     site = Site.from_config(site_root)
 
     start = time.perf_counter()
-    stats = site.build(parallel=True, incremental=False)
+    stats = site.build(BuildOptions(incremental=False))
     elapsed = time.perf_counter() - start
 
     cache_size = measure_cache_size(site_root)
@@ -271,7 +272,7 @@ def benchmark_incremental_single_page(site_root: Path, site: Site) -> dict:
     time.sleep(0.1)
 
     start = time.perf_counter()
-    stats = site.build(parallel=True, incremental=True)
+    stats = site.build(BuildOptions(incremental=True))
     elapsed = time.perf_counter() - start
 
     # Restore original
@@ -312,7 +313,7 @@ def benchmark_incremental_template_change(site_root: Path) -> dict:
     site = Site.from_config(site_root)
 
     start = time.perf_counter()
-    stats = site.build(parallel=True, incremental=True)
+    stats = site.build(BuildOptions(incremental=True))
     elapsed = time.perf_counter() - start
 
     # Restore original config

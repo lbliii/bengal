@@ -19,6 +19,7 @@ def profile_build(site_path, parallel=True, max_workers=None):
     """Profile a site build and print detailed statistics."""
 
     from bengal.core.site import Site
+    from bengal.orchestration.build.options import BuildOptions
     from bengal.utils.logger import LogLevel, configure_logging
     from bengal.utils.paths import BengalPaths
 
@@ -46,7 +47,7 @@ def profile_build(site_path, parallel=True, max_workers=None):
     profiler.enable()
 
     start_time = time.time()
-    stats = site.build(parallel=parallel, quiet=True)
+    stats = site.build(BuildOptions(force_sequential=not parallel, quiet=True))
     end_time = time.time()
 
     profiler.disable()

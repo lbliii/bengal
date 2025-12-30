@@ -111,12 +111,13 @@ def run_build(site_dir: Path, incremental: bool = False) -> dict[str, any]:
     try:
         # Import here to avoid circular deps
         from bengal.core.site import Site
+        from bengal.orchestration.build.options import BuildOptions
 
         # Load site from config file
         site = Site.from_config(site_dir)
 
         # Run build using site's build method
-        site.build(incremental=incremental)
+        site.build(BuildOptions(incremental=incremental))
 
         # Collect output files
         output_dir = site.output_dir

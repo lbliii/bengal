@@ -15,6 +15,7 @@ import pytest
 from bengal import __version__
 from bengal.cache.build_cache import BuildCache
 from bengal.core.site import Site
+from bengal.orchestration.build.options import BuildOptions
 
 
 class TestAutodocCacheSelfHealing:
@@ -71,7 +72,7 @@ def test_function(x: int, y: str = "default") -> bool:
 
         # Step 1: Full build to populate cache
         site = Site.from_config(site_root)
-        stats1 = site.build(parallel=False, incremental=False)
+        stats1 = site.build(BuildOptions(force_sequential=True, incremental=False))
         assert stats1.pages_built > 0, "First build should create pages"
 
         # Verify cache was created and contains autodoc payload
@@ -115,7 +116,7 @@ def test_function(x: int, y: str = "default") -> bool:
         # The build should detect the malformed payload, invalidate the cache key,
         # and fall back to re-extraction instead of crashing
         site2 = Site.from_config(site_root)
-        stats2 = site2.build(parallel=False, incremental=True)
+        stats2 = site2.build(BuildOptions(force_sequential=True, incremental=True))
 
         # Verify build succeeded (no S003 error)
         assert stats2.pages_built > 0, "Incremental build should succeed after cache corruption"
@@ -167,7 +168,7 @@ source_dirs = ["src"]
 
         # Build with empty cache (no autodoc payload)
         site = Site.from_config(site_root)
-        stats = site.build(parallel=False, incremental=True)
+        stats = site.build(BuildOptions(force_sequential=True, incremental=True))
 
         # Should succeed and extract autodoc
         assert stats.pages_built > 0, "Build should succeed without cache"
@@ -203,7 +204,7 @@ source_dirs = ["src"]
 
         # Step 1: Full build to populate cache
         site = Site.from_config(site_root)
-        site.build(parallel=False, incremental=False)
+        site.build(BuildOptions(force_sequential=True, incremental=False))
 
         # Step 2: Corrupt cache payload with missing required fields
         cache_path = site.paths.build_cache
@@ -229,7 +230,7 @@ source_dirs = ["src"]
 
         # Step 3: Incremental build should recover
         site2 = Site.from_config(site_root)
-        stats = site2.build(parallel=False, incremental=True)
+        stats = site2.build(BuildOptions(force_sequential=True, incremental=True))
 
         # Should succeed
         assert stats.pages_built > 0, "Build should recover from KeyError in cache payload"

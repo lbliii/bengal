@@ -10,6 +10,8 @@ from pathlib import Path
 
 import pytest
 
+from bengal.orchestration.build.options import BuildOptions
+
 
 @pytest.fixture
 def high_variance_site(tmp_path: Path) -> Path:
@@ -64,7 +66,7 @@ class TestComplexityOrderingIntegration:
         orchestrator = BuildOrchestrator(site)
 
         # Build should complete without errors
-        stats = orchestrator.build(parallel=True)
+        stats = orchestrator.build(BuildOptions())
 
         # Verify pages were built - check site output_dir
         output_dir = site.output_dir
@@ -83,7 +85,7 @@ class TestComplexityOrderingIntegration:
         site.config["build"] = {"complexity_ordering": False}
         orchestrator = BuildOrchestrator(site)
 
-        stats = orchestrator.build(parallel=True)
+        stats = orchestrator.build(BuildOptions())
 
         # Should still complete successfully
         output_dir = site.output_dir
@@ -99,7 +101,7 @@ class TestComplexityOrderingIntegration:
         orchestrator = BuildOrchestrator(site)
 
         # Sequential build
-        stats = orchestrator.build(parallel=False)
+        stats = orchestrator.build(BuildOptions(force_sequential=True))
 
         # Should complete
         assert stats.total_pages >= 100
@@ -119,7 +121,7 @@ class TestComplexityOrderingIntegration:
         site.config["build"] = {"complexity_ordering": True}
 
         orchestrator = BuildOrchestrator(site)
-        stats = orchestrator.build(parallel=True)
+        stats = orchestrator.build(BuildOptions())
 
         # Build should complete and produce output
         assert stats.total_pages >= 50

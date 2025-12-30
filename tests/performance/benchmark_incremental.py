@@ -9,6 +9,7 @@ import time
 from pathlib import Path
 
 from bengal.core.site import Site
+from bengal.orchestration.build.options import BuildOptions
 
 
 def create_test_site(num_pages: int, num_assets: int = 20) -> Path:
@@ -103,7 +104,7 @@ def benchmark_full_build(site_dir: Path) -> float:
         shutil.rmtree(site.output_dir)
 
     start = time.time()
-    site.build(incremental=False)
+    site.build(BuildOptions(incremental=False))
     elapsed = time.time() - start
 
     return elapsed
@@ -170,7 +171,7 @@ def benchmark_incremental_build(site_dir: Path, change_type: str = "content") ->
     time.sleep(0.1)
 
     start = time.time()
-    site.build(incremental=True)
+    site.build(BuildOptions(incremental=True))
     elapsed = time.time() - start
 
     return elapsed

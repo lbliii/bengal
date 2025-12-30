@@ -2,7 +2,7 @@
 
 | Field | Value |
 |-------|-------|
-| **Status** | Draft |
+| **Status** | Implemented |
 | **Created** | 2024-12-30 |
 | **Updated** | 2024-12-30 |
 | **Author** | Bengal Team |

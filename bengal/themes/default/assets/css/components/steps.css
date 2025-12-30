@@ -3,6 +3,10 @@
  *
  * Styles for the {steps} directive.
  * Creates a visual step-by-step guide with connected numbers.
+ *
+ * NOTE: Directive base CSS (bengal/assets/css/directives/steps.css) provides
+ * functional styles: counter reset, list reset, accessibility.
+ * This file provides aesthetic styles: layout, colors, connector lines.
  */
 
 .steps {
@@ -12,7 +16,7 @@
   --step-spacing: var(--space-10);
 }
 
-/* Only remove list style from direct child ol (the steps container) */
+/* List reset - base CSS handles this, but keeping for clarity with nested list restoration below */
 .steps > ol {
   list-style: none;
   padding: 0;

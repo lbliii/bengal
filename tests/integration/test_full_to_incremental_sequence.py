@@ -17,6 +17,7 @@ import time
 import pytest
 
 from bengal.core.site import Site
+from bengal.orchestration.build.options import BuildOptions
 
 
 @pytest.mark.slow
@@ -162,7 +163,7 @@ Modified content (updated).""")
         site2.discover_assets()
 
         # Incremental build with fresh site object
-        incremental_stats = site2.build(incremental=True)
+        incremental_stats = site2.build(BuildOptions(incremental=True))
         assert incremental_stats.total_pages > 0
 
         # Verify change applied
@@ -180,7 +181,7 @@ Modified content (updated).""")
 
         # Additional incremental (no change) should be very fast
         time.sleep(0.1)
-        no_change_stats = site2.build(incremental=True)
+        no_change_stats = site2.build(BuildOptions(incremental=True))
         assert no_change_stats.skipped is True
 
 
@@ -211,7 +212,7 @@ class TestIncrementalBuildRegression:
         site = Site.from_config(site_root)
 
         # Step 1: Full build with incremental=False
-        stats1 = site.build(parallel=False, incremental=False)
+        stats1 = site.build(BuildOptions(force_sequential=True, incremental=False))
         assert stats1.cache_hits == 0, "First build should have no cache hits"
 
         # Step 2: Check cache exists (this would fail with the bug) - new location since v0.1.2
@@ -221,7 +222,7 @@ class TestIncrementalBuildRegression:
 
         # Step 3: Incremental build should use cache
         time.sleep(0.15)
-        stats2 = site.build(parallel=False, incremental=True)
+        stats2 = site.build(BuildOptions(force_sequential=True, incremental=True))
 
         # Should use cache (1 page, 1 cache hit, 0 misses)
         assert stats2.cache_hits == 1, f"BUG: Should have 1 cache hit, got {stats2.cache_hits}"
@@ -248,7 +249,7 @@ class TestIncrementalBuildRegression:
 
         # Full build
         site = Site.from_config(site_root)
-        site.build(parallel=False, incremental=False)
+        site.build(BuildOptions(force_sequential=True, incremental=False))
 
         # Check that config is in cache (new location since v0.1.2)
         # Note: Cache is now compressed with Zstandard (.json.zst)
@@ -264,7 +265,7 @@ class TestIncrementalBuildRegression:
 
         # Incremental build should not think config changed
         time.sleep(0.15)
-        stats = site.build(parallel=False, incremental=True)
+        stats = site.build(BuildOptions(force_sequential=True, incremental=True))
 
         # Should use cache (indicating config was NOT detected as changed)
         assert stats.cache_hits == 1, (

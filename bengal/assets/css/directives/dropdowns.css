@@ -1,0 +1,56 @@
+/**
+ * Directive Base CSS: Dropdowns
+ *
+ * Minimal base for dropdown/details elements.
+ * Native <details> element handles show/hide automatically.
+ *
+ * Functional CSS included:
+ *   - Summary marker reset for consistent cross-browser behavior
+ *   - Accessibility (focus-visible, reduced-motion)
+ *
+ * NOT included (theme responsibility):
+ *   - Borders, colors, backgrounds
+ *   - Icons, arrows, indicators
+ *   - Animations, transitions
+ *   - Any aesthetic choices
+ *
+ * @see RFC: Shared Directive Base CSS (plan/rfc-directive-base-css.md)
+ */
+
+/* ==========================================================================
+   FUNCTIONAL: Summary Marker Reset
+   Provides consistent base across browsers.
+   ========================================================================== */
+
+details.dropdown summary::-webkit-details-marker {
+  display: none;
+}
+
+details.dropdown summary::marker {
+  display: none;
+}
+
+details.dropdown summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+/* ==========================================================================
+   FUNCTIONAL: Accessibility
+   ========================================================================== */
+
+/* Focus-visible state for keyboard navigation */
+details.dropdown summary:focus-visible {
+  outline: 2px solid var(--color-primary, var(--color-accent, currentColor));
+  outline-offset: 2px;
+}
+
+/* Reduced motion: disable all transitions and animations */
+@media (prefers-reduced-motion: reduce) {
+  details.dropdown,
+  details.dropdown summary,
+  .dropdown-content {
+    transition: none !important;
+    animation: none !important;
+  }
+}

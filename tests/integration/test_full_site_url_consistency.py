@@ -9,6 +9,8 @@ This is the ultimate regression test - if this passes, URLs work everywhere.
 
 import pytest
 
+from bengal.orchestration.build.options import BuildOptions
+
 
 @pytest.mark.slow
 class TestFullSiteUrlConsistency:
@@ -39,7 +41,7 @@ class TestFullSiteUrlConsistency:
         if not site.pages:
             site.discover_content()
             site.discover_assets()
-            site.build(parallel=False)
+            site.build(BuildOptions(force_sequential=True))
 
         # Find the page
         test_page = None
@@ -65,7 +67,7 @@ class TestFullSiteUrlConsistency:
         if not site.pages:
             site.discover_content()
             site.discover_assets()
-            site.build(parallel=False)
+            site.build(BuildOptions(force_sequential=True))
 
         urls = [p.href for p in site.pages]
         url_counts = {}
@@ -81,7 +83,7 @@ class TestFullSiteUrlConsistency:
         if not site.pages:
             site.discover_content()
             site.discover_assets()
-            site.build(parallel=False)
+            site.build(BuildOptions(force_sequential=True))
 
         missing_output_path = []
         for page in site.pages:

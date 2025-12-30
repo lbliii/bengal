@@ -171,7 +171,7 @@ def profile_memory(name: str = "Operation", verbose: bool = True):
 
     Example:
         with profile_memory("Building site", verbose=True) as prof:
-            site.build()
+            site.build(BuildOptions())
 
         delta = prof.get_delta()
         assert delta.rss_delta_mb < 500

@@ -25,6 +25,7 @@ from bengal.cache.page_discovery_cache import PageDiscoveryCache
 from bengal.cache.taxonomy_index import TaxonomyIndex
 from bengal.core.site import Site
 from bengal.orchestration import BuildOrchestrator
+from bengal.orchestration.build.options import BuildOptions
 
 
 @pytest.fixture
@@ -108,7 +109,7 @@ class TestPageDiscoveryCacheSaving:
         """Verify PageDiscoveryCache is saved after discovery phase."""
         # Build the site
         orchestrator = BuildOrchestrator(site_with_content)
-        orchestrator.build(incremental=False)
+        orchestrator.build(BuildOptions(incremental=False))
 
         # Check cache file exists (saved as compressed .json.zst)
         cache_dir = site_with_content.root_path / ".bengal"
@@ -132,7 +133,7 @@ class TestPageDiscoveryCacheSaving:
         """Verify PageDiscoveryCache contains correct page metadata."""
         # Build the site
         orchestrator = BuildOrchestrator(site_with_content)
-        orchestrator.build(incremental=False)
+        orchestrator.build(BuildOptions(incremental=False))
 
         # Load cache
         cache_file = site_with_content.root_path / ".bengal" / "page_metadata.json"
@@ -163,7 +164,7 @@ class TestAssetDependencyMapTracking:
         """Verify AssetDependencyMap is saved after rendering phase."""
         # Build the site
         orchestrator = BuildOrchestrator(site_with_content)
-        orchestrator.build(incremental=False)
+        orchestrator.build(BuildOptions(incremental=False))
 
         # Check cache file exists (saved as compressed .json.zst)
         cache_dir = site_with_content.root_path / ".bengal"
@@ -181,7 +182,7 @@ class TestAssetDependencyMapTracking:
         """Verify AssetDependencyMap tracks page-to-assets correctly."""
         # Build the site
         orchestrator = BuildOrchestrator(site_with_content)
-        orchestrator.build(incremental=False)
+        orchestrator.build(BuildOptions(incremental=False))
 
         # Load map
         asset_map_file = site_with_content.root_path / ".bengal" / "asset_deps.json"
@@ -209,7 +210,7 @@ class TestAssetDependencyMapTracking:
         """Verify AssetDependencyMap tracks different asset types (images, scripts, styles)."""
         # Build the site
         orchestrator = BuildOrchestrator(site_with_content)
-        orchestrator.build(incremental=False)
+        orchestrator.build(BuildOptions(incremental=False))
 
         # Load map
         asset_map_file = site_with_content.root_path / ".bengal" / "asset_deps.json"
@@ -235,7 +236,7 @@ class TestTaxonomyIndexPersistence:
         """Verify TaxonomyIndex is saved after taxonomy building phase."""
         # Build the site
         orchestrator = BuildOrchestrator(site_with_content)
-        orchestrator.build(incremental=False)
+        orchestrator.build(BuildOptions(incremental=False))
 
         # Check cache file exists (saved as compressed .json.zst)
         cache_dir = site_with_content.root_path / ".bengal"
@@ -251,7 +252,7 @@ class TestTaxonomyIndexPersistence:
         """Verify TaxonomyIndex contains correct tag-to-pages mappings."""
         # Build the site
         orchestrator = BuildOrchestrator(site_with_content)
-        orchestrator.build(incremental=False)
+        orchestrator.build(BuildOptions(incremental=False))
 
         # Load index
         taxonomy_file = site_with_content.root_path / ".bengal" / "taxonomy_index.json"
@@ -269,7 +270,7 @@ class TestTaxonomyIndexPersistence:
         """Verify TaxonomyIndex has correct page counts for each tag."""
         # Build the site
         orchestrator = BuildOrchestrator(site_with_content)
-        orchestrator.build(incremental=False)
+        orchestrator.build(BuildOptions(incremental=False))
 
         # Load index
         taxonomy_file = site_with_content.root_path / ".bengal" / "taxonomy_index.json"
@@ -293,7 +294,7 @@ class TestCacheIntegrationEndToEnd:
         """Verify all three caches are created after a full build."""
         # Build the site
         orchestrator = BuildOrchestrator(site_with_content)
-        orchestrator.build(incremental=False)
+        orchestrator.build(BuildOptions(incremental=False))
 
         # Check all cache files exist (compressed format)
         cache_dir = site_with_content.root_path / ".bengal"
@@ -316,7 +317,7 @@ class TestCacheIntegrationEndToEnd:
         """Verify cache data persists and can be reloaded."""
         # Build the site
         orchestrator = BuildOrchestrator(site_with_content)
-        orchestrator.build(incremental=False)
+        orchestrator.build(BuildOptions(incremental=False))
 
         # Load all caches
         cache_file = site_with_content.root_path / ".bengal" / "page_metadata.json"
@@ -346,7 +347,7 @@ class TestCacheIntegrationEndToEnd:
         """Verify all three auxiliary caches are compressed after a full build."""
         # Build the site
         orchestrator = BuildOrchestrator(site_with_content)
-        orchestrator.build(incremental=False)
+        orchestrator.build(BuildOptions(incremental=False))
 
         # Check all compressed cache files exist
         cache_dir = site_with_content.root_path / ".bengal"
@@ -375,7 +376,7 @@ class TestCacheIntegrationEndToEnd:
 
         # Build the site
         orchestrator = BuildOrchestrator(site_with_content)
-        orchestrator.build(incremental=False)
+        orchestrator.build(BuildOptions(incremental=False))
 
         cache_dir = site_with_content.root_path / ".bengal"
 

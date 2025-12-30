@@ -24,6 +24,7 @@ import time
 from pathlib import Path
 
 from bengal.core.site import Site
+from bengal.orchestration.build.options import BuildOptions
 
 # Lorem ipsum paragraphs for content generation
 PARAGRAPHS = [
@@ -193,7 +194,9 @@ def benchmark_build(num_files: int, runs: int = 3) -> dict:
 
             # Run build (uses BuildOrchestrator internally)
             parallel = site.config.get("parallel", True)
-            site.build(parallel=parallel, incremental=False, verbose=False)
+            site.build(
+                BuildOptions(force_sequential=not parallel, incremental=False, verbose=False)
+            )
 
             elapsed = time.time() - start
             times.append(elapsed)

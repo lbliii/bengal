@@ -13,7 +13,8 @@
 Improve the ergonomics and consistency of Bengal's template object model by:
 1. Renaming `page.content` (raw markdown) to `page._source`
 2. Making `page.content` return rendered HTML (matching user expectations)
-3. Documenting the underscore prefix convention (`_` = internal/comparison use)
+3. Adding `page.word_count` and `page.reading_time` as computed properties
+4. Documenting the underscore prefix convention (`_` = internal/comparison use)
 
 ## Motivation
 
@@ -122,10 +123,14 @@ Examples already following this convention:
 
 ```python
 # RENAMED: Raw source gets underscore prefix (following convention)
-page._source        # Raw markdown (was: page.content)
+page._source        # Raw markdown (was: page.content) - INTERNAL USE ONLY
 
 # CHANGED: Content now means displayable content  
 page.content        # Rendered HTML (was: page.html)
+
+# NEW: Computed metadata properties (so templates never need _source)
+page.word_count     # Pre-computed word count (integer)
+page.reading_time   # Pre-computed reading time in minutes (integer)
 
 # KEPT: These already follow the convention
 page._path          # Site-relative URL (internal)
@@ -146,6 +151,8 @@ page.plain_text     # Plain text (for search/LLM)
 page.html           # Use page.content instead
 ```
 
+**Design Rationale**: `page._source` follows the underscore convention for internal/raw data. However, templates commonly need word count and reading time for metadata displays. Rather than requiring templates to access `page._source` (violating the "underscore = not for templates" principle), we expose these as computed properties. This keeps the convention clean: templates never need underscore-prefixed properties.
+
 #### Context Variables
 
 ```python
@@ -154,6 +161,10 @@ content     = page.content      # Rendered HTML (now consistent!)
 title       = page.title
 toc         = page.toc
 toc_items   = page.toc_items
+
+# NEW: Metadata shortcuts (optional, for convenience)
+word_count    = page.word_count     # Integer
+reading_time  = page.reading_time   # Integer (minutes)
 ```
 
 ### Migration Path
@@ -174,9 +185,9 @@ def content(self) -> str:
     """Raw markdown source content."""
 ```
 
-#### Phase 1: Add Aliases (v0.3.0)
+#### Phase 1: Add Aliases and Computed Properties (v0.3.0)
 
-Non-breaking: Add new names as aliases.
+Non-breaking: Add new names as aliases, plus computed metadata properties.
 
 ```python
 @property
@@ -184,9 +195,28 @@ def _source(self) -> str:
     """Raw markdown source."""
     return self._raw_content
 
+@cached_property
+def word_count(self) -> int:
+    """Pre-computed word count from source content."""
+    return len(self._raw_content.split())
+
+# NOTE: reading_time already exists but needs update to use _source
+@cached_property
+def reading_time(self) -> int:
+    """Pre-computed reading time in minutes (200 WPM)."""
+    # CHANGED: Use _source instead of content for accurate count
+    return max(1, round(self.word_count / 200))
+
 # page.content still returns raw (old behavior)
 # page.html still returns rendered (unchanged)
 ```
+
+**Rationale for computed properties**: Templates commonly need word count and reading time for metadata displays. Rather than requiring `{{ page._source | word_count }}` (which violates the underscore convention), we expose these as template-ready properties. Benefits:
+- Convention stays clean (templates never access `_` properties)
+- Faster (computed once, cached)
+- Simpler templates (`{{ page.word_count }}` vs `{{ page.content | word_count }}`)
+
+**Note on existing properties**: `reading_time` already exists in `PageComputedMixin` but currently uses `self.content`. Must be updated to use `self._source` for accurate word counting from source markdown rather than rendered HTML.
 
 #### Phase 2: Deprecation Warnings (v0.4.0)
 
@@ -247,19 +277,30 @@ def _source(self) -> str:
 | Property | Returns | Use For |
 |----------|---------|---------|
 | `page.content` | Rendered HTML | Template output |
-| `page._source` | Raw markdown | Word count, analysis |
+| `page.word_count` | Integer | Metadata display |
+| `page.reading_time` | Integer (minutes) | Metadata display |
 | `page.plain_text` | Plain text | Search indexing |
 | `page.summary` | Excerpt | Previews, cards |
 
+### Internal Properties (Advanced)
+
+| Property | Returns | Use For |
+|----------|---------|---------|
+| `page._source` | Raw markdown | Plugins, custom analysis |
+| `page._path` | Site-relative URL | Comparisons, routing |
+| `page._section` | Section object | Navigation logic |
+
 ### The Underscore Convention
 
-Properties prefixed with `_` are for internal use:
-- Use in comparisons and logic
-- NOT for direct template output
+Properties prefixed with `_` are for internal/advanced use:
+- Use in plugins and custom logic
+- NOT for standard template output
+- Requires understanding of raw data formats
 
-Properties without `_` are for templates:
-- Use in HTML output
-- Already include baseurl where applicable
+Properties without `_` are template-ready:
+- Use directly in HTML output
+- Pre-computed for performance
+- URLs include baseurl where applicable
 ```
 
 ### Update Quick Start Examples
@@ -329,7 +370,23 @@ word_count = len(page._source.split())
 content_hash = hash(page._source)
 ```
 
-**Templates** (no change needed):
+**Templates using word count/reading time** (simpler after v1.0):
+
+```kida
+{# Before - filter on raw content #}
+{{ page.content | word_count }} words
+{{ page.content | reading_time }} min read
+
+{# After - direct property access (cleaner, faster) #}
+{{ page.word_count }} words
+{{ page.reading_time }} min read
+
+{# Or use context shortcuts #}
+{{ word_count }} words
+{{ reading_time }} min read
+```
+
+**Templates rendering content** (no change needed):
 
 ```kida
 {# Already correct - uses context variable #}
@@ -346,7 +403,10 @@ content_hash = hash(page._source)
 | `{{ content \| safe }}` | ✅ Works | ✅ Works | ✅ Works |
 | `{{ page.content \| safe }}` | ❌ Raw MD | ⚠️ Warning + Raw MD | ✅ Works |
 | `{{ page.html \| safe }}` | ✅ Works | ⚠️ Warning | ❌ Removed |
-| `{{ page._source }}` | ✅ Raw MD | ✅ Raw MD | ✅ Raw MD |
+| `{{ page.word_count }}` | ✅ New | ✅ Works | ✅ Works |
+| `{{ page.reading_time }}` | ✅ New | ✅ Works | ✅ Works |
+| `{{ page.content \| word_count }}` | ✅ Works | ⚠️ Warning | ❌ Use `page.word_count` |
+| `{{ page._source }}` | ✅ Raw MD | ✅ Raw MD | ✅ Raw MD (internal) |
 
 ## Success Criteria
 
@@ -354,13 +414,16 @@ content_hash = hash(page._source)
 
 1. **Protocol accuracy**: `PageLike.content` docstring matches actual behavior
 2. **Convention compliance**: All raw data properties use underscore prefix
-3. **Migration success**: < 5 support requests during deprecation period
-4. **Theme compatibility**: All bundled themes pass tests through v1.0
+3. **Convention cleanliness**: Templates never need to access `_`-prefixed properties
+4. **Migration success**: < 5 support requests during deprecation period
+5. **Theme compatibility**: All bundled themes pass tests through v1.0
 
 ### Validation Steps
 
 - [ ] `grep -r "page\.content" bengal/` shows no direct template usage
+- [ ] `grep -r "page\._source" bengal/themes/` returns zero (templates use computed props)
 - [ ] All internal code using `page.content` for raw access migrated to `page._source`
+- [ ] `page.word_count` and `page.reading_time` available and tested
 - [ ] Deprecation warnings appear in test suite (none silenced)
 - [ ] Theme scaffolding generates correct patterns
 
@@ -369,8 +432,8 @@ content_hash = hash(page._source)
 | Phase | Version | Changes | Target Date |
 |-------|---------|---------|-------------|
 | 0 | v0.2.x | Fix PageLike protocol docstring | Immediate |
-| 1 | v0.3.0 | Add `page._source` alias | Q1 2025 |
-| 2 | v0.4.0 | Deprecation warnings | Q2 2025 |
+| 1 | v0.3.0 | Add `page._source` alias, `page.word_count`, `page.reading_time` | Q1 2025 |
+| 2 | v0.4.0 | Deprecation warnings for `page.content` (raw) and `page.html` | Q2 2025 |
 | 3 | v1.0.0 | `page.content` returns rendered HTML | Q4 2025 |
 
 ## Open Questions
@@ -382,6 +445,89 @@ content_hash = hash(page._source)
 2. **Should we add `page.rendered` as an alias during Phase 1?**
    - Pro: More explicit than `content`
    - Con: More API surface to maintain
+
+3. **Should filters `word_count` and `reading_time` be deprecated in favor of properties?**
+   - Pro: Consistent API (use properties, not filters)
+   - Con: Filters still useful for arbitrary text, not just page content
+   - **Recommendation**: Keep filters for general use, recommend properties for page metadata
+
+## Existing Computed Properties Requiring Updates
+
+The following existing computed properties in `PageComputedMixin` use `self.content` and need updating to use `self._source`:
+
+| Property | Current Source | New Source | Reason |
+|----------|----------------|------------|--------|
+| `reading_time` | `self.content` | `self._source` | Count author's words, not rendered HTML |
+| `meta_description` | `self.content` | `self.content` | ✅ Keep - generates from rendered content for SEO |
+| `excerpt` | `self.content` | `self.content` | ✅ Keep - generates from rendered content for display |
+
+**Code changes in `computed.py`:**
+
+```python
+# BEFORE (reading_time uses content)
+@cached_property
+def reading_time(self: HasMetadata) -> int:
+    if not self.content:
+        return 1
+    clean_text = re.sub(r"<[^>]+>", "", self.content)
+    words = len(clean_text.split())
+    return max(1, round(words / 200))
+
+# AFTER (reading_time uses _source via word_count)
+@cached_property
+def word_count(self: HasMetadata) -> int:
+    """Word count from source markdown."""
+    if not hasattr(self, '_source') or not self._source:
+        # Fallback for backward compatibility
+        text = getattr(self, 'content', '')
+        return len(text.split()) if text else 0
+    return len(self._source.split())
+
+@cached_property
+def reading_time(self: HasMetadata) -> int:
+    """Reading time based on word_count (200 WPM)."""
+    return max(1, round(self.word_count / 200))
+```
+
+## Default Theme Migration
+
+The bundled default theme uses `page.content | word_count` and `page.content | reading_time` in 2 files:
+
+| File | Current | After v0.3 |
+|------|---------|------------|
+| `partials/docs-meta.html` | `page.content \| word_count` | `page.word_count` |
+| `partials/docs-meta.html` | `page.content \| reading_time` | `page.reading_time` |
+| `partials/page-hero/_macros.html` | `page.content \|> reading_time` | `page.reading_time` |
+| `partials/page-hero/_macros.html` | `page.content \|> wordcount` | `page.word_count` |
+
+**Total changes**: 4 lines in 2 files. No template needs to access `page._source`.
+
+**Note**: `page.reading_time` already exists as a computed property but templates use the filter version instead. This migration simplifies templates while using the cached property.
+
+## Future Considerations
+
+### Additional Computed Properties (Out of Scope)
+
+These patterns appear in templates and could be computed properties in future versions:
+
+| Pattern | Frequency | Potential Property | Notes |
+|---------|-----------|-------------------|-------|
+| `page.date \| date_iso` | Common | `page.date_iso` | ISO 8601 string |
+| `page.keywords \| join(', ')` | Common | `page.keywords_str` | Comma-separated |
+| `page.tags \| meta_keywords(10)` | Occasional | Keep as filter | Parameterized |
+
+**Recommendation**: Keep out of scope for this RFC. The underscore convention and word_count/reading_time are the priority. These can be separate micro-improvements.
+
+### Underutilized Existing Properties
+
+Templates should be audited to use these existing computed properties:
+
+| Property | Available Since | Usage |
+|----------|-----------------|-------|
+| `page.age_days` | v0.1 | `{% if page.age_days < 7 %}<span>New</span>{% endif %}` |
+| `page.age_months` | v0.1 | `{% if page.age_months > 6 %}<span>May be outdated</span>{% endif %}` |
+| `page.author` | v0.1 | `{{ page.author.name }}` instead of `{{ page.metadata.author }}` |
+| `page.series` | v0.1 | Series navigation with `prev_in_series`/`next_in_series` |
 
 ## References
 

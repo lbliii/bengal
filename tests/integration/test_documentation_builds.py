@@ -14,6 +14,7 @@ from bs4 import BeautifulSoup
 
 from bengal.core.site import Site
 from bengal.orchestration.build import BuildOrchestrator
+from bengal.orchestration.build.options import BuildOptions
 from bengal.rendering.parsers.factory import ParserFactory
 
 
@@ -111,7 +112,7 @@ Use {{/* content | meta_description(160) */}} for meta tags.
         orchestrator = BuildOrchestrator(site)
 
         # Should build without errors
-        orchestrator.build()
+        orchestrator.build(BuildOptions())
 
         # Verify all pages built
         for filename in pages_content:

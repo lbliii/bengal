@@ -178,12 +178,16 @@ def _create_content_config(template: str) -> dict[str, Any]:
 
 
 def _create_build_config() -> dict[str, Any]:
-    """Create build configuration."""
+    """Create build configuration.
+
+    Note: We don't set `incremental` here - it auto-detects based on cache presence.
+    First build will be full (no cache), subsequent builds will be incremental (cache exists).
+    """
     return {
         "build": {
             "output_dir": "public",
-            "parallel": True,
-            "incremental": True,
+            # parallel: auto-detected via should_parallelize() based on page count
+            # incremental: auto-detected based on cache presence
         },
         "assets": {
             "minify": True,

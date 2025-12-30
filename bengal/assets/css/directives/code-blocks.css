@@ -1,0 +1,39 @@
+/**
+ * Directive Base CSS: Code Blocks
+ *
+ * Code blocks have no universal functional requirements.
+ * Everything is theme-controlled.
+ *
+ * This file exists for completeness and to document the intentional
+ * absence of base styles.
+ *
+ * NOT included (theme responsibility):
+ *   - Background, borders
+ *   - Syntax highlighting colors
+ *   - Toolbar styling
+ *   - Typography, spacing
+ *   - Any aesthetic choices
+ *
+ * @see RFC: Shared Directive Base CSS (plan/rfc-directive-base-css.md)
+ */
+
+/* ==========================================================================
+   FUNCTIONAL: Accessibility Only
+   ========================================================================== */
+
+/* Ensure code blocks can be scrolled with keyboard */
+pre[tabindex]:focus-visible {
+  outline: 2px solid var(--color-primary, var(--color-accent, currentColor));
+  outline-offset: 2px;
+}
+
+/* Reduced motion: disable all transitions and animations */
+@media (prefers-reduced-motion: reduce) {
+  pre,
+  code,
+  .highlight,
+  .code-toolbar {
+    transition: none !important;
+    animation: none !important;
+  }
+}

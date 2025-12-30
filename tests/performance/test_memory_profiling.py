@@ -21,6 +21,7 @@ from pathlib import Path
 import pytest
 
 from bengal.core.site import Site
+from bengal.orchestration.build.options import BuildOptions
 from bengal.utils.logger import (
     LogLevel,
     configure_logging,
@@ -154,7 +155,7 @@ class TestMemoryProfiling:
         # Profile ONLY the build
         with profile_memory("100-page build", verbose=True) as prof:
             site = Site.from_config(site_root)
-            stats = site.build(parallel=False)
+            stats = site.build(BuildOptions(force_sequential=True))
 
         delta = prof.get_delta()
 
@@ -177,7 +178,7 @@ class TestMemoryProfiling:
 
         with profile_memory("500-page build", verbose=True) as prof:
             site = Site.from_config(site_root)
-            stats = site.build(parallel=False)
+            stats = site.build(BuildOptions(force_sequential=True))
 
         delta = prof.get_delta()
 
@@ -197,7 +198,7 @@ class TestMemoryProfiling:
 
         with profile_memory("1K-page build", verbose=True) as prof:
             site = Site.from_config(site_root)
-            stats = site.build(parallel=False)
+            stats = site.build(BuildOptions(force_sequential=True))
 
         delta = prof.get_delta()
 
@@ -228,7 +229,7 @@ class TestMemoryProfiling:
             profiler = MemoryProfiler(track_allocations=False)
             with profiler:
                 site = Site.from_config(site_root)
-                site.build(parallel=False)
+                site.build(BuildOptions(force_sequential=True))
 
             delta = profiler.get_delta()
             results.append(
@@ -324,7 +325,7 @@ class TestMemoryProfiling:
             profiler = MemoryProfiler(track_allocations=False)
             with profiler:
                 site = Site.from_config(site_root)
-                site.build(parallel=False)
+                site.build(BuildOptions(force_sequential=True))
 
             delta = profiler.get_delta()
             rss_samples.append(delta.rss_delta_mb)
@@ -383,7 +384,7 @@ class TestMemoryProfiling:
         profiler = MemoryProfiler(track_allocations=True)
         with profiler:
             site = Site.from_config(site_root)
-            stats = site.build(parallel=False)
+            stats = site.build(BuildOptions(force_sequential=True))
 
         delta = profiler.get_delta(top_n=20)
 
@@ -422,7 +423,7 @@ class TestMemoryEdgeCases:
 
         with profile_memory("Empty site build", verbose=False) as prof:
             site = Site.from_config(site_root)
-            site.build(parallel=False)
+            site.build(BuildOptions(force_sequential=True))
 
         delta = prof.get_delta()
 

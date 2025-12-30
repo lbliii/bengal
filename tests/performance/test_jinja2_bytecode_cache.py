@@ -13,6 +13,7 @@ from pathlib import Path
 import pytest
 
 from bengal.core.site import Site
+from bengal.orchestration.build.options import BuildOptions
 
 
 @pytest.mark.slow
@@ -40,7 +41,7 @@ cache_templates = true
 
         # Build site
         site = Site.from_config(temp_dir)
-        site.build(parallel=False, incremental=False)
+        site.build(BuildOptions(force_sequential=True, incremental=False))
 
         # Check cache directory exists (new location: .bengal/templates/)
         cache_dir = temp_dir / ".bengal" / "templates"
@@ -106,14 +107,14 @@ cache_templates = true
         for _ in range(2):
             site = Site.from_config(temp_dir)
             start = time.time()
-            site.build(parallel=False, incremental=False)
+            site.build(BuildOptions(force_sequential=True, incremental=False))
             cold_times.append(time.time() - start)
 
         # Warm builds - run 3x to average out noise
         for _ in range(3):
             site = Site.from_config(temp_dir)
             start = time.time()
-            site.build(parallel=False, incremental=False)
+            site.build(BuildOptions(force_sequential=True, incremental=False))
             warm_times.append(time.time() - start)
 
         # Use statistics for more reliable results
@@ -170,7 +171,7 @@ cache_templates = false
 
         # Build site
         site = Site.from_config(temp_dir)
-        site.build(parallel=False, incremental=False)
+        site.build(BuildOptions(force_sequential=True, incremental=False))
 
         # Cache directory may exist (from other builds) but should be empty or not used
         # The important thing is that it doesn't break when disabled

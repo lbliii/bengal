@@ -489,9 +489,13 @@ class HtmlRenderer:
 
         # Fallback: internal highlighting or plain code
         if self._highlight and info:
-            highlighted = self._try_highlight_range(node.source_start, node.source_end, info)
+            # Strip trailing newline from code range before highlighting
+            end = node.source_end
+            if end > node.source_start and self._source[end - 1] == "\n":
+                end -= 1
+            highlighted = self._try_highlight_range(node.source_start, end, info)
             if highlighted:
-                # Rosettes parity: ensure trailing newline
+                # Rosettes parity: ensure trailing newline before closing tags
                 if highlighted.endswith("</code></pre></div>"):
                     highlighted = highlighted[:-19] + "\n</code></pre></div>"
                 sb.append(highlighted)
@@ -499,6 +503,9 @@ class HtmlRenderer:
 
         # Plain code block extraction
         code = node.get_code(self._source)
+        # Strip trailing newline from last line (parity with IndentedCode)
+        if code.endswith("\n"):
+            code = code[:-1]
         sb.append("<pre><code")
         if info:
             lang = info.split()[0]
@@ -506,9 +513,7 @@ class HtmlRenderer:
                 sb.append(f' class="language-{_escape_attr(lang)}"')
         sb.append(">")
         sb.append(_escape_html(code))
-        if code and not code.endswith("\n"):
-            sb.append("\n")
-        sb.append("</code></pre>\n")
+        sb.append("\n</code></pre>\n")
 
     def _render_highlighted_tokens(
         self,

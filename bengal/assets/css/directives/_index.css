@@ -1,0 +1,47 @@
+/**
+ * Directive Base CSS - Index
+ *
+ * Shared, opinion-free CSS layer for Bengal directives.
+ * Handles universal functional requirements (show/hide, accessibility,
+ * prose contamination fixes). Themes retain full control over aesthetics.
+ *
+ * Total: ~200 lines, < 2KB gzipped
+ *
+ * Architecture:
+ *   This CSS is automatically injected BEFORE theme CSS in all builds.
+ *   Same specificity rules apply, so theme CSS can override any rule.
+ *
+ * Token Contract (soft convention):
+ *   Base CSS uses semantic tokens with fallbacks. Themes are encouraged
+ *   but not required to define:
+ *     --color-primary: Primary brand color
+ *     --color-accent: Secondary accent color
+ *
+ * @see RFC: Shared Directive Base CSS (plan/rfc-directive-base-css.md)
+ */
+
+/* ==========================================================================
+   DIRECTIVE BASE STYLES
+   Opinion-free functional CSS for all directives.
+   ========================================================================== */
+
+/* Tabs: Show/hide panes, list reset, accessibility */
+@import url('tabs.css');
+
+/* Dropdowns: Summary marker reset, accessibility */
+@import url('dropdowns.css');
+
+/* Steps: Counter reset, accessibility */
+@import url('steps.css');
+
+/* Admonitions: Accessibility only (no functional requirements) */
+@import url('admonitions.css');
+
+/* Cards: Accessibility only (no functional requirements) */
+@import url('cards.css');
+
+/* Code Blocks: Accessibility only (no functional requirements) */
+@import url('code-blocks.css');
+
+/* Tables: Accessibility only (no functional requirements) */
+@import url('tables.css');
