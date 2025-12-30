@@ -17,6 +17,7 @@ import pytest
 from bengal.core.site import Site
 from bengal.errors import BengalRenderingError
 from bengal.orchestration.build import BuildOrchestrator
+from bengal.orchestration.build.options import BuildOptions
 
 
 class TestTemplateErrorCollection:
@@ -83,7 +84,7 @@ Test content.
         # Build site
         site = Site.from_config(temp_site, None)
         orchestrator = BuildOrchestrator(site)
-        stats = orchestrator.build(parallel=False, verbose=False)
+        stats = orchestrator.build(BuildOptions(force_sequential=True, verbose=False))
 
         # Should have no template errors
         assert len(stats.template_errors) == 0
@@ -116,7 +117,7 @@ Test content.
         # Build site (should not crash)
         site = Site.from_config(temp_site, None)
         orchestrator = BuildOrchestrator(site)
-        stats = orchestrator.build(parallel=False, verbose=False)
+        stats = orchestrator.build(BuildOptions(force_sequential=True, verbose=False))
 
         # Should have collected the template error
         assert len(stats.template_errors) >= 1
@@ -164,7 +165,7 @@ Content 2
         # Build site
         site = Site.from_config(temp_site, None)
         orchestrator = BuildOrchestrator(site)
-        stats = orchestrator.build(parallel=False, verbose=False)
+        stats = orchestrator.build(BuildOptions(force_sequential=True, verbose=False))
 
         # Should have collected multiple errors
         assert len(stats.template_errors) >= 2
@@ -195,7 +196,7 @@ Content
 
         # Should raise exception in strict mode
         with pytest.raises(BengalRenderingError):
-            orchestrator.build(parallel=False, verbose=False, strict=True)
+            orchestrator.build(BuildOptions(force_sequential=True, verbose=False, strict=True))
 
     def test_error_contains_rich_information(self, temp_site):
         """Test that collected errors contain rich debugging information."""
@@ -223,7 +224,7 @@ Content
         # Build site
         site = Site.from_config(temp_site, None)
         orchestrator = BuildOrchestrator(site)
-        stats = orchestrator.build(parallel=False, verbose=False)
+        stats = orchestrator.build(BuildOptions(force_sequential=True, verbose=False))
 
         # Check error has rich information
         if len(stats.template_errors) > 0:
@@ -298,7 +299,7 @@ Content {i}
         # Build site in parallel
         site = Site.from_config(temp_site_parallel, None)
         orchestrator = BuildOrchestrator(site)
-        stats = orchestrator.build(parallel=True, verbose=False)
+        stats = orchestrator.build(BuildOptions(verbose=False))
 
         # Should have collected errors
         # Note: Exact count depends on how errors are deduplicated

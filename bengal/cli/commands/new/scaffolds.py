@@ -388,7 +388,15 @@ def _create_theme_templates(theme_path: Path, name: str) -> None:
 def _create_theme_assets(theme_path: Path, name: str) -> None:
     """Create theme asset files."""
     # CSS
-    css_content = f"""/* Theme: {name} */
+    css_content = f"""/* Theme: {name}
+ *
+ * DIRECTIVES: Bengal automatically includes base CSS for directives
+ * (tabs, dropdowns, steps, admonitions, etc.). Your theme only needs
+ * to provide aesthetic styles - functional show/hide, accessibility,
+ * and prose contamination fixes are handled automatically.
+ *
+ * See: https://bengal.dev/docs/theming/directives
+ */
 
 :root {{
     --primary-color: #007bff;

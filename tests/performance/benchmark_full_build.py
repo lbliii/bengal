@@ -9,6 +9,7 @@ import time
 from pathlib import Path
 
 from bengal.core.site import Site
+from bengal.orchestration.build.options import BuildOptions
 
 
 def create_realistic_site(num_pages: int, num_assets: int, num_tags: int = 10) -> Path:
@@ -250,7 +251,9 @@ def benchmark_site_build(num_pages: int, num_assets: int, label: str) -> dict:
 
             # Run full build (BuildOrchestrator handles all phases)
             parallel = site.config.get("parallel", True)
-            build_stats = site.build(parallel=parallel, incremental=False, verbose=False)
+            build_stats = site.build(
+                BuildOptions(force_sequential=not parallel, incremental=False, verbose=False)
+            )
 
             total_time = time.time() - start_total
 

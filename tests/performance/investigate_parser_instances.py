@@ -59,6 +59,7 @@ def main():
     # Run build
     from bengal.core.site import Site
     from bengal.orchestration.build import BuildOrchestrator
+    from bengal.orchestration.build.options import BuildOptions
 
     site_path = Path(__file__).parent.parent.parent / "examples" / "showcase"
     print(f"Building: {site_path}")
@@ -69,7 +70,7 @@ def main():
         orchestrator = BuildOrchestrator(site)
 
         print("Starting build...")
-        orchestrator.build()
+        orchestrator.build(BuildOptions())
         print()
 
     except Exception as e:

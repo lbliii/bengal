@@ -20,6 +20,7 @@ import tempfile
 from pathlib import Path
 
 from bengal.core.site import Site
+from bengal.orchestration.build.options import BuildOptions
 
 # Sample content paragraphs
 PARAGRAPHS = [
@@ -125,7 +126,7 @@ def profile_build(site_path: Path):
 
     # Build the site
     site = Site.from_config(site_path)
-    site.build()
+    site.build(BuildOptions())
 
     profiler.disable()
 

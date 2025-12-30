@@ -1,0 +1,75 @@
+/**
+ * Directive Base CSS: Tabs
+ *
+ * Handles ONLY universal functional requirements that ALL themes need.
+ * Themes retain full control over layout and aesthetics.
+ *
+ * Functional CSS included:
+ *   - Show/hide panes (.tab-pane { display: none } / .active { display: block })
+ *   - List reset for prose contamination fix
+ *   - Accessibility (focus-visible, reduced-motion)
+ *
+ * NOT included (theme responsibility):
+ *   - Layout decisions (flex vs. grid vs. relative positioning)
+ *   - Colors, borders, backgrounds
+ *   - Typography, spacing
+ *   - Animations, transitions
+ *   - Any aesthetic choices
+ *
+ * @see RFC: Shared Directive Base CSS (plan/rfc-directive-base-css.md)
+ */
+
+/* ==========================================================================
+   FUNCTIONAL: Show/Hide Tab Panes
+   ========================================================================== */
+
+.tab-pane {
+  display: none;
+}
+
+.tab-pane.active {
+  display: block;
+}
+
+/* ==========================================================================
+   FUNCTIONAL: List Reset (prose contamination fix)
+   Without this, tabs inside .prose get bullet points and margins.
+   ========================================================================== */
+
+.tab-nav,
+.tab-nav li {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Higher specificity for prose containers */
+.prose .tab-nav,
+.prose .tab-nav li,
+.content .tab-nav,
+.content .tab-nav li,
+.article .tab-nav,
+.article .tab-nav li {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* ==========================================================================
+   FUNCTIONAL: Accessibility
+   ========================================================================== */
+
+/* Focus-visible state for keyboard navigation */
+.tab-nav a:focus-visible {
+  outline: 2px solid var(--color-primary, var(--color-accent, currentColor));
+  outline-offset: 2px;
+}
+
+/* Reduced motion: disable all transitions and animations */
+@media (prefers-reduced-motion: reduce) {
+  .tab-nav a,
+  .tab-pane {
+    transition: none !important;
+    animation: none !important;
+  }
+}

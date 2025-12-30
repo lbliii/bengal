@@ -13,6 +13,7 @@ from pathlib import Path
 import pytest
 
 from bengal.core.site import Site
+from bengal.orchestration.build.options import BuildOptions
 
 
 @pytest.mark.slow
@@ -77,14 +78,14 @@ cache_templates = true
         for _ in range(2):
             site = Site.from_config(temp_dir)
             start = time.time()
-            site.build(parallel=False, incremental=False)
+            site.build(BuildOptions(force_sequential=True, incremental=False))
             cold_times.append(time.time() - start)
 
         # Warm builds - run 4x to get better statistics
         for _ in range(4):
             site = Site.from_config(temp_dir)
             start = time.time()
-            site.build(parallel=False, incremental=False)
+            site.build(BuildOptions(force_sequential=True, incremental=False))
             warm_times.append(time.time() - start)
 
         # Use statistics for more reliable results
@@ -139,7 +140,7 @@ title = "Test Site"
 
         # First build
         site = Site.from_config(temp_dir)
-        site.build(parallel=False, incremental=False)
+        site.build(BuildOptions(force_sequential=True, incremental=False))
 
         # Check output
         output = site.output_dir / "page" / "index.html"
@@ -158,7 +159,7 @@ This is the MODIFIED content.
 
         # Second build
         site2 = Site.from_config(temp_dir)
-        site2.build(parallel=False, incremental=False)
+        site2.build(BuildOptions(force_sequential=True, incremental=False))
 
         # Check that content was updated (cache was invalidated)
         html2 = output.read_text()
@@ -197,7 +198,7 @@ title = "Test Site"
 
         # First build
         site = Site.from_config(temp_dir)
-        site.build(parallel=False, incremental=False)
+        site.build(BuildOptions(force_sequential=True, incremental=False))
 
         # Modify only metadata (not content)
         (temp_dir / "content" / "page.md").write_text("""---
@@ -212,7 +213,7 @@ Some content here.
 
         # Second build
         site2 = Site.from_config(temp_dir)
-        site2.build(parallel=False, incremental=False)
+        site2.build(BuildOptions(force_sequential=True, incremental=False))
 
         # Check that metadata changes are reflected
         output = site2.output_dir / "page" / "index.html"

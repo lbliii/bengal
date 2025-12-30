@@ -395,6 +395,64 @@ Ensure customizations work in both modes:
 /* Automatically works in dark mode via tokens */
 ```
 
+## Directive Styling
+
+Bengal automatically includes **base CSS** for all directives (tabs, dropdowns, steps, admonitions, etc.). Your theme only needs to provide aesthetic styles—functional requirements are handled for you.
+
+### What's Included Automatically
+
+| Directive | Base CSS Provides | Your Theme Adds |
+|-----------|-------------------|-----------------|
+| **Tabs** | Show/hide panes, list resets, focus-visible | Layout, colors, animations |
+| **Dropdowns** | Summary marker reset, accessibility | Borders, colors, icons, animations |
+| **Steps** | Counter reset, list reset | Layout, connector lines, colors |
+| **Admonitions** | Reduced-motion | Layout, colors, icons |
+| **Cards** | Focus-visible | Grid layout, shadows, hover effects |
+
+### Styling Directives
+
+Override directive aesthetics using CSS custom properties or direct selectors:
+
+```css
+/* Customize tab appearance */
+.tab-nav {
+  display: flex;
+  background: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tab-nav li.active a {
+  color: var(--color-primary);
+  border-bottom: 2px solid var(--color-primary);
+}
+
+/* Add animation to active pane (base CSS handles show/hide) */
+.tab-pane.active {
+  animation: fadeIn 0.2s ease-out;
+}
+```
+
+### Prose Contamination
+
+Base CSS includes list-style resets to prevent tabs and steps from inheriting unwanted bullet points inside prose containers. If you need extra safety, use `!important`:
+
+```css
+.prose .tab-nav,
+.prose .tab-nav li {
+  list-style: none !important;
+  margin: 0 !important;
+}
+```
+
+### Accessibility
+
+Base CSS provides:
+
+- **`focus-visible`** states for keyboard navigation
+- **`prefers-reduced-motion`** media queries that disable animations
+
+Your theme animations will automatically respect reduced-motion preferences.
+
 ## Icon Customization
 
 Add custom icons or override defaults by placing SVG files in your theme's `assets/icons/` directory:
@@ -415,3 +473,4 @@ See [Icon Reference](/docs/reference/icons/#custom-icons) for SVG format require
 - [Build Hooks](/docs/extending/build-hooks/) for CSS preprocessing
 - [Configuration](/docs/building/configuration/) for theme settings
 - [Template Functions](/docs/reference/template-functions/) for template syntax
+- [Directives Reference](/docs/reference/directives/) for all available directives

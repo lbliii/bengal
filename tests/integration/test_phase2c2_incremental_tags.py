@@ -13,6 +13,7 @@ from tempfile import TemporaryDirectory
 from bengal.cache.taxonomy_index import TaxonomyIndex
 from bengal.core.site import Site
 from bengal.orchestration.build import BuildOrchestrator
+from bengal.orchestration.build.options import BuildOptions
 
 
 class TestTaxonomyIndexComparison:
@@ -120,7 +121,7 @@ Content here.
             # FIRST BUILD
             site1 = Site.for_testing(root_path=tmpdir_path, config=config)
             orch1 = BuildOrchestrator(site1)
-            orch1.build(incremental=False)
+            orch1.build(BuildOptions(incremental=False))
 
             tag_pages_1 = [
                 p
@@ -132,7 +133,7 @@ Content here.
             # SECOND BUILD (incremental, no changes)
             site2 = Site.for_testing(root_path=tmpdir_path, config=config)
             orch2 = BuildOrchestrator(site2)
-            orch2.build(incremental=True)
+            orch2.build(BuildOptions(incremental=True))
 
             # Should still have tag pages from incremental
             tag_pages_2 = [
@@ -172,7 +173,7 @@ Original content.
             # FIRST BUILD
             site1 = Site.for_testing(root_path=tmpdir_path, config=config)
             orch1 = BuildOrchestrator(site1)
-            orch1.build(incremental=False)
+            orch1.build(BuildOptions(incremental=False))
 
             # MODIFY POST (add new tag)
             post_file.write_text("""---
@@ -187,7 +188,7 @@ Modified content with new tag.
             # SECOND BUILD (incremental)
             site2 = Site.for_testing(root_path=tmpdir_path, config=config)
             orch2 = BuildOrchestrator(site2)
-            orch2.build(incremental=True)
+            orch2.build(BuildOptions(incremental=True))
 
             # Should have regenerated django tag page
             django_pages = [
@@ -228,7 +229,7 @@ Content.
             # BUILD
             site1 = Site.for_testing(root_path=tmpdir_path, config=config)
             orch1 = BuildOrchestrator(site1)
-            orch1.build(incremental=False)
+            orch1.build(BuildOptions(incremental=False))
 
             # Check that TaxonomyIndex was created (compressed format)
             index_file = tmpdir_path / ".bengal" / "taxonomy_index.json.zst"
@@ -274,12 +275,12 @@ Content.
             # FIRST BUILD - full
             site1 = Site.for_testing(root_path=tmpdir_path, config=config)
             orch1 = BuildOrchestrator(site1)
-            orch1.build(incremental=False)
+            orch1.build(BuildOptions(incremental=False))
 
             # SECOND BUILD - incremental with no changes
             site2 = Site.for_testing(root_path=tmpdir_path, config=config)
             orch2 = BuildOrchestrator(site2)
-            orch2.build(incremental=True)
+            orch2.build(BuildOptions(incremental=True))
 
             # Both builds should complete successfully
             assert len(site1.pages) > 0
@@ -319,7 +320,7 @@ Content.
             # FIRST BUILD
             site1 = Site.for_testing(root_path=tmpdir_path, config=config)
             orch1 = BuildOrchestrator(site1)
-            orch1.build(incremental=False)
+            orch1.build(BuildOptions(incremental=False))
 
             # ADD NEW PAGE
             post2_file = content_dir / "post2.md"
@@ -335,7 +336,7 @@ New content.
             # SECOND BUILD
             site2 = Site.for_testing(root_path=tmpdir_path, config=config)
             orch2 = BuildOrchestrator(site2)
-            orch2.build(incremental=True)
+            orch2.build(BuildOptions(incremental=True))
 
             # Should have golang tag pages
             golang_pages = [

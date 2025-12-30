@@ -32,6 +32,7 @@ from pathlib import Path
 from tempfile import mkdtemp
 
 from bengal.core.site import Site
+from bengal.orchestration.build.options import BuildOptions
 
 
 def create_test_site(template_complexity: str) -> Path:
@@ -416,7 +417,7 @@ def benchmark_template_complexity(complexity: str, runs: int = 3) -> dict:
             site = Site.from_config(site_root)
 
             start = time.perf_counter()
-            _ = site.build(parallel=True, incremental=False)
+            _ = site.build(BuildOptions(incremental=False))
             elapsed = time.perf_counter() - start
 
             times.append(elapsed)

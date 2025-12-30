@@ -381,9 +381,10 @@ def run_build_with_workers(site_dir: Path, max_workers: int) -> tuple[float, int
 
         # Run build (the part we care about)
         from bengal.orchestration import BuildOrchestrator
+        from bengal.orchestration.build.options import BuildOptions
 
         orchestrator = BuildOrchestrator(site)
-        orchestrator.build(quiet=True)
+        orchestrator.build(BuildOptions(quiet=True))
 
         elapsed = time.perf_counter() - start
         pages = len(site.pages)

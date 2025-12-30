@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 from bengal.core.site import Site
+from bengal.orchestration.build.options import BuildOptions
 
 
 @pytest.mark.serial
@@ -17,7 +18,7 @@ class TestConcurrentBuilds:
 
         def build_once(_):
             site = Site.from_config(site_root)
-            site.build(parallel=False, incremental=False)
+            site.build(BuildOptions(force_sequential=True, incremental=False))
             return True
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=4) as ex:

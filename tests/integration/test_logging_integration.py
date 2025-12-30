@@ -8,6 +8,7 @@ all the expected events and phases.
 import pytest
 
 from bengal.core.site import Site
+from bengal.orchestration.build.options import BuildOptions
 from bengal.utils.logger import (
     LogLevel,
     close_all_loggers,
@@ -109,7 +110,7 @@ class TestLoggingIntegration:
 
         # Build site
         site = Site.from_config(temp_site)
-        site.build(parallel=False, incremental=False, verbose=True)
+        site.build(BuildOptions(force_sequential=True, incremental=False, verbose=True))
 
         # Get logged events
         logger = get_logger("bengal.orchestration.build")
@@ -150,7 +151,7 @@ class TestLoggingIntegration:
 
         # Build site
         site = Site.from_config(temp_site)
-        site.build(parallel=False)
+        site.build(BuildOptions(force_sequential=True))
 
         # Get events
         logger = get_logger("bengal.orchestration.build")
@@ -182,7 +183,7 @@ class TestLoggingIntegration:
 
         # Build site
         site = Site.from_config(temp_site)
-        site.build(parallel=False)
+        site.build(BuildOptions(force_sequential=True))
 
         # Get phase timings
         logger = get_logger("bengal.orchestration.build")
@@ -203,7 +204,7 @@ class TestLoggingIntegration:
 
         # Build site
         site = Site.from_config(temp_site)
-        site.build(parallel=False)
+        site.build(BuildOptions(force_sequential=True))
 
         # Get content orchestrator logger events
         logger = get_logger("bengal.orchestration.content")
@@ -226,7 +227,7 @@ class TestLoggingIntegration:
 
         # Build site
         site = Site.from_config(temp_site)
-        site.build(parallel=False)
+        site.build(BuildOptions(force_sequential=True))
 
         # Get events
         logger = get_logger("bengal.orchestration.build")
@@ -249,7 +250,7 @@ class TestLoggingIntegration:
 
         # First build
         site = Site.from_config(temp_site)
-        site.build(parallel=False, incremental=True)
+        site.build(BuildOptions(force_sequential=True, incremental=True))
 
         # Get events from first build
         logger = get_logger("bengal.orchestration.build")
@@ -275,7 +276,7 @@ title: Invalid Page
 
         # Build site
         site = Site.from_config(temp_site)
-        site.build(parallel=False)
+        site.build(BuildOptions(force_sequential=True))
 
         # Get events
         logger = get_logger("bengal.orchestration.build")
@@ -298,7 +299,7 @@ title: Invalid Page
 
         # Build site
         site = Site.from_config(temp_site)
-        site.build(parallel=False)
+        site.build(BuildOptions(force_sequential=True))
 
         # Close loggers to flush
         close_all_loggers()
@@ -335,7 +336,7 @@ title: Invalid Page
         # Normal mode
         configure_logging(level=LogLevel.WARNING, verbose=False)
         site1 = Site.from_config(temp_site)
-        site1.build(parallel=False)
+        site1.build(BuildOptions(force_sequential=True))
 
         logger1 = get_logger("bengal.orchestration.build")
         normal_events = logger1.get_events()
@@ -346,7 +347,7 @@ title: Invalid Page
         # Verbose mode
         configure_logging(level=LogLevel.DEBUG, verbose=True)
         site2 = Site.from_config(temp_site)
-        site2.build(parallel=False)
+        site2.build(BuildOptions(force_sequential=True))
 
         logger2 = get_logger("bengal.orchestration.build")
         verbose_events = logger2.get_events()
@@ -361,7 +362,7 @@ title: Invalid Page
 
         # Build site
         site = Site.from_config(temp_site)
-        site.build(parallel=False)
+        site.build(BuildOptions(force_sequential=True))
 
         # Get events
         logger = get_logger("bengal.orchestration.build")
@@ -385,7 +386,7 @@ title: Invalid Page
 
         # Build site
         site = Site.from_config(temp_site)
-        site.build(parallel=False)
+        site.build(BuildOptions(force_sequential=True))
 
         # Close loggers
         close_all_loggers()
@@ -410,7 +411,7 @@ class TestLoggingPerformance:
         site1 = Site.from_config(temp_site)
 
         start1 = time.time()
-        site1.build(parallel=False)
+        site1.build(BuildOptions(force_sequential=True))
         duration1 = time.time() - start1
 
         # Reset - LazyLogger handles auto-refresh
@@ -421,7 +422,7 @@ class TestLoggingPerformance:
         site2 = Site.from_config(temp_site)
 
         start2 = time.time()
-        site2.build(parallel=False)
+        site2.build(BuildOptions(force_sequential=True))
         duration2 = time.time() - start2
 
         # Logging overhead should be minimal (< 20%)

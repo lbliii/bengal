@@ -16,6 +16,7 @@ import pytest
 from bengal.core.page import PageProxy
 from bengal.core.site import Site
 from bengal.orchestration.build import BuildOrchestrator
+from bengal.orchestration.build.options import BuildOptions
 
 
 @pytest.mark.bengal(testroot="test-basic")
@@ -111,7 +112,7 @@ Initial content.
     # First build (full)
     site1 = Site.for_testing(root_path=tmp_path, config=config)
     orch1 = BuildOrchestrator(site1)
-    orch1.build(incremental=False)
+    orch1.build(BuildOptions(incremental=False))
 
     # Verify index.json
     index_path = tmp_path / "public" / "index.json"
@@ -132,7 +133,7 @@ New content.
     # Second build (incremental)
     site2 = Site.for_testing(root_path=tmp_path, config=config)
     orch2 = BuildOrchestrator(site2)
-    orch2.build(incremental=True)
+    orch2.build(BuildOptions(incremental=True))
 
     # Verify index.json updated
     data2 = json.loads(index_path.read_text(encoding="utf-8"))
@@ -182,7 +183,7 @@ Content two.
     # First build (full)
     site1 = Site.for_testing(root_path=tmp_path, config=config)
     orch1 = BuildOrchestrator(site1)
-    orch1.build(incremental=False)
+    orch1.build(BuildOptions(incremental=False))
 
     # Verify both pages in index.json
     index_path = tmp_path / "public" / "index.json"
@@ -196,7 +197,7 @@ Content two.
     # Note: Incremental builds detect deletions and fall back to full rebuild
     site2 = Site.for_testing(root_path=tmp_path, config=config)
     orch2 = BuildOrchestrator(site2)
-    orch2.build(incremental=False)  # Force full rebuild to handle deletion
+    orch2.build(BuildOptions(incremental=False))  # Force full rebuild to handle deletion
 
     # Verify index.json updated (only page1 remains)
     data2 = json.loads(index_path.read_text(encoding="utf-8"))
@@ -234,14 +235,14 @@ Content.
     # Full build
     site1 = Site.for_testing(root_path=tmp_path, config=config)
     orch1 = BuildOrchestrator(site1)
-    orch1.build(incremental=False)
+    orch1.build(BuildOptions(incremental=False))
 
     index_path = tmp_path / "public" / "index.json"
 
     # Incremental build (no changes)
     site2 = Site.for_testing(root_path=tmp_path, config=config)
     orch2 = BuildOrchestrator(site2)
-    orch2.build(incremental=True)
+    orch2.build(BuildOptions(incremental=True))
 
     data_incremental = json.loads(index_path.read_text(encoding="utf-8"))
 
@@ -363,11 +364,11 @@ generate_rss = false
 
     # First build: Full build to populate cache
     site1 = Site.from_config(tmp_path)
-    site1.build(incremental=False)
+    site1.build(BuildOptions(incremental=False))
 
     # Second build: Incremental - should create proxies for unchanged pages
     site2 = Site.from_config(tmp_path)
-    site2.build(incremental=True)
+    site2.build(BuildOptions(incremental=True))
 
     # CRITICAL: Verify proxies were created
     proxy_count = sum(1 for p in site2.pages if isinstance(p, PageProxy))
@@ -417,10 +418,10 @@ generate_rss = false
 
     # Full build then incremental
     site1 = Site.from_config(tmp_path)
-    site1.build(incremental=False)
+    site1.build(BuildOptions(incremental=False))
 
     site2 = Site.from_config(tmp_path)
-    site2.build(incremental=True)
+    site2.build(BuildOptions(incremental=True))
 
     # Find the proxy
     proxies = [p for p in site2.pages if isinstance(p, PageProxy)]
@@ -481,7 +482,7 @@ generate_rss = false
 
     # Full build
     site1 = Site.from_config(tmp_path)
-    site1.build(incremental=False)
+    site1.build(BuildOptions(incremental=False))
 
     # Modify one page's FRONTMATTER (title change invalidates cache)
     page2.write_text("""---
@@ -492,7 +493,7 @@ Updated content!
 
     # Incremental build
     site2 = Site.from_config(tmp_path)
-    site2.build(incremental=True)
+    site2.build(BuildOptions(incremental=True))
 
     # Find pages by title
     pages_by_title = {p.title: p for p in site2.pages}

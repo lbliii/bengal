@@ -1,0 +1,31 @@
+/**
+ * Directive Base CSS: Admonitions
+ *
+ * Admonitions (notes, warnings, tips, etc.) have no universal functional
+ * requirements. Everything is theme-controlled.
+ *
+ * This file exists for completeness and to document the intentional
+ * absence of base styles.
+ *
+ * NOT included (theme responsibility):
+ *   - Layout (borders, backgrounds, icons)
+ *   - Colors (type-specific colors: info, warning, danger, etc.)
+ *   - Typography, spacing
+ *   - Any aesthetic choices
+ *
+ * @see RFC: Shared Directive Base CSS (plan/rfc-directive-base-css.md)
+ */
+
+/* ==========================================================================
+   FUNCTIONAL: Accessibility Only
+   ========================================================================== */
+
+/* Reduced motion: disable all transitions and animations */
+@media (prefers-reduced-motion: reduce) {
+  .admonition,
+  .admonition-title,
+  .admonition-content {
+    transition: none !important;
+    animation: none !important;
+  }
+}

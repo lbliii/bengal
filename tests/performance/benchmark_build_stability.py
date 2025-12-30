@@ -33,6 +33,7 @@ from tempfile import mkdtemp
 import psutil
 
 from bengal.core.site import Site
+from bengal.orchestration.build.options import BuildOptions
 
 
 def create_test_site() -> Path:
@@ -132,7 +133,7 @@ def run_stability_benchmark(num_builds: int = 100):
         # Initial full build
         print("Running initial full build...")
         site = Site.from_config(site_root)
-        site.build(parallel=True, incremental=False)
+        site.build(BuildOptions(incremental=False))
 
         # Track metrics
         build_times: list[float] = []
@@ -163,7 +164,7 @@ def run_stability_benchmark(num_builds: int = 100):
 
             # Measure build
             start = time.perf_counter()
-            site.build(parallel=True, incremental=True)
+            site.build(BuildOptions(incremental=True))
             elapsed = time.perf_counter() - start
 
             # Collect metrics
@@ -294,7 +295,7 @@ def run_cache_corruption_test():
         # Initial full build
         print("Running initial full build...")
         site = Site.from_config(site_root)
-        site.build(parallel=True, incremental=False)
+        site.build(BuildOptions(incremental=False))
 
         # Read output
         output_dir = site_root / "public"
@@ -314,7 +315,7 @@ def run_cache_corruption_test():
             page.write_text(modified)
 
             site = Site.from_config(site_root)
-            site.build(parallel=True, incremental=True)
+            site.build(BuildOptions(incremental=True))
 
             page.write_text(original)
 
@@ -324,7 +325,7 @@ def run_cache_corruption_test():
         cache_file.unlink()
 
         site = Site.from_config(site_root)
-        site.build(parallel=True, incremental=False)
+        site.build(BuildOptions(incremental=False))
 
         final_files = {
             f.relative_to(output_dir): f.read_bytes() for f in output_dir.rglob("*.html")

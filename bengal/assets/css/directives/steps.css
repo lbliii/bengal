@@ -1,0 +1,55 @@
+/**
+ * Directive Base CSS: Steps
+ *
+ * Minimal base for step-by-step guides.
+ *
+ * Functional CSS included:
+ *   - Counter reset for automatic step numbering
+ *   - List style reset
+ *   - Accessibility (focus-visible, reduced-motion)
+ *
+ * NOT included (theme responsibility):
+ *   - Layout (marker positioning, connector lines)
+ *   - Colors, borders, backgrounds
+ *   - Typography, spacing
+ *   - Animations
+ *   - Any aesthetic choices
+ *
+ * @see RFC: Shared Directive Base CSS (plan/rfc-directive-base-css.md)
+ */
+
+/* ==========================================================================
+   FUNCTIONAL: Counter Reset
+   Enables CSS counters for step numbering if themes want to use them.
+   ========================================================================== */
+
+.steps > ol {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  counter-reset: step-counter;
+}
+
+.steps > ol > li {
+  counter-increment: step-counter;
+}
+
+/* ==========================================================================
+   FUNCTIONAL: Accessibility
+   ========================================================================== */
+
+/* Focus-visible state for step markers (if used as links) */
+.steps > ol > li > .step-marker:focus-visible {
+  outline: 2px solid var(--color-primary, var(--color-accent, currentColor));
+  outline-offset: 2px;
+}
+
+/* Reduced motion: disable all transitions and animations */
+@media (prefers-reduced-motion: reduce) {
+  .steps,
+  .steps > ol > li,
+  .steps > ol > li > .step-marker {
+    transition: none !important;
+    animation: none !important;
+  }
+}

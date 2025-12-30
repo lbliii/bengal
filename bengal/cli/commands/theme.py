@@ -721,7 +721,14 @@ def new(slug: str, mode: str, output: str, extends: str, force: bool) -> None:
             encoding="utf-8",
         )
         (theme_dir / "assets" / "css" / "style.css").write_text(
-            "/* Your theme styles */\n", encoding="utf-8"
+            "/* Your theme styles\n"
+            " *\n"
+            " * DIRECTIVES: Bengal automatically includes base CSS for directives\n"
+            " * (tabs, dropdowns, steps, admonitions, etc.). Your theme only needs\n"
+            " * to provide aesthetic styles - functional show/hide, accessibility,\n"
+            " * and prose contamination fixes are handled automatically.\n"
+            " */\n",
+            encoding="utf-8",
         )
         (theme_dir / "theme.toml").write_text(
             f'name="{slug}"\nextends="{extends}"\n',
@@ -778,7 +785,14 @@ def new(slug: str, mode: str, output: str, extends: str, force: bool) -> None:
         encoding="utf-8",
     )
     (theme_pkg_dir / "assets" / "css" / "style.css").write_text(
-        "/* Your theme styles */\n", encoding="utf-8"
+        "/* Your theme styles\n"
+        " *\n"
+        " * DIRECTIVES: Bengal automatically includes base CSS for directives\n"
+        " * (tabs, dropdowns, steps, admonitions, etc.). Your theme only needs\n"
+        " * to provide aesthetic styles - functional show/hide, accessibility,\n"
+        " * and prose contamination fixes are handled automatically.\n"
+        " */\n",
+        encoding="utf-8",
     )
     (theme_pkg_dir / "theme.toml").write_text(
         f'name="{slug}"\nextends="{extends}"\n',

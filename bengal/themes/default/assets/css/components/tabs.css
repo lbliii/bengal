@@ -1,6 +1,13 @@
 /**
  * Tabs Component CSS
  * Simplified and Robust
+ *
+ * NOTE: Directive base CSS (bengal/assets/css/directives/tabs.css) provides
+ * functional styles: show/hide panes, list resets, accessibility.
+ * This file provides aesthetic styles: layout, colors, animations.
+ *
+ * The !important declarations below are kept for extra safety against
+ * prose contamination from markdown containers.
  */
 
 /* Container */
@@ -30,7 +37,9 @@
   border: none;
 }
 
-/* Navigation (The part looking like a bulleted list) */
+/* Navigation - layout and aesthetics
+ * Note: list-style/margin/padding resets are in base CSS, but we keep !important
+ * here for extra safety against prose container contamination */
 .tab-nav {
   display: flex !important;
   flex-wrap: wrap;
@@ -42,7 +51,7 @@
   background-color: var(--color-bg-secondary);
 }
 
-/* Ensure prose doesn't override */
+/* Extra prose contamination safety (base CSS handles basic reset) */
 .prose .tab-nav,
 .prose .tab-nav li {
   list-style: none !important;
@@ -129,12 +138,9 @@
   padding: var(--space-4);
 }
 
-.tab-pane {
-  display: none;
-}
-
+/* Tab pane show/hide is handled by base CSS.
+ * This adds aesthetic animation on top. */
 .tab-pane.active {
-  display: block;
   animation: tabFadeIn var(--duration-200) var(--ease-out);
 }
 
@@ -520,7 +526,7 @@
   }
 }
 
-/* Reduced motion */
+/* Reduced motion - base CSS handles this, but keep for code-tabs specific */
 @media (prefers-reduced-motion: reduce) {
   .code-tabs .tab-nav li.active a::after {
     animation: none;
