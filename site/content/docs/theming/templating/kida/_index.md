@@ -32,7 +32,7 @@ Your Jinja2 templates work without changes—Kida parses both syntaxes.
 | **Pipeline operator** | `\|>` for left-to-right filter chains |
 | **Optional chaining** | `?.` for safe navigation |
 | **Null coalescing** | `??` for concise fallbacks |
-| **Lexical scoping** | `{% def %}` functions access outer scope |
+| **Smarter functions** | `{% def %}` functions see outer variables automatically |
 | **Automatic caching** | Site-wide blocks render once per build |
 
 ## Topics
@@ -53,14 +53,14 @@ Your Jinja2 templates work without changes—Kida parses both syntaxes.
 
 | Feature | Kida | Jinja2 |
 |---------|------|--------|
-| Block endings | `{% end %}` | `{% end %}`, `{% endfor %}`, etc. |
-| Template variables | `{% let x = ... %}` | `{% let x = ... %}` |
+| Block endings | `{% end %}` | `{% endif %}`, `{% endfor %}`, etc. |
+| Template variables | `{% let x = ... %}` | `{% set x = ... %}` |
 | Pattern matching | `{% match %}...{% case %}` | `{% if %}...{% elif %}` |
 | Pipeline operator | `\|>` | Not available |
 | Optional chaining | `?.` | Not available |
 | Null coalescing | `??` | `\| default()` |
 | Fragment caching | `{% cache %}` | Extension required |
-| Functions | `{% def %}` (lexical scope) | `{% macro %}` (no closure) |
+| Functions | `{% def %}` (sees outer variables) | `{% macro %}` (isolated) |
 | Range literals | `1..10` | `range(1, 11)` |
 
 :::{seealso}

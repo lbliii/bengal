@@ -104,7 +104,11 @@ class TestPageExplainer:
 
     @pytest.fixture
     def mock_site(self):
-        """Create a mock site with pages."""
+        """Create a mock site with pages.
+
+        Note: MagicMock auto-creates attributes when accessed, so we must
+        explicitly set all attributes that the source code uses (e.g., _source).
+        """
         site = MagicMock()
         site.root_path = Path("/test/site")
         site.output_dir = Path("/test/site/public")
@@ -114,6 +118,7 @@ class TestPageExplainer:
         page1 = MagicMock()
         page1.source_path = Path("content/docs/guide.md")
         page1.content = "# Guide\n\nSome content here.\n"
+        page1._source = "# Guide\n\nSome content here.\n"  # Required: source code uses page._source
         page1.metadata = {"title": "Guide", "type": "doc", "tags": ["tutorial"]}
         page1.is_virtual = False
         page1.href = "/docs/guide/"
@@ -126,6 +131,9 @@ class TestPageExplainer:
         page2 = MagicMock()
         page2.source_path = Path("content/posts/hello.md")
         page2.content = "# Hello\n\n:::note\nA note\n:::\n"
+        page2._source = (
+            "# Hello\n\n:::note\nA note\n:::\n"  # Required: source code uses page._source
+        )
         page2.metadata = {"title": "Hello", "type": "post"}
         page2.is_virtual = False
         page2.href = "/posts/hello/"
@@ -319,12 +327,14 @@ class TestPageExplainer:
 
     def test_diagnose_issues_broken_link(self, mock_site):
         """Test diagnosing broken internal links."""
-        mock_site.pages[0].content = """
+        content = """
 # Test
 
 [Valid Link](/posts/hello/)
 [Broken Link](/docs/missing/)
 """
+        mock_site.pages[0].content = content
+        mock_site.pages[0]._source = content  # Required: source code uses page._source
         explainer = PageExplainer(mock_site)
         issues = explainer._diagnose_issues(mock_site.pages[0])
 

@@ -1,7 +1,7 @@
 ---
 title: Functions
 nav_title: Functions
-description: Template functions with lexical scoping and slots
+description: Reusable template components that automatically access outer variables
 weight: 40
 type: doc
 tags:
@@ -12,7 +12,7 @@ tags:
 
 # Functions
 
-Kida's `{% def %}` provides true lexical scoping, unlike Jinja2 macros.
+Kida's `{% def %}` creates reusable template components that can automatically access variables from their surrounding context—no need to pass everything as parameters.
 
 ## Defining Functions
 
@@ -28,9 +28,11 @@ Kida's `{% def %}` provides true lexical scoping, unlike Jinja2 macros.
 {{ card(page) }}
 ```
 
-## Lexical Scoping
+## Automatic Access to Outer Variables
 
-Kida functions can access variables from their outer scope:
+Kida functions can "see" variables defined outside them. This is called **lexical scoping**—functions inherit the context where they're defined.
+
+**Why this matters**: You don't need to pass site configuration, theme settings, or other shared values as parameters. Define them once at the top of your template, and all your functions can use them.
 
 ```kida
 {% let site_name = site.config.title %}
@@ -40,21 +42,32 @@ Kida functions can access variables from their outer scope:
   <div class="card" style="border-color: {{ theme_color }}">
     <h3>{{ item.title }}</h3>
     <p>{{ item.description }}</p>
-    <small>From: {{ site_name }}</small>  {# Accesses outer scope #}
+    <small>From: {{ site_name }}</small>  {# ✅ Works! Accesses outer scope #}
   </div>
 {% end %}
+
+{# Just pass the item—site_name and theme_color are available automatically #}
+{{ card(page) }}
 ```
 
-Jinja2 macros require passing all variables explicitly:
+**Compare to Jinja2**, where macros are isolated and require passing every variable explicitly:
 
-```kida
-{# Jinja2: Must pass all needed variables #}
+```jinja2
+{# Jinja2: Must pass ALL needed variables as parameters #}
 {% macro card(item, site_name, theme_color) %}
   <div class="card" style="border-color: {{ theme_color }}">
     <small>From: {{ site_name }}</small>
   </div>
 {% endmacro %}
+
+{# Caller must remember to pass everything #}
+{{ card(page, site.config.title, config.theme.primary_color) }}
 ```
+
+**Benefits of Kida's approach**:
+- **Less boilerplate**: No need to thread variables through every function call
+- **Easier refactoring**: Add a new shared variable once, use it everywhere
+- **Cleaner function signatures**: Parameters reflect what's unique to each call, not shared context
 
 ## Default Parameters
 
@@ -188,7 +201,7 @@ Use in templates:
 |---------|-----------|----------|
 | Definition | In template | Separate file |
 | Parameters | Explicit | Via `{% let %}` before include |
-| Scope access | Lexical | Template context |
+| Scope access | Sees outer variables automatically | Only sees passed context |
 | Cacheability | Cannot be cached | Can be cached |
 | Use case | Reusable within template | Shared across templates |
 
