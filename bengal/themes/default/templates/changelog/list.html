@@ -25,8 +25,8 @@ Set `type: changelog` in section _index.md
 #}
 
 {# =============================================================================
-   CHANGE CATEGORY COMPONENT
-   ============================================================================= #}
+CHANGE CATEGORY COMPONENT
+============================================================================= #}
 {% def change_category(title, icon, items, is_breaking=false) %}
 {% if items and items is iterable and items is not string and items | length > 0 %}
 <div class="changelog-category{{ ' changelog-category--breaking' if is_breaking else '' }}">
@@ -41,8 +41,8 @@ Set `type: changelog` in section _index.md
 {% end %}
 
 {# =============================================================================
-   RELEASE ITEM COMPONENT (Data-driven)
-   ============================================================================= #}
+RELEASE ITEM COMPONENT (Data-driven)
+============================================================================= #}
 {% def release_item_data(release) %}
 {% let change_types = [] %}
 {% if release?.added %}{% do change_types.append('added') %}{% end %}
@@ -90,61 +90,8 @@ Set `type: changelog` in section _index.md
 {% end %}
 
 {# =============================================================================
-   RECENT MAJOR VERSION RELEASES (uses {% while %} - Kida 2.0!)
-
-   Finds releases from the current major version series using while loop.
-   Demonstrates: {% while %} with {% break %} for early termination
-   ============================================================================= #}
-{% def recent_major_releases(releases, max_count=5) %}
-{% let result = [] %}
-{% let target_major = none %}
-{% let idx = 0 %}
-
-{% while idx < releases | length and result | length < max_count %}
-  {% let release = releases[idx] %}
-  {% let version = release?.version ?? release?.title ?? '' %}
-
-  {# Extract major version (e.g., "0.1" from "0.1.5") #}
-  {% let parts = version | replace('v', '') | split('.') %}
-  {% if parts | length >= 2 %}
-    {% let this_major = parts[0] ~ '.' ~ parts[1] %}
-
-    {# Set target on first iteration #}
-    {% if not target_major %}
-      {% let target_major = this_major %}
-    {% end %}
-
-    {# Stop when we hit a different major version #}
-    {% if this_major != target_major %}
-      {% break %}
-    {% end %}
-
-    {% let _ = result.append(release) %}
-  {% end %}
-
-  {% let idx = idx + 1 %}
-{% end %}
-
-{% if result | length > 0 %}
-<aside class="recent-releases-summary">
-  <h3>Recent {{ target_major }}.x Releases</h3>
-  <ul class="recent-releases-list">
-    {% for r in result %}
-    <li>
-      <a href="{{ r?.url ?? r?.href ?? '#' }}">{{ r?.version ?? r?.title }}</a>
-      {% if r?.date %}
-      <time>{{ r.date | dateformat('%b %d') if r.date is string else r.date }}</time>
-      {% end %}
-    </li>
-    {% end %}
-  </ul>
-</aside>
-{% end %}
-{% end %}
-
-{# =============================================================================
-   RELEASE ITEM COMPONENT (Page-driven)
-   ============================================================================= #}
+RELEASE ITEM COMPONENT (Page-driven)
+============================================================================= #}
 {% def release_item_page(release, section) %}
 {% let release_meta = release?.metadata ?? {} %}
 {% let change_types = [] %}
@@ -190,8 +137,8 @@ Set `type: changelog` in section _index.md
 {% end %}
 
 {# =============================================================================
-   MAIN TEMPLATE
-   ============================================================================= #}
+MAIN TEMPLATE
+============================================================================= #}
 
 {% block content %}
 {# Load changelog data #}
@@ -237,7 +184,7 @@ Set `type: changelog` in section _index.md
         {% let btn_text = button?.text ?? 'Button' %}
         {% let btn_style = button?.style ?? 'primary' %}
         <a href="{{ btn_url | absolute_url }}"
-           class="hero__button hero__button--{{ btn_style }}{{ ' gradient-border' if btn_style != 'primary' else '' }}">
+          class="hero__button hero__button--{{ btn_style }}{{ ' gradient-border' if btn_style != 'primary' else '' }}">
           {{ btn_text }}
         </a>
         {% end %}
@@ -248,13 +195,6 @@ Set `type: changelog` in section _index.md
 </header>
 
 <div class="changelog-container">
-  {# Quick summary of recent releases using {% while %} #}
-  {% if changelog_data and changelog_data?.releases %}
-  {{ recent_major_releases(changelog_data.releases | reverse | list) }}
-  {% elif pages | length > 0 %}
-  {{ recent_major_releases(pages | reverse | list) }}
-  {% end %}
-
   {# Content (if any) #}
   {% if content and content.strip() %}
   <section class="changelog-content prose">
@@ -297,7 +237,7 @@ Set `type: changelog` in section _index.md
   {% if changelog_data and changelog_data?.releases %}
   <section class="changelog-timeline">
     <div class="timeline">
-      {% let releases = changelog_data.releases | reverse %}
+      {% let releases = changelog_data.releases | sort_by('date', reverse=true) %}
       {% for release in releases %}
       {{ release_item_data(release) }}
       {% end %}
@@ -309,7 +249,7 @@ Set `type: changelog` in section _index.md
   <section class="changelog-timeline">
     <div class="timeline">
       {% let section_href = section?.href ?? '' %}
-      {% for release in pages | reverse %}
+      {% for release in pages | sort_by('date', reverse=true) %}
       {% if release?.href != section_href %}
       {{ release_item_page(release, section) }}
       {% end %}

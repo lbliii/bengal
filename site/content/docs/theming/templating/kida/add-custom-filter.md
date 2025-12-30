@@ -370,7 +370,7 @@ build_hooks:
 
 ## Next Steps
 
-- [Use Pipeline Operator](/docs/theming/templating/kida/use-pipeline-operator/) — Chain filters together
+- [Use Pipeline Operator](/docs/theming/templating/kida/syntax/operators/#pipeline-operator) — Chain filters together
 - [Create Custom Template](/docs/theming/templating/kida/create-custom-template/) — Build templates with your filters
 - [Kida Syntax Reference](/docs/reference/kida-syntax/) — Complete syntax documentation
 

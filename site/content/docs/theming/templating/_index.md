@@ -139,7 +139,7 @@ Kida is Bengal's default template engine:
 
 :::{card} Migrate from Jinja2
 :icon: arrow-right
-:link: /docs/theming/templating/kida/migrate-jinja-to-kida/
+:link: /docs/theming/templating/kida/migration/from-jinja/
 :description: Convert Jinja2 templates to Kida
 :::{/card}
 :::{/cards}

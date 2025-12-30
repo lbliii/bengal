@@ -272,6 +272,14 @@ class KidaTemplateEngine:
             TemplateNotFoundError: If template doesn't exist
             TemplateRenderError: If rendering fails
         """
+        # Track template dependency for incremental builds
+        if self._dependency_tracker:
+            template_path = self.get_template_path(name)
+            if template_path:
+                self._dependency_tracker.track_template(template_path)
+            # Track all templates in the inheritance chain (extends/includes)
+            self._track_referenced_templates(name)
+
         try:
             template = self._env.get_template(name)
 
@@ -410,6 +418,50 @@ class KidaTemplateEngine:
             if path.is_file():
                 return path
         return None
+
+    def _track_referenced_templates(self, template_name: str) -> None:
+        """Track parent templates (extends chain) as dependencies.
+
+        Walks the inheritance chain and records each parent template
+        as a dependency for incremental builds.
+
+        Args:
+            template_name: Name of template to analyze
+        """
+        if not self._dependency_tracker:
+            return
+
+        seen: set[str] = {template_name}
+
+        try:
+            template = self._env.get_template(template_name)
+            # Get template metadata which contains extends info
+            metadata = getattr(template, "metadata", None)
+            if metadata is None:
+                return
+
+            parent_name = getattr(metadata, "extends", None)
+
+            # Walk the inheritance chain
+            while parent_name and parent_name not in seen:
+                seen.add(parent_name)
+                parent_path = self.get_template_path(parent_name)
+                if parent_path:
+                    self._dependency_tracker.track_partial(parent_path)
+
+                # Get next parent in chain
+                try:
+                    parent_template = self._env.get_template(parent_name)
+                    parent_metadata = getattr(parent_template, "metadata", None)
+                    parent_name = (
+                        getattr(parent_metadata, "extends", None) if parent_metadata else None
+                    )
+                except Exception:
+                    break
+
+        except Exception:
+            # Template analysis is optional - don't fail the build
+            pass
 
     def list_templates(self) -> list[str]:
         """List all available template names.

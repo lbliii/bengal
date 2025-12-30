@@ -158,6 +158,6 @@ notify_phase_complete("discovery", duration_ms, "150 pages, 12 sections")
 Groups: `discovery`, `content`, `assets`, `rendering`, `finalization`, `health`
 
 :::{seealso}
-- [Pipeline](pipeline/) — Streaming and memory optimization
-- [Cache](cache/) — Build caching
+- [Pipeline](pipeline.md) — Streaming and memory optimization
+- [Cache](cache.md) — Build caching
 :::

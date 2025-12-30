@@ -209,5 +209,5 @@ In free-threaded Python (3.14t+), Kida declares GIL independence via `_Py_mod_gi
 
 :::{seealso}
 - [Performance](/docs/theming/templating/kida/performance/) — Benchmarks and optimization strategies
-- [Overview](/docs/theming/templating/kida/overview/) — Why Kida exists
+- [Overview](/docs/theming/templating/kida/) — Why Kida exists
 :::

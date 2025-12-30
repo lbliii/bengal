@@ -393,7 +393,7 @@ def test_virtual_section_reference(temp_site):
     page = Page.create_virtual(
         source_id="api/index.md",
         title="API Index",
-        _raw_content="API documentation",
+        content="API documentation",
     )
 
     temp_site.sections = [api_section]
@@ -436,7 +436,7 @@ def test_virtual_section_hierarchical_navigation(temp_site):
     page = Page.create_virtual(
         source_id="api/core/page_module.md",
         title="Page Module",
-        _raw_content="Documentation for Page class",
+        content="Documentation for Page class",
     )
 
     core_section.add_page(page)
@@ -503,7 +503,7 @@ def test_mixed_regular_and_virtual_sections(temp_site):
     api_page = Page.create_virtual(
         source_id="api/module.md",
         title="Module Docs",
-        _raw_content="API content",
+        content="API content",
     )
 
     temp_site.sections = [blog, api_section]

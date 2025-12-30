@@ -707,11 +707,17 @@ class BuildTrigger:
 
     def _is_in_template_dir(self, path: Path, template_dirs: list[Path]) -> bool:
         """Check if path is within any template directory."""
+        try:
+            resolved_path = path.resolve()
+        except (OSError, ValueError):
+            resolved_path = path
+
         for template_dir in template_dirs:
             try:
-                path.relative_to(template_dir)
+                resolved_dir = template_dir.resolve()
+                resolved_path.relative_to(resolved_dir)
                 return True
-            except ValueError:
+            except (ValueError, OSError):
                 continue
         return False
 

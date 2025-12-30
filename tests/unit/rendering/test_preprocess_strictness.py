@@ -16,7 +16,8 @@ def test_preprocess_strictness_disabled():
     pipeline.template_engine = engine
 
     page = MagicMock()
-    page.content = "Example: {{ undefined_var }}"
+    page._source = "Example: {{ undefined_var }}"
+    page.metadata = {}
     page.source_path = "test.md"
 
     # Trigger pre-processing
@@ -25,7 +26,7 @@ def test_preprocess_strictness_disabled():
     # Verify render_string was called with strict=False
     args, kwargs = engine.render_string.call_args
     assert kwargs["strict"] is False
-    assert args[0] == page.content
+    assert args[0] == page._source
 
 
 def test_preprocess_syntax_error_reporting():

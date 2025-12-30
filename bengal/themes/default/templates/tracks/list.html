@@ -20,91 +20,81 @@ Set `template: tracks/list.html` in frontmatter
 {% extends "base.html" %}
 
 {# =============================================================================
-   TRACK CARD COMPONENT
-   ============================================================================= #}
+TRACK CARD COMPONENT (Compact LMS Style)
+============================================================================= #}
 {% def track_card(id, track, track_page) %}
 {% let track_title = track?.title ?? 'Track' %}
 {% let track_desc = track?.description ?? 'Start your learning journey with this comprehensive track.' %}
 {% let track_items = track?.items ?? [] %}
 {% let items_count = track_items | length %}
-{% let preview_limit = 4 %}
+{% let preview_limit = 2 %}
 
-<article class="track-card gradient-border fluid-combined">
-  {# Card Header #}
-  <div class="track-card-header">
-    <div class="track-card-icon">
-      {{ icon('graduation-cap', size=32) }}
-    </div>
-    <h2 class="track-card-title">
-      {% if track_page %}
-      <a href="{{ track_page.href }}">{{ track_title }}</a>
-      {% else %}
-      {{ track_title }}
-      {% end %}
-    </h2>
-  </div>
-
-  {# Card Content #}
-  <div class="track-card-content">
-    <p class="track-card-description">{{ track_desc }}</p>
-
-    {# Track Meta #}
-    <div class="track-card-meta">
-      <div class="track-meta-item">
-        {{ icon('file-text', size=16) }}
-        <span>{{ items_count }} lesson{{ 's' if items_count != 1 else '' }}</span>
-      </div>
+<article class="track-card track-card--compact gradient-border fluid-combined">
+    {# Card Header - Title + Lesson Count Inline #}
+    <div class="track-card-header">
+        <div class="track-card-icon">
+            {{ icon('graduation-cap', size=20) }}
+        </div>
+        <h2 class="track-card-title">
+            {% if track_page %}
+            <a href="{{ track_page.href }}">{{ track_title }}</a>
+            {% else %}
+            {{ track_title }}
+            {% end %}
+        </h2>
+        <span class="track-card-count">{{ items_count }} lesson{{ 's' if items_count != 1 else '' }}</span>
     </div>
 
-    {# Track Preview Items #}
-    {% if items_count > 0 %}
-    <div class="track-card-preview">
-      <div class="track-preview-label">Includes:</div>
-      <ul class="track-preview-list">
-        {% for item_slug in track_items[:preview_limit] %}
-        {% let item_page = get_page(item_slug) %}
-        {% let item_title = item_page?.title ?? item_slug %}
-        <li class="track-preview-item">
-          <span class="track-preview-number">{{ loop.index }}</span>
-          <span class="track-preview-title">{{ item_title }}</span>
-        </li>
+    {# Card Content #}
+    <div class="track-card-content">
+        <p class="track-card-description">{{ track_desc }}</p>
+
+        {# Track Preview Items - Horizontal Chips #}
+        {% if items_count > 0 %}
+        <div class="track-card-preview">
+            <div class="track-preview-chips">
+                {% for item_slug in track_items[:preview_limit] %}
+                {% let item_page = get_page(item_slug) %}
+                {% let item_title = item_page?.title ?? item_slug %}
+                <span class="track-preview-chip">
+                    <span class="track-preview-chip-num">{{ loop.index }}</span>
+                    {{ item_title }}
+                </span>
+                {% end %}
+                {% if items_count > preview_limit %}
+                <span class="track-preview-chip track-preview-chip--more">+{{ items_count - preview_limit }} more</span>
+                {% end %}
+            </div>
+        </div>
         {% end %}
-        {% if items_count > preview_limit %}
-        <li class="track-preview-item track-preview-more">
-          <span class="track-preview-more-text">+{{ items_count - preview_limit }} more</span>
-        </li>
-        {% end %}
-      </ul>
     </div>
-    {% end %}
-  </div>
 
-  {# Card Footer #}
-  <div class="track-card-footer">
-    {% if track_page %}
-    <a href="{{ track_page.href }}" class="track-card-button">
-      Start Learning {{ icon('arrow-right', size=16) }}
-    </a>
-    {% elif items_count > 0 %}
-    {% let first_slug = track_items[0] %}
-    {% let first_page = get_page(first_slug) %}
-    {% if first_page %}
-    <a href="{{ first_page.href }}" class="track-card-button">
-      Start Learning {{ icon('arrow-right', size=16) }}
-    </a>
-    {% else %}
-    <span class="track-card-button track-card-button-disabled" title="Track page not found">Unavailable</span>
-    {% end %}
-    {% else %}
-    <span class="track-card-button track-card-button-disabled" title="No track items">Unavailable</span>
-    {% end %}
-  </div>
+    {# Card Footer #}
+    <div class="track-card-footer">
+        {% if track_page %}
+        <a href="{{ track_page.href }}" class="track-card-button">
+            Start Learning {{ icon('arrow-right', size=14) }}
+        </a>
+        {% elif items_count > 0 %}
+        {% let first_slug = track_items[0] %}
+        {% let first_page = get_page(first_slug) %}
+        {% if first_page %}
+        <a href="{{ first_page.href }}" class="track-card-button">
+            Start Learning {{ icon('arrow-right', size=14) }}
+        </a>
+        {% else %}
+        <span class="track-card-button track-card-button-disabled" title="Track page not found">Unavailable</span>
+        {% end %}
+        {% else %}
+        <span class="track-card-button track-card-button-disabled" title="No track items">Unavailable</span>
+        {% end %}
+    </div>
 </article>
 {% end %}
 
 {# =============================================================================
-   MAIN TEMPLATE
-   ============================================================================= #}
+MAIN TEMPLATE
+============================================================================= #}
 
 {% block content %}
 {# Template-scoped variables #}
@@ -113,41 +103,35 @@ Set `template: tracks/list.html` in frontmatter
 {% let tracks_data = site?.data?.tracks ?? {} %}
 
 <div class="container py-5">
-  {# Hero Header #}
-  <header class="tracks-header text-center mb-6">
-    <span class="badge bg-primary mb-3">Learning Tracks</span>
-    <h1 class="tracks-title">{{ page_title }}</h1>
-    {% if page_desc %}
-    <p class="tracks-lead lead text-muted mt-3">{{ page_desc }}</p>
-    {% end %}
-    {% if content %}
-    <div class="tracks-intro mt-4">
-      {{ content | safe }}
-    </div>
-    {% end %}
-  </header>
+    {# Minimal Header - Title + optional description #}
+    <header class="tracks-header tracks-header--compact mb-5">
+        <h1 class="tracks-title">{{ page_title }}</h1>
+        {% if page_desc %}
+        <p class="tracks-lead">{{ page_desc }}</p>
+        {% end %}
+    </header>
 
-  {# Tracks Grid #}
-  {% if tracks_data | length > 0 %}
-  <div class="tracks-grid">
-    {% for id, track in tracks_data | items %}
-    {% let site_pages = site?.pages ?? [] %}
-    {% let track_pages = site_pages |> where('metadata.track_id', id) |> list %}
-    {% let track_page = track_pages[0] if track_pages | length > 0 else none %}
-    {{ track_card(id, track, track_page) }}
-    {% end %}
-  </div>
-  {% else %}
-  {# Empty State #}
-  <div class="tracks-empty">
-    <div class="tracks-empty-icon">
-      {{ icon('graduation-cap', size=64) }}
+    {# Tracks Grid #}
+    {% if tracks_data | length > 0 %}
+    <div class="tracks-grid">
+        {% for id, track in tracks_data | items %}
+        {% let site_pages = site?.pages ?? [] %}
+        {% let track_pages = site_pages |> where('metadata.track_id', id) |> list %}
+        {% let track_page = track_pages[0] if track_pages | length > 0 else none %}
+        {{ track_card(id, track, track_page) }}
+        {% end %}
     </div>
-    <h3 class="tracks-empty-title">No tracks defined</h3>
-    <p class="tracks-empty-text">
-      Please define your learning tracks in <code>site/data/tracks.yaml</code>.
-    </p>
-  </div>
-  {% end %}
+    {% else %}
+    {# Empty State #}
+    <div class="tracks-empty">
+        <div class="tracks-empty-icon">
+            {{ icon('graduation-cap', size=64) }}
+        </div>
+        <h3 class="tracks-empty-title">No tracks defined</h3>
+        <p class="tracks-empty-text">
+            Please define your learning tracks in <code>site/data/tracks.yaml</code>.
+        </p>
+    </div>
+    {% end %}
 </div>
 {% end %}

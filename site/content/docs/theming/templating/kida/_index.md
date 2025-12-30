@@ -32,7 +32,7 @@ Your Jinja2 templates work without changes—Kida parses both syntaxes.
 | **Pipeline operator** | `\|>` for left-to-right filter chains |
 | **Optional chaining** | `?.` for safe navigation |
 | **Null coalescing** | `??` for concise fallbacks |
-| **Smarter functions** | `{% def %}` functions see outer variables automatically |
+| **Scope-aware functions** | `{% def %}` functions access outer variables without extra parameters |
 | **Automatic caching** | Site-wide blocks render once per build |
 
 ## Topics

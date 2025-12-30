@@ -760,7 +760,7 @@ site:
 Kida can parse Jinja2 syntax via compatibility mode. Most Jinja2 templates work without changes, but consider migrating to Kida syntax for pattern matching, pipeline operators, and unified block endings:
 
 :::{seealso}
-[How to Migrate from Jinja2 to Kida](/docs/theming/templating/kida/migrate-jinja-to-kida/) — Step-by-step migration guide
+[How to Migrate from Jinja2 to Kida](/docs/theming/templating/kida/migration/from-jinja/) — Step-by-step migration guide
 :::
 
 **Key differences**:

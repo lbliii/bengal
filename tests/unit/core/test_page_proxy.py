@@ -19,7 +19,7 @@ from bengal.core.page import Page, PageProxy
 @pytest.fixture
 def sample_page():
     """Create a sample page for testing."""
-    return Page(
+    page = Page(
         source_path=Path("content/blog/post.md"),
         _raw_content="# My Post\n\nContent here.",
         metadata={
@@ -29,6 +29,10 @@ def sample_page():
             "weight": 5,
         },
     )
+    # Set parsed_ast so that content property returns expected HTML
+    # (In real builds, this is set by the rendering pipeline)
+    page.parsed_ast = "<h1>My Post</h1>\n<p>Content here.</p>"
+    return page
 
 
 @pytest.fixture
@@ -121,7 +125,7 @@ class TestPageProxyLazyLoading:
         content = proxy.content
 
         assert proxy._lazy_loaded
-        assert content == "# My Post\n\nContent here."
+        assert content == "<h1>My Post</h1>\n<p>Content here.</p>"
 
     def test_proxy_lazy_loads_metadata_dict(self, cached_metadata, page_loader):
         """Verify proxy provides cached metadata WITHOUT triggering lazy load."""
@@ -318,7 +322,8 @@ class TestPageProxyFromPage:
 
         # Should load immediately when accessing
         content = proxy.content
-        assert content == sample_page.content
+        # sample_page has parsed_ast set, so content should match
+        assert content == "<h1>My Post</h1>\n<p>Content here.</p>"
 
 
 class TestPageProxyEdgeCases:
