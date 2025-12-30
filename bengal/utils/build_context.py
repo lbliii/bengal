@@ -25,6 +25,8 @@ See Also:
 
 from __future__ import annotations
 
+import uuid
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from threading import Lock
@@ -130,6 +132,7 @@ class BuildContext:
         1. Created in _setup_build_context() at build start
         2. Populated incrementally as phases execute
         3. Used by all _phase_* methods for shared state
+        4. (Optional) Can be used as context manager for automatic cleanup
 
     Categories:
         - Core: site, stats, profile (required)
@@ -138,6 +141,25 @@ class BuildContext:
         - Work items: pages_to_build, assets_to_process (determined in Phase 2)
         - Incremental state: affected_tags, affected_sections, changed_page_paths
         - Output: cli, progress_manager, reporter
+        - Build-scoped: build_id, _build_scoped_cache (for cross-build isolation)
+
+    Build-Scoped Caching (RFC: Cache Lifecycle Hardening):
+        Values cached via get_cached() are scoped to this build instance.
+        When used as a context manager, BUILD_START is signaled on entry
+        and BUILD_END + cache cleanup on exit. This prevents cross-build
+        contamination when Site objects are reused.
+
+    Example:
+        # As context manager (recommended for new code)
+        with BuildContext(site=site) as ctx:
+            contexts = ctx.get_cached("global_contexts", lambda: build_contexts(site))
+            # ... build operations ...
+        # Automatic cleanup on exit
+
+        # Traditional usage (backward compatible)
+        ctx = BuildContext(site=site)
+        # ... build operations ...
+        ctx.clear_lazy_artifacts()  # Manual cleanup
     """
 
     # Core (required)
@@ -185,6 +207,20 @@ class BuildContext:
 
     # Timing (build start time for duration calculation)
     build_start: float = 0.0
+
+    # =========================================================================
+    # Build-Scoped Caching (RFC: Cache Lifecycle Hardening)
+    # =========================================================================
+    # Unique build identifier and build-scoped cache prevent cross-build
+    # contamination when Site objects are reused across builds.
+
+    # Unique identifier for this build (8 hex chars from uuid4)
+    build_id: str = field(default_factory=lambda: uuid.uuid4().hex[:8])
+
+    # Build-scoped cache: values here are automatically cleared when build ends
+    # Use get_cached() to access - don't access directly
+    _build_scoped_cache: dict[str, Any] = field(default_factory=dict, repr=False)
+    _build_scoped_cache_lock: Lock = field(default_factory=Lock, repr=False)
 
     # Lazy-computed artifacts (built once on first access)
     # These eliminate redundant expensive computations across build phases
@@ -285,6 +321,98 @@ class BuildContext:
         self.clear_content_cache()
         self.clear_accumulated_assets()
         self.clear_accumulated_page_data()
+        self.clear_build_scoped_cache()
+
+    # =========================================================================
+    # Build-Scoped Cache Methods (RFC: Cache Lifecycle Hardening)
+    # =========================================================================
+    # These methods enable caching values that are scoped to a specific build,
+    # preventing cross-build contamination when Site objects are reused.
+
+    def get_cached(self, key: str, factory: Callable[[], Any]) -> Any:
+        """
+        Get or create cached value scoped to this build.
+
+        Values cached here are automatically cleared when build completes
+        (via __exit__ or clear_build_scoped_cache), preventing cross-build
+        contamination.
+
+        Thread-safe: Uses lock for concurrent access.
+
+        Args:
+            key: Cache key (should be descriptive, e.g., "global_contexts")
+            factory: Callable that creates the value if not cached
+
+        Returns:
+            Cached value (created on first access)
+
+        Example:
+            # Cache expensive computation for this build only
+            contexts = build_context.get_cached(
+                "global_contexts",
+                lambda: _create_contexts(site)
+            )
+        """
+        with self._build_scoped_cache_lock:
+            if key not in self._build_scoped_cache:
+                self._build_scoped_cache[key] = factory()
+            return self._build_scoped_cache[key]
+
+    def clear_build_scoped_cache(self) -> None:
+        """
+        Clear build-scoped cache to free memory.
+
+        Called automatically by __exit__ when used as context manager,
+        or manually at end of build.
+        """
+        with self._build_scoped_cache_lock:
+            self._build_scoped_cache.clear()
+
+    @property
+    def build_scoped_cache_size(self) -> int:
+        """Get number of entries in build-scoped cache."""
+        with self._build_scoped_cache_lock:
+            return len(self._build_scoped_cache)
+
+    def __enter__(self) -> BuildContext:
+        """
+        Enter build scope - signal BUILD_START event.
+
+        Enables context manager usage for automatic lifecycle management:
+
+            with BuildContext(site=site) as ctx:
+                # Build operations
+            # Automatic cleanup on exit
+
+        Returns:
+            Self for use in with statement
+        """
+        from bengal.utils.cache_registry import InvalidationReason, invalidate_for_reason
+
+        invalidate_for_reason(InvalidationReason.BUILD_START)
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: Any,
+    ) -> None:
+        """
+        Exit build scope - signal BUILD_END event and clear build-scoped caches.
+
+        Automatically clears _build_scoped_cache to free memory and prevent
+        cross-build contamination.
+
+        Args:
+            exc_type: Exception type if an exception was raised
+            exc_val: Exception value if an exception was raised
+            exc_tb: Traceback if an exception was raised
+        """
+        from bengal.utils.cache_registry import InvalidationReason, invalidate_for_reason
+
+        invalidate_for_reason(InvalidationReason.BUILD_END)
+        self.clear_build_scoped_cache()
 
     # =========================================================================
     # Content Cache Methods (Build-Integrated Validation)

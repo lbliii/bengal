@@ -1,13 +1,18 @@
 """
 Advanced string manipulation functions for templates.
 
-Provides 5 advanced string transformation functions.
+Provides advanced string transformation functions including regex extraction,
+prefix/suffix operations, and case conversions.
 """
 
 from __future__ import annotations
 
 import re
 from typing import TYPE_CHECKING
+
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 if TYPE_CHECKING:
     from jinja2 import Environment
@@ -30,6 +35,17 @@ def register(env: Environment, site: Site) -> None:
             # Extract last segment of dotted or path-like identifiers
             # E.g., "cache.dependency_tracker" -> "dependency_tracker"
             "last_segment": last_segment,
+            # Regex extraction filters
+            "regex_search": regex_search,
+            "regex_findall": regex_findall,
+            # Prefix/suffix operations
+            "trim_prefix": trim_prefix,
+            "trim_suffix": trim_suffix,
+            "has_prefix": has_prefix,
+            "has_suffix": has_suffix,
+            "contains": contains,
+            # Natural language
+            "to_sentence": to_sentence,
         }
     )
 
@@ -248,3 +264,197 @@ def last_segment(text: str) -> str:
     if "/" in text:
         return text.rsplit("/", 1)[-1]
     return text
+
+
+def regex_search(text: str | None, pattern: str, group: int = 0) -> str | None:
+    """
+    Extract first regex match from text.
+
+    Args:
+        text: Text to search in
+        pattern: Regular expression pattern
+        group: Capture group to return (0 for full match)
+
+    Returns:
+        Matched text or None if no match
+
+    Example:
+        {{ "Price: $99.99" | regex_search(r'\\$[\\d.]+') }}  # "$99.99"
+        {{ "v2.3.1" | regex_search(r'v(\\d+)', group=1) }}  # "2"
+    """
+    if text is None:
+        return None
+
+    try:
+        match = re.search(pattern, text)
+        if not match:
+            return None
+        return match.group(group)
+    except re.error as e:
+        logger.warning("regex_search_failed", pattern=pattern, error=str(e))
+        return None
+    except IndexError:
+        # Group doesn't exist, return full match
+        if match:
+            return match.group(0)
+        return None
+
+
+def regex_findall(text: str | None, pattern: str) -> list[str]:
+    """
+    Find all regex matches in text.
+
+    Args:
+        text: Text to search in
+        pattern: Regular expression pattern
+
+    Returns:
+        List of all matches
+
+    Example:
+        {{ "a1 b2 c3" | regex_findall(r'\\d+') }}  # ["1", "2", "3"]
+        {{ text | regex_findall(r'\\b\\w+@\\w+\\.\\w+\\b') }}  # Find emails
+    """
+    if text is None:
+        return []
+
+    try:
+        return re.findall(pattern, text)
+    except re.error as e:
+        logger.warning("regex_findall_failed", pattern=pattern, error=str(e))
+        return []
+
+
+def trim_prefix(text: str | None, prefix: str) -> str:
+    """
+    Remove prefix from string if present.
+
+    Args:
+        text: Text to trim
+        prefix: Prefix to remove
+
+    Returns:
+        Text with prefix removed (or unchanged if no prefix)
+
+    Example:
+        {{ "hello_world" | trim_prefix("hello_") }}  # "world"
+        {{ "test" | trim_prefix("hello_") }}  # "test" (unchanged)
+    """
+    if not text:
+        return ""
+    if text.startswith(prefix):
+        return text[len(prefix) :]
+    return text
+
+
+def trim_suffix(text: str | None, suffix: str) -> str:
+    """
+    Remove suffix from string if present.
+
+    Args:
+        text: Text to trim
+        suffix: Suffix to remove
+
+    Returns:
+        Text with suffix removed (or unchanged if no suffix)
+
+    Example:
+        {{ "file.txt" | trim_suffix(".txt") }}  # "file"
+        {{ "test" | trim_suffix(".txt") }}  # "test" (unchanged)
+    """
+    if not text:
+        return ""
+    if not suffix:
+        return text
+    if text.endswith(suffix):
+        return text[: -len(suffix)]
+    return text
+
+
+def has_prefix(text: str | None, prefix: str) -> bool:
+    """
+    Check if string starts with prefix.
+
+    Args:
+        text: Text to check
+        prefix: Prefix to look for
+
+    Returns:
+        True if text starts with prefix
+
+    Example:
+        {% if url | has_prefix("https://") %}secure{% endif %}
+    """
+    if not text:
+        return False
+    return text.startswith(prefix)
+
+
+def has_suffix(text: str | None, suffix: str) -> bool:
+    """
+    Check if string ends with suffix.
+
+    Args:
+        text: Text to check
+        suffix: Suffix to look for
+
+    Returns:
+        True if text ends with suffix
+
+    Example:
+        {% if file | has_suffix(".md") %}markdown{% endif %}
+    """
+    if not text:
+        return False
+    return text.endswith(suffix)
+
+
+def contains(text: str | None, substring: str) -> bool:
+    """
+    Check if string contains substring.
+
+    Args:
+        text: Text to search in
+        substring: Substring to find
+
+    Returns:
+        True if substring is found
+
+    Example:
+        {% if text | contains("error") %}has error{% endif %}
+    """
+    if not text:
+        return False
+    return substring in text
+
+
+def to_sentence(items: list | None, connector: str = "and", oxford: bool = True) -> str:
+    """
+    Convert list to natural language sentence.
+
+    Args:
+        items: List of items to join
+        connector: Word to use before last item (default: "and")
+        oxford: Whether to use Oxford comma (default: True)
+
+    Returns:
+        Natural language string
+
+    Example:
+        {{ ['Alice', 'Bob', 'Charlie'] | to_sentence }}  # "Alice, Bob, and Charlie"
+        {{ ['Alice', 'Bob'] | to_sentence }}  # "Alice and Bob"
+        {{ tags | to_sentence(connector='or', oxford=false) }}  # "A, B or C"
+    """
+    if not items:
+        return ""
+
+    items = [str(item) for item in items]
+
+    if len(items) == 1:
+        return items[0]
+    if len(items) == 2:
+        return f"{items[0]} {connector} {items[1]}"
+
+    if oxford:
+        return f"{', '.join(items[:-1])}, {connector} {items[-1]}"
+    return f"{', '.join(items[:-1])} {connector} {items[-1]}"

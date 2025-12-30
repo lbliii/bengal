@@ -316,6 +316,20 @@ class QueryIndex(ABC):
 
     def save_to_disk(self) -> None:
         """Persist index to disk."""
+        # Verify consistency before save (debug mode only)
+        # RFC: Cache Lifecycle Hardening - Phase 3
+        # Note: Check invariants unconditionally but only log violations
+        # This is a simple O(n) check that detects index corruption
+        violations = self._check_invariants()
+        if violations:
+            logger.warning(
+                "query_index_invariant_violation",
+                index=self.name,
+                violations=violations[:5],  # First 5
+                total=len(violations),
+                action="saving_anyway",
+            )
+
         data = {
             "version": self.VERSION,
             "name": self.name,
@@ -398,6 +412,22 @@ class QueryIndex(ABC):
                         self._page_to_keys[page_path] = set()
                     self._page_to_keys[page_path].add(key)
 
+            # Verify invariants after load (detect corruption early)
+            # RFC: Cache Lifecycle Hardening - Phase 3
+            violations = self._check_invariants()
+            if violations:
+                logger.warning(
+                    "query_index_corruption_detected",
+                    index=self.name,
+                    violations=violations[:5],  # First 5
+                    total=len(violations),
+                    action="rebuilding_index",
+                )
+                # Clear and let it rebuild naturally
+                self.entries = {}
+                self._page_to_keys = {}
+                return
+
             logger.info(
                 "index_loaded",
                 index=self.name,
@@ -465,6 +495,36 @@ class QueryIndex(ABC):
         """Clear all index data."""
         self.entries.clear()
         self._page_to_keys.clear()
+
+    def _check_invariants(self) -> list[str]:
+        """
+        Verify forward and reverse indexes are in sync.
+
+        RFC: Cache Lifecycle Hardening - Phase 3
+        Detects index desync early before it causes subtle bugs.
+
+        Returns:
+            List of violations (empty if consistent)
+        """
+        violations: list[str] = []
+
+        # Check 1: Every page in _page_to_keys has its keys in entries
+        for page, keys in self._page_to_keys.items():
+            for key in keys:
+                if key not in self.entries:
+                    violations.append(f"Reverse has key '{key}' for page '{page}' not in forward")
+                elif page not in self.entries[key].page_paths:
+                    violations.append(f"Page '{page}' in reverse for key '{key}' not in forward")
+
+        # Check 2: Every page in entries[key].page_paths exists in _page_to_keys
+        for key, entry in self.entries.items():
+            for page in entry.page_paths:
+                if page not in self._page_to_keys:
+                    violations.append(f"Page '{page}' in forward for key '{key}' not in reverse")
+                elif key not in self._page_to_keys[page]:
+                    violations.append(f"Key '{key}' for page '{page}' in forward not in reverse")
+
+        return violations
 
     def stats(self) -> dict[str, Any]:
         """

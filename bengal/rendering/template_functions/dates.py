@@ -1,13 +1,13 @@
 """
 Date and time functions for templates.
 
-Provides date formatting, age calculation, and display functions.
+Provides date formatting, age calculation, arithmetic, and display functions.
 """
 
 from __future__ import annotations
 
 import calendar
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -27,6 +27,8 @@ def register(env: Environment, site: Site) -> None:
             "months_ago": months_ago,
             "month_name": month_name,
             "humanize_days": humanize_days,
+            "date_add": date_add,
+            "date_diff": date_diff,
         }
     )
 
@@ -221,3 +223,100 @@ def humanize_days(days: int) -> str:
     else:
         years = days // 365
         return f"{years} years ago"
+
+
+def date_add(
+    date: datetime | str | None,
+    days: int = 0,
+    weeks: int = 0,
+    hours: int = 0,
+    minutes: int = 0,
+    seconds: int = 0,
+) -> datetime | None:
+    """
+    Add time to a date.
+
+    Args:
+        date: Base date (datetime object or ISO string)
+        days: Days to add (negative to subtract)
+        weeks: Weeks to add
+        hours: Hours to add
+        minutes: Minutes to add
+        seconds: Seconds to add
+
+    Returns:
+        New datetime, or None if date is invalid
+
+    Example:
+        {{ page.date | date_add(days=7) }}  # One week later
+        {{ now | date_add(days=-30) }}  # 30 days ago
+        {{ event.start | date_add(hours=2) }}  # 2 hours later
+    """
+    from bengal.utils.dates import parse_date
+
+    dt = parse_date(date)
+    if not dt:
+        return None
+
+    delta = timedelta(
+        days=days,
+        weeks=weeks,
+        hours=hours,
+        minutes=minutes,
+        seconds=seconds,
+    )
+    return dt + delta
+
+
+def date_diff(
+    date1: datetime | str | None,
+    date2: datetime | str | None,
+    unit: str = "days",
+) -> int | dict | None:
+    """
+    Calculate difference between two dates.
+
+    Args:
+        date1: First date (usually the later date)
+        date2: Second date (usually the earlier date)
+        unit: Return unit ('days', 'hours', 'minutes', 'seconds', or 'all')
+
+    Returns:
+        Difference in specified unit, or dict with all units if unit='all'
+        Returns None if either date is invalid
+
+    Example:
+        {{ end_date | date_diff(start_date) }}  # Days between dates
+        {{ end_date | date_diff(start_date, unit='hours') }}  # Hours between
+        {{ end_date | date_diff(start_date, unit='all') }}  # Dict with all units
+    """
+    from bengal.utils.dates import parse_date
+
+    dt1 = parse_date(date1)
+    dt2 = parse_date(date2)
+
+    if not dt1 or not dt2:
+        return None
+
+    diff = dt1 - dt2
+    total_seconds = int(diff.total_seconds())
+
+    if unit == "all":
+        return {
+            "days": diff.days,
+            "hours": total_seconds // 3600,
+            "minutes": total_seconds // 60,
+            "seconds": total_seconds,
+        }
+
+    if unit == "days":
+        return diff.days
+    elif unit == "hours":
+        return total_seconds // 3600
+    elif unit == "minutes":
+        return total_seconds // 60
+    elif unit == "seconds":
+        return total_seconds
+
+    # Default to days
+    return diff.days

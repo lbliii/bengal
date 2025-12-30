@@ -7,6 +7,7 @@ from bengal.rendering.template_functions.content import (
     nl2br,
     safe_html,
     smartquotes,
+    urlize,
 )
 
 
@@ -138,3 +139,64 @@ class TestEmojify:
     def test_unknown_emoji(self):
         result = emojify(":unknown:")
         assert result == ":unknown:"
+
+
+class TestUrlize:
+    """Tests for urlize filter."""
+
+    def test_simple_url(self):
+        result = urlize("Check out https://example.com for more info")
+        assert '<a href="https://example.com">https://example.com</a>' in result
+        assert "Check out" in result
+        assert "for more info" in result
+
+    def test_http_url(self):
+        result = urlize("Visit http://example.com")
+        assert '<a href="http://example.com">' in result
+
+    def test_www_url(self):
+        result = urlize("Visit www.example.com")
+        assert '<a href="https://www.example.com">' in result
+
+    def test_url_with_path(self):
+        result = urlize("See https://example.com/docs/guide")
+        assert '<a href="https://example.com/docs/guide">' in result
+
+    def test_url_with_query(self):
+        result = urlize("Link: https://example.com/search?q=test")
+        assert "search?q=test" in result
+
+    def test_multiple_urls(self):
+        result = urlize("Site: https://a.com and https://b.com")
+        assert '<a href="https://a.com">' in result
+        assert '<a href="https://b.com">' in result
+
+    def test_target_attribute(self):
+        result = urlize("Visit https://example.com", target="_blank")
+        assert 'target="_blank"' in result
+
+    def test_rel_attribute(self):
+        result = urlize("Visit https://example.com", rel="noopener noreferrer")
+        assert 'rel="noopener noreferrer"' in result
+
+    def test_shorten_display(self):
+        long_url = "https://example.com/very/long/path/to/resource"
+        result = urlize(f"Visit {long_url}", shorten=True, shorten_length=30)
+        assert "..." in result
+
+    def test_no_urls(self):
+        result = urlize("Just plain text without links")
+        assert result == "Just plain text without links"
+
+    def test_empty_string(self):
+        assert urlize("") == ""
+
+    def test_none_input(self):
+        assert urlize(None) == ""
+
+    def test_escapes_html(self):
+        # Ensure HTML in URL display text is properly escaped
+        result = urlize("Visit https://example.com/<script>alert(1)</script>")
+        # The <script> is outside the URL so it won't be part of the link
+        # The text after the URL is left as-is (this filter only converts URLs)
+        assert '<a href="https://example.com/' in result

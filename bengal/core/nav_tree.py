@@ -51,6 +51,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 from bengal.core.diagnostics import emit
+from bengal.utils.cache_registry import InvalidationReason, register_cache
 from bengal.utils.concurrent_locks import PerKeyLockManager
 from bengal.utils.lru_cache import LRUCache
 
@@ -761,3 +762,18 @@ class NavTreeCache:
             Dictionary with cache statistics including hit/miss rates.
         """
         return cls._cache.stats()
+
+
+# Register NavTreeCache with centralized cache registry
+# Registered at module import time for automatic lifecycle management
+register_cache(
+    "nav_tree",
+    NavTreeCache.invalidate,
+    invalidate_on={
+        InvalidationReason.CONFIG_CHANGED,
+        InvalidationReason.STRUCTURAL_CHANGE,
+        InvalidationReason.NAV_CHANGE,
+        InvalidationReason.FULL_REBUILD,
+        InvalidationReason.TEST_CLEANUP,
+    },
+)

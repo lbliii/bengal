@@ -364,3 +364,23 @@ def invalidate_version_page_index() -> None:
     Call this when pages are modified during a build.
     """
     _version_page_index_cache.clear()
+
+
+# Register cache with centralized cache registry for lifecycle management
+try:
+    from bengal.utils.cache_registry import InvalidationReason, register_cache
+
+    register_cache(
+        "version_page_index",
+        invalidate_version_page_index,
+        invalidate_on={
+            InvalidationReason.CONFIG_CHANGED,
+            InvalidationReason.STRUCTURAL_CHANGE,
+            InvalidationReason.FULL_REBUILD,
+            InvalidationReason.TEST_CLEANUP,
+        },
+        depends_on={"nav_tree"},  # Depends on nav structure
+    )
+except ImportError:
+    # Cache registry not available (shouldn't happen in normal usage)
+    pass

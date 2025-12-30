@@ -347,24 +347,467 @@ def regex_findall(text: str, pattern: str) -> list[str]:
 
 ## Implementation Plan
 
-### Phase 1: URL + Regex (Week 1)
-- [ ] `url_parse`, `url_param`, `url_query` in `urls.py`
-- [ ] `urlize` in `content.py`
-- [ ] `regex_search`, `regex_findall` in `advanced_strings.py`
-- [ ] Tests for all new filters
-- [ ] Documentation updates
+### Phase 1: URL Parsing Suite (Days 1-2)
 
-### Phase 2: Strings + Dates (Week 2)
-- [ ] `trim_prefix`, `trim_suffix`, `has_prefix`, `has_suffix`, `contains` in `advanced_strings.py`
-- [ ] `to_sentence` in `advanced_strings.py`
-- [ ] `date_add`, `date_diff` in `dates.py`
-- [ ] Tests and docs
+**Goal**: Close the biggest gap vs Hugo/Liquid with URL manipulation.
 
-### Phase 3: Polish (Week 3)
-- [ ] `plainify` alias for `strip_html`
-- [ ] `base64_encode`, `base64_decode`
-- [ ] Performance benchmarks vs Hugo/Jinja2
-- [ ] Marketing: "80+ filters" documentation page
+#### 1.1 Add URL Parsing Filters (`bengal/rendering/template_functions/urls.py`)
+
+| Filter | Signature | Description |
+|--------|-----------|-------------|
+| `url_parse` | `url_parse(url: str) -> dict` | Parse URL into components (scheme, host, path, query, fragment, params) |
+| `url_param` | `url_param(url: str, param: str, default: str = '') -> str` | Extract single query parameter |
+| `url_query` | `url_query(data: dict) -> str` | Build query string from dict |
+
+**Tasks**:
+- [ ] **1.1.1** Add `url_parse()` function using `urllib.parse.urlparse`
+- [ ] **1.1.2** Add `url_param()` function using `urllib.parse.parse_qs`
+- [ ] **1.1.3** Add `url_query()` function using `urllib.parse.urlencode`
+- [ ] **1.1.4** Register filters in `register()` function
+- [ ] **1.1.5** Add docstrings with Kida syntax examples
+
+**File**: `bengal/rendering/template_functions/urls.py` (lines 34-49)
+
+```python
+# Add to register():
+env.filters.update({
+    "url_parse": url_parse,
+    "url_param": url_param,
+    "url_query": url_query,
+    # ... existing filters
+})
+```
+
+#### 1.2 Add Auto-Linking Filter (`bengal/rendering/template_functions/content.py`)
+
+| Filter | Signature | Description |
+|--------|-----------|-------------|
+| `urlize` | `urlize(text: str, target: str = '', rel: str = '', shorten: bool = False) -> str` | Convert plain URLs to clickable links |
+
+**Tasks**:
+- [ ] **1.2.1** Add `urlize()` function with regex URL detection
+- [ ] **1.2.2** Support `target` attribute (e.g., `_blank`)
+- [ ] **1.2.3** Support `rel` attribute (e.g., `noopener noreferrer`)
+- [ ] **1.2.4** Optional URL shortening for display
+- [ ] **1.2.5** Register filter in `register()` function
+
+**File**: `bengal/rendering/template_functions/content.py` (lines 19-33)
+
+#### 1.3 Write Tests (`tests/unit/template_functions/test_urls.py`)
+
+**Tasks**:
+- [ ] **1.3.1** Test `url_parse` with various URL formats (absolute, relative, with/without query)
+- [ ] **1.3.2** Test `url_param` with single params, missing params, defaults
+- [ ] **1.3.3** Test `url_query` with dicts, special characters, empty values
+- [ ] **1.3.4** Test `urlize` with plain text, mixed content, edge cases
+
+**Test file**: `tests/unit/template_functions/test_urls.py`
+
+```python
+class TestUrlParse:
+    def test_full_url(self):
+        result = url_parse("https://example.com/path?q=test#section")
+        assert result["scheme"] == "https"
+        assert result["host"] == "example.com"
+        assert result["path"] == "/path"
+        assert result["query"] == "q=test"
+        assert result["fragment"] == "section"
+        assert result["params"]["q"] == ["test"]
+
+    def test_relative_url(self): ...
+    def test_none_handling(self): ...
+```
+
+---
+
+### Phase 2: Regex Extraction (Days 3-4)
+
+**Goal**: Enable text extraction use cases currently impossible in Kida.
+
+#### 2.1 Add Regex Filters (`bengal/rendering/template_functions/advanced_strings.py`)
+
+| Filter | Signature | Description |
+|--------|-----------|-------------|
+| `regex_search` | `regex_search(text: str, pattern: str, group: int = 0) -> str \| None` | Extract first regex match |
+| `regex_findall` | `regex_findall(text: str, pattern: str) -> list[str]` | Find all regex matches |
+
+**Tasks**:
+- [ ] **2.1.1** Add `regex_search()` with group support
+- [ ] **2.1.2** Add `regex_findall()` returning list of matches
+- [ ] **2.1.3** Add proper error handling for invalid regex patterns (log + return input)
+- [ ] **2.1.4** Register filters in `register()` function
+- [ ] **2.1.5** Add docstrings with Kida syntax examples
+
+**File**: `bengal/rendering/template_functions/advanced_strings.py` (lines 18-34)
+
+```python
+# Add to register():
+env.filters.update({
+    "regex_search": regex_search,
+    "regex_findall": regex_findall,
+    # ... existing filters
+})
+```
+
+**Implementation pattern** (follow existing `replace_regex` in `strings.py`):
+```python
+def regex_search(text: str | None, pattern: str, group: int = 0) -> str | None:
+    """Extract first regex match from text.
+
+    Args:
+        text: Text to search in
+        pattern: Regular expression pattern
+        group: Capture group to return (0 for full match)
+
+    Returns:
+        Matched text or None if no match
+
+    Example:
+        {{ "Price: $99.99" | regex_search(r'\\$[\\d.]+') }}  # "$99.99"
+        {{ "v2.3.1" | regex_search(r'v(\\d+)', group=1) }}  # "2"
+    """
+    if text is None:
+        return None
+    try:
+        match = re.search(pattern, text)
+        if not match:
+            return None
+        return match.group(group)
+    except (re.error, IndexError) as e:
+        logger.warning("regex_search_failed", pattern=pattern, error=str(e))
+        return None
+```
+
+#### 2.2 Write Tests (`tests/unit/template_functions/test_advanced_strings.py`)
+
+**Tasks**:
+- [ ] **2.2.1** Test `regex_search` with simple patterns, groups, no match cases
+- [ ] **2.2.2** Test `regex_findall` with multiple matches, no matches
+- [ ] **2.2.3** Test error handling for invalid regex patterns
+- [ ] **2.2.4** Test `None` input handling
+
+---
+
+### Phase 3: String Prefix/Suffix Operations (Days 5-6)
+
+**Goal**: Match Hugo's ergonomic string manipulation.
+
+#### 3.1 Add String Filters (`bengal/rendering/template_functions/advanced_strings.py`)
+
+| Filter | Signature | Description |
+|--------|-----------|-------------|
+| `trim_prefix` | `trim_prefix(text: str, prefix: str) -> str` | Remove prefix if present |
+| `trim_suffix` | `trim_suffix(text: str, suffix: str) -> str` | Remove suffix if present |
+| `has_prefix` | `has_prefix(text: str, prefix: str) -> bool` | Check if starts with prefix |
+| `has_suffix` | `has_suffix(text: str, suffix: str) -> bool` | Check if ends with suffix |
+| `contains` | `contains(text: str, substring: str) -> bool` | Check if contains substring |
+
+**Tasks**:
+- [ ] **3.1.1** Add `trim_prefix()` function
+- [ ] **3.1.2** Add `trim_suffix()` function
+- [ ] **3.1.3** Add `has_prefix()` function (for use in conditionals)
+- [ ] **3.1.4** Add `has_suffix()` function
+- [ ] **3.1.5** Add `contains()` function
+- [ ] **3.1.6** Register all filters
+
+**File**: `bengal/rendering/template_functions/advanced_strings.py`
+
+```python
+def trim_prefix(text: str | None, prefix: str) -> str:
+    """Remove prefix from string if present.
+
+    Args:
+        text: Text to trim
+        prefix: Prefix to remove
+
+    Returns:
+        Text with prefix removed (or unchanged if no prefix)
+
+    Example:
+        {{ "hello_world" | trim_prefix("hello_") }}  # "world"
+        {{ "test" | trim_prefix("hello_") }}  # "test" (unchanged)
+    """
+    if not text:
+        return ""
+    if text.startswith(prefix):
+        return text[len(prefix):]
+    return text
+```
+
+#### 3.2 Add `to_sentence` Filter (`bengal/rendering/template_functions/advanced_strings.py`)
+
+| Filter | Signature | Description |
+|--------|-----------|-------------|
+| `to_sentence` | `to_sentence(items: list, connector: str = 'and', oxford: bool = True) -> str` | Convert array to natural language sentence |
+
+**Tasks**:
+- [ ] **3.2.1** Add `to_sentence()` function
+- [ ] **3.2.2** Support custom connector ('and', 'or')
+- [ ] **3.2.3** Support Oxford comma toggle
+- [ ] **3.2.4** Handle edge cases (0, 1, 2 items)
+
+```python
+def to_sentence(items: list | None, connector: str = "and", oxford: bool = True) -> str:
+    """Convert list to natural language sentence.
+
+    Args:
+        items: List of items to join
+        connector: Word to use before last item (default: "and")
+        oxford: Whether to use Oxford comma (default: True)
+
+    Returns:
+        Natural language string
+
+    Example:
+        {{ ['Alice', 'Bob', 'Charlie'] | to_sentence }}  # "Alice, Bob, and Charlie"
+        {{ ['Alice', 'Bob'] | to_sentence }}  # "Alice and Bob"
+        {{ tags | to_sentence(connector='or', oxford=false) }}  # "A, B or C"
+    """
+    if not items:
+        return ""
+    items = [str(item) for item in items]
+    if len(items) == 1:
+        return items[0]
+    if len(items) == 2:
+        return f"{items[0]} {connector} {items[1]}"
+    if oxford:
+        return f"{', '.join(items[:-1])}, {connector} {items[-1]}"
+    return f"{', '.join(items[:-1])} {connector} {items[-1]}"
+```
+
+#### 3.3 Write Tests
+
+**Tasks**:
+- [ ] **3.3.1** Test all prefix/suffix operations with various inputs
+- [ ] **3.3.2** Test `to_sentence` with 0, 1, 2, 3+ items
+- [ ] **3.3.3** Test custom connectors and Oxford comma toggle
+
+---
+
+### Phase 4: Date Arithmetic (Days 7-8)
+
+**Goal**: Enable date calculations for expiration dates, schedules.
+
+#### 4.1 Add Date Filters (`bengal/rendering/template_functions/dates.py`)
+
+| Filter | Signature | Description |
+|--------|-----------|-------------|
+| `date_add` | `date_add(date, days=0, weeks=0, hours=0, minutes=0) -> datetime` | Add/subtract time from date |
+| `date_diff` | `date_diff(date1, date2, unit='days') -> int \| dict` | Calculate difference between dates |
+
+**Tasks**:
+- [ ] **4.1.1** Add `date_add()` using `timedelta`
+- [ ] **4.1.2** Support negative values for subtraction
+- [ ] **4.1.3** Add `date_diff()` returning difference
+- [ ] **4.1.4** Support unit parameter ('days', 'hours', 'minutes', 'seconds')
+- [ ] **4.1.5** Integrate with existing `bengal.utils.dates.parse_date`
+
+**File**: `bengal/rendering/template_functions/dates.py` (lines 19-31)
+
+```python
+from datetime import timedelta
+
+def date_add(
+    date: datetime | str | None,
+    days: int = 0,
+    weeks: int = 0,
+    hours: int = 0,
+    minutes: int = 0,
+) -> datetime | None:
+    """Add time to a date.
+
+    Args:
+        date: Base date (datetime or ISO string)
+        days: Days to add (negative to subtract)
+        weeks: Weeks to add
+        hours: Hours to add
+        minutes: Minutes to add
+
+    Returns:
+        New datetime, or None if date is invalid
+
+    Example:
+        {{ page.date | date_add(days=7) }}  # One week later
+        {{ now | date_add(days=-30) }}  # 30 days ago
+        {{ event.start | date_add(hours=2) }}  # 2 hours later
+    """
+    from bengal.utils.dates import parse_date
+
+    dt = parse_date(date)
+    if not dt:
+        return None
+
+    delta = timedelta(days=days, weeks=weeks, hours=hours, minutes=minutes)
+    return dt + delta
+```
+
+#### 4.2 Write Tests (`tests/unit/template_functions/test_dates.py`)
+
+**Tasks**:
+- [ ] **4.2.1** Test `date_add` with positive/negative values
+- [ ] **4.2.2** Test `date_add` with ISO strings and datetime objects
+- [ ] **4.2.3** Test `date_diff` with various units
+- [ ] **4.2.4** Test timezone handling
+
+---
+
+### Phase 5: Aliases & Base64 (Days 9-10)
+
+**Goal**: Compatibility aliases and specialized utilities.
+
+#### 5.1 Add Aliases
+
+| Alias | Target | Location |
+|-------|--------|----------|
+| `plainify` | `strip_html` | `strings.py` |
+
+**Tasks**:
+- [ ] **5.1.1** Add `plainify` alias in `strings.py` register function
+
+```python
+# In register():
+env.filters["plainify"] = strip_html  # Hugo compatibility
+```
+
+#### 5.2 Add Base64 Filters (`bengal/rendering/template_functions/strings.py`)
+
+| Filter | Signature | Description |
+|--------|-----------|-------------|
+| `base64_encode` | `base64_encode(text: str) -> str` | Encode to Base64 |
+| `base64_decode` | `base64_decode(text: str) -> str` | Decode from Base64 |
+
+**Tasks**:
+- [ ] **5.2.1** Add `base64_encode()` function
+- [ ] **5.2.2** Add `base64_decode()` function with error handling
+- [ ] **5.2.3** Register filters
+
+```python
+import base64
+
+def base64_encode(text: str | None) -> str:
+    """Encode text as Base64.
+
+    Args:
+        text: Text to encode
+
+    Returns:
+        Base64 encoded string
+
+    Example:
+        {{ "hello" | base64_encode }}  # "aGVsbG8="
+        {{ small_image | base64_encode }}  # For data URLs
+    """
+    if not text:
+        return ""
+    return base64.b64encode(text.encode()).decode()
+
+def base64_decode(text: str | None) -> str:
+    """Decode Base64 text.
+
+    Args:
+        text: Base64 encoded string
+
+    Returns:
+        Decoded text, or empty string on error
+
+    Example:
+        {{ "aGVsbG8=" | base64_decode }}  # "hello"
+    """
+    if not text:
+        return ""
+    try:
+        return base64.b64decode(text).decode()
+    except Exception:
+        return ""
+```
+
+---
+
+### Phase 6: Documentation & Integration (Days 11-12)
+
+**Goal**: Complete documentation and integration testing.
+
+#### 6.1 Update Site Documentation
+
+**File**: `site/content/docs/reference/kida-syntax.md`
+
+**Tasks**:
+- [ ] **6.1.1** Add URL filters section with examples
+- [ ] **6.1.2** Add Regex filters section with examples
+- [ ] **6.1.3** Add String manipulation section (prefix/suffix)
+- [ ] **6.1.4** Add Date arithmetic section
+- [ ] **6.1.5** Update filter count (80+ → 93+)
+- [ ] **6.1.6** Add migration note for Hugo users
+
+#### 6.2 Integration Tests
+
+**File**: `tests/integration/test_kida_filters.py`
+
+**Tasks**:
+- [ ] **6.2.1** Create template integration tests for each new filter
+- [ ] **6.2.2** Test filter chaining (pipeline operator compatibility)
+- [ ] **6.2.3** Test error recovery in templates
+
+```python
+def test_url_filters_in_template(site):
+    """Test URL filters work correctly in actual templates."""
+    template = """
+    {% let url = "https://example.com/path?page=2&sort=date" %}
+    {{ url | url_parse | get('host') }}
+    {{ url | url_param('page') }}
+    """
+    result = site.render_string(template)
+    assert "example.com" in result
+    assert "2" in result
+```
+
+#### 6.3 Performance Benchmarks
+
+**File**: `benchmarks/filters/`
+
+**Tasks**:
+- [ ] **6.3.1** Benchmark `url_parse` vs manual parsing
+- [ ] **6.3.2** Benchmark `regex_search` vs `replace_regex`
+- [ ] **6.3.3** Compare with equivalent Jinja2/Hugo operations
+
+---
+
+### Implementation Checklist Summary
+
+| Phase | Filters | Effort | Files Modified |
+|-------|---------|--------|----------------|
+| **Phase 1** | `url_parse`, `url_param`, `url_query`, `urlize` | 2 days | `urls.py`, `content.py`, `test_urls.py` |
+| **Phase 2** | `regex_search`, `regex_findall` | 2 days | `advanced_strings.py`, `test_advanced_strings.py` |
+| **Phase 3** | `trim_prefix`, `trim_suffix`, `has_prefix`, `has_suffix`, `contains`, `to_sentence` | 2 days | `advanced_strings.py`, `test_advanced_strings.py` |
+| **Phase 4** | `date_add`, `date_diff` | 2 days | `dates.py`, `test_dates.py` |
+| **Phase 5** | `plainify` (alias), `base64_encode`, `base64_decode` | 2 days | `strings.py`, `test_strings.py` |
+| **Phase 6** | Documentation & integration | 2 days | `kida-syntax.md`, `test_kida_filters.py` |
+
+**Total**: ~12 working days (2.5 weeks)
+
+---
+
+### Dependencies & Blockers
+
+| Dependency | Status | Notes |
+|------------|--------|-------|
+| `urllib.parse` | ✅ stdlib | No external deps for URL parsing |
+| `re` | ✅ stdlib | Already used in `strings.py` |
+| `base64` | ✅ stdlib | No external deps |
+| `timedelta` | ✅ stdlib | Already imported in `dates.py` |
+
+**No new dependencies required** — all implementations use Python stdlib.
+
+---
+
+### Risk Mitigation
+
+| Risk | Mitigation |
+|------|------------|
+| Regex performance in templates | Use compiled patterns; add timeout for complex patterns |
+| URL parsing edge cases | Extensive test coverage; follow `urllib.parse` behavior |
+| Breaking existing templates | All filters are additive; no changes to existing API |
+| Type annotation issues | Follow existing patterns in codebase; use `str \| None` consistently |
 
 ---
 
@@ -383,15 +826,15 @@ All new filters must:
 ```python
 def url_param(url: str | None, param: str, default: str = '') -> str:
     """Extract query parameter from URL.
-    
+
     Args:
         url: URL string to parse
         param: Parameter name to extract
         default: Default value if parameter not found
-        
+
     Returns:
         Parameter value or default
-        
+
     Example:
         {{ "https://x.com?page=2" | url_param('page') }}  # "2"
     """

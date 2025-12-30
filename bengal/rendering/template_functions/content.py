@@ -29,6 +29,7 @@ def register(env: Environment, site: Site) -> None:
             "extract_content": extract_content,
             "demote_headings": demote_headings,
             "prefix_heading_ids": prefix_heading_ids,
+            "urlize": urlize,
         }
     )
 
@@ -444,3 +445,60 @@ def prefix_heading_ids(html: str, prefix: str) -> str:
         )
 
     return html
+
+
+def urlize(
+    text: str | None,
+    target: str = "",
+    rel: str = "",
+    shorten: bool = False,
+    shorten_length: int = 50,
+) -> str:
+    """
+    Convert plain URLs in text to clickable HTML links.
+
+    Detects URLs starting with http://, https://, or www. and wraps them
+    in anchor tags.
+
+    Args:
+        text: Text containing URLs
+        target: Optional target attribute (e.g., "_blank")
+        rel: Optional rel attribute (e.g., "noopener noreferrer")
+        shorten: If True, shorten displayed URL text
+        shorten_length: Maximum length for shortened display (default: 50)
+
+    Returns:
+        Text with URLs converted to anchor tags
+
+    Example:
+        {{ "Check out https://example.com for more info" | urlize }}
+        # "Check out <a href="https://example.com">https://example.com</a> for more info"
+
+        {{ text | urlize(target='_blank', rel='noopener') }}
+        # Opens links in new tab with security attributes
+    """
+    if not text:
+        return ""
+
+    # URL pattern: matches http://, https://, or www. URLs
+    url_pattern = r'(https?://[^\s<>"\']+|www\.[^\s<>"\']+)'
+
+    def replace_url(match: re.Match[str]) -> str:
+        url = match.group(1)
+        href = url if url.startswith("http") else f"https://{url}"
+
+        # Build display text
+        display = url
+        if shorten and len(display) > shorten_length:
+            display = display[: shorten_length - 3] + "..."
+
+        # Build attributes
+        attrs = [f'href="{html_module.escape(href)}"']
+        if target:
+            attrs.append(f'target="{html_module.escape(target)}"')
+        if rel:
+            attrs.append(f'rel="{html_module.escape(rel)}"')
+
+        return f"<a {' '.join(attrs)}>{html_module.escape(display)}</a>"
+
+    return re.sub(url_pattern, replace_url, text)

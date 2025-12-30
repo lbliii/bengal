@@ -7,7 +7,7 @@ Provides URL manipulation filters and functions for working with URLs in templat
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
-from urllib.parse import quote, unquote
+from urllib.parse import parse_qs, quote, unquote, urlencode, urlparse
 
 if TYPE_CHECKING:
     from jinja2 import Environment
@@ -38,6 +38,9 @@ def register(env: Environment, site: Site) -> None:
             "href": href_filter,
             "url_encode": url_encode,
             "url_decode": url_decode,
+            "url_parse": url_parse,
+            "url_param": url_param,
+            "url_query": url_query,
         }
     )
 
@@ -226,3 +229,87 @@ def build_artifact_url(site: Site, filename: str = "build.json", dir_name: str =
         return f"{baseurl}{path}"
 
     return path
+
+
+def url_parse(url: str | None) -> dict:
+    """
+    Parse URL into components.
+
+    Args:
+        url: URL string to parse
+
+    Returns:
+        Dictionary with scheme, host, path, query, fragment, and params
+
+    Example:
+        {% let parts = url | url_parse %}
+        {{ parts.scheme }}    {# "https" #}
+        {{ parts.host }}      {# "example.com" #}
+        {{ parts.path }}      {# "/docs/api" #}
+        {{ parts.query }}     {# "version=2" #}
+        {{ parts.params.version }}  {# ["2"] #}
+    """
+    if not url:
+        return {
+            "scheme": "",
+            "host": "",
+            "path": "",
+            "query": "",
+            "fragment": "",
+            "params": {},
+        }
+
+    parsed = urlparse(url)
+    return {
+        "scheme": parsed.scheme,
+        "host": parsed.netloc,
+        "path": parsed.path,
+        "query": parsed.query,
+        "fragment": parsed.fragment,
+        "params": dict(parse_qs(parsed.query)),
+    }
+
+
+def url_param(url: str | None, param: str, default: str = "") -> str:
+    """
+    Extract a single query parameter from URL.
+
+    Args:
+        url: URL string to parse
+        param: Parameter name to extract
+        default: Default value if parameter not found
+
+    Returns:
+        Parameter value or default
+
+    Example:
+        {{ "https://example.com?page=2&sort=date" | url_param('page') }}  # "2"
+        {{ url | url_param('missing', 'default') }}  # "default"
+    """
+    if not url:
+        return default
+
+    parsed = urlparse(url)
+    params = parse_qs(parsed.query)
+    values = params.get(param, [])
+    return values[0] if values else default
+
+
+def url_query(data: dict | None) -> str:
+    """
+    Build query string from dictionary.
+
+    Args:
+        data: Dictionary of query parameters
+
+    Returns:
+        URL-encoded query string
+
+    Example:
+        {{ {'q': 'test', 'page': 1} | url_query }}  # "q=test&page=1"
+        {{ filters | url_query }}
+    """
+    if not data:
+        return ""
+
+    return urlencode(data, doseq=True)

@@ -21,12 +21,12 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from bengal.core.nav_tree import NavTreeCache
 from bengal.orchestration.build.results import ChangeSummary
 from bengal.orchestration.incremental.cache_manager import CacheManager
 from bengal.orchestration.incremental.change_detector import ChangeDetector
 from bengal.orchestration.incremental.cleanup import cleanup_deleted_files
 from bengal.utils.build_context import BuildContext
+from bengal.utils.cache_registry import InvalidationReason, invalidate_for_reason
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
@@ -104,7 +104,7 @@ class IncrementalOrchestrator:
         Check if configuration has changed (requires full rebuild).
 
         Delegates to CacheManager for config validation. If config changed,
-        invalidates NavTreeCache since navigation structure may be affected.
+        uses centralized cache registry to invalidate all CONFIG_CHANGED caches.
 
         Returns:
             True if config changed (cache was invalidated)
@@ -114,20 +114,14 @@ class IncrementalOrchestrator:
         config_changed = self._cache_manager.check_config_changed()
 
         if config_changed:
-            # Config change may affect navigation (versioning, menus, etc.)
-            NavTreeCache.invalidate()
-            logger.debug("nav_tree_cache_invalidated", reason="config_changed")
-
-            # Also invalidate version page index cache
-            from bengal.rendering.template_functions.version_url import (
-                invalidate_version_page_index,
-            )
-
-            invalidate_version_page_index()
-            logger.debug("version_page_index_cache_invalidated", reason="config_changed")
+            # Use centralized cache registry for coordinated invalidation
+            # This replaces manual NavTreeCache.invalidate() + invalidate_version_page_index()
+            invalidated = invalidate_for_reason(InvalidationReason.CONFIG_CHANGED)
+            logger.debug("caches_invalidated", reason="config_changed", caches=invalidated)
 
             # Invalidate site version dict caches (site.versions, site.latest_version)
             # These cache .to_dict() results for template performance
+            # Note: Site caches aren't in the registry (they're instance-level, not global)
             if hasattr(self.site, "invalidate_version_caches"):
                 self.site.invalidate_version_caches()
                 logger.debug("site_version_dict_cache_invalidated", reason="config_changed")
@@ -179,22 +173,15 @@ class IncrementalOrchestrator:
             nav_changed_sources=nav_changed_sources,
         )
 
-        # Invalidate NavTreeCache if structural changes detected
+        # Invalidate caches if structural changes detected
         # Structural changes: new/deleted pages or nav-affecting metadata
         has_structural_changes = bool(change_set.change_summary.modified_content) or bool(
             nav_changed_sources
         )
         if has_structural_changes:
-            NavTreeCache.invalidate()
-            logger.debug("nav_tree_cache_invalidated", reason="structural_changes")
-
-            # Also invalidate version page index cache (used by version URL fallback)
-            from bengal.rendering.template_functions.version_url import (
-                invalidate_version_page_index,
-            )
-
-            invalidate_version_page_index()
-            logger.debug("version_page_index_cache_invalidated", reason="structural_changes")
+            # Use centralized cache registry for coordinated invalidation
+            invalidated = invalidate_for_reason(InvalidationReason.STRUCTURAL_CHANGE)
+            logger.debug("caches_invalidated", reason="structural_changes", caches=invalidated)
 
         return (
             change_set.pages_to_build,

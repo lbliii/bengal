@@ -48,6 +48,9 @@ from typing import TYPE_CHECKING, Any
 
 from markupsafe import Markup
 
+if TYPE_CHECKING:
+    from bengal.utils.build_context import BuildContext as BuildContextType
+
 # Re-export all context classes
 from bengal.rendering.context.data_wrappers import (
     CascadingParamsContext,
@@ -113,17 +116,51 @@ def _clear_global_context_cache() -> None:
         _global_context_cache.clear()
 
 
-# Register at module import time for automatic test cleanup
+# Register at module import time for automatic lifecycle management
 try:
-    from bengal.utils.cache_registry import register_cache
+    from bengal.utils.cache_registry import InvalidationReason, register_cache
 
-    register_cache("global_context_cache", _clear_global_context_cache)
+    register_cache(
+        "global_context",
+        _clear_global_context_cache,
+        invalidate_on={
+            InvalidationReason.BUILD_START,  # Always fresh per build
+            InvalidationReason.CONFIG_CHANGED,
+            InvalidationReason.FULL_REBUILD,
+            InvalidationReason.TEST_CLEANUP,
+        },
+    )
 except ImportError:
     # Cache registry not available (shouldn't happen in normal usage)
     pass
 
 
-def _get_global_contexts(site: Site) -> dict[str, Any]:
+def _create_global_contexts(site: Site) -> dict[str, Any]:
+    """
+    Create fresh global context wrappers for a site.
+
+    Helper function that creates the actual context wrapper objects.
+    Used by both _get_global_contexts (global cache) and build-scoped caching.
+
+    Args:
+        site: Site instance to wrap
+
+    Returns:
+        Dict with context wrappers: site, config, theme, menus
+    """
+    theme_obj = site.theme_config if hasattr(site, "theme_config") else None
+    return {
+        "site": SiteContext(site),
+        "config": ConfigContext(site.config),
+        "theme": ThemeContext(theme_obj) if theme_obj else ThemeContext._empty(),
+        "menus": MenusContext(site),
+    }
+
+
+def _get_global_contexts(
+    site: Site,
+    build_context: BuildContextType | None = None,
+) -> dict[str, Any]:
     """
     Get or create cached global context wrappers for a site.
 
@@ -131,14 +168,30 @@ def _get_global_contexts(site: Site) -> dict[str, Any]:
     that don't change between page renders. Caching them eliminates
     repeated object allocation overhead.
 
-    Thread-safe: Uses double-check locking for safe concurrent access.
+    If build_context is provided, uses build-scoped caching (RFC: Cache Lifecycle
+    Hardening). This ensures cache is isolated to the current build and
+    automatically cleared when the build completes, preventing cross-build
+    contamination.
+
+    Thread-safe: Uses appropriate locking for safe concurrent access.
 
     Args:
         site: Site instance to wrap
+        build_context: Optional BuildContext for build-scoped caching.
+                       If provided, cache is scoped to this build.
+                       If None, uses global module-level cache (legacy behavior).
 
     Returns:
         Dict with cached context wrappers: site, config, theme, menus
     """
+    # If build_context provided, use build-scoped caching (preferred)
+    if build_context is not None:
+        return build_context.get_cached(
+            "global_contexts",
+            lambda: _create_global_contexts(site),
+        )
+
+    # Legacy: global cache keyed by site id
     site_id = id(site)
 
     # Fast path: check if already cached
@@ -147,14 +200,7 @@ def _get_global_contexts(site: Site) -> dict[str, Any]:
             return _global_context_cache[site_id]
 
     # Build contexts outside lock (object creation)
-    theme_obj = site.theme_config if hasattr(site, "theme_config") else None
-
-    contexts = {
-        "site": SiteContext(site),
-        "config": ConfigContext(site.config),
-        "theme": ThemeContext(theme_obj) if theme_obj else ThemeContext._empty(),
-        "menus": MenusContext(site),
-    }
+    contexts = _create_global_contexts(site)
 
     # Store under lock, with double-check
     with _context_lock:

@@ -309,6 +309,26 @@ Kida's pipeline operator provides left-to-right readability:
 {{ text | truncatewords(20) }}
 {{ text | replace('old', 'new') }}
 {{ text | slugify }}
+
+{# Prefix/Suffix Operations #}
+{{ url | trim_prefix("https://") }}    {# Remove prefix #}
+{{ file | trim_suffix(".txt") }}       {# Remove suffix #}
+{{ url | has_prefix("https://") }}     {# Check prefix (bool) #}
+{{ file | has_suffix(".md") }}         {# Check suffix (bool) #}
+{{ text | contains("error") }}         {# Check substring (bool) #}
+
+{# Regex Extraction #}
+{{ "Price: $99.99" | regex_search(r'\$[\d.]+') }}  {# "$99.99" #}
+{{ "v2.3.1" | regex_search(r'v(\d+)', group=1) }} {# "2" #}
+{{ "a1 b2 c3" | regex_findall(r'\d+') }}           {# ["1", "2", "3"] #}
+
+{# Natural Language #}
+{{ ["Alice", "Bob", "Charlie"] | to_sentence }}    {# "Alice, Bob, and Charlie" #}
+{{ items | to_sentence(connector='or') }}          {# "A, B, or C" #}
+
+{# Base64 Encoding #}
+{{ "hello" | base64_encode }}     {# "aGVsbG8=" #}
+{{ encoded | base64_decode }}     {# Decode Base64 #}
 ```
 
 ### Collection Filters
@@ -343,6 +363,13 @@ Kida's pipeline operator provides left-to-right readability:
 {{ html | escape }}    {# Escape HTML #}
 {{ html | e }}         {# Short form #}
 {{ html | striptags }} {# Remove HTML tags #}
+{{ html | plainify }}  {# Alias for striptags (Hugo compat) #}
+
+{# Auto-link URLs #}
+{{ "Visit https://example.com" | urlize }}
+{# Output: Visit <a href="https://example.com">https://example.com</a> #}
+
+{{ text | urlize(target='_blank', rel='noopener') }}  {# Open in new tab #}
 ```
 
 ### Validation
@@ -351,6 +378,41 @@ Kida's pipeline operator provides left-to-right readability:
 {{ value | default('fallback') }}
 {{ value | d('fallback') }}      {# Short form #}
 {{ value | require }}            {# Raise if None #}
+```
+
+### URL Manipulation
+
+```kida
+{# Parse URL into components #}
+{% let parts = url | url_parse %}
+{{ parts.scheme }}     {# "https" #}
+{{ parts.host }}       {# "example.com" #}
+{{ parts.path }}       {# "/docs/api" #}
+{{ parts.query }}      {# "version=2" #}
+{{ parts.fragment }}   {# "section" #}
+{{ parts.params.q }}   {# ["search term"] #}
+
+{# Extract query parameter #}
+{{ "https://x.com?page=2" | url_param('page') }}        {# "2" #}
+{{ url | url_param('missing', 'default') }}             {# "default" #}
+
+{# Build query string from dict #}
+{{ {'q': 'test', 'page': 1} | url_query }}              {# "q=test&page=1" #}
+```
+
+### Date Arithmetic
+
+```kida
+{# Add/subtract time #}
+{{ page.date | date_add(days=7) }}               {# One week later #}
+{{ now | date_add(days=-30) }}                   {# 30 days ago #}
+{{ event.start | date_add(hours=2, minutes=30) }} {# 2.5 hours later #}
+{{ page.date | date_add(weeks=2) }}              {# Two weeks later #}
+
+{# Calculate difference #}
+{{ end_date | date_diff(start_date) }}               {# Days between #}
+{{ end_date | date_diff(start_date, unit='hours') }} {# Hours between #}
+{{ end_date | date_diff(start_date, unit='all') }}   {# Dict with all units #}
 ```
 
 ## Fragment Caching
