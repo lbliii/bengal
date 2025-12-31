@@ -1,129 +1,148 @@
 {#
-  Bengal OpenAPI Schema Viewer
+Bengal OpenAPI Schema Viewer
+============================
 
-  Recursive tree view for OpenAPI schemas with caching for performance.
+Recursive component for displaying JSON Schema / OpenAPI schema objects.
+Supports nested objects, arrays, enums, and examples.
 
-  Uses Kida's:
-    - {% cache %} for expensive recursive renders (500+ endpoint specs)
-    - {% match %} for type-specific rendering
-    - {% let %} for clean variable handling
+Context:
+- schema: OpenAPISchemaMetadata or dict with:
+  - schema_type: Type (object, array, string, etc.)
+  - properties: Dict of property definitions
+  - required: Tuple of required property names
+  - enum: Enum values (optional)
+  - example: Example value (optional)
+  - items: Array item schema (for arrays)
+  - description: Schema description
+- name: Schema name (optional, for display)
+- depth: Nesting depth (for indentation, default 0)
 
-  Context:
-    - schema: dict (raw schema object)
-    - name: str (schema name)
-    - depth: int (recursion depth, default 0)
-    - max_depth: int (max recursion, default 5)
+Kida Features:
+- {% cache %} for expensive recursive rendering (500+ endpoint specs)
+- {% with %} for nil-safe optional sections
+- Recursive {% include %} for nested objects
+- Optional chaining (?.) and null coalescing (??)
 #}
-{% let schema_type = schema?.type ?? 'object' %}
+{% let schema_type = schema?.schema_type ?? 'object' %}
 {% let properties = schema?.properties ?? {} %}
-{% let required_props = schema?.required ?? [] %}
-{% let items = schema['items'] if schema else none %}
-{% let enum_values = schema?.enum %}
-{% let example = schema?.example %}
+{% let required_props = schema?.required ?? () %}
+{% let enum_vals = schema?.enum %}
+{% let example_val = schema?.example %}
+{% let items = schema?.items %}
+{% let description = schema?.description ?? '' %}
 {% let current_depth = depth ?? 0 %}
-{% let max = max_depth ?? 5 %}
+{% let max_depth = 4 %}
 
-{# Use cache for complex schemas to improve build performance #}
-{% cache "schema-" ~ name ~ "-" ~ current_depth, ttl=3600 %}
-
-<div class="api-schema-viewer api-schema-viewer--depth-{{ current_depth }}">
+{% cache 'schema-viewer-' ~ (name ?? 'anon') ~ '-' ~ current_depth %}
+<div class="api-schema-viewer api-schema-viewer--depth-{{ current_depth }}" data-schema-type="{{ schema_type }}">
   {# Schema Header #}
+  {% if name %}
   <div class="api-schema-viewer__header">
-    {% if name %}
     <code class="api-schema-viewer__name">{{ name }}</code>
-    {% end %}
-
-    <span class="api-schema-viewer__type">
-      {% match schema_type %}
-        {% case 'object' %}
-          <span class="badge badge--info-subtle badge--xs">object</span>
-        {% case 'array' %}
-          <span class="badge badge--success-subtle badge--xs">array</span>
-        {% case 'string' %}
-          <span class="badge badge--secondary-subtle badge--xs">string</span>
-        {% case 'integer' %}
-          <span class="badge badge--warning-subtle badge--xs">integer</span>
-        {% case 'number' %}
-          <span class="badge badge--warning-subtle badge--xs">number</span>
-        {% case 'boolean' %}
-          <span class="badge badge--accent-subtle badge--xs">boolean</span>
-        {% case _ %}
-          <span class="badge badge--outline badge--xs">{{ schema_type }}</span>
-      {% end %}
-    </span>
+    <span class="api-schema-viewer__type">{{ schema_type }}</span>
   </div>
+  {% end %}
 
-  {# Enum Values #}
-  {% if enum_values %}
+  {# Description #}
+  {% if description %}
+  <div class="api-schema-viewer__description prose-sm">
+    {{ description | markdownify | safe }}
+  </div>
+  {% end %}
+
+  {# Object Properties #}
+  {% if schema_type == 'object' and properties | length > 0 %}
+  <div class="api-schema-viewer__properties">
+    {% for prop_name, prop_schema in properties |> items %}
+    {% let is_required = prop_name in required_props %}
+    {% let prop_type = prop_schema?.type ?? prop_schema?.schema_type ?? 'any' %}
+    {% let prop_desc = prop_schema?.description ?? '' %}
+    {% let prop_enum = prop_schema?.enum %}
+    {% let prop_default = prop_schema?.default %}
+
+    <div class="api-schema-viewer__property{% if is_required %} api-schema-viewer__property--required{% end %}">
+      <div class="api-schema-viewer__property-header">
+        <code class="api-schema-viewer__property-name">{{ prop_name }}</code>
+        <span class="api-schema-viewer__property-type">{{ prop_type }}</span>
+        {% if is_required %}
+        <span class="badge badge--danger-subtle badge--xs">required</span>
+        {% end %}
+      </div>
+
+      {% if prop_desc %}
+      <div class="api-schema-viewer__property-desc">{{ prop_desc }}</div>
+      {% end %}
+
+      {# Nested object (recursive, with depth limit) #}
+      {% if prop_type == 'object' and current_depth < max_depth %}
+      {% let nested_depth = current_depth + 1 %}
+      {% include 'autodoc/openapi/partials/schema-viewer.html' with schema=prop_schema, depth=nested_depth %}
+      {% end %}
+
+      {# Array items #}
+      {% if prop_type == 'array' and prop_schema?.items and current_depth < max_depth %}
+      {% let nested_depth = current_depth + 1 %}
+      <div class="api-schema-viewer__array-items">
+        <span class="api-schema-viewer__label">Items:</span>
+        {% include 'autodoc/openapi/partials/schema-viewer.html' with schema=prop_schema.items, depth=nested_depth %}
+      </div>
+      {% end %}
+
+      {# Property enum #}
+      {% with prop_enum as enums %}
+      {% if enums | length > 0 %}
+      <div class="api-schema-viewer__enum">
+        <span class="api-schema-viewer__enum-label">Allowed:</span>
+        {% for val in enums %}
+        <code class="api-schema-viewer__enum-value">{{ val }}</code>
+        {% end %}
+      </div>
+      {% end %}
+      {% end %}
+
+      {# Property default #}
+      {% with prop_default as default %}
+      <div class="api-schema-viewer__default">
+        <span class="api-schema-viewer__label">Default:</span>
+        <code>{{ default }}</code>
+      </div>
+      {% end %}
+    </div>
+    {% end %}
+  </div>
+  {% end %}
+
+  {# Array Items Schema #}
+  {% if schema_type == 'array' and items %}
+  <div class="api-schema-viewer__array">
+    <span class="api-schema-viewer__label">Array of:</span>
+    {% if current_depth < max_depth %}
+    {% let nested_depth = current_depth + 1 %}
+    {% include 'autodoc/openapi/partials/schema-viewer.html' with schema=items, depth=nested_depth %}
+    {% else %}
+    <code>{{ items?.type ?? items?.schema_type ?? 'any' }}</code>
+    {% end %}
+  </div>
+  {% end %}
+
+  {# Enum Values (top-level) #}
+  {% with enum_vals as enums %}
+  {% if enums | length > 0 %}
   <div class="api-schema-viewer__enum">
     <span class="api-schema-viewer__enum-label">Allowed values:</span>
-    {% for val in enum_values %}
+    {% for val in enums %}
     <code class="api-schema-viewer__enum-value">{{ val }}</code>
     {% end %}
   </div>
   {% end %}
-
-  {# Object Properties (Recursive) #}
-  {% if schema_type == 'object' and properties %}
-  <div class="api-schema-viewer__properties">
-    {% for prop_name, prop_schema in properties.items() %}
-      {% let is_required = prop_name in required_props %}
-
-      <div class="api-schema-viewer__property {{ 'api-schema-viewer__property--required' if is_required else '' }}">
-        <div class="api-schema-viewer__property-header">
-          <code class="api-schema-viewer__property-name">{{ prop_name }}</code>
-          <span class="api-schema-viewer__property-type">{{ prop_schema.type ?? 'any' }}</span>
-          {% if is_required %}
-            <span class="badge badge--danger-subtle badge--xs">required</span>
-          {% end %}
-        </div>
-
-        {% with prop_schema.description as desc %}
-          {% if desc %}
-          <div class="api-schema-viewer__property-desc prose-sm">
-            {{ desc | markdownify | safe }}
-          </div>
-          {% end %}
-        {% end %}
-
-        {# Nested object/array - recurse if not too deep #}
-        {% if (prop_schema.type == 'object' or prop_schema.type == 'array') and current_depth < max %}
-          {% let schema = prop_schema %}
-          {% let name = '' %}
-          {% let depth = current_depth + 1 %}
-          {% let max_depth = max %}
-          {% include 'autodoc/openapi/partials/schema-viewer.html' %}
-        {% end %}
-      </div>
-    {% end %}
-  </div>
-  {% end %}
-
-  {# Array Items (Recursive) #}
-  {% if schema_type == 'array' and items %}
-  <div class="api-schema-viewer__items">
-    <span class="api-schema-viewer__items-label">Array of:</span>
-    {% if current_depth < max %}
-      {% let schema = items %}
-      {% let name = '' %}
-      {% let depth = current_depth + 1 %}
-      {% let max_depth = max %}
-      {% include 'autodoc/openapi/partials/schema-viewer.html' %}
-    {% else %}
-      <code>{{ items.type ?? 'any' }}</code>
-    {% end %}
-  </div>
   {% end %}
 
   {# Example Value #}
-  {% with example as ex %}
-    {% if ex %}
-    <div class="api-schema-viewer__example">
-      <span class="api-schema-viewer__example-label">Example:</span>
-      <pre class="api-schema-viewer__example-code"><code>{{ ex | tojson(indent=2) }}</code></pre>
-    </div>
-    {% end %}
+  {% with example_val as example %}
+  <div class="api-schema-viewer__example">
+    <span class="api-schema-viewer__example-label">Example</span>
+    <pre class="api-schema-viewer__example-code"><code class="language-json">{{ example | tojson(indent=2) }}</code></pre>
+  </div>
   {% end %}
 </div>
-
-{% end %} {# cache #}
+{% end %}

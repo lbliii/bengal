@@ -1,59 +1,85 @@
 {#
-  Bengal OpenAPI Parameter Row
+Bengal OpenAPI Parameter Row
+============================
 
-  Atomic parameter unit with name, type, badges, and description.
+Atomic display unit for a single API parameter.
+Shows name, type, required status, and description.
 
-  Uses Kida's:
-    - {% let %} for template-scoped variables
-    - Nil-coalescing (??) for safe defaults
-    - {% with ... as ... %} for optional sections
+Context:
+- param: OpenAPIParameterMetadata or dict with:
+  - name: Parameter name
+  - schema_type: Type (string, integer, array, etc.)
+  - location: Where parameter is sent (path, query, header, cookie)
+  - required: bool
+  - description: Parameter description
+  - default: Default value (optional)
+  - enum: List of allowed values (optional)
+  - example: Example value (optional)
 
-  Context:
-    - param: OpenAPIParameterMetadata
-      - name: str
-      - location: 'path' | 'query' | 'header' | 'cookie'
-      - required: bool
-      - schema_type: str
-      - description: str
+Kida Features:
+- {% with %} for nil-safe optional sections
+- {% spaceless %} for compact badge output
+- Optional chaining (?.) and null coalescing (??)
 #}
 {% let name = param?.name ?? 'unnamed' %}
 {% let type = param?.schema_type ?? 'string' %}
 {% let location = param?.location ?? 'query' %}
 {% let is_required = param?.required ?? false %}
 {% let description = param?.description ?? '' %}
+{% let default_val = param?.default %}
+{% let enum_vals = param?.enum %}
+{% let example = param?.example %}
 
-<div class="api-param-row {{ 'api-param-row--required' if is_required else '' }}">
-  {# Parameter Name and Type #}
-  {% spaceless %}
+<div class="api-param-row{% if is_required %} api-param-row--required{% end %}" data-required="{{ is_required }}">
+  {# Parameter Meta: Name, Type, Badges #}
   <div class="api-param-row__meta">
     <code class="api-param-row__name">{{ name }}</code>
     <span class="api-param-row__type">{{ type }}</span>
 
-    {# Location Badge #}
-    {% match location %}
-      {% case 'path' %}
-        <span class="badge badge--info-subtle badge--xs">path</span>
-      {% case 'query' %}
-        <span class="badge badge--secondary-subtle badge--xs">query</span>
-      {% case 'header' %}
-        <span class="badge badge--warning-subtle badge--xs">header</span>
-      {% case 'cookie' %}
-        <span class="badge badge--accent-subtle badge--xs">cookie</span>
+    {% spaceless %}
+    <div class="api-param-row__badges">
+      {% if is_required %}
+      <span class="badge badge--danger-subtle badge--sm">required</span>
+      {% end %}
+      <span class="badge badge--outline badge--sm">{{ location }}</span>
+    </div>
     {% end %}
+  </div>
 
-    {# Required Badge #}
-    {% if is_required %}
-      <span class="badge badge--danger-subtle badge--xs">required</span>
-    {% end %}
+  {# Description #}
+  {% if description %}
+  <div class="api-param-row__description">
+    {{ description | markdownify | safe }}
   </div>
   {% end %}
 
-  {# Description #}
-  {% with description as desc %}
-    {% if desc %}
-    <div class="api-param-row__description prose-sm">
-      {{ desc | markdownify | safe }}
-    </div>
+  {# Default Value #}
+  {% with default_val as default %}
+  <div class="api-param-row__default">
+    <span class="api-param-row__label">Default:</span>
+    <code>{{ default }}</code>
+  </div>
+  {% end %}
+
+  {# Enum Values #}
+  {% with enum_vals as enums %}
+  {% if enums | length > 0 %}
+  <div class="api-param-row__enum">
+    <span class="api-param-row__label">Allowed:</span>
+    {% spaceless %}
+    {% for val in enums %}
+    <code class="api-param-row__enum-value">{{ val }}</code>{% if not loop.last %} {% end %}
     {% end %}
+    {% end %}
+  </div>
+  {% end %}
+  {% end %}
+
+  {# Example #}
+  {% with example as ex %}
+  <div class="api-param-row__example">
+    <span class="api-param-row__label">Example:</span>
+    <code>{{ ex }}</code>
+  </div>
   {% end %}
 </div>

@@ -1,29 +1,36 @@
 {#
-  Bengal OpenAPI Sidebar Navigation
+Bengal OpenAPI Sidebar Navigation
+=================================
 
-  Smart API navigation grouped by tags.
+Smart API navigation grouped by tags.
+Shows endpoints organized by tag with method badges.
 
-  Context:
-    - api_spec: OpenAPIOverviewMetadata (from site context)
-    - endpoints: list[DocElement] (all endpoint pages)
-    - current_tag: str | None (current tag filter)
-    - current_endpoint: DocElement | None (current endpoint)
+Context:
+- section: Current autodoc section
+- sections: All autodoc sections (for navigation)
+- current_page: Current page (for active state)
+- endpoints: List of endpoint elements (optional, derived from section)
+- tags: List of tags with their endpoints (optional)
+- api_title: API title for home link (optional)
+
+Kida Features:
+- {% with %} for nil-safe optional sections
+- {% spaceless %} for compact badge output
+- Optional chaining (?.) and null coalescing (??)
 #}
-{% let tags = api_spec?.tags ?? () %}
-{% let grouped = endpoints | groupby('typed_metadata.tags.0') if endpoints else {} %}
+{% let title = api_title ?? section?.title ?? 'API Reference' %}
+{% let home_href = section?.href ?? '/api/' %}
 
-<nav class="api-sidebar-nav" aria-label="API Navigation">
-  {# API Home Link #}
-  <div class="api-sidebar-nav__header">
-    <a href="{{ url_for('autodoc:openapi:home') }}" class="api-sidebar-nav__home">
-      <svg class="icon" aria-hidden="true" width="16" height="16">
-        <use href="#icon-home"></use>
-      </svg>
-      <span>API Reference</span>
+<nav class="api-sidebar-nav" aria-label="API navigation">
+  {# Header with Home Link #}
+  <header class="api-sidebar-nav__header">
+    <a href="{{ home_href }}" class="api-sidebar-nav__home">
+      {{ icon('book-open', size=16) }}
+      <span>{{ title }}</span>
     </a>
-  </div>
+  </header>
 
-  {# Search (optional) #}
+  {# Search (optional, JS-enhanced) #}
   <div class="api-sidebar-nav__search">
     <input
       type="search"
@@ -34,83 +41,75 @@
     >
   </div>
 
-  {# Navigation Groups by Tag #}
+  {# Endpoint Groups by Tag #}
   <div class="api-sidebar-nav__groups">
-    {% for tag_info in tags %}
-      {% let tag_name = tag_info.name if tag_info.name else tag_info %}
-      {% let tag_desc = tag_info.description ?? '' %}
-      {% let tag_endpoints = grouped[tag_name] ?? [] %}
+    {% with section?.subsections as subsections %}
+    {% if subsections | length > 0 %}
+    {# Navigate by subsections (tag groups) #}
+    {% for subsection in subsections %}
+    {% let tag_name = subsection?.title ?? 'Endpoints' %}
+    {% let tag_pages = subsection?.pages ?? [] %}
+    {% let endpoint_count = tag_pages | length %}
 
-      <details class="api-sidebar-nav__group" {{ 'open' if current_tag == tag_name else '' }}>
-        <summary class="api-sidebar-nav__group-header">
-          <span class="api-sidebar-nav__group-name">{{ tag_name }}</span>
-          <span class="api-sidebar-nav__group-count">{{ tag_endpoints | length }}</span>
-        </summary>
+    <details class="api-sidebar-nav__group" open>
+      <summary class="api-sidebar-nav__group-header">
+        <span class="api-sidebar-nav__group-name">{{ tag_name }}</span>
+        <span class="api-sidebar-nav__group-count">{{ endpoint_count }}</span>
+      </summary>
 
-        <ul class="api-sidebar-nav__endpoints">
-          {% for ep in tag_endpoints %}
-            {% let ep_meta = ep.typed_metadata %}
-            {% let is_current = current_endpoint and current_endpoint.qualified_name == ep.qualified_name %}
-            {% let is_deprecated = ep_meta?.deprecated ?? false %}
+      <ul class="api-sidebar-nav__endpoints">
+        {% for ep_page in tag_pages %}
+        {% let ep_meta = ep_page?.metadata ?? {} %}
+        {% let ep_method = ep_meta?.method ?? 'GET' %}
+        {% let ep_path = ep_meta?.path ?? ep_page?.title ?? '' %}
+        {% let is_deprecated = ep_meta?.deprecated ?? false %}
+        {% let is_active = current_page?.href == ep_page?.href %}
 
-            <li class="api-sidebar-nav__endpoint {{ 'api-sidebar-nav__endpoint--active' if is_current else '' }} {{ 'api-sidebar-nav__endpoint--deprecated' if is_deprecated else '' }}">
-              <a href="{{ ep.href }}" class="api-sidebar-nav__link">
-                {# Method Badge #}
-                {% match ep_meta?.method %}
-                  {% case 'GET' %}
-                    <span class="api-method api-method--get api-method--sm">GET</span>
-                  {% case 'POST' %}
-                    <span class="api-method api-method--post api-method--sm">POST</span>
-                  {% case 'PUT' %}
-                    <span class="api-method api-method--put api-method--sm">PUT</span>
-                  {% case 'PATCH' %}
-                    <span class="api-method api-method--patch api-method--sm">PATCH</span>
-                  {% case 'DELETE' %}
-                    <span class="api-method api-method--delete api-method--sm">DELETE</span>
-                  {% case _ %}
-                    <span class="api-method api-method--sm">{{ ep_meta?.method }}</span>
-                {% end %}
-
-                {# Path #}
-                <span class="api-sidebar-nav__path">{{ ep_meta?.path ?? ep.name }}</span>
-
-                {# Deprecated indicator #}
-                {% if is_deprecated %}
-                  <span class="api-sidebar-nav__deprecated" title="Deprecated">⚠</span>
-                {% end %}
-              </a>
-            </li>
-          {% end %}
-        </ul>
-      </details>
-    {% else %}
-      {# No tags - flat list #}
-      <ul class="api-sidebar-nav__endpoints api-sidebar-nav__endpoints--flat">
-        {% for ep in endpoints %}
-          {% let ep_meta = ep.typed_metadata %}
-          {% let is_current = current_endpoint and current_endpoint.qualified_name == ep.qualified_name %}
-
-          <li class="api-sidebar-nav__endpoint {{ 'api-sidebar-nav__endpoint--active' if is_current else '' }}">
-            <a href="{{ ep.href }}" class="api-sidebar-nav__link">
-              {% match ep_meta?.method %}
-                {% case 'GET' %}
-                  <span class="api-method api-method--get api-method--sm">GET</span>
-                {% case 'POST' %}
-                  <span class="api-method api-method--post api-method--sm">POST</span>
-                {% case 'PUT' %}
-                  <span class="api-method api-method--put api-method--sm">PUT</span>
-                {% case 'PATCH' %}
-                  <span class="api-method api-method--patch api-method--sm">PATCH</span>
-                {% case 'DELETE' %}
-                  <span class="api-method api-method--delete api-method--sm">DELETE</span>
-                {% case _ %}
-                  <span class="api-method api-method--sm">{{ ep_meta?.method }}</span>
-              {% end %}
-              <span class="api-sidebar-nav__path">{{ ep_meta?.path ?? ep.name }}</span>
-            </a>
-          </li>
+        <li class="api-sidebar-nav__endpoint{% if is_active %} api-sidebar-nav__endpoint--active{% end %}{% if is_deprecated %} api-sidebar-nav__endpoint--deprecated{% end %}">
+          <a href="{{ ep_page?.href ?? '#' }}" class="api-sidebar-nav__link">
+            {% spaceless %}
+            <span class="api-method api-method--xs api-method--{{ ep_method |> lower }}">{{ ep_method }}</span>
+            {% end %}
+            <span class="api-sidebar-nav__path">{{ ep_path | truncate(30) }}</span>
+            {% if is_deprecated %}
+            <span class="api-sidebar-nav__deprecated" title="Deprecated">⚠</span>
+            {% end %}
+          </a>
+        </li>
         {% end %}
       </ul>
+    </details>
+    {% end %}
+    {% else %}
+    {# Flat list of pages (no subsections) #}
+    {% with section?.pages as pages %}
+    {% if pages | length > 0 %}
+    <ul class="api-sidebar-nav__endpoints api-sidebar-nav__endpoints--flat">
+      {% for ep_page in pages %}
+      {% if ep_page != section?.index_page %}
+      {% let ep_meta = ep_page?.metadata ?? {} %}
+      {% let ep_method = ep_meta?.method ?? 'GET' %}
+      {% let ep_path = ep_meta?.path ?? ep_page?.title ?? '' %}
+      {% let is_deprecated = ep_meta?.deprecated ?? false %}
+      {% let is_active = current_page?.href == ep_page?.href %}
+
+      <li class="api-sidebar-nav__endpoint{% if is_active %} api-sidebar-nav__endpoint--active{% end %}{% if is_deprecated %} api-sidebar-nav__endpoint--deprecated{% end %}">
+        <a href="{{ ep_page?.href ?? '#' }}" class="api-sidebar-nav__link">
+          {% spaceless %}
+          <span class="api-method api-method--xs api-method--{{ ep_method |> lower }}">{{ ep_method }}</span>
+          {% end %}
+          <span class="api-sidebar-nav__path">{{ ep_path | truncate(35) }}</span>
+          {% if is_deprecated %}
+          <span class="api-sidebar-nav__deprecated" title="Deprecated">⚠</span>
+          {% end %}
+        </a>
+      </li>
+      {% end %}
+      {% end %}
+    </ul>
+    {% end %}
+    {% end %}
+    {% end %}
     {% end %}
   </div>
 </nav>

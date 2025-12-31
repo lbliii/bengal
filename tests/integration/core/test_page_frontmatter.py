@@ -12,7 +12,7 @@ def test_page_frontmatter_typed_access(tmp_path: Path) -> None:
     """Page.frontmatter provides typed access to metadata."""
     page = Page(
         source_path=tmp_path / "test.md",
-        content="# Test",
+        _raw_content="# Test",
         metadata={"title": "My Post", "tags": ["python"], "custom": "value"},
     )
 
@@ -29,7 +29,7 @@ def test_frontmatter_dict_syntax_works(tmp_path: Path) -> None:
     """Templates using dict syntax still work."""
     page = Page(
         source_path=tmp_path / "test.md",
-        content="# Test",
+        _raw_content="# Test",
         metadata={"title": "My Post"},
     )
 
@@ -42,7 +42,7 @@ def test_frontmatter_cached(tmp_path: Path) -> None:
     """Frontmatter is cached after first access."""
     page = Page(
         source_path=tmp_path / "test.md",
-        content="# Test",
+        _raw_content="# Test",
         metadata={"title": "Test"},
     )
 
