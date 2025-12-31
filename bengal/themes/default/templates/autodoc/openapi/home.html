@@ -14,12 +14,12 @@ Context:
   - section.metadata.servers: Server URLs
   - section.metadata.security_schemes: Auth schemes
   - section.metadata.tags: API categories
-  - section.metadata.endpoints: All endpoint elements
-  - section.metadata.schemas: All schema elements
-  - section.metadata.description: API description
 - page: Page object
 - site: Site instance
 - config: Config instance
+
+The `endpoints` and `schemas` filters normalize access to endpoint/schema data
+regardless of whether the source is DocElements or Pages.
 
 Note: For section index pages, `element` is None. Use section.metadata instead.
 
@@ -37,9 +37,11 @@ Kida Features:
 {% let servers = sec_meta?.servers ?? () %}
 {% let security_schemes = sec_meta?.security_schemes ?? {} %}
 {% let tags = sec_meta?.tags ?? () %}
-{% let all_endpoints = sec_meta?.endpoints ?? () %}
-{% let all_schemas = sec_meta?.schemas ?? () %}
 {% let description = sec_meta?.description ?? '' %}
+
+{# Use filters for normalized access #}
+{% let eps = section | endpoints %}
+{% let schs = section | schemas %}
 
 {% block header %}
 <h1 class="api-home__title">{{ api_title }}</h1>
@@ -60,8 +62,8 @@ Kida Features:
 {% block content_main %}
 <div class="api-home" data-autodoc="openapi" data-element="home">
   {# Quick Stats #}
-  {% let endpoint_count = all_endpoints | length %}
-  {% let schema_count = all_schemas | length %}
+  {% let endpoint_count = eps | length %}
+  {% let schema_count = schs | length %}
   {% let tag_count = tags | length %}
 
   {% if endpoint_count > 0 or schema_count > 0 %}
@@ -178,29 +180,43 @@ Kida Features:
   {% end %}
 
   {# All Endpoints (if no tags, show all endpoints directly) #}
-  {% if tags | length == 0 and all_endpoints | length > 0 %}
+  {% if tags | length == 0 and eps | length > 0 %}
   <section class="api-home__endpoints autodoc-section">
     <h2 class="api-home__section-title">{{ icon('list', size=18) }} Endpoints</h2>
     <div class="autodoc-cards">
-      {% for endpoint in all_endpoints %}
-      {% let ep_meta = endpoint?.typed_metadata ?? endpoint?.metadata ?? {} %}
-      {% let ep_method = ep_meta?.method ?? 'GET' %}
-      {% let ep_path = ep_meta?.path ?? endpoint?.name ?? '' %}
-      {% let ep_summary = ep_meta?.summary ?? '' %}
-      {% let is_deprecated = ep_meta?.deprecated ?? false %}
-
-      <a href="{{ endpoint?.href ?? '#' }}" class="autodoc-card{% if is_deprecated %} autodoc-card--deprecated{% end %}">
+      {% for ep in eps %}
+      <a href="{{ ep.href }}" class="autodoc-card{% if ep.deprecated %} autodoc-card--deprecated{% end %}">
         <div class="autodoc-card-header">
           {% spaceless %}
-          <span class="api-method api-method--sm api-method--{{ ep_method |> lower }}">{{ ep_method }}</span>
+          <span class="api-method api-method--sm api-method--{{ ep.method |> lower }}">{{ ep.method }}</span>
           {% end %}
-          <code class="autodoc-card-name">{{ ep_path }}</code>
+          <code class="autodoc-card-name">{{ ep.path }}</code>
         </div>
-        {% if ep_summary %}
-        <p class="autodoc-card-desc">{{ ep_summary | truncate(80) }}</p>
+        {% if ep.summary %}
+        <p class="autodoc-card-desc">{{ ep.summary | truncate(80) }}</p>
         {% end %}
-        {% if is_deprecated %}
+        {% if ep.deprecated %}
         <span class="autodoc-badge" data-badge="deprecated">Deprecated</span>
+        {% end %}
+      </a>
+      {% end %}
+    </div>
+  </section>
+  {% end %}
+
+  {# Schemas #}
+  {% if schs | length > 0 %}
+  <section class="api-home__schemas autodoc-section">
+    <h2 class="api-home__section-title">{{ icon('database', size=18) }} Schemas</h2>
+    <div class="autodoc-cards">
+      {% for schema in schs %}
+      <a href="{{ schema.href }}" class="autodoc-card">
+        <div class="autodoc-card-header">
+          <code class="autodoc-card-name">{{ schema.name }}</code>
+          <span class="badge badge--outline badge--sm">{{ schema.schema_type }}</span>
+        </div>
+        {% if schema.description %}
+        <p class="autodoc-card-desc">{{ schema.description | truncate(80) }}</p>
         {% end %}
       </a>
       {% end %}

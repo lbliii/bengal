@@ -7,10 +7,20 @@ Groups multiple endpoints under a single tag with method badges.
 
 Context:
 - element: DocElement (optional, for tag info)
-- section: Section containing endpoints (metadata.endpoints for consolidated, pages for individual)
+- section: Section containing endpoints
 - page: Page object
 - site: Site instance
 - config: Config instance
+
+The `endpoints` filter normalizes access to endpoint data regardless of
+whether the source is DocElements (consolidated mode) or Pages (individual mode).
+Each EndpointView provides:
+  - method: HTTP method
+  - path: URL path
+  - summary: Short description
+  - deprecated: Deprecation status
+  - href: Always valid link (anchor in consolidated mode, page URL otherwise)
+  - has_page: Whether individual page exists
 
 Kida Features:
 - {% with %} for nil-resilient optional sections
@@ -21,11 +31,7 @@ Kida Features:
 
 {% let tag_name = element?.name ?? section?.title ?? page?.title ?? 'Endpoints' %}
 {% let tag_desc = element?.description ?? section?.metadata?.description ?? '' %}
-{# Consolidated mode: endpoints stored in section.metadata.endpoints (DocElements) #}
-{# Non-consolidated mode: endpoints are section.pages (Page objects) #}
-{% let endpoints = section?.metadata?.endpoints ?? section?.pages ?? [] %}
-{# Check if we're in consolidated mode (no individual endpoint pages) #}
-{% let is_consolidated = section?.metadata?.endpoints | length > 0 %}
+{% let eps = section | endpoints %}
 
 {% block header %}
 <h1 class="api-list__title">{{ tag_name }}</h1>
@@ -37,7 +43,7 @@ Kida Features:
 {% end %}
 
 <div class="api-list__stats">
-  <span class="badge badge--outline">{{ endpoints | length }} endpoints</span>
+  <span class="badge badge--outline">{{ eps | length }} endpoints</span>
 </div>
 {% end %}
 
@@ -45,7 +51,7 @@ Kida Features:
 <div class="api-list" data-autodoc="openapi" data-element="list">
 
   {# Endpoint Table #}
-  {% if endpoints | length > 0 %}
+  {% if eps | length > 0 %}
   <section class="api-list__endpoints autodoc-section">
     <table class="autodoc-table" data-table="endpoints">
       <thead>
@@ -56,41 +62,29 @@ Kida Features:
         </tr>
       </thead>
       <tbody>
-        {% for ep in endpoints %}
-        {% if ep != section?.index_page %}
-        {# Handle both DocElements (consolidated) and Pages (individual) #}
-        {% let ep_typed = ep?.typed_metadata ?? {} %}
-        {% let ep_meta = ep?.metadata ?? {} %}
-        {% let ep_method = ep_typed?.method ?? ep_meta?.method ?? 'GET' %}
-        {% let ep_path = ep_typed?.path ?? ep_meta?.path ?? ep?.name ?? '' %}
-        {% let ep_summary = ep_typed?.summary ?? ep_meta?.summary ?? ep?.description ?? '' %}
-        {% let is_deprecated = ep_typed?.deprecated ?? ep_meta?.deprecated ?? false %}
-        {% let ep_href = ep?.href ?? '#' %}
-
-        <tr class="{% if is_deprecated %}api-list__row--deprecated{% end %}">
+        {% for ep in eps %}
+        <tr class="{% if ep.deprecated %}api-list__row--deprecated{% end %}">
           <td class="autodoc-cell-name" data-label="Method">
             {% spaceless %}
-            <span class="api-method api-method--sm api-method--{{ ep_method |> lower }}">{{ ep_method }}</span>
+            <span class="api-method api-method--sm api-method--{{ ep.method |> lower }}">{{ ep.method }}</span>
             {% end %}
           </td>
           <td class="autodoc-cell-name" data-label="Endpoint">
-            {# In consolidated mode, show path without link (no individual pages exist) #}
-            {% if is_consolidated %}
-            <code>{{ ep_path | highlight_path_params | safe }}</code>
-            {% else %}
-            <a href="{{ ep_href }}">
-              <code>{{ ep_path | highlight_path_params | safe }}</code>
+            {% if ep.has_page %}
+            <a href="{{ ep.href }}">
+              <code>{{ ep.path | highlight_path_params | safe }}</code>
             </a>
+            {% else %}
+            <code>{{ ep.path | highlight_path_params | safe }}</code>
             {% end %}
-            {% if is_deprecated %}
+            {% if ep.deprecated %}
             <span class="autodoc-badge" data-badge="deprecated">Deprecated</span>
             {% end %}
           </td>
           <td class="autodoc-cell-desc" data-label="Description">
-            {{ ep_summary | truncate(100) }}
+            {{ ep.summary | truncate(100) }}
           </td>
         </tr>
-        {% end %}
         {% end %}
       </tbody>
     </table>
@@ -104,53 +98,41 @@ Kida Features:
   {% end %}
 
   {# Cards View (Alternative) #}
-  {% if endpoints | length > 0 %}
+  {% if eps | length > 0 %}
   <section class="api-list__cards autodoc-section">
     <h2 class="autodoc-section-title">Quick Reference</h2>
     <div class="autodoc-cards">
-      {% for ep in endpoints %}
-      {% if ep != section?.index_page %}
-      {# Handle both DocElements (consolidated) and Pages (individual) #}
-      {% let ep_typed = ep?.typed_metadata ?? {} %}
-      {% let ep_meta = ep?.metadata ?? {} %}
-      {% let ep_method = ep_typed?.method ?? ep_meta?.method ?? 'GET' %}
-      {% let ep_path = ep_typed?.path ?? ep_meta?.path ?? ep?.name ?? '' %}
-      {% let ep_summary = ep_typed?.summary ?? ep_meta?.summary ?? ep?.description ?? '' %}
-      {% let is_deprecated = ep_typed?.deprecated ?? ep_meta?.deprecated ?? false %}
-      {% let ep_href = ep?.href ?? '#' %}
-
-      {# In consolidated mode, use div instead of link #}
-      {% if is_consolidated %}
-      <div class="autodoc-card{% if is_deprecated %} autodoc-card--deprecated{% end %}">
+      {% for ep in eps %}
+      {% if ep.has_page %}
+      <a href="{{ ep.href }}" class="autodoc-card{% if ep.deprecated %} autodoc-card--deprecated{% end %}">
         <div class="autodoc-card-header">
           {% spaceless %}
-          <span class="api-method api-method--sm api-method--{{ ep_method |> lower }}">{{ ep_method }}</span>
+          <span class="api-method api-method--sm api-method--{{ ep.method |> lower }}">{{ ep.method }}</span>
           {% end %}
-          <code class="autodoc-card-name">{{ ep_path | highlight_path_params | safe }}</code>
+          <code class="autodoc-card-name">{{ ep.path | highlight_path_params | safe }}</code>
         </div>
-        {% if ep_summary %}
-        <p class="autodoc-card-desc">{{ ep_summary | truncate(80) }}</p>
+        {% if ep.summary %}
+        <p class="autodoc-card-desc">{{ ep.summary | truncate(80) }}</p>
         {% end %}
-        {% if is_deprecated %}
-        <span class="autodoc-badge" data-badge="deprecated">Deprecated</span>
-        {% end %}
-      </div>
-      {% else %}
-      <a href="{{ ep_href }}" class="autodoc-card{% if is_deprecated %} autodoc-card--deprecated{% end %}">
-        <div class="autodoc-card-header">
-          {% spaceless %}
-          <span class="api-method api-method--sm api-method--{{ ep_method |> lower }}">{{ ep_method }}</span>
-          {% end %}
-          <code class="autodoc-card-name">{{ ep_path | highlight_path_params | safe }}</code>
-        </div>
-        {% if ep_summary %}
-        <p class="autodoc-card-desc">{{ ep_summary | truncate(80) }}</p>
-        {% end %}
-        {% if is_deprecated %}
+        {% if ep.deprecated %}
         <span class="autodoc-badge" data-badge="deprecated">Deprecated</span>
         {% end %}
       </a>
-      {% end %}
+      {% else %}
+      <div class="autodoc-card{% if ep.deprecated %} autodoc-card--deprecated{% end %}">
+        <div class="autodoc-card-header">
+          {% spaceless %}
+          <span class="api-method api-method--sm api-method--{{ ep.method |> lower }}">{{ ep.method }}</span>
+          {% end %}
+          <code class="autodoc-card-name">{{ ep.path | highlight_path_params | safe }}</code>
+        </div>
+        {% if ep.summary %}
+        <p class="autodoc-card-desc">{{ ep.summary | truncate(80) }}</p>
+        {% end %}
+        {% if ep.deprecated %}
+        <span class="autodoc-badge" data-badge="deprecated">Deprecated</span>
+        {% end %}
+      </div>
       {% end %}
       {% end %}
     </div>

@@ -9,6 +9,8 @@ Functions:
 - method_color_class: Get CSS class for HTTP method
 - status_code_class: Get CSS class for HTTP status code
 - get_response_example: Extract example from OpenAPI response
+- endpoints: Filter to normalize endpoint access from sections
+- schemas: Filter to normalize schema access from sections
 
 Engine-Agnostic:
     These functions work with any template engine that provides a globals/filters
@@ -19,6 +21,7 @@ from __future__ import annotations
 
 import json
 import re
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from bengal.utils.logger import get_logger
@@ -26,8 +29,242 @@ from bengal.utils.logger import get_logger
 logger = get_logger(__name__)
 
 if TYPE_CHECKING:
+    from bengal.autodoc.base import DocElement
+    from bengal.autodoc.models.openapi import OpenAPIEndpointMetadata, OpenAPISchemaMetadata
+    from bengal.core.page import Page
+    from bengal.core.section import Section
     from bengal.core.site import Site
     from bengal.rendering.engines.protocol import TemplateEnvironment
+
+
+# =============================================================================
+# View Dataclasses for Template Normalization
+# =============================================================================
+
+
+@dataclass(frozen=True, slots=True)
+class EndpointView:
+    """
+    Normalized endpoint view for templates.
+
+    Provides consistent access to endpoint data regardless of
+    whether the source is a DocElement (consolidated mode) or
+    Page (individual mode).
+
+    Attributes:
+        method: HTTP method (GET, POST, etc.)
+        path: URL path with parameters (/users/{id})
+        summary: Short description
+        description: Full description
+        deprecated: Whether endpoint is deprecated
+        href: Always valid - anchor in consolidated mode, page URL otherwise
+        has_page: Whether an individual page exists
+        operation_id: OpenAPI operationId (for advanced use)
+        tags: Endpoint tags
+        typed_metadata: Full OpenAPIEndpointMetadata (for advanced use)
+    """
+
+    method: str
+    path: str
+    summary: str
+    description: str
+    deprecated: bool
+    href: str  # Always valid - never None
+    has_page: bool
+    operation_id: str | None
+    tags: tuple[str, ...]
+    typed_metadata: Any  # OpenAPIEndpointMetadata or None
+
+    @classmethod
+    def from_doc_element(cls, el: DocElement, consolidated: bool) -> EndpointView:
+        """Create from DocElement (consolidated or individual mode)."""
+        meta: OpenAPIEndpointMetadata = el.typed_metadata  # type: ignore[assignment]
+
+        # Generate anchor ID from operationId or path
+        anchor_id = meta.operation_id or _generate_anchor_id(meta.method, meta.path)
+
+        # Smart href: anchor if consolidated, page URL otherwise
+        href = f"#{anchor_id}" if consolidated else el.href or "#"
+
+        return cls(
+            method=meta.method,
+            path=meta.path,
+            summary=meta.summary or "",
+            description=el.description,
+            deprecated=meta.deprecated,
+            href=href,
+            has_page=not consolidated,
+            operation_id=meta.operation_id,
+            tags=meta.tags or (),
+            typed_metadata=meta,
+        )
+
+    @classmethod
+    def from_page(cls, page: Page) -> EndpointView:
+        """Create from Page (individual mode)."""
+        meta = page.metadata
+        return cls(
+            method=meta.get("method", "GET"),
+            path=meta.get("path", ""),
+            summary=meta.get("summary", ""),
+            description=meta.get("description", ""),
+            deprecated=meta.get("deprecated", False),
+            href=page.href or "#",
+            has_page=True,
+            operation_id=meta.get("operation_id"),
+            tags=tuple(meta.get("tags", ())),
+            typed_metadata=None,
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class SchemaView:
+    """
+    Normalized schema view for templates.
+
+    Provides consistent access to schema data for listing and linking.
+
+    Attributes:
+        name: Schema name (e.g., "User", "OrderRequest")
+        schema_type: Type (object, array, string, etc.)
+        description: Schema description
+        href: Link to schema page (or anchor if inline)
+        has_page: Whether individual page exists
+        properties: Property definitions (for quick access)
+        required: Required property names
+        enum: Enum values (if applicable)
+        example: Example value (if provided)
+        typed_metadata: Full OpenAPISchemaMetadata
+    """
+
+    name: str
+    schema_type: str
+    description: str
+    href: str
+    has_page: bool
+    properties: dict[str, Any]
+    required: tuple[str, ...]
+    enum: tuple[Any, ...] | None
+    example: Any
+    typed_metadata: Any  # OpenAPISchemaMetadata or None
+
+    @classmethod
+    def from_doc_element(cls, el: DocElement, consolidated: bool = False) -> SchemaView:
+        """Create from DocElement."""
+        meta: OpenAPISchemaMetadata = el.typed_metadata  # type: ignore[assignment]
+
+        # Smart href: anchor if no page, page URL otherwise
+        if consolidated or not el.href:
+            href = f"#schema-{el.name}"
+            has_page = False
+        else:
+            href = el.href
+            has_page = True
+
+        return cls(
+            name=el.name,
+            schema_type=meta.schema_type or "object",
+            description=el.description,
+            href=href,
+            has_page=has_page,
+            properties=dict(meta.properties) if meta.properties else {},
+            required=meta.required or (),
+            enum=meta.enum,
+            example=meta.example,
+            typed_metadata=meta,
+        )
+
+
+def _generate_anchor_id(method: str, path: str) -> str:
+    """Generate a URL-safe anchor ID from method and path."""
+    # Remove leading/trailing slashes, replace path separators and braces
+    sanitized = path.strip("/").replace("/", "-").replace("{", "").replace("}", "")
+    return f"{method.lower()}-{sanitized}" if sanitized else method.lower()
+
+
+# =============================================================================
+# Filter Functions
+# =============================================================================
+
+
+def endpoints_filter(section: Section | None) -> list[EndpointView]:
+    """
+    Normalize section endpoints for templates.
+
+    Detects consolidation mode automatically and returns a list of
+    EndpointView objects with consistent properties.
+
+    Usage:
+        {% for ep in section | endpoints %}
+          <a href="{{ ep.href }}">{{ ep.method }} {{ ep.path }}</a>
+        {% end %}
+
+    Args:
+        section: Section containing endpoints
+
+    Returns:
+        List of EndpointView objects
+    """
+    if section is None:
+        return []
+
+    # Detect mode from data structure
+    metadata = getattr(section, "metadata", None)
+    if metadata is None:
+        metadata = {}
+
+    raw_endpoints = metadata.get("endpoints", [])
+
+    if raw_endpoints:
+        # Consolidated mode - DocElements stored in metadata.endpoints
+        return [
+            EndpointView.from_doc_element(el, consolidated=True)
+            for el in raw_endpoints
+            if hasattr(el, "typed_metadata") and el.typed_metadata is not None
+        ]
+
+    # Individual mode - Pages in section.pages
+    pages = getattr(section, "pages", None) or []
+    return [
+        EndpointView.from_page(p)
+        for p in pages
+        if hasattr(p, "metadata")
+        and (p.metadata.get("type") == "openapi_endpoint" or "method" in p.metadata)
+    ]
+
+
+def schemas_filter(section: Section | None) -> list[SchemaView]:
+    """
+    Normalize section schemas for templates.
+
+    Returns a list of SchemaView objects with consistent properties.
+
+    Usage:
+        {% for schema in section | schemas %}
+          <a href="{{ schema.href }}">{{ schema.name }}</a>
+          <span>{{ schema.schema_type }}</span>
+        {% end %}
+
+    Args:
+        section: Section containing schemas (usually root API section)
+
+    Returns:
+        List of SchemaView objects
+    """
+    if section is None:
+        return []
+
+    metadata = getattr(section, "metadata", None)
+    if metadata is None:
+        metadata = {}
+
+    raw_schemas = metadata.get("schemas", [])
+
+    return [
+        SchemaView.from_doc_element(el, consolidated=False)
+        for el in raw_schemas
+        if hasattr(el, "typed_metadata") and el.typed_metadata is not None
+    ]
 
 
 def register(env: TemplateEnvironment, site: Site) -> None:
@@ -51,6 +288,8 @@ def register(env: TemplateEnvironment, site: Site) -> None:
             "highlight_path_params": highlight_path_params,
             "method_color_class": method_color_class,
             "status_code_class": status_code_class,
+            "endpoints": endpoints_filter,
+            "schemas": schemas_filter,
         }
     )
 
