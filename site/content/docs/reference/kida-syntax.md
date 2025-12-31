@@ -534,13 +534,70 @@ The `nav` block depends only on `site.pages` (site-wide), so it's automatically 
 
 ## Kida-Only Features
 
-### Optional Chaining (`?.`)
+### Optional Chaining
 
-Safe attribute access:
+Kida provides safe navigation operators that return `None` instead of raising errors when accessing missing attributes or keys.
+
+#### Optional Attribute Access (`?.`)
+
+Safe attribute access—returns `None` if the object is `None`:
 
 ```kida
-{{ user?.profile?.name ?? 'Anonymous' }}
-{{ page?.metadata?.author ?? 'Unknown' }}
+{{ user?.profile?.name }}           {# None if user or profile is None #}
+{{ page?.metadata?.author }}        {# None if page or metadata is None #}
+{{ config?.theme?.colors?.primary }} {# Deep safe access #}
+```
+
+#### Optional Subscript Access (`?[`)
+
+Safe key/index access—returns `None` if the object is `None`:
+
+```kida
+{{ data?['key'] }}                  {# None if data is None #}
+{{ schema?['in'] }}                 {# Access reserved word keys safely #}
+{{ items?[0] }}                     {# Safe index access #}
+{{ config?['settings']?['theme'] }} {# Chained safe subscript #}
+```
+
+**Combining with attribute access**:
+
+```kida
+{{ api?.response?['data']?['items'] }}  {# Mix both operators #}
+{{ user?.preferences?['theme'] ?? 'light' }}
+```
+
+:::{tip}
+**Kida uses `?[` not `?.[]`**: Unlike JavaScript which uses `?.['key']`, Kida uses the more concise `?['key']`. The pattern is simple: prefix `?` makes any accessor optional.
+
+| Accessor | Regular | Optional |
+|----------|---------|----------|
+| Attribute | `.attr` | `?.attr` |
+| Subscript | `['key']` | `?['key']` |
+:::
+
+#### Common Use Cases
+
+**Accessing reserved word keys** (common in OpenAPI, JSON Schema):
+
+```kida
+{# OpenAPI security schemes use 'in' as a field name #}
+{% let location = scheme?['in'] ?? 'header' %}
+{% let api_type = spec?['type'] ?? 'apiKey' %}
+```
+
+**Safe array access**:
+
+```kida
+{% let first = items?[0] %}
+{% let last = items?[-1] %}
+{{ results?[0]?.name ?? 'No results' }}
+```
+
+**Nested data structures**:
+
+```kida
+{% let value = response?['data']?['users']?[0]?['email'] %}
+{{ value ?? 'Not found' }}
 ```
 
 ### Null Coalescing (`??`)

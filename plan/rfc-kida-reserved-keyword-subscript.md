@@ -1,22 +1,25 @@
-# RFC: Kida Reserved Keyword Subscript Access
+# RFC: Kida Optional Subscript Sugar (`?.[key]`)
 
-**Status**: Draft  
+**Status**: Closed (Documentation)  
 **Author**: AI Assistant  
 **Created**: 2025-01-01  
-**Issue**: Parser fails on reserved keywords inside bracket subscript expressions
+**Resolved**: 2025-01-01  
+**Issue**: `?.[key]` is currently a parse error; users expect it to behave like optional subscript (`?[key]`)
 
 ---
 
 ## Summary
 
-Kida's parser incorrectly interprets reserved Python keywords (`in`, `is`, `for`, `if`, etc.) inside bracket subscript expressions as keywords rather than string literals. This causes valid dict access patterns like `obj['in']` to fail with parse errors.
+Kida supports optional attribute access (`obj?.attr`) and optional subscript access (`obj?[key]`). Today, `obj?.[key]` fails because `?.` is parsed as optional *dot* access and requires a following attribute name.
+
+This RFC proposes a parser-only enhancement: treat `obj?.[key]` as syntactic sugar for `obj?[key]` to reduce confusion (especially when users come from JavaScript/TypeScript, where `obj?.[key]` is common).
 
 ## Problem Statement
 
 ### Current Behavior
 
 ```html
-{% let value = data['in'] %}
+{% let value = data?.["in"] %}
 ```
 
 **Error:**
@@ -24,19 +27,21 @@ Kida's parser incorrectly interprets reserved Python keywords (`in`, `is`, `for`
 Parse Error: Expected attribute name after ?.
   --> template.html:1:20
    |
- 1 | {% let value = data['in'] %}
+ 1 | {% let value = data?.["in"] %}
    |                    ^
 ```
 
-The parser sees `in` and interprets it as the keyword `in` (used in `for x in items`), not as a string literal.
+This error is expected given the current grammar: after `?.` the parser requires a `NAME` token (an attribute).
 
 ### Expected Behavior
 
-The expression `data['in']` should be parsed as subscript access with the string key `'in'`, identical to how Jinja2 and Python handle it.
+`data?.["in"]` should parse and behave like optional subscript access: `data?["in"]`.
+
+Non-goal: change how *strings* are tokenized. Quoted strings inside subscripts already work (for example, `data["in"]` parses correctly today).
 
 ### Real-World Impact
 
-This issue was discovered in OpenAPI template development where `in` is a common field in security scheme definitions:
+This came up in OpenAPI template development where `in` is a common field in security scheme definitions:
 
 ```yaml
 # OpenAPI spec
@@ -50,74 +55,50 @@ securitySchemes:
 ```html
 {# Template trying to access this data #}
 {% for name, scheme in security_schemes |> items %}
-  {% let location = scheme['in'] %}  {# ❌ FAILS #}
+  {% let location = scheme?.["in"] %}  {# currently fails; users expect it to work #}
 {% end %}
 ```
 
-**Workaround** (currently required):
+**Workaround** (today):
 ```html
-{% let location = scheme.get('in', 'header') %}  {# ✅ Works but ugly #}
+{% let location = scheme?["in"] ?? "header" %}
 ```
-
-### Affected Keywords
-
-All Python/Kida reserved keywords when used as string literals in subscripts:
-- `in`, `is`, `if`, `else`, `for`, `while`, `and`, `or`, `not`
-- `def`, `class`, `return`, `yield`, `import`, `from`, `as`
-- `try`, `except`, `finally`, `raise`, `with`
-- `True`, `False`, `None`
-- `match`, `case` (Kida-specific)
 
 ## Proposed Solution
 
-### Approach: Lexer Context Awareness
+### Approach: Parser-Level Sugar
 
-When the lexer encounters `[`, it should enter a "subscript context" where:
-1. String literals are parsed normally (including those containing reserved words)
-2. The subscript expression is terminated by `]`
-3. Within quoted strings (`'...'` or `"..."`), no keyword recognition occurs
+Interpret the token sequence `OPTIONAL_DOT` (`?.`) followed immediately by `LBRACKET` (`[`) as optional subscript access.
+
+This keeps the lexer unchanged and makes the parser accept both spellings:
+- Canonical: `obj?[key]`
+- Sugar: `obj?.[key]`
 
 ### Implementation
 
-**Location**: `bengal/rendering/kida/lexer.py`
-
-**Change**: After tokenizing `[`, switch to a subscript-aware mode that:
-1. Continues tokenizing as normal for expressions
-2. For string literals, captures the full string including reserved words
-3. Returns to normal mode after `]`
-
-**Key insight**: The lexer already correctly handles string literals in most contexts. The issue is specifically with how the parser combines tokens in subscript expressions.
-
-### Alternative: Parser-Level Fix
-
-If lexer changes are too invasive, the parser could be modified:
-1. When parsing a subscript expression (after `[`)
-2. If the next token is a string literal
-3. Accept the string regardless of whether its content matches a keyword
-
 **Location**: `bengal/rendering/kida/parser/expressions.py`
+
+**Change**: In the `OPTIONAL_DOT` postfix branch, if the next token is `LBRACKET`, parse a subscript and emit an `OptionalGetitem` node instead of raising “Expected attribute name after ?.”.
 
 ## Test Cases
 
-### Basic Reserved Keyword Access
+### Optional Subscript Sugar
 ```html
-{% let x = data['in'] %}      {# Should work #}
-{% let x = data["in"] %}      {# Should work #}
-{% let x = data['for'] %}     {# Should work #}
-{% let x = data['if'] %}      {# Should work #}
-{% let x = data['is'] %}      {# Should work #}
+{% let x = data?.["in"] %}             {# Should work (sugar) #}
+{% let x = data?.['in'] %}             {# Should work (sugar) #}
+{% let x = data?.items?.["in"] %}      {# Should work (sugar chained) #}
 ```
 
-### Nested Access
+### Canonical Optional Subscript
 ```html
-{% let x = data['items']['in'] %}  {# Should work #}
-{% let x = data.items['in'] %}     {# Should work #}
+{% let x = data?["in"] %}          {# Should work (canonical) #}
+{% let x = data?.items?["in"] %}   {# Should work (mixing ?. and ?[) #}
 ```
 
-### With Optional Chaining
+### Non-goal: reserved words inside quoted strings
 ```html
-{% let x = data?.['in'] %}         {# Should work #}
-{% let x = data?.items?.['in'] %}  {# Should work #}
+{% let x = data["in"] %}           {# Already works today #}
+{% let x = data['for'] %}          {# Already works today #}
 ```
 
 ### Mixed Expressions
@@ -135,62 +116,46 @@ If lexer changes are too invasive, the parser could be modified:
 
 ## Migration
 
-**Backward Compatibility**: This is a pure enhancement. All currently-working templates continue to work. Templates that previously failed will now succeed.
+**Backward Compatibility**: Additive enhancement. Existing templates keep working. Templates using `?.[key]` (currently failing) will start working.
 
 **No breaking changes**.
 
 ## Alternatives Considered
 
-### 1. Document `.get()` as the canonical pattern
-**Rejected**: Forces awkward workarounds for a common use case. OpenAPI specs, JSON schemas, and many APIs use reserved words as keys.
+### 1. Document `?[key]` as the only supported syntax ✅ CHOSEN
+Kida's `?[key]` is the better design. It's more concise, follows a consistent prefix pattern, and avoids JavaScript's historical baggage. Documentation was updated to make this convention clear.
 
-### 2. Add escape syntax (e.g., `data[\'in\']`)
-**Rejected**: Adds complexity. The string literal already clearly indicates it's a string, not a keyword.
+### 2. Add parser sugar for `?.[key]`
+**Not implemented**: While this would reduce friction for JavaScript developers, it adds complexity for marginal benefit. The documentation approach is sufficient—users learn the pattern once.
 
-### 3. Pre-process templates to rewrite `['keyword']` to `.get('keyword')`
-**Rejected**: Lossy transformation (loses KeyError semantics), adds build complexity.
+### 3. Lexer context mode for subscripts
+**Not needed**: Quoted strings already lex as `STRING` in all contexts. The original RFC misdiagnosed the issue.
+
+### 4. Pre-process templates to rewrite `?.[key]` to `?[key]`
+**Rejected**: Adds build complexity and makes errors harder to map back to source.
 
 ## Implementation Estimate
 
-- **Effort**: Small (2-4 hours)
-- **Risk**: Low (isolated lexer/parser change)
-- **Testing**: Add test cases above to parser test suite
+Removed. This RFC does not estimate implementation work.
 
 ## Related Issues
 
-- OpenAPI template development blocked on workarounds
-- Similar issue in schema-viewer.html, responses.html, etc.
+- OpenAPI templates sometimes use `?.[key]` patterns and get “Expected attribute name after ?.”
 
 ## Decision
 
-Pending review.
+**Resolved via documentation.**
 
----
+After analysis, we decided that Kida's `?[key]` syntax is the correct design choice:
 
-## Appendix: Parser Flow
+1. **Already working**: `data?['in']` works today
+2. **More concise**: Avoids the redundant dot in `?.[]`
+3. **Consistent pattern**: `?` prefix makes any accessor optional (`?.` for attribute, `?[` for subscript)
+4. **No historical baggage**: JavaScript uses `?.[]` due to backwards compatibility constraints that don't apply to Kida
 
-Current parsing of `data['in']`:
+**Actions taken**:
+- Updated [Kida Syntax Reference](/docs/reference/kida-syntax/) with comprehensive optional chaining documentation
+- Added tip explaining the `?[` vs `?.[]` difference for users coming from JavaScript
+- Documented common use cases (reserved word keys, safe array access, nested structures)
 
-```
-Token Stream:
-  NAME(data) -> LBRACKET -> STRING('in') -> RBRACKET
-
-Parser sees:
-  1. NAME(data) -> start subscript expression
-  2. LBRACKET -> expect subscript key
-  3. STRING('in') -> ❌ Parser sees 'in' keyword, not string
-  4. Error: unexpected keyword in subscript position
-```
-
-Expected parsing:
-
-```
-Token Stream:
-  NAME(data) -> LBRACKET -> STRING('in') -> RBRACKET
-
-Parser should:
-  1. NAME(data) -> start subscript expression
-  2. LBRACKET -> enter subscript context
-  3. STRING('in') -> ✅ Accept as string literal key
-  4. RBRACKET -> complete subscript, return Subscript(data, 'in')
-```
+**No parser changes required.** Users should use `data?['key']` (canonical Kida syntax).
