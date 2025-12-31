@@ -27,7 +27,7 @@ Related:
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import asdict, dataclass, field, is_dataclass
+from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -122,79 +122,7 @@ class DocElement:
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for caching/serialization."""
-
-        def _to_jsonable(value: Any) -> Any:
-            """
-            Convert a value to a JSON-serializable form.
-
-            Used to ensure autodoc cache payloads can be persisted in BuildCache
-            without failing serialization on domain objects (e.g., ParameterInfo).
-
-            IMPORTANT: DocElement objects should NEVER be passed to this function.
-            They must go through to_dict() first. If a DocElement is detected here,
-            it indicates a bug that could corrupt cache data.
-            """
-            if value is None:
-                return None
-            if isinstance(value, str | int | float | bool):
-                return value
-            if isinstance(value, Path):
-                return str(value)
-            # CRITICAL: Check for DocElement BEFORE is_dataclass to prevent corruption
-            # If a DocElement somehow gets here, it means it bypassed to_dict()
-            # This would cause children to be converted to strings via asdict() -> str()
-            if isinstance(value, DocElement):
-                from bengal.utils.logger import get_logger
-
-                logger = get_logger(__name__)
-                logger.warning(
-                    "autodoc_serialization_bug",
-                    error="DocElement passed to _to_jsonable() instead of to_dict()",
-                    element_name=getattr(value, "name", "unknown"),
-                    element_type=getattr(value, "element_type", "unknown"),
-                    action="converting_to_dict_to_prevent_corruption",
-                    error_code="A001",  # cache_corruption - preventing cache corruption
-                )
-                # Convert to dict properly instead of letting it fall through
-                return value.to_dict()
-
-            # Handle dataclasses (including those from reloaded modules where is_dataclass might fail)
-            if is_dataclass(value) or hasattr(value, "__dataclass_fields__"):
-                try:
-                    # asdict() is recursive and handles most cases efficiently.
-                    # We call _to_jsonable on the result to ensure any nested objects
-                    # asdict might have missed (e.g. non-dataclasses) are also handled.
-                    return _to_jsonable(asdict(value)) if not isinstance(value, dict) else value
-                except Exception:
-                    # Fallback for extreme cases (e.g. broken descriptors during reload)
-                    # Manual conversion via __dataclass_fields__
-                    fields = getattr(value, "__dataclass_fields__", {})
-                    return {
-                        name: _to_jsonable(getattr(value, name))
-                        for name in fields
-                        if not name.startswith("_")
-                    }
-
-            if isinstance(value, dict):
-                return {str(k): _to_jsonable(v) for k, v in value.items()}
-            if isinstance(value, list | set):
-                return [_to_jsonable(v) for v in value]
-            if isinstance(value, tuple):
-                return tuple(_to_jsonable(v) for v in value)
-
-            # Last resort: represent unknown objects as strings (stable enough for caching)
-            # but log a warning so we can track down what bypassed serialization
-            if value is not None and not isinstance(value, str | int | float | bool):
-                from bengal.utils.logger import get_logger
-
-                logger = get_logger(__name__)
-                logger.debug(
-                    "autodoc_serialization_fallback",
-                    type=type(value).__name__,
-                    value_preview=str(value)[:100],
-                    action="converting_to_string",
-                )
-            return str(value)
+        from bengal.utils.serialization import to_jsonable
 
         # Validate children are DocElement instances before serialization
         # This catches bugs early and prevents corrupted cache data
@@ -228,7 +156,7 @@ class DocElement:
             "element_type": self.element_type,
             "source_file": str(self.source_file) if self.source_file else None,
             "line_number": self.line_number,
-            "metadata": _to_jsonable(self.metadata),
+            "metadata": to_jsonable(self.metadata),
             "typed_metadata": None,
             "children": [child.to_dict() for child in valid_children],
             "examples": self.examples,
@@ -241,7 +169,7 @@ class DocElement:
         if self.typed_metadata is not None:
             result["typed_metadata"] = {
                 "type": type(self.typed_metadata).__name__,
-                "data": _to_jsonable(self.typed_metadata),
+                "data": to_jsonable(self.typed_metadata),
             }
         return result
 

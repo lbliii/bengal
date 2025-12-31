@@ -65,7 +65,10 @@ def save_compressed(data: dict[str, Any], path: Path, level: int = COMPRESSION_L
     #
     # Cache payloads must be resilient: prefer best-effort serialization to avoid
     # disabling incremental builds if a value is not strictly JSON-native.
-    json_bytes = json.dumps(data, separators=(",", ":"), default=str).encode("utf-8")
+    # Uses to_jsonable to handle dataclasses and module reloads in dev server.
+    from bengal.utils.serialization import to_jsonable
+
+    json_bytes = json.dumps(data, separators=(",", ":"), default=to_jsonable).encode("utf-8")
     original_size = len(json_bytes)
 
     # Compress with Zstandard (PEP 784)

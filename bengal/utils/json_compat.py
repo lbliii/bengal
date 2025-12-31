@@ -43,20 +43,18 @@ def dumps(
     """
     Serialize object to JSON string.
 
+    Uses robust serialization to handle dataclasses and module reloads.
+
     Args:
         obj: Object to serialize
         indent: Indentation level (None for compact, 2 for pretty)
 
     Returns:
         JSON string
-
-    Example:
-        >>> dumps({"key": "value"})
-        '{"key": "value"}'
-        >>> dumps({"key": "value"}, indent=2)
-        '{\\n  "key": "value"\\n}'
     """
-    return json.dumps(obj, indent=indent, ensure_ascii=False)
+    from bengal.utils.serialization import to_jsonable
+
+    return json.dumps(obj, indent=indent, ensure_ascii=False, default=to_jsonable)
 
 
 def loads(data: str | bytes) -> Any:
