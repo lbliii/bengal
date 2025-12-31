@@ -177,8 +177,10 @@ class DocElement:
 
             if isinstance(value, dict):
                 return {str(k): _to_jsonable(v) for k, v in value.items()}
-            if isinstance(value, list | tuple | set):
+            if isinstance(value, list | set):
                 return [_to_jsonable(v) for v in value]
+            if isinstance(value, tuple):
+                return tuple(_to_jsonable(v) for v in value)
 
             # Last resort: represent unknown objects as strings (stable enough for caching)
             # but log a warning so we can track down what bypassed serialization

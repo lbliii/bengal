@@ -115,9 +115,10 @@ Kida Features:
     <h2 class="api-home__section-title">{{ icon('lock', size=18) }} Authentication</h2>
     <div class="api-home__auth-schemes">
       {% for name, scheme in security_schemes |> items %}
+      {% if scheme %}
       {% let scheme_type = scheme?.type ?? 'apiKey' %}
       {% let scheme_desc = scheme?.description ?? '' %}
-      {% let scheme_in = scheme['in'] ?? 'header' %}
+      {% let scheme_in = scheme.get('in', 'header') %}
       {% let scheme_name = scheme?.name ?? 'Authorization' %}
 
       <div class="api-home__auth-scheme card">
@@ -148,6 +149,7 @@ Kida Features:
         <code class="api-home__auth-example">{{ scheme_name }}: YOUR_CREDENTIALS</code>
         {% end %}
       </div>
+      {% end %}
       {% end %}
     </div>
   </section>
