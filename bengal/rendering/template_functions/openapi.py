@@ -9,6 +9,10 @@ Functions:
 - method_color_class: Get CSS class for HTTP method
 - status_code_class: Get CSS class for HTTP status code
 - get_response_example: Extract example from OpenAPI response
+
+Engine-Agnostic:
+    These functions work with any template engine that provides a globals/filters
+    interface (Jinja2, Kida, or custom engines via the adapter layer).
 """
 
 from __future__ import annotations
@@ -22,13 +26,16 @@ from bengal.utils.logger import get_logger
 logger = get_logger(__name__)
 
 if TYPE_CHECKING:
-    from jinja2 import Environment
-
     from bengal.core.site import Site
 
 
-def register(env: Environment, site: Site) -> None:
-    """Register OpenAPI functions with template environment."""
+def register(env: Any, site: Site) -> None:
+    """Register OpenAPI functions with template environment.
+
+    Args:
+        env: Template environment (Jinja2, Kida, or any engine with globals/filters)
+        site: Site instance
+    """
     env.globals.update(
         {
             "generate_code_sample": generate_code_sample,
