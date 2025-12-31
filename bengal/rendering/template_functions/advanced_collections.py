@@ -10,13 +10,12 @@ import random
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from jinja2 import Environment
-
     from bengal.core.site import Site
+    from bengal.rendering.engines.protocol import TemplateEnvironment
 
 
-def register(env: Environment, site: Site) -> None:
-    """Register advanced collection functions with Jinja2 environment."""
+def register(env: TemplateEnvironment, site: Site) -> None:
+    """Register functions with template environment."""
     env.filters.update(
         {
             "sample": sample,

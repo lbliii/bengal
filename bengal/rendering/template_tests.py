@@ -1,5 +1,5 @@
 """
-Custom Jinja2 tests for Bengal templates.
+Custom template tests for Bengal.
 
 Tests are used with 'is' operator for cleaner conditionals:
   {% if page is draft %} vs {% if page.metadata.get('draft', False) %}
@@ -11,6 +11,10 @@ Available tests:
   - outdated: Check if page is older than N days (default 90)
   - section: Check if object is a Section
   - translated: Check if page has translations
+
+Engine-Agnostic:
+    These tests work with any template engine that provides a tests interface
+    (Jinja2, Kida, or custom engines via the adapter layer).
 """
 
 from __future__ import annotations
@@ -22,18 +26,17 @@ from typing import TYPE_CHECKING
 from bengal.rendering.jinja_utils import has_value, safe_get
 
 if TYPE_CHECKING:
-    from jinja2 import Environment
-
     from bengal.core.page import Page
     from bengal.core.site import Site
+    from bengal.rendering.engines.protocol import TemplateEnvironment
 
 
-def register(env: Environment, site: Site) -> None:
+def register(env: TemplateEnvironment, site: Site) -> None:
     """
-    Register custom template tests with Jinja2 environment.
+    Register custom template tests with template environment.
 
     Args:
-        env: Jinja2 environment
+        env: Template environment (Jinja2, Kida, or any engine with tests interface)
         site: Site instance
     """
     env.tests.update(

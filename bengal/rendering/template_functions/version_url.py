@@ -35,17 +35,16 @@ from bengal.rendering.template_engine.url_helpers import with_baseurl
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
-    from jinja2 import Environment
-
     from bengal.core.page import Page
     from bengal.core.site import Site
+    from bengal.rendering.engines.protocol import TemplateEnvironment
 
 logger = get_logger(__name__)
 
 
-def register(env: Environment, site: Site) -> None:
+def register(env: TemplateEnvironment, site: Site) -> None:
     """
-    Register version URL functions with Jinja2 environment.
+    Register functions with template environment.
 
     Registers global functions for template use: {{ get_version_target_url(page, v) }}
 

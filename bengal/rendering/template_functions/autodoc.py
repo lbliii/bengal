@@ -29,10 +29,9 @@ from typing import TYPE_CHECKING, Any
 from bengal.autodoc.utils import get_function_parameters, get_function_return_info
 
 if TYPE_CHECKING:
-    from jinja2 import Environment
-
     from bengal.autodoc.base import DocElement
     from bengal.core.site import Site
+    from bengal.rendering.engines.protocol import TemplateEnvironment
 
 
 def is_autodoc_page(page: Any) -> bool:
@@ -53,8 +52,8 @@ def is_autodoc_page(page: Any) -> bool:
     return _is_autodoc_page(page)
 
 
-def register(env: Environment, site: Site) -> None:
-    """Register autodoc template functions with Jinja2 environment."""
+def register(env: TemplateEnvironment, site: Site) -> None:
+    """Register functions with template environment."""
     env.filters.update(
         {
             "get_params": get_params,

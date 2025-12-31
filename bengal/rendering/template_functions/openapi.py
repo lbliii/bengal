@@ -27,9 +27,10 @@ logger = get_logger(__name__)
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
+    from bengal.rendering.engines.protocol import TemplateEnvironment
 
 
-def register(env: Any, site: Site) -> None:
+def register(env: TemplateEnvironment, site: Site) -> None:
     """Register OpenAPI functions with template environment.
 
     Args:

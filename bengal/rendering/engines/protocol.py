@@ -1,9 +1,13 @@
 """
-Template engine protocol definition.
+Template engine protocol definitions.
 
-This module defines the interface contract that ALL template engines must implement.
-The protocol ensures consistent behavior across Jinja2, Mako, Patitas, and any
-custom or third-party engines.
+This module defines interface contracts for template engines and environments.
+The protocols ensure consistent behavior across Jinja2, Kida, and any custom
+or third-party engines.
+
+Protocols:
+    - TemplateEnvironment: Interface for environment objects (globals, filters, tests)
+    - TemplateEngineProtocol: Full engine interface for rendering templates
 
 Design Philosophy:
     - **No optional methods**: Every method is required for predictable behavior
@@ -11,11 +15,11 @@ Design Philosophy:
     - **Clear contracts**: Each method documents preconditions and guarantees
     - **Error consistency**: Standardized exception types across engines
 
-Required Attributes:
+Required Attributes (TemplateEngineProtocol):
     - site: Site instance for accessing config and content
     - template_dirs: Ordered search paths for template resolution
 
-Required Methods:
+Required Methods (TemplateEngineProtocol):
     - render_template(): Render named template file
     - render_string(): Render inline template string
     - template_exists(): Check template availability
@@ -51,6 +55,7 @@ Related Modules:
 
 from __future__ import annotations
 
+from collections.abc import Callable, MutableMapping
 from enum import Flag, auto
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
@@ -58,6 +63,39 @@ from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 if TYPE_CHECKING:
     from bengal.core import Site
     from bengal.rendering.engines.errors import TemplateError
+
+
+@runtime_checkable
+class TemplateEnvironment(Protocol):
+    """
+    Protocol for template environment objects.
+
+    Template environments provide the runtime context for template rendering,
+    including global variables, filters, and tests. Both Jinja2's Environment
+    and Kida's Environment implement this interface.
+
+    This protocol defines the minimal interface needed for registering
+    template functions. Environments may provide additional features
+    beyond this protocol.
+
+    Attributes:
+        globals: Dict-like mapping of global variables available in all templates
+        filters: Dict-like mapping of filter functions (value transformers)
+        tests: Dict-like mapping of test functions (boolean predicates)
+
+    Example:
+        >>> def register(env: TemplateEnvironment, site: Site) -> None:
+        ...     env.globals["my_func"] = my_function
+        ...     env.filters["my_filter"] = my_filter
+
+    Implementations:
+        - jinja2.Environment: Jinja2's native environment
+        - bengal.rendering.kida.Environment: Kida template engine
+    """
+
+    globals: MutableMapping[str, Any]
+    filters: MutableMapping[str, Callable[..., Any]]
+    tests: MutableMapping[str, Callable[..., bool]]
 
 
 class EngineCapability(Flag):

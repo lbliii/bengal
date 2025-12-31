@@ -25,10 +25,9 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from datetime import date, datetime
 
-    from jinja2 import Environment
-
     from bengal.core.page import Page
     from bengal.core.site import Site
+    from bengal.rendering.engines.protocol import TemplateEnvironment
 
 logger = get_logger(__name__)
 
@@ -88,7 +87,7 @@ _DEF_FORMATS = {
 }
 
 
-def register(env: Environment, site: Site) -> None:
+def register(env: TemplateEnvironment, site: Site) -> None:
     """Register i18n helpers into template environment.
 
     Context-dependent functions (t, current_lang) are registered via the

@@ -7,13 +7,13 @@ Supports nested objects, arrays, enums, and examples.
 
 Context:
 - schema: OpenAPISchemaMetadata or dict with:
-  - schema_type: Type (object, array, string, etc.)
-  - properties: Dict of property definitions
-  - required: Tuple of required property names
-  - enum: Enum values (optional)
-  - example: Example value (optional)
-  - items: Array item schema (for arrays)
-  - description: Schema description
+- schema_type: Type (object, array, string, etc.)
+- properties: Dict of property definitions
+- required: Tuple of required property names
+- enum: Enum values (optional)
+- example: Example value (optional)
+- items: Array item schema (for arrays)
+- description: Schema description
 - name: Schema name (optional, for display)
 - depth: Nesting depth (for indentation, default 0)
 
@@ -28,121 +28,117 @@ Kida Features:
 {% let required_props = schema?.required ?? () %}
 {% let enum_vals = schema?.enum %}
 {% let example_val = schema?.example %}
-{% let items = schema?.items %}
+{% let items_schema = schema?.items %}
 {% let description = schema?.description ?? '' %}
 {% let current_depth = depth ?? 0 %}
 {% let max_depth = 4 %}
 
 {% cache 'schema-viewer-' ~ (name ?? 'anon') ~ '-' ~ current_depth %}
 <div class="api-schema-viewer api-schema-viewer--depth-{{ current_depth }}" data-schema-type="{{ schema_type }}">
-  {# Schema Header #}
-  {% if name %}
-  <div class="api-schema-viewer__header">
-    <code class="api-schema-viewer__name">{{ name }}</code>
-    <span class="api-schema-viewer__type">{{ schema_type }}</span>
-  </div>
-  {% end %}
-
-  {# Description #}
-  {% if description %}
-  <div class="api-schema-viewer__description prose-sm">
-    {{ description | markdownify | safe }}
-  </div>
-  {% end %}
-
-  {# Object Properties #}
-  {% if schema_type == 'object' and properties | length > 0 %}
-  <div class="api-schema-viewer__properties">
-    {% for prop_name, prop_schema in properties |> items %}
-    {% let is_required = prop_name in required_props %}
-    {% let prop_type = prop_schema?.type ?? prop_schema?.schema_type ?? 'any' %}
-    {% let prop_desc = prop_schema?.description ?? '' %}
-    {% let prop_enum = prop_schema?.enum %}
-    {% let prop_default = prop_schema?.default %}
-
-    <div class="api-schema-viewer__property{% if is_required %} api-schema-viewer__property--required{% end %}">
-      <div class="api-schema-viewer__property-header">
-        <code class="api-schema-viewer__property-name">{{ prop_name }}</code>
-        <span class="api-schema-viewer__property-type">{{ prop_type }}</span>
-        {% if is_required %}
-        <span class="badge badge--danger-subtle badge--xs">required</span>
-        {% end %}
-      </div>
-
-      {% if prop_desc %}
-      <div class="api-schema-viewer__property-desc">{{ prop_desc }}</div>
-      {% end %}
-
-      {# Nested object (recursive, with depth limit) #}
-      {% if prop_type == 'object' and current_depth < max_depth %}
-      {% let nested_depth = current_depth + 1 %}
-      {% include 'autodoc/openapi/partials/schema-viewer.html' with schema=prop_schema, depth=nested_depth %}
-      {% end %}
-
-      {# Array items #}
-      {% if prop_type == 'array' and prop_schema?.items and current_depth < max_depth %}
-      {% let nested_depth = current_depth + 1 %}
-      <div class="api-schema-viewer__array-items">
-        <span class="api-schema-viewer__label">Items:</span>
-        {% include 'autodoc/openapi/partials/schema-viewer.html' with schema=prop_schema.items, depth=nested_depth %}
-      </div>
-      {% end %}
-
-      {# Property enum #}
-      {% with prop_enum as enums %}
-      {% if enums | length > 0 %}
-      <div class="api-schema-viewer__enum">
-        <span class="api-schema-viewer__enum-label">Allowed:</span>
-        {% for val in enums %}
-        <code class="api-schema-viewer__enum-value">{{ val }}</code>
-        {% end %}
-      </div>
-      {% end %}
-      {% end %}
-
-      {# Property default #}
-      {% with prop_default as default %}
-      <div class="api-schema-viewer__default">
-        <span class="api-schema-viewer__label">Default:</span>
-        <code>{{ default }}</code>
-      </div>
-      {% end %}
+    {# Schema Header #}
+    {% if name %}
+    <div class="api-schema-viewer__header">
+        <code class="api-schema-viewer__name">{{ name }}</code>
+        <span class="api-schema-viewer__type">{{ schema_type }}</span>
     </div>
     {% end %}
-  </div>
-  {% end %}
 
-  {# Array Items Schema #}
-  {% if schema_type == 'array' and items %}
-  <div class="api-schema-viewer__array">
-    <span class="api-schema-viewer__label">Array of:</span>
-    {% if current_depth < max_depth %}
-    {% let nested_depth = current_depth + 1 %}
-    {% include 'autodoc/openapi/partials/schema-viewer.html' with schema=items, depth=nested_depth %}
-    {% else %}
-    <code>{{ items?.type ?? items?.schema_type ?? 'any' }}</code>
+    {# Description #}
+    {% if description %}
+    <div class="api-schema-viewer__description prose-sm">
+        {{ description | markdownify | safe }}
+    </div>
     {% end %}
-  </div>
-  {% end %}
 
-  {# Enum Values (top-level) #}
-  {% with enum_vals as enums %}
-  {% if enums | length > 0 %}
-  <div class="api-schema-viewer__enum">
+    {# Object Properties #}
+    {% if schema_type == 'object' and properties | length > 0 %}
+    <div class="api-schema-viewer__properties">
+        {% for prop_name, prop_schema in properties |> items %}
+        {% let is_required = prop_name in required_props %}
+        {% let prop_type = prop_schema?.type ?? prop_schema?.schema_type ?? 'any' %}
+        {% let prop_desc = prop_schema?.description ?? '' %}
+        {% let prop_enum = prop_schema?.enum %}
+        {% let prop_default = prop_schema?.default %}
+
+        <div class="api-schema-viewer__property{% if is_required %} api-schema-viewer__property--required{% end %}">
+            <div class="api-schema-viewer__property-header">
+                <code class="api-schema-viewer__property-name">{{ prop_name }}</code>
+                <span class="api-schema-viewer__property-type">{{ prop_type }}</span>
+                {% if is_required %}
+                <span class="badge badge--danger-subtle badge--xs">required</span>
+                {% end %}
+            </div>
+
+            {% if prop_desc %}
+            <div class="api-schema-viewer__property-desc">{{ prop_desc }}</div>
+            {% end %}
+
+            {# Nested object (recursive, with depth limit) #}
+            {% if prop_type == 'object' and current_depth < max_depth %} {% let schema=prop_schema %} {% let
+                depth=current_depth + 1 %} {% include 'autodoc/openapi/partials/schema-viewer.html' %} {% end %} {#
+                Array items #} {% if prop_type=='array' and prop_schema?.items and current_depth < max_depth %} <div
+                class="api-schema-viewer__array-items">
+                <span class="api-schema-viewer__label">Items:</span>
+                {% let schema = prop_schema.items %}
+                {% let depth = current_depth + 1 %}
+                {% include 'autodoc/openapi/partials/schema-viewer.html' %}
+        </div>
+        {% end %}
+
+        {# Property enum #}
+        {% with prop_enum as enums %}
+        {% if enums | length > 0 %}
+        <div class="api-schema-viewer__enum">
+            <span class="api-schema-viewer__enum-label">Allowed:</span>
+            {% for val in enums %}
+            <code class="api-schema-viewer__enum-value">{{ val }}</code>
+            {% end %}
+        </div>
+        {% end %}
+        {% end %}
+
+        {# Property default #}
+        {% with prop_default as default %}
+        <div class="api-schema-viewer__default">
+            <span class="api-schema-viewer__label">Default:</span>
+            <code>{{ default }}</code>
+        </div>
+        {% end %}
+    </div>
+    {% end %}
+</div>
+{% end %}
+
+{# Array Items Schema #}
+{% if schema_type == 'array' and items_schema %}
+<div class="api-schema-viewer__array">
+    <span class="api-schema-viewer__label">Array of:</span>
+    {% if current_depth < max_depth %} {% let schema=items_schema %} {% let depth=current_depth + 1 %} {%
+        include 'autodoc/openapi/partials/schema-viewer.html' %} {% else %} <code>{{ items_schema?.type ??
+        items_schema?.schema_type ?? 'any' }}</code>
+        {% end %}
+</div>
+{% end %}
+
+{# Enum Values (top-level) #}
+{% with enum_vals as enums %}
+{% if enums | length > 0 %}
+<div class="api-schema-viewer__enum">
     <span class="api-schema-viewer__enum-label">Allowed values:</span>
     {% for val in enums %}
     <code class="api-schema-viewer__enum-value">{{ val }}</code>
     {% end %}
-  </div>
-  {% end %}
-  {% end %}
-
-  {# Example Value #}
-  {% with example_val as example %}
-  <div class="api-schema-viewer__example">
-    <span class="api-schema-viewer__example-label">Example</span>
-    <pre class="api-schema-viewer__example-code"><code class="language-json">{{ example | tojson(indent=2) }}</code></pre>
-  </div>
-  {% end %}
 </div>
 {% end %}
+{% end %}
+
+{# Example Value #}
+{% with example_val as example %}
+<div class="api-schema-viewer__example">
+    <span class="api-schema-viewer__example-label">Example</span>
+    <pre
+        class="api-schema-viewer__example-code"><code class="language-json">{{ example | tojson(indent=2) }}</code></pre>
+</div>
+{% end %}
+</div>
+{% endcache %}

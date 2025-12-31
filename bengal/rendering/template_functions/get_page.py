@@ -19,10 +19,9 @@ from typing import TYPE_CHECKING
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
-    from jinja2 import Environment
-
     from bengal.core.page import Page
     from bengal.core.site import Site
+    from bengal.rendering.engines.protocol import TemplateEnvironment
 
 logger = get_logger(__name__)
 
@@ -293,8 +292,8 @@ def page_exists(path: str, site: Site) -> bool:
     return False
 
 
-def register(env: Environment, site: Site) -> None:
-    """Register the get_page and page_exists functions with Jinja2 environment."""
+def register(env: TemplateEnvironment, site: Site) -> None:
+    """Register functions with template environment."""
 
     def page_exists_wrapper(path: str) -> bool:
         """Wrapper with site closure."""

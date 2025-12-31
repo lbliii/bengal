@@ -16,14 +16,13 @@ from typing import TYPE_CHECKING, Any
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
-    from jinja2 import Environment
-
     from bengal.core.site import Site
+    from bengal.rendering.engines.protocol import TemplateEnvironment
 
 logger = get_logger(__name__)
 
 
-def register(env: Environment, site: Site) -> None:
+def register(env: TemplateEnvironment, site: Site) -> None:
     """Register taxonomy helper functions with template environment.
 
     Context-dependent functions (tag_url) are registered via the adapter
