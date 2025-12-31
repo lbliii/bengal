@@ -50,9 +50,11 @@ Kida Features:
     <h2 class="api-schema__section-title">Properties</h2>
 
     {% cache 'openapi-schema-' ~ schema_name %}
+    {% let schema = meta %}
+    {% let name = schema_name %}
     {% let depth = 0 %}
-    {% include 'autodoc/openapi/partials/schema-viewer.html' with schema=meta, name=schema_name, depth=depth %}
-    {% end %}
+    {% include 'autodoc/openapi/partials/schema-viewer.html' %}
+    {% endcache %}
   </section>
   {% end %}
 

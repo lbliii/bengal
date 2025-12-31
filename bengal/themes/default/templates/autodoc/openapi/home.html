@@ -99,7 +99,7 @@ Kida Features:
       {% for name, scheme in security_schemes |> items %}
       {% let scheme_type = scheme?.type ?? 'apiKey' %}
       {% let scheme_desc = scheme?.description ?? '' %}
-      {% let scheme_in = scheme?.in ?? 'header' %}
+      {% let scheme_in = scheme['in'] ?? 'header' %}
       {% let scheme_name = scheme?.name ?? 'Authorization' %}
 
       <div class="api-home__auth-scheme card">
