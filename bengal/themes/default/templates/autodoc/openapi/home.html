@@ -157,18 +157,21 @@ Kida Features:
   </section>
   {% end %}
 
-  {# Endpoint Categories (Tags) #}
-  {% if tags | length > 0 %}
+  {# Endpoint Categories (Tags) - Quick Jump Navigation #}
+  {% let subsections = section?.subsections ?? () %}
+  {% if subsections | length > 0 %}
   <section class="api-home__tags autodoc-section">
     <h2 class="api-home__section-title">{{ icon('folder', size=18) }} Categories</h2>
     <div class="api-home__tag-grid">
-      {% for tag in tags %}
-      {% let tag_name = tag if tag is string else tag?.name ?? tag %}
-      {% let tag_desc = '' if tag is string else tag?.description ?? '' %}
+      {% for subsec in subsections %}
+      {% let tag_name = subsec?.title ?? 'Endpoints' %}
+      {% let tag_desc = subsec?.metadata?.description ?? '' %}
+      {% let tag_endpoints = subsec | endpoints %}
 
       <a href="#{{ tag_name | slugify }}" class="api-home__tag-card card card--hoverable">
         <header class="api-home__tag-header">
           <h3 class="api-home__tag-name">{{ tag_name }}</h3>
+          <span class="badge badge--outline badge--sm">{{ tag_endpoints | length }}</span>
         </header>
         {% if tag_desc %}
         <p class="api-home__tag-description">{{ tag_desc | truncate(100) }}</p>
@@ -179,8 +182,46 @@ Kida Features:
   </section>
   {% end %}
 
-  {# All Endpoints (if no tags, show all endpoints directly) #}
-  {% if tags | length == 0 and eps | length > 0 %}
+  {# Endpoints Grouped by Tag - with anchor IDs matching category tiles #}
+  {% if subsections | length > 0 %}
+  {% for subsec in subsections %}
+  {% let tag_name = subsec?.title ?? 'Endpoints' %}
+  {% let tag_desc = subsec?.metadata?.description ?? '' %}
+  {% let tag_endpoints = subsec | endpoints %}
+
+  {% if tag_endpoints | length > 0 %}
+  <section id="{{ tag_name | slugify }}" class="api-home__tag-section autodoc-section">
+    <header class="api-home__tag-section-header">
+      <h2 class="api-home__section-title">{{ icon('tag', size=18) }} {{ tag_name }}</h2>
+      {% if tag_desc %}
+      <p class="api-home__tag-section-desc text-muted">{{ tag_desc }}</p>
+      {% end %}
+    </header>
+    <div class="autodoc-cards">
+      {% for ep in tag_endpoints %}
+      <a href="{{ ep.href }}" class="autodoc-card{% if ep.deprecated %} autodoc-card--deprecated{% end %}">
+        <div class="autodoc-card-header">
+          {% spaceless %}
+          <span class="api-method api-method--sm api-method--{{ ep.method |> lower }}">{{ ep.method }}</span>
+          {% end %}
+          <code class="autodoc-card-name">{{ ep.path }}</code>
+        </div>
+        {% if ep.summary %}
+        <p class="autodoc-card-desc">{{ ep.summary | truncate(80) }}</p>
+        {% end %}
+        {% if ep.deprecated %}
+        <span class="autodoc-badge" data-badge="deprecated">Deprecated</span>
+        {% end %}
+      </a>
+      {% end %}
+    </div>
+  </section>
+  {% end %}
+  {% end %}
+  {% end %}
+
+  {# All Endpoints (only if no subsections/tags exist) #}
+  {% if subsections | length == 0 and eps | length > 0 %}
   <section class="api-home__endpoints autodoc-section">
     <h2 class="api-home__section-title">{{ icon('list', size=18) }} Endpoints</h2>
     <div class="autodoc-cards">
