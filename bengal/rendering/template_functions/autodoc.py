@@ -459,6 +459,79 @@ def options_filter(element: DocElement | None) -> list[OptionView]:
     return sorted(views, key=lambda v: (v.is_argument, v.name))
 
 
+def member_view_filter(element: DocElement | None) -> MemberView | None:
+    """
+    Convert a single DocElement to a MemberView.
+
+    Use this when iterating over a pre-filtered list of DocElements
+    and you want normalized access to each member's properties.
+
+    Usage:
+        {% for el in members %}
+          {% let m = el | member_view %}
+          <code>{{ m.name }}</code>
+          {% if m.is_async %}<span class="badge">async</span>{% end %}
+        {% end %}
+
+    Args:
+        element: DocElement to convert
+
+    Returns:
+        MemberView or None if element is None
+    """
+    if element is None:
+        return None
+    return MemberView.from_doc_element(element)
+
+
+def option_view_filter(element: DocElement | None) -> OptionView | None:
+    """
+    Convert a single DocElement to an OptionView.
+
+    Use this when iterating over a pre-filtered list of DocElements
+    and you want normalized access to each option's properties.
+
+    Usage:
+        {% for el in options %}
+          {% let opt = el | option_view %}
+          <code>{{ opt.flags_str }}</code>
+        {% end %}
+
+    Args:
+        element: DocElement to convert
+
+    Returns:
+        OptionView or None if element is None
+    """
+    if element is None:
+        return None
+    return OptionView.from_doc_element(element)
+
+
+def command_view_filter(element: DocElement | None) -> CommandView | None:
+    """
+    Convert a single DocElement to a CommandView.
+
+    Use this when iterating over a pre-filtered list of DocElements
+    and you want normalized access to each command's properties.
+
+    Usage:
+        {% for el in commands %}
+          {% let cmd = el | command_view %}
+          <a href="{{ cmd.href }}">{{ cmd.name }}</a>
+        {% end %}
+
+    Args:
+        element: DocElement to convert
+
+    Returns:
+        CommandView or None if element is None
+    """
+    if element is None:
+        return None
+    return CommandView.from_doc_element(element)
+
+
 def is_autodoc_page(page: Any) -> bool:
     """
     Check if a page is autodoc-generated (template helper).
@@ -492,10 +565,14 @@ def register(env: TemplateEnvironment, site: Site) -> None:
             "private_only": private_only,
             # Page detection
             "is_autodoc_page": is_autodoc_page,
-            # View filters for theme developers
+            # View filters for theme developers (list)
             "members": members_filter,
             "commands": commands_filter,
             "options": options_filter,
+            # View filters for theme developers (single element)
+            "member_view": member_view_filter,
+            "option_view": option_view_filter,
+            "command_view": command_view_filter,
         }
     )
 
@@ -512,10 +589,14 @@ def register(env: TemplateEnvironment, site: Site) -> None:
             "private_only": private_only,
             # Page detection
             "is_autodoc_page": is_autodoc_page,
-            # View filters for theme developers
+            # View filters for theme developers (list)
             "members": members_filter,
             "commands": commands_filter,
             "options": options_filter,
+            # View filters for theme developers (single element)
+            "member_view": member_view_filter,
+            "option_view": option_view_filter,
+            "command_view": command_view_filter,
         }
     )
 
