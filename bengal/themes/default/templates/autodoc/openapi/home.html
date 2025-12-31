@@ -9,11 +9,19 @@ API landing page showing:
 - Tag/endpoint category overview
 
 Context:
-- element: DocElement with OpenAPIOverviewMetadata
-- section: Section containing all API pages
+- section: Section with metadata containing API overview data
+  - section.metadata.version: API version
+  - section.metadata.servers: Server URLs
+  - section.metadata.security_schemes: Auth schemes
+  - section.metadata.tags: API categories
+  - section.metadata.endpoints: All endpoint elements
+  - section.metadata.schemas: All schema elements
+  - section.metadata.description: API description
 - page: Page object
 - site: Site instance
 - config: Config instance
+
+Note: For section index pages, `element` is None. Use section.metadata instead.
 
 Kida Features:
 - {% with %} for nil-resilient optional sections
@@ -22,12 +30,16 @@ Kida Features:
 #}
 {% extends 'autodoc/openapi/layouts/reference.html' %}
 
-{% let meta = element?.typed_metadata ?? element?.metadata ?? {} %}
-{% let api_title = element?.name ?? page?.title ?? 'API Reference' %}
-{% let api_version = meta?.version ?? '1.0.0' %}
-{% let servers = meta?.servers ?? () %}
-{% let security_schemes = meta?.security_schemes ?? {} %}
-{% let tags = meta?.tags ?? () %}
+{# Access metadata from section (set by section_builders.py) #}
+{% let sec_meta = section?.metadata ?? {} %}
+{% let api_title = section?.title ?? page?.title ?? 'API Reference' %}
+{% let api_version = sec_meta?.version ?? '1.0.0' %}
+{% let servers = sec_meta?.servers ?? () %}
+{% let security_schemes = sec_meta?.security_schemes ?? {} %}
+{% let tags = sec_meta?.tags ?? () %}
+{% let all_endpoints = sec_meta?.endpoints ?? () %}
+{% let all_schemas = sec_meta?.schemas ?? () %}
+{% let description = sec_meta?.description ?? '' %}
 
 {% block header %}
 <h1 class="api-home__title">{{ api_title }}</h1>
@@ -38,27 +50,34 @@ Kida Features:
 </div>
 {% end %}
 
-{% with element?.description as desc %}
-{% if desc %}
+{% if description %}
 <div class="api-home__description prose">
-  {{ desc | markdownify | safe }}
+  {{ description | markdownify | safe }}
 </div>
-{% end %}
 {% end %}
 {% end %}
 
 {% block content_main %}
 <div class="api-home" data-autodoc="openapi" data-element="home">
   {# Quick Stats #}
-  {% with section?.pages as pages %}
-  {% if pages | length > 0 %}
-  {% let endpoint_count = pages | length - 1 %}
+  {% let endpoint_count = all_endpoints | length %}
+  {% let schema_count = all_schemas | length %}
   {% let tag_count = tags | length %}
+
+  {% if endpoint_count > 0 or schema_count > 0 %}
   <div class="api-home__stats">
+    {% if endpoint_count > 0 %}
     <div class="api-home__stat">
       <span class="api-home__stat-value">{{ endpoint_count }}</span>
       <span class="api-home__stat-label">Endpoints</span>
     </div>
+    {% end %}
+    {% if schema_count > 0 %}
+    <div class="api-home__stat">
+      <span class="api-home__stat-value">{{ schema_count }}</span>
+      <span class="api-home__stat-label">Schemas</span>
+    </div>
+    {% end %}
     {% if tag_count > 0 %}
     <div class="api-home__stat">
       <span class="api-home__stat-value">{{ tag_count }}</span>
@@ -66,7 +85,6 @@ Kida Features:
     </div>
     {% end %}
   </div>
-  {% end %}
   {% end %}
 
   {# Base URLs / Servers #}
@@ -157,22 +175,19 @@ Kida Features:
   </section>
   {% end %}
 
-  {# All Endpoints (if no tags) #}
-  {% if tags | length == 0 %}
-  {% with section?.pages as pages %}
-  {% if pages | length > 0 %}
+  {# All Endpoints (if no tags, show all endpoints directly) #}
+  {% if tags | length == 0 and all_endpoints | length > 0 %}
   <section class="api-home__endpoints autodoc-section">
     <h2 class="api-home__section-title">{{ icon('list', size=18) }} Endpoints</h2>
     <div class="autodoc-cards">
-      {% for ep_page in pages %}
-      {% if ep_page != section?.index_page %}
-      {% let ep_meta = ep_page?.metadata ?? {} %}
+      {% for endpoint in all_endpoints %}
+      {% let ep_meta = endpoint?.typed_metadata ?? endpoint?.metadata ?? {} %}
       {% let ep_method = ep_meta?.method ?? 'GET' %}
-      {% let ep_path = ep_meta?.path ?? ep_page?.title ?? '' %}
+      {% let ep_path = ep_meta?.path ?? endpoint?.name ?? '' %}
       {% let ep_summary = ep_meta?.summary ?? '' %}
       {% let is_deprecated = ep_meta?.deprecated ?? false %}
 
-      <a href="{{ ep_page?.href ?? '#' }}" class="autodoc-card{% if is_deprecated %} autodoc-card--deprecated{% end %}">
+      <a href="{{ endpoint?.href ?? '#' }}" class="autodoc-card{% if is_deprecated %} autodoc-card--deprecated{% end %}">
         <div class="autodoc-card-header">
           {% spaceless %}
           <span class="api-method api-method--sm api-method--{{ ep_method |> lower }}">{{ ep_method }}</span>
@@ -187,11 +202,8 @@ Kida Features:
         {% end %}
       </a>
       {% end %}
-      {% end %}
     </div>
   </section>
-  {% end %}
-  {% end %}
   {% end %}
 </div>
 {% end %}

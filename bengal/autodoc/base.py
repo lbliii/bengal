@@ -157,13 +157,41 @@ class DocElement:
                 )
                 # Convert to dict properly instead of letting it fall through
                 return value.to_dict()
-            if is_dataclass(value):
-                return _to_jsonable(asdict(value))
+
+            # Handle dataclasses (including those from reloaded modules where is_dataclass might fail)
+            if is_dataclass(value) or hasattr(value, "__dataclass_fields__"):
+                try:
+                    # asdict() is recursive and handles most cases efficiently.
+                    # We call _to_jsonable on the result to ensure any nested objects
+                    # asdict might have missed (e.g. non-dataclasses) are also handled.
+                    return _to_jsonable(asdict(value)) if not isinstance(value, dict) else value
+                except Exception:
+                    # Fallback for extreme cases (e.g. broken descriptors during reload)
+                    # Manual conversion via __dataclass_fields__
+                    fields = getattr(value, "__dataclass_fields__", {})
+                    return {
+                        name: _to_jsonable(getattr(value, name))
+                        for name in fields
+                        if not name.startswith("_")
+                    }
+
             if isinstance(value, dict):
                 return {str(k): _to_jsonable(v) for k, v in value.items()}
             if isinstance(value, list | tuple | set):
                 return [_to_jsonable(v) for v in value]
+
             # Last resort: represent unknown objects as strings (stable enough for caching)
+            # but log a warning so we can track down what bypassed serialization
+            if value is not None and not isinstance(value, str | int | float | bool):
+                from bengal.utils.logger import get_logger
+
+                logger = get_logger(__name__)
+                logger.debug(
+                    "autodoc_serialization_fallback",
+                    type=type(value).__name__,
+                    value_preview=str(value)[:100],
+                    action="converting_to_string",
+                )
             return str(value)
 
         # Validate children are DocElement instances before serialization
@@ -211,7 +239,7 @@ class DocElement:
         if self.typed_metadata is not None:
             result["typed_metadata"] = {
                 "type": type(self.typed_metadata).__name__,
-                "data": asdict(self.typed_metadata),
+                "data": _to_jsonable(self.typed_metadata),
             }
         return result
 
