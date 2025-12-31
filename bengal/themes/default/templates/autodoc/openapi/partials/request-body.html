@@ -24,7 +24,7 @@ Kida Features:
 {% let is_required = request_body?.required ?? false %}
 {% let description = request_body?.description ?? '' %}
 {% let schema_ref = request_body?.schema_ref %}
-{% let schema = request_body?.schema %}
+{% let inline_schema = request_body?.schema %}
 
 <section class="api-request-body autodoc-section" data-section="request-body">
   <header class="api-request-body__header">
@@ -59,8 +59,9 @@ Kida Features:
   {% end %}
 
   {# Inline Schema Viewer #}
-  {% with schema as s %}
+  {% with inline_schema as s %}
+  {% let schema = s %}
   {% let depth = 0 %}
-  {% include 'autodoc/openapi/partials/schema-viewer.html' with schema=s, depth=depth %}
+  {% include 'autodoc/openapi/partials/schema-viewer.html' %}
   {% end %}
 </section>

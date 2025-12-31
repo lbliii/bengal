@@ -78,7 +78,7 @@ Kida Features:
     {% let description = response?.description ?? '' %}
     {% let content_type = response?.content_type %}
     {% let schema_ref = response?.schema_ref %}
-    {% let schema = response?.schema %}
+    {% let inline_schema = response?.schema %}
     {% let example = response?.example %}
     {% let category = status_category(code) %}
 
@@ -117,9 +117,10 @@ Kida Features:
       {% end %}
 
       {# Inline Schema #}
-      {% with schema as s %}
+      {% with inline_schema as s %}
+      {% let schema = s %}
       {% let depth = 0 %}
-      {% include 'autodoc/openapi/partials/schema-viewer.html' with schema=s, depth=depth %}
+      {% include 'autodoc/openapi/partials/schema-viewer.html' %}
       {% end %}
 
       {# Example Response #}

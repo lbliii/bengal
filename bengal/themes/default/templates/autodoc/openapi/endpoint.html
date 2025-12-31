@@ -41,7 +41,10 @@ Kida Features:
 
 {% block header %}
 {# Playground Bar: Method + Path + Copy #}
-{% include 'autodoc/openapi/partials/playground-bar.html' with method=http_method, path=endpoint_path, deprecated=is_deprecated %}
+{% let method = http_method %}
+{% let path = endpoint_path %}
+{% let deprecated = is_deprecated %}
+{% include 'autodoc/openapi/partials/playground-bar.html' %}
 
 {# Endpoint Header #}
 {% include 'autodoc/openapi/partials/endpoint-header.html' %}
@@ -50,109 +53,110 @@ Kida Features:
 {% block content_main %}
 <div class="api-endpoint" data-autodoc="openapi" data-element="endpoint">
 
-  {# Parameters Section #}
-  {% if parameters | length > 0 %}
-  <section class="api-endpoint__section autodoc-section" data-section="parameters">
-    <h2 class="api-endpoint__section-title">Parameters</h2>
+    {# Parameters Section #}
+    {% if parameters | length > 0 %}
+    <section class="api-endpoint__section autodoc-section" data-section="parameters">
+        <h2 class="api-endpoint__section-title">Parameters</h2>
 
-    {# Path Parameters #}
-    {% if path_params | length > 0 %}
-    <div class="api-endpoint__param-group">
-      <h3 class="api-endpoint__param-group-title">
-        {{ icon('link', size=14) }}
-        Path Parameters
-      </h3>
-      <div class="api-endpoint__param-list">
-        {% for param in path_params %}
-        {% include 'autodoc/openapi/partials/param-row.html' with param=param %}
+        {# Path Parameters #}
+        {% if path_params | length > 0 %}
+        <div class="api-endpoint__param-group">
+            <h3 class="api-endpoint__param-group-title">
+                {{ icon('link', size=14) }}
+                Path Parameters
+            </h3>
+            <div class="api-endpoint__param-list">
+                {% for p in path_params %}
+                {% let param = p %}
+                {% include 'autodoc/openapi/partials/param-row.html' %}
+                {% end %}
+            </div>
+        </div>
         {% end %}
-      </div>
-    </div>
+
+        {# Query Parameters #}
+        {% if query_params | length > 0 %}
+        <div class="api-endpoint__param-group">
+            <h3 class="api-endpoint__param-group-title">
+                {{ icon('filter', size=14) }}
+                Query Parameters
+            </h3>
+            <div class="api-endpoint__param-list">
+                {% for p in query_params %}
+                {% let param = p %}
+                {% include 'autodoc/openapi/partials/param-row.html' %}
+                {% end %}
+            </div>
+        </div>
+        {% end %}
+
+        {# Header Parameters #}
+        {% if header_params | length > 0 %}
+        <div class="api-endpoint__param-group">
+            <h3 class="api-endpoint__param-group-title">
+                {{ icon('file-text', size=14) }}
+                Header Parameters
+            </h3>
+            <div class="api-endpoint__param-list">
+                {% for p in header_params %}
+                {% let param = p %}
+                {% include 'autodoc/openapi/partials/param-row.html' %}
+                {% end %}
+            </div>
+        </div>
+        {% end %}
+
+        {# Cookie Parameters #}
+        {% if cookie_params | length > 0 %}
+        <div class="api-endpoint__param-group">
+            <h3 class="api-endpoint__param-group-title">
+                {{ icon('disc', size=14) }}
+                Cookie Parameters
+            </h3>
+            <div class="api-endpoint__param-list">
+                {% for p in cookie_params %}
+                {% let param = p %}
+                {% include 'autodoc/openapi/partials/param-row.html' %}
+                {% end %}
+            </div>
+        </div>
+        {% end %}
+    </section>
     {% end %}
 
-    {# Query Parameters #}
-    {% if query_params | length > 0 %}
-    <div class="api-endpoint__param-group">
-      <h3 class="api-endpoint__param-group-title">
-        {{ icon('filter', size=14) }}
-        Query Parameters
-      </h3>
-      <div class="api-endpoint__param-list">
-        {% for param in query_params %}
-        {% include 'autodoc/openapi/partials/param-row.html' with param=param %}
-        {% end %}
-      </div>
-    </div>
+    {# Request Body #}
+    {% with request_body as req_body %}
+    {% include 'autodoc/openapi/partials/request-body.html' %}
     {% end %}
 
-    {# Header Parameters #}
-    {% if header_params | length > 0 %}
-    <div class="api-endpoint__param-group">
-      <h3 class="api-endpoint__param-group-title">
-        {{ icon('file-text', size=14) }}
-        Header Parameters
-      </h3>
-      <div class="api-endpoint__param-list">
-        {% for param in header_params %}
-        {% include 'autodoc/openapi/partials/param-row.html' with param=param %}
-        {% end %}
-      </div>
-    </div>
+    {# Responses #}
+    {% if responses | length > 0 %}
+    {% cache 'openapi-responses-' ~ endpoint_path ~ '-' ~ http_method %}
+    {% include 'autodoc/openapi/partials/responses.html' %}
+    {% end %}
     {% end %}
 
-    {# Cookie Parameters #}
-    {% if cookie_params | length > 0 %}
-    <div class="api-endpoint__param-group">
-      <h3 class="api-endpoint__param-group-title">
-        {{ icon('disc', size=14) }}
-        Cookie Parameters
-      </h3>
-      <div class="api-endpoint__param-list">
-        {% for param in cookie_params %}
-        {% include 'autodoc/openapi/partials/param-row.html' with param=param %}
-        {% end %}
-      </div>
-    </div>
+    {# Security Requirements #}
+    {% if security | length > 0 %}
+    <section class="api-endpoint__section autodoc-section" data-section="security">
+        <h2 class="api-endpoint__section-title">{{ icon('lock', size=18) }} Authorization</h2>
+        <div class="api-endpoint__security">
+            {% for scheme in security %}
+            <span class="badge badge--outline">
+                {{ icon('key', size=12) }}
+                {{ scheme }}
+            </span>
+            {% end %}
+        </div>
+    </section>
     {% end %}
-  </section>
-  {% end %}
-
-  {# Request Body #}
-  {% with request_body as req_body %}
-  {% include 'autodoc/openapi/partials/request-body.html' with request_body=req_body %}
-  {% end %}
-
-  {# Responses #}
-  {% if responses | length > 0 %}
-  {% cache 'openapi-responses-' ~ endpoint_path ~ '-' ~ http_method %}
-  {% include 'autodoc/openapi/partials/responses.html' with responses=responses %}
-  {% end %}
-  {% end %}
-
-  {# Security Requirements #}
-  {% if security | length > 0 %}
-  <section class="api-endpoint__section autodoc-section" data-section="security">
-    <h2 class="api-endpoint__section-title">{{ icon('lock', size=18) }} Authorization</h2>
-    <div class="api-endpoint__security">
-      {% for scheme in security %}
-      <span class="badge badge--outline">
-        {{ icon('key', size=12) }}
-        {{ scheme }}
-      </span>
-      {% end %}
-    </div>
-  </section>
-  {% end %}
 </div>
 {% end %}
 
 {% block code_examples %}
 {# Code Samples Panel #}
-{% include 'autodoc/openapi/partials/code-samples.html' with
-  method=http_method,
-  path=endpoint_path,
-  parameters=parameters,
-  request_body=request_body,
-  response_example=get_response_example(responses, '200')
-%}
+{% let method = http_method %}
+{% let path = endpoint_path %}
+{% let response_example = get_response_example(responses, '200') %}
+{% include 'autodoc/openapi/partials/code-samples.html' %}
 {% end %}
