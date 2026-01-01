@@ -7,7 +7,7 @@ esbuild, or any custom scripts.
 
 Features:
     - Sequential command execution with output capture
-    - Configurable timeout per command (default: 30s)
+    - Configurable timeout per command (default: 60s)
     - stdout/stderr logging for debugging
     - Graceful failure handling (non-zero exit logged, not fatal)
     - Cross-platform subprocess execution
@@ -27,7 +27,6 @@ Configuration (bengal.toml):
     post_build = [
         "echo 'Build complete!'"
     ]
-    hook_timeout = 60  # seconds per command
     ```
 
 Use Cases:
