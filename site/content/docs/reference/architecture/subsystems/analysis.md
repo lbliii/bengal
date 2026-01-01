@@ -102,15 +102,18 @@ for rec in recommendations:
 
 | Class | Description |
 |-------|-------------|
-| `PageRankComputer` | Computes PageRank scores iteratively |
+| `PageRankCalculator` | Computes PageRank scores iteratively |
 | `PageRankResults` | Results with scores, convergence info, and ranking methods |
 
 **Usage**:
 ```python
-from bengal.analysis.page_rank import PageRankComputer
+from bengal.analysis import KnowledgeGraph
 
-computer = PageRankComputer(knowledge_graph, damping_factor=0.85)
-results = computer.compute(max_iterations=100)
+graph = KnowledgeGraph(site)
+graph.build()
+
+# Compute PageRank (recommended: use the graph's convenience method)
+results = graph.compute_pagerank(damping=0.85, max_iterations=100)
 
 # Get top-ranked pages
 top_pages = results.get_top_pages(limit=20)
@@ -275,46 +278,57 @@ for suggestion in suggestions:
 **Purpose**: Generate interactive visualizations of site structure using D3.js force-directed graphs.
 
 **Features**:
-- Node sizing by PageRank
-- Node coloring by community
-- Edge thickness by connection strength
+- Node sizing based on connectivity and content depth
+- Node coloring by type (hub, orphan, regular, generated)
+- Edge weight based on bidirectional links
 - Interactive zoom and pan
-- Node hover information
-- Responsive design
+- Search and filtering by title, tags, or type
+- Theme-aware styling (light/dark mode)
 
 **Usage**:
 ```python
-from bengal.analysis import GraphVisualizer
+from pathlib import Path
+from bengal.analysis import KnowledgeGraph, GraphVisualizer
 
-visualizer = GraphVisualizer(knowledge_graph)
-visualizer.generate(
-    output_path="public/graph.html",
-    include_pagerank=True,
-    include_communities=True
-)
+graph = KnowledgeGraph(site)
+graph.build()
+
+visualizer = GraphVisualizer(site, graph)
+html = visualizer.generate_html(title="My Site Graph")
+Path("public/graph.html").write_text(html)
 ```
 
 ## Performance Advisor (`bengal/analysis/performance_advisor.py`)
 
-**Purpose**: Analyzes site structure and provides performance optimization recommendations.
+**Purpose**: Analyzes build statistics and provides performance optimization recommendations.
 
 **Analyzes**:
-- Hub-first streaming opportunities
-- Parallel rendering candidates
-- Cache hit potential
-- Link structure efficiency
+- Parallel processing opportunities
+- Incremental build potential
+- Rendering bottlenecks
+- Asset optimization
+- Memory usage patterns
+- Template complexity
+
+**Grading System**: A (90-100), B (75-89), C (60-74), D (45-59), F (0-44)
 
 **Usage**:
 ```python
-from bengal.analysis.performance_advisor import PerformanceAdvisor
+from bengal.analysis.performance_advisor import analyze_build
 
-advisor = PerformanceAdvisor(site, knowledge_graph)
-recommendations = advisor.analyze()
+# After a build completes, analyze its statistics
+advisor = analyze_build(stats)
 
-for rec in recommendations:
-    print(f"{rec.category}: {rec.message}")
-    print(f"  Impact: {rec.impact}")
-    print(f"  Effort: {rec.effort}")
+# Get performance grade
+grade = advisor.get_grade()
+print(f"Performance Grade: {grade.grade} ({grade.score}/100)")
+print(f"Category: {grade.category}")
+
+# Get top recommendations
+for suggestion in advisor.get_top_suggestions(3):
+    print(f"{suggestion.title}")
+    print(f"  Impact: {suggestion.impact}")
+    print(f"  Action: {suggestion.action}")
 ```
 
 ## CLI Integration

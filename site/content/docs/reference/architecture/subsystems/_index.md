@@ -22,5 +22,5 @@ Specialized subsystems that extend Bengal's core functionality.
 | **Debug Tools** | Build diagnostics | `bengal/debug/` |
 
 :::{note}
-Subsystems are **lazy-loaded** — they only import when used, minimizing startup time.
+Subsystems are **imported on-demand** — Bengal uses deferred imports so subsystem code only loads when actually used, minimizing startup time.
 :::
