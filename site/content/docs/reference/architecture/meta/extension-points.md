@@ -72,7 +72,7 @@ content_type: news
 ---
 ```
 
-**Documentation**: Refer to [[docs/reference/architecture/core/content-types|Content Types]]
+**Documentation**: See [Content Types](/docs/reference/architecture/core/content-types/)
 
 ## 2. Custom Markdown Parsers
 
@@ -142,11 +142,14 @@ def my_custom_filter(value):
     """Custom filter implementation."""
     return value.upper()
 
-# Register via build hook
+# Register via build hook (uses internal API - may change)
 def register_filters(site):
+    # Note: _template_engine is internal; plugin API coming in v0.4.0
     env = site._template_engine._env
     env.filters['custom'] = my_custom_filter
 ```
+
+> **Caution**: This approach accesses internal attributes (`_template_engine._env`). A stable public API for filter registration is planned for the plugin system (v0.4.0).
 
 **Usage in templates**:
 ```kida
@@ -188,13 +191,14 @@ class RobotsGenerator:
 
 **Implementation**:
 ```python
-from bengal.health.base import BaseValidator, CheckResult, CheckStatus
+from bengal.health.base import BaseValidator
+from bengal.health.report import CheckResult, CheckStatus
 
 class CustomValidator(BaseValidator):
     name = "custom"
     description = "Custom validation checks"
 
-    def validate(self, site) -> list[CheckResult]:
+    def validate(self, site, build_context=None) -> list[CheckResult]:
         results = []
 
         # Your validation logic
@@ -218,7 +222,7 @@ class CustomValidator(BaseValidator):
 custom = true
 ```
 
-**Documentation**: Refer to [[docs/reference/architecture/subsystems/health|Health Checks]]
+**Documentation**: See [Health Checks](/docs/reference/architecture/subsystems/health/)
 
 ## 7. Custom Themes
 
@@ -342,19 +346,22 @@ def custom(verbose):
 
 **Implementation**:
 ```python
+from typing import Any
+from pathlib import Path
 from bengal.autodoc.base import Extractor, DocElement
 
 class OpenAPIExtractor(Extractor):
     """Extract docs from OpenAPI specs."""
 
-    def extract(self, source_path):
-        spec = self._load_openapi_spec(source_path)
+    def extract(self, source: Any) -> list[DocElement]:
+        spec = self._load_openapi_spec(source)
 
         elements = []
         for path, methods in spec['paths'].items():
             for method, details in methods.items():
                 element = DocElement(
                     name=f"{method.upper()} {path}",
+                    qualified_name=f"api.{method}.{path}",
                     element_type='endpoint',
                     description=details.get('summary', ''),
                     metadata=details
@@ -362,6 +369,10 @@ class OpenAPIExtractor(Extractor):
                 elements.append(element)
 
         return elements
+
+    def get_output_path(self, element: DocElement) -> Path | None:
+        """Determine output path for the endpoint."""
+        return Path(f"api/{element.name.replace(' ', '-').lower()}.md")
 
 # Register extractor
 # (planned: autodoc registry system)
@@ -405,7 +416,7 @@ When plugin system arrives:
 
 ## Related Documentation
 
-- [[docs/reference/architecture/core/content-types|Content Types]] - Custom content strategies
-- [[docs/reference/architecture/rendering|Rendering]] - Template and parser customization
-- [[docs/reference/architecture/subsystems/health|Health Checks]] - Custom validators
-- [[docs/reference/architecture/design-principles|Design Principles]] - Extension design patterns
+- [Content Types](/docs/reference/architecture/core/content-types/) - Custom content strategies
+- [Rendering](/docs/reference/architecture/rendering/) - Template and parser customization
+- [Health Checks](/docs/reference/architecture/subsystems/health/) - Custom validators
+- [Design Principles](/docs/reference/architecture/design-principles/) - Extension design patterns

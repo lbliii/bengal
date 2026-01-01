@@ -48,14 +48,14 @@ class TestATXHeadings:
     def test_leading_trailing_spaces_ignored(self):
         """Leading and trailing spaces are ignored."""
         html = parse("#                  foo                     ")
-        assert "<h1>" in html
+        assert "<h1" in html  # Patitas adds id attribute
         assert "foo" in html
 
     def test_indented_heading(self):
         """Up to 3 spaces of indentation allowed."""
-        assert "<h1>" in parse(" # foo")
-        assert "<h1>" in parse("  # foo")
-        assert "<h1>" in parse("   # foo")
+        assert "<h1" in parse(" # foo")  # Patitas adds id attribute
+        assert "<h1" in parse("  # foo")
+        assert "<h1" in parse("   # foo")
 
     def test_four_spaces_is_code(self):
         """Four spaces of indentation is code block."""
@@ -65,7 +65,7 @@ class TestATXHeadings:
     def test_closing_sequence_optional(self):
         """Closing # sequence is optional."""
         html = parse("## foo ##")
-        assert "<h2>" in html
+        assert "<h2" in html  # Patitas adds id attribute
 
     def test_closing_must_have_space(self):
         """Closing sequence must be preceded by space."""
