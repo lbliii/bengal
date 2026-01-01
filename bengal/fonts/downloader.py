@@ -354,13 +354,11 @@ class GoogleFontsDownloader:
                 original_error=e,
             )
             record_error(error, file_path=None)
-            logger.error(
-                "ttf_font_download_failed",
-                family=family,
-                error=str(e),
-                error_type=type(e).__name__,
-                code="X008",
-            )
+            # Display user-friendly error with suggestion
+            from bengal.cli.helpers.error_display import display_bengal_error
+            from bengal.output import CLIOutput
+
+            display_bengal_error(error, CLIOutput())
             return []
 
     def _build_css_url(self, family: str, weights: list[int], styles: list[str]) -> str:

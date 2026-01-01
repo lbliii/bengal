@@ -137,5 +137,9 @@ class AssetDiscovery:
                         original_error=e if isinstance(e, Exception) else None,
                     )
                     record_error(error)
-                    logger.warning("asset_missing_path", asset=str(asset), code="D013")
+                    # Display user-friendly error with suggestion
+                    from bengal.cli.helpers.error_display import display_bengal_error
+                    from bengal.output import CLIOutput
+
+                    display_bengal_error(error, CLIOutput())
         return self.assets

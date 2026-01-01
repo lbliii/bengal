@@ -57,7 +57,7 @@
 - **directives(options)**: Fix cache inheritance bug in `DirectiveOptions.from_raw()`
 
 ### 📦 Autodoc Improvements ✅
-- **autodoc(openapi)**: Best-in-class REST API layouts with three-panel scroll-sync
+- **autodoc(openapi)**: REST API layouts with three-panel scroll-sync navigation
 - **autodoc**: Migration from Jinja2 to Kida template engine
 - **filters(views)**: Add PostView, ReleaseView, AuthorView, TagView filters
 - **rendering(autodoc)**: Add MemberView, CommandView, OptionView for theme developers
@@ -76,7 +76,7 @@
 - **health(autofix)**: O(1) dict lookup for fence fixes
 
 ### 🛠️ Template Functions ✅
-- **template_functions**: Add 13 new filters for best-in-class templating
+- **template_functions**: Add 13 new filters (dates, collections, sharing, archive helpers)
 - **core(page)**: Implement RFC Template Object Model Phase 1 — add `_source`, `word_count` properties
 
 ### 📝 Documentation Fixes ✅

@@ -376,7 +376,11 @@ class GitVersionAdapter:
                 original_error=e,
             )
             record_error(error, file_path=str(self.repo_path))
-            logger.warning("git_branches_failed", error=e.stderr, code="D014")
+            # Display user-friendly error with suggestion
+            from bengal.cli.helpers.error_display import display_bengal_error
+            from bengal.output import CLIOutput
+
+            display_bengal_error(error, CLIOutput())
 
         # Get tags
         try:
@@ -413,7 +417,11 @@ class GitVersionAdapter:
                 original_error=e,
             )
             record_error(error, file_path=str(self.repo_path))
-            logger.warning("git_tags_failed", error=e.stderr, code="D014")
+            # Display user-friendly error with suggestion
+            from bengal.cli.helpers.error_display import display_bengal_error
+            from bengal.output import CLIOutput
+
+            display_bengal_error(error, CLIOutput())
 
         self._refs_cache = refs
         return refs
