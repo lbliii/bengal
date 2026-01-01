@@ -42,7 +42,7 @@ class TestATXHeadings:
     def test_inline_content_in_heading(self):
         """Headings can contain inline content."""
         html = parse("# foo *bar* \\*baz\\*")
-        assert "<h1>" in html
+        assert "<h1" in html  # Patitas adds id attribute
         assert "<em>" in html
 
     def test_leading_trailing_spaces_ignored(self):
