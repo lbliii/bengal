@@ -48,7 +48,7 @@ make setup
 make install
 
 # Verify installation
-bengal --version
+uv run bengal --version
 ```
 
 ## Run Tests
@@ -163,10 +163,14 @@ From the repository root:
 
 ```bash
 cd site
-bengal serve
+uv run bengal serve
 ```
 
 Visit http://localhost:5173 to preview documentation changes.
+
+:::{tip}
+To use `bengal` directly without `uv run`, activate the virtual environment first: `source .venv/bin/activate`
+:::
 
 ## Key Principles
 
@@ -194,4 +198,5 @@ Bengal provides a comprehensive CLI with aliases for common operations:
 
 - **[[docs/reference/architecture|Architecture]]** — Understand Bengal's internals
 - **[[docs/reference/architecture/meta/testing|Testing Patterns]]** — Test best practices
-- **[[docs/about|Contributing Guide]]** — Full contribution guidelines
+- **[[docs/about|About Bengal]]** — Philosophy, benchmarks, and FAQ
+- **`CONTRIBUTING.md`** — Full contribution guidelines (in repo root)

@@ -31,7 +31,7 @@ Learn to customize Bengal themes and create your own designs.
 - [ ] [[docs/get-started/installation|Bengal installed]]
 - [ ] Basic knowledge of HTML
 - [ ] Familiarity with CSS
-- [ ] Basic Jinja2 template syntax
+- [ ] Basic template syntax (Bengal uses Kida, similar to Jinja2 but with `{% end %}` closers)
 :::{/checklist}
 
 ## Understand Theme Resolution

@@ -22,27 +22,25 @@ icon: pencil
 
 # Writer Quickstart
 
-Get from zero to published content in 5 minutes. This guide is for content creators who want to focus on writing.
+Create your first Bengal site and publish content in 5 minutes. No theming or code required.
 
 ## Prerequisites
 
 :::{checklist} Before You Start
 :show-progress:
-- [x] Basic knowledge of Markdown
+- [ ] Basic Markdown knowledge
 - [ ] [[docs/get-started/installation|Bengal installed]]
-- [ ] Terminal or command line access
+- [ ] Terminal access
 :::{/checklist}
 
 ## Create Your Site
-
-Use the interactive wizard:
 
 ```bash
 bengal new site myblog
 cd myblog
 ```
 
-The wizard guides you through choosing a preset (Blog, Documentation, Portfolio) and configuring your site.
+The wizard prompts for a preset (Blog, Docs, Portfolio) and base URL. Accept defaults to continue.
 
 ## Start the Dev Server {#dev-server}
 
@@ -53,7 +51,7 @@ The wizard guides you through choosing a preset (Blog, Documentation, Portfolio)
 bengal serve
 ```
 
-Open **http://localhost:5173/** in your browser. The dev server watches for changes and rebuilds automatically. CSS changes apply without a full page refresh.
+Your browser opens automatically at `http://localhost:5173/`. The server rebuilds on save—CSS changes apply instantly without page refresh.
 
 ## Create Your First Post
 
@@ -61,94 +59,111 @@ Open **http://localhost:5173/** in your browser. The dev server watches for chan
 bengal new page my-first-post --section blog
 ```
 
-Edit `content/blog/my-first-post.md`:
+This creates `content/blog/my-first-post.md`. Edit it:
 
 ```markdown
 ---
 title: My First Post
-date: 2025-01-15
-tags: [welcome, tutorial]
+date: 2026-01-15
+tags: [welcome]
 description: Getting started with Bengal
-draft: false
 ---
 
 # My First Post
 
-Welcome to my new blog! This is my first post using Bengal.
+Welcome to my blog! Bengal makes publishing simple.
 
-## Why I Chose Bengal
+## What's Next
 
-- Fast builds with parallel processing
-- Simple Markdown-based workflow
-- Customizable themes and templates
-
-Stay tuned for more!
+- Add more posts with `bengal new page`
+- Customize your theme
+- Deploy to the web
 ```
 
-**Save the file.** Your new post appears automatically.
+**Save.** The page appears instantly in your browser.
 
 ## Customize Your Site
 
-Bengal uses a directory-based configuration system. Edit `config/_default/site.yaml`:
+Edit `config/_default/site.yaml`:
 
 ```yaml
 site:
   title: "My Awesome Blog"
   description: "Thoughts on code, design, and life"
-  baseurl: ""
   language: "en"
 ```
 
-Other configuration files in `config/_default/` control different aspects:
+:::{dropdown} Other config files
+:icon: gear
 
-- `build.yaml` — Build settings (parallel, incremental, output directory)
-- `theme.yaml` — Theme selection and options
-- `features.yaml` — Feature toggles (search, RSS, sitemap)
-- `content.yaml` — Content processing options
+Bengal splits configuration across focused files in `config/_default/`:
 
-## Build for Production
+| File | Purpose |
+|------|---------|
+| `build.yaml` | Parallel builds, output directory |
+| `theme.yaml` | Theme selection and options |
+| `features.yaml` | Search, RSS, sitemap toggles |
+| `content.yaml` | Markdown processing options |
+
+See [[docs/building/configuration|Configuration Reference]] for details.
+:::
+
+## Build and Deploy
 
 ```bash
 bengal build
 ```
 
-Your complete site is in `public/`, ready to deploy.
+Output goes to `public/`. Deploy to any static host:
 
-## Deploy
+| Platform | Build Command | Output |
+|----------|---------------|--------|
+| Netlify | `bengal build` | `public` |
+| Vercel | `bengal build` | `public` |
+| GitHub Pages | `bengal build` | `public` |
 
-Deploy the `public/` directory to any static hosting:
+Bengal auto-detects Netlify, Vercel, and GitHub Pages to set `baseurl` automatically. See [[docs/building/deployment|Deployment Guide]] for CI/CD workflows.
 
-- **Netlify**: Build command `bengal build`, Publish directory `public`
-- **GitHub Pages**: Use the workflow in [[docs/tutorials/automate-with-github-actions|Automate with GitHub Actions]]
-- **Vercel**: Build command `bengal build`, Output directory `public`
+## Frontmatter Essentials {#frontmatter}
 
-Bengal auto-detects deployment platforms and adjusts the base URL accordingly.
+Every page starts with YAML frontmatter:
 
-## Frontmatter Reference {#frontmatter}
+```yaml
+---
+title: Page Title      # Required
+date: 2026-01-15       # Publication date
+description: SEO text  # Search/social preview
+tags: [tag1, tag2]     # Taxonomy
+draft: true            # Exclude from production
+---
+```
 
-Common frontmatter fields:
+:::{dropdown} All frontmatter fields
+:icon: list-unordered
 
 | Field | Description |
 |-------|-------------|
 | `title` | Page title (required) |
-| `date` | Publication date (ISO format recommended) |
-| `description` | SEO description |
-| `tags` | Tags for taxonomy (e.g., `[python, web]`) |
-| `weight` | Sort order within section (lower = first) |
-| `draft` | Set to `true` to exclude from production builds |
-| `slug` | Custom URL slug (overrides filename) |
+| `date` | Publication date (ISO format) |
+| `description` | SEO/social preview text |
+| `tags` | Taxonomy tags (e.g., `[python, web]`) |
+| `weight` | Sort order in section (lower = first) |
+| `draft` | `true` excludes from production builds |
+| `slug` | Custom URL (overrides filename) |
 | `type` | Page type for template selection |
-| `layout` | Layout variant for the page |
-| `lang` | Language code for i18n (e.g., `en`, `es`) |
-| `nav_title` | Short title for navigation menus |
-| `aliases` | Alternative URLs that redirect to this page |
+| `layout` | Layout variant |
+| `lang` | Language code (`en`, `es`, etc.) |
+| `nav_title` | Short title for navigation |
+| `aliases` | Redirect URLs to this page |
 
-Custom fields beyond these are stored in `props` and accessible in templates via `page.props.fieldname` or `page.metadata.fieldname`.
+Custom fields are accessible via `page.props.fieldname` in templates.
+:::
 
 ## Next Steps
 
-- **[[docs/tutorials/build-a-blog|Build a Blog]]** — Full tutorial
-- **[[docs/content/authoring|Content Authoring]]** — Markdown features
-- **[[docs/content/organization|Content Organization]]** — Structure your content
-- **[[docs/content/component-model#type|Type System]]** — Content types and templates
-- **[[docs/theming|Theming]]** — Customize appearance
+| Goal | Resource |
+|------|----------|
+| Learn Markdown features | [[docs/content/authoring|Content Authoring]] |
+| Organize content | [[docs/content/organization|Content Organization]] |
+| Customize appearance | [[docs/theming|Theming]] |
+| Full blog tutorial | [[docs/tutorials/build-a-blog|Build a Blog]] |
