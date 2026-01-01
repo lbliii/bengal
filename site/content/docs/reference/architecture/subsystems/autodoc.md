@@ -111,7 +111,7 @@ docstring_style = "auto"  # auto, google, numpy, sphinx
 
 ## CLI Support
 
-Bengal supports **Click**, **Typer**, and **argparse** applications via configuration.
+Bengal supports **Click** applications via configuration (Typer and argparse support is planned).
 
 ```toml
 # bengal.toml
@@ -130,8 +130,7 @@ Generate REST API documentation from OpenAPI 3.x specifications:
 # bengal.toml
 [autodoc.openapi]
 enabled = true
-spec = "openapi.yaml"  # Or openapi.json
-output_dir = "content/api"
+spec_file = "openapi.yaml"  # Or openapi.json
 ```
 
 This generates endpoint documentation with request/response schemas, parameters, and examples.

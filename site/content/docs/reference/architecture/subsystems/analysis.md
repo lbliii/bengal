@@ -254,10 +254,13 @@ if not result.complete:
 
 **Usage**:
 ```python
-from bengal.analysis.link_suggestions import LinkSuggestionEngine
+from bengal.analysis import KnowledgeGraph
 
-engine = LinkSuggestionEngine(knowledge_graph)
-results = engine.generate_suggestions(min_score=0.5, max_per_page=5)
+graph = KnowledgeGraph(site)
+graph.build()
+
+# Generate suggestions (recommended: use the graph's convenience method)
+results = graph.suggest_links(min_score=0.5, max_suggestions_per_page=5)
 
 # Get suggestions for specific page
 suggestions = results.get_suggestions_for_page(page, limit=10)
@@ -333,47 +336,48 @@ for suggestion in advisor.get_top_suggestions(3):
 
 ## CLI Integration
 
-The analysis system is integrated into the CLI with dedicated commands:
+The analysis system is integrated into the CLI under `bengal graph`:
 
 ```bash
-# Analyze site structure (with actionable recommendations)
-bengal utils graph analyze site/
+# Analyze site structure and get report
+bengal graph report
+bengal graph report --brief
+bengal graph report --format json > report.json
 
-# Show site structure as tree
-bengal utils graph analyze site/ --tree
-
-# Generate interactive visualization
-bengal utils graph analyze site/ --output public/graph.html
+# Find orphaned pages
+bengal graph orphans
+bengal graph orphans --level lightly
+bengal graph orphans --format json > orphans.json
 
 # Compute PageRank scores
-bengal utils graph pagerank site/ --top-n 20
-
-# Export as CSV
-bengal utils graph pagerank site/ --format csv > pagerank.csv
+bengal graph pagerank
+bengal graph pagerank --top-n 50
+bengal graph pagerank --format json > pagerank.json
 
 # Detect communities
-bengal utils graph communities site/ --min-size 3
+bengal graph communities
+bengal graph communities --min-size 10
+bengal graph communities --resolution 2.0
 
-# Find bridge pages
-bengal utils graph bridges site/ --top-n 10
+# Find bridge pages (high betweenness centrality)
+bengal graph bridges
+bengal graph bridges --metric closeness
+bengal graph bridges --format json > bridges.json
 
 # Get link suggestions
-bengal utils graph suggest site/ --min-score 0.5
-
-# Export suggestions as markdown checklist
-bengal utils graph suggest site/ --format markdown > suggestions.md
+bengal graph suggest
+bengal graph suggest --min-score 0.5
+bengal graph suggest --format markdown > TODO.md
 ```
 
 **Export Formats**:
 All commands support multiple output formats:
 - `table` (default) - Human-readable table format
 - `json` - JSON for programmatic processing
-- `csv` - CSV for spreadsheet analysis
-- `summary` - Summary statistics (pagerank, communities, bridges)
-- `markdown` - Markdown checklist (suggest command)
+- `markdown` - Markdown format (suggest command)
 
 **Key Features**:
-- **Actionable Recommendations**: The `analyze` command provides specific recommendations
+- **Actionable Recommendations**: The `report` command provides specific recommendations
 - **Autodoc Filtering**: API reference pages are excluded by default for cleaner analysis
 - **Multiple Export Formats**: Export results for further analysis or reporting
 

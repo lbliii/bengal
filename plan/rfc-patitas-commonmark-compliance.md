@@ -1,10 +1,11 @@
 # RFC: Patitas CommonMark Compliance & Test Coverage
 
-**Status**: Draft  
+**Status**: Active  
 **Author**: Bengal Team  
 **Created**: 2026-01-01  
 **Updated**: 2026-01-01  
-**Target**: Patitas 1.0
+**Target**: Patitas 1.0  
+**Baseline Established**: 2026-01-01 (42.4% spec compliance)
 
 ## Executive Summary
 
@@ -23,31 +24,46 @@ Patitas must achieve near-complete CommonMark 0.31 compliance to be trusted as a
 
 ### Current State
 
-Patitas has 102 CommonMark-focused tests with a **91% pass rate** on existing tests. However, coverage breadth against the full 652-example CommonMark spec is incomplete.
+Patitas has 105 curated CommonMark-focused tests with a **99% pass rate** on targeted tests. However, running the full 652-example CommonMark 0.31.2 spec reveals significant compliance gaps.
 
-**Test Suite Results** (as of 2026-01-01):
-- ✅ **93 passed**
-- ❌ **7 failed** (assertion style issues, not functionality)
-- ⏭️ **2 skipped** (setext headings)
-- ⚠️ **2 xfail** (known issues with failing tests)
+**Official Spec Baseline** (established 2026-01-01):
+- ✅ **265 passed** (42.4%)
+- ❌ **360 failed** (57.6%)
+- ⏭️ **27 skipped** (link reference definitions - not implemented)
 
-| Category | Tests | Pass Rate | Notes |
-|----------|-------|-----------|-------|
-| ATX Headings | 11 | 55%* | *5 failures are assertion issues, not bugs |
-| Setext Headings | 2 | 0% | Skipped - not implemented |
-| Thematic Breaks | 13 | 100% | ✅ Complete |
-| Fenced Code | 6 | 100% | ✅ Basic coverage complete |
-| Block Quotes | 2 | 100% | ✅ Laziness works correctly |
-| **Lists** | **30** | **93%** | 2 xfail for known issues |
-| Paragraphs | 2 | 100% | ✅ Basic coverage |
-| Blank Lines | 1 | 100% | ✅ Minimal |
-| Code Spans | 3 | 100% | ✅ Basic coverage |
-| Emphasis | 4 | 100% | ✅ Basic cases pass |
-| Links | 3 | 100% | ✅ Inline links work |
-| Images | 2 | 100% | ✅ Inline images work |
-| Hard Breaks | 2 | 100% | ✅ Basic coverage |
-| Backslash Escapes | 17 | 88% | 2 failures (quote chars) |
-| **Total** | **102** | **91%** | Good foundation, gaps in breadth |
+**Curated Test Suite** (`test_commonmark.py`):
+- ✅ **104 passed** (99%)
+- ⏭️ **1 xfail** (deeply nested lists)
+
+| Section | Passed | Failed | Pass Rate | Status |
+|---------|--------|--------|-----------|--------|
+| Textual content | 3 | 0 | 100% | ✅ Complete |
+| Inlines | 1 | 0 | 100% | ✅ Complete |
+| Precedence | 1 | 0 | 100% | ✅ Complete |
+| Thematic breaks | 15 | 4 | 79% | 🟢 Mostly working |
+| Code spans | 17 | 5 | 77% | 🟢 Mostly working |
+| Fenced code blocks | 19 | 10 | 66% | 🟢 Core works |
+| Emphasis | 85 | 47 | 64% | 🟡 Edge cases |
+| Paragraphs | 5 | 3 | 62% | 🟡 |
+| Raw HTML | 11 | 9 | 55% | 🟡 |
+| Backslash escapes | 7 | 6 | 54% | 🟡 Quote chars |
+| Soft line breaks | 1 | 1 | 50% | 🟡 |
+| Links | 42 | 48 | 47% | 🟠 No references |
+| Block quotes | 10 | 15 | 40% | 🟠 Nesting edge cases |
+| Setext headings | 10 | 17 | 37% | 🟠 Edge cases |
+| Hard line breaks | 5 | 10 | 33% | 🟠 Two-space not working |
+| Images | 6 | 16 | 27% | 🟠 No references |
+| Entity refs | 4 | 13 | 24% | 🔴 Not implemented |
+| Autolinks | 4 | 15 | 21% | 🔴 Plugin exists, edge cases |
+| List items | 9 | 39 | 19% | 🔴 Critical - nesting issues |
+| ATX headings | 3 | 15 | 17% | 🔴 ID attribute differences |
+| Lists | 4 | 22 | 15% | 🔴 Critical - marker issues |
+| Tabs | 1 | 10 | 9% | 🔴 Tab handling incomplete |
+| HTML blocks | 2 | 42 | 5% | 🔴 Minimal implementation |
+| Blank lines | 0 | 1 | 0% | 🔴 |
+| Indented code | 0 | 12 | 0% | 🔴 Context issues with lists |
+| Link ref defs | 0 | 0 | N/A | ⏭️ 27 skipped |
+| **Total** | **265** | **360** | **42.4%** | Baseline established |
 
 ### Existing Infrastructure
 
@@ -212,6 +228,113 @@ Complex cases like `**foo*bar**` have specific behavior per spec.
 **Current**: Renders as HTML entities (`&quot;`, `&#x27;`)  
 **Fix Complexity**: Low - renderer output adjustment
 
+### Critical (Discovered in Baseline)
+
+#### Issue 10: HTML Blocks Not Implemented
+
+**Status**: 5% pass rate (2/42)  
+**Spec Reference**: CommonMark 4.6
+
+```markdown
+<div>
+  content
+</div>
+
+<!-- comment -->
+
+<?php echo "hi"; ?>
+```
+
+**Expected**: Pass-through HTML rendering  
+**Actual**: Treated as paragraphs or inline HTML  
+**Impact**: High - documentation with embedded HTML
+
+**Implementation Notes**:
+- 7 HTML block types defined in spec (types 1-7)
+- Type 6 (start condition) is most common
+- Requires block-level detection before paragraph fallback
+
+**Fix Complexity**: Medium - block detection patterns
+
+#### Issue 11: Indented Code Blocks Context Failure
+
+**Status**: 0% pass rate (0/12)  
+**Spec Reference**: CommonMark 4.4
+
+```markdown
+    indented code
+```
+
+**Expected**: `<pre><code>indented code</code></pre>`  
+**Actual**: Works in isolation, fails in list context  
+**Impact**: High - code examples in lists
+
+**Root Cause**: Lexer doesn't consider list context when detecting 4-space indentation.
+
+**Fix Complexity**: High - context-aware lexer (related to Issue 2)
+
+#### Issue 12: Tab Handling Incomplete
+
+**Status**: 9% pass rate (1/10)  
+**Spec Reference**: CommonMark 2.2
+
+```markdown
+→code  (tab = 4 spaces)
+```
+
+**Expected**: Tabs expand to 4-space stops  
+**Actual**: Tabs not consistently handled  
+**Impact**: Medium - some users use tabs
+
+**Fix Complexity**: Low - lexer preprocessing
+
+#### Issue 13: ATX Heading Normalization
+
+**Status**: 17% pass rate (3/15)  
+**Spec Reference**: CommonMark 4.2
+
+```markdown
+#  foo   #
+```
+
+**Expected**: `<h1>foo</h1>` (trimmed, closing # removed)  
+**Actual**: Patitas adds `id` attribute, whitespace handling differs  
+**Impact**: Low - cosmetic differences
+
+**Fix Complexity**: Low - post-processing normalization
+
+#### Issue 14: Hard Line Break (Two Spaces)
+
+**Status**: 33% pass rate (5/10)  
+**Spec Reference**: CommonMark 6.9
+
+```markdown
+line one  
+line two
+```
+
+**Expected**: `<br />` between lines (two trailing spaces)  
+**Actual**: Only backslash `\` line breaks work  
+**Impact**: High - common pattern
+
+**Fix Complexity**: Low - lexer/parser detection
+
+#### Issue 15: Autolink Edge Cases
+
+**Status**: 21% pass rate (4/15)  
+**Spec Reference**: CommonMark 6.7
+
+```markdown
+<https://example.com>
+<foo@bar.example.com>
+```
+
+**Expected**: Automatic link wrapping  
+**Actual**: Plugin exists but edge cases fail  
+**Impact**: Medium - angle-bracket URLs
+
+**Fix Complexity**: Low - plugin refinement
+
 ## Proposed Test Strategy
 
 ### Phase 1: CommonMark Spec Tests (Official Suite)
@@ -375,26 +498,36 @@ def test_list_performance(benchmark):
 
 ## Success Metrics
 
-| Metric | Current | Target | Measurement |
-|--------|---------|--------|-------------|
-| Existing Test Pass Rate | 91% | 100% | test_commonmark.py |
-| CommonMark Spec Pass Rate | TBD | 97% | spec.json (652 examples) |
-| List Spec Tests | ~60% est. | 100% | sections 5.2, 5.3 (74 tests) |
-| Link Spec Tests | ~30% est. | 100% | sections 4.7, 6.5 (116 tests) |
-| Fuzz Test Coverage | 0 | 1000+ cases | hypothesis tests |
-| Regression Tests | N/A | 100% of bugs | PR requirement |
-| Performance Regression | N/A | <5% variance | benchmark suite |
+| Metric | Baseline | Current | Target | Measurement |
+|--------|----------|---------|--------|-------------|
+| Curated Test Pass Rate | 99% | 99% | 100% | test_commonmark.py (105 tests) |
+| CommonMark Spec Pass Rate | **42.4%** | **42.4%** | 97% | spec.json (652 examples) |
+| List Spec Tests (5.2, 5.3) | **17%** | 17% | 100% | 13/74 passing |
+| Link Spec Tests (4.7, 6.5, 6.6) | **36%** | 36% | 100% | 48/133 passing |
+| Block Spec Tests (4.1-4.9) | **35%** | 35% | 100% | 61/175 passing |
+| Inline Spec Tests (6.1-6.11) | **52%** | 52% | 100% | 178/344 passing |
+| Fuzz Test Coverage | 0 | 0 | 1000+ cases | hypothesis tests |
+| Regression Tests | N/A | N/A | 100% of bugs | PR requirement |
+| Performance Regression | N/A | N/A | <5% variance | benchmark suite |
+
+**Gap Analysis** (to reach 97% = 633/652):
+- Need: +368 passing tests
+- Priority P0 (Lists + Links): ~200 tests potential
+- Priority P1 (Blocks + Inline): ~150 tests potential
+- Remaining: ~18 tests (intentional deviations acceptable)
 
 ## Competitive Analysis
 
 | Parser | CommonMark Compliance | Performance | Thread-Safe |
 |--------|----------------------|-------------|-------------|
-| **Patitas (current)** | ~70% est. | O(n) guaranteed | ✅ |
+| **Patitas (current)** | **42.4%** | O(n) guaranteed | ✅ |
 | **Patitas (target)** | 97% | O(n) guaranteed | ✅ |
 | mistune 3.x | ~95% | O(n) typical | ❌ |
 | markdown-it-py | ~99% | O(n) typical | ❌ |
 | commonmark.py | 100% | O(n²) worst | ❌ |
 | cmark (C) | 100% | O(n) guaranteed | ✅ |
+
+**Reality Check**: At 42.4%, Patitas is not yet production-ready for general markdown parsing. However, for Bengal's documentation site use case (controlled markdown), current coverage is functional. The path to 97% is clear and achievable.
 
 **Patitas differentiators**:
 1. Pure Python with free-threading support (3.14t)
