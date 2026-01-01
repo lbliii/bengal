@@ -141,15 +141,15 @@ Cautionary note (renders as warning)
 
 ## Options
 
-Admonitions support standard directive options:
+Admonitions support the `:class:` option for custom styling:
 
-- `:class:` - Additional CSS classes
-- `:id:` - Element ID
+| Option | Description |
+|--------|-------------|
+| `:class:` | Additional CSS classes to apply |
 
 `````markdown
 :::{note} Custom Note
-:class: custom-class
-:id: my-note
+:class: highlight bordered
 
 Content here
 :::
@@ -161,8 +161,19 @@ Admonitions render as:
 
 ```html
 <div class="admonition note">
-  <p class="admonition-title">Note</p>
-  <div>Content here</div>
+  <p class="admonition-title">
+    <span class="admonition-icon-wrapper"><!-- SVG icon --></span>
+    <span class="admonition-title-text">Note</span>
+  </p>
+  <p>Content here</p>
+</div>
+```
+
+With custom classes:
+
+```html
+<div class="admonition note highlight bordered">
+  ...
 </div>
 ```
 
