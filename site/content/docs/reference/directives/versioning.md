@@ -89,7 +89,7 @@ Use `new_function()` instead.
 
 | Option | Type | Description |
 |--------|------|-------------|
-| (argument) | `string` | Version when deprecated (e.g., `v3.0`) |
+| (argument) | `string` | Version when deprecated. If omitted, displays "Deprecated" without version. |
 | `:class:` | `string` | Additional CSS class (default: `version-deprecated`) |
 
 ### Examples
@@ -129,16 +129,14 @@ This feature is deprecated and will be removed.
 
 ### Rendered Output
 
-Renders with Bengal's theme aesthetic:
-
 **Inline badge** (no content):
-- Neumorphic badge styling
+- Neumorphic badge with subtle shadow
 - SVG alert triangle icon
 - Warning/orange theme colors
 
 **Full directive** (with content):
-- Luminescent left-edge glow animation
-- Palette-aware blob background (warning colors)
+- Left-edge accent border with palette-aware colors
+- Subtle background blob animation (warning colors)
 - Rounded container with badge header
 
 ---
@@ -161,7 +159,7 @@ Default timeout changed from 30s to 60s.
 
 | Option | Type | Description |
 |--------|------|-------------|
-| (argument) | `string` | Version when changed (e.g., `v2.5`) |
+| (argument) | `string` | Version when changed. If omitted, displays "Changed" without version. |
 | `:class:` | `string` | Additional CSS class (default: `version-changed`) |
 
 ### Examples
@@ -202,16 +200,14 @@ This behavior has been updated.
 
 ### Rendered Output
 
-Renders with Bengal's theme aesthetic:
-
 **Inline badge** (no content):
-- Neumorphic badge styling
+- Neumorphic badge with subtle shadow
 - SVG refresh icon
 - Info/blue theme colors
 
 **Full directive** (with content):
-- Luminescent left-edge glow animation
-- Palette-aware blob background (info colors)
+- Left-edge accent border with palette-aware colors
+- Subtle background blob animation (info colors)
 - Rounded container with badge header
 
 ---
@@ -244,7 +240,7 @@ All versioning directives use consistent CSS classes that integrate with Bengal'
 Version directives use CSS custom properties for easy theming:
 
 ```css
-/* Override the version color (affects glow animation) */
+/* Override colors for custom themes */
 .version-since {
   --version-color: var(--color-success);
 }
@@ -256,16 +252,9 @@ Version directives use CSS custom properties for easy theming:
 .version-changed {
   --version-color: var(--color-info);
 }
-
-/* Disable glow animation if preferred */
-@media (prefers-reduced-motion: reduce) {
-  .version-directive {
-    animation: none;
-  }
-}
 ```
 
-For complete customization, see `assets/css/components/versioning.css` in the default theme.
+Animation respects `prefers-reduced-motion`. For complete customization, see `assets/css/components/versioning.css` in the default theme.
 
 ---
 

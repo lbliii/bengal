@@ -47,21 +47,17 @@ Automatically generate a card grid from child sections and pages. This is the re
 
 | Option | Values | Default | Description |
 |--------|--------|---------|-------------|
-| `:columns:` | `1`, `2`, `3`, `4`, `auto` | `2` | Number of columns in the grid |
+| `:columns:` | `1`, `2`, `3`, `4`, `auto` | `auto` | Number of columns in the grid |
 | `:include:` | `all`, `sections`, `pages` | `all` | What to include in the cards |
 | `:fields:` | Comma-separated list | `title, description` | Metadata fields to display |
 | `:gap:` | `small`, `medium`, `large` | `medium` | Gap between cards |
-| `:layout:` | `default`, `horizontal`, `compact` | `default` | Card layout style |
+| `:layout:` | `default`, `horizontal`, `portrait`, `compact` | `default` | Card layout style |
 
 ### Available Fields
 
 - `title` - Page/section title from frontmatter
 - `description` - Description from frontmatter
 - `icon` - Icon from frontmatter (falls back to folder/file SVG icons)
-- `date` - Publication date
-- `tags` - Tag list
-- `estimated_time` - Reading time estimate
-- `difficulty` - Difficulty level
 
 ### Examples
 
@@ -93,7 +89,7 @@ Automatically generate a card grid from child sections and pages. This is the re
 ```markdown
 :::{child-cards}
 :include: pages
-:fields: title, description, date
+:fields: title, description
 :layout: compact
 :::
 ```
@@ -102,7 +98,7 @@ Automatically generate a card grid from child sections and pages. This is the re
 
 1. **Use for section index pages** - Replace manual card lists with `child-cards`
 2. **Add icons in frontmatter** - Each child page/section can have `icon: name` in frontmatter
-3. **Add card_color in frontmatter** - Use `card_color: blue` for colored cards
+3. **Use weight for ordering** - Add `weight: 10` to control card sort order (lower = first)
 4. **Falls back to SVG icons** - When no icon is specified, sections get folder icons and pages get file icons
 
 ## Breadcrumbs
@@ -278,7 +274,7 @@ flowchart LR
 This means:
 - **No manual updates needed** - Cards update automatically when you add/remove pages
 - **Single source of truth** - Metadata comes from frontmatter, not duplicated in cards
-- **O(1) lookups** - Direct object access, no index lookups required
+- **Fast lookups** - Direct object tree access, no file scanning required
 
 ## Frontmatter for Navigation
 
@@ -289,7 +285,6 @@ To get the best results, add these fields to your pages' frontmatter:
 title: My Page
 description: A helpful description for cards
 icon: book           # Icon name (book, code, rocket, etc.)
-card_color: blue     # Card color (blue, green, purple, orange, etc.)
 weight: 10           # Sort order (lower = first)
 tags: [guide, python]  # For related pages
 ---
