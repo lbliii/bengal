@@ -10,9 +10,11 @@ Bengal provides three directives for marking version-specific content:
 
 | Directive | Purpose | Rendered As |
 |-----------|---------|-------------|
-| `:::{since}` | Feature added in version X | ✨ New in X |
-| `:::{deprecated}` | Feature deprecated in version X | ⚠️ Deprecated |
-| `:::{changed}` | Behavior changed in version X | 📝 Changed |
+| `:::{since}` | Feature added in version X | New in X |
+| `:::{deprecated}` | Feature deprecated in version X | Deprecated since X |
+| `:::{changed}` | Behavior changed in version X | Changed in X |
+
+Each directive renders with an SVG icon and themed styling using CSS classes.
 
 ## Since Directive
 
@@ -28,9 +30,13 @@ This feature was added in version 2.0.
 
 ### Rendered Output
 
-<div style="background: #d4edda; border-left: 4px solid #28a745; padding: 1rem; margin: 1rem 0;">
-  <strong>✨ New in v2.0</strong>
-  <p>This feature was added in version 2.0.</p>
+<div class="version-directive version-since">
+  <div class="version-directive-header">
+    <span class="version-badge version-badge-since">New in v2.0</span>
+  </div>
+  <div class="version-directive-content">
+    <p>This feature was added in version 2.0.</p>
+  </div>
 </div>
 
 ### Use Cases
@@ -75,9 +81,13 @@ Use `new_function()` instead. This will be removed in v4.0.
 
 ### Rendered Output
 
-<div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 1rem; margin: 1rem 0;">
-  <strong>⚠️ Deprecated in v3.0</strong>
-  <p>Use <code>new_function()</code> instead. This will be removed in v4.0.</p>
+<div class="version-directive version-deprecated">
+  <div class="version-directive-header">
+    <span class="version-badge version-badge-deprecated">Deprecated since v3.0</span>
+  </div>
+  <div class="version-directive-content">
+    <p>Use <code>new_function()</code> instead. This will be removed in v4.0.</p>
+  </div>
 </div>
 
 ### Use Cases
@@ -134,9 +144,13 @@ Default timeout changed from 30 seconds to 60 seconds.
 
 ### Rendered Output
 
-<div style="background: #cce5ff; border-left: 4px solid #007bff; padding: 1rem; margin: 1rem 0;">
-  <strong>📝 Changed in v2.5</strong>
-  <p>Default timeout changed from 30 seconds to 60 seconds.</p>
+<div class="version-directive version-changed">
+  <div class="version-directive-header">
+    <span class="version-badge version-badge-changed">Changed in v2.5</span>
+  </div>
+  <div class="version-directive-content">
+    <p>Default timeout changed from 30 seconds to 60 seconds.</p>
+  </div>
 </div>
 
 ### Use Cases
@@ -191,13 +205,9 @@ All directives can be used inline for brief annotations:
 
 ## Without Version Number
 
-You can omit the version number for generic notices:
+The `deprecated` and `changed` directives support omitting the version number for generic notices:
 
 ```markdown
-:::{since}
-This is a recent addition.
-:::
-
 :::{deprecated}
 This feature is deprecated.
 :::
@@ -207,29 +217,35 @@ This behavior has changed.
 :::
 ```
 
+:::{note}
+The `since` directive requires a version number. Without one, no output is rendered.
+:::
+
 ## Styling
 
-The directives render with CSS classes you can customize:
+Each directive renders with an inline SVG icon and themed styling. The directives use CSS classes you can customize:
 
 ```css
-/* Since badge */
+/* Since directive - success/green theme */
 .version-since {
-  background-color: var(--success-subtle);
-  border-left-color: var(--success-emphasis);
+  --version-color: var(--color-success);
+  background-color: var(--color-success-bg);
 }
 
-/* Deprecated badge */
+/* Deprecated directive - warning/orange theme */
 .version-deprecated {
-  background-color: var(--warning-subtle);
-  border-left-color: var(--warning-emphasis);
+  --version-color: var(--color-warning);
+  background-color: var(--color-warning-bg);
 }
 
-/* Changed badge */
+/* Changed directive - info/blue theme */
 .version-changed {
-  background-color: var(--info-subtle);
-  border-left-color: var(--info-emphasis);
+  --version-color: var(--color-info);
+  background-color: var(--color-info-bg);
 }
 ```
+
+Badges include Lucide-style SVG icons (`.version-badge-icon`) that inherit the theme color via `currentColor`. Full directive containers (when content is provided) feature a luminescent glow animation and neumorphic styling.
 
 ## Combining Directives
 

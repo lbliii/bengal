@@ -48,8 +48,10 @@ versioning:
       label: "1.0"
       deprecated: true
   sections:
-    - docs  # Which content sections are versioned
+    - docs  # Which content sections are versioned (default)
 ```
+
+If you omit `sections`, it defaults to `["docs"]`.
 
 ## Step 2: Create Version Directories
 
@@ -123,12 +125,12 @@ versioning:
     stable: v3
     lts: v2
 
-  # Which sections are versioned
+  # Which sections are versioned (default: ["docs"])
   sections:
     - docs
     # - api    # Add more if needed
 
-  # Shared content across all versions
+  # Shared content across all versions (default: ["_shared"])
   shared:
     - _shared  # Content in _shared/ appears in all versions
 ```
