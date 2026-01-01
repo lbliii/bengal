@@ -73,9 +73,15 @@ Templates access fingerprinted URLs via the manifest:
 
 ```python
 # Module: bengal/assets/manifest.py
-manifest = AssetManifest(output_dir)
-manifest.add("css/main.css", "css/main.abc123.css")
-manifest.write()  # Writes asset-manifest.json
+manifest = AssetManifest()
+manifest.set_entry(
+    "css/main.css",
+    "assets/css/main.abc123.css",
+    fingerprint="abc123",
+    size_bytes=4096,
+    updated_at=time.time(),
+)
+manifest.write(output_dir / "asset-manifest.json")
 ```
 
 ## NodePipeline (Optional)

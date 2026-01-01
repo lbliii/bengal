@@ -86,6 +86,8 @@ class Parser:
         "_directive_registry",
         "_directive_stack",
         "_strict_contracts",
+        # Link reference definitions
+        "_link_refs",
     )
 
     def __init__(
@@ -121,6 +123,9 @@ class Parser:
         self._math_enabled = False
         self._autolinks_enabled = False
 
+        # Link reference definitions: label (lowercase) -> (url, title)
+        self._link_refs: dict[str, tuple[str, str]] = {}
+
         # Directive support
         self._directive_registry = directive_registry
         self._directive_stack: list[str] = []
@@ -140,6 +145,18 @@ class Parser:
         self._tokens = list(lexer.tokenize())
         self._pos = 0
         self._current = self._tokens[0] if self._tokens else None
+
+        # First pass: collect link reference definitions
+        # These are needed before inline parsing to resolve [text][ref] patterns
+        for token in self._tokens:
+            if token.type == TokenType.LINK_REFERENCE_DEF:
+                # Value format: label|url|title
+                parts = token.value.split("|", 2)
+                if len(parts) >= 2:
+                    label = parts[0].lower()  # Labels are case-insensitive
+                    url = parts[1]
+                    title = parts[2] if len(parts) > 2 else ""
+                    self._link_refs[label] = (url, title)
 
         # Parse blocks
         blocks: list[Block] = []
@@ -189,6 +206,12 @@ class Parser:
 
             case TokenType.FOOTNOTE_DEF:
                 return self._parse_footnote_def()
+
+            case TokenType.LINK_REFERENCE_DEF:
+                # Link reference definitions are collected in first pass
+                # They don't produce AST nodes, just skip
+                self._advance()
+                return None
 
             case _:
                 # Skip unknown tokens
@@ -1515,6 +1538,12 @@ class Parser:
     ) -> tuple[Link, int] | None:
         """Try to parse a link at position.
 
+        Handles:
+        - [text](url) - inline link
+        - [text][ref] - full reference link
+        - [text][] - collapsed reference link
+        - [ref] - shortcut reference link
+
         Returns (Link, new_position) or None if not a link.
         """
         if text[pos] != "[":
@@ -1526,13 +1555,14 @@ class Parser:
             return None
 
         link_text = text[pos + 1 : bracket_pos]
+        text_len = len(text)
 
         # Check for (url) or [ref]
-        if bracket_pos + 1 < len(text):
+        if bracket_pos + 1 < text_len:
             next_char = text[bracket_pos + 1]
 
             if next_char == "(":
-                # Inline link
+                # Inline link: [text](url)
                 close_paren = text.find(")", bracket_pos + 2)
                 if close_paren != -1:
                     dest = text[bracket_pos + 2 : close_paren]
@@ -1554,6 +1584,39 @@ class Parser:
                     return Link(
                         location=location, url=url, title=title, children=children
                     ), close_paren + 1
+
+            elif next_char == "[":
+                # Full or collapsed reference link: [text][ref] or [text][]
+                ref_end = text.find("]", bracket_pos + 2)
+                if ref_end != -1:
+                    ref_label = text[bracket_pos + 2 : ref_end]
+                    if not ref_label:
+                        # Collapsed: [text][] uses link_text as label
+                        ref_label = link_text
+                    # Look up reference
+                    ref_data = self._link_refs.get(ref_label.lower())
+                    if ref_data:
+                        url, title = ref_data
+                        children = self._parse_inline(link_text, location)
+                        return Link(
+                            location=location,
+                            url=url,
+                            title=title if title else None,
+                            children=children,
+                        ), ref_end + 1
+
+        # Try shortcut reference link: [ref] alone
+        # Only if this looks like a reference (not followed by ( or [)
+        ref_data = self._link_refs.get(link_text.lower())
+        if ref_data:
+            url, title = ref_data
+            children = self._parse_inline(link_text, location)
+            return Link(
+                location=location,
+                url=url,
+                title=title if title else None,
+                children=children,
+            ), bracket_pos + 1
 
         return None
 

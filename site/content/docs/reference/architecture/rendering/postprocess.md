@@ -31,19 +31,23 @@ Generates XML sitemap for SEO
 
 ### Features
 - Generates XML sitemap for SEO
-- Includes all pages with metadata
-- Configurable priority and change frequency
+- Includes all pages with metadata (respects `visibility.sitemap`)
+- Version-aware priority (latest: 0.8, older: 0.3, default: 0.5)
+- i18n support with `hreflang` alternate links
 - Validates URL structure
 - Follows sitemap.xml protocol
 
 ### Configuration
 
 ```toml
-[sitemap]
-enabled = true
-changefreq = "weekly"  # always, hourly, daily, weekly, monthly, yearly, never
-priority = 0.5  # 0.0 to 1.0
+# Enable/disable sitemap generation (default: true)
+generate_sitemap = true
 ```
+
+Sitemap behavior is automatic:
+- **Change frequency**: Always `weekly`
+- **Priority**: Computed from version status (latest versions get higher priority)
+- **Exclusions**: Pages with `hidden: true` or `visibility.sitemap: false` are excluded
 
 ### Output Format
 
@@ -72,19 +76,23 @@ Generates RSS feed for blog posts
 
 ### Features
 - Generates RSS 2.0 feed
-- Includes recent posts
-- Supports custom descriptions
-- Configurable item count
-- Full content or excerpts
+- Includes 20 most recent posts with dates
+- Uses page description or excerpt (first 200 chars)
+- Sorted by date (newest first)
+- Respects `visibility.rss` and draft status
+- i18n support (per-locale feeds when enabled)
 
 ### Configuration
 
 ```toml
-[rss]
-enabled = true
-limit = 20  # Number of items in feed
-full_content = false  # true for full HTML, false for excerpts
+# Enable/disable RSS generation (default: true)
+generate_rss = true
 ```
+
+RSS behavior is automatic:
+- **Item limit**: 20 most recent pages with dates
+- **Content**: Page description from frontmatter, or excerpt from content
+- **Exclusions**: Drafts and pages with `visibility.rss: false` are excluded
 
 ### Output Format
 
@@ -126,32 +134,47 @@ Validates internal and external links
 ### Configuration
 
 ```toml
-[validation]
-check_internal_links = true
-check_external_links = false  # Can be slow
-ignore_patterns = ["^#", "^mailto:", "^tel:"]
+# Enable/disable internal link validation during build (default: true)
+validate_links = true
 ```
 
 ### Validation Process
-1. Extract all links from rendered HTML
-2. Categorize as internal or external
-3. For internal links:
-   - Check if target page exists
-   - Verify anchor IDs exist
-4. For external links (optional):
-   - Make HEAD request
-   - Check response status
-5. Report broken links with context
+
+**Internal links** (validated during build):
+1. Extract links from rendered pages
+2. Resolve relative paths against page URL
+3. Check if target page exists in site
+4. Report broken links with source context
+
+**External links** (separate command):
+```bash
+bengal health linkcheck --external
+```
+
+**Automatically skipped**:
+- External URLs (`http://`, `https://`)
+- Special protocols (`mailto:`, `tel:`, `data:`)
+- Template syntax (`{{`, `${`)
+- Source file references (`.py` files from autodoc)
 
 ### Output Example
 
+Build-time validation reports internal broken links:
+
 ```
-Link Validation Results:
-✓ 245 internal links valid
-✗ 3 broken links found:
-  - /docs/missing-page/ (referenced in /blog/post.html)
-  - /guide/#invalid-anchor (referenced in /index.html)
-  - https://example.com/404 (referenced in /links.html)
+Found 2 broken internal links:
+  content/blog/post.md: /docs/missing-page/
+  content/index.md: /guide/old-section/
+```
+
+External link checking (via `bengal health linkcheck`):
+
+```
+Checking 156 external links...
+✓ 153 links valid
+✗ 3 broken:
+  - https://example.com/404 (in /links.html)
+  - https://old-api.example.com (in /docs/api.html)
 ```
 
 ## Special Page Generation
@@ -167,18 +190,22 @@ Chronological page listings by year/month
 
 ## Parallel Post-Processing
 
-Post-processing tasks can run in parallel for better performance:
+Post-processing tasks run in parallel when multiple tasks are enabled:
 
 ```python
-# tasks run concurrently
-with ThreadPoolExecutor() as executor:
-    futures = [
-        executor.submit(generate_sitemap),
-        executor.submit(generate_rss),
-        executor.submit(validate_links),
-        executor.submit(generate_search_index),
-    ]
-    wait(futures)
+# Actual implementation in bengal/orchestration/postprocess.py
+with ThreadPoolExecutor(max_workers=len(tasks)) as executor:
+    futures = {executor.submit(task_fn): name for name, task_fn in tasks}
+    for future in as_completed(futures):
+        future.result()  # Raises on error
 ```
 
-**Impact**: 2x speedup measured on typical sites
+**Tasks that run in parallel**:
+- Sitemap generation
+- RSS feed generation
+- Output formats (JSON, TXT, LLM)
+- Special pages (404, search)
+- Redirect pages
+- Social cards (if enabled)
+
+**Incremental builds**: Skip expensive tasks (sitemap, RSS, social cards) for faster dev server response. Output formats always regenerate to keep search index current.

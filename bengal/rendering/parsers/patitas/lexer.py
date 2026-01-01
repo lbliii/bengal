@@ -233,6 +233,13 @@ class Lexer:
             yield footnote_token
             return
 
+        # Link reference definition: [label]: url "title"
+        if content.startswith("[") and not content.startswith("[^"):
+            link_ref_token = self._try_classify_link_reference_def(content, line_start)
+            if link_ref_token is not None:
+                yield link_ref_token
+                return
+
         # Directive: :::{name} or ::::{name} etc.
         if content.startswith(":"):
             directive_tokens = self._try_classify_directive_start(content, line_start)
@@ -504,6 +511,62 @@ class Lexer:
                 remaining,
                 self._location_from(line_start),
             )
+
+    def _try_classify_link_reference_def(self, content: str, line_start: int) -> Token | None:
+        """Try to classify content as link reference definition.
+
+        Format: [label]: url "title"
+
+        Returns LINK_REFERENCE_DEF token if valid, None otherwise.
+        Token value format: label|url|title (pipe-separated)
+        """
+        if not content.startswith("["):
+            return None
+
+        # Find ]:
+        bracket_end = content.find("]:")
+        if bracket_end == -1 or bracket_end < 1:
+            return None
+
+        label = content[1:bracket_end]
+        if not label:
+            return None
+
+        # Rest is URL and optional title
+        rest = content[bracket_end + 2 :].strip()
+        if not rest:
+            return None
+
+        # Parse URL (can be <url> or bare url)
+        url = ""
+        title = ""
+
+        if rest.startswith("<"):
+            # Angle-bracketed URL
+            close_bracket = rest.find(">")
+            if close_bracket != -1:
+                url = rest[1:close_bracket]
+                rest = rest[close_bracket + 1 :].strip()
+        else:
+            # Bare URL - ends at whitespace
+            parts = rest.split(None, 1)
+            url = parts[0] if parts else rest
+            rest = parts[1] if len(parts) > 1 else ""
+
+        # Parse optional title (in quotes or parentheses)
+        if rest and (
+            (rest.startswith('"') and rest.endswith('"'))
+            or (rest.startswith("'") and rest.endswith("'"))
+            or (rest.startswith("(") and rest.endswith(")"))
+        ):
+            title = rest[1:-1]
+
+        if not url:
+            return None
+
+        # Value format: label|url|title
+        value = f"{label}|{url}|{title}"
+        return Token(TokenType.LINK_REFERENCE_DEF, value, self._location_from(line_start))
 
     def _try_classify_footnote_def(self, content: str, line_start: int) -> Token | None:
         """Try to classify content as footnote definition.
