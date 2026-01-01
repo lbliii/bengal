@@ -427,7 +427,12 @@ class Parser:
                             break
                         # More indent - could be nested list
                     elif next_tok.type == TokenType.PARAGRAPH_LINE:
-                        # Continuation paragraph (loose list)
+                        # Check if paragraph is indented (continuation) or not (terminates list)
+                        para_indent = self._get_marker_indent(next_tok.value)
+                        if para_indent <= start_indent:
+                            # Non-indented paragraph terminates the list
+                            break
+                        # Indented paragraph - continuation (loose list)
                         tight = False
                         # Save current paragraph first
                         if content_lines:

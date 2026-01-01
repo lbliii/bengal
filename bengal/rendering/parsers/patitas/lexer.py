@@ -241,9 +241,12 @@ class Lexer:
                 return
 
         # Default: paragraph line
+        # Prefix with spaces to preserve indent (like list markers do)
+        # This allows parser to detect non-indented paragraphs that terminate lists
+        indented_content = " " * indent + content.rstrip("\n")
         yield Token(
             TokenType.PARAGRAPH_LINE,
-            content.rstrip("\n"),
+            indented_content,
             self._location_from(line_start),
         )
 
