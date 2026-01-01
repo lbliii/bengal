@@ -12,26 +12,25 @@ Add hooks to your `bengal.toml` under the `[dev_server]` section:
 
 ```toml
 [dev_server]
-pre_build_hooks = [
+pre_build = [
     "npm run build:icons",
     "npx tailwindcss -i src/input.css -o assets/style.css"
 ]
-post_build_hooks = [
+post_build = [
     "echo 'Build complete!'",
     "node scripts/validate-output.js"
 ]
-hook_timeout = 60  # seconds per command (default: 60)
 ```
 
 ## How Hooks Work
 
 Hooks execute sequentially in the order defined:
 
-1. **Pre-build hooks** run before content discovery and rendering
+1. **Pre-build hooks** run before the build starts
 2. Bengal processes and renders your site
 3. **Post-build hooks** run after all pages are written
 
-If any hook fails (non-zero exit code), the build stops and reports the error.
+If a **pre-build hook fails** (non-zero exit code), the build stops immediately and reports the error. If a **post-build hook fails**, a warning is logged but the build is considered complete.
 
 ## Common Use Cases
 
@@ -39,7 +38,7 @@ If any hook fails (non-zero exit code), the build stops and reports the error.
 
 ```toml
 [dev_server]
-pre_build_hooks = [
+pre_build = [
     "npx tailwindcss -i src/input.css -o assets/css/tailwind.css --minify"
 ]
 ```
@@ -48,7 +47,7 @@ pre_build_hooks = [
 
 ```toml
 [dev_server]
-pre_build_hooks = [
+pre_build = [
     "npx esbuild src/main.ts --bundle --outfile=assets/js/bundle.js --minify"
 ]
 ```
@@ -57,7 +56,7 @@ pre_build_hooks = [
 
 ```toml
 [dev_server]
-pre_build_hooks = [
+pre_build = [
     "npx svg-sprite --symbol --dest assets/icons src/icons/*.svg"
 ]
 ```
@@ -66,7 +65,7 @@ pre_build_hooks = [
 
 ```toml
 [dev_server]
-post_build_hooks = [
+post_build = [
     "python scripts/check-links.py public/",
     "npx html-validate public/**/*.html"
 ]
@@ -76,12 +75,11 @@ post_build_hooks = [
 
 ```toml
 [dev_server]
-pre_build_hooks = [
+pre_build = [
     "npm run build:icons",
     "npm run build:css",
     "npm run build:js"
 ]
-hook_timeout = 120  # Allow more time for complex builds
 ```
 
 ## Environment and Working Directory
@@ -94,19 +92,23 @@ Hooks run in your project's root directory with access to your shell environment
 
 ## Error Handling
 
-When a hook fails:
+When a **pre-build hook** fails:
 
-1. The command's stdout and stderr are logged
+1. The command's stderr is logged (truncated to 500 characters)
 2. The build stops immediately
-3. An error message shows which hook failed and why
+3. An error message shows which hook failed
 
 Example error output:
 
 ```
-Pre-build hook failed: npx tailwindcss -i src/input.css -o assets/style.css
-Exit code: 1
-Error: Cannot find module 'tailwindcss'
+Pre-build hook failed - skipping build
 ```
+
+When a **post-build hook** fails:
+
+1. The command's stderr is logged
+2. A warning is logged, but the build is considered successful
+3. Your site output is still available
 
 ## Limitations
 
@@ -122,7 +124,7 @@ Instead of long inline commands:
 
 ```toml
 # ❌ Hard to read
-pre_build_hooks = [
+pre_build = [
     "npx tailwindcss -i src/input.css -o assets/style.css --config tailwind.config.js --minify"
 ]
 ```
@@ -142,7 +144,7 @@ Then use it in your hooks:
 
 ```toml
 # ✅ Clean and maintainable
-pre_build_hooks = ["npm run build:css"]
+pre_build = ["npm run build:css"]
 ```
 
 ### Skip Hooks in CI
@@ -151,7 +153,7 @@ If your CI pipeline handles asset building separately, you can use environment v
 
 ```toml
 # Only run hooks if BENGAL_HOOKS is set
-pre_build_hooks = []  # Override in local config
+pre_build = []  # Override in local config
 ```
 
 Or use a local config override file that's not committed to version control.

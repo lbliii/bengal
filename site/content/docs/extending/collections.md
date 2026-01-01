@@ -65,7 +65,7 @@ class DocPage:
 Bengal automatically coerces frontmatter values to these types:
 
 | Type | YAML Example | Notes |
-|------|--------------|-------|
+| ---- | ------------ | ----- |
 | `str` | `title: "Hello"` | Basic string |
 | `int` | `weight: 10` | Integer |
 | `float` | `rating: 4.5` | Float |
@@ -205,15 +205,10 @@ class MyBlogPost(BlogPost):
 When content fails validation, Bengal reports detailed errors:
 
 ```text
-ContentValidationError: Validation failed for content/blog/my-post.md
-
-  Schema: BlogPost
-  Errors:
-    - title: Field required but not provided
-    - date: Invalid datetime format: 'January 15'
-    - author.email: Invalid email format: 'not-an-email'
-
-  Suggestion: Check frontmatter in content/blog/my-post.md
+Content validation failed: content/blog/my-post.md (collection: blog)
+  └─ title: Required field 'title' is missing
+  └─ date: Cannot parse 'January 15' as datetime
+  └─ author.email: Invalid value for type 'str'
 ```
 
 ### Validation Result

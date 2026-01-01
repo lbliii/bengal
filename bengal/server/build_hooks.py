@@ -20,11 +20,11 @@ Functions:
 Configuration (bengal.toml):
     ```toml
     [dev_server]
-    pre_build_hooks = [
+    pre_build = [
         "npm run build:icons",
         "tailwindcss -i src/input.css -o assets/style.css"
     ]
-    post_build_hooks = [
+    post_build = [
         "echo 'Build complete!'"
     ]
     hook_timeout = 60  # seconds per command
