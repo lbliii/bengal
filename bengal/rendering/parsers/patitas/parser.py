@@ -305,7 +305,7 @@ class Parser:
             assert token is not None
 
             if token.type == TokenType.PARAGRAPH_LINE:
-                content_lines.append(token.value)
+                content_lines.append(token.value.lstrip())
                 self._advance()
             elif token.type == TokenType.BLOCK_QUOTE_MARKER:
                 # Continuation of block quote
@@ -397,7 +397,7 @@ class Parser:
                 assert tok is not None
 
                 if tok.type == TokenType.PARAGRAPH_LINE:
-                    line = tok.value
+                    line = tok.value.lstrip()
 
                     # Check for task list marker at start of first line
                     if not content_lines and checked is None:
@@ -555,7 +555,7 @@ class Parser:
             assert token is not None
 
             if token.type == TokenType.PARAGRAPH_LINE:
-                lines.append(token.value)
+                lines.append(token.value.lstrip())
                 self._advance()
             else:
                 break
@@ -605,14 +605,14 @@ class Parser:
 
             if tok.type == TokenType.PARAGRAPH_LINE:
                 # Continuation paragraph
-                lines = [tok.value]
+                lines = [tok.value.lstrip()]
                 self._advance()
 
                 while not self._at_end():
                     next_tok = self._current
                     assert next_tok is not None
                     if next_tok.type == TokenType.PARAGRAPH_LINE:
-                        lines.append(next_tok.value)
+                        lines.append(next_tok.value.lstrip())
                         self._advance()
                     else:
                         break

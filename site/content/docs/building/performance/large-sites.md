@@ -400,5 +400,5 @@ bengal clean --all
 
 :::{seealso}
 - [[docs/building/performance|Performance Overview]]
-- [[docs/building/commands|Build Commands]]
+- [[docs/reference/cheatsheet|CLI Cheatsheet]]
 :::

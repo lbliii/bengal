@@ -128,12 +128,6 @@ Configure builds, optimize performance, and deploy to production.
 :description: Site settings, environments, and build options
 :::{/card}
 
-:::{card} Commands
-:icon: terminal
-:link: ./building/commands/
-:description: Build, serve, validate, and clean workflows
-:::{/card}
-
 :::{card} Performance
 :icon: zap
 :link: ./building/performance/

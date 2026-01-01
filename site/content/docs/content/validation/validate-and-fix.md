@@ -503,6 +503,6 @@ bengal clean --cache               # Clear build cache
 
 :::{seealso}
 - [Validation Overview](/docs/content/validation/) — Content quality strategies
-- [Build Commands](/docs/building/commands/) — All CLI commands
+- [CLI Cheatsheet](/docs/reference/cheatsheet/) — Quick command reference
 - [Troubleshooting](/docs/building/troubleshooting/) — Common issues
 :::

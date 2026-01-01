@@ -278,7 +278,7 @@ bengal build --profile writer    # Force writer profile
 ---
 
 :::{seealso}
-- [[docs/building/commands|Build Commands]]
+- [[docs/reference/cheatsheet|CLI Cheatsheet]]
 - [[docs/building/configuration|Configuration Reference]]
 - [[docs/content/validation|Validation and Health Checks]]
 :::
