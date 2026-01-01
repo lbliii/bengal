@@ -35,7 +35,7 @@ If you're using the default theme, you may only need to **add frontmatter** — 
 
 :::{note}
 **Who is this for?**
-This guide is for developers building team blogs, publication sites, or any content with multiple contributors. You should be familiar with Bengal basics from the [Build a Blog](/docs/tutorials/build-a-blog/) tutorial.
+This guide is for developers building team blogs, publication sites, or any content with multiple contributors. You should be familiar with Bengal basics from the [Build a Blog](/docs/tutorials/sites/build-a-blog/) tutorial.
 :::
 
 ## Goal

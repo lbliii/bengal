@@ -73,7 +73,7 @@ Apply it:
 bengal project skeleton apply my-blog.yaml
 ```
 
-See [[docs/get-started/skeleton-quickstart|Skeleton YAML Quickstart]] for more examples.
+See [[docs/tutorials/sites/skeleton-quickstart|Skeleton YAML Quickstart]] for more examples.
 :::
 
 ## Start the Dev Server {#dev-server}
@@ -198,4 +198,4 @@ Custom fields are accessible in templates via `page.props.fieldname`, `page.para
 - **[[docs/content/authoring|Content Authoring]]** — Markdown features and syntax
 - **[[docs/content/organization|Content Organization]]** — Structure your site
 - **[[docs/theming|Theming]]** — Customize appearance
-- **[[docs/tutorials/build-a-blog|Build a Blog]]** — Complete tutorial
+- **[[docs/tutorials/sites/build-a-blog|Build a Blog]]** — Complete tutorial

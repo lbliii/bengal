@@ -527,7 +527,7 @@ In strict mode, use `??` to handle undefined variables safely:
 ## Next Steps
 
 - [Kida Syntax Reference](/docs/reference/kida-syntax/) — Complete syntax documentation
-- [Kida Tutorial](/docs/tutorials/getting-started-with-kida/) — Learn Kida from scratch
+- [Kida Tutorial](/docs/tutorials/theming/getting-started-with-kida/) — Learn Kida from scratch
 - [Create Custom Template](/docs/theming/templating/kida/create-custom-template/) — Build new templates with Kida
 
 :::{seealso}

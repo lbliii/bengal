@@ -956,4 +956,4 @@ Override the aspect ratio with the `:aspect:` option or custom CSS classes.
 
 - [Layout Directives](/docs/reference/directives/layout/) - Cards, tabs, grids
 - [Interactive Directives](/docs/reference/directives/interactive/) - Code tabs, data tables
-- [Hugo Migration](/docs/tutorials/onboarding/from-hugo/) - Migrating from Hugo shortcodes
+- [Hugo Migration](/docs/tutorials/migration/from-hugo/) - Migrating from Hugo shortcodes

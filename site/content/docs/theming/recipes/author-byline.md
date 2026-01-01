@@ -259,5 +259,5 @@ authors:
 
 :::{seealso}
 - [Template Functions Reference](/docs/reference/template-functions/#author-properties) — Author properties
-- [Build a Multi-Author Blog](/docs/tutorials/build-a-multi-author-blog/) — Full tutorial
+- [Build a Multi-Author Blog](/docs/tutorials/sites/build-a-multi-author-blog/) — Full tutorial
 :::

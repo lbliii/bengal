@@ -475,6 +475,6 @@ content: |
 
 ## Next Steps
 
-- [[docs/get-started/skeleton-quickstart|Skeleton YAML Quickstart]] — Copy-paste examples
-- [[docs/tutorials/scaffold-your-site|Scaffold Tutorial]] — Full walkthrough
+- [[docs/tutorials/sites/skeleton-quickstart|Skeleton YAML Quickstart]] — Copy-paste examples
+- [[docs/get-started/scaffold-your-site|Scaffold Tutorial]] — Full walkthrough
 - [[docs/reference/site-templates|Site Templates Reference]] — Built-in templates

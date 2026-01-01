@@ -194,5 +194,5 @@ Show all parts with current highlighted:
 
 :::{seealso}
 - [Template Functions Reference](/docs/reference/template-functions/#series-properties) — Series properties
-- [Build a Tutorial Series](/docs/tutorials/create-a-tutorial-series/) — Full tutorial
+- [Build a Tutorial Series](/docs/tutorials/content/create-a-tutorial-series/) — Full tutorial
 :::

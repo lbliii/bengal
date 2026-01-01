@@ -25,7 +25,7 @@ category: reference
 Complete reference for Kida template syntax, operators, and features. Kida is Bengal's **default template engine**, optimized for performance and free-threaded Python.
 
 :::{tip}
-**New to Kida?** Start with the [Kida Tutorial](/docs/tutorials/getting-started-with-kida/) for a guided introduction. Kida is Jinja2-compatible, so existing Jinja2 templates work without changes.
+**New to Kida?** Start with the [Kida Tutorial](/docs/tutorials/theming/getting-started-with-kida/) for a guided introduction. Kida is Jinja2-compatible, so existing Jinja2 templates work without changes.
 :::
 
 ## Quick Comparison: Kida vs Jinja2
@@ -872,7 +872,7 @@ Kida can parse Jinja2 syntax via compatibility mode. Most Jinja2 templates work 
 
 ## See Also
 
-- [Kida Tutorial](/docs/tutorials/getting-started-with-kida/) — Learn Kida step-by-step
+- [Kida Tutorial](/docs/tutorials/theming/getting-started-with-kida/) — Learn Kida step-by-step
 - [Template Functions Reference](/docs/reference/template-functions/) — Available filters and functions
 - [Theming Guide](/docs/theming/templating/) — Template organization and inheritance
 - [Kida How-Tos](/docs/theming/templating/kida/) — Common tasks and patterns

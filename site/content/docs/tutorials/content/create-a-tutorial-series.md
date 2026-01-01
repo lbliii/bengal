@@ -723,5 +723,5 @@ You now have a complete tutorial series system with:
 ## Next Steps
 
 - **[Series Navigation Recipe](/docs/theming/recipes/series-navigation/)**: Quick reference
-- **[Build a Multi-Author Blog](/docs/tutorials/build-a-multi-author-blog/)**: Add author attribution
+- **[Build a Multi-Author Blog](/docs/tutorials/sites/build-a-multi-author-blog/)**: Add author attribution
 - **[Content Freshness](/docs/theming/recipes/content-freshness/)**: Show series age

@@ -28,36 +28,48 @@ Bengal is designed with multiple extension points that allow customization witho
 
 ## 1. Custom Content Strategies
 
-**Purpose**: Define how different content types are organized and rendered
+**Purpose**: Define how different content types are sorted, paginated, and rendered
 
 **Implementation**:
 ```python
-from bengal.content_types import ContentStrategy, ContentTypeRegistry
+from bengal.content_types.base import ContentTypeStrategy
+from bengal.content_types.registry import ContentTypeRegistry
 
-class CustomStrategy(ContentStrategy):
-    def get_template(self, page):
-        # Custom template selection logic
-        return 'custom/template.html'
+class NewsStrategy(ContentTypeStrategy):
+    """Custom strategy for news articles."""
 
-    def get_url_pattern(self, page):
-        # Custom URL structure
-        return f"custom/{page.slug}/"
+    default_template = "news/list.html"
+    allows_pagination = True
 
-    def get_sorting_key(self, pages):
-        # Custom page sorting
-        return lambda p: p.title
+    def sort_pages(self, pages):
+        """Sort by date, newest first."""
+        from datetime import datetime
+        return sorted(
+            pages,
+            key=lambda p: p.date or datetime.min,
+            reverse=True
+        )
 
-    def should_generate_index(self, section):
-        return True
+    def get_template(self, page=None, template_engine=None):
+        """Custom template selection."""
+        if page and page.source_path.stem == "_index":
+            return "news/list.html"
+        return "news/single.html"
+
+    def detect_from_section(self, section):
+        """Auto-detect news sections."""
+        return section.name.lower() in ("news", "announcements")
 
 # Register your strategy
-ContentTypeRegistry.register('custom', CustomStrategy)
+ContentTypeRegistry.register("news", NewsStrategy)
 ```
 
-**Configuration**:
-```toml
-[content_type]
-strategy = "custom"
+**Configuration** (in section `_index.md` frontmatter):
+```yaml
+---
+title: News
+content_type: news
+---
 ```
 
 **Documentation**: Refer to [[docs/reference/architecture/core/content-types|Content Types]]
