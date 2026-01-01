@@ -1,6 +1,6 @@
 ## [Unreleased]
 
-## 0.1.7 - 2026-01-01
+## 0.1.6 - 2026-01-01
 
 ### 🚀 Kida Template Engine ✅
 - **core(kida)**: Pure-Python template engine with Jinja2 compatibility as default

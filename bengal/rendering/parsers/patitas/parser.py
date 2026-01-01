@@ -581,18 +581,20 @@ class Parser:
         # CommonMark: --- after paragraph is setext heading, not thematic break
         if len(lines) == 1 and not self._at_end():
             token = self._current
-            if token is not None and token.type == TokenType.THEMATIC_BREAK:
-                # Check if the thematic break is --- (not *** or ___)
-                if token.value.strip().startswith("-"):
-                    self._advance()  # Consume the thematic break
-                    heading_text = lines[0]
-                    children = self._parse_inline(heading_text, start_token.location)
-                    return Heading(
-                        location=start_token.location,
-                        level=2,
-                        children=children,
-                        style="setext",
-                    )
+            if (
+                token is not None
+                and token.type == TokenType.THEMATIC_BREAK
+                and token.value.strip().startswith("-")
+            ):
+                self._advance()  # Consume the thematic break
+                heading_text = lines[0]
+                children = self._parse_inline(heading_text, start_token.location)
+                return Heading(
+                    location=start_token.location,
+                    level=2,
+                    children=children,
+                    style="setext",
+                )
 
         # Check for table structure if tables enabled
         if self._tables_enabled and len(lines) >= 2 and "|" in lines[0]:
