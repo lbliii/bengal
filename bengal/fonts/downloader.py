@@ -429,8 +429,8 @@ class GoogleFontsDownloader:
                     variant = FontVariant(family, weight, style, f"cached://{ttf_filename}")
                     cached_variants.append(variant)
                 else:
-                # At least one font is missing - need network request
-                return None
+                    # At least one font is missing - need network request
+                    return None
 
         return cached_variants
 
