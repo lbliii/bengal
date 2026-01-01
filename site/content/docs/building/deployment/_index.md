@@ -111,7 +111,7 @@ Create a `netlify.toml` in your repository root:
   command = "bengal build --environment production"
 
 [build.environment]
-  PYTHON_VERSION = "3.12"
+  PYTHON_VERSION = "3.14"
 ```
 
 ## Vercel

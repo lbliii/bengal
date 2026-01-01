@@ -32,8 +32,8 @@ Enable output formats in `bengal.toml`:
 ```toml
 [output_formats]
 enabled = true
-per_page = ["json"]                   # Default: JSON only
-site_wide = ["index_json"]            # Default: site index only
+per_page = ["json"]
+site_wide = ["index_json"]
 
 [output_formats.options]
 excerpt_length = 200                  # Excerpt length for site index
@@ -43,6 +43,15 @@ include_full_content_in_index = false # Include full content in site index
 exclude_sections = []                 # Sections to exclude from output formats
 exclude_patterns = ["404.html", "search.html"]  # Files to exclude
 ```
+
+:::{tip}
+**Effective Defaults**: The `[features]` section controls which formats are enabled. With default features (`json = true`, `llm_txt = true`), Bengal generates:
+
+- **per_page**: `["json", "llm_txt"]` (both JSON and LLM text)
+- **site_wide**: `["index_json", "llm_full"]` (search index and full LLM text)
+
+To disable LLM text generation, set `features.llm_txt = false` in your config.
+:::
 
 :::{note}
 **Visibility**: Output formats respect page visibility settings. Hidden pages and drafts are excluded by default. Use `exclude_sections` or `exclude_patterns` for additional filtering.

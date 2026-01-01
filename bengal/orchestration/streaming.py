@@ -400,12 +400,20 @@ class StreamingRenderOrchestrator:
             # Release memory if requested (for leaves)
             if release_memory:
                 # Clear references to page content/metadata to free memory
+                # Page cache attributes are defined in bengal/core/page/__init__.py
                 for page in batch:
-                    # Keep essential metadata but release heavy content
-                    if hasattr(page, "_content_cache"):
-                        delattr(page, "_content_cache")
+                    # Clear AST cache (parsed markdown structure)
+                    if hasattr(page, "_ast_cache"):
+                        page._ast_cache = None
+                    # Clear rendered HTML cache
                     if hasattr(page, "_html_cache"):
-                        delattr(page, "_html_cache")
+                        page._html_cache = None
+                    # Clear plain text cache (used for search indexing)
+                    if hasattr(page, "_plain_text_cache"):
+                        page._plain_text_cache = None
+                    # Clear TOC items cache
+                    if hasattr(page, "_toc_items_cache"):
+                        page._toc_items_cache = None
 
                 # Force garbage collection
                 gc.collect()

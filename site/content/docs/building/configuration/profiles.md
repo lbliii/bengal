@@ -94,6 +94,8 @@ bengal build --profile theme-dev
 - `navigation` — Navigation structure
 - `menu` — Menu validation
 
+**Disabled:** `performance`, `cache`, `taxonomy` (use `--dev` for these)
+
 ### Developer Profile
 
 **Best for**: Framework contributors who need full observability.
@@ -115,7 +117,7 @@ bengal build --debug
 - ✅ Recent items shown (5)
 
 **Health Checks Enabled:**
-- All validators (config, output, links, directives, rendering, navigation, menu, performance, cache, taxonomy)
+- All validators across all tiers (build, full, ci)
 
 ---
 
