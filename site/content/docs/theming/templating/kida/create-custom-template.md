@@ -295,9 +295,9 @@ Visit a blog post page to see your custom template in action.
 
 ## Next Steps
 
-- [Add Custom Filters](/docs/theming/templating/kida/add-custom-filter/) — Extend Kida with your own filters
-- [Use Pattern Matching](/docs/theming/templating/kida/use-pattern-matching/) — Clean up conditional logic
-- [Cache Fragments](/docs/theming/templating/kida/cache-fragments/) — Improve performance
+- [Add Custom Filters](/docs/theming/templating/kida/add-custom-filter.md) — Extend Kida with your own filters
+- [Use Pattern Matching](/docs/theming/templating/kida/syntax/operators/#pattern-matching) — Clean up conditional logic
+- [Cache Fragments](/docs/theming/templating/kida/caching/fragments/) — Improve performance
 
 :::{seealso}
 - [Kida Syntax Reference](/docs/reference/kida-syntax/) — Complete syntax documentation

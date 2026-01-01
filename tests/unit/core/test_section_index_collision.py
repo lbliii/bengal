@@ -19,7 +19,7 @@ class TestIndexFileCollision:
         # Create _index page
         underscore_index = Page(
             source_path=Path("/content/docs/_index.md"),
-            content="Content from _index",
+            _raw_content="Content from _index",
             metadata={"title": "Docs Index"},
         )
 
@@ -35,7 +35,7 @@ class TestIndexFileCollision:
         # Create index page
         regular_index = Page(
             source_path=Path("/content/docs/index.md"),
-            content="Content from index",
+            _raw_content="Content from index",
             metadata={"title": "Docs Index"},
         )
 
@@ -51,7 +51,7 @@ class TestIndexFileCollision:
         # Add regular index first
         regular_index = Page(
             source_path=Path("/content/docs/index.md"),
-            content="Content from index",
+            _raw_content="Content from index",
             metadata={"title": "Index"},
         )
         section.add_page(regular_index)
@@ -59,7 +59,7 @@ class TestIndexFileCollision:
         # Add underscore index second
         underscore_index = Page(
             source_path=Path("/content/docs/_index.md"),
-            content="Content from _index",
+            _raw_content="Content from _index",
             metadata={"title": "Underscore Index"},
         )
 
@@ -86,7 +86,7 @@ class TestIndexFileCollision:
         # Add underscore index first
         underscore_index = Page(
             source_path=Path("/content/docs/_index.md"),
-            content="Content from _index",
+            _raw_content="Content from _index",
             metadata={"title": "Underscore Index"},
         )
         section.add_page(underscore_index)
@@ -94,7 +94,7 @@ class TestIndexFileCollision:
         # Add regular index second
         regular_index = Page(
             source_path=Path("/content/docs/index.md"),
-            content="Content from index",
+            _raw_content="Content from index",
             metadata={"title": "Index"},
         )
 
@@ -118,12 +118,12 @@ class TestIndexFileCollision:
         # Add some regular pages
         page1 = Page(
             source_path=Path("/content/docs/guide.md"),
-            content="Guide content",
+            _raw_content="Guide content",
             metadata={"title": "Guide"},
         )
         page2 = Page(
             source_path=Path("/content/docs/tutorial.md"),
-            content="Tutorial content",
+            _raw_content="Tutorial content",
             metadata={"title": "Tutorial"},
         )
 
@@ -141,7 +141,7 @@ class TestIndexFileCollision:
         # Add regular index with cascade
         regular_index = Page(
             source_path=Path("/content/docs/index.md"),
-            content="Regular index",
+            _raw_content="Regular index",
             metadata={"title": "Index", "cascade": {"layout": "doc"}},
         )
         section.add_page(regular_index)
@@ -150,7 +150,7 @@ class TestIndexFileCollision:
         # Add underscore index with different cascade
         underscore_index = Page(
             source_path=Path("/content/docs/_index.md"),
-            content="Underscore index",
+            _raw_content="Underscore index",
             metadata={"title": "Underscore Index", "cascade": {"layout": "guide"}},
         )
 

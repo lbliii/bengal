@@ -353,7 +353,7 @@ Create styled checklist containers for bullet lists and task lists with optional
 
 ````markdown
 :::{checklist} Prerequisites
-- Python 3.10+
+- Python 3.14+
 - Git installed
 - Text editor
 :::{/checklist}

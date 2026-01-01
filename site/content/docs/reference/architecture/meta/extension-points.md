@@ -89,22 +89,50 @@ class CustomMarkdownParser(BaseMarkdownParser):
 markdown_engine = "custom"
 ```
 
-## 3. Custom Template Functions
+## 3. Custom Template Engines
 
-**Purpose**: Add custom filters and functions for Jinja2 templates
+**Purpose**: Bring your own template engine with full access to Bengal's 80+ template functions
+
+**Implementation**:
+```python
+from bengal.rendering.engines import register_engine
+from bengal.rendering.template_functions import register_all
+
+class MyEngine:
+    def __init__(self, site):
+        self.site = site
+        self.template_dirs = [site.root_path / "templates"]
+
+        # Environment must satisfy TemplateEnvironment protocol
+        # (must have globals, filters, tests as dict-like attributes)
+        self._env = MyEnvironment()
+
+        # All 80+ template functions registered automatically!
+        register_all(self._env, site)
+
+    def render_template(self, name: str, context: dict) -> str:
+        ...
+
+register_engine("myengine", MyEngine)
+```
+
+**Documentation**: See [Bring Your Own Template Engine](/docs/theming/templating/custom-engine/)
+
+## 4. Custom Template Functions
+
+**Purpose**: Add custom filters and functions to existing engines
 
 **Implementation**:
 ```python
 # In your site's custom module
-from bengal.rendering.template_engine import TemplateEngine
-
 def my_custom_filter(value):
     """Custom filter implementation."""
     return value.upper()
 
-# Register with template engine (requires hook - see below)
-def register_custom_functions(engine: TemplateEngine):
-    engine.env.filters['custom'] = my_custom_filter
+# Register via build hook
+def register_filters(site):
+    env = site._template_engine._env
+    env.filters['custom'] = my_custom_filter
 ```
 
 **Usage in templates**:
@@ -112,11 +140,9 @@ def register_custom_functions(engine: TemplateEngine):
 {{ page.title | custom }}
 ```
 
-**Examples**: See [`example_templates/filters/safe_filters.py`](../example_templates/filters/safe_filters.py) for real-world custom filter implementations.
+**Documentation**: See [Add a Custom Filter](/docs/theming/templating/kida/add-custom-filter/)
 
-**Future**: Plugin system will formalize this
-
-## 4. Custom Post-Processors
+## 5. Custom Post-Processors
 
 **Purpose**: Add custom build steps after page rendering
 
@@ -143,7 +169,7 @@ class RobotsGenerator:
 
 **Future**: Plugin system will provide hooks
 
-## 5. Custom Validators
+## 6. Custom Validators
 
 **Purpose**: Add custom health checks and validation rules
 
@@ -181,7 +207,7 @@ custom = true
 
 **Documentation**: Refer to [[docs/reference/architecture/subsystems/health|Health Checks]]
 
-## 6. Custom Themes
+## 7. Custom Themes
 
 **Purpose**: Package templates, styles, and scripts for reuse
 
@@ -210,7 +236,7 @@ theme = "my-theme"
 
 **Documentation**: Themes automatically override default templates
 
-## 7. Custom Shortcodes (Planned)
+## 8. Custom Shortcodes (Planned)
 
 **Purpose**: Define custom markdown syntax extensions
 
@@ -236,7 +262,7 @@ This is a warning message!
 {{% /alert %}}
 ```
 
-## 8. Plugin System (Planned v0.4.0)
+## 9. Plugin System (Planned v0.4.0)
 
 **Purpose**: Formal plugin architecture with lifecycle hooks
 
@@ -279,7 +305,7 @@ class MyPlugin(Plugin):
 - `pre_asset_process` - Before asset processing
 - `post_asset_process` - After asset processing
 
-## 9. Custom CLI Commands (Future)
+## 10. Custom CLI Commands (Future)
 
 **Purpose**: Add custom commands to Bengal CLI
 
@@ -297,7 +323,7 @@ def custom(verbose):
 # Commands automatically discovered and registered
 ```
 
-## 10. Custom Autodoc Extractors
+## 11. Custom Autodoc Extractors
 
 **Purpose**: Generate documentation from other sources
 

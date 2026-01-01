@@ -13,15 +13,14 @@ from typing import TYPE_CHECKING, Any
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
-    from jinja2 import Environment
-
     from bengal.core.site import Site
+    from bengal.rendering.engines.protocol import TemplateEnvironment
 
 logger = get_logger(__name__)
 
 
-def register(env: Environment, site: Site) -> None:
-    """Register collection functions with Jinja2 environment."""
+def register(env: TemplateEnvironment, site: Site) -> None:
+    """Register functions with template environment."""
 
     # Create closure for resolve_pages with access to site
     def resolve_pages_with_site(page_paths: list[str]) -> list[Any]:

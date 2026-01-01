@@ -329,9 +329,15 @@ class PageProxy:
 
     @property
     def content(self) -> str:
-        """Get page content (lazy-loaded from disk)."""
+        """Get rendered HTML content (lazy-loaded from disk)."""
         self._ensure_loaded()
         return self._full_page.content if self._full_page else ""
+
+    @property
+    def _source(self) -> str:
+        """Get raw markdown source (lazy-loaded from disk)."""
+        self._ensure_loaded()
+        return self._full_page._source if self._full_page else ""
 
     @property
     def metadata(self) -> dict[str, Any]:

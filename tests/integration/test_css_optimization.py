@@ -9,8 +9,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import pytest
-
 from bengal.orchestration.css_optimizer import CSSOptimizer, optimize_css_for_site
 
 if TYPE_CHECKING:
@@ -32,10 +30,14 @@ class TestCSSOptimizationIntegration:
         assert any("blog.css" in f for f in required_files), "Should include blog.css"
 
         # Should NOT include doc CSS
-        assert not any("docs-nav.css" in f for f in required_files), "Should not include docs-nav.css"
+        assert not any("docs-nav.css" in f for f in required_files), (
+            "Should not include docs-nav.css"
+        )
 
         # Should NOT include tutorial CSS (not used)
-        assert not any("tutorial.css" in f for f in required_files), "Should not include tutorial.css"
+        assert not any("tutorial.css" in f for f in required_files), (
+            "Should not include tutorial.css"
+        )
 
     def test_multi_type_site_includes_all_type_css(self, site_factory) -> None:
         """Test that a multi-type site includes CSS for all detected types."""
@@ -183,6 +185,6 @@ class TestSkeletonBasedFixtures:
         """Verify the mermaid skeleton has mermaid code blocks."""
         site: Site = site_factory("test-mermaid-feature")
 
-        # Should have pages with mermaid content
-        mermaid_pages = [p for p in site.pages if p.content and "```mermaid" in p.content]
+        # Should have pages with mermaid content (check raw source, not rendered HTML)
+        mermaid_pages = [p for p in site.pages if p._source and "```mermaid" in p._source]
         assert len(mermaid_pages) >= 1, "Should have at least 1 page with mermaid diagrams"

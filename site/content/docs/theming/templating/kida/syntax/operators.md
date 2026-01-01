@@ -33,7 +33,7 @@ Both `|` and `|>` compile to identical code:
 ```kida
 {# These are functionally identical #}
 {{ items |> where('published', true) |> sort_by('date') |> take(5) }}
-{{ items |> where('published', true) |> sort_by('date') |> take(5) }}
+{{ items | where('published', true) | sort_by('date') | take(5) }}
 ```
 
 | Syntax | Convention |

@@ -10,13 +10,12 @@ from typing import TYPE_CHECKING
 from urllib.parse import parse_qs, quote, unquote, urlencode, urlparse
 
 if TYPE_CHECKING:
-    from jinja2 import Environment
-
     from bengal.core.site import Site
+    from bengal.rendering.engines.protocol import TemplateEnvironment
 
 
-def register(env: Environment, site: Site) -> None:
-    """Register URL functions with Jinja2 environment."""
+def register(env: TemplateEnvironment, site: Site) -> None:
+    """Register functions with template environment."""
 
     # Create closures that have access to site
     def absolute_url_with_site(url: str) -> str:

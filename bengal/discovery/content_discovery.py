@@ -418,7 +418,7 @@ class ContentDiscovery:
 
             page = Page(
                 source_path=file_path,
-                content=content,
+                _raw_content=content,
                 metadata=metadata,
             )
 

@@ -52,7 +52,7 @@ class TestPageInitializer:
         """Create a valid page with all required attributes."""
         page = Page(
             source_path=tmp_path / "content" / "test.md",
-            content="# Test",
+            _raw_content="# Test",
             metadata={"title": "Test Page"},
         )
         page.output_path = mock_site.output_dir / "test" / "index.html"
@@ -328,7 +328,7 @@ class TestPageInitializer:
         # Create archive page (as orchestrator would)
         archive_page = Page(
             source_path=tmp_path / ".bengal" / "generated" / "archives" / "blog" / "index.md",
-            content="",
+            _raw_content="",
             metadata={
                 "title": "Blog",
                 "template": "archive.html",
@@ -352,7 +352,7 @@ class TestPageInitializer:
         """Test initialization of generated tag page."""
         tag_page = Page(
             source_path=tmp_path / ".bengal" / "generated" / "tags" / "python" / "index.md",
-            content="",
+            _raw_content="",
             metadata={
                 "title": "Posts tagged Python",
                 "template": "tag.html",
@@ -380,7 +380,7 @@ class TestPageInitializer:
             / "blog"
             / "page_2"
             / "index.md",
-            content="",
+            _raw_content="",
             metadata={
                 "title": "Blog - Page 2",
                 "template": "archive.html",
@@ -407,7 +407,7 @@ class TestPageInitializer:
 
         index_page = Page(
             source_path=tmp_path / "content" / "docs" / "_index.md",
-            content="# Documentation",
+            _raw_content="# Documentation",
             metadata={"title": "Documentation"},
         )
         index_page.output_path = mock_site.output_dir / "docs" / "index.html"
@@ -432,7 +432,7 @@ class TestPageInitializer:
 
         page = Page(
             source_path=tmp_path / "content" / "docs" / "guides" / "intro.md",
-            content="# Introduction",
+            _raw_content="# Introduction",
             metadata={"title": "Introduction"},
         )
         page.output_path = mock_site.output_dir / "docs" / "guides" / "intro" / "index.html"

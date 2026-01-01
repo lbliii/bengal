@@ -39,10 +39,10 @@ POST CARD COMPONENT
 {% let post_date = post?.date %}
 {% let post_desc = post_meta?.description ?? '' %}
 {% let post_author = post_meta?.author ?? '' %}
-{% let post_content = post?.content ?? '' %}
+
 {% let post_tags = post?.tags ?? [] %}
-{% let word_count = post_content | wordcount if post_content else 0 %}
-{% let read_time = (word_count / 200) | round if word_count > 0 else 0 %}
+
+{% let read_time = post?.reading_time ?? 0 %}
 
 <article class="archive-post-card">
     <time class="post-date" datetime="{{ post_date | date_iso }}">

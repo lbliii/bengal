@@ -20,13 +20,12 @@ from bengal.utils.logger import get_logger
 logger = get_logger(__name__)
 
 if TYPE_CHECKING:
-    from jinja2 import Environment
-
     from bengal.core.site import Site
+    from bengal.rendering.engines.protocol import TemplateEnvironment
 
 
-def register(env: Environment, site: Site) -> None:
-    """Register string functions with Jinja2 environment."""
+def register(env: TemplateEnvironment, site: Site) -> None:
+    """Register string functions with template environment."""
     env.filters.update(
         {
             "truncatewords": truncatewords,
@@ -549,8 +548,11 @@ def word_count(text: str) -> int:
         Number of words
 
     Example:
-        {{ page.content | word_count }} words
-        {{ page.content | word_count }} words ({{ page.content | reading_time }} min read)
+        {{ page.word_count }} words  {# Recommended: use computed property #}
+        {{ page.word_count }} words ({{ page.reading_time }} min read)
+
+        {# Filter works on any text #}
+        {{ custom_text | word_count }} words
     """
     if not text:
         return 0

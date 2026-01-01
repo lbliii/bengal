@@ -27,16 +27,17 @@ def test_dev_server_clears_baseurl_in_html(site, build_site):
     html = (site.output_dir / "index.html").read_text(encoding="utf-8")
 
     # Check meta tags don't have /bengal
-    assert '<meta name="bengal:baseurl" content="">' in html or 'content="/bengal"' not in html, (
-        "HTML should not contain /bengal baseurl after clearing"
-    )
+    assert (
+        '<meta name="bengal:baseurl" _raw_content="">' in html
+        or '_raw_content="/bengal"' not in html
+    ), "HTML should not contain /bengal baseurl after clearing"
 
     # CSS links should not have /bengal prefix
     assert "/bengal/assets/" not in html, "Asset links should not have /bengal prefix"
 
     # index.json URL should not have /bengal prefix
     if "bengal:index_url" in html:
-        assert 'content="/bengal/index.json"' not in html, (
+        assert '_raw_content="/bengal/index.json"' not in html, (
             "index.json URL should not have /bengal prefix"
         )
 

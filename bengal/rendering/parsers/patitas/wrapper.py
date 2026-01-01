@@ -371,9 +371,9 @@ class PatitasParser(BaseMarkdownParser):
         Returns:
             Dictionary representation
         """
-        from dataclasses import asdict
+        from bengal.utils.serialization import to_jsonable
 
-        result = asdict(node)
+        result = to_jsonable(node)
         result["type"] = type(node).__name__.lower()
         return result
 

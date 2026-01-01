@@ -40,14 +40,19 @@ class PageContentMixin:
 
     This mixin handles content representation across multiple formats:
     - AST (Abstract Syntax Tree) - structural representation (Phase 3)
-    - HTML - rendered for display
+    - HTML - rendered for display (via .content property)
     - Plain text - for search indexing and LLM
 
     All properties use lazy evaluation with caching for performance.
+
+    Key Properties:
+        content: Rendered HTML content (template-ready, display output)
+        html: Alias for content (rendered HTML)
+        _source: Raw markdown source (internal use, via PageComputedMixin)
     """
 
     # Fields from Page that this mixin accesses
-    content: str
+    _raw_content: str
     # NOTE: Despite the name, parsed_ast currently stores rendered HTML (legacy).
     # The ASTNode types in bengal.rendering.ast_types are for future AST-based
     # processing. See plan/ready/plan-type-system-hardening.md for migration path.
@@ -58,6 +63,30 @@ class PageContentMixin:
     _ast_cache: list[dict[str, Any]] | None
     _html_cache: str | None
     _plain_text_cache: str | None
+
+    @property
+    def content(self) -> str:
+        """
+        Rendered HTML content for template display.
+
+        This property returns the rendered HTML content, ready for use in templates.
+        It follows the convention that properties without underscore prefix are
+        template-ready.
+
+        For raw markdown source, use page._source (internal/advanced use only).
+
+        Returns:
+            Rendered HTML string
+
+        Example:
+            {{ page.content | safe }}  {# In templates #}
+
+        See Also:
+            - page._source: Raw markdown (internal use)
+            - page.word_count: Pre-computed word count
+            - page.reading_time: Pre-computed reading time
+        """
+        return self.html
 
     @property
     def ast(self) -> list[dict[str, Any]] | None:
@@ -149,7 +178,7 @@ class PageContentMixin:
             text = self._strip_html_to_text(html_content)
         else:
             # Fallback to raw content if no HTML available
-            text = self.content if self.content else ""
+            text = self._raw_content if self._raw_content else ""
 
         if hasattr(self, "_plain_text_cache"):
             self._plain_text_cache = text

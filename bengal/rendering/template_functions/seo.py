@@ -18,14 +18,13 @@ import re
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from jinja2 import Environment
-
     from bengal.core.page import Page
     from bengal.core.site import Site
+    from bengal.rendering.engines.protocol import TemplateEnvironment
 
 
-def register(env: Environment, site: Site) -> None:
-    """Register SEO helper functions with Jinja2 environment."""
+def register(env: TemplateEnvironment, site: Site) -> None:
+    """Register functions with template environment."""
     from bengal.postprocess.social_cards import (
         get_social_card_path,
         parse_social_cards_config,

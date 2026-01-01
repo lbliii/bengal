@@ -32,7 +32,7 @@ KIDA FEATURES USED:
 ================================================================================
 #}
 
-{% from 'partials/navigation-components.html' import breadcrumbs %}
+{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation %}
 
 {# =============================================================================
    CHANGE CATEGORY COMPONENT
@@ -141,4 +141,7 @@ KIDA FEATURES USED:
     {% end %}
   </div>
 </article>
+
+{# Page navigation (prev/next) #}
+{{ page_navigation(page) }}
 {% end %}

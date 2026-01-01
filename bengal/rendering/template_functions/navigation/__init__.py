@@ -65,11 +65,10 @@ from bengal.rendering.template_functions.navigation.tree import (
 )
 
 if TYPE_CHECKING:
-    from jinja2 import Environment
-
     from bengal.core.page import Page
     from bengal.core.section import Section
     from bengal.core.site import Site
+    from bengal.rendering.engines.protocol import TemplateEnvironment
 
 
 __all__ = [
@@ -93,7 +92,7 @@ __all__ = [
 ]
 
 
-def register(env: Environment, site: Site) -> None:
+def register(env: TemplateEnvironment, site: Site) -> None:
     """Register navigation functions with Jinja2 environment."""
 
     # Create a closure that has access to get_page function from template context

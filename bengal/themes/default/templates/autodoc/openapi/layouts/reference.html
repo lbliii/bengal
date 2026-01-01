@@ -1,44 +1,71 @@
 {#
-  Bengal OpenAPI Reference Layout - Single-Column Fallback
+Bengal OpenAPI Reference Layout (Single Column)
+===============================================
 
-  Used when a simpler, single-column layout is preferred (mobile, print, etc.)
+A clean, single-column layout for REST API documentation.
+Use when code examples should appear inline rather than in a separate panel.
 
-  Context:
-    - element: DocElement with OpenAPI metadata (optional for section pages)
-    - section: Section (for section index pages)
-    - site: Site
-    - config: Config
+Context:
+- element: DocElement (endpoint, schema, or overview)
+- page: Page object
+- section: Section (optional)
+- site: Site instance
+- config: Config instance
+
+Kida Features:
+- {% block %} for content slots
+- {% with %} for nil-resilient access
+- Optional chaining (?.) and null coalescing (??)
 #}
-{% extends 'base.html' %}
+{% extends "base.html" %}
 
-{% block main %}
-<article class="api-reference" data-autodoc="openapi">
-  {# Header with navigation breadcrumb #}
-  <header class="api-reference__header">
-    {% block header %}
-      {% include 'autodoc/openapi/partials/endpoint-header.html' %}
-    {% end %}
-  </header>
+{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation %}
 
-  {# Main Content #}
-  <div class="api-reference__body">
-    {% block content %}
-      {# Override this block in child templates #}
+{% block content %}
+{% let meta = element?.metadata ?? element?.typed_metadata ?? {} %}
+
+<div class="api-reference" data-autodoc="openapi">
+  {# Left Sidebar: Navigation (Optional via block) #}
+  {% block sidebar %}
+  {% end %}
+
+  <div class="api-reference__content">
+    {# Breadcrumbs #}
+    {{ breadcrumbs(page) }}
+
+    {# Header Section #}
+    <header class="api-reference__header">
+      {% block header %}
+      <h1 class="api-reference__title">{{ element?.name ?? page?.title ?? 'API Reference' }}</h1>
+      {% with element?.description as desc %}
+      {% if desc %}
+      <div class="api-reference__description prose">
+        {{ desc | markdownify | safe }}
+      </div>
+      {% end %}
+      {% end %}
+      {% end %}
+    </header>
+
+    {# Main Content #}
+    <main class="api-reference__body">
+      {% block content_main %}
+      {# Override in child templates #}
+      {% end %}
+    </main>
+
+    {# Inline Code Examples (for single-column layout) #}
+    {% block code_examples %}
     {% end %}
+
+    {# Footer / Navigation #}
+    <footer class="api-reference__footer">
+      {{ page_navigation(page) }}
+    </footer>
   </div>
+</div>
 
-  {# Code Samples (inline, not side panel) #}
-  <section class="api-reference__code">
-    {% block code %}
-      {% include 'autodoc/openapi/partials/code-samples.html' %}
-    {% end %}
-  </section>
-
-  {# Sidebar Navigation (bottom on mobile) #}
-  <nav class="api-reference__nav">
-    {% block navigation %}
-      {% include 'autodoc/openapi/partials/sidebar-nav.html' %}
-    {% end %}
-  </nav>
-</article>
+{# Mobile sidebar toggle (if sidebar present) #}
+{% block mobile_controls %}
+{% end %}
 {% end %}

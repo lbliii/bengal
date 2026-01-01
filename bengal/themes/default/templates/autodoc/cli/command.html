@@ -15,11 +15,10 @@ TEMPLATE VARIABLES:
   - site: Site instance
   - section: Parent section (for navigation)
 
-KIDA FEATURES USED:
-  - Optional chaining (?.) for safe attribute access
-  - Null coalescing (??) for defaults
-  - {% let %} for template-scoped multi-value caching
-  - Pipeline operator for data transformation chains
+Uses the `options` filter to normalize access to options/arguments,
+providing a consistent API via OptionView:
+  - name, flags, flags_str, type, description
+  - default, required, is_flag, is_argument, multiple, envvar
 
 ================================================================================
 #}
@@ -28,13 +27,11 @@ KIDA FEATURES USED:
 {% from 'autodoc/partials/_macros/element-card.html' import element_card %}
 
 {% block content %}
-{# Template-scoped caching of computed values using multi-assignment let #}
-{% let
-    children = element?.children ?? [],
-    options = children | selectattr('element_type', 'eq', 'option') | list,
-    arguments = children | selectattr('element_type', 'eq', 'argument') | list,
-    page_tags = page?.tags ?? []
-%}
+{# Use options filter for normalized access - returns list of OptionView #}
+{% let all_opts = element | options %}
+{% let cli_options = all_opts | rejectattr('is_argument') | list %}
+{% let cli_arguments = all_opts | selectattr('is_argument') | list %}
+{% let page_tags = page?.tags ?? [] %}
 
 {# Three-column documentation layout #}
 <div class="docs-layout">
@@ -55,18 +52,83 @@ KIDA FEATURES USED:
       {# Usage #}
       {% include 'autodoc/partials/usage.html' %}
 
-      {# Options (as table) #}
-      {% if options | length > 0 %}
-      {% set params = options %}
-      {% set title = 'Options' %}
-      {% include 'autodoc/partials/params-table.html' %}
+      {# Options (as table) - using OptionView properties #}
+      {% if cli_options | length > 0 %}
+      <section class="autodoc-section" data-section="options">
+        <h2 class="autodoc-section-title">Options</h2>
+        <table class="autodoc-table" data-table="options">
+          <thead>
+            <tr>
+              <th>Option</th>
+              <th>Type</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for opt in cli_options %}
+            <tr>
+              <td class="autodoc-cell-name">
+                <code>{{ opt.flags_str }}</code>
+                {% if opt.required %}
+                <span class="autodoc-badge" data-badge="required">required</span>
+                {% end %}
+                {% if opt.is_flag %}
+                <span class="autodoc-badge" data-badge="flag">flag</span>
+                {% end %}
+              </td>
+              <td class="autodoc-cell-type"><code>{{ opt.type }}</code></td>
+              <td class="autodoc-cell-desc">
+                {{ opt.description | markdownify | safe }}
+                {% if opt.default is not none and opt.default != '' and not opt.is_flag %}
+                <span class="autodoc-param-default">Default: <code>{{ opt.default }}</code></span>
+                {% end %}
+                {% if opt.envvar %}
+                <span class="autodoc-param-envvar">Env: <code>{{ opt.envvar }}</code></span>
+                {% end %}
+              </td>
+            </tr>
+            {% end %}
+          </tbody>
+        </table>
+      </section>
       {% end %}
 
-      {# Arguments (as table) #}
-      {% if arguments | length > 0 %}
-      {% set params = arguments %}
-      {% set title = 'Arguments' %}
-      {% include 'autodoc/partials/params-table.html' %}
+      {# Arguments (as table) - using OptionView properties #}
+      {% if cli_arguments | length > 0 %}
+      <section class="autodoc-section" data-section="arguments">
+        <h2 class="autodoc-section-title">Arguments</h2>
+        <table class="autodoc-table" data-table="arguments">
+          <thead>
+            <tr>
+              <th>Argument</th>
+              <th>Type</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for arg in cli_arguments %}
+            <tr>
+              <td class="autodoc-cell-name">
+                <code>{{ arg.name }}</code>
+                {% if arg.required %}
+                <span class="autodoc-badge" data-badge="required">required</span>
+                {% end %}
+                {% if arg.multiple %}
+                <span class="autodoc-badge" data-badge="multiple">multiple</span>
+                {% end %}
+              </td>
+              <td class="autodoc-cell-type"><code>{{ arg.type }}</code></td>
+              <td class="autodoc-cell-desc">
+                {{ arg.description | markdownify | safe }}
+                {% if arg.default is not none and arg.default != '' %}
+                <span class="autodoc-param-default">Default: <code>{{ arg.default }}</code></span>
+                {% end %}
+              </td>
+            </tr>
+            {% end %}
+          </tbody>
+        </table>
+      </section>
       {% end %}
 
       {# Examples #}

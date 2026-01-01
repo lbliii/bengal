@@ -79,7 +79,7 @@ Kida adds `{% while %}` (not available in Jinja2):
 {% let counter = 0 %}
 {% while counter < 5 %}
   <p>Count: {{ counter }}</p>
-  {% let counter = counter + 1 %}
+  {% set counter = counter + 1 %}
 {% end %}
 ```
 

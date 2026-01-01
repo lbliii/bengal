@@ -9,9 +9,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from jinja2 import Environment
-
     from bengal.core.site import Site
+    from bengal.rendering.engines.protocol import TemplateEnvironment
 
 
 def feature_enabled(feature: str, theme_config: Any) -> bool:
@@ -33,7 +32,7 @@ def feature_enabled(feature: str, theme_config: Any) -> bool:
     return theme_config.has_feature(feature)
 
 
-def register(env: Environment, site: Site) -> None:
+def register(env: TemplateEnvironment, site: Site) -> None:
     """
     Register theme-related template functions and filters.
 

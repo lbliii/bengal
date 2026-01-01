@@ -1,49 +1,60 @@
-name: test-mermaid-feature
-description: Site with mermaid diagrams for feature detection testing
+# Skeleton for testing mermaid feature detection
+# Creates pages with mermaid diagram code blocks
+
+name: Mermaid Test Site
 version: "1.0"
 
 structure:
-  - path: _index.md
+  - path: "_index.md"
+    type: landing
     props:
-      title: "Site with Diagrams"
-      description: "Testing mermaid feature detection"
+      title: "Mermaid Test Site"
     content: |
-      # Welcome
+      Welcome to the mermaid test site.
 
-      This site contains mermaid diagrams for feature detection testing.
+  - path: "docs"
+    type: doc
+    pages:
+      - path: "_index.md"
+        props:
+          title: "Documentation"
+        content: |
+          Documentation section with mermaid diagrams.
 
-  - path: architecture.md
-    props:
-      title: "Architecture"
-    content: |
-      # System Architecture
+      - path: "architecture.md"
+        props:
+          title: "Architecture Overview"
+        content: |
+          # Architecture
 
-      Here's our system diagram:
+          Here is our system architecture:
 
-      ```mermaid
-      graph TD
-          A[User] --> B[Frontend]
-          B --> C[API]
-          C --> D[Database]
-      ```
+          ```mermaid
+          graph TD
+              A[Client] --> B[Load Balancer]
+              B --> C[Server 1]
+              B --> D[Server 2]
+              C --> E[Database]
+              D --> E
+          ```
 
-      ## Flow Description
+          This diagram shows our deployment topology.
 
-      The data flows from user to database.
+      - path: "flow.md"
+        props:
+          title: "Data Flow"
+        content: |
+          # Data Flow
 
-  - path: workflow.md
-    props:
-      title: "Workflow"
-    content: |
-      # Workflow
+          The request flow is shown below:
 
-      Our development workflow:
-
-      ```mermaid
-      sequenceDiagram
-          Developer->>GitHub: Push code
-          GitHub->>CI: Trigger build
-          CI->>Tests: Run tests
-          Tests-->>CI: Results
-          CI-->>Developer: Notification
-      ```
+          ```mermaid
+          sequenceDiagram
+              participant User
+              participant API
+              participant DB
+              User->>API: Request
+              API->>DB: Query
+              DB-->>API: Results
+              API-->>User: Response
+          ```

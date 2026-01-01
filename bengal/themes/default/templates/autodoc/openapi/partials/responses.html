@@ -1,110 +1,136 @@
 {#
-  Bengal OpenAPI Responses
+Bengal OpenAPI Responses
+========================
 
-  Tabbed response viewer with status code color-coding.
+Displays API responses with status code tabs and schema information.
 
-  Uses Kida's {% match %} for status code classification.
+Context:
+- responses: List/tuple of OpenAPIResponseMetadata or dict with:
+  - status_code: HTTP status code (e.g., "200", "404")
+  - description: Response description
+  - content_type: Media type
+  - schema_ref: Reference to response schema
+  - schema: Inline schema (optional)
+  - example: Example response (optional)
 
-  Context:
-    - responses: tuple[OpenAPIResponseMetadata]
-      - status_code: str
-      - description: str
-      - content_type: str | None
-      - schema_ref: str | None
-    - schemas: dict (resolved schemas from spec)
+Kida Features:
+- {% match %} for status code color classification
+- {% with %} for nil-safe optional sections
+- {% spaceless %} for compact tab output
+- Optional chaining (?.) and null coalescing (??)
 #}
-{% let response_list = responses ?? () %}
 
-<section class="api-responses">
+{# Status code category helper #}
+{% def status_category(code) %}
+{% let code_str = code | string %}
+{% match code_str | first %}
+{% case '2' %}success
+{% case '3' %}redirect
+{% case '4' %}client-error
+{% case '5' %}server-error
+{% case _ %}info
+{% end %}
+{% end %}
+
+{# Status code color class helper #}
+{% def status_color_class(code) %}
+{% let code_str = code | string %}
+{% match code_str | first %}
+{% case '2' %}badge--success
+{% case '3' %}badge--info
+{% case '4' %}badge--warning
+{% case '5' %}badge--danger
+{% case _ %}badge--outline
+{% end %}
+{% end %}
+
+<section class="api-responses autodoc-section" data-section="responses">
   <header class="api-responses__header">
-    <h3 class="api-responses__title">Responses</h3>
+    <h2 class="api-responses__title autodoc-section-title">Responses</h2>
   </header>
 
-  {% if response_list %}
   {# Response Tabs #}
+  {% if responses | length > 1 %}
   <div class="api-responses__tabs" role="tablist">
-    {% for resp in response_list %}
-      {% let status = resp.status_code ?? 'default' %}
-      {% let status_class = status_code_class(status) %}
-
-      <button
-        class="api-responses__tab {{ status_class }} {{ 'api-responses__tab--active' if loop.first else '' }}"
-        role="tab"
-        aria-selected="{{ 'true' if loop.first else 'false' }}"
-        aria-controls="response-panel-{{ status }}"
-        id="response-tab-{{ status }}"
-      >
-        {# Status Code Badge with Color #}
-        {% match (status | string)[:1] %}
-          {% case '2' %}
-            <span class="badge badge--success">{{ status }}</span>
-          {% case '3' %}
-            <span class="badge badge--info">{{ status }}</span>
-          {% case '4' %}
-            <span class="badge badge--warning">{{ status }}</span>
-          {% case '5' %}
-            <span class="badge badge--danger">{{ status }}</span>
-          {% case _ %}
-            <span class="badge badge--outline">{{ status }}</span>
-        {% end %}
-      </button>
+    {% for response in responses %}
+    {% let code = response?.status_code ?? '200' %}
+    {% let category = status_category(code) %}
+    {% let color_class = status_color_class(code) %}
+    {% spaceless %}
+    <button
+      class="api-responses__tab badge {{ color_class }}{% if loop.first %} api-responses__tab--active{% end %}"
+      role="tab"
+      aria-selected="{{ 'true' if loop.first else 'false' }}"
+      aria-controls="response-panel-{{ code }}"
+      data-status-category="{{ category }}"
+    >
+      {{ code }}
+    </button>
+    {% end %}
     {% end %}
   </div>
+  {% end %}
 
   {# Response Panels #}
   <div class="api-responses__panels">
-    {% for resp in response_list %}
-      {% let status = resp.status_code ?? 'default' %}
-      {% let description = resp.description ?? '' %}
-      {% let content_type = resp.content_type %}
-      {% let schema_ref = resp.schema_ref %}
+    {% for response in responses %}
+    {% let code = response?.status_code ?? '200' %}
+    {% let description = response?.description ?? '' %}
+    {% let content_type = response?.content_type %}
+    {% let schema_ref = response?.schema_ref %}
+    {% let inline_schema = response?.schema %}
+    {% let example = response?.example %}
+    {% let category = status_category(code) %}
 
-      <div
-        class="api-responses__panel {{ 'api-responses__panel--active' if loop.first else '' }}"
-        role="tabpanel"
-        id="response-panel-{{ status }}"
-        aria-labelledby="response-tab-{{ status }}"
-        {{ 'hidden' if not loop.first else '' }}
-      >
-        {# Response Description #}
+    <div
+      class="api-responses__panel{% if loop.first %} api-responses__panel--active{% end %}"
+      id="response-panel-{{ code }}"
+      role="tabpanel"
+      data-status-code="{{ code }}"
+      data-status-category="{{ category }}"
+    >
+      {# Status + Description Header #}
+      <div class="api-responses__panel-header">
+        <code class="api-responses__status" data-status-category="{{ category }}">{{ code }}</code>
         {% if description %}
-        <div class="api-responses__description prose-sm">
-          {{ description | markdownify | safe }}
-        </div>
-        {% end %}
-
-        {# Content Type #}
-        {% with content_type as ct %}
-          {% if ct %}
-          <div class="api-responses__content-type">
-            <span class="badge badge--outline badge--sm">{{ ct }}</span>
-          </div>
-          {% end %}
-        {% end %}
-
-        {# Response Schema #}
-        {% with schema_ref as ref %}
-          {% if ref %}
-            {% let schema_name = ref | split('/') | last %}
-            {# schemas may be undefined in some contexts - use empty dict as fallback #}
-            {% let schemas_dict = schemas ?? {} %}
-            {% let schema = schemas_dict.get(schema_name) if schemas_dict else none %}
-
-            {% if schema %}
-              {% let name = schema_name %}
-              {% let depth = 0 %}
-              {% include 'autodoc/openapi/partials/schema-viewer.html' %}
-            {% else %}
-              <div class="api-responses__ref">
-                <code>{{ ref }}</code>
-              </div>
-            {% end %}
-          {% end %}
+        <span class="api-responses__description">{{ description }}</span>
         {% end %}
       </div>
+
+      {# Content Type #}
+      {% with content_type as ct %}
+      <div class="api-responses__content-type">
+        <span class="api-responses__label">Content-Type:</span>
+        <code>{{ ct }}</code>
+      </div>
+      {% end %}
+
+      {# Schema Reference #}
+      {% with schema_ref as ref %}
+      {% let schema_name = ref | split('#/components/schemas/') | last %}
+      <div class="api-responses__schema-ref">
+        <span class="api-responses__label">Schema:</span>
+        <a href="#schema-{{ schema_name | slugify }}">
+          <code>{{ schema_name }}</code>
+        </a>
+      </div>
+      {% end %}
+
+      {# Inline Schema #}
+      {% with inline_schema as s %}
+      {% let schema = s %}
+      {% let depth = 0 %}
+      {% include 'autodoc/openapi/partials/schema-viewer.html' %}
+      {% end %}
+
+      {# Example Response #}
+      {% with example as ex %}
+      <div class="api-responses__example">
+        <span class="api-responses__label">Example Response</span>
+        <pre class="api-responses__example-code"><code class="language-json">{{ ex | tojson(indent=2) }}</code></pre>
+      </div>
+      {% end %}
+    </div>
     {% end %}
   </div>
-  {% else %}
-  <p class="api-responses__empty text-muted">No response documentation available.</p>
-  {% end %}
 </section>

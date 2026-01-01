@@ -22,19 +22,19 @@ def simple_site(tmp_path):
     # Create pages (slug is auto-derived from title)
     page1 = Page(
         source_path=tmp_path / "page1.md",
-        content="# Page 1",
+        _raw_content="# Page 1",
         metadata={"title": "Page 1"},
     )
 
     page2 = Page(
         source_path=tmp_path / "page2.md",
-        content="# Page 2",
+        _raw_content="# Page 2",
         metadata={"title": "Page 2"},
     )
 
     page3 = Page(
         source_path=tmp_path / "page3.md",
-        content="# Page 3",
+        _raw_content="# Page 3",
         metadata={"title": "Page 3"},
     )
 
@@ -50,21 +50,21 @@ def site_with_links(tmp_path):
     # Create hub page (slug is auto-derived from title)
     hub = Page(
         source_path=tmp_path / "hub.md",
-        content="# Hub Page",
+        _raw_content="# Hub Page",
         metadata={"title": "Hub"},
     )
 
     # Create leaf pages that link to hub
     leaf1 = Page(
         source_path=tmp_path / "leaf1.md",
-        content="# Leaf 1",
+        _raw_content="# Leaf 1",
         metadata={"title": "Leaf 1"},
     )
     leaf1.related_posts = [hub]  # Simulates link
 
     leaf2 = Page(
         source_path=tmp_path / "leaf2.md",
-        content="# Leaf 2",
+        _raw_content="# Leaf 2",
         metadata={"title": "Leaf 2"},
     )
     leaf2.related_posts = [hub]  # Simulates link

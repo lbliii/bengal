@@ -2,11 +2,12 @@
 
 | Field | Value |
 |-------|-------|
-| **Status** | Draft |
+| **Status** | Implemented (Phase 1) |
 | **Created** | 2024-12-30 |
 | **Updated** | 2024-12-30 |
 | **Author** | Bengal Team |
 | **Scope** | Breaking Change (Major Version) |
+| **Implementation** | Phase 1 completed - aliases and computed properties added |
 
 ## Summary
 

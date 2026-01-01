@@ -143,7 +143,7 @@ class VirtualAutodocOrchestrator:
                     python_elements.append(DocElement.from_dict(e))
                 except Exception as err:
                     deserialization_failures.append(("python", str(err)))
-                    logger.warning(
+                    logger.debug(
                         "autodoc_cache_element_deserialization_failed",
                         element_type="python",
                         error=str(err),
@@ -157,7 +157,7 @@ class VirtualAutodocOrchestrator:
                     cli_elements.append(DocElement.from_dict(e))
                 except Exception as err:
                     deserialization_failures.append(("cli", str(err)))
-                    logger.warning(
+                    logger.debug(
                         "autodoc_cache_element_deserialization_failed",
                         element_type="cli",
                         error=str(err),
@@ -171,7 +171,7 @@ class VirtualAutodocOrchestrator:
                     openapi_elements.append(DocElement.from_dict(e))
                 except Exception as err:
                     deserialization_failures.append(("openapi", str(err)))
-                    logger.warning(
+                    logger.debug(
                         "autodoc_cache_element_deserialization_failed",
                         element_type="openapi",
                         error=str(err),

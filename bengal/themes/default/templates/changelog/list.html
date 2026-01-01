@@ -25,10 +25,10 @@ Set `type: changelog` in section _index.md
 #}
 
 {# =============================================================================
-   CHANGE CATEGORY COMPONENT
-   ============================================================================= #}
+CHANGE CATEGORY COMPONENT
+============================================================================= #}
 {% def change_category(title, icon, items, is_breaking=false) %}
-{% if items and items is iterable and items is not string and items | length > 0 %}
+{% if items and items | length > 0 %}
 <div class="changelog-category{{ ' changelog-category--breaking' if is_breaking else '' }}">
   <h3 class="category-title{{ ' category-title--breaking' if is_breaking else '' }}">{{ icon }} {{ title }}</h3>
   <ul class="changelog-list{{ ' changelog-list--breaking' if is_breaking else '' }}">
@@ -41,157 +41,54 @@ Set `type: changelog` in section _index.md
 {% end %}
 
 {# =============================================================================
-   RELEASE ITEM COMPONENT (Data-driven)
-   ============================================================================= #}
-{% def release_item_data(release) %}
-{% let change_types = [] %}
-{% if release?.added %}{% do change_types.append('added') %}{% end %}
-{% if release?.changed %}{% do change_types.append('changed') %}{% end %}
-{% if release?.fixed %}{% do change_types.append('fixed') %}{% end %}
-{% if release?.breaking %}{% do change_types.append('breaking') %}{% end %}
-{% if release?.security %}{% do change_types.append('security') %}{% end %}
-
-<div class="timeline-item" data-change-types="{{ change_types | join(' ') }}">
+RELEASE ITEM COMPONENT - Unified with ReleaseView
+============================================================================= #}
+{% def release_item(rel) %}
+<div class="timeline-item" data-change-types="{{ rel.change_types | join(' ') }}">
   <div class="timeline-header">
     <div class="timeline-title-group">
       <h2 class="timeline-title">
-        {% if release?.url %}
-        <a href="{{ release.url }}">{{ release?.version ?? 'Unknown' }}</a>
+        {% if rel.href %}
+        <a href="{{ rel.href }}">{{ rel.version }}</a>
         {% else %}
-        {{ release?.version ?? 'Unknown' }}
+        {{ rel.version }}
         {% end %}
       </h2>
-      {% if release?.name %}
-      <p class="timeline-subtitle">{{ release.name }}</p>
+      {% if rel.name %}
+      <p class="timeline-subtitle">{{ rel.name }}</p>
       {% end %}
     </div>
     <div class="timeline-meta">
-      {% if release?.date %}
-      <span class="timeline-date">{{ release.date }}</span>
+      {% if rel.date %}
+      <span class="timeline-date">{{ rel.date }}</span>
       {% end %}
-      {% if release?.status %}
-      <span class="release-status status-{{ release.status | lower }}">{{ release.status }}</span>
+      {% if rel.status %}
+      <span class="release-status status-{{ rel.status | lower }}">{{ rel.status }}</span>
       {% end %}
     </div>
   </div>
 
-  {% if release?.summary %}
-  <p class="timeline-description">{{ release.summary }}</p>
+  {% if rel.summary %}
+  <p class="timeline-description">{{ rel.summary }}</p>
   {% end %}
 
-  {{ change_category('Added', '✨', release?.added) }}
-  {{ change_category('Changed', '🔄', release?.changed) }}
-  {{ change_category('Fixed', '🐛', release?.fixed) }}
-  {{ change_category('Deprecated', '⚠️', release?.deprecated) }}
-  {{ change_category('Removed', '🗑️', release?.removed) }}
-  {{ change_category('Security', '🔒', release?.security) }}
-  {{ change_category('Breaking Changes', '⚡', release?.breaking, is_breaking=true) }}
+  {{ change_category('Added', '✨', rel.added) }}
+  {{ change_category('Changed', '🔄', rel.changed) }}
+  {{ change_category('Fixed', '🐛', rel.fixed) }}
+  {{ change_category('Deprecated', '⚠️', rel.deprecated) }}
+  {{ change_category('Removed', '🗑️', rel.removed) }}
+  {{ change_category('Security', '🔒', rel.security) }}
+  {{ change_category('Breaking Changes', '⚡', rel.breaking, is_breaking=true) }}
+
+  {% if rel.href %}
+  <a href="{{ rel.href }}" class="changelog-read-more">View full release notes →</a>
+  {% end %}
 </div>
 {% end %}
 
 {# =============================================================================
-   RECENT MAJOR VERSION RELEASES (uses {% while %} - Kida 2.0!)
-
-   Finds releases from the current major version series using while loop.
-   Demonstrates: {% while %} with {% break %} for early termination
-   ============================================================================= #}
-{% def recent_major_releases(releases, max_count=5) %}
-{% let result = [] %}
-{% let target_major = none %}
-{% let idx = 0 %}
-
-{% while idx < releases | length and result | length < max_count %}
-  {% let release = releases[idx] %}
-  {% let version = release?.version ?? release?.title ?? '' %}
-
-  {# Extract major version (e.g., "0.1" from "0.1.5") #}
-  {% let parts = version | replace('v', '') | split('.') %}
-  {% if parts | length >= 2 %}
-    {% let this_major = parts[0] ~ '.' ~ parts[1] %}
-
-    {# Set target on first iteration #}
-    {% if not target_major %}
-      {% let target_major = this_major %}
-    {% end %}
-
-    {# Stop when we hit a different major version #}
-    {% if this_major != target_major %}
-      {% break %}
-    {% end %}
-
-    {% let _ = result.append(release) %}
-  {% end %}
-
-  {% let idx = idx + 1 %}
-{% end %}
-
-{% if result | length > 0 %}
-<aside class="recent-releases-summary">
-  <h3>Recent {{ target_major }}.x Releases</h3>
-  <ul class="recent-releases-list">
-    {% for r in result %}
-    <li>
-      <a href="{{ r?.url ?? r?.href ?? '#' }}">{{ r?.version ?? r?.title }}</a>
-      {% if r?.date %}
-      <time>{{ r.date | dateformat('%b %d') if r.date is string else r.date }}</time>
-      {% end %}
-    </li>
-    {% end %}
-  </ul>
-</aside>
-{% end %}
-{% end %}
-
-{# =============================================================================
-   RELEASE ITEM COMPONENT (Page-driven)
-   ============================================================================= #}
-{% def release_item_page(release, section) %}
-{% let release_meta = release?.metadata ?? {} %}
-{% let change_types = [] %}
-{% if release_meta?.added %}{% do change_types.append('added') %}{% end %}
-{% if release_meta?.changed %}{% do change_types.append('changed') %}{% end %}
-{% if release_meta?.fixed %}{% do change_types.append('fixed') %}{% end %}
-{% if release_meta?.breaking %}{% do change_types.append('breaking') %}{% end %}
-{% if release_meta?.security %}{% do change_types.append('security') %}{% end %}
-
-<div class="timeline-item" data-change-types="{{ change_types | join(' ') }}">
-  <div class="timeline-header">
-    <div class="timeline-title-group">
-      <h2 class="timeline-title">
-        <a href="{{ release?.href ?? '#' }}">{{ release?.title ?? 'Release' }}</a>
-      </h2>
-      {% if release_meta?.name %}
-      <p class="timeline-subtitle">{{ release_meta.name }}</p>
-      {% end %}
-    </div>
-    <div class="timeline-meta">
-      {% if release?.date %}
-      <time datetime="{{ release.date | date_iso }}">
-        {{ release.date | dateformat('%B %d, %Y') }}
-      </time>
-      {% end %}
-      {% if release_meta?.status %}
-      <span class="release-status status-{{ release_meta.status | lower }}">{{ release_meta.status }}</span>
-      {% end %}
-    </div>
-  </div>
-
-  {% let release_desc = release_meta?.description ?? release_meta?.summary ?? release?.excerpt ?? '' %}
-  {% if release_desc %}
-  <p class="timeline-description">{{ release_desc }}</p>
-  {% end %}
-
-  {{ change_category('Added', '✨', release_meta?.added) }}
-  {{ change_category('Changed', '🔄', release_meta?.changed) }}
-  {{ change_category('Fixed', '🐛', release_meta?.fixed) }}
-
-  <a href="{{ release?.href ?? '#' }}" class="changelog-read-more">View full release notes →</a>
-</div>
-{% end %}
-
-{# =============================================================================
-   MAIN TEMPLATE
-   ============================================================================= #}
+MAIN TEMPLATE
+============================================================================= #}
 
 {% block content %}
 {# Load changelog data #}
@@ -237,7 +134,7 @@ Set `type: changelog` in section _index.md
         {% let btn_text = button?.text ?? 'Button' %}
         {% let btn_style = button?.style ?? 'primary' %}
         <a href="{{ btn_url | absolute_url }}"
-           class="hero__button hero__button--{{ btn_style }}{{ ' gradient-border' if btn_style != 'primary' else '' }}">
+          class="hero__button hero__button--{{ btn_style }}{{ ' gradient-border' if btn_style != 'primary' else '' }}">
           {{ btn_text }}
         </a>
         {% end %}
@@ -248,13 +145,6 @@ Set `type: changelog` in section _index.md
 </header>
 
 <div class="changelog-container">
-  {# Quick summary of recent releases using {% while %} #}
-  {% if changelog_data and changelog_data?.releases %}
-  {{ recent_major_releases(changelog_data.releases | reverse | list) }}
-  {% elif pages | length > 0 %}
-  {{ recent_major_releases(pages | reverse | list) }}
-  {% end %}
-
   {# Content (if any) #}
   {% if content and content.strip() %}
   <section class="changelog-content prose">
@@ -262,19 +152,18 @@ Set `type: changelog` in section _index.md
   </section>
   {% end %}
 
-  {# Check for structured data to show filters #}
+  {# Check for structured data to show filters - using ReleaseView #}
   {% let has_structured_data = false %}
   {% if changelog_data and changelog_data?.releases %}
-  {% for release in changelog_data.releases %}
-  {% if release?.added or release?.changed or release?.fixed or release?.breaking or release?.security %}
+  {% for rel in changelog_data.releases | releases %}
+  {% if rel.has_structured_changes %}
   {% let has_structured_data = true %}
   {% break %}
   {% end %}
   {% end %}
   {% elif pages %}
-  {% for release in pages %}
-  {% let rm = release?.metadata ?? {} %}
-  {% if rm?.added or rm?.changed or rm?.fixed or rm?.breaking or rm?.security %}
+  {% for rel in pages | releases %}
+  {% if rel.has_structured_changes %}
   {% let has_structured_data = true %}
   {% break %}
   {% end %}
@@ -293,25 +182,26 @@ Set `type: changelog` in section _index.md
   </div>
   {% end %}
 
-  {# Data-driven mode: Use changelog.yaml #}
+  {# Data-driven mode: Use changelog.yaml with ReleaseView #}
   {% if changelog_data and changelog_data?.releases %}
   <section class="changelog-timeline">
     <div class="timeline">
-      {% let releases = changelog_data.releases | reverse %}
-      {% for release in releases %}
-      {{ release_item_data(release) }}
+      {% let all_releases = changelog_data.releases | releases | sort_by('date', reverse=true) %}
+      {% for rel in all_releases %}
+      {{ release_item(rel) }}
       {% end %}
     </div>
   </section>
 
-  {# Page-driven mode: Use individual release pages #}
+  {# Page-driven mode: Use individual release pages with ReleaseView #}
   {% elif pages | length > 0 %}
   <section class="changelog-timeline">
     <div class="timeline">
       {% let section_href = section?.href ?? '' %}
-      {% for release in pages | reverse %}
-      {% if release?.href != section_href %}
-      {{ release_item_page(release, section) }}
+      {% let all_releases = pages | releases | sort_by('date', reverse=true) %}
+      {% for rel in all_releases %}
+      {% if rel.href != section_href %}
+      {{ release_item(rel) }}
       {% end %}
       {% end %}
     </div>

@@ -139,7 +139,7 @@ Kida is Bengal's default template engine:
 
 :::{card} Migrate from Jinja2
 :icon: arrow-right
-:link: /docs/theming/templating/kida/migrate-jinja-to-kida/
+:link: /docs/theming/templating/kida/migration/from-jinja/
 :description: Convert Jinja2 templates to Kida
 :::{/card}
 :::{/cards}
@@ -155,18 +155,28 @@ site:
 
 ### Custom Engines (BYOR)
 
-Register custom template engines via the plugin API:
+Bring your own template engine via the protocol API. Your engine automatically gets all 80+ template functions if it satisfies the `TemplateEnvironment` protocol:
 
 ```python
 from bengal.rendering.engines import register_engine
+from bengal.rendering.template_functions import register_all
 
-class MyTemplateEngine:
-    """Implement TemplateEngineProtocol."""
+class MyEngine:
+    def __init__(self, site):
+        self.site = site
+        self.template_dirs = [site.root_path / "templates"]
+
+        # Environment must have globals, filters, tests dicts
+        self._env = MyEnvironment()
+
+        # Automatically get all 80+ template functions!
+        register_all(self._env, site)
+
     def render_template(self, name: str, context: dict) -> str:
         # Your implementation
         ...
 
-register_engine("myengine", MyTemplateEngine)
+register_engine("myengine", MyEngine)
 ```
 
 Then configure:
@@ -175,6 +185,8 @@ Then configure:
 site:
   template_engine: myengine
 ```
+
+See [Bring Your Own Template Engine](/docs/theming/templating/custom-engine/) for the complete guide.
 
 :::{tip}
 **Override sparingly**: You only need to create templates you want to customize. Use `bengal utils theme swizzle <template>` to copy a template for customization. Let the rest fall through to theme defaults.

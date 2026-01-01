@@ -43,7 +43,7 @@ Related:
 from __future__ import annotations
 
 import json
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -71,15 +71,15 @@ class PageDiscoveryCacheEntry:
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "metadata": asdict(self.metadata),  # asdict() works directly with PageCore
+            "metadata": self.metadata.to_cache_dict(),
             "cached_at": self.cached_at,
             "is_valid": self.is_valid,
         }
 
     @staticmethod
     def from_dict(data: dict[str, Any]) -> PageDiscoveryCacheEntry:
-        # PageMetadata = PageCore, so PageCore(**data) works
-        metadata = PageCore(**data["metadata"])
+        # PageMetadata = PageCore, so PageCore.from_cache_dict works
+        metadata = PageCore.from_cache_dict(data["metadata"])
         return PageDiscoveryCacheEntry(
             metadata=metadata,
             cached_at=data["cached_at"],

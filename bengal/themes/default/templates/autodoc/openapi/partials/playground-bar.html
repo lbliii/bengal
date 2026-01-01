@@ -1,73 +1,55 @@
 {#
-  Bengal OpenAPI Playground Bar
+Bengal OpenAPI Playground Bar
+=============================
 
-  Displays: METHOD + /path/to/endpoint + Copy Button
+Displays: HTTP method badge + endpoint path + copy button
+A compact, actionable header for API endpoints.
 
-  Uses Kida's {% spaceless %} for clean inline output.
+Context:
+- method: HTTP method (GET, POST, PUT, PATCH, DELETE, etc.)
+- path: Endpoint path (e.g., "/users/{id}")
+- deprecated: bool (optional, default false)
+- base_url: Base API URL (optional)
 
-  Context:
-    - element: DocElement with OpenAPIEndpointMetadata
-    - element.typed_metadata: OpenAPIEndpointMetadata
+Kida Features:
+- {% spaceless %} for compact badge output
+- {% match %} for method styling
+- Optional chaining (?.) and null coalescing (??)
 #}
-{% let meta = element.typed_metadata %}
-{% let method = meta?.method ?? 'GET' %}
-{% let path = meta?.path ?? '/unknown' %}
+{% let method_upper = method |> upper ?? 'GET' %}
+{% let method_lower = method |> lower ?? 'get' %}
+{% let is_deprecated = deprecated ?? false %}
+{% let api_base = base_url ?? '' %}
 
-<div class="api-playground-bar">
-  {% spaceless %}
+<div class="api-playground-bar{% if is_deprecated %} api-playground-bar--deprecated{% end %}">
   <div class="api-playground-bar__method-path">
     {# HTTP Method Badge #}
-    {% match method %}
-      {% case 'GET' %}
-        <span class="api-method api-method--get">GET</span>
-      {% case 'POST' %}
-        <span class="api-method api-method--post">POST</span>
-      {% case 'PUT' %}
-        <span class="api-method api-method--put">PUT</span>
-      {% case 'PATCH' %}
-        <span class="api-method api-method--patch">PATCH</span>
-      {% case 'DELETE' %}
-        <span class="api-method api-method--delete">DELETE</span>
-      {% case 'HEAD' %}
-        <span class="api-method api-method--head">HEAD</span>
-      {% case 'OPTIONS' %}
-        <span class="api-method api-method--options">OPTIONS</span>
-      {% case _ %}
-        <span class="api-method">{{ method }}</span>
+    {% spaceless %}
+    <span class="api-method api-method--{{ method_lower }}">{{ method_upper }}</span>
     {% end %}
 
-    {# Path with highlighted parameters #}
-    <code class="api-playground-bar__path">{{ path | highlight_path_params | safe }}</code>
+    {# Endpoint Path with highlighted params #}
+    <code class="api-playground-bar__path">{% spaceless %}
+      {{ path | highlight_path_params | safe }}
+    {% end %}</code>
   </div>
-  {% end %}
 
   {# Copy Button #}
   <button
     class="api-playground-bar__copy"
-    type="button"
-    data-copy-target="endpoint-url"
+    data-copy="{{ api_base }}{{ path }}"
     aria-label="Copy endpoint URL"
+    title="Copy endpoint URL"
   >
-    <svg class="icon" aria-hidden="true" width="16" height="16">
-      <use href="#icon-copy"></use>
-    </svg>
+    {{ icon('copy', size=14) }}
     <span class="api-playground-bar__copy-text">Copy</span>
   </button>
-
-  {# Hidden input for copy functionality #}
-  <input
-    type="hidden"
-    id="endpoint-url"
-    value="{{ path }}"
-  >
 </div>
 
-{# Deprecated Warning Banner #}
-{% if meta?.deprecated %}
+{# Deprecated Banner (if applicable) #}
+{% if is_deprecated %}
 <div class="api-deprecated-banner" role="alert">
-  <svg class="icon" aria-hidden="true" width="16" height="16">
-    <use href="#icon-warning"></use>
-  </svg>
+  {{ icon('alert-triangle', size=16) }}
   <span>This endpoint is deprecated and may be removed in a future version.</span>
 </div>
 {% end %}

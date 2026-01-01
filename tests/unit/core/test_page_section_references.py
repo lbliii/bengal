@@ -43,7 +43,7 @@ def test_section_reference_survives_recreation(temp_site):
     # Create page with section reference
     page = Page(
         source_path=temp_site.root_path / "content" / "blog" / "post1.md",
-        content="Content",
+        _raw_content="Content",
         metadata={"title": "Post 1"},
     )
 
@@ -89,7 +89,7 @@ def test_page_url_stable_across_rebuilds(temp_site):
 
     page = Page(
         source_path=temp_site.root_path / "content" / "blog" / "post1.md",
-        content="Content",
+        _raw_content="Content",
         metadata={"title": "Post 1", "slug": "post-1"},
     )
 
@@ -137,7 +137,7 @@ def test_proxy_url_without_forcing_load(temp_site):
     def loader(source_path):
         page = Page(
             source_path=source_path,
-            content="Content from disk",
+            _raw_content="Content from disk",
             metadata={"title": "Post 1"},
         )
         page._site = temp_site
@@ -185,7 +185,7 @@ def test_section_setter_stores_path(temp_site):
 
     page = Page(
         source_path=temp_site.root_path / "content" / "blog" / "post1.md",
-        content="Content",
+        _raw_content="Content",
         metadata={"title": "Post 1"},
     )
 
@@ -205,7 +205,7 @@ def test_missing_section_counter_gated_warnings(temp_site, caplog):
     """Test that missing section warnings are counter-gated."""
     page = Page(
         source_path=temp_site.root_path / "content" / "blog" / "post1.md",
-        content="Content",
+        _raw_content="Content",
         metadata={"title": "Post 1"},
     )
 
@@ -234,7 +234,7 @@ def test_section_none_handling(temp_site):
     """Test that None sections are handled correctly."""
     page = Page(
         source_path=temp_site.root_path / "content" / "post1.md",
-        content="Content",
+        _raw_content="Content",
         metadata={"title": "Post 1"},
     )
 
@@ -263,7 +263,7 @@ def test_proxy_section_property_delegate(temp_site):
     def loader(source_path):
         page = Page(
             source_path=source_path,
-            content="Content from disk",
+            _raw_content="Content from disk",
             metadata={"title": "Post 1"},
         )
         page._site = temp_site
@@ -314,7 +314,7 @@ def test_page_parent_property_uses_section(temp_site):
 
     page = Page(
         source_path=temp_site.root_path / "content" / "blog" / "post1.md",
-        content="Content",
+        _raw_content="Content",
         metadata={"title": "Post 1"},
     )
 
@@ -350,7 +350,7 @@ def test_page_ancestors_uses_section(temp_site):
 
     page = Page(
         source_path=temp_site.root_path / "content" / "docs" / "guides" / "intro.md",
-        content="Content",
+        _raw_content="Content",
         metadata={"title": "Introduction"},
     )
 
@@ -496,7 +496,7 @@ def test_mixed_regular_and_virtual_sections(temp_site):
     # Create pages
     blog_post = Page(
         source_path=temp_site.root_path / "content" / "blog" / "post1.md",
-        content="Blog content",
+        _raw_content="Blog content",
         metadata={"title": "Post 1"},
     )
 
@@ -527,7 +527,7 @@ def test_virtual_section_setter_clears_both_references(temp_site):
     """Test that setting _section to None clears both path and URL."""
     page = Page(
         source_path=temp_site.root_path / "content" / "test.md",
-        content="Content",
+        _raw_content="Content",
         metadata={"title": "Test"},
     )
 

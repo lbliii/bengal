@@ -33,7 +33,7 @@ def sample_page():
 
     page = Page(
         source_path=Path("content/blog/test-post.md"),
-        content="Test content",
+        _raw_content="Test content",
         metadata={
             "title": "Test Post",
             "author": "Jane Smith",
@@ -101,7 +101,7 @@ class TestSectionIndex:
 
     def test_extract_keys_no_section(self):
         """Test page without section."""
-        page = Page(source_path=Path("test.md"), content="Test")
+        page = Page(source_path=Path("test.md"), _raw_content="Test")
         index = SectionIndex(Path("test.json"))
         keys = index.extract_keys(page)
 
@@ -144,7 +144,7 @@ class TestAuthorIndex:
         """Test extracting author as dict."""
         page = Page(
             source_path=Path("test.md"),
-            content="Test",
+            _raw_content="Test",
             metadata={
                 "author": {
                     "name": "Bob Jones",
@@ -165,7 +165,7 @@ class TestAuthorIndex:
         """Test multi-author support."""
         page = Page(
             source_path=Path("test.md"),
-            content="Test",
+            _raw_content="Test",
             metadata={"authors": ["Alice Chen", "Bob Jones"]},
         )
 
@@ -192,7 +192,7 @@ class TestCategoryIndex:
         """Test category is normalized."""
         page = Page(
             source_path=Path("test.md"),
-            content="Test",
+            _raw_content="Test",
             metadata={"category": "  API Reference  "},  # with whitespace
         )
 
@@ -216,7 +216,7 @@ class TestDateRangeIndex:
 
     def test_no_date(self):
         """Test page without date."""
-        page = Page(source_path=Path("test.md"), content="Test")
+        page = Page(source_path=Path("test.md"), _raw_content="Test")
         index = DateRangeIndex(Path("test.json"))
         keys = index.extract_keys(page)
 
@@ -305,7 +305,7 @@ class TestIncrementalUpdates:
         blog_section = Section(name="blog", path=Path("content/blog"))
         mock_site._mock_sections[blog_section.path] = blog_section
 
-        page = Page(source_path=Path("content/post.md"), content="Test")
+        page = Page(source_path=Path("content/post.md"), _raw_content="Test")
         page._site = mock_site
         page._section = blog_section  # This stores the path
         index.update_page(page, build_cache)
@@ -330,12 +330,12 @@ class TestIncrementalUpdates:
 
         page1 = Page(
             source_path=Path("post1.md"),
-            content="Test",
+            _raw_content="Test",
             metadata={"author": "Jane Smith"},
         )
         page2 = Page(
             source_path=Path("post2.md"),
-            content="Test",
+            _raw_content="Test",
             metadata={"author": "Jane Smith"},
         )
 

@@ -105,7 +105,7 @@ class PageLifecycleWorkflow(RuleBasedStateMachine):
         }
 
         # Write the actual file
-        write_page(self.site_dir, name, title, content=f"Content for {title}")
+        write_page(self.site_dir, name, title, _raw_content=f"Content for {title}")
         # Not a build action
         self.last_action_was_build = False
 
@@ -135,7 +135,7 @@ class PageLifecycleWorkflow(RuleBasedStateMachine):
             self.site_dir,
             name,
             new_title,
-            content=f"Updated content version {self.pages[name]['modified_count']}",
+            _raw_content=f"Updated content version {self.pages[name]['modified_count']}",
         )
         # Not a build action
         self.last_action_was_build = False

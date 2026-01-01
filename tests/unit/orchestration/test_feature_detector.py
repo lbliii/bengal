@@ -166,7 +166,8 @@ new Tabulator("#table", {});
         detector = FeatureDetector()
 
         page = MagicMock()
-        page.content = """
+        # Note: source code uses page._source, not page.content
+        page._source = """
 ```mermaid
 graph TD
     A --> B
@@ -185,7 +186,7 @@ graph TD
         detector = FeatureDetector()
 
         page = MagicMock()
-        page.content = ""
+        page._source = ""  # Required: source code uses page._source
         page.metadata = {"mermaid": True}
 
         features = detector.detect_features_in_page(page)
@@ -199,7 +200,7 @@ graph TD
         detector = FeatureDetector()
 
         page = MagicMock()
-        page.content = ""
+        page._source = ""  # Required: source code uses page._source
         page.metadata = {"interactive": True}
 
         features = detector.detect_features_in_page(page)
@@ -217,11 +218,11 @@ class TestDetectSiteFeatures:
         site = MagicMock()
 
         page1 = MagicMock()
-        page1.content = "```mermaid\ngraph TD\n```"
+        page1._source = "```mermaid\ngraph TD\n```"  # Required: source code uses page._source
         page1.metadata = {}
 
         page2 = MagicMock()
-        page2.content = "Using tabulator"
+        page2._source = "Using tabulator"  # Required: source code uses page._source
         page2.metadata = {}
 
         site.pages = [page1, page2]
@@ -249,7 +250,7 @@ class TestDetectSiteFeatures:
         site = MagicMock()
 
         page = MagicMock()
-        page.content = "# Simple page\n\nJust text."
+        page._source = "# Simple page\n\nJust text."  # Required: source code uses page._source
         page.metadata = {}
 
         site.pages = [page]

@@ -1,9 +1,13 @@
 """
 Template function registry for Bengal SSG.
 
-This package provides 80+ template functions and filters for use in Jinja2
-templates, organized into focused modules by responsibility. Functions are
-automatically registered with the template engine during site initialization.
+This package provides 80+ template functions and filters organized into focused
+modules by responsibility. Functions are automatically registered with the
+template engine during site initialization.
+
+Engine-Agnostic:
+    These functions work with any template engine that provides a globals/filters
+    interface (Jinja2, Kida, or custom engines via the adapter layer).
 
 Architecture:
     Each submodule self-registers its functions via a ``register(env, site)``
@@ -48,7 +52,7 @@ Function Categories:
         - autodoc: API documentation helpers
 
     Phase 8 - Tests:
-        - template_tests: Jinja2 test functions (match, draft, featured)
+        - template_tests: Template test functions (match, draft, featured)
 
     Phase 9 - Versioning:
         - version_url: Smart version switching URLs
@@ -70,8 +74,8 @@ Registration:
     >>> register_all(env, site)
 
 Related Modules:
-    - bengal.rendering.engines.jinja: Jinja2 engine that uses these functions
-    - bengal.rendering.template_tests: Jinja2 test registrations
+    - bengal.rendering.engines: Template engines that use these functions
+    - bengal.rendering.template_tests: Template test registrations
     - bengal.rendering.template_context: Context wrappers for templates
 """
 
@@ -82,16 +86,18 @@ from typing import TYPE_CHECKING
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
-    from jinja2 import Environment
-
     from bengal.core.site import Site
+    from bengal.rendering.engines.protocol import TemplateEnvironment
 
 from bengal.rendering import template_tests
 
 from . import (
     advanced_collections,
     advanced_strings,
+    authors,
     autodoc,
+    blog,
+    changelog,
     collections,
     content,
     crossref,
@@ -120,7 +126,7 @@ from . import (
 logger = get_logger(__name__)
 
 
-def register_all(env: Environment, site: Site, engine_type: str | None = None) -> None:
+def register_all(env: TemplateEnvironment, site: Site, engine_type: str | None = None) -> None:
     """
     Register all template functions with template environment.
 
@@ -180,6 +186,11 @@ def register_all(env: Environment, site: Site, engine_type: str | None = None) -
     # Phase 7b: OpenAPI-specific functions (code samples, path highlighting)
     openapi.register(env, site)
 
+    # Phase 7c: Content view filters (normalized views for blog, changelog, authors)
+    blog.register(env, site)
+    changelog.register(env, site)
+    authors.register(env, site)
+
     # Phase 8: Template tests (match, draft, featured, etc.)
     template_tests.register(env, site)
 
@@ -201,6 +212,9 @@ __all__ = [
     "advanced_collections",
     "advanced_strings",
     "autodoc",
+    "authors",
+    "blog",
+    "changelog",
     "collections",
     "content",
     "crossref",

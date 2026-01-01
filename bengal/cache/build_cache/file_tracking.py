@@ -92,8 +92,17 @@ class FileTrackingMixin:
             True if cache should be bypassed, False if cache can be used
         """
         # Check explicit change set first (fast path)
-        if changed_sources and source_path in changed_sources:
-            return True
+        # Resolve paths to handle symlinks, ./ components, and case differences
+        if changed_sources:
+            try:
+                resolved_source = source_path.resolve()
+                for changed in changed_sources:
+                    if changed.resolve() == resolved_source:
+                        return True
+            except (OSError, ValueError):
+                # Fall back to direct comparison if resolution fails
+                if source_path in changed_sources:
+                    return True
 
         # Fall back to hash-based change detection
         return self.is_changed(source_path)

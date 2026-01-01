@@ -24,17 +24,17 @@ class TestSectionSortedPagesProperty:
         # Add pages with different weights
         page1 = Page(
             source_path=tmp_path / "docs/page1.md",
-            content="Content 1",
+            _raw_content="Content 1",
             metadata={"title": "Page 1", "weight": 10},
         )
         page2 = Page(
             source_path=tmp_path / "docs/page2.md",
-            content="Content 2",
+            _raw_content="Content 2",
             metadata={"title": "Page 2", "weight": 1},
         )
         page3 = Page(
             source_path=tmp_path / "docs/page3.md",
-            content="Content 3",
+            _raw_content="Content 3",
             metadata={"title": "Page 3", "weight": 5},
         )
 
@@ -52,13 +52,19 @@ class TestSectionSortedPagesProperty:
         section = Section(name="docs", path=tmp_path / "docs")
 
         page1 = Page(
-            source_path=tmp_path / "docs/zebra.md", content="Content", metadata={"title": "Zebra"}
+            source_path=tmp_path / "docs/zebra.md",
+            _raw_content="Content",
+            metadata={"title": "Zebra"},
         )
         page2 = Page(
-            source_path=tmp_path / "docs/alpha.md", content="Content", metadata={"title": "Alpha"}
+            source_path=tmp_path / "docs/alpha.md",
+            _raw_content="Content",
+            metadata={"title": "Alpha"},
         )
         page3 = Page(
-            source_path=tmp_path / "docs/beta.md", content="Content", metadata={"title": "Beta"}
+            source_path=tmp_path / "docs/beta.md",
+            _raw_content="Content",
+            metadata={"title": "Beta"},
         )
 
         section.pages = [page1, page2, page3]
@@ -76,17 +82,17 @@ class TestSectionSortedPagesProperty:
 
         page1 = Page(
             source_path=tmp_path / "docs/page1.md",
-            content="Content",
+            _raw_content="Content",
             metadata={"title": "Zebra", "weight": 10},
         )
         page2 = Page(
             source_path=tmp_path / "docs/page2.md",
-            content="Content",
+            _raw_content="Content",
             metadata={"title": "Alpha"},  # No weight = infinity
         )
         page3 = Page(
             source_path=tmp_path / "docs/page3.md",
-            content="Content",
+            _raw_content="Content",
             metadata={"title": "Beta", "weight": 5},
         )
 
@@ -106,17 +112,17 @@ class TestSectionSortedPagesProperty:
 
         page1 = Page(
             source_path=tmp_path / "docs/page1.md",
-            content="Content",
+            _raw_content="Content",
             metadata={"title": "Zebra", "weight": 5},
         )
         page2 = Page(
             source_path=tmp_path / "docs/page2.md",
-            content="Content",
+            _raw_content="Content",
             metadata={"title": "Alpha", "weight": 5},
         )
         page3 = Page(
             source_path=tmp_path / "docs/page3.md",
-            content="Content",
+            _raw_content="Content",
             metadata={"title": "Moose", "weight": 5},
         )
 
@@ -135,17 +141,17 @@ class TestSectionSortedPagesProperty:
 
         page1 = Page(
             source_path=tmp_path / "docs/page1.md",
-            content="Content",
+            _raw_content="Content",
             metadata={"title": "zebra", "weight": 5},
         )
         page2 = Page(
             source_path=tmp_path / "docs/page2.md",
-            content="Content",
+            _raw_content="Content",
             metadata={"title": "Alpha", "weight": 5},
         )
         page3 = Page(
             source_path=tmp_path / "docs/page3.md",
-            content="Content",
+            _raw_content="Content",
             metadata={"title": "MOOSE", "weight": 5},
         )
 
@@ -172,7 +178,7 @@ class TestSectionSortedPagesProperty:
 
         page = Page(
             source_path=tmp_path / "docs/page.md",
-            content="Content",
+            _raw_content="Content",
             metadata={"title": "Page", "weight": 5},
         )
         section.pages = [page]
@@ -187,17 +193,17 @@ class TestSectionSortedPagesProperty:
 
         page1 = Page(
             source_path=tmp_path / "docs/page1.md",
-            content="Content",
+            _raw_content="Content",
             metadata={"title": "Page 1", "weight": 10},
         )
         page2 = Page(
             source_path=tmp_path / "docs/page2.md",
-            content="Content",
+            _raw_content="Content",
             metadata={"title": "Page 2", "weight": -5},
         )
         page3 = Page(
             source_path=tmp_path / "docs/page3.md",
-            content="Content",
+            _raw_content="Content",
             metadata={"title": "Page 3", "weight": 0},
         )
 
@@ -294,12 +300,12 @@ class TestSectionSortChildrenByWeight:
         # Add pages with weights
         page1 = Page(
             source_path=tmp_path / "docs/page1.md",
-            content="Content",
+            _raw_content="Content",
             metadata={"title": "Page 1", "weight": 10},
         )
         page2 = Page(
             source_path=tmp_path / "docs/page2.md",
-            content="Content",
+            _raw_content="Content",
             metadata={"title": "Page 2", "weight": 1},
         )
 
@@ -341,12 +347,12 @@ class TestSectionSortChildrenByWeight:
 
         page1 = Page(
             source_path=tmp_path / "docs/page1.md",
-            content="Content",
+            _raw_content="Content",
             metadata={"title": "B", "weight": 2},
         )
         page2 = Page(
             source_path=tmp_path / "docs/page2.md",
-            content="Content",
+            _raw_content="Content",
             metadata={"title": "A", "weight": 1},
         )
 
@@ -382,7 +388,7 @@ class TestSectionMetadataInheritance:
 
         index_page = Page(
             source_path=tmp_path / "docs/_index.md",
-            content="Index content",
+            _raw_content="Index content",
             metadata={"title": "Documentation", "weight": 42, "description": "All the docs"},
         )
 
@@ -399,7 +405,7 @@ class TestSectionMetadataInheritance:
 
         regular_page = Page(
             source_path=tmp_path / "docs/guide.md",
-            content="Guide content",
+            _raw_content="Guide content",
             metadata={"title": "Guide", "weight": 100},
         )
 
@@ -421,7 +427,7 @@ class TestSortingStability:
         for i in range(10):
             page = Page(
                 source_path=tmp_path / f"docs/page{i}.md",
-                content=f"Content {i}",
+                _raw_content=f"Content {i}",
                 metadata={"title": f"Page {i}", "weight": i % 3},
             )
             pages.append(page)
@@ -448,12 +454,12 @@ class TestSortingStability:
 
         page1 = Page(
             source_path=tmp_path / "docs/page1.md",
-            content="Content",
+            _raw_content="Content",
             metadata={"title": "B", "weight": 1},
         )
         page2 = Page(
             source_path=tmp_path / "docs/page2.md",
-            content="Content",
+            _raw_content="Content",
             metadata={"title": "A", "weight": 1},
         )
 

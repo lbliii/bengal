@@ -353,7 +353,8 @@ class TestLazyLoadingPerformance:
         assert proxy is not None
         assert proxy._lazy_loaded is False
 
-        # Access content - should load
-        content = proxy.content
+        # Access raw source - should load (note: .content returns rendered HTML which
+        # requires parsing, but ._source returns raw markdown which is loaded from disk)
+        source = proxy._source
         assert proxy._lazy_loaded is True
-        assert len(content) > 0
+        assert len(source) > 0

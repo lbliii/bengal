@@ -44,7 +44,7 @@ def sample_pages(temp_site):
     for i in range(3):
         page = Page(
             source_path=Path(f"content/blog/post{i}.md"),
-            content=f"Post {i}",
+            _raw_content=f"Post {i}",
             metadata={
                 "title": f"Post {i}",
                 "author": "Jane Smith",
@@ -60,7 +60,7 @@ def sample_pages(temp_site):
     for i in range(2):
         page = Page(
             source_path=Path(f"content/docs/doc{i}.md"),
-            content=f"Doc {i}",
+            _raw_content=f"Doc {i}",
             metadata={
                 "title": f"Doc {i}",
                 "author": "Bob Jones",
@@ -233,7 +233,7 @@ class TestQueryIndexRegistry:
         pages = []
         page1 = Page(
             source_path=Path("content/post.md"),
-            content="Test",
+            _raw_content="Test",
             metadata={"title": "Post", "author": "Jane"},
         )
         page1._section = Section(name="blog", path=Path("content/blog"))
@@ -242,7 +242,7 @@ class TestQueryIndexRegistry:
         # Generated page (should be skipped)
         page2 = Page(
             source_path=Path("tags/python.md"),
-            content="Tag page",
+            _raw_content="Tag page",
             metadata={"title": "Python", "_generated": True},
         )
         pages.append(page2)

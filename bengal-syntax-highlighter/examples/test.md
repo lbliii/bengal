@@ -225,7 +225,7 @@ pip install bengal-ssg
 ```
 
 ```{warning} Python Version
-Requires Python 3.11 or higher.
+Requires Python 3.14 or higher.
 ```
 
 ### Tab: Windows

@@ -10,15 +10,14 @@ import math
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from jinja2 import Environment
-
     from bengal.core.site import Site
+    from bengal.rendering.engines.protocol import TemplateEnvironment
 
 type Number = int | float
 
 
-def register(env: Environment, site: Site) -> None:
-    """Register math functions with Jinja2 environment."""
+def register(env: TemplateEnvironment, site: Site) -> None:
+    """Register functions with template environment."""
     env.filters.update(
         {
             "percentage": percentage,

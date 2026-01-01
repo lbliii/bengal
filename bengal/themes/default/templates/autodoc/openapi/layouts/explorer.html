@@ -1,55 +1,94 @@
 {#
-  Bengal OpenAPI Explorer Layout - Three-Column "Stripe-Style"
+Bengal OpenAPI Explorer Layout (Three Column - Stripe Style)
+============================================================
 
-  Uses Kida's {% embed %} system to allow themes to override specific slots.
+A three-column layout inspired by Stripe/Mintlify API documentation.
+- Left: Navigation sidebar
+- Center: Endpoint documentation
+- Right: Code examples (sticky)
 
-  Grid Structure:
-  ┌─────────────┬──────────────────────┬─────────────────┐
-  │  Sidebar    │    Main Content      │  Code Samples   │
-  │  (250px)    │    (1fr)             │  (400px)        │
-  │             │                      │  Dark Panel     │
-  └─────────────┴──────────────────────┴─────────────────┘
+Context:
+- element: DocElement (endpoint, schema, or overview)
+- page: Page object
+- section: Section (optional)
+- site: Site instance
+- config: Config instance
 
-  Context:
-    - element: DocElement with OpenAPI metadata (optional for section pages)
-    - section: Section (for section index pages)
-    - site: Site
-    - config: Config
+Kida Features:
+- {% block %} for content slots (sidebar, content, examples)
+- {% embed %} compatible via slot system
+- {% with %} for nil-resilient access
+- Optional chaining (?.) and null coalescing (??)
 #}
-{% extends 'base.html' %}
+{% extends "base.html" %}
 
-{% block main %}
-<div class="api-explorer" data-autodoc="openapi">
-  {# Sidebar Navigation #}
-  <aside class="api-explorer__sidebar">
+{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation %}
+
+{% block content %}
+{% let meta = element?.metadata ?? element?.typed_metadata ?? {} %}
+
+<div class="api-explorer" data-autodoc="openapi" data-layout="explorer">
+  {# Left Sidebar: API Navigation #}
+  <aside class="api-explorer__sidebar" id="api-sidebar" role="navigation" aria-label="API navigation">
     {% block sidebar %}
-      {% include 'autodoc/openapi/partials/sidebar-nav.html' %}
+    {% include 'autodoc/openapi/partials/sidebar-nav.html' %}
     {% end %}
   </aside>
 
-  {# Main Content Area #}
+  {# Center: Main Documentation #}
   <main class="api-explorer__main">
-    {% block content %}
-      {# Override this block in child templates #}
-    {% end %}
+    {# Breadcrumbs #}
+    {{ breadcrumbs(page) }}
+
+    <article data-autodoc data-type="openapi" class="autodoc">
+      {# Header Block #}
+      <header class="api-explorer__header">
+        {% block header %}
+        {# Override in child templates #}
+        {% end %}
+      </header>
+
+      {# Main Content Block #}
+      <div class="api-explorer__content">
+        {% block content_main %}
+        {# Override in child templates #}
+        {% end %}
+      </div>
+
+      {# Footer with Tags #}
+      {% with page?.tags as tags %}
+      {% if tags | length > 0 %}
+      <footer class="docs-footer">
+        <span class="docs-footer-label">Tagged</span>
+        {% from 'partials/components/tags.html' import tag_list %}
+        {{ tag_list(tags) }}
+      </footer>
+      {% end %}
+      {% end %}
+    </article>
+
+    {# Page Navigation (prev/next) #}
+    {{ page_navigation(page) }}
   </main>
 
-  {# Code Samples Panel (Dark) #}
-  <aside class="api-explorer__code-panel">
-    {% block code %}
-      {% include 'autodoc/openapi/partials/code-samples.html' %}
+  {# Right Panel: Code Examples (Sticky) #}
+  <aside class="api-explorer__code-panel" id="api-examples" role="complementary" aria-label="Code examples">
+    {% block code_panel %}
+    <div class="api-code-samples">
+      <header class="api-code-samples__header">
+        <h3 class="api-code-samples__title">{{ icon('code', size=14) }} Examples</h3>
+      </header>
+      {% block code_examples %}
+      {# Override in child templates #}
+      {% end %}
+    </div>
     {% end %}
   </aside>
 </div>
+
+{# Mobile Controls #}
+<button class="docs-sidebar-toggle" aria-label="Toggle navigation sidebar" aria-expanded="false" aria-controls="api-sidebar">
+  {{ icon('list', size=20) }}
+</button>
+<div class="docs-sidebar-overlay" aria-hidden="true"></div>
 {% end %}
-
-{#
-  CSS for explorer layout lives in autodoc.css
-  Using CSS Grid with semantic tokens:
-
-  .api-explorer {
-    display: grid;
-    grid-template-columns: 250px 1fr 400px;
-    gap: var(--autodoc-gap);
-  }
-#}

@@ -21,9 +21,8 @@ from typing import TYPE_CHECKING
 from markupsafe import Markup
 
 if TYPE_CHECKING:
-    from jinja2 import Environment
-
     from bengal.core.site import Site
+    from bengal.rendering.engines.protocol import TemplateEnvironment
 
 from bengal.directives._icons import ICON_MAP
 from bengal.errors import ErrorCode
@@ -190,7 +189,7 @@ def icon(name: str, size: int = 24, css_class: str = "", aria_label: str = "") -
     return Markup(svg_html)
 
 
-def register(env: Environment, site: Site) -> None:
+def register(env: TemplateEnvironment, site: Site) -> None:
     """
     Register icon template functions.
 

@@ -34,8 +34,6 @@ from bengal.utils.concurrent_locks import PerKeyLockManager
 from bengal.utils.lru_cache import LRUCache
 
 if TYPE_CHECKING:
-    from jinja2 import Environment
-
     from bengal.core.nav_tree import NavTree, NavTreeNode
     from bengal.core.page import Page
     from bengal.core.section import Section
@@ -157,7 +155,7 @@ class NavScaffoldCache:
             # For selective invalidation, we need to check keys
             # Since LRUCache doesn't expose iteration, clear matching keys by checking
             keys_to_remove = []
-            for key in cls._cache.keys():
+            for key in cls._cache:
                 parts = key.split(":", 1)
                 if len(parts) == 2:
                     key_version = None if parts[0] == "__default__" else parts[0]
@@ -402,7 +400,7 @@ def get_active_trail(page: Page) -> list[str]:
 def render_scaffold_html(
     page: Page,
     root_section: Section | None = None,
-    jinja_env: Environment | None = None,
+    jinja_env: Any | None = None,
 ) -> str:
     """
     Render scaffold HTML for a scope (internal helper).
@@ -443,7 +441,7 @@ def render_scaffold_html(
 def get_cached_scaffold_html(
     page: Page,
     root_section: Section | None = None,
-    jinja_env: Environment | None = None,
+    jinja_env: Any | None = None,
 ) -> str:
     """
     Get cached scaffold HTML for a scope.

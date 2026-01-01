@@ -15,12 +15,10 @@ TEMPLATE VARIABLES:
   - site: Site instance
   - section: Parent section (for navigation)
 
-KIDA FEATURES USED:
-  - Optional chaining (?.) for safe attribute access
-  - Null coalescing (??) for defaults
-  - {% let %} for template-scoped caching
-  - {% match %} for element type dispatch
-  - Pipeline operator for filter chains
+Uses the `commands` filter to normalize access to subcommands,
+providing a consistent API via CommandView:
+  - name, description, usage, href
+  - is_group, is_hidden, option_count, argument_count, subcommand_count
 
 ================================================================================
 #}
@@ -28,8 +26,8 @@ KIDA FEATURES USED:
 {% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc %}
 
 {% block content %}
-{# Template-scoped caching of computed values #}
-{% let element_children = element?.children ?? [] %}
+{# Use commands filter for normalized access - returns list of CommandView #}
+{% let subcommands = element | commands %}
 {% let qualified_name = element?.qualified_name ?? '' %}
 {% let page_tags = page?.tags ?? [] %}
 
@@ -57,27 +55,24 @@ KIDA FEATURES USED:
       </div>
       {% end %}
 
-      {# Commands and Sub-groups #}
-      {% if element_children | length > 0 %}
+      {# Commands and Sub-groups - using CommandView properties #}
+      {% if subcommands | length > 0 %}
       <section class="autodoc-section" data-section="subcommands">
         <h2 class="autodoc-section-title">Commands</h2>
         <div class="autodoc-cards">
-          {% for child in element_children %}
-          {% set child_href = child?.href ?? '#' %}
-          {% set child_name = child?.name ?? 'unknown' %}
-          {% set child_desc = child?.description ?? '' %}
-          {% set child_type = child?.element_type ?? 'command' %}
-          {% set child_children = child?.children ?? [] %}
-          <a href="{{ child_href }}" class="autodoc-card" data-card="{{ child_type }}">
-            <code class="autodoc-card-name">{{ child_name }}</code>
-            {% if child_desc %}
-            <span class="autodoc-card-desc">{{ child_desc | truncate(100) }}</span>
-            {% elif child_type == 'command-group' %}
-            <span class="autodoc-card-desc">{{ child_children | length }} {{ child_children | length | pluralize('command') }}</span>
+          {% for cmd in subcommands %}
+          {% if not cmd.is_hidden %}
+          <a href="{{ cmd.href }}" class="autodoc-card" data-card="{{ 'command-group' if cmd.is_group else 'command' }}">
+            <code class="autodoc-card-name">{{ cmd.name }}</code>
+            {% if cmd.description %}
+            <span class="autodoc-card-desc">{{ cmd.description | truncate(100) }}</span>
+            {% elif cmd.is_group %}
+            <span class="autodoc-card-desc">{{ cmd.subcommand_count }} {{ cmd.subcommand_count | pluralize('command') }}</span>
             {% else %}
-            <span class="autodoc-card-desc">No description available</span>
+            <span class="autodoc-card-desc">{{ cmd.option_count }} options</span>
             {% end %}
           </a>
+          {% end %}
           {% end %}
         </div>
       </section>

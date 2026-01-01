@@ -19,18 +19,17 @@ from bengal.errors import ErrorCode
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
-    from jinja2 import Environment
-
     from bengal.core.site import Site
+    from bengal.rendering.engines.protocol import TemplateEnvironment
 
 logger = get_logger(__name__)
 
 __all__ = ["register", "data_table"]
 
 
-def register(env: Environment, site: Site) -> None:
+def register(env: TemplateEnvironment, site: Site) -> None:
     """
-    Register table functions with Jinja2 environment.
+    Register functions with template environment.
 
     Args:
         env: Jinja2 environment
@@ -44,7 +43,7 @@ def register(env: Environment, site: Site) -> None:
 
 
 @pass_environment
-def data_table(env: Environment, path: str, **options: Any) -> Markup:
+def data_table(env: Any, path: str, **options: Any) -> Markup:
     """
     Render interactive data table from YAML or CSV file.
 

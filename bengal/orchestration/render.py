@@ -330,6 +330,12 @@ class RenderOrchestrator:
             stats: Build statistics tracker
             progress_manager: Live progress manager (optional)
         """
+        # Clear stale thread-local pipelines from previous builds BEFORE tracking
+        # CRITICAL: Without this, template changes may not be reflected because
+        # the old Jinja2 environment with its internal cache would be reused.
+        # Must happen BEFORE _increment_active_renders() to avoid warning.
+        clear_thread_local_pipelines()
+
         # Track active render for cache lifecycle management (RFC: Phase 4)
         _increment_active_renders()
 
@@ -362,12 +368,10 @@ class RenderOrchestrator:
     ) -> None:
         """
         Internal implementation of process() wrapped with render tracking.
-        """
-        # Clear stale thread-local pipelines from previous builds.
-        # CRITICAL: Without this, template changes may not be reflected because
-        # the old Jinja2 environment with its internal cache would be reused.
-        clear_thread_local_pipelines()
 
+        Note: clear_thread_local_pipelines() is called in process() BEFORE
+        _increment_active_renders() to avoid "clear during active render" warnings.
+        """
         # Use centralized cache registry for build-start invalidation
         # This replaces manual clear_global_context_cache() call and ensures
         # all BUILD_START caches are invalidated in correct order

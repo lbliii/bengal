@@ -22,6 +22,10 @@ CONTEXT VARIABLES:
 - total_pages: Total pagination pages
 - current_page: Current page number
 
+NOTE:
+Uses post.word_count and post.reading_time computed properties
+instead of filters for better performance (cached on first access).
+
 USAGE:
 Set `type: blog` in section _index.md
 ================================================================================
@@ -34,128 +38,106 @@ Set `type: blog` in section _index.md
 POST CARD COMPONENTS
 ============================================================================= #}
 
-{# Featured post card (larger, more prominent) #}
+{# Featured post card (larger, more prominent) - uses PostView for normalized access #}
 {% def featured_card(post) %}
-{% let post_meta = post?.metadata ?? {} %}
-{% let post_image = post_meta?.image ?? post_meta?.cover ?? '' %}
-{% let post_title = post?.title ?? 'Untitled' %}
-{% let post_href = post?.href ?? '#' %}
-{% let post_date = post?.date %}
-{% let post_desc = post_meta?.description ?? post?.excerpt ?? '' %}
-{% let post_tags = post?.tags ?? [] %}
-{% let post_author = post_meta?.author ?? '' %}
-{% let post_author_avatar = post_meta?.author_avatar ?? '' %}
-{% let post_content = post?.content ?? '' %}
-{% let word_count = post_content | wordcount if post_content else 0 %}
-{% let read_time = (word_count / 200) | round if word_count > 0 else 0 %}
+{% let p = post | post_view %}
 
 <article class="blog-featured-card gradient-border-strong fluid-bg">
-    {% if post_image %}
+    {% if p.image %}
     <div class="blog-card-image">
-        <a href="{{ post_href }}">
-            <img src="{{ post_image }}" alt="{{ post_title }}" loading="lazy">
+        <a href="{{ p.href }}">
+            <img src="{{ p.image }}" alt="{{ p.title }}" loading="lazy">
         </a>
     </div>
     {% end %}
 
     <div class="blog-card-content">
         <h3 class="blog-card-title">
-            <a href="{{ post_href }}">{{ post_title }}</a>
+            <a href="{{ p.href }}">{{ p.title }}</a>
         </h3>
 
-        {% if post_desc %}
-        <p class="blog-card-excerpt">{{ post_desc | truncate(180) }}</p>
+        {% if p.description %}
+        <p class="blog-card-excerpt">{{ p.description | truncate(180) }}</p>
         {% end %}
 
         <div class="blog-card-meta">
-            {% if post_author %}
+            {% if p.author %}
             <span class="blog-author">
-                {% if post_author_avatar %}
-                <img src="{{ post_author_avatar }}" alt="{{ post_author }}" class="author-avatar">
+                {% if p.author_avatar %}
+                <img src="{{ p.author_avatar }}" alt="{{ p.author }}" class="author-avatar">
                 {% end %}
-                {{ post_author }}
+                {{ p.author }}
             </span>
             {% end %}
 
-            {% if post_date %}
-            <time datetime="{{ post_date | date_iso }}">
-                {{ post_date | dateformat('%B %d, %Y') }}
+            {% if p.date %}
+            <time datetime="{{ p.date | date_iso }}">
+                {{ p.date | dateformat('%B %d, %Y') }}
             </time>
             {% end %}
 
-            {% if read_time > 0 %}
-            <span class="reading-time">{{ read_time }} min read</span>
+            {% if p.reading_time > 0 %}
+            <span class="reading-time">{{ p.reading_time }} min read</span>
             {% end %}
         </div>
 
-        {% if post_tags | length > 0 %}
+        {% if p.tags | length > 0 %}
         <div class="blog-card-tags">
-            {{ tag_list(post_tags[:3]) }}
+            {{ tag_list(p.tags[:3]) }}
         </div>
         {% end %}
     </div>
 </article>
 {% end %}
 
-{# Regular post card #}
+{# Regular post card - uses PostView for normalized access #}
 {% def post_card(post) %}
-{% let post_meta = post?.metadata ?? {} %}
-{% let post_image = post_meta?.image ?? post_meta?.cover ?? '' %}
-{% let post_title = post?.title ?? 'Untitled' %}
-{% let post_href = post?.href ?? '#' %}
-{% let post_date = post?.date %}
-{% let post_desc = post_meta?.description ?? post?.excerpt ?? '' %}
-{% let post_tags = post?.tags ?? [] %}
-{% let post_author = post_meta?.author ?? '' %}
-{% let post_author_avatar = post_meta?.author_avatar ?? '' %}
-{% let post_content = post?.content ?? '' %}
-{% let word_count = post_content | wordcount if post_content else 0 %}
-{% let read_time = (word_count / 200) | round if word_count > 0 else 0 %}
+{% let p = post | post_view %}
 
 <article class="blog-post-card gradient-border fluid-combined">
-    {% if post_image %}
+    {% if p.image %}
     <div class="blog-card-image">
-        <a href="{{ post_href }}">
-            <img src="{{ post_image }}" alt="{{ post_title }}" loading="lazy">
+        <a href="{{ p.href }}">
+            <img src="{{ p.image }}" alt="{{ p.title }}" loading="lazy">
         </a>
     </div>
     {% end %}
 
     <div class="blog-card-content">
         <h3 class="blog-card-title">
-            <a href="{{ post_href }}">{{ post_title }}</a>
+            <a href="{{ p.href }}">{{ p.title }}</a>
         </h3>
 
-        {% if post_desc %}
-        <p class="blog-card-excerpt">{{ post_desc | truncate(200) }}</p>
+        {% if p.description %}
+        <p class="blog-card-excerpt">{{ p.description | truncate(200) }}</p>
         {% end %}
 
         <div class="blog-card-meta">
-            {% if post_author %}
+            {% if p.author %}
             <span class="blog-author">
-                {% if post_author_avatar %}
-                <img src="{{ post_author_avatar }}" alt="{{ post_author }}" class="author-avatar">
+                {% if p.author_avatar %}
+                <img src="{{ p.author_avatar }}" alt="{{ p.author }}" class="author-avatar">
                 {% end %}
-                {{ post_author }}
+                {{ p.author }}
             </span>
             {% end %}
 
-            {% if post_date %}
-            <time datetime="{{ post_date | date_iso }}">{{ post_date | time_ago }}</time>
+            {% if p.date %}
+            <time datetime="{{ p.date | date_iso }}">{{ p.date | time_ago }}</time>
             {% end %}
 
-            {% if read_time > 0 %}
-            <span class="reading-time">{{ read_time }} min read</span>
+            {% if p.reading_time > 0 %}
+            <span class="reading-time">{{ p.reading_time }} min read</span>
             {% end %}
         </div>
 
-        {% if post_tags | length > 0 %}
+        {% if p.tags | length > 0 %}
         <div class="blog-card-tags">
-            {{ tag_list(post_tags[:4]) }}
+            {{ tag_list(p.tags[:4]) }}
         </div>
         {% end %}
 
-        <a href="{{ post_href }}" class="blog-read-more">Read more →</a>
+        <a href="{{ p.href }}" class="blog-read-more">Read more →</a>
     </div>
 </article>
 {% end %}

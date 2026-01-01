@@ -20,7 +20,7 @@ bengal new site mysite && cd mysite && bengal serve
 - **Fast** — Parallel builds, incremental rebuilds, Zstandard-compressed caching
 - **Modern** — Python 3.14+ with free-threading support, fully typed
 - **Batteries included** — Auto-generated API docs, content validation, site analysis
-- **Extensible** — Remote content sources, custom directives, flexible theming
+- **Extensible** — Pluggable engines for templates, Markdown, and syntax highlighting
 
 ---
 
@@ -83,12 +83,11 @@ bengal new site portfolio --template portfolio
 |----------|-------------|------------------|
 | `default` | Minimal starter | Home page only |
 | `blog` | Personal/professional blog | blog, about |
-| `docs` | Technical documentation | getting-started, guides, api |
+| `docs` | Technical documentation | getting-started, guides, reference |
 | `portfolio` | Showcase work | about, projects, blog, contact |
-| `product` | Product/company site | products, features, pricing, contact |
-| `landing` | Single-page landing | Home, privacy, terms |
+| `business` | Company or product site | products, services, about, contact |
 | `resume` | Professional CV | Single resume page |
-| `changelog` | Release notes | Changelog with YAML data |
+| `landing` | Single-page landing | Home, privacy, terms |
 
 </details>
 
@@ -207,7 +206,7 @@ structure:
 | Feature | Description | Docs |
 |---------|-------------|------|
 | **Directives** | Tabs, admonitions, cards, dropdowns, code blocks | [Content →](https://lbliii.github.io/bengal/docs/content/) |
-| **Autodoc** | Generate API docs from Python, CLI, OpenAPI | [Autodoc →](https://lbliii.github.io/bengal/docs/extending/autodoc/) |
+| **Autodoc** | Generate API docs from Python, CLI, OpenAPI | [Autodoc →](https://lbliii.github.io/bengal/docs/content/sources/autodoc/) |
 | **Remote Sources** | Pull content from GitHub, Notion, REST APIs | [Sources →](https://lbliii.github.io/bengal/docs/content/sources/) |
 | **Theming** | Dark mode, responsive, syntax highlighting, search | [Theming →](https://lbliii.github.io/bengal/docs/theming/) |
 | **Validation** | Health checks, broken link detection, auto-fix | [Building →](https://lbliii.github.io/bengal/docs/building/) |
@@ -252,7 +251,7 @@ bengal build --profile dev    # Development profile
 
 </details>
 
-📖 **Configuration guide**: [Configuration →](https://lbliii.github.io/bengal/docs/reference/configuration/)
+📖 **Configuration guide**: [Configuration →](https://lbliii.github.io/bengal/docs/building/configuration/)
 
 ---
 
@@ -261,7 +260,7 @@ bengal build --profile dev    # Development profile
 ```
 mysite/
 ├── content/          # Markdown pages
-├── templates/        # Custom Jinja2 templates (optional)
+├── templates/        # Custom templates (optional)
 ├── assets/           # Static files (CSS, JS, images)
 ├── data/             # YAML/JSON data files
 ├── config/           # Configuration directory
@@ -293,6 +292,61 @@ Bengal ships with a modern, accessible default theme:
 </article>
 {% endblock %}
 ```
+
+---
+
+## Pluggable Engines
+
+Bengal follows a "bring your own" pattern — swap engines without changing your content.
+
+<details>
+<summary><strong>Template Engines</strong></summary>
+
+| Engine | Description | Install |
+|--------|-------------|---------|
+| **Kida** (default) | Bengal's native engine. 2-5x faster than Jinja2, free-threading safe, Jinja2-compatible syntax | Built-in |
+| **Jinja2** | Industry-standard with extensive ecosystem | Built-in |
+
+```yaml
+# config/_default/site.yaml
+template_engine: kida  # or jinja2
+```
+
+</details>
+
+<details>
+<summary><strong>Markdown Parsers</strong></summary>
+
+| Parser | Description | Best For |
+|--------|-------------|----------|
+| **Patitas** (default) | Bengal's native parser. Typed AST, O(n) parsing, thread-safe | Python 3.14+, large sites |
+| **Mistune** | Fast, modern parser | General use |
+| **Python-Markdown** | Full-featured, extensive extensions | Complex edge cases |
+
+```yaml
+# config/_default/content.yaml
+markdown:
+  parser: patitas  # or mistune, python-markdown
+```
+
+</details>
+
+<details>
+<summary><strong>Syntax Highlighters</strong></summary>
+
+| Backend | Description | Performance |
+|---------|-------------|-------------|
+| **Rosettes** (default) | Built-in, lock-free, 50+ languages | 3.4x faster than Pygments |
+
+```yaml
+# config/_default/theme.yaml
+highlighting:
+  backend: rosettes
+```
+
+Custom backends can be registered via `register_backend()`.
+
+</details>
 
 ---
 

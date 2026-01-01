@@ -62,7 +62,7 @@ class TestSectionLevelFiltering:
 
         page = Page(
             source_path=page_path,
-            content="Content",
+            _raw_content="Content",
             metadata={"title": "Page"},
         )
         section.pages = [page]
@@ -94,12 +94,12 @@ class TestPageSelection:
         """Without section filtering, all pages are selected."""
         page1 = Page(
             source_path=tmp_path / "content" / "page1.md",
-            content="Page 1",
+            _raw_content="Page 1",
             metadata={"title": "Page 1"},
         )
         page2 = Page(
             source_path=tmp_path / "content" / "page2.md",
-            content="Page 2",
+            _raw_content="Page 2",
             metadata={"title": "Page 2"},
         )
         mock_site.pages = [page1, page2]
@@ -153,7 +153,7 @@ class TestPageSelection:
 
         page = Page(
             source_path=tmp_path / "content" / "blog" / "page.md",
-            content="Page",
+            _raw_content="Page",
             metadata={"title": "Page"},
         )
         page._section = section
@@ -173,7 +173,7 @@ class TestPageSelection:
         """Generated pages should always be included for checking."""
         generated = Page(
             source_path=tmp_path / "content" / "_generated" / "tags.md",
-            content="",
+            _raw_content="",
             metadata={"title": "Tags", "_generated": True},
         )
 

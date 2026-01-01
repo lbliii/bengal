@@ -286,10 +286,10 @@ class ContentParser:
 
         # Return validated data as dict (from schema instance)
         if result.data is not None:
-            from dataclasses import asdict, is_dataclass
+            from bengal.utils.serialization import to_jsonable
 
-            if is_dataclass(result.data) and not isinstance(result.data, type):
-                return dict(asdict(result.data))
+            if not isinstance(result.data, type):
+                return dict(to_jsonable(result.data))
             elif hasattr(result.data, "model_dump"):
                 return dict(result.data.model_dump())
 

@@ -42,7 +42,7 @@ class TestPageHashability:
         initial_hash = hash(page)
 
         # Mutate various fields
-        page.content = "New content"
+        page._raw_content = "New content"
         page.rendered_html = "<p>Rendered</p>"
         page.metadata = {"title": "New Title", "tags": ["python"]}
         page.tags = ["python", "tutorial"]
@@ -86,7 +86,7 @@ class TestPageHashability:
         pages = {page}
 
         # Mutate the page
-        page.content = "Changed"
+        page._raw_content = "Changed"
         page.tags = ["new-tag"]
         page.metadata = {"updated": True}
 
@@ -96,8 +96,8 @@ class TestPageHashability:
     def test_page_equality_ignores_content(self, tmp_path):
         """Pages are equal based on path, not content."""
         path = tmp_path / "content/post.md"
-        page1 = Page(source_path=path, content="Content A")
-        page2 = Page(source_path=path, content="Content B")
+        page1 = Page(source_path=path, _raw_content="Content A")
+        page2 = Page(source_path=path, _raw_content="Content B")
 
         # Equal despite different content
         assert page1 == page2
@@ -257,7 +257,7 @@ class TestPageDictionaryOperations:
         data = {page: "original"}
 
         # Mutate the page
-        page.content = "New content"
+        page._raw_content = "New content"
         page.tags = ["new"]
 
         # Should still be findable
@@ -282,7 +282,7 @@ class TestPageHashStability:
         """Hash stable even when all fields are populated."""
         page = Page(
             source_path=tmp_path / "content/post.md",
-            content="# Title\n\nContent here",
+            _raw_content="# Title\n\nContent here",
             metadata={"title": "Test", "tags": ["a", "b"]},
             rendered_html="<h1>Title</h1><p>Content</p>",
             output_path=tmp_path / "public/post/index.html",
@@ -293,7 +293,7 @@ class TestPageHashStability:
         hash1 = hash(page)
 
         # Modify everything except source_path
-        page.content = "Different"
+        page._raw_content = "Different"
         page.metadata = {}
         page.rendered_html = "Different"
         page.tags = []

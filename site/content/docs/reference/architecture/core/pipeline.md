@@ -47,7 +47,7 @@ The default build processes all pages through 21 phases:
 bengal build
 ```
 
-See [Orchestration](orchestration/) for detailed phase documentation.
+See [Orchestration](orchestration.md) for detailed phase documentation.
 
 ## Memory-Optimized Build
 
@@ -154,6 +154,6 @@ else:
 | `bengal/server/build_trigger.py` | Rebuild decision logic |
 
 :::{seealso}
-- [Orchestration](orchestration/) — Phase-by-phase reference
-- [Cache](cache/) — Incremental build caching
+- [Orchestration](orchestration.md) — Phase-by-phase reference
+- [Cache](cache.md) — Incremental build caching
 :::

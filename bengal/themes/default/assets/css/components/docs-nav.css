@@ -234,28 +234,35 @@ summary.docs-nav-group-summary:focus-visible {
   outline-offset: 2px;
 }
 
-/* Caret icon container (replaces toggle button) */
+/* Caret icon container - positioned at far right for modern look */
 .docs-nav-caret {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 1.875rem;
-  min-width: 1.875rem;
-  max-width: 1.875rem;
-  height: 1.875rem;
-  min-height: 1.875rem;
-  padding: 0.5rem;
+  order: 1; /* Push to end of flex row */
+  margin-left: auto; /* Push to far right edge */
+  width: 1.25rem;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0.25rem;
   flex-shrink: 0;
   overflow: hidden;
+  opacity: 0.6;
+  transition: opacity var(--transition-fast);
 }
 
 .docs-nav-caret svg {
-  width: 14px;
-  height: 14px;
-  color: var(--color-text-secondary);
-  transition: transform var(--transition-smooth);
+  width: 12px;
+  height: 12px;
+  color: var(--color-text-tertiary);
+  transition: transform var(--transition-smooth), color var(--transition-fast);
   flex-shrink: 0;
   will-change: transform;
+}
+
+/* Show caret more prominently on hover */
+summary.docs-nav-group-summary:hover .docs-nav-caret {
+  opacity: 1;
 }
 
 summary.docs-nav-group-summary:hover .docs-nav-caret svg {
@@ -433,29 +440,21 @@ details.docs-nav-group[open] > .docs-nav-group-items {
 .docs-nav-group .docs-nav-group {
   margin-left: 0.25rem;
 }
-
 /* ============================================================================
-   ALIGNED TEXT - Single pages and leaf sections align with directory text
+   ALIGNED TEXT - Clean left alignment now that caret is on the right
 
-   Directory text position from container edge:
-     nested-margin (0.25rem) + toggle (1.875rem) + gap (0.25rem) + link-padding (0.125rem) = 2.5rem
-
-   Single pages have padding-left: 0.375rem (from .docs-nav-link)
-   Leaf sections have padding-left: 0.375rem + nested-margin: 0.25rem
-
-   For text alignment at 2.5rem:
-   - Single pages: margin = 2.5 - 0.375 = 2.125rem (keep for alignment)
-   - Leaf sections: margin = 2.5 - 0.25 - 0.375 = 1.875rem (keep for alignment)
+   With the caret moved to the far right, all items align cleanly to the left.
+   Small margin provides visual grouping within nested levels.
    ============================================================================ */
 
-/* Single pages (direct children of group-items) - align with directory text */
+/* Single pages (direct children of group-items) - align with icon position */
 .docs-nav-group-items > .docs-nav-link {
-  margin-left: 1.875rem;
+  margin-left: 0.25rem;
 }
 
 /* Leaf section links align with directory text at same level */
 .docs-nav-group--leaf > .docs-nav-link {
-  margin-left: 1.625rem;
+  margin-left: 0.25rem;
 }
 
 /* ============================================================================
@@ -744,9 +743,9 @@ details.docs-nav-group:has(.docs-nav-link[aria-current="page"]) > summary.docs-n
   height: 16px;
 }
 
-/* Muted styling for default/fallback icons */
+/* Hide default/fallback icons to avoid reserving empty space */
 .docs-nav-icon[data-default="true"] {
-  opacity: 0.5;
+  display: none;
 }
 
 /* Icon color on hover - all contexts */
@@ -831,8 +830,9 @@ details.docs-nav-group:has(.docs-nav-link[aria-current="page"]) > summary.docs-n
   color: var(--color-text-tertiary);
 }
 
+/* Dark mode: default icons also hidden */
 [data-theme="dark"] .docs-nav-icon[data-default="true"] {
-  opacity: 0.4;
+  display: none;
 }
 
 [data-theme="dark"] summary.docs-nav-group-summary:hover .docs-nav-icon,

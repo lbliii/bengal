@@ -1,96 +1,109 @@
 {#
-  Bengal OpenAPI Home Page
+Bengal OpenAPI Home Page
+========================
 
-  API landing page showing servers, authentication, and endpoint groups.
-  This is rendered for the root section of an OpenAPI spec.
+API landing page showing:
+- API title and description
+- Version and server information
+- Authentication schemes
+- Tag/endpoint category overview
 
-  Context:
-    - section: Section with metadata containing:
-      - version: str | None
-      - servers: tuple[str, ...]
-      - security_schemes: dict
-      - tags: tuple[dict, ...]
-      - endpoints: list[DocElement]
-      - schemas: list[DocElement]
-      - description: str
-    - site: Site
-    - config: Config
+Context:
+- section: Section with metadata containing API overview data
+  - section.metadata.version: API version
+  - section.metadata.servers: Server URLs
+  - section.metadata.security_schemes: Auth schemes
+  - section.metadata.tags: API categories
+- page: Page object
+- site: Site instance
+- config: Config instance
+
+The `endpoints` and `schemas` filters normalize access to endpoint/schema data
+regardless of whether the source is DocElements or Pages.
+
+Note: For section index pages, `element` is None. Use section.metadata instead.
+
+Kida Features:
+- {% with %} for nil-resilient optional sections
+- {% spaceless %} for compact badge output
+- Optional chaining (?.) and null coalescing (??)
 #}
 {% extends 'autodoc/openapi/layouts/reference.html' %}
 
-{% let meta = section.metadata %}
-{% let version = meta.version ?? null %}
-{% let servers = meta.servers ?? () %}
-{% let security_schemes = meta.security_schemes ?? {} %}
-{% let tags = meta.tags ?? () %}
-{% let endpoints = meta.endpoints ?? [] %}
-{% let schemas = meta.schemas ?? [] %}
+{# Access metadata from section (set by section_builders.py) #}
+{% let sec_meta = section?.metadata ?? {} %}
+{% let api_title = section?.title ?? page?.title ?? 'API Reference' %}
+{% let api_version = sec_meta?.version ?? '1.0.0' %}
+{% let servers = sec_meta?.servers ?? () %}
+{% let security_schemes = sec_meta?.security_schemes ?? {} %}
+{% let tags = sec_meta?.tags ?? () %}
+{% let description = sec_meta?.description ?? '' %}
+
+{# Use filters for normalized access #}
+{% let eps = section | endpoints %}
+{% let schs = section | schemas %}
 
 {% block header %}
-<header class="api-home-header">
-  <div class="api-home-header__content">
-    <h1 class="api-home-header__title">{{ section.title }}</h1>
+<h1 class="api-home__title">{{ api_title }}</h1>
 
-    {% if version %}
-    <span class="api-home-header__version badge badge--outline">v{{ version }}</span>
-    {% end %}
-  </div>
-
-  {% with meta.description as desc %}
-    {% if desc %}
-    <div class="api-home-header__description prose">
-      {{ desc | markdownify | safe }}
-    </div>
-    {% end %}
-  {% end %}
-</header>
+{% if api_version %}
+<div class="api-home__version">
+  <span class="badge badge--outline">v{{ api_version }}</span>
+</div>
 {% end %}
 
-{% block content %}
-<div class="api-home">
+{% if description %}
+<div class="api-home__description prose">
+  {{ description | markdownify | safe }}
+</div>
+{% end %}
+{% end %}
+
+{% block content_main %}
+<div class="api-home" data-autodoc="openapi" data-element="home">
   {# Quick Stats #}
-  <section class="api-home__stats">
+  {% let endpoint_count = eps | length %}
+  {% let schema_count = schs | length %}
+  {% let tag_count = tags | length %}
+
+  {% if endpoint_count > 0 or schema_count > 0 %}
+  <div class="api-home__stats">
+    {% if endpoint_count > 0 %}
     <div class="api-home__stat">
-      <span class="api-home__stat-value">{{ endpoints | length }}</span>
+      <span class="api-home__stat-value">{{ endpoint_count }}</span>
       <span class="api-home__stat-label">Endpoints</span>
     </div>
-    {% if section.subsections %}
-    <div class="api-home__stat">
-      <span class="api-home__stat-value">{{ section.subsections | length }}</span>
-      <span class="api-home__stat-label">Categories</span>
-    </div>
     {% end %}
-    {% if schemas %}
+    {% if schema_count > 0 %}
     <div class="api-home__stat">
-      <span class="api-home__stat-value">{{ schemas | length }}</span>
+      <span class="api-home__stat-value">{{ schema_count }}</span>
       <span class="api-home__stat-label">Schemas</span>
     </div>
     {% end %}
-    {% if security_schemes %}
+    {% if tag_count > 0 %}
     <div class="api-home__stat">
-      <span class="api-home__stat-value">{{ security_schemes | length }}</span>
-      <span class="api-home__stat-label">Auth Methods</span>
+      <span class="api-home__stat-value">{{ tag_count }}</span>
+      <span class="api-home__stat-label">Categories</span>
     </div>
     {% end %}
-  </section>
+  </div>
+  {% end %}
 
   {# Base URLs / Servers #}
-  {% if servers %}
-  <section class="api-home__servers">
-    <h2 class="api-home__section-title">Base URLs</h2>
+  {% if servers | length > 0 %}
+  <section class="api-home__servers autodoc-section">
+    <h2 class="api-home__section-title">{{ icon('server', size=18) }} Base URLs</h2>
     <div class="api-home__server-list">
       {% for server in servers %}
-      <div class="api-home__server">
-        <code class="api-home__server-url">{{ server }}</code>
-        <button
-          class="api-home__server-copy"
-          type="button"
-          data-copy-value="{{ server }}"
-          aria-label="Copy URL"
-        >
-          <svg class="icon" aria-hidden="true" width="14" height="14">
-            <use href="#icon-copy"></use>
-          </svg>
+      {% let server_url = server if server is string else server?.url ?? server %}
+      {% let server_desc = '' if server is string else server?.description ?? '' %}
+      <div class="api-home__server card">
+        <code class="api-home__server-url">{{ server_url }}</code>
+        {% if server_desc %}
+        <span class="api-home__server-desc text-muted">{{ server_desc }}</span>
+        {% end %}
+        <button class="api-home__server-copy" data-copy="{{ server_url }}" aria-label="Copy URL">
+          {{ icon('copy', size=14) }}
         </button>
       </div>
       {% end %}
@@ -99,139 +112,153 @@
   {% end %}
 
   {# Authentication #}
-  {% if security_schemes %}
-  <section class="api-home__auth">
-    <h2 class="api-home__section-title">Authentication</h2>
+  {% if security_schemes | length > 0 %}
+  <section class="api-home__auth autodoc-section">
+    <h2 class="api-home__section-title">{{ icon('lock', size=18) }} Authentication</h2>
     <div class="api-home__auth-schemes">
-      {% for name, scheme in security_schemes.items() %}
+      {% for name, scheme in security_schemes |> items %}
+      {% if scheme %}
+      {% let scheme_type = scheme?.type ?? 'apiKey' %}
+      {% let scheme_desc = scheme?.description ?? '' %}
+      {% let scheme_in = scheme.get('in', 'header') %}
+      {% let scheme_name = scheme?.name ?? 'Authorization' %}
+
       <div class="api-home__auth-scheme card">
-        <div class="api-home__auth-header">
+        <header class="api-home__auth-header">
           <h3 class="api-home__auth-name">
-            <svg class="icon" aria-hidden="true" width="16" height="16">
-              <use href="#icon-lock"></use>
-            </svg>
+            {{ icon('key', size=14) }}
             {{ name }}
           </h3>
-          <span class="badge badge--outline badge--sm">{{ scheme.type ?? 'custom' }}</span>
-        </div>
+          <span class="badge badge--outline badge--sm">{{ scheme_type }}</span>
+        </header>
 
-        {% with scheme.description as desc %}
-          {% if desc %}
-          <p class="api-home__auth-description text-muted">{{ desc }}</p>
-          {% end %}
+        {% if scheme_desc %}
+        <p class="api-home__auth-description">{{ scheme_desc }}</p>
         {% end %}
 
-        {% if scheme.type == 'http' %}
-          <code class="api-home__auth-example">
-            Authorization: {{ scheme.scheme | title }} &lt;token&gt;
-          </code>
-        {% elif scheme.type == 'apiKey' %}
-          <code class="api-home__auth-example">
-            {{ scheme.name }}: &lt;api_key&gt;
-            <span class="text-muted">({{ scheme['in'] }})</span>
-          </code>
+        {% match scheme_type %}
+        {% case 'apiKey' %}
+        <code class="api-home__auth-example">{{ scheme_name }}: YOUR_API_KEY</code>
+        {% case 'http' %}
+        {% if scheme?.scheme == 'bearer' %}
+        <code class="api-home__auth-example">Authorization: Bearer YOUR_TOKEN</code>
+        {% else %}
+        <code class="api-home__auth-example">Authorization: Basic BASE64_CREDENTIALS</code>
+        {% end %}
+        {% case 'oauth2' %}
+        <code class="api-home__auth-example">Authorization: Bearer ACCESS_TOKEN</code>
+        {% case _ %}
+        <code class="api-home__auth-example">{{ scheme_name }}: YOUR_CREDENTIALS</code>
         {% end %}
       </div>
+      {% end %}
       {% end %}
     </div>
   </section>
   {% end %}
 
-  {# Endpoint Groups - use subsections which are the tag sections #}
-  <section class="api-home__endpoints">
-    <h2 class="api-home__section-title">Endpoints</h2>
-
-    {% if section.subsections %}
+  {# Endpoint Categories (Tags) - Quick Jump Navigation #}
+  {% let subsections = section?.subsections ?? () %}
+  {% if subsections | length > 0 %}
+  <section class="api-home__tags autodoc-section">
+    <h2 class="api-home__section-title">{{ icon('folder', size=18) }} Categories</h2>
     <div class="api-home__tag-grid">
-      {% for tag_section in section.subsections %}
-        {# Skip the schemas section #}
-        {% if tag_section.name != 'schemas' %}
-        {% let tag_endpoints = tag_section.metadata.endpoints ?? [] %}
-        <a href="{{ tag_section.href }}" class="api-home__tag-card card card--hoverable">
-          <div class="api-home__tag-header">
-            <h3 class="api-home__tag-name">{{ tag_section.title }}</h3>
-            <span class="badge badge--secondary">{{ tag_endpoints | length }}</span>
-          </div>
-          {% with tag_section.metadata.description as desc %}
-            {% if desc %}
-            <p class="api-home__tag-description text-muted">{{ desc | truncate(100) }}</p>
-            {% end %}
-          {% end %}
+      {% for subsec in subsections %}
+      {% let tag_name = subsec?.title ?? 'Endpoints' %}
+      {% let tag_desc = subsec?.metadata?.description ?? '' %}
+      {% let tag_endpoints = subsec | endpoints %}
 
-          {# Preview of methods in this tag #}
-          <div class="api-home__tag-methods">
-            {% for ep in tag_endpoints[:5] %}
-              {% let method = ep.typed_metadata.method if ep.typed_metadata else 'GET' %}
-              {% match method %}
-                {% case 'GET' %}
-                  <span class="api-method api-method--get api-method--xs">GET</span>
-                {% case 'POST' %}
-                  <span class="api-method api-method--post api-method--xs">POST</span>
-                {% case 'PUT' %}
-                  <span class="api-method api-method--put api-method--xs">PUT</span>
-                {% case 'PATCH' %}
-                  <span class="api-method api-method--patch api-method--xs">PATCH</span>
-                {% case 'DELETE' %}
-                  <span class="api-method api-method--delete api-method--xs">DELETE</span>
-                {% case _ %}
-                  <span class="api-method api-method--xs">{{ method }}</span>
-              {% end %}
-            {% end %}
-          </div>
-        </a>
-        {% end %}
-      {% end %}
-    </div>
-    {% elif endpoints %}
-    {# No subsections - show all endpoints directly #}
-    <div class="api-home__endpoint-list">
-      {% for ep in endpoints %}
-        {% let ep_meta = ep.typed_metadata %}
-        {% let method = ep_meta.method if ep_meta else 'GET' %}
-        {% let path = ep_meta.path if ep_meta else ep.name %}
-        <a href="{{ ep.href ?? '#' }}" class="api-home__endpoint-item">
-          {% match method %}
-            {% case 'GET' %}
-              <span class="api-method api-method--get api-method--sm">GET</span>
-            {% case 'POST' %}
-              <span class="api-method api-method--post api-method--sm">POST</span>
-            {% case 'PUT' %}
-              <span class="api-method api-method--put api-method--sm">PUT</span>
-            {% case 'PATCH' %}
-              <span class="api-method api-method--patch api-method--sm">PATCH</span>
-            {% case 'DELETE' %}
-              <span class="api-method api-method--delete api-method--sm">DELETE</span>
-            {% case _ %}
-              <span class="api-method api-method--sm">{{ method }}</span>
-          {% end %}
-          <span class="api-home__endpoint-path">{{ path }}</span>
-          <span class="api-home__endpoint-summary text-muted">{{ ep_meta.summary ?? '' }}</span>
-        </a>
-      {% end %}
-    </div>
-    {% else %}
-    <p class="api-home__empty text-muted">No endpoints documented yet.</p>
-    {% end %}
-  </section>
-
-  {# Schemas Quick Reference #}
-  {% if schemas %}
-  <section class="api-home__schemas">
-    <h2 class="api-home__section-title">Schemas</h2>
-    <div class="api-home__schema-grid">
-      {% for schema in schemas[:12] %}
-      <a href="{{ schema.href ?? (section.href ~ 'schemas/' ~ schema.name ~ '/') }}" class="api-home__schema-card card card--hoverable">
-        <code class="api-home__schema-name">{{ schema.name }}</code>
-        {% with schema.description as desc %}
-          {% if desc %}
-          <p class="api-home__schema-description text-muted">{{ desc | truncate(60) }}</p>
-          {% end %}
+      <a href="#{{ tag_name | slugify }}" class="api-home__tag-card card card--hoverable">
+        <header class="api-home__tag-header">
+          <h3 class="api-home__tag-name">{{ tag_name }}</h3>
+          <span class="badge badge--outline badge--sm">{{ tag_endpoints | length }}</span>
+        </header>
+        {% if tag_desc %}
+        <p class="api-home__tag-description">{{ tag_desc | truncate(100) }}</p>
         {% end %}
       </a>
       {% end %}
-      {% if schemas | length > 12 %}
-      <a href="{{ section.href }}schemas/" class="api-home__schema-more card card--hoverable">
-        <span>View all {{ schemas | length }} schemas →</span>
+    </div>
+  </section>
+  {% end %}
+
+  {# Endpoints Grouped by Tag - with anchor IDs matching category tiles #}
+  {% if subsections | length > 0 %}
+  {% for subsec in subsections %}
+  {% let tag_name = subsec?.title ?? 'Endpoints' %}
+  {% let tag_desc = subsec?.metadata?.description ?? '' %}
+  {% let tag_endpoints = subsec | endpoints %}
+
+  {% if tag_endpoints | length > 0 %}
+  <section id="{{ tag_name | slugify }}" class="api-home__tag-section autodoc-section">
+    <header class="api-home__tag-section-header">
+      <h2 class="api-home__section-title">{{ icon('tag', size=18) }} {{ tag_name }}</h2>
+      {% if tag_desc %}
+      <p class="api-home__tag-section-desc text-muted">{{ tag_desc }}</p>
+      {% end %}
+    </header>
+    <div class="autodoc-cards">
+      {% for ep in tag_endpoints %}
+      <a href="{{ ep.href }}" class="autodoc-card{% if ep.deprecated %} autodoc-card--deprecated{% end %}">
+        <div class="autodoc-card-header">
+          {% spaceless %}
+          <span class="api-method api-method--sm api-method--{{ ep.method |> lower }}">{{ ep.method }}</span>
+          {% end %}
+          <code class="autodoc-card-name">{{ ep.path }}</code>
+        </div>
+        {% if ep.summary %}
+        <p class="autodoc-card-desc">{{ ep.summary | truncate(80) }}</p>
+        {% end %}
+        {% if ep.deprecated %}
+        <span class="autodoc-badge" data-badge="deprecated">Deprecated</span>
+        {% end %}
+      </a>
+      {% end %}
+    </div>
+  </section>
+  {% end %}
+  {% end %}
+  {% end %}
+
+  {# All Endpoints (only if no subsections/tags exist) #}
+  {% if subsections | length == 0 and eps | length > 0 %}
+  <section class="api-home__endpoints autodoc-section">
+    <h2 class="api-home__section-title">{{ icon('list', size=18) }} Endpoints</h2>
+    <div class="autodoc-cards">
+      {% for ep in eps %}
+      <a href="{{ ep.href }}" class="autodoc-card{% if ep.deprecated %} autodoc-card--deprecated{% end %}">
+        <div class="autodoc-card-header">
+          {% spaceless %}
+          <span class="api-method api-method--sm api-method--{{ ep.method |> lower }}">{{ ep.method }}</span>
+          {% end %}
+          <code class="autodoc-card-name">{{ ep.path }}</code>
+        </div>
+        {% if ep.summary %}
+        <p class="autodoc-card-desc">{{ ep.summary | truncate(80) }}</p>
+        {% end %}
+        {% if ep.deprecated %}
+        <span class="autodoc-badge" data-badge="deprecated">Deprecated</span>
+        {% end %}
+      </a>
+      {% end %}
+    </div>
+  </section>
+  {% end %}
+
+  {# Schemas #}
+  {% if schs | length > 0 %}
+  <section class="api-home__schemas autodoc-section">
+    <h2 class="api-home__section-title">{{ icon('database', size=18) }} Schemas</h2>
+    <div class="autodoc-cards">
+      {% for schema in schs %}
+      <a href="{{ schema.href }}" class="autodoc-card">
+        <div class="autodoc-card-header">
+          <code class="autodoc-card-name">{{ schema.name }}</code>
+          <span class="badge badge--outline badge--sm">{{ schema.schema_type }}</span>
+        </div>
+        {% if schema.description %}
+        <p class="autodoc-card-desc">{{ schema.description | truncate(80) }}</p>
+        {% end %}
       </a>
       {% end %}
     </div>

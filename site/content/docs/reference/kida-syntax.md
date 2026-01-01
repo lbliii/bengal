@@ -33,13 +33,13 @@ Complete reference for Kida template syntax, operators, and features. Kida is Be
 | Feature | Kida | Jinja2 |
 |---------|------|--------|
 | Block endings | `{% end %}` (unified) | `{% endif %}`, `{% endfor %}`, etc. |
-| Template variables | `{% let %}` (template-scoped) | `{% let %}` (block-scoped) |
-| Block variables | `{% let %}` (block-scoped) | `{% let %}` (block-scoped) |
+| Template variables | `{% let %}` (template-scoped) | `{% set %}` (block-scoped) |
+| Block variables | `{% set %}` (block-scoped) | `{% set %}` (block-scoped) |
 | Pattern matching | `{% match %}...{% case %}...{% end %}` | `{% if %}...{% elif %}...{% endif %}` |
 | While loops | `{% while cond %}...{% end %}` | Not available |
 | Pipeline operator | `|>` | `\|` (filter chain) |
 | Fragment caching | `{% cache key %}...{% end %}` | Requires extension |
-| Functions | `{% def %}` (lexical scope) | `{% macro %}` (no scope) |
+| Functions | `{% def %}` (sees outer variables) | `{% macro %}` (isolated) |
 
 ## Basic Syntax
 
@@ -153,13 +153,13 @@ Variables available throughout the entire template:
 <h1>{{ site_title }}</h1>
 ```
 
-### Block-Scoped Variables (`{% let %}`)
+### Block-Scoped Variables (`{% set %}`)
 
 Variables scoped to the current block:
 
 ```kida
 {% if page.published %}
-  {% let status = "Published" %}
+  {% set status = "Published" %}
   <span>{{ status }}</span>
 {% end %}
 {# status not available here #}
@@ -263,18 +263,20 @@ Make a variable from an inner scope available to the outer scope:
 
 ### Defining Functions (`{% def %}`)
 
-Kida functions have true lexical scoping (unlike Jinja2 macros):
+Kida functions can access variables from their surrounding context automatically—no need to pass site config, theme settings, or other shared values as parameters:
 
 ```kida
+{% let site_name = site.config.title %}
+
 {% def card(item) %}
   <div class="card">
     <h3>{{ item.title }}</h3>
     <p>{{ item.description }}</p>
-    <span>From: {{ site.title }}</span>  {# Access outer scope #}
+    <span>From: {{ site_name }}</span>  {# ✅ Accesses outer variable #}
   </div>
 {% end %}
 
-{# Usage #}
+{# Just pass the item—site_name is available automatically #}
 {{ card(page) }}
 ```
 
@@ -532,13 +534,70 @@ The `nav` block depends only on `site.pages` (site-wide), so it's automatically 
 
 ## Kida-Only Features
 
-### Optional Chaining (`?.`)
+### Optional Chaining
 
-Safe attribute access:
+Kida provides safe navigation operators that return `None` instead of raising errors when accessing missing attributes or keys.
+
+#### Optional Attribute Access (`?.`)
+
+Safe attribute access—returns `None` if the object is `None`:
 
 ```kida
-{{ user?.profile?.name ?? 'Anonymous' }}
-{{ page?.metadata?.author ?? 'Unknown' }}
+{{ user?.profile?.name }}           {# None if user or profile is None #}
+{{ page?.metadata?.author }}        {# None if page or metadata is None #}
+{{ config?.theme?.colors?.primary }} {# Deep safe access #}
+```
+
+#### Optional Subscript Access (`?[`)
+
+Safe key/index access—returns `None` if the object is `None`:
+
+```kida
+{{ data?['key'] }}                  {# None if data is None #}
+{{ schema?['in'] }}                 {# Access reserved word keys safely #}
+{{ items?[0] }}                     {# Safe index access #}
+{{ config?['settings']?['theme'] }} {# Chained safe subscript #}
+```
+
+**Combining with attribute access**:
+
+```kida
+{{ api?.response?['data']?['items'] }}  {# Mix both operators #}
+{{ user?.preferences?['theme'] ?? 'light' }}
+```
+
+:::{tip}
+**Kida uses `?[` not `?.[]`**: Unlike JavaScript which uses `?.['key']`, Kida uses the more concise `?['key']`. The pattern is simple: prefix `?` makes any accessor optional.
+
+| Accessor | Regular | Optional |
+|----------|---------|----------|
+| Attribute | `.attr` | `?.attr` |
+| Subscript | `['key']` | `?['key']` |
+:::
+
+#### Common Use Cases
+
+**Accessing reserved word keys** (common in OpenAPI, JSON Schema):
+
+```kida
+{# OpenAPI security schemes use 'in' as a field name #}
+{% let location = scheme?['in'] ?? 'header' %}
+{% let api_type = spec?['type'] ?? 'apiKey' %}
+```
+
+**Safe array access**:
+
+```kida
+{% let first = items?[0] %}
+{% let last = items?[-1] %}
+{{ results?[0]?.name ?? 'No results' }}
+```
+
+**Nested data structures**:
+
+```kida
+{% let value = response?['data']?['users']?[0]?['email'] %}
+{{ value ?? 'Not found' }}
 ```
 
 ### Null Coalescing (`??`)
@@ -598,7 +657,7 @@ Condition-based loops for scenarios where the iteration count isn't known upfron
 {% let counter = 0 %}
 {% while counter < 5 %}
   {{ counter }}
-  {% let counter = counter + 1 %}
+  {% set counter = counter + 1 %}
 {% end %}
 ```
 
@@ -608,7 +667,7 @@ Condition-based loops for scenarios where the iteration count isn't known upfron
 {% let i = 0 %}
 {% while true %}
   {% if i >= 10 %}{% break %}{% end %}
-  {% let i = i + 1 %}
+  {% set i = i + 1 %}
   {% if i % 2 == 0 %}{% continue %}{% end %}
   {{ i }}  {# Prints odd numbers: 1, 3, 5, 7, 9 #}
 {% end %}
@@ -758,13 +817,13 @@ site:
 Kida can parse Jinja2 syntax via compatibility mode. Most Jinja2 templates work without changes, but consider migrating to Kida syntax for pattern matching, pipeline operators, and unified block endings:
 
 :::{seealso}
-[How to Migrate from Jinja2 to Kida](/docs/theming/templating/kida/migrate-jinja-to-kida/) — Step-by-step migration guide
+[How to Migrate from Jinja2 to Kida](/docs/theming/templating/kida/migration/from-jinja/) — Step-by-step migration guide
 :::
 
 **Key differences**:
 
 1. **Block endings**: Replace `{% endif %}`, `{% endfor %}` with `{% end %}`
-2. **Template variables**: Use `{% let %}` instead of `{% let %}` for template-wide scope
+2. **Template variables**: Use `{% let %}` instead of `{% set %}` for template-wide scope
 3. **Pattern matching**: Replace long `if/elif` chains with `{% match %}...{% case %}`
 4. **Pipeline**: Use `|>` for better readability
 

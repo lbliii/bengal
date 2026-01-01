@@ -129,7 +129,7 @@ class TestNavTree:
         # cached_property stores value in __dict__ once computed, so we set it there
         page1 = Page(
             source_path=tmp_path / "content" / "docs" / "page1.md",
-            content="# Page 1",
+            _raw_content="# Page 1",
             metadata={"title": "Page 1", "weight": 1},
         )
         page1._site = site
@@ -137,7 +137,7 @@ class TestNavTree:
 
         page2 = Page(
             source_path=tmp_path / "content" / "docs" / "page2.md",
-            content="# Page 2",
+            _raw_content="# Page 2",
             metadata={"title": "Page 2", "weight": 2},
         )
         page2._site = site
@@ -145,7 +145,7 @@ class TestNavTree:
 
         page3 = Page(
             source_path=tmp_path / "content" / "blog" / "post1.md",
-            content="# Post 1",
+            _raw_content="# Post 1",
             metadata={"title": "Post 1"},
         )
         page3._site = site
@@ -184,7 +184,7 @@ class TestNavTree:
         section_v1._site = site
         page_v1 = Page(
             source_path=tmp_path / "content" / "_versions" / "v1" / "docs" / "guide.md",
-            content="# Guide",
+            _raw_content="# Guide",
             metadata={"title": "Guide"},
         )
         page_v1.__dict__["_path"] = "/v1/docs/guide/"
@@ -196,7 +196,7 @@ class TestNavTree:
         section_v2._site = site
         page_v2 = Page(
             source_path=tmp_path / "content" / "_versions" / "v2" / "docs" / "guide.md",
-            content="# Guide",
+            _raw_content="# Guide",
             metadata={"title": "Guide"},
         )
         page_v2.__dict__["_path"] = "/v2/docs/guide/"
@@ -263,7 +263,7 @@ class TestNavTree:
 
         index_page = Page(
             source_path=tmp_path / "content" / "_versions" / "v1" / "docs" / "_index.md",
-            content="# Docs",
+            _raw_content="# Docs",
             metadata={"title": "Docs"},
         )
         index_page.__dict__["_path"] = "/docs/"
@@ -323,7 +323,7 @@ class TestNavTree:
 
         page_v1 = Page(
             source_path=tmp_path / "content" / "_versions" / "v1" / "docs" / "guide.md",
-            content="# Guide",
+            _raw_content="# Guide",
             metadata={"title": "Guide"},
         )
         page_v1.__dict__["_path"] = "/docs/v1/guide/"
@@ -390,7 +390,7 @@ class TestNavTree:
 
         page = Page(
             source_path=tmp_path / "content" / "_versions" / "v1" / "docs" / "guide" / "page.md",
-            content="# Page",
+            _raw_content="# Page",
             metadata={"title": "Page"},
         )
         page.__dict__["_path"] = "/docs/guide/page/"
@@ -508,7 +508,7 @@ class TestNavTreeContext:
         # Create pages with proper _path
         root_page = Page(
             source_path=tmp_path / "content" / "docs" / "_index.md",
-            content="# Docs",
+            _raw_content="# Docs",
             metadata={"title": "Docs"},
         )
         root_page._site = site
@@ -517,7 +517,7 @@ class TestNavTreeContext:
 
         sub_page = Page(
             source_path=tmp_path / "content" / "docs" / "guide" / "page.md",
-            content="# Page",
+            _raw_content="# Page",
             metadata={"title": "Page"},
         )
         sub_page._site = site

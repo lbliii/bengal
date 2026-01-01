@@ -23,13 +23,12 @@ from typing import TYPE_CHECKING, Any
 from urllib.parse import quote, urlencode
 
 if TYPE_CHECKING:
-    from jinja2 import Environment
-
     from bengal.core.site import Site
+    from bengal.rendering.engines.protocol import TemplateEnvironment
 
 
-def register(env: Environment, site: Site) -> None:
-    """Register social sharing functions with Jinja2 environment."""
+def register(env: TemplateEnvironment, site: Site) -> None:
+    """Register functions with template environment."""
 
     # Create closure for share_url with access to site
     def share_url_with_site(

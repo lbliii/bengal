@@ -1,63 +1,67 @@
 {#
-  Bengal OpenAPI Request Body
+Bengal OpenAPI Request Body
+===========================
 
-  Displays request body schema with content type and required status.
+Displays request body information including:
+- Content type badges
+- Description
+- Schema viewer (for object types)
 
-  Uses Kida's {% with ... as ... %} for nil-safe optional sections.
+Context:
+- request_body: OpenAPIRequestBodyMetadata or dict with:
+  - content_type: Media type (e.g., "application/json")
+  - schema_ref: Reference to schema
+  - required: bool
+  - description: Description
+  - schema: Inline schema object (optional)
 
-  Context:
-    - body: OpenAPIRequestBodyMetadata
-      - content_type: str
-      - schema_ref: str | None
-      - required: bool
-      - description: str
-    - schemas: dict (resolved schemas from spec)
+Kida Features:
+- {% with %} for nil-safe optional sections
+- {% spaceless %} for compact badge output
+- Optional chaining (?.) and null coalescing (??)
 #}
-{% let content_type = body?.content_type ?? 'application/json' %}
-{% let schema_ref = body?.schema_ref %}
-{% let is_required = body?.required ?? false %}
-{% let description = body?.description ?? '' %}
+{% let content_type = request_body?.content_type ?? 'application/json' %}
+{% let is_required = request_body?.required ?? false %}
+{% let description = request_body?.description ?? '' %}
+{% let schema_ref = request_body?.schema_ref %}
+{% let inline_schema = request_body?.schema %}
 
-<section class="api-request-body">
+<section class="api-request-body autodoc-section" data-section="request-body">
   <header class="api-request-body__header">
-    <h3 class="api-request-body__title">Request Body</h3>
+    <h2 class="api-request-body__title autodoc-section-title">Request Body</h2>
 
     <div class="api-request-body__meta">
-      <span class="badge badge--outline badge--sm">{{ content_type }}</span>
+      {% spaceless %}
       {% if is_required %}
-        <span class="badge badge--danger-subtle badge--sm">required</span>
-      {% else %}
-        <span class="badge badge--secondary-subtle badge--sm">optional</span>
+      <span class="badge badge--danger-subtle badge--sm">required</span>
+      {% end %}
+      <span class="badge badge--outline badge--sm">{{ content_type }}</span>
       {% end %}
     </div>
   </header>
 
   {# Description #}
-  {% with description as desc %}
-    {% if desc %}
-    <div class="api-request-body__description prose-sm">
-      {{ desc | markdownify | safe }}
-    </div>
-    {% end %}
+  {% if description %}
+  <div class="api-request-body__description prose-sm">
+    {{ description | markdownify | safe }}
+  </div>
   {% end %}
 
-  {# Schema Viewer #}
+  {# Schema Reference Link #}
   {% with schema_ref as ref %}
-    {% if ref %}
-      {% let schema_name = ref | split('/') | last %}
-      {# schemas may be undefined in some contexts - use empty dict as fallback #}
-      {% let schemas_dict = schemas ?? {} %}
-      {% let schema = schemas_dict.get(schema_name) if schemas_dict else none %}
+  {% let schema_name = ref | split('#/components/schemas/') | last %}
+  <div class="api-request-body__schema-ref">
+    <span class="api-request-body__label">Schema:</span>
+    <a href="#schema-{{ schema_name | slugify }}" class="api-request-body__schema-link">
+      <code>{{ schema_name }}</code>
+    </a>
+  </div>
+  {% end %}
 
-      {% if schema %}
-        {% let name = schema_name %}
-        {% let depth = 0 %}
-        {% include 'autodoc/openapi/partials/schema-viewer.html' %}
-      {% else %}
-        <div class="api-request-body__ref">
-          <code>{{ ref }}</code>
-        </div>
-      {% end %}
-    {% end %}
+  {# Inline Schema Viewer #}
+  {% with inline_schema as s %}
+  {% let schema = s %}
+  {% let depth = 0 %}
+  {% include 'autodoc/openapi/partials/schema-viewer.html' %}
   {% end %}
 </section>

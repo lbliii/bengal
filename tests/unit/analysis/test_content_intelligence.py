@@ -81,10 +81,15 @@ class TestContentIntelligence:
         content: str = "",
         raw_content: str = "",
     ):
-        """Create a mock page."""
+        """Create a mock page.
+
+        Note: MagicMock auto-creates attributes when accessed, so we must
+        explicitly set all attributes that the source code uses.
+        """
         page = MagicMock()
         page._path = path
-        page.content = content
+        page._raw_content = raw_content or content
+        page.content = content  # content now returns rendered HTML, use same for tests
         page.raw_content = raw_content or content
         return page
 
@@ -203,8 +208,9 @@ class TestConvenienceFunction:
         """Convenience function should work."""
         page = MagicMock()
         page._path = "/docs/test/"
-        page.content = ""
+        page._raw_content = ""
         page.raw_content = ""
+        page.content = ""  # Required: source code accesses page.content
 
         site = MagicMock()
         site.pages = [page]
