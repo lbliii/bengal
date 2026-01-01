@@ -48,8 +48,8 @@ Test subsystem interactions and build flows. Verify cache.
 
 :::{card} Benchmarks
 :icon: zap
-**Performance** (`tests/performance/`)
-Measure speed on large sites. Catch regressions.
+**Performance** (`benchmarks/`)
+Measure build speed, memory, incremental builds. Entry points: `test_build.py`, `test_cold_build_permutations.py`, `test_nav_tree_performance.py`.
 :::
 :::{/cards}
 

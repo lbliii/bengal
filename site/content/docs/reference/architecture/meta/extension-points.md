@@ -33,7 +33,7 @@ Bengal is designed with multiple extension points that allow customization witho
 **Implementation**:
 ```python
 from bengal.content_types.base import ContentTypeStrategy
-from bengal.content_types.registry import ContentTypeRegistry
+from bengal.content_types.registry import register_strategy
 
 class NewsStrategy(ContentTypeStrategy):
     """Custom strategy for news articles."""
@@ -60,8 +60,8 @@ class NewsStrategy(ContentTypeStrategy):
         """Auto-detect news sections."""
         return section.name.lower() in ("news", "announcements")
 
-# Register your strategy
-ContentTypeRegistry.register("news", NewsStrategy)
+# Register your strategy (call early in build process)
+register_strategy("news", NewsStrategy())
 ```
 
 **Configuration** (in section `_index.md` frontmatter):

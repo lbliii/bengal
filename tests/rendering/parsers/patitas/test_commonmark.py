@@ -16,12 +16,13 @@ class TestATXHeadings:
 
     def test_simple_headings(self):
         """Simple ATX headings."""
-        assert "<h1>" in parse("# foo")
-        assert "<h2>" in parse("## foo")
-        assert "<h3>" in parse("### foo")
-        assert "<h4>" in parse("#### foo")
-        assert "<h5>" in parse("##### foo")
-        assert "<h6>" in parse("###### foo")
+        # Note: Patitas adds id attributes, so check for <h1 not <h1>
+        assert "<h1" in parse("# foo")
+        assert "<h2" in parse("## foo")
+        assert "<h3" in parse("### foo")
+        assert "<h4" in parse("#### foo")
+        assert "<h5" in parse("##### foo")
+        assert "<h6" in parse("###### foo")
 
     def test_more_than_six_not_heading(self):
         """More than six # characters is not a heading."""
