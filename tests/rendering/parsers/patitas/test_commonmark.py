@@ -631,9 +631,6 @@ class TestListMarkerVariants:
         html = parse("1) item")
         assert "<ol>" in html
 
-    @pytest.mark.xfail(
-        reason="Different markers should create separate lists - not yet implemented"
-    )
     def test_different_markers_different_lists(self):
         """Different unordered markers create different lists."""
         md = """- dash item

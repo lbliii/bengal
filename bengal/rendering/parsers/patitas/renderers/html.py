@@ -738,11 +738,18 @@ class HtmlRenderer:
 
 
 def _escape_html(text: str) -> str:
-    """Escape HTML special characters including quotes.
+    """Escape HTML special characters for text content.
 
-    Matches mistune's escape behavior for parity.
+    Per CommonMark spec:
+    - < > & must be escaped (XSS prevention)
+    - " should be escaped to &quot; (for safety)
+    - ' should remain literal in text content (not &#x27;)
     """
-    return html_escape(text, quote=True)
+    # html_escape with quote=True escapes both " and '
+    # We only want to escape " but not '
+    result = html_escape(text, quote=False)  # Escapes < > &
+    result = result.replace('"', "&quot;")  # Also escape "
+    return result
 
 
 def _escape_attr(text: str) -> str:

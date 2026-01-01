@@ -15,12 +15,13 @@ How Bengal transforms source content into final output.
 |-------|--------------|-------------|
 | **Discovery** | Find `.md` files, parse frontmatter | `bengal/discovery/` |
 | **Rendering** | Template selection, Markdown → HTML | `bengal/rendering/` |
-| **Post-Process** | Sitemap, RSS, link validation | `bengal/postprocess/` |
+| **Post-Process** | Sitemap, RSS, redirects, social cards | `bengal/postprocess/` |
+| **Health** | Link validation, content checks | `bengal/health/` |
 
 ## Template Resolution
 
-1. Check for explicit `layout` in frontmatter
-2. Match by content `type` (doc, post, page)
+1. Check for explicit `template` in frontmatter
+2. Match by content `type` (page → `page.html`, section → `list.html`)
 3. Fall back to `single.html`
 
 :::{note}

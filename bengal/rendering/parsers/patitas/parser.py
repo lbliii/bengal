@@ -346,6 +346,9 @@ class Parser:
         marker_stripped = start_token.value.lstrip()
         ordered = marker_stripped[0].isdigit()
         start = 1
+        # Track bullet marker character for CommonMark compliance
+        # Different markers (-,*,+) after blank line = different lists
+        bullet_char = "" if ordered else marker_stripped[0]
 
         if ordered:
             # Extract starting number
@@ -384,6 +387,13 @@ class Parser:
             is_ordered = current_marker[0].isdigit()
             if is_ordered != ordered:
                 break
+
+            # CommonMark: different bullet markers create separate lists
+            # e.g., - item followed by * item = two separate lists
+            if not ordered:
+                current_bullet = current_marker[0]
+                if current_bullet != bullet_char:
+                    break
 
             self._advance()
 

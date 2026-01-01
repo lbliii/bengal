@@ -67,7 +67,7 @@ orchestrator.process(
 Templates access fingerprinted URLs via the manifest:
 
 ```kida
-<link rel="stylesheet" href="{{ asset('css/main.css') }}">
+<link rel="stylesheet" href="{{ asset_url('css/main.css') }}">
 {# Outputs: /assets/css/main.abc123.css #}
 ```
 
@@ -147,7 +147,7 @@ compiled_files = pipeline.build()  # Returns list of compiled paths
 During incremental builds, only changed assets are processed:
 
 1. **Hash comparison**: Compare SHA256 of source files
-2. **Dependency tracking**: Track CSS imports for cascade invalidation
+2. **CSS bundling**: Inline `@import` statements into entry points
 3. **Selective copy**: Only copy/transform changed files
 
 ## Key Modules
