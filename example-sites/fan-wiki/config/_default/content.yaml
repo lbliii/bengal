@@ -1,0 +1,5 @@
+content:
+  default_type: resume
+  excerpt_length: 150
+  sort_pages_by: weight
+  sort_order: asc

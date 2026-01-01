@@ -1,0 +1,5 @@
+site:
+  title: fan-wiki
+  baseurl: https://example.com
+  description: fan-wiki - Built with Bengal
+  language: en
