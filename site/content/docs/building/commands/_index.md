@@ -55,7 +55,7 @@ bengal serve --port 8080
 bengal serve --no-open
 
 # Theme development mode
-bengal serve --theme-dev
+bengal serve --profile theme-dev
 ```
 :::
 

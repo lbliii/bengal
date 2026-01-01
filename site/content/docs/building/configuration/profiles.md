@@ -244,9 +244,8 @@ When metrics collection is enabled (theme-dev and dev profiles):
 ```tree
 .bengal/
 └── metrics/
-    ├── build-2024-01-15-10-30-00.json
-    ├── build-2024-01-15-10-35-00.json
-    └── latest.json
+    ├── history.jsonl   # All builds (JSON Lines format)
+    └── latest.json     # Most recent build
 ```
 
 **Metrics include:**

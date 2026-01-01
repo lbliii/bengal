@@ -19,14 +19,17 @@ Speed up Bengal with incremental builds, parallel processing, and smart caching.
 
 ## Quick Wins
 
-```toml
-# bengal.toml
-[build]
-parallel = true      # Enabled by default
-incremental = true   # Enabled by default
-```
+Bengal optimizes builds automatically — no configuration required:
 
-These settings are enabled by default and handle most performance needs automatically.
+- **Parallel processing**: Auto-enabled based on page count and CPU cores
+- **Incremental builds**: Auto-enabled when build cache exists
+- **Smart caching**: Tracks file changes, dependencies, and parsed content
+
+```toml
+# bengal.toml — only needed to override defaults
+[build]
+max_workers = 8      # Limit parallel workers (default: auto-detect)
+```
 
 ## How Builds Get Faster
 
@@ -45,24 +48,28 @@ flowchart LR
 
 | Strategy | Effort | Speedup | Best For |
 |----------|--------|---------|----------|
-| **Incremental** | Zero | 10-50x | Development |
-| **Parallel** | Zero | 2-8x | Large sites |
-| **Fast Mode** | Zero | 2-3x | CI/CD |
+| **Incremental** | Zero | 15-50x | Development |
+| **Parallel** | Zero | 2-8x | Large sites, multi-core |
+| **Fast Mode** | Zero | Varies | CI/CD (minimal output) |
 | **Memory Optimized** | Zero | N/A | 5K+ pages |
+
+:::{note}
+**Parallel speedup** depends on Python version: 2-3x with standard Python, 6-8x with free-threaded Python 3.14+.
+:::
 
 ## Common Commands
 
 ```bash
-# Maximum performance (quiet, parallel)
+# Fast mode: quiet output, auto-parallel
 bengal build --fast
 
-# Force full rebuild
+# Force full rebuild (skip cache)
 bengal build --no-incremental
 
-# Clear all caches
+# Clear build cache
 bengal clean --cache
 
-# Profile build time
+# Profile build time (saves to .bengal/profiles/)
 bengal build --perf-profile
 
 # Profile template rendering
