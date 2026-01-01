@@ -103,6 +103,7 @@ class HtmlRenderer:
         "_slugify",
         "_seen_slugs",
         "_page_context",
+        "_current_page",  # Alias for _page_context (used by directives)
     )
 
     def __init__(
@@ -147,6 +148,8 @@ class HtmlRenderer:
         self._seen_slugs: dict[str, int] = {}  # For unique slug generation
         # Page context for directives (child-cards, breadcrumbs, etc.)
         self._page_context = page_context
+        # Alias for _page_context (used by directives that look for _current_page)
+        self._current_page = page_context
 
     def render(self, nodes: Sequence[Block]) -> str:
         """Render AST nodes to HTML.
@@ -347,6 +350,19 @@ class HtmlRenderer:
 
         sb.append("</tr>\n")
 
+    # Directives that depend on page context and should NOT be cached
+    # These output different content based on the current page's location in the site tree
+    _PAGE_DEPENDENT_DIRECTIVES = frozenset(
+        {
+            "child-cards",  # Shows children of current section
+            "breadcrumbs",  # Shows path to current page
+            "siblings",  # Shows siblings of current page
+            "prev-next",  # Shows previous/next pages
+            "related",  # Shows related pages based on tags
+            "auto-toc",  # Shows table of contents for current page
+        }
+    )
+
     def _render_directive(self, node: Directive, sb: StringBuilder) -> None:
         """Render a directive block.
 
@@ -354,10 +370,30 @@ class HtmlRenderer:
         Caches rendered output for versioned sites (auto-enabled when directive_cache provided).
 
         Optimization: Check cache BEFORE rendering children to skip work on cache hits.
+
+        Note: Page-dependent directives (those that need page_context or get_page_context,
+        or are listed in _PAGE_DEPENDENT_DIRECTIVES) are NOT cached since their output
+        varies by page. This includes child-cards, breadcrumbs, siblings, prev-next, related, etc.
         """
-        # Check directive cache FIRST (before rendering children)
+        import inspect
+
+        # Determine if directive is cacheable (not page-dependent)
+        is_cacheable = node.name not in self._PAGE_DEPENDENT_DIRECTIVES
+        handler = None
+        sig = None
+        if self._directive_registry:
+            handler = self._directive_registry.get(node.name)
+            if handler and hasattr(handler, "render"):
+                sig = inspect.signature(handler.render)
+                # Page-dependent directives are NOT cacheable
+                if is_cacheable and (
+                    "page_context" in sig.parameters or "get_page_context" in sig.parameters
+                ):
+                    is_cacheable = False
+
+        # Check directive cache FIRST (before rendering children) - only for cacheable directives
         cache_key: str | None = None
-        if self._directive_cache:
+        if self._directive_cache and is_cacheable:
             # Lightweight AST-based cache key (no rendering needed)
             cache_key = self._directive_ast_cache_key(node)
             cached = self._directive_cache.get("directive_html", cache_key)
@@ -371,35 +407,29 @@ class HtmlRenderer:
             self._render_block(child, children_sb)
         rendered_children = children_sb.build()
 
-        # Check for registered handler
+        # Render with registered handler
         result_sb = StringBuilder()
-        if self._directive_registry:
-            handler = self._directive_registry.get(node.name)
-            if handler and hasattr(handler, "render"):
-                # Provide render callback for handlers that need to render children themselves
-                import inspect
+        if handler and sig:
+            kwargs: dict[str, Any] = {}
 
-                sig = inspect.signature(handler.render)
-                kwargs: dict[str, Any] = {}
+            # Pass page context getter for directives that need it (child-cards, breadcrumbs, etc.)
+            if "get_page_context" in sig.parameters:
+                kwargs["get_page_context"] = lambda: self._page_context
 
-                # Pass page context getter for directives that need it (child-cards, breadcrumbs, etc.)
-                if "get_page_context" in sig.parameters:
-                    kwargs["get_page_context"] = lambda: self._page_context
+            # Pass page context directly for simpler directive interfaces
+            if "page_context" in sig.parameters:
+                kwargs["page_context"] = self._page_context
 
-                # Pass page context directly for simpler directive interfaces
-                if "page_context" in sig.parameters:
-                    kwargs["page_context"] = self._page_context
+            if "render_child_directive" in sig.parameters:
+                kwargs["render_child_directive"] = self._render_block
 
-                if "render_child_directive" in sig.parameters:
-                    kwargs["render_child_directive"] = self._render_block
+            handler.render(node, rendered_children, result_sb, **kwargs)
 
-                handler.render(node, rendered_children, result_sb, **kwargs)
-
-                result = result_sb.build()
-                if cache_key and self._directive_cache:
-                    self._directive_cache.put("directive_html", cache_key, result)
-                sb.append(result)
-                return
+            result = result_sb.build()
+            if cache_key and self._directive_cache:
+                self._directive_cache.put("directive_html", cache_key, result)
+            sb.append(result)
+            return
 
         # Default rendering
         result_sb.append(f'<div class="directive directive-{_escape_attr(node.name)}">')

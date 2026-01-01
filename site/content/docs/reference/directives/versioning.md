@@ -6,7 +6,7 @@ weight: 80
 
 # Versioning Directives
 
-Mark content as added, changed, or deprecated in specific versions.
+Mark content as added, changed, or deprecated in specific versions. Use these directives to help users understand API evolution and migration paths.
 
 ## since
 
@@ -26,7 +26,7 @@ This feature was added in version 2.0.
 
 | Option | Type | Description |
 |--------|------|-------------|
-| (argument) | `string` | Version identifier (e.g., `v2.0`, `2.0`, `2024.1`) |
+| (argument) | `string` | **Required.** Version identifier (e.g., `v2.0`, `2.0`, `2024.1`) |
 | `:class:` | `string` | Additional CSS class (default: `version-since`) |
 
 ### Examples
@@ -40,12 +40,11 @@ Webhooks allow real-time event notifications.
 :::
 ```
 
-:::{example-label} Without Version (Generic)
+:::{example-label} Inline Badge (No Content)
 :::
 
 ```markdown
-:::{since}
-This is a recent addition.
+:::{since} v2.0
 :::
 ```
 
@@ -55,21 +54,19 @@ This is a recent addition.
 ```markdown
 | Option | Description |
 |--------|-------------|
-| `retries` | Retry count :::{since} v2.0 ::: |
+| `retries` | Retry count :::{since} v3.1 ::: |
 ```
 
 ### Rendered Output
 
-Renders with Bengal's theme aesthetic:
-
 **Inline badge** (no content):
-- Neumorphic badge styling
+- Neumorphic badge with subtle shadow
 - SVG sparkles icon
 - Success/green theme colors
 
 **Full directive** (with content):
-- Luminescent left-edge glow animation
-- Palette-aware blob background
+- Left-edge accent border with palette-aware colors
+- Subtle background blob animation
 - Rounded container with badge header
 
 ---
