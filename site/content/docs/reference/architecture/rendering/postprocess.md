@@ -161,7 +161,7 @@ bengal health linkcheck --external
 
 Build-time validation reports internal broken links:
 
-```
+```text
 Found 2 broken internal links:
   content/blog/post.md: /docs/missing-page/
   content/index.md: /guide/old-section/
@@ -169,7 +169,7 @@ Found 2 broken internal links:
 
 External link checking (via `bengal health linkcheck`):
 
-```
+```text
 Checking 156 external links...
 ✓ 153 links valid
 ✗ 3 broken:
