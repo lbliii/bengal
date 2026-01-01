@@ -128,8 +128,8 @@ Did you mean:
 
 | From Hugo/Jekyll | Bengal Equivalent |
 |-----------------|-------------------|
-| `markdownify` | `markdown` |
-| `truncatewords` | `truncate` with word mode |
+| `markdownify` | `markdownify` |
+| `truncatewords` | `truncatewords` |
 | `in_section` | `{% if page.parent %}` |
 | `is_ancestor` | Compare `page.url` values |
 
