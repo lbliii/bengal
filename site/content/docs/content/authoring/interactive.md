@@ -121,6 +121,8 @@ Here's where advanced configuration details would go...
 |--------|-------------|
 | `:open:` | Start expanded |
 | `:icon:` | Icon name (from icon library) |
+| `:description:` | Secondary text below the title |
+| `:color:` | Color variant: `success`, `warning`, `danger`, `info`, `minimal` |
 | `:class:` | CSS class for styling |
 
 ### Dropdown Use Cases
@@ -239,18 +241,21 @@ This automatically creates cards for all pages in the current section.
 
 ## Buttons
 
-Add call-to-action buttons:
+Add call-to-action buttons. The URL goes in the directive title, and the button text goes in the content:
 
 ```markdown
-:::{button} Get Started
-:link: docs/get-started
+:::{button} /docs/get-started/
 :color: primary
+
+Get Started
 :::
 
-:::{button} View on GitHub
-:link: https://github.com/example/repo
+:::{button} https://github.com/example/repo
 :color: secondary
 :icon: github
+:target: _blank
+
+View on GitHub
 :::
 ```
 
@@ -258,36 +263,47 @@ Add call-to-action buttons:
 
 | Option | Description |
 |--------|-------------|
-| `:link:` | Destination URL |
-| `:color:` | `primary`, `secondary`, `success`, `warning`, `danger` |
-| `:icon:` | Icon name |
+| `:color:` | `primary`, `secondary`, `success`, `warning`, `danger`, `info`, `light`, `dark` |
+| `:style:` | `default`, `pill` (fully rounded), `outline` |
 | `:size:` | `small`, `medium`, `large` |
+| `:icon:` | Icon name |
+| `:target:` | Link target (e.g., `_blank` for external links) |
 
 ## Checklists
 
-Interactive task lists:
+Interactive task lists with optional progress tracking:
 
 ```markdown
 :::{checklist} Deployment Checklist
-- Run tests locally
-- Update version number
-- Create changelog entry
-- Tag the release
-- Deploy to staging
-- Verify staging
-- Deploy to production
+:show-progress:
+- [x] Run tests locally
+- [x] Update version number
+- [ ] Create changelog entry
+- [ ] Tag the release
+- [ ] Deploy to staging
+- [ ] Verify staging
+- [ ] Deploy to production
 :::
 ```
 
 :::{checklist} Deployment Checklist
-- Run tests locally
-- Update version number
-- Create changelog entry
-- Tag the release
-- Deploy to staging
-- Verify staging
-- Deploy to production
+:show-progress:
+- [x] Run tests locally
+- [x] Update version number
+- [ ] Create changelog entry
+- [ ] Tag the release
+- [ ] Deploy to staging
+- [ ] Verify staging
+- [ ] Deploy to production
 :::
+
+### Checklist Options
+
+| Option | Description |
+|--------|-------------|
+| `:style:` | `default`, `numbered`, `minimal` |
+| `:show-progress:` | Display completion percentage bar |
+| `:compact:` | Tighter spacing between items |
 
 ## Combining Elements
 
