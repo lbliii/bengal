@@ -76,18 +76,22 @@ class TestATXHeadings:
 class TestSetextHeadings:
     """CommonMark setext heading tests (4.3)."""
 
-    # Note: Setext headings not yet implemented in Patitas
-    @pytest.mark.skip(reason="Setext headings not yet implemented")
     def test_setext_h1(self):
         """Setext H1 with ===."""
         html = parse("Foo\n===")
-        assert "<h1>" in html
+        assert "<h1" in html  # Patitas adds id attribute
 
-    @pytest.mark.skip(reason="Setext headings not yet implemented")
     def test_setext_h2(self):
         """Setext H2 with ---."""
         html = parse("Foo\n---")
-        assert "<h2>" in html
+        assert "<h2" in html  # Patitas adds id attribute
+
+    def test_setext_multiline(self):
+        """Setext heading can span multiple lines."""
+        html = parse("Foo\nBar\n===")
+        assert "<h1" in html
+        assert "Foo" in html
+        assert "Bar" in html
 
 
 class TestThematicBreaks:
@@ -240,8 +244,14 @@ class TestBackslashEscapes:
     def test_escaped_punctuation(self, char):
         """Escaped punctuation."""
         html = parse(f"\\{char}")
-        # Character should appear literally
-        assert char in html or f"&#{ord(char)};" in html
+        # Character should appear literally or as HTML entity
+        # Patitas may use &quot; for " and &#x27; for '
+        assert (
+            char in html
+            or f"&#{ord(char)};" in html
+            or "&quot;" in html  # HTML entity for "
+            or "&#x27;" in html  # HTML entity for '
+        )
 
     def test_backslash_before_letter(self):
         """Backslash before non-escapable character."""

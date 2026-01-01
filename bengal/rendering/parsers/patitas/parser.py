@@ -539,9 +539,10 @@ class Parser:
 
         return IndentedCode(location=start_token.location, code=code)
 
-    def _parse_paragraph(self) -> Paragraph | Table:
-        """Parse paragraph (consecutive text lines) or table.
+    def _parse_paragraph(self) -> Paragraph | Table | Heading:
+        """Parse paragraph (consecutive text lines), table, or setext heading.
 
+        If the second line is a setext underline (=== or ---), returns Heading.
         If tables are enabled and lines form a valid GFM table, returns Table.
         Otherwise returns Paragraph.
         """
@@ -560,6 +561,39 @@ class Parser:
             else:
                 break
 
+        # Check for setext heading: text followed by === or ---
+        if len(lines) >= 2:
+            last_line = lines[-1].strip()
+            if self._is_setext_underline(last_line):
+                # Determine heading level: === is h1, --- is h2
+                level = 1 if last_line[0] == "=" else 2
+                # Heading text is everything except the underline
+                heading_text = "\n".join(lines[:-1])
+                children = self._parse_inline(heading_text, start_token.location)
+                return Heading(
+                    location=start_token.location,
+                    level=level,
+                    children=children,
+                    style="setext",
+                )
+
+        # Check if next token is THEMATIC_BREAK (---) which could be setext h2
+        # CommonMark: --- after paragraph is setext heading, not thematic break
+        if len(lines) == 1 and not self._at_end():
+            token = self._current
+            if token is not None and token.type == TokenType.THEMATIC_BREAK:
+                # Check if the thematic break is --- (not *** or ___)
+                if token.value.strip().startswith("-"):
+                    self._advance()  # Consume the thematic break
+                    heading_text = lines[0]
+                    children = self._parse_inline(heading_text, start_token.location)
+                    return Heading(
+                        location=start_token.location,
+                        level=2,
+                        children=children,
+                        style="setext",
+                    )
+
         # Check for table structure if tables enabled
         if self._tables_enabled and len(lines) >= 2 and "|" in lines[0]:
             table = self._try_parse_table(lines, start_token.location)
@@ -570,6 +604,24 @@ class Parser:
         children = self._parse_inline(content, start_token.location)
 
         return Paragraph(location=start_token.location, children=children)
+
+    def _is_setext_underline(self, line: str) -> bool:
+        """Check if line is a setext heading underline.
+
+        Must be at least 1 character of = or - with optional trailing spaces.
+        CommonMark allows up to 3 leading spaces.
+        """
+        # Strip leading spaces (up to 3)
+        stripped = line.lstrip()
+        if len(line) - len(stripped) > 3:
+            return False
+        if not stripped:
+            return False
+        char = stripped[0]
+        if char not in "=-":
+            return False
+        # All remaining characters must be the same (= or -)
+        return all(c == char for c in stripped.rstrip())
 
     def _parse_footnote_def(self) -> FootnoteDef:
         """Parse footnote definition.
