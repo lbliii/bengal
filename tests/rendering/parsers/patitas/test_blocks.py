@@ -272,3 +272,47 @@ class TestHTMLBlocks:
         html = parse("<div>content</div>")
         # May be treated as HTML block or paragraph
         assert "content" in html
+
+
+class TestListTermination:
+    """Tests for list termination behavior with non-indented content."""
+
+    def test_list_terminated_by_non_indented_paragraph(self):
+        """Non-indented paragraph after blank line terminates list.
+
+        This is the exact bug from the configuration docs:
+        - Item 1
+        - Item 2
+
+        **Bold text:** <- should be separate paragraph, not part of list
+        - Item 3
+        """
+        md = """**When to enable:**
+- During active theme development
+- In CI/CD pipelines
+- When debugging template issues
+
+**What it catches:**
+- Jinja2 syntax errors
+- Unknown filter names
+"""
+        html = parse(md)
+        # Should have two separate <ul> elements
+        assert html.count("<ul>") == 2
+        assert html.count("</ul>") == 2
+        # Bold text should be in paragraph, not in list item
+        assert "<p><strong>What it catches:</strong></p>" in html
+
+    def test_indented_paragraph_continues_list_item(self):
+        """Indented paragraph after blank line continues list item (loose list)."""
+        md = """- First item
+
+  Continuation of first item (indented)
+
+- Second item
+"""
+        html = parse(md)
+        # Should have only one <ul>
+        assert html.count("<ul>") == 1
+        # First item should have two paragraphs
+        assert "Continuation of first item" in html
