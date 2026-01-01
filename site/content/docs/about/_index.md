@@ -12,31 +12,31 @@ icon: info
 ---
 # About
 
-Bengal is a high-performance static site generator built in Python for Python 3.14+. It transforms Markdown content into fast, beautiful websites with minimal configuration and maximum speed.
+Bengal is a high-performance static site generator for Python 3.14+. It transforms Markdown into fast, beautiful websites with minimal configuration.
 
 ## Use Cases
 
-- **Documentation Sites** — Technical docs with automatic API reference generation from Python, CLI, and OpenAPI sources
-- **Blogs & Journals** — Personal and professional writing with tags, categories, and related posts
-- **Product & Marketing Sites** — Landing pages, portfolios, and company websites
-- **Knowledge Bases** — Internal wikis and help centers with full-text search
+- **Documentation Sites** — Technical docs with auto-generated API reference
+- **Blogs & Journals** — Personal writing with tags and categories
+- **Product & Marketing Sites** — Landing pages and portfolios
+- **Knowledge Bases** — Internal wikis with full-text search
 
 ## Why Bengal?
 
 | Benefit | What It Means |
 |---------|---------------|
-| **Fast Builds** | Parallel processing + incremental builds; see [[docs/about/benchmarks\|Benchmarks]] for measured times |
-| **Python-Native** | Built for Python 3.14+ with free-threading support (PEP 703); no Node.js required |
-| **Auto API Docs** | AST-based autodoc generates reference docs from Python source, CLI tools, and OpenAPI specs |
-| **Batteries Included** | Dev server, live reload, syntax highlighting, sitemap, RSS, Lunr search—all built in |
-| **Flexible Theming** | Theme inheritance, template swizzling, and 1000+ CSS design tokens |
-| **Content First** | Markdown with MyST directives, YAML/TOML front matter, and cascading config |
+| **Fast Builds** | Parallel + incremental builds. See [[docs/about/benchmarks\|Benchmarks]] |
+| **Python-Native** | Python 3.14+ with free-threading (PEP 703). No Node.js |
+| **Auto API Docs** | AST-based docs from Python, CLI, and OpenAPI sources |
+| **Batteries Included** | Dev server, live reload, sitemap, RSS, Lunr search |
+| **Flexible Theming** | Theme inheritance, swizzling, 650+ CSS tokens |
+| **Content First** | MyST Markdown, YAML/TOML front matter, cascading config |
 
 ## Philosophy
 
-Bengal prioritizes **correctness and clarity over backwards compatibility**. Each release represents the best solution we know how to deliver—when existing behavior no longer reflects the best design, it may be changed.
+Bengal prioritizes **correctness over backwards compatibility**. Each release reflects our best design. When better approaches emerge, behavior may change.
 
-This keeps the codebase healthy and enables rapid evolution. See [[docs/about/philosophy|Project Philosophy]] for details.
+See [[docs/about/philosophy|Project Philosophy]] for details.
 
 ---
 

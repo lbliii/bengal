@@ -119,7 +119,7 @@ Real-world sites build slower than benchmarks. Common factors:
 
 | Factor | Impact | Mitigation |
 |--------|--------|------------|
-| **Syntax highlighting** | +30-50% | Use `pygments_cache = true` |
+| **Syntax highlighting** | +30-50% | Fewer highlighted blocks, simpler languages |
 | **Directives** (admonitions, tabs, cards) | +20-40% | Fewer directives = faster builds |
 | **Table of contents** | +10-20% | Disable with `toc: false` in frontmatter |
 | **Complex Jinja2 templates** | +10-30% | Simplify template logic |
@@ -191,8 +191,8 @@ pytest test_cold_build_permutations.py -v
 ## Performance Tips
 
 1. **Use incremental builds during development**: `bengal build --incremental`
-2. **Enable fast mode**: `bengal build --fast` (quiet output, guaranteed parallel)
-3. **Enable Pygments cache**: Set `pygments_cache = true` in config
+2. **Enable fast mode**: `bengal build --fast` (quiet output, max speed)
+3. **Enable template caching**: Set `cache_templates = true` in config (default)
 4. **Use free-threaded Python**: `PYTHON_GIL=0` with Python 3.14+
 5. **Minimize directives**: Each directive adds parsing and rendering overhead
 
