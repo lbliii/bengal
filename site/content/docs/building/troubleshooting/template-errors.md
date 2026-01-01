@@ -41,9 +41,13 @@ This validates all templates during build, even those not used by every page. Co
 - `Unexpected end of template`
 
 **Causes:**
-- Unclosed tags (`{% if ... %}` without `{% end %}`)
+- Unclosed tags (`{% if ... %}` without `{% end %}` or `{% endif %}`)
 - Missing closing brackets
 - Invalid template syntax
+
+:::{note}
+Kida supports universal `{% end %}` to close any block, or specific end tags like `{% endif %}`, `{% endfor %}`.
+:::
 
 :::{example-label} Error Message
 :::
@@ -120,8 +124,8 @@ Error: No filter named 'in_section'
       Check if the page is in a section using: {% if page.parent %}
 
 Did you mean:
-   • intersection
-   • int
+   • first
+   • list
 ```
 
 **Common filter migrations:**
@@ -130,6 +134,9 @@ Did you mean:
 |-----------------|-------------------|
 | `markdownify` | `markdownify` |
 | `truncatewords` | `truncatewords` |
+| `plainify` | `plainify` (alias: `strip_html`) |
+| `urlize` | `urlencode` |
+| `safeHTML` | `safe` |
 | `in_section` | `{% if page.parent %}` |
 | `is_ancestor` | Compare `page.url` values |
 
@@ -206,7 +213,7 @@ Bengal templates use `ChainableUndefined`, which means missing values return emp
 ```jinja
 {% if params.author %}
   <p>By {{ params.author }}</p>
-{% endif %}
+{% end %}
 ```
 
 ### Enable Validation in Development
