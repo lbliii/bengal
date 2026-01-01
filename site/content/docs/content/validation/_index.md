@@ -110,7 +110,7 @@ Create project-specific rules by extending `BaseValidator`:
 ```python
 # validators/custom.py
 from bengal.health.base import BaseValidator
-from bengal.health.report import CheckResult, Severity
+from bengal.health.report import CheckResult
 
 class RequireAuthorValidator(BaseValidator):
     """Validator that checks for author field in frontmatter."""
@@ -122,11 +122,10 @@ class RequireAuthorValidator(BaseValidator):
         results = []
         for page in site.pages:
             if not page.metadata.get("author"):
-                results.append(CheckResult(
-                    severity=Severity.ERROR,
-                    message=f"Missing author in {page.source_path}",
+                results.append(CheckResult.error(
+                    f"Missing author in {page.source_path}",
                     recommendation="Add 'author: Your Name' to frontmatter",
-                    file_path=page.source_path,
+                    details=[str(page.source_path)],
                 ))
         return results
 ```

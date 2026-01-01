@@ -77,26 +77,55 @@ bengal health linkcheck --internal-only
 
 # External links only
 bengal health linkcheck --external-only
+
+# Exclude specific URL patterns
+bengal health linkcheck --exclude "^/api/preview/"
 ```
 
 ---
 
 ## Available Validators
 
-Bengal includes validators for:
+Bengal includes validators organized by phase:
+
+### Core Validators
 
 | Validator | Checks | Common Issues |
 |-----------|--------|---------------|
 | **Links** | Internal/external links | Broken links, moved pages |
-| **Assets** | Images, downloads | Missing files, wrong paths |
-| **Directives** | MyST syntax | Unclosed fences, invalid options |
-| **Anchors** | Heading IDs | Duplicate IDs, broken `#section` links |
-| **Cross-References** | `[[page]]` syntax | Invalid page references |
-| **Config** | Site configuration | Invalid YAML, missing required fields |
-| **Taxonomy** | Tags/categories | Orphan terms, inconsistent naming |
-| **Navigation** | Menus, TOC | Broken menu links, orphan pages |
-| **Rendering** | Templates | Template errors, undefined variables |
-| **Performance** | Page size, assets | Large images, slow pages |
+| **Directives** | MyST directive syntax | Unclosed fences, invalid options |
+| **Configuration** | Site configuration | Invalid YAML, missing required fields |
+| **Navigation** | Page nav (next/prev, breadcrumbs) | Broken navigation links |
+| **Navigation Menus** | Menu structure and links | Missing menu items, broken links |
+
+### Content Quality Validators
+
+| Validator | Checks | Common Issues |
+|-----------|--------|---------------|
+| **Anchors** | Heading IDs, `[[#anchor]]` refs | Duplicate IDs, broken anchor links |
+| **Cross-References** | Internal page references | Invalid page references |
+| **Taxonomies** | Tags/categories | Orphan terms, inconsistent naming |
+| **Connectivity** | Page link graph | Orphan pages, poor connectivity |
+
+### Build & Output Validators
+
+| Validator | Checks | Common Issues |
+|-----------|--------|---------------|
+| **Rendering** | HTML output quality | Template errors, undefined variables |
+| **Output** | Generated pages, assets | Missing output, structure errors |
+| **Asset Processing** | Asset optimization | Missing files, processing failures |
+| **Asset URLs** | Asset references | Broken asset paths, fingerprinting issues |
+| **Performance** | Build metrics | Slow builds, large pages |
+| **Cache Integrity** | Incremental build cache | Stale cache, invalidation issues |
+
+### Production Validators
+
+| Validator | Checks | Common Issues |
+|-----------|--------|---------------|
+| **Sitemap** | sitemap.xml validity | SEO issues, missing pages |
+| **RSS Feed** | RSS/Atom feed quality | Schema compliance, missing fields |
+| **Accessibility** | HTML accessibility | Missing alt text, ARIA issues |
+| **Fonts** | Font downloads, CSS | Missing fonts, subsetting issues |
 
 ### Validation Output
 
@@ -203,14 +232,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Bengal
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+
+      - name: Install Bengal
         run: pip install bengal
 
       - name: Validate Content
         run: bengal validate --verbose
 
       - name: Check Links
-        run: bengal linkcheck --internal-only
+        run: bengal health linkcheck --internal-only
 
       - name: Build (strict mode)
         run: bengal build --strict
@@ -343,9 +377,22 @@ bengal validate --changed
 
 # Pre-deploy validation
 bengal health linkcheck && bengal build --strict
+```
 
-# Writer profile (fast, less strict)
+Available profiles:
+
+| Profile | Use Case | Checks |
+|---------|----------|--------|
+| `writer` | Content authors | Fast, content-focused |
+| `theme-dev` | Theme developers | Template validation |
+| `developer` | Full development | All checks, strict |
+
+```bash
+# Writer profile (fast, less strict) - default
 bengal validate --profile writer
+
+# Theme developer profile
+bengal validate --profile theme-dev
 
 # Developer profile (strict, all checks)
 bengal validate --profile developer
@@ -357,10 +404,16 @@ bengal validate --profile developer
 
 ### False Positives
 
-Suppress specific warnings:
+Suppress specific check codes via CLI:
+
+```bash
+# Ignore specific check codes
+bengal validate --ignore H101 --ignore H202
+```
+
+Or in page frontmatter:
 
 ```yaml
-# In page frontmatter
 ---
 validate:
   skip:
@@ -385,23 +438,27 @@ health:
 # Check internal links only (fast)
 bengal health linkcheck --internal-only
 
-# Limit concurrent connections
-bengal health linkcheck --max-concurrency 5
-
-# Exclude slow domains
-bengal health linkcheck --exclude-domain api.slow-service.com
+# Exclude specific URL patterns
+bengal health linkcheck --exclude "^/api/preview/"
 ```
+
+:::{tip}
+Advanced options like `--max-concurrency`, `--timeout`, and `--exclude-domain` are available but hidden from help output. Use them when needed for fine-tuning.
+:::
 
 ### Validation Cache
 
-Validation results are cached for incremental checks:
+Validation uses the build cache for incremental checks:
 
 ```bash
-# Clear validation cache
-bengal clean --validation
+# Clear build cache (includes validation state)
+bengal clean --cache
 
-# Force full re-validation
-bengal validate --no-cache
+# Force full re-validation by clearing cache first
+bengal clean --cache && bengal validate
+
+# Use incremental validation (only changed files)
+bengal validate --incremental
 ```
 
 ---
@@ -410,30 +467,42 @@ bengal validate --no-cache
 
 ```bash
 # Validate
-bengal validate              # Run all validators
-bengal validate --changed    # Only changed files (incremental)
-bengal validate --verbose    # Show all checks
-bengal validate --suggestions  # Show quality suggestions
-bengal validate --watch      # Watch mode (experimental)
+bengal validate                    # Run all validators
+bengal validate --changed          # Only changed files
+bengal validate --incremental      # Use cached validation state
+bengal validate --verbose          # Show all checks
+bengal validate --suggestions      # Show quality suggestions
+bengal validate --file path.md     # Validate specific file
+bengal validate --profile writer   # Use writer profile (fast)
+bengal validate --ignore H101      # Ignore specific check codes
+bengal validate --watch            # Watch mode (experimental)
+bengal validate --templates        # Validate template syntax
 
 # Auto-fix
-bengal fix --dry-run         # Preview fixes
-bengal fix                   # Apply safe fixes
-bengal fix --all             # Apply all fixes including confirmations
+bengal fix --dry-run               # Preview fixes
+bengal fix                         # Apply safe fixes
+bengal fix --all                   # Apply all fixes
+bengal fix --confirm               # Ask before each fix
 bengal fix --validator Directives  # Fix specific validator
 
-# Links
-bengal health linkcheck      # Check all links
-bengal health linkcheck --internal-only  # Internal only
+# Link checking
+bengal health linkcheck                   # Check all links
+bengal health linkcheck --internal-only   # Internal only (fast)
+bengal health linkcheck --external-only   # External only
+bengal health linkcheck --format json     # JSON output for CI
 
 # Build
-bengal build --strict        # Fail on warnings
+bengal build --strict              # Fail on warnings
+bengal build --validate            # Validate before building
+
+# Clean
+bengal clean --cache               # Clear build cache
 ```
 
 ---
 
 :::{seealso}
-- [[docs/content/validation|Validation Overview]]
-- [[docs/building/commands|Build Commands]]
-- [[docs/building/troubleshooting|Troubleshooting]]
+- [Validation Overview](/docs/content/validation/) — Content quality strategies
+- [Build Commands](/docs/building/commands/) — All CLI commands
+- [Troubleshooting](/docs/building/troubleshooting/) — Common issues
 :::

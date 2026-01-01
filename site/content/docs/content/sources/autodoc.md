@@ -152,7 +152,7 @@ The generated API documentation appears in your output directory alongside your 
 
 If you do not define `menu.main`, Bengal generates a topbar menu automatically.
 
-- **Manual menu overrides auto menu**: If `menu.main` is present and non-empty, Bengal uses it and does not auto-discover topbar items. (`bengal/orchestration/menu.py:401-406`, `bengal/rendering/template_functions/navigation.py:904-915`)
+- **Manual menu overrides auto menu**: If `menu.main` is present and non-empty, Bengal uses it and does not auto-discover topbar items.
 - **Dev dropdown**: In auto mode, Bengal may bundle autodoc outputs under a **Dev** dropdown when multiple “dev” links exist. If there is only one dev link (for example, API-only or CLI-only), it appears as a normal top-level menu entry.
 
 If you want full control of where autodoc appears in the topbar, define `menu.main`.
@@ -171,5 +171,5 @@ strict = true
 :::
 
 :::{seealso}
-- [Architecture Reference](/docs/reference/architecture/subsystems/autodoc/) — Technical details and API usage
+- [Architecture Reference](/docs/reference/architecture/subsystems/autodoc) — Technical details and API usage
 :::

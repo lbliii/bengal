@@ -87,6 +87,7 @@ loader = github_loader(
     branch="main",           # Default: "main"
     path="docs/",            # Default: "" (root)
     token=None,              # Default: uses GITHUB_TOKEN env var
+    glob="*.md",             # Default: "*.md" (file pattern to match)
 )
 ```
 
@@ -231,13 +232,15 @@ collections = {
 Implement `ContentSource` for any content origin:
 
 ```python
+from collections.abc import AsyncIterator
 from bengal.content_layer import ContentSource, ContentEntry
 
 class MyCustomSource(ContentSource):
     source_type = "my-api"
 
-    async def fetch_all(self):
-        for item in await self._get_items():
+    async def fetch_all(self) -> AsyncIterator[ContentEntry]:
+        items = await self._get_items()
+        for item in items:
             yield ContentEntry(
                 id=item["id"],
                 slug=item["slug"],
@@ -247,11 +250,18 @@ class MyCustomSource(ContentSource):
                 source_name=self.name,
             )
 
-    async def fetch_one(self, id: str):
+    async def fetch_one(self, id: str) -> ContentEntry | None:
         item = await self._get_item(id)
         if not item:
             return None
-        return ContentEntry(...)
+        return ContentEntry(
+            id=item["id"],
+            slug=item["slug"],
+            content=item["body"],
+            frontmatter={"title": item["title"]},
+            source_type=self.source_type,
+            source_name=self.name,
+        )
 ```
 
 ## Zero-Cost Design
