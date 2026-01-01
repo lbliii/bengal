@@ -238,18 +238,6 @@ class ContentParser:
 
         from bengal.collections import ContentValidationError, SchemaValidator
 
-        # Apply optional transform
-        if config.transform:
-            try:
-                metadata = config.transform(metadata)
-            except Exception as e:
-                logger.warning(
-                    "collection_transform_failed",
-                    path=str(file_path),
-                    collection=collection_name,
-                    error=str(e),
-                )
-
         # Validate
         validator = SchemaValidator(config.schema, strict=config.strict)
         result = validator.validate(metadata, source_file=file_path)

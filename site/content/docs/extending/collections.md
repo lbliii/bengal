@@ -113,7 +113,6 @@ define_collection(
     glob="**/*.md",            # File matching pattern (default: all .md)
     strict=True,               # Reject unknown fields (default: True)
     allow_extra=False,         # Store extra fields in _extra (default: False)
-    transform=None,            # Frontmatter transform function
     loader=None,               # Custom content source
 )
 ```
@@ -143,39 +142,17 @@ collections = {
 }
 ```
 
-### Transform Functions
-
-Transform frontmatter before validation to normalize legacy formats:
-
-```python
-def normalize_legacy(data: dict) -> dict:
-    """Normalize old field names to new schema."""
-    if "post_title" in data:
-        data["title"] = data.pop("post_title")
-    if "publish_date" in data:
-        data["date"] = data.pop("publish_date")
-    return data
-
-collections = {
-    "blog": define_collection(
-        schema=BlogPost,
-        directory="content/blog",
-        transform=normalize_legacy,
-    ),
-}
-```
-
 ## Built-in Schemas
 
 Bengal provides ready-to-use schemas for common content types:
 
 ```python
 from bengal.collections.schemas import (
-    BlogPost,      # Blog posts with title, date, author, tags
-    DocPage,       # Documentation with weight, category, toc
-    APIReference,  # API endpoint documentation
-    Tutorial,      # Tutorials with difficulty, duration
-    Changelog,     # Release notes with version, breaking changes
+    BlogPost,      # title, date, author, tags, draft, description, image, excerpt
+    DocPage,       # title, weight, category, tags, toc, description, deprecated, since
+    APIReference,  # title, endpoint, method, version, auth_required, rate_limit
+    Tutorial,      # title, difficulty, duration, prerequisites, series, order
+    Changelog,     # title, date, version, breaking, draft, summary
 )
 
 collections = {
@@ -292,6 +269,7 @@ class BlogPost(BaseModel):
 Use Bengal's built-in schemas and extend as needed:
 
 ```python
+from dataclasses import dataclass
 from bengal.collections.schemas import DocPage
 
 @dataclass
@@ -327,18 +305,6 @@ class BlogPost:
     date: datetime
     author: str = "Anonymous"
     tags: list[str] = field(default_factory=list)
-```
-
-### 4. Use Transform for Migrations
-
-When updating schemas, use transforms to support old content:
-
-```python
-def migrate_v1_to_v2(data: dict) -> dict:
-    # Migrate from schema v1 to v2
-    if "category" in data and "tags" not in data:
-        data["tags"] = [data.pop("category")]
-    return data
 ```
 
 ## Related

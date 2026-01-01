@@ -100,7 +100,7 @@ When a **pre-build hook** fails:
 
 Example error output:
 
-```
+```text
 Pre-build hook failed - skipping build
 ```
 
@@ -110,10 +110,13 @@ When a **post-build hook** fails:
 2. A warning is logged, but the build is considered successful
 3. Your site output is still available
 
+Successful hook output (stdout) is logged at debug level. Run `bengal serve --debug` to see full command output during development.
+
 ## Limitations
 
 - Hooks run synchronously (one at a time)
-- No shell features like pipes (`|`) or redirects (`>`) — use a script file for complex commands
+- Each command has a 60-second timeout
+- No shell features like pipes (`|`) or redirects (`>`) — commands are parsed as argument lists, not passed to a shell interpreter
 - Hooks run for every build, including incremental rebuilds in dev server mode
 
 ## Tips

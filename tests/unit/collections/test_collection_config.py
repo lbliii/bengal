@@ -9,7 +9,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any
 
 from bengal.collections import CollectionConfig, define_collection
 
@@ -84,23 +83,6 @@ class TestDefineCollection:
 
         assert collection.allow_extra is True
 
-    def test_with_transform(self) -> None:
-        """Test collection with transform function."""
-
-        def normalize(data: dict[str, Any]) -> dict[str, Any]:
-            # Rename legacy field
-            if "post_title" in data:
-                data["title"] = data.pop("post_title")
-            return data
-
-        collection = define_collection(
-            schema=BlogPost,
-            directory="content/blog",
-            transform=normalize,
-        )
-
-        assert collection.transform is normalize
-
     def test_directory_as_path(self) -> None:
         """Test directory can be Path object."""
         collection = define_collection(
@@ -157,7 +139,6 @@ class TestCollectionConfig:
         assert config.glob == "**/*.md"
         assert config.strict is True
         assert config.allow_extra is False
-        assert config.transform is None
 
 
 # Multiple collections
@@ -216,84 +197,6 @@ class TestMultipleCollections:
 
         assert collections["strict"].strict is True
         assert collections["lenient"].strict is False
-
-
-# Transform function tests
-
-
-class TestTransformFunction:
-    """Tests for collection transform functions."""
-
-    def test_transform_called(self) -> None:
-        """Test transform function is stored correctly."""
-        call_count = {"count": 0}
-
-        def track_calls(data: dict[str, Any]) -> dict[str, Any]:
-            call_count["count"] += 1
-            return data
-
-        collection = define_collection(
-            schema=BlogPost,
-            directory="content/blog",
-            transform=track_calls,
-        )
-
-        assert collection.transform is not None
-
-        # Transform can be called
-        result = collection.transform({"title": "test"})
-        assert call_count["count"] == 1
-        assert result == {"title": "test"}
-
-    def test_transform_modifies_data(self) -> None:
-        """Test transform function can modify data."""
-
-        def add_defaults(data: dict[str, Any]) -> dict[str, Any]:
-            data.setdefault("author", "Default Author")
-            data.setdefault("draft", False)
-            return data
-
-        collection = define_collection(
-            schema=BlogPost,
-            directory="content/blog",
-            transform=add_defaults,
-        )
-
-        # Apply transform
-        input_data = {"title": "Test", "date": datetime.now()}
-        result = collection.transform(input_data)
-
-        assert result["author"] == "Default Author"
-        assert result["draft"] is False
-
-    def test_transform_renames_fields(self) -> None:
-        """Test transform function can rename fields."""
-
-        def migrate_legacy(data: dict[str, Any]) -> dict[str, Any]:
-            # Migrate old field names to new
-            if "post_title" in data:
-                data["title"] = data.pop("post_title")
-            if "publish_date" in data:
-                data["date"] = data.pop("publish_date")
-            return data
-
-        collection = define_collection(
-            schema=BlogPost,
-            directory="content/blog",
-            transform=migrate_legacy,
-        )
-
-        # Apply transform to legacy data
-        legacy_data = {
-            "post_title": "Old Title",
-            "publish_date": datetime(2025, 1, 15),
-        }
-        result = collection.transform(legacy_data)
-
-        assert "title" in result
-        assert "date" in result
-        assert "post_title" not in result
-        assert "publish_date" not in result
 
 
 # Generic type parameter tests
