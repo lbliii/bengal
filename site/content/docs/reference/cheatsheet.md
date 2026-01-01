@@ -325,7 +325,6 @@ author = "Your Name"
 [build]
 output_dir = "public"
 fast_mode = true                # Parallel + quiet
-incremental = true              # Default: true
 
 [theme]
 name = "default"

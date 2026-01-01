@@ -44,8 +44,6 @@ language = "en"
 
 [build]
 output_dir = "public"
-parallel = true
-incremental = true
 
 [theme]
 name = "default"
@@ -118,14 +116,16 @@ Key `[build]` configuration options:
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `output_dir` | string | `"public"` | Directory for generated files |
-| `parallel` | bool | `true` | Enable parallel processing |
-| `incremental` | bool | `true` | Only rebuild changed content |
 | `minify_html` | bool | `true` | Minify HTML output |
 | `validate_templates` | bool | `false` | Proactive template syntax validation |
 | `validate_build` | bool | `true` | Post-build validation checks |
 | `validate_links` | bool | `true` | Check for broken internal links |
 | `strict_mode` | bool | `false` | Fail build on any error or warning |
 | `fast_mode` | bool | `false` | Enable maximum performance optimizations |
+
+:::{note}
+**Incremental builds are automatic.** First build is full (creates cache), subsequent builds only rebuild changed content. Use `--no-incremental` CLI flag for debugging or CI clean builds.
+:::
 
 ### Asset Options
 
