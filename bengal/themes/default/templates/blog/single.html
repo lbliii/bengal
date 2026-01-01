@@ -36,33 +36,28 @@ Set `type: blog` in frontmatter or use cascade from section
 {% from 'partials/components/tags.html' import tag_list %}
 
 {# =============================================================================
-RELATED POST CARD COMPONENT
+RELATED POST CARD COMPONENT - uses PostView for normalized access
 ============================================================================= #}
 {% def related_card(post) %}
-{% let post_meta = post?.metadata ?? {} %}
-{% let post_image = post_meta?.image ?? post_meta?.cover ?? '' %}
-{% let post_title = post?.title ?? 'Untitled' %}
-{% let post_href = post?.href ?? '#' %}
-{% let post_date = post?.date %}
-{% let post_desc = post_meta?.description ?? post?.excerpt ?? '' %}
+{% let p = post | post_view %}
 
 <article class="blog-post-card gradient-border fluid-combined">
-    {% if post_image %}
+    {% if p.image %}
     <div class="blog-card-image">
-        <a href="{{ post_href }}">
-            <img src="{{ post_image }}" alt="{{ post_title }}" loading="lazy">
+        <a href="{{ p.href }}">
+            <img src="{{ p.image }}" alt="{{ p.title }}" loading="lazy">
         </a>
     </div>
     {% end %}
     <div class="blog-card-content">
         <h3 class="blog-card-title">
-            <a href="{{ post_href }}">{{ post_title }}</a>
+            <a href="{{ p.href }}">{{ p.title }}</a>
         </h3>
-        {% if post_desc %}
-        <p class="blog-card-excerpt">{{ post_desc | truncate(120) }}</p>
+        {% if p.description %}
+        <p class="blog-card-excerpt">{{ p.description | truncate(120) }}</p>
         {% end %}
-        {% if post_date %}
-        <time datetime="{{ post_date | date_iso }}">{{ post_date | time_ago }}</time>
+        {% if p.date %}
+        <time datetime="{{ p.date | date_iso }}">{{ p.date | time_ago }}</time>
         {% end %}
     </div>
 </article>

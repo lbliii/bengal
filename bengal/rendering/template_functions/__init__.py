@@ -94,7 +94,10 @@ from bengal.rendering import template_tests
 from . import (
     advanced_collections,
     advanced_strings,
+    authors,
     autodoc,
+    blog,
+    changelog,
     collections,
     content,
     crossref,
@@ -183,6 +186,11 @@ def register_all(env: TemplateEnvironment, site: Site, engine_type: str | None =
     # Phase 7b: OpenAPI-specific functions (code samples, path highlighting)
     openapi.register(env, site)
 
+    # Phase 7c: Content view filters (normalized views for blog, changelog, authors)
+    blog.register(env, site)
+    changelog.register(env, site)
+    authors.register(env, site)
+
     # Phase 8: Template tests (match, draft, featured, etc.)
     template_tests.register(env, site)
 
@@ -204,6 +212,9 @@ __all__ = [
     "advanced_collections",
     "advanced_strings",
     "autodoc",
+    "authors",
+    "blog",
+    "changelog",
     "collections",
     "content",
     "crossref",

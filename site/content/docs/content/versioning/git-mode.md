@@ -251,7 +251,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: '3.14'
 
       - name: Install Bengal
         run: pip install bengal
@@ -272,7 +272,7 @@ jobs:
 ```yaml
 # .gitlab-ci.yml
 build-docs:
-  image: python:3.12
+  image: python:3.14
   script:
     - pip install bengal
     - bengal build --all-versions

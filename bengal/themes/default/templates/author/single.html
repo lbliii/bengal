@@ -28,33 +28,26 @@ Context variables:
 {% from 'partials/components/tags.html' import tag_list %}
 
 {# =============================================================================
-POST CARD COMPONENT
+POST CARD COMPONENT - uses PostView for normalized access
 ============================================================================= #}
 {% def post_card(post) %}
-{% let post_title = post?.title ?? 'Untitled' %}
-{% let post_href = post?.href ?? '#' %}
-{% let post_date = post?.date %}
-{% let post_desc = post?.params?.description ?? '' %}
+{% let p = post | post_view %}
 {% let post_section = post?._section %}
-
-{% let post_tags = post?.tags ?? [] %}
-
-{% let read_time = post?.reading_time ?? 0 %}
 
 <article class="author-post-card">
   <div class="post-card-content">
     <h3 class="post-title">
-      <a href="{{ post_href }}">{{ post_title }}</a>
+      <a href="{{ p.href }}">{{ p.title }}</a>
     </h3>
 
-    {% if post_desc %}
-    <p class="post-excerpt">{{ post_desc }}</p>
+    {% if p.description %}
+    <p class="post-excerpt">{{ p.description }}</p>
     {% end %}
 
     <div class="post-meta">
-      {% if post_date %}
-      <time datetime="{{ post_date | date_iso }}">
-        {{ post_date | dateformat('%B %d, %Y') }}
+      {% if p.date %}
+      <time datetime="{{ p.date | date_iso }}">
+        {{ p.date | dateformat('%B %d, %Y') }}
       </time>
       {% end %}
 
@@ -62,14 +55,14 @@ POST CARD COMPONENT
       <span class="post-section">{{ post_section.name | title }}</span>
       {% end %}
 
-      {% if read_time > 0 %}
-      <span class="reading-time">{{ read_time }} min read</span>
+      {% if p.reading_time > 0 %}
+      <span class="reading-time">{{ p.reading_time }} min read</span>
       {% end %}
     </div>
 
-    {% if post_tags | length > 0 %}
+    {% if p.tags | length > 0 %}
     <div class="post-tags">
-      {{ tag_list(post_tags[:4]) }}
+      {{ tag_list(p.tags[:4]) }}
     </div>
     {% end %}
   </div>
@@ -81,36 +74,13 @@ MAIN TEMPLATE
 ============================================================================= #}
 
 {% block content %}
-{# Template-scoped variables #}
-{% let author_key = params?.author_name ?? page?.title ?? '' %}
-{% let authors_data = site?.data?.authors ?? {} %}
-{% let author_data = authors_data[author_key] if author_key in authors_data else {} %}
-{% let author_index = site?.indexes?.author ?? {} %}
+{# Template-scoped variables - using AuthorView for normalized access #}
+{% let author = page | author_view %}
 {% let section_filter = params?.section_filter ?? '' %}
-
-{# Merge author data from registry and page params #}
-{% let author_name = author_data?.name ?? page?.title ?? 'Unknown Author' %}
-{% let author_bio = author_data?.bio ?? params?.bio ?? '' %}
-{% let author_avatar = author_data?.avatar ?? params?.avatar ?? '' %}
-{% let author_company = author_data?.company ?? '' %}
-{% let author_location = author_data?.location ?? '' %}
-
-{# Build social links #}
-{% let author_social = author_data?.social ?? params?.social ?? {} %}
-{% let author_github = author_data?.github ?? author_social?.github ?? '' %}
-
-{# Merge social links from data file links array #}
-{% if author_data?.links %}
-{% for link in author_data.links %}
-{% let link_url = link?.href ?? link?.url ?? '' %}
-{% if 'github' in link_url and not author_github %}
-{% let author_github = link_url | replace('https://github.com/', '') %}
-{% end %}
-{% end %}
-{% end %}
+{% let author_index = site?.indexes?.author ?? {} %}
 
 {# Get author posts with O(1) lookup #}
-{% let author_posts_refs = author_index[author_key] ?? [] %}
+{% let author_posts_refs = author_index[author.key] ?? [] %}
 {% let author_posts = author_posts_refs | resolve_pages %}
 
 {# Filter by section if specified #}
@@ -129,59 +99,58 @@ MAIN TEMPLATE
 
 <div class="author-page">
   <header class="author-header">
-    {% if author_avatar %}
-    <img src="{{ author_avatar }}" alt="{{ author_name }}" class="author-avatar-large">
+    {% if author.avatar %}
+    <img src="{{ author.avatar }}" alt="{{ author.name }}" class="author-avatar-large">
     {% else %}
     <div class="author-avatar-placeholder">
-      {{ author_name[0] | upper }}
+      {{ author.name[0] | upper }}
     </div>
     {% end %}
 
     <div class="author-header-content">
-      <h1 class="author-name">{{ author_name }}</h1>
+      <h1 class="author-name">{{ author.name }}</h1>
 
-      {% if author_company or author_location %}
+      {% if author.company or author.location %}
       <p class="author-meta">
-        {% if author_company %}{{ author_company }}{% end %}
-        {% if author_company and author_location %} · {% end %}
-        {% if author_location %}{{ author_location }}{% end %}
+        {% if author.company %}{{ author.company }}{% end %}
+        {% if author.company and author.location %} · {% end %}
+        {% if author.location %}{{ author.location }}{% end %}
       </p>
       {% end %}
 
-      {% if author_bio %}
-      <p class="author-bio">{{ author_bio }}</p>
+      {% if author.bio %}
+      <p class="author-bio">{{ author.bio }}</p>
       {% end %}
 
-      {# Social links #}
-      {% if author_social | length > 0 or author_github %}
+      {# Social links - using AuthorView normalized properties #}
+      {% if author.twitter or author.github or author.linkedin or author.website or author.email %}
       <div class="author-social">
-        {% if author_social?.twitter %}
-        {% let twitter_handle = author_social.twitter | replace('@', '') %}
-        <a href="https://twitter.com/{{ twitter_handle }}" class="social-link" aria-label="Twitter">
+        {% if author.twitter %}
+        <a href="https://twitter.com/{{ author.twitter }}" class="social-link" aria-label="Twitter">
           🐦 Twitter
         </a>
         {% end %}
 
-        {% if author_github %}
-        <a href="https://github.com/{{ author_github }}" class="social-link" aria-label="GitHub">
+        {% if author.github %}
+        <a href="https://github.com/{{ author.github }}" class="social-link" aria-label="GitHub">
           💻 GitHub
         </a>
         {% end %}
 
-        {% if author_social?.linkedin %}
-        <a href="https://linkedin.com/in/{{ author_social.linkedin }}" class="social-link" aria-label="LinkedIn">
+        {% if author.linkedin %}
+        <a href="https://linkedin.com/in/{{ author.linkedin }}" class="social-link" aria-label="LinkedIn">
           💼 LinkedIn
         </a>
         {% end %}
 
-        {% if author_social?.website %}
-        <a href="{{ author_social.website }}" class="social-link" aria-label="Website">
+        {% if author.website %}
+        <a href="{{ author.website }}" class="social-link" aria-label="Website">
           🌐 Website
         </a>
         {% end %}
 
-        {% if author_social?.email %}
-        <a href="mailto:{{ author_social.email }}" class="social-link" aria-label="Email">
+        {% if author.email %}
+        <a href="mailto:{{ author.email }}" class="social-link" aria-label="Email">
           ✉️ Email
         </a>
         {% end %}
@@ -228,7 +197,7 @@ MAIN TEMPLATE
 
   {# Posts Section #}
   <section class="author-posts">
-    <h2>Posts by {{ author_name }}</h2>
+    <h2>Posts by {{ author.name }}</h2>
 
     {# Group toggle #}
     <div class="posts-view-toggle">
@@ -300,7 +269,7 @@ MAIN TEMPLATE
   {% else %}
   {# Empty State #}
   <div class="author-empty">
-    <p>No posts found by {{ author_name }}.</p>
+    <p>No posts found by {{ author.name }}.</p>
   </div>
   {% end %}
 </div>

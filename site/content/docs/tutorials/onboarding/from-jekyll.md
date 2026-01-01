@@ -453,7 +453,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.14'
       - run: pip install bengal
       - run: bengal build
       # Pin to SHA for supply chain security (v3.9.3)
