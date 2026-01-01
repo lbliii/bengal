@@ -473,33 +473,82 @@ class TestSmallSiteWarnings:
             theme=None,
         )
 
-    def test_warns_for_small_sites(self, mock_site, tmp_path, capsys):
-        """Verify warning is shown for sites under 1000 pages."""
+    def test_warns_for_small_sites_via_reporter(self, mock_site, tmp_path):
+        """Verify warning is logged via reporter for sites under 1000 pages."""
         from bengal.orchestration.streaming import StreamingRenderOrchestrator
 
-        # Create 100 pages (under warning threshold)
+        # Create 100 pages (under warning threshold of 1000)
         pages = [MockPage(path=tmp_path / f"page{i}.md") for i in range(100)]
 
         orch = StreamingRenderOrchestrator(mock_site)
 
-        # RenderOrchestrator is imported inside process(), patch at render module level
+        # Create a mock reporter to capture log messages
+        mock_reporter = MagicMock()
+        logged_messages = []
+        mock_reporter.log = lambda msg: logged_messages.append(msg)
+
         with patch("bengal.orchestration.render.RenderOrchestrator"):
-            orch.process(pages=pages, parallel=False, quiet=False)
+            orch.process(
+                pages=pages,
+                parallel=False,
+                quiet=False,
+                reporter=mock_reporter,
+            )
 
-        captured = capsys.readouterr()
-        assert "Memory optimization is designed for large sites" in captured.out
+        # Check that warning was logged
+        warning_logged = any(
+            "Memory optimization is designed for large sites" in msg for msg in logged_messages
+        )
+        assert warning_logged, f"Expected warning in messages: {logged_messages}"
 
-    def test_no_warning_in_quiet_mode(self, mock_site, tmp_path, capsys):
-        """Verify no warning in quiet mode."""
+    def test_no_warning_for_large_sites(self, mock_site, tmp_path):
+        """Verify no warning for sites at or above recommended threshold."""
         from bengal.orchestration.streaming import StreamingRenderOrchestrator
 
-        pages = [MockPage(path=tmp_path / f"page{i}.md") for i in range(100)]
+        # Create 5000 pages (at recommended threshold)
+        pages = [MockPage(path=tmp_path / f"page{i}.md") for i in range(5000)]
 
         orch = StreamingRenderOrchestrator(mock_site)
 
-        # RenderOrchestrator is imported inside process(), patch at render module level
-        with patch("bengal.orchestration.render.RenderOrchestrator"):
-            orch.process(pages=pages, parallel=False, quiet=True)
+        mock_reporter = MagicMock()
+        logged_messages = []
+        mock_reporter.log = lambda msg: logged_messages.append(msg)
 
-        captured = capsys.readouterr()
-        assert captured.out == ""
+        with patch("bengal.orchestration.render.RenderOrchestrator"):
+            orch.process(
+                pages=pages,
+                parallel=False,
+                quiet=False,
+                reporter=mock_reporter,
+            )
+
+        # Should NOT have warning about small sites
+        warning_logged = any(
+            "Memory optimization is designed for large sites" in msg for msg in logged_messages
+        )
+        assert not warning_logged, f"Should not warn for large sites: {logged_messages}"
+
+    def test_marginal_benefit_warning_for_medium_sites(self, mock_site, tmp_path):
+        """Verify marginal benefit warning for sites between 1000-5000 pages."""
+        from bengal.orchestration.streaming import StreamingRenderOrchestrator
+
+        # Create 2000 pages (above warning threshold, below recommended)
+        pages = [MockPage(path=tmp_path / f"page{i}.md") for i in range(2000)]
+
+        orch = StreamingRenderOrchestrator(mock_site)
+
+        mock_reporter = MagicMock()
+        logged_messages = []
+        mock_reporter.log = lambda msg: logged_messages.append(msg)
+
+        with patch("bengal.orchestration.render.RenderOrchestrator"):
+            orch.process(
+                pages=pages,
+                parallel=False,
+                quiet=False,
+                reporter=mock_reporter,
+            )
+
+        # Should have marginal benefit info message
+        info_logged = any("marginal benefit" in msg for msg in logged_messages)
+        assert info_logged, f"Expected marginal benefit info in messages: {logged_messages}"
