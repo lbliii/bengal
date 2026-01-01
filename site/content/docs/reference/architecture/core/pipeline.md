@@ -106,12 +106,14 @@ bengal build --incremental
 Bengal uses **watchfiles** (Rust-based) for fast file change detection:
 
 ```python
-from bengal.server.file_watcher import WatchfilesWatcher
+from bengal.server.file_watcher import create_watcher
+from bengal.server.ignore_filter import IgnoreFilter
 
-watcher = WatchfilesWatcher(
-    paths=[content_dir, templates_dir],
-    ignore_filter=ignore_filter,
+ignore_filter = IgnoreFilter(
+    glob_patterns=["*.pyc", "__pycache__"],
+    directories=[output_dir],
 )
+watcher = create_watcher([content_dir, templates_dir], ignore_filter)
 
 async for changed_paths, event_types in watcher.watch():
     # event_types: {"created", "modified", "deleted"}
@@ -131,9 +133,10 @@ async for changed_paths, event_types in watcher.watch():
 
 ## Parallelization
 
-Orchestrators auto-switch between sequential and parallel execution:
+Orchestrators auto-switch between sequential and parallel execution based on workload size. The threshold varies by context (e.g., 5 for rendering, 3 for health checks, 50 for file detection):
 
 ```python
+# Example: rendering threshold
 PARALLEL_THRESHOLD = 5  # Avoid thread overhead for small sites
 
 if parallel and len(items) > PARALLEL_THRESHOLD:

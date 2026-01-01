@@ -11,7 +11,7 @@ Bengal's orchestration system coordinates builds through specialized orchestrato
 
 ## Build Phases
 
-The build executes **21 phases** organized into 5 groups:
+The build executes **21 main phases** (plus optional sub-phases like 1.5, 12.5, 19.5) organized into 5 groups:
 
 ```mermaid
 flowchart LR
@@ -103,7 +103,7 @@ flowchart LR
 | Orchestrator | Responsibility | Module |
 |--------------|----------------|--------|
 | **BuildOrchestrator** | Main conductor, calls all phases | `bengal/orchestration/build/` |
-| **ContentOrchestrator** | Find/organize content, apply cascades | `bengal/orchestration/content/` |
+| **ContentOrchestrator** | Find/organize content, apply cascades | `bengal/orchestration/content.py` |
 | **RenderOrchestrator** | Parallel rendering, write output | `bengal/orchestration/render.py` |
 | **StreamingRenderOrchestrator** | Memory-optimized batched rendering | `bengal/orchestration/streaming.py` |
 | **IncrementalOrchestrator** | Detect changes, filter work | `bengal/orchestration/incremental/` |
@@ -115,35 +115,59 @@ flowchart LR
 
 ## BuildContext
 
-Shared context passed through rendering and post-processing:
+Shared context passed through rendering and post-processing (simplified view):
 
 ```python
 @dataclass
 class BuildContext:
+    # Core (required)
     site: Site
     stats: BuildStats
-    pages: list[Page] = None  # Set during phase_render
-    tracker: DependencyTracker = None
+
+    # Build mode flags
     incremental: bool = False
-    changed_page_paths: set[Path] = None
-    knowledge_graph: KnowledgeGraph = None  # Lazy-computed for streaming
+    parallel: bool = True
+    verbose: bool = False
+    quiet: bool = False
+    strict: bool = False
+
+    # Work items (populated during filtering)
+    pages: list[Page] = None
+    pages_to_build: list[Page] = None
+    changed_page_paths: set[Path] = field(default_factory=set)
+
+    # Cache and tracking
+    cache: BuildCache = None
+    tracker: DependencyTracker = None
+
+    @property
+    def knowledge_graph(self) -> KnowledgeGraph | None:
+        """Lazy-computed for streaming render optimization."""
+        ...
 ```
 
-Created early (Phase 2) and enriched through the build.
+Created before Phase 2 (discovery) and enriched through the build. See `bengal/utils/build_context.py` for the complete definition.
 
 ## Parallelization
 
-Orchestrators auto-switch based on workload:
+Orchestrators auto-switch based on workload. Thresholds vary by subsystem:
 
 ```python
-PARALLEL_THRESHOLD = 5  # Avoid thread overhead for small sites
+# Incremental detectors (file/template change detection)
+PARALLEL_THRESHOLD = 50
 
+# Health check validators  
+PARALLEL_THRESHOLD = 3
+
+# General pattern
 if parallel and len(items) > PARALLEL_THRESHOLD:
     with ThreadPoolExecutor() as executor:
         # Parallel processing
 else:
     # Sequential for small workloads
 ```
+
+The threshold varies because thread pool overhead differs by operation type—I/O-bound operations benefit from lower thresholds than CPU-bound ones.
 
 ## Dashboard Notifications
 

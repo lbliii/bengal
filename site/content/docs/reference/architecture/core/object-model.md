@@ -43,13 +43,14 @@ Represents a single content page with source, metadata, rendered HTML, and navig
 
 **Architecture:**
 - **Composition Pattern**: `Page` contains a `PageCore` instance for cacheable metadata
-- **Split into focused mixins**:
+- **Split into focused mixins** (key modules):
   - `page_core.py`: Cacheable metadata (title, date, tags, etc.)
   - `metadata.py`: Frontmatter parsing
   - `navigation.py`: Next/prev/parent links
   - `relationships.py`: Section membership
   - `computed.py`: URL generation, TOC
   - `operations.py`: Rendering logic
+  - `proxy.py`: Lazy-loading wrapper for incremental builds
 
 **PageCore Integration:**
 - Cacheable fields (title, date, tags, slug) stored in `page.core`
@@ -73,7 +74,7 @@ Represents folder-based grouping of pages with hierarchical organization.
 - **Hierarchy**: Parent/child relationships (`subsections`)
 - **Navigation**: Access to `regular_pages` and `sections`
 - **Cascade**: Inheritance of frontmatter metadata to descendants
-- **Path-based Registry**: O(1) lookup via `Site._section_registry` using normalized paths
+- **Path-based Registry**: O(1) lookup via `Site.registry` (ContentRegistry) using normalized paths
 - **Stable References**: Sections referenced by path strings (not object identity) for reliable incremental builds
 :::
 
@@ -133,11 +134,14 @@ Sections are stored in a dictionary keyed by normalized paths:
 
 ```python
 class Site:
-    _section_registry: dict[Path, Section]  # O(1) lookup
+    @property
+    def registry(self) -> ContentRegistry:
+        """Central registry for O(1) page/section lookups."""
+        ...
 
     def get_section_by_path(self, path: Path | str) -> Section | None:
-        normalized = self._normalize_section_path(path)
-        return self._section_registry.get(normalized)  # O(1) lookup
+        """Delegate to ContentRegistry for O(1) lookup."""
+        return self.registry.get_section(path)
 ```
 
 ### Benefits
@@ -264,7 +268,7 @@ URL claims use priority levels to resolve conflicts:
 Certain URL namespaces are reserved for specific generators:
 
 - `/tags/` - Reserved for taxonomy (priority 40)
-- `/search/`, `/404.html`, `/graph/` - Reserved for special pages (priority 10)
+- `/search/`, `/404/`, `/graph/` - Reserved for special pages (priority 10)
 - Autodoc prefixes (e.g., `/cli/`, `/api/python/`) - Reserved for autodoc output (priority 90/80)
 
 The `OwnershipPolicyValidator` warns when user content lands in reserved namespaces.
