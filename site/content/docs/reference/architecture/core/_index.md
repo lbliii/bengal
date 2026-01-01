@@ -15,7 +15,7 @@ Foundational data models and build coordination.
 |-----------|----------------|--------|
 | **Site** | Central container, holds all content | `bengal/core/site/` |
 | **Page** | Single content page with metadata | `bengal/core/page/` |
-| **Section** | Directory container, holds children | `bengal/core/section.py` |
+| **Section** | Directory container, holds children | `bengal/core/section/` |
 | **Asset** | Static file with processing metadata | `bengal/core/asset/` |
 
 ## Design Principles
