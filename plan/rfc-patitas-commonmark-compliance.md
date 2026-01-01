@@ -365,10 +365,11 @@ def test_commonmark_spec(example):
     assert normalize_html(html) == normalize_html(example["html"])
 ```
 
-**Expected Results**:
-- Initial baseline: TBD after importing spec suite
-- After Critical fixes: ~550/652 passing (~84%)
-- Target: 630/652 passing (~97%)
+**Actual Results** (2026-01-01):
+- ✅ Initial baseline: **265/625 passing (42.4%)**
+- After Critical fixes (Sprint 2-3): ~450/652 passing (~69%)
+- After High Priority fixes (Sprint 4-5): ~580/652 passing (~89%)
+- Target: 633/652 passing (~97%)
 
 ### Phase 2: Targeted Compliance Tests
 
@@ -425,76 +426,188 @@ def test_list_performance(benchmark):
 
 ## Implementation Roadmap
 
-### Sprint 1: Foundation (2 weeks)
+### Sprint 1: Foundation (2 weeks) ✅ COMPLETE
 
 **Goal**: Import CommonMark spec suite, establish accurate baseline
 
-- [ ] Download CommonMark 0.31.2 spec.json
-- [ ] Create test infrastructure with HTML normalization
-- [ ] Run full 652-example suite, document baseline pass rate
-- [ ] Triage failures into Critical/High/Medium/Low
-- [ ] Fix 7 assertion-style test failures in existing tests
+- [x] Download CommonMark 0.31.2 spec.json
+- [x] Create test infrastructure with HTML normalization
+- [x] Run full 652-example suite, document baseline pass rate
+- [x] Triage failures into Critical/High/Medium/Low
+- [x] Document 15 issues with root cause analysis
 
-**Exit Criteria**: Accurate baseline metrics, issues categorized by spec section
+**Results**:
+- Baseline: **42.4%** (265/625 passing, 27 skipped)
+- Identified 6 Critical issues, 9 additional gaps
+- Test infrastructure in `test_commonmark_spec.py`
 
-### Sprint 2: List Compliance (2 weeks)
+**Exit Criteria**: ✅ Accurate baseline metrics, issues categorized by spec section
+
+---
+
+### Sprint 2: List Compliance (2 weeks) ⬅️ NEXT
 
 **Goal**: Fix all list-related compliance issues
 
+**Current State**: 17% (13/74 passing)  
+**Target State**: 90%+ (67/74 passing)  
+**Expected Gain**: +54 tests (+8.3% overall)
+
+**Tasks**:
 - [ ] Fix: Different markers create separate lists (Issue 1)
+  - Track marker type in `ListBlock` node
+  - Compare marker on continuation
 - [ ] Fix: Deeply nested lists context-aware indentation (Issue 2)
+  - Add `LexerMode.LIST_ITEM` with indent tracking
+  - Suppress indented code detection in list context
+- [ ] Fix: Indented code blocks in list context (Issue 11)
+  - Related to Issue 2, same fix approach
 - [ ] Verify/Fix: Ordered list interruption rules (Issue 3)
+  - Only `1.` can interrupt paragraph
 - [ ] Add: List item with multiple blocks
 - [ ] Add: List continuation after blank lines
+- [ ] Fix: Blank line handling (0% → 100%)
+
+**Technical Approach**:
+```python
+# Proposed: Track list context in lexer
+class LexerState:
+    list_stack: list[ListContext]  # Track nesting depth + indent
+
+@dataclass
+class ListContext:
+    marker: str  # "-", "*", "+", "1.", "1)"
+    indent: int  # Spaces before marker
+    content_indent: int  # Spaces to content
+```
 
 **Exit Criteria**: All list spec tests passing (74 tests in sections 5.2, 5.3)
+
+---
 
 ### Sprint 3: Links & References (2 weeks)
 
 **Goal**: Implement reference links and images
 
-- [ ] Implement: Link reference definitions (leverage existing token)
+**Current State**: 36% (48/133 passing)  
+**Target State**: 95%+ (126/133 passing)  
+**Expected Gain**: +78 tests (+12% overall)
+
+**Tasks**:
+- [ ] Implement: Link reference definitions (Issue 5)
+  - Collection pass before inline parsing
+  - Case-insensitive label matching
+  - Handle duplicate definitions (first wins)
 - [ ] Implement: Full reference links `[text][ref]`
 - [ ] Implement: Collapsed reference links `[ref][]`
 - [ ] Implement: Shortcut reference links `[ref]`
-- [ ] Implement: Reference images
+- [ ] Implement: Reference images `![alt][ref]`
 - [ ] Fix: Link title edge cases (Issue 6)
+- [ ] Fix: Image alt text edge cases
 
-**Exit Criteria**: All link/image spec tests passing (138 tests in sections 4.7, 6.5, 6.6)
+**Technical Approach**:
+```python
+# Two-pass parsing for references
+def parse(markdown: str) -> str:
+    # Pass 1: Collect definitions
+    definitions = collect_link_definitions(markdown)
+
+    # Pass 2: Parse with definitions available
+    ast = parse_blocks(markdown, definitions)
+    return render(ast)
+```
+
+**Exit Criteria**: All link/image spec tests passing (133 tests in sections 4.7, 6.5, 6.6)
+
+---
 
 ### Sprint 4: Block Elements (2 weeks)
 
 **Goal**: Implement remaining block-level features
 
-- [ ] Implement: Setext headings (leverage existing token)
-- [ ] Fix: Block quote nesting edge cases
-- [ ] Fix: Indented code in list context
-- [ ] Add: HTML block types 1-7
+**Current State**: 35% (61/175 passing)  
+**Target State**: 90%+ (158/175 passing)  
+**Expected Gain**: +97 tests (+15% overall)
 
-**Exit Criteria**: All block spec tests passing
+**Tasks**:
+- [ ] Implement: HTML block types 1-7 (Issue 10)
+  - Type 1: `<pre>`, `<script>`, `<style>`, `<textarea>`
+  - Type 2: `<!--` comments
+  - Type 3: `<?` processing instructions
+  - Type 4: `<!` declarations
+  - Type 5: `<![CDATA[`
+  - Type 6: Standard HTML tags
+  - Type 7: Complete open tag
+- [ ] Fix: Setext heading edge cases (37% → 90%)
+- [ ] Fix: Block quote nesting edge cases (40% → 90%)
+- [ ] Fix: ATX heading normalization (Issue 13)
+- [ ] Fix: Tab handling (Issue 12)
+- [ ] Fix: Thematic break edge cases (79% → 100%)
+
+**Exit Criteria**: All block spec tests passing (175 tests in sections 4.1-4.9, 5.1)
+
+---
 
 ### Sprint 5: Inline Elements (2 weeks)
 
 **Goal**: Fix inline-level compliance issues
 
-- [ ] Fix: Complex emphasis delimiter cases (Issue 7)
-- [ ] Fix: Backslash escape edge cases (Issue 9)
-- [ ] Implement: Entity references (Issue 8)
-- [ ] Implement: Autolinks (email, URL)
-- [ ] Fix: Hard line break edge cases
+**Current State**: 52% (178/344 passing)  
+**Target State**: 95%+ (327/344 passing)  
+**Expected Gain**: +149 tests (+23% overall)
 
-**Exit Criteria**: All inline spec tests passing
+**Tasks**:
+- [ ] Fix: Emphasis delimiter edge cases (Issue 7) - 64% → 95%
+  - Left-flanking/right-flanking rules
+  - Intraword emphasis with `_`
+  - Nested emphasis resolution
+- [ ] Fix: Hard line break (two spaces) (Issue 14) - 33% → 100%
+- [ ] Fix: Backslash escape edge cases (Issue 9) - 54% → 100%
+- [ ] Implement: Entity references (Issue 8) - 24% → 95%
+  - Named entities (`&amp;`, `&copy;`)
+  - Decimal entities (`&#65;`)
+  - Hex entities (`&#x41;`)
+- [ ] Fix: Autolinks (Issue 15) - 21% → 95%
+- [ ] Fix: Code span edge cases - 77% → 100%
+- [ ] Fix: Raw HTML inline - 55% → 90%
+
+**Exit Criteria**: All inline spec tests passing (344 tests in sections 6.1-6.11)
+
+---
 
 ### Sprint 6: Polish & Fuzz (1 week)
 
 **Goal**: Harden parser, achieve target compliance
 
+**Target State**: 97%+ (633/652 passing)
+
+**Tasks**:
 - [ ] Run fuzz tests, fix any crashes
-- [ ] Performance regression tests
-- [ ] Documentation of remaining intentional deviations
+- [ ] Performance regression tests (ensure O(n))
+- [ ] Document remaining intentional deviations (~19 tests)
 - [ ] Final compliance report
+- [ ] Update competitive analysis
+
+**Intentional Deviations** (candidates):
+- Patitas adds `id` attribute to headings (Bengal feature)
+- Some whitespace normalization differences
+- HTML entity encoding preferences
 
 **Exit Criteria**: 97%+ spec compliance, no crashes on fuzz tests
+
+---
+
+### Timeline Summary
+
+| Sprint | Duration | Cumulative Pass Rate |
+|--------|----------|---------------------|
+| Sprint 1 ✅ | Complete | 42.4% (baseline) |
+| Sprint 2 | 2 weeks | ~51% (+54 tests) |
+| Sprint 3 | 2 weeks | ~63% (+78 tests) |
+| Sprint 4 | 2 weeks | ~78% (+97 tests) |
+| Sprint 5 | 2 weeks | ~95% (+149 tests) |
+| Sprint 6 | 1 week | 97%+ (polish) |
+| **Total** | **9 weeks** | **97%** |
 
 ## Success Metrics
 
@@ -616,6 +729,66 @@ Features verified as working correctly (2026-01-01):
 - ✅ Hard line breaks (backslash)
 - ✅ Soft line breaks
 - ✅ Most backslash escapes
+
+## Appendix D: Baseline Report (2026-01-01)
+
+Full section-by-section breakdown from running `test_commonmark_spec.py`:
+
+```
+# CommonMark Spec Baseline Report
+
+| Section | Passed | Failed | Skipped | Pass Rate |
+|---------|--------|--------|---------|-----------|
+| ATX headings | 3 | 15 | 0 | 17% |
+| Autolinks | 4 | 15 | 0 | 21% |
+| Backslash escapes | 7 | 6 | 0 | 54% |
+| Blank lines | 0 | 1 | 0 | 0% |
+| Block quotes | 10 | 15 | 0 | 40% |
+| Code spans | 17 | 5 | 0 | 77% |
+| Emphasis and strong emphasis | 85 | 47 | 0 | 64% |
+| Entity and numeric character references | 4 | 13 | 0 | 24% |
+| Fenced code blocks | 19 | 10 | 0 | 66% |
+| HTML blocks | 2 | 42 | 0 | 5% |
+| Hard line breaks | 5 | 10 | 0 | 33% |
+| Images | 6 | 16 | 0 | 27% |
+| Indented code blocks | 0 | 12 | 0 | 0% |
+| Inlines | 1 | 0 | 0 | 100% |
+| Link reference definitions | 0 | 0 | 27 | N/A |
+| Links | 42 | 48 | 0 | 47% |
+| List items | 9 | 39 | 0 | 19% |
+| Lists | 4 | 22 | 0 | 15% |
+| Paragraphs | 5 | 3 | 0 | 62% |
+| Precedence | 1 | 0 | 0 | 100% |
+| Raw HTML | 11 | 9 | 0 | 55% |
+| Setext headings | 10 | 17 | 0 | 37% |
+| Soft line breaks | 1 | 1 | 0 | 50% |
+| Tabs | 1 | 10 | 0 | 9% |
+| Textual content | 3 | 0 | 0 | 100% |
+| Thematic breaks | 15 | 4 | 0 | 79% |
+
+**Total**: 265/625 (42.4%)
+**Skipped**: 27 (link reference definitions - not yet implemented)
+```
+
+**How to regenerate**:
+```bash
+python tests/rendering/parsers/patitas/test_commonmark_spec.py
+```
+
+## Appendix E: Priority Matrix
+
+| Priority | Issue | Sprint | Tests Gained | Complexity |
+|----------|-------|--------|--------------|------------|
+| P0 | Lists (1, 2, 3, 11) | 2 | +54 | High |
+| P0 | Reference Links (5) | 3 | +78 | High |
+| P1 | HTML Blocks (10) | 4 | +40 | Medium |
+| P1 | Emphasis (7) | 5 | +40 | Medium |
+| P1 | Entity Refs (8) | 5 | +9 | Low |
+| P2 | Hard Breaks (14) | 5 | +5 | Low |
+| P2 | Tabs (12) | 4 | +9 | Low |
+| P2 | Autolinks (15) | 5 | +11 | Low |
+| P2 | ATX Headings (13) | 4 | +12 | Low |
+| P3 | Backslash (9) | 5 | +6 | Low |
 
 ## References
 

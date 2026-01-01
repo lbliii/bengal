@@ -17,7 +17,6 @@ keywords:
 - commands
 - build
 - serve
-- autodoc
 - graph
 ---
 
@@ -29,14 +28,15 @@ keywords:
 
 **Architecture**:
 - `bengal/cli/__init__.py` - Main CLI group with command registration and typo detection
+- `bengal/cli/base.py` - Custom Click classes (`BengalGroup`, `BengalCommand`) with themed help
 - `bengal/cli/commands/` - Individual command modules
   - `build.py` - Build commands
   - `serve.py` - Development server
-  - `autodoc.py` - Documentation generation
-  - `graph.py` - Graph analysis commands
+  - `graph/` - Graph analysis commands (package with report, orphans, pagerank, etc.)
   - `perf.py` - Performance analysis
   - `clean.py` - Cleanup utilities
   - `new/` - Content creation (package with presets, wizard, config, site, scaffolds)
+  - `validate.py` - Content validation
 
 **Features**:
 - **Typo Detection**: Fuzzy matching for command names with suggestions
@@ -48,50 +48,47 @@ keywords:
 
 **Build Commands** {#build-commands}:
 ```bash
-# Basic build
+# Basic build (parallel by default)
 bengal build
 
-# Incremental build (18-42x faster)
+# Incremental build (uses cache for faster rebuilds)
 bengal build --incremental
 
-# Parallel build (default, 2-4x faster)
-bengal build --parallel
+# Force sequential processing (disable auto-parallel)
+bengal build --no-parallel
 
 # Strict mode (fail on template errors, recommended for CI)
 bengal build --strict
 
-# Debug mode (full tracebacks)
+# Debug mode (full tracebacks, developer profile)
 bengal build --debug
 
-# Verbose output (show detailed change info)
-bengal build --incremental --verbose
+# Verbose output (show detailed phase timing and stats)
+bengal build --verbose
+
+# Fast mode (quiet output, max speed)
+bengal build --fast
+
+# Memory-optimized for large sites (5K+ pages)
+bengal build --memory-optimized
 ```
 
 **Development Commands** {#serve-commands}:
 ```bash
-# Start development server with live reload
+# Start development server with file watching
 bengal serve
 
 # Custom port
 bengal serve --port 8080
 
-# Disable live reload
-bengal serve --no-reload
-```
+# Disable file watching
+bengal serve --no-watch
 
-**Documentation Commands**:
-```bash
-# Generate Python API documentation
-bengal autodoc
+# Open browser automatically (default)
+bengal serve --open
 
-# Generate CLI documentation (Click only)
-bengal autodoc-cli --app myapp.cli:main --framework click
-
-# Override source/output
-bengal autodoc --source mylib --output content/api
-
-# Show extraction stats
-bengal autodoc --stats --verbose
+# Verbose output (show file watch events)
+bengal serve --verbose
 ```
 
 **Graph Analysis Commands**:
@@ -157,11 +154,17 @@ Refer to [Graph Analysis](../../../content/analysis/graph.md) for details and [A
 
 **Performance Commands**:
 ```bash
-# Performance analysis
+# Show recent build performance metrics
 bengal perf
 
-# Detailed performance breakdown
-bengal perf --verbose
+# Show last N builds
+bengal perf --last 20
+
+# Compare last two builds
+bengal perf --compare
+
+# Export as JSON
+bengal perf --format json
 ```
 
 **Utility Commands**:
@@ -187,46 +190,47 @@ bengal --help
 
 ## Command Registration
 
-Commands are registered in `bengal/cli/__init__.py`:
+Commands are registered in `bengal/cli/__init__.py`. The CLI uses command groups for organization and top-level aliases for convenience:
 
 ```python
-from bengal.cli.commands.build import build
-from bengal.cli.commands.serve import serve
-from bengal.cli.commands.autodoc import autodoc, autodoc_cli
-from bengal.cli.commands.graph import graph, pagerank, communities, bridges, suggest
-from bengal.cli.commands.perf import perf
-from bengal.cli.commands.clean import clean, cleanup
+from bengal.cli.base import BengalCommand, BengalGroup
+from bengal.cli.commands.build import build as build_cmd
+from bengal.cli.commands.serve import serve as serve_cmd
+from bengal.cli.commands.clean import clean as clean_cmd
+from bengal.cli.commands.graph import graph_cli
 from bengal.cli.commands.new import new
 
-@click.group(cls=BengalGroup)
+@click.group(cls=BengalGroup, name="bengal", invoke_without_command=True)
 @click.version_option(version=__version__, prog_name="Bengal SSG")
-def main() -> None:
-    """Bengal SSG - A high-performance static site generator."""
+def main(ctx: click.Context) -> None:
+    """Bengal Static Site Generator CLI."""
     pass
 
-# Register commands
-main.add_command(build)
-main.add_command(serve)
-main.add_command(autodoc)
-main.add_command(autodoc_cli)
-main.add_command(graph)
-main.add_command(pagerank)
-main.add_command(communities)
-main.add_command(bridges)
-main.add_command(suggest)
-main.add_command(perf)
-main.add_command(clean)
-main.add_command(cleanup)
-main.add_command(new)
+# Command groups (organized by category)
+main.add_command(graph_cli)       # bengal graph <subcommand>
+main.add_command(new)             # bengal new <subcommand>
+
+# Top-level aliases (most common operations)
+main.add_command(build_cmd, name="build")
+main.add_command(serve_cmd, name="serve")
+main.add_command(clean_cmd, name="clean")
+
+# Short aliases for power users
+main.add_command(build_cmd, name="b")   # b → build
+main.add_command(serve_cmd, name="s")   # s → serve
+main.add_command(serve_cmd, name="dev") # dev → serve
+main.add_command(graph_cli, name="g")   # g → graph
 ```
 
 ## Custom Click Group
 
-Bengal uses a custom `BengalGroup` class that provides typo detection:
+Bengal uses custom `BengalGroup` and `BengalCommand` classes in `bengal/cli/base.py` that provide themed help output and typo detection:
 
 ```python
 class BengalGroup(click.Group):
-    """Custom Click group with typo detection and suggestions."""
+    """Custom Click group with typo detection and themed help output."""
+
+    command_class = BengalCommand  # Use themed command class
 
     def resolve_command(self, ctx, args):
         """Resolve command with fuzzy matching for typos."""
@@ -234,11 +238,22 @@ class BengalGroup(click.Group):
             return super().resolve_command(ctx, args)
         except click.exceptions.UsageError as e:
             if "No such command" in str(e) and args:
-                suggestions = self._get_similar_commands(args[0])
+                unknown_cmd = args[0]
+                suggestions = self._get_similar_commands(unknown_cmd)
                 if suggestions:
-                    # Show suggestions
-                    pass
+                    cli = CLIOutput()
+                    cli.error_header(f"Unknown command '{unknown_cmd}'.")
+                    cli.console.print("[header]Did you mean one of these?[/header]")
+                    for suggestion in suggestions:
+                        cli.console.print(f"  [info]•[/info] {suggestion}")
+                    raise SystemExit(2)
             raise
+
+    def _get_similar_commands(self, unknown_cmd, max_suggestions=3):
+        """Find similar commands using difflib fuzzy matching."""
+        from difflib import get_close_matches
+        return get_close_matches(unknown_cmd, self.commands.keys(),
+                                 n=max_suggestions, cutoff=0.5)
 ```
 
 :::{example-label} Command Suggestion
@@ -254,9 +269,3 @@ Did you mean one of these?
 
 Run 'bengal --help' to see all commands.
 ```
-
-# Utilities (`bengal/utils/`)
-
-Bengal provides a comprehensive set of utility modules that consolidate common operations across the codebase, eliminating duplication and providing consistent, well-tested implementations.
-
-## Text Utilities (`bengal/utils/text.py`)

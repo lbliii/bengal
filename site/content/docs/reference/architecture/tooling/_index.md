@@ -14,7 +14,7 @@ Developer interfaces for working with Bengal.
 | Component | Purpose | Key Features |
 |-----------|---------|--------------|
 | **CLI** | Command interface | Click-based, auto-generated help |
-| **Dev Server** | Local development | Live reload, WebSocket updates |
+| **Dev Server** | Local development | Live reload, SSE hot updates |
 | **Config** | Settings loader | TOML/YAML, environment merging |
 | **Utils** | Shared utilities | Progress reporting, file handling |
 

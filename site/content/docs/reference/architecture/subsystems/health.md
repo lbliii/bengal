@@ -43,45 +43,49 @@ Bengal includes a comprehensive health check system that validates builds across
 
 ## Base Validator (`bengal/health/base.py`)
 - **Purpose**: Abstract base class for all validators
-- **Interface**: `validate(site) -> List[CheckResult]`
+- **Interface**: `validate(site, build_context=None) -> list[CheckResult]`
 - **Features**:
   - Independent execution (no validator dependencies)
   - Error handling and crash recovery
   - Performance tracking per validator
   - Configuration-based enablement
+  - Access to cached build artifacts via `build_context`
 
 ## Health Report (`bengal/health/report.py`)
 - **Purpose**: Unified reporting structure for health check results
 - **Components**:
-  - `CheckStatus`: SUCCESS, INFO, WARNING, ERROR
+  - `CheckStatus`: SUCCESS, INFO, SUGGESTION, WARNING, ERROR (ordered by severity)
   - `CheckResult`: Individual check result with recommendation
   - `ValidatorReport`: Results from a single validator
   - `HealthReport`: Aggregated report from all validators
 - **Formats**:
-  - Console output (colored, formatted)
+  - Console output (colored, progressive disclosure)
   - JSON output (machine-readable)
   - Summary statistics (pass/warning/error counts)
+  - Quality scoring (0-100 with ratings)
 
 ## Validators (`bengal/health/validators/`)
 
-**Validators**:
+Validators are registered in phases based on execution cost and dependencies.
 
-**Phase 1 - Basic Validation:**
+**Phase 1 - Core Validation:**
 | Validator | Validates |
 |-----------|-----------|
 | **ConfigValidatorWrapper** | Configuration validity, essential fields, common issues |
-| **OutputValidator** | Page sizes, asset presence, directory structure |
-| **MenuValidator** | Menu structure integrity, circular reference detection |
-| **LinkValidatorWrapper** | Broken links detection (internal and external) |
+| **URLCollisionValidator** | Duplicate URL detection (catches conflicts early) |
+| **OwnershipPolicyValidator** | URL ownership and content governance |
 
-**Phase 2 - Build-Time Validation:**
+**Phase 2 - Content Validation:**
 | Validator | Validates |
 |-----------|-----------|
-| **NavigationValidator** | Page navigation (next/prev, breadcrumbs, ancestors) |
-| **TaxonomyValidator** | Tags, categories, archives, pagination integrity |
 | **RenderingValidator** | HTML quality, template function usage, SEO metadata |
 | **DirectiveValidator** | Directive syntax, completeness, and performance |
-| **TemplateValidator** | Jinja2 template syntax and best practices |
+| **NavigationValidator** | Page navigation (next/prev, breadcrumbs, ancestors) |
+| **MenuValidator** | Menu structure integrity, circular reference detection |
+| **TaxonomyValidator** | Tags, categories, archives, pagination integrity |
+| **TrackValidator** | Learning track structure and progression |
+| **LinkValidatorWrapper** | Broken links detection (internal and external) |
+| **AnchorValidator** | Explicit anchor targets and cross-reference integrity |
 
 **Phase 3 - Advanced Validation:**
 | Validator | Validates |
@@ -101,16 +105,20 @@ Bengal includes a comprehensive health check system that validates builds across
 | Validator | Validates |
 |-----------|-----------|
 | **ConnectivityValidator** | Page connectivity using semantic link model and weighted scoring |
-| **AnchorValidator** | Explicit anchor targets and cross-reference integrity |
-| **CrossReferenceValidator** | Internal cross-reference resolution |
-| **TrackValidator** | Learning track structure and progression |
 
-**Specialized Validators:**
+**Specialized Validators** (not auto-registered):
 | Validator | Validates |
 |-----------|-----------|
 | **AutodocValidator** | API documentation HTML structure validation |
-| **OwnershipPolicyValidator** | URL ownership and content governance |
-| **URLCollisionValidator** | Duplicate URL detection |
+| **OutputValidator** | Page sizes, asset presence (redundant with build errors) |
+| **CrossReferenceValidator** | Internal cross-reference resolution |
+| **AccessibilityValidator** | WCAG compliance and accessibility checks |
+| **AssetURLValidator** | Asset URL resolution and validation |
+
+**Utility Classes** (not BaseValidator subclasses):
+| Class | Purpose |
+|-------|---------|
+| **TemplateValidator** | Jinja2 template syntax validation (requires TemplateEngine) |
 
 ## Connectivity Validator
 
@@ -172,9 +180,9 @@ Health checks use a **tiered validation system** for optimal performance:
 
 | Tier | Name | Time | Trigger | Validators |
 |------|------|------|---------|------------|
-| 1 | `build` | <100ms | Always | Output, Config, Menu, Navigation, Taxonomy, Rendering, Directives |
-| 2 | `full` | ~500ms | `--full` flag | + Connectivity, Cache, Performance |
-| 3 | `ci` | ~30s | `--ci` flag or CI env | + External link checking |
+| 1 | `build` | <100ms | Always | Config, URL Collisions, Rendering, Directives, Navigation, Menu, Taxonomy |
+| 2 | `full` | ~500ms | `--full` flag | + Connectivity, Cache, Performance, Anchors |
+| 3 | `ci` | ~30s | `--ci` flag or CI env | + External link checking (LinkValidatorWrapper) |
 
 **Configuration via `bengal.toml`:**
 
@@ -211,9 +219,11 @@ Validators run based on the active build profile:
 
 | Profile | Validators Enabled |
 |---------|-------------------|
-| `writer` | Output, Config, Menu (fast feedback) |
-| `theme-dev` | + Rendering, Templates, Directives |
+| `writer` | Config, Menu (fast feedback) |
+| `theme-dev` | + Rendering, Directives |
 | `dev` | All validators (full observability) |
+
+Validators can be explicitly enabled/disabled in config regardless of profile.
 
 ## Integration
 Health checks run automatically after builds in strict mode and can be triggered manually:
