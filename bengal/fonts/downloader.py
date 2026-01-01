@@ -198,7 +198,11 @@ class GoogleFontsDownloader:
                     suggestion=f"Verify '{family}' is a valid Google Font name at fonts.google.com",
                 )
                 record_error(error, file_path=None)
-                logger.warning("no_fonts_found_for_family", family=family, code="X009")
+                # Display user-friendly error with suggestion
+                from bengal.cli.helpers.error_display import display_bengal_error
+                from bengal.output import CLIOutput
+
+                display_bengal_error(error, CLIOutput())
                 return []
 
             # Download each font file
@@ -240,13 +244,11 @@ class GoogleFontsDownloader:
                 original_error=e,
             )
             record_error(error, file_path=None)
-            logger.error(
-                "font_download_failed",
-                family=family,
-                error=str(e),
-                error_type=type(e).__name__,
-                code="X008",
-            )
+            # Display user-friendly error with suggestion
+            from bengal.cli.helpers.error_display import display_bengal_error
+            from bengal.output import CLIOutput
+
+            display_bengal_error(error, CLIOutput())
             return []
 
     def download_ttf_font(
@@ -306,7 +308,11 @@ class GoogleFontsDownloader:
                     suggestion=f"Verify '{family}' is a valid Google Font name at fonts.google.com",
                 )
                 record_error(error, file_path=None)
-                logger.warning("no_ttf_fonts_found_for_family", family=family, code="X009")
+                # Display user-friendly error with suggestion
+                from bengal.cli.helpers.error_display import display_bengal_error
+                from bengal.output import CLIOutput
+
+                display_bengal_error(error, CLIOutput())
                 return []
 
             # Download each font file

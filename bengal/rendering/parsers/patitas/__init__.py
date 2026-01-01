@@ -311,6 +311,7 @@ class Markdown:
         "_highlight_style",
         "_plugins_enabled",
         "_directive_registry",
+        "_role_registry",
         "_delegate",
     )
 
@@ -357,8 +358,12 @@ class Markdown:
         from bengal.rendering.parsers.patitas.directives.registry import (
             create_default_registry,
         )
+        from bengal.rendering.parsers.patitas.roles.registry import (
+            create_default_registry as create_default_role_registry,
+        )
 
         self._directive_registry = create_default_registry()
+        self._role_registry = create_default_role_registry()
 
     def __call__(
         self,
@@ -421,6 +426,7 @@ class Markdown:
             highlight_style=self._highlight_style,
             directive_registry=self._directive_registry,
             directive_cache=directive_cache if cache_enabled else None,
+            role_registry=self._role_registry,
             text_transformer=text_transformer,
             delegate=self._delegate,
             page_context=page_context,
@@ -480,6 +486,7 @@ class Markdown:
             highlight_style=self._highlight_style,
             directive_registry=self._directive_registry,
             directive_cache=directive_cache if cache_enabled else None,
+            role_registry=self._role_registry,
             text_transformer=text_transformer,
             delegate=self._delegate,
             page_context=page_context,

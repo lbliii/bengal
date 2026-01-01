@@ -1,32 +1,93 @@
 ## [Unreleased]
 
-### Cache Compression Consistency ✅
-- **cache(taxonomy_index)**: migrate to compressed `.json.zst` format using `save_compressed()`/`load_auto()`
-- **cache(asset_dependency_map)**: migrate to compressed format; remove redundant `AtomicFile` wrapper
-- **cache(page_discovery_cache)**: migrate to compressed format; remove redundant `AtomicFile` wrapper and `default=str` parameter
-- **cache(paths)**: update docstrings to document compression support for auxiliary caches
-- **cache(compression)**: fix `load_auto()` exception handling to properly catch `CacheVersionError` and fall back to JSON
-- **cache(compression)**: add type validation in `load_auto()` to ensure JSON always returns dict
-- **perf**: ~40% reduction in `.bengal/` directory size (~2.8M savings), 10x faster cache I/O
-- **tests**: add round-trip serialization tests and migration tests for backward compatibility
-- **docs**: update cache architecture docs to reflect compression for all cache files
+## 0.1.7 - 2026-01-01
 
-### Content Layer Algorithm Optimization ✅
-- **content_layer(local)**: remove O(n log n) sort from `fetch_all()` (now O(n) by default)
-- **content_layer(local)**: add `sort: bool` config option for deterministic ordering when needed
-- **content_layer(local)**: pre-compile exclude patterns to regex for O(1) matching per file (was O(p))
-- **content_layer(local)**: add `@cached_property _exclude_regex` with fnmatch fallback on regex failure
-- **content_layer(github)**: add parallel file fetching with semaphore-based concurrency (10 concurrent)
-- **content_layer(github)**: add automatic retry with exponential backoff on rate limit (429/403)
-- **content_layer(github)**: stream results via `asyncio.as_completed()` as files complete
-- **content_layer(notion)**: add parallel page processing with semaphore-based concurrency (5 concurrent)
-- **content_layer(notion)**: add in-memory block caching with TTL (5 min) and size limit (500 pages)
-- **content_layer(notion)**: graceful degradation when cachetools unavailable (no caching, no crash)
-- **content_layer(source)**: add `@cached_property cache_key` for O(1) repeated lookups (was O(c log c))
-- **pyproject.toml**: add `cachetools>=5.0.0` to `notion` and `all-sources` optional dependencies
-- **perf**: LocalSource 2K files ~2.5x faster; GitHubSource ~10x faster; NotionSource ~3x faster
-- **behavior**: Entry order is now non-deterministic (use `sort: true` for alphabetical)
-- **plan**: RFC moved to implemented
+### 🚀 Kida Template Engine ✅
+- **core(kida)**: Pure-Python template engine with Jinja2 compatibility as default
+- **kida**: `{% match %}` pattern matching, pipeline operators `|>`, optional chaining `??`
+- **kida**: `{% while %}` loops, `{% cache %}`, `{% slot %}`, `{% embed %}` components
+- **kida**: Bytecode caching with `BlockCache` for site-wide block reuse
+- **kida**: Pure-Python AST optimization pass (constant folding, dead code elimination)
+- **kida**: Compile-time filter/test validation with 'Did you mean?' suggestions
+- **kida**: Resilient None handling and line-aware error messages
+- **themes(default)**: Full migration to Kida-native syntax with advanced patterns
+- **engines**: Add `EngineCapability` enum and capabilities protocol for engine-agnostic templates
+
+### 🚀 Patitas Markdown Parser ✅
+- **core(parsers)**: Add Patitas as optional markdown parser with typed AST and O(n) lexer
+- **patitas**: Directive and role systems for extensible markup (Phase 2)
+- **patitas(directives)**: Complete Bengal directive migration — 54 handlers with full parity
+- **patitas**: Zero-Copy Lexer Handoff (ZCLH) protocol for Rosettes integration
+- **patitas(parser)**: Fix list termination when followed by non-indented paragraph
+
+### 🚀 Rosettes Syntax Highlighter ✅
+- **rosettes**: Pure-Python syntax highlighter for Python 3.14t (no GIL re-enablement)
+- **lexers**: 50+ language support including tree, myst, jinja2, configs, diagrams
+- **themes**: RFC-0003 semantic token system with CSS theming architecture
+- **core(highlighting)**: Skip tree-sitter on free-threaded Python automatically
+- **syntax-highlighter**: Add Kida template syntax highlighting v1.1.0
+
+### 🔧 Error System Adoption ✅
+- **errors**: Comprehensive error codes across all packages (A/B/C/D/N/O/V/X series)
+- **errors**: Session tracking with `record_error()` for silent failure detection
+- **errors**: Actionable suggestions in all error messages
+- Packages adopted: cache, config, collections, content_layer, autodoc, health, assets, orchestration, postprocess, themes, analysis
+
+### ⚡ Algorithm Optimizations (Big O) ✅
+- **cache**: Reverse dependency graph for O(1) affected pages lookup
+- **cache(taxonomy)**: Reverse index for O(1) page-to-tags lookup
+- **cache(query_index)**: Set-based storage for O(1) page operations
+- **analysis**: PageRank O(I×E) and Link Suggestions via inverted indices
+- **config**: Batch deep merge O(K×D) for directory loading
+- **health**: O(L²)→O(L) DirectiveAnalyzer, O(D²)→O(D) AutoFixer
+- **postprocess**: Streaming LLM write O(n×c)→O(c) memory; heapq.nlargest for RSS
+- **orchestration(complexity)**: LPT scheduling for parallel page rendering
+- **content_layer**: LocalSource 2.5x faster, GitHubSource 10x faster, NotionSource 3x faster
+
+### 🔒 Thread Safety (Python 3.14t) ✅
+- **core**: Thread-safe locking for free-threading support across critical paths
+- **directives/cache**: Add `DirectiveCache._lock` for concurrent access
+- **icons/resolver**: Add `_icon_lock` for thread-safe icon resolution
+- **server/live_reload**: Protect `set_reload_action()` with locking
+- **rendering/context**: Double-check locking patterns for template context
+
+### 🔧 Type System Hardening ✅
+- **types**: Replace `Any` across 4 phases (protocols, critical paths, directives, template functions)
+- **types**: Add TypedDict and Protocol definitions for type refinement
+- **directives(options)**: Fix cache inheritance bug in `DirectiveOptions.from_raw()`
+
+### 📦 Autodoc Improvements ✅
+- **autodoc(openapi)**: Best-in-class REST API layouts with three-panel scroll-sync
+- **autodoc**: Migration from Jinja2 to Kida template engine
+- **filters(views)**: Add PostView, ReleaseView, AuthorView, TagView filters
+- **rendering(autodoc)**: Add MemberView, CommandView, OptionView for theme developers
+- **rendering(openapi)**: Add endpoints/schemas filters for normalized template access
+
+### ⚡ Performance Improvements ✅
+- **health**: Remove redundant validators (saves 312ms/build)
+- **health(directives)**: Remove H207 rendering check (saves 1s/build)
+- **themes(docs-nav)**: Convert recursive include to macro (13x faster rendering)
+- **cache**: All auxiliary caches migrated to compressed `.json.zst` format
+- **perf**: ~40% reduction in `.bengal/` directory size (~2.8M savings)
+
+### 🔍 Health Check Improvements ✅
+- **health**: Add H-prefix codes to all health check results (H0xx-H9xx schema)
+- **health**: Add `--ignore` CLI option for selective validation
+- **health(autofix)**: O(1) dict lookup for fence fixes
+
+### 🛠️ Template Functions ✅
+- **template_functions**: Add 13 new filters for best-in-class templating
+- **core(page)**: Implement RFC Template Object Model Phase 1 — add `_source`, `word_count` properties
+
+### 📝 Documentation Fixes ✅
+- **docs**: 15+ accuracy fixes across versioning, i18n, authoring, filtering, menus, sources, deployment, benchmarks
+- **docs(kida)**: Add Template Engine Concepts crash course
+- **docs(site)**: Add language designators to 62 code blocks for Rosettes highlighting
+
+### 🔧 Core Changes ✅
+- **server**: Remove component preview feature
+- **core**: Remove module/package shadowing; delete unused backward-compat shims
+- **autodoc**: Remove backward compatibility aliases and legacy code
 
 ## 0.1.6 - 2025-12-23
 

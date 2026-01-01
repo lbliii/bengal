@@ -575,13 +575,28 @@ class HtmlRenderer:
         # Local references for tight loop
         dispatch = _INLINE_DISPATCH
         render_children = self._render_inline_children
+        role_registry = self._role_registry
         for child in children:
+            # Check for Role nodes with registry-based rendering
+            if isinstance(child, Role) and role_registry is not None:
+                handler = role_registry.get(child.name)
+                if handler is not None:
+                    handler.render(child, sb)
+                    continue
+            # Fall through to default dispatch
             handler = dispatch.get(type(child))
             if handler:
                 handler(child, sb, render_children)
 
     def _render_inline(self, node: Inline, sb: StringBuilder) -> None:
         """Render an inline node using dict dispatch."""
+        # Check for Role nodes with registry-based rendering
+        if isinstance(node, Role) and self._role_registry is not None:
+            handler = self._role_registry.get(node.name)
+            if handler is not None:
+                handler.render(node, sb)
+                return
+        # Fall through to default dispatch
         handler = _INLINE_DISPATCH.get(type(node))
         if handler:
             handler(node, sb, self._render_inline_children)
