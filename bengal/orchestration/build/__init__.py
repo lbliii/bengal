@@ -449,9 +449,15 @@ class BuildOrchestrator:
         assets_start = time.time()
 
         # Phase 13: Process Assets
-        # Assets phase doesn't use parallel processing, so force_sequential doesn't matter here
+        # Asset processing is I/O-bound and benefits from parallel execution
+        # AssetOrchestrator has smart threshold (MIN_ITEMS_FOR_PARALLEL=5) to avoid overhead
         assets_to_process = rendering.phase_assets(
-            self, cli, incremental, False, assets_to_process, collector=output_collector
+            self,
+            cli,
+            incremental,
+            not force_sequential,
+            assets_to_process,
+            collector=output_collector,
         )
 
         assets_duration_ms = (time.time() - assets_start) * 1000

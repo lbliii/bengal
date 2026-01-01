@@ -121,17 +121,16 @@ def normalize_for_comparison(expected: str, actual: str) -> tuple[str, str]:
     return expected, actual
 
 
-# Track which sections have known issues
+# Track which sections have known issues - skip entire sections
 KNOWN_ISSUES: dict[str, str] = {
-    "Setext headings": "Not yet implemented - token exists, parser pending",
+    # These are not yet implemented
     "Link reference definitions": "Not yet implemented - token exists, parser pending",
 }
 
 # Track specific examples that are expected to fail
 XFAIL_EXAMPLES: dict[int, str] = {
-    # List marker issues
-    # Issue 1: Different markers should create separate lists
-    # Issue 2: Deeply nested lists trigger code block detection
+    # Issue 1: Different markers should create separate lists (RFC Issue 1)
+    # Issue 2: Deeply nested lists trigger code block detection (RFC Issue 2)
 }
 
 

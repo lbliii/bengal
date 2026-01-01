@@ -1162,8 +1162,8 @@ class Parser:
                     continue
 
             # Strikethrough: ~~text~~ (when enabled)
-            if char == "~" and self._strikethrough_enabled:
-                if pos + 1 < text_len and text[pos + 1] == "~":
+            if char == "~":
+                if self._strikethrough_enabled and pos + 1 < text_len and text[pos + 1] == "~":
                     # Found ~~, treat as delimiter
                     pos += 2
 
@@ -1186,25 +1186,24 @@ class Parser:
                         }
                     )
                     continue
-                else:
-                    # Single ~, emit as text
-                    tokens_append({"type": "text", "content": "~"})
-                    pos += 1
-                    continue
+                # Strikethrough disabled or single ~, emit as text
+                tokens_append({"type": "text", "content": "~"})
+                pos += 1
+                continue
 
             # Math: $inline$ or $$block$$ (when enabled)
-            if char == "$" and self._math_enabled:
-                math_result = self._try_parse_math(text, pos, location)
-                if math_result:
-                    node, new_pos = math_result
-                    tokens_append({"type": "node", "node": node})
-                    pos = new_pos
-                    continue
-                else:
-                    # Not valid math, emit $ as literal text
-                    tokens_append({"type": "text", "content": "$"})
-                    pos += 1
-                    continue
+            if char == "$":
+                if self._math_enabled:
+                    math_result = self._try_parse_math(text, pos, location)
+                    if math_result:
+                        node, new_pos = math_result
+                        tokens_append({"type": "node", "node": node})
+                        pos = new_pos
+                        continue
+                # Math disabled or not valid math, emit $ as literal text
+                tokens_append({"type": "text", "content": "$"})
+                pos += 1
+                continue
 
             # Regular text - accumulate using set lookup (O(1) per char)
             text_start = pos
