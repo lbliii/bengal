@@ -72,18 +72,18 @@ themes/my-theme/
 
 ## Configure Your Theme
 
-Edit `config/_default/theme.yaml`:
-
-```yaml
-theme:
-  name: "my-theme"
-```
-
-Or update `bengal.toml` if using single-file configuration:
+Update `bengal.toml`:
 
 ```toml
 [theme]
 name = "my-theme"
+```
+
+Or use `config/_default/theme.yaml` for split configuration:
+
+```yaml
+theme:
+  name: "my-theme"
 ```
 
 ## Override Templates Selectively
@@ -156,8 +156,8 @@ Bengal provides 80+ template functions. Common ones:
 - `asset_url('path')` — Generate asset URLs
 - `url_for('path')` — Generate page URLs
 - `get_menu('name')` — Get a navigation menu
-- `strftime(date, format)` — Format dates
-- `truncate(text, length)` — Truncate text
+- `time_ago` / `date_iso` — Format dates (`{{ page.date | time_ago }}`)
+- `truncate_chars(text, length)` — Truncate text
 
 ## Debug Theme Issues
 

@@ -28,7 +28,7 @@ Create your first Bengal site and publish content in 5 minutes. No theming or co
 
 :::{checklist} Before You Start
 :show-progress:
-- [ ] Basic Markdown knowledge
+- [x] Basic Markdown knowledge
 - [ ] [[docs/get-started/installation|Bengal installed]]
 - [ ] Terminal access
 :::{/checklist}
@@ -36,11 +36,45 @@ Create your first Bengal site and publish content in 5 minutes. No theming or co
 ## Create Your Site
 
 ```bash
-bengal new site myblog
+bengal new site myblog --template blog
 cd myblog
 ```
 
-The wizard prompts for a preset (Blog, Docs, Portfolio) and base URL. Accept defaults to continue.
+The `--template blog` flag scaffolds a complete blog structure with sample posts. Other templates: `docs`, `portfolio`, `product`, `resume`, `landing`, `changelog`.
+
+:::{dropdown} Or use a custom skeleton YAML
+:icon: file-text
+
+Define your site structure in one YAML file:
+
+```yaml
+name: My Blog
+structure:
+  - path: index.md
+    type: blog
+    props:
+      title: My Blog
+    content: |
+      # Welcome to My Blog
+
+  - path: posts/hello-world.md
+    type: blog
+    props:
+      title: Hello World
+      date: "2026-01-15"
+    content: |
+      # Hello World
+      My first post!
+```
+
+Apply it:
+
+```bash
+bengal project skeleton apply my-blog.yaml
+```
+
+See [[docs/get-started/skeleton-quickstart|Skeleton YAML Quickstart]] for more examples.
+:::
 
 ## Start the Dev Server {#dev-server}
 
@@ -130,11 +164,11 @@ Every page starts with YAML frontmatter:
 
 ```yaml
 ---
-title: Page Title      # Required
-date: 2026-01-15       # Publication date
-description: SEO text  # Search/social preview
-tags: [tag1, tag2]     # Taxonomy
-draft: true            # Exclude from production
+title: Page Title           # Required
+date: 2026-01-15            # Publication date (ISO format)
+description: SEO text       # Search/social preview
+tags: [tag1, tag2]          # Taxonomy
+draft: true                 # Exclude from production
 ---
 ```
 
@@ -156,14 +190,12 @@ draft: true            # Exclude from production
 | `nav_title` | Short title for navigation |
 | `aliases` | Redirect URLs to this page |
 
-Custom fields are accessible via `page.props.fieldname` in templates.
+Custom fields are accessible in templates via `page.props.fieldname`, `page.params.fieldname`, or `page.metadata.fieldname` (all equivalent).
 :::
 
 ## Next Steps
 
-| Goal | Resource |
-|------|----------|
-| Learn Markdown features | [[docs/content/authoring|Content Authoring]] |
-| Organize content | [[docs/content/organization|Content Organization]] |
-| Customize appearance | [[docs/theming|Theming]] |
-| Full blog tutorial | [[docs/tutorials/build-a-blog|Build a Blog]] |
+- **[[docs/content/authoring|Content Authoring]]** — Markdown features and syntax
+- **[[docs/content/organization|Content Organization]]** — Structure your site
+- **[[docs/theming|Theming]]** — Customize appearance
+- **[[docs/tutorials/build-a-blog|Build a Blog]]** — Complete tutorial

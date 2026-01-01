@@ -65,6 +65,13 @@ Build your own theme or override just the parts you want to change.
 :description: Hack on Bengal core, fix bugs, add features
 Set up your development environment and start contributing.
 :::{/card}
+
+:::{card} Skeleton YAML
+:icon: file-text
+:link: ./skeleton-quickstart
+:description: Define your entire site in one YAML file
+Copy-paste a skeleton, apply it, done. The fastest way to scaffold.
+:::{/card}
 :::{/cards}
 
 ## Next Steps
