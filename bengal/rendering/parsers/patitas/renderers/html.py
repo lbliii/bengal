@@ -546,7 +546,11 @@ class HtmlRenderer:
                 sb.append(f' class="language-{_escape_attr(lang)}"')
         sb.append(">")
         sb.append(_escape_html(code))
-        sb.append("\n</code></pre>\n")
+        # CommonMark: empty code blocks have no trailing newline
+        if code:
+            sb.append("\n</code></pre>\n")
+        else:
+            sb.append("</code></pre>\n")
 
     def _render_highlighted_tokens(
         self,
