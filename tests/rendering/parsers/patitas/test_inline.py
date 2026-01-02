@@ -203,6 +203,38 @@ class TestEscapes:
         html = parse(r"`\*`")
         assert "\\*" in html or r"\*" in html
 
+    def test_escape_in_link_url(self):
+        """Backslash escapes processed in link URLs."""
+        html = parse(r"[foo](/bar\*)")
+        # Escaped asterisk becomes literal asterisk in URL
+        assert 'href="/bar*"' in html
+
+    def test_escape_in_link_title(self):
+        """Backslash escapes processed in link titles."""
+        html = parse(r'[foo](/url "ti\*tle")')
+        # Escaped asterisk becomes literal in title
+        assert 'title="ti*tle"' in html
+
+    def test_escape_in_image_url(self):
+        """Backslash escapes processed in image URLs."""
+        html = parse(r"![alt](/img\*.png)")
+        assert 'src="/img*.png"' in html
+
+
+class TestCodeFenceEscapes:
+    """Backslash escape tests in code fence info strings."""
+
+    def test_escape_in_info_string(self):
+        """Backslash escapes processed in code fence info string."""
+        html = parse("``` foo\\+bar\ncode\n```")
+        # Escaped + becomes literal + in language class
+        assert 'class="language-foo+bar"' in html
+
+    def test_escaped_backtick_in_tilde_fence(self):
+        """Backticks can be escaped in tilde fence info string."""
+        html = parse("~~~ foo\\`bar\ncode\n~~~")
+        assert 'class="language-foo`bar"' in html
+
 
 class TestMixedInline:
     """Mixed inline elements."""

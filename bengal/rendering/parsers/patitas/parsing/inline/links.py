@@ -5,12 +5,35 @@ Handles inline links, reference links, images, and footnote references.
 
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING
 
 from bengal.rendering.parsers.patitas.nodes import FootnoteRef, Image, Link
 
 if TYPE_CHECKING:
     from bengal.rendering.parsers.patitas.location import SourceLocation
+
+
+# CommonMark: ASCII punctuation that can be backslash-escaped
+_ESCAPABLE_CHARS = frozenset("!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~")
+
+# Pattern to find backslash escapes
+_ESCAPE_PATTERN = re.compile(r"\\([!\"#$%&'()*+,\-./:;<=>?@\[\\\]^_`{|}~])")
+
+
+def _process_escapes(text: str) -> str:
+    """Process backslash escapes in link URLs and titles.
+
+    CommonMark: Backslash escapes work in link destinations and titles.
+    A backslash followed by ASCII punctuation is replaced with the literal char.
+
+    Args:
+        text: Raw text that may contain backslash escapes
+
+    Returns:
+        Text with escapes processed
+    """
+    return _ESCAPE_PATTERN.sub(r"\1", text)
 
 
 class LinkParsingMixin:
@@ -100,6 +123,11 @@ class LinkParsingMixin:
                             ):
                                 title = title_part[1:-1]
 
+                    # CommonMark: process backslash escapes in URL and title
+                    url = _process_escapes(url)
+                    if title is not None:
+                        title = _process_escapes(title)
+
                     children = self._parse_inline(link_text, location)
                     return Link(
                         location=location, url=url, title=title, children=children
@@ -175,6 +203,11 @@ class LinkParsingMixin:
                             title_part.startswith("'") and title_part.endswith("'")
                         ):
                             title = title_part[1:-1]
+
+                # CommonMark: process backslash escapes in URL and title
+                url = _process_escapes(url)
+                if title is not None:
+                    title = _process_escapes(title)
 
                 return Image(location=location, url=url, alt=alt_text, title=title), close_paren + 1
 

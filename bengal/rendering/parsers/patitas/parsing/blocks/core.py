@@ -5,6 +5,7 @@ Provides block dispatch and basic block parsing (headings, code, quotes, paragra
 
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING
 
 from bengal.rendering.parsers.patitas.nodes import (
@@ -21,6 +22,18 @@ from bengal.rendering.parsers.patitas.tokens import Token, TokenType
 
 if TYPE_CHECKING:
     pass
+
+
+# Pattern to find backslash escapes (CommonMark ASCII punctuation)
+_ESCAPE_PATTERN = re.compile(r"\\([!\"#$%&'()*+,\-./:;<=>?@\[\\\]^_`{|}~])")
+
+
+def _process_escapes(text: str) -> str:
+    """Process backslash escapes in info strings.
+
+    CommonMark: Backslash escapes work in code fence info strings.
+    """
+    return _ESCAPE_PATTERN.sub(r"\1", text)
 
 
 class BlockParsingCoreMixin:
@@ -150,7 +163,8 @@ class BlockParsingCoreMixin:
         # Rest is info string
         info_str = value[marker_count:].strip()
         if info_str:
-            info = info_str
+            # CommonMark: process backslash escapes in info string
+            info = _process_escapes(info_str)
 
         # Track content boundaries (ZERO-COPY: no string accumulation)
         content_start: int | None = None

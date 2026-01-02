@@ -232,11 +232,12 @@ class ListParsingMixin:
 
                     if next_tok.type == TokenType.LIST_ITEM_MARKER:
                         next_indent = self._get_marker_indent(next_tok.value)
-                        if next_indent <= start_indent:
-                            # Same or less indent - this blank separates items
+                        if next_indent < content_indent:
+                            # Less than content_indent - this is a sibling item
+                            # (even with blank line separation, it's still in the same list)
                             tight = False
                             break
-                        # More indent - could be nested list
+                        # At or beyond content_indent - could be nested list
                     elif next_tok.type == TokenType.PARAGRAPH_LINE:
                         # Check if paragraph is indented enough to continue list item
                         para_indent = self._get_marker_indent(next_tok.value)
