@@ -324,6 +324,9 @@ class BlockParsingCoreMixin:
         assert start_token is not None and start_token.type == TokenType.PARAGRAPH_LINE
 
         lines: list[str] = []
+        # Track if the last line came from INDENTED_CODE (4+ spaces indent)
+        # Such lines cannot be setext underlines
+        last_line_was_indented_code = False
 
         while not self._at_end():
             token = self._current
@@ -331,6 +334,7 @@ class BlockParsingCoreMixin:
 
             if token.type == TokenType.PARAGRAPH_LINE:
                 lines.append(token.value.lstrip())
+                last_line_was_indented_code = False
                 self._advance()
             elif token.type == TokenType.INDENTED_CODE:
                 # CommonMark: indented code blocks cannot interrupt paragraphs
@@ -339,6 +343,7 @@ class BlockParsingCoreMixin:
                 # a paragraph this should be paragraph text with leading spaces stripped
                 code_content = token.value.rstrip("\n")
                 lines.append(code_content)
+                last_line_was_indented_code = True  # Mark that this line was 4+ spaces
                 self._advance()
             elif token.type == TokenType.LIST_ITEM_MARKER:
                 # CommonMark: ordered lists can only interrupt paragraphs if start=1
@@ -375,7 +380,8 @@ class BlockParsingCoreMixin:
                 break
 
         # Check for setext heading: text followed by === or ---
-        if len(lines) >= 2:
+        # CommonMark: setext underline can have up to 3 spaces indent, not 4+
+        if len(lines) >= 2 and not last_line_was_indented_code:
             last_line = lines[-1].strip()
             if self._is_setext_underline(last_line):
                 # Determine heading level: === is h1, --- is h2
@@ -393,24 +399,25 @@ class BlockParsingCoreMixin:
                 )
 
         # Check if next token is THEMATIC_BREAK (---) which could be setext h2
-        # CommonMark: --- after paragraph is setext heading, not thematic break
+        # CommonMark: A sequence of only --- (with optional trailing spaces) after
+        # paragraph is setext heading, not thematic break. But "--- -" is a thematic break.
         if len(lines) == 1 and not self._at_end():
             token = self._current
-            if (
-                token is not None
-                and token.type == TokenType.THEMATIC_BREAK
-                and token.value.strip().startswith("-")
-            ):
-                self._advance()  # Consume the thematic break
-                # CommonMark: strip trailing whitespace from heading content
-                heading_text = lines[0].rstrip()
-                children = self._parse_inline(heading_text, start_token.location)
-                return Heading(
-                    location=start_token.location,
-                    level=2,
-                    children=children,
-                    style="setext",
-                )
+            if token is not None and token.type == TokenType.THEMATIC_BREAK:
+                # Check if the thematic break is a valid setext underline
+                # (only dashes, no other characters except trailing spaces)
+                break_value = token.value.strip()
+                if break_value and all(c == "-" for c in break_value):
+                    self._advance()  # Consume the thematic break
+                    # CommonMark: strip trailing whitespace from heading content
+                    heading_text = lines[0].rstrip()
+                    children = self._parse_inline(heading_text, start_token.location)
+                    return Heading(
+                        location=start_token.location,
+                        level=2,
+                        children=children,
+                        style="setext",
+                    )
 
         # Check for table structure if tables enabled
         if self._tables_enabled and len(lines) >= 2 and "|" in lines[0]:

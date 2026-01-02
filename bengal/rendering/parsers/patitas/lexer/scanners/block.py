@@ -42,6 +42,35 @@ class BlockScannerMixin:
         """Calculate indent level and content start position."""
         raise NotImplementedError
 
+    def _chars_for_indent(self, line: str, target_indent: int) -> int:
+        """Calculate how many characters to skip to consume target_indent spaces.
+
+        Tabs expand to the next multiple of 4, so we need to track
+        actual column position to determine character count.
+
+        Args:
+            line: The line content
+            target_indent: Number of spaces worth of indent to consume
+
+        Returns:
+            Number of characters to skip
+        """
+        col = 0
+        pos = 0
+        while pos < len(line) and col < target_indent:
+            char = line[pos]
+            if char == " ":
+                col += 1
+                pos += 1
+            elif char == "\t":
+                # Tab expands to next multiple of 4
+                tab_width = 4 - (col % 4)
+                col += tab_width
+                pos += 1
+            else:
+                break
+        return pos
+
     def _commit_to(self, line_end: int) -> None:
         """Commit position to line_end."""
         raise NotImplementedError
@@ -126,9 +155,13 @@ class BlockScannerMixin:
         # This takes priority over most block types (except fenced code inside lists)
         # Must check BEFORE ATX headings, thematic breaks, and block quotes
         if indent >= 4:
+            # Calculate how many characters to skip to remove 4 spaces of indent
+            # Tabs count as (4 - col % 4) spaces, so we need to track actual chars
+            chars_for_4_spaces = self._chars_for_indent(line, 4)
+            code_content = line[chars_for_4_spaces:]
             yield Token(
                 TokenType.INDENTED_CODE,
-                line[4:] + ("\n" if self._consumed_newline else ""),
+                code_content + ("\n" if self._consumed_newline else ""),
                 self._location_from(line_start),
             )
             return

@@ -25,6 +25,7 @@ from bengal.rendering.parsers.patitas.parsing import (
     InlineParsingMixin,
     TokenNavigationMixin,
 )
+from bengal.rendering.parsers.patitas.parsing.inline.links import _process_escapes
 from bengal.rendering.parsers.patitas.tokens import Token, TokenType
 
 
@@ -143,8 +144,9 @@ class Parser(
                 parts = token.value.split("|", 2)
                 if len(parts) >= 2:
                     label = parts[0].lower()  # Labels are case-insensitive
-                    url = parts[1]
-                    title = parts[2] if len(parts) > 2 else ""
+                    # Process backslash escapes in URL and title (CommonMark 6.1)
+                    url = _process_escapes(parts[1])
+                    title = _process_escapes(parts[2]) if len(parts) > 2 else ""
                     self._link_refs[label] = (url, title)
 
         # Parse blocks
