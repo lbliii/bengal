@@ -46,7 +46,7 @@ jobs:
         PYTHON_GIL: "0"
       run: |
         echo "Running fast test suite (unit tests only, excluding slow)..."
-        uv run pytest -n auto -q --tb=short --dist worksteal --max-worker-restart=3 tests/unit -m "not slow"
+        uv run pytest -n auto -q --tb=short --dist worksteal --max-worker-restart=3 tests/unit tests/core tests/test_thread_safety.py -m "not slow"
 
   # Baseurl spot-checks + Coverage (single-process)
   full-suite:
@@ -106,7 +106,7 @@ jobs:
         BENGAL_CI_FAST: "1"
         PYTHON_GIL: "0"
       run: |
-        uv run pytest -n 0 -q --tb=short --cov=bengal --cov-report=xml tests/unit -m "not slow"
+        uv run pytest -n 0 -q --tb=short --cov=bengal --cov-report=xml tests/unit tests/core tests/test_thread_safety.py -m "not slow"
 
   # Slow tests (memory profiling, bytecode cache, etc.)
   slow-tests:

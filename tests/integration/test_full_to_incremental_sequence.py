@@ -118,7 +118,7 @@ Original content.""")
         site = Site.from_config(site_dir, config_path=config_path)
         site.discover_content()
         site.discover_assets()
-        full_stats = site.build()
+        full_stats = site.build(BuildOptions(force_sequential=True, incremental=False))
         assert full_stats.total_pages > 0
         assert len(list((site_dir / "public").rglob("*.html"))) > 0
 

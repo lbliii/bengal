@@ -12,6 +12,7 @@ import pytest
 from bs4 import BeautifulSoup
 
 from bengal.core.site import Site
+from bengal.orchestration.build.options import BuildOptions
 
 
 @pytest.fixture(scope="class")
@@ -37,7 +38,7 @@ def built_site(tmp_path_factory):
     site = Site.from_config(site_dir)
     site.config["strict_mode"] = True  # Fail loudly on errors
     # No need for ignore list - health check now recognizes code blocks automatically!
-    site.build()
+    site.build(BuildOptions(strict=True))
 
     return site.output_dir
 
@@ -270,7 +271,7 @@ title = "Test Site"
         site.config["strict_mode"] = False
 
         # Should not raise
-        site.build()
+        site.build(BuildOptions(strict=False))
 
         # But output should be fallback HTML (small)
         output_file = site.output_dir / "test/index.html"
