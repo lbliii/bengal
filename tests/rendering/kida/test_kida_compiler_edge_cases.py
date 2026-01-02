@@ -57,11 +57,11 @@ class TestScopeCompilation:
         assert "2-3" in result
         assert "2-4" in result
 
-    def test_macro_scope_isolation(self, env: Environment) -> None:
-        """Macro has isolated scope."""
+    def test_function_scope_isolation(self, env: Environment) -> None:
+        """Function has isolated scope."""
         tmpl = env.from_string("""
 {% set x = 'outer' %}
-{% macro test() %}{% set x = 'inner' %}{{ x }}{% endmacro %}
+{% def test() %}{% set x = 'inner' %}{{ x }}{% end %}
 {{ test() }}-{{ x }}
 """)
         result = tmpl.render()
@@ -200,28 +200,28 @@ class TestLoopCompilation:
         assert "1" in tmpl.render(items=[1, 2])
 
 
-class TestMacroCompilation:
-    """Test macro compilation."""
+class TestFunctionCompilation:
+    """Test function compilation."""
 
     @pytest.fixture
     def env(self) -> Environment:
         return Environment()
 
-    def test_macro_default_arg_expression(self, env: Environment) -> None:
-        """Macro with expression as default arg."""
+    def test_function_default_arg_expression(self, env: Environment) -> None:
+        """Function with expression as default arg."""
         tmpl = env.from_string("""
-{% macro greet(name='World') %}Hello {{ name }}{% endmacro %}
+{% def greet(name='World') %}Hello {{ name }}{% end %}
 {{ greet() }}|{{ greet('User') }}
 """)
         result = tmpl.render()
         assert "Hello World" in result
         assert "Hello User" in result
 
-    def test_macro_varargs(self, env: Environment) -> None:
-        """Macro with varargs (if supported)."""
+    def test_function_varargs(self, env: Environment) -> None:
+        """Function with varargs (if supported)."""
         try:
             tmpl = env.from_string("""
-{% macro join_all(*args) %}{{ args|join(',') }}{% endmacro %}
+{% def join_all(*args) %}{{ args|join(',') }}{% end %}
 {{ join_all('a', 'b', 'c') }}
 """)
             result = tmpl.render()
@@ -229,11 +229,11 @@ class TestMacroCompilation:
         except Exception:
             pytest.skip("Varargs not supported")
 
-    def test_macro_kwargs(self, env: Environment) -> None:
-        """Macro with kwargs (if supported)."""
+    def test_function_kwargs(self, env: Environment) -> None:
+        """Function with kwargs (if supported)."""
         try:
             tmpl = env.from_string("""
-{% macro show(**kwargs) %}{% for k, v in kwargs.items() %}{{ k }}={{ v }};{% endfor %}{% endmacro %}
+{% def show(**kwargs) %}{% for k, v in kwargs.items() %}{{ k }}={{ v }};{% endfor %}{% end %}
 {{ show(a=1, b=2) }}
 """)
             result = tmpl.render()
@@ -488,10 +488,10 @@ class TestImportCompilation:
     """Test import/from compilation."""
 
     def test_import_macros(self) -> None:
-        """Import macros from another template."""
+        """Import functions from another template."""
         loader = DictLoader(
             {
-                "macros.html": "{% macro greet(name) %}Hello {{ name }}{% endmacro %}",
+                "macros.html": "{% def greet(name) %}Hello {{ name }}{% end %}",
             }
         )
         env = Environment(loader=loader)
@@ -506,7 +506,7 @@ class TestImportCompilation:
         """Import with alias."""
         loader = DictLoader(
             {
-                "macros.html": "{% macro greet(name) %}Hello {{ name }}{% endmacro %}",
+                "macros.html": "{% def greet(name) %}Hello {{ name }}{% end %}",
             }
         )
         env = Environment(loader=loader)

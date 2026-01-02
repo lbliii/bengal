@@ -204,7 +204,7 @@ class TestManyMacros:
     def test_many_macro_definitions(self, env: Environment) -> None:
         """Template with many macro definitions."""
         count = 100
-        macros = "\n".join(f"{{% macro m{i}() %}}macro{i}{{% endmacro %}}" for i in range(count))
+        macros = "\n".join(f"{{% def m{i}() %}}macro{i}{{% end %}}" for i in range(count))
         template = macros + "\n{{ m0() }}{{ m99() }}"
 
         tmpl = env.from_string(template)
@@ -216,7 +216,7 @@ class TestManyMacros:
     def test_many_macro_calls(self, env: Environment) -> None:
         """Template with many macro calls."""
         count = 500
-        template = "{% macro m() %}x{% endmacro %}" + "{{ m() }}" * count
+        template = "{% def m() %}x{% end %}" + "{{ m() }}" * count
 
         tmpl = env.from_string(template)
         result = tmpl.render()

@@ -54,11 +54,11 @@ Kida functions can "see" variables defined outside them. This is called **lexica
 
 ```jinja2
 {# Jinja2: Must pass ALL needed variables as parameters #}
-{% macro card(item, site_name, theme_color) %}
+{% def card(item, site_name, theme_color) %}
   <div class="card" style="border-color: {{ theme_color }}">
     <small>From: {{ site_name }}</small>
   </div>
-{% endmacro %}
+{% end %}
 
 {# Caller must remember to pass everything #}
 {{ card(page, site.config.title, config.theme.primary_color) }}

@@ -628,12 +628,11 @@ class RenderingPipeline:
         try:
             # Use the configured template engine for preprocessing
             # This respects site.config.template_engine (Kida, Jinja2, etc.)
-            # We use strict=False because documentation pages often contain
-            # template syntax examples with undefined variables (e.g. {{ secrets.XXX }})
+            # If preprocessing fails (e.g. undefined variables in doc examples),
+            # the exception handler below falls back to raw source
             return self.template_engine.render_string(
                 page._source,
                 {"page": page, "site": self.site, "config": self.site.config},
-                strict=False,
             )
         except Exception as e:
             if self.build_stats:

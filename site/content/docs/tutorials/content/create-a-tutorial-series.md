@@ -80,6 +80,21 @@ prerequisites:
   - Node.js installed
 ---
 
+:::{note}
+**Template Resolution**
+
+The `type: series-index` metadata tells Bengal to look for a template at `templates/series-index/list.html` (since `_index.md` files are section indexes). Bengal's template resolution follows this pattern:
+
+- **Section indexes** (`_index.md`): `{type}/list.html` → `list.html` → `index.html`
+- **Regular pages**: `{type}/single.html` → `single.html` → `page.html`
+
+If you prefer a different template path, you can use explicit `template:` frontmatter:
+
+```yaml
+template: "series-overview.html"
+```
+:::
+
 # React from Scratch
 
 Learn to build React applications from the ground up. This 5-part series takes you from zero to a fully deployed application.
@@ -359,7 +374,21 @@ Add the styles to `assets/css/series.css`:
 :description: Build a landing page showing all parts in the series.
 :duration: 5 min
 
-Create `templates/series-index/single.html` for the series overview page:
+Create `templates/series-index/list.html` for the series overview page. Since `_index.md` files are section indexes, Bengal's template resolution looks for `{type}/list.html` templates.
+
+:::{tip}
+**Template Resolution**
+
+When you set `type: series-index` in frontmatter, Bengal follows this template cascade:
+1. `templates/series-index/list.html` (for section indexes)
+2. `templates/list.html` (fallback)
+3. `templates/index.html` (final fallback)
+
+If you prefer a different template name, use explicit `template:` frontmatter:
+```yaml
+template: "series-overview.html"
+```
+:::
 
 ```html
 {% extends "default/base.html" %}
@@ -403,22 +432,27 @@ Create `templates/series-index/single.html` for the series overview page:
 
     <ol class="parts-list">
       {% for part in section.pages | sort_by('weight') %}
-      {% if part.series %}
+      {% if part.series and part.series.name == page.metadata.series_name %}
       <li class="part-item">
         <a href="{{ part.href }}" class="part-link">
           <span class="part-number">Part {{ part.series.part }}</span>
           <span class="part-title">{{ part.title }}</span>
+          {% if part.reading_time %}
           <span class="part-time">{{ part.reading_time }} min</span>
+          {% end %}
         </a>
       </li>
       {% end %}
       {% end %}
     </ol>
 
-    <a href="{{ section.pages | sort_by('weight') | first | attr('href') }}"
+    {% let first_part = section.pages | sort_by('weight') | first %}
+    {% if first_part %}
+    <a href="{{ first_part.href }}"
        class="btn btn-primary btn-large">
       Start Learning →
     </a>
+    {% end %}
   </section>
 </article>
 {% endblock %}
@@ -523,7 +557,7 @@ Create `templates/partials/series-toc.html`:
 
 ```html
 {# templates/partials/series-toc.html #}
-{% if page.series %}
+{% if page.series and page._section %}
 <aside class="series-toc">
   <h4>
     <a href="{{ page._section.href }}">{{ page.series.name }}</a>
@@ -532,8 +566,8 @@ Create `templates/partials/series-toc.html`:
   <ol class="toc-parts">
     {% let series_pages = page._section.pages | sort_by('weight') %}
     {% for part in series_pages %}
-    {% if part.series %}
-    <li class="{% if part.eq(page) %}current{% end %}">
+    {% if part.series and part.series.name == page.series.name %}
+    <li class="{% if part.href == page.href %}current{% end %}">
       <a href="{{ part.href }}">
         <span class="part-num">{{ part.series.part }}.</span>
         {{ part.nav_title or part.title }}
@@ -645,7 +679,7 @@ Add a completion message to the series navigation for the last part:
 
 ```html
 {# At the end of series-nav.html #}
-{% if page.series and page.series.part == page.series.total %}
+{% if page.series and page.series.total > 0 and page.series.part == page.series.total %}
 <div class="series-complete-banner">
   <div class="celebration">🎉</div>
   <h3>Congratulations!</h3>
@@ -655,7 +689,9 @@ Add a completion message to the series navigation for the last part:
     <h4>What's Next?</h4>
     <ul>
       <li><a href="/tutorials/">Browse more tutorials</a></li>
-      <li><a href="{{ share_url('twitter', page) }}">Share your achievement</a></li>
+      {% if page.absolute_href %}
+      <li><a href="{{ share_url('twitter', page) }}" target="_blank" rel="noopener">Share your achievement</a></li>
+      {% end %}
     </ul>
   </div>
 </div>

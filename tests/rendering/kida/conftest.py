@@ -37,8 +37,8 @@ def env_with_loader():
             "child.html": ('{% extends "base.html" %}{% block body %}Hello World{% endblock %}'),
             "partial.html": "<p>Partial content</p>",
             "macros.html": (
-                "{% macro greet(name) %}Hello {{ name }}{% endmacro %}"
-                "{% macro add(a, b) %}{{ a + b }}{% endmacro %}"
+                "{% def greet(name) %}Hello {{ name }}{% end %}"
+                "{% def add(a, b) %}{{ a + b }}{% end %}"
             ),
         }
     )

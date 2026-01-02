@@ -19,7 +19,7 @@ Kida extends Jinja2 with pattern matching, pipeline operators, and unified block
 | Optional chaining | `?.` | Not available |
 | Null coalescing | `??` | `\| default()` |
 | Fragment caching | `{% cache %}` | Extension required |
-| Functions | `{% def %}` (sees outer variables) | `{% macro %}` (isolated) |
+| Functions | `{% def %}` (sees outer variables) | `{% def %}` (isolated) |
 | Range literals | `1..10` | `range(1, 11)` |
 
 ## Topics

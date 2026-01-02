@@ -41,7 +41,7 @@ Complete reference for Kida template syntax, operators, and features. Kida is Be
 | Optional chaining  | `obj?.attr`, `obj?['key']`     | ❌ Not available                    |
 | Null coalescing    | `value ?? default`             | `value \| default(...)`             |
 | Fragment caching   | `{% cache key %}...{% end %}`  | Requires extension                  |
-| Functions          | `{% def %}` (lexical scope)    | `{% macro %}` (isolated scope)      |
+| Functions          | `{% def %}` (lexical scope)    | `{% def %}` (isolated scope)      |
 
 ## Basic Syntax
 

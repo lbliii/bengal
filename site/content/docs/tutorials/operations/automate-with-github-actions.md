@@ -38,6 +38,10 @@ Set up continuous integration and deployment (CI/CD) for your Bengal site. Autom
 - A hosting provider account (GitHub Pages, Netlify, Vercel, etc.)
 - Basic knowledge of YAML
 
+:::tip Performance Tip
+For faster CI builds, use Python 3.14t (free-threading build) instead of 3.14. This enables true parallel processing and can reduce build times by 1.5-2x on multi-core runners. Update `python-version: '3.14t'` in your workflows.
+:::
+
 ## Steps
 
 :::{steps}
@@ -79,9 +83,13 @@ jobs:
           path: public/
           retention-days: 1
 ```
+
 :::{/step}
 
 :::{step} Deploy to GitHub Pages
+
+Automatically deploys to GitHub Pages when you push to `main`. Requires GitHub Pages enabled in repository settings.
+
 Create `.github/workflows/deploy.yml`:
 
 ```yaml
@@ -91,6 +99,7 @@ on:
   push:
     branches: [main]
 
+# Required permissions for GitHub Pages deployment
 permissions:
   contents: read
   pages: write
@@ -107,6 +116,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.14'
+          cache: 'pip'
 
       - name: Install Bengal
         run: pip install bengal
@@ -130,9 +140,14 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
 ```
+
+**Note:** Enable GitHub Pages in your repository settings: **Settings** > **Pages** > **Source**: GitHub Actions.
 :::{/step}
 
 :::{step} Preview Deployments
+
+Builds preview versions for pull requests. Comments on PRs when build succeeds. Artifacts available in workflow run.
+
 Create `.github/workflows/preview.yml`:
 
 ```yaml
@@ -153,12 +168,20 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.14'
+          cache: 'pip'
 
       - name: Install Bengal
         run: pip install bengal
 
       - name: Build site
         run: bengal build --environment preview
+
+      - name: Upload preview artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: preview-site
+          path: public/
+          retention-days: 7
 
       - name: Comment PR with preview
         uses: actions/github-script@v7
@@ -168,9 +191,10 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '✅ Preview build successful! Artifacts available in workflow run.'
+              body: '✅ Preview build successful! Download artifacts from workflow run.'
             })
 ```
+
 :::{/step}
 
 :::{step} Add Validation and Testing
@@ -205,19 +229,19 @@ jobs:
       - name: Build with strict mode
         run: bengal build --strict --verbose
 ```
+
 :::{/step}
 
 :::{step} Caching for Faster Builds
-Add caching to speed up workflows:
+
+Cache dependencies and build artifacts to reduce workflow time. Add these steps after Python setup:
 
 ```yaml
-- name: Cache pip packages
-  uses: actions/cache@v4
+- name: Set up Python
+  uses: actions/setup-python@v5
   with:
-    path: ~/.cache/pip
-    key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
-    restore-keys: |
-      ${{ runner.os }}-pip-
+    python-version: '3.14'
+    cache: 'pip'  # Automatically caches pip packages
 
 - name: Cache Bengal build cache
   uses: actions/cache@v4
@@ -227,12 +251,18 @@ Add caching to speed up workflows:
     restore-keys: |
       ${{ runner.os }}-bengal-
 ```
+
+**Note:** Python setup with `cache: 'pip'` automatically caches pip packages. Only add Bengal cache if you use incremental builds.
 :::{/step}
 
 :::{step} Environment-Specific Builds
-**Create Environment Configs**
 
-**`config/environments/production.yaml`:**
+Use different configurations for production and preview builds. Store secrets in GitHub repository settings.
+
+**1. Create environment configs:**
+
+`config/environments/production.yaml`:
+
 ```yaml
 site:
   baseurl: "https://example.com"
@@ -241,7 +271,8 @@ params:
   analytics_id: "{{ env.GA_ID }}"
 ```
 
-**`config/environments/preview.yaml`:**
+`config/environments/preview.yaml`:
+
 ```yaml
 site:
   baseurl: "https://preview.example.com"
@@ -250,13 +281,23 @@ params:
   analytics_id: ""  # Disable analytics in preview
 ```
 
-**Use Environment Variables**
+**2. Add environment variables to workflow:**
 
 ```yaml
 env:
   GA_ID: ${{ secrets.GA_ID }}
   API_KEY: ${{ secrets.API_KEY }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # ... other steps ...
+      - name: Build site
+        run: bengal build --environment production
 ```
+
+**3. Set secrets in GitHub:** **Settings** > **Secrets and variables** > **Actions** > **New repository secret**
 :::{/step}
 :::{/steps}
 
@@ -324,34 +365,56 @@ Create `vercel.json`:
 :::{dropdown} Build Failures
 :icon: alert
 
-**Issue:** Build fails with "Command not found: bengal"
+**Issue:** `Command not found: bengal`
 
 **Solutions:**
-- Ensure Python 3.14+ is installed
-- Check `pip install bengal` runs before build
-- Verify Python path in CI environment
+
+- Verify Python 3.14+ is installed: `python-version: '3.14'`
+- Ensure `pip install bengal` runs before build step
+- Check Python path: Add `which python` step for debugging
 
 **Issue:** Build fails with strict mode errors
 
 **Solutions:**
-- Fix broken links: `bengal health check`
-- Fix template errors
-- Remove `--strict` flag temporarily to identify issues
+
+- Check configuration: `bengal config doctor`
+- Fix broken links: `bengal health linkcheck`
+- Fix template errors: Check build logs for specific errors
+- Temporarily remove `--strict` to identify issues: `bengal build --verbose`
+
+**Issue:** Build succeeds locally but fails in CI
+
+**Solutions:**
+
+- Check environment variables are set in GitHub secrets
+- Verify file paths match CI working directory
+- Review build logs for missing dependencies
 :::
 
 :::{dropdown} Deployment Issues
 :icon: alert
 
-**Issue:** Files not deploying
+**Issue:** Files not deploying to GitHub Pages
 
 **Solutions:**
-- Verify output directory: `public/`
-- Check build artifacts are uploaded
-- Verify deployment permissions
+
+- Verify output directory: `path: './public'` matches your build output
+- Check build artifacts uploaded: View workflow run artifacts
+- Verify permissions: Ensure `pages: write` permission is set
+- Enable GitHub Pages: **Settings** > **Pages** > **Source**: GitHub Actions
+
+**Issue:** Preview builds not working
+
+**Solutions:**
+
+- Check PR comments for errors
+- Verify `actions/github-script@v7` has write permissions
+- Review workflow logs for authentication errors
 :::
 
 ## Next Steps
 
-- **[Deployment Options](/docs/building/deployment/)** - Explore other hosting platforms
-- **[Configuration](/docs/building/configuration/)** - Environment-specific settings
-- **[Health Checks](/docs/content/validation/)** - Set up content validation
+- **[Deployment Options](/docs/building/deployment/)** — Explore other hosting platforms
+- **[Configuration](/docs/building/configuration/)** — Environment-specific settings
+- **[Health Checks](/docs/content/validation/)** — Set up content validation
+- **[Graph Analysis](/docs/tutorials/operations/analyze-site-connectivity/)** — Add connectivity checks to CI

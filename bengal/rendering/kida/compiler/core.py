@@ -138,7 +138,7 @@ class Compiler(
                 # Recurse into block body to find nested blocks
                 self._collect_blocks(node.body)
             elif hasattr(node, "body"):
-                # Node has a body (If, For, With, Macro, etc.)
+                # Node has a body (If, For, With, Def, etc.)
                 self._collect_blocks(node.body)
                 # Check for else/elif bodies
                 if hasattr(node, "else_") and node.else_:
@@ -229,6 +229,11 @@ class Compiler(
                     attr="append",
                     ctx=ast.Load(),
                 ),
+            ),
+            # _scope_stack = [] (for block-scoped variables)
+            ast.Assign(
+                targets=[ast.Name(id="_scope_stack", ctx=ast.Store())],
+                value=ast.List(elts=[], ctx=ast.Load()),
             ),
         ]
 
@@ -325,7 +330,7 @@ class Compiler(
 
             # First, execute top-level statements that modify context (imports, sets, etc.)
             # These need to run before blocks are called so imported macros are available.
-            # We compile FromImport, Import, Set, Let, Export, Macro, and Def nodes at the top level.
+            # We compile FromImport, Import, Set, Let, Export, and Def nodes at the top level.
             for child in node.body:
                 child_type = type(child).__name__
                 if child_type in (
@@ -334,7 +339,6 @@ class Compiler(
                     "Set",
                     "Let",
                     "Export",
-                    "Macro",
                     "Def",
                     "Do",
                 ):
@@ -513,7 +517,6 @@ class Compiler(
                 "Import": self._compile_import,
                 "Include": self._compile_include,
                 "Block": self._compile_block,
-                "Macro": self._compile_macro,
                 "Def": self._compile_def,
                 "CallBlock": self._compile_call_block,
                 "Slot": self._compile_slot,

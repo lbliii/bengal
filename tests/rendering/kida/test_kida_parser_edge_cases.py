@@ -95,7 +95,8 @@ class TestErrorLineNumbers:
         err = exc_info.value
         # Check if line number is reported somehow
         err_str = str(err).lower()
-        has_line_1 = "line 1" in err_str or getattr(err, "lineno", None) == 1
+        # Verify line number is reported (either in string or as attribute)
+        assert "line 1" in err_str or getattr(err, "lineno", None) == 1
 
     def test_error_on_line_3(self, env: Environment) -> None:
         """Error on line 3 reports line 3."""
@@ -107,7 +108,8 @@ line 2
         # Should report line 3
         err = exc_info.value
         err_str = str(err).lower()
-        has_line_3 = "line 3" in err_str or getattr(err, "lineno", None) == 3
+        # Verify line number is reported (either in string or as attribute)
+        assert "line 3" in err_str or getattr(err, "lineno", None) == 3
 
     def test_error_after_multiline_block(self, env: Environment) -> None:
         """Error after multiline content reports correct line."""
@@ -331,21 +333,21 @@ class TestFilterParsing:
         assert tmpl.render(x=-5, y=2) == "3"
 
 
-class TestMacroDefParsing:
+class TestFunctionDefParsing:
     """Test macro/def parsing."""
 
     @pytest.fixture
     def env(self) -> Environment:
         return Environment()
 
-    def test_macro_no_args(self, env: Environment) -> None:
-        """Macro with no arguments."""
-        tmpl = env.from_string("{% macro m() %}x{% endmacro %}{{ m() }}")
+    def test_function_no_args(self, env: Environment) -> None:
+        """Function with no arguments."""
+        tmpl = env.from_string("{% def m() %}x{% end %}{{ m() }}")
         assert tmpl.render() == "x"
 
-    def test_macro_with_defaults(self, env: Environment) -> None:
-        """Macro with default arguments."""
-        tmpl = env.from_string("{% macro m(a='x') %}{{ a }}{% endmacro %}{{ m() }}{{ m('y') }}")
+    def test_function_with_defaults(self, env: Environment) -> None:
+        """Function with default arguments."""
+        tmpl = env.from_string("{% def m(a='x') %}{{ a }}{% end %}{{ m() }}{{ m('y') }}")
         assert tmpl.render() == "xy"
 
     def test_def_with_args(self, env: Environment) -> None:

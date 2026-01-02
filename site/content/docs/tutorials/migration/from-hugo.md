@@ -17,7 +17,7 @@ keywords:
 
 # Bengal for Hugo Users
 
-Good news: Bengal's content model is almost identical to Hugo's. The main difference? Shortcodes become directives.
+Bengal's content model matches Hugo's. The main difference: shortcodes become directives.
 
 ## Quick Wins (5 Minutes)
 
@@ -180,7 +180,7 @@ def hello():
 :::{/tab-set}
 
 :::{tip}
-Bengal's `{figure}` directive produces semantic HTML (`<figure>` + `<figcaption>`) with proper accessibility support. The `:alt:` option is required for images. Use `:alt:` with an empty value for decorative images.
+Bengal's `{figure}` directive outputs semantic HTML (`<figure>` + `<figcaption>`) with accessibility support. The `:alt:` option is required. Use an empty `:alt:` value for decorative images.
 :::
 
 ### YouTube Embed
@@ -204,12 +204,12 @@ Bengal's `{figure}` directive produces semantic HTML (`<figure>` + `<figcaption>
 :::{/tab-set}
 
 :::{tip}
-Bengal's `{youtube}` directive uses **privacy-enhanced mode** by default (`youtube-nocookie.com`), which is better for GDPR compliance.
+Bengal's `{youtube}` directive uses privacy-enhanced mode (`youtube-nocookie.com`) by default for GDPR compliance.
 :::
 
 ### All Media Embed Directives
 
-Bengal provides built-in directives for all common media embeds:
+Bengal includes built-in directives for common media embeds:
 
 | Hugo Shortcode | Bengal Directive | Notes |
 |----------------|------------------|-------|
@@ -227,7 +227,7 @@ Bengal provides built-in directives for all common media embeds:
 | N/A | `:::{stackblitz} id` | StackBlitz embeds |
 | N/A | `:::{asciinema} id` | Terminal recordings |
 
-**All directives with iframes require `:title:` for accessibility.**
+**Note**: All iframe-based directives require `:title:` for accessibility.
 
 ---
 
@@ -259,7 +259,7 @@ Bengal provides built-in directives for all common media embeds:
 
 ### Variable Substitution in Content
 
-Bengal supports variable substitution directly in markdown (not just templates):
+Bengal supports variable substitution in markdown content:
 
 ```markdown
 ---
@@ -276,7 +276,7 @@ Current site: {{ site.config.title }}
 ```
 
 :::{tip}
-This is unique to Bengal—Hugo only supports variables in templates, not content files.
+Hugo only supports variables in templates. Bengal supports them in content files too.
 :::
 
 ---
@@ -367,7 +367,7 @@ weight = 20
 
 ---
 
-## What Bengal Adds (Hugo Doesn't Have Built-in)
+## Additional Features
 
 :::::{tab-set}
 
@@ -471,16 +471,16 @@ bengal serve
 
 ---
 
-## What's Different (Honest Gaps)
+## Differences and Limitations
 
-| Hugo Feature | Bengal Status | Workaround |
-|--------------|---------------|------------|
-| Custom shortcodes | Use directives | Built-in directives cover most cases |
+| Hugo Feature | Bengal Equivalent | Notes |
+|--------------|-------------------|-------|
+| Custom shortcodes | Directives | Built-in directives cover most cases |
 | Go templates | Jinja2 templates | Similar concepts, different syntax |
-| Hugo Modules | Local themes only | Copy theme files |
-| `.GetPage` function | Template functions | Different API |
-| Image processing | Not built-in | External tools |
-| Multilingual i18n | `lang` frontmatter | Simpler approach |
+| Hugo Modules | Local themes | Copy theme files or use Git submodules |
+| `.GetPage` function | Template functions | Different API, similar functionality |
+| Image processing | External tools | Use ImageMagick, Sharp, or pre-process images |
+| Multilingual i18n | `lang` frontmatter | Simpler approach, less feature-rich |
 
 ### Template Syntax Differences
 
@@ -507,7 +507,7 @@ cp -r /path/to/hugo/content/* content/
 :::{/step}
 
 :::{step} Convert Frontmatter
-The only change: `categories` (plural) → `category` (singular)
+Change `categories` (plural) to `category` (singular):
 
 ```yaml
 # Hugo
@@ -515,34 +515,35 @@ categories: [tutorial, python]
 
 # Bengal
 category: tutorial
-tags: [python]  # Use tags for multiple
+tags: [python]  # Use tags for multiple categories
 ```
 :::{/step}
 
 :::{step} Convert Shortcodes
-Search for `{{<` and replace with directives:
+Find all shortcode usages:
 
 ```bash
-# Find all shortcode usages
 grep -r "{{<" content/
 ```
 
-Common conversions:
+Replace with directives:
 
-| Find | Replace With |
-|------|--------------|
+| Hugo Shortcode | Bengal Directive |
+|----------------|------------------|
 | `{{</* notice note */>}}...{{</* /notice */>}}` | `:::{note}...:::` |
 | `{{</* highlight python */>}}...{{</* /highlight */>}}` | ` ```python...``` ` |
 | `{{</* tabs */>}}...{{</* /tabs */>}}` | `:::{tab-set}...:::{/tab-set}` |
+| `{{</* figure src="..." */>}}` | `:::{figure} path`<br>`:alt: text` |
 :::{/step}
 
 :::{step} Update Config
-```bash
-# Rename config
-mv config.toml bengal.toml
+Rename and update the config file:
 
-# Update format (see config mapping above)
+```bash
+mv config.toml bengal.toml
 ```
+
+Update the format using the [Configuration Mapping](#configuration-mapping) section above.
 :::{/step}
 
 :::{step} Test
@@ -611,7 +612,7 @@ bengal serve
 :::{dropdown} Can I use Go templates?
 :icon: question
 
-No. Bengal uses Jinja2 templates, which have similar concepts but different syntax. The good news: Jinja2 is widely documented and arguably more readable. Your template logic transfers, just with different syntax.
+No. Bengal uses Jinja2 templates. Template logic transfers, but syntax differs. See the [Template Variable Mapping](#template-variable-mapping) section for conversions.
 :::
 
 :::{dropdown} What about Hugo modules?
@@ -623,20 +624,26 @@ Bengal doesn't have a module system. For shared content, use `:::{include}` dire
 :::{dropdown} Can I keep my custom shortcodes?
 :icon: question
 
-Not directly. Convert shortcodes to Bengal directives or Jinja2 macros. Most common shortcodes (tabs, notices, figures) have built-in directive equivalents that require no custom code.
+Convert them to Bengal directives or Jinja2 macros. Common shortcodes (tabs, notices, figures) have built-in directive equivalents. See [Shortcode → Directive Translation](#shortcode--directive-translation) for mappings.
 :::
 
 :::{dropdown} What about Hugo's image processing?
 :icon: question
 
-Bengal doesn't have built-in image processing like Hugo's resource pipelines. Use external tools (ImageMagick, Sharp) in your build process, or pre-process images before adding them to `assets/`.
+Bengal doesn't include built-in image processing. Use external tools (ImageMagick, Sharp) in your build process, or pre-process images before adding them to `assets/`.
 :::
 
 ---
 
+## Related Migration Guides
+
+- [From Jekyll](./from-jekyll) - Similar shortcode-to-directive conversion patterns
+- [From Docusaurus](./from-docusaurus) - MDX component migration
+- [Migration Overview](./) - Common migration patterns across all platforms
+
 ## Next Steps
 
-- [Directives Reference](/docs/reference/directives/) - All available directives
-- [Configuration Reference](/docs/building/configuration/) - Full config reference
+- [Directives Reference](/docs/reference/directives/) - Complete directive reference
+- [Configuration Reference](/docs/building/configuration/) - Full config options
 - [Cheatsheet](/docs/reference/cheatsheet/) - Quick syntax reference
-- [Theme Variables](/docs/reference/theme-variables/) - Theme customization
+- [Theme Variables](/docs/reference/theme-variables/) - Customize themes

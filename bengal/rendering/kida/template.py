@@ -525,21 +525,7 @@ class Template:
             lineno = ctx.get("_line")
             raise UndefinedError(var_name, template_name, lineno) from None
 
-        def _lookup_scope_legacy(ctx: dict, scope_stack: list, var_name: str) -> Any:
-            """Lookup variable in scope stack (top to bottom), then ctx (legacy mode).
-
-            Checks scopes from innermost to outermost, then falls back to ctx.get().
-            Returns None if not found (legacy mode).
-            """
-            # Check scope stack from top (innermost) to bottom (outermost)
-            for scope in reversed(scope_stack):
-                if var_name in scope:
-                    return scope[var_name]
-
-            # Fall back to ctx.get() (returns None if not found)
-            return ctx.get(var_name)
-
-        # Default filter helper for strict mode
+        # Default filter helper
         def _default_safe(
             value_fn: Any,
             default_value: Any = "",
@@ -694,11 +680,10 @@ class Template:
             "_escape": self._escape,
             "_getattr": self._safe_getattr,
             "_getattr_none": self._getattr_preserve_none,  # RFC: kida-modern-syntax-features
-            "_lookup": _lookup,  # Strict mode variable lookup
-            "_lookup_scope": _lookup_scope,  # Scope-aware strict lookup
-            "_lookup_scope_legacy": _lookup_scope_legacy,  # Scope-aware legacy lookup
-            "_default_safe": _default_safe,  # Default filter for strict mode
-            "_is_defined": _is_defined,  # Is defined test for strict mode
+            "_lookup": _lookup,  # Variable lookup with UndefinedError
+            "_lookup_scope": _lookup_scope,  # Scope-aware variable lookup
+            "_default_safe": _default_safe,  # Default filter helper
+            "_is_defined": _is_defined,  # Is defined test helper
             "_null_coalesce": _null_coalesce,  # Null coalesce with undefined handling
             "_coerce_numeric": _coerce_numeric,  # Numeric coercion for macro arithmetic
             "_spaceless": _spaceless,  # RFC: kida-modern-syntax-features
@@ -1149,9 +1134,12 @@ class Template:
             try:
                 included = env_for_cache.get_template(name)
                 # Trigger analysis of included template (will cache it)
-                if hasattr(included, "_optimized_ast") and included._optimized_ast is not None:
-                    if included._metadata_cache is None:
-                        included._analyze()
+                if (
+                    hasattr(included, "_optimized_ast")
+                    and included._optimized_ast is not None
+                    and included._metadata_cache is None
+                ):
+                    included._analyze()
                 return included
             except Exception:
                 return None

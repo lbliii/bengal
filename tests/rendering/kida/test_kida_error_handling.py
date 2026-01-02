@@ -6,6 +6,8 @@ to ensure that users get helpful diagnostics when things go wrong.
 
 from __future__ import annotations
 
+import contextlib
+
 import pytest
 
 from bengal.rendering.kida import DictLoader, Environment
@@ -107,7 +109,7 @@ class TestRuntimeErrors:
 
     @pytest.fixture
     def env(self) -> Environment:
-        return Environment(strict=False)
+        return Environment()
 
     def test_division_by_zero(self, env: Environment) -> None:
         """Division by zero."""
@@ -161,43 +163,34 @@ class TestUndefinedErrors:
     """Test undefined variable error handling."""
 
     @pytest.fixture
-    def strict_env(self) -> Environment:
-        return Environment(strict=True)
+    def env(self) -> Environment:
+        return Environment()
 
-    @pytest.fixture
-    def lenient_env(self) -> Environment:
-        return Environment(strict=False)
-
-    def test_undefined_raises_in_strict_mode(self, strict_env: Environment) -> None:
+    def test_undefined_raises_in_strict_mode(self, env: Environment) -> None:
         """Undefined variable raises in strict mode."""
         with pytest.raises(UndefinedError) as exc_info:
-            strict_env.from_string("{{ undefined_var }}").render()
+            env.from_string("{{ undefined_var }}").render()
         assert "undefined_var" in str(exc_info.value)
 
-    def test_undefined_silent_in_lenient_mode(self, lenient_env: Environment) -> None:
-        """Undefined variable silent in lenient mode."""
-        result = lenient_env.from_string("{{ undefined_var }}").render()
-        assert result in ["None", ""]
-
-    def test_undefined_error_includes_variable_name(self, strict_env: Environment) -> None:
+    def test_undefined_error_includes_variable_name(self, env: Environment) -> None:
         """UndefinedError includes variable name."""
         try:
-            strict_env.from_string("{{ my_var }}").render()
+            env.from_string("{{ my_var }}").render()
             pytest.fail("Expected UndefinedError")
         except UndefinedError as e:
             assert e.name == "my_var"
 
-    def test_undefined_error_includes_template_name(self, strict_env: Environment) -> None:
+    def test_undefined_error_includes_template_name(self, env: Environment) -> None:
         """UndefinedError includes template name."""
         try:
-            strict_env.from_string("{{ x }}", name="test.html").render()
+            env.from_string("{{ x }}", name="test.html").render()
             pytest.fail("Expected UndefinedError")
         except UndefinedError as e:
             assert "test.html" in str(e)
 
-    def test_default_filter_with_undefined(self, strict_env: Environment) -> None:
+    def test_default_filter_with_undefined(self, env: Environment) -> None:
         """default filter works with undefined."""
-        result = strict_env.from_string('{{ x|default("fallback") }}').render()
+        result = env.from_string('{{ x|default("fallback") }}').render()
         assert result == "fallback"
 
 
@@ -238,7 +231,7 @@ class TestErrorContext:
 
     def test_error_includes_line_number(self) -> None:
         """Error includes line number."""
-        env = Environment(strict=False)
+        env = Environment()
         template = """line 1
 line 2
 {{ 1 / 0 }}
@@ -255,7 +248,7 @@ line 4"""
 
     def test_error_includes_template_name(self) -> None:
         """Error includes template name."""
-        env = Environment(strict=False)
+        env = Environment()
         tmpl = env.from_string("{{ 1 / 0 }}", name="my_template.html")
         try:
             tmpl.render()
@@ -269,13 +262,11 @@ class TestErrorRecovery:
 
     def test_error_doesnt_corrupt_environment(self) -> None:
         """Error in one template doesn't corrupt environment."""
-        env = Environment(strict=False)
+        env = Environment()
 
         # Compile a bad template
-        try:
+        with contextlib.suppress(Exception):
             env.from_string("{{ 1 / 0 }}").render()
-        except Exception:
-            pass
 
         # Environment should still work
         result = env.from_string("{{ x }}").render(x=42)
@@ -283,13 +274,11 @@ class TestErrorRecovery:
 
     def test_multiple_errors_independent(self) -> None:
         """Multiple errors are independent."""
-        env = Environment(strict=True)
+        env = Environment()
 
         # First error
-        try:
+        with contextlib.suppress(UndefinedError):
             env.from_string("{{ a }}").render()
-        except UndefinedError:
-            pass
 
         # Second error - different variable
         try:
@@ -299,14 +288,13 @@ class TestErrorRecovery:
 
     def test_partial_render_isolation(self) -> None:
         """Error during render doesn't leave partial state."""
-        env = Environment(strict=False)
         loader = DictLoader(
             {
                 "main.html": "Before {% include 'bad.html' %} After",
                 "bad.html": "{{ 1 / 0 }}",
             }
         )
-        env_with_loader = Environment(loader=loader, strict=False)
+        env_with_loader = Environment(loader=loader)
 
         try:
             env_with_loader.get_template("main.html").render()
@@ -340,10 +328,8 @@ class TestFilterErrors:
         # truncate requires at least length argument
         tmpl = env.from_string("{{ x|truncate }}")
         # May or may not raise depending on filter defaults
-        try:
-            tmpl.render(x="hello world")
-        except Exception:
-            pass  # Expected
+        with contextlib.suppress(Exception):
+            tmpl.render(x="hello world")  # Expected
 
     def test_filter_type_error_message(self, env: Environment) -> None:
         """Filter type error behavior - Kida may convert or raise."""
@@ -375,25 +361,21 @@ class TestTestErrors:
             env.from_string("{% if x is nonexistent_test %}yes{% endif %}")
 
 
-class TestMacroErrors:
+class TestFunctionErrors:
     """Test macro-related errors."""
 
     @pytest.fixture
     def env(self) -> Environment:
         return Environment()
 
-    def test_macro_wrong_arg_count(self, env: Environment) -> None:
-        """Macro called with wrong number of arguments."""
+    def test_function_wrong_arg_count(self, env: Environment) -> None:
+        """Function called with wrong number of arguments."""
         tmpl = env.from_string(
-            "{% macro greet(name, greeting) %}{{ greeting }} {{ name }}{% endmacro %}"
-            "{{ greet('World') }}"
+            "{% def greet(name, greeting) %}{{ greeting }} {{ name }}{% end %}{{ greet('World') }}"
         )
         # May use default or raise error
-        try:
-            result = tmpl.render()
-            # If no error, check the output
-        except Exception:
-            pass  # Expected
+        with contextlib.suppress(Exception):
+            tmpl.render()  # Expected
 
     def test_undefined_macro(self, env: Environment) -> None:
         """Calling undefined macro."""
@@ -416,21 +398,17 @@ class TestInheritanceErrors:
         """Duplicate block names (may or may not be error)."""
         env = Environment()
         # Some engines allow, some don't
-        try:
-            tmpl = env.from_string("{% block x %}A{% endblock %}{% block x %}B{% endblock %}")
-            result = tmpl.render()
-        except Exception:
-            pass  # May raise
+        with contextlib.suppress(Exception):
+            env.from_string(
+                "{% block x %}A{% endblock %}{% block x %}B{% endblock %}"
+            ).render()  # May raise
 
     def test_extends_must_be_first(self) -> None:
         """extends must be first tag (typically)."""
         loader = DictLoader({"base.html": "{% block content %}{% endblock %}"})
         env = Environment(loader=loader)
-        try:
-            tmpl = env.from_string('Hello{% extends "base.html" %}')
-            result = tmpl.render()
-        except Exception:
-            pass  # May raise
+        with contextlib.suppress(Exception):
+            env.from_string('Hello{% extends "base.html" %}').render()  # May raise
 
 
 class TestLoopErrors:
@@ -456,11 +434,9 @@ class TestLoopErrors:
     def test_break_outside_loop(self, env: Environment) -> None:
         """Break outside loop (if break is supported)."""
         # break may not be supported
-        try:
-            tmpl = env.from_string("{% break %}")
+        with contextlib.suppress(Exception):
+            env.from_string("{% break %}")
             pytest.fail("Should raise for break outside loop")
-        except Exception:
-            pass
 
 
 class TestComplexErrorScenarios:
@@ -474,7 +450,7 @@ class TestComplexErrorScenarios:
                 "partial.html": "{{ 1 / 0 }}",
             }
         )
-        env = Environment(loader=loader, strict=False)
+        env = Environment(loader=loader)
         try:
             env.get_template("main.html").render()
             pytest.fail("Expected error")
@@ -490,7 +466,7 @@ class TestComplexErrorScenarios:
                 "child.html": '{% extends "base.html" %}',
             }
         )
-        env = Environment(loader=loader, strict=False)
+        env = Environment(loader=loader)
         try:
             env.get_template("child.html").render()
             pytest.fail("Expected error")
@@ -499,8 +475,8 @@ class TestComplexErrorScenarios:
 
     def test_error_in_macro_body(self) -> None:
         """Error in macro body."""
-        env = Environment(strict=False)
-        tmpl = env.from_string("{% macro bad() %}{{ 1 / 0 }}{% endmacro %}{{ bad() }}")
+        env = Environment()
+        tmpl = env.from_string("{% def bad() %}{{ 1 / 0 }}{% end %}{{ bad() }}")
         try:
             tmpl.render()
             pytest.fail("Expected error")
@@ -513,7 +489,7 @@ class TestComplexErrorScenarios:
         Note: As of the parser hardening RFC, unknown filters in a chain
         are caught at compile time (from_string) rather than render time.
         """
-        env = Environment(strict=False)
+        env = Environment()
         with pytest.raises(TemplateSyntaxError, match="Unknown filter 'bad_filter'"):
             env.from_string("{{ x|upper|bad_filter|lower }}")
 
@@ -526,7 +502,7 @@ class TestComplexErrorScenarios:
                 "level3.html": "{{ 1 / 0 }}",
             }
         )
-        env = Environment(loader=loader, strict=False)
+        env = Environment(loader=loader)
         try:
             env.get_template("level1.html").render()
             pytest.fail("Expected error")

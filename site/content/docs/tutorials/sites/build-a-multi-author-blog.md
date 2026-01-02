@@ -351,9 +351,9 @@ Create the author page template at `templates/authors/single.html`:
   <section class="author-posts">
     <h2>Posts by {{ page.title }}</h2>
 
-    {% let author_posts = site.pages
-      | where('author.name', page.title)
-      | sort_by('date', reverse=true) %}
+    {# Use author index for O(1) lookup (faster than where filter) #}
+    {% let author_posts_refs = site.indexes.author.get(page.title) | list %}
+    {% let author_posts = author_posts_refs | resolve_pages | sort_by('date', reverse=true) %}
 
     {% if author_posts %}
     <ul class="post-list">
@@ -371,6 +371,14 @@ Create the author page template at `templates/authors/single.html`:
 </article>
 {% end %}
 ```
+
+:::{tip}
+**Performance Tip: Use Author Index**
+
+The `site.indexes.author` provides O(1) lookup for author posts, which is much faster than filtering all pages with `where('author.name', ...)`. The author index is automatically built during site generation and maps author names to their post references.
+
+For even more advanced use cases, consider using the `author_view` filter (see the [default theme implementation](https://github.com/bengal/bengal/blob/main/bengal/themes/default/templates/author/single.html) for examples).
+:::
 
 Add styles to `assets/css/author.css`:
 
@@ -496,7 +504,8 @@ Create the listing template at `templates/authors/list.html`:
       <p>{{ author.metadata.bio | truncate(100) }}</p>
       {% end %}
 
-      {% let post_count = site.pages | where('author.name', author.title) | length %}
+      {# Use author index for O(1) lookup (faster than where filter) #}
+      {% let post_count = site.indexes.author.get(author.title) | length %}
       <span class="author-post-count">{{ post_count }} posts</span>
     </a>
     {% end %}

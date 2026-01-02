@@ -8,9 +8,15 @@ weight: 100
 
 This guide covers common use cases for Bengal, with patterns and examples for each scenario.
 
+**When to use this guide**: Choose a scenario that matches your site type, then follow the step-by-step instructions to scaffold and configure your site. Each scenario includes complete examples you can copy and adapt.
+
+**Prerequisites**: Bengal installed (`pip install bengal-ssg`). See [[docs/get-started/installation|Installation]] if needed.
+
 ## Blog Author Workflow
 
 Build a personal or team blog with posts, categories, and RSS feeds.
+
+**What you'll get**: A blog site with date-sorted posts, category organization, RSS feed, and pagination.
 
 ### 1. Scaffold a Blog
 
@@ -35,7 +41,7 @@ pagination:
 
 ### 3. Add Posts
 
-Create posts in `content/posts/`:
+Create posts in `content/posts/` directory. Each post should include a `date` field for sorting and RSS feed inclusion:
 
 ```markdown
 ---
@@ -58,9 +64,8 @@ Welcome to my blog!
 In `config/_default/features.yaml`:
 
 ```yaml
-rss:
-  enabled: true
-  limit: 20
+features:
+  rss: true  # Generates rss.xml (limited to 20 most recent posts)
 ```
 
 ### 5. Build and Preview
@@ -74,6 +79,10 @@ bengal serve
 ## Documentation Site
 
 Build technical documentation with search, versioning, and navigation.
+
+**What you'll get**: A documentation site with search functionality, hierarchical navigation, and organized content structure.
+
+**What you'll get**: A documentation site with hierarchical navigation, search functionality, and structured content organization.
 
 ### 1. Scaffold Documentation
 
@@ -105,6 +114,22 @@ content/
 
 Search is enabled by default for docs template. Output includes `index.json` for search.
 
+To customize search settings, edit `config/_default/features.yaml`:
+
+```yaml
+features:
+  search: true  # Generates search index (index.json)
+
+# Optional: customize search behavior in config/_default/site.yaml
+search:
+  enabled: true
+  lunr:
+    max_results: 50
+    min_query_length: 2
+```
+
+See [Search Documentation](/docs/reference/search/) for full configuration options.
+
 ### 4. Add Navigation
 
 Configure menu in `config/_default/site.yaml`:
@@ -124,11 +149,17 @@ menu:
         weight: 30
 ```
 
+**Note**: Menu items can also reference pages by path. If a page exists at `content/getting-started/_index.md`, you can use `url: "/getting-started/"` or reference it directly.
+
 ---
 
 ## Portfolio Site
 
 Showcase projects with a portfolio layout.
+
+**What you'll get**: A portfolio site with project showcases, featured project highlighting, and organized project pages.
+
+**What you'll get**: A portfolio site with project pages, featured project highlighting, and tag-based organization.
 
 ### 1. Scaffold Portfolio
 
@@ -170,13 +201,17 @@ Description of your project.
 
 ### 3. Configure Featured Projects
 
-Use the `featured` frontmatter to highlight projects on the homepage.
+Use the `featured: true` frontmatter field to highlight projects on the homepage. Templates can filter projects by this field to show featured items prominently.
 
 ---
 
 ## Mixed Content Site
 
 Combine documentation, blog, and portfolio on a single site.
+
+**What you'll get**: A single site with multiple content types, each with appropriate sorting and display logic using cascade configuration.
+
+**What you'll get**: A multi-purpose site with separate sections for different content types, each with appropriate templates and navigation.
 
 ### 1. Create Site Structure
 
@@ -248,7 +283,9 @@ menu:
 
 Create content in multiple languages using directory-based structure.
 
-### Current Support
+**What you'll get**: A multilingual site with language-specific content directories, SEO-friendly hreflang tags, and language switcher support.
+
+### Content Organization
 
 Bengal supports directory-based i18n for content organization:
 
@@ -288,18 +325,20 @@ i18n:
 Use these in templates for language switching:
 
 - `languages()` - Get list of configured languages
-- `alternate_links()` - Generate hreflang tags for SEO
+- `alternate_links(page)` - Generate hreflang tags for SEO (takes optional page parameter)
 
 ### Limitations
 
 - UI translation (strings) requires separate i18n YAML files
-- See [i18n documentation](/docs/content/i18n/) for full details
+- See [[docs/content/i18n|i18n documentation]] for full details
 
 ---
 
 ## Landing Page
 
 Build a marketing or product landing page.
+
+**What you'll get**: A single-page marketing site with hero section, feature highlights, and call-to-action elements.
 
 ### 1. Scaffold Landing
 
@@ -348,6 +387,8 @@ Use shortcodes and directives for landing page sections:
 
 Build a professional resume or CV site.
 
+**What you'll get**: A professional resume site with structured data for experience, education, and contact information.
+
 ### 1. Scaffold Resume
 
 ```bash
@@ -385,6 +426,8 @@ education:
 
 Maintain a project changelog with releases.
 
+**What you'll get**: A changelog site with versioned releases, categorized changes (added, fixed, changed), and chronological organization.
+
 ### 1. Scaffold Changelog
 
 ```bash
@@ -419,6 +462,7 @@ releases:
 
 ## Next Steps
 
-- See [Templates Reference](/docs/reference/site-templates/) for template details
-- Read [Configuration Guide](/docs/building/configuration/) for advanced settings
-- Explore [Theming](/docs/theming/) for customization
+- See [[docs/reference/site-templates|Templates Reference]] for template details
+- Read [[docs/building/configuration|Configuration Guide]] for advanced settings
+- Explore [[docs/theming|Theming]] for customization
+- Check out [[docs/tutorials|Tutorials]] for step-by-step guides

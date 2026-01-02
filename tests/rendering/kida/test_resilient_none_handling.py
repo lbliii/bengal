@@ -26,10 +26,9 @@ from bengal.rendering.kida.environment.exceptions import (
 def env() -> Environment:
     """Create a fresh Kida environment for each test.
 
-    Uses strict=False to test the lenient None handling behavior.
-    Strict mode (default) raises UndefinedError for missing variables.
+    Tests lenient None handling behavior.
     """
-    return Environment(strict=False)
+    return Environment()
 
 
 class TestResilientNoneHandling:

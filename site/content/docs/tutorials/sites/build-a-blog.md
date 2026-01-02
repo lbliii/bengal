@@ -110,7 +110,6 @@ Update it to look like this:
 ---
 title: "My First Bengal Post"
 date: 2023-10-27
-draft: false
 tags: ["python", "bengal"]
 category: "tech"
 ---
@@ -126,9 +125,9 @@ This is my first post using **Bengal**, the Pythonic static site generator.
 *   It's easy to configure ⚙️
 ```
 
-:::{warning}
-**Don't forget `draft: false`!**
-By default, new pages are drafts. They won't show up in production builds unless you set `draft: false`.
+:::{tip}
+**Draft pages**
+Pages are published by default. Set `draft: true` in frontmatter to exclude a page from production builds. Draft pages are still visible in development mode (`bengal serve`).
 :::
 :::{/step}
 
@@ -233,7 +232,7 @@ Create `templates/base.html`. We will extend the default theme and inject our ch
 {% block footer %}
 <footer class="custom-footer">
     <p>
-        &copy; {{ now.year }} {{ site.author }}.
+        &copy; {{ site.build_time | dateformat('%Y') }} {{ site.author }}.
         Built with <a href="https://bengal.dev">Bengal</a>.
     </p>
 </footer>

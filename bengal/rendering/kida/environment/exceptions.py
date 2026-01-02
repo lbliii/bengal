@@ -7,7 +7,7 @@ Exception Hierarchy:
     ├── TemplateRuntimeError      # Render-time error with context
     │   ├── RequiredValueError    # Required value was None/missing
     │   └── NoneComparisonError   # Attempted None comparison (sorting)
-    └── UndefinedError            # Undefined variable in strict mode
+    └── UndefinedError            # Undefined variable access
 
 Error Messages:
     All exceptions provide rich error messages with:
@@ -244,21 +244,20 @@ class NoneComparisonError(TemplateRuntimeError):
 
 
 class UndefinedError(TemplateError):
-    """Raised when accessing an undefined variable in strict mode.
+    """Raised when accessing an undefined variable.
 
     Strict mode is enabled by default in Kida. When a template references
     a variable that doesn't exist in the context, this error is raised
     instead of silently returning None.
 
     Example:
-        >>> env = Environment()  # strict=True by default
+        >>> env = Environment()
         >>> env.from_string("{{ undefined_var }}").render()
         UndefinedError: Undefined variable 'undefined_var' in <template>:1
 
     To fix:
         - Pass the variable in render(): template.render(undefined_var="value")
         - Use the default filter: {{ undefined_var | default("fallback") }}
-        - Disable strict mode: Environment(strict=False)
     """
 
     def __init__(

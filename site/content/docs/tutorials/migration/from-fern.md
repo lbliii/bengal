@@ -334,11 +334,15 @@ curl -X GET "https://api.example.com/users?limit=10" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
-<!-- Or use OpenAPI directive -->
-:::{openapi} openapi.yaml
-:path: /users
-:method: GET
-:::
+**Note**: Bengal generates API reference pages automatically from your OpenAPI spec via autodoc. Configure in `bengal.toml`:
+
+```toml
+[autodoc.openapi]
+enabled = true
+spec_file = "openapi.yaml"
+```
+
+This generates dedicated pages for each endpoint at `/api-reference/endpoints/...`
 ````
 :::{/tab}
 
@@ -492,7 +496,7 @@ No manual `docs.yml` updates when you add pages. Bengal's directory structure *i
 | Steps | `<Steps>` | `:::{steps}` ✅ |
 | Accordions | `<Accordion>` | `:::{dropdown}` ✅ |
 | Code blocks | Built-in | Built-in ✅ |
-| OpenAPI | Built-in | `:::{openapi}` or autodoc ✅ |
+| OpenAPI | Built-in | Autodoc generates pages from spec ✅ |
 | Search | Built-in | Built-in ✅ |
 | Dark mode | Built-in | Built-in ✅ |
 | Custom domains | Paid feature | Any host |
@@ -816,26 +820,18 @@ Your OpenAPI spec is the source of truth—it works everywhere.
 :::{dropdown} Can I keep my OpenAPI workflow?
 :icon: question
 
-Absolutely. Bengal works great with OpenAPI:
+Absolutely. Bengal works great with OpenAPI via autodoc:
 
-```yaml
-# config/_default/autodoc.yaml
-autodoc:
-  openapi:
-    enabled: true
-    specs:
-      - path: "openapi.yaml"
-        generate_pages: true
+```toml
+# bengal.toml
+[autodoc.openapi]
+enabled = true
+spec_file = "openapi.yaml"
 ```
 
-Or inline in pages:
+This automatically generates API reference pages from your OpenAPI spec. Each endpoint gets its own page with full documentation including parameters, request/response schemas, and examples.
 
-````markdown
-:::{openapi} openapi.yaml
-:path: /users/{id}
-:method: GET
-:::
-````
+For manual API documentation in markdown pages, you can write endpoint docs manually or link to the generated autodoc pages.
 :::
 
 :::{dropdown} What about the API playground?

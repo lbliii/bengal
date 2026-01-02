@@ -231,10 +231,10 @@ class TestNumericFilters:
         """int filter with strict mode raises error on conversion failure."""
         from bengal.rendering.kida.environment.exceptions import TemplateRuntimeError
 
-        tmpl = env.from_string("{{ 'abc'|int(0, strict=True) }}")
+        tmpl = env.from_string("{{ 'abc'|int(0) }}")
         with pytest.raises(TemplateRuntimeError) as exc_info:
             tmpl.render()
-        
+
         error_msg = str(exc_info.value)
         assert "Cannot convert" in error_msg
         assert "str to int" in error_msg
@@ -255,10 +255,10 @@ class TestNumericFilters:
         """float filter with strict mode raises error on conversion failure."""
         from bengal.rendering.kida.environment.exceptions import TemplateRuntimeError
 
-        tmpl = env.from_string("{{ 'abc'|float(0.0, strict=True) }}")
+        tmpl = env.from_string("{{ 'abc'|float(0.0) }}")
         with pytest.raises(TemplateRuntimeError) as exc_info:
             tmpl.render()
-        
+
         error_msg = str(exc_info.value)
         assert "Cannot convert" in error_msg
         assert "str to float" in error_msg

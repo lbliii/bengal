@@ -301,7 +301,7 @@ Jekyll features that require plugins are built into Bengal:
 |-----------------|-----------------|-------|
 | `{{ page.title }}` | `{{ page.title }}` | ✅ Same |
 | `{{ page.date }}` | `{{ page.date }}` | ✅ Same |
-| `{{ page.content }}` | `{{ content }}` | Different |
+| `{{ page.content }}` | `{{ content }}` | Use `{{ content }}` for rendered HTML (preferred). `{{ page.content }}` also works. |
 | `{{ page.excerpt }}` | `{{ page.excerpt }}` | ✅ Same |
 | `{{ page.url }}` | `{{ page.url }}` | ✅ Same |
 | `{{ page.categories }}` | `{{ page.category }}` | Single |
@@ -312,9 +312,9 @@ Jekyll features that require plugins are built into Bengal:
 
 | Jekyll (Liquid) | Bengal (Jinja2) | Notes |
 |-----------------|-----------------|-------|
-| `{{ site.title }}` | `{{ site.config.title }}` | Nested |
-| `{{ site.description }}` | `{{ site.config.description }}` | Nested |
-| `{{ site.url }}` | `{{ site.config.baseurl }}` | Different name |
+| `{{ site.title }}` | `{{ site.title }}` | ✅ Same (preferred). `{{ site.config.title }}` also works. |
+| `{{ site.description }}` | `{{ site.description }}` | ✅ Same (preferred). `{{ site.config.description }}` also works. |
+| `{{ site.url }}` | `{{ site.baseurl }}` | Different name (use `baseurl` instead of `url`) |
 | `{{ site.posts }}` | `{{ site.pages \| selectattr('type', 'eq', 'post') }}` | Filter |
 | `{{ site.data.file }}` | `{{ site.data.file }}` | ✅ Same |
 | `{{ site.pages }}` | `{{ site.pages }}` | ✅ Same |
@@ -453,7 +453,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.14'
+          python-version: '3.14'  # Or '3.14t' for free-threading build
       - run: pip install bengal
       - run: bengal build
       # Pin to SHA for supply chain security (v3.9.3)
@@ -656,6 +656,13 @@ Convert them to Bengal directives or Jinja2 templates. Simple includes like call
 :::
 
 ---
+
+## Related Migration Guides
+
+If you're migrating from multiple platforms or need additional context:
+
+- [From Hugo](./from-hugo) - Similar template-to-directive conversion patterns
+- [Migration Overview](../migration/) - Common migration patterns across all platforms
 
 ## Next Steps
 

@@ -122,30 +122,17 @@ class ExpressionCompilationMixin:
             if node.name in self._locals:
                 return ast.Name(id=node.name, ctx=ast.Load())
 
-            # Check strict mode from environment
-            if self._env.strict:
-                # Strict mode: check scope stack first, then ctx
-                # _lookup_scope(ctx, _scope_stack, name) checks scopes then ctx
-                return ast.Call(
-                    func=ast.Name(id="_lookup_scope", ctx=ast.Load()),
-                    args=[
-                        ast.Name(id="ctx", ctx=ast.Load()),
-                        ast.Name(id="_scope_stack", ctx=ast.Load()),
-                        ast.Constant(value=node.name),
-                    ],
-                    keywords=[],
-                )
-            else:
-                # Legacy mode: check scope stack first, then ctx.get(name)
-                return ast.Call(
-                    func=ast.Name(id="_lookup_scope_legacy", ctx=ast.Load()),
-                    args=[
-                        ast.Name(id="ctx", ctx=ast.Load()),
-                        ast.Name(id="_scope_stack", ctx=ast.Load()),
-                        ast.Constant(value=node.name),
-                    ],
-                    keywords=[],
-                )
+            # Strict mode: check scope stack first, then ctx
+            # _lookup_scope(ctx, _scope_stack, name) checks scopes then ctx
+            return ast.Call(
+                func=ast.Name(id="_lookup_scope", ctx=ast.Load()),
+                args=[
+                    ast.Name(id="ctx", ctx=ast.Load()),
+                    ast.Name(id="_scope_stack", ctx=ast.Load()),
+                    ast.Constant(value=node.name),
+                ],
+                keywords=[],
+            )
 
         if node_type == "Tuple":
             ctx = ast.Store() if store else ast.Load()
@@ -194,9 +181,9 @@ class ExpressionCompilationMixin:
             )
 
         if node_type == "Test":
-            # Special handling for 'defined' and 'undefined' tests in strict mode
+            # Special handling for 'defined' and 'undefined' tests
             # These need to work even when the value is undefined
-            if node.name in ("defined", "undefined") and self._env.strict:
+            if node.name in ("defined", "undefined"):
                 # Generate: _is_defined(lambda: <value>) or not _is_defined(lambda: <value>)
                 value_lambda = ast.Lambda(
                     args=ast.arguments(
@@ -268,9 +255,9 @@ class ExpressionCompilationMixin:
                     msg += f". Did you mean '{suggestion}'?"
                 raise TemplateSyntaxError(msg, lineno=getattr(node, "lineno", None))
 
-            # Special handling for 'default' filter in strict mode
+            # Special handling for 'default' filter
             # The default filter needs to work even when the value is undefined
-            if node.name in ("default", "d") and self._env.strict:
+            if node.name in ("default", "d"):
                 # Generate: _default_safe(lambda: <value>, <default>, <boolean>)
                 # This catches UndefinedError and returns the default value
                 value_lambda = ast.Lambda(

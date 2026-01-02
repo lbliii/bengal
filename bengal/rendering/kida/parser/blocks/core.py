@@ -32,7 +32,6 @@ class BlockStackMixin:
             "endif",
             "endfor",
             "endblock",
-            "endmacro",
             "endwith",
             "enddef",
             "endcall",
@@ -65,7 +64,7 @@ class BlockStackMixin:
         """Push a block onto the stack when opening it.
 
         Args:
-            block_type: Type of block (if, for, def, macro, etc.)
+            block_type: Type of block (if, for, def, etc.)
             token: Token for error reporting (defaults to current token)
         """
         tok = token or self._current

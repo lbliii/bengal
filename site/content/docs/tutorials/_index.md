@@ -14,6 +14,8 @@ icon: graduation-cap
 
 Hands-on guides that walk you through complete workflows. Start with [[docs/get-started|Get Started]] if you're new to Bengal.
 
+**Choose your path**: Each tutorial category focuses on a specific aspect of building with Bengal. Follow tutorials in any order based on your needs.
+
 :::{cards}
 :columns: 1-2
 :gap: medium
@@ -57,20 +59,20 @@ Step-by-step guides from Hugo, Jekyll, MkDocs, Sphinx, and more.
 ## All Tutorials
 
 ### Sites
-- [[./sites/build-a-blog|Build a Blog]] — Create a personal blog in 15 minutes
-- [[./sites/build-a-multi-author-blog|Multi-Author Blog]] — Team blogs with author profiles
-- [[./sites/skeleton-quickstart|Skeleton YAML]] — Define your site in one YAML file
+- [[./sites/build-a-blog|Build a Blog]] — Create a personal blog in 15 minutes (Beginner, 15 min)
+- [[./sites/build-a-multi-author-blog|Multi-Author Blog]] — Team blogs with author profiles (Intermediate, 30 min)
+- [[./sites/skeleton-quickstart|Skeleton YAML]] — Define your site in one YAML file (Beginner, 10 min)
 
 ### Theming
-- [[./theming/getting-started-with-kida|Getting Started with Kida]] — Learn Bengal's template engine
-- [[./theming/swizzle-default-theme|Swizzle the Default Theme]] — Customize templates safely
+- [[./theming/getting-started-with-kida|Getting Started with Kida]] — Learn Bengal's template engine (Beginner, 20 min)
+- [[./theming/swizzle-default-theme|Swizzle the Default Theme]] — Customize templates safely (Intermediate, 45 min)
 
 ### Content Patterns
-- [[./content/create-a-tutorial-series|Create a Tutorial Series]] — Multi-part content with navigation
+- [[./content/create-a-tutorial-series|Create a Tutorial Series]] — Multi-part content with navigation (Intermediate, 25 min)
 
 ### Operations
-- [[./operations/automate-with-github-actions|GitHub Actions]] — Automated CI/CD pipelines
-- [[./operations/analyze-site-connectivity|Analyze Site Connectivity]] — Graph analysis for internal linking
+- [[./operations/automate-with-github-actions|GitHub Actions]] — Automated CI/CD pipelines (Intermediate, 20 min)
+- [[./operations/analyze-site-connectivity|Analyze Site Connectivity]] — Graph analysis for internal linking (Intermediate, 15 min)
 
 ### Migration
 - [[./migration/from-hugo|From Hugo]]

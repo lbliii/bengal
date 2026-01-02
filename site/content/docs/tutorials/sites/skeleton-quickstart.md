@@ -27,7 +27,14 @@ Define your entire site structure in one YAML file. Copy, paste, apply—done.
 
 ## The 30-Second Start
 
+Choose the approach that fits your needs:
+
+- **Built-in templates**: Fastest for common site types (blog, docs, portfolio, etc.)
+- **Custom skeletons**: Full control over structure when templates don't fit your needs
+
 ### Option 1: Built-in Template
+
+Use a built-in template for common site types:
 
 ```bash
 bengal new site mydocs --template docs
@@ -35,9 +42,11 @@ cd mydocs
 bengal serve
 ```
 
-Available templates: `blog`, `docs`, `portfolio`, `product`, `resume`, `landing`, `changelog`.
+Available templates: `default`, `blog`, `docs`, `landing`, `portfolio`, `product`, `resume`, `changelog`.
 
 ### Option 2: Custom Skeleton YAML
+
+Define your own structure when templates don't fit or you need a specific layout. Create a YAML file describing your site structure:
 
 Save this as `my-site.yaml`:
 
@@ -72,7 +81,7 @@ bengal project skeleton apply my-site.yaml
 bengal serve
 ```
 
-Your site is live at `http://localhost:5173`.
+Your site is live at `http://localhost:5173`. The dev server automatically rebuilds when you save changes (hot reload).
 
 ## Skeleton YAML Structure
 
@@ -103,14 +112,14 @@ structure:
 
 Each page in `structure` can have:
 
-| Field | Description |
-|-------|-------------|
-| `path` | File path relative to `content/` |
-| `type` | Content type (`doc`, `blog`, `landing`, etc.) |
-| `props` | Frontmatter fields (title, date, tags, etc.) |
-| `content` | Markdown content for the page |
-| `cascade` | Settings inherited by child pages |
-| `pages` | Nested pages (for sections) |
+| Field | Required | Description |
+|-------|----------|-------------|
+| `path` | Yes | File path relative to `content/` directory |
+| `type` | No | Content type (`doc`, `blog`, `landing`, etc.) |
+| `props` | No | Frontmatter fields (title, date, tags, etc.) |
+| `content` | No | Markdown content for the page body |
+| `cascade` | No | Settings inherited by child pages |
+| `pages` | No | Nested pages (makes this a section) |
 
 ## Real-World Examples
 
@@ -266,6 +275,7 @@ Use `--dry-run` to see what files will be created before applying:
 ```bash
 bengal project skeleton apply my-site.yaml --dry-run
 ```
+
 :::
 
 :::{tip} Combine with Templates
@@ -276,6 +286,7 @@ bengal new site mysite --template docs
 cd mysite
 bengal project skeleton apply custom-sections.yaml
 ```
+
 :::
 
 :::{tip} Share Skeletons

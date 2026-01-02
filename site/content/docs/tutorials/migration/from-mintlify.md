@@ -551,7 +551,7 @@ No `mint.json` navigation updates needed! Add a page, and it appears in nav auto
 | Steps | `<Steps>` | `:::{steps}` ✅ |
 | Accordions | `<Accordion>` | `:::{dropdown}` ✅ |
 | Code blocks | Built-in | Built-in ✅ |
-| OpenAPI | Built-in | `:::{openapi}` or autodoc ✅ |
+| OpenAPI | Built-in | autodoc (config-based) ✅ |
 | Search | Hosted | Built-in index ✅ |
 | Analytics | Built-in | Integrate any provider |
 | Dark mode | Built-in | Built-in ✅ |
@@ -597,14 +597,7 @@ autodoc:
         generate_pages: true
 ```
 
-Or inline in markdown:
-
-```markdown
-:::{openapi} openapi.yaml
-:path: /users
-:method: GET
-:::
-```
+Bengal generates API documentation pages automatically from your OpenAPI spec during build. No inline directive needed—configure once and documentation is generated for all endpoints.
 
 ---
 
@@ -649,12 +642,12 @@ base_url: "https://api.example.com/v2"
 
 # {{ page.title }}
 
-Current API version: **{{ page.metadata.api_version }}**
+Current API version: **{{ api_version }}**
 
-Base URL: `{{ page.metadata.base_url }}`
+Base URL: `{{ base_url }}`
 ```
 
-Use variables directly in markdown without JSX.
+Use variables directly in markdown without JSX. Frontmatter keys are available directly (e.g., `{{ api_version }}`) or via `{{ page.metadata.api_version }}`.
 ::::{/tab}
 
 ::::{tab} Build-time Validation
@@ -864,14 +857,7 @@ autodoc:
         output_prefix: "api"
 ```
 
-Or reference inline:
-
-```markdown
-:::{openapi} openapi.yaml
-:path: /users
-:method: POST
-:::
-```
+Bengal generates API documentation pages automatically during build. Configure the OpenAPI spec path and output location, and all endpoints are documented.
 :::
 
 :::{dropdown} What about analytics and feedback?

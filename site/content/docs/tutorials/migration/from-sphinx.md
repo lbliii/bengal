@@ -28,6 +28,10 @@ You're 80% there. Bengal uses MyST-compatible syntax that mirrors what you alrea
 
 The only syntax change: `.. name::` becomes `:::{name}`.
 
+:::{note} Directive Syntax
+Bengal uses **colon-based syntax only** (`:::{name}`). Backtick syntax (````{name}`) renders as code blocks, not directives. This avoids conflicts when showing directive examples in documentation.
+:::
+
 | Sphinx/RST | Bengal | Works? |
 |------------|--------|--------|
 | `.. note::` | `:::{note}` | ✅ |
@@ -120,10 +124,12 @@ def hello():
 
 ### Cross-References
 
+Bengal uses `[[label]]` syntax for intelligent cross-references that automatically resolve page titles and paths.
+
 | Sphinx | Bengal | Notes |
 |--------|--------|-------|
-| `:ref:\`label\`` | `[[label]]` or `[text](./file.md)` | Different syntax |
-| `:doc:\`path\`` | `[text](./file.md)` | Standard markdown |
+| `:ref:\`label\`` | `[[path]]` or `[[path\|Custom Text]]` | Auto-resolves page title |
+| `:doc:\`path\`` | `[[path]]` or standard markdown links | Standard markdown also works |
 | `:term:\`glossary\`` | `:::{glossary}` directive | Data-driven |
 | `.. _label:` | `{#label}` in heading | MyST anchor syntax |
 
@@ -131,15 +137,31 @@ def hello():
 :::
 
 ```markdown
-<!-- Link to another page -->
+<!-- Basic cross-reference (uses page title automatically) -->
+[[docs/getting-started]]
+
+<!-- Cross-reference with custom text -->
+[[docs/getting-started|Get Started Guide]]
+
+<!-- Link to heading anchor -->
+[[#installation]]
+[[docs/getting-started#installation]]
+
+<!-- Link by custom ID (if page has id: in frontmatter) -->
+[[id:install-guide]]
+
+<!-- Standard markdown links also work -->
 [Configuration Guide](../reference/configuration.md)
-
-<!-- Link with anchor -->
 [Config Options](../reference/configuration.md#options)
-
-<!-- Internal cross-reference -->
-[[installation]]
 ```
+
+:::{tip} Cross-Reference Benefits
+`[[path]]` syntax automatically:
+- Resolves to the correct page URL
+- Uses the page's title as link text (unless you specify custom text)
+- Handles path normalization automatically
+- Provides O(1) lookup performance
+:::
 
 ### Table of Contents
 
@@ -317,16 +339,28 @@ bengal serve
 
 ### autodoc Alternative
 
-Bengal has a built-in autodoc system that generates API documentation from Python source:
+Bengal has a built-in autodoc system that generates API documentation from Python source. Configure it in either `bengal.toml` or `config/_default/autodoc.yaml`:
 
+:::{tab-set}
+:::{tab} bengal.toml
+```toml
+[autodoc.python]
+enabled = true
+source_dirs = ["src/"]
+output_prefix = "api"  # Pages appear under /api/
+```
+:::{/tab}
+
+:::{tab} config/_default/autodoc.yaml
 ```yaml
-# config/_default/autodoc.yaml
 autodoc:
   python:
     enabled: true
     source_dirs: ["src/"]
     output_prefix: "api"  # Pages appear under /api/
 ```
+:::{/tab}
+:::{/tab-set}
 
 This generates virtual pages during the build process, unlike Sphinx's runtime introspection. Run `bengal build` to generate API documentation from your Python source.
 
@@ -341,9 +375,9 @@ This generates virtual pages during the build process, unlike Sphinx's runtime i
 :::
 
 :::{checklist} Content Migration
-- [ ] Convert `.. directive::` to `:::{directive}`
-- [ ] Convert `:ref:` links to markdown link syntax
-- [ ] Update code blocks to fenced syntax
+- [ ] Convert `.. directive::` to `:::{directive}` (colon syntax only)
+- [ ] Convert `:ref:` links to `[[path]]` cross-references or markdown links
+- [ ] Update code blocks to fenced syntax (````python`)
 - [ ] Add `weight` frontmatter for ordering
 :::
 

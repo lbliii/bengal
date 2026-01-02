@@ -15,7 +15,7 @@ Node Categories:
     **Template Structure**:
         - `Template`: Root node containing body
         - `Extends`, `Block`, `Include`: Inheritance and composition
-        - `Import`, `FromImport`: Macro/function imports
+        - `Import`, `FromImport`: Function imports
 
     **Control Flow**:
         - `If`, `For`, `While`: Standard control flow
@@ -29,7 +29,7 @@ Node Categories:
         - `Capture`: Capture block output to variable
 
     **Functions**:
-        - `Def`/`Macro`: Function definition
+        - `Def`: Function definition
         - `CallBlock`: Call function with body content
         - `Slot`: Content placeholder in components
 
@@ -48,10 +48,6 @@ Node Categories:
 Thread-Safety:
     All nodes are frozen dataclasses, making the AST immutable and safe
     for concurrent access. The Parser produces a new AST on each call.
-
-Jinja Compatibility:
-    For existing Jinja2 templates, use `kida.compat.jinja.JinjaParser` which
-    produces Kida AST from Jinja2 syntax (translates `{% endif %}` → `{% end %}`, etc.).
 """
 
 from __future__ import annotations
@@ -411,29 +407,6 @@ class CallBlock(Node):
 
     The body content fills the {% slot %} in the function.
     """
-
-    call: Expr
-    body: Sequence[Node]
-    args: Sequence[Expr] = ()
-
-
-# Legacy compatibility - kept for Jinja compat layer
-@dataclass(frozen=True, slots=True)
-class Macro(Node):
-    """Macro definition (Jinja compatibility).
-
-    Prefer {% def %} for new Kida templates.
-    """
-
-    name: str
-    args: Sequence[str]
-    body: Sequence[Node]
-    defaults: Sequence[Expr] = ()
-
-
-@dataclass(frozen=True, slots=True)
-class Call(Node):
-    """Macro call with body (Jinja compatibility)."""
 
     call: Expr
     body: Sequence[Node]

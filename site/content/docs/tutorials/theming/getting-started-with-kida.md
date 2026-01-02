@@ -39,9 +39,9 @@ By the end of this tutorial, you will:
 ## What is Kida?
 
 Kida is Bengal's **default template engine**, designed for:
-- **Free-threading**: GIL-free rendering on Python 3.14t+
+- **Free-threading**: GIL-free rendering on Python 3.14t+ (parallel template rendering)
 - **Cleaner syntax**: Unified `{% end %}` for all blocks, pattern matching, pipelines
-- **Free-threading**: Ready for Python 3.14t+
+- **Performance**: 2-5x faster than Jinja2 with automatic caching
 - **Jinja2 compatible**: Existing Jinja2 templates work without changes
 
 :::{tip}
@@ -127,7 +127,7 @@ Iterate over collections:
 
 ### Template Variables
 
-Use `{% let %}` for template-wide variables:
+Use `{% let %}` for template-wide variables (available throughout the entire template):
 
 ```kida
 {% let site_title = site.config.title %}
@@ -140,6 +140,12 @@ Use `{% let %}` for template-wide variables:
   {% end %}
 </ul>
 ```
+
+**Variable Scoping**:
+
+- `{% let %}` — Template-scoped (available everywhere in the template)
+- `{% set %}` — Block-scoped (only within the current block)
+- `{% export %}` — Export from inner scope to outer scope
 
 ## Step 3: Pattern Matching
 
@@ -165,7 +171,7 @@ Replace long `if/elif` chains with pattern matching:
 {% end %}
 ```
 
-**Practice**: Create a template that shows different icons based on page type.
+**Practice**: Create a template that shows different icons based on page type. Use pattern matching to handle `blog`, `doc`, and `gallery` page types, with a default case for other types.
 
 ## Step 4: Pipeline Operator
 
@@ -179,7 +185,7 @@ Use `|>` for readable filter chains:
   |> take(10) %}
 ```
 
-**Practice**: Filter posts by tag, sort by date, and limit to 5.
+**Practice**: Filter posts by tag, sort by date, and limit to 5. Use the pipeline operator to chain these operations together.
 
 ## Step 5: Template Inheritance
 
@@ -317,7 +323,7 @@ Cache expensive operations:
   </nav>
 {% end %}
 
-{% cache "recent-posts", ttl="5m" %}
+{% cache "recent-posts" %}
   {% let recent = site.pages
     |> where('type', 'blog')
     |> sort_by('date', reverse=true)
@@ -329,6 +335,10 @@ Cache expensive operations:
   </ul>
 {% end %}
 ```
+
+:::{note}
+**Cache TTL**: Fragment cache uses a global TTL configured in `bengal.yaml`. All cached fragments share the same expiration time. Per-key TTL is not currently supported. See [Fragment Caching](/docs/theming/templating/kida/caching/fragments/) for configuration details.
+:::
 
 ## Step 8: Create Content
 
@@ -368,18 +378,25 @@ Visit `http://localhost:5173/blog/my-first-post/` to see your template.
 
 ### Functions
 
-Define reusable functions:
+Define reusable functions that can access outer scope variables:
 
 ```kida
+{% let site_title = site.config.title %}
+
 {% def card(item) %}
   <div class="card">
     <h3>{{ item.title }}</h3>
     <p>{{ item.description }}</p>
+    <span>From: {{ site_title }}</span>  {# Accesses outer variable #}
   </div>
 {% end %}
 
 {{ card(page) }}
 ```
+
+:::{tip}
+Kida functions automatically access variables from their surrounding context. You don't need to pass `site`, `config`, or other shared values as parameters.
+:::
 
 ### Optional Chaining
 
@@ -441,14 +458,24 @@ Fallback for None:
 
 ### Undefined Variable Error
 
-Kida raises errors for undefined variables by default:
+Kida raises errors for undefined variables by default (strict mode). This helps catch typos and missing variables early:
 
 ```kida
-{# ❌ Raises UndefinedError #}
+{# ❌ Raises UndefinedError if 'missing_var' doesn't exist #}
 {{ missing_var }}
 
-{# ✅ Safe with default #}
+{# ✅ Safe with default filter #}
 {{ missing_var | default('N/A') }}
+
+{# ✅ Safe with null coalescing operator #}
+{{ missing_var ?? 'N/A' }}
+```
+
+To disable strict mode (not recommended), set `strict: false` in your `bengal.yaml`:
+
+```yaml
+kida:
+  strict: false  # Allow undefined variables (not recommended)
 ```
 
 ### Template Not Found
@@ -457,6 +484,8 @@ Check template lookup order:
 1. `templates/` (your project)
 2. Theme templates
 3. Bengal defaults
+
+See [Template Lookup Order](/docs/theming/templating/#template-lookup-order) for details.
 
 ### Syntax Errors
 
@@ -471,6 +500,7 @@ Check build output for detailed error messages.
 
 - [Kida Syntax Reference](/docs/reference/kida-syntax/) — Complete syntax documentation
 - [Kida How-Tos](/docs/theming/templating/kida/) — Common tasks and patterns
+- [Fragment Caching](/docs/theming/templating/kida/caching/fragments/) — Manual caching for expensive operations
 - [Create Custom Template](/docs/theming/templating/kida/create-custom-template/) — Build advanced templates
 - [Add Custom Filters](/docs/theming/templating/kida/add-custom-filter/) — Extend Kida functionality
 

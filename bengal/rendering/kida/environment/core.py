@@ -51,15 +51,13 @@ class Environment:
     API for loading and rendering templates. It manages three key concerns:
 
     1. **Template Loading**: Via configurable loaders (filesystem, dict, etc.)
-    2. **Compilation Settings**: Autoescape, optimizations, strict mode
+    2. **Compilation Settings**: Autoescape, strict undefined handling
     3. **Runtime Context**: Filters, tests, and global variables
 
     Attributes:
         loader: Template source provider (FileSystemLoader, DictLoader, etc.)
         autoescape: HTML auto-escaping. True, False, or callable(name) → bool
         auto_reload: Check template modification times (default: True)
-        optimized: Deprecated, no-op. Kept for backward compatibility.
-        strict: Raise UndefinedError for undefined variables (default: True)
         strict_none: Fail early on None comparisons during sorting (default: False)
         cache_size: Maximum compiled templates to cache (default: 400)
         fragment_cache_size: Maximum `{% cache %}` fragment entries (default: 1000)
@@ -77,11 +75,11 @@ class Environment:
         - `get_template()` uses lock-free LRU cache with atomic operations
         - `render()` uses only local state (StringBuilder pattern)
 
-    Strict Mode (Default):
+    Strict Mode:
         Undefined variables raise `UndefinedError` instead of returning empty
         string. Catches typos and missing context variables at render time.
 
-        >>> env = Environment()  # strict=True by default
+        >>> env = Environment()
         >>> env.from_string("{{ typo_var }}").render()
         UndefinedError: Undefined variable 'typo_var' in <template>:1
 
@@ -116,8 +114,6 @@ class Environment:
     loader: Loader | None = None
     autoescape: bool | Callable[[str | None], bool] = True
     auto_reload: bool = True
-    optimized: bool = True
-    strict: bool = True  # When True, undefined variables raise UndefinedError
     strict_none: bool = False  # When True, sorting with None values raises detailed errors
 
     # Template Introspection (RFC: kida-template-introspection)

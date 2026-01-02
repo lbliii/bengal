@@ -346,30 +346,18 @@ class KidaTemplateEngine:
         self,
         template: str,
         context: dict[str, Any],
-        strict: bool | None = None,
     ) -> str:
         """Render a template string.
 
         Args:
             template: Template content as string
             context: Variables available to the template
-            strict: Override strict mode for this render (None uses env default)
 
         Returns:
             Rendered HTML string
         """
         try:
-            # Note: strict override requires fresh compilation or env change
-            # For string templates, we just re-compile if strict differs from env
-            if strict is not None and strict != self._env.strict:
-                # Create ephemeral env with desired strictness
-                from copy import copy
-
-                env = copy(self._env)
-                env.strict = strict
-                tmpl = env.from_string(template)
-            else:
-                tmpl = self._env.from_string(template)
+            tmpl = self._env.from_string(template)
 
             # Get page-aware functions (t, current_lang, etc.)
             # Instead of mutating env.globals (not thread-safe), we pass them in context

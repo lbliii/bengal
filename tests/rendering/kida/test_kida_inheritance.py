@@ -153,12 +153,12 @@ class TestInheritanceWithLoops:
 class TestInheritanceWithMacros:
     """Inheritance with macros."""
 
-    def test_macro_in_base(self):
-        """Macro defined in base, used in child."""
+    def test_function_in_base(self):
+        """Function defined in base, used in child."""
         loader = DictLoader(
             {
                 "base.html": (
-                    "{% macro greet(name) %}Hello {{ name }}{% endmacro %}"
+                    "{% def greet(name) %}Hello {{ name }}{% end %}"
                     "{% block content %}{% endblock %}"
                 ),
                 "child.html": (
@@ -172,15 +172,15 @@ class TestInheritanceWithMacros:
         result = tmpl.render()
         assert "Hello World" in result
 
-    def test_macro_in_child(self):
-        """Macro defined in child block."""
+    def test_function_in_child(self):
+        """Function defined in child block."""
         loader = DictLoader(
             {
                 "base.html": "{% block content %}{% endblock %}",
                 "child.html": (
                     '{% extends "base.html" %}'
                     "{% block content %}"
-                    "{% macro item(x) %}[{{ x }}]{% endmacro %}"
+                    "{% def item(x) %}[{{ x }}]{% end %}"
                     "{{ item(1) }}{{ item(2) }}"
                     "{% endblock %}"
                 ),
@@ -298,7 +298,7 @@ class TestInheritanceWithFromImport:
         """{% from %} import in child template available in block."""
         loader = DictLoader(
             {
-                "macros.html": "{% macro greet(name) %}Hello, {{ name }}!{% endmacro %}",
+                "macros.html": "{% def greet(name) %}Hello, {{ name }}!{% end %}",
                 "base.html": "<html>{% block content %}{% endblock %}</html>",
                 "child.html": (
                     '{% extends "base.html" %}'
@@ -316,7 +316,7 @@ class TestInheritanceWithFromImport:
         """{% from %} import with alias works in child block."""
         loader = DictLoader(
             {
-                "macros.html": "{% macro greet(name) %}Hi, {{ name }}!{% endmacro %}",
+                "macros.html": "{% def greet(name) %}Hi, {{ name }}!{% end %}",
                 "base.html": "{% block content %}{% endblock %}",
                 "child.html": (
                     '{% extends "base.html" %}'
@@ -334,8 +334,8 @@ class TestInheritanceWithFromImport:
         loader = DictLoader(
             {
                 "utils.html": (
-                    "{% macro bold(text) %}<b>{{ text }}</b>{% endmacro %}"
-                    "{% macro italic(text) %}<i>{{ text }}</i>{% endmacro %}"
+                    "{% def bold(text) %}<b>{{ text }}</b>{% end %}"
+                    "{% def italic(text) %}<i>{{ text }}</i>{% end %}"
                 ),
                 "base.html": "{% block content %}{% endblock %}",
                 "child.html": (
@@ -354,7 +354,7 @@ class TestInheritanceWithFromImport:
         """{% from %} import with context passes context to macro."""
         loader = DictLoader(
             {
-                "macros.html": "{% macro show_name() %}Name: {{ name }}{% endmacro %}",
+                "macros.html": "{% def show_name() %}Name: {{ name }}{% end %}",
                 "base.html": "{% block content %}{% endblock %}",
                 "child.html": (
                     '{% extends "base.html" %}'
@@ -390,7 +390,7 @@ class TestInheritanceWithScoping:
         """{% import ... as ... %} in child template should be available in blocks."""
         loader = DictLoader(
             {
-                "macros.html": "{% macro greet(name) %}Hello, {{ name }}!{% endmacro %}",
+                "macros.html": "{% def greet(name) %}Hello, {{ name }}!{% end %}",
                 "base.html": "<html>{% block content %}{% endblock %}</html>",
                 "child.html": (
                     '{% extends "base.html" %}'

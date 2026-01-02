@@ -122,7 +122,7 @@ class TestMatchInTemplateInheritance:
 {% end %}
 """,
         }
-        return Environment(loader=DictLoader(templates), strict=True)
+        return Environment(loader=DictLoader(templates))
 
     def test_match_in_parent_renders_with_logo(self, env_with_templates):
         """Match in parent template works when child extends it - logo case."""
@@ -162,7 +162,7 @@ BASE NAV
 {% end %}
 """,
         }
-        env = Environment(loader=DictLoader(templates), strict=True)
+        env = Environment(loader=DictLoader(templates))
         template = env.get_template("child.html")
 
         assert "Minimal Nav" in template.render(nav_type="minimal")
@@ -199,7 +199,7 @@ class TestMatchInMacrosWithIncludes:
 {% end %}
 """,
         }
-        return Environment(loader=DictLoader(templates), strict=True)
+        return Environment(loader=DictLoader(templates))
 
     def test_match_in_included_from_macro(self, env_macro_include):
         """Match in included template receives context from macro."""
@@ -214,7 +214,7 @@ class TestMatchInMacrosWithIncludes:
         assert "[LIST]Item2[/LIST]" in result
         assert "[DEFAULT]Item3[/DEFAULT]" in result
 
-    def test_macro_set_passed_to_include(self):
+    def test_function_set_passed_to_include(self):
         """Variables set in macro are available in included template."""
         templates = {
             "inner.html": "title={{ title ?? 'MISSING' }}",
@@ -229,7 +229,7 @@ class TestMatchInMacrosWithIncludes:
 {{ my_macro() }}
 """,
         }
-        env = Environment(loader=DictLoader(templates), strict=True)
+        env = Environment(loader=DictLoader(templates))
         result = env.get_template("main.html").render()
         assert "title=Custom Title" in result
 
@@ -373,7 +373,7 @@ class TestMatchWithStrictMode:
     @pytest.fixture
     def strict_env(self):
         """Strict mode environment."""
-        return Environment(strict=True)
+        return Environment()
 
     def test_match_with_undefined_subject_raises(self, strict_env):
         """Undefined subject variable raises in strict mode."""
@@ -459,7 +459,7 @@ class TestMatchAutodocScenario:
 </section>
 """,
         }
-        return Environment(loader=DictLoader(templates), strict=True)
+        return Environment(loader=DictLoader(templates))
 
     def test_autodoc_full_chain_renders(self, autodoc_env):
         """Full autodoc template chain renders without errors."""
@@ -523,7 +523,7 @@ Line 2
 {% end %}
 Line 6
 """
-        env = Environment(strict=True)
+        env = Environment()
         template = env.from_string(template_source)
 
         with pytest.raises(UndefinedError) as exc_info:
@@ -534,7 +534,7 @@ Line 6
 
     def test_undefined_in_guard_reports_binding_works(self):
         """Using bound variable in guard should NOT raise undefined error."""
-        env = Environment(strict=True)
+        env = Environment()
         template = env.from_string("""
 {% match some_value %}
 {% case v if v %}has value: {{ v }}
@@ -549,7 +549,7 @@ Line 6
         """Undefined variable in case body reports correct location."""
         from bengal.rendering.kida.environment.exceptions import UndefinedError
 
-        env = Environment(strict=True)
+        env = Environment()
         template = env.from_string("""
 {% match x %}
 {% case "a" %}{{ undefined_in_body }}
@@ -564,4 +564,4 @@ Line 6
 @pytest.fixture
 def env():
     """Basic environment for tests."""
-    return Environment(strict=True)
+    return Environment()

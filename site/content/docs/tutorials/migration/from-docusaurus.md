@@ -228,12 +228,15 @@ function Hello() {
 
 :::{tab} Bengal
 ````markdown
-<!-- Live editors not built-in -->
-<!-- Options: -->
-<!-- 1. Link to CodeSandbox/StackBlitz -->
-<!-- 2. Embed external playground -->
-<!-- 3. Use static code examples -->
+<!-- Option 1: Use embed directives (recommended) -->
+:::{codesandbox} sandbox-id
+:title: Interactive Example
+:::
 
+<!-- Option 2: Link to external playground -->
+[Try it on CodeSandbox](https://codesandbox.io/s/example)
+
+<!-- Option 3: Static code example -->
 ```jsx
 function Hello() {
   return <div>Hello World!</div>;
@@ -349,7 +352,7 @@ module.exports = {
 :::{tab} Bengal (Automatic!)
 ````markdown
 <!-- Bengal auto-generates sidebar from directory structure -->
-<!-- Use weight frontmatter for ordering: -->
+<!-- Control ordering with weight frontmatter: -->
 
 <!-- content/docs/getting-started/_index.md -->
 ---
@@ -374,7 +377,7 @@ weight: 20
 :::{/tab-set}
 
 :::{tip}
-No `sidebars.js` needed! Bengal generates navigation from your directory structure. Use `weight` frontmatter to control order.
+No `sidebars.js` needed! Bengal automatically generates navigation from your directory structure. **Use `weight` frontmatter to control the order**—lower numbers appear first. Pages without `weight` are sorted alphabetically.
 :::
 
 ---
@@ -678,6 +681,14 @@ Bengal generates a search index. For Algolia-level search, integrate externally 
 :::
 
 ---
+
+## Related Migration Guides
+
+If you're migrating from multiple platforms or need additional context:
+
+- [From Mintlify](./from-mintlify) - Similar MDX component migration patterns
+- [From Fern](./from-fern) - API documentation migration (if using OpenAPI)
+- [Migration Overview](../migration/) - Common migration patterns across all platforms
 
 ## Next Steps
 

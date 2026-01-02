@@ -16,9 +16,9 @@ When you use `{% from 'file.html' import macro_name %}`, Jinja2 executes **all t
 
 ```jinja
 {# BAD: cards.html - mixes macro with body code #}
-{% macro element_card(child) %}
+{% def element_card(child) %}
   <div>{{ child.name }}</div>
-{% endmacro %}
+{% end %}
 
 {# This body code runs during import! #}
 {% if children %}  {# ERROR: 'children' is undefined #}
@@ -37,16 +37,16 @@ Split templates that need both macros AND body code into two files:
 ```
 partials/
 ├── _macros/
-│   └── element-card.html    # Pure macro file (safe to import)
+│   └── element-card.html    # Pure function file (safe to import)
 └── cards.html               # Include-only file (uses the macro)
 ```
 
-**Pure macro file** (`_macros/element-card.html`):
+**Pure function file** (`_macros/element-card.html`):
 ```jinja
-{# Only macro definitions - no body code #}
-{% macro element_card(child) %}
+{# Only function definitions - no body code #}
+{% def element_card(child) %}
   <div>{{ child.name }}</div>
-{% endmacro %}
+{% end %}
 ```
 
 **Include-only file** (`cards.html`):
@@ -65,7 +65,7 @@ partials/
 
 | Pattern | When to Use | How to Reference |
 |---------|-------------|------------------|
-| **Pure macro file** | Macro needs to be imported by multiple templates | `{% from '...' import macro %}` |
+| **Pure function file** | Macro needs to be imported by multiple templates | `{% from '...' import macro %}` |
 | **Include-only file** | Template renders content directly | `{% include '...' %}` |
 | **Self-contained template** | Macro is only used within same file | Define macro inline |
 
@@ -125,13 +125,13 @@ templates/
 │   │   ├── tiles.html           # Content tiles component
 │   │   ├── widgets.html         # Discovery widgets
 │   │   └── wrappers.html        # Slot-based wrapper components
-│   ├── _macros/                 # Pure macro files (safe to import)
-│   ├── navigation-components.html  # Pure macros
+│   ├── _macros/                 # Pure function files (safe to import)
+│   ├── navigation-components.html  # Pure functions
 │   └── page-hero-*.html            # Include-only (have body code)
 │
 ├── autodoc/                     # Autodoc-specific templates
 │   └── partials/
-│       ├── _macros/             # Pure macro files
+│       ├── _macros/             # Pure function files
 │       │   └── element-card.html
 │       ├── header.html          # Include-only partials
 │       ├── signature.html
@@ -157,9 +157,9 @@ templates/
 
 ### Naming Conventions
 
-- `_macros/` directories contain pure macro files (the underscore signals "internal")
+- `_macros/` directories contain pure function files (the underscore signals "internal")
 - Files in `_macros/` should only define macros, never render content
-- Files outside `_macros/` can be either include-only or pure macros
+- Files outside `_macros/` can be either include-only or pure functions
 
 ---
 

@@ -11,7 +11,10 @@ from unittest.mock import Mock
 import pytest
 
 from bengal.rendering.kida import DictLoader, Environment, UndefinedError
-from bengal.rendering.kida.environment.exceptions import TemplateRuntimeError
+from bengal.rendering.kida.environment.exceptions import (
+    TemplateNotFoundError,
+    TemplateRuntimeError,
+)
 
 
 class TestCircularReferences:
@@ -19,7 +22,7 @@ class TestCircularReferences:
 
     @pytest.fixture
     def env(self) -> Environment:
-        return Environment(strict=False)
+        return Environment()
 
     def test_self_referencing_dict(self, env: Environment) -> None:
         """Dict that references itself."""
@@ -121,7 +124,7 @@ class TestRuntimeErrors:
 
     def test_attribute_error_on_none(self) -> None:
         """Attribute access on None in strict mode."""
-        env = Environment(strict=True)
+        env = Environment()
         tmpl = env.from_string("{{ obj.attr }}")
         # In strict mode, accessing attribute on None should either:
         # - Raise an error (strict behavior)
@@ -136,7 +139,7 @@ class TestRuntimeErrors:
 
     def test_key_error_on_dict(self) -> None:
         """Missing key access on dict in strict mode."""
-        env = Environment(strict=True)
+        env = Environment()
         tmpl = env.from_string("{{ data['missing'] }}")
         with pytest.raises((KeyError, TemplateRuntimeError, UndefinedError)):
             tmpl.render(data={})
@@ -165,30 +168,21 @@ class TestUndefinedBehavior:
 
     def test_undefined_strict(self) -> None:
         """Undefined variable in strict mode raises error."""
-        env = Environment(strict=True)
+        env = Environment()
         tmpl = env.from_string("{{ undefined_var }}")
         with pytest.raises(UndefinedError):
             tmpl.render()
 
-    def test_undefined_non_strict(self) -> None:
-        """Undefined variable in non-strict mode returns empty or doesn't raise."""
-        env = Environment(strict=False)
-        tmpl = env.from_string("{{ undefined_var }}")
-        result = tmpl.render()
-        # In non-strict mode, undefined should not raise
-        # Result could be "" or "None" depending on implementation
-        assert result in ["", "None"] or result == ""
-
     def test_undefined_in_if(self) -> None:
         """Undefined variable in if condition."""
-        env = Environment(strict=True)
+        env = Environment()
         tmpl = env.from_string("{% if x is defined %}yes{% else %}no{% endif %}")
         assert tmpl.render() == "no"
         assert tmpl.render(x=1) == "yes"
 
     def test_undefined_with_default(self) -> None:
         """Undefined variable with default filter."""
-        env = Environment(strict=True)
+        env = Environment()
         tmpl = env.from_string("{{ undefined|default('fallback') }}")
         result = tmpl.render()
         assert result == "fallback"
@@ -333,7 +327,7 @@ class TestEdgeCaseValues:
 
     @pytest.fixture
     def env(self) -> Environment:
-        return Environment(strict=False)
+        return Environment()
 
     def test_empty_string(self, env: Environment) -> None:
         """Empty string in context."""
@@ -395,9 +389,9 @@ class TestRecursionLimits:
     def test_recursive_macro_limit(self, env: Environment) -> None:
         """Recursive macro hits limit gracefully."""
         tmpl = env.from_string("""
-{% macro recurse(n) %}
+{% def recurse(n) %}
 {% if n > 0 %}{{ n }}{{ recurse(n-1) }}{% endif %}
-{% endmacro %}
+{% end %}
 {{ recurse(10) }}
 """)
         result = tmpl.render()
@@ -408,14 +402,14 @@ class TestRecursionLimits:
     def test_deep_recursion_handled(self, env: Environment) -> None:
         """Very deep recursion is handled."""
         tmpl = env.from_string("""
-{% macro recurse(n) %}
+{% def recurse(n) %}
 {% if n > 0 %}{{ recurse(n-1) }}{% endif %}
-{% endmacro %}
+{% end %}
 {{ recurse(500) }}
 """)
         # Should either work or raise clear error
         try:
-            result = tmpl.render()
+            tmpl.render()
             # If it works, that's fine
         except RecursionError:
             # Expected for very deep recursion
@@ -433,7 +427,7 @@ class TestIncludeRuntime:
         env = Environment(loader=DictLoader({}))
         tmpl = env.from_string('{% include "missing.html" %}')
 
-        with pytest.raises(Exception):  # TemplateNotFound or similar
+        with pytest.raises(TemplateNotFoundError):
             tmpl.render()
 
     def test_include_with_context(self) -> None:

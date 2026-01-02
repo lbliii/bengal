@@ -62,7 +62,7 @@ By the end of this tutorial, you will:
 
 When Bengal renders a page, it looks for templates in this order:
 
-1. **Your project** → `templates/` (highest priority)
+1. **Your project** → `{site.root_path}/templates/` (highest priority)
 2. **Installed themes** → Theme packages
 3. **Bundled themes** → Built-in themes like `default`
 
@@ -187,12 +187,12 @@ Now let's customize the navigation. Open `templates/partials/navigation-componen
 
 **Understand the Template Structure**
 
-The file contains Jinja2 macros for navigation components. Let's add a simple customization: change the breadcrumb separator.
+The file contains template functions (macros) for navigation components. The exact structure depends on your theme version, but you'll typically find functions for breadcrumbs, menus, and navigation items.
 
-Find the breadcrumbs macro (around line 30-50) and look for the separator. It might look like:
+To customize breadcrumbs, search for a function like `breadcrumbs` or look for separator elements. The structure might look like:
 
-```html
-{% macro breadcrumbs(page) %}
+```kida
+{% def breadcrumbs(page) %}
   <nav class="breadcrumbs">
     {% for item in page.get_breadcrumbs() %}
       {% if not loop.last %}
@@ -203,24 +203,25 @@ Find the breadcrumbs macro (around line 30-50) and look for the separator. It mi
       {% end %}
     {% end %}
   </nav>
-{% endmacro %}
+{% end %}
 ```
+
+:::{note}
+**Kida vs Jinja2 syntax**
+Bengal uses Kida templates by default, but Kida can parse Jinja2 syntax. The examples here use Kida's unified `{% end %}` syntax, but if your theme uses Jinja2 syntax (`{% endif %}`, `{% endfor %}`), that works too.
+:::
 
 **Make a Simple Change**
 
-Change the separator from `/` to `→`:
+Find the separator element and change it from `/` to `→`:
 
-```html
+```kida
 <span class="separator">→</span>
 ```
 
 Save the file and preview your site:
 
-```bash
-bengal serve
-```
-
-Navigate to a page with breadcrumbs and verify the separator changed.
+Navigate to a page with breadcrumbs and verify the separator changed. The dev server automatically reloads when you save template files.
 
 :::{tip}
 **Live reload**
@@ -242,15 +243,17 @@ bengal utils theme swizzle partials/search-modal.html
 
 **Customize the Search Modal**
 
-Open `templates/partials/search-modal.html`. You might want to:
+Open `templates/partials/search-modal.html` in your editor. Common customizations include:
 
 - Change the placeholder text
-- Modify the styling classes
-- Add custom search behavior
+- Modify CSS classes for styling
+- Add custom search behavior or attributes
 
-For example, change the search placeholder:
+**Example: Change Placeholder Text**
 
-```html
+Find the search input field (look for `<input type="search">`):
+
+```kida
 <!-- Find the input field -->
 <input
   type="search"
@@ -259,9 +262,9 @@ For example, change the search placeholder:
 >
 ```
 
-Change it to:
+Change the placeholder attribute:
 
-```html
+```kida
 <input
   type="search"
   placeholder="Find anything..."
@@ -299,11 +302,11 @@ bengal utils theme swizzle base.html
 
 **Use Inheritance Instead**
 
-Instead of modifying the entire `base.html`, you can create a minimal override that extends the original:
+Instead of modifying the entire `base.html`, you can create a minimal override that extends the original theme template:
 
-```html
+```kida
 <!-- templates/base.html -->
-{% extends "default::base.html" %}
+{% extends "default/base.html" %}
 
 {# Override only the header block #}
 {% block header %}
@@ -317,15 +320,31 @@ Instead of modifying the entire `base.html`, you can create a minimal override t
 </header>
 {% end %}
 
-{# Everything else inherits from default::base.html #}
+{# Everything else inherits from default/base.html #}
 ```
+
+This approach:
+- Keeps your template minimal (only what you override)
+- Makes updates easier (most of the template stays in the theme)
+- Reduces maintenance burden
 
 :::{warning}
 **Full swizzle vs. inheritance**
-- **Full swizzle**: Copy entire template, full control, harder to update
-- **Inheritance**: Override blocks only, easier to maintain, less control
 
-Choose based on how much you need to customize.
+Choose the right approach based on your needs:
+
+- **Full swizzle**: Copy entire template
+  - ✅ Full control over all template code
+  - ❌ Harder to update when theme changes
+  - Use when: You need extensive customizations or structural changes
+
+- **Inheritance**: Override specific blocks only
+  - ✅ Easier to maintain and update
+  - ✅ Minimal code to manage
+  - ❌ Limited to block-level overrides
+  - Use when: You only need to customize specific sections
+
+Start with inheritance if possible, then swizzle if you need more control.
 :::
 :::{/step}
 
@@ -334,11 +353,11 @@ Choose based on how much you need to customize.
 :duration: 3 min
 Bengal tracks which templates you've swizzled and whether you've modified them. This helps you update templates safely.
 
-**Check Modification Status**
+**How Modification Detection Works**
 
-When you swizzle a template, Bengal records a checksum. If you modify the template locally, Bengal detects the change.
+When you swizzle a template, Bengal records a checksum of the copied file. If you later modify the template locally, Bengal detects the change by comparing checksums.
 
-The `swizzle-update` command only updates templates you haven't modified:
+The `swizzle-update` command only updates templates where your local file matches the original swizzled checksum (meaning you haven't modified it):
 
 ```bash
 bengal utils theme swizzle-update
@@ -355,14 +374,14 @@ This means:
 - **Skipped (changed): 2** — Two templates were skipped because you changed them
 - **Missing upstream: 0** — All source templates still exist
 
-**When Templates Are Updated**
+**Update Conditions**
 
-Templates are only updated if:
+Templates are updated only when all of these conditions are met:
 1. The local file matches the original swizzled checksum (you haven't modified it)
-2. The upstream template has changed
-3. The source template still exists
+2. The upstream template in the theme has changed since you swizzled it
+3. The source template still exists in the theme
 
-This prevents overwriting your customizations.
+This prevents overwriting your customizations. Modified templates are skipped automatically.
 :::{/step}
 
 :::{step} Build and Test
@@ -420,24 +439,34 @@ bengal utils theme swizzle partials/navigation-components.html
 
 ### 2. Document Your Changes
 
-Add comments in swizzled templates explaining why you changed something:
+Add comments in swizzled templates explaining why you changed something. This helps you remember the reason later and helps others understand your customizations:
 
-```html
+```kida
 {# Custom: Changed separator from '/' to '→' for better visual hierarchy #}
 <span class="separator">→</span>
 ```
 
+Comments also make it easier to re-apply changes if you need to re-swizzle a template.
+
 ### 3. Use Template Inheritance When Possible
 
-If you only need to override a block, use inheritance instead of full swizzle:
+If you only need to override a block, use inheritance instead of full swizzle. This keeps your templates minimal and easier to maintain:
 
-```html
+```kida
 {# ✅ Good: Override only what's needed #}
-{% extends "default::base.html" %}
-{% block header %}...{% end %}
+{% extends "default/base.html" %}
+{% block header %}
+  {# Your custom header code #}
+{% end %}
 
 {# ❌ Avoid: Copying entire template when you only need one block #}
+{# This creates unnecessary maintenance burden #}
 ```
+
+Inheritance is especially useful for:
+- Overriding header/footer sections
+- Customizing specific page blocks
+- Adding site-wide elements without copying entire templates
 
 ### 4. Keep Swizzled Templates Updated
 
@@ -469,6 +498,7 @@ bengal serve
 **Issue**: `FileNotFoundError: Template not found in theme chain`
 
 **Solution**: Verify the template path:
+
 ```bash
 # List available templates
 bengal utils theme discover
@@ -484,6 +514,7 @@ bengal utils theme swizzle partials/navigation-components.html
 **Issue**: Customizations don't show up after swizzling
 
 **Solutions**:
+
 - Clear cache: `bengal clean --cache`
 - Restart dev server: Stop and restart `bengal serve`
 - Check file location: Ensure template is in `templates/` (not `themes/`)
@@ -495,6 +526,7 @@ bengal utils theme swizzle partials/navigation-components.html
 **Issue**: `swizzle-update` overwrote your customizations
 
 **Solution**: This shouldn't happen if you've modified the file. If it does:
+
 - Check `.bengal/themes/sources.json` for the checksum
 - Restore from git if you use version control
 - Re-apply your customizations
@@ -503,11 +535,13 @@ bengal utils theme swizzle partials/navigation-components.html
 :::{dropdown} Template Inheritance Not Working
 :icon: alert
 
-**Issue**: `{% extends "default::base.html" %}` doesn't work
+**Issue**: `{% extends "default/base.html" %}` doesn't work
 
 **Solutions**:
+
 - Verify theme name: Use `bengal utils theme info default` to confirm
-- Check syntax: Use `"default::base.html"` format (theme name, double colon, path)
+- Check syntax: Use `"default/base.html"` format (theme name, forward slash, template path)
+- Verify template exists: Use `bengal utils theme discover` to list available templates
 - Clear cache: `bengal clean --cache`
 :::
 
@@ -527,7 +561,7 @@ In this tutorial, you:
 Now that you can swizzle templates, explore further:
 
 - **[Theme Customization Guide](/docs/theming/themes/customize/)** — Deep dive into advanced customization techniques
-- **[Template Reference](/docs/theming/templating/)** — Learn about Jinja2 templates and available functions
+- **[Template Reference](/docs/theming/templating/)** — Learn about Kida templates and available functions
 - **[Variables Reference](/docs/reference/theme-variables/)** — Discover all template variables available
 - **[Assets Guide](/docs/theming/assets/)** — Customize CSS and JavaScript
 
@@ -541,4 +575,4 @@ Swizzling lets you customize Bengal's default theme safely:
 - **Track** swizzled templates with `bengal utils theme swizzle-list`
 - **Update** safely with `bengal utils theme swizzle-update`
 
-Your customizations are preserved while you can still benefit from theme updates.
+Your customizations are preserved while you can still benefit from theme updates. Use template inheritance when possible to minimize maintenance overhead.

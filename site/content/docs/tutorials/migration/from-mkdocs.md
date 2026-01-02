@@ -495,11 +495,41 @@ grep -r "!!!" content/
 | `!!! warning` | `:::{warning}` |
 | `!!! tip` | `:::{tip}` |
 | `??? note` | `:::{dropdown}` |
-| `=== "Tab"` | `:::{tab}` Tab |
 :::{/step}
 
 :::{step} Convert Tabs
-Replace `=== "Tab Name"` with `:::{tab} Tab Name` syntax.
+Replace `=== "Tab Name"` syntax with Bengal's tab directives. Tabs must be wrapped in `:::{tab-set}`:
+
+**MkDocs**:
+````markdown
+=== "Python"
+
+    ```python
+    print("Hello")
+    ```
+
+=== "JavaScript"
+
+    ```javascript
+    console.log("Hello");
+    ```
+````
+
+**Bengal**:
+````markdown
+:::{tab-set}
+:::{tab} Python
+```python
+print("Hello")
+```
+:::{/tab}
+:::{tab} JavaScript
+```javascript
+console.log("Hello");
+```
+:::{/tab}
+:::{/tab-set}
+````
 :::{/step}
 
 :::{step} Add Weight Frontmatter

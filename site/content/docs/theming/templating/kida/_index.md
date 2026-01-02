@@ -60,7 +60,7 @@ Bengal's default template engine. Kida renders templates faster than Jinja2, sup
 | Optional chaining | `?.`, `?[` | Not available | Safe navigation: `obj?.attr`, `obj?['key']` |
 | Null coalescing | `??` | `\| default()` | Fallback operator: `value ?? default` |
 | Fragment caching | `{% cache key %}...{% end %}` | Extension required | Built-in caching directive |
-| Functions | `{% def %}` (lexical scope) | `{% macro %}` (isolated) | Functions see outer variables |
+| Functions | `{% def %}` (lexical scope) | `{% def %}` (isolated) | Functions see outer variables |
 | Range literals | `1..10` | `range(1, 11)` | Inclusive range syntax |
 
 ## Learn More

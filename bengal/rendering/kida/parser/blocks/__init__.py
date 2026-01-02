@@ -1,6 +1,6 @@
 """Block parsing and stack management for Kida parser.
 
-Provides mixin for parsing block statements (if, for, def, macro, etc.)
+Provides mixin for parsing block statements (if, for, def, etc.)
 and managing block stack for unified {% end %} syntax.
 """
 

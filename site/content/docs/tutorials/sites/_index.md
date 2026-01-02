@@ -21,7 +21,7 @@ Complete walkthroughs for building different types of sites from scratch.
 :::{card} Build a Blog
 :icon: newspaper
 :link: ./build-a-blog
-:description: Create a personal blog in 15 minutes
+:description: Create a personal blog in about 15 minutes
 From empty folder to running blog with posts, tags, and custom styling.
 :::{/card}
 

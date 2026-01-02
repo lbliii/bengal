@@ -260,18 +260,18 @@ class TestAsyncInheritance:
             assert result == "World"
 
 
-class TestAsyncMacros:
-    """Test async macro behavior."""
+class TestAsyncFunctions:
+    """Test async function behavior."""
 
     @pytest.fixture
     def env(self) -> Environment:
         return Environment()
 
     @pytest.mark.asyncio
-    async def test_macro_with_async_render(self, env: Environment) -> None:
-        """Macro works with async render."""
+    async def test_function_with_async_render(self, env: Environment) -> None:
+        """Function works with async render."""
         tmpl = env.from_string("""
-{% macro greet(name) %}Hello {{ name }}{% endmacro %}
+{% def greet(name) %}Hello {{ name }}{% end %}
 {{ greet('World') }}
 """)
 
@@ -283,8 +283,8 @@ class TestAsyncMacros:
             assert "Hello World" in result
 
     @pytest.mark.asyncio
-    async def test_macro_with_async_argument(self, env: Environment) -> None:
-        """Macro with async argument."""
+    async def test_function_with_async_argument(self, env: Environment) -> None:
+        """Function with async argument."""
 
         async def get_name() -> str:
             await asyncio.sleep(0)
@@ -292,7 +292,7 @@ class TestAsyncMacros:
 
         try:
             tmpl = env.from_string("""
-{% macro greet(name) %}Hello {{ name }}{% endmacro %}
+{% def greet(name) %}Hello {{ name }}{% end %}
 {{ greet(name_func()) }}
 """)
 
