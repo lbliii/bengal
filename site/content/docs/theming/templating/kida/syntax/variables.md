@@ -12,11 +12,17 @@ tags:
 
 # Variables and Scoping
 
-Kida distinguishes between template-scoped (`{% let %}`) and block-scoped (`{% set %}`) variables.
+Kida provides three variable assignment keywords with distinct scoping behaviors:
+
+- **`{% let %}`**: Template-scoped variables available throughout the template
+- **`{% set %}`**: Block-scoped variables limited to the current block (if/for/while)
+- **`{% export %}`**: Variables promoted from inner scopes to template scope
+
+This explicit scoping model prevents variable leakage, enables safer refactoring, and eliminates the need for Jinja2's `namespace()` workarounds.
 
 ## Template Variables with `{% let %}`
 
-Use `{% let %}` for variables available throughout the template:
+Use `{% let %}` for variables available throughout the template. Variables assigned with `{% let %}` persist across all blocks and can be accessed anywhere in the template.
 
 ```kida
 {# Template-scoped: available everywhere #}
@@ -35,7 +41,9 @@ Use `{% let %}` for variables available throughout the template:
 
 ## Block Variables with `{% set %}`
 
-Use `{% set %}` for variables scoped to the current block:
+Use `{% set %}` for variables scoped to the current block. Variables assigned with `{% set %}` are only accessible within the block where they're defined (if/for/while blocks). Once the block ends, the variable is no longer accessible.
+
+This prevents variable leakage and allows you to safely reuse variable names in different blocks without conflicts.
 
 ```kida
 {% if page.published %}
@@ -47,7 +55,9 @@ Use `{% set %}` for variables scoped to the current block:
 
 ## Exporting from Inner Scope
 
-Use `{% export %}` to make inner-scope variables accessible outside:
+Use `{% export %}` to promote variables from inner scopes (loops, conditionals) to template scope. Variables assigned with `{% export %}` are always assigned to template scope, making them available after the block ends.
+
+This is particularly useful for loop aggregation, finding values in loops, and extracting matched values from pattern matching blocks.
 
 ```kida
 {% for post in posts %}
@@ -134,9 +144,14 @@ Assign array and dict literals directly:
 
 | Keyword | Scope | Use Case |
 |---------|-------|----------|
-| `{% let %}` | Template-wide | Site config, reusable data |
-| `{% set %}` | Current block | Temporary values in loops/conditionals |
-| `{% export %}` | Outer scope | Promote inner values to outer scope |
+| `{% let %}` | Template-wide | Site config, reusable data, template setup |
+| `{% set %}` | Current block | Temporary values in loops/conditionals, block-local state |
+| `{% export %}` | Template-wide (promoted) | Loop aggregation, extracting values from blocks |
+
+**Scoping Rules**:
+- `{% let %}`: Available throughout the entire template
+- `{% set %}`: Only available within the block where it's defined
+- `{% export %}`: Promoted to template scope, available after the block ends
 
 ## Common Patterns
 
@@ -188,3 +203,5 @@ Assign array and dict literals directly:
 
 <p>Total: {{ total }}</p>
 ```
+
+**How it works**: `{% export %}` assigns to template scope, so `total` persists after the loop ends and is available for use.

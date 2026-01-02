@@ -185,6 +185,9 @@ class Environment:
     _fragment_cache: LRUCache = field(init=False)
     # Source hashes for cache invalidation (template_name -> source_hash)
     _template_hashes: dict[str, str] = field(init=False, default_factory=dict)
+    # Shared analysis cache (template_name -> TemplateMetadata)
+    # Prevents redundant analysis when multiple templates include the same partial
+    _analysis_cache: dict[str, Any] = field(init=False, default_factory=dict)
 
     def __post_init__(self) -> None:
         """Initialize derived configuration."""
@@ -345,6 +348,7 @@ class Environment:
                     # Source changed - invalidate cache and reload
                     self._cache.delete(name)
                     self._template_hashes.pop(name, None)
+                    self._analysis_cache.pop(name, None)  # Invalidate analysis cache
                 else:
                     # Source unchanged - return cached template
                     return cached
@@ -491,11 +495,13 @@ class Environment:
             # Clear all templates
             self._cache.clear()
             self._template_hashes.clear()
+            self._analysis_cache.clear()
         else:
             # Clear specific templates
             for name in names:
                 self._cache.delete(name)
                 self._template_hashes.pop(name, None)
+                self._analysis_cache.pop(name, None)  # Invalidate analysis cache
 
     def render(self, template_name: str, *args: Any, **kwargs: Any) -> str:
         """Render a template by name with context.

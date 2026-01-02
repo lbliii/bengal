@@ -168,11 +168,11 @@ Use with `{% call %}` to pass content:
 
 ## Custom Filters
 
-Add custom filters in Python:
+Add custom filters using a build hook:
 
 ```python
-# bengal.py or hooks/filters.py
-from bengal import Site
+# python/build_hooks.py
+from bengal.core import Site
 
 def reading_time(content: str, wpm: int = 200) -> int:
     """Calculate reading time in minutes."""
@@ -183,9 +183,20 @@ def format_number(value: int) -> str:
     """Format number with commas."""
     return f"{value:,}"
 
-site = Site()
-site.add_filter("reading_time", reading_time)
-site.add_filter("format_number", format_number)
+def register_filters(site: Site) -> None:
+    """Register custom Kida filters."""
+    # Get the Kida environment from the template engine
+    if hasattr(site, '_template_engine') and site._template_engine:
+        env = site._template_engine._env
+        env.add_filter("reading_time", reading_time)
+        env.add_filter("format_number", format_number)
+```
+
+Add the build hook to `bengal.yaml`:
+
+```yaml
+build_hooks:
+  - python.build_hooks.register_filters
 ```
 
 Use in templates:
@@ -195,6 +206,8 @@ Use in templates:
 <span>{{ view_count | format_number }} views</span>
 ```
 
+**Note**: `page.reading_time` is already available as a built-in Page property, so you may not need a custom filter for reading time. See [Add a Custom Filter](/docs/theming/templating/kida/add-custom-filter/) for more details.
+
 ## Functions vs Partials
 
 | Feature | Functions | Partials |
@@ -202,7 +215,7 @@ Use in templates:
 | Definition | In template | Separate file |
 | Parameters | Explicit | Via `{% let %}` before include |
 | Scope access | Sees outer variables automatically | Only sees passed context |
-| Cacheability | Cannot be cached | Can be cached |
+| Cacheability | Part of template (cached with template) | Separate file (can be cached independently) |
 | Use case | Reusable within template | Shared across templates |
 
 **Use functions** for components reused within a single template.

@@ -26,6 +26,10 @@ Kida is Jinja2-compatible: your existing templates work without changes. Migrate
 | `\| sort(attribute='key')` | `\|> sort_by('key')` |
 | `\| default(value)` | `?? value` (simple) |
 
+:::{note}
+**Template Functions**: `where` and `sort_by` are Bengal template functions (not Kida built-ins) that are automatically available in all templates. They work with both `\|` (Jinja2-style) and `\|>` (Kida pipeline) operators.
+:::
+
 ## Topics
 
 :::{child-cards}

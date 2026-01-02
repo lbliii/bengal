@@ -312,6 +312,14 @@ class Compiler(
             )
         )
 
+        # Initialize scope stack for block-scoped variables
+        body.append(
+            ast.Assign(
+                targets=[ast.Name(id="_scope_stack", ctx=ast.Store())],
+                value=ast.List(elts=[], ctx=ast.Load()),
+            )
+        )
+
         if extends_node:
             # Template with inheritance - collect blocks and delegate to parent
 

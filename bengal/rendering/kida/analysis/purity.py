@@ -191,12 +191,15 @@ class PurityAnalyzer:
         self,
         extra_pure_functions: frozenset[str] | None = None,
         extra_impure_filters: frozenset[str] | None = None,
+        template_resolver: Any | None = None,
     ) -> None:
         """Initialize analyzer with optional extensions.
 
         Args:
             extra_pure_functions: Additional functions to treat as pure.
             extra_impure_filters: Additional filters to treat as impure.
+            template_resolver: Optional callback(name: str) -> Template | None
+                to resolve included templates. If None, includes return "unknown".
         """
         self._pure_functions = _KNOWN_PURE_FUNCTIONS
         if extra_pure_functions:
@@ -205,6 +208,9 @@ class PurityAnalyzer:
         self._impure_filters = _KNOWN_IMPURE_FILTERS
         if extra_impure_filters:
             self._impure_filters = self._impure_filters | extra_impure_filters
+
+        self._template_resolver = template_resolver
+        self._visited_templates: set[str] = set()  # Track circular includes
 
     def analyze(self, node: Node) -> PurityLevel:
         """Analyze a node and return its purity level.
@@ -547,8 +553,57 @@ class PurityAnalyzer:
         return result
 
     def _visit_include(self, node: Any) -> PurityLevel:
-        """Include is unknown (depends on included template)."""
-        return "unknown"
+        """Include purity depends on included template.
+
+        If template_resolver is provided and template name is a constant,
+        resolves and analyzes the included template. Otherwise returns "unknown".
+        """
+        if self._template_resolver is None:
+            return "unknown"
+
+        # Extract template name - only handle constant strings
+        template_expr = node.template
+        if type(template_expr).__name__ != "Const":
+            # Dynamic template name - can't analyze statically
+            return "unknown"
+
+        template_name = template_expr.value
+        if not isinstance(template_name, str):
+            return "unknown"
+
+        # Check for circular includes
+        if template_name in self._visited_templates:
+            # Circular include detected - return unknown to avoid infinite recursion
+            return "unknown"
+
+        # Resolve and analyze included template
+        try:
+            included_template = self._template_resolver(template_name)
+            if included_template is None:
+                return "unknown"
+
+            # Get AST from included template
+            if (
+                not hasattr(included_template, "_optimized_ast")
+                or included_template._optimized_ast is None
+            ):
+                return "unknown"
+
+            included_ast = included_template._optimized_ast
+
+            # Analyze included template's body
+            self._visited_templates.add(template_name)
+            try:
+                result: PurityLevel = "pure"
+                for child in included_ast.body:
+                    result = _combine_purity(result, self._visit(child))
+                return result
+            finally:
+                self._visited_templates.remove(template_name)
+
+        except Exception:
+            # If resolution fails, return unknown (conservative)
+            return "unknown"
 
     def _visit_extends(self, node: Any) -> PurityLevel:
         """Extends is unknown (depends on parent template)."""

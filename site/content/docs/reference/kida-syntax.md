@@ -154,6 +154,8 @@ Kida's native pattern matching replaces long `if/elif` chains:
 
 ## Variables and Scoping
 
+**Scoping**: `{% let %}` is template-scoped, `{% set %}` is block-scoped, and `{% export %}` promotes variables to template scope. See the [Variables documentation](../theming/templating/kida/syntax/variables.md) for details.
+
 ### Template-Scoped Variables (`{% let %}`)
 
 Variables available throughout the entire template:

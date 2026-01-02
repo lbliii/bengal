@@ -21,6 +21,45 @@ class ControlFlowMixin:
         - _compile_node: method (from core)
     """
 
+    def _wrap_with_scope(self, body_stmts: list[ast.stmt]) -> list[ast.stmt]:
+        """Wrap statements with scope push/pop for block-scoped variables.
+
+        Generates:
+            _scope_stack.append({})
+            ... body statements ...
+            _scope_stack.pop()
+        """
+        if not body_stmts:
+            return [ast.Pass()]
+
+        return [
+            # Push new scope
+            ast.Expr(
+                value=ast.Call(
+                    func=ast.Attribute(
+                        value=ast.Name(id="_scope_stack", ctx=ast.Load()),
+                        attr="append",
+                        ctx=ast.Load(),
+                    ),
+                    args=[ast.Dict(keys=[], values=[])],
+                    keywords=[],
+                )
+            ),
+            *body_stmts,
+            # Pop scope
+            ast.Expr(
+                value=ast.Call(
+                    func=ast.Attribute(
+                        value=ast.Name(id="_scope_stack", ctx=ast.Load()),
+                        attr="pop",
+                        ctx=ast.Load(),
+                    ),
+                    args=[],
+                    keywords=[],
+                )
+            ),
+        ]
+
     def _compile_break(self, node: Any) -> list[ast.stmt]:
         """Compile {% break %} loop control.
 
@@ -56,8 +95,8 @@ class ControlFlowMixin:
         body: list[ast.stmt] = []
         for child in node.body:
             body.extend(self._compile_node(child))
-        if not body:
-            body = [ast.Pass()]
+        # Wrap body with scope for block-scoped variables
+        body = self._wrap_with_scope(body) if body else [ast.Pass()]
 
         return [
             ast.While(
@@ -73,8 +112,8 @@ class ControlFlowMixin:
         body = []
         for child in node.body:
             body.extend(self._compile_node(child))
-        if not body:
-            body = [ast.Pass()]
+        # Wrap body with scope for block-scoped variables
+        body = self._wrap_with_scope(body) if body else [ast.Pass()]
 
         orelse: list[ast.stmt] = []
 
@@ -83,6 +122,8 @@ class ControlFlowMixin:
             elif_stmts = []
             for child in elif_body:
                 elif_stmts.extend(self._compile_node(child))
+            # Wrap elif body with scope
+            elif_stmts = self._wrap_with_scope(elif_stmts) if elif_stmts else [ast.Pass()]
             if not elif_stmts:
                 elif_stmts = [ast.Pass()]
             orelse = [
@@ -98,6 +139,8 @@ class ControlFlowMixin:
             else_stmts = []
             for child in node.else_:
                 else_stmts.extend(self._compile_node(child))
+            # Wrap else body with scope
+            else_stmts = self._wrap_with_scope(else_stmts) if else_stmts else [ast.Pass()]
             if orelse:
                 # Attach to innermost elif's orelse
                 innermost = orelse[0]
@@ -196,8 +239,8 @@ class ControlFlowMixin:
         body = []
         for child in node.body:
             body.extend(self._compile_node(child))
-        if not body:
-            body = [ast.Pass()]
+        # Wrap body with scope for block-scoped variables (each iteration gets its own scope)
+        body = self._wrap_with_scope(body) if body else [ast.Pass()]
 
         # Handle inline test condition: {% for x in items if x.visible %}
         # Part of RFC: kida-modern-syntax-features

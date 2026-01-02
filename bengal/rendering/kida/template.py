@@ -503,6 +503,42 @@ class Template:
                 lineno = ctx.get("_line")
                 raise UndefinedError(var_name, template_name, lineno) from None
 
+        def _lookup_scope(ctx: dict, scope_stack: list, var_name: str) -> Any:
+            """Lookup variable in scope stack (top to bottom), then ctx.
+
+            Checks scopes from innermost to outermost, then falls back to ctx.
+            Raises UndefinedError if not found (strict mode).
+            """
+            # Check scope stack from top (innermost) to bottom (outermost)
+            for scope in reversed(scope_stack):
+                if var_name in scope:
+                    return scope[var_name]
+
+            # Fall back to ctx
+            if var_name in ctx:
+                return ctx[var_name]
+
+            # Not found - raise UndefinedError
+            from bengal.rendering.kida.environment.exceptions import UndefinedError
+
+            template_name = ctx.get("_template")
+            lineno = ctx.get("_line")
+            raise UndefinedError(var_name, template_name, lineno) from None
+
+        def _lookup_scope_legacy(ctx: dict, scope_stack: list, var_name: str) -> Any:
+            """Lookup variable in scope stack (top to bottom), then ctx (legacy mode).
+
+            Checks scopes from innermost to outermost, then falls back to ctx.get().
+            Returns None if not found (legacy mode).
+            """
+            # Check scope stack from top (innermost) to bottom (outermost)
+            for scope in reversed(scope_stack):
+                if var_name in scope:
+                    return scope[var_name]
+
+            # Fall back to ctx.get() (returns None if not found)
+            return ctx.get(var_name)
+
         # Default filter helper for strict mode
         def _default_safe(
             value_fn: Any,
@@ -659,6 +695,8 @@ class Template:
             "_getattr": self._safe_getattr,
             "_getattr_none": self._getattr_preserve_none,  # RFC: kida-modern-syntax-features
             "_lookup": _lookup,  # Strict mode variable lookup
+            "_lookup_scope": _lookup_scope,  # Scope-aware strict lookup
+            "_lookup_scope_legacy": _lookup_scope_legacy,  # Scope-aware legacy lookup
             "_default_safe": _default_safe,  # Default filter for strict mode
             "_is_defined": _is_defined,  # Is defined test for strict mode
             "_null_coalesce": _null_coalesce,  # Null coalesce with undefined handling

@@ -1,5 +1,7 @@
 """Basic tests for Kida template engine."""
 
+import pytest
+
 from bengal.rendering.kida import Environment, Template
 from bengal.rendering.kida._types import TokenType
 from bengal.rendering.kida.lexer import tokenize
@@ -244,34 +246,122 @@ class TestThreadSafety:
 
 
 class TestPythonicScoping:
-    """Test Kida's improved scoping with let/export."""
+    """Test Kida's improved scoping with let/set/export."""
 
-    def test_let_persists(self):
+    @pytest.fixture
+    def env(self):
+        return Environment()
+
+    def test_let_persists(self, env: Environment):
         """Variables declared with let persist across blocks."""
-        env = Environment()
-        # Note: In current implementation, let is same as set
-        # Full let semantics will be added in a later version
-        # For now, just verify the template compiles
-        env.from_string(
+        tmpl = env.from_string(
             """
 {% let counter = 0 %}
-{% for i in items %}{% set counter = counter + 1 %}{% endfor %}
+{% for i in [1, 2, 3] %}
+  {% let counter = counter + i %}
+{% end %}
 {{ counter }}
 """.strip()
         )
+        assert tmpl.render() == "6"
 
-    def test_export_from_loop(self):
-        """Export makes inner variable available in outer scope."""
-        env = Environment()
-        # Note: In current implementation, export is same as set
-        # Full export semantics will be added in a later version
-        # For now, just verify the template compiles
-        env.from_string(
+    def test_set_block_scoped(self, env: Environment):
+        """Variables declared with set are block-scoped."""
+        tmpl = env.from_string(
             """
-{% for item in items %}{% export last = item %}{% endfor %}
-{{ last }}
+{% set x = "outer" %}
+{% if true %}
+  {% set x = "inner" %}
+  inner: {{ x }}
+{% end %}
+outer: {{ x }}
 """.strip()
         )
+        result = tmpl.render()
+        assert "inner: inner" in result
+        assert "outer: outer" in result
+
+    def test_set_not_accessible_outside_block(self, env: Environment):
+        """Set variables are not accessible outside their block."""
+        tmpl = env.from_string(
+            """
+{% if true %}
+  {% set x = "block" %}
+  {{ x }}
+{% end %}
+{{ x | default("undefined") }}
+""".strip()
+        )
+        result = tmpl.render()
+        assert "block" in result
+        assert "undefined" in result
+
+    def test_export_from_loop(self, env: Environment):
+        """Export makes inner variable available in outer scope."""
+        tmpl = env.from_string(
+            """
+{% for item in [1, 2, 3] %}
+  {% if item == 2 %}
+    {% export found = item %}
+  {% end %}
+{% end %}
+Found: {{ found }}
+""".strip()
+        )
+        assert tmpl.render().strip() == "Found: 2"
+
+    def test_export_from_if(self, env: Environment):
+        """Export from if block promotes to template scope."""
+        tmpl = env.from_string(
+            """
+{% if true %}
+  {% export value = "exported" %}
+{% end %}
+{{ value }}
+""".strip()
+        )
+        assert tmpl.render().strip() == "exported"
+
+    def test_nested_scopes(self, env: Environment):
+        """Nested blocks create nested scopes."""
+        tmpl = env.from_string(
+            """
+{% set x = "outer" %}
+{% if true %}
+  {% set x = "middle" %}
+  {% if true %}
+    {% set x = "inner" %}
+    {{ x }}
+  {% end %}
+  {{ x }}
+{% end %}
+{{ x }}
+""".strip()
+        )
+        result = tmpl.render()
+        assert "inner" in result
+        assert "middle" in result
+        assert "outer" in result
+        # Verify order: inner, middle, outer
+        parts = result.split()
+        assert parts[0] == "inner"
+        assert parts[1] == "middle"
+        assert parts[2] == "outer"
+
+    def test_set_in_loop_per_iteration(self, env: Environment):
+        """Set variables in loops are scoped per iteration."""
+        tmpl = env.from_string(
+            """
+{% for i in [1, 2, 3] %}
+  {% set count = i %}
+  {{ count }}
+{% end %}
+{{ count | default("undefined") }}
+""".strip()
+        )
+        result = tmpl.render()
+        assert "123" in result
+        assert "undefined" in result
 
 
 class TestDictLiterals:
