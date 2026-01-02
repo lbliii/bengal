@@ -61,10 +61,13 @@ class KidaTemplateEngine:
 
         Configuration (bengal.yaml):
             kida:
-              strict: true          # (default) Raise UndefinedError for undefined vars
-              strict: false         # Return None for undefined variables (legacy)
               bytecode_cache: true  # (default) Cache compiled templates to disk
               bytecode_cache: false # Disable bytecode caching
+
+        Note:
+            Strict mode (raising UndefinedError for undefined variables) is
+            always enabled in Kida and cannot be disabled. This helps catch
+            typos and missing context variables at render time.
 
         Bytecode Cache:
             When enabled, compiled template bytecode is persisted to
@@ -88,11 +91,11 @@ class KidaTemplateEngine:
             bytecode_cache = BytecodeCache(cache_dir)
 
         # Create Kida environment
+        # Note: strict mode (UndefinedError for undefined vars) is always enabled
         self._env = Environment(
             loader=FileSystemLoader(self.template_dirs),
             autoescape=self._select_autoescape,
             auto_reload=site.config.get("development", {}).get("auto_reload", True),
-            strict=kida_config.get("strict", True),  # Default: strict mode enabled
             bytecode_cache=bytecode_cache,
             # Preserve AST for block metadata/dependency analysis (site-wide block caching)
             preserve_ast=True,

@@ -66,9 +66,10 @@ Kida is the default engine. Optionally configure Kida options in `bengal.yaml`:
 
 ```yaml
 kida:
-  strict: true              # Raise on undefined variables (default)
   bytecode_cache: true       # Cache compiled templates (default)
 ```
+
+**Note**: Strict mode (raising errors for undefined variables) is always enabled in Kida and cannot be disabled. This helps catch typos and missing variables early.
 
 ### Create Test Template
 
@@ -471,12 +472,7 @@ Kida raises errors for undefined variables by default (strict mode). This helps 
 {{ missing_var ?? 'N/A' }}
 ```
 
-To disable strict mode (not recommended), set `strict: false` in your `bengal.yaml`:
-
-```yaml
-kida:
-  strict: false  # Allow undefined variables (not recommended)
-```
+**Note**: Strict mode cannot be disabled in Kida. Undefined variables will always raise `UndefinedError`. Use the `default` filter or null coalescing operator (`??`) to provide fallback values.
 
 ### Template Not Found
 

@@ -41,7 +41,7 @@ Complete reference for Kida template syntax, operators, and features. Kida is Be
 | Optional chaining  | `obj?.attr`, `obj?['key']`     | ❌ Not available                    |
 | Null coalescing    | `value ?? default`             | `value \| default(...)`             |
 | Fragment caching   | `{% cache key %}...{% end %}`  | Requires extension                  |
-| Functions          | `{% def %}` (lexical scope)    | `{% def %}` (isolated scope)      |
+| Functions          | `{% def %}` (lexical scope)    | `{% macro %}` (isolated scope)      |
 
 ## Basic Syntax
 
@@ -843,27 +843,20 @@ Kida raises `UndefinedError` for undefined variables:
 
 Configure in `bengal.yaml`:
 
-```yaml
-kida:
-  strict: false  # Return None for undefined variables
-```
-
 ## Configuration
 
 Kida is Bengal's default template engine. Configure in `bengal.yaml`:
 
 ```yaml
 kida:
-  strict: true              # Raise UndefinedError for missing vars (default)
   bytecode_cache: true      # Persistent compiled template cache (default)
-  autoescape: true          # HTML escape output by default (default)
 ```
+
+**Note**: Strict mode (raising `UndefinedError` for undefined variables) is always enabled in Kida and cannot be disabled. This helps catch typos and missing context variables at render time.
 
 | Option            | Default | Description                         |
 |-------------------|---------|-------------------------------------|
-| `strict`          | `true`  | Raise error on undefined variables  |
 | `bytecode_cache`  | `true`  | Cache compiled templates to disk    |
-| `autoescape`      | `true`  | Auto-escape HTML in `{{ }}` output  |
 
 **Switching template engines**:
 

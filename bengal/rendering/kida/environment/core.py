@@ -14,7 +14,6 @@ Example:
     >>> env = Environment(
     ...     loader=FileSystemLoader("templates/"),
     ...     autoescape=True,
-    ...     strict=True,
     ... )
     >>> env.get_template("page.html").render(page=page)
 """
