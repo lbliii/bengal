@@ -359,6 +359,7 @@ Use `|>` for chains of 3+ filters. For simple single-filter cases, `|` is fine:
 {{ text | upper }}           {# Simple: use | #}
 {{ data |> filter |> sort |> take(5) }}  {# Complex: use |> #}
 ```
+
 :::
 
 ## Built-in Filters
@@ -514,11 +515,13 @@ Kida provides built-in fragment caching:
 ```
 
 **Cache keys** can be:
+
 - Static strings: `"sidebar"`
 - Expressions: `"posts-" ~ page.id`
 - Variables: `cache_key`
 
 **TTL (Time To Live)**:
+
 - `ttl="5m"` - 5 minutes
 - `ttl="1h"` - 1 hour
 - `ttl="30s"` - 30 seconds
@@ -553,11 +556,13 @@ Kida automatically caches site-scoped template blocks for optimal build performa
 The `nav` block depends only on `site.pages` (site-wide), so it's automatically cached and reused for all pages. The `content` block depends on `page.content` (page-specific), so it renders per page.
 
 **Benefits**:
+
 - **Significantly faster builds** for navigation-heavy sites (benchmarks show 10x+ improvement for large sites)
 - **Zero template changes** — works automatically
 - **Transparent** — templates render normally, caching is invisible
 
 **Cache scope detection**:
+
 - **Site-scoped**: Blocks that only access `site.*`, `config.*`, or no page-specific variables
 - **Page-scoped**: Blocks that access `page.*` or other page-specific data
 - **Not cacheable**: Blocks with non-deterministic behavior (random, shuffle, etc.)
@@ -570,12 +575,12 @@ The `nav` block depends only on `site.pages` (site-wide), so it's automatically 
 
 These features are unique to Kida and not available in Jinja2:
 
-| Feature           | Syntax                         | Purpose                     |
-|-------------------|--------------------------------|-----------------------------|
-| Optional chaining | `?.`, `?[`                     | Safe access without errors  |
-| Null coalescing   | `??`                           | Fallback for None values    |
-| Range literals    | `1..10`, `1...11`              | Concise iteration ranges    |
-| While loops       | `{% while %}`                  | Condition-based iteration   |
+| Feature           | Syntax                          | Purpose                     |
+|-------------------|---------------------------------|-----------------------------|
+| Optional chaining | `?.`, `?[`                      | Safe access without errors  |
+| Null coalescing   | `??`                            | Fallback for None values    |
+| Range literals    | `1..10`, `1...11`               | Concise iteration ranges    |
+| While loops       | `{% while %}`                   | Condition-based iteration   |
 | Break/Continue    | `{% break %}`, `{% continue %}` | Loop control                |
 
 ### Optional Chaining
@@ -617,6 +622,7 @@ Safe key/index access—returns `None` if the object is `None`:
 |-----------|-----------|------------|
 | Attribute | `.attr`   | `?.attr`   |
 | Subscript | `['key']` | `?['key']` |
+
 :::
 
 #### Common Use Cases
@@ -666,14 +672,15 @@ Fallback for None values:
 {# ✅ Also works: explicit parentheses #}
 {{ (items ?? []) | length }}
 ```
+
 :::
 
 #### When to Use Each Pattern
 
-| Pattern | Use When | Example |
-|---------|----------|---------|
-| `??` | Simple fallback, no further filtering | `{{ user.name ?? 'Anonymous' }}` |
-| `\| default()` | Fallback followed by filters | `{{ items \| default([]) \| length }}` |
+| Pattern        | Use When                         | Example                                 |
+|----------------|----------------------------------|-----------------------------------------|
+| `??`           | Simple fallback, no filtering    | `{{ user.name ?? 'Anonymous' }}`        |
+| `\| default()` | Fallback followed by filters     | `{{ items \| default([]) \| length }}`  |
 
 **Rule of thumb**: If you need to apply filters after the fallback, use `| default()`. Otherwise, `??` is fine.
 
@@ -719,6 +726,7 @@ Condition-based loops for scenarios where the iteration count isn't known upfron
 
 :::{tip}
 While loops are useful for:
+
 - Processing data until a condition is met
 - Implementing search algorithms in templates
 - Building countdown/countup displays
