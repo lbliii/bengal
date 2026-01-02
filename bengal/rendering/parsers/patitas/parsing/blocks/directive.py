@@ -138,11 +138,12 @@ class DirectiveParsingMixin:
                     self._advance()
                     continue
 
-                # Save raw content if needed (before parsing)
-                if preserves_raw_content and token.location:
-                    # Note: This is a simplified approach - full raw content capture
-                    # would require tracking the original source positions
-                    pass
+                # Capture raw content from token value before parsing
+                # This preserves the original text for directives that need it
+                # (e.g., gallery directive parsing markdown image syntax)
+                if preserves_raw_content and token.value:
+                    raw_content_parts.append(token.value)
+                    raw_content_parts.append("\n")
 
                 block = self._parse_block()
                 if block is not None:
