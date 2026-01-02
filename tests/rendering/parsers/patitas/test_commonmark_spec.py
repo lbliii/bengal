@@ -119,6 +119,10 @@ def normalize_for_comparison(expected: str, actual: str) -> tuple[str, str]:
     actual = actual.replace("<br />", "<br>")
     actual = actual.replace("<hr />", "<hr>")
 
+    # Patitas adds id attributes to headings for anchor links (extension)
+    # Strip these for spec comparison since CommonMark doesn't require them
+    actual = re.sub(r'<(h[1-6])\s+id="[^"]*">', r"<\1>", actual)
+
     return expected, actual
 
 

@@ -132,7 +132,8 @@ class BlockParsingCoreMixin:
         if pos < len(value) and value[pos] == " ":
             pos += 1
 
-        content = value[pos:]
+        # CommonMark: leading and trailing spaces are stripped from heading content
+        content = value[pos:].strip()
 
         # Parse inline content
         children = self._parse_inline(content, token.location)
