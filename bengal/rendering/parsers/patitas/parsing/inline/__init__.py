@@ -20,7 +20,20 @@ from __future__ import annotations
 from bengal.rendering.parsers.patitas.parsing.inline.core import InlineParsingCoreMixin
 from bengal.rendering.parsers.patitas.parsing.inline.emphasis import EmphasisMixin
 from bengal.rendering.parsers.patitas.parsing.inline.links import LinkParsingMixin
+from bengal.rendering.parsers.patitas.parsing.inline.match_registry import (
+    DelimiterMatch,
+    MatchRegistry,
+)
 from bengal.rendering.parsers.patitas.parsing.inline.special import SpecialInlineMixin
+from bengal.rendering.parsers.patitas.parsing.inline.tokens import (
+    CodeSpanToken,
+    DelimiterToken,
+    HardBreakToken,
+    InlineToken,
+    NodeToken,
+    SoftBreakToken,
+    TextToken,
+)
 
 
 class InlineParsingMixin(
@@ -46,9 +59,21 @@ class InlineParsingMixin(
 
 
 __all__ = [
+    # Mixins
     "InlineParsingMixin",
     "InlineParsingCoreMixin",
     "EmphasisMixin",
     "LinkParsingMixin",
     "SpecialInlineMixin",
+    # Match registry
+    "MatchRegistry",
+    "DelimiterMatch",
+    # Typed tokens
+    "InlineToken",
+    "DelimiterToken",
+    "TextToken",
+    "CodeSpanToken",
+    "NodeToken",
+    "HardBreakToken",
+    "SoftBreakToken",
 ]

@@ -38,12 +38,10 @@ Thread Safety:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Generic, Literal, TypeVar
+from typing import Literal
 
 from bengal.rendering.parsers.patitas.directives.options import DirectiveOptions
 from bengal.rendering.parsers.patitas.location import SourceLocation
-
-TOptions = TypeVar("TOptions", bound=DirectiveOptions)
 
 # =============================================================================
 # Base Node
@@ -217,8 +215,8 @@ class FootnoteRef(Node):
     identifier: str
 
 
-# Type alias for inline elements
-Inline = (
+# PEP 695 type alias for inline elements
+type Inline = (
     Text
     | Emphasis
     | Strong
@@ -281,34 +279,28 @@ class FencedCode(Node):
     source_end: int
     info: str | None = None
     marker: Literal["`", "~"] = "`"
+    fence_indent: int = 0  # Leading spaces on opening fence line
 
     def get_code(self, source: str) -> str:
         """Extract code content (creates new string).
 
-        Strips indentation from indented fenced code blocks per CommonMark spec.
+        CommonMark: strips up to fence_indent spaces from each content line.
         """
         code = source[self.source_start : self.source_end]
 
-        # Check if code is indented (starts with spaces)
-        # CommonMark: indented fenced code blocks should have indentation stripped
-        if code and code[0] == " ":
+        # CommonMark: strip up to fence_indent spaces from each line
+        if self.fence_indent > 0:
             lines = code.split("\n")
-            # Find minimum indentation (excluding empty lines)
-            min_indent = float("inf")
+            stripped_lines = []
             for line in lines:
-                if line.strip():  # Non-empty line
-                    indent = len(line) - len(line.lstrip())
-                    min_indent = min(min_indent, indent)
-
-            # Strip minimum indentation from all lines
-            if min_indent != float("inf") and min_indent > 0:
-                stripped_lines = []
-                for line in lines:
-                    if line.strip():
-                        stripped_lines.append(line[min_indent:])
-                    else:
-                        stripped_lines.append(line)
-                code = "\n".join(stripped_lines)
+                # Count leading spaces
+                spaces = 0
+                while spaces < len(line) and line[spaces] == " ":
+                    spaces += 1
+                # Strip up to fence_indent spaces
+                strip_count = min(spaces, self.fence_indent)
+                stripped_lines.append(line[strip_count:])
+            code = "\n".join(stripped_lines)
 
         return code
 
@@ -388,13 +380,17 @@ class HtmlBlock(Node):
 
 
 @dataclass(frozen=True, slots=True)
-class Directive(Node, Generic[TOptions]):
+class Directive[TOptions: DirectiveOptions](Node):
     """Block directive (MyST syntax).
 
     Markdown: :::{name} title\\n:option: value\\ncontent\\n:::
 
     Generic over options type for full type safety. Use Directive[YourOptions]
     to get typed options access in handlers.
+
+    PEP 695 Note:
+        Uses Python 3.12+ type parameter syntax: `class Directive[TOptions: DirectiveOptions]`
+        instead of the older `class Directive(Node, Generic[TOptions])` with TypeVar.
     """
 
     name: str
@@ -488,8 +484,8 @@ class FootnoteDef(Node):
     children: tuple[Block, ...]
 
 
-# Type alias for block elements
-Block = (
+# PEP 695 type alias for block elements
+type Block = (
     Document
     | Heading
     | Paragraph

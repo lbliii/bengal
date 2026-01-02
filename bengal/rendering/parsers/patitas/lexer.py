@@ -17,6 +17,11 @@ from enum import Enum, auto
 from typing import TYPE_CHECKING
 
 from bengal.rendering.parsers.patitas.location import SourceLocation
+from bengal.rendering.parsers.patitas.parsing.charsets import (
+    FENCE_CHARS,
+    THEMATIC_BREAK_CHARS,
+    UNORDERED_LIST_MARKERS,
+)
 from bengal.rendering.parsers.patitas.tokens import Token, TokenType
 
 if TYPE_CHECKING:
@@ -72,6 +77,7 @@ class Lexer:
         "_fence_char",
         "_fence_count",
         "_fence_info",  # Language hint from fence start
+        "_fence_indent",  # Leading spaces on opening fence for CommonMark stripping
         "_consumed_newline",
         "_saved_lineno",
         "_saved_col",
@@ -105,6 +111,7 @@ class Lexer:
         self._fence_char = ""
         self._fence_count = 0
         self._fence_info = ""
+        self._fence_indent = 0  # Leading spaces on opening fence
         self._consumed_newline = False
         self._saved_lineno = 1
         self._saved_col = 1
@@ -113,6 +120,7 @@ class Lexer:
         # Fenced code state
         self._fence_char: str = ""
         self._fence_count: int = 0
+        self._fence_indent: int = 0
 
         # Directive state: stack of (colon_count, name) for nested directives
         self._directive_stack: list[tuple[int, str]] = []
@@ -187,9 +195,9 @@ class Lexer:
 
         # Check for fenced code blocks BEFORE indented code
         # (fenced code can be indented inside list items)
-        # Fenced code: ``` or ~~~
-        if content.startswith("`") or content.startswith("~"):
-            token = self._try_classify_fence_start(content, line_start)
+        # Fenced code: ``` or ~~~ (uses O(1) frozenset lookup)
+        if content[0] in FENCE_CHARS:
+            token = self._try_classify_fence_start(content, line_start, indent)
             if token:
                 yield token
                 return
@@ -208,7 +216,8 @@ class Lexer:
 
         # Thematic break: ---, ***, ___ (must check BEFORE list markers)
         # A line like "- - -" or "* * *" could be either, but thematic break takes precedence
-        if content[0] in "-*_":
+        # Uses O(1) frozenset lookup
+        if content[0] in THEMATIC_BREAK_CHARS:
             token = self._try_classify_thematic_break(content, line_start)
             if token:
                 yield token
@@ -284,6 +293,7 @@ class Lexer:
             self._fence_char = ""
             self._fence_count = 0
             self._fence_info = ""
+            self._fence_indent = 0
             yield Token(
                 TokenType.FENCED_CODE_END,
                 fence_char * 3,
@@ -360,8 +370,15 @@ class Lexer:
         value = "#" * level + (" " + heading_content if heading_content else "")
         return Token(TokenType.ATX_HEADING, value, self._location_from(line_start))
 
-    def _try_classify_fence_start(self, content: str, line_start: int) -> Token | None:
+    def _try_classify_fence_start(
+        self, content: str, line_start: int, indent: int = 0
+    ) -> Token | None:
         """Try to classify content as fenced code start.
+
+        Args:
+            content: Line content with leading whitespace stripped
+            line_start: Position in source where line starts
+            indent: Number of leading spaces (for CommonMark indent stripping)
 
         Returns Token if valid fence, None otherwise.
         """
@@ -393,9 +410,12 @@ class Lexer:
         self._fence_char = fence_char
         self._fence_count = count
         self._fence_info = info.split()[0] if info else ""
+        self._fence_indent = indent  # Store indent for content stripping
         self._mode = LexerMode.CODE_FENCE
 
-        value = fence_char * count + (info if info else "")
+        # Encode indent in token value: "I{indent}:{fence}{info}"
+        # Parser will extract this to set fence_indent on FencedCode node
+        value = f"I{indent}:" + fence_char * count + (info if info else "")
         return Token(TokenType.FENCED_CODE_START, value, self._location_from(line_start))
 
     def _try_classify_thematic_break(self, content: str, line_start: int) -> Token | None:
@@ -464,8 +484,8 @@ class Lexer:
         if not content:
             return None
 
-        # Unordered: -, *, +
-        if content[0] in "-*+":
+        # Unordered: -, *, + (uses O(1) frozenset lookup)
+        if content[0] in UNORDERED_LIST_MARKERS:
             if len(content) > 1 and content[1] in " \t":
                 return self._yield_list_marker_and_content(
                     content[0], content[2:], line_start, indent
@@ -741,8 +761,8 @@ class Lexer:
                 yield option_token
                 return
 
-        # Fenced code: ``` or ~~~
-        if content.startswith("`") or content.startswith("~"):
+        # Fenced code: ``` or ~~~ (uses O(1) frozenset lookup)
+        if content[0] in FENCE_CHARS:
             token = self._try_classify_fence_start(content, line_start)
             if token:
                 yield token
@@ -755,8 +775,8 @@ class Lexer:
                 yield token
                 return
 
-        # Thematic break: ---, ***, ___
-        if content[0] in "-*_":
+        # Thematic break: ---, ***, ___ (uses O(1) frozenset lookup)
+        if content[0] in THEMATIC_BREAK_CHARS:
             token = self._try_classify_thematic_break(content, line_start)
             if token:
                 yield token

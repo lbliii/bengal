@@ -151,8 +151,17 @@ class BlockParsingCoreMixin:
         assert start_token is not None and start_token.type == TokenType.FENCED_CODE_START
         self._advance()
 
-        # Extract marker and info from start token
+        # Extract marker, info, and indent from start token
+        # Token value format: "I{indent}:{fence}{info}"
         value = start_token.value
+        fence_indent = 0
+
+        # Check for encoded indent prefix
+        if value.startswith("I") and ":" in value:
+            prefix, rest = value.split(":", 1)
+            fence_indent = int(prefix[1:])  # Extract number after 'I'
+            value = rest
+
         marker = value[0]  # ` or ~
         info: str | None = None
 
@@ -201,6 +210,7 @@ class BlockParsingCoreMixin:
             source_end=content_end,
             info=info,
             marker=marker,  # type: ignore[arg-type]
+            fence_indent=fence_indent,
         )
 
     def _parse_thematic_break(self) -> ThematicBreak:

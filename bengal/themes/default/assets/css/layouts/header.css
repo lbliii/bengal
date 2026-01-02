@@ -1158,6 +1158,14 @@ header nav {
   background: rgba(0, 0, 0, 0.2);
 }
 
+/* Header actions container - Search + Close buttons */
+.mobile-nav-dialog .mobile-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
 /* Navigation content */
 .mobile-nav-dialog .mobile-nav-content {
   flex: 1;
@@ -1237,6 +1245,83 @@ header nav {
 
 .mobile-nav-dialog li.has-submenu.submenu-open > .submenu {
   display: block;
+}
+
+/* ============================================
+   MOBILE NAV - Split Button Pattern
+   Section link + chevron toggle for expand
+   ============================================ */
+
+/* Container for section link + toggle */
+.mobile-nav-dialog .mobile-nav-item-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  margin-bottom: var(--space-1);
+}
+
+/* Section link takes remaining space */
+.mobile-nav-dialog .mobile-nav-item-row > a,
+.mobile-nav-dialog .mobile-nav-item-row > .nav-dropdown-trigger {
+  flex: 1;
+  margin-bottom: 0;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-right: none;
+}
+
+/* Chevron toggle button */
+.mobile-nav-dialog .mobile-nav-toggle-submenu {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  min-width: 44px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-left: 1px solid var(--color-border-light);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  transition: all var(--transition-fast) var(--ease-out);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-nav-dialog .mobile-nav-toggle-submenu:hover,
+.mobile-nav-dialog .mobile-nav-toggle-submenu:focus {
+  color: var(--color-primary);
+  background: linear-gradient(180deg,
+    var(--color-surface, var(--color-bg-elevated)),
+    var(--color-bg-secondary));
+  border-color: var(--color-border);
+}
+
+.mobile-nav-dialog .mobile-nav-toggle-submenu:active {
+  transform: scale(0.95);
+}
+
+/* Chevron icon rotation */
+.mobile-nav-dialog .mobile-nav-toggle-submenu svg {
+  width: 16px;
+  height: 16px;
+  transition: transform var(--transition-fast) var(--ease-out);
+}
+
+.mobile-nav-dialog li.has-submenu.submenu-open .mobile-nav-toggle-submenu svg {
+  transform: rotate(180deg);
+}
+
+/* When row is in active state, style the toggle button too */
+.mobile-nav-dialog li.active > .mobile-nav-item-row .mobile-nav-toggle-submenu,
+.mobile-nav-dialog li.active-trail > .mobile-nav-item-row .mobile-nav-toggle-submenu {
+  color: var(--color-primary);
+  border-left-color: color-mix(in srgb, var(--color-primary) 20%, var(--color-border));
+}
+
+/* For items with href='#' (no navigation), make entire trigger clickable */
+.mobile-nav-dialog .mobile-nav-content .nav-dropdown-trigger {
+  cursor: pointer;
 }
 
 /* Dialog footer */
