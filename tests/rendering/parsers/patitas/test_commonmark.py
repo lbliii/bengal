@@ -345,11 +345,41 @@ class TestHardLineBreaks:
         assert "<br />" in html
 
     def test_two_spaces_hard_break(self):
-        """Two spaces at end of line."""
+        """Two spaces at end of line creates hard break."""
         html = parse("foo  \nbar")
-        # Should have break (currently using backslash only)
-        # This may be a gap in current implementation
-        assert html is not None
+        assert "<br />" in html
+        assert "foo" in html
+        assert "bar" in html
+
+    def test_many_trailing_spaces_hard_break(self):
+        """More than two trailing spaces still creates hard break."""
+        html = parse("foo       \nbar")
+        assert "<br />" in html
+
+    def test_trailing_spaces_at_end_of_paragraph(self):
+        """Trailing spaces at end of paragraph are stripped, no break."""
+        html = parse("foo  \n")
+        # Should be <p>foo</p>, not <p>foo<br /></p>
+        assert "<br />" not in html
+        assert "foo  " not in html  # Trailing spaces stripped
+
+    def test_hard_break_in_emphasis(self):
+        """Hard break inside emphasis."""
+        html = parse("*foo  \nbar*")
+        assert "<em>" in html
+        assert "<br />" in html
+
+    def test_code_span_newline_becomes_space(self):
+        """Newline inside code span becomes space."""
+        html = parse("`code  \nspan`")
+        # Newline should become space, trailing spaces preserved
+        assert "<code>code   span</code>" in html
+
+    def test_code_span_preserves_backslash(self):
+        """Backslash in code span is preserved, newline becomes space."""
+        html = parse("`code\\\nspan`")
+        # Backslash preserved, newline becomes space
+        assert "<code>code\\ span</code>" in html
 
 
 class TestSoftLineBreaks:

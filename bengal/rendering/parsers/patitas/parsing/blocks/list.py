@@ -382,6 +382,20 @@ class ListParsingMixin:
                         # Parse nested list
                         nested_list = self._parse_list(parent_indent=start_indent)
                         item_children.append(nested_list)
+                    elif nested_indent >= 4 and nested_indent < check_content_indent:
+                        # Marker at 4+ spaces but not enough for nesting - treat as literal content
+                        # This handles cases like "    - e" being content of "   - d"
+                        # The marker becomes literal text: "- e"
+                        marker_stripped = tok.value.lstrip()
+                        self._advance()
+                        # Get the content after the marker
+                        marker_content = marker_stripped
+                        if not self._at_end():
+                            next_tok = self._current
+                            if next_tok.type == TokenType.PARAGRAPH_LINE:
+                                marker_content += " " + next_tok.value.lstrip()
+                                self._advance()
+                        content_lines.append(marker_content)
                     else:
                         # Marker is between start_indent and content_indent - sibling item
                         break

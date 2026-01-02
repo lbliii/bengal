@@ -362,6 +362,9 @@ class BlockParsingCoreMixin:
                 return table
 
         content = "\n".join(lines)
+        # CommonMark: trailing spaces at end of paragraph are stripped
+        # (but trailing spaces followed by content create hard breaks, handled in inline)
+        content = content.rstrip(" ")
         children = self._parse_inline(content, start_token.location)
 
         return Paragraph(location=start_token.location, children=children)

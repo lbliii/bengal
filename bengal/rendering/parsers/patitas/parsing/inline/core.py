@@ -96,6 +96,8 @@ class InlineParsingCoreMixin:
                 close_pos = self._find_code_span_close(text, pos, count)
                 if close_pos != -1:
                     code = text[pos:close_pos]
+                    # CommonMark 6.3: "Line endings are converted to spaces"
+                    code = code.replace("\n", " ")
                     # Normalize: strip one space from each end if both present
                     # But not if it's all spaces
                     code_len = len(code)
@@ -190,9 +192,27 @@ class InlineParsingCoreMixin:
                 pos += 2
                 continue
 
-            # Soft break: single newline
+            # Soft break or hard break (two+ trailing spaces)
             if char == "\n":
-                tokens_append({"type": "soft_break"})
+                # Check for two or more trailing spaces before this newline
+                # CommonMark 6.11: "A line break that is preceded by two or more
+                # spaces... is parsed as a hard line break"
+                space_count = 0
+                check_pos = pos - 1
+                while check_pos >= 0 and text[check_pos] == " ":
+                    space_count += 1
+                    check_pos -= 1
+
+                if space_count >= 2:
+                    # Remove trailing spaces from previous text token
+                    if tokens and tokens[-1].get("type") == "text":
+                        content = tokens[-1]["content"]
+                        tokens[-1]["content"] = content.rstrip(" ")
+                        if not tokens[-1]["content"]:
+                            tokens.pop()
+                    tokens_append({"type": "hard_break"})
+                else:
+                    tokens_append({"type": "soft_break"})
                 pos += 1
                 continue
 
