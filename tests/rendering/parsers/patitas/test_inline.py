@@ -476,3 +476,72 @@ class TestRawHTMLInline:
         """Dots in tag name make it invalid HTML."""
         html = parse("<foo.bar>")
         assert "&lt;foo.bar&gt;" in html
+
+
+class TestReferenceStyleImages:
+    """Reference-style image tests."""
+
+    def test_full_reference_image(self):
+        """Full reference-style image: ![alt][ref]."""
+        html = parse("![alt][ref]\n\n[ref]: /url")
+        assert '<img src="/url" alt="alt"' in html
+
+    def test_full_reference_image_with_title(self):
+        """Reference image with title."""
+        html = parse('![alt][ref]\n\n[ref]: /url "title"')
+        assert '<img src="/url" alt="alt" title="title"' in html
+
+    def test_collapsed_reference_image(self):
+        """Collapsed reference-style image: ![alt][]."""
+        html = parse('![foo][]\n\n[foo]: /url "title"')
+        assert '<img src="/url" alt="foo" title="title"' in html
+
+    def test_shortcut_reference_image(self):
+        """Shortcut reference-style image: ![alt]."""
+        html = parse('![foo]\n\n[foo]: /url "title"')
+        assert '<img src="/url" alt="foo" title="title"' in html
+
+    def test_reference_image_case_insensitive(self):
+        """Reference labels are case-insensitive."""
+        html = parse("![Foo][BAR]\n\n[bar]: /url")
+        assert '<img src="/url" alt="Foo"' in html
+
+    def test_reference_image_alt_strips_formatting(self):
+        """Alt text strips formatting markers."""
+        html = parse("![foo *bar*][]\n\n[foo *bar*]: /url")
+        assert 'alt="foo bar"' in html
+        assert "*" not in html.split('alt="')[1].split('"')[0]
+
+
+class TestAngleBracketURLs:
+    """Angle bracket URL tests for links and images."""
+
+    def test_link_angle_bracket_url(self):
+        """Link with angle bracket URL."""
+        html = parse("[foo](<url>)")
+        assert 'href="url"' in html
+        assert "<" not in html.split('href="')[1].split('"')[0]
+        assert ">" not in html.split('href="')[1].split('"')[0]
+
+    def test_image_angle_bracket_url(self):
+        """Image with angle bracket URL."""
+        html = parse("![alt](<url>)")
+        assert 'src="url"' in html
+        assert "<" not in html.split('src="')[1].split('"')[0]
+
+    def test_link_angle_bracket_with_spaces(self):
+        """Angle bracket URL can contain spaces."""
+        html = parse("[foo](<url with spaces>)")
+        assert 'href="url with spaces"' in html
+
+    def test_link_angle_bracket_with_title(self):
+        """Angle bracket URL with title."""
+        html = parse('[foo](<url> "title")')
+        assert 'href="url"' in html
+        assert 'title="title"' in html
+
+    def test_image_angle_bracket_with_title(self):
+        """Image angle bracket URL with title."""
+        html = parse('![alt](<url> "title")')
+        assert 'src="url"' in html
+        assert 'title="title"' in html
