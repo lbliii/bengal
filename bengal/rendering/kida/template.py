@@ -1129,7 +1129,34 @@ class Template:
         """Perform static analysis and cache results."""
         from bengal.rendering.kida.analysis import BlockAnalyzer, TemplateMetadata
 
-        analyzer = BlockAnalyzer()
+        # Check environment's shared analysis cache first (for included templates)
+        env_for_cache = self._env_ref()
+        if (
+            env_for_cache is not None
+            and hasattr(env_for_cache, "_analysis_cache")
+            and self._name is not None
+        ):
+            cached = env_for_cache._analysis_cache.get(self._name)
+            if cached is not None:
+                self._metadata_cache = cached
+                return
+
+        # Create template resolver for included template analysis
+        def resolve_template(name: str) -> Any:
+            """Resolve and analyze included templates."""
+            if env_for_cache is None:
+                return None
+            try:
+                included = env_for_cache.get_template(name)
+                # Trigger analysis of included template (will cache it)
+                if hasattr(included, "_optimized_ast") and included._optimized_ast is not None:
+                    if included._metadata_cache is None:
+                        included._analyze()
+                return included
+            except Exception:
+                return None
+
+        analyzer = BlockAnalyzer(template_resolver=resolve_template)
         result = analyzer.analyze(self._optimized_ast)
 
         # Set template name from self
@@ -1139,6 +1166,14 @@ class Template:
             blocks=result.blocks,
             top_level_depends_on=result.top_level_depends_on,
         )
+
+        # Store in environment's shared cache for reuse by other templates
+        if (
+            env_for_cache is not None
+            and hasattr(env_for_cache, "_analysis_cache")
+            and self._name is not None
+        ):
+            env_for_cache._analysis_cache[self._name] = self._metadata_cache
 
     def __repr__(self) -> str:
         return f"<Template {self._name or '(inline)'}>"

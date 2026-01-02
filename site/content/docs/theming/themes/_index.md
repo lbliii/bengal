@@ -78,10 +78,22 @@ name = "default"
 }
 ```
 
-Include in your config:
+Include in your template:
+```html
+<link rel="stylesheet" href="{{ asset_url('css/custom.css') }}">
+```
+
+Or store the path in `[theme.config]` and reference it:
 ```toml
 [theme.config]
 custom_css = ["css/custom.css"]
+```
+
+Then in your template:
+```html
+{% for css_file in theme.config.custom_css %}
+<link rel="stylesheet" href="{{ asset_url(css_file) }}">
+{% endfor %}
 ```
 :::
 
@@ -93,7 +105,7 @@ your-project/
         └── header.html  # Your version wins
 ```
 
-Use `bengal utils theme swizzle partials/header.html` to copy the original, then modify as needed.
+Use `bengal theme swizzle partials/header.html` (or `bengal utils theme swizzle`) to copy the original, then modify as needed.
 :::
 :::{/tab-set}
 

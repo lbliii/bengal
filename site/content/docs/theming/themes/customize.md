@@ -129,16 +129,14 @@ The `page-hero/` directory contains separated hero templates:
 ```tree
 templates/partials/
 ├── page-hero.html           # Dispatcher (routes by hero_style)
-├── page-hero-api.html       # Legacy API hero (deprecated)
-├── page-hero-editorial.html # Editorial-style hero
-├── page-hero-overview.html  # Section overview hero
-└── page-hero/               # Separated API hero templates
-    ├── _share-dropdown.html # AI share dropdown component
-    ├── _wrapper.html        # Shared wrapper (breadcrumbs + share)
-    ├── _element-stats.html  # Element children stats
+└── page-hero/               # Separated hero templates
+    ├── _macros.html         # Shared macros and helpers
+    ├── index.html           # Index page hero template
     ├── element.html         # DocElement pages (modules, classes, commands)
     └── section.html         # Section-index pages (packages, CLI groups)
 ```
+
+The dispatcher (`page-hero.html`) routes to the appropriate template based on page type and `hero_style` configuration.
 
 ### Override Page Hero for API Pages
 
@@ -146,43 +144,51 @@ To customize the hero for API documentation pages:
 
 **For element pages (modules, classes, functions, commands):**
 
+Override `partials/page-hero/element.html` to customize the hero for API documentation elements:
+
 ```kida
 {# themes/my-theme/templates/partials/page-hero/element.html #}
-{% include 'partials/page-hero/_wrapper.html' %}
+{% from 'partials/page-hero/_macros.html' import hero_element %}
 
-  {# Your custom badges #}
+{# Use the macro with custom parameters #}
+{{ hero_element(element, params, theme) }}
+
+{# Or create a completely custom hero #}
+<div class="page-hero">
   <div class="page-hero__badges">
     {% include 'autodoc/python/partials/badges.html' %}
   </div>
-
-  {# Custom title with code formatting #}
   <h1 class="page-hero__title page-hero__title--code">
     <code>{{ element.qualified_name }}</code>
   </h1>
-
-  {# Your custom content here #}
-
+  {% if element.description %}
+  <div class="page-hero__description">
+    {{ element.description | markdownify | safe }}
+  </div>
+  {% end %}
 </div>
 ```
 
 **For section-index pages:**
 
+Override `partials/page-hero/section.html` to customize section index heroes:
+
 ```kida
 {# themes/my-theme/templates/partials/page-hero/section.html #}
-{% let is_cli = hero_context.is_cli %}
+{% from 'partials/page-hero/_macros.html' import hero_section %}
 
-{% include 'partials/page-hero/_wrapper.html' %}
+{# Use the macro #}
+{{ hero_section(section, params, theme) }}
 
+{# Or create a custom section hero #}
+<div class="page-hero">
   <h1 class="page-hero__title">{{ section.title }}</h1>
-
-  {# Section description - safe access returns empty string if missing #}
   {% let desc = section.metadata.description %}
   {% if desc %}
   <div class="page-hero__description">
     {{ desc | markdownify | safe }}
   </div>
   {% end %}
-
 </div>
 ```
 
@@ -262,40 +268,61 @@ Many themes support CSS variables. Override them:
 
 ## Theme Configuration Options
 
-Themes can expose configuration options:
+Themes can expose configuration options in two ways:
 
-**`themes/my-custom-theme/theme.toml`:**
-```toml
-name = "my-custom-theme"
-version = "1.0.0"
-description = "Customizable theme"
+### Theme-Level Configuration (`theme.yaml`)
 
-[params]
-show_author = true
-show_date = true
-sidebar_position = "left"
-color_scheme = "light"
+Define default configuration in your theme's `theme.yaml` file:
+
+**`themes/my-custom-theme/theme.yaml`:**
+```yaml
+name: my-custom-theme
+version: 1.0.0
+
+# Custom configuration options
+show_author: true
+show_date: true
+sidebar_position: left
+color_scheme: light
 ```
 
-Access in templates:
+### Site-Level Overrides (`bengal.toml`)
 
-```kida
-{% if theme.config.params.show_author %}
-<p>By {{ page.author or site.author }}</p>
-{% end %}
-```
-
-Configure in `bengal.toml`:
+Override theme defaults in your site's `bengal.toml`:
 
 ```toml
 [theme]
 name = "my-custom-theme"
 
+# Override theme config values
 [theme.params]
 show_author = true
 sidebar_position = "right"
 color_scheme = "dark"
 ```
+
+### Accessing Configuration in Templates
+
+Access theme configuration using `theme.get()` or direct property access:
+
+```kida
+{# Using theme.get() method (recommended) #}
+{% if theme.get('show_author', false) %}
+<p>By {{ page.author or site.author }}</p>
+{% end %}
+
+{# Direct config access (if params section exists) #}
+{% if theme.config.params.show_author %}
+<p>By {{ page.author or site.author }}</p>
+{% end %}
+
+{# Direct config key access #}
+{% if theme.config.show_author %}
+<p>By {{ page.author or site.author }}</p>
+{% end %}
+```
+
+**Note**: When using `[theme.params]` in `bengal.toml`, values are nested under `theme.config.params`. For direct keys in `[theme]` section, use `theme.config.key` or `theme.get('key')`.
 
 ## Best Practices
 

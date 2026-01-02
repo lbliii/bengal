@@ -14,10 +14,10 @@ Bengal provides 80+ template functions and filters organized by category.
 | Category | Examples | Use For |
 |----------|----------|---------|
 | **Collection** | `where`, `sort_by`, `group_by`, `limit` | Querying and filtering pages |
-| **Navigation** | `get_section`, `breadcrumbs`, `get_nav_tree` | Building navigation |
+| **Navigation** | `get_section`, `get_breadcrumbs`, `get_nav_tree` | Building navigation |
 | **Linking** | `ref`, `doc`, `anchor`, `relref` | Cross-references |
-| **Text** | `truncate`, `slugify`, `markdownify` | Text transformations |
-| **Date** | `dateformat`, `days_ago`, `reading_time` | Date formatting |
+| **Text** | `truncatewords`, `slugify`, `markdownify` | Text transformations |
+| **Date** | `time_ago`, `days_ago`, `date_iso` | Date formatting |
 | **i18n** | `t`, `current_lang`, `locale_date` | Internationalization |
 
 ## Quick Examples
@@ -36,7 +36,7 @@ Bengal provides 80+ template functions and filters organized by category.
 
 ```kida
 {% let docs = get_section('docs') %}
-{% let crumbs = breadcrumbs(page) %}
+{% let crumbs = get_breadcrumbs(page) %}
 ```
 
 ### Cross-Reference

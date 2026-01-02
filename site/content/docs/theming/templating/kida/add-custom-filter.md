@@ -62,38 +62,68 @@ def currency(value: float, symbol: str = "$") -> str:
     return f"{symbol}{value:,.2f}"
 ```
 
-### Step 2: Register Filter in Build Hook
+### Step 2: Register Filter
 
-Create a build hook to register your filter:
+Create a registration function to add your filter to the template environment:
 
 ```bash
 mkdir -p python
-touch python/build_hooks.py
+touch python/filter_registration.py
 ```
 
 Register the filter:
 
 ```python
-# python/build_hooks.py
+# python/filter_registration.py
 from bengal.core import Site
 from .filters import currency
 
 def register_filters(site: Site) -> None:
-    """Register custom Kida filters."""
-    # Get the Kida environment from the template engine
+    """Register custom Kida filters.
+
+    Note: This uses internal APIs that may change in future versions.
+    A stable plugin API is planned for v0.4.0.
+    """
+    # Access the template engine environment
+    # The template engine is created during the build process
     if hasattr(site, '_template_engine') and site._template_engine:
         env = site._template_engine._env
         env.add_filter("currency", currency)
 ```
 
-### Step 3: Configure Build Hook
+### Step 3: Call Registration Function
 
-Add the build hook to `bengal.yaml`:
+You need to call this function during the build process. Currently, this requires accessing internal APIs. Two approaches:
 
-```yaml
-build_hooks:
-  - python.build_hooks.register_filters
+**Option A: Programmatic Build (Recommended)**
+
+Create a custom build script that calls your registration function:
+
+```python
+# build.py
+from pathlib import Path
+from bengal.core import Site
+from bengal.orchestration.build import BuildOptions
+from python.filter_registration import register_filters
+
+# Load site
+site = Site.from_config(Path("."))
+
+# Register filters before building
+register_filters(site)
+
+# Build site
+options = BuildOptions()
+site.build(options)
 ```
+
+**Option B: Internal API Access (Advanced)**
+
+::: {warning}
+This approach uses internal APIs (`site._template_engine`) that may change. Use with caution and test after Bengal updates.
+:::
+
+If you need to register filters during the build process, you can access the template engine after it's created. The template engine is typically available during the rendering phase of the build.
 
 ### Step 4: Use Filter in Template
 
@@ -140,12 +170,15 @@ def truncate_words(value: str, length: int = 50, suffix: str = "...") -> str:
 Register and use:
 
 ```python
-# python/build_hooks.py
+# python/filter_registration.py
+from bengal.core import Site
 from .filters import truncate_words
 
 def register_filters(site: Site) -> None:
-    env = site._template_engine._env
-    env.add_filter("truncate_words", truncate_words)
+    """Register custom Kida filters."""
+    if hasattr(site, '_template_engine') and site._template_engine:
+        env = site._template_engine._env
+        env.add_filter("truncate_words", truncate_words)
 ```
 
 ```kida
@@ -154,7 +187,7 @@ def register_filters(site: Site) -> None:
 
 ### Filter with Context Access
 
-Access template context in filters:
+Filters can access template context if needed:
 
 ```python
 # python/filters.py
@@ -163,7 +196,7 @@ def relative_date(value, context=None):
 
     Args:
         value: Date to format
-        context: Template context (auto-injected)
+        context: Template context (optional, if provided by template engine)
 
     Returns:
         Relative date string like "2 days ago"
@@ -194,13 +227,17 @@ def relative_date(value, context=None):
 ```
 
 ```python
-# python/build_hooks.py
+# python/filter_registration.py
+from bengal.core import Site
 from .filters import relative_date
 
 def register_filters(site: Site) -> None:
-    env = site._template_engine._env
-    # Kida automatically passes context to filters
-    env.add_filter("relative_date", relative_date)
+    """Register custom Kida filters."""
+    if hasattr(site, '_template_engine') and site._template_engine:
+        env = site._template_engine._env
+        # Note: Context passing depends on filter implementation
+        # Kida passes context when filters accept it as a parameter
+        env.add_filter("relative_date", relative_date)
 ```
 
 ```kida
@@ -235,12 +272,15 @@ def where_contains(items, key, value):
 ```
 
 ```python
-# python/build_hooks.py
+# python/filter_registration.py
+from bengal.core import Site
 from .filters import where_contains
 
 def register_filters(site: Site) -> None:
-    env = site._template_engine._env
-    env.add_filter("where_contains", where_contains)
+    """Register custom Kida filters."""
+    if hasattr(site, '_template_engine') and site._template_engine:
+        env = site._template_engine._env
+        env.add_filter("where_contains", where_contains)
 ```
 
 ```kida
@@ -254,23 +294,26 @@ def register_filters(site: Site) -> None:
 You can also use decorator syntax for cleaner registration:
 
 ```python
-# python/filters.py
+# python/filter_registration.py
 from bengal.core import Site
 
 def register_filters(site: Site) -> None:
     """Register all custom filters."""
-    env = site._template_engine._env
+    if hasattr(site, '_template_engine') and site._template_engine:
+        env = site._template_engine._env
 
-    @env.filter()
-    def currency(value: float, symbol: str = "$") -> str:
-        return f"{symbol}{value:,.2f}"
+        @env.filter()
+        def currency(value: float, symbol: str = "$") -> str:
+            """Format a number as currency."""
+            return f"{symbol}{value:,.2f}"
 
-    @env.filter()
-    def truncate_words(value: str, length: int = 50) -> str:
-        words = value.split()
-        if len(words) <= length:
-            return value
-        return " ".join(words[:length]) + "..."
+        @env.filter()
+        def truncate_words(value: str, length: int = 50) -> str:
+            """Truncate text to a specific word count."""
+            words = value.split()
+            if len(words) <= length:
+                return value
+            return " ".join(words[:length]) + "..."
 ```
 
 ## Testing Filters
@@ -299,6 +342,37 @@ def test_truncate_words():
 3. **None handling**: Handle None values gracefully
 4. **Error handling**: Provide sensible defaults
 5. **Naming**: Use descriptive, lowercase names with underscores
+6. **API access**: Use `env.add_filter()` method (preferred) over `env.filters['name'] = func`
+
+## Troubleshooting
+
+### Filter Not Found
+
+If your filter isn't available in templates:
+
+1. **Check registration timing**: Ensure `register_filters()` is called before templates are rendered
+2. **Verify template engine**: Confirm `site._template_engine` exists and has `_env` attribute
+3. **Check filter name**: Filter names are case-sensitive and must match exactly
+
+### Template Engine Not Available
+
+If `site._template_engine` is `None`:
+
+- The template engine is created during the rendering phase
+- Ensure you're calling `register_filters()` after the engine is initialized
+- Consider using a custom build script that registers filters before building
+
+### Context Not Passed to Filters
+
+Kida doesn't automatically inject context into filters. If you need template context:
+
+1. Accept `context=None` as a parameter in your filter function
+2. Access context variables through the context parameter when provided
+3. Note that context passing behavior may vary depending on how the filter is called
+
+::: {warning}
+**Internal API Usage**: Accessing `site._template_engine._env` uses internal APIs that may change in future versions. A stable plugin API for filter registration is planned for v0.4.0. Test your filter registration after Bengal updates.
+:::
 
 ## Complete Example
 
@@ -348,13 +422,16 @@ def relative_date(value, context=None) -> str:
 ```
 
 ```python
-# python/build_hooks.py
-"""Build hooks for custom filters."""
+# python/filter_registration.py
+"""Filter registration for custom Kida filters."""
 from bengal.core import Site
 from .filters import currency, truncate_words, relative_date
 
 def register_filters(site: Site) -> None:
-    """Register custom Kida filters."""
+    """Register custom Kida filters.
+
+    Call this function before building your site to register all custom filters.
+    """
     if hasattr(site, '_template_engine') and site._template_engine:
         env = site._template_engine._env
         env.add_filter("currency", currency)
@@ -362,10 +439,18 @@ def register_filters(site: Site) -> None:
         env.add_filter("relative_date", relative_date)
 ```
 
-```yaml
-# bengal.yaml
-build_hooks:
-  - python.build_hooks.register_filters
+**Using in a build script:**
+
+```python
+# build.py
+from pathlib import Path
+from bengal.core import Site
+from bengal.orchestration.build import BuildOptions
+from python.filter_registration import register_filters
+
+site = Site.from_config(Path("."))
+register_filters(site)
+site.build(BuildOptions())
 ```
 
 ## Next Steps

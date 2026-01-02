@@ -1,7 +1,7 @@
 ---
 title: Bring Your Own Template Engine
 nav_title: Custom Engine
-description: Implement a custom template engine with full access to Bengal's 80+ template functions
+description: Implement a custom template engine with full access to Bengal's 200+ template functions, filters, and tests
 weight: 50
 type: doc
 draft: false
@@ -21,7 +21,7 @@ category: guide
 
 # Bring Your Own Template Engine
 
-Bengal supports custom template engines through a protocol-based interface. Your engine automatically gets access to all 80+ template functions, filters, and tests.
+Bengal supports custom template engines through a protocol-based interface. Your engine automatically gets access to all 200+ template functions, filters, and tests (74 global functions, 135 filters, and 6 tests).
 
 ## Required Protocols
 
@@ -42,7 +42,9 @@ class TemplateEnvironment(Protocol):
 ```
 
 If your environment has `globals`, `filters`, and `tests` as dict-like attributes, Bengal automatically registers:
-- **80+ template functions** (truncate, slugify, sort_by, group_by, etc.)
+- **200+ template functions, filters, and tests** (74 globals, 135 filters, 6 tests)
+- **String functions** (truncate, slugify, markdownify, strip_html, etc.)
+- **Collection functions** (sort_by, group_by, where, first, last, etc.)
 - **Date/time filters** (strftime, relative_date, days_ago, etc.)
 - **Navigation helpers** (breadcrumbs, toc, auto_nav, etc.)
 - **SEO/sharing functions** (meta tags, Open Graph, social sharing URLs)
@@ -152,7 +154,7 @@ class MyEngine:
         # Create environment that satisfies TemplateEnvironment protocol
         self._env = MyEnvironment()
 
-        # Register all 80+ Bengal template functions automatically!
+        # Register all 200+ Bengal template functions, filters, and tests automatically!
         register_all(self._env, site, engine_type="generic")
 
     def _build_template_dirs(self) -> list[Path]:
@@ -164,10 +166,13 @@ class MyEngine:
         if project_templates.exists():
             dirs.append(project_templates)
 
-        # Theme templates
-        theme_templates = self.site.theme_path / "templates"
-        if theme_templates.exists():
-            dirs.append(theme_templates)
+        # Theme templates (simplified - for theme inheritance, see Kida engine)
+        # For basic cases, this works. For parent/child theme support, use
+        # resolve_theme_chain() as shown in bengal.rendering.engines.kida
+        if hasattr(self.site, 'theme_path') and self.site.theme_path:
+            theme_templates = self.site.theme_path / "templates"
+            if theme_templates.exists():
+                dirs.append(theme_templates)
 
         return dirs
 
