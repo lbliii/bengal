@@ -376,6 +376,11 @@ class Parser:
         bullet_char = "" if ordered else marker_stripped[0]
         ordered_marker_char = ""  # Track . or ) for ordered lists
 
+        # Calculate content indent: marker indent + marker length + space
+        # This is the minimum indent needed for continuation content
+        marker_length = len(marker_stripped.split()[0]) if marker_stripped.split() else 1
+        content_indent = start_indent + marker_length + 1  # +1 for space after marker
+
         if ordered:
             # Extract starting number and marker style
             num_str = ""
@@ -475,12 +480,13 @@ class Parser:
                             break
                         # More indent - could be nested list
                     elif next_tok.type == TokenType.PARAGRAPH_LINE:
-                        # Check if paragraph is indented (continuation) or not (terminates list)
+                        # Check if paragraph is indented enough to continue list item
+                        # CommonMark: content must be indented by at least content_indent
                         para_indent = self._get_marker_indent(next_tok.value)
-                        if para_indent <= start_indent:
-                            # Non-indented paragraph terminates the list
+                        if para_indent < content_indent:
+                            # Not indented enough - terminates the list
                             break
-                        # Indented paragraph - continuation (loose list)
+                        # Indented enough - continuation (loose list)
                         tight = False
                         # Save current paragraph first
                         if content_lines:
@@ -511,42 +517,14 @@ class Parser:
                             item_children.append(block)
                         continue
                     elif next_tok.type == TokenType.INDENTED_CODE:
-                        # Indented code inside list items: CommonMark says this should be
-                        # parsed as a paragraph continuation if it's normal text, or as
-                        # indented code if it's actually code. We check by looking at the content.
-                        # Save current paragraph first
-                        if content_lines:
-                            content = "\n".join(content_lines)
-                            inlines = self._parse_inline(content, token.location)
-                            para = Paragraph(location=token.location, children=inlines)
-                            item_children.append(para)
-                            content_lines = []
-                        tight = False
-
-                        # Check if content looks like code or paragraph
-                        code_content = next_tok.value.rstrip()
-                        # Heuristic: if content is simple text without code-like structure,
-                        # treat as paragraph continuation
-                        # Simple text: single line, no leading/trailing spaces, no indented sub-lines
-                        looks_like_code = (
-                            code_content.startswith(" ")
-                            or code_content.endswith(" ")
-                            or "\n  " in code_content  # Indented lines
-                            or code_content.count("\n") > 2  # Multiple lines
-                        )
-
-                        if not looks_like_code and code_content.strip():
-                            # Parse as paragraph continuation
-                            inlines = self._parse_inline(code_content.strip(), next_tok.location)
-                            para = Paragraph(location=next_tok.location, children=inlines)
-                            item_children.append(para)
-                            self._advance()  # Consume INDENTED_CODE token
-                        else:
-                            # Parse as indented code block
-                            block = self._parse_block()
-                            if block is not None:
-                                item_children.append(block)
-                        continue
+                        # Indented code after blank line: CommonMark says if content is indented
+                        # by 4+ spaces relative to list marker, it's indented code and terminates list.
+                        # Otherwise, if indented enough (>= content_indent), it's continuation.
+                        # INDENTED_CODE tokens are created for 4+ space indentation.
+                        # We need to check if this is continuation or termination.
+                        # For now, if it's INDENTED_CODE (4+ spaces), it terminates the list
+                        # per CommonMark spec (indented code blocks interrupt lists).
+                        break
                     else:
                         break
 
@@ -638,9 +616,8 @@ class Parser:
                 break
 
         code = "".join(content_parts)
-        # Remove trailing newline
-        if code.endswith("\n"):
-            code = code[:-1]
+        # CommonMark: preserve trailing newline in indented code blocks
+        # (don't strip it like we do for fenced code)
 
         return IndentedCode(location=start_token.location, code=code)
 
