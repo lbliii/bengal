@@ -20,6 +20,149 @@ if TYPE_CHECKING:
 # The scheme must be at least 2 characters total (letter + at least 1 more)
 _URI_AUTOLINK_RE = re.compile(r"^<([a-zA-Z][a-zA-Z0-9+.\-]{1,31}):([^\s<>]*)>$")
 
+# Tag name pattern: ASCII letter followed by letters, digits, or hyphens
+_TAG_NAME_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9-]*$")
+
+# Attribute name pattern per CommonMark:
+# [a-zA-Z_:][a-zA-Z0-9_.\-:]*
+_ATTR_NAME_RE = re.compile(r"^[a-zA-Z_:][a-zA-Z0-9_.:\-]*$")
+
+
+def _parse_html_open_tag(text: str, pos: int) -> tuple[str, int] | None:
+    """Parse an HTML open tag per CommonMark spec.
+
+    CommonMark requires strict validation:
+    - Tag name: ASCII letter followed by letters, digits, hyphens
+    - Attribute names: [a-zA-Z_:][a-zA-Z0-9_.:-]*
+    - Attribute values: unquoted (no spaces/quotes/=/<>/`),
+                        single-quoted (no '), double-quoted (no ")
+    - Space required between tag name and first attribute
+    - Space required between attributes
+    - Optional / before final >
+
+    Returns (html_text, end_pos) or None if not valid.
+    """
+    if pos >= len(text) or text[pos] != "<":
+        return None
+
+    i = pos + 1
+    text_len = len(text)
+
+    # Must start with letter (tag name)
+    if i >= text_len or not text[i].isalpha():
+        return None
+
+    # Parse tag name
+    tag_start = i
+    while i < text_len and (text[i].isalnum() or text[i] == "-"):
+        i += 1
+    tag_name = text[tag_start:i]
+
+    if not tag_name or not _TAG_NAME_RE.match(tag_name):
+        return None
+
+    # After tag name: whitespace, /, or >
+    while i < text_len:
+        char = text[i]
+
+        # End of tag
+        if char == ">":
+            return text[pos : i + 1], i + 1
+
+        # Self-closing
+        if char == "/":
+            if i + 1 < text_len and text[i + 1] == ">":
+                return text[pos : i + 2], i + 2
+            # / not followed by > is invalid
+            return None
+
+        # Whitespace before attributes
+        if char in " \t\n":
+            i += 1
+            continue
+
+        # Must be attribute name starting with valid char
+        if not (char.isalpha() or char in "_:"):
+            return None
+
+        # Parse attribute name
+        attr_start = i
+        while i < text_len:
+            c = text[i]
+            if c.isalnum() or c in "_.::-":
+                i += 1
+            else:
+                break
+        attr_name = text[attr_start:i]
+
+        if not _ATTR_NAME_RE.match(attr_name):
+            return None
+
+        # Skip whitespace
+        while i < text_len and text[i] in " \t\n":
+            i += 1
+
+        if i >= text_len:
+            return None
+
+        # Check for = (attribute value)
+        if text[i] == "=":
+            i += 1  # Skip =
+
+            # Skip whitespace after =
+            while i < text_len and text[i] in " \t\n":
+                i += 1
+
+            if i >= text_len:
+                return None
+
+            val_char = text[i]
+
+            # Double-quoted value
+            if val_char == '"':
+                i += 1
+                while i < text_len:
+                    if text[i] == '"':
+                        i += 1
+                        break
+                    elif text[i] == "\\":
+                        # Backslash doesn't escape in HTML attributes
+                        # But we still consume it normally
+                        i += 1
+                    else:
+                        i += 1
+                else:
+                    # Unclosed quote
+                    return None
+
+            # Single-quoted value
+            elif val_char == "'":
+                i += 1
+                while i < text_len and text[i] != "'":
+                    i += 1
+                if i >= text_len:
+                    return None
+                i += 1  # Skip closing '
+
+            # Unquoted value - cannot contain: " ' = < > ` or whitespace
+            else:
+                if val_char in "\"'=<>`":
+                    return None
+                while i < text_len and text[i] not in "\"'=<>` \t\n>":
+                    i += 1
+                # Check we actually parsed something
+                if i == attr_start:
+                    return None
+
+        # After attribute: must be whitespace, /, or >
+        if i < text_len and text[i] not in " \t\n/>":
+            # Invalid: no space between attributes
+            return None
+
+    # Reached end without closing >
+    return None
+
+
 # Email autolink pattern (CommonMark spec)
 # The local-part cannot contain backslashes (which would be escapes)
 # local-part@domain where local-part has restricted chars
@@ -135,7 +278,13 @@ class SpecialInlineMixin:
         if text[pos] != "<":
             return None
 
-        # Look for closing >
+        # Need to find > but be careful about quotes in attributes
+        result = _parse_html_open_tag(text, pos)
+        if result is not None:
+            html, end_pos = result
+            return HtmlInline(location=location, html=html), end_pos
+
+        # Check other HTML constructs that don't have attribute parsing issues
         close_pos = text.find(">", pos + 1)
         if close_pos == -1:
             return None
@@ -157,8 +306,13 @@ class SpecialInlineMixin:
             return HtmlInline(location=location, html=html), close_pos + 1
 
         # CDATA section: <![CDATA[ ... ]]>
-        if inner.startswith("![CDATA[") and inner.endswith("]]"):
-            return HtmlInline(location=location, html=html), close_pos + 1
+        if inner.startswith("![CDATA["):
+            # CDATA may contain > so need to find ]]>
+            cdata_end = text.find("]]>", pos)
+            if cdata_end != -1:
+                cdata_html = text[pos : cdata_end + 3]
+                return HtmlInline(location=location, html=cdata_html), cdata_end + 3
+            return None
 
         # Processing instruction: <? ... ?>
         if inner.startswith("?") and inner.endswith("?"):
@@ -179,29 +333,6 @@ class SpecialInlineMixin:
             ):
                 return HtmlInline(location=location, html=html), close_pos + 1
             return None
-
-        # Open tag: <tagname attributes...>
-        if first.isalpha():
-            # Extract tag name (up to first space, /, or >)
-            tag_end = 0
-            for i, c in enumerate(inner):
-                if c in " \t\n/":
-                    tag_end = i
-                    break
-                tag_end = i + 1
-
-            tag_name = inner[:tag_end]
-
-            # Validate tag name: must be alphanumeric with hyphens only
-            # No dots (like foo.bar), no colons (like m:abc) - those aren't HTML tags
-            if not tag_name or not tag_name[0].isalpha():
-                return None
-            if not all(c.isalnum() or c == "-" for c in tag_name):
-                return None
-
-            # Has valid tag name - accept (even if attributes are malformed,
-            # that's okay for pass-through raw HTML)
-            return HtmlInline(location=location, html=html), close_pos + 1
 
         return None
 

@@ -182,6 +182,11 @@ class HtmlClassifierMixin:
         The tag name must also NOT be one of the type 6 block-level tags.
         Must not match autolinks like <http://...> or <email@domain>.
 
+        CommonMark strict attribute validation:
+        - Attribute name: [a-zA-Z_:][a-zA-Z0-9_.:-]*
+        - Attribute value: unquoted (no special chars), 'single', or "double" quoted
+        - Space required between attributes (but not after final attribute before > or />)
+
         Args:
             content: Line content
 
@@ -246,20 +251,103 @@ class HtmlClassifierMixin:
         if tag_name in HTML_BLOCK_TYPE6_TAGS:
             return False
 
-        # Now check if it's a valid single tag (not <tag>content</tag>)
-        rest = content[pos:-1]  # Everything between tag name and final >
+        # Now validate the attributes portion strictly per CommonMark
+        # rest is everything between tag name and final >
+        rest = content[pos:-1]
 
-        # Self-closing: <tag/>
+        # Self-closing: <tag/> or <tag attr="val"/>
         if rest.endswith("/"):
-            # Valid self-closing, check attributes are reasonable
             rest = rest[:-1]
-            # Should only contain attribute-like content (no < or >)
-            return "<" not in rest
 
         # Must not contain another < (which would indicate nested content)
-        # E.g., <del>*foo*</del> has </del> inside, so rest contains ">"
-        # Valid opening tag with optional attributes
-        return "<" not in rest
+        if "<" in rest:
+            return False
+
+        # Validate attributes strictly
+        return self._validate_html_attributes(rest)
+
+    def _validate_html_attributes(self, attrs_str: str) -> bool:
+        """Validate HTML attribute string per CommonMark spec.
+
+        Args:
+            attrs_str: The portion after tag name and before > (without leading <tag or trailing >)
+
+        Returns:
+            True if attributes are valid per CommonMark 6.8.
+        """
+        i = 0
+        length = len(attrs_str)
+
+        while i < length:
+            char = attrs_str[i]
+
+            # Skip whitespace
+            if char in " \t\n":
+                i += 1
+                continue
+
+            # Must be start of attribute name: [a-zA-Z_:]
+            if not (char.isalpha() or char in "_:"):
+                return False
+
+            # Parse attribute name: [a-zA-Z_:][a-zA-Z0-9_.:-]*
+            i += 1
+            while i < length:
+                c = attrs_str[i]
+                if c.isalnum() or c in "_.::-":
+                    i += 1
+                else:
+                    break
+
+            # Skip whitespace
+            while i < length and attrs_str[i] in " \t\n":
+                i += 1
+
+            # Check for = (attribute value)
+            if i < length and attrs_str[i] == "=":
+                i += 1  # Skip =
+
+                # Skip whitespace after =
+                while i < length and attrs_str[i] in " \t\n":
+                    i += 1
+
+                if i >= length:
+                    return False
+
+                val_char = attrs_str[i]
+
+                # Double-quoted value
+                if val_char == '"':
+                    i += 1
+                    while i < length and attrs_str[i] != '"':
+                        i += 1
+                    if i >= length:
+                        return False  # Unclosed quote
+                    i += 1  # Skip closing "
+
+                # Single-quoted value
+                elif val_char == "'":
+                    i += 1
+                    while i < length and attrs_str[i] != "'":
+                        i += 1
+                    if i >= length:
+                        return False  # Unclosed quote
+                    i += 1  # Skip closing '
+
+                # Unquoted value - cannot contain: " ' = < > ` or whitespace
+                else:
+                    if val_char in "\"'=<>`":
+                        return False
+                    while i < length and attrs_str[i] not in "\"'=<>` \t\n":
+                        i += 1
+
+            # After attribute: must be whitespace or end of string
+            # If there's more content without whitespace, it's invalid
+            # (e.g., <a href='bar'title=title> - no space before title)
+            if i < length and attrs_str[i] not in " \t\n":
+                return False
+
+        return True
 
     def _emit_html_block(self) -> Iterator[Token]:
         """Emit accumulated HTML block as a single token.

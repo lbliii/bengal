@@ -801,6 +801,72 @@ def _escape_attr(text: str) -> str:
     return html_escape(text, quote=True)
 
 
+def _encode_url(url: str) -> str:
+    """Encode URL for use in href attribute per CommonMark spec.
+
+    CommonMark requires:
+    1. Percent-encoding of special characters in URLs (space, backslash, etc.)
+    2. HTML escaping of characters that are special in HTML (& → &amp;)
+
+    The final output goes in an HTML attribute, so we need both:
+    - URL percent-encoding for URL-special characters
+    - HTML escaping for HTML-special characters (&, <, >, ", ')
+    """
+    import html
+    from urllib.parse import quote
+
+    # First, decode any HTML entities (e.g., &auml; → ä)
+    decoded = html.unescape(url)
+
+    # Preserve already-valid percent sequences
+    # Split on existing %XX patterns and encode each part
+    result = []
+    i = 0
+    while i < len(decoded):
+        # Check for existing percent encoding
+        if decoded[i] == "%" and i + 2 < len(decoded):
+            hex_chars = decoded[i + 1 : i + 3]
+            if all(c in "0123456789ABCDEFabcdef" for c in hex_chars):
+                # Valid percent sequence - preserve it
+                result.append(decoded[i : i + 3])
+                i += 3
+                continue
+
+        char = decoded[i]
+
+        # Characters safe in URLs (RFC 3986 unreserved + sub-delims + : / ? # @ = &)
+        # CommonMark allows more lax URLs so we preserve more chars
+        if (
+            char
+            in "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~:/?#[]@!$&'()*+,;="
+        ):
+            result.append(char)
+        else:
+            # Percent-encode this character
+            encoded = quote(char, safe="")
+            result.append(encoded)
+
+        i += 1
+
+    # Now HTML-escape the result for use in an attribute
+    # This converts & → &amp;, etc.
+    url_encoded = "".join(result)
+    return html_escape(url_encoded, quote=True)
+
+
+def _escape_link_title(title: str) -> str:
+    """Escape link title for use in title attribute per CommonMark spec.
+
+    Titles use HTML escaping but must also decode HTML entities first.
+    E.g., &quot; in source becomes " which then becomes &quot; in output.
+    """
+    import html
+
+    # Decode entities first, then HTML-escape
+    decoded = html.unescape(title)
+    return html_escape(decoded, quote=True)
+
+
 def _default_slugify(text: str) -> str:
     """Default slugify function for heading IDs.
 
@@ -842,18 +908,18 @@ def _render_strong(node: Strong, sb: StringBuilder, render_children) -> None:
 
 
 def _render_link(node: Link, sb: StringBuilder, render_children) -> None:
-    sb.append(f'<a href="{_escape_attr(node.url)}"')
+    sb.append(f'<a href="{_encode_url(node.url)}"')
     if node.title:
-        sb.append(f' title="{_escape_attr(node.title)}"')
+        sb.append(f' title="{_escape_link_title(node.title)}"')
     sb.append(">")
     render_children(node.children, sb)
     sb.append("</a>")
 
 
 def _render_image(node: Image, sb: StringBuilder, render_children) -> None:
-    sb.append(f'<img src="{_escape_attr(node.url)}" alt="{_escape_attr(node.alt)}"')
+    sb.append(f'<img src="{_encode_url(node.url)}" alt="{_escape_attr(node.alt)}"')
     if node.title:
-        sb.append(f' title="{_escape_attr(node.title)}"')
+        sb.append(f' title="{_escape_link_title(node.title)}"')
     sb.append(" />")
 
 

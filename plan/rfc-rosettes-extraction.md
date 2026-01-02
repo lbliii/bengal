@@ -1,6 +1,6 @@
 # RFC: Rosettes Extraction to Standalone Package
 
-**Status**: Draft  
+**Status**: In Progress (Phase 4)  
 **Created**: 2026-01-02  
 **Author**: Bengal Contributors
 
@@ -501,25 +501,25 @@ benchmarks/test_import_overhead.py
 
 ## Success Criteria
 
-1. ✅ `pip install rosettes` works
-2. ✅ `from rosettes import highlight` works
-3. ✅ Rosettes test suite passes (standalone)
-4. ✅ Bengal test suite passes (with external rosettes)
-5. ✅ No Bengal-specific code in rosettes (`grep -r "from bengal" rosettes/` returns empty)
-6. ✅ Import overhead within 5% of current
-7. ✅ Type checking passes in rosettes repo
+1. ✅ `pip install rosettes` works — **DONE** (uv add rosettes)
+2. ✅ `from rosettes import highlight` works — **DONE** (verified)
+3. ✅ Rosettes test suite passes (standalone) — **DONE** (263 passed, 28 skipped)
+4. ⏳ Bengal test suite passes (with external rosettes) — **PENDING** (Phase 4)
+5. ✅ No Bengal-specific code in rosettes (`grep -r "from bengal" rosettes/` returns empty) — **DONE**
+6. ⏳ Import overhead within 5% of current — **PENDING** (needs benchmark)
+7. ⏳ Type checking passes in rosettes repo — **PENDING** (pyright)
 
 ---
 
 ## Timeline Estimate
 
-| Phase | Effort | Dependencies |
-|-------|--------|--------------|
-| Phase 1: Prepare repo | 1 hour | None |
-| Phase 2: Extract source | 2 hours | Phase 1 |
-| Phase 3: Extract tests | 1 hour | Phase 2 |
-| Phase 4: Update Bengal | 2 hours | Phase 3 |
-| Phase 5: Validation | 1 hour | Phase 4 |
+| Phase | Effort | Dependencies | Status |
+|-------|--------|--------------|--------|
+| Phase 1: Prepare repo | 1 hour | None | ✅ Complete |
+| Phase 2: Extract source | 2 hours | Phase 1 | ✅ Complete |
+| Phase 3: Extract tests | 1 hour | Phase 2 | ✅ Complete |
+| Phase 4: Update Bengal | 2 hours | Phase 3 | ⏳ In Progress |
+| Phase 5: Validation | 1 hour | Phase 4 | ✅ Rosettes tests passing |
 | **Total** | **~7 hours** | |
 
 ---
