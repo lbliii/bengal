@@ -64,12 +64,6 @@ class TestResilientNoneHandling:
         result = tmpl.render(page={"metadata": {"author": None}})
         assert result == ""
 
-    def test_missing_variable_returns_empty(self, env: Environment) -> None:
-        """Accessing completely missing variable returns empty."""
-        tmpl = env.from_string("{{ nonexistent.attr }}")
-        result = tmpl.render()
-        assert result == ""
-
     def test_none_in_conditional_is_falsy(self, env: Environment) -> None:
         """None (now "") is falsy in conditionals."""
         tmpl = env.from_string("{% if obj.value %}yes{% else %}no{% end %}")

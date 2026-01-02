@@ -633,6 +633,7 @@ class RenderingPipeline:
             return self.template_engine.render_string(
                 page._source,
                 {"page": page, "site": self.site, "config": self.site.config},
+                strict=False,
             )
         except Exception as e:
             if self.build_stats:
