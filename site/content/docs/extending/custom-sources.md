@@ -69,15 +69,16 @@ collections = {
     "posts": define_collection(
         schema=BlogPost,
         loader=rest_loader(
-            base_url="https://api.example.com",
-            endpoint="/posts",
-            auth_header="Bearer ${API_TOKEN}",
+            url="https://api.example.com/posts",
+            headers={"Authorization": "Bearer ${API_TOKEN}"},
+            content_field="body",
+            frontmatter_fields={"title": "title", "date": "published_at"},
         ),
     ),
 }
 ```
 
-Requires: `pip install bengal[github]` (uses aiohttp)
+Requires: `pip install bengal[rest]`
 
 ### Notion Source
 
@@ -122,14 +123,14 @@ class MyAPISource(ContentSource):
         for item in items:
             yield ContentEntry(
                 id=item["id"],
-                source=self.name,
-                source_type=self.source_type,
-                path=f"{item['slug']}.md",
+                slug=item["slug"],
                 content=item["body"],
                 frontmatter={
                     "title": item["title"],
                     "date": item["created_at"],
                 },
+                source_type=self.source_type,
+                source_name=self.name,
             )
 
     async def fetch_one(self, id: str):
@@ -140,14 +141,14 @@ class MyAPISource(ContentSource):
 
         return ContentEntry(
             id=item["id"],
-            source=self.name,
-            source_type=self.source_type,
-            path=f"{item['slug']}.md",
+            slug=item["slug"],
             content=item["body"],
             frontmatter={
                 "title": item["title"],
                 "date": item["created_at"],
             },
+            source_type=self.source_type,
+            source_name=self.name,
         )
 
     async def _fetch_items(self):
@@ -175,13 +176,15 @@ Each source yields `ContentEntry` objects:
 ```python
 @dataclass
 class ContentEntry:
-    id: str              # Unique identifier
-    source: str          # Source instance name
-    source_type: str     # Source type (e.g., "github", "notion")
-    path: str            # Virtual file path
-    content: str         # Markdown content body
-    frontmatter: dict    # Metadata dictionary
-    checksum: str | None # Content hash for caching
+    id: str                        # Unique identifier within source
+    slug: str                      # URL-friendly slug for routing
+    content: str                   # Raw markdown content
+    frontmatter: dict[str, Any]    # Parsed metadata dictionary
+    source_type: str               # Source type (e.g., "github", "notion")
+    source_name: str               # Source instance name
+    source_url: str | None         # Original URL for attribution
+    last_modified: datetime | None # Last modification time
+    checksum: str | None           # Content hash for caching
 ```
 
 ## Registering Custom Sources

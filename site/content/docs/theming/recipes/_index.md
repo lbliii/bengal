@@ -37,6 +37,7 @@ Work with pages, sections, and taxonomies.
 | [Filter by Multiple Tags](./filter-by-tags/) | Chaining filters, `in` operator |
 | [Archive Page](./archive-page/) | `group_by_year`, `group_by_month` filters |
 | [Featured Posts](./featured-posts/) | `section.featured_posts`, highlighting content |
+| [Template Views](./template-views/) | `EndpointView`, `SchemaView`, `TagView` normalized objects |
 
 ## Page Features
 
@@ -79,10 +80,12 @@ Add features to individual pages.
 
 | Filter | Purpose | Example |
 |--------|---------|---------|
-| `where` | Filter by field | `pages \| where('draft', false)` |
-| `sort_by` | Sort results | `pages \| sort_by('title')` |
-| `limit` | Take first N | `pages \| limit(10)` |
-| `group_by` | Group by field | `pages \| group_by('category')` |
-| `first` | Get first item | `pages \| first` |
+| `where` | Filter by field | `pages \|> where('draft', false)` |
+| `sort_by` | Sort results | `pages \|> sort_by('title')` |
+| `limit` | Take first N | `pages \|> limit(10)` |
+| `group_by` | Group by field | `pages \|> group_by('category')` |
+| `first` | Get first item | `pages \|> first` |
+
+Both `\|>` (Kida pipeline) and `\|` (Jinja-style) work. Examples use `\|>` for consistency.
 
 See [Template Functions](/docs/theming/templating/functions/) for the complete reference.

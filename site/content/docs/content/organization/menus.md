@@ -182,8 +182,7 @@ weight = 10
 | `name` | string | Display text (defaults to page title) |
 | `url` | string | Link destination |
 | `weight` | integer | Sort order (lower = first) |
-| `pre` | string | HTML before name (icons, etc.) |
-| `post` | string | HTML after name |
+| `icon` | string | Icon name (e.g., `book`, `folder`) |
 | `parent` | string | Parent menu item for nesting |
 | `identifier` | string | Unique ID for parent references |
 
@@ -245,20 +244,25 @@ Bundles like Dev automatically use `url = "#"` since they're just containers for
 
 ## Accessing Menus in Templates
 
-Menu data is available to all themes via `site.menus`:
+Use the `get_menu_lang()` template function to retrieve menu items with proper localization:
 
 ```jinja
-{% for item in site.menus.main %}
-  <a href="{{ item.url }}">{{ item.name }}</a>
+{% let main_menu = get_menu_lang('main', current_lang()) %}
+{% for item in main_menu %}
+  <a href="{{ item.href | absolute_url }}">{{ item.name }}</a>
   {% if item.children %}
     <ul>
     {% for child in item.children %}
-      <li><a href="{{ child.url }}">{{ child.name }}</a></li>
+      <li><a href="{{ child.href | absolute_url }}">{{ child.name }}</a></li>
     {% end %}
     </ul>
   {% end %}
 {% end %}
 ```
+
+:::{note}
+The `get_menu_lang(name, lang)` function returns menu items with active states already computed. Use `item.href` (not `item.url`) and apply `| absolute_url` for proper URL handling.
+:::
 
 ### Menu Item Properties (Core)
 
@@ -267,12 +271,12 @@ All themes have access to these properties on each menu item:
 | Property | Type | Description |
 |----------|------|-------------|
 | `item.name` | string | Display name |
-| `item.url` / `item.href` | string | Link URL |
+| `item.href` | string | Link URL (use with `\| absolute_url` filter) |
 | `item.children` | list | Child menu items (for dropdowns) |
 | `item.active` | bool | True if current page |
 | `item.active_trail` | bool | True if ancestor of current page |
-| `item.icon` | string | Icon name (if set) |
-| `item.identifier` | string | Unique ID |
+| `item.icon` | string | Icon name (if set via frontmatter) |
+| `item.identifier` | string | Unique ID for parent references |
 
 ### Dropdown-Only Detection
 

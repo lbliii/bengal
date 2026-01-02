@@ -27,10 +27,10 @@ from bengal.utils.metadata import (
 class TestGetMarkdownEngineAndVersion:
     """Tests for _get_markdown_engine_and_version."""
 
-    def test_default_engine_is_mistune(self):
-        """Default markdown engine is mistune."""
+    def test_default_engine_is_patitas(self):
+        """Default markdown engine is patitas."""
         engine, version = _get_markdown_engine_and_version({})
-        assert engine == "mistune"
+        assert engine == "patitas"
 
     def test_legacy_flat_key(self):
         """Supports legacy flat markdown_engine key."""
@@ -86,7 +86,7 @@ class TestGetMarkdownEngineAndVersion:
         """Handles None markdown config gracefully."""
         config = {"markdown": None}
         engine, version = _get_markdown_engine_and_version(config)
-        assert engine == "mistune"  # Falls back to default
+        assert engine == "patitas"  # Falls back to default
 
 
 class TestGetHighlighterVersion:

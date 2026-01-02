@@ -21,9 +21,8 @@ Bengal provides flexible, format-agnostic configuration with clear architectural
 
 Bengal auto-detects configuration files in order:
 
-1. `bengal.toml` / `bengal.yaml`
-2. `config.toml` / `config.yaml`
-3. `config/` directory structure
+1. `bengal.toml` / `bengal.yaml` / `bengal.yml`
+2. `config/` directory structure
 
 ## Directory Structure (Recommended)
 
@@ -57,8 +56,8 @@ site:
 # config/_default/content.yaml
 content:
   excerpt_length: 200      # → page.excerpt
-  reading_speed: 250       # → page.reading_time
-  toc_depth: 3             # → page.toc
+  reading_speed: 200       # → page.reading_time (words per minute)
+  toc_depth: 4             # → page.toc
   sort_pages_by: "weight"
 
 # config/_default/params.yaml
@@ -106,7 +105,7 @@ Merged lowest to highest:
 bengal config show                    # Show merged config
 bengal config show --origin           # Show which file contributed each key
 bengal config doctor                  # Diagnose issues
-bengal config diff local production   # Compare environments
+bengal config diff --against production  # Compare local vs production
 bengal config init                    # Initialize directory structure
 ```
 
@@ -124,11 +123,16 @@ bengal config init                    # Initialize directory structure
 ## Usage
 
 ```python
-from bengal.config import load_config
+from pathlib import Path
+from bengal.config import ConfigLoader
 
-config = load_config()  # Auto-detect
-config = load_config(Path('my-config.toml'))  # Specific file
+loader = ConfigLoader(Path("."))
+config = loader.load()  # Auto-detect from site root
 
-title = config['title']
-parallel = config['build']['parallel']
+# Or load a specific file
+config = loader.load(Path("bengal.yaml"))
+
+# Access flattened config (site.title → title)
+title = config["title"]
+parallel = config["parallel"]
 ```

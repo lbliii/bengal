@@ -134,22 +134,22 @@ Cautionary note (renders as warning)
 :::
 
 :::{seealso} See Also
-- [Related Topic](/docs/related/)
-- [API Reference](/docs/api/)
+- [Related Topic](#)
+- [Another Resource](#)
 :::
 `````
 
 ## Options
 
-Admonitions support standard directive options:
+Admonitions support the `:class:` option for custom styling:
 
-- `:class:` - Additional CSS classes
-- `:id:` - Element ID
+| Option | Description |
+|--------|-------------|
+| `:class:` | Additional CSS classes to apply |
 
 `````markdown
 :::{note} Custom Note
-:class: custom-class
-:id: my-note
+:class: highlight bordered
 
 Content here
 :::
@@ -157,18 +157,32 @@ Content here
 
 ## Rendering
 
-Admonitions render as:
+Admonitions render with icons and structured markup:
 
 ```html
 <div class="admonition note">
-  <p class="admonition-title">Note</p>
-  <div>Content here</div>
+  <p class="admonition-title">
+    <span class="admonition-icon-wrapper"><!-- SVG icon --></span>
+    <span class="admonition-title-text">Note</span>
+  </p>
+  <p>Content here</p>
+</div>
+```
+
+CSS classes follow the pattern `admonition {type}`. The `caution` type maps to the `warning` CSS class.
+
+With custom classes via `:class:`:
+
+```html
+<div class="admonition note highlight bordered">
+  <!-- ... -->
 </div>
 ```
 
 ## Best Practices
 
-1. **Use appropriate types**: Choose the type that best matches the content's importance
-2. **Keep titles concise**: Short, descriptive titles work best
-3. **Use sparingly**: Too many admonitions can overwhelm readers
-4. **Nest carefully**: Nested admonitions work but can be visually busy
+1. **Match type to severity**: Use `note`/`tip` for helpful info, `warning`/`caution` for potential issues, `danger`/`error` for critical problems
+2. **Keep titles concise**: Short, descriptive titles (2-4 words) work best
+3. **Use sparingly**: More than 2-3 admonitions per page can overwhelm readers
+4. **Nest carefully**: Nested admonitions work but increase visual complexity
+5. **Prefer `seealso` for links**: Group related links in a dedicated `seealso` block rather than inline

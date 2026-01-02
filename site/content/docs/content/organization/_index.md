@@ -65,11 +65,11 @@ A folder with `index.md` → a page with co-located assets.
 content/
 └── gallery/
     ├── index.md      →  /gallery/
-    ├── photo-1.jpg   (private to this page)
-    └── photo-2.jpg   (private to this page)
+    ├── photo-1.jpg   (co-located asset)
+    └── photo-2.jpg   (co-located asset)
 ```
 
-Use for: pages with images, data files, or other assets.
+Use for: pages with images, data files, or other assets that belong together.
 :::
 :::{/tab-set}
 

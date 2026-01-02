@@ -1,7 +1,7 @@
 ---
 title: Project Philosophy
 nav_title: Philosophy
-description: Bengal's approach to evolution, compatibility, and design decisions.
+description: Bengal prioritizes correctness over compatibility. What that means for upgrades and contributions.
 weight: 1
 type: doc
 icon: lightbulb
@@ -11,124 +11,135 @@ tags:
 - design
 ---
 
-# Project Philosophy
+**Correctness over compatibility. Evolution over preservation. Explicit over silent.**
 
-Bengal prioritizes **correctness, clarity, and architectural integrity** over long-term compatibility.
-
-Each release represents the best solution we know how to deliver at that time. As our understanding evolves, interfaces and behavior may change.
+Bengal promises progress, not stability. When we discover a better approach, we implement it—even if that means breaking changes.
 
 ---
 
-## Core Principles
+## The Core Bargain
 
-### Evolution Over Preservation
+:::{list-table}
+:header-rows: 1
+:widths: 50 50
 
-Bengal is designed to evolve rapidly toward better solutions.
+* - You Control
+  - We Control
+* - When to upgrade
+  - What changes
+* - Whether to migrate
+  - What gets deprecated
+* - Staying on older versions
+  - Moving the project forward
+:::
 
-We do not treat backwards compatibility as a primary goal. When existing behavior no longer reflects the best design or understanding of the problem, it may be changed or removed.
-
-### Explicit Standards
-
-Each release defines its own standards. By upgrading, users agree to meet those standards and update their usage accordingly.
-
-We do not provide:
-
-- Hidden compatibility layers
-- Silent fallbacks
-- Long-lived shims for deprecated behavior
-
-When something changes, it will **fail loudly and explicitly**.
-
-### User Control
-
-Users control when they upgrade. Maintainers control what changes.
-
-If you are not ready to upgrade, you may remain on an older version. This policy allows the project to move forward without preserving known mistakes.
+Not ready to upgrade? Stay on your current version. Ready? Read the release notes and migrate.
 
 ---
 
-## What This Means In Practice
+## Why This Approach
+
+### Wrong output is worse than a failed build
+
+A site that renders incorrectly is harder to catch than a site that fails to build. Clear error messages pointing to what changed are a feature.
+
+### Compatibility layers become the problem
+
+Hidden shims cause subtle bugs, slow development, and become their own maintenance burden. Bengal deletes known mistakes instead of preserving them.
+
+<details>
+<summary><strong>Example</strong>: Config key migration</summary>
+
+When Bengal renamed `site.base_path` to `site.baseurl`, we:
+
+1. Removed the old key entirely
+2. Added a clear error: `"site.base_path" is no longer supported. Use "site.baseurl" instead.`
+3. Documented the change in release notes
+
+We did **not** silently map the old key to the new one. That approach would have hidden the problem until some future version removed the shim, breaking sites with no warning.
+
+</details>
+
+### Honest expectations
+
+Projects that claim backwards compatibility often break things silently or stagnate under legacy code. Bengal's stance: we control what changes, you control when you upgrade.
+
+---
+
+## What This Means
 
 ### For Users
 
-| Expectation | Reality |
-|-------------|---------|
-| Upgrading is seamless | Upgrading requires reading release notes and making changes |
-| Old config always works | Old config may require migration |
-| Deprecated features degrade gracefully | Deprecated features fail with clear error messages |
-| All versions behave the same | Each version defines its own behavior |
+| If you expect... | Expect instead... |
+|------------------|-------------------|
+| Seamless upgrades | Read release notes before upgrading |
+| Old config always works | Migrate config when prompted |
+| Graceful deprecation | Clear errors pointing to fixes |
+| Consistent cross-version behavior | Each version defines its behavior |
 
 ### For Contributors
 
-| Expectation | Reality |
-|-------------|---------|
-| Avoid breaking changes | Make the right change, document it clearly |
-| Maintain compatibility shims | Delete deprecated code when it's time |
+| If you expect... | Expect instead... |
+|------------------|-------------------|
+| Avoid breaking changes | Make the right change, document it |
+| Maintain compatibility shims | Delete deprecated code when ready |
 | Support all past behavior | Support current behavior well |
-
----
-
-## Why This Approach?
-
-### Avoids Technical Debt
-
-Compatibility layers accumulate. They become their own maintenance burden. They cause bugs. They slow development. Giving maintainers explicit permission to delete known mistakes keeps the codebase healthy.
-
-### Enables Honest Communication
-
-Most projects *claim* backwards compatibility but then either:
-
-- Break things silently anyway
-- Stagnate under the weight of legacy code
-- Accumulate hidden shims that become their own problem
-
-Bengal's stance says upfront: *you control when you upgrade, we control what changes*. That's honest.
-
-### Prioritizes Correctness
-
-For a static site generator, incorrect output is worse than a breaking change. A site that builds but renders wrong is harder to catch than a site that fails to build.
-
-Clear error messages pointing to what changed are a feature, not a bug.
 
 ---
 
 ## Versioning
 
-Bengal uses semantic versioning to signal the nature of changes:
+Bengal uses semantic versioning with one caveat: **pre-1.0 releases may include breaking changes in any minor version**.
 
-- **Major versions** (1.0 → 2.0): May include significant breaking changes
-- **Minor versions** (1.0 → 1.1): May include smaller breaking changes with migration paths
-- **Patch versions** (1.0.0 → 1.0.1): Bug fixes, unlikely to break anything
+| Version | Meaning |
+|---------|---------|
+| **0.x.y** (current) | Any release may break things—read release notes |
+| **1.0+** | Major = breaking, Minor = features, Patch = fixes |
 
-Release notes document all changes. Migration guides accompany breaking changes.
+Every release includes release notes. Breaking changes include migration guides.
+
+:::{tip}
+Pin your version in `pyproject.toml` or `requirements.txt` (e.g., `bengal==0.1.6`) to prevent unexpected upgrades. Upgrade deliberately by reviewing the changelog first.
+:::
 
 ---
 
-## The Trade-off
+## Who Bengal Is For
 
-This philosophy trades **broad enterprise adoption** for **architectural integrity**.
+Bengal prioritizes **architectural integrity** over **broad enterprise adoption**.
 
-Organizations requiring multi-year stability guarantees may find Bengal's approach challenging. That's a valid concern—and Bengal may not be the right choice for every project.
+:::{list-table}
+:header-rows: 1
+:widths: 50 50
 
-Bengal is for users who value a **clean, evolving system** over frozen behavior. If that's you, welcome.
+* - Good fit
+  - May not fit
+* - You value a clean, evolving system
+  - You need multi-year stability guarantees
+* - You read release notes before upgrading
+  - You expect seamless, zero-effort upgrades
+* - You prefer explicit errors over silent failures
+  - You need graceful degradation for legacy configs
+:::
 
 ---
 
 ## Summary
 
-:::{list-table}
-:header-rows: 1
+| Principle                   | Meaning                                      |
+| --------------------------- | -------------------------------------------- |
+| Correctness first           | We fix mistakes even when it breaks things   |
+| Fail loudly                 | Errors are explicit, not silent degradation  |
+| User control                | You choose when to upgrade                   |
+| No hidden layers            | What you see is what you get                 |
+| Evolution over preservation | The project moves forward                    |
 
-* - Principle
-  - What It Means
-* - Correctness first
-  - We fix mistakes even when it breaks things
-* - Fail loudly
-  - Errors are explicit, not silent degradation
-* - User control
-  - You choose when to upgrade
-* - No hidden layers
-  - What you see is what you get
-* - Evolution over preservation
-  - The project moves forward
+Bengal is not for everyone—and that's intentional. By being explicit about trade-offs, we can build the tool we believe in rather than the tool that satisfies everyone poorly.
+
+---
+
+:::{seealso}
+- [[docs/about/faq|FAQ]] — Common questions about compatibility and upgrades
+- [[changelog|Changelog]] — Version history with migration guides
+- [[docs/about/limitations|Limitations]] — Known constraints and workarounds
 :::

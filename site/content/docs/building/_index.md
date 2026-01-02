@@ -30,20 +30,22 @@ flowchart LR
 
     subgraph Build
         D[Discovery]
-        E[Rendering]
-        F[Post-Process]
+        E[Content]
+        F[Rendering]
+        G[Post-Process]
     end
 
     subgraph Output
-        G[public/]
+        H[public/]
     end
 
     A --> D
     B --> D
-    C --> E
     D --> E
+    C --> F
     E --> F
     F --> G
+    G --> H
 ```
 
 ## Quick Reference
@@ -53,29 +55,25 @@ flowchart LR
 | Configure my site | [Configuration](./configuration/) |
 | Build for production | [Commands](./commands/) |
 | Speed up builds | [Performance](./performance/) |
-| Generate JSON/LLM output | [Output Formats](./output-formats/) |
+| Generate JSON/LLM output | [Output Formats](./output-formats.md) |
 | Deploy my site | [Deployment](./deployment/) |
 | Fix build errors | [Troubleshooting](./troubleshooting/) |
 
 ## Essential Commands
 
 ```bash
-# Development (live reload, opens browser)
-bengal serve
+# Development server with live reload
+bengal serve                # or: bengal s
 
-# Production build
+# Production build (recommended for deployment)
 bengal build --environment production --strict
 
-# Fast CI build
+# Fast CI build (parallel, quiet output)
 bengal build --fast --environment production
 
-# Validate content
-bengal validate
+# Validate content before building
+bengal validate             # or: bengal v
 
-# Clean and rebuild
+# Clean cache and rebuild from scratch
 bengal clean --cache && bengal build
 ```
-
-:::{tip}
-**Quick start**: Run `bengal serve` for development with live reload. For production, use `bengal build --environment production --strict`.
-:::

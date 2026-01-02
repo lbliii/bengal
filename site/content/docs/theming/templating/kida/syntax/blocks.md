@@ -30,11 +30,13 @@ Kida uses `{% end %}` for all block endings, eliminating the need to remember sp
 {% end %}
 ```
 
-Jinja2's `{% end %}` is also accepted for block endings.
+**Compatibility**: Specific endings like `{% endif %}`, `{% endfor %}`, `{% endwhile %}`, and `{% endblock %}` are also accepted for Jinja2 compatibility. Use `{% end %}` for consistency.
 
 ## Conditionals
 
-Standard `if/elif/else`:
+### If/Elif/Else
+
+Standard conditional blocks:
 
 ```kida
 {% if page.draft %}
@@ -43,6 +45,22 @@ Standard `if/elif/else`:
   <span class="badge">Scheduled</span>
 {% else %}
   <span class="badge">Published</span>
+{% end %}
+```
+
+### Unless
+
+Use `{% unless %}` for negated conditions (Kida-native):
+
+```kida
+{% unless page.hidden %}
+  <article>{{ page.content | safe }}</article>
+{% end %}
+
+{% unless user.logged_in %}
+  <a href="/login">Sign in</a>
+{% else %}
+  <span>Welcome, {{ user.name }}</span>
 {% end %}
 ```
 
@@ -61,27 +79,60 @@ Standard `if/elif/else`:
 
 ### Loop Variables
 
+Access iteration metadata via the `loop` object:
+
 ```kida
 {% for item in items %}
-  {{ loop.index }}      {# 1-indexed position #}
-  {{ loop.index0 }}     {# 0-indexed position #}
-  {{ loop.first }}      {# true for first iteration #}
-  {{ loop.last }}       {# true for last iteration #}
-  {{ loop.length }}     {# total items #}
+  {{ loop.index }}      {# 1-indexed: 1, 2, 3... #}
+  {{ loop.index0 }}     {# 0-indexed: 0, 1, 2... #}
+  {{ loop.first }}       {# true on first iteration #}
+  {{ loop.last }}        {# true on last iteration #}
+  {{ loop.length }}      {# total items in sequence #}
+  {{ loop.revindex }}    {# reverse 1-indexed: length...3, 2, 1 #}
+  {{ loop.revindex0 }}   {# reverse 0-indexed: length-1...2, 1, 0 #}
+  {{ loop.previtem }}    {# previous item (None on first) #}
+  {{ loop.nextitem }}    {# next item (None on last) #}
+  {{ loop.cycle('odd', 'even') }}  {# alternates values #}
+{% end %}
+```
+
+### Empty Clause
+
+Render content when the iterable is empty:
+
+```kida
+{% for post in posts %}
+  <article>{{ post.title }}</article>
+{% empty %}
+  <p>No posts found.</p>
+{% end %}
+```
+
+**Note**: Kida uses `{% empty %}` (not `{% else %}`) for empty iterables, matching Jinja2 behavior.
+
+### Inline Filter
+
+Filter items directly in the loop declaration:
+
+```kida
+{% for post in posts if post.published %}
+  <article>{{ post.title }}</article>
 {% end %}
 ```
 
 ### While Loops
 
-Kida adds `{% while %}` (not available in Jinja2):
+Kida adds `{% while %}` loops (not available in Jinja2):
 
 ```kida
 {% let counter = 0 %}
 {% while counter < 5 %}
   <p>Count: {{ counter }}</p>
-  {% set counter = counter + 1 %}
+  {% let counter = counter + 1 %}
 {% end %}
 ```
+
+**Alternative ending**: You can also use `{% endwhile %}` instead of `{% end %}`.
 
 ### Loop Control
 
@@ -139,17 +190,18 @@ The `{% case _ %}` pattern matches anything (default fallback).
 
 ### When to Use Pattern Matching
 
-**Use pattern matching** when:
+**Use `{% match %}`** when:
 
-- Checking the same variable against multiple values
+- Checking the same variable against multiple discrete values
 - You have 3+ cases
-- Cases are discrete values (strings, numbers)
+- Cases are strings, numbers, or simple patterns
 
-**Use `if/elif`** when:
+**Use `{% if %}/{% elif %}`** when:
 
-- Complex boolean expressions
-- Range checks (`if x > 10`)
+- Complex boolean expressions (`if x > 10 and y < 5`)
+- Range checks or comparisons
 - Multiple variable conditions
+- Need `unless` semantics
 
 ## Range Literals
 
@@ -174,6 +226,8 @@ Kida provides cleaner range syntax:
 
 ## Complete Example
 
+Combining multiple block types:
+
 ```kida
 {% extends "baseof.html" %}
 
@@ -195,10 +249,12 @@ Kida provides cleaner range syntax:
         <div class="content">
           {{ page.content | safe }}
         </div>
-        {% if page.tags %}
+        {% unless page.tags | length == 0 %}
           <footer>
-            {% for tag in page.tags %}
+            {% for tag in page.tags if tag.public %}
               <a href="{{ tag_url(tag) }}" class="tag">{{ tag }}</a>
+            {% empty %}
+              <span>No public tags</span>
             {% end %}
           </footer>
         {% end %}
@@ -211,3 +267,11 @@ Kida provides cleaner range syntax:
   {% end %}
 {% end %}
 ```
+
+**This example demonstrates:**
+
+- Unified `{% end %}` syntax
+- Nested pattern matching
+- `{% unless %}` for negated conditions
+- `{% for %}` with inline filter (`if tag.public`)
+- `{% empty %}` clause for empty iterables

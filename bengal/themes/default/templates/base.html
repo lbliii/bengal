@@ -45,9 +45,23 @@ HELPER: Render a menu item (desktop/mobile)
 
 <li
     class="{{ 'has-submenu' if has_children else '' }} {{ 'active' if is_active else '' }} {{ 'active-trail' if is_trail else '' }}">
-    {% if has_children and item.href == '#' %}
+    {% if is_mobile and has_children %}
+    {# Mobile: Split button pattern - link + chevron toggle #}
+    <div class="mobile-nav-item-row">
+        {% if item.href == '#' %}
+        <span class="nav-dropdown-trigger" tabindex="0" role="button" aria-haspopup="true">{{ item.name }}</span>
+        {% else %}
+        <a href="{{ item.href | absolute_url }}" {{ 'aria-current="page"' | safe if is_active else '' }}>{{ item.name }}</a>
+        {% end %}
+        <button type="button" class="mobile-nav-toggle-submenu" aria-label="Toggle {{ item.name }} submenu" aria-expanded="false">
+            {{ icon('caret-down', size=16) }}
+        </button>
+    </div>
+    {% elif has_children and item.href == '#' %}
+    {# Desktop: Non-navigable dropdown trigger #}
     <span class="nav-dropdown-trigger" tabindex="0" role="button" aria-haspopup="true">{{ item.name }}</span>
     {% else %}
+    {# Regular navigation link #}
     <a href="{{ item.href | absolute_url }}" {{ 'aria-current="page"' | safe if is_active else '' }}>{{ item.name }}</a>
     {% end %}
 

@@ -1,0 +1,33 @@
+# CommonMark Spec Baseline Report
+
+| Section | Passed | Failed | Skipped | Pass Rate |
+|---------|--------|--------|---------|-----------|
+| ATX headings | 18 | 0 | 0 | 100% |
+| Autolinks | 19 | 0 | 0 | 100% |
+| Backslash escapes | 13 | 0 | 0 | 100% |
+| Blank lines | 1 | 0 | 0 | 100% |
+| Block quotes | 20 | 5 | 0 | 80% |
+| Code spans | 21 | 1 | 0 | 95% |
+| Emphasis and strong emphasis | 132 | 0 | 0 | 100% |
+| Entity and numeric character references | 14 | 3 | 0 | 82% |
+| Fenced code blocks | 28 | 1 | 0 | 97% |
+| HTML blocks | 41 | 3 | 0 | 93% |
+| Hard line breaks | 15 | 0 | 0 | 100% |
+| Images | 20 | 2 | 0 | 91% |
+| Indented code blocks | 9 | 3 | 0 | 75% |
+| Inlines | 1 | 0 | 0 | 100% |
+| Link reference definitions | 0 | 0 | 27 | N/A |
+| Links | 69 | 21 | 0 | 77% |
+| List items | 24 | 24 | 0 | 50% |
+| Lists | 13 | 13 | 0 | 50% |
+| Paragraphs | 8 | 0 | 0 | 100% |
+| Precedence | 1 | 0 | 0 | 100% |
+| Raw HTML | 13 | 7 | 0 | 65% |
+| Setext headings | 24 | 3 | 0 | 89% |
+| Soft line breaks | 2 | 0 | 0 | 100% |
+| Tabs | 6 | 5 | 0 | 55% |
+| Textual content | 3 | 0 | 0 | 100% |
+| Thematic breaks | 19 | 0 | 0 | 100% |
+
+**Total**: 534/625 (85.4%)
+**Skipped**: 27 (not yet implemented)

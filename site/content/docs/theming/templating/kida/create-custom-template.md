@@ -24,6 +24,7 @@ Learn how to create a custom template using Kida syntax. This guide walks throug
 ## Goal
 
 Create a custom blog post template that:
+
 - Extends the base layout
 - Displays post metadata (title, date, author)
 - Shows tags and categories
@@ -33,6 +34,7 @@ Create a custom blog post template that:
 
 - Bengal site initialized
 - Kida enabled in `bengal.yaml`:
+
   ```yaml
   site:
     template_engine: kida
@@ -50,9 +52,13 @@ touch templates/blog/single.html
 ```
 
 Bengal searches templates in this order:
-1. `templates/` (your project)
-2. Theme templates
-3. Bengal defaults
+
+1. `templates/` (your project's custom templates)
+2. Theme templates (for each theme in the theme chain):
+   - Site-level themes (`themes/{theme}/templates`)
+   - Installed themes (via package entry points)
+   - Bundled themes (`bengal/themes/{theme}/templates`)
+3. Default theme templates (ultimate fallback)
 
 ### Step 2: Extend Base Layout
 
@@ -300,6 +306,7 @@ Visit a blog post page to see your custom template in action.
 - [Cache Fragments](/docs/theming/templating/kida/caching/fragments/) — Improve performance
 
 :::{seealso}
+
 - [Kida Syntax Reference](/docs/reference/kida-syntax/) — Complete syntax documentation
 - [Template Functions](/docs/theming/templating/functions/) — Available filters and functions
 :::

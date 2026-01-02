@@ -30,10 +30,10 @@ The rendering pipeline transforms source content into final HTML output.
 
 ## Overview
 
-The pipeline follows a strict 3-stage process:
+The pipeline follows a 5-stage process:
 
 ```
-Parse (Markdown → AST) → Render (Apply Templates) → Post-process (Enhance)
+Parse → Build AST → Apply Templates → Render HTML → Write Output
 ```
 
 ## Architecture
@@ -66,7 +66,7 @@ flowchart TD
 :::{tab-item} Parser
 **Markdown Parser** (`rendering/parsers/`)
 
-Patitas is the default markdown engine (thread-safe, O(n) guaranteed).
+Patitas is the default markdown engine (thread-safe, O(n) guaranteed). Mistune is available as a legacy option.
 
 **Features:**
 - **Variable Substitution**: `{{ page.title }}` in content
@@ -81,7 +81,7 @@ Patitas is the default markdown engine (thread-safe, O(n) guaranteed).
 Kida-based engine with project-specific helpers.
 
 **Capabilities:**
-- **Theme Support**: Overridable templates (Site > Theme > Default)
+- **Theme Support**: Overridable templates (Site > Theme > Parent > Default)
 - **Safe Rendering**: Error boundaries prevent build crashes
 - **Caching**: Bytecode caching for speed
 - **Free-Threading**: Safe for parallel rendering
@@ -157,7 +157,7 @@ Bengal extends Markdown with directives using `:::{name}` syntax. Directives are
 **Audio & Terminal**:
 - `audio` - Audio player
 - `asciinema` - Terminal recording playback
-- `marimo` - Marimo notebook embed
+- `marimo` - Marimo notebook embed (Mistune-only)
 :::
 
 :::{tab-item} Navigation

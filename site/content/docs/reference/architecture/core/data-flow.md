@@ -115,6 +115,6 @@ flowchart LR
 - Phase 16: Asset dependencies
 - Phase 18: Full build cache
 
-**Parallel Execution**: Phases 13 (assets) and 14 (rendering) support parallel processing with automatic thread pool management. Small sites run sequentially to avoid thread overhead.
+**Parallel Execution**: Phases 13 (assets) and 14 (rendering) support parallel processing with automatic thread pool management. Small sites run sequentially to avoid thread overhead (assets: ≥5 items, rendering: auto-detected).
 
 **Profile-Aware Health Checks**: Phase 20 runs validators filtered by build profile (writer, theme-dev, developer). This enables fast feedback for content authors while providing comprehensive validation for developers.

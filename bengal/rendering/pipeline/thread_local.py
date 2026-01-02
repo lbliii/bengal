@@ -102,7 +102,7 @@ def get_thread_parser(engine: str | None = None) -> BaseMarkdownParser:
         Read-only access to site config and xref_index is safe.
 
     Args:
-        engine: Parser engine to use ('python-markdown', 'mistune', or None for default)
+        engine: Parser engine to use ('patitas' default, 'mistune', 'python-markdown', or None for default)
 
     Returns:
         Cached MarkdownParser instance for this thread

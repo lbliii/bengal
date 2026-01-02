@@ -83,7 +83,7 @@ This installs Bengal in editable mode with development dependencies.
 bengal --version
 ```
 
-You should see output like: `Bengal SSG, version 0.1.5`
+You should see output like: `Bengal SSG, version 0.1.6`
 
 ## Python Version Setup
 
@@ -121,7 +121,7 @@ After installation, verify: `python3 --version`
 
 ## Free-Threaded Python
 
-For best build performance, use the free-threaded Python build (Python 3.14t). This enables true parallel processing for 1.8-2x faster builds on multi-core machines.
+For best build performance, use the free-threaded Python build (Python 3.14t). This enables true parallel processing for 1.5-2x faster builds on multi-core machines.
 
 ```bash
 # With pyenv

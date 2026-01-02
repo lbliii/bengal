@@ -103,6 +103,7 @@ class HtmlRenderer:
         "_slugify",
         "_seen_slugs",
         "_page_context",
+        "_current_page",  # Alias for _page_context (used by directives)
     )
 
     def __init__(
@@ -147,6 +148,8 @@ class HtmlRenderer:
         self._seen_slugs: dict[str, int] = {}  # For unique slug generation
         # Page context for directives (child-cards, breadcrumbs, etc.)
         self._page_context = page_context
+        # Alias for _page_context (used by directives that look for _current_page)
+        self._current_page = page_context
 
     def render(self, nodes: Sequence[Block]) -> str:
         """Render AST nodes to HTML.
@@ -279,7 +282,10 @@ class HtmlRenderer:
                 pass  # Handled in post-processing
 
     def _render_list_item(self, item: ListItem, sb: StringBuilder, tight: bool) -> None:
-        """Render a list item."""
+        """Render a list item.
+
+        Tight list items unwrap paragraphs but still render block elements with newlines.
+        """
         if item.checked is not None:
             # Task list item - match Mistune's class names
             sb.append('<li class="task-list-item">')
@@ -289,6 +295,13 @@ class HtmlRenderer:
             )
         else:
             sb.append("<li>")
+            # For tight lists: add newline if item has non-paragraph block elements
+            # For loose lists: always add newline
+            if not tight:
+                sb.append("\n")
+            elif item.children and not isinstance(item.children[0], Paragraph):
+                # Tight list but first child is a block element (like thematic break)
+                sb.append("\n")
 
         if tight:
             # Tight list: render children without paragraph wrapper
@@ -347,6 +360,19 @@ class HtmlRenderer:
 
         sb.append("</tr>\n")
 
+    # Directives that depend on page context and should NOT be cached
+    # These output different content based on the current page's location in the site tree
+    _PAGE_DEPENDENT_DIRECTIVES = frozenset(
+        {
+            "child-cards",  # Shows children of current section
+            "breadcrumbs",  # Shows path to current page
+            "siblings",  # Shows siblings of current page
+            "prev-next",  # Shows previous/next pages
+            "related",  # Shows related pages based on tags
+            "auto-toc",  # Shows table of contents for current page
+        }
+    )
+
     def _render_directive(self, node: Directive, sb: StringBuilder) -> None:
         """Render a directive block.
 
@@ -354,10 +380,30 @@ class HtmlRenderer:
         Caches rendered output for versioned sites (auto-enabled when directive_cache provided).
 
         Optimization: Check cache BEFORE rendering children to skip work on cache hits.
+
+        Note: Page-dependent directives (those that need page_context or get_page_context,
+        or are listed in _PAGE_DEPENDENT_DIRECTIVES) are NOT cached since their output
+        varies by page. This includes child-cards, breadcrumbs, siblings, prev-next, related, etc.
         """
-        # Check directive cache FIRST (before rendering children)
+        import inspect
+
+        # Determine if directive is cacheable (not page-dependent)
+        is_cacheable = node.name not in self._PAGE_DEPENDENT_DIRECTIVES
+        handler = None
+        sig = None
+        if self._directive_registry:
+            handler = self._directive_registry.get(node.name)
+            if handler and hasattr(handler, "render"):
+                sig = inspect.signature(handler.render)
+                # Page-dependent directives are NOT cacheable
+                if is_cacheable and (
+                    "page_context" in sig.parameters or "get_page_context" in sig.parameters
+                ):
+                    is_cacheable = False
+
+        # Check directive cache FIRST (before rendering children) - only for cacheable directives
         cache_key: str | None = None
-        if self._directive_cache:
+        if self._directive_cache and is_cacheable:
             # Lightweight AST-based cache key (no rendering needed)
             cache_key = self._directive_ast_cache_key(node)
             cached = self._directive_cache.get("directive_html", cache_key)
@@ -371,35 +417,29 @@ class HtmlRenderer:
             self._render_block(child, children_sb)
         rendered_children = children_sb.build()
 
-        # Check for registered handler
+        # Render with registered handler
         result_sb = StringBuilder()
-        if self._directive_registry:
-            handler = self._directive_registry.get(node.name)
-            if handler and hasattr(handler, "render"):
-                # Provide render callback for handlers that need to render children themselves
-                import inspect
+        if handler and sig:
+            kwargs: dict[str, Any] = {}
 
-                sig = inspect.signature(handler.render)
-                kwargs: dict[str, Any] = {}
+            # Pass page context getter for directives that need it (child-cards, breadcrumbs, etc.)
+            if "get_page_context" in sig.parameters:
+                kwargs["get_page_context"] = lambda: self._page_context
 
-                # Pass page context getter for directives that need it (child-cards, breadcrumbs, etc.)
-                if "get_page_context" in sig.parameters:
-                    kwargs["get_page_context"] = lambda: self._page_context
+            # Pass page context directly for simpler directive interfaces
+            if "page_context" in sig.parameters:
+                kwargs["page_context"] = self._page_context
 
-                # Pass page context directly for simpler directive interfaces
-                if "page_context" in sig.parameters:
-                    kwargs["page_context"] = self._page_context
+            if "render_child_directive" in sig.parameters:
+                kwargs["render_child_directive"] = self._render_block
 
-                if "render_child_directive" in sig.parameters:
-                    kwargs["render_child_directive"] = self._render_block
+            handler.render(node, rendered_children, result_sb, **kwargs)
 
-                handler.render(node, rendered_children, result_sb, **kwargs)
-
-                result = result_sb.build()
-                if cache_key and self._directive_cache:
-                    self._directive_cache.put("directive_html", cache_key, result)
-                sb.append(result)
-                return
+            result = result_sb.build()
+            if cache_key and self._directive_cache:
+                self._directive_cache.put("directive_html", cache_key, result)
+            sb.append(result)
+            return
 
         # Default rendering
         result_sb.append(f'<div class="directive directive-{_escape_attr(node.name)}">')
@@ -513,7 +553,11 @@ class HtmlRenderer:
                 sb.append(f' class="language-{_escape_attr(lang)}"')
         sb.append(">")
         sb.append(_escape_html(code))
-        sb.append("\n</code></pre>\n")
+        # CommonMark: empty code blocks have no trailing newline
+        if code:
+            sb.append("\n</code></pre>\n")
+        else:
+            sb.append("</code></pre>\n")
 
     def _render_highlighted_tokens(
         self,
@@ -575,13 +619,28 @@ class HtmlRenderer:
         # Local references for tight loop
         dispatch = _INLINE_DISPATCH
         render_children = self._render_inline_children
+        role_registry = self._role_registry
         for child in children:
+            # Check for Role nodes with registry-based rendering
+            if isinstance(child, Role) and role_registry is not None:
+                handler = role_registry.get(child.name)
+                if handler is not None:
+                    handler.render(child, sb)
+                    continue
+            # Fall through to default dispatch
             handler = dispatch.get(type(child))
             if handler:
                 handler(child, sb, render_children)
 
     def _render_inline(self, node: Inline, sb: StringBuilder) -> None:
         """Render an inline node using dict dispatch."""
+        # Check for Role nodes with registry-based rendering
+        if isinstance(node, Role) and self._role_registry is not None:
+            handler = self._role_registry.get(node.name)
+            if handler is not None:
+                handler.render(node, sb)
+                return
+        # Fall through to default dispatch
         handler = _INLINE_DISPATCH.get(type(node))
         if handler:
             handler(node, sb, self._render_inline_children)
@@ -723,16 +782,89 @@ class HtmlRenderer:
 
 
 def _escape_html(text: str) -> str:
-    """Escape HTML special characters including quotes.
+    """Escape HTML special characters for text content.
 
-    Matches mistune's escape behavior for parity.
+    Per CommonMark spec:
+    - < > & must be escaped (XSS prevention)
+    - " should be escaped to &quot; (for safety)
+    - ' should remain literal in text content (not &#x27;)
     """
-    return html_escape(text, quote=True)
+    # html_escape with quote=True escapes both " and '
+    # We only want to escape " but not '
+    result = html_escape(text, quote=False)  # Escapes < > &
+    result = result.replace('"', "&quot;")  # Also escape "
+    return result
 
 
 def _escape_attr(text: str) -> str:
     """Escape HTML attribute value."""
     return html_escape(text, quote=True)
+
+
+def _encode_url(url: str) -> str:
+    """Encode URL for use in href attribute per CommonMark spec.
+
+    CommonMark requires:
+    1. Percent-encoding of special characters in URLs (space, backslash, etc.)
+    2. HTML escaping of characters that are special in HTML (& → &amp;)
+
+    The final output goes in an HTML attribute, so we need both:
+    - URL percent-encoding for URL-special characters
+    - HTML escaping for HTML-special characters (&, <, >, ", ')
+    """
+    import html
+    from urllib.parse import quote
+
+    # First, decode any HTML entities (e.g., &auml; → ä)
+    decoded = html.unescape(url)
+
+    # Preserve already-valid percent sequences
+    # Split on existing %XX patterns and encode each part
+    result = []
+    i = 0
+    while i < len(decoded):
+        # Check for existing percent encoding
+        if decoded[i] == "%" and i + 2 < len(decoded):
+            hex_chars = decoded[i + 1 : i + 3]
+            if all(c in "0123456789ABCDEFabcdef" for c in hex_chars):
+                # Valid percent sequence - preserve it
+                result.append(decoded[i : i + 3])
+                i += 3
+                continue
+
+        char = decoded[i]
+
+        # Characters safe in URLs (RFC 3986 unreserved + sub-delims + : / ? # @ = &)
+        # CommonMark allows more lax URLs so we preserve more chars
+        if (
+            char
+            in "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~:/?#[]@!$&'()*+,;="
+        ):
+            result.append(char)
+        else:
+            # Percent-encode this character
+            encoded = quote(char, safe="")
+            result.append(encoded)
+
+        i += 1
+
+    # Now HTML-escape the result for use in an attribute
+    # This converts & → &amp;, etc.
+    url_encoded = "".join(result)
+    return html_escape(url_encoded, quote=True)
+
+
+def _escape_link_title(title: str) -> str:
+    """Escape link title for use in title attribute per CommonMark spec.
+
+    Titles use HTML escaping but must also decode HTML entities first.
+    E.g., &quot; in source becomes " which then becomes &quot; in output.
+    """
+    import html
+
+    # Decode entities first, then HTML-escape
+    decoded = html.unescape(title)
+    return html_escape(decoded, quote=True)
 
 
 def _default_slugify(text: str) -> str:
@@ -776,18 +908,18 @@ def _render_strong(node: Strong, sb: StringBuilder, render_children) -> None:
 
 
 def _render_link(node: Link, sb: StringBuilder, render_children) -> None:
-    sb.append(f'<a href="{_escape_attr(node.url)}"')
+    sb.append(f'<a href="{_encode_url(node.url)}"')
     if node.title:
-        sb.append(f' title="{_escape_attr(node.title)}"')
+        sb.append(f' title="{_escape_link_title(node.title)}"')
     sb.append(">")
     render_children(node.children, sb)
     sb.append("</a>")
 
 
 def _render_image(node: Image, sb: StringBuilder, render_children) -> None:
-    sb.append(f'<img src="{_escape_attr(node.url)}" alt="{_escape_attr(node.alt)}"')
+    sb.append(f'<img src="{_encode_url(node.url)}" alt="{_escape_attr(node.alt)}"')
     if node.title:
-        sb.append(f' title="{_escape_attr(node.title)}"')
+        sb.append(f' title="{_escape_link_title(node.title)}"')
     sb.append(" />")
 
 

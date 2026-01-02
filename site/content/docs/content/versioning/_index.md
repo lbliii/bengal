@@ -92,6 +92,7 @@ bengal build
 ```
 
 Your site now has:
+
 - `/docs/guide/` → v3 (latest)
 - `/docs/v2/guide/` → v2
 - `/docs/v1/guide/` → v1
@@ -109,24 +110,23 @@ The latest version has **no version prefix** in URLs—cleaner for most users.
 
 ### Version Selector
 
-A dropdown appears in the header, letting users switch versions:
+A dropdown appears in the documentation sidebar when versioning is enabled, letting users switch between versions. Bengal's version selector includes smart fallback: if a page doesn't exist in the target version, it navigates to the nearest equivalent (section index or version root) instead of showing a 404.
 
-```html
-<!-- Automatically added to templates when versioning is enabled -->
-{% include "partials/version-selector.html" %}
-```
+The default theme includes the version selector automatically. To customize, override `partials/version-selector.html` in your theme.
 
 ### Version Banners
 
-Older versions display a warning banner:
+Older versions automatically display a warning banner linking to the latest docs. Customize the banner per version:
 
 ```yaml
 versions:
   - id: v2
     banner:
-      type: warning
+      type: warning  # or: info, danger
       message: "You're viewing docs for v2. See the latest version."
 ```
+
+Banner types: `info` (blue), `warning` (yellow), `danger` (red for deprecated versions).
 
 ### Cross-Version Links
 
@@ -162,9 +162,9 @@ Default timeout changed from 30s to 60s.
 
 Bengal automatically handles SEO for versioned docs:
 
-- **Canonical URLs**: Older versions point to latest (prevents duplicate content)
-- **Sitemap priorities**: Latest gets 0.8, older versions get 0.3
-- **Configurable**: Opt out of canonical pointing if needed
+- **Canonical URLs**: Older versions point to latest version (prevents duplicate content penalties)
+- **Sitemap priorities**: Latest version pages get priority 0.8; older versions get 0.3
+- **No-index option**: Mark deprecated versions as `noindex` to remove from search entirely
 
 ## CLI Commands
 
@@ -172,14 +172,23 @@ Bengal automatically handles SEO for versioned docs:
 # List all versions
 bengal version list
 
+# List versions as JSON (for scripting)
+bengal version list --format json
+
 # Show version details
 bengal version info v2
 
 # Create a new version snapshot
 bengal version create v2 --label "2.0 LTS"
 
+# Preview what create would do
+bengal version create v2 --dry-run
+
 # Compare versions
 bengal version diff v2 v3
+
+# Compare git branches directly
+bengal version diff main release/0.1.6 --git
 ```
 
 ## Next Steps

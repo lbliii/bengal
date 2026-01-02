@@ -24,7 +24,7 @@ Display author information including avatar, bio, and social links.
 **Built into Default Theme**
 
 Bengal's default theme includes full author support out of the box:
-- **Author pages** at `/authors/{name}/` with posts, social links, and bio
+- **Author pages** at `/authors/{name}/` (created via `content/authors/{name}.md` files)
 - **Author bylines** in blog posts (enable with `content.author` feature)
 - **Author index** for O(1) lookup via `site.indexes.author`
 
@@ -42,10 +42,17 @@ author:
   name: Jane Smith
   avatar: /images/authors/jane.jpg
   bio: Senior developer and tech writer
-  twitter: janesmith
-  github: janesmith
+  social:
+    twitter: janesmith
+    github: janesmith
 ---
 ```
+
+:::{note}
+**Social Links Format**
+
+Social links must be nested under `social` in frontmatter. The `page.author.twitter` and `page.author.github` properties access these values from the `social` dict.
+:::
 
 Or use a simple string for name-only:
 
@@ -151,8 +158,12 @@ Frontmatter for multiple authors:
 authors:
   - name: Jane Smith
     avatar: /images/jane.jpg
+    social:
+      twitter: janesmith
   - name: John Doe
     avatar: /images/john.jpg
+    social:
+      github: johndoe
 ---
 ```
 
@@ -203,8 +214,8 @@ authors:
     </div>
   </div>
 
-  {% if page.author.website %}
-  <a href="{{ page.author.website }}" class="author-website">
+  {% if page.author.url %}
+  <a href="{{ page.author.url }}" class="author-website">
     Visit website →
   </a>
   {% end %}
@@ -259,5 +270,5 @@ authors:
 
 :::{seealso}
 - [Template Functions Reference](/docs/reference/template-functions/#author-properties) — Author properties
-- [Build a Multi-Author Blog](/docs/tutorials/build-a-multi-author-blog/) — Full tutorial
+- [Build a Multi-Author Blog](/docs/tutorials/sites/build-a-multi-author-blog/) — Full tutorial
 :::

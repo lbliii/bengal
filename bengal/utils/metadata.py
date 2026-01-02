@@ -44,7 +44,7 @@ def _get_markdown_engine_and_version(config: dict[str, Any]) -> tuple[str, str |
     engine = config.get("markdown_engine")
     if not engine:
         md_cfg = config.get("markdown", {}) or {}
-        engine = md_cfg.get("parser", "mistune")
+        engine = md_cfg.get("parser", "patitas")
 
     version: str | None = None
     try:

@@ -494,10 +494,10 @@ class TestCacheIntegration:
             assert "Before Partial After" in result
 
     def test_cache_with_imports(self) -> None:
-        """Caching works with macro imports."""
+        """Caching works with function imports."""
         loader = DictLoader(
             {
-                "macros.html": "{% macro greet(name) %}Hello {{ name }}{% endmacro %}",
+                "macros.html": "{% def greet(name) %}Hello {{ name }}{% end %}",
                 "main.html": '{% from "macros.html" import greet %}{{ greet("World") }}',
             }
         )

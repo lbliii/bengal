@@ -261,7 +261,7 @@ class TestBytecodeCacheIntegration:
         from bengal.rendering.kida import Environment
 
         cache = BytecodeCache(tmp_path / "cache")
-        env = Environment(bytecode_cache=cache, optimized=True)
+        env = Environment(bytecode_cache=cache)
 
         template = env.from_string(
             "{{ 1 + 2 }} {% if false %}hidden{% end %}",

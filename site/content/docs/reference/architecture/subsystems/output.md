@@ -32,9 +32,8 @@ from bengal.utils.profile import BuildProfile
 cli = CLIOutput(profile=BuildProfile.WRITER)
 
 cli.header("Building your site...")
-cli.phase_start("Discovery")
+cli.phase("Discovery", duration_ms=61, details="245 pages")
 cli.detail("Found 245 pages", indent=1)
-cli.phase_complete("Discovery", duration_ms=61)
 cli.success("Built 245 pages in 0.8s")
 ```
 
@@ -109,11 +108,20 @@ cli.header("Building your site...")
 
 ### Phase Messages
 
+Track build phase completion with optional timing and details:
+
 ```python
-cli.phase_start("Discovery")
-cli.phase_complete("Discovery", duration_ms=61)
-# Output: ✓ Discovery (61ms)
+cli.phase("Discovery", duration_ms=61)
+# Output: ✓ Discovery     61ms
+
+cli.phase("Rendering", duration_ms=501, details="245 pages")
+# Output: ✓ Rendering     501ms (245 pages)
+
+cli.phase("Assets", status="Done")
+# Output: ✓ Assets        Done
 ```
+
+**Parameters**: `name`, `status="Done"`, `duration_ms=None`, `details=None`, `icon="✓"`
 
 ### Details
 
@@ -129,14 +137,7 @@ cli.success("Build complete!")
 cli.warning("Some pages have warnings")
 cli.error("Build failed")
 cli.info("Using cached assets")
-```
-
-### Progress
-
-```python
-cli.progress_start("Rendering pages", total=245)
-cli.progress_update(100)
-cli.progress_complete()
+cli.tip("Run 'bengal serve' to preview")
 ```
 
 ## Message Levels
@@ -174,11 +175,12 @@ Use the global instance for convenience:
 
 ```python
 from bengal.output import get_cli_output, init_cli_output
+from bengal.utils.profile import BuildProfile
 
-# Initialize once
+# Initialize once at CLI entry point
 cli = init_cli_output(profile=BuildProfile.WRITER)
 
-# Use anywhere
+# Access from anywhere in the codebase
 cli = get_cli_output()
 cli.success("Done!")
 ```
@@ -202,20 +204,8 @@ In dev server mode, duplicate phase messages are suppressed:
 
 ```python
 # Rapid rebuilds don't spam terminal
-cli.phase_start("Rendering")  # Shows
-cli.phase_start("Rendering")  # Suppressed (within 1.5s window)
-```
-
-## Output Styles
-
-Different output styles for different contexts:
-
-```python
-from bengal.output.enums import OutputStyle
-
-cli.set_style(OutputStyle.SUMMARY)  # Brief summary
-cli.set_style(OutputStyle.VERBOSE)  # Detailed output
-cli.set_style(OutputStyle.QUIET)  # Minimal output
+cli.phase("Rendering")  # Shows
+cli.phase("Rendering")  # Suppressed (within 1.5s window)
 ```
 
 ## Related

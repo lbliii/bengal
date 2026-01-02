@@ -47,24 +47,27 @@ Bengal exposes `site.taxonomies` which gives us lists of pages for each tag.
 
 ### 2. Finding the Intersection
 
-We can find pages that exist in both lists.
+Use the `|> intersect()` filter to find pages in both lists:
 
 ```kida
-{% let results = [] %}
+{% let results = api_pages |> intersect(v2_pages) %}
 
-{% for page in api_pages %}
-  {% if page in v2_pages %}
-    {% do results.append(page) %}
-  {% end %}
-{% end %}
-
-<h2>API v2 Guides ({{ results|length }})</h2>
+<h2>API v2 Guides ({{ results | length }})</h2>
 <ul>
   {% for page in results %}
-    <li><a href="{{ page.url }}">{{ page.title }}</a></li>
+    <li><a href="{{ page.href }}">{{ page.title }}</a></li>
   {% end %}
 </ul>
 ```
+
+:::{tip}
+For more complex filtering, use `|> where()` with operators:
+```kida
+{% let results = site.pages
+  |> where('tags', 'api', 'in')
+  |> where('tags', 'v2', 'in') %}
+```
+:::
 
 ## Advanced: The "Filter Page" Layout
 
@@ -94,25 +97,17 @@ Here are all our Python tutorials.
 {% block content %}
   <h1>{{ page.title }}</h1>
 
-  {# 1. Start with all site pages #}
+  {# Start with all pages, then filter by each required tag #}
   {% let matches = site.pages %}
 
-  {# 2. Apply intersection for each required tag #}
-  {% for tag in page.filter_tags %}
-    {% let tag_pages = site.taxonomies.tags[tag].pages %}
-    {# Use a custom filter or loop to intersect #}
-    {% let new_matches = [] %}
-    {% for m in matches %}
-      {% if m in tag_pages %}
-        {% do new_matches.append(m) %}
-      {% end %}
-    {% end %}
-    {% let matches = new_matches %}
+  {% for tag in page.metadata.filter_tags %}
+    {% let tag_pages = site.pages |> where('tags', tag, 'in') %}
+    {% let matches = matches |> intersect(tag_pages) %}
   {% end %}
 
-  {# 3. Render Results #}
+  {# Render Results #}
   <div class="results">
-    {% for page in matches %}
+    {% for post in matches %}
       {% include "partials/card.html" %}
     {% else %}
       <p>No matches found.</p>
@@ -127,6 +122,7 @@ Here are all our Python tutorials.
 Use Set Intersections to build powerful "Topic Pages" that aggregate content from multiple dimensions without manually curating lists.
 
 :::{seealso}
+- [Filter by Multiple Tags](/docs/theming/recipes/filter-by-tags/) — Complete cookbook recipe
 - [Content Reuse](/docs/content/reuse/) — DRY content strategies
-- [Templating](/docs/theming/templating/) — Jinja2 fundamentals
+- [Templating](/docs/theming/templating/) — Template fundamentals
 :::

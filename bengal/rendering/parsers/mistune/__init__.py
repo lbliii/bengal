@@ -72,8 +72,8 @@ class MistuneParser(BaseMarkdownParser):
         Initialize the mistune parser with plugins.
 
         Args:
-            enable_highlighting: Enable Pygments syntax highlighting for code blocks
-                                (defaults to True)
+            enable_highlighting: Enable syntax highlighting for code blocks
+                                (defaults to True, uses Rosettes backend)
 
         Parser Instances:
             This parser is typically created via thread-local caching.

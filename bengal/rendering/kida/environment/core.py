@@ -14,7 +14,6 @@ Example:
     >>> env = Environment(
     ...     loader=FileSystemLoader("templates/"),
     ...     autoescape=True,
-    ...     strict=True,
     ... )
     >>> env.get_template("page.html").render(page=page)
 """
@@ -51,15 +50,13 @@ class Environment:
     API for loading and rendering templates. It manages three key concerns:
 
     1. **Template Loading**: Via configurable loaders (filesystem, dict, etc.)
-    2. **Compilation Settings**: Autoescape, optimizations, strict mode
+    2. **Compilation Settings**: Autoescape, strict undefined handling
     3. **Runtime Context**: Filters, tests, and global variables
 
     Attributes:
         loader: Template source provider (FileSystemLoader, DictLoader, etc.)
         autoescape: HTML auto-escaping. True, False, or callable(name) → bool
         auto_reload: Check template modification times (default: True)
-        optimized: Deprecated, no-op. Kept for backward compatibility.
-        strict: Raise UndefinedError for undefined variables (default: True)
         strict_none: Fail early on None comparisons during sorting (default: False)
         cache_size: Maximum compiled templates to cache (default: 400)
         fragment_cache_size: Maximum `{% cache %}` fragment entries (default: 1000)
@@ -77,11 +74,11 @@ class Environment:
         - `get_template()` uses lock-free LRU cache with atomic operations
         - `render()` uses only local state (StringBuilder pattern)
 
-    Strict Mode (Default):
+    Strict Mode:
         Undefined variables raise `UndefinedError` instead of returning empty
         string. Catches typos and missing context variables at render time.
 
-        >>> env = Environment()  # strict=True by default
+        >>> env = Environment()
         >>> env.from_string("{{ typo_var }}").render()
         UndefinedError: Undefined variable 'typo_var' in <template>:1
 
@@ -116,8 +113,6 @@ class Environment:
     loader: Loader | None = None
     autoescape: bool | Callable[[str | None], bool] = True
     auto_reload: bool = True
-    optimized: bool = True
-    strict: bool = True  # When True, undefined variables raise UndefinedError
     strict_none: bool = False  # When True, sorting with None values raises detailed errors
 
     # Template Introspection (RFC: kida-template-introspection)
@@ -185,6 +180,9 @@ class Environment:
     _fragment_cache: LRUCache = field(init=False)
     # Source hashes for cache invalidation (template_name -> source_hash)
     _template_hashes: dict[str, str] = field(init=False, default_factory=dict)
+    # Shared analysis cache (template_name -> TemplateMetadata)
+    # Prevents redundant analysis when multiple templates include the same partial
+    _analysis_cache: dict[str, Any] = field(init=False, default_factory=dict)
 
     def __post_init__(self) -> None:
         """Initialize derived configuration."""
@@ -345,6 +343,7 @@ class Environment:
                     # Source changed - invalidate cache and reload
                     self._cache.delete(name)
                     self._template_hashes.pop(name, None)
+                    self._analysis_cache.pop(name, None)  # Invalidate analysis cache
                 else:
                     # Source unchanged - return cached template
                     return cached
@@ -491,11 +490,13 @@ class Environment:
             # Clear all templates
             self._cache.clear()
             self._template_hashes.clear()
+            self._analysis_cache.clear()
         else:
             # Clear specific templates
             for name in names:
                 self._cache.delete(name)
                 self._template_hashes.pop(name, None)
+                self._analysis_cache.pop(name, None)  # Invalidate analysis cache
 
     def render(self, template_name: str, *args: Any, **kwargs: Any) -> str:
         """Render a template by name with context.

@@ -65,7 +65,6 @@ Related Modules:
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -118,9 +117,6 @@ class CollectionConfig[T]:
         allow_extra: If ``True``, store unrecognized fields in a ``_extra``
             dict attribute on the validated instance. Only applies when
             ``strict=False``.
-        transform: Optional function to transform frontmatter dict before
-            validation. Useful for normalizing legacy field names or computing
-            derived values.
         loader: Optional :class:`ContentSource` for fetching remote content.
             When provided, content is fetched from the remote source instead
             of the local filesystem. Requires extras: ``pip install bengal[github]``
@@ -146,7 +142,6 @@ class CollectionConfig[T]:
     glob: str = "**/*.md"
     strict: bool = True
     allow_extra: bool = False
-    transform: Callable[[dict[str, Any]], dict[str, Any]] | None = None
     loader: ContentSource | None = None
 
     def __post_init__(self) -> None:
@@ -201,7 +196,6 @@ def define_collection[T](
     glob: str = "**/*.md",
     strict: bool = True,
     allow_extra: bool = False,
-    transform: Callable[[dict[str, Any]], dict[str, Any]] | None = None,
     loader: ContentSource | None = None,
 ) -> CollectionConfig[T]:
     """
@@ -223,9 +217,6 @@ def define_collection[T](
             fields not defined in the schema.
         allow_extra: If ``True``, store unrecognized fields in a ``_extra``
             dict on the validated instance. Only effective when ``strict=False``.
-        transform: Optional function to preprocess frontmatter before validation.
-            Receives the raw dict, returns the transformed dict. Useful for
-            normalizing legacy field names or computing derived values.
         loader: Optional :class:`ContentSource` for fetching remote content.
             Requires extras: ``pip install bengal[github]`` or ``bengal[notion]``.
 
@@ -264,20 +255,6 @@ def define_collection[T](
         ...     loader=github_loader(repo="myorg/api-docs", path="docs/"),
         ... )
 
-    Example:
-        Transform legacy frontmatter:
-
-        >>> def normalize_legacy(data: dict) -> dict:
-        ...     if 'post_title' in data:
-        ...         data['title'] = data.pop('post_title')
-        ...     return data
-        ...
-        >>> blog = define_collection(
-        ...     schema=BlogPost,
-        ...     directory="content/blog",
-        ...     transform=normalize_legacy,
-        ... )
-
     See Also:
         - :class:`CollectionConfig`: The returned configuration class
         - :class:`SchemaValidator`: How validation is performed
@@ -288,7 +265,6 @@ def define_collection[T](
         glob=glob,
         strict=strict,
         allow_extra=allow_extra,
-        transform=transform,
         loader=loader,
     )
 

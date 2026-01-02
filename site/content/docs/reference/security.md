@@ -520,7 +520,7 @@ We'll respond within 48 hours and work with you on a fix before public disclosur
 
 :::{seealso}
 - [Deployment Guide](/docs/building/deployment/)
-- [CI/CD Setup](/docs/tutorials/automate-with-github-actions/)
+- [CI/CD Setup](/docs/tutorials/operations/automate-with-github-actions/)
 - [Configuration Reference](/docs/reference/architecture/tooling/config/)
 - [Mozilla Observatory](https://observatory.mozilla.org/) — Test your site's security headers
 :::

@@ -79,7 +79,7 @@ We store an inverted index of tags to avoid parsing all pages.
 - **Stored**: `tag_to_pages['python'] = ['post1.md', 'post2.md']`
 - **Benefit**: O(1) lookup for taxonomy page generation.
 :::
-:::{/tab-set}
+:::
 
 ## Zstandard Compression
 
@@ -217,6 +217,8 @@ class Cacheable(Protocol):
 
 ### Example Implementation
 
+The following shows a simplified `PageCore` (the actual implementation has 14+ fields):
+
 ```python
 @dataclass
 class PageCore(Cacheable):
@@ -245,6 +247,8 @@ class PageCore(Cacheable):
         )
 ```
 
+See `bengal/core/page/page_core.py` for the full implementation.
+
 ### Generic CacheStore Helper
 
 Bengal provides a generic `CacheStore` helper for type-safe cache operations:
@@ -268,7 +272,7 @@ entries = store.load()  # Returns list[PageCore]
 
 ### PageCore Serialization
 
-With PageCore, cache serialization is simplified:
+With PageCore, cache serialization is type-safe via the Cacheable protocol:
 
 ```python
 # Before: Manual field mapping (error-prone)
@@ -279,10 +283,17 @@ cache_data = {
     # ... 10+ more fields
 }
 
-# After: Single line using PageCore
-from dataclasses import asdict
-cache_data = asdict(page.core)  # All cacheable fields serialized
+# After: Use to_cache_dict() for correct serialization
+cache_data = page.core.to_cache_dict()  # datetime → ISO-8601, all types handled
+
+# Round-trip example
+loaded = PageCore.from_cache_dict(cache_data)
+assert loaded.title == page.core.title
 ```
+
+:::{note}
+Don't use `asdict(page.core)` directly—it won't convert `datetime` to ISO-8601 strings. Always use `to_cache_dict()` for correct serialization.
+:::
 
 ### Runtime Validation
 

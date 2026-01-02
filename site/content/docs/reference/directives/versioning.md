@@ -6,7 +6,15 @@ weight: 80
 
 # Versioning Directives
 
-Mark content as added, changed, or deprecated in specific versions.
+Mark content as added, changed, or deprecated in specific versions. Use these directives to help users understand API evolution and migration paths.
+
+## Quick Reference
+
+| Directive | Alias | Purpose | Theme Color |
+|-----------|-------|---------|-------------|
+| `:::{since}` | `{versionadded}` | New feature/API | Success (green) |
+| `:::{deprecated}` | `{versionremoved}` | Deprecated feature | Warning (orange) |
+| `:::{changed}` | `{versionchanged}` | Behavior change | Info (blue) |
 
 ## since
 
@@ -26,7 +34,7 @@ This feature was added in version 2.0.
 
 | Option | Type | Description |
 |--------|------|-------------|
-| (argument) | `string` | Version identifier (e.g., `v2.0`, `2.0`, `2024.1`) |
+| (argument) | `string` | **Required.** Version identifier (e.g., `v2.0`, `2.0`, `2024.1`) |
 | `:class:` | `string` | Additional CSS class (default: `version-since`) |
 
 ### Examples
@@ -40,12 +48,11 @@ Webhooks allow real-time event notifications.
 :::
 ```
 
-:::{example-label} Without Version (Generic)
+:::{example-label} Inline Badge (No Content)
 :::
 
 ```markdown
-:::{since}
-This is a recent addition.
+:::{since} v2.0
 :::
 ```
 
@@ -55,21 +62,19 @@ This is a recent addition.
 ```markdown
 | Option | Description |
 |--------|-------------|
-| `retries` | Retry count :::{since} v2.0 ::: |
+| `retries` | Retry count :::{since} v3.1 ::: |
 ```
 
 ### Rendered Output
 
-Renders with Bengal's theme aesthetic:
-
 **Inline badge** (no content):
-- Neumorphic badge styling
+- Neumorphic badge with subtle shadow
 - SVG sparkles icon
 - Success/green theme colors
 
 **Full directive** (with content):
-- Luminescent left-edge glow animation
-- Palette-aware blob background
+- Left-edge accent border with palette-aware colors
+- Subtle background blob animation
 - Rounded container with badge header
 
 ---
@@ -92,7 +97,7 @@ Use `new_function()` instead.
 
 | Option | Type | Description |
 |--------|------|-------------|
-| (argument) | `string` | Version when deprecated (e.g., `v3.0`) |
+| (argument) | `string` | Version when deprecated. If omitted, displays "Deprecated" without version. |
 | `:class:` | `string` | Additional CSS class (default: `version-deprecated`) |
 
 ### Examples
@@ -132,16 +137,14 @@ This feature is deprecated and will be removed.
 
 ### Rendered Output
 
-Renders with Bengal's theme aesthetic:
-
 **Inline badge** (no content):
-- Neumorphic badge styling
+- Neumorphic badge with subtle shadow
 - SVG alert triangle icon
 - Warning/orange theme colors
 
 **Full directive** (with content):
-- Luminescent left-edge glow animation
-- Palette-aware blob background (warning colors)
+- Left-edge accent border with palette-aware colors
+- Subtle background blob animation (warning colors)
 - Rounded container with badge header
 
 ---
@@ -164,7 +167,7 @@ Default timeout changed from 30s to 60s.
 
 | Option | Type | Description |
 |--------|------|-------------|
-| (argument) | `string` | Version when changed (e.g., `v2.5`) |
+| (argument) | `string` | Version when changed. If omitted, displays "Changed" without version. |
 | `:class:` | `string` | Additional CSS class (default: `version-changed`) |
 
 ### Examples
@@ -205,16 +208,14 @@ This behavior has been updated.
 
 ### Rendered Output
 
-Renders with Bengal's theme aesthetic:
-
 **Inline badge** (no content):
-- Neumorphic badge styling
+- Neumorphic badge with subtle shadow
 - SVG refresh icon
 - Info/blue theme colors
 
 **Full directive** (with content):
-- Luminescent left-edge glow animation
-- Palette-aware blob background (info colors)
+- Left-edge accent border with palette-aware colors
+- Subtle background blob animation (info colors)
 - Rounded container with badge header
 
 ---
@@ -247,7 +248,7 @@ All versioning directives use consistent CSS classes that integrate with Bengal'
 Version directives use CSS custom properties for easy theming:
 
 ```css
-/* Override the version color (affects glow animation) */
+/* Override colors for custom themes */
 .version-since {
   --version-color: var(--color-success);
 }
@@ -259,16 +260,9 @@ Version directives use CSS custom properties for easy theming:
 .version-changed {
   --version-color: var(--color-info);
 }
-
-/* Disable glow animation if preferred */
-@media (prefers-reduced-motion: reduce) {
-  .version-directive {
-    animation: none;
-  }
-}
 ```
 
-For complete customization, see `assets/css/components/versioning.css` in the default theme.
+Animation respects `prefers-reduced-motion`. For complete customization, see `assets/css/components/versioning.css` in the default theme.
 
 ---
 
@@ -327,6 +321,6 @@ Avoid for:
 
 ## Related
 
-- [[/docs/content/versioning|Versioning Documentation]] — Full versioning guide
-- [[/docs/content/versioning/cross-version-links|Cross-Version Links]] — Link between versions
-- [Admonitions](admonitions.md) — Standard callout directives
+- [Versioning Documentation](/docs/content/versioning/) — Full versioning guide
+- [Cross-Version Links](/docs/content/versioning/cross-version-links/) — Link between versions
+- [Admonitions](/docs/reference/directives/admonitions/) — Standard callout directives

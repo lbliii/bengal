@@ -63,14 +63,15 @@ Manually cache expensive operations with `{% cache %}`:
   {{ build_nav_tree(site.pages) }}
 {% end %}
 
-{% cache "weather-" ~ location, ttl="5m" %}
+{% cache "weather-" ~ location %}
   {{ fetch_weather(location) }}
 {% end %}
 ```
 
-**TTL formats:** `"30s"`, `"5m"`, `"1h"`, `"1d"`
+Fragment cache uses a global TTL configured in `bengal.yaml`. All cached fragments share the same expiration time. See [Fragment Caching](/docs/theming/templating/kida/caching/fragments/) for configuration details.
 
 Use fragment caching for:
+
 - Expensive function calls
 - External API responses
 - Complex computations that don't change often
@@ -88,9 +89,9 @@ kida:
 **How it works:**
 
 1. First build: Kida parses and compiles templates to Python bytecode
-2. Bytecode writes to `.bengal/cache/kida/`
+2. Bytecode writes to `.bengal/cache/kida/` with source hash in filename
 3. Subsequent builds: Kida loads cached bytecode (skips parsing/compilation)
-4. Template changes: Kida detects file modification time and recompiles only changed templates
+4. Template changes: Kida detects source changes via hash comparison and recompiles only changed templates
 
 ## Optimization Strategies
 
@@ -148,6 +149,9 @@ Move invariant expressions outside loops:
 ```
 
 :::{seealso}
+
 - [Kida Syntax Reference](/docs/reference/kida-syntax/) — Complete syntax documentation
-- [Fragment Caching](/docs/theming/templating/kida/syntax/caching/) — Detailed caching guide
+- [Fragment Caching](/docs/theming/templating/kida/caching/fragments/) — Detailed caching guide with TTL configuration
+- [Automatic Block Caching](/docs/theming/templating/kida/caching/automatic/) — How site-scoped blocks are cached automatically
+
 :::

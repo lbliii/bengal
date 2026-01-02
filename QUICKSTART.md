@@ -125,7 +125,7 @@ enabled = true
 
 ## Customize Templates
 
-Bengal uses Jinja2 templates. Override the default templates by creating your own:
+Bengal uses Kida templates by default (Bengal's native template engine, Jinja2-compatible). Override the default templates by creating your own:
 
 `templates/page.html`:
 ```html

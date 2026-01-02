@@ -55,31 +55,31 @@ class ExpressionCompilationMixin:
 
         Used to determine when numeric coercion is needed for arithmetic operations.
         Recursively checks nested expressions to catch Filter nodes inside parentheses.
-        
+
         This handles cases like (a | length) + (b | length) where the left/right
         operands are Filter nodes that need numeric coercion.
         """
         node_type = type(node).__name__
-        
+
         # Direct match: Filter or FuncCall nodes
         if node_type in _POTENTIALLY_STRING_NODES:
             return True
-        
+
         # Pipeline nodes contain filters, need coercion
         if node_type == "Pipeline":
             return True
-        
+
         # Recursive check for nested expressions that might contain filters
         # This handles cases like (a | length) + (b | length) where
         # the left/right operands are Filter nodes
         if node_type == "BinOp":
             # Check both operands recursively
             return self._is_potentially_string(node.left) or self._is_potentially_string(node.right)
-        
+
         if node_type == "UnaryOp":
             # Check the operand recursively
             return self._is_potentially_string(node.operand)
-        
+
         # For CondExpr (ternary), check all branches
         if node_type == "CondExpr":
             return (
@@ -87,7 +87,7 @@ class ExpressionCompilationMixin:
                 or self._is_potentially_string(node.body)
                 or self._is_potentially_string(node.orelse)
             )
-        
+
         return False
 
     def _wrap_coerce_numeric(self, expr: ast.expr) -> ast.expr:
@@ -122,31 +122,17 @@ class ExpressionCompilationMixin:
             if node.name in self._locals:
                 return ast.Name(id=node.name, ctx=ast.Load())
 
-            # Check strict mode from environment
-            if self._env.strict:
-                # Strict mode: use _lookup(ctx, name) which raises UndefinedError
-                # Performance: O(1) dict lookup on fast path (defined var)
-                # Error path converts KeyError to UndefinedError with context
-                return ast.Call(
-                    func=ast.Name(id="_lookup", ctx=ast.Load()),
-                    args=[
-                        ast.Name(id="ctx", ctx=ast.Load()),
-                        ast.Constant(value=node.name),
-                    ],
-                    keywords=[],
-                )
-            else:
-                # Legacy mode: use ctx.get(name) which returns None for missing vars
-                # The default() filter can handle None values
-                return ast.Call(
-                    func=ast.Attribute(
-                        value=ast.Name(id="ctx", ctx=ast.Load()),
-                        attr="get",
-                        ctx=ast.Load(),
-                    ),
-                    args=[ast.Constant(value=node.name)],
-                    keywords=[],
-                )
+            # Strict mode: check scope stack first, then ctx
+            # _lookup_scope(ctx, _scope_stack, name) checks scopes then ctx
+            return ast.Call(
+                func=ast.Name(id="_lookup_scope", ctx=ast.Load()),
+                args=[
+                    ast.Name(id="ctx", ctx=ast.Load()),
+                    ast.Name(id="_scope_stack", ctx=ast.Load()),
+                    ast.Constant(value=node.name),
+                ],
+                keywords=[],
+            )
 
         if node_type == "Tuple":
             ctx = ast.Store() if store else ast.Load()
@@ -195,9 +181,9 @@ class ExpressionCompilationMixin:
             )
 
         if node_type == "Test":
-            # Special handling for 'defined' and 'undefined' tests in strict mode
+            # Special handling for 'defined' and 'undefined' tests
             # These need to work even when the value is undefined
-            if node.name in ("defined", "undefined") and self._env.strict:
+            if node.name in ("defined", "undefined"):
                 # Generate: _is_defined(lambda: <value>) or not _is_defined(lambda: <value>)
                 value_lambda = ast.Lambda(
                     args=ast.arguments(
@@ -269,9 +255,9 @@ class ExpressionCompilationMixin:
                     msg += f". Did you mean '{suggestion}'?"
                 raise TemplateSyntaxError(msg, lineno=getattr(node, "lineno", None))
 
-            # Special handling for 'default' filter in strict mode
+            # Special handling for 'default' filter
             # The default filter needs to work even when the value is undefined
-            if node.name in ("default", "d") and self._env.strict:
+            if node.name in ("default", "d"):
                 # Generate: _default_safe(lambda: <value>, <default>, <boolean>)
                 # This catches UndefinedError and returns the default value
                 value_lambda = ast.Lambda(

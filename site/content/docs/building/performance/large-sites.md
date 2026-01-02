@@ -145,13 +145,18 @@ On a 10K page site, this filter runs 10,000 comparisons.
 
 ## 3. Parallel Processing
 
-Parallel processing is enabled by default. Adjust worker count if needed:
+Parallel processing is **auto-detected** based on page count and workload. Adjust worker count if needed:
 
 ```toml
 # bengal.toml
 [build]
-parallel = true           # Enabled by default
 max_workers = 8           # Optional: adjust based on CPU cores (auto-detected if omitted)
+```
+
+To force sequential processing (useful for debugging):
+
+```bash
+bengal build --no-parallel
 ```
 
 ### Free-Threaded Python
@@ -174,7 +179,7 @@ When running on free-threaded Python:
 
 ## 4. Incremental Builds
 
-Incremental builds are enabled by default. Force a full rebuild if needed:
+Incremental builds are **automatic** — no configuration needed. First build is full, subsequent builds only rebuild changed content. Force a full rebuild if needed:
 
 ```bash
 # Force full rebuild (skip cache)
@@ -192,11 +197,12 @@ bengal build --no-incremental
 
 ```tree
 .bengal/
-├── cache/
-│   ├── content/        # Parsed markdown cache
-│   ├── render/         # Rendered output cache
-│   └── indexes/        # Query index cache
-└── deps.json           # Dependency graph
+├── cache.json.zst          # Main build cache (compressed)
+├── page_metadata.json.zst  # Page discovery cache
+├── taxonomy_index.json.zst # Taxonomy index
+├── indexes/                # Query indexes (section, author, etc.)
+├── templates/              # Template bytecode cache
+└── logs/                   # Build logs
 ```
 
 ### Clear Cache
@@ -220,9 +226,9 @@ bengal build --fast
 ```
 
 `--fast` enables:
-- Parallel processing (guaranteed)
-- Quiet output (minimal I/O overhead)
-- Optimized rendering path
+- Quiet output (minimal console I/O)
+- Suppresses verbose logging
+- Parallelism auto-detected as normal
 
 ---
 
@@ -310,7 +316,7 @@ jobs:
       - name: Cache Bengal
         uses: actions/cache@v4
         with:
-          path: .bengal/cache
+          path: .bengal
           key: bengal-${{ hashFiles('content/**/*.md') }}
 
       - name: Build
@@ -394,5 +400,5 @@ bengal clean --all
 
 :::{seealso}
 - [[docs/building/performance|Performance Overview]]
-- [[docs/building/commands|Build Commands]]
+- [[docs/reference/cheatsheet|CLI Cheatsheet]]
 :::

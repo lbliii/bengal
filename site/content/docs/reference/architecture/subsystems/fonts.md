@@ -64,8 +64,11 @@ Downloads font files from Google Fonts using the public CSS API.
 
 ```python
 from bengal.fonts import GoogleFontsDownloader
+from pathlib import Path
 
 downloader = GoogleFontsDownloader()
+
+# Download WOFF2 fonts for web use
 variants = downloader.download_font(
     family="Inter",
     weights=[400, 600, 700],
@@ -74,6 +77,20 @@ variants = downloader.download_font(
 )
 
 # Returns list of FontVariant objects with file info
+```
+
+### TTF Downloads for Image Generation
+
+For generating images with text (using Pillow), download TTF format:
+
+```python
+# Download TTF fonts for Pillow image generation
+ttf_variants = downloader.download_ttf_font(
+    family="Outfit",
+    weights=[400, 700],
+    output_dir=Path("assets/fonts")
+)
+# Returns variants with .ttf files instead of .woff2
 ```
 
 ## Font CSS Generator (`bengal/fonts/generator.py`)
@@ -101,7 +118,7 @@ Generates @font-face CSS rules for self-hosted fonts.
   font-weight: 400;
   font-style: normal;
   font-display: swap;
-  src: url('/fonts/inter-400.woff2') format('woff2');
+  src: url('fonts/inter-400.woff2') format('woff2');
 }
 
 @font-face {
@@ -109,7 +126,7 @@ Generates @font-face CSS rules for self-hosted fonts.
   font-weight: 700;
   font-style: normal;
   font-display: swap;
-  src: url('/fonts/inter-700.woff2') format('woff2');
+  src: url('fonts/inter-700.woff2') format('woff2');
 }
 
 /* CSS Custom Properties */
@@ -171,9 +188,11 @@ styles = ["normal"]
 Fonts are automatically processed during builds:
 
 1. **Font Helper runs** early in build process
-2. **Downloads fonts** to `public/assets/fonts/`
-3. **Generates fonts.css** in `public/assets/`
+2. **Downloads fonts** to `{output}/assets/fonts/`
+3. **Generates fonts.css** in `{output}/assets/`
 4. **Theme can reference** fonts via CSS custom properties
+
+Output paths are relative to your configured output directory (typically `public/`).
 
 ### In theme CSS
 
@@ -193,22 +212,15 @@ code {
 
 ## Health Validation
 
-The FontValidator checks:
+The FontValidator (`bengal/health/validators/fonts.py`) checks:
+
 - Font files downloaded successfully
-- fonts.css generated correctly
+- fonts.css generated with valid @font-face rules
 - File sizes reasonable (< 500KB per variant)
 - All configured fonts present
+- No broken font references in CSS
 
-```bash
-# Font health check runs automatically
-bengal build
-
-# Example output:
-# 🔤 Fonts:
-#    Inter...
-#    Playfair Display...
-#    └─ Generated: fonts.css (5 variants)
-```
+Font validation runs automatically during builds and reports issues to the console.
 
 ## Performance Characteristics
 

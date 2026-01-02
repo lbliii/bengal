@@ -89,25 +89,14 @@ Generates API documentation as virtual Page objects.
 ::::
 
 
-## Template Safety
+## Resilience
 
-Autodoc templates are designed to never fail the build, even with malformed docstrings.
+Autodoc is designed to handle edge cases gracefully:
 
-::::{cards}
-:columns: 2
-:gap: medium
-:variant: explanation
-
-:::{card} Error Boundaries
-:icon: check-circle
-If a template section fails, only that section shows an error. The rest of the page renders normally.
-:::
-
-:::{card} Safe Filters
-:icon: funnel
-Custom filters like `safe_description` handles escaping and fallback for missing data.
-:::
-::::
+- **Syntax errors**: Files with syntax errors are skipped with a warning
+- **Missing docstrings**: Elements without docstrings still appear in the generated documentation
+- **Malformed type hints**: Invalid annotations are rendered as-is without crashing
+- **Partial extraction**: If one file fails, extraction continues for remaining files
 
 ## Configuration
 
@@ -117,20 +106,31 @@ Configure autodoc in `bengal.toml`:
 [autodoc.python]
 enabled = true
 source_dirs = ["src/mylib"]
-output_dir = "content/api"
-docstring_style = "google"  # google, numpy, sphinx
+docstring_style = "auto"  # auto, google, numpy, sphinx
 ```
 
 ## CLI Support
 
-We currently support **Click** applications via configuration.
+Bengal supports **Click** applications via configuration (Typer and argparse support is planned).
 
 ```toml
 # bengal.toml
 [autodoc.cli]
 enabled = true
-app = "myapp.cli:main"
-output_dir = "content/autodoc/cli"
+app_module = "myapp.cli:main"
 ```
 
 This generates command references including arguments, options, and hierarchy.
+
+## OpenAPI Support
+
+Generate REST API documentation from OpenAPI 3.x specifications:
+
+```toml
+# bengal.toml
+[autodoc.openapi]
+enabled = true
+spec_file = "openapi.yaml"  # Or openapi.json
+```
+
+This generates endpoint documentation with request/response schemas, parameters, and examples.

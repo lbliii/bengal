@@ -15,7 +15,7 @@ category: explanation
 
 # Kida Architecture
 
-Kida compiles templates through a multi-stage pipeline: Lexer → Parser → Optimizer → Compiler → Bytecode Cache. Each stage produces immutable data structures, enabling thread-safe compilation and rendering.
+Kida compiles templates through a multi-stage pipeline: Lexer → Parser → Compiler → Bytecode Cache. Each stage produces immutable data structures, enabling thread-safe compilation and rendering.
 
 ## Compilation Pipeline
 
@@ -32,12 +32,6 @@ Template Source
 ┌─────────────┐
 │   Parser    │  Recursive descent, no backtracking
 │             │  Immutable AST nodes (frozen dataclasses)
-└─────┬───────┘
-      │
-      ▼
-┌─────────────┐
-│ Optimizer   │  Constant folding, dead code elimination
-│             │  Data node coalescing
 └─────┬───────┘
       │
       ▼
@@ -78,7 +72,7 @@ Data("!")
 - Compiled regex patterns at class level (shared, immutable)
 - Dict-based operator lookup: `{{`, `}}`, `{%`, `%}` → O(1)
 
-Source: `bengal/rendering/engines/kida/lexer.py`
+Source: `bengal/rendering/kida/lexer.py`
 
 ## Stage 2: Parser
 
@@ -112,23 +106,9 @@ Template(
 
 All nodes are frozen dataclasses with `lineno` and `col_offset` for error reporting.
 
-Source: `bengal/rendering/engines/kida/parser.py`
+Source: `bengal/rendering/kida/parser/core.py`
 
-## Stage 3: Optimizer
-
-Transforms the Kida AST before compilation.
-
-**Optimizations:**
-
-| Optimization | Example | Result |
-|--------------|---------|--------|
-| Constant folding | `{{ 2 + 3 }}` | `{{ 5 }}` |
-| Dead code elimination | `{% if false %}...{% end %}` | Removed |
-| Data coalescing | Adjacent `Data` nodes | Single `Data` node |
-
-Source: `bengal/rendering/engines/kida/optimizer.py`
-
-## Stage 4: Compiler
+## Stage 3: Compiler
 
 Transforms Kida AST to Python `ast.Module`.
 
@@ -163,9 +143,9 @@ def render(ctx, _blocks=None):
 - Single `''.join(buf)` at return (O(n) vs O(n²) concatenation)
 - Line markers injected only for error-prone nodes
 
-Source: `bengal/rendering/engines/kida/compiler.py`
+Source: `bengal/rendering/kida/compiler/core.py`
 
-## Stage 5: Bytecode Cache
+## Stage 4: Bytecode Cache
 
 Caches compiled bytecode to disk using Python's `marshal` format.
 
@@ -193,7 +173,7 @@ def escape(s):
 
 Compare to Jinja2's O(5n) approach (5 chained `.replace()` calls).
 
-Source: `bengal/rendering/engines/kida/escape.py`
+Source: `bengal/rendering/kida/utils/html.py`
 
 ## Thread Safety
 
@@ -205,7 +185,7 @@ Kida is thread-safe by design:
 | Rendering | Local state only (`buf = []`) |
 | Bytecode cache | File-based, no shared state |
 
-In free-threaded Python (3.14t+), Kida declares GIL independence via `_Py_mod_gil = 0`.
+Kida is designed for thread-safe operation. All AST nodes are immutable, rendering uses only local state, and the bytecode cache uses atomic file operations.
 
 :::{seealso}
 - [Performance](/docs/theming/templating/kida/performance/) — Benchmarks and optimization strategies

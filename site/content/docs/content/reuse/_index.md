@@ -51,10 +51,10 @@ _snippets/
 ```
 
 Include in any page:
-```markdown
-:::{include} _snippets/install/pip.md
-:::
+````markdown
+```{include} _snippets/install/pip.md
 ```
+````
 :::
 
 :::{tab-item} Data Files
@@ -68,25 +68,25 @@ Structured YAML/JSON in `data/`:
 ```
 
 Access in templates:
-```jinja
+```kida
 {% for member in site.data.team %}
   {{ member.name }} - {{ member.role }}
-{% endfor %}
+{% end %}
 ```
 :::
 
 :::{tab-item} Filtering
 Query content dynamically:
 
-```jinja
+```kida
 {# All tutorials #}
 {% let tutorials = site.pages
-   | selectattr("params.type", "equalto", "tutorial") %}
+   |> where('type', 'tutorial') %}
 
 {# Recent posts #}
 {% let recent = site.pages
-   | sort(attribute="date", reverse=true)
-   | list | slice(5) %}
+   |> sort_by('date', reverse=true)
+   |> take(5) %}
 ```
 :::
 :::{/tab-set}

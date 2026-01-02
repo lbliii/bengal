@@ -56,7 +56,7 @@ graph TB
     subgraph "Object Model"
         Site[Site<br/>bengal/core/site/]
         Pages[Pages<br/>bengal/core/page/]
-        Sections[Sections<br/>bengal/core/section.py]
+        Sections[Sections<br/>bengal/core/section/]
         Assets[Assets<br/>bengal/core/asset/]
         Menus[Menus<br/>bengal/core/menu.py]
         NavTree[NavTree<br/>bengal/core/nav_tree.py]
@@ -90,11 +90,12 @@ graph TB
     NavTree -.->|"used by"| Rendering
     Rendering --> PostProcess
     Cache -.->|"cache checks"| Orchestration
-    Health -.->|"validation"| PostProcess
+    Health -.->|"post-build validation"| Orchestration
     Autodoc -.->|"generates"| Pages
     Config -.->|"configuration"| Site
     Analysis -.->|"analyzes"| Site
-    Fonts -.->|"downloads/generates"| Assets
+    Fonts -.->|"font files"| Orchestration
+    Fonts -.->|"social cards"| PostProcess
     Collections -.->|"schema validation"| Discovery
     ContentLayer -.->|"remote sources"| Collections
     Output -.->|"terminal output"| CLI

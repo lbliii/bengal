@@ -197,6 +197,11 @@ _LEXER_SPECS: dict[str, LexerSpec] = {
         "SqlStateMachineLexer",
         aliases=("mysql", "postgresql", "sqlite"),
     ),
+    "csv": LexerSpec(
+        "bengal.rendering.rosettes.lexers.csv_sm",
+        "CsvStateMachineLexer",
+        aliases=("tsv",),
+    ),
     "graphql": LexerSpec(
         "bengal.rendering.rosettes.lexers.graphql_sm",
         "GraphqlStateMachineLexer",

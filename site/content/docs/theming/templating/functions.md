@@ -9,15 +9,38 @@ weight: 30
 
 Bengal provides 80+ template functions and filters organized by category.
 
+## Functions vs Filters
+
+Bengal provides **filters** (transform values) and **functions** (standalone operations).
+
+**Filters** use the pipe operator:
+```kida
+{{ text | upper }}
+{{ pages |> where('draft', false) |> sort_by('date') }}
+```
+
+**Functions** are called directly:
+```kida
+{{ get_page('docs/about') }}
+{{ get_data('data/config.json') }}
+{{ ref('docs/getting-started') }}
+```
+
+:::{tip}
+**Quick rule:** Transform a value? Use a filter (`|`). Perform an operation? Use a function (direct call).
+:::
+
+See [Template Functions Reference](/docs/reference/template-functions/#functions-vs-filters-understanding-the-difference) for complete explanation.
+
 ## Function Categories
 
 | Category | Examples | Use For |
 |----------|----------|---------|
 | **Collection** | `where`, `sort_by`, `group_by`, `limit` | Querying and filtering pages |
-| **Navigation** | `get_section`, `breadcrumbs`, `get_nav_tree` | Building navigation |
+| **Navigation** | `get_section`, `get_breadcrumbs`, `get_nav_tree` | Building navigation |
 | **Linking** | `ref`, `doc`, `anchor`, `relref` | Cross-references |
-| **Text** | `truncate`, `slugify`, `markdownify` | Text transformations |
-| **Date** | `dateformat`, `days_ago`, `reading_time` | Date formatting |
+| **Text** | `truncatewords`, `slugify`, `markdownify` | Text transformations |
+| **Date** | `time_ago`, `days_ago`, `date_iso` | Date formatting |
 | **i18n** | `t`, `current_lang`, `locale_date` | Internationalization |
 
 ## Quick Examples
@@ -36,7 +59,7 @@ Bengal provides 80+ template functions and filters organized by category.
 
 ```kida
 {% let docs = get_section('docs') %}
-{% let crumbs = breadcrumbs(page) %}
+{% let crumbs = get_breadcrumbs(page) %}
 ```
 
 ### Cross-Reference

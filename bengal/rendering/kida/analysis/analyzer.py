@@ -46,17 +46,25 @@ class BlockAnalyzer:
         >>> analyzer = BlockAnalyzer(config=config)
     """
 
-    def __init__(self, config: AnalysisConfig | None = None) -> None:
+    def __init__(
+        self,
+        config: AnalysisConfig | None = None,
+        template_resolver: Any | None = None,
+    ) -> None:
         """Initialize analyzer with optional configuration.
 
         Args:
             config: Analysis configuration. Uses DEFAULT_CONFIG if not provided.
+            template_resolver: Optional callback(name: str) -> Template | None
+                to resolve included templates for purity analysis. If None,
+                includes return "unknown" purity.
         """
         self._config = config or DEFAULT_CONFIG
         self._dep_walker = DependencyWalker()
         self._purity_analyzer = PurityAnalyzer(
             extra_pure_functions=self._config.extra_pure_functions,
             extra_impure_filters=self._config.extra_impure_filters,
+            template_resolver=template_resolver,
         )
         self._landmark_detector = LandmarkDetector()
 

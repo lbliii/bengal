@@ -15,13 +15,16 @@ Key Concepts:
         detected early prevent silent overwrites and broken navigation.
 
     Priority-Based Resolution: Higher priority claims win. This allows
-        user content (priority 100) to override generated pages (priority 50).
+        user content (priority 100) to override generated pages.
 
     Priority Levels (by convention):
         100: User content (content/ pages)
-         80: User redirects (explicit aliases)
-         50: Generated content (autodoc, taxonomy)
-         40: System pages (404, sitemap)
+         90: Autodoc sections (explicitly configured)
+         80: Autodoc pages (derived from sections)
+         50: Section indexes (structural authority)
+         40: Taxonomy (auto-generated)
+         10: Special pages (404, search, graph)
+          5: Redirects (should never shadow content)
 
     Ownership Tracking: Each claim records owner (e.g., "content",
         "autodoc:python"), source file, and optional version/lang.

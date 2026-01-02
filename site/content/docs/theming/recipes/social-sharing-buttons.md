@@ -24,9 +24,9 @@ Add share buttons to let readers share your content on social platforms.
 **Built into Default Theme**
 
 Bengal's default theme includes social sharing in blog posts:
-- **Share dropdown** in the page hero component
+- **Social share buttons** in blog post footers
 - Uses `share_url()` template functions
-- Includes Twitter, LinkedIn, Facebook, and copy-link
+- Includes Twitter, LinkedIn, Facebook, Reddit, Email, and copy-link
 
 This recipe shows how to customize placement or add additional platforms.
 :::
@@ -58,7 +58,10 @@ This recipe shows how to customize placement or add additional platforms.
 | `share_url(platform, page)` | Generates share URL for any platform |
 | `twitter_share_url(url, text, via)` | Twitter with optional via attribution |
 | `linkedin_share_url(url, title)` | LinkedIn share |
-| `email_share_url(url, subject, body)` | Email with pre-filled subject |
+| `email_share_url(url, subject, body)` | Email with pre-filled subject and body |
+| `reddit_share_url(url, title)` | Reddit submit URL |
+| `hackernews_share_url(url, title)` | Hacker News submit URL |
+| `mastodon_share_text(url, text)` | Returns share text (not URL) for Mastodon |
 
 **Supported Platforms:** `twitter`, `linkedin`, `facebook`, `reddit`, `hackernews`, `email`, `mastodon`
 
@@ -247,5 +250,6 @@ document.querySelector('.share-mastodon').addEventListener('click', function() {
 ```
 
 :::{seealso}
-- [Template Functions Reference](/docs/reference/template-functions/#social-sharing) — All share functions
+- [Template Functions Reference](/docs/reference/template-functions/#social-sharing) — All share functions with parameters
+- [URL Functions](/docs/reference/template-functions/#url-functions) — `absolute_href` and other URL helpers
 :::

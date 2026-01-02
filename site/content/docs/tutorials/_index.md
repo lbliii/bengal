@@ -1,142 +1,88 @@
 ---
 title: Tutorials
-description: Guided learning journeys to master Bengal
-weight: 15
+nav_title: Tutorials
+description: Step-by-step guides for building with Bengal
+weight: 20
+draft: false
+type: doc
 cascade:
   type: doc
-icon: notepad
+icon: graduation-cap
 ---
+
 # Tutorials
 
-Hands-on lessons that teach you Bengal step-by-step. Each tutorial starts from scratch and builds to a working result.
+Hands-on guides that walk you through complete workflows. Start with [[docs/get-started|Get Started]] if you're new to Bengal.
 
-## Choose Your Starting Point
+**Choose your path**: Each tutorial category focuses on a specific aspect of building with Bengal. Follow tutorials in any order based on your needs.
 
 :::{cards}
-:columns: 1
+:columns: 1-2
 :gap: medium
 
-:::{card} Build a Blog from Scratch
-:icon: pencil
-:link: ./build-a-blog/
-:description: Go from zero to a deployed personal blog in 15 minutes
-:badge: Start Here
-:color: blue
-The perfect first tutorial for writers and beginners. No prior Bengal knowledge required.
+:::{card} Build Sites
+:icon: globe
+:link: ./sites
+:description: End-to-end site builds
+Create blogs, portfolios, and documentation sites from scratch.
 :::{/card}
 
-:::{card} Swizzle and Customize the Default Theme
+:::{card} Theming
 :icon: palette
-:link: ./swizzle-default-theme/
-:description: Learn theme inheritance without breaking updates
-:color: orange
-Copy and customize just the templates you need. Perfect for personalizing your site while staying compatible with theme updates.
+:link: ./theming
+:description: Templates and customization
+Learn Kida templating and customize the default theme.
 :::{/card}
 
-:::{card} Coming From Another Tool?
-:icon: arrow-right
-:link: ./onboarding/
-:description: Quick-start guides for Hugo, Sphinx, and Docusaurus users
-:color: green
-Feature mapping and syntax translation for users migrating from other static site generators.
+:::{card} Content Patterns
+:icon: folder-tree
+:link: ./content
+:description: Advanced content organization
+Build tutorial series, multi-part guides, and structured content.
 :::{/card}
 
-:::{card} Automate with GitHub Actions
-:icon: settings
-:link: ./automate-with-github-actions/
-:description: Set up CI/CD pipelines for automatic deployment
-:color: purple
-Configure GitHub Actions for automatic builds, testing, and deployment to GitHub Pages, Netlify, or Vercel.
+:::{card} Operations
+:icon: gear
+:link: ./operations
+:description: CI/CD and analysis
+Automate builds, deployments, and site quality checks.
 :::{/card}
 
-:::{card} Getting Started with Kida
-:icon: zap
-:link: ./getting-started-with-kida/
-:description: Learn Kida template syntax from scratch
-:color: teal
-Master Bengal's native template engine with pattern matching, pipelines, and fragment caching. Perfect for performance-focused developers.
+:::{card} Migration
+:icon: arrow-right-circle
+:link: ./migration
+:description: Migrate from other SSGs
+Step-by-step guides from Hugo, Jekyll, MkDocs, Sphinx, and more.
 :::{/card}
 :::{/cards}
 
-## Learning Journey
+## All Tutorials
 
-```mermaid
-flowchart LR
-    A[Build a Blog] --> B[Content Authoring]
-    A --> C[Swizzle Theme]
-    C --> D[Theming Basics]
-    B --> E[Advanced Content]
-    D --> F[Custom Themes]
-    E --> G[Automation]
-    F --> G
-```
+### Sites
+- [[./sites/build-a-blog|Build a Blog]] — Create a personal blog in 15 minutes (Beginner, 15 min)
+- [[./sites/build-a-multi-author-blog|Multi-Author Blog]] — Team blogs with author profiles (Intermediate, 30 min)
+- [[./sites/skeleton-quickstart|Skeleton YAML]] — Define your site in one YAML file (Beginner, 10 min)
 
-:::{tip}
-**After tutorials**: Move to [Content](../content/) for authoring reference, [Theming](../theming/) for customization, or [Building](../building/) for deployment options.
-:::
+### Theming
+- [[./theming/getting-started-with-kida|Getting Started with Kida]] — Learn Bengal's template engine (Beginner, 20 min)
+- [[./theming/swizzle-default-theme|Swizzle the Default Theme]] — Customize templates safely (Intermediate, 45 min)
 
-:::{dropdown} What makes a good tutorial?
-:icon: info
-Tutorials are **learning-oriented** — they teach skills through guided practice.
+### Content Patterns
+- [[./content/create-a-tutorial-series|Create a Tutorial Series]] — Multi-part content with navigation (Intermediate, 25 min)
 
-Each tutorial:
+### Operations
+- [[./operations/automate-with-github-actions|GitHub Actions]] — Automated CI/CD pipelines (Intermediate, 20 min)
+- [[./operations/analyze-site-connectivity|Analyze Site Connectivity]] — Graph analysis for internal linking (Intermediate, 15 min)
 
-- **Starts from scratch** — No prior Bengal knowledge assumed
-- **Builds progressively** — Each step builds on the previous
-- **Provides working code** — Copy, run, and see results
-- **Explains the "why"** — Understand concepts as you go
+### Migration
+- [[./migration/from-hugo|From Hugo]]
+- [[./migration/from-jekyll|From Jekyll]]
+- [[./migration/from-mkdocs|From MkDocs]]
+- [[./migration/from-sphinx|From Sphinx]]
+- [[./migration/from-docusaurus|From Docusaurus]]
+- [[./migration/from-mintlify|From Mintlify]]
+- [[./migration/from-fern|From Fern]]
 
-This follows the [Diátaxis](https://diataxis.fr/) documentation framework.
-:::
+## Reference
 
-## Troubleshooting
-
-:::{dropdown} Command not found
-:icon: warning
-
-Ensure Python's bin directory is in your PATH.
-
-If using a virtual environment, activate it:
-
-```bash
-source .venv/bin/activate
-```
-
-Try reinstalling:
-
-```bash
-pip uninstall bengal && pip install bengal
-```
-
-:::
-
-:::{dropdown} Python version errors
-:icon: warning
-
-Verify your Python version:
-
-```bash
-python --version
-# or
-python3 --version
-```
-
-Bengal requires Python 3.14 or later. Install using [pyenv](https://github.com/pyenv/pyenv), [uv](https://docs.astral.sh/uv/), or the [official installer](https://www.python.org/downloads/).
-:::
-
-:::{dropdown} Permission errors
-:icon: warning
-
-Use the `--user` flag:
-
-```bash
-pip install --user bengal
-```
-
-Or use a virtual environment:
-
-```bash
-python -m venv venv && source venv/bin/activate
-```
-
-:::
+- [[./user-scenarios|User Scenarios]] — Common patterns and use cases

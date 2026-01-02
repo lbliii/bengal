@@ -24,8 +24,8 @@ Bengal transforms Markdown files into structured, validated documentation sites 
 flowchart LR
     subgraph Sources
         A[Local .md files]
-        B[GitHub repos]
-        C[Notion/APIs]
+        B[GitHub repos ⚡]
+        C[Notion/APIs ⚡]
     end
 
     subgraph Processing
@@ -47,6 +47,10 @@ flowchart LR
     F --> G
     G --> H
 ```
+
+:::{note}
+⚡ Remote sources require optional dependencies. Install with `pip install bengal[all-sources]` or individually: `bengal[github]`, `bengal[notion]`, `bengal[rest]`.
+:::
 
 ## Key Features
 

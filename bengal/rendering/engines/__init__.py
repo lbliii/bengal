@@ -41,7 +41,7 @@ Configuration:
     .. code-block:: yaml
 
         site:
-          template_engine: jinja2  # default
+          template_engine: kida  # default (Bengal's native engine), or jinja2, mako, patitas
 
 Usage:
     >>> from bengal.rendering.engines import create_engine
@@ -116,7 +116,7 @@ def create_engine(
         ValueError: If engine is unknown or required package not installed
 
     Configuration:
-        template_engine: jinja2  # or "mako", "patitas", etc.
+        template_engine: kida  # default (Bengal's native engine), or "jinja2", "mako", "patitas", etc.
     """
     engine_name = site.config.get("template_engine", "kida")
 

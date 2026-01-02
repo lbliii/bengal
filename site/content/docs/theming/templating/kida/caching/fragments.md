@@ -18,6 +18,7 @@ Use Kida's built-in `{% cache %}` directive for manual control over expensive te
 ## When to Use Fragment Caching
 
 Cache fragments when you have:
+
 - Expensive computations (navigation trees, related posts)
 - Complex data processing (statistics, aggregations)
 - Repeated calculations across pages
@@ -51,19 +52,15 @@ Use expressions to create unique cache keys:
 
 ### Cache with TTL
 
-Set time-to-live for cache expiration:
+Fragment cache uses a global TTL configured at the environment level. All cached fragments share the same expiration time set in `bengal.yaml`:
 
 ```kida
-{% cache "stats", ttl="1h" %}
+{% cache "stats" %}
   {{ calculate_site_stats() }}
 {% end %}
 ```
 
-**TTL formats:**
-- `"30s"` — 30 seconds
-- `"5m"` — 5 minutes
-- `"1h"` — 1 hour
-- `"2d"` — 2 days
+**Note:** Per-key TTL (e.g., `ttl="1h"`) is not currently supported. All fragments use the environment-level `fragment_ttl` setting. See [Configuration](#configuration) to set the global TTL.
 
 ## Common Use Cases
 
@@ -110,7 +107,7 @@ Set time-to-live for cache expiration:
 ### Site Statistics
 
 ```kida
-{% cache "site-stats", ttl="1h" %}
+{% cache "site-stats" %}
   {% let total_posts = site.pages |> where('type', 'blog') |> length %}
   {% let total_docs = site.pages |> where('type', 'doc') |> length %}
   {% let total_tags = site.tags |> length %}
@@ -135,7 +132,7 @@ Set time-to-live for cache expiration:
 ### Tag Cloud
 
 ```kida
-{% cache "tag-cloud", ttl="1h" %}
+{% cache "tag-cloud" %}
   {% let tags = site.tags
     |> items()
     |> sort_by('count', reverse=true)
@@ -175,11 +172,23 @@ Set time-to-live for cache expiration:
 
 ### Manual Invalidation
 
+Fragment cache is stored in memory and persists only during the build process. To clear it:
+
+**During build:**
+
+- Fragment cache is automatically cleared when you restart the build process
+- Use `bengal clean --cache` to clear all caches (including bytecode cache)
+
+**Note:** The fragment cache is separate from the bytecode cache:
+
+- **Fragment cache**: In-memory LRU cache for `{% cache %}` block outputs (cleared on process restart)
+- **Bytecode cache**: Disk cache at `.bengal/cache/kida/` for compiled template bytecode (persists across builds)
+
 ```bash
-# Clear all caches
+# Clear all caches (output + bytecode cache)
 bengal clean --cache
 
-# Or delete cache directory
+# Clear only bytecode cache (fragment cache is in-memory)
 rm -rf .bengal/cache/kida/
 ```
 
@@ -198,16 +207,23 @@ rm -rf .bengal/cache/kida/
 {{ page.title }}
 ```
 
-### Use Appropriate TTLs
+### Configure TTL Appropriately
+
+Set the global TTL in `bengal.yaml` based on your content update frequency:
+
+```yaml
+kida:
+  fragment_ttl: 300.0  # 5 minutes - good for frequently changing content
+  # fragment_ttl: 3600.0  # 1 hour - good for rarely changing content
+```
 
 ```kida
-{# Changes frequently: Short TTL #}
-{% cache "recent-posts", ttl="5m" %}
+{# All fragments use the same TTL from configuration #}
+{% cache "recent-posts" %}
   {{ get_recent_posts() }}
 {% end %}
 
-{# Changes rarely: Long TTL #}
-{% cache "site-stats", ttl="24h" %}
+{% cache "site-stats" %}
   {{ calculate_stats() }}
 {% end %}
 ```
@@ -232,21 +248,35 @@ Configure cache settings in `bengal.yaml`:
 
 ```yaml
 kida:
-  fragment_cache_size: 1000  # Max cached fragments
-  fragment_ttl: 300.0         # Default TTL in seconds (5 min)
+  fragment_cache_size: 1000  # Max cached fragments (LRU eviction)
+  fragment_ttl: 300.0         # Global TTL in seconds for all fragments (5 min)
 ```
+
+**Cache behavior:**
+
+- `fragment_cache_size`: Maximum number of cached fragments. When exceeded, least recently used entries are evicted.
+- `fragment_ttl`: Time-to-live in seconds applied to all cached fragments. Fragments expire after this duration regardless of access.
+- Fragment cache is in-memory only and cleared when the build process ends.
 
 ## Debugging
 
-Check cache hit/miss rates:
+**Fragment cache statistics:**
+
+Fragment cache statistics are available programmatically via the Kida environment's `cache_info()` method. The fragment cache is in-memory and cleared on each build.
+
+**Bytecode cache:**
+
+The bytecode cache (compiled template bytecode) is stored on disk:
 
 ```bash
+# Check bytecode cache directory
+ls -la .bengal/cache/kida/
+
 # Build with verbose output
 bengal build --verbose
-
-# Check cache directory
-ls -la .bengal/cache/kida/
 ```
+
+**Note:** Fragment cache (for `{% cache %}` blocks) and bytecode cache (for compiled templates) are separate systems with different storage locations and purposes.
 
 ## Complete Example
 
@@ -299,7 +329,7 @@ ls -la .bengal/cache/kida/
     {{ build_sidebar_nav(site.pages) }}
   {% end %}
 
-  {% cache "tag-cloud", ttl="1h" %}
+  {% cache "tag-cloud" %}
     {{ build_tag_cloud(site.tags) }}
   {% end %}
 {% endblock %}

@@ -52,7 +52,7 @@ keywords:
 - **Lazy Loading**: Parse content only when needed
 
 ## 4. Extensibility
-- **Custom Content Types**: Multiple markdown parsers supported (Patitas default, Mistune, python-markdown)
+- **Custom Content Types**: Multiple markdown parsers supported (Patitas default, Mistune legacy, python-markdown)
 - **Template Flexibility**: Custom templates override defaults
 - **Theme System**: Self-contained themes with templates and assets
 - **Directives System**: Extensible MyST directives for custom markdown components
@@ -226,7 +226,7 @@ def create_markdown_parser(engine='patitas'):
     if engine == 'patitas':
         return PatitasParser()  # Default: thread-safe, O(n)
     elif engine == 'mistune':
-        return MistuneParser()
+        return MistuneParser()  # Legacy option
     elif engine == 'python-markdown':
         return PythonMarkdownParser()
 ```

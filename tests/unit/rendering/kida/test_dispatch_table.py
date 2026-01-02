@@ -80,7 +80,6 @@ class TestDispatchTableKeywords:
             "extends",
             "include",
             "import",
-            "macro",
             "from",
             # Scope and execution
             "with",
@@ -135,13 +134,6 @@ class TestDispatchTableBehavior:
         """{% raw %} should work via dispatch table."""
         tmpl = env.from_string("{% raw %}{{ not rendered }}{% endraw %}")
         assert tmpl.render() == "{{ not rendered }}"
-
-    def test_macro_keyword_dispatches_correctly(self, env):
-        """{% macro %} should work via dispatch table."""
-        tmpl = env.from_string(
-            "{% macro hello(name) %}Hello {{ name }}{% endmacro %}{{ hello('World') }}"
-        )
-        assert tmpl.render() == "Hello World"
 
     def test_block_keyword_dispatches_correctly(self, env):
         """{% block %} should work via dispatch table."""

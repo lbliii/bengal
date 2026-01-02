@@ -13,7 +13,7 @@ tags:
 
 # Automatic Block Caching
 
-Kida's template engine automatically detects which parts of your templates can be cached site-wide, rendering them **once per build** instead of once per page.
+Kida's template engine automatically detects which parts of your templates can be cached site-wide, rendering them **once per build** instead of once per page. This analysis happens at compile time using template introspection, requiring no changes to your template syntax.
 
 ## How It Works
 
@@ -52,8 +52,8 @@ Based on this analysis, each block is assigned a **cache scope**:
 **Site-scoped variables include:**
 - `site.*` — Site configuration and metadata
 - `config.*` — Site configuration values
-- `theme.*` — Theme settings
-- `bengal.*` — Build-time capabilities
+
+**Note**: `theme.*` and `bengal.*` are available in templates and are site-level, but the analyzer may not automatically recognize them as site-scoped. For best cacheability, prefer `site.*` and `config.*` when possible.
 
 ### Avoid Page-Specific Variables
 
@@ -177,14 +177,35 @@ These functions return consistent values for a given build:
 
 ## Verifying Cacheability
 
-During builds with `--verbose`, Bengal logs block cache statistics:
+### Build Output
 
+Bengal tracks block cache statistics during builds. Block cache metrics are included in build statistics and can be viewed in the build summary. The cache automatically identifies and caches site-scoped blocks during the rendering phase.
+
+### Programmatic Verification
+
+To check which blocks are cached and their cache scope, use the template introspection API:
+
+```python
+from bengal.rendering.kida import Environment
+
+env = Environment(preserve_ast=True)
+template = env.get_template("base.html")
+meta = template.template_metadata()
+
+if meta:
+    for block_name, block_meta in meta.blocks.items():
+        print(f"{block_name}: {block_meta.cache_scope}")
+        # Output examples:
+        # site_footer: site    (cached site-wide)
+        # site_nav: site        (cached site-wide)
+        # content: page         (rendered per-page)
 ```
-✓ Block cache: 3 site blocks cached
-  - base.html:site_footer (site-scoped)
-  - base.html:site_nav (site-scoped)
-  - base.html:site_head (site-scoped)
-```
+
+The `cache_scope` field indicates:
+- `"site"` — Block is cached site-wide (rendered once per build, reused across all pages)
+- `"page"` — Block is page-specific (rendered per page, not cached site-wide)
+- `"none"` — Block cannot be cached (uses impure functions like `random` or `shuffle`)
+- `"unknown"` — Analysis couldn't determine (e.g., uses `{% include %}` with unknown dependencies)
 
 ## Summary
 

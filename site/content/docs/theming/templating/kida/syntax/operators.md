@@ -59,14 +59,20 @@ Add inline comments to explain each step:
 
 ### Filter Name Mapping
 
+Common Jinja2 patterns and their Kida equivalents:
+
 | Jinja2 Filter | Kida Filter | Description |
 |--------------|-------------|-------------|
 | `selectattr('key')` | `where('key', true)` | Boolean filter |
 | `selectattr('key', 'eq', val)` | `where('key', val)` | Equality filter |
 | `rejectattr('key')` | `where_not('key', true)` | Inverse boolean |
 | `sort(attribute='key')` | `sort_by('key')` | Sort by attribute |
-| `batch(n) \| first` | `take(n)` | Get first n items |
+| `batch(n) \| first` | `take(n)` | Get first n items (both return a list of n items; `take()` avoids grouping overhead) |
 | `groupby('key')` | `group_by('key')` | Group by attribute |
+
+:::{note}
+**About `batch(n) | first` vs `take(n)`**: While both return the first n items, `batch(n)` groups all items into batches first, then `first` extracts the first batch. The `take(n)` filter directly takes the first n items without grouping, making it more efficient for this use case.
+:::
 
 ## Optional Chaining (`?.`)
 

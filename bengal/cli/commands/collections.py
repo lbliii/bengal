@@ -346,10 +346,6 @@ def validate_collections(collection: str | None, config: str | None, source: str
 
                 metadata = dict(post.metadata)
 
-                # Apply transform if defined
-                if coll_config.transform:
-                    metadata = coll_config.transform(metadata)
-
                 # Validate
                 result = validator.validate(metadata, source_file=file_path)
 

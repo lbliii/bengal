@@ -362,9 +362,9 @@ bengal graph suggest --top-n 50 --min-score 0.5
    bengal graph orphans --level lightly --format json > lightly-linked.json
    ```
 
-4. **Get link suggestions** (via utils group):
+4. **Get link suggestions**:
    ```bash
-   bengal utils graph suggest --min-score 0.5 --format markdown > suggestions.md
+   bengal graph suggest --min-score 0.5 --format markdown > suggestions.md
    ```
 
 5. **Prioritize by importance**:
@@ -463,7 +463,7 @@ Add connectivity gates to your pipeline:
 ```
 
 :::{seealso}
-- [Tutorial: Analyze and Improve Site Connectivity](/docs/tutorials/analyze-site-connectivity/) — Step-by-step guided walkthrough
+- [Tutorial: Analyze and Improve Site Connectivity](/docs/tutorials/operations/analyze-site-connectivity/) — Step-by-step guided walkthrough
 - [Analysis System Architecture](/docs/reference/architecture/subsystems/analysis/) — Technical details and API usage
 - [Health Check System](/docs/reference/architecture/subsystems/health/) — Automated validation with ConnectivityValidator
 :::

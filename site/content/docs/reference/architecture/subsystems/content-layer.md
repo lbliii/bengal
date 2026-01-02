@@ -98,15 +98,18 @@ All sources return unified `ContentEntry` objects:
 ```python
 @dataclass
 class ContentEntry:
-    id: str                    # Unique identifier
-    slug: str                  # URL-friendly slug
-    content: str               # Raw content (markdown)
-    frontmatter: dict          # Parsed metadata
-    source_type: str           # 'local', 'github', 'notion', 'rest'
-    source_name: str           # Source instance name
-    source_url: str | None      # Original URL
-    last_modified: datetime    # For cache invalidation
-    checksum: str              # Content hash
+    id: str                        # Unique identifier
+    slug: str                      # URL-friendly slug
+    content: str                   # Raw content (markdown)
+    frontmatter: dict[str, Any]    # Parsed metadata
+    source_type: str               # 'local', 'github', 'notion', 'rest'
+    source_name: str               # Source instance name
+    source_url: str | None         # Original URL
+    last_modified: datetime | None # For cache invalidation
+    checksum: str | None           # Content hash
+    etag: str | None               # HTTP ETag (for conditional requests)
+    cached_path: Path | None       # Local cache file path
+    cached_at: datetime | None     # When this entry was cached
 ```
 
 ## Supported Sources
@@ -152,9 +155,14 @@ entries = await loader.fetch_all()
 from bengal.content_layer import rest_loader
 
 loader = rest_loader(
-    base_url="https://api.example.com",
-    endpoint="/docs",
-    headers={"Authorization": "Bearer token"},
+    url="https://api.example.com/docs",
+    headers={"Authorization": "Bearer ${API_TOKEN}"},
+    content_field="body",           # JSON path to content
+    id_field="id",                  # JSON path to ID
+    frontmatter_fields={            # Map frontmatter to JSON paths
+        "title": "title",
+        "date": "published_at",
+    },
 )
 entries = await loader.fetch_all()
 ```
@@ -204,7 +212,9 @@ from bengal.content_layer.source import ContentSource
 from bengal.content_layer.entry import ContentEntry
 
 class MyCustomSource(ContentSource):
-    source_type = "my-api"
+    @property
+    def source_type(self) -> str:
+        return "my-api"
 
     async def fetch_all(self):
         async for item in self._fetch_from_api():
@@ -217,7 +227,7 @@ class MyCustomSource(ContentSource):
                 source_name=self.name,
             )
 
-    async def fetch_one(self, id: str):
+    async def fetch_one(self, id: str) -> ContentEntry | None:
         item = await self._fetch_item(id)
         return self._to_entry(item) if item else None
 ```
@@ -236,7 +246,7 @@ The Content Layer fetches from multiple sources in parallel:
 
 ```python
 # Fetches from all sources concurrently
-entries = await manager.fetch_all_async()
+entries = await manager.fetch_all()
 ```
 
 ## Error Handling
@@ -244,9 +254,11 @@ entries = await manager.fetch_all_async()
 Sources handle errors gracefully:
 
 ```python
+from bengal.errors import BengalDiscoveryError
+
 try:
     entries = await loader.fetch_all()
-except ContentSourceError as e:
+except BengalDiscoveryError as e:
     logger.error(f"Failed to fetch from {loader.source_type}: {e}")
     # Falls back to cached content if available
 ```

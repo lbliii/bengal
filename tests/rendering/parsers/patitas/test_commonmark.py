@@ -16,12 +16,13 @@ class TestATXHeadings:
 
     def test_simple_headings(self):
         """Simple ATX headings."""
-        assert "<h1>" in parse("# foo")
-        assert "<h2>" in parse("## foo")
-        assert "<h3>" in parse("### foo")
-        assert "<h4>" in parse("#### foo")
-        assert "<h5>" in parse("##### foo")
-        assert "<h6>" in parse("###### foo")
+        # Note: Patitas adds id attributes, so check for <h1 not <h1>
+        assert "<h1" in parse("# foo")
+        assert "<h2" in parse("## foo")
+        assert "<h3" in parse("### foo")
+        assert "<h4" in parse("#### foo")
+        assert "<h5" in parse("##### foo")
+        assert "<h6" in parse("###### foo")
 
     def test_more_than_six_not_heading(self):
         """More than six # characters is not a heading."""
@@ -41,20 +42,20 @@ class TestATXHeadings:
     def test_inline_content_in_heading(self):
         """Headings can contain inline content."""
         html = parse("# foo *bar* \\*baz\\*")
-        assert "<h1>" in html
+        assert "<h1" in html  # Patitas adds id attribute
         assert "<em>" in html
 
     def test_leading_trailing_spaces_ignored(self):
         """Leading and trailing spaces are ignored."""
         html = parse("#                  foo                     ")
-        assert "<h1>" in html
+        assert "<h1" in html  # Patitas adds id attribute
         assert "foo" in html
 
     def test_indented_heading(self):
         """Up to 3 spaces of indentation allowed."""
-        assert "<h1>" in parse(" # foo")
-        assert "<h1>" in parse("  # foo")
-        assert "<h1>" in parse("   # foo")
+        assert "<h1" in parse(" # foo")  # Patitas adds id attribute
+        assert "<h1" in parse("  # foo")
+        assert "<h1" in parse("   # foo")
 
     def test_four_spaces_is_code(self):
         """Four spaces of indentation is code block."""
@@ -64,7 +65,7 @@ class TestATXHeadings:
     def test_closing_sequence_optional(self):
         """Closing # sequence is optional."""
         html = parse("## foo ##")
-        assert "<h2>" in html
+        assert "<h2" in html  # Patitas adds id attribute
 
     def test_closing_must_have_space(self):
         """Closing sequence must be preceded by space."""
@@ -75,18 +76,22 @@ class TestATXHeadings:
 class TestSetextHeadings:
     """CommonMark setext heading tests (4.3)."""
 
-    # Note: Setext headings not yet implemented in Patitas
-    @pytest.mark.skip(reason="Setext headings not yet implemented")
     def test_setext_h1(self):
         """Setext H1 with ===."""
         html = parse("Foo\n===")
-        assert "<h1>" in html
+        assert "<h1" in html  # Patitas adds id attribute
 
-    @pytest.mark.skip(reason="Setext headings not yet implemented")
     def test_setext_h2(self):
         """Setext H2 with ---."""
         html = parse("Foo\n---")
-        assert "<h2>" in html
+        assert "<h2" in html  # Patitas adds id attribute
+
+    def test_setext_multiline(self):
+        """Setext heading can span multiple lines."""
+        html = parse("Foo\nBar\n===")
+        assert "<h1" in html
+        assert "Foo" in html
+        assert "Bar" in html
 
 
 class TestThematicBreaks:
@@ -239,8 +244,14 @@ class TestBackslashEscapes:
     def test_escaped_punctuation(self, char):
         """Escaped punctuation."""
         html = parse(f"\\{char}")
-        # Character should appear literally
-        assert char in html or f"&#{ord(char)};" in html
+        # Character should appear literally or as HTML entity
+        # Patitas may use &quot; for " and &#x27; for '
+        assert (
+            char in html
+            or f"&#{ord(char)};" in html
+            or "&quot;" in html  # HTML entity for "
+            or "&#x27;" in html  # HTML entity for '
+        )
 
     def test_backslash_before_letter(self):
         """Backslash before non-escapable character."""
@@ -334,11 +345,41 @@ class TestHardLineBreaks:
         assert "<br />" in html
 
     def test_two_spaces_hard_break(self):
-        """Two spaces at end of line."""
+        """Two spaces at end of line creates hard break."""
         html = parse("foo  \nbar")
-        # Should have break (currently using backslash only)
-        # This may be a gap in current implementation
-        assert html is not None
+        assert "<br />" in html
+        assert "foo" in html
+        assert "bar" in html
+
+    def test_many_trailing_spaces_hard_break(self):
+        """More than two trailing spaces still creates hard break."""
+        html = parse("foo       \nbar")
+        assert "<br />" in html
+
+    def test_trailing_spaces_at_end_of_paragraph(self):
+        """Trailing spaces at end of paragraph are stripped, no break."""
+        html = parse("foo  \n")
+        # Should be <p>foo</p>, not <p>foo<br /></p>
+        assert "<br />" not in html
+        assert "foo  " not in html  # Trailing spaces stripped
+
+    def test_hard_break_in_emphasis(self):
+        """Hard break inside emphasis."""
+        html = parse("*foo  \nbar*")
+        assert "<em>" in html
+        assert "<br />" in html
+
+    def test_code_span_newline_becomes_space(self):
+        """Newline inside code span becomes space."""
+        html = parse("`code  \nspan`")
+        # Newline should become space, trailing spaces preserved
+        assert "<code>code   span</code>" in html
+
+    def test_code_span_preserves_backslash(self):
+        """Backslash in code span is preserved, newline becomes space."""
+        html = parse("`code\\\nspan`")
+        # Backslash preserved, newline becomes space
+        assert "<code>code\\ span</code>" in html
 
 
 class TestSoftLineBreaks:
@@ -350,3 +391,323 @@ class TestSoftLineBreaks:
         # Soft break renders as space or newline
         assert "foo" in html
         assert "baz" in html
+
+
+# =============================================================================
+# Comprehensive List Tests (CommonMark 5.2 & 5.3)
+# =============================================================================
+
+
+class TestListTermination:
+    """Tests for list termination rules (CommonMark 5.3).
+
+    A list ends when:
+    - A blank line is followed by non-indented content
+    - A thematic break appears
+    - The document ends
+    """
+
+    def test_list_terminated_by_blank_line_and_paragraph(self):
+        """Blank line + non-indented paragraph terminates list."""
+        html = parse("- item 1\n- item 2\n\nParagraph after list")
+        assert html.count("<ul>") == 1
+        assert html.count("</ul>") == 1
+        assert "<p>Paragraph after list</p>" in html
+
+    def test_two_lists_separated_by_paragraph(self):
+        """Two lists separated by a paragraph are distinct."""
+        md = """- list 1 item 1
+- list 1 item 2
+
+**Middle paragraph**
+
+- list 2 item 1
+- list 2 item 2
+"""
+        html = parse(md)
+        assert html.count("<ul>") == 2
+        assert html.count("</ul>") == 2
+
+    def test_list_terminated_by_heading(self):
+        """List terminated by heading."""
+        html = parse("- item\n\n# Heading")
+        assert "<ul>" in html
+        assert "</ul>" in html
+        assert "<h1" in html
+
+    def test_list_terminated_by_thematic_break(self):
+        """List terminated by thematic break."""
+        html = parse("- item 1\n- item 2\n\n---")
+        assert "<ul>" in html
+        assert "<hr" in html
+
+    def test_list_terminated_by_code_block(self):
+        """List terminated by fenced code block."""
+        html = parse("- item\n\n```\ncode\n```")
+        assert "<ul>" in html
+        assert "<code>" in html or "<pre>" in html
+
+
+class TestLooseVsTightLists:
+    """Tests for loose vs tight list detection (CommonMark 5.3).
+
+    Tight list: No blank lines between items → no <p> wrappers
+    Loose list: Blank lines between items → <p> wrappers
+    """
+
+    def test_tight_list_no_paragraph_wrappers(self):
+        """Tight list items don't get <p> wrappers."""
+        html = parse("- one\n- two\n- three")
+        # In tight lists, content is directly in <li>
+        assert "<li>one</li>" in html or "<li>one" in html
+        # Should NOT have <p> inside tight list items
+        assert "<li><p>" not in html
+
+    def test_loose_list_has_paragraph_wrappers(self):
+        """Loose list items get <p> wrappers."""
+        md = """- one
+
+- two
+
+- three
+"""
+        html = parse(md)
+        # Loose lists wrap content in <p>
+        assert "<li><p>" in html or "<li>\n<p>" in html
+
+    def test_single_blank_line_makes_loose(self):
+        """Single blank line between any items makes entire list loose."""
+        md = """- one
+- two
+
+- three
+"""
+        html = parse(md)
+        # The blank line before "three" makes the whole list loose
+        assert html.count("<p>") >= 3 or "<li><p>" in html
+
+
+class TestNestedLists:
+    """Tests for nested list indentation (CommonMark 5.2).
+
+    Nested lists require proper indentation relative to parent.
+    """
+
+    def test_nested_unordered_list(self):
+        """Nested unordered list with 2-space indent."""
+        md = """- parent
+  - child 1
+  - child 2
+"""
+        html = parse(md)
+        assert html.count("<ul>") == 2
+        assert html.count("</ul>") == 2
+
+    def test_nested_ordered_in_unordered(self):
+        """Ordered list nested in unordered list."""
+        md = """- parent
+  1. first
+  2. second
+"""
+        html = parse(md)
+        assert "<ul>" in html
+        assert "<ol>" in html
+
+    @pytest.mark.xfail(reason="4-space indent triggers code block before nested list detection")
+    def test_deeply_nested_lists(self):
+        """Three levels of nesting."""
+        md = """- level 1
+  - level 2
+    - level 3
+"""
+        html = parse(md)
+        assert html.count("<ul>") == 3
+
+    def test_nested_list_returns_to_parent(self):
+        """After nested list, can return to parent level."""
+        md = """- parent 1
+  - child
+- parent 2
+"""
+        html = parse(md)
+        # Should have 2 items at top level, 1 nested
+        assert html.count("<ul>") == 2  # parent + nested
+
+
+class TestParagraphContinuation:
+    """Tests for paragraph continuation in list items (CommonMark 5.2).
+
+    Indented content after blank line continues the list item.
+    """
+
+    def test_indented_paragraph_continues_item(self):
+        """Indented paragraph continues list item."""
+        md = """- First paragraph
+
+  Second paragraph in same item
+"""
+        html = parse(md)
+        assert html.count("<ul>") == 1
+        # Both paragraphs should be in the list
+        assert "First paragraph" in html
+        assert "Second paragraph" in html
+
+    def test_non_indented_paragraph_ends_list(self):
+        """Non-indented paragraph ends list."""
+        md = """- List item
+
+Not in list
+"""
+        html = parse(md)
+        assert "<ul>" in html
+        assert "</ul>" in html
+        # "Not in list" should be outside the list
+        assert "<p>Not in list</p>" in html
+
+    def test_multiple_paragraphs_in_item(self):
+        """Multiple continuation paragraphs in one item."""
+        md = """- Para 1
+
+  Para 2
+
+  Para 3
+"""
+        html = parse(md)
+        assert html.count("<ul>") == 1
+        # All three should be in the list item
+        assert html.count("<p>") >= 3 or "Para 3" in html
+
+
+class TestListInterruption:
+    """Tests for what can interrupt a list (CommonMark 5.3).
+
+    Certain blocks can interrupt lists, others cannot.
+    """
+
+    def test_blank_line_required_before_code_block(self):
+        """Code block after list item needs blank line."""
+        md = """- item
+
+```
+code
+```
+"""
+        html = parse(md)
+        assert "<ul>" in html
+        assert "<code>" in html or "<pre>" in html
+
+    def test_heading_interrupts_list(self):
+        """ATX heading can interrupt list after blank line."""
+        md = """- item
+
+# Heading
+"""
+        html = parse(md)
+        assert "<ul>" in html
+        assert "<h1" in html
+
+
+class TestOrderedListStart:
+    """Tests for ordered list starting numbers (CommonMark 5.3)."""
+
+    def test_start_at_one(self):
+        """Ordered list starting at 1."""
+        html = parse("1. first\n2. second")
+        assert "<ol>" in html
+        assert 'start="' not in html or 'start="1"' in html
+
+    def test_start_at_other_number(self):
+        """Ordered list starting at number other than 1."""
+        html = parse("3. first\n4. second")
+        assert '<ol start="3">' in html
+
+    def test_start_at_zero(self):
+        """Ordered list can start at 0."""
+        html = parse("0. first\n1. second")
+        assert '<ol start="0">' in html
+
+    def test_numbers_dont_have_to_be_sequential(self):
+        """Item numbers don't have to be sequential."""
+        html = parse("1. first\n5. second\n3. third")
+        assert "<ol>" in html
+        assert html.count("<li>") == 3
+
+
+class TestListMarkerVariants:
+    """Tests for different list marker styles (CommonMark 5.2)."""
+
+    def test_dash_marker(self):
+        """Dash (-) as list marker."""
+        html = parse("- item")
+        assert "<ul>" in html
+
+    def test_asterisk_marker(self):
+        """Asterisk (*) as list marker."""
+        html = parse("* item")
+        assert "<ul>" in html
+
+    def test_plus_marker(self):
+        """Plus (+) as list marker."""
+        html = parse("+ item")
+        assert "<ul>" in html
+
+    def test_dot_ordered_marker(self):
+        """Dot (.) ordered list marker."""
+        html = parse("1. item")
+        assert "<ol>" in html
+
+    def test_paren_ordered_marker(self):
+        """Parenthesis ()) ordered list marker."""
+        html = parse("1) item")
+        assert "<ol>" in html
+
+    def test_different_markers_different_lists(self):
+        """Different unordered markers create different lists."""
+        md = """- dash item
+
+* asterisk item
+"""
+        html = parse(md)
+        # Different markers after blank line = different lists
+        assert html.count("<ul>") == 2
+
+
+class TestListEdgeCases:
+    """Edge cases for list parsing."""
+
+    def test_empty_list_item(self):
+        """Empty list item."""
+        html = parse("- \n- item")
+        assert html.count("<li>") == 2
+
+    def test_list_item_with_only_spaces(self):
+        """List item with only spaces after marker."""
+        html = parse("-   \n- item")
+        assert "<ul>" in html
+
+    def test_very_long_ordered_number(self):
+        """Ordered list with large starting number (up to 9 digits)."""
+        html = parse("123456789. item")
+        assert "<ol" in html
+
+    def test_ten_digit_number_not_list(self):
+        """10-digit number is not a valid list marker."""
+        html = parse("1234567890. item")
+        # Should be paragraph, not list
+        assert "<ol" not in html
+
+    def test_list_with_inline_formatting(self):
+        """List items with inline formatting."""
+        html = parse("- **bold** item\n- *italic* item")
+        assert "<strong>" in html
+        assert "<em>" in html
+
+    def test_list_with_code_span(self):
+        """List items with code spans."""
+        html = parse("- `code` item\n- another `code`")
+        assert "<code>" in html
+
+    def test_list_with_link(self):
+        """List items with links."""
+        html = parse("- [link](url)\n- another item")
+        assert "<a " in html

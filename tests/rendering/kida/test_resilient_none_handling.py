@@ -26,10 +26,9 @@ from bengal.rendering.kida.environment.exceptions import (
 def env() -> Environment:
     """Create a fresh Kida environment for each test.
 
-    Uses strict=False to test the lenient None handling behavior.
-    Strict mode (default) raises UndefinedError for missing variables.
+    Tests lenient None handling behavior.
     """
-    return Environment(strict=False)
+    return Environment()
 
 
 class TestResilientNoneHandling:
@@ -63,12 +62,6 @@ class TestResilientNoneHandling:
         """Deep chained access where middle is None returns empty."""
         tmpl = env.from_string("{{ page.metadata.author.name }}")
         result = tmpl.render(page={"metadata": {"author": None}})
-        assert result == ""
-
-    def test_missing_variable_returns_empty(self, env: Environment) -> None:
-        """Accessing completely missing variable returns empty."""
-        tmpl = env.from_string("{{ nonexistent.attr }}")
-        result = tmpl.render()
         assert result == ""
 
     def test_none_in_conditional_is_falsy(self, env: Environment) -> None:

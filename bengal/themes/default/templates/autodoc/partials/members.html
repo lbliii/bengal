@@ -33,14 +33,15 @@ all_members = members ?? []
 %}
 
 {# Separate public and internal members using is_private from MemberView #}
+{# NOTE: Must use {% export %} to promote from loop scope to template scope #}
 {% let public_members = [] %}
 {% let internal_members = [] %}
 {% for el in all_members %}
 {% let m = el | member_view %}
 {% if m.is_private %}
-{% set internal_members = internal_members + [m] %}
+{% export internal_members = internal_members + [m] %}
 {% else %}
-{% set public_members = public_members + [m] %}
+{% export public_members = public_members + [m] %}
 {% end %}
 {% end %}
 

@@ -203,6 +203,38 @@ class TestEscapes:
         html = parse(r"`\*`")
         assert "\\*" in html or r"\*" in html
 
+    def test_escape_in_link_url(self):
+        """Backslash escapes processed in link URLs."""
+        html = parse(r"[foo](/bar\*)")
+        # Escaped asterisk becomes literal asterisk in URL
+        assert 'href="/bar*"' in html
+
+    def test_escape_in_link_title(self):
+        """Backslash escapes processed in link titles."""
+        html = parse(r'[foo](/url "ti\*tle")')
+        # Escaped asterisk becomes literal in title
+        assert 'title="ti*tle"' in html
+
+    def test_escape_in_image_url(self):
+        """Backslash escapes processed in image URLs."""
+        html = parse(r"![alt](/img\*.png)")
+        assert 'src="/img*.png"' in html
+
+
+class TestCodeFenceEscapes:
+    """Backslash escape tests in code fence info strings."""
+
+    def test_escape_in_info_string(self):
+        """Backslash escapes processed in code fence info string."""
+        html = parse("``` foo\\+bar\ncode\n```")
+        # Escaped + becomes literal + in language class
+        assert 'class="language-foo+bar"' in html
+
+    def test_escaped_backtick_in_tilde_fence(self):
+        """Backticks can be escaped in tilde fence info string."""
+        html = parse("~~~ foo\\`bar\ncode\n~~~")
+        assert 'class="language-foo`bar"' in html
+
 
 class TestMixedInline:
     """Mixed inline elements."""
@@ -267,3 +299,249 @@ class TestInlineEdgeCases:
         html = parse("http://example.com")
         # Plain URLs are literal text (no autolink plugin)
         assert "http://example.com" in html
+
+
+# =============================================================================
+# CommonMark Autolinks (Section 6.7)
+# =============================================================================
+
+
+class TestAutolinks:
+    """CommonMark autolink tests (section 6.7).
+
+    Autolinks are absolute URIs and email addresses wrapped in angle brackets.
+    They are parsed as links, not as raw HTML.
+    """
+
+    # --- URI Autolinks ---
+
+    def test_http_autolink(self):
+        """HTTP URL autolink."""
+        html = parse("<http://foo.bar.baz>")
+        assert '<a href="http://foo.bar.baz">' in html
+        assert ">http://foo.bar.baz</a>" in html
+
+    def test_https_autolink(self):
+        """HTTPS URL autolink."""
+        html = parse("<https://foo.bar.baz>")
+        assert '<a href="https://foo.bar.baz">' in html
+
+    def test_https_with_query_string(self):
+        """HTTPS with query parameters."""
+        html = parse("<https://foo.bar.baz/test?q=hello&id=22&boolean>")
+        # Query string should be preserved in href
+        assert "https://foo.bar.baz/test?q=hello" in html
+        assert "<a " in html
+
+    def test_irc_autolink(self):
+        """IRC protocol autolink."""
+        html = parse("<irc://foo.bar:2233/baz>")
+        assert '<a href="irc://foo.bar:2233/baz">' in html
+
+    def test_mailto_uppercase(self):
+        """MAILTO with uppercase."""
+        html = parse("<MAILTO:FOO@BAR.BAZ>")
+        assert '<a href="MAILTO:FOO@BAR.BAZ">' in html
+
+    def test_custom_scheme(self):
+        """Custom scheme autolink."""
+        html = parse("<a+b+c:d>")
+        assert '<a href="a+b+c:d">' in html
+
+    def test_made_up_scheme(self):
+        """Made-up scheme autolink."""
+        html = parse("<made-up-scheme://foo,bar>")
+        assert '<a href="made-up-scheme://foo,bar">' in html
+
+    def test_relative_path_autolink(self):
+        """URL with relative path."""
+        html = parse("<https://../>")
+        assert '<a href="https://../">' in html
+
+    def test_localhost_autolink(self):
+        """Localhost URL autolink."""
+        html = parse("<localhost:5001/foo>")
+        assert '<a href="localhost:5001/foo">' in html
+
+    def test_backslash_percent_encoded(self):
+        """Backslashes in URL are percent-encoded in href."""
+        html = parse("<https://example.com/\\[\\>")
+        # Backslash should be %5C in href
+        assert "%5C" in html
+        # But display text keeps original backslash
+        assert "https://example.com/\\[\\" in html
+
+    # --- Email Autolinks ---
+
+    def test_email_autolink(self):
+        """Simple email autolink."""
+        html = parse("<foo@bar.example.com>")
+        assert '<a href="mailto:foo@bar.example.com">' in html
+        assert ">foo@bar.example.com</a>" in html
+
+    def test_email_with_special_chars(self):
+        """Email with special characters in local part."""
+        html = parse("<foo+special@Bar.baz-bar0.com>")
+        assert '<a href="mailto:foo+special@Bar.baz-bar0.com">' in html
+
+    # --- Invalid Autolinks (should escape, not link) ---
+
+    def test_url_with_space_not_autolink(self):
+        """URL with space is not an autolink."""
+        html = parse("<https://foo.bar/baz bim>")
+        # Should escape < and > as entities, not create link
+        assert "&lt;https://foo.bar/baz bim&gt;" in html
+        assert "<a " not in html
+
+    def test_escaped_char_in_email_not_autolink(self):
+        """Escaped character in email breaks autolink."""
+        html = parse(r"<foo\+@bar.example.com>")
+        # Backslash makes it not a valid email autolink
+        assert "&lt;" in html or "<a " not in html
+
+    def test_short_scheme_not_autolink(self):
+        """Single-letter scheme is not a valid autolink."""
+        html = parse("<m:abc>")
+        # 'm:abc' - scheme is only 1 letter, needs at least 2
+        assert "&lt;m:abc&gt;" in html
+        assert "<a " not in html
+
+    def test_no_scheme_not_autolink(self):
+        """Domain without scheme is not an autolink."""
+        html = parse("<foo.bar.baz>")
+        # No @ and no scheme:// - not valid
+        assert "&lt;foo.bar.baz&gt;" in html
+        assert "<a " not in html
+
+    # --- Context Tests ---
+
+    def test_autolink_in_paragraph(self):
+        """Autolink within paragraph text."""
+        html = parse("Check out <https://example.com> for more info.")
+        assert '<a href="https://example.com">' in html
+        assert "Check out" in html
+        assert "for more info" in html
+
+    def test_autolink_vs_html_tag(self):
+        """Autolink takes precedence over HTML tag matching."""
+        # <div> is HTML, but <http://example.com> is autolink
+        html = parse("<div>text</div> and <http://example.com>")
+        assert '<a href="http://example.com">' in html
+
+    def test_multiple_autolinks(self):
+        """Multiple autolinks in same paragraph."""
+        html = parse("<https://a.com> and <user@example.com>")
+        assert html.count("<a ") == 2
+
+
+class TestRawHTMLInline:
+    """Raw HTML inline tests (CommonMark 6.8).
+
+    Tests for HTML tags that pass through unchanged.
+    """
+
+    def test_simple_html_tag(self):
+        """Simple HTML tag."""
+        html = parse("<div>content</div>")
+        assert "content" in html
+
+    def test_self_closing_tag(self):
+        """Self-closing HTML tag."""
+        html = parse("before <br> after")
+        assert "<br" in html
+
+    def test_html_with_attributes(self):
+        """HTML with valid attributes."""
+        html = parse('<a href="url">text</a>')
+        # Raw HTML passes through
+        assert "text" in html
+
+    def test_html_comment(self):
+        """HTML comment."""
+        html = parse("before <!-- comment --> after")
+        assert "<!--" in html or "comment" in html
+
+    def test_invalid_html_tag_escaped(self):
+        """Invalid HTML tags are escaped."""
+        # <33> starts with number, not valid HTML
+        html = parse("<33>")
+        assert "&lt;33&gt;" in html
+
+    def test_underscore_tag_escaped(self):
+        """Underscore-start tag is not valid HTML."""
+        html = parse("<__>")
+        assert "&lt;__&gt;" in html
+
+    def test_dot_in_tag_name_escaped(self):
+        """Dots in tag name make it invalid HTML."""
+        html = parse("<foo.bar>")
+        assert "&lt;foo.bar&gt;" in html
+
+
+class TestReferenceStyleImages:
+    """Reference-style image tests."""
+
+    def test_full_reference_image(self):
+        """Full reference-style image: ![alt][ref]."""
+        html = parse("![alt][ref]\n\n[ref]: /url")
+        assert '<img src="/url" alt="alt"' in html
+
+    def test_full_reference_image_with_title(self):
+        """Reference image with title."""
+        html = parse('![alt][ref]\n\n[ref]: /url "title"')
+        assert '<img src="/url" alt="alt" title="title"' in html
+
+    def test_collapsed_reference_image(self):
+        """Collapsed reference-style image: ![alt][]."""
+        html = parse('![foo][]\n\n[foo]: /url "title"')
+        assert '<img src="/url" alt="foo" title="title"' in html
+
+    def test_shortcut_reference_image(self):
+        """Shortcut reference-style image: ![alt]."""
+        html = parse('![foo]\n\n[foo]: /url "title"')
+        assert '<img src="/url" alt="foo" title="title"' in html
+
+    def test_reference_image_case_insensitive(self):
+        """Reference labels are case-insensitive."""
+        html = parse("![Foo][BAR]\n\n[bar]: /url")
+        assert '<img src="/url" alt="Foo"' in html
+
+    def test_reference_image_alt_strips_formatting(self):
+        """Alt text strips formatting markers."""
+        html = parse("![foo *bar*][]\n\n[foo *bar*]: /url")
+        assert 'alt="foo bar"' in html
+        assert "*" not in html.split('alt="')[1].split('"')[0]
+
+
+class TestAngleBracketURLs:
+    """Angle bracket URL tests for links and images."""
+
+    def test_link_angle_bracket_url(self):
+        """Link with angle bracket URL."""
+        html = parse("[foo](<url>)")
+        assert 'href="url"' in html
+        assert "<" not in html.split('href="')[1].split('"')[0]
+        assert ">" not in html.split('href="')[1].split('"')[0]
+
+    def test_image_angle_bracket_url(self):
+        """Image with angle bracket URL."""
+        html = parse("![alt](<url>)")
+        assert 'src="url"' in html
+        assert "<" not in html.split('src="')[1].split('"')[0]
+
+    def test_link_angle_bracket_with_spaces(self):
+        """Angle bracket URL can contain spaces."""
+        html = parse("[foo](<url with spaces>)")
+        assert 'href="url with spaces"' in html
+
+    def test_link_angle_bracket_with_title(self):
+        """Angle bracket URL with title."""
+        html = parse('[foo](<url> "title")')
+        assert 'href="url"' in html
+        assert 'title="title"' in html
+
+    def test_image_angle_bracket_with_title(self):
+        """Image angle bracket URL with title."""
+        html = parse('![alt](<url> "title")')
+        assert 'src="url"' in html
+        assert 'title="title"' in html

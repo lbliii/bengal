@@ -66,6 +66,9 @@ bengal graph orphans --level lightly
 
 # JSON output for processing
 bengal graph orphans --format json
+
+# Paths only (for scripting)
+bengal graph orphans --format paths
 ```
 
 Identifies pages by connectivity level:
@@ -94,7 +97,7 @@ Identifies:
 | Get site health overview | `bengal graph report` | Connectivity distribution and recommendations |
 | Find isolated pages | `bengal graph orphans` | Pages needing attention |
 | Find bridge pages | `bengal graph bridges` | Navigation bottlenecks |
-| Identify key content | `bengal graph pagerank` | Pages ranked by importance |
+| Identify key content | `bengal graph pagerank --top-n 20` | Pages ranked by importance |
 
 :::{tip}
 **Start with `bengal graph report`** for a unified view of your site structure. Use `--ci` mode in pipelines to fail builds when connectivity thresholds are exceeded.

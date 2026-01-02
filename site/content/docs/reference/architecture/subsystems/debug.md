@@ -25,12 +25,12 @@ Bengal's Debug Tools provide diagnostic utilities for understanding how pages ar
 The debug system provides a framework for building diagnostic tools that analyze builds, explain behavior, and help troubleshoot issues.
 
 ```python
-from bengal.debug import PageExplainer, IncrementalBuildDebugger
+from bengal.debug import PageExplainer, ExplanationReporter, IncrementalBuildDebugger
 
 # Explain how a page is built
-explainer = PageExplainer(site=site)
-explanation = explainer.explain_page(page_path)
-print(explanation.format())
+explainer = PageExplainer(site)
+explanation = explainer.explain(page_path)
+ExplanationReporter().print(explanation)
 
 # Debug incremental build issues
 debugger = IncrementalBuildDebugger(site=site, cache=cache)
@@ -83,12 +83,12 @@ graph TB
 Explains how a page is built, including template resolution, dependencies, and rendering steps:
 
 ```python
-from bengal.debug import PageExplainer
+from bengal.debug import PageExplainer, ExplanationReporter
 
-explainer = PageExplainer(site=site)
-explanation = explainer.explain_page("content/docs/getting-started.md")
+explainer = PageExplainer(site)
+explanation = explainer.explain("content/docs/getting-started.md")
 
-print(explanation.format())
+ExplanationReporter().print(explanation)
 # Output:
 # Template: docs.html (resolved from section cascade)
 # Dependencies: theme/templates/docs.html, content/docs/_index.md
@@ -141,13 +141,17 @@ print(delta.summary())
 Visualizes build dependencies:
 
 ```python
+from pathlib import Path
 from bengal.debug import DependencyVisualizer
 
 visualizer = DependencyVisualizer(site=site, cache=cache)
-graph = visualizer.generate_graph()
+graph = visualizer.build_graph()
 
 # Export to DOT format for Graphviz
-graph.export_dot("dependencies.dot")
+visualizer.export_dot(Path("dependencies.dot"))
+
+# Or get DOT as string
+dot_source = graph.to_dot()
 ```
 
 ### Config Inspector
@@ -158,10 +162,14 @@ Advanced config comparison with origin tracking:
 from bengal.debug import ConfigInspector
 
 inspector = ConfigInspector(site=site)
-comparison = inspector.compare_configs(config1, config2)
+comparison = inspector.compare("development", "production")
 
 for diff in comparison.diffs:
-    print(f"{diff.key}: {diff.explanation}")
+    print(f"{diff.path}: {diff.old_value} → {diff.new_value}")
+
+# Explain how a specific key got its value
+explanation = inspector.explain_key("site.baseurl")
+print(explanation.format())
 ```
 
 ### Content Migrator
@@ -182,7 +190,7 @@ preview = migrator.preview_move(
 # - Links to update
 # - Redirects to create
 
-if preview.is_safe:
+if preview.can_proceed:
     migrator.execute_move(preview)
 ```
 
@@ -193,7 +201,7 @@ if preview.is_safe:
 Subclass `DebugTool` to create custom diagnostic tools:
 
 ```python
-from bengal.debug import DebugTool, DebugReport, DebugRegistry
+from bengal.debug import DebugTool, DebugReport, DebugRegistry, Severity
 
 @DebugRegistry.register
 class MyDebugTool(DebugTool):
@@ -203,14 +211,14 @@ class MyDebugTool(DebugTool):
     def analyze(self) -> DebugReport:
         report = self.create_report()
 
-        # Perform analysis
-        finding = DebugFinding(
+        # Add findings via report.add_finding()
+        report.add_finding(
+            title="Found issue",
+            description="Detailed explanation of what was found",
             severity=Severity.WARNING,
-            message="Found issue",
-            details="Detailed explanation",
-            recommendations=["Fix this", "Fix that"],
+            category="my-category",
+            suggestion="Fix by doing X",
         )
-        report.add_finding(finding)
 
         return report
 ```
@@ -246,9 +254,10 @@ print(report.format())
 
 # Findings
 for finding in report.findings:
-    print(f"{finding.severity.emoji} {finding.message}")
-    for rec in finding.recommendations:
-        print(f"  • {rec}")
+    print(f"{finding.severity.emoji} {finding.title}")
+    print(f"   {finding.description}")
+    if finding.suggestion:
+        print(f"   💡 {finding.suggestion}")
 ```
 
 ## CLI Integration
@@ -262,15 +271,25 @@ bengal explain content/docs/getting-started.md
 # Debug incremental builds
 bengal debug incremental
 
-# Compare builds
-bengal debug delta build1.json build2.json
+# Explain why a specific page was rebuilt
+bengal debug incremental --explain content/posts/my-post.md
+
+# Compare builds (against baseline or previous)
+bengal debug delta --baseline
+bengal debug delta --save-baseline
 
 # Visualize dependencies
-bengal debug dependencies --format dot
+bengal debug deps --export dot --output dependencies.dot
+
+# Show blast radius of a file change
+bengal debug deps --blast-radius templates/base.html
+
+# Preview content migration
+bengal debug migrate --move docs/old.md guides/new.md
 ```
 
 ## Related
 
-- [[docs/reference/architecture/core/orchestration|Orchestration]] - How incremental builds work
-- [[docs/reference/architecture/core/cache|Cache]] - Cache system details
-- [[docs/reference/architecture/tooling/cli|CLI]] - Command-line interface
+- [Orchestration](../core/orchestration.md) - How incremental builds work
+- [Cache](../core/cache.md) - Cache system details
+- [CLI](../tooling/cli.md) - Command-line interface

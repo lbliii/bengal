@@ -8,7 +8,7 @@ Design:
     a single entry point. Each mixin handles one aspect of the grammar:
 
     - `TokenNavigationMixin`: Token stream access, lookahead, expect/match
-    - `BlockParsingMixin`: Template structure (block, extends, include, macro)
+    - `BlockParsingMixin`: Template structure (block, extends, include, def)
     - `StatementParsingMixin`: Control flow (if, for, while), variables (set, let)
     - `ExpressionParsingMixin`: Expressions, operators, filters, tests
 

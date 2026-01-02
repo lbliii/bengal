@@ -1,0 +1,7 @@
+site:
+  baseurl: http://localhost:8000
+build:
+  parallel: false
+assets:
+  minify: false
+  fingerprint: false

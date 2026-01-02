@@ -30,7 +30,7 @@ def hello():
 
 ### Supported Languages
 
-Bengal uses **Rosettes** for syntax highlighting—a modern, lock-free highlighter designed for Python 3.14t free-threading. Rosettes supports 60+ languages:
+Bengal uses **Rosettes** for syntax highlighting—a modern, lock-free highlighter designed for Python 3.14t free-threading. Rosettes supports 50+ languages:
 
 ::::{tab-set}
 
@@ -208,16 +208,8 @@ Use `literalinclude` to include code directly from source files:
 ```markdown
 :::{literalinclude} /path/to/file.py
 :language: python
-:lines: 10-25
-:::
-```
-
-### Include by Function/Class Name
-
-```markdown
-:::{literalinclude} /path/to/file.py
-:language: python
-:pyobject: MyClass.my_method
+:start-line: 10
+:end-line: 25
 :::
 ```
 
@@ -448,12 +440,9 @@ Bengal's syntax highlighting uses **Rosettes**, which provides configurable them
 | `bengal-blue` | Blue accent variant | Dark |
 | `monokai` | Classic warm, vibrant theme | Dark |
 | `dracula` | Purple accent theme | Dark |
-| `one-dark` | Atom One Dark (balanced) | Dark |
 | `github` | GitHub's syntax theme | Adaptive |
 | `github-light` | GitHub light mode only | Light |
 | `github-dark` | GitHub dark mode only | Dark |
-| `catppuccin` | Catppuccin Latte/Mocha | Adaptive |
-| `nord` | Nord frost colors | Adaptive |
 
 ### Configuration
 

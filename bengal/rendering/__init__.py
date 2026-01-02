@@ -10,7 +10,7 @@ Architecture:
 
     1. **Parsing** - Markdown/content → HTML via configurable parser engines
     2. **Transformation** - Link rewriting, TOC extraction, API doc enhancement
-    3. **Template Rendering** - Jinja2 templates with rich context and functions
+    3. **Template Rendering** - Kida templates (default) with rich context and functions
     4. **Output** - Final HTML with baseurl handling and formatting
 
 Subpackages:
@@ -19,11 +19,11 @@ Subpackages:
         per-worker parser caching for parallel builds.
 
     engines/
-        Pluggable template engine system. Jinja2 is the default; Mako and
-        Patitas are optional alternatives.
+        Pluggable template engine system. Kida is the default (Bengal's native
+        engine); Jinja2, Mako, and Patitas (template engine) are optional alternatives.
 
     parsers/
-        Markdown parser implementations (Mistune recommended for speed,
+        Markdown parser implementations (Patitas is default,
         Python-Markdown for full feature support).
 
     plugins/

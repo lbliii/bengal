@@ -25,21 +25,23 @@ category: reference
 Complete reference for Kida template syntax, operators, and features. Kida is Bengal's **default template engine**, optimized for performance and free-threaded Python.
 
 :::{tip}
-**New to Kida?** Start with the [Kida Tutorial](/docs/tutorials/getting-started-with-kida/) for a guided introduction. Kida is Jinja2-compatible, so existing Jinja2 templates work without changes.
+**New to Kida?** Start with the [Kida Tutorial](/docs/tutorials/theming/getting-started-with-kida/) for a guided introduction. Most Jinja2 templates work without changes, but Kida does not support all Jinja2 features (notably `{% macro %}`—use `{% def %}` instead). If you need full Jinja2 compatibility, use the Jinja2 engine by setting `template_engine: jinja2` in your config.
 :::
 
 ## Quick Comparison: Kida vs Jinja2
 
-| Feature | Kida | Jinja2 |
-|---------|------|--------|
-| Block endings | `{% end %}` (unified) | `{% endif %}`, `{% endfor %}`, etc. |
-| Template variables | `{% let %}` (template-scoped) | `{% set %}` (block-scoped) |
-| Block variables | `{% set %}` (block-scoped) | `{% set %}` (block-scoped) |
-| Pattern matching | `{% match %}...{% case %}...{% end %}` | `{% if %}...{% elif %}...{% endif %}` |
-| While loops | `{% while cond %}...{% end %}` | Not available |
-| Pipeline operator | `|>` | `\|` (filter chain) |
-| Fragment caching | `{% cache key %}...{% end %}` | Requires extension |
-| Functions | `{% def %}` (sees outer variables) | `{% macro %}` (isolated) |
+| Feature            | Kida                           | Jinja2                              |
+|--------------------|--------------------------------|-------------------------------------|
+| Block endings      | `{% end %}` (unified)          | `{% endif %}`, `{% endfor %}`, etc. |
+| Template variables | `{% let %}` (template-scoped)  | `{% set %}` (block-scoped only)     |
+| Block variables    | `{% set %}` (block-scoped)     | `{% set %}` (block-scoped)          |
+| Pattern matching   | `{% match %}...{% case %}`     | `{% if %}...{% elif %}` chains      |
+| While loops        | `{% while cond %}...{% end %}` | ❌ Not available                    |
+| Pipeline operator  | `\|>` (left-to-right)          | `\|` (right-to-left)                |
+| Optional chaining  | `obj?.attr`, `obj?['key']`     | ❌ Not available                    |
+| Null coalescing    | `value ?? default`             | `value \| default(...)`             |
+| Fragment caching   | `{% cache key %}...{% end %}`  | Requires extension                  |
+| Functions          | `{% def %}` (lexical scope)    | `{% macro %}` (isolated scope)      |
 
 ## Basic Syntax
 
@@ -101,11 +103,22 @@ Output a variable:
 
 **Loop variables**:
 
+| Variable          | Description                     |
+|-------------------|---------------------------------|
+| `loop.index`      | Current iteration (1-indexed)   |
+| `loop.index0`     | Current iteration (0-indexed)   |
+| `loop.length`     | Total number of items           |
+| `loop.first`      | True on first iteration         |
+| `loop.last`       | True on last iteration          |
+| `loop.revindex`   | Iterations remaining (1-indexed)|
+| `loop.cycle(...)` | Cycle through values            |
+
 ```kida
 {% for item in items %}
   {% if loop.first %}First item{% end %}
   {% if loop.last %}Last item{% end %}
   Item {{ loop.index }} of {{ loop.length }}
+  <tr class="{{ loop.cycle('odd', 'even') }}">
 {% end %}
 ```
 
@@ -140,6 +153,8 @@ Kida's native pattern matching replaces long `if/elif` chains:
 ```
 
 ## Variables and Scoping
+
+**Scoping**: `{% let %}` is template-scoped, `{% set %}` is block-scoped, and `{% export %}` promotes variables to template scope. See the [Variables documentation](../theming/templating/kida/syntax/variables.md) for details.
 
 ### Template-Scoped Variables (`{% let %}`)
 
@@ -310,6 +325,29 @@ Kida functions can access variables from their surrounding context automatically
 
 ## Filters and Pipeline
 
+### Functions vs Filters
+
+Kida templates support both **filters** (transform values) and **functions** (standalone operations).
+
+**Filters** transform a value using `|` or `|>`:
+```kida
+{{ page.title | upper }}                    {# Transform text #}
+{{ site.pages |> where('draft', false) }}  {# Transform collection #}
+```
+
+**Functions** are called directly without a value:
+```kida
+{{ get_page('docs/about') }}               {# Retrieve page #}
+{{ get_data('data/authors.json') }}        {# Load data #}
+{{ ref('docs/getting-started') }}          {# Generate link #}
+```
+
+**When to use which:**
+- **Filter**: You have a value to transform (`{{ value | filter }}`)
+- **Function**: You're performing an operation (`{{ function() }}`)
+
+See [Template Functions Reference](/docs/reference/template-functions/#functions-vs-filters-understanding-the-difference) for details.
+
 ### Filter Syntax
 
 ```kida
@@ -320,7 +358,7 @@ Kida functions can access variables from their surrounding context automatically
 
 ### Pipeline Operator (`|>`)
 
-Kida's pipeline operator provides left-to-right readability:
+Kida's pipeline operator provides left-to-right readability for complex filter chains:
 
 ```kida
 {# Kida: Read left-to-right #}
@@ -338,6 +376,16 @@ Kida's pipeline operator provides left-to-right readability:
    |> truncate(200)
    |> strip_tags }}
 ```
+
+:::{tip}
+Use `|>` for chains of 3+ filters. For simple single-filter cases, `|` is fine:
+
+```kida
+{{ text | upper }}           {# Simple: use | #}
+{{ data |> filter |> sort |> take(5) }}  {# Complex: use |> #}
+```
+
+:::
 
 ## Built-in Filters
 
@@ -444,9 +492,21 @@ Kida's pipeline operator provides left-to-right readability:
 {{ {'q': 'test', 'page': 1} | url_query }}              {# "q=test&page=1" #}
 ```
 
-### Date Arithmetic
+### Date Filters
 
 ```kida
+{# Format dates #}
+{{ page.date | dateformat('%B %d, %Y') }}  {# "January 15, 2026" #}
+{{ page.date | dateformat('%Y-%m-%d') }}   {# "2026-01-15" (default) #}
+{{ page.date | date_iso }}                 {# ISO 8601 format #}
+{{ page.date | date_rfc822 }}              {# RFC 822 for RSS feeds #}
+
+{# Relative time #}
+{{ post.date | time_ago }}    {# "2 days ago", "5 hours ago" #}
+{{ post.date | days_ago }}    {# 14 (integer) #}
+{{ post.date | months_ago }}  {# 3 (integer) #}
+{% if post.date | days_ago < 7 %}NEW{% end %}
+
 {# Add/subtract time #}
 {{ page.date | date_add(days=7) }}               {# One week later #}
 {{ now | date_add(days=-30) }}                   {# 30 days ago #}
@@ -480,11 +540,13 @@ Kida provides built-in fragment caching:
 ```
 
 **Cache keys** can be:
+
 - Static strings: `"sidebar"`
 - Expressions: `"posts-" ~ page.id`
 - Variables: `cache_key`
 
 **TTL (Time To Live)**:
+
 - `ttl="5m"` - 5 minutes
 - `ttl="1h"` - 1 hour
 - `ttl="30s"` - 30 seconds
@@ -519,11 +581,13 @@ Kida automatically caches site-scoped template blocks for optimal build performa
 The `nav` block depends only on `site.pages` (site-wide), so it's automatically cached and reused for all pages. The `content` block depends on `page.content` (page-specific), so it renders per page.
 
 **Benefits**:
-- **10-100x faster builds** for navigation-heavy sites
+
+- **Significantly faster builds** for navigation-heavy sites (benchmarks show 10x+ improvement for large sites)
 - **Zero template changes** — works automatically
 - **Transparent** — templates render normally, caching is invisible
 
 **Cache scope detection**:
+
 - **Site-scoped**: Blocks that only access `site.*`, `config.*`, or no page-specific variables
 - **Page-scoped**: Blocks that access `page.*` or other page-specific data
 - **Not cacheable**: Blocks with non-deterministic behavior (random, shuffle, etc.)
@@ -534,9 +598,19 @@ The `nav` block depends only on `site.pages` (site-wide), so it's automatically 
 
 ## Kida-Only Features
 
+These features are unique to Kida and not available in Jinja2:
+
+| Feature           | Syntax                          | Purpose                     |
+|-------------------|---------------------------------|-----------------------------|
+| Optional chaining | `?.`, `?[`                      | Safe access without errors  |
+| Null coalescing   | `??`                            | Fallback for None values    |
+| Range literals    | `1..10`, `1...11`               | Concise iteration ranges    |
+| While loops       | `{% while %}`                   | Condition-based iteration   |
+| Break/Continue    | `{% break %}`, `{% continue %}` | Loop control                |
+
 ### Optional Chaining
 
-Kida provides safe navigation operators that return `None` instead of raising errors when accessing missing attributes or keys.
+Safe navigation operators return `None` instead of raising errors when accessing missing attributes or keys.
 
 #### Optional Attribute Access (`?.`)
 
@@ -569,10 +643,11 @@ Safe key/index access—returns `None` if the object is `None`:
 :::{tip}
 **Kida uses `?[` not `?.[]`**: Unlike JavaScript which uses `?.['key']`, Kida uses the more concise `?['key']`. The pattern is simple: prefix `?` makes any accessor optional.
 
-| Accessor | Regular | Optional |
-|----------|---------|----------|
-| Attribute | `.attr` | `?.attr` |
+| Accessor  | Regular   | Optional   |
+|-----------|-----------|------------|
+| Attribute | `.attr`   | `?.attr`   |
 | Subscript | `['key']` | `?['key']` |
+
 :::
 
 #### Common Use Cases
@@ -622,14 +697,15 @@ Fallback for None values:
 {# ✅ Also works: explicit parentheses #}
 {{ (items ?? []) | length }}
 ```
+
 :::
 
 #### When to Use Each Pattern
 
-| Pattern | Use When | Example |
-|---------|----------|---------|
-| `??` | Simple fallback, no further filtering | `{{ user.name ?? 'Anonymous' }}` |
-| `\| default()` | Fallback followed by filters | `{{ items \| default([]) \| length }}` |
+| Pattern        | Use When                         | Example                                 |
+|----------------|----------------------------------|-----------------------------------------|
+| `??`           | Simple fallback, no filtering    | `{{ user.name ?? 'Anonymous' }}`        |
+| `\| default()` | Fallback followed by filters     | `{{ items \| default([]) \| length }}`  |
 
 **Rule of thumb**: If you need to apply filters after the fallback, use `| default()`. Otherwise, `??` is fine.
 
@@ -675,6 +751,7 @@ Condition-based loops for scenarios where the iteration count isn't known upfron
 
 :::{tip}
 While loops are useful for:
+
 - Processing data until a condition is met
 - Implementing search algorithms in templates
 - Building countdown/countup displays
@@ -789,27 +866,26 @@ Kida raises `UndefinedError` for undefined variables:
 
 Configure in `bengal.yaml`:
 
-```yaml
-kida:
-  strict: false  # Return None for undefined variables
-```
-
 ## Configuration
 
-Kida is the default template engine. Configure Kida options in `bengal.yaml`:
+Kida is Bengal's default template engine. Configure in `bengal.yaml`:
 
 ```yaml
 kida:
-  strict: true              # Raise on undefined (default)
-  bytecode_cache: true      # Cache compiled templates (default)
-  autoescape: true          # HTML escape by default (default)
+  bytecode_cache: true      # Persistent compiled template cache (default)
 ```
 
-To use a different engine instead:
+**Note**: Strict mode (raising `UndefinedError` for undefined variables) is always enabled in Kida and cannot be disabled. This helps catch typos and missing context variables at render time.
+
+| Option            | Default | Description                         |
+|-------------------|---------|-------------------------------------|
+| `bytecode_cache`  | `true`  | Cache compiled templates to disk    |
+
+**Switching template engines**:
 
 ```yaml
 site:
-  template_engine: jinja2   # or mako, patitas, or custom
+  template_engine: jinja2   # Options: kida (default), jinja2, mako, patitas
 ```
 
 ## Migration from Jinja2
@@ -872,7 +948,7 @@ Kida can parse Jinja2 syntax via compatibility mode. Most Jinja2 templates work 
 
 ## See Also
 
-- [Kida Tutorial](/docs/tutorials/getting-started-with-kida/) — Learn Kida step-by-step
+- [Kida Tutorial](/docs/tutorials/theming/getting-started-with-kida/) — Learn Kida step-by-step
 - [Template Functions Reference](/docs/reference/template-functions/) — Available filters and functions
 - [Theming Guide](/docs/theming/templating/) — Template organization and inheritance
 - [Kida How-Tos](/docs/theming/templating/kida/) — Common tasks and patterns

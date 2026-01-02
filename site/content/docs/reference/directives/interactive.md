@@ -23,6 +23,13 @@ keywords:
 
 Interactive directives provide JavaScript-enhanced components for code examples and data tables.
 
+## Quick Reference
+
+| Directive | Purpose | Key Features |
+|-----------|---------|--------------|
+| `:::{code-tabs}` | Multi-language code examples | Auto-sync, icons, copy button, highlighting |
+| `` ```{data-table} `` | Interactive data tables | Search, filter, sort, pagination |
+
 ## Key Terms
 
 :::{glossary}
@@ -33,7 +40,7 @@ Interactive directives provide JavaScript-enhanced components for code examples 
 
 Create tabbed interfaces for multi-language code examples with automatic language sync, syntax highlighting, and copy buttons.
 
-**Aliases**: `{code_tabs}`
+**Aliases**: `{code-tabs}`, `{code_tabs}`
 
 ### Features
 
@@ -286,9 +293,9 @@ Icons are automatically assigned based on language category:
 
 | Languages | Icon |
 |-----------|------|
-| bash, shell, sh, zsh, powershell, cmd | Terminal |
-| sql, mysql, postgresql, sqlite | Database |
-| json, yaml, toml, xml, ini | File/Code |
+| bash, shell, sh, zsh, fish, powershell, cmd, console | Terminal |
+| sql, mysql, postgresql, sqlite, mongodb | Database |
+| json, yaml, toml, xml, ini, env | File/Code |
 | All others | Code |
 
 ### Legacy Syntax
@@ -315,73 +322,132 @@ This legacy syntax is not recommended for new content.
 
 ## Data Table
 
-Create interactive data tables with sorting, filtering, and pagination (requires Tabulator.js).
+Create interactive data tables with sorting, filtering, and pagination from external data files.
 
-**Syntax**:
+**Requires**: Tabulator.js (included in default theme)
 
-```markdown
-:::{data-table}
-:columns: col1,col2,col3
-:headers: Header 1,Header 2,Header 3
-:sortable: true
-:filterable: true
-:pagination: true
+### Syntax
 
-Row 1, Col 1 | Row 1, Col 2 | Row 1, Col 3
-Row 2, Col 1 | Row 2, Col 2 | Row 2, Col 3
-:::
+The directive takes a file path argument pointing to a YAML or CSV data file:
+
+````markdown
+```{data-table} data/people.yaml
+:search: true
+:filter: true
+:sort: true
+:pagination: 50
+```
+````
+
+### Supported File Formats
+
+**YAML** (recommended):
+
+```yaml
+# data/people.yaml
+columns:
+  - title: Name
+    field: name
+  - title: Age
+    field: age
+  - title: City
+    field: city
+data:
+  - name: Alice
+    age: 30
+    city: Seattle
+  - name: Bob
+    age: 25
+    city: Portland
 ```
 
-**Options**:
+**CSV**:
 
-- `:columns:` - Comma-separated column identifiers
-- `:headers:` - Comma-separated header labels
-- `:sortable:` - Enable sorting: `true`, `false` (default: `true`)
-- `:filterable:` - Enable filtering: `true`, `false` (default: `true`)
-- `:pagination:` - Enable pagination: `true`, `false` (default: `true`)
+```csv
+name,age,city
+Alice,30,Seattle
+Bob,25,Portland
+```
+
+Column headers are auto-generated from field names in CSV files.
+
+### Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `:search:` | `true` | Show search box above table |
+| `:filter:` | `true` | Enable column header filters |
+| `:sort:` | `true` | Enable column sorting (click headers) |
+| `:pagination:` | `50` | Rows per page. Set to `false` to disable pagination. |
+| `:height:` | `auto` | Table height (e.g., `400px`). Use `auto` for dynamic height. |
+| `:columns:` | all | Comma-separated list of columns to display (filters visible columns) |
 
 ### Examples
 
 :::{example-label} Basic Data Table
 :::
 
-```markdown
-:::{data-table}
-:columns: name,type,description
-:headers: Name,Type,Description
+````markdown
+```{data-table} data/api-functions.yaml
+```
+````
 
-`get_user` | Function | Get user by ID
-`create_user` | Function | Create new user
-`update_user` | Function | Update user
-:::
+With `data/api-functions.yaml`:
+
+```yaml
+columns:
+  - title: Name
+    field: name
+  - title: Type
+    field: type
+  - title: Description
+    field: description
+data:
+  - name: get_user
+    type: Function
+    description: Get user by ID
+  - name: create_user
+    type: Function
+    description: Create new user
+  - name: update_user
+    type: Function
+    description: Update user
 ```
 
 :::{example-label} With Options
 :::
 
-```markdown
-:::{data-table}
-:columns: name,version,status
-:headers: Package,Version,Status
-:sortable: true
-:filterable: true
+````markdown
+```{data-table} data/packages.yaml
+:search: true
+:filter: true
+:sort: true
 :pagination: false
-
-bengal | 0.1.0 | Active
-patitas | 1.0.0 | Active
-kida | 1.0.0 | Active
-:::
+:height: 300px
 ```
+````
+
+:::{example-label} Filtered Columns
+:::
+
+Show only specific columns from the data file:
+
+````markdown
+```{data-table} data/people.yaml
+:columns: name,city
+```
+````
 
 ### Rendering
 
-Data tables render as interactive tables with:
-- Column sorting (click headers)
-- Search/filter functionality
-- Pagination (if enabled)
-- Responsive design
+Data tables render as interactive Tabulator tables with:
 
-**Note**: Requires Tabulator.js to be included in your theme.
+- **Search box**: Filter across all columns (if `:search: true`)
+- **Column filters**: Per-column filtering in headers (if `:filter: true`)
+- **Sorting**: Click headers to sort (if `:sort: true`)
+- **Pagination**: Navigate large datasets (if `:pagination:` is a number)
+- **Responsive design**: Columns collapse on narrow screens
+- **Keyboard navigation**: Full keyboard support for accessibility
 
 ## Best Practices
 
@@ -389,12 +455,12 @@ Data tables render as interactive tables with:
 2. **Language Sync**: Keep sync enabled (default) for API docs with consistent language examples
 3. **Filenames**: Add filenames when showing complete file contents
 4. **Line Highlights**: Use sparingly to draw attention to key lines
-5. **Data Tables**: Use for large datasets that benefit from sorting/filtering
-6. **Performance**: Consider pagination for very large tables
-7. **Accessibility**: Keyboard navigation is supported for both directives
+5. **Data Tables**: Use YAML format for explicit column definitions; CSV for simple tabular data
+6. **Performance**: Enable pagination for tables with more than 50 rows
+7. **Accessibility**: Both directives support full keyboard navigation
 
 ## Related
 
-- [Layout Directives](/docs/reference/directives/layout/) - Static tabs (`tab-set`) and cards
-- [Formatting Directives](/docs/reference/directives/formatting/) - List tables (static)
-- [Code Blocks](/docs/content/authoring/code-blocks/) - Standard code block syntax
+- [Layout Directives](/docs/reference/directives/layout/) — Static tabs (`tab-set`) and cards
+- [Formatting Directives](/docs/reference/directives/formatting/) — List tables (static)
+- [Code Blocks](/docs/content/authoring/code-blocks/) — Standard code block syntax

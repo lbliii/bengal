@@ -51,8 +51,14 @@ def list_engines(verbose: bool) -> None:
     # Built-in engines with their status
     builtin_engines = [
         {
+            "name": "kida",
+            "description": "Kida templates (default, Bengal's native engine)",
+            "status": "✅ Available",
+            "install": "Built-in",
+        },
+        {
             "name": "jinja2",
-            "description": "Jinja2 templates (default)",
+            "description": "Jinja2 templates (alternative)",
             "status": "✅ Available",
             "install": "Built-in",
         },
@@ -134,7 +140,7 @@ def info(source: str, config: str | None) -> None:
     cli = get_cli_output()
     site = load_site_from_cli(source=source, config=config, environment=None, profile=None, cli=cli)
 
-    engine_name = site.config.get("template_engine", "jinja2")
+    engine_name = site.config.get("template_engine", "kida")
 
     cli.info("[bold]Template Engine Info[/bold]")
     cli.info("")

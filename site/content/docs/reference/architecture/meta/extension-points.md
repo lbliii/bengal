@@ -28,39 +28,51 @@ Bengal is designed with multiple extension points that allow customization witho
 
 ## 1. Custom Content Strategies
 
-**Purpose**: Define how different content types are organized and rendered
+**Purpose**: Define how different content types are sorted, paginated, and rendered
 
 **Implementation**:
 ```python
-from bengal.content_types import ContentStrategy, ContentTypeRegistry
+from bengal.content_types.base import ContentTypeStrategy
+from bengal.content_types.registry import register_strategy
 
-class CustomStrategy(ContentStrategy):
-    def get_template(self, page):
-        # Custom template selection logic
-        return 'custom/template.html'
+class NewsStrategy(ContentTypeStrategy):
+    """Custom strategy for news articles."""
 
-    def get_url_pattern(self, page):
-        # Custom URL structure
-        return f"custom/{page.slug}/"
+    default_template = "news/list.html"
+    allows_pagination = True
 
-    def get_sorting_key(self, pages):
-        # Custom page sorting
-        return lambda p: p.title
+    def sort_pages(self, pages):
+        """Sort by date, newest first."""
+        from datetime import datetime
+        return sorted(
+            pages,
+            key=lambda p: p.date or datetime.min,
+            reverse=True
+        )
 
-    def should_generate_index(self, section):
-        return True
+    def get_template(self, page=None, template_engine=None):
+        """Custom template selection."""
+        if page and page.source_path.stem == "_index":
+            return "news/list.html"
+        return "news/single.html"
 
-# Register your strategy
-ContentTypeRegistry.register('custom', CustomStrategy)
+    def detect_from_section(self, section):
+        """Auto-detect news sections."""
+        return section.name.lower() in ("news", "announcements")
+
+# Register your strategy (call early in build process)
+register_strategy("news", NewsStrategy())
 ```
 
-**Configuration**:
-```toml
-[content_type]
-strategy = "custom"
+**Configuration** (in section `_index.md` frontmatter):
+```yaml
+---
+title: News
+content_type: news
+---
 ```
 
-**Documentation**: Refer to [[docs/reference/architecture/core/content-types|Content Types]]
+**Documentation**: See [Content Types](/docs/reference/architecture/core/content-types/)
 
 ## 2. Custom Markdown Parsers
 
@@ -68,26 +80,27 @@ strategy = "custom"
 
 **Implementation**:
 ```python
+from typing import Any
 from bengal.rendering.parsers.base import BaseMarkdownParser
 
 class CustomMarkdownParser(BaseMarkdownParser):
-    def parse(self, content: str) -> str:
-        # Parse markdown to HTML
+    def parse(self, content: str, metadata: dict[str, Any]) -> str:
+        """Parse markdown to HTML."""
+        # Your parsing logic here
+        html = self._convert_to_html(content)
         return html
 
-    def parse_with_toc(self, content: str) -> tuple[str, list]:
-        # Parse with TOC extraction
-        return html, toc_items
+    def parse_with_toc(self, content: str, metadata: dict[str, Any]) -> tuple[str, str]:
+        """Parse markdown and extract table of contents."""
+        html = self.parse(content, metadata)
+        toc_html = self._extract_toc(content)
+        return html, toc_html
 
 # Register in parser factory
 # (requires modification of bengal/rendering/parsers/__init__.py)
 ```
 
-**Configuration**:
-```toml
-[build]
-markdown_engine = "custom"
-```
+> **Note**: Custom parser registration currently requires modifying core code. A plugin-based registration system is planned for v0.4.0.
 
 ## 3. Custom Template Engines
 
@@ -129,11 +142,14 @@ def my_custom_filter(value):
     """Custom filter implementation."""
     return value.upper()
 
-# Register via build hook
+# Register via build hook (uses internal API - may change)
 def register_filters(site):
+    # Note: _template_engine is internal; plugin API coming in v0.4.0
     env = site._template_engine._env
     env.filters['custom'] = my_custom_filter
 ```
+
+> **Caution**: This approach accesses internal attributes (`_template_engine._env`). A stable public API for filter registration is planned for the plugin system (v0.4.0).
 
 **Usage in templates**:
 ```kida
@@ -175,13 +191,14 @@ class RobotsGenerator:
 
 **Implementation**:
 ```python
-from bengal.health.base import BaseValidator, CheckResult, CheckStatus
+from bengal.health.base import BaseValidator
+from bengal.health.report import CheckResult, CheckStatus
 
 class CustomValidator(BaseValidator):
     name = "custom"
     description = "Custom validation checks"
 
-    def validate(self, site) -> list[CheckResult]:
+    def validate(self, site, build_context=None) -> list[CheckResult]:
         results = []
 
         # Your validation logic
@@ -205,7 +222,7 @@ class CustomValidator(BaseValidator):
 custom = true
 ```
 
-**Documentation**: Refer to [[docs/reference/architecture/subsystems/health|Health Checks]]
+**Documentation**: See [Health Checks](/docs/reference/architecture/subsystems/health/)
 
 ## 7. Custom Themes
 
@@ -329,19 +346,22 @@ def custom(verbose):
 
 **Implementation**:
 ```python
+from typing import Any
+from pathlib import Path
 from bengal.autodoc.base import Extractor, DocElement
 
 class OpenAPIExtractor(Extractor):
     """Extract docs from OpenAPI specs."""
 
-    def extract(self, source_path):
-        spec = self._load_openapi_spec(source_path)
+    def extract(self, source: Any) -> list[DocElement]:
+        spec = self._load_openapi_spec(source)
 
         elements = []
         for path, methods in spec['paths'].items():
             for method, details in methods.items():
                 element = DocElement(
                     name=f"{method.upper()} {path}",
+                    qualified_name=f"api.{method}.{path}",
                     element_type='endpoint',
                     description=details.get('summary', ''),
                     metadata=details
@@ -349,6 +369,10 @@ class OpenAPIExtractor(Extractor):
                 elements.append(element)
 
         return elements
+
+    def get_output_path(self, element: DocElement) -> Path | None:
+        """Determine output path for the endpoint."""
+        return Path(f"api/{element.name.replace(' ', '-').lower()}.md")
 
 # Register extractor
 # (planned: autodoc registry system)
@@ -392,7 +416,7 @@ When plugin system arrives:
 
 ## Related Documentation
 
-- [[docs/reference/architecture/core/content-types|Content Types]] - Custom content strategies
-- [[docs/reference/architecture/rendering|Rendering]] - Template and parser customization
-- [[docs/reference/architecture/subsystems/health|Health Checks]] - Custom validators
-- [[docs/reference/architecture/design-principles|Design Principles]] - Extension design patterns
+- [Content Types](/docs/reference/architecture/core/content-types/) - Custom content strategies
+- [Rendering](/docs/reference/architecture/rendering/) - Template and parser customization
+- [Health Checks](/docs/reference/architecture/subsystems/health/) - Custom validators
+- [Design Principles](/docs/reference/architecture/design-principles/) - Extension design patterns

@@ -98,7 +98,6 @@ Bengal extends Markdown with powerful directives using `:::{name}` or ` ```{name
 
 | Directive | Purpose |
 |-----------|---------|
-| `{child-cards}` | Auto-generate cards from child sections/pages |
 | `{breadcrumbs}` | Breadcrumb navigation trail |
 | `{siblings}` | Sibling page links |
 | `{prev-next}` | Previous/next navigation links |
@@ -121,7 +120,6 @@ Bengal extends Markdown with powerful directives using `:::{name}` or ` ```{name
 | `{icon}` | `{svg-icon}` | Inline SVG icon |
 | `{example-label}` | — | Example label for documentation |
 | `{marimo}` | — | Interactive Python notebook |
-| `{gallery}` | — | Image gallery |
 
 ## Directive Syntax
 
@@ -362,5 +360,5 @@ terms:
 ## Next Steps
 
 - Browse directive categories above for detailed syntax
-- See [[docs/content/reuse|Content Reuse]] for include/literalinclude strategies
+- See [[docs/reference/directives/content-reuse|Content Reuse]] for include/literalinclude strategies
 - Check [[docs/get-started/quickstart-writer|Writer Quickstart]] for markdown basics

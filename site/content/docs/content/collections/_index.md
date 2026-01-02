@@ -58,11 +58,11 @@ Bengal provides schemas for common content types:
 
 | Schema | Alias | Required Fields | Optional Fields |
 |--------|-------|-----------------|-----------------|
-| `BlogPost` | `Post` | title, date | author, tags, draft, description, image |
-| `DocPage` | `Doc` | title | weight, category, tags, toc, deprecated |
-| `APIReference` | `API` | title, endpoint | method, version, auth_required, rate_limit |
-| `Tutorial` | — | title | difficulty, duration, prerequisites, series |
-| `Changelog` | — | title, date | version, breaking, summary |
+| `BlogPost` | `Post` | title, date | author, tags, draft, description, image, excerpt |
+| `DocPage` | `Doc` | title | weight, category, tags, toc, deprecated, description, since |
+| `APIReference` | `API` | title, endpoint | method, version, auth_required, rate_limit, deprecated, description |
+| `Tutorial` | — | title | difficulty, duration, prerequisites, series, tags, order |
+| `Changelog` | — | title, date | version, breaking, summary, draft |
 
 Import any of these:
 
@@ -117,15 +117,18 @@ strict_collections = true
 
 ### Lenient Mode (Extra Fields)
 
-To allow fields not in your schema:
+To allow frontmatter fields not defined in your schema:
 
 ```python
 define_collection(
     schema=BlogPost,
     directory="blog",
-    strict=False,  # Allow extra frontmatter fields
+    strict=False,       # Don't reject unknown fields
+    allow_extra=True,   # Store extra fields in _extra dict
 )
 ```
+
+With `strict=False`, unknown fields are silently ignored. Add `allow_extra=True` to preserve them in a `_extra` attribute on the validated instance.
 
 ## CLI Commands
 
@@ -140,6 +143,20 @@ bengal collections validate
 bengal collections validate --collection blog
 ```
 
+## Advanced Options
+
+### Custom File Pattern
+
+By default, collections match all markdown files (`**/*.md`). To match specific files:
+
+```python
+define_collection(
+    schema=BlogPost,
+    directory="blog",
+    glob="*.md",  # Only top-level, not subdirectories
+)
+```
+
 ## Migration Tips
 
 **Existing site with inconsistent frontmatter?**
@@ -147,7 +164,7 @@ bengal collections validate --collection blog
 1. Start with `strict=False` to allow extra fields
 2. Run `bengal collections validate` to find issues
 3. Fix content or adjust schema
-4. Switch to `strict=True` when ready
+4. Enable `strict=True` when ready
 
 **Transform legacy field names:**
 

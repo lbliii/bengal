@@ -282,16 +282,16 @@ class TestIsTests:
 class TestScopingWithIf:
     """Scoping behavior with if statements."""
 
-    def test_no_scope_leak(self, env):
-        """Variables set inside if should be accessible."""
-        tmpl = env.from_string("{% if a %}{% set foo = 1 %}{% endif %}{{ foo }}")
-        # In Jinja2, this works when a is True
+    def test_scope_leak_with_let(self, env):
+        """Variables declared with let persist across blocks."""
+        tmpl = env.from_string("{% let foo = 0 %}{% if a %}{% let foo = 1 %}{% endif %}{{ foo }}")
+        # In Kida, let variables persist outside the block where they're modified
         assert tmpl.render(a=True) == "1"
 
-    def test_set_in_both_branches(self, env):
-        """Set in both if and else."""
+    def test_let_in_both_branches(self, env):
+        """Let in both if and else persists."""
         tmpl = env.from_string(
-            "{% if cond %}{% set x = 'A' %}{% else %}{% set x = 'B' %}{% endif %}{{ x }}"
+            "{% let x = '' %}{% if cond %}{% let x = 'A' %}{% else %}{% let x = 'B' %}{% endif %}{{ x }}"
         )
         assert tmpl.render(cond=True) == "A"
         assert tmpl.render(cond=False) == "B"

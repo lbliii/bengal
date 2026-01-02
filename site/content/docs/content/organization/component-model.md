@@ -159,7 +159,7 @@ weight: 5
 
 The **Variant** defines the visual presentation. It controls:
 
-- **CSS Classes**: Adds `.page-variant-[name]` to the `<body>`.
+- **Data Attributes**: Sets `data-variant="[name]"` on the `<body>` for CSS targeting.
 - **Partials**: Selects specific components (e.g., `page-hero-magazine.html`).
 - **Layout Variations**: Different visual treatments for the same content type.
 
@@ -728,8 +728,9 @@ structure:
 ### In Templates
 
 ```jinja
-{# Access type and variant #}
-<body class="page-type-{{ page.type }} page-variant-{{ page.variant }}">
+{# Body tag uses data attributes and kind-based classes #}
+<body data-type="{{ page.type }}" data-variant="{{ page.variant or '' }}"
+      class="page-kind-{{ page.kind or 'page' }}">
 
 {# Access props directly #}
 <h1>{{ page.title }}</h1>
@@ -737,6 +738,17 @@ structure:
 {% if page.featured %}
   <span class="badge">Featured</span>
 {% end %}
+```
+
+**CSS Targeting**:
+
+```css
+/* Target by variant */
+body[data-variant="editorial"] { /* editorial styles */ }
+body[data-variant="magazine"] { /* magazine styles */ }
+
+/* Target by type */
+body[data-type="blog"] { /* blog-specific styles */ }
 ```
 
 ---

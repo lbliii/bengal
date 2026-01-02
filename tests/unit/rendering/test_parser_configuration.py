@@ -14,7 +14,7 @@ import pytest
 from bengal.rendering.parsers import MistuneParser
 from bengal.rendering.pipeline import RenderingPipeline
 
-# python-markdown is optional (mistune is default)
+# python-markdown is optional (patitas is default)
 try:
     from bengal.rendering.parsers import PythonMarkdownParser
 
@@ -73,8 +73,8 @@ class TestParserSelection:
             "Failed to select Mistune parser from flat markdown_engine config"
         )
 
-    def test_mistune_parser_default(self, tmp_path):
-        """Test that mistune is the default when not specified (recommended for speed)."""
+    def test_patitas_parser_default(self, tmp_path):
+        """Test that patitas is the default when not specified."""
         site = Mock()
         site.config = {
             "site": {"title": "Test Site"},
@@ -88,8 +88,10 @@ class TestParserSelection:
 
         pipeline = RenderingPipeline(site, quiet=True)
 
-        # Should default to MistuneParser (fast, recommended)
-        assert isinstance(pipeline.parser, MistuneParser), "Failed to default to mistune parser"
+        # Should default to PatitasParser (Bengal's native parser)
+        from bengal.rendering.parsers.patitas import PatitasParser
+
+        assert isinstance(pipeline.parser, PatitasParser), "Failed to default to patitas parser"
 
     @pytest.mark.skipif(
         not HAS_MARKDOWN, reason="python-markdown not installed (optional dependency)"

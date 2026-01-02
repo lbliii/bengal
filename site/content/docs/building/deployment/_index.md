@@ -41,10 +41,10 @@ This command:
 | Flag | Description | Use Case |
 | :--- | :--- | :--- |
 | `--environment production` | Loads production config overrides. | **Always use for shipping.** |
-| `--strict` | Fails the build on warnings (e.g., broken links). | **Highly Recommended for CI/CD.** |
+| `--strict` | Fails the build on template errors. | **Highly Recommended for CI/CD.** |
 | `--clean-output` | Cleans the `public/` directory before building. | Recommended to avoid stale files. |
 | `--fast` | Maximum performance (quiet output, full parallelism). | Fast CI builds. |
-| `--verbose` | Shows detailed logs. | Useful for debugging CI failures. |
+| `--verbose` | Shows detailed build output (phase timing, stats). | Useful for debugging CI failures. |
 
 Example full command for CI:
 ```bash
@@ -111,7 +111,7 @@ Create a `netlify.toml` in your repository root:
   command = "bengal build --environment production"
 
 [build.environment]
-  PYTHON_VERSION = "3.12"
+  PYTHON_VERSION = "3.14"
 ```
 
 ## Vercel
@@ -122,25 +122,28 @@ Configure your project:
 2. **Output Directory**: `public`
 3. Ensure your `requirements.txt` includes `bengal`.
 
-## Environment Variables
+## Automatic Platform Detection
 
-Bengal allows you to inject environment variables into your configuration using `{{ env.VAR_NAME }}` syntax in your YAML/TOML config files.
+Bengal auto-detects your deployment platform and configures `baseurl` automatically:
 
-**config/environments/production.yaml**:
-```yaml
-params:
-  api_key: "{{ env.API_KEY }}"
-  analytics_id: "{{ env.ANALYTICS_ID }}"
+| Platform | Detection | Baseurl Source |
+| :--- | :--- | :--- |
+| GitHub Pages | `GITHUB_ACTIONS=true` | Inferred from `GITHUB_REPOSITORY` |
+| Netlify | `NETLIFY=true` | `URL` or `DEPLOY_PRIME_URL` |
+| Vercel | `VERCEL=true` | `VERCEL_URL` |
+
+You can override auto-detection with the `BENGAL_BASEURL` environment variable:
+
+```bash
+BENGAL_BASEURL="https://custom-domain.com" bengal build --environment production
 ```
-
-Then set `API_KEY` and `ANALYTICS_ID` in your hosting provider's dashboard.
 
 ## Pre-Deployment Checklist
 
 Before you merge to main or deploy:
 
 1. **Run `bengal config doctor`**: Checks for common configuration issues.
-2. **Run `bengal build --strict` locally**: Ensures no broken links or missing templates.
+2. **Run `bengal build --strict` locally**: Ensures no template errors.
 3. **Run `bengal validate`**: Runs health checks on your site content.
 4. **Check `config/environments/production.yaml`**: Ensure your `baseurl` is set to your production domain.
 

@@ -15,15 +15,19 @@ Bengal includes a built-in development server with file watching and live reload
 ## Dev Server (`bengal/server/dev_server.py`)
 
 ### Purpose
-Provide a local development environment with automatic rebuilds
+
+Provide a local development environment with automatic rebuilds.
 
 ### Features
-- Built-in HTTP server
-- File system watching with watchdog
+
+- Built-in HTTP server (ThreadingTCPServer)
+- File system watching with watchfiles
 - Automatic rebuild on changes
 - Live reload via SSE (Server-Sent Events)
-- Serves static files and HTML
-- Automatic browser refresh
+- CSS hot reload (no full page refresh for CSS changes)
+- Automatic browser opening
+- Stale process detection and cleanup
+- Automatic port fallback if port is in use
 
 ### Architecture
 
@@ -51,27 +55,38 @@ flowchart TD
 ### Usage
 
 ```bash
-# Start development server
+# Start development server (opens browser by default)
 bengal serve
 
 # Custom port
 bengal serve --port 8080
 
-# Disable live reload
-bengal serve --no-reload
+# Disable file watching (and live reload)
+bengal serve --no-watch
 
-# Watch specific files only
-bengal serve --watch "content/**/*.md"
+# Disable automatic browser opening
+bengal serve --no-open
+
+# Focus rebuilds on a single version (faster for versioned docs)
+bengal serve --version v2
+
+# Verbose output for debugging
+bengal serve --verbose
 ```
 
 ### File Watching
 
 The server watches for changes in:
+
 - Content files (`content/**/*.md`)
 - Templates (`templates/**/*.html`, `templates/**/*.jinja2`)
 - Assets (`assets/**/*`)
+- Data files (`data/**/*`)
+- Static files (`static/**/*`) if enabled
+- Internationalization (`i18n/**/*`) if present
 - Configuration (`bengal.toml`)
-- Theme files (if using custom theme)
+- Theme files (project and bundled themes)
+- Autodoc source directories (Python, OpenAPI) if configured
 
 ### Rebuild Triggers
 
@@ -91,18 +106,26 @@ The live reload feature uses Server-Sent Events (SSE):
 2. **SSE Connection**: Browser connects to `/__bengal_reload__` endpoint
 3. **File Watch**: Server watches for file changes
 4. **Rebuild Trigger**: On change, rebuild affected files
-5. **Event Send**: Server sends `reload` event via SSE
-6. **Browser Refresh**: Client receives event and reloads page
+5. **Event Send**: Server sends `reload` or `reload-css` event via SSE
+6. **Browser Refresh**: Client receives event and reloads page (or hot-swaps CSS)
 
-### Injected Script
+### Injected Script (Simplified)
+
+The actual implementation includes CSS hot reload and reconnection logic:
 
 ```html
 <!-- Automatically injected by dev server -->
 <script>
-const eventSource = new EventSource('/__bengal_reload__');
-eventSource.onmessage = (event) => {
-  if (event.data === 'reload') {
+const source = new EventSource('/__bengal_reload__');
+source.onmessage = (event) => {
+  const action = JSON.parse(event.data).action || event.data;
+  if (action === 'reload') {
     location.reload();
+  } else if (action === 'reload-css') {
+    // Hot-swap CSS without full page reload
+    document.querySelectorAll('link[rel="stylesheet"]').forEach(link => {
+      link.href = link.href.replace(/\?.*|$/, '?t=' + Date.now());
+    });
   }
 };
 </script>
@@ -110,20 +133,34 @@ eventSource.onmessage = (event) => {
 
 ### Performance Considerations
 
-- **Incremental builds**: Only rebuild changed files (fast)
-- **Debouncing**: Groups rapid changes to avoid multiple rebuilds
-- **Efficient watching**: Uses native file system events (watchdog)
+- **Incremental builds**: Only rebuild changed files (5-10x faster than full builds)
+- **Debouncing**: Groups rapid changes (300ms delay) to avoid multiple rebuilds
+- **Efficient watching**: Uses watchfiles with native file system events
 - **Selective injection**: Reload script only in HTML, not assets
+- **Process isolation**: Builds run in subprocess for crash resilience
 
 ### Configuration
 
+Configure dev server behavior in `bengal.toml` under the `[dev_server]` section:
+
 ```toml
-[server]
-port = 5173
-host = "localhost"
-live_reload = true
-debounce_delay = 0.5  # seconds
+[dev_server]
+# Exclude patterns from file watching
+exclude_patterns = ["*.tmp", "*.log", ".git/**"]
+
+# Pre-build hooks (run before each rebuild)
+pre_build = [
+    "npm run build:icons",
+    "npx tailwindcss -i src/input.css -o assets/css/tailwind.css"
+]
+
+# Post-build hooks (run after each rebuild)
+post_build = [
+    "python scripts/validate-links.py public/"
+]
 ```
+
+Server options (port, host, watch) are CLI arguments, not config options.
 
 ### Limitations
 
@@ -134,28 +171,44 @@ debounce_delay = 0.5  # seconds
 
 ## Integration with Build System
 
-The dev server integrates cleanly with the build system:
+### Recommended API
+
+The simplest way to start the dev server programmatically:
 
 ```python
-from bengal.server import DevServer
+from bengal.core import Site
+
+site = Site.from_config()
+site.serve(port=5173, watch=True, open_browser=True)
+```
+
+### Direct DevServer Usage
+
+For more control, use the DevServer class directly:
+
+```python
+from bengal.server.dev_server import DevServer
 from bengal.core import Site
 
 site = Site.from_config()
 server = DevServer(
     site=site,
-    output_dir=site.output_dir,
-    watch_dirs=[site.content_dir, site.templates_dir, site.assets_dir],
     port=5173,
+    watch=True,
+    auto_port=True,      # Find available port if 5173 is taken
+    open_browser=False,  # Don't auto-open browser
 )
-server.run()
+server.start()  # Runs until Ctrl+C
 ```
 
 ### Reset Ephemeral State
 
 The server calls `Site.reset_ephemeral_state()` before each rebuild to clear:
-- Rendered HTML from pages
-- Cached computed properties
-- Menu active states
-- Build-time temporary data
+
+- Page and section lists
+- Asset references
+- Taxonomy data
+- Menu builders and cached menus
+- Cross-reference indices
 
 This ensures each rebuild starts fresh without stale data.

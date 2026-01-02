@@ -114,7 +114,7 @@ def _ensure_page_parsed(page: Page, site: Site) -> None:
         markdown_engine = site.config.get("markdown_engine")
         if not markdown_engine:
             markdown_config = site.config.get("markdown", {})
-            markdown_engine = markdown_config.get("parser", "mistune")
+            markdown_engine = markdown_config.get("parser", "patitas")
 
         site._template_parser = create_markdown_parser(markdown_engine)
 

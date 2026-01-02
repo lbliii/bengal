@@ -8,7 +8,7 @@ of silently returning None. This catches typos and missing variables early.
 Key behaviors:
 1. Undefined variables raise UndefinedError
 2. Defined variables work normally
-3. strict=False restores legacy behavior (silent None)
+3. Undefined variables always raise UndefinedError
 4. default filter works with undefined variables
 5. is defined/is undefined tests work correctly
 6. Error messages include variable name and location
@@ -19,20 +19,6 @@ from __future__ import annotations
 import pytest
 
 from bengal.rendering.kida.environment import Environment, UndefinedError
-
-
-class TestStrictModeDefault:
-    """Test that strict mode is enabled by default."""
-
-    def test_strict_is_default(self) -> None:
-        """Environment uses strict mode by default."""
-        env = Environment()
-        assert env.strict is True
-
-    def test_strict_can_be_disabled(self) -> None:
-        """Strict mode can be disabled."""
-        env = Environment(strict=False)
-        assert env.strict is False
 
 
 class TestUndefinedError:
@@ -74,35 +60,6 @@ class TestUndefinedError:
         """Global functions work in strict mode."""
         result = env.from_string("{{ len([1, 2, 3]) }}").render()
         assert result == "3"
-
-
-class TestStrictFalse:
-    """Test legacy behavior with strict=False."""
-
-    @pytest.fixture
-    def env(self) -> Environment:
-        """Create a lenient mode environment."""
-        return Environment(strict=False)
-
-    def test_undefined_returns_none_string(self, env: Environment) -> None:
-        """Undefined variable returns 'None' string in legacy mode.
-
-        Note: In legacy mode, ctx.get(name) returns None, which gets
-        converted to the string 'None' when rendered. Use the default
-        filter for empty string: {{ x | default('') }}
-        """
-        result = env.from_string("{{ undefined_var }}").render()
-        assert result == "None"
-
-    def test_undefined_with_default(self, env: Environment) -> None:
-        """Use default filter for empty string in legacy mode."""
-        result = env.from_string("{{ undefined_var | default('') }}").render()
-        assert result == ""
-
-    def test_undefined_in_conditional(self, env: Environment) -> None:
-        """Undefined variable is falsy in conditional."""
-        result = env.from_string("{% if undef %}yes{% else %}no{% endif %}").render()
-        assert result == "no"
 
 
 class TestDefaultFilter:
@@ -236,12 +193,5 @@ class TestStrictModePerformance:
         env = Environment()
         tmpl = env.from_string("{{ name }}")
         # Should be fast - no exception handling in hot path
-        for _ in range(100):
-            assert tmpl.render(name="test") == "test"
-
-    def test_lenient_mode_comparison(self) -> None:
-        """Lenient mode uses dict.get (slightly different path)."""
-        env = Environment(strict=False)
-        tmpl = env.from_string("{{ name }}")
         for _ in range(100):
             assert tmpl.render(name="test") == "test"

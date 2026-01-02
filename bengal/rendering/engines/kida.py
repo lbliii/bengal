@@ -61,10 +61,13 @@ class KidaTemplateEngine:
 
         Configuration (bengal.yaml):
             kida:
-              strict: true          # (default) Raise UndefinedError for undefined vars
-              strict: false         # Return None for undefined variables (legacy)
               bytecode_cache: true  # (default) Cache compiled templates to disk
               bytecode_cache: false # Disable bytecode caching
+
+        Note:
+            Strict mode (raising UndefinedError for undefined variables) is
+            always enabled in Kida and cannot be disabled. This helps catch
+            typos and missing context variables at render time.
 
         Bytecode Cache:
             When enabled, compiled template bytecode is persisted to
@@ -88,11 +91,11 @@ class KidaTemplateEngine:
             bytecode_cache = BytecodeCache(cache_dir)
 
         # Create Kida environment
+        # Note: strict mode (UndefinedError for undefined vars) is always enabled
         self._env = Environment(
             loader=FileSystemLoader(self.template_dirs),
             autoescape=self._select_autoescape,
             auto_reload=site.config.get("development", {}).get("auto_reload", True),
-            strict=kida_config.get("strict", True),  # Default: strict mode enabled
             bytecode_cache=bytecode_cache,
             # Preserve AST for block metadata/dependency analysis (site-wide block caching)
             preserve_ast=True,
@@ -346,30 +349,23 @@ class KidaTemplateEngine:
         self,
         template: str,
         context: dict[str, Any],
-        strict: bool | None = None,
+        *,
+        strict: bool = True,
     ) -> str:
         """Render a template string.
 
         Args:
             template: Template content as string
             context: Variables available to the template
-            strict: Override strict mode for this render (None uses env default)
+            strict: If False, return empty string for undefined variables instead of raising
 
         Returns:
             Rendered HTML string
         """
-        try:
-            # Note: strict override requires fresh compilation or env change
-            # For string templates, we just re-compile if strict differs from env
-            if strict is not None and strict != self._env.strict:
-                # Create ephemeral env with desired strictness
-                from copy import copy
+        from bengal.rendering.kida.environment.exceptions import UndefinedError
 
-                env = copy(self._env)
-                env.strict = strict
-                tmpl = env.from_string(template)
-            else:
-                tmpl = self._env.from_string(template)
+        try:
+            tmpl = self._env.from_string(template)
 
             # Get page-aware functions (t, current_lang, etc.)
             # Instead of mutating env.globals (not thread-safe), we pass them in context
@@ -383,6 +379,15 @@ class KidaTemplateEngine:
 
             return tmpl.render(ctx)
 
+        except UndefinedError as e:
+            # When strict=False, return empty string for undefined variables
+            # This allows preprocessing to handle documentation examples gracefully
+            if not strict:
+                return ""
+            raise BengalRenderingError(
+                message=f"Template string render error: {e}",
+                original_error=e,
+            ) from e
         except Exception as e:
             raise BengalRenderingError(
                 message=f"Template string render error: {e}",

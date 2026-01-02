@@ -94,6 +94,8 @@ bengal build --profile theme-dev
 - `navigation` — Navigation structure
 - `menu` — Menu validation
 
+**Disabled:** `performance`, `cache`, `taxonomy` (use `--dev` for these)
+
 ### Developer Profile
 
 **Best for**: Framework contributors who need full observability.
@@ -115,7 +117,7 @@ bengal build --debug
 - ✅ Recent items shown (5)
 
 **Health Checks Enabled:**
-- All validators (config, output, links, directives, rendering, navigation, menu, performance, cache, taxonomy)
+- All validators across all tiers (build, full, ci)
 
 ---
 
@@ -244,9 +246,8 @@ When metrics collection is enabled (theme-dev and dev profiles):
 ```tree
 .bengal/
 └── metrics/
-    ├── build-2024-01-15-10-30-00.json
-    ├── build-2024-01-15-10-35-00.json
-    └── latest.json
+    ├── history.jsonl   # All builds (JSON Lines format)
+    └── latest.json     # Most recent build
 ```
 
 **Metrics include:**
@@ -277,7 +278,7 @@ bengal build --profile writer    # Force writer profile
 ---
 
 :::{seealso}
-- [[docs/building/commands|Build Commands]]
+- [[docs/reference/cheatsheet|CLI Cheatsheet]]
 - [[docs/building/configuration|Configuration Reference]]
 - [[docs/content/validation|Validation and Health Checks]]
 :::

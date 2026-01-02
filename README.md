@@ -326,7 +326,7 @@ template_engine: kida  # or jinja2
 ```yaml
 # config/_default/content.yaml
 markdown:
-  parser: patitas  # or mistune, python-markdown
+  parser: patitas  # default, or mistune (legacy), python-markdown
 ```
 
 </details>

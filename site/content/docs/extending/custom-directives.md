@@ -167,10 +167,10 @@ def render(
 
 ## Built-in Utilities
 
-The base class provides HTML generation helpers:
+The package provides HTML generation helpers:
 
 ```python
-from bengal.directives.utils import (
+from bengal.directives import (
     escape_html,        # Escape HTML entities
     build_class_string, # Build CSS class string from list
     class_attr,         # Generate class="..." attribute
@@ -179,8 +179,8 @@ from bengal.directives.utils import (
 )
 
 def render(self, renderer, text, **attrs):
-    classes = build_class_string(["alert", attrs.get("class")])
-    data = data_attrs({"level": attrs.get("level")})
+    classes = build_class_string("alert", attrs.get("class", ""))
+    data = data_attrs(level=attrs.get("level"))
     return f'<div class="{classes}" {data}>{text}</div>'
 ```
 
@@ -190,8 +190,12 @@ A directive for embedding external content:
 
 ```python
 from dataclasses import dataclass
-from bengal.directives import BengalDirective, DirectiveOptions, DirectiveToken
-from bengal.directives.utils import escape_html
+from bengal.directives import (
+    BengalDirective,
+    DirectiveOptions,
+    DirectiveToken,
+    escape_html,
+)
 
 @dataclass
 class EmbedOptions(DirectiveOptions):
@@ -245,22 +249,30 @@ Usage:
 
 ## Registration
 
-Custom directives must be registered with the Patitas parser. The standard approach is to add them to the directive factory, but for project-specific directives, you can create a custom parser configuration.
+Custom directives must be registered with the Patitas parser. The standard approach is to add them to the directive registry in `bengal/directives/registry.py`:
+
+```python
+# In bengal/directives/registry.py, add to _DIRECTIVE_MAP:
+_DIRECTIVE_MAP: dict[str, str] = {
+    # ... existing directives ...
+    "alert": "your_module.alert_directive",
+    "callout": "your_module.alert_directive",
+}
+```
 
 :::{note}
-A plugin system for registering custom directives without modifying Bengal source code is planned for a future release. For now, directives must be added to the Bengal codebase or used via a fork.
+Currently, custom directives require modification to the Bengal codebase or a fork. A plugin system for external directive registration is on the roadmap.
 :::
 
 ## Testing Directives
 
-Test both parse and render phases:
+Test both parse and render phases by instantiating your directive class directly:
 
 ```python
 import pytest
-from bengal.directives import get_directive
+from your_directives import AlertDirective  # Your custom directive
 
 def test_alert_directive_parse():
-    AlertDirective = get_directive("alert")
     directive = AlertDirective()
 
     # Test parse_directive
@@ -275,7 +287,6 @@ def test_alert_directive_parse():
     assert token.attrs["level"] == "warning"
 
 def test_alert_directive_render():
-    AlertDirective = get_directive("alert")
     directive = AlertDirective()
 
     html = directive.render(
@@ -286,6 +297,17 @@ def test_alert_directive_render():
 
     assert 'class="alert alert-warning"' in html
     assert "<p>Test content</p>" in html
+```
+
+For built-in directives, use `get_directive()` to retrieve registered classes:
+
+```python
+from bengal.directives import get_directive
+
+def test_dropdown_directive():
+    DropdownDirective = get_directive("dropdown")
+    directive = DropdownDirective()
+    # ... test implementation
 ```
 
 ## Related

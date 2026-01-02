@@ -184,6 +184,17 @@ class GoogleFontsDownloader:
         styles = styles or ["normal"]
         output_dir.mkdir(parents=True, exist_ok=True)
 
+        # Check if all expected font files are already cached (avoid network request)
+        cached_variants = self._check_cached_fonts(family, weights, styles, output_dir)
+        if cached_variants is not None:
+            # All fonts already cached - no network request needed
+            from bengal.output import CLIOutput
+
+            cli = CLIOutput()
+            for variant in cached_variants:
+                cli.detail(f"Cached: {variant.filename}", indent=2, icon=cli.icons.success)
+            return cached_variants
+
         # Build Google Fonts CSS URL
         css_url = self._build_css_url(family, weights, styles)
 
@@ -198,7 +209,11 @@ class GoogleFontsDownloader:
                     suggestion=f"Verify '{family}' is a valid Google Font name at fonts.google.com",
                 )
                 record_error(error, file_path=None)
-                logger.warning("no_fonts_found_for_family", family=family, code="X009")
+                # Display user-friendly error with suggestion
+                from bengal.cli.helpers.error_display import display_bengal_error
+                from bengal.output import CLIOutput
+
+                display_bengal_error(error, CLIOutput())
                 return []
 
             # Download each font file
@@ -240,13 +255,11 @@ class GoogleFontsDownloader:
                 original_error=e,
             )
             record_error(error, file_path=None)
-            logger.error(
-                "font_download_failed",
-                family=family,
-                error=str(e),
-                error_type=type(e).__name__,
-                code="X008",
-            )
+            # Display user-friendly error with suggestion
+            from bengal.cli.helpers.error_display import display_bengal_error
+            from bengal.output import CLIOutput
+
+            display_bengal_error(error, CLIOutput())
             return []
 
     def download_ttf_font(
@@ -292,6 +305,19 @@ class GoogleFontsDownloader:
         styles = styles or ["normal"]
         output_dir.mkdir(parents=True, exist_ok=True)
 
+        # Check if all expected TTF font files are already cached (avoid network request)
+        cached_variants = self._check_cached_ttf_fonts(family, weights, styles, output_dir)
+        if cached_variants is not None:
+            # All fonts already cached - no network request needed
+            for variant in cached_variants:
+                logger.debug(
+                    "ttf_font_cached",
+                    family=family,
+                    weight=variant.weight,
+                    filename=variant.filename,
+                )
+            return cached_variants
+
         # Build Google Fonts CSS URL
         css_url = self._build_css_url(family, weights, styles)
 
@@ -306,7 +332,11 @@ class GoogleFontsDownloader:
                     suggestion=f"Verify '{family}' is a valid Google Font name at fonts.google.com",
                 )
                 record_error(error, file_path=None)
-                logger.warning("no_ttf_fonts_found_for_family", family=family, code="X009")
+                # Display user-friendly error with suggestion
+                from bengal.cli.helpers.error_display import display_bengal_error
+                from bengal.output import CLIOutput
+
+                display_bengal_error(error, CLIOutput())
                 return []
 
             # Download each font file
@@ -348,14 +378,101 @@ class GoogleFontsDownloader:
                 original_error=e,
             )
             record_error(error, file_path=None)
-            logger.error(
-                "ttf_font_download_failed",
-                family=family,
-                error=str(e),
-                error_type=type(e).__name__,
-                code="X008",
-            )
+            # Display user-friendly error with suggestion
+            from bengal.cli.helpers.error_display import display_bengal_error
+            from bengal.output import CLIOutput
+
+            display_bengal_error(error, CLIOutput())
             return []
+
+    def _check_cached_fonts(
+        self,
+        family: str,
+        weights: list[int],
+        styles: list[str],
+        output_dir: Path,
+    ) -> list[FontVariant] | None:
+        """
+        Check if all expected font files are already cached locally.
+
+        This avoids making network requests when fonts are already downloaded.
+        Checks for all weight/style combinations in the output directory.
+
+        Args:
+            family: Font family name (e.g., "Inter", "Outfit")
+            weights: List of weights (e.g., [400, 700])
+            styles: List of styles (e.g., ["normal", "italic"])
+            output_dir: Directory where font files are stored
+
+        Returns:
+            List of FontVariant objects if ALL fonts are cached, None if any are missing.
+            Returning None signals that a network request is needed to fetch missing fonts.
+        """
+        safe_name = family.lower().replace(" ", "-")
+        cached_variants = []
+
+        for weight in weights:
+            for style in styles:
+                style_suffix = "-italic" if style == "italic" else ""
+                # Check for woff2 first (preferred), then ttf
+                woff2_filename = f"{safe_name}-{weight}{style_suffix}.woff2"
+                ttf_filename = f"{safe_name}-{weight}{style_suffix}.ttf"
+
+                woff2_path = output_dir / woff2_filename
+                ttf_path = output_dir / ttf_filename
+
+                if woff2_path.exists():
+                    # Create variant with placeholder URL (not needed for cached files)
+                    variant = FontVariant(family, weight, style, f"cached://{woff2_filename}")
+                    cached_variants.append(variant)
+                elif ttf_path.exists():
+                    variant = FontVariant(family, weight, style, f"cached://{ttf_filename}")
+                    cached_variants.append(variant)
+                else:
+                    # At least one font is missing - need network request
+                    return None
+
+        return cached_variants
+
+    def _check_cached_ttf_fonts(
+        self,
+        family: str,
+        weights: list[int],
+        styles: list[str],
+        output_dir: Path,
+    ) -> list[FontVariant] | None:
+        """
+        Check if all expected TTF font files are already cached locally.
+
+        Similar to _check_cached_fonts but specifically for TTF format used
+        by image generation (Pillow). Only checks for .ttf files.
+
+        Args:
+            family: Font family name (e.g., "Inter", "Outfit")
+            weights: List of weights (e.g., [400, 700])
+            styles: List of styles (e.g., ["normal", "italic"])
+            output_dir: Directory where font files are stored
+
+        Returns:
+            List of FontVariant objects if ALL TTF fonts are cached, None if any are missing.
+        """
+        safe_name = family.lower().replace(" ", "-")
+        cached_variants = []
+
+        for weight in weights:
+            for style in styles:
+                style_suffix = "-italic" if style == "italic" else ""
+                ttf_filename = f"{safe_name}-{weight}{style_suffix}.ttf"
+                ttf_path = output_dir / ttf_filename
+
+                if ttf_path.exists():
+                    variant = FontVariant(family, weight, style, f"cached://{ttf_filename}")
+                    cached_variants.append(variant)
+                else:
+                    # At least one TTF font is missing - need network request
+                    return None
+
+        return cached_variants
 
     def _build_css_url(self, family: str, weights: list[int], styles: list[str]) -> str:
         """

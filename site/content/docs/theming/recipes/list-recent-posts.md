@@ -48,6 +48,7 @@ Display the most recent posts from a section using Bengal's query filters.
 | `where('draft', false)` | Exclude drafts |
 | `sort_by('date', reverse=true)` | Newest first |
 | `limit(5)` | Take only 5 |
+| `date('%B %d, %Y')` | Format date (alias for `dateformat`) |
 
 ## Variations
 

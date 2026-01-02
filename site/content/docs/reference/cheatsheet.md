@@ -325,7 +325,6 @@ author = "Your Name"
 [build]
 output_dir = "public"
 fast_mode = true                # Parallel + quiet
-incremental = true              # Default: true
 
 [theme]
 name = "default"
@@ -336,7 +335,7 @@ minify = true
 fingerprint = true
 
 [markdown]
-parser = "patitas"  # Recommended (thread-safe, O(n))
+parser = "patitas"  # Default (thread-safe, O(n))
 table_of_contents = true
 gfm = true
 

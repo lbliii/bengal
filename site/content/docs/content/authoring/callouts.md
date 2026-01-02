@@ -48,10 +48,6 @@ Background information that's good to know.
 :::{tip}
 A helpful suggestion or best practice.
 :::
-
-:::{hint}
-A gentle nudge in the right direction.
-:::
 ```
 
 :::{tip}
@@ -106,6 +102,20 @@ Here's a working example.
 Everything worked correctly!
 :::
 
+### Navigation
+
+```markdown
+:::{seealso}
+- [[docs/getting-started|Getting Started]]
+- [[docs/reference|API Reference]]
+:::
+```
+
+:::{seealso}
+- Related documentation links
+- Cross-references to other pages
+:::
+
 ## Callout Quick Reference
 
 | Type | Use For | Color |
@@ -113,13 +123,13 @@ Everything worked correctly!
 | `note` | Background info | Blue |
 | `info` | Additional context | Blue |
 | `tip` | Best practices, suggestions | Green |
-| `hint` | Gentle guidance | Green |
-| `warning` | Caution, potential issues | Yellow |
-| `caution` | Proceed carefully | Yellow |
+| `warning` | Caution, potential issues | Orange |
+| `caution` | Proceed carefully | Orange |
 | `danger` | Critical warnings | Red |
 | `error` | Problems, failures | Red |
 | `success` | Positive outcomes | Green |
-| `example` | Working examples | Purple |
+| `example` | Working examples | Violet |
+| `seealso` | Related links, navigation | Blue |
 
 ## Custom Titles
 
@@ -188,7 +198,12 @@ The answer is 42.
 |--------|-------------|---------|
 | `:open:` | Start expanded | `:open:` |
 | `:icon:` | Custom icon | `:icon: info` |
-| `:class:` | CSS class | `:class: warning` |
+| `:badge:` | Badge text | `:badge: Advanced` |
+| `:color:` | Color variant | `:color: warning` |
+| `:description:` | Secondary text | `:description: More details` |
+| `:class:` | CSS class | `:class: custom` |
+
+Available colors: `success`, `warning`, `danger`, `info`, `minimal`
 
 ## Checklists
 
@@ -210,6 +225,26 @@ For action items or requirements, use checklists:
 - Notify the team
 :::
 
+### Checklist Options
+
+| Option | Description | Example |
+|--------|-------------|---------|
+| `:style:` | Visual style | `:style: numbered` |
+| `:show-progress:` | Display completion bar | `:show-progress:` |
+| `:compact:` | Tighter spacing | `:compact:` |
+
+Available styles: `default`, `numbered`, `minimal`
+
+```markdown
+:::{checklist} Setup Progress
+:style: numbered
+:show-progress:
+- [x] Install dependencies
+- [x] Configure environment
+- [ ] Run migrations
+:::
+```
+
 ## When to Use Callouts
 
 :::{tip}
@@ -222,20 +257,13 @@ For action items or requirements, use checklists:
 - **tip**: Best practices, helpful shortcuts
 - **warning**: Common mistakes, gotchas
 - **danger**: Security issues, data loss risks
+- **seealso**: Related pages, cross-references
 
 ### Avoid
 
 - Using callouts for routine information
 - Stacking multiple callouts back-to-back
 - Putting critical instructions inside callouts (main content should stand alone)
-
-## Accessibility
-
-Callouts are rendered with appropriate ARIA roles for screen readers:
-
-- `note`, `info` → `role="note"`
-- `warning`, `caution` → `role="alert"`
-- `danger`, `error` → `role="alert"` with emphasis
 
 ## Best Practices
 

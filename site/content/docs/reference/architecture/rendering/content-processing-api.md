@@ -25,7 +25,7 @@ keywords:
 # Bengal Content Processing API
 **What Bengal Computes vs What Themes Display**
 
-Last Updated: 2025-10-26
+Last Updated: 2026-01-01
 
 ---
 
@@ -46,9 +46,10 @@ The `content` config section controls **what Bengal computes** during build time
 | `page.excerpt` | `excerpt_length` (200) | `{{ page.excerpt }}` | Content preview for cards/listings |
 | `page.meta_description` | `summary_length` (160) | `{{ page.meta_description }}` | SEO meta description |
 | `page.reading_time` | `reading_speed` (200 WPM) | `{{ page.reading_time }}` | Estimated reading time in minutes |
-| `page.toc` | `toc_depth` (3), `toc_min_headings` (2), `toc_style` ("nested") | `{{ page.toc \| safe }}` | Generated table of contents HTML |
+| `page.toc` | `toc_depth` (4), `toc_min_headings` (2), `toc_style` ("nested") | `{{ page.toc \| safe }}` | Generated table of contents HTML |
 | `page.toc_items` | (derived from `toc`) | `{% for item in page.toc_items %}` | Structured TOC data for custom rendering |
-| `page.related_posts` | `related_count` (3), `related_threshold` (0.3) | `{% for post in page.related_posts %}` | Related pages based on tag similarity |
+| `page.related_posts` | `related_count` (5), `related_threshold` (0.25) | `{% for post in page.related_posts %}` | Related pages based on tag similarity |
+| `page.word_count` | (automatic) | `{{ page.word_count }}` | Word count from source content |
 | `page.url` | (automatic) | `{{ page.url }}` | URL with baseurl applied (for display in templates) |
 | `page.relative_url` | (automatic) | `{{ page.relative_url }}` | Relative URL without baseurl (for comparisons and logic) |
 | `page.permalink` | (automatic) | `{{ page.permalink }}` | Alias for `url` (backward compatibility) |
@@ -111,7 +112,7 @@ content:
   summary_length: 160
 
   # Reading time
-  reading_speed: 250  # Words per minute
+  reading_speed: 200  # Words per minute (default)
 
   # Related posts
   related_count: 5
@@ -119,7 +120,7 @@ content:
 
   # Table of contents
   toc_depth: 4
-  toc_min_headings: 3
+  toc_min_headings: 2
   toc_style: "nested"
 
   # Content organization
@@ -141,24 +142,15 @@ theme:
   show_toc: true
 ```
 
-**Key Insight**: Changing `content.excerpt_length` changes what `page.excerpt` returns. Changing `theme.show_excerpts` changes whether the theme displays it.
+**Key Insight**: Changing `theme.show_excerpts` changes whether the theme displays excerpts.
+
+> **Implementation Note**: Currently, `page.excerpt` (200 chars), `page.reading_time` (200 WPM), and `page.meta_description` (160 chars) use hardcoded defaults. The config values are defined for future implementation where these properties will read from config.
 
 ---
 
 ## Future Enhancements (Not Yet Implemented)
 
 These are potential computed properties Bengal could provide in future versions:
-
-### Word Count
-
-```yaml
-content:
-  word_count_enabled: true  # Expose page.word_count
-```
-
-**Template Access**: `{{ page.word_count }} words`
-
-**Rationale**: Currently computed internally for `reading_time` but not exposed. Useful for writers, analytics, and content dashboards.
 
 ### Author Formatting
 
@@ -325,17 +317,22 @@ show_excerpts_in_cards: true  # Theme shows excerpts in card layout
 
 ## Testing Computational API
 
-To verify config-controlled computations work correctly:
+To verify computed properties work correctly:
 
 ```python
-def test_excerpt_length_config():
-    """Verify excerpt_length config controls page.excerpt."""
-    config = {"content": {"excerpt_length": 100}}
-    page = build_page(content="..." * 200, config=config)
-    assert len(page.excerpt) <= 105  # ~100 + ellipsis
+def test_excerpt_generation():
+    """Verify page.excerpt is generated from content."""
+    page = build_page(content="Hello world. " * 50)
+    assert len(page.excerpt) <= 205  # 200 chars + ellipsis
+    assert page.excerpt.endswith("...")
+
+def test_reading_time():
+    """Verify reading_time is computed from word count."""
+    page = build_page(content="word " * 400)  # 400 words
+    assert page.reading_time == 2  # 400 / 200 WPM = 2 min
 ```
 
-See `tests/unit/test_page_computed.py` for full test suite.
+See `tests/unit/test_page.py` for the full test suite.
 
 ---
 

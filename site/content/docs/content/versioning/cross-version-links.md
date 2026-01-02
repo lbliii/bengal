@@ -111,13 +111,20 @@ for the replacement.
 
 ### Version Not Found
 
-If the specified version doesn't exist, Bengal renders a warning indicator:
+If the specified version doesn't exist, Bengal renders a broken reference indicator:
 
 ```markdown
 [[v99:docs/guide]]
 ```
 
-Renders as: <span style="color: red;">[broken: v99:docs/guide]</span>
+Renders as:
+
+```html
+<span class="broken-ref" data-ref="v99:docs/guide"
+      title="Version not found: v99">[docs/guide]</span>
+```
+
+The `broken-ref` class allows styling via CSS, and the `title` attribute shows the error on hover.
 
 ### Page Not Found in Version
 

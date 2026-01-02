@@ -503,7 +503,29 @@ class Template:
                 lineno = ctx.get("_line")
                 raise UndefinedError(var_name, template_name, lineno) from None
 
-        # Default filter helper for strict mode
+        def _lookup_scope(ctx: dict, scope_stack: list, var_name: str) -> Any:
+            """Lookup variable in scope stack (top to bottom), then ctx.
+
+            Checks scopes from innermost to outermost, then falls back to ctx.
+            Raises UndefinedError if not found (strict mode).
+            """
+            # Check scope stack from top (innermost) to bottom (outermost)
+            for scope in reversed(scope_stack):
+                if var_name in scope:
+                    return scope[var_name]
+
+            # Fall back to ctx
+            if var_name in ctx:
+                return ctx[var_name]
+
+            # Not found - raise UndefinedError
+            from bengal.rendering.kida.environment.exceptions import UndefinedError
+
+            template_name = ctx.get("_template")
+            lineno = ctx.get("_line")
+            raise UndefinedError(var_name, template_name, lineno) from None
+
+        # Default filter helper
         def _default_safe(
             value_fn: Any,
             default_value: Any = "",
@@ -658,9 +680,10 @@ class Template:
             "_escape": self._escape,
             "_getattr": self._safe_getattr,
             "_getattr_none": self._getattr_preserve_none,  # RFC: kida-modern-syntax-features
-            "_lookup": _lookup,  # Strict mode variable lookup
-            "_default_safe": _default_safe,  # Default filter for strict mode
-            "_is_defined": _is_defined,  # Is defined test for strict mode
+            "_lookup": _lookup,  # Variable lookup with UndefinedError
+            "_lookup_scope": _lookup_scope,  # Scope-aware variable lookup
+            "_default_safe": _default_safe,  # Default filter helper
+            "_is_defined": _is_defined,  # Is defined test helper
             "_null_coalesce": _null_coalesce,  # Null coalesce with undefined handling
             "_coerce_numeric": _coerce_numeric,  # Numeric coercion for macro arithmetic
             "_spaceless": _spaceless,  # RFC: kida-modern-syntax-features
@@ -1091,7 +1114,37 @@ class Template:
         """Perform static analysis and cache results."""
         from bengal.rendering.kida.analysis import BlockAnalyzer, TemplateMetadata
 
-        analyzer = BlockAnalyzer()
+        # Check environment's shared analysis cache first (for included templates)
+        env_for_cache = self._env_ref()
+        if (
+            env_for_cache is not None
+            and hasattr(env_for_cache, "_analysis_cache")
+            and self._name is not None
+        ):
+            cached = env_for_cache._analysis_cache.get(self._name)
+            if cached is not None:
+                self._metadata_cache = cached
+                return
+
+        # Create template resolver for included template analysis
+        def resolve_template(name: str) -> Any:
+            """Resolve and analyze included templates."""
+            if env_for_cache is None:
+                return None
+            try:
+                included = env_for_cache.get_template(name)
+                # Trigger analysis of included template (will cache it)
+                if (
+                    hasattr(included, "_optimized_ast")
+                    and included._optimized_ast is not None
+                    and included._metadata_cache is None
+                ):
+                    included._analyze()
+                return included
+            except Exception:
+                return None
+
+        analyzer = BlockAnalyzer(template_resolver=resolve_template)
         result = analyzer.analyze(self._optimized_ast)
 
         # Set template name from self
@@ -1101,6 +1154,14 @@ class Template:
             blocks=result.blocks,
             top_level_depends_on=result.top_level_depends_on,
         )
+
+        # Store in environment's shared cache for reuse by other templates
+        if (
+            env_for_cache is not None
+            and hasattr(env_for_cache, "_analysis_cache")
+            and self._name is not None
+        ):
+            env_for_cache._analysis_cache[self._name] = self._metadata_cache
 
     def __repr__(self) -> str:
         return f"<Template {self._name or '(inline)'}>"

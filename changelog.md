@@ -1,206 +1,93 @@
 ## [Unreleased]
 
-### Cache Compression Consistency ✅
-- **cache(taxonomy_index)**: migrate to compressed `.json.zst` format using `save_compressed()`/`load_auto()`
-- **cache(asset_dependency_map)**: migrate to compressed format; remove redundant `AtomicFile` wrapper
-- **cache(page_discovery_cache)**: migrate to compressed format; remove redundant `AtomicFile` wrapper and `default=str` parameter
-- **cache(paths)**: update docstrings to document compression support for auxiliary caches
-- **cache(compression)**: fix `load_auto()` exception handling to properly catch `CacheVersionError` and fall back to JSON
-- **cache(compression)**: add type validation in `load_auto()` to ensure JSON always returns dict
-- **perf**: ~40% reduction in `.bengal/` directory size (~2.8M savings), 10x faster cache I/O
-- **tests**: add round-trip serialization tests and migration tests for backward compatibility
-- **docs**: update cache architecture docs to reflect compression for all cache files
+## 0.1.6 - 2026-01-01
 
-### Content Layer Algorithm Optimization ✅
-- **content_layer(local)**: remove O(n log n) sort from `fetch_all()` (now O(n) by default)
-- **content_layer(local)**: add `sort: bool` config option for deterministic ordering when needed
-- **content_layer(local)**: pre-compile exclude patterns to regex for O(1) matching per file (was O(p))
-- **content_layer(local)**: add `@cached_property _exclude_regex` with fnmatch fallback on regex failure
-- **content_layer(github)**: add parallel file fetching with semaphore-based concurrency (10 concurrent)
-- **content_layer(github)**: add automatic retry with exponential backoff on rate limit (429/403)
-- **content_layer(github)**: stream results via `asyncio.as_completed()` as files complete
-- **content_layer(notion)**: add parallel page processing with semaphore-based concurrency (5 concurrent)
-- **content_layer(notion)**: add in-memory block caching with TTL (5 min) and size limit (500 pages)
-- **content_layer(notion)**: graceful degradation when cachetools unavailable (no caching, no crash)
-- **content_layer(source)**: add `@cached_property cache_key` for O(1) repeated lookups (was O(c log c))
-- **pyproject.toml**: add `cachetools>=5.0.0` to `notion` and `all-sources` optional dependencies
-- **perf**: LocalSource 2K files ~2.5x faster; GitHubSource ~10x faster; NotionSource ~3x faster
-- **behavior**: Entry order is now non-deterministic (use `sort: true` for alphabetical)
-- **plan**: RFC moved to implemented
+### 🚀 Kida Template Engine ✅
+- **core(kida)**: Pure-Python template engine with Jinja2 compatibility as default
+- **kida**: `{% match %}` pattern matching, pipeline operators `|>`, optional chaining `??`
+- **kida**: `{% while %}` loops, `{% cache %}`, `{% slot %}`, `{% embed %}` components
+- **kida**: Bytecode caching with `BlockCache` for site-wide block reuse
+- **kida**: Pure-Python AST optimization pass (constant folding, dead code elimination)
+- **kida**: Compile-time filter/test validation with 'Did you mean?' suggestions
+- **kida**: Resilient None handling and line-aware error messages
+- **themes(default)**: Full migration to Kida-native syntax with advanced patterns
+- **engines**: Add `EngineCapability` enum and capabilities protocol for engine-agnostic templates
 
-## 0.1.6 - 2025-12-23
+### 🚀 Patitas Markdown Parser ✅
+- **core(parsers)**: Add Patitas as default markdown parser with typed AST and O(n) lexer
+- **patitas**: Directive and role systems for extensible markup (Phase 2)
+- **patitas(directives)**: Complete Bengal directive migration — 54 handlers with full parity
+- **patitas**: Zero-Copy Lexer Handoff (ZCLH) protocol for Rosettes integration
+- **patitas(parser)**: Fix list termination when followed by non-indented paragraph
 
-### Link Previews ✅
-- **themes(js)**: add `link-previews.js` (~3.5KB) - Wikipedia-style hover cards powered by per-page JSON
-- **themes(js)**: prefetch on hover intent (50ms before showing) for near-instant previews
-- **themes(js)**: LRU cache (50 entries) with AbortController for rapid navigation
-- **themes(js)**: mobile long-press support (500ms threshold) with haptic feedback
-- **themes(js)**: keyboard accessible (focus shows preview, Escape closes)
-- **themes(js)**: respects `prefers-reduced-motion` media query
-- **themes(css)**: add `link-preview.css` with theme-aware styling and dark mode
-- **themes(templates)**: add `partials/link-previews.html` config bridge for server-to-client settings
-- **config(defaults)**: add `[link_previews]` section with hover_delay, hide_delay, show_section, show_reading_time, exclude_selectors
-- **core(site)**: add `site.link_previews` property for normalized config access
-- **docs**: RFC moved to implemented
+### 🚀 Rosettes Syntax Highlighter ✅
+- **rosettes**: Pure-Python syntax highlighter for Python 3.14t (no GIL re-enablement)
+- **lexers**: 50+ language support including tree, myst, jinja2, configs, diagrams
+- **themes**: RFC-0003 semantic token system with CSS theming architecture
+- **core(highlighting)**: Skip tree-sitter on free-threaded Python automatically
+- **syntax-highlighter**: Add Kida template syntax highlighting v1.1.0
 
-### JavaScript Theme Improvements ✅
-- **themes(js)**: add `utils.js` shared utilities module with clipboard, throttle, debounce, focus trap
-- **themes(js)**: add `copyToClipboard()` unified clipboard API with fallback
-- **themes(js)**: add `throttleScroll()` RequestAnimationFrame-based scroll throttling
-- **themes(js)**: add `isExternalUrl()` robust URL parsing for external link detection
-- **themes(js)**: add `createFocusTrap()` for modal/dropdown keyboard navigation
-- **themes(js)**: add `scrollManager` consolidated scroll listener manager
-- **themes(js)**: add `log()` debug logging gated by `window.Bengal.debug`
-- **fix(toc.js)**: critical bug - event listener cleanup now stores handler references correctly (prevents memory leaks)
-- **fix(main.js)**: external link detection now uses proper URL parsing instead of string `includes()`
-- **fix(action-bar.js)**: add 5-second timeout for fetch requests (prevents hanging)
-- **themes(js)**: refactor 10 JS files to use shared utilities, removing ~200 lines of duplicate code
-- **themes(base.html)**: add `utils.js` as first script before all dependent modules
+### 🔧 Error System Adoption ✅
+- **errors**: Comprehensive error codes across all packages (A/B/C/D/N/O/V/X series)
+- **errors**: Session tracking with `record_error()` for silent failure detection
+- **errors**: Actionable suggestions in all error messages
+- Packages adopted: cache, config, collections, content_layer, autodoc, health, assets, orchestration, postprocess, themes, analysis
 
-### Jinja Pattern Adoption ✅
-- **cache**: add magic header validation to compressed caches (`.json.zst`) for robust auto-invalidation on Python/Bengal upgrades
-- **utils(sentinel)**: add `MISSING` sentinel singleton to distinguish between `None` and unset values
-- **cache(build_cache)**: adopt `MISSING` sentinel in `get_parsed_content` and `get_rendered_output` for technical correctness
-- **directives(base)**: add `PRIORITY` system to `BengalDirective` for explicit processing order control
-- **directives(factory)**: update factory to sort directives by priority before registration
-- **directives(include)**: set `PRIORITY_FIRST` to ensure content is included before other processing
-- **directives(navigation)**: set `PRIORITY_LATE` for breadcrumbs, siblings, prev-next, and related directives
-- **tests(unit)**: add 14 unit tests for cache versioning, sentinel behavior, and directive priority
-- **plan**: move rfc-jinja-pattern-adoption.md to implemented status
+### ⚡ Algorithm Optimizations (Big O) ✅
+- **cache**: Reverse dependency graph for O(1) affected pages lookup
+- **cache(taxonomy)**: Reverse index for O(1) page-to-tags lookup
+- **cache(query_index)**: Set-based storage for O(1) page operations
+- **analysis**: PageRank O(I×E) and Link Suggestions via inverted indices
+- **config**: Batch deep merge O(K×D) for directory loading
+- **health**: O(L²)→O(L) DirectiveAnalyzer, O(D²)→O(D) AutoFixer
+- **postprocess**: Streaming LLM write O(n×c)→O(c) memory; heapq.nlargest for RSS
+- **orchestration(complexity)**: LPT scheduling for parallel page rendering
+- **content_layer**: LocalSource 2.5x faster, GitHubSource 10x faster, NotionSource 3x faster
 
-### Inline Asset Extraction ✅
-- **orchestration(build)**: eliminate separate `Track assets` phase by extracting asset dependencies inline during rendering
-- **utils(build_context)**: add `_accumulated_assets` field and thread-safe accumulation methods for asset dependencies
-- **rendering(pipeline)**: add `_accumulate_asset_deps()` method called after `write_output` in all render paths
-- **orchestration(rendering)**: update `phase_track_assets` to use accumulated data (fast path) with fallback to extraction
-- **perf**: ~95% reduction in Track assets phase time (~5-6s → ~20ms for 1134 pages)
-- **tests**: add 10 unit tests for BuildContext asset accumulation and 4 integration tests for inline extraction
-- **plan**: RFC and plan moved to implemented
+### 🔒 Thread Safety (Python 3.14t) ✅
+- **core**: Thread-safe locking for free-threading support across critical paths
+- **directives/cache**: Add `DirectiveCache._lock` for concurrent access
+- **icons/resolver**: Add `_icon_lock` for thread-safe icon resolution
+- **server/live_reload**: Protect `set_reload_action()` with locking
+- **rendering/context**: Double-check locking patterns for template context
 
-### Build Output Tracking ✅
-- **core(output)**: add `OutputRecord`, `OutputType`, `OutputCollector` protocol for typed output tracking
-- **core(output)**: add `BuildOutputCollector` thread-safe implementation with phase and type classification
-- **orchestration(build)**: create `BuildOutputCollector` per build and wire through asset/render/postprocess phases
-- **orchestration(stats)**: change `BuildStats.changed_outputs` type from `list[str] | None` to `list[OutputRecord]`
-- **server(reload)**: add `decide_from_outputs()` for typed reload decisions (CSS-only vs full reload)
-- **server**: enable CSS hot reload without snapshot diffing when typed outputs available
-- **plan**: remove completed build output tracking RFC and plan - work documented in changelog
+### 🔧 Type System Hardening ✅
+- **types**: Replace `Any` across 4 phases (protocols, critical paths, directives, template functions)
+- **types**: Add TypedDict and Protocol definitions for type refinement
+- **directives(options)**: Fix cache inheritance bug in `DirectiveOptions.from_raw()`
 
-### Parallel Asset Tracking ✅
-- **orchestration(build)**: parallelize `phase_track_assets` using `ThreadPoolExecutor` matching rendering pattern
-- **orchestration(build)**: add `PARALLEL_THRESHOLD = 5` to skip thread overhead for small sites
-- **orchestration(build)**: extract assets in parallel for 3-4x speedup on multi-core systems (100+ pages)
-- **cache(asset_dependency_map)**: verify thread safety of `track_page_assets()` (atomic dict assignment)
-- **rendering(asset_extractor)**: verify stateless `extract_assets_from_html()` is thread-safe (new parser per call)
-- **tests(unit)**: add 5 tests for parallel asset tracking (sequential/parallel paths, edge cases, threshold behavior)
-- **plan**: remove completed parallel asset tracking RFC - work documented in changelog
+### 📦 Autodoc Improvements ✅
+- **autodoc(openapi)**: REST API layouts with three-panel scroll-sync navigation
+- **autodoc**: Migration from Jinja2 to Kida template engine
+- **filters(views)**: Add PostView, ReleaseView, AuthorView, TagView filters
+- **rendering(autodoc)**: Add MemberView, CommandView, OptionView for theme developers
+- **rendering(openapi)**: Add endpoints/schemas filters for normalized template access
 
-### CLI Analysis Improvements ✅
-- **cli**: promote `graph` to top-level command (`bengal graph`) alongside `bengal utils graph` for backward compatibility
-- **cli**: add `bengal analyze` alias for `bengal graph report` unified analysis command
-- **cli(graph)**: add `bengal graph report` unified command combining analyze, suggest, bridges, and communities
-- **cli(graph)**: add `bengal graph orphans` command with connectivity level filtering
-- **plan**: remove completed CLI analysis improvements RFC and plan - work documented in changelog
+### ⚡ Performance Improvements ✅
+- **health**: Remove redundant validators (saves 312ms/build)
+- **health(directives)**: Remove H207 rendering check (saves 1s/build)
+- **themes(docs-nav)**: Convert recursive include to macro (13x faster rendering)
+- **cache**: All auxiliary caches migrated to compressed `.json.zst` format
+- **perf**: ~40% reduction in `.bengal/` directory size (~2.8M savings)
 
-### Dashboard Content Enrichment ✅
-- **cli(dashboard/build)**: add `_get_build_stats_content()` method showing pages, assets, cache hit rate, memory, and build mode
-- **cli(dashboard/build)**: add build statistics panel with real-time stats display
-- **cli(dashboard/build)**: add phase profiling table with percentage columns and visual indicators
-- **cli(dashboard)**: enrich dashboards with actionable content and real-time statistics
-- **plan**: remove completed dashboard content enrichment RFC and plan - work documented in changelog
+### 🔍 Health Check Improvements ✅
+- **health**: Add H-prefix codes to all health check results (H0xx-H9xx schema)
+- **health**: Add `--ignore` CLI option for selective validation
+- **health(autofix)**: O(1) dict lookup for fence fixes
 
-### CLI Output Experience ✅
-- **output(icons)**: add ASCII-first icon policy with cat+mouse branding (`ᓚᘏᗢ` and `ᘛ⁐̤ᕐᐷ`)
-- **output(icons)**: implement `IconSet` class with ASCII defaults and optional emoji support via `BENGAL_EMOJI=1`
-- **output(core)**: adopt semantic styling with sentence case headers and consistent color tokens
-- **output**: add comprehensive CLI output conventions documentation (`bengal/output/README.md`)
-- **plan**: remove completed CLI output experience RFC - work documented in changelog
+### 🛠️ Template Functions ✅
+- **template_functions**: Add 13 new filters (dates, collections, sharing, archive helpers)
+- **core(page)**: Implement RFC Template Object Model Phase 1 — add `_source`, `word_count` properties
 
-### LazyLogger Pattern for Test Isolation ✅
-- **utils(logger)**: add `LazyLogger` transparent proxy for `BengalLogger` with registry version tracking
-- **utils(logger)**: refactor `get_logger()` to return `LazyLogger` proxy automatically (zero call-site changes)
-- **utils(logger)**: add `_registry_version` counter incremented on `reset_loggers()` to invalidate cached logger references
-- **utils(logger)**: add `_get_actual_logger()` internal factory for lazy logger instantiation
-- **tests(logging)**: simplify `fresh_logger_state` fixture - remove `importlib.reload()` hacks
-- **tests(conftest)**: remove `preserve_loggers` marker logic - LazyLogger handles isolation automatically
-- **plan**: remove completed lazy logger RFC and plan - work documented in changelog
+### 📝 Documentation Fixes ✅
+- **docs**: 15+ accuracy fixes across versioning, i18n, authoring, filtering, menus, sources, deployment, benchmarks
+- **docs(kida)**: Add Template Engine Concepts crash course
+- **docs(site)**: Add language designators to 62 code blocks for Rosettes highlighting
 
-### AST-Based Content Pipeline ✅
-- **rendering(ast_types)**: add `RawHTMLNode` for directive/prerendered content representation
-- **rendering(ast_types)**: add type guards `is_link()`, `is_image()`, `is_raw_html()` for type-safe AST traversal
-- **rendering(ast_utils)**: add `walk_ast()` generator for depth-first AST traversal
-- **rendering(ast_utils)**: add `extract_toc_from_ast()` for AST-based TOC extraction (replaces HTMLParser)
-- **rendering(ast_utils)**: add `extract_links_from_ast()` for link extraction from AST
-- **rendering(ast_utils)**: add `extract_plain_text()` for search indexing (replaces regex-based extraction)
-- **rendering(ast_utils)**: add `generate_heading_id()` for slug generation from heading nodes
-- **rendering(ast_transforms)**: add `transform_links_in_ast()` for type-safe link manipulation
-- **rendering(ast_transforms)**: add `normalize_md_links_in_ast()` for `.md` → clean URL conversion
-- **rendering(ast_transforms)**: add `add_baseurl_to_ast()` for baseurl prepending at AST level
-- **rendering(ast_transforms)**: add `transform_ast_for_output()` convenience function
-- **rendering(parsers/mistune)**: fix `create_ast_parser()` to filter renderer-dependent plugins (syntax highlighting)
-- **core(page/content)**: update `plain_text` property to use AST extraction when cache available
-- **core(page/content)**: migrate `_extract_text_from_ast()` and `_extract_links_from_ast()` to use ast_utils
-- **tests(unit)**: add 29 unit tests for `ast_utils` (walk, extract, generate)
-- **tests(unit)**: add 29 unit tests for `ast_transforms` (transform, normalize, baseurl)
-- **tests(integration)**: add 10 integration tests for AST pipeline (parsing, TOC, links, thread safety)
-- **docs(architecture)**: add `page.ast` and content representation properties to Content Processing API
-- **plan**: move rfc-ast-content-pipeline.md to ready with "Implemented" status
-
-### Configuration System Cleanup ✅
-- **config(defaults)**: add centralized `defaults.py` with ~300 lines of config defaults and helper functions
-- **config(defaults)**: add `get_max_workers()` auto-detection (CPU count - 1, min 4) adopted in 6+ files
-- **config(defaults)**: add `normalize_bool_or_dict()` for standardized bool/dict config handling
-- **config(defaults)**: add `is_feature_enabled()` and `get_feature_config()` feature flag helpers
-- **config(deprecation)**: add deprecation system with `check_deprecated_keys()`, `migrate_deprecated_keys()`, and warning output
-- **config(loader)**: register all config sections in `KNOWN_SECTIONS` (search, content, autodoc, i18n, graph, versioning)
-- **plan**: remove completed config-inventory.md - work documented in changelog
-
-### PageProxy Transparency Contract ✅
-- **core(page)**: add `PageProxy.plain_text` delegate for output formats compatibility
-- **tests(core)**: add PageProxy.plain_text unit tests verifying lazy-load behavior
-- **tests(integration)**: add PageProxy output-formats contract test
-- **plan**: remove completed plan-pageproxy-transparency-contract.md - work documented in changelog
-
-### Typography System Adoption ✅
-- **theme(fonts)**: add Instrument Serif as default display font with font-display: swap
-- **theme(typography)**: increase heading weights for stronger hierarchy (h1=800, h2=700, h3/h4=600)
-- **theme(typography)**: bump body line-height to 1.7 for improved readability
-- **theme(typography)**: align code block line-height with premium patterns (1.7)
-- **plan**: remove completed plan-typography-adoption.md - work documented in changelog
-
-### AI-Friendly Docstring Standards ✅
-- **docs(core)**: adopt AI-friendly docstring standards across core modules - module docstrings include Key Concepts, Related Modules, See Also sections
-- **docs(core)**: add Creation patterns, Attributes, Relationships, Thread Safety to class docstrings
-- **docs(core)**: add Performance notes, Examples, See Also to function docstrings
-- **docs(page_core)**: add comprehensive module docstring with architecture, DO/DON'T guidelines, step-by-step field addition instructions
-- **plan**: remove completed docstring-standards.md - work documented in changelog
-
-### Dev Server Modernization ✅
-- **server**: add process-isolated builds via `BuildExecutor` - builds run in subprocess for resilience (crashes don't take down server)
-- **server**: add `watchfiles` integration - Rust-based file watcher for 10-50x faster change detection
-- **server**: add pre/post build hooks - run custom commands via `pre_build` and `post_build` config options
-- **server**: add configurable ignore patterns - `exclude_patterns` (glob) and `exclude_regex` config options
-- **server**: add free-threading support - automatically uses threads instead of processes on Python 3.14+ with GIL disabled
-- **server**: remove unused `BENGAL_DEV_SERVER_V2` feature flag - all features are now default behavior
-- **plan**: remove completed dev server modernization plan - work documented in changelog
-
-### Documentation Cleanup ✅
-- **plan**: remove completed RFCs and plans (template-functions-robustness, template-error-collection, version-aware-section-methods) - work documented in changelog
-
-### Navigation Tree Architecture ✅
-- **core(nav_tree)**: add `NavTree` - pre-computed, cached navigation structure for O(1) template access
-- **core(nav_tree)**: add `NavNode` - memory-efficient navigation node with dict-like Jinja access (~200 bytes per node)
-- **core(nav_tree)**: add `NavTreeCache` - thread-safe per-version caching with site-level invalidation
-- **core(nav_tree)**: add `NavTreeContext` - per-page active trail overlay preserving cache immutability
-- **rendering(nav)**: refactor `get_nav_tree()` to delegate to `NavTreeCache`; preserve backward compatibility
-- **themes(docs)**: simplify `docs-nav.html` from 161 to ~50 lines using NavTree API
-- **rendering(nav)**: deprecate `NavTreeItem` in favor of `core.NavNode` (scheduled removal in v2.0)
-- **orchestration(incremental)**: invalidate `NavTreeCache` on structural changes
-- **tests(nav)**: add 26 unit tests for NavNode, NavTree, NavTreeContext, NavTreeCache
-- **tests(nav)**: add 9 integration tests for versioned site navigation
-- **perf(nav)**: add NavTree benchmarks; verify O(1) cache lookup (~232ns) and <1ms render overhead (~83μs)
-- **docs(architecture)**: add NavTree to object model documentation
-- **docs(themes)**: add NavTree migration guide for custom themes
+### 🔧 Core Changes ✅
+- **server**: Remove component preview feature
+- **core**: Remove module/package shadowing; delete unused backward-compat shims
+- **autodoc**: Remove backward compatibility aliases and legacy code
 
 ## 0.1.5-rc1 - 2025-12-10
 

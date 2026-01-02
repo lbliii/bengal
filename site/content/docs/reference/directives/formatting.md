@@ -37,7 +37,11 @@ Formatting directives provide styled components for badges, buttons, step-by-ste
 
 Create styled badges for labels, tags, or status indicators.
 
-**Aliases**: `{bdg}`
+**Aliases**: `bdg`
+
+:::{note}
+Bengal also supports **inline badge syntax**: `{bdg-primary}`text`` for embedding badges within paragraphs. See [Inline Elements](/docs/reference/inline/) for details.
+:::
 
 **Syntax**:
 
@@ -139,8 +143,8 @@ Icons are loaded from Bengal's theme assets. If an icon is not found, a placehol
 :::
 ```
 
-:::{tip}
-Use `bengal icons list` to see all available icons in your theme.
+:::{note}
+Icons are resolved from theme assets in this order: site → theme → parent theme → default. Available icons include `terminal`, `docs`, `bengal-rosette`, and any custom icons in your theme's `assets/icons/` directory.
 :::
 
 ## Button

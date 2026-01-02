@@ -138,7 +138,6 @@ define_collection(
     glob="**/*.md",              # File pattern (default: **/*.md)
     strict=True,                  # Reject unknown fields (default: True)
     allow_extra=False,            # Store extra fields (default: False)
-    transform=normalize_func,     # Transform before validation
     loader=github_loader(...),   # Remote content source
 )
 ```
@@ -200,14 +199,25 @@ collections = {
 Collections provide detailed validation errors:
 
 ```python
+from bengal.collections import ContentValidationError, SchemaValidator
+
+validator = SchemaValidator(BlogPost, strict=True)
+result = validator.validate(frontmatter_dict)
+
+if not result.valid:
+    for error in result.errors:
+        print(f"  {error.field}: {error.message}")
+```
+
+When validation fails during content discovery, Bengal raises `ContentValidationError`:
+
+```python
 from bengal.collections import ContentValidationError
 
-try:
-    page = validate_page(page, collection)
-except ContentValidationError as e:
-    print(f"Validation failed: {e}")
-    for error in e.errors:
-        print(f"  {error.field}: {error.message}")
+# ContentValidationError includes:
+# - path: Path to the content file
+# - errors: List of ValidationError instances
+# - collection_name: Name of the collection (if known)
 ```
 
 ## Standard Schemas Reference
@@ -222,6 +232,8 @@ class BlogPost:
     author: str = "Anonymous"
     tags: list[str] = field(default_factory=list)
     draft: bool = False
+    description: str | None = None
+    image: str | None = None
     excerpt: str | None = None
 ```
 
@@ -231,10 +243,13 @@ class BlogPost:
 @dataclass
 class DocPage:
     title: str
-    description: str | None = None
-    weight: int | None = None
+    weight: int = 0
+    category: str | None = None
     tags: list[str] = field(default_factory=list)
-    type: str | None = None
+    toc: bool = True
+    description: str | None = None
+    deprecated: bool = False
+    since: str | None = None
 ```
 
 ### Tutorial
@@ -243,8 +258,11 @@ class DocPage:
 @dataclass
 class Tutorial:
     title: str
-    description: str | None = None
+    difficulty: str | None = None
+    duration: str | None = None
     prerequisites: list[str] = field(default_factory=list)
+    tags: list[str] = field(default_factory=list)
+    series: str | None = None
     order: int | None = None
 ```
 

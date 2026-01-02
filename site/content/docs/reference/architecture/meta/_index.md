@@ -13,8 +13,7 @@ Operational details and project standards.
 
 | Area | Coverage | Approach |
 |------|----------|----------|
-| **Testing** | Unit + Integration | pytest, fixture-based |
-| **Performance** | Benchmarked | Build time, memory, incremental |
+| **Testing** | Unit + Integration + Benchmarks | pytest, fixture-based |
 | **Organization** | Documented | Clear module boundaries |
 
 ## Extension Points
@@ -27,6 +26,6 @@ Operational details and project standards.
 | **Post-process** | Custom processors | Output transformations |
 
 :::{seealso}
-- [Extension Points](extension-points/) — Hook documentation
-- [Testing](testing/) — Test patterns and fixtures
+- [Extension Points](extension-points.md) — Hook documentation
+- [Testing](testing.md) — Test patterns and fixtures
 :::

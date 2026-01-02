@@ -1,0 +1,285 @@
+---
+title: Build a Blog from Scratch
+nav_title: Build Blog
+description: Create, configure, and customize a personal blog from scratch
+weight: 10
+draft: false
+lang: en
+tags:
+- tutorial
+- beginner
+- blog
+- setup
+keywords:
+- tutorial
+- blog
+- getting started
+- python
+- ssg
+- setup
+category: tutorial
+---
+
+# Build a Blog in 15 Minutes
+
+In this tutorial, you will build a fully functional personal blog with Bengal. We will go from an empty folder to a running website with custom content, configuration, and theming.
+
+:::{note}
+**Who is this for?**
+This guide is for developers who want to see the full end-to-end workflow of Bengal. No prior experience with Bengal is required, but basic familiarity with the terminal is assumed.
+:::
+
+## Goal
+
+By the end of this tutorial, you will have:
+1.  Initialized a new Bengal project
+2.  Created blog posts with tags and categories
+3.  Configured site metadata and navigation
+4.  Customized the theme (without breaking updates)
+5.  Built the site for production
+
+## Prerequisites
+
+*   **Python 3.14+** installed (3.14t recommended for best performance)
+*   **Bengal** installed (`pip install bengal`)
+
+## Steps
+
+:::{steps}
+:::{step} Initialize Your Project
+:description: Set up the foundation for your blog with Bengal's CLI scaffolding.
+:duration: 2 min
+First, let's create a new site. Open your terminal and run:
+
+```bash
+# Create a new Bengal site
+bengal new site my-blog
+
+# Enter your site directory
+cd my-blog
+```
+
+You will see a structure like this:
+
+```tree
+my-blog/
+├── config/           # Configuration files
+│   ├── _default/     # Default settings
+│   └── environments/ # Environment-specific config
+├── content/          # Your markdown files
+├── assets/           # CSS, JS, images
+│   ├── css/
+│   ├── js/
+│   └── images/
+├── templates/        # Theme overrides
+└── .gitignore        # Git ignore file
+```
+
+:::{tip}
+**Why this structure?**
+Bengal uses a directory-based configuration system that separates default settings from environment-specific overrides. Your content lives in `content/` and custom styles in `assets/`.
+:::
+:::{/step}
+
+:::{step} Create Your First Post
+:description: Write and configure your first blog post with frontmatter metadata.
+:duration: 3 min
+Bengal provides a CLI to generate content with the correct frontmatter.
+
+```bash
+# Create a new blog post
+bengal new page "Hello World" --section blog
+```
+
+Open `content/blog/hello-world.md` in your editor. You'll see the **Frontmatter** (metadata) at the top:
+
+```yaml
+---
+title: Hello World
+date: 2023-10-27T14:30:00
+---
+
+# Hello World
+
+Your content goes here.
+```
+
+Update it to look like this:
+
+```yaml
+---
+title: "My First Bengal Post"
+date: 2023-10-27
+tags: ["python", "bengal"]
+category: "tech"
+---
+
+# Hello, World!
+
+This is my first post using **Bengal**, the Pythonic static site generator.
+
+## Why Bengal?
+
+*   It's fast ⚡️
+*   It uses Jinja2 templates 🐍
+*   It's easy to configure ⚙️
+```
+
+:::{tip}
+**Draft pages**
+Pages are published by default. Set `draft: true` in frontmatter to exclude a page from production builds. Draft pages are still visible in development mode (`bengal serve`).
+:::
+:::{/step}
+
+:::{step} Configure Your Site
+:description: Personalize your blog with site metadata and navigation menus.
+:duration: 3 min
+Now, let's give your site an identity. Open `config/_default/site.yaml` and update the basics.
+
+:::{tab-set}
+:::{tab-item} config/_default/site.yaml
+```yaml
+title: "My Awesome Blog"
+description: "Thoughts on code and coffee."
+baseurl: "https://example.com"
+author: "Jane Doe"
+language: "en"
+
+# Define navigation menu
+menu:
+  main:
+    - name: "Home"
+      url: "/"
+      weight: 1
+    - name: "Blog"
+      url: "/blog/"
+      weight: 2
+    - name: "About"
+      url: "/about/"
+      weight: 3
+```
+:::{/tab-item}
+
+:::{tab-item} Explanation
+*   **`title`, `description`**: Global metadata used by themes (SEO tags, header titles).
+*   **`menu.main`**: Defines the top navigation bar. Each item is an object in the `main` menu list.
+*   **`weight`**: Controls the sort order (lower numbers appear first).
+:::{/tab-item}
+:::{/tab-set}
+:::{/step}
+
+:::{step} Preview Your Site
+:description: Launch the dev server and see your blog come to life.
+:duration: 1 min
+Let's see what we have so far. Start the development server:
+
+```bash
+bengal serve
+```
+
+Open [http://localhost:5173](http://localhost:5173) in your browser.
+
+*   Navigate to "Blog" to see your "Hello World" post.
+*   Notice the site title and menu matches your configuration.
+
+:::{note}
+**Live Reload**
+Try editing `hello-world.md` while the server is running. Save the file, and the browser will automatically refresh with your changes!
+:::
+:::{/step}
+
+:::{step} Customize the Theme
+:description: Make your blog unique with custom styles and template overrides.
+:duration: 5 min
+:optional:
+You want your blog to stand out. Instead of forking the entire theme, we'll use **Theme Inheritance** to override just the parts we want to change.
+
+Let's change the header color and add a custom footer.
+
+**Create a Custom CSS File**
+
+Create `assets/css/custom.css`:
+
+```css
+/* assets/css/custom.css */
+:root {
+    --primary-color: #6c5ce7; /* Purple header */
+    --font-family: 'Helvetica Neue', sans-serif;
+}
+
+.custom-footer {
+    text-align: center;
+    padding: 2rem;
+    background: #f1f2f6;
+    margin-top: 4rem;
+}
+```
+
+**Override the Base Template**
+
+Create `templates/base.html`. We will extend the default theme and inject our changes.
+
+```html
+<!-- templates/base.html -->
+{% extends "default/base.html" %}
+
+{# Inject our custom CSS into the head #}
+{% block extra_head %}
+<link rel="stylesheet" href="{{ asset_url('css/custom.css') }}">
+{% end %}
+
+{# Add a custom footer after the main content #}
+{% block footer %}
+<footer class="custom-footer">
+    <p>
+        &copy; {{ site.build_time | dateformat('%Y') }} {{ site.author }}.
+        Built with <a href="https://bengal.dev">Bengal</a>.
+    </p>
+</footer>
+{% end %}
+```
+
+Check your browser. The header color should change (if the theme uses the `--primary-color` variable), and your custom footer should appear.
+
+:::{dropdown} How does this work?
+:icon: info
+Bengal looks for templates in your `templates/` folder first.
+*   `{% extends "default/base.html" %}` tells Bengal to load the *original* theme template first.
+*   `{% block %}` allows you to replace specific sections without copy-pasting the whole file.
+:::
+:::{/step}
+
+:::{step} Build for Production
+:description: Generate optimized static files ready for deployment.
+:duration: 1 min
+When you're ready to publish, build the static files.
+
+```bash
+bengal build
+```
+
+This creates a `public/` directory containing your complete website: HTML, CSS, and optimized images.
+
+**Review Build Output**
+
+```tree
+public/
+├── index.html
+├── blog/
+│   ├── index.html
+│   └── hello-world/
+│       └── index.html
+└── assets/
+    └── css/
+        └── custom.a1b2c3d4.css  # Fingerprinted for caching
+```
+:::{/step}
+:::{/steps}
+
+## Next Steps
+
+Congratulations! You've built a custom blog. Here is where to go next:
+
+*   **[[docs/building/deployment|Deployment Guide]]**: Learn how to host on GitHub Pages or Netlify.
+*   **[[docs/theming/themes/customize|Theme Customization]]**: Deep dive into template overrides.
+*   **[[docs/building/configuration|Configuration Reference]]**: Explore all available settings.

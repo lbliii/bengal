@@ -65,10 +65,10 @@ Integrate external tools by adding hooks to your `bengal.toml`:
 
 ```toml
 [dev_server]
-pre_build_hooks = [
+pre_build = [
     "npx tailwindcss -i src/input.css -o assets/style.css"
 ]
-post_build_hooks = [
+post_build = [
     "echo 'Build complete!'"
 ]
 ```

@@ -1,6 +1,6 @@
-"""Function and macro statement compilation for Kida compiler.
+"""Function statement compilation for Kida compiler.
 
-Provides mixin for compiling function/macro statements (macro, def, call_block, slot).
+Provides mixin for compiling function statements (def, call_block, slot).
 """
 
 from __future__ import annotations
@@ -13,143 +13,13 @@ if TYPE_CHECKING:
 
 
 class FunctionCompilationMixin:
-    """Mixin for compiling function and macro statements.
+    """Mixin for compiling function statements.
 
     Required Host Attributes:
         - _locals: set[str]
         - _compile_expr: method (from ExpressionCompilationMixin)
         - _compile_node: method (from core)
     """
-
-    def _compile_macro(self, node: Any) -> list[ast.stmt]:
-        """Compile {% macro name(args) %}...{% endmacro %.
-
-        Generates a function and assigns it to context:
-            def _macro_name(arg1, arg2=default):
-                buf = []
-                ... body ...
-                return ''.join(buf)
-            ctx['name'] = _macro_name
-
-        Macros have access to outer context variables but create a local scope
-        for their arguments. Local {% set %} inside macro shadows outer vars.
-        """
-        macro_name = node.name
-        func_name = f"_macro_{macro_name}"
-
-        # Build function arguments - include _outer_ctx for closure access
-        args_list = [ast.arg(arg=name) for name in node.args]
-        defaults = [self._compile_expr(d) for d in node.defaults]
-
-        # Build function body
-        func_body: list[ast.stmt] = [
-            # _e = _escape
-            ast.Assign(
-                targets=[ast.Name(id="_e", ctx=ast.Store())],
-                value=ast.Name(id="_escape", ctx=ast.Load()),
-            ),
-            # _s = _str
-            ast.Assign(
-                targets=[ast.Name(id="_s", ctx=ast.Store())],
-                value=ast.Name(id="_str", ctx=ast.Load()),
-            ),
-            # buf = []
-            ast.Assign(
-                targets=[ast.Name(id="buf", ctx=ast.Store())],
-                value=ast.List(elts=[], ctx=ast.Load()),
-            ),
-            # _append = buf.append
-            ast.Assign(
-                targets=[ast.Name(id="_append", ctx=ast.Store())],
-                value=ast.Attribute(
-                    value=ast.Name(id="buf", ctx=ast.Load()),
-                    attr="append",
-                    ctx=ast.Load(),
-                ),
-            ),
-            # Create local context by copying outer context + adding macro args
-            # ctx = {**_outer_ctx, **{arg1: arg1, arg2: arg2}}
-            ast.Assign(
-                targets=[ast.Name(id="ctx", ctx=ast.Store())],
-                value=ast.Dict(
-                    keys=[None, None],  # Spread operators
-                    values=[
-                        ast.Name(id="_outer_ctx", ctx=ast.Load()),
-                        ast.Dict(
-                            keys=[ast.Constant(value=name) for name in node.args],
-                            values=[ast.Name(id=name, ctx=ast.Load()) for name in node.args],
-                        ),
-                    ],
-                ),
-            ),
-        ]
-
-        # Add macro args to locals
-        for arg_name in node.args:
-            self._locals.add(arg_name)
-
-        # Compile macro body
-        for child in node.body:
-            func_body.extend(self._compile_node(child))
-
-        # Remove macro args from locals
-        for arg_name in node.args:
-            self._locals.discard(arg_name)
-
-        # return _Markup(''.join(buf))
-        # Wrap output in Markup to prevent double-escaping
-        func_body.append(
-            ast.Return(
-                value=ast.Call(
-                    func=ast.Name(id="_Markup", ctx=ast.Load()),
-                    args=[
-                        ast.Call(
-                            func=ast.Attribute(
-                                value=ast.Constant(value=""),
-                                attr="join",
-                                ctx=ast.Load(),
-                            ),
-                            args=[ast.Name(id="buf", ctx=ast.Load())],
-                            keywords=[],
-                        ),
-                    ],
-                    keywords=[],
-                ),
-            )
-        )
-
-        # Create function definition with _outer_ctx as keyword-only arg with default
-        # This captures the current context at macro definition time for closure behavior
-        func_def = ast.FunctionDef(
-            name=func_name,
-            args=ast.arguments(
-                posonlyargs=[],
-                args=args_list,
-                vararg=None,
-                kwonlyargs=[ast.arg(arg="_outer_ctx")],
-                kw_defaults=[ast.Name(id="ctx", ctx=ast.Load())],  # Default to current ctx
-                kwarg=None,
-                defaults=defaults,
-            ),
-            body=func_body,
-            decorator_list=[],
-            returns=None,
-        )
-
-        # Assign to context BEFORE the function is fully compiled
-        # This enables recursive calls: ctx['name'] = _macro_name
-        assign = ast.Assign(
-            targets=[
-                ast.Subscript(
-                    value=ast.Name(id="ctx", ctx=ast.Load()),
-                    slice=ast.Constant(value=macro_name),
-                    ctx=ast.Store(),
-                )
-            ],
-            value=ast.Name(id=func_name, ctx=ast.Load()),
-        )
-
-        return [func_def, assign]
 
     def _compile_def(self, node: Any) -> list[ast.stmt]:
         """Compile {% def name(args) %}...{% enddef %.

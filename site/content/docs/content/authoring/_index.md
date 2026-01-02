@@ -146,6 +146,10 @@ This is a beta release.
 {% end %}
 ```
 
+:::{note}
+Bengal uses Kida templating which supports both `{% end %}` (unified syntax) and `{% endif %}` (Jinja-compatible). Use whichever you prefer.
+:::
+
 ### Available Variables
 
 | Variable | Source | Example |
@@ -155,7 +159,7 @@ This is a beta release.
 | `{{ product_name }}` | Frontmatter | Direct access to any frontmatter key |
 | `{{ params.key }}` | Frontmatter | Hugo-style access via `params` |
 | `{{ site.title }}` | Site config | `{{ site.title }}` |
-| `{{ config.baseurl }}` | Site config | `{{ config.baseurl }}` |
+| `{{ site.baseurl }}` | Site config | `{{ site.baseurl }}` |
 
 ### Cascaded Variables
 
@@ -192,11 +196,11 @@ Bengal provides 40+ directives organized by category:
 | **Layout** | `tabs`, `tab-set`, `cards`, `card`, `child-cards`, `grid`, `container`, `steps`, `step`, `dropdown` |
 | **Tables** | `list-table`, `data-table` |
 | **Code** | `code-tabs`, `literalinclude` |
-| **Media** | `youtube`, `vimeo`, `video`, `audio`, `figure`, `gallery` |
-| **Embeds** | `gist`, `codepen`, `codesandbox`, `stackblitz`, `asciinema` |
+| **Media** | `youtube`, `vimeo`, `tiktok`, `video`, `audio`, `figure`, `gallery` |
+| **Embeds** | `gist`, `codepen`, `codesandbox`, `stackblitz`, `asciinema`, `spotify`, `soundcloud` |
 | **Navigation** | `breadcrumbs`, `siblings`, `prev-next`, `related` |
 | **Versioning** | `since`, `deprecated`, `changed` |
-| **Utilities** | `badge`, `button`, `icon`, `rubric`, `target`, `include`, `glossary`, `checklist` |
+| **Utilities** | `badge`, `button`, `icon`, `rubric`, `target`, `include`, `glossary`, `checklist`, `marimo` |
 
 ::::{seealso}
 - [[docs/reference/directives|Directives Reference]] — Complete directive documentation

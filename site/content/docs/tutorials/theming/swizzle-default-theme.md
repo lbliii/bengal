@@ -1,0 +1,578 @@
+---
+title: Swizzle and Customize the Default Theme
+nav_title: Swizzle Theme
+description: Learn to copy and customize theme templates without breaking updates
+weight: 20
+draft: false
+lang: en
+tags:
+- tutorial
+- theming
+- templates
+- customization
+keywords:
+- tutorial
+- swizzle
+- theme
+- templates
+- customization
+- default theme
+category: tutorial
+---
+
+# Swizzle and Customize the Default Theme
+
+In this tutorial, you'll learn how to **swizzle** (copy) templates from Bengal's default theme into your project, customize them, and keep them updated. By the end, you'll have a personalized site that inherits from the default theme while allowing you to make targeted customizations.
+
+:::{note}
+**Who is this for?**
+This tutorial is for developers who want to customize Bengal's default theme without forking it entirely. You should have basic familiarity with HTML and Jinja2 templates. No prior experience with swizzling is required.
+:::
+
+## Goal
+
+By the end of this tutorial, you will:
+
+1. Understand what swizzling is and why it's useful
+2. Discover available templates in the default theme
+3. Swizzle specific templates to your project
+4. Customize swizzled templates to match your needs
+5. Track and update swizzled templates safely
+6. Build a working customized site
+
+## Prerequisites
+
+- **Python 3.14+** installed
+- **Bengal** installed (`pip install bengal` or `uv add bengal`)
+- A Bengal site initialized (run `bengal new site mysite` if you haven't already)
+- Basic knowledge of HTML and Jinja2 templates
+
+## What is Swizzling?
+
+**Swizzling** is the process of copying a template from a theme into your project's `templates/` directory. Once swizzled, you can customize the template without modifying the original theme files.
+
+### Why Swizzle?
+
+- **Safe customization**: Modify templates without touching installed theme files
+- **Update-friendly**: Track which templates you've customized
+- **Selective changes**: Only copy what you need to change
+- **Provenance tracking**: Bengal remembers where templates came from
+
+### How It Works
+
+When Bengal renders a page, it looks for templates in this order:
+
+1. **Your project** → `{site.root_path}/templates/` (highest priority)
+2. **Installed themes** → Theme packages
+3. **Bundled themes** → Built-in themes like `default`
+
+If you swizzle a template, your version in `templates/` takes precedence. Everything else continues to use the theme's original templates.
+
+:::{steps}
+:::{step} Set Up Your Project
+:description: Create or use an existing Bengal site as your starting point.
+:duration: 2 min
+Let's start with a fresh Bengal site. If you already have one, you can use it.
+
+```bash
+# Create a new Bengal site
+bengal new site my-custom-site
+cd my-custom-site
+```
+
+You should see this structure:
+
+```tree
+my-custom-site/
+├── config/           # Configuration directory
+│   └── _default/     # Default environment settings
+├── content/          # Your markdown files
+├── assets/           # CSS, JS, images
+├── templates/        # Template overrides (empty initially)
+└── .gitignore
+```
+
+:::{tip}
+**Why `templates/` is empty**
+The `templates/` directory starts empty because Bengal uses templates from the default theme. Once you swizzle templates here, they'll override the theme versions.
+:::
+:::{/step}
+
+:::{step} Discover Swizzlable Templates
+:description: Explore the default theme's template structure to plan your customizations.
+:duration: 3 min
+Before swizzling, let's see what templates are available in the default theme.
+
+```bash
+bengal utils theme discover
+```
+
+This lists all templates you can swizzle. You'll see output like:
+
+```text
+404.html
+base.html
+page.html
+partials/action-bar.html
+partials/navigation-components.html
+partials/search-modal.html
+partials/search.html
+...
+```
+
+**Understanding Template Structure**
+
+The default theme organizes templates into:
+
+- **Root templates**: `base.html`, `page.html`, `404.html` — Main page templates
+- **Partials**: `partials/*.html` — Reusable components (navigation, search, etc.)
+- **Content types**: `blog/`, `doc/`, `autodoc/python/` — Type-specific templates
+
+:::{dropdown} What should I swizzle?
+:icon: info
+**Start small**: Swizzle only what you need to customize. Common starting points:
+- `partials/navigation-components.html` — Navigation menus
+- `partials/search.html` — Search functionality
+- `base.html` — Site-wide layout
+- `page.html` — Individual page layout
+:::
+:::{/step}
+
+:::{step} Swizzle Your First Template
+:description: Copy a theme template to your project for customization.
+:duration: 2 min
+Let's swizzle the navigation components template. This is a good starting point because navigation is often customized.
+
+```bash
+bengal utils theme swizzle partials/navigation-components.html
+```
+
+You should see:
+
+```text
+✓ Swizzled to /path/to/my-custom-site/templates/partials/navigation-components.html
+```
+
+**Verify the Swizzle**
+
+Check that the file was created:
+
+```bash
+ls -la templates/partials/
+```
+
+You should see `navigation-components.html` in your project's `templates/partials/` directory.
+
+**Check Swizzle Registry**
+
+Bengal tracks swizzled templates in `.bengal/themes/sources.json`. Let's see what's tracked:
+
+```bash
+bengal utils theme swizzle-list
+```
+
+Output:
+
+```text
+- partials/navigation-components.html (from default)
+```
+
+This confirms Bengal knows where the template came from.
+:::{/step}
+
+:::{step} Customize Your Swizzled Template
+:description: Make targeted changes to the copied template.
+:duration: 5 min
+Now let's customize the navigation. Open `templates/partials/navigation-components.html` in your editor.
+
+**Understand the Template Structure**
+
+The file contains template functions (macros) for navigation components. The exact structure depends on your theme version, but you'll typically find functions for breadcrumbs, menus, and navigation items.
+
+To customize breadcrumbs, search for a function like `breadcrumbs` or look for separator elements. The structure might look like:
+
+```kida
+{% def breadcrumbs(page) %}
+  <nav class="breadcrumbs">
+    {% for item in page.get_breadcrumbs() %}
+      {% if not loop.last %}
+        <a href="{{ item.url | absolute_url }}">{{ item.title }}</a>
+        <span class="separator">/</span>
+      {% else %}
+        <span class="current">{{ item.title }}</span>
+      {% end %}
+    {% end %}
+  </nav>
+{% end %}
+```
+
+:::{note}
+**Kida vs Jinja2 syntax**
+Bengal uses Kida templates by default, but Kida can parse Jinja2 syntax. The examples here use Kida's unified `{% end %}` syntax, but if your theme uses Jinja2 syntax (`{% endif %}`, `{% endfor %}`), that works too.
+:::
+
+**Make a Simple Change**
+
+Find the separator element and change it from `/` to `→`:
+
+```kida
+<span class="separator">→</span>
+```
+
+Save the file and preview your site:
+
+Navigate to a page with breadcrumbs and verify the separator changed. The dev server automatically reloads when you save template files.
+
+:::{tip}
+**Live reload**
+The dev server watches for file changes. Save your template and refresh the browser to see changes immediately.
+:::
+:::{/step}
+
+:::{step} Swizzle and Customize Multiple Templates
+:description: Apply the same pattern to additional components.
+:duration: 5 min
+:optional:
+Let's swizzle the search modal and customize it.
+
+**Swizzle the Search Modal**
+
+```bash
+bengal utils theme swizzle partials/search-modal.html
+```
+
+**Customize the Search Modal**
+
+Open `templates/partials/search-modal.html` in your editor. Common customizations include:
+
+- Change the placeholder text
+- Modify CSS classes for styling
+- Add custom search behavior or attributes
+
+**Example: Change Placeholder Text**
+
+Find the search input field (look for `<input type="search">`):
+
+```kida
+<!-- Find the input field -->
+<input
+  type="search"
+  placeholder="Search the site..."
+  class="search-input"
+>
+```
+
+Change the placeholder attribute:
+
+```kida
+<input
+  type="search"
+  placeholder="Find anything..."
+  class="search-input"
+>
+```
+
+**Verify Your Changes**
+
+Check your swizzled templates:
+
+```bash
+bengal utils theme swizzle-list
+```
+
+You should see both templates:
+
+```text
+- partials/navigation-components.html (from default)
+- partials/search-modal.html (from default)
+```
+:::{/step}
+
+:::{step} Understand Template Inheritance
+:description: Learn a lighter-weight alternative to full swizzling.
+:duration: 5 min
+:optional:
+Swizzling copies the entire template. But you can also use **template inheritance** to override only specific parts.
+
+**Swizzle the Base Template**
+
+```bash
+bengal utils theme swizzle base.html
+```
+
+**Use Inheritance Instead**
+
+Instead of modifying the entire `base.html`, you can create a minimal override that extends the original theme template:
+
+```kida
+<!-- templates/base.html -->
+{% extends "default/base.html" %}
+
+{# Override only the header block #}
+{% block header %}
+<header class="custom-header">
+  <h1>{{ site.title }}</h1>
+  <nav>
+    {% for item in menu.main %}
+    <a href="{{ item.url }}">{{ item.name }}</a>
+    {% end %}
+  </nav>
+</header>
+{% end %}
+
+{# Everything else inherits from default/base.html #}
+```
+
+This approach:
+- Keeps your template minimal (only what you override)
+- Makes updates easier (most of the template stays in the theme)
+- Reduces maintenance burden
+
+:::{warning}
+**Full swizzle vs. inheritance**
+
+Choose the right approach based on your needs:
+
+- **Full swizzle**: Copy entire template
+  - ✅ Full control over all template code
+  - ❌ Harder to update when theme changes
+  - Use when: You need extensive customizations or structural changes
+
+- **Inheritance**: Override specific blocks only
+  - ✅ Easier to maintain and update
+  - ✅ Minimal code to manage
+  - ❌ Limited to block-level overrides
+  - Use when: You only need to customize specific sections
+
+Start with inheritance if possible, then swizzle if you need more control.
+:::
+:::{/step}
+
+:::{step} Track and Update Swizzled Templates
+:description: Keep your customizations maintainable as the theme evolves.
+:duration: 3 min
+Bengal tracks which templates you've swizzled and whether you've modified them. This helps you update templates safely.
+
+**How Modification Detection Works**
+
+When you swizzle a template, Bengal records a checksum of the copied file. If you later modify the template locally, Bengal detects the change by comparing checksums.
+
+The `swizzle-update` command only updates templates where your local file matches the original swizzled checksum (meaning you haven't modified it):
+
+```bash
+bengal utils theme swizzle-update
+```
+
+Output:
+
+```text
+Updated: 0, Skipped (changed): 2, Missing upstream: 0
+```
+
+This means:
+- **Updated: 0** — No templates were updated (you've modified them)
+- **Skipped (changed): 2** — Two templates were skipped because you changed them
+- **Missing upstream: 0** — All source templates still exist
+
+**Update Conditions**
+
+Templates are updated only when all of these conditions are met:
+1. The local file matches the original swizzled checksum (you haven't modified it)
+2. The upstream template in the theme has changed since you swizzled it
+3. The source template still exists in the theme
+
+This prevents overwriting your customizations. Modified templates are skipped automatically.
+:::{/step}
+
+:::{step} Build and Test
+:description: Generate production files and verify your customizations work.
+:duration: 2 min
+Let's build your customized site and verify everything works.
+
+**Build for Production**
+
+```bash
+bengal build
+```
+
+This generates static files in `public/` using your swizzled templates.
+
+**Verify Customizations**
+
+1. **Check navigation**: Breadcrumbs should use `→` instead of `/`
+2. **Check search**: Search placeholder should say "Find anything..."
+3. **Check structure**: Site should render correctly
+
+**Review Build Output**
+
+```tree
+public/
+├── index.html
+├── static/
+│   └── css/
+│       └── ...
+└── ...
+```
+
+Your customizations are baked into the HTML files.
+:::{/step}
+:::{/steps}
+
+## Best Practices
+
+### 1. Swizzle Only What You Need
+
+Don't swizzle everything at once. Start with one template, customize it, then move to the next.
+
+```bash
+# ✅ Good: Swizzle one at a time
+bengal utils theme swizzle partials/navigation-components.html
+# Customize it
+# Then swizzle the next one
+
+# ❌ Avoid: Swizzling everything
+# bengal utils theme swizzle base.html
+# bengal utils theme swizzle page.html
+# bengal utils theme swizzle partials/*.html
+# (Too many files to maintain)
+```
+
+### 2. Document Your Changes
+
+Add comments in swizzled templates explaining why you changed something. This helps you remember the reason later and helps others understand your customizations:
+
+```kida
+{# Custom: Changed separator from '/' to '→' for better visual hierarchy #}
+<span class="separator">→</span>
+```
+
+Comments also make it easier to re-apply changes if you need to re-swizzle a template.
+
+### 3. Use Template Inheritance When Possible
+
+If you only need to override a block, use inheritance instead of full swizzle. This keeps your templates minimal and easier to maintain:
+
+```kida
+{# ✅ Good: Override only what's needed #}
+{% extends "default/base.html" %}
+{% block header %}
+  {# Your custom header code #}
+{% end %}
+
+{# ❌ Avoid: Copying entire template when you only need one block #}
+{# This creates unnecessary maintenance burden #}
+```
+
+Inheritance is especially useful for:
+- Overriding header/footer sections
+- Customizing specific page blocks
+- Adding site-wide elements without copying entire templates
+
+### 4. Keep Swizzled Templates Updated
+
+Periodically run `swizzle-update` to get bug fixes and improvements:
+
+```bash
+# Check what would be updated
+bengal utils theme swizzle-update
+
+# Review changes, then rebuild
+bengal build
+```
+
+### 5. Test After Updates
+
+After updating templates, test your site:
+
+```bash
+bengal serve
+# Navigate through your site
+# Verify customizations still work
+```
+
+## Troubleshooting
+
+:::{dropdown} Template Not Found
+:icon: alert
+
+**Issue**: `FileNotFoundError: Template not found in theme chain`
+
+**Solution**: Verify the template path:
+
+```bash
+# List available templates
+bengal utils theme discover
+
+# Use the exact path shown
+bengal utils theme swizzle partials/navigation-components.html
+```
+:::
+
+:::{dropdown} Changes Not Appearing
+:icon: alert
+
+**Issue**: Customizations don't show up after swizzling
+
+**Solutions**:
+
+- Clear cache: `bengal clean --cache`
+- Restart dev server: Stop and restart `bengal serve`
+- Check file location: Ensure template is in `templates/` (not `themes/`)
+:::
+
+:::{dropdown} Swizzle Update Overwrites Changes
+:icon: alert
+
+**Issue**: `swizzle-update` overwrote your customizations
+
+**Solution**: This shouldn't happen if you've modified the file. If it does:
+
+- Check `.bengal/themes/sources.json` for the checksum
+- Restore from git if you use version control
+- Re-apply your customizations
+:::
+
+:::{dropdown} Template Inheritance Not Working
+:icon: alert
+
+**Issue**: `{% extends "default/base.html" %}` doesn't work
+
+**Solutions**:
+
+- Verify theme name: Use `bengal utils theme info default` to confirm
+- Check syntax: Use `"default/base.html"` format (theme name, forward slash, template path)
+- Verify template exists: Use `bengal utils theme discover` to list available templates
+- Clear cache: `bengal clean --cache`
+:::
+
+## What You've Learned
+
+In this tutorial, you:
+
+1. ✅ Discovered available templates with `bengal utils theme discover`
+2. ✅ Swizzled templates with `bengal utils theme swizzle`
+3. ✅ Customized swizzled templates to match your needs
+4. ✅ Tracked swizzled templates with `bengal utils theme swizzle-list`
+5. ✅ Updated templates safely with `bengal utils theme swizzle-update`
+6. ✅ Built a customized site using swizzled templates
+
+## Next Steps
+
+Now that you can swizzle templates, explore further:
+
+- **[Theme Customization Guide](/docs/theming/themes/customize/)** — Deep dive into advanced customization techniques
+- **[Template Reference](/docs/theming/templating/)** — Learn about Kida templates and available functions
+- **[Variables Reference](/docs/reference/theme-variables/)** — Discover all template variables available
+- **[Assets Guide](/docs/theming/assets/)** — Customize CSS and JavaScript
+
+## Summary
+
+Swizzling lets you customize Bengal's default theme safely:
+
+- **Discover** templates with `bengal utils theme discover`
+- **Swizzle** templates with `bengal utils theme swizzle <path>`
+- **Customize** swizzled templates in `templates/`
+- **Track** swizzled templates with `bengal utils theme swizzle-list`
+- **Update** safely with `bengal utils theme swizzle-update`
+
+Your customizations are preserved while you can still benefit from theme updates. Use template inheritance when possible to minimize maintenance overhead.

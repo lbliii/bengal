@@ -127,7 +127,7 @@ Kida is Bengal's default template engine:
 
 :::{card} Kida Tutorial
 :icon: notepad
-:link: /docs/tutorials/getting-started-with-kida/
+:link: /docs/tutorials/theming/getting-started-with-kida/
 :description: Learn Kida from scratch
 :::{/card}
 

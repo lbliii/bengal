@@ -438,4 +438,4 @@ build:
 
 - [Configuration](/docs/building/configuration/) - How config works
 - [Configuration System](/docs/reference/architecture/tooling/config/) - Architecture details
-- [Scaffold Tutorial](/docs/tutorials/scaffold-your-site/) - Step-by-step guide
+- [Scaffold Tutorial](/docs/get-started/scaffold-your-site/) - Step-by-step guide

@@ -39,7 +39,6 @@ _BLOCK_PARSERS: dict[str, str] = {
     "extends": "_parse_extends",
     "include": "_parse_include",
     "import": "_parse_import",
-    "macro": "_parse_macro",
     "from": "_parse_from_import",
     # Scope and execution
     "with": "_parse_with",
@@ -66,7 +65,6 @@ _END_KEYWORDS: frozenset[str] = frozenset(
         "endif",
         "endfor",
         "endblock",
-        "endmacro",
         "endwith",
         "endraw",
         "end",
@@ -187,7 +185,7 @@ class StatementParsingMixin:
         """Parse block content after BLOCK_BEGIN is consumed.
 
         This is split from _parse_block so it can be reused in contexts
-        where BLOCK_BEGIN is already consumed (e.g., inside macro bodies).
+        where BLOCK_BEGIN is already consumed (e.g., inside function bodies).
 
         Uses dispatch table pattern for O(1) keyword lookup instead of
         20+ elif branches. See RFC: rfc-code-smell-remediation.md §1.1

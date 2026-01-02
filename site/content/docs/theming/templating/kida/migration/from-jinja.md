@@ -84,7 +84,12 @@ Migrate templates incrementally, starting with:
 {# Available throughout template #}
 ```
 
-**Migration**: Replace `{% set %}` with `{% let %}` for template-wide variables. Keep `{% set %}` for block-scoped variables.
+**Migration**: Replace `{% set %}` with `{% let %}` for template-wide variables. Keep `{% set %}` for block-scoped variables (variables that should only exist within a specific block).
+
+**Scoping Differences**:
+- `{% let %}`: Template-scoped (available throughout template)
+- `{% set %}`: Block-scoped (only available within the block)
+- `{% export %}`: Promotes variables from inner scopes to template scope
 
 ### Pattern Matching
 
@@ -124,12 +129,20 @@ Migrate templates incrementally, starting with:
 {{ items | selectattr('published') | sort(attribute='date') | first }}
 ```
 
-**Kida**:
+**Kida** (Jinja2-compatible filters):
+```kida
+{{ items |> selectattr('published') |> sort(attribute='date') |> first }}
+```
+
+**Kida** (Bengal template functions - default):
 ```kida
 {{ items |> where('published', true) |> sort_by('date') |> first }}
 ```
 
-**Migration**: Replace `|` with `|>` and use Kida filter names (`where` instead of `selectattr`, `sort_by` instead of `sort`).
+**Migration**:
+- Replace `|` with `|>` for the pipeline operator
+- Kida supports Jinja2 filters (`selectattr`, `sort`) for compatibility
+- Bengal provides simpler alternatives (`where`, `sort_by`) that are recommended for new code
 
 ### Fallback Values
 
@@ -182,7 +195,11 @@ Migrate templates incrementally, starting with:
 {% end %}
 ```
 
-**Migration**: Replace `{% endcache %}` with `{% end %}`. Add TTL support: `{% cache "key", ttl="5m" %}`.
+**Migration**: Replace `{% endcache %}` with `{% end %}`.
+
+:::{note}
+**Cache TTL**: Fragment cache TTL is configured at the environment level in `bengal.yaml`, not per-key. Set `kida.fragment_ttl` (in seconds) to control cache expiration for all fragments.
+:::
 
 ## Step-by-Step Migration
 
@@ -250,13 +267,23 @@ Find long `if/elif` chains:
 
 ### Step 6: Update Filter Chains
 
-Replace filter syntax:
+Replace filter syntax (two options):
 
+**Option 1: Keep Jinja2 filters, change operator**:
 ```kida
 {# Before #}
 {{ items | selectattr('published') | sort(attribute='date') }}
 
-{# After #}
+{# After (Jinja2-compatible) #}
+{{ items |> selectattr('published') |> sort(attribute='date') }}
+```
+
+**Option 2: Use Bengal template functions (recommended)**:
+```kida
+{# Before #}
+{{ items | selectattr('published') | sort(attribute='date') }}
+
+{# After (Bengal functions) #}
 {{ items |> where('published', true) |> sort_by('date') }}
 ```
 
@@ -286,16 +313,57 @@ bengal build
 bengal serve
 ```
 
+## Functions vs Filters
+
+Bengal distinguishes between **filters** (transform values) and **functions** (standalone operations).
+
+**Jinja2** mixes both:
+```jinja
+{{ items | selectattr('published') }}  {# Filter #}
+{{ range(10) }}                        {# Function #}
+```
+
+**Bengal** separates them:
+```kida
+{{ items |> where('published', true) }}  {# Filter #}
+{{ get_page('path') }}                   {# Function #}
+```
+
+**When migrating:**
+- Jinja2 filters → Bengal filters (use `|` or `|>`)
+- Jinja2 functions → Bengal functions (direct call)
+
+See [Functions vs Filters](/docs/reference/template-functions/#functions-vs-filters-understanding-the-difference) for complete explanation.
+
 ## Filter Name Mapping
+
+Kida supports Jinja2 filters for compatibility, and Bengal provides additional template functions:
+
+### Jinja2-Compatible Filters
+
+Kida uses the same filter names as Jinja2. The main difference is the pipeline operator `|>` instead of `|`:
 
 | Jinja2 Filter | Kida Filter | Notes |
 |--------------|------------|-------|
-| `selectattr('key')` | `where('key', true)` | Boolean check |
-| `selectattr('key', 'eq', val)` | `where('key', val)` | Equality |
-| `sort(attribute='key')` | `sort_by('key')` | Sort ascending |
-| `sort(attribute='key', reverse=true)` | `sort_by('key', reverse=true)` | Sort descending |
-| `first(n)` | `take(n)` | Get first n items |
-| `last(n)` | `take(n) |> reverse` | Get last n items |
+| `selectattr('key')` | `selectattr('key')` | Same name, use `|>` operator |
+| `selectattr('key', 'eq', val)` | `selectattr('key', 'eq', val)` | Same name, use `|>` operator |
+| `sort(attribute='key')` | `sort(attribute='key')` | Same name, use `|>` operator |
+| `sort(attribute='key', reverse=true)` | `sort(attribute='key', reverse=true)` | Same name, use `|>` operator |
+
+### Bengal Template Functions (Recommended)
+
+Bengal provides simpler alternatives that work with both `|` and `|>`:
+
+| Jinja2 Filter | Bengal Function | Notes |
+| --- | --- | --- |
+| `selectattr('key', 'eq', val)` | `where('key', val)` | Simpler syntax, supports operators (`'eq'`, `'ne'`, `'gt'`, `'in'`, etc.) |
+| `sort(attribute='key')` | `sort_by('key')` | Simpler syntax, supports `reverse=true` |
+| `first(n)` | `take(n)` | Different name: use `take` instead of `first` |
+| `last(n)` | `take(n) |> reverse` | Different name: use `take` with `reverse` |
+
+:::{note}
+**Template Functions**: `where`, `sort_by`, `take`, and other collection functions are Bengal template functions automatically available in all templates. They work with both `|` (Jinja2-style) and `|>` (Kida pipeline) operators.
+:::
 
 ## Common Patterns
 
@@ -306,12 +374,20 @@ bengal serve
 {% set posts = site.pages | selectattr('type', 'eq', 'blog') | selectattr('draft', 'eq', false) | sort(attribute='date', reverse=true) %}
 ```
 
-**Kida**:
+**Kida** (using Bengal template functions - default):
 ```kida
 {% let posts = site.pages
   |> where('type', 'blog')
   |> where('draft', false)
   |> sort_by('date', reverse=true) %}
+```
+
+**Kida** (using Jinja2-compatible filters):
+```kida
+{% let posts = site.pages
+  |> selectattr('type', 'eq', 'blog')
+  |> selectattr('draft', 'eq', false)
+  |> sort(attribute='date', reverse=true) %}
 ```
 
 ### Conditional Rendering
@@ -402,6 +478,32 @@ Kida is stricter than Jinja2. Check:
 
 ## Common Migration Gotchas
 
+### Macros Not Supported
+
+Kida does not support Jinja2's `{% macro %}` syntax. Use `{% def %}` instead, which provides lexical scoping (functions can access outer variables).
+
+**Jinja2** (not supported in Kida):
+```jinja
+{% macro hello(name) %}
+  Hello {{ name }}
+{% endmacro %}
+{{ hello('World') }}
+```
+
+**Kida** (use `{% def %}` instead):
+```kida
+{% def hello(name) %}
+  Hello {{ name }}
+{% enddef %}
+{{ hello('World') }}
+```
+
+**Key Difference**: `{% def %}` functions have access to outer template variables (like `site` and `config`), while Jinja2 macros are isolated. This means you don't need to pass common variables as parameters.
+
+:::{note}
+**Need full Jinja2 compatibility?** If your templates rely heavily on `{% macro %}`, you can use the Jinja2 engine by setting `template_engine: jinja2` in your `bengal.yaml` config.
+:::
+
 ### Include with Variables
 
 Jinja2 allows passing variables directly in the include statement:
@@ -470,7 +572,7 @@ In strict mode, use `??` to handle undefined variables safely:
 {% extends "baseof.html" %}
 
 {% set site_title = site.config.title %}
-{% set recent_posts = site.pages | selectattr('type', 'eq', 'blog') | selectattr('draft', 'eq', false) | sort(attribute='date', reverse=true) | first(5) %}
+{% set recent_posts = site.pages | selectattr('type', 'eq', 'blog') | selectattr('draft', 'eq', false) | sort(attribute='date', reverse=true) | slice(5) %}
 
 {% block content %}
   {% if page.type == "blog" %}
@@ -498,9 +600,9 @@ In strict mode, use `??` to handle undefined variables safely:
 
 {% let site_title = site.config.title %}
 {% let recent_posts = site.pages
-  |> where('type', 'blog')
-  |> where('draft', false)
-  |> sort_by('date', reverse=true)
+  |> selectattr('type', 'eq', 'blog')
+  |> selectattr('draft', 'eq', false)
+  |> sort(attribute='date', reverse=true)
   |> take(5) %}
 
 {% block content %}
@@ -527,7 +629,7 @@ In strict mode, use `??` to handle undefined variables safely:
 ## Next Steps
 
 - [Kida Syntax Reference](/docs/reference/kida-syntax/) — Complete syntax documentation
-- [Kida Tutorial](/docs/tutorials/getting-started-with-kida/) — Learn Kida from scratch
+- [Kida Tutorial](/docs/tutorials/theming/getting-started-with-kida/) — Learn Kida from scratch
 - [Create Custom Template](/docs/theming/templating/kida/create-custom-template/) — Build new templates with Kida
 
 :::{seealso}

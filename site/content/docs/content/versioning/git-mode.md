@@ -58,10 +58,12 @@ Bengal uses **Git worktrees** to check out each branch without affecting your wo
 
 ## Configuration
 
+Configuration works in both `bengal.yaml` and `bengal.toml` formats.
+
 ### Basic Setup
 
 ```yaml
-# bengal.yaml
+# bengal.yaml (or bengal.toml)
 versioning:
   enabled: true
   mode: git
@@ -125,9 +127,14 @@ versioning:
         latest: true            # This is the latest version
 
       - pattern: "release/*"    # Glob pattern
-        version_from: branch    # Extract version from branch name
+        version_from: branch    # How to extract version ID (see below)
         strip_prefix: "release/"
         latest: false
+
+# version_from options:
+#   branch - Use branch name (default)
+#   tag    - Use tag name
+#   <regex> - Custom regex pattern
 
     # Tag patterns (optional)
     tags:
@@ -135,9 +142,9 @@ versioning:
         strip_prefix: "v"
 
     # Settings
-    default_branch: main        # Fallback if no latest specified
-    cache_worktrees: true       # Keep worktrees for faster rebuilds
-    parallel_builds: 4          # Number of concurrent builds
+    default_branch: main        # Fallback if no latest specified (default: "main")
+    cache_worktrees: true       # Keep worktrees for faster rebuilds (default: true)
+    parallel_builds: 4          # Number of concurrent builds (default: 4)
 
   # Standard versioning options still apply
   sections:
@@ -201,6 +208,9 @@ bengal version diff main release/2.0 --git
 
 # Output as markdown (for release notes)
 bengal version diff main release/2.0 --git --output markdown
+
+# Output as JSON (for automation)
+bengal version diff main release/2.0 --git --output json
 ```
 
 Example output:
@@ -341,6 +351,19 @@ Clean up stale worktrees:
 git worktree prune
 rm -rf .bengal/worktrees
 ```
+
+### Permission Errors
+
+```
+error: unable to create file: Permission denied
+```
+
+Ensure write access to the `.bengal/` directory:
+```bash
+chmod -R u+w .bengal/
+```
+
+If running in CI, ensure the checkout step has write permissions.
 
 ### Slow Builds
 

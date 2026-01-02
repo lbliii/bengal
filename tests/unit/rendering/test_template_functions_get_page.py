@@ -224,8 +224,8 @@ class TestGetPageFunction:
         assert hasattr(page, "parsed_ast")
         assert page.parsed_ast is not None
         assert len(page.parsed_ast) > 0
-        # Should be HTML, not markdown
-        assert "<h1>" in page.parsed_ast or "<h2>" in page.parsed_ast
+        # Should be HTML, not markdown (Patitas adds id attributes: <h1 id="...">)
+        assert "</h1>" in page.parsed_ast or "</h2>" in page.parsed_ast
 
     def test_get_page_does_not_reparse_already_parsed_pages(self, site_with_content: Site):
         """Test that get_page doesn't reparse pages that are already parsed."""

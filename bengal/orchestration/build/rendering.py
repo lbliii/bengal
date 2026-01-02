@@ -256,8 +256,8 @@ def phase_assets(
         - Copies/processes assets to output directory
         - Updates orchestrator.stats.assets_time_ms
     """
-    # Assets phase doesn't use parallel processing, so always False
-    with orchestrator.logger.phase("assets", asset_count=len(assets_to_process), parallel=False):
+    # Asset processing is I/O-bound and benefits from parallel execution
+    with orchestrator.logger.phase("assets", asset_count=len(assets_to_process), parallel=parallel):
         assets_start = time.time()
 
         # CRITICAL FIX: On incremental builds, if no assets changed, still need to ensure

@@ -136,9 +136,9 @@ class TestCompileTimeValidationEdgeCases:
             env.from_string("{% if items|unkwn %}yes{% endif %}")
 
     def test_filter_in_macro_body_validates(self, env: Environment) -> None:
-        """Filters inside macro bodies should validate."""
+        """Filters inside function bodies should validate."""
         with pytest.raises(TemplateSyntaxError, match="Unknown filter 'unkwn'"):
-            env.from_string("{% macro foo(x) %}{{ x|unkwn }}{% endmacro %}")
+            env.from_string("{% def foo(x) %}{{ x|unkwn }}{% end %}")
 
     def test_filter_in_set_statement_validates(self, env: Environment) -> None:
         """Filters in set statements should validate."""

@@ -2,18 +2,18 @@
 Renderer for converting pages to final HTML output.
 
 Handles individual page rendering using templates, markdown processing, and
-content transformation. Integrates with template engine for Jinja2 rendering
+content transformation. Integrates with template engine for template rendering (Kida default)
 and provides error handling with graceful degradation.
 
 Key Concepts:
-    - Template rendering: Jinja2 template rendering with page context
+    - Template rendering: Template rendering with page context (Kida default)
     - Markdown processing: Markdown to HTML conversion
     - Content transformation: Link rewriting, image processing, etc.
     - Error handling: Graceful error handling with error pages
 
 Related Modules:
-    - bengal.rendering.template_engine: Template engine for Jinja2 rendering
-    - bengal.rendering.parsers.mistune: Markdown parser
+    - bengal.rendering.template_engine: Template engine for rendering (Kida default)
+    - bengal.rendering.parsers: Markdown parser implementations (Patitas default)
     - bengal.rendering.link_transformer: Link transformation logic
 
 See Also:
@@ -37,7 +37,7 @@ class Renderer:
     Renders individual pages using templates and content processing.
 
     Handles template rendering, content processing (H1 stripping), and error
-    collection. Integrates with template engine for Jinja2 rendering and
+    collection. Integrates with template engine for rendering (Kida default) and
     provides graceful error handling.
 
     Creation:
@@ -46,7 +46,7 @@ class Renderer:
             - Requires TemplateEngine instance
 
     Attributes:
-        template_engine: TemplateEngine instance for Jinja2 rendering
+        template_engine: TemplateEngine instance for rendering (Kida default)
         site: Site instance (accessed via template_engine.site)
         build_stats: Optional BuildStats for error collection
 

@@ -7,7 +7,7 @@ esbuild, or any custom scripts.
 
 Features:
     - Sequential command execution with output capture
-    - Configurable timeout per command (default: 30s)
+    - Configurable timeout per command (default: 60s)
     - stdout/stderr logging for debugging
     - Graceful failure handling (non-zero exit logged, not fatal)
     - Cross-platform subprocess execution
@@ -20,14 +20,13 @@ Functions:
 Configuration (bengal.toml):
     ```toml
     [dev_server]
-    pre_build_hooks = [
+    pre_build = [
         "npm run build:icons",
         "tailwindcss -i src/input.css -o assets/style.css"
     ]
-    post_build_hooks = [
+    post_build = [
         "echo 'Build complete!'"
     ]
-    hook_timeout = 60  # seconds per command
     ```
 
 Use Cases:

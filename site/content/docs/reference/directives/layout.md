@@ -223,8 +223,7 @@ The `:pull:` option supports:
 - `description` - Page description from frontmatter
 - `icon` - Icon from frontmatter
 - `image` - Image from frontmatter
-- `date` - Page date
-- `tags` - Page tags
+- `badge` - Badge from frontmatter
 
 :::{tip} Reference Targets
 Use `id:ref-name` syntax to reference pages by their frontmatter `id` field instead of path. This makes links stable even if you reorganize content.
@@ -547,7 +546,11 @@ Review breaking changes before upgrading.
 
 ## Grid (Sphinx-Design Compatibility)
 
-Compatibility layer for Sphinx-Design grid syntax.
+:::{deprecated}
+Grid directives are deprecated. Use `{cards}` / `{card}` for all new content.
+:::
+
+Legacy compatibility layer for Sphinx-Design grid syntax. Grid directives are parsed and converted to cards internally.
 
 **Syntax**:
 
@@ -564,9 +567,21 @@ Content
 :::{/grid}
 ```
 
-:::{note}
-Prefer `{cards}` / `{card}` for new content. Grid directives convert to cards internally.
+**Migration**: Replace `{grid}` with `{cards}` and `{grid-item-card}` with `{card}`:
+
+```markdown
+:::{cards}
+:columns: 1-2-2-2
+:gap: small
+
+:::{card} Title
+:link: docs/getting-started
+
+Content
 :::
+
+:::{/cards}
+```
 
 ## Best Practices
 
@@ -582,10 +597,22 @@ For section index pages, consider using `{child-cards}` instead of manual cards.
 ```markdown
 :::{child-cards}
 :columns: 2
+:gap: medium
+:layout: default
 :include: sections
 :fields: title, description, icon
 :::
 ```
+
+**Options**:
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `:columns:` | `auto` | Column layout (same as `{cards}`) |
+| `:gap:` | `medium` | Gap between cards: `small`, `medium`, `large` |
+| `:layout:` | `default` | Card layout: `default`, `horizontal`, `portrait`, `compact` |
+| `:include:` | `all` | What to include: `sections`, `pages`, `all` |
+| `:fields:` | `title` | Fields to pull: `title`, `description`, `icon` |
 
 See [Navigation Directives](/docs/reference/directives/navigation/) for full documentation.
 
