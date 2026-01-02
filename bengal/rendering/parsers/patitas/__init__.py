@@ -93,6 +93,8 @@ __all__ = [
     "parse_to_ast",
     "render_ast",
     "create_markdown",
+    # Wrapper for BaseMarkdownParser interface
+    "PatitasParser",
     # Types
     "SourceLocation",
     "Token",
@@ -139,16 +141,23 @@ __version__ = "0.1.0"
 
 
 def __getattr__(name: str) -> object:
-    """Module-level getattr for free-threading declaration.
+    """Module-level getattr for free-threading declaration and lazy imports.
 
     Declares this module safe for free-threaded Python (PEP 703/779).
     The interpreter queries _Py_mod_gil to determine if the module
     needs the GIL.
+
+    Also provides lazy import of PatitasParser to avoid circular imports
+    (wrapper.py imports from this module).
     """
     if name == "_Py_mod_gil":
         # Signal: this module is safe for free-threading
         # 0 = Py_MOD_GIL_NOT_USED
         return 0
+    if name == "PatitasParser":
+        from bengal.rendering.parsers.patitas.wrapper import PatitasParser
+
+        return PatitasParser
     raise AttributeError(f"module 'patitas' has no attribute {name!r}")
 
 
