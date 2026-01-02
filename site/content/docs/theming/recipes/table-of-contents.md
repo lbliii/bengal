@@ -43,12 +43,23 @@ That's it. Bengal parses headings and generates nested HTML lists.
 
 ## Control Which Headings
 
-Configure in `bengal.toml`:
+Configure TOC depth in `bengal.toml`:
 
 ```toml
-[markup.toc]
-start_level = 2  # Start at H2 (skip H1 page title)
-end_level = 3    # Stop at H3
+[content]
+toc_depth = 4  # Maximum heading depth (1-6). Default: 4
+```
+
+This controls how deep the TOC goes. For example:
+- `toc_depth = 2` includes only H2 headings
+- `toc_depth = 3` includes H2 and H3 headings
+- `toc_depth = 4` includes H2, H3, and H4 headings (default)
+
+For parser-specific control, use `markdown.toc_depth` with a range string:
+
+```toml
+[markdown]
+toc_depth = "2-4"  # String format for parser-level control
 ```
 
 ## Variations

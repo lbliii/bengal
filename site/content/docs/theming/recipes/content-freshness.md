@@ -84,7 +84,7 @@ This recipe shows how to use `page.age_days` for **automatic** freshness detecti
   {% elif page.age_days < 30 %}
     Published {{ (page.age_days / 7) | round | int }} weeks ago
   {% else %}
-    Published {{ page.date | date('%B %d, %Y') }}
+    Published {{ page.date | dateformat('%B %d, %Y') }}
   {% end %}
 </time>
 ```
@@ -104,7 +104,7 @@ Or use the filter directly:
   <strong>Heads up!</strong>
   This article was published {{ page.age_months }} months ago.
   {% if page.metadata.last_reviewed %}
-    Last reviewed: {{ page.metadata.last_reviewed | date('%B %Y') }}
+    Last reviewed: {{ page.metadata.last_reviewed | dateformat('%B %Y') }}
   {% else %}
     Some information may be outdated.
   {% end %}
@@ -122,7 +122,7 @@ Or use the filter directly:
 
 <article class="post freshness-{{ freshness }}">
   <h2>{{ page.title }}</h2>
-  <time>{{ page.date | date('%B %d, %Y') }}</time>
+  <time>{{ page.date | dateformat('%B %d, %Y') }}</time>
 </article>
 ```
 

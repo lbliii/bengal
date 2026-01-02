@@ -107,15 +107,20 @@ Show all parts with current highlighted:
 <aside class="series-toc">
   <h4>{{ page.series.name }}</h4>
   <ol>
-    {% for part_page in page.series.pages %}
+    {% let series_pages = page._section.pages | sort_by('weight') %}
+    {% for part_page in series_pages %}
+    {% if part_page.series and part_page.series.name == page.series.name %}
     <li {% if part_page.eq(page) %}class="current"{% end %}>
       <a href="{{ part_page.href }}">{{ part_page.title }}</a>
     </li>
+    {% end %}
     {% end %}
   </ol>
 </aside>
 {% end %}
 ```
+
+**Note**: This assumes all parts of the series are in the same section. For series spanning multiple sections, use `site.indexes.series.get(page.series.name) | resolve_pages` instead.
 
 :::{/tab-item}
 :::{tab-item} Compact Footer

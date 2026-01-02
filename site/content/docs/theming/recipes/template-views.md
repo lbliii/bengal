@@ -25,6 +25,8 @@ category: cookbook
 
 Bengal provides **View objects** that normalize access to complex data in templates. Instead of dealing with different data structures depending on configuration, Views give you consistent properties every time.
 
+**Availability**: All View filters are automatically registered and available in all template engines (Jinja2, Kida, and custom engines).
+
 ## Why Views?
 
 OpenAPI endpoints can come from:
@@ -45,7 +47,7 @@ Without Views, your template would need conditionals everywhere:
 {% end %}
 ```
 
-With Views, the filter handles all variations:
+With Views, the filter handles all variations automatically:
 
 ```kida
 {# With Views - clean and consistent #}
@@ -54,6 +56,8 @@ With Views, the filter handles all variations:
 {% end %}
 ```
 
+The filter automatically detects whether endpoints come from consolidated mode (DocElements) or individual pages, ensuring consistent access regardless of configuration.
+
 ## Available Views
 
 | Filter | Returns | Use For |
@@ -61,13 +65,13 @@ With Views, the filter handles all variations:
 | `\| endpoints` | `EndpointView[]` | OpenAPI endpoints in a section |
 | `\| schemas` | `SchemaView[]` | OpenAPI schemas in a section |
 | `\| tag_views` | `TagView[]` | Taxonomy tags with counts |
-| `\| tag_view` | `TagView` | Single tag by slug |
+| `\| tag_view` | `TagView \| None` | Single tag by slug (returns `None` if not found) |
 
 ---
 
 ## EndpointView
 
-Normalize OpenAPI endpoints for templates.
+Normalize OpenAPI endpoints for templates. Automatically handles both consolidated mode (all endpoints in one section) and individual mode (one page per endpoint).
 
 ### Usage
 
@@ -92,7 +96,7 @@ Normalize OpenAPI endpoints for templates.
 | `summary` | `str` | Short description |
 | `description` | `str` | Full description |
 | `deprecated` | `bool` | Whether endpoint is deprecated |
-| `href` | `str` | Link to endpoint (anchor or page URL) |
+| `href` | `str` | Link to endpoint (anchor `#id` in consolidated mode, page URL in individual mode). Always valid, never `None`. |
 | `has_page` | `bool` | Whether individual page exists |
 | `operation_id` | `str \| None` | OpenAPI operationId |
 | `tags` | `tuple[str, ...]` | Endpoint tags |
@@ -161,7 +165,7 @@ Normalize OpenAPI endpoints for templates.
 
 ## SchemaView
 
-Normalize OpenAPI schemas for templates.
+Normalize OpenAPI schemas for templates. Provides consistent access to schema properties and metadata.
 
 ### Usage
 
@@ -183,7 +187,7 @@ Normalize OpenAPI schemas for templates.
 | `name` | `str` | Schema name (`User`, `OrderRequest`) |
 | `schema_type` | `str` | Type (`object`, `array`, `string`, etc.) |
 | `description` | `str` | Schema description |
-| `href` | `str` | Link to schema page or anchor |
+| `href` | `str` | Link to schema page or anchor (`#schema-{name}` if no page). Always valid, never `None`. |
 | `has_page` | `bool` | Whether individual page exists |
 | `properties` | `dict[str, Any]` | Property definitions |
 | `required` | `tuple[str, ...]` | Required property names |
@@ -245,7 +249,7 @@ Normalize OpenAPI schemas for templates.
 
 ## TagView
 
-Normalize taxonomy tags for templates.
+Normalize taxonomy tags for templates. Provides consistent access to tag data including counts, percentages, and descriptions.
 
 ### Usage
 
@@ -322,6 +326,7 @@ Normalize taxonomy tags for templates.
 
 ```kida
 {# Get a specific tag by slug #}
+{# Returns None if tag doesn't exist, so always check #}
 {% let python_tag = 'python' | tag_view %}
 
 {% if python_tag %}
@@ -360,6 +365,9 @@ Normalize taxonomy tags for templates.
 | Need consistent property access | Need full page/section access |
 | Working with OpenAPI autodoc | Building non-autodoc features |
 | Rendering tag clouds/lists | Need raw taxonomy dict |
+| Switching between consolidation modes | Accessing page metadata directly |
+
+**Key Benefit**: Views eliminate the need for conditional logic when working with OpenAPI data that may come from different sources (consolidated vs. individual pages).
 
 ### Accessing Raw Data
 

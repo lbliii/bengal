@@ -23,8 +23,11 @@ Highlight important content using the `featured` frontmatter flag.
 **Built into Default Theme**
 
 Bengal's default theme recognizes `featured: true` frontmatter:
+
 - Shows "⭐ Featured" badge on article cards
-- Use `tags: [featured]` as an alternative
+- For badge display only: `tags: [featured]` works via the `is featured` test
+
+**Important**: The `section.featured_posts()` method only checks `featured: true` in metadata, not tags. Use `featured: true` for featured post collections.
 
 This recipe shows how to create featured sections, hero layouts, and sidebar widgets.
 :::
@@ -45,12 +48,12 @@ featured: true
 ### Template Code
 
 ```kida
-{% let featured = section.featured_posts %}
+{% let featured = section.featured_posts(3) %}
 
 {% if featured %}
 <section class="featured-posts">
   <h2>Featured</h2>
-  {% for post in featured |> limit(3) %}
+  {% for post in featured %}
   <article class="featured-card">
     <h3><a href="{{ post.href }}">{{ post.title }}</a></h3>
     <p>{{ post.description }}</p>
@@ -60,12 +63,17 @@ featured: true
 {% end %}
 ```
 
+**Note**: `section.featured_posts(limit)` is a method that returns featured posts sorted by date (newest first). Default limit is 5 if omitted.
+
 ## What's Happening
 
-| Property | Purpose |
-|----------|---------|
-| `section.featured_posts` | Pages with `featured: true` in this section |
-| `page.metadata.featured` | Check if a page is featured |
+| Property/Method                    | Purpose                                                                                    |
+| ---------------------------------- | ------------------------------------------------------------------------------------------ |
+| `section.featured_posts(limit)`     | Method returning pages with `featured: true`, sorted by date (newest first). Default limit: 5 |
+| `page.metadata.featured`           | Check if a page is featured (boolean)                                                       |
+| `page is featured`                 | Template test checking if page has `'featured'` tag (for badge display)                       |
+
+**Sorting**: Featured posts are automatically sorted by date descending (newest first). To sort by custom priority, use `sort_by('metadata.featured_priority')` after calling the method.
 
 ## Variations
 
@@ -75,7 +83,7 @@ featured: true
 Single featured post as hero:
 
 ```kida
-{% let hero = section.featured_posts |> first %}
+{% let hero = section.featured_posts(1) |> first %}
 
 {% if hero %}
 <header class="hero">
@@ -97,7 +105,7 @@ Single featured post as hero:
 
 ```kida
 {% let all_posts = section.sorted_pages %}
-{% let featured = section.featured_posts |> limit(3) %}
+{% let featured = section.featured_posts(3) %}
 {% let regular = all_posts |> complement(featured) |> limit(10) %}
 
 <div class="posts-layout">
@@ -139,7 +147,7 @@ Single featured post as hero:
 :::{tab-item} Image Grid
 
 ```kida
-{% let featured = section.featured_posts |> limit(4) %}
+{% let featured = section.featured_posts(4) %}
 
 <div class="featured-grid">
   {% for post in featured %}
@@ -188,8 +196,10 @@ featured_priority: 1  # Lower = higher priority
 ```
 
 ```kida
-{% let featured = section.featured_posts |> sort_by('metadata.featured_priority') %}
+{% let featured = section.featured_posts() |> sort_by('metadata.featured_priority') %}
 ```
+
+**Note**: `featured_priority` is a custom metadata field. Posts are sorted by this field (ascending, so lower numbers appear first), then by date if priority is equal.
 
 :::{/tab-item}
 :::{tab-item} Daily Rotation
@@ -197,7 +207,7 @@ featured_priority: 1  # Lower = higher priority
 Show different featured posts based on day:
 
 ```kida
-{% let featured = section.featured_posts %}
+{% let featured = section.featured_posts() %}
 {% let today_index = now().timetuple().tm_yday % (featured | length) %}
 {% let todays_featured = featured[today_index] %}
 
@@ -264,6 +274,9 @@ Show different featured posts based on day:
 ```
 
 :::{seealso}
-- [Template Functions Reference](/docs/reference/template-functions/#section-properties) — Section properties
+
+- [Template Functions Reference](/docs/reference/template-functions/#section-properties) — Section properties including `featured_posts()` method
 - [List Recent Posts](/docs/theming/recipes/list-recent-posts/) — Recent posts pattern
+- [Filter by Tags](/docs/theming/recipes/filter-by-tags/) — Tag-based filtering (including `is featured` test)
+
 :::

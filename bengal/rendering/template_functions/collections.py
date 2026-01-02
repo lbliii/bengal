@@ -208,8 +208,22 @@ def group_by(items: list[dict[str, Any]], key: str) -> dict[Any, list[dict[str, 
             return item.get(key)
         return getattr(item, key, None)
 
-    # Sort by key first (required for groupby)
-    sorted_items = sorted(items, key=get_value)
+    def sort_key(item: Any) -> tuple:
+        """None-safe sort key: (is_none, value_for_comparison).
+
+        Items with None/empty values are grouped together and sorted last.
+        """
+        val = get_value(item)
+        if val is None or val == "":
+            # None/empty sorts last, use empty string for grouping key stability
+            return (1, "")
+        if isinstance(val, (int, float)):
+            return (0, val)
+        # Convert to string for consistent comparison
+        return (0, str(val).lower())
+
+    # Sort by key first (required for groupby) with None-safe comparison
+    sorted_items = sorted(items, key=sort_key)
 
     # Group by key
     result = {}

@@ -35,7 +35,7 @@ This recipe shows how to use section-level properties like `section.post_count`,
 ```kida
 <div class="section-stats">
   <span>{{ section.post_count }} articles</span>
-  <span>{{ section.word_count | intcomma }} words</span>
+  <span>{{ section.word_count | commas }} words</span>
   <span>{{ section.total_reading_time }} min total</span>
 </div>
 ```
@@ -46,8 +46,18 @@ This recipe shows how to use section-level properties like `section.post_count`,
 |----------|---------|
 | `section.post_count` | Number of regular pages in section |
 | `section.post_count_recursive` | Including all subsections |
-| `section.word_count` | Total words across all pages |
+| `section.word_count` | Total words across all pages (counts from rendered HTML content) |
 | `section.total_reading_time` | Sum of all reading times (minutes) |
+
+:::{note}
+**Word Count Implementation**
+
+`section.word_count` counts words from each page's rendered HTML content (with HTML tags stripped). This differs from `page.word_count`, which counts words from the raw markdown source. For consistency, you can also sum individual page word counts:
+
+```kida
+{% let total_words = section.sorted_pages |> map(attribute='word_count') |> sum %}
+```
+:::
 
 ## Variations
 
@@ -65,7 +75,7 @@ This recipe shows how to use section-level properties like `section.post_count`,
       <span>Articles</span>
     </li>
     <li>
-      <strong>{{ section.word_count | intcomma }}</strong>
+      <strong>{{ section.word_count | commas }}</strong>
       <span>Words</span>
     </li>
     <li>
@@ -90,7 +100,7 @@ This recipe shows how to use section-level properties like `section.post_count`,
     <dd>{{ section.subsections | length }}</dd>
 
     <dt>Total Words</dt>
-    <dd>{{ section.word_count | intcomma }}</dd>
+    <dd>{{ section.word_count | commas }}</dd>
 
     <dt>Reading Time</dt>
     <dd>{{ section.total_reading_time }} min</dd>
@@ -118,7 +128,7 @@ This recipe shows how to use section-level properties like `section.post_count`,
       <tr>
         <td><a href="{{ sub.href }}">{{ sub.title }}</a></td>
         <td>{{ sub.post_count }}</td>
-        <td>{{ sub.word_count | intcomma }}</td>
+        <td>{{ sub.word_count | commas }}</td>
         <td>{{ sub.total_reading_time }} min</td>
       </tr>
     {% end %}
@@ -165,7 +175,7 @@ This recipe shows how to use section-level properties like `section.post_count`,
       <span class="label">Doc Pages</span>
     </div>
     <div class="stat">
-      <span class="value">{{ (blog.word_count + docs.word_count) | intcomma }}</span>
+      <span class="value">{{ (blog.word_count + docs.word_count) | commas }}</span>
       <span class="label">Total Words</span>
     </div>
   </div>

@@ -24,6 +24,7 @@ Create archive pages that group content by year or month.
 **Built into Default Theme**
 
 Bengal's default theme includes archive templates:
+
 - **`archive.html`** — Full archive page grouped by year
 - **`archive-year.html`** — Year-specific archive pages
 - **`partials/archive-sidebar.html`** — Sidebar widget with year links
@@ -46,7 +47,7 @@ This recipe shows how to customize grouping or build your own archive layouts.
     <ul>
     {% for post in year_posts %}
       <li>
-        <time>{{ post.date | date('%b %d') }}</time>
+        <time>{{ post.date | dateformat('%b %d') }}</time>
         <a href="{{ post.href }}">{{ post.title }}</a>
       </li>
     {% end %}
@@ -58,11 +59,11 @@ This recipe shows how to customize grouping or build your own archive layouts.
 
 ## What's Happening
 
-| Filter | Purpose |
-|--------|---------|
-| `group_by_year` | Groups pages by publication year |
-| `group_by_month` | Groups pages by year-month |
-| `archive_years` | Returns list of years with post counts |
+| Filter            | Purpose                                      |
+| ----------------- | -------------------------------------------- |
+| `group_by_year`   | Groups pages by publication year             |
+| `group_by_month`  | Groups pages by year-month                   |
+| `archive_years`   | Returns list of years with post counts       |
 
 ## Variations
 
@@ -102,7 +103,7 @@ Quick navigation showing years with counts:
     <ul>
     {% for post in month_posts %}
       <li>
-        <time>{{ post.date | date('%d') }}</time>
+        <time>{{ post.date | dateformat('%d') }}</time>
         <a href="{{ post.href }}">{{ post.title }}</a>
       </li>
     {% end %}
@@ -126,7 +127,7 @@ Quick navigation showing years with counts:
     <div class="year-posts">
       {% for post in year_posts %}
       <a href="{{ post.href }}" class="timeline-post">
-        <span class="date">{{ post.date | date('%b %d') }}</span>
+        <span class="date">{{ post.date | dateformat('%b %d') }}</span>
         <span class="title">{{ post.title }}</span>
       </a>
       {% end %}
@@ -246,6 +247,8 @@ Quick navigation showing years with counts:
 ```
 
 :::{seealso}
+
 - [Template Functions Reference](/docs/reference/template-functions/#group_by_year) — Grouping filters
 - [Group by Category](/docs/theming/recipes/group-by-category/) — Category grouping
+
 :::

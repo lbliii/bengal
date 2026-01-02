@@ -110,6 +110,22 @@ class TestGroupBy:
     def test_empty_list(self):
         assert group_by([], "key") == {}
 
+    def test_group_with_none_values(self):
+        """Test that items with missing/None values are grouped into None group."""
+        items = [
+            {"category": "fruit", "name": "apple"},
+            {"name": "banana"},  # Missing category
+            {"category": "vegetable", "name": "carrot"},
+            {"category": None, "name": "explicit_none"},
+        ]
+        result = group_by(items, "category")
+        assert len(result) == 3  # fruit, vegetable, None
+        assert len(result["fruit"]) == 1
+        assert len(result["vegetable"]) == 1
+        assert len(result[None]) == 2  # Missing and explicit None both grouped
+        assert "banana" in [item["name"] for item in result[None]]
+        assert "explicit_none" in [item["name"] for item in result[None]]
+
 
 class TestSortBy:
     """Tests for sort_by filter."""
