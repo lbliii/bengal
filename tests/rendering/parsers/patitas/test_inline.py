@@ -267,3 +267,180 @@ class TestInlineEdgeCases:
         html = parse("http://example.com")
         # Plain URLs are literal text (no autolink plugin)
         assert "http://example.com" in html
+
+
+# =============================================================================
+# CommonMark Autolinks (Section 6.7)
+# =============================================================================
+
+
+class TestAutolinks:
+    """CommonMark autolink tests (section 6.7).
+
+    Autolinks are absolute URIs and email addresses wrapped in angle brackets.
+    They are parsed as links, not as raw HTML.
+    """
+
+    # --- URI Autolinks ---
+
+    def test_http_autolink(self):
+        """HTTP URL autolink."""
+        html = parse("<http://foo.bar.baz>")
+        assert '<a href="http://foo.bar.baz">' in html
+        assert ">http://foo.bar.baz</a>" in html
+
+    def test_https_autolink(self):
+        """HTTPS URL autolink."""
+        html = parse("<https://foo.bar.baz>")
+        assert '<a href="https://foo.bar.baz">' in html
+
+    def test_https_with_query_string(self):
+        """HTTPS with query parameters."""
+        html = parse("<https://foo.bar.baz/test?q=hello&id=22&boolean>")
+        # Query string should be preserved in href
+        assert "https://foo.bar.baz/test?q=hello" in html
+        assert "<a " in html
+
+    def test_irc_autolink(self):
+        """IRC protocol autolink."""
+        html = parse("<irc://foo.bar:2233/baz>")
+        assert '<a href="irc://foo.bar:2233/baz">' in html
+
+    def test_mailto_uppercase(self):
+        """MAILTO with uppercase."""
+        html = parse("<MAILTO:FOO@BAR.BAZ>")
+        assert '<a href="MAILTO:FOO@BAR.BAZ">' in html
+
+    def test_custom_scheme(self):
+        """Custom scheme autolink."""
+        html = parse("<a+b+c:d>")
+        assert '<a href="a+b+c:d">' in html
+
+    def test_made_up_scheme(self):
+        """Made-up scheme autolink."""
+        html = parse("<made-up-scheme://foo,bar>")
+        assert '<a href="made-up-scheme://foo,bar">' in html
+
+    def test_relative_path_autolink(self):
+        """URL with relative path."""
+        html = parse("<https://../>")
+        assert '<a href="https://../">' in html
+
+    def test_localhost_autolink(self):
+        """Localhost URL autolink."""
+        html = parse("<localhost:5001/foo>")
+        assert '<a href="localhost:5001/foo">' in html
+
+    def test_backslash_percent_encoded(self):
+        """Backslashes in URL are percent-encoded in href."""
+        html = parse("<https://example.com/\\[\\>")
+        # Backslash should be %5C in href
+        assert "%5C" in html
+        # But display text keeps original backslash
+        assert "https://example.com/\\[\\" in html
+
+    # --- Email Autolinks ---
+
+    def test_email_autolink(self):
+        """Simple email autolink."""
+        html = parse("<foo@bar.example.com>")
+        assert '<a href="mailto:foo@bar.example.com">' in html
+        assert ">foo@bar.example.com</a>" in html
+
+    def test_email_with_special_chars(self):
+        """Email with special characters in local part."""
+        html = parse("<foo+special@Bar.baz-bar0.com>")
+        assert '<a href="mailto:foo+special@Bar.baz-bar0.com">' in html
+
+    # --- Invalid Autolinks (should escape, not link) ---
+
+    def test_url_with_space_not_autolink(self):
+        """URL with space is not an autolink."""
+        html = parse("<https://foo.bar/baz bim>")
+        # Should escape < and > as entities, not create link
+        assert "&lt;https://foo.bar/baz bim&gt;" in html
+        assert "<a " not in html
+
+    def test_escaped_char_in_email_not_autolink(self):
+        """Escaped character in email breaks autolink."""
+        html = parse(r"<foo\+@bar.example.com>")
+        # Backslash makes it not a valid email autolink
+        assert "&lt;" in html or "<a " not in html
+
+    def test_short_scheme_not_autolink(self):
+        """Single-letter scheme is not a valid autolink."""
+        html = parse("<m:abc>")
+        # 'm:abc' - scheme is only 1 letter, needs at least 2
+        assert "&lt;m:abc&gt;" in html
+        assert "<a " not in html
+
+    def test_no_scheme_not_autolink(self):
+        """Domain without scheme is not an autolink."""
+        html = parse("<foo.bar.baz>")
+        # No @ and no scheme:// - not valid
+        assert "&lt;foo.bar.baz&gt;" in html
+        assert "<a " not in html
+
+    # --- Context Tests ---
+
+    def test_autolink_in_paragraph(self):
+        """Autolink within paragraph text."""
+        html = parse("Check out <https://example.com> for more info.")
+        assert '<a href="https://example.com">' in html
+        assert "Check out" in html
+        assert "for more info" in html
+
+    def test_autolink_vs_html_tag(self):
+        """Autolink takes precedence over HTML tag matching."""
+        # <div> is HTML, but <http://example.com> is autolink
+        html = parse("<div>text</div> and <http://example.com>")
+        assert '<a href="http://example.com">' in html
+
+    def test_multiple_autolinks(self):
+        """Multiple autolinks in same paragraph."""
+        html = parse("<https://a.com> and <user@example.com>")
+        assert html.count("<a ") == 2
+
+
+class TestRawHTMLInline:
+    """Raw HTML inline tests (CommonMark 6.8).
+
+    Tests for HTML tags that pass through unchanged.
+    """
+
+    def test_simple_html_tag(self):
+        """Simple HTML tag."""
+        html = parse("<div>content</div>")
+        assert "content" in html
+
+    def test_self_closing_tag(self):
+        """Self-closing HTML tag."""
+        html = parse("before <br> after")
+        assert "<br" in html
+
+    def test_html_with_attributes(self):
+        """HTML with valid attributes."""
+        html = parse('<a href="url">text</a>')
+        # Raw HTML passes through
+        assert "text" in html
+
+    def test_html_comment(self):
+        """HTML comment."""
+        html = parse("before <!-- comment --> after")
+        assert "<!--" in html or "comment" in html
+
+    def test_invalid_html_tag_escaped(self):
+        """Invalid HTML tags are escaped."""
+        # <33> starts with number, not valid HTML
+        html = parse("<33>")
+        assert "&lt;33&gt;" in html
+
+    def test_underscore_tag_escaped(self):
+        """Underscore-start tag is not valid HTML."""
+        html = parse("<__>")
+        assert "&lt;__&gt;" in html
+
+    def test_dot_in_tag_name_escaped(self):
+        """Dots in tag name make it invalid HTML."""
+        html = parse("<foo.bar>")
+        assert "&lt;foo.bar&gt;" in html
