@@ -33,20 +33,40 @@ jobs:
           restore-keys: |
             uv-${{ runner.os }}-
 
+      - name: Cache Bengal build state
+        id: bengal-cache
+        uses: actions/cache@v4
+        with:
+          path: site/.bengal
+          key: bengal-${{ runner.os }}-${{ hashFiles('site/content/**', 'site/config/**') }}
+          restore-keys: |
+            bengal-${{ runner.os }}-
+
       - name: Install bengal
         run: uv sync --extra search
         env:
           PYTHON_GIL: "0"
 
-      - name: Clean build artifacts and cache
+      - name: Clean previous output
         working-directory: site
-        run: uv run python -m bengal.cli site clean --cache --force
-        env:
-          PYTHON_GIL: "0"
+        run: rm -rf public/*
 
       - name: Build site
+        id: build
         working-directory: site
-        run: uv run bengal site build --environment production
+        run: |
+          echo "::group::Build Output"
+          START_TIME=$(date +%s%3N)
+          uv run bengal site build --environment production
+          END_TIME=$(date +%s%3N)
+          BUILD_MS=$((END_TIME - START_TIME))
+          echo "::endgroup::"
+          echo "## ⚡ Build completed in ${BUILD_MS}ms" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.bengal-cache.outputs.cache-hit }}" == "true" ]; then
+            echo "📦 **Incremental build** (cache restored)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "🆕 **Full build** (no cache)" >> $GITHUB_STEP_SUMMARY
+          fi
         env:
           PYTHON_GIL: "0"
 
@@ -58,10 +78,10 @@ jobs:
 
       - name: Verify build output
         run: |
+          PAGE_COUNT=$(find site/public -name "*.html" | wc -l)
+          echo "📄 **${PAGE_COUNT} pages** generated" >> $GITHUB_STEP_SUMMARY
           echo "=== CSS files in public/assets/css ==="
           ls -la site/public/assets/css/ || echo "No CSS directory"
-          echo "=== First 5 lines of style.css ==="
-          head -5 site/public/assets/css/style.css || echo "No style.css"
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
