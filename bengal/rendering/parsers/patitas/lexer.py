@@ -35,11 +35,86 @@ class LexerMode(Enum):
     - BLOCK: Between blocks, scanning for block starts
     - CODE_FENCE: Inside fenced code block
     - DIRECTIVE: Inside directive block
+    - HTML_BLOCK: Inside HTML block (types 1-7)
     """
 
     BLOCK = auto()  # Between blocks
     CODE_FENCE = auto()  # Inside fenced code block
     DIRECTIVE = auto()  # Inside directive block
+    HTML_BLOCK = auto()  # Inside HTML block
+
+
+# CommonMark HTML block type 1 tags (case-insensitive)
+_HTML_BLOCK_TYPE1_TAGS = frozenset({"pre", "script", "style", "textarea"})
+
+# CommonMark HTML block type 6 tags (case-insensitive)
+# These are "block-level" HTML tags that end on blank line
+_HTML_BLOCK_TYPE6_TAGS = frozenset(
+    {
+        "address",
+        "article",
+        "aside",
+        "base",
+        "basefont",
+        "blockquote",
+        "body",
+        "caption",
+        "center",
+        "col",
+        "colgroup",
+        "dd",
+        "details",
+        "dialog",
+        "dir",
+        "div",
+        "dl",
+        "dt",
+        "fieldset",
+        "figcaption",
+        "figure",
+        "footer",
+        "form",
+        "frame",
+        "frameset",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "head",
+        "header",
+        "hr",
+        "html",
+        "iframe",
+        "legend",
+        "li",
+        "link",
+        "main",
+        "menu",
+        "menuitem",
+        "nav",
+        "noframes",
+        "ol",
+        "optgroup",
+        "option",
+        "p",
+        "param",
+        "search",
+        "section",
+        "summary",
+        "table",
+        "tbody",
+        "td",
+        "tfoot",
+        "th",
+        "thead",
+        "title",
+        "tr",
+        "track",
+        "ul",
+    }
+)
 
 
 class Lexer:
@@ -85,6 +160,10 @@ class Lexer:
         "_directive_stack",  # Stack of (colon_count, name) for nested directives
         # Transformation
         "_text_transformer",
+        # HTML block state
+        "_html_block_type",  # 1-7 per CommonMark spec
+        "_html_block_content",  # Accumulated HTML content
+        "_html_block_start",  # Start position for location
     )
 
     def __init__(
@@ -122,6 +201,11 @@ class Lexer:
         self._fence_count: int = 0
         self._fence_indent: int = 0
 
+        # HTML block state
+        self._html_block_type: int = 0
+        self._html_block_content: list[str] = []
+        self._html_block_start: int = 0
+
         # Directive state: stack of (colon_count, name) for nested directives
         self._directive_stack: list[tuple[int, str]] = []
 
@@ -155,6 +239,8 @@ class Lexer:
             yield from self._scan_code_fence_content()
         elif self._mode == LexerMode.DIRECTIVE:
             yield from self._scan_directive_content()
+        elif self._mode == LexerMode.HTML_BLOCK:
+            yield from self._scan_html_block_content()
 
     # =========================================================================
     # Window-based block scanning
@@ -211,6 +297,15 @@ class Lexer:
             token = self._try_classify_fence_start(content, line_start, indent)
             if token:
                 yield token
+                return
+
+        # HTML block: <tag>, <!--, <?, <!, </tag>, etc.
+        # Must be checked before most other block types
+        # CommonMark 4.6 defines 7 types of HTML blocks
+        if content[0] == "<":
+            html_result = self._try_classify_html_block_start(content, line_start, line)
+            if html_result:
+                yield from html_result
                 return
 
         # ATX Heading: # ## ### etc.
@@ -469,6 +564,271 @@ class Lexer:
                 self._location_from(line_start),
             )
 
+    def _try_classify_html_block_start(
+        self, content: str, line_start: int, full_line: str
+    ) -> Iterator[Token] | None:
+        """Try to classify content as HTML block start.
+
+        CommonMark 4.6 defines 7 types of HTML blocks.
+
+        Args:
+            content: Line content with leading whitespace stripped
+            line_start: Position in source where line starts
+            full_line: The full line including leading whitespace
+
+        Returns:
+            Iterator yielding HTML_BLOCK token, or None if not HTML block.
+        """
+        if not content or content[0] != "<":
+            return None
+
+        content_lower = content.lower()
+
+        # Include newline in full_line if we consumed one
+        full_line_nl = full_line + ("\n" if self._consumed_newline else "")
+
+        # Type 1: <pre, <script, <style, <textarea (case-insensitive)
+        # Ends with </pre>, </script>, </style>, </textarea>
+        for tag in _HTML_BLOCK_TYPE1_TAGS:
+            if content_lower.startswith(f"<{tag}") and (
+                len(content) == len(tag) + 1 or content[len(tag) + 1] in " \t\n>"
+            ):
+                self._html_block_type = 1
+                self._html_block_content = [full_line_nl]
+                self._html_block_start = line_start
+                # Check if end condition on same line
+                end_tag = f"</{tag}>"
+                if end_tag in content_lower:
+                    return self._emit_html_block()
+                self._mode = LexerMode.HTML_BLOCK
+                return iter([])  # Empty iterator, tokens come from scan
+
+        # Type 2: <!-- (HTML comment)
+        # Ends with -->
+        if content.startswith("<!--"):
+            self._html_block_type = 2
+            self._html_block_content = [full_line_nl]
+            self._html_block_start = line_start
+            if "-->" in content[4:]:
+                return self._emit_html_block()
+            self._mode = LexerMode.HTML_BLOCK
+            return iter([])
+
+        # Type 3: <? (processing instruction)
+        # Ends with ?>
+        if content.startswith("<?"):
+            self._html_block_type = 3
+            self._html_block_content = [full_line]
+            self._html_block_start = line_start
+            if "?>" in content[2:]:
+                return self._emit_html_block()
+            self._mode = LexerMode.HTML_BLOCK
+            return iter([])
+
+        # Type 4: <! followed by uppercase letter (declaration)
+        # Ends with >
+        if len(content) >= 3 and content[1] == "!" and content[2].isupper():
+            self._html_block_type = 4
+            self._html_block_content = [full_line]
+            self._html_block_start = line_start
+            if ">" in content[2:]:
+                return self._emit_html_block()
+            self._mode = LexerMode.HTML_BLOCK
+            return iter([])
+
+        # Type 5: <![CDATA[
+        # Ends with ]]>
+        if content.startswith("<![CDATA["):
+            self._html_block_type = 5
+            self._html_block_content = [full_line]
+            self._html_block_start = line_start
+            if "]]>" in content[9:]:
+                return self._emit_html_block()
+            self._mode = LexerMode.HTML_BLOCK
+            return iter([])
+
+        # Type 6: <tagname or </tagname where tagname is block-level
+        # Ends with blank line (or EOF)
+        tag_match = self._extract_html_tag_name(content)
+        if tag_match and tag_match.lower() in _HTML_BLOCK_TYPE6_TAGS:
+            self._html_block_type = 6
+            self._html_block_content = [full_line]
+            self._html_block_start = line_start
+            # If at EOF, emit immediately
+            if self._pos >= self._source_len:
+                return self._emit_html_block()
+            self._mode = LexerMode.HTML_BLOCK
+            return iter([])
+
+        # Type 7: Complete open tag (not a type 6 tag) or closing tag
+        # Must be the only thing on the line (possibly followed by whitespace)
+        # Ends with blank line (or EOF)
+        if self._is_complete_html_tag(content):
+            self._html_block_type = 7
+            self._html_block_content = [full_line]
+            self._html_block_start = line_start
+            # If at EOF, emit immediately
+            if self._pos >= self._source_len:
+                return self._emit_html_block()
+            self._mode = LexerMode.HTML_BLOCK
+            return iter([])
+
+        return None
+
+    def _extract_html_tag_name(self, content: str) -> str | None:
+        """Extract tag name from HTML opening or closing tag."""
+        if not content or content[0] != "<":
+            return None
+
+        pos = 1
+        # Handle closing tag </
+        if pos < len(content) and content[pos] == "/":
+            pos += 1
+
+        # Tag name must start with letter
+        if pos >= len(content) or not content[pos].isalpha():
+            return None
+
+        start = pos
+        while pos < len(content) and (content[pos].isalnum() or content[pos] == "-"):
+            pos += 1
+
+        return content[start:pos] if pos > start else None
+
+    def _is_complete_html_tag(self, content: str) -> bool:
+        """Check if content is a complete HTML open/close tag.
+
+        Type 7 HTML blocks require a complete tag that's the only content on line.
+        """
+        content = content.rstrip()
+        if not content or content[0] != "<":
+            return False
+
+        # Simple check: starts with <, ends with >, has valid tag structure
+        if not content.endswith(">"):
+            return False
+
+        # Must have at least <x> (3 chars)
+        if len(content) < 3:
+            return False
+
+        # Check for closing tag </x>
+        if content[1] == "/":
+            # Closing tag: must have letter after /
+            if len(content) < 4:
+                return False
+            if not content[2].isalpha():
+                return False
+            # Check tag name is valid
+            pos = 2
+            while pos < len(content) - 1 and (content[pos].isalnum() or content[pos] == "-"):
+                pos += 1
+            # Must end with just > or whitespace then >
+            rest = content[pos:-1]
+            return rest.strip() == ""
+
+        # Opening tag: <tagname ...>
+        if not content[1].isalpha():
+            return False
+
+        # Check we have a valid tag name and structure
+        pos = 1
+        while pos < len(content) and (content[pos].isalnum() or content[pos] == "-"):
+            pos += 1
+
+        # Check it's a valid tag (has attributes or just ends)
+        rest = content[pos:-1]  # Everything between tag name and >
+
+        # Self-closing tags are valid
+        if rest.endswith("/"):
+            rest = rest[:-1]
+
+        # The rest should be valid attributes or empty
+        # For simplicity, just check it doesn't look like paragraph text
+        return True
+
+    def _emit_html_block(self) -> Iterator[Token]:
+        """Emit accumulated HTML block as a single token."""
+        # Content already has newlines at the end of each line
+        html_content = "".join(self._html_block_content)
+        if html_content and not html_content.endswith("\n"):
+            html_content += "\n"
+
+        yield Token(
+            TokenType.HTML_BLOCK,
+            html_content,
+            self._location_from(self._html_block_start),
+        )
+
+        # Reset state
+        self._html_block_type = 0
+        self._html_block_content = []
+        self._html_block_start = 0
+        self._mode = LexerMode.BLOCK
+
+    def _scan_html_block_content(self) -> Iterator[Token]:
+        """Scan content inside HTML block until end condition."""
+        self._save_location()
+
+        line_start = self._pos
+        line_end = self._find_line_end()
+        line = self._source[line_start:line_end]
+
+        self._commit_to(line_end)
+
+        # Add line to content
+        if self._consumed_newline:
+            self._html_block_content.append(line + "\n")
+        else:
+            self._html_block_content.append(line)
+
+        # Check end conditions based on type
+        html_type = self._html_block_type
+        line_lower = line.lower()
+
+        # Type 1: ends with closing tag
+        if html_type == 1:
+            for tag in _HTML_BLOCK_TYPE1_TAGS:
+                if f"</{tag}>" in line_lower:
+                    yield from self._emit_html_block()
+                    return
+
+        # Type 2: ends with -->
+        elif html_type == 2:
+            if "-->" in line:
+                yield from self._emit_html_block()
+                return
+
+        # Type 3: ends with ?>
+        elif html_type == 3:
+            if "?>" in line:
+                yield from self._emit_html_block()
+                return
+
+        # Type 4: ends with >
+        elif html_type == 4:
+            if ">" in line:
+                yield from self._emit_html_block()
+                return
+
+        # Type 5: ends with ]]>
+        elif html_type == 5:
+            if "]]>" in line:
+                yield from self._emit_html_block()
+                return
+
+        # Types 6 and 7: end with blank line
+        elif html_type in (6, 7) and not line.strip():
+            # Remove the blank line from content (it's just the delimiter)
+            if self._html_block_content:
+                self._html_block_content.pop()
+            yield from self._emit_html_block()
+            return
+
+        # Check for EOF - emit what we have
+        if self._pos >= self._source_len:
+            yield from self._emit_html_block()
+
     def _try_classify_list_marker(
         self, content: str, line_start: int, indent: int = 0
     ) -> Iterator[Token] | None:
@@ -522,6 +882,10 @@ class Lexer:
 
         The marker value is prefixed with spaces to preserve indent for parser.
         E.g., indent=2, marker="-" yields value "  -" so parser knows nesting.
+
+        Content after the marker is checked for block-level elements:
+        - Thematic breaks (* * *, - - -, etc.)
+        - Fenced code blocks
         """
         # Prefix marker with spaces to encode indent level
         indented_marker = " " * indent + marker
@@ -531,12 +895,28 @@ class Lexer:
             self._location_from(line_start),
         )
         remaining = remaining.rstrip("\n")
-        if remaining:
-            yield Token(
-                TokenType.PARAGRAPH_LINE,
-                remaining,
-                self._location_from(line_start),
-            )
+        if not remaining:
+            return
+
+        # Check if content is a thematic break (e.g., "- * * *")
+        if remaining.lstrip() and remaining.lstrip()[0] in THEMATIC_BREAK_CHARS:
+            thematic_token = self._try_classify_thematic_break(remaining.lstrip(), line_start)
+            if thematic_token:
+                yield thematic_token
+                return
+
+        # Check if content starts a fenced code block
+        if remaining.lstrip() and remaining.lstrip()[0] in FENCE_CHARS:
+            fence_token = self._try_classify_fence_start(remaining.lstrip(), line_start, 0)
+            if fence_token:
+                yield fence_token
+                return
+
+        yield Token(
+            TokenType.PARAGRAPH_LINE,
+            remaining,
+            self._location_from(line_start),
+        )
 
     def _try_classify_link_reference_def(self, content: str, line_start: int) -> Token | None:
         """Try to classify content as link reference definition.
@@ -928,30 +1308,40 @@ class Lexer:
     def _is_closing_fence(self, line: str) -> bool:
         """Check if line is a closing fence for current code block.
 
-        CommonMark allows closing fences to be indented (e.g., inside list items).
-        We strip all leading spaces/tabs before checking for the fence.
+        CommonMark 4.5: Closing fences may be indented 0-3 spaces.
+        If indented 4+ spaces, it's NOT a closing fence (it's code content).
         """
         if not self._fence_char:
             return False
 
-        # Strip all leading whitespace (CommonMark allows indented closing fences)
-        content = line.lstrip()
+        # Count leading spaces (CommonMark allows 0-3 spaces of indentation)
+        indent = 0
+        pos = 0
+        while pos < len(line) and line[pos] == " ":
+            indent += 1
+            pos += 1
+
+        # 4+ spaces of indent means NOT a closing fence
+        if indent >= 4:
+            return False
+
+        content = line[pos:]
 
         if not content.startswith(self._fence_char):
             return False
 
         # Count fence characters
         count = 0
-        pos = 0
-        while pos < len(content) and content[pos] == self._fence_char:
+        fence_pos = 0
+        while fence_pos < len(content) and content[fence_pos] == self._fence_char:
             count += 1
-            pos += 1
+            fence_pos += 1
 
         if count < self._fence_count:
             return False
 
         # Rest must be whitespace only
-        rest = content[pos:].rstrip("\n")
+        rest = content[fence_pos:].rstrip("\n")
         return rest.strip() == ""
 
     # =========================================================================

@@ -80,6 +80,65 @@ def _extract_url(dest: str) -> tuple[str, str | None]:
     return _process_escapes(url), _process_escapes(title) if title else None
 
 
+def _find_closing_bracket(text: str, start: int) -> int:
+    """Find closing bracket ] while respecting code spans.
+
+    CommonMark: Code spans have higher precedence than link text brackets.
+    A code span inside link text means the ] inside the code span doesn't count.
+
+    Args:
+        text: Full text to search
+        start: Position to start searching (should be after opening [)
+
+    Returns:
+        Position of closing ] or -1 if not found
+    """
+    pos = start
+    text_len = len(text)
+
+    while pos < text_len:
+        char = text[pos]
+
+        if char == "`":
+            # Found backtick - find matching closing backticks
+            backtick_count = 0
+            while pos < text_len and text[pos] == "`":
+                backtick_count += 1
+                pos += 1
+
+            # Search for matching closing backticks
+            close_pos = pos
+            while True:
+                close_idx = text.find("`", close_pos)
+                if close_idx == -1:
+                    # No closing backticks - remaining backticks are literal
+                    break
+                # Count consecutive backticks at this position
+                close_count = 0
+                check_pos = close_idx
+                while check_pos < text_len and text[check_pos] == "`":
+                    close_count += 1
+                    check_pos += 1
+                if close_count == backtick_count:
+                    # Found matching closer - skip past the code span
+                    pos = check_pos
+                    break
+                close_pos = check_pos
+            continue
+
+        if char == "]":
+            return pos
+
+        if char == "\\":
+            # Skip escaped character
+            pos += 2
+            continue
+
+        pos += 1
+
+    return -1
+
+
 def _extract_plain_text(text: str) -> str:
     """Extract plain text from inline content for image alt text.
 
@@ -165,8 +224,8 @@ class LinkParsingMixin:
         if text[pos] != "[":
             return None
 
-        # Find ]
-        bracket_pos = text.find("]", pos + 1)
+        # Find ] while respecting code spans (CommonMark precedence)
+        bracket_pos = _find_closing_bracket(text, pos + 1)
         if bracket_pos == -1:
             return None
 
@@ -240,8 +299,8 @@ class LinkParsingMixin:
         if not (text[pos] == "!" and pos + 1 < len(text) and text[pos + 1] == "["):
             return None
 
-        # Find ]
-        bracket_pos = text.find("]", pos + 2)
+        # Find ] while respecting code spans (CommonMark precedence)
+        bracket_pos = _find_closing_bracket(text, pos + 2)
         if bracket_pos == -1:
             return None
 

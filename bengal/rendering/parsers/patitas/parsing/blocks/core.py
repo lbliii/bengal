@@ -13,6 +13,7 @@ from bengal.rendering.parsers.patitas.nodes import (
     BlockQuote,
     FencedCode,
     Heading,
+    HtmlBlock,
     IndentedCode,
     Paragraph,
     Table,
@@ -107,6 +108,9 @@ class BlockParsingCoreMixin:
                 # They don't produce AST nodes, just skip
                 self._advance()
                 return None
+
+            case TokenType.HTML_BLOCK:
+                return self._parse_html_block()
 
             case _:
                 # Skip unknown tokens
@@ -221,6 +225,14 @@ class BlockParsingCoreMixin:
 
         return ThematicBreak(location=token.location)
 
+    def _parse_html_block(self) -> HtmlBlock:
+        """Parse HTML block (raw HTML content passed through unchanged)."""
+        token = self._current
+        assert token is not None and token.type == TokenType.HTML_BLOCK
+        self._advance()
+
+        return HtmlBlock(location=token.location, html=token.value)
+
     def _parse_block_quote(self) -> BlockQuote:
         """Parse block quote (> quoted).
 
@@ -233,6 +245,7 @@ class BlockParsingCoreMixin:
 
         # Collect content after > markers
         content_lines: list[str] = []
+        last_was_marker = False  # Track consecutive markers for blank quoted lines
 
         while not self._at_end():
             token = self._current
@@ -240,10 +253,14 @@ class BlockParsingCoreMixin:
 
             if token.type == TokenType.PARAGRAPH_LINE:
                 content_lines.append(token.value)
+                last_was_marker = False
                 self._advance()
             elif token.type == TokenType.BLOCK_QUOTE_MARKER:
-                # Continuation of block quote - keep the line break
-                content_lines.append("")  # Preserve structure between > markers
+                if last_was_marker:
+                    # Two consecutive markers = blank quoted line (just ">")
+                    # This creates a paragraph break in the quote content
+                    content_lines.append("")
+                last_was_marker = True
                 self._advance()
             elif token.type == TokenType.BLANK_LINE:
                 # End of block quote

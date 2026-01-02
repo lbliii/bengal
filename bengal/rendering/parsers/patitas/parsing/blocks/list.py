@@ -149,9 +149,40 @@ class ListParsingMixin:
             # Track actual content indent from first content line
             actual_content_indent: int | None = None
 
+            # Track if we've seen any content for this item yet.
+            # Block elements (thematic break, fenced code) are only included in the list item
+            # if they immediately follow the marker (no paragraph content first).
+            saw_paragraph_content = False
+
             while not self._at_end():
                 tok = self._current
                 assert tok is not None
+
+                # Handle block-level elements that can appear immediately after list marker
+                # e.g., "- * * *" where * * * is a thematic break
+                # Only valid if NO paragraph content has been seen (meaning same line as marker)
+                if tok.type == TokenType.THEMATIC_BREAK:
+                    if not saw_paragraph_content and not content_lines:
+                        # Thematic break immediately after list marker - include in item
+                        from bengal.rendering.parsers.patitas.nodes import ThematicBreak
+
+                        item_children.append(ThematicBreak(location=tok.location))
+                        self._advance()
+                        continue
+                    else:
+                        # Thematic break after paragraph content - terminates this list
+                        break
+
+                if tok.type == TokenType.FENCED_CODE_START:
+                    if not saw_paragraph_content and not content_lines:
+                        # Fenced code block immediately after list marker
+                        block = self._parse_block()
+                        if block is not None:
+                            item_children.append(block)
+                        continue
+                    else:
+                        # After paragraph content - terminates list
+                        break
 
                 if tok.type == TokenType.PARAGRAPH_LINE:
                     line = tok.value.lstrip()
@@ -187,6 +218,7 @@ class ListParsingMixin:
                             line = line[4:]
 
                     content_lines.append(line)
+                    saw_paragraph_content = True
                     self._advance()
                 elif tok.type == TokenType.INDENTED_CODE:
                     # INDENTED_CODE tokens are created for 4+ space indentation.

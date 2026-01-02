@@ -236,8 +236,20 @@ class InlineParsingCoreMixin:
                     while pos < text_len and text[pos] == " ":
                         pos += 1
                 else:
+                    # Soft break: also strip single trailing space and skip leading spaces
+                    # CommonMark 6.10: Interior spaces are preserved in paragraphs,
+                    # but trailing/leading spaces around line breaks are stripped
+                    if space_count == 1 and tokens and isinstance(tokens[-1], TextToken):
+                        content = tokens[-1].content.rstrip(" ")
+                        if content:
+                            tokens[-1] = TextToken(content=content)
+                        else:
+                            tokens.pop()
                     tokens_append(SoftBreakToken())
-                    pos += 1
+                    pos += 1  # Move past newline
+                    # Skip leading spaces on continuation line
+                    while pos < text_len and text[pos] == " ":
+                        pos += 1
                 continue
 
             # Escaped character
@@ -527,70 +539,146 @@ class InlineParsingCoreMixin:
                     all_matches = registry.get_matches_for_opener(registry_idx)
                     if all_matches and all_matches[0].closer_idx > registry_idx:
                         # This is an opener - build nested emphasis/strong/strikethrough
-                        # Matches are ordered: first match is outermost (e.g., strong for ***)
-                        closer_registry_idx = all_matches[0].closer_idx
-                        # Convert back to local index
-                        closer_local_idx = closer_registry_idx - base_idx
+                        # Sort matches by closer_idx to handle multiple closers correctly
+                        # Example: __foo_ bar_ has opener 0 matching closers 2 and 4
+                        # We need to process innermost (closest closer) first
+                        sorted_matches = sorted(all_matches, key=lambda m: m.closer_idx)
 
                         # Calculate consumed delimiters (sum of all matches)
                         consumed = sum(m.match_count for m in all_matches)
                         opener_remaining = original_count - consumed
 
                         # Emit remaining unused opener delimiters as text BEFORE emphasis
-                        # E.g., "**foo*" has opener with count=2, closer with count=1
-                        # Match uses 1, so 1 opener remains as literal text
                         if opener_remaining > 0:
                             result.append(
                                 Text(location=location, content=delim_char * opener_remaining)
                             )
 
-                        # Get closer remaining for potential text after emphasis
-                        # Note: closer_local_idx might be at len(tokens) if we're in a
-                        # recursive call and the closer is at the parent level
-                        closer_remaining = 0
-                        if closer_local_idx < len(tokens):
-                            closer_token = tokens[closer_local_idx]
-                            if isinstance(closer_token, DelimiterToken):
-                                closer_remaining = closer_token.count - consumed
+                        # Check if all matches have the SAME closer (e.g., ***text***)
+                        # vs different closers (e.g., __foo_ bar_)
+                        unique_closers = {m.closer_idx for m in sorted_matches}
 
-                        # Collect children between opener and closer
-                        # The slice is from idx+1 to closer_local_idx (local indices)
-                        # But for the recursive call, base_idx becomes base_idx + idx + 1
-                        children = self._build_inline_ast(
-                            tokens[idx + 1 : closer_local_idx],
-                            registry,
-                            location,
-                            base_idx=base_idx + idx + 1,
-                        )
+                        if len(unique_closers) == 1:
+                            # All matches share the same closer (e.g., ***text***)
+                            closer_registry_idx = sorted_matches[0].closer_idx
+                            closer_local_idx = closer_registry_idx - base_idx
 
-                        # Build nested nodes from innermost to outermost
-                        # For ***, matches are [match(count=2), match(count=1)]
-                        # We need to wrap: emphasis(children) -> strong(emphasis)
-                        for match_info in reversed(all_matches):
-                            match_count = match_info.match_count
-                            if delim_char == "~":
-                                # Strikethrough: ~~ always uses 2 tildes
-                                node: Inline = Strikethrough(location=location, children=children)
-                            elif match_count == 2:
-                                node = Strong(location=location, children=children)
-                            else:
-                                node = Emphasis(location=location, children=children)
-                            # Wrap for next iteration
-                            children = (node,)
+                            # Get closer remaining - use registry to check TOTAL consumption
+                            # A closer may be shared by multiple openers (e.g., *foo *bar**)
+                            closer_remaining = 0
+                            if closer_local_idx < len(tokens):
+                                closer_token = tokens[closer_local_idx]
+                                if isinstance(closer_token, DelimiterToken):
+                                    # Use registry's remaining_count which tracks total consumption
+                                    closer_remaining = registry.remaining_count(
+                                        closer_registry_idx, closer_token.count
+                                    )
 
-                        # Unwrap the final single-element tuple
-                        result.append(children[0])
-
-                        # Emit remaining unused closer delimiters as text AFTER emphasis
-                        # E.g., "*foo**" has opener with count=1, closer with count=2
-                        # Match uses 1, so 1 closer remains as literal text
-                        if closer_remaining > 0:
-                            result.append(
-                                Text(location=location, content=delim_char * closer_remaining)
+                            # Build children between opener and closer
+                            children = self._build_inline_ast(
+                                tokens[idx + 1 : closer_local_idx],
+                                registry,
+                                location,
+                                base_idx=base_idx + idx + 1,
                             )
 
-                        # Skip to after closer (local index)
-                        idx = closer_local_idx + 1
+                            # Wrap from innermost to outermost
+                            for match_info in sorted_matches:
+                                match_count = match_info.match_count
+                                if delim_char == "~":
+                                    node: Inline = Strikethrough(
+                                        location=location, children=children
+                                    )
+                                elif match_count == 2:
+                                    node = Strong(location=location, children=children)
+                                else:
+                                    node = Emphasis(location=location, children=children)
+                                children = (node,)
+
+                            result.append(children[0])
+
+                            if closer_remaining > 0:
+                                result.append(
+                                    Text(location=location, content=delim_char * closer_remaining)
+                                )
+
+                            idx = closer_local_idx + 1
+                        else:
+                            # Multiple different closers (e.g., __foo_ bar_)
+                            # Process from innermost (closest) to outermost (farthest)
+                            # Each match wraps progressively more content
+
+                            # Find the outermost closer for skipping past at the end
+                            outermost_closer_registry_idx = sorted_matches[-1].closer_idx
+                            outermost_closer_local_idx = outermost_closer_registry_idx - base_idx
+
+                            # Get outermost closer remaining
+                            outermost_closer_remaining = 0
+                            if outermost_closer_local_idx < len(tokens):
+                                closer_token = tokens[outermost_closer_local_idx]
+                                if isinstance(closer_token, DelimiterToken):
+                                    # Each match uses delimiters from both opener and closer
+                                    # But closers are different, so only the last match uses
+                                    # the outermost closer
+                                    outermost_closer_remaining = (
+                                        closer_token.count - sorted_matches[-1].match_count
+                                    )
+
+                            # Build content progressively
+                            # Start from opener+1, build to first closer
+                            # Then build from first closer+1 to second closer
+                            # etc., wrapping each segment with the appropriate emphasis
+
+                            accumulated_children: tuple[Inline, ...] = ()
+                            prev_boundary_local = idx + 1  # Start right after opener
+
+                            for match_info in sorted_matches:
+                                closer_registry_idx = match_info.closer_idx
+                                closer_local_idx = closer_registry_idx - base_idx
+                                match_count = match_info.match_count
+
+                                # Build content from prev_boundary to this closer
+                                if prev_boundary_local < closer_local_idx:
+                                    segment_children = self._build_inline_ast(
+                                        tokens[prev_boundary_local:closer_local_idx],
+                                        registry,
+                                        location,
+                                        base_idx=base_idx + prev_boundary_local,
+                                    )
+                                else:
+                                    segment_children = ()
+
+                                # Combine accumulated children with this segment
+                                combined_children = accumulated_children + segment_children
+
+                                # Wrap in emphasis/strong
+                                if delim_char == "~":
+                                    node = Strikethrough(
+                                        location=location, children=combined_children
+                                    )
+                                elif match_count == 2:
+                                    node = Strong(location=location, children=combined_children)
+                                else:
+                                    node = Emphasis(location=location, children=combined_children)
+
+                                # This becomes the accumulated children for the next outer match
+                                accumulated_children = (node,)
+
+                                # Next segment starts after this closer
+                                prev_boundary_local = closer_local_idx + 1
+
+                            # Add the final wrapped result
+                            result.append(accumulated_children[0])
+
+                            if outermost_closer_remaining > 0:
+                                result.append(
+                                    Text(
+                                        location=location,
+                                        content=delim_char * outermost_closer_remaining,
+                                    )
+                                )
+
+                            idx = outermost_closer_local_idx + 1
                     else:
                         # Unmatched delimiter - emit as text
                         remaining = registry.remaining_count(registry_idx, original_count)

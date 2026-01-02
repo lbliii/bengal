@@ -282,7 +282,10 @@ class HtmlRenderer:
                 pass  # Handled in post-processing
 
     def _render_list_item(self, item: ListItem, sb: StringBuilder, tight: bool) -> None:
-        """Render a list item."""
+        """Render a list item.
+
+        Tight list items unwrap paragraphs but still render block elements with newlines.
+        """
         if item.checked is not None:
             # Task list item - match Mistune's class names
             sb.append('<li class="task-list-item">')
@@ -292,8 +295,12 @@ class HtmlRenderer:
             )
         else:
             sb.append("<li>")
+            # For tight lists: add newline if item has non-paragraph block elements
+            # For loose lists: always add newline
             if not tight:
-                # Loose list: add newline after <li> tag
+                sb.append("\n")
+            elif item.children and not isinstance(item.children[0], Paragraph):
+                # Tight list but first child is a block element (like thematic break)
                 sb.append("\n")
 
         if tight:
