@@ -38,7 +38,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: site/.bengal
-          key: bengal-${{ runner.os }}-${{ hashFiles('site/content/**', 'site/config/**') }}
+          # Include uv.lock hash to invalidate cache when dependencies change
+          key: bengal-${{ runner.os }}-${{ hashFiles('uv.lock', 'site/content/**', 'site/config/**') }}
           restore-keys: |
             bengal-${{ runner.os }}-
 
