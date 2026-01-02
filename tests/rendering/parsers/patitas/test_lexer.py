@@ -93,7 +93,8 @@ class TestFencedCode:
         """Tilde fenced code block."""
         tokens = tokenize("~~~\ncode\n~~~")
         start_token = next(t for t in tokens if t.type == TokenType.FENCED_CODE_START)
-        assert start_token.value.startswith("~")
+        # Value format: I{indent}:{fence}{info}, e.g., "I0:~~~"
+        assert "~~~" in start_token.value
 
     def test_fenced_code_preserves_content(self, tokenize):
         """Fenced code preserves exact content."""

@@ -8,7 +8,30 @@ All operations in Patitas are designed for **O(n)** document processing where n 
 
 ## Architecture
 
-The parser uses a mixin-based design following the same pattern as Kida:
+Both the Lexer and Parser use a mixin-based design for modularity:
+
+### Lexer Architecture
+
+```
+Lexer
+├── Classifiers (pure logic, no state mutation)
+│   ├── HeadingClassifierMixin       # ATX headings
+│   ├── FenceClassifierMixin         # Fenced code blocks
+│   ├── ThematicClassifierMixin      # Thematic breaks
+│   ├── QuoteClassifierMixin         # Block quotes
+│   ├── ListClassifierMixin          # List markers
+│   ├── LinkRefClassifierMixin       # Link reference definitions
+│   ├── FootnoteClassifierMixin      # Footnote definitions
+│   ├── HtmlClassifierMixin          # HTML blocks (types 1-7)
+│   └── DirectiveClassifierMixin     # MyST directives
+└── Scanners (mode-specific scanning)
+    ├── BlockScannerMixin            # Block mode dispatch
+    ├── FenceScannerMixin            # Code fence mode
+    ├── DirectiveScannerMixin        # Directive mode
+    └── HtmlScannerMixin             # HTML block mode
+```
+
+### Parser Architecture
 
 ```
 Parser
@@ -95,6 +118,31 @@ The CommonMark delimiter stack algorithm has worst-case O(d²) for pathological 
 
 ## File Organization
 
+### Lexer Package
+
+| File | Lines | Purpose |
+|------|-------|---------|
+| `lexer/__init__.py` | ~40 | Re-exports Lexer, LexerMode |
+| `lexer/core.py` | ~280 | Lexer class + navigation helpers |
+| `lexer/modes.py` | ~90 | LexerMode enum, HTML tag constants |
+| `lexer/classifiers/heading.py` | ~60 | ATX heading classification |
+| `lexer/classifiers/fence.py` | ~110 | Fenced code classification |
+| `lexer/classifiers/thematic.py` | ~55 | Thematic break classification |
+| `lexer/classifiers/quote.py` | ~50 | Block quote classification |
+| `lexer/classifiers/list.py` | ~130 | List marker classification |
+| `lexer/classifiers/link_ref.py` | ~75 | Link reference definition |
+| `lexer/classifiers/footnote.py` | ~55 | Footnote definition |
+| `lexer/classifiers/html.py` | ~210 | HTML blocks (types 1-7) |
+| `lexer/classifiers/directive.py` | ~220 | MyST directive classification |
+| `lexer/scanners/block.py` | ~160 | Block mode scanner |
+| `lexer/scanners/fence.py` | ~85 | Code fence mode scanner |
+| `lexer/scanners/directive.py` | ~140 | Directive mode scanner |
+| `lexer/scanners/html.py` | ~100 | HTML block mode scanner |
+
+**Lexer Total**: ~1860 lines across 16 files (max ~280 lines/file)
+
+### Parser Package
+
 | File | Lines | Purpose |
 |------|-------|---------|
 | `parser.py` | ~150 | Main parser class |
@@ -112,7 +160,7 @@ The CommonMark delimiter stack algorithm has worst-case O(d²) for pathological 
 | `parsing/blocks/directive.py` | ~180 | Directive parsing |
 | `parsing/blocks/footnote.py` | ~80 | Footnote definitions |
 
-**Total**: ~2300 lines across 14 files
+**Parser Total**: ~2300 lines across 14 files
 
 ---
 
@@ -156,7 +204,19 @@ The CommonMark delimiter stack algorithm has worst-case O(d²) for pathological 
 
 ## Comparison
 
-| Metric | Before (1 file) | After (11 files) |
+### Lexer Modularization
+
+| Metric | Before (1 file) | After (16 files) |
+|--------|-----------------|------------------|
+| Max file size | 1482 lines | ~280 lines |
+| Avg file size | 1482 lines | ~115 lines |
+| Testability | Hard (monolithic) | Easy (per-classifier) |
+| Maintainability | Poor | Good |
+| Navigation | Hard | Easy (by concern) |
+
+### Parser Modularization
+
+| Metric | Before (1 file) | After (14 files) |
 |--------|-----------------|------------------|
 | Max file size | 1950 lines | 310 lines |
 | Avg file size | 1950 lines | ~175 lines |
