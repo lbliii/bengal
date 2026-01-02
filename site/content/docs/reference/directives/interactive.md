@@ -23,6 +23,13 @@ keywords:
 
 Interactive directives provide JavaScript-enhanced components for code examples and data tables.
 
+## Quick Reference
+
+| Directive | Purpose | Key Features |
+|-----------|---------|--------------|
+| `:::{code-tabs}` | Multi-language code examples | Auto-sync, icons, copy button, highlighting |
+| `` ```{data-table} `` | Interactive data tables | Search, filter, sort, pagination |
+
 ## Key Terms
 
 :::{glossary}
@@ -33,7 +40,7 @@ Interactive directives provide JavaScript-enhanced components for code examples 
 
 Create tabbed interfaces for multi-language code examples with automatic language sync, syntax highlighting, and copy buttons.
 
-**Aliases**: `{code_tabs}`
+**Aliases**: `{code-tabs}`, `{code_tabs}`
 
 ### Features
 
@@ -286,9 +293,9 @@ Icons are automatically assigned based on language category:
 
 | Languages | Icon |
 |-----------|------|
-| bash, shell, sh, zsh, powershell, cmd | Terminal |
-| sql, mysql, postgresql, sqlite | Database |
-| json, yaml, toml, xml, ini | File/Code |
+| bash, shell, sh, zsh, fish, powershell, cmd, console | Terminal |
+| sql, mysql, postgresql, sqlite, mongodb | Database |
+| json, yaml, toml, xml, ini, env | File/Code |
 | All others | Code |
 
 ### Legacy Syntax
@@ -454,6 +461,6 @@ Data tables render as interactive Tabulator tables with:
 
 ## Related
 
-- [Layout Directives](/docs/reference/directives/layout/) - Static tabs (`tab-set`) and cards
-- [Formatting Directives](/docs/reference/directives/formatting/) - List tables (static)
-- [Code Blocks](/docs/content/authoring/code-blocks/) - Standard code block syntax
+- [Layout Directives](/docs/reference/directives/layout/) — Static tabs (`tab-set`) and cards
+- [Formatting Directives](/docs/reference/directives/formatting/) — List tables (static)
+- [Code Blocks](/docs/content/authoring/code-blocks/) — Standard code block syntax

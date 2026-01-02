@@ -18,7 +18,7 @@ keywords:
 
 # Icon Reference
 
-**125 theme-aware SVG icons** powered by [Phosphor Icons](https://phosphoricons.com/). All icons adapt to light/dark mode using `currentColor`.
+**130 theme-aware SVG icons** powered by [Phosphor Icons](https://phosphoricons.com/). All icons adapt to light/dark mode using `currentColor`.
 
 ## Syntax
 
@@ -27,7 +27,7 @@ keywords:
 | `:::{icon} name` | Block | `:::{icon} terminal :size: 48 :::` |
 | `{icon}`name`` | Inline | `{icon}`terminal`` |
 | `{icon}`name:size`` | Inline + size | `{icon}`terminal:16`` |
-| `{icon}`name:size:class`` | Inline + size + class | `{icon}`terminal:24:icon-primary`` |
+| `{icon}`name:size:class`` | Inline + size + class | `{icon}`terminal:24:icon--primary`` |
 
 **Aliases**: `{svg-icon}`
 
@@ -36,18 +36,21 @@ keywords:
 | Option | Default | Description |
 |--------|---------|-------------|
 | `:size:` | 24 | Icon size in pixels |
-| `:class:` | — | CSS classes (`icon-primary`, `icon-success`, etc.) |
+| `:class:` | — | CSS classes (`icon--primary`, `icon--success`, etc.) |
 | `:aria-label:` | — | Accessibility label for screen readers |
 
 ## Color Classes
 
 | Class | Preview |
 |-------|---------|
-| `icon-primary` | {icon}`star:20:icon-primary` |
-| `icon-success` | {icon}`check:20:icon-success` |
-| `icon-warning` | {icon}`warning:20:icon-warning` |
-| `icon-danger` | {icon}`error:20:icon-danger` |
-| `icon-muted` | {icon}`info:20:icon-muted` |
+| `icon--primary` | {icon}`star:20:icon--primary` |
+| `icon--secondary` | {icon}`bookmark:20:icon--secondary` |
+| `icon--success` | {icon}`check:20:icon--success` |
+| `icon--warning` | {icon}`warning:20:icon--warning` |
+| `icon--danger` | {icon}`error:20:icon--danger` |
+| `icon--info` | {icon}`info:20:icon--info` |
+| `icon--muted` | {icon}`question:20:icon--muted` |
+| `icon--example` | {icon}`flask:20:icon--example` |
 
 ---
 
@@ -97,6 +100,7 @@ keywords:
 |------|------|-------------|
 | {icon}`file:24` | `file` | File/document |
 | {icon}`file-text:24` | `file-text` | Text document |
+| {icon}`file-code:24` | `file-code` | Code file |
 | {icon}`file-py:24` | `file-py` | Python file |
 | {icon}`file-js:24` | `file-js` | JavaScript file |
 | {icon}`file-ts:24` | `file-ts` | TypeScript file |
@@ -118,7 +122,8 @@ keywords:
 | {icon}`list:24` | `list` | List |
 | {icon}`layers:24` | `layers` | Layers/stack |
 | {icon}`stack:24` | `stack` | Stack/architecture |
-| {icon}`funnel:24` | `funnel` | Filter |
+| {icon}`funnel:24` | `funnel` | Filter (funnel) |
+| {icon}`filter:24` | `filter` | Filter |
 | {icon}`tree-structure:24` | `tree-structure` | Hierarchy/tree |
 
 ### Status & Admonitions
@@ -167,17 +172,20 @@ keywords:
 |------|------|-------------|
 | {icon}`git-branch:24` | `git-branch` | Git branch |
 | {icon}`git-commit:24` | `git-commit` | Git commit |
+| {icon}`code-branch:24` | `code-branch` | Code branch |
 | {icon}`package:24` | `package` | Package/module |
 | {icon}`cube:24` | `cube` | Block/component |
 | {icon}`puzzle-piece:24` | `puzzle-piece` | Integration/plugin |
 | {icon}`puzzle:24` | `puzzle` | Puzzle (alias) |
 | {icon}`flask:24` | `flask` | Testing/experiments |
+| {icon}`workflow:24` | `workflow` | Workflow/pipeline |
 
 ### Infrastructure & Security
 
 | Icon | Name | Description |
 |------|------|-------------|
 | {icon}`server:24` | `server` | Server |
+| {icon}`container:24` | `container` | Container/Docker |
 | {icon}`hard-drives:24` | `hard-drives` | Storage/drives |
 | {icon}`database:24` | `database` | Database |
 | {icon}`cloud:24` | `cloud` | Cloud/hosting |
@@ -253,13 +261,13 @@ All icons at 32px:
 
 **Status**: {icon}`check:32` {icon}`check-circle:32` {icon}`info:32` {icon}`lightbulb:32` {icon}`warning:32` {icon}`error:32` {icon}`note:32` {icon}`tip:32` {icon}`danger:32` {icon}`sparkle:32`
 
-**Files**: {icon}`file:32` {icon}`file-text:32` {icon}`file-py:32` {icon}`file-js:32` {icon}`file-ts:32` {icon}`folder:32` {icon}`code:32` {icon}`function:32` {icon}`notepad:32` {icon}`book:32` {icon}`article:32` {icon}`newspaper:32`
+**Files**: {icon}`file:32` {icon}`file-text:32` {icon}`file-code:32` {icon}`file-py:32` {icon}`file-js:32` {icon}`file-ts:32` {icon}`folder:32` {icon}`code:32` {icon}`function:32` {icon}`notepad:32` {icon}`book:32` {icon}`article:32` {icon}`newspaper:32`
 
 **Actions**: {icon}`download:32` {icon}`upload:32` {icon}`trash:32` {icon}`star:32` {icon}`heart:32` {icon}`share:32` {icon}`eye:32` {icon}`wrench:32` {icon}`rocket:32` {icon}`zap:32` {icon}`lightning:32`
 
-**Development**: {icon}`git-branch:32` {icon}`git-commit:32` {icon}`package:32` {icon}`cube:32` {icon}`puzzle-piece:32` {icon}`flask:32`
+**Development**: {icon}`git-branch:32` {icon}`git-commit:32` {icon}`code-branch:32` {icon}`package:32` {icon}`cube:32` {icon}`puzzle-piece:32` {icon}`flask:32` {icon}`workflow:32`
 
-**Infrastructure**: {icon}`server:32` {icon}`hard-drives:32` {icon}`database:32` {icon}`cloud:32` {icon}`network:32` {icon}`cpu:32` {icon}`shield:32` {icon}`lock:32` {icon}`key:32`
+**Infrastructure**: {icon}`server:32` {icon}`container:32` {icon}`hard-drives:32` {icon}`database:32` {icon}`cloud:32` {icon}`network:32` {icon}`cpu:32` {icon}`shield:32` {icon}`lock:32` {icon}`key:32`
 
 **Time & Location**: {icon}`clock:32` {icon}`timer:32` {icon}`calendar:32` {icon}`pin:32` {icon}`globe:32` {icon}`translate:32`
 
@@ -275,7 +283,7 @@ All icons at 32px:
 
 **Mid-Century**: {icon}`atomic:32` {icon}`starburst:32` {icon}`boomerang:32`
 
-**Structure**: {icon}`layers:32` {icon}`stack:32` {icon}`tree-structure:32` {icon}`feather:32`
+**Structure**: {icon}`layers:32` {icon}`stack:32` {icon}`tree-structure:32` {icon}`filter:32` {icon}`feather:32`
 
 ---
 
@@ -287,10 +295,10 @@ Bengal supports **theme-aware icon resolution** — add your own icons or overri
 
 Icons are resolved in priority order (first match wins):
 
-1. **Site theme**: `themes/{theme}/assets/icons/` in your project
-2. **Theme icons**: Built-in theme icons
-3. **Parent theme**: If your theme extends another
-4. **Bengal defaults**: Phosphor icons (fallback)
+1. **Site theme**: `site/themes/{theme}/assets/icons/{name}.svg`
+2. **Theme icons**: `bengal/themes/{theme}/assets/icons/{name}.svg`
+3. **Parent theme**: `bengal/themes/{parent}/assets/icons/{name}.svg`
+4. **Bengal defaults**: `bengal/themes/default/assets/icons/{name}.svg`
 
 ### Adding Custom Icons
 

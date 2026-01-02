@@ -23,6 +23,16 @@ keywords:
 
 Navigation directives automatically generate navigation elements from your site's object tree. They read directly from page and section metadata, eliminating manual content duplication.
 
+## Quick Reference
+
+| Directive | Purpose | Reads From |
+|-----------|---------|------------|
+| `:::{child-cards}` | Card grid from child pages/sections | Section children |
+| `:::{breadcrumbs}` | Hierarchical path navigation | Page ancestors |
+| `:::{siblings}` | Links to sibling pages | Section pages |
+| `:::{prev-next}` | Sequential navigation | Section order |
+| `:::{related}` | Related content by tags | Page tags |
+
 ## Key Terms
 
 :::{glossary}
@@ -52,6 +62,7 @@ Automatically generate a card grid from child sections and pages. This is the re
 | `:fields:` | Comma-separated list | `title, description` | Metadata fields to display |
 | `:gap:` | `small`, `medium`, `large` | `medium` | Gap between cards |
 | `:layout:` | `default`, `horizontal`, `portrait`, `compact` | `default` | Card layout style |
+| `:style:` | `default`, `minimal`, `bordered` | `default` | Visual style variant |
 
 ### Available Fields
 
@@ -292,5 +303,5 @@ tags: [guide, python]  # For related pages
 
 ## Related
 
-- [Layout Directives](/docs/reference/directives/layout/) - Manual cards and tabs
-- [Content Organization](/docs/content/organization/) - How sections and pages work
+- [Layout Directives](/docs/reference/directives/layout/) — Manual cards and tabs
+- [Content Organization](/docs/content/organization/) — How sections and pages work

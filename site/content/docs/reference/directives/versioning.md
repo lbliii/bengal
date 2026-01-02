@@ -8,6 +8,14 @@ weight: 80
 
 Mark content as added, changed, or deprecated in specific versions. Use these directives to help users understand API evolution and migration paths.
 
+## Quick Reference
+
+| Directive | Alias | Purpose | Theme Color |
+|-----------|-------|---------|-------------|
+| `:::{since}` | `{versionadded}` | New feature/API | Success (green) |
+| `:::{deprecated}` | `{versionremoved}` | Deprecated feature | Warning (orange) |
+| `:::{changed}` | `{versionchanged}` | Behavior change | Info (blue) |
+
 ## since
 
 Marks content that was **added** in a specific version.
@@ -313,6 +321,6 @@ Avoid for:
 
 ## Related
 
-- [[/docs/content/versioning|Versioning Documentation]] — Full versioning guide
-- [[/docs/content/versioning/cross-version-links|Cross-Version Links]] — Link between versions
-- [Admonitions](admonitions.md) — Standard callout directives
+- [Versioning Documentation](/docs/content/versioning/) — Full versioning guide
+- [Cross-Version Links](/docs/content/versioning/cross-version-links/) — Link between versions
+- [Admonitions](/docs/reference/directives/admonitions/) — Standard callout directives
