@@ -155,3 +155,41 @@ class Parser(
                 blocks.append(block)
 
         return tuple(blocks)
+
+    def _parse_nested_content(self, content: str, location) -> tuple[Block, ...]:
+        """Parse nested content as blocks (for block quotes, list items).
+
+        Creates a sub-parser to handle nested block-level content while
+        preserving plugin settings and link reference definitions.
+
+        Args:
+            content: The markdown content to parse as blocks
+            location: Source location for error reporting
+
+        Returns:
+            Tuple of Block nodes
+        """
+        if not content.strip():
+            return ()
+
+        # Create sub-parser with same settings
+        sub_parser = Parser(
+            content,
+            self._source_file,
+            directive_registry=self._directive_registry,
+            strict_contracts=self._strict_contracts,
+            text_transformer=self._text_transformer,
+        )
+
+        # Copy plugin settings
+        sub_parser._tables_enabled = self._tables_enabled
+        sub_parser._strikethrough_enabled = self._strikethrough_enabled
+        sub_parser._task_lists_enabled = self._task_lists_enabled
+        sub_parser._footnotes_enabled = self._footnotes_enabled
+        sub_parser._math_enabled = self._math_enabled
+        sub_parser._autolinks_enabled = self._autolinks_enabled
+
+        # Share link reference definitions (they're document-wide)
+        sub_parser._link_refs = self._link_refs
+
+        return tuple(sub_parser.parse())

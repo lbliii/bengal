@@ -13,8 +13,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from bengal.rendering.parsers.patitas.parsing.charsets import (
-    ASCII_PUNCTUATION,
-    WHITESPACE_OR_EMPTY,
+    is_unicode_punctuation,
+    is_unicode_whitespace,
 )
 from bengal.rendering.parsers.patitas.parsing.inline.match_registry import (
     MatchRegistry,
@@ -68,16 +68,18 @@ class EmphasisMixin:
     def _is_whitespace(self, char: str) -> bool:
         """Check if character is Unicode whitespace.
 
-        Uses O(1) frozenset lookup.
+        CommonMark uses Unicode whitespace for emphasis flanking rules.
+        Includes ASCII whitespace and Unicode category Zs.
         """
-        return char in WHITESPACE_OR_EMPTY
+        return is_unicode_whitespace(char)
 
     def _is_punctuation(self, char: str) -> bool:
-        """Check if character is ASCII punctuation.
+        """Check if character is Unicode punctuation.
 
-        Uses O(1) frozenset lookup.
+        CommonMark uses Unicode punctuation for emphasis flanking rules.
+        Includes ASCII punctuation and Unicode categories P* and S*.
         """
-        return char in ASCII_PUNCTUATION
+        return is_unicode_punctuation(char)
 
     def _process_emphasis(
         self,

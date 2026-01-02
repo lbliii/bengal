@@ -193,8 +193,19 @@ class Lexer:
             yield Token(TokenType.BLANK_LINE, "", self._location_from(line_start))
             return
 
-        # Check for fenced code blocks BEFORE indented code
-        # (fenced code can be indented inside list items)
+        # CommonMark: 4+ spaces indent creates an indented code block
+        # This takes priority over most block types (except fenced code inside lists)
+        # Must check BEFORE ATX headings, thematic breaks, and block quotes
+        if indent >= 4:
+            yield Token(
+                TokenType.INDENTED_CODE,
+                line[4:] + ("\n" if self._consumed_newline else ""),
+                self._location_from(line_start),
+            )
+            return
+
+        # Check for fenced code blocks
+        # (fenced code can be indented inside list items, but indent < 4)
         # Fenced code: ``` or ~~~ (uses O(1) frozenset lookup)
         if content[0] in FENCE_CHARS:
             token = self._try_classify_fence_start(content, line_start, indent)
@@ -203,13 +214,14 @@ class Lexer:
                 return
 
         # ATX Heading: # ## ### etc.
+        # CommonMark: ATX heading cannot be indented 4+ spaces (already handled above)
         if content.startswith("#"):
             token = self._try_classify_atx_heading(content, line_start)
             if token:
                 yield token
                 return
 
-        # Block quote: > (can be indented inside list items)
+        # Block quote: > (cannot be indented 4+ spaces)
         if content.startswith(">"):
             yield from self._classify_block_quote(content, line_start)
             return
@@ -224,21 +236,10 @@ class Lexer:
                 return
 
         # List item: -, *, +, or 1. 1)
-        # Check BEFORE indented code so deeply nested lists are detected correctly
         # Pass indent so nested lists can be detected
         list_tokens = self._try_classify_list_marker(content, line_start, indent)
         if list_tokens is not None:
             yield from list_tokens
-            return
-
-        # Indented code block (4+ spaces, but only if not other block types)
-        # Note: This comes after list marker check so nested lists are handled correctly
-        if indent >= 4:
-            yield Token(
-                TokenType.INDENTED_CODE,
-                line[4:] + ("\n" if self._consumed_newline else ""),
-                self._location_from(line_start),
-            )
             return
 
         # Footnote definition: [^id]: content

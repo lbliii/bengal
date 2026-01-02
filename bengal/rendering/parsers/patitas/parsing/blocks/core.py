@@ -222,12 +222,16 @@ class BlockParsingCoreMixin:
         return ThematicBreak(location=token.location)
 
     def _parse_block_quote(self) -> BlockQuote:
-        """Parse block quote (> quoted)."""
+        """Parse block quote (> quoted).
+
+        CommonMark 5.1: Block quotes can contain any block-level content,
+        including headings, code blocks, lists, and nested block quotes.
+        """
         start_token = self._current
         assert start_token is not None and start_token.type == TokenType.BLOCK_QUOTE_MARKER
         self._advance()
 
-        # Collect content after > into paragraph lines
+        # Collect content after > markers
         content_lines: list[str] = []
 
         while not self._at_end():
@@ -235,10 +239,11 @@ class BlockParsingCoreMixin:
             assert token is not None
 
             if token.type == TokenType.PARAGRAPH_LINE:
-                content_lines.append(token.value.lstrip())
+                content_lines.append(token.value)
                 self._advance()
             elif token.type == TokenType.BLOCK_QUOTE_MARKER:
-                # Continuation of block quote
+                # Continuation of block quote - keep the line break
+                content_lines.append("")  # Preserve structure between > markers
                 self._advance()
             elif token.type == TokenType.BLANK_LINE:
                 # End of block quote
@@ -246,13 +251,12 @@ class BlockParsingCoreMixin:
             else:
                 break
 
-        # Parse content as blocks
+        # Parse content as blocks using recursive sub-parser
         content = "\n".join(content_lines)
-        if content:
-            # Create a paragraph from the content
-            children = self._parse_inline(content, start_token.location)
-            para = Paragraph(location=start_token.location, children=children)
-            return BlockQuote(location=start_token.location, children=(para,))
+        if content.strip():
+            # Use sub-parser to parse nested block content
+            children = self._parse_nested_content(content, start_token.location)
+            return BlockQuote(location=start_token.location, children=children)
 
         return BlockQuote(location=start_token.location, children=())
 
@@ -310,6 +314,14 @@ class BlockParsingCoreMixin:
 
             if token.type == TokenType.PARAGRAPH_LINE:
                 lines.append(token.value.lstrip())
+                self._advance()
+            elif token.type == TokenType.INDENTED_CODE:
+                # CommonMark: indented code blocks cannot interrupt paragraphs
+                # Treat indented content as paragraph continuation
+                # The lexer produces INDENTED_CODE for 4+ space indent, but within
+                # a paragraph this should be paragraph text with leading spaces stripped
+                code_content = token.value.rstrip("\n")
+                lines.append(code_content)
                 self._advance()
             elif token.type == TokenType.LIST_ITEM_MARKER:
                 # CommonMark: ordered lists can only interrupt paragraphs if start=1

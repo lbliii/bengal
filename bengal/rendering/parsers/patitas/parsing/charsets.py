@@ -16,19 +16,54 @@ Usage:
 
 from __future__ import annotations
 
+import unicodedata
+
 # CommonMark: ASCII punctuation characters
 # https://spec.commonmark.org/0.31.2/#ascii-punctuation-character
 ASCII_PUNCTUATION: frozenset[str] = frozenset("!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~")
 
+
+def is_unicode_punctuation(char: str) -> bool:
+    """Check if character is Unicode punctuation (Pc, Pd, Pe, Pf, Pi, Po, Ps, or Sc, Sk, Sm, So).
+
+    CommonMark uses Unicode punctuation categories for flanking rules.
+    This includes ASCII punctuation as a subset.
+    """
+    if not char:
+        return False
+    if char in ASCII_PUNCTUATION:
+        return True
+    cat = unicodedata.category(char)
+    # P* = Punctuation, S* = Symbol
+    return cat.startswith("P") or cat.startswith("S")
+
+
 # CommonMark: Unicode whitespace (Zs category + control chars)
 # https://spec.commonmark.org/0.31.2/#whitespace-character
+# Note: ASCII whitespace for basic checks
 WHITESPACE: frozenset[str] = frozenset(" \t\n\r\f\v")
 
 # Extended whitespace including empty string (for boundary checks)
 WHITESPACE_OR_EMPTY: frozenset[str] = WHITESPACE | frozenset([""])
 
+
+def is_unicode_whitespace(char: str) -> bool:
+    """Check if character is Unicode whitespace.
+
+    CommonMark uses Unicode whitespace for emphasis flanking rules.
+    Includes ASCII whitespace and Unicode category Zs (space separator).
+    Also treats empty string as whitespace (for boundary checks).
+    """
+    if not char:
+        return True  # Empty string counts as whitespace for boundary checks
+    if char in WHITESPACE:
+        return True
+    cat = unicodedata.category(char)
+    return cat == "Zs"  # Space separator (includes non-breaking space)
+
+
 # Inline special characters that trigger tokenizer dispatch
-INLINE_SPECIAL: frozenset[str] = frozenset("*_`[!\\\n<{~$")
+INLINE_SPECIAL: frozenset[str] = frozenset("*_`[!\\\n<{~$&")
 
 # Emphasis delimiter characters
 EMPHASIS_DELIMITERS: frozenset[str] = frozenset("*_~")

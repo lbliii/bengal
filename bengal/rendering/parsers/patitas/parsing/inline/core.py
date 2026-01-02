@@ -23,6 +23,8 @@ from bengal.rendering.parsers.patitas.nodes import (
 )
 from bengal.rendering.parsers.patitas.parsing.charsets import (
     ASCII_PUNCTUATION,
+    DIGITS,
+    HEX_DIGITS,
     INLINE_SPECIAL,
 )
 from bengal.rendering.parsers.patitas.parsing.inline.match_registry import (
@@ -203,7 +205,10 @@ class InlineParsingCoreMixin:
             # Hard break: \ at end of line
             if char == "\\" and pos + 1 < text_len and text[pos + 1] == "\n":
                 tokens_append(HardBreakToken())
-                pos += 2
+                pos += 2  # Move past \ and newline
+                # CommonMark 6.9: Skip leading spaces on continuation line
+                while pos < text_len and text[pos] == " ":
+                    pos += 1
                 continue
 
             # Soft break or hard break (two+ trailing spaces)
@@ -226,9 +231,13 @@ class InlineParsingCoreMixin:
                         else:
                             tokens.pop()
                     tokens_append(HardBreakToken())
+                    pos += 1  # Move past newline
+                    # CommonMark 6.9: Skip leading spaces on continuation line
+                    while pos < text_len and text[pos] == " ":
+                        pos += 1
                 else:
                     tokens_append(SoftBreakToken())
-                pos += 1
+                    pos += 1
                 continue
 
             # Escaped character
@@ -329,6 +338,19 @@ class InlineParsingCoreMixin:
                 pos += 1
                 continue
 
+            # Entity references: &name; or &#digits; or &#xhex;
+            if char == "&":
+                entity_result = self._try_parse_entity(text, pos)
+                if entity_result:
+                    decoded, new_pos = entity_result
+                    tokens_append(TextToken(content=decoded))
+                    pos = new_pos
+                    continue
+                # Not a valid entity, emit & as literal text
+                tokens_append(TextToken(content="&"))
+                pos += 1
+                continue
+
             # Regular text - accumulate using set lookup (O(1) per char)
             text_start = pos
             # Use frozenset for faster membership testing
@@ -357,11 +379,104 @@ class InlineParsingCoreMixin:
                 return idx
             pos = check_pos
 
+    def _try_parse_entity(self, text: str, pos: int) -> tuple[str, int] | None:
+        """Try to parse an HTML entity reference at position.
+
+        CommonMark 6.2: Entity and numeric character references.
+        Supports:
+        - Named entities: &amp; &nbsp; &copy; etc.
+        - Decimal: &#digits; (1-7 digits, value <= 0x10FFFF)
+        - Hexadecimal: &#xhex; or &#Xhex; (1-6 hex digits)
+
+        Returns:
+            Tuple of (decoded_char, new_position) if valid, None otherwise.
+        """
+        import html
+
+        text_len = len(text)
+        if pos >= text_len or text[pos] != "&":
+            return None
+
+        # Look for the closing semicolon (max 32 chars for named entities)
+        end = pos + 1
+        max_end = min(pos + 33, text_len)
+
+        # Check for numeric reference
+        if end < text_len and text[end] == "#":
+            end += 1
+            if end >= text_len:
+                return None
+
+            # Hexadecimal: &#x or &#X
+            if text[end] in "xX":
+                end += 1
+                hex_start = end
+                while end < text_len and text[end] in HEX_DIGITS:
+                    end += 1
+                # CommonMark: 1-6 hex digits
+                hex_len = end - hex_start
+                if hex_len < 1 or hex_len > 6:
+                    return None
+                if end >= text_len or text[end] != ";":
+                    return None
+                # Parse and validate
+                try:
+                    codepoint = int(text[hex_start:end], 16)
+                    if codepoint == 0:
+                        decoded = "\ufffd"  # Null becomes replacement char
+                    elif codepoint > 0x10FFFF:
+                        decoded = "\ufffd"  # Out of range
+                    else:
+                        decoded = chr(codepoint)
+                    return decoded, end + 1
+                except (ValueError, OverflowError):
+                    return None
+
+            # Decimal: &#digits
+            dec_start = end
+            while end < text_len and text[end] in DIGITS:
+                end += 1
+            # CommonMark: 1-7 decimal digits
+            dec_len = end - dec_start
+            if dec_len < 1 or dec_len > 7:
+                return None
+            if end >= text_len or text[end] != ";":
+                return None
+            # Parse and validate
+            try:
+                codepoint = int(text[dec_start:end])
+                if codepoint == 0:
+                    decoded = "\ufffd"  # Null becomes replacement char
+                elif codepoint > 0x10FFFF:
+                    decoded = "\ufffd"  # Out of range
+                else:
+                    decoded = chr(codepoint)
+                return decoded, end + 1
+            except (ValueError, OverflowError):
+                return None
+
+        # Named entity: &name;
+        # Name must start with a letter and contain only alphanumeric chars
+        if end < text_len and text[end].isalpha():
+            while end < max_end and text[end].isalnum():
+                end += 1
+            if end < text_len and text[end] == ";":
+                entity = text[pos : end + 1]
+                # Use Python's html.unescape to decode
+                decoded = html.unescape(entity)
+                # If it wasn't decoded (unknown entity), return None
+                if decoded == entity:
+                    return None
+                return decoded, end + 1
+
+        return None
+
     def _build_inline_ast(
         self,
         tokens: list[InlineToken],
         registry: MatchRegistry,
         location: SourceLocation,
+        base_idx: int = 0,
     ) -> tuple[Inline, ...]:
         """Build AST from processed tokens using match registry.
 
@@ -371,6 +486,8 @@ class InlineParsingCoreMixin:
             tokens: List of InlineToken NamedTuples from _tokenize_inline().
             registry: MatchRegistry containing delimiter matches.
             location: Source location for node creation.
+            base_idx: Offset to add to local indices when looking up registry.
+                      Used for recursive calls on token slices.
 
         Returns:
             Tuple of Inline nodes.
@@ -380,6 +497,8 @@ class InlineParsingCoreMixin:
 
         while idx < len(tokens):
             token = tokens[idx]
+            # Registry uses original indices, so add base_idx
+            registry_idx = base_idx + idx
 
             match token:
                 case TextToken(content=content):
@@ -404,17 +523,44 @@ class InlineParsingCoreMixin:
 
                 case DelimiterToken(char=delim_char, count=original_count):
                     # Check if this delimiter is an opener with matches
-                    all_matches = registry.get_matches_for_opener(idx)
-                    if all_matches and all_matches[0].closer_idx > idx:
+                    # Use registry_idx for lookup since registry uses original indices
+                    all_matches = registry.get_matches_for_opener(registry_idx)
+                    if all_matches and all_matches[0].closer_idx > registry_idx:
                         # This is an opener - build nested emphasis/strong/strikethrough
                         # Matches are ordered: first match is outermost (e.g., strong for ***)
-                        closer_idx = all_matches[0].closer_idx
+                        closer_registry_idx = all_matches[0].closer_idx
+                        # Convert back to local index
+                        closer_local_idx = closer_registry_idx - base_idx
+
+                        # Calculate consumed delimiters (sum of all matches)
+                        consumed = sum(m.match_count for m in all_matches)
+                        opener_remaining = original_count - consumed
+
+                        # Emit remaining unused opener delimiters as text BEFORE emphasis
+                        # E.g., "**foo*" has opener with count=2, closer with count=1
+                        # Match uses 1, so 1 opener remains as literal text
+                        if opener_remaining > 0:
+                            result.append(
+                                Text(location=location, content=delim_char * opener_remaining)
+                            )
+
+                        # Get closer remaining for potential text after emphasis
+                        # Note: closer_local_idx might be at len(tokens) if we're in a
+                        # recursive call and the closer is at the parent level
+                        closer_remaining = 0
+                        if closer_local_idx < len(tokens):
+                            closer_token = tokens[closer_local_idx]
+                            if isinstance(closer_token, DelimiterToken):
+                                closer_remaining = closer_token.count - consumed
 
                         # Collect children between opener and closer
+                        # The slice is from idx+1 to closer_local_idx (local indices)
+                        # But for the recursive call, base_idx becomes base_idx + idx + 1
                         children = self._build_inline_ast(
-                            tokens[idx + 1 : closer_idx],
+                            tokens[idx + 1 : closer_local_idx],
                             registry,
                             location,
+                            base_idx=base_idx + idx + 1,
                         )
 
                         # Build nested nodes from innermost to outermost
@@ -435,11 +581,19 @@ class InlineParsingCoreMixin:
                         # Unwrap the final single-element tuple
                         result.append(children[0])
 
-                        # Skip to after closer
-                        idx = closer_idx + 1
+                        # Emit remaining unused closer delimiters as text AFTER emphasis
+                        # E.g., "*foo**" has opener with count=1, closer with count=2
+                        # Match uses 1, so 1 closer remains as literal text
+                        if closer_remaining > 0:
+                            result.append(
+                                Text(location=location, content=delim_char * closer_remaining)
+                            )
+
+                        # Skip to after closer (local index)
+                        idx = closer_local_idx + 1
                     else:
                         # Unmatched delimiter - emit as text
-                        remaining = registry.remaining_count(idx, original_count)
+                        remaining = registry.remaining_count(registry_idx, original_count)
                         if remaining > 0:
                             result.append(Text(location=location, content=delim_char * remaining))
                         idx += 1
