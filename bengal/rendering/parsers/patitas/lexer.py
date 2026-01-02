@@ -206,6 +206,14 @@ class Lexer:
             yield from self._classify_block_quote(content, line_start)
             return
 
+        # Thematic break: ---, ***, ___ (must check BEFORE list markers)
+        # A line like "- - -" or "* * *" could be either, but thematic break takes precedence
+        if content[0] in "-*_":
+            token = self._try_classify_thematic_break(content, line_start)
+            if token:
+                yield token
+                return
+
         # List item: -, *, +, or 1. 1)
         # Check BEFORE indented code so deeply nested lists are detected correctly
         # Pass indent so nested lists can be detected
@@ -213,13 +221,6 @@ class Lexer:
         if list_tokens is not None:
             yield from list_tokens
             return
-
-        # Thematic break: ---, ***, ___
-        if content[0] in "-*_":
-            token = self._try_classify_thematic_break(content, line_start)
-            if token:
-                yield token
-                return
 
         # Indented code block (4+ spaces, but only if not other block types)
         # Note: This comes after list marker check so nested lists are handled correctly
