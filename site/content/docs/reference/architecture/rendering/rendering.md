@@ -66,7 +66,7 @@ flowchart TD
 :::{tab-item} Parser
 **Markdown Parser** (`rendering/parsers/`)
 
-Patitas is the recommended markdown engine for Python 3.14+ (thread-safe, O(n) guaranteed). Mistune is the current default.
+Patitas is the default markdown engine (thread-safe, O(n) guaranteed). Mistune is available as a legacy option.
 
 **Features:**
 - **Variable Substitution**: `{{ page.title }}` in content

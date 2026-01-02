@@ -185,14 +185,14 @@ class Lexer:
             yield Token(TokenType.BLANK_LINE, "", self._location_from(line_start))
             return
 
-        # Indented code block (4+ spaces, not in a list context)
-        if indent >= 4:
-            yield Token(
-                TokenType.INDENTED_CODE,
-                line[4:] + ("\n" if self._consumed_newline else ""),
-                self._location_from(line_start),
-            )
-            return
+        # Check for fenced code blocks BEFORE indented code
+        # (fenced code can be indented inside list items)
+        # Fenced code: ``` or ~~~
+        if content.startswith("`") or content.startswith("~"):
+            token = self._try_classify_fence_start(content, line_start)
+            if token:
+                yield token
+                return
 
         # ATX Heading: # ## ### etc.
         if content.startswith("#"):
@@ -201,12 +201,20 @@ class Lexer:
                 yield token
                 return
 
-        # Fenced code: ``` or ~~~
-        if content.startswith("`") or content.startswith("~"):
-            token = self._try_classify_fence_start(content, line_start)
-            if token:
-                yield token
-                return
+        # Block quote: > (can be indented inside list items)
+        if content.startswith(">"):
+            yield from self._classify_block_quote(content, line_start)
+            return
+
+        # Indented code block (4+ spaces, but only if not other block types)
+        # Note: This comes after other block checks so indented blocks are handled correctly
+        if indent >= 4:
+            yield Token(
+                TokenType.INDENTED_CODE,
+                line[4:] + ("\n" if self._consumed_newline else ""),
+                self._location_from(line_start),
+            )
+            return
 
         # Thematic break: ---, ***, ___
         if content[0] in "-*_":
@@ -900,16 +908,16 @@ class Lexer:
         )
 
     def _is_closing_fence(self, line: str) -> bool:
-        """Check if line is a closing fence for current code block."""
+        """Check if line is a closing fence for current code block.
+
+        CommonMark allows closing fences to be indented (e.g., inside list items).
+        We strip all leading spaces/tabs before checking for the fence.
+        """
         if not self._fence_char:
             return False
 
-        # Strip up to 3 leading spaces
-        content = line
-        spaces = 0
-        while spaces < 3 and content.startswith(" "):
-            content = content[1:]
-            spaces += 1
+        # Strip all leading whitespace (CommonMark allows indented closing fences)
+        content = line.lstrip()
 
         if not content.startswith(self._fence_char):
             return False

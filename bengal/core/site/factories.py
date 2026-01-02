@@ -63,7 +63,7 @@ class SiteFactoriesMixin:
         Important Config Sections:
             - [site]: title, baseurl, author, etc.
             - [build]: parallel, max_workers, incremental, etc.
-            - [markdown]: parser selection ('mistune' recommended)
+            - [markdown]: parser selection ('patitas' is default)
             - [features]: rss, sitemap, search, json, etc.
             - [taxonomies]: tags, categories, series
 

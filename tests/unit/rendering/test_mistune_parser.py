@@ -6,7 +6,7 @@ import pytest
 
 from bengal.rendering.parsers import BaseMarkdownParser, MistuneParser, create_markdown_parser
 
-# python-markdown is optional (mistune is default)
+# python-markdown is optional (patitas is default, mistune is legacy)
 try:
     import importlib.util
 

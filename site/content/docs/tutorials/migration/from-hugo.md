@@ -492,6 +492,50 @@ bengal serve
 | `{{ with .Params.x }}` | `{% if page.metadata.x %}` |
 | `{{ partial "name" . }}` | `{% include "partials/name.html" %}` |
 
+### Template Functions vs Filters
+
+Bengal distinguishes between **functions** (called directly) and **filters** (used with `|`). Hugo mixes both concepts.
+
+**Hugo's Approach:**
+
+Hugo uses both functions and methods:
+```go-html-template
+{{ len .Pages }}                    {# Function #}
+{{ .Pages.GetMatch "*.md" }}        {# Method #}
+{{ .Title | upper }}                {# Filter #}
+```
+
+**Bengal's Approach:**
+
+Bengal separates them clearly:
+
+**Filters** (transform values):
+```kida
+{{ page.title | upper }}
+{{ site.pages |> where('draft', false) }}
+```
+
+**Functions** (standalone operations):
+```kida
+{{ get_page('path') }}
+{{ get_data('file.json') }}
+```
+
+**Migration Pattern:**
+
+| Hugo | Bengal | Type |
+|------|--------|------|
+| `{{ len .Pages }}` | `{{ site.pages \| length }}` | Filter |
+| `{{ .GetPage "path" }}` | `{{ get_page('path') }}` | Function |
+| `{{ .Title \| upper }}` | `{{ page.title \| upper }}` | Filter |
+| `{{ index .Site.Data "authors" }}` | `{{ get_data('data/authors.json') }}` | Function |
+
+**Rule of thumb:**
+- Hugo functions that transform values → Bengal filters
+- Hugo functions that retrieve/lookup → Bengal functions
+
+See [Functions vs Filters](/docs/reference/template-functions/#functions-vs-filters-understanding-the-difference) for complete explanation.
+
 ---
 
 ## Migration Steps

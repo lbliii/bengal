@@ -387,7 +387,7 @@ def markdownify(text: str) -> str:
     Render Markdown text to HTML.
 
     Pre-processes Google-style docstrings to markdown, then converts to HTML
-    using mistune (production dependency) with table support.
+    using Patitas (Bengal's native parser) with table and strikethrough support.
 
     Args:
         text: Markdown or docstring text
@@ -404,11 +404,11 @@ def markdownify(text: str) -> str:
     # Pre-process docstring-style text to markdown
     text = _convert_docstring_to_markdown(text)
 
-    import mistune
+    # Use Patitas parser (Bengal's default parser)
+    # with table and strikethrough plugins enabled (matching previous mistune behavior)
+    from bengal.rendering.parsers.patitas import create_markdown
 
-    # Use lightweight mistune instance with table support
-    # This avoids the full Bengal parser overhead while using a production dependency
-    md = mistune.create_markdown(plugins=["table", "strikethrough"])
+    md = create_markdown(plugins=["table", "strikethrough"])
     return md(text)
 
 

@@ -14,7 +14,7 @@
 - **engines**: Add `EngineCapability` enum and capabilities protocol for engine-agnostic templates
 
 ### 🚀 Patitas Markdown Parser ✅
-- **core(parsers)**: Add Patitas as optional markdown parser with typed AST and O(n) lexer
+- **core(parsers)**: Add Patitas as default markdown parser with typed AST and O(n) lexer
 - **patitas**: Directive and role systems for extensible markup (Phase 2)
 - **patitas(directives)**: Complete Bengal directive migration — 54 handlers with full parity
 - **patitas**: Zero-Copy Lexer Handoff (ZCLH) protocol for Rosettes integration

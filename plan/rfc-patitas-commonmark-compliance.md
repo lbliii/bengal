@@ -582,8 +582,8 @@ def parse(markdown: str) -> str:
 **Target State**: 97%+ (633/652 passing)
 
 **Tasks**:
-- [ ] Run fuzz tests, fix any crashes
-- [ ] Performance regression tests (ensure O(n))
+- [x] Run fuzz tests, fix any crashes (test_fuzz.py created)
+- [x] Performance regression tests (ensure O(n)) (test_performance.py created)
 - [ ] Document remaining intentional deviations (~19 tests)
 - [ ] Final compliance report
 - [ ] Update competitive analysis
@@ -698,7 +698,7 @@ def parse(markdown: str) -> str:
 
 ```
 tests/rendering/parsers/patitas/
-├── test_commonmark_spec.py      # Official spec suite (652 tests) [NEW]
+├── test_commonmark_spec.py      # Official spec suite (652 tests) ✅
 ├── test_commonmark.py           # Categorized compliance tests (102 tests)
 ├── test_blocks.py               # Block-level edge cases
 ├── test_inline.py               # Inline-level edge cases
@@ -706,8 +706,10 @@ tests/rendering/parsers/patitas/
 ├── test_parser.py               # Parser unit tests
 ├── test_renderer.py             # Renderer unit tests
 ├── test_edge_cases.py           # Regression tests
-├── test_performance.py          # Benchmark tests [NEW]
-├── test_fuzz.py                 # Hypothesis fuzz tests [NEW]
+├── test_performance.py          # Benchmark tests ✅
+├── test_fuzz.py                 # Hypothesis fuzz tests ✅
+├── test_integration.py          # Integration tests
+├── test_page_context_directives.py  # Page context directive tests
 └── conftest.py                  # Shared fixtures
 ```
 

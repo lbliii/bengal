@@ -336,7 +336,7 @@ DEFAULTS: dict[str, Any] = {
     # Markdown
     # -------------------------------------------------------------------------
     "markdown": {
-        "parser": "mistune",
+        "parser": "patitas",
         "toc_depth": "2-4",
         "ast_cache": {
             # Persist tokens into the parsed-content cache. This can increase cache size and

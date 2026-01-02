@@ -292,6 +292,9 @@ class HtmlRenderer:
             )
         else:
             sb.append("<li>")
+            if not tight:
+                # Loose list: add newline after <li> tag
+                sb.append("\n")
 
         if tight:
             # Tight list: render children without paragraph wrapper

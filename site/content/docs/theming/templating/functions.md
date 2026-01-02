@@ -9,6 +9,29 @@ weight: 30
 
 Bengal provides 80+ template functions and filters organized by category.
 
+## Functions vs Filters
+
+Bengal provides **filters** (transform values) and **functions** (standalone operations).
+
+**Filters** use the pipe operator:
+```kida
+{{ text | upper }}
+{{ pages |> where('draft', false) |> sort_by('date') }}
+```
+
+**Functions** are called directly:
+```kida
+{{ get_page('docs/about') }}
+{{ get_data('data/config.json') }}
+{{ ref('docs/getting-started') }}
+```
+
+:::{tip}
+**Quick rule:** Transform a value? Use a filter (`|`). Perform an operation? Use a function (direct call).
+:::
+
+See [Template Functions Reference](/docs/reference/template-functions/#functions-vs-filters-understanding-the-difference) for complete explanation.
+
 ## Function Categories
 
 | Category | Examples | Use For |

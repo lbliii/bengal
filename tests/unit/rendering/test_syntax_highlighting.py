@@ -13,7 +13,7 @@ import pytest
 
 from bengal.rendering.parsers import MistuneParser
 
-# python-markdown is optional (mistune is default)
+# python-markdown is optional (patitas is default)
 try:
     from bengal.rendering.parsers import PythonMarkdownParser
 

@@ -26,6 +26,14 @@ Learn how to create and register custom filters for Kida templates in Bengal.
 
 Create a custom filter that formats currency values and use it in templates.
 
+:::{note}
+**Filters vs Functions:** This guide covers **filters** (transform values with `|`). For **functions** (standalone operations), see [Add Custom Functions](/docs/theming/templating/kida/add-custom-function/) (coming soon).
+
+**Quick distinction:**
+- **Filter**: `{{ value | my_filter }}` → transforms `value`
+- **Function**: `{{ my_function() }}` → performs operation
+:::
+
 ## Prerequisites
 
 - Bengal site initialized

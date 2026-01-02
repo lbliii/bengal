@@ -183,7 +183,7 @@ def highlight(
         language: Programming language (e.g., "python", "rust")
         hl_lines: Lines to highlight (1-indexed)
         show_linenos: Include line numbers
-        backend: Override default backend (None uses "pygments")
+        backend: Override default backend (None uses "rosettes" via "auto")
 
     Returns:
         HTML string with highlighted code

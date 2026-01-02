@@ -325,6 +325,29 @@ Kida functions can access variables from their surrounding context automatically
 
 ## Filters and Pipeline
 
+### Functions vs Filters
+
+Kida templates support both **filters** (transform values) and **functions** (standalone operations).
+
+**Filters** transform a value using `|` or `|>`:
+```kida
+{{ page.title | upper }}                    {# Transform text #}
+{{ site.pages |> where('draft', false) }}  {# Transform collection #}
+```
+
+**Functions** are called directly without a value:
+```kida
+{{ get_page('docs/about') }}               {# Retrieve page #}
+{{ get_data('data/authors.json') }}        {# Load data #}
+{{ ref('docs/getting-started') }}          {# Generate link #}
+```
+
+**When to use which:**
+- **Filter**: You have a value to transform (`{{ value | filter }}`)
+- **Function**: You're performing an operation (`{{ function() }}`)
+
+See [Template Functions Reference](/docs/reference/template-functions/#functions-vs-filters-understanding-the-difference) for details.
+
 ### Filter Syntax
 
 ```kida

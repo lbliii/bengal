@@ -15,7 +15,8 @@ Usage:
 
 Baseline Tracking:
     The baseline pass rate is tracked in this file. Update after each sprint.
-    Current baseline: TBD (run tests to establish)
+    Current baseline: 42.4% (265/625 passing, 27 skipped) - established 2026-01-01
+    See: plan/rfc-patitas-commonmark-compliance.md for roadmap
 """
 
 from __future__ import annotations

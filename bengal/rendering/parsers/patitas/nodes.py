@@ -283,8 +283,34 @@ class FencedCode(Node):
     marker: Literal["`", "~"] = "`"
 
     def get_code(self, source: str) -> str:
-        """Extract code content (creates new string)."""
-        return source[self.source_start : self.source_end]
+        """Extract code content (creates new string).
+
+        Strips indentation from indented fenced code blocks per CommonMark spec.
+        """
+        code = source[self.source_start : self.source_end]
+
+        # Check if code is indented (starts with spaces)
+        # CommonMark: indented fenced code blocks should have indentation stripped
+        if code and code[0] == " ":
+            lines = code.split("\n")
+            # Find minimum indentation (excluding empty lines)
+            min_indent = float("inf")
+            for line in lines:
+                if line.strip():  # Non-empty line
+                    indent = len(line) - len(line.lstrip())
+                    min_indent = min(min_indent, indent)
+
+            # Strip minimum indentation from all lines
+            if min_indent != float("inf") and min_indent > 0:
+                stripped_lines = []
+                for line in lines:
+                    if line.strip():
+                        stripped_lines.append(line[min_indent:])
+                    else:
+                        stripped_lines.append(line)
+                code = "\n".join(stripped_lines)
+
+        return code
 
     def code_length(self) -> int:
         """Length of code content without allocation."""

@@ -5,7 +5,7 @@ This package provides pluggable Markdown parser engines with a unified interface
 Choose the parser that best fits your needs:
 
 Parser Engines:
-    PatitasParser (Recommended for Python 3.14+):
+    PatitasParser (Default):
         Modern parser with typed AST, designed for Python 3.14+ free-threading.
         Features O(n) guaranteed parsing, immutable AST nodes, and StringBuilder
         rendering. Production-ready with full directive support.
@@ -19,7 +19,7 @@ Parser Engines:
 
         See: plan/drafted/rfc-patitas-markdown-parser.md
 
-    MistuneParser (Legacy, still default):
+    MistuneParser (Legacy):
         Fast, modern parser with excellent performance. Supports all Bengal
         features including TOC extraction, cross-references, and variable
         substitution. Will be deprecated in Bengal 3.0.
@@ -45,17 +45,17 @@ Configuration:
     .. code-block:: yaml
 
         markdown:
-          parser: patitas  # Recommended for Python 3.14+
-          # parser: mistune  # Legacy (default until Bengal 3.0)
+          parser: patitas  # Default
+          # parser: mistune  # Legacy (will be deprecated in Bengal 3.0)
           # parser: python-markdown  # Full-featured but slower
 
 Usage:
     >>> from bengal.rendering.parsers import create_markdown_parser
     >>>
-    >>> # Default parser (mistune, but patitas recommended)
+    >>> # Default parser (patitas)
     >>> parser = create_markdown_parser()
     >>>
-    >>> # Modern parser (recommended for Python 3.14+)
+    >>> # Explicit parser selection (patitas is also the default)
     >>> parser = create_markdown_parser('patitas')
     >>>
     >>> # Parse content
@@ -118,8 +118,8 @@ def create_markdown_parser(engine: str | None = None) -> BaseMarkdownParser:
 
     Args:
         engine: Parser engine name. Options:
-            - 'mistune' (default): Legacy parser, will be deprecated in Bengal 3.0
-            - 'patitas': Modern parser with typed AST (recommended for Python 3.14+)
+            - 'patitas' (default): Modern parser with typed AST
+            - 'mistune': Legacy parser, will be deprecated in Bengal 3.0
             - 'python-markdown' / 'markdown': Full-featured, slower
 
     Returns:
@@ -133,7 +133,7 @@ def create_markdown_parser(engine: str | None = None) -> BaseMarkdownParser:
         >>> # Modern parser (recommended for Python 3.14+)
         >>> parser = create_markdown_parser('patitas')
         >>>
-        >>> # Default parser (mistune, legacy)
+        >>> # Default parser (patitas)
         >>> parser = create_markdown_parser()
         >>>
         >>> # Explicit engine selection
@@ -143,7 +143,7 @@ def create_markdown_parser(engine: str | None = None) -> BaseMarkdownParser:
         Set BENGAL_PARSER_DEPRECATION_WARNINGS=1 to see deprecation warnings
         for mistune parser usage.
     """
-    engine = (engine or "mistune").lower()
+    engine = (engine or "patitas").lower()
 
     if engine == "mistune":
         if _SHOW_DEPRECATION:
@@ -171,6 +171,6 @@ def create_markdown_parser(engine: str | None = None) -> BaseMarkdownParser:
 
         raise BengalConfigError(
             f"Unsupported markdown engine: {engine}. Choose from: 'patitas', 'mistune', 'python-markdown'",
-            suggestion="Set markdown.parser to 'patitas' (recommended), 'mistune', or 'python-markdown' in config",
+            suggestion="Set markdown.parser to 'patitas' (default), 'mistune', or 'python-markdown' in config",
             code=ErrorCode.C003,
         )

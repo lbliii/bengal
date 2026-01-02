@@ -134,7 +134,7 @@ Migrate templates incrementally, starting with:
 {{ items |> selectattr('published') |> sort(attribute='date') |> first }}
 ```
 
-**Kida** (Bengal template functions - recommended):
+**Kida** (Bengal template functions - default):
 ```kida
 {{ items |> where('published', true) |> sort_by('date') |> first }}
 ```
@@ -313,6 +313,28 @@ bengal build
 bengal serve
 ```
 
+## Functions vs Filters
+
+Bengal distinguishes between **filters** (transform values) and **functions** (standalone operations).
+
+**Jinja2** mixes both:
+```jinja
+{{ items | selectattr('published') }}  {# Filter #}
+{{ range(10) }}                        {# Function #}
+```
+
+**Bengal** separates them:
+```kida
+{{ items |> where('published', true) }}  {# Filter #}
+{{ get_page('path') }}                   {# Function #}
+```
+
+**When migrating:**
+- Jinja2 filters → Bengal filters (use `|` or `|>`)
+- Jinja2 functions → Bengal functions (direct call)
+
+See [Functions vs Filters](/docs/reference/template-functions/#functions-vs-filters-understanding-the-difference) for complete explanation.
+
 ## Filter Name Mapping
 
 Kida supports Jinja2 filters for compatibility, and Bengal provides additional template functions:
@@ -352,7 +374,7 @@ Bengal provides simpler alternatives that work with both `|` and `|>`:
 {% set posts = site.pages | selectattr('type', 'eq', 'blog') | selectattr('draft', 'eq', false) | sort(attribute='date', reverse=true) %}
 ```
 
-**Kida** (using Bengal template functions - recommended):
+**Kida** (using Bengal template functions - default):
 ```kida
 {% let posts = site.pages
   |> where('type', 'blog')

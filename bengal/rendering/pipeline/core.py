@@ -8,12 +8,12 @@ and provides dependency tracking for incremental builds.
 Key Concepts:
     - Thread-local parsers: Parser instances reused per thread for performance
     - AST-based processing: Content represented as AST for efficient transformation
-    - Template rendering: Jinja2 template rendering with page context
+    - Template rendering: Template rendering with page context (Kida default)
     - Dependency tracking: Template and asset dependency tracking
 
 Related Modules:
-    - bengal.rendering.parsers.mistune: Markdown parser implementation
-    - bengal.rendering.template_engine: Template engine for Jinja2 rendering
+    - bengal.rendering.parsers: Markdown parser implementations (Patitas default)
+    - bengal.rendering.template_engine: Template engine for rendering (Kida default)
     - bengal.rendering.renderer: Individual page rendering logic
     - bengal.cache.dependency_tracker: Dependency graph construction
 
@@ -128,7 +128,7 @@ class RenderingPipeline:
     Pipeline Stages:
         1. Parse source content (Markdown, etc.)
         2. Build Abstract Syntax Tree (AST)
-        3. Apply templates (Jinja2)
+        3. Apply templates (Kida by default)
         4. Render output (HTML)
         5. Write to output directory
 
@@ -165,7 +165,7 @@ class RenderingPipeline:
             Reads from config in this order:
             1. config['markdown_engine'] (legacy)
             2. config['markdown']['parser'] (preferred)
-            3. Default: 'mistune' (recommended for speed)
+            3. Default: 'patitas' (Bengal's native parser)
 
         Parser Caching:
             Uses thread-local caching via get_thread_parser().
@@ -184,11 +184,11 @@ class RenderingPipeline:
         # Auto-enable directive cache for versioned sites (3-5x speedup on repeated directives)
         _configure_directive_cache_for_versions(site)
 
-        # Get markdown engine from config (default: mistune)
+        # Get markdown engine from config (default: patitas)
         markdown_engine = site.config.get("markdown_engine")
         if not markdown_engine:
             markdown_config = site.config.get("markdown", {})
-            markdown_engine = markdown_config.get("parser", "mistune")
+            markdown_engine = markdown_config.get("parser", "patitas")
 
         # Allow injection of parser via BuildContext for tests/experiments
         injected_parser = None
@@ -638,7 +638,7 @@ class RenderingPipeline:
         except Exception as e:
             if self.build_stats:
                 # Map error to correct category for stats display
-                # Use engine name for categorization (defaults to jinja2/kida)
+                # Use engine name for categorization (defaults to kida)
                 engine_name = getattr(self.template_engine, "NAME", "template")
                 error_type = engine_name if "syntax" in str(e).lower() else "preprocessing"
                 self.build_stats.add_warning(str(page.source_path), str(e), error_type)

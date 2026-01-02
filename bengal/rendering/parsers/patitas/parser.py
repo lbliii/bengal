@@ -369,17 +369,22 @@ class Parser:
         marker_stripped = start_token.value.lstrip()
         ordered = marker_stripped[0].isdigit()
         start = 1
-        # Track bullet marker character for CommonMark compliance
-        # Different markers (-,*,+) after blank line = different lists
+        # Track marker character for CommonMark compliance
+        # Different markers create separate lists:
+        # - Unordered: -, *, + are different
+        # - Ordered: . and ) are different
         bullet_char = "" if ordered else marker_stripped[0]
+        ordered_marker_char = ""  # Track . or ) for ordered lists
 
         if ordered:
-            # Extract starting number
+            # Extract starting number and marker style
             num_str = ""
             for c in marker_stripped:
                 if c.isdigit():
                     num_str += c
                 else:
+                    # Found marker character (. or ))
+                    ordered_marker_char = c
                     break
             if num_str:
                 start = int(num_str)
@@ -411,9 +416,19 @@ class Parser:
             if is_ordered != ordered:
                 break
 
-            # CommonMark: different bullet markers create separate lists
-            # e.g., - item followed by * item = two separate lists
-            if not ordered:
+            # CommonMark: different markers create separate lists
+            # - Unordered: -, *, + are different
+            # - Ordered: . and ) are different
+            if ordered:
+                # Extract marker character from ordered list marker
+                current_ordered_marker = ""
+                for c in current_marker:
+                    if not c.isdigit():
+                        current_ordered_marker = c
+                        break
+                if current_ordered_marker != ordered_marker_char:
+                    break
+            else:
                 current_bullet = current_marker[0]
                 if current_bullet != bullet_char:
                     break
@@ -474,6 +489,63 @@ class Parser:
                             para = Paragraph(location=token.location, children=inlines)
                             item_children.append(para)
                             content_lines = []
+                        continue
+                    elif next_tok.type in (
+                        TokenType.FENCED_CODE_START,
+                        TokenType.BLOCK_QUOTE_MARKER,
+                        TokenType.ATX_HEADING,
+                        TokenType.THEMATIC_BREAK,
+                    ):
+                        # Block types that can appear in list items
+                        # Save current paragraph first
+                        if content_lines:
+                            content = "\n".join(content_lines)
+                            inlines = self._parse_inline(content, token.location)
+                            para = Paragraph(location=token.location, children=inlines)
+                            item_children.append(para)
+                            content_lines = []
+                        tight = False
+                        # Parse the block and add to item_children
+                        block = self._parse_block()
+                        if block is not None:
+                            item_children.append(block)
+                        continue
+                    elif next_tok.type == TokenType.INDENTED_CODE:
+                        # Indented code inside list items: CommonMark says this should be
+                        # parsed as a paragraph continuation if it's normal text, or as
+                        # indented code if it's actually code. We check by looking at the content.
+                        # Save current paragraph first
+                        if content_lines:
+                            content = "\n".join(content_lines)
+                            inlines = self._parse_inline(content, token.location)
+                            para = Paragraph(location=token.location, children=inlines)
+                            item_children.append(para)
+                            content_lines = []
+                        tight = False
+
+                        # Check if content looks like code or paragraph
+                        code_content = next_tok.value.rstrip()
+                        # Heuristic: if content is simple text without code-like structure,
+                        # treat as paragraph continuation
+                        # Simple text: single line, no leading/trailing spaces, no indented sub-lines
+                        looks_like_code = (
+                            code_content.startswith(" ")
+                            or code_content.endswith(" ")
+                            or "\n  " in code_content  # Indented lines
+                            or code_content.count("\n") > 2  # Multiple lines
+                        )
+
+                        if not looks_like_code and code_content.strip():
+                            # Parse as paragraph continuation
+                            inlines = self._parse_inline(code_content.strip(), next_tok.location)
+                            para = Paragraph(location=next_tok.location, children=inlines)
+                            item_children.append(para)
+                            self._advance()  # Consume INDENTED_CODE token
+                        else:
+                            # Parse as indented code block
+                            block = self._parse_block()
+                            if block is not None:
+                                item_children.append(block)
                         continue
                     else:
                         break
