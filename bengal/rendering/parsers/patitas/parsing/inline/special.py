@@ -61,6 +61,13 @@ def _parse_html_open_tag(text: str, pos: int) -> tuple[str, int] | None:
     if not tag_name or not _TAG_NAME_RE.match(tag_name):
         return None
 
+    # After tag name: must be whitespace, /, or > immediately
+    # Any other character (like :) means this isn't a valid HTML tag
+    if i < text_len:
+        next_char = text[i]
+        if next_char not in " \t\n/>":
+            return None
+
     # After tag name: whitespace, /, or >
     while i < text_len:
         char = text[i]
