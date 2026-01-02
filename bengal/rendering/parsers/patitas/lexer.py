@@ -206,14 +206,12 @@ class Lexer:
             yield from self._classify_block_quote(content, line_start)
             return
 
-        # Indented code block (4+ spaces, but only if not other block types)
-        # Note: This comes after other block checks so indented blocks are handled correctly
-        if indent >= 4:
-            yield Token(
-                TokenType.INDENTED_CODE,
-                line[4:] + ("\n" if self._consumed_newline else ""),
-                self._location_from(line_start),
-            )
+        # List item: -, *, +, or 1. 1)
+        # Check BEFORE indented code so deeply nested lists are detected correctly
+        # Pass indent so nested lists can be detected
+        list_tokens = self._try_classify_list_marker(content, line_start, indent)
+        if list_tokens is not None:
+            yield from list_tokens
             return
 
         # Thematic break: ---, ***, ___
@@ -223,16 +221,14 @@ class Lexer:
                 yield token
                 return
 
-        # Block quote: >
-        if content.startswith(">"):
-            yield from self._classify_block_quote(content, line_start)
-            return
-
-        # List item: -, *, +, or 1. 1)
-        # Pass indent so nested lists can be detected
-        list_tokens = self._try_classify_list_marker(content, line_start, indent)
-        if list_tokens is not None:
-            yield from list_tokens
+        # Indented code block (4+ spaces, but only if not other block types)
+        # Note: This comes after list marker check so nested lists are handled correctly
+        if indent >= 4:
+            yield Token(
+                TokenType.INDENTED_CODE,
+                line[4:] + ("\n" if self._consumed_newline else ""),
+                self._location_from(line_start),
+            )
             return
 
         # Footnote definition: [^id]: content
