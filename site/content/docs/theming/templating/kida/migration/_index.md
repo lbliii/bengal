@@ -7,7 +7,7 @@ icon: arrow-right
 
 # Migration
 
-Kida is Jinja2-compatible: your existing templates work without changes. Migrate incrementally to use unified `{% end %}` blocks, pattern matching, and pipeline operators.
+Most Jinja2 templates work without changes in Kida. Migrate incrementally to use unified `{% end %}` blocks, pattern matching, and pipeline operators. Note that Kida does not support all Jinja2 features (notably `{% macro %}`—use `{% def %}` instead). If you need full Jinja2 compatibility, use the Jinja2 engine by setting `template_engine: jinja2` in your config.
 
 ## Migration Strategy
 

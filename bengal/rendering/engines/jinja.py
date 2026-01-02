@@ -205,13 +205,16 @@ class JinjaTemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin)
             )
             raise
 
-    def render_string(self, template_string: str, context: dict[str, Any]) -> str:
+    def render_string(
+        self, template_string: str, context: dict[str, Any], *, strict: bool = True
+    ) -> str:
         """
         Render a template string with the given context.
 
         Args:
             template_string: Template content as string
             context: Template context variables
+            strict: If False, return empty string for undefined variables instead of raising
 
         Returns:
             Rendered HTML string
@@ -221,7 +224,17 @@ class JinjaTemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin)
         self.invalidate_menu_cache()
 
         template = self.env.from_string(template_string)
-        return template.render(**context)
+        try:
+            return template.render(**context)
+        except Exception as e:
+            # When strict=False, catch undefined variable errors and return empty string
+            # This allows preprocessing to handle documentation examples gracefully
+            if not strict:
+                from jinja2 import UndefinedError
+
+                if isinstance(e, UndefinedError):
+                    return ""
+            raise
 
     def template_exists(self, name: str) -> bool:
         """

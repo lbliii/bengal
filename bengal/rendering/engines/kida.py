@@ -349,16 +349,21 @@ class KidaTemplateEngine:
         self,
         template: str,
         context: dict[str, Any],
+        *,
+        strict: bool = True,
     ) -> str:
         """Render a template string.
 
         Args:
             template: Template content as string
             context: Variables available to the template
+            strict: If False, return empty string for undefined variables instead of raising
 
         Returns:
             Rendered HTML string
         """
+        from bengal.rendering.kida.environment.exceptions import UndefinedError
+
         try:
             tmpl = self._env.from_string(template)
 
@@ -374,6 +379,15 @@ class KidaTemplateEngine:
 
             return tmpl.render(ctx)
 
+        except UndefinedError as e:
+            # When strict=False, return empty string for undefined variables
+            # This allows preprocessing to handle documentation examples gracefully
+            if not strict:
+                return ""
+            raise BengalRenderingError(
+                message=f"Template string render error: {e}",
+                original_error=e,
+            ) from e
         except Exception as e:
             raise BengalRenderingError(
                 message=f"Template string render error: {e}",

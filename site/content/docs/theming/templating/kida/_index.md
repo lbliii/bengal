@@ -21,7 +21,7 @@ Bengal's default template engine. Kida renders templates faster than Jinja2, sup
 {% end %}
 ```
 
-**Jinja2 compatibility**: Your existing Jinja2 templates work without changes. Kida parses both Jinja2 syntax (`{% endif %}`, `{% endfor %}`, etc.) and Kida-native syntax (`{% end %}`, `|>`, `?.`, `??`).
+**Jinja2 compatibility**: Most Jinja2 templates work without changes. Kida parses both Jinja2 syntax (`{% endif %}`, `{% endfor %}`, etc.) and Kida-native syntax (`{% end %}`, `|>`, `?.`, `??`). However, Kida does not support all Jinja2 features—notably, `{% macro %}` is not supported (use `{% def %}` instead). If you need full Jinja2 compatibility, you can use the Jinja2 engine by setting `template_engine: jinja2` in your config.
 
 ## Key Features
 
@@ -60,7 +60,7 @@ Bengal's default template engine. Kida renders templates faster than Jinja2, sup
 | Optional chaining | `?.`, `?[` | Not available | Safe navigation: `obj?.attr`, `obj?['key']` |
 | Null coalescing | `??` | `\| default()` | Fallback operator: `value ?? default` |
 | Fragment caching | `{% cache key %}...{% end %}` | Extension required | Built-in caching directive |
-| Functions | `{% def %}` (lexical scope) | `{% def %}` (isolated) | Functions see outer variables |
+| Functions | `{% def %}` (lexical scope) | `{% macro %}` (isolated) | Functions see outer variables |
 | Range literals | `1..10` | `range(1, 11)` | Inclusive range syntax |
 
 ## Learn More

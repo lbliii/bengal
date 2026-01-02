@@ -456,6 +456,32 @@ Kida is stricter than Jinja2. Check:
 
 ## Common Migration Gotchas
 
+### Macros Not Supported
+
+Kida does not support Jinja2's `{% macro %}` syntax. Use `{% def %}` instead, which provides lexical scoping (functions can access outer variables).
+
+**Jinja2** (not supported in Kida):
+```jinja
+{% macro hello(name) %}
+  Hello {{ name }}
+{% endmacro %}
+{{ hello('World') }}
+```
+
+**Kida** (use `{% def %}` instead):
+```kida
+{% def hello(name) %}
+  Hello {{ name }}
+{% enddef %}
+{{ hello('World') }}
+```
+
+**Key Difference**: `{% def %}` functions have access to outer template variables (like `site` and `config`), while Jinja2 macros are isolated. This means you don't need to pass common variables as parameters.
+
+:::{note}
+**Need full Jinja2 compatibility?** If your templates rely heavily on `{% macro %}`, you can use the Jinja2 engine by setting `template_engine: jinja2` in your `bengal.yaml` config.
+:::
+
 ### Include with Variables
 
 Jinja2 allows passing variables directly in the include statement:

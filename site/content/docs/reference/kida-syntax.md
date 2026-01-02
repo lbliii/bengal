@@ -25,7 +25,7 @@ category: reference
 Complete reference for Kida template syntax, operators, and features. Kida is Bengal's **default template engine**, optimized for performance and free-threaded Python.
 
 :::{tip}
-**New to Kida?** Start with the [Kida Tutorial](/docs/tutorials/theming/getting-started-with-kida/) for a guided introduction. Kida is Jinja2-compatible, so existing Jinja2 templates work without changes.
+**New to Kida?** Start with the [Kida Tutorial](/docs/tutorials/theming/getting-started-with-kida/) for a guided introduction. Most Jinja2 templates work without changes, but Kida does not support all Jinja2 features (notably `{% macro %}`—use `{% def %}` instead). If you need full Jinja2 compatibility, use the Jinja2 engine by setting `template_engine: jinja2` in your config.
 :::
 
 ## Quick Comparison: Kida vs Jinja2
