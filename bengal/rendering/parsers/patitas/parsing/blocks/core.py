@@ -342,7 +342,9 @@ class BlockParsingCoreMixin:
                 # Determine heading level: === is h1, --- is h2
                 level = 1 if last_line[0] == "=" else 2
                 # Heading text is everything except the underline
-                heading_text = "\n".join(lines[:-1])
+                # CommonMark: strip trailing whitespace from each line
+                heading_lines = [line.rstrip() for line in lines[:-1]]
+                heading_text = "\n".join(heading_lines)
                 children = self._parse_inline(heading_text, start_token.location)
                 return Heading(
                     location=start_token.location,
@@ -361,7 +363,8 @@ class BlockParsingCoreMixin:
                 and token.value.strip().startswith("-")
             ):
                 self._advance()  # Consume the thematic break
-                heading_text = lines[0]
+                # CommonMark: strip trailing whitespace from heading content
+                heading_text = lines[0].rstrip()
                 children = self._parse_inline(heading_text, start_token.location)
                 return Heading(
                     location=start_token.location,
