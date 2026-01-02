@@ -13,6 +13,7 @@ from bs4 import BeautifulSoup
 
 from bengal.core.site import Site
 from bengal.orchestration.build.options import BuildOptions
+from bengal.rendering.errors import TemplateRenderError
 
 
 @pytest.fixture(scope="class")
@@ -239,8 +240,8 @@ title = "Test Site"
         site = Site.from_config(site_dir)
         site.config["strict_mode"] = True
 
-        with pytest.raises((RuntimeError, ValueError)):
-            site.build()
+        with pytest.raises((RuntimeError, ValueError, TemplateRenderError)):
+            site.build(BuildOptions(strict=True))
 
     def test_non_strict_mode_allows_fallback(self, tmp_path):
         """Verify non-strict mode allows fallback on template errors."""

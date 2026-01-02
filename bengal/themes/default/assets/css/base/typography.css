@@ -128,22 +128,7 @@ p:last-child {
   margin-bottom: 0;
 }
 
-/* Lead paragraph (first paragraph in article/content) */
-article > p:first-of-type,
-section > p:first-of-type,
-.prose > p:first-of-type {
-  font-size: var(--text-lead);
-  color: var(--color-text-secondary);
-  line-height: var(--leading-body);
-}
-
-/* Exclude release-details from lead paragraph styling */
-.release-details.prose > p:first-of-type {
-  font-size: var(--text-body);
-  color: var(--color-text-primary);
-}
-
-/* Explicit lead class */
+/* Explicit lead class (opt-in enlarged intro paragraph) */
 .lead {
   font-size: var(--text-lead);
   color: var(--color-text-secondary);
