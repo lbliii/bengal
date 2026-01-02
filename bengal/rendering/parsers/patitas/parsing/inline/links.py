@@ -36,6 +36,79 @@ def _process_escapes(text: str) -> str:
     return _ESCAPE_PATTERN.sub(r"\1", text)
 
 
+def _extract_url(dest: str) -> tuple[str, str | None]:
+    """Extract URL and title from a link destination.
+
+    Handles angle bracket URLs: <url> and plain URLs.
+    Also extracts optional title in quotes.
+
+    Args:
+        dest: Raw destination string from inside ()
+
+    Returns:
+        (url, title) tuple
+    """
+    dest = dest.strip()
+    url = dest
+    title = None
+
+    # Check for angle bracket URL: <url>
+    if dest.startswith("<"):
+        close_angle = dest.find(">")
+        if close_angle != -1:
+            url = dest[1:close_angle]
+            # Check for title after angle bracket URL
+            rest = dest[close_angle + 1 :].strip()
+            if rest and (
+                (rest.startswith('"') and rest.endswith('"'))
+                or (rest.startswith("'") and rest.endswith("'"))
+            ):
+                title = rest[1:-1]
+            return _process_escapes(url), _process_escapes(title) if title else None
+
+    # Check for title in plain URL
+    if " " in dest or "\t" in dest:
+        parts = dest.split(None, 1)
+        if len(parts) == 2:
+            url = parts[0]
+            title_part = parts[1].strip()
+            if (title_part.startswith('"') and title_part.endswith('"')) or (
+                title_part.startswith("'") and title_part.endswith("'")
+            ):
+                title = title_part[1:-1]
+
+    return _process_escapes(url), _process_escapes(title) if title else None
+
+
+def _extract_plain_text(text: str) -> str:
+    """Extract plain text from inline content for image alt text.
+
+    CommonMark: Image alt text is the plain text content with formatting stripped.
+    E.g., "*foo* bar" becomes "foo bar".
+
+    Args:
+        text: Raw inline content that may contain formatting
+
+    Returns:
+        Plain text with formatting markers removed
+    """
+    # Remove emphasis markers: *, _, **, __
+    result = text
+    # Remove ** and __ first (strong)
+    result = re.sub(r"\*\*(.+?)\*\*", r"\1", result)
+    result = re.sub(r"__(.+?)__", r"\1", result)
+    # Remove * and _ (emphasis)
+    result = re.sub(r"\*(.+?)\*", r"\1", result)
+    result = re.sub(r"_(.+?)_", r"\1", result)
+    # Remove code spans
+    result = re.sub(r"`(.+?)`", r"\1", result)
+    # Remove link text: [text](url) -> text
+    result = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", result)
+    # Remove image text: ![alt](url) -> alt
+    result = re.sub(r"!\[([^\]]*)\]\([^)]+\)", r"\1", result)
+    return result
+
+
 class LinkParsingMixin:
     """Mixin for link and image parsing.
 
@@ -105,28 +178,11 @@ class LinkParsingMixin:
             next_char = text[bracket_pos + 1]
 
             if next_char == "(":
-                # Inline link: [text](url)
+                # Inline link: [text](url) or [text](<url>)
                 close_paren = text.find(")", bracket_pos + 2)
                 if close_paren != -1:
                     dest = text[bracket_pos + 2 : close_paren]
-                    url = dest.strip()
-                    title = None
-
-                    # Check for title
-                    if " " in dest or "\t" in dest:
-                        parts = dest.split(None, 1)
-                        if len(parts) == 2:
-                            url = parts[0]
-                            title_part = parts[1].strip()
-                            if (title_part.startswith('"') and title_part.endswith('"')) or (
-                                title_part.startswith("'") and title_part.endswith("'")
-                            ):
-                                title = title_part[1:-1]
-
-                    # CommonMark: process backslash escapes in URL and title
-                    url = _process_escapes(url)
-                    if title is not None:
-                        title = _process_escapes(title)
+                    url, title = _extract_url(dest)
 
                     children = self._parse_inline(link_text, location)
                     return Link(
@@ -173,6 +229,12 @@ class LinkParsingMixin:
     ) -> tuple[Image, int] | None:
         """Try to parse an image at position.
 
+        Handles:
+        - ![alt](url) - inline image
+        - ![alt][ref] - full reference image
+        - ![alt][] - collapsed reference image
+        - ![alt] - shortcut reference image
+
         Returns (Image, new_position) or None if not an image.
         """
         if not (text[pos] == "!" and pos + 1 < len(text) and text[pos + 1] == "["):
@@ -183,32 +245,55 @@ class LinkParsingMixin:
         if bracket_pos == -1:
             return None
 
-        alt_text = text[pos + 2 : bracket_pos]
+        alt_text_raw = text[pos + 2 : bracket_pos]
+        text_len = len(text)
 
-        # Check for (url)
-        if bracket_pos + 1 < len(text) and text[bracket_pos + 1] == "(":
-            close_paren = text.find(")", bracket_pos + 2)
-            if close_paren != -1:
-                dest = text[bracket_pos + 2 : close_paren]
-                url = dest.strip()
-                title = None
+        # Check for (url) or [ref]
+        if bracket_pos + 1 < text_len:
+            next_char = text[bracket_pos + 1]
 
-                # Check for title
-                if " " in dest or "\t" in dest:
-                    parts = dest.split(None, 1)
-                    if len(parts) == 2:
-                        url = parts[0]
-                        title_part = parts[1].strip()
-                        if (title_part.startswith('"') and title_part.endswith('"')) or (
-                            title_part.startswith("'") and title_part.endswith("'")
-                        ):
-                            title = title_part[1:-1]
+            if next_char == "(":
+                # Inline image: ![alt](url) or ![alt](<url>)
+                close_paren = text.find(")", bracket_pos + 2)
+                if close_paren != -1:
+                    dest = text[bracket_pos + 2 : close_paren]
+                    url, title = _extract_url(dest)
+                    # CommonMark: alt text is plain text, no formatting
+                    alt = _extract_plain_text(alt_text_raw)
+                    return Image(location=location, url=url, alt=alt, title=title), close_paren + 1
 
-                # CommonMark: process backslash escapes in URL and title
-                url = _process_escapes(url)
-                if title is not None:
-                    title = _process_escapes(title)
+            elif next_char == "[":
+                # Full or collapsed reference image: ![alt][ref] or ![alt][]
+                ref_end = text.find("]", bracket_pos + 2)
+                if ref_end != -1:
+                    ref_label = text[bracket_pos + 2 : ref_end]
+                    if not ref_label:
+                        # Collapsed: ![alt][] uses alt_text as label
+                        ref_label = alt_text_raw
+                    # Look up reference
+                    ref_data = self._link_refs.get(ref_label.lower())
+                    if ref_data:
+                        url, title = ref_data
+                        # CommonMark: alt text is plain text, no formatting
+                        alt = _extract_plain_text(alt_text_raw)
+                        return Image(
+                            location=location,
+                            url=url,
+                            alt=alt,
+                            title=title if title else None,
+                        ), ref_end + 1
 
-                return Image(location=location, url=url, alt=alt_text, title=title), close_paren + 1
+        # Try shortcut reference image: ![ref] alone
+        ref_data = self._link_refs.get(alt_text_raw.lower())
+        if ref_data:
+            url, title = ref_data
+            # CommonMark: alt text is plain text, no formatting
+            alt = _extract_plain_text(alt_text_raw)
+            return Image(
+                location=location,
+                url=url,
+                alt=alt,
+                title=title if title else None,
+            ), bracket_pos + 1
 
         return None
