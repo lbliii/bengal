@@ -444,6 +444,8 @@ class Parser:
             item_children: list[Block] = []
             content_lines: list[str] = []
             checked: bool | None = None
+            # Track actual content indent from first content line
+            actual_content_indent: int | None = None
 
             while not self._at_end():
                 tok = self._current
@@ -451,6 +453,27 @@ class Parser:
 
                 if tok.type == TokenType.PARAGRAPH_LINE:
                     line = tok.value.lstrip()
+
+                    # Calculate actual content indent from first line
+                    if actual_content_indent is None:
+                        # Get original line from source to calculate indent
+                        line_start = tok.location.offset
+                        line_start_pos = self._source.rfind("\n", 0, line_start) + 1
+                        if line_start_pos == 0:
+                            line_start_pos = 0
+                        original_line = self._source[line_start_pos:].split("\n")[0]
+                        # Find where content starts (after marker and spaces)
+                        marker_end_pos = original_line.find(marker_stripped.split()[0]) + len(
+                            marker_stripped.split()[0]
+                        )
+                        # Skip spaces after marker
+                        content_start_pos = marker_end_pos
+                        while (
+                            content_start_pos < len(original_line)
+                            and original_line[content_start_pos] == " "
+                        ):
+                            content_start_pos += 1
+                        actual_content_indent = content_start_pos
 
                     # Check for task list marker at start of first line
                     if not content_lines and checked is None:
@@ -463,6 +486,39 @@ class Parser:
 
                     content_lines.append(line)
                     self._advance()
+                elif tok.type == TokenType.INDENTED_CODE:
+                    # INDENTED_CODE tokens are created for 4+ space indentation.
+                    # Check if this is continuation (indent == actual_content_indent) vs code (indent > actual_content_indent)
+                    # We need to check the original source line to get the actual indent
+                    line_start = tok.location.offset
+                    # Find the start of the line containing this token
+                    line_start_pos = self._source.rfind("\n", 0, line_start) + 1
+                    if line_start_pos == 0:
+                        line_start_pos = 0
+                    line = self._source[line_start_pos:].split("\n")[0]
+                    # Calculate original indent
+                    original_indent = len(line) - len(line.lstrip())
+
+                    # Use actual_content_indent if available, otherwise fall back to calculated content_indent
+                    check_indent = (
+                        actual_content_indent
+                        if actual_content_indent is not None
+                        else content_indent
+                    )
+
+                    if original_indent == check_indent and content_lines:
+                        # This is a continuation line at content_indent, not code
+                        # Token value already has 4 spaces stripped, so use it directly
+                        code_content = tok.value.rstrip()
+                        content_lines.append(code_content)
+                        self._advance()
+                    elif original_indent > check_indent:
+                        # More indented than content_indent - this is actual code
+                        # Handle in blank line logic
+                        break
+                    else:
+                        # Less indented - shouldn't happen, but break to be safe
+                        break
 
                 elif tok.type == TokenType.BLANK_LINE:
                     self._advance()
@@ -517,14 +573,90 @@ class Parser:
                             item_children.append(block)
                         continue
                     elif next_tok.type == TokenType.INDENTED_CODE:
-                        # Indented code after blank line: CommonMark says if content is indented
-                        # by 4+ spaces relative to list marker, it's indented code and terminates list.
-                        # Otherwise, if indented enough (>= content_indent), it's continuation.
-                        # INDENTED_CODE tokens are created for 4+ space indentation.
-                        # We need to check if this is continuation or termination.
-                        # For now, if it's INDENTED_CODE (4+ spaces), it terminates the list
-                        # per CommonMark spec (indented code blocks interrupt lists).
-                        break
+                        # Indented code after blank line: check if it's inside the list item
+                        # or terminates it. CommonMark: if indented by more than content_indent,
+                        # it's code inside the item. If less, it terminates.
+                        line_start = next_tok.location.offset
+                        line_start_pos = self._source.rfind("\n", 0, line_start) + 1
+                        if line_start_pos == 0:
+                            line_start_pos = 0
+                        line = self._source[line_start_pos:].split("\n")[0]
+                        original_indent = len(line) - len(line.lstrip())
+
+                        check_indent = (
+                            actual_content_indent
+                            if actual_content_indent is not None
+                            else content_indent
+                        )
+
+                        if original_indent > check_indent:
+                            # More indented than content_indent - this is code inside the list item
+                            # Save current paragraph first
+                            if content_lines:
+                                content = "\n".join(content_lines)
+                                inlines = self._parse_inline(content, token.location)
+                                para = Paragraph(location=token.location, children=inlines)
+                                item_children.append(para)
+                                content_lines = []
+                            tight = False
+                            # Parse indented code block inside list item
+                            # The INDENTED_CODE token value has 4 spaces stripped by lexer.
+                            # But we need to strip (original_indent - check_indent) more spaces
+                            # to get the actual code content relative to the list item.
+                            # Since original_indent > check_indent, we need to strip
+                            # (original_indent - check_indent) spaces from the token value.
+                            # Token value already has 4 spaces stripped, so we need to strip
+                            # (original_indent - check_indent - 4) more spaces.
+                            # Actually simpler: strip check_indent spaces from token value
+                            # (since lexer already stripped 4, and we want to strip content_indent total)
+                            code_token = next_tok
+                            self._advance()  # Consume INDENTED_CODE token
+
+                            # Collect all indented code lines
+                            code_lines = [code_token.value]
+                            while not self._at_end():
+                                tok = self._current
+                                if tok.type == TokenType.INDENTED_CODE:
+                                    code_lines.append(tok.value)
+                                    self._advance()
+                                elif tok.type == TokenType.BLANK_LINE:
+                                    # Check if next line is also indented code
+                                    if self._pos + 1 < len(self._tokens):
+                                        next_tok_check = self._tokens[self._pos + 1]
+                                        if next_tok_check.type == TokenType.INDENTED_CODE:
+                                            code_lines.append("\n")
+                                            self._advance()
+                                            continue
+                                    break
+                                else:
+                                    break
+
+                            # Combine code lines and strip content_indent from each
+                            code_content = "".join(code_lines)
+                            lines = code_content.split("\n")
+                            stripped_lines = []
+                            for line in lines:
+                                if (
+                                    line
+                                    and len(line) >= check_indent
+                                    and line[:check_indent] == " " * check_indent
+                                ):
+                                    stripped_lines.append(line[check_indent:])
+                                else:
+                                    stripped_lines.append(line)
+                            adjusted_code = "\n".join(stripped_lines)
+                            # CommonMark: preserve trailing newline in indented code blocks
+                            # (don't strip it)
+
+                            code_block = IndentedCode(
+                                location=code_token.location, code=adjusted_code
+                            )
+                            item_children.append(code_block)
+                            tight = False
+                            continue
+                        else:
+                            # Not indented enough - terminates the list
+                            break
                     else:
                         break
 

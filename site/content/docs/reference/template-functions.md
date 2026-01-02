@@ -1168,3 +1168,530 @@ Get featured pages from a section.
   <span>{{ section.total_reading_time }} min total reading time</span>
 </div>
 ```
+
+---
+
+## Math Filters
+
+Mathematical operations for calculations in templates.
+
+### percentage
+
+Calculate percentage with optional decimal places.
+
+```kida
+{{ completed | percentage(total_tasks) }}      {# "75%" #}
+{{ score | percentage(max_score, 2) }}         {# "87.50%" #}
+```
+
+**Parameters:**
+- `part`: Part value
+- `total`: Total value
+- `decimals`: Number of decimal places (default: 0)
+
+### times
+
+Multiply value by multiplier.
+
+```kida
+{{ price | times(1.1) }}      {# Add 10% tax #}
+{{ count | times(5) }}        {# Multiply by 5 #}
+```
+
+### divided_by
+
+Divide value by divisor. Returns 0 if divisor is 0.
+
+```kida
+{{ total | divided_by(count) }}      {# Average #}
+{{ seconds | divided_by(60) }}       {# Convert to minutes #}
+```
+
+### ceil
+
+Round up to nearest integer.
+
+```kida
+{{ 4.2 | ceil }}   {# 5 #}
+{{ 4.9 | ceil }}   {# 5 #}
+```
+
+### floor
+
+Round down to nearest integer.
+
+```kida
+{{ 4.2 | floor }}  {# 4 #}
+{{ 4.9 | floor }}  {# 4 #}
+```
+
+### round
+
+Round to specified decimal places.
+
+```kida
+{{ 4.567 | round }}      {# 5 #}
+{{ 4.567 | round(2) }}   {# 4.57 #}
+{{ 4.567 | round(1) }}   {# 4.6 #}
+```
+
+---
+
+## Data Functions
+
+Functions for loading and manipulating data files.
+
+### get_data
+
+Load data from JSON or YAML file. Returns empty dict if file not found.
+
+```kida
+{% let authors = get_data('data/authors.json') %}
+{% for author in authors %}
+  {{ author.name }}
+{% end %}
+
+{% let config = get_data('data/config.yaml') %}
+```
+
+### jsonify
+
+Convert data to JSON string.
+
+```kida
+{{ data | jsonify }}           {# Compact JSON #}
+{{ data | jsonify(2) }}        {# Pretty-printed with indent #}
+```
+
+### merge
+
+Merge two dictionaries. Second dict takes precedence.
+
+```kida
+{% let config = defaults | merge(custom_config) %}
+{% let shallow = dict1 | merge(dict2, deep=false) %}
+```
+
+### has_key
+
+Check if dictionary has a key.
+
+```kida
+{% if data | has_key('author') %}
+  {{ data.author }}
+{% end %}
+```
+
+### get_nested
+
+Access nested data using dot notation.
+
+```kida
+{{ data | get_nested('user.profile.name') }}
+{{ data | get_nested('user.email', 'no-email') }}   {# With default #}
+```
+
+### keys
+
+Get dictionary keys as list.
+
+```kida
+{% for key in data | keys %}
+  {{ key }}
+{% end %}
+```
+
+### values
+
+Get dictionary values as list.
+
+```kida
+{% for value in data | values %}
+  {{ value }}
+{% end %}
+```
+
+### items
+
+Get dictionary items as list of (key, value) tuples.
+
+```kida
+{% for key, value in data | items %}
+  {{ key }}: {{ value }}
+{% end %}
+```
+
+---
+
+## File Functions
+
+Functions for reading files and checking file existence.
+
+### read_file
+
+Read file contents as string.
+
+```kida
+{% let license = read_file('LICENSE') %}
+{{ license }}
+
+{% let readme = read_file('docs/README.md') %}
+```
+
+### file_exists
+
+Check if file exists.
+
+```kida
+{% if file_exists('custom.css') %}
+  <link rel="stylesheet" href="{{ asset_url('custom.css') }}">
+{% end %}
+```
+
+### file_size
+
+Get human-readable file size.
+
+```kida
+{{ file_size('downloads/manual.pdf') }}   {# "2.3 MB" #}
+{{ file_size('images/hero.png') }}        {# "145.2 KB" #}
+```
+
+---
+
+## Content Filters
+
+Functions for HTML and content manipulation.
+
+### html_escape
+
+Escape HTML entities for safe display.
+
+```kida
+{{ user_input | html_escape }}
+{# "<script>" becomes "&lt;script&gt;" #}
+```
+
+### html_unescape
+
+Convert HTML entities back to characters.
+
+```kida
+{{ escaped_text | html_unescape }}
+{# "&lt;Hello&gt;" becomes "<Hello>" #}
+```
+
+### nl2br
+
+Convert newlines to HTML `<br>` tags.
+
+```kida
+{{ text | nl2br | safe }}
+{# "Line 1\nLine 2" becomes "Line 1<br>\nLine 2" #}
+```
+
+### smartquotes
+
+Convert straight quotes to smart (curly) quotes.
+
+```kida
+{{ text | smartquotes }}
+{# "Hello" becomes "Hello" #}
+{# -- becomes – (en-dash) #}
+{# --- becomes — (em-dash) #}
+```
+
+### emojify
+
+Convert emoji shortcodes to Unicode emoji.
+
+```kida
+{{ text | emojify }}
+{# "Hello :smile:" becomes "Hello 😊" #}
+{# "I :heart: Python" becomes "I ❤️ Python" #}
+```
+
+**Supported shortcodes:** `:smile:`, `:grin:`, `:joy:`, `:heart:`, `:star:`, `:fire:`, `:rocket:`, `:check:`, `:x:`, `:warning:`, `:tada:`, `:thumbsup:`, `:thumbsdown:`, `:eyes:`, `:bulb:`, `:sparkles:`, `:zap:`, `:wave:`, `:clap:`, `:raised_hands:`, `:100:`
+
+### extract_content
+
+Extract main content from full rendered HTML page. Useful for embedding page content.
+
+```kida
+{{ page.rendered_html | extract_content | safe }}
+```
+
+### demote_headings
+
+Demote HTML headings by specified levels (h1→h2, h2→h3, etc.).
+
+```kida
+{{ page.content | demote_headings | safe }}
+{# <h1>Title</h1> becomes <h2>Title</h2> #}
+
+{{ page.content | demote_headings(2) | safe }}
+{# <h1>Title</h1> becomes <h3>Title</h3> #}
+```
+
+### prefix_heading_ids
+
+Prefix heading IDs to ensure uniqueness when embedding multiple pages.
+
+```kida
+{{ page.content | prefix_heading_ids("s1-") | safe }}
+{# <h2 id="quick-start"> becomes <h2 id="s1-quick-start"> #}
+{# <a href="#quick-start"> becomes <a href="#s1-quick-start"> #}
+```
+
+### urlize
+
+Convert plain URLs in text to clickable HTML links.
+
+```kida
+{{ "Check out https://example.com for more info" | urlize }}
+{# "Check out <a href="https://example.com">https://example.com</a>..." #}
+
+{{ text | urlize(target='_blank', rel='noopener') }}
+{# Opens links in new tab with security attributes #}
+
+{{ text | urlize(shorten=true, shorten_length=30) }}
+{# Shortens long URLs in display text #}
+```
+
+---
+
+## Debug Filters
+
+Development helpers for debugging templates.
+
+### debug
+
+Pretty-print variable for debugging.
+
+```kida
+{{ page | debug }}
+{{ config | debug(pretty=false) }}
+```
+
+### typeof
+
+Get the type of a variable.
+
+```kida
+{{ page | typeof }}      {# "Page" #}
+{{ "hello" | typeof }}   {# "str" #}
+{{ 42 | typeof }}        {# "int" #}
+```
+
+### inspect
+
+Inspect object attributes and methods.
+
+```kida
+{{ page | inspect }}
+{# Properties: title, href, date, ... #}
+{# Methods: get_toc(), get_siblings(), ... #}
+```
+
+---
+
+## SEO Functions
+
+Functions for generating SEO-friendly meta tags.
+
+### meta_description
+
+Generate meta description from text. Strips HTML, truncates to length, ends at sentence boundary.
+
+```kida
+<meta name="description" content="{{ page.content | meta_description }}">
+<meta name="description" content="{{ page.content | meta_description(200) }}">
+```
+
+### meta_keywords
+
+Generate meta keywords from tags list.
+
+```kida
+<meta name="keywords" content="{{ page.tags | meta_keywords }}">
+<meta name="keywords" content="{{ page.tags | meta_keywords(5) }}">  {# Max 5 #}
+```
+
+### canonical_url
+
+Generate canonical URL. For versioned docs, always points to latest version.
+
+```kida
+<link rel="canonical" href="{{ canonical_url(page.href, page=page) }}">
+```
+
+### og_image
+
+Generate Open Graph image URL. Supports manual image, auto-generated social cards, or fallback.
+
+```kida
+<meta property="og:image" content="{{ og_image(page.metadata.get('image', ''), page) }}">
+```
+
+### get_social_card_url
+
+Get URL to generated social card for a page (if social cards are enabled).
+
+```kida
+{% let card = get_social_card_url(page) %}
+{% if card %}
+  <meta property="og:image" content="{{ card }}">
+{% end %}
+```
+
+---
+
+## Image Functions
+
+Functions for working with images in templates.
+
+### image_url
+
+Generate image URL with optional sizing parameters.
+
+```kida
+{{ image_url('photos/hero.jpg') }}
+{{ image_url('photos/hero.jpg', width=800) }}
+{{ image_url('photos/hero.jpg', width=800, height=600, quality=85) }}
+```
+
+### image_dimensions
+
+Get image dimensions (requires Pillow).
+
+```kida
+{% let dims = image_dimensions('photo.jpg') %}
+{% if dims %}
+  {% let width, height = dims %}
+  <img width="{{ width }}" height="{{ height }}" src="..." alt="...">
+{% end %}
+```
+
+### image_srcset
+
+Generate srcset attribute for responsive images.
+
+```kida
+<img srcset="{{ 'hero.jpg' | image_srcset([400, 800, 1200]) }}" />
+{# hero.jpg?w=400 400w, hero.jpg?w=800 800w, hero.jpg?w=1200 1200w #}
+```
+
+### image_srcset_gen
+
+Generate srcset with default sizes (400, 800, 1200, 1600).
+
+```kida
+<img srcset="{{ image_srcset_gen('hero.jpg') }}" />
+```
+
+### image_alt
+
+Generate alt text from filename.
+
+```kida
+{{ 'mountain-sunset.jpg' | image_alt }}
+{# "Mountain Sunset" #}
+```
+
+### image_data_uri
+
+Convert image to data URI for inline embedding.
+
+```kida
+<img src="{{ image_data_uri('icons/logo.svg') }}" alt="Logo">
+```
+
+---
+
+## Icon Function
+
+Render SVG icons in templates.
+
+### icon
+
+Render an SVG icon. Uses theme-aware icon resolution with caching.
+
+```kida
+{{ icon("search") }}
+{{ icon("search", size=20) }}
+{{ icon("menu", size=24, css_class="nav-icon") }}
+{{ icon("arrow-up", size=18, aria_label="Back to top") }}
+```
+
+**Parameters:**
+- `name`: Icon name (e.g., "search", "menu", "close", "arrow-up")
+- `size`: Icon size in pixels (default: 24)
+- `css_class`: Additional CSS classes
+- `aria_label`: Accessibility label (if empty, uses aria-hidden)
+
+**Alias:** `render_icon` is an alias for `icon`.
+
+---
+
+## Theme Functions
+
+Functions for accessing theme configuration.
+
+### feature_enabled
+
+Check if a theme feature is enabled.
+
+```kida
+{% if 'navigation.toc' | feature_enabled %}
+  {# Render table of contents #}
+{% end %}
+
+{% if feature_enabled('search.enabled') %}
+  {# Render search box #}
+{% end %}
+```
+
+---
+
+## Quick Reference Table
+
+| Category | Filter/Function | Description |
+|----------|-----------------|-------------|
+| **Math** | `percentage(total)` | Calculate percentage |
+| | `times(n)` | Multiply |
+| | `divided_by(n)` | Divide |
+| | `ceil` | Round up |
+| | `floor` | Round down |
+| | `round(decimals)` | Round to decimals |
+| **Data** | `get_data(path)` | Load JSON/YAML file |
+| | `jsonify` | Convert to JSON |
+| | `merge(dict)` | Merge dictionaries |
+| | `has_key(key)` | Check key exists |
+| | `get_nested(path)` | Access nested data |
+| | `keys` | Get dict keys |
+| | `values` | Get dict values |
+| | `items` | Get dict items |
+| **Files** | `read_file(path)` | Read file contents |
+| | `file_exists(path)` | Check file exists |
+| | `file_size(path)` | Get file size |
+| **Content** | `html_escape` | Escape HTML |
+| | `html_unescape` | Unescape HTML |
+| | `nl2br` | Newlines to `<br>` |
+| | `smartquotes` | Curly quotes |
+| | `emojify` | Shortcodes to emoji |
+| | `demote_headings(n)` | Demote heading levels |
+| | `urlize` | URLs to links |
+| **Debug** | `debug` | Pretty-print |
+| | `typeof` | Get type name |
+| | `inspect` | List attributes |
+| **SEO** | `meta_description` | Generate meta desc |
+| | `meta_keywords` | Generate keywords |
+| | `canonical_url(path)` | Canonical URL |
+| | `og_image(path)` | OG image URL |
+| **Images** | `image_url(path)` | Image URL with params |
+| | `image_dimensions(path)` | Get width/height |
+| | `image_srcset(sizes)` | Generate srcset |
+| | `image_alt` | Alt from filename |
+| | `image_data_uri(path)` | Inline data URI |
+| **Icons** | `icon(name)` | Render SVG icon |
+| **Theme** | `feature_enabled(key)` | Check feature flag |
