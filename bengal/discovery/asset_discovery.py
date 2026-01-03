@@ -94,8 +94,13 @@ class AssetDiscovery:
         # Walk the assets directory
         for file_path in assets_dir.rglob("*"):
             if file_path.is_file():
-                # Skip hidden files
-                if any(part.startswith(".") for part in file_path.parts):
+                # Create relative path first for filtering
+                # This is critical: we check ONLY the relative path for hidden files,
+                # not the full path (which may include .venv, etc. for installed themes)
+                rel_path = file_path.relative_to(assets_dir)
+
+                # Skip hidden files (check relative path only)
+                if any(part.startswith(".") for part in rel_path.parts):
                     continue
 
                 # Skip temporary files (from atomic writes and image optimization)
@@ -105,9 +110,6 @@ class AssetDiscovery:
                 # Skip markdown/documentation files
                 if file_path.suffix.lower() == ".md":
                     continue
-
-                # Create asset with relative output path
-                rel_path = file_path.relative_to(assets_dir)
 
                 asset = Asset(
                     source_path=file_path,
