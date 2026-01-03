@@ -84,22 +84,27 @@ class AssetValidator(BaseValidator):
         return results
 
     def _check_asset_types(self, assets_dir: Path) -> list[CheckResult]:
-        """Check expected asset types are present."""
+        """Check expected asset types are present.
+
+        These checks are theme-agnostic - they detect when assets weren't
+        copied at all, regardless of which theme is being used.
+        """
         results = []
 
         # Find all CSS and JS files
         css_files = list(assets_dir.rglob("*.css"))
         js_files = list(assets_dir.rglob("*.js"))
 
-        # CRITICAL CHECK: style.css must exist (theme CSS entry point)
-        # This catches the bug where theme assets aren't discovered/copied
-        has_style_css = any(f.stem.startswith("style") or f.stem == "style" for f in css_files)
+        # Check for css/ subdirectory (most themes have one)
+        css_dir = assets_dir / "css"
+        js_dir = assets_dir / "js"
 
-        if not has_style_css:
-            # This is a build FAILURE - the site will be unstyled
+        # CRITICAL CHECK: No CSS files at all
+        # Any themed site needs CSS - if there are none, something is wrong
+        if not css_files:
             results.append(
                 CheckResult.error(
-                    "CRITICAL: No style.css found in output - site will be unstyled",
+                    "CRITICAL: No CSS files found in output - site will be unstyled",
                     code="H626",
                     recommendation=(
                         "Theme CSS was not copied to output. Possible causes:\n"
@@ -109,24 +114,22 @@ class AssetValidator(BaseValidator):
                     ),
                 )
             )
-        elif not css_files:
+        # Check if css/ directory exists but is suspiciously empty
+        elif css_dir.exists() and len(list(css_dir.rglob("*.css"))) == 0:
             results.append(
                 CheckResult.warning(
-                    "No CSS files found in assets",
+                    "css/ directory exists but contains no CSS files",
                     code="H621",
-                    recommendation="Theme may not be applied. Check theme asset discovery.",
+                    recommendation="Theme CSS modules may not have been bundled. Check build logs.",
                 )
             )
 
-        # CRITICAL CHECK: main.js must exist when theme has JS
-        # The default Bengal theme always has JS
-        has_main_js = any(f.stem.startswith("main") or f.stem == "main" for f in js_files)
-
-        if not has_main_js and not js_files:
-            # This is a build FAILURE - interactive features won't work
+        # CRITICAL CHECK: js/ directory exists but is empty
+        # Most themes have JavaScript - if the directory exists but is empty, that's suspicious
+        if js_dir.exists() and len(list(js_dir.rglob("*.js"))) == 0:
             results.append(
                 CheckResult.error(
-                    "CRITICAL: No main.js found in output - interactive features will fail",
+                    "CRITICAL: js/ directory exists but contains no JavaScript files",
                     code="H627",
                     recommendation=(
                         "Theme JavaScript was not copied to output. Possible causes:\n"
@@ -136,6 +139,10 @@ class AssetValidator(BaseValidator):
                     ),
                 )
             )
+        # No JS files and no js/ directory is OK - some themes might not use JS
+        elif not js_files and not js_dir.exists():
+            # This is fine - theme might be CSS-only
+            pass
 
         # No success/info messages - if present, silence is golden
 

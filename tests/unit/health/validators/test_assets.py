@@ -270,75 +270,93 @@ class TestCriticalAssetChecks:
     Tests for critical asset checks that FAIL the build when essential assets are missing.
 
     Regression tests for: Theme assets skipped when Bengal installed in .venv
+
+    These tests are theme-agnostic - they should work for any theme, not just the default.
     """
 
-    def test_missing_style_css_is_error(self, mock_site, tmp_path):
-        """Test that missing style.css triggers an ERROR (not just warning).
+    def test_no_css_files_is_error(self, mock_site, tmp_path):
+        """Test that having NO CSS files triggers an ERROR.
 
         Regression test: When theme assets weren't discovered (due to .venv bug),
         the site would build but be completely unstyled. This should now be an ERROR.
         """
-        # Create assets directory with some files but NO style.css
+        # Create assets directory but NO CSS files at all
         assets_dir = tmp_path / "assets"
-        css_dir = assets_dir / "css"
-        css_dir.mkdir(parents=True)
+        assets_dir.mkdir(parents=True)
 
-        # Create other CSS files but not style.css
-        (css_dir / "fonts.css").write_text(".font { font-size: 16px; }")
-        (css_dir / "custom.css").write_text("body { margin: 0; }")
+        # Only create non-CSS files
+        (assets_dir / "favicon.ico").write_bytes(b"\x00" * 100)
 
         validator = AssetValidator()
         results = validator.validate(mock_site)
 
-        # Should be an ERROR, not just a warning
+        # Should be an ERROR - any themed site needs CSS
         error_results = [r for r in results if r.status == CheckStatus.ERROR]
-        assert len(error_results) > 0, "Missing style.css should be an ERROR"
-        assert any("style.css" in r.message.lower() for r in error_results)
+        assert len(error_results) > 0, "No CSS files should trigger an ERROR"
+        assert any("css" in r.message.lower() for r in error_results)
 
-    def test_style_css_present_no_error(self, mock_site, tmp_path):
-        """Test that having style.css doesn't trigger the error."""
+    def test_css_files_present_no_error(self, mock_site, tmp_path):
+        """Test that having CSS files doesn't trigger the error."""
         assets_dir = tmp_path / "assets"
         css_dir = assets_dir / "css"
         js_dir = assets_dir / "js"
         css_dir.mkdir(parents=True)
         js_dir.mkdir(parents=True)
 
-        # Create style.css and main.js
-        (css_dir / "style.abc123.css").write_text("body { color: black; }")
-        (js_dir / "main.def456.js").write_text('console.log("test");')
+        # Create CSS and JS files (any names work - theme-agnostic)
+        (css_dir / "theme.abc123.css").write_text("body { color: black; }")
+        (js_dir / "app.def456.js").write_text('console.log("test");')
 
         validator = AssetValidator()
         results = validator.validate(mock_site)
 
         # Should NOT have the critical errors
         error_results = [r for r in results if r.status == CheckStatus.ERROR]
-        assert not any("style.css" in r.message.lower() for r in error_results)
-        assert not any("main.js" in r.message.lower() for r in error_results)
+        assert len(error_results) == 0, f"Valid assets should not trigger errors: {error_results}"
 
-    def test_missing_main_js_is_error(self, mock_site, tmp_path):
-        """Test that missing main.js triggers an ERROR when no JS files exist.
+    def test_js_dir_empty_is_error(self, mock_site, tmp_path):
+        """Test that having a js/ directory but no JS files triggers an ERROR.
 
-        The default Bengal theme has JavaScript - if it's missing, interactive
-        features won't work.
+        If js/ directory exists, the theme expects JavaScript. If it's empty,
+        something went wrong with asset discovery/copying.
         """
-        # Create assets directory with CSS but NO JavaScript
         assets_dir = tmp_path / "assets"
         css_dir = assets_dir / "css"
+        js_dir = assets_dir / "js"
         css_dir.mkdir(parents=True)
+        js_dir.mkdir(parents=True)  # Empty js/ directory
 
         (css_dir / "style.css").write_text("body { color: black; }")
-        # No js/ directory at all
+        # js/ directory exists but is empty
 
         validator = AssetValidator()
         results = validator.validate(mock_site)
 
-        # Should be an ERROR
+        # Should be an ERROR - js/ exists but is empty
         error_results = [r for r in results if r.status == CheckStatus.ERROR]
-        assert len(error_results) > 0, "Missing main.js should be an ERROR"
-        assert any("main.js" in r.message.lower() for r in error_results)
+        assert len(error_results) > 0, "Empty js/ directory should trigger an ERROR"
+        assert any("javascript" in r.message.lower() for r in error_results)
 
-    def test_fingerprinted_style_css_detected(self, mock_site, tmp_path):
-        """Test that fingerprinted style.abc123.css is detected as style.css."""
+    def test_no_js_dir_is_ok(self, mock_site, tmp_path):
+        """Test that having no js/ directory is OK (CSS-only themes are valid)."""
+        assets_dir = tmp_path / "assets"
+        css_dir = assets_dir / "css"
+        css_dir.mkdir(parents=True)
+
+        # CSS only, no js/ directory at all - this is fine for CSS-only themes
+        (css_dir / "style.css").write_text("body { color: black; }")
+
+        validator = AssetValidator()
+        results = validator.validate(mock_site)
+
+        # Should NOT have errors - CSS-only themes are valid
+        error_results = [r for r in results if r.status == CheckStatus.ERROR]
+        assert len(error_results) == 0, (
+            f"CSS-only themes should not trigger errors: {error_results}"
+        )
+
+    def test_fingerprinted_assets_detected(self, mock_site, tmp_path):
+        """Test that fingerprinted assets (e.g., theme.4bb1d291.css) are detected."""
         assets_dir = tmp_path / "assets"
         css_dir = assets_dir / "css"
         js_dir = assets_dir / "js"
@@ -346,12 +364,12 @@ class TestCriticalAssetChecks:
         js_dir.mkdir(parents=True)
 
         # Create fingerprinted versions (common in production)
-        (css_dir / "style.4bb1d291.css").write_text("body { color: black; }")
-        (js_dir / "main.c1d87ab4.js").write_text('console.log("test");')
+        (css_dir / "theme.4bb1d291.css").write_text("body { color: black; }")
+        (js_dir / "app.c1d87ab4.js").write_text('console.log("test");')
 
         validator = AssetValidator()
         results = validator.validate(mock_site)
 
-        # Should NOT have the critical errors (fingerprinted files should be detected)
+        # Should NOT have the critical errors
         error_results = [r for r in results if r.status == CheckStatus.ERROR]
         assert len(error_results) == 0, f"Fingerprinted assets should be detected: {error_results}"
