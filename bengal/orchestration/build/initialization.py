@@ -502,45 +502,44 @@ def phase_incremental_filter(
             # Check if we need to regenerate taxonomy pages
             needs_taxonomy_regen = bool(cache.get_all_tags())
 
-            if not pages_to_build and not assets_to_process and not needs_taxonomy_regen:
-                # CRITICAL: Check if output directory is missing content before skipping.
-                # This handles the case where cache is restored but output was cleaned
-                # (e.g., GitHub Actions rm -rf public/* before build).
-                output_dir = orchestrator.site.output_dir
-                output_assets = output_dir / "assets"
+            # CRITICAL: Check if output directory is missing content BEFORE deciding
+            # to skip. This handles the case where cache is restored but output was
+            # cleaned (e.g., GitHub Actions rm -rf public/* before build).
+            output_dir = orchestrator.site.output_dir
+            output_assets = output_dir / "assets"
 
-                # Check if output is missing (no index.html or no assets)
-                output_html_missing = not (output_dir / "index.html").exists()
-                output_assets_missing = (
-                    not output_assets.exists()
-                    or len(list(output_assets.iterdir())) < 3  # Minimal check (css, js, icons)
+            # Check if output is missing (no index.html or no assets)
+            output_html_missing = not (output_dir / "index.html").exists()
+            output_assets_missing = (
+                not output_assets.exists()
+                or len(list(output_assets.iterdir())) < 3  # Minimal check (css, js, icons)
+            )
+
+            if (output_html_missing or output_assets_missing) and orchestrator.site.pages:
+                # Output was cleaned but cache thinks nothing changed - force full rebuild
+                pages_to_build = list(orchestrator.site.pages)
+                assets_to_process = list(orchestrator.site.assets)
+                orchestrator.logger.info(
+                    "output_missing_forcing_full_rebuild",
+                    pages_count=len(pages_to_build),
+                    assets_count=len(assets_to_process),
+                    html_missing=output_html_missing,
+                    assets_missing=output_assets_missing,
                 )
-
-                if (output_html_missing or output_assets_missing) and orchestrator.site.pages:
-                    # Output was cleaned but cache thinks nothing changed - force full rebuild
-                    pages_to_build = orchestrator.site.pages
-                    assets_to_process = orchestrator.site.assets
-                    orchestrator.logger.info(
-                        "output_missing_forcing_full_rebuild",
-                        pages_count=len(pages_to_build),
-                        assets_count=len(assets_to_process),
-                        html_missing=output_html_missing,
-                        assets_missing=output_assets_missing,
-                    )
-                else:
-                    cli.success("✓ No changes detected - build skipped")
-                    cli.detail(
-                        f"Cached: {len(orchestrator.site.pages)} pages, {len(orchestrator.site.assets)} assets",
-                        indent=1,
-                    )
-                    orchestrator.logger.info(
-                        "no_changes_detected",
-                        cached_pages=len(orchestrator.site.pages),
-                        cached_assets=len(orchestrator.site.assets),
-                    )
-                    orchestrator.stats.skipped = True
-                    orchestrator.stats.build_time_ms = (time.time() - build_start) * 1000
-                    return None  # Signal early exit
+            elif not pages_to_build and not assets_to_process and not needs_taxonomy_regen:
+                cli.success("✓ No changes detected - build skipped")
+                cli.detail(
+                    f"Cached: {len(orchestrator.site.pages)} pages, {len(orchestrator.site.assets)} assets",
+                    indent=1,
+                )
+                orchestrator.logger.info(
+                    "no_changes_detected",
+                    cached_pages=len(orchestrator.site.pages),
+                    cached_assets=len(orchestrator.site.assets),
+                )
+                orchestrator.stats.skipped = True
+                orchestrator.stats.build_time_ms = (time.time() - build_start) * 1000
+                return None  # Signal early exit
 
             # More informative incremental build message
             pages_msg = f"{len(pages_to_build)} page{'s' if len(pages_to_build) != 1 else ''}"

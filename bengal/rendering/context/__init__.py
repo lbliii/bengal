@@ -152,7 +152,7 @@ def _create_global_contexts(site: Site) -> dict[str, Any]:
     return {
         "site": SiteContext(site),
         "config": ConfigContext(site.config),
-        "theme": ThemeContext(theme_obj) if theme_obj else ThemeContext._empty(),
+        "theme": ThemeContext(theme_obj) if theme_obj is not None else ThemeContext._empty(),
         "menus": MenusContext(site),
     }
 
@@ -199,15 +199,10 @@ def _get_global_contexts(
         if site_id in _global_context_cache:
             return _global_context_cache[site_id]
 
-    # Build contexts outside lock (object creation)
-    contexts = _create_global_contexts(site)
-
-    # Store under lock, with double-check
-    with _context_lock:
-        # Another thread may have populated while we computed
-        if site_id not in _global_context_cache:
-            _global_context_cache[site_id] = contexts
-        return _global_context_cache[site_id]
+        # Build and store under lock
+        contexts = _create_global_contexts(site)
+        _global_context_cache[site_id] = contexts
+        return contexts
 
 
 def clear_global_context_cache() -> None:
