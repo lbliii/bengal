@@ -83,7 +83,7 @@ This installs Bengal in editable mode with development dependencies.
 bengal --version
 ```
 
-You should see output like: `Bengal SSG, version 0.1.6`
+You should see output like: `Bengal SSG, version 0.1.7`
 
 ## Python Version Setup
 

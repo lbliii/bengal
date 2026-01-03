@@ -1,5 +1,18 @@
 ## [Unreleased]
 
+## 0.1.7 - 2026-01-03
+
+### 🔧 Build & Cache Fixes ✅
+- **orchestration**: detect output/cache mismatch and force rebuild when output is missing (fixes CI issues where cache is restored but `public/` is cleaned)
+- **discovery**: fix asset discovery for themes installed in hidden directories (e.g., `.venv`) by checking relative paths for hidden status
+- **core(rendering)**: improve thread safety of global context creation via streamlined locking pattern
+
+### 🔍 Health Check Improvements ✅
+- **health(assets)**: make critical asset checks theme-agnostic (detects missing CSS/JS regardless of theme file names)
+- **health(assets)**: add detection for empty (0-byte) CSS and JavaScript files which cause silent style/interaction failures
+- **health(asset_urls)**: add case-sensitivity validation for asset URLs to prevent "works on macOS, fails on Linux CI" bugs
+- **health(config)**: add GitHub Pages `baseurl` validation (detects missing or malformed `baseurl` for project sites)
+
 ## 0.1.6 - 2026-01-01
 
 ### 🚀 Kida Template Engine ✅

@@ -99,7 +99,7 @@ Bengal uses semantic versioning with one caveat: **pre-1.0 releases may include 
 Every release includes release notes. Breaking changes include migration guides.
 
 :::{tip}
-Pin your version in `pyproject.toml` or `requirements.txt` (e.g., `bengal==0.1.6`) to prevent unexpected upgrades. Upgrade deliberately by reviewing the changelog first.
+Pin your version in `pyproject.toml` or `requirements.txt` (e.g., `bengal==0.1.7`) to prevent unexpected upgrades. Upgrade deliberately by reviewing the changelog first.
 :::
 
 ---

@@ -72,7 +72,7 @@ def create_mock_site() -> dict[str, Any]:
         "nav_version": "1.0.0",
         "build_badge": {
             "enabled": True,
-            "version": "0.1.6",
+            "version": "0.1.7",
         },
         "document_application": {
             "enabled": True,
