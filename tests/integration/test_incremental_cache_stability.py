@@ -288,3 +288,173 @@ New content here.
         # Load cache and verify new file detected
         cache2 = BuildCache.load(paths.build_cache)
         assert cache2.is_changed(new_page), "New file not detected as changed"
+
+
+class TestCacheOutputMismatch:
+    """
+    Regression tests for cache/output mismatch scenarios.
+
+    Bug: When .bengal cache is restored but output directory is cleaned
+    (e.g., CI with `rm -rf public/*`), Bengal incorrectly skipped rebuilding
+    because cache said "nothing changed".
+
+    Fix: phase_incremental_filter now checks if output is missing BEFORE
+    deciding to skip, forcing a full rebuild when output is empty.
+    """
+
+    @pytest.fixture
+    def site_with_cache(self, tmp_path: Path) -> Path:
+        """Create a site with cache but empty output directory."""
+        from bengal.cache import BuildCache
+        from bengal.cache.paths import BengalPaths
+
+        # Create config
+        config = tmp_path / "bengal.toml"
+        config.write_text(
+            """
+[site]
+title = "Test Site"
+theme = "terminal"
+
+[build]
+incremental = true
+output_dir = "public"
+"""
+        )
+
+        # Create content
+        content_dir = tmp_path / "content"
+        content_dir.mkdir()
+        (content_dir / "index.md").write_text(
+            """---
+title: Home
+---
+
+# Welcome
+"""
+        )
+
+        # Create paths and cache (simulating previous successful build)
+        paths = BengalPaths(tmp_path)
+        paths.ensure_dirs()
+
+        cache = BuildCache()
+        cache.update_file(content_dir / "index.md")
+        cache.last_build = time.strftime("%Y-%m-%dT%H:%M:%S")
+        cache.save(paths.build_cache)
+
+        # Create output directory but leave it EMPTY (simulating rm -rf public/*)
+        output_dir = tmp_path / "public"
+        output_dir.mkdir(exist_ok=True)
+        # No index.html, no assets - this simulates the CI bug
+
+        return tmp_path
+
+    def test_forces_rebuild_when_output_missing(self, site_with_cache: Path) -> None:
+        """
+        When cache exists but output is empty, should force full rebuild.
+
+        Regression test for: GitHub Actions builds with cached .bengal but rm -rf public/*
+        """
+        # Load site
+        from bengal.core.site import Site
+        from bengal.orchestration.build import BuildOrchestrator
+        from bengal.orchestration.build.initialization import phase_incremental_filter
+        from bengal.output import CLIOutput
+
+        site = Site.from_config(site_with_cache)
+
+        # Initialize orchestrator
+        orchestrator = BuildOrchestrator(site)
+
+        # Initialize incremental orchestrator
+        cache, _tracker = orchestrator.incremental.initialize(enabled=True)
+
+        # Run incremental filter
+        cli = CLIOutput()
+        build_start = time.time()
+
+        result = phase_incremental_filter(
+            orchestrator=orchestrator,
+            cli=cli,
+            incremental=True,
+            verbose=False,
+            cache=cache,
+            build_start=build_start,
+        )
+
+        # CRITICAL: Should NOT return None (skip) - should force rebuild
+        assert result is not None, (
+            "phase_incremental_filter returned None (skip) when output is missing! "
+            "This is the bug: cache exists but output is empty, should force rebuild."
+        )
+
+        # Should include pages to build
+        assert len(result.pages_to_build) > 0, (
+            "pages_to_build is empty when output is missing - should force full rebuild"
+        )
+
+    def test_detects_missing_index_html(self, site_with_cache: Path) -> None:
+        """
+        Specifically test that missing index.html triggers rebuild.
+        """
+        output_dir = site_with_cache / "public"
+
+        # Create assets directory but no index.html
+        assets_dir = output_dir / "assets"
+        assets_dir.mkdir(exist_ok=True)
+        (assets_dir / "style.css").write_text("body {}")
+
+        # Output has assets but no HTML - should still rebuild
+
+        from bengal.core.site import Site
+        from bengal.orchestration.build import BuildOrchestrator
+        from bengal.orchestration.build.initialization import phase_incremental_filter
+        from bengal.output import CLIOutput
+
+        site = Site.from_config(site_with_cache)
+        orchestrator = BuildOrchestrator(site)
+        cache, _ = orchestrator.incremental.initialize(enabled=True)
+
+        result = phase_incremental_filter(
+            orchestrator=orchestrator,
+            cli=CLIOutput(),
+            incremental=True,
+            verbose=False,
+            cache=cache,
+            build_start=time.time(),
+        )
+
+        assert result is not None, "Should rebuild when index.html is missing"
+        assert len(result.pages_to_build) > 0
+
+    def test_detects_missing_assets(self, site_with_cache: Path) -> None:
+        """
+        Specifically test that missing assets directory triggers rebuild.
+        """
+        output_dir = site_with_cache / "public"
+
+        # Create index.html but no assets
+        (output_dir / "index.html").write_text("<html></html>")
+        # No assets directory - should trigger rebuild
+
+        from bengal.core.site import Site
+        from bengal.orchestration.build import BuildOrchestrator
+        from bengal.orchestration.build.initialization import phase_incremental_filter
+        from bengal.output import CLIOutput
+
+        site = Site.from_config(site_with_cache)
+        orchestrator = BuildOrchestrator(site)
+        cache, _ = orchestrator.incremental.initialize(enabled=True)
+
+        result = phase_incremental_filter(
+            orchestrator=orchestrator,
+            cli=CLIOutput(),
+            incremental=True,
+            verbose=False,
+            cache=cache,
+            build_start=time.time(),
+        )
+
+        assert result is not None, "Should rebuild when assets directory is missing"
+        assert len(result.assets_to_process) > 0

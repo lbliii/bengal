@@ -87,9 +87,29 @@ class AssetValidator(BaseValidator):
         """Check expected asset types are present."""
         results = []
 
-        # CSS check - only warn if missing (JS and images are optional)
+        # Find all CSS and JS files
         css_files = list(assets_dir.rglob("*.css"))
-        if not css_files:
+        js_files = list(assets_dir.rglob("*.js"))
+
+        # CRITICAL CHECK: style.css must exist (theme CSS entry point)
+        # This catches the bug where theme assets aren't discovered/copied
+        has_style_css = any(f.stem.startswith("style") or f.stem == "style" for f in css_files)
+
+        if not has_style_css:
+            # This is a build FAILURE - the site will be unstyled
+            results.append(
+                CheckResult.error(
+                    "CRITICAL: No style.css found in output - site will be unstyled",
+                    code="H626",
+                    recommendation=(
+                        "Theme CSS was not copied to output. Possible causes:\n"
+                        "  1. Theme assets not discovered (check theme config)\n"
+                        "  2. AssetDiscovery skipping files incorrectly\n"
+                        "  3. Build cache/output mismatch (try: bengal site clean --cache)"
+                    ),
+                )
+            )
+        elif not css_files:
             results.append(
                 CheckResult.warning(
                     "No CSS files found in assets",
@@ -97,6 +117,26 @@ class AssetValidator(BaseValidator):
                     recommendation="Theme may not be applied. Check theme asset discovery.",
                 )
             )
+
+        # CRITICAL CHECK: main.js must exist when theme has JS
+        # The default Bengal theme always has JS
+        has_main_js = any(f.stem.startswith("main") or f.stem == "main" for f in js_files)
+
+        if not has_main_js and not js_files:
+            # This is a build FAILURE - interactive features won't work
+            results.append(
+                CheckResult.error(
+                    "CRITICAL: No main.js found in output - interactive features will fail",
+                    code="H627",
+                    recommendation=(
+                        "Theme JavaScript was not copied to output. Possible causes:\n"
+                        "  1. Theme assets not discovered (check theme config)\n"
+                        "  2. AssetDiscovery skipping files incorrectly\n"
+                        "  3. Build cache/output mismatch (try: bengal site clean --cache)"
+                    ),
+                )
+            )
+
         # No success/info messages - if present, silence is golden
 
         return results

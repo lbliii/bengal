@@ -180,6 +180,90 @@ class TestAssetDiscovery:
 
 
 @pytest.mark.parallel_unsafe
+class TestAssetDiscoveryPathsWithDots:
+    """Test asset discovery in paths containing dots (e.g., .venv).
+
+    Regression tests for: Theme assets skipped when Bengal installed in .venv
+    """
+
+    def test_discovers_assets_in_dotted_parent_path(self):
+        """Test that assets are discovered even when parent path contains dots.
+
+        Regression test: When Bengal is installed in .venv/lib/python3.x/site-packages/,
+        the hidden file check incorrectly skipped ALL theme assets because .venv
+        starts with a dot.
+
+        The fix: Check only the RELATIVE path within assets_dir for hidden files,
+        not the full filesystem path.
+        """
+        temp_dir = Path(tempfile.mkdtemp())
+        # Simulate .venv installation path
+        dotted_path = (
+            temp_dir
+            / ".venv"
+            / "lib"
+            / "python3.14"
+            / "site-packages"
+            / "bengal"
+            / "themes"
+            / "default"
+            / "assets"
+        )
+        dotted_path.mkdir(parents=True)
+
+        # Create assets in this path
+        (dotted_path / "style.css").write_text("body { color: blue; }")
+        (dotted_path / "main.js").write_text("console.log('test');")
+        (dotted_path / "css").mkdir()
+        (dotted_path / "css" / "base.css").write_text("html { font-size: 16px; }")
+        (dotted_path / "js").mkdir()
+        (dotted_path / "js" / "app.js").write_text("alert('hi');")
+
+        discovery = AssetDiscovery(dotted_path)
+        assets = discovery.discover()
+
+        # Should find all 4 assets (NOT skipped due to .venv in path)
+        assert len(assets) == 4
+        asset_names = {asset.source_path.name for asset in assets}
+        assert "style.css" in asset_names
+        assert "main.js" in asset_names
+        assert "base.css" in asset_names
+        assert "app.js" in asset_names
+
+        shutil.rmtree(temp_dir)
+
+    def test_still_skips_hidden_files_in_relative_path(self):
+        """Test that hidden files WITHIN the assets directory are still skipped.
+
+        Even though we fixed the .venv bug, we should still skip hidden files
+        that are actually within the assets directory (e.g., .DS_Store).
+        """
+        temp_dir = Path(tempfile.mkdtemp())
+        dotted_path = temp_dir / ".venv" / "site-packages" / "assets"
+        dotted_path.mkdir(parents=True)
+
+        # Create normal assets
+        (dotted_path / "style.css").write_text("body { color: blue; }")
+
+        # Create hidden files within assets directory (should be skipped)
+        (dotted_path / ".hidden.css").write_text("body { color: red; }")
+        (dotted_path / ".DS_Store").write_bytes(b"\x00" * 100)
+
+        # Create hidden directory within assets (should be skipped)
+        (dotted_path / ".git").mkdir()
+        (dotted_path / ".git" / "config").write_text("git config")
+
+        discovery = AssetDiscovery(dotted_path)
+        assets = discovery.discover()
+
+        # Should only find style.css, not the hidden files
+        assert len(assets) == 1
+        assert assets[0].source_path.name == "style.css"
+
+        shutil.rmtree(temp_dir)
+
+
+@pytest.mark.parallel_unsafe
 class TestAssetDiscoveryWithRaceConditions:
     """Test asset discovery behavior during parallel operations.
 
