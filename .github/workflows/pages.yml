@@ -43,14 +43,32 @@ jobs:
           restore-keys: |
             bengal-${{ runner.os }}-
 
-      - name: Install bengal
-        run: uv sync --extra search
+      # TEST: Install Bengal from PyPI to reproduce Rosettes issue
+      # Change back to "uv sync --extra search" after testing
+      - name: Install bengal from PyPI
+        run: |
+          uv venv
+          uv pip install 'bengal[search]>=0.1.6'
         env:
           PYTHON_GIL: "0"
+
+      - name: Debug - Check state before clean
+        working-directory: site
+        run: |
+          echo "=== .bengal cache exists? ==="
+          ls -la .bengal/ 2>/dev/null || echo "No .bengal directory"
+          echo "=== public/ before clean ==="
+          ls -la public/ 2>/dev/null || echo "No public directory"
 
       - name: Clean previous output
         working-directory: site
         run: rm -rf public/*
+
+      - name: Debug - Check state after clean
+        working-directory: site
+        run: |
+          echo "=== public/ after clean ==="
+          ls -la public/ 2>/dev/null || echo "No public directory"
 
       - name: Build site
         id: build
@@ -79,10 +97,20 @@ jobs:
 
       - name: Verify build output
         run: |
+          echo "=== Full public/ directory structure ==="
+          find site/public -type f | head -50 || echo "Empty!"
+          echo ""
+          echo "=== Asset checks ==="
+          ls -la site/public/assets/css/ 2>/dev/null || echo "❌ No CSS directory"
+          ls -la site/public/assets/js/ 2>/dev/null || echo "❌ No JS directory"
+          ls -la site/public/index.html 2>/dev/null || echo "❌ No index.html"
+          echo ""
           PAGE_COUNT=$(find site/public -name "*.html" | wc -l)
           echo "📄 **${PAGE_COUNT} pages** generated" >> $GITHUB_STEP_SUMMARY
-          echo "=== CSS files in public/assets/css ==="
-          ls -la site/public/assets/css/ || echo "No CSS directory"
+          if [ "$PAGE_COUNT" -eq 0 ]; then
+            echo "::error::No HTML files generated - build may have been skipped!"
+            echo "❌ **BUILD FAILED: No HTML files generated**" >> $GITHUB_STEP_SUMMARY
+          fi
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
