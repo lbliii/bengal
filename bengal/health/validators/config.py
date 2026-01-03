@@ -73,15 +73,8 @@ class ConfigValidatorWrapper(BaseValidator):
         """Check for common configuration issues."""
         results = []
 
-        # Check if baseurl has trailing slash (common mistake)
-        baseurl = config.get("baseurl", "")
-        if baseurl and baseurl.endswith("/"):
-            results.append(
-                CheckResult.info(
-                    "Base URL has trailing slash",
-                    recommendation="Trailing slashes in baseurl can cause double-slash issues in URLs. Consider removing it.",
-                )
-            )
+        # Check baseurl configuration issues
+        results.extend(self._check_baseurl_issues(config))
 
         # Check if max_workers is very high
         # Use a typical workload estimate to see what workers would be used
@@ -109,5 +102,81 @@ class ConfigValidatorWrapper(BaseValidator):
             )
 
         # No success message - if no problems found, silence is golden
+
+        return results
+
+    def _check_baseurl_issues(self, config: dict[str, Any]) -> list[CheckResult]:
+        """Check for common baseurl configuration issues.
+
+        Common problems:
+        - Trailing slash causing double-slash URLs
+        - GitHub Pages project sites need baseurl set to /repo-name
+        - Missing baseurl when deploying to subdirectory
+        """
+        results = []
+
+        baseurl = config.get("baseurl", "")
+        site_url = config.get("url", "")
+
+        # Check for trailing slash
+        if baseurl and baseurl.endswith("/"):
+            results.append(
+                CheckResult.info(
+                    "Base URL has trailing slash",
+                    recommendation=(
+                        "Trailing slashes in baseurl can cause double-slash issues in URLs. "
+                        "Consider removing it: baseurl = '/myrepo' not '/myrepo/'"
+                    ),
+                )
+            )
+
+        # Check for GitHub Pages project sites without baseurl
+        if site_url and "github.io" in site_url.lower():
+            # Parse the URL to check structure
+            # Pattern: https://username.github.io/repo-name -> needs baseurl = "/repo-name"
+            # Pattern: https://username.github.io -> no baseurl needed
+            parts = site_url.rstrip("/").split("/")
+            # After split: ['https:', '', 'username.github.io', 'repo-name']
+            if len(parts) > 3 and parts[3]:
+                # Has a path component - likely a project site
+                expected_baseurl = f"/{parts[3]}"
+                if not baseurl:
+                    results.append(
+                        CheckResult.warning(
+                            "GitHub Pages project site may need baseurl",
+                            code="H012",
+                            recommendation=(
+                                f"Your site URL suggests a project site: {site_url}\n"
+                                f"Project sites need baseurl set to the repo name:\n"
+                                f"  baseurl = '{expected_baseurl}'\n"
+                                "Without this, assets and links may 404 on GitHub Pages."
+                            ),
+                        )
+                    )
+                elif baseurl != expected_baseurl:
+                    results.append(
+                        CheckResult.info(
+                            "Verify baseurl matches repository name",
+                            recommendation=(
+                                f"Your site URL: {site_url}\n"
+                                f"Your baseurl: '{baseurl}'\n"
+                                f"Expected baseurl: '{expected_baseurl}'\n"
+                                "Mismatched baseurl will cause broken links on GitHub Pages."
+                            ),
+                        )
+                    )
+
+        # Check for baseurl without leading slash
+        if baseurl and not baseurl.startswith("/"):
+            results.append(
+                CheckResult.warning(
+                    "Base URL should start with '/'",
+                    code="H013",
+                    recommendation=(
+                        f"baseurl = '{baseurl}' should be '/{baseurl}'\n"
+                        "Without the leading slash, URL resolution may fail."
+                    ),
+                )
+            )
 
         return results

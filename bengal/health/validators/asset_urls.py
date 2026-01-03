@@ -107,6 +107,18 @@ class AssetURLValidator(BaseValidator):
                             "fingerprinted_exists": fingerprinted_exists,
                         }
                     )
+                else:
+                    # File exists, but check case sensitivity
+                    case_issue = self._check_case_sensitivity(full_path, asset_path)
+                    if case_issue:
+                        missing_assets.append(
+                            {
+                                "url": asset_url,
+                                "expected_file": str(asset_path),
+                                "html_file": str(html_file.relative_to(output_dir)),
+                                "case_mismatch": case_issue,
+                            }
+                        )
 
         # Dedupe by URL
         seen_urls: set[str] = set()
@@ -139,8 +151,34 @@ class AssetURLValidator(BaseValidator):
                 )
             )
 
+        # Report case sensitivity issues (breaks on Linux CI!)
+        case_issues = [m for m in unique_missing if m.get("case_mismatch")]
+        if case_issues:
+            sample = case_issues[:3]
+            details = [f"{m['url']} -> actual: {m['case_mismatch']}" for m in sample]
+            results.append(
+                CheckResult(
+                    name="asset_url_case_mismatch",
+                    status=CheckStatus.WARNING,
+                    message=f"{len(case_issues)} asset URL(s) have case mismatches - will break on case-sensitive systems (Linux CI)",
+                    details={
+                        "count": len(case_issues),
+                        "sample_mismatches": details,
+                        "warning": "Works on macOS but FAILS on Linux/GitHub Actions",
+                    },
+                    recommendations=[
+                        "Fix the case in asset URLs to match actual file names exactly",
+                        "Most themes use lowercase: css/, js/, not CSS/, JS/",
+                    ],
+                )
+            )
+
         # Report other missing assets as warnings
-        other_missing = [m for m in unique_missing if not m.get("fingerprinted_exists")]
+        other_missing = [
+            m
+            for m in unique_missing
+            if not m.get("fingerprinted_exists") and not m.get("case_mismatch")
+        ]
         if other_missing:
             sample = other_missing[:3]
             urls = [m["url"] for m in sample]
@@ -190,3 +228,41 @@ class AssetURLValidator(BaseValidator):
 
         # Look for files matching pattern: stem.*.suffix
         return any(f.suffix == suffix and f.stem.startswith(stem + ".") for f in parent.iterdir())
+
+    def _check_case_sensitivity(self, full_path: Path, asset_path: str) -> str | None:
+        """Check if file exists but with different case.
+
+        On case-insensitive filesystems (macOS, Windows), a file will be found
+        even if the case doesn't match. On case-sensitive systems (Linux),
+        it will 404. This detects mismatches early.
+
+        Args:
+            full_path: The resolved path (which exists on case-insensitive FS)
+            asset_path: The original asset path from HTML
+
+        Returns:
+            The actual file name if there's a case mismatch, None otherwise
+        """
+        try:
+            # Get the canonical path with correct case
+            # resolve() gives the real path, which has the actual case on disk
+            canonical = full_path.resolve()
+
+            # Compare the asset_path parts with the canonical path parts
+            asset_parts = Path(asset_path).parts
+            canonical_parts = canonical.parts
+
+            # We only care about the tail (relative part under output_dir)
+            # Find where the asset path appears in canonical path
+            if len(canonical_parts) >= len(asset_parts):
+                tail_canonical = canonical_parts[-len(asset_parts) :]
+
+                # Compare each component
+                for expected, actual in zip(asset_parts, tail_canonical, strict=False):
+                    if expected != actual and expected.lower() == actual.lower():
+                        # Case mismatch found!
+                        return str(Path(*tail_canonical))
+
+            return None
+        except (OSError, ValueError):
+            return None

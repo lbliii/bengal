@@ -72,13 +72,16 @@ class AssetValidator(BaseValidator):
         # Check 2: Asset types present
         results.extend(self._check_asset_types(assets_dir))
 
-        # Check 3: Asset sizes
+        # Check 3: Empty (0-byte) assets - CRITICAL
+        results.extend(self._check_empty_assets(assets_dir))
+
+        # Check 4: Asset sizes
         results.extend(self._check_asset_sizes(assets_dir, site))
 
-        # Check 4: Duplicate assets
+        # Check 5: Duplicate assets
         results.extend(self._check_duplicate_assets(assets_dir))
 
-        # Check 5: Minification hints
+        # Check 6: Minification hints
         results.extend(self._check_minification_hints(assets_dir, site))
 
         return results
@@ -145,6 +148,81 @@ class AssetValidator(BaseValidator):
             pass
 
         # No success/info messages - if present, silence is golden
+
+        return results
+
+    def _check_empty_assets(self, assets_dir: Path) -> list[CheckResult]:
+        """Check for empty (0-byte) asset files.
+
+        Empty CSS/JS files are almost always a bug - they'll be included in
+        HTML but do nothing, causing silent failures.
+        """
+        results = []
+
+        empty_css = []
+        empty_js = []
+        empty_other = []
+
+        for asset_file in assets_dir.rglob("*"):
+            if not asset_file.is_file():
+                continue
+
+            try:
+                size = asset_file.stat().st_size
+            except OSError:
+                continue  # File disappeared during check
+
+            if size == 0:
+                suffix = asset_file.suffix.lower()
+                relative_path = str(asset_file.relative_to(assets_dir))
+
+                if suffix == ".css":
+                    empty_css.append(relative_path)
+                elif suffix == ".js":
+                    empty_js.append(relative_path)
+                else:
+                    empty_other.append(relative_path)
+
+        # Empty CSS is critical - site will be unstyled
+        if empty_css:
+            results.append(
+                CheckResult.error(
+                    f"CRITICAL: {len(empty_css)} CSS file(s) are empty (0 bytes)",
+                    code="H628",
+                    recommendation=(
+                        "Empty CSS files are included in HTML but provide no styles. "
+                        "This usually means asset copying or bundling failed.\n"
+                        "  Try: bengal site clean --cache"
+                    ),
+                    details=empty_css[:5],
+                )
+            )
+
+        # Empty JS is also critical if present
+        if empty_js:
+            results.append(
+                CheckResult.error(
+                    f"CRITICAL: {len(empty_js)} JavaScript file(s) are empty (0 bytes)",
+                    code="H629",
+                    recommendation=(
+                        "Empty JS files are included in HTML but do nothing. "
+                        "This usually means asset copying or bundling failed.\n"
+                        "  Try: bengal site clean --cache"
+                    ),
+                    details=empty_js[:5],
+                )
+            )
+
+        # Empty other files are a warning (might be intentional placeholders)
+        if empty_other and len(empty_other) > 3:
+            results.append(
+                CheckResult.warning(
+                    f"{len(empty_other)} other file(s) are empty",
+                    code="H630",
+                    recommendation="Review empty files - they may be failed copies.",
+                    details=empty_other[:3],
+                )
+            )
 
         return results
 

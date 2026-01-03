@@ -188,3 +188,92 @@ class TestConfigValidatorWrapperEdgeCases:
         warning_results = [r for r in results if r.status == CheckStatus.WARNING]
         workers_warnings = [r for r in warning_results if "max_workers" in r.message]
         assert len(workers_warnings) == 0
+
+
+class TestBaseurlValidation:
+    """Tests for GitHub Pages baseurl configuration checks.
+
+    Common misconfiguration: GitHub Pages project sites need baseurl = "/repo-name"
+    but users often forget this, causing all assets and links to 404.
+    """
+
+    def test_github_pages_project_site_missing_baseurl(self, validator, mock_site):
+        """Warns when GitHub Pages project site is missing baseurl."""
+        mock_site.config["url"] = "https://username.github.io/my-repo"
+        mock_site.config["baseurl"] = ""
+
+        results = validator.validate(mock_site)
+        warning_results = [r for r in results if r.status == CheckStatus.WARNING]
+
+        assert any(
+            "github pages" in r.message.lower() or "baseurl" in r.message.lower()
+            for r in warning_results
+        ), f"Should warn about missing baseurl for project site: {warning_results}"
+
+    def test_github_pages_project_site_correct_baseurl(self, validator, mock_site):
+        """No warning when GitHub Pages project site has correct baseurl."""
+        mock_site.config["url"] = "https://username.github.io/my-repo"
+        mock_site.config["baseurl"] = "/my-repo"
+
+        results = validator.validate(mock_site)
+        warning_results = [r for r in results if r.status == CheckStatus.WARNING]
+
+        # Should NOT warn about baseurl
+        baseurl_warnings = [
+            r
+            for r in warning_results
+            if "github" in r.message.lower() and "baseurl" in r.message.lower()
+        ]
+        assert len(baseurl_warnings) == 0, f"Correct baseurl should not warn: {baseurl_warnings}"
+
+    def test_github_pages_user_site_no_baseurl_needed(self, validator, mock_site):
+        """No warning for GitHub Pages user site (no repo path)."""
+        mock_site.config["url"] = "https://username.github.io"
+        mock_site.config["baseurl"] = ""
+
+        results = validator.validate(mock_site)
+        warning_results = [r for r in results if r.status == CheckStatus.WARNING]
+
+        # User sites don't need baseurl
+        baseurl_warnings = [
+            r
+            for r in warning_results
+            if "baseurl" in r.message.lower() and "github" in r.message.lower()
+        ]
+        assert len(baseurl_warnings) == 0, f"User sites should not need baseurl: {baseurl_warnings}"
+
+    def test_baseurl_without_leading_slash(self, validator, mock_site):
+        """Warns when baseurl doesn't start with /."""
+        mock_site.config["baseurl"] = "my-repo"  # Missing leading /
+
+        results = validator.validate(mock_site)
+        warning_results = [r for r in results if r.status == CheckStatus.WARNING]
+
+        assert any(
+            "start with" in r.message.lower() and "/" in r.message for r in warning_results
+        ), f"Should warn about missing leading slash: {warning_results}"
+
+    def test_baseurl_with_leading_slash_ok(self, validator, mock_site):
+        """No warning when baseurl has leading slash."""
+        mock_site.config["baseurl"] = "/my-repo"
+
+        results = validator.validate(mock_site)
+        warning_results = [r for r in results if r.status == CheckStatus.WARNING]
+
+        # Should NOT warn about leading slash
+        slash_warnings = [r for r in warning_results if "start with" in r.message.lower()]
+        assert len(slash_warnings) == 0, f"Correct baseurl should not warn: {slash_warnings}"
+
+    def test_non_github_site_no_baseurl_warning(self, validator, mock_site):
+        """No GitHub Pages warning for non-GitHub sites."""
+        mock_site.config["url"] = "https://example.com/blog"
+        mock_site.config["baseurl"] = ""
+
+        results = validator.validate(mock_site)
+        warning_results = [r for r in results if r.status == CheckStatus.WARNING]
+
+        # Should NOT warn about GitHub Pages
+        github_warnings = [r for r in warning_results if "github" in r.message.lower()]
+        assert len(github_warnings) == 0, (
+            f"Non-GitHub sites shouldn't get GitHub warning: {github_warnings}"
+        )

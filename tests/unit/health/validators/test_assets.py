@@ -52,7 +52,7 @@ def test_asset_validator_valid_assets(mock_site, tmp_path):
 
 
 def test_asset_validator_no_css(mock_site, tmp_path):
-    """Test validator warns when no CSS files found."""
+    """Test validator errors when no CSS files found."""
     # Create assets directory but no CSS
     assets_dir = tmp_path / "assets"
     assets_dir.mkdir()
@@ -60,7 +60,7 @@ def test_asset_validator_no_css(mock_site, tmp_path):
     validator = AssetValidator()
     results = validator.validate(mock_site)
 
-    assert any(r.status == CheckStatus.WARNING for r in results)
+    assert any(r.status == CheckStatus.ERROR for r in results)
     assert any("No CSS files" in r.message for r in results)
 
 
@@ -373,3 +373,92 @@ class TestCriticalAssetChecks:
         # Should NOT have the critical errors
         error_results = [r for r in results if r.status == CheckStatus.ERROR]
         assert len(error_results) == 0, f"Fingerprinted assets should be detected: {error_results}"
+
+
+class TestEmptyAssetDetection:
+    """
+    Tests for empty (0-byte) asset file detection.
+
+    Empty CSS/JS files are almost always a bug - they load but do nothing,
+    causing silent failures that are hard to debug.
+    """
+
+    def test_empty_css_is_error(self, mock_site, tmp_path):
+        """Test that empty CSS files trigger an ERROR."""
+        assets_dir = tmp_path / "assets"
+        css_dir = assets_dir / "css"
+        css_dir.mkdir(parents=True)
+
+        # Create a 0-byte CSS file
+        (css_dir / "style.css").write_text("")
+
+        validator = AssetValidator()
+        results = validator.validate(mock_site)
+
+        # Should be an ERROR - empty CSS is useless
+        error_results = [r for r in results if r.status == CheckStatus.ERROR]
+        assert any(
+            "empty" in r.message.lower() and "css" in r.message.lower() for r in error_results
+        ), f"Empty CSS should trigger ERROR: {error_results}"
+
+    def test_empty_js_is_error(self, mock_site, tmp_path):
+        """Test that empty JS files trigger an ERROR."""
+        assets_dir = tmp_path / "assets"
+        css_dir = assets_dir / "css"
+        js_dir = assets_dir / "js"
+        css_dir.mkdir(parents=True)
+        js_dir.mkdir(parents=True)
+
+        (css_dir / "style.css").write_text("body {}")  # Valid CSS
+        (js_dir / "main.js").write_text("")  # Empty JS
+
+        validator = AssetValidator()
+        results = validator.validate(mock_site)
+
+        # Should be an ERROR - empty JS is useless
+        error_results = [r for r in results if r.status == CheckStatus.ERROR]
+        assert any(
+            "empty" in r.message.lower() and "javascript" in r.message.lower()
+            for r in error_results
+        ), f"Empty JS should trigger ERROR: {error_results}"
+
+    def test_non_empty_assets_ok(self, mock_site, tmp_path):
+        """Test that non-empty assets don't trigger the empty check."""
+        assets_dir = tmp_path / "assets"
+        css_dir = assets_dir / "css"
+        js_dir = assets_dir / "js"
+        css_dir.mkdir(parents=True)
+        js_dir.mkdir(parents=True)
+
+        (css_dir / "style.css").write_text("body { color: black; }")
+        (js_dir / "main.js").write_text("console.log('test');")
+
+        validator = AssetValidator()
+        results = validator.validate(mock_site)
+
+        # Should NOT have empty asset errors
+        error_results = [r for r in results if r.status == CheckStatus.ERROR]
+        assert not any("empty" in r.message.lower() for r in error_results), (
+            f"Non-empty assets should not trigger empty errors: {error_results}"
+        )
+
+    def test_empty_other_files_warning_only(self, mock_site, tmp_path):
+        """Test that empty non-CSS/JS files only warn if there are many."""
+        assets_dir = tmp_path / "assets"
+        css_dir = assets_dir / "css"
+        css_dir.mkdir(parents=True)
+
+        (css_dir / "style.css").write_text("body {}")  # Valid CSS
+
+        # Create several empty files (not CSS/JS)
+        for i in range(5):
+            (assets_dir / f"empty{i}.txt").write_text("")
+
+        validator = AssetValidator()
+        results = validator.validate(mock_site)
+
+        # Should be a WARNING (not error) for other empty files
+        warning_results = [
+            r for r in results if r.status == CheckStatus.WARNING and "empty" in r.message.lower()
+        ]
+        assert len(warning_results) > 0, "Many empty files should trigger a warning"
