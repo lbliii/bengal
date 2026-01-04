@@ -265,8 +265,10 @@ class BuildOrchestrator:
             except Exception:
                 pass
 
-        # Show build header
-        cli.header("Building your site...")
+        # Show build header with version
+        from bengal import __version__
+
+        cli.header(f"Building your site... (Bengal v{__version__})")
         mode_label = "incremental" if incremental else "full"
         _auto_reason = locals().get("auto_reason")
         profile_label = profile.value if profile else "writer"

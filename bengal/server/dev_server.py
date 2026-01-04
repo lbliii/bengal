@@ -796,10 +796,13 @@ class DevServer:
         lines.append("   [dim]Press Ctrl+C to stop (or twice to force quit)[/dim]")
 
         # Create panel with content
+        from bengal import __version__
+
         content = "\n".join(lines)
         panel = Panel(
             content,
             title=f"[bold]{icons.arrow} Bengal Dev Server[/bold]",
+            subtitle=f"[dim]v{__version__}[/dim]",
             border_style="cyan",
             padding=(0, 1),
             expand=False,  # Don't expand to full terminal width
