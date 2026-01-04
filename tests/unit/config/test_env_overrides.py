@@ -2,6 +2,8 @@
 
 Tests config/env_overrides.py:
 - apply_env_overrides: auto-detecting baseurl from deployment platforms
+
+Note: Config is now nested (site.baseurl instead of flat baseurl).
 """
 
 from __future__ import annotations
@@ -17,16 +19,16 @@ class TestApplyEnvOverridesExplicit:
 
     def test_explicit_baseurl_not_overridden(self):
         """Explicit baseurl in config is never overridden."""
-        config = {"baseurl": "https://custom.com"}
+        config = {"site": {"baseurl": "https://custom.com"}}
         result = apply_env_overrides(config)
-        assert result["baseurl"] == "https://custom.com"
+        assert result["site"]["baseurl"] == "https://custom.com"
 
     def test_bengal_baseurl_env_overrides_missing(self):
         """BENGAL_BASEURL env var overrides missing baseurl."""
         config = {}  # Missing baseurl allows env override
         with patch.dict(os.environ, {"BENGAL_BASEURL": "https://env-override.com"}, clear=False):
             result = apply_env_overrides(config)
-        assert result["baseurl"] == "https://env-override.com"
+        assert result["site"]["baseurl"] == "https://env-override.com"
 
     def test_bengal_base_url_env_works(self):
         """BENGAL_BASE_URL (with underscore) also works."""
@@ -37,7 +39,7 @@ class TestApplyEnvOverridesExplicit:
             clear=False,
         ):
             result = apply_env_overrides(config)
-        assert result["baseurl"] == "https://underscore-env.com"
+        assert result["site"]["baseurl"] == "https://underscore-env.com"
 
     def test_strips_trailing_slash(self):
         """Strips trailing slash from baseurl."""
@@ -48,14 +50,14 @@ class TestApplyEnvOverridesExplicit:
             clear=False,
         ):
             result = apply_env_overrides(config)
-        assert result["baseurl"] == "https://example.com"
+        assert result["site"]["baseurl"] == "https://example.com"
 
     def test_empty_baseurl_allows_platform_detection(self):
         """Empty baseurl allows platform detection (enables DEFAULTS + auto-detect)."""
         # With DEFAULTS providing baseurl: "", platform detection should still work
         # This is the common case: user doesn't set baseurl, DEFAULTS sets "",
         # and we want platform detection to auto-compute the right value
-        config = {"baseurl": ""}
+        config = {"site": {"baseurl": ""}}
         env = {
             "NETLIFY": "true",
             "URL": "https://mysite.netlify.app",
@@ -63,14 +65,14 @@ class TestApplyEnvOverridesExplicit:
         with patch.dict(os.environ, env, clear=False):
             result = apply_env_overrides(config)
         # Platform detection should apply because baseurl is empty
-        assert result["baseurl"] == "https://mysite.netlify.app"
+        assert result["site"]["baseurl"] == "https://mysite.netlify.app"
 
     def test_bengal_baseurl_overrides_explicit_empty(self):
         """BENGAL_BASEURL can override explicit empty baseurl."""
-        config = {"baseurl": ""}  # Explicit empty
+        config = {"site": {"baseurl": ""}}  # Explicit empty
         with patch.dict(os.environ, {"BENGAL_BASEURL": "https://env-override.com"}, clear=False):
             result = apply_env_overrides(config)
-        assert result["baseurl"] == "https://env-override.com"  # BENGAL_BASEURL overrides
+        assert result["site"]["baseurl"] == "https://env-override.com"  # BENGAL_BASEURL overrides
 
 
 class TestApplyEnvOverridesNetlify:
@@ -85,7 +87,7 @@ class TestApplyEnvOverridesNetlify:
         }
         with patch.dict(os.environ, env, clear=False):
             result = apply_env_overrides(config)
-        assert result["baseurl"] == "https://mysite.netlify.app"
+        assert result["site"]["baseurl"] == "https://mysite.netlify.app"
 
     def test_netlify_deploy_preview_url(self):
         """Detects Netlify deploy preview URL."""
@@ -96,7 +98,7 @@ class TestApplyEnvOverridesNetlify:
         }
         with patch.dict(os.environ, env, clear=False):
             result = apply_env_overrides(config)
-        assert result["baseurl"] == "https://deploy-preview-123--mysite.netlify.app"
+        assert result["site"]["baseurl"] == "https://deploy-preview-123--mysite.netlify.app"
 
     def test_netlify_production_takes_precedence(self):
         """Production URL takes precedence over deploy preview."""
@@ -108,11 +110,11 @@ class TestApplyEnvOverridesNetlify:
         }
         with patch.dict(os.environ, env, clear=False):
             result = apply_env_overrides(config)
-        assert result["baseurl"] == "https://production.netlify.app"
+        assert result["site"]["baseurl"] == "https://production.netlify.app"
 
     def test_netlify_not_detected_without_flag(self):
         """Netlify not detected without NETLIFY=true."""
-        config = {"baseurl": ""}
+        config = {"site": {"baseurl": ""}}
         # Clear platform env vars that might be set in CI
         clean_env = {
             "URL": "https://mysite.netlify.app",  # Missing NETLIFY=true
@@ -121,7 +123,7 @@ class TestApplyEnvOverridesNetlify:
         }
         with patch.dict(os.environ, clean_env, clear=False):
             result = apply_env_overrides(config)
-        assert result["baseurl"] == ""
+        assert result["site"]["baseurl"] == ""
 
 
 class TestApplyEnvOverridesVercel:
@@ -136,7 +138,7 @@ class TestApplyEnvOverridesVercel:
         }
         with patch.dict(os.environ, env, clear=False):
             result = apply_env_overrides(config)
-        assert result["baseurl"] == "https://mysite.vercel.app"
+        assert result["site"]["baseurl"] == "https://mysite.vercel.app"
 
     def test_vercel_detection_with_true(self):
         """Detects Vercel with VERCEL=true."""
@@ -147,7 +149,7 @@ class TestApplyEnvOverridesVercel:
         }
         with patch.dict(os.environ, env, clear=False):
             result = apply_env_overrides(config)
-        assert result["baseurl"] == "https://mysite.vercel.app"
+        assert result["site"]["baseurl"] == "https://mysite.vercel.app"
 
     def test_vercel_adds_https_prefix(self):
         """Adds https:// prefix to Vercel URL."""
@@ -158,7 +160,7 @@ class TestApplyEnvOverridesVercel:
         }
         with patch.dict(os.environ, env, clear=False):
             result = apply_env_overrides(config)
-        assert result["baseurl"].startswith("https://")
+        assert result["site"]["baseurl"].startswith("https://")
 
     def test_vercel_preserves_existing_protocol(self):
         """Preserves existing protocol in Vercel URL."""
@@ -169,7 +171,7 @@ class TestApplyEnvOverridesVercel:
         }
         with patch.dict(os.environ, env, clear=False):
             result = apply_env_overrides(config)
-        assert result["baseurl"] == "https://already-has-protocol.vercel.app"
+        assert result["site"]["baseurl"] == "https://already-has-protocol.vercel.app"
 
 
 class TestApplyEnvOverridesGitHub:
@@ -184,7 +186,7 @@ class TestApplyEnvOverridesGitHub:
         }
         with patch.dict(os.environ, env, clear=False):
             result = apply_env_overrides(config)
-        assert result["baseurl"] == "/myrepo"
+        assert result["site"]["baseurl"] == "/myrepo"
 
     def test_github_user_site_auto_detection(self):
         """Auto-detects user/org site when repo name matches owner.github.io."""
@@ -196,7 +198,7 @@ class TestApplyEnvOverridesGitHub:
         with patch.dict(os.environ, env, clear=False):
             result = apply_env_overrides(config)
         # User/org sites serve from root, so baseurl should be empty
-        assert result["baseurl"] == ""
+        assert result["site"]["baseurl"] == ""
 
     def test_github_pages_root_flag(self):
         """GITHUB_PAGES_ROOT=true forces root deployment."""
@@ -208,11 +210,11 @@ class TestApplyEnvOverridesGitHub:
         }
         with patch.dict(os.environ, env, clear=False):
             result = apply_env_overrides(config)
-        assert result["baseurl"] == ""
+        assert result["site"]["baseurl"] == ""
 
     def test_github_not_detected_without_flag(self):
         """GitHub not detected without GITHUB_ACTIONS=true."""
-        config = {"baseurl": ""}
+        config = {"site": {"baseurl": ""}}
         # Clear platform env vars that might be set in CI
         env = {
             "GITHUB_REPOSITORY": "owner/myrepo",  # Missing GITHUB_ACTIONS
@@ -222,7 +224,7 @@ class TestApplyEnvOverridesGitHub:
         }
         with patch.dict(os.environ, env, clear=False):
             result = apply_env_overrides(config)
-        assert result["baseurl"] == ""
+        assert result["site"]["baseurl"] == ""
 
 
 class TestApplyEnvOverridesPriority:
@@ -238,11 +240,11 @@ class TestApplyEnvOverridesPriority:
         }
         with patch.dict(os.environ, env, clear=False):
             result = apply_env_overrides(config)
-        assert result["baseurl"] == "https://explicit.com"
+        assert result["site"]["baseurl"] == "https://explicit.com"
 
     def test_config_baseurl_takes_precedence_over_all(self):
         """Explicit config baseurl takes precedence over all env vars."""
-        config = {"baseurl": "https://config.com"}
+        config = {"site": {"baseurl": "https://config.com"}}
         env = {
             "BENGAL_BASEURL": "https://explicit.com",
             "NETLIFY": "true",
@@ -250,7 +252,7 @@ class TestApplyEnvOverridesPriority:
         }
         with patch.dict(os.environ, env, clear=False):
             result = apply_env_overrides(config)
-        assert result["baseurl"] == "https://config.com"
+        assert result["site"]["baseurl"] == "https://config.com"
 
 
 class TestApplyEnvOverridesEdgeCases:
@@ -261,7 +263,7 @@ class TestApplyEnvOverridesEdgeCases:
         config = {}
         with patch.dict(os.environ, {"BENGAL_BASEURL": "https://example.com"}, clear=False):
             result = apply_env_overrides(config)
-        assert result["baseurl"] == "https://example.com"
+        assert result["site"]["baseurl"] == "https://example.com"
 
     def test_github_repository_without_slash(self):
         """Handles malformed GITHUB_REPOSITORY without slash."""
@@ -272,12 +274,12 @@ class TestApplyEnvOverridesEdgeCases:
         }
         with patch.dict(os.environ, env, clear=False):
             result = apply_env_overrides(config)
-        # Should not crash, baseurl should remain missing (not set)
-        assert "baseurl" not in result or result.get("baseurl") == ""
+        # Should not crash, site section should exist but baseurl empty
+        assert result.get("site", {}).get("baseurl", "") == ""
 
     def test_empty_env_vars_ignored(self):
         """Empty environment variables are ignored."""
-        config = {"baseurl": ""}
+        config = {"site": {"baseurl": ""}}
         # Clear platform env vars that might be set in CI
         env = {
             "BENGAL_BASEURL": "",  # Empty string should be ignored
@@ -287,11 +289,11 @@ class TestApplyEnvOverridesEdgeCases:
         }
         with patch.dict(os.environ, env, clear=False):
             result = apply_env_overrides(config)
-        assert result["baseurl"] == ""
+        assert result["site"]["baseurl"] == ""
 
     def test_exception_in_env_logic_logged_and_recovered(self):
         """Exceptions in env logic are caught, logged as warning, and recovered."""
-        config = {"baseurl": ""}
+        config = {"site": {"baseurl": ""}}
         # Simulate exception by making os.environ.get raise for specific keys
         original_get = os.environ.get
 
@@ -304,7 +306,7 @@ class TestApplyEnvOverridesEdgeCases:
         with patch.object(os.environ, "get", side_effect=mock_get):
             # Should not raise, should return original config
             result = apply_env_overrides(config)
-        assert result["baseurl"] == ""
+        assert result["site"]["baseurl"] == ""
 
     def test_returns_same_config_object(self):
         """Returns the same config object (mutated)."""

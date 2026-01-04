@@ -14,7 +14,11 @@ import pytest
 def test_dev_server_clears_baseurl_in_html(site, build_site):
     """Test that baseurl is cleared in HTML when built by dev server simulation."""
     # Simulate dev server behavior: clear baseurl before build
-    original_baseurl = site.config.get("baseurl", "")
+    # Access from site section (supports both Config and dict)
+    if hasattr(site.config, "site"):
+        original_baseurl = site.config.site.baseurl or ""
+    else:
+        original_baseurl = site.config.get("site", {}).get("baseurl", "")
     assert original_baseurl == "/bengal", "Test setup: baseurl should be /bengal initially"
 
     # Clear baseurl (what dev server does)

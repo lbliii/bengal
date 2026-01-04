@@ -16,7 +16,7 @@ _path, kind, tags are always defined - no defensive checks needed.
 
 {# Navigation - cache function calls #}
 {% let _current_lang = current_lang() %}
-{% let _site_title = config.title %}
+{% let _site_title = site.title %}
 
 {# Normalized config objects (pre-processed by Site with defaults applied) #}
 {% let _build_badge = site.build_badge %}
@@ -109,7 +109,7 @@ HELPER: Render a menu item (desktop/mobile)
 
     {# Meta description - captured for reuse in Open Graph and Twitter Card #}
     {% capture meta_desc %}
-    {{ meta_desc ?? config.description }}
+    {{ meta_desc ?? site.description }}
     {% endcapture %}
     <meta name="description" content="{{ meta_desc | trim }}">
 
@@ -131,7 +131,7 @@ HELPER: Render a menu item (desktop/mobile)
     {% if meta_desc %}
     <meta property="og:description" content="{{ meta_desc | trim }}">
     {% end %}
-    {% if config.baseurl %}
+    {% if site.baseurl %}
     <meta property="og:url" content="{{ canonical_url(_page_url) }}">
     {% end %}
     {# Open Graph Image #}
@@ -152,7 +152,7 @@ HELPER: Render a menu item (desktop/mobile)
 
     {# Bengal config meta #}
     <meta name="bengal:search_preload" content="{{ config.search_preload ?? 'smart' }}">
-    <meta name="bengal:baseurl" content="{{ config.baseurl }}">
+    <meta name="bengal:baseurl" content="{{ site.baseurl }}">
     <meta name="bengal:index_url" content="{{ '/index.json' | absolute_url }}">
     {% if bengal.capabilities.prebuilt_search %}
     <meta name="bengal:search_index_url" content="{{ '/search-index.json' | absolute_url }}">
@@ -162,7 +162,7 @@ HELPER: Render a menu item (desktop/mobile)
     {% end %}
 
     {# Canonical URL #}
-    {% if config.baseurl %}
+    {% if site.baseurl %}
     <link rel="canonical" href="{{ canonical_url(_page_url) }}">
     {% end %}
 
@@ -184,7 +184,7 @@ HELPER: Render a menu item (desktop/mobile)
     {% end %}
 
     {# Favicon #}
-    {% with config.site.favicon as favicon_path %}
+    {% with site.favicon as favicon_path %}
     {% if favicon_path %}
     <link rel="icon" type="image/png" href="{{ favicon_path }}">
     {% else %}

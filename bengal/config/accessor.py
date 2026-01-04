@@ -140,15 +140,20 @@ class Config:
     def features(self) -> ConfigSection:
         return ConfigSection(self._data.get("features", {}), "features")
 
-    def __getattr__(self, key: str) -> ConfigSection:
+    def __getattr__(self, key: str) -> ConfigSection | Any:
         """
         Enables config.custom_section.key for user-defined sections.
 
         Fallthrough for any section not explicitly defined as a property.
+        Returns ConfigSection for dict values, raw value for non-dict types.
         """
         if key.startswith("_"):
             raise AttributeError(key)
-        return ConfigSection(self._data.get(key, {}), key)
+        value = self._data.get(key, {})
+        if isinstance(value, dict):
+            return ConfigSection(value, key)
+        # Return raw value for non-dict types (string, list, etc.)
+        return value
 
     # -------------------------------------------------------------------------
     # Dict Access (for dynamic/custom keys)
@@ -157,11 +162,49 @@ class Config:
     def __getitem__(self, key: str) -> Any:
         return self._data[key]
 
+    def __setitem__(self, key: str, value: Any) -> None:
+        """Allow dict-style assignment for backward compatibility."""
+        self._data[key] = value
+        # Invalidate cached properties if setting a section
+        if key in (
+            "site",
+            "build",
+            "dev",
+            "theme",
+            "search",
+            "content",
+            "assets",
+            "output_formats",
+            "features",
+        ):
+            if hasattr(self, key):
+                delattr(self, key)  # Clear cached_property
+
     def get(self, key: str, default: Any = None) -> Any:
         return self._data.get(key, default)
 
+    def setdefault(self, key: str, default: Any = None) -> Any:
+        """Set default value if key doesn't exist, return value."""
+        return self._data.setdefault(key, default)
+
+    def items(self):
+        """Return dict items iterator for compatibility."""
+        return self._data.items()
+
+    def keys(self):
+        """Return dict keys iterator for compatibility."""
+        return self._data.keys()
+
+    def values(self):
+        """Return dict values iterator for compatibility."""
+        return self._data.values()
+
     def __contains__(self, key: str) -> bool:
         return key in self._data
+
+    def __iter__(self):
+        """Allow iteration over keys."""
+        return iter(self._data)
 
     @property
     def raw(self) -> dict[str, Any]:
@@ -186,6 +229,9 @@ class ConfigSection:
     __slots__ = ("_data", "_path", "_cache")
 
     def __init__(self, data: dict[str, Any], path: str = "") -> None:
+        # Guard against non-dict data (defensive - prevents 'str' has no attribute 'keys' errors)
+        if not isinstance(data, dict):
+            data = {}
         self._data = data
         self._path = path  # For error messages
         self._cache: dict[str, ConfigSection] = {}  # Cache nested sections
@@ -214,9 +260,33 @@ class ConfigSection:
 
         return value
 
+    def __setattr__(self, key: str, value: Any) -> None:
+        """Allow attribute assignment for backward compatibility."""
+        # Handle special attributes
+        if key.startswith("_") or key in ("_data", "_path", "_cache"):
+            object.__setattr__(self, key, value)
+            return
+
+        # Allow setting config keys
+        if not hasattr(self, "_data"):
+            object.__setattr__(self, key, value)
+            return
+
+        self._data[key] = value
+        # Clear cache if setting a nested dict that was cached
+        if key in self._cache:
+            del self._cache[key]
+
     def __getitem__(self, key: str) -> Any:
         """Dict-style access: section["key"]. Raises KeyError if missing."""
         return self._data[key]
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        """Allow dict-style assignment for backward compatibility."""
+        self._data[key] = value
+        # Clear cache if setting a nested dict that was cached
+        if key in self._cache:
+            del self._cache[key]
 
     def get(self, key: str, default: Any = None) -> Any:
         """Safe access for optional keys. Returns default if missing."""
@@ -226,8 +296,28 @@ class ConfigSection:
             return ConfigSection(value, nested_path)
         return value
 
+    def setdefault(self, key: str, default: Any = None) -> Any:
+        """Set default value if key doesn't exist, return value."""
+        return self._data.setdefault(key, default)
+
+    def items(self):
+        """Return dict items iterator for compatibility."""
+        return self._data.items()
+
+    def keys(self):
+        """Return dict keys iterator for compatibility."""
+        return self._data.keys()
+
+    def values(self):
+        """Return dict values iterator for compatibility."""
+        return self._data.values()
+
     def __contains__(self, key: str) -> bool:
         return key in self._data
+
+    def __iter__(self):
+        """Allow iteration over keys."""
+        return iter(self._data)
 
     def __repr__(self) -> str:
         return f"ConfigSection({self._path or 'root'}: {list(self._data.keys())})"
@@ -235,7 +325,3 @@ class ConfigSection:
     def __bool__(self) -> bool:
         """Allow `if config.section:` to check if section has data."""
         return bool(self._data)
-
-    def keys(self) -> list[str]:
-        """List available keys in this section."""
-        return list(self._data.keys())

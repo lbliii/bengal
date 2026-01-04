@@ -24,7 +24,9 @@ from __future__ import annotations
 from bengal.rendering.parsers.patitas.parsing.blocks.core import BlockParsingCoreMixin
 from bengal.rendering.parsers.patitas.parsing.blocks.directive import DirectiveParsingMixin
 from bengal.rendering.parsers.patitas.parsing.blocks.footnote import FootnoteParsingMixin
-from bengal.rendering.parsers.patitas.parsing.blocks.list import ListParsingMixin
+from bengal.rendering.parsers.patitas.parsing.blocks.list import (
+    ListParsingMixin,  # Now from list/ subpackage
+)
 from bengal.rendering.parsers.patitas.parsing.blocks.table import TableParsingMixin
 
 

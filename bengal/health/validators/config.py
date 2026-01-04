@@ -78,10 +78,27 @@ class ConfigValidatorWrapper(BaseValidator):
 
         # Check if max_workers is very high
         # Use a typical workload estimate to see what workers would be used
+        # Access from build section (supports both Config and dict)
+        if hasattr(config, "build"):
+            max_workers_override = config.build.max_workers
+            incremental = config.build.incremental
+            parallel = config.build.parallel
+        else:
+            build_section = config.get("build", {})
+            if isinstance(build_section, dict):
+                max_workers_override = build_section.get("max_workers")
+                incremental = build_section.get("incremental")
+                parallel = build_section.get("parallel", True)
+            else:
+                # Fallback to flat access for backward compatibility
+                max_workers_override = config.get("max_workers")
+                incremental = config.get("incremental")
+                parallel = config.get("parallel", True)
+
         max_workers = get_optimal_workers(
             100,
             workload_type=WorkloadType.MIXED,
-            config_override=config.get("max_workers"),
+            config_override=max_workers_override,
         )
         if max_workers > 20:
             results.append(
@@ -93,7 +110,7 @@ class ConfigValidatorWrapper(BaseValidator):
             )
 
         # Check if incremental build is enabled without parallel
-        if config.get("incremental") and not config.get("parallel", True):
+        if incremental and not parallel:
             results.append(
                 CheckResult.info(
                     "Incremental builds work best with parallel processing",

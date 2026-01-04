@@ -355,8 +355,23 @@ class Renderer:
             )
 
             # In strict mode, display and fail immediately
-            strict_mode = self.site.config.get("strict_mode", False)
-            debug_mode = self.site.config.get("debug", False)
+            # Access from build section (supports both Config and dict)
+            config = self.site.config
+            if hasattr(config, "build"):
+                strict_mode = config.build.strict_mode
+                debug_mode = config.build.debug
+            else:
+                build_section = config.get("build", {})
+                strict_mode = (
+                    build_section.get("strict_mode", False)
+                    if isinstance(build_section, dict)
+                    else config.get("strict_mode", False)
+                )
+                debug_mode = (
+                    build_section.get("debug", False)
+                    if isinstance(build_section, dict)
+                    else config.get("debug", False)
+                )
 
             if strict_mode:
                 display_template_error(rich_error)
@@ -723,6 +738,16 @@ class Renderer:
             )
             return False
 
+    def _get_site_title(self) -> str:
+        """Get site title from config, supporting both Config and dict."""
+        config = self.site.config
+        if hasattr(config, "site"):
+            return config.site.title or "Site"
+        site_section = config.get("site", {})
+        if isinstance(site_section, dict):
+            return site_section.get("title", "Site")
+        return config.get("title", "Site")
+
     def _render_fallback(self, page: Page, content: str) -> str:
         """
         Render a fallback HTML page with basic styling.
@@ -749,7 +774,7 @@ class Renderer:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{page.title} - {self.site.config.get("title", "Site")}</title>
+    <title>{page.title} - {self._get_site_title()}</title>
     {css_link}
     <style>
         /* Emergency fallback styling */

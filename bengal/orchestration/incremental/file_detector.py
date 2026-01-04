@@ -64,6 +64,16 @@ class FileChangeDetector:
         self.cache = cache
         self.tracker = tracker
 
+    def _get_max_workers(self) -> int | None:
+        """Get max_workers from config, supporting both Config and dict."""
+        config = self.site.config
+        if hasattr(config, "build"):
+            return config.build.max_workers
+        build_section = config.get("build", {})
+        if isinstance(build_section, dict):
+            return build_section.get("max_workers")
+        return config.get("max_workers")
+
     def check_pages(
         self,
         *,
@@ -140,7 +150,7 @@ class FileChangeDetector:
         max_workers = get_optimal_workers(
             len(pages),
             workload_type=WorkloadType.IO_BOUND,
-            config_override=self.site.config.get("max_workers"),
+            config_override=self._get_max_workers(),
         )
         results_lock = Lock()
 
@@ -213,7 +223,7 @@ class FileChangeDetector:
         max_workers = get_optimal_workers(
             len(self.site.assets),
             workload_type=WorkloadType.IO_BOUND,
-            config_override=self.site.config.get("max_workers"),
+            config_override=self._get_max_workers(),
         )
         results_lock = Lock()
 

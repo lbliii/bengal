@@ -348,8 +348,9 @@ class DevServer:
         cfg.setdefault("search_preload", "off")
         # Disable social cards in dev (OG images not needed, saves ~30s on large sites)
         # Force disable even if enabled in config - social cards only matter for production
-        if isinstance(cfg.get("social_cards"), dict):
-            cfg["social_cards"]["enabled"] = False
+        social_cards = cfg.get("social_cards")
+        if isinstance(social_cards, dict):
+            social_cards["enabled"] = False
         else:
             cfg["social_cards"] = {"enabled": False}
 

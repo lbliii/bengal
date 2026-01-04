@@ -94,7 +94,7 @@ def _json_default(obj: Any) -> str:
     return str(obj)
 
 
-def _clean_config(d: dict[str, Any]) -> dict[str, Any]:
+def _clean_config(d: dict[str, Any] | Any) -> dict[str, Any]:
     """
     Recursively remove excluded keys from config dict.
 
@@ -103,17 +103,27 @@ def _clean_config(d: dict[str, Any]) -> dict[str, Any]:
     - Keys starting with underscore (private/internal)
 
     Args:
-        d: Configuration dictionary to clean
+        d: Configuration dictionary or ConfigSection to clean
 
     Returns:
         Cleaned dictionary without excluded keys
     """
+    # Convert ConfigSection to dict if needed
+    if hasattr(d, "_data"):
+        d = d._data
+    elif hasattr(d, "raw"):
+        d = d.raw
+
     result = {}
     for k, v in d.items():
         # Skip excluded keys and private keys
         if k in EXCLUDED_KEYS or k.startswith("_"):
             continue
-        # Recursively clean nested dicts
+        # Recursively clean nested dicts (unwrap ConfigSection if needed)
+        if hasattr(v, "_data"):
+            v = v._data
+        elif hasattr(v, "raw"):
+            v = v.raw
         if isinstance(v, dict):
             result[k] = _clean_config(v)
         else:
@@ -121,7 +131,7 @@ def _clean_config(d: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
-def compute_config_hash(config: dict[str, Any]) -> str:
+def compute_config_hash(config: dict[str, Any] | Any) -> str:
     """
     Compute deterministic SHA-256 hash of configuration state.
 
@@ -162,6 +172,10 @@ def compute_config_hash(config: dict[str, Any]) -> str:
         >>> compute_config_hash(config1) == compute_config_hash(config4)
         True
     """
+    # Convert Config object to raw dict if needed
+    if hasattr(config, "raw"):
+        config = config.raw
+
     # Clean config by removing internal/excluded keys
     stable_config = _clean_config(config)
 

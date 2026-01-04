@@ -436,12 +436,12 @@ class VersionConfig:
         }
 
     @classmethod
-    def from_config(cls, config: dict[str, Any]) -> VersionConfig:
+    def from_config(cls, config: dict[str, Any] | Any) -> VersionConfig:
         """
         Create VersionConfig from site configuration.
 
         Args:
-            config: Site configuration dictionary
+            config: Site configuration dictionary or Config object
 
         Returns:
             VersionConfig instance
@@ -455,7 +455,12 @@ class VersionConfig:
             ... }
             >>> vc = VersionConfig.from_config(config)
         """
+        # Use .raw for serialization/deep operations
+        config = config.raw if hasattr(config, "raw") else config
         versioning = config.get("versioning", {})
+        # Unwrap ConfigSection if needed (for deep dict operations)
+        if hasattr(versioning, "_data"):
+            versioning = versioning._data
 
         if not versioning:
             return cls(enabled=False)
@@ -508,6 +513,9 @@ class VersionConfig:
         git_config = None
         if mode == "git":
             git_raw = versioning.get("git", {})
+            # Unwrap ConfigSection if needed (for deep dict operations)
+            if hasattr(git_raw, "_data"):
+                git_raw = git_raw._data
             if git_raw:
                 branches: list[GitBranchPattern] = []
                 for b in git_raw.get("branches", []):
@@ -548,14 +556,31 @@ class VersionConfig:
                     parallel_builds=git_raw.get("parallel_builds", 4),
                 )
 
+        # Unwrap ConfigSection for dict values (needed for deep operations)
+        aliases = versioning.get("aliases", {})
+        if hasattr(aliases, "_data"):
+            aliases = aliases._data
+
+        sections = versioning.get("sections", ["docs"])
+
+        shared = versioning.get("shared", ["_shared"])
+
+        url_config = versioning.get("urls", {})
+        if hasattr(url_config, "_data"):
+            url_config = url_config._data
+
+        seo_config = versioning.get("seo", {})
+        if hasattr(seo_config, "_data"):
+            seo_config = seo_config._data
+
         return cls(
             enabled=enabled,
             mode=mode,
             versions=versions,
-            aliases=versioning.get("aliases", {}),
-            sections=versioning.get("sections", ["docs"]),
-            shared=versioning.get("shared", ["_shared"]),
-            url_config=versioning.get("urls", {}),
-            seo_config=versioning.get("seo", {}),
+            aliases=aliases,
+            sections=sections,
+            shared=shared,
+            url_config=url_config,
+            seo_config=seo_config,
             git_config=git_config,
         )

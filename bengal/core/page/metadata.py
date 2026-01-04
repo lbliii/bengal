@@ -237,7 +237,17 @@ class PageMetadataMixin:
         # Best-effort baseurl lookup; remain robust if site/config is missing
         baseurl = ""
         try:
-            baseurl = self._site.config.get("baseurl", "") if getattr(self, "_site", None) else ""
+            if getattr(self, "_site", None):
+                config = self._site.config
+                # Support both Config and dict access
+                if hasattr(config, "site"):
+                    baseurl = config.site.baseurl or ""
+                else:
+                    site_section = config.get("site", {})
+                    if isinstance(site_section, dict):
+                        baseurl = site_section.get("baseurl", "")
+                    else:
+                        baseurl = config.get("baseurl", "")
         except Exception as e:
             emit_diagnostic(self, "debug", "page_baseurl_lookup_failed", error=str(e))
             baseurl = ""

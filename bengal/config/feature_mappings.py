@@ -132,18 +132,23 @@ def expand_features(config: dict[str, Any]) -> dict[str, Any]:
         return config
 
     for feature_name, enabled in features.items():
-        if not enabled:
-            continue
-
         if feature_name not in FEATURE_MAPPINGS:
             # Unknown feature, ignore silently (or could warn)
             continue
 
         mapping = FEATURE_MAPPINGS[feature_name]
 
-        for key_path, value in mapping.items():
-            # _set_if_missing handles whether to set, append, or skip
-            _set_if_missing(config, key_path, value)
+        if enabled:
+            # Feature enabled: set mapped values (if not already configured)
+            for key_path, value in mapping.items():
+                # _set_if_missing handles whether to set, append, or skip
+                _set_if_missing(config, key_path, value)
+        else:
+            # Feature disabled: explicitly set False for boolean config keys
+            for key_path, value in mapping.items():
+                # Only disable boolean flags (not list values like output_formats)
+                if isinstance(value, bool):
+                    set_nested_key(config, key_path, False)
 
     return config
 

@@ -175,11 +175,12 @@ def serve(
     configure_traceback(debug=debug, traceback=traceback, site=site)
 
     # Enable strict mode in development (fail fast on errors)
-    site.config["strict_mode"] = True
-
-    # Enable debug mode if requested
+    cfg = site.config
+    if "build" not in cfg:
+        cfg["build"] = {}
+    cfg["build"]["strict_mode"] = True
     if debug:
-        site.config["debug"] = True
+        cfg["build"]["debug"] = True
 
     # Launch interactive dashboard if requested
     if dashboard:

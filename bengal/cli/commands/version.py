@@ -16,7 +16,7 @@ import click
 
 from bengal.cli.base import BengalGroup
 from bengal.cli.helpers import command_metadata, get_cli_output, handle_cli_errors
-from bengal.config.loader import ConfigLoader
+from bengal.config import UnifiedConfigLoader
 from bengal.core.version import Version, VersionConfig
 
 
@@ -316,8 +316,8 @@ def create(
 
 def _load_version_config(root_path: Path) -> VersionConfig | None:
     """Load version configuration from site config."""
-    loader = ConfigLoader(root_path)
-    config = loader.load()
+    loader = UnifiedConfigLoader()
+    config = loader.load(root_path)
 
     if not config:
         return None

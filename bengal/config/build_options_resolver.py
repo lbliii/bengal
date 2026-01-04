@@ -77,7 +77,7 @@ class CLIFlags:
     profile_templates: bool | None = None
 
 
-def _get_config_value(config: dict[str, Any], key: str) -> Any:
+def _get_config_value(config: dict[str, Any] | Any, key: str) -> Any:
     """
     Get config value with defensive path handling.
 
@@ -85,12 +85,15 @@ def _get_config_value(config: dict[str, Any], key: str) -> Any:
     Handles string boolean coercion for boolean options.
 
     Args:
-        config: Configuration dictionary (may be flattened or nested)
+        config: Configuration dictionary or Config object (may be flattened or nested)
         key: Config key to retrieve
 
     Returns:
         Config value, or None if not found or invalid
     """
+    # Use .raw for dict operations (Config always has .raw)
+    config = config.raw if hasattr(config, "raw") else config
+
     # Check flattened path first (most common after config loading)
     if key in config:
         value = config[key]
@@ -120,7 +123,7 @@ def _get_config_value(config: dict[str, Any], key: str) -> Any:
 
 
 def resolve_build_options(
-    config: dict[str, Any],
+    config: dict[str, Any] | Any,  # Accept Config objects too
     cli_flags: CLIFlags | None = None,
 ) -> BuildOptions:
     """

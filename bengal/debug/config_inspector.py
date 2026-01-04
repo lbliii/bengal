@@ -509,30 +509,36 @@ class ConfigInspector(DebugTool):
         Returns:
             Tuple of (config_dict, origins_dict)
         """
-        from bengal.config.directory_loader import ConfigDirectoryLoader
+        from bengal.config.unified_loader import UnifiedConfigLoader
 
         if not self._config_dir or not self._config_dir.exists():
             return {}, {}
 
+        # site_root is parent of config directory
+        site_root = self._config_dir.parent
+
         # Parse source type
         if source.startswith("profile:"):
             profile_name = source[8:]
-            loader = ConfigDirectoryLoader(track_origins=track_origins)
-            config = loader.load(self._config_dir, profile=profile_name)
+            loader = UnifiedConfigLoader(track_origins=track_origins)
+            config_obj = loader.load(site_root, profile=profile_name)
+            config = config_obj.raw  # Serialization needs actual dict
             origins = loader.origin_tracker.origins if loader.origin_tracker else {}
             return config, origins
 
         elif source.startswith("env:"):
             env_name = source[4:]
-            loader = ConfigDirectoryLoader(track_origins=track_origins)
-            config = loader.load(self._config_dir, environment=env_name)
+            loader = UnifiedConfigLoader(track_origins=track_origins)
+            config_obj = loader.load(site_root, environment=env_name)
+            config = config_obj.raw  # Serialization needs actual dict
             origins = loader.origin_tracker.origins if loader.origin_tracker else {}
             return config, origins
 
         else:
             # Treat as environment name
-            loader = ConfigDirectoryLoader(track_origins=track_origins)
-            config = loader.load(self._config_dir, environment=source)
+            loader = UnifiedConfigLoader(track_origins=track_origins)
+            config_obj = loader.load(site_root, environment=source)
+            config = config_obj.raw  # Serialization needs actual dict
             origins = loader.origin_tracker.origins if loader.origin_tracker else {}
             return config, origins
 
@@ -623,13 +629,15 @@ class ConfigInspector(DebugTool):
         if not self._config_dir or not self._config_dir.exists():
             return None
 
-        from bengal.config.directory_loader import ConfigDirectoryLoader
         from bengal.config.environment import detect_environment
+        from bengal.config.unified_loader import UnifiedConfigLoader
 
         # Load config with origin tracking
-        loader = ConfigDirectoryLoader(track_origins=True)
+        site_root = self._config_dir.parent
+        loader = UnifiedConfigLoader(track_origins=True)
         current_env = detect_environment()
-        config = loader.load(self._config_dir, environment=current_env)
+        config_obj = loader.load(site_root, environment=current_env)
+        config = config_obj.raw if hasattr(config_obj, "raw") else config_obj
 
         # Get value
         value = self._get_nested_value(config, key_path)
@@ -745,7 +753,13 @@ class ConfigInspector(DebugTool):
             return findings
 
         # Check for common issues
-        baseurl = config.get("baseurl", "")
+        # Access from site section (config is already raw dict from _load_config_source)
+        site_section = config.get("site", {})
+        baseurl = (
+            site_section.get("baseurl", "")
+            if isinstance(site_section, dict)
+            else config.get("baseurl", "")
+        )
         if baseurl and not baseurl.startswith(("http://", "https://")):
             findings.append(
                 DebugFinding(

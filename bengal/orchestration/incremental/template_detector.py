@@ -194,10 +194,22 @@ class TemplateChangeDetector:
         Note: cache.update_file() is called sequentially after parallel check
         to avoid potential race conditions in cache updates.
         """
+        # Access max_workers from build section (supports both Config and dict)
+        config = self.site.config
+        if hasattr(config, "build"):
+            max_workers_override = config.build.max_workers
+        else:
+            build_section = config.get("build", {})
+            max_workers_override = (
+                build_section.get("max_workers")
+                if isinstance(build_section, dict)
+                else config.get("max_workers")
+            )
+
         max_workers = get_optimal_workers(
             len(template_files),
             workload_type=WorkloadType.IO_BOUND,
-            config_override=self.site.config.get("max_workers"),
+            config_override=max_workers_override,
         )
         results_lock = Lock()
         unchanged_templates: list[Path] = []

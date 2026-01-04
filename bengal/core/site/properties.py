@@ -79,7 +79,10 @@ class SitePropertiesMixin:
         Examples:
             site.title  # Returns "My Blog" or None
         """
-        return self.config.get("title")
+        # Support both Config and dict access
+        if hasattr(self.config, "site"):
+            return self.config.site.title
+        return self.config.get("site", {}).get("title") or self.config.get("title")
 
     @property
     def baseurl(self) -> str | None:
@@ -95,7 +98,10 @@ class SitePropertiesMixin:
         Examples:
             site.baseurl  # Returns "/blog" or "https://example.com" or None
         """
-        return self.config.get("baseurl")
+        # Support both Config and dict access
+        if hasattr(self.config, "site"):
+            return self.config.site.baseurl
+        return self.config.get("site", {}).get("baseurl") or self.config.get("baseurl")
 
     @property
     def author(self) -> str | None:
@@ -108,7 +114,55 @@ class SitePropertiesMixin:
         Examples:
             site.author  # Returns "Jane Doe" or None
         """
-        return self.config.get("author")
+        # Support both Config and dict access
+        if hasattr(self.config, "site"):
+            return self.config.site.author
+        return self.config.get("site", {}).get("author") or self.config.get("author")
+
+    @property
+    def favicon(self) -> str | None:
+        """
+        Get favicon path from site config.
+
+        Returns:
+            Favicon path string from config, or None if not configured
+        """
+        # Support both Config and dict access
+        if hasattr(self.config, "site"):
+            return self.config.site.get("favicon")
+        return self.config.get("site", {}).get("favicon")
+
+    @property
+    def logo_image(self) -> str | None:
+        """
+        Get logo image path from site config.
+
+        Returns:
+            Logo image path string from config, or None if not configured
+        """
+        # Support both Config and dict access
+        if hasattr(self.config, "site"):
+            return self.config.site.get("logo_image") or self.config.site.get("logo")
+        site_section = self.config.get("site", {})
+        if isinstance(site_section, dict):
+            return site_section.get("logo_image") or site_section.get("logo")
+        return self.config.get("logo_image") or self.config.get("logo")
+
+    @property
+    def logo_text(self) -> str | None:
+        """
+        Get logo text from site config.
+
+        Returns:
+            Logo text string from config, or None if not configured
+        """
+        # Support both Config and dict access
+        if hasattr(self.config, "site"):
+            return self.config.site.get("logo_text") or self.config.site.title
+        site_section = self.config.get("site", {})
+        if isinstance(site_section, dict):
+            return site_section.get("logo_text") or site_section.get("title")
+        return self.config.get("logo_text") or self.config.get("title")
 
     @property
     def params(self) -> dict[str, Any]:
@@ -282,6 +336,10 @@ class SitePropertiesMixin:
         Example:
             parallel = site.build_config.get("parallel", True)
         """
+        # Support both Config and dict access
+        if hasattr(self.config, "build"):
+            # ConfigSection - access raw dict
+            return dict(self.config.build._data) if hasattr(self.config.build, "_data") else {}
         value = self.config.get("build")
         return dict(value) if isinstance(value, dict) else {}
 

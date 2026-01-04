@@ -100,8 +100,8 @@ Args:
     site_title: Pre-cached site title
 #}
 {% def render_logo(site, site_title) %}
-{% set _logo_image = config.logo_image or config.site.logo_image %}
-{% set _logo_text = config.logo_text or config.site.logo_text %}
+{% set _logo_image = site.logo_image or site.logo %}
+{% set _logo_text = site.logo_text or site.title %}
 {% if _logo_image %}
 <img src="{{ _logo_image | absolute_url }}" alt="{{ site_title }}" class="brand-image" />
 {% elif _logo_text %}

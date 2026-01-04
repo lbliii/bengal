@@ -57,9 +57,18 @@ class ListClassifierMixin:
             if len(content) == 1:
                 return self._yield_list_marker_and_content(content[0], "", line_start, indent)
             # Marker followed by space/tab, then optional content
-            if content[1] in " \t":
+            if content[1] == " ":
                 return self._yield_list_marker_and_content(
                     content[0], content[2:], line_start, indent
+                )
+            if content[1] == "\t":
+                # Tab after marker. Calculate expansion (marker at column indent + 1)
+                # Tab at column indent + 2.
+                col = indent + 2
+                expansion = 4 - ((col - 1) % 4)
+                # One space consumed by marker
+                return self._yield_list_marker_and_content(
+                    content[0], " " * (expansion - 1) + content[2:], line_start, indent
                 )
             return None
 
@@ -81,8 +90,19 @@ class ListClassifierMixin:
                 if pos + 1 == len(content):
                     return self._yield_list_marker_and_content(marker, "", line_start, indent)
                 # Marker followed by space/tab, then optional content
-                if content[pos + 1] in " \t":
+                if content[pos + 1] == " ":
                     remaining = content[pos + 2 :]  # Skip marker and space
+                    return self._yield_list_marker_and_content(
+                        marker, remaining, line_start, indent
+                    )
+                if content[pos + 1] == "\t":
+                    # Tab after marker. Calculate expansion.
+                    # Marker length is pos + 1. It starts at col indent + 1.
+                    # Tab starts at col indent + 1 + pos + 1 = indent + pos + 2.
+                    col = indent + pos + 2
+                    expansion = 4 - ((col - 1) % 4)
+                    # One space consumed by marker
+                    remaining = " " * (expansion - 1) + content[pos + 2 :]
                     return self._yield_list_marker_and_content(
                         marker, remaining, line_start, indent
                     )

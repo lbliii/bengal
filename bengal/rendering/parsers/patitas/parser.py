@@ -138,16 +138,41 @@ class Parser(
 
         # First pass: collect link reference definitions
         # These are needed before inline parsing to resolve [text][ref] patterns
+        # Note: CommonMark 6.1 says link reference definitions cannot interrupt paragraphs.
+        in_paragraph = False
         for token in self._tokens:
             if token.type == TokenType.LINK_REFERENCE_DEF:
-                # Value format: label|url|title
-                parts = token.value.split("|", 2)
-                if len(parts) >= 2:
-                    label = parts[0].lower()  # Labels are case-insensitive
-                    # Process backslash escapes in URL and title (CommonMark 6.1)
-                    url = _process_escapes(parts[1])
-                    title = _process_escapes(parts[2]) if len(parts) > 2 else ""
-                    self._link_refs[label] = (url, title)
+                if not in_paragraph:
+                    # Value format: label|url|title
+                    parts = token.value.split("|", 2)
+                    if len(parts) >= 2:
+                        label = parts[0].lower()  # Labels are case-insensitive
+                        # CommonMark 6.1: "If there are several link reference definitions
+                        # with the same case-insensitive label, the first one is used."
+                        if label not in self._link_refs:
+                            # Process backslash escapes in URL and title (CommonMark 6.1)
+                            url = _process_escapes(parts[1])
+                            title = _process_escapes(parts[2]) if len(parts) > 2 else ""
+                            self._link_refs[label] = (url, title)
+                # Link ref defs themselves terminate any preceding paragraph
+                in_paragraph = False
+            elif token.type in (TokenType.PARAGRAPH_LINE, TokenType.INDENTED_CODE):
+                # Both PARAGRAPH_LINE and INDENTED_CODE can be part of a paragraph
+                in_paragraph = True
+            elif token.type == TokenType.BLANK_LINE:
+                in_paragraph = False
+            elif token.type in (
+                TokenType.ATX_HEADING,
+                TokenType.THEMATIC_BREAK,
+                TokenType.FENCED_CODE_START,
+                TokenType.BLOCK_QUOTE_MARKER,
+                TokenType.LIST_ITEM_MARKER,
+                TokenType.HTML_BLOCK,
+                TokenType.DIRECTIVE_OPEN,
+                TokenType.FOOTNOTE_DEF,
+            ):
+                # Most block-level elements terminate a paragraph
+                in_paragraph = False
 
         # Parse blocks
         blocks: list[Block] = []

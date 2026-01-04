@@ -60,15 +60,22 @@ class TestGetMaxWorkers:
 
 
 class TestGetDefault:
-    """Tests for get_default function."""
+    """Tests for get_default function.
 
-    def test_top_level_key(self):
-        """Get top-level default value."""
-        assert get_default("title") == "Bengal Site"
-        assert get_default("language") == "en"
+    Note: Config is now fully nested (site.title, site.language, etc.)
+    """
+
+    def test_section_access(self):
+        """Get entire section as dict."""
+        site = get_default("site")
+        assert isinstance(site, dict)
+        assert site["title"] == "Bengal Site"
+        assert site["language"] == "en"
 
     def test_nested_key_with_separate_arg(self):
         """Get nested value with separate nested_key arg."""
+        assert get_default("site", "title") == "Bengal Site"
+        assert get_default("site", "language") == "en"
         assert get_default("content", "excerpt_length") == 200
         assert get_default("theme", "name") == "default"
 
@@ -84,10 +91,6 @@ class TestGetDefault:
     def test_missing_nested_key_returns_none(self):
         """Missing nested key returns None."""
         assert get_default("content", "nonexistent") is None
-
-    def test_nested_key_on_non_dict_returns_none(self):
-        """Nested key on non-dict value returns None."""
-        assert get_default("title", "something") is None
 
     def test_deeply_nested_missing_returns_none(self):
         """Deeply nested missing path returns None."""
@@ -252,11 +255,16 @@ class TestBoolOrDictKeys:
 class TestDefaults:
     """Tests for DEFAULTS dictionary structure."""
 
-    def test_has_essential_keys(self):
-        """DEFAULTS has essential configuration keys."""
-        essential_keys = ["title", "baseurl", "output_dir", "content_dir", "theme"]
-        for key in essential_keys:
-            assert key in DEFAULTS
+    def test_has_essential_sections(self):
+        """DEFAULTS has essential configuration sections."""
+        essential_sections = ["site", "build", "theme", "content", "assets"]
+        for section in essential_sections:
+            assert section in DEFAULTS, f"Missing section: {section}"
+        # Check essential nested keys
+        assert "title" in DEFAULTS["site"]
+        assert "baseurl" in DEFAULTS["site"]
+        assert "output_dir" in DEFAULTS["build"]
+        assert "content_dir" in DEFAULTS["build"]
 
     def test_theme_has_required_fields(self):
         """Theme config has required fields."""

@@ -63,6 +63,7 @@ from bengal.icons import resolver as icon_resolver
 from bengal.orchestration.stats import BuildStats
 
 if TYPE_CHECKING:
+    from bengal.config.accessor import Config
     from bengal.orchestration.build.options import BuildOptions
     from bengal.orchestration.build_state import BuildState
 
@@ -115,15 +116,15 @@ class Site(
         site.pages = [test_page1, test_page2]
 
         # Programmatic config:
-        from bengal.config.loader import ConfigLoader
-        loader = ConfigLoader(path)
-        config = loader.load()
-        config['custom_setting'] = 'value'
+        from bengal.config import UnifiedConfigLoader
+        loader = UnifiedConfigLoader()
+        config = loader.load(path)
+        # Note: config is now a Config object, use config.raw for dict access
         site = Site(root_path=path, config=config)
     """
 
     root_path: Path
-    config: dict[str, Any] = field(default_factory=dict)
+    config: Config | dict[str, Any] = field(default_factory=dict)
     pages: list[Page] = field(default_factory=list)
     sections: list[Section] = field(default_factory=list)
     assets: list[Asset] = field(default_factory=list)
@@ -235,24 +236,19 @@ class Site(
         if not self.root_path.is_absolute():
             self.root_path = self.root_path.resolve()
 
-        # Access theme config (supports both Config and dict for backward compatibility)
-        if hasattr(self.config, "theme"):
-            theme_section = self.config.theme
-            self.theme = (
-                theme_section.get("name", "default")
-                if hasattr(theme_section, "get")
-                else getattr(theme_section, "name", "default")
-            )
+        # Access theme config (Config supports dict-like access via get())
+        theme_section = self.config.get("theme", {})
+        if isinstance(theme_section, dict):
+            self.theme = theme_section.get("name", "default")
+        elif hasattr(theme_section, "name"):
+            # ConfigSection access
+            self.theme = theme_section.name
         else:
-            theme_section = self.config.get("theme", {})
-            if isinstance(theme_section, dict):
-                self.theme = theme_section.get("name", "default")
-            else:
-                # Fallback for config where theme was a string
-                self.theme = theme_section if isinstance(theme_section, str) else "default"
+            # Fallback for config where theme was a string
+            self.theme = theme_section if isinstance(theme_section, str) else "default"
 
         self._theme_obj = Theme.from_config(
-            self.config.raw if hasattr(self.config, "raw") else self.config,
+            self.config.raw,  # Theme.from_config expects a dict
             root_path=self.root_path,
             diagnostics_site=self,
         )
@@ -261,11 +257,16 @@ class Site(
         # (template functions, inline icon plugin, directives)
         icon_resolver.initialize(self)
 
-        # Access output_dir from build section
+        # Access output_dir from build section (supports both Config and dict)
         if hasattr(self.config, "build"):
             output_dir_str = self.config.build.output_dir
         else:
-            output_dir_str = self.config.get("output_dir", "public")
+            build_section = self.config.get("build", {})
+            if isinstance(build_section, dict):
+                output_dir_str = build_section.get("output_dir", "public")
+            else:
+                # Fallback to flat access for backward compatibility
+                output_dir_str = self.config.get("output_dir", "public")
 
         if output_dir_str:
             self.output_dir = Path(output_dir_str)
@@ -277,7 +278,8 @@ class Site(
         self._compute_config_hash()
 
         # Initialize versioning configuration
-        self.version_config = VersionConfig.from_config(self.config)
+        # VersionConfig.from_config expects a dict, use .raw for serialization
+        self.version_config = VersionConfig.from_config(self.config.raw)
         if self.version_config.enabled:
             emit_diagnostic(
                 self,

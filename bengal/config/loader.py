@@ -1,6 +1,14 @@
 """
 Configuration loader supporting TOML and YAML formats.
 
+.. deprecated:: 0.2.0
+    This module is deprecated. Use :mod:`bengal.config.unified_loader` instead.
+    Import from ``bengal.config`` which provides ``UnifiedConfigLoader``::
+
+        from bengal.config import UnifiedConfigLoader
+        loader = UnifiedConfigLoader()
+        config = loader.load(site_root)
+
 This module provides the primary configuration loader for Bengal sites using
 single-file configuration (``bengal.toml`` or ``bengal.yaml``). It handles
 file discovery, format detection, validation, and environment overrides.
@@ -31,7 +39,7 @@ Example:
     'My Site'
 
 See Also:
-    - :mod:`bengal.config.directory_loader`: Multi-file directory configuration.
+    - :mod:`bengal.config.unified_loader`: Unified loader for all config modes.
     - :mod:`bengal.config.defaults`: Default values for all configuration options.
     - :mod:`bengal.config.validators`: Configuration validation logic.
 """

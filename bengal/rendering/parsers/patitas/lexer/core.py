@@ -215,6 +215,20 @@ class Lexer(
                 break
         return indent, pos
 
+    def _expand_tabs(self, text: str, start_col: int = 1) -> str:
+        """Expand tabs in text to spaces based on start_col (1-indexed)."""
+        result = []
+        col = start_col
+        for char in text:
+            if char == "\t":
+                expansion = 4 - ((col - 1) % 4)
+                result.append(" " * expansion)
+                col += expansion
+            else:
+                result.append(char)
+                col += 1
+        return "".join(result)
+
     def _commit_to(self, line_end: int) -> None:
         """Commit position to line_end, consuming newline if present.
 

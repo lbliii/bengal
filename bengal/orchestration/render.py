@@ -234,6 +234,16 @@ class RenderOrchestrator:
                 python_version=f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
             )
 
+    def _get_max_workers(self) -> int | None:
+        """Get max_workers from config, supporting both Config and dict."""
+        config = self.site.config
+        if hasattr(config, "build"):
+            return config.build.max_workers
+        build_section = config.get("build", {})
+        if isinstance(build_section, dict):
+            return build_section.get("max_workers")
+        return config.get("max_workers")
+
     def _warm_block_cache(self) -> None:
         """Pre-warm block cache with site-wide blocks (Kida only).
 
@@ -658,7 +668,7 @@ class RenderOrchestrator:
         max_workers = get_optimal_workers(
             len(pages),
             workload_type=WorkloadType.MIXED,
-            config_override=self.site.config.get("max_workers"),
+            config_override=self._get_max_workers(),
         )
 
         # Sort heavy pages first to avoid straggler workers (LPT scheduling)
@@ -817,7 +827,7 @@ class RenderOrchestrator:
         max_workers = get_optimal_workers(
             len(pages),
             workload_type=WorkloadType.MIXED,
-            config_override=self.site.config.get("max_workers"),
+            config_override=self._get_max_workers(),
         )
 
         # Sort heavy pages first to avoid straggler workers (LPT scheduling)
@@ -959,7 +969,7 @@ class RenderOrchestrator:
         max_workers = get_optimal_workers(
             len(pages),
             workload_type=WorkloadType.MIXED,
-            config_override=self.site.config.get("max_workers"),
+            config_override=self._get_max_workers(),
         )
 
         # Sort heavy pages first to avoid straggler workers (LPT scheduling)

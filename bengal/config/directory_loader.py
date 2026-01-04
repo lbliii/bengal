@@ -1,6 +1,14 @@
 """
 Directory-based configuration loader.
 
+.. deprecated:: 0.2.0
+    This module is deprecated. Use :mod:`bengal.config.unified_loader` instead.
+    Import from ``bengal.config`` which provides ``UnifiedConfigLoader``::
+
+        from bengal.config import UnifiedConfigLoader
+        loader = UnifiedConfigLoader()
+        config = loader.load(site_root)
+
 This module provides a loader for configuration files organized in a directory
 structure, supporting multi-file configurations with environment-specific and
 profile-specific overrides.
@@ -43,7 +51,7 @@ Example:
     >>> config = loader.load(Path("config"), environment="production")
 
 See Also:
-    - :mod:`bengal.config.loader`: Single-file configuration loader.
+    - :mod:`bengal.config.unified_loader`: Unified loader for all config modes.
     - :mod:`bengal.config.environment`: Environment detection logic.
 """
 

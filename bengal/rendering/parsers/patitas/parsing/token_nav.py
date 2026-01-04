@@ -45,3 +45,37 @@ class TokenNavigationMixin:
         if pos < len(self._tokens):
             return self._tokens[pos]
         return None
+
+    def _get_line_at(self, offset: int) -> str:
+        """Get the full line content containing the given source offset."""
+        # Find start of line (previous newline)
+        start = self._source.rfind("\n", 0, offset) + 1
+        if start == -1:
+            start = 0
+        # Find end of line (next newline)
+        end = self._source.find("\n", offset)
+        if end == -1:
+            end = len(self._source)
+        return self._source[start:end]
+
+    def _strip_columns(self, text: str, count: int) -> str:
+        """Strip up to 'count' columns of whitespace/tabs from start of text."""
+        col = 0
+        pos = 0
+        while pos < len(text) and col < count:
+            char = text[pos]
+            if char == " ":
+                col += 1
+                pos += 1
+            elif char == "\t":
+                expansion = 4 - (col % 4)
+                if col + expansion <= count:
+                    col += expansion
+                    pos += 1
+                else:
+                    # Partial tab consumption
+                    needed = count - col
+                    return " " * (expansion - needed) + text[pos + 1 :]
+            else:
+                break
+        return text[pos:]

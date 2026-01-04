@@ -295,6 +295,11 @@ class HtmlRenderer:
             )
         else:
             sb.append("<li>")
+            # Empty list items should render as <li></li> without newline
+            if not item.children:
+                sb.append("</li>\n")
+                return
+
             # For tight lists: add newline if item has non-paragraph block elements
             # For loose lists: always add newline
             if not tight:

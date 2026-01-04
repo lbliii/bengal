@@ -53,8 +53,13 @@ class TestExpandFeatures:
         assert result["generate_sitemap"] is True
         assert result["search"]["enabled"] is True
 
-    def test_disabled_features_not_expanded(self):
-        """Test disabled features are not expanded."""
+    def test_disabled_features_explicitly_set_false(self):
+        """Test disabled features are explicitly set to False.
+
+        When a feature is disabled (e.g., rss: false), the corresponding
+        boolean config keys are explicitly set to False to override defaults.
+        List values (like output_formats) are not affected by disabled features.
+        """
         config = {
             "features": {
                 "rss": False,
@@ -64,7 +69,9 @@ class TestExpandFeatures:
 
         result = expand_features(config)
 
-        assert "generate_rss" not in result
+        # Disabled features explicitly set boolean keys to False
+        assert result["generate_rss"] is False
+        # Enabled features work as before
         assert result["generate_sitemap"] is True
 
     def test_explicit_config_overrides_feature(self):

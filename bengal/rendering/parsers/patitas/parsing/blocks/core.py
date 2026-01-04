@@ -149,8 +149,13 @@ class BlockParsingCoreMixin:
             style="atx",
         )
 
-    def _parse_fenced_code(self) -> FencedCode:
-        """Parse fenced code block with zero-copy coordinates."""
+    def _parse_fenced_code(self, override_fence_indent: int | None = None) -> FencedCode:
+        """Parse fenced code block with zero-copy coordinates.
+
+        Args:
+            override_fence_indent: If provided, use this instead of the token's indent.
+                                  Used for fenced code blocks in list items.
+        """
         start_token = self._current
         assert start_token is not None and start_token.type == TokenType.FENCED_CODE_START
         self._advance()
@@ -165,6 +170,10 @@ class BlockParsingCoreMixin:
             prefix, rest = value.split(":", 1)
             fence_indent = int(prefix[1:])  # Extract number after 'I'
             value = rest
+
+        # Override if provided (for list item context)
+        if override_fence_indent is not None:
+            fence_indent = override_fence_indent
 
         marker = value[0]  # ` or ~
         info: str | None = None
@@ -395,6 +404,14 @@ class BlockParsingCoreMixin:
                         continue
                 # Valid list interruption - stop paragraph
                 break
+            elif token.type == TokenType.LINK_REFERENCE_DEF:
+                # CommonMark: Link reference definitions cannot interrupt paragraphs.
+                # Treat as paragraph continuation text.
+                line_start = token.location.offset
+                line_end = token.location.end_offset
+                original_line = self._source[line_start:line_end].rstrip("\n")
+                lines.append(original_line.lstrip())
+                self._advance()
             else:
                 break
 

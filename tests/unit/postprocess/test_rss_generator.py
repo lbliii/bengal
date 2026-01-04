@@ -433,7 +433,11 @@ class TestRSSGeneratorLinkGeneration:
         generator = RSSGenerator(site)
 
         # Mimicking link generation logic
-        baseurl = site.config.get("baseurl", "")
+        # Access from site section (supports both Config and dict)
+        if hasattr(site.config, "site"):
+            baseurl = site.config.site.baseurl or ""
+        else:
+            baseurl = site.config.get("site", {}).get("baseurl", "")
         if page.output_path:
             try:
                 rel_path = page.output_path.relative_to(site.output_dir)

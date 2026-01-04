@@ -3,13 +3,15 @@
 import pytest
 import yaml
 
-from bengal.config.directory_loader import ConfigDirectoryLoader, ConfigLoadError
+from bengal.config.unified_loader import UnifiedConfigLoader, ConfigLoadError
 from bengal.errors import BengalConfigError, ErrorCode
 
 
 @pytest.fixture
 def config_dir(tmp_path):
     """Create a test config directory structure."""
+    # UnifiedConfigLoader expects site_root, so config_dir is tmp_path / "config"
+    # and site_root is tmp_path
     config_dir = tmp_path / "config"
 
     # Create _default/ with multiple files
@@ -56,17 +58,19 @@ class TestConfigDirectoryLoader:
 
     def test_load_defaults_only(self, config_dir):
         """Test loading only default config."""
-        loader = ConfigDirectoryLoader()
+        loader = UnifiedConfigLoader()
 
-        config = loader.load(config_dir, environment="local", profile=None)
+        site_root = config_dir.parent
+        config_obj = loader.load(site_root, environment="local", profile=None)
+        config = config_obj.raw if hasattr(config_obj, "raw") else config_obj
 
-        # Check defaults loaded
+        # Check defaults loaded (nested structure)
         assert config["site"]["title"] == "Test Site"
         assert config["build"]["parallel"] is True
 
     def test_load_with_environment(self, config_dir):
         """Test loading with environment override."""
-        loader = ConfigDirectoryLoader()
+        loader = UnifiedConfigLoader()
 
         config = loader.load(config_dir, environment="production")
 
@@ -78,9 +82,11 @@ class TestConfigDirectoryLoader:
 
     def test_load_with_profile(self, config_dir):
         """Test loading with profile."""
-        loader = ConfigDirectoryLoader()
+        loader = UnifiedConfigLoader()
 
-        config = loader.load(config_dir, environment="local", profile="dev")
+        site_root = config_dir.parent
+        config_obj = loader.load(site_root, environment="local", profile="dev")
+        config = config_obj.raw if hasattr(config_obj, "raw") else config_obj
 
         # Check profile settings applied
         assert config["observability"]["track_memory"] is True
@@ -88,7 +94,7 @@ class TestConfigDirectoryLoader:
 
     def test_load_precedence(self, config_dir):
         """Test merge precedence: defaults < environment < profile."""
-        loader = ConfigDirectoryLoader()
+        loader = UnifiedConfigLoader()
 
         # Add conflicting key in all three layers
         (config_dir / "_default" / "test.yaml").write_text(yaml.dump({"value": "default"}))
@@ -97,7 +103,9 @@ class TestConfigDirectoryLoader:
         )
         (config_dir / "profiles" / "dev.yaml").write_text(yaml.dump({"value": "profile"}))
 
-        config = loader.load(config_dir, environment="production", profile="dev")
+        site_root = config_dir.parent
+        config_obj = loader.load(site_root, environment="production", profile="dev")
+        config = config_obj.raw if hasattr(config_obj, "raw") else config_obj
 
         # Profile should win (highest precedence)
         assert config["value"] == "profile"
@@ -107,8 +115,10 @@ class TestConfigDirectoryLoader:
         monkeypatch.setenv("NETLIFY", "true")
         monkeypatch.setenv("CONTEXT", "production")
 
-        loader = ConfigDirectoryLoader()
-        config = loader.load(config_dir, environment=None)  # Auto-detect
+        loader = UnifiedConfigLoader()
+        site_root = config_dir.parent
+        config_obj = loader.load(site_root, environment=None)  # Auto-detect
+        config = config_obj.raw if hasattr(config_obj, "raw") else config_obj
 
         # Should use production environment
         assert config["site"]["baseurl"] == "https://example.com"
@@ -120,8 +130,10 @@ class TestConfigDirectoryLoader:
             yaml.dump({"features": {"rss": True, "search": True}})
         )
 
-        loader = ConfigDirectoryLoader()
-        config = loader.load(config_dir, environment="local")
+        loader = UnifiedConfigLoader()
+        site_root = config_dir.parent
+        config_obj = loader.load(site_root, environment="local")
+        config = config_obj.raw if hasattr(config_obj, "raw") else config_obj
 
         # Features should be expanded
         assert config["generate_rss"] is True
@@ -134,7 +146,8 @@ class TestConfigDirectoryLoader:
         loader = ConfigDirectoryLoader(track_origins=True)
 
         # Load config (we only care about origin tracking, not the config itself)
-        loader.load(config_dir, environment="production")
+        site_root = config_dir.parent
+        loader.load(site_root, environment="production")
 
         tracker = loader.get_origin_tracker()
         assert tracker is not None
@@ -145,7 +158,7 @@ class TestConfigDirectoryLoader:
 
     def test_load_nonexistent_directory(self, tmp_path):
         """Test loading from nonexistent directory raises error."""
-        loader = ConfigDirectoryLoader()
+        loader = UnifiedConfigLoader()
 
         with pytest.raises(ConfigLoadError, match="not found"):
             loader.load(tmp_path / "nonexistent")
@@ -161,7 +174,7 @@ class TestConfigDirectoryLoader:
         config_file = tmp_path / "config.yaml"
         config_file.write_text("test: value")
 
-        loader = ConfigDirectoryLoader()
+        loader = UnifiedConfigLoader()
 
         with pytest.raises(ConfigLoadError, match="Not a directory"):
             loader.load(config_file)
@@ -175,7 +188,7 @@ class TestConfigDirectoryLoader:
         # Write invalid YAML
         (defaults / "bad.yaml").write_text("invalid: yaml: syntax: error:")
 
-        loader = ConfigDirectoryLoader()
+        loader = UnifiedConfigLoader()
 
         with pytest.raises(ConfigLoadError, match="Invalid YAML"):
             loader.load(config_dir, environment="local")
@@ -192,10 +205,12 @@ class TestConfigDirectoryLoader:
         config_dir = tmp_path / "config"
         config_dir.mkdir()
 
-        loader = ConfigDirectoryLoader()
+        loader = UnifiedConfigLoader()
 
         # Should not raise, and should have Bengal DEFAULTS applied
-        config = loader.load(config_dir, environment="local")
+        site_root = config_dir.parent
+        config_obj = loader.load(site_root, environment="local")
+        config = config_obj.raw if hasattr(config_obj, "raw") else config_obj
 
         # Should inherit key defaults that enable search by default
         # Note: features.rss expands to add 'rss' to site_wide
@@ -204,9 +219,11 @@ class TestConfigDirectoryLoader:
 
     def test_load_multiple_yaml_files_merged(self, config_dir):
         """Test multiple .yaml files in _default/ are merged."""
-        loader = ConfigDirectoryLoader()
+        loader = UnifiedConfigLoader()
 
-        config = loader.load(config_dir, environment="local")
+        site_root = config_dir.parent
+        config_obj = loader.load(site_root, environment="local")
+        config = config_obj.raw if hasattr(config_obj, "raw") else config_obj
 
         # Both site.yaml and build.yaml should be merged
         assert "site" in config
@@ -220,33 +237,38 @@ class TestConfigDirectoryLoader:
 
         (defaults / "config.yml").write_text(yaml.dump({"title": "Test"}))
 
-        loader = ConfigDirectoryLoader()
-        config = loader.load(config_dir, environment="local")
+        loader = UnifiedConfigLoader()
+        site_root = config_dir.parent
+        config_obj = loader.load(site_root, environment="local")
+        config = config_obj.raw if hasattr(config_obj, "raw") else config_obj
 
-        assert config["title"] == "Test"
+        # Config is now nested - access via site.title
+        assert config["site"]["title"] == "Test"
 
     def test_load_environment_aliases(self, tmp_path):
         """Test environment file aliases (prod.yaml for production)."""
         config_dir = tmp_path / "config"
         defaults = config_dir / "_default"
         defaults.mkdir(parents=True)
-        (defaults / "site.yaml").write_text(yaml.dump({"title": "Test"}))
+        (defaults / "site.yaml").write_text(yaml.dump({"site": {"title": "Test"}}))
 
         envs = config_dir / "environments"
         envs.mkdir()
 
         # Use alias "prod" instead of "production"
-        (envs / "prod.yaml").write_text(yaml.dump({"baseurl": "https://example.com"}))
+        (envs / "prod.yaml").write_text(yaml.dump({"site": {"baseurl": "https://example.com"}}))
 
-        loader = ConfigDirectoryLoader()
-        config = loader.load(config_dir, environment="production")
+        loader = UnifiedConfigLoader()
+        site_root = config_dir.parent
+        config_obj = loader.load(site_root, environment="production")
+        config = config_obj.raw if hasattr(config_obj, "raw") else config_obj
 
         # Should find prod.yaml when looking for production
-        assert config["baseurl"] == "https://example.com"
+        assert config["site"]["baseurl"] == "https://example.com"
 
     def test_load_profile_not_found(self, config_dir):
         """Test loading with nonexistent profile continues gracefully."""
-        loader = ConfigDirectoryLoader()
+        loader = UnifiedConfigLoader()
 
         # Should not raise, just skip profile
         config = loader.load(config_dir, environment="local", profile="nonexistent")
@@ -257,7 +279,7 @@ class TestConfigDirectoryLoader:
 
     def test_load_environment_not_found(self, config_dir):
         """Test loading with nonexistent environment continues gracefully."""
-        loader = ConfigDirectoryLoader()
+        loader = UnifiedConfigLoader()
 
         # Should not raise, just skip environment
         config = loader.load(config_dir, environment="nonexistent")
@@ -285,7 +307,7 @@ class TestConfigDirectoryLoader:
             )
         )
 
-        loader = ConfigDirectoryLoader()
+        loader = UnifiedConfigLoader()
         config = loader.load(config_dir, environment="production")
 
         # Check deep merge worked
@@ -308,47 +330,47 @@ class TestConfigDirectoryLoader:
             )
         )
 
-        loader = ConfigDirectoryLoader()
-        config = loader.load(config_dir, environment="production")
+        loader = UnifiedConfigLoader()
+        site_root = config_dir.parent
+        config_obj = loader.load(site_root, environment="production")
+        config = config_obj.raw if hasattr(config_obj, "raw") else config_obj
 
         # Check nested structure is preserved
         assert config["assets"]["minify"] is False
         assert config["assets"]["fingerprint"] is False
         assert config["assets"]["optimize"] is True
 
-        # Check flattened keys exist (for backward compatibility)
-        assert config["minify_assets"] is False
-        assert config["fingerprint_assets"] is False
-        assert config["optimize_assets"] is True
+        # No flattening - access via assets.* only
+        assert "minify_assets" not in config  # Should not be flattened
+        assert config["assets"]["minify"] is False
+        assert config["assets"]["fingerprint"] is False
+        assert config["assets"]["optimize"] is True
 
-    def test_load_dev_config_flattened(self, config_dir):
-        """Test that dev config fields are flattened for backward compatibility."""
-        # Add dev config to production environment
-        # Note: For keys that exist in DEFAULTS at top level (like cache_templates),
-        # users should set them directly at top level. watch_backend is dev-specific.
+    def test_load_dev_config_nested(self, config_dir):
+        """Test that dev config fields are accessed via nested structure."""
+        # Add dev config to production environment (nested structure)
         (config_dir / "environments" / "production.yaml").write_text(
             yaml.dump(
                 {
-                    # cache_templates set at top level to override DEFAULTS
-                    "cache_templates": False,
                     "dev": {
+                        "cache_templates": False,
                         "watch_backend": "auto",
                     },
                 }
             )
         )
 
-        loader = ConfigDirectoryLoader()
-        config = loader.load(config_dir, environment="production")
+        loader = UnifiedConfigLoader()
+        site_root = config_dir.parent
+        config_obj = loader.load(site_root, environment="production")
+        config = config_obj.raw if hasattr(config_obj, "raw") else config_obj
 
         # Check nested structure is preserved for dev-specific settings
         assert config["dev"]["watch_backend"] == "auto"
+        assert config["dev"]["cache_templates"] is False
 
-        # Check top-level override works
-        assert config["cache_templates"] is False
-
-        # Check flattened keys exist (for backward compatibility)
-        assert config["watch_backend"] == "auto"
+        # No flattening - access via dev.* only
+        assert "watch_backend" not in config  # Should not be flattened
 
 
 class TestDefaultsInheritance:
@@ -369,8 +391,10 @@ class TestDefaultsInheritance:
         # Create minimal user config (just site title)
         (defaults_dir / "site.yaml").write_text(yaml.dump({"site": {"title": "My Site"}}))
 
-        loader = ConfigDirectoryLoader()
-        config = loader.load(config_dir, environment="local")
+        loader = UnifiedConfigLoader()
+        site_root = config_dir.parent
+        config_obj = loader.load(site_root, environment="local")
+        config = config_obj.raw if hasattr(config_obj, "raw") else config_obj
 
         # User config should be applied
         assert config["site"]["title"] == "My Site"
@@ -380,7 +404,8 @@ class TestDefaultsInheritance:
         assert "index_json" in config["output_formats"]["site_wide"]
         assert config["search"]["enabled"] is True
         assert config["theme"]["name"] == "default"
-        assert config["parallel"] is True
+        # Config is now nested - access via build.parallel
+        assert config["build"]["parallel"] is True
 
     def test_user_config_overrides_defaults(self, tmp_path, monkeypatch):
         """User config should override inherited defaults."""
@@ -403,8 +428,10 @@ class TestDefaultsInheritance:
             )
         )
 
-        loader = ConfigDirectoryLoader()
-        config = loader.load(config_dir, environment="local")
+        loader = UnifiedConfigLoader()
+        site_root = config_dir.parent
+        config_obj = loader.load(site_root, environment="local")
+        config = config_obj.raw if hasattr(config_obj, "raw") else config_obj
 
         # User override should win - empty list since features are disabled
         assert config["output_formats"]["site_wide"] == []
@@ -423,8 +450,10 @@ class TestDefaultsInheritance:
         # Explicitly disable search
         (defaults_dir / "search.yaml").write_text(yaml.dump({"search": {"enabled": False}}))
 
-        loader = ConfigDirectoryLoader()
-        config = loader.load(config_dir, environment="local")
+        loader = UnifiedConfigLoader()
+        site_root = config_dir.parent
+        config_obj = loader.load(site_root, environment="local")
+        config = config_obj.raw if hasattr(config_obj, "raw") else config_obj
 
         # User disabled search
         assert config["search"]["enabled"] is False
@@ -479,8 +508,10 @@ class TestDefaultsInheritance:
         )
         (defaults_dir / "site.yaml").write_text(yaml.dump({"site": {"title": "Rosettes Docs"}}))
 
-        loader = ConfigDirectoryLoader()
-        config = loader.load(config_dir, environment="local")
+        loader = UnifiedConfigLoader()
+        site_root = config_dir.parent
+        config_obj = loader.load(site_root, environment="local")
+        config = config_obj.raw if hasattr(config_obj, "raw") else config_obj
 
         # Search should work because DEFAULTS provides output_formats.site_wide
         # Note: features.rss from DEFAULTS will also add 'rss' to the list
@@ -525,7 +556,7 @@ class TestSearchUIWarning:
             )
         )
 
-        loader = ConfigDirectoryLoader()
+        loader = UnifiedConfigLoader()
         loader.load(config_dir, environment="local")
 
         # Bengal's custom logger prints warnings to stdout
@@ -559,7 +590,7 @@ class TestSearchUIWarning:
             yaml.dump({"output_formats": {"site_wide": ["index_json"]}})
         )
 
-        loader = ConfigDirectoryLoader()
+        loader = UnifiedConfigLoader()
         loader.load(config_dir, environment="local")
 
         # Should NOT have warned
@@ -597,7 +628,7 @@ class TestSearchUIWarning:
             )
         )
 
-        loader = ConfigDirectoryLoader()
+        loader = UnifiedConfigLoader()
         loader.load(config_dir, environment="local")
 
         # Should NOT have warned (no search UI to trigger the warning)
@@ -610,7 +641,7 @@ class TestConfigLoadErrorCodes:
 
     def test_missing_directory_has_error_code(self, tmp_path):
         """Verify ConfigLoadError includes C005 for missing directory."""
-        loader = ConfigDirectoryLoader()
+        loader = UnifiedConfigLoader()
         missing_dir = tmp_path / "nonexistent"
 
         with pytest.raises(ConfigLoadError) as exc_info:
@@ -621,7 +652,7 @@ class TestConfigLoadErrorCodes:
 
     def test_not_a_directory_has_error_code(self, tmp_path):
         """Verify ConfigLoadError includes C003 for path that is not a directory."""
-        loader = ConfigDirectoryLoader()
+        loader = UnifiedConfigLoader()
         config_file = tmp_path / "config.yaml"
         config_file.write_text("test: value")
 
@@ -633,7 +664,7 @@ class TestConfigLoadErrorCodes:
 
     def test_yaml_parse_error_has_error_code(self, tmp_path):
         """Verify ConfigLoadError includes C001 for YAML parse errors."""
-        loader = ConfigDirectoryLoader()
+        loader = UnifiedConfigLoader()
         config_dir = tmp_path / "config"
         defaults = config_dir / "_default"
         defaults.mkdir(parents=True)
