@@ -81,6 +81,7 @@ class FenceScannerMixin:
                 TokenType.FENCED_CODE_END,
                 fence_char * 3,
                 self._location_from(line_start),
+                line_indent=0,  # Closing fence indent is handled separately
             )
             return
 
@@ -96,4 +97,5 @@ class FenceScannerMixin:
             TokenType.FENCED_CODE_CONTENT,
             content,
             self._location_from(line_start),
+            line_indent=0,  # Content indent is preserved in value
         )

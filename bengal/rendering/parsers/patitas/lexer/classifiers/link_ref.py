@@ -36,7 +36,7 @@ class LinkRefClassifierMixin:
         raise NotImplementedError
 
     def _try_classify_link_reference_def(
-        self, first_line_content: str, line_start: int
+        self, first_line_content: str, line_start: int, indent: int = 0
     ) -> Token | None:
         """Try to classify content as link reference definition.
 
@@ -52,6 +52,7 @@ class LinkRefClassifierMixin:
         Args:
             first_line_content: Content of the first line (indents < 4 stripped)
             line_start: Source position where the first line starts
+            indent: Number of leading spaces (for line_indent)
 
         Returns:
             LINK_REFERENCE_DEF token if valid, None otherwise.
@@ -59,12 +60,6 @@ class LinkRefClassifierMixin:
         """
         if not first_line_content.startswith("["):
             return None
-
-        # Save Lexer state in case we need to backtrack (though we don't really backtrack
-        # because we only commit if we are sure, but we might have multiple lines to peek)
-        saved_pos = self._pos
-        saved_lineno = self._lineno
-        saved_col = self._col
 
         # 1. Parse Label
         # We start at line_start. The '[' is at line_start + (original_line - first_line_content).
@@ -113,7 +108,9 @@ class LinkRefClassifierMixin:
 
         # Value format: label|url|title
         value = f"{label_content}|{url}|{title}"
-        return Token(TokenType.LINK_REFERENCE_DEF, value, self._location_from(line_start))
+        return Token(
+            TokenType.LINK_REFERENCE_DEF, value, self._location_from(line_start), line_indent=indent
+        )
 
     def _parse_label_multiline(self, first_line: str, line_start: int) -> tuple[str, int, bool]:
         """Parse link label, possibly spanning multiple lines."""
@@ -130,7 +127,6 @@ class LinkRefClassifierMixin:
 
         label_parts = []
         curr = start_search
-        bracket_count = 1
 
         while curr < self._source_len:
             char = self._source[curr]
@@ -195,7 +191,6 @@ class LinkRefClassifierMixin:
         if curr >= self._source_len:
             return "", 0, False
 
-        dest_start = curr
         char = self._source[curr]
 
         if char == "<":

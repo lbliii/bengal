@@ -17,7 +17,9 @@ class FootnoteClassifierMixin:
         """Get source location from saved position. Implemented by Lexer."""
         raise NotImplementedError
 
-    def _try_classify_footnote_def(self, content: str, line_start: int) -> Token | None:
+    def _try_classify_footnote_def(
+        self, content: str, line_start: int, indent: int = 0
+    ) -> Token | None:
         """Try to classify content as footnote definition.
 
         Format: [^identifier]: content
@@ -25,6 +27,7 @@ class FootnoteClassifierMixin:
         Args:
             content: Line content with leading whitespace stripped
             line_start: Position in source where line starts
+            indent: Number of leading spaces (for line_indent)
 
         Returns:
             FOOTNOTE_DEF token if valid, None otherwise.
@@ -51,4 +54,6 @@ class FootnoteClassifierMixin:
 
         # Value format: identifier:content
         value = f"{identifier}:{fn_content}"
-        return Token(TokenType.FOOTNOTE_DEF, value, self._location_from(line_start))
+        return Token(
+            TokenType.FOOTNOTE_DEF, value, self._location_from(line_start), line_indent=indent
+        )

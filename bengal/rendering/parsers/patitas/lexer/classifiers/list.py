@@ -136,6 +136,7 @@ class ListClassifierMixin:
             TokenType.LIST_ITEM_MARKER,
             indented_marker,
             self._location_from(line_start),
+            line_indent=indent,
         )
         remaining = remaining.rstrip("\n")
         if not remaining:
@@ -143,7 +144,7 @@ class ListClassifierMixin:
 
         # Check if content is a thematic break (e.g., "- * * *")
         if remaining.lstrip() and remaining.lstrip()[0] in THEMATIC_BREAK_CHARS:
-            thematic_token = self._try_classify_thematic_break(remaining.lstrip(), line_start)
+            thematic_token = self._try_classify_thematic_break(remaining.lstrip(), line_start, 0)
             if thematic_token:
                 yield thematic_token
                 return
@@ -159,4 +160,5 @@ class ListClassifierMixin:
             TokenType.PARAGRAPH_LINE,
             remaining,
             self._location_from(line_start),
+            line_indent=indent,
         )

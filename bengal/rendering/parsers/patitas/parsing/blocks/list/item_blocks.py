@@ -15,7 +15,6 @@ from bengal.rendering.parsers.patitas.nodes import (
     Paragraph,
     ThematicBreak,
 )
-from bengal.rendering.parsers.patitas.parsing.blocks.list.indent import get_line_indent
 from bengal.rendering.parsers.patitas.tokens import TokenType
 
 if TYPE_CHECKING:
@@ -130,7 +129,7 @@ def parse_block_quote_from_indented_code(
             break
 
         if bq_tok.type == TokenType.INDENTED_CODE:
-            bq_original_indent = get_line_indent(parser._source, bq_tok.location.offset)
+            bq_original_indent = bq_tok.line_indent
             bq_content = bq_tok.value.lstrip().rstrip()
             if bq_original_indent >= check_indent and bq_content.startswith(">"):
                 if bq_content.startswith("> "):
@@ -234,7 +233,7 @@ def parse_indented_code_in_list(
             break
 
         if tok.type == TokenType.INDENTED_CODE:
-            tok_indent = get_line_indent(parser._source, tok.location.offset)
+            tok_indent = tok.line_indent
             if tok_indent >= check_indent + 4:
                 code_lines.append(tok.value)
                 parser._advance()
@@ -246,7 +245,7 @@ def parse_indented_code_in_list(
             if not parser._at_end() and parser._current is not None:
                 next_tok = parser._current
                 if next_tok.type == TokenType.INDENTED_CODE:
-                    tok_indent = get_line_indent(parser._source, next_tok.location.offset)
+                    tok_indent = next_tok.line_indent
                     if tok_indent >= check_indent + 4:
                         code_lines.append("\n")
                         continue

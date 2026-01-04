@@ -99,6 +99,7 @@ class Lexer(
         "_html_block_type",  # 1-7 per CommonMark spec
         "_html_block_content",  # Accumulated HTML content
         "_html_block_start",  # Start position for location
+        "_html_block_indent",  # Indent of opening line for line_indent
     )
 
     def __init__(
@@ -133,6 +134,7 @@ class Lexer(
         self._html_block_type: int = 0
         self._html_block_content: list[str] = []
         self._html_block_start: int = 0
+        self._html_block_indent: int = 0
 
         # Directive state: stack of (colon_count, name) for nested directives
         self._directive_stack: list[tuple[int, str]] = []
@@ -157,7 +159,7 @@ class Lexer(
         while self._pos < source_len:
             yield from self._dispatch_mode()
 
-        yield Token(TokenType.EOF, "", self._location())
+        yield Token(TokenType.EOF, "", self._location(), line_indent=0)
 
     def _dispatch_mode(self) -> Iterator[Token]:
         """Dispatch to appropriate scanner based on current mode.

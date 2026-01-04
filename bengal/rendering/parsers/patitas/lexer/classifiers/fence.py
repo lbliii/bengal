@@ -75,7 +75,9 @@ class FenceClassifierMixin:
         # Encode indent in token value: "I{indent}:{fence}{info}"
         # Parser will extract this to set fence_indent on FencedCode node
         value = f"I{indent}:" + fence_char * count + (info if info else "")
-        return Token(TokenType.FENCED_CODE_START, value, self._location_from(line_start))
+        return Token(
+            TokenType.FENCED_CODE_START, value, self._location_from(line_start), line_indent=indent
+        )
 
     def _is_closing_fence(self, line: str) -> bool:
         """Check if line is a closing fence for current code block.

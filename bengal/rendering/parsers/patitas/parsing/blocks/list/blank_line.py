@@ -7,7 +7,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from bengal.rendering.parsers.patitas.parsing.blocks.list.indent import get_line_indent
 from bengal.rendering.parsers.patitas.parsing.blocks.list.marker import (
     get_marker_indent,
     is_list_marker,
@@ -104,7 +103,8 @@ def handle_blank_line(
             return ContinueList(is_loose=True)
 
         case TokenType.PARAGRAPH_LINE:
-            para_indent = get_line_indent(source, next_token.location.offset)
+            # Use pre-computed line_indent from lexer
+            para_indent = next_token.line_indent
             if para_indent < check_indent:
                 # Not indented enough - terminates the list
                 return EndList()
@@ -160,8 +160,8 @@ def _handle_blank_then_indented_code(
     """
     check_indent = actual_content_indent if actual_content_indent is not None else content_indent
 
-    # Get original line indent
-    original_indent = get_line_indent(source, token.location.offset)
+    # Use pre-computed line_indent from lexer
+    original_indent = token.line_indent
     code_content = token.value.lstrip().rstrip()
 
     # Check if this is a list marker at the original list level

@@ -56,7 +56,9 @@ def detect_nested_list_in_content(
     if not line:
         return False
 
-    # Check original line indent
+    # line_indent should be passed in or computed from token
+    # This function is called with paragraph line content, so we use get_line_indent
+    # as a fallback since PARAGRAPH_LINE tokens encode indent in value prefix
     line_indent = get_line_indent(source, token_offset)
 
     # If line is indented 4+ spaces beyond content indent, it's literal text
@@ -179,7 +181,7 @@ def parse_nested_list_from_indented_code(
             break
 
         if tok.type == TokenType.INDENTED_CODE:
-            tok_original_indent = get_line_indent(parser._source, tok.location.offset)
+            tok_original_indent = tok.line_indent
             tok_content = tok.value.lstrip()
 
             # Check for sibling marker

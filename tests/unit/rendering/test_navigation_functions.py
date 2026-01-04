@@ -12,6 +12,7 @@ from unittest.mock import Mock
 import pytest
 
 from bengal.rendering.template_functions.navigation import (
+    build_toc_tree,
     get_nav_context,
     get_nav_tree,
     get_pagination_items,
@@ -129,6 +130,102 @@ class TestGetTocGrouped:
         assert result[1]["header"]["level"] == 2
         assert result[1]["is_group"]
         assert len(result[1]["children"]) == 1
+
+
+class TestBuildTocTree:
+    """Test the build_toc_tree() function for nested TOC tree building."""
+
+    def test_empty_toc_returns_empty_list(self):
+        """Empty TOC items return empty list."""
+        result = build_toc_tree([])
+        assert result == []
+
+    def test_single_item_has_empty_children(self):
+        """Single item has empty children array."""
+        toc_items = [{"id": "section-1", "title": "Section 1", "level": 1}]
+
+        result = build_toc_tree(toc_items)
+
+        assert len(result) == 1
+        assert result[0]["id"] == "section-1"
+        assert result[0]["title"] == "Section 1"
+        assert result[0]["level"] == 1
+        assert result[0]["children"] == []
+
+    def test_nested_children_structure(self):
+        """Items with children have proper nested structure."""
+        toc_items = [
+            {"id": "section-1", "title": "Section 1", "level": 1},
+            {"id": "section-1-1", "title": "Subsection 1.1", "level": 2},
+            {"id": "section-1-2", "title": "Subsection 1.2", "level": 2},
+        ]
+
+        result = build_toc_tree(toc_items)
+
+        assert len(result) == 1
+        assert result[0]["id"] == "section-1"
+        assert len(result[0]["children"]) == 2
+        assert result[0]["children"][0]["id"] == "section-1-1"
+        assert result[0]["children"][1]["id"] == "section-1-2"
+        # Children also have children arrays (empty)
+        assert result[0]["children"][0]["children"] == []
+        assert result[0]["children"][1]["children"] == []
+
+    def test_multiple_root_sections(self):
+        """Multiple H2 sections become separate root nodes."""
+        toc_items = [
+            {"id": "section-1", "title": "Section 1", "level": 1},
+            {"id": "section-1-1", "title": "Subsection 1.1", "level": 2},
+            {"id": "section-2", "title": "Section 2", "level": 1},
+            {"id": "section-2-1", "title": "Subsection 2.1", "level": 2},
+        ]
+
+        result = build_toc_tree(toc_items)
+
+        assert len(result) == 2
+        # First tree
+        assert result[0]["id"] == "section-1"
+        assert len(result[0]["children"]) == 1
+        assert result[0]["children"][0]["id"] == "section-1-1"
+        # Second tree
+        assert result[1]["id"] == "section-2"
+        assert len(result[1]["children"]) == 1
+        assert result[1]["children"][0]["id"] == "section-2-1"
+
+    def test_deep_nesting_arbitrary_levels(self):
+        """Deep nesting creates proper tree structure."""
+        toc_items = [
+            {"id": "section-1", "title": "Section 1", "level": 1},
+            {"id": "section-1-1", "title": "Subsection 1.1", "level": 2},
+            {"id": "section-1-1-1", "title": "Subsubsection 1.1.1", "level": 3},
+            {"id": "section-1-1-2", "title": "Subsubsection 1.1.2", "level": 3},
+            {"id": "section-1-2", "title": "Subsection 1.2", "level": 2},
+        ]
+
+        result = build_toc_tree(toc_items)
+
+        assert len(result) == 1
+        # Root has 2 children (1.1 and 1.2)
+        assert len(result[0]["children"]) == 2
+        # 1.1 has 2 children (1.1.1 and 1.1.2)
+        assert len(result[0]["children"][0]["children"]) == 2
+        assert result[0]["children"][0]["children"][0]["id"] == "section-1-1-1"
+        assert result[0]["children"][0]["children"][1]["id"] == "section-1-1-2"
+        # 1.2 has no children
+        assert result[0]["children"][1]["children"] == []
+
+    def test_sibling_items_at_same_level(self):
+        """Sibling items at same level stay at same tree depth."""
+        toc_items = [
+            {"id": "a", "title": "A", "level": 1},
+            {"id": "b", "title": "B", "level": 1},
+            {"id": "c", "title": "C", "level": 1},
+        ]
+
+        result = build_toc_tree(toc_items)
+
+        assert len(result) == 3
+        assert all(item["children"] == [] for item in result)
 
 
 class TestGetPaginationItems:

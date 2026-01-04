@@ -119,6 +119,8 @@ class Token:
         type: The token type (from TokenType enum)
         value: The raw string value from source
         location: Source location for error messages
+        line_indent: Pre-computed indent level of the line (spaces, tabs expand to 4).
+            Set by lexer at token creation; -1 if not computed.
 
     Examples:
         >>> tok = Token(TokenType.ATX_HEADING, "## Hello", SourceLocation(1, 1))
@@ -134,6 +136,7 @@ class Token:
     type: TokenType
     value: str
     location: SourceLocation
+    line_indent: int = -1  # Pre-computed by lexer; -1 = not computed
 
     def __repr__(self) -> str:
         """Compact repr for debugging."""

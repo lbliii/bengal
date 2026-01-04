@@ -259,30 +259,30 @@ KIDA FEATURES SHOWCASED:
   {# Auto-expand based on heading level using match #}
   {% match node_level %}
   {% case 1 %}<details class="toc-group" open>
-  {% case 2 %}<details class="toc-group" open>
-  {% case _ %}<details class="toc-group">
-  {% end %}
-    <summary class="toc-group-header">
+    {% case 2 %}<details class="toc-group" open>
+      {% case _ %}<details class="toc-group">
+        {% end %}
+        <summary class="toc-group-header">
+          <a href="#{{ node_id }}" class="toc-link" data-toc-item="#{{ node_id }}">
+            {{ node_title }}
+          </a>
+          {% spaceless %}
+          <span class="toc-count-badge" title="{{ children | length }} subsections">
+            <span class="toc-count">{{ children | length }}</span>
+          </span>
+          {% end %}
+        </summary>
+        <ul class="toc-subitems" role="group">
+          {% for child in children %}
+          {{ toc_node(child) }}
+          {% end %}
+        </ul>
+      </details>
+      {% else %}
       <a href="#{{ node_id }}" class="toc-link" data-toc-item="#{{ node_id }}">
         {{ node_title }}
       </a>
-      {% spaceless %}
-      <span class="toc-count-badge" title="{{ children | length }} subsections">
-        <span class="toc-count">{{ children | length }}</span>
-      </span>
       {% end %}
-    </summary>
-    <ul class="toc-subitems" role="group">
-      {% for child in children %}
-      {{ toc_node(child) }}
-      {% end %}
-    </ul>
-  </details>
-  {% else %}
-  <a href="#{{ node_id }}" class="toc-link" data-toc-item="#{{ node_id }}">
-    {{ node_title }}
-  </a>
-  {% end %}
 </li>
 {% end %}
 {% enddef %}
@@ -299,9 +299,11 @@ KIDA FEATURES SHOWCASED:
   {# Table of Contents #}
   <nav class="toc-nav" aria-label="Table of contents" data-toc-mode="normal">
     {% if toc_items %}
+    {# Build nested tree structure for proper children/count badge display #}
+    {% let nested_items = build_toc_tree(toc_items) %}
     <div class="toc-scroll-container">
       <ul class="toc-items" role="tree">
-        {% for item in toc_items %}
+        {% for item in nested_items %}
         {{ toc_node(item) }}
         {% end %}
       </ul>

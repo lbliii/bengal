@@ -23,7 +23,6 @@ from bengal.rendering.parsers.patitas.parsing.blocks.list.blank_line import (
     handle_blank_line,
 )
 from bengal.rendering.parsers.patitas.parsing.blocks.list.indent import (
-    get_line_indent,
     is_nested_list_indent,
 )
 from bengal.rendering.parsers.patitas.parsing.blocks.list.item_blocks import (
@@ -345,7 +344,7 @@ class ListParsingMixin:
                             if actual_content_indent is not None
                             else content_indent
                         )
-                        orig_indent = get_line_indent(self._source, next_tok.location.offset)
+                        orig_indent = next_tok.line_indent
                         indent_beyond = orig_indent - check_indent
                         # At content indent (not 4+ beyond) = paragraph content
                         # Must be AT or BEYOND content_indent to be continuation
@@ -407,7 +406,7 @@ class ListParsingMixin:
                                     tight = False
 
                         if next_tok.type == TokenType.PARAGRAPH_LINE:
-                            next_indent = get_line_indent(self._source, next_tok.location.offset)
+                            next_indent = next_tok.line_indent
                             # Content at outer item's content indent = continuation
                             # Use content_indent (not check_content_indent) for comparison
                             if next_indent >= start_indent and next_indent <= content_indent:
@@ -438,7 +437,7 @@ class ListParsingMixin:
                 TokenType.THEMATIC_BREAK,
             ):
                 # Check if the block element is at content indent
-                block_indent = get_line_indent(self._source, tok.location.offset)
+                block_indent = tok.line_indent
                 check_content_indent = (
                     actual_content_indent if actual_content_indent is not None else content_indent
                 )
@@ -535,7 +534,7 @@ class ListParsingMixin:
             actual_content_indent if actual_content_indent is not None else content_indent
         )
 
-        original_indent = get_line_indent(self._source, tok.location.offset)
+        original_indent = tok.line_indent
         stripped_content = tok.value.lstrip()
 
         if original_indent >= check_indent:

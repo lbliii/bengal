@@ -17,7 +17,9 @@ class ThematicClassifierMixin:
         """Get source location from saved position. Implemented by Lexer."""
         raise NotImplementedError
 
-    def _try_classify_thematic_break(self, content: str, line_start: int) -> Token | None:
+    def _try_classify_thematic_break(
+        self, content: str, line_start: int, indent: int = 0
+    ) -> Token | None:
         """Try to classify content as thematic break.
 
         Thematic breaks are 3+ of the same character (-, *, _) with
@@ -26,6 +28,7 @@ class ThematicClassifierMixin:
         Args:
             content: Line content with leading whitespace stripped
             line_start: Position in source where line starts
+            indent: Number of leading spaces (for line_indent)
 
         Returns:
             Token if valid break, None otherwise.
@@ -55,6 +58,7 @@ class ThematicClassifierMixin:
                 TokenType.THEMATIC_BREAK,
                 content.rstrip("\n"),
                 self._location_from(line_start),
+                line_indent=indent,
             )
 
         return None

@@ -27,7 +27,7 @@ class DirectiveClassifierMixin:
         raise NotImplementedError
 
     def _try_classify_directive_start(
-        self, content: str, line_start: int
+        self, content: str, line_start: int, indent: int = 0
     ) -> Iterator[Token] | None:
         """Try to classify content as directive start.
 
@@ -40,6 +40,7 @@ class DirectiveClassifierMixin:
         Args:
             content: Line content with leading whitespace stripped
             line_start: Position in source where line starts
+            indent: Number of leading spaces (for line_indent)
 
         Returns:
             Iterator of tokens if valid directive, None otherwise.
@@ -84,6 +85,7 @@ class DirectiveClassifierMixin:
             title=title,
             is_closer=is_closer,
             line_start=line_start,
+            indent=indent,
         )
 
     def _emit_directive_tokens(
@@ -93,6 +95,7 @@ class DirectiveClassifierMixin:
         title: str,
         is_closer: bool,
         line_start: int,
+        indent: int = 0,
     ) -> Iterator[Token]:
         """Emit directive tokens and update state.
 
@@ -102,6 +105,7 @@ class DirectiveClassifierMixin:
             title: Optional title after the name
             is_closer: Whether this is a named closer (:::{/name})
             line_start: Position in source where line starts
+            indent: Number of leading spaces (for line_indent)
 
         Yields:
             DIRECTIVE_OPEN/CLOSE, DIRECTIVE_NAME, and optionally DIRECTIVE_TITLE tokens.
@@ -110,7 +114,7 @@ class DirectiveClassifierMixin:
 
         if is_closer:
             # Named closer: :::{/name}
-            yield Token(TokenType.DIRECTIVE_CLOSE, f":::{{{name}}}", location)
+            yield Token(TokenType.DIRECTIVE_CLOSE, f":::{{{name}}}", location, line_indent=indent)
 
             # Pop from directive stack if matching
             if self._directive_stack:
@@ -121,17 +125,17 @@ class DirectiveClassifierMixin:
                         self._mode = LexerMode.BLOCK
         else:
             # Directive open
-            yield Token(TokenType.DIRECTIVE_OPEN, ":" * colon_count, location)
-            yield Token(TokenType.DIRECTIVE_NAME, name, location)
+            yield Token(TokenType.DIRECTIVE_OPEN, ":" * colon_count, location, line_indent=indent)
+            yield Token(TokenType.DIRECTIVE_NAME, name, location, line_indent=indent)
             if title:
-                yield Token(TokenType.DIRECTIVE_TITLE, title, location)
+                yield Token(TokenType.DIRECTIVE_TITLE, title, location, line_indent=indent)
 
             # Push to directive stack and switch mode
             self._directive_stack.append((colon_count, name))
             self._mode = LexerMode.DIRECTIVE
 
     def _try_classify_directive_close(
-        self, content: str, line_start: int
+        self, content: str, line_start: int, indent: int = 0
     ) -> Iterator[Token] | None:
         """Check if content is a directive closing fence.
 
@@ -142,6 +146,7 @@ class DirectiveClassifierMixin:
         Args:
             content: Line content starting with :::
             line_start: Position in source where line starts
+            indent: Number of leading spaces (for line_indent)
 
         Returns:
             Iterator of tokens if valid close, None otherwise.
@@ -169,18 +174,18 @@ class DirectiveClassifierMixin:
                 name = rest[2:brace_end].strip()
                 remaining = rest[brace_end + 1 :].strip()
                 if not remaining:  # No extra content after }
-                    return self._emit_directive_close(colon_count, name, line_start)
+                    return self._emit_directive_close(colon_count, name, line_start, indent)
 
         elif rest == "" or rest.startswith("{"):
             # Simple close or check if it's a new directive
             if rest == "":
                 # Simple close with just colons
-                return self._emit_directive_close(colon_count, None, line_start)
+                return self._emit_directive_close(colon_count, None, line_start, indent)
 
         return None
 
     def _emit_directive_close(
-        self, colon_count: int, name: str | None, line_start: int
+        self, colon_count: int, name: str | None, line_start: int, indent: int = 0
     ) -> Iterator[Token]:
         """Emit directive close token and update state.
 
@@ -188,6 +193,7 @@ class DirectiveClassifierMixin:
             colon_count: Number of colons in the closing fence
             name: Optional directive name for named closers
             line_start: Position in source where line starts
+            indent: Number of leading spaces (for line_indent)
 
         Yields:
             DIRECTIVE_CLOSE token(s), or PARAGRAPH_LINE if not a valid close.
@@ -196,7 +202,7 @@ class DirectiveClassifierMixin:
 
         if not self._directive_stack:
             # No open directive, emit as plain text
-            yield Token(TokenType.PARAGRAPH_LINE, ":" * colon_count, location)
+            yield Token(TokenType.PARAGRAPH_LINE, ":" * colon_count, location, line_indent=indent)
             return
 
         stack_count, stack_name = self._directive_stack[-1]
@@ -223,9 +229,16 @@ class DirectiveClassifierMixin:
                     # OR just use simple colons for all to be consistent.
                     # The parser only cares about the token type to break the loop.
                     if popped_count == 1:
-                        yield Token(TokenType.DIRECTIVE_CLOSE, f":::{{{name}}}", location)
+                        yield Token(
+                            TokenType.DIRECTIVE_CLOSE,
+                            f":::{{{name}}}",
+                            location,
+                            line_indent=indent,
+                        )
                     else:
-                        yield Token(TokenType.DIRECTIVE_CLOSE, ":" * s_count, location)
+                        yield Token(
+                            TokenType.DIRECTIVE_CLOSE, ":" * s_count, location, line_indent=indent
+                        )
 
                 if not self._directive_stack:
                     self._mode = LexerMode.BLOCK
@@ -234,16 +247,20 @@ class DirectiveClassifierMixin:
             # Simple close: closes the top directive
             if colon_count >= stack_count:
                 self._directive_stack.pop()
-                yield Token(TokenType.DIRECTIVE_CLOSE, ":" * colon_count, location)
+                yield Token(
+                    TokenType.DIRECTIVE_CLOSE, ":" * colon_count, location, line_indent=indent
+                )
 
                 if not self._directive_stack:
                     self._mode = LexerMode.BLOCK
                 return
 
         # Not a valid close for current directive, emit as content
-        yield Token(TokenType.PARAGRAPH_LINE, ":" * colon_count, location)
+        yield Token(TokenType.PARAGRAPH_LINE, ":" * colon_count, location, line_indent=indent)
 
-    def _try_classify_directive_option(self, content: str, line_start: int) -> Token | None:
+    def _try_classify_directive_option(
+        self, content: str, line_start: int, indent: int = 0
+    ) -> Token | None:
         """Try to classify content as directive option.
 
         Format: :key: value
@@ -251,6 +268,7 @@ class DirectiveClassifierMixin:
         Args:
             content: Line content starting with :
             line_start: Position in source where line starts
+            indent: Number of leading spaces (for line_indent)
 
         Returns:
             DIRECTIVE_OPTION token if valid, None otherwise.
@@ -274,4 +292,5 @@ class DirectiveClassifierMixin:
             TokenType.DIRECTIVE_OPTION,
             f"{key}:{value}",
             self._location_from(line_start),
+            line_indent=indent,
         )

@@ -107,6 +107,7 @@ class ContainerFrame:
     # Indent boundaries
     start_indent: int           # Where this container started (marker position)
     content_indent: int         # Minimum indent for content continuation
+    marker_width: int = 0       # Width of the marker (e.g., 2 for "- ")
 
     # For lists: marker siblings can appear at start_indent to start_indent+3
     max_sibling_indent: int = field(default=-1)
@@ -338,6 +339,15 @@ class BlockParsingMixin:
             return self._parse_paragraph(tok)
 ```
 
+### 4. Interaction with Lazy Continuation Lines
+
+**Decision**: Lazy lines bypass `find_owner()` and are routed directly to the currently active paragraph.
+
+**Rationale**:
+- CommonMark allows "lazy" lines in paragraphs that are not indented enough to be part of the current container.
+- These lines are only valid if they continue a paragraph.
+- The `find_owner()` check is skipped for lines that the parser identifies as lazy continuations, preserving existing behavior without complicating the stack logic.
+
 ---
 
 ## Performance Analysis
@@ -392,11 +402,11 @@ In practice, d ≤ 10 for reasonable documents, so this is effectively **O(n)**.
 
 1. Add `ContainerStack` and `ContainerFrame` classes to new module
 2. Add `_containers` field to parser, initialize in `parse()`
-3. Add stack push/pop calls alongside existing logic (dual-write)
-4. Add assertions: `assert self._containers.current().content_indent == content_indent`
-5. **Existing logic still controls behavior, stack is read-only validation**
+3. **Shadow Stack Strategy**: Add stack push/pop calls alongside existing logic (dual-write).
+4. **Validation Mode**: If `BENGAL_PARSER_STRICT` is set, assert `self._containers.current().content_indent == content_indent` at every transition.
+5. **No behavioral changes**: Existing logic still controls behavior, stack is used only for read-only validation.
 
-**Validation**: Run full CommonMark spec test suite; compare results before/after.
+**Validation**: Run full CommonMark spec test suite; use automated diff tools to ensure zero behavioral regression.
 
 ### Phase 3: Stack-Driven Dispatch (Higher Risk)
 
@@ -486,16 +496,16 @@ The logic is the same, but:
 **Decision**: Fenced code blocks push a frame but reject all indent logic inside.
 
 **Rationale**:
-- Fenced code content is literal—no parsing inside
-- Push on FENCED_CODE_START, pop on FENCED_CODE_END
-- All tokens between are passed through unchanged
+- Fenced code content is literal—no block parsing inside.
+- Push on FENCED_CODE_START, pop on FENCED_CODE_END.
+- **Indentation Stripping**: The `start_indent` of the FENCED_CODE frame (up to 3 spaces) is used by the code block renderer to strip leading spaces from content lines.
 
 ```python
 case TokenType.FENCED_CODE_START:
     self._containers.push(ContainerFrame(
         container_type=ContainerType.FENCED_CODE,
-        start_indent=tok.line_indent,
-        content_indent=0,  # Irrelevant—no indent logic inside
+        start_indent=tok.line_indent,  # Used for content stripping
+        content_indent=0,              # Irrelevant—no nesting allowed
     ))
     return self._parse_fenced_code_block(tok)
 ```
@@ -517,12 +527,12 @@ case TokenType.FENCED_CODE_START:
 
 | Metric | Current | Target | Notes |
 |--------|---------|--------|-------|
-| Lists compliance | 88.5% | 88.5% | Container stack doesn't address fenced code issues |
-| List items compliance | 70.8% | ~75-78% | ~4-6 indented code issues addressable |
-| `content_indent` references | 81 | <20 | Centralized in ContainerFrame |
-| `get_line_indent` calls | 16 | 0 | Replaced by `tok.line_indent` |
-| Parse time | baseline | ≤ baseline | No regression (target 5-10% improvement) |
-| Maintainability | scattered | centralized | New indent edge cases: single location |
+| Lists compliance | 88.5% | 88.5% | Stability check; should not regress. |
+| List items compliance | 70.8% | 75-78% | ~4-6 indented code issues addressable. |
+| `content_indent` references | 81 | <15 | Consolidated into `ContainerFrame.owns_content`. |
+| `get_line_indent` calls | 16 | 0 | Fully replaced by `Token.line_indent`. |
+| Parse time | baseline | 0.95x baseline | Targeted 5% reduction via cache hits. |
+| Maintainability | scattered | centralized | Single point of failure for indent logic. |
 
 ---
 

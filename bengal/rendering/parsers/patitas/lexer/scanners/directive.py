@@ -52,16 +52,18 @@ class DirectiveScannerMixin:
 
     # Classifier methods (provided by classifier mixins)
     def _try_classify_directive_close(
-        self, content: str, line_start: int
+        self, content: str, line_start: int, indent: int = 0
     ) -> Iterator[Token] | None:
         raise NotImplementedError
 
     def _try_classify_directive_start(
-        self, content: str, line_start: int
+        self, content: str, line_start: int, indent: int = 0
     ) -> Iterator[Token] | None:
         raise NotImplementedError
 
-    def _try_classify_directive_option(self, content: str, line_start: int) -> Token | None:
+    def _try_classify_directive_option(
+        self, content: str, line_start: int, indent: int = 0
+    ) -> Token | None:
         raise NotImplementedError
 
     def _try_classify_fence_start(
@@ -69,13 +71,19 @@ class DirectiveScannerMixin:
     ) -> Token | None:
         raise NotImplementedError
 
-    def _try_classify_atx_heading(self, content: str, line_start: int) -> Token | None:
+    def _try_classify_atx_heading(
+        self, content: str, line_start: int, indent: int = 0
+    ) -> Token | None:
         raise NotImplementedError
 
-    def _try_classify_thematic_break(self, content: str, line_start: int) -> Token | None:
+    def _try_classify_thematic_break(
+        self, content: str, line_start: int, indent: int = 0
+    ) -> Token | None:
         raise NotImplementedError
 
-    def _classify_block_quote(self, content: str, line_start: int) -> Iterator[Token]:
+    def _classify_block_quote(
+        self, content: str, line_start: int, indent: int = 0
+    ) -> Iterator[Token]:
         raise NotImplementedError
 
     def _try_classify_list_marker(
@@ -112,18 +120,18 @@ class DirectiveScannerMixin:
 
         # Empty line
         if not content or content.isspace():
-            yield Token(TokenType.BLANK_LINE, "", self._location_from(line_start))
+            yield Token(TokenType.BLANK_LINE, "", self._location_from(line_start), line_indent=0)
             return
 
         # Check for directive close (matching colon count or higher)
         if content.startswith(":::"):
-            close_result = self._try_classify_directive_close(content, line_start)
+            close_result = self._try_classify_directive_close(content, line_start, indent)
             if close_result is not None:
                 yield from close_result
                 return
 
             # Could be nested directive start
-            nested_result = self._try_classify_directive_start(content, line_start)
+            nested_result = self._try_classify_directive_start(content, line_start, indent)
             if nested_result is not None:
                 yield from nested_result
                 return
@@ -131,35 +139,35 @@ class DirectiveScannerMixin:
         # Check for directive option (:key: value)
         # Only at the start of directive content, before any blank line
         if content.startswith(":") and not content.startswith(":::"):
-            option_token = self._try_classify_directive_option(content, line_start)
+            option_token = self._try_classify_directive_option(content, line_start, indent)
             if option_token:
                 yield option_token
                 return
 
         # Fenced code: ``` or ~~~ (uses O(1) frozenset lookup)
         if content[0] in FENCE_CHARS:
-            token = self._try_classify_fence_start(content, line_start)
+            token = self._try_classify_fence_start(content, line_start, indent)
             if token:
                 yield token
                 return
 
         # ATX Heading: # ## ### etc.
         if content.startswith("#"):
-            token = self._try_classify_atx_heading(content, line_start)
+            token = self._try_classify_atx_heading(content, line_start, indent)
             if token:
                 yield token
                 return
 
         # Thematic break: ---, ***, ___ (uses O(1) frozenset lookup)
         if content[0] in THEMATIC_BREAK_CHARS:
-            token = self._try_classify_thematic_break(content, line_start)
+            token = self._try_classify_thematic_break(content, line_start, indent)
             if token:
                 yield token
                 return
 
         # Block quote: >
         if content.startswith(">"):
-            yield from self._classify_block_quote(content, line_start)
+            yield from self._classify_block_quote(content, line_start, indent)
             return
 
         # List item: -, *, +, or 1. 1)
@@ -174,4 +182,5 @@ class DirectiveScannerMixin:
             TokenType.PARAGRAPH_LINE,
             content.rstrip("\n"),
             self._location_from(line_start),
+            line_indent=indent,
         )

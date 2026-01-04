@@ -86,17 +86,23 @@ class BlockScannerMixin:
         raise NotImplementedError
 
     def _try_classify_html_block_start(
-        self, content: str, line_start: int, full_line: str
+        self, content: str, line_start: int, full_line: str, indent: int = 0
     ) -> Iterator[Token] | None:
         raise NotImplementedError
 
-    def _try_classify_atx_heading(self, content: str, line_start: int) -> Token | None:
+    def _try_classify_atx_heading(
+        self, content: str, line_start: int, indent: int = 0
+    ) -> Token | None:
         raise NotImplementedError
 
-    def _classify_block_quote(self, content: str, line_start: int) -> Iterator[Token]:
+    def _classify_block_quote(
+        self, content: str, line_start: int, indent: int = 0
+    ) -> Iterator[Token]:
         raise NotImplementedError
 
-    def _try_classify_thematic_break(self, content: str, line_start: int) -> Token | None:
+    def _try_classify_thematic_break(
+        self, content: str, line_start: int, indent: int = 0
+    ) -> Token | None:
         raise NotImplementedError
 
     def _try_classify_list_marker(
@@ -104,14 +110,18 @@ class BlockScannerMixin:
     ) -> Iterator[Token] | None:
         raise NotImplementedError
 
-    def _try_classify_footnote_def(self, content: str, line_start: int) -> Token | None:
+    def _try_classify_footnote_def(
+        self, content: str, line_start: int, indent: int = 0
+    ) -> Token | None:
         raise NotImplementedError
 
-    def _try_classify_link_reference_def(self, content: str, line_start: int) -> Token | None:
+    def _try_classify_link_reference_def(
+        self, content: str, line_start: int, indent: int = 0
+    ) -> Token | None:
         raise NotImplementedError
 
     def _try_classify_directive_start(
-        self, content: str, line_start: int
+        self, content: str, line_start: int, indent: int = 0
     ) -> Iterator[Token] | None:
         raise NotImplementedError
 
@@ -148,7 +158,7 @@ class BlockScannerMixin:
 
         # Empty line or whitespace only = blank line
         if not content or content.isspace():
-            yield Token(TokenType.BLANK_LINE, "", self._location_from(line_start))
+            yield Token(TokenType.BLANK_LINE, "", self._location_from(line_start), line_indent=0)
             return
 
         # CommonMark: 4+ spaces indent creates an indented code block
@@ -163,6 +173,7 @@ class BlockScannerMixin:
                 TokenType.INDENTED_CODE,
                 code_content + ("\n" if self._consumed_newline else ""),
                 self._location_from(line_start),
+                line_indent=indent,
             )
             return
 
@@ -179,7 +190,7 @@ class BlockScannerMixin:
         # Must be checked before most other block types
         # CommonMark 4.6 defines 7 types of HTML blocks
         if content[0] == "<":
-            html_result = self._try_classify_html_block_start(content, line_start, line)
+            html_result = self._try_classify_html_block_start(content, line_start, line, indent)
             if html_result:
                 yield from html_result
                 return
@@ -187,21 +198,21 @@ class BlockScannerMixin:
         # ATX Heading: # ## ### etc.
         # CommonMark: ATX heading cannot be indented 4+ spaces (already handled above)
         if content.startswith("#"):
-            token = self._try_classify_atx_heading(content, line_start)
+            token = self._try_classify_atx_heading(content, line_start, indent)
             if token:
                 yield token
                 return
 
         # Block quote: > (cannot be indented 4+ spaces)
         if content.startswith(">"):
-            yield from self._classify_block_quote(content, line_start)
+            yield from self._classify_block_quote(content, line_start, indent)
             return
 
         # Thematic break: ---, ***, ___ (must check BEFORE list markers)
         # A line like "- - -" or "* * *" could be either, but thematic break takes precedence
         # Uses O(1) frozenset lookup
         if content[0] in THEMATIC_BREAK_CHARS:
-            token = self._try_classify_thematic_break(content, line_start)
+            token = self._try_classify_thematic_break(content, line_start, indent)
             if token:
                 yield token
                 return
@@ -214,21 +225,21 @@ class BlockScannerMixin:
             return
 
         # Footnote definition: [^id]: content
-        footnote_token = self._try_classify_footnote_def(content, line_start)
+        footnote_token = self._try_classify_footnote_def(content, line_start, indent)
         if footnote_token is not None:
             yield footnote_token
             return
 
         # Link reference definition: [label]: url "title"
         if content.startswith("[") and not content.startswith("[^"):
-            link_ref_token = self._try_classify_link_reference_def(content, line_start)
+            link_ref_token = self._try_classify_link_reference_def(content, line_start, indent)
             if link_ref_token is not None:
                 yield link_ref_token
                 return
 
         # Directive: :::{name} or ::::{name} etc.
         if content.startswith(":"):
-            directive_tokens = self._try_classify_directive_start(content, line_start)
+            directive_tokens = self._try_classify_directive_start(content, line_start, indent)
             if directive_tokens is not None:
                 yield from directive_tokens
                 return
@@ -241,4 +252,5 @@ class BlockScannerMixin:
             TokenType.PARAGRAPH_LINE,
             indented_content,
             self._location_from(line_start),
+            line_indent=indent,
         )

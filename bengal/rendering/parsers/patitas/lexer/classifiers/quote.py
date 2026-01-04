@@ -22,7 +22,9 @@ class QuoteClassifierMixin:
         """Expand tabs. Implemented by Lexer."""
         raise NotImplementedError
 
-    def _classify_block_quote(self, content: str, line_start: int) -> Iterator[Token]:
+    def _classify_block_quote(
+        self, content: str, line_start: int, indent: int = 0
+    ) -> Iterator[Token]:
         """Classify block quote marker and emit tokens.
 
         Block quotes start with > followed by optional space.
@@ -31,12 +33,15 @@ class QuoteClassifierMixin:
         Args:
             content: Line content starting with >
             line_start: Position in source where line starts
+            indent: Number of leading spaces (for line_indent)
 
         Yields:
             BLOCK_QUOTE_MARKER token, then optional PARAGRAPH_LINE token.
         """
         # Yield the > marker
-        yield Token(TokenType.BLOCK_QUOTE_MARKER, ">", self._location_from(line_start))
+        yield Token(
+            TokenType.BLOCK_QUOTE_MARKER, ">", self._location_from(line_start), line_indent=indent
+        )
 
         # Content after >
         if len(content) > 1:
@@ -62,4 +67,5 @@ class QuoteClassifierMixin:
                     TokenType.PARAGRAPH_LINE,
                     remaining,
                     self._location_from(line_start),
+                    line_indent=indent,
                 )
