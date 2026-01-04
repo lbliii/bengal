@@ -106,6 +106,17 @@ class ListParsingMixin:
             token = self._current
             assert token is not None
 
+            # Handle blank lines between items (makes list loose)
+            if token.type == TokenType.BLANK_LINE:
+                tight = False
+                while not self._at_end() and self._current.type == TokenType.BLANK_LINE:
+                    self._advance()
+                if self._at_end():
+                    break
+                token = self._current
+                if token.type != TokenType.LIST_ITEM_MARKER:
+                    break
+
             if token.type != TokenType.LIST_ITEM_MARKER:
                 break
 
@@ -189,8 +200,12 @@ class ListParsingMixin:
                     break
                 continue
 
-            # Handle fenced code immediately after marker
-            if tok.type == TokenType.FENCED_CODE_START:
+            # Handle fenced code immediately after marker (no prior content)
+            if (
+                tok.type == TokenType.FENCED_CODE_START
+                and not saw_paragraph_content
+                and not content_lines
+            ):
                 block, should_continue = handle_fenced_code_immediate(
                     tok, saw_paragraph_content, bool(content_lines), content_indent, self
                 )
@@ -320,6 +335,30 @@ class ListParsingMixin:
                             Paragraph(location=marker_token.location, children=inlines)
                         )
                         content_lines = []
+
+                    # Handle continuation content directly
+                    # INDENTED_CODE at content indent is paragraph content, not code
+                    next_tok = self._current
+                    if next_tok and next_tok.type == TokenType.INDENTED_CODE:
+                        check_indent = (
+                            actual_content_indent
+                            if actual_content_indent is not None
+                            else content_indent
+                        )
+                        orig_indent = get_line_indent(self._source, next_tok.location.offset)
+                        indent_beyond = orig_indent - check_indent
+                        # At content indent (not 4+ beyond) = paragraph content
+                        # Must be AT or BEYOND content_indent to be continuation
+                        if orig_indent >= check_indent and indent_beyond < 4:
+                            content_lines.append(next_tok.value.rstrip())
+                            self._advance()
+                            continue
+                    elif next_tok and next_tok.type == TokenType.PARAGRAPH_LINE:
+                        # Continuation paragraph
+                        content_lines.append(next_tok.value.lstrip())
+                        self._advance()
+                        continue
+
                     continue
 
             # Handle nested list markers
@@ -330,9 +369,10 @@ class ListParsingMixin:
                 )
 
                 # Check if different marker at same indent (new list)
-                if nested_indent == start_indent:
-                    if not is_same_list_type(tok.value, ordered, bullet_char, ordered_marker_char):
-                        break
+                if nested_indent == start_indent and not is_same_list_type(
+                    tok.value, ordered, bullet_char, ordered_marker_char
+                ):
+                    break
 
                 if is_nested_list_indent(nested_indent, check_content_indent):
                     # Save current paragraph
@@ -347,6 +387,35 @@ class ListParsingMixin:
                     # Parse nested list
                     nested_list = self._parse_list(parent_indent=start_indent)
                     item_children.append(nested_list)
+
+                    # After nested list, check if there's a blank line before the next token
+                    # This makes the outer list loose
+                    if not self._at_end():
+                        next_tok = self._current
+                        # Check if there was a blank line before current token by looking at source
+                        if next_tok.location.offset > 0:
+                            # Find the line start
+                            line_start = self._source.rfind("\n", 0, next_tok.location.offset) + 1
+                            if line_start > 1:
+                                prev_char = self._source[line_start - 2 : line_start]
+                                if prev_char == "\n\n" or (
+                                    line_start >= 2
+                                    and self._source[line_start - 1] == "\n"
+                                    and self._source[line_start - 2] == "\n"
+                                ):
+                                    # There was a blank line before this token
+                                    tight = False
+
+                        if next_tok.type == TokenType.PARAGRAPH_LINE:
+                            next_indent = get_line_indent(self._source, next_tok.location.offset)
+                            # Content at outer item's content indent = continuation
+                            # Use content_indent (not check_content_indent) for comparison
+                            if next_indent >= start_indent and next_indent <= content_indent:
+                                # Blank line occurred (nested list ended), making list loose
+                                tight = False
+                                content_lines.append(next_tok.value.lstrip())
+                                self._advance()
+                                continue
                 elif nested_indent >= 4 and nested_indent < check_content_indent:
                     # Marker at 4+ spaces but not nested - literal content
                     marker_content = tok.value.lstrip()
@@ -359,6 +428,35 @@ class ListParsingMixin:
                     content_lines.append(marker_content)
                 else:
                     # Sibling item
+                    break
+
+            # Handle block-level elements at content indent
+            elif tok.type in (
+                TokenType.BLOCK_QUOTE_MARKER,
+                TokenType.FENCED_CODE_START,
+                TokenType.ATX_HEADING,
+                TokenType.THEMATIC_BREAK,
+            ):
+                # Check if the block element is at content indent
+                block_indent = get_line_indent(self._source, tok.location.offset)
+                check_content_indent = (
+                    actual_content_indent if actual_content_indent is not None else content_indent
+                )
+                if block_indent >= check_content_indent:
+                    # Block element belongs to this item
+                    if content_lines:
+                        content = "\n".join(content_lines)
+                        inlines = self._parse_inline(content, marker_token.location)
+                        item_children.append(
+                            Paragraph(location=marker_token.location, children=inlines)
+                        )
+                        content_lines = []
+                    block = self._parse_block()
+                    if block is not None:
+                        item_children.append(block)
+                    continue
+                else:
+                    # Block element is at list level - terminates item
                     break
 
             else:
@@ -378,7 +476,15 @@ class ListParsingMixin:
         return item, tight
 
     def _calculate_actual_content_indent(self, tok: Token, marker_stripped: str) -> int:
-        """Calculate actual content indent from first content line."""
+        """Calculate actual content indent from first content line.
+
+        CommonMark: The content indent is the column position where the first
+        non-space character appears after the marker. For continuation lines,
+        content must be indented to at least this column.
+
+        For example, in "1. a", the marker "1." ends at column 2, followed by
+        a space, so content starts at column 3. Content indent = 3.
+        """
         line_start = tok.location.offset
         line_start_pos = self._source.rfind("\n", 0, line_start) + 1
         if line_start_pos == 0:
@@ -390,7 +496,10 @@ class ListParsingMixin:
         if marker_pos_in_line == -1:
             return get_marker_indent(tok.value) + len(marker_part) + 1
 
-        marker_end_col = get_marker_indent(original_line[: marker_pos_in_line + len(marker_part)])
+        # Calculate indent to start of marker (handles tabs correctly)
+        marker_start_indent = get_marker_indent(original_line[:marker_pos_in_line])
+        # Column position after marker = indent to marker + marker length
+        marker_end_col = marker_start_indent + len(marker_part)
 
         rest_of_line = original_line[marker_pos_in_line + len(marker_part) :]
         if not rest_of_line or rest_of_line.isspace():
@@ -455,6 +564,17 @@ class ListParsingMixin:
 
             # More indented - actual code
             return "break"
+
+        # original_indent < check_indent
+        # Check if it's between start_indent and check_indent
+        # In CommonMark, content at indentation between marker and content
+        # column is literal content of the item (not a new marker or code)
+        marker_indent = get_marker_indent(marker_token.value)
+        if original_indent > marker_indent and original_indent < check_indent:
+            # This is literal content of the item (e.g., "    - e" in example 312)
+            content_lines.append(tok.value.rstrip())
+            self._advance()
+            return (content_lines, item_children)
 
         return "break"
 

@@ -94,8 +94,11 @@ def handle_blank_line(
 
         case TokenType.LIST_ITEM_MARKER:
             next_indent = get_marker_indent(next_token.value)
+            if next_indent < start_indent:
+                # Less than start_indent - belongs to outer list (ends this list)
+                return EndList()
             if next_indent < check_indent:
-                # Less than content_indent - sibling item (ends current item)
+                # Less than content_indent but >= start_indent - sibling item (ends current item)
                 return EndItem(is_loose=True)
             # At or beyond content_indent - could be nested list
             return ContinueList(is_loose=True)
@@ -169,13 +172,8 @@ def _handle_blank_then_indented_code(
     # Check indent relative to content
     indent_beyond_content = original_indent - check_indent
 
-    # If at or below content indent but not 4+ beyond, it's continuation
-    if (
-        original_indent <= check_indent
-        and original_indent >= start_indent
-        and indent_beyond_content < 4
-    ):
-        return ParseContinuation(is_loose=True, save_paragraph=True)
+    # After a blank line, content can only continue if at or beyond content indent
+    # Content BELOW content indent terminates the item (falls through to EndList)
 
     # Check for special block elements at content level
     if original_indent >= check_indent:
