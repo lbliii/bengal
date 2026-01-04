@@ -43,7 +43,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from bengal.config.defaults import DEFAULT_MAX_WORKERS, DEFAULTS
+from bengal.config.defaults import DEFAULTS
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -483,48 +483,18 @@ class ConfigLoader:
         """
         Get the default configuration.
 
-        Constructs a configuration dictionary from centralized defaults
-        in :mod:`bengal.config.defaults`. Used when no configuration file
-        is found.
+        Returns the complete DEFAULTS dictionary from :mod:`bengal.config.defaults`.
+        This ensures consistency between single-file and directory-based config
+        loading—both modes now inherit the same defaults.
 
         Returns:
-            Default configuration dictionary with all essential settings.
+            Default configuration dictionary with all settings from DEFAULTS.
         """
-        # Build config from centralized DEFAULTS
-        # Note: We flatten some nested defaults
-        return {
-            # Site metadata
-            "title": DEFAULTS["title"],
-            "baseurl": DEFAULTS["baseurl"],
-            # Build settings
-            "output_dir": DEFAULTS["output_dir"],
-            "content_dir": DEFAULTS["content_dir"],
-            "assets_dir": DEFAULTS["assets_dir"],
-            "templates_dir": DEFAULTS["templates_dir"],
-            "parallel": DEFAULTS["parallel"],
-            "incremental": DEFAULTS["incremental"],
-            "minify_html": DEFAULTS["minify_html"],
-            "html_output": DEFAULTS["html_output"],
-            "max_workers": DEFAULT_MAX_WORKERS,  # Auto-detected based on CPU cores
-            "pretty_urls": DEFAULTS["pretty_urls"],
-            # Assets (flat)
-            "minify_assets": DEFAULTS["assets"]["minify"],
-            "optimize_assets": DEFAULTS["assets"]["optimize"],
-            "fingerprint_assets": DEFAULTS["assets"]["fingerprint"],
-            # Features (flat)
-            "generate_sitemap": DEFAULTS["features"]["sitemap"],
-            "generate_rss": DEFAULTS["features"]["rss"],
-            "validate_links": DEFAULTS["validate_links"],
-            # Debug and validation options
-            "strict_mode": DEFAULTS["strict_mode"],
-            "debug": DEFAULTS["debug"],
-            "validate_build": DEFAULTS["validate_build"],
-            "validate_templates": DEFAULTS["validate_templates"],
-            "stable_section_references": DEFAULTS["stable_section_references"],
-            "min_page_size": DEFAULTS["min_page_size"],
-            # Theme configuration
-            "theme": DEFAULTS["theme"],
-        }
+        from bengal.config.merge import deep_merge
+
+        # Return a deep copy of DEFAULTS to avoid mutation
+        # This matches ConfigDirectoryLoader behavior for consistency
+        return deep_merge({}, DEFAULTS)
 
     def _apply_env_overrides(self, config: dict[str, Any]) -> dict[str, Any]:
         """

@@ -397,5 +397,6 @@ def has_tag(page: Any, tag: str) -> bool:
         return False
 
     # Case-insensitive comparison (convert to str in case YAML parsed as int)
-    page_tags = [str(t).lower() for t in page.tags]
+    # Filter out None tags (YAML parses 'null' as None)
+    page_tags = [str(t).lower() for t in page.tags if t is not None]
     return str(tag).lower() in page_tags

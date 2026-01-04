@@ -530,13 +530,16 @@ class PageMetadataMixin:
         Get page keywords from metadata.
 
         Returns:
-            List of keywords
+            List of keywords (sanitized strings)
         """
         keywords = self.metadata.get("keywords", [])
         if isinstance(keywords, str):
             # Split comma-separated keywords
-            return [k.strip() for k in keywords.split(",")]
-        return keywords if isinstance(keywords, list) else []
+            return [k.strip() for k in keywords.split(",") if k.strip()]
+        if isinstance(keywords, list):
+            # Sanitize: filter None, convert to strings, filter empty
+            return [str(k).strip() for k in keywords if k is not None and str(k).strip()]
+        return []
 
     # =========================================================================
     # Visibility System

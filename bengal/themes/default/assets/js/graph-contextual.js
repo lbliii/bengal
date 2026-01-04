@@ -134,6 +134,9 @@
                         graphContainer.classList.remove('graph-loading');
                     }
 
+                    // Signal that graph has data - parent container will expand via CSS
+                    this.container.classList.add('graph-has-data');
+
                     this.createSVG();
                     this.render();
                 } else {

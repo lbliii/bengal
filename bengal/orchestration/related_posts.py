@@ -285,7 +285,10 @@ class RelatedPostsOrchestrator:
         for page in self.site.pages:
             if hasattr(page, "tags") and page.tags:
                 # Convert tags to slugs for consistent matching (same as taxonomy)
-                page_tags[page] = {tag.lower().replace(" ", "-") for tag in page.tags}
+                # Filter out None tags (YAML parses 'null' as None)
+                page_tags[page] = {
+                    str(tag).lower().replace(" ", "-") for tag in page.tags if tag is not None
+                }
             else:
                 page_tags[page] = set()
 

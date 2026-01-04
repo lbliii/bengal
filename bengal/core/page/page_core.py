@@ -112,6 +112,9 @@ from datetime import datetime
 from typing import Any
 
 from bengal.cache.cacheable import Cacheable
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 @dataclass
@@ -239,9 +242,60 @@ class PageCore(Cacheable):
         if not self.title:
             self.title = "Untitled"
 
-        # Ensure tags is a list (not None)
-        if self.tags is None:
-            self.tags = []
+        # Sanitize list fields: YAML edge cases can produce unexpected types
+        # - 'null' or '~' → None
+        # - 'true'/'false' → bool
+        # - '123' → int
+        # - '2024-01-01' → datetime.date
+        # - nested [a, b] → list
+        # Filter out None, empty strings, and non-scalar types; convert rest to strings
+        self.tags, tags_filtered = self._sanitize_string_list_with_report(self.tags)
+        self.aliases, aliases_filtered = self._sanitize_string_list_with_report(self.aliases)
+
+        # Log warnings for filtered values (helps users catch YAML issues)
+        if tags_filtered:
+            logger.debug(
+                "frontmatter_tags_filtered",
+                source_path=self.source_path,
+                filtered=tags_filtered,
+                hint="YAML 'null' becomes None; use quoted strings for literal values",
+            )
+        if aliases_filtered:
+            logger.debug(
+                "frontmatter_aliases_filtered",
+                source_path=self.source_path,
+                filtered=aliases_filtered,
+                hint="YAML 'null' becomes None; use quoted strings for literal values",
+            )
+
+    @staticmethod
+    def _sanitize_string_list_with_report(
+        items: list | None,
+    ) -> tuple[list[str], list[str]]:
+        """
+        Sanitize a list of items to valid non-empty strings.
+
+        Returns:
+            Tuple of (sanitized_list, filtered_descriptions) where filtered_descriptions
+            contains human-readable descriptions of what was filtered out.
+        """
+        if items is None:
+            return [], []
+
+        sanitized = []
+        filtered = []
+
+        for item in items:
+            if item is None:
+                filtered.append("null/None")
+            elif isinstance(item, (list, dict)):
+                filtered.append(f"nested {type(item).__name__}")
+            elif not str(item).strip():
+                filtered.append("empty string")
+            else:
+                sanitized.append(str(item).strip())
+
+        return sanitized, filtered
 
     def to_cache_dict(self) -> dict[str, Any]:
         """

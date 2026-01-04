@@ -142,9 +142,9 @@ Or set `type: doc` to auto-select this template
   {# Right Sidebar: Contextual Graph + TOC + Metadata #}
   {% if toc_items %}
   <aside class="docs-toc" role="complementary" aria-label="Table of contents">
-    {# Contextual Graph Minimap #}
+    {# Contextual Graph Minimap - starts hidden, JS expands when data available #}
     <div class="graph-contextual" data-page-url="{{ page?.href ?? '' }}">
-      <div class="graph-contextual-container graph-loading" style="min-height: 200px;"></div>
+      <div class="graph-contextual-container graph-loading"></div>
     </div>
 
     {# Table of Contents #}

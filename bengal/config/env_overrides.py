@@ -109,9 +109,8 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
         'https://custom.com'
     """
     try:
-        # Check if baseurl is explicitly set in config (with a non-empty value)
+        # Check baseurl state
         current_baseurl = config.get("baseurl", "")
-        baseurl_explicitly_set = "baseurl" in config
         baseurl_has_value = bool(current_baseurl)
 
         # 1) BENGAL_BASEURL can override empty/missing baseurl (but not explicit non-empty)
@@ -120,9 +119,9 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
             config["baseurl"] = explicit.rstrip("/")
             return config
 
-        # If baseurl is explicitly set (even if empty), respect it
-        # This means explicit config baseurl takes precedence over platform detection
-        if baseurl_explicitly_set:
+        # If baseurl has a non-empty value, respect it (user explicitly configured it)
+        # Empty baseurl (from DEFAULTS or missing) allows platform detection to proceed
+        if baseurl_has_value:
             return config
 
         # 2) Netlify detection (only if baseurl not explicitly set)

@@ -3,27 +3,40 @@
  *
  * Styles for the contextual graph minimap shown in the sidebar above TOC.
  * Shows only connections to the current page (like Obsidian's contextual graph).
+ *
+ * Loading Strategy (v3):
+ * - Container starts hidden (height: 0) to prevent flicker when graph is empty/disabled
+ * - JS adds .graph-has-data class when valid graph data is found
+ * - Only then does the container expand and become visible
+ * - This prevents the "flash of empty placeholder" issue
  */
 
 /* Contextual Minimap Container */
 .graph-contextual {
     width: 100%;
-    height: 200px; /* Fixed height to prevent layout shifts */
-    margin-bottom: var(--space-6);
-    position: relative;
+    /* Start collapsed - JS will expand when data is available */
+    height: 0;
     overflow: hidden;
-    /* Reserve space to prevent layout shift */
-    flex-shrink: 0;
+    position: relative;
     /* Breathing room from parent's scrollbar (docs-toc overflow-y: auto) */
     padding-inline-end: 0.5rem;
     box-sizing: border-box;
+    /* Smooth expansion when graph loads */
+    transition: height 0.2s ease, margin-bottom 0.2s ease;
 }
 
-/* Loading placeholder - ensure it stays visible until graph loads */
+/* Expand container when graph has data (set by JS) */
+.graph-contextual.graph-has-data {
+    height: 200px;
+    margin-bottom: var(--space-6);
+    flex-shrink: 0;
+}
+
+/* Loading state - container is still collapsed, inner element shows loading state */
 .graph-contextual-container.graph-loading {
-    opacity: 1 !important;
-    visibility: visible !important;
-    display: flex !important;
+    /* No forced visibility - let parent container control visibility */
+    display: flex;
+    opacity: 0.5;
 }
 
 .graph-contextual-container {
@@ -109,30 +122,12 @@
     width: 100%;
     height: 100%;
     display: block;
-    opacity: 1 !important; /* Ensure SVG is always visible (fix for production fade-out) */
-    visibility: visible !important;
 }
 
-/* Ensure container is visible when graph is loaded (override any lazy-loading CSS) */
-.graph-contextual-container.graph-loaded,
-.graph-contextual-container.graph-visible {
-    opacity: 1 !important;
-    visibility: visible !important;
-    display: block !important;
-}
-
-/* Ensure SVG is visible (class-based approach to reduce inline style churn) */
-.graph-contextual-container svg.graph-svg-visible {
-    display: block;
+/* Container visibility controlled by parent .graph-has-data class */
+.graph-contextual.graph-has-data .graph-contextual-container {
     opacity: 1;
     visibility: visible;
-}
-
-/* Fallback: ensure visibility when SVG exists (for browsers that support :has) */
-.graph-contextual-container:has(svg) {
-    opacity: 1 !important;
-    visibility: visible !important;
-    display: block !important;
 }
 
 /* Reuse graph.css styles - contextual graph uses same classes */

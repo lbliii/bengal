@@ -50,19 +50,20 @@ class TestApplyEnvOverridesExplicit:
             result = apply_env_overrides(config)
         assert result["baseurl"] == "https://example.com"
 
-    def test_explicit_empty_baseurl_respected_by_platform_detection(self):
-        """Explicit empty baseurl is respected by platform detection (not overridden)."""
-        config = {"baseurl": ""}  # Explicit empty should be respected
-        # Platform detection should not override
+    def test_empty_baseurl_allows_platform_detection(self):
+        """Empty baseurl allows platform detection (enables DEFAULTS + auto-detect)."""
+        # With DEFAULTS providing baseurl: "", platform detection should still work
+        # This is the common case: user doesn't set baseurl, DEFAULTS sets "",
+        # and we want platform detection to auto-compute the right value
+        config = {"baseurl": ""}
         env = {
             "NETLIFY": "true",
-            "URL": "https://should-not-apply.netlify.app",
-            "GITHUB_ACTIONS": "true",
-            "GITHUB_REPOSITORY": "owner/repo",
+            "URL": "https://mysite.netlify.app",
         }
         with patch.dict(os.environ, env, clear=False):
             result = apply_env_overrides(config)
-        assert result["baseurl"] == ""  # Should stay empty
+        # Platform detection should apply because baseurl is empty
+        assert result["baseurl"] == "https://mysite.netlify.app"
 
     def test_bengal_baseurl_overrides_explicit_empty(self):
         """BENGAL_BASEURL can override explicit empty baseurl."""

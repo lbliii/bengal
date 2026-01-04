@@ -180,9 +180,9 @@ class TestConfigDirectoryLoader:
         with pytest.raises(ConfigLoadError, match="Invalid YAML"):
             loader.load(config_dir, environment="local")
 
-    def test_load_missing_defaults_warns(self, tmp_path, monkeypatch):
-        """Test loading without _default/ directory warns but continues."""
-        # Clear GitHub Actions env vars to get truly empty config
+    def test_load_missing_defaults_inherits_bengal_defaults(self, tmp_path, monkeypatch):
+        """Test loading without _default/ directory inherits Bengal DEFAULTS."""
+        # Clear environment variables to avoid baseurl overrides
         monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
         monkeypatch.delenv("GITHUB_REPOSITORY", raising=False)
         monkeypatch.delenv("NETLIFY", raising=False)
@@ -194,10 +194,13 @@ class TestConfigDirectoryLoader:
 
         loader = ConfigDirectoryLoader()
 
-        # Should not raise, just warn (check logs if needed)
+        # Should not raise, and should have Bengal DEFAULTS applied
         config = loader.load(config_dir, environment="local")
 
-        assert config == {}  # Empty config (no env overrides)
+        # Should inherit key defaults that enable search by default
+        # Note: features.rss expands to add 'rss' to site_wide
+        assert "index_json" in config["output_formats"]["site_wide"]
+        assert config["search"]["enabled"] is True
 
     def test_load_multiple_yaml_files_merged(self, config_dir):
         """Test multiple .yaml files in _default/ are merged."""
@@ -321,13 +324,16 @@ class TestConfigDirectoryLoader:
     def test_load_dev_config_flattened(self, config_dir):
         """Test that dev config fields are flattened for backward compatibility."""
         # Add dev config to production environment
+        # Note: For keys that exist in DEFAULTS at top level (like cache_templates),
+        # users should set them directly at top level. watch_backend is dev-specific.
         (config_dir / "environments" / "production.yaml").write_text(
             yaml.dump(
                 {
+                    # cache_templates set at top level to override DEFAULTS
+                    "cache_templates": False,
                     "dev": {
-                        "cache_templates": False,
                         "watch_backend": "auto",
-                    }
+                    },
                 }
             )
         )
@@ -335,13 +341,268 @@ class TestConfigDirectoryLoader:
         loader = ConfigDirectoryLoader()
         config = loader.load(config_dir, environment="production")
 
-        # Check nested structure is preserved
-        assert config["dev"]["cache_templates"] is False
+        # Check nested structure is preserved for dev-specific settings
         assert config["dev"]["watch_backend"] == "auto"
 
-        # Check flattened keys exist (for backward compatibility)
+        # Check top-level override works
         assert config["cache_templates"] is False
+
+        # Check flattened keys exist (for backward compatibility)
         assert config["watch_backend"] == "auto"
+
+
+class TestDefaultsInheritance:
+    """Test that directory configs inherit from Bengal DEFAULTS."""
+
+    def test_directory_config_inherits_all_defaults(self, tmp_path, monkeypatch):
+        """Directory-based configs should inherit from DEFAULTS as base layer."""
+        # Clear environment variables to avoid overrides
+        monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+        monkeypatch.delenv("NETLIFY", raising=False)
+        monkeypatch.delenv("VERCEL", raising=False)
+        monkeypatch.delenv("BENGAL_BASEURL", raising=False)
+
+        config_dir = tmp_path / "config"
+        defaults_dir = config_dir / "_default"
+        defaults_dir.mkdir(parents=True)
+
+        # Create minimal user config (just site title)
+        (defaults_dir / "site.yaml").write_text(yaml.dump({"site": {"title": "My Site"}}))
+
+        loader = ConfigDirectoryLoader()
+        config = loader.load(config_dir, environment="local")
+
+        # User config should be applied
+        assert config["site"]["title"] == "My Site"
+
+        # But should also have all DEFAULTS applied
+        # Note: features.rss expands and adds 'rss' to site_wide list
+        assert "index_json" in config["output_formats"]["site_wide"]
+        assert config["search"]["enabled"] is True
+        assert config["theme"]["name"] == "default"
+        assert config["parallel"] is True
+
+    def test_user_config_overrides_defaults(self, tmp_path, monkeypatch):
+        """User config should override inherited defaults."""
+        monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+        monkeypatch.delenv("NETLIFY", raising=False)
+        monkeypatch.delenv("VERCEL", raising=False)
+        monkeypatch.delenv("BENGAL_BASEURL", raising=False)
+
+        config_dir = tmp_path / "config"
+        defaults_dir = config_dir / "_default"
+        defaults_dir.mkdir(parents=True)
+
+        # Explicitly disable search output AND disable features to prevent expansion
+        (defaults_dir / "output.yaml").write_text(
+            yaml.dump(
+                {
+                    "output_formats": {"site_wide": []},
+                    "features": {"rss": False, "search": False},  # Disable feature expansion
+                }
+            )
+        )
+
+        loader = ConfigDirectoryLoader()
+        config = loader.load(config_dir, environment="local")
+
+        # User override should win - empty list since features are disabled
+        assert config["output_formats"]["site_wide"] == []
+
+    def test_explicit_search_disabled_respected(self, tmp_path, monkeypatch):
+        """User can explicitly disable search via config."""
+        monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+        monkeypatch.delenv("NETLIFY", raising=False)
+        monkeypatch.delenv("VERCEL", raising=False)
+        monkeypatch.delenv("BENGAL_BASEURL", raising=False)
+
+        config_dir = tmp_path / "config"
+        defaults_dir = config_dir / "_default"
+        defaults_dir.mkdir(parents=True)
+
+        # Explicitly disable search
+        (defaults_dir / "search.yaml").write_text(yaml.dump({"search": {"enabled": False}}))
+
+        loader = ConfigDirectoryLoader()
+        config = loader.load(config_dir, environment="local")
+
+        # User disabled search
+        assert config["search"]["enabled"] is False
+
+    def test_origin_tracking_shows_bengal_defaults(self, tmp_path, monkeypatch):
+        """Origin tracking should show _bengal_defaults as base layer."""
+        monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+        monkeypatch.delenv("NETLIFY", raising=False)
+        monkeypatch.delenv("VERCEL", raising=False)
+        monkeypatch.delenv("BENGAL_BASEURL", raising=False)
+
+        config_dir = tmp_path / "config"
+        defaults_dir = config_dir / "_default"
+        defaults_dir.mkdir(parents=True)
+
+        # Minimal user config
+        (defaults_dir / "site.yaml").write_text(yaml.dump({"site": {"title": "My Site"}}))
+
+        loader = ConfigDirectoryLoader(track_origins=True)
+        loader.load(config_dir, environment="local")
+
+        tracker = loader.get_origin_tracker()
+        assert tracker is not None
+
+        # User-provided value should be from _default
+        assert tracker.get_origin("site.title") == "_default"
+
+        # DEFAULTS-provided value should be from _bengal_defaults
+        assert tracker.get_origin("output_formats.site_wide") == "_bengal_defaults"
+
+    def test_search_works_without_features_yaml(self, tmp_path, monkeypatch):
+        """Search should work even without features.yaml (Rosettes case)."""
+        monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+        monkeypatch.delenv("NETLIFY", raising=False)
+        monkeypatch.delenv("VERCEL", raising=False)
+        monkeypatch.delenv("BENGAL_BASEURL", raising=False)
+
+        config_dir = tmp_path / "config"
+        defaults_dir = config_dir / "_default"
+        defaults_dir.mkdir(parents=True)
+
+        # Simulate Rosettes-style config: theme.yaml with search UI, but no features.yaml
+        (defaults_dir / "theme.yaml").write_text(
+            yaml.dump(
+                {
+                    "theme": {
+                        "name": "default",
+                        "features": ["search", "search.suggest", "search.highlight"],
+                    }
+                }
+            )
+        )
+        (defaults_dir / "site.yaml").write_text(yaml.dump({"site": {"title": "Rosettes Docs"}}))
+
+        loader = ConfigDirectoryLoader()
+        config = loader.load(config_dir, environment="local")
+
+        # Search should work because DEFAULTS provides output_formats.site_wide
+        # Note: features.rss from DEFAULTS will also add 'rss' to the list
+        assert "index_json" in config["output_formats"]["site_wide"]
+        assert config["search"]["enabled"] is True
+
+        # Theme features are preserved (UI flags)
+        assert "search" in config["theme"]["features"]
+
+
+class TestSearchUIWarning:
+    """Test warning when theme.features has search but no index will be generated."""
+
+    def test_warns_when_search_ui_enabled_but_no_index(self, tmp_path, monkeypatch, capsys):
+        """Should warn if theme.features has search but no index_json in site_wide."""
+        monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+        monkeypatch.delenv("NETLIFY", raising=False)
+        monkeypatch.delenv("VERCEL", raising=False)
+        monkeypatch.delenv("BENGAL_BASEURL", raising=False)
+
+        config_dir = tmp_path / "config"
+        defaults_dir = config_dir / "_default"
+        defaults_dir.mkdir(parents=True)
+
+        # theme.yaml with search UI enabled
+        (defaults_dir / "theme.yaml").write_text(
+            yaml.dump(
+                {
+                    "theme": {
+                        "features": ["search", "search.suggest"],
+                    }
+                }
+            )
+        )
+        # Disable search feature to prevent index_json
+        (defaults_dir / "output.yaml").write_text(
+            yaml.dump(
+                {
+                    "output_formats": {"site_wide": []},
+                    "features": {"search": False, "rss": False},
+                }
+            )
+        )
+
+        loader = ConfigDirectoryLoader()
+        loader.load(config_dir, environment="local")
+
+        # Bengal's custom logger prints warnings to stdout
+        # Check that the warning was printed
+        captured = capsys.readouterr()
+        assert "search_ui_without_index" in captured.out
+
+    def test_no_warning_when_index_json_present(self, tmp_path, monkeypatch, capsys):
+        """Should NOT warn if index_json is in site_wide."""
+        monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+        monkeypatch.delenv("NETLIFY", raising=False)
+        monkeypatch.delenv("VERCEL", raising=False)
+        monkeypatch.delenv("BENGAL_BASEURL", raising=False)
+
+        config_dir = tmp_path / "config"
+        defaults_dir = config_dir / "_default"
+        defaults_dir.mkdir(parents=True)
+
+        # theme.yaml with search UI enabled
+        (defaults_dir / "theme.yaml").write_text(
+            yaml.dump(
+                {
+                    "theme": {
+                        "features": ["search"],
+                    }
+                }
+            )
+        )
+        # Output formats includes index_json
+        (defaults_dir / "output.yaml").write_text(
+            yaml.dump({"output_formats": {"site_wide": ["index_json"]}})
+        )
+
+        loader = ConfigDirectoryLoader()
+        loader.load(config_dir, environment="local")
+
+        # Should NOT have warned
+        captured = capsys.readouterr()
+        assert "search_ui_without_index" not in captured.out
+
+    def test_no_warning_when_no_search_in_theme_features(self, tmp_path, monkeypatch, capsys):
+        """Should NOT warn if search is not in theme.features."""
+        monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+        monkeypatch.delenv("NETLIFY", raising=False)
+        monkeypatch.delenv("VERCEL", raising=False)
+        monkeypatch.delenv("BENGAL_BASEURL", raising=False)
+
+        config_dir = tmp_path / "config"
+        defaults_dir = config_dir / "_default"
+        defaults_dir.mkdir(parents=True)
+
+        # theme.yaml WITHOUT search in features
+        (defaults_dir / "theme.yaml").write_text(
+            yaml.dump(
+                {
+                    "theme": {
+                        "features": ["navigation.toc"],
+                    }
+                }
+            )
+        )
+        # No index_json
+        (defaults_dir / "output.yaml").write_text(
+            yaml.dump(
+                {
+                    "output_formats": {"site_wide": []},
+                    "features": {"search": False, "rss": False},
+                }
+            )
+        )
+
+        loader = ConfigDirectoryLoader()
+        loader.load(config_dir, environment="local")
+
+        # Should NOT have warned (no search UI to trigger the warning)
+        captured = capsys.readouterr()
+        assert "search_ui_without_index" not in captured.out
 
 
 class TestConfigLoadErrorCodes:

@@ -98,9 +98,10 @@ class TaxonomyIndexMixin:
         affected_tags = set()
 
         # Get old tags for this page
+        # Filter out None tags (YAML parses 'null' as None)
         old_tags = self.page_tags.get(page_path_str, set())
-        old_slugs = {tag.lower().replace(" ", "-") for tag in old_tags}
-        new_slugs = {tag.lower().replace(" ", "-") for tag in tags}
+        old_slugs = {str(tag).lower().replace(" ", "-") for tag in old_tags if tag is not None}
+        new_slugs = {str(tag).lower().replace(" ", "-") for tag in tags if tag is not None}
 
         # Find changes
         removed_slugs = old_slugs - new_slugs

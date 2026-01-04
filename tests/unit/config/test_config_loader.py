@@ -2,6 +2,7 @@
 Tests for configuration loader.
 """
 
+from bengal.config.defaults import DEFAULTS
 from bengal.config.loader import ConfigLoader
 
 
@@ -227,3 +228,67 @@ my_value = "test"
 
         # Unknown sections may generate warnings (but not required)
         # since they could be intentional user-defined config
+
+
+class TestDefaultConfig:
+    """Test _default_config() returns full DEFAULTS."""
+
+    def test_default_config_returns_full_defaults(self, tmp_path, monkeypatch):
+        """Test that _default_config() returns all DEFAULTS, not a subset."""
+        # Clear env vars that could interfere
+        monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+        monkeypatch.delenv("NETLIFY", raising=False)
+        monkeypatch.delenv("VERCEL", raising=False)
+        monkeypatch.delenv("BENGAL_BASEURL", raising=False)
+
+        loader = ConfigLoader(tmp_path)
+        config = loader._default_config()
+
+        # Should have key sections from DEFAULTS
+        assert config["output_formats"]["site_wide"] == DEFAULTS["output_formats"]["site_wide"]
+        assert config["search"]["enabled"] == DEFAULTS["search"]["enabled"]
+        assert config["theme"]["name"] == DEFAULTS["theme"]["name"]
+        assert config["parallel"] == DEFAULTS["parallel"]
+        assert config["features"] == DEFAULTS["features"]
+
+    def test_default_config_used_when_no_config_file(self, tmp_path, monkeypatch):
+        """Test that load() uses _default_config() when no config file found."""
+        # Clear env vars
+        monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+        monkeypatch.delenv("NETLIFY", raising=False)
+        monkeypatch.delenv("VERCEL", raising=False)
+        monkeypatch.delenv("BENGAL_BASEURL", raising=False)
+
+        loader = ConfigLoader(tmp_path)
+        config = loader.load()
+
+        # Should get full DEFAULTS when no config file
+        assert "index_json" in config["output_formats"]["site_wide"]
+        assert config["search"]["enabled"] is True
+
+    def test_default_config_consistency_with_directory_loader(self, tmp_path, monkeypatch):
+        """Ensure ConfigLoader._default_config() is consistent with ConfigDirectoryLoader."""
+        from bengal.config.directory_loader import ConfigDirectoryLoader
+
+        # Clear env vars
+        monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+        monkeypatch.delenv("NETLIFY", raising=False)
+        monkeypatch.delenv("VERCEL", raising=False)
+        monkeypatch.delenv("BENGAL_BASEURL", raising=False)
+
+        # Create empty config dir for directory loader
+        config_dir = tmp_path / "config"
+        config_dir.mkdir()
+
+        single_loader = ConfigLoader(tmp_path)
+        single_config = single_loader._default_config()
+
+        dir_loader = ConfigDirectoryLoader()
+        dir_config = dir_loader.load(config_dir, environment="local")
+
+        # Key defaults should match between loaders
+        assert (
+            single_config["output_formats"]["site_wide"] == DEFAULTS["output_formats"]["site_wide"]
+        )
+        # Note: dir_config has feature expansion applied, so check the underlying value
+        assert "index_json" in dir_config["output_formats"]["site_wide"]

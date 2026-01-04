@@ -442,7 +442,9 @@ class GraphReporter:
             for page in analysis_pages:
                 if hasattr(page, "tags") and page.tags:
                     for tag in page.tags:
-                        tag_to_pages[tag].append(page)
+                        # Skip None tags (YAML parses 'null' as None)
+                        if tag is not None:
+                            tag_to_pages[str(tag)].append(page)
 
             # Find tags with multiple pages but low cross-linking
             for tag, pages in tag_to_pages.items():

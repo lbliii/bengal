@@ -22,9 +22,10 @@ Directory Structure:
             └── developer.yaml
 
 Merge Precedence (lowest to highest):
-    1. ``config/_default/*.yaml`` - Base configuration
-    2. ``config/environments/<env>.yaml`` - Environment overrides
-    3. ``config/profiles/<profile>.yaml`` - Profile settings
+    1. Bengal DEFAULTS from ``defaults.py`` - Built-in defaults
+    2. ``config/_default/*.yaml`` - Base configuration
+    3. ``config/environments/<env>.yaml`` - Environment overrides
+    4. ``config/profiles/<profile>.yaml`` - Profile settings
 
 Features:
     - Auto-detection of deployment environment (Netlify, Vercel, GitHub Actions)
@@ -53,6 +54,7 @@ from typing import Any
 
 import yaml
 
+from bengal.config.defaults import DEFAULTS
 from bengal.config.environment import detect_environment, get_environment_file_candidates
 from bengal.config.feature_mappings import expand_features
 from bengal.config.merge import batch_deep_merge, deep_merge
@@ -151,9 +153,10 @@ class ConfigDirectoryLoader:
         Load config from directory with precedence.
 
         Precedence (lowest to highest):
-        1. config/_default/*.yaml (base)
-        2. config/environments/<env>.yaml (environment overrides)
-        3. config/profiles/<profile>.yaml (profile settings)
+        1. Bengal DEFAULTS from defaults.py (built-in defaults)
+        2. config/_default/*.yaml (base user config)
+        3. config/environments/<env>.yaml (environment overrides)
+        4. config/profiles/<profile>.yaml (profile settings)
 
         Args:
             config_dir: Path to config directory
@@ -191,9 +194,14 @@ class ConfigDirectoryLoader:
             environment = detect_environment()
             logger.debug("environment_detected", environment=environment)
 
-        config: dict[str, Any] = {}
+        # Layer 0: Start with Bengal DEFAULTS as base layer
+        # This ensures all sites get sensible defaults (search, output_formats, etc.)
+        # even if _default/ directory is missing or incomplete
+        config: dict[str, Any] = deep_merge({}, DEFAULTS)
+        if self.origin_tracker:
+            self.origin_tracker.merge(DEFAULTS, "_bengal_defaults")
 
-        # Layer 1: Base defaults from _default/
+        # Layer 1: User defaults from _default/ (overrides DEFAULTS)
         defaults_dir = config_dir / "_default"
         if defaults_dir.exists():
             default_config = self._load_directory(defaults_dir, _origin_prefix="_default")
@@ -225,6 +233,9 @@ class ConfigDirectoryLoader:
 
         # Expand feature groups (must happen after all merges)
         config = expand_features(config)
+
+        # Warn about common theme.features vs features confusion
+        self._warn_search_ui_without_index(config)
 
         # Flatten config (site.title → title, build.parallel → parallel)
         config = self._flatten_config(config)
@@ -457,6 +468,58 @@ class ConfigDirectoryLoader:
         """
         return self.origin_tracker
 
+    def _warn_search_ui_without_index(self, config: dict[str, Any]) -> None:
+        """
+        Warn if theme.features has search but search index won't be generated.
+
+        This catches a common confusion: users set ``theme.features: [search]``
+        (which only enables UI components) but don't realize they also need
+        ``features.search: true`` or ``output_formats.site_wide: [index_json]``
+        for search to actually work.
+
+        Args:
+            config: Configuration dictionary after feature expansion.
+        """
+        # Get theme.features (UI flags - list of strings)
+        theme = config.get("theme", {})
+        if not isinstance(theme, dict):
+            return
+
+        theme_features = theme.get("features", [])
+        if not isinstance(theme_features, list):
+            return
+
+        # Check if "search" is in theme.features
+        has_search_ui = any(
+            f == "search" or (isinstance(f, str) and f.startswith("search."))
+            for f in theme_features
+        )
+
+        if not has_search_ui:
+            return
+
+        # Check if search index will be generated
+        output_formats = config.get("output_formats", {})
+        if not isinstance(output_formats, dict):
+            return
+
+        site_wide = output_formats.get("site_wide", [])
+        has_index_json = "index_json" in site_wide if isinstance(site_wide, list) else False
+
+        if has_index_json:
+            return
+
+        # Search UI is enabled but no index will be generated - warn user
+        logger.warning(
+            "search_ui_without_index",
+            theme_features=[f for f in theme_features if "search" in str(f)],
+            site_wide_formats=site_wide,
+            suggestion=(
+                "Add 'features.search: true' to config/_default/features.yaml, "
+                "or add 'index_json' to output_formats.site_wide"
+            ),
+        )
+
     def _flatten_config(self, config: dict[str, Any]) -> dict[str, Any]:
         """
         Flatten nested configuration for easier access.
@@ -482,22 +545,23 @@ class ConfigDirectoryLoader:
         flat = dict(config)
 
         # Extract site section to top level
+        # Note: site.* values ALWAYS override any flat values (even from DEFAULTS)
+        # because [site] is the canonical section for user configuration
         if "site" in config and isinstance(config["site"], dict):
             for key, value in config["site"].items():
-                if key not in flat:
-                    flat[key] = value
+                flat[key] = value  # Always override
 
         # Extract build section to top level
+        # Note: build.* values ALWAYS override any flat values (even from DEFAULTS)
         if "build" in config and isinstance(config["build"], dict):
             for key, value in config["build"].items():
-                if key not in flat:
-                    flat[key] = value
+                flat[key] = value  # Always override
 
         # Extract dev section to top level (for cache_templates, watch_backend, etc.)
+        # Note: dev.* values ALWAYS override any flat values (even from DEFAULTS)
         if "dev" in config and isinstance(config["dev"], dict):
             for key, value in config["dev"].items():
-                if key not in flat:
-                    flat[key] = value
+                flat[key] = value  # Always override
 
         # Extract features section to top level
         # Note: expand_features() runs before flattening, so this mainly handles
@@ -512,7 +576,6 @@ class ConfigDirectoryLoader:
         if "assets" in config and isinstance(config["assets"], dict):
             for key, value in config["assets"].items():
                 flat_key = f"{key}_assets"
-                if flat_key not in flat:
-                    flat[flat_key] = value
+                flat[flat_key] = value  # Always override
 
         return flat

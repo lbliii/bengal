@@ -79,11 +79,9 @@ Auto-selected for pages without a specific type
 
     {% if toc %}
     <aside class="page-sidebar">
-      {# Contextual Graph Minimap #}
+      {# Contextual Graph Minimap - starts hidden, JS expands when data available #}
       <div class="graph-contextual" data-page-url="{{ page_href }}">
-        <div class="graph-contextual-container graph-loading"
-             style="min-height: 200px; opacity: 1 !important; visibility: visible !important;">
-        </div>
+        <div class="graph-contextual-container graph-loading"></div>
       </div>
 
       <nav class="toc" aria-label="Table of contents">

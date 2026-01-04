@@ -65,7 +65,9 @@ class TaxonomyChangeDetector:
                 removed_tags = old_tags - new_tags
 
                 for tag in added_tags | removed_tags:
-                    affected_tags.add(tag.lower().replace(" ", "-"))
+                    # Ensure tag is a string (YAML may parse 'null' as None)
+                    if tag is not None:
+                        affected_tags.add(str(tag).lower().replace(" ", "-"))
                     if verbose:
                         change_summary.extra_changes.setdefault("Taxonomy changes", [])
                         change_summary.extra_changes["Taxonomy changes"].append(
