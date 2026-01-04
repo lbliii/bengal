@@ -247,8 +247,10 @@ class Site(
             # Fallback for config where theme was a string
             self.theme = theme_section if isinstance(theme_section, str) else "default"
 
+        # Theme.from_config expects a dict; use .raw if available (Config object) else use directly (plain dict)
+        config_dict = self.config.raw if hasattr(self.config, "raw") else self.config
         self._theme_obj = Theme.from_config(
-            self.config.raw,  # Theme.from_config expects a dict
+            config_dict,
             root_path=self.root_path,
             diagnostics_site=self,
         )
@@ -278,8 +280,8 @@ class Site(
         self._compute_config_hash()
 
         # Initialize versioning configuration
-        # VersionConfig.from_config expects a dict, use .raw for serialization
-        self.version_config = VersionConfig.from_config(self.config.raw)
+        # VersionConfig.from_config expects a dict; config_dict already computed above
+        self.version_config = VersionConfig.from_config(config_dict)
         if self.version_config.enabled:
             emit_diagnostic(
                 self,
