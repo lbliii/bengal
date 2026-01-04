@@ -51,12 +51,16 @@ class LinkRefClassifierMixin:
         url = ""
         title = ""
 
+        url_is_empty_angle = False
         if rest.startswith("<"):
-            # Angle-bracketed URL
+            # Angle-bracketed URL - can be empty <>
             close_bracket = rest.find(">")
             if close_bracket != -1:
                 url = rest[1:close_bracket]
+                url_is_empty_angle = close_bracket == 1  # <> means empty URL
                 rest = rest[close_bracket + 1 :].strip()
+            else:
+                return None  # Unclosed angle bracket
         else:
             # Bare URL - ends at whitespace
             parts = rest.split(None, 1)
@@ -71,7 +75,8 @@ class LinkRefClassifierMixin:
         ):
             title = rest[1:-1]
 
-        if not url:
+        # Empty URL is only valid with angle brackets <>
+        if not url and not url_is_empty_angle:
             return None
 
         # Value format: label|url|title

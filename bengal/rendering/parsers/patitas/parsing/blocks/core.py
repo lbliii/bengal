@@ -401,7 +401,7 @@ class BlockParsingCoreMixin:
         # Check if next token is THEMATIC_BREAK (---) which could be setext h2
         # CommonMark: A sequence of only --- (with optional trailing spaces) after
         # paragraph is setext heading, not thematic break. But "--- -" is a thematic break.
-        if len(lines) == 1 and not self._at_end():
+        if len(lines) >= 1 and not self._at_end():
             token = self._current
             if token is not None and token.type == TokenType.THEMATIC_BREAK:
                 # Check if the thematic break is a valid setext underline
@@ -409,8 +409,9 @@ class BlockParsingCoreMixin:
                 break_value = token.value.strip()
                 if break_value and all(c == "-" for c in break_value):
                     self._advance()  # Consume the thematic break
-                    # CommonMark: strip trailing whitespace from heading content
-                    heading_text = lines[0].rstrip()
+                    # CommonMark: strip trailing whitespace from each line
+                    heading_lines = [line.rstrip() for line in lines]
+                    heading_text = "\n".join(heading_lines)
                     children = self._parse_inline(heading_text, start_token.location)
                     return Heading(
                         location=start_token.location,

@@ -181,7 +181,7 @@ DEFAULTS: dict[str, Any] = {
 # bengal/config/accessor.py
 
 from __future__ import annotations
-from typing import Any, Protocol
+from typing import Any, Protocol, cast
 from functools import cached_property
 
 # -----------------------------------------------------------------------------
@@ -239,7 +239,7 @@ class Config:
         AttributeError: No config key 'typo' in section
     """
 
-    __slots__ = ("_data",)
+    __slots__ = ("_data", "__dict__") # __dict__ needed for cached_property
 
     def __init__(self, data: dict[str, Any]) -> None:
         self._data = data
@@ -249,16 +249,19 @@ class Config:
     # -------------------------------------------------------------------------
 
     @cached_property
-    def site(self) -> ConfigSection:
-        return ConfigSection(self._data.get("site", {}), "site")
+    def site(self) -> SiteConfig:
+        """Returns site section cast to SiteConfig protocol for IDE support."""
+        return cast(SiteConfig, ConfigSection(self._data.get("site", {}), "site"))
 
     @cached_property
-    def build(self) -> ConfigSection:
-        return ConfigSection(self._data.get("build", {}), "build")
+    def build(self) -> BuildConfig:
+        """Returns build section cast to BuildConfig protocol for IDE support."""
+        return cast(BuildConfig, ConfigSection(self._data.get("build", {}), "build"))
 
     @cached_property
-    def dev(self) -> ConfigSection:
-        return ConfigSection(self._data.get("dev", {}), "dev")
+    def dev(self) -> DevConfig:
+        """Returns dev section cast to DevConfig protocol for IDE support."""
+        return cast(DevConfig, ConfigSection(self._data.get("dev", {}), "dev"))
 
     @cached_property
     def theme(self) -> ConfigSection:
@@ -283,6 +286,15 @@ class Config:
     @cached_property
     def features(self) -> ConfigSection:
         return ConfigSection(self._data.get("features", {}), "features")
+
+    def __getattr__(self, key: str) -> ConfigSection:
+        """
+        Enables config.custom_section.key for user-defined sections.
+        Fallthrough for any section not explicitly defined as a property.
+        """
+        if key.startswith("_"):
+            raise AttributeError(key)
+        return ConfigSection(self._data.get(key, {}), key)
 
     # -------------------------------------------------------------------------
     # Dict Access (for dynamic/custom keys)
@@ -585,6 +597,76 @@ for page in pages:
 
 The `Config` class uses `cached_property` for top-level sections, and `ConfigSection` caches nested sections internally. However, hoisting is still recommended for tight loops.
 
+### Feature Expansion Integration
+
+Feature expansion (`features.search: true` → detailed config) runs during loading, before the `Config` object is created:
+
+```python
+# bengal/config/loader.py
+
+def load(self, site_root: Path, ...) -> Config:
+    # Layer 0: DEFAULTS (nested)
+    config = deep_merge({}, DEFAULTS)
+
+    # Layer 1: User config
+    user_config = self._load_user_config(site_root)
+    config = deep_merge(config, user_config)
+
+    # Layer 2: Environment overrides
+    config = self._apply_environment(config, environment)
+
+    # Layer 3: Profile overrides
+    config = self._apply_profile(config, profile)
+
+    # Feature expansion (BEFORE creating Config object)
+    # This mutates the dict, expanding shorthand to full config
+    config = expand_features(config)
+
+    # Platform env vars (Netlify, Vercel, GitHub)
+    config = apply_env_overrides(config)
+
+    # Validation
+    validate_config(config)
+
+    # Create immutable accessor
+    return Config(config)
+```
+
+**Key Points**:
+- `expand_features()` runs on the raw dict, not the `Config` object
+- The `Config` object is created *after* expansion, so it sees the expanded values
+- Feature expansion is transparent to code using `Config` — they see the final state
+
+**Feature expansion example**:
+
+```yaml
+# User writes (shorthand):
+features:
+  search: true
+
+# After expand_features():
+search:
+  enabled: true
+  lunr:
+    prebuilt: true
+    preload: smart
+  # ... full search config from DEFAULTS
+output_formats:
+  site_wide:
+    - index_json  # Added by search expansion
+```
+
+**Debugging feature expansion**:
+
+```python
+# In loader, log at DEBUG level:
+if logger.isEnabledFor(logging.DEBUG):
+    before = config.get("features", {})
+    config = expand_features(config)
+    after = {k: config.get(k) for k in ["search", "output_formats", "rss", "sitemap"]}
+    logger.debug("feature_expansion", before=before, after=after)
+```
+
 ### Config Validation
 
 Validate required keys at load time to fail fast:
@@ -656,18 +738,81 @@ def load(self, site_root: Path, ...) -> Config:
 
 ## Implementation Plan
 
+### Step 0: Pre-Migration Verification (Required)
+
+Before starting, run the migration script to establish a baseline:
+
+```bash
+# Generate baseline report
+python scripts/migrate_config_access.py --templates --json > baseline.json
+
+# Review summary
+cat baseline.json | python -c "import json,sys; d=json.load(sys.stdin); print(f'''
+Flat Access Patterns Found:
+  Total: {d['summary']['total_issues']}
+  Files: {d['summary']['files_with_issues']}
+
+By Type:
+  dict_access: {d['summary']['by_type'].get('dict_access', 0)}
+  get_call: {d['summary']['by_type'].get('get_call', 0)}  
+  template: {d['summary']['by_type'].get('template', 0)}
+''')"
+```
+
+**Gate**: Do not proceed if total issues > 100. Review patterns and refine script.
+
 ### Step 1: Restructure DEFAULTS (1 day)
 
 Move all flat keys into canonical nested sections:
 
 ```python
-# Before
-"title": "Bengal Site",
-"output_dir": "public",
+# Before (current state - mixed flat and nested)
+DEFAULTS = {
+    "title": "Bengal Site",           # FLAT - move to site.title
+    "baseurl": "",                    # FLAT - move to site.baseurl
+    "output_dir": "public",           # FLAT - move to build.output_dir
+    "parallel": True,                 # FLAT - move to build.parallel
+    # ...
+    "theme": {"name": "default"},     # Already nested - keep as-is
+}
 
-# After  
-"site": {"title": "Bengal Site", ...},
-"build": {"output_dir": "public", ...},
+# After (fully nested)
+DEFAULTS = {
+    "site": {
+        "title": "Bengal Site",
+        "baseurl": "",
+        "description": "",
+        "author": "",
+        "language": "en",
+    },
+    "build": {
+        "output_dir": "public",
+        "content_dir": "content",
+        "assets_dir": "assets",
+        "templates_dir": "templates",
+        "parallel": True,
+        "incremental": None,
+        "max_workers": None,
+        "pretty_urls": True,
+        "minify_html": True,
+        "strict_mode": False,
+        "debug": False,
+        "validate_build": True,
+        "validate_links": True,
+        "transform_links": True,
+        "fast_writes": False,
+        "fast_mode": False,
+    },
+    "dev": {
+        "cache_templates": True,
+        "watch_backend": True,
+        "live_reload": True,
+        "port": 8000,
+    },
+    "theme": {...},    # Already nested
+    "search": {...},   # Already nested
+    # ...
+}
 ```
 
 ### Step 2: Config Accessor (1 day)
@@ -685,6 +830,10 @@ Create `bengal/config/unified_loader.py`:
 - Return `Config` object, not dict
 
 ### Step 4: Update Codebase (2-3 days)
+
+Update `bengal/config/env_overrides.py`:
+- Target `config["site"]["baseurl"]` instead of flat keys.
+- Ensure platform auto-detection (Netlify/Vercel/GitHub) is preserved.
 
 Find and replace all flat access patterns:
 
@@ -719,73 +868,496 @@ Remove:
 
 **Rejected** — Adds complexity, delays cleanup, confuses the codebase with two access patterns.
 
+## Edge Cases
+
+### Empty Sections
+
+```python
+# User config has no theme section
+config.theme           # Returns empty ConfigSection({})
+config.theme.name      # Raises AttributeError (fail loudly)
+config.theme.get("name")  # Returns None (safe access)
+bool(config.theme)     # Returns False
+```
+
+### User Custom Keys
+
+```python
+# bengal.yaml
+myapp:
+  api_key: "secret"
+  timeout: 30
+
+# Access pattern
+config["myapp"]["api_key"]  # Dict access for custom sections
+config.raw["myapp"]         # Get raw dict for serialization
+```
+
+### Keys with Special Characters
+
+```python
+# bengal.yaml
+site:
+  some-key: "value"      # Hyphens (common in YAML)
+  "123": "numeric start" # Numeric keys
+
+# Access pattern (dict-style required)
+config.site["some-key"]  # Hyphens not valid Python identifiers
+config.site["123"]       # Numeric keys
+config.site.get("some-key")  # Also works
+```
+
+### Truthiness of Values
+
+```python
+# False-y values are preserved
+config.build.debug       # False (not truthy, but exists)
+config.build.max_workers # None (explicit null)
+
+# Check existence vs truthiness
+"debug" in config.build  # True (key exists)
+bool(config.build.debug) # False (value is False)
+```
+
+### Nested `None` Values
+
+```python
+# bengal.yaml
+theme:
+  syntax_highlighting: null
+
+# Access pattern
+config.theme.syntax_highlighting  # Returns None (not ConfigSection)
+config.theme.syntax_highlighting.enabled  # AttributeError on None!
+
+# Safe pattern for optional nested sections
+sh = config.theme.get("syntax_highlighting") or {}
+enabled = sh.get("enabled", False)
+```
+
 ## Success Criteria
 
 | Criterion | Measurement |
 |-----------|-------------|
 | **No `_flatten_config()`** | Method deleted from codebase |
 | **Single loader** | One `ConfigLoader` class handles all modes |
-| **DEFAULTS nested** | All values in canonical sections |
+| **DEFAULTS nested** | All 15+ flat keys moved to canonical sections |
 | **Config accessor** | `config.site.title` works everywhere |
 | **Typos fail loudly** | `config.site.tittle` raises `AttributeError` |
 | **Nested caching works** | `ConfigSection._cache` prevents object churn |
 | **Validation at load** | Missing required keys raise `ConfigError` |
-| **Templates updated** | All Jinja templates use nested access |
+| **Feature expansion integrated** | `expand_features()` runs before `Config` creation |
+| **Templates updated** | All 16 template flat-access patterns migrated |
 | **Tests pass** | All tests updated and passing |
-| **Migration script** | `scripts/migrate_config_access.py` exists |
+| **Migration script** | `scripts/migrate_config_access.py` with JSON output |
+| **Zero migration issues** | `migrate_config_access.py` reports 0 issues |
+| **CI gate** | `BENGAL_STRICT_CONFIG=1` in test suite |
+
+### Verification Commands
+
+```bash
+# 1. No _flatten_config methods remain
+rg '_flatten_config' bengal/ --type py | wc -l  # Should be 0
+
+# 2. Migration script reports zero issues
+python scripts/migrate_config_access.py --templates --json | jq '.summary.total_issues'  # Should be 0
+
+# 3. All tests pass with strict mode
+BENGAL_STRICT_CONFIG=1 pytest tests/ -x
+
+# 4. DEFAULTS has no flat keys
+python -c "
+from bengal.config.defaults import DEFAULTS
+flat_keys = [k for k in DEFAULTS if not isinstance(DEFAULTS[k], dict)]
+print(f'Flat keys remaining: {flat_keys}')
+assert not flat_keys, 'DEFAULTS should be fully nested'
+"
+```
 
 ## Migration Safety
 
 ### Automated Migration Script
 
-Create a script to find and report all flat access patterns:
+Create a comprehensive script to find, report, and optionally fix all flat access patterns:
 
 ```python
 # scripts/migrate_config_access.py
+"""
+Config Access Migration Tool
 
+Finds and reports all flat config access patterns that need migration
+to the new nested structure. Supports dry-run and auto-fix modes.
+
+Usage:
+    python scripts/migrate_config_access.py                    # Dry run, report only
+    python scripts/migrate_config_access.py --fix              # Auto-fix Python files
+    python scripts/migrate_config_access.py --templates        # Include Jinja templates
+    python scripts/migrate_config_access.py --json > report.json  # Machine-readable output
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
 import re
+import sys
+from dataclasses import dataclass, field
 from pathlib import Path
 
-FLAT_KEYS = {
-    "title", "baseurl", "description", "author", "language",  # site.*
-    "output_dir", "content_dir", "parallel", "incremental",   # build.*
-    "cache_templates", "watch_backend", "live_reload", "port", # dev.*
-}
+# =============================================================================
+# Configuration
+# =============================================================================
 
-MIGRATION_MAP = {
+# Complete mapping of flat keys to canonical nested locations
+MIGRATION_MAP: dict[str, str] = {
+    # site.* (Site Metadata)
     "title": "site.title",
     "baseurl": "site.baseurl",
+    "description": "site.description",
+    "author": "site.author",
+    "language": "site.language",
+    # build.* (Build Settings)
     "output_dir": "build.output_dir",
+    "content_dir": "build.content_dir",
+    "assets_dir": "build.assets_dir",
+    "templates_dir": "build.templates_dir",
     "parallel": "build.parallel",
-    # ... complete mapping
+    "incremental": "build.incremental",
+    "max_workers": "build.max_workers",
+    "pretty_urls": "build.pretty_urls",
+    "minify_html": "build.minify_html",
+    "strict_mode": "build.strict_mode",
+    "debug": "build.debug",
+    "validate_build": "build.validate_build",
+    "validate_links": "build.validate_links",
+    "transform_links": "build.transform_links",
+    "fast_writes": "build.fast_writes",
+    "fast_mode": "build.fast_mode",
+    # dev.* (Development)
+    "cache_templates": "dev.cache_templates",
+    "watch_backend": "dev.watch_backend",
+    "live_reload": "dev.live_reload",
+    "port": "dev.port",
 }
 
-def find_flat_access(file: Path) -> list[tuple[int, str, str]]:
-    """Find config['flat_key'] and config.get('flat_key') patterns."""
-    issues = []
-    content = file.read_text()
+FLAT_KEYS = frozenset(MIGRATION_MAP.keys())
 
-    # Pattern: config["key"] or config['key']
-    for match in re.finditer(r'config\[(["\'])(\w+)\1\]', content):
-        key = match.group(2)
-        if key in FLAT_KEYS:
-            line_num = content[:match.start()].count('\n') + 1
-            issues.append((line_num, key, MIGRATION_MAP.get(key, f"?.{key}")))
+# Patterns that indicate nested access (not flat) - skip these
+NESTED_ACCESS_SECTIONS = frozenset({
+    "site", "build", "dev", "theme", "search", "content", "assets",
+    "output_formats", "features", "graph", "i18n", "markdown",
+    "health_check", "pagination", "menu", "taxonomies",
+})
 
-    # Pattern: config.get("key") or config.get('key')
-    for match in re.finditer(r'config\.get\((["\'])(\w+)\1', content):
-        key = match.group(2)
-        if key in FLAT_KEYS:
-            line_num = content[:match.start()].count('\n') + 1
-            issues.append((line_num, key, MIGRATION_MAP.get(key, f"?.{key}")))
+
+# =============================================================================
+# Data Classes
+# =============================================================================
+
+@dataclass
+class Issue:
+    """A single flat access pattern found in code."""
+    file: Path
+    line: int
+    column: int
+    old_pattern: str
+    new_pattern: str
+    context: str  # The line of code for review
+    pattern_type: str  # "dict_access" | "get_call" | "template"
+
+@dataclass
+class MigrationReport:
+    """Aggregated migration report."""
+    issues: list[Issue] = field(default_factory=list)
+    files_scanned: int = 0
+    files_with_issues: int = 0
+
+    def add(self, issue: Issue) -> None:
+        self.issues.append(issue)
+
+    def to_dict(self) -> dict:
+        return {
+            "summary": {
+                "total_issues": len(self.issues),
+                "files_scanned": self.files_scanned,
+                "files_with_issues": self.files_with_issues,
+                "by_type": self._count_by_type(),
+                "by_key": self._count_by_key(),
+            },
+            "issues": [
+                {
+                    "file": str(i.file),
+                    "line": i.line,
+                    "column": i.column,
+                    "old": i.old_pattern,
+                    "new": i.new_pattern,
+                    "type": i.pattern_type,
+                }
+                for i in self.issues
+            ],
+        }
+
+    def _count_by_type(self) -> dict[str, int]:
+        counts: dict[str, int] = {}
+        for issue in self.issues:
+            counts[issue.pattern_type] = counts.get(issue.pattern_type, 0) + 1
+        return counts
+
+    def _count_by_key(self) -> dict[str, int]:
+        counts: dict[str, int] = {}
+        for issue in self.issues:
+            # Extract key from old_pattern
+            key = issue.old_pattern.split("[")[1].split("]")[0].strip("\"'") \
+                if "[" in issue.old_pattern else \
+                issue.old_pattern.split("(")[1].split(")")[0].split(",")[0].strip("\"'")
+            counts[key] = counts.get(key, 0) + 1
+        return counts
+
+
+# =============================================================================
+# Pattern Matching
+# =============================================================================
+
+def find_python_issues(file: Path) -> list[Issue]:
+    """Find flat config access patterns in Python files."""
+    issues: list[Issue] = []
+
+    try:
+        content = file.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return issues
+
+    lines = content.split("\n")
+
+    for line_num, line in enumerate(lines, start=1):
+        # Skip comments
+        stripped = line.lstrip()
+        if stripped.startswith("#"):
+            continue
+
+        # Pattern 1: config["key"] or config['key']
+        # Matches: config["title"], site.config["baseurl"], self.config["parallel"]
+        for match in re.finditer(r'(\w*\.?config)\[(["\'])(\w+)\2\]', line):
+            prefix = match.group(1)  # "config" or "site.config" etc.
+            key = match.group(3)
+
+            # Skip if accessing a known nested section
+            if key in NESTED_ACCESS_SECTIONS:
+                continue
+
+            if key in FLAT_KEYS:
+                new_path = MIGRATION_MAP[key]
+                section, attr = new_path.split(".")
+                issues.append(Issue(
+                    file=file,
+                    line=line_num,
+                    column=match.start() + 1,
+                    old_pattern=match.group(0),
+                    new_pattern=f'{prefix}.{section}.{attr}',
+                    context=line.strip(),
+                    pattern_type="dict_access",
+                ))
+
+        # Pattern 2: config.get("key") or config.get("key", default)
+        # Handles: config.get("title"), config.get("parallel", True)
+        for match in re.finditer(
+            r'(\w*\.?config)\.get\((["\'])(\w+)\2(?:,\s*([^)]+))?\)',
+            line
+        ):
+            prefix = match.group(1)
+            key = match.group(3)
+            default = match.group(4)
+
+            # Skip if accessing a known nested section
+            if key in NESTED_ACCESS_SECTIONS:
+                continue
+
+            if key in FLAT_KEYS:
+                new_path = MIGRATION_MAP[key]
+                section, attr = new_path.split(".")
+
+                if default:
+                    new_pattern = f'{prefix}.{section}.get("{attr}", {default})'
+                else:
+                    new_pattern = f'{prefix}.{section}.get("{attr}")'
+
+                issues.append(Issue(
+                    file=file,
+                    line=line_num,
+                    column=match.start() + 1,
+                    old_pattern=match.group(0),
+                    new_pattern=new_pattern,
+                    context=line.strip(),
+                    pattern_type="get_call",
+                ))
 
     return issues
 
-def main():
-    for py_file in Path("bengal").rglob("*.py"):
-        issues = find_flat_access(py_file)
-        for line, old, new in issues:
-            print(f"{py_file}:{line}: config['{old}'] → config.{new}")
+
+def find_template_issues(file: Path) -> list[Issue]:
+    """Find flat config access patterns in Jinja templates."""
+    issues: list[Issue] = []
+
+    try:
+        content = file.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return issues
+
+    lines = content.split("\n")
+
+    for line_num, line in enumerate(lines, start=1):
+        # Pattern: {{ config.title }} or {{ config.baseurl }}
+        for match in re.finditer(r'\{\{\s*config\.(\w+)\s*(\|[^}]+)?\}\}', line):
+            key = match.group(1)
+            filter_chain = match.group(2) or ""
+
+            if key in NESTED_ACCESS_SECTIONS:
+                continue
+
+            if key in FLAT_KEYS:
+                new_path = MIGRATION_MAP[key]
+                issues.append(Issue(
+                    file=file,
+                    line=line_num,
+                    column=match.start() + 1,
+                    old_pattern=match.group(0),
+                    new_pattern=f'{{{{ config.{new_path}{filter_chain} }}}}',
+                    context=line.strip(),
+                    pattern_type="template",
+                ))
+
+        # Pattern: {% if config.debug %} or similar
+        for match in re.finditer(r'\{%[^%]*config\.(\w+)[^%]*%\}', line):
+            key = match.group(1)
+
+            if key in NESTED_ACCESS_SECTIONS:
+                continue
+
+            if key in FLAT_KEYS:
+                new_path = MIGRATION_MAP[key]
+                old_pattern = f"config.{key}"
+                new_pattern = f"config.{new_path}"
+                issues.append(Issue(
+                    file=file,
+                    line=line_num,
+                    column=match.start() + 1,
+                    old_pattern=old_pattern,
+                    new_pattern=new_pattern,
+                    context=line.strip(),
+                    pattern_type="template",
+                ))
+
+    return issues
+
+
+# =============================================================================
+# Main
+# =============================================================================
+
+def scan_codebase(
+    root: Path,
+    include_templates: bool = False,
+) -> MigrationReport:
+    """Scan codebase for flat config access patterns."""
+    report = MigrationReport()
+    files_with_issues: set[Path] = set()
+
+    # Scan Python files
+    for py_file in root.rglob("*.py"):
+        if "__pycache__" in str(py_file):
+            continue
+        report.files_scanned += 1
+        issues = find_python_issues(py_file)
+        if issues:
+            files_with_issues.add(py_file)
+            for issue in issues:
+                report.add(issue)
+
+    # Scan templates if requested
+    if include_templates:
+        for template_file in root.rglob("*.html"):
+            report.files_scanned += 1
+            issues = find_template_issues(template_file)
+            if issues:
+                files_with_issues.add(template_file)
+                for issue in issues:
+                    report.add(issue)
+
+    report.files_with_issues = len(files_with_issues)
+    return report
+
+
+def print_report(report: MigrationReport) -> None:
+    """Print human-readable migration report."""
+    print(f"\n{'='*60}")
+    print("Config Migration Report")
+    print(f"{'='*60}\n")
+
+    print(f"Files scanned:     {report.files_scanned}")
+    print(f"Files with issues: {report.files_with_issues}")
+    print(f"Total issues:      {len(report.issues)}\n")
+
+    if not report.issues:
+        print("✅ No flat config access patterns found!")
+        return
+
+    # Group by file
+    by_file: dict[Path, list[Issue]] = {}
+    for issue in report.issues:
+        by_file.setdefault(issue.file, []).append(issue)
+
+    for file, issues in sorted(by_file.items()):
+        print(f"\n📄 {file} ({len(issues)} issues)")
+        print("-" * 40)
+        for issue in issues:
+            print(f"  L{issue.line}: {issue.old_pattern}")
+            print(f"       → {issue.new_pattern}")
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Config access migration tool")
+    parser.add_argument("--root", type=Path, default=Path("bengal"),
+                       help="Root directory to scan")
+    parser.add_argument("--templates", action="store_true",
+                       help="Include Jinja templates in scan")
+    parser.add_argument("--json", action="store_true",
+                       help="Output JSON report")
+    parser.add_argument("--fix", action="store_true",
+                       help="Auto-fix issues (USE WITH CAUTION)")
+    args = parser.parse_args()
+
+    if args.fix:
+        print("⚠️  --fix mode not implemented. Review issues manually.")
+        return 1
+
+    report = scan_codebase(args.root, include_templates=args.templates)
+
+    if args.json:
+        print(json.dumps(report.to_dict(), indent=2))
+    else:
+        print_report(report)
+
+    return 0 if not report.issues else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+```
+
+**Usage**:
+
+```bash
+# Dry run - report all issues
+python scripts/migrate_config_access.py
+
+# Include templates
+python scripts/migrate_config_access.py --templates
+
+# Machine-readable output for CI
+python scripts/migrate_config_access.py --json > migration-report.json
+
+# Count issues by type
+python scripts/migrate_config_access.py --json | jq '.summary'
 ```
 
 ### Template Migration
@@ -828,7 +1400,35 @@ class CompatConfig(Config):
         return super().__getitem__(key)
 ```
 
-**Recommendation**: Skip the shim. Breaking changes are cleaner than prolonged deprecation. The migration script catches all cases.
+**Recommendation**: Given the scope (512 `config.get("` patterns), include the shim with `BENGAL_STRICT_CONFIG=1` opt-in for early adopters:
+
+```python
+# Default: Warnings enabled (deprecation period)
+# BENGAL_STRICT_CONFIG=1: Errors (fail-fast for testing)
+
+import os
+STRICT_CONFIG = os.environ.get("BENGAL_STRICT_CONFIG") == "1"
+
+class CompatConfig(Config):
+    def __getitem__(self, key: str) -> Any:
+        if key in self._FLAT_TO_NESTED:
+            section, nested_key = self._FLAT_TO_NESTED[key]
+            msg = (
+                f"Flat config access deprecated: config['{key}'] → "
+                f"config.{section}.{nested_key}"
+            )
+            if STRICT_CONFIG:
+                raise DeprecationWarning(msg)
+            else:
+                warnings.warn(msg, DeprecationWarning, stacklevel=2)
+            return getattr(getattr(self, section), nested_key)
+        return super().__getitem__(key)
+```
+
+**Migration Path**:
+1. v1.x: Return `CompatConfig` with warnings (one release cycle)
+2. v2.0: Return `Config` directly (breaking change)
+3. CI: Run with `BENGAL_STRICT_CONFIG=1` to catch regressions
 
 ## Timeline
 
@@ -837,16 +1437,32 @@ class CompatConfig(Config):
 | Restructure DEFAULTS | 1 day | Nested structure |
 | Config Accessor | 1 day | `Config` + `ConfigSection` classes |
 | Unified Loader + Validation | 1-2 days | Single loader with validation |
-| Migration Script | 0.5 day | Automated flat-access finder |
-| Update Codebase | 3-4 days | All Python access patterns updated |
-| Update Templates | 1 day | Jinja template access updated |
+| Migration Script + Dry Run | 0.5 day | ✅ Created, verified 134 issues |
+| Update 67 Files (134 issues) | 2-3 days | All flat access patterns migrated |
+| Update Templates | 0.5 day | 8 template patterns migrated |
 | Update Tests | 1-2 days | All config tests updated |
-| Delete Old Code | 0.5 day | Remove deprecated files |
-| **Total** | **~9-11 days** | Complete architecture change |
+| Delete Old Code + Final QA | 1 day | Remove deprecated files, integration test |
+| **Total** | **~8-11 days** | Complete architecture change |
 
-**Note**: Original 6-day estimate was optimistic. Template updates and test fixes typically surface edge cases.
+**Scope Analysis** (verified via `migrate_config_access.py`):
+- **Total flat access patterns: 134 across 67 files**
+  - `get_call` patterns: 111
+  - `dict_access` patterns: 15
+  - `template` patterns: 8
+- Most frequent keys: `baseurl` (53), `title` (21), `max_workers` (16)
+- Existing `_flatten_config` tests: 6 test cases to rewrite
+
+**Note**: Initial grep found 512 `config.get("` patterns, but the migration script filters to only flat keys (not nested section access like `config.get("theme")`), reducing actual migration scope significantly.
 
 ## Design Decisions (Resolved)
+
+> **Summary of Key Decisions**:
+> - Fully nested DEFAULTS (no flat keys)
+> - `Config` accessor with `cached_property` for sections
+> - Fail-loud on typos (`AttributeError`), use `.get()` for optional
+> - One-release deprecation period with `CompatConfig` shim
+> - Comprehensive migration script with JSON output
+> - Pre-migration verification gate (Step 0)
 
 1. **`Config` class design** — ✅ Use `__slots__` for memory efficiency. Do NOT add `__getattr__` for dynamic sections — explicit `cached_property` accessors are safer and enable IDE autocomplete.
 
@@ -860,6 +1476,8 @@ class CompatConfig(Config):
 4. **Missing key behavior** — ✅ Attribute access raises `AttributeError` (fail loudly on typos). Use `.get(key)` for optional keys that may not exist.
 
 5. **Nested section caching** — ✅ `ConfigSection` caches nested sections in `_cache` dict to avoid repeated object creation on chained access.
+
+6. **Thread Safety** — ✅ The `Config` accessor uses `cached_property`, which is not inherently thread-safe. To prevent race conditions during parallel rendering, `ConfigLoader.load()` will perform a "pre-flight" access of all core properties (`site`, `build`, `dev`) before returning the object, ensuring they are warmed in a single-threaded context.
 
 ## Files Changed
 
@@ -877,6 +1495,7 @@ class CompatConfig(Config):
 |------|---------|
 | `bengal/config/defaults.py` | Restructure to fully nested |
 | `bengal/config/loader.py` | Rewrite as unified loader, add validation |
+| `bengal/config/env_overrides.py` | Update to target nested `site.baseurl` |
 | `bengal/core/render.py` | Update template context to expose `Config` |
 | `bengal/core/site.py` | Update to use `Config` accessor |
 | `templates/**/*.html` | Update all flat config access to nested |

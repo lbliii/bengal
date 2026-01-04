@@ -49,9 +49,11 @@ class ThematicClassifierMixin:
                 return None
 
         if count >= 3:
+            # Preserve original content so parser can distinguish setext underlines
+            # A pure sequence like "---" can become setext h2, but "--- -" cannot
             return Token(
                 TokenType.THEMATIC_BREAK,
-                char * 3,
+                content.rstrip("\n"),
                 self._location_from(line_start),
             )
 
