@@ -346,6 +346,25 @@ class BlockParsingCoreMixin:
                 last_line_was_indented_code = True  # Mark that this line was 4+ spaces
                 self._advance()
             elif token.type == TokenType.LIST_ITEM_MARKER:
+                # CommonMark 5.3: To interrupt a paragraph, the first list item must
+                # have content. Check if the next token is paragraph content.
+                saved_pos = self._pos
+                self._advance()
+                has_content = (
+                    not self._at_end()
+                    and self._current is not None
+                    and self._current.type == TokenType.PARAGRAPH_LINE
+                )
+                # Restore position for further checks
+                self._pos = saved_pos
+                self._current = self._tokens[self._pos] if self._pos < len(self._tokens) else None
+
+                if not has_content:
+                    # Empty list item cannot interrupt paragraph - treat marker as text
+                    lines.append(token.value.lstrip())
+                    self._advance()
+                    continue
+
                 # CommonMark: ordered lists can only interrupt paragraphs if start=1
                 # Check if this is an ordered list that doesn't start with 1
                 marker = token.value.lstrip()

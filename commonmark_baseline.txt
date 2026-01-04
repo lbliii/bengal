@@ -18,7 +18,7 @@
 | Inlines | 1 | 0 | 0 | 100% |
 | Link reference definitions | 14 | 13 | 0 | 52% |
 | Links | 75 | 15 | 0 | 83% |
-| List items | 32 | 16 | 0 | 67% |
+| List items | 37 | 11 | 0 | 77% |
 | Lists | 16 | 10 | 0 | 62% |
 | Paragraphs | 8 | 0 | 0 | 100% |
 | Precedence | 1 | 0 | 0 | 100% |
@@ -29,5 +29,5 @@
 | Textual content | 3 | 0 | 0 | 100% |
 | Thematic breaks | 19 | 0 | 0 | 100% |
 
-**Total**: 576/652 (88.3%)
+**Total**: 581/652 (89.1%)
 **Skipped**: 0 (not yet implemented)

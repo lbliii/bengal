@@ -109,14 +109,22 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
         'https://custom.com'
     """
     try:
-        # Check baseurl state
-        current_baseurl = config.get("baseurl", "")
+        # Ensure site section exists
+        if "site" not in config:
+            config["site"] = {}
+        site_section = config["site"]
+        if not isinstance(site_section, dict):
+            site_section = {}
+            config["site"] = site_section
+
+        # Check baseurl state (now nested in site.*)
+        current_baseurl = site_section.get("baseurl", "")
         baseurl_has_value = bool(current_baseurl)
 
         # 1) BENGAL_BASEURL can override empty/missing baseurl (but not explicit non-empty)
         explicit = os.environ.get("BENGAL_BASEURL") or os.environ.get("BENGAL_BASE_URL")
         if explicit and not baseurl_has_value:
-            config["baseurl"] = explicit.rstrip("/")
+            site_section["baseurl"] = explicit.rstrip("/")
             return config
 
         # If baseurl has a non-empty value, respect it (user explicitly configured it)
@@ -129,7 +137,7 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
             # Production has URL; previews have DEPLOY_PRIME_URL
             netlify_url = os.environ.get("URL") or os.environ.get("DEPLOY_PRIME_URL")
             if netlify_url:
-                config["baseurl"] = netlify_url.rstrip("/")
+                site_section["baseurl"] = netlify_url.rstrip("/")
                 return config
 
         # 3) Vercel detection (only if baseurl not explicitly set)
@@ -138,7 +146,7 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
             if vercel_host:
                 # Add https:// prefix if missing
                 prefix = "https://" if not vercel_host.startswith(("http://", "https://")) else ""
-                config["baseurl"] = f"{prefix}{vercel_host}".rstrip("/")
+                site_section["baseurl"] = f"{prefix}{vercel_host}".rstrip("/")
                 return config
 
         # 4) GitHub Pages in Actions (only if baseurl not explicitly set)
@@ -150,10 +158,10 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
                 # or if repo name matches {owner}.github.io (user/org site)
                 if os.environ.get("GITHUB_PAGES_ROOT") == "true" or name == f"{owner}.github.io":
                     # Root deployment: empty baseurl (served from root)
-                    config["baseurl"] = ""
+                    site_section["baseurl"] = ""
                 else:
                     # Project site: deployed at /{repo-name} (path-only for relative links)
-                    config["baseurl"] = f"/{name}".rstrip("/")
+                    site_section["baseurl"] = f"/{name}".rstrip("/")
                 return config
 
     except Exception as e:

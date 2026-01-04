@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Config Access Migration Tool
 
@@ -10,8 +9,6 @@ Usage:
     python scripts/migrate_config_access.py --fix              # Auto-fix Python files
     python scripts/migrate_config_access.py --templates        # Include Jinja templates
     python scripts/migrate_config_access.py --json > report.json  # Machine-readable output
-
-See: plan/rfc-config-architecture-v2.md
 """
 
 from __future__ import annotations
@@ -43,20 +40,15 @@ MIGRATION_MAP: dict[str, str] = {
     "parallel": "build.parallel",
     "incremental": "build.incremental",
     "max_workers": "build.max_workers",
-    "parallel_graph": "build.parallel_graph",
-    "parallel_autodoc": "build.parallel_autodoc",
     "pretty_urls": "build.pretty_urls",
     "minify_html": "build.minify_html",
     "strict_mode": "build.strict_mode",
     "debug": "build.debug",
     "validate_build": "build.validate_build",
-    "validate_templates": "build.validate_templates",
     "validate_links": "build.validate_links",
     "transform_links": "build.transform_links",
     "fast_writes": "build.fast_writes",
     "fast_mode": "build.fast_mode",
-    "stable_section_references": "build.stable_section_references",
-    "min_page_size": "build.min_page_size",
     # dev.* (Development)
     "cache_templates": "dev.cache_templates",
     "watch_backend": "dev.watch_backend",
@@ -85,14 +77,6 @@ NESTED_ACCESS_SECTIONS = frozenset(
         "pagination",
         "menu",
         "taxonomies",
-        "static",
-        "html_output",
-        "link_previews",
-        "document_application",
-        "autodoc",
-        "versioning",
-        "fonts",
-        "params",
     }
 )
 
@@ -143,7 +127,6 @@ class MigrationReport:
                     "old": i.old_pattern,
                     "new": i.new_pattern,
                     "type": i.pattern_type,
-                    "context": i.context,
                 }
                 for i in self.issues
             ],
@@ -164,10 +147,7 @@ class MigrationReport:
             elif "(" in issue.old_pattern:
                 key = issue.old_pattern.split("(")[1].split(")")[0].split(",")[0].strip("\"'")
             else:
-                # Template pattern like {{ config.title }} or config.title
-                # Extract just the key name (word characters only)
-                match = re.search(r"config\.(\w+)", issue.old_pattern)
-                key = match.group(1) if match else issue.old_pattern
+                key = issue.old_pattern.split(".")[-1]
             counts[key] = counts.get(key, 0) + 1
         return counts
 
@@ -266,9 +246,8 @@ def find_template_issues(file: Path) -> list[Issue]:
     lines = content.split("\n")
 
     for line_num, line in enumerate(lines, start=1):
-        # Pattern: {{ config.title }} or {{ config.baseurl | filter }}
-        # Uses word boundary to avoid matching config.site.title as "site"
-        for match in re.finditer(r"\{\{\s*config\.(\w+)(?:\s*(\|[^}]+))?\s*\}\}", line):
+        # Pattern: {{ config.title }} or {{ config.baseurl }}
+        for match in re.finditer(r"\{\{\s*config\.(\w+)\s*(\|[^}]+)?\}\}", line):
             key = match.group(1)
             filter_chain = match.group(2) or ""
 
@@ -283,14 +262,14 @@ def find_template_issues(file: Path) -> list[Issue]:
                         line=line_num,
                         column=match.start() + 1,
                         old_pattern=match.group(0),
-                        new_pattern=f"{{{{ config.{new_path}{filter_chain.strip() if filter_chain else ''} }}}}",
+                        new_pattern=f"{{{{ config.{new_path}{filter_chain} }}}}",
                         context=line.strip(),
-                        pattern_type="template_expr",
+                        pattern_type="template",
                     )
                 )
 
-        # Pattern: {% if config.debug %} or similar control flow statements
-        for match in re.finditer(r"\{%[^%]*\bconfig\.(\w+)\b[^%]*%\}", line):
+        # Pattern: {% if config.debug %} or similar
+        for match in re.finditer(r"\{%[^%]*config\.(\w+)[^%]*%\}", line):
             key = match.group(1)
 
             if key in NESTED_ACCESS_SECTIONS:
@@ -308,7 +287,7 @@ def find_template_issues(file: Path) -> list[Issue]:
                         old_pattern=old_pattern,
                         new_pattern=new_pattern,
                         context=line.strip(),
-                        pattern_type="template_control",
+                        pattern_type="template",
                     )
                 )
 
@@ -332,8 +311,6 @@ def scan_codebase(
     for py_file in root.rglob("*.py"):
         if "__pycache__" in str(py_file):
             continue
-        if "test" in py_file.parts:
-            continue  # Skip test files for now
         report.files_scanned += 1
         issues = find_python_issues(py_file)
         if issues:
@@ -369,26 +346,10 @@ def print_report(report: MigrationReport) -> None:
         print("✅ No flat config access patterns found!")
         return
 
-    # Summary by type
-    by_type = report._count_by_type()
-    print("By pattern type:")
-    for ptype, count in sorted(by_type.items()):
-        print(f"  {ptype}: {count}")
-
-    # Summary by key
-    by_key = report._count_by_key()
-    print("\nBy config key:")
-    for key, count in sorted(by_key.items(), key=lambda x: -x[1])[:10]:
-        print(f"  {key}: {count}")
-
     # Group by file
     by_file: dict[Path, list[Issue]] = {}
     for issue in report.issues:
         by_file.setdefault(issue.file, []).append(issue)
-
-    print(f"\n{'=' * 60}")
-    print("Details by file")
-    print(f"{'=' * 60}")
 
     for file, issues in sorted(by_file.items()):
         print(f"\n📄 {file} ({len(issues)} issues)")
@@ -399,38 +360,15 @@ def print_report(report: MigrationReport) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="Config access migration tool",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-    python scripts/migrate_config_access.py                    # Scan bengal/
-    python scripts/migrate_config_access.py --templates        # Include templates
-    python scripts/migrate_config_access.py --json             # JSON output
-    python scripts/migrate_config_access.py --root src/        # Custom root
-        """,
-    )
-    parser.add_argument(
-        "--root",
-        type=Path,
-        default=Path("bengal"),
-        help="Root directory to scan (default: bengal/)",
-    )
+    parser = argparse.ArgumentParser(description="Config access migration tool")
+    parser.add_argument("--root", type=Path, default=Path("bengal"), help="Root directory to scan")
     parser.add_argument("--templates", action="store_true", help="Include Jinja templates in scan")
     parser.add_argument("--json", action="store_true", help="Output JSON report")
-    parser.add_argument(
-        "--fix",
-        action="store_true",
-        help="Auto-fix issues (USE WITH CAUTION - not yet implemented)",
-    )
+    parser.add_argument("--fix", action="store_true", help="Auto-fix issues (USE WITH CAUTION)")
     args = parser.parse_args()
 
     if args.fix:
-        print("⚠️  --fix mode not implemented. Review issues manually.", file=sys.stderr)
-        return 1
-
-    if not args.root.exists():
-        print(f"❌ Root directory not found: {args.root}", file=sys.stderr)
+        print("⚠️  --fix mode not implemented. Review issues manually.")
         return 1
 
     report = scan_codebase(args.root, include_templates=args.templates)

@@ -235,15 +235,24 @@ class Site(
         if not self.root_path.is_absolute():
             self.root_path = self.root_path.resolve()
 
-        theme_section = self.config.get("theme", {})
-        if isinstance(theme_section, dict):
-            self.theme = theme_section.get("name", "default")
+        # Access theme config (supports both Config and dict for backward compatibility)
+        if hasattr(self.config, "theme"):
+            theme_section = self.config.theme
+            self.theme = (
+                theme_section.get("name", "default")
+                if hasattr(theme_section, "get")
+                else getattr(theme_section, "name", "default")
+            )
         else:
-            # Fallback for config where theme was a string
-            self.theme = theme_section if isinstance(theme_section, str) else "default"
+            theme_section = self.config.get("theme", {})
+            if isinstance(theme_section, dict):
+                self.theme = theme_section.get("name", "default")
+            else:
+                # Fallback for config where theme was a string
+                self.theme = theme_section if isinstance(theme_section, str) else "default"
 
         self._theme_obj = Theme.from_config(
-            self.config,
+            self.config.raw if hasattr(self.config, "raw") else self.config,
             root_path=self.root_path,
             diagnostics_site=self,
         )
@@ -252,8 +261,14 @@ class Site(
         # (template functions, inline icon plugin, directives)
         icon_resolver.initialize(self)
 
-        if "output_dir" in self.config:
-            self.output_dir = Path(self.config["output_dir"])
+        # Access output_dir from build section
+        if hasattr(self.config, "build"):
+            output_dir_str = self.config.build.output_dir
+        else:
+            output_dir_str = self.config.get("output_dir", "public")
+
+        if output_dir_str:
+            self.output_dir = Path(output_dir_str)
 
         if not self.output_dir.is_absolute():
             self.output_dir = self.root_path / self.output_dir

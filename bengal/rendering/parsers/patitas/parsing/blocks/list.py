@@ -189,6 +189,54 @@ class ListParsingMixin:
                 if tok.type == TokenType.PARAGRAPH_LINE:
                     line = tok.value.lstrip()
 
+                    # CommonMark: Check if this is a nested list marker (e.g., "- - foo")
+                    # If the first content after a list marker is itself a list marker,
+                    # it should be parsed as a nested list.
+                    if not content_lines and not saw_paragraph_content and line:
+                        is_nested_list = False
+                        first_char = line[0]
+                        # Unordered: -, *, + followed by space/tab or end
+                        if first_char in "-*+":
+                            if len(line) == 1 or (len(line) > 1 and line[1] in " \t"):
+                                is_nested_list = True
+                        # Ordered: digits followed by . or ) and space/tab or end
+                        elif first_char.isdigit():
+                            pos = 0
+                            while pos < len(line) and line[pos].isdigit():
+                                pos += 1
+                            if (
+                                pos > 0
+                                and pos < len(line)
+                                and line[pos] in ".)"
+                                and (
+                                    pos + 1 == len(line)
+                                    or (pos + 1 < len(line) and line[pos + 1] in " \t")
+                                )
+                            ):
+                                is_nested_list = True
+
+                        if is_nested_list:
+                            # Re-lex the content as a nested list and parse it
+                            from bengal.rendering.parsers.patitas.parser import Parser
+
+                            nested_parser = Parser(
+                                line + "\n",
+                                directive_registry=getattr(self, "_directive_registry", None),
+                                strict_contracts=getattr(self, "_strict_contracts", False),
+                            )
+                            # Copy plugin settings
+                            nested_parser._tables_enabled = getattr(self, "_tables_enabled", False)
+                            nested_parser._strikethrough_enabled = getattr(
+                                self, "_strikethrough_enabled", False
+                            )
+                            nested_parser._task_lists_enabled = getattr(
+                                self, "_task_lists_enabled", False
+                            )
+                            nested_blocks = nested_parser.parse()
+                            item_children.extend(nested_blocks)
+                            self._advance()
+                            continue
+
                     # Calculate actual content indent from first line
                     if actual_content_indent is None:
                         # Get original line from source to calculate indent

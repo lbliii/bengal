@@ -107,38 +107,50 @@ def get_max_workers(config_value: int | None = None) -> int:
 
 DEFAULTS: dict[str, Any] = {
     # -------------------------------------------------------------------------
-    # Site Metadata
+    # Site Metadata (canonical location: site.*)
     # -------------------------------------------------------------------------
-    "title": "Bengal Site",
-    "baseurl": "",
-    "description": "",
-    "author": "",
-    "language": "en",
+    "site": {
+        "title": "Bengal Site",
+        "baseurl": "",
+        "description": "",
+        "author": "",
+        "language": "en",
+    },
     # -------------------------------------------------------------------------
-    # Build Settings
+    # Build Settings (canonical location: build.*)
     # -------------------------------------------------------------------------
-    "output_dir": "public",
-    "content_dir": "content",
-    "assets_dir": "assets",
-    "templates_dir": "templates",
-    "parallel": True,
-    "incremental": None,  # None = auto-detect based on cache presence (see BuildOrchestrator)
-    "max_workers": None,  # None = auto-detect via get_max_workers()
-    "parallel_graph": True,  # Parallel knowledge graph building (auto for 100+ pages)
-    "parallel_autodoc": True,  # Parallel autodoc extraction (auto for 10+ modules)
-    "pretty_urls": True,
-    "minify_html": True,
-    "strict_mode": False,
-    "debug": False,
-    "validate_build": True,
-    "validate_templates": False,  # Proactive template syntax validation during build
-    "validate_links": True,
-    "transform_links": True,
-    "cache_templates": True,
-    "fast_writes": False,
-    "fast_mode": False,
-    "stable_section_references": True,
-    "min_page_size": 1000,
+    "build": {
+        "output_dir": "public",
+        "content_dir": "content",
+        "assets_dir": "assets",
+        "templates_dir": "templates",
+        "parallel": True,
+        "incremental": None,  # None = auto-detect based on cache presence (see BuildOrchestrator)
+        "max_workers": None,  # None = auto-detect via get_max_workers()
+        "parallel_graph": True,  # Parallel knowledge graph building (auto for 100+ pages)
+        "parallel_autodoc": True,  # Parallel autodoc extraction (auto for 10+ modules)
+        "pretty_urls": True,
+        "minify_html": True,
+        "strict_mode": False,
+        "debug": False,
+        "validate_build": True,
+        "validate_templates": False,  # Proactive template syntax validation during build
+        "validate_links": True,
+        "transform_links": True,
+        "fast_writes": False,
+        "fast_mode": False,
+        "stable_section_references": True,
+        "min_page_size": 1000,
+    },
+    # -------------------------------------------------------------------------
+    # Development (canonical location: dev.*)
+    # -------------------------------------------------------------------------
+    "dev": {
+        "cache_templates": True,
+        "watch_backend": True,
+        "live_reload": True,
+        "port": 8000,
+    },
     # -------------------------------------------------------------------------
     # Static Files
     # -------------------------------------------------------------------------

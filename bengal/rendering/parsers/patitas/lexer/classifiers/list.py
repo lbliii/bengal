@@ -53,7 +53,11 @@ class ListClassifierMixin:
 
         # Unordered: -, *, + (uses O(1) frozenset lookup)
         if content[0] in UNORDERED_LIST_MARKERS:
-            if len(content) > 1 and content[1] in " \t":
+            # Empty list item: just the marker at end of line
+            if len(content) == 1:
+                return self._yield_list_marker_and_content(content[0], "", line_start, indent)
+            # Marker followed by space/tab, then optional content
+            if content[1] in " \t":
                 return self._yield_list_marker_and_content(
                     content[0], content[2:], line_start, indent
                 )
@@ -71,9 +75,13 @@ class ListClassifierMixin:
 
             if pos < len(content) and content[pos] in ".)":
                 marker_char = content[pos]
-                if pos + 1 < len(content) and content[pos + 1] in " \t":
-                    num = content[:pos]
-                    marker = f"{num}{marker_char}"
+                num = content[:pos]
+                marker = f"{num}{marker_char}"
+                # Empty list item: just the marker at end of line (e.g., "1.\n")
+                if pos + 1 == len(content):
+                    return self._yield_list_marker_and_content(marker, "", line_start, indent)
+                # Marker followed by space/tab, then optional content
+                if content[pos + 1] in " \t":
                     remaining = content[pos + 2 :]  # Skip marker and space
                     return self._yield_list_marker_and_content(
                         marker, remaining, line_start, indent

@@ -947,7 +947,8 @@ enabled = sh.get("enabled", False)
 | **Nested caching works** | `ConfigSection._cache` prevents object churn |
 | **Validation at load** | Missing required keys raise `ConfigError` |
 | **Feature expansion integrated** | `expand_features()` runs before `Config` creation |
-| **Templates updated** | All 16 template flat-access patterns migrated |
+| **Default theme migrated** | 14 template changes use `site.*` properties |
+| **Site properties added** | `favicon`, `logo_image`, `logo_text` on Site class |
 | **Tests pass** | All tests updated and passing |
 | **Migration script** | `scripts/migrate_config_access.py` with JSON output |
 | **Zero migration issues** | `migrate_config_access.py` reports 0 issues |
@@ -972,6 +973,14 @@ flat_keys = [k for k in DEFAULTS if not isinstance(DEFAULTS[k], dict)]
 print(f'Flat keys remaining: {flat_keys}')
 assert not flat_keys, 'DEFAULTS should be fully nested'
 "
+
+# 5. No flat site metadata access in templates
+rg 'config\.(title|baseurl|description|author|language)\b' bengal/themes/ --type html
+# Should return 0 matches
+
+# 6. Templates use site.* for metadata
+rg 'site\.(title|baseurl|description|author)' bengal/themes/ --type html
+# Should show the migrated patterns
 ```
 
 ## Migration Safety
@@ -1437,12 +1446,13 @@ class CompatConfig(Config):
 | Restructure DEFAULTS | 1 day | Nested structure |
 | Config Accessor | 1 day | `Config` + `ConfigSection` classes |
 | Unified Loader + Validation | 1-2 days | Single loader with validation |
-| Migration Script + Dry Run | 0.5 day | ✅ Created, verified 134 issues |
-| Update 67 Files (134 issues) | 2-3 days | All flat access patterns migrated |
-| Update Templates | 0.5 day | 8 template patterns migrated |
+| Migration Script + Dry Run | 0.5 day | ✅ Created, verified 130 issues |
+| Update Python (65 files) | 2-3 days | All flat access patterns migrated |
+| Update Default Theme | 1 day | 14 template changes across 10 files |
+| Add Site Properties | 0.5 day | `favicon`, `logo_image`, `logo_text` |
 | Update Tests | 1-2 days | All config tests updated |
 | Delete Old Code + Final QA | 1 day | Remove deprecated files, integration test |
-| **Total** | **~8-11 days** | Complete architecture change |
+| **Total** | **~9-12 days** | Complete architecture change |
 
 **Scope Analysis** (verified via `migrate_config_access.py`):
 - **Total flat access patterns: 134 across 67 files**
@@ -1479,6 +1489,171 @@ class CompatConfig(Config):
 
 6. **Thread Safety** — ✅ The `Config` accessor uses `cached_property`, which is not inherently thread-safe. To prevent race conditions during parallel rendering, `ConfigLoader.load()` will perform a "pre-flight" access of all core properties (`site`, `build`, `dev`) before returning the object, ensuring they are warmed in a single-threaded context.
 
+## Default Theme Migration
+
+The default theme uses flat config access in 14 locations across 10 template files. These must be migrated to use `site.*` properties (preferred) or `config.site.*` nested access.
+
+### Migration Strategy
+
+**Preferred**: Use `site.*` properties in templates (matches Hugo/Jekyll conventions):
+
+```jinja
+{# Before (flat config access) #}
+{{ config.title }}
+{{ config.baseurl }}
+{{ config.description }}
+
+{# After (Site property access - preferred) #}
+{{ site.title }}
+{{ site.baseurl }}
+{{ site.description }}
+```
+
+This is cleaner because `site` is already exposed in the template context and has typed properties.
+
+### Template Changes Required
+
+#### `base.html` (7 changes)
+
+```jinja
+{# Line 19 #}
+- {% let _site_title = config.title %}
++ {% let _site_title = site.title %}
+
+{# Line 112 #}
+- {{ meta_desc ?? config.description }}
++ {{ meta_desc ?? site.description }}
+
+{# Line 134 #}
+- {% if config.baseurl %}
++ {% if site.baseurl %}
+
+{# Line 155 #}
+- <meta name="bengal:baseurl" content="{{ config.baseurl }}">
++ <meta name="bengal:baseurl" content="{{ site.baseurl }}">
+
+{# Line 165 #}
+- {% if config.baseurl %}
++ {% if site.baseurl %}
+
+{# Line 187 - already uses config.site, update to site #}
+- {% with config.site.favicon as favicon_path %}
++ {% with site.favicon as favicon_path %}
+```
+
+**Note**: `config.i18n`, `config.fonts`, `config.search.*`, `config.assets.*`, `config.output_formats.*` are nested sections — these remain as `config.*` access.
+
+#### `index.html` (1 change)
+
+```jinja
+{# Line 35 #}
+- <h1>{{ page.title if page else section.title if section else config.title }}</h1>
++ <h1>{{ page.title if page else section.title if section else site.title }}</h1>
+```
+
+#### `autodoc/python/home.html` (1 change)
+
+```jinja
+{# Line 22 #}
+- <h1 class="docs-home-title">{{ page.title | default(config.title) }}</h1>
++ <h1 class="docs-home-title">{{ page.title | default(site.title) }}</h1>
+```
+
+#### `autodoc/cli/home.html` (1 change)
+
+```jinja
+{# Line 22 #}
+- <h1 class="docs-home-title">{{ page.title | default(config.title) }}</h1>
++ <h1 class="docs-home-title">{{ page.title | default(site.title) }}</h1>
+```
+
+#### `partials/nav-menu.html` (4 changes)
+
+```jinja
+{# Lines 77, 80, 85 - params access (keep as config.params) #}
+{# These are correct - params is a nested section #}
+
+{# Lines 103-104 - logo fallbacks #}
+- {% set _logo_image = config.logo_image or config.site.logo_image %}
+- {% set _logo_text = config.logo_text or config.site.logo_text %}
++ {% set _logo_image = site.logo_image or site.logo %}
++ {% set _logo_text = site.logo_text or site.title %}
+```
+
+#### `partials/stale-content-banner.html` (1 change)
+
+```jinja
+{# Line 26-27 #}
+- {% if config.github_edit_base and page.source_path %}
+- <a href="{{ config.github_edit_base }}{{ page.source_path }}"
++ {% if config.params.github_edit_base and page.source_path %}
++ <a href="{{ config.params.github_edit_base }}{{ page.source_path }}"
+```
+
+#### `partials/page-hero/_macros.html` (1 change)
+
+```jinja
+{# Line 470 #}
+- {% let source_url = config.github_repo ~ '/blob/' ~ branch ~ '/' ~ source_file ~ line_anchor %}
++ {% let source_url = config.params.github_repo ~ '/blob/' ~ branch ~ '/' ~ source_file ~ line_anchor %}
+```
+
+### Config Access Patterns After Migration
+
+| Pattern | Use Case | Example |
+|---------|----------|---------|
+| `site.*` | Site metadata | `site.title`, `site.baseurl`, `site.author` |
+| `config.params.*` | Custom user params | `config.params.repo_url`, `config.params.github_repo` |
+| `config.theme.*` | Theme settings | `config.theme.syntax_highlighting` |
+| `config.search.*` | Search config | `config.search.ui.modal` |
+| `config.i18n.*` | Internationalization | `config.i18n.default_language` |
+| `config.assets.*` | Asset pipeline | `config.assets.bundle_js` |
+| `config.output_formats.*` | Output formats | `config.output_formats.per_page` |
+
+### Local Variables (No Changes Needed)
+
+These are **local template variables**, not the site config — they don't need changes:
+
+- `children_config` — page frontmatter config for children display
+- `related_config` — page frontmatter config for related posts
+- `discover_config` — page frontmatter config for discovery section
+- `active_config` — merged search config
+- `ui_config` — search UI config
+
+### Site Properties to Add
+
+The `Site` class needs these additional properties to support template access:
+
+```python
+# bengal/core/site/properties.py
+
+@property
+def favicon(self) -> str | None:
+    """Get favicon path from site config."""
+    return self.config.get("site", {}).get("favicon")
+
+@property
+def logo_image(self) -> str | None:
+    """Get logo image path."""
+    return self.config.get("logo_image") or self.config.get("site", {}).get("logo_image")
+
+@property
+def logo_text(self) -> str | None:
+    """Get logo text."""
+    return self.config.get("logo_text") or self.config.get("site", {}).get("logo_text")
+```
+
+### Migration Verification
+
+After migration, run:
+
+```bash
+# Check no flat config access remains for site metadata
+rg 'config\.(title|baseurl|description|author|language)\b' bengal/themes/ --type html
+
+# Should return 0 matches
+```
+
 ## Files Changed
 
 ### Created
@@ -1497,8 +1672,19 @@ class CompatConfig(Config):
 | `bengal/config/loader.py` | Rewrite as unified loader, add validation |
 | `bengal/config/env_overrides.py` | Update to target nested `site.baseurl` |
 | `bengal/core/render.py` | Update template context to expose `Config` |
-| `bengal/core/site.py` | Update to use `Config` accessor |
-| `templates/**/*.html` | Update all flat config access to nested |
+| `bengal/core/site/properties.py` | Add `favicon`, `logo_image`, `logo_text` properties |
+
+### Default Theme Templates Modified
+
+| File | Changes |
+|------|---------|
+| `themes/default/templates/base.html` | 7 changes: `config.title/baseurl/description` → `site.*` |
+| `themes/default/templates/index.html` | 1 change: `config.title` → `site.title` |
+| `themes/default/templates/autodoc/python/home.html` | 1 change: `config.title` → `site.title` |
+| `themes/default/templates/autodoc/cli/home.html` | 1 change: `config.title` → `site.title` |
+| `themes/default/templates/partials/nav-menu.html` | 2 changes: logo fallbacks → `site.*` |
+| `themes/default/templates/partials/stale-content-banner.html` | 1 change: `config.github_edit_base` → `config.params.*` |
+| `themes/default/templates/partials/page-hero/_macros.html` | 1 change: `config.github_repo` → `config.params.*` |
 
 ### Deleted
 
