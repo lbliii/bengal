@@ -14,7 +14,7 @@ class TestHeadingEdgeCases:
     def test_heading_only_hashes(self):
         """Heading with only hash marks."""
         html = parse("## ")
-        assert "<h2>" in html
+        assert "<h2" in html  # Patitas adds id attribute: <h2 id="...">
 
     def test_heading_many_spaces_after_hash(self):
         """Heading with many spaces after hash."""
@@ -29,7 +29,7 @@ class TestHeadingEdgeCases:
     def test_heading_no_space(self):
         """No space after hash is not heading."""
         html = parse("#notaheading")
-        assert "<h1>" not in html
+        assert "<h1" not in html  # Should not be parsed as heading
         assert "#notaheading" in html
 
     def test_heading_trailing_hashes_with_space(self):
@@ -41,7 +41,7 @@ class TestHeadingEdgeCases:
     def test_heading_with_code(self):
         """Heading containing code span."""
         html = parse("# Heading with `code`")
-        assert "<h1>" in html
+        assert "<h1" in html  # Patitas adds id attribute
         assert "<code>" in html
 
 
@@ -210,7 +210,7 @@ class TestMixedBlocks:
     def test_heading_then_paragraph(self):
         """Heading followed by paragraph."""
         html = parse("# Heading\n\nParagraph")
-        assert "<h1>" in html
+        assert "<h1" in html  # Patitas adds id attribute
         assert "<p>" in html
 
     def test_paragraph_then_code(self):
@@ -229,7 +229,7 @@ class TestMixedBlocks:
         """Code block followed by heading."""
         html = parse("```\ncode\n```\n\n# Heading")
         assert "<pre>" in html
-        assert "<h1>" in html
+        assert "<h1" in html  # Patitas adds id attribute
 
     def test_thematic_break_between_paragraphs(self):
         """Thematic break between paragraphs."""

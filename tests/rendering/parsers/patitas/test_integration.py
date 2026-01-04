@@ -36,7 +36,7 @@ class TestPatitasParserWrapper:
     def test_parse_basic(self, patitas_parser):
         """Basic parse method."""
         html = patitas_parser.parse("# Hello", {})
-        assert "<h1>" in html
+        assert "<h1" in html
         assert "Hello" in html
 
     def test_parse_empty(self, patitas_parser):
@@ -98,7 +98,7 @@ class TestModuleAPI:
     def test_parse_function(self):
         """parse() function works."""
         html = parse("# Hello")
-        assert "<h1>" in html
+        assert "<h1" in html
 
     def test_parse_to_ast_function(self):
         """parse_to_ast() function works."""
@@ -109,7 +109,7 @@ class TestModuleAPI:
         """render_ast() function works."""
         ast = parse_to_ast("# Hello")
         html = render_ast(ast)
-        assert "<h1>" in html
+        assert "<h1" in html
 
     def test_create_markdown_function(self):
         """create_markdown() function works."""
@@ -120,7 +120,7 @@ class TestModuleAPI:
         """Markdown instance is callable."""
         md = create_markdown()
         html = md("# Hello")
-        assert "<h1>" in html
+        assert "<h1" in html
 
 
 class TestMarkdownClass:
@@ -145,7 +145,7 @@ class TestMarkdownClass:
         md = create_markdown()
         ast = md.parse_to_ast("# Hello")
         html = md.render_ast(ast)
-        assert "<h1>" in html
+        assert "<h1" in html
 
 
 class TestMetadataHandling:
@@ -155,17 +155,17 @@ class TestMetadataHandling:
         """Parse works with arbitrary metadata."""
         metadata = {"title": "Test", "date": "2024-01-01", "custom": {"nested": True}}
         html = patitas_parser.parse("# Hello", metadata)
-        assert "<h1>" in html
+        assert "<h1" in html
 
     def test_parse_with_empty_metadata(self, patitas_parser):
         """Parse works with empty metadata."""
         html = patitas_parser.parse("# Hello", {})
-        assert "<h1>" in html
+        assert "<h1" in html
 
     def test_parse_with_none_like_metadata(self, patitas_parser):
         """Parse handles edge case metadata."""
         html = patitas_parser.parse("# Hello", {"null": None, "empty": ""})
-        assert "<h1>" in html
+        assert "<h1" in html
 
 
 class TestTOCGeneration:
@@ -246,8 +246,8 @@ project.do_thing()
 MIT
 """
         html = patitas_parser.parse(content, {})
-        assert "<h1>" in html
-        assert "<h2>" in html
+        assert "<h1" in html
+        assert "<h2" in html
         assert "<pre>" in html
         assert "<ul>" in html
 
@@ -280,8 +280,8 @@ Use the following settings:
 See [API docs](https://example.com/docs).
 """
         html = patitas_parser.parse(content, {})
-        assert "<h2>" in html
-        assert "<h3>" in html
+        assert "<h2" in html
+        assert "<h3" in html
         assert "<code>" in html
         assert "<a href" in html
 

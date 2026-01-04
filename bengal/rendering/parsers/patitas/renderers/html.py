@@ -305,9 +305,14 @@ class HtmlRenderer:
 
         if tight:
             # Tight list: render children without paragraph wrapper
-            for child in item.children:
+            for i, child in enumerate(item.children):
                 if isinstance(child, Paragraph):
                     self._render_inline_children(child.children, sb)
+                    # Add newline before next block element (like nested list)
+                    if i + 1 < len(item.children) and not isinstance(
+                        item.children[i + 1], Paragraph
+                    ):
+                        sb.append("\n")
                 else:
                     self._render_block(child, sb)
         else:

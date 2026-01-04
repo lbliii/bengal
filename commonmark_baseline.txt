@@ -1,28 +1,33 @@
-BASELINE: 530/652 (81.3%)
+# CommonMark Spec Baseline Report
 
-ATX headings: 5/18 (28%)
-Autolinks: 19/19 (100%)
-Backslash escapes: 13/13 (100%)
-Blank lines: 0/1 (0%)
-Block quotes: 16/25 (64%)
-Code spans: 22/22 (100%)
-Emphasis and strong emphasis: 132/132 (100%)
-Entity and numeric character references: 16/17 (94%)
-Fenced code blocks: 27/29 (93%)
-HTML blocks: 41/44 (93%)
-Hard line breaks: 13/15 (87%)
-Images: 20/22 (91%)
-Indented code blocks: 8/12 (67%)
-Inlines: 1/1 (100%)
-Link reference definitions: 12/27 (44%)
-Links: 75/90 (83%)
-List items: 30/48 (62%)
-Lists: 12/26 (46%)
-Paragraphs: 8/8 (100%)
-Precedence: 1/1 (100%)
-Raw HTML: 19/20 (95%)
-Setext headings: 12/27 (44%)
-Soft line breaks: 2/2 (100%)
-Tabs: 5/11 (45%)
-Textual content: 3/3 (100%)
-Thematic breaks: 18/19 (95%)
+| Section | Passed | Failed | Skipped | Pass Rate |
+|---------|--------|--------|---------|-----------|
+| ATX headings | 5 | 13 | 0 | 28% |
+| Autolinks | 19 | 0 | 0 | 100% |
+| Backslash escapes | 13 | 0 | 0 | 100% |
+| Blank lines | 0 | 1 | 0 | 0% |
+| Block quotes | 16 | 9 | 0 | 64% |
+| Code spans | 22 | 0 | 0 | 100% |
+| Emphasis and strong emphasis | 132 | 0 | 0 | 100% |
+| Entity and numeric character references | 16 | 1 | 0 | 94% |
+| Fenced code blocks | 27 | 2 | 0 | 93% |
+| HTML blocks | 41 | 3 | 0 | 93% |
+| Hard line breaks | 13 | 2 | 0 | 87% |
+| Images | 20 | 2 | 0 | 91% |
+| Indented code blocks | 8 | 4 | 0 | 67% |
+| Inlines | 1 | 0 | 0 | 100% |
+| Link reference definitions | 12 | 15 | 0 | 44% |
+| Links | 75 | 15 | 0 | 83% |
+| List items | 32 | 16 | 0 | 67% |
+| Lists | 15 | 11 | 0 | 58% |
+| Paragraphs | 8 | 0 | 0 | 100% |
+| Precedence | 1 | 0 | 0 | 100% |
+| Raw HTML | 19 | 1 | 0 | 95% |
+| Setext headings | 12 | 15 | 0 | 44% |
+| Soft line breaks | 2 | 0 | 0 | 100% |
+| Tabs | 5 | 6 | 0 | 45% |
+| Textual content | 3 | 0 | 0 | 100% |
+| Thematic breaks | 18 | 1 | 0 | 95% |
+
+**Total**: 535/652 (82.1%)
+**Skipped**: 0 (link reference definitions now partially implemented)

@@ -244,12 +244,7 @@ class ListParsingMixin:
                         else content_indent
                     )
 
-                    if original_indent == check_indent and content_lines:
-                        # This is a continuation line at content_indent, not code
-                        code_content = tok.value.rstrip()
-                        content_lines.append(code_content)
-                        self._advance()
-                    elif original_indent >= check_indent:
+                    if original_indent >= check_indent:
                         # Check if this is actually a nested list marker
                         # CommonMark: A list marker at content_indent or deeper can be a nested list
                         is_list_marker = False
@@ -270,12 +265,10 @@ class ListParsingMixin:
                                     pos > 0
                                     and pos < len(stripped_content)
                                     and stripped_content[pos] in ".)"
+                                    and pos + 1 < len(stripped_content)
+                                    and stripped_content[pos + 1] in " \t"
                                 ):
-                                    if (
-                                        pos + 1 < len(stripped_content)
-                                        and stripped_content[pos + 1] in " \t"
-                                    ):
-                                        is_list_marker = True
+                                    is_list_marker = True
 
                         if is_list_marker:
                             # This is a nested list - save current content and parse nested list
@@ -293,6 +286,11 @@ class ListParsingMixin:
                             )
                             if nested_list:
                                 item_children.append(nested_list)
+                        elif original_indent == check_indent and content_lines:
+                            # Continuation line at content_indent (not a list marker)
+                            code_content = tok.value.rstrip()
+                            content_lines.append(code_content)
+                            self._advance()
                         else:
                             # More indented than content_indent - this is actual code
                             break
@@ -806,9 +804,12 @@ class ListParsingMixin:
                         p = 0
                         while p < len(tok_content) and tok_content[p].isdigit():
                             p += 1
-                        if p < len(tok_content) and tok_content[p] == marker_char:
-                            if tok_original_indent == original_indent:
-                                is_sibling_marker = True
+                        if (
+                            p < len(tok_content)
+                            and tok_content[p] == marker_char
+                            and tok_original_indent == original_indent
+                        ):
+                            is_sibling_marker = True
 
                 if is_sibling_marker:
                     # Save current item
@@ -869,9 +870,13 @@ class ListParsingMixin:
                             p = 0
                             while p < len(tok_content) and tok_content[p].isdigit():
                                 p += 1
-                            if p < len(tok_content) and tok_content[p] in ".)":
-                                if p + 1 < len(tok_content) and tok_content[p + 1] in " \t":
-                                    is_nested_marker = True
+                            if (
+                                p < len(tok_content)
+                                and tok_content[p] in ".)"
+                                and p + 1 < len(tok_content)
+                                and tok_content[p + 1] in " \t"
+                            ):
+                                is_nested_marker = True
 
                     if is_nested_marker:
                         # Save current content first

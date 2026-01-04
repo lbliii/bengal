@@ -262,4 +262,4 @@ class TestIterBlocks:
         renderer = HtmlRenderer(source)
         blocks = list(renderer.iter_blocks(ast))
         assert len(blocks) == 3
-        assert all("<h1>" in block for block in blocks)
+        assert all("<h1" in block for block in blocks)  # Patitas adds id attribute
