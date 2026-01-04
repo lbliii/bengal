@@ -25,6 +25,7 @@ from bengal.rendering.parsers.patitas.parsing import (
     InlineParsingMixin,
     TokenNavigationMixin,
 )
+from bengal.rendering.parsers.patitas.parsing.containers import ContainerStack
 from bengal.rendering.parsers.patitas.parsing.inline.links import _process_escapes
 from bengal.rendering.parsers.patitas.tokens import Token, TokenType
 
@@ -78,6 +79,8 @@ class Parser(
         "_strict_contracts",
         # Link reference definitions
         "_link_refs",
+        # Container stack for tracking nesting context (Phase 2)
+        "_containers",
     )
 
     def __init__(
@@ -120,6 +123,10 @@ class Parser(
         self._directive_registry = directive_registry
         self._directive_stack: list[str] = []
         self._strict_contracts = strict_contracts
+
+        # Container stack for tracking nesting context (Phase 2)
+        # Initialized to document-level frame by default
+        self._containers = ContainerStack()
 
     def parse(self) -> Sequence[Block]:
         """Parse source into AST blocks.

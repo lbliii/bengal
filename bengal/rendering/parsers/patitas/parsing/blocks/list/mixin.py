@@ -6,6 +6,7 @@ using the modular helper functions.
 
 from __future__ import annotations
 
+import os
 from typing import TYPE_CHECKING
 
 from bengal.rendering.parsers.patitas.nodes import (
@@ -41,10 +42,20 @@ from bengal.rendering.parsers.patitas.parsing.blocks.list.nested import (
     parse_nested_list_from_indented_code,
     parse_nested_list_inline,
 )
+from bengal.rendering.parsers.patitas.parsing.containers import (
+    ContainerFrame,
+    ContainerType,
+)
 from bengal.rendering.parsers.patitas.tokens import TokenType
 
 if TYPE_CHECKING:
+    from bengal.rendering.parsers.patitas.parsing.containers import ContainerStack
     from bengal.rendering.parsers.patitas.tokens import Token
+
+# Shadow stack validation mode (Phase 2)
+# Set BENGAL_PARSER_STRICT=1 to enable assertions that validate the container
+# stack matches the locally-tracked indent values.
+_STRICT_MODE = os.environ.get("BENGAL_PARSER_STRICT", "0") == "1"
 
 
 class ListParsingMixin:
@@ -57,6 +68,7 @@ class ListParsingMixin:
         - _tokens: list[Token]
         - _pos: int
         - _current: Token | None
+        - _containers: ContainerStack (Phase 2 shadow stack)
 
     Required Host Methods:
         - _at_end() -> bool
@@ -71,6 +83,7 @@ class ListParsingMixin:
     _tokens: list
     _pos: int
     _current: Token | None
+    _containers: ContainerStack
 
     def _parse_list(self, parent_indent: int = -1) -> List:
         """Parse list (unordered or ordered) with nested list support.
@@ -97,6 +110,20 @@ class ListParsingMixin:
 
         # Calculate content indent
         content_indent = start_indent + marker_info.marker_length + 1
+
+        # Phase 2 Shadow Stack: Push LIST container frame
+        # This tracks the list's indent context for validation.
+        # In Phase 3, this will become the source of truth.
+        list_frame = ContainerFrame(
+            container_type=ContainerType.LIST,
+            start_indent=start_indent,
+            content_indent=content_indent,
+            marker_width=marker_info.marker_length,
+            ordered=ordered,
+            bullet_char=bullet_char,
+            start_number=start,
+        )
+        self._containers.push(list_frame)
 
         items: list[ListItem] = []
         tight = True
@@ -154,6 +181,13 @@ class ListParsingMixin:
             if not item_tight:
                 tight = False
 
+        # Phase 2 Shadow Stack: Pop the LIST container frame
+        # If loose state was detected during parsing, mark it on the frame
+        # before popping so it propagates correctly.
+        if not tight:
+            self._containers.mark_loose()
+        self._containers.pop()
+
         return List(
             location=start_token.location,
             items=tuple(items),
@@ -177,6 +211,24 @@ class ListParsingMixin:
         Returns:
             Tuple of (ListItem, is_tight)
         """
+        # Phase 2 Shadow Stack: Push LIST_ITEM container frame
+        item_frame = ContainerFrame(
+            container_type=ContainerType.LIST_ITEM,
+            start_indent=start_indent,
+            content_indent=content_indent,
+        )
+        self._containers.push(item_frame)
+
+        # Phase 2 Validation: Assert stack matches local variables
+        if _STRICT_MODE:
+            current = self._containers.current()
+            assert current.content_indent == content_indent, (
+                f"Stack content_indent mismatch: {current.content_indent} != {content_indent}"
+            )
+            assert current.start_indent == start_indent, (
+                f"Stack start_indent mismatch: {current.start_indent} != {start_indent}"
+            )
+
         item_children: list[Block] = []
         content_lines: list[str] = []
         checked: bool | None = None
@@ -225,9 +277,7 @@ class ListParsingMixin:
                         if actual_content_indent is not None
                         else content_indent
                     )
-                    if detect_nested_list_in_content(
-                        line, self._source, tok.location.offset, check_indent
-                    ):
+                    if detect_nested_list_in_content(line, tok.line_indent, check_indent):
                         blocks = parse_nested_list_inline(
                             line + "\n",
                             tok.location,
@@ -466,6 +516,12 @@ class ListParsingMixin:
             content = "\n".join(content_lines)
             inlines = self._parse_inline(content, marker_token.location)
             item_children.append(Paragraph(location=marker_token.location, children=inlines))
+
+        # Phase 2 Shadow Stack: Pop the LIST_ITEM container frame
+        # Mark as loose if tight=False (blank line detected)
+        if not tight:
+            self._containers.mark_loose()
+        self._containers.pop()
 
         item = ListItem(
             location=marker_token.location,

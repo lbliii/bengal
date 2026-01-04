@@ -8,7 +8,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Protocol
 
 from bengal.rendering.parsers.patitas.nodes import List, ListItem, Paragraph
-from bengal.rendering.parsers.patitas.parsing.blocks.list.indent import get_line_indent
 from bengal.rendering.parsers.patitas.parsing.blocks.list.marker import (
     is_list_marker,
 )
@@ -34,8 +33,7 @@ class ParserProtocol(Protocol):
 
 def detect_nested_list_in_content(
     line: str,
-    source: str,
-    token_offset: int,
+    line_indent: int,
     content_indent: int,
 ) -> bool:
     """Detect if paragraph line content is actually a nested list marker.
@@ -46,8 +44,7 @@ def detect_nested_list_in_content(
 
     Args:
         line: The stripped line content
-        source: The full source text
-        token_offset: Offset of the token in source
+        line_indent: Indent of the line (from tok.line_indent)
         content_indent: Content indent of the current list item
 
     Returns:
@@ -55,11 +52,6 @@ def detect_nested_list_in_content(
     """
     if not line:
         return False
-
-    # line_indent should be passed in or computed from token
-    # This function is called with paragraph line content, so we use get_line_indent
-    # as a fallback since PARAGRAPH_LINE tokens encode indent in value prefix
-    line_indent = get_line_indent(source, token_offset)
 
     # If line is indented 4+ spaces beyond content indent, it's literal text
     if line_indent >= content_indent + 4:

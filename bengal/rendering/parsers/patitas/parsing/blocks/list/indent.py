@@ -58,23 +58,6 @@ def calculate_content_indent(
     return marker_end_col + spaces_after
 
 
-def get_line_indent(source: str, offset: int) -> int:
-    """Get the indent level of the line containing the given offset.
-
-    Args:
-        source: The full source text
-        offset: Offset position in the source
-
-    Returns:
-        The column position of the first non-whitespace character
-    """
-    line_start = source.rfind("\n", 0, offset) + 1
-    if line_start == 0:
-        line_start = 0
-    line = source[line_start:].split("\n")[0]
-    return get_marker_indent(line)
-
-
 def is_continuation_indent(
     line_indent: int,
     content_indent: int,
