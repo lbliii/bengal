@@ -38,12 +38,6 @@ jobs:
         env:
           PYTHON_GIL: "0"
 
-      - name: Clean build artifacts and cache
-        working-directory: site
-        run: uv run python -m bengal.cli site clean --cache --force
-        env:
-          PYTHON_GIL: "0"
-
       - name: Build site
         working-directory: site
         run: uv run bengal site build --environment production
@@ -55,13 +49,6 @@ jobs:
           touch site/public/.nojekyll
           # Override parent .gitignore so upload-pages-artifact includes all files
           echo "" > site/public/.gitignore
-
-      - name: Verify build output
-        run: |
-          echo "=== CSS files in public/assets/css ==="
-          ls -la site/public/assets/css/ || echo "No CSS directory"
-          echo "=== First 5 lines of style.css ==="
-          head -5 site/public/assets/css/style.css || echo "No style.css"
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
