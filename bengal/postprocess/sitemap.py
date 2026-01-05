@@ -112,7 +112,7 @@ class SitemapGenerator:
         urlset.set("xmlns", "http://www.sitemaps.org/schemas/sitemap/0.9")
         urlset.set("xmlns:xhtml", "http://www.w3.org/1999/xhtml")
 
-        baseurl = self.site.config.get("baseurl", "")
+        baseurl = self.site.baseurl or ""
 
         # Add each page to sitemap
         included_count = 0

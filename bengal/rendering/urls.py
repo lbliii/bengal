@@ -94,7 +94,7 @@ def apply_baseurl(path: str, site: Site) -> str:
     Returns:
         URL with baseurl applied
     """
-    baseurl = (site.config.get("baseurl", "") or "").rstrip("/")
+    baseurl = (site.baseurl or "").rstrip("/")
 
     if not baseurl:
         return path

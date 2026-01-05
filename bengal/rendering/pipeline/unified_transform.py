@@ -194,5 +194,10 @@ def create_transformer(config: dict[str, Any]) -> HybridHTMLTransformer:
     Returns:
         Configured HybridHTMLTransformer instance
     """
-    baseurl = config.get("baseurl", "") or ""
-    return HybridHTMLTransformer(baseurl.rstrip("/"))
+    # Handle nested config structure (TOML format: [site] section)
+    site_section = config.get("site", {})
+    if isinstance(site_section, dict):
+        baseurl = site_section.get("baseurl", "") or ""
+    else:
+        baseurl = config.get("baseurl", "") or ""
+    return HybridHTMLTransformer(str(baseurl).rstrip("/"))

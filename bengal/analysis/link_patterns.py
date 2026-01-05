@@ -146,7 +146,7 @@ class LinkPatternAnalyzer:
 
         # External if starts with protocol
         if href.startswith(("http://", "https://", "//")):
-            baseurl = self.site.config.get("baseurl", "")
+            baseurl = self.site.baseurl or ""
             return bool(baseurl and href.startswith(baseurl))
 
         # Fragment-only links are internal

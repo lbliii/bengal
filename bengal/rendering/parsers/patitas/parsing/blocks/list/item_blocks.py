@@ -240,15 +240,26 @@ def parse_indented_code_in_list(
             else:
                 break
         elif tok.type == TokenType.BLANK_LINE:
-            # Blank lines allowed in indented code if next line is also indented
-            parser._advance()
+            # CommonMark: blank lines within indented code are preserved.
+            # Consume all consecutive blank lines and check if more code follows.
+            blank_count = 0
+            while not parser._at_end() and parser._current is not None:
+                if parser._current.type == TokenType.BLANK_LINE:
+                    blank_count += 1
+                    parser._advance()
+                else:
+                    break
+
+            # Check if next token is more indented code
             if not parser._at_end() and parser._current is not None:
                 next_tok = parser._current
                 if next_tok.type == TokenType.INDENTED_CODE:
                     tok_indent = next_tok.line_indent
                     if tok_indent >= check_indent + 4:
-                        code_lines.append("\n")
+                        # Include blank lines and continue
+                        code_lines.append("\n" * blank_count)
                         continue
+            # No more code follows - exit
             break
         else:
             break

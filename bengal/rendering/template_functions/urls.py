@@ -19,7 +19,7 @@ def register(env: TemplateEnvironment, site: Site) -> None:
 
     # Create closures that have access to site
     def absolute_url_with_site(url: str) -> str:
-        return absolute_url(url, site.config.get("baseurl", ""))
+        return absolute_url(url, site.baseurl or "")
 
     def href_filter(path: str) -> str:
         """Apply baseurl to path. For manual paths in templates."""
@@ -207,8 +207,8 @@ def build_artifact_url(site: Site, filename: str = "build.json", dir_name: str =
         else:
             dir_name = "bengal"
 
-    # Get baseurl
-    baseurl = str(config.get("baseurl", "") or "").rstrip("/")
+    # Get baseurl - use site.baseurl property for proper nested config access
+    baseurl = str(site.baseurl or "").rstrip("/")
 
     # Check for i18n prefix strategy
     prefix = ""

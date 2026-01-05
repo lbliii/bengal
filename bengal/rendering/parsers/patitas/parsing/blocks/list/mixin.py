@@ -257,18 +257,29 @@ class ListParsingMixin:
             if tok.type == TokenType.PARAGRAPH_LINE:
                 # CommonMark: If first content line has more than 4 spaces between
                 # marker and content, treat it as indented code, not paragraph.
-                # We calculate actual spacing from source positions, not token value,
-                # because token values include padding for visual column position.
+                # We count spaces from the source line between the marker character
+                # (like "." or "-") and the first content character.
                 if actual_content_indent is None and not content_lines:
-                    # Calculate actual spacing between marker end and content start
-                    # using source positions rather than counting spaces in token value
-                    marker_end_offset = marker_token.location.offset + len(
-                        marker_token.value.lstrip()
-                    )
-                    content_offset = tok.location.offset
-                    actual_spacing = content_offset - marker_end_offset
+                    # Find the original line containing this content
+                    line_start = self._source.rfind("\n", 0, tok.location.offset) + 1
+                    line_end = self._source.find("\n", tok.location.offset)
+                    if line_end == -1:
+                        line_end = len(self._source)
+                    original_line = self._source[line_start:line_end]
 
-                    if actual_spacing > 4:
+                    # Get just the marker character (e.g., "-" or "1.")
+                    marker_char = marker_stripped.rstrip()
+                    marker_pos = original_line.find(marker_char)
+
+                    if marker_pos != -1:
+                        # Count spaces from after marker to first non-space content
+                        after_marker = original_line[marker_pos + len(marker_char) :]
+                        spaces_after_marker = len(after_marker) - len(after_marker.lstrip(" "))
+                    else:
+                        # Fallback: use token value leading spaces
+                        spaces_after_marker = len(tok.value) - len(tok.value.lstrip(" "))
+
+                    if spaces_after_marker > 4:
                         # This is indented code - strip 4 spaces and create code block
                         code_content = tok.value[4:].rstrip() + "\n"
                         item_children.append(IndentedCode(location=tok.location, code=code_content))

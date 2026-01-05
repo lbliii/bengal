@@ -25,16 +25,16 @@ def register(env: TemplateEnvironment, site: Site) -> None:
 
     # Create closures that have access to site's xref_index and baseurl
     def ref_with_site(path: str, text: str | None = None) -> Markup:
-        return ref(path, site.xref_index, site.config.get("baseurl", ""), text)
+        return ref(path, site.xref_index, site.baseurl or "", text)
 
     def doc_with_site(path: str) -> Page | None:
         return doc(path, site.xref_index)
 
     def anchor_with_site(heading: str, page_path: str | None = None) -> Markup:
-        return anchor(heading, site.xref_index, site.config.get("baseurl", ""), page_path)
+        return anchor(heading, site.xref_index, site.baseurl or "", page_path)
 
     def relref_with_site(path: str) -> str:
-        return relref(path, site.xref_index, site.config.get("baseurl", ""))
+        return relref(path, site.xref_index, site.baseurl or "")
 
     env.globals.update(
         {

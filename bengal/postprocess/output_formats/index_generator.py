@@ -229,9 +229,9 @@ class SiteIndexGenerator:
 
         # Build site metadata (per-locale when i18n is enabled)
         site_metadata = {
-            "title": self.site.config.get("title", "Bengal Site"),
-            "description": self.site.config.get("description", ""),
-            "baseurl": self.site.config.get("baseurl", ""),
+            "title": self.site.title or "Bengal Site",
+            "description": self.site.description or "",
+            "baseurl": self.site.baseurl or "",
         }
 
         # Only include build_time in production builds
@@ -331,7 +331,7 @@ class SiteIndexGenerator:
 
         See: plan/drafted/rfc-unified-page-data-accumulation.md
         """
-        baseurl = self.site.config.get("baseurl", "").rstrip("/")
+        baseurl = (self.site.baseurl or "").rstrip("/")
 
         # Construct full URL by combining baseurl with relative URI
         page_url = f"{baseurl}{data.uri}" if baseurl else data.uri
@@ -387,9 +387,9 @@ class SiteIndexGenerator:
 
         # Build site metadata
         site_metadata = {
-            "title": self.site.config.get("title", "Bengal Site"),
-            "description": self.site.config.get("description", ""),
-            "baseurl": self.site.config.get("baseurl", ""),
+            "title": self.site.title or "Bengal Site",
+            "description": self.site.description or "",
+            "baseurl": self.site.baseurl or "",
         }
 
         # Only include build_time in production builds
@@ -544,7 +544,7 @@ class SiteIndexGenerator:
 
         # Construct full URL by combining baseurl with relative URI
         # This avoids double/triple baseurl that occurred when page.url already had baseurl
-        baseurl = self.site.config.get("baseurl", "").rstrip("/")
+        baseurl = (self.site.baseurl or "").rstrip("/")
         page_url = f"{baseurl}{page_uri}" if baseurl else page_uri
 
         summary: dict[str, Any] = {

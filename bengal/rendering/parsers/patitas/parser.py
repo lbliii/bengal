@@ -81,6 +81,8 @@ class Parser(
         "_link_refs",
         # Container stack for tracking nesting context (Phase 2)
         "_containers",
+        # Setext heading control - disabled for blockquote lazy continuation content
+        "_allow_setext_headings",
     )
 
     def __init__(
@@ -127,6 +129,9 @@ class Parser(
         # Container stack for tracking nesting context (Phase 2)
         # Initialized to document-level frame by default
         self._containers = ContainerStack()
+
+        # Setext heading control - can be disabled for blockquote lazy continuation
+        self._allow_setext_headings = True
 
     def parse(self) -> Sequence[Block]:
         """Parse source into AST blocks.
@@ -192,7 +197,13 @@ class Parser(
 
         return tuple(blocks)
 
-    def _parse_nested_content(self, content: str, location) -> tuple[Block, ...]:
+    def _parse_nested_content(
+        self,
+        content: str,
+        location,
+        *,
+        allow_setext_headings: bool = True,
+    ) -> tuple[Block, ...]:
         """Parse nested content as blocks (for block quotes, list items).
 
         Creates a sub-parser to handle nested block-level content while
@@ -201,6 +212,8 @@ class Parser(
         Args:
             content: The markdown content to parse as blocks
             location: Source location for error reporting
+            allow_setext_headings: If False, disable setext heading detection
+                (used for blockquote content with lazy continuation lines)
 
         Returns:
             Tuple of Block nodes
@@ -224,6 +237,9 @@ class Parser(
         sub_parser._footnotes_enabled = self._footnotes_enabled
         sub_parser._math_enabled = self._math_enabled
         sub_parser._autolinks_enabled = self._autolinks_enabled
+
+        # Setext heading control
+        sub_parser._allow_setext_headings = allow_setext_headings
 
         # Share link reference definitions (they're document-wide)
         sub_parser._link_refs = self._link_refs

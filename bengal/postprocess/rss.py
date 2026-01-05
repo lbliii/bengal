@@ -147,9 +147,9 @@ class RSSGenerator:
             channel = ET.SubElement(rss, "channel")
 
             # Channel metadata
-            title = self.site.config.get("title", "Bengal Site")
-            baseurl = self.site.config.get("baseurl", "")
-            description = self.site.config.get("description", f"{title} RSS Feed")
+            title = self.site.title or "Bengal Site"
+            baseurl = self.site.baseurl or ""
+            description = self.site.description or f"{title} RSS Feed"
             ET.SubElement(channel, "title").text = title
             ET.SubElement(channel, "link").text = baseurl
             ET.SubElement(channel, "description").text = description

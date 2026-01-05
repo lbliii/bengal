@@ -237,15 +237,28 @@ class Site(
             self.root_path = self.root_path.resolve()
 
         # Access theme config (Config supports dict-like access via get())
+        # Check multiple locations for theme configuration:
+        # 1. [theme] section with name key: config["theme"]["name"]
+        # 2. [theme] section as string: config["theme"] = "mytheme"
+        # 3. [site] section with theme key: config["site"]["theme"]
         theme_section = self.config.get("theme", {})
         if isinstance(theme_section, dict):
             self.theme = theme_section.get("name", "default")
         elif hasattr(theme_section, "name"):
             # ConfigSection access
             self.theme = theme_section.name
+        elif theme_section and isinstance(theme_section, str):
+            # Fallback for config where theme was a string at top level
+            self.theme = theme_section
         else:
-            # Fallback for config where theme was a string
-            self.theme = theme_section if isinstance(theme_section, str) else "default"
+            # Check [site] section for theme (TOML format: [site] theme = "...")
+            site_section = self.config.get("site", {})
+            if isinstance(site_section, dict):
+                self.theme = site_section.get("theme", "default")
+            elif hasattr(site_section, "theme"):
+                self.theme = site_section.theme or "default"
+            else:
+                self.theme = "default"
 
         # Theme.from_config expects a dict; use .raw if available (Config object) else use directly (plain dict)
         config_dict = self.config.raw if hasattr(self.config, "raw") else self.config

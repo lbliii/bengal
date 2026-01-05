@@ -373,6 +373,7 @@ class BlockParsingCoreMixin:
         last_marker_line: int | None = start_token.location.lineno
         has_paragraph_content = False  # Track if we have paragraph content for lazy continuation
         line_has_content = False  # Track if current line already has content (from token.value)
+        has_lazy_continuation = False  # Track if any lazy continuation lines were included
 
         def flush_line():
             nonlocal has_paragraph_content, line_start_offset, line_end_offset, line_has_content
@@ -400,6 +401,8 @@ class BlockParsingCoreMixin:
                 if token.type == TokenType.PARAGRAPH_LINE:
                     if not has_paragraph_content:
                         break
+                    # This is a lazy continuation line (no > prefix)
+                    has_lazy_continuation = True
                 elif token.type == TokenType.BLOCK_QUOTE_MARKER:
                     pass
                 else:
@@ -520,7 +523,13 @@ class BlockParsingCoreMixin:
         content = "\n".join(content_lines)
         if content.strip() or any(line == "" for line in content_lines):
             # Use sub-parser to parse nested block content
-            children = self._parse_nested_content(content, start_token.location)
+            # Disable setext headings if we have lazy continuation lines
+            # (setext underlines can't span container boundaries)
+            children = self._parse_nested_content(
+                content,
+                start_token.location,
+                allow_setext_headings=not has_lazy_continuation,
+            )
             return BlockQuote(location=start_token.location, children=children)
 
         return BlockQuote(location=start_token.location, children=())
@@ -540,16 +549,46 @@ class BlockParsingCoreMixin:
                 content_parts.append(token.value)
                 self._advance()
             elif token.type == TokenType.BLANK_LINE:
-                # Blank line might continue indented code
-                # Look ahead to see if there's more indented code
-                next_pos = self._pos + 1
-                if next_pos < len(self._tokens):
+                # Blank lines might continue indented code if followed by more code.
+                # CommonMark: blank lines within indented code are preserved,
+                # including any whitespace on those lines (beyond 4 chars).
+                # Look ahead past ALL blank lines to find INDENTED_CODE.
+                blank_lines: list[str] = []
+                next_pos = self._pos
+                while next_pos < len(self._tokens):
                     next_token = self._tokens[next_pos]
-                    if next_token.type == TokenType.INDENTED_CODE:
-                        content_parts.append("\n")
-                        self._advance()
-                        continue
-                break
+                    if next_token.type == TokenType.BLANK_LINE:
+                        # Get original line content to preserve whitespace
+                        # (blank lines with 4+ spaces should keep excess spaces)
+                        line_start = self._source.rfind("\n", 0, next_token.location.offset) + 1
+                        line_end = self._source.find("\n", next_token.location.offset)
+                        if line_end == -1:
+                            line_end = len(self._source)
+                        original_line = self._source[line_start:line_end]
+                        # If line has 4+ spaces, preserve the excess
+                        if len(original_line) >= 4 and original_line.startswith("    "):
+                            blank_lines.append(original_line[4:] + "\n")
+                        else:
+                            blank_lines.append("\n")
+                        next_pos += 1
+                    elif next_token.type == TokenType.INDENTED_CODE:
+                        # Found more code after blank lines - include blanks
+                        content_parts.extend(blank_lines)
+                        # Skip past the blank lines
+                        for _ in range(len(blank_lines)):
+                            self._advance()
+                        break
+                    else:
+                        break
+                else:
+                    # End of tokens
+                    break
+                # If we didn't find more INDENTED_CODE, exit
+                if (
+                    next_pos >= len(self._tokens)
+                    or self._tokens[next_pos].type != TokenType.INDENTED_CODE
+                ):
+                    break
             else:
                 break
 
@@ -656,7 +695,10 @@ class BlockParsingCoreMixin:
 
         # Check for setext heading: text followed by === or ---
         # CommonMark: setext underline can have up to 3 spaces indent, not 4+
-        if len(lines) >= 2 and not last_line_was_indented_code:
+        # Note: setext headings are disabled when parsing blockquote content with
+        # lazy continuation lines (setext underlines can't span container boundaries)
+        allow_setext = getattr(self, "_allow_setext_headings", True)
+        if allow_setext and len(lines) >= 2 and not last_line_was_indented_code:
             last_line = lines[-1].strip()
             if self._is_setext_underline(last_line):
                 # Determine heading level: === is h1, --- is h2
@@ -676,7 +718,7 @@ class BlockParsingCoreMixin:
         # Check if next token is THEMATIC_BREAK (---) which could be setext h2
         # CommonMark: A sequence of only --- (with optional trailing spaces) after
         # paragraph is setext heading, not thematic break. But "--- -" is a thematic break.
-        if len(lines) >= 1 and not self._at_end():
+        if allow_setext and len(lines) >= 1 and not self._at_end():
             token = self._current
             if token is not None and token.type == TokenType.THEMATIC_BREAK:
                 # Check if the thematic break is a valid setext underline

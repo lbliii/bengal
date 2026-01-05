@@ -26,7 +26,7 @@ def register(env: TemplateEnvironment, site: Site) -> None:
 
     # Create closures that have access to site
     def image_url_with_site(path: str, **params: Any) -> str:
-        return image_url(path, site.config.get("baseurl", ""), **params)
+        return image_url(path, site.baseurl or "", **params)
 
     def image_dimensions_with_site(path: str) -> tuple[int, int] | None:
         return image_dimensions(path, site.root_path)

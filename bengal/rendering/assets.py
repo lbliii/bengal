@@ -64,7 +64,7 @@ def resolve_asset_url(
     # Normalize path
     clean_path = asset_path.replace("\\", "/").strip().lstrip("/")
 
-    baseurl_value = (site.config.get("baseurl", "") or "").rstrip("/")
+    baseurl_value = (site.baseurl or "").rstrip("/")
 
     # Handle file:// protocol - generate relative URLs
     if baseurl_value.startswith("file://"):

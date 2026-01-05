@@ -168,8 +168,8 @@ class SiteLlmTxtGenerator:
         # OPTIMIZATION: Stream directly to file instead of building in memory
         # Reduces memory from O(n×c) to O(c) (single page at a time)
         separator = "=" * self.separator_width
-        title = self.site.config.get("title", "Bengal Site")
-        baseurl = self.site.config.get("baseurl", "")
+        title = self.site.title or "Bengal Site"
+        baseurl = self.site.baseurl or ""
 
         with AtomicFile(llm_path, "w", encoding="utf-8") as f:
             # Site header

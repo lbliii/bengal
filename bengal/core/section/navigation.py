@@ -99,8 +99,8 @@ class SectionNavigationMixin:
         baseurl = ""
         try:
             site = getattr(self, "_site", None)
-            if site is not None and hasattr(site, "config") and site.config is not None:
-                baseurl = site.config.get("baseurl", "")
+            if site is not None:
+                baseurl = site.baseurl or ""
         except Exception:
             baseurl = ""
 

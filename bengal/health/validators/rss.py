@@ -217,8 +217,6 @@ class RSSValidator(BaseValidator):
         if channel is None:
             return results
 
-        site.config.get("baseurl", "")
-
         # Check channel link
         channel_link = channel.find("link")
         if channel_link is not None and channel_link.text:
