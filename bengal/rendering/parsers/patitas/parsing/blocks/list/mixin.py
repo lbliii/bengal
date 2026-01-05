@@ -21,7 +21,7 @@ from bengal.rendering.parsers.patitas.parsing.blocks.list.blank_line import (
     EndList,
     ParseBlock,
     ParseContinuation,
-    handle_blank_line,
+    handle_blank_line_with_stack,
 )
 from bengal.rendering.parsers.patitas.parsing.blocks.list.indent import (
     is_nested_list_indent,
@@ -126,7 +126,6 @@ class ListParsingMixin:
         self._containers.push(list_frame)
 
         items: list[ListItem] = []
-        tight = True
 
         while not self._at_end():
             token = self._current
@@ -134,7 +133,8 @@ class ListParsingMixin:
 
             # Handle blank lines between items (makes list loose)
             if token.type == TokenType.BLANK_LINE:
-                tight = False
+                # Phase 3.2: Use stack-based loose detection
+                self._containers.mark_loose()
                 while not self._at_end() and self._current.type == TokenType.BLANK_LINE:
                     self._advance()
                 if self._at_end():
@@ -168,7 +168,7 @@ class ListParsingMixin:
             content_indent = current_indent + current_marker_length + 1
 
             # Parse item content
-            item, item_tight = self._parse_list_item(
+            item = self._parse_list_item(
                 token,
                 start_indent,
                 content_indent,
@@ -178,14 +178,11 @@ class ListParsingMixin:
                 current_marker,
             )
             items.append(item)
-            if not item_tight:
-                tight = False
 
-        # Phase 2 Shadow Stack: Pop the LIST container frame
-        # If loose state was detected during parsing, mark it on the frame
-        # before popping so it propagates correctly.
-        if not tight:
-            self._containers.mark_loose()
+        # Phase 3.2: Read tight/loose from stack before popping
+        # Looseness is now tracked in the stack and propagates from child
+        # containers via pop(). If is_loose is True, the list is loose.
+        tight = not self._containers.current().is_loose
         self._containers.pop()
 
         return List(
@@ -205,11 +202,14 @@ class ListParsingMixin:
         bullet_char: str,
         ordered_marker_char: str,
         marker_stripped: str,
-    ) -> tuple[ListItem, bool]:
+    ) -> ListItem:
         """Parse a single list item.
 
+        Phase 3.2: Uses stack-based loose detection. Looseness is marked on
+        the current frame via mark_loose() and propagates to the parent on pop().
+
         Returns:
-            Tuple of (ListItem, is_tight)
+            ListItem node
         """
         # Phase 2 Shadow Stack: Push LIST_ITEM container frame
         item_frame = ContainerFrame(
@@ -234,7 +234,6 @@ class ListParsingMixin:
         checked: bool | None = None
         actual_content_indent: int | None = None
         saw_paragraph_content = False
-        tight = True
 
         while not self._at_end():
             tok = self._current
@@ -297,6 +296,9 @@ class ListParsingMixin:
                     actual_content_indent = self._calculate_actual_content_indent(
                         tok, marker_stripped
                     )
+                    # Phase 3: Update the stack frame with actual content indent
+                    # This enables find_owner() to use the correct value
+                    self._containers.update_content_indent(actual_content_indent)
 
                 # Check for task list marker
                 if not content_lines and checked is None:
@@ -337,22 +339,23 @@ class ListParsingMixin:
                 if self._at_end():
                     break
 
-                result = handle_blank_line(
+                # Phase 3.3: Use stack-aware blank line handling
+                result = handle_blank_line_with_stack(
                     self._current,
-                    self._source,
-                    start_indent,
-                    content_indent,
-                    actual_content_indent,
+                    self._containers,
                 )
 
                 if isinstance(result, EndList):
                     break
                 elif isinstance(result, EndItem):
-                    tight = False
+                    # Phase 3.2: Blank line before sibling item = parent list is loose
+                    # We're in LIST_ITEM, so mark parent LIST as loose
+                    self._containers.mark_parent_list_loose()
                     break
                 elif isinstance(result, ContinueList):
                     if result.is_loose:
-                        tight = False
+                        # Phase 3.2: Use stack-based loose detection
+                        self._containers.mark_loose()
                     if result.save_paragraph and content_lines:
                         content = "\n".join(content_lines)
                         inlines = self._parse_inline(content, marker_token.location)
@@ -363,7 +366,8 @@ class ListParsingMixin:
                     self._advance()
                     continue
                 elif isinstance(result, ParseBlock):
-                    tight = False
+                    # Phase 3.2: Use stack-based loose detection
+                    self._containers.mark_loose()
                     if content_lines:
                         content = "\n".join(content_lines)
                         inlines = self._parse_inline(content, marker_token.location)
@@ -376,7 +380,8 @@ class ListParsingMixin:
                         item_children.append(block)
                     continue
                 elif isinstance(result, ParseContinuation):
-                    tight = False
+                    # Phase 3.2: Use stack-based loose detection
+                    self._containers.mark_loose()
                     if result.save_paragraph and content_lines:
                         content = "\n".join(content_lines)
                         inlines = self._parse_inline(content, marker_token.location)
@@ -453,7 +458,8 @@ class ListParsingMixin:
                                     and self._source[line_start - 2] == "\n"
                                 ):
                                     # There was a blank line before this token
-                                    tight = False
+                                    # Phase 3.2: Use stack-based loose detection
+                                    self._containers.mark_loose()
 
                         if next_tok.type == TokenType.PARAGRAPH_LINE:
                             next_indent = next_tok.line_indent
@@ -461,7 +467,8 @@ class ListParsingMixin:
                             # Use content_indent (not check_content_indent) for comparison
                             if next_indent >= start_indent and next_indent <= content_indent:
                                 # Blank line occurred (nested list ended), making list loose
-                                tight = False
+                                # Phase 3.2: Use stack-based loose detection
+                                self._containers.mark_loose()
                                 content_lines.append(next_tok.value.lstrip())
                                 self._advance()
                                 continue
@@ -517,18 +524,16 @@ class ListParsingMixin:
             inlines = self._parse_inline(content, marker_token.location)
             item_children.append(Paragraph(location=marker_token.location, children=inlines))
 
-        # Phase 2 Shadow Stack: Pop the LIST_ITEM container frame
-        # Mark as loose if tight=False (blank line detected)
-        if not tight:
-            self._containers.mark_loose()
+        # Phase 3.2: Pop the LIST_ITEM container frame
+        # Looseness is tracked in the stack via mark_loose() calls.
+        # The pop() will propagate looseness to the parent LIST frame.
         self._containers.pop()
 
-        item = ListItem(
+        return ListItem(
             location=marker_token.location,
             children=tuple(item_children),
             checked=checked,
         )
-        return item, tight
 
     def _calculate_actual_content_indent(self, tok: Token, marker_stripped: str) -> int:
         """Calculate actual content indent from first content line.
@@ -581,17 +586,32 @@ class ListParsingMixin:
     ) -> str | tuple[list[str], list[Block]]:
         """Handle INDENTED_CODE token within a list item.
 
+        Phase 3: Uses container stack's current frame for content_indent.
+        The stack's content_indent is updated when actual_content_indent is
+        determined, so current().content_indent reflects the correct value.
+
         Returns:
             "break" - break out of item loop
             "continue" - continue to next iteration
             (content_lines, item_children) - updated state
         """
-        check_indent = (
-            actual_content_indent if actual_content_indent is not None else content_indent
-        )
-
         original_indent = tok.line_indent
         stripped_content = tok.value.lstrip()
+
+        # Phase 3: Use container stack's current frame content_indent
+        # The frame's content_indent has been updated with actual value via
+        # update_content_indent() when the first content line was parsed.
+        current_frame = self._containers.current()
+        check_indent = current_frame.content_indent
+
+        # Phase 2 Validation: Assert stack matches local variables (strict mode)
+        if _STRICT_MODE:
+            expected_check = (
+                actual_content_indent if actual_content_indent is not None else content_indent
+            )
+            assert check_indent == expected_check, (
+                f"Stack check_indent mismatch: {check_indent} != {expected_check}"
+            )
 
         if original_indent >= check_indent:
             # Check for nested list marker

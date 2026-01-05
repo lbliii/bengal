@@ -164,6 +164,14 @@ class ContainerStack:
         """Pop the innermost container.
 
         Propagates state (looseness, blank lines) to parent if applicable.
+        - When popping a LIST_ITEM with blank lines, propagates to parent LIST
+
+        Note: For blank lines BETWEEN items (sibling separation), use
+        mark_parent_list_loose() directly instead of relying on propagation.
+        This propagation handles blank lines WITHIN item content.
+
+        Note: Nested LIST does NOT propagate to parent LIST_ITEM, as nested
+        list looseness should not affect the outer list's tightness.
 
         Returns:
             The popped container frame
@@ -176,12 +184,19 @@ class ContainerStack:
 
         frame = self._stack.pop()
 
-        # Propagate looseness to parent list item
+        # Propagate looseness to parent container
         if frame.saw_blank_line or frame.is_loose:
             parent = self._stack[-1]
-            if parent.container_type == ContainerType.LIST_ITEM:
+            # LIST_ITEM -> propagate to parent LIST
+            # This handles blank lines within item content
+            if (
+                frame.container_type == ContainerType.LIST_ITEM
+                and parent.container_type == ContainerType.LIST
+            ):
                 parent.is_loose = True
                 parent.saw_blank_line = True
+            # Note: We do NOT propagate nested LIST -> parent LIST_ITEM
+            # because nested list looseness should not affect outer list
 
         return frame
 
@@ -256,3 +271,27 @@ class ContainerStack:
     def mark_blank_line(self) -> None:
         """Mark that a blank line was seen in current container."""
         self._stack[-1].saw_blank_line = True
+
+    def mark_parent_list_loose(self) -> None:
+        """Mark the parent LIST container as loose.
+
+        Called when a blank line between sibling items is detected.
+        The current frame is LIST_ITEM, and the parent should be LIST.
+        """
+        if len(self._stack) >= 2:
+            parent = self._stack[-2]
+            if parent.container_type == ContainerType.LIST:
+                parent.is_loose = True
+                parent.saw_blank_line = True
+
+    def update_content_indent(self, actual_content_indent: int) -> None:
+        """Update the current container's content_indent to the actual value.
+
+        Called when the first content line is parsed and we know the actual
+        column position where content starts. This allows find_owner() to
+        use the correct indent for subsequent content.
+
+        Args:
+            actual_content_indent: The actual content indent from first line
+        """
+        self._stack[-1].content_indent = actual_content_indent
