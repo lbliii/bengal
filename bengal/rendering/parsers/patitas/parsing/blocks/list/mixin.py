@@ -41,7 +41,7 @@ from bengal.rendering.parsers.patitas.parsing.blocks.list.marker import (
     is_same_list_type,
 )
 from bengal.rendering.parsers.patitas.parsing.blocks.list.nested import (
-    detect_nested_list_in_content,
+    detect_nested_block_in_content,
     parse_nested_list_from_indented_code,
     parse_nested_list_inline,
 )
@@ -284,7 +284,7 @@ class ListParsingMixin:
                         if actual_content_indent is not None
                         else content_indent
                     )
-                    if detect_nested_list_in_content(line, tok.line_indent, check_indent):
+                    if detect_nested_block_in_content(line, tok.line_indent, check_indent):
                         blocks = parse_nested_list_inline(
                             line + "\n",
                             tok.location,

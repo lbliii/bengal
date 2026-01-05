@@ -438,10 +438,10 @@ def _extract_plain_text(text: str) -> str:
     result = re.sub(r"_(.+?)_", r"\1", result)
     # Remove code spans
     result = re.sub(r"`(.+?)`", r"\1", result)
+    # Remove image text FIRST: ![alt](url) -> alt (before links, so ! is included)
+    result = re.sub(r"!\[([^\]]*)\]\([^)]+\)", r"\1", result)
     # Remove link text: [text](url) -> text
     result = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", result)
-    # Remove image text: ![alt](url) -> alt
-    result = re.sub(r"!\[([^\]]*)\]\([^)]+\)", r"\1", result)
     return result
 
 

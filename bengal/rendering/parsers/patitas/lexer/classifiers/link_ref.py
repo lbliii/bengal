@@ -24,7 +24,9 @@ class LinkRefClassifierMixin:
     _lineno: int
     _col: int
 
-    def _location_from(self, start_pos: int) -> SourceLocation:
+    def _location_from(
+        self, start_pos: int, start_col: int | None = None, end_pos: int | None = None
+    ) -> SourceLocation:
         """Get source location from saved position. Implemented by Lexer."""
         raise NotImplementedError
 

@@ -22,7 +22,9 @@ class DirectiveClassifierMixin:
     _mode: LexerMode
     _directive_stack: list[tuple[int, str]]
 
-    def _location_from(self, start_pos: int) -> SourceLocation:
+    def _location_from(
+        self, start_pos: int, start_col: int | None = None, end_pos: int | None = None
+    ) -> SourceLocation:
         """Get source location from saved position. Implemented by Lexer."""
         raise NotImplementedError
 

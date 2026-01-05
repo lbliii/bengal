@@ -31,16 +31,17 @@ class ParserProtocol(Protocol):
     def _current(self) -> Token | None: ...
 
 
-def detect_nested_list_in_content(
+def detect_nested_block_in_content(
     line: str,
     line_indent: int,
     content_indent: int,
 ) -> bool:
-    """Detect if paragraph line content is actually a nested list marker.
+    """Detect if paragraph line content is actually a nested block marker.
 
-    CommonMark: If the first content after a list marker is itself a list
-    marker, it should be parsed as a nested list, BUT only if it's indented
-    appropriately (not 4+ spaces beyond content indent).
+    CommonMark: If the first content after a list marker is itself a block
+    marker (list, blockquote, heading, etc.), it should be parsed as a nested
+    block, BUT only if it's indented appropriately (not 4+ spaces beyond
+    content indent).
 
     Args:
         line: The stripped line content
@@ -48,7 +49,7 @@ def detect_nested_list_in_content(
         content_indent: Content indent of the current list item
 
     Returns:
-        True if this should be parsed as a nested list
+        True if this should be parsed as a nested block
     """
     if not line:
         return False
@@ -57,8 +58,33 @@ def detect_nested_list_in_content(
     if line_indent >= content_indent + 4:
         return False
 
-    # Check if it looks like a list marker
-    return is_list_marker(line)
+    # Check for list markers
+    if is_list_marker(line):
+        return True
+
+    # Check for blockquote markers
+    if line.startswith(">"):
+        return True
+
+    # Check for ATX headings
+    if line.startswith("#"):
+        # Must be valid ATX heading (1-6 # followed by space or end of line)
+        pos = 0
+        while pos < len(line) and line[pos] == "#" and pos < 6:
+            pos += 1
+        if pos > 0 and (pos == len(line) or line[pos] in " \t"):
+            return True
+
+    # Check for thematic breaks
+    from bengal.rendering.parsers.patitas.parsing.charsets import THEMATIC_BREAK_CHARS
+
+    if line[0] in THEMATIC_BREAK_CHARS:
+        # Simplified thematic break check
+        stripped = line.replace(" ", "").replace("\t", "")
+        if len(stripped) >= 3 and all(c == stripped[0] for c in stripped):
+            return True
+
+    return False
 
 
 def parse_nested_list_inline(

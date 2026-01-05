@@ -334,22 +334,29 @@ class Lexer(
             source_file=self._source_file,
         )
 
-    def _location_from(self, start_pos: int) -> SourceLocation:
+    def _location_from(
+        self,
+        start_pos: int,
+        start_col: int | None = None,
+        end_pos: int | None = None,
+    ) -> SourceLocation:
         """Get source location from saved position.
 
         O(1) - uses pre-saved location from _save_location() call.
 
         Args:
             start_pos: Start position in source.
+            start_col: Optional column override (1-indexed).
+            end_pos: Optional end position override.
 
         Returns:
-            SourceLocation spanning from saved position to current.
+            SourceLocation spanning from start_pos to current or end_pos.
         """
         return SourceLocation(
             lineno=self._saved_lineno,
-            col_offset=self._saved_col,
+            col_offset=start_col if start_col is not None else self._saved_col,
             offset=start_pos,
-            end_offset=self._pos,
+            end_offset=end_pos if end_pos is not None else self._pos,
             end_lineno=self._lineno,
             end_col_offset=self._col,
             source_file=self._source_file,

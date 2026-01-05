@@ -13,7 +13,9 @@ if TYPE_CHECKING:
 class HeadingClassifierMixin:
     """Mixin providing ATX heading classification."""
 
-    def _location_from(self, start_pos: int) -> SourceLocation:
+    def _location_from(
+        self, start_pos: int, start_col: int | None = None, end_pos: int | None = None
+    ) -> SourceLocation:
         """Get source location from saved position. Implemented by Lexer."""
         raise NotImplementedError
 

@@ -158,6 +158,15 @@ class BlockParsingCoreMixin:
             case TokenType.HTML_BLOCK:
                 return self._parse_html_block()
 
+            case TokenType.FENCED_CODE_CONTENT:
+                # Orphaned fenced code content (e.g., after block quote ended fenced code)
+                # Treat as paragraph text
+                return self._parse_orphaned_fence_content()
+
+            case TokenType.FENCED_CODE_END:
+                # Orphaned fence end marker - treat as new unclosed fenced code block
+                return self._parse_orphaned_fence_end()
+
             case _:
                 # Skip unknown tokens
                 self._advance()
@@ -280,6 +289,55 @@ class BlockParsingCoreMixin:
             fence_indent=fence_indent,
         )
 
+    def _parse_orphaned_fence_content(self) -> Paragraph:
+        """Parse orphaned FENCED_CODE_CONTENT as paragraph.
+
+        This happens when a fenced code block is interrupted (e.g., by block quote
+        ending without >), leaving content tokens orphaned. Treat as paragraph text.
+        """
+        token = self._current
+        assert token is not None and token.type == TokenType.FENCED_CODE_CONTENT
+
+        # Collect consecutive content tokens as paragraph lines
+        lines: list[str] = []
+        while not self._at_end():
+            current = self._current
+            if current is None:
+                break
+            if current.type == TokenType.FENCED_CODE_CONTENT:
+                lines.append(current.value.rstrip("\n"))
+                self._advance()
+            else:
+                break
+
+        content = "\n".join(lines)
+        children = self._parse_inline(content, token.location)
+        return Paragraph(location=token.location, children=children)
+
+    def _parse_orphaned_fence_end(self) -> FencedCode:
+        """Parse orphaned FENCED_CODE_END as new unclosed fenced code block.
+
+        This happens when a fenced code block is interrupted, and the closing fence
+        is now orphaned. In CommonMark, this becomes a new unclosed fenced code block.
+        """
+        token = self._current
+        assert token is not None and token.type == TokenType.FENCED_CODE_END
+        self._advance()
+
+        # The token value is the fence chars (e.g., "```")
+        fence_value = token.value.rstrip()
+        marker = fence_value[0] if fence_value else "`"
+
+        # Create an unclosed fenced code block (empty content)
+        return FencedCode(
+            location=token.location,
+            source_start=0,
+            source_end=0,
+            info=None,
+            marker=marker,  # type: ignore[arg-type]
+            fence_indent=0,
+        )
+
     def _parse_thematic_break(self) -> ThematicBreak:
         """Parse thematic break (---, ***, ___)."""
         token = self._current
@@ -308,64 +366,159 @@ class BlockParsingCoreMixin:
 
         # Collect content after > markers
         content_lines: list[str] = []
-        last_marker_line: int | None = None  # Line number of last marker seen
+
+        # Track offsets for the current line to reconstruct it exactly
+        line_start_offset: int | None = None
+        line_end_offset: int | None = None
+        last_marker_line: int | None = start_token.location.lineno
         has_paragraph_content = False  # Track if we have paragraph content for lazy continuation
+        line_has_content = False  # Track if current line already has content (from token.value)
+
+        def flush_line():
+            nonlocal has_paragraph_content, line_start_offset, line_end_offset, line_has_content
+            if line_start_offset is not None and line_end_offset is not None:
+                # Reconstruct the line from source
+                line = self._source[line_start_offset:line_end_offset].rstrip("\n")
+                content_lines.append(line)
+                line_start_offset = None
+                line_end_offset = None
+            elif not line_has_content and last_marker_line is not None:
+                # Blank line within quote (just ">") - only if no content was appended
+                content_lines.append("")
+                has_paragraph_content = False
+            line_has_content = False  # Reset for next line
 
         while not self._at_end():
             token = self._current
             assert token is not None
 
-            if token.type == TokenType.PARAGRAPH_LINE:
-                # Check if this PARAGRAPH_LINE is on a different line than the last marker
-                # Line without > after a bare ">" line = end of block quote
-                # CommonMark: not lazy continuation after blank in quote
-                if last_marker_line is not None and token.location.lineno != last_marker_line:
+            # If line changes, flush the previous line
+            if last_marker_line is not None and token.location.lineno != last_marker_line:
+                flush_line()
+
+                # Check for lazy continuation or end of block quote
+                if token.type == TokenType.PARAGRAPH_LINE:
+                    if not has_paragraph_content:
+                        break
+                elif token.type == TokenType.BLOCK_QUOTE_MARKER:
+                    pass
+                else:
                     break
-                content_lines.append(token.value)
-                last_marker_line = None
-                has_paragraph_content = True
-                self._advance()
-            elif token.type == TokenType.BLOCK_QUOTE_MARKER:
-                if last_marker_line is not None:
-                    # Two consecutive markers = blank quoted line (just ">")
-                    # This creates a paragraph break in the quote content
-                    content_lines.append("")
-                    has_paragraph_content = False  # Reset - blank line breaks paragraph
+
+            if token.type == TokenType.BLOCK_QUOTE_MARKER:
+                if last_marker_line == token.location.lineno:
+                    # Nested marker on same line.
+                    if line_start_offset is None:
+                        line_start_offset = token.location.offset
+                    line_end_offset = token.location.end_offset
+                else:
+                    # Marker on new line.
+                    pass
                 last_marker_line = token.location.lineno
                 self._advance()
-            elif token.type == TokenType.INDENTED_CODE:
-                # CommonMark lazy continuation: INDENTED_CODE on a line without >
-                # can continue a paragraph if we have active paragraph content.
-                # The indented content becomes literal text in the paragraph.
-                # BUT: lazy continuation only works with paragraphs, not with
-                # indented code (content_lines[-1] starting with 4+ spaces).
-                if has_paragraph_content and last_marker_line is None and content_lines:
-                    last_line = content_lines[-1]
-                    # Check if last content is a paragraph (not indented code)
-                    # Indented code starts with 4+ spaces
-                    leading_spaces = len(last_line) - len(last_line.lstrip(" "))
-                    if leading_spaces < 4:
-                        # Lazy continuation - append to last paragraph line.
-                        # Use \x00 marker to prevent sub-parser from treating as block element.
-                        # The renderer will strip these markers.
-                        lazy_content = token.value.rstrip("\n")
-                        # Escape list markers and other block-starting chars
-                        if lazy_content.lstrip().startswith(("-", "*", "+", ">")):
-                            lazy_content = "\x00" + lazy_content
-                        content_lines[-1] = content_lines[-1] + "\n" + lazy_content
+            elif token.type == TokenType.FENCED_CODE_START:
+                # Fenced code in block quote - use token value directly
+                # Token value format: "I{indent}:{fence}{info}" or just "{fence}{info}"
+                # The token offset incorrectly includes the > marker, so we extract
+                # the fence from the value instead of from source
+                value = token.value
+                if value.startswith("I") and ":" in value:
+                    fence_part = value.split(":", 1)[1]
+                else:
+                    fence_part = value
+                # Flush any pending line content first
+                if line_start_offset is not None and line_end_offset is not None:
+                    line = self._source[line_start_offset:line_end_offset].rstrip("\n")
+                    content_lines.append(line + fence_part)
+                    line_start_offset = None
+                    line_end_offset = None
+                else:
+                    content_lines.append(fence_part)
+                has_paragraph_content = False
+                last_marker_line = token.location.lineno
+                self._advance()
+
+                # Continue collecting FENCED_CODE_CONTENT and FENCED_CODE_END
+                # BUT only if they're on lines that have > markers (checked via BLOCK_QUOTE_MARKER)
+                # If the next line has no >, the block quote ends and fenced code is unclosed
+                fence_complete = False
+                while not self._at_end():
+                    next_tok = self._current
+                    assert next_tok is not None
+
+                    # Check if we've moved to a new line
+                    if next_tok.location.lineno != last_marker_line:
+                        # New line - check if there's a > marker
+                        # If not BLOCK_QUOTE_MARKER, block quote ends here
+                        if next_tok.type != TokenType.BLOCK_QUOTE_MARKER:
+                            # No > on this line - block quote ends, fenced code is unclosed
+                            break
+                        # There's a > marker - consume it and continue
+                        last_marker_line = next_tok.location.lineno
                         self._advance()
                         continue
-                # Not lazy continuation - end block quote
-                break
-            elif token.type == TokenType.BLANK_LINE:
-                # End of block quote
-                break
+
+                    if next_tok.type == TokenType.FENCED_CODE_CONTENT:
+                        content_lines.append(next_tok.value.rstrip("\n"))
+                        last_marker_line = next_tok.location.lineno
+                        self._advance()
+                    elif next_tok.type == TokenType.FENCED_CODE_END:
+                        content_lines.append(next_tok.value.rstrip("\n"))
+                        self._advance()
+                        fence_complete = True
+                        break
+                    elif next_tok.type == TokenType.BLOCK_QUOTE_MARKER:
+                        # > marker on same line as content (shouldn't happen normally)
+                        last_marker_line = next_tok.location.lineno
+                        self._advance()
+                    else:
+                        break
+
+                # If fenced code is unclosed (no closing fence with > markers),
+                # block quote ends here. Set last_marker_line to None to prevent
+                # flush_line from adding spurious empty lines.
+                if not fence_complete:
+                    last_marker_line = None
+                    break
+            elif token.type in (
+                TokenType.ATX_HEADING,
+                TokenType.PARAGRAPH_LINE,
+                TokenType.THEMATIC_BREAK,
+                TokenType.LIST_ITEM_MARKER,
+            ):
+                # These tokens may have incorrect offsets (including > marker)
+                # Use token.value which has the correct content
+                content_lines.append(token.value.rstrip("\n"))
+                line_has_content = True  # Mark that we appended content for this line
+
+                # Update has_paragraph_content
+                if (
+                    token.type == TokenType.PARAGRAPH_LINE
+                    or token.type == TokenType.LIST_ITEM_MARKER
+                ):
+                    has_paragraph_content = True
+                else:
+                    has_paragraph_content = False
+
+                last_marker_line = token.location.lineno
+                self._advance()
             else:
-                break
+                # Any other token type - use source extraction
+                if line_start_offset is None:
+                    line_start_offset = token.location.offset
+                line_end_offset = token.location.end_offset
+
+                # Update has_paragraph_content
+                has_paragraph_content = False
+
+                last_marker_line = token.location.lineno
+                self._advance()
+
+        flush_line()
 
         # Parse content as blocks using recursive sub-parser
         content = "\n".join(content_lines)
-        if content.strip():
+        if content.strip() or any(line == "" for line in content_lines):
             # Use sub-parser to parse nested block content
             children = self._parse_nested_content(content, start_token.location)
             return BlockQuote(location=start_token.location, children=children)
