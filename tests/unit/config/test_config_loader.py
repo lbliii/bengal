@@ -151,26 +151,48 @@ url = "/"
         config_obj = loader.load(tmp_path)
         # UnifiedConfigLoader doesn't have print_warnings() - validation is handled by validators
         assert config_obj is not None
-        assert "menu" in captured.out.lower()
+        # Note: captured fixture was from old ConfigLoader tests - no longer applicable
+        # The verbose output functionality is not part of UnifiedConfigLoader
 
 
 class TestSectionAliases:
-    """Test section alias mappings."""
+    """Test section alias mappings via UnifiedConfigLoader behavior."""
 
-    def test_section_aliases_defined(self):
-        """Test that SECTION_ALIASES is properly defined."""
-        assert hasattr(ConfigLoader, "SECTION_ALIASES")
-        assert isinstance(ConfigLoader.SECTION_ALIASES, dict)
-        assert "menus" in ConfigLoader.SECTION_ALIASES
-        assert ConfigLoader.SECTION_ALIASES["menus"] == "menu"
+    def test_section_aliases_applied(self, tmp_path):
+        """Test that section aliases (menus -> menu) are applied during load."""
+        config_file = tmp_path / "bengal.toml"
+        config_file.write_text("""
+[site]
+title = "Test"
 
-    def test_known_sections_defined(self):
-        """Test that KNOWN_SECTIONS is properly defined."""
-        assert hasattr(ConfigLoader, "KNOWN_SECTIONS")
-        assert isinstance(ConfigLoader.KNOWN_SECTIONS, set)
-        assert "menu" in ConfigLoader.KNOWN_SECTIONS
-        assert "site" in ConfigLoader.KNOWN_SECTIONS
-        assert "build" in ConfigLoader.KNOWN_SECTIONS
+[[menus.main]]
+name = "Home"
+url = "/"
+""")
+        loader = UnifiedConfigLoader()
+        config = loader.load(tmp_path)
+        # "menus" should be normalized to "menu" in the loaded config
+        assert "menu" in config
+
+    def test_known_sections_loaded(self, tmp_path):
+        """Test that known sections (menu, site, build) are properly loaded."""
+        config_file = tmp_path / "bengal.toml"
+        config_file.write_text("""
+[site]
+title = "Test Site"
+
+[build]
+output_dir = "_site"
+
+[[menu.main]]
+name = "Home"
+url = "/"
+""")
+        loader = UnifiedConfigLoader()
+        config = loader.load(tmp_path)
+        assert "site" in config
+        assert "build" in config
+        assert "menu" in config
 
 
 class TestConfigNormalization:
@@ -252,7 +274,7 @@ class TestDefaultConfig:
         monkeypatch.delenv("BENGAL_BASEURL", raising=False)
 
         loader = UnifiedConfigLoader()
-        config = loader.load()
+        config = loader.load(tmp_path)
 
         # Should get full DEFAULTS when no config file
         assert "index_json" in config["output_formats"]["site_wide"]
@@ -272,8 +294,8 @@ class TestDefaultConfig:
         config_dir = tmp_path / "config"
         config_dir.mkdir()
 
-        single_loader = ConfigLoader(tmp_path)
-        single_config = single_loader._default_config()
+        single_loader = UnifiedConfigLoader()
+        single_config = single_loader.load(tmp_path)
 
         dir_loader = ConfigDirectoryLoader()
         dir_config = dir_loader.load(config_dir, environment="local")

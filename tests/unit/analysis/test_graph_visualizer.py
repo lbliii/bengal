@@ -59,6 +59,8 @@ class TestBuildTemplateContext:
         """Create mock site for testing."""
         site = MagicMock()
         site.config = {"title": "Test Site", "baseurl": "/test"}
+        site.baseurl = "/test"
+        site.title = "Test Site"
         site.output_dir = Path("/tmp/output")
         site.paths.asset_manifest = Path("/tmp/.bengal/asset-manifest.json")
         site.theme = None

@@ -746,12 +746,12 @@ class ListParsingMixin:
             # Not continuation and not code - break
             return "break"
 
-        # original_indent < check_indent
+        # original_indent < check_indent (guaranteed by control flow above)
         # Check if it's between start_indent and check_indent
         # In CommonMark, content at indentation between marker and content
         # column is literal content of the item (not a new marker or code)
         marker_indent = get_marker_indent(marker_token.value)
-        if original_indent > marker_indent and original_indent < check_indent:
+        if original_indent > marker_indent:
             # This is literal content of the item (e.g., "    - e" in example 312)
             content_lines.append(tok.value.rstrip())
             self._advance()

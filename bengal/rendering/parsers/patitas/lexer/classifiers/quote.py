@@ -89,7 +89,10 @@ class QuoteClassifierMixin:
                         return
 
                 if stripped[0] in FENCE_CHARS:
-                    token = self._try_classify_fence_start(stripped, line_start, content_col)
+                    # Don't change lexer mode - blockquote parser handles fence content
+                    token = self._try_classify_fence_start(
+                        stripped, line_start, content_col, change_mode=False
+                    )
                     if token:
                         yield token
                         return

@@ -236,27 +236,24 @@ class Site(
         if not self.root_path.is_absolute():
             self.root_path = self.root_path.resolve()
 
-        # Access theme config (Config supports dict-like access via get())
-        # Check multiple locations for theme configuration:
-        # 1. [theme] section with name key: config["theme"]["name"]
-        # 2. [theme] section as string: config["theme"] = "mytheme"
-        # 3. [site] section with theme key: config["site"]["theme"]
-        theme_section = self.config.get("theme", {})
-        if isinstance(theme_section, dict):
-            self.theme = theme_section.get("name", "default")
-        elif hasattr(theme_section, "name"):
+        # Access theme name from config (Config supports dict-like access via get())
+        # Priority order for theme name:
+        # 1. [site] section with theme key: config["site"]["theme"] (TOML format)
+        # 2. Top-level theme string: config["theme"] = "mytheme" (legacy)
+        # 3. Default to "default"
+        # Note: [theme] section contains theme SETTINGS (appearance, palette),
+        #       NOT the theme name to use.
+        site_section = self.config.get("site", {})
+        if isinstance(site_section, dict) and site_section.get("theme"):
+            self.theme = site_section.get("theme")
+        elif hasattr(site_section, "theme") and site_section.theme:
             # ConfigSection access
-            self.theme = theme_section.name
-        elif theme_section and isinstance(theme_section, str):
-            # Fallback for config where theme was a string at top level
-            self.theme = theme_section
+            self.theme = site_section.theme
         else:
-            # Check [site] section for theme (TOML format: [site] theme = "...")
-            site_section = self.config.get("site", {})
-            if isinstance(site_section, dict):
-                self.theme = site_section.get("theme", "default")
-            elif hasattr(site_section, "theme"):
-                self.theme = site_section.theme or "default"
+            # Legacy: top-level theme as string
+            theme_value = self.config.get("theme")
+            if isinstance(theme_value, str):
+                self.theme = theme_value
             else:
                 self.theme = "default"
 

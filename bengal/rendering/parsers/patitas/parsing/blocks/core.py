@@ -441,9 +441,10 @@ class BlockParsingCoreMixin:
                 last_marker_line = token.location.lineno
                 self._advance()
 
-                # Continue collecting FENCED_CODE_CONTENT and FENCED_CODE_END
-                # BUT only if they're on lines that have > markers (checked via BLOCK_QUOTE_MARKER)
-                # If the next line has no >, the block quote ends and fenced code is unclosed
+                # Continue collecting fence content from lines with > markers.
+                # Content can be FENCED_CODE_CONTENT (if lexer was in fence mode),
+                # or PARAGRAPH_LINE (if lexer stayed in block mode for nested contexts).
+                # If the next line has no >, the block quote ends and fenced code is unclosed.
                 fence_complete = False
                 while not self._at_end():
                     next_tok = self._current
@@ -470,11 +471,24 @@ class BlockParsingCoreMixin:
                         self._advance()
                         fence_complete = True
                         break
+                    elif next_tok.type == TokenType.PARAGRAPH_LINE:
+                        # In blockquote context, PARAGRAPH_LINE is fence content
+                        # Strip leading indent since it was already stripped by quote classifier
+                        content_lines.append(next_tok.value.strip())
+                        last_marker_line = next_tok.location.lineno
+                        self._advance()
                     elif next_tok.type == TokenType.BLOCK_QUOTE_MARKER:
                         # > marker on same line as content (shouldn't happen normally)
                         last_marker_line = next_tok.location.lineno
                         self._advance()
                     else:
+                        # Could be closing fence (FENCED_CODE_START is reused for closing)
+                        # Check if this is a closing fence line
+                        if next_tok.type == TokenType.FENCED_CODE_START:
+                            # This is a closing fence - add it and mark complete
+                            content_lines.append(next_tok.value.rstrip("\n"))
+                            self._advance()
+                            fence_complete = True
                         break
 
                 # If fenced code is unclosed (no closing fence with > markers),

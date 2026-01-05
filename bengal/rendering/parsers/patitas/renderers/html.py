@@ -16,6 +16,7 @@ from __future__ import annotations
 from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass
 from html import escape as html_escape
+from html import unescape as html_unescape
 from typing import TYPE_CHECKING, Any, Literal
 
 from bengal.rendering.parsers.patitas.nodes import (
@@ -564,10 +565,8 @@ class HtmlRenderer:
             code = code[:-1]
         sb.append("<pre><code")
         if info:
-            import html
-
             # CommonMark: decode HTML entities in info string before using as class
-            lang = html.unescape(info.split()[0])
+            lang = html_unescape(info.split()[0])
             if lang:
                 sb.append(f' class="language-{_escape_attr(lang)}"')
         sb.append(">")

@@ -50,7 +50,6 @@ def extract_marker_info(marker_value: str, start_indent: int | None = None) -> L
     bullet_char = ""
     ordered_marker_char = ""
     start = 1
-    marker_length = 1
 
     if ordered:
         # Extract starting number and marker style from ordered list

@@ -243,9 +243,10 @@ class PageMetadataMixin:
                 if hasattr(config, "site"):
                     baseurl = config.site.baseurl or ""
                 else:
+                    # Try nested structure first, then fall back to flat
                     site_section = config.get("site", {})
                     if isinstance(site_section, dict):
-                        baseurl = site_section.get("baseurl", "")
+                        baseurl = site_section.get("baseurl", "") or config.get("baseurl", "")
                     else:
                         baseurl = config.get("baseurl", "")
         except Exception as e:

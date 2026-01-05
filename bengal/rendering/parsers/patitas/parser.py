@@ -19,7 +19,7 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 
 from bengal.rendering.parsers.patitas.lexer import Lexer
-from bengal.rendering.parsers.patitas.nodes import Block
+from bengal.rendering.parsers.patitas.nodes import Block, FencedCode
 from bengal.rendering.parsers.patitas.parsing import (
     BlockParsingMixin,
     InlineParsingMixin,
@@ -244,4 +244,27 @@ class Parser(
         # Share link reference definitions (they're document-wide)
         sub_parser._link_refs = self._link_refs
 
-        return tuple(sub_parser.parse())
+        blocks = sub_parser.parse()
+
+        # Fix up FencedCode nodes: their source_start/source_end are relative
+        # to `content`, not the original source. Add content_override so
+        # get_code() returns the correct content.
+        fixed_blocks = []
+        for block in blocks:
+            if isinstance(block, FencedCode) and block.content_override is None:
+                # Extract code from sub-parser's source (content)
+                code = block.get_code(content)
+                fixed_block = FencedCode(
+                    location=block.location,
+                    source_start=block.source_start,
+                    source_end=block.source_end,
+                    info=block.info,
+                    marker=block.marker,
+                    fence_indent=block.fence_indent,
+                    content_override=code,
+                )
+                fixed_blocks.append(fixed_block)
+            else:
+                fixed_blocks.append(block)
+
+        return tuple(fixed_blocks)
