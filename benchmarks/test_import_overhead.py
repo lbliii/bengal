@@ -142,9 +142,9 @@ class TestLightweightModules:
     @pytest.mark.parametrize(
         "module",
         [
-            "bengal.rendering.rosettes",
-            "bengal.rendering.rosettes._types",
-            "bengal.rendering.rosettes._registry",
+            "rosettes",  # External package
+            "rosettes._types",
+            "rosettes._registry",
             "bengal.rendering.kida",
             "bengal.rendering.highlighting",
         ],
@@ -161,7 +161,7 @@ class TestLightweightModules:
 
     def test_rosettes_highlight_function(self):
         """The highlight() function should work without heavy deps."""
-        result = measure_import("bengal.rendering.rosettes")
+        result = measure_import("rosettes")  # External package
 
         assert result.time_ms < THRESHOLDS["lightweight"]
         assert not result.heavy_loaded
@@ -230,11 +230,11 @@ class TestErrorImports:
         script = """
 import sys
 
-# Import and use rosettes
-from bengal.rendering.rosettes import highlight
+# Import and use rosettes (external package)
+from rosettes import highlight
 result = highlight("print('hello')", "python")
 
-# Check if errors was loaded
+# Check if errors was loaded (rosettes doesn't depend on bengal.errors)
 errors_loaded = "bengal.errors" in sys.modules
 print(f"ERRORS_LOADED:{errors_loaded}")
 """
@@ -249,20 +249,20 @@ print(f"ERRORS_LOADED:{errors_loaded}")
             "bengal.errors loaded during successful highlight - should be lazy"
         )
 
-    def test_errors_load_on_invalid_language(self):
-        """Errors should load when actually raising an exception."""
+    def test_rosettes_raises_lookup_error_on_invalid_language(self):
+        """Rosettes should raise LookupError for unknown languages."""
         script = """
 import sys
 
-from bengal.rendering.rosettes import get_lexer
+from rosettes import get_lexer
 
 try:
     get_lexer("nonexistent_language_xyz")
-except Exception:
-    pass
-
-errors_loaded = "bengal.errors" in sys.modules
-print(f"ERRORS_LOADED:{errors_loaded}")
+    print("RAISED:False")
+except LookupError:
+    print("RAISED:True")
+except Exception as e:
+    print(f"RAISED:Wrong({type(e).__name__})")
 """
         result = subprocess.run(
             [sys.executable, "-c", script],
@@ -271,8 +271,9 @@ print(f"ERRORS_LOADED:{errors_loaded}")
             timeout=30,
         )
 
-        # This is expected - errors should load when raising
-        assert "ERRORS_LOADED:True" in result.stdout
+        assert "RAISED:True" in result.stdout, (
+            "rosettes should raise LookupError for unknown languages"
+        )
 
 
 # =============================================================================
@@ -285,7 +286,7 @@ class TestPackageInits:
 
     def test_rendering_init_is_lazy(self):
         """bengal.rendering should not eagerly load RenderingPipeline."""
-        result = measure_import("bengal.rendering.rosettes")
+        result = measure_import("bengal.rendering.highlighting")
 
         assert "bengal.rendering.pipeline" not in result.heavy_loaded, (
             "bengal.rendering.__init__ eagerly loads pipeline"
@@ -314,14 +315,14 @@ class TestComparativeBenchmarks:
 
     def test_rosettes_vs_full_highlighting(self):
         """Direct rosettes import should be faster than full highlighting."""
-        rosettes = measure_import("bengal.rendering.rosettes")
+        rosettes_result = measure_import("rosettes")  # External package
         highlighting = measure_import("bengal.rendering.highlighting")
 
-        print(f"\nRosettes direct: {rosettes.time_ms:.1f}ms")
+        print(f"\nRosettes direct: {rosettes_result.time_ms:.1f}ms")
         print(f"Highlighting:    {highlighting.time_ms:.1f}ms")
 
         # Both should be lightweight
-        assert rosettes.time_ms < THRESHOLDS["lightweight"]
+        assert rosettes_result.time_ms < THRESHOLDS["lightweight"]
         assert highlighting.time_ms < THRESHOLDS["lightweight"]
 
     def test_kida_vs_jinja_engine(self):
@@ -345,7 +346,7 @@ class TestRegressionDetection:
 
     # Baseline times from after optimization (update when improving)
     BASELINES = {
-        "bengal.rendering.rosettes": 15.0,  # Was 180ms before fix
+        "rosettes": 15.0,  # External package
         "bengal.rendering.kida": 10.0,
         "bengal.rendering.highlighting": 25.0,
     }
@@ -397,7 +398,7 @@ if __name__ == "__main__":
     # Run as script for quick diagnostics
     print_import_report(
         [
-            "bengal.rendering.rosettes",
+            "rosettes",  # External package
             "bengal.rendering.kida",
             "bengal.rendering.highlighting",
             "bengal.utils",

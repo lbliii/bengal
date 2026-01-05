@@ -14,26 +14,12 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from bengal.rendering.rosettes import highlight, highlight_many
+from rosettes import highlight, highlight_many  # noqa: E402
 
 
 def find_real_source_files() -> list[tuple[str, str]]:
     """Find real source files in the project for realistic benchmarking."""
     items = []
-    extensions_to_lang = {
-        ".py": "python",
-        ".js": "javascript",
-        ".ts": "typescript",
-        ".rs": "rust",
-        ".go": "go",
-        ".java": "java",
-        ".rb": "ruby",
-        ".cpp": "cpp",
-        ".c": "c",
-        ".swift": "swift",
-        ".kt": "kotlin",
-        ".scala": "scala",
-    }
 
     # Search in bengal source
     for py_file in (PROJECT_ROOT / "bengal").rglob("*.py"):
@@ -339,9 +325,9 @@ def main():
             speedup = seq_time / par_time
 
             indicator = "🚀" if speedup > 1.5 else ("✅" if speedup > 1.0 else "⚠️")
-            print(
-                f"  Parallel ({worker_label} workers): {par_time * 1000:.2f} ms ({speedup:.2f}x) {indicator}"
-            )
+            par_ms = par_time * 1000
+            msg = f"  Parallel ({worker_label} workers): {par_ms:.2f} ms ({speedup:.2f}x)"
+            print(f"{msg} {indicator}")
 
         print()
 

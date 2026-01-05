@@ -31,6 +31,7 @@ dependencies = [
     "click>=8.1.7",
     "mistune>=3.0.0",
     "jinja2>=3.1.0",
+    "rosettes>=0.1.0",
     "markupsafe>=3.0.0",                       # HTML escaping and safe string handling (required for Kida)
     "pyyaml>=6.0",
     "python-frontmatter>=1.0.0",

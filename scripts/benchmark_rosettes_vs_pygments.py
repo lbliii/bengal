@@ -12,8 +12,8 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass
 
-# Rosettes
-from bengal.rendering import rosettes
+# Rosettes (external package)
+import rosettes
 
 # Pygments
 try:

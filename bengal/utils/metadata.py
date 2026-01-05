@@ -64,7 +64,7 @@ def _get_markdown_engine_and_version(config: dict[str, Any]) -> tuple[str, str |
 
 def _get_highlighter_version() -> str | None:
     try:
-        from bengal.rendering import rosettes
+        import rosettes
 
         return getattr(rosettes, "__version__", None)
     except Exception as e:

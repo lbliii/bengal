@@ -607,7 +607,7 @@ class HtmlRenderer:
         """Try to highlight a source range using internal rosettes."""
         if self._rosettes_available is None:
             try:
-                from bengal.rendering.rosettes import highlight  # noqa: F401
+                from rosettes import highlight  # noqa: F401
 
                 self._rosettes_available = True
             except ImportError:
@@ -621,7 +621,7 @@ class HtmlRenderer:
             return None
 
         try:
-            from bengal.rendering.rosettes import highlight
+            from rosettes import highlight
 
             return highlight(
                 self._source,

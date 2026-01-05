@@ -255,11 +255,20 @@ class ListParsingMixin:
 
             # Handle paragraph content
             if tok.type == TokenType.PARAGRAPH_LINE:
-                # CommonMark: If first content line has 4+ leading spaces (5+ spaces
-                # after marker), treat it as indented code, not paragraph
+                # CommonMark: If first content line has more than 4 spaces between
+                # marker and content, treat it as indented code, not paragraph.
+                # We calculate actual spacing from source positions, not token value,
+                # because token values include padding for visual column position.
                 if actual_content_indent is None and not content_lines:
-                    leading_spaces = len(tok.value) - len(tok.value.lstrip(" "))
-                    if leading_spaces >= 4:
+                    # Calculate actual spacing between marker end and content start
+                    # using source positions rather than counting spaces in token value
+                    marker_end_offset = marker_token.location.offset + len(
+                        marker_token.value.lstrip()
+                    )
+                    content_offset = tok.location.offset
+                    actual_spacing = content_offset - marker_end_offset
+
+                    if actual_spacing > 4:
                         # This is indented code - strip 4 spaces and create code block
                         code_content = tok.value[4:].rstrip() + "\n"
                         item_children.append(IndentedCode(location=tok.location, code=code_content))
