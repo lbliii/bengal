@@ -6,7 +6,6 @@ using the modular helper functions.
 
 from __future__ import annotations
 
-import os
 from typing import TYPE_CHECKING
 
 from bengal.rendering.parsers.patitas.nodes import (
@@ -21,7 +20,7 @@ from bengal.rendering.parsers.patitas.parsing.blocks.list.blank_line import (
     EndList,
     ParseBlock,
     ParseContinuation,
-    handle_blank_line_with_stack,
+    handle_blank_line,
 )
 from bengal.rendering.parsers.patitas.parsing.blocks.list.indent import (
     is_nested_list_indent,
@@ -51,11 +50,6 @@ from bengal.rendering.parsers.patitas.tokens import TokenType
 if TYPE_CHECKING:
     from bengal.rendering.parsers.patitas.parsing.containers import ContainerStack
     from bengal.rendering.parsers.patitas.tokens import Token
-
-# Shadow stack validation mode (Phase 2)
-# Set BENGAL_PARSER_STRICT=1 to enable assertions that validate the container
-# stack matches the locally-tracked indent values.
-_STRICT_MODE = os.environ.get("BENGAL_PARSER_STRICT", "0") == "1"
 
 
 class ListParsingMixin:
@@ -219,16 +213,6 @@ class ListParsingMixin:
         )
         self._containers.push(item_frame)
 
-        # Phase 2 Validation: Assert stack matches local variables
-        if _STRICT_MODE:
-            current = self._containers.current()
-            assert current.content_indent == content_indent, (
-                f"Stack content_indent mismatch: {current.content_indent} != {content_indent}"
-            )
-            assert current.start_indent == start_indent, (
-                f"Stack start_indent mismatch: {current.start_indent} != {start_indent}"
-            )
-
         item_children: list[Block] = []
         content_lines: list[str] = []
         checked: bool | None = None
@@ -310,17 +294,12 @@ class ListParsingMixin:
 
             # Handle indented code
             elif tok.type == TokenType.INDENTED_CODE:
+                # Phase 4: Simplified signature - stack provides indent context
                 result = self._handle_indented_code_in_item(
                     tok,
                     marker_token,
                     content_lines,
                     item_children,
-                    start_indent,
-                    content_indent,
-                    actual_content_indent,
-                    ordered,
-                    bullet_char,
-                    ordered_marker_char,
                 )
                 if result == "break":
                     break
@@ -339,8 +318,8 @@ class ListParsingMixin:
                 if self._at_end():
                     break
 
-                # Phase 3.3: Use stack-aware blank line handling
-                result = handle_blank_line_with_stack(
+                # Phase 4: Use stack-based blank line handling
+                result = handle_blank_line(
                     self._current,
                     self._containers,
                 )
@@ -577,18 +556,18 @@ class ListParsingMixin:
         marker_token: Token,
         content_lines: list[str],
         item_children: list[Block],
-        start_indent: int,
-        content_indent: int,
-        actual_content_indent: int | None,
-        ordered: bool,
-        bullet_char: str,
-        ordered_marker_char: str,
     ) -> str | tuple[list[str], list[Block]]:
         """Handle INDENTED_CODE token within a list item.
 
-        Phase 3: Uses container stack's current frame for content_indent.
+        Phase 4: Uses container stack as source of truth for indent context.
         The stack's content_indent is updated when actual_content_indent is
         determined, so current().content_indent reflects the correct value.
+
+        Args:
+            tok: The INDENTED_CODE token
+            marker_token: The list item's marker token (for location info)
+            content_lines: Current content lines being accumulated
+            item_children: Current block children of the item
 
         Returns:
             "break" - break out of item loop
@@ -598,20 +577,9 @@ class ListParsingMixin:
         original_indent = tok.line_indent
         stripped_content = tok.value.lstrip()
 
-        # Phase 3: Use container stack's current frame content_indent
-        # The frame's content_indent has been updated with actual value via
-        # update_content_indent() when the first content line was parsed.
+        # Phase 4: Use container stack as source of truth
         current_frame = self._containers.current()
         check_indent = current_frame.content_indent
-
-        # Phase 2 Validation: Assert stack matches local variables (strict mode)
-        if _STRICT_MODE:
-            expected_check = (
-                actual_content_indent if actual_content_indent is not None else content_indent
-            )
-            assert check_indent == expected_check, (
-                f"Stack check_indent mismatch: {check_indent} != {expected_check}"
-            )
 
         if original_indent >= check_indent:
             # Check for nested list marker
