@@ -244,11 +244,15 @@ class Heading(Node):
 
     Markdown: # Heading or Heading\\n======
     HTML: <h1>Heading</h1>
+
+    Supports MyST-compatible explicit anchor syntax: ## Title {#custom-id}
+    The {#id} is parsed during lexing and stored in explicit_id.
     """
 
     level: Literal[1, 2, 3, 4, 5, 6]
     children: tuple[Inline, ...]
     style: Literal["atx", "setext"] = "atx"
+    explicit_id: str | None = None  # MyST {#custom-id} syntax
 
 
 @dataclass(frozen=True, slots=True)

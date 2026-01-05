@@ -13,21 +13,21 @@
 | Fenced code blocks | 28 | 1 | 0 | 97% |
 | HTML blocks | 41 | 3 | 0 | 93% |
 | Hard line breaks | 15 | 0 | 0 | 100% |
-| Images | 20 | 2 | 0 | 91% |
-| Indented code blocks | 9 | 3 | 0 | 75% |
+| Images | 21 | 1 | 0 | 95% |
+| Indented code blocks | 10 | 2 | 0 | 83% |
 | Inlines | 1 | 0 | 0 | 100% |
-| Link reference definitions | 14 | 13 | 0 | 52% |
-| Links | 75 | 15 | 0 | 83% |
-| List items | 37 | 11 | 0 | 77% |
-| Lists | 16 | 10 | 0 | 62% |
+| Link reference definitions | 24 | 3 | 0 | 89% |
+| Links | 79 | 11 | 0 | 88% |
+| List items | 38 | 10 | 0 | 79% |
+| Lists | 26 | 0 | 0 | 100% |
 | Paragraphs | 8 | 0 | 0 | 100% |
 | Precedence | 1 | 0 | 0 | 100% |
 | Raw HTML | 19 | 1 | 0 | 95% |
 | Setext headings | 26 | 1 | 0 | 96% |
 | Soft line breaks | 2 | 0 | 0 | 100% |
-| Tabs | 6 | 5 | 0 | 55% |
+| Tabs | 9 | 2 | 0 | 82% |
 | Textual content | 3 | 0 | 0 | 100% |
 | Thematic breaks | 19 | 0 | 0 | 100% |
 
-**Total**: 581/652 (89.1%)
+**Total**: 611/652 (93.7%)
 **Skipped**: 0 (not yet implemented)

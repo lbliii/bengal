@@ -28,6 +28,9 @@ from bengal.rendering.parsers.patitas.parsing.blocks.list.indent import (
 from bengal.rendering.parsers.patitas.parsing.blocks.list.item_blocks import (
     handle_fenced_code_immediate,
     handle_thematic_break,
+    parse_block_quote_from_indented_code,
+    parse_fenced_code_from_indented_code,
+    parse_indented_code_in_list,
 )
 from bengal.rendering.parsers.patitas.parsing.blocks.list.marker import (
     extract_marker_info,
@@ -354,6 +357,48 @@ class ListParsingMixin:
                             Paragraph(location=marker_token.location, children=inlines)
                         )
                         content_lines = []
+
+                    # Phase 5: Handle INDENTED_CODE specially within list context
+                    # The lexer marks 4+ spaces as INDENTED_CODE, but within a list
+                    # item, we need to re-interpret based on content_indent
+                    next_tok = self._current
+                    if next_tok and next_tok.type == TokenType.INDENTED_CODE:
+                        check_indent = (
+                            actual_content_indent
+                            if actual_content_indent is not None
+                            else content_indent
+                        )
+                        stripped = next_tok.value.lstrip().rstrip()
+                        indent_beyond = next_tok.line_indent - check_indent
+
+                        # Nested list marker at content indent
+                        if is_list_marker(stripped):
+                            nested_list = parse_nested_list_from_indented_code(
+                                next_tok, next_tok.line_indent, check_indent, self
+                            )
+                            if nested_list:
+                                item_children.append(nested_list)
+                            continue
+
+                        # Block quote at content indent
+                        if stripped.startswith(">"):
+                            bq = parse_block_quote_from_indented_code(next_tok, self, check_indent)
+                            item_children.append(bq)
+                            continue
+
+                        # Fenced code at content indent
+                        if stripped.startswith("```") or stripped.startswith("~~~"):
+                            fc = parse_fenced_code_from_indented_code(next_tok, self, check_indent)
+                            item_children.append(fc)
+                            continue
+
+                        # Actual indented code (4+ beyond content_indent)
+                        if indent_beyond >= 4:
+                            ic = parse_indented_code_in_list(next_tok, self, check_indent)
+                            item_children.append(ic)
+                            continue
+
+                    # Default: use standard block parsing
                     block = self._parse_block()
                     if block is not None:
                         item_children.append(block)
@@ -597,6 +642,33 @@ class ListParsingMixin:
                 )
                 if nested_list:
                     item_children.append(nested_list)
+                return (content_lines, item_children)
+
+            # Check for block quote at content indent
+            stripped = stripped_content.rstrip()
+            if stripped.startswith(">"):
+                if content_lines:
+                    content = "\n".join(content_lines)
+                    inlines = self._parse_inline(content, marker_token.location)
+                    item_children.append(
+                        Paragraph(location=marker_token.location, children=inlines)
+                    )
+                    content_lines = []
+                bq = parse_block_quote_from_indented_code(tok, self, check_indent)
+                item_children.append(bq)
+                return (content_lines, item_children)
+
+            # Check for fenced code at content indent
+            if stripped.startswith("```") or stripped.startswith("~~~"):
+                if content_lines:
+                    content = "\n".join(content_lines)
+                    inlines = self._parse_inline(content, marker_token.location)
+                    item_children.append(
+                        Paragraph(location=marker_token.location, children=inlines)
+                    )
+                    content_lines = []
+                fc = parse_fenced_code_from_indented_code(tok, self, check_indent)
+                item_children.append(fc)
                 return (content_lines, item_children)
 
             # Continuation at content indent

@@ -37,6 +37,52 @@ def _process_escapes(text: str) -> str:
     return _ESCAPE_PATTERN.sub(r"\1", text)
 
 
+def _extract_explicit_id(content: str) -> tuple[str, str | None]:
+    """Extract MyST-compatible explicit anchor ID from heading content.
+
+    Syntax: ## Title {#custom-id}
+
+    The {#id} must be at the end of the content, preceded by whitespace.
+    ID must start with a letter, contain only letters, numbers, hyphens, underscores.
+
+    Args:
+        content: Heading content (already stripped)
+
+    Returns:
+        Tuple of (content_without_id, explicit_id or None)
+    """
+    # Quick rejection: must end with }
+    if not content.endswith("}"):
+        return content, None
+
+    # Find the opening {#
+    brace_pos = content.rfind("{#")
+    if brace_pos == -1:
+        return content, None
+
+    # Must be preceded by whitespace (or at start)
+    if brace_pos > 0 and content[brace_pos - 1] not in " \t":
+        return content, None
+
+    # Extract the ID (between {# and })
+    id_start = brace_pos + 2
+    id_end = len(content) - 1
+    explicit_id = content[id_start:id_end]
+
+    # Validate ID: must start with letter, contain only valid chars
+    if not explicit_id or not explicit_id[0].isalpha():
+        return content, None
+
+    for char in explicit_id:
+        if not (char.isalnum() or char in "-_"):
+            return content, None
+
+    # Strip the {#id} and trailing whitespace from content
+    new_content = content[:brace_pos].rstrip()
+
+    return new_content, explicit_id
+
+
 class BlockParsingCoreMixin:
     """Core block parsing methods.
 
@@ -118,7 +164,10 @@ class BlockParsingCoreMixin:
                 return None
 
     def _parse_atx_heading(self) -> Heading:
-        """Parse ATX heading (# Heading)."""
+        """Parse ATX heading (# Heading).
+
+        Supports MyST-compatible explicit anchor syntax: ## Title {#custom-id}
+        """
         token = self._current
         assert token is not None and token.type == TokenType.ATX_HEADING
         self._advance()
@@ -139,6 +188,10 @@ class BlockParsingCoreMixin:
         # CommonMark: leading and trailing spaces are stripped from heading content
         content = value[pos:].strip()
 
+        # Check for explicit {#custom-id} syntax at end of content
+        explicit_id = None
+        content, explicit_id = _extract_explicit_id(content)
+
         # Parse inline content
         children = self._parse_inline(content, token.location)
 
@@ -147,6 +200,7 @@ class BlockParsingCoreMixin:
             level=level,  # type: ignore[arg-type]
             children=children,
             style="atx",
+            explicit_id=explicit_id,
         )
 
     def _parse_fenced_code(self, override_fence_indent: int | None = None) -> FencedCode:

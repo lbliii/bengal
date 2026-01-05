@@ -210,10 +210,12 @@ class HtmlRenderer:
     def _render_block(self, node: Block, sb: StringBuilder) -> None:
         """Render a block node to StringBuilder."""
         match node:
-            case Heading(level=level, children=children):
+            case Heading(level=level, children=children, explicit_id=explicit_id):
                 # Extract text and generate slug during AST walk
                 text = self._extract_plain_text(children)
-                slug = self._get_unique_slug(text)
+
+                # Use explicit ID if provided (parsed from {#custom-id} syntax)
+                slug = explicit_id or self._get_unique_slug(text)
 
                 # Collect heading info for TOC generation
                 self._headings.append(HeadingInfo(level=level, text=text, slug=slug))
