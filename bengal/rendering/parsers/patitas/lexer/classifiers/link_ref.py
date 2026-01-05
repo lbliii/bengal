@@ -6,6 +6,7 @@ according to CommonMark 0.31.2 spec.
 
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING
 
 from bengal.rendering.parsers.patitas.tokens import Token, TokenType
@@ -141,7 +142,10 @@ class LinkRefClassifierMixin:
                 # Potential end
                 if curr + 1 < self._source_len and self._source[curr + 1] == ":":
                     # Found it!
+                    # CommonMark 4.7: normalize whitespace - collapse runs of whitespace to single space
                     label = "".join(label_parts).strip()
+                    # Normalize internal whitespace (spaces, tabs, newlines -> single space)
+                    label = re.sub(r"[ \t\n]+", " ", label)
                     # Label length cannot exceed 999
                     if len(label) > 999:
                         return "", 0, False

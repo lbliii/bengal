@@ -564,7 +564,10 @@ class HtmlRenderer:
             code = code[:-1]
         sb.append("<pre><code")
         if info:
-            lang = info.split()[0]
+            import html
+
+            # CommonMark: decode HTML entities in info string before using as class
+            lang = html.unescape(info.split()[0])
             if lang:
                 sb.append(f' class="language-{_escape_attr(lang)}"')
         sb.append(">")

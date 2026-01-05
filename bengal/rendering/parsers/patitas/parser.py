@@ -153,7 +153,9 @@ class Parser(
                     # Value format: label|url|title
                     parts = token.value.split("|", 2)
                     if len(parts) >= 2:
-                        label = parts[0].lower()  # Labels are case-insensitive
+                        label = parts[
+                            0
+                        ].casefold()  # Labels are case-insensitive (Unicode casefold)
                         # CommonMark 6.1: "If there are several link reference definitions
                         # with the same case-insensitive label, the first one is used."
                         if label not in self._link_refs:
