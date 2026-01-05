@@ -308,23 +308,55 @@ class BlockParsingCoreMixin:
 
         # Collect content after > markers
         content_lines: list[str] = []
-        last_was_marker = False  # Track consecutive markers for blank quoted lines
+        last_marker_line: int | None = None  # Line number of last marker seen
+        has_paragraph_content = False  # Track if we have paragraph content for lazy continuation
 
         while not self._at_end():
             token = self._current
             assert token is not None
 
             if token.type == TokenType.PARAGRAPH_LINE:
+                # Check if this PARAGRAPH_LINE is on a different line than the last marker
+                # Line without > after a bare ">" line = end of block quote
+                # CommonMark: not lazy continuation after blank in quote
+                if last_marker_line is not None and token.location.lineno != last_marker_line:
+                    break
                 content_lines.append(token.value)
-                last_was_marker = False
+                last_marker_line = None
+                has_paragraph_content = True
                 self._advance()
             elif token.type == TokenType.BLOCK_QUOTE_MARKER:
-                if last_was_marker:
+                if last_marker_line is not None:
                     # Two consecutive markers = blank quoted line (just ">")
                     # This creates a paragraph break in the quote content
                     content_lines.append("")
-                last_was_marker = True
+                    has_paragraph_content = False  # Reset - blank line breaks paragraph
+                last_marker_line = token.location.lineno
                 self._advance()
+            elif token.type == TokenType.INDENTED_CODE:
+                # CommonMark lazy continuation: INDENTED_CODE on a line without >
+                # can continue a paragraph if we have active paragraph content.
+                # The indented content becomes literal text in the paragraph.
+                # BUT: lazy continuation only works with paragraphs, not with
+                # indented code (content_lines[-1] starting with 4+ spaces).
+                if has_paragraph_content and last_marker_line is None and content_lines:
+                    last_line = content_lines[-1]
+                    # Check if last content is a paragraph (not indented code)
+                    # Indented code starts with 4+ spaces
+                    leading_spaces = len(last_line) - len(last_line.lstrip(" "))
+                    if leading_spaces < 4:
+                        # Lazy continuation - append to last paragraph line.
+                        # Use \x00 marker to prevent sub-parser from treating as block element.
+                        # The renderer will strip these markers.
+                        lazy_content = token.value.rstrip("\n")
+                        # Escape list markers and other block-starting chars
+                        if lazy_content.lstrip().startswith(("-", "*", "+", ">")):
+                            lazy_content = "\x00" + lazy_content
+                        content_lines[-1] = content_lines[-1] + "\n" + lazy_content
+                        self._advance()
+                        continue
+                # Not lazy continuation - end block quote
+                break
             elif token.type == TokenType.BLANK_LINE:
                 # End of block quote
                 break

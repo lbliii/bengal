@@ -234,7 +234,11 @@ class HtmlRenderer:
                 self._render_fenced_code(node, sb)
 
             case IndentedCode(code=code):
-                sb.append(f"<pre><code>{_escape_html(code)}</code></pre>\n")
+                # CommonMark: code block content always ends with newline before </code>
+                escaped = _escape_html(code)
+                if not escaped.endswith("\n"):
+                    escaped += "\n"
+                sb.append(f"<pre><code>{escaped}</code></pre>\n")
 
             case BlockQuote(children=children):
                 sb.append("<blockquote>\n")
@@ -800,7 +804,11 @@ def _escape_html(text: str) -> str:
     - < > & must be escaped (XSS prevention)
     - " should be escaped to &quot; (for safety)
     - ' should remain literal in text content (not &#x27;)
+
+    Also strips internal \x00 markers used for lazy continuation escaping.
     """
+    # Strip internal \x00 markers (used to prevent block element detection in lazy continuation)
+    text = text.replace("\x00", "")
     # html_escape with quote=True escapes both " and '
     # We only want to escape " but not '
     result = html_escape(text, quote=False)  # Escapes < > &

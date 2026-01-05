@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 
 from bengal.rendering.parsers.patitas.nodes import (
     Block,
+    IndentedCode,
     List,
     ListItem,
     Paragraph,
@@ -254,7 +255,27 @@ class ListParsingMixin:
 
             # Handle paragraph content
             if tok.type == TokenType.PARAGRAPH_LINE:
+                # CommonMark: If first content line has 4+ leading spaces (5+ spaces
+                # after marker), treat it as indented code, not paragraph
+                if actual_content_indent is None and not content_lines:
+                    leading_spaces = len(tok.value) - len(tok.value.lstrip(" "))
+                    if leading_spaces >= 4:
+                        # This is indented code - strip 4 spaces and create code block
+                        code_content = tok.value[4:].rstrip() + "\n"
+                        item_children.append(IndentedCode(location=tok.location, code=code_content))
+                        # Set actual_content_indent to marker_end + 1 (CommonMark rule)
+                        actual_content_indent = content_indent
+                        self._containers.update_content_indent(actual_content_indent)
+                        self._advance()
+                        continue
+
                 line = tok.value.lstrip()
+
+                # Skip whitespace-only lines immediately after marker (test 279)
+                # These are from trailing whitespace on the marker line
+                if not line and not content_lines and not saw_paragraph_content:
+                    self._advance()
+                    continue
 
                 # Check for nested list marker at start of content
                 if not content_lines and not saw_paragraph_content and line:
@@ -313,6 +334,12 @@ class ListParsingMixin:
 
             # Handle blank line
             elif tok.type == TokenType.BLANK_LINE:
+                # CommonMark test 280: Blank line immediately after empty marker
+                # creates an empty list item and ends it
+                if not content_lines and not item_children and not saw_paragraph_content:
+                    # Empty item - don't consume the blank line, let parent handle it
+                    break
+
                 self._advance()
                 # Consume consecutive blank lines
                 while not self._at_end() and self._current.type == TokenType.BLANK_LINE:
@@ -428,7 +455,9 @@ class ListParsingMixin:
                         # At content indent (not 4+ beyond) = paragraph content
                         # Must be AT or BEYOND content_indent to be continuation
                         if orig_indent >= check_indent and indent_beyond < 4:
-                            content_lines.append(next_tok.value.rstrip())
+                            # Strip leading whitespace - lexer already removed 4 spaces,
+                            # but content at content_indent should have no leading space
+                            content_lines.append(next_tok.value.strip())
                             self._advance()
                             continue
                     elif next_tok and next_tok.type == TokenType.PARAGRAPH_LINE:
@@ -677,7 +706,24 @@ class ListParsingMixin:
                 self._advance()
                 return (content_lines, item_children)
 
-            # More indented - actual code
+            # More indented - actual indented code within the list item
+            # CommonMark: 4+ spaces beyond content_indent = indented code
+            indent_beyond = original_indent - check_indent
+            if indent_beyond >= 4:
+                if content_lines:
+                    content = "\n".join(content_lines)
+                    inlines = self._parse_inline(content, marker_token.location)
+                    item_children.append(
+                        Paragraph(location=marker_token.location, children=inlines)
+                    )
+                    content_lines = []
+                # The lexer already stripped 4 spaces, strip remaining indent
+                code_content = tok.value.strip() + "\n"
+                item_children.append(IndentedCode(location=tok.location, code=code_content))
+                self._advance()
+                return (content_lines, item_children)
+
+            # Not continuation and not code - break
             return "break"
 
         # original_indent < check_indent
