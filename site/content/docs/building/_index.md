@@ -53,7 +53,7 @@ flowchart LR
 | I want to... | Go to... |
 |--------------|----------|
 | Configure my site | [Configuration](./configuration/) |
-| Build for production | [Commands](./commands/) |
+| Build for production | [Commands](../reference/architecture/tooling/cli/#commands) |
 | Speed up builds | [Performance](./performance/) |
 | Generate JSON/LLM output | [Output Formats](./output-formats.md) |
 | Deploy my site | [Deployment](./deployment/) |

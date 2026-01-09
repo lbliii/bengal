@@ -190,7 +190,7 @@ Bengal extends Markdown with directives using `:::{name}` syntax. Directives are
 
 ## Performance
 
-For benchmarks and reproducible measurements, refer to [Performance](../meta/performance.md) and the `benchmarks/` directory.
+For benchmarks and reproducible measurements, refer to [Performance](../../../building/performance/) and the `benchmarks/` directory.
 
 ## Template Functions
 

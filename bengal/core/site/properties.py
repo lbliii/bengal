@@ -44,6 +44,7 @@ class SitePropertiesMixin:
     _config_hash: str | None
     _query_registry: Any
     _paths: BengalPaths | None
+    _description_override: str | None
 
     @property
     def paths(self) -> BengalPaths:
@@ -83,6 +84,31 @@ class SitePropertiesMixin:
         if hasattr(self.config, "site"):
             return self.config.site.title
         return self.config.get("site", {}).get("title") or self.config.get("title")
+
+    @property
+    def description(self) -> str | None:
+        """
+        Get site description from configuration.
+
+        Respects runtime overrides set on the Site instance while falling back
+        to canonical config locations.
+        """
+        if getattr(self, "_description_override", None) is not None:
+            return self._description_override
+
+        if hasattr(self.config, "site"):
+            return self.config.site.get("description")
+
+        site_section = self.config.get("site", {})
+        if isinstance(site_section, dict) and "description" in site_section:
+            return site_section.get("description")
+
+        return self.config.get("description")
+
+    @description.setter
+    def description(self, value: str | None) -> None:
+        """Allow runtime override of site description for generated outputs."""
+        self._description_override = value
 
     @property
     def baseurl(self) -> str | None:

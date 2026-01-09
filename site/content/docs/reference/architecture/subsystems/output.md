@@ -211,4 +211,4 @@ cli.phase("Rendering")  # Suppressed (within 1.5s window)
 ## Related
 
 - [CLI](../tooling/cli.md) - Command-line interface
-- [Performance](../meta/performance.md) - Benchmarks and hot paths
+- [Performance](../../../building/performance/) - Benchmarks and hot paths

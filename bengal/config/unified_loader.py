@@ -26,6 +26,7 @@ import yaml
 
 from bengal.config.accessor import Config
 from bengal.config.defaults import DEFAULTS
+from bengal.config.directory_loader import ConfigDirectoryLoader
 from bengal.config.environment import detect_environment, get_environment_file_candidates
 from bengal.config.feature_mappings import expand_features
 from bengal.config.merge import batch_deep_merge, deep_merge
@@ -90,24 +91,60 @@ class UnifiedConfigLoader:
         Raises:
             ConfigLoadError: If configuration loading fails.
         """
+        site_root = Path(site_root)
+
+        # Validate path early to match directory loader semantics
+        if not site_root.exists():
+            raise ConfigLoadError(
+                f"Config directory not found: {site_root}",
+                code=ErrorCode.C005,
+                file_path=site_root,
+                suggestion="Ensure site root or config directory exists",
+            )
+
+        # Determine config source
+        config_dir: Path | None = None
+        single_file: Path | None = None
+        # Allow passing config directory directly (has _default/)
+        if site_root.is_dir() and (site_root / "_default").exists():
+            config_dir = site_root
+        elif site_root.is_dir() and (site_root / "config").exists():
+            config_dir = site_root / "config"
+        elif site_root.is_file():
+            # Allow direct single-file configs; otherwise, reject
+            if site_root.name in ("bengal.toml", "bengal.yaml", "bengal.yml"):
+                single_file = site_root
+                site_root = site_root.parent
+            else:
+                raise ConfigLoadError(
+                    f"Not a directory: {site_root}",
+                    code=ErrorCode.C003,
+                    file_path=site_root,
+                    suggestion="Provide a site root directory or config/ directory",
+                )
+        else:
+            single_file = self._find_config_file(site_root)
+
         if self.track_origins:
             self.origin_tracker = ConfigWithOrigin()
 
+        # Directory mode: delegate to ConfigDirectoryLoader for parity with legacy loader
+        if config_dir:
+            dir_loader = ConfigDirectoryLoader(track_origins=self.track_origins)
+            config_dict = dir_loader.load(config_dir, environment=environment, profile=profile)
+            if self.track_origins:
+                self.origin_tracker = dir_loader.get_origin_tracker()
+            config_obj = Config(config_dict)
+            return config_obj
+
+        # Single-file or defaults mode
         # Layer 0: DEFAULTS
         config: dict[str, Any] = deep_merge({}, DEFAULTS)
         if self.origin_tracker:
             self.origin_tracker.merge(DEFAULTS, "_bengal_defaults")
 
-        # Layer 1: User config
-        config_dir = site_root / "config"
-        single_file = self._find_config_file(site_root)
-
-        if config_dir.exists() and config_dir.is_dir():
-            user_config = self._load_directory(config_dir)
-            config = deep_merge(config, user_config)
-            if self.origin_tracker:
-                self.origin_tracker.merge(user_config, "_default")
-        elif single_file:
+        # Layer 1: User config (single file)
+        if single_file:
             user_config = self._load_file(single_file)
             config = deep_merge(config, user_config)
             if self.origin_tracker:
@@ -117,20 +154,7 @@ class UnifiedConfigLoader:
         if environment is None:
             environment = detect_environment()
 
-        if environment and config_dir.exists():
-            env_config = self._load_environment(config_dir, environment)
-            if env_config:
-                config = deep_merge(config, env_config)
-                if self.origin_tracker:
-                    self.origin_tracker.merge(env_config, f"environments/{environment}")
-
-        # Layer 3: Profile
-        if profile and config_dir.exists():
-            profile_config = self._load_profile(config_dir, profile)
-            if profile_config:
-                config = deep_merge(config, profile_config)
-                if self.origin_tracker:
-                    self.origin_tracker.merge(profile_config, f"profiles/{profile}")
+        # For single-file mode, environment/profile overrides are not applied (no directories)
 
         # Feature expansion
         config = expand_features(config)

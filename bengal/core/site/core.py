@@ -178,6 +178,8 @@ class Site(
 
     # BengalPaths instance for centralized .bengal directory access
     _paths: Any = field(default=None, repr=False, init=False)
+    # Optional runtime override for site description (used by postprocessors)
+    _description_override: str | None = field(default=None, repr=False, init=False)
 
     # Dynamic runtime attributes (set by various orchestrators)
     # Menu metadata for dev server menu items (set by MenuOrchestrator)

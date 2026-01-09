@@ -62,15 +62,6 @@ class QuoteClassifierMixin:
                 if not stripped:
                     return
 
-                # Link reference definition inside a block quote
-                if stripped.startswith("[") and not stripped.startswith("[^"):
-                    link_ref = self._try_classify_link_reference_def(
-                        stripped, line_start, indent + sub_indent
-                    )
-                    if link_ref:
-                        yield link_ref
-                        return
-
                 # Calculate absolute column position
                 leading_spaces = len(remaining) - len(stripped)
                 content_col = sub_indent + leading_spaces

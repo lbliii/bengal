@@ -3,7 +3,8 @@
 import pytest
 import yaml
 
-from bengal.config.unified_loader import UnifiedConfigLoader, ConfigLoadError
+from bengal.config.directory_loader import ConfigDirectoryLoader
+from bengal.config.unified_loader import ConfigLoadError, UnifiedConfigLoader
 from bengal.errors import BengalConfigError, ErrorCode
 
 

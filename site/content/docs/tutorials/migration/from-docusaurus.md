@@ -686,8 +686,8 @@ Bengal generates a search index. For Algolia-level search, integrate externally 
 
 If you're migrating from multiple platforms or need additional context:
 
-- [From Mintlify](./from-mintlify) - Similar MDX component migration patterns
-- [From Fern](./from-fern) - API documentation migration (if using OpenAPI)
+- [From Mintlify](/docs/tutorials/migration/from-mintlify/) - Similar MDX component migration patterns
+- [From Fern](/docs/tutorials/migration/from-fern/) - API documentation migration (if using OpenAPI)
 - [Migration Overview](../migration/) - Common migration patterns across all platforms
 
 ## Next Steps

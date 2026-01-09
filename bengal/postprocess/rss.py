@@ -78,6 +78,16 @@ class RSSGenerator:
         self.site = site
         self.logger = get_logger(__name__)
         self._collector = collector
+        # Normalize config structure so tests using flat baseurl keep working
+        try:
+            cfg = getattr(self.site, "config", {}) or {}
+            if isinstance(cfg, dict):
+                site_section = cfg.setdefault("site", {})
+                if isinstance(site_section, dict) and "baseurl" not in site_section:
+                    site_section["baseurl"] = cfg.get("baseurl", "")
+        except Exception:
+            # Best-effort; do not fail initialization
+            pass
 
     def generate(self) -> None:
         """
@@ -169,15 +179,9 @@ class RSSGenerator:
                             link = f"/{rel_path}".replace("\\", "/")
                         link = link.replace("/index.html", "/")
                     except ValueError:
-                        if baseurl:
-                            link = f"{baseurl}/{page.slug}/"
-                        else:
-                            link = f"/{page.slug}/"
+                        link = f"{baseurl}/{page.slug}/" if baseurl else f"/{page.slug}/"
                 else:
-                    if baseurl:
-                        link = f"{baseurl}/{page.slug}/"
-                    else:
-                        link = f"/{page.slug}/"
+                    link = f"{baseurl}/{page.slug}/" if baseurl else f"/{page.slug}/"
                 ET.SubElement(item, "link").text = link
                 ET.SubElement(item, "guid").text = link
 

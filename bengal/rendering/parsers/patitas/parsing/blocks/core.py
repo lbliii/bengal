@@ -475,6 +475,16 @@ class BlockParsingCoreMixin:
                 current_line_has_content = True
                 last_marker_line = token.location.lineno
                 self._advance()
+            elif token.type == TokenType.LINK_REFERENCE_DEF:
+                # Preserve original line text so nested parsing can resolve the definition
+                line_start = token.location.offset
+                line_end = token.location.end_offset
+                original_line = self._source[line_start:line_end].rstrip("\n")
+                current_line_parts.append(original_line)
+                has_paragraph_content = False
+                current_line_has_content = True
+                last_marker_line = token.location.lineno
+                self._advance()
             elif token.type in (
                 TokenType.ATX_HEADING,
                 TokenType.PARAGRAPH_LINE,
@@ -680,8 +690,17 @@ class BlockParsingCoreMixin:
                 # Valid list interruption - stop paragraph
                 break
             elif token.type == TokenType.LINK_REFERENCE_DEF:
-                # Do not consume link reference definitions inside a paragraph; let the
-                # outer parser handle them and terminate the paragraph here.
+                # CommonMark: link reference definitions cannot interrupt a paragraph.
+                # If we're already inside a paragraph (lines collected), treat the
+                # definition line as literal paragraph text. Otherwise, stop and let
+                # the caller handle the definition.
+                if lines:
+                    line_start = token.location.offset
+                    line_end = token.location.end_offset
+                    original_line = self._source[line_start:line_end].rstrip("\n")
+                    lines.append(original_line.lstrip())
+                    self._advance()
+                    continue
                 break
             else:
                 break
