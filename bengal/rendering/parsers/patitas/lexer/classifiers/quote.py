@@ -103,18 +103,13 @@ class QuoteClassifierMixin:
                     return
 
                 # Default: paragraph line
-                indented_content = " " * indent + remaining
-
-                # Content offset for PARAGRAPH_LINE should start BEFORE leading spaces
-                # so that block quote reconstruction doesn't lose them.
+                # Use remaining content directly - don't add synthetic indentation.
+                # The actual indentation is tracked via line_indent.
                 content_offset = line_start + sub_indent
-
-                # Calculate actual indentation of this line
-                actual_indent, _ = self._calc_indent(indented_content)
 
                 yield Token(
                     TokenType.PARAGRAPH_LINE,
-                    indented_content,
+                    remaining,
                     self._location_from(content_offset, start_col=sub_indent + 1),
-                    line_indent=actual_indent,
+                    line_indent=leading_spaces,  # Track actual leading spaces in content
                 )

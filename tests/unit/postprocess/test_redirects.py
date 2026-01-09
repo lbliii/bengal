@@ -34,6 +34,14 @@ class DummySite:
         self.config = config or {}
         self.pages: list[DummyPage] = []
 
+    @property
+    def baseurl(self) -> str:
+        """Return baseurl from config."""
+        site_section = self.config.get("site", {})
+        if isinstance(site_section, dict) and site_section.get("baseurl"):
+            return site_section.get("baseurl", "")
+        return self.config.get("baseurl", "")
+
 
 def test_redirect_html_has_meta_refresh(tmp_path):
     """Test redirect HTML includes meta refresh tag."""

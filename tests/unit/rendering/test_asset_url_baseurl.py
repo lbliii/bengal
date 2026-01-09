@@ -13,11 +13,18 @@ class DummySite:
         self.output_dir = root_path / "public"
         self.config = {"baseurl": baseurl or ""}
         self.theme = "default"
+        self._baseurl = baseurl or ""
         # Required Site attributes for template engine
         self.dev_mode = False
         self.versioning_enabled = False
         self.versions: list[str] = []
         self._bengal_template_dirs_cache = None
+        self._bengal_theme_chain_cache = None
+
+    @property
+    def baseurl(self) -> str:
+        """Return baseurl (uses cached value or config)."""
+        return self._baseurl
         self._bengal_theme_chain_cache = None
         self._bengal_template_metadata_cache = None
         self._asset_manifest_fallbacks_global: set[str] = set()

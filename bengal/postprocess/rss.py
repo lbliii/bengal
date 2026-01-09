@@ -147,9 +147,9 @@ class RSSGenerator:
             channel = ET.SubElement(rss, "channel")
 
             # Channel metadata
-            title = self.site.title or "Bengal Site"
-            baseurl = self.site.baseurl or ""
-            description = self.site.description or f"{title} RSS Feed"
+            title = str(self.site.title or "Bengal Site")
+            baseurl = str(self.site.baseurl or "").rstrip("/")
+            description = str(self.site.description or f"{title} RSS Feed")
             ET.SubElement(channel, "title").text = title
             ET.SubElement(channel, "link").text = baseurl
             ET.SubElement(channel, "description").text = description
@@ -162,12 +162,22 @@ class RSSGenerator:
                 if page.output_path:
                     try:
                         rel_path = page.output_path.relative_to(self.site.output_dir)
-                        link = f"{baseurl}/{rel_path}".replace("\\", "/")
+                        # Ensure proper URL construction: baseurl + / + rel_path
+                        if baseurl:
+                            link = f"{baseurl}/{rel_path}".replace("\\", "/")
+                        else:
+                            link = f"/{rel_path}".replace("\\", "/")
                         link = link.replace("/index.html", "/")
                     except ValueError:
-                        link = f"{baseurl}/{page.slug}/"
+                        if baseurl:
+                            link = f"{baseurl}/{page.slug}/"
+                        else:
+                            link = f"/{page.slug}/"
                 else:
-                    link = f"{baseurl}/{page.slug}/"
+                    if baseurl:
+                        link = f"{baseurl}/{page.slug}/"
+                    else:
+                        link = f"/{page.slug}/"
                 ET.SubElement(item, "link").text = link
                 ET.SubElement(item, "guid").text = link
 
@@ -227,7 +237,7 @@ class RSSGenerator:
                     suggestion="Verify pages have valid dates in frontmatter. Add 'date:' to include in RSS.",
                     original_error=e,
                 )
-                record_error(error, context="postprocess:rss")
+                record_error(error, build_phase="postprocess:rss")
 
                 self.logger.error(
                     "rss_generation_failed",

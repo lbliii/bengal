@@ -18,6 +18,15 @@ class DummySite:
         self.versions: list[str] = []
         self._bengal_template_dirs_cache = None
         self._bengal_theme_chain_cache = None
+
+    @property
+    def baseurl(self) -> str:
+        """Return baseurl from config."""
+        site_section = self.config.get("site", {})
+        if isinstance(site_section, dict) and site_section.get("baseurl"):
+            return site_section.get("baseurl", "")
+        return self.config.get("baseurl", "")
+        self._bengal_theme_chain_cache = None
         self._bengal_template_metadata_cache = None
         self._asset_manifest_fallbacks_global: set[str] = set()
         self._asset_manifest_fallbacks_lock = None

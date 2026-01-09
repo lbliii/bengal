@@ -122,8 +122,27 @@ class TestRSSGeneratorWithPages:
         """Create a mock site for testing."""
         site = MagicMock()
         site.pages = pages or []
-        site.config = config or {"title": "Test Site", "baseurl": "https://example.com"}
+        default_config = {"title": "Test Site", "baseurl": "https://example.com"}
+        site.config = config or default_config
         site.output_dir = output_dir or Path("/tmp/output")
+        # Set properties as string attributes (not Mock objects) for proper access
+        # Handle both nested and flat config structures
+        if config:
+            site_section = config.get("site", {})
+            if isinstance(site_section, dict):
+                site.title = str(site_section.get("title", config.get("title", "Test Site")))
+                site.baseurl = str(site_section.get("baseurl", config.get("baseurl", "")))
+                site.description = str(
+                    site_section.get("description", config.get("description", ""))
+                )
+            else:
+                site.title = str(config.get("title", "Test Site"))
+                site.baseurl = str(config.get("baseurl", ""))
+                site.description = str(config.get("description", ""))
+        else:
+            site.title = "Test Site"
+            site.baseurl = "https://example.com"
+            site.description = ""
         return site
 
     @patch("bengal.utils.atomic_write.AtomicFile")

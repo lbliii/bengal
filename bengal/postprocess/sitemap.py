@@ -240,7 +240,7 @@ class SitemapGenerator:
                 suggestion="Check output directory permissions and available disk space.",
                 original_error=e,
             )
-            record_error(error, context="postprocess:sitemap")
+            record_error(error, build_phase="postprocess:sitemap")
 
             self.logger.error(
                 "sitemap_generation_failed",

@@ -228,10 +228,11 @@ class SiteIndexGenerator:
         logger.debug("generating_site_index_json", page_count=len(pages))
 
         # Build site metadata (per-locale when i18n is enabled)
+        # Ensure all values are strings, not Mock objects
         site_metadata = {
-            "title": self.site.title or "Bengal Site",
-            "description": self.site.description or "",
-            "baseurl": self.site.baseurl or "",
+            "title": str(self.site.title or "Bengal Site"),
+            "description": str(self.site.description or ""),
+            "baseurl": str(self.site.baseurl or ""),
         }
 
         # Only include build_time in production builds

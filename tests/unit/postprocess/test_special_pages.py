@@ -42,6 +42,14 @@ class DummySite:
         self.theme = "default"
         self.template_engine = DummyTemplateEngine(available_templates or [])
         self.pages = []
+
+    @property
+    def baseurl(self) -> str:
+        """Return baseurl from config."""
+        site_section = self.config.get("site", {})
+        if isinstance(site_section, dict) and site_section.get("baseurl"):
+            return site_section.get("baseurl", "")
+        return self.config.get("baseurl", "")
         self.url_registry = URLRegistry()
 
 

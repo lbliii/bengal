@@ -34,6 +34,9 @@ def mock_site():
     config_mock.get.return_value = ""  # Default empty baseurl
     site.config = config_mock
 
+    # Set baseurl as a string property (not MagicMock) so with_baseurl works correctly
+    site.baseurl = ""
+
     # Set up version config
     v2 = Version(id="v2", latest=True, label="2.0")
     v1 = Version(id="v1", latest=False, label="1.0")

@@ -92,16 +92,25 @@ class SitePropertiesMixin:
         Baseurl is prepended to all page URLs. Can be empty, path-only (e.g., "/blog"),
         or absolute (e.g., "https://example.com").
 
+        Priority order:
+        1. Flat config["baseurl"] (allows runtime overrides, e.g., dev server clearing)
+        2. Nested config.site.baseurl or config["site"]["baseurl"]
+
         Returns:
             Base URL string from config, or None if not configured
 
         Examples:
             site.baseurl  # Returns "/blog" or "https://example.com" or None
         """
-        # Support both Config and dict access
+        # Check flat baseurl first (allows runtime overrides like dev server clearing)
+        flat_baseurl = self.config.get("baseurl")
+        if flat_baseurl is not None:
+            return flat_baseurl
+
+        # Fall back to nested site.baseurl
         if hasattr(self.config, "site"):
             return self.config.site.baseurl
-        return self.config.get("site", {}).get("baseurl") or self.config.get("baseurl")
+        return self.config.get("site", {}).get("baseurl")
 
     @property
     def author(self) -> str | None:

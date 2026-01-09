@@ -374,6 +374,10 @@ class TestSiteIndexJsonGeneration:
             "baseurl": baseurl,
             "description": "Test site description",
         }
+        # Set properties as string attributes (not Mock objects) for JSON serialization
+        site.title = "Test Site"
+        site.baseurl = baseurl
+        site.description = "Test site description"
         site.pages = []
         return site
 

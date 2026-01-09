@@ -195,9 +195,13 @@ def create_transformer(config: dict[str, Any]) -> HybridHTMLTransformer:
         Configured HybridHTMLTransformer instance
     """
     # Handle nested config structure (TOML format: [site] section)
+    # Also support flat config (baseurl at top level) for backward compatibility
     site_section = config.get("site", {})
     if isinstance(site_section, dict):
         baseurl = site_section.get("baseurl", "") or ""
+        # If not found in site section, check top level
+        if not baseurl:
+            baseurl = config.get("baseurl", "") or ""
     else:
         baseurl = config.get("baseurl", "") or ""
     return HybridHTMLTransformer(str(baseurl).rstrip("/"))

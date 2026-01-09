@@ -25,6 +25,14 @@ class MockSite:
         self.config = config or {}
         self.dev_mode = False
 
+    @property
+    def baseurl(self) -> str:
+        """Return baseurl from config, supporting nested [site].baseurl or flat baseurl."""
+        site_section = self.config.get("site", {})
+        if isinstance(site_section, dict) and site_section.get("baseurl"):
+            return site_section.get("baseurl", "")
+        return self.config.get("baseurl", "")
+
 
 @pytest.fixture
 def site_with_manifest(tmp_path: Path) -> MockSite:
