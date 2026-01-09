@@ -257,8 +257,8 @@ class ListParsingMixin:
             if tok.type == TokenType.PARAGRAPH_LINE:
                 # CommonMark: If first content line has more than 4 spaces between
                 # marker and content, treat it as indented code, not paragraph.
-                # We count spaces from the source line between the marker character
-                # (like "." or "-") and the first content character.
+                # We count effective column width (with tabs expanded) from the
+                # marker character (like "." or "-") to the first content character.
                 if actual_content_indent is None and not content_lines:
                     # Find the original line containing this content
                     line_start = self._source.rfind("\n", 0, tok.location.offset) + 1
@@ -272,16 +272,71 @@ class ListParsingMixin:
                     marker_pos = original_line.find(marker_char)
 
                     if marker_pos != -1:
-                        # Count spaces from after marker to first non-space content
+                        # Calculate effective column width with tabs expanded
                         after_marker = original_line[marker_pos + len(marker_char) :]
-                        spaces_after_marker = len(after_marker) - len(after_marker.lstrip(" "))
+                        # Count effective spaces (expand tabs to tab stops)
+                        spaces_after_marker = 0
+                        col = marker_pos + len(marker_char)  # Column after marker (0-indexed)
+                        for ch in after_marker:
+                            if ch == " ":
+                                spaces_after_marker += 1
+                                col += 1
+                            elif ch == "\t":
+                                # Tab expands to next tab stop (tab stops every 4 columns)
+                                tab_width = 4 - (col % 4)
+                                spaces_after_marker += tab_width
+                                col += tab_width
+                            else:
+                                break  # Non-whitespace character
                     else:
-                        # Fallback: use token value leading spaces
-                        spaces_after_marker = len(tok.value) - len(tok.value.lstrip(" "))
+                        # Fallback: use token value leading spaces (with tab expansion)
+                        spaces_after_marker = 0
+                        col = 0
+                        for ch in tok.value:
+                            if ch == " ":
+                                spaces_after_marker += 1
+                                col += 1
+                            elif ch == "\t":
+                                tab_width = 4 - (col % 4)
+                                spaces_after_marker += tab_width
+                                col += tab_width
+                            else:
+                                break
 
                     if spaces_after_marker > 4:
-                        # This is indented code - strip 4 spaces and create code block
-                        code_content = tok.value[4:].rstrip() + "\n"
+                        # This is indented code - extract from original line,
+                        # stripping marker and 4 column-widths of indentation
+                        # Use after_marker content with proper tab handling
+                        remaining_content = after_marker
+                        cols_to_strip = 5  # 1 for marker space + 4 for indented code
+                        col = marker_pos + len(marker_char)  # Start column after marker
+                        pos = 0
+                        while (
+                            pos < len(remaining_content)
+                            and col < marker_pos + len(marker_char) + cols_to_strip
+                        ):
+                            ch = remaining_content[pos]
+                            if ch == " ":
+                                col += 1
+                                pos += 1
+                            elif ch == "\t":
+                                tab_width = 4 - (col % 4)
+                                target_col = marker_pos + len(marker_char) + cols_to_strip
+                                if col + tab_width <= target_col:
+                                    col += tab_width
+                                    pos += 1
+                                else:
+                                    # Tab would go past target - keep partial as spaces
+                                    extra_spaces = target_col - col
+                                    remaining_content = (
+                                        " " * (tab_width - extra_spaces)
+                                        + remaining_content[pos + 1 :]
+                                    )
+                                    pos = 0
+                                    col = target_col
+                            else:
+                                break
+                        code_content = remaining_content[pos:].rstrip() + "\n"
                         item_children.append(IndentedCode(location=tok.location, code=code_content))
                         # Set actual_content_indent to marker_end + 1 (CommonMark rule)
                         actual_content_indent = content_indent

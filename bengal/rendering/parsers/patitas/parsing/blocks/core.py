@@ -413,6 +413,7 @@ class BlockParsingCoreMixin:
                     # This is a lazy continuation line (no > prefix)
                     has_lazy_continuation = True
                     content_lines.append(token.value.lstrip())
+                    current_line_has_content = True  # Mark that we added content
                     last_marker_line = token.location.lineno
                     self._advance()
                     continue
@@ -424,6 +425,7 @@ class BlockParsingCoreMixin:
                     # Preserve the 4-space indent so sub-parser sees it as indented
                     has_lazy_continuation = True
                     content_lines.append("    " + token.value.rstrip("\n"))
+                    current_line_has_content = True  # Mark that we added content
                     last_marker_line = token.location.lineno
                     self._advance()
                     continue
@@ -518,11 +520,11 @@ class BlockParsingCoreMixin:
         content = "\n".join(content_lines)
         if content.strip() or any(line == "" for line in content_lines):
             # Use sub-parser to parse nested block content
-            # Disable setext headings if we have lazy continuation lines
-            # (setext underlines can't span container boundaries)
             children = self._parse_nested_content(
                 content,
                 start_token.location,
+                # CommonMark: setext underlines cannot span container boundaries.
+                # Disable setext when we included lazy continuation lines.
                 allow_setext_headings=not has_lazy_continuation,
             )
             return BlockQuote(location=start_token.location, children=children)
@@ -678,13 +680,9 @@ class BlockParsingCoreMixin:
                 # Valid list interruption - stop paragraph
                 break
             elif token.type == TokenType.LINK_REFERENCE_DEF:
-                # CommonMark: Link reference definitions cannot interrupt paragraphs.
-                # Treat as paragraph continuation text.
-                line_start = token.location.offset
-                line_end = token.location.end_offset
-                original_line = self._source[line_start:line_end].rstrip("\n")
-                lines.append(original_line.lstrip())
-                self._advance()
+                # Do not consume link reference definitions inside a paragraph; let the
+                # outer parser handle them and terminate the paragraph here.
+                break
             else:
                 break
 

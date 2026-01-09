@@ -92,9 +92,9 @@ class LinkRefClassifierMixin:
         title_start_pos = next_pos
         title, next_pos, success = self._parse_title_multiline(title_start_pos)
         if not success:
-            # If title parsing failed but it looked like a title attempt, it might invalidate
-            # the whole link ref def. CommonMark says if junk follows, it's invalid.
-            return None
+            # Fall back to "no title" instead of invalidating the definition.
+            title = ""
+            next_pos = title_start_pos
 
         # Ensure no trailing junk on the same line as title (or destination if no title)
         line_end = self._source.find("\n", next_pos)
@@ -103,7 +103,16 @@ class LinkRefClassifierMixin:
 
         trailing = self._source[next_pos:line_end]
         if trailing.strip():
-            return None
+            # Ignore the parsed title if it has trailing junk; keep the definition valid
+            # and re-evaluate trailing based on the destination line only.
+            title = ""
+            next_pos = title_start_pos
+            line_end = self._source.find("\n", next_pos)
+            if line_end == -1:
+                line_end = self._source_len
+            trailing = self._source[next_pos:line_end]
+            if trailing.strip():
+                return None
 
         # Successfully parsed!
         # Commit to the end of the line where we stopped
