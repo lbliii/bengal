@@ -27,7 +27,7 @@ from bengal.rendering.parsers.patitas.parsing import (
     TokenNavigationMixin,
 )
 from bengal.rendering.parsers.patitas.parsing.containers import ContainerStack
-from bengal.rendering.parsers.patitas.parsing.inline.links import _process_escapes
+from bengal.rendering.parsers.patitas.parsing.inline.links import _normalize_label, _process_escapes
 from bengal.rendering.parsers.patitas.tokens import Token, TokenType
 
 
@@ -173,9 +173,11 @@ class Parser(
                     # Value format: label|url|title
                     parts = token.value.split("|", 2)
                     if len(parts) >= 2:
-                        label = parts[
-                            0
-                        ].casefold()  # Labels are case-insensitive (Unicode casefold)
+                        raw_label = parts[0]
+                        # Skip labels containing unescaped '[' (e.g., ref[])
+                        if re.search(r"(?<!\\)\[", raw_label):
+                            continue
+                        label = _normalize_label(_process_escapes(raw_label))
                         # CommonMark 6.1: "If there are several link reference definitions
                         # with the same case-insensitive label, the first one is used."
                         if label not in self._link_refs:
@@ -197,9 +199,9 @@ class Parser(
                     match = _link_ref_re.match(token.value.strip())
                     if match:
                         raw_label = match.group("label")
-                        # Reject labels containing '[' which are invalid (e.g., ref[])
-                        if "[" not in raw_label:
-                            label = raw_label.casefold()
+                        # Reject labels containing unescaped '[' which are invalid (e.g., ref[])
+                        if not re.search(r"(?<!\\)\[", raw_label):
+                            label = _normalize_label(_process_escapes(raw_label))
                             if label not in self._link_refs:
                                 url = _process_escapes(match.group("url"))
                                 raw_title = match.group("title") or ""

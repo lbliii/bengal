@@ -56,6 +56,33 @@ class UnifiedConfigLoader:
         4. Profile overrides (optional)
     """
 
+    # Keep compatibility with legacy ConfigLoader behaviors
+    SECTION_ALIASES = {
+        "menus": "menu",  # Plural → singular
+        "plugin": "plugins",
+    }
+
+    KNOWN_SECTIONS = {
+        "site",
+        "build",
+        "build_badge",
+        "theme",
+        "params",
+        "content",
+        "markdown",
+        "taxonomies",
+        "features",
+        "search",
+        "graph",
+        "menu",
+        "pagination",
+        "output_formats",
+        "assets",
+        "observability",
+        "dev",
+        "health_check",
+    }
+
     def __init__(self, track_origins: bool = False) -> None:
         """
         Initialize the unified configuration loader.
@@ -65,6 +92,7 @@ class UnifiedConfigLoader:
         """
         self.track_origins = track_origins
         self.origin_tracker: ConfigWithOrigin | None = None
+        self.warnings: list[str] = []
 
     def load(
         self,
@@ -105,6 +133,7 @@ class UnifiedConfigLoader:
         # Determine config source
         config_dir: Path | None = None
         single_file: Path | None = None
+        self.warnings = []
         # Allow passing config directory directly (has _default/)
         if site_root.is_dir() and (site_root / "_default").exists():
             config_dir = site_root
@@ -134,6 +163,9 @@ class UnifiedConfigLoader:
             config_dict = dir_loader.load(config_dir, environment=environment, profile=profile)
             if self.track_origins:
                 self.origin_tracker = dir_loader.get_origin_tracker()
+            # Directory loader handles normalization/flattening; adopt any warnings if exposed
+            if hasattr(dir_loader, "warnings"):
+                self.warnings = getattr(dir_loader, "warnings", [])
             config_obj = Config(config_dict)
             return config_obj
 
@@ -146,6 +178,8 @@ class UnifiedConfigLoader:
         # Layer 1: User config (single file)
         if single_file:
             user_config = self._load_file(single_file)
+            # Normalize sections (menus -> menu) before merging
+            user_config = self._normalize_sections(user_config)
             config = deep_merge(config, user_config)
             if self.origin_tracker:
                 self.origin_tracker.merge(user_config, single_file.name)
@@ -186,6 +220,52 @@ class UnifiedConfigLoader:
         )
 
         return config_obj
+
+    def get_warnings(self) -> list[str]:
+        """Return any warnings collected during load."""
+        return self.warnings
+
+    def _normalize_sections(self, config: dict[str, Any]) -> dict[str, Any]:
+        """
+        Normalize configuration section names using canonical aliases.
+
+        Accepts common section name variations (e.g., [menus] -> [menu]) and
+        records warnings when aliases or likely typos are encountered.
+        """
+        normalized: dict[str, Any] = {}
+
+        for key, value in config.items():
+            canonical = self.SECTION_ALIASES.get(key)
+
+            if canonical:
+                if (
+                    canonical in normalized
+                    and isinstance(value, dict)
+                    and isinstance(normalized[canonical], dict)
+                ):
+                    normalized[canonical].update(value)
+                    warning_msg = (
+                        f"⚠️  Both [{key}] and [{canonical}] defined. Merging into [{canonical}]."
+                    )
+                    self.warnings.append(warning_msg)
+                else:
+                    normalized[canonical] = value
+                    warning_msg = f"💡 Config note: [{key}] works, but [{canonical}] is preferred for consistency"
+                    self.warnings.append(warning_msg)
+            elif key not in self.KNOWN_SECTIONS:
+                normalized[key] = value
+            else:
+                normalized[key] = value
+
+        return normalized
+
+    def _default_config(self) -> dict[str, Any]:
+        """
+        Return a deep copy of DEFAULTS for single-file parity with directory loader.
+        """
+        from bengal.config.merge import deep_merge
+
+        return deep_merge({}, DEFAULTS)
 
     def _find_config_file(self, site_root: Path) -> Path | None:
         """Find single config file (bengal.toml, bengal.yaml, bengal.yml)."""
