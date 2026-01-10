@@ -207,6 +207,9 @@ class ConfigDirectoryLoader:
             environment = detect_environment()
             logger.debug("environment_detected", environment=environment)
 
+        # Track whether user provided a baseurl (defaults should NOT count)
+        explicit_baseurl = None
+
         # Layer 0: Start with Bengal DEFAULTS as base layer
         # This ensures all sites get sensible defaults (search, output_formats, etc.)
         # even if _default/ directory is missing or incomplete
@@ -218,6 +221,9 @@ class ConfigDirectoryLoader:
         defaults_dir = config_dir / "_default"
         if defaults_dir.exists():
             default_config = self._load_directory(defaults_dir, _origin_prefix="_default")
+            detected_baseurl = self._extract_baseurl(default_config)
+            if detected_baseurl is not None:
+                explicit_baseurl = detected_baseurl
             config = deep_merge(config, default_config)
             if self.origin_tracker:
                 self.origin_tracker.merge(default_config, "_default")
@@ -232,6 +238,9 @@ class ConfigDirectoryLoader:
         # Layer 2: Environment overrides from environments/<env>.yaml
         env_config = self._load_environment(config_dir, environment)
         if env_config:
+            detected_baseurl = self._extract_baseurl(env_config)
+            if detected_baseurl is not None:
+                explicit_baseurl = detected_baseurl
             config = deep_merge(config, env_config)
             if self.origin_tracker:
                 self.origin_tracker.merge(env_config, f"environments/{environment}")
@@ -240,6 +249,9 @@ class ConfigDirectoryLoader:
         if profile:
             profile_config = self._load_profile(config_dir, profile)
             if profile_config:
+                detected_baseurl = self._extract_baseurl(profile_config)
+                if detected_baseurl is not None:
+                    explicit_baseurl = detected_baseurl
                 config = deep_merge(config, profile_config)
                 if self.origin_tracker:
                     self.origin_tracker.merge(profile_config, f"profiles/{profile}")
@@ -257,7 +269,6 @@ class ConfigDirectoryLoader:
         config = self._flatten_config(config)
 
         # Preserve whether baseurl was explicitly set in user config (including empty string)
-        explicit_baseurl = self._extract_baseurl(config)
         if explicit_baseurl is not None:
             config["_baseurl_explicit"] = True
             if explicit_baseurl == "":
