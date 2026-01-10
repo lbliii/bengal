@@ -583,11 +583,11 @@ class ConfigDirectoryLoader:
         # Extract site section to top level (for backward compatibility)
         if "site" in config and isinstance(config["site"], dict):
             for key, value in config["site"].items():
-                flat[key] = value
+                flat.setdefault(key, value)
 
         # Extract build section to top level (backward compatibility for build.* access)
         if "build" in config and isinstance(config["build"], dict):
             for key, value in config["build"].items():
-                flat[key] = value
+                flat.setdefault(key, value)
 
         return flat

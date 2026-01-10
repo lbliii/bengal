@@ -339,7 +339,7 @@ class SiteIndexGenerator:
 
         summary: dict[str, Any] = {
             "objectID": data.uri,
-            "url": page_url,
+            "url": data.uri,
             "href": page_url,
             "uri": data.uri,
             "title": data.title,
@@ -550,7 +550,7 @@ class SiteIndexGenerator:
 
         summary: dict[str, Any] = {
             "objectID": page_uri,  # Unique identifier (relative path)
-            "url": page_url,  # Full URL with baseurl (JSON format compatibility)
+            "url": page_uri,  # Relative path (matches filters that expect path)
             "href": page_url,  # Full URL with baseurl (alias for consistency)
             "uri": page_uri,  # Relative path (without baseurl)
             "title": page.title,

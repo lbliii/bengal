@@ -285,7 +285,7 @@ class TaxonomyOrchestrator:
 
         # Collect from all pages, optionally per-locale
         i18n = self.site.config.get("i18n", {}) or {}
-        strategy = i18n.get("strategy", "none")
+        strategy = i18n.get("strategy") or "none"
         share_taxonomies = bool(i18n.get("share_taxonomies", False))
         current_lang = getattr(self.site, "current_language", None)
 
@@ -445,7 +445,7 @@ class TaxonomyOrchestrator:
 
         # Get i18n configuration
         i18n = self.site.config.get("i18n", {}) or {}
-        strategy = i18n.get("strategy", "none")
+        strategy = i18n.get("strategy") or "none"
         share_taxonomies = bool(i18n.get("share_taxonomies", False))
         default_lang = i18n.get("default_language", "en")
 
@@ -547,7 +547,7 @@ class TaxonomyOrchestrator:
         """
         generated_count = 0
         i18n = self.site.config.get("i18n", {}) or {}
-        strategy = i18n.get("strategy", "none")
+        strategy = i18n.get("strategy") or "none"
         share_taxonomies = bool(i18n.get("share_taxonomies", False))
         default_lang = i18n.get("default_language", "en")
 

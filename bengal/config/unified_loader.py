@@ -142,7 +142,11 @@ class UnifiedConfigLoader:
 
         # Layer 1: User config (single file)
         if single_file:
-            user_config = self._load_file(single_file)
+            try:
+                user_config = self._load_file(single_file)
+            except Exception as e:
+                # Add context so callers/tests can assert on config parse errors
+                raise type(e)(f"Config parse error: {e}") from e
             config = deep_merge(config, user_config)
             if self.origin_tracker:
                 self.origin_tracker.merge(user_config, single_file.name)
@@ -155,6 +159,9 @@ class UnifiedConfigLoader:
 
         # Feature expansion
         config = expand_features(config)
+
+        # Flatten site/build keys for backward compatibility (config["title"], etc.)
+        config = self._flatten_config(config)
 
         # Warn about common theme.features vs features confusion
         self._warn_search_ui_without_index(config)
@@ -205,6 +212,27 @@ class UnifiedConfigLoader:
         if path.suffix == ".toml":
             return load_toml(path, on_error="raise", caller="config_loader") or {}
         return load_yaml(path, on_error="raise", caller="config_loader") or {}
+
+    def _flatten_config(self, config: dict[str, Any]) -> dict[str, Any]:
+        """
+        Flatten nested config (site.*, build.*) to top-level for compatibility.
+
+        Mirrors ConfigDirectoryLoader behavior so callers can rely on both
+        nested and flat access (config["title"], config["baseurl"], etc.).
+        """
+        flat = dict(config)
+
+        # Extract site section to top level
+        if "site" in config and isinstance(config["site"], dict):
+            for key, value in config["site"].items():
+                flat.setdefault(key, value)
+
+        # Extract build section to top level
+        if "build" in config and isinstance(config["build"], dict):
+            for key, value in config["build"].items():
+                flat.setdefault(key, value)
+
+        return flat
 
     def _load_directory(self, config_dir: Path) -> dict[str, Any]:
         """Load all YAML files from config/_default/ directory."""

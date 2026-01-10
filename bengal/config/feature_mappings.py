@@ -178,6 +178,9 @@ def _set_if_missing(config: dict[str, Any], key_path: str, value: Any) -> None:
         # Key doesn't exist, set it
         set_nested_key(config, key_path, value)
     elif isinstance(existing, list) and isinstance(value, list):
+        # Empty list is treated as an explicit override (do nothing)
+        if len(existing) == 0:
+            return
         # Both lists: extend existing (avoid duplicates)
         # Navigate to parent
         current = config

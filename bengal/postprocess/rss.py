@@ -115,7 +115,7 @@ class RSSGenerator:
 
         # Per-locale generation (prefix strategy) or single feed
         i18n = self.site.config.get("i18n", {}) or {}
-        strategy = i18n.get("strategy", "none")
+        strategy = i18n.get("strategy") or "none"
         default_lang = i18n.get("default_language", "en")
         default_in_subdir = bool(i18n.get("default_in_subdir", False))
         languages_cfg = i18n.get("languages") or []

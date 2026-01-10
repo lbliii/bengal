@@ -56,6 +56,8 @@ See Also:
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from bengal.config.deprecation import (
     DEPRECATED_KEYS,
     RENAMED_KEYS,
@@ -66,8 +68,29 @@ from bengal.config.deprecation import (
 )
 from bengal.config.unified_loader import UnifiedConfigLoader
 
-# Backward compatibility: ConfigLoader alias points to UnifiedConfigLoader
-ConfigLoader = UnifiedConfigLoader
+
+class ConfigLoader(UnifiedConfigLoader):
+    """
+    Backward-compatible wrapper around UnifiedConfigLoader.
+
+    Legacy ConfigLoader accepted a root path during construction and then
+    ``load()`` with no arguments. This wrapper preserves that workflow while
+    delegating the real work to UnifiedConfigLoader.
+    """
+
+    def __init__(self, root_path: Path, track_origins: bool = False) -> None:
+        super().__init__(track_origins=track_origins)
+        self._root_path = Path(root_path)
+
+    def load(
+        self,
+        site_root: Path | None = None,
+        environment: str | None = None,
+        profile: str | None = None,
+    ):
+        target_root = Path(site_root) if site_root is not None else self._root_path
+        return super().load(target_root, environment=environment, profile=profile)
+
 
 __all__ = [
     "ConfigLoader",  # Backward compatibility alias

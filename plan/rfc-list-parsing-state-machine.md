@@ -78,6 +78,18 @@ The current implementation uses:
 
 ## Design
 
+### Required Clarifications from Review
+
+- **Action representation**: Transition actions must support multiple operations per step (e.g., emit paragraph + mark parent loose). Replace `TransitionAction` `Enum` with either `EnumFlag` or a `frozenset[TransitionAction]`, and update handlers accordingly. Document the chosen shape here.
+- **Token iteration contract**: Define the iterator API the FSM will use. The current parser relies on `_advance()`/`_current`; the RFC shows `TokenIterator.pushback()`. Specify whether we introduce a pushback iterator adapter or refactor the parser loop to drive the FSM.
+- **Behavior parity mapping**: Enumerate how each existing `_parse_list_item` branch is represented in `TRANSITIONS`, especially:
+  - Blank-line handling that propagates looseness and reinterprets following `INDENTED_CODE` / block tokens.
+  - Reinterpretation of `INDENTED_CODE` after `ParseContinuation` / `ParseBlock`.
+  - Nested list markers discovered inside paragraph content and markers at intermediate indents treated as literal content.
+  - Block-at-indent decisions (block quote, fenced code, heading, thematic break) that either belong to the item or terminate it depending on indent.
+- **Helpers and stack updates**: The FSM snippet calls `_calculate_actual_content_indent` and updates the container stack; include these utilities and the stack update points in Phase 1/2 scope so the FSM can compute `content_indent` correctly.
+- **Default transition behavior**: The current default handler completes the item; before implementation, list every `(state, token)` pair that should legally continue vs. terminate to avoid silent behavior changes.
+
 ### State Enum
 
 ```python
@@ -194,6 +206,8 @@ class Transition:
 
 class TransitionAction(Enum):
     """Actions to take during transition."""
+    # NOTE: Use EnumFlag or a frozenset[TransitionAction] to allow multiple
+    # actions per transition (e.g., EMIT_PARAGRAPH + MARK_PARENT_LOOSE).
     CONTINUE = auto()           # Keep parsing in new state
     ACCUMULATE = auto()         # Add to current content buffer
     EMIT_PARAGRAPH = auto()     # Flush paragraph, then continue
@@ -327,7 +341,7 @@ class ListItemStateMachine:
         for token in tokens:
             transition = self.step(token)
 
-            # Execute transition action
+            # Execute transition action(s)
             self._execute_action(transition.action, token)
 
             # Emit block if specified
@@ -347,47 +361,41 @@ class ListItemStateMachine:
 
         return self._finalize()
 
-    def _execute_action(self, action: TransitionAction, token: Token) -> None:
-        """Execute the transition action."""
-        match action:
-            case TransitionAction.ACCUMULATE:
-                self.context.content_lines.append(token.value.lstrip())
-
-            case TransitionAction.EMIT_PARAGRAPH:
-                if self.context.content_lines:
-                    content = '\n'.join(self.context.content_lines)
-                    inlines = self.ctx.parse_inline(content, self.marker_token.location)
-                    self.context.children.append(
-                        Paragraph(location=self.marker_token.location, children=inlines)
-                    )
-                    self.context.content_lines.clear()
-
-            case TransitionAction.EMIT_CODE:
-                if self.context.code_lines:
-                    code = '\n'.join(self.context.code_lines) + '\n'
-                    self.context.children.append(
-                        IndentedCode(location=self.marker_token.location, code=code)
-                    )
-                    self.context.code_lines.clear()
-
-            case TransitionAction.MARK_LOOSE:
-                self.containers.mark_loose()
-
-            case TransitionAction.MARK_PARENT_LOOSE:
-                self.containers.mark_parent_list_loose()
-
-            case TransitionAction.DELEGATE_NESTED:
-                # Recursive list parsing
-                nested = self.ctx.parse_list(parent_indent=self.start_indent)
-                self.context.children.append(nested)
-
-            case TransitionAction.DELEGATE_BLOCK:
-                block = self.ctx.parse_block()
-                if block:
-                    self.context.children.append(block)
-
-            case _:
-                pass  # CONTINUE, COMPLETE_ITEM, COMPLETE_LIST need no action
+    def _execute_action(self, action: TransitionAction | set[TransitionAction], token: Token) -> None:
+        """Execute the transition action(s)."""
+        actions = action if isinstance(action, set) else {action}
+        for act in actions:
+            match act:
+                case TransitionAction.ACCUMULATE:
+                    self.context.content_lines.append(token.value.lstrip())
+                case TransitionAction.EMIT_PARAGRAPH:
+                    if self.context.content_lines:
+                        content = '\n'.join(self.context.content_lines)
+                        inlines = self.ctx.parse_inline(content, self.marker_token.location)
+                        self.context.children.append(
+                            Paragraph(location=self.marker_token.location, children=inlines)
+                        )
+                        self.context.content_lines.clear()
+                case TransitionAction.EMIT_CODE:
+                    if self.context.code_lines:
+                        code = '\n'.join(self.context.code_lines) + '\n'
+                        self.context.children.append(
+                            IndentedCode(location=self.marker_token.location, code=code)
+                        )
+                        self.context.code_lines.clear()
+                case TransitionAction.MARK_LOOSE:
+                    self.containers.mark_loose()
+                case TransitionAction.MARK_PARENT_LOOSE:
+                    self.containers.mark_parent_list_loose()
+                case TransitionAction.DELEGATE_NESTED:
+                    nested = self.ctx.parse_list(parent_indent=self.start_indent)
+                    self.context.children.append(nested)
+                case TransitionAction.DELEGATE_BLOCK:
+                    block = self.ctx.parse_block()
+                    if block:
+                        self.context.children.append(block)
+                case _:
+                    pass  # CONTINUE, COMPLETE_ITEM, COMPLETE_LIST need no action
 
     def _finalize(self) -> ListItem:
         """Finalize and return the completed ListItem."""
@@ -472,13 +480,17 @@ def handle_marker_after_blank(sm: ListItemStateMachine, token: Token) -> Transit
     if marker_indent < check_indent:
         return Transition(
             next_state=ListItemState.ITEM_COMPLETE,
-            action=TransitionAction.EMIT_PARAGRAPH | TransitionAction.MARK_PARENT_LOOSE,
+            action={TransitionAction.EMIT_PARAGRAPH, TransitionAction.MARK_PARENT_LOOSE},
         )
 
     # At or beyond content_indent → nested list
     return Transition(
         next_state=ListItemState.IN_NESTED_LIST,
-        action=TransitionAction.EMIT_PARAGRAPH | TransitionAction.MARK_LOOSE | TransitionAction.DELEGATE_NESTED,
+        action={
+            TransitionAction.EMIT_PARAGRAPH,
+            TransitionAction.MARK_LOOSE,
+            TransitionAction.DELEGATE_NESTED,
+        },
     )
 
 
@@ -512,10 +524,13 @@ def handle_continuation_paragraph(sm: ListItemStateMachine, token: Token) -> Tra
 1. Create `bengal/rendering/parsers/patitas/parsing/blocks/list/state.py`
 2. Define `ListItemState` enum
 3. Add state logging to existing mixin for validation
+4. Decide on transition action representation (EnumFlag vs set) and update examples accordingly
+5. Define token iterator adapter with `pushback` semantics over the existing `_advance()`/`_current` API (no behavior change)
 
 **Files Changed:**
 - `list/state.py` (new)
 - `list/mixin.py` (add state logging)
+- `list/token_iterator.py` (new helper adapter)
 
 ### Phase 2: Extract Transition Handlers
 
@@ -595,6 +610,19 @@ def test_marker_after_blank_sibling():
 
     assert result.next_state == ListItemState.ITEM_COMPLETE
     assert TransitionAction.MARK_PARENT_LOOSE in result.action
+
+
+def test_multi_action_encoded_as_set():
+    """Transition actions support multiple operations."""
+    actions = {TransitionAction.EMIT_PARAGRAPH, TransitionAction.MARK_PARENT_LOOSE}
+    sm = make_state_machine(marker="- ", start_indent=0, content_indent=2)
+    sm.context.content_lines = ["a"]
+    result = Transition(
+        next_state=ListItemState.ITEM_COMPLETE,
+        action=actions,
+    )
+    sm._execute_action(result.action, make_token(TokenType.PARAGRAPH_LINE, "a"))
+    assert sm.containers.current().is_loose  # container helper should reflect marking
 ```
 
 ### Integration Tests
@@ -621,6 +649,14 @@ def test_state_machine_matches_legacy():
         legacy_ast = parse_legacy(test_case)
         new_ast = parse_state_machine(test_case)
         assert legacy_ast == new_ast, f"Mismatch for: {test_case[:50]}..."
+
+
+def test_token_iterator_adapter_pushback():
+    """Adapter provides pushback semantics over legacy _advance/_current API."""
+    iterator = make_token_iterator_with_pushback(source=" - a\n")
+    t1 = next(iterator)
+    iterator.pushback(t1)
+    assert next(iterator) == t1
 ```
 
 ### State Coverage Tests
