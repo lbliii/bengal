@@ -46,6 +46,16 @@ def _process_escapes(text: str) -> str:
 _WHITESPACE_PATTERN = re.compile(r"[ \t\n]+")
 
 
+def _unescape_label(label: str) -> str:
+    """Unescape label-specific escapes (backslash, [, ]).
+
+    CommonMark: Backslash escapes are allowed in labels but only matter for
+    backslash and bracket characters. Other escapes remain literal so that
+    labels like ``[foo\\!]`` do not match ``[foo!]`` (spec example 545).
+    """
+    return label.replace("\\\\", "\\").replace("\\[", "[").replace("\\]", "]")
+
+
 def _normalize_label(label: str) -> str:
     """Normalize a link reference label for matching.
 
@@ -58,8 +68,10 @@ def _normalize_label(label: str) -> str:
     Returns:
         Normalized label (lowercase, whitespace normalized)
     """
+    # CommonMark: remove bracket/backslash escapes before normalization
+    unescaped = _unescape_label(label)
     # Collapse runs of whitespace to single space
-    normalized = _WHITESPACE_PATTERN.sub(" ", label.strip())
+    normalized = _WHITESPACE_PATTERN.sub(" ", unescaped.strip())
     # Case-fold for Unicode case-insensitive matching
     return normalized.casefold()
 
@@ -553,8 +565,6 @@ class LinkParsingMixin:
                     if not ref_label:
                         # Collapsed: [text][] uses link_text as label
                         ref_label = link_text
-                    # CommonMark: backslash escapes are removed before label matching
-                    ref_label = _process_escapes(ref_label)
                     # Look up reference
                     ref_data = self._link_refs.get(_normalize_label(ref_label))
                     if ref_data:
@@ -576,9 +586,7 @@ class LinkParsingMixin:
         if bracket_pos + 1 < text_len and text[bracket_pos + 1] == "[":
             # Followed by [, so can't be a shortcut reference
             return None
-        # CommonMark: shortcut reference labels are normalized after processing escapes
-        ref_label = _process_escapes(link_text)
-        ref_data = self._link_refs.get(_normalize_label(ref_label))
+        ref_data = self._link_refs.get(_normalize_label(link_text))
         if ref_data:
             url, title = ref_data
             children = self._parse_inline(link_text, location)
@@ -639,8 +647,6 @@ class LinkParsingMixin:
                     if not ref_label:
                         # Collapsed: ![alt][] uses alt_text as label
                         ref_label = alt_text_raw
-                    # CommonMark: backslash escapes are removed before label matching
-                    ref_label = _process_escapes(ref_label)
                     # Look up reference
                     ref_data = self._link_refs.get(_normalize_label(ref_label))
                     if ref_data:
@@ -655,9 +661,7 @@ class LinkParsingMixin:
                         ), ref_end + 1
 
         # Try shortcut reference image: ![ref] alone
-        # CommonMark: shortcut reference image labels are normalized after processing escapes
-        ref_label = _process_escapes(alt_text_raw)
-        ref_data = self._link_refs.get(_normalize_label(ref_label))
+        ref_data = self._link_refs.get(_normalize_label(alt_text_raw))
         if ref_data:
             url, title = ref_data
             # CommonMark: alt text is plain text, no formatting

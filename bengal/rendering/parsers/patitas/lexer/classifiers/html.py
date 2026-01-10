@@ -234,6 +234,9 @@ class HtmlClassifierMixin:
             while pos < len(content) - 1 and (content[pos].isalnum() or content[pos] == "-"):
                 pos += 1
             tag_name = content[2:pos].lower()
+            # Closing tags for type1 elements should not start a new HTML block line
+            if tag_name in HTML_BLOCK_TYPE1_TAGS:
+                return False
             # Must end with just > or whitespace then >
             rest = content[pos:-1]
             if rest.strip() != "":
@@ -250,6 +253,11 @@ class HtmlClassifierMixin:
         while pos < len(content) and (content[pos].isalnum() or content[pos] == "-"):
             pos += 1
         tag_name = content[1:pos].lower()
+
+        # Do not treat single-line type1 tags (pre/script/style/textarea) as
+        # complete HTML block lines. They belong to type1 handling instead.
+        if tag_name in HTML_BLOCK_TYPE1_TAGS:
+            return False
 
         # Avoid treating well-known inline tags as HTML blocks (CommonMark example 187)
         inline_tags = {

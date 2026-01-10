@@ -379,10 +379,12 @@ class BlockParsingCoreMixin:
         has_lazy_continuation = False  # Track if any lazy continuation lines were included
         in_fenced_code = False  # Track if we're inside a fenced code block
         current_line_has_content = False  # Track if current line has content after > marker
+        last_was_list_marker = False
 
         def flush_current_line() -> None:
             """Flush accumulated parts for current line."""
             nonlocal current_line_has_content
+            nonlocal last_was_list_marker
             if current_line_parts:
                 content_lines.append("".join(current_line_parts))
                 current_line_parts.clear()
@@ -390,6 +392,7 @@ class BlockParsingCoreMixin:
                 # Line only had > marker with no content - add empty line
                 content_lines.append("")
             current_line_has_content = False
+            last_was_list_marker = False
 
         while not self._at_end():
             token = self._current
@@ -491,7 +494,16 @@ class BlockParsingCoreMixin:
                 TokenType.LIST_ITEM_MARKER,
             ):
                 # Block content - use token.value
-                current_line_parts.append(token.value.rstrip("\n"))
+                line_value = token.value.rstrip("\n")
+                if token.type == TokenType.LIST_ITEM_MARKER:
+                    # Normalize leading spaces so nested lists inside block quotes
+                    # aren't treated as indented code (CommonMark 259/260).
+                    line_value = line_value.lstrip()
+                    last_was_list_marker = True
+                elif token.type == TokenType.PARAGRAPH_LINE and last_was_list_marker:
+                    # Strip indentation immediately following a list marker on the same line
+                    line_value = line_value.lstrip()
+                current_line_parts.append(line_value)
                 current_line_has_content = True
 
                 # Update has_paragraph_content

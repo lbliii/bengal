@@ -72,6 +72,14 @@ class QuoteClassifierMixin:
                     if token:
                         yield token
                         return
+                # Link reference definitions inside block quotes should be recognized
+                if stripped.startswith("[") and not stripped.startswith("[^"):
+                    link_ref_token = self._try_classify_link_reference_def(
+                        stripped, line_start, content_col
+                    )
+                    if link_ref_token:
+                        yield link_ref_token
+                        return
 
                 if stripped.startswith(">"):
                     yield from self._classify_block_quote(stripped, line_start, content_col)

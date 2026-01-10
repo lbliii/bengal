@@ -14,6 +14,7 @@ from bengal.rendering.parsers.patitas.lexer.modes import (
 )
 from bengal.rendering.parsers.patitas.nodes import (
     Block,
+    Heading,
     HtmlBlock,
     IndentedCode,
     List,
@@ -114,6 +115,11 @@ class ListParsingMixin:
         # Calculate content indent
         content_indent = start_indent + marker_info.marker_length + 1
 
+        # Track whether this list is nested inside a block quote
+        inside_block_quote = any(
+            frame.container_type == ContainerType.BLOCK_QUOTE for frame in self._containers._stack
+        )
+
         # Phase 2 Shadow Stack: Push LIST container frame
         # This tracks the list's indent context for validation.
         # In Phase 3, this will become the source of truth.
@@ -188,9 +194,30 @@ class ListParsingMixin:
         tight = not self._containers.current().is_loose
         self._containers.pop()
 
+        # Normalize misclassified indented code that was actually paragraph text
+        normalized_items: list[ListItem] = []
+        for item in items:
+            fixed_children = []
+            for child in item.children:
+                if (
+                    isinstance(child, IndentedCode)
+                    and inside_block_quote
+                    and child.location.col_offset <= content_indent
+                ):
+                    text = child.code.rstrip("\n")
+                    inlines = self._parse_inline(text, child.location)
+                    fixed_children.append(Paragraph(location=child.location, children=inlines))
+                else:
+                    fixed_children.append(child)
+            normalized_items.append(
+                ListItem(
+                    location=item.location, children=tuple(fixed_children), checked=item.checked
+                )
+            )
+
         return List(
             location=start_token.location,
-            items=tuple(items),
+            items=tuple(normalized_items),
             ordered=ordered,
             start=start,
             tight=tight,
@@ -232,8 +259,47 @@ class ListParsingMixin:
             tok = self._current
             assert tok is not None
 
+            # INDENTED_CODE at content indent inside block quotes should behave like
+            # paragraph continuation, not code (CommonMark 259/260).
+            if tok.type == TokenType.INDENTED_CODE and any(
+                frame.container_type == ContainerType.BLOCK_QUOTE
+                for frame in self._containers._stack
+            ):
+                indent_beyond = tok.line_indent - content_indent
+                if indent_beyond < 4:
+                    content_lines.append(tok.value.lstrip())
+                    saw_paragraph_content = True
+                    self._advance()
+                    continue
+                content_lines.append(tok.value.lstrip())
+                saw_paragraph_content = True
+                self._advance()
+                continue
+
             # Handle thematic break
             if tok.type == TokenType.THEMATIC_BREAK:
+                # Setext underline inside list item (CommonMark example 300)
+                if (
+                    saw_paragraph_content
+                    and content_lines
+                    and tok.line_indent >= content_indent
+                    and tok.value.strip()
+                    and all(c == "-" for c in tok.value.strip())
+                ):
+                    heading_text = "\n".join(content_lines).rstrip()
+                    children = self._parse_inline(heading_text, marker_token.location)
+                    item_children.append(
+                        Heading(
+                            location=marker_token.location,
+                            level=2,
+                            children=children,
+                            style="setext",
+                        )
+                    )
+                    content_lines = []
+                    saw_paragraph_content = False
+                    self._advance()
+                    continue
                 block, should_continue = handle_thematic_break(
                     tok, saw_paragraph_content, bool(content_lines), self
                 )
@@ -278,8 +344,6 @@ class ListParsingMixin:
                         if not html_content.endswith("\n"):
                             html_content += "\n"
                         item_children.append(HtmlBlock(location=tok.location, html=html_content))
-                        # Block-level content makes the list loose
-                        self._containers.mark_loose()
                         saw_paragraph_content = False
                         self._advance()
                         continue
@@ -332,7 +396,12 @@ class ListParsingMixin:
                             else:
                                 break
 
-                    if spaces_after_marker > 4:
+                    in_block_quote = any(
+                        frame.container_type == ContainerType.BLOCK_QUOTE
+                        for frame in self._containers._stack
+                    )
+
+                    if spaces_after_marker > 4 and not in_block_quote:
                         # This is indented code - extract from original line,
                         # stripping marker and 4 column-widths of indentation
                         # Use after_marker content with proper tab handling

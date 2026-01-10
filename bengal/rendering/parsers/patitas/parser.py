@@ -163,7 +163,7 @@ class Parser(
                         # Skip labels containing unescaped '[' (e.g., ref[])
                         if "[" in raw_label.replace("\\[", ""):
                             continue
-                        label = _normalize_label(_process_escapes(raw_label))
+                        label = _normalize_label(raw_label)
                         # CommonMark 6.1: "If there are several link reference definitions
                         # with the same case-insensitive label, the first one is used."
                         if label not in self._link_refs:
