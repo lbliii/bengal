@@ -140,6 +140,9 @@ class UnifiedConfigLoader:
         if self.origin_tracker:
             self.origin_tracker.merge(DEFAULTS, "_bengal_defaults")
 
+        # Track whether user explicitly set baseurl (including empty)
+        user_baseurl = None
+
         # Layer 1: User config (single file)
         if single_file:
             try:
@@ -147,6 +150,7 @@ class UnifiedConfigLoader:
             except Exception as e:
                 # Add context so callers/tests can assert on config parse errors
                 raise type(e)(f"Config parse error: {e}") from e
+            user_baseurl = self._extract_baseurl(user_config)
             config = deep_merge(config, user_config)
             if self.origin_tracker:
                 self.origin_tracker.merge(user_config, single_file.name)
@@ -162,6 +166,12 @@ class UnifiedConfigLoader:
 
         # Flatten site/build keys for backward compatibility (config["title"], etc.)
         config = self._flatten_config(config)
+
+        # Preserve whether baseurl was explicitly set in user config (including empty string)
+        if user_baseurl is not None:
+            config["_baseurl_explicit"] = True
+            if user_baseurl == "":
+                config["_baseurl_explicit_empty"] = True
 
         # Warn about common theme.features vs features confusion
         self._warn_search_ui_without_index(config)
@@ -337,6 +347,27 @@ class UnifiedConfigLoader:
     def get_origin_tracker(self) -> ConfigWithOrigin | None:
         """Get the origin tracker instance if tracking is enabled."""
         return self.origin_tracker
+
+    @staticmethod
+    def _extract_baseurl(config: dict[str, Any] | None) -> Any:
+        """
+        Extract baseurl from a user config dict if explicitly provided.
+
+        Returns the value if present (including empty string) or None if missing.
+        """
+        if not config or not isinstance(config, dict):
+            return None
+
+        # Prefer nested site.baseurl
+        site_section = config.get("site")
+        if isinstance(site_section, dict) and "baseurl" in site_section:
+            return site_section.get("baseurl")
+
+        # Fallback to flat baseurl
+        if "baseurl" in config:
+            return config.get("baseurl")
+
+        return None
 
     def _warn_search_ui_without_index(self, config: dict[str, Any]) -> None:
         """Warn if theme.features has search but search index won't be generated."""

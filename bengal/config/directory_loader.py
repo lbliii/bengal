@@ -256,6 +256,13 @@ class ConfigDirectoryLoader:
         # Flatten config (site.title → title, build.parallel → parallel)
         config = self._flatten_config(config)
 
+        # Preserve whether baseurl was explicitly set in user config (including empty string)
+        explicit_baseurl = self._extract_baseurl(config)
+        if explicit_baseurl is not None:
+            config["_baseurl_explicit"] = True
+            if explicit_baseurl == "":
+                config["_baseurl_explicit_empty"] = True
+
         # Apply environment-based overrides (GitHub Actions, Netlify, Vercel)
         # Must happen after flattening so baseurl is at top level
         from bengal.config.env_overrides import apply_env_overrides
@@ -503,6 +510,25 @@ class ConfigDirectoryLoader:
             '_default/site.yaml'
         """
         return self.origin_tracker
+
+    @staticmethod
+    def _extract_baseurl(config: dict[str, Any] | None) -> Any:
+        """
+        Extract baseurl from a config dict if explicitly provided.
+
+        Returns the value if present (including empty string) or None if missing.
+        """
+        if not config or not isinstance(config, dict):
+            return None
+
+        site_section = config.get("site")
+        if isinstance(site_section, dict) and "baseurl" in site_section:
+            return site_section.get("baseurl")
+
+        if "baseurl" in config:
+            return config.get("baseurl")
+
+        return None
 
     def _warn_search_ui_without_index(self, config: dict[str, Any]) -> None:
         """

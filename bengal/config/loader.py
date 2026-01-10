@@ -519,4 +519,29 @@ class ConfigLoader:
         """
         from bengal.config.env_overrides import apply_env_overrides
 
+        explicit_baseurl = self._extract_baseurl(config)
+        if explicit_baseurl is not None:
+            config["_baseurl_explicit"] = True
+            if explicit_baseurl == "":
+                config["_baseurl_explicit_empty"] = True
+
         return apply_env_overrides(config)
+
+    @staticmethod
+    def _extract_baseurl(config: dict[str, Any] | None) -> Any:
+        """
+        Extract baseurl from a config dict if explicitly provided.
+
+        Returns the value if present (including empty string) or None if missing.
+        """
+        if not config or not isinstance(config, dict):
+            return None
+
+        site_section = config.get("site")
+        if isinstance(site_section, dict) and "baseurl" in site_section:
+            return site_section.get("baseurl")
+
+        if "baseurl" in config:
+            return config.get("baseurl")
+
+        return None

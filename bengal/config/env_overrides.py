@@ -121,17 +121,28 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
         current_baseurl = site_section.get("baseurl", "")
         baseurl_has_value = bool(current_baseurl)
 
+        # Detect when user explicitly set baseurl (including explicit empty)
+        explicit_baseurl = bool(config.get("_baseurl_explicit"))
+        explicit_empty_baseurl = (
+            bool(config.get("_baseurl_explicit_empty")) and current_baseurl == ""
+        )
+
         # 1) BENGAL_BASEURL can override empty/missing baseurl (but not explicit non-empty)
         explicit = os.environ.get("BENGAL_BASEURL") or os.environ.get("BENGAL_BASE_URL")
-        if explicit and not baseurl_has_value:
+        if explicit and (not baseurl_has_value or explicit_empty_baseurl):
             site_section["baseurl"] = explicit.rstrip("/")
             config["baseurl"] = site_section["baseurl"]
             return config
 
         # If baseurl has a non-empty value, respect it (user explicitly configured it)
-        # Empty baseurl (from DEFAULTS or missing) allows platform detection to proceed
         if baseurl_has_value:
             config["baseurl"] = site_section["baseurl"]
+            return config
+
+        # If the user explicitly set baseurl to empty, respect that and skip platform detection
+        if explicit_baseurl and explicit_empty_baseurl:
+            site_section["baseurl"] = ""
+            config["baseurl"] = ""
             return config
 
         # 2) Netlify detection (only if baseurl not explicitly set)
