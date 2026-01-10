@@ -334,13 +334,11 @@ class SiteIndexGenerator:
         """
         baseurl = (self.site.baseurl or "").rstrip("/")
 
-        # Construct full URL by combining baseurl with relative URI
-        page_url = f"{baseurl}{data.uri}" if baseurl else data.uri
-
         summary: dict[str, Any] = {
             "objectID": data.uri,
-            "url": data.uri,
-            "href": page_url,
+            # url includes baseurl when configured; uri stays relative
+            "url": f"{baseurl}{data.uri}" if baseurl else data.uri,
+            "href": f"{baseurl}{data.uri}" if baseurl else data.uri,
             "uri": data.uri,
             "title": data.title,
             "description": data.description,
@@ -550,7 +548,8 @@ class SiteIndexGenerator:
 
         summary: dict[str, Any] = {
             "objectID": page_uri,  # Unique identifier (relative path)
-            "url": page_uri,  # Relative path (matches filters that expect path)
+            # url includes baseurl when configured; uri stays relative
+            "url": page_url,  # Full URL with baseurl (alias for consistency)
             "href": page_url,  # Full URL with baseurl (alias for consistency)
             "uri": page_uri,  # Relative path (without baseurl)
             "title": page.title,
