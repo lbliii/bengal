@@ -7,7 +7,6 @@ Run with: python -m benchmarks.lexer_benchmark
 from __future__ import annotations
 
 import time
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -21,9 +20,8 @@ def load_sample_code() -> str:
     """
     # Try to load a substantial Python file
     candidates = [
-        Path(__file__).parent.parent / "bengal/rendering/rosettes/lexers/python_sm.py",
-        Path(__file__).parent.parent / "bengal/rendering/rosettes/lexers/python.py",
-        Path(__file__).parent.parent / "bengal/rendering/rosettes/_types.py",
+        # Rosettes is now an external package - use fallback synthetic code
+        # These paths no longer exist in Bengal
     ]
 
     for path in candidates:
@@ -150,27 +148,16 @@ def main() -> None:
 
     results = []
 
-    # Benchmark regex-based lexer
+    # Benchmark rosettes state-machine lexer (external package)
     try:
-        from bengal.rendering.rosettes.lexers.python import PythonLexer
+        from rosettes import get_lexer
 
-        regex_lexer = PythonLexer()
-        print("\nBenchmarking regex-based PythonLexer...")
-        result = benchmark_lexer("PythonLexer (regex)", regex_lexer.tokenize, code)
+        python_lexer = get_lexer("python")
+        print("\nBenchmarking rosettes PythonStateMachineLexer...")
+        result = benchmark_lexer("rosettes (state-machine)", python_lexer.tokenize, code)
         results.append(result)
     except ImportError as e:
-        print(f"Could not import PythonLexer: {e}")
-
-    # Benchmark state-machine lexer
-    try:
-        from bengal.rendering.rosettes.lexers.python_sm import PythonStateMachineLexer
-
-        sm_lexer = PythonStateMachineLexer()
-        print("Benchmarking state-machine PythonStateMachineLexer...")
-        result = benchmark_lexer("PythonStateMachineLexer (SM)", sm_lexer.tokenize, code)
-        results.append(result)
-    except ImportError as e:
-        print(f"Could not import PythonStateMachineLexer: {e}")
+        print(f"Could not import rosettes: {e}")
 
     # Print results
     print_results(results)
@@ -186,25 +173,13 @@ def main() -> None:
     large_results = []
 
     try:
-        from bengal.rendering.rosettes.lexers.python import PythonLexer
+        from rosettes import get_lexer
 
-        regex_lexer = PythonLexer()
-        print("\nBenchmarking regex-based PythonLexer on large file...")
+        python_lexer = get_lexer("python")
+        print("\nBenchmarking rosettes PythonStateMachineLexer on large file...")
         result = benchmark_lexer(
-            "PythonLexer (regex)", regex_lexer.tokenize, large_code, iterations=3
-        )
-        large_results.append(result)
-    except ImportError:
-        pass
-
-    try:
-        from bengal.rendering.rosettes.lexers.python_sm import PythonStateMachineLexer
-
-        sm_lexer = PythonStateMachineLexer()
-        print("Benchmarking state-machine PythonStateMachineLexer on large file...")
-        result = benchmark_lexer(
-            "PythonStateMachineLexer (SM)",
-            sm_lexer.tokenize,
+            "rosettes (state-machine)",
+            python_lexer.tokenize,
             large_code,
             iterations=3,
         )

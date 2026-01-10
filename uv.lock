@@ -138,6 +138,7 @@ dependencies = [
     { name = "python-frontmatter" },
     { name = "pyyaml" },
     { name = "questionary" },
+    { name = "rosettes" },
     { name = "textual" },
     { name = "textual-serve" },
     { name = "uvloop", marker = "sys_platform != 'win32'" },
@@ -246,6 +247,7 @@ requires-dist = [
     { name = "pyvips", marker = "extra == 'fast-images'", specifier = ">=2.2" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "questionary", specifier = ">=2.0.0" },
+    { name = "rosettes", specifier = ">=0.1.0" },
     { name = "smartcrop", marker = "extra == 'smartcrop'", specifier = ">=0.3" },
     { name = "textual", specifier = ">=0.96" },
     { name = "textual-serve", specifier = ">=0.1.0" },
@@ -1119,6 +1121,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/fb/d2/8920e102050a0de7bfabeb4c4614a49248cf8d5d7a8d01885fbb24dc767a/rich-14.2.0.tar.gz", hash = "sha256:73ff50c7c0c1c77c8243079283f4edb376f0f6442433aecb8ce7e6d0b92d1fe4", size = 219990, upload-time = "2025-10-09T14:16:53.064Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/25/7a/b0178788f8dc6cafce37a212c99565fa1fe7872c70c6c9c1e1a372d9d88f/rich-14.2.0-py3-none-any.whl", hash = "sha256:76bc51fe2e57d2b1be1f96c524b890b816e334ab4c1e45888799bfaab0021edd", size = 243393, upload-time = "2025-10-09T14:16:51.245Z" },
+]
+
+[[package]]
+name = "rosettes"
+version = "0.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/05/ed/c7cd18850e152328554769cff932acd559c19ccb77dc73f1484d82014ce5/rosettes-0.1.0.tar.gz", hash = "sha256:522ff64ccbaeb894598589cbad1913faab2241548ba88e3cbf508a4820ada6d4", size = 120889, upload-time = "2026-01-05T16:32:49.32Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4f/78/49062bb7e4c8bc9d5aedc0318882dd2cb45080bad643e1d2856c878b9f3d/rosettes-0.1.0-py3-none-any.whl", hash = "sha256:0ab50208b15f6aa50c50d7945e9bd157e170d0cf9fb4a219ff6bd05da41de699", size = 186474, upload-time = "2026-01-05T16:32:45.419Z" },
 ]
 
 [[package]]

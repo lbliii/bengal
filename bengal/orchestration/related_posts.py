@@ -224,10 +224,22 @@ class RelatedPostsOrchestrator:
             Number of pages with related posts found
         """
         # Get optimal workers based on workload (CPU-bound tag matching)
+        # Access from build section (supports both Config and dict)
+        config = self.site.config
+        if hasattr(config, "build"):
+            max_workers_override = config.build.max_workers
+        else:
+            build_section = config.get("build", {})
+            max_workers_override = (
+                build_section.get("max_workers")
+                if isinstance(build_section, dict)
+                else config.get("max_workers")
+            )
+
         max_workers = get_optimal_workers(
             len(pages),
             workload_type=WorkloadType.CPU_BOUND,
-            config_override=self.site.config.get("max_workers"),
+            config_override=max_workers_override,
         )
 
         pages_with_related = 0
@@ -285,7 +297,10 @@ class RelatedPostsOrchestrator:
         for page in self.site.pages:
             if hasattr(page, "tags") and page.tags:
                 # Convert tags to slugs for consistent matching (same as taxonomy)
-                page_tags[page] = {tag.lower().replace(" ", "-") for tag in page.tags}
+                # Filter out None tags (YAML parses 'null' as None)
+                page_tags[page] = {
+                    str(tag).lower().replace(" ", "-") for tag in page.tags if tag is not None
+                }
             else:
                 page_tags[page] = set()
 

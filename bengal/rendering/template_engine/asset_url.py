@@ -134,7 +134,7 @@ class AssetURLMixin:
             logger.warning("asset_path_invalid", provided=str(asset_path))
             return "/assets/"
 
-        baseurl_value = (self.site.config.get("baseurl", "") or "").rstrip("/")
+        baseurl_value = (self.site.baseurl or "").rstrip("/")
 
         # Handle file:// protocol - generate relative URLs
         if baseurl_value.startswith("file://"):

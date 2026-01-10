@@ -62,7 +62,7 @@ class TestConfigPrecedence:
 
         options = resolve_build_options(config)
 
-        assert options.incremental == DEFAULTS["incremental"]
+        assert options.incremental == DEFAULTS["build"]["incremental"]
 
     def test_flattened_config_path(self):
         """Flattened config path (quiet) is checked first."""
@@ -235,7 +235,7 @@ class TestEdgeCases:
 
         # force_sequential defaults to False (auto-detect mode)
         assert options.force_sequential is False
-        assert options.incremental == DEFAULTS["incremental"]
+        assert options.incremental == DEFAULTS["build"]["incremental"]
         assert options.quiet == DEFAULTS.get("quiet", False)
 
     def test_none_config_values(self):
@@ -245,7 +245,7 @@ class TestEdgeCases:
         options = resolve_build_options(config)
 
         # None should fall back to DEFAULTS
-        assert options.incremental == DEFAULTS["incremental"]
+        assert options.incremental == DEFAULTS["build"]["incremental"]
 
     def test_invalid_nested_structure(self):
         """Invalid nested structure (non-dict) is handled gracefully."""
@@ -254,7 +254,7 @@ class TestEdgeCases:
         options = resolve_build_options(config)
 
         # Should fall back to DEFAULTS for values not found
-        assert options.incremental == DEFAULTS["incremental"]
+        assert options.incremental == DEFAULTS["build"]["incremental"]
 
     def test_mixed_flattened_and_nested(self):
         """Config with both flattened and nested sections works."""

@@ -37,6 +37,52 @@ def _process_escapes(text: str) -> str:
     return _ESCAPE_PATTERN.sub(r"\1", text)
 
 
+def _extract_explicit_id(content: str) -> tuple[str, str | None]:
+    """Extract MyST-compatible explicit anchor ID from heading content.
+
+    Syntax: ## Title {#custom-id}
+
+    The {#id} must be at the end of the content, preceded by whitespace.
+    ID must start with a letter, contain only letters, numbers, hyphens, underscores.
+
+    Args:
+        content: Heading content (already stripped)
+
+    Returns:
+        Tuple of (content_without_id, explicit_id or None)
+    """
+    # Quick rejection: must end with }
+    if not content.endswith("}"):
+        return content, None
+
+    # Find the opening {#
+    brace_pos = content.rfind("{#")
+    if brace_pos == -1:
+        return content, None
+
+    # Must be preceded by whitespace (or at start)
+    if brace_pos > 0 and content[brace_pos - 1] not in " \t":
+        return content, None
+
+    # Extract the ID (between {# and })
+    id_start = brace_pos + 2
+    id_end = len(content) - 1
+    explicit_id = content[id_start:id_end]
+
+    # Validate ID: must start with letter, contain only valid chars
+    if not explicit_id or not explicit_id[0].isalpha():
+        return content, None
+
+    for char in explicit_id:
+        if not (char.isalnum() or char in "-_"):
+            return content, None
+
+    # Strip the {#id} and trailing whitespace from content
+    new_content = content[:brace_pos].rstrip()
+
+    return new_content, explicit_id
+
+
 class BlockParsingCoreMixin:
     """Core block parsing methods.
 
@@ -112,13 +158,25 @@ class BlockParsingCoreMixin:
             case TokenType.HTML_BLOCK:
                 return self._parse_html_block()
 
+            case TokenType.FENCED_CODE_CONTENT:
+                # Orphaned fenced code content (e.g., after block quote ended fenced code)
+                # Treat as paragraph text
+                return self._parse_orphaned_fence_content()
+
+            case TokenType.FENCED_CODE_END:
+                # Orphaned fence end marker - treat as new unclosed fenced code block
+                return self._parse_orphaned_fence_end()
+
             case _:
                 # Skip unknown tokens
                 self._advance()
                 return None
 
     def _parse_atx_heading(self) -> Heading:
-        """Parse ATX heading (# Heading)."""
+        """Parse ATX heading (# Heading).
+
+        Supports MyST-compatible explicit anchor syntax: ## Title {#custom-id}
+        """
         token = self._current
         assert token is not None and token.type == TokenType.ATX_HEADING
         self._advance()
@@ -139,6 +197,10 @@ class BlockParsingCoreMixin:
         # CommonMark: leading and trailing spaces are stripped from heading content
         content = value[pos:].strip()
 
+        # Check for explicit {#custom-id} syntax at end of content
+        explicit_id = None
+        content, explicit_id = _extract_explicit_id(content)
+
         # Parse inline content
         children = self._parse_inline(content, token.location)
 
@@ -147,10 +209,16 @@ class BlockParsingCoreMixin:
             level=level,  # type: ignore[arg-type]
             children=children,
             style="atx",
+            explicit_id=explicit_id,
         )
 
-    def _parse_fenced_code(self) -> FencedCode:
-        """Parse fenced code block with zero-copy coordinates."""
+    def _parse_fenced_code(self, override_fence_indent: int | None = None) -> FencedCode:
+        """Parse fenced code block with zero-copy coordinates.
+
+        Args:
+            override_fence_indent: If provided, use this instead of the token's indent.
+                                  Used for fenced code blocks in list items.
+        """
         start_token = self._current
         assert start_token is not None and start_token.type == TokenType.FENCED_CODE_START
         self._advance()
@@ -165,6 +233,10 @@ class BlockParsingCoreMixin:
             prefix, rest = value.split(":", 1)
             fence_indent = int(prefix[1:])  # Extract number after 'I'
             value = rest
+
+        # Override if provided (for list item context)
+        if override_fence_indent is not None:
+            fence_indent = override_fence_indent
 
         marker = value[0]  # ` or ~
         info: str | None = None
@@ -217,6 +289,55 @@ class BlockParsingCoreMixin:
             fence_indent=fence_indent,
         )
 
+    def _parse_orphaned_fence_content(self) -> Paragraph:
+        """Parse orphaned FENCED_CODE_CONTENT as paragraph.
+
+        This happens when a fenced code block is interrupted (e.g., by block quote
+        ending without >), leaving content tokens orphaned. Treat as paragraph text.
+        """
+        token = self._current
+        assert token is not None and token.type == TokenType.FENCED_CODE_CONTENT
+
+        # Collect consecutive content tokens as paragraph lines
+        lines: list[str] = []
+        while not self._at_end():
+            current = self._current
+            if current is None:
+                break
+            if current.type == TokenType.FENCED_CODE_CONTENT:
+                lines.append(current.value.rstrip("\n"))
+                self._advance()
+            else:
+                break
+
+        content = "\n".join(lines)
+        children = self._parse_inline(content, token.location)
+        return Paragraph(location=token.location, children=children)
+
+    def _parse_orphaned_fence_end(self) -> FencedCode:
+        """Parse orphaned FENCED_CODE_END as new unclosed fenced code block.
+
+        This happens when a fenced code block is interrupted, and the closing fence
+        is now orphaned. In CommonMark, this becomes a new unclosed fenced code block.
+        """
+        token = self._current
+        assert token is not None and token.type == TokenType.FENCED_CODE_END
+        self._advance()
+
+        # The token value is the fence chars (e.g., "```")
+        fence_value = token.value.rstrip()
+        marker = fence_value[0] if fence_value else "`"
+
+        # Create an unclosed fenced code block (empty content)
+        return FencedCode(
+            location=token.location,
+            source_start=0,
+            source_end=0,
+            info=None,
+            marker=marker,  # type: ignore[arg-type]
+            fence_indent=0,
+        )
+
     def _parse_thematic_break(self) -> ThematicBreak:
         """Parse thematic break (---, ***, ___)."""
         token = self._current
@@ -238,41 +359,184 @@ class BlockParsingCoreMixin:
 
         CommonMark 5.1: Block quotes can contain any block-level content,
         including headings, code blocks, lists, and nested block quotes.
+
+        Algorithm:
+        1. Consume the first BLOCK_QUOTE_MARKER
+        2. Collect content, preserving nested > markers as content
+        3. Handle lazy continuation (lines without > that continue paragraphs)
+        4. Sub-parse the content for nested blocks
         """
         start_token = self._current
         assert start_token is not None and start_token.type == TokenType.BLOCK_QUOTE_MARKER
         self._advance()
 
-        # Collect content after > markers
+        # Collect content after the first > marker
         content_lines: list[str] = []
-        last_was_marker = False  # Track consecutive markers for blank quoted lines
+        current_line_parts: list[str] = []
+
+        last_marker_line: int | None = start_token.location.lineno
+        has_paragraph_content = False  # Track if we have paragraph content for lazy continuation
+        has_lazy_continuation = False  # Track if any lazy continuation lines were included
+        in_fenced_code = False  # Track if we're inside a fenced code block
+        current_line_has_content = False  # Track if current line has content after > marker
+
+        def flush_current_line() -> None:
+            """Flush accumulated parts for current line."""
+            nonlocal current_line_has_content
+            if current_line_parts:
+                content_lines.append("".join(current_line_parts))
+                current_line_parts.clear()
+            elif not current_line_has_content and last_marker_line is not None:
+                # Line only had > marker with no content - add empty line
+                content_lines.append("")
+            current_line_has_content = False
 
         while not self._at_end():
             token = self._current
             assert token is not None
 
-            if token.type == TokenType.PARAGRAPH_LINE:
-                content_lines.append(token.value)
-                last_was_marker = False
-                self._advance()
-            elif token.type == TokenType.BLOCK_QUOTE_MARKER:
-                if last_was_marker:
-                    # Two consecutive markers = blank quoted line (just ">")
-                    # This creates a paragraph break in the quote content
+            # If line changes, handle line transition
+            if last_marker_line is not None and token.location.lineno != last_marker_line:
+                # Check if the previous line was empty (just > with no content)
+                if not current_line_has_content and not current_line_parts:
+                    # Empty > line - add blank line and reset paragraph content flag
                     content_lines.append("")
-                last_was_marker = True
+                    has_paragraph_content = False
+                flush_current_line()
+
+                # Check for lazy continuation or end of block quote
+                # CommonMark: Lazy continuation ONLY applies to paragraphs
+                if token.type == TokenType.PARAGRAPH_LINE:
+                    # Lazy continuation requires open paragraph, NOT code block
+                    if not has_paragraph_content or in_fenced_code:
+                        break
+                    # This is a lazy continuation line (no > prefix)
+                    has_lazy_continuation = True
+                    content_lines.append(token.value.lstrip())
+                    current_line_has_content = True  # Mark that we added content
+                    last_marker_line = token.location.lineno
+                    self._advance()
+                    continue
+                elif token.type == TokenType.INDENTED_CODE:
+                    # Lazy continuation requires open paragraph, NOT code block
+                    if not has_paragraph_content or in_fenced_code:
+                        break
+                    # This is a lazy continuation line with 4+ spaces
+                    # Preserve the 4-space indent so sub-parser sees it as indented
+                    has_lazy_continuation = True
+                    content_lines.append("    " + token.value.rstrip("\n"))
+                    current_line_has_content = True  # Mark that we added content
+                    last_marker_line = token.location.lineno
+                    self._advance()
+                    continue
+                elif token.type == TokenType.BLOCK_QUOTE_MARKER:
+                    # New line with > marker - continue the block quote
+                    last_marker_line = token.location.lineno
+                    current_line_has_content = False  # Reset for new line
+                    self._advance()
+                    continue
+                elif token.type == TokenType.BLANK_LINE:
+                    # CommonMark: A blank line without > marker ends the blockquote.
+                    break
+                else:
+                    # Any other token type ends the block quote
+                    break
+
+            # Handle tokens on the current line (same line as last marker)
+            if token.type == TokenType.BLOCK_QUOTE_MARKER:
+                # Nested > marker - include it in content for sub-parsing
+                current_line_parts.append("> ")
+                current_line_has_content = True
+                last_marker_line = token.location.lineno
+                self._advance()
+            elif token.type == TokenType.FENCED_CODE_START:
+                # Fenced code in block quote
+                value = token.value
+                if value.startswith("I") and ":" in value:
+                    fence_part = value.split(":", 1)[1]
+                else:
+                    fence_part = value
+                current_line_parts.append(fence_part)
+                in_fenced_code = True
+                has_paragraph_content = False
+                current_line_has_content = True
+                last_marker_line = token.location.lineno
+                self._advance()
+            elif token.type == TokenType.FENCED_CODE_END:
+                # Closing fence
+                current_line_parts.append(token.value.rstrip("\n"))
+                in_fenced_code = False
+                current_line_has_content = True
+                last_marker_line = token.location.lineno
+                self._advance()
+            elif token.type == TokenType.FENCED_CODE_CONTENT:
+                # Fenced code content
+                current_line_parts.append(token.value.rstrip("\n"))
+                current_line_has_content = True
+                last_marker_line = token.location.lineno
+                self._advance()
+            elif token.type == TokenType.LINK_REFERENCE_DEF:
+                # Preserve original line text so nested parsing can resolve the definition
+                line_start = token.location.offset
+                line_end = token.location.end_offset
+                original_line = self._source[line_start:line_end].rstrip("\n")
+                current_line_parts.append(original_line)
+                has_paragraph_content = False
+                current_line_has_content = True
+                last_marker_line = token.location.lineno
+                self._advance()
+            elif token.type in (
+                TokenType.ATX_HEADING,
+                TokenType.PARAGRAPH_LINE,
+                TokenType.THEMATIC_BREAK,
+                TokenType.LIST_ITEM_MARKER,
+            ):
+                # Block content - use token.value
+                current_line_parts.append(token.value.rstrip("\n"))
+                current_line_has_content = True
+
+                # Update has_paragraph_content
+                # Note: PARAGRAPH_LINE with 4+ leading spaces will become indented code
+                # in sub-parser, so it's NOT paragraph content for lazy continuation
+                if token.type in (TokenType.PARAGRAPH_LINE, TokenType.LIST_ITEM_MARKER):
+                    content = token.value.rstrip("\n")
+                    leading_spaces = len(content) - len(content.lstrip())
+                    # 4+ leading spaces = indented code (not paragraph content)
+                    has_paragraph_content = leading_spaces < 4
+                else:
+                    has_paragraph_content = False
+
+                last_marker_line = token.location.lineno
                 self._advance()
             elif token.type == TokenType.BLANK_LINE:
-                # End of block quote
-                break
+                # Blank line within blockquote (after > on same line - shouldn't happen)
+                flush_current_line()
+                content_lines.append("")
+                has_paragraph_content = False
+                current_line_has_content = False
+                last_marker_line = token.location.lineno
+                self._advance()
             else:
-                break
+                # Other token types - just add as content
+                current_line_parts.append(token.value.rstrip("\n"))
+                has_paragraph_content = False
+                current_line_has_content = True
+                last_marker_line = token.location.lineno
+                self._advance()
+
+        flush_current_line()
 
         # Parse content as blocks using recursive sub-parser
         content = "\n".join(content_lines)
-        if content.strip():
+        if content.strip() or any(line == "" for line in content_lines):
             # Use sub-parser to parse nested block content
-            children = self._parse_nested_content(content, start_token.location)
+            children = self._parse_nested_content(
+                content,
+                start_token.location,
+                # CommonMark: setext underlines cannot span container boundaries.
+                # Disable setext when we included lazy continuation lines.
+                allow_setext_headings=not has_lazy_continuation,
+            )
             return BlockQuote(location=start_token.location, children=children)
 
         return BlockQuote(location=start_token.location, children=())
@@ -292,16 +556,46 @@ class BlockParsingCoreMixin:
                 content_parts.append(token.value)
                 self._advance()
             elif token.type == TokenType.BLANK_LINE:
-                # Blank line might continue indented code
-                # Look ahead to see if there's more indented code
-                next_pos = self._pos + 1
-                if next_pos < len(self._tokens):
+                # Blank lines might continue indented code if followed by more code.
+                # CommonMark: blank lines within indented code are preserved,
+                # including any whitespace on those lines (beyond 4 chars).
+                # Look ahead past ALL blank lines to find INDENTED_CODE.
+                blank_lines: list[str] = []
+                next_pos = self._pos
+                while next_pos < len(self._tokens):
                     next_token = self._tokens[next_pos]
-                    if next_token.type == TokenType.INDENTED_CODE:
-                        content_parts.append("\n")
-                        self._advance()
-                        continue
-                break
+                    if next_token.type == TokenType.BLANK_LINE:
+                        # Get original line content to preserve whitespace
+                        # (blank lines with 4+ spaces should keep excess spaces)
+                        line_start = self._source.rfind("\n", 0, next_token.location.offset) + 1
+                        line_end = self._source.find("\n", next_token.location.offset)
+                        if line_end == -1:
+                            line_end = len(self._source)
+                        original_line = self._source[line_start:line_end]
+                        # If line has 4+ spaces, preserve the excess
+                        if len(original_line) >= 4 and original_line.startswith("    "):
+                            blank_lines.append(original_line[4:] + "\n")
+                        else:
+                            blank_lines.append("\n")
+                        next_pos += 1
+                    elif next_token.type == TokenType.INDENTED_CODE:
+                        # Found more code after blank lines - include blanks
+                        content_parts.extend(blank_lines)
+                        # Skip past the blank lines
+                        for _ in range(len(blank_lines)):
+                            self._advance()
+                        break
+                    else:
+                        break
+                else:
+                    # End of tokens
+                    break
+                # If we didn't find more INDENTED_CODE, exit
+                if (
+                    next_pos >= len(self._tokens)
+                    or self._tokens[next_pos].type != TokenType.INDENTED_CODE
+                ):
+                    break
             else:
                 break
 
@@ -346,6 +640,25 @@ class BlockParsingCoreMixin:
                 last_line_was_indented_code = True  # Mark that this line was 4+ spaces
                 self._advance()
             elif token.type == TokenType.LIST_ITEM_MARKER:
+                # CommonMark 5.3: To interrupt a paragraph, the first list item must
+                # have content. Check if the next token is paragraph content.
+                saved_pos = self._pos
+                self._advance()
+                has_content = (
+                    not self._at_end()
+                    and self._current is not None
+                    and self._current.type == TokenType.PARAGRAPH_LINE
+                )
+                # Restore position for further checks
+                self._pos = saved_pos
+                self._current = self._tokens[self._pos] if self._pos < len(self._tokens) else None
+
+                if not has_content:
+                    # Empty list item cannot interrupt paragraph - treat marker as text
+                    lines.append(token.value.lstrip())
+                    self._advance()
+                    continue
+
                 # CommonMark: ordered lists can only interrupt paragraphs if start=1
                 # Check if this is an ordered list that doesn't start with 1
                 marker = token.value.lstrip()
@@ -376,12 +689,28 @@ class BlockParsingCoreMixin:
                         continue
                 # Valid list interruption - stop paragraph
                 break
+            elif token.type == TokenType.LINK_REFERENCE_DEF:
+                # CommonMark: link reference definitions cannot interrupt a paragraph.
+                # If we're already inside a paragraph (lines collected), treat the
+                # definition line as literal paragraph text. Otherwise, stop and let
+                # the caller handle the definition.
+                if lines:
+                    line_start = token.location.offset
+                    line_end = token.location.end_offset
+                    original_line = self._source[line_start:line_end].rstrip("\n")
+                    lines.append(original_line.lstrip())
+                    self._advance()
+                    continue
+                break
             else:
                 break
 
         # Check for setext heading: text followed by === or ---
         # CommonMark: setext underline can have up to 3 spaces indent, not 4+
-        if len(lines) >= 2 and not last_line_was_indented_code:
+        # Note: setext headings are disabled when parsing blockquote content with
+        # lazy continuation lines (setext underlines can't span container boundaries)
+        allow_setext = getattr(self, "_allow_setext_headings", True)
+        if allow_setext and len(lines) >= 2 and not last_line_was_indented_code:
             last_line = lines[-1].strip()
             if self._is_setext_underline(last_line):
                 # Determine heading level: === is h1, --- is h2
@@ -401,7 +730,7 @@ class BlockParsingCoreMixin:
         # Check if next token is THEMATIC_BREAK (---) which could be setext h2
         # CommonMark: A sequence of only --- (with optional trailing spaces) after
         # paragraph is setext heading, not thematic break. But "--- -" is a thematic break.
-        if len(lines) == 1 and not self._at_end():
+        if allow_setext and len(lines) >= 1 and not self._at_end():
             token = self._current
             if token is not None and token.type == TokenType.THEMATIC_BREAK:
                 # Check if the thematic break is a valid setext underline
@@ -409,8 +738,9 @@ class BlockParsingCoreMixin:
                 break_value = token.value.strip()
                 if break_value and all(c == "-" for c in break_value):
                     self._advance()  # Consume the thematic break
-                    # CommonMark: strip trailing whitespace from heading content
-                    heading_text = lines[0].rstrip()
+                    # CommonMark: strip trailing whitespace from each line
+                    heading_lines = [line.rstrip() for line in lines]
+                    heading_text = "\n".join(heading_lines)
                     children = self._parse_inline(heading_text, start_token.location)
                     return Heading(
                         location=start_token.location,

@@ -166,9 +166,11 @@ class TestSiteFromSingleFile:
         """Test loading from single bengal.yaml file."""
         site = Site.from_config(single_file_site)
 
-        assert site.config["title"] == "Single File Site"
-        assert site.config["baseurl"] == "https://single.example.com"
-        assert site.config.get("parallel") is True  # Flattened from build.parallel
+        # Config is now nested - access via site.* and build.*
+        config = site.config.raw if hasattr(site.config, "raw") else site.config
+        assert config["site"]["title"] == "Single File Site"
+        assert config["site"]["baseurl"] == "https://single.example.com"
+        assert config.get("build", {}).get("parallel") is True
 
     def test_single_file_ignores_environment(self, single_file_site: Path):
         """Environment parameter is ignored for single-file configs."""
@@ -474,5 +476,6 @@ class TestGitHubPagesDeployment:
         site = Site.from_config(root)
 
         # Should use local environment, not production
-        assert site.config["baseurl"] == "http://localhost:8000"
-        assert site.config.get("strict_mode") is False
+        config = site.config.raw if hasattr(site.config, "raw") else site.config
+        assert config["site"]["baseurl"] == "http://localhost:8000"
+        assert config.get("build", {}).get("strict_mode") is False

@@ -13,11 +13,15 @@ if TYPE_CHECKING:
 class HeadingClassifierMixin:
     """Mixin providing ATX heading classification."""
 
-    def _location_from(self, start_pos: int) -> SourceLocation:
+    def _location_from(
+        self, start_pos: int, start_col: int | None = None, end_pos: int | None = None
+    ) -> SourceLocation:
         """Get source location from saved position. Implemented by Lexer."""
         raise NotImplementedError
 
-    def _try_classify_atx_heading(self, content: str, line_start: int) -> Token | None:
+    def _try_classify_atx_heading(
+        self, content: str, line_start: int, indent: int = 0
+    ) -> Token | None:
         """Try to classify content as ATX heading.
 
         ATX headings start with 1-6 # characters followed by space/tab/newline/end.
@@ -26,6 +30,7 @@ class HeadingClassifierMixin:
         Args:
             content: Line content with leading whitespace stripped
             line_start: Position in source where line starts
+            indent: Number of leading spaces (for line_indent)
 
         Returns:
             Token if valid heading, None otherwise.
@@ -65,4 +70,6 @@ class HeadingClassifierMixin:
                 heading_content = ""
 
         value = "#" * level + (" " + heading_content if heading_content else "")
-        return Token(TokenType.ATX_HEADING, value, self._location_from(line_start))
+        return Token(
+            TokenType.ATX_HEADING, value, self._location_from(line_start), line_indent=indent
+        )

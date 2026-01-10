@@ -187,7 +187,12 @@ class TestNavTreeVersionedSite:
         assert len(target_v1) > 0
 
         # get_version_target_url returns URLs with baseurl, so strip it for comparison
-        baseurl = site.config.get("baseurl", "/").rstrip("/")
+        # Access from site section (supports both Config and dict)
+        if hasattr(site.config, "site"):
+            baseurl = site.config.site.baseurl or "/"
+        else:
+            baseurl = site.config.get("site", {}).get("baseurl", "/")
+        baseurl = baseurl.rstrip("/")
         target_v1_rel = target_v1
         if baseurl and target_v1.startswith(baseurl):
             target_v1_rel = target_v1[len(baseurl) :] or "/"

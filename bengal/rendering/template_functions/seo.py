@@ -32,7 +32,7 @@ def register(env: TemplateEnvironment, site: Site) -> None:
 
     # Parse social card config once for all template calls
     social_config = parse_social_cards_config(site.config)
-    base_url = site.config.get("baseurl", "")
+    base_url = site.baseurl or ""
 
     # Create closures that have access to site
     def canonical_url_with_site(path: str, page: Page | None = None) -> str:

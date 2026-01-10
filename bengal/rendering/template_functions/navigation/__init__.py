@@ -56,6 +56,7 @@ from bengal.rendering.template_functions.navigation.section import (
     section_pages,
 )
 from bengal.rendering.template_functions.navigation.toc import (
+    build_toc_tree,
     combine_track_toc_items,
     get_toc_grouped,
 )
@@ -76,6 +77,7 @@ __all__ = [
     "register",
     "get_breadcrumbs",
     "get_toc_grouped",
+    "build_toc_tree",
     "get_pagination_items",
     "get_nav_tree",
     "get_nav_context",
@@ -117,6 +119,7 @@ def register(env: TemplateEnvironment, site: Site) -> None:
         {
             "get_breadcrumbs": get_breadcrumbs,
             "get_toc_grouped": get_toc_grouped,
+            "build_toc_tree": build_toc_tree,
             "get_pagination_items": get_pagination_items,
             "get_nav_tree": get_nav_tree,
             "get_nav_context": get_nav_context,

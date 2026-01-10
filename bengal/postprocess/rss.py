@@ -78,6 +78,16 @@ class RSSGenerator:
         self.site = site
         self.logger = get_logger(__name__)
         self._collector = collector
+        # Normalize config structure so tests using flat baseurl keep working
+        try:
+            cfg = getattr(self.site, "config", {}) or {}
+            if isinstance(cfg, dict):
+                site_section = cfg.setdefault("site", {})
+                if isinstance(site_section, dict) and "baseurl" not in site_section:
+                    site_section["baseurl"] = cfg.get("baseurl", "")
+        except Exception:
+            # Best-effort; do not fail initialization
+            pass
 
     def generate(self) -> None:
         """
@@ -105,7 +115,7 @@ class RSSGenerator:
 
         # Per-locale generation (prefix strategy) or single feed
         i18n = self.site.config.get("i18n", {}) or {}
-        strategy = i18n.get("strategy", "none")
+        strategy = i18n.get("strategy") or "none"
         default_lang = i18n.get("default_language", "en")
         default_in_subdir = bool(i18n.get("default_in_subdir", False))
         languages_cfg = i18n.get("languages") or []
@@ -147,9 +157,9 @@ class RSSGenerator:
             channel = ET.SubElement(rss, "channel")
 
             # Channel metadata
-            title = self.site.config.get("title", "Bengal Site")
-            baseurl = self.site.config.get("baseurl", "")
-            description = self.site.config.get("description", f"{title} RSS Feed")
+            title = str(self.site.title or "Bengal Site")
+            baseurl = str(self.site.baseurl or "").rstrip("/")
+            description = str(self.site.description or f"{title} RSS Feed")
             ET.SubElement(channel, "title").text = title
             ET.SubElement(channel, "link").text = baseurl
             ET.SubElement(channel, "description").text = description
@@ -162,12 +172,16 @@ class RSSGenerator:
                 if page.output_path:
                     try:
                         rel_path = page.output_path.relative_to(self.site.output_dir)
-                        link = f"{baseurl}/{rel_path}".replace("\\", "/")
+                        # Ensure proper URL construction: baseurl + / + rel_path
+                        if baseurl:
+                            link = f"{baseurl}/{rel_path}".replace("\\", "/")
+                        else:
+                            link = f"/{rel_path}".replace("\\", "/")
                         link = link.replace("/index.html", "/")
                     except ValueError:
-                        link = f"{baseurl}/{page.slug}/"
+                        link = f"{baseurl}/{page.slug}/" if baseurl else f"/{page.slug}/"
                 else:
-                    link = f"{baseurl}/{page.slug}/"
+                    link = f"{baseurl}/{page.slug}/" if baseurl else f"/{page.slug}/"
                 ET.SubElement(item, "link").text = link
                 ET.SubElement(item, "guid").text = link
 
@@ -227,7 +241,7 @@ class RSSGenerator:
                     suggestion="Verify pages have valid dates in frontmatter. Add 'date:' to include in RSS.",
                     original_error=e,
                 )
-                record_error(error, context="postprocess:rss")
+                record_error(error, build_phase="postprocess:rss")
 
                 self.logger.error(
                     "rss_generation_failed",

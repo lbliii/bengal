@@ -209,14 +209,18 @@ parallel = true
 
     def test_post_processing_with_disabled_tasks(self, site_with_content):
         """Test that disabled tasks are not run."""
-        # Update config to disable RSS
+        # Update config to disable RSS (now in features section)
         (site_with_content / "bengal.toml").write_text("""
-[build]
+[site]
 title = "Test Site"
 baseurl = "https://example.com"
-generate_sitemap = true
-generate_rss = false
+
+[build]
 validate_links = false
+
+[features]
+sitemap = true
+rss = false
 """)
 
         site = Site.from_config(site_with_content)
@@ -251,18 +255,21 @@ validate_links = false
 
 
 class TestParallelConfiguration:
-    """Test configuration options for parallel processing."""
+    """Test configuration options for parallel processing.
+
+    Note: Config is now nested (build.parallel, build.max_workers).
+    """
 
     def test_parallel_enabled_by_default(self):
         """Test that parallel processing is enabled by default."""
         temp_dir = Path(tempfile.mkdtemp())
         (temp_dir / "content").mkdir()
-        (temp_dir / "bengal.toml").write_text('[build]\ntitle = "Test"')
+        (temp_dir / "bengal.toml").write_text('[site]\ntitle = "Test"')
 
         site = Site.from_config(temp_dir)
 
         # Default should be parallel enabled
-        assert site.config.get("parallel", True) is True
+        assert site.config.build.parallel is True
 
         shutil.rmtree(temp_dir)
 
@@ -271,14 +278,16 @@ class TestParallelConfiguration:
         temp_dir = Path(tempfile.mkdtemp())
         (temp_dir / "content").mkdir()
         (temp_dir / "bengal.toml").write_text("""
-[build]
+[site]
 title = "Test"
+
+[build]
 parallel = false
 """)
 
         site = Site.from_config(temp_dir)
 
-        assert site.config.get("parallel") is False
+        assert site.config.build.parallel is False
 
         shutil.rmtree(temp_dir)
 
@@ -287,14 +296,16 @@ parallel = false
         temp_dir = Path(tempfile.mkdtemp())
         (temp_dir / "content").mkdir()
         (temp_dir / "bengal.toml").write_text("""
-[build]
+[site]
 title = "Test"
+
+[build]
 max_workers = 8
 """)
 
         site = Site.from_config(temp_dir)
 
-        assert site.config.get("max_workers") == 8
+        assert site.config.build.max_workers == 8
 
         shutil.rmtree(temp_dir)
 

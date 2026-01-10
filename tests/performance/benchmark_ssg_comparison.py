@@ -193,7 +193,11 @@ def benchmark_build(num_files: int, runs: int = 3) -> dict:
             start = time.time()
 
             # Run build (uses BuildOrchestrator internally)
-            parallel = site.config.get("parallel", True)
+            # Access from build section (supports both Config and dict)
+            if hasattr(site.config, "build"):
+                parallel = site.config.build.parallel
+            else:
+                parallel = site.config.get("build", {}).get("parallel", True)
             site.build(
                 BuildOptions(force_sequential=not parallel, incremental=False, verbose=False)
             )

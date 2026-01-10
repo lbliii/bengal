@@ -237,7 +237,18 @@ class PageMetadataMixin:
         # Best-effort baseurl lookup; remain robust if site/config is missing
         baseurl = ""
         try:
-            baseurl = self._site.config.get("baseurl", "") if getattr(self, "_site", None) else ""
+            if getattr(self, "_site", None):
+                config = self._site.config
+                # Support both Config and dict access
+                if hasattr(config, "site"):
+                    baseurl = config.site.baseurl or ""
+                else:
+                    # Try nested structure first, then fall back to flat
+                    site_section = config.get("site", {})
+                    if isinstance(site_section, dict):
+                        baseurl = site_section.get("baseurl", "") or config.get("baseurl", "")
+                    else:
+                        baseurl = config.get("baseurl", "")
         except Exception as e:
             emit_diagnostic(self, "debug", "page_baseurl_lookup_failed", error=str(e))
             baseurl = ""
@@ -530,13 +541,16 @@ class PageMetadataMixin:
         Get page keywords from metadata.
 
         Returns:
-            List of keywords
+            List of keywords (sanitized strings)
         """
         keywords = self.metadata.get("keywords", [])
         if isinstance(keywords, str):
             # Split comma-separated keywords
-            return [k.strip() for k in keywords.split(",")]
-        return keywords if isinstance(keywords, list) else []
+            return [k.strip() for k in keywords.split(",") if k.strip()]
+        if isinstance(keywords, list):
+            # Sanitize: filter None, convert to strings, filter empty
+            return [str(k).strip() for k in keywords if k is not None and str(k).strip()]
+        return []
 
     # =========================================================================
     # Visibility System

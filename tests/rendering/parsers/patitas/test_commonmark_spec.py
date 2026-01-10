@@ -128,8 +128,7 @@ def normalize_for_comparison(expected: str, actual: str) -> tuple[str, str]:
 
 # Track which sections have known issues - skip entire sections
 KNOWN_ISSUES: dict[str, str] = {
-    # These are not yet implemented
-    "Link reference definitions": "Not yet implemented - token exists, parser pending",
+    # All previously skipped sections are now implemented
 }
 
 # Track specific examples that are expected to fail

@@ -292,7 +292,7 @@ The `test_import_overhead.py` suite measures module startup latency and "import 
 - **CLI responsiveness**: Users notice if `bengal --help` takes 500ms+ to start
 - **Dev server startup**: Fast restarts improve DX
 - **Incremental builds**: Re-importing unchanged modules wastes time
-- **Rosettes as library**: Users may import rosettes directly for highlighting
+- **Rosettes as external package**: Users may `import rosettes` directly for standalone highlighting
 
 ### Running Import Benchmarks
 
@@ -312,7 +312,7 @@ pytest benchmarks/test_import_overhead.py -k "lightweight" -v
 
 | Category | Tests | Threshold |
 |----------|-------|-----------|
-| Lightweight modules | rosettes, kida, highlighting | <50ms, no heavy deps |
+| Lightweight modules | rosettes (external), kida, highlighting | <50ms, no heavy deps |
 | Optional dependencies | uvloop, psutil, aiohttp | Only loaded when used |
 | Error imports | bengal.errors | Only on error path |
 | Package inits | `__init__.py` lazy exports | No eager heavy loading |
@@ -331,7 +331,7 @@ pytest benchmarks/test_import_overhead.py -k "lightweight" -v
 IMPORT OVERHEAD REPORT
 ======================================================================
 
-✅ bengal.rendering.rosettes
+✅ rosettes (external package)
    Time: 11.3ms
 
 ✅ bengal.rendering.kida

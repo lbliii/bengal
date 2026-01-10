@@ -55,15 +55,36 @@ class SiteContext:
 
     @property
     def title(self) -> str:
-        return self._site.config.get("title", "") or ""
+        # Access from site section (supports both Config and dict)
+        config = self._site.config
+        if hasattr(config, "site"):
+            return config.site.title or ""
+        site_section = config.get("site", {})
+        if isinstance(site_section, dict):
+            return site_section.get("title", "") or ""
+        return config.get("title", "") or ""
 
     @property
     def description(self) -> str:
-        return self._site.config.get("description", "") or ""
+        # Access from site section (supports both Config and dict)
+        config = self._site.config
+        if hasattr(config, "site"):
+            return config.site.description or ""
+        site_section = config.get("site", {})
+        if isinstance(site_section, dict):
+            return site_section.get("description", "") or ""
+        return config.get("description", "") or ""
 
     @property
     def baseurl(self) -> str:
-        return self._site.config.get("baseurl", "") or ""
+        # Access from site section (supports both Config and dict)
+        config = self._site.config
+        if hasattr(config, "site"):
+            return config.site.baseurl or ""
+        site_section = config.get("site", {})
+        if isinstance(site_section, dict):
+            return site_section.get("baseurl", "") or ""
+        return config.get("baseurl", "") or ""
 
     @property
     def author(self) -> str:

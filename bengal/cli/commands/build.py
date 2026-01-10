@@ -303,21 +303,22 @@ def build(
         # Check if fast mode was enabled (from config or CLI)
         fast_mode_enabled = fast is True or (fast is None and build_options.quiet)
 
-        # Override config with CLI flags
+        # Override config with CLI flags (update nested structure)
+        # Support both Config and dict - use raw dict for mutations
         if strict:
-            site.config["strict_mode"] = True
+            if "build" not in site.config:
+                site.config["build"] = {}
+            site.config["build"]["strict_mode"] = True
         if debug:
-            site.config["debug"] = True
+            if "build" not in site.config:
+                site.config["build"] = {}
+            site.config["build"]["debug"] = True
 
         # Override asset pipeline toggle if provided
         if assets_pipeline is not None:
-            assets_cfg = (
-                site.config.get("assets") if isinstance(site.config.get("assets"), dict) else {}
-            )
-            if not assets_cfg:
-                assets_cfg = {}
-            assets_cfg["pipeline"] = bool(assets_pipeline)
-            site.config["assets"] = assets_cfg
+            if "assets" not in site.config:
+                site.config["assets"] = {}
+            site.config["assets"]["pipeline"] = bool(assets_pipeline)
 
         # Launch interactive dashboard if requested
         if dashboard:
@@ -396,7 +397,10 @@ def build(
                         pass
                     else:
                         # Older versions go to versioned subdirectory
-                        worktree_site.config["output_dir"] = str(Path(site.output_dir) / version.id)
+                        # Update nested config structure - use raw dict for mutations
+                        if "build" not in worktree_site.config:
+                            worktree_site.config["build"] = {}
+                        worktree_site.config["build"]["output_dir"] = str(Path(site.output_dir) / version.id)
 
                     # Build this version
                     from bengal.orchestration.build.options import BuildOptions

@@ -285,7 +285,7 @@ class TaxonomyOrchestrator:
 
         # Collect from all pages, optionally per-locale
         i18n = self.site.config.get("i18n", {}) or {}
-        strategy = i18n.get("strategy", "none")
+        strategy = i18n.get("strategy") or "none"
         share_taxonomies = bool(i18n.get("share_taxonomies", False))
         current_lang = getattr(self.site, "current_language", None)
 
@@ -445,7 +445,7 @@ class TaxonomyOrchestrator:
 
         # Get i18n configuration
         i18n = self.site.config.get("i18n", {}) or {}
-        strategy = i18n.get("strategy", "none")
+        strategy = i18n.get("strategy") or "none"
         share_taxonomies = bool(i18n.get("share_taxonomies", False))
         default_lang = i18n.get("default_language", "en")
 
@@ -547,7 +547,7 @@ class TaxonomyOrchestrator:
         """
         generated_count = 0
         i18n = self.site.config.get("i18n", {}) or {}
-        strategy = i18n.get("strategy", "none")
+        strategy = i18n.get("strategy") or "none"
         share_taxonomies = bool(i18n.get("share_taxonomies", False))
         default_lang = i18n.get("default_language", "en")
 
@@ -678,10 +678,22 @@ class TaxonomyOrchestrator:
         from bengal.errors import ErrorAggregator, ErrorCode
 
         # Get optimal workers for CPU-bound page generation
+        # Access max_workers from build section (supports both Config and dict)
+        config = self.site.config
+        if hasattr(config, "build"):
+            max_workers_override = config.build.max_workers
+        else:
+            build_section = config.get("build", {})
+            max_workers_override = (
+                build_section.get("max_workers")
+                if isinstance(build_section, dict)
+                else config.get("max_workers")
+            )
+
         max_workers = get_optimal_workers(
             len(locale_tags),
             workload_type=WorkloadType.CPU_BOUND,
-            config_override=self.site.config.get("max_workers"),
+            config_override=max_workers_override,
         )
 
         all_generated_pages = []

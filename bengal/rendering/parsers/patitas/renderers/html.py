@@ -16,6 +16,7 @@ from __future__ import annotations
 from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass
 from html import escape as html_escape
+from html import unescape as html_unescape
 from typing import TYPE_CHECKING, Any, Literal
 
 from bengal.rendering.parsers.patitas.nodes import (
@@ -210,10 +211,12 @@ class HtmlRenderer:
     def _render_block(self, node: Block, sb: StringBuilder) -> None:
         """Render a block node to StringBuilder."""
         match node:
-            case Heading(level=level, children=children):
+            case Heading(level=level, children=children, explicit_id=explicit_id):
                 # Extract text and generate slug during AST walk
                 text = self._extract_plain_text(children)
-                slug = self._get_unique_slug(text)
+
+                # Use explicit ID if provided (parsed from {#custom-id} syntax)
+                slug = explicit_id or self._get_unique_slug(text)
 
                 # Collect heading info for TOC generation
                 self._headings.append(HeadingInfo(level=level, text=text, slug=slug))
@@ -232,7 +235,11 @@ class HtmlRenderer:
                 self._render_fenced_code(node, sb)
 
             case IndentedCode(code=code):
-                sb.append(f"<pre><code>{_escape_html(code)}</code></pre>\n")
+                # CommonMark: code block content always ends with newline before </code>
+                escaped = _escape_html(code)
+                if not escaped.endswith("\n"):
+                    escaped += "\n"
+                sb.append(f"<pre><code>{escaped}</code></pre>\n")
 
             case BlockQuote(children=children):
                 sb.append("<blockquote>\n")
@@ -295,6 +302,11 @@ class HtmlRenderer:
             )
         else:
             sb.append("<li>")
+            # Empty list items should render as <li></li> without newline
+            if not item.children:
+                sb.append("</li>\n")
+                return
+
             # For tight lists: add newline if item has non-paragraph block elements
             # For loose lists: always add newline
             if not tight:
@@ -305,9 +317,14 @@ class HtmlRenderer:
 
         if tight:
             # Tight list: render children without paragraph wrapper
-            for child in item.children:
+            for i, child in enumerate(item.children):
                 if isinstance(child, Paragraph):
                     self._render_inline_children(child.children, sb)
+                    # Add newline before next block element (like nested list)
+                    if i + 1 < len(item.children) and not isinstance(
+                        item.children[i + 1], Paragraph
+                    ):
+                        sb.append("\n")
                 else:
                     self._render_block(child, sb)
         else:
@@ -548,7 +565,8 @@ class HtmlRenderer:
             code = code[:-1]
         sb.append("<pre><code")
         if info:
-            lang = info.split()[0]
+            # CommonMark: decode HTML entities in info string before using as class
+            lang = html_unescape(info.split()[0])
             if lang:
                 sb.append(f' class="language-{_escape_attr(lang)}"')
         sb.append(">")
@@ -588,7 +606,7 @@ class HtmlRenderer:
         """Try to highlight a source range using internal rosettes."""
         if self._rosettes_available is None:
             try:
-                from bengal.rendering.rosettes import highlight  # noqa: F401
+                from rosettes import highlight  # noqa: F401
 
                 self._rosettes_available = True
             except ImportError:
@@ -602,7 +620,7 @@ class HtmlRenderer:
             return None
 
         try:
-            from bengal.rendering.rosettes import highlight
+            from rosettes import highlight
 
             return highlight(
                 self._source,
@@ -788,7 +806,11 @@ def _escape_html(text: str) -> str:
     - < > & must be escaped (XSS prevention)
     - " should be escaped to &quot; (for safety)
     - ' should remain literal in text content (not &#x27;)
+
+    Also strips internal \x00 markers used for lazy continuation escaping.
     """
+    # Strip internal \x00 markers (used to prevent block element detection in lazy continuation)
+    text = text.replace("\x00", "")
     # html_escape with quote=True escapes both " and '
     # We only want to escape " but not '
     result = html_escape(text, quote=False)  # Escapes < > &

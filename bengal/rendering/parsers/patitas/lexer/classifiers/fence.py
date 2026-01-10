@@ -21,12 +21,14 @@ class FenceClassifierMixin:
     _fence_indent: int
     _mode: LexerMode
 
-    def _location_from(self, start_pos: int) -> SourceLocation:
+    def _location_from(
+        self, start_pos: int, start_col: int | None = None, end_pos: int | None = None
+    ) -> SourceLocation:
         """Get source location from saved position. Implemented by Lexer."""
         raise NotImplementedError
 
     def _try_classify_fence_start(
-        self, content: str, line_start: int, indent: int = 0
+        self, content: str, line_start: int, indent: int = 0, *, change_mode: bool = True
     ) -> Token | None:
         """Try to classify content as fenced code start.
 
@@ -37,6 +39,9 @@ class FenceClassifierMixin:
             content: Line content with leading whitespace stripped
             line_start: Position in source where line starts
             indent: Number of leading spaces (for CommonMark indent stripping)
+            change_mode: If True, switch lexer to CODE_FENCE mode. Set to False
+                when detecting fences inside containers (blockquotes) where the
+                container handles fence content collection.
 
         Returns:
             Token if valid fence, None otherwise.
@@ -70,12 +75,15 @@ class FenceClassifierMixin:
         self._fence_count = count
         self._fence_info = info.split()[0] if info else ""
         self._fence_indent = indent  # Store indent for content stripping
-        self._mode = LexerMode.CODE_FENCE
+        if change_mode:
+            self._mode = LexerMode.CODE_FENCE
 
         # Encode indent in token value: "I{indent}:{fence}{info}"
         # Parser will extract this to set fence_indent on FencedCode node
         value = f"I{indent}:" + fence_char * count + (info if info else "")
-        return Token(TokenType.FENCED_CODE_START, value, self._location_from(line_start))
+        return Token(
+            TokenType.FENCED_CODE_START, value, self._location_from(line_start), line_indent=indent
+        )
 
     def _is_closing_fence(self, line: str) -> bool:
         """Check if line is a closing fence for current code block.

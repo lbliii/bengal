@@ -299,9 +299,11 @@ KIDA FEATURES SHOWCASED:
   {# Table of Contents #}
   <nav class="toc-nav" aria-label="Table of contents" data-toc-mode="normal">
     {% if toc_items %}
+    {# Build nested tree structure for proper children/count badge display #}
+    {% let nested_items = build_toc_tree(toc_items) %}
     <div class="toc-scroll-container">
       <ul class="toc-items" role="tree">
-        {% for item in toc_items %}
+        {% for item in nested_items %}
         {{ toc_node(item) }}
         {% end %}
       </ul>

@@ -151,6 +151,10 @@ class TestEmptyRSS:
             "description": "Test",
             "i18n": {},
         }
+        # Set properties as string attributes (not Mock objects)
+        mock_site.title = "Test Site"
+        mock_site.baseurl = "https://example.com"
+        mock_site.description = "Test"
 
         # Create output directory
         (tmp_path / "test").mkdir(parents=True, exist_ok=True)

@@ -42,6 +42,28 @@ def _process_escapes(text: str) -> str:
     return _ESCAPE_PATTERN.sub(r"\1", text)
 
 
+# Pattern for whitespace normalization
+_WHITESPACE_PATTERN = re.compile(r"[ \t\n]+")
+
+
+def _normalize_label(label: str) -> str:
+    """Normalize a link reference label for matching.
+
+    CommonMark 4.7: "Label matching is case-insensitive and Unicode case fold
+    equivalent. Spaces, tabs, and line endings are normalized to single space."
+
+    Args:
+        label: Raw label text
+
+    Returns:
+        Normalized label (lowercase, whitespace normalized)
+    """
+    # Collapse runs of whitespace to single space
+    normalized = _WHITESPACE_PATTERN.sub(" ", label.strip())
+    # Case-fold for Unicode case-insensitive matching
+    return normalized.casefold()
+
+
 def _parse_link_destination(text: str, pos: int) -> tuple[str, int] | None:
     """Parse a link destination starting at pos.
 
@@ -241,11 +263,81 @@ def _parse_inline_link(text: str, pos: int) -> tuple[str, str | None, int] | Non
     return url, title, pos + 1
 
 
+def _skip_html_tag(text: str, pos: int) -> int:
+    """Skip over an HTML tag starting at pos.
+
+    Handles open tags, close tags, and self-closing tags.
+    Properly handles quoted attribute values that may contain special chars.
+
+    Args:
+        text: Full text to search
+        pos: Position at the opening <
+
+    Returns:
+        Position after the closing > or pos if not a valid tag
+    """
+    text_len = len(text)
+    if pos >= text_len or text[pos] != "<":
+        return pos
+
+    # Skip the opening <
+    p = pos + 1
+
+    # Check for closing tag </
+    if p < text_len and text[p] == "/":
+        p += 1
+
+    # Must have at least one letter for tag name
+    if p >= text_len or not text[p].isalpha():
+        return pos
+
+    # Skip tag name
+    while p < text_len and (text[p].isalnum() or text[p] in "-_:"):
+        p += 1
+
+    # Now we're in the attribute section - look for >
+    # But we need to respect quoted values
+    while p < text_len:
+        c = text[p]
+
+        if c == ">":
+            return p + 1
+
+        if c == '"':
+            # Double-quoted attribute value - find closing "
+            p += 1
+            while p < text_len and text[p] != '"':
+                p += 1
+            if p < text_len:
+                p += 1  # Skip closing "
+            continue
+
+        if c == "'":
+            # Single-quoted attribute value - find closing '
+            p += 1
+            while p < text_len and text[p] != "'":
+                p += 1
+            if p < text_len:
+                p += 1  # Skip closing '
+            continue
+
+        if c == "\n":
+            # Newline in tag is OK, continue
+            p += 1
+            continue
+
+        p += 1
+
+    # No closing > found
+    return pos
+
+
 def _find_closing_bracket(text: str, start: int) -> int:
-    """Find closing bracket ] while respecting code spans and nested brackets.
+    """Find closing bracket ] while respecting code spans, HTML tags, and nested brackets.
 
     CommonMark: Code spans have higher precedence than link text brackets.
     A code span inside link text means the ] inside the code span doesn't count.
+    HTML tags protect their contents - ] inside HTML attribute values doesn't count.
     Nested brackets [ ] are allowed inside link text.
 
     Args:
@@ -287,6 +379,16 @@ def _find_closing_bracket(text: str, start: int) -> int:
                     pos = check_pos
                     break
                 close_pos = check_pos
+            continue
+
+        if char == "<":
+            # Try to skip over HTML tag - ] inside tag attributes doesn't count
+            new_pos = _skip_html_tag(text, pos)
+            if new_pos > pos:
+                pos = new_pos
+                continue
+            # Not a valid HTML tag, treat < as literal
+            pos += 1
             continue
 
         if char == "[":
@@ -336,11 +438,32 @@ def _extract_plain_text(text: str) -> str:
     result = re.sub(r"_(.+?)_", r"\1", result)
     # Remove code spans
     result = re.sub(r"`(.+?)`", r"\1", result)
+    # Remove image text FIRST: ![alt](url) -> alt (before links, so ! is included)
+    result = re.sub(r"!\[([^\]]*)\]\([^)]+\)", r"\1", result)
     # Remove link text: [text](url) -> text
     result = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", result)
-    # Remove image text: ![alt](url) -> alt
-    result = re.sub(r"!\[([^\]]*)\]\([^)]+\)", r"\1", result)
     return result
+
+
+def _contains_link(children: tuple) -> bool:
+    """Check if children contain a Link node at any nesting level.
+
+    CommonMark: Links may not contain other links, at any level of nesting.
+    If parsing link text produces a link, the outer link is invalid.
+
+    Args:
+        children: Tuple of inline nodes
+
+    Returns:
+        True if any child is or contains a Link node
+    """
+    for child in children:
+        if isinstance(child, Link):
+            return True
+        # Check nested children (e.g., inside emphasis)
+        if hasattr(child, "children") and child.children and _contains_link(child.children):
+            return True
+    return False
 
 
 class LinkParsingMixin:
@@ -417,6 +540,9 @@ class LinkParsingMixin:
                 if result is not None:
                     url, title, end_pos = result
                     children = self._parse_inline(link_text, location)
+                    # CommonMark: Links cannot contain other links at any nesting level
+                    if _contains_link(children):
+                        return None
                     return Link(location=location, url=url, title=title, children=children), end_pos
 
             elif next_char == "[":
@@ -428,10 +554,13 @@ class LinkParsingMixin:
                         # Collapsed: [text][] uses link_text as label
                         ref_label = link_text
                     # Look up reference
-                    ref_data = self._link_refs.get(ref_label.lower())
+                    ref_data = self._link_refs.get(_normalize_label(ref_label))
                     if ref_data:
                         url, title = ref_data
                         children = self._parse_inline(link_text, location)
+                        # CommonMark: Links cannot contain other links at any nesting level
+                        if _contains_link(children):
+                            return None
                         return Link(
                             location=location,
                             url=url,
@@ -440,11 +569,18 @@ class LinkParsingMixin:
                         ), ref_end + 1
 
         # Try shortcut reference link: [ref] alone
-        # Only if this looks like a reference (not followed by ( or [)
-        ref_data = self._link_refs.get(link_text.lower())
+        # CommonMark: A shortcut reference link consists of a link label that
+        # matches a link reference definition and is NOT followed by [] or a link label.
+        if bracket_pos + 1 < text_len and text[bracket_pos + 1] == "[":
+            # Followed by [, so can't be a shortcut reference
+            return None
+        ref_data = self._link_refs.get(_normalize_label(link_text))
         if ref_data:
             url, title = ref_data
             children = self._parse_inline(link_text, location)
+            # CommonMark: Links cannot contain other links at any nesting level
+            if _contains_link(children):
+                return None
             return Link(
                 location=location,
                 url=url,
@@ -500,7 +636,7 @@ class LinkParsingMixin:
                         # Collapsed: ![alt][] uses alt_text as label
                         ref_label = alt_text_raw
                     # Look up reference
-                    ref_data = self._link_refs.get(ref_label.lower())
+                    ref_data = self._link_refs.get(_normalize_label(ref_label))
                     if ref_data:
                         url, title = ref_data
                         # CommonMark: alt text is plain text, no formatting
@@ -513,7 +649,7 @@ class LinkParsingMixin:
                         ), ref_end + 1
 
         # Try shortcut reference image: ![ref] alone
-        ref_data = self._link_refs.get(alt_text_raw.lower())
+        ref_data = self._link_refs.get(_normalize_label(alt_text_raw))
         if ref_data:
             url, title = ref_data
             # CommonMark: alt text is plain text, no formatting

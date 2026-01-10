@@ -19,13 +19,14 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 
 from bengal.rendering.parsers.patitas.lexer import Lexer
-from bengal.rendering.parsers.patitas.nodes import Block
+from bengal.rendering.parsers.patitas.nodes import Block, FencedCode
 from bengal.rendering.parsers.patitas.parsing import (
     BlockParsingMixin,
     InlineParsingMixin,
     TokenNavigationMixin,
 )
-from bengal.rendering.parsers.patitas.parsing.inline.links import _process_escapes
+from bengal.rendering.parsers.patitas.parsing.containers import ContainerStack
+from bengal.rendering.parsers.patitas.parsing.inline.links import _normalize_label, _process_escapes
 from bengal.rendering.parsers.patitas.tokens import Token, TokenType
 
 
@@ -78,6 +79,10 @@ class Parser(
         "_strict_contracts",
         # Link reference definitions
         "_link_refs",
+        # Container stack for tracking nesting context (Phase 2)
+        "_containers",
+        # Setext heading control - disabled for blockquote lazy continuation content
+        "_allow_setext_headings",
     )
 
     def __init__(
@@ -121,6 +126,13 @@ class Parser(
         self._directive_stack: list[str] = []
         self._strict_contracts = strict_contracts
 
+        # Container stack for tracking nesting context (Phase 2)
+        # Initialized to document-level frame by default
+        self._containers = ContainerStack()
+
+        # Setext heading control - can be disabled for blockquote lazy continuation
+        self._allow_setext_headings = True
+
     def parse(self) -> Sequence[Block]:
         """Parse source into AST blocks.
 
@@ -138,16 +150,46 @@ class Parser(
 
         # First pass: collect link reference definitions
         # These are needed before inline parsing to resolve [text][ref] patterns
+        # Note: CommonMark 6.1 says link reference definitions cannot interrupt paragraphs.
+        in_paragraph = False
+
         for token in self._tokens:
             if token.type == TokenType.LINK_REFERENCE_DEF:
-                # Value format: label|url|title
-                parts = token.value.split("|", 2)
-                if len(parts) >= 2:
-                    label = parts[0].lower()  # Labels are case-insensitive
-                    # Process backslash escapes in URL and title (CommonMark 6.1)
-                    url = _process_escapes(parts[1])
-                    title = _process_escapes(parts[2]) if len(parts) > 2 else ""
-                    self._link_refs[label] = (url, title)
+                if not in_paragraph:
+                    # Value format: label|url|title
+                    parts = token.value.split("|", 2)
+                    if len(parts) >= 2:
+                        raw_label = parts[0]
+                        # Skip labels containing unescaped '[' (e.g., ref[])
+                        if "[" in raw_label.replace("\\[", ""):
+                            continue
+                        label = _normalize_label(_process_escapes(raw_label))
+                        # CommonMark 6.1: "If there are several link reference definitions
+                        # with the same case-insensitive label, the first one is used."
+                        if label not in self._link_refs:
+                            # Process backslash escapes in URL and title (CommonMark 6.1)
+                            url = _process_escapes(parts[1])
+                            title = _process_escapes(parts[2]) if len(parts) > 2 else ""
+                            self._link_refs[label] = (url, title)
+                # Link ref defs themselves terminate any preceding paragraph
+                in_paragraph = False
+            elif token.type in (TokenType.PARAGRAPH_LINE, TokenType.INDENTED_CODE):
+                # Both PARAGRAPH_LINE and INDENTED_CODE can be part of a paragraph
+                in_paragraph = True
+            elif token.type == TokenType.BLANK_LINE:
+                in_paragraph = False
+            elif token.type in (
+                TokenType.ATX_HEADING,
+                TokenType.THEMATIC_BREAK,
+                TokenType.FENCED_CODE_START,
+                TokenType.BLOCK_QUOTE_MARKER,
+                TokenType.LIST_ITEM_MARKER,
+                TokenType.HTML_BLOCK,
+                TokenType.DIRECTIVE_OPEN,
+                TokenType.FOOTNOTE_DEF,
+            ):
+                # Most block-level elements terminate a paragraph
+                in_paragraph = False
 
         # Parse blocks
         blocks: list[Block] = []
@@ -158,7 +200,13 @@ class Parser(
 
         return tuple(blocks)
 
-    def _parse_nested_content(self, content: str, location) -> tuple[Block, ...]:
+    def _parse_nested_content(
+        self,
+        content: str,
+        location,
+        *,
+        allow_setext_headings: bool = True,
+    ) -> tuple[Block, ...]:
         """Parse nested content as blocks (for block quotes, list items).
 
         Creates a sub-parser to handle nested block-level content while
@@ -167,6 +215,8 @@ class Parser(
         Args:
             content: The markdown content to parse as blocks
             location: Source location for error reporting
+            allow_setext_headings: If False, disable setext heading detection
+                (used for blockquote content with lazy continuation lines)
 
         Returns:
             Tuple of Block nodes
@@ -191,7 +241,33 @@ class Parser(
         sub_parser._math_enabled = self._math_enabled
         sub_parser._autolinks_enabled = self._autolinks_enabled
 
+        # Setext heading control
+        sub_parser._allow_setext_headings = allow_setext_headings
+
         # Share link reference definitions (they're document-wide)
         sub_parser._link_refs = self._link_refs
 
-        return tuple(sub_parser.parse())
+        blocks = sub_parser.parse()
+
+        # Fix up FencedCode nodes: their source_start/source_end are relative
+        # to `content`, not the original source. Add content_override so
+        # get_code() returns the correct content.
+        fixed_blocks = []
+        for block in blocks:
+            if isinstance(block, FencedCode) and block.content_override is None:
+                # Extract code from sub-parser's source (content)
+                code = block.get_code(content)
+                fixed_block = FencedCode(
+                    location=block.location,
+                    source_start=block.source_start,
+                    source_end=block.source_end,
+                    info=block.info,
+                    marker=block.marker,
+                    fence_indent=block.fence_indent,
+                    content_override=code,
+                )
+                fixed_blocks.append(fixed_block)
+            else:
+                fixed_blocks.append(block)
+
+        return tuple(fixed_blocks)

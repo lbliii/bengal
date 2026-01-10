@@ -32,7 +32,7 @@ related: false # disable related entirely
 
 <div class="section-index">
     <header class="section-header">
-        <h1>{{ page.title if page else section.title if section else config.title }}</h1>
+        <h1>{{ page.title if page else section.title if section else site.title }}</h1>
 
         {% if page and params.description %}
         <p class="section-description">{{ params.description }}</p>

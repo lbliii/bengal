@@ -35,7 +35,8 @@
 
 ### 🚀 Rosettes Syntax Highlighter ✅
 - **rosettes**: Pure-Python syntax highlighter for Python 3.14t (no GIL re-enablement)
-- **lexers**: 50+ language support including tree, myst, jinja2, configs, diagrams
+- **rosettes**: Now available as standalone package: [pypi.org/project/rosettes](https://pypi.org/project/rosettes/)
+- **lexers**: 55 language support including tree, myst, jinja2, configs, diagrams
 - **themes**: RFC-0003 semantic token system with CSS theming architecture
 - **core(highlighting)**: Skip tree-sitter on free-threaded Python automatically
 - **syntax-highlighter**: Add Kida template syntax highlighting v1.1.0

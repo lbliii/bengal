@@ -27,17 +27,17 @@ class TestATXHeadings:
     def test_more_than_six_not_heading(self):
         """More than six # characters is not a heading."""
         html = parse("####### foo")
-        assert "<h7>" not in html
+        assert "<h7" not in html
 
     def test_space_required_after_hash(self):
         """Space required after opening sequence."""
         html = parse("#5 bolt")
-        assert "<h1>" not in html
+        assert "<h1" not in html
 
     def test_escaped_hash_not_heading(self):
         """Escaped # is not a heading."""
         html = parse("\\## foo")
-        assert "<h2>" not in html
+        assert "<h2" not in html
 
     def test_inline_content_in_heading(self):
         """Headings can contain inline content."""
@@ -60,7 +60,7 @@ class TestATXHeadings:
     def test_four_spaces_is_code(self):
         """Four spaces of indentation is code block."""
         html = parse("    # foo")
-        assert "<h1>" not in html
+        assert "<h1" not in html
 
     def test_closing_sequence_optional(self):
         """Closing # sequence is optional."""
@@ -513,9 +513,12 @@ class TestNestedLists:
         assert "<ul>" in html
         assert "<ol>" in html
 
-    @pytest.mark.xfail(reason="4-space indent triggers code block before nested list detection")
     def test_deeply_nested_lists(self):
-        """Three levels of nesting."""
+        """Three levels of nesting.
+
+        Previously xfail due to 4-space indent triggering code block detection.
+        Fixed by detecting list markers in INDENTED_CODE tokens in list context.
+        """
         md = """- level 1
   - level 2
     - level 3

@@ -379,7 +379,8 @@ class LinkSuggestionEngine:
         for page in pages:
             tags = set()
             if hasattr(page, "tags") and page.tags:
-                tags = {tag.lower().replace(" ", "-") for tag in page.tags}
+                # Filter None and convert to str for safety (YAML edge cases)
+                tags = {str(tag).lower().replace(" ", "-") for tag in page.tags if tag is not None}
             tag_map[page] = tags
         return tag_map
 
@@ -389,9 +390,13 @@ class LinkSuggestionEngine:
         for page in pages:
             categories = set()
             if hasattr(page, "category") and page.category:
-                categories = {page.category.lower().replace(" ", "-")}
+                # Single category - convert to string for safety
+                categories = {str(page.category).lower().replace(" ", "-")}
             elif hasattr(page, "categories") and page.categories:
-                categories = {cat.lower().replace(" ", "-") for cat in page.categories}
+                # Multiple categories - filter None and convert to strings
+                categories = {
+                    str(cat).lower().replace(" ", "-") for cat in page.categories if cat is not None
+                }
             category_map[page] = categories
         return category_map
 

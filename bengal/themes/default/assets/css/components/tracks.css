@@ -1372,8 +1372,8 @@
     display: block;
 }
 
-/* Hide the count/toggle button - not needed for tracks (always expanded) */
-.track-layout .toc-sidebar[data-track-filtering="true"] .toc-group-toggle {
+/* Hide the count badge - not needed for tracks (always expanded) */
+.track-layout .toc-sidebar[data-track-filtering="true"] .toc-count-badge {
     display: none;
 }
 

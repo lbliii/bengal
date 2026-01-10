@@ -299,8 +299,11 @@ class DependencyTracker:
             tags: Set of tags/categories for this page
         """
         for tag in tags:
-            # Normalize tag
-            tag_key = f"tag:{tag.lower().replace(' ', '-')}"
+            # Skip None tags (YAML parses 'null' as None)
+            if tag is None:
+                continue
+            # Normalize tag (convert to str for int/bool/date types)
+            tag_key = f"tag:{str(tag).lower().replace(' ', '-')}"
             self.cache.add_taxonomy_dependency(tag_key, page_path)
 
     def track_cross_version_link(

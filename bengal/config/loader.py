@@ -1,6 +1,14 @@
 """
 Configuration loader supporting TOML and YAML formats.
 
+.. deprecated:: 0.2.0
+    This module is deprecated. Use :mod:`bengal.config.unified_loader` instead.
+    Import from ``bengal.config`` which provides ``UnifiedConfigLoader``::
+
+        from bengal.config import UnifiedConfigLoader
+        loader = UnifiedConfigLoader()
+        config = loader.load(site_root)
+
 This module provides the primary configuration loader for Bengal sites using
 single-file configuration (``bengal.toml`` or ``bengal.yaml``). It handles
 file discovery, format detection, validation, and environment overrides.
@@ -31,7 +39,7 @@ Example:
     'My Site'
 
 See Also:
-    - :mod:`bengal.config.directory_loader`: Multi-file directory configuration.
+    - :mod:`bengal.config.unified_loader`: Unified loader for all config modes.
     - :mod:`bengal.config.defaults`: Default values for all configuration options.
     - :mod:`bengal.config.validators`: Configuration validation logic.
 """
@@ -43,7 +51,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from bengal.config.defaults import DEFAULT_MAX_WORKERS, DEFAULTS
+from bengal.config.defaults import DEFAULTS
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -483,48 +491,18 @@ class ConfigLoader:
         """
         Get the default configuration.
 
-        Constructs a configuration dictionary from centralized defaults
-        in :mod:`bengal.config.defaults`. Used when no configuration file
-        is found.
+        Returns the complete DEFAULTS dictionary from :mod:`bengal.config.defaults`.
+        This ensures consistency between single-file and directory-based config
+        loading—both modes now inherit the same defaults.
 
         Returns:
-            Default configuration dictionary with all essential settings.
+            Default configuration dictionary with all settings from DEFAULTS.
         """
-        # Build config from centralized DEFAULTS
-        # Note: We flatten some nested defaults
-        return {
-            # Site metadata
-            "title": DEFAULTS["title"],
-            "baseurl": DEFAULTS["baseurl"],
-            # Build settings
-            "output_dir": DEFAULTS["output_dir"],
-            "content_dir": DEFAULTS["content_dir"],
-            "assets_dir": DEFAULTS["assets_dir"],
-            "templates_dir": DEFAULTS["templates_dir"],
-            "parallel": DEFAULTS["parallel"],
-            "incremental": DEFAULTS["incremental"],
-            "minify_html": DEFAULTS["minify_html"],
-            "html_output": DEFAULTS["html_output"],
-            "max_workers": DEFAULT_MAX_WORKERS,  # Auto-detected based on CPU cores
-            "pretty_urls": DEFAULTS["pretty_urls"],
-            # Assets (flat)
-            "minify_assets": DEFAULTS["assets"]["minify"],
-            "optimize_assets": DEFAULTS["assets"]["optimize"],
-            "fingerprint_assets": DEFAULTS["assets"]["fingerprint"],
-            # Features (flat)
-            "generate_sitemap": DEFAULTS["features"]["sitemap"],
-            "generate_rss": DEFAULTS["features"]["rss"],
-            "validate_links": DEFAULTS["validate_links"],
-            # Debug and validation options
-            "strict_mode": DEFAULTS["strict_mode"],
-            "debug": DEFAULTS["debug"],
-            "validate_build": DEFAULTS["validate_build"],
-            "validate_templates": DEFAULTS["validate_templates"],
-            "stable_section_references": DEFAULTS["stable_section_references"],
-            "min_page_size": DEFAULTS["min_page_size"],
-            # Theme configuration
-            "theme": DEFAULTS["theme"],
-        }
+        from bengal.config.merge import deep_merge
+
+        # Return a deep copy of DEFAULTS to avoid mutation
+        # This matches ConfigDirectoryLoader behavior for consistency
+        return deep_merge({}, DEFAULTS)
 
     def _apply_env_overrides(self, config: dict[str, Any]) -> dict[str, Any]:
         """
@@ -541,4 +519,29 @@ class ConfigLoader:
         """
         from bengal.config.env_overrides import apply_env_overrides
 
+        explicit_baseurl = self._extract_baseurl(config)
+        if explicit_baseurl is not None:
+            config["_baseurl_explicit"] = True
+            if explicit_baseurl == "":
+                config["_baseurl_explicit_empty"] = True
+
         return apply_env_overrides(config)
+
+    @staticmethod
+    def _extract_baseurl(config: dict[str, Any] | None) -> Any:
+        """
+        Extract baseurl from a config dict if explicitly provided.
+
+        Returns the value if present (including empty string) or None if missing.
+        """
+        if not config or not isinstance(config, dict):
+            return None
+
+        site_section = config.get("site")
+        if isinstance(site_section, dict) and "baseurl" in site_section:
+            return site_section.get("baseurl")
+
+        if "baseurl" in config:
+            return config.get("baseurl")
+
+        return None

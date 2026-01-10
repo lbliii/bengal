@@ -185,6 +185,14 @@ class MockSite:
     root_path: Path = field(default_factory=lambda: Path("/dev/null/mock-site"))
     output_dir: Path = field(default_factory=lambda: Path("/dev/null/mock-output"))
 
+    @property
+    def baseurl(self) -> str:
+        """Return baseurl from config, supporting nested [site].baseurl or flat baseurl."""
+        site_section = self.config.get("site", {})
+        if isinstance(site_section, dict) and site_section.get("baseurl"):
+            return site_section.get("baseurl", "")
+        return self.config.get("baseurl", "")
+
 
 @dataclass(eq=False)
 class MockAnalysisPage:

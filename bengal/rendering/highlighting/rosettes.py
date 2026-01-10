@@ -1,24 +1,33 @@
 """
 Rosettes-based syntax highlighting backend.
 
-This is Bengal's built-in syntax highlighter, designed for Python 3.14t
+Rosettes is an external syntax highlighting package designed for Python 3.14t
 free-threading with zero global mutable state.
 
+Package: https://pypi.org/project/rosettes/
+Source: https://github.com/lbliii/rosettes
+Docs: https://lbliii.github.io/rosettes/
+
 Features:
-    - 50 languages supported
+    - 55 languages supported (hand-written state machine lexers)
+    - O(n) guaranteed performance, zero ReDoS vulnerability
     - 3.4x faster than Pygments (parallel builds)
     - Lock-free, thread-safe by design
     - Semantic class output (default) or Pygments-compatible
     - Config-based theme selection (RFC-0003)
 
 Unsupported Languages:
-    For languages not in the 50 supported, code is rendered as plain
+    For languages not in the 55 supported, code is rendered as plain
     preformatted text with proper HTML escaping.
 
 Usage:
     >>> from bengal.rendering.highlighting import get_highlighter
     >>> backend = get_highlighter()
     >>> html = backend.highlight("def foo(): pass", "python")
+
+Direct Usage (without Bengal):
+    >>> from rosettes import highlight
+    >>> html = highlight("def foo(): pass", "python")
 """
 
 from __future__ import annotations
@@ -27,14 +36,15 @@ import html
 import logging
 from typing import TYPE_CHECKING
 
-# Import bundled rosettes
-from bengal.rendering import rosettes
+# Import rosettes (external package)
+import rosettes
+from rosettes.themes import get_palette
+
 from bengal.rendering.highlighting.theme_resolver import (
     CssClassStyle,
     resolve_css_class_style,
     resolve_syntax_theme,
 )
-from bengal.rendering.rosettes.themes import get_palette
 
 if TYPE_CHECKING:
     from typing import Any
@@ -46,6 +56,8 @@ _logger = logging.getLogger(__name__)
 
 class RosettesBackend:
     """Rosettes-based syntax highlighting backend.
+
+    Uses the external rosettes package (https://pypi.org/project/rosettes/).
 
     Thread-safe by design: Rosettes uses immutable state and
     functools.cache for memoization.
@@ -146,6 +158,7 @@ class RosettesBackend:
                 hl_lines=hl_set,
                 show_linenos=show_linenos,
                 css_class=css_class,
+                css_class_style=self._css_class_style,
             )
         except Exception as e:
             _logger.warning("Rosettes highlighting failed: %s, using plain text", e)

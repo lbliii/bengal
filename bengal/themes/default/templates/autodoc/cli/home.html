@@ -19,7 +19,7 @@ Or set `template: autodoc/cli/home.html` in frontmatter
     {# Hero Section #}
     <header class="docs-home-hero">
         <div class="docs-home-hero-content">
-            <h1 class="docs-home-title">{{ page.title | default(config.title) }}</h1>
+            <h1 class="docs-home-title">{{ page.title | default(site.title) }}</h1>
             {% if params.description %}
             <p class="docs-home-subtitle">{{ params.description }}</p>
             {% end %}

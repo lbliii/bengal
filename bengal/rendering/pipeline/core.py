@@ -258,7 +258,7 @@ class RenderingPipeline:
         )
 
         # PERF: Unified HTML transformer - single instance reused across all pages, ~27% faster than separate transforms
-        self._html_transformer = HybridHTMLTransformer(baseurl=site.config.get("baseurl", ""))
+        self._html_transformer = HybridHTMLTransformer(baseurl=getattr(site, "baseurl", "") or "")
 
         # Write-behind collector for async I/O (RFC: rfc-path-to-200-pgs Phase III)
         # Use explicit parameter, or get from BuildContext if available

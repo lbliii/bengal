@@ -109,20 +109,40 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
         'https://custom.com'
     """
     try:
-        # Check if baseurl is explicitly set in config (with a non-empty value)
-        current_baseurl = config.get("baseurl", "")
-        baseurl_explicitly_set = "baseurl" in config
+        # Ensure site section exists
+        if "site" not in config:
+            config["site"] = {}
+        site_section = config["site"]
+        if not isinstance(site_section, dict):
+            site_section = {}
+            config["site"] = site_section
+
+        # Check baseurl state (now nested in site.*)
+        current_baseurl = site_section.get("baseurl", "")
         baseurl_has_value = bool(current_baseurl)
+
+        # Detect when user explicitly set baseurl (including explicit empty)
+        explicit_baseurl = bool(config.get("_baseurl_explicit"))
+        explicit_empty_baseurl = (
+            bool(config.get("_baseurl_explicit_empty")) and current_baseurl == ""
+        )
 
         # 1) BENGAL_BASEURL can override empty/missing baseurl (but not explicit non-empty)
         explicit = os.environ.get("BENGAL_BASEURL") or os.environ.get("BENGAL_BASE_URL")
-        if explicit and not baseurl_has_value:
-            config["baseurl"] = explicit.rstrip("/")
+        if explicit and (not baseurl_has_value or explicit_empty_baseurl):
+            site_section["baseurl"] = explicit.rstrip("/")
+            config["baseurl"] = site_section["baseurl"]
             return config
 
-        # If baseurl is explicitly set (even if empty), respect it
-        # This means explicit config baseurl takes precedence over platform detection
-        if baseurl_explicitly_set:
+        # If baseurl has a non-empty value, respect it (user explicitly configured it)
+        if baseurl_has_value:
+            config["baseurl"] = site_section["baseurl"]
+            return config
+
+        # If the user explicitly set baseurl to empty, respect that and skip platform detection
+        if explicit_baseurl and explicit_empty_baseurl:
+            site_section["baseurl"] = ""
+            config["baseurl"] = ""
             return config
 
         # 2) Netlify detection (only if baseurl not explicitly set)
@@ -130,7 +150,8 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
             # Production has URL; previews have DEPLOY_PRIME_URL
             netlify_url = os.environ.get("URL") or os.environ.get("DEPLOY_PRIME_URL")
             if netlify_url:
-                config["baseurl"] = netlify_url.rstrip("/")
+                site_section["baseurl"] = netlify_url.rstrip("/")
+                config["baseurl"] = site_section["baseurl"]
                 return config
 
         # 3) Vercel detection (only if baseurl not explicitly set)
@@ -139,7 +160,8 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
             if vercel_host:
                 # Add https:// prefix if missing
                 prefix = "https://" if not vercel_host.startswith(("http://", "https://")) else ""
-                config["baseurl"] = f"{prefix}{vercel_host}".rstrip("/")
+                site_section["baseurl"] = f"{prefix}{vercel_host}".rstrip("/")
+                config["baseurl"] = site_section["baseurl"]
                 return config
 
         # 4) GitHub Pages in Actions (only if baseurl not explicitly set)
@@ -151,10 +173,11 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
                 # or if repo name matches {owner}.github.io (user/org site)
                 if os.environ.get("GITHUB_PAGES_ROOT") == "true" or name == f"{owner}.github.io":
                     # Root deployment: empty baseurl (served from root)
-                    config["baseurl"] = ""
+                    site_section["baseurl"] = ""
                 else:
                     # Project site: deployed at /{repo-name} (path-only for relative links)
-                    config["baseurl"] = f"/{name}".rstrip("/")
+                    site_section["baseurl"] = f"/{name}".rstrip("/")
+                config["baseurl"] = site_section["baseurl"]
                 return config
 
     except Exception as e:

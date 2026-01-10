@@ -1,12 +1,94 @@
 """
 Table of contents helper functions.
 
-Provides get_toc_grouped() and combine_track_toc_items() for TOC generation.
+Provides get_toc_grouped(), build_toc_tree(), and combine_track_toc_items() for TOC generation.
 """
 
 from __future__ import annotations
 
 from typing import Any
+
+
+def build_toc_tree(toc_items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """
+    Convert flat TOC items into a nested tree structure with children arrays.
+
+    This function builds a proper tree where each node contains its children
+    directly, enabling recursive template rendering with count badges.
+
+    Args:
+        toc_items: Flat list of TOC items with id, title, and level
+
+    Returns:
+        Nested list where each item has a 'children' array containing
+        its sub-items. Items at level 1 (H2) become root nodes, and
+        deeper levels become nested children.
+
+    Example:
+        Input (flat):
+            [
+                {"id": "intro", "title": "Introduction", "level": 1},
+                {"id": "setup", "title": "Setup", "level": 2},
+                {"id": "config", "title": "Configuration", "level": 2},
+                {"id": "api", "title": "API", "level": 1},
+                {"id": "endpoints", "title": "Endpoints", "level": 2},
+            ]
+
+        Output (nested):
+            [
+                {
+                    "id": "intro", "title": "Introduction", "level": 1,
+                    "children": [
+                        {"id": "setup", "title": "Setup", "level": 2, "children": []},
+                        {"id": "config", "title": "Configuration", "level": 2, "children": []},
+                    ]
+                },
+                {
+                    "id": "api", "title": "API", "level": 1,
+                    "children": [
+                        {"id": "endpoints", "title": "Endpoints", "level": 2, "children": []},
+                    ]
+                },
+            ]
+
+    Template usage:
+        {% for item in build_toc_tree(toc_items) %}
+          {{ toc_node(item) }}
+        {% endfor %}
+    """
+    if not toc_items:
+        return []
+
+    # Stack-based tree building for arbitrary depth
+    # Each stack entry: (level, node_with_children)
+    root: list[dict[str, Any]] = []
+    stack: list[tuple[int, dict[str, Any]]] = []
+
+    for item in toc_items:
+        level = item.get("level", 1)
+        # Create node with children array
+        node = {
+            "id": item.get("id", ""),
+            "title": item.get("title", ""),
+            "level": level,
+            "children": [],
+        }
+
+        # Pop stack until we find parent level
+        while stack and stack[-1][0] >= level:
+            stack.pop()
+
+        if stack:
+            # Add as child to parent
+            stack[-1][1]["children"].append(node)
+        else:
+            # Root level item
+            root.append(node)
+
+        # Push current node for potential children
+        stack.append((level, node))
+
+    return root
 
 
 def get_toc_grouped(

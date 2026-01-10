@@ -14,6 +14,14 @@ class DummySite:
         self._paths: BengalPaths | None = None
 
     @property
+    def baseurl(self) -> str:
+        """Return baseurl from config."""
+        site_section = self.config.get("site", {})
+        if isinstance(site_section, dict) and site_section.get("baseurl"):
+            return site_section.get("baseurl", "")
+        return self.config.get("baseurl", "")
+
+    @property
     def paths(self) -> BengalPaths:
         """Access to .bengal directory paths."""
         if self._paths is None:

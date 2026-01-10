@@ -254,20 +254,20 @@ class GraphVisualizer:
                             if not page_url.endswith("/"):
                                 page_url += "/"
                             # Apply baseurl for fallback path (since we computed it manually)
-                            baseurl = self.site.config.get("baseurl", "").rstrip("/")
+                            baseurl = (self.site.baseurl or "").rstrip("/")
                             if baseurl:
                                 page_url = f"{baseurl}{page_url}"
                         except (ValueError, AttributeError):
                             # Final fallback: use slug-based URL with baseurl
-                            baseurl = self.site.config.get("baseurl", "").rstrip("/")
+                            baseurl = (self.site.baseurl or "").rstrip("/")
                             page_url = f"{baseurl}/{getattr(page, 'slug', page.source_path.stem)}/"
                     else:
                         # Final fallback: use slug-based URL with baseurl
-                        baseurl = self.site.config.get("baseurl", "").rstrip("/")
+                        baseurl = (self.site.baseurl or "").rstrip("/")
                         page_url = f"{baseurl}/{getattr(page, 'slug', page.source_path.stem)}/"
             else:
                 # Taxonomy URLs need baseurl applied (they're constructed without it)
-                baseurl = self.site.config.get("baseurl", "").rstrip("/")
+                baseurl = (self.site.baseurl or "").rstrip("/")
                 if baseurl:
                     page_url = f"{baseurl}{page_url}"
 
@@ -402,7 +402,7 @@ class GraphVisualizer:
             default_palette = getattr(theme_config, "default_palette", "")
 
         # Get baseurl for asset paths (handles GitHub Pages /bengal subpath)
-        baseurl = (self.site.config.get("baseurl", "") or "").rstrip("/")
+        baseurl = (self.site.baseurl or "").rstrip("/")
 
         # Resolve CSS path from manifest
         css_path = self._resolve_css_path(baseurl)

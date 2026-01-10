@@ -74,7 +74,7 @@ class AssetURLValidator(BaseValidator):
         checked = 0
 
         # Get baseurl for path normalization
-        baseurl = (site.config.get("baseurl", "") or "").strip("/")
+        baseurl = (site.baseurl or "").strip("/")
 
         for html_file in html_files:
             try:

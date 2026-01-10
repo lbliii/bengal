@@ -105,7 +105,8 @@ def _parse_html_open_tag(text: str, pos: int) -> tuple[str, int] | None:
         if not _ATTR_NAME_RE.match(attr_name):
             return None
 
-        # Skip whitespace
+        # Skip optional whitespace before = (part of attr value spec)
+        ws_start = i
         while i < text_len and text[i] in " \t\n":
             i += 1
 
@@ -160,8 +161,16 @@ def _parse_html_open_tag(text: str, pos: int) -> tuple[str, int] | None:
                 # Check we actually parsed something
                 if i == attr_start:
                     return None
+        else:
+            # Boolean attribute (no value) - must have had whitespace before
+            # next attribute, or be at / or >
+            # No whitespace was skipped - invalid unless at / or >
+            if ws_start == i and text[i] not in "/>":
+                return None
+            # Otherwise whitespace was consumed, next attr can start here
+            continue
 
-        # After attribute: must be whitespace, /, or >
+        # After attribute with value: must be whitespace, /, or >
         if i < text_len and text[i] not in " \t\n/>":
             # Invalid: no space between attributes
             return None

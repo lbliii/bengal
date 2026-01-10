@@ -4,6 +4,8 @@ Unit tests for SiteData.
 Tests the SiteData frozen dataclass which provides immutable
 configuration storage with path computation.
 
+Note: Config is now nested (site.title, build.output_dir, etc.)
+
 See: plan/drafted/rfc-site-responsibility-separation.md
 """
 
@@ -22,7 +24,7 @@ class TestSiteDataCreation:
 
     def test_from_config_basic(self, tmp_path: Path) -> None:
         """SiteData can be created from config."""
-        config = {"title": "Test Site"}
+        config = {"site": {"title": "Test Site"}}
         data = SiteData.from_config(tmp_path, config)
 
         assert data.root_path == tmp_path.resolve()
@@ -51,7 +53,7 @@ class TestSiteDataCreation:
 
     def test_from_config_output_dir_relative(self, tmp_path: Path) -> None:
         """Relative output_dir is resolved to absolute."""
-        config = {"output_dir": "dist"}
+        config = {"build": {"output_dir": "dist"}}
         data = SiteData.from_config(tmp_path, config)
 
         assert data.output_dir == tmp_path.resolve() / "dist"
@@ -59,7 +61,7 @@ class TestSiteDataCreation:
     def test_from_config_output_dir_absolute(self, tmp_path: Path) -> None:
         """Absolute output_dir is preserved."""
         output_path = Path("/custom/output")
-        config = {"output_dir": str(output_path)}
+        config = {"build": {"output_dir": str(output_path)}}
         data = SiteData.from_config(tmp_path, config)
 
         assert data.output_dir == output_path
@@ -84,7 +86,7 @@ class TestSiteDataPaths:
 
     def test_content_dir_custom(self, tmp_path: Path) -> None:
         """Custom content directory is resolved."""
-        config = {"content_dir": "docs"}
+        config = {"build": {"content_dir": "docs"}}
         data = SiteData.from_config(tmp_path, config)
 
         assert data.content_dir == tmp_path.resolve() / "docs"
@@ -116,26 +118,26 @@ class TestSiteDataImmutability:
 
     def test_frozen_dataclass(self, tmp_path: Path) -> None:
         """SiteData is frozen (immutable)."""
-        config = {"title": "Test"}
+        config = {"site": {"title": "Test"}}
         data = SiteData.from_config(tmp_path, config)
 
         with pytest.raises(AttributeError):
-            data.title = "Modified"  # type: ignore[misc]
+            data.theme_name = "Modified"  # type: ignore[misc]
 
     def test_config_is_mapping_proxy(self, tmp_path: Path) -> None:
         """Config is wrapped in MappingProxyType."""
-        config = {"title": "Test"}
+        config = {"site": {"title": "Test"}}
         data = SiteData.from_config(tmp_path, config)
 
         assert isinstance(data.config, MappingProxyType)
 
     def test_config_is_read_only(self, tmp_path: Path) -> None:
         """Config mapping cannot be modified."""
-        config = {"title": "Test"}
+        config = {"site": {"title": "Test"}}
         data = SiteData.from_config(tmp_path, config)
 
         with pytest.raises(TypeError):
-            data.config["title"] = "Modified"  # type: ignore[index]
+            data.config["site"] = {}  # type: ignore[index]
 
 
 class TestSiteDataProperties:
@@ -150,7 +152,7 @@ class TestSiteDataProperties:
 
     def test_baseurl_configured(self, tmp_path: Path) -> None:
         """Baseurl is read from config."""
-        config = {"baseurl": "/blog"}
+        config = {"site": {"baseurl": "/blog"}}
         data = SiteData.from_config(tmp_path, config)
 
         assert data.baseurl == "/blog"
@@ -164,7 +166,7 @@ class TestSiteDataProperties:
 
     def test_title_configured(self, tmp_path: Path) -> None:
         """Title is read from config."""
-        config = {"title": "My Blog"}
+        config = {"site": {"title": "My Blog"}}
         data = SiteData.from_config(tmp_path, config)
 
         assert data.title == "My Blog"
@@ -178,7 +180,7 @@ class TestSiteDataProperties:
 
     def test_author_configured(self, tmp_path: Path) -> None:
         """Author is read from config."""
-        config = {"author": "Jane Doe"}
+        config = {"site": {"author": "Jane Doe"}}
         data = SiteData.from_config(tmp_path, config)
 
         assert data.author == "Jane Doe"
@@ -192,7 +194,7 @@ class TestSiteDataProperties:
 
     def test_description_configured(self, tmp_path: Path) -> None:
         """Description is read from config."""
-        config = {"description": "A great blog"}
+        config = {"site": {"description": "A great blog"}}
         data = SiteData.from_config(tmp_path, config)
 
         assert data.description == "A great blog"
@@ -206,7 +208,7 @@ class TestSiteDataProperties:
 
     def test_language_configured(self, tmp_path: Path) -> None:
         """Language is read from config."""
-        config = {"language": "es"}
+        config = {"site": {"language": "es"}}
         data = SiteData.from_config(tmp_path, config)
 
         assert data.language == "es"

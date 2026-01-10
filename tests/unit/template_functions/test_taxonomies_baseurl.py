@@ -88,9 +88,12 @@ output_dir = "public"
 
         # Clear CI env vars to prevent auto-detection
         monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+        monkeypatch.delenv("GITHUB_REPOSITORY", raising=False)
+        monkeypatch.delenv("GITHUB_PAGES_ROOT", raising=False)
         monkeypatch.delenv("NETLIFY", raising=False)
         monkeypatch.delenv("VERCEL", raising=False)
         monkeypatch.delenv("BENGAL_BASEURL", raising=False)
+        monkeypatch.delenv("BENGAL_BASE_URL", raising=False)
 
         site_dir = tmp_path / "site"
         (site_dir / "content").mkdir(parents=True)

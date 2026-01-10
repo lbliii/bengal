@@ -134,6 +134,9 @@
                         graphContainer.classList.remove('graph-loading');
                     }
 
+                    // Signal that graph has data - parent container will expand via CSS
+                    this.container.classList.add('graph-has-data');
+
                     this.createSVG();
                     this.render();
                 } else {
@@ -265,8 +268,16 @@
             }
 
             const containerRect = wrapper.getBoundingClientRect();
-            const width = containerRect.width || Number(this.options.width) || 200;
-            const height = containerRect.height || Number(this.options.height) || 200;
+            // Use measured dimensions, but ensure minimums (CSS transition may not be complete)
+            const minWidth = Number(this.options.width) || 200;
+            const minHeight = Number(this.options.height) || 200;
+            const width = Math.max(containerRect.width || minWidth, minWidth);
+            const height = Math.max(containerRect.height || minHeight, minHeight);
+
+            // Store actual dimensions for use in render() - fixes centering bug
+            this._actualWidth = width;
+            this._actualHeight = height;
+
             const viewBoxValue = '0 0 ' + width + ' ' + height;
 
             wrapper.classList.add('graph-loaded', 'graph-visible');
@@ -312,14 +323,20 @@
                 };
             }).filter(e => e.source && e.target);
 
-            const width = Number(this.options.width) || 200;
-            const height = Number(this.options.height) || 200;
+            // Use actual container dimensions for centering the simulation
+            const containerWidth = this._actualWidth || Number(this.options.width) || 200;
+            const containerHeight = this._actualHeight || Number(this.options.height) || 200;
+
+            // Use a fixed square size for the simulation (prevents weird layouts)
+            // but center it within the actual container dimensions
+            const simSize = Number(this.options.width) || 200;
 
             // v2: Resolve colors once before rendering (not on every tick)
             this._resolveNodeColorsOnce();
 
             // Use snap simulation - pre-computes most layout, brief animated finish
-            this._createSimulation(preparedEdges, width, height);
+            // Pass container dimensions (for centering) and simSize (for square layout)
+            this._createSimulation(preparedEdges, containerWidth, containerHeight, simSize);
 
             // Render links
             this.links = this.g.append('g')
@@ -390,11 +407,24 @@
         /**
          * Create force simulation with quick "snap" feel
          * Pre-runs most iterations, then animates the final settle
+         *
+         * @param {Array} preparedEdges - Edge data
+         * @param {number} containerWidth - Actual container width (for centering)
+         * @param {number} containerHeight - Actual container height (for centering)
+         * @param {number} simSize - Square simulation size (fixed 200x200)
          */
-        _createSimulation(preparedEdges, width, height) {
+        _createSimulation(preparedEdges, containerWidth, containerHeight, simSize) {
             const padding = 8;
-            const centerX = width / 2;
-            const centerY = height / 2;
+            // Center the simulation within the actual container
+            const centerX = containerWidth / 2;
+            const centerY = containerHeight / 2;
+
+            // Calculate square bounds for the simulation (simSize x simSize, centered)
+            const simHalf = simSize / 2;
+            const simLeft = centerX - simHalf + padding;
+            const simRight = centerX + simHalf - padding;
+            const simTop = centerY - simHalf + padding;
+            const simBottom = centerY + simHalf - padding;
 
             // IMPORTANT: Reset node positions to ensure animation happens
             // (nodes may have cached x/y from previous load or JSON)
@@ -423,17 +453,18 @@
                 this.simulation.tick();
             }
 
-            // Constrain to bounds after pre-run
+            // Constrain to square bounds centered in container (prevents horizontal spread)
             this.filteredData.nodes.forEach(node => {
-                node.x = Math.max(padding, Math.min(width - padding, node.x));
-                node.y = Math.max(padding, Math.min(height - padding, node.y));
+                node.x = Math.max(simLeft, Math.min(simRight, node.x));
+                node.y = Math.max(simTop, Math.min(simBottom, node.y));
             });
 
             // Now set up tick handler for the brief animated finish
             this.simulation.on('tick', () => {
+                // Constrain to square bounds (same as pre-run)
                 this.filteredData.nodes.forEach(node => {
-                    node.x = Math.max(padding, Math.min(width - padding, node.x));
-                    node.y = Math.max(padding, Math.min(height - padding, node.y));
+                    node.x = Math.max(simLeft, Math.min(simRight, node.x));
+                    node.y = Math.max(simTop, Math.min(simBottom, node.y));
                 });
 
                 if (this.links) {

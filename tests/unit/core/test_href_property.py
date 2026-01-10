@@ -21,8 +21,8 @@ import pytest
 from bengal.core.asset.asset_core import Asset
 from bengal.core.nav_tree import NavNode, NavNodeProxy, NavTree, NavTreeContext
 from bengal.core.page import Page
-from bengal.core.page.proxy import PageProxy
 from bengal.core.page.page_core import PageCore
+from bengal.core.page.proxy import PageProxy
 from bengal.core.section import Section
 from bengal.core.site import Site
 
@@ -35,7 +35,11 @@ class TestPageHrefPath:
         [
             ("", "/docs/getting-started/", "/docs/getting-started/"),
             ("/bengal", "/bengal/docs/getting-started/", "/docs/getting-started/"),
-            ("https://example.com", "https://example.com/docs/getting-started/", "/docs/getting-started/"),
+            (
+                "https://example.com",
+                "https://example.com/docs/getting-started/",
+                "/docs/getting-started/",
+            ),
         ],
     )
     def test_href_includes_baseurl(self, baseurl, expected_href, expected_path):
@@ -170,6 +174,7 @@ class TestNavNodeHrefPath:
         # Create a mock site
         site = MagicMock()
         site.config = {"baseurl": "/bengal"}
+        site.baseurl = "/bengal"
 
         # Create a page with site reference
         page = Page(
@@ -198,6 +203,7 @@ class TestNavNodeHrefPath:
 
         site = MagicMock()
         site.config = {"baseurl": "/bengal"}
+        site.baseurl = "/bengal"
 
         page = Page(
             source_path=Path("/content/docs/page.md"),
@@ -226,6 +232,7 @@ class TestNavNodeHrefPath:
 
         site = MagicMock()
         site.config = {"baseurl": "/bengal"}
+        site.baseurl = "/bengal"
 
         page = Page(
             source_path=Path("/content/docs/page.md"),
@@ -401,4 +408,3 @@ class TestHrefPathConsistency:
         assert hasattr(proxy, "href")
         assert hasattr(proxy, "_path")
         assert hasattr(proxy, "absolute_href")
-

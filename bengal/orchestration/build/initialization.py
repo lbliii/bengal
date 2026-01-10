@@ -472,7 +472,9 @@ def phase_incremental_filter(
                         affected_sections.add(section_path)
                     if page.tags:
                         for tag in page.tags:
-                            affected_tags.add(tag.lower().replace(" ", "-"))
+                            # Ensure tag is a string (YAML may parse 'null' as None, numbers as int)
+                            if tag is not None:
+                                affected_tags.add(str(tag).lower().replace(" ", "-"))
 
             # Track cache statistics
             total_pages = len(orchestrator.site.pages)

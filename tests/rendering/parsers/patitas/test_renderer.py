@@ -42,9 +42,10 @@ class TestHeadingRendering:
         ],
     )
     def test_heading_tags(self, parse_md, level, expected_tag):
-        """Correct heading tags are used."""
+        """Correct heading tags are used (with auto-generated id attribute)."""
         html = parse_md("#" * level + " Heading")
-        assert f"<{expected_tag}>" in html
+        # Patitas adds id attributes to headings for anchor links (extension)
+        assert f"<{expected_tag} " in html or f"<{expected_tag}>" in html
         assert f"</{expected_tag}>" in html
 
     def test_heading_content(self, parse_md):
@@ -262,4 +263,4 @@ class TestIterBlocks:
         renderer = HtmlRenderer(source)
         blocks = list(renderer.iter_blocks(ast))
         assert len(blocks) == 3
-        assert all("<h1>" in block for block in blocks)
+        assert all("<h1" in block for block in blocks)  # Patitas adds id attribute

@@ -104,21 +104,10 @@ class SiteFactoriesMixin:
             - Site() - Direct constructor for advanced use cases
             - Site.for_testing() - Factory for test sites
         """
-        config_dir = root_path / "config"
+        from bengal.config.unified_loader import UnifiedConfigLoader
 
-        if config_dir.exists() and config_dir.is_dir():
-            from bengal.config.directory_loader import ConfigDirectoryLoader
-
-            loader = ConfigDirectoryLoader()
-            config = loader.load(config_dir, environment=environment, profile=profile)
-        else:
-            # Fall back to single-file config
-            # ConfigLoader.load() handles None config_path by searching for
-            # bengal.toml/yaml and returning defaults if not found
-            from bengal.config.loader import ConfigLoader
-
-            loader = ConfigLoader(root_path)
-            config = loader.load(config_path)
+        loader = UnifiedConfigLoader()
+        config = loader.load(root_path, environment=environment, profile=profile)
 
         return cls(root_path=root_path, config=config)
 

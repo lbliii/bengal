@@ -336,13 +336,15 @@ markdown:
 
 | Backend | Description | Performance |
 |---------|-------------|-------------|
-| **Rosettes** (default) | Built-in, lock-free, 50+ languages | 3.4x faster than Pygments |
+| **[Rosettes](https://github.com/lbliii/rosettes)** (default) | Lock-free, 55+ languages, O(n) guaranteed | 3.4x faster than Pygments |
 
 ```yaml
 # config/_default/theme.yaml
 highlighting:
   backend: rosettes
 ```
+
+Rosettes is now a standalone package: [`pip install rosettes`](https://pypi.org/project/rosettes/)
 
 Custom backends can be registered via `register_backend()`.
 

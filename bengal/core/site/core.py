@@ -63,6 +63,7 @@ from bengal.icons import resolver as icon_resolver
 from bengal.orchestration.stats import BuildStats
 
 if TYPE_CHECKING:
+    from bengal.config.accessor import Config
     from bengal.orchestration.build.options import BuildOptions
     from bengal.orchestration.build_state import BuildState
 
@@ -115,15 +116,15 @@ class Site(
         site.pages = [test_page1, test_page2]
 
         # Programmatic config:
-        from bengal.config.loader import ConfigLoader
-        loader = ConfigLoader(path)
-        config = loader.load()
-        config['custom_setting'] = 'value'
+        from bengal.config import UnifiedConfigLoader
+        loader = UnifiedConfigLoader()
+        config = loader.load(path)
+        # Note: config is now a Config object, use config.raw for dict access
         site = Site(root_path=path, config=config)
     """
 
     root_path: Path
-    config: dict[str, Any] = field(default_factory=dict)
+    config: Config | dict[str, Any] = field(default_factory=dict)
     pages: list[Page] = field(default_factory=list)
     sections: list[Section] = field(default_factory=list)
     assets: list[Asset] = field(default_factory=list)
@@ -177,6 +178,8 @@ class Site(
 
     # BengalPaths instance for centralized .bengal directory access
     _paths: Any = field(default=None, repr=False, init=False)
+    # Optional runtime override for site description (used by postprocessors)
+    _description_override: str | None = field(default=None, repr=False, init=False)
 
     # Dynamic runtime attributes (set by various orchestrators)
     # Menu metadata for dev server menu items (set by MenuOrchestrator)
@@ -235,15 +238,40 @@ class Site(
         if not self.root_path.is_absolute():
             self.root_path = self.root_path.resolve()
 
-        theme_section = self.config.get("theme", {})
-        if isinstance(theme_section, dict):
-            self.theme = theme_section.get("name", "default")
+        # Access theme name from config (Config supports dict-like access via get())
+        # Priority order for theme name:
+        # 1. [site] section with theme key: config["site"]["theme"] (TOML format)
+        # 2. Top-level theme string: config["theme"] = "mytheme" (legacy)
+        # 3. Default to "default"
+        # Note: [theme] section contains theme SETTINGS (appearance, palette),
+        #       NOT the theme name to use.
+        site_section = self.config.get("site", {})
+        if isinstance(site_section, dict) and site_section.get("theme"):
+            self.theme = site_section.get("theme")
+        elif hasattr(site_section, "theme") and site_section.theme:
+            # ConfigSection access
+            self.theme = site_section.theme
         else:
-            # Fallback for config where theme was a string
-            self.theme = theme_section if isinstance(theme_section, str) else "default"
+            # Legacy: top-level theme as string
+            theme_value = self.config.get("theme")
+            if isinstance(theme_value, str):
+                self.theme = theme_value
+            elif (
+                isinstance(theme_value, dict)
+                and theme_value.get("name")
+                or hasattr(theme_value, "get")
+                and theme_value.get("name")
+            ):
+                self.theme = str(theme_value.get("name"))
+            elif hasattr(theme_value, "name") and theme_value.name:
+                self.theme = str(theme_value.name)
+            else:
+                self.theme = "default"
 
+        # Theme.from_config expects a dict; use .raw if available (Config object) else use directly (plain dict)
+        config_dict = self.config.raw if hasattr(self.config, "raw") else self.config
         self._theme_obj = Theme.from_config(
-            self.config,
+            config_dict,
             root_path=self.root_path,
             diagnostics_site=self,
         )
@@ -252,8 +280,19 @@ class Site(
         # (template functions, inline icon plugin, directives)
         icon_resolver.initialize(self)
 
-        if "output_dir" in self.config:
-            self.output_dir = Path(self.config["output_dir"])
+        # Access output_dir from build section (supports both Config and dict)
+        if hasattr(self.config, "build"):
+            output_dir_str = self.config.build.output_dir
+        else:
+            build_section = self.config.get("build", {})
+            if isinstance(build_section, dict):
+                output_dir_str = build_section.get("output_dir", "public")
+            else:
+                # Fallback to flat access for backward compatibility
+                output_dir_str = self.config.get("output_dir", "public")
+
+        if output_dir_str:
+            self.output_dir = Path(output_dir_str)
 
         if not self.output_dir.is_absolute():
             self.output_dir = self.root_path / self.output_dir
@@ -262,7 +301,8 @@ class Site(
         self._compute_config_hash()
 
         # Initialize versioning configuration
-        self.version_config = VersionConfig.from_config(self.config)
+        # VersionConfig.from_config expects a dict; config_dict already computed above
+        self.version_config = VersionConfig.from_config(config_dict)
         if self.version_config.enabled:
             emit_diagnostic(
                 self,

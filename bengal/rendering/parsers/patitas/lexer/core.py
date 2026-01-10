@@ -99,6 +99,7 @@ class Lexer(
         "_html_block_type",  # 1-7 per CommonMark spec
         "_html_block_content",  # Accumulated HTML content
         "_html_block_start",  # Start position for location
+        "_html_block_indent",  # Indent of opening line for line_indent
     )
 
     def __init__(
@@ -133,6 +134,7 @@ class Lexer(
         self._html_block_type: int = 0
         self._html_block_content: list[str] = []
         self._html_block_start: int = 0
+        self._html_block_indent: int = 0
 
         # Directive state: stack of (colon_count, name) for nested directives
         self._directive_stack: list[tuple[int, str]] = []
@@ -157,7 +159,7 @@ class Lexer(
         while self._pos < source_len:
             yield from self._dispatch_mode()
 
-        yield Token(TokenType.EOF, "", self._location())
+        yield Token(TokenType.EOF, "", self._location(), line_indent=0)
 
     def _dispatch_mode(self) -> Iterator[Token]:
         """Dispatch to appropriate scanner based on current mode.
@@ -214,6 +216,20 @@ class Lexer(
             else:
                 break
         return indent, pos
+
+    def _expand_tabs(self, text: str, start_col: int = 1) -> str:
+        """Expand tabs in text to spaces based on start_col (1-indexed)."""
+        result = []
+        col = start_col
+        for char in text:
+            if char == "\t":
+                expansion = 4 - ((col - 1) % 4)
+                result.append(" " * expansion)
+                col += expansion
+            else:
+                result.append(char)
+                col += 1
+        return "".join(result)
 
     def _commit_to(self, line_end: int) -> None:
         """Commit position to line_end, consuming newline if present.
@@ -318,22 +334,29 @@ class Lexer(
             source_file=self._source_file,
         )
 
-    def _location_from(self, start_pos: int) -> SourceLocation:
+    def _location_from(
+        self,
+        start_pos: int,
+        start_col: int | None = None,
+        end_pos: int | None = None,
+    ) -> SourceLocation:
         """Get source location from saved position.
 
         O(1) - uses pre-saved location from _save_location() call.
 
         Args:
             start_pos: Start position in source.
+            start_col: Optional column override (1-indexed).
+            end_pos: Optional end position override.
 
         Returns:
-            SourceLocation spanning from saved position to current.
+            SourceLocation spanning from start_pos to current or end_pos.
         """
         return SourceLocation(
             lineno=self._saved_lineno,
-            col_offset=self._saved_col,
+            col_offset=start_col if start_col is not None else self._saved_col,
             offset=start_pos,
-            end_offset=self._pos,
+            end_offset=end_pos if end_pos is not None else self._pos,
             end_lineno=self._lineno,
             end_col_offset=self._col,
             source_file=self._source_file,

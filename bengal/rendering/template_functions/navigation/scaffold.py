@@ -216,7 +216,7 @@ class ScaffoldNodeProxy:
             return site_path
 
         try:
-            baseurl = (site.config.get("baseurl", "") or "").rstrip("/")
+            baseurl = (site.baseurl or "").rstrip("/")
         except Exception:
             self._href_cached = site_path
             return site_path

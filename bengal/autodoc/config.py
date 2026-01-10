@@ -133,10 +133,13 @@ def load_autodoc_config(config_path: Path | None = None) -> dict[str, Any]:
     if config_path:
         if config_path.is_dir():
             try:
-                from bengal.config.directory_loader import ConfigDirectoryLoader
+                from bengal.config.unified_loader import UnifiedConfigLoader
 
-                loader = ConfigDirectoryLoader()
-                full_config = loader.load(config_path, environment=None, profile=None)
+                # If config_path is "config", site_root is parent directory
+                site_root = config_path.parent if config_path.name == "config" else config_path
+                loader = UnifiedConfigLoader()
+                config_obj = loader.load(site_root, environment=None, profile=None)
+                full_config = config_obj.raw if hasattr(config_obj, "raw") else config_obj
 
                 # Extract autodoc section if present
                 if "autodoc" in full_config:
@@ -163,10 +166,13 @@ def load_autodoc_config(config_path: Path | None = None) -> dict[str, Any]:
     for config_dir in config_dirs:
         if config_dir.exists() and config_dir.is_dir():
             try:
-                from bengal.config.directory_loader import ConfigDirectoryLoader
+                from bengal.config.unified_loader import UnifiedConfigLoader
 
-                loader = ConfigDirectoryLoader()
-                full_config = loader.load(config_dir, environment=None, profile=None)
+                # site_root is parent of config directory
+                site_root = config_dir.parent
+                loader = UnifiedConfigLoader()
+                config_obj = loader.load(site_root, environment=None, profile=None)
+                full_config = config_obj.raw if hasattr(config_obj, "raw") else config_obj
 
                 # Extract autodoc section if present
                 if "autodoc" in full_config:

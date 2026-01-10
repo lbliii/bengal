@@ -23,8 +23,8 @@ Usage: {% include 'partials/stale-content-banner.html' %}
             {{ t('stale.warning', {'days': stale_days}, default="This page hasn't been updated in over {days} days.
             Information may be outdated.") }}
         </span>
-        {% if config.github_edit_base and page.source_path %}
-        <a href="{{ config.github_edit_base }}{{ page.source_path }}" class="stale-content-banner__action"
+        {% if config.params.github_edit_base and page.source_path %}
+        <a href="{{ config.params.github_edit_base }}{{ page.source_path }}" class="stale-content-banner__action"
             target="_blank" rel="noopener noreferrer">
             {{ icon('pencil', size=14) }}
             <span>{{ t('stale.help_update', default='Help update this page') }}</span>

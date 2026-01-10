@@ -244,11 +244,15 @@ class Heading(Node):
 
     Markdown: # Heading or Heading\\n======
     HTML: <h1>Heading</h1>
+
+    Supports MyST-compatible explicit anchor syntax: ## Title {#custom-id}
+    The {#id} is parsed during lexing and stored in explicit_id.
     """
 
     level: Literal[1, 2, 3, 4, 5, 6]
     children: tuple[Inline, ...]
     style: Literal["atx", "setext"] = "atx"
+    explicit_id: str | None = None  # MyST {#custom-id} syntax
 
 
 @dataclass(frozen=True, slots=True)
@@ -273,6 +277,10 @@ class FencedCode(Node):
     Migration:
         Old: block.code
         New: block.get_code(source)
+
+    For nested contexts (e.g., fenced code inside block quotes), the
+    content_override field stores the actual code content directly
+    since the source offsets would be relative to a sub-parser's source.
     """
 
     source_start: int
@@ -280,13 +288,18 @@ class FencedCode(Node):
     info: str | None = None
     marker: Literal["`", "~"] = "`"
     fence_indent: int = 0  # Leading spaces on opening fence line
+    content_override: str | None = None  # Direct content for nested contexts
 
     def get_code(self, source: str) -> str:
         """Extract code content (creates new string).
 
         CommonMark: strips up to fence_indent spaces from each content line.
         """
-        code = source[self.source_start : self.source_end]
+        # Use content_override if available (for nested contexts)
+        if self.content_override is not None:
+            code = self.content_override
+        else:
+            code = source[self.source_start : self.source_end]
 
         # CommonMark: strip up to fence_indent spaces from each line
         if self.fence_indent > 0:
@@ -306,6 +319,8 @@ class FencedCode(Node):
 
     def code_length(self) -> int:
         """Length of code content without allocation."""
+        if self.content_override is not None:
+            return len(self.content_override)
         return self.source_end - self.source_start
 
 

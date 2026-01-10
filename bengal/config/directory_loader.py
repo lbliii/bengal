@@ -1,5 +1,10 @@
 """
-Directory-based configuration loader.
+Directory-based configuration loader (internal helper).
+
+Used by :mod:`bengal.config.unified_loader` to support directory-style configs
+(`config/_default`, `config/environments`, `config/profiles`). Prefer importing
+and using ``UnifiedConfigLoader`` from ``bengal.config``; this module remains
+as the internal implementation for directory mode.
 
 This module provides a loader for configuration files organized in a directory
 structure, supporting multi-file configurations with environment-specific and
@@ -22,9 +27,10 @@ Directory Structure:
             └── developer.yaml
 
 Merge Precedence (lowest to highest):
-    1. ``config/_default/*.yaml`` - Base configuration
-    2. ``config/environments/<env>.yaml`` - Environment overrides
-    3. ``config/profiles/<profile>.yaml`` - Profile settings
+    1. Bengal DEFAULTS from ``defaults.py`` - Built-in defaults
+    2. ``config/_default/*.yaml`` - Base configuration
+    3. ``config/environments/<env>.yaml`` - Environment overrides
+    4. ``config/profiles/<profile>.yaml`` - Profile settings
 
 Features:
     - Auto-detection of deployment environment (Netlify, Vercel, GitHub Actions)
@@ -42,7 +48,7 @@ Example:
     >>> config = loader.load(Path("config"), environment="production")
 
 See Also:
-    - :mod:`bengal.config.loader`: Single-file configuration loader.
+    - :mod:`bengal.config.unified_loader`: Unified loader for all config modes.
     - :mod:`bengal.config.environment`: Environment detection logic.
 """
 
@@ -53,6 +59,7 @@ from typing import Any
 
 import yaml
 
+from bengal.config.defaults import DEFAULTS
 from bengal.config.environment import detect_environment, get_environment_file_candidates
 from bengal.config.feature_mappings import expand_features
 from bengal.config.merge import batch_deep_merge, deep_merge
@@ -151,9 +158,10 @@ class ConfigDirectoryLoader:
         Load config from directory with precedence.
 
         Precedence (lowest to highest):
-        1. config/_default/*.yaml (base)
-        2. config/environments/<env>.yaml (environment overrides)
-        3. config/profiles/<profile>.yaml (profile settings)
+        1. Bengal DEFAULTS from defaults.py (built-in defaults)
+        2. config/_default/*.yaml (base user config)
+        3. config/environments/<env>.yaml (environment overrides)
+        4. config/profiles/<profile>.yaml (profile settings)
 
         Args:
             config_dir: Path to config directory
@@ -166,6 +174,14 @@ class ConfigDirectoryLoader:
         Raises:
             ConfigLoadError: If config loading fails
         """
+        # Accept either a config directory or a site root containing config/
+        if (
+            config_dir.is_dir()
+            and (config_dir / "config").exists()
+            and not (config_dir / "_default").exists()
+        ):
+            config_dir = config_dir / "config"
+
         if not config_dir.exists():
             raise ConfigLoadError(
                 f"Config directory not found: {config_dir}",
@@ -191,12 +207,23 @@ class ConfigDirectoryLoader:
             environment = detect_environment()
             logger.debug("environment_detected", environment=environment)
 
-        config: dict[str, Any] = {}
+        # Track whether user provided a baseurl (defaults should NOT count)
+        explicit_baseurl = None
 
-        # Layer 1: Base defaults from _default/
+        # Layer 0: Start with Bengal DEFAULTS as base layer
+        # This ensures all sites get sensible defaults (search, output_formats, etc.)
+        # even if _default/ directory is missing or incomplete
+        config: dict[str, Any] = deep_merge({}, DEFAULTS)
+        if self.origin_tracker:
+            self.origin_tracker.merge(DEFAULTS, "_bengal_defaults")
+
+        # Layer 1: User defaults from _default/ (overrides DEFAULTS)
         defaults_dir = config_dir / "_default"
         if defaults_dir.exists():
             default_config = self._load_directory(defaults_dir, _origin_prefix="_default")
+            detected_baseurl = self._extract_baseurl(default_config)
+            if detected_baseurl is not None:
+                explicit_baseurl = detected_baseurl
             config = deep_merge(config, default_config)
             if self.origin_tracker:
                 self.origin_tracker.merge(default_config, "_default")
@@ -211,6 +238,9 @@ class ConfigDirectoryLoader:
         # Layer 2: Environment overrides from environments/<env>.yaml
         env_config = self._load_environment(config_dir, environment)
         if env_config:
+            detected_baseurl = self._extract_baseurl(env_config)
+            if detected_baseurl is not None:
+                explicit_baseurl = detected_baseurl
             config = deep_merge(config, env_config)
             if self.origin_tracker:
                 self.origin_tracker.merge(env_config, f"environments/{environment}")
@@ -219,6 +249,9 @@ class ConfigDirectoryLoader:
         if profile:
             profile_config = self._load_profile(config_dir, profile)
             if profile_config:
+                detected_baseurl = self._extract_baseurl(profile_config)
+                if detected_baseurl is not None:
+                    explicit_baseurl = detected_baseurl
                 config = deep_merge(config, profile_config)
                 if self.origin_tracker:
                     self.origin_tracker.merge(profile_config, f"profiles/{profile}")
@@ -226,8 +259,20 @@ class ConfigDirectoryLoader:
         # Expand feature groups (must happen after all merges)
         config = expand_features(config)
 
+        # Warn about common theme.features vs features confusion
+        self._warn_search_ui_without_index(config)
+
+        # Normalize misplaced site keys (title/baseurl/etc. at root) into site section
+        config = self._normalize_site_keys(config)
+
         # Flatten config (site.title → title, build.parallel → parallel)
         config = self._flatten_config(config)
+
+        # Preserve whether baseurl was explicitly set in user config (including empty string)
+        if explicit_baseurl is not None:
+            config["_baseurl_explicit"] = True
+            if explicit_baseurl == "":
+                config["_baseurl_explicit_empty"] = True
 
         # Apply environment-based overrides (GitHub Actions, Netlify, Vercel)
         # Must happen after flattening so baseurl is at top level
@@ -318,6 +363,26 @@ class ConfigDirectoryLoader:
 
         # Batch merge all configs in single pass - O(K×D) instead of O(F×K×D)
         return batch_deep_merge(configs)
+
+    def _normalize_site_keys(self, config: dict[str, Any]) -> dict[str, Any]:
+        """
+        Move common site keys placed at the root into the site section.
+
+        Provides backward compatibility for configs that set title/baseurl/etc.
+        at the root of _default/*.yaml instead of under [site].
+        """
+        site_keys = ("title", "baseurl", "description", "author", "language")
+        site_section = config.get("site")
+        if not isinstance(site_section, dict):
+            site_section = {}
+            config["site"] = site_section
+
+        for key in site_keys:
+            if key in config:
+                # Prefer explicit root-level values (user provided) over existing defaults
+                site_section[key] = config.pop(key)
+
+        return config
 
     def _load_environment(self, config_dir: Path, environment: str) -> dict[str, Any] | None:
         """
@@ -457,6 +522,77 @@ class ConfigDirectoryLoader:
         """
         return self.origin_tracker
 
+    @staticmethod
+    def _extract_baseurl(config: dict[str, Any] | None) -> Any:
+        """
+        Extract baseurl from a config dict if explicitly provided.
+
+        Returns the value if present (including empty string) or None if missing.
+        """
+        if not config or not isinstance(config, dict):
+            return None
+
+        site_section = config.get("site")
+        if isinstance(site_section, dict) and "baseurl" in site_section:
+            return site_section.get("baseurl")
+
+        if "baseurl" in config:
+            return config.get("baseurl")
+
+        return None
+
+    def _warn_search_ui_without_index(self, config: dict[str, Any]) -> None:
+        """
+        Warn if theme.features has search but search index won't be generated.
+
+        This catches a common confusion: users set ``theme.features: [search]``
+        (which only enables UI components) but don't realize they also need
+        ``features.search: true`` or ``output_formats.site_wide: [index_json]``
+        for search to actually work.
+
+        Args:
+            config: Configuration dictionary after feature expansion.
+        """
+        # Get theme.features (UI flags - list of strings)
+        theme = config.get("theme", {})
+        if not isinstance(theme, dict):
+            return
+
+        theme_features = theme.get("features", [])
+        if not isinstance(theme_features, list):
+            return
+
+        # Check if "search" is in theme.features
+        has_search_ui = any(
+            f == "search" or (isinstance(f, str) and f.startswith("search."))
+            for f in theme_features
+        )
+
+        if not has_search_ui:
+            return
+
+        # Check if search index will be generated
+        output_formats = config.get("output_formats", {})
+        if not isinstance(output_formats, dict):
+            return
+
+        site_wide = output_formats.get("site_wide", [])
+        has_index_json = "index_json" in site_wide if isinstance(site_wide, list) else False
+
+        if has_index_json:
+            return
+
+        # Search UI is enabled but no index will be generated - warn user
+        logger.warning(
+            "search_ui_without_index",
+            theme_features=[f for f in theme_features if "search" in str(f)],
+            site_wide_formats=site_wide,
+            suggestion=(
+                "Add 'features.search: true' to config/_default/features.yaml, "
+                "or add 'index_json' to output_formats.site_wide"
+            ),
+        )
+
     def _flatten_config(self, config: dict[str, Any]) -> dict[str, Any]:
         """
         Flatten nested configuration for easier access.
@@ -481,38 +617,14 @@ class ConfigDirectoryLoader:
         """
         flat = dict(config)
 
-        # Extract site section to top level
+        # Extract site section to top level (for backward compatibility)
         if "site" in config and isinstance(config["site"], dict):
             for key, value in config["site"].items():
-                if key not in flat:
-                    flat[key] = value
+                flat.setdefault(key, value)
 
-        # Extract build section to top level
+        # Extract build section to top level (backward compatibility for build.* access)
         if "build" in config and isinstance(config["build"], dict):
             for key, value in config["build"].items():
-                if key not in flat:
-                    flat[key] = value
-
-        # Extract dev section to top level (for cache_templates, watch_backend, etc.)
-        if "dev" in config and isinstance(config["dev"], dict):
-            for key, value in config["dev"].items():
-                if key not in flat:
-                    flat[key] = value
-
-        # Extract features section to top level
-        # Note: expand_features() runs before flattening, so this mainly handles
-        # any remaining feature keys that weren't expanded
-        if "features" in config and isinstance(config["features"], dict):
-            for key, value in config["features"].items():
-                if key not in flat:
-                    flat[key] = value
-
-        # Extract assets section to top level with _assets suffix (for backward compatibility)
-        # assets.minify → minify_assets, assets.optimize → optimize_assets, etc.
-        if "assets" in config and isinstance(config["assets"], dict):
-            for key, value in config["assets"].items():
-                flat_key = f"{key}_assets"
-                if flat_key not in flat:
-                    flat[flat_key] = value
+                flat.setdefault(key, value)
 
         return flat

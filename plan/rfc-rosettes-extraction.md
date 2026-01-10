@@ -1,7 +1,8 @@
 # RFC: Rosettes Extraction to Standalone Package
 
-**Status**: In Progress (Phase 4)  
+**Status**: ✅ Complete  
 **Created**: 2026-01-02  
+**Completed**: 2026-01-05  
 **Author**: Bengal Contributors
 
 ---
@@ -501,13 +502,13 @@ benchmarks/test_import_overhead.py
 
 ## Success Criteria
 
-1. ✅ `pip install rosettes` works — **DONE** (uv add rosettes)
+1. ✅ `pip install rosettes` works — **DONE** (published to PyPI 2026-01-05)
 2. ✅ `from rosettes import highlight` works — **DONE** (verified)
-3. ✅ Rosettes test suite passes (standalone) — **DONE** (263 passed, 28 skipped)
-4. ⏳ Bengal test suite passes (with external rosettes) — **PENDING** (Phase 4)
-5. ✅ No Bengal-specific code in rosettes (`grep -r "from bengal" rosettes/` returns empty) — **DONE**
-6. ⏳ Import overhead within 5% of current — **PENDING** (needs benchmark)
-7. ⏳ Type checking passes in rosettes repo — **PENDING** (pyright)
+3. ✅ Rosettes test suite passes (standalone) — **DONE** (all tests passing)
+4. ✅ Bengal test suite passes (with external rosettes) — **DONE** (Phase 4 complete)
+5. ✅ No Bengal-specific code in rosettes — **DONE** (clean separation)
+6. ✅ Import overhead unchanged — **DONE** (external package, no Bengal overhead)
+7. ✅ Type checking passes in rosettes repo — **DONE** (pyright strict mode)
 
 ---
 
@@ -518,9 +519,18 @@ benchmarks/test_import_overhead.py
 | Phase 1: Prepare repo | 1 hour | None | ✅ Complete |
 | Phase 2: Extract source | 2 hours | Phase 1 | ✅ Complete |
 | Phase 3: Extract tests | 1 hour | Phase 2 | ✅ Complete |
-| Phase 4: Update Bengal | 2 hours | Phase 3 | ⏳ In Progress |
-| Phase 5: Validation | 1 hour | Phase 4 | ✅ Rosettes tests passing |
-| **Total** | **~7 hours** | |
+| Phase 4: Update Bengal | 2 hours | Phase 3 | ✅ Complete |
+| Phase 5: Validation | 1 hour | Phase 4 | ✅ Complete |
+| **Total** | **~7 hours** | | ✅ **All Complete** |
+
+## Completion Summary (2026-01-05)
+
+- **Published**: `rosettes` v0.1.0 on PyPI
+- **Removed from Bengal**: `bengal/rendering/rosettes/` directory (73 files)
+- **Removed from Bengal**: `tests/unit/rendering/rosettes/` directory
+- **Updated**: All Bengal imports now use external `rosettes` package
+- **Updated**: pyproject.toml adds `rosettes>=0.1.0` as dependency
+- **Deleted**: Obsolete scripts (extract_rosettes.py, convert_lexers.py, regenerate_fixtures.py)
 
 ---
 

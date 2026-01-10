@@ -228,10 +228,11 @@ class SiteIndexGenerator:
         logger.debug("generating_site_index_json", page_count=len(pages))
 
         # Build site metadata (per-locale when i18n is enabled)
+        # Ensure all values are strings, not Mock objects
         site_metadata = {
-            "title": self.site.config.get("title", "Bengal Site"),
-            "description": self.site.config.get("description", ""),
-            "baseurl": self.site.config.get("baseurl", ""),
+            "title": str(self.site.title or "Bengal Site"),
+            "description": str(self.site.description or ""),
+            "baseurl": str(self.site.baseurl or ""),
         }
 
         # Only include build_time in production builds
@@ -331,15 +332,13 @@ class SiteIndexGenerator:
 
         See: plan/drafted/rfc-unified-page-data-accumulation.md
         """
-        baseurl = self.site.config.get("baseurl", "").rstrip("/")
-
-        # Construct full URL by combining baseurl with relative URI
-        page_url = f"{baseurl}{data.uri}" if baseurl else data.uri
+        baseurl = (self.site.baseurl or "").rstrip("/")
 
         summary: dict[str, Any] = {
             "objectID": data.uri,
-            "url": page_url,
-            "href": page_url,
+            # url includes baseurl when configured; uri stays relative
+            "url": f"{baseurl}{data.uri}" if baseurl else data.uri,
+            "href": f"{baseurl}{data.uri}" if baseurl else data.uri,
             "uri": data.uri,
             "title": data.title,
             "description": data.description,
@@ -387,9 +386,9 @@ class SiteIndexGenerator:
 
         # Build site metadata
         site_metadata = {
-            "title": self.site.config.get("title", "Bengal Site"),
-            "description": self.site.config.get("description", ""),
-            "baseurl": self.site.config.get("baseurl", ""),
+            "title": self.site.title or "Bengal Site",
+            "description": self.site.description or "",
+            "baseurl": self.site.baseurl or "",
         }
 
         # Only include build_time in production builds
@@ -544,12 +543,13 @@ class SiteIndexGenerator:
 
         # Construct full URL by combining baseurl with relative URI
         # This avoids double/triple baseurl that occurred when page.url already had baseurl
-        baseurl = self.site.config.get("baseurl", "").rstrip("/")
+        baseurl = (self.site.baseurl or "").rstrip("/")
         page_url = f"{baseurl}{page_uri}" if baseurl else page_uri
 
         summary: dict[str, Any] = {
             "objectID": page_uri,  # Unique identifier (relative path)
-            "url": page_url,  # Full URL with baseurl (JSON format compatibility)
+            # url includes baseurl when configured; uri stays relative
+            "url": page_url,  # Full URL with baseurl (alias for consistency)
             "href": page_url,  # Full URL with baseurl (alias for consistency)
             "uri": page_uri,  # Relative path (without baseurl)
             "title": page.title,

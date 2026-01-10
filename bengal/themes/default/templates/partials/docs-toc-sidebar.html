@@ -30,10 +30,8 @@ Configuration:
   {% set show_graph = theme.features is not defined or 'graph.contextual' in theme.features %}
   {% if show_graph %}
   <div class="graph-contextual" data-page-url="{{ page.href }}">
-    {# Placeholder - will be replaced by JavaScript #}
-    <div class="graph-contextual-container graph-loading"
-      style="min-height: 200px; opacity: 1 !important; visibility: visible !important;">
-    </div>
+    {# Starts hidden - JS expands when data available #}
+    <div class="graph-contextual-container graph-loading"></div>
   </div>
   {% end %}
 

@@ -26,8 +26,8 @@ from bengal.cli.helpers import (
     validate_config_types,
     validate_config_values,
 )
-from bengal.config.directory_loader import ConfigDirectoryLoader, ConfigLoadError
 from bengal.config.environment import detect_environment
+from bengal.config.unified_loader import ConfigLoadError, UnifiedConfigLoader
 from bengal.output import CLIOutput
 
 
@@ -126,7 +126,7 @@ def show(
         raise click.Abort()
 
     # Load config with origin tracking if requested
-    loader = ConfigDirectoryLoader(track_origins=origin)
+    loader = UnifiedConfigLoader(track_origins=origin)
 
     # Auto-detect environment if not specified
     if environment is None:
@@ -140,8 +140,10 @@ def show(
 
     cli.blank()
 
-    # Load config
-    config = loader.load(config_dir, environment=environment, profile=profile)
+    # Load config (UnifiedConfigLoader takes site_root, not config_dir)
+    config_obj = loader.load(root_path, environment=environment, profile=profile)
+    # Get raw dict for display/comparison (serialization needs actual dict)
+    config = config_obj.raw
 
     # Filter to section if requested
     if section:
@@ -244,8 +246,10 @@ def doctor(
     with cli_progress("Checking environments...", total=len(environments), cli=cli) as update:
         for env in environments:
             try:
-                loader = ConfigDirectoryLoader()
-                config = loader.load(config_dir, environment=env)
+                loader = UnifiedConfigLoader()
+                config_obj = loader.load(root_path, environment=env)
+                # Convert to raw dict for validation functions
+                config = config_obj.raw if hasattr(config_obj, "raw") else config_obj
 
                 # Run validation checks
                 validate_config_types(config, errors, warnings)
@@ -327,11 +331,13 @@ def diff(
 
     # Load first config
     env1 = environment or "local"
-    loader = ConfigDirectoryLoader()
-    config1 = loader.load(config_dir, environment=env1)
+    loader = UnifiedConfigLoader()
+    config1_obj = loader.load(root_path, environment=env1)
+    config1 = config1_obj.raw if hasattr(config1_obj, "raw") else config1_obj
 
     # Load second config
-    config2 = loader.load(config_dir, environment=against)
+    config2_obj = loader.load(root_path, environment=against)
+    config2 = config2_obj.raw if hasattr(config2_obj, "raw") else config2_obj
 
     cli.header(f"🔍 Comparing: {env1} → {against}")
     cli.blank()

@@ -44,6 +44,7 @@ class SitePropertiesMixin:
     _config_hash: str | None
     _query_registry: Any
     _paths: BengalPaths | None
+    _description_override: str | None
 
     @property
     def paths(self) -> BengalPaths:
@@ -79,7 +80,35 @@ class SitePropertiesMixin:
         Examples:
             site.title  # Returns "My Blog" or None
         """
-        return self.config.get("title")
+        # Support both Config and dict access
+        if hasattr(self.config, "site"):
+            return self.config.site.title
+        return self.config.get("site", {}).get("title") or self.config.get("title")
+
+    @property
+    def description(self) -> str | None:
+        """
+        Get site description from configuration.
+
+        Respects runtime overrides set on the Site instance while falling back
+        to canonical config locations.
+        """
+        if getattr(self, "_description_override", None) is not None:
+            return self._description_override
+
+        if hasattr(self.config, "site"):
+            return self.config.site.get("description")
+
+        site_section = self.config.get("site", {})
+        if isinstance(site_section, dict) and "description" in site_section:
+            return site_section.get("description")
+
+        return self.config.get("description")
+
+    @description.setter
+    def description(self, value: str | None) -> None:
+        """Allow runtime override of site description for generated outputs."""
+        self._description_override = value
 
     @property
     def baseurl(self) -> str | None:
@@ -89,13 +118,25 @@ class SitePropertiesMixin:
         Baseurl is prepended to all page URLs. Can be empty, path-only (e.g., "/blog"),
         or absolute (e.g., "https://example.com").
 
+        Priority order:
+        1. Flat config["baseurl"] (allows runtime overrides, e.g., dev server clearing)
+        2. Nested config.site.baseurl or config["site"]["baseurl"]
+
         Returns:
             Base URL string from config, or None if not configured
 
         Examples:
             site.baseurl  # Returns "/blog" or "https://example.com" or None
         """
-        return self.config.get("baseurl")
+        # Check flat baseurl first (allows runtime overrides like dev server clearing)
+        flat_baseurl = self.config.get("baseurl")
+        if flat_baseurl is not None:
+            return flat_baseurl
+
+        # Fall back to nested site.baseurl
+        if hasattr(self.config, "site"):
+            return self.config.site.baseurl
+        return self.config.get("site", {}).get("baseurl")
 
     @property
     def author(self) -> str | None:
@@ -108,7 +149,55 @@ class SitePropertiesMixin:
         Examples:
             site.author  # Returns "Jane Doe" or None
         """
-        return self.config.get("author")
+        # Support both Config and dict access
+        if hasattr(self.config, "site"):
+            return self.config.site.author
+        return self.config.get("site", {}).get("author") or self.config.get("author")
+
+    @property
+    def favicon(self) -> str | None:
+        """
+        Get favicon path from site config.
+
+        Returns:
+            Favicon path string from config, or None if not configured
+        """
+        # Support both Config and dict access
+        if hasattr(self.config, "site"):
+            return self.config.site.get("favicon")
+        return self.config.get("site", {}).get("favicon")
+
+    @property
+    def logo_image(self) -> str | None:
+        """
+        Get logo image path from site config.
+
+        Returns:
+            Logo image path string from config, or None if not configured
+        """
+        # Support both Config and dict access
+        if hasattr(self.config, "site"):
+            return self.config.site.get("logo_image") or self.config.site.get("logo")
+        site_section = self.config.get("site", {})
+        if isinstance(site_section, dict):
+            return site_section.get("logo_image") or site_section.get("logo")
+        return self.config.get("logo_image") or self.config.get("logo")
+
+    @property
+    def logo_text(self) -> str | None:
+        """
+        Get logo text from site config.
+
+        Returns:
+            Logo text string from config, or None if not configured
+        """
+        # Support both Config and dict access
+        if hasattr(self.config, "site"):
+            return self.config.site.get("logo_text") or self.config.site.title
+        site_section = self.config.get("site", {})
+        if isinstance(site_section, dict):
+            return site_section.get("logo_text") or site_section.get("title")
+        return self.config.get("logo_text") or self.config.get("title")
 
     @property
     def params(self) -> dict[str, Any]:
@@ -282,6 +371,10 @@ class SitePropertiesMixin:
         Example:
             parallel = site.build_config.get("parallel", True)
         """
+        # Support both Config and dict access
+        if hasattr(self.config, "build"):
+            # ConfigSection - access raw dict
+            return dict(self.config.build._data) if hasattr(self.config.build, "_data") else {}
         value = self.config.get("build")
         return dict(value) if isinstance(value, dict) else {}
 

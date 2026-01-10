@@ -252,7 +252,7 @@ Content.
 
     # Verify page metadata preserved - get the actual page (not tag pages)
     actual_pages = [
-        p for p in data_incremental["pages"] if not p.get("url", "").startswith("/tags/")
+        p for p in data_incremental["pages"] if not p.get("uri", "").startswith("/tags/")
     ]
     assert len(actual_pages) >= 1, "Should have at least one content page"
     page_data = actual_pages[0]

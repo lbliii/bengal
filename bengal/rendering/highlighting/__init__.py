@@ -11,7 +11,9 @@ Public API:
     - list_backends(): List available backends
 
 Default Backend:
-    - rosettes: Built-in, lock-free, 50 languages, 3.4x faster than Pygments
+    - rosettes: External package, lock-free, 55 languages, 3.4x faster than Pygments
+      Package: https://pypi.org/project/rosettes/
+      Source: https://github.com/lbliii/rosettes
 
 Optional Backends:
     - tree-sitter: Fast, semantic highlighting (optional dependency)
@@ -201,6 +203,7 @@ def highlight(
 def highlight_many(
     items: list[tuple[str, str]],
     backend: str | None = None,
+    css_class_style: str = "semantic",
 ) -> list[str]:
     """
     Highlight multiple code blocks in parallel.
@@ -211,6 +214,9 @@ def highlight_many(
     Args:
         items: List of (code, language) tuples
         backend: Override default backend (None uses rosettes)
+        css_class_style: Class naming style (HTML only):
+            - "semantic" (default): Uses readable classes like .syntax-function
+            - "pygments": Uses Pygments-compatible classes like .nf
 
     Returns:
         List of highlighted HTML strings in the same order
@@ -232,9 +238,9 @@ def highlight_many(
 
     if backend_name == "rosettes":
         # Use Rosettes' native parallel implementation
-        from bengal.rendering import rosettes
+        import rosettes
 
-        return rosettes.highlight_many(items)
+        return rosettes.highlight_many(items, css_class_style=css_class_style)
 
     # Fallback: sequential for other backends
     highlighter = get_highlighter(backend)
@@ -284,10 +290,12 @@ def _register_tree_sitter_backend() -> None:
 
 
 def _register_rosettes_backend() -> None:
-    """Register Rosettes backend (always available, bundled with Bengal).
+    """Register Rosettes backend (external dependency, always available).
+
+    Package: https://pypi.org/project/rosettes/
 
     Features:
-        - 50 languages supported
+        - 55 languages supported
         - 3.4x faster than Pygments (parallel builds)
         - Lock-free, designed for free-threaded Python
     """

@@ -705,8 +705,8 @@ class SocialCardGenerator:
         # Get content
         title = page.title or "Untitled"
         description = page.description or ""
-        site_name = self.site.config.get("title", "")
-        site_url = self.site.config.get("baseurl", "")
+        site_name = self.site.title or ""
+        site_url = self.site.baseurl or ""
 
         # Apply per-page overrides
         if isinstance(social_card_meta, dict):

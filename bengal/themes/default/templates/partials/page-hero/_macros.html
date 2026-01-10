@@ -467,7 +467,7 @@ KIDA FEATURES:
         {% if source_file and config?.github_repo %}
         {% let branch = config?.github_branch ?? 'main' %}
         {% let line_anchor = '#L' ~ element.line_number if element?.line_number else '' %}
-        {% let source_url = config.github_repo ~ '/blob/' ~ branch ~ '/' ~ source_file ~ line_anchor %}
+        {% let source_url = config.params.github_repo ~ '/blob/' ~ branch ~ '/' ~ source_file ~ line_anchor %}
         <a href="{{ source_url }}" class="page-hero__source-link" target="_blank" rel="noopener">
             {{ icon('file-code', size=14) }}
             <span>{{ t('source.view', default='View source') }}</span>

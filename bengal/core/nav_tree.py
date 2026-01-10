@@ -544,9 +544,9 @@ class NavNodeProxy:
             self._href_cached = site_path
             return site_path
 
-        # Get baseurl from config
+        # Get baseurl from site property - handles nested config structure
         try:
-            baseurl = (site.config.get("baseurl", "") or "").rstrip("/")
+            baseurl = (site.baseurl or "").rstrip("/")
         except Exception:
             self._href_cached = site_path
             return site_path

@@ -27,16 +27,19 @@ class HtmlClassifierMixin:
     _html_block_type: int
     _html_block_content: list[str]
     _html_block_start: int
+    _html_block_indent: int
     _pos: int
     _source_len: int
     _consumed_newline: bool
 
-    def _location_from(self, start_pos: int) -> SourceLocation:
+    def _location_from(
+        self, start_pos: int, start_col: int | None = None, end_pos: int | None = None
+    ) -> SourceLocation:
         """Get source location from saved position. Implemented by Lexer."""
         raise NotImplementedError
 
     def _try_classify_html_block_start(
-        self, content: str, line_start: int, full_line: str
+        self, content: str, line_start: int, full_line: str, indent: int = 0
     ) -> Iterator[Token] | None:
         """Try to classify content as HTML block start.
 
@@ -46,6 +49,7 @@ class HtmlClassifierMixin:
             content: Line content with leading whitespace stripped
             line_start: Position in source where line starts
             full_line: The full line including leading whitespace
+            indent: Number of leading spaces (for line_indent)
 
         Returns:
             Iterator yielding HTML_BLOCK token, or None if not HTML block.
@@ -67,6 +71,7 @@ class HtmlClassifierMixin:
                 self._html_block_type = 1
                 self._html_block_content = [full_line_nl]
                 self._html_block_start = line_start
+                self._html_block_indent = indent
                 # Check if end condition on same line
                 end_tag = f"</{tag}>"
                 if end_tag in content_lower:
@@ -80,6 +85,7 @@ class HtmlClassifierMixin:
             self._html_block_type = 2
             self._html_block_content = [full_line_nl]
             self._html_block_start = line_start
+            self._html_block_indent = indent
             if "-->" in content[4:]:
                 return self._emit_html_block()
             self._mode = LexerMode.HTML_BLOCK
@@ -91,6 +97,7 @@ class HtmlClassifierMixin:
             self._html_block_type = 3
             self._html_block_content = [full_line_nl]
             self._html_block_start = line_start
+            self._html_block_indent = indent
             if "?>" in content[2:]:
                 return self._emit_html_block()
             self._mode = LexerMode.HTML_BLOCK
@@ -102,6 +109,7 @@ class HtmlClassifierMixin:
             self._html_block_type = 4
             self._html_block_content = [full_line_nl]
             self._html_block_start = line_start
+            self._html_block_indent = indent
             if ">" in content[2:]:
                 return self._emit_html_block()
             self._mode = LexerMode.HTML_BLOCK
@@ -113,6 +121,7 @@ class HtmlClassifierMixin:
             self._html_block_type = 5
             self._html_block_content = [full_line_nl]
             self._html_block_start = line_start
+            self._html_block_indent = indent
             if "]]>" in content[9:]:
                 return self._emit_html_block()
             self._mode = LexerMode.HTML_BLOCK
@@ -125,6 +134,7 @@ class HtmlClassifierMixin:
             self._html_block_type = 6
             self._html_block_content = [full_line_nl]
             self._html_block_start = line_start
+            self._html_block_indent = indent
             # If at EOF, emit immediately
             if self._pos >= self._source_len:
                 return self._emit_html_block()
@@ -138,6 +148,7 @@ class HtmlClassifierMixin:
             self._html_block_type = 7
             self._html_block_content = [full_line_nl]
             self._html_block_start = line_start
+            self._html_block_indent = indent
             # If at EOF, emit immediately
             if self._pos >= self._source_len:
                 return self._emit_html_block()
@@ -364,10 +375,12 @@ class HtmlClassifierMixin:
             TokenType.HTML_BLOCK,
             html_content,
             self._location_from(self._html_block_start),
+            line_indent=self._html_block_indent,
         )
 
         # Reset state
         self._html_block_type = 0
         self._html_block_content = []
         self._html_block_start = 0
+        self._html_block_indent = 0
         self._mode = LexerMode.BLOCK

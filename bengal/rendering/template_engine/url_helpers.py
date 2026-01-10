@@ -105,9 +105,13 @@ def with_baseurl(path: str, site: Site) -> str:
     if not path.startswith("/"):
         path = "/" + path
 
-    # Get baseurl from config
+    # Get baseurl from config - use site.baseurl property for proper nested config access
     try:
-        baseurl_value = (site.config.get("baseurl", "") or "").rstrip("/")
+        raw_baseurl = getattr(site, "baseurl", "") if site is not None else ""
+        # Guard against mocks/non-strings
+        if raw_baseurl is None or not isinstance(raw_baseurl, str):
+            raw_baseurl = ""
+        baseurl_value = raw_baseurl.rstrip("/")
         # Treat "/" as empty (root-relative)
         if baseurl_value == "/":
             baseurl_value = ""

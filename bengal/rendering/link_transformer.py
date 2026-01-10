@@ -94,6 +94,30 @@ def transform_internal_links(html: str, baseurl: str) -> str:
     return transformed
 
 
+def _get_baseurl_from_config(config: dict[str, Any]) -> str:
+    """
+    Get baseurl from config dict, handling nested structure.
+
+    Config can be either:
+    - Flat: {"baseurl": "...", ...}
+    - Nested: {"site": {"baseurl": "..."}, ...}
+
+    Args:
+        config: Site configuration dict
+
+    Returns:
+        Baseurl string or empty string
+    """
+    # Try nested structure first (TOML format: [site] section)
+    site_section = config.get("site", {})
+    if isinstance(site_section, dict):
+        baseurl = site_section.get("baseurl", "")
+        if baseurl:
+            return str(baseurl)
+    # Fallback to flat structure
+    return str(config.get("baseurl", "") or "")
+
+
 def should_transform_links(config: dict[str, Any]) -> bool:
     """
     Check if link transformation should be applied.
@@ -108,7 +132,7 @@ def should_transform_links(config: dict[str, Any]) -> bool:
     Returns:
         True if links should be transformed
     """
-    baseurl = config.get("baseurl", "")
+    baseurl = _get_baseurl_from_config(config)
     if not baseurl:
         return False
 
@@ -130,7 +154,7 @@ def get_baseurl(config: dict[str, Any]) -> str:
     Returns:
         Normalized baseurl string or empty string
     """
-    baseurl = config.get("baseurl", "") or ""
+    baseurl = _get_baseurl_from_config(config)
     return baseurl.rstrip("/")
 
 

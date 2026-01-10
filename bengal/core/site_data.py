@@ -108,24 +108,37 @@ class SiteData:
         else:
             theme_name = str(theme_section) if theme_section else "default"
 
-        # Resolve output directory
-        output_dir_str = config.get("output_dir", "public")
+        # Resolve output directory (support both Config and dict)
+        if hasattr(config, "build"):
+            output_dir_str = config.build.output_dir
+        else:
+            output_dir_str = config.get("build", {}).get("output_dir") or config.get(
+                "output_dir", "public"
+            )
         output_dir = Path(output_dir_str)
         if not output_dir.is_absolute():
             output_dir = root / output_dir
 
-        # Resolve content directory
-        content_dir_str = config.get("content_dir", "content")
+        # Resolve content directory (support both Config and dict)
+        if hasattr(config, "build"):
+            content_dir_str = config.build.content_dir
+        else:
+            content_dir_str = config.get("build", {}).get("content_dir") or config.get(
+                "content_dir", "content"
+            )
         content_dir = Path(content_dir_str)
         if not content_dir.is_absolute():
             content_dir = root / content_dir
 
+        # Use raw dict for MappingProxyType (Config supports dict-like access)
+        config_dict = config.raw if hasattr(config, "raw") else config
+
         return cls(
             root_path=root,
             output_dir=output_dir,
-            config=MappingProxyType(config),
+            config=MappingProxyType(config_dict),
             theme_name=theme_name,
-            version_config=VersionConfig.from_config(config),
+            version_config=VersionConfig.from_config(config_dict),
             content_dir=content_dir,
             assets_dir=root / "assets",
             data_dir=root / "data",
@@ -135,28 +148,55 @@ class SiteData:
     @property
     def baseurl(self) -> str:
         """Get baseurl from config."""
+        # Config is MappingProxyType wrapping dict, access nested structure
+        site_section = self.config.get("site", {})
+        if isinstance(site_section, dict):
+            return str(site_section.get("baseurl", ""))
+        # Fallback to flat access for backward compatibility
         return str(self.config.get("baseurl", ""))
 
     @property
     def title(self) -> str:
         """Get site title from config."""
+        # Config is MappingProxyType wrapping dict, access nested structure
+        site_section = self.config.get("site", {})
+        if isinstance(site_section, dict):
+            return str(site_section.get("title", ""))
+        # Fallback to flat access for backward compatibility
         return str(self.config.get("title", ""))
 
     @property
     def author(self) -> str | None:
         """Get site author from config."""
-        author = self.config.get("author")
+        # Config is MappingProxyType wrapping dict, access nested structure
+        site_section = self.config.get("site", {})
+        if isinstance(site_section, dict):
+            author = site_section.get("author")
+        else:
+            # Fallback to flat access for backward compatibility
+            author = self.config.get("author")
         return str(author) if author else None
 
     @property
     def description(self) -> str | None:
         """Get site description from config."""
-        desc = self.config.get("description")
+        # Config is MappingProxyType wrapping dict, access nested structure
+        site_section = self.config.get("site", {})
+        if isinstance(site_section, dict):
+            desc = site_section.get("description")
+        else:
+            # Fallback to flat access for backward compatibility
+            desc = self.config.get("description")
         return str(desc) if desc else None
 
     @property
     def language(self) -> str:
         """Get default language from config."""
+        # Config is MappingProxyType wrapping dict, access nested structure
+        site_section = self.config.get("site", {})
+        if isinstance(site_section, dict):
+            return str(site_section.get("language", "en"))
+        # Fallback to flat access for backward compatibility
         return str(self.config.get("language", "en"))
 
     def get_config_section(self, section: str) -> Mapping[str, Any]:

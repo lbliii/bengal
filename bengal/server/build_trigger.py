@@ -239,7 +239,9 @@ class BuildTrigger:
 
             # Run pre-build hooks
             config = getattr(self.site, "config", {}) or {}
-            if not run_pre_build_hooks(config, self.site.root_path):
+            # run_pre_build_hooks expects a dict, use .raw for serialization
+            config_dict = config.raw if hasattr(config, "raw") else config
+            if not run_pre_build_hooks(config_dict, self.site.root_path):
                 show_error("Pre-build hook failed - skipping build", show_art=False)
                 cli.request_log_header()
                 logger.error("rebuild_skipped", reason="pre_build_hook_failed")
@@ -293,7 +295,7 @@ class BuildTrigger:
             self._display_stats(result, use_incremental)
 
             # Run post-build hooks
-            if not run_post_build_hooks(config, self.site.root_path):
+            if not run_post_build_hooks(config_dict, self.site.root_path):
                 logger.warning("post_build_hook_failed", action="continuing")
 
             # Show server URL
@@ -761,6 +763,7 @@ class BuildTrigger:
         if not hasattr(self.site, "config") or not self.site.config:
             return False
 
+        # ConfigSection now supports dict methods, use directly
         autodoc_config = self.site.config.get("autodoc", {})
 
         # Check Python source directories

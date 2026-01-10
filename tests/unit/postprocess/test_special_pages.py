@@ -42,7 +42,16 @@ class DummySite:
         self.theme = "default"
         self.template_engine = DummyTemplateEngine(available_templates or [])
         self.pages = []
+        # URL registry used by generators to avoid collisions
         self.url_registry = URLRegistry()
+
+    @property
+    def baseurl(self) -> str:
+        """Return baseurl from config."""
+        site_section = self.config.get("site", {})
+        if isinstance(site_section, dict) and site_section.get("baseurl"):
+            return site_section.get("baseurl", "")
+        return self.config.get("baseurl", "")
 
 
 def test_search_generated_by_default(tmp_path):

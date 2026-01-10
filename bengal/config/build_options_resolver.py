@@ -77,7 +77,7 @@ class CLIFlags:
     profile_templates: bool | None = None
 
 
-def _get_config_value(config: dict[str, Any], key: str) -> Any:
+def _get_config_value(config: dict[str, Any] | Any, key: str) -> Any:
     """
     Get config value with defensive path handling.
 
@@ -85,12 +85,15 @@ def _get_config_value(config: dict[str, Any], key: str) -> Any:
     Handles string boolean coercion for boolean options.
 
     Args:
-        config: Configuration dictionary (may be flattened or nested)
+        config: Configuration dictionary or Config object (may be flattened or nested)
         key: Config key to retrieve
 
     Returns:
         Config value, or None if not found or invalid
     """
+    # Use .raw for dict operations (Config always has .raw)
+    config = config.raw if hasattr(config, "raw") else config
+
     # Check flattened path first (most common after config loading)
     if key in config:
         value = config[key]
@@ -120,7 +123,7 @@ def _get_config_value(config: dict[str, Any], key: str) -> Any:
 
 
 def resolve_build_options(
-    config: dict[str, Any],
+    config: dict[str, Any] | Any,  # Accept Config objects too
     cli_flags: CLIFlags | None = None,
 ) -> BuildOptions:
     """
@@ -165,6 +168,7 @@ def resolve_build_options(
         True  # Fast mode forces quiet
     """
     cli = cli_flags or CLIFlags()
+    build_defaults = DEFAULTS.get("build", {})
 
     def resolve(key: str, cli_value: Any, default_key: str | None = None) -> Any:
         """
@@ -186,6 +190,8 @@ def resolve_build_options(
 
         # Fall back to DEFAULTS
         default_key = default_key or key
+        if default_key in build_defaults:
+            return build_defaults.get(default_key)
         return DEFAULTS.get(default_key)
 
     # Handle fast_mode (special mode that overrides quiet)

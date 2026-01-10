@@ -1,8 +1,14 @@
+"""Tests for environment-based baseurl configuration.
+
+Note: Config is now nested (site.baseurl), and UnifiedConfigLoader returns
+a Config object with structured access. Access baseurl via config.site.baseurl.
+"""
+
 from pathlib import Path
 
 import pytest
 
-from bengal.config.loader import ConfigLoader
+from bengal.config import UnifiedConfigLoader
 
 
 def write_min_config(dir_path: Path, baseurl: str | None = None) -> Path:
@@ -21,10 +27,10 @@ def test_env_explicit_bengal_baseurl_overrides_when_config_empty(
     write_min_config(tmp_path, baseurl="")
     monkeypatch.setenv("BENGAL_BASEURL", "https://example.com/sub")
 
-    loader = ConfigLoader(tmp_path)
-    config = loader.load()
+    loader = UnifiedConfigLoader()
+    config = loader.load(tmp_path)
 
-    assert config.get("baseurl") == "https://example.com/sub"
+    assert config.site.baseurl == "https://example.com/sub"
 
 
 def test_netlify_url_used_when_config_empty(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
@@ -36,10 +42,10 @@ def test_netlify_url_used_when_config_empty(tmp_path: Path, monkeypatch: pytest.
     monkeypatch.setenv("NETLIFY", "true")
     monkeypatch.setenv("URL", "https://docs.example.com")
 
-    loader = ConfigLoader(tmp_path)
-    config = loader.load()
+    loader = UnifiedConfigLoader()
+    config = loader.load(tmp_path)
 
-    assert config.get("baseurl") == "https://docs.example.com"
+    assert config.site.baseurl == "https://docs.example.com"
 
 
 def test_netlify_preview_deploy_prime_url_fallback(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
@@ -53,10 +59,10 @@ def test_netlify_preview_deploy_prime_url_fallback(tmp_path: Path, monkeypatch: 
     monkeypatch.delenv("URL", raising=False)
     monkeypatch.setenv("DEPLOY_PRIME_URL", "https://deploy-preview--site.netlify.app")
 
-    loader = ConfigLoader(tmp_path)
-    config = loader.load()
+    loader = UnifiedConfigLoader()
+    config = loader.load(tmp_path)
 
-    assert config.get("baseurl") == "https://deploy-preview--site.netlify.app"
+    assert config.site.baseurl == "https://deploy-preview--site.netlify.app"
 
 
 def test_vercel_url_with_protocol_added_when_missing(
@@ -70,10 +76,10 @@ def test_vercel_url_with_protocol_added_when_missing(
     monkeypatch.setenv("VERCEL", "1")
     monkeypatch.setenv("VERCEL_URL", "my-docs.vercel.app")
 
-    loader = ConfigLoader(tmp_path)
-    config = loader.load()
+    loader = UnifiedConfigLoader()
+    config = loader.load(tmp_path)
 
-    assert config.get("baseurl") == "https://my-docs.vercel.app"
+    assert config.site.baseurl == "https://my-docs.vercel.app"
 
 
 def test_github_pages_owner_repo_fallback(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
@@ -85,11 +91,11 @@ def test_github_pages_owner_repo_fallback(tmp_path: Path, monkeypatch: pytest.Mo
     monkeypatch.setenv("GITHUB_ACTIONS", "true")
     monkeypatch.setenv("GITHUB_REPOSITORY", "owner123/repo456")
 
-    loader = ConfigLoader(tmp_path)
-    config = loader.load()
+    loader = UnifiedConfigLoader()
+    config = loader.load(tmp_path)
 
     # Project sites get path-only baseurl for relative links
-    assert config.get("baseurl") == "/repo456"
+    assert config.site.baseurl == "/repo456"
 
 
 def test_github_pages_root_deployment_via_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
@@ -102,11 +108,11 @@ def test_github_pages_root_deployment_via_env(tmp_path: Path, monkeypatch: pytes
     monkeypatch.setenv("GITHUB_REPOSITORY", "lbliii/bengal")
     monkeypatch.setenv("GITHUB_PAGES_ROOT", "true")
 
-    loader = ConfigLoader(tmp_path)
-    config = loader.load()
+    loader = UnifiedConfigLoader()
+    config = loader.load(tmp_path)
 
     # Root deployment gets empty baseurl (served from root)
-    assert config.get("baseurl") == ""
+    assert config.site.baseurl == ""
 
 
 def test_github_pages_user_org_site_auto_detection(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
@@ -119,11 +125,11 @@ def test_github_pages_user_org_site_auto_detection(tmp_path: Path, monkeypatch: 
     monkeypatch.setenv("GITHUB_REPOSITORY", "lbliii/lbliii.github.io")
     monkeypatch.delenv("GITHUB_PAGES_ROOT", raising=False)  # Not set, should auto-detect
 
-    loader = ConfigLoader(tmp_path)
-    config = loader.load()
+    loader = UnifiedConfigLoader()
+    config = loader.load(tmp_path)
 
     # User/org site auto-detects root deployment (empty baseurl)
-    assert config.get("baseurl") == ""
+    assert config.site.baseurl == ""
 
 
 def test_explicit_config_baseurl_not_overridden_by_env(
@@ -132,7 +138,7 @@ def test_explicit_config_baseurl_not_overridden_by_env(
     write_min_config(tmp_path, baseurl="https://explicit.example.com")
     monkeypatch.setenv("BENGAL_BASEURL", "https://should-not-apply.example.com")
 
-    loader = ConfigLoader(tmp_path)
-    config = loader.load()
+    loader = UnifiedConfigLoader()
+    config = loader.load(tmp_path)
 
-    assert config.get("baseurl") == "https://explicit.example.com"
+    assert config.site.baseurl == "https://explicit.example.com"

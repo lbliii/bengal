@@ -112,7 +112,7 @@ class SitemapGenerator:
         urlset.set("xmlns", "http://www.sitemaps.org/schemas/sitemap/0.9")
         urlset.set("xmlns:xhtml", "http://www.w3.org/1999/xhtml")
 
-        baseurl = self.site.config.get("baseurl", "")
+        baseurl = self.site.baseurl or ""
 
         # Add each page to sitemap
         included_count = 0
@@ -240,7 +240,7 @@ class SitemapGenerator:
                 suggestion="Check output directory permissions and available disk space.",
                 original_error=e,
             )
-            record_error(error, context="postprocess:sitemap")
+            record_error(error, build_phase="postprocess:sitemap")
 
             self.logger.error(
                 "sitemap_generation_failed",

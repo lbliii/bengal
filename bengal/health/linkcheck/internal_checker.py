@@ -75,7 +75,7 @@ class InternalLinkChecker:
         self.output_dir = site.output_dir
 
         # Get baseurl to strip from URLs
-        baseurl = site.config.get("baseurl", "")
+        baseurl = site.baseurl or ""
         if baseurl:
             # Parse baseurl to get just the path part
             from urllib.parse import urlparse

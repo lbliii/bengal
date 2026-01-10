@@ -281,5 +281,5 @@ def create_markdown_parser(engine='patitas'):
 
 - [Architecture Overview](./) - High-level architecture
 - [Orchestration](core/orchestration.md) - Build coordination
-- [Performance](meta/performance.md) - Benchmarks and hot paths
+- [Performance](../../../building/performance/) - Benchmarks and hot paths
 - [Testing](meta/testing.md) - Test strategy
