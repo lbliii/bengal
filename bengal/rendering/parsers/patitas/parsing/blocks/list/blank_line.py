@@ -117,7 +117,12 @@ def handle_blank_line(
             | TokenType.ATX_HEADING
             | TokenType.THEMATIC_BREAK
         ):
-            # Block types that can appear in list items after blank line
+            # Respect indentation: block content must be at or beyond the list item's
+            # content indent to stay in the item. Otherwise, the block terminates
+            # the list and is parsed at the parent level (CommonMark 5.3/5.4).
+            block_indent = next_token.line_indent if next_token.line_indent >= 0 else 0
+            if block_indent < check_indent:
+                return EndList()
             return ParseBlock(is_loose=True)
 
         case TokenType.INDENTED_CODE:

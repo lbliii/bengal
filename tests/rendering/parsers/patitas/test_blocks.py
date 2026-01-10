@@ -124,6 +124,12 @@ class TestListEdgeCases:
         html = parse("- item with **bold**")
         assert "<strong>" in html
 
+    def test_heading_after_list_not_nested(self):
+        """Heading following a list after a blank line stays outside the list."""
+        html = parse("## Features\n\n- a\n- b\n- c\n\n## Next Steps\n\n1. one\n2. two\n")
+        assert '<h2 id="next-steps"' in html
+        assert html.index("</ul>") < html.index('id="next-steps"')
+
     def test_ordered_list_paren_marker(self):
         """Ordered list with parenthesis marker."""
         # Note: Currently only period is supported
