@@ -89,6 +89,13 @@ class ConfigValidatorWrapper(BaseValidator):
                 max_workers_override = build_section.get("max_workers")
                 incremental = build_section.get("incremental")
                 parallel = build_section.get("parallel", True)
+                # Fall back to top-level if not present in build.*
+                if max_workers_override is None:
+                    max_workers_override = config.get("max_workers")
+                if incremental is None:
+                    incremental = config.get("incremental")
+                if "parallel" not in build_section:
+                    parallel = config.get("parallel", parallel)
             else:
                 # Fallback to flat access for backward compatibility
                 max_workers_override = config.get("max_workers")

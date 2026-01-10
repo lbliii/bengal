@@ -168,6 +168,7 @@ def resolve_build_options(
         True  # Fast mode forces quiet
     """
     cli = cli_flags or CLIFlags()
+    build_defaults = DEFAULTS.get("build", {})
 
     def resolve(key: str, cli_value: Any, default_key: str | None = None) -> Any:
         """
@@ -189,6 +190,8 @@ def resolve_build_options(
 
         # Fall back to DEFAULTS
         default_key = default_key or key
+        if default_key in build_defaults:
+            return build_defaults.get(default_key)
         return DEFAULTS.get(default_key)
 
     # Handle fast_mode (special mode that overrides quiet)

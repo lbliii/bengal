@@ -430,25 +430,6 @@ DEFAULTS: dict[str, Any] = {
     },
 }
 
-# -------------------------------------------------------------------------
-# Legacy flattened defaults for backward compatibility
-# -------------------------------------------------------------------------
-# Some code paths and tests still access build defaults as top-level keys.
-# Provide flattened aliases to avoid KeyError while keeping the nested
-# structure as the canonical source of truth.
-DEFAULTS.update(
-    {
-        "parallel": DEFAULTS["build"]["parallel"],
-        "incremental": DEFAULTS["build"]["incremental"],
-        "quiet": False,
-        "verbose": False,
-        "strict_mode": DEFAULTS["build"]["strict_mode"],
-        "fast_mode": DEFAULTS["build"].get("fast_mode", False),
-        "memory_optimized": DEFAULTS["build"].get("memory_optimized", False),
-        "profile_templates": DEFAULTS["build"].get("profile_templates", False),
-    }
-)
-
 
 def get_default(key: str, nested_key: str | None = None) -> Any:
     """

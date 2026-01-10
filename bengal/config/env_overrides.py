@@ -125,11 +125,13 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
         explicit = os.environ.get("BENGAL_BASEURL") or os.environ.get("BENGAL_BASE_URL")
         if explicit and not baseurl_has_value:
             site_section["baseurl"] = explicit.rstrip("/")
+            config["baseurl"] = site_section["baseurl"]
             return config
 
         # If baseurl has a non-empty value, respect it (user explicitly configured it)
         # Empty baseurl (from DEFAULTS or missing) allows platform detection to proceed
         if baseurl_has_value:
+            config["baseurl"] = site_section["baseurl"]
             return config
 
         # 2) Netlify detection (only if baseurl not explicitly set)
@@ -138,6 +140,7 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
             netlify_url = os.environ.get("URL") or os.environ.get("DEPLOY_PRIME_URL")
             if netlify_url:
                 site_section["baseurl"] = netlify_url.rstrip("/")
+                config["baseurl"] = site_section["baseurl"]
                 return config
 
         # 3) Vercel detection (only if baseurl not explicitly set)
@@ -147,6 +150,7 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
                 # Add https:// prefix if missing
                 prefix = "https://" if not vercel_host.startswith(("http://", "https://")) else ""
                 site_section["baseurl"] = f"{prefix}{vercel_host}".rstrip("/")
+                config["baseurl"] = site_section["baseurl"]
                 return config
 
         # 4) GitHub Pages in Actions (only if baseurl not explicitly set)
@@ -162,6 +166,7 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
                 else:
                     # Project site: deployed at /{repo-name} (path-only for relative links)
                     site_section["baseurl"] = f"/{name}".rstrip("/")
+                config["baseurl"] = site_section["baseurl"]
                 return config
 
     except Exception as e:

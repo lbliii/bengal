@@ -16,7 +16,6 @@ Thread Safety:
 
 from __future__ import annotations
 
-import re
 from collections.abc import Callable, Sequence
 
 from bengal.rendering.parsers.patitas.lexer import Lexer
@@ -154,19 +153,6 @@ class Parser(
         # Note: CommonMark 6.1 says link reference definitions cannot interrupt paragraphs.
         in_paragraph = False
 
-        _link_ref_re = re.compile(
-            r"""
-            ^\[
-            (?P<label>[^\]\n]+)
-            \]:
-            [ \t]*
-            (?P<url>\S+)
-            (?:[ \t]+(?P<title>"[^"]*"|'[^']*'|\([^)]+\)))?
-            [ \t]*$
-            """,
-            re.VERBOSE,
-        )
-
         for token in self._tokens:
             if token.type == TokenType.LINK_REFERENCE_DEF:
                 if not in_paragraph:
@@ -175,7 +161,7 @@ class Parser(
                     if len(parts) >= 2:
                         raw_label = parts[0]
                         # Skip labels containing unescaped '[' (e.g., ref[])
-                        if re.search(r"(?<!\\)\[", raw_label):
+                        if "[" in raw_label.replace("\\[", ""):
                             continue
                         label = _normalize_label(_process_escapes(raw_label))
                         # CommonMark 6.1: "If there are several link reference definitions
@@ -188,40 +174,6 @@ class Parser(
                 # Link ref defs themselves terminate any preceding paragraph
                 in_paragraph = False
             elif token.type in (TokenType.PARAGRAPH_LINE, TokenType.INDENTED_CODE):
-                # If this paragraph line is actually a link reference definition
-                # (e.g., inside block quotes/lists), capture it before it renders.
-                if (
-                    token.type == TokenType.PARAGRAPH_LINE
-                    and not in_paragraph
-                    and token.value.startswith("[")
-                    and not token.value.startswith("[^")
-                ):
-                    match = _link_ref_re.match(token.value.strip())
-                    if match:
-                        raw_label = match.group("label")
-                        # Reject labels containing unescaped '[' which are invalid (e.g., ref[])
-                        if not re.search(r"(?<!\\)\[", raw_label):
-                            label = _normalize_label(_process_escapes(raw_label))
-                            if label not in self._link_refs:
-                                url = _process_escapes(match.group("url"))
-                                raw_title = match.group("title") or ""
-                                if (
-                                    raw_title
-                                    and raw_title[0] in ("'", '"', "(")
-                                    and raw_title[-1]
-                                    in (
-                                        "'",
-                                        '"',
-                                        ")",
-                                    )
-                                ):
-                                    # Strip surrounding delimiters ("", '', ())
-                                    raw_title = raw_title[1:-1]
-                                title = _process_escapes(raw_title)
-                                self._link_refs[label] = (url, title)
-                            in_paragraph = False
-                            continue
-
                 # Both PARAGRAPH_LINE and INDENTED_CODE can be part of a paragraph
                 in_paragraph = True
             elif token.type == TokenType.BLANK_LINE:

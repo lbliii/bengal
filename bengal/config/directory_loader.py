@@ -1,13 +1,10 @@
 """
-Directory-based configuration loader.
+Directory-based configuration loader (internal helper).
 
-.. deprecated:: 0.2.0
-    This module is deprecated. Use :mod:`bengal.config.unified_loader` instead.
-    Import from ``bengal.config`` which provides ``UnifiedConfigLoader``::
-
-        from bengal.config import UnifiedConfigLoader
-        loader = UnifiedConfigLoader()
-        config = loader.load(site_root)
+Used by :mod:`bengal.config.unified_loader` to support directory-style configs
+(`config/_default`, `config/environments`, `config/profiles`). Prefer importing
+and using ``UnifiedConfigLoader`` from ``bengal.config``; this module remains
+as the internal implementation for directory mode.
 
 This module provides a loader for configuration files organized in a directory
 structure, supporting multi-file configurations with environment-specific and
@@ -245,6 +242,9 @@ class ConfigDirectoryLoader:
         # Warn about common theme.features vs features confusion
         self._warn_search_ui_without_index(config)
 
+        # Normalize misplaced site keys (title/baseurl/etc. at root) into site section
+        config = self._normalize_site_keys(config)
+
         # Flatten config (site.title → title, build.parallel → parallel)
         config = self._flatten_config(config)
 
@@ -337,6 +337,25 @@ class ConfigDirectoryLoader:
 
         # Batch merge all configs in single pass - O(K×D) instead of O(F×K×D)
         return batch_deep_merge(configs)
+
+    def _normalize_site_keys(self, config: dict[str, Any]) -> dict[str, Any]:
+        """
+        Move common site keys placed at the root into the site section.
+
+        Provides backward compatibility for configs that set title/baseurl/etc.
+        at the root of _default/*.yaml instead of under [site].
+        """
+        site_keys = ("title", "baseurl", "description", "author", "language")
+        site_section = config.get("site")
+        if not isinstance(site_section, dict):
+            site_section = {}
+            config["site"] = site_section
+
+        for key in site_keys:
+            if key in config and key not in site_section:
+                site_section[key] = config.pop(key)
+
+        return config
 
     def _load_environment(self, config_dir: Path, environment: str) -> dict[str, Any] | None:
         """
@@ -552,38 +571,14 @@ class ConfigDirectoryLoader:
         """
         flat = dict(config)
 
-        # Extract site section to top level
-        # Note: site.* values ALWAYS override any flat values (even from DEFAULTS)
-        # because [site] is the canonical section for user configuration
+        # Extract site section to top level (for backward compatibility)
         if "site" in config and isinstance(config["site"], dict):
             for key, value in config["site"].items():
-                flat[key] = value  # Always override
+                flat[key] = value
 
-        # Extract build section to top level
-        # Note: build.* values ALWAYS override any flat values (even from DEFAULTS)
+        # Extract build section to top level (backward compatibility for build.* access)
         if "build" in config and isinstance(config["build"], dict):
             for key, value in config["build"].items():
-                flat[key] = value  # Always override
-
-        # Extract dev section to top level (for cache_templates, watch_backend, etc.)
-        # Note: dev.* values ALWAYS override any flat values (even from DEFAULTS)
-        if "dev" in config and isinstance(config["dev"], dict):
-            for key, value in config["dev"].items():
-                flat[key] = value  # Always override
-
-        # Extract features section to top level
-        # Note: expand_features() runs before flattening, so this mainly handles
-        # any remaining feature keys that weren't expanded
-        if "features" in config and isinstance(config["features"], dict):
-            for key, value in config["features"].items():
-                if key not in flat:
-                    flat[key] = value
-
-        # Extract assets section to top level with _assets suffix (for backward compatibility)
-        # assets.minify → minify_assets, assets.optimize → optimize_assets, etc.
-        if "assets" in config and isinstance(config["assets"], dict):
-            for key, value in config["assets"].items():
-                flat_key = f"{key}_assets"
-                flat[flat_key] = value  # Always override
+                flat[key] = value
 
         return flat

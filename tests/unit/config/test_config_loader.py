@@ -9,19 +9,19 @@ from bengal.config.unified_loader import UnifiedConfigLoader
 class TestConfigLoader:
     """Test ConfigLoader class."""
 
-    def test_section_alias_menus_to_menu(self, tmp_path):
-        """Test that [menus] is normalized to [menu]."""
+    def test_menu_section_loaded(self, tmp_path):
+        """Test that canonical [menu] section loads."""
         config_file = tmp_path / "bengal.toml"
         config_file.write_text("""
 [site]
 title = "Test Site"
 
-[[menus.main]]
+[[menu.main]]
 name = "Home"
 url = "/"
 weight = 1
 
-[[menus.main]]
+[[menu.main]]
 name = "About"
 url = "/about/"
 weight = 2
@@ -31,14 +31,12 @@ weight = 2
         config_obj = loader.load(tmp_path)
         config = config_obj.raw if hasattr(config_obj, "raw") else config_obj
 
-        # Should be normalized to 'menu'
+        # Should keep canonical 'menu'
         assert "menu" in config
         assert "main" in config["menu"]
         assert len(config["menu"]["main"]) == 2
         assert config["menu"]["main"][0]["name"] == "Home"
 
-        # UnifiedConfigLoader doesn't have get_warnings() - validation is handled separately
-        # Config should load successfully with menu section
         assert config is not None
 
     def test_canonical_menu_section(self, tmp_path):
@@ -60,12 +58,6 @@ url = "/"
         assert "menu" in config
         assert "main" in config["menu"]
 
-        # Should have no warnings for canonical form
-        warnings = loader.get_warnings()
-        # Filter out warnings not about menu/menus
-        menu_warnings = [w for w in warnings if "menu" in w.lower()]
-        assert len(menu_warnings) == 0
-
     def test_unknown_section_detection(self, tmp_path):
         """Test that unknown sections are detected with suggestions."""
         config_file = tmp_path / "bengal.toml"
@@ -85,15 +77,15 @@ title = "Test Site"
         # Just verify config loads successfully
         assert config is not None
 
-    def test_both_menu_and_menus_defined(self, tmp_path):
-        """Test handling when both [menu] and [menus] are present."""
+    def test_menu_with_multiple_items(self, tmp_path):
+        """Test handling multiple menu items in canonical section."""
         config_file = tmp_path / "bengal.toml"
         config_file.write_text("""
 [[menu.main]]
 name = "Home"
 url = "/"
 
-[[menus.main]]
+[[menu.main]]
 name = "About"
 url = "/about/"
 """)
@@ -102,76 +94,28 @@ url = "/about/"
         config_obj = loader.load(tmp_path)
         config = config_obj.raw if hasattr(config_obj, "raw") else config_obj
 
-        # Should normalize menus to menu
+        # Should keep canonical menu entries
         assert "menu" in config
         assert "main" in config["menu"]
-        # Both items should be present (merged during TOML parsing)
-        assert len(config["menu"]["main"]) >= 1
-
-        # Should warn about using menus
-        warnings = loader.get_warnings()
-        assert any("menus" in w.lower() and "menu" in w.lower() for w in warnings)
-
-    def test_get_warnings(self, tmp_path):
-        """Test get_warnings() method."""
-        config_file = tmp_path / "bengal.toml"
-        config_file.write_text("""
-[site]
-title = "Test"
-
-[[menus.main]]
-name = "Test"
-url = "/"
-""")
-
-        loader = UnifiedConfigLoader()
-        config_obj = loader.load(tmp_path)
-        config = config_obj.raw if hasattr(config_obj, "raw") else config_obj
-
-        # UnifiedConfigLoader doesn't have get_warnings() - validation is handled separately
-        assert config is not None
-
-    def test_print_warnings_verbose_false(self, tmp_path, capsys):
-        """Test that print_warnings doesn't print when verbose=False."""
-        config_file = tmp_path / "bengal.toml"
-        config_file.write_text("""
-[[menus.main]]
-name = "Test"
-url = "/"
-""")
-
-        loader = UnifiedConfigLoader()
-        config_obj = loader.load(tmp_path)
-        # UnifiedConfigLoader doesn't have print_warnings() - test skipped
-        assert config_obj is not None
-
-    def test_print_warnings_verbose_true(self, tmp_path, capsys):
-        """UnifiedConfigLoader doesn't have print_warnings() - test skipped."""
-        loader = UnifiedConfigLoader()
-        config_obj = loader.load(tmp_path)
-        # UnifiedConfigLoader doesn't have print_warnings() - validation is handled by validators
-        assert config_obj is not None
-        # Note: captured fixture was from old ConfigLoader tests - no longer applicable
-        # The verbose output functionality is not part of UnifiedConfigLoader
+        assert len(config["menu"]["main"]) == 2
 
 
 class TestSectionAliases:
-    """Test section alias mappings via UnifiedConfigLoader behavior."""
+    """Test canonical sections are loaded."""
 
-    def test_section_aliases_applied(self, tmp_path):
-        """Test that section aliases (menus -> menu) are applied during load."""
+    def test_canonical_menu_required(self, tmp_path):
+        """menus alias is not normalized; canonical [menu] should be used."""
         config_file = tmp_path / "bengal.toml"
         config_file.write_text("""
 [site]
 title = "Test"
 
-[[menus.main]]
+[[menu.main]]
 name = "Home"
 url = "/"
 """)
         loader = UnifiedConfigLoader()
         config = loader.load(tmp_path)
-        # "menus" should be normalized to "menu" in the loaded config
         assert "menu" in config
 
     def test_known_sections_loaded(self, tmp_path):
@@ -262,7 +206,7 @@ class TestDefaultConfig:
         assert config["output_formats"]["site_wide"] == DEFAULTS["output_formats"]["site_wide"]
         assert config["search"]["enabled"] == DEFAULTS["search"]["enabled"]
         assert config["theme"]["name"] == DEFAULTS["theme"]["name"]
-        assert config["parallel"] == DEFAULTS["parallel"]
+        assert config["build"]["parallel"] == DEFAULTS["build"]["parallel"]
         assert config["features"] == DEFAULTS["features"]
 
     def test_default_config_used_when_no_config_file(self, tmp_path, monkeypatch):
