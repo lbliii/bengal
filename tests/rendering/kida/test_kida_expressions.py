@@ -375,11 +375,11 @@ class TestComplexExpressions:
         # Test that (items|length) + (other|length) works correctly
         tmpl = env.from_string("{{ (items|length) + (other|length) }}")
         assert tmpl.render(items=[1, 2, 3], other=[4, 5]) == "5"  # 3 + 2 = 5
-        
+
         # Test nested arithmetic with filters
         tmpl2 = env.from_string("{{ (a|length) + (b|length) + (c|length) }}")
         assert tmpl2.render(a=[1], b=[2, 3], c=[4, 5, 6]) == "6"  # 1 + 2 + 3 = 6
-        
+
         # Test with let statement
         tmpl3 = env.from_string("{% let count = (items|length) + (other|length) %}{{ count }}")
         assert tmpl3.render(items=[1, 2], other=[3, 4, 5]) == "5"  # 2 + 3 = 5
@@ -411,7 +411,6 @@ class TestAttributeAccess:
     def test_chained_access(self, env):
         """Chained attribute access."""
         tmpl = env.from_string("{{ data.level1.level2 }}")
-        data = {"level1": {"level2": "deep"}}
         # Create an object that supports dot access
         from types import SimpleNamespace
 

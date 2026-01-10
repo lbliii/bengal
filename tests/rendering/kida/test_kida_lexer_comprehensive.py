@@ -16,10 +16,10 @@ import pytest
 
 from bengal.rendering.kida._types import TokenType
 from bengal.rendering.kida.lexer import (
+    MAX_TOKENS,
     Lexer,
     LexerConfig,
     LexerError,
-    MAX_TOKENS,
     tokenize,
 )
 
@@ -65,7 +65,7 @@ class TestUnicodeHandling:
     def test_unicode_variable_names(self) -> None:
         """Kida doesn't support unicode variable names."""
         # Kida requires ASCII identifiers
-        with pytest.raises(Exception):  # LexerError
+        with pytest.raises(LexerError):
             list(tokenize("{{ переменная }}"))
 
     def test_emoji_in_strings(self) -> None:
@@ -176,7 +176,7 @@ class TestNumericLiterals:
         """Float with scientific notation (if supported)."""
         # This may or may not be supported
         tokens = tokenize("{{ 1e10 }}")
-        # Should tokenize without error
+        assert any(t.type == TokenType.FLOAT for t in tokens)
 
 
 class TestOperators:
@@ -302,11 +302,13 @@ class TestComments:
         tokens = tokenize("{# comment #}")
         # Comments may produce COMMENT token or be stripped
         # At minimum, no error should occur
+        assert tokens[0].type in {TokenType.DATA, TokenType.COMMENT}
 
     def test_multiline_comment(self) -> None:
         """Multiline comment."""
         tokens = tokenize("{# line1\nline2\nline3 #}")
         # Should not error
+        assert tokens[0].type in {TokenType.DATA, TokenType.COMMENT}
 
     def test_comment_with_template_code(self) -> None:
         """Comment containing template syntax."""
@@ -347,6 +349,8 @@ class TestLineTracking:
         tokens = tokenize(source)
         # Find the NAME token 'i' inside the output
         # It should be on line 2
+        name_token = next(t for t in tokens if t.type == TokenType.NAME)
+        assert name_token.lineno == 2
 
 
 class TestKeywords:
@@ -465,6 +469,7 @@ class TestLexerConfig:
         lexer = Lexer("{% if true %}\ntest", config)
         tokens = list(lexer.tokenize())
         # With trim_blocks, newline after block may be removed
+        assert len(tokens) >= 2
 
     def test_lstrip_blocks(self) -> None:
         """Lstrip blocks configuration."""
@@ -472,6 +477,7 @@ class TestLexerConfig:
         lexer = Lexer("    {% if true %}", config)
         tokens = list(lexer.tokenize())
         # With lstrip_blocks, leading whitespace may be removed
+        assert len(tokens) >= 2
 
 
 class TestErrorHandling:
@@ -487,17 +493,20 @@ class TestErrorHandling:
         # May not raise during lexing, but during parsing
         tokens = tokenize("{{ x")
         # At minimum, should not crash
+        assert len(tokens) >= 1
 
     def test_unclosed_block(self) -> None:
         """Unclosed block tag."""
         tokens = tokenize("{% if true")
         # At minimum, should not crash
+        assert len(tokens) >= 1
 
     def test_invalid_operator(self) -> None:
         """Invalid operator sequence."""
         # Most invalid operators are parsed as separate tokens
         tokens = tokenize("{{ a +++ b }}")
         # Should not crash
+        assert len(tokens) >= 1
 
 
 class TestRawBlock:
@@ -507,6 +516,8 @@ class TestRawBlock:
         """Raw block preserves template syntax."""
         tokens = tokenize("{% raw %}{{ x }}{% endraw %}")
         # Content inside raw should not be tokenized as VARIABLE_BEGIN
+        var_begins = [t for t in tokens if t.type == TokenType.VARIABLE_BEGIN]
+        assert len(var_begins) == 0
 
 
 class TestSliceNotation:
@@ -594,6 +605,7 @@ class TestPerformance:
         template = "{% if true %}" * depth + "content" + "{% endif %}" * depth
         tokens = tokenize(template)
         # Should complete without stack overflow
+        assert tokens[-1].type == TokenType.EOF
 
 
 class TestTokenLimit:
@@ -605,10 +617,10 @@ class TestTokenLimit:
         # Each "{{ x }}" generates multiple tokens, so we need many of them
         # MAX_TOKENS is 100,000, so create a template with >100k tokens
         many_vars = "".join([f"{{{{ x{i} }}}}" for i in range(MAX_TOKENS // 3 + 1)])
-        
+
         with pytest.raises(LexerError) as exc_info:
             tokenize(many_vars)
-        
+
         error_msg = str(exc_info.value)
         assert "Token limit exceeded" in error_msg
         assert str(MAX_TOKENS) in error_msg

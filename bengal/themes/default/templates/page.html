@@ -80,9 +80,12 @@ Auto-selected for pages without a specific type
     {% if toc %}
     <aside class="page-sidebar">
       {# Contextual Graph Minimap - starts hidden, JS expands when data available #}
+      {% set show_graph = theme.features is not defined or 'graph.contextual' in theme.features %}
+      {% if show_graph %}
       <div class="graph-contextual" data-page-url="{{ page_href }}">
         <div class="graph-contextual-container graph-loading"></div>
       </div>
+      {% end %}
 
       <nav class="toc" aria-label="Table of contents">
         <h2 class="toc-title">On This Page</h2>

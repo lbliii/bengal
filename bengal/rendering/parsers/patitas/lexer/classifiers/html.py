@@ -251,6 +251,39 @@ class HtmlClassifierMixin:
             pos += 1
         tag_name = content[1:pos].lower()
 
+        # Avoid treating well-known inline tags as HTML blocks (CommonMark example 187)
+        inline_tags = {
+            "a",
+            "em",
+            "strong",
+            "span",
+            "code",
+            "s",
+            "del",
+            "ins",
+            "mark",
+            "small",
+            "sub",
+            "sup",
+            "b",
+            "i",
+            "u",
+            "q",
+            "samp",
+            "kbd",
+            "var",
+            "abbr",
+            "cite",
+            "dfn",
+            "time",
+            "data",
+            "bdo",
+            "bdi",
+            "wbr",
+        }
+        if tag_name in inline_tags and not getattr(self, "_previous_line_blank", False):
+            return False
+
         # Check tag name was followed by valid delimiter (not just more characters)
         # E.g., <localhost:5001> has tag_name="localhost" but then ":5001>" which isn't valid
         if pos < len(content) - 1:

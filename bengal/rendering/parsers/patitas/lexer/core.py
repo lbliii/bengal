@@ -100,6 +100,7 @@ class Lexer(
         "_html_block_content",  # Accumulated HTML content
         "_html_block_start",  # Start position for location
         "_html_block_indent",  # Indent of opening line for line_indent
+        "_previous_line_blank",  # Track blank lines for inline HTML block decisions
     )
 
     def __init__(
@@ -135,6 +136,7 @@ class Lexer(
         self._html_block_content: list[str] = []
         self._html_block_start: int = 0
         self._html_block_indent: int = 0
+        self._previous_line_blank: bool = True
 
         # Directive state: stack of (colon_count, name) for nested directives
         self._directive_stack: list[tuple[int, str]] = []

@@ -8,8 +8,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from bengal.rendering.parsers.patitas.lexer.modes import (
+    HTML_BLOCK_TYPE1_TAGS,
+    HTML_BLOCK_TYPE6_TAGS,
+)
 from bengal.rendering.parsers.patitas.nodes import (
     Block,
+    HtmlBlock,
     IndentedCode,
     List,
     ListItem,
@@ -255,6 +260,30 @@ class ListParsingMixin:
 
             # Handle paragraph content
             if tok.type == TokenType.PARAGRAPH_LINE:
+                # Treat single-line HTML tags as HTML blocks inside list items (CommonMark 175)
+                stripped_line = tok.value.lstrip()
+                if stripped_line.startswith("<"):
+                    # Simple tag name extraction (letters/digits/hyphen)
+                    tag = ""
+                    idx = 1
+                    if idx < len(stripped_line) and stripped_line[idx] == "/":
+                        idx += 1
+                    while idx < len(stripped_line) and (
+                        stripped_line[idx].isalnum() or stripped_line[idx] == "-"
+                    ):
+                        tag += stripped_line[idx].lower()
+                        idx += 1
+                    if tag in HTML_BLOCK_TYPE1_TAGS or tag in HTML_BLOCK_TYPE6_TAGS:
+                        html_content = tok.value
+                        if not html_content.endswith("\n"):
+                            html_content += "\n"
+                        item_children.append(HtmlBlock(location=tok.location, html=html_content))
+                        # Block-level content makes the list loose
+                        self._containers.mark_loose()
+                        saw_paragraph_content = False
+                        self._advance()
+                        continue
+
                 # CommonMark: If first content line has more than 4 spaces between
                 # marker and content, treat it as indented code, not paragraph.
                 # We count effective column width (with tabs expanded) from the

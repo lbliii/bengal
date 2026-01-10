@@ -93,15 +93,15 @@ class TestDirectiveParsingPerformance:
         # Sample files for faster execution
         sample_size = min(20, len(site_markdown_files))
         files_to_parse = site_markdown_files[:sample_size]
-        
+
         # Pre-load content
         file_contents = [(f, f.read_text()) for f in files_to_parse]
 
         def parse_all():
             total_directives = 0
-            for file_path, content in file_contents:
+            for _, content in file_contents:
                 # Use high-level parser (full parse+render pipeline)
-                html = patitas_parser(content)
+                patitas_parser(content)
                 # Parse AST separately to count directives
                 ast = patitas_parser.parse_to_ast(content)
                 directive_counts = count_directives_in_ast(ast)
@@ -133,7 +133,7 @@ class TestDirectiveParsingPerformance:
 
         def parse_file():
             # Full pipeline: parse + render
-            html = patitas_parser(content)
+            patitas_parser(content)
             # Also parse AST to count directives
             ast = patitas_parser.parse_to_ast(content)
             return count_directives_in_ast(ast)
@@ -190,7 +190,7 @@ class TestDirectiveParsingPerformance:
         """Collect statistics about directive usage in the real site."""
         all_counts = defaultdict(int)
         files_with_directives = 0
-        
+
         # Sample up to 30 files for faster execution
         sample_size = min(30, len(site_markdown_files))
         files_to_parse = site_markdown_files[:sample_size]

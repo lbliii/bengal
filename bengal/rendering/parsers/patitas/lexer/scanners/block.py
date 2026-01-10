@@ -130,6 +130,7 @@ class BlockScannerMixin:
         self._commit_to(line_end)
 
         if not content or content.isspace():
+            self._previous_line_blank = True
             yield Token(TokenType.BLANK_LINE, "", self._location_from(line_start), line_indent=0)
             return
 
@@ -142,23 +143,27 @@ class BlockScannerMixin:
                 self._location_from(line_start),
                 line_indent=indent,
             )
+            self._previous_line_blank = False
             return
 
         if content[0] in FENCE_CHARS:
             token = self._try_classify_fence_start(content, line_start, indent)
             if token:
+                self._previous_line_blank = False
                 yield token
                 return
 
         if content[0] == "<":
             html_result = self._try_classify_html_block_start(content, line_start, line, indent)
             if html_result:
+                self._previous_line_blank = False
                 yield from html_result
                 return
 
         if content.startswith("#"):
             token = self._try_classify_atx_heading(content, line_start, indent)
             if token:
+                self._previous_line_blank = False
                 yield token
                 return
 
@@ -174,27 +179,32 @@ class BlockScannerMixin:
 
         list_tokens = self._try_classify_list_marker(content, line_start, indent)
         if list_tokens is not None:
+            self._previous_line_blank = False
             yield from list_tokens
             return
 
         footnote_token = self._try_classify_footnote_def(content, line_start, indent)
         if footnote_token is not None:
+            self._previous_line_blank = False
             yield footnote_token
             return
 
         if content.startswith("[") and not content.startswith("[^"):
             link_ref_token = self._try_classify_link_reference_def(content, line_start, indent)
             if link_ref_token is not None:
+                self._previous_line_blank = False
                 yield link_ref_token
                 return
 
         if content.startswith(":"):
             directive_tokens = self._try_classify_directive_start(content, line_start, indent)
             if directive_tokens is not None:
+                self._previous_line_blank = False
                 yield from directive_tokens
                 return
 
         indented_content = " " * indent + content.rstrip("\n")
+        self._previous_line_blank = False
         yield Token(
             TokenType.PARAGRAPH_LINE,
             indented_content,

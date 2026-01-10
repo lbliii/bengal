@@ -476,13 +476,12 @@ class BlockParsingCoreMixin:
                 last_marker_line = token.location.lineno
                 self._advance()
             elif token.type == TokenType.LINK_REFERENCE_DEF:
-                # Preserve original line text so nested parsing can resolve the definition
-                line_start = token.location.offset
-                line_end = token.location.end_offset
-                original_line = self._source[line_start:line_end].rstrip("\n")
-                current_line_parts.append(original_line)
+                # Link reference definitions inside block quotes are document-level metadata.
+                # Do not include them in the rendered blockquote content to avoid recursive
+                # block quote re-parsing (example 218).
+                current_line_parts.clear()
                 has_paragraph_content = False
-                current_line_has_content = True
+                current_line_has_content = False
                 last_marker_line = token.location.lineno
                 self._advance()
             elif token.type in (
@@ -618,16 +617,28 @@ class BlockParsingCoreMixin:
         assert start_token is not None and start_token.type == TokenType.PARAGRAPH_LINE
 
         lines: list[str] = []
+        pending_setext_underline: str | None = None
         # Track if the last line came from INDENTED_CODE (4+ spaces indent)
         # Such lines cannot be setext underlines
         last_line_was_indented_code = False
+        allow_setext = getattr(self, "_allow_setext_headings", True)
 
         while not self._at_end():
             token = self._current
             assert token is not None
 
             if token.type == TokenType.PARAGRAPH_LINE:
-                lines.append(token.value.lstrip())
+                stripped_line = token.value.lstrip()
+                if (
+                    allow_setext
+                    and lines
+                    and not last_line_was_indented_code
+                    and self._is_setext_underline(stripped_line)
+                ):
+                    pending_setext_underline = stripped_line
+                    self._advance()
+                    break
+                lines.append(stripped_line)
                 last_line_was_indented_code = False
                 self._advance()
             elif token.type == TokenType.INDENTED_CODE:
@@ -709,23 +720,28 @@ class BlockParsingCoreMixin:
         # CommonMark: setext underline can have up to 3 spaces indent, not 4+
         # Note: setext headings are disabled when parsing blockquote content with
         # lazy continuation lines (setext underlines can't span container boundaries)
-        allow_setext = getattr(self, "_allow_setext_headings", True)
-        if allow_setext and len(lines) >= 2 and not last_line_was_indented_code:
-            last_line = lines[-1].strip()
-            if self._is_setext_underline(last_line):
-                # Determine heading level: === is h1, --- is h2
-                level = 1 if last_line[0] == "=" else 2
-                # Heading text is everything except the underline
-                # CommonMark: strip trailing whitespace from each line
-                heading_lines = [line.rstrip() for line in lines[:-1]]
-                heading_text = "\n".join(heading_lines)
-                children = self._parse_inline(heading_text, start_token.location)
-                return Heading(
-                    location=start_token.location,
-                    level=level,
-                    children=children,
-                    style="setext",
-                )
+        underline_line = pending_setext_underline or (lines[-1].strip() if len(lines) >= 2 else "")
+        if (
+            allow_setext
+            and len(lines) >= 1
+            and underline_line
+            and not last_line_was_indented_code
+            and self._is_setext_underline(underline_line)
+        ):
+            # Determine heading level: === is h1, --- is h2
+            level = 1 if underline_line[0] == "=" else 2
+            # Heading text is everything except the underline
+            # CommonMark: strip trailing whitespace from each line
+            heading_lines = lines if pending_setext_underline else lines[:-1]
+            heading_lines = [line.rstrip() for line in heading_lines]
+            heading_text = "\n".join(heading_lines)
+            children = self._parse_inline(heading_text, start_token.location)
+            return Heading(
+                location=start_token.location,
+                level=level,
+                children=children,
+                style="setext",
+            )
 
         # Check if next token is THEMATIC_BREAK (---) which could be setext h2
         # CommonMark: A sequence of only --- (with optional trailing spaces) after

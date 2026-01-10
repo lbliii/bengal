@@ -59,30 +59,30 @@ Step-by-step guides from Hugo, Jekyll, MkDocs, Sphinx, and more.
 ## All Tutorials
 
 ### Sites
-- [[./sites/build-a-blog|Build a Blog]] — Create a personal blog in 15 minutes (Beginner, 15 min)
-- [[./sites/build-a-multi-author-blog|Multi-Author Blog]] — Team blogs with author profiles (Intermediate, 30 min)
-- [[./sites/skeleton-quickstart|Skeleton YAML]] — Define your site in one YAML file (Beginner, 10 min)
+- [[docs/tutorials/sites/build-a-blog|Build a Blog]] — Create a personal blog in 15 minutes (Beginner, 15 min)
+- [[docs/tutorials/sites/build-a-multi-author-blog|Multi-Author Blog]] — Team blogs with author profiles (Intermediate, 30 min)
+- [[docs/tutorials/sites/skeleton-quickstart|Skeleton YAML]] — Define your site in one YAML file (Beginner, 10 min)
 
 ### Theming
-- [[./theming/getting-started-with-kida|Getting Started with Kida]] — Learn Bengal's template engine (Beginner, 20 min)
-- [[./theming/swizzle-default-theme|Swizzle the Default Theme]] — Customize templates safely (Intermediate, 45 min)
+- [[docs/tutorials/theming/getting-started-with-kida|Getting Started with Kida]] — Learn Bengal's template engine (Beginner, 20 min)
+- [[docs/tutorials/theming/swizzle-default-theme|Swizzle the Default Theme]] — Customize templates safely (Intermediate, 45 min)
 
 ### Content Patterns
-- [[./content/create-a-tutorial-series|Create a Tutorial Series]] — Multi-part content with navigation (Intermediate, 25 min)
+- [[docs/tutorials/content/create-a-tutorial-series|Create a Tutorial Series]] — Multi-part content with navigation (Intermediate, 25 min)
 
 ### Operations
-- [[./operations/automate-with-github-actions|GitHub Actions]] — Automated CI/CD pipelines (Intermediate, 20 min)
-- [[./operations/analyze-site-connectivity|Analyze Site Connectivity]] — Graph analysis for internal linking (Intermediate, 15 min)
+- [[docs/tutorials/operations/automate-with-github-actions|GitHub Actions]] — Automated CI/CD pipelines (Intermediate, 20 min)
+- [[docs/tutorials/operations/analyze-site-connectivity|Analyze Site Connectivity]] — Graph analysis for internal linking (Intermediate, 15 min)
 
 ### Migration
-- [[./migration/from-hugo|From Hugo]]
-- [[./migration/from-jekyll|From Jekyll]]
-- [[./migration/from-mkdocs|From MkDocs]]
-- [[./migration/from-sphinx|From Sphinx]]
-- [[./migration/from-docusaurus|From Docusaurus]]
-- [[./migration/from-mintlify|From Mintlify]]
-- [[./migration/from-fern|From Fern]]
+- [[docs/tutorials/migration/from-hugo|From Hugo]]
+- [[docs/tutorials/migration/from-jekyll|From Jekyll]]
+- [[docs/tutorials/migration/from-mkdocs|From MkDocs]]
+- [[docs/tutorials/migration/from-sphinx|From Sphinx]]
+- [[docs/tutorials/migration/from-docusaurus|From Docusaurus]]
+- [[docs/tutorials/migration/from-mintlify|From Mintlify]]
+- [[docs/tutorials/migration/from-fern|From Fern]]
 
 ## Reference
 
-- [[./user-scenarios|User Scenarios]] — Common patterns and use cases
+- [[docs/tutorials/user-scenarios|User Scenarios]] — Common patterns and use cases

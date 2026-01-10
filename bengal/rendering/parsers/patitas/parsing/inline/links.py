@@ -553,6 +553,8 @@ class LinkParsingMixin:
                     if not ref_label:
                         # Collapsed: [text][] uses link_text as label
                         ref_label = link_text
+                    # CommonMark: backslash escapes are removed before label matching
+                    ref_label = _process_escapes(ref_label)
                     # Look up reference
                     ref_data = self._link_refs.get(_normalize_label(ref_label))
                     if ref_data:
@@ -574,7 +576,9 @@ class LinkParsingMixin:
         if bracket_pos + 1 < text_len and text[bracket_pos + 1] == "[":
             # Followed by [, so can't be a shortcut reference
             return None
-        ref_data = self._link_refs.get(_normalize_label(link_text))
+        # CommonMark: shortcut reference labels are normalized after processing escapes
+        ref_label = _process_escapes(link_text)
+        ref_data = self._link_refs.get(_normalize_label(ref_label))
         if ref_data:
             url, title = ref_data
             children = self._parse_inline(link_text, location)
@@ -635,6 +639,8 @@ class LinkParsingMixin:
                     if not ref_label:
                         # Collapsed: ![alt][] uses alt_text as label
                         ref_label = alt_text_raw
+                    # CommonMark: backslash escapes are removed before label matching
+                    ref_label = _process_escapes(ref_label)
                     # Look up reference
                     ref_data = self._link_refs.get(_normalize_label(ref_label))
                     if ref_data:
@@ -649,7 +655,9 @@ class LinkParsingMixin:
                         ), ref_end + 1
 
         # Try shortcut reference image: ![ref] alone
-        ref_data = self._link_refs.get(_normalize_label(alt_text_raw))
+        # CommonMark: shortcut reference image labels are normalized after processing escapes
+        ref_label = _process_escapes(alt_text_raw)
+        ref_data = self._link_refs.get(_normalize_label(ref_label))
         if ref_data:
             url, title = ref_data
             # CommonMark: alt text is plain text, no formatting

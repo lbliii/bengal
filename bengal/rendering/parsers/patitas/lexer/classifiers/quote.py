@@ -102,6 +102,15 @@ class QuoteClassifierMixin:
                     yield from nested_tokens
                     return
 
+                # Link reference definitions inside block quotes are still global.
+                if stripped.startswith("[") and not stripped.startswith("[^"):
+                    link_ref = self._try_classify_link_reference_def(
+                        stripped, line_start, indent=leading_spaces
+                    )
+                    if link_ref is not None:
+                        yield link_ref
+                        return
+
                 # Default: paragraph line
                 # Use remaining content directly - don't add synthetic indentation.
                 # The actual indentation is tracked via line_indent.

@@ -34,6 +34,7 @@ theme:
     - content.code.copy           # Copy button on code blocks
     - content.lightbox            # Image lightbox on click
     - content.reading_time        # Display "X min read" on pages
+    - graph.contextual            # Per-page contextual graph (minimap)
     - content.author              # Display author information when present
     - content.excerpts            # Show excerpts in article cards
     - content.children            # Show child pages in section indexes

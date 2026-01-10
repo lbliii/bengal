@@ -6,11 +6,7 @@ Tests clear_build_cache, clear_output_directory, and clear_template_cache utilit
 
 from __future__ import annotations
 
-import shutil
-import tempfile
 from pathlib import Path
-
-import pytest
 
 from bengal.cache import clear_build_cache, clear_output_directory, clear_template_cache
 from bengal.cache.paths import BengalPaths
@@ -111,4 +107,3 @@ class TestClearTemplateCache:
         result = clear_template_cache(str(tmp_path))  # String instead of Path
         assert result is True
         assert not templates_dir.exists()
-

@@ -16,11 +16,14 @@ from pathlib import Path
 import pytest
 
 from bengal.core.site import Site
-from bengal.rendering.template_functions.get_page import page_exists, register as register_get_page
+from bengal.rendering.template_functions.get_page import page_exists
+from bengal.rendering.template_functions.get_page import register as register_get_page
 from bengal.rendering.template_functions.navigation import (
     get_section,
-    register as register_navigation,
     section_pages,
+)
+from bengal.rendering.template_functions.navigation import (
+    register as register_navigation,
 )
 from bengal.rendering.template_functions.strings import word_count
 from bengal.utils.file_io import write_text_file
@@ -289,4 +292,3 @@ class TestWordCount:
         word_count_filter = env.filters.get("word_count")
         assert word_count_filter is not None
         assert word_count_filter("Hello world") == 2
-

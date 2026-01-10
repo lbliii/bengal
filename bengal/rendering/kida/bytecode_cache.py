@@ -172,16 +172,16 @@ class BytecodeCache:
 
     def cleanup(self, max_age_days: int = 30) -> int:
         """Remove orphaned cache files older than max_age_days.
-        
+
         Orphaned files are cache entries that are no longer referenced by
         active templates (e.g., after source changes or template deletion).
-        
+
         Args:
             max_age_days: Maximum age in days before removal (default: 30)
-            
+
         Returns:
             Number of files removed
-            
+
         Example:
             >>> cache = BytecodeCache(Path(".bengal-cache/kida"))
             >>> removed = cache.cleanup(max_age_days=7)  # Remove files older than 7 days
@@ -189,7 +189,7 @@ class BytecodeCache:
         """
         threshold = time.time() - (max_age_days * 86400)
         count = 0
-        
+
         for path in self._dir.glob("__kida_*.pyc"):
             try:
                 if path.stat().st_mtime < threshold:
@@ -198,7 +198,7 @@ class BytecodeCache:
             except OSError:
                 # Skip files that can't be accessed (permissions, etc.)
                 pass
-                
+
         return count
 
     def stats(self) -> dict[str, int]:
