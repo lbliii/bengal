@@ -26,23 +26,17 @@ import yaml
 
 from bengal.config.accessor import Config
 from bengal.config.defaults import DEFAULTS
-from bengal.config.directory_loader import ConfigDirectoryLoader
+from bengal.config.directory_loader import ConfigDirectoryLoader, ConfigLoadError
 from bengal.config.environment import detect_environment, get_environment_file_candidates
 from bengal.config.feature_mappings import expand_features
 from bengal.config.merge import batch_deep_merge, deep_merge
 from bengal.config.origin_tracker import ConfigWithOrigin
 from bengal.config.validation import validate_config
-from bengal.errors import BengalConfigError, ErrorCode, format_suggestion, record_error
+from bengal.errors import ErrorCode, format_suggestion, record_error
 from bengal.utils.file_io import load_toml, load_yaml
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
-
-
-class ConfigLoadError(BengalConfigError):
-    """Raised when configuration loading fails."""
-
-    pass
 
 
 class UnifiedConfigLoader:

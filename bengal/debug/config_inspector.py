@@ -755,11 +755,10 @@ class ConfigInspector(DebugTool):
         # Check for common issues
         # Access from site section (config is already raw dict from _load_config_source)
         site_section = config.get("site", {})
-        baseurl = (
-            site_section.get("baseurl", "")
-            if isinstance(site_section, dict)
-            else config.get("baseurl", "")
-        )
+        if isinstance(site_section, dict) and "baseurl" in site_section:
+            baseurl = site_section.get("baseurl", "")
+        else:
+            baseurl = config.get("baseurl", "")
         if baseurl and not baseurl.startswith(("http://", "https://")):
             findings.append(
                 DebugFinding(

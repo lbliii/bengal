@@ -55,6 +55,82 @@ r'^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?
 
 ---
 
+## Competitive Landscape
+
+### Existing Solutions (PyPI Downloads, Last Month)
+
+| Package | Downloads | What It Does | Gap |
+|---------|-----------|--------------|-----|
+| **pyparsing** | 214.7M | Full parser combinator library | Overkill for patterns, no O(n) guarantee |
+| **regex** | 158.2M | Drop-in `re` replacement, more features | Still regex syntax, still ReDoS-vulnerable |
+| **lark** | 39.8M | Grammar-based parser generator | Parser, not pattern matcher |
+| **parse** | 12.6M | Reverse of format strings | Limited patterns, not regex-powerful |
+| **google-re2** | 8.0M | Google's O(n) regex (C++ bindings) | Still regex syntax, C++ dependency |
+| **parsy** | 1.3M | Lightweight parser combinators | Parser focus, no O(n) guarantee |
+| **pregex** | 20.6K | Readable regex builder | Generates regex strings, no safety |
+| **verbalexpressions** | 51 | Fluent regex builder | Dead project, no safety |
+
+### Closest Competitor: pregex
+
+```python
+# pregex — readable but still generates regex, no O(n) guarantee
+from pregex.core.classes import AnyLetter, AnyDigit
+from pregex.core.quantifiers import OneOrMore
+
+email = OneOrMore(AnyLetter() | AnyDigit()) + '@' + OneOrMore(AnyLetter())
+print(email.get_pattern())  # → '[a-zA-Z\d]+@[a-zA-Z]+'
+# Still vulnerable to ReDoS if pattern is complex
+```
+
+### Gap Analysis
+
+```
+                        READABILITY
+                             ↑
+                             │
+           pyparsing ●       │       ● Mereketengue (target)
+                             │
+               pregex ●      │
+                             │
+                 parse ●     │
+    ─────────────────────────┼──────────────────────→ O(n) SAFETY
+                             │
+                             │       ● google-re2
+                             │
+        verbalexpressions ●  │
+              (dead)         │
+                             │
+                Python re ●  │
+                             ↓
+```
+
+### Feature Comparison
+
+| Feature | Python `re` | pregex | google-re2 | pyparsing | parse | **Mereketengue** |
+|---------|-------------|--------|------------|-----------|-------|------------------|
+| Readable API | ❌ | ✅ | ❌ | ✅ | ✅ | ✅ |
+| O(n) guaranteed | ❌ | ❌ | ✅ | ❌ | N/A | ✅ |
+| Typed captures | ❌ | ❌ | ❌ | Partial | ✅ | ✅ |
+| Debugging tools | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Pure Python | ✅ | ✅ | ❌ (C++) | ✅ | ✅ | ✅ |
+| Free-threading safe | ❓ | ❓ | ❓ | ❓ | ❓ | ✅ |
+| Composable patterns | ❌ | ✅ | ❌ | ✅ | ❌ | ✅ |
+| Built-in library | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+
+### The Opportunity
+
+**Nobody combines all three:**
+1. Readable fluent API (like pregex)
+2. O(n) guaranteed safety (like RE2)
+3. Typed captures (like parse)
+
+**Plus unique features:**
+4. First-class debugging (explain, trace, visualize)
+5. Built-in validated patterns (email, URL, semver, etc.)
+6. Python 3.14t free-threading ready
+
+---
+
 ## Design Principles
 
 ### 1. Safety by Default
@@ -63,36 +139,29 @@ r'^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?
 # Mereketengue uses Thompson NFA — O(n) guaranteed
 # No pattern can cause exponential backtracking
 
-from mereketengue import Pattern
+from mereketengue import word
 
 # This is ALWAYS O(n), unlike Python's re module
-pattern = Pattern.word.then(Pattern.word.star())
+pattern = word[1:] + word[:]  # One-or-more, then zero-or-more
 result = pattern.match("a" * 1000000)  # Completes in milliseconds
 ```
 
-### 2. Readability Over Brevity
+### 2. Readable AND Concise
 
 ```python
-# ❌ Regex: Write-only
+# ❌ Regex: Cryptic, unsafe
 r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
 
-# ✅ Mereketengue: Reads like specification
-from mereketengue import p
+# ✅ Mereketengue: Clear, safe, concise
+from mereketengue import word, letter
 
-email = (
-    p.word_chars.plus()
-    .then(p.maybe(p.oneof(".", "_", "%", "+", "-").then(p.word_chars.plus())).star())
-    .then(p.literal("@"))
-    .then(p.word_chars.plus())
-    .then(p.literal(".").then(p.word_chars.plus()).plus())
-    .then(p.letter.repeat(2, None))  # TLD: 2+ letters
-)
+email = word[1:] + "@" + word[1:] + "." + letter[2:]
 ```
 
 ### 3. Type-Safe Captures
 
 ```python
-from mereketengue import p, capture, typed
+from mereketengue import digit, word, maybe, capture
 from dataclasses import dataclass
 
 @dataclass
@@ -103,16 +172,11 @@ class SemVer:
     prerelease: str | None = None
 
 semver = (
-    capture(p.digits, "major", transform=int)
-    .then(p.literal("."))
-    .then(capture(p.digits, "minor", transform=int))
-    .then(p.literal("."))
-    .then(capture(p.digits, "patch", transform=int))
-    .then(p.maybe(
-        p.literal("-").then(capture(p.word_chars.plus(), "prerelease"))
-    ))
-    .to(SemVer)
-)
+    capture(digit[1:], "major", int) + "." +
+    capture(digit[1:], "minor", int) + "." +
+    capture(digit[1:], "patch", int) +
+    maybe("-" + capture(word[1:], "prerelease"))
+).to(SemVer)
 
 result = semver.match("1.2.3-beta")
 # result = SemVer(major=1, minor=2, patch=3, prerelease="beta")
@@ -121,21 +185,18 @@ result = semver.match("1.2.3-beta")
 ### 4. Composability
 
 ```python
-from mereketengue import p
+from mereketengue import digit, Range, maybe
 
 # Build complex patterns from simple, reusable parts
 octet = (
-    p.literal("25").then(p.range("0", "5")) |
-    p.literal("2").then(p.range("0", "4")).then(p.digit) |
-    p.maybe(p.oneof("0", "1")).then(p.digit).then(p.maybe(p.digit))
+    "25" + Range("0", "5") |
+    "2" + Range("0", "4") + digit |
+    maybe("0" | "1") + digit + maybe(digit)
 )
 
-ipv4 = (
-    octet.then(p.literal(".")).repeat(3)
-    .then(octet)
-)
+ipv4 = octet + ("." + octet)[3]  # Exactly 3 more octets
 
-cidr = ipv4.then(p.literal("/")).then(p.digits.between(1, 2))
+cidr = ipv4 + "/" + digit[1:2]  # 1-2 digits for prefix
 
 # Patterns are immutable and can be shared across threads
 ```
@@ -143,9 +204,9 @@ cidr = ipv4.then(p.literal("/")).then(p.digits.between(1, 2))
 ### 5. Debuggability
 
 ```python
-from mereketengue import p
+from mereketengue import word
 
-pattern = p.literal("foo").then(p.word).then(p.literal("bar"))
+pattern = "foo" + word[1:] + "bar"
 
 # Explain what the pattern does
 print(pattern.explain())
@@ -158,6 +219,98 @@ print(result.failure_reason)
 
 # Visualize as state machine
 pattern.to_dot()  # Generates Graphviz DOT for visualization
+```
+
+---
+
+## Syntax
+
+Mereketengue uses Python operators and slice notation for a concise, readable DSL.
+
+### Operators
+
+| Operator | Meaning | Example |
+|----------|---------|---------|
+| `a + b` | Sequence (then) | `word + "@" + word` |
+| `a \| b` | Alternation (or) | `"http" \| "https"` |
+| `"str"` | Auto-literal | `"@"` same as `literal("@")` |
+
+### Quantifiers (Slice Notation)
+
+| Syntax | Meaning | Regex Equivalent |
+|--------|---------|------------------|
+| `a[1:]` | One or more | `a+` |
+| `a[:]` | Zero or more | `a*` |
+| `a[:1]` | Zero or one (optional) | `a?` |
+| `a[3]` | Exactly 3 | `a{3}` |
+| `a[2:5]` | Between 2 and 5 | `a{2,5}` |
+| `a[3:]` | 3 or more | `a{3,}` |
+
+### Full Example
+
+```python
+from mereketengue import word, digit, letter, Range, maybe, capture
+
+# Email: readable AND concise
+email = word[1:] + "@" + word[1:] + "." + letter[2:]
+
+# URL with typed captures
+url = (
+    capture("http" | "https", "scheme") + "://" +
+    capture(word[1:] + ("." + word[1:])[1:], "host") +
+    maybe(":" + capture(digit[1:], "port", int)) +
+    capture("/" + any[:], "path", default="/")
+)
+
+# IPv4: compose complex from simple
+octet = "25" + Range("0","5") | "2" + Range("0","4") + digit | digit[1:3]
+ipv4 = octet + ("." + octet)[3]
+
+# Semantic version
+semver = (
+    capture(digit[1:], "major", int) + "." +
+    capture(digit[1:], "minor", int) + "." +
+    capture(digit[1:], "patch", int) +
+    maybe("-" + capture(word[1:], "prerelease"))
+)
+```
+
+### Why This Syntax?
+
+| Goal | Solution |
+|------|----------|
+| **Readable** | `word + "@" + word` reads naturally |
+| **Concise** | `[1:]` shorter than `.plus()` or `.one_or_more()` |
+| **Ergonomic** | Strings auto-convert, no `literal()` everywhere |
+| **Pythonic** | Uses familiar operators (`+`, `\|`, `[:]`) |
+| **O(n) Safe** | Thompson NFA under the hood, always |
+
+---
+
+## API Import Styles
+
+### Recommended: Direct Imports
+
+```python
+from mereketengue import word, digit, letter, maybe, capture
+
+email = word[1:] + "@" + word[1:] + "." + letter[2:]
+```
+
+### Alternative: Namespace Import
+
+```python
+from mereketengue import m  # Short namespace alias
+
+email = m.word[1:] + "@" + m.word[1:] + "." + m.letter[2:]
+```
+
+### For Exploration: Star Import
+
+```python
+from mereketengue import *
+
+email = word[1:] + "@" + word[1:] + "." + letter[2:]
 ```
 
 ---
@@ -182,7 +335,7 @@ Mereketengue builds on proven patterns from our ecosystem:
 
 ```
 mereketengue/
-├── __init__.py              # High-level API: p, Pattern, capture, typed
+├── __init__.py              # High-level API: digit, word, literal, capture, etc.
 ├── _types.py                # Pattern, Match, Capture (frozen dataclasses)
 ├── _protocol.py             # Matcher protocol
 ├── _config.py               # PatternConfig (frozen)
@@ -240,6 +393,7 @@ class Pattern(Generic[T]):
     _node: PatternNode   # Internal AST representation
     _compiled: CompiledPattern | None = None
 
+    # Matching
     def match(self, text: str, pos: int = 0) -> Match[T] | None:
         """Match at position. O(n) guaranteed."""
         ...
@@ -260,30 +414,33 @@ class Pattern(Generic[T]):
         """Replace matches with replacement."""
         ...
 
-    # Composition
-    def then(self, other: Pattern) -> Pattern:
-        """Sequence: match self, then other."""
+    # Operators
+    def __add__(self, other: Pattern | str) -> Pattern:
+        """Sequence: a + b matches a then b."""
         ...
 
-    def __or__(self, other: Pattern) -> Pattern:
-        """Alternation: match self or other."""
+    def __radd__(self, other: str) -> Pattern:
+        """Allow 'string' + pattern."""
         ...
 
-    # Quantifiers
-    def star(self) -> Pattern:
-        """Zero or more (greedy)."""
+    def __or__(self, other: Pattern | str) -> Pattern:
+        """Alternation: a | b matches a or b."""
         ...
 
-    def plus(self) -> Pattern:
-        """One or more (greedy)."""
+    def __ror__(self, other: str) -> Pattern:
+        """Allow 'string' | pattern."""
         ...
 
-    def maybe(self) -> Pattern:
-        """Zero or one (optional)."""
-        ...
-
-    def repeat(self, min: int, max: int | None = None) -> Pattern:
-        """Repeat between min and max times."""
+    # Quantifiers via slice notation
+    def __getitem__(self, key: int | slice) -> Pattern:
+        """
+        Quantifiers via slice notation:
+            a[1:]   → one or more
+            a[:]    → zero or more
+            a[:1]   → optional (zero or one)
+            a[3]    → exactly 3
+            a[2:5]  → between 2 and 5
+        """
         ...
 ```
 
@@ -377,56 +534,48 @@ def execute(program: list[Instruction], text: str, start: int = 0) -> Match | No
 ### Basic Usage
 
 ```python
-from mereketengue import p
+from mereketengue import digit, letter, alnum
 
 # Simple patterns
-digits = p.digit.plus()
-word = p.letter.plus()
-identifier = p.letter.then(p.alnum.star())
+digits_pattern = digit[1:]
+word_pattern = letter[1:]
+identifier = letter + alnum[:]
 
 # Match
-result = digits.match("12345")
+result = digits_pattern.match("12345")
 print(result.value)  # "12345"
 
 # Search
-result = word.search("hello, world!")
+result = word_pattern.search("hello, world!")
 print(result.value)  # "hello"
 
 # Find all
-for match in digits.finditer("a1b22c333"):
+for match in digit[1:].finditer("a1b22c333"):
     print(match.value)  # "1", "22", "333"
 
 # Replace
-result = word.sub(lambda m: m.value.upper(), "hello world")
+result = letter[1:].sub(lambda m: m.value.upper(), "hello world")
 print(result)  # "HELLO WORLD"
 ```
 
 ### Captures
 
 ```python
-from mereketengue import p, capture
+from mereketengue import digit, capture
 
 # Named captures
-log_pattern = (
-    capture(p.digits, "year")
-    .then(p.literal("-"))
-    .then(capture(p.digits, "month"))
-    .then(p.literal("-"))
-    .then(capture(p.digits, "day"))
-)
+log_pattern = capture(digit[1:], "year") + "-" + capture(digit[1:], "month") + "-" + capture(digit[1:], "day")
 
 result = log_pattern.match("2026-01-09")
 print(result.captures["year"])   # "2026"
 print(result.captures["month"])  # "01"
 print(result.captures["day"])    # "09"
 
-# With transformation
+# With transformation to int
 date_pattern = (
-    capture(p.digits, "year", transform=int)
-    .then(p.literal("-"))
-    .then(capture(p.digits, "month", transform=int))
-    .then(p.literal("-"))
-    .then(capture(p.digits, "day", transform=int))
+    capture(digit[1:], "year", int) + "-" +
+    capture(digit[1:], "month", int) + "-" +
+    capture(digit[1:], "day", int)
 )
 
 result = date_pattern.match("2026-01-09")
@@ -436,7 +585,7 @@ print(result.captures["year"])   # 2026 (int)
 ### Typed Captures
 
 ```python
-from mereketengue import p, capture, typed
+from mereketengue import word, digit, any, maybe, capture
 from dataclasses import dataclass
 
 @dataclass
@@ -446,24 +595,21 @@ class URL:
     port: int | None
     path: str
 
-url_pattern = (
-    capture(p.oneof("http", "https"), "scheme")
-    .then(p.literal("://"))
-    .then(capture(p.word.then(p.literal(".").then(p.word)).plus(), "host"))
-    .then(p.maybe(
-        p.literal(":").then(capture(p.digits, "port", transform=int))
-    ))
-    .then(capture(p.literal("/").then(p.any.star()), "path").default("/"))
-    .to(URL)
-)
+url = (
+    capture("http" | "https", "scheme") + "://" +
+    capture(word[1:] + ("." + word[1:])[1:], "host") +
+    maybe(":" + capture(digit[1:], "port", int)) +
+    capture("/" + any[:], "path", default="/")
+).to(URL)
 
-result = url_pattern.match("https://example.com:8080/api/v1")
+result = url.match("https://example.com:8080/api/v1")
 # result.captures = URL(scheme="https", host="example.com", port=8080, path="/api/v1")
 ```
 
 ### Built-in Patterns
 
 ```python
+from mereketengue import ws, quoted, capture
 from mereketengue.common import ipv4, email, uuid, semver, iso_date
 
 # All built-in patterns are O(n) guaranteed
@@ -474,21 +620,16 @@ assert semver.match("1.2.3-beta.1")
 assert iso_date.match("2026-01-09")
 
 # Compose with built-ins
-server_log = (
-    iso_date
-    .then(p.whitespace)
-    .then(capture(ipv4, "client_ip"))
-    .then(p.whitespace)
-    .then(capture(p.quoted('"'), "message"))
-)
+server_log = iso_date + ws + capture(ipv4, "client_ip") + ws + capture(quoted('"'), "message")
 ```
 
 ### Debugging
 
 ```python
-from mereketengue import p
+from mereketengue import ws, word
+from mereketengue.common import path
 
-pattern = p.literal("GET").then(p.whitespace).then(p.path)
+pattern = "GET" + ws + path
 
 # Why didn't it match?
 result = pattern.match("POST /api", debug=True)
@@ -497,7 +638,7 @@ print(result.failure_reason)
 
 # Explain the pattern
 print(pattern.explain())
-# → Match literal 'GET', then whitespace, then a file path
+# → Match 'GET', then whitespace, then a file path
 
 # Step-by-step trace
 result = pattern.match("GET /api", debug=True)
@@ -534,23 +675,22 @@ result = evil_pattern.match("a" * 100)  # O(n), not O(2^n)
 
 ```python
 # Use mereketengue for new pattern matching
-from mereketengue import p
+from mereketengue import letter, alnum
 
-# Clean, readable, safe
-identifier = p.letter.then(p.alnum.star())
+# Clean, readable, safe, O(n)
+identifier = letter + alnum[:]
 ```
 
 ### Phase 2: Gradual Migration
 
-```python
+```bash
 # CLI tool to convert regex to mereketengue
 $ mereketengue convert "^[a-zA-Z_][a-zA-Z0-9_]*$"
+
 # Output:
-# p.start.then(
-#     p.oneof(p.letter, p.literal("_"))
-# ).then(
-#     p.oneof(p.alnum, p.literal("_")).star()
-# ).then(p.end)
+# from mereketengue import letter, alnum, START, END
+#
+# pattern = START + (letter | "_") + (alnum | "_")[:] + END
 ```
 
 ### Phase 3: Compatibility Layer
@@ -570,14 +710,14 @@ from mereketengue.compat import re  # Drop-in replacement
 
 ```python
 # rosettes/lexers/_scanners.py
-from mereketengue import p
+from mereketengue import digit, maybe
 
 # Replace regex-based helpers with mereketengue patterns
 NUMBER_PATTERN = (
-    p.maybe(p.oneof("0x", "0o", "0b"))
-    .then(p.digit.then(p.oneof(p.digit, p.literal("_")).star()))
-    .then(p.maybe(p.literal(".").then(p.digit.plus())))
-    .then(p.maybe(p.oneof("e", "E").then(p.maybe(p.oneof("+", "-"))).then(p.digit.plus())))
+    maybe("0x" | "0o" | "0b") +
+    digit + (digit | "_")[:] +
+    maybe("." + digit[1:]) +
+    maybe(("e" | "E") + maybe("+" | "-") + digit[1:])
 )
 
 # Pattern can be used for documentation AND matching
@@ -590,37 +730,26 @@ print(NUMBER_PATTERN.explain())
 
 ```python
 # kida/lexer.py
-from mereketengue import p
+from mereketengue import ws, identifier, capture
 
 # Template syntax patterns
-VAR_PATTERN = p.literal("{{").then(p.whitespace.star()).then(
-    capture(p.identifier, "name")
-).then(p.whitespace.star()).then(p.literal("}}"))
+VAR_PATTERN = "{{" + ws[:] + capture(identifier, "name") + ws[:] + "}}"
 
-BLOCK_PATTERN = p.literal("{%").then(p.whitespace.star()).then(
-    capture(p.identifier, "tag")
-).then(p.whitespace.star()).then(p.literal("%}"))
+BLOCK_PATTERN = "{%" + ws[:] + capture(identifier, "tag") + ws[:] + "%}"
 ```
 
 ### patitas
 
 ```python
 # patitas/parsing/inline/links.py
-from mereketengue import p, capture
+from mereketengue import ws, balanced, not_in, maybe, capture
 
 # Link syntax: [text](url "title")
 LINK_PATTERN = (
-    p.literal("[")
-    .then(capture(p.balanced("[", "]"), "text"))
-    .then(p.literal("]("))
-    .then(capture(p.not_chars(")").plus(), "url"))
-    .then(p.maybe(
-        p.whitespace.plus()
-        .then(p.literal('"'))
-        .then(capture(p.not_chars('"').star(), "title"))
-        .then(p.literal('"'))
-    ))
-    .then(p.literal(")"))
+    "[" + capture(balanced("[", "]"), "text") + "](" +
+    capture(not_in(")")[1:], "url") +
+    maybe(ws[1:] + '"' + capture(not_in('"')[:], "title") + '"') +
+    ")"
 )
 ```
 
@@ -678,19 +807,20 @@ Evil patterns ((a+)+b with long input):
 
 ```python
 # By design, mereketengue cannot have ReDoS vulnerabilities
+from mereketengue import letter
 
 # This pattern would cause Python's re to hang:
 # re.match(r"(a+)+b", "a" * 30)  # Exponential backtracking
 
 # Mereketengue handles it in O(n):
-pattern = p.letter.plus().plus().then(p.literal("b"))
+pattern = letter[1:][1:] + "b"  # Nested quantifiers — still O(n)!
 result = pattern.match("a" * 1000000)  # Completes in milliseconds
 ```
 
 ### Input Validation
 
 ```python
-from mereketengue import p
+from mereketengue import Pattern, Match
 from mereketengue.common import email
 
 # Safe for untrusted input
@@ -804,51 +934,57 @@ def validate_user_input(pattern: Pattern, text: str, max_len: int = 10000) -> Ma
 ### vs. Python `re`
 
 ```python
-# Python re
+# Python re — cryptic, ReDoS vulnerable
 import re
 pattern = re.compile(r'^[a-zA-Z_][a-zA-Z0-9_]*$')
-if pattern.match(text):
-    ...
 
-# Mereketengue
-from mereketengue import p
-pattern = p.start.then(p.letter | p.literal("_")).then((p.alnum | p.literal("_")).star()).then(p.end)
-if pattern.match(text):
-    ...
+# Mereketengue — readable, O(n) safe
+from mereketengue import letter, alnum, START, END
+pattern = START + (letter | "_") + (alnum | "_")[:] + END
 ```
-
-**Differences**:
-- Mereketengue: Readable, O(n) guaranteed, composable
-- re: Terse, potential ReDoS, not composable
 
 ### vs. pyparsing
 
 ```python
-# pyparsing
+# pyparsing — verbose, no O(n) guarantee
 from pyparsing import Word, alphas, alphanums
 identifier = Word(alphas + "_", alphanums + "_")
 
-# Mereketengue  
-from mereketengue import p
-identifier = (p.letter | p.literal("_")).then((p.alnum | p.literal("_")).star())
+# Mereketengue — concise, O(n) guaranteed
+from mereketengue import letter, alnum
+identifier = letter + alnum[:]
 ```
-
-**Differences**:
-- pyparsing: Full parser, heavier, returns parse results
-- Mereketengue: Pattern matching focus, lighter, O(n) guarantee
 
 ### vs. RE2 (via google-re2)
 
 ```python
-# google-re2
+# google-re2 — safe but still regex syntax
 import re2
 pattern = re2.compile(r'^[a-zA-Z_][a-zA-Z0-9_]*$')
 
-# Mereketengue
-from mereketengue import p
-pattern = p.start.then(p.letter | p.literal("_")).then((p.alnum | p.literal("_")).star()).then(p.end)
+# Mereketengue — safe AND readable
+from mereketengue import letter, alnum, START, END
+pattern = START + (letter | "_") + (alnum | "_")[:] + END
 ```
 
-**Differences**:
-- RE2: C++ binding, regex syntax, fast
-- Mereketengue: Pure Python, readable API, typed captures, ecosystem integration
+### vs. pregex
+
+```python
+# pregex — readable but generates regex (still ReDoS vulnerable!)
+from pregex.core.classes import AnyLetter, AnyDigit
+from pregex.core.quantifiers import OneOrMore
+pattern = OneOrMore(AnyLetter() | AnyDigit())
+regex_str = pattern.get_pattern()  # → '[a-zA-Z\d]+'
+
+# Mereketengue — readable AND safe (no regex generation)
+from mereketengue import letter, digit
+pattern = (letter | digit)[1:]  # Direct Thompson NFA execution
+```
+
+### Side-by-Side Summary
+
+| Task | Python `re` | pregex | pyparsing | **Mereketengue** |
+|------|-------------|--------|-----------|------------------|
+| Email | `r'[\w.]+@[\w.]+'` | `OneOrMore(AnyLetter()) + ...` | `Word(...) + "@" + ...` | `word[1:] + "@" + word[1:]` |
+| O(n) safe | ❌ | ❌ | ❌ | ✅ |
+| Lines of code | 1 (cryptic) | 5+ | 3+ | 1 (clear) |

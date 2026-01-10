@@ -65,7 +65,8 @@ def deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]
         >>> result["build"]
         {'parallel': True}
     """
-    result = base.copy()
+    # Copy base to avoid sharing nested dict references with callers
+    result = _copy_dict(base)
 
     for key, value in override.items():
         if key in result and isinstance(result[key], dict) and isinstance(value, dict):
@@ -73,7 +74,7 @@ def deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]
             result[key] = deep_merge(result[key], value)
         else:
             # Override wins: lists, primitives, or type mismatch
-            result[key] = value
+            result[key] = _copy_dict(value) if isinstance(value, dict) else value
 
     return result
 

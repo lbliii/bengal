@@ -174,6 +174,14 @@ class ConfigDirectoryLoader:
         Raises:
             ConfigLoadError: If config loading fails
         """
+        # Accept either a config directory or a site root containing config/
+        if (
+            config_dir.is_dir()
+            and (config_dir / "config").exists()
+            and not (config_dir / "_default").exists()
+        ):
+            config_dir = config_dir / "config"
+
         if not config_dir.exists():
             raise ConfigLoadError(
                 f"Config directory not found: {config_dir}",
@@ -352,7 +360,8 @@ class ConfigDirectoryLoader:
             config["site"] = site_section
 
         for key in site_keys:
-            if key in config and key not in site_section:
+            if key in config:
+                # Prefer explicit root-level values (user provided) over existing defaults
                 site_section[key] = config.pop(key)
 
         return config
