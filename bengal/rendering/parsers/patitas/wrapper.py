@@ -386,6 +386,7 @@ class PatitasParser(BaseMarkdownParser):
         xref_index: dict[str, Any],
         version_config: Any | None = None,
         cross_version_tracker: Any | None = None,
+        external_ref_resolver: Any | None = None,
     ) -> None:
         """Enable cross-reference support with [[link]] syntax.
 
@@ -401,22 +402,28 @@ class PatitasParser(BaseMarkdownParser):
             cross_version_tracker: Optional callback for tracking cross-version link
                 dependencies. Called with (source_page, target_version, target_path)
                 when a [[v2:path]] link is resolved.
+            external_ref_resolver: Optional resolver for [[ext:project:target]] syntax.
+                See: plan/rfc-external-references.md
 
         RFC: rfc-versioned-docs-pipeline-integration (Phase 2)
+        RFC: rfc-external-references (External References)
 
         Raises:
             ImportError: If CrossReferencePlugin cannot be imported
         """
         if self._xref_enabled:
-            # Already enabled, just update index, version_config, and tracker
+            # Already enabled, just update index, version_config, tracker, and resolver
             if self._xref_plugin:
                 self._xref_plugin.xref_index = xref_index
                 self._xref_plugin.version_config = version_config
                 self._xref_plugin._cross_version_tracker = cross_version_tracker
+                self._xref_plugin._external_ref_resolver = external_ref_resolver
             return
 
         from bengal.rendering.plugins import CrossReferencePlugin
 
         # Create plugin instance (for post-processing HTML)
-        self._xref_plugin = CrossReferencePlugin(xref_index, version_config, cross_version_tracker)
+        self._xref_plugin = CrossReferencePlugin(
+            xref_index, version_config, cross_version_tracker, external_ref_resolver
+        )
         self._xref_enabled = True

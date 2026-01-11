@@ -210,8 +210,17 @@ class RenderingPipeline:
             if dependency_tracker and hasattr(dependency_tracker, "track_cross_version_link"):
                 cross_version_tracker = dependency_tracker.track_cross_version_link
 
+            # Create external reference resolver for [[ext:project:target]] syntax
+            # See: plan/rfc-external-references.md
+            external_ref_resolver = None
+            external_refs_config = site.config.get("external_refs", {})
+            if external_refs_config and external_refs_config.get("enabled", True):
+                from bengal.rendering.external_refs import ExternalRefResolver
+
+                external_ref_resolver = ExternalRefResolver(site.config)
+
             self.parser.enable_cross_references(
-                site.xref_index, version_config, cross_version_tracker
+                site.xref_index, version_config, cross_version_tracker, external_ref_resolver
             )
         self.quiet = quiet
         self.build_stats = build_stats

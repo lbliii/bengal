@@ -348,6 +348,48 @@ class DocumentApplicationConfig(TypedDict, total=False):
 
 
 # =============================================================================
+# External References (Cross-Project Documentation Links)
+# =============================================================================
+
+
+class ExternalRefIndexConfig(TypedDict, total=False):
+    """Configuration for an external Bengal site index."""
+
+    name: str
+    url: str
+    cache_days: int
+    auth_header: str | None
+
+
+class ExternalRefsConfig(TypedDict, total=False):
+    """External references configuration for cross-project linking.
+
+    Enables linking to external documentation using [[ext:project:target]] syntax.
+
+    Example:
+        >>> config: ExternalRefsConfig = {
+        ...     "enabled": True,
+        ...     "export_index": True,  # Generate xref.json
+        ...     "templates": {
+        ...         "python": "https://docs.python.org/3/library/{module}.html#{name}",
+        ...     },
+        ...     "indexes": [
+        ...         {"name": "kida", "url": "https://kida.dev/xref.json"},
+        ...     ],
+        ... }
+
+    See: plan/rfc-external-references.md
+    """
+
+    enabled: bool
+    export_index: bool
+    cache_dir: str
+    default_cache_days: int
+    templates: dict[str, str]
+    indexes: list[ExternalRefIndexConfig]
+
+
+# =============================================================================
 # RSS / Sitemap / Search Feature Configs (for bool | dict patterns)
 # =============================================================================
 
@@ -462,6 +504,7 @@ class SiteConfig(TypedDict, total=False):
     markdown: MarkdownConfig
     link_previews: LinkPreviewsConfig | bool
     document_application: DocumentApplicationConfig
+    external_refs: ExternalRefsConfig | bool
 
 
 # =============================================================================
@@ -525,6 +568,9 @@ __all__ = [
     # RSS/Sitemap
     "RSSConfig",
     "SitemapConfig",
+    # External references
+    "ExternalRefsConfig",
+    "ExternalRefIndexConfig",
     # Type aliases
     "BoolOrDictConfig",
     "NormalizedFeatureConfig",

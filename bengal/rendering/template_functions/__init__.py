@@ -104,6 +104,7 @@ from . import (
     data,
     dates,
     debug,
+    external_refs,
     files,
     get_page,
     i18n,
@@ -174,6 +175,10 @@ def register_all(env: TemplateEnvironment, site: Site, engine_type: str | None =
     # Phase 4: Cross-reference functions (5 functions)
     crossref.register(env, site)
 
+    # Phase 4b: External reference functions (ext, ext_exists)
+    # See: plan/rfc-external-references.md
+    external_refs.register(env, site)
+
     # Phase 5: Navigation functions
     navigation.register(env, site)
 
@@ -221,6 +226,7 @@ __all__ = [
     "data",
     "dates",
     "debug",
+    "external_refs",
     "files",
     "get_page",
     "icons",

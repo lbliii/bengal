@@ -357,6 +357,37 @@ DEFAULTS: dict[str, Any] = {
         },
     },
     # -------------------------------------------------------------------------
+    # External References (Cross-Project Documentation Links)
+    # -------------------------------------------------------------------------
+    # Enable linking to external documentation using [[ext:project:target]] syntax.
+    # See: plan/rfc-external-references.md
+    "external_refs": {
+        "enabled": True,
+        # Export xref.json for other sites to consume (default: False)
+        "export_index": False,
+        # Cache directory for fetched indexes
+        "cache_dir": ".bengal/cache/external_refs",
+        # Default cache duration in days
+        "default_cache_days": 7,
+        # URL templates for instant, offline resolution (Tier 1)
+        "templates": {
+            # Python standard library
+            "python": "https://docs.python.org/3/library/{module}.html#{name}",
+            "typing": "https://docs.python.org/3/library/typing.html#{name}",
+            # Popular libraries with predictable URLs
+            "requests": "https://requests.readthedocs.io/en/latest/api/#{name}",
+            "httpx": "https://www.python-httpx.org/api/#{name_lower}",
+            "fastapi": "https://fastapi.tiangolo.com/reference/{module}/#{name}",
+            "pydantic": "https://docs.pydantic.dev/latest/api/{module}/#{name}",
+            "sqlalchemy": "https://docs.sqlalchemy.org/en/20/core/{module}.html#{name}",
+            # NumPy/SciPy style
+            "numpy": "https://numpy.org/doc/stable/reference/generated/numpy.{name}.html",
+            "pandas": "https://pandas.pydata.org/docs/reference/api/pandas.{name}.html",
+        },
+        # Bengal ecosystem indexes (Tier 2)
+        "indexes": [],
+    },
+    # -------------------------------------------------------------------------
     # Link Previews (RFC: Link Previews)
     # -------------------------------------------------------------------------
     # Wikipedia-style hover cards for internal links.

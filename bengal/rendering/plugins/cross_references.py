@@ -4,9 +4,10 @@ Cross-reference plugin for Mistune.
 Provides [[link]] syntax for internal page references with O(1) lookup
 performance using pre-built xref_index.
 
-Extended to support cross-version linking:
-    [[v2:path]]     -> Link to path in version v2
-    [[latest:path]] -> Link to path in latest version
+Extended to support:
+    [[v2:path]]              -> Link to path in version v2
+    [[latest:path]]          -> Link to path in latest version
+    [[ext:project:target]]   -> External reference (RFC: External References)
 """
 
 from __future__ import annotations
@@ -21,6 +22,7 @@ from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.core.version import VersionConfig
+    from bengal.rendering.external_refs import ExternalRefResolver
 
 logger = get_logger(__name__)
 
@@ -44,6 +46,9 @@ class CrossReferencePlugin:
         [[v2:docs/guide]]               -> Link to docs/guide in version v2
         [[v2:docs/guide|Guide v2]]      -> Link to v2 with custom text
         [[latest:docs/guide]]           -> Link to docs/guide in latest version
+        [[ext:project:target]]          -> External reference (cross-project)
+        [[ext:python:pathlib.Path]]     -> Link to Python stdlib docs
+        [[ext:kida:Markup|Kida Markup]] -> Link to Kida docs with custom text
 
     Performance: O(1) per reference (dictionary lookup from xref_index)
     Thread-safe: Read-only access to xref_index built during discovery
@@ -51,12 +56,15 @@ class CrossReferencePlugin:
     Architecture:
     - Runs as inline parser (processes text before rendering)
     - Uses xref_index for O(1) lookups (no linear search)
+    - External refs use three-tier resolution (template, index, fallback)
     - Returns raw HTML that bypasses further processing
     - Broken refs get special markup for debugging/health checks
 
     Note: For Mistune v3, this works by post-processing the rendered HTML
     to replace [[link]] patterns. This is simpler and more compatible than
     trying to hook into the inline parser which has a complex API.
+
+    See: plan/rfc-external-references.md
     """
 
     def __init__(
@@ -64,6 +72,7 @@ class CrossReferencePlugin:
         xref_index: dict[str, Any],
         version_config: VersionConfig | None = None,
         cross_version_tracker: CrossVersionTracker | None = None,
+        external_ref_resolver: ExternalRefResolver | None = None,
     ):
         """
         Initialize cross-reference plugin.
@@ -74,8 +83,11 @@ class CrossReferencePlugin:
             cross_version_tracker: Optional callback to track cross-version link dependencies.
                 Called with (source_page, target_version, target_path) when a [[v2:path]]
                 link is resolved. Used by DependencyTracker for incremental rebuilds.
+            external_ref_resolver: Optional resolver for [[ext:project:target]] syntax.
+                See: plan/rfc-external-references.md
 
         RFC: rfc-versioned-docs-pipeline-integration (Phase 2)
+        RFC: rfc-external-references (External References)
         """
         self.xref_index = xref_index
         self.version_config = version_config
@@ -86,6 +98,7 @@ class CrossReferencePlugin:
             None  # Current page's source path (set per-page during rendering)
         )
         self._cross_version_tracker = cross_version_tracker
+        self._external_ref_resolver = external_ref_resolver
         # Compile regex once (reused for all pages)
         # Matches: [[path]] or [[path|text]]
         self.pattern = re.compile(r"\[\[([^\]|]+)(?:\|([^\]]+))?\]\]")
@@ -161,6 +174,9 @@ class CrossReferencePlugin:
             elif ref.startswith("id:"):
                 # Custom ID reference: [[id:my-page]]
                 return self._resolve_id(ref[3:], link_text)
+            elif ref.startswith("ext:"):
+                # External reference: [[ext:project:target]]
+                return self._resolve_external(ref[4:], link_text)
             elif ":" in ref and not ref.startswith(("http:", "https:", "mailto:")):
                 # Cross-version reference: [[v2:docs/page]] or [[latest:docs/page]]
                 return self._resolve_version_link(ref, link_text)
@@ -494,3 +510,62 @@ class CrossReferencePlugin:
         )
 
         return f'<a href="{full_url}">{link_text}</a>'
+
+    def _resolve_external(self, ref: str, text: str | None = None) -> str:
+        """
+        Resolve external reference to link.
+
+        Handles [[ext:project:target]] syntax using three-tier resolution:
+        1. URL templates (instant, offline)
+        2. Bengal index (cached)
+        3. Graceful fallback (code + warning)
+
+        Args:
+            ref: Reference string in format "project:target" (ext: prefix already stripped)
+            text: Optional custom link text
+
+        Returns:
+            HTML link or fallback code element (never breaks build)
+
+        See: plan/rfc-external-references.md
+        """
+        # Parse project:target format
+        parts = ref.split(":", 1)
+        if len(parts) != 2:
+            logger.warning(
+                "xref_resolution_failed",
+                ref=f"ext:{ref}",
+                type="external",
+                reason="invalid_format",
+                expected="ext:project:target",
+            )
+            return (
+                f'<code class="extref extref-unresolved" '
+                f'title="Invalid format (expected ext:project:target)">'
+                f"ext:{ref}</code>"
+            )
+
+        project, target = parts
+
+        # Check if external resolver is available
+        if not self._external_ref_resolver:
+            logger.debug(
+                "xref_resolution_failed",
+                ref=f"ext:{ref}",
+                type="external",
+                reason="no_resolver",
+            )
+            return (
+                f'<code class="extref extref-unresolved" '
+                f'title="External references not configured">'
+                f"ext:{project}:{target}</code>"
+            )
+
+        # Use resolver
+        return self._external_ref_resolver.resolve(
+            project=project,
+            target=target,
+            text=text,
+            source_file=self.current_source_page,
+            line=None,  # Line info not available in this context
+        )

@@ -1,0 +1,37 @@
+# External References Configuration
+# ==================================
+# Enables cross-project documentation linking via [[ext:project:target]] syntax.
+# See: plan/rfc-external-references.md
+
+external_refs:
+  enabled: true
+
+  # Export xref.json for other sites to consume
+  # This generates /xref.json with all pages, classes, functions indexed
+  export_index: true
+
+  # Cache directory for fetched indexes from other Bengal sites
+  cache_dir: ".bengal/cache/external_refs"
+  default_cache_days: 7
+
+  # URL templates for instant, offline resolution of common libraries
+  templates:
+    # Python standard library
+    python: "https://docs.python.org/3/library/{module}.html#{name}"
+    typing: "https://docs.python.org/3/library/typing.html#{name}"
+    # Popular libraries
+    requests: "https://requests.readthedocs.io/en/latest/api/#{name}"
+    httpx: "https://www.python-httpx.org/api/#{name_lower}"
+    pydantic: "https://docs.pydantic.dev/latest/api/{module}/#{name}"
+
+  # Bengal ecosystem indexes (import other Bengal sites' xref.json)
+  indexes:
+    # Kida template engine
+    - name: kida
+      url: "https://llane.github.io/kida/xref.json"
+      cache_days: 7
+
+    # Rosettes syntax highlighting
+    - name: rosettes
+      url: "https://llane.github.io/rosettes/xref.json"
+      cache_days: 7

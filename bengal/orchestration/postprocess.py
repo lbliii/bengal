@@ -45,6 +45,7 @@ from bengal.postprocess.social_cards import (
     parse_social_cards_config,
 )
 from bengal.postprocess.special_pages import SpecialPagesGenerator
+from bengal.postprocess.xref_index import XRefIndexGenerator, should_export_xref_index
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -175,6 +176,10 @@ class PostprocessOrchestrator:
             redirects_config = self.site.config.get("redirects", {})
             if redirects_config.get("generate_html", True):
                 tasks.append(("redirects", self._generate_redirects))
+
+            # Generate xref.json for cross-project linking (RFC: External References)
+            if should_export_xref_index(self.site):
+                tasks.append(("xref index", self._generate_xref_index))
         else:
             # Incremental: skip expensive tasks for dev server responsiveness
             # Note: Output formats ARE still generated (above) because search requires it
@@ -511,4 +516,21 @@ class PostprocessOrchestrator:
         generator = OutputFormatsGenerator(
             self.site, config, graph_data=graph_data, build_context=build_context
         )
+        generator.generate()
+
+    def _generate_xref_index(self) -> None:
+        """
+        Generate xref.json for cross-project documentation linking.
+
+        Creates a JSON index that other Bengal sites can import to enable
+        [[ext:project:target]] references to this site's content.
+
+        Only runs on full builds (not incremental) and when export_index is enabled.
+
+        See: plan/rfc-external-references.md
+
+        Raises:
+            Exception: If xref index generation fails
+        """
+        generator = XRefIndexGenerator(self.site)
         generator.generate()

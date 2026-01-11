@@ -2,11 +2,12 @@
 
 | Field | Value |
 |-------|-------|
-| **Status** | Draft |
+| **Status** | Implementing |
 | **Created** | 2026-01-02 |
+| **Updated** | 2026-01-10 |
 | **Author** | Documentation Team |
 | **Priority** | P2 (Medium) |
-| **Related** | `bengal/rendering/plugins/cross_references.py`, `bengal/autodoc/` |
+| **Related** | `bengal/rendering/plugins/cross_references.py`, `bengal/rendering/external_refs/`, `bengal/postprocess/xref_index.py` |
 | **Confidence** | 95% 🟢 |
 
 ---

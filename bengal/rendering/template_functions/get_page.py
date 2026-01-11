@@ -125,7 +125,19 @@ def _ensure_page_parsed(page: Page, site: Site) -> None:
         ):
             # Pass version_config for cross-version linking support [[v2:path]]
             version_config = getattr(site, "version_config", None)
-            site._template_parser.enable_cross_references(site.xref_index, version_config)  # type: ignore[attr-defined]
+
+            # Create external reference resolver for [[ext:project:target]] syntax
+            # See: plan/rfc-external-references.md
+            external_ref_resolver = None
+            external_refs_config = site.config.get("external_refs", {})
+            if external_refs_config and external_refs_config.get("enabled", True):
+                from bengal.rendering.external_refs import ExternalRefResolver
+
+                external_ref_resolver = ExternalRefResolver(site.config)
+
+            site._template_parser.enable_cross_references(  # type: ignore[attr-defined]
+                site.xref_index, version_config, None, external_ref_resolver
+            )
 
     parser = site._template_parser
 
