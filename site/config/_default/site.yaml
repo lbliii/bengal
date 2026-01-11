@@ -12,4 +12,19 @@ site:
 # Use Kida for 2-5x faster template rendering
 template_engine: kida
 
+# Link Previews - Cross-Site Configuration
+# =========================================
+# Enable hover previews for ecosystem external references.
+# See: plan/rfc-cross-site-xref-link-previews.md
+link_previews:
+  enabled: true
+  allowed_hosts:
+    - lbliii.github.io   # GitHub Pages for ecosystem projects
+    # Future production domains (when deployed):
+    # - kida.dev
+    # - rosettes.dev
+  allowed_schemes:
+    - https
+  host_failure_threshold: 3
+
 # Note: Theme settings moved to theme.yaml

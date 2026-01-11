@@ -13,9 +13,11 @@
  * - Mobile long-press support (500ms threshold)
  * - Keyboard accessible (focus shows preview, Escape closes)
  * - Respects prefers-reduced-motion
+ * - Cross-site previews for whitelisted hosts (RFC: Cross-Site Link Previews)
  *
  * @module enhancements/link-previews
  * @see plan/drafted/rfc-link-previews.md
+ * @see plan/rfc-cross-site-xref-link-previews.md
  */
 
 (function () {
@@ -78,6 +80,10 @@
       "[class*='-card']", '.tab-nav', "[class*='-widget']",
       '.child-items', '.content-tiles'
     ],
+    // Cross-site preview configuration (RFC: Cross-Site Link Previews)
+    allowedHosts: userConfig.allowedHosts ?? [],
+    allowedSchemes: userConfig.allowedSchemes ?? ['https'],
+    hostFailureThreshold: userConfig.hostFailureThreshold ?? 3,
   };
 
   // ============================================================
@@ -97,6 +103,10 @@
   let touchTimeout = null;
   let touchStartTime = 0;
   let touchStartPos = { x: 0, y: 0 };
+
+  // Cross-site failure tracking (RFC: Cross-Site Link Previews)
+  const hostFailures = new Map();  // host -> failure count
+  const disabledHosts = new Set(); // hosts disabled due to repeated failures
 
   // ============================================================
   // Utility Functions
@@ -122,14 +132,41 @@
   }
 
   /**
+   * Check if a link is to a cross-origin host
+   */
+  function isCrossOrigin(link) {
+    return link.hostname !== window.location.hostname;
+  }
+
+  /**
+   * Check if a cross-origin host is allowed for previews
+   */
+  function isAllowedCrossOrigin(link) {
+    // Check if host is in allowed list
+    const isAllowedHost = CONFIG.allowedHosts.includes(link.hostname);
+    if (!isAllowedHost) return false;
+
+    // Check if scheme is allowed (strip trailing colon from protocol)
+    const scheme = link.protocol.replace(':', '');
+    const isAllowedScheme = CONFIG.allowedSchemes.includes(scheme);
+    if (!isAllowedScheme) return false;
+
+    // Check if host has been disabled due to failures
+    if (disabledHosts.has(link.hostname)) return false;
+
+    return true;
+  }
+
+  /**
    * Check if link should have preview (only regular text links in content)
    */
   function isPreviewable(link) {
-    // Skip if JSON not available (detected after first fetch)
-    if (jsonAvailable === false) return false;
+    // Skip if JSON not available for same-origin (detected after first fetch)
+    if (jsonAvailable === false && !isCrossOrigin(link)) return false;
 
-    // Internal links only
-    if (link.hostname !== window.location.hostname) return false;
+    // Check origin: same-host OR whitelisted cross-origin
+    const isSameHost = !isCrossOrigin(link);
+    if (!isSameHost && !isAllowedCrossOrigin(link)) return false;
 
     // Skip anchors on same page, downloads, opt-out links
     if (link.hash && link.pathname === window.location.pathname) return false;
@@ -211,27 +248,77 @@
   // Fetch Manager
   // ============================================================
 
-  async function fetchPreviewData(url) {
-    if (cache.has(url)) {
-      return cache.get(url);
+  /**
+   * Track a failure for a host and disable if threshold reached
+   */
+  function recordHostFailure(host) {
+    const count = (hostFailures.get(host) || 0) + 1;
+    hostFailures.set(host, count);
+
+    if (count >= CONFIG.hostFailureThreshold) {
+      disabledHosts.add(host);
+      console.info(`[LinkPreviews] Host ${host} disabled after ${count} consecutive failures`);
+    }
+  }
+
+  /**
+   * Clear failure count for a host (on successful fetch)
+   */
+  function clearHostFailures(host) {
+    hostFailures.delete(host);
+  }
+
+  async function fetchPreviewData(url, link) {
+    // Build full URL for cross-origin, use path for same-origin cache key
+    const isCross = link && isCrossOrigin(link);
+    const cacheKey = isCross ? link.href : url;
+
+    if (cache.has(cacheKey)) {
+      return cache.get(cacheKey);
     }
 
-    if (pendingFetch && pendingFetch.url !== url) {
+    // Check if host is disabled
+    if (link && disabledHosts.has(link.hostname)) {
+      return null;
+    }
+
+    if (pendingFetch && pendingFetch.url !== cacheKey) {
       pendingFetch.controller.abort();
     }
 
     const controller = new AbortController();
-    pendingFetch = { url, controller };
+    pendingFetch = { url: cacheKey, controller };
 
     try {
-      const jsonUrl = toJsonUrl(url);
-      if (CONFIG.debug) console.log('[LinkPreviews] Fetching:', jsonUrl);
+      // Build JSON URL - for cross-origin, use full absolute URL
+      let jsonUrl;
+      if (isCross) {
+        jsonUrl = toJsonUrl(link.href);
+      } else {
+        jsonUrl = toJsonUrl(url);
+      }
 
-      const response = await fetch(jsonUrl, { signal: controller.signal });
+      if (CONFIG.debug) console.log('[LinkPreviews] Fetching:', jsonUrl, isCross ? '(cross-origin)' : '');
+
+      // Build fetch options
+      const fetchOptions = { signal: controller.signal };
+
+      // Cross-origin: explicit no-credentials, CORS mode for security
+      if (isCross) {
+        fetchOptions.credentials = 'omit';
+        fetchOptions.mode = 'cors';
+      }
+
+      const response = await fetch(jsonUrl, fetchOptions);
 
       if (!response.ok) {
-        // If 404, JSON files probably don't exist - disable feature
-        if (response.status === 404 && jsonAvailable === null) {
+        // Track failure for cross-origin hosts
+        if (isCross) {
+          recordHostFailure(link.hostname);
+        }
+
+        // If 404 on same-origin first fetch, JSON files probably don't exist
+        if (response.status === 404 && !isCross && jsonAvailable === null) {
           console.info('[LinkPreviews] JSON files not available, feature disabled');
           jsonAvailable = false;
           return null;
@@ -239,14 +326,19 @@
         throw new Error(`HTTP ${response.status}`);
       }
 
-      // JSON is available!
-      if (jsonAvailable === null) {
+      // JSON is available for same-origin!
+      if (!isCross && jsonAvailable === null) {
         jsonAvailable = true;
         if (CONFIG.debug) console.log('[LinkPreviews] JSON files detected, feature active');
       }
 
+      // Clear failure count on success
+      if (isCross) {
+        clearHostFailures(link.hostname);
+      }
+
       const data = await response.json();
-      cacheSet(url, data);
+      cacheSet(cacheKey, data);
       pendingFetch = null;
       return data;
     } catch (error) {
@@ -254,21 +346,28 @@
 
       if (error.name === 'AbortError') return null;
 
-      if (CONFIG.debug) {
-        console.warn('[LinkPreviews] Fetch failed:', url, error.message);
+      // Track failure for cross-origin hosts (CORS errors, network errors, parse errors)
+      if (isCross && link) {
+        recordHostFailure(link.hostname);
       }
 
-      cacheSet(url, null);
+      if (CONFIG.debug) {
+        console.warn('[LinkPreviews] Fetch failed:', cacheKey, error.message);
+      }
+
+      cacheSet(cacheKey, null);
       return null;
     }
   }
 
-  function prefetch(url) {
-    if (cache.has(url)) return;
+  function prefetch(link) {
+    // Build cache key based on origin
+    const cacheKey = isCrossOrigin(link) ? link.href : link.pathname;
+    if (cache.has(cacheKey)) return;
 
     clearTimeout(prefetchTimeout);
     prefetchTimeout = setTimeout(() => {
-      fetchPreviewData(url);
+      fetchPreviewData(link.pathname, link);
     }, CONFIG.prefetchDelay);
   }
 
@@ -396,7 +495,7 @@
       hoverTimeout = null;
       if (activeLink !== link) return;
 
-      const data = await fetchPreviewData(link.pathname);
+      const data = await fetchPreviewData(link.pathname, link);
 
       if (data && activeLink === link && !activePreview) {
         activePreview = createPreviewCard(data, link);
@@ -446,7 +545,7 @@
       return;
     }
 
-    prefetch(link.pathname);
+    prefetch(link);
     scheduleShow(link);
   }
 
@@ -491,11 +590,11 @@
       y: event.touches[0].clientY
     };
 
-    prefetch(link.pathname);
+    prefetch(link);
 
     touchTimeout = setTimeout(async () => {
       event.preventDefault();
-      const data = await fetchPreviewData(link.pathname);
+      const data = await fetchPreviewData(link.pathname, link);
       if (data && !activePreview) {
         activeLink = link;
         activePreview = createPreviewCard(data, link);
@@ -589,7 +688,14 @@
     destroy: destroyPreview,
     clearCache: () => cache.clear(),
     getConfig: () => ({ ...CONFIG }),
-    isActive: () => jsonAvailable
+    isActive: () => jsonAvailable,
+    // Cross-site debugging helpers
+    getDisabledHosts: () => [...disabledHosts],
+    getHostFailures: () => Object.fromEntries(hostFailures),
+    resetHost: (host) => {
+      disabledHosts.delete(host);
+      hostFailures.delete(host);
+    }
   };
 
 })();

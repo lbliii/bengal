@@ -388,11 +388,12 @@ DEFAULTS: dict[str, Any] = {
         "indexes": [],
     },
     # -------------------------------------------------------------------------
-    # Link Previews (RFC: Link Previews)
+    # Link Previews (RFC: Link Previews, RFC: Cross-Site Link Previews)
     # -------------------------------------------------------------------------
     # Wikipedia-style hover cards for internal links.
     # Shows page title, excerpt, reading time, and tags.
     # Requires per_page JSON to be enabled.
+    # Supports cross-site previews for whitelisted hosts via allowed_hosts.
     "link_previews": {
         "enabled": True,  # Auto-enabled when per_page JSON is configured
         "hover_delay": 200,  # ms before showing preview
@@ -418,6 +419,10 @@ DEFAULTS: dict[str, Any] = {
             ".child-items",
             ".content-tiles",
         ],
+        # Cross-site preview configuration (RFC: Cross-Site Link Previews)
+        "allowed_hosts": [],  # Empty = same-origin only (default)
+        "allowed_schemes": ["https"],  # Reject non-HTTPS by default
+        "host_failure_threshold": 3,  # Disable host after N consecutive failures
     },
     # -------------------------------------------------------------------------
     # Document Application (RFC: Document Applications)

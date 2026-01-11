@@ -617,6 +617,9 @@ class SitePropertiesMixin:
         showing page title, excerpt, reading time, and tags. Requires per-page
         JSON generation to be enabled.
 
+        Cross-site previews can be enabled for trusted hosts via allowed_hosts.
+        See: plan/rfc-cross-site-xref-link-previews.md
+
         Returns:
             Normalized dict with enabled flag and all display options
 
@@ -644,6 +647,10 @@ class SitePropertiesMixin:
                     "show_tags": defaults["show_tags"],
                     "max_tags": defaults["max_tags"],
                     "exclude_selectors": defaults["exclude_selectors"],
+                    # Cross-site preview defaults
+                    "allowed_hosts": defaults["allowed_hosts"],
+                    "allowed_schemes": defaults["allowed_schemes"],
+                    "host_failure_threshold": defaults["host_failure_threshold"],
                 }
             # True or None: use defaults with enabled=True
             return dict(defaults)
@@ -661,6 +668,12 @@ class SitePropertiesMixin:
             "max_tags": value.get("max_tags", defaults["max_tags"]),
             "include_selectors": value.get("include_selectors", defaults["include_selectors"]),
             "exclude_selectors": value.get("exclude_selectors", defaults["exclude_selectors"]),
+            # Cross-site preview configuration (RFC: Cross-Site Link Previews)
+            "allowed_hosts": value.get("allowed_hosts", defaults["allowed_hosts"]),
+            "allowed_schemes": value.get("allowed_schemes", defaults["allowed_schemes"]),
+            "host_failure_threshold": value.get(
+                "host_failure_threshold", defaults["host_failure_threshold"]
+            ),
         }
 
     # =========================================================================

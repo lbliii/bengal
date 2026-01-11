@@ -1,5 +1,6 @@
 {# Link Previews - Wikipedia-style hover cards #}
 {# Self-sufficient: auto-detects if JSON files are available #}
+{# Supports cross-site previews for whitelisted hosts (RFC: Cross-Site Link Previews) #}
 {% let _link_previews_enabled = site.link_previews.enabled ?? true %}
 {% let _per_page_json = 'json' in (config.output_formats.per_page ?? []) %}
 
@@ -23,7 +24,10 @@
     "showTags": {{ (_lp.show_tags ?? true) | lower }},
     "maxTags": {{ _lp.max_tags ?? 3 }},
     "includeSelectors": {{ (_lp.include_selectors ?? ['.prose']) | tojson }},
-    "excludeSelectors": {{ (_lp.exclude_selectors ?? []) | tojson }}
+    "excludeSelectors": {{ (_lp.exclude_selectors ?? []) | tojson }},
+    "allowedHosts": {{ (_lp.allowed_hosts ?? []) | tojson }},
+    "allowedSchemes": {{ (_lp.allowed_schemes ?? ['https']) | tojson }},
+    "hostFailureThreshold": {{ _lp.host_failure_threshold ?? 3 }}
   }
 }
 </script>

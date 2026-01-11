@@ -5,9 +5,12 @@ Tests the end-to-end rendering of link preview configuration,
 template output, and JavaScript inclusion.
 
 See: plan/drafted/rfc-link-previews.md
+See: plan/rfc-cross-site-xref-link-previews.md
 """
 
 from __future__ import annotations
+
+from bengal.config.defaults import get_default
 
 
 class TestLinkPreviewsTemplateRendering:
@@ -240,3 +243,137 @@ class TestLinkPreviewsDefaultBehavior:
         # Script may have fingerprint hash in name, e.g., link-previews.af9b6471.js
         assert "link-previews" in html
         assert "linkPreviews" in html
+
+
+class TestCrossSiteLinkPreviewsDefaults:
+    """Test cross-site link preview configuration defaults.
+
+    See: plan/rfc-cross-site-xref-link-previews.md
+    """
+
+    def test_allowed_hosts_defaults_to_empty(self):
+        """allowed_hosts defaults to empty list (same-origin only)."""
+        assert get_default("link_previews", "allowed_hosts") == []
+
+    def test_allowed_schemes_defaults_to_https(self):
+        """allowed_schemes defaults to HTTPS only."""
+        assert get_default("link_previews", "allowed_schemes") == ["https"]
+
+    def test_host_failure_threshold_defaults_to_three(self):
+        """host_failure_threshold defaults to 3."""
+        assert get_default("link_previews", "host_failure_threshold") == 3
+
+
+class TestCrossSiteLinkPreviewsConfigBridge:
+    """Test cross-site config is rendered in config bridge template."""
+
+    def test_config_bridge_includes_allowed_hosts_when_configured(self, site_builder):
+        """Config bridge should include allowedHosts when configured."""
+        site = site_builder(
+            config={
+                "title": "Test Site",
+                "output_formats": {
+                    "enabled": True,
+                    "per_page": ["json"],
+                },
+                "link_previews": {
+                    "enabled": True,
+                    "allowed_hosts": ["example.com", "other.dev"],
+                },
+            },
+            content={"_index.md": "---\ntitle: Home\n---\nTest"},
+        )
+        site.build()
+        html = site.read_output("index.html")
+        assert '"allowedHosts": ["example.com", "other.dev"]' in html
+
+    def test_config_bridge_includes_allowed_schemes(self, site_builder):
+        """Config bridge should include allowedSchemes."""
+        site = site_builder(
+            config={
+                "title": "Test Site",
+                "output_formats": {
+                    "enabled": True,
+                    "per_page": ["json"],
+                },
+                "link_previews": {
+                    "enabled": True,
+                    "allowed_schemes": ["https", "http"],
+                },
+            },
+            content={"_index.md": "---\ntitle: Home\n---\nTest"},
+        )
+        site.build()
+        html = site.read_output("index.html")
+        assert '"allowedSchemes": ["https", "http"]' in html
+
+    def test_config_bridge_includes_host_failure_threshold(self, site_builder):
+        """Config bridge should include hostFailureThreshold."""
+        site = site_builder(
+            config={
+                "title": "Test Site",
+                "output_formats": {
+                    "enabled": True,
+                    "per_page": ["json"],
+                },
+                "link_previews": {
+                    "enabled": True,
+                    "host_failure_threshold": 5,
+                },
+            },
+            content={"_index.md": "---\ntitle: Home\n---\nTest"},
+        )
+        site.build()
+        html = site.read_output("index.html")
+        assert '"hostFailureThreshold": 5' in html
+
+    def test_config_bridge_defaults_when_not_configured(self, site_builder):
+        """Config bridge should include defaults for cross-site options."""
+        site = site_builder(
+            config={
+                "title": "Test Site",
+                "output_formats": {
+                    "enabled": True,
+                    "per_page": ["json"],
+                },
+                "link_previews": {
+                    "enabled": True,
+                    # No cross-site config - use defaults
+                },
+            },
+            content={"_index.md": "---\ntitle: Home\n---\nTest"},
+        )
+        site.build()
+        html = site.read_output("index.html")
+        # Should have default values
+        assert '"allowedHosts": []' in html
+        assert '"allowedSchemes": ["https"]' in html
+        assert '"hostFailureThreshold": 3' in html
+
+    def test_ecosystem_hosts_configuration(self, site_builder):
+        """Test typical ecosystem host configuration."""
+        site = site_builder(
+            config={
+                "title": "Test Site",
+                "output_formats": {
+                    "enabled": True,
+                    "per_page": ["json"],
+                },
+                "link_previews": {
+                    "enabled": True,
+                    "allowed_hosts": [
+                        "lbliii.github.io",
+                        "kida.dev",
+                        "rosettes.dev",
+                    ],
+                    "allowed_schemes": ["https"],
+                    "host_failure_threshold": 3,
+                },
+            },
+            content={"_index.md": "---\ntitle: Home\n---\nTest"},
+        )
+        site.build()
+        html = site.read_output("index.html")
+        assert "lbliii.github.io" in html
+        assert "kida.dev" in html
+        assert "rosettes.dev" in html
