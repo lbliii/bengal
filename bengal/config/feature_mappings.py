@@ -17,7 +17,6 @@ Supported Features:
     - ``validate_links``: Link validation during build
     - ``minify_assets``: Asset minification
     - ``minify_html``: HTML output minification
-    - ``syntax_highlighting``: Code syntax highlighting (reserved for future use)
 
 Module Attributes:
     FEATURE_MAPPINGS: Dictionary mapping feature names to their expanded config.
@@ -80,15 +79,6 @@ FEATURE_MAPPINGS: dict[str, dict[str, Any]] = {
     "minify_html": {
         "minify_html": True,
         "html_output.mode": "minify",
-    },
-    # NOTE: syntax_highlighting is reserved for future use.
-    #       Currently always enabled - parser integration not yet wired to config.
-    #       MistuneParser has enable_highlighting parameter but it's not threaded
-    #       through create_markdown_parser() → _get_thread_parser() chain yet.
-    #       See: bengal/rendering/parsers/mistune.py for parser implementation.
-    # This mapping ensures config validation doesn't complain about the feature flag.
-    "syntax_highlighting": {
-        "syntax_highlighting.enabled": True,
     },
 }
 

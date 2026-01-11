@@ -205,7 +205,6 @@ def _create_features_config() -> dict[str, Any]:
             "search": True,
             "json": True,
             "llm_txt": True,
-            "syntax_highlighting": True,
         }
     }
 

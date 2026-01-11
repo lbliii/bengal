@@ -11,10 +11,6 @@ features:
   json: true       # Generate per-page JSON files (page.json)
   llm_txt: true    # Generate LLM-friendly text files (index.txt, llm-full.txt)
 
-  # Processing Capabilities (affects rendering)
-  # Note: Currently always enabled - wiring to parser is a future enhancement
-  syntax_highlighting: true  # Code block highlighting with Pygments
-
 # Social Cards Configuration
 # ==========================
 # Auto-generates Open Graph images for social media sharing.

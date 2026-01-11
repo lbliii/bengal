@@ -311,7 +311,6 @@ DEFAULTS: dict[str, Any] = {
         "search": True,
         "json": True,
         "llm_txt": True,
-        "syntax_highlighting": True,
     },
     # -------------------------------------------------------------------------
     # Graph
