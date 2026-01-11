@@ -1,0 +1,30 @@
+# Features Configuration
+# ======================
+# Controls what gets GENERATED during postprocessing.
+# These are expensive operations that produce output files.
+
+features:
+  # Output Formats (files generated during build)
+  rss: true        # Generate rss.xml feed
+  sitemap: true    # Generate sitemap.xml for SEO
+  search: true     # Generate search index (index.json)
+  json: true       # Generate per-page JSON files (page.json)
+  llm_txt: true    # Generate LLM-friendly text files (index.txt, llm-full.txt)
+
+# Social Cards Configuration
+# ==========================
+# Auto-generates Open Graph images for social media sharing.
+# When links are shared on Twitter, Slack, Discord, etc., users see
+# branded preview cards with the page title, description, and site branding.
+#
+# Generated images are 1200x630px PNGs placed in /social/
+# Per-page control: set `social_card: false` in frontmatter to disable
+#                   set `image: /path.png` in frontmatter to use custom image
+
+social_cards:
+  enabled: false  # Disabled: Pillow not thread-safe in Python 3.14 free-threading
+  template: "default"           # "default" (branded) or "minimal" (centered)
+  background_color: "#0f172a"   # Slate-900 - matches dark theme
+  text_color: "#f8fafc"         # Slate-50 - high contrast text
+  accent_color: "#06b6d4"       # Cyan-500 - matches snow-lynx palette
+  # Uses site's configured fonts from fonts.yaml (downloads TTF for image gen)
