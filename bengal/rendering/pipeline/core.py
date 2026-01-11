@@ -218,6 +218,8 @@ class RenderingPipeline:
                 from bengal.rendering.external_refs import ExternalRefResolver
 
                 external_ref_resolver = ExternalRefResolver(site.config)
+                # Expose resolver for health checks (unresolved external refs)
+                site.external_ref_resolver = external_ref_resolver
 
             self.parser.enable_cross_references(
                 site.xref_index, version_config, cross_version_tracker, external_ref_resolver

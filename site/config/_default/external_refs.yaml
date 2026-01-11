@@ -28,8 +28,8 @@ external_refs:
 
     # Bengal ecosystem - URL templates for immediate resolution
     # These work now, before xref.json is deployed
-    kida: "https://kida.dev/{target}/"
-    rosettes: "https://rosettes.dev/{target}/"
+    kida: "https://lbliii.github.io/kida/{target}/"
+    rosettes: "https://lbliii.github.io/rosettes/{target}/"
 
   # Bengal ecosystem indexes (for richer metadata when sites are deployed)
   # During local development, use relative paths to sibling project output

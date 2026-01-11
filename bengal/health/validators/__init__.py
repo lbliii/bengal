@@ -62,6 +62,7 @@ from bengal.health.validators.config import ConfigValidatorWrapper
 from bengal.health.validators.connectivity import ConnectivityValidator
 from bengal.health.validators.cross_ref import CrossReferenceValidator
 from bengal.health.validators.directives import DirectiveValidator
+from bengal.health.validators.external_refs import ExternalRefValidator
 from bengal.health.validators.fonts import FontValidator
 from bengal.health.validators.links import LinkValidator, LinkValidatorWrapper, validate_links
 from bengal.health.validators.menu import MenuValidator
@@ -90,6 +91,7 @@ __all__ = [
     # Phase 3
     "CacheValidator",
     "ConfigValidatorWrapper",
+    "ExternalRefValidator",
     # Phase 5
     "ConnectivityValidator",
     # Cross-reference validation

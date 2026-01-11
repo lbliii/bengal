@@ -9,6 +9,8 @@ See: plan/rfc-external-references.md
 from __future__ import annotations
 
 import json
+import os
+import time
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -17,6 +19,7 @@ import pytest
 from bengal.config.defaults import DEFAULTS
 from bengal.postprocess.xref_index import XRefIndexGenerator, should_export_xref_index
 from bengal.rendering.external_refs import ExternalRefResolver, resolve_template
+from bengal.rendering.external_refs.resolver import IndexCache
 from bengal.rendering.plugins.cross_references import CrossReferencePlugin
 
 
@@ -255,6 +258,76 @@ class TestXRefIndexGenerator:
         site.config = {"external_refs": False}
 
         assert should_export_xref_index(site) is False
+
+
+class TestIndexCache:
+    """Tests for IndexCache fetching and headers."""
+
+    def test_fetch_uses_auth_header(self, monkeypatch, tmp_path) -> None:
+        """Ensure auth headers are sent on fetch."""
+        cache = IndexCache(cache_dir=tmp_path)
+        captured: dict[str, str] = {}
+
+        class _Response:
+            status = 200
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+            def read(self) -> bytes:
+                return b'{"entries":{}}'
+
+        def fake_urlopen(request, timeout=10):  # type: ignore[override]
+            captured.update(request.headers)
+            return _Response()
+
+        monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+
+        cache._fetch(
+            "proj",
+            "https://example.com/xref.json",
+            tmp_path / "proj.json",
+            headers={"Authorization": "Token 123"},
+        )
+
+        assert captured.get("Authorization") == "Token 123"
+        assert (tmp_path / "proj.json").exists()
+
+    def test_stale_cache_triggers_background_refresh(self, monkeypatch, tmp_path) -> None:
+        """Stale cache returns cached data and triggers refresh."""
+        cache = IndexCache(cache_dir=tmp_path)
+        cache_file = tmp_path / "proj.json"
+        cache_file.write_text('{"entries":{"cached":{}}}')
+        # Make cache stale
+        old_time = time.time() - 86400
+        os.utime(cache_file, (old_time, old_time))
+
+        refresh_called: dict[str, tuple] = {}
+
+        def fake_refresh(project, url, cache_file_arg, headers, max_age) -> None:
+            refresh_called["called"] = (project, url, cache_file_arg, headers, max_age)
+
+        class DummyThread:
+            def __init__(self, target, args, daemon=False):
+                self._target = target
+                self._args = args
+
+            def start(self) -> None:
+                self._target(*self._args)
+
+        monkeypatch.setattr("bengal.rendering.external_refs.resolver.Thread", DummyThread)
+        monkeypatch.setattr(cache, "_refresh_cache", fake_refresh)
+
+        result = cache.get("proj", "https://example.com/xref.json", max_age_days=0)
+
+        # Should return cached data immediately
+        assert result["entries"]["cached"] == {}
+        # Background refresh should be triggered
+        assert refresh_called.get("called") is not None
+        assert refresh_called["called"][0] == "proj"
 
 
 class TestConfigDefaults:

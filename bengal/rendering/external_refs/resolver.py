@@ -27,6 +27,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
+from threading import Thread
 from typing import TYPE_CHECKING, Any
 
 from bengal.utils.logger import get_logger
@@ -258,9 +259,11 @@ class ExternalRefResolver:
             self.indexes[project] = {}
             return
 
+        headers = self._extract_headers(index_config)
+
         # Use cache to get index
         if self._cache:
-            raw_index = self._cache.get(project, url, cache_days)
+            raw_index = self._cache.get(project, url, cache_days, headers=headers)
             if raw_index:
                 self.indexes[project] = self._parse_index(raw_index)
             else:
@@ -298,6 +301,32 @@ class ExternalRefResolver:
             )
 
         return entries
+
+    def _extract_headers(self, index_config: dict[str, Any]) -> dict[str, str] | None:
+        """
+        Extract HTTP headers for index fetching.
+
+        Supports:
+            - auth_header: "Header: value" or value (defaults to Authorization)
+            - headers: dict of additional headers
+        """
+        headers: dict[str, str] = {}
+
+        auth_header = index_config.get("auth_header")
+        if isinstance(auth_header, str):
+            if ":" in auth_header:
+                key, val = auth_header.split(":", 1)
+                headers[key.strip()] = val.strip()
+            elif auth_header.strip():
+                headers["Authorization"] = auth_header.strip()
+
+        extra_headers = index_config.get("headers")
+        if isinstance(extra_headers, dict):
+            for key, val in extra_headers.items():
+                if val:
+                    headers[key] = str(val)
+
+        return headers or None
 
     def _extract_display_name(self, target: str) -> str:
         """
@@ -377,6 +406,7 @@ class IndexCache:
         project: str,
         url: str,
         max_age_days: int | None = None,
+        headers: dict[str, str] | None = None,
     ) -> dict[str, Any] | None:
         """
         Get index from cache or fetch.
@@ -392,6 +422,7 @@ class IndexCache:
         import json
         from datetime import datetime
 
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
         cache_file = self.cache_dir / f"{project}.json"
         max_age = max_age_days if max_age_days is not None else self.default_cache_days
 
@@ -411,14 +442,18 @@ class IndexCache:
                     )
                     return cached
 
-                # Stale cache - use it but try to refresh
+                # Stale cache - use it but try to refresh in background
                 logger.debug(
                     "external_ref_cache_stale",
                     project=project,
                     age_days=round(age_days, 1),
                     max_age_days=max_age,
                 )
-                # TODO: Background refresh (for now, just return stale)
+                Thread(
+                    target=self._refresh_cache,
+                    args=(project, url, cache_file, headers, max_age),
+                    daemon=True,
+                ).start()
                 return cached
 
             except (json.JSONDecodeError, OSError) as e:
@@ -429,13 +464,14 @@ class IndexCache:
                 )
 
         # No cache - fetch synchronously
-        return self._fetch(project, url, cache_file)
+        return self._fetch(project, url, cache_file, headers=headers)
 
     def _fetch(
         self,
         project: str,
         url: str,
         cache_file: Path,
+        headers: dict[str, str] | None = None,
     ) -> dict[str, Any] | None:
         """
         Fetch index from URL and cache.
@@ -452,7 +488,7 @@ class IndexCache:
 
         # Check if URL is a local file path
         if url.startswith("file://") or not url.startswith(("http://", "https://")):
-            return self._fetch_local(project, url, cache_file)
+            return self._fetch_local(project, url, cache_file, headers=headers)
 
         try:
             import urllib.request
@@ -463,7 +499,9 @@ class IndexCache:
                 url=url,
             )
 
-            with urllib.request.urlopen(url, timeout=10) as response:
+            request = urllib.request.Request(url, headers=headers or {})
+
+            with urllib.request.urlopen(request, timeout=10) as response:
                 if response.status == 200:
                     data = json.loads(response.read().decode("utf-8"))
 
@@ -497,6 +535,7 @@ class IndexCache:
         project: str,
         url: str,
         cache_file: Path,
+        headers: dict[str, str] | None = None,
     ) -> dict[str, Any] | None:
         """
         Load index from local file path.
@@ -540,3 +579,25 @@ class IndexCache:
                 error=str(e),
             )
             return None
+
+    def _refresh_cache(
+        self,
+        project: str,
+        url: str,
+        cache_file: Path,
+        headers: dict[str, str] | None,
+        max_age_days: int,
+    ) -> None:
+        """
+        Refresh cache in background for stale entries.
+        """
+        try:
+            self._fetch(project, url, cache_file, headers=headers)
+        except Exception as e:  # pragma: no cover - defensive
+            logger.debug(
+                "external_ref_background_refresh_failed",
+                project=project,
+                url=url,
+                error=str(e),
+                max_age_days=max_age_days,
+            )
