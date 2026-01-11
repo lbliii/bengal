@@ -31,6 +31,7 @@ Bengal provides multiple ways to create links between pages, headings, and exter
 |--------|----------|--------|
 | **Markdown Links** | Standard links, external URLs | `[text](url)` |
 | **Cross-References** | Internal page links with auto-title | `[[path]]` |
+| **External References** | Link to external docs (Python, NumPy, etc.) | `[[ext:project:target]]` |
 | **Template Functions** | Dynamic links in templates | `{{ ref('path') }}` |
 | **Anchor Links** | Link to headings | `[[#heading]]` or `#heading` |
 | **Target Directives** | Arbitrary anchors mid-page | `:::{target} id` |
@@ -542,6 +543,7 @@ Use browser dev tools to inspect broken references and see what path was attempt
 
 ## See Also
 
+- [[docs/content/authoring/external-references|External References]] — Link to Python stdlib, NumPy, other Bengal sites
 - [[docs/content/authoring|Content Authoring]] — Markdown and MyST syntax
 - [[docs/reference/template-functions|Template Functions]] — All template helpers
 - [[docs/content/validation|Content Validation]] — Link validation and health checks

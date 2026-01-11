@@ -793,6 +793,97 @@ Alias for `ref()` for compatibility with other systems.
 
 **Note**: `xref()` and `ref()` are identical — use whichever you prefer.
 
+### ext
+
+Generate a link to external documentation (Python stdlib, third-party libraries, other Bengal sites).
+
+```kida
+{{ ext('python', 'pathlib.Path') }}
+{{ ext('python', 'pathlib.Path', 'Path class') }}
+{{ ext('kida', 'Markup') }}
+{{ ext('numpy', 'ndarray', 'NumPy Arrays') }}
+```
+
+**Parameters**:
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `project` | string | Project name (must be configured in `external_refs.yaml`) |
+| `target` | string | Target identifier (class, function, module, page path) |
+| `text` | string | Optional custom link text |
+
+**Returns**: Safe HTML link (`<a href="...">...</a>`)
+
+**Resolution**: Uses three-tier strategy:
+1. URL templates (instant, offline)
+2. Bengal indexes (`xref.json`, cached)
+3. Graceful fallback (renders as code with warning)
+
+**Examples**:
+
+```kida
+{# Link to Python stdlib #}
+{{ ext('python', 'pathlib.Path') }}
+
+{# Link with custom text #}
+{{ ext('python', 'json.dumps', 'JSON serialization') }}
+
+{# Link to Bengal ecosystem #}
+{{ ext('kida', 'Markup') }}
+{{ ext('rosettes', 'PythonLexer') }}
+
+{# In a paragraph #}
+<p>
+  Results are validated using {{ ext('pydantic', 'BaseModel') }}.
+</p>
+```
+
+**See also**: [[docs/content/authoring/external-references|External References Guide]]
+
+### ext_exists
+
+Check if an external reference is resolvable before rendering.
+
+```kida
+{% if ext_exists('kida', 'Markup') %}
+  See {{ ext('kida', 'Markup') }} for safe HTML handling.
+{% else %}
+  See the Kida documentation for Markup.
+{% end %}
+```
+
+**Parameters**:
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `project` | string | Project name |
+| `target` | string | Target identifier |
+
+**Returns**: `true` if resolvable via URL template or cached index, `false` otherwise
+
+**Use cases**:
+
+```kida
+{# Conditional rendering #}
+{% if ext_exists('numpy', 'ndarray') %}
+  {{ ext('numpy', 'ndarray') }}
+{% else %}
+  <code>numpy.ndarray</code>
+{% end %}
+
+{# Build a list of available references #}
+{% let refs = [('python', 'pathlib.Path'), ('numpy', 'ndarray'), ('pandas', 'DataFrame')] %}
+<ul>
+{% for project, target in refs %}
+  {% if ext_exists(project, target) %}
+    <li>{{ ext(project, target) }}</li>
+  {% end %}
+{% end %}
+</ul>
+```
+
+**See also**: [[docs/content/authoring/external-references|External References Guide]]
+
 ## Internationalization (i18n)
 
 These functions support multilingual sites with translations, language detection, and localized formatting.

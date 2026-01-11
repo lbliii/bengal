@@ -23,6 +23,13 @@ Bengal uses CommonMark Markdown with MyST-style directive extensions for rich do
 Create internal links, cross-references, and anchor links.
 :::{/card}
 
+:::{card} External References
+:icon: external-link
+:link: ./external-references/
+
+Link to Python stdlib, NumPy, and other Bengal sites.
+:::{/card}
+
 :::{card} Code Blocks
 :icon: code
 :link: ./code-blocks/
@@ -77,6 +84,7 @@ Tabs, dropdowns, steps, and cards.
 [Internal](/docs/get-started/)
 [[Cross-reference]] docs/page
 [[#heading]] Anchor link
+[[ext:python:pathlib.Path]]
 ```
 :::
 
