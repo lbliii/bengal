@@ -233,7 +233,7 @@ Create `templates/base.html`. We will extend the default theme and inject our ch
 <footer class="custom-footer">
     <p>
         &copy; {{ site.build_time | dateformat('%Y') }} {{ site.author }}.
-        Built with <a href="https://bengal.dev">Bengal</a>.
+        Built with <a href="https://lbliii.github.io/bengal">Bengal</a>.
     </p>
 </footer>
 {% end %}

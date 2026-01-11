@@ -34,7 +34,7 @@ def create_context() -> dict[str, Any]:
         },
         "site": {
             "title": "Bengal Documentation",
-            "url": "https://bengal.dev",
+            "url": "https://lbliii.github.io/bengal",
             "pages": [{"title": f"Page {i}", "href": f"/page-{i}/"} for i in range(100)],
         },
         "name": "World",

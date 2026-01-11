@@ -57,7 +57,7 @@ def create_mock_site() -> dict[str, Any]:
     """Create a mock site object matching Bengal's Site structure."""
     return {
         "title": "Bengal Documentation",
-        "url": "https://bengal.dev",
+        "url": "https://lbliii.github.io/bengal",
         "description": "The modern static site generator for Python.",
         "pages": [
             {
@@ -98,7 +98,7 @@ def create_mock_config() -> dict[str, Any]:
     return {
         "title": "Bengal Documentation",
         "description": "The modern static site generator for Python.",
-        "baseurl": "https://bengal.dev",
+        "baseurl": "https://lbliii.github.io/bengal",
         "og_image": "/assets/og-image.png",
         "output_formats": {
             "per_page": ["html", "json"],
@@ -130,8 +130,10 @@ def create_mock_context() -> dict[str, Any]:
             {"title": "About", "href": "/about/"},
         ],
         "get_auto_nav": lambda: [],
-        "canonical_url": lambda url: f"https://bengal.dev{url}",
-        "og_image": lambda path, page=None: f"https://bengal.dev{path}" if path else "",
+        "canonical_url": lambda url: f"https://lbliii.github.io/bengal{url}",
+        "og_image": lambda path, page=None: f"https://lbliii.github.io/bengal{path}"
+        if path
+        else "",
         "asset_url": lambda path: f"/assets/{path}",
         "icon": lambda name, **kwargs: f'<svg class="icon icon-{name}"></svg>',
     }

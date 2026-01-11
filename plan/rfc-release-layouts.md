@@ -143,7 +143,7 @@ upgrade:
 
 # External links
 links:
-  docs: https://bengal.dev/docs/
+  docs: https://lbliii.github.io/bengal/docs/
   changelog: https://github.com/bengal/bengal/blob/main/CHANGELOG.md
   github: https://github.com/bengal/bengal/releases/tag/v1.0.0
 ---

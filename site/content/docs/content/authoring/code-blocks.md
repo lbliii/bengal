@@ -511,11 +511,16 @@ Short class names compatible with existing Pygments themes:
 ::::
 
 :::{note}
-Rosettes is designed for Python 3.14t free-threading with zero global mutable state. It provides lock-free, thread-safe syntax highlighting that's 3.4× faster than Pygments in parallel builds.
+Rosettes is designed for Python 3.14t free-threading with zero global mutable state. It provides lock-free, thread-safe syntax highlighting that's 3.4× faster than Pygments in parallel builds. See [[ext:rosettes:docs/about/performance|Rosettes Performance]] for benchmarks.
 :::
 
 ::::{seealso}
 - [[docs/reference/directives/formatting|Formatting Directives Reference]] — Complete `literalinclude` options
 - [[docs/content/authoring|Authoring Overview]] — Other authoring features
 - [[docs/theming|Theming Guide]] — Customize your site's appearance including syntax themes
+
+**Rosettes Documentation**:
+- [[ext:rosettes:docs/reference/languages|Supported Languages]] — Full list of 50+ supported languages
+- [[ext:rosettes:docs/styling/custom-themes|Custom Themes]] — Create your own syntax themes
+- [[ext:rosettes:docs/highlighting/line-highlighting|Line Highlighting]] — Advanced highlighting options
 ::::

@@ -129,7 +129,7 @@ def main(
 
     Build fast, modern static sites with Python.
 
-    For more information, see: https://bengal.dev/docs
+    For more information, see: https://lbliii.github.io/bengal/docs
     """
     # Install rich traceback handler using centralized configuration
     # Style is determined by env (BENGAL_TRACEBACK) → defaults

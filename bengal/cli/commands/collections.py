@@ -33,7 +33,7 @@ Configuration:
     [build]
     strict_collections = true  # Default: false (warn only)
 
-For more information, see: https://bengal.dev/docs/collections
+For more information, see: https://lbliii.github.io/bengal/docs/collections
 """
 
 from __future__ import annotations

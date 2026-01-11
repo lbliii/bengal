@@ -109,14 +109,21 @@ Quick reference for terms used in Bengal documentation. Terms are listed alphabe
 ## J
 
 **Jinja2**
-: The Python templating engine used by Bengal. Provides template inheritance, conditionals, loops, filters, and macros. Industry standard, also used by Flask and Ansible.
+: A Python templating engine. Bengal supports Jinja2 as an alternative engine (set `template_engine: jinja2`), but defaults to [[ext:kida:docs/get-started|Kida]] for better performance and modern syntax.
+
+---
+
+## K
+
+**Kida**
+: Bengal's default template engine. A high-performance alternative to Jinja2 with unified block endings (`{% end %}`), pattern matching, pipeline operators (`|>`), and automatic caching. Designed for Python 3.14t free-threading. See [[ext:kida:docs/get-started|Kida documentation]] for details.
 
 ---
 
 ## L
 
 **Layout**
-: A Jinja2 template that defines HTML structure for a specific content type. Lives in `templates/` (project) or in the active theme.
+: A template that defines HTML structure for a specific content type. Written in Kida (or Jinja2). Lives in `templates/` (project) or in the active theme.
 
 **Live Reload**
 : Automatic browser refresh when source files change during development. Enabled by default with `bengal serve`.
@@ -148,6 +155,13 @@ Quick reference for terms used in Bengal documentation. Terms are listed alphabe
 **Page**
 : A single piece of content, typically a Markdown file. Rendered to HTML using templates. Has properties like title, URL, date, tags, and content.
 
+---
+
+## R
+
+**Rosettes**
+: Bengal's syntax highlighting engine. A modern, lock-free highlighter designed for Python 3.14t free-threading with 50+ supported languages. Provides semantic CSS classes and configurable themes. See [[ext:rosettes:docs/get-started|Rosettes documentation]] for details.
+
 **Partial**
 : A reusable template fragment (e.g., `header.html`, `footer.html`, `sidebar.html`). Included in other templates via `{% include "partials/name.html" %}`.
 
@@ -178,7 +192,7 @@ Quick reference for terms used in Bengal documentation. Terms are listed alphabe
 : A Jinja2 file that defines how content is rendered to HTML. Templates use inheritance (extending base templates) and composition (including partials).
 
 **Template Engine**
-: Bengal's Jinja2-based system for rendering templates. Provides built-in filters, functions, and the `site`/`page`/`section` context variables.
+: Bengal's system for rendering templates. Defaults to [[ext:kida:docs/get-started|Kida]] (high-performance with modern syntax) but also supports Jinja2. Provides built-in filters, functions, and the `site`/`page`/`section` context variables.
 
 **Theme**
 : A package of templates, assets, and styles that defines site appearance. Themes can be:

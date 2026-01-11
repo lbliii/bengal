@@ -69,3 +69,12 @@ Bengal's default template engine. Kida renders templates faster than Jinja2, sup
 - [Operators Guide](/docs/theming/templating/kida/syntax/operators/) — Pipeline, optional chaining, and null coalescing
 - [Template Functions](/docs/reference/template-functions/) — Available filters and functions
 - [Migrating from Jinja2](/docs/theming/templating/kida/migration/from-jinja/) — Step-by-step migration guide
+
+## Kida Documentation
+
+Kida is developed as a standalone template engine. For comprehensive documentation including API reference, extending the engine, and standalone usage:
+
+- [[ext:kida:docs/get-started|Getting Started with Kida]] — Installation and quickstart
+- [[ext:kida:docs/syntax|Syntax Reference]] — Complete syntax documentation
+- [[ext:kida:docs/reference/filters|Filters Reference]] — All built-in filters
+- [[ext:kida:docs/about/performance|Performance]] — Benchmarks and optimization tips

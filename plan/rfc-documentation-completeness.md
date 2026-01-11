@@ -136,26 +136,26 @@ from bengal.autodoc.base import DocElement, Extractor
 
 class TemplateFunctionExtractor(Extractor):
     """Extract documentation from template function modules."""
-    
+
     def extract(self, source: Path) -> list[DocElement]:
         """Parse template_functions/ modules and extract function docs."""
         elements = []
-        
+
         for module_path in source.glob("*.py"):
             if module_path.name.startswith("_"):
                 continue
-            
+
             tree = ast.parse(module_path.read_text())
             module_doc = ast.get_docstring(tree)
-            
+
             # Extract functions registered as filters/globals
             for node in ast.walk(tree):
                 if isinstance(node, ast.FunctionDef):
                     if self._is_template_function(node):
                         elements.append(self._extract_function(node, module_path))
-        
+
         return elements
-    
+
     def _is_template_function(self, node: ast.FunctionDef) -> bool:
         """Check if function is registered as filter or global."""
         # Look for env.filters[...] or env.globals[...] assignments
@@ -198,29 +198,29 @@ site/content/docs/reference/template-functions/
       {% end %}
     </div>
   </header>
-  
+
   <div class="autodoc-signature">
     <code>{{ func.signature }}</code>
   </div>
-  
+
   <div class="autodoc-description">
     {{ func.description | markdown | safe }}
   </div>
-  
+
   {% if func.params %}
   <section class="autodoc-params">
     <h3>Parameters</h3>
     {% include "autodoc/partials/params-table.html" %}
   </section>
   {% end %}
-  
+
   {% if func.returns %}
   <section class="autodoc-returns">
     <h3>Returns</h3>
     {{ func.returns | markdown | safe }}
   </section>
   {% end %}
-  
+
   {% if func.examples %}
   <section class="autodoc-examples">
     <h3>Examples</h3>
@@ -251,15 +251,15 @@ from bengal.autodoc.base import DocElement, Extractor
 
 class ConfigExtractor(Extractor):
     """Extract documentation from config YAML files."""
-    
+
     def extract(self, source: Path) -> list[DocElement]:
         """Parse config/_default/ YAML files."""
         elements = []
-        
+
         for config_file in source.glob("*.yaml"):
             config = yaml.safe_load(config_file.read_text())
             comments = self._extract_yaml_comments(config_file)
-            
+
             element = DocElement(
                 name=config_file.stem,
                 qualified_name=f"config.{config_file.stem}",
@@ -268,9 +268,9 @@ class ConfigExtractor(Extractor):
                 children=self._extract_options(config, comments),
             )
             elements.append(element)
-        
+
         return elements
-    
+
     def _extract_options(self, config: dict, comments: dict) -> list[DocElement]:
         """Extract individual config options with types and defaults."""
         ...
@@ -383,7 +383,7 @@ from bengal.directives import BengalDirective, DirectiveToken
 class GistDirective(BengalDirective):
     NAMES = ["gist"]
     TOKEN_TYPE = "gist"
-    
+
     def parse_directive(self, title, options, content, children, state):
         # Parse "username/gist_id" from title
         parts = title.split("/") if title else []
@@ -395,7 +395,7 @@ class GistDirective(BengalDirective):
             },
             children=children,
         )
-    
+
     def render(self, renderer, text, **attrs):
         username = attrs.get("username", "")
         gist_id = attrs.get("gist_id", "")
@@ -469,7 +469,7 @@ Bengal auto-generates `xref.json` during production builds:
 {
   "version": "1",
   "project": "bengal",
-  "baseurl": "https://bengal.dev/docs/",
+  "baseurl": "https://lbliii.github.io/bengal/docs/",
   "generated": "2026-01-02T12:00:00Z",
   "entries": {
     "BengalDirective": {
@@ -478,7 +478,7 @@ Bengal auto-generates `xref.json` during production builds:
       "title": "BengalDirective"
     },
     "get_page": {
-      "type": "function", 
+      "type": "function",
       "path": "/api/python/rendering/#get_page",
       "title": "get_page()"
     },
@@ -500,14 +500,14 @@ Bengal auto-generates `xref.json` during production builds:
 autodoc:
   # Export xref index for other sites to consume
   export_xref: true
-  
+
   # Import external Bengal sites
   external_refs:
     cache_ttl: 86400  # 24 hours
     mappings:
       - name: bengal
-        url: https://bengal.dev/docs
-        index: https://bengal.dev/docs/xref.json
+        url: https://lbliii.github.io/bengal/docs
+        index: https://lbliii.github.io/bengal/docs/xref.json
       - name: mylib
         url: https://mylib.dev
         index: https://mylib.dev/xref.json
@@ -690,7 +690,7 @@ from bengal.core.site import Site
 def export_xref_index(site: Site, output_dir: Path) -> None:
     """Export xref index as JSON for external consumption."""
     entries = {}
-    
+
     # Add pages
     for page in site.pages:
         if page.draft:
@@ -700,7 +700,7 @@ def export_xref_index(site: Site, output_dir: Path) -> None:
             "path": page.href,
             "title": page.title,
         }
-    
+
     # Add autodoc elements (classes, functions, CLI commands)
     for element in site.autodoc_elements:
         entries[element.name] = {
@@ -708,7 +708,7 @@ def export_xref_index(site: Site, output_dir: Path) -> None:
             "path": element.href,
             "title": element.name,
         }
-    
+
     index = {
         "version": "1",
         "project": site.config.get("site", {}).get("title", "Unknown"),
@@ -716,7 +716,7 @@ def export_xref_index(site: Site, output_dir: Path) -> None:
         "generated": datetime.now(timezone.utc).isoformat(),
         "entries": entries,
     }
-    
+
     output_path = output_dir / "xref.json"
     output_path.write_text(json.dumps(index, indent=2))
 ```
@@ -744,10 +744,10 @@ def fetch_xref_index(url: str, project_name: str) -> dict[str, ExternalEntry]:
     """Fetch and parse Bengal xref.json."""
     with urlopen(url) as response:
         data = json.loads(response.read())
-    
+
     baseurl = data.get("baseurl", "")
     entries = {}
-    
+
     for name, entry in data.get("entries", {}).items():
         entries[name] = ExternalEntry(
             name=name,
@@ -757,7 +757,7 @@ def fetch_xref_index(url: str, project_name: str) -> dict[str, ExternalEntry]:
             project=project_name,
             baseurl=baseurl,
         )
-    
+
     return entries
 ```
 
@@ -770,22 +770,22 @@ from bengal.rendering.external_refs.importer import ExternalEntry
 
 class ExternalRefResolver:
     """Resolve external references to other Bengal sites."""
-    
+
     def __init__(self, indexes: dict[str, dict[str, ExternalEntry]]):
         self.indexes = indexes  # project_name -> {target -> ExternalEntry}
-    
+
     def resolve(self, project: str, target: str) -> str | None:
         """Resolve project:target to full URL."""
         if project not in self.indexes:
             return None
-        
+
         index = self.indexes[project]
         if target not in index:
             return None
-        
+
         entry = index[target]
         return f"{entry.baseurl}{entry.path}"
-    
+
     def get_title(self, project: str, target: str) -> str:
         """Get display title for target."""
         if project in self.indexes and target in self.indexes[project]:
@@ -802,16 +802,16 @@ def _resolve_external_ref(self, match: str) -> str:
     """Handle [[project:target]] syntax."""
     if ":" not in match:
         return None  # Not an external ref
-    
+
     project, target = match.split(":", 1)
     if project in ("id", "v", "latest"):  # Reserved prefixes
         return None
-    
+
     url = self.external_resolver.resolve(project, target)
     if url:
         title = self.external_resolver.get_title(project, target)
         return f'<a href="{url}" class="external-ref">{title}</a>'
-    
+
     return f'<span class="broken-ref">[{project}:{target}]</span>'
 ```
 
@@ -823,27 +823,27 @@ All template functions should follow this docstring format:
 def where(items: Iterable, key: str, value: Any, op: str = "eq") -> list:
     """
     Filter items where a key matches a value.
-    
+
     Supports comparison operators for flexible filtering.
-    
+
     Args:
         items: Collection to filter (list, tuple, or iterable)
         key: Attribute or dict key to check (supports dot notation)
         value: Value to compare against
         op: Comparison operator (eq, ne, gt, gte, lt, lte, in, not_in)
-    
+
     Returns:
         Filtered list of items matching the condition
-    
+
     Examples:
         ```kida
         {# Filter by exact value #}
         {% let tutorials = site.pages |> where('category', 'tutorial') %}
-        
+
         {# Filter with operator #}
         {% let recent = site.pages |> where('date', cutoff, 'gt') %}
         ```
-    
+
     See Also:
         - `where_not`: Shorthand for `where(key, value, 'ne')`
         - `sort_by`: Sort filtered results

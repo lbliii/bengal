@@ -63,7 +63,7 @@ def display_bengal_error(error: BengalError, cli: CLIOutput) -> None:
         #
         #   Tip: Check for missing colons, incorrect indentation
         #
-        #   Docs: https://bengal.dev/docs/reference/errors/#c001
+        #   Docs: https://lbliii.github.io/bengal/docs/reference/errors/#c001
     """
     icons = cli.icons
 
@@ -141,7 +141,7 @@ def display_bengal_error(error: BengalError, cli: CLIOutput) -> None:
 
     # Documentation link
     if error.code:
-        docs_url = f"https://bengal.dev{error.code.docs_url}"
+        docs_url = f"https://lbliii.github.io/bengal{error.code.docs_url}"
         if cli.use_rich:
             cli.console.print(f"  [dim]Docs: {docs_url}[/dim]")
             cli.console.print()

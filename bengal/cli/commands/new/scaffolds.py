@@ -395,7 +395,7 @@ def _create_theme_assets(theme_path: Path, name: str) -> None:
  * to provide aesthetic styles - functional show/hide, accessibility,
  * and prose contamination fixes are handled automatically.
  *
- * See: https://bengal.dev/docs/theming/directives
+ * See: https://lbliii.github.io/bengal/docs/theming/directives
  */
 
 :root {{

@@ -925,11 +925,11 @@ def _display_template_error_rich(error: TemplateRenderError) -> None:
 
     # Documentation link
     doc_links = {
-        "filter": "https://bengal.dev/docs/templates/filters",
-        "undefined": "https://bengal.dev/docs/templates/variables",
-        "syntax": "https://bengal.dev/docs/templates/syntax",
-        "callable": "https://bengal.dev/docs/templates/troubleshooting#none-not-callable",
-        "none_access": "https://bengal.dev/docs/templates/troubleshooting#none-not-iterable",
+        "filter": "https://lbliii.github.io/bengal/docs/templates/filters",
+        "undefined": "https://lbliii.github.io/bengal/docs/templates/variables",
+        "syntax": "https://lbliii.github.io/bengal/docs/templates/syntax",
+        "callable": "https://lbliii.github.io/bengal/docs/templates/troubleshooting#none-not-callable",
+        "none_access": "https://lbliii.github.io/bengal/docs/templates/troubleshooting#none-not-iterable",
     }
 
     if error.error_type in doc_links:

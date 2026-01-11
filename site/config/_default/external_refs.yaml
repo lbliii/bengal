@@ -14,24 +14,36 @@ external_refs:
   cache_dir: ".bengal/cache/external_refs"
   default_cache_days: 7
 
-  # URL templates for instant, offline resolution of common libraries
+  # URL templates for instant, offline resolution
+  # These work without network access and are the primary resolution method
   templates:
     # Python standard library
     python: "https://docs.python.org/3/library/{module}.html#{name}"
     typing: "https://docs.python.org/3/library/typing.html#{name}"
+
     # Popular libraries
     requests: "https://requests.readthedocs.io/en/latest/api/#{name}"
     httpx: "https://www.python-httpx.org/api/#{name_lower}"
     pydantic: "https://docs.pydantic.dev/latest/api/{module}/#{name}"
 
-  # Bengal ecosystem indexes (import other Bengal sites' xref.json)
+    # Bengal ecosystem - URL templates for immediate resolution
+    # These work now, before xref.json is deployed
+    kida: "https://kida.dev/{target}/"
+    rosettes: "https://rosettes.dev/{target}/"
+
+  # Bengal ecosystem indexes (for richer metadata when sites are deployed)
+  # During local development, use relative paths to sibling project output
   indexes:
     # Kida template engine
+    # - Production: "https://kida.dev/xref.json"
+    # - Local dev: Use relative path to built site
     - name: kida
-      url: "https://llane.github.io/kida/xref.json"
+      url: "../../../kida/public/xref.json"
       cache_days: 7
 
     # Rosettes syntax highlighting
+    # - Production: "https://rosettes.dev/xref.json"
+    # - Local dev: Use relative path to built site
     - name: rosettes
-      url: "https://llane.github.io/rosettes/xref.json"
+      url: "../../../rosettes/public/xref.json"
       cache_days: 7

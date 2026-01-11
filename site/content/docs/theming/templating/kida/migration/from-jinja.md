@@ -635,4 +635,5 @@ In strict mode, use `??` to handle undefined variables safely:
 :::{seealso}
 - [Template Functions](/docs/theming/templating/functions/) — Available filters and functions
 - [Performance Guide](/docs/building/performance/) — Performance benefits of Kida
+- [[ext:kida:docs/tutorials/migrate-from-jinja2|Kida Migration Guide]] — Standalone Kida migration documentation
 :::

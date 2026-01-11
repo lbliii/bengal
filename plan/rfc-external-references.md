@@ -179,7 +179,7 @@ Bengal sites export a JSON index during production builds:
   "generator": "bengal/0.2.0",
   "project": {
     "name": "Bengal",
-    "url": "https://bengal.dev/docs/"
+    "url": "https://lbliii.github.io/bengal/docs/"
   },
   "generated": "2026-01-02T12:00:00Z",
   "entries": {
@@ -234,7 +234,7 @@ export_index = true  # Generates xref.json on production builds
 # Import indexes from Bengal ecosystem
 [[external_refs.indexes]]
 name = "bengal"
-url = "https://bengal.dev/docs/xref.json"
+url = "https://lbliii.github.io/bengal/docs/xref.json"
 cache_days = 7
 
 [[external_refs.indexes]]
@@ -517,7 +517,7 @@ pandas = "https://pandas.pydata.org/docs/reference/api/pandas.{name}.html"
 # Bengal ecosystem indexes
 [[external_refs.indexes]]
 name = "bengal"
-url = "https://bengal.dev/docs/xref.json"
+url = "https://lbliii.github.io/bengal/docs/xref.json"
 cache_days = 7
 
 [[external_refs.indexes]]
