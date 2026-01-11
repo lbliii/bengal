@@ -1,7 +1,8 @@
-# Features Configuration
-# ======================
-# Controls what gets GENERATED during postprocessing.
-# These are expensive operations that produce output files.
+# Outputs Configuration
+# =====================
+# Controls what files get GENERATED during postprocessing.
+# These are build outputs: feeds, indexes, and per-page data files.
+# Note: The `features:` key will be renamed to `outputs:` in a future release.
 
 features:
   # Output Formats (files generated during build)
