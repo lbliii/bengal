@@ -21,15 +21,15 @@ from typing import TYPE_CHECKING, Any
 from bengal.errors import BengalRenderingError
 from bengal.rendering.engines.errors import TemplateError, TemplateNotFoundError
 from bengal.rendering.engines.protocol import EngineCapability, TemplateEngineProtocol
-from bengal.rendering.kida import Environment
-from bengal.rendering.kida.bytecode_cache import BytecodeCache
-from bengal.rendering.kida.environment import (
+from kida import Environment
+from kida.bytecode_cache import BytecodeCache
+from kida.environment import (
     FileSystemLoader,
 )
-from bengal.rendering.kida.environment import (
+from kida.environment import (
     TemplateNotFoundError as KidaTemplateNotFoundError,
 )
-from bengal.rendering.kida.environment import (
+from kida.environment import (
     TemplateSyntaxError as KidaTemplateSyntaxError,
 )
 
@@ -362,7 +362,7 @@ class KidaTemplateEngine:
         Returns:
             Rendered HTML string
         """
-        from bengal.rendering.kida.environment.exceptions import UndefinedError
+        from kida.environment.exceptions import UndefinedError
 
         try:
             tmpl = self._env.from_string(template)

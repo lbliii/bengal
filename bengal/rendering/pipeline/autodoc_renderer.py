@@ -15,7 +15,7 @@ from __future__ import annotations
 from contextlib import suppress
 from typing import TYPE_CHECKING, Any
 
-from bengal.rendering.kida.environment.exceptions import (
+from kida.environment.exceptions import (
     TemplateNotFoundError,
     TemplateSyntaxError,
 )
@@ -25,7 +25,7 @@ from bengal.utils.logger import get_logger
 if TYPE_CHECKING:
     from bengal.core.page import Page
     from bengal.rendering.engines.protocol import TemplateEngine
-    from bengal.rendering.kida.template import Template
+    from kida.template import Template
     from bengal.rendering.renderer import Renderer
 
 logger = get_logger(__name__)

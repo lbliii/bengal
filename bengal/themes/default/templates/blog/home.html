@@ -123,7 +123,7 @@ Or set `type: blog` on home page to auto-select
   {% let p_type = p?.metadata?.type ?? '' %}
   {% let p_path = p?._path ?? '' %}
   {% if p_type == 'blog' or '/blog/' in p_path or '/posts/' in p_path %}
-  {% do blog_posts.append(p) %}
+  {% set _ = blog_posts.append(p) %}
   {% end %}
   {% end %}
   {% let recent = blog_posts

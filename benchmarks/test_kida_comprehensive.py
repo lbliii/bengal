@@ -46,7 +46,7 @@ def benchmark_compilation_and_rendering(
     template_source: str, context: dict[str, Any], iterations: int = 1000
 ) -> dict[str, float]:
     """Benchmark both compilation and rendering times."""
-    from bengal.rendering.kida import Environment
+    from kida import Environment
 
     env = Environment(autoescape=True)
 

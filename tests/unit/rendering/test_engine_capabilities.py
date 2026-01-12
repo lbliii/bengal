@@ -93,7 +93,7 @@ class TestKidaEngineCapabilities:
     def test_kida_has_all_capabilities(self, mock_site, monkeypatch):
         """Kida engine should have all capabilities."""
         # Skip if Kida isn't available
-        pytest.importorskip("bengal.rendering.kida")
+        pytest.importorskip("kida")
 
         # Mock dependencies
         from unittest.mock import MagicMock

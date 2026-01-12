@@ -196,8 +196,8 @@ def benchmark_single_template(
     from jinja2 import BaseLoader
     from jinja2 import Environment as JinjaEnv
 
-    from bengal.rendering.kida import DictLoader
-    from bengal.rendering.kida import Environment as KidaEnv
+    from kida import DictLoader
+    from kida import Environment as KidaEnv
 
     # Custom loader that returns empty for missing templates
     class MockLoader(BaseLoader):

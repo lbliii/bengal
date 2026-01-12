@@ -6,10 +6,10 @@ import pytest
 
 from bengal.core.site import Site
 from bengal.rendering.engines import create_engine
-from bengal.rendering.kida.environment.exceptions import (
+from kida.environment.exceptions import (
     TemplateError as KidaTemplateError,
 )
-from bengal.rendering.kida.environment.exceptions import (
+from kida.environment.exceptions import (
     TemplateRuntimeError,
 )
 

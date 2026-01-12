@@ -107,7 +107,7 @@ MAIN TEMPLATE
 
 {# Hero Section #}
 {% let hero_classes = ['hero', 'hero--large'] %}
-{% if blob_background %}{% do hero_classes.append('hero--blob-background') %}{% end %}
+{% if blob_background %}{% set _ = hero_classes.append('hero--blob-background') %}{% end %}
 
 <header class="{{ hero_classes | join(' ') }}">
   {% if blob_background %}

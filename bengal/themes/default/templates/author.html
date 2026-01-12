@@ -243,7 +243,7 @@ Context variables:
           {% set tag_posts = [] %}
           {% for post in author_posts %}
             {% if post.tags and (tag in post.tags) %}
-              {% do tag_posts.append(post) %}
+              {% set _ = tag_posts.append(post) %}
             {% end %}
           {% end %}
           <div class="tag-group">

@@ -103,7 +103,7 @@ This template receives:
       {% if section %}
       {% for page in section.sorted_pages %}
         {% if page != section.index_page and not (page.source_path is match('.*_index.*')) %}
-          {% do endpoint_pages.append(page) %}
+          {% set _ = endpoint_pages.append(page) %}
         {% end %}
       {% end %}
       {% end %}

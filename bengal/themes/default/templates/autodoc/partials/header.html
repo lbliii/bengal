@@ -18,13 +18,13 @@ children = element?.children ?? []
 <header class="autodoc-header">
   {# Badges #}
   {% let badges = [] %}
-  {% if meta?.is_deprecated %}{% do badges.append('deprecated') %}{% end %}
-  {% if meta?.is_async %}{% do badges.append('async') %}{% end %}
-  {% if meta?.is_abstract %}{% do badges.append('abstract') %}{% end %}
-  {% if meta?.is_dataclass %}{% do badges.append('dataclass') %}{% end %}
-  {% if meta?.is_classmethod %}{% do badges.append('classmethod') %}{% end %}
-  {% if meta?.is_staticmethod %}{% do badges.append('staticmethod') %}{% end %}
-  {% if meta?.is_property %}{% do badges.append('property') %}{% end %}
+  {% if meta?.is_deprecated %}{% set _ = badges.append('deprecated') %}{% end %}
+  {% if meta?.is_async %}{% set _ = badges.append('async') %}{% end %}
+  {% if meta?.is_abstract %}{% set _ = badges.append('abstract') %}{% end %}
+  {% if meta?.is_dataclass %}{% set _ = badges.append('dataclass') %}{% end %}
+  {% if meta?.is_classmethod %}{% set _ = badges.append('classmethod') %}{% end %}
+  {% if meta?.is_staticmethod %}{% set _ = badges.append('staticmethod') %}{% end %}
+  {% if meta?.is_property %}{% set _ = badges.append('property') %}{% end %}
 
   {% if badges | length > 0 %}
   <div class="autodoc-badges">
@@ -66,20 +66,20 @@ children = element?.children ?? []
   {% for item in stat_config %}
   {% let count = children |> selectattr('element_type', 'eq', item.type) |> list |> length %}
   {% if count > 0 %}
-  {% do stats.append({'value': count, 'label': item.label}) %}
+  {% set _ = stats.append({'value': count, 'label': item.label}) %}
   {% end %}
   {% end %}
 
   {# Subcommands (command or command-group) #}
   {% let subcommands_count = children |> selectattr('element_type', 'match', '^command(-group)?$') |> list |> length %}
   {% if subcommands_count > 0 %}
-  {% do stats.append({'value': subcommands_count, 'label': 'Subcommands'}) %}
+  {% set _ = stats.append({'value': subcommands_count, 'label': 'Subcommands'}) %}
   {% end %}
 
   {# Parameters #}
   {% let parameters = meta?.args ?? meta?.parameters ?? [] %}
   {% if parameters | length > 0 %}
-  {% do stats.append({'value': parameters | length, 'label': 'Parameters'}) %}
+  {% set _ = stats.append({'value': parameters | length, 'label': 'Parameters'}) %}
   {% end %}
 
   {% if stats | length > 0 %}

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from bengal.rendering.kida import Environment
+from kida import Environment
 
 
 @pytest.fixture

@@ -103,7 +103,7 @@ def benchmark_template(
     """Benchmark a template with both engines."""
     from jinja2 import Environment as JinjaEnv
 
-    from bengal.rendering.kida import Environment as KidaEnv
+    from kida import Environment as KidaEnv
 
     # Setup Jinja2
     jinja_env = JinjaEnv(autoescape=True)
@@ -182,7 +182,7 @@ def jinja_env():
 @pytest.fixture
 def kida_env():
     """Kida environment."""
-    from bengal.rendering.kida import Environment
+    from kida import Environment
 
     return Environment(autoescape=True)
 

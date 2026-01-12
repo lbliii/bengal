@@ -40,7 +40,7 @@ Or set `template: autodoc/cli/home.html` in frontmatter
     {% set cli_sections = [] %}
     {% for section in site.sections %}
     {% if section.metadata.type == 'autodoc-cli' or section.metadata.content_type == 'autodoc-cli' %}
-    {% do cli_sections.append(section) %}
+    {% set _ = cli_sections.append(section) %}
     {% end %}
     {% end %}
 
@@ -50,7 +50,7 @@ Or set `template: autodoc/cli/home.html` in frontmatter
     {% for name in common_names %}
     {% set candidates = site.sections | selectattr('name', 'equalto', name) | list %}
     {% if candidates %}
-    {% do cli_sections.append(candidates[0]) %}
+    {% set _ = cli_sections.append(candidates[0]) %}
     {% end %}
     {% end %}
     {% end %}
@@ -60,7 +60,7 @@ Or set `template: autodoc/cli/home.html` in frontmatter
     {% set sortable_sections = [] %}
     {% for section in cli_sections %}
     {% set _weight = section.metadata.weight %}
-    {% do sortable_sections.append({'section': section, 'weight': _weight if _weight != none else 999999}) %}
+    {% set _ = sortable_sections.append({'section': section, 'weight': _weight if _weight != none else 999999}) %}
     {% end %}
     <section class="docs-home-sections">
         <h2 class="docs-home-sections-title">{{ page.title ?? 'CLI Reference' }} Sections</h2>

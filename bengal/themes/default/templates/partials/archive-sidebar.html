@@ -96,7 +96,7 @@ Example:
   <div class="archive-total">
     {% set post_counts = [] %}
     {% for y in site.indexes.date_range.keys() | select('match', '^\\d{4}$') %}
-    {% do post_counts.append(site.indexes.date_range.get(y) | length) %}
+    {% set _ = post_counts.append(site.indexes.date_range.get(y) | length) %}
     {% end %}
     <p class="total-text">
       <strong>{{ post_counts | sum }}</strong> total posts

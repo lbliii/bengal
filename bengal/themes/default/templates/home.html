@@ -99,7 +99,7 @@ MAIN TEMPLATE
 <div class="home">
     {# Hero Section #}
     {% let hero_classes = ['hero', 'hero--large'] %}
-    {% if blob_background %}{% do hero_classes.append('hero--blob-background') %}{% end %}
+    {% if blob_background %}{% set _ = hero_classes.append('hero--blob-background') %}{% end %}
 
     <header class="{{ hero_classes | join(' ') }}">
         {% if blob_background %}
@@ -215,7 +215,7 @@ MAIN TEMPLATE
     {% let p_type = p?.metadata?.type ?? '' %}
     {% let p_path = p?._path ?? '' %}
     {% if p_type == 'blog' or '/blog/' in p_path %}
-    {% do blog_posts.append(p) %}
+    {% set _ = blog_posts.append(p) %}
     {% end %}
     {% end %}
     {% let recent = blog_posts

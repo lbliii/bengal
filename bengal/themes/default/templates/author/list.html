@@ -111,7 +111,7 @@ MAIN TEMPLATE
   {% let author_posts = author_index[author_key] ?? [] %}
   {% let post_count = author_posts | length %}
   {% let _name = author_data?.name ?? author_key %}
-  {% do authors_list.append({
+  {% set _ = authors_list.append({
   'key': author_key,
   'name': _name,
   'bio': author_data?.bio ?? '',
@@ -134,7 +134,7 @@ MAIN TEMPLATE
   {% let post_count = author_posts | length %}
   {% let child_params = child?.params ?? {} %}
   {% let child_social = child_params?.social ?? {} %}
-  {% do authors_list.append({
+  {% set _ = authors_list.append({
   'key': author_key,
   'name': child_title,
   'bio': child_params?.bio ?? '',

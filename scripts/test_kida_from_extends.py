@@ -5,7 +5,7 @@ import sys
 
 sys.path.insert(0, "/Users/llane/Documents/github/python/bengal")
 
-from bengal.rendering.kida import DictLoader, Environment
+from kida import DictLoader, Environment
 
 
 def test_from_import_in_child():

@@ -12,7 +12,7 @@ Variants:
 - minimal: Simple link list
 
 Usage:
-  {{ content_tiles(title='Section', children=posts, variant='cards') }}
+{{ content_tiles(title='Section', children=posts, variant='cards') }}
 ================================================================================
 #}
 
@@ -20,17 +20,17 @@ Usage:
 CONTENT TILES COMPONENT
 ============================================================================= #}
 {% def content_tiles(
-  title=none,
-  children=none,
-  subsections=none,
-  related=none,
-  related_title=none,
-  related_limit=5,
-  variant='compact',
-  show_descriptions=true,
-  show_icons=true,
-  group_by=none,
-  page=none
+title=none,
+children=none,
+subsections=none,
+related=none,
+related_title=none,
+related_limit=5,
+variant='compact',
+show_descriptions=true,
+show_icons=true,
+group_by=none,
+page=none
 ) %}
 {% let all_items = [] %}
 {% let page_path = page?._path ?? '' %}
@@ -39,16 +39,16 @@ CONTENT TILES COMPONENT
 {% if subsections %}
 {% for subsection in subsections %}
 {% let sub_pages = subsection?.pages ?? [] %}
-{% do all_items.append({
-  'type': 'section',
-  'group': 'children',
-  'obj': subsection,
-  'title': subsection?.title ?? 'Untitled',
-  'href': subsection?.href ?? '',
-  'description': subsection?.metadata?.description ?? '',
-  'weight': subsection?.weight ?? 999,
-  'page_count': sub_pages | length,
-  'icon': subsection?.metadata?.icon ?? ''
+{% set _ = all_items.append({
+'type': 'section',
+'group': 'children',
+'obj': subsection,
+'title': subsection?.title ?? 'Untitled',
+'href': subsection?.href ?? '',
+'description': subsection?.metadata?.description ?? '',
+'weight': subsection?.weight ?? 999,
+'page_count': sub_pages | length,
+'icon': subsection?.metadata?.icon ?? ''
 }) %}
 {% end %}
 {% end %}
@@ -61,16 +61,16 @@ CONTENT TILES COMPONENT
 {% let post_content = post?.content ?? '' %}
 {% let post_desc = post?.metadata?.description ?? '' %}
 {% let desc = post_desc ?? (post_content | strip_html | excerpt(120) if post_content else '') %}
-{% do all_items.append({
-  'type': 'page',
-  'group': 'children',
-  'obj': post,
-  'title': post?.title ?? 'Untitled',
-  'href': post?.href ?? '',
-  'description': desc,
-  'weight': post?.weight ?? 999,
-  'date': post?.date,
-  'icon': post?.metadata?.icon ?? ''
+{% set _ = all_items.append({
+'type': 'page',
+'group': 'children',
+'obj': post,
+'title': post?.title ?? 'Untitled',
+'href': post?.href ?? '',
+'description': desc,
+'weight': post?.weight ?? 999,
+'date': post?.date,
+'icon': post?.metadata?.icon ?? ''
 }) %}
 {% end %}
 {% end %}
@@ -88,7 +88,7 @@ CONTENT TILES COMPONENT
 {# Build set of existing URLs for dedup #}
 {% let children_urls = [] %}
 {% for item in all_items %}
-{% do children_urls.append(item.href) %}
+{% set _ = children_urls.append(item.href) %}
 {% end %}
 
 {% for rel_page in related_pages %}
@@ -100,23 +100,24 @@ CONTENT TILES COMPONENT
 {% let rel_content = rel_page?.content ?? '' %}
 {% let rel_desc = rel_page?.metadata?.description ?? '' %}
 {% let desc = rel_desc ?? (rel_content | strip_html | excerpt(100) if rel_content else '') %}
-{% do all_items.append({
-  'type': 'related',
-  'group': 'related',
-  'obj': rel_page,
-  'title': rel_page?.title ?? 'Untitled',
-  'href': rel_href,
-  'description': desc,
-  'weight': rel_page?.weight ?? 999,
-  'date': rel_page?.date,
-  'icon': rel_page?.metadata?.icon ?? ''
+{% set _ = all_items.append({
+'type': 'related',
+'group': 'related',
+'obj': rel_page,
+'title': rel_page?.title ?? 'Untitled',
+'href': rel_href,
+'description': desc,
+'weight': rel_page?.weight ?? 999,
+'date': rel_page?.date,
+'icon': rel_page?.metadata?.icon ?? ''
 }) %}
 {% end %}
 {% end %}
 
 {% if all_items | length > 0 %}
 {# Sort items #}
-{% let sorted_items = all_items | sort(attribute='group,weight,title') if group_by == 'type' else all_items | sort(attribute='weight,title') %}
+{% let sorted_items = all_items | sort(attribute='group,weight,title') if group_by == 'type' else all_items |
+sort(attribute='weight,title') %}
 
 <section class="content-tiles content-tiles--{{ variant }}">
   {% if title %}

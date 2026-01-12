@@ -90,7 +90,7 @@ class TemplateEnvironment(Protocol):
 
     Implementations:
         - jinja2.Environment: Jinja2's native environment
-        - bengal.rendering.kida.Environment: Kida template engine
+        - kida.Environment: Kida template engine
     """
 
     globals: MutableMapping[str, Any]

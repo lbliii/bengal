@@ -379,7 +379,7 @@ class BlockCache:
         Thread-Safety:
             Read-only operation, safe for concurrent calls.
         """
-        from bengal.rendering.kida.nodes import Block
+        from kida.nodes import Block
 
         def walk(node: Any) -> Iterator[Any]:
             """Walk AST depth-first, yielding all nodes."""

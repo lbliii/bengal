@@ -245,7 +245,7 @@ MAIN TEMPLATE
       {% for post in author_posts %}
       {% let post_tags = post?.tags ?? [] %}
       {% if tag in post_tags %}
-      {% do tag_posts.append(post) %}
+      {% set _ = tag_posts.append(post) %}
       {% end %}
       {% end %}
       <div class="tag-group">

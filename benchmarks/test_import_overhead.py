@@ -145,7 +145,7 @@ class TestLightweightModules:
             "rosettes",  # External package
             "rosettes._types",
             "rosettes._registry",
-            "bengal.rendering.kida",
+            "kida",
             "bengal.rendering.highlighting",
         ],
     )
@@ -169,7 +169,7 @@ class TestLightweightModules:
 
     def test_kida_template_engine(self):
         """Kida should be a lightweight Jinja alternative."""
-        result = measure_import("bengal.rendering.kida")
+        result = measure_import("kida")
 
         assert result.time_ms < THRESHOLDS["lightweight"]
         assert not result.heavy_loaded
@@ -327,7 +327,7 @@ class TestComparativeBenchmarks:
 
     def test_kida_vs_jinja_engine(self):
         """Compare template engine import times."""
-        kida = measure_import("bengal.rendering.kida")
+        kida = measure_import("kida")
 
         print(f"\nKida engine: {kida.time_ms:.1f}ms")
 
@@ -347,7 +347,7 @@ class TestRegressionDetection:
     # Baseline times from after optimization (update when improving)
     BASELINES = {
         "rosettes": 15.0,  # External package
-        "bengal.rendering.kida": 10.0,
+        "kida": 10.0,
         "bengal.rendering.highlighting": 25.0,
     }
 
@@ -399,7 +399,7 @@ if __name__ == "__main__":
     print_import_report(
         [
             "rosettes",  # External package
-            "bengal.rendering.kida",
+            "kida",
             "bengal.rendering.highlighting",
             "bengal.utils",
             "bengal.utils.hashing",

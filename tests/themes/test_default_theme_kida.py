@@ -17,7 +17,7 @@ from pathlib import Path
 
 import pytest
 
-from bengal.rendering.kida import Environment
+from kida import Environment
 
 # Path to default theme templates
 TEMPLATES_DIR = Path(__file__).parent.parent.parent / "bengal" / "themes" / "default" / "templates"
@@ -339,7 +339,7 @@ Found {{ count }} items
 
     def test_embed_with_block_overrides(self, env: Environment):
         """Test {% embed %} with block overrides."""
-        from bengal.rendering.kida import DictLoader
+        from kida import DictLoader
 
         # Create environment with a template to embed
         env = Environment(
@@ -371,7 +371,7 @@ Found {{ count }} items
 
     def test_embed_partial_override(self, env: Environment):
         """Test {% embed %} with only some blocks overridden."""
-        from bengal.rendering.kida import DictLoader
+        from kida import DictLoader
 
         env = Environment(
             loader=DictLoader(

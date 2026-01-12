@@ -131,6 +131,7 @@ dependencies = [
     { name = "httpx" },
     { name = "jinja2" },
     { name = "jsmin" },
+    { name = "kida-templates" },
     { name = "markupsafe" },
     { name = "mistune" },
     { name = "pillow" },
@@ -234,6 +235,7 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.27.0" },
     { name = "jinja2", specifier = ">=3.1.0" },
     { name = "jsmin", specifier = ">=3.0.1" },
+    { name = "kida-templates", specifier = ">=0.1.0" },
     { name = "lunr", marker = "extra == 'search'", specifier = ">=0.7.0" },
     { name = "markupsafe", specifier = ">=3.0.0" },
     { name = "mistune", specifier = ">=3.0.0" },
@@ -537,6 +539,15 @@ name = "jsmin"
 version = "3.0.1"
 source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/5e/73/e01e4c5e11ad0494f4407a3f623ad4d87714909f50b17a06ed121034ff6e/jsmin-3.0.1.tar.gz", hash = "sha256:c0959a121ef94542e807a674142606f7e90214a2b3d1eb17300244bbb5cc2bfc", size = 13925, upload-time = "2022-01-16T20:35:59.13Z" }
+
+[[package]]
+name = "kida-templates"
+version = "0.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/73/2f/3c86133bce6128b2b8cad898f52cd527a5019d7e59c8329b53955886dadc/kida_templates-0.1.0.tar.gz", hash = "sha256:4110ce5713e3e3c05fa79ffff4602045e1a602a28f5be664a37eb16b48a29717", size = 238177, upload-time = "2026-01-12T17:50:37.341Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d3/47/a6d7b39d5fbcd4e02c8375d53340c350e4719f0ad1e69279d3431e833293/kida_templates-0.1.0-py3-none-any.whl", hash = "sha256:d5aa81ac300c9dd0a609be0f85b0b61f8cf4be94e5d2c105500a5d50d252c9f9", size = 170886, upload-time = "2026-01-12T17:50:36.002Z" },
+]
 
 [[package]]
 name = "linkify-it-py"

@@ -21,7 +21,7 @@ def test_extends():
 
         site = Site(root)
 
-        from bengal.rendering.kida import Environment, FileSystemLoader
+        from kida import Environment, FileSystemLoader
 
         # Create test templates
         (root / "templates" / "parent.html").write_text("""<!DOCTYPE html>

@@ -29,7 +29,7 @@ pytest.importorskip("bengal.rendering.block_cache")
 
 # Check if Kida environment is available (may need Python 3.14+ for tstring)
 try:
-    import bengal.rendering.kida  # noqa: F401
+    import kida  # noqa: F401
 
     HAS_KIDA = True
 except ImportError:
@@ -52,7 +52,7 @@ class TestBlockLevelDetection:
     @pytest.fixture
     def mock_engine(self, tmp_path: Path):
         """Create a mock Kida engine with test templates."""
-        Environment = pytest.importorskip("bengal.rendering.kida").Environment
+        Environment = pytest.importorskip("kida").Environment
 
         templates_dir = tmp_path / "templates"
         templates_dir.mkdir()
@@ -213,7 +213,7 @@ class TestBlockChangeClassification:
         """Create mock components for testing."""
         from bengal.rendering.block_cache import BlockCache
 
-        Environment = pytest.importorskip("bengal.rendering.kida").Environment
+        Environment = pytest.importorskip("kida").Environment
 
         templates_dir = tmp_path / "templates"
         templates_dir.mkdir()
@@ -386,7 +386,7 @@ class TestBlockDetectionPerformance:
     @pytest.fixture
     def large_template_env(self, tmp_path: Path):
         """Create environment with a large template."""
-        Environment = pytest.importorskip("bengal.rendering.kida").Environment
+        Environment = pytest.importorskip("kida").Environment
 
         templates_dir = tmp_path / "templates"
         templates_dir.mkdir()

@@ -125,7 +125,7 @@ MAIN TEMPLATE
     {% for name in common_names %}
     {% let candidates = site_sections |> selectattr('name', 'eq', name) |> list %}
     {% if candidates | length > 0 %}
-    {% do doc_sections.append(candidates[0]) %}
+    {% set _ = doc_sections.append(candidates[0]) %}
     {% end %}
     {% end %}
     {% end %}

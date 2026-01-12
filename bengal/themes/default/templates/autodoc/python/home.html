@@ -40,7 +40,7 @@ Or set `template: autodoc/python/home.html` in frontmatter
     {% set api_sections = [] %}
     {% for section in site.sections %}
     {% if section.metadata.type == 'autodoc-python' or section.metadata.content_type == 'autodoc-python' %}
-    {% do api_sections.append(section) %}
+    {% set _ = api_sections.append(section) %}
     {% end %}
     {% end %}
 
@@ -50,7 +50,7 @@ Or set `template: autodoc/python/home.html` in frontmatter
     {% for name in common_names %}
     {% set candidates = site.sections | selectattr('name', 'equalto', name) | list %}
     {% if candidates %}
-    {% do api_sections.append(candidates[0]) %}
+    {% set _ = api_sections.append(candidates[0]) %}
     {% end %}
     {% end %}
     {% end %}
@@ -60,7 +60,7 @@ Or set `template: autodoc/python/home.html` in frontmatter
     {% set sortable_sections = [] %}
     {% for section in api_sections %}
     {% set _weight = section.metadata.weight %}
-    {% do sortable_sections.append({'section': section, 'weight': _weight or 999999}) %}
+    {% set _ = sortable_sections.append({'section': section, 'weight': _weight or 999999}) %}
     {% end %}
     <section class="docs-home-sections">
         <h2 class="docs-home-sections-title">{{ page.title ?? 'API Reference' }} Sections</h2>
