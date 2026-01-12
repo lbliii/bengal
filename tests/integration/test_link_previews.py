@@ -363,7 +363,6 @@ class TestCrossSiteLinkPreviewsConfigBridge:
                     "enabled": True,
                     "allowed_hosts": [
                         "lbliii.github.io",
-                        "kida.dev",
                         "rosettes.dev",
                     ],
                     "allowed_schemes": ["https"],
@@ -375,5 +374,4 @@ class TestCrossSiteLinkPreviewsConfigBridge:
         site.build()
         html = site.read_output("index.html")
         assert "lbliii.github.io" in html
-        assert "kida.dev" in html
         assert "rosettes.dev" in html

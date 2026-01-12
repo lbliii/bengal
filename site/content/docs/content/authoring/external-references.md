@@ -110,7 +110,7 @@ For Bengal ecosystem sites, fetch and cache `xref.json` indexes:
 external_refs:
   indexes:
     - name: "kida"
-      url: "https://kida.dev/xref.json"
+      url: "https://lbliii.github.io/kida/xref.json"
       cache_days: 7
 
     - name: "rosettes"
@@ -171,7 +171,7 @@ external_refs:
   # Bengal ecosystem indexes (Tier 2) - rich metadata
   indexes:
     - name: "kida"
-      url: "https://kida.dev/xref.json"
+      url: "https://lbliii.github.io/kida/xref.json"
       cache_days: 7
 
     - name: "rosettes"

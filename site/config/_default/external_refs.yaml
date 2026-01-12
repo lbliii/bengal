@@ -35,7 +35,7 @@ external_refs:
   # During local development, use relative paths to sibling project output
   indexes:
     # Kida template engine
-    # - Production: "https://kida.dev/xref.json"
+    # - Production: "https://lbliii.github.io/kida/xref.json"
     # - Local dev: Use relative path to built site
     - name: kida
       url: "../../../kida/public/xref.json"

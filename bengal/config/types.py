@@ -374,7 +374,7 @@ class ExternalRefsConfig(TypedDict, total=False):
         ...         "python": "https://docs.python.org/3/library/{module}.html#{name}",
         ...     },
         ...     "indexes": [
-        ...         {"name": "kida", "url": "https://kida.dev/xref.json"},
+        ...         {"name": "kida", "url": "https://lbliii.github.io/kida/xref.json"},
         ...     ],
         ... }
 
