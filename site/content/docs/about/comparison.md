@@ -10,11 +10,11 @@ tags:
 
 # Key Capabilities
 
-Bengal is a static site generator that produces HTML, CSS, and JavaScript from Markdown content and Jinja2 templates.
+Bengal is a static site generator that produces HTML, CSS, and JavaScript from Markdown content and Kida templates.
 
 ## What Bengal Does
 
-- **Jinja2 templates** — Same templating engine used by Flask and Django
+- **Kida templates** — High-performance template engine with Jinja2 compatibility, 1.81x faster under concurrent workloads
 - **Incremental builds** — Rebuild only changed files
 - **Mixed content** — Docs, blog, landing pages in one site
 - **Auto-generated docs** — API docs from Python source, CLI tools, and OpenAPI specs
@@ -27,10 +27,10 @@ Bengal is a static site generator that produces HTML, CSS, and JavaScript from M
 | Feature | Description |
 |---------|-------------|
 | **Language** | Python 3.14+ |
-| **Templates** | Jinja2 |
+| **Templates** | Kida (Jinja2-compatible, 1.81x faster concurrent) |
 | **Content Types** | Docs, blog, pages (mixed) |
 | **Incremental Builds** | Yes |
-| **Free-Threading (GIL=0)** | Yes |
+| **Free-Threading (GIL=0)** | Yes (Kida is GIL-independent) |
 
 :::{seealso}
 - [[docs/about/benchmarks|Benchmarks]]

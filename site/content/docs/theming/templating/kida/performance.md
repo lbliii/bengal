@@ -27,6 +27,23 @@ build:
   parallel: true  # Default on Python 3.14t+
 ```
 
+### Concurrent Performance Advantage
+
+Under concurrent workloads, Kida significantly outperforms Jinja2:
+
+| Workers | Kida | Jinja2 | Kida Advantage |
+|---------|------|--------|----------------|
+| 1 | 3.31ms | 3.49ms | 1.05x |
+| 2 | 2.09ms | 2.51ms | 1.20x |
+| 4 | 1.53ms | 2.05ms | 1.34x |
+| 8 | 2.06ms | 3.74ms | **1.81x** |
+
+Jinja2 shows *negative scaling* at 8 workers (slower than 4 workers), while Kida maintains gains. This is due to Kida's thread-safe design:
+
+- **Copy-on-write updates**: No locks for configuration changes
+- **Local render state**: Each render uses only local variables
+- **GIL independence**: Declares `_Py_mod_gil = 0`
+
 ## Automatic Block Caching
 
 Kida analyzes templates at compile time to identify **site-scoped blocks**—blocks that only access `site.*`, `config.*`, or other non-page data. These blocks render once per build and reuse the cached result for every page.

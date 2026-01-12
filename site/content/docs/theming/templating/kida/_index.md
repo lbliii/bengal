@@ -10,6 +10,8 @@ icon: zap
 
 Bengal's default template engine. Kida renders templates faster than Jinja2, supports free-threaded Python, and caches site-scoped blocks automatically.
 
+**Performance**: Single-threaded, Kida is 3.4x faster on minimal templates. Under concurrent workloads (8 workers), Kida is **1.81x faster** than Jinja2 due to its thread-safe, GIL-independent design.
+
 ```kida
 {% let posts = site.pages |> where('type', 'blog') |> take(5) %}
 

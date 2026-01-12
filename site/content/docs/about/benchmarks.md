@@ -111,6 +111,18 @@ Comparing Python 3.14 with and without the GIL (1,000 pages).
 PYTHON_GIL=0 bengal build
 ```
 
+### Kida Template Engine Advantage
+
+Bengal uses Kida for template rendering. Under concurrent workloads, Kida significantly outperforms Jinja2:
+
+| Workers | Kida | Jinja2 | Speedup |
+|---------|------|--------|---------|
+| 1 | 3.31ms | 3.49ms | 1.05x |
+| 4 | 1.53ms | 2.05ms | 1.34x |
+| 8 | 2.06ms | 3.74ms | **1.81x** |
+
+This advantage comes from Kida's thread-safe design (copy-on-write updates, local render state, GIL independence). Jinja2 shows *negative scaling* at high concurrency due to internal contention.
+
 ---
 
 ## What Slows Builds Down
