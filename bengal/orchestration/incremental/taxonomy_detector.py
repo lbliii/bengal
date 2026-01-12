@@ -101,7 +101,19 @@ class TaxonomyChangeDetector:
         change_summary: ChangeSummary,
         verbose: bool,
     ) -> set[str]:
-        """Check for autodoc source file changes."""
+        """
+        Check for autodoc source file changes.
+
+        Uses two detection mechanisms:
+        1. Standard change detection (mtime-based via is_changed)
+        2. Self-validation (hash-based via get_stale_autodoc_sources)
+
+        The self-validation provides defense-in-depth: even if CI cache keys
+        are incorrect, Bengal will detect stale autodoc sources and rebuild
+        affected pages automatically.
+
+        See: plan/rfc-ci-cache-inputs.md (Phase 4: Self-Validating Cache)
+        """
         autodoc_pages_to_rebuild: set[str] = set()
 
         if not hasattr(self.cache, "autodoc_dependencies") or not hasattr(
@@ -120,6 +132,7 @@ class TaxonomyChangeDetector:
                     or ".tox" in parts
                 )
 
+            # Method 1: Standard change detection (mtime-based)
             source_files = self.cache.get_autodoc_source_files()
             if source_files:
                 for source_file in source_files:
@@ -138,6 +151,31 @@ class TaxonomyChangeDetector:
                                 msg += f", affects {len(affected_pages)}"
                                 msg += " autodoc pages"
                                 change_summary.extra_changes["Autodoc changes"].append(msg)
+
+            # Method 2: Self-validation (hash-based) - defense in depth
+            # This catches stale autodoc even when CI cache keys are incorrect
+            if hasattr(self.cache, "get_stale_autodoc_sources"):
+                stale_sources = self.cache.get_stale_autodoc_sources(self.site.root_path)
+                if stale_sources:
+                    for source_key in stale_sources:
+                        affected_pages = self.cache.get_affected_autodoc_pages(source_key)
+                        if affected_pages:
+                            autodoc_pages_to_rebuild.update(affected_pages)
+
+                            if verbose:
+                                if "Autodoc self-validation" not in change_summary.extra_changes:
+                                    change_summary.extra_changes["Autodoc self-validation"] = []
+                                source_name = Path(source_key).name
+                                msg = f"{source_name} stale (hash mismatch)"
+                                msg += f", affects {len(affected_pages)}"
+                                msg += " autodoc pages"
+                                change_summary.extra_changes["Autodoc self-validation"].append(msg)
+
+                    logger.info(
+                        "autodoc_self_validation_detected_stale",
+                        stale_count=len(stale_sources),
+                        affected_pages=len(autodoc_pages_to_rebuild),
+                    )
 
             if autodoc_pages_to_rebuild:
                 logger.info(

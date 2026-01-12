@@ -206,17 +206,13 @@ class AutodocTrackingMixin:
         stale_sources: set[str] = set()
 
         for source_key, (stored_hash, stored_mtime) in self.autodoc_source_metadata.items():
-            # Resolve path relative to site parent (where ../ paths live)
-            if source_key.startswith("../") or (
-                not Path(source_key).is_absolute() and source_key not in (".", "..")
-            ):
-                # Relative path - resolve from site parent for ../ or site root otherwise
-                if source_key.startswith("../"):
-                    source = site_root.parent / source_key[3:]
-                else:
-                    source = site_root / source_key
-            else:
+            # Resolve path - keys are normalized relative to site PARENT
+            # (since autodoc sources are typically outside site root, e.g., ../bengal/)
+            if Path(source_key).is_absolute():
                 source = Path(source_key)
+            else:
+                # All relative keys are relative to site parent
+                source = site_root.parent / source_key
 
             if not source.exists():
                 # Source deleted - mark as stale for cleanup

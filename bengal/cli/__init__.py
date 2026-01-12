@@ -59,6 +59,7 @@ import click
 from bengal import __version__
 from bengal.cli.commands.assets import assets as assets_cli
 from bengal.cli.commands.build import build as build_cmd
+from bengal.cli.commands.cache import cache_cli
 from bengal.cli.commands.clean import clean as clean_cmd
 from bengal.cli.commands.collections import collections as collections_cli
 from bengal.cli.commands.config import config_cli
@@ -183,6 +184,9 @@ def main(
 
 # Site operations group (nested commands for discoverability)
 main.add_command(site_cli)
+
+# Cache management (CI cache keys)
+main.add_command(cache_cli)
 
 # Configuration management
 main.add_command(config_cli)

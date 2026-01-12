@@ -129,6 +129,11 @@ class BuildCache(
     # Enables selective rebuilding of autodoc pages when their sources change
     autodoc_dependencies: dict[str, set[str]] = field(default_factory=dict)
 
+    # Autodoc source metadata: source_file → (content_hash, mtime)
+    # Enables self-validation of autodoc sources independent of CI cache keys
+    # See: plan/rfc-ci-cache-inputs.md (Phase 4: Self-Validating Cache)
+    autodoc_source_metadata: dict[str, tuple[str, float]] = field(default_factory=dict)
+
     # URL ownership claims: url → URLClaim dict
     # Persists URL claims for incremental build safety (prevents shadowing by new content)
     # Structure: {url: {owner: str, source: str, priority: int, version: str | None, lang: str | None}}
@@ -298,6 +303,16 @@ class BuildCache(
                 # Convert lists back to sets
                 data["autodoc_dependencies"] = {
                     k: set(v) for k, v in data["autodoc_dependencies"].items()
+                }
+
+            # Autodoc source metadata (new in v0.1.8, tolerate missing)
+            # Structure: {source_path: [hash, mtime]} → convert to tuple
+            if "autodoc_source_metadata" not in data:
+                data["autodoc_source_metadata"] = {}
+            else:
+                # Convert lists back to tuples
+                data["autodoc_source_metadata"] = {
+                    k: tuple(v) for k, v in data["autodoc_source_metadata"].items()
                 }
 
             # Rendered output cache (tolerate missing - Optimization #3)
@@ -475,6 +490,10 @@ class BuildCache(
             "autodoc_dependencies": {
                 k: list(v) for k, v in self.autodoc_dependencies.items()
             },  # Autodoc source → pages
+            # Autodoc source metadata for self-validation (hash, mtime tuples → lists for JSON)
+            "autodoc_source_metadata": {
+                k: list(v) for k, v in self.autodoc_source_metadata.items()
+            },
             # Cached synthetic payloads (e.g., autodoc elements)
             "synthetic_pages": self.synthetic_pages,
             "url_claims": self.url_claims,  # URL ownership claims (already dict format)
@@ -526,6 +545,7 @@ class BuildCache(
         self.synthetic_pages.clear()
         self.validation_results.clear()
         self.autodoc_dependencies.clear()
+        self.autodoc_source_metadata.clear()
         self.config_hash = None
         self.last_build = None
 
