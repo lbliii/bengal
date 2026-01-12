@@ -37,8 +37,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: site/.bengal
-          # Include uv.lock and content/config hashes so cache refreshes on content or version changes
-          key: bengal-${{ runner.os }}-${{ hashFiles('uv.lock', 'site/content/**', 'site/config/**') }}
+          # Include uv.lock, source code, and content/config hashes so cache refreshes on any change
+          # bengal/**/*.py ensures autodoc regenerates when source changes
+          key: bengal-${{ runner.os }}-${{ hashFiles('uv.lock', 'bengal/**/*.py', 'site/content/**', 'site/config/**') }}
           restore-keys: |
             bengal-${{ runner.os }}-
 
