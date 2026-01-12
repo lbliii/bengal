@@ -33,20 +33,26 @@ jobs:
           restore-keys: |
             uv-${{ runner.os }}-
 
-      - name: Cache Bengal build state
-        uses: actions/cache@v4
-        with:
-          path: site/.bengal
-          # Include uv.lock, source code, and content/config hashes so cache refreshes on any change
-          # bengal/**/*.py ensures autodoc regenerates when source changes
-          key: bengal-${{ runner.os }}-${{ hashFiles('uv.lock', 'bengal/**/*.py', 'site/content/**', 'site/config/**') }}
-          restore-keys: |
-            bengal-${{ runner.os }}-
-
       - name: Install bengal
         run: uv sync --extra search
         env:
           PYTHON_GIL: "0"
+
+      # Use bengal cache hash for accurate cache invalidation
+      # This includes all build inputs: content, config, autodoc sources, templates, etc.
+      - name: Get cache hash
+        id: cache
+        working-directory: site
+        run: echo "hash=$(uv run bengal cache hash)" >> $GITHUB_OUTPUT
+        env:
+          PYTHON_GIL: "0"
+
+      - name: Cache Bengal build state
+        uses: actions/cache@v4
+        with:
+          path: site/.bengal
+          key: bengal-${{ runner.os }}-${{ steps.cache.outputs.hash }}
+          # No restore-keys - we want exact match for correctness
 
       - name: Build site
         working-directory: site
