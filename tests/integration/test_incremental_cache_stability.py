@@ -474,3 +474,360 @@ title: Home
         assert result is not None, "Should rebuild when assets directory is missing"
         # Pages should be rebuilt (the key indicator)
         assert len(result.pages_to_build) > 0, "Pages should be rebuilt when output is incomplete"
+
+
+class TestAutodocOutputMismatch:
+    """
+    Regression tests for autodoc output missing scenarios.
+
+    Bug: When .bengal cache is restored in CI but site/public/api/ (autodoc output)
+    was not cached, Bengal incorrectly skipped rebuilding virtual pages because
+    the cache said "source files unchanged".
+
+    Fix: _check_autodoc_output_missing() now checks if autodoc output directories
+    exist and contain content before deciding to skip.
+    """
+
+    @pytest.fixture
+    def site_with_autodoc_cache(self, tmp_path: Path) -> Path:
+        """Create a site with autodoc config, cache, but missing autodoc output."""
+        from bengal.cache import BuildCache
+        from bengal.cache.paths import BengalPaths
+
+        # Create config with autodoc enabled
+        config = tmp_path / "bengal.toml"
+        config.write_text(
+            """
+[site]
+title = "Test Site"
+theme = "terminal"
+
+[build]
+incremental = true
+output_dir = "public"
+
+[autodoc.python]
+enabled = true
+source_dirs = ["src/mypackage"]
+output_prefix = "api"
+"""
+        )
+
+        # Create content
+        content_dir = tmp_path / "content"
+        content_dir.mkdir()
+        (content_dir / "index.md").write_text(
+            """---
+title: Home
+---
+
+# Welcome
+"""
+        )
+
+        # Create fake source directory (autodoc needs something to reference)
+        src_dir = tmp_path / "src" / "mypackage"
+        src_dir.mkdir(parents=True)
+        (src_dir / "__init__.py").write_text('"""My package."""\n')
+
+        # Create paths and cache with autodoc dependencies
+        paths = BengalPaths(tmp_path)
+        paths.ensure_dirs()
+
+        cache = BuildCache()
+        cache.update_file(content_dir / "index.md")
+        cache.last_build = time.strftime("%Y-%m-%dT%H:%M:%S")
+        # Simulate previous autodoc build by adding dependencies
+        cache.autodoc_dependencies = {
+            "src/mypackage/__init__.py": {"api/mypackage/index.md"}
+        }
+        cache.save(paths.build_cache)
+
+        # Create output directory with HTML and assets (so basic checks pass)
+        # BUT no api/ directory (simulating missing autodoc output)
+        output_dir = tmp_path / "public"
+        output_dir.mkdir(exist_ok=True)
+        (output_dir / "index.html").write_text("<html></html>")
+        assets_dir = output_dir / "assets"
+        assets_dir.mkdir()
+        (assets_dir / "style.css").write_text("body {}")
+        (assets_dir / "script.js").write_text("console.log('hi')")
+        (assets_dir / "icons").mkdir()
+        # No api/ directory - this simulates the CI bug
+
+        return tmp_path
+
+    def test_detects_missing_autodoc_output(self, site_with_autodoc_cache: Path) -> None:
+        """
+        When cache has autodoc dependencies but api/ output is missing, should rebuild.
+
+        Regression test for: Warm CI builds where .bengal is cached but public/api/ is not.
+        """
+        from bengal.cache import BuildCache
+        from bengal.cache.paths import BengalPaths
+        from bengal.orchestration.build.initialization import _check_autodoc_output_missing
+
+        # Create a mock orchestrator-like object
+        class MockOrchestrator:
+            def __init__(self, path: Path) -> None:
+                from bengal.core.site import Site
+
+                self.site = Site.from_config(path)
+
+        orchestrator = MockOrchestrator(site_with_autodoc_cache)
+        paths = BengalPaths(site_with_autodoc_cache)
+        cache = BuildCache.load(paths.build_cache)
+
+        # Check should detect missing autodoc output
+        result = _check_autodoc_output_missing(orchestrator, cache)
+
+        assert result is True, (
+            "_check_autodoc_output_missing returned False when api/ directory is missing! "
+            "This means warm CI builds will 404 on virtual pages."
+        )
+
+    def test_passes_when_autodoc_output_exists(self, site_with_autodoc_cache: Path) -> None:
+        """
+        When autodoc output exists, should not trigger rebuild.
+        """
+        from bengal.cache import BuildCache
+        from bengal.cache.paths import BengalPaths
+        from bengal.orchestration.build.initialization import _check_autodoc_output_missing
+
+        # Create the api/ directory with content
+        output_dir = site_with_autodoc_cache / "public"
+        api_dir = output_dir / "api"
+        api_dir.mkdir()
+        mypackage_dir = api_dir / "mypackage"
+        mypackage_dir.mkdir()
+        (mypackage_dir / "index.html").write_text("<html></html>")
+
+        class MockOrchestrator:
+            def __init__(self, path: Path) -> None:
+                from bengal.core.site import Site
+
+                self.site = Site.from_config(path)
+
+        orchestrator = MockOrchestrator(site_with_autodoc_cache)
+        paths = BengalPaths(site_with_autodoc_cache)
+        cache = BuildCache.load(paths.build_cache)
+
+        # Check should pass (output exists)
+        result = _check_autodoc_output_missing(orchestrator, cache)
+
+        assert result is False, (
+            "_check_autodoc_output_missing returned True when api/ directory exists! "
+            "This would cause unnecessary full rebuilds."
+        )
+
+    def test_no_autodoc_config_returns_false(self, tmp_path: Path) -> None:
+        """
+        Sites without autodoc config should not trigger rebuild.
+
+        Edge case: Prevents false positives on sites that don't use autodoc.
+        """
+        from bengal.cache import BuildCache
+        from bengal.orchestration.build.initialization import _check_autodoc_output_missing
+
+        # Create config WITHOUT autodoc
+        config = tmp_path / "bengal.toml"
+        config.write_text(
+            """
+[site]
+title = "Test Site"
+theme = "terminal"
+
+[build]
+output_dir = "public"
+"""
+        )
+
+        # Create minimal content
+        content_dir = tmp_path / "content"
+        content_dir.mkdir()
+        (content_dir / "index.md").write_text("---\ntitle: Home\n---\n# Hi\n")
+
+        # Create output
+        output_dir = tmp_path / "public"
+        output_dir.mkdir()
+        (output_dir / "index.html").write_text("<html></html>")
+
+        class MockOrchestrator:
+            def __init__(self, path: Path) -> None:
+                from bengal.core.site import Site
+
+                self.site = Site.from_config(path)
+
+        orchestrator = MockOrchestrator(tmp_path)
+        cache = BuildCache()  # Empty cache, no autodoc_dependencies
+
+        result = _check_autodoc_output_missing(orchestrator, cache)
+
+        assert result is False, (
+            "Sites without autodoc config should not trigger autodoc output check"
+        )
+
+    def test_cli_autodoc_missing(self, tmp_path: Path) -> None:
+        """
+        CLI autodoc uses different prefix (cli/) - should detect when missing.
+
+        Edge case: CLI autodoc has different default prefix than Python autodoc.
+        """
+        from bengal.cache import BuildCache
+        from bengal.cache.paths import BengalPaths
+        from bengal.orchestration.build.initialization import _check_autodoc_output_missing
+
+        # Create config with CLI autodoc enabled
+        config = tmp_path / "bengal.toml"
+        config.write_text(
+            """
+[site]
+title = "Test Site"
+theme = "terminal"
+
+[build]
+output_dir = "public"
+
+[autodoc.cli]
+enabled = true
+module = "myapp.cli"
+output_prefix = "cli"
+"""
+        )
+
+        content_dir = tmp_path / "content"
+        content_dir.mkdir()
+        (content_dir / "index.md").write_text("---\ntitle: Home\n---\n# Hi\n")
+
+        # Create paths and cache with CLI autodoc dependencies
+        paths = BengalPaths(tmp_path)
+        paths.ensure_dirs()
+
+        cache = BuildCache()
+        cache.autodoc_dependencies = {"myapp/cli.py": {"cli/commands/index.md"}}
+        cache.save(paths.build_cache)
+
+        # Create output with everything EXCEPT cli/ directory
+        output_dir = tmp_path / "public"
+        output_dir.mkdir()
+        (output_dir / "index.html").write_text("<html></html>")
+        assets_dir = output_dir / "assets"
+        assets_dir.mkdir()
+        (assets_dir / "style.css").write_text("body {}")
+        (assets_dir / "script.js").write_text("")
+        (assets_dir / "icons").mkdir()
+
+        class MockOrchestrator:
+            def __init__(self, path: Path) -> None:
+                from bengal.core.site import Site
+
+                self.site = Site.from_config(path)
+
+        orchestrator = MockOrchestrator(tmp_path)
+        cache = BuildCache.load(paths.build_cache)
+
+        result = _check_autodoc_output_missing(orchestrator, cache)
+
+        assert result is True, (
+            "CLI autodoc output (cli/) missing should trigger rebuild"
+        )
+
+    def test_empty_autodoc_dir_triggers_rebuild(self, site_with_autodoc_cache: Path) -> None:
+        """
+        Directory exists but has no index.html - should still trigger rebuild.
+
+        Edge case: Partial/corrupted output where directory exists but is empty.
+        """
+        from bengal.cache import BuildCache
+        from bengal.cache.paths import BengalPaths
+        from bengal.orchestration.build.initialization import _check_autodoc_output_missing
+
+        # Create api/ directory but leave it EMPTY (no index.html)
+        output_dir = site_with_autodoc_cache / "public"
+        api_dir = output_dir / "api"
+        api_dir.mkdir()
+        # No index.html inside - simulates partial/failed build
+
+        class MockOrchestrator:
+            def __init__(self, path: Path) -> None:
+                from bengal.core.site import Site
+
+                self.site = Site.from_config(path)
+
+        orchestrator = MockOrchestrator(site_with_autodoc_cache)
+        paths = BengalPaths(site_with_autodoc_cache)
+        cache = BuildCache.load(paths.build_cache)
+
+        result = _check_autodoc_output_missing(orchestrator, cache)
+
+        assert result is True, (
+            "Empty autodoc directory (no index.html) should trigger rebuild"
+        )
+
+    def test_auto_derived_prefix(self, tmp_path: Path) -> None:
+        """
+        When output_prefix is empty, Bengal auto-derives from source_dirs.
+
+        Edge case: Common pattern where users don't specify output_prefix.
+        """
+        from bengal.cache import BuildCache
+        from bengal.cache.paths import BengalPaths
+        from bengal.orchestration.build.initialization import _check_autodoc_output_missing
+
+        # Create config with autodoc but NO output_prefix (auto-derive)
+        config = tmp_path / "bengal.toml"
+        config.write_text(
+            """
+[site]
+title = "Test Site"
+theme = "terminal"
+
+[build]
+output_dir = "public"
+
+[autodoc.python]
+enabled = true
+source_dirs = ["src/mypackage"]
+# No output_prefix - should auto-derive to "api/mypackage"
+"""
+        )
+
+        content_dir = tmp_path / "content"
+        content_dir.mkdir()
+        (content_dir / "index.md").write_text("---\ntitle: Home\n---\n# Hi\n")
+
+        src_dir = tmp_path / "src" / "mypackage"
+        src_dir.mkdir(parents=True)
+        (src_dir / "__init__.py").write_text('"""Package."""\n')
+
+        paths = BengalPaths(tmp_path)
+        paths.ensure_dirs()
+
+        cache = BuildCache()
+        cache.autodoc_dependencies = {"src/mypackage/__init__.py": {"api/mypackage/index.md"}}
+        cache.save(paths.build_cache)
+
+        # Create output WITHOUT the auto-derived api/mypackage/ directory
+        output_dir = tmp_path / "public"
+        output_dir.mkdir()
+        (output_dir / "index.html").write_text("<html></html>")
+        assets_dir = output_dir / "assets"
+        assets_dir.mkdir()
+        (assets_dir / "style.css").write_text("body {}")
+        (assets_dir / "script.js").write_text("")
+        (assets_dir / "icons").mkdir()
+
+        class MockOrchestrator:
+            def __init__(self, path: Path) -> None:
+                from bengal.core.site import Site
+
+                self.site = Site.from_config(path)
+
+        orchestrator = MockOrchestrator(tmp_path)
+        cache = BuildCache.load(paths.build_cache)
+
+        result = _check_autodoc_output_missing(orchestrator, cache)
+
+        assert result is True, (
+            "Auto-derived prefix (api/mypackage) missing should trigger rebuild"
+        )

@@ -22,6 +22,76 @@ if TYPE_CHECKING:
     from bengal.utils.build_context import BuildContext
 
 
+def _check_autodoc_output_missing(
+    orchestrator: "BuildOrchestrator", cache: "BuildCache"
+) -> bool:
+    """
+    Check if autodoc output directories are missing.
+
+    This handles warm CI builds where the .bengal cache is restored but
+    site/public/api/ (or other autodoc output) was not cached and is empty.
+    The cache might think nothing changed (source files unchanged), but the
+    virtual pages need to be regenerated.
+
+    Args:
+        orchestrator: Build orchestrator instance
+        cache: BuildCache for checking autodoc dependencies
+
+    Returns:
+        True if autodoc output is missing and needs regeneration
+    """
+    # Skip if no autodoc dependencies tracked (nothing to check)
+    if not hasattr(cache, "autodoc_dependencies") or not cache.autodoc_dependencies:
+        return False
+
+    # Get autodoc config
+    autodoc_config = orchestrator.site.config.get("autodoc", {})
+    if not autodoc_config:
+        return False
+
+    output_dir = orchestrator.site.output_dir
+    prefixes_to_check: list[str] = []
+
+    # Collect enabled autodoc prefixes
+    if autodoc_config.get("python", {}).get("enabled", False):
+        python_prefix = autodoc_config.get("python", {}).get("output_prefix", "")
+        if not python_prefix:
+            # Auto-derive from source_dirs (same logic as autodoc validator)
+            source_dirs = autodoc_config.get("python", {}).get("source_dirs", [])
+            if source_dirs:
+                from pathlib import Path as PathLib
+
+                pkg_name = PathLib(source_dirs[0]).name
+                python_prefix = f"api/{pkg_name}"
+            else:
+                python_prefix = "api"
+        prefixes_to_check.append(python_prefix)
+
+    if autodoc_config.get("cli", {}).get("enabled", False):
+        cli_prefix = autodoc_config.get("cli", {}).get("output_prefix", "cli")
+        prefixes_to_check.append(cli_prefix)
+
+    if autodoc_config.get("openapi", {}).get("enabled", False):
+        openapi_prefix = autodoc_config.get("openapi", {}).get("output_prefix", "")
+        if openapi_prefix:
+            prefixes_to_check.append(openapi_prefix)
+
+    if not prefixes_to_check:
+        return False
+
+    # Check if any autodoc output directory is missing or empty
+    for prefix in prefixes_to_check:
+        prefix_dir = output_dir / prefix
+        if not prefix_dir.exists():
+            # Directory doesn't exist - autodoc output is missing
+            return True
+        # Check for at least one index.html (indicates pages were generated)
+        if not list(prefix_dir.rglob("index.html")):
+            return True
+
+    return False
+
+
 def phase_fonts(orchestrator: BuildOrchestrator, cli: CLIOutput) -> None:
     """
     Phase 1: Font Processing.
@@ -517,7 +587,13 @@ def phase_incremental_filter(
                 or len(list(output_assets.iterdir())) < 3  # Minimal check (css, js, icons)
             )
 
-            if (output_html_missing or output_assets_missing) and orchestrator.site.pages:
+            # Check if autodoc output is missing (virtual pages not regenerated)
+            # This handles warm CI builds where cache is restored but public/api/ etc. is empty
+            autodoc_output_missing = _check_autodoc_output_missing(orchestrator, cache)
+
+            if (
+                output_html_missing or output_assets_missing or autodoc_output_missing
+            ) and orchestrator.site.pages:
                 # Output was cleaned but cache thinks nothing changed - force full rebuild
                 pages_to_build = list(orchestrator.site.pages)
                 assets_to_process = list(orchestrator.site.assets)
@@ -527,6 +603,7 @@ def phase_incremental_filter(
                     assets_count=len(assets_to_process),
                     html_missing=output_html_missing,
                     assets_missing=output_assets_missing,
+                    autodoc_missing=autodoc_output_missing,
                 )
             elif not pages_to_build and not assets_to_process and not needs_taxonomy_regen:
                 cli.success("✓ No changes detected - build skipped")
