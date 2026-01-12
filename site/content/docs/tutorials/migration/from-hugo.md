@@ -476,7 +476,7 @@ bengal serve
 | Hugo Feature | Bengal Equivalent | Notes |
 |--------------|-------------------|-------|
 | Custom shortcodes | Directives | Built-in directives cover most cases |
-| Go templates | Jinja2 templates | Similar concepts, different syntax |
+| Go templates | [[ext:kida:|Kida]] templates | Similar concepts, different syntax |
 | Hugo Modules | Local themes | Copy theme files or use Git submodules |
 | `.GetPage` function | Template functions | Different API, similar functionality |
 | Image processing | External tools | Use ImageMagick, Sharp, or pre-process images |
@@ -484,7 +484,7 @@ bengal serve
 
 ### Template Syntax Differences
 
-| Hugo (Go) | Bengal (Jinja2) |
+| Hugo (Go) | Bengal ([[ext:kida:|Kida]]) |
 |-----------|-----------------|
 | `{{ if .Params.x }}` | `{% if page.metadata.x %}` |
 | `{{ range .Pages }}` | `{% for page in pages %}` |
@@ -656,7 +656,7 @@ bengal serve
 :::{dropdown} Can I use Go templates?
 :icon: question
 
-No. Bengal uses Jinja2 templates. Template logic transfers, but syntax differs. See the [Template Variable Mapping](#template-variable-mapping) section for conversions.
+No. Bengal uses [[ext:kida:|Kida]] templates. Template logic transfers, but syntax differs. See the [Template Variable Mapping](#template-variable-mapping) section for conversions.
 :::
 
 :::{dropdown} What about Hugo modules?
@@ -668,7 +668,7 @@ Bengal doesn't have a module system. For shared content, use `:::{include}` dire
 :::{dropdown} Can I keep my custom shortcodes?
 :icon: question
 
-Convert them to Bengal directives or Jinja2 macros. Common shortcodes (tabs, notices, figures) have built-in directive equivalents. See [Shortcode → Directive Translation](#shortcode--directive-translation) for mappings.
+Convert them to Bengal directives or [[ext:kida:docs/syntax/functions|Kida functions]] (`{% def %}`). Common shortcodes (tabs, notices, figures) have built-in directive equivalents. See [Shortcode → Directive Translation](#shortcode--directive-translation) for mappings.
 :::
 
 :::{dropdown} What about Hugo's image processing?

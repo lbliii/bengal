@@ -123,7 +123,7 @@ Quick reference for terms used in Bengal documentation. Terms are listed alphabe
 ## L
 
 **Layout**
-: A template that defines HTML structure for a specific content type. Written in Kida (or Jinja2). Lives in `templates/` (project) or in the active theme.
+: A template that defines HTML structure for a specific content type. Written in [[ext:kida:|Kida]] (or Jinja2). Lives in `templates/` (project) or in the active theme.
 
 **Live Reload**
 : Automatic browser refresh when source files change during development. Enabled by default with `bengal serve`.
@@ -189,7 +189,7 @@ Quick reference for terms used in Bengal documentation. Terms are listed alphabe
 : A classification system for organizing content. Common taxonomies include tags, categories, and authors. Each taxonomy term gets its own listing page.
 
 **Template**
-: A Jinja2 file that defines how content is rendered to HTML. Templates use inheritance (extending base templates) and composition (including partials).
+: A [[ext:kida:|Kida]] file that defines how content is rendered to HTML. Templates use [[ext:kida:docs/syntax/inheritance|inheritance]] (extending base templates) and composition (including partials).
 
 **Template Engine**
 : Bengal's system for rendering templates. Defaults to [[ext:kida:docs/get-started|Kida]] (high-performance with modern syntax) but also supports Jinja2. Provides built-in filters, functions, and the `site`/`page`/`section` context variables.

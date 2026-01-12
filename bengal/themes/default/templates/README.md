@@ -1,10 +1,10 @@
 # Bengal Templates Guide
 
-This directory contains Jinja2 templates for the Bengal default theme. This guide covers critical patterns for working with Bengal's templating system.
+This directory contains Kida templates for the Bengal default theme. This guide covers critical patterns for working with Bengal's templating system.
 
 ## Key Concepts
 
-Bengal uses Jinja2 with **StrictUndefined** mode in development (`bengal serve`). This means accessing undefined variables or attributes raises errors rather than silently returning empty strings. This catches bugs early but requires careful template design.
+Bengal uses Kida with **StrictUndefined** mode in development (`bengal serve`). This means accessing undefined variables or attributes raises errors rather than silently returning empty strings. This catches bugs early but requires careful template design.
 
 ---
 
@@ -12,7 +12,7 @@ Bengal uses Jinja2 with **StrictUndefined** mode in development (`bengal serve`)
 
 ### The Problem
 
-When you use `{% from 'file.html' import macro_name %}`, Jinja2 executes **all top-level code** in that file, not just the macro definition. In StrictUndefined mode, this causes errors if the body code references variables that don't exist in the importing context.
+When you use `{% from 'file.html' import macro_name %}`, Kida executes **all top-level code** in that file, not just the macro definition. In StrictUndefined mode, this causes errors if the body code references variables that don't exist in the importing context.
 
 ```jinja
 {# BAD: cards.html - mixes macro with body code #}
@@ -86,7 +86,7 @@ The common workaround `element.children or []` also fails because it still acces
 
 ### The Solution: Use `getattr()`
 
-Bengal exposes Python's `getattr()` as a Jinja2 global:
+Bengal exposes Python's `getattr()` as a template global:
 
 ```jinja
 {# GOOD: Safe access with default value #}
@@ -105,7 +105,7 @@ Bengal exposes Python's `getattr()` as a Jinja2 global:
 ### When NOT Needed
 
 - Accessing template variables you control (e.g., `{% set foo = 'bar' %}`)
-- Using Jinja2's `default` filter on simple values: `{{ value | default('fallback') }}`
+- Using the `default` filter on simple values: `{{ value | default('fallback') }}`
 - Accessing dictionary keys with `.get()`: `{{ dict.get('key', 'default') }}`
 
 ---
@@ -273,6 +273,6 @@ Watch for warnings like:
 
 ## Further Reading
 
-- [Jinja2 Template Designer Documentation](https://jinja.palletsprojects.com/en/3.1.x/templates/)
-- Bengal's `bengal/rendering/template_engine/environment.py` - Jinja2 environment setup
+- [Kida Documentation](/docs/theming/templating/kida/) - Bengal's template engine
+- Bengal's `bengal/rendering/template_engine/environment.py` - Template environment setup
 - Bengal's `bengal/autodoc/orchestration/template_env.py` - Autodoc-specific environment

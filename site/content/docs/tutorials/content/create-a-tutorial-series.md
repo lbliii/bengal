@@ -50,7 +50,7 @@ By the end of this tutorial, you will have:
 ## Prerequisites
 
 *   A Bengal site with some existing content
-*   Basic understanding of Jinja2 templates
+*   Basic understanding of [[ext:kida:docs/syntax|Kida templates]]
 
 ## Steps
 

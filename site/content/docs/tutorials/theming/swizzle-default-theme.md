@@ -26,7 +26,7 @@ In this tutorial, you'll learn how to **swizzle** (copy) templates from Bengal's
 
 :::{note}
 **Who is this for?**
-This tutorial is for developers who want to customize Bengal's default theme without forking it entirely. You should have basic familiarity with HTML and Jinja2 templates. No prior experience with swizzling is required.
+This tutorial is for developers who want to customize Bengal's default theme without forking it entirely. You should have basic familiarity with HTML and [[ext:kida:docs/syntax|Kida templates]]. No prior experience with swizzling is required.
 :::
 
 ## Goal
@@ -45,7 +45,7 @@ By the end of this tutorial, you will:
 - **Python 3.14+** installed
 - **Bengal** installed (`pip install bengal` or `uv add bengal`)
 - A Bengal site initialized (run `bengal new site mysite` if you haven't already)
-- Basic knowledge of HTML and Jinja2 templates
+- Basic knowledge of HTML and [[ext:kida:docs/syntax|Kida templates]]
 
 ## What is Swizzling?
 
@@ -208,7 +208,7 @@ To customize breadcrumbs, search for a function like `breadcrumbs` or look for s
 
 :::{note}
 **Kida vs Jinja2 syntax**
-Bengal uses Kida templates by default, but Kida can parse Jinja2 syntax. The examples here use Kida's unified `{% end %}` syntax, but if your theme uses Jinja2 syntax (`{% endif %}`, `{% endfor %}`), that works too.
+Bengal uses [[ext:kida:|Kida templates]] by default, but Kida can parse Jinja2 syntax. The examples here use Kida's unified `{% end %}` syntax, but if your theme uses Jinja2 syntax (`{% endif %}`, `{% endfor %}`), that works too. See [[ext:kida:docs/syntax|Kida syntax reference]] for details.
 :::
 
 **Make a Simple Change**
@@ -561,7 +561,7 @@ In this tutorial, you:
 Now that you can swizzle templates, explore further:
 
 - **[Theme Customization Guide](/docs/theming/themes/customize/)** — Deep dive into advanced customization techniques
-- **[Template Reference](/docs/theming/templating/)** — Learn about Kida templates and available functions
+- **[Template Reference](/docs/theming/templating/)** — Learn about [[ext:kida:|Kida]] templates and available functions
 - **[Variables Reference](/docs/reference/theme-variables/)** — Discover all template variables available
 - **[Assets Guide](/docs/theming/assets/)** — Customize CSS and JavaScript
 

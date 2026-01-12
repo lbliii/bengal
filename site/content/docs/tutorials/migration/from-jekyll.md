@@ -428,7 +428,7 @@ Faster than `jekyll serve --livereload`.
 
 | Jekyll Feature | Bengal Status | Workaround |
 |----------------|---------------|------------|
-| Liquid templates | Jinja2 templates | Similar syntax |
+| Liquid templates | [[ext:kida:|Kida]] templates | Similar syntax |
 | Ruby plugins | Python/built-in | Most features built-in |
 | GitHub Pages native | Manual deploy | Use GitHub Actions |
 | `permalink:` control | Auto from path | Restructure content |
@@ -634,7 +634,7 @@ bengal serve
 :::{dropdown} Can I keep my Jekyll theme?
 :icon: question
 
-No. Jekyll themes (Ruby/Liquid) are not compatible. Bengal has its own theme system using Jinja2 templates. The default Bengal theme is designed for technical documentation with modern features like dark mode and built-in search.
+No. Jekyll themes (Ruby/Liquid) are not compatible. Bengal has its own theme system using [[ext:kida:|Kida]] templates. The default Bengal theme is designed for technical documentation with modern features like dark mode and built-in search.
 :::
 
 :::{dropdown} What about my Ruby plugins?
@@ -652,7 +652,7 @@ Yes, but not using the native Jekyll integration. Use GitHub Actions to build wi
 :::{dropdown} What about my custom Liquid includes?
 :icon: question
 
-Convert them to Bengal directives or Jinja2 templates. Simple includes like callout boxes have built-in directive equivalents (`:::{note}`, `:::{warning}`). Complex includes can be recreated as Jinja2 macros or template partials.
+Convert them to Bengal directives or [[ext:kida:|Kida]] templates. Simple includes like callout boxes have built-in directive equivalents (`:::{note}`, `:::{warning}`). Complex includes can be recreated as [[ext:kida:docs/syntax/functions|Kida functions]] (`{% def %}`) or template partials.
 :::
 
 ---

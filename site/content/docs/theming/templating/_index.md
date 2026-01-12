@@ -8,16 +8,16 @@ card_color: blue
 ---
 # Templating
 
-Bengal's template system uses **Kida** as the default engine, with support for Jinja2 and custom engines.
+Bengal's template system uses **[[ext:kida:|Kida]]** as the default engine, with support for Jinja2 and custom engines.
 
 ## Template Engines
 
-- **[Kida](/docs/reference/kida-syntax/)** — Bengal's native template engine (default). Unified `{% end %}` blocks, pattern matching, pipeline operators
+- **[[ext:kida:|Kida]]** ([local reference](/docs/reference/kida-syntax/)) — Bengal's native template engine (default). Unified `{% end %}` blocks, pattern matching, pipeline operators
 - **[Jinja2](https://jinja.palletsprojects.com/)** — Industry-standard engine with excellent documentation and tooling
 - **Custom engines** — Bring your own via the plugin API
 
 :::{tip}
-**Kida is Jinja2-compatible**: Your existing Jinja2 templates work without changes. Use Kida-specific features incrementally.
+**Kida is Jinja2-compatible**: Your existing Jinja2 templates work without changes. Use [[ext:kida:docs/syntax|Kida-specific features]] incrementally.
 :::
 
 ## Template Lookup Order

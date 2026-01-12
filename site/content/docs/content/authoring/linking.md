@@ -270,7 +270,7 @@ Both syntaxes work. Cross-references are preferred for internal links.
 
 ## Template Functions
 
-Use template functions in Jinja2 templates for dynamic link generation.
+Use template functions in [[ext:kida:|Kida]] templates for dynamic link generation.
 
 ### `ref(path, text=None)`
 

@@ -121,7 +121,7 @@ This is my first post using **Bengal**, the Pythonic static site generator.
 ## Why Bengal?
 
 *   It's fast ⚡️
-*   It uses Jinja2 templates 🐍
+*   It uses [[ext:kida:|Kida]] templates 🐍
 *   It's easy to configure ⚙️
 ```
 

@@ -8,7 +8,7 @@ icon: palette
 ---
 # Design & Theming
 
-Control how your site looks with Kida templates, CSS/JS assets, and theme packages.
+Control how your site looks with [[ext:kida:|Kida]] templates, CSS/JS assets, and theme packages.
 
 ## What Do You Need?
 
@@ -65,4 +65,4 @@ flowchart TB
 |-----------|-------------|
 | [Theme Variables](/docs/reference/theme-variables/) | Complete `page`, `site`, `section` object reference |
 | [Template Functions](/docs/reference/template-functions/) | 80+ filters and functions for templates |
-| [Kida Syntax](/docs/reference/kida-syntax/) | Kida template engine syntax reference |
+| [Kida Syntax](/docs/reference/kida-syntax/) | Kida template engine syntax reference ([[ext:kida:docs|full docs]]) |

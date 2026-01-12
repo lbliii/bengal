@@ -155,7 +155,7 @@ This is a beta release.
 ```
 
 :::{note}
-Bengal uses Kida templating which supports both `{% end %}` (unified syntax) and `{% endif %}` (Jinja-compatible). Use whichever you prefer.
+Bengal uses [[ext:kida:|Kida]] templating which supports both `{% end %}` (unified syntax) and `{% endif %}` (Jinja-compatible). Use whichever you prefer.
 :::
 
 ### Available Variables
