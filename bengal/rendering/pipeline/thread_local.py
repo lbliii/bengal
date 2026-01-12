@@ -140,9 +140,7 @@ def reset_parser_cache() -> None:
     Reset the parser cache for the current thread.
 
     This is primarily used in tests to ensure fresh parser instances
-    when directive registration has changed.
-
-    Thread Safety:
+    when directive registration has changed.    Thread Safety:
         Only clears cache for the current thread.
     """
     _parser_cache.clear_all()
