@@ -688,7 +688,7 @@ If you're migrating from multiple platforms or need additional context:
 
 - [From Mintlify](/docs/tutorials/migration/from-mintlify/) - Similar MDX component migration patterns
 - [From Fern](/docs/tutorials/migration/from-fern/) - API documentation migration (if using OpenAPI)
-- [Migration Overview](../migration/) - Common migration patterns across all platforms
+- [Migration Overview](./) - Common migration patterns across all platforms
 
 ## Next Steps
 

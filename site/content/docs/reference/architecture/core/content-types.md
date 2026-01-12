@@ -88,7 +88,7 @@ classDiagram
 :::
 
 :::{card} Changelog
-:icon: history
+:icon: clock
 **For release notes.**
 - Sort: Newest first (by date)
 - Pagination: Disabled

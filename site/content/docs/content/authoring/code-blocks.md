@@ -30,7 +30,7 @@ def hello():
 
 ### Supported Languages
 
-Bengal uses **Rosettes** for syntax highlighting—a modern, lock-free highlighter designed for Python 3.14t free-threading. Rosettes supports 50+ languages:
+Bengal uses **[[ext:rosettes:docs/reference/languages|Rosettes]]** for syntax highlighting—a modern, lock-free highlighter designed for Python 3.14t free-threading. Rosettes supports 50+ languages:
 
 ::::{tab-set}
 
@@ -428,7 +428,7 @@ Building site...
 
 ## Syntax Themes
 
-Bengal's syntax highlighting uses **Rosettes**, which provides configurable themes that adapt to light/dark mode.
+Bengal's syntax highlighting uses **[[ext:rosettes:docs/styling/custom-themes|Rosettes]]**, which provides configurable themes that adapt to light/dark mode.
 
 ### Available Themes
 

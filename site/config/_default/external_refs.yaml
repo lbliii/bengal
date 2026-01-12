@@ -42,7 +42,7 @@ external_refs:
       cache_days: 7
 
     # Rosettes syntax highlighting
-    # - Production: "https://rosettes.dev/xref.json"
+    # - Production: "https://lbliii.github.io/rosettes/xref.json"
     # - Local dev: Use relative path to built site
     - name: rosettes
       url: "../../../rosettes/public/xref.json"

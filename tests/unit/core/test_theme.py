@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from bengal.core.theme import Theme
@@ -242,6 +244,23 @@ class TestThemeFromConfig:
         assert theme.has_feature("navigation.toc") is True
         assert theme.has_feature("content.code.copy") is True
         assert theme.config == {"sidebar_width": "280px"}
+
+    def test_from_config_theme_yaml_allows_site_palette_override(self):
+        """Site config should override palette/appearance even when theme.yaml exists."""
+        config = {
+            "theme": {
+                "name": "default",
+                "default_appearance": "dark",
+                "default_palette": "snow-lynx",
+            }
+        }
+
+        # Provide any root_path so theme.yaml is loaded (bundled fallback)
+        root_path = Path(__file__).resolve().parent.parent.parent
+        theme = Theme.from_config(config, root_path=root_path)
+
+        assert theme.default_palette == "snow-lynx"
+        assert theme.default_appearance == "dark"
 
 
 class TestThemeToDict:

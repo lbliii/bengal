@@ -681,8 +681,8 @@ Bengal doesn't include built-in image processing. Use external tools (ImageMagic
 
 ## Related Migration Guides
 
-- [From Jekyll](./from-jekyll) - Similar shortcode-to-directive conversion patterns
-- [From Docusaurus](./from-docusaurus) - MDX component migration
+- [From Jekyll](./from-jekyll.md) - Similar shortcode-to-directive conversion patterns
+- [From Docusaurus](./from-docusaurus.md) - MDX component migration
 - [Migration Overview](./) - Common migration patterns across all platforms
 
 ## Next Steps

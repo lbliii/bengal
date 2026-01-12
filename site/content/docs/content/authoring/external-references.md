@@ -114,7 +114,7 @@ external_refs:
       cache_days: 7
 
     - name: "rosettes"
-      url: "https://rosettes.dev/xref.json"
+      url: "https://lbliii.github.io/rosettes/xref.json"
       cache_days: 7
 ```
 
@@ -175,7 +175,7 @@ external_refs:
       cache_days: 7
 
     - name: "rosettes"
-      url: "https://rosettes.dev/xref.json"
+      url: "https://lbliii.github.io/rosettes/xref.json"
       cache_days: 7
 ```
 

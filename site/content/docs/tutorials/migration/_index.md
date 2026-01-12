@@ -7,7 +7,7 @@ draft: false
 type: doc
 cascade:
   type: doc
-icon: arrow-right-circle
+icon: arrow-right
 ---
 
 # Migration Guides

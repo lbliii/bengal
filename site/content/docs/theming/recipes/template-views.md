@@ -387,6 +387,6 @@ Views are filters on sections or site. You can still access raw data:
 
 :::{seealso}
 - [Template Functions](/docs/theming/templating/functions/) — All available filters
-- [OpenAPI Autodoc](../../content/sources/autodoc/) — Generating API docs
-- [Taxonomy fields](../../content/organization/frontmatter/#taxonomy-fields) — Tags, categories, and custom taxonomies
+- [OpenAPI Autodoc](../../content/sources/autodoc.md) — Generating API docs
+- [Taxonomy fields](../../content/organization/frontmatter.md#taxonomy-fields) — Tags, categories, and custom taxonomies
 :::

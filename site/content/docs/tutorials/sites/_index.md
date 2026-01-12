@@ -26,7 +26,7 @@ From empty folder to running blog with posts, tags, and custom styling.
 :::{/card}
 
 :::{card} Multi-Author Blog
-:icon: people
+:icon: users
 :link: ./build-a-multi-author-blog
 :description: Team blogs with author profiles and bylines
 Extend a blog to support multiple contributors with dedicated author pages.

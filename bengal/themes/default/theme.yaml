@@ -33,7 +33,7 @@ features:
 
 appearance:
   default_mode: system
-  default_palette: ""
+  default_palette: "snow-lynx"
 
 icons:
   library: phosphor

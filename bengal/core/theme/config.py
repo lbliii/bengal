@@ -240,16 +240,25 @@ class Theme:
         if theme_config_obj:
             # Merge site config overrides (site config takes precedence)
             features = theme_config_obj.features.get_enabled_features()
+            default_appearance = theme_config_obj.appearance.default_mode
+            default_palette = theme_config_obj.appearance.default_palette
+
             if isinstance(theme_section, dict):
                 # Site config can override features
                 site_features = theme_section.get("features", [])
                 if site_features:
                     features = site_features
 
+                # Site config can override appearance and palette even when theme.yaml exists
+                if "default_appearance" in theme_section:
+                    default_appearance = theme_section.get("default_appearance", default_appearance)
+                if "default_palette" in theme_section:
+                    default_palette = theme_section.get("default_palette", default_palette)
+
             return cls(
                 name=theme_config_obj.name,
-                default_appearance=theme_config_obj.appearance.default_mode,
-                default_palette=theme_config_obj.appearance.default_palette,
+                default_appearance=default_appearance,
+                default_palette=default_palette,
                 features=features,
                 config={
                     "version": theme_config_obj.version,

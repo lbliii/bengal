@@ -7,7 +7,7 @@ draft: false
 type: doc
 cascade:
   type: doc
-icon: folder-tree
+icon: tree-structure
 ---
 
 # Content Patterns
@@ -19,7 +19,7 @@ Tutorials for organizing and structuring content in powerful ways.
 :gap: medium
 
 :::{card} Create a Tutorial Series
-:icon: list-ordered
+:icon: list
 :link: ./create-a-tutorial-series
 :description: Multi-part content with navigation and progress
 Build sequential tutorials with prev/next links, progress bars, and series overview pages.
