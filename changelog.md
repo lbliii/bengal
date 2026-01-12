@@ -1,6 +1,6 @@
 ## [Unreleased]
 
-## 0.1.8 - Unreleased
+## 0.1.8 - 2026-01-12
 
 ### 🌐 External Linking & Previews ✅
 - **external_refs**: add cross-project linking via `[[ext:project:target]]`, template-based resolution, cached index lookups, and `ext()/ext_exists()` helpers; exports `xref.json` during production builds with built-in templates (python stdlib, requests/httpx, pydantic/fastapi/sqlalchemy, numpy/pandas) for consumers
