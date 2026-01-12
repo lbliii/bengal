@@ -24,7 +24,7 @@ Create internal links, cross-references, and anchor links.
 :::{/card}
 
 :::{card} External References
-:icon: external-link
+:icon: external
 :link: ./external-references/
 
 Link to Python stdlib, NumPy, and other Bengal sites.

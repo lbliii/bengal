@@ -18,7 +18,7 @@ Example:
     '<a href="https://docs.python.org/3/library/pathlib.html#Path" class="extref">Path</a>'
 
     >>> html = resolver.resolve("kida", "Markup", text="Kida Markup")
-    '<a href="https://kida.dev/api/python/kida/#Markup" class="extref">Kida Markup</a>'
+    '<a href="https://lbliii.github.io/kida/api/python/kida/#Markup" class="extref">Kida Markup</a>'
 
 See: plan/rfc-external-references.md
 """

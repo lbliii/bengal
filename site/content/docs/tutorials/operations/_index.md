@@ -7,7 +7,7 @@ draft: false
 type: doc
 cascade:
   type: doc
-icon: gear
+icon: settings
 ---
 
 # Operations Tutorials
@@ -26,7 +26,7 @@ Set up CI/CD pipelines for your Bengal site with GitHub Actions.
 :::{/card}
 
 :::{card} Analyze Site Connectivity
-:icon: graph
+:icon: network
 :link: ./analyze-site-connectivity
 :description: Find orphan pages and improve internal linking
 Use graph analysis to discover and fix connectivity issues.

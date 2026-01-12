@@ -661,8 +661,8 @@ Convert them to Bengal directives or [[ext:kida:|Kida]] templates. Simple includ
 
 If you're migrating from multiple platforms or need additional context:
 
-- [From Hugo](./from-hugo) - Similar template-to-directive conversion patterns
-- [Migration Overview](../migration/) - Common migration patterns across all platforms
+- [From Hugo](./from-hugo.md) - Similar template-to-directive conversion patterns
+- [Migration Overview](./) - Common migration patterns across all platforms
 
 ## Next Steps
 

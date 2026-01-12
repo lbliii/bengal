@@ -35,21 +35,21 @@ Learn Kida templating and customize the default theme.
 :::{/card}
 
 :::{card} Content Patterns
-:icon: folder-tree
+:icon: tree-structure
 :link: ./content
 :description: Advanced content organization
 Build tutorial series, multi-part guides, and structured content.
 :::{/card}
 
 :::{card} Operations
-:icon: gear
+:icon: settings
 :link: ./operations
 :description: CI/CD and analysis
 Automate builds, deployments, and site quality checks.
 :::{/card}
 
 :::{card} Migration
-:icon: arrow-right-circle
+:icon: arrow-right
 :link: ./migration
 :description: Migrate from other SSGs
 Step-by-step guides from Hugo, Jekyll, MkDocs, Sphinx, and more.

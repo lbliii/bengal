@@ -21,7 +21,6 @@ link_previews:
   allowed_hosts:
     - lbliii.github.io   # GitHub Pages for ecosystem projects
     # Future production domains (when deployed):
-    # - kida.dev
     # - rosettes.dev
   allowed_schemes:
     - https

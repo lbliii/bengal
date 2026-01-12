@@ -158,7 +158,7 @@ Update `link-previews.html`:
 
 ### Host selection
 
-- `allowed_hosts`: exact-match host names (e.g., `lbliii.github.io`, `kida.dev`, `rosettes.dev`).
+- `allowed_hosts`: exact-match host names (e.g., `lbliii.github.io`, `rosettes.dev`).
 - Same-host remains implicitly allowed; setting `allowed_hosts` does not disable same-host.
 - Scheme validation happens before host check; non-HTTPS rejected early.
 
@@ -202,7 +202,7 @@ link_previews:
   enabled: true
   allowed_hosts:
     - lbliii.github.io   # GitHub Pages for ecosystem
-    - kida.dev           # Production domain (future)
+    - lbliii.github.io   # GitHub Pages host for Kida (current)
     - rosettes.dev       # Production domain (future)
   allowed_schemes:
     - https

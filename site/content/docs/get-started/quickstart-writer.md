@@ -128,7 +128,7 @@ site:
 ```
 
 :::{dropdown} Other config files
-:icon: gear
+:icon: settings
 
 Bengal splits configuration across focused files in `config/_default/`:
 
@@ -173,7 +173,7 @@ draft: true                 # Exclude from production
 ```
 
 :::{dropdown} All frontmatter fields
-:icon: list-unordered
+:icon: list
 
 | Field | Description |
 |-------|-------------|

@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-__version__ = "0.1.7"
+__version__ = "0.1.8"
 __author__ = "Bengal Contributors"
 
 if TYPE_CHECKING:

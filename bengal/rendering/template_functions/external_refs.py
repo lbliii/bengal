@@ -30,7 +30,7 @@ Configuration:
 
     [[external_refs.indexes]]
     name = "kida"
-    url = "https://kida.dev/xref.json"
+    url = "https://lbliii.github.io/kida/xref.json"
     ```
 
 See: plan/rfc-external-references.md

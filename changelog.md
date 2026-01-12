@@ -1,5 +1,24 @@
 ## [Unreleased]
 
+## 0.1.8 - Unreleased
+
+### 🌐 External Linking & Previews ✅
+- **external_refs**: add cross-project linking via `[[ext:project:target]]`, template-based resolution, cached index lookups, and `ext()/ext_exists()` helpers; exports `xref.json` during production builds with built-in templates (python stdlib, requests/httpx, pydantic/fastapi/sqlalchemy, numpy/pandas) for consumers
+- **link-previews**: allow cross-site previews for whitelisted hosts with per-host failure thresholds, CORS fetch support, and configurable allowed hosts/schemes
+
+### ⚙️ Config & Packaging ✅
+- **config(v2)**: migrate to nested config architecture with structured `site.*`/`build.*` accessors, backward-compatible loader alias, and explicit disabled-feature booleans (e.g., `features.rss: false`)
+- **config**: rename site config `features.yaml` to `outputs.yaml` (compatibility kept) and remove unused `features.syntax_highlighting` toggle
+- **rendering(kida)**: remove bundled Kida engine in favor of external dependency `kida-templates>=0.1.1` (lighter tree; templates still supported)
+
+### 🧭 CLI & Cache ✅
+- **cli(cache)**: add `bengal cache inputs` and `bengal cache hash` commands (JSON/verbose) for deterministic CI cache keys that include the Bengal version
+- **cache/autodoc**: add self-validation of autodoc sources with hash+mtime tracking and stale detection integrated into taxonomy change detection; supports migration from pre-0.1.8 caches
+- **ci/pages**: update GitHub Pages workflow caching logic for accurate invalidation when outputs are missing
+
+### 📝 Markdown Parser Improvements ✅
+- **patitas**: implement container-stack architecture phases 1-4 for lists/blockquote handling, lazy blockquote continuation, and entity parsing fixes; full CommonMark 0.31.2 compliance (652/652 spec examples, no xfails)
+
 ## 0.1.7 - 2026-01-03
 
 ### 🔧 Build & Cache Fixes ✅
