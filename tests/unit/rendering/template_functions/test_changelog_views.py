@@ -29,7 +29,7 @@ class TestReleaseViewFromData:
 
         assert view.version == "1.2.0"
         assert view.name == "Feature Release"
-        assert view.date == "2024-01-15"
+        assert view.date == datetime(2024, 1, 15)
         assert view.status == "stable"
         assert view.summary == "A major feature release."
 
@@ -114,6 +114,7 @@ class TestReleaseViewFromPage:
         page.title = "v1.5.0"
         page.href = "/changelog/v1.5.0/"
         page.date = datetime(2024, 2, 1)
+        page.source_path = None
         page.metadata = {
             "name": "February Release",
             "status": "stable",
@@ -124,7 +125,7 @@ class TestReleaseViewFromPage:
 
         view = ReleaseView.from_page(page)
 
-        assert view.version == "v1.5.0"
+        assert view.version == "1.5.0"
         assert view.name == "February Release"
         assert view.date == datetime(2024, 2, 1)
         assert view.href == "/changelog/v1.5.0/"
@@ -137,6 +138,7 @@ class TestReleaseViewFromPage:
         page.title = "v1.0.0"
         page.href = "/release/"
         page.date = None
+        page.source_path = None
         page.metadata = {"description": "Description text"}
         page.excerpt = "Excerpt text"
 
@@ -150,6 +152,7 @@ class TestReleaseViewFromPage:
         page.title = "v1.0.0"
         page.href = "/release/"
         page.date = None
+        page.source_path = None
         page.metadata = {}
         page.excerpt = "Excerpt text"
 
@@ -163,6 +166,7 @@ class TestReleaseViewFromPage:
         page.title = "Release Title"
         page.href = "/release/"
         page.date = None
+        page.source_path = None
         page.metadata = {"version": "2.0.0"}
         page.excerpt = ""
 
@@ -176,12 +180,13 @@ class TestReleaseViewFromPage:
         page.title = "v1.0.0"
         page.href = "/release/"
         page.date = None
+        page.source_path = None
         page.metadata = None
         page.excerpt = None
 
         view = ReleaseView.from_page(page)
 
-        assert view.version == "v1.0.0"
+        assert view.version == "1.0.0"
         assert view.added == ()
 
 
@@ -207,6 +212,7 @@ class TestReleasesFilter:
         page1.title = "v2.0.0"
         page1.href = "/v2/"
         page1.date = None
+        page1.source_path = None
         page1.metadata = {}
         page1.excerpt = ""
 
@@ -214,14 +220,15 @@ class TestReleasesFilter:
         page2.title = "v1.0.0"
         page2.href = "/v1/"
         page2.date = None
+        page2.source_path = None
         page2.metadata = {}
         page2.excerpt = ""
 
         result = releases_filter([page1, page2])
 
         assert len(result) == 2
-        assert result[0].version == "v2.0.0"
-        assert result[1].version == "v1.0.0"
+        assert result[0].version == "2.0.0"
+        assert result[1].version == "1.0.0"
 
     def test_returns_empty_for_none(self) -> None:
         """Should return empty list for None input."""
@@ -252,13 +259,14 @@ class TestReleaseViewFilter:
         page.title = "v1.0.0"
         page.href = "/release/"
         page.date = None
+        page.source_path = None
         page.metadata = {}
         page.excerpt = ""
 
         result = release_view_filter(page)
 
         assert result is not None
-        assert result.version == "v1.0.0"
+        assert result.version == "1.0.0"
 
     def test_returns_none_for_none_input(self) -> None:
         """Should return None for None input."""

@@ -69,6 +69,9 @@ def _extract_version(text: str) -> str | None:
     
     Returns None if no version pattern found.
     """
+    if not isinstance(text, (str, bytes)):
+        return None
+
     # Try direct match first
     if _SEMVER_PATTERN.match(text) or _DATEVER_PATTERN.match(text):
         return text.lstrip('v').lstrip('V')
