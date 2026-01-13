@@ -506,6 +506,11 @@ class Site(
 
         get_created_dirs().clear()
 
+        # Clear thread-local asset manifest context (RFC: rfc-global-build-state-dependencies)
+        from bengal.rendering.assets import reset_asset_manifest
+
+        reset_asset_manifest()
+
     # =========================================================================
     # ERGONOMIC HELPER METHODS (for theme developers)
     # =========================================================================

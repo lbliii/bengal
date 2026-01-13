@@ -392,6 +392,13 @@ class PageProxy:
         self._ensure_loaded()
         return self._full_page.links if self._full_page else []
 
+    @links.setter
+    def links(self, value: list[str]) -> None:
+        """Set extracted links."""
+        self._ensure_loaded()
+        if self._full_page:
+            self._full_page.links = value
+
     @property
     def toc(self) -> str | None:
         """Get table of contents (lazy-loaded)."""

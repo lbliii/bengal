@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+### 🔒 Thread Safety (Python 3.14t) ✅
+- **core(assets)**: ContextVar pattern for thread-safe asset manifest access (RFC: rfc-global-build-state-dependencies, Phase 2)
+  - Fixes TOCTOU race condition in `Site._asset_manifest_cache` for free-threading
+  - Manifest loaded once before rendering, accessed via thread-local ContextVar
+  - ~8M ops/sec throughput, zero lock contention
+
 ## 0.1.8 - 2026-01-12
 
 ### 🌐 External Linking & Previews ✅

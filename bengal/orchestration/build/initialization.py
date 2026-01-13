@@ -583,7 +583,7 @@ def phase_incremental_filter(
             # All pages embed fingerprinted asset URLs, so they must be rebuilt.
             # This fixes the bug where pages serve stale CSS fingerprints.
             fingerprint_assets_changed = any(
-                asset.suffix.lower() in {".css", ".js"}
+                asset.source_path.suffix.lower() in {".css", ".js"}
                 for asset in assets_to_process
             )
             if fingerprint_assets_changed and not pages_to_build:
@@ -591,7 +591,7 @@ def phase_incremental_filter(
                 pages_to_build = list(orchestrator.site.pages)
                 orchestrator.logger.info(
                     "fingerprint_assets_changed_forcing_page_rebuild",
-                    assets_changed=len([a for a in assets_to_process if a.suffix.lower() in {".css", ".js"}]),
+                    assets_changed=len([a for a in assets_to_process if a.source_path.suffix.lower() in {".css", ".js"}]),
                     pages_to_rebuild=len(pages_to_build),
                 )
 
