@@ -264,7 +264,7 @@ class RenderOrchestrator:
             from bengal.rendering.block_cache import BlockCache
             from bengal.rendering.context import get_engine_globals
             from bengal.rendering.engines import create_engine
-            from bengal.rendering.engines.protocol import EngineCapability
+            from bengal.protocols import EngineCapability
 
             engine = create_engine(self.site)
 

@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
-    from bengal.rendering.engines.protocol import TemplateEnvironment
+    from bengal.protocols import TemplateEnvironment
 
 
 def register(env: TemplateEnvironment, site: Site) -> None:

@@ -25,7 +25,7 @@ from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
-    from bengal.rendering.engines.protocol import TemplateEngine
+    from bengal.protocols import TemplateEngine
     from kida.template import Template
     from bengal.rendering.renderer import Renderer
 

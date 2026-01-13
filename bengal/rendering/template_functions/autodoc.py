@@ -46,7 +46,7 @@ if TYPE_CHECKING:
     from bengal.autodoc.models.cli import CLICommandMetadata, CLIOptionMetadata
     from bengal.autodoc.models.python import PythonFunctionMetadata
     from bengal.core.site import Site
-    from bengal.rendering.engines.protocol import TemplateEnvironment
+    from bengal.protocols import TemplateEnvironment
 
 
 # =============================================================================

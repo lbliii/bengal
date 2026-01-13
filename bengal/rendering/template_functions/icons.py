@@ -23,7 +23,7 @@ from markupsafe import Markup
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
-    from bengal.rendering.engines.protocol import TemplateEnvironment
+    from bengal.protocols import TemplateEnvironment
 
 from bengal.directives._icons import ICON_MAP
 from bengal.errors import ErrorCode

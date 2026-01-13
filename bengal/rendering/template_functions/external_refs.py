@@ -47,7 +47,7 @@ from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
-    from bengal.rendering.engines.protocol import TemplateEnvironment
+    from bengal.protocols import TemplateEnvironment
     from bengal.rendering.external_refs import ExternalRefResolver
 
 logger = get_logger(__name__)

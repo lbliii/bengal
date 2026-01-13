@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
-    from bengal.rendering.engines.protocol import TemplateEnvironment
+    from bengal.protocols import TemplateEnvironment
 
 
 def feature_enabled(feature: str, theme_config: Any) -> bool:

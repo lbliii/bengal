@@ -321,7 +321,7 @@ def _log_template_introspection(orchestrator: BuildOrchestrator, verbose: bool) 
         return
 
     try:
-        from bengal.rendering.engines.protocol import EngineCapability
+        from bengal.protocols import EngineCapability
         from bengal.rendering.template_engine import get_engine
 
         engine = get_engine(orchestrator.site)

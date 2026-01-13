@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.rendering.engines.protocol import TemplateEngineProtocol
+    from bengal.protocols import TemplateEngine as TemplateEngineProtocol
 
 logger = get_logger(__name__)
 

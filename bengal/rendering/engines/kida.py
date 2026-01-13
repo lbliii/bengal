@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING, Any
 
 from bengal.errors import BengalRenderingError
 from bengal.rendering.engines.errors import TemplateError, TemplateNotFoundError
-from bengal.rendering.engines.protocol import EngineCapability, TemplateEngineProtocol
+from bengal.protocols import EngineCapability, TemplateEngineProtocol
 from kida import Environment
 from kida.bytecode_cache import BytecodeCache
 from kida.environment import (

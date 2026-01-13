@@ -59,7 +59,7 @@ if TYPE_CHECKING:
     from bengal.cache.build_cache import BuildCache
     from bengal.core.page import Page
     from bengal.core.site import Site
-    from bengal.rendering.engines.protocol import TemplateEngineProtocol
+    from bengal.protocols import TemplateEngine as TemplateEngineProtocol
 
 logger = get_logger(__name__)
 

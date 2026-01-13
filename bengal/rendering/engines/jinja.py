@@ -23,7 +23,7 @@ from jinja2 import TemplateSyntaxError
 from bengal.assets.manifest import AssetManifestEntry
 from bengal.errors import ErrorCode, record_error
 from bengal.rendering.engines.errors import TemplateError
-from bengal.rendering.engines.protocol import EngineCapability
+from bengal.protocols import EngineCapability
 from bengal.rendering.template_engine.asset_url import AssetURLMixin
 from bengal.rendering.template_engine.environment import (
     create_jinja_environment,

@@ -743,7 +743,7 @@ class BuildTrigger:
         """
         try:
             from bengal.rendering.engines import create_engine
-            from bengal.rendering.engines.protocol import EngineCapability
+            from bengal.protocols import EngineCapability
 
             # Check if template engine supports block-level detection via capability
             engine = create_engine(self.site)

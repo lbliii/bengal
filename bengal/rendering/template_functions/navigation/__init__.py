@@ -70,7 +70,7 @@ if TYPE_CHECKING:
     from bengal.core.page import Page
     from bengal.core.section import Section
     from bengal.core.site import Site
-    from bengal.rendering.engines.protocol import TemplateEnvironment
+    from bengal.protocols import TemplateEnvironment
 
 
 __all__ = [

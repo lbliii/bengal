@@ -406,7 +406,7 @@ class TemplateChangeDetector:
         # Check if engine supports block-level detection via capability
         try:
             from bengal.rendering.engines import create_engine
-            from bengal.rendering.engines.protocol import EngineCapability
+            from bengal.protocols import EngineCapability
 
             engine = create_engine(self.site)
             return engine.has_capability(EngineCapability.BLOCK_LEVEL_DETECTION)
