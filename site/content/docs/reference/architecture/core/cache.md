@@ -309,4 +309,4 @@ if isinstance(obj, Cacheable):
 
 However, static type checking via mypy is the primary validation method.
 
-Refer to `bengal/cache/cacheable.py` for the protocol definition and examples.
+Refer to `bengal.protocols.Cacheable` (canonical location) or `bengal/cache/cacheable.py` for the protocol definition and examples.
