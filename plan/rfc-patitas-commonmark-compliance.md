@@ -344,7 +344,7 @@ The CommonMark project provides an official test suite with 652 examples.
 **Action**: Import and run `spec.txt` tests
 
 ```python
-# tests/rendering/parsers/patitas/test_commonmark_spec.py
+# tests/rendering/parsers/test_patitas/test_commonmark_spec.py
 import json
 from pathlib import Path
 
@@ -697,7 +697,7 @@ def parse(markdown: str) -> str:
 ## Appendix B: Test File Structure
 
 ```
-tests/rendering/parsers/patitas/
+tests/rendering/parsers/test_patitas/
 ├── test_commonmark_spec.py      # Official spec suite (652 tests) ✅
 ├── test_commonmark.py           # Categorized compliance tests (102 tests)
 ├── test_blocks.py               # Block-level edge cases
@@ -774,7 +774,7 @@ Full section-by-section breakdown from running `test_commonmark_spec.py`:
 
 **How to regenerate**:
 ```bash
-python tests/rendering/parsers/patitas/test_commonmark_spec.py
+python tests/rendering/parsers/test_patitas/test_commonmark_spec.py
 ```
 
 ## Appendix E: Priority Matrix

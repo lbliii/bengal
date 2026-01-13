@@ -40,7 +40,8 @@
     trackSection: '[data-track-section]',
     sectionTarget: '.track-section',
     tocSidebar: '.track-layout .toc-sidebar',
-    tocGroup: '.toc-group'
+    // Only select top-level section groups (not nested groups within sections)
+    tocSectionGroup: '.toc-group[data-toc-section]'
   };
 
   // ============================================================================
@@ -356,7 +357,7 @@
     trackSections = Array.from(document.querySelectorAll(SELECTORS.sectionTarget));
     sidebarLinks = Array.from(trackNav.querySelectorAll(SELECTORS.trackSection));
     tocSidebar = document.querySelector(SELECTORS.tocSidebar);
-    tocGroups = tocSidebar ? Array.from(tocSidebar.querySelectorAll(SELECTORS.tocGroup)) : [];
+    tocGroups = tocSidebar ? Array.from(tocSidebar.querySelectorAll(SELECTORS.tocSectionGroup)) : [];
 
     if (!trackSections.length) return;
 

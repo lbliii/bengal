@@ -1360,35 +1360,38 @@
 /* ============================================
    TOC FILTERING FOR TRACKS
    JS sets data-track-filtering and data-toc-active
+   Only affects section-level groups (data-toc-section), not nested groups
    ============================================ */
 
-/* Hide all section groups by default when filtering is active */
-.track-layout .toc-sidebar[data-track-filtering="true"] .toc-group {
+/* Hide all SECTION-LEVEL groups by default when filtering is active */
+/* Nested groups within sections are unaffected and remain visible */
+.track-layout .toc-sidebar[data-track-filtering="true"] .toc-group[data-toc-section] {
     display: none;
 }
 
 /* Show only the active section's TOC group (via data attribute) */
-.track-layout .toc-sidebar[data-track-filtering="true"] .toc-group[data-toc-active] {
+.track-layout .toc-sidebar[data-track-filtering="true"] .toc-group[data-toc-section][data-toc-active] {
     display: block;
 }
 
-/* Hide the count badge - not needed for tracks (always expanded) */
-.track-layout .toc-sidebar[data-track-filtering="true"] .toc-count-badge {
+/* Hide the count badge on section headers - not needed for tracks (always expanded) */
+/* Keep count badges visible on nested groups within active section */
+.track-layout .toc-sidebar[data-track-filtering="true"] > .toc-nav .toc-items > .toc-item > .toc-group > .toc-group-header > .toc-count-badge {
     display: none;
 }
 
 /* Style the active section header - cleaner without toggle */
-.track-layout .toc-sidebar[data-track-filtering="true"] .toc-group[data-toc-active] > .toc-group-header {
+.track-layout .toc-sidebar[data-track-filtering="true"] .toc-group[data-toc-section][data-toc-active] > .toc-group-header {
     margin-bottom: var(--space-2);
 }
 
-.track-layout .toc-sidebar[data-track-filtering="true"] .toc-group[data-toc-active] .toc-link-h2 {
+.track-layout .toc-sidebar[data-track-filtering="true"] .toc-group[data-toc-section][data-toc-active] .toc-link-h2 {
     font-weight: var(--weight-semibold);
     color: var(--color-primary);
 }
 
-/* Expand the active group's children */
-.track-layout .toc-sidebar[data-track-filtering="true"] .toc-group[data-toc-active] .toc-subitems {
+/* Expand the active section group's children */
+.track-layout .toc-sidebar[data-track-filtering="true"] .toc-group[data-toc-section][data-toc-active] > .toc-subitems {
     display: block !important;
 }
 

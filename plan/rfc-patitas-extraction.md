@@ -1,8 +1,11 @@
 # RFC: Patitas Extraction to Standalone Package
 
-**Status**: In Progress  
+> **⚠️ SUPERSEDED**: This RFC has been superseded by [`rfc-patitas-external-migration.md`](rfc-patitas-external-migration.md) which documents the completed migration. This file is retained for historical reference only.
+
+**Status**: ~~In Progress~~ → **Superseded** (see `rfc-patitas-external-migration.md`)  
 **Created**: 2026-01-09  
 **Updated**: 2026-01-12  
+**Superseded**: 2026-01-13  
 **Author**: Bengal Contributors
 
 ---

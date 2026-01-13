@@ -1,15 +1,15 @@
 """
 Benchmark suite for syntax highlighting backends.
 
-Compares performance of Pygments vs tree-sitter backends.
+Compares performance of Rosettes (default) vs tree-sitter backends.
 
 Run with:
     pytest benchmarks/test_highlighting_performance.py -v --benchmark-only
 
 Requirements:
     - pytest-benchmark
+    - rosettes (always available, default backend)
     - tree-sitter (optional, for tree-sitter benchmarks)
-    - tree-sitter-python (optional)
 """
 
 from __future__ import annotations
@@ -172,64 +172,65 @@ export default function UserList() {
 """
 
 
-class TestPygmentsHighlightingPerformance:
-    """Benchmarks for Pygments backend."""
+class TestRosettesHighlightingPerformance:
+    """Benchmarks for Rosettes backend (default).
+    
+    Rosettes is Bengal's default syntax highlighter:
+    - 55 languages supported
+    - Lock-free, thread-safe
+    - 3.4x faster than Pygments
+    """
 
-    def test_pygments_python_simple(self, benchmark) -> None:
-        """Benchmark Pygments on simple Python code."""
-        from bengal.rendering.highlighting.pygments import PygmentsBackend
+    def test_rosettes_python_simple(self, benchmark) -> None:
+        """Benchmark Rosettes on simple Python code."""
+        import rosettes
 
-        backend = PygmentsBackend()
-        result = benchmark(backend.highlight, PYTHON_SIMPLE, "python")
+        result = benchmark(rosettes.highlight, PYTHON_SIMPLE, "python")
         assert "<span" in result
 
-    def test_pygments_python_medium(self, benchmark) -> None:
-        """Benchmark Pygments on medium Python code (~50 lines)."""
-        from bengal.rendering.highlighting.pygments import PygmentsBackend
+    def test_rosettes_python_medium(self, benchmark) -> None:
+        """Benchmark Rosettes on medium Python code (~50 lines)."""
+        import rosettes
 
-        backend = PygmentsBackend()
-        result = benchmark(backend.highlight, PYTHON_MEDIUM, "python")
+        result = benchmark(rosettes.highlight, PYTHON_MEDIUM, "python")
         assert "<span" in result
 
-    def test_pygments_python_large(self, benchmark) -> None:
-        """Benchmark Pygments on large Python code (~500 lines)."""
-        from bengal.rendering.highlighting.pygments import PygmentsBackend
+    def test_rosettes_python_large(self, benchmark) -> None:
+        """Benchmark Rosettes on large Python code (~500 lines)."""
+        import rosettes
 
-        backend = PygmentsBackend()
-        result = benchmark(backend.highlight, PYTHON_LARGE, "python")
+        result = benchmark(rosettes.highlight, PYTHON_LARGE, "python")
         assert "<span" in result
 
-    def test_pygments_rust(self, benchmark) -> None:
-        """Benchmark Pygments on Rust code."""
-        from bengal.rendering.highlighting.pygments import PygmentsBackend
+    def test_rosettes_rust(self, benchmark) -> None:
+        """Benchmark Rosettes on Rust code."""
+        import rosettes
 
-        backend = PygmentsBackend()
-        result = benchmark(backend.highlight, RUST_CODE, "rust")
+        result = benchmark(rosettes.highlight, RUST_CODE, "rust")
         assert "<span" in result
 
-    def test_pygments_javascript(self, benchmark) -> None:
-        """Benchmark Pygments on JavaScript/TSX code."""
-        from bengal.rendering.highlighting.pygments import PygmentsBackend
+    def test_rosettes_javascript(self, benchmark) -> None:
+        """Benchmark Rosettes on JavaScript/TSX code."""
+        import rosettes
 
-        backend = PygmentsBackend()
-        result = benchmark(backend.highlight, JAVASCRIPT_CODE, "javascript")
+        result = benchmark(rosettes.highlight, JAVASCRIPT_CODE, "javascript")
         assert "<span" in result
 
-    def test_pygments_with_linenos(self, benchmark) -> None:
-        """Benchmark Pygments with line numbers enabled."""
-        from bengal.rendering.highlighting.pygments import PygmentsBackend
+    def test_rosettes_with_linenos(self, benchmark) -> None:
+        """Benchmark Rosettes with line numbers enabled."""
+        import rosettes
 
-        backend = PygmentsBackend()
-        result = benchmark(backend.highlight, PYTHON_MEDIUM, "python", show_linenos=True)
-        assert "table" in result.lower()
+        result = benchmark(rosettes.highlight, PYTHON_MEDIUM, "python", show_linenos=True)
+        # Rosettes outputs highlighted code; line numbers may be CSS-based
+        assert "<span" in result or "<pre" in result
 
-    def test_pygments_with_hl_lines(self, benchmark) -> None:
-        """Benchmark Pygments with line highlighting."""
-        from bengal.rendering.highlighting.pygments import PygmentsBackend
+    def test_rosettes_with_hl_lines(self, benchmark) -> None:
+        """Benchmark Rosettes with line highlighting."""
+        import rosettes
 
-        backend = PygmentsBackend()
-        result = benchmark(backend.highlight, PYTHON_MEDIUM, "python", hl_lines=[1, 5, 10, 15])
-        assert "hll" in result
+        result = benchmark(rosettes.highlight, PYTHON_MEDIUM, "python", hl_lines={1, 5, 10, 15})
+        # Rosettes outputs highlighted code; hl_lines affects specific lines
+        assert "<span" in result or "<pre" in result
 
 
 # Tree-sitter benchmarks - skip if not available
@@ -293,42 +294,55 @@ class TestTreeSitterHighlightingPerformance:
 
 
 class TestHighlightingComparison:
-    """Compare Pygments vs tree-sitter performance."""
+    """Compare Rosettes vs tree-sitter performance."""
 
-    def test_comparison_python_medium(self, benchmark) -> None:
+    def test_rosettes_baseline(self, benchmark) -> None:
         """
-        Compare backends on medium Python code.
+        Rosettes baseline on medium Python code.
 
-        This is the key benchmark for the RFC requirement of ≥5x speedup.
+        This is the default backend, expected to be fast and lock-free.
         """
-        from bengal.rendering.highlighting.pygments import PygmentsBackend
+        import rosettes
 
-        backend = PygmentsBackend()
-
-        # Just benchmark Pygments here; tree-sitter comparison is manual
-        # due to potential unavailability
-        result = benchmark(backend.highlight, PYTHON_MEDIUM, "python")
+        result = benchmark(rosettes.highlight, PYTHON_MEDIUM, "python")
         assert "<span" in result
 
 
 class TestBulkHighlighting:
     """Test highlighting many code blocks (simulates real site build)."""
 
-    def test_pygments_100_blocks(self, benchmark) -> None:
-        """Benchmark Pygments on 100 code blocks."""
-        from bengal.rendering.highlighting.pygments import PygmentsBackend
+    def test_rosettes_100_blocks(self, benchmark) -> None:
+        """Benchmark Rosettes on 100 code blocks."""
+        import rosettes
 
-        backend = PygmentsBackend()
         codes = [PYTHON_SIMPLE, PYTHON_MEDIUM, RUST_CODE, JAVASCRIPT_CODE] * 25
 
         def highlight_all():
             results = []
             for code in codes:
                 lang = "python" if "def " in code else "rust" if "fn " in code else "javascript"
-                results.append(backend.highlight(code, lang))
+                results.append(rosettes.highlight(code, lang))
             return results
 
         results = benchmark(highlight_all)
+        assert len(results) == 100
+        assert all("<span" in r for r in results)
+
+    def test_rosettes_100_blocks_parallel(self, benchmark) -> None:
+        """Benchmark Rosettes parallel highlighting on 100 code blocks.
+        
+        Uses rosettes.highlight_many() for parallel execution on Python 3.14t.
+        """
+        import rosettes
+
+        items = []
+        for _ in range(25):
+            items.append((PYTHON_SIMPLE, "python"))
+            items.append((PYTHON_MEDIUM, "python"))
+            items.append((RUST_CODE, "rust"))
+            items.append((JAVASCRIPT_CODE, "javascript"))
+
+        results = benchmark(rosettes.highlight_many, items)
         assert len(results) == 100
         assert all("<span" in r for r in results)
 

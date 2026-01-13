@@ -6,7 +6,7 @@ from pathlib import Path
 from bengal.rendering.parsers.patitas import parse
 
 spec_path = Path(
-    "/Users/llane/Documents/github/python/bengal/tests/rendering/parsers/patitas/commonmark_spec_0_31_2.json"
+    "/Users/llane/Documents/github/python/bengal/tests/rendering/parsers/test_patitas/commonmark_spec_0_31_2.json"
 )
 spec = json.loads(spec_path.read_text())
 

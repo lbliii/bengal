@@ -431,11 +431,14 @@ def test_parallel_vs_sequential(benchmark, fresh_scenario_no_fast):
 
     Validates that parallel processing provides 2-4x speedup on multi-core systems.
     This tests the core parallel optimization that benefits all builds.
+    
+    Note: Parallel is now the default, so we just run a standard build here.
+    Use --no-parallel to force sequential mode.
     """
 
     def parallel_build():
         subprocess.run(
-            ["bengal", "build", "--parallel"],
+            ["bengal", "build"],  # Parallel is default
             cwd=fresh_scenario_no_fast,
             check=True,
             stdout=subprocess.DEVNULL,

@@ -5,13 +5,13 @@ The spec.json contains 652 examples from the CommonMark specification.
 
 Usage:
 # Run all spec tests
-pytest tests/rendering/parsers/patitas/test_commonmark_spec.py -v
+pytest tests/rendering/parsers/test_patitas/test_commonmark_spec.py -v
 
 # Run specific section
-pytest tests/rendering/parsers/patitas/test_commonmark_spec.py -k "Emphasis"
+pytest tests/rendering/parsers/test_patitas/test_commonmark_spec.py -k "Emphasis"
 
 # Run single example
-pytest tests/rendering/parsers/patitas/test_commonmark_spec.py -k "example_42"
+pytest tests/rendering/parsers/test_patitas/test_commonmark_spec.py -k "example_42"
 
 Baseline Tracking:
 The baseline pass rate is tracked in this file. Update after each sprint.

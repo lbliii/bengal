@@ -245,8 +245,9 @@ KIDA FEATURES SHOWCASED:
 - {% break %} for early loop termination (contributor limit)
 ============================================================================= #}
 
-{# HELPER: Render a single TOC node (recursive) #}
-{% def toc_node(node) %}
+{# HELPER: Render a single TOC node (recursive)
+   is_section: marks top-level section groups for track filtering (default false) #}
+{% def toc_node(node, is_section=false) %}
 {% let node_id = node?.id ?? '' %}
 {% let node_title = node?.title ?? '' %}
 {% let node_level = node?.level ?? 2 %}
@@ -257,9 +258,10 @@ KIDA FEATURES SHOWCASED:
 <li class="toc-item toc-level-{{ node_level }}" role="treeitem" data-level="{{ node_level }}">
   {% if has_children %}
   {# Auto-expand based on heading level using match #}
+  {# Add data-toc-section for top-level groups (used by track filtering) #}
   {% match node_level %}
-  {% case 1 %}<details class="toc-group" open>
-  {% case 2 %}<details class="toc-group" open>
+  {% case 1 %}<details class="toc-group" {{ 'data-toc-section' if is_section else '' }} open>
+  {% case 2 %}<details class="toc-group" {{ 'data-toc-section' if is_section else '' }} open>
   {% case _ %}<details class="toc-group">
   {% end %}
     <summary class="toc-group-header">
@@ -304,7 +306,7 @@ KIDA FEATURES SHOWCASED:
     <div class="toc-scroll-container">
       <ul class="toc-items" role="tree">
         {% for item in nested_items %}
-        {{ toc_node(item) }}
+        {{ toc_node(item, is_section=true) }}
         {% end %}
       </ul>
     </div>
