@@ -183,18 +183,18 @@ MAIN TEMPLATE
   {% end %}
 
   {# Data-driven mode: Use changelog.yaml with ReleaseView #}
+  {# releases filter auto-sorts data (newest first) since YAML has no pre-sorting #}
   {% if changelog_data and changelog_data?.releases %}
   <section class="changelog-timeline">
     <div class="timeline">
-      {% let all_releases = changelog_data.releases | releases | sort_by('date', reverse=true) %}
+      {% let all_releases = changelog_data.releases | releases %}
       {% for rel in all_releases %}
       {{ release_item(rel) }}
       {% end %}
     </div>
   </section>
 
-  {# Page-driven mode: Use individual release pages with ReleaseView #}
-  {# Pages are pre-sorted by ChangelogStrategy (newest first) - no need to re-sort #}
+  {# Page-driven mode: releases filter preserves ChangelogStrategy order #}
   {% elif pages | length > 0 %}
   <section class="changelog-timeline">
     <div class="timeline">
