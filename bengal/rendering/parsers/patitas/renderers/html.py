@@ -56,6 +56,7 @@ from bengal.rendering.parsers.patitas.nodes import (
     Text,
     ThematicBreak,
 )
+from bengal.rendering.parsers.patitas.accumulator import get_metadata
 from bengal.rendering.parsers.patitas.render_config import RenderConfig, get_render_config
 from bengal.rendering.parsers.patitas.stringbuilder import StringBuilder
 
@@ -141,6 +142,33 @@ class HtmlRenderer:
         # Alias for _page_context (used by directives that look for _current_page)
         self._current_page = page_context
         # Directive cache is per-site, passed in (not config)
+        self._directive_cache = directive_cache
+
+    def _reset(
+        self,
+        source: str = "",
+        *,
+        delegate: LexerDelegate | None = None,
+        directive_cache: DirectiveCache | None = None,
+        page_context: Any | None = None,
+    ) -> None:
+        """Reset renderer state for reuse.
+
+        Clears per-render state while preserving object identity.
+        Used by RendererPool.acquire() for instance pooling.
+
+        Args:
+            source: Original source buffer for zero-copy extraction
+            delegate: Optional sub-lexer delegate for ZCLH handoff
+            directive_cache: Optional cache for rendered directive output
+            page_context: Optional page context for directives
+        """
+        self._source = source
+        self._delegate = delegate
+        self._headings = []
+        self._seen_slugs = {}
+        self._page_context = page_context
+        self._current_page = page_context
         self._directive_cache = directive_cache
 
     # =========================================================================
@@ -314,6 +342,11 @@ class HtmlRenderer:
                 self._render_table(table, sb)
 
             case MathBlock(content=content):
+                # Accumulate metadata if context is active
+                meta = get_metadata()
+                if meta:
+                    meta.has_math = True
+
                 # Render as div with math-block class (for MathJax/KaTeX)
                 sb.append('<div class="math-block">\n')
                 sb.append(_escape_html(content))
@@ -371,6 +404,11 @@ class HtmlRenderer:
 
     def _render_table(self, table: Table, sb: StringBuilder) -> None:
         """Render a table with thead and tbody."""
+        # Accumulate metadata if context is active
+        meta = get_metadata()
+        if meta:
+            meta.has_tables = True
+
         # Wrap in table-wrapper for horizontal scrolling on narrow screens
         sb.append('<div class="table-wrapper"><table>\n')
 
@@ -558,13 +596,18 @@ class HtmlRenderer:
     ) -> None:
         """Render fenced code block with optional zero-copy highlighting."""
         info = node.info
-        if info:
-            lang = info.split()[0].lower()
-            if lang == "mermaid":
-                sb.append(
-                    f'<div class="mermaid">{_escape_html(node.get_code(self._source))}</div>\n'
-                )
-                return
+        lang = info.split()[0].lower() if info else None
+
+        # Accumulate metadata if context is active
+        meta = get_metadata()
+        if meta:
+            meta.add_code_block(lang)
+
+        if lang == "mermaid":
+            sb.append(
+                f'<div class="mermaid">{_escape_html(node.get_code(self._source))}</div>\n'
+            )
+            return
 
         # Attempt syntax highlighting via delegate (ZCLH protocol)
         if self._delegate and info:
@@ -948,6 +991,11 @@ def _render_text(node: Text, sb: StringBuilder, render_children) -> None:
     if renderer and hasattr(renderer, "_text_transformer") and renderer._text_transformer:
         content = renderer._text_transformer(content)
 
+    # Accumulate word count if metadata context is active
+    meta = get_metadata()
+    if meta:
+        meta.add_words(content)
+
     sb.append(_escape_html(content))
 
 
@@ -964,6 +1012,14 @@ def _render_strong(node: Strong, sb: StringBuilder, render_children) -> None:
 
 
 def _render_link(node: Link, sb: StringBuilder, render_children) -> None:
+    # Accumulate link metadata if context is active
+    meta = get_metadata()
+    if meta:
+        if node.url.startswith(("http://", "https://")):
+            meta.add_external_link(node.url)
+        else:
+            meta.add_internal_link(node.url)
+
     sb.append(f'<a href="{_encode_url(node.url)}"')
     if node.title:
         sb.append(f' title="{_escape_link_title(node.title)}"')
@@ -973,6 +1029,11 @@ def _render_link(node: Link, sb: StringBuilder, render_children) -> None:
 
 
 def _render_image(node: Image, sb: StringBuilder, render_children) -> None:
+    # Accumulate image metadata if context is active
+    meta = get_metadata()
+    if meta:
+        meta.add_image(node.url)
+
     sb.append(f'<img src="{_encode_url(node.url)}" alt="{_escape_attr(node.alt)}"')
     if node.title:
         sb.append(f' title="{_escape_link_title(node.title)}"')
@@ -1014,6 +1075,11 @@ def _render_strikethrough(node: Strikethrough, sb: StringBuilder, render_childre
 
 
 def _render_math(node: Math, sb: StringBuilder, render_children) -> None:
+    # Accumulate math metadata if context is active
+    meta = get_metadata()
+    if meta:
+        meta.has_math = True
+
     # Inline math - rendered with span.math class for MathJax/KaTeX
     sb.append(f'<span class="math">{_escape_html(node.content)}</span>')
 

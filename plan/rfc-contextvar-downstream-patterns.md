@@ -1,7 +1,9 @@
 # RFC: ContextVar Downstream Patterns
 
-**Status**: Draft  
+**Status**: ✅ Implemented  
 **Created**: 2026-01-13  
+**Updated**: 2026-01-13  
+**Implemented**: 2026-01-13  
 **Depends on**: `rfc-contextvar-config-implementation.md` (✅ Implemented)  
 **Target**: Bengal 0.2.x
 
@@ -13,11 +15,13 @@ The ContextVar configuration pattern (now implemented) decoupled configuration f
 
 | Pattern | Effort | Impact | Priority |
 |---------|--------|--------|----------|
-| **Parser/Renderer Pooling** | Low | ~20% faster instantiation | P1 |
-| **Render Accumulator** | Medium | ~30% faster (single-pass TOC) | P1 |
+| **Parser/Renderer Pooling** | Low | ~15% faster instantiation | P1 |
+| **Metadata Accumulator** | Low | Extended page metadata | P2 |
 | **Request-Scoped Context** | Medium | Cleaner architecture | P2 |
 
-**Combined Benefit**: Estimated 15-25% reduction in per-page render time for large sites.
+**Combined Benefit**: Estimated 10-15% reduction in per-page render time for large sites, plus architectural improvements for maintainability.
+
+**Note**: Single-pass TOC extraction already exists via `render_ast_with_toc()` (RFC: rfc-path-to-200-pgs). Pattern 2 extends this to collect additional metadata.
 
 ---
 
@@ -59,6 +63,7 @@ Pool and reuse instances:
 # bengal/rendering/parsers/patitas/pool.py
 from __future__ import annotations
 
+import os
 from collections import deque
 from contextlib import contextmanager
 from threading import local
@@ -69,15 +74,28 @@ if TYPE_CHECKING:
     from bengal.rendering.parsers.patitas.renderers.html import HtmlRenderer
 
 
+# Pool size rationale:
+# - 8 covers typical concurrent renders per thread (parallel template includes)
+# - Memory overhead: ~1KB per Parser, ~0.5KB per Renderer = ~12KB per thread
+# - Configurable via environment for tuning
+_DEFAULT_POOL_SIZE = 8
+
+
 class ParserPool:
     """Thread-local parser instance pool.
     
     Reuses Parser instances to avoid allocation overhead.
     Thread-safe via thread-local storage.
+    
+    Pool Size:
+        Default: 8 per thread (covers typical parallel template includes)
+        Override: Set BENGAL_PARSER_POOL_SIZE environment variable
+        
+    Memory: ~1KB per pooled Parser instance
     """
     
     _local = local()
-    _max_pool_size: int = 8  # Per thread
+    _max_pool_size: int = int(os.environ.get("BENGAL_PARSER_POOL_SIZE", _DEFAULT_POOL_SIZE))
     
     @classmethod
     def _get_pool(cls) -> deque[Parser]:
@@ -113,10 +131,17 @@ class ParserPool:
 
 
 class RendererPool:
-    """Thread-local renderer instance pool."""
+    """Thread-local renderer instance pool.
+    
+    Pool Size:
+        Default: 8 per thread
+        Override: Set BENGAL_RENDERER_POOL_SIZE environment variable
+        
+    Memory: ~0.5KB per pooled Renderer instance
+    """
     
     _local = local()
-    _max_pool_size: int = 8
+    _max_pool_size: int = int(os.environ.get("BENGAL_RENDERER_POOL_SIZE", _DEFAULT_POOL_SIZE))
     
     @classmethod
     def _get_pool(cls) -> deque[HtmlRenderer]:
@@ -126,7 +151,7 @@ class RendererPool:
     
     @classmethod
     @contextmanager
-    def acquire(cls) -> Iterator[HtmlRenderer]:
+    def acquire(cls, source: str = "") -> Iterator[HtmlRenderer]:
         """Acquire a renderer from pool or create new one."""
         from bengal.rendering.parsers.patitas.renderers.html import HtmlRenderer
         
@@ -134,9 +159,9 @@ class RendererPool:
         
         if pool:
             renderer = pool.pop()
-            renderer._reset()
+            renderer._reset(source)
         else:
-            renderer = HtmlRenderer()
+            renderer = HtmlRenderer(source)
         
         try:
             yield renderer
@@ -153,14 +178,26 @@ class RendererPool:
 # bengal/rendering/parsers/patitas/parser.py
 class Parser:
     def _reinit(self, source: str, source_file: str | None = None) -> None:
-        """Reset parser for reuse with new source."""
+        """Reset parser for reuse with new source.
+        
+        Avoids full __init__ overhead by reusing existing object.
+        Lexer is re-created (lightweight) to tokenize new source.
+        """
+        from bengal.rendering.parsers.patitas.lexer import Lexer
+        from bengal.rendering.parsers.patitas.parsing.containers import ContainerStack
+        
         self._source = source
         self._source_file = source_file
-        self._tokens = tuple(self._lexer.tokenize())
+        
+        # Re-tokenize with new source (Lexer is lightweight)
+        lexer = Lexer(source)
+        self._tokens = list(lexer.tokenize())
         self._pos = 0
         self._current = self._tokens[0] if self._tokens else None
+        
+        # Reset per-parse state
         self._link_refs = {}
-        self._containers = []
+        self._containers = ContainerStack()
         self._directive_stack = []
         self._allow_setext_headings = True
 ```
@@ -170,13 +207,18 @@ class Parser:
 ```python
 # bengal/rendering/parsers/patitas/renderers/html.py
 class HtmlRenderer:
-    def _reset(self) -> None:
-        """Reset renderer state for reuse."""
-        self._source = ""
+    def _reset(self, source: str = "") -> None:
+        """Reset renderer state for reuse.
+        
+        Clears per-render state while preserving object identity.
+        """
+        self._source = source
         self._headings = []
         self._seen_slugs = {}
         self._page_context = None
         self._current_page = None
+        self._delegate = None
+        self._directive_cache = None
 ```
 
 ### Integration
@@ -189,8 +231,8 @@ def render_page(page: Page) -> str:
     with ParserPool.acquire(page.content, page.source_path) as parser:
         ast = parser.parse()
     
-    with RendererPool.acquire() as renderer:
-        html = renderer.render(ast, page.content)
+    with RendererPool.acquire(page.content) as renderer:
+        html = renderer.render(ast)
     
     return html
 ```
@@ -199,30 +241,39 @@ def render_page(page: Page) -> str:
 
 | Metric | Current | With Pooling | Improvement |
 |--------|---------|--------------|-------------|
-| 1K pages (instantiation) | ~2.3ms | ~0.5ms | ~78% |
+| 1K pages (instantiation) | ~2.3µs/page | ~0.5µs/page | ~78% |
+| Total for 1K pages | ~2.3ms | ~0.5ms | ~1.8ms saved |
 | Memory (peak) | N instances | 8 per thread | ~90% reduction |
+
+**Note**: Instantiation is a small fraction of total render time (~2.3µs vs ~2-10ms for parsing+rendering). Primary benefit is reduced GC pressure for large sites.
 
 ---
 
-## Pattern 2: Render Accumulator (Single-Pass TOC/Footnotes)
+## Pattern 2: Metadata Accumulator (Extended Page Metadata)
+
+### Current State
+
+Bengal already implements single-pass TOC extraction via `HtmlRenderer._headings` and `render_ast_with_toc()` (RFC: rfc-path-to-200-pgs):
+
+```python
+# Current: Single-pass TOC (already implemented)
+html, toc, toc_items = md.render_ast_with_toc(ast, content)
+```
 
 ### Problem
 
-Currently, extracting TOC and footnotes requires separate passes:
+Additional page metadata requires post-render analysis or AST re-walking:
 
 ```python
-# Current multi-pass approach
-ast = parser.parse()
-html = renderer.render(ast, source)      # Pass 1: Render
-toc = extract_toc(ast)                    # Pass 2: Walk AST again
-footnotes = extract_footnotes(ast)        # Pass 3: Walk AST again
+# Current: Separate checks after rendering
+has_math = '<math' in html or '\\(' in html  # Regex/string search
+has_code = '<pre' in html                     # Imprecise
+word_count = len(strip_html(html).split())    # Extra pass
 ```
-
-For documents with 100+ headings, this is wasteful.
 
 ### Solution
 
-Accumulate metadata during rendering via ContextVar:
+Extend the existing heading accumulation pattern to collect additional metadata during rendering:
 
 ```python
 # bengal/rendering/parsers/patitas/accumulator.py
@@ -235,122 +286,113 @@ from typing import Iterator
 
 
 @dataclass
-class TocItem:
-    """Table of contents item."""
-    level: int
-    text: str
-    id: str
-    children: list[TocItem] = field(default_factory=list)
-
-
-@dataclass
-class FootnoteRef:
-    """Footnote reference."""
-    id: str
-    content: str
-    backref_id: str
-
-
-@dataclass
-class RenderAccumulator:
-    """Accumulated state during rendering.
+class RenderMetadata:
+    """Extended metadata accumulated during rendering.
     
-    Collects TOC items, footnotes, cross-references, and other
-    metadata in a single rendering pass.
+    Complements existing HtmlRenderer._headings for TOC.
+    Collected during single render pass—no post-processing needed.
     """
-    toc_items: list[TocItem] = field(default_factory=list)
-    footnotes: dict[str, FootnoteRef] = field(default_factory=dict)
-    cross_refs: list[tuple[str, str]] = field(default_factory=list)  # (target, text)
-    word_count: int = 0
-    has_code_blocks: bool = False
+    # Content features (for asset loading decisions)
     has_math: bool = False
+    has_code_blocks: bool = False
+    has_mermaid: bool = False
+    has_tables: bool = False
     
-    def add_heading(self, level: int, text: str, id: str) -> None:
-        """Record a heading for TOC generation."""
-        self.toc_items.append(TocItem(level=level, text=text, id=id))
+    # Statistics
+    word_count: int = 0
+    code_languages: set[str] = field(default_factory=set)
     
-    def add_footnote(self, id: str, content: str, backref_id: str) -> None:
-        """Record a footnote definition."""
-        self.footnotes[id] = FootnoteRef(id=id, content=content, backref_id=backref_id)
+    # Cross-references (for dependency tracking)
+    internal_links: list[str] = field(default_factory=list)
+    external_links: list[str] = field(default_factory=list)
+    image_refs: list[str] = field(default_factory=list)
     
-    def build_toc_tree(self) -> list[TocItem]:
-        """Convert flat TOC items to nested tree structure."""
-        if not self.toc_items:
-            return []
-        
-        root: list[TocItem] = []
-        stack: list[tuple[int, list[TocItem]]] = [(0, root)]
-        
-        for item in self.toc_items:
-            while stack and stack[-1][0] >= item.level:
-                stack.pop()
-            
-            parent = stack[-1][1] if stack else root
-            parent.append(item)
-            stack.append((item.level, item.children))
-        
-        return root
+    def add_words(self, text: str) -> None:
+        """Accumulate word count from text content."""
+        self.word_count += len(text.split())
+    
+    def add_code_block(self, language: str | None) -> None:
+        """Record a code block."""
+        self.has_code_blocks = True
+        if language:
+            self.code_languages.add(language)
+            if language == "mermaid":
+                self.has_mermaid = True
 
 
 # Module-level ContextVar
-_accumulator: ContextVar[RenderAccumulator | None] = ContextVar(
-    'render_accumulator', 
+_metadata: ContextVar[RenderMetadata | None] = ContextVar(
+    'render_metadata', 
     default=None
 )
 
 
-def get_accumulator() -> RenderAccumulator | None:
-    """Get current render accumulator (None if not in accumulator context)."""
-    return _accumulator.get()
+def get_metadata() -> RenderMetadata | None:
+    """Get current metadata accumulator (None if not in context)."""
+    return _metadata.get()
 
 
 @contextmanager
-def accumulator_context() -> Iterator[RenderAccumulator]:
-    """Context manager for render accumulation.
+def metadata_context() -> Iterator[RenderMetadata]:
+    """Context manager for metadata accumulation.
     
     Usage:
-        with accumulator_context() as acc:
-            html = renderer.render(ast, source)
-            toc = acc.build_toc_tree()
-            footnotes = acc.footnotes
+        with metadata_context() as meta:
+            html = renderer.render(ast)
+            if meta.has_math:
+                include_mathjax()
     """
-    acc = RenderAccumulator()
-    token = _accumulator.set(acc)
+    meta = RenderMetadata()
+    token = _metadata.set(meta)
     try:
-        yield acc
+        yield meta
     finally:
-        _accumulator.reset(token)
+        _metadata.reset(token)
 ```
 
 ### Renderer Integration
 
 ```python
 # bengal/rendering/parsers/patitas/renderers/html.py
-from bengal.rendering.parsers.patitas.accumulator import get_accumulator
+from bengal.rendering.parsers.patitas.accumulator import get_metadata
 
 class HtmlRenderer:
-    def _render_heading(self, node: Heading) -> str:
-        text = self._render_children(node.children)
-        slug = self._slugify(text)
+    def _render_text(self, node: Text) -> str:
+        # Accumulate word count
+        meta = get_metadata()
+        if meta:
+            meta.add_words(node.content)
         
-        # Accumulate if in accumulator context
-        acc = get_accumulator()
-        if acc:
-            acc.add_heading(level=node.level, text=text, id=slug)
-        
-        return f'<h{node.level} id="{slug}">{text}</h{node.level}>\n'
+        return html_escape(node.content)
     
     def _render_fenced_code(self, node: FencedCode) -> str:
-        acc = get_accumulator()
-        if acc:
-            acc.has_code_blocks = True
+        meta = get_metadata()
+        if meta:
+            meta.add_code_block(node.language)
         
         # ... existing render logic
     
     def _render_math(self, node: Math) -> str:
-        acc = get_accumulator()
-        if acc:
-            acc.has_math = True
+        meta = get_metadata()
+        if meta:
+            meta.has_math = True
+        
+        # ... existing render logic
+    
+    def _render_table(self, node: Table) -> str:
+        meta = get_metadata()
+        if meta:
+            meta.has_tables = True
+        
+        # ... existing render logic
+    
+    def _render_link(self, node: Link) -> str:
+        meta = get_metadata()
+        if meta:
+            if node.url.startswith(('http://', 'https://')):
+                meta.external_links.append(node.url)
+            else:
+                meta.internal_links.append(node.url)
         
         # ... existing render logic
 ```
@@ -359,33 +401,47 @@ class HtmlRenderer:
 
 ```python
 # bengal/rendering/pipeline/core.py
-from bengal.rendering.parsers.patitas.accumulator import accumulator_context
+from bengal.rendering.parsers.patitas.accumulator import metadata_context
 
 def render_page_with_metadata(page: Page) -> tuple[str, dict]:
-    """Render page and extract metadata in single pass."""
+    """Render page and extract all metadata in single pass."""
     ast = parser.parse()
     
-    with accumulator_context() as acc:
-        html = renderer.render(ast, page.content)
+    with metadata_context() as meta:
+        # TOC still collected via _headings (existing pattern)
+        html, toc, toc_items = md.render_ast_with_toc(ast, page.content)
         
-        metadata = {
-            'toc': acc.build_toc_tree(),
-            'toc_html': render_toc(acc.build_toc_tree()),
-            'footnotes': acc.footnotes,
-            'word_count': acc.word_count,
-            'has_code': acc.has_code_blocks,
-            'has_math': acc.has_math,
+        # Extended metadata available immediately
+        page_metadata = {
+            'toc_items': toc_items,
+            'has_math': meta.has_math,
+            'has_code': meta.has_code_blocks,
+            'has_mermaid': meta.has_mermaid,
+            'word_count': meta.word_count,
+            'code_languages': list(meta.code_languages),
+            'internal_links': meta.internal_links,
         }
     
-    return html, metadata
+    return html, page_metadata
 ```
+
+### Use Cases
+
+| Metadata | Use Case |
+|----------|----------|
+| `has_math` | Conditionally load MathJax/KaTeX |
+| `has_mermaid` | Conditionally load Mermaid.js |
+| `code_languages` | Preload specific syntax highlighters |
+| `word_count` | Reading time estimate |
+| `internal_links` | Dependency graph for incremental builds |
 
 ### Benchmark Target
 
-| Metric | Current (3 passes) | Single Pass | Improvement |
-|--------|-------------------|-------------|-------------|
-| 100-heading doc | ~15ms | ~10ms | ~33% |
-| Memory allocations | 3x AST walk | 1x | ~67% |
+| Metric | Current | With Accumulator | Improvement |
+|--------|---------|------------------|-------------|
+| Feature detection | Post-render regex | During render | ~2ms saved |
+| Word count | Extra strip+split | During render | ~1ms saved |
+| Link extraction | Separate AST walk | During render | ~3ms saved |
 
 ---
 
@@ -426,12 +482,21 @@ if TYPE_CHECKING:
     from bengal.core.site import Site
 
 
+class RequestContextError(RuntimeError):
+    """Raised when request context is required but not set."""
+    pass
+
+
 @dataclass(frozen=True, slots=True)
 class RequestContext:
     """Per-request context for parsing and rendering.
     
     Provides access to build-wide and page-specific state
     without parameter drilling.
+    
+    Thread Safety:
+        ContextVar provides automatic thread/async isolation.
+        Each thread/task gets its own context stack.
     """
     # Source information
     source_file: Path | None = None
@@ -465,29 +530,44 @@ class RequestContext:
             raise error
 
 
-# Module-level ContextVar
-_request_context: ContextVar[RequestContext] = ContextVar(
+# Module-level ContextVar - default to None for fail-fast behavior
+_request_context: ContextVar[RequestContext | None] = ContextVar(
     'request_context',
-    default=RequestContext()
+    default=None
 )
 
 
 def get_request_context() -> RequestContext:
-    """Get current request context."""
+    """Get current request context.
+    
+    Raises:
+        RequestContextError: If no context is set (fail-fast)
+    """
+    ctx = _request_context.get()
+    if ctx is None:
+        raise RequestContextError(
+            "No request context set. Use request_context() context manager "
+            "or set_request_context() before parsing/rendering."
+        )
+    return ctx
+
+
+def try_get_request_context() -> RequestContext | None:
+    """Get current request context, or None if not set.
+    
+    Use this for optional context access where fallback behavior is acceptable.
+    """
     return _request_context.get()
 
 
-def set_request_context(ctx: RequestContext) -> Token[RequestContext]:
+def set_request_context(ctx: RequestContext) -> Token[RequestContext | None]:
     """Set request context, returns token for reset."""
     return _request_context.set(ctx)
 
 
-def reset_request_context(token: Token[RequestContext] | None = None) -> None:
-    """Reset to previous context."""
-    if token:
-        _request_context.reset(token)
-    else:
-        _request_context.set(RequestContext())
+def reset_request_context(token: Token[RequestContext | None]) -> None:
+    """Reset to previous context using token."""
+    _request_context.reset(token)
 
 
 @contextmanager
@@ -507,6 +587,10 @@ def request_context(
         with request_context(source_file=path, page=page, site=site):
             html = render(page.content)
             # All nested code can access context via get_request_context()
+    
+    Nesting:
+        Context managers can be nested. Inner context shadows outer.
+        Token-based reset restores previous context on exit.
     """
     ctx = RequestContext(
         source_file=source_file,
@@ -529,29 +613,41 @@ def request_context(
 
 ```python
 # bengal/rendering/parsers/patitas/parser.py
-from bengal.rendering.parsers.patitas.request_context import get_request_context
+from bengal.rendering.parsers.patitas.request_context import try_get_request_context
 
 class Parser:
     def _report_error(self, error: Exception, context: str) -> None:
-        """Report error via request context."""
-        req = get_request_context()
-        req.report_error(error, context)
+        """Report error via request context if available."""
+        req = try_get_request_context()
+        if req:
+            req.report_error(error, context)
+        else:
+            # Fallback: log warning
+            logger.warning("parse_error", error=str(error), context=context)
     
     @property
     def source_file(self) -> Path | None:
-        """Get source file from request context."""
-        return get_request_context().source_file
+        """Get source file from request context or instance."""
+        # Prefer instance attribute (backward compatibility)
+        if self._source_file:
+            return Path(self._source_file)
+        # Fall back to request context
+        req = try_get_request_context()
+        return req.source_file if req else None
 ```
 
 ```python
 # bengal/rendering/parsers/patitas/renderers/html.py
+from bengal.rendering.parsers.patitas.request_context import try_get_request_context
+
 class HtmlRenderer:
     def _resolve_link(self, target: str) -> str:
         """Resolve internal link via request context."""
-        req = get_request_context()
-        resolved = req.resolve_link(target)
-        if resolved:
-            return resolved
+        req = try_get_request_context()
+        if req:
+            resolved = req.resolve_link(target)
+            if resolved:
+                return resolved
         
         # Fallback: return as-is
         return target
@@ -586,6 +682,67 @@ def render_page(page: Page, site: Site) -> str:
 
 ---
 
+## ContextVar Composition
+
+All three ContextVar patterns (config, metadata, request) compose correctly:
+
+```python
+# Complete render pipeline with all ContextVars
+from bengal.rendering.parsers.patitas.config import parse_config_context, ParseConfig
+from bengal.rendering.parsers.patitas.render_config import render_config_context, RenderConfig
+from bengal.rendering.parsers.patitas.request_context import request_context
+from bengal.rendering.parsers.patitas.accumulator import metadata_context
+from bengal.rendering.parsers.patitas.pool import ParserPool, RendererPool
+
+def render_page_full(page: Page, site: Site) -> tuple[str, dict]:
+    """Full render with all optimizations."""
+    
+    # Layer 1: Configuration (per-site, set once)
+    with parse_config_context(ParseConfig(tables_enabled=True)):
+        with render_config_context(RenderConfig(highlight=True)):
+            
+            # Layer 2: Request context (per-page)
+            with request_context(page=page, site=site):
+                
+                # Layer 3: Metadata accumulation (per-render)
+                with metadata_context() as meta:
+                    
+                    # Layer 4: Pooled instances (per-render)
+                    with ParserPool.acquire(page.content) as parser:
+                        ast = parser.parse()
+                    
+                    with RendererPool.acquire(page.content) as renderer:
+                        html = renderer.render(ast)
+                    
+                    return html, {
+                        'has_math': meta.has_math,
+                        'word_count': meta.word_count,
+                    }
+```
+
+### Nesting Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ parse_config_context (per-site)                                 │
+│   ┌─────────────────────────────────────────────────────────┐   │
+│   │ render_config_context (per-site)                        │   │
+│   │   ┌─────────────────────────────────────────────────┐   │   │
+│   │   │ request_context (per-page)                      │   │   │
+│   │   │   ┌─────────────────────────────────────────┐   │   │   │
+│   │   │   │ metadata_context (per-render)           │   │   │   │
+│   │   │   │   ┌─────────────────────────────────┐   │   │   │   │
+│   │   │   │   │ ParserPool.acquire()            │   │   │   │   │
+│   │   │   │   │ RendererPool.acquire()          │   │   │   │   │
+│   │   │   │   └─────────────────────────────────┘   │   │   │   │
+│   │   │   └─────────────────────────────────────────┘   │   │   │
+│   │   └─────────────────────────────────────────────────┘   │   │
+│   └─────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
 ## Implementation Phases
 
 ### Phase 1: Parser/Renderer Pooling (Low Risk)
@@ -604,30 +761,15 @@ def render_page(page: Page, site: Site) -> str:
 
 **Estimated Effort**: 2-3 hours
 
-### Phase 2: Render Accumulator (Medium Risk)
-
-1. Create accumulator module
-2. Instrument heading/footnote/math rendering
-3. Update pipeline to use accumulator
-4. Remove separate TOC extraction pass
-5. Benchmark
-
-**Files Modified**:
-- `bengal/rendering/parsers/patitas/accumulator.py` (new)
-- `bengal/rendering/parsers/patitas/renderers/html.py`
-- `bengal/rendering/pipeline/core.py`
-- `bengal/rendering/pipeline/toc.py` (deprecate multi-pass)
-
-**Estimated Effort**: 4-6 hours
-
-### Phase 3: Request-Scoped Context (Medium Risk)
+### Phase 2: Request-Scoped Context (Medium Risk)
 
 1. Create request_context module
-2. Migrate source_file parameter
-3. Migrate page_context parameter
-4. Add link resolution
-5. Add error handling
-6. Update all call sites
+2. Add fail-fast `get_request_context()` and safe `try_get_request_context()`
+3. Migrate source_file parameter (with backward compatibility)
+4. Migrate page_context parameter
+5. Add link resolution
+6. Add error handling
+7. Update call sites gradually
 
 **Files Modified**:
 - `bengal/rendering/parsers/patitas/request_context.py` (new)
@@ -638,15 +780,30 @@ def render_page(page: Page, site: Site) -> str:
 
 **Estimated Effort**: 6-8 hours
 
+### Phase 3: Metadata Accumulator (Low Risk)
+
+1. Create accumulator module
+2. Instrument code/math/table/link rendering
+3. Update pipeline to use accumulator
+4. Add conditional asset loading based on metadata
+
+**Files Modified**:
+- `bengal/rendering/parsers/patitas/accumulator.py` (new)
+- `bengal/rendering/parsers/patitas/renderers/html.py`
+- `bengal/rendering/pipeline/core.py`
+- `bengal/rendering/template_functions/` (asset loading)
+
+**Estimated Effort**: 3-4 hours
+
 ---
 
 ## Risk Assessment
 
 | Pattern | Risk | Mitigation |
 |---------|------|------------|
-| Pooling | Low | Pools are per-thread, no shared state |
-| Accumulator | Medium | Optional (check for None), gradual rollout |
-| Request Context | Medium | Backward compatible defaults |
+| Pooling | Low | Pools are per-thread, no shared state; `_reinit()` fully resets state |
+| Request Context | Medium | `try_get_request_context()` for optional access; backward compatible |
+| Metadata Accumulator | Low | Optional (check for None), no change to existing behavior |
 
 **Rollback Strategy**: All patterns are additive. Old code paths can remain as fallback during migration.
 
@@ -657,7 +814,7 @@ def render_page(page: Page, site: Site) -> str:
 | Metric | Current | Target | Measurement |
 |--------|---------|--------|-------------|
 | Per-page instantiation | ~2.3µs | ~0.5µs | `benchmarks/test_patitas_performance.py` |
-| TOC extraction (100 headings) | ~5ms | ~0ms (included) | `benchmarks/test_toc_extraction.py` |
+| Feature detection (math/code) | ~2ms post-render | ~0ms | Included in render |
 | Parameter count (render) | 6 | 2 | Code inspection |
 | Memory per 1K pages | N×(Parser+Renderer) | 16×(Parser+Renderer) | Memory profiler |
 
@@ -671,6 +828,7 @@ These patterns unlock additional improvements:
 2. **Async Accumulator** - Accumulator pattern extends to async rendering
 3. **Plugin ContextVar** - Same pattern for plugin/directive registration
 4. **Distributed Rendering** - Request context serializable for worker processes
+5. **Conditional Asset Loading** - Use metadata to only load MathJax/Mermaid when needed
 
 ---
 
@@ -696,15 +854,15 @@ These patterns unlock additional improvements:
 │           │                     │                     │                 │
 │           ▼                     ▼                     ▼                 │
 │  ┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐       │
-│  │     Parser      │   │   HtmlRenderer  │   │  Accumulator    │       │
-│  │  (lightweight)  │   │  (lightweight)  │   │  (this RFC)     │       │
+│  │     Parser      │   │   HtmlRenderer  │   │ RenderMetadata  │       │
+│  │  (lightweight)  │   │  (lightweight)  │   │ (this RFC)      │       │
 │  └─────────────────┘   └─────────────────┘   └─────────────────┘       │
 │           │                     │                     │                 │
 │           ▼                     ▼                     ▼                 │
 │  ┌─────────────────────────────────────────────────────────────┐       │
 │  │                      Instance Pool                           │       │
-│  │  • ParserPool (8 per thread)                                 │       │
-│  │  • RendererPool (8 per thread)                               │       │
+│  │  • ParserPool (8 per thread, configurable)                   │       │
+│  │  • RendererPool (8 per thread, configurable)                 │       │
 │  │  (this RFC)                                                  │       │
 │  └─────────────────────────────────────────────────────────────┘       │
 │                                                                         │
@@ -716,6 +874,7 @@ These patterns unlock additional improvements:
 ## References
 
 - `rfc-contextvar-config-implementation.md` - ContextVar config pattern (✅ implemented)
+- `rfc-path-to-200-pgs.md` - Single-pass TOC extraction (✅ implemented)
 - `patitas/plan/rfc-contextvar-config.md` - Upstream Patitas RFC
 - Python PEP 567 - Context Variables
 - Python 3.14t free-threading documentation

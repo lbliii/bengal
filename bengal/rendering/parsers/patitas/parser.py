@@ -119,6 +119,33 @@ class Parser(
         # Setext heading control - can be disabled for blockquote lazy continuation
         self._allow_setext_headings = True
 
+    def _reinit(self, source: str, source_file: str | None = None) -> None:
+        """Reset parser for reuse with new source.
+
+        Avoids full __init__ overhead by reusing existing object.
+        Lexer is re-created (lightweight) to tokenize new source.
+
+        Used by ParserPool.acquire() for instance pooling.
+
+        Args:
+            source: New markdown source text
+            source_file: Optional source file path for error messages
+        """
+        self._source = source
+        self._source_file = source_file
+
+        # Re-tokenize with new source (Lexer is lightweight)
+        lexer = Lexer(self._source, self._source_file, text_transformer=self._text_transformer)
+        self._tokens = list(lexer.tokenize())
+        self._pos = 0
+        self._current = self._tokens[0] if self._tokens else None
+
+        # Reset per-parse state
+        self._link_refs = {}
+        self._containers = ContainerStack()
+        self._directive_stack = []
+        self._allow_setext_headings = True
+
     # =========================================================================
     # Config access via properties (read from ContextVar)
     # =========================================================================

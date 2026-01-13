@@ -51,6 +51,13 @@ from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from typing import TYPE_CHECKING, Any, Literal
 
+from bengal.rendering.parsers.patitas.accumulator import (
+    RenderMetadata,
+    get_metadata,
+    metadata_context,
+    reset_metadata,
+    set_metadata,
+)
 from bengal.rendering.parsers.patitas.config import (
     ParseConfig,
     get_parse_config,
@@ -59,6 +66,16 @@ from bengal.rendering.parsers.patitas.config import (
     set_parse_config,
 )
 from bengal.rendering.parsers.patitas.location import SourceLocation
+from bengal.rendering.parsers.patitas.pool import ParserPool, RendererPool
+from bengal.rendering.parsers.patitas.request_context import (
+    RequestContext,
+    RequestContextError,
+    get_request_context,
+    request_context,
+    reset_request_context,
+    set_request_context,
+    try_get_request_context,
+)
 from bengal.rendering.parsers.patitas.nodes import (
     Block,
     BlockQuote,
@@ -127,6 +144,23 @@ __all__ = [
     "set_render_config",
     "reset_render_config",
     "render_config_context",
+    # Metadata Accumulator (RFC: rfc-contextvar-downstream-patterns)
+    "RenderMetadata",
+    "get_metadata",
+    "set_metadata",
+    "reset_metadata",
+    "metadata_context",
+    # Request Context (RFC: rfc-contextvar-downstream-patterns)
+    "RequestContext",
+    "RequestContextError",
+    "get_request_context",
+    "try_get_request_context",
+    "set_request_context",
+    "reset_request_context",
+    "request_context",
+    # Instance Pooling (RFC: rfc-contextvar-downstream-patterns)
+    "ParserPool",
+    "RendererPool",
     # Types
     "SourceLocation",
     "Token",
