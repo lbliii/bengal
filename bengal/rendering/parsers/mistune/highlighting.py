@@ -12,18 +12,8 @@ Provides syntax highlighting for code blocks with support for:
 - Parallel batch highlighting for 3.14t free-threading
 
 Backend Selection:
-By default, uses the Rosettes backend (Bengal's default). To use Pygments or tree-sitter:
-
-    >>> from bengal.rendering.highlighting import get_highlighter
-    >>> backend = get_highlighter("tree-sitter")
-
-Or configure in bengal.yaml:
-
-.. code-block:: yaml
-
-    rendering:
-      syntax_highlighting:
-        backend: tree-sitter
+By default, uses the Rosettes backend (Bengal's default, lock-free, 55 languages).
+Custom backends can be registered via register_backend().
 
 Parallel Processing (3.14t):
 For batch processing of pages, use the deferred highlighting mode:
@@ -322,8 +312,7 @@ def create_syntax_highlighting_plugin() -> Callable[[Any], None]:
     Create a Mistune plugin that adds syntax highlighting to code blocks.
     
     Uses the highlighting backend registry (bengal.rendering.highlighting)
-    which defaults to Rosettes but can be configured to use Pygments,
-    tree-sitter, or other backends.
+    which defaults to Rosettes. Custom backends can be registered.
     
     Returns:
         Plugin function that modifies the renderer to add syntax highlighting

@@ -3,7 +3,7 @@ Rendering protocols for template engines and syntax highlighting.
 
 This module defines interface contracts for rendering components:
 - Template engines (Jinja2, Kida)
-- Syntax highlighting backends (Rosettes, tree-sitter)
+- Syntax highlighting backends (Rosettes)
 - Role and directive handlers (Patitas integration)
 
 Design Philosophy:
@@ -325,8 +325,8 @@ class HighlightService(Protocol):
     """
     Unified interface for syntax highlighting.
     
-    This protocol bridges Bengal with highlighting backends (Rosettes,
-    Pygments, tree-sitter, etc.). Implementations handle the translation
+    This protocol bridges Bengal with highlighting backends (Rosettes
+    or custom implementations). Implementations handle the translation
     from this interface to backend-specific APIs.
     
     Thread Safety:

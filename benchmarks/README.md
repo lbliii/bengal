@@ -321,7 +321,7 @@ pytest benchmarks/test_import_overhead.py -k "lightweight" -v
 ### Key Concepts
 
 - **Heavy modules**: `bengal.errors`, `bengal.core.page`, `bengal.rendering.pipeline`
-- **Optional deps**: `uvloop`, `psutil`, `aiohttp`, `tree_sitter`, `zstd`
+- **Optional deps**: `uvloop`, `psutil`, `aiohttp`, `zstd`
 - **Import pollution**: When importing module A accidentally loads unrelated module B
 
 ### Example Output

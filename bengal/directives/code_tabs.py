@@ -303,8 +303,7 @@ def render_code_with_highlighting(
     Render code with syntax highlighting using the configured backend.
     
     Uses the highlighting backend registry (bengal.rendering.highlighting)
-    which defaults to Rosettes but can be configured to use Pygments,
-    tree-sitter, or other backends.
+    which defaults to Rosettes. Custom backends can be registered.
     
     Args:
         code: Source code to highlight

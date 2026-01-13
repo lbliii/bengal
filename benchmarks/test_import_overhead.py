@@ -55,7 +55,6 @@ OPTIONAL_DEPS = frozenset(
         "uvloop",
         "psutil",
         "aiohttp",
-        "tree_sitter",
         "zstd",
         "compression.zstd",
         "mako",

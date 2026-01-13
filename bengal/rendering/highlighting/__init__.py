@@ -15,8 +15,8 @@ Default Backend:
   Package: https://pypi.org/project/rosettes/
   Source: https://github.com/lbliii/rosettes
 
-Optional Backends:
-- tree-sitter: Fast, semantic highlighting (optional dependency)
+Custom Backends:
+- Use register_backend() to add your own highlighting implementation
 
 Usage:
     >>> from bengal.rendering.highlighting import highlight
@@ -74,7 +74,7 @@ def register_backend(name: str, backend_class: type[HighlightService]) -> None:
     Register a syntax highlighting backend.
     
     Args:
-        name: Backend identifier (used in config, e.g., "pygments", "tree-sitter")
+        name: Backend identifier (used in config, e.g., "rosettes", "my-custom-backend")
         backend_class: Class implementing HighlightBackend protocol
     
     Raises:
@@ -101,8 +101,7 @@ def get_highlighter(name: str | None = None) -> HighlightService:
     Args:
         name: Backend name. Options:
             - None or 'auto': Uses Rosettes (default)
-            - 'rosettes': Built-in, lock-free, 50 languages
-            - 'tree-sitter': Fast, semantic highlighting (requires optional dep)
+            - 'rosettes': Built-in, lock-free, 55 languages
     
     Returns:
         Backend instance implementing HighlightBackend
@@ -132,21 +131,13 @@ def get_highlighter(name: str | None = None) -> HighlightService:
 def _select_best_backend() -> str:
     """Select the best available backend.
     
-    Priority:
-        1. Rosettes (default, always available)
-        2. tree-sitter if available
-    
     Returns:
-        Backend name to use.
+        Backend name to use (currently always 'rosettes').
         
     """
-    # Rosettes is the default (bundled with Bengal)
+    # Rosettes is the default and only built-in backend
     if "rosettes" in _HIGHLIGHT_BACKENDS:
         return "rosettes"
-
-    # tree-sitter as fallback if available
-    if "tree-sitter" in _HIGHLIGHT_BACKENDS:
-        return "tree-sitter"
 
     # Should never reach here - rosettes is always available
     msg = "No highlighting backend available"
@@ -268,44 +259,6 @@ def highlight_many(
 # =============================================================================
 
 
-def _is_free_threaded_python() -> bool:
-    """Check if running on Python 3.13+ free-threaded build."""
-    import sys
-    import sysconfig
-
-    # Check if this is a free-threaded build (Py_GIL_DISABLED=1)
-    gil_disabled = sysconfig.get_config_var("Py_GIL_DISABLED")
-    if not gil_disabled:
-        return False
-
-    # Check if GIL is currently disabled (Python 3.13+)
-    # If GIL is already enabled, no harm in importing tree-sitter
-    if hasattr(sys, "_is_gil_enabled"):
-        return not sys._is_gil_enabled()
-
-    # Free-threaded build but no runtime check available
-    return True
-
-
-def _register_tree_sitter_backend() -> None:
-    """Register tree-sitter backend if available and safe.
-    
-    Skips registration on Python 3.13+ free-threaded builds because
-    tree-sitter's C bindings re-enable the GIL, defeating free-threading.
-        
-    """
-    # Skip on free-threaded Python to avoid GIL re-enablement
-    if _is_free_threaded_python():
-        return
-
-    try:
-        from bengal.rendering.highlighting.tree_sitter import TreeSitterBackend
-
-        _HIGHLIGHT_BACKENDS["tree-sitter"] = TreeSitterBackend
-    except ImportError:
-        pass  # tree-sitter not installed
-
-
 def _register_rosettes_backend() -> None:
     """Register Rosettes backend (external dependency, always available).
     
@@ -324,4 +277,3 @@ def _register_rosettes_backend() -> None:
 
 # Register built-in backends on module import
 _register_rosettes_backend()
-_register_tree_sitter_backend()

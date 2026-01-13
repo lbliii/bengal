@@ -1,15 +1,17 @@
 """
-Benchmark suite for syntax highlighting backends.
+Benchmark suite for Rosettes syntax highlighting.
 
-Compares performance of Rosettes (default) vs tree-sitter backends.
+Rosettes is Bengal's default and only built-in syntax highlighter:
+- 55 languages supported
+- Lock-free, thread-safe (designed for Python 3.14t free-threading)
+- 3.4x faster than Pygments
 
 Run with:
     pytest benchmarks/test_highlighting_performance.py -v --benchmark-only
 
 Requirements:
     - pytest-benchmark
-    - rosettes (always available, default backend)
-    - tree-sitter (optional, for tree-sitter benchmarks)
+    - rosettes
 """
 
 from __future__ import annotations
@@ -233,68 +235,8 @@ class TestRosettesHighlightingPerformance:
         assert "<span" in result or "<pre" in result
 
 
-# Tree-sitter benchmarks - skip if not available
-def _tree_sitter_available() -> bool:
-    """Check if tree-sitter is available and working."""
-    try:
-        from bengal.rendering.highlighting.tree_sitter import TreeSitterBackend
-
-        backend = TreeSitterBackend()
-        return backend.supports_language("python")
-    except (ImportError, Exception):
-        return False
-
-
-@pytest.mark.skipif(
-    not _tree_sitter_available(),
-    reason="tree-sitter or tree-sitter-python not available",
-)
-class TestTreeSitterHighlightingPerformance:
-    """Benchmarks for tree-sitter backend."""
-
-    def test_tree_sitter_python_simple(self, benchmark) -> None:
-        """Benchmark tree-sitter on simple Python code."""
-        from bengal.rendering.highlighting.tree_sitter import TreeSitterBackend
-
-        backend = TreeSitterBackend()
-        result = benchmark(backend.highlight, PYTHON_SIMPLE, "python")
-        assert "<span" in result or "<pre" in result
-
-    def test_tree_sitter_python_medium(self, benchmark) -> None:
-        """Benchmark tree-sitter on medium Python code (~50 lines)."""
-        from bengal.rendering.highlighting.tree_sitter import TreeSitterBackend
-
-        backend = TreeSitterBackend()
-        result = benchmark(backend.highlight, PYTHON_MEDIUM, "python")
-        assert "<span" in result or "<pre" in result
-
-    def test_tree_sitter_python_large(self, benchmark) -> None:
-        """Benchmark tree-sitter on large Python code (~500 lines)."""
-        from bengal.rendering.highlighting.tree_sitter import TreeSitterBackend
-
-        backend = TreeSitterBackend()
-        result = benchmark(backend.highlight, PYTHON_LARGE, "python")
-        assert "<span" in result or "<pre" in result
-
-    def test_tree_sitter_with_linenos(self, benchmark) -> None:
-        """Benchmark tree-sitter with line numbers enabled."""
-        from bengal.rendering.highlighting.tree_sitter import TreeSitterBackend
-
-        backend = TreeSitterBackend()
-        result = benchmark(backend.highlight, PYTHON_MEDIUM, "python", show_linenos=True)
-        assert "table" in result.lower() or "<pre" in result
-
-    def test_tree_sitter_with_hl_lines(self, benchmark) -> None:
-        """Benchmark tree-sitter with line highlighting."""
-        from bengal.rendering.highlighting.tree_sitter import TreeSitterBackend
-
-        backend = TreeSitterBackend()
-        result = benchmark(backend.highlight, PYTHON_MEDIUM, "python", hl_lines=[1, 5, 10, 15])
-        assert "hll" in result or "<pre" in result
-
-
 class TestHighlightingComparison:
-    """Compare Rosettes vs tree-sitter performance."""
+    """Rosettes performance benchmarks."""
 
     def test_rosettes_baseline(self, benchmark) -> None:
         """
@@ -345,23 +287,3 @@ class TestBulkHighlighting:
         results = benchmark(rosettes.highlight_many, items)
         assert len(results) == 100
         assert all("<span" in r for r in results)
-
-    @pytest.mark.skipif(
-        not _tree_sitter_available(),
-        reason="tree-sitter not available",
-    )
-    def test_tree_sitter_100_blocks(self, benchmark) -> None:
-        """Benchmark tree-sitter on 100 code blocks."""
-        from bengal.rendering.highlighting.tree_sitter import TreeSitterBackend
-
-        backend = TreeSitterBackend()
-        codes = [PYTHON_SIMPLE, PYTHON_MEDIUM] * 50  # Only Python if that's what's available
-
-        def highlight_all():
-            results = []
-            for code in codes:
-                results.append(backend.highlight(code, "python"))
-            return results
-
-        results = benchmark(highlight_all)
-        assert len(results) == 100

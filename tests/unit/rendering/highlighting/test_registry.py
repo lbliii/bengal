@@ -143,8 +143,8 @@ class TestAutoMode:
         """'auto' mode should use rosettes as the default backend."""
         backend = get_highlighter("auto")
 
-        # Rosettes is the default; tree-sitter is optional
-        assert backend.name in ("rosettes", "tree-sitter")
+        # Rosettes is the only built-in backend
+        assert backend.name == "rosettes"
 
     def test_auto_mode_produces_valid_output(self) -> None:
         """'auto' mode should produce valid highlighted output."""
