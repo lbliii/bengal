@@ -141,5 +141,6 @@ Choose the right extension mechanism for your needs:
 ## Related Resources
 
 - [Architecture Reference](/docs/reference/architecture/) for understanding Bengal internals
+- [Protocol Layer](/docs/reference/architecture/meta/protocols/) for interface contracts
 - [Build Pipeline](/docs/reference/architecture/core/pipeline/) for pipeline phase details
 - [Configuration](/docs/building/configuration/) for `bengal.toml` options
