@@ -107,8 +107,8 @@ from bengal.rendering.parsers.patitas import (
     ParseConfig, RenderConfig,
     parse_config_context, render_config_context,
 )
-from bengal.rendering.parsers.patitas.parser import Parser
 from bengal.rendering.parsers.patitas.renderers.html import HtmlRenderer
+from patitas.parser import Parser
 
 # Configure and parse
 with parse_config_context(ParseConfig(tables_enabled=True, math_enabled=True)):

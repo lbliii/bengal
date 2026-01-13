@@ -306,9 +306,9 @@ from bengal.rendering.parsers.patitas import (
     ParseConfig, RenderConfig,
     parse_config_context, render_config_context,
 )
-from bengal.rendering.parsers.patitas.parser import Parser
 from bengal.rendering.parsers.patitas.renderers.html import HtmlRenderer
-from bengal.rendering.parsers.patitas.directives import create_default_registry
+from bengal.directives import create_default_registry
+from patitas.parser import Parser
 
 def test_directive_full_integration():
     registry = create_default_registry()

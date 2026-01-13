@@ -1,5 +1,9 @@
 # Patitas Complexity Analysis
 
+> **Note**: As of Bengal 0.2.x, the Patitas Markdown parser has been extracted to an external PyPI package (`patitas>=0.1.0`). The architecture and file organization described below now lives in the [patitas repository](https://github.com/bengal-ssg/patitas). Bengal retains wrapper classes for configuration bridging and directive integration.
+>
+> See: `plan/rfc-patitas-external-migration.md` for migration details.
+
 ## Overview
 
 All operations in Patitas are designed for **O(n)** document processing where n = document size.
@@ -210,8 +214,8 @@ from bengal.rendering.parsers.patitas import (
     ParseConfig, RenderConfig,
     parse_config_context, render_config_context,
 )
-from bengal.rendering.parsers.patitas.parser import Parser
 from bengal.rendering.parsers.patitas.renderers.html import HtmlRenderer
+from patitas.parser import Parser
 
 # Configuration via context manager (recommended)
 with parse_config_context(ParseConfig(tables_enabled=True)):
