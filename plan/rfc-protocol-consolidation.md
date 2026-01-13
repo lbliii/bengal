@@ -14,15 +14,15 @@ As Bengal extracts core components into standalone packages (Kida, Rosettes, Pat
 1. Removing protocol duplication
 2. Creating bridge protocols for clean package boundaries
 3. Aligning extracted package protocols with Bengal's expectations
-4. Adding missing infrastructure protocols
+4. Unifying ABC/Protocol patterns for infrastructure contracts
 
 ---
 
 ## Problem Statement
 
-### 1. Protocol Duplication
+### 1. Protocol Duplication (Critical)
 
-`SectionLike` is defined in two locations with overlapping but different purposes:
+`SectionLike` is defined in two locations with **incompatible interfaces**:
 
 ```python
 # bengal/core/section/protocols.py:36
@@ -31,10 +31,10 @@ class SectionLike(Protocol):
     """Protocol for section-like objects."""
     name: str
     title: str
-    path: Path | None
+    path: Path | None          # <-- Path object, optional
     href: str
     pages: list[PageLike]
-    subsections: list[SectionLike]
+    subsections: list[SectionLike]  # <-- "subsections"
     parent: SectionLike | None
     index_page: PageLike | None
     is_root: bool
@@ -43,27 +43,40 @@ class SectionLike(Protocol):
 @runtime_checkable
 class SectionLike(Protocol):
     """Protocol for section-like objects in menu building."""
-    # Different subset of properties
+    title: str
+    pages: list[Page]
+    children: list[Section]    # <-- "children" (different name!)
+    path: str                  # <-- str (different type!)
 ```
 
-This creates confusion about which to import and risks divergence.
+**Impact**: Code using `section.subsections` will fail if given the orchestration version. Code expecting `path: str` will break with `Path | None`.
 
 ### 2. Misaligned Package Boundaries
 
-Extracted packages define their own protocols that don't match Bengal's interface expectations:
+Extracted packages define protocols that don't match Bengal's interface:
 
-| Bengal Expects | Package Provides | Gap |
-|----------------|------------------|-----|
-| `HighlightBackend.highlight(code, lang, hl_lines, linenos)` | Rosettes: `Lexer.tokenize()` + `Formatter.format()` | Composable vs. monolithic |
-| `HighlightBackend.supports_language(lang)` | Rosettes: Lexer registry lookup | OK, needs adapter |
-| `LexerDelegate.tokenize_range(source, start, end, lang)` | Patitas: `Highlighter.highlight(code, lang)` | Zero-copy vs. string copy |
+| Component | Bengal Expects | Package Provides | Gap |
+|-----------|---------------|------------------|-----|
+| Highlighting | `HighlightBackend.highlight(code, lang, hl_lines, show_linenos)` | Patitas: `Highlighter.__call__(code, lang)` | Missing `hl_lines`, `show_linenos` |
+| Highlighting | `HighlightBackend.supports_language(lang)` | Patitas: Not present | Missing entirely |
+| Highlighting | `HighlightBackend.name` property | Patitas: Not present | Missing entirely |
+| Tokenization | Rosettes: `Lexer.tokenize()` + `Formatter.format()` | Bengal: monolithic `highlight()` | Composable vs. monolithic |
 
-### 3. Missing Infrastructure Protocols
+### 3. ABC vs Protocol Inconsistency
 
-Documentation references protocols that don't exist:
+Infrastructure contracts use mixed patterns:
 
-- `BaseMarkdownParser` - Referenced in `HighlightBackend` docstring
-- `ContentSource` - Referenced in `HighlightBackend` docstring
+| Contract | Current Pattern | Location |
+|----------|----------------|----------|
+| `BaseMarkdownParser` | ABC | `bengal/rendering/parsers/base.py` |
+| `ContentSource` | ABC | `bengal/content_layer/source.py` |
+| `TemplateEngineProtocol` | Protocol | `bengal/rendering/engines/protocol.py` |
+| `HighlightBackend` | Protocol | `bengal/rendering/highlighting/protocol.py` |
+
+Both ABCs and Protocols work, but the inconsistency complicates documentation and understanding. Protocols are preferred for:
+- Duck typing without inheritance
+- Easier testing with minimal mocks  
+- Gradual adoption in extracted packages
 
 ### 4. Large Protocol Surface Areas
 
@@ -84,6 +97,29 @@ class TemplateEngineProtocol(Protocol):
     def capabilities(self) -> EngineCapability: ...
     def has_capability(self, cap: EngineCapability) -> bool: ...
 ```
+
+---
+
+## Migration Scope
+
+### Current State (Quantified)
+
+| Protocol | Import Locations | Internal References | Test Files |
+|----------|-----------------|---------------------|------------|
+| `SectionLike` (core) | 0 direct | ~5 type hints | ~3 |
+| `SectionLike` (orchestration) | 0 direct | ~2 type hints | ~1 |
+| `HighlightBackend` | 2 files | ~4 references | ~2 |
+| `TemplateEngineProtocol` | 8 files | ~30 references | ~5 |
+
+### Estimated Changes
+
+| Phase | Files Changed | LOC Added | LOC Removed | Risk |
+|-------|--------------|-----------|-------------|------|
+| 1: Consolidation | 5 | ~150 | ~50 | Low |
+| 2: Bridge Protocols | 3 | ~200 | 0 | Low |
+| 3: Protocol Composition | 2 | ~100 | ~80 | Medium |
+| 4: Package Alignment | 2 (external) | ~50 | ~20 | Low |
+| **Total** | **12** | **~500** | **~150** | **Low-Medium** |
 
 ---
 
@@ -122,7 +158,7 @@ from bengal.protocols.infrastructure import (
     ProgressReporter,
     Cacheable,
     OutputCollector,
-    ContentSource,
+    ContentSourceProtocol,
     OutputTarget,
 )
 
@@ -142,7 +178,7 @@ __all__ = [
     "ProgressReporter",
     "Cacheable",
     "OutputCollector",
-    "ContentSource",
+    "ContentSourceProtocol",
     "OutputTarget",
 ]
 ```
@@ -262,15 +298,18 @@ class HighlightService(Protocol):
         ...
 ```
 
-#### 2.2 ContentSource Protocol
+#### 2.2 ContentSourceProtocol
 
-Abstract content loading for future multi-source support:
+Create a Protocol version alongside the existing ABC for duck-typing flexibility:
 
 ```python
 @runtime_checkable
-class ContentSource(Protocol):
+class ContentSourceProtocol(Protocol):
     """
-    Abstract interface for content sources.
+    Protocol interface for content sources.
+    
+    This is the Protocol version of ContentSource ABC for cases
+    where duck typing is preferred over inheritance.
     
     Enables loading content from different backends:
     - Filesystem (default)
@@ -278,31 +317,28 @@ class ContentSource(Protocol):
     - Remote APIs (headless CMS)
     - In-memory (testing)
     
+    Note:
+        The existing ContentSource ABC remains for implementations
+        that prefer inheritance. Both satisfy this protocol.
+    
     """
 
     @property
     def name(self) -> str:
-        """Source identifier (e.g., 'filesystem', 'git', 's3')."""
+        """Source instance name (e.g., 'api-docs', 'main-content')."""
         ...
 
-    def exists(self, path: str) -> bool:
-        """Check if content exists at path."""
+    @property
+    def source_type(self) -> str:
+        """Source type identifier (e.g., 'local', 'github', 'notion')."""
         ...
 
-    def read(self, path: str) -> str:
-        """Read content as string."""
+    async def fetch_all(self) -> AsyncIterator[ContentEntry]:
+        """Fetch all content entries from this source."""
         ...
 
-    def read_bytes(self, path: str) -> bytes:
-        """Read content as bytes."""
-        ...
-
-    def list(self, path: str, pattern: str = "*") -> list[str]:
-        """List content matching pattern."""
-        ...
-
-    def mtime(self, path: str) -> float | None:
-        """Get modification time (for caching). None if unavailable."""
+    async def fetch_one(self, id: str) -> ContentEntry | None:
+        """Fetch a single content entry by ID."""
         ...
 ```
 
@@ -460,10 +496,10 @@ class Highlighter(Protocol):
 
 #### 4.2 Rosettes Adapter
 
-Rosettes keeps its composable `Lexer`/`Formatter` design but provides an adapter:
+Rosettes keeps its composable `Lexer`/`Formatter` design but Bengal provides an adapter:
 
 ```python
-# rosettes/adapters/bengal.py (or bengal/rendering/highlighting/rosettes.py)
+# bengal/rendering/highlighting/rosettes.py
 
 class RosettesHighlightService:
     """
@@ -543,6 +579,49 @@ class RosettesHighlightService:
 
 ---
 
+## Test Impact Analysis
+
+### Affected Test Files
+
+| Test Category | Files | Changes Needed |
+|---------------|-------|----------------|
+| Protocol conformance | `tests/unit/core/test_section.py` | Update import paths |
+| Highlighting | `tests/unit/rendering/test_highlighting.py` | Verify adapter works |
+| Template engine | `tests/unit/rendering/test_engines.py` | Update type hints |
+| Integration | `tests/integration/test_build.py` | Verify end-to-end |
+
+### New Tests Required
+
+```python
+# tests/unit/protocols/test_protocols.py
+
+def test_section_like_compatibility():
+    """Both Section implementations satisfy SectionLike protocol."""
+    from bengal.protocols import SectionLike
+    from bengal.core import Section
+    
+    assert isinstance(Section(...), SectionLike)
+
+def test_highlight_service_adapter():
+    """RosettesHighlightService satisfies HighlightService protocol."""
+    from bengal.protocols import HighlightService
+    from bengal.rendering.highlighting.rosettes import RosettesHighlightService
+    
+    adapter = RosettesHighlightService()
+    assert isinstance(adapter, HighlightService)
+    
+def test_deprecation_warning():
+    """Old import paths emit deprecation warnings."""
+    import warnings
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        from bengal.core.section.protocols import SectionLike
+        assert len(w) == 1
+        assert issubclass(w[0].category, DeprecationWarning)
+```
+
+---
+
 ## File Changes
 
 ### New Files
@@ -552,7 +631,7 @@ bengal/protocols/
 ├── __init__.py          # Public API, re-exports
 ├── core.py              # PageLike, SectionLike, SiteLike, etc.
 ├── rendering.py         # TemplateRenderer, HighlightService, etc.
-└── infrastructure.py    # Cacheable, OutputTarget, ContentSource, etc.
+└── infrastructure.py    # Cacheable, OutputTarget, ContentSourceProtocol, etc.
 ```
 
 ### Modified Files
@@ -563,13 +642,14 @@ bengal/protocols/
 | `bengal/orchestration/types.py` | Remove `SectionLike`, import from `bengal.protocols` |
 | `bengal/rendering/engines/protocol.py` | Split into `TemplateRenderer`/`TemplateIntrospector` |
 | `bengal/rendering/highlighting/protocol.py` | Rename `HighlightBackend` → `HighlightService` |
+| `bengal/rendering/highlighting/__init__.py` | Update imports |
+| `bengal/rendering/highlighting/tree_sitter.py` | Update imports |
 
 ### External Package Changes
 
 | Package | File | Change |
 |---------|------|--------|
 | Patitas | `src/patitas/highlighting.py` | Align `Highlighter` signature |
-| Rosettes | `src/rosettes/adapters/bengal.py` | Add `RosettesHighlightService` |
 
 ---
 
@@ -600,7 +680,7 @@ Leave protocols scattered across modules.
 **Rejected because:**
 - Duplication causes confusion
 - Makes extraction harder
-- Missing protocols leave gaps
+- Inconsistent patterns
 
 ---
 
@@ -609,26 +689,48 @@ Leave protocols scattered across modules.
 - [ ] Single import path for all public protocols (`from bengal.protocols import ...`)
 - [ ] No duplicate protocol definitions
 - [ ] Patitas and Rosettes integrate cleanly via protocols
-- [ ] All existing tests pass
+- [ ] All existing tests pass (~850 tests)
 - [ ] Deprecation warnings guide migration
+- [ ] New protocol tests added and passing
 
 ---
 
-## Open Questions
+## Decisions
 
-1. **Should we create a minimal `bengal-protocols` package?**
-   - Pro: Clean dependency for extracted packages
-   - Con: Version coordination, deployment complexity
+### Adapter Location: Bengal (Option A)
 
-2. **Where should adapters live?**
-   - Option A: In Bengal (`bengal/rendering/highlighting/rosettes.py`)
-   - Option B: In Rosettes (`rosettes/adapters/bengal.py`)
-   - Option C: Both (Rosettes provides, Bengal re-exports)
+**Decision**: Adapters live in Bengal, not in extracted packages.
 
-3. **How strict should deprecation timeline be?**
-   - Option A: Remove in next major (0.2.0)
-   - Option B: Keep deprecated paths for 2 minors
-   - Option C: Keep indefinitely with warnings
+**Rationale**:
+- Bengal depends on Rosettes, not vice versa
+- Keeps Rosettes free of Bengal-specific code  
+- Allows Rosettes to remain a general-purpose library
+- Avoids circular dependency concerns
+
+**Implementation**: `bengal/rendering/highlighting/rosettes.py`
+
+### Deprecation Timeline: 2 Minor Versions
+
+**Decision**: Keep deprecated paths for 2 minor versions before removal.
+
+**Rationale**:
+- Gives users time to migrate
+- Aligns with semver expectations
+- Warnings make migration path clear
+
+**Timeline**:
+- v0.2.0: Add `bengal.protocols`, deprecation warnings on old paths
+- v0.3.0: Continue warnings
+- v0.4.0: Remove deprecated paths
+
+### Protocol vs ABC: Keep Both, Document
+
+**Decision**: Keep existing ABCs (`ContentSource`, `BaseMarkdownParser`) and add Protocol equivalents.
+
+**Rationale**:
+- ABCs work well for internal implementations requiring inheritance
+- Protocols better for external/duck-typed integrations
+- Document when to use which
 
 ---
 
@@ -637,5 +739,8 @@ Leave protocols scattered across modules.
 - [PEP 544 – Protocols: Structural subtyping](https://peps.python.org/pep-0544/)
 - `bengal/rendering/engines/protocol.py` - Current TemplateEngineProtocol
 - `bengal/core/section/protocols.py` - Current SectionLike
+- `bengal/content_layer/source.py` - Current ContentSource ABC
+- `bengal/rendering/parsers/base.py` - Current BaseMarkdownParser ABC
 - `rosettes/src/rosettes/_protocol.py` - Rosettes Lexer/Formatter
 - `patitas/src/patitas/protocols.py` - Patitas LexerDelegate
+- `patitas/src/patitas/highlighting.py` - Patitas Highlighter
