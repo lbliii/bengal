@@ -144,6 +144,21 @@ from bengal.utils.logger import (
     help="Launch interactive Textual dashboard (experimental)",
 )
 @click.option(
+    "--explain",
+    is_flag=True,
+    help="Show detailed incremental build decision breakdown (why pages are rebuilt/skipped)",
+)
+@click.option(
+    "--explain-json",
+    is_flag=True,
+    help="Output --explain results as JSON (for tooling integration)",
+)
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    help="Preview build without writing files (shows what WOULD happen)",
+)
+@click.option(
     "--log-file",
     type=click.Path(),
     help="Write detailed logs to file (default: .bengal/logs/build.log)",
@@ -182,6 +197,9 @@ def build(
     fast: bool,
     full_output: bool,
     dashboard: bool,
+    explain: bool,
+    explain_json: bool,
+    dry_run: bool,
     log_file: str,
     build_version: str | None,
     all_versions: bool,
@@ -551,18 +569,32 @@ def build(
             # Use BuildOptions directly - parallel is auto-detected via should_parallelize() unless force_sequential=True
             from bengal.orchestration.build.options import BuildOptions
 
+            # If --explain-json is set, imply --explain
+            if explain_json:
+                explain = True
+
             build_opts = BuildOptions(
                 force_sequential=build_options.force_sequential,
                 incremental=incremental,
-                verbose=profile_config.get("verbose_console_logs", False) or full_output,
+                verbose=profile_config.get("verbose_console_logs", False) or full_output or explain,
                 quiet=quiet,
                 profile=build_profile,
                 memory_optimized=memory_optimized,
                 strict=strict,
                 full_output=full_output,
                 profile_templates=profile_templates,
+                explain=explain,
+                dry_run=dry_run,
+                explain_json=explain_json,
             )
             stats = site.build(options=build_opts)
+
+            # Display explain output if requested (RFC: rfc-incremental-build-observability Phase 2)
+            if explain:
+                if explain_json:
+                    _print_explain_json(stats, dry_run=dry_run)
+                else:
+                    _print_explain_output(stats, cli, dry_run=dry_run)
 
             # Display template profiling report if enabled
             if profile_templates and not quiet:
@@ -614,7 +646,7 @@ def build(
             print_all_summaries()
 
         # Show GIL tip for performance (only if not quiet and GIL could be disabled)
-        if not quiet:
+        if not quiet and not explain:
             from bengal.utils.gil import format_gil_tip_for_cli
 
             gil_tip = format_gil_tip_for_cli()
@@ -623,3 +655,175 @@ def build(
     finally:
         # Always close log file handles
         close_all_loggers()
+
+
+def _print_explain_output(stats, cli, *, dry_run: bool = False) -> None:
+    """
+    Print detailed incremental build decision breakdown.
+    
+    RFC: rfc-incremental-build-observability Phase 2
+    
+    Displays a human-readable breakdown of why pages were rebuilt or skipped,
+    grouped by rebuild reason. Useful for debugging cache issues.
+    
+    Args:
+        stats: BuildStats object containing incremental_decision
+        cli: CLIOutput instance for formatted output
+        dry_run: Whether this was a dry-run (preview) build
+    """
+    from bengal.orchestration.build.results import IncrementalDecision
+
+    decision: IncrementalDecision | None = getattr(stats, "incremental_decision", None)
+    if decision is None:
+        cli.warning("No incremental decision data available (try running with --incremental)")
+        return
+
+    # Header
+    cli.blank()
+    if dry_run:
+        cli.header("📊 Incremental Build Preview (--dry-run)")
+        verb = "Would rebuild"
+    else:
+        cli.header("📊 Incremental Build Decision")
+        verb = "Rebuilt"
+
+    total_pages = len(decision.pages_to_build) + decision.pages_skipped_count
+    cli.info(f"  {verb} {len(decision.pages_to_build)} pages ({decision.pages_skipped_count} skipped)")
+    cli.blank()
+
+    # Group pages by rebuild reason
+    reason_groups: dict[str, list[str]] = {}
+    for page_path, reason in decision.rebuild_reasons.items():
+        key = reason.code.value
+        if key not in reason_groups:
+            reason_groups[key] = []
+        reason_groups[key].append(page_path)
+
+    # Display rebuild reasons table
+    if reason_groups:
+        cli.info("  REBUILD:")
+        cli.info("  ┌───────────────────────────────────┬───────┬─────────────────────────────────┐")
+        cli.info("  │ Reason                            │ Count │ Pages                           │")
+        cli.info("  ├───────────────────────────────────┼───────┼─────────────────────────────────┤")
+
+        for reason_code, pages in sorted(reason_groups.items(), key=lambda x: -len(x[1])):
+            # Format pages list (show first 2, truncate if more)
+            if len(pages) <= 2:
+                pages_str = ", ".join(_truncate_path(p) for p in pages)
+            else:
+                pages_str = f"{_truncate_path(pages[0])}, ... +{len(pages) - 1} more"
+
+            # Truncate to fit column
+            if len(pages_str) > 31:
+                pages_str = pages_str[:28] + "..."
+
+            # Format reason code for display
+            reason_display = reason_code.replace("_", " ").title()
+            if len(reason_display) > 33:
+                reason_display = reason_display[:30] + "..."
+
+            cli.info(f"  │ {reason_display:<33} │ {len(pages):>5} │ {pages_str:<31} │")
+
+        cli.info("  └───────────────────────────────────┴───────┴─────────────────────────────────┘")
+        cli.blank()
+
+    # Asset changes section
+    if decision.fingerprint_changes or decision.asset_changes:
+        cli.info("  ASSETS:")
+        for asset in decision.asset_changes:
+            cli.info(f"    • {asset} → CHANGED")
+        if decision.fingerprint_changes:
+            cli.detail("    (fingerprint changed, all pages using these assets were rebuilt)", indent=0)
+        cli.blank()
+
+    # Skip summary
+    if decision.pages_skipped_count > 0:
+        cli.info(f"  SKIP ({decision.pages_skipped_count} pages): no_changes")
+        cli.blank()
+
+    # Detailed skip reasons (only shown in verbose mode / when data available)
+    if decision.skip_reasons:
+        cli.blank()
+        cli.detail(f"  Skipped pages (first 10):", indent=0)
+        for i, (page_path, skip_reason) in enumerate(list(decision.skip_reasons.items())[:10]):
+            cli.detail(f"    • {_truncate_path(page_path)}: {skip_reason.value}", indent=0)
+        if len(decision.skip_reasons) > 10:
+            cli.detail(f"    ... and {len(decision.skip_reasons) - 10} more", indent=0)
+
+    # Footer
+    cli.blank()
+    if dry_run:
+        cli.info("  Run without --dry-run to execute build.")
+    else:
+        reason_summary = decision.get_reason_summary()
+        if reason_summary:
+            summary_parts = [f"{count} {reason}" for reason, count in sorted(reason_summary.items(), key=lambda x: -x[1])[:3]]
+            cli.detail(f"  Reason summary: {', '.join(summary_parts)}", indent=0)
+
+
+def _truncate_path(path: str, max_len: int = 25) -> str:
+    """Truncate path for display, keeping the filename visible."""
+    if len(path) <= max_len:
+        return path
+    # Keep the last part (filename) and truncate from the start
+    parts = path.split("/")
+    if len(parts) == 1:
+        return path[:max_len - 3] + "..."
+    # Try to keep at least the filename
+    filename = parts[-1]
+    if len(filename) >= max_len - 3:
+        return "..." + filename[-(max_len - 3):]
+    remaining = max_len - len(filename) - 4  # 4 for ".../"
+    if remaining > 0:
+        return ".../" + filename
+    return "..." + filename[-(max_len - 3):]
+
+
+def _print_explain_json(stats, *, dry_run: bool = False) -> None:
+    """
+    Print incremental build decision as JSON.
+    
+    RFC: rfc-incremental-build-observability Phase 2
+    
+    Outputs machine-readable JSON for tooling integration.
+    
+    Args:
+        stats: BuildStats object containing incremental_decision
+        dry_run: Whether this was a dry-run (preview) build
+    """
+    import json
+
+    from bengal.orchestration.build.results import IncrementalDecision
+
+    decision: IncrementalDecision | None = getattr(stats, "incremental_decision", None)
+    
+    if decision is None:
+        output = {
+            "error": "No incremental decision data available",
+            "hint": "Try running with --incremental",
+        }
+    else:
+        # Build JSON-serializable output
+        rebuild_reasons = {}
+        for page_path, reason in decision.rebuild_reasons.items():
+            rebuild_reasons[page_path] = {
+                "code": reason.code.value,
+                "details": reason.details if reason.details else None,
+            }
+
+        skip_reasons = {}
+        for page_path, skip_reason in decision.skip_reasons.items():
+            skip_reasons[page_path] = skip_reason.value
+
+        output = {
+            "pages_to_build": len(decision.pages_to_build),
+            "pages_skipped": decision.pages_skipped_count,
+            "fingerprint_changes": decision.fingerprint_changes,
+            "asset_changes": decision.asset_changes if decision.asset_changes else [],
+            "rebuild_reasons": rebuild_reasons,
+            "skip_reasons": skip_reasons if skip_reasons else None,
+            "reason_summary": decision.get_reason_summary(),
+            "dry_run": dry_run,
+        }
+
+    print(json.dumps(output, indent=2))

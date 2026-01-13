@@ -1,6 +1,6 @@
 # RFC: Incremental Build Observability
 
-## Status: Phase 1 Implemented
+## Status: Phase 1 + Phase 2 Implemented
 ## Created: 2026-01-13
 ## Updated: 2026-01-13
 ## Origin: Debugging session for stale CSS fingerprints bug
@@ -334,7 +334,7 @@ Track which pages depend on which assets for smarter selective rebuilds.
 | Phase | Priority | LOC | Complexity | Value | Status |
 |-------|----------|-----|------------|-------|--------|
 | 1. Rebuild Reasons | 🟢 High | ~100 | Low | Immediate debugging help | **✅ Implemented** |
-| 2. Explain Mode | 🟡 Medium | ~80 | Low | User-facing diagnostics | On user request |
+| 2. Explain Mode | 🟡 Medium | ~150 | Low | User-facing diagnostics | **✅ Implemented** |
 | 3. Asset Dependencies | ⛔ Deferred | ~400 | High | Smarter rebuilds | Not planned |
 
 ---
@@ -364,12 +364,14 @@ Track which pages depend on which assets for smarter selective rebuilds.
 
 ### Phase 2
 
-- [ ] Add `--explain` flag to `bengal build` command
-- [ ] Add `--dry-run` flag
-- [ ] Add `--json` output option for `--explain`
-- [ ] Implement `_print_explain_output()` formatter
-- [ ] Update orchestrator to support `dry_run` mode
-- [ ] Add integration tests for explain output
+- [x] Add `--explain` flag to `bengal build` command
+- [x] Add `--dry-run` flag
+- [x] Add `--explain-json` output option for `--explain`
+- [x] Implement `_print_explain_output()` formatter with table format
+- [x] Implement `_print_explain_json()` for machine-readable output
+- [x] Update orchestrator to support `dry_run` mode (skips rendering phases)
+- [x] Add `explain`, `dry_run`, `explain_json` options to BuildOptions
+- [x] Add integration tests for explain output (8 tests)
 
 ---
 
@@ -507,6 +509,7 @@ def test_explain_mode_output(tmp_project, capsys):
 | 2026-01-13 | Additive integration with ChangeDetector | Don't break existing structured logging |
 | 2026-01-13 | Phase 1 implemented | Added RebuildReasonCode, SkipReasonCode enums; IncrementalDecision dataclass; updated phase_incremental_filter(); 17 unit tests |
 | 2026-01-13 | Added OUTPUT_MISSING reason | Handle warm CI builds where output cleaned but cache present |
+| 2026-01-13 | Phase 2 implemented | Added --explain, --dry-run, --explain-json CLI flags; _print_explain_output() and _print_explain_json() formatters; dry_run mode in orchestrator; 8 integration tests |
 
 ---
 

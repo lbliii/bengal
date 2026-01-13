@@ -52,6 +52,9 @@ class BuildOptions:
         strict: Whether to fail build on validation errors
         full_output: Show full traditional output instead of live progress
         profile_templates: Enable template profiling for performance analysis
+        explain: Show detailed incremental build decisions (RFC: rfc-incremental-build-observability)
+        dry_run: Preview build without writing files (shows what WOULD happen)
+        explain_json: Output explain results as JSON (for tooling integration)
         changed_sources: Set of paths to content files that changed (for dev server)
         nav_changed_sources: Set of paths to nav-affecting files that changed
         structural_changed: Whether structural changes occurred (file create/delete/move)
@@ -82,6 +85,11 @@ class BuildOptions:
     # Output behavior
     strict: bool = False
     full_output: bool = False
+
+    # Explain mode (RFC: rfc-incremental-build-observability Phase 2)
+    explain: bool = False
+    dry_run: bool = False
+    explain_json: bool = False
 
     # Profiling
     profile: BuildProfile | None = None

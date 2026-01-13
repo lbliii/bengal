@@ -171,6 +171,10 @@ class BuildOrchestrator:
         changed_sources = options.changed_sources or None
         nav_changed_sources = options.nav_changed_sources or None
         structural_changed = options.structural_changed
+        
+        # Explain mode options (RFC: rfc-incremental-build-observability Phase 2)
+        explain = options.explain
+        dry_run = options.dry_run
 
         # Extract phase callbacks
         on_phase_start = options.on_phase_start
@@ -448,6 +452,20 @@ class BuildOrchestrator:
             content_duration_ms,
             f"{taxonomy_count} taxonomies, {len(affected_tags)} affected tags",
         )
+
+        # === DRY-RUN MODE: Skip output-producing phases ===
+        # RFC: rfc-incremental-build-observability Phase 2
+        # In dry-run mode, we skip rendering, assets, postprocessing, and health
+        # but still collect incremental decision data for --explain output
+        if dry_run:
+            cli.info("  Dry-run mode: skipping rendering and output phases")
+            self.stats.build_time_ms = (time.time() - build_start) * 1000
+            self.stats.dry_run = True
+            
+            # Clear build state (build complete)
+            self.site.set_build_state(None)
+            
+            return self.stats
 
         # === ASSETS PHASE GROUP (dashboard-integrated) ===
         notify_phase_start("assets")
