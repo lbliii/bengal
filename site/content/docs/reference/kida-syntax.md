@@ -885,7 +885,7 @@ kida:
 
 ```yaml
 site:
-  template_engine: jinja2   # Options: kida (default), jinja2, mako, patitas
+  template_engine: jinja2   # Options: kida (default), jinja2, mako
 ```
 
 ## Migration from Jinja2

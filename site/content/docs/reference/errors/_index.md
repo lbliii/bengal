@@ -203,7 +203,7 @@ template_engine = "unknown_engine"
 
 ✅ **Valid**:
 ```toml
-template_engine = "kida"  # default, or "jinja2", "mako", "patitas"
+template_engine = "kida"  # default, or "jinja2", "mako"
 ```
 
 ---

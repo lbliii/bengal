@@ -150,7 +150,7 @@ Kida is the default. To use a different engine, configure `bengal.yaml`:
 
 ```yaml
 site:
-  template_engine: jinja2  # Options: kida (default), jinja2, mako, patitas
+  template_engine: jinja2  # Options: kida (default), jinja2, mako
 ```
 
 ### Custom Engines (BYOR)
